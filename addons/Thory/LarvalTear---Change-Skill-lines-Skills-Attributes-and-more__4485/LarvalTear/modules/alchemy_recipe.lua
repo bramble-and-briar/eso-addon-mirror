@@ -2,60 +2,13 @@ local Addon = LarvalTearMod
 local AlchemyRecipe = Addon.Modules.AlchemyRecipe
 local Log = Addon.Common.Log
 local Util = Addon.Common.Util
+local RecipeStore = Addon.Modules.RecipeStore
+local RecipeWatcher = Addon.Modules.RecipeWatcher
 
-local STATION_INTERACT_EVENT_NAME = "LTM_AlchemyRecipe_StationInteract"
-local STATION_END_EVENT_NAME = "LTM_AlchemyRecipe_StationEnd"
-local ALCHEMY_SCENE_CALLBACK_UPDATE_NAME = "LTM_AlchemyRecipe_AlchemySceneRetry"
-local ALCHEMY_SCENE_CALLBACK_RETRY_INTERVAL_MS = 1000
-local ALCHEMY_SCENE_CALLBACK_MAX_RETRY = 30
-
-AlchemyRecipe.isStationOpen = false
-
-local function NormalizeCharacterKey(characterKey)
-    if characterKey ~= nil then
-        return tostring(characterKey)
-    end
-
-    if type(GetCurrentCharacterId) ~= "function" then
-        return nil
-    end
-
-    local ok, characterId = pcall(GetCurrentCharacterId)
-    if ok and characterId ~= nil then
-        return tostring(characterId)
-    end
-
-    return nil
-end
+RecipeStore:Attach(AlchemyRecipe, "alchemyRecipeByCharacter", "alchemy_recipe_not_found", true)
 
 local function Debug(...)
     Log.Debug("[AlchemyRecipe]", ...)
-end
-
-local function NormalizeRecipeId(recipeId)
-    if type(recipeId) ~= "string" or recipeId == "" then
-        return nil
-    end
-    return recipeId
-end
-
-local function NormalizeAutoApplyEnabled(enabled)
-    return enabled == true
-end
-
-local function RemoveFirstValue(values, targetValue)
-    if type(values) ~= "table" then
-        return nil
-    end
-
-    for index, value in ipairs(values) do
-        if value == targetValue then
-            table.remove(values, index)
-            return index
-        end
-    end
-
-    return nil
 end
 
 local function GetItemIdFromBagSlot(bagId, slotIndex)
@@ -308,37 +261,6 @@ local function GetAlchemyScene()
     return scene
 end
 
-local function GetSceneShowingState()
-    return rawget(_G, "SCENE_SHOWING") or "showing"
-end
-
-local function IsSceneShowingState(newState)
-    return newState == GetSceneShowingState()
-end
-
-local function IsAlchemySceneOpen()
-    local scene = GetAlchemyScene()
-    if type(scene) ~= "table" then
-        return AlchemyRecipe.isStationOpen == true
-    end
-
-    if type(scene.IsShowing) == "function" then
-        local ok, isShowing = pcall(scene.IsShowing, scene)
-        if ok and isShowing == true then
-            return true
-        end
-    end
-
-    if type(scene.GetState) == "function" then
-        local ok, state = pcall(scene.GetState, scene)
-        if ok then
-            return state == GetSceneShowingState() or state == rawget(_G, "SCENE_SHOWN")
-        end
-    end
-
-    return AlchemyRecipe.isStationOpen == true
-end
-
 local function GetResultingItemLink(slots)
     if type(slots) ~= "table" or type(GetAlchemyResultingItemLink) ~= "function" then
         return nil
@@ -384,7 +306,7 @@ local function GetResultingItemLink(slots)
 end
 
 local function OnAlchemySceneStateChange(_, newState)
-    if not IsSceneShowingState(newState) then
+    if not RecipeWatcher.IsSceneShowingState(newState) then
         return
     end
     if AlchemyRecipe:GetAutoApplyEnabled() ~= true then
@@ -404,62 +326,6 @@ local function OnAlchemySceneStateChange(_, newState)
     end
 end
 
-local function RegisterAlchemySceneCallback()
-    if AlchemyRecipe.alchemySceneCallbackRegistered == true then
-        return false
-    end
-
-    local scene = GetAlchemyScene()
-    if scene == nil or type(scene.RegisterCallback) ~= "function" then
-        return false
-    end
-
-    AlchemyRecipe.alchemySceneCallbackRegistered = true
-    scene:RegisterCallback("StateChange", OnAlchemySceneStateChange)
-    return true
-end
-
-local function ScheduleAlchemySceneCallbackRegistration()
-    if AlchemyRecipe.alchemySceneCallbackRegistered == true
-        or AlchemyRecipe.alchemySceneCallbackRetryScheduled == true then
-        return false
-    end
-    if type(EVENT_MANAGER) ~= "table" or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
-        return false
-    end
-
-    AlchemyRecipe.alchemySceneCallbackRetryScheduled = true
-    local retryCount = 0
-    EVENT_MANAGER:RegisterForUpdate(ALCHEMY_SCENE_CALLBACK_UPDATE_NAME, ALCHEMY_SCENE_CALLBACK_RETRY_INTERVAL_MS, function()
-        retryCount = retryCount + 1
-
-        if AlchemyRecipe.alchemySceneCallbackRegistered == true then
-            AlchemyRecipe.alchemySceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(ALCHEMY_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            return
-        end
-        if RegisterAlchemySceneCallback() then
-            AlchemyRecipe.alchemySceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(ALCHEMY_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            return
-        end
-
-        if retryCount >= ALCHEMY_SCENE_CALLBACK_MAX_RETRY then
-            AlchemyRecipe.alchemySceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(ALCHEMY_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            Debug("AlchemySceneCallback retry exhausted")
-        end
-    end)
-
-    return true
-end
-
 local function GetItemLinkDisplayName(itemLink)
     if type(itemLink) ~= "string" or itemLink == "" or type(GetItemLinkName) ~= "function" then
         return nil
@@ -473,283 +339,26 @@ local function GetItemLinkDisplayName(itemLink)
     return nil
 end
 
-local function BuildDefaultRecipeName(recipeId)
-    local suffix = type(recipeId) == "string" and recipeId:match("recipe_(%d+)$") or nil
-    return "Recipe " .. (suffix or "0001")
-end
-
-local function GetRecipeById(self, recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    if recipeId == nil then
-        return nil, "recipe_not_found"
-    end
-
-    local bucket = self:GetCharacterBucketReadonly()
-    local recipe = type(bucket) == "table"
-        and type(bucket.recipes) == "table"
-        and bucket.recipes[recipeId]
-        or nil
-    if type(recipe) ~= "table" then
-        return nil, "recipe_not_found"
-    end
-
-    return Util:DeepCopy(recipe)
-end
+RecipeWatcher.Attach(AlchemyRecipe, {
+    stationInteractName = "LTM_AlchemyRecipe_StationInteract",
+    stationEndName = "LTM_AlchemyRecipe_StationEnd",
+    craftingTypeName = "CRAFTING_TYPE_ALCHEMY",
+    updateName = "LTM_AlchemyRecipe_AlchemySceneRetry",
+    callbackRegisteredField = "alchemySceneCallbackRegistered",
+    retryScheduledField = "alchemySceneCallbackRetryScheduled",
+    getScene = GetAlchemyScene,
+    onSceneStateChange = OnAlchemySceneStateChange,
+    debug = Debug,
+    retryExhaustedMessage = "AlchemySceneCallback retry exhausted",
+})
 
 function AlchemyRecipe:Initialize(savedVars)
     self.savedVars = savedVars
-    self:RegisterStationEvents()
-    if not RegisterAlchemySceneCallback() then
-        ScheduleAlchemySceneCallbackRegistration()
-    end
-end
-
-function AlchemyRecipe:EnsureSavedVarsShape(readOnly)
-    if type(self.savedVars) ~= "table" then
-        return nil
-    end
-
-    if type(self.savedVars.alchemyRecipeByCharacter) ~= "table" then
-        if readOnly then
-            return nil
-        end
-        self.savedVars.alchemyRecipeByCharacter = {}
-    end
-
-    return self.savedVars
-end
-
-function AlchemyRecipe:BuildDefaultCharacterBucket(characterKey)
-    return {
-        recipes = {},
-        recipeOrder = {},
-        nextIndex = 1,
-        activeRecipeId = nil,
-        autoApplyEnabled = false,
-        ownerCharacterId = characterKey,
-    }
-end
-
-function AlchemyRecipe:NormalizeCharacterBucket(bucket, characterKey)
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    if type(bucket.recipes) ~= "table" then
-        bucket.recipes = {}
-    end
-    if type(bucket.recipeOrder) ~= "table" then
-        bucket.recipeOrder = {}
-        for recipeId, recipe in pairs(bucket.recipes) do
-            if type(recipeId) == "string" and type(recipe) == "table" then
-                bucket.recipeOrder[#bucket.recipeOrder + 1] = recipeId
-            end
-        end
-        table.sort(bucket.recipeOrder)
-    end
-
-    bucket.nextIndex = math.max(tonumber(bucket.nextIndex) or 1, 1)
-    bucket.autoApplyEnabled = NormalizeAutoApplyEnabled(bucket.autoApplyEnabled)
-    bucket.activeRecipeId = NormalizeRecipeId(bucket.activeRecipeId)
-    bucket.ownerCharacterId = bucket.ownerCharacterId or characterKey
-
-    if bucket.activeRecipeId ~= nil and type(bucket.recipes[bucket.activeRecipeId]) ~= "table" then
-        bucket.activeRecipeId = nil
-    end
-
-    return bucket
-end
-
-function AlchemyRecipe:GetCharacterBucketReadonly()
-    local savedVars = self:EnsureSavedVarsShape(true)
-    if type(savedVars) ~= "table" or type(savedVars.alchemyRecipeByCharacter) ~= "table" then
-        return nil
-    end
-
-    local characterKey = NormalizeCharacterKey()
-    if type(characterKey) ~= "string" or characterKey == "" then
-        return nil
-    end
-
-    local bucket = savedVars.alchemyRecipeByCharacter[characterKey]
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    bucket = Util:DeepCopy(bucket)
-    return self:NormalizeCharacterBucket(bucket, characterKey)
-end
-
-function AlchemyRecipe:EnsureCharacterBucketForWrite()
-    local savedVars = self:EnsureSavedVarsShape(false)
-    if type(savedVars) ~= "table" then
-        return nil
-    end
-
-    local characterKey = NormalizeCharacterKey()
-    if type(characterKey) ~= "string" or characterKey == "" then
-        return nil
-    end
-
-    local bucket = savedVars.alchemyRecipeByCharacter[characterKey]
-    if type(bucket) ~= "table" then
-        bucket = self:BuildDefaultCharacterBucket(characterKey)
-        savedVars.alchemyRecipeByCharacter[characterKey] = bucket
-    end
-
-    return self:NormalizeCharacterBucket(bucket, characterKey)
-end
-
-function AlchemyRecipe:GenerateRecipeId(bucket)
-    bucket = type(bucket) == "table" and bucket or self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    if type(bucket.recipes) ~= "table" then
-        bucket.recipes = {}
-    end
-
-    while true do
-        local nextIndex = math.max(tonumber(bucket.nextIndex) or 1, 1)
-        local recipeId = string.format("recipe_%04d", nextIndex)
-        bucket.nextIndex = nextIndex + 1
-        if type(bucket.recipes[recipeId]) ~= "table" then
-            return recipeId
-        end
-    end
-end
-
-function AlchemyRecipe:GetAutoApplyEnabled()
-    local bucket = self:GetCharacterBucketReadonly()
-    return NormalizeAutoApplyEnabled(type(bucket) == "table" and bucket.autoApplyEnabled or nil)
+    RecipeWatcher.Initialize(self)
 end
 
 function AlchemyRecipe:IsStationOpen()
-    return GetAlchemyObject() ~= nil and IsAlchemySceneOpen()
-end
-
-function AlchemyRecipe:SetAutoApplyEnabled(enabled)
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" then
-        return false
-    end
-
-    bucket.autoApplyEnabled = NormalizeAutoApplyEnabled(enabled)
-    return true
-end
-
-function AlchemyRecipe:GetActiveRecipeId()
-    local bucket = self:GetCharacterBucketReadonly()
-    return type(bucket) == "table" and bucket.activeRecipeId or nil
-end
-
-function AlchemyRecipe:SetActiveRecipe(recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or recipeId == nil
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    bucket.activeRecipeId = recipeId
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function AlchemyRecipe:RenameRecipe(recipeId, newName)
-    recipeId = NormalizeRecipeId(recipeId)
-    newName = Util:NormalizeDisplayName(newName)
-    if recipeId == nil or newName == nil then
-        return nil, "invalid_recipe_name"
-    end
-
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or type(existingBucket.recipes) ~= "table"
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId].name = newName
-    bucket.recipes[recipeId].updatedAt = Util:GetTimestamp()
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function AlchemyRecipe:SetRecipeCraftCount(recipeId, count)
-    recipeId = NormalizeRecipeId(recipeId)
-    count = math.max(math.floor(tonumber(count) or 1), 1)
-    if recipeId == nil then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or type(existingBucket.recipes) ~= "table"
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "alchemy_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId].craftCount = count
-    bucket.recipes[recipeId].updatedAt = Util:GetTimestamp()
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function AlchemyRecipe:GetRecipeList()
-    local bucket = self:GetCharacterBucketReadonly()
-    local recipes = {}
-    if type(bucket) ~= "table" or type(bucket.recipes) ~= "table" then
-        return recipes
-    end
-
-    for _, recipeId in ipairs(bucket.recipeOrder or {}) do
-        local recipe = bucket.recipes[recipeId]
-        if type(recipe) == "table" then
-            local copy = Util:DeepCopy(recipe)
-            copy.isActive = bucket.activeRecipeId == recipeId
-            recipes[#recipes + 1] = copy
-        end
-    end
-
-    return recipes
-end
-
-function AlchemyRecipe:DeleteRecipe(recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or recipeId == nil
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return false, "alchemy_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return false, "alchemy_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId] = nil
-    RemoveFirstValue(bucket.recipeOrder, recipeId)
-    if bucket.activeRecipeId == recipeId then
-        bucket.activeRecipeId = nil
-    end
-
-    return true
+    return GetAlchemyObject() ~= nil and RecipeWatcher.IsSceneOpen(self, GetAlchemyScene())
 end
 
 function AlchemyRecipe:BuildInventoryIndex()
@@ -757,7 +366,7 @@ function AlchemyRecipe:BuildInventoryIndex()
 end
 
 function AlchemyRecipe:GetRecipeInventoryState(recipeId, inventoryIndex)
-    local recipe, err = GetRecipeById(self, recipeId)
+    local recipe, err = RecipeStore.GetRecipe(self, recipeId)
     if type(recipe) ~= "table" then
         return nil, err or "recipe_not_found"
     end
@@ -796,37 +405,6 @@ function AlchemyRecipe:GetRecipeInventoryState(recipeId, inventoryIndex)
     }
 end
 
-function AlchemyRecipe:RegisterStationEvents()
-    if self.stationEventsRegistered == true then
-        return false
-    end
-    if EVENT_MANAGER == nil or type(EVENT_MANAGER.RegisterForEvent) ~= "function" then
-        return false
-    end
-
-    local stationInteractEvent = rawget(_G, "EVENT_CRAFTING_STATION_INTERACT")
-    local stationEndEvent = rawget(_G, "EVENT_END_CRAFTING_STATION_INTERACT")
-    if stationInteractEvent == nil or stationEndEvent == nil then
-        return false
-    end
-
-    self.stationEventsRegistered = true
-    EVENT_MANAGER:RegisterForEvent(STATION_INTERACT_EVENT_NAME, stationInteractEvent, function(_, craftingType)
-        if craftingType == rawget(_G, "CRAFTING_TYPE_ALCHEMY") then
-            AlchemyRecipe.isStationOpen = true
-            if not RegisterAlchemySceneCallback() then
-                ScheduleAlchemySceneCallbackRegistration()
-            end
-        end
-    end)
-    EVENT_MANAGER:RegisterForEvent(STATION_END_EVENT_NAME, stationEndEvent, function(_, craftingType)
-        if craftingType == rawget(_G, "CRAFTING_TYPE_ALCHEMY") then
-            AlchemyRecipe.isStationOpen = false
-        end
-    end)
-    return true
-end
-
 function AlchemyRecipe:ApplyRecipeToStation(recipeId)
     local alchemy = GetAlchemyObject()
     if type(alchemy) ~= "table" then
@@ -841,7 +419,7 @@ function AlchemyRecipe:ApplyRecipeToStation(recipeId)
         return false, "alchemy_methods_unavailable"
     end
 
-    local recipe, recipeErr = GetRecipeById(self, recipeId)
+    local recipe, recipeErr = RecipeStore.GetRecipe(self, recipeId)
     if type(recipe) ~= "table" then
         return false, recipeErr or "recipe_not_found"
     end
@@ -904,7 +482,7 @@ function AlchemyRecipe:ApplyRecipeToStation(recipeId)
         end
     end
 
-    local craftCount = math.max(math.floor(tonumber(recipe.craftCount) or 1), 1)
+    local craftCount = RecipeStore.NormalizeCraftCount(recipe.craftCount)
     local spinnerOk, spinnerErr = ApplyCraftCountToAlchemySpinner(craftCount)
     if spinnerOk ~= true then
         Debug(
@@ -970,7 +548,7 @@ function AlchemyRecipe:UpsertRecipeFromSlots(slots, name)
         id = recipeId,
         name = Util:NormalizeDisplayName(name)
             or GetItemLinkDisplayName(slots.resultItemLink)
-            or BuildDefaultRecipeName(recipeId),
+            or RecipeStore.BuildDefaultRecipeName(recipeId),
         notes = "",
         solventItemId = slots.solventItemId,
         reagentItemIds = reagentItemIds,
@@ -980,13 +558,7 @@ function AlchemyRecipe:UpsertRecipeFromSlots(slots, name)
         updatedAt = timestamp,
     }
 
-    bucket.recipes[recipeId] = recipe
-    bucket.recipeOrder[#bucket.recipeOrder + 1] = recipeId
-    if bucket.activeRecipeId == nil then
-        bucket.activeRecipeId = recipeId
-    end
-
-    return Util:DeepCopy(recipe)
+    return RecipeStore.AddRecipe(self, bucket, recipe)
 end
 
 function AlchemyRecipe:CaptureFromStation(name)

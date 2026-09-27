@@ -18,7 +18,7 @@
     "NowhereVaultSecretSeeker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4875/",
-  "fingerprint": "75c1b58cade64ca0dab07d96253d534783a807d54bd154b85f0c54d446b804d5",
+  "fingerprint": "9aa824bc8db781896c709d8a2bbf02563d6c167c438cf506dd1e230ec92a22e5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17556.png",
     "https://cdn-eso.mmoui.com/preview/pvw17557.png",
@@ -31,11 +31,11 @@
   "source_id": "4875",
   "source_url": "https://www.esoui.com/downloads/info4875-NowhereVaultSecretSeeker.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 26,
+    "favorites": 3,
+    "monthly_downloads": 18
   },
   "title": "Nowhere Vault: Secret Seeker",
-  "updated_at": 1790404112000,
-  "version": "1.0"
+  "updated_at": 1790453723000,
+  "version": "1.0.1"
 }

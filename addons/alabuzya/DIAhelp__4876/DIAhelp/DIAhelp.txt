@@ -1,0 +1,32 @@
+; Not affiliated with or sponsored by ZeniMax Media Inc.
+## APIVersion: 101050
+## Title: DIAhelp
+## Author: alabuzya; original DiabloFrames: BulDeZir, Forsion
+## Version: 1.0.4
+## AddOnVersion: 10004
+## SavedVariables: DIAhelpSavedVariables
+## Description: Diablo-style UI, minimap, quests, inventory, combat and everyday helpers. Contact: aabuziarov@gmail.com
+## OptionalDependsOn: FancyActionBar QuestArrow pChat
+
+Chat.lua
+Junk.lua
+Maintenance.lua
+CombatModel.lua
+CombatHUD.lua
+TargetHealth.lua
+Buffs.lua
+GroupMenu.lua
+GroupFrames.lua
+Minimap.lua
+QuestTracker.lua
+InventoryGrid.lua
+Companion.lua
+DualBar.lua
+DIAhelp.lua
+DIAhelp.xml
+
+QuestArrow/Bootstrap.lua
+QuestArrow/Planner.lua
+QuestArrow/CrossTravel.lua
+QuestArrow/UI.lua
+QuestArrow/QuestArrow.lua

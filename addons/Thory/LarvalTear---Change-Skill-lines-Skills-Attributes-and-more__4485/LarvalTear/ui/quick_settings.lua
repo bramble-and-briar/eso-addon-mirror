@@ -72,8 +72,6 @@ local ALCHEMY_RECIPE_COUNT_EDIT_HEIGHT = 24
 local ALCHEMY_RECIPE_ICON_BUTTON_SIZE = 24
 local ALCHEMY_RECIPE_APPLY_BUTTON_WIDTH = 132
 local ALCHEMY_RECIPE_PLACEHOLDER_ICON = "/esoui/art/icons/icon_missing.dds"
-local alchemyRecipeCardControlSerial = 0
-local enchantRecipeCardControlSerial = 0
 local scribingRecipeCardControlSerial = 0
 
 local MENU_ENTRIES = {
@@ -83,6 +81,53 @@ local MENU_ENTRIES = {
     { id = "enchant_recipe", textKey = "quick_settings.menu.enchant_recipe" },
     { id = "scribing_recipe", textKey = "quick_settings.menu.scribing_recipe" },
 }
+
+local RECIPE_DESCRIPTORS = {
+    {
+        menuId = "alchemy_recipe",
+        recipeModule = AlchemyRecipe,
+        craftingTypeName = "CRAFTING_TYPE_ALCHEMY",
+        stationEventRefresh = true,
+        panelField = "alchemyRecipePanel",
+        headerField = "alchemyRecipeHeader",
+        refreshMethod = "RefreshAlchemyRecipe",
+        nameFallbackField = "resultItemLink",
+        applyLogTag = "[AlchemyRecipe]",
+        inventoryRefresh = true,
+        cardControlPrefix = "LTM_AlchemyRecipeCard",
+        pageControlName = "AlchemyRecipe",
+        renameDialogId = "ALCHEMY_RECIPE_RENAME_INPUT",
+    },
+    {
+        menuId = "enchant_recipe",
+        recipeModule = EnchantRecipe,
+        craftingTypeName = "CRAFTING_TYPE_ENCHANTING",
+        stationEventRefresh = true,
+        panelField = "enchantRecipePanel",
+        headerField = "enchantRecipeHeader",
+        refreshMethod = "RefreshEnchantRecipe",
+        nameFallbackField = "resultItemLink",
+        applyLogTag = "[EnchantRecipe]",
+        inventoryRefresh = true,
+        cardControlPrefix = "LTM_EnchantRecipeCard",
+        pageControlName = "EnchantRecipe",
+        renameDialogId = "ENCHANT_RECIPE_RENAME_INPUT",
+    },
+    {
+        menuId = "scribing_recipe",
+        recipeModule = ScribingRecipe,
+        craftingTypeName = "CRAFTING_TYPE_SCRIBING",
+        panelField = "scribingRecipePanel",
+        headerField = "scribingRecipeHeader",
+        refreshMethod = "RefreshScribingRecipe",
+        nameFallbackField = "craftedAbilityName",
+        applyLogTag = "[ScribingRecipe]",
+    },
+}
+local RECIPE_DESCRIPTOR_BY_MENU_ID = {}
+for _, descriptor in ipairs(RECIPE_DESCRIPTORS) do
+    RECIPE_DESCRIPTOR_BY_MENU_ID[descriptor.menuId] = descriptor
+end
 
 local function GetText(key, params)
     return Strings:GetText(key, params)
@@ -421,7 +466,7 @@ local function GetItemLinkNameSafe(itemLink)
     return nil
 end
 
-local function BuildAlchemyItemDisplay(itemState, fallbackItemId)
+local function BuildCraftingRecipeItemDisplay(itemState, fallbackItemId)
     itemState = type(itemState) == "table" and itemState or {}
     local itemLink = GetItemLinkFromBagSlot(itemState.bagId, itemState.slotIndex)
     local itemId = itemState.itemId or fallbackItemId
@@ -433,10 +478,6 @@ local function BuildAlchemyItemDisplay(itemState, fallbackItemId)
         count = tonumber(itemState.totalStackCount) or 0,
         found = itemState.found == true,
     }
-end
-
-local function BuildEnchantItemDisplay(itemState, fallbackItemId)
-    return BuildAlchemyItemDisplay(itemState, fallbackItemId)
 end
 
 local function CreateButton(parent, name, text, width, onClicked)
@@ -502,18 +543,13 @@ local function GetQuickSlotFetchActivityState()
 end
 
 local function IsRecipeMenuId(menuId)
-    return menuId == "alchemy_recipe" or menuId == "enchant_recipe" or menuId == "scribing_recipe"
+    return RECIPE_DESCRIPTOR_BY_MENU_ID[menuId] ~= nil
 end
 
 local function RefreshRecipePage(self, menuId)
-    if menuId == "alchemy_recipe" then
-        return self:RefreshAlchemyRecipe()
-    end
-    if menuId == "enchant_recipe" then
-        return self:RefreshEnchantRecipe()
-    end
-    if menuId == "scribing_recipe" then
-        return self:RefreshScribingRecipe()
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID[menuId]
+    if descriptor ~= nil then
+        return self[descriptor.refreshMethod](self)
     end
 
     return nil
@@ -527,33 +563,58 @@ local function IsRecipePageVisible(self, menuId)
     if self.selectedMenuId ~= menuId then
         return false
     end
-    if menuId == "alchemy_recipe" then
-        return self.alchemyRecipePanel ~= nil
-            and type(self.alchemyRecipePanel.IsHidden) == "function"
-            and self.alchemyRecipePanel:IsHidden() == false
-    end
-    if menuId == "enchant_recipe" then
-        return self.enchantRecipePanel ~= nil
-            and type(self.enchantRecipePanel.IsHidden) == "function"
-            and self.enchantRecipePanel:IsHidden() == false
-    end
-    if menuId == "scribing_recipe" then
-        return self.scribingRecipePanel ~= nil
-            and type(self.scribingRecipePanel.IsHidden) == "function"
-            and self.scribingRecipePanel:IsHidden() == false
-    end
-
-    return false
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID[menuId]
+    local panel = descriptor ~= nil and self[descriptor.panelField] or nil
+    return panel ~= nil and type(panel.IsHidden) == "function" and panel:IsHidden() == false
 end
 
 local function GetRecipeMenuIdForCraftingType(craftingType)
-    if craftingType == rawget(_G, "CRAFTING_TYPE_ALCHEMY") then
-        return "alchemy_recipe"
-    end
-    if craftingType == rawget(_G, "CRAFTING_TYPE_ENCHANTING") then
-        return "enchant_recipe"
+    for _, descriptor in ipairs(RECIPE_DESCRIPTORS) do
+        if descriptor.craftingTypeName ~= nil and craftingType == rawget(_G, descriptor.craftingTypeName) then
+            return descriptor.menuId
+        end
     end
     return nil
+end
+
+local function HandleRecipeResult(self, descriptor, action, outcome, detail, recipeId)
+    local success
+    if action == "deleted" or action == "applied" then
+        success = outcome == true
+    else
+        success = type(outcome) == "table"
+    end
+
+    if not success then
+        WriteChat(descriptor.errorText(detail))
+        RefreshRecipePage(self, descriptor.menuId)
+        return false
+    end
+
+    if action == "deleted" then
+        WriteChat(GetText("quick_settings." .. descriptor.menuId .. ".deleted"))
+    else
+        local recipe = outcome
+        local fallbackId
+        if action == "applied" then
+            recipe = type(detail) == "table" and type(detail.recipe) == "table" and detail.recipe or {}
+            fallbackId = recipeId
+        else
+            fallbackId = recipe.id
+        end
+        WriteChat(GetText("quick_settings." .. descriptor.menuId .. "." .. action, {
+            recipeName = recipe.name or recipe[descriptor.nameFallbackField] or fallbackId or "",
+        }))
+    end
+
+    if action == "applied" then
+        Log.Debug(descriptor.applyLogTag, "manualApply", "ok=true", "recipeId=" .. tostring(recipeId))
+    end
+    RefreshRecipePage(self, descriptor.menuId)
+    if action == "applied" then
+        self:StartRecipeShortRefresh(descriptor.menuId)
+    end
+    return true
 end
 
 local function ScheduleVisibleRecipeRefresh(self, menuId)
@@ -583,6 +644,8 @@ local function ScheduleVisibleRecipeRefresh(self, menuId)
     end
 end
 
+local SetSelectedMenu
+
 local function RegisterRecipeRefreshEvents(self)
     if self.recipeRefreshEventsRegistered == true then
         return
@@ -599,7 +662,8 @@ local function RegisterRecipeRefreshEvents(self)
         eventManager:RegisterForEvent(RECIPE_REFRESH_INVENTORY_EVENT_NAME, inventoryEvent, function(_, bagId)
             if bagId == rawget(_G, "BAG_BACKPACK") or bagId == rawget(_G, "BAG_VIRTUAL") then
                 local menuId = self.selectedMenuId
-                if menuId == "alchemy_recipe" or menuId == "enchant_recipe" then
+                local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID[menuId]
+                if descriptor ~= nil and descriptor.inventoryRefresh == true then
                     ScheduleVisibleRecipeRefresh(self, menuId)
                 end
             end
@@ -610,7 +674,8 @@ local function RegisterRecipeRefreshEvents(self)
     if craftEvent ~= nil then
         eventManager:RegisterForEvent(RECIPE_REFRESH_CRAFT_EVENT_NAME, craftEvent, function(_, craftingType)
             local menuId = GetRecipeMenuIdForCraftingType(craftingType)
-            if menuId ~= nil and self.selectedMenuId == menuId then
+            local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID[menuId]
+            if descriptor ~= nil and descriptor.stationEventRefresh == true and self.selectedMenuId == menuId then
                 self:StartRecipeShortRefresh(menuId)
                 ScheduleVisibleRecipeRefresh(self, menuId)
             end
@@ -621,9 +686,14 @@ local function RegisterRecipeRefreshEvents(self)
     if stationEvent ~= nil then
         eventManager:RegisterForEvent(RECIPE_REFRESH_STATION_EVENT_NAME, stationEvent, function(_, craftingType)
             local menuId = GetRecipeMenuIdForCraftingType(craftingType)
-            if IsRecipePageVisible(self, menuId) then
-                ScheduleVisibleRecipeRefresh(self, menuId)
-                self:StartRecipeShortRefresh(menuId)
+            if menuId ~= nil then
+                zo_callLater(function()
+                    SetSelectedMenu(self, menuId)
+                    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID[menuId]
+                    if descriptor.stationEventRefresh == true and IsRecipePageVisible(self, menuId) then
+                        self:StartRecipeShortRefresh(menuId)
+                    end
+                end, 0)
             end
         end)
     end
@@ -631,7 +701,11 @@ local function RegisterRecipeRefreshEvents(self)
     local stationEndEvent = rawget(_G, "EVENT_END_CRAFTING_STATION_INTERACT")
     if stationEndEvent ~= nil then
         eventManager:RegisterForEvent(RECIPE_REFRESH_STATION_END_EVENT_NAME, stationEndEvent, function(_, craftingType)
-            ScheduleVisibleRecipeRefresh(self, GetRecipeMenuIdForCraftingType(craftingType))
+            local menuId = GetRecipeMenuIdForCraftingType(craftingType)
+            local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID[menuId]
+            if descriptor ~= nil and descriptor.stationEventRefresh == true then
+                ScheduleVisibleRecipeRefresh(self, menuId)
+            end
         end)
     end
 end
@@ -779,12 +853,10 @@ local function ShouldRefreshQuickSlotDisplay(state)
 end
 
 local RefreshMenuSelection
-local SetSelectedMenu
 local CreateMenuRow
 local CreateQuickSlotsPanel
 local CreateFoodHelperPanel
-local CreateAlchemyRecipePanel
-local CreateEnchantRecipePanel
+local CreateCraftingRecipePage
 local CreateScribingRecipePanel
 local SetFoodAutoEatEnabled
 local HandleFoodHelperResult
@@ -793,28 +865,6 @@ local SetActiveFoodCard
 local HandleFoodCardClick
 local CreateFoodCard
 local RefreshFoodCard
-local SetAlchemyAutoApplyEnabled
-local CaptureAlchemyRecipe
-local SetActiveAlchemyRecipe
-local ApplyAlchemyRecipeToStation
-local SetAlchemyRecipeCraftCount
-local BeginAlchemyRecipeCraftCountEdit
-local CommitAlchemyRecipeCraftCount
-local CancelAlchemyRecipeCraftCountEdit
-local DeleteAlchemyRecipe
-local CreateAlchemyRecipeCard
-local RefreshAlchemyRecipeCard
-local SetEnchantAutoApplyEnabled
-local CaptureEnchantRecipe
-local SetActiveEnchantRecipe
-local ApplyEnchantRecipeToStation
-local SetEnchantRecipeCraftCount
-local BeginEnchantRecipeCraftCountEdit
-local CommitEnchantRecipeCraftCount
-local CancelEnchantRecipeCraftCountEdit
-local DeleteEnchantRecipe
-local CreateEnchantRecipeCard
-local RefreshEnchantRecipeCard
 local SetScribingAutoApplyEnabled
 local CaptureScribingRecipe
 local RegisterScribingRecipeFromDrop
@@ -885,35 +935,23 @@ SetSelectedMenu = function(self, menuId)
     if self.foodHelperHeader then
         self.foodHelperHeader:SetHidden(selectedEntry.id ~= "food_helper")
     end
-    if self.alchemyRecipePanel then
-        self.alchemyRecipePanel:SetHidden(selectedEntry.id ~= "alchemy_recipe")
-    end
-    if self.alchemyRecipeHeader then
-        self.alchemyRecipeHeader:SetHidden(selectedEntry.id ~= "alchemy_recipe")
-    end
-    if self.enchantRecipePanel then
-        self.enchantRecipePanel:SetHidden(selectedEntry.id ~= "enchant_recipe")
-    end
-    if self.enchantRecipeHeader then
-        self.enchantRecipeHeader:SetHidden(selectedEntry.id ~= "enchant_recipe")
-    end
-    if self.scribingRecipePanel then
-        self.scribingRecipePanel:SetHidden(selectedEntry.id ~= "scribing_recipe")
-    end
-    if self.scribingRecipeHeader then
-        self.scribingRecipeHeader:SetHidden(selectedEntry.id ~= "scribing_recipe")
+    for _, descriptor in ipairs(RECIPE_DESCRIPTORS) do
+        local panel = self[descriptor.panelField]
+        if panel then
+            panel:SetHidden(selectedEntry.id ~= descriptor.menuId)
+        end
+        local header = self[descriptor.headerField]
+        if header then
+            header:SetHidden(selectedEntry.id ~= descriptor.menuId)
+        end
     end
     self:HideQuickSlotSettingsMenu()
     if selectedEntry.id == "quick_slots" then
         self:RefreshQuickSlots()
     elseif selectedEntry.id == "food_helper" then
         self:RefreshFoodHelper()
-    elseif selectedEntry.id == "alchemy_recipe" then
-        self:RefreshAlchemyRecipe()
-    elseif selectedEntry.id == "enchant_recipe" then
-        self:RefreshEnchantRecipe()
-    elseif selectedEntry.id == "scribing_recipe" then
-        self:RefreshScribingRecipe()
+    else
+        RefreshRecipePage(self, selectedEntry.id)
     end
 end
 
@@ -1002,8 +1040,8 @@ function QuickSettings:CreateContent(parent)
 
     CreateQuickSlotsPanel(self, rightPane, contentTitleLabel)
     CreateFoodHelperPanel(self, rightPane, contentTitleLabel)
-    CreateAlchemyRecipePanel(self, rightPane, contentTitleLabel)
-    CreateEnchantRecipePanel(self, rightPane, contentTitleLabel)
+    CreateCraftingRecipePage(self, rightPane, contentTitleLabel, RECIPE_DESCRIPTOR_BY_MENU_ID.alchemy_recipe)
+    CreateCraftingRecipePage(self, rightPane, contentTitleLabel, RECIPE_DESCRIPTOR_BY_MENU_ID.enchant_recipe)
     CreateScribingRecipePanel(self, rightPane, contentTitleLabel)
 
     self.menuRows = {}
@@ -1488,40 +1526,46 @@ function QuickSettings:RefreshFoodHelper()
     end
 end
 
-CreateAlchemyRecipePanel = function(self, parent, titleLabel)
-    local header = WINDOW_MANAGER:CreateControl("$(parent)AlchemyRecipeHeader", parent, CT_CONTROL)
+CreateCraftingRecipePage = function(self, parent, titleLabel, descriptor)
+    self.recipePages = self.recipePages or {}
+    local previousPage = self.recipePages[descriptor.menuId]
+    local page = { cardSerial = previousPage and previousPage.cardSerial or 0 }
+    local header = WINDOW_MANAGER:CreateControl("$(parent)" .. descriptor.pageControlName .. "Header", parent, CT_CONTROL)
     header:ClearAnchors()
     header:SetAnchor(TOPLEFT, titleLabel, TOPLEFT, 0, 0)
     header:SetAnchor(TOPRIGHT, parent, TOPRIGHT, -QUICK_SETTINGS_PANEL_PADDING, QUICK_SETTINGS_PANEL_PADDING)
     header:SetHeight(FOOD_PANEL_HEADER_HEIGHT)
     header:SetHidden(true)
     SetControlDrawOrder(header, DT_HIGH, DL_CONTROLS, 4)
-    self.alchemyRecipeHeader = header
+    page.header = header
+    self[descriptor.headerField] = header
 
-    local panel = WINDOW_MANAGER:CreateControl("$(parent)AlchemyRecipePanel", parent, CT_CONTROL)
+    local panel = WINDOW_MANAGER:CreateControl("$(parent)" .. descriptor.pageControlName .. "Panel", parent, CT_CONTROL)
     panel:ClearAnchors()
     panel:SetAnchor(TOPLEFT, header, BOTTOMLEFT, 0, 8)
     panel:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, -QUICK_SETTINGS_PANEL_PADDING, -QUICK_SETTINGS_PANEL_PADDING)
     panel:SetMouseEnabled(true)
     panel:SetHidden(true)
     SetControlDrawOrder(panel, DT_HIGH, DL_CONTROLS, 4)
-    self.alchemyRecipePanel = panel
+    page.panel = panel
+    self[descriptor.panelField] = panel
 
-    local autoApplyCheckbox = WINDOW_MANAGER:CreateControlFromVirtual("LTM_AlchemyRecipeAutoApply", header, "ZO_CheckButton")
+    local autoApplyCheckbox = WINDOW_MANAGER:CreateControlFromVirtual("LTM_" .. descriptor.pageControlName .. "AutoApply", header, "ZO_CheckButton")
     autoApplyCheckbox:ClearAnchors()
     autoApplyCheckbox:SetAnchor(TOPLEFT, header, TOPLEFT, 0, FOOD_PANEL_TITLE_HEIGHT + FOOD_PANEL_HEADER_TITLE_GAP)
     autoApplyCheckbox:SetDimensions(ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE, ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE)
     if type(ZO_CheckButton_SetLabelText) == "function" then
         ZO_CheckButton_SetLabelText(autoApplyCheckbox, "")
     end
-    SetTextTooltip(autoApplyCheckbox, GetText("quick_settings.alchemy_recipe.auto_apply.tooltip"))
+    SetTextTooltip(autoApplyCheckbox, GetText("quick_settings." .. descriptor.menuId .. ".auto_apply.tooltip"))
     if type(ZO_CheckButton_SetToggleFunction) == "function" then
         ZO_CheckButton_SetToggleFunction(autoApplyCheckbox, function(_, isChecked)
-            SetAlchemyAutoApplyEnabled(QuickSettings, isChecked == true)
+            descriptor.recipeModule:SetAutoApplyEnabled(isChecked == true)
+            RefreshRecipePage(QuickSettings, descriptor.menuId)
         end)
     end
     SetControlDrawOrder(autoApplyCheckbox, DT_HIGH, DL_CONTROLS, 4)
-    self.alchemyAutoApplyCheckbox = autoApplyCheckbox
+    page.autoApplyCheckbox = autoApplyCheckbox
 
     local autoApplyLabel = WINDOW_MANAGER:CreateControl("$(parent)AutoApplyLabel", header, CT_LABEL)
     autoApplyLabel:ClearAnchors()
@@ -1530,23 +1574,24 @@ CreateAlchemyRecipePanel = function(self, parent, titleLabel)
     autoApplyLabel:SetHeight(ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE)
     autoApplyLabel:SetFont("ZoFontGame")
     autoApplyLabel:SetColor(0.96, 0.94, 0.84, 1.0)
-    autoApplyLabel:SetText(GetText("quick_settings.alchemy_recipe.auto_apply"))
+    autoApplyLabel:SetText(GetText("quick_settings." .. descriptor.menuId .. ".auto_apply"))
     autoApplyLabel:SetMouseEnabled(true)
-    SetTextTooltip(autoApplyLabel, GetText("quick_settings.alchemy_recipe.auto_apply.tooltip"))
+    SetTextTooltip(autoApplyLabel, GetText("quick_settings." .. descriptor.menuId .. ".auto_apply.tooltip"))
     if type(autoApplyLabel.SetVerticalAlignment) == "function" then
         autoApplyLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     end
     SetControlDrawOrder(autoApplyLabel, DT_HIGH, DL_CONTROLS, 4)
-    self.alchemyAutoApplyLabel = autoApplyLabel
+    page.autoApplyLabel = autoApplyLabel
 
-    local captureButton = CreateButton(header, "$(parent)CaptureAlchemyRecipe", GetText("quick_settings.alchemy_recipe.capture"), 190, function()
-        CaptureAlchemyRecipe(self)
+    local captureButton = CreateButton(header, "$(parent)Capture" .. descriptor.pageControlName, GetText("quick_settings." .. descriptor.menuId .. ".capture"), 190, function()
+        local recipe, err = descriptor.recipeModule:CaptureFromStation()
+        HandleRecipeResult(self, descriptor, "saved", recipe, err)
     end)
     captureButton:ClearAnchors()
     captureButton:SetAnchor(TOPRIGHT, header, TOPRIGHT, 0, 0)
-    SetTextTooltip(captureButton, GetText("quick_settings.alchemy_recipe.capture.tooltip"))
+    SetTextTooltip(captureButton, GetText("quick_settings." .. descriptor.menuId .. ".capture.tooltip"))
     SetControlDrawOrder(captureButton, DT_HIGH, DL_CONTROLS, 4)
-    self.alchemyCaptureButton = captureButton
+    page.captureButton = captureButton
 
     local emptyLabel = WINDOW_MANAGER:CreateControl("$(parent)EmptyLabel", panel, CT_LABEL)
     emptyLabel:ClearAnchors()
@@ -1555,12 +1600,13 @@ CreateAlchemyRecipePanel = function(self, parent, titleLabel)
     emptyLabel:SetHeight(34)
     emptyLabel:SetFont("ZoFontGame")
     emptyLabel:SetColor(0.82, 0.84, 0.88, 1.0)
-    emptyLabel:SetText(GetText("quick_settings.alchemy_recipe.empty"))
-    self.alchemyRecipeEmptyLabel = emptyLabel
+    emptyLabel:SetText(GetText("quick_settings." .. descriptor.menuId .. ".empty"))
+    page.emptyLabel = emptyLabel
 
-    self.alchemyRecipeListScroll = CreateCardListScrollContainer(panel, 0, 0)
-    self.alchemyRecipeListRoot = self.alchemyRecipeListScroll.scrollChild
-    self.alchemyRecipeCards = {}
+    page.scroll = CreateCardListScrollContainer(panel, 0, 0)
+    page.listRoot = page.scroll.scrollChild
+    page.cards = {}
+    self.recipePages[descriptor.menuId] = page
 end
 
 local function GetAlchemyRecipeErrorText(err)
@@ -1575,94 +1621,23 @@ local function GetAlchemyRecipeErrorText(err)
     })
 end
 
-SetAlchemyAutoApplyEnabled = function(self, enabled)
-    AlchemyRecipe:SetAutoApplyEnabled(enabled == true)
-    self:RefreshAlchemyRecipe()
-end
+RECIPE_DESCRIPTOR_BY_MENU_ID.alchemy_recipe.errorText = GetAlchemyRecipeErrorText
 
-CaptureAlchemyRecipe = function(self)
-    local recipe, err = AlchemyRecipe:CaptureFromStation()
-
+local function SetCraftingRecipeCount(self, descriptor, recipeId, count)
+    local recipe, err = descriptor.recipeModule:SetRecipeCraftCount(recipeId, count)
     if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.alchemy_recipe.saved", {
-            recipeName = recipe.name or recipe.resultItemLink or recipe.id or "",
-        }))
-        self:RefreshAlchemyRecipe()
+        RefreshRecipePage(self, descriptor.menuId)
         return true
     end
-
-    WriteChat(GetAlchemyRecipeErrorText(err))
-    self:RefreshAlchemyRecipe()
+    WriteChat(descriptor.errorText(err))
+    RefreshRecipePage(self, descriptor.menuId)
     return false
 end
 
-SetActiveAlchemyRecipe = function(self, recipeId)
-    local recipe, err = AlchemyRecipe:SetActiveRecipe(recipeId)
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.alchemy_recipe.active_set", {
-            recipeName = recipe.name or recipe.resultItemLink or recipe.id or "",
-        }))
-        self:RefreshAlchemyRecipe()
-        return true
-    end
-
-    WriteChat(GetAlchemyRecipeErrorText(err))
-    self:RefreshAlchemyRecipe()
-    return false
-end
-
-DeleteAlchemyRecipe = function(self, recipeId)
-    local ok, err = AlchemyRecipe:DeleteRecipe(recipeId)
-
-    if ok == true then
-        WriteChat(GetText("quick_settings.alchemy_recipe.deleted"))
-        self:RefreshAlchemyRecipe()
-        return true
-    end
-
-    WriteChat(GetAlchemyRecipeErrorText(err))
-    self:RefreshAlchemyRecipe()
-    return false
-end
-
-ApplyAlchemyRecipeToStation = function(self, recipeId)
-    local ok, result = AlchemyRecipe:ApplyRecipeToStation(recipeId)
-
-    if ok == true then
-        local recipe = type(result) == "table" and type(result.recipe) == "table" and result.recipe or {}
-        WriteChat(GetText("quick_settings.alchemy_recipe.applied", {
-            recipeName = recipe.name or recipe.resultItemLink or recipeId or "",
-        }))
-        Log.Debug("[AlchemyRecipe]", "manualApply", "ok=true", "recipeId=" .. tostring(recipeId))
-        self:RefreshAlchemyRecipe()
-        self:StartRecipeShortRefresh("alchemy_recipe")
-        return true
-    end
-
-    WriteChat(GetAlchemyRecipeErrorText(result))
-    self:RefreshAlchemyRecipe()
-    return false
-end
-
-SetAlchemyRecipeCraftCount = function(self, recipeId, count)
-    local recipe, err = AlchemyRecipe:SetRecipeCraftCount(recipeId, count)
-
-    if type(recipe) == "table" then
-        self:RefreshAlchemyRecipe()
-        return true
-    end
-
-    WriteChat(GetAlchemyRecipeErrorText(err))
-    self:RefreshAlchemyRecipe()
-    return false
-end
-
-BeginAlchemyRecipeCraftCountEdit = function(card)
+local function BeginCraftingRecipeCountEdit(card)
     if card == nil then
         return
     end
-
     card.craftCountEditing = true
     card.countLabel:SetHidden(true)
     card.craftCountEditButton:SetHidden(true)
@@ -1676,30 +1651,10 @@ BeginAlchemyRecipeCraftCountEdit = function(card)
     end
 end
 
-CommitAlchemyRecipeCraftCount = function(self, card)
-    if card == nil or card.ltmRecipeId == nil or card.craftCountEdit == nil then
-        return false
-    end
-
-    local text = type(card.craftCountEdit.GetText) == "function" and card.craftCountEdit:GetText() or ""
-    local count = math.max(math.floor(tonumber(text) or 1), 1)
-    if type(card.craftCountEdit.SetText) == "function" then
-        card.craftCountEdit:SetText(tostring(count))
-    end
-
-    card.craftCountEditing = false
-    local ok = SetAlchemyRecipeCraftCount(self, card.ltmRecipeId, count)
-    if ok == true then
-        CancelAlchemyRecipeCraftCountEdit(card)
-    end
-    return ok
-end
-
-CancelAlchemyRecipeCraftCountEdit = function(card)
+local function CancelCraftingRecipeCountEdit(card)
     if card == nil then
         return
     end
-
     card.craftCountEditing = false
     card.countLabel:SetHidden(false)
     card.craftCountEditButton:SetHidden(false)
@@ -1709,13 +1664,40 @@ CancelAlchemyRecipeCraftCountEdit = function(card)
     card.reagentRow:SetHidden(false)
 end
 
-CreateAlchemyRecipeCard = function(self, parent, index)
-    alchemyRecipeCardControlSerial = alchemyRecipeCardControlSerial + 1
-    local namePrefix = "LTM_AlchemyRecipeCard" .. tostring(index) .. "_" .. tostring(alchemyRecipeCardControlSerial)
+local function CommitCraftingRecipeCount(self, descriptor, card)
+    if card == nil or card.ltmRecipeId == nil or card.craftCountEdit == nil then
+        return false
+    end
+    local text = type(card.craftCountEdit.GetText) == "function" and card.craftCountEdit:GetText() or ""
+    local count = math.max(math.floor(tonumber(text) or 1), 1)
+    if type(card.craftCountEdit.SetText) == "function" then
+        card.craftCountEdit:SetText(tostring(count))
+    end
+    card.craftCountEditing = false
+    local ok = SetCraftingRecipeCount(self, descriptor, card.ltmRecipeId, count)
+    if ok == true then
+        CancelCraftingRecipeCountEdit(card)
+    end
+    return ok
+end
+
+local function ApplyCraftingRecipeCard(self, descriptor, recipeId)
+    local ok, result = descriptor.recipeModule:ApplyRecipeToStation(recipeId)
+    return HandleRecipeResult(self, descriptor, "applied", ok, result, recipeId)
+end
+
+local function CreateCraftingRecipeCard(self, parent, index, descriptor, page)
+    page.cardSerial = page.cardSerial + 1
+    local namePrefix = descriptor.cardControlPrefix .. tostring(index) .. "_" .. tostring(page.cardSerial)
     local card = CreateBackdrop(parent, namePrefix, 0.08, 0.09, 0.10, 0.96, 0.28, 0.30, 0.34, 1.0)
     card:ClearAnchors()
     card:SetHeight(ALCHEMY_RECIPE_CARD_HEIGHT)
     card:SetMouseEnabled(true)
+    card:SetHandler("OnMouseUp", function(selfControl, _, upInside)
+        if upInside and selfControl.craftCountEditing ~= true then
+            ApplyCraftingRecipeCard(QuickSettings, descriptor, selfControl.ltmRecipeId)
+        end
+    end)
     SetControlDrawOrder(card, DT_HIGH, DL_CONTROLS, 8)
 
     local activeCheckbox = WINDOW_MANAGER:CreateControlFromVirtual(namePrefix .. "Active", card, "ZO_CheckButton")
@@ -1728,13 +1710,14 @@ CreateAlchemyRecipeCard = function(self, parent, index)
     if type(ZO_CheckButton_SetToggleFunction) == "function" then
         ZO_CheckButton_SetToggleFunction(activeCheckbox, function(_, isChecked)
             if isChecked == true and type(activeCheckbox.ltmRecipeId) == "string" then
-                SetActiveAlchemyRecipe(QuickSettings, activeCheckbox.ltmRecipeId)
+                local recipe, err = descriptor.recipeModule:SetActiveRecipe(activeCheckbox.ltmRecipeId)
+                HandleRecipeResult(QuickSettings, descriptor, "active_set", recipe, err)
             else
-                QuickSettings:RefreshAlchemyRecipe()
+                RefreshRecipePage(QuickSettings, descriptor.menuId)
             end
         end)
     end
-    SetTextTooltip(activeCheckbox, GetText("quick_settings.alchemy_recipe.active.tooltip"))
+    SetTextTooltip(activeCheckbox, GetText("quick_settings." .. descriptor.menuId .. ".active.tooltip"))
     SetControlDrawOrder(activeCheckbox, DT_HIGH, DL_CONTROLS, 11)
     card.activeCheckbox = activeCheckbox
 
@@ -1800,8 +1783,8 @@ CreateAlchemyRecipeCard = function(self, parent, index)
     SetControlDrawOrder(countLabel, DT_HIGH, DL_CONTROLS, 11)
     card.countLabel = countLabel
 
-    local craftCountEditButton = CreateIconButton(card, namePrefix .. "CraftCountEditButton", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/edit", GetText("quick_settings.alchemy_recipe.craft_count.tooltip"), function()
-        BeginAlchemyRecipeCraftCountEdit(card)
+    local craftCountEditButton = CreateIconButton(card, namePrefix .. "CraftCountEditButton", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/edit", GetText("quick_settings." .. descriptor.menuId .. ".craft_count.tooltip"), function()
+        BeginCraftingRecipeCountEdit(card)
     end)
     craftCountEditButton:ClearAnchors()
     craftCountEditButton:SetAnchor(LEFT, countLabel, RIGHT, 2, 0)
@@ -1817,17 +1800,17 @@ CreateAlchemyRecipeCard = function(self, parent, index)
         craftCountEdit:SetMaxInputChars(6)
     end
     craftCountEdit:SetHandler("OnEnter", function()
-        CommitAlchemyRecipeCraftCount(QuickSettings, card)
+        CommitCraftingRecipeCount(QuickSettings, descriptor, card)
     end)
     craftCountEdit:SetHandler("OnEscape", function()
-        CancelAlchemyRecipeCraftCountEdit(card)
+        CancelCraftingRecipeCountEdit(card)
     end)
-    SetTextTooltip(craftCountEdit, GetText("quick_settings.alchemy_recipe.craft_count.tooltip"))
+    SetTextTooltip(craftCountEdit, GetText("quick_settings." .. descriptor.menuId .. ".craft_count.tooltip"))
     SetControlDrawOrder(craftCountEdit, DT_HIGH, DL_CONTROLS, 12)
     card.craftCountEdit = craftCountEdit
 
     local craftCountSaveButton = CreateIconButton(card, namePrefix .. "CraftCountSave", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/accept", GetText("common.save"), function()
-        CommitAlchemyRecipeCraftCount(QuickSettings, card)
+        CommitCraftingRecipeCount(QuickSettings, descriptor, card)
     end)
     craftCountSaveButton:ClearAnchors()
     craftCountSaveButton:SetAnchor(LEFT, craftCountEdit, RIGHT, 2, 0)
@@ -1836,7 +1819,7 @@ CreateAlchemyRecipeCard = function(self, parent, index)
     card.craftCountSaveButton = craftCountSaveButton
 
     local craftCountCancelButton = CreateIconButton(card, namePrefix .. "CraftCountCancel", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/decline", GetText("common.cancel"), function()
-        CancelAlchemyRecipeCraftCountEdit(card)
+        CancelCraftingRecipeCountEdit(card)
     end)
     craftCountCancelButton:ClearAnchors()
     craftCountCancelButton:SetAnchor(LEFT, craftCountSaveButton, RIGHT, 2, 0)
@@ -1883,17 +1866,17 @@ CreateAlchemyRecipeCard = function(self, parent, index)
     end
 
     local applyButton = CreateButton(card, namePrefix .. "Apply", GetText("quick_settings.recipe.set_to_station"), ALCHEMY_RECIPE_APPLY_BUTTON_WIDTH, function()
-        ApplyAlchemyRecipeToStation(QuickSettings, card.ltmRecipeId)
+        ApplyCraftingRecipeCard(QuickSettings, descriptor, card.ltmRecipeId)
     end)
     applyButton:ClearAnchors()
     applyButton:SetAnchor(TOPRIGHT, card, TOPRIGHT, -8, 66)
-    SetTextTooltip(applyButton, GetText("quick_settings.alchemy_recipe.apply.tooltip"))
+    SetTextTooltip(applyButton, GetText("quick_settings." .. descriptor.menuId .. ".apply.tooltip"))
     SetControlDrawOrder(applyButton, DT_HIGH, DL_CONTROLS, 11)
     card.applyButton = applyButton
 
     local renameButton = CreateIconButton(card, namePrefix .. "Rename", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/edit", GetText("common.rename"), function()
         if type(card.recipe) == "table" then
-            Addon.UI:ShowDialog("ALCHEMY_RECIPE_RENAME_INPUT", {
+            Addon.UI:ShowDialog(descriptor.renameDialogId, {
                 recipeId = card.recipe.id,
                 recipeName = card.recipe.name or card.recipe.id,
                 initialValue = card.recipe.name or card.recipe.id,
@@ -1909,7 +1892,8 @@ CreateAlchemyRecipeCard = function(self, parent, index)
     card.renameButton = renameButton
 
     local deleteButton = CreateIconButton(card, namePrefix .. "Delete", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/decline", GetText("common.delete"), function()
-        DeleteAlchemyRecipe(QuickSettings, card.ltmRecipeId)
+        local ok, err = descriptor.recipeModule:DeleteRecipe(card.ltmRecipeId)
+        HandleRecipeResult(QuickSettings, descriptor, "deleted", ok, err)
     end)
     deleteButton:ClearAnchors()
     deleteButton:SetAnchor(TOPRIGHT, card, TOPRIGHT, -8, 8)
@@ -1919,7 +1903,46 @@ CreateAlchemyRecipeCard = function(self, parent, index)
     return card
 end
 
-RefreshAlchemyRecipeCard = function(self, card, recipe, inventoryIndex)
+local function GetAlchemyCardMaterials(recipe, inventoryState, recipeId)
+    local reagents = type(inventoryState) == "table" and type(inventoryState.reagents) == "table" and inventoryState.reagents or {}
+    local reagentItemIds = type(recipe.reagentItemIds) == "table" and recipe.reagentItemIds or {}
+    local signature = table.concat({
+        tostring(recipeId),
+        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.solvent or nil),
+        BuildInventoryItemStateSignature(reagents[1]),
+        BuildInventoryItemStateSignature(reagents[2]),
+        BuildInventoryItemStateSignature(reagents[3]),
+        tostring(type(inventoryState) == "table" and inventoryState.allRequiredFound == true),
+        tostring(type(inventoryState) == "table" and inventoryState.thirdSlotUnlocked == true),
+    }, "|")
+    return reagents, reagentItemIds, signature
+end
+
+local function GetEnchantCardMaterials(recipe, inventoryState, recipeId)
+    local reagents = type(inventoryState) == "table" and {
+        inventoryState.potency,
+        inventoryState.essence,
+        inventoryState.aspect,
+    } or {}
+    local reagentItemIds = {
+        recipe.potencyItemId,
+        recipe.essenceItemId,
+        recipe.aspectItemId,
+    }
+    local signature = table.concat({
+        tostring(recipeId),
+        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.potency or nil),
+        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.essence or nil),
+        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.aspect or nil),
+        tostring(type(inventoryState) == "table" and inventoryState.allRequiredFound == true),
+    }, "|")
+    return reagents, reagentItemIds, signature
+end
+
+RECIPE_DESCRIPTOR_BY_MENU_ID.alchemy_recipe.getCardMaterials = GetAlchemyCardMaterials
+RECIPE_DESCRIPTOR_BY_MENU_ID.enchant_recipe.getCardMaterials = GetEnchantCardMaterials
+
+local function RefreshCraftingRecipeCard(self, card, recipe, inventoryIndex, descriptor)
     card.recipe = recipe
     local recipeId = type(recipe) == "table" and recipe.id or nil
     card.ltmRecipeId = recipeId
@@ -1936,7 +1959,7 @@ RefreshAlchemyRecipeCard = function(self, card, recipe, inventoryIndex)
     SetLabelText(card.nameLabel, recipe.name or recipe.id or "")
     local resultText = type(recipe.resultItemLink) == "string" and recipe.resultItemLink ~= ""
         and recipe.resultItemLink
-        or GetText("quick_settings.alchemy_recipe.no_result_link")
+        or GetText("quick_settings." .. descriptor.menuId .. ".no_result_link")
     SetLabelText(card.resultLabel, resultText)
     SetItemTooltip(card.resultLabel, recipe.resultItemLink, recipe.name or recipe.id)
     local resultIcon = GetItemLinkIconSafe(recipe.resultItemLink) or ALCHEMY_RECIPE_PLACEHOLDER_ICON
@@ -1948,13 +1971,12 @@ RefreshAlchemyRecipeCard = function(self, card, recipe, inventoryIndex)
     end
 
     local inventoryState = recipeId ~= nil
-        and AlchemyRecipe:GetRecipeInventoryState(recipeId, inventoryIndex)
+        and descriptor.recipeModule:GetRecipeInventoryState(recipeId, inventoryIndex)
         or nil
-    local reagents = type(inventoryState) == "table" and type(inventoryState.reagents) == "table" and inventoryState.reagents or {}
-    local reagentItemIds = type(recipe.reagentItemIds) == "table" and recipe.reagentItemIds or {}
+    local reagents, reagentItemIds, signature = descriptor.getCardMaterials(recipe, inventoryState, recipeId)
     for reagentIndex = 1, 3 do
         local iconBox = card.reagentIcons[reagentIndex]
-        local display = BuildAlchemyItemDisplay(reagents[reagentIndex], reagentItemIds[reagentIndex])
+        local display = BuildCraftingRecipeItemDisplay(reagents[reagentIndex], reagentItemIds[reagentIndex])
         local hasReagent = reagentItemIds[reagentIndex] ~= nil
         iconBox:SetHidden(hasReagent ~= true)
         if hasReagent then
@@ -1967,51 +1989,43 @@ RefreshAlchemyRecipeCard = function(self, card, recipe, inventoryIndex)
         end
     end
 
-    return table.concat({
-        tostring(recipeId),
-        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.solvent or nil),
-        BuildInventoryItemStateSignature(reagents[1]),
-        BuildInventoryItemStateSignature(reagents[2]),
-        BuildInventoryItemStateSignature(reagents[3]),
-        tostring(type(inventoryState) == "table" and inventoryState.allRequiredFound == true),
-        tostring(type(inventoryState) == "table" and inventoryState.thirdSlotUnlocked == true),
-    }, "|")
+    return signature
 end
 
-function QuickSettings:RefreshAlchemyRecipe()
-    if not self.alchemyRecipePanel then
+local function RefreshCraftingRecipePage(self, descriptor)
+    local page = self.recipePages and self.recipePages[descriptor.menuId]
+    if not page then
         return
     end
 
-    local autoApplyEnabled = AlchemyRecipe:GetAutoApplyEnabled() == true
-    if type(ZO_CheckButton_SetCheckState) == "function" and self.alchemyAutoApplyCheckbox then
-        ZO_CheckButton_SetCheckState(self.alchemyAutoApplyCheckbox, autoApplyEnabled)
+    local autoApplyEnabled = descriptor.recipeModule:GetAutoApplyEnabled() == true
+    if type(ZO_CheckButton_SetCheckState) == "function" and page.autoApplyCheckbox then
+        ZO_CheckButton_SetCheckState(page.autoApplyCheckbox, autoApplyEnabled)
     end
 
-    if self.alchemyCaptureButton and type(self.alchemyCaptureButton.SetEnabled) == "function" then
-        self.alchemyCaptureButton:SetEnabled(AlchemyRecipe.isStationOpen == true)
+    if page.captureButton and type(page.captureButton.SetEnabled) == "function" then
+        page.captureButton:SetEnabled(descriptor.recipeModule.isStationOpen == true)
     end
 
-    local recipes = AlchemyRecipe:GetRecipeList()
+    local recipes = descriptor.recipeModule:GetRecipeList()
 
-    self.alchemyRecipeEmptyLabel:SetHidden(#recipes > 0)
-    self.alchemyRecipeCards = self.alchemyRecipeCards or {}
+    page.emptyLabel:SetHidden(#recipes > 0)
     local layoutSignature = BuildRecipeLayoutSignature(
         recipes,
-        self.alchemyRecipeListRoot,
-        self.alchemyRecipeListScroll
+        page.listRoot,
+        page.scroll
     )
-    local layoutNeedsRefresh = self.alchemyRecipeLayoutSignature ~= layoutSignature
+    local layoutNeedsRefresh = page.layoutSignature ~= layoutSignature
     if not layoutNeedsRefresh then
         for index = 1, #recipes do
-            if self.alchemyRecipeCards[index] == nil then
+            if page.cards[index] == nil then
                 layoutNeedsRefresh = true
                 break
             end
         end
     end
     local inventoryIndex = #recipes > 0
-        and AlchemyRecipe:BuildInventoryIndex()
+        and descriptor.recipeModule:BuildInventoryIndex()
         or nil
     local rowCount = #recipes > 0 and math.ceil(#recipes / ALCHEMY_RECIPE_CARD_COLUMNS) or 0
     local contentHeight = rowCount > 0
@@ -2020,10 +2034,10 @@ function QuickSettings:RefreshAlchemyRecipe()
     local refreshStateParts = {}
 
     for index, recipe in ipairs(recipes) do
-        local card = self.alchemyRecipeCards[index]
+        local card = page.cards[index]
         if card == nil then
-            card = CreateAlchemyRecipeCard(self, self.alchemyRecipeListRoot, index)
-            self.alchemyRecipeCards[index] = card
+            card = CreateCraftingRecipeCard(self, page.listRoot, index, descriptor, page)
+            page.cards[index] = card
         end
 
         if layoutNeedsRefresh then
@@ -2032,102 +2046,31 @@ function QuickSettings:RefreshAlchemyRecipe()
             local y = rowIndex * (ALCHEMY_RECIPE_CARD_HEIGHT + ALCHEMY_RECIPE_CARD_GAP)
             card:ClearAnchors()
             if columnIndex == 0 then
-                card:SetAnchor(TOPLEFT, self.alchemyRecipeListRoot, TOPLEFT, 0, y)
-                card:SetAnchor(TOPRIGHT, self.alchemyRecipeListRoot, TOP, -(ALCHEMY_RECIPE_CARD_GAP / 2), y)
+                card:SetAnchor(TOPLEFT, page.listRoot, TOPLEFT, 0, y)
+                card:SetAnchor(TOPRIGHT, page.listRoot, TOP, -(ALCHEMY_RECIPE_CARD_GAP / 2), y)
             else
-                card:SetAnchor(TOPLEFT, self.alchemyRecipeListRoot, TOP, ALCHEMY_RECIPE_CARD_GAP / 2, y)
-                card:SetAnchor(TOPRIGHT, self.alchemyRecipeListRoot, TOPRIGHT, 0, y)
+                card:SetAnchor(TOPLEFT, page.listRoot, TOP, ALCHEMY_RECIPE_CARD_GAP / 2, y)
+                card:SetAnchor(TOPRIGHT, page.listRoot, TOPRIGHT, 0, y)
             end
         end
         card:SetHidden(false)
-        refreshStateParts[index] = RefreshAlchemyRecipeCard(self, card, recipe, inventoryIndex)
+        refreshStateParts[index] = RefreshCraftingRecipeCard(self, card, recipe, inventoryIndex, descriptor)
     end
 
-    for index = #recipes + 1, #self.alchemyRecipeCards do
-        self.alchemyRecipeCards[index]:SetHidden(true)
+    for index = #recipes + 1, #page.cards do
+        page.cards[index]:SetHidden(true)
     end
 
     if layoutNeedsRefresh then
-        RefreshCardListScrollContainer(self.alchemyRecipeListScroll, contentHeight)
-        self.alchemyRecipeLayoutSignature = layoutSignature
+        RefreshCardListScrollContainer(page.scroll, contentHeight)
+        page.layoutSignature = layoutSignature
     end
 
     return table.concat(refreshStateParts, "||")
 end
 
-CreateEnchantRecipePanel = function(self, parent, titleLabel)
-    local header = WINDOW_MANAGER:CreateControl("$(parent)EnchantRecipeHeader", parent, CT_CONTROL)
-    header:ClearAnchors()
-    header:SetAnchor(TOPLEFT, titleLabel, TOPLEFT, 0, 0)
-    header:SetAnchor(TOPRIGHT, parent, TOPRIGHT, -QUICK_SETTINGS_PANEL_PADDING, QUICK_SETTINGS_PANEL_PADDING)
-    header:SetHeight(FOOD_PANEL_HEADER_HEIGHT)
-    header:SetHidden(true)
-    SetControlDrawOrder(header, DT_HIGH, DL_CONTROLS, 4)
-    self.enchantRecipeHeader = header
-
-    local panel = WINDOW_MANAGER:CreateControl("$(parent)EnchantRecipePanel", parent, CT_CONTROL)
-    panel:ClearAnchors()
-    panel:SetAnchor(TOPLEFT, header, BOTTOMLEFT, 0, 8)
-    panel:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, -QUICK_SETTINGS_PANEL_PADDING, -QUICK_SETTINGS_PANEL_PADDING)
-    panel:SetMouseEnabled(true)
-    panel:SetHidden(true)
-    SetControlDrawOrder(panel, DT_HIGH, DL_CONTROLS, 4)
-    self.enchantRecipePanel = panel
-
-    local autoApplyCheckbox = WINDOW_MANAGER:CreateControlFromVirtual("LTM_EnchantRecipeAutoApply", header, "ZO_CheckButton")
-    autoApplyCheckbox:ClearAnchors()
-    autoApplyCheckbox:SetAnchor(TOPLEFT, header, TOPLEFT, 0, FOOD_PANEL_TITLE_HEIGHT + FOOD_PANEL_HEADER_TITLE_GAP)
-    autoApplyCheckbox:SetDimensions(ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE, ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE)
-    if type(ZO_CheckButton_SetLabelText) == "function" then
-        ZO_CheckButton_SetLabelText(autoApplyCheckbox, "")
-    end
-    SetTextTooltip(autoApplyCheckbox, GetText("quick_settings.enchant_recipe.auto_apply.tooltip"))
-    if type(ZO_CheckButton_SetToggleFunction) == "function" then
-        ZO_CheckButton_SetToggleFunction(autoApplyCheckbox, function(_, isChecked)
-            SetEnchantAutoApplyEnabled(QuickSettings, isChecked == true)
-        end)
-    end
-    SetControlDrawOrder(autoApplyCheckbox, DT_HIGH, DL_CONTROLS, 4)
-    self.enchantAutoApplyCheckbox = autoApplyCheckbox
-
-    local autoApplyLabel = WINDOW_MANAGER:CreateControl("$(parent)AutoApplyLabel", header, CT_LABEL)
-    autoApplyLabel:ClearAnchors()
-    autoApplyLabel:SetAnchor(LEFT, autoApplyCheckbox, RIGHT, 6, FOOD_AUTO_EAT_LABEL_OFFSET_Y)
-    autoApplyLabel:SetAnchor(RIGHT, header, RIGHT, -210, FOOD_AUTO_EAT_LABEL_OFFSET_Y)
-    autoApplyLabel:SetHeight(ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE)
-    autoApplyLabel:SetFont("ZoFontGame")
-    autoApplyLabel:SetColor(0.96, 0.94, 0.84, 1.0)
-    autoApplyLabel:SetText(GetText("quick_settings.enchant_recipe.auto_apply"))
-    autoApplyLabel:SetMouseEnabled(true)
-    SetTextTooltip(autoApplyLabel, GetText("quick_settings.enchant_recipe.auto_apply.tooltip"))
-    if type(autoApplyLabel.SetVerticalAlignment) == "function" then
-        autoApplyLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    end
-    SetControlDrawOrder(autoApplyLabel, DT_HIGH, DL_CONTROLS, 4)
-    self.enchantAutoApplyLabel = autoApplyLabel
-
-    local captureButton = CreateButton(header, "$(parent)CaptureEnchantRecipe", GetText("quick_settings.enchant_recipe.capture"), 190, function()
-        CaptureEnchantRecipe(self)
-    end)
-    captureButton:ClearAnchors()
-    captureButton:SetAnchor(TOPRIGHT, header, TOPRIGHT, 0, 0)
-    SetTextTooltip(captureButton, GetText("quick_settings.enchant_recipe.capture.tooltip"))
-    SetControlDrawOrder(captureButton, DT_HIGH, DL_CONTROLS, 4)
-    self.enchantCaptureButton = captureButton
-
-    local emptyLabel = WINDOW_MANAGER:CreateControl("$(parent)EmptyLabel", panel, CT_LABEL)
-    emptyLabel:ClearAnchors()
-    emptyLabel:SetAnchor(TOPLEFT, panel, TOPLEFT, 0, 0)
-    emptyLabel:SetAnchor(TOPRIGHT, panel, TOPRIGHT, 0, 0)
-    emptyLabel:SetHeight(34)
-    emptyLabel:SetFont("ZoFontGame")
-    emptyLabel:SetColor(0.82, 0.84, 0.88, 1.0)
-    emptyLabel:SetText(GetText("quick_settings.enchant_recipe.empty"))
-    self.enchantRecipeEmptyLabel = emptyLabel
-
-    self.enchantRecipeListScroll = CreateCardListScrollContainer(panel, 0, 0)
-    self.enchantRecipeListRoot = self.enchantRecipeListScroll.scrollChild
-    self.enchantRecipeCards = {}
+function QuickSettings:RefreshAlchemyRecipe()
+    return RefreshCraftingRecipePage(self, RECIPE_DESCRIPTOR_BY_MENU_ID.alchemy_recipe)
 end
 
 local function GetEnchantRecipeErrorText(err)
@@ -2142,495 +2085,10 @@ local function GetEnchantRecipeErrorText(err)
     })
 end
 
-SetEnchantAutoApplyEnabled = function(self, enabled)
-    EnchantRecipe:SetAutoApplyEnabled(enabled == true)
-    self:RefreshEnchantRecipe()
-end
-
-CaptureEnchantRecipe = function(self)
-    local recipe, err = EnchantRecipe:CaptureFromStation()
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.enchant_recipe.saved", {
-            recipeName = recipe.name or recipe.resultItemLink or recipe.id or "",
-        }))
-        self:RefreshEnchantRecipe()
-        return true
-    end
-
-    WriteChat(GetEnchantRecipeErrorText(err))
-    self:RefreshEnchantRecipe()
-    return false
-end
-
-SetActiveEnchantRecipe = function(self, recipeId)
-    local recipe, err = EnchantRecipe:SetActiveRecipe(recipeId)
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.enchant_recipe.active_set", {
-            recipeName = recipe.name or recipe.resultItemLink or recipe.id or "",
-        }))
-        self:RefreshEnchantRecipe()
-        return true
-    end
-
-    WriteChat(GetEnchantRecipeErrorText(err))
-    self:RefreshEnchantRecipe()
-    return false
-end
-
-DeleteEnchantRecipe = function(self, recipeId)
-    local ok, err = EnchantRecipe:DeleteRecipe(recipeId)
-
-    if ok == true then
-        WriteChat(GetText("quick_settings.enchant_recipe.deleted"))
-        self:RefreshEnchantRecipe()
-        return true
-    end
-
-    WriteChat(GetEnchantRecipeErrorText(err))
-    self:RefreshEnchantRecipe()
-    return false
-end
-
-ApplyEnchantRecipeToStation = function(self, recipeId)
-    local ok, result = EnchantRecipe:ApplyRecipeToStation(recipeId)
-
-    if ok == true then
-        local recipe = type(result) == "table" and type(result.recipe) == "table" and result.recipe or {}
-        WriteChat(GetText("quick_settings.enchant_recipe.applied", {
-            recipeName = recipe.name or recipe.resultItemLink or recipeId or "",
-        }))
-        Log.Debug("[EnchantRecipe]", "manualApply", "ok=true", "recipeId=" .. tostring(recipeId))
-        self:RefreshEnchantRecipe()
-        self:StartRecipeShortRefresh("enchant_recipe")
-        return true
-    end
-
-    WriteChat(GetEnchantRecipeErrorText(result))
-    self:RefreshEnchantRecipe()
-    return false
-end
-
-SetEnchantRecipeCraftCount = function(self, recipeId, count)
-    local recipe, err = EnchantRecipe:SetRecipeCraftCount(recipeId, count)
-
-    if type(recipe) == "table" then
-        self:RefreshEnchantRecipe()
-        return true
-    end
-
-    WriteChat(GetEnchantRecipeErrorText(err))
-    self:RefreshEnchantRecipe()
-    return false
-end
-
-BeginEnchantRecipeCraftCountEdit = function(card)
-    if card == nil then
-        return
-    end
-
-    card.craftCountEditing = true
-    card.countLabel:SetHidden(true)
-    card.craftCountEditButton:SetHidden(true)
-    card.craftCountEdit:SetHidden(false)
-    card.craftCountSaveButton:SetHidden(false)
-    card.craftCountCancelButton:SetHidden(false)
-    card.reagentRow:SetHidden(true)
-    card.craftCountEdit:SetText(tostring(card.ltmCraftCount or 1))
-    if type(card.craftCountEdit.TakeFocus) == "function" then
-        card.craftCountEdit:TakeFocus()
-    end
-end
-
-CommitEnchantRecipeCraftCount = function(self, card)
-    if card == nil or card.ltmRecipeId == nil or card.craftCountEdit == nil then
-        return false
-    end
-
-    local text = type(card.craftCountEdit.GetText) == "function" and card.craftCountEdit:GetText() or ""
-    local count = math.max(math.floor(tonumber(text) or 1), 1)
-    if type(card.craftCountEdit.SetText) == "function" then
-        card.craftCountEdit:SetText(tostring(count))
-    end
-
-    card.craftCountEditing = false
-    local ok = SetEnchantRecipeCraftCount(self, card.ltmRecipeId, count)
-    if ok == true then
-        CancelEnchantRecipeCraftCountEdit(card)
-    end
-    return ok
-end
-
-CancelEnchantRecipeCraftCountEdit = function(card)
-    if card == nil then
-        return
-    end
-
-    card.craftCountEditing = false
-    card.countLabel:SetHidden(false)
-    card.craftCountEditButton:SetHidden(false)
-    card.craftCountEdit:SetHidden(true)
-    card.craftCountSaveButton:SetHidden(true)
-    card.craftCountCancelButton:SetHidden(true)
-    card.reagentRow:SetHidden(false)
-end
-
-CreateEnchantRecipeCard = function(self, parent, index)
-    enchantRecipeCardControlSerial = enchantRecipeCardControlSerial + 1
-    local namePrefix = "LTM_EnchantRecipeCard" .. tostring(index) .. "_" .. tostring(enchantRecipeCardControlSerial)
-    local card = CreateBackdrop(parent, namePrefix, 0.08, 0.09, 0.10, 0.96, 0.28, 0.30, 0.34, 1.0)
-    card:ClearAnchors()
-    card:SetHeight(ALCHEMY_RECIPE_CARD_HEIGHT)
-    card:SetMouseEnabled(true)
-    card:SetHandler("OnMouseUp", function(selfControl, _, upInside)
-        if upInside and selfControl.craftCountEditing ~= true then
-            ApplyEnchantRecipeToStation(QuickSettings, selfControl.ltmRecipeId)
-        end
-    end)
-    SetControlDrawOrder(card, DT_HIGH, DL_CONTROLS, 8)
-
-    local activeCheckbox = WINDOW_MANAGER:CreateControlFromVirtual(namePrefix .. "Active", card, "ZO_CheckButton")
-    activeCheckbox:ClearAnchors()
-    activeCheckbox:SetAnchor(TOPLEFT, card, TOPLEFT, 8, 8)
-    activeCheckbox:SetDimensions(ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE, ALCHEMY_RECIPE_ACTIVE_CHECKBOX_SIZE)
-    if type(ZO_CheckButton_SetLabelText) == "function" then
-        ZO_CheckButton_SetLabelText(activeCheckbox, "")
-    end
-    if type(ZO_CheckButton_SetToggleFunction) == "function" then
-        ZO_CheckButton_SetToggleFunction(activeCheckbox, function(_, isChecked)
-            if isChecked == true and type(activeCheckbox.ltmRecipeId) == "string" then
-                SetActiveEnchantRecipe(QuickSettings, activeCheckbox.ltmRecipeId)
-            else
-                QuickSettings:RefreshEnchantRecipe()
-            end
-        end)
-    end
-    SetTextTooltip(activeCheckbox, GetText("quick_settings.enchant_recipe.active.tooltip"))
-    SetControlDrawOrder(activeCheckbox, DT_HIGH, DL_CONTROLS, 11)
-    card.activeCheckbox = activeCheckbox
-
-    local activeLabel = WINDOW_MANAGER:CreateControl(namePrefix .. "ActiveStatus", card, CT_LABEL)
-    activeLabel:ClearAnchors()
-    activeLabel:SetAnchor(LEFT, activeCheckbox, RIGHT, 5, 0)
-    activeLabel:SetDimensions(1, 20)
-    activeLabel:SetFont("ZoFontGameSmall")
-    activeLabel:SetColor(0.86, 0.92, 1.0, 1.0)
-    activeLabel:SetText("")
-    activeLabel:SetHidden(true)
-    SetControlDrawOrder(activeLabel, DT_HIGH, DL_CONTROLS, 11)
-    card.activeLabel = activeLabel
-
-    local resultIconBox = CreateBackdrop(card, namePrefix .. "ResultIconBox", 0.03, 0.03, 0.035, 0.98, 0.24, 0.24, 0.26, 1.0)
-    resultIconBox:ClearAnchors()
-    resultIconBox:SetAnchor(TOPLEFT, card, TOPLEFT, 10, 36)
-    resultIconBox:SetDimensions(ALCHEMY_RECIPE_RESULT_ICON_SIZE, ALCHEMY_RECIPE_RESULT_ICON_SIZE)
-    resultIconBox:SetMouseEnabled(true)
-    SetControlDrawOrder(resultIconBox, DT_HIGH, DL_CONTROLS, 9)
-    card.resultIconBox = resultIconBox
-
-    local resultIcon = WINDOW_MANAGER:CreateControl(namePrefix .. "ResultIcon", resultIconBox, CT_TEXTURE)
-    resultIcon:ClearAnchors()
-    resultIcon:SetAnchor(TOPLEFT, resultIconBox, TOPLEFT, 2, 2)
-    resultIcon:SetAnchor(BOTTOMRIGHT, resultIconBox, BOTTOMRIGHT, -2, -2)
-    SetControlDrawOrder(resultIcon, DT_HIGH, DL_CONTROLS, 10)
-    resultIconBox.texture = resultIcon
-
-    local nameLabel = WINDOW_MANAGER:CreateControl(namePrefix .. "Name", card, CT_LABEL)
-    nameLabel:ClearAnchors()
-    nameLabel:SetAnchor(TOPLEFT, card, TOPLEFT, 34, 10)
-    nameLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -98, 10)
-    nameLabel:SetHeight(18)
-    nameLabel:SetFont("ZoFontGameSmall")
-    nameLabel:SetColor(0.78, 0.82, 0.88, 1.0)
-    if type(nameLabel.SetWrapMode) == "function" and TEXT_WRAP_MODE_ELLIPSIS then
-        nameLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    end
-    SetControlDrawOrder(nameLabel, DT_HIGH, DL_CONTROLS, 11)
-    card.nameLabel = nameLabel
-
-    local resultLabel = WINDOW_MANAGER:CreateControl(namePrefix .. "Result", card, CT_LABEL)
-    resultLabel:ClearAnchors()
-    resultLabel:SetAnchor(TOPLEFT, card, TOPLEFT, 66, 32)
-    resultLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -10, 32)
-    resultLabel:SetHeight(26)
-    resultLabel:SetFont("ZoFontGame")
-    resultLabel:SetColor(0.96, 0.97, 1.0, 1.0)
-    resultLabel:SetMouseEnabled(true)
-    SetControlDrawOrder(resultLabel, DT_HIGH, DL_CONTROLS, 11)
-    card.resultLabel = resultLabel
-
-    local countLabel = WINDOW_MANAGER:CreateControl(namePrefix .. "Count", card, CT_LABEL)
-    countLabel:ClearAnchors()
-    countLabel:SetAnchor(TOPLEFT, card, TOPLEFT, 66, 68)
-    countLabel:SetDimensions(44, ALCHEMY_RECIPE_COUNT_EDIT_HEIGHT)
-    countLabel:SetFont("ZoFontGameSmall")
-    countLabel:SetColor(0.86, 0.88, 0.92, 1.0)
-    if type(countLabel.SetVerticalAlignment) == "function" then
-        countLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    end
-    SetControlDrawOrder(countLabel, DT_HIGH, DL_CONTROLS, 11)
-    card.countLabel = countLabel
-
-    local craftCountEditButton = CreateIconButton(card, namePrefix .. "CraftCountEditButton", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/edit", GetText("quick_settings.enchant_recipe.craft_count.tooltip"), function()
-        BeginEnchantRecipeCraftCountEdit(card)
-    end)
-    craftCountEditButton:ClearAnchors()
-    craftCountEditButton:SetAnchor(LEFT, countLabel, RIGHT, 2, 0)
-    SetControlDrawOrder(craftCountEditButton, DT_HIGH, DL_CONTROLS, 11)
-    card.craftCountEditButton = craftCountEditButton
-
-    local craftCountEdit = WINDOW_MANAGER:CreateControlFromVirtual(namePrefix .. "CraftCountEdit", card, "ZO_DefaultEditForBackdrop")
-    craftCountEdit:ClearAnchors()
-    craftCountEdit:SetAnchor(TOPLEFT, countLabel, TOPLEFT, 0, 0)
-    craftCountEdit:SetDimensions(ALCHEMY_RECIPE_COUNT_EDIT_WIDTH, ALCHEMY_RECIPE_COUNT_EDIT_HEIGHT)
-    craftCountEdit:SetHidden(true)
-    if type(craftCountEdit.SetMaxInputChars) == "function" then
-        craftCountEdit:SetMaxInputChars(6)
-    end
-    craftCountEdit:SetHandler("OnEnter", function()
-        CommitEnchantRecipeCraftCount(QuickSettings, card)
-    end)
-    craftCountEdit:SetHandler("OnEscape", function()
-        CancelEnchantRecipeCraftCountEdit(card)
-    end)
-    SetTextTooltip(craftCountEdit, GetText("quick_settings.enchant_recipe.craft_count.tooltip"))
-    SetControlDrawOrder(craftCountEdit, DT_HIGH, DL_CONTROLS, 12)
-    card.craftCountEdit = craftCountEdit
-
-    local craftCountSaveButton = CreateIconButton(card, namePrefix .. "CraftCountSave", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/accept", GetText("common.save"), function()
-        CommitEnchantRecipeCraftCount(QuickSettings, card)
-    end)
-    craftCountSaveButton:ClearAnchors()
-    craftCountSaveButton:SetAnchor(LEFT, craftCountEdit, RIGHT, 2, 0)
-    craftCountSaveButton:SetHidden(true)
-    SetControlDrawOrder(craftCountSaveButton, DT_HIGH, DL_CONTROLS, 12)
-    card.craftCountSaveButton = craftCountSaveButton
-
-    local craftCountCancelButton = CreateIconButton(card, namePrefix .. "CraftCountCancel", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/decline", GetText("common.cancel"), function()
-        CancelEnchantRecipeCraftCountEdit(card)
-    end)
-    craftCountCancelButton:ClearAnchors()
-    craftCountCancelButton:SetAnchor(LEFT, craftCountSaveButton, RIGHT, 2, 0)
-    craftCountCancelButton:SetHidden(true)
-    SetControlDrawOrder(craftCountCancelButton, DT_HIGH, DL_CONTROLS, 12)
-    card.craftCountCancelButton = craftCountCancelButton
-
-    card.reagentIcons = {}
-    local reagentRow = WINDOW_MANAGER:CreateControl(namePrefix .. "ReagentRow", card, CT_CONTROL)
-    reagentRow:ClearAnchors()
-    reagentRow:SetAnchor(LEFT, craftCountEditButton, RIGHT, 8, 0)
-    reagentRow:SetDimensions((ALCHEMY_RECIPE_REAGENT_ICON_SIZE * 3) + (ALCHEMY_RECIPE_ICON_GAP * 2), ALCHEMY_RECIPE_REAGENT_ICON_SIZE)
-    SetControlDrawOrder(reagentRow, DT_HIGH, DL_CONTROLS, 8)
-    card.reagentRow = reagentRow
-
-    for reagentIndex = 1, 3 do
-        local iconName = namePrefix .. "Reagent" .. tostring(reagentIndex)
-        local iconBox = CreateBackdrop(reagentRow, iconName, 0.03, 0.03, 0.035, 0.98, 0.24, 0.24, 0.26, 1.0)
-        iconBox:ClearAnchors()
-        iconBox:SetAnchor(LEFT, reagentRow, LEFT, (reagentIndex - 1) * (ALCHEMY_RECIPE_REAGENT_ICON_SIZE + ALCHEMY_RECIPE_ICON_GAP), 0)
-        iconBox:SetDimensions(ALCHEMY_RECIPE_REAGENT_ICON_SIZE, ALCHEMY_RECIPE_REAGENT_ICON_SIZE)
-        iconBox:SetMouseEnabled(true)
-        SetControlDrawOrder(iconBox, DT_HIGH, DL_CONTROLS, 9)
-
-        local texture = WINDOW_MANAGER:CreateControl(iconName .. "Icon", iconBox, CT_TEXTURE)
-        texture:ClearAnchors()
-        texture:SetAnchor(TOPLEFT, iconBox, TOPLEFT, 2, 2)
-        texture:SetAnchor(BOTTOMRIGHT, iconBox, BOTTOMRIGHT, -2, -2)
-        SetControlDrawOrder(texture, DT_HIGH, DL_CONTROLS, 10)
-        iconBox.texture = texture
-
-        local count = WINDOW_MANAGER:CreateControl(iconName .. "Count", iconBox, CT_LABEL)
-        count:ClearAnchors()
-        count:SetAnchor(BOTTOMRIGHT, iconBox, BOTTOMRIGHT, -2, -1)
-        count:SetDimensions(28, 14)
-        count:SetFont("ZoFontGameSmall")
-        count:SetColor(1.0, 1.0, 1.0, 1.0)
-        if type(count.SetHorizontalAlignment) == "function" then
-            count:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        end
-        SetControlDrawOrder(count, DT_HIGH, DL_CONTROLS, 11)
-        iconBox.count = count
-        card.reagentIcons[reagentIndex] = iconBox
-    end
-
-    local applyButton = CreateButton(card, namePrefix .. "Apply", GetText("quick_settings.recipe.set_to_station"), ALCHEMY_RECIPE_APPLY_BUTTON_WIDTH, function()
-        ApplyEnchantRecipeToStation(QuickSettings, card.ltmRecipeId)
-    end)
-    applyButton:ClearAnchors()
-    applyButton:SetAnchor(TOPRIGHT, card, TOPRIGHT, -8, 66)
-    SetTextTooltip(applyButton, GetText("quick_settings.enchant_recipe.apply.tooltip"))
-    SetControlDrawOrder(applyButton, DT_HIGH, DL_CONTROLS, 11)
-    card.applyButton = applyButton
-
-    local renameButton = CreateIconButton(card, namePrefix .. "Rename", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/edit", GetText("common.rename"), function()
-        if type(card.recipe) == "table" then
-            Addon.UI:ShowDialog("ENCHANT_RECIPE_RENAME_INPUT", {
-                recipeId = card.recipe.id,
-                recipeName = card.recipe.name or card.recipe.id,
-                initialValue = card.recipe.name or card.recipe.id,
-                params = {
-                    recipeName = card.recipe.name or card.recipe.id or "",
-                },
-            })
-        end
-    end)
-    renameButton:ClearAnchors()
-    renameButton:SetAnchor(TOPRIGHT, card, TOPRIGHT, -38, 8)
-    SetControlDrawOrder(renameButton, DT_HIGH, DL_CONTROLS, 11)
-    card.renameButton = renameButton
-
-    local deleteButton = CreateIconButton(card, namePrefix .. "Delete", ALCHEMY_RECIPE_ICON_BUTTON_SIZE, "/esoui/art/buttons/decline", GetText("common.delete"), function()
-        DeleteEnchantRecipe(QuickSettings, card.ltmRecipeId)
-    end)
-    deleteButton:ClearAnchors()
-    deleteButton:SetAnchor(TOPRIGHT, card, TOPRIGHT, -8, 8)
-    SetControlDrawOrder(deleteButton, DT_HIGH, DL_CONTROLS, 11)
-    card.deleteButton = deleteButton
-
-    return card
-end
-
-RefreshEnchantRecipeCard = function(self, card, recipe, inventoryIndex)
-    card.recipe = recipe
-    local recipeId = type(recipe) == "table" and recipe.id or nil
-    card.ltmRecipeId = recipeId
-    card.ltmCraftCount = math.max(math.floor(tonumber(recipe.craftCount) or 1), 1)
-    card.activeCheckbox.ltmRecipeId = recipeId
-    local active = type(recipe) == "table" and recipe.isActive == true
-    if type(ZO_CheckButton_SetCheckState) == "function" then
-        ZO_CheckButton_SetCheckState(card.activeCheckbox, active)
-    end
-
-    card:SetEdgeColor(active and 0.76 or 0.28, active and 0.86 or 0.30, active and 0.95 or 0.34, 1.0)
-    card.activeLabel:SetHidden(true)
-
-    SetLabelText(card.nameLabel, recipe.name or recipe.id or "")
-    local resultText = type(recipe.resultItemLink) == "string" and recipe.resultItemLink ~= ""
-        and recipe.resultItemLink
-        or GetText("quick_settings.enchant_recipe.no_result_link")
-    SetLabelText(card.resultLabel, resultText)
-    SetItemTooltip(card.resultLabel, recipe.resultItemLink, recipe.name or recipe.id)
-    local resultIcon = GetItemLinkIconSafe(recipe.resultItemLink) or ALCHEMY_RECIPE_PLACEHOLDER_ICON
-    card.resultIconBox.texture:SetTexture(resultIcon)
-    SetItemTooltip(card.resultIconBox, recipe.resultItemLink, recipe.name or recipe.id)
-    SetLabelText(card.countLabel, "x " .. tostring(card.ltmCraftCount))
-    if card.craftCountEditing ~= true and card.craftCountEdit and type(card.craftCountEdit.SetText) == "function" then
-        card.craftCountEdit:SetText(tostring(card.ltmCraftCount))
-    end
-
-    local inventoryState = recipeId ~= nil
-        and EnchantRecipe:GetRecipeInventoryState(recipeId, inventoryIndex)
-        or nil
-    local reagents = type(inventoryState) == "table" and {
-        inventoryState.potency,
-        inventoryState.essence,
-        inventoryState.aspect,
-    } or {}
-    local reagentItemIds = {
-        recipe.potencyItemId,
-        recipe.essenceItemId,
-        recipe.aspectItemId,
-    }
-    for reagentIndex = 1, 3 do
-        local iconBox = card.reagentIcons[reagentIndex]
-        local display = BuildEnchantItemDisplay(reagents[reagentIndex], reagentItemIds[reagentIndex])
-        local hasReagent = reagentItemIds[reagentIndex] ~= nil
-        iconBox:SetHidden(hasReagent ~= true)
-        if hasReagent then
-            iconBox.texture:SetTexture(display.icon)
-            SetLabelText(iconBox.count, tostring(display.count or 0))
-            iconBox.count:SetHidden(false)
-            SetItemTooltip(iconBox, display.itemLink, display.name)
-            iconBox:SetCenterColor(display.found and 0.03 or 0.08, display.found and 0.03 or 0.02, display.found and 0.035 or 0.02, 0.98)
-            iconBox:SetEdgeColor(display.found and 0.24 or 0.64, display.found and 0.24 or 0.18, display.found and 0.26 or 0.18, 1.0)
-        end
-    end
-
-    return table.concat({
-        tostring(recipeId),
-        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.potency or nil),
-        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.essence or nil),
-        BuildInventoryItemStateSignature(type(inventoryState) == "table" and inventoryState.aspect or nil),
-        tostring(type(inventoryState) == "table" and inventoryState.allRequiredFound == true),
-    }, "|")
-end
+RECIPE_DESCRIPTOR_BY_MENU_ID.enchant_recipe.errorText = GetEnchantRecipeErrorText
 
 function QuickSettings:RefreshEnchantRecipe()
-    if not self.enchantRecipePanel then
-        return
-    end
-
-    local autoApplyEnabled = EnchantRecipe:GetAutoApplyEnabled() == true
-    if type(ZO_CheckButton_SetCheckState) == "function" and self.enchantAutoApplyCheckbox then
-        ZO_CheckButton_SetCheckState(self.enchantAutoApplyCheckbox, autoApplyEnabled)
-    end
-
-    if self.enchantCaptureButton and type(self.enchantCaptureButton.SetEnabled) == "function" then
-        self.enchantCaptureButton:SetEnabled(EnchantRecipe.isStationOpen == true)
-    end
-
-    local recipes = EnchantRecipe:GetRecipeList()
-
-    self.enchantRecipeEmptyLabel:SetHidden(#recipes > 0)
-    self.enchantRecipeCards = self.enchantRecipeCards or {}
-    local layoutSignature = BuildRecipeLayoutSignature(
-        recipes,
-        self.enchantRecipeListRoot,
-        self.enchantRecipeListScroll
-    )
-    local layoutNeedsRefresh = self.enchantRecipeLayoutSignature ~= layoutSignature
-    if not layoutNeedsRefresh then
-        for index = 1, #recipes do
-            if self.enchantRecipeCards[index] == nil then
-                layoutNeedsRefresh = true
-                break
-            end
-        end
-    end
-    local inventoryIndex = #recipes > 0
-        and EnchantRecipe:BuildInventoryIndex()
-        or nil
-    local rowCount = #recipes > 0 and math.ceil(#recipes / ALCHEMY_RECIPE_CARD_COLUMNS) or 0
-    local contentHeight = rowCount > 0
-        and (rowCount * ALCHEMY_RECIPE_CARD_HEIGHT) + ((rowCount - 1) * ALCHEMY_RECIPE_CARD_GAP)
-        or 0
-    local refreshStateParts = {}
-
-    for index, recipe in ipairs(recipes) do
-        local card = self.enchantRecipeCards[index]
-        if card == nil then
-            card = CreateEnchantRecipeCard(self, self.enchantRecipeListRoot, index)
-            self.enchantRecipeCards[index] = card
-        end
-
-        if layoutNeedsRefresh then
-            local columnIndex = (index - 1) % ALCHEMY_RECIPE_CARD_COLUMNS
-            local rowIndex = math.floor((index - 1) / ALCHEMY_RECIPE_CARD_COLUMNS)
-            local y = rowIndex * (ALCHEMY_RECIPE_CARD_HEIGHT + ALCHEMY_RECIPE_CARD_GAP)
-            card:ClearAnchors()
-            if columnIndex == 0 then
-                card:SetAnchor(TOPLEFT, self.enchantRecipeListRoot, TOPLEFT, 0, y)
-                card:SetAnchor(TOPRIGHT, self.enchantRecipeListRoot, TOP, -(ALCHEMY_RECIPE_CARD_GAP / 2), y)
-            else
-                card:SetAnchor(TOPLEFT, self.enchantRecipeListRoot, TOP, ALCHEMY_RECIPE_CARD_GAP / 2, y)
-                card:SetAnchor(TOPRIGHT, self.enchantRecipeListRoot, TOPRIGHT, 0, y)
-            end
-        end
-        card:SetHidden(false)
-        refreshStateParts[index] = RefreshEnchantRecipeCard(self, card, recipe, inventoryIndex)
-    end
-
-    for index = #recipes + 1, #self.enchantRecipeCards do
-        self.enchantRecipeCards[index]:SetHidden(true)
-    end
-
-    if layoutNeedsRefresh then
-        RefreshCardListScrollContainer(self.enchantRecipeListScroll, contentHeight)
-        self.enchantRecipeLayoutSignature = layoutSignature
-    end
-
-    return table.concat(refreshStateParts, "||")
+    return RefreshCraftingRecipePage(self, RECIPE_DESCRIPTOR_BY_MENU_ID.enchant_recipe)
 end
 
 CreateScribingRecipePanel = function(self, parent, titleLabel)
@@ -2835,25 +2293,17 @@ local function BuildScribingValidationSummary(validationState)
         validationState.reason
 end
 
+RECIPE_DESCRIPTOR_BY_MENU_ID.scribing_recipe.errorText = GetScribingRecipeErrorText
+
 SetScribingAutoApplyEnabled = function(self, enabled)
     ScribingRecipe:SetAutoApplyEnabled(enabled == true)
     self:RefreshScribingRecipe()
 end
 
 CaptureScribingRecipe = function(self)
-    local recipe, err = ScribingRecipe:CaptureFromStation()
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.scribing_recipe.saved", {
-            recipeName = recipe.name or recipe.craftedAbilityName or recipe.id or "",
-        }))
-        self:RefreshScribingRecipe()
-        return true
-    end
-
-    WriteChat(GetScribingRecipeErrorText(err))
-    self:RefreshScribingRecipe()
-    return false
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.scribing_recipe
+    local recipe, err = descriptor.recipeModule:CaptureFromStation()
+    return HandleRecipeResult(self, descriptor, "saved", recipe, err)
 end
 
 local function NormalizeCursorId(value)
@@ -3008,52 +2458,21 @@ RegisterScribingRecipeFromDrop = function(self, button)
 end
 
 SetActiveScribingRecipe = function(self, recipeId)
-    local recipe, err = ScribingRecipe:SetActiveRecipe(recipeId)
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.scribing_recipe.active_set", {
-            recipeName = recipe.name or recipe.craftedAbilityName or recipe.id or "",
-        }))
-        self:RefreshScribingRecipe()
-        return true
-    end
-
-    WriteChat(GetScribingRecipeErrorText(err))
-    self:RefreshScribingRecipe()
-    return false
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.scribing_recipe
+    local recipe, err = descriptor.recipeModule:SetActiveRecipe(recipeId)
+    return HandleRecipeResult(self, descriptor, "active_set", recipe, err)
 end
 
 DeleteScribingRecipe = function(self, recipeId)
-    local ok, err = ScribingRecipe:DeleteRecipe(recipeId)
-
-    if ok == true then
-        WriteChat(GetText("quick_settings.scribing_recipe.deleted"))
-        self:RefreshScribingRecipe()
-        return true
-    end
-
-    WriteChat(GetScribingRecipeErrorText(err))
-    self:RefreshScribingRecipe()
-    return false
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.scribing_recipe
+    local ok, err = descriptor.recipeModule:DeleteRecipe(recipeId)
+    return HandleRecipeResult(self, descriptor, "deleted", ok, err)
 end
 
 ApplyScribingRecipeToStation = function(self, recipeId)
-    local ok, result = ScribingRecipe:ApplyRecipeToStation(recipeId)
-
-    if ok == true then
-        local recipe = type(result) == "table" and type(result.recipe) == "table" and result.recipe or {}
-        WriteChat(GetText("quick_settings.scribing_recipe.applied", {
-            recipeName = recipe.name or recipe.craftedAbilityName or recipeId or "",
-        }))
-        Log.Debug("[ScribingRecipe]", "manualApply", "ok=true", "recipeId=" .. tostring(recipeId))
-        self:RefreshScribingRecipe()
-        self:StartRecipeShortRefresh("scribing_recipe")
-        return true
-    end
-
-    WriteChat(GetScribingRecipeErrorText(result))
-    self:RefreshScribingRecipe()
-    return false
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.scribing_recipe
+    local ok, result = descriptor.recipeModule:ApplyRecipeToStation(recipeId)
+    return HandleRecipeResult(self, descriptor, "applied", ok, result, recipeId)
 end
 
 CreateScribingRecipeCard = function(self, parent, index)
@@ -3445,50 +2864,32 @@ function QuickSettings:RenameQuickSlotProfile(profileId, newName)
 end
 
 function QuickSettings:RenameAlchemyRecipe(recipeId, newName)
-    local recipe, err = AlchemyRecipe:RenameRecipe(recipeId, newName)
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.alchemy_recipe.renamed", {
-            recipeName = recipe.name or recipe.resultItemLink or recipe.id or "",
-        }))
-        self:RefreshAlchemyRecipe()
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.alchemy_recipe
+    local recipe, err = descriptor.recipeModule:RenameRecipe(recipeId, newName)
+    local success = HandleRecipeResult(self, descriptor, "renamed", recipe, err)
+    if success then
         return recipe, nil
     end
-
-    WriteChat(GetAlchemyRecipeErrorText(err))
-    self:RefreshAlchemyRecipe()
     return recipe, err
 end
 
 function QuickSettings:RenameEnchantRecipe(recipeId, newName)
-    local recipe, err = EnchantRecipe:RenameRecipe(recipeId, newName)
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.enchant_recipe.renamed", {
-            recipeName = recipe.name or recipe.resultItemLink or recipe.id or "",
-        }))
-        self:RefreshEnchantRecipe()
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.enchant_recipe
+    local recipe, err = descriptor.recipeModule:RenameRecipe(recipeId, newName)
+    local success = HandleRecipeResult(self, descriptor, "renamed", recipe, err)
+    if success then
         return recipe, nil
     end
-
-    WriteChat(GetEnchantRecipeErrorText(err))
-    self:RefreshEnchantRecipe()
     return recipe, err
 end
 
 function QuickSettings:RenameScribingRecipe(recipeId, newName)
-    local recipe, err = ScribingRecipe:RenameRecipe(recipeId, newName)
-
-    if type(recipe) == "table" then
-        WriteChat(GetText("quick_settings.scribing_recipe.renamed", {
-            recipeName = recipe.name or recipe.craftedAbilityName or recipe.id or "",
-        }))
-        self:RefreshScribingRecipe()
+    local descriptor = RECIPE_DESCRIPTOR_BY_MENU_ID.scribing_recipe
+    local recipe, err = descriptor.recipeModule:RenameRecipe(recipeId, newName)
+    local success = HandleRecipeResult(self, descriptor, "renamed", recipe, err)
+    if success then
         return recipe, nil
     end
-
-    WriteChat(GetScribingRecipeErrorText(err))
-    self:RefreshScribingRecipe()
     return recipe, err
 end
 

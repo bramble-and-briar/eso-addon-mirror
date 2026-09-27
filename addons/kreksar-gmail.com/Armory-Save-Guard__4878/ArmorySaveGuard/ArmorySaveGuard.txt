@@ -1,0 +1,9 @@
+## Title: Armory Save Guard
+## Description: Requires typing a confirmation word, like destroying an item, before saving over an Armory build. AI-ASSISTED: written with Claude.ai, reviewed and tested in-game by the author for functionality.
+## Author: @Kreksar5 and Claude.ai
+## Version: 1.1.2
+## AddOnVersion: 4
+## APIVersion: 101050 101051
+## SavedVariables: ArmorySaveGuard_SV
+
+ArmorySaveGuard.lua

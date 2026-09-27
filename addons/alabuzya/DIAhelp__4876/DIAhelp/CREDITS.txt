@@ -1,0 +1,26 @@
+DIAhelp
+Maintainer: alabuzya <aabuziarov@gmail.com>
+Developed with AI assistance.
+
+Based on DiabloFrames by BulDeZir (code) and Forsion (art/texture work).
+Original project: https://gitlab.com/teso-addons/diablo-frames
+Original release: https://www.esoui.com/downloads/info3051-DiabloFrames.html
+Source commit: b7e89ac42d232896f7ee4b0c5f063bf34e6db2ea
+Retrieved: 2026-09-22
+
+The upstream repository declares GNU GPL version 3 or later and includes
+its license text. DIAhelp is distributed under GPL-3.0-or-later; see LICENSE.
+Original author and artwork credits are retained. No separate asset license
+was found in the retrieved repository. No ownership of original artwork or
+third-party trademarks is claimed. Editable Lua/XML source and DDS assets
+are included in this distribution.
+
+Modified by alabuzya with AI assistance, September 2026: renamed and adapted
+the DiabloFrames interface; fixed initialization and texture references;
+added inventory, combat, group, map, quest, buff, chat and maintenance modules.
+Bundled QuestArrow 0.2.1 is by alabuzya.
+Other referenced add-on names describe compatibility or similar features;
+DIAhelp does not include their code or assets.
+
+This is an independent fork, not an official DiabloFrames update.
+Not affiliated with or sponsored by ZeniMax Media Inc.

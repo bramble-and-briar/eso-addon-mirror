@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 -- LibInteriorDetection
--- Version: 1.3.0
+-- Version: 1.3.3
 --
 -- A library that reports whether the player is currently indoors, by
 -- combining a per-zone "interior" default with live door-transition and
@@ -53,6 +53,41 @@
 --        highest-confidence tier, individually researched and confirmed.
 --   Every entry's table default can be overridden per-zone via the
 --   settings menu - use that rather than editing the table directly.
+--
+-- PLAYER HOUSES (1.3.2):
+--   A house zone's default comes from the game's own data instead of the
+--   ZONE_INTERIOR table: houses that support Weather Control are
+--   EXTERIOR, all others INTERIOR (author's rule). Read via
+--   GetHouseFlags(houseId) + HOUSE_FLAGS_SUPPORTS_WEATHER_CONTROL - the
+--   same flag the housing book's "Supports Weather Control" line uses -
+--   and GetHouseZoneId(houseId) (0 = invalid house), all confirmed in the
+--   ESOUI client source (12.0.8). A zoneId -> weather map is built once
+--   by scanning houseIds 1..HOUSE_ID_SCAN_MAX. Precedence: player zone
+--   override > HOUSE_EXCEPTIONS (1.3.3: author-verified houses where the
+--   flag doesn't match the home's actual layout) > house weather flag >
+--   ZONE_INTERIOR table (fallback if the API is ever unavailable).
+--
+-- RETURN POINTS (1.3.1):
+--   Some zones are TEMPORARY: another player's house, a group dungeon, a
+--   trial, a battleground. Logging out in one (or being removed from a
+--   group instance) puts the player back where they stood BEFORE entering
+--   - confirmed by the author for houses (including several house hops),
+--   group dungeons and trials. That spot may be inside a building of an
+--   exterior zone, whose state the normal logout save (which recorded the
+--   temporary zone) doesn't have. So on leaving any NON-temporary zone
+--   the library also saves a "return point" (position + state), which
+--   temporary zones never overwrite. On arriving from a temporary zone,
+--   if the player is back in the return point's zone and near it, that
+--   state is restored instead of the zone default.
+--   Temporary = GetCurrentZoneHouseId() ~= 0 (any house, own included -
+--   harmless: logging out in your own house logs you back into it, which
+--   the normal restore covers) OR IsActiveWorldGroupOwnable() (what the
+--   game's own leave-group dialog uses to warn that leaving removes you
+--   from the instance) OR IsActiveWorldBattleground(). All three confirmed
+--   in the ESOUI client source; that IsActiveWorldGroupOwnable() is true
+--   for exactly dungeons+trials is inferred from that dialog, and
+--   battlegrounds are included by analogy, not tested. Classified on
+--   ARRIVAL (EVENT_PLAYER_ACTIVATED), not on leaving.
 --
 -- METHODOLOGY - LIVE DOOR-TOGGLE (DOOR WATCH, 1.3.0):
 --   Ordinary building interiors get no zone/map change and no event of
@@ -170,7 +205,7 @@
 
 local LIB_NAME  = "LibInteriorDetection"
 local ADDON_ID  = "LibInteriorDetection"  -- LAM panel name / slash command namespace
-local LIB_VERSION = 37
+local LIB_VERSION = 40
 
 -- Cached once rather than calling GetEventManager() repeatedly throughout
 -- the file - same singleton either way, avoids the repeated lookup.
@@ -219,6 +254,12 @@ local DOOR_WATCH_MAX_CREDITS = 4      -- cap so a burst of presses can't bank ma
 local DOOR_JUMP_COOLDOWN_MS = 1500    -- see "Counting rules" in the header (guess)
 local RECENT_TOGGLE_MS = 3000         -- "just toggled" window for OnPlayerActivated
 
+-- 1.3.1: how close (any axis, raw units) the arrival point must be to the
+-- saved return point. Login positions have drifted by tens of meters
+-- before without the player moving, so this is loose. Judgment call, not
+-- measured - the trace logs the actual distance.
+local RETURN_POINT_TOLERANCE = 5000
+
 -- Account-wide saved variables: preferences and zone overrides that
 -- should be the same across every character.
 local ACCOUNT_DEFAULTS = {
@@ -237,6 +278,8 @@ local ACCOUNT_DEFAULTS = {
 local CHARACTER_DEFAULTS = {
     lastPosition = nil,      -- { zoneId = n, x = n, y = n, z = n }
     lastIsInterior = nil,    -- boolean
+    lastZoneTemporary = nil, -- 1.3.1: was the logout zone a temporary one?
+    returnPoint = nil,       -- 1.3.1: { zoneId, x, y, z, isInterior } - see RETURN POINTS
 }
 
 -------------------------------------------------------------------------------
@@ -1053,14 +1096,14 @@ local ZONE_INTERIOR = {
     [1238] = true, -- Tidewater Cave | no-notes|prior:interior:keyword:cave
     [1239] = true, -- Welke | verified:user:indoor
     [1240] = false, -- Leyawiin Castle | notes:exterior(marsh)
-    [1241] = false, -- Doomvault Capraxus | verified:user:outdoor-doomvault-exception
+    [1241] = true,  -- Doomvault Capraxus | 1.3.2: interior per author (has exterior sub-sections; treated as interior anyway)
     [1242] = true, -- Vandacia's Deadlands Keep | verified:web:indoor-daedric-fortress-dungeon
     [1243] = false, -- Fort Redmane | notes:exterior(marsh,fen)
     [1244] = false, -- Isle of Balfiera | notes:exterior(isle)
     [1245] = false, -- Borderwatch Ruins | verified:web:outdoor-fort-battlements
     [1246] = true, -- Deepscorn Hollow | notes:interior(cave)
     [1247] = false, -- Veyond | verified:web:outdoor-overland-ruin
-    [1248] = false, -- Doomvault Vulpinaz | verified:user:outdoor-doomvault-exception
+    [1248] = true,  -- Doomvault Vulpinaz | 1.3.2: interior per author (has exterior sub-sections; treated as interior anyway)
     [1249] = false, -- Twyllbek Ruins | verified:web:outdoor-overland-ruin-quest-hub
     [1250] = true, -- Glenbridge Xanmeer | verified:web:indoor-xanmeer-dungeon
     [1251] = true, -- Xynaa's Sanctuary | notes:interior(sealed,interior)
@@ -1068,7 +1111,7 @@ local ZONE_INTERIOR = {
     [1253] = true, -- Undertow Cavern | notes:interior(cave)
     [1254] = true, -- Arpenia | verified:web:indoor-delve
     [1255] = true, -- Bloodrun Cave | notes:interior(cave)
-    [1256] = false, -- Doomvault Porcixid | verified:user:outdoor-doomvault-exception
+    [1256] = true,  -- Doomvault Porcixid | 1.3.2: interior per author (has exterior sub-sections; treated as interior anyway)
     [1257] = false, -- Xi-Tsei | verified:user:outdoor
     [1258] = false, -- Vunalk | verified:user:outdoor
     [1259] = false, -- Zenithar's Abbey | verified:user:outdoor
@@ -1306,12 +1349,66 @@ local ZONE_INTERIOR = {
 --- @param zoneId number
 --- @return boolean isInterior
 --- @return boolean isKnown   False only if there's no override AND no table entry.
+-- 1.3.3: author-verified houses where Weather Control support doesn't
+-- match the home's actual layout (reviewed from /lid debug houses).
+-- true = interior, false = exterior. Beats the weather flag; a player's
+-- own zone override still beats this.
+local HOUSE_EXCEPTIONS = {
+    [1343] = false, -- Agony's Ascent - no weather control, but the entry area is exterior
+    [1306] = false, -- Doomchar Plateau - no weather control, but the whole zone is exterior
+    [1434] = true,  -- Emissary's Enclave - weather control, but only a moderate courtyard; mostly interior
+    [881]  = true,  -- Gardner House - weather control, but only a small courtyard; mostly interior
+    [879]  = false, -- Hunding's Palatial Hall - no weather control, but a large exterior entry area
+    [860]  = true,  -- Snugpod - weather control, but the whole zone is interior
+    [1435] = false, -- The Fair Winds - no weather control, but entry area and most of the zone are exterior
+    [1276] = true,  -- Water's Edge - weather control, but entry area and most of the zone are interior
+}
+
+-- 1.3.2: see PLAYER HOUSES in the header. The scan bound is a guess with
+-- headroom (house IDs aren't documented; invalid IDs just return 0), so
+-- a house added past it would fall back to the ZONE_INTERIOR table.
+local HOUSE_ID_SCAN_MAX = 500
+local houseZoneWeather = nil  -- zoneId -> supports Weather Control (boolean)
+local houseScanCount = 0
+
+local function GetHouseZoneWeatherMap()
+    if houseZoneWeather then
+        return houseZoneWeather
+    end
+    houseZoneWeather = {}
+    if type(GetHouseZoneId) ~= "function" or type(GetHouseFlags) ~= "function"
+        or HOUSE_FLAGS_SUPPORTS_WEATHER_CONTROL == nil or not ZO_FlagHelpers
+    then
+        return houseZoneWeather -- API unavailable: table fallback for every house
+    end
+    for houseId = 1, HOUSE_ID_SCAN_MAX do
+        local zoneId = GetHouseZoneId(houseId)
+        if zoneId and zoneId ~= 0 then
+            houseZoneWeather[zoneId] = ZO_FlagHelpers.MaskHasFlag(GetHouseFlags(houseId), HOUSE_FLAGS_SUPPORTS_WEATHER_CONTROL)
+            houseScanCount = houseScanCount + 1
+        end
+    end
+    return houseZoneWeather
+end
+
 function lib.IsZoneInterior(zoneId)
     if lib.savedVars and lib.savedVars.zoneOverrides then
         local override = lib.savedVars.zoneOverrides[tostring(zoneId)]
         if override ~= nil then
             return override, true
         end
+    end
+
+    -- 1.3.3: author-verified exceptions to the weather rule.
+    local exception = HOUSE_EXCEPTIONS[zoneId]
+    if exception ~= nil then
+        return exception, true
+    end
+
+    -- 1.3.2: player houses - Weather Control support means exterior.
+    local supportsWeather = GetHouseZoneWeatherMap()[zoneId]
+    if supportsWeather ~= nil then
+        return not supportsWeather, true
     end
 
     local value = ZONE_INTERIOR[zoneId]
@@ -1343,6 +1440,7 @@ lib.state = {
     rawZoneId = nil,        -- raw zoneId at the last EVENT_PLAYER_ACTIVATED
     lastReticleText = nil,  -- trace-only: what the reticle offered at interact time
     lockpickText = nil,     -- trace-only: reticle text when the pick began
+    zoneIsTemporary = nil,  -- 1.3.1: classification of the current zone (set on arrival)
 }
 
 --- Returns the player's current live indoor state.
@@ -1546,6 +1644,17 @@ local function StopTeleportPoll(reason, onlySource)
     lib.state.teleportPollToken = lib.state.teleportPollToken + 1
 end
 
+-- 1.3.1: see RETURN POINTS in the header. Each API is guarded so a
+-- future rename degrades to "not temporary" (the pre-1.3.1 behavior)
+-- instead of an error.
+local function IsTemporaryZone()
+    local inHouse = type(GetCurrentZoneHouseId) == "function" and GetCurrentZoneHouseId() ~= 0
+    local inGroupInstance = type(IsActiveWorldGroupOwnable) == "function" and IsActiveWorldGroupOwnable() or false
+    local inBattleground = type(IsActiveWorldBattleground) == "function" and IsActiveWorldBattleground() or false
+    return (inHouse or inGroupInstance or inBattleground) and true or false,
+        string.format("house=%s groupInstance=%s battleground=%s", tostring(inHouse), tostring(inGroupInstance), tostring(inBattleground))
+end
+
 local function OnPlayerActivated(eventCode, initial)
     local zoneId = LibZone:GetCurrentZoneIds()
     if not zoneId then
@@ -1557,9 +1666,21 @@ local function OnPlayerActivated(eventCode, initial)
     local curZone, curX, curY, curZ = GetUnitRawWorldPosition("player")
     local prevRawZone = lib.state.rawZoneId
 
+    -- 1.3.1: did we just come from a temporary zone? At login, from the
+    -- saved logout record; otherwise from the zone we were just in (a
+    -- /reloadui wipes this, but a reload never changes zone anyway).
+    local cameFromTemporary
+    if initial then
+        cameFromTemporary = lib.charSavedVars and lib.charSavedVars.lastZoneTemporary == true or false
+    else
+        cameFromTemporary = lib.state.zoneIsTemporary == true
+    end
+    local isTemporary, temporaryDetail = IsTemporaryZone()
+
     lib.state.zoneId = zoneId
     lib.state.zoneDefaultInterior = zoneDefaultInterior
     lib.state.rawZoneId = curZone
+    lib.state.zoneIsTemporary = isTemporary
 
     local now = GetGameTimeMilliseconds()
     local sinceToggleMs = lib.state.lastDoorToggleMs and (now - lib.state.lastDoorToggleMs) or nil
@@ -1567,6 +1688,8 @@ local function OnPlayerActivated(eventCode, initial)
     Trace("Activated: initial=%s rawZone %s -> %s, libZone=%s (default %s), doorWatch=%s, msSinceDoorToggle=%s",
         tostring(initial), tostring(prevRawZone), tostring(curZone), tostring(zoneId),
         DescribeIsInterior(zoneDefaultInterior), tostring(lib.state.doorWatch ~= nil), tostring(sinceToggleMs))
+    Trace("Activated: this zone temporary=%s (%s), came from temporary=%s",
+        tostring(isTemporary), temporaryDetail, tostring(cameFromTemporary))
 
     -- 1.2.0: same-raw-zone activation during a door crossing. If this
     -- event was caused by the door itself, the door check (pending, or
@@ -1630,6 +1753,21 @@ local function OnPlayerActivated(eventCode, initial)
         return
     end
 
+    -- 1.3.1: back from a temporary zone at the saved return point?
+    local rp = lib.charSavedVars and lib.charSavedVars.returnPoint
+    if cameFromTemporary and rp and rp.zoneId == curZone and rp.isInterior ~= nil and curX then
+        local distance = MaxAxisDelta(rp.x, rp.y, rp.z, curX, curY, curZ)
+        if distance <= RETURN_POINT_TOLERANCE then
+            StopDoorWatch("return point restore")
+            SetIsInterior(rp.isInterior, "Activated (return point)",
+                string.format("back from a temporary zone, %.0f from the saved return point (tolerance %d)", distance, RETURN_POINT_TOLERANCE))
+            return
+        end
+        Trace("Activated: return point in this zone but %.0f away (tolerance %d) - not used", distance, RETURN_POINT_TOLERANCE)
+    elseif cameFromTemporary then
+        Trace("Activated: came from a temporary zone, but the return point is %s", rp and ("in rawZone " .. tostring(rp.zoneId)) or "missing")
+    end
+
     StopDoorWatch("activation reset")
     SetIsInterior(zoneDefaultInterior, "Activated (zone default)")
 end
@@ -1646,7 +1784,16 @@ local function OnPlayerDeactivated()
 
     lib.charSavedVars.lastPosition = { zoneId = zoneId, x = x, y = y, z = z }
     lib.charSavedVars.lastIsInterior = lib.state.isInterior
-    Trace("Deactivated: saved rawZone=%s state=%s", tostring(zoneId), DescribeIsInterior(lib.state.isInterior))
+    lib.charSavedVars.lastZoneTemporary = lib.state.zoneIsTemporary == true
+    Trace("Deactivated: saved rawZone=%s state=%s temporary=%s", tostring(zoneId),
+        DescribeIsInterior(lib.state.isInterior), tostring(lib.state.zoneIsTemporary == true))
+
+    -- 1.3.1: leaving a normal zone also records the return point;
+    -- temporary zones never overwrite it (see RETURN POINTS).
+    if lib.state.zoneIsTemporary == false and lib.state.isInterior ~= nil then
+        lib.charSavedVars.returnPoint = { zoneId = zoneId, x = x, y = y, z = z, isInterior = lib.state.isInterior }
+        Trace("Deactivated: return point saved (rawZone=%s state=%s)", tostring(zoneId), DescribeIsInterior(lib.state.isInterior))
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -2188,6 +2335,13 @@ local function SlashLid(argString)
             string.format("[LibInteriorDetection] rawZone match: %s (this is the ONLY gate checked when initial==true - see the OnPlayerActivated restore logic)",
                 tostring(zoneMatches))
         )
+        local rp = lib.charSavedVars.returnPoint
+        CHAT_ROUTER:AddSystemMessage(rp and string.format(
+            "[LibInteriorDetection] Return point: rawZone=%s (%s) x=%s y=%s z=%s state=%s | logout zone temporary=%s",
+            tostring(rp.zoneId), rp.zoneId and (GetZoneNameById(rp.zoneId) or "?") or "?",
+            tostring(rp.x), tostring(rp.y), tostring(rp.z), DescribeIsInterior(rp.isInterior),
+            tostring(lib.charSavedVars.lastZoneTemporary))
+            or "[LibInteriorDetection] Return point: none saved yet")
         return
     end
 
@@ -2210,6 +2364,39 @@ local function SlashLid(argString)
         return
     end
 
+    -- /lid debug houses (1.3.2): the house classification read from the
+    -- game, and every house where it disagrees with the old table entry.
+    if args[1] == "debug" and args[2] == "houses" then
+        local map = GetHouseZoneWeatherMap()
+        local weatherCount, exceptionCount, changed = 0, 0, {}
+        for zoneId, supportsWeather in pairs(map) do
+            if supportsWeather then
+                weatherCount = weatherCount + 1
+            end
+            -- Effective built-in value: exception first, else the flag.
+            local effective = not supportsWeather
+            local exception = HOUSE_EXCEPTIONS[zoneId]
+            if exception ~= nil then
+                exceptionCount = exceptionCount + 1
+                effective = exception
+            end
+            local tableValue = ZONE_INTERIOR[zoneId]
+            if tableValue ~= nil and tableValue ~= effective then
+                changed[#changed + 1] = string.format("%s (%d): %s -> %s%s", GetZoneNameById(zoneId) or "?", zoneId,
+                    DescribeIsInterior(tableValue), DescribeIsInterior(effective),
+                    exception ~= nil and " (exception)" or "")
+            end
+        end
+        CHAT_ROUTER:AddSystemMessage(string.format(
+            "[LibInteriorDetection] Houses found: %d (%d support Weather Control, %d don't; %d author exceptions applied). Differ from the old table: %d",
+            houseScanCount, weatherCount, houseScanCount - weatherCount, exceptionCount, #changed))
+        table.sort(changed)
+        for _, line in ipairs(changed) do
+            CHAT_ROUTER:AddSystemMessage("[LibInteriorDetection]   " .. line)
+        end
+        return
+    end
+
     -- /lid debug trace on|off (1.2.0) - see SetIsInterior/Trace.
     if args[1] == "debug" and args[2] == "trace" and (args[3] == "on" or args[3] == "off") then
         if lib.savedVars then
@@ -2224,7 +2411,7 @@ local function SlashLid(argString)
         return
     end
 
-    CHAT_ROUTER:AddSystemMessage("[LibInteriorDetection] Usage: /lid debug hud on|off | /lid debug saved | /lid debug flip | /lid debug trace on|off")
+    CHAT_ROUTER:AddSystemMessage("[LibInteriorDetection] Usage: /lid debug hud on|off | /lid debug saved | /lid debug flip | /lid debug trace on|off | /lid debug houses")
 end
 
 -------------------------------------------------------------------------------

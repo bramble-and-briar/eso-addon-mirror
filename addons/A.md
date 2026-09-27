@@ -254,6 +254,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArmorHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dankin0815/ArmorHUD__1006) | Dankin0815 | PC / Mac | 1.3.3 |
 | [Armorskull: Resistance Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/taugrim/Armorskull-Resistance-Meter__3129) | taugrim | PC / Mac | 1.11 |
 | [Armory Build Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tes4p00ner/Armory-Build-Display__3221) | tes4p00ner | PC / Mac | 1.0.8 |
+| [Armory Save Guard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Armory-Save-Guard__4878) | kreksar@gmail.com | PC / Mac | 1.1.2 |
 | [Armory Style Manager (for Update 44)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/loosej/Armory-Style-Manager-for-Update-44__3949) | loosej | PC / Mac | 0.15.1 |
 | [ArmoryLocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KrykiZZ/ArmoryLocker__3748) | KrykiZZ | PC / Mac | 1.0.0 |
 | [ArmoryRoleSwitcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/ArmoryRoleSwitcher__ec09cf15-d910-4d7e-b9cc-17c759d03aa0) | Masteroshi430 | Console | — |

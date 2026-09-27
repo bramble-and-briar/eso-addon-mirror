@@ -1,0 +1,72 @@
+
+Changelog Place Holder for Raffle Gold addon
+********************************************
+
+
+9.26.2026	v26.51.00
+========================
+CLEAN INSTALL Needed... I do NOT have time to support this addon for Consoles.
+  So, first change needed for this version is...
+	* CLEAN INSTALL is needed. Stopped Support for Consoles. Reverting back to RaffleGold.TXT manifest file.
+	  Remeber to Delete RaffleGold.addon. 
+	* Cleaned up a few Varaiables by locolaizing some global vars.
+	* Fixed Slash Command ERRORS
+	* Added a Permissions Check to see if addon User has Permissions in Guild to Scan Guild Gold Deposits.
+	  (Guilds with RED text means, You do NOT have Guild Permissions to Scan for Gold Deposits)
+	* Added Guild Rank Names instead of Numbers in the Guild Rank select to Exclude in Raffles
+	  (Any Guild Rank in RED Text will be Excluded in Guild Raffles)
+	* Decided to Rename My version of "Raffle Gold" for ESOUI's name listings...  From here on out, 
+	  it will be listed and called, "Raffle Gold Continued", as it has been confused with a very old version.
+
+by @Dr_Z
+_________________________________________________________________________________________________________
+
+6.9.2026	v26.50.1
+========================
+Fixed an issue with unwanted files accidently being uploaded in the zip file.
+
+by @Dr_Z
+_________________________________________________________________________________________________________
+
+6.8.2026	v26.50.0
+========================
+CLEAN INSTALL Is Recommended for this latest Version. You can KEEP the savedVariables file.
+Version update and Debugged for Update 50
+	* Added a "README" file
+	* Added "Changelog.txt" file to keep records of changes to the addon before uploading to ESOUI
+	* Added "RaffleGold.addon" file to take place of file "RaffleGold.txt"
+
+by @Dr_Z
+_________________________________________________________________________________________________________
+
+5.17.2025	v25.45.1
+========================
+Fixed an issue with Dates being out of visible range, by removing added dates into the future.
+This was caused by ESO sometimes randomly removing scroll bars from drop down windows
+
+by @MisterKarnos
+_________________________________________________________________________________________________________
+
+3.19.2024	v24.41.1
+========================
+Updated, Fixed, and Added new functions to "Guild Bank Raffle Drawing" section.
+	* Fixed "nil" ticket count
+	* Fixed ERROR when a text field was empty
+	* Fixed Excluded Guild Ranks Gold being added to Total Gold Count
+	* Fixed Account Names not adding @ sign to name.
+by @Dr_Z
+_________________________________________________________________________________________________________
+
+3.18.2024	v24.41.0
+========================
+Continuation and First Upload with Overhauled code for "Raffle Gold Addon"
+Changed all Global variables and Functions to comply with changes to GUILD HISTOY for Update 41
+
+Addon Version Number Defined: 24.41.0
+	24 = Year addon was updated
+	41 = API Build Number
+	 0 = Addon's Build/Update Number ... 0 Means First Build/Update of the year
+
+by @Dr_Z
+_________________________________________________________________________________________________________
+

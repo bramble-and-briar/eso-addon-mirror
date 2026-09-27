@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/kreksar-gmail.com/Armory-Save-Guard__4878",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "kreksar@gmail.com",
+  "canonical_id": "esoui:4878",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4878",
+  "deleted": false,
+  "directories": [
+    "ArmorySaveGuard"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4878/",
+  "fingerprint": "0e1acbeed5ee84416694b3b5f945c76038d3a4be1e468254556fba534616e634",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17568.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4878",
+  "source_url": "https://www.esoui.com/downloads/info4878-ArmorySaveGuard.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Armory Save Guard",
+  "updated_at": 1790466755000,
+  "version": "1.1.2"
+}

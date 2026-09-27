@@ -1,18 +1,19 @@
 {
-  "archive_path": "addons/Dr_Z/Raffle-Gold-for-Update-50__3826",
+  "archive_format": "zip",
+  "archive_path": "addons/Dr_Z/Raffle-Gold-Continued__3826",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Dr_Z",
   "canonical_id": "esoui:3826",
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     },
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:3826",
@@ -21,7 +22,7 @@
     "RaffleGold"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3826/",
-  "fingerprint": "fb0cc13da77a2b1344ba526079585060e56c995fd76a7a78a4f7cff02f917304",
+  "fingerprint": "5d8305a92ee9707f059959cd3fe5b062d9c3132fa04753589dbc7ba0a2a88c19",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13002.png",
     "https://cdn-eso.mmoui.com/preview/pvw13003.png",
@@ -31,13 +32,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "3826",
-  "source_url": "https://www.esoui.com/downloads/info3826-RaffleGoldforUpdate50.html",
+  "source_url": "https://www.esoui.com/downloads/info3826-RaffleGoldContinued.html",
   "stats": {
-    "downloads": 1739,
+    "downloads": 1799,
     "favorites": 2,
-    "monthly_downloads": 23
+    "monthly_downloads": 37
   },
-  "title": "Raffle Gold (for Update 50)",
-  "updated_at": 1780945056000,
-  "version": "26.50.1"
+  "title": "Raffle Gold (Continued)",
+  "updated_at": 1790464593000,
+  "version": "26.51.00"
 }

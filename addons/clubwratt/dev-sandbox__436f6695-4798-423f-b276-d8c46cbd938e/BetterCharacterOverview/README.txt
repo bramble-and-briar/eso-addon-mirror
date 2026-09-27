@@ -1,6 +1,60 @@
 Better Character Overview
-Version 1.6.8
+Version 1.9.0
 PS5 Update 50 native-list architecture test
+
+
+PERFORMANCE AND MEMORY IN 1.9.0
+- Investigated reports of the game crashing / the UI force-reloading while
+  BCO is enabled. Console add-ons share a ~100 MB Lua memory pool and a
+  1-second-per-frame budget; BCO was holding two full copies of the account
+  catalog (SavedVariables snapshots plus the aggregate) at roughly 1 KB and
+  2 KB per item, and re-aggregating the whole catalog after every inventory
+  change. With several characters, a bank, housing storage and a furnished
+  house that is tens of MB, so any other menu allocating could tip the pool
+  over the limit. The crash is therefore not tied to opening Inventory
+  specifically.
+- Snapshots are now just { itemLink, count }. Name, icon, quality, type,
+  filter data and set name are derived from the link when the aggregate is
+  built. Existing SavedVariables are migrated in place on load, so the next
+  save shrinks the file.
+- The aggregate is built only when All Inventories is opened, and only if a
+  snapshot changed since the last build. Looting, banking, crafting and
+  zoning no longer rebuild it in the background. When Inventory closes with
+  a stale aggregate, the aggregate is released back to the Lua pool.
+- The build walks 200 snapshot entries per frame (was 70) and no longer
+  re-derives data already stored; the previous aggregate stays on screen
+  until the new one is finished instead of showing an empty catalog.
+- Source filters (Banked / Characters / Storage / Listed) no longer deep-copy
+  every item on every refresh. Each item gets one small cached view per
+  filter that reads other fields through to the aggregate item.
+- Searching the category list is one pass over the catalog instead of one
+  full pass per category.
+- Section headers (weapon class, apparel slot, furniture category, native
+  category) are computed once per item and cached; the item rows are sorted
+  once instead of twice.
+- The Preview keybind's visibility check decides from the item link and no
+  longer walks every reachable bag (about 1,500 GetItemLink calls) on every
+  selection change. Live-slot lookups happen only when a preview is actually
+  requested, and a miss is remembered per item.
+- The tooltip, currency tooltip, keybind and header settle timers run two
+  passes instead of three, and the second tooltip pass only re-lays the
+  tooltip when the target row actually changed.
+- ESO fires a search-results update on every inventory change even with an
+  empty search box; BCO now ignores those unless the search text changed.
+- Login scans the current character once (was twice).
+
+REGRESSION TEST FOR 1.9.0
+1. /reloadui. Confirm the add-on manager memory readout is lower than 1.8.x
+   with the same cataloged data.
+2. Open Inventory > All Inventories. First open shows "Building account
+   inventory..." briefly, then the category list.
+3. Loot or bank something while All Inventories is open; the list refreshes.
+   Do the same with Inventory closed; reopening All Inventories rebuilds.
+4. Cycle Square through All/Banked/Characters/Storage/Listed on both the
+   category and item lists; type a search; confirm categories hide/show.
+5. Scroll a Furnishings list: Preview keybind shows for furnishings, preview
+   opens and follows the selection, End Preview works.
+6. Confirm the Vengeance tab, tooltip scroll and Craft Bag tab still work.
 
 
 REVERT 1.6.7 PRE-INSTALL IN 1.6.8

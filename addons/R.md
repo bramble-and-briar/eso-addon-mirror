@@ -13,7 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Radiating Regen Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Radiating-Regen-Tracker__3678) | branddi | PC / Mac | 1.0.1 |
 | [RAETIA InfoHub](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kraeius/RAETIA-InfoHub__417) | Kraeius | PC / Mac | 1.2.4 |
 | [Raffle Gold](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Raffle-Gold__1290) | calia1120 | PC / Mac | 18.23.5 |
-| [Raffle Gold (for Update 50)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/Raffle-Gold-for-Update-50__3826) | Dr_Z | PC / Mac | 26.50.1 |
+| [Raffle Gold (Continued)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/Raffle-Gold-Continued__3826) | Dr_Z | PC / Mac | 26.51.00 |
 | [Raffle Gold (Patched and Updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dlrgames/Raffle-Gold-Patched-and-Updated__2515) | dlrgames | PC / Mac | 18.23.51 |
 | [Raffle Gold (Regrouper Workaround)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GankisKhan/Raffle-Gold-Regrouper-Workaround__2413) | GankisKhan | PC / Mac | 18.23.1 |
 | [Raffle Gold Tally](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Raffle-Gold-Tally__1423) | calia1120 | PC / Mac | 2.0 |
@@ -125,7 +125,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.25 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.27 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.21 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
@@ -173,4 +173,4 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RunesVoice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/RunesVoice__2173) | Nols1000 | PC / Mac | 0.1.0 |
 | [Rush of Agony Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rush-of-Agony-Tracker__03e3b721-0ccb-4e27-9f1c-ae0e6bf96be5) | codeWarrior82 | Console | — |
 | [RyticCombat&RaidTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticCombat-RaidTools__4854) | Rytic | PC / Mac | 3.0.1 |
-| [RyticRaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticRaidManager__4858) | Rytic | PC / Mac | 1.1 |
+| [RyticRaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticRaidManager__4858) | Rytic | PC / Mac | 3.1 |

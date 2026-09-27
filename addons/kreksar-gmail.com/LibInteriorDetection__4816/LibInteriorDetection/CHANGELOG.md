@@ -4,6 +4,112 @@ Full version history for LibInteriorDetection (renamed from LibIndoorDetection a
 
 ---
 
+## What's New in 1.3.3
+
+- **Built-in exceptions to the Weather Control house rule** (new
+  `HOUSE_EXCEPTIONS` table), from the author's review of
+  `/lid debug houses` on 1.3.2. These homes' actual layouts don't match
+  their Weather Control support:
+  - **Exterior:** Agony's Ascent (1343, entry area exterior), Doomchar
+    Plateau (1306, whole zone exterior), Hunding's Palatial Hall (879,
+    large exterior entry area), The Fair Winds (1435, entry area and
+    most of the zone exterior).
+  - **Interior:** Emissary's Enclave (1434, only a moderate courtyard),
+    Gardner House (881, only a small courtyard), Snugpod (860, entirely
+    interior despite supporting weather), Water's Edge (1276, entry area
+    and most of the zone interior).
+  All eight end up with the same value their old `ZONE_INTERIOR` entry
+  had.
+- **Precedence is now:** player zone override > `HOUSE_EXCEPTIONS` >
+  Weather Control flag > `ZONE_INTERIOR` table.
+- `/lid debug houses` now applies the exceptions before comparing,
+  reports how many were applied, and tags any changed house that comes
+  from an exception. With these eight in place it should report **0
+  differences** from the old table, unless the scan finds houses the
+  1.3.2 review didn't list.
+- Offline-tested with stubbed ESO functions reproducing the reported
+  flags: all eight exceptions, an unaffected weather house, a player
+  override beating an exception, and `/lid debug houses` (0 differences).
+  The 1.3.0 and 1.3.1 suites still pass. **Not yet tested in-game.**
+
+---
+
+## What's New in 1.3.2
+
+- **Player houses are now classified by Weather Control support** (the
+  author's rule): houses that support it are **exterior**, all others
+  **interior**. Read from the game at runtime rather than listed by hand:
+  `GetHouseFlags(houseId)` with `HOUSE_FLAGS_SUPPORTS_WEATHER_CONTROL`
+  (the same flag the housing book's "Supports Weather Control" line
+  uses) and `GetHouseZoneId(houseId)` (returns 0 for an invalid house),
+  all confirmed in the ESOUI client source (12.0.8). A zoneId -> weather
+  map is built once by scanning houseIds 1-500; invalid IDs are skipped.
+  **Unverified:** that 500 covers every house ID (house IDs aren't
+  documented - a house beyond it would fall back to the table).
+- **Precedence:** a per-zone override in the settings > the house
+  Weather Control flag > the `ZONE_INTERIOR` table. The table's house
+  rows - including earlier hand-verified corrections and the 12 houses
+  queued for review - are superseded for any house the game reports,
+  and remain only as a fallback if the API is ever unavailable.
+- **New `/lid debug houses`:** prints how many houses the scan found, how
+  many support Weather Control, and every house whose classification
+  differs from its old table entry - an easy in-game check of what
+  changed.
+- **Doomvault Capraxus, Doomvault Vulpinaz and Doomvault Porcixid
+  (1241 / 1248 / 1256) are now interior**, per the author, despite
+  having exterior sub-sections. Previously exterior.
+- Offline-tested with stubbed ESO functions: a weather house (exterior),
+  a non-weather house (interior), a house with no table row, a player
+  override beating the flag, all three Doomvaults, `/lid debug houses`,
+  and the 1.3.0/1.3.1 suites. **Not yet tested in-game.**
+
+---
+
+## What's New in 1.3.1
+
+- **Fixed: wrong state after logging out in another player's house, a
+  group dungeon or a trial.** ESO returns the player to where they stood
+  before entering, not to the house or instance. Saved variables from a
+  reported case showed the logout saved in raw zone 868 (Humblemud, a
+  player house) - so on the next login the zone didn't match, nothing
+  was restored, and the flag fell back to the zone default even though
+  the player reappeared inside a building.
+- **New "return point":** leaving any NON-temporary zone also saves the
+  position and state. Temporary zones never overwrite it, so it survives
+  any number of house hops. When arriving FROM a temporary zone - at
+  login (via the saved logout record) or in-session (e.g. removed from a
+  group instance) - into the return point's zone within
+  `RETURN_POINT_TOLERANCE` (5000 raw units, ~50m, any axis), that state
+  is restored instead of the zone default.
+- **Temporary zone** = `GetCurrentZoneHouseId() ~= 0` or
+  `IsActiveWorldGroupOwnable()` or `IsActiveWorldBattleground()`, all
+  present in the ESOUI client source (12.0.8). The client's own
+  leave-group dialog uses `IsActiveWorldGroupOwnable()` to warn that
+  leaving removes you from the instance - that it covers exactly
+  dungeons and trials is inferred from that usage. Classified on arrival
+  and logged in the trace. Each call is guarded, so if one is ever
+  renamed it degrades to the pre-1.3.1 behavior instead of erroring.
+- **Confirmed by the author in-game:** the return behavior for houses
+  (including several hops), group dungeons and trials. **Unverified:**
+  battlegrounds (included by analogy) and the 50m tolerance (login
+  positions have drifted tens of meters before; the trace logs the
+  actual distance).
+- Own houses count as temporary too - harmless, since logging out there
+  logs you back in there, which the normal restore already handles.
+- New saved fields: `lastZoneTemporary`, `returnPoint`.
+  `/lid debug saved` now also prints the return point.
+- The leftover `lastDeactivateRan` / `lastDeactivateRawZoneId` keys seen
+  in saved variables are from an old diagnostic version and are not
+  read by any current code.
+- Offline-tested with stubbed ESO functions: two house hops then logout
+  with ~30m login drift, logout in a dungeon, removal from a trial
+  in-session, leaving a house to a spot 200m away (correctly NOT
+  restored), plus normal logout/login inside and outdoors (return point
+  correctly not used). The 1.3.0 door-watch suite still passes. **Not
+  yet tested in-game.**
+
+---
+
 ## What's New in 1.3.0
 
 **Door detection rewritten: a "door watch" that looks for the sudden jump

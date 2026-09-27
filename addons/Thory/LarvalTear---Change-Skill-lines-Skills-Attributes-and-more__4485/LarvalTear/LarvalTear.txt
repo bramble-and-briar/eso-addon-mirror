@@ -1,7 +1,7 @@
 ## Title: LarvalTear
 ## Author: Thory'JP
-## Version: 1.5.0.1
-## AddOnVersion: 1501
+## Version: 1.5.0.2
+## AddOnVersion: 1502
 ## APIVersion: 101050
 ## DependsOn: LibDebugLogger>=268 LibAddonMenu-2.0>=42 LibFoodDrinkBuff>=19
 ## SavedVariables: LarvalTear
@@ -68,6 +68,8 @@ modules/role_apply.lua
 modules/champion_change.lua
 modules/champion_apply.lua
 modules/food_helper.lua
+modules/recipe_store.lua
+modules/recipe_watcher.lua
 modules/alchemy_recipe.lua
 modules/enchant_recipe.lua
 modules/scribing_recipe.lua

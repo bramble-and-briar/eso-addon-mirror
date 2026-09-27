@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/alabuzya/DIAhelp__4876",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "alabuzya",
+  "canonical_id": "esoui:4876",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4876",
+  "deleted": false,
+  "directories": [
+    "DIAhelp"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4876/",
+  "fingerprint": "f8092bc01736cf677a74784b90a833fc028b6957a4bf6d4bbfe07ac56ecabc36",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17561.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17562.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17563.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4876",
+  "source_url": "https://www.esoui.com/downloads/info4876-DIAhelp.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 2,
+    "monthly_downloads": 3
+  },
+  "title": "DIAhelp",
+  "updated_at": 1790424353000,
+  "version": "1.0.4"
+}

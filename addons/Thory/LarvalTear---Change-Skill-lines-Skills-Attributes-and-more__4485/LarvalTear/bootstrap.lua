@@ -90,6 +90,8 @@ LTM.Modules = {
     -- QuickSlot / food
     AutoRefill = {},
     FoodHelper = {},
+    RecipeStore = {},
+    RecipeWatcher = {},
     AlchemyRecipe = {},
     EnchantRecipe = {},
     ScribingRecipe = {},

@@ -23,6 +23,7 @@ QTI.ICON_FAVOR = "/esoui/art/journal/gamepad/gp_questtypeicon_repeatable_favor.d
 QTI.ICON_BATTLEGROUND = "/esoui/art/battlegrounds/gamepad/gp_battlegrounds_tabicon_battlegrounds.dds"
 QTI.ICON_HOUSING = "/esoui/art/icons/mapkey/mapkey_housing.dds"
 QTI.ICON_CRAFTING = "/esoui/art/journal/gamepad/gp_questtypeicon_crafting.dds"
+QTI.ICON_TRIBUTE = "/esoui/art/tribute/gamepad/gp_tribute_tabicon_tribute.dds"
 
 QTI.REPEATABLE_COLOR = { r = 112/255, g = 180/255, b = 184/255, a = 1 }
 
@@ -95,8 +96,6 @@ function QTI.GetQuestIconTexture(questType, zoneDisplayType)
 		return QTI.ICON_COMPANION
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_ADVENTURE_ZONE then
 		return QTI.ICON_ADVENTURE_ZONE
-	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_BATTLEGROUND then
-		return QTI.ICON_BATTLEGROUND
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_HOUSING then
 		return QTI.ICON_HOUSING
 
@@ -104,6 +103,8 @@ function QTI.GetQuestIconTexture(questType, zoneDisplayType)
 		return QTI.ICON_AVA
 	elseif questType == QUEST_TYPE_UNDAUNTED_PLEDGE then
 		return QTI.ICON_GROUP_DUNGEON
+	elseif questType == QUEST_TYPE_BATTLEGROUND then
+		return QTI.ICON_BATTLEGROUND
 	elseif questType == QUEST_TYPE_DUNGEON then
 		return QTI.ICON_DUNGEON
 	elseif questType == QUEST_TYPE_FAVOR then
@@ -112,6 +113,8 @@ function QTI.GetQuestIconTexture(questType, zoneDisplayType)
 		return QTI.ICON_ZONE_STORY
 	elseif questType == QUEST_TYPE_CRAFTING then
 		return QTI.ICON_CRAFTING
+	elseif questType == QUEST_TYPE_TRIBUTE then
+        return QTI.ICON_TRIBUTE	
 
 	else
 		return QTI.ICON_QUEST
@@ -311,10 +314,14 @@ function QTI.OnAddOnLoaded(_, addOnName)
 	QTI.TimerTweaks()
 	QTI.ResizePanel()
 	QTI.RefreshHeaderIcons()
-	
+
 	EM:RegisterForEvent(QTI.name, EVENT_QUEST_ADVANCED, function(_, questIndex)
-        FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
-    end)
+		FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
+	end)
+	
+	EM:RegisterForEvent(QTI.name, EVENT_QUEST_CONDITION_COUNTER_CHANGED, function(_, questIndex)
+		FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
+	end)	 
 end
 
 EM:RegisterForEvent(QTI.name, EVENT_ADD_ON_LOADED, QTI.OnAddOnLoaded)

@@ -2,45 +2,13 @@ local Addon = LarvalTearMod
 local ScribingRecipe = Addon.Modules.ScribingRecipe
 local Log = Addon.Common.Log
 local Util = Addon.Common.Util
+local RecipeStore = Addon.Modules.RecipeStore
+local RecipeWatcher = Addon.Modules.RecipeWatcher
 
-local STATION_INTERACT_EVENT_NAME = "LTM_ScribingRecipe_StationInteract"
-local STATION_END_EVENT_NAME = "LTM_ScribingRecipe_StationEnd"
-local SCRIBING_SCENE_CALLBACK_UPDATE_NAME = "LTM_ScribingRecipe_ScribingSceneRetry"
-local SCRIBING_SCENE_CALLBACK_RETRY_INTERVAL_MS = 1000
-local SCRIBING_SCENE_CALLBACK_MAX_RETRY = 30
-
-ScribingRecipe.isStationOpen = false
-
-local function NormalizeCharacterKey(characterKey)
-    if characterKey ~= nil then
-        return tostring(characterKey)
-    end
-
-    if type(GetCurrentCharacterId) ~= "function" then
-        return nil
-    end
-
-    local ok, characterId = pcall(GetCurrentCharacterId)
-    if ok and characterId ~= nil then
-        return tostring(characterId)
-    end
-
-    return nil
-end
+RecipeStore:Attach(ScribingRecipe, "scribingRecipeByCharacter", "scribing_recipe_not_found", false)
 
 local function Debug(...)
     Log.Debug("[ScribingRecipe]", ...)
-end
-
-local function NormalizeRecipeId(recipeId)
-    if type(recipeId) ~= "string" or recipeId == "" then
-        return nil
-    end
-    return recipeId
-end
-
-local function NormalizeAutoApplyEnabled(enabled)
-    return enabled == true
 end
 
 local function NormalizePositiveId(value)
@@ -53,21 +21,6 @@ end
 
 local function NormalizeScriptId(value)
     return NormalizePositiveId(value) or 0
-end
-
-local function RemoveFirstValue(values, targetValue)
-    if type(values) ~= "table" then
-        return nil
-    end
-
-    for index, value in ipairs(values) do
-        if value == targetValue then
-            table.remove(values, index)
-            return index
-        end
-    end
-
-    return nil
 end
 
 local function GetScribingObject()
@@ -97,37 +50,6 @@ local function GetScribingScene()
     return rawget(_G, "SCRIBING_SCENE_GAMEPAD")
 end
 
-local function GetSceneShowingState()
-    return rawget(_G, "SCENE_SHOWING") or "showing"
-end
-
-local function IsSceneShowingState(newState)
-    return newState == GetSceneShowingState()
-end
-
-local function IsScribingSceneOpen()
-    local scene = GetScribingScene()
-    if type(scene) ~= "table" then
-        return ScribingRecipe.isStationOpen == true
-    end
-
-    if type(scene.IsShowing) == "function" then
-        local ok, isShowing = pcall(scene.IsShowing, scene)
-        if ok and isShowing == true then
-            return true
-        end
-    end
-
-    if type(scene.GetState) == "function" then
-        local ok, state = pcall(scene.GetState, scene)
-        if ok then
-            return state == GetSceneShowingState() or state == rawget(_G, "SCENE_SHOWN")
-        end
-    end
-
-    return ScribingRecipe.isStationOpen == true
-end
-
 local function IsScribingSceneReady()
     local scene = GetScribingScene()
     if type(scene) ~= "table" then
@@ -144,7 +66,7 @@ local function IsScribingSceneReady()
     if type(scene.GetState) == "function" then
         local ok, state = pcall(scene.GetState, scene)
         if ok then
-            return state == GetSceneShowingState() or state == rawget(_G, "SCENE_SHOWN")
+            return state == RecipeWatcher.GetSceneShowingState() or state == rawget(_G, "SCENE_SHOWN")
         end
     end
 
@@ -281,29 +203,6 @@ local function ReadCurrentStationSlots()
     }
 end
 
-local function BuildDefaultRecipeName(recipeId)
-    local suffix = type(recipeId) == "string" and recipeId:match("recipe_(%d+)$") or nil
-    return "Recipe " .. (suffix or "0001")
-end
-
-local function GetRecipeById(self, recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    if recipeId == nil then
-        return nil, "recipe_not_found"
-    end
-
-    local bucket = self:GetCharacterBucketReadonly()
-    local recipe = type(bucket) == "table"
-        and type(bucket.recipes) == "table"
-        and bucket.recipes[recipeId]
-        or nil
-    if type(recipe) ~= "table" then
-        return nil, "recipe_not_found"
-    end
-
-    return Util:DeepCopy(recipe)
-end
-
 local function BuildRecipeCache(recipe)
     if type(recipe) ~= "table" then
         return nil
@@ -372,7 +271,7 @@ local function GetInkCost(recipe)
 end
 
 local function OnScribingSceneStateChange(_, newState)
-    if not IsSceneShowingState(newState) then
+    if not RecipeWatcher.IsSceneShowingState(newState) then
         return
     end
     if ScribingRecipe:GetAutoApplyEnabled() ~= true then
@@ -392,94 +291,22 @@ local function OnScribingSceneStateChange(_, newState)
     end
 end
 
-local function RegisterScribingSceneCallback()
-    if ScribingRecipe.scribingSceneCallbackRegistered == true then
-        return false
-    end
-
-    local scene = GetScribingScene()
-    if scene == nil or type(scene.RegisterCallback) ~= "function" then
-        return false
-    end
-
-    ScribingRecipe.scribingSceneCallbackRegistered = true
-    scene:RegisterCallback("StateChange", OnScribingSceneStateChange)
-    return true
-end
-
-local function ScheduleScribingSceneCallbackRegistration()
-    if ScribingRecipe.scribingSceneCallbackRegistered == true
-        or ScribingRecipe.scribingSceneCallbackRetryScheduled == true then
-        return false
-    end
-    if type(EVENT_MANAGER) ~= "table" or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
-        return false
-    end
-
-    ScribingRecipe.scribingSceneCallbackRetryScheduled = true
-    local retryCount = 0
-    EVENT_MANAGER:RegisterForUpdate(SCRIBING_SCENE_CALLBACK_UPDATE_NAME, SCRIBING_SCENE_CALLBACK_RETRY_INTERVAL_MS, function()
-        retryCount = retryCount + 1
-
-        if ScribingRecipe.scribingSceneCallbackRegistered == true then
-            ScribingRecipe.scribingSceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(SCRIBING_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            return
-        end
-        if RegisterScribingSceneCallback() then
-            ScribingRecipe.scribingSceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(SCRIBING_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            return
-        end
-
-        if retryCount >= SCRIBING_SCENE_CALLBACK_MAX_RETRY then
-            ScribingRecipe.scribingSceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(SCRIBING_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            Debug("ScribingSceneCallback retry exhausted")
-        end
-    end)
-
-    return true
-end
+RecipeWatcher.Attach(ScribingRecipe, {
+    stationInteractName = "LTM_ScribingRecipe_StationInteract",
+    stationEndName = "LTM_ScribingRecipe_StationEnd",
+    craftingTypeName = "CRAFTING_TYPE_SCRIBING",
+    updateName = "LTM_ScribingRecipe_ScribingSceneRetry",
+    callbackRegisteredField = "scribingSceneCallbackRegistered",
+    retryScheduledField = "scribingSceneCallbackRetryScheduled",
+    getScene = GetScribingScene,
+    onSceneStateChange = OnScribingSceneStateChange,
+    debug = Debug,
+    retryExhaustedMessage = "ScribingSceneCallback retry exhausted",
+})
 
 function ScribingRecipe:Initialize(savedVars)
     self.savedVars = savedVars
-    self:RegisterStationEvents()
-    if not RegisterScribingSceneCallback() then
-        ScheduleScribingSceneCallbackRegistration()
-    end
-end
-
-function ScribingRecipe:EnsureSavedVarsShape(readOnly)
-    if type(self.savedVars) ~= "table" then
-        return nil
-    end
-
-    if type(self.savedVars.scribingRecipeByCharacter) ~= "table" then
-        if readOnly then
-            return nil
-        end
-        self.savedVars.scribingRecipeByCharacter = {}
-    end
-
-    return self.savedVars
-end
-
-function ScribingRecipe:BuildDefaultCharacterBucket(characterKey)
-    return {
-        recipes = {},
-        recipeOrder = {},
-        nextIndex = 1,
-        activeRecipeId = nil,
-        autoApplyEnabled = false,
-        ownerCharacterId = characterKey,
-    }
+    RecipeWatcher.Initialize(self)
 end
 
 function ScribingRecipe:NormalizeRecipe(recipe)
@@ -487,7 +314,7 @@ function ScribingRecipe:NormalizeRecipe(recipe)
         return nil
     end
 
-    recipe.id = NormalizeRecipeId(recipe.id)
+    recipe.id = RecipeStore.NormalizeRecipeId(recipe.id)
     recipe.name = Util:NormalizeDisplayName(recipe.name) or recipe.id or "Recipe"
     recipe.craftedAbilityId = NormalizePositiveId(recipe.craftedAbilityId)
     recipe.primaryScriptId = NormalizeScriptId(recipe.primaryScriptId)
@@ -497,214 +324,11 @@ function ScribingRecipe:NormalizeRecipe(recipe)
     return recipe
 end
 
-function ScribingRecipe:NormalizeCharacterBucket(bucket, characterKey)
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    if type(bucket.recipes) ~= "table" then
-        bucket.recipes = {}
-    end
-    for recipeId, recipe in pairs(bucket.recipes) do
-        if type(recipeId) == "string" and type(recipe) == "table" then
-            recipe.id = recipe.id or recipeId
-            self:NormalizeRecipe(recipe)
-        end
-    end
-
-    if type(bucket.recipeOrder) ~= "table" then
-        bucket.recipeOrder = {}
-        for recipeId, recipe in pairs(bucket.recipes) do
-            if type(recipeId) == "string" and type(recipe) == "table" then
-                bucket.recipeOrder[#bucket.recipeOrder + 1] = recipeId
-            end
-        end
-        table.sort(bucket.recipeOrder)
-    end
-
-    bucket.nextIndex = math.max(tonumber(bucket.nextIndex) or 1, 1)
-    bucket.autoApplyEnabled = NormalizeAutoApplyEnabled(bucket.autoApplyEnabled)
-    bucket.activeRecipeId = NormalizeRecipeId(bucket.activeRecipeId)
-    bucket.ownerCharacterId = bucket.ownerCharacterId or characterKey
-
-    if bucket.activeRecipeId ~= nil and type(bucket.recipes[bucket.activeRecipeId]) ~= "table" then
-        bucket.activeRecipeId = nil
-    end
-
-    return bucket
-end
-
-function ScribingRecipe:GetCharacterBucketReadonly()
-    local savedVars = self:EnsureSavedVarsShape(true)
-    if type(savedVars) ~= "table" or type(savedVars.scribingRecipeByCharacter) ~= "table" then
-        return nil
-    end
-
-    local characterKey = NormalizeCharacterKey()
-    if type(characterKey) ~= "string" or characterKey == "" then
-        return nil
-    end
-
-    local bucket = savedVars.scribingRecipeByCharacter[characterKey]
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    bucket = Util:DeepCopy(bucket)
-    return self:NormalizeCharacterBucket(bucket, characterKey)
-end
-
-function ScribingRecipe:EnsureCharacterBucketForWrite()
-    local savedVars = self:EnsureSavedVarsShape(false)
-    if type(savedVars) ~= "table" then
-        return nil
-    end
-
-    local characterKey = NormalizeCharacterKey()
-    if type(characterKey) ~= "string" or characterKey == "" then
-        return nil
-    end
-
-    local bucket = savedVars.scribingRecipeByCharacter[characterKey]
-    if type(bucket) ~= "table" then
-        bucket = self:BuildDefaultCharacterBucket(characterKey)
-        savedVars.scribingRecipeByCharacter[characterKey] = bucket
-    end
-
-    return self:NormalizeCharacterBucket(bucket, characterKey)
-end
-
-function ScribingRecipe:GenerateRecipeId(bucket)
-    bucket = type(bucket) == "table" and bucket or self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    if type(bucket.recipes) ~= "table" then
-        bucket.recipes = {}
-    end
-
-    while true do
-        local nextIndex = math.max(tonumber(bucket.nextIndex) or 1, 1)
-        local recipeId = string.format("recipe_%04d", nextIndex)
-        bucket.nextIndex = nextIndex + 1
-        if type(bucket.recipes[recipeId]) ~= "table" then
-            return recipeId
-        end
-    end
-end
-
-function ScribingRecipe:GetAutoApplyEnabled()
-    local bucket = self:GetCharacterBucketReadonly()
-    return NormalizeAutoApplyEnabled(type(bucket) == "table" and bucket.autoApplyEnabled or nil)
-end
-
-function ScribingRecipe:SetAutoApplyEnabled(enabled)
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" then
-        return false
-    end
-
-    bucket.autoApplyEnabled = NormalizeAutoApplyEnabled(enabled)
-    return true
-end
-
 function ScribingRecipe:IsStationOpen()
-    return GetScribingObject() ~= nil and IsScribingSceneOpen()
+    return GetScribingObject() ~= nil and RecipeWatcher.IsSceneOpen(self, GetScribingScene())
 end
 
-function ScribingRecipe:GetActiveRecipeId()
-    local bucket = self:GetCharacterBucketReadonly()
-    return type(bucket) == "table" and bucket.activeRecipeId or nil
-end
-
-function ScribingRecipe:SetActiveRecipe(recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or recipeId == nil
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "scribing_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "scribing_recipe_not_found"
-    end
-
-    bucket.activeRecipeId = recipeId
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function ScribingRecipe:RenameRecipe(recipeId, newName)
-    recipeId = NormalizeRecipeId(recipeId)
-    newName = Util:NormalizeDisplayName(newName)
-    if recipeId == nil or newName == nil then
-        return nil, "invalid_recipe_name"
-    end
-
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or type(existingBucket.recipes) ~= "table"
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "scribing_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "scribing_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId].name = newName
-    bucket.recipes[recipeId].updatedAt = Util:GetTimestamp()
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function ScribingRecipe:GetRecipeList()
-    local bucket = self:GetCharacterBucketReadonly()
-    local recipes = {}
-    if type(bucket) ~= "table" or type(bucket.recipes) ~= "table" then
-        return recipes
-    end
-
-    for _, recipeId in ipairs(bucket.recipeOrder or {}) do
-        local recipe = bucket.recipes[recipeId]
-        if type(recipe) == "table" then
-            local copy = Util:DeepCopy(recipe)
-            copy.isActive = bucket.activeRecipeId == recipeId
-            recipes[#recipes + 1] = copy
-        end
-    end
-
-    return recipes
-end
-
-function ScribingRecipe:GetRecipe(recipeId)
-    return GetRecipeById(self, recipeId)
-end
-
-function ScribingRecipe:DeleteRecipe(recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or recipeId == nil
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return false, "scribing_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return false, "scribing_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId] = nil
-    RemoveFirstValue(bucket.recipeOrder, recipeId)
-    if bucket.activeRecipeId == recipeId then
-        bucket.activeRecipeId = nil
-    end
-
-    return true
-end
+ScribingRecipe.GetRecipe = RecipeStore.GetRecipe
 
 local function CreateValidationState(recipe, reason)
     local state = {
@@ -881,43 +505,12 @@ local function ValidateRecipeForUse(recipe, initialReason)
 end
 
 function ScribingRecipe:GetRecipeValidationState(recipeId)
-    local recipe, err = GetRecipeById(self, recipeId)
+    local recipe, err = RecipeStore.GetRecipe(self, recipeId)
     if type(recipe) ~= "table" then
         return CreateValidationState(nil, err or "recipe_not_found")
     end
 
     return ValidateRecipeForUse(recipe)
-end
-
-function ScribingRecipe:RegisterStationEvents()
-    if self.stationEventsRegistered == true then
-        return false
-    end
-    if EVENT_MANAGER == nil or type(EVENT_MANAGER.RegisterForEvent) ~= "function" then
-        return false
-    end
-
-    local stationInteractEvent = rawget(_G, "EVENT_CRAFTING_STATION_INTERACT")
-    local stationEndEvent = rawget(_G, "EVENT_END_CRAFTING_STATION_INTERACT")
-    if stationInteractEvent == nil or stationEndEvent == nil then
-        return false
-    end
-
-    self.stationEventsRegistered = true
-    EVENT_MANAGER:RegisterForEvent(STATION_INTERACT_EVENT_NAME, stationInteractEvent, function(_, craftingType)
-        if craftingType == rawget(_G, "CRAFTING_TYPE_SCRIBING") then
-            ScribingRecipe.isStationOpen = true
-            if not RegisterScribingSceneCallback() then
-                ScheduleScribingSceneCallbackRegistration()
-            end
-        end
-    end)
-    EVENT_MANAGER:RegisterForEvent(STATION_END_EVENT_NAME, stationEndEvent, function(_, craftingType)
-        if craftingType == rawget(_G, "CRAFTING_TYPE_SCRIBING") then
-            ScribingRecipe.isStationOpen = false
-        end
-    end)
-    return true
 end
 
 function ScribingRecipe:ApplyRecipeToStation(recipeId)
@@ -935,7 +528,7 @@ function ScribingRecipe:ApplyRecipeToStation(recipeId)
         return false, "scribing_methods_unavailable"
     end
 
-    local recipe, recipeErr = GetRecipeById(self, recipeId)
+    local recipe, recipeErr = RecipeStore.GetRecipe(self, recipeId)
     if type(recipe) ~= "table" then
         return false, recipeErr or "recipe_not_found"
     end
@@ -1023,7 +616,7 @@ function ScribingRecipe:UpsertRecipeFromSlots(slots, name)
         id = recipeId,
         name = Util:NormalizeDisplayName(name)
             or GetCraftedAbilityDisplayNameSafe(craftedAbilityId)
-            or BuildDefaultRecipeName(recipeId),
+            or RecipeStore.BuildDefaultRecipeName(recipeId),
         notes = "",
         craftedAbilityId = craftedAbilityId,
         primaryScriptId = primaryScriptId,
@@ -1033,13 +626,7 @@ function ScribingRecipe:UpsertRecipeFromSlots(slots, name)
         updatedAt = timestamp,
     })
 
-    bucket.recipes[recipeId] = recipe
-    bucket.recipeOrder[#bucket.recipeOrder + 1] = recipeId
-    if bucket.activeRecipeId == nil then
-        bucket.activeRecipeId = recipeId
-    end
-
-    return Util:DeepCopy(recipe)
+    return RecipeStore.AddRecipe(self, bucket, recipe)
 end
 
 function ScribingRecipe:CaptureFromStation(name)

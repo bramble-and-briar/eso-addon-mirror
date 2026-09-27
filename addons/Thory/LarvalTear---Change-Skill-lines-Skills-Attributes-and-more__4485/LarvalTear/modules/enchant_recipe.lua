@@ -2,64 +2,13 @@ local Addon = LarvalTearMod
 local EnchantRecipe = Addon.Modules.EnchantRecipe
 local Log = Addon.Common.Log
 local Util = Addon.Common.Util
+local RecipeStore = Addon.Modules.RecipeStore
+local RecipeWatcher = Addon.Modules.RecipeWatcher
 
-local STATION_INTERACT_EVENT_NAME = "LTM_EnchantRecipe_StationInteract"
-local STATION_END_EVENT_NAME = "LTM_EnchantRecipe_StationEnd"
-local ENCHANTING_SCENE_CALLBACK_UPDATE_NAME = "LTM_EnchantRecipe_EnchantingSceneRetry"
-local ENCHANTING_SCENE_CALLBACK_RETRY_INTERVAL_MS = 1000
-local ENCHANTING_SCENE_CALLBACK_MAX_RETRY = 30
-
-EnchantRecipe.isStationOpen = false
-
-local function NormalizeCharacterKey(characterKey)
-    if characterKey ~= nil then
-        return tostring(characterKey)
-    end
-
-    if type(GetCurrentCharacterId) ~= "function" then
-        return nil
-    end
-
-    local ok, characterId = pcall(GetCurrentCharacterId)
-    if ok and characterId ~= nil then
-        return tostring(characterId)
-    end
-
-    return nil
-end
+RecipeStore:Attach(EnchantRecipe, "enchantRecipeByCharacter", "enchant_recipe_not_found", true)
 
 local function Debug(...)
     Log.Debug("[EnchantRecipe]", ...)
-end
-
-local function NormalizeRecipeId(recipeId)
-    if type(recipeId) ~= "string" or recipeId == "" then
-        return nil
-    end
-    return recipeId
-end
-
-local function NormalizeAutoApplyEnabled(enabled)
-    return enabled == true
-end
-
-local function NormalizeCraftCount(count)
-    return math.max(math.floor(tonumber(count) or 1), 1)
-end
-
-local function RemoveFirstValue(values, targetValue)
-    if type(values) ~= "table" then
-        return nil
-    end
-
-    for index, value in ipairs(values) do
-        if value == targetValue then
-            table.remove(values, index)
-            return index
-        end
-    end
-
-    return nil
 end
 
 local function GetItemIdFromBagSlot(bagId, slotIndex)
@@ -337,7 +286,7 @@ local function ApplyCraftCountToEnchantingSpinner(count)
         return false, "spinner_unavailable"
     end
 
-    local ok, result = pcall(spinner.SetValue, spinner, NormalizeCraftCount(count))
+    local ok, result = pcall(spinner.SetValue, spinner, RecipeStore.NormalizeCraftCount(count))
     if not ok then
         return false, "spinner_set_failed"
     end
@@ -351,37 +300,6 @@ local function GetEnchantingScene()
         return scene
     end
     return rawget(_G, "GAMEPAD_ENCHANTING_CREATION_SCENE")
-end
-
-local function GetSceneShowingState()
-    return rawget(_G, "SCENE_SHOWING") or "showing"
-end
-
-local function IsSceneShowingState(newState)
-    return newState == GetSceneShowingState()
-end
-
-local function IsEnchantingSceneOpen()
-    local scene = GetEnchantingScene()
-    if type(scene) ~= "table" then
-        return EnchantRecipe.isStationOpen == true
-    end
-
-    if type(scene.IsShowing) == "function" then
-        local ok, isShowing = pcall(scene.IsShowing, scene)
-        if ok and isShowing == true then
-            return true
-        end
-    end
-
-    if type(scene.GetState) == "function" then
-        local ok, state = pcall(scene.GetState, scene)
-        if ok then
-            return state == GetSceneShowingState() or state == rawget(_G, "SCENE_SHOWN")
-        end
-    end
-
-    return EnchantRecipe.isStationOpen == true
 end
 
 local function GetResultingItemLink(slots)
@@ -412,7 +330,7 @@ local function GetResultingItemLink(slots)
 end
 
 local function OnEnchantingSceneStateChange(_, newState)
-    if not IsSceneShowingState(newState) then
+    if not RecipeWatcher.IsSceneShowingState(newState) then
         return
     end
     if EnchantRecipe:GetAutoApplyEnabled() ~= true then
@@ -432,62 +350,6 @@ local function OnEnchantingSceneStateChange(_, newState)
     end
 end
 
-local function RegisterEnchantingSceneCallback()
-    if EnchantRecipe.enchantingSceneCallbackRegistered == true then
-        return false
-    end
-
-    local scene = GetEnchantingScene()
-    if scene == nil or type(scene.RegisterCallback) ~= "function" then
-        return false
-    end
-
-    EnchantRecipe.enchantingSceneCallbackRegistered = true
-    scene:RegisterCallback("StateChange", OnEnchantingSceneStateChange)
-    return true
-end
-
-local function ScheduleEnchantingSceneCallbackRegistration()
-    if EnchantRecipe.enchantingSceneCallbackRegistered == true
-        or EnchantRecipe.enchantingSceneCallbackRetryScheduled == true then
-        return false
-    end
-    if type(EVENT_MANAGER) ~= "table" or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
-        return false
-    end
-
-    EnchantRecipe.enchantingSceneCallbackRetryScheduled = true
-    local retryCount = 0
-    EVENT_MANAGER:RegisterForUpdate(ENCHANTING_SCENE_CALLBACK_UPDATE_NAME, ENCHANTING_SCENE_CALLBACK_RETRY_INTERVAL_MS, function()
-        retryCount = retryCount + 1
-
-        if EnchantRecipe.enchantingSceneCallbackRegistered == true then
-            EnchantRecipe.enchantingSceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(ENCHANTING_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            return
-        end
-        if RegisterEnchantingSceneCallback() then
-            EnchantRecipe.enchantingSceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(ENCHANTING_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            return
-        end
-
-        if retryCount >= ENCHANTING_SCENE_CALLBACK_MAX_RETRY then
-            EnchantRecipe.enchantingSceneCallbackRetryScheduled = false
-            if type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-                EVENT_MANAGER:UnregisterForUpdate(ENCHANTING_SCENE_CALLBACK_UPDATE_NAME)
-            end
-            Debug("EnchantingSceneCallback retry exhausted")
-        end
-    end)
-
-    return true
-end
-
 local function GetItemLinkDisplayName(itemLink)
     if type(itemLink) ~= "string" or itemLink == "" or type(GetItemLinkName) ~= "function" then
         return nil
@@ -501,61 +363,22 @@ local function GetItemLinkDisplayName(itemLink)
     return nil
 end
 
-local function BuildDefaultRecipeName(recipeId)
-    local suffix = type(recipeId) == "string" and recipeId:match("recipe_(%d+)$") or nil
-    return "Recipe " .. (suffix or "0001")
-end
-
-local function GetRecipeById(self, recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    if recipeId == nil then
-        return nil, "recipe_not_found"
-    end
-
-    local bucket = self:GetCharacterBucketReadonly()
-    local recipe = type(bucket) == "table"
-        and type(bucket.recipes) == "table"
-        and bucket.recipes[recipeId]
-        or nil
-    if type(recipe) ~= "table" then
-        return nil, "recipe_not_found"
-    end
-
-    return Util:DeepCopy(recipe)
-end
+RecipeWatcher.Attach(EnchantRecipe, {
+    stationInteractName = "LTM_EnchantRecipe_StationInteract",
+    stationEndName = "LTM_EnchantRecipe_StationEnd",
+    craftingTypeName = "CRAFTING_TYPE_ENCHANTING",
+    updateName = "LTM_EnchantRecipe_EnchantingSceneRetry",
+    callbackRegisteredField = "enchantingSceneCallbackRegistered",
+    retryScheduledField = "enchantingSceneCallbackRetryScheduled",
+    getScene = GetEnchantingScene,
+    onSceneStateChange = OnEnchantingSceneStateChange,
+    debug = Debug,
+    retryExhaustedMessage = "EnchantingSceneCallback retry exhausted",
+})
 
 function EnchantRecipe:Initialize(savedVars)
     self.savedVars = savedVars
-    self:RegisterStationEvents()
-    if not RegisterEnchantingSceneCallback() then
-        ScheduleEnchantingSceneCallbackRegistration()
-    end
-end
-
-function EnchantRecipe:EnsureSavedVarsShape(readOnly)
-    if type(self.savedVars) ~= "table" then
-        return nil
-    end
-
-    if type(self.savedVars.enchantRecipeByCharacter) ~= "table" then
-        if readOnly then
-            return nil
-        end
-        self.savedVars.enchantRecipeByCharacter = {}
-    end
-
-    return self.savedVars
-end
-
-function EnchantRecipe:BuildDefaultCharacterBucket(characterKey)
-    return {
-        recipes = {},
-        recipeOrder = {},
-        nextIndex = 1,
-        activeRecipeId = nil,
-        autoApplyEnabled = false,
-        ownerCharacterId = characterKey,
-    }
+    RecipeWatcher.Initialize(self)
 end
 
 function EnchantRecipe:NormalizeRecipe(recipe)
@@ -563,241 +386,17 @@ function EnchantRecipe:NormalizeRecipe(recipe)
         return nil
     end
 
-    recipe.id = NormalizeRecipeId(recipe.id)
+    recipe.id = RecipeStore.NormalizeRecipeId(recipe.id)
     recipe.name = Util:NormalizeDisplayName(recipe.name) or recipe.id or "Recipe"
     recipe.potencyItemId = tonumber(recipe.potencyItemId)
     recipe.essenceItemId = tonumber(recipe.essenceItemId)
     recipe.aspectItemId = tonumber(recipe.aspectItemId)
-    recipe.craftCount = NormalizeCraftCount(recipe.craftCount)
+    recipe.craftCount = RecipeStore.NormalizeCraftCount(recipe.craftCount)
     return recipe
 end
 
-function EnchantRecipe:NormalizeCharacterBucket(bucket, characterKey)
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    if type(bucket.recipes) ~= "table" then
-        bucket.recipes = {}
-    end
-    for recipeId, recipe in pairs(bucket.recipes) do
-        if type(recipeId) == "string" and type(recipe) == "table" then
-            recipe.id = recipe.id or recipeId
-            self:NormalizeRecipe(recipe)
-        end
-    end
-
-    if type(bucket.recipeOrder) ~= "table" then
-        bucket.recipeOrder = {}
-        for recipeId, recipe in pairs(bucket.recipes) do
-            if type(recipeId) == "string" and type(recipe) == "table" then
-                bucket.recipeOrder[#bucket.recipeOrder + 1] = recipeId
-            end
-        end
-        table.sort(bucket.recipeOrder)
-    end
-
-    bucket.nextIndex = math.max(tonumber(bucket.nextIndex) or 1, 1)
-    bucket.autoApplyEnabled = NormalizeAutoApplyEnabled(bucket.autoApplyEnabled)
-    bucket.activeRecipeId = NormalizeRecipeId(bucket.activeRecipeId)
-    bucket.ownerCharacterId = bucket.ownerCharacterId or characterKey
-
-    if bucket.activeRecipeId ~= nil and type(bucket.recipes[bucket.activeRecipeId]) ~= "table" then
-        bucket.activeRecipeId = nil
-    end
-
-    return bucket
-end
-
-function EnchantRecipe:GetCharacterBucketReadonly()
-    local savedVars = self:EnsureSavedVarsShape(true)
-    if type(savedVars) ~= "table" or type(savedVars.enchantRecipeByCharacter) ~= "table" then
-        return nil
-    end
-
-    local characterKey = NormalizeCharacterKey()
-    if type(characterKey) ~= "string" or characterKey == "" then
-        return nil
-    end
-
-    local bucket = savedVars.enchantRecipeByCharacter[characterKey]
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    bucket = Util:DeepCopy(bucket)
-    return self:NormalizeCharacterBucket(bucket, characterKey)
-end
-
-function EnchantRecipe:EnsureCharacterBucketForWrite()
-    local savedVars = self:EnsureSavedVarsShape(false)
-    if type(savedVars) ~= "table" then
-        return nil
-    end
-
-    local characterKey = NormalizeCharacterKey()
-    if type(characterKey) ~= "string" or characterKey == "" then
-        return nil
-    end
-
-    local bucket = savedVars.enchantRecipeByCharacter[characterKey]
-    if type(bucket) ~= "table" then
-        bucket = self:BuildDefaultCharacterBucket(characterKey)
-        savedVars.enchantRecipeByCharacter[characterKey] = bucket
-    end
-
-    return self:NormalizeCharacterBucket(bucket, characterKey)
-end
-
-function EnchantRecipe:GenerateRecipeId(bucket)
-    bucket = type(bucket) == "table" and bucket or self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" then
-        return nil
-    end
-
-    if type(bucket.recipes) ~= "table" then
-        bucket.recipes = {}
-    end
-
-    while true do
-        local nextIndex = math.max(tonumber(bucket.nextIndex) or 1, 1)
-        local recipeId = string.format("recipe_%04d", nextIndex)
-        bucket.nextIndex = nextIndex + 1
-        if type(bucket.recipes[recipeId]) ~= "table" then
-            return recipeId
-        end
-    end
-end
-
-function EnchantRecipe:GetAutoApplyEnabled()
-    local bucket = self:GetCharacterBucketReadonly()
-    return NormalizeAutoApplyEnabled(type(bucket) == "table" and bucket.autoApplyEnabled or nil)
-end
-
 function EnchantRecipe:IsStationOpen()
-    return GetEnchantingObject() ~= nil and IsEnchantingSceneOpen()
-end
-
-function EnchantRecipe:SetAutoApplyEnabled(enabled)
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" then
-        return false
-    end
-
-    bucket.autoApplyEnabled = NormalizeAutoApplyEnabled(enabled)
-    return true
-end
-
-function EnchantRecipe:GetActiveRecipeId()
-    local bucket = self:GetCharacterBucketReadonly()
-    return type(bucket) == "table" and bucket.activeRecipeId or nil
-end
-
-function EnchantRecipe:SetActiveRecipe(recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or recipeId == nil
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    bucket.activeRecipeId = recipeId
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function EnchantRecipe:RenameRecipe(recipeId, newName)
-    recipeId = NormalizeRecipeId(recipeId)
-    newName = Util:NormalizeDisplayName(newName)
-    if recipeId == nil or newName == nil then
-        return nil, "invalid_recipe_name"
-    end
-
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or type(existingBucket.recipes) ~= "table"
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId].name = newName
-    bucket.recipes[recipeId].updatedAt = Util:GetTimestamp()
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function EnchantRecipe:SetRecipeCraftCount(recipeId, count)
-    recipeId = NormalizeRecipeId(recipeId)
-    if recipeId == nil then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or type(existingBucket.recipes) ~= "table"
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return nil, "enchant_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId].craftCount = NormalizeCraftCount(count)
-    bucket.recipes[recipeId].updatedAt = Util:GetTimestamp()
-    return Util:DeepCopy(bucket.recipes[recipeId])
-end
-
-function EnchantRecipe:GetRecipeList()
-    local bucket = self:GetCharacterBucketReadonly()
-    local recipes = {}
-    if type(bucket) ~= "table" or type(bucket.recipes) ~= "table" then
-        return recipes
-    end
-
-    for _, recipeId in ipairs(bucket.recipeOrder or {}) do
-        local recipe = bucket.recipes[recipeId]
-        if type(recipe) == "table" then
-            local copy = Util:DeepCopy(recipe)
-            copy.isActive = bucket.activeRecipeId == recipeId
-            recipes[#recipes + 1] = copy
-        end
-    end
-
-    return recipes
-end
-
-function EnchantRecipe:DeleteRecipe(recipeId)
-    recipeId = NormalizeRecipeId(recipeId)
-    local existingBucket = self:GetCharacterBucketReadonly()
-    if type(existingBucket) ~= "table"
-        or recipeId == nil
-        or type(existingBucket.recipes[recipeId]) ~= "table" then
-        return false, "enchant_recipe_not_found"
-    end
-
-    local bucket = self:EnsureCharacterBucketForWrite()
-    if type(bucket) ~= "table" or type(bucket.recipes[recipeId]) ~= "table" then
-        return false, "enchant_recipe_not_found"
-    end
-
-    bucket.recipes[recipeId] = nil
-    RemoveFirstValue(bucket.recipeOrder, recipeId)
-    if bucket.activeRecipeId == recipeId then
-        bucket.activeRecipeId = nil
-    end
-
-    return true
+    return GetEnchantingObject() ~= nil and RecipeWatcher.IsSceneOpen(self, GetEnchantingScene())
 end
 
 function EnchantRecipe:BuildInventoryIndex()
@@ -805,7 +404,7 @@ function EnchantRecipe:BuildInventoryIndex()
 end
 
 function EnchantRecipe:GetRecipeInventoryState(recipeId, inventoryIndex)
-    local recipe, err = GetRecipeById(self, recipeId)
+    local recipe, err = RecipeStore.GetRecipe(self, recipeId)
     if type(recipe) ~= "table" then
         return nil, err or "recipe_not_found"
     end
@@ -829,37 +428,6 @@ function EnchantRecipe:GetRecipeInventoryState(recipeId, inventoryIndex)
             and essenceState.found == true
             and aspectState.found == true,
     }
-end
-
-function EnchantRecipe:RegisterStationEvents()
-    if self.stationEventsRegistered == true then
-        return false
-    end
-    if EVENT_MANAGER == nil or type(EVENT_MANAGER.RegisterForEvent) ~= "function" then
-        return false
-    end
-
-    local stationInteractEvent = rawget(_G, "EVENT_CRAFTING_STATION_INTERACT")
-    local stationEndEvent = rawget(_G, "EVENT_END_CRAFTING_STATION_INTERACT")
-    if stationInteractEvent == nil or stationEndEvent == nil then
-        return false
-    end
-
-    self.stationEventsRegistered = true
-    EVENT_MANAGER:RegisterForEvent(STATION_INTERACT_EVENT_NAME, stationInteractEvent, function(_, craftingType)
-        if craftingType == rawget(_G, "CRAFTING_TYPE_ENCHANTING") then
-            EnchantRecipe.isStationOpen = true
-            if not RegisterEnchantingSceneCallback() then
-                ScheduleEnchantingSceneCallbackRegistration()
-            end
-        end
-    end)
-    EVENT_MANAGER:RegisterForEvent(STATION_END_EVENT_NAME, stationEndEvent, function(_, craftingType)
-        if craftingType == rawget(_G, "CRAFTING_TYPE_ENCHANTING") then
-            EnchantRecipe.isStationOpen = false
-        end
-    end)
-    return true
 end
 
 local function SetRuneSlotItem(enchanting, runeConstantName, itemState)
@@ -900,7 +468,7 @@ function EnchantRecipe:ApplyRecipeToStation(recipeId)
         return false, "enchanting_methods_unavailable"
     end
 
-    local recipe, recipeErr = GetRecipeById(self, recipeId)
+    local recipe, recipeErr = RecipeStore.GetRecipe(self, recipeId)
     if type(recipe) ~= "table" then
         return false, recipeErr or "recipe_not_found"
     end
@@ -935,7 +503,7 @@ function EnchantRecipe:ApplyRecipeToStation(recipeId)
         return false, err or "set_aspect_failed"
     end
 
-    local craftCount = NormalizeCraftCount(recipe.craftCount)
+    local craftCount = RecipeStore.NormalizeCraftCount(recipe.craftCount)
     local spinnerOk, spinnerErr = ApplyCraftCountToEnchantingSpinner(craftCount)
     if spinnerOk ~= true then
         Debug(
@@ -986,7 +554,7 @@ function EnchantRecipe:UpsertRecipeFromSlots(slots, name)
         id = recipeId,
         name = Util:NormalizeDisplayName(name)
             or GetItemLinkDisplayName(slots.resultItemLink)
-            or BuildDefaultRecipeName(recipeId),
+            or RecipeStore.BuildDefaultRecipeName(recipeId),
         notes = "",
         potencyItemId = slots.potencyItemId,
         essenceItemId = slots.essenceItemId,
@@ -997,13 +565,7 @@ function EnchantRecipe:UpsertRecipeFromSlots(slots, name)
         updatedAt = timestamp,
     }
 
-    bucket.recipes[recipeId] = recipe
-    bucket.recipeOrder[#bucket.recipeOrder + 1] = recipeId
-    if bucket.activeRecipeId == nil then
-        bucket.activeRecipeId = recipeId
-    end
-
-    return Util:DeepCopy(recipe)
+    return RecipeStore.AddRecipe(self, bucket, recipe)
 end
 
 function EnchantRecipe:CaptureFromStation(name)

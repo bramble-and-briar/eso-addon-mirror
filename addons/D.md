@@ -88,6 +88,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [dev sandbox 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-2__bc6b3b76-f701-4533-9492-c50acb1783bc) | clubwratt | Console | — |
 | [DiabloFrames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/DiabloFrames__3051) | buldezir | PC / Mac | 1.0.9 |
 | [DiabloOrbs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/DiabloOrbs__4474) | s1by0z | PC / Mac | 2.1.1 |
+| [DIAhelp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/DIAhelp__4876) | alabuzya | PC / Mac | 1.0.4 |
 | [Dialog Corrector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architecture/Dialog-Corrector__1907) | Architecture | PC / Mac | 1.1.2 |
 | [Dialog Tweaks (updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Dialog-Tweaks-updated__624) | Garkin | PC / Mac | 1.6 |
 | [DialogColors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/DialogColors__1316) | Shinni | PC / Mac | 1 |

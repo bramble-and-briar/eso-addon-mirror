@@ -1,0 +1,20 @@
+; All New API Global Variables and Functions for GUILD HISTORY.
+; Replaced/Added All New API stuff for Update 41 by @Dr_Z 3.18.24
+; Extended Guild Date Selection bypass issues with Guild Deposits Histoy by @MisterKarnos
+; Last Updated 9.26.2026
+; Version # Defined: 26.51.00
+;	26 = Year addon was updated
+;	51 = API Update #
+;	01 = Addon's Build/Update Number ... 00 Means First Build/Update of the year
+
+## Title: Raffle |cb38600Gold|r  |t24:24:RaffleGold/gold.dds|t
+## Author: |cFFF1B8@Dr_Z,  depeshmood|r
+## Contributors: @MisterKarnos, calia1120, dlrgames
+## APIVersion: 101050 101051
+## AddOnVersion: 265100
+## Version 26.51.00
+## Description: a Simple Raffle Addon that taps into Guild Gold Deposits to calculate Tickets and to perform Raffle Drawings. Slash Command:    /rafflegold
+## SavedVariables: RaffleGold_SavedVars
+## DependsOn: LibAddonMenu-2.0>=43
+
+RaffleGold.lua

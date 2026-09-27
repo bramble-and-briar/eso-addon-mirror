@@ -10,7 +10,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lagerblick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Lagerblick__4844) | Torfason | PC / Mac | 0.1.10 |
 | [Landslide Tracker - Earthen Heart Passive](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Landslide-Tracker---Earthen-Heart-Passive__4470) | Duesentrieb | PC / Mac | 20260320-0002 |
 | [LanguageChanger for 1.5.5](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hiiko/LanguageChanger-for-1.5.5__827) | Hiiko | PC / Mac | 0.1 |
-| [LarvalTear - Change Skill lines, Skills, Attributes, and more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/LarvalTear---Change-Skill-lines-Skills-Attributes-and-more__4485) | Thory | PC / Mac | 1.5.0.1 |
+| [LarvalTear - Change Skill lines, Skills, Attributes, and more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/LarvalTear---Change-Skill-lines-Skills-Attributes-and-more__4485) | Thory | PC / Mac | 1.5.0.2 |
 | [Latency Statistics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tactitocalon/Latency-Statistics__1869) | Tactitocalon | PC / Mac | 1.0 |
 | [Lawful Necromancy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/muh/Lawful-Necromancy__2388) | muh | PC / Mac | 1.1 |
 | [Lazarus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0dpain/Lazarus__3123) | g0dpain | PC / Mac | 0.1.0 |
@@ -166,7 +166,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibId64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibId64__3585) | sirinsidiator | PC / Mac | 1.0.1 |
 | [LibImplex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibImplex__4108) | imPDA | PC / Mac | 24 |
 | [LibInteractionHook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/LibInteractionHook__3644) | IsJustaGhost | PC / Mac | 3.2 |
-| [LibInteriorDetection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibInteriorDetection__4816) | kreksar@gmail.com | PC / Mac | 1.3.0 |
+| [LibInteriorDetection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibInteriorDetection__4816) | kreksar@gmail.com | PC / Mac | 1.3.3 |
 | [LibItemLink](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibItemLink__3855) | Sharlikran | PC / Mac | 9.4.0 |
 | [LibItemLinkDecoder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Delte/LibItemLinkDecoder__03b27b8e-253d-4288-ba88-4340d56faeac) | Delte | Console | — |
 | [LibItemLinkDecoder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/olegbl/LibItemLinkDecoder__3265) | olegbl | PC / Mac | 1.03 |

@@ -1,0 +1,35 @@
+Rytic Combat & Raid Tools 3.1.0 - release build notes
+
+This package is based on the complete RyticTankTools folder supplied for the
+3.1 release. The Lua changes applied while assembling this ZIP are limited to
+release version labels, the corrected Action Bar lock checkbox, Raid Lead's
+DD mechanic menu path, and the RSS numeric label cleanup. All other Lua
+modules and textures are carried from that folder.
+
+CHANGES
+- Group Frames: DEAD / REZZING / REZ PENDING display and elapsed pending timer;
+  default party assistant behavior with session revocation; no Major Slayer
+  tracking or group buff scan.
+- DD Positions: import genuine 4-DD / 4-DD mechanics into Team A/B, balance
+  support roles, and preserve manual team overrides and pair preference.
+- Raid Lead: DD mechanic menu uses SelectMechanic so team import follows the
+  same path as the thought board.
+- Action Bar: full-slot skill/ultimate and quickslot hover targets; assigned
+  slot tooltip lookup with ability-ID fallback; stable Rytic HUD visibility.
+- TankStats: Buffs wheel scrolling and fixed columns like Debuffs.
+- Block HUD: blocking/mitigation only; 100 ms refresh without block cost.
+- RSS: numeric values only; curved bars continue to show percentages visually.
+
+VALIDATION
+Lua syntax and ZIP contents were checked offline. The new 3.1 Action Bar
+hover, group resurrection states/timer, and 4-DD team import still need
+in-game verification before calling them stable. The pending timer measures
+from this client's first observation, not a server-provided elapsed value.
+
+PERFORMANCE REVIEW
+The recent cleanup removes the Group Frames Major Slayer scan and Block HUD
+block-cost sampling. Static review also found repeated full Group Frames
+layout work at 250 ms, repeated native Action Bar mouse/alpha suppression at
+100 ms, and a Sets HUD player buff scan when Master Architect is equipped.
+Those are candidates for profiler-led follow-up; no unmeasured changes to
+those working paths are included here.

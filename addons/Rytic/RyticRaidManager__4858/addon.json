@@ -15,13 +15,13 @@
   "content_id": "esoui:4858",
   "deleted": false,
   "directories": [
-    "RyticRaidMode"
+    "RyticTankTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4858/",
-  "fingerprint": "e2451f71c0e922421f4e8b3b78377a16acdda0671676ea951da4c24764c80269",
+  "fingerprint": "791026ab45137f2948cebc483f488c1a1f28b11fee5bd2a7160e5bdece064991",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17460.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17462.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17565.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17564.png",
     "https://cdn-eso.mmoui.com/preview/pvw17463.png",
     "https://cdn-eso.mmoui.com/preview/pvw17461.png"
   ],
@@ -31,11 +31,11 @@
   "source_id": "4858",
   "source_url": "https://www.esoui.com/downloads/info4858-RyticRaidManager.html",
   "stats": {
-    "downloads": 20,
+    "downloads": 35,
     "favorites": 1,
-    "monthly_downloads": 18
+    "monthly_downloads": 27
   },
   "title": "RyticRaidManager",
-  "updated_at": 1790227507000,
-  "version": "1.1"
+  "updated_at": 1790468488000,
+  "version": "3.1"
 }

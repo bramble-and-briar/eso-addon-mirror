@@ -93,7 +93,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Grim Focus Counter but it counts to 10](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/montewtf/Grim-Focus-Counter-but-it-counts-to-10__4426) | montewtf | PC / Mac | 2.0 |
 | [Grim Focus Counter U47 Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asquart/Grim-Focus-Counter-U47-Update__4223) | Asquart | PC / Mac | 1.8.1 |
 | [GrimFocusCounter U51](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geltungsdrang/GrimFocusCounter-U51__4776) | Geltungsdrang | PC / Mac | 1.8.1 |
-| [GrimSuite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrimGrin/GrimSuite__4848) | GrimGrin | PC / Mac | 1.2.2 |
+| [GrimSuite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrimGrin/GrimSuite__4848) | GrimGrin | PC / Mac | 1.3.0 |
 | [GrimUi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrimGrin/GrimUi__4841) | GrimGrin | PC / Mac | 2.1 |
 | [Grind Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tirilance/Grind-Timer__1651) | Tirilance | PC / Mac | 1.13.8 |
 | [GroundPaint](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/GroundPaint__4632) | HeiKyoma | PC / Mac | 1.2 |

@@ -1,0 +1,322 @@
+<!-- DIAhelp fork by alabuzya, modified 2026-09-22. GPL-3.0-or-later. Original artwork: Forsion. -->
+<GuiXml>
+    <Animations>
+        <AnimationTimeline name="DIAhelpFrameGlowTemplate" playbackType="2" loopCount="255" enabled="true">
+            <Animations>
+                <AlphaAnimation startAlpha="0.5" endAlpha="0.9" duration="700">
+                    <EasingFunction>
+                        return ZO_LinearEase(progress)
+                    </EasingFunction>
+                </AlphaAnimation>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+
+    <Controls>
+
+        <Control name="DIAhelpAttributeLabel_Temlate" virtual="true">
+            <Dimensions x="50" y="50"/>
+            <Controls>
+                <Texture textureFile="DIAhelp/Textures/TooltipBorder.dds" layer="1" level="3">
+                    <AnchorFill/>
+                </Texture>
+                <Label name="$(grandparent)Label" font="ZoFontGame" layer="1" level="3" verticalAlignment="1" horizontalAlignment="1">
+                    <AnchorFill/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="DIAhelpFrameDouble_Keyboard_Template" virtual="true">
+            <Dimensions x="404" y="256"/>
+            <Controls>
+
+                <Texture name="$(parent)ActionBarBgMiddle" textureFile="DIAhelp/Textures/FancyActionBarXpMiddleTest.dds">
+                    <Controls>
+                        <Control name="$(grandparent)ActionBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-58"/>
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-58"/>
+                        </Control>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)ActionBarBgLeft" textureFile="DIAhelp/Textures/FancyActionBarXpLeftTest.dds" >
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMLEFT" offsetX="77" offsetY="0"/>
+                </Texture>
+
+                <Texture name="$(parent)ActionBarBgRight" textureFile="DIAhelp/Textures/FancyActionBarXpRightTest.dds">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMRIGHT" offsetX="-77" offsetY="0"/>
+                </Texture>
+
+                <Control name="$(parent)Health">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgLeft" relativePoint="BOTTOMLEFT" offsetX="20" offsetY="-16"/>
+                </Control>
+                <Control name="$(parent)DoubleBar">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgRight" relativePoint="BOTTOMRIGHT" offsetX="-20" offsetY="-17"/>
+                </Control>
+
+                <StatusBar name="$(parent)Line">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMLEFT" offsetX="7" offsetY="-114"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMRIGHT" offsetX="-7" offsetY="-114"/>
+                </StatusBar>
+
+                <Texture name="$(parent)Demon" textureFile="DIAhelp/Textures/Demon.dds" layer="1" level="501">
+                    <Dimensions x="200" y="200"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgLeft" relativePoint="BOTTOMLEFT" offsetX="90" offsetY="0"/>
+                </Texture>
+
+                <Texture name="$(parent)Angel" textureFile="DIAhelp/Textures/Angel.dds" layer="1" level="501">
+                    <Dimensions x="200" y="200"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgRight" relativePoint="BOTTOMRIGHT" offsetX="-90" offsetY="0"/>
+                </Texture>
+
+            </Controls>
+        </Control>
+
+        <Control name="DIAhelpFrameDouble_Gamepad_Template" inherits="DIAhelpFrameDouble_Keyboard_Template" virtual="true">
+            <Dimensions x="605" y="256"/>
+            <Controls>
+                <Texture name="$(parent)ActionBarBgMiddle">
+                    <Controls>
+                        <Control name="$(grandparent)ActionBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="3" offsetY="-73"/>
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-73"/>
+                        </Control>
+                    </Controls>
+                </Texture>
+            </Controls>
+        </Control>
+
+        <Control name="DIAhelpFrame_Keyboard_Template" virtual="true">
+            <Dimensions x="400" y="256"/>
+            <Controls>
+                <Texture name="$(parent)ActionBarBgMiddle" textureFile="DIAhelp/Textures/ActionBarXpMiddle.dds">
+                </Texture>
+
+                <Texture name="$(parent)ActionBarBgLeft" textureFile="DIAhelp/Textures/ActionBarXpLeft.dds">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMLEFT" offsetX="80" offsetY="0"/>
+                </Texture>
+
+                <Texture name="$(parent)ActionBarBgRight" textureFile="DIAhelp/Textures/ActionBarXpRight.dds">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMRIGHT" offsetX="-83" offsetY="0"/>
+                </Texture>
+
+                <Control name="$(parent)Health">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgLeft" relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-12"/>
+                </Control>
+                <Control name="$(parent)DoubleBar">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgRight" relativePoint="BOTTOMRIGHT" offsetX="-7" offsetY="-12"/>
+                </Control>
+
+                <StatusBar name="$(parent)Line">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="-68"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgMiddle" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-68"/>
+                </StatusBar>
+
+            </Controls>
+        </Control>
+
+        <Control name="DIAhelpFrame_Gamepad_Template" inherits="DIAhelpFrame_Keyboard_Template" virtual="true">
+            <Dimensions x="560" y="256"/>
+        </Control>
+
+        <TopLevelControl name="DIAhelpFrameTLC">
+            <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="0"/>
+            <OnInitialized>
+                DIAhelpFrame_Initialize(self)
+            </OnInitialized>
+            <Controls>
+
+                <Texture name="$(parent)ActionBarBgMiddle" layer="1" level="0">
+                    <Dimensions y="256"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="0"/>
+
+                    <Controls>
+                        <Control name="$(grandparent)ActionBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="-13"/>
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-13"/>
+                        </Control>
+                    </Controls>
+                </Texture>
+
+                <Texture name="$(parent)ActionBarBgLeft" layer="1" level="1">
+                    <Dimensions x="256" y="256"/>
+                </Texture>
+
+                <Texture name="$(parent)ActionBarBgRight" layer="1" level="1">
+                    <Dimensions x="256" y="256"/>
+                </Texture>
+
+                <Texture name="$(parent)Demon" textureFile="DIAhelp/Textures/Demon.dds" layer="1" level="501">
+                    <Dimensions x="200" y="200"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ActionBarBgLeft" relativePoint="BOTTOMLEFT" offsetX="75" offsetY="0"/>
+                </Texture>
+
+                <Texture name="$(parent)Angel" textureFile="DIAhelp/Textures/Angel.dds" layer="1" level="501">
+                    <Dimensions x="200" y="200"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)ActionBarBgRight" relativePoint="BOTTOMRIGHT" offsetX="-75" offsetY="0"/>
+                </Texture>
+
+                <StatusBar name="$(parent)Line" color="ba4d09" mouseEnabled="true" layer="0" level="1">
+                    <Limits min="0" max="100"/>
+                    <Dimensions y="8"/>
+                    <OnInitialized>
+                        self:SetValue(99)
+                        self.ttt = nil
+                    </OnInitialized>
+                    <OnMouseEnter>
+                        if self.ttt ~= nil then
+                            InitializeTooltip(InformationTooltip, self, CENTER, 0, -35, CENTER)
+                            SetTooltipText(InformationTooltip, self.ttt)
+                        end
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ClearTooltip(InformationTooltip)
+                    </OnMouseExit>
+                </StatusBar>
+
+                <Control name="$(parent)Health">
+                    <Dimensions x="150" y="150"/>
+                    <Controls>
+                        <Texture name="$(parent)Glow" color="ff0000" textureFile="DIAhelp/Textures/glow.dds" alpha="0" mouseEnabled="true" layer="1" level="2">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                            <Dimensions x="250" y="250"/>
+                        </Texture>
+                        <Texture name="$(parent)SmokeBg" color="4d0000" textureFile="DIAhelp/Textures/Smoke.dds" layer="1" level="3">
+                            <AnchorFill/>
+                            <Dimensions x="150" y="150"/>
+                            <TextureCoords left="0" right="1" top="-0.0005" bottom="1"/>
+                        </Texture>
+                        <Texture name="$(parent)Smoke" color="ff0000" textureFile="DIAhelp/Textures/Smoke.dds" layer="1" level="4">
+                            <AnchorFill/>
+                            <Dimensions x="150" y="150"/>
+                            <TextureCoords left="0" right="1" top="0" bottom="1"/>
+                        </Texture>
+                        <Texture name="$(parent)BorderShade" textureFile="DIAhelp/Textures/Shade.dds" layer="1" level="5">
+                            <AnchorFill/>
+                            <Dimensions x="150" y="150"/>
+                        </Texture>
+                        <Texture name="$(parent)Border" textureFile="DIAhelp/Textures/border.dds" layer="1" level="7">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                            <Dimensions x="166" y="166"/>
+                        </Texture>
+
+                        <Control inherits="DIAhelpAttributeLabel_Temlate">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="-12" offsetY="-28"/>
+                        </Control>
+
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)Shield">
+                    <Dimensions x="150" y="150"/>
+                    <Anchor point="CENTER" relativeTo="$(parent)Health" relativePoint="CENTER"/>
+                    <Controls>
+                        <Texture name="$(parent)Smoke" color="00ffff" textureFile="DIAhelp/Textures/Shield3.dds" layer="1" level="6">
+                            <AnchorFill/>
+                            <Dimensions x="150" y="150"/>
+                        </Texture>
+
+                        <Control inherits="DIAhelpAttributeLabel_Temlate" hidden="true">
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="12" offsetY="-28"/>
+                            <Controls>
+                                <Label name="$(grandparent)Label" color="00ffff" override="true"/>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)DoubleBar">
+                    <Dimensions x="150" y="150"/>
+                    <Controls>
+
+                        <Control name="$(grandparent)Magicka">
+                            <AnchorFill/>
+                            <Controls>
+                                <Texture name="$(parent)Glow" color="0066ff" textureFile="DIAhelp/Textures/glow.dds" alpha="0" mouseEnabled="true" layer="1" level="2">
+                                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"  offsetX="-65"/>
+                                    <Dimensions x="125" y="250"/>
+                                    <TextureCoords left="0" right="0.5" top="0" bottom="1"/>
+                                </Texture>
+                                <Texture name="$(parent)SmokeBg" color="000033" textureFile="DIAhelp/Textures/Smoke.dds" layer="1" level="3">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="0" offsetY="0"/>
+                                    <Dimensions x="75" y="150"/>
+                                    <TextureCoords left="0" right="0.5" top="-0.0005" bottom="1"/>
+                                </Texture>
+                                <Texture name="$(parent)Smoke" color="0066ff" textureFile="DIAhelp/Textures/Smoke.dds" layer="1" level="4">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="0" offsetY="0"/>
+                                    <Dimensions x="75" y="150"/>
+                                    <TextureCoords left="0" right="0.5" top="0" bottom="1"/>
+                                </Texture>
+
+                                <Texture name="$(parent)BorderShade" textureFile="DIAhelp/Textures/Shade.dds" layer="1" level="5">
+                                    <AnchorFill/>
+                                    <Dimensions x="150" y="150"/>
+                                </Texture>
+                                <Texture name="$(parent)Border" textureFile="DIAhelp/Textures/border.dds" layer="1" level="7">
+                                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                                    <Dimensions x="166" y="166"/>
+                                </Texture>
+
+                                <Texture name="$(parent)Split" textureFile="DIAhelp/Textures/Split.dds" layer="1" level="8">
+                                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                                    <Dimensions x="166" y="166"/>
+                                </Texture>
+
+                                <Control inherits="DIAhelpAttributeLabel_Temlate">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="-12" offsetY="-28"/>
+                                </Control>
+
+                            </Controls>
+                        </Control>
+                        <Control name="$(grandparent)WerewolfTimer" hidden="true">
+                            <AnchorFill/>
+                            <Controls>
+                                <Texture name="$(parent)Smoke" textureFile="DIAhelp/Textures/MountStamina.dds" layer="1" level="5" color="3893F5">
+                                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="40"/>
+                                    <Dimensions x="75" y="150"/>
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1"/>
+                                </Texture>
+                            </Controls>
+                        </Control>
+
+                        <Control name="$(grandparent)Stamina">
+                            <AnchorFill/>
+                            <Controls>
+
+                                <Texture name="$(parent)Glow" color="00ff00" textureFile="DIAhelp/Textures/glow.dds" alpha="0" mouseEnabled="true" layer="1" level="2">
+                                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="65"/>
+                                    <Dimensions x="125" y="250"/>
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1"/>
+                                </Texture>
+                                <Texture name="$(parent)SmokeBg" color="004d00" textureFile="DIAhelp/Textures/Smoke.dds" layer="1" level="3">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="75" offsetY="0"/>
+                                    <Dimensions x="75" y="150"/>
+                                    <TextureCoords left="0.5" right="0" top="-0.0005" bottom="1"/>
+                                </Texture>
+                                <Texture name="$(parent)Smoke" color="00ff00" textureFile="DIAhelp/Textures/Smoke.dds" layer="1" level="4">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="75" offsetY="0"/>
+                                    <Dimensions x="75" y="150"/>
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1"/>
+                                </Texture>
+                                <Control inherits="DIAhelpAttributeLabel_Temlate">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="12" offsetY="-28"/>
+                                </Control>
+                            </Controls>
+                        </Control>
+                        <Control name="$(grandparent)MountStamina" hidden="true">
+                            <AnchorFill/>
+                            <Controls>
+                                <Texture name="$(parent)Smoke" textureFile="DIAhelp/Textures/MountStamina.dds" layer="1" level="5" color="87F500">
+                                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="40"/>
+                                    <Dimensions x="75" y="150"/>
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1"/>
+                                </Texture>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

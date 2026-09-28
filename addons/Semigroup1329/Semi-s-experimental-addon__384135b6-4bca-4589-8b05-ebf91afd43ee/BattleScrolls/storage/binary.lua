@@ -14,11 +14,7 @@ BattleScrolls.binaryStorage = binaryStorage
 
 local CURRENT_VERSION = 20
 -- Exposed for the migration's legacy scan; the wire version signals this to
--- the web decoder (wire v7 frames v20 blobs). v19 added a 24-bit section
--- mask, ULTIMATE/RESURRECTIONS/CRUX/ZEN sections, attacker-name refs on
--- death recap attacks and the resurrections + zen share metrics. v20 adds
--- weaving downtime, per-cast ultimate pool/cost, observed generator gains,
--- proc waste and the death split in CRUX, and the resurrection log.
+-- the web decoder (wire v8 frames v20 blobs).
 binaryStorage.CURRENT_VERSION = CURRENT_VERSION
 
 -- Import BitEncoder/BitDecoder from bitcodec module
@@ -2282,8 +2278,6 @@ end
 ---@field u number Sender fight duration in ms
 ---@field h number|nil 16-bit setup hash
 ---@field r number|nil LFG_ROLE_* constant captured at match time
----@field s number|nil Resurrection count (plain marker so richer-entry-wins upsert dedup can compare without decoding; nil when the sender's protocol carried no res field)
----@field z number|nil Zen boss-entry count (plain V3 marker, same dedup role as s)
 ---@field c string[] Base64 chunks of the binary SharedEncounterData payload
 
 local PERCENT_BITS = 12
@@ -2556,8 +2550,6 @@ function binaryStorage.encodeSharedEntry(entry)
         u = entry.data.durationMs,
         h = entry.data.setupHash,
         r = entry.role,
-        s = entry.data.resurrections,
-        z = entry.data.zenByBoss and #entry.data.zenByBoss or nil,
         c = encoder:finish(),
     }
 end
@@ -2576,6 +2568,218 @@ function binaryStorage.decodeSharedEntry(compactEntry)
         data = data,
         role = compactEntry.r,
     }
+end
+
+-- =============================================================================
+-- SHARED SETUPS (same byte layout as the export member-setup struct)
+-- =============================================================================
+
+---@param body BitEncoder|ExportByteWriter
+---@param entries CompactTraitEntry[]|CompactEnchantEntry[]|nil
+---@param idField string "traitType"|"enchantId"
+local function writeGroupedCounts(body, entries, idField)
+    entries = entries or {}
+    body:writeVarUInt(#entries)
+    for _, entry in ipairs(entries) do
+        body:writeVarUInt(entry[idField] or 0)
+        body:writeVarUInt(entry.count or 0)
+    end
+end
+
+---@param body BitEncoder|ExportByteWriter
+---@param ids number[]|nil
+local function writeIdList(body, ids)
+    ids = ids or {}
+    body:writeVarUInt(#ids)
+    for _, id in ipairs(ids) do
+        body:writeVarUInt(id)
+    end
+end
+
+---Writes a shared build to a byte-aligned storage or export encoder.
+---Flags fit in one byte, so writeVarUInt matches the export u8 layout.
+---@param body BitEncoder|ExportByteWriter
+---@param compact CompactSetup
+function binaryStorage.writeSharedSetup(body, compact)
+    body:writeVarUInt((compact.isVengeance and 1 or 0)
+        + (compact.frontAbilities and 2 or 0)
+        + (compact.backAbilities and 4 or 0)
+        + (compact.werewolfAbilities and 8 or 0)
+        + (compact.classMasteryAbilityIds and 16 or 0))
+    body:writeVarUInt(compact.raceId or 0)
+    body:writeVarUInt(compact.classId or 0)
+    local function writeBar(bar)
+        for i = 1, 6 do
+            body:writeVarUInt(bar[i] or 0)
+        end
+    end
+    if compact.frontAbilities then writeBar(compact.frontAbilities) end
+    if compact.backAbilities then writeBar(compact.backAbilities) end
+    if compact.werewolfAbilities then writeBar(compact.werewolfAbilities) end
+    local sets = compact.sets or {}
+    body:writeVarUInt(#sets)
+    for _, set in ipairs(sets) do
+        body:writeVarUInt(set.setId or 0)
+        body:writeVarUInt(set.frontCount or 0)
+        body:writeVarUInt(set.backCount or 0)
+    end
+    local weights = compact.armorWeights or {}
+    for i = 1, 3 do
+        body:writeVarUInt(weights[i] or 0)
+    end
+    local weaponTypes = compact.weaponTypes or {}
+    for i = 1, 4 do
+        body:writeVarUInt(weaponTypes[i] or 0)
+    end
+    writeGroupedCounts(body, compact.armorTraits, "traitType")
+    writeGroupedCounts(body, compact.armorEnchants, "enchantId")
+    writeGroupedCounts(body, compact.jewelryTraits, "traitType")
+    writeGroupedCounts(body, compact.jewelryEnchants, "enchantId")
+    local weaponTraits = compact.weaponTraits or {}
+    for i = 1, 4 do
+        body:writeVarUInt(weaponTraits[i] or 0)
+    end
+    local weaponEnchants = compact.weaponEnchants or {}
+    for i = 1, 4 do
+        body:writeVarUInt(weaponEnchants[i] or 0)
+    end
+    local champion = compact.champion or {}
+    for i = 1, 12 do
+        body:writeVarUInt(champion[i] or 0)
+    end
+    writeIdList(body, compact.foodAbilityIds)
+    writeIdList(body, compact.mundusAbilityIds)
+    writeIdList(body, compact.classSkillLineIds)
+    if compact.classMasteryAbilityIds then
+        writeIdList(body, compact.classMasteryAbilityIds)
+    end
+    local scribed = compact.scribedAbilities or {}
+    body:writeVarUInt(#scribed)
+    for _, ability in ipairs(scribed) do
+        body:writeVarUInt(ability.abilityId or 0)
+        local scripts = ability.scriptIds or {}
+        for i = 1, 3 do
+            body:writeVarUInt(scripts[i] or 0)
+        end
+    end
+    body:writeVarUInt((compact.frontPoisonItemId and 1 or 0)
+        + (compact.backPoisonItemId and 2 or 0)
+        + (compact.frontPoisonEffect and 4 or 0)
+        + (compact.backPoisonEffect and 8 or 0))
+    if compact.frontPoisonItemId then body:writeVarUInt(compact.frontPoisonItemId) end
+    if compact.backPoisonItemId then body:writeVarUInt(compact.backPoisonItemId) end
+    if compact.frontPoisonEffect then body:writeVarUInt(compact.frontPoisonEffect) end
+    if compact.backPoisonEffect then body:writeVarUInt(compact.backPoisonEffect) end
+    if compact.isVengeance then
+        body:writeVarUInt(compact.loadoutSkillLineId or 0)
+        local perks = compact.vengeancePerkDefIds or {}
+        for i = 1, 3 do
+            body:writeVarUInt(perks[i] or 0)
+        end
+    end
+end
+
+---@class EncodedSharedSetup
+---@field v number Shared-setup codec version (independent of encounter versions)
+---@field c string[] Base64 chunks of the shared build
+---@field _estimatedSize number|nil Cached chunk bytes (BattleScrolls.sizeModel)
+---@field _estimatedSizeV number|nil Model version the cache was computed with
+
+---@alias StoredSharedSetup EncodedSharedSetup|CompactSetup
+
+local SHARED_SETUP_VERSION = 1
+
+---@param compact CompactSetup
+---@return EncodedSharedSetup
+function binaryStorage.encodeSharedSetup(compact)
+    local encoder = BitEncoder.new()
+    binaryStorage.writeSharedSetup(encoder, compact)
+    return { v = SHARED_SETUP_VERSION, c = encoder:finish() }
+end
+
+---@param decoder BitDecoder
+---@param count number|nil Nil when the count is prefixed in the stream
+---@return number[]
+local function readSharedIds(decoder, count)
+    local ids = {}
+    for i = 1, count or decoder:readVarUInt() do
+        ids[i] = decoder:readVarUInt()
+    end
+    return ids
+end
+
+---@param decoder BitDecoder
+---@return CompactTraitEntry[]
+local function readSharedTraits(decoder)
+    local entries = {}
+    for i = 1, decoder:readVarUInt() do
+        entries[i] = { traitType = decoder:readVarUInt(), count = decoder:readVarUInt() }
+    end
+    return entries
+end
+
+---@param decoder BitDecoder
+---@return CompactEnchantEntry[]
+local function readSharedEnchants(decoder)
+    local entries = {}
+    for i = 1, decoder:readVarUInt() do
+        entries[i] = { enchantId = decoder:readVarUInt(), count = decoder:readVarUInt() }
+    end
+    return entries
+end
+
+---@param encoded EncodedSharedSetup
+---@return CompactSetup
+function binaryStorage.decodeSharedSetup(encoded)
+    if encoded.v ~= SHARED_SETUP_VERSION then
+        error("Invalid shared setup version: " .. tostring(encoded.v))
+    end
+    local decoder = BitDecoder.new(encoded.c)
+    local flags = decoder:readUInt(8)
+    local raceId, classId = decoder:readVarUInt(), decoder:readVarUInt()
+    local front = BitAnd(flags, 2) ~= 0 and readSharedIds(decoder, 6) or nil
+    local back = BitAnd(flags, 4) ~= 0 and readSharedIds(decoder, 6) or nil
+    local werewolf = BitAnd(flags, 8) ~= 0 and readSharedIds(decoder, 6) or nil
+    local sets = {}
+    for i = 1, decoder:readVarUInt() do
+        sets[i] = {
+            setId = decoder:readVarUInt(), frontCount = decoder:readVarUInt(), backCount = decoder:readVarUInt(),
+        }
+    end
+    ---@type CompactSetup
+    local compact = {
+        isVengeance = BitAnd(flags, 1) ~= 0 or nil,
+        raceId = raceId, classId = classId,
+        frontAbilities = front, backAbilities = back, werewolfAbilities = werewolf,
+        sets = sets,
+        armorWeights = readSharedIds(decoder, 3),
+        weaponTypes = readSharedIds(decoder, 4),
+        armorTraits = readSharedTraits(decoder),
+        armorEnchants = readSharedEnchants(decoder),
+        jewelryTraits = readSharedTraits(decoder),
+        jewelryEnchants = readSharedEnchants(decoder),
+        weaponTraits = readSharedIds(decoder, 4),
+        weaponEnchants = readSharedIds(decoder, 4),
+        champion = readSharedIds(decoder, 12),
+        foodAbilityIds = readSharedIds(decoder),
+        mundusAbilityIds = readSharedIds(decoder),
+        classSkillLineIds = readSharedIds(decoder),
+        scribedAbilities = {},
+    }
+    if BitAnd(flags, 16) ~= 0 then compact.classMasteryAbilityIds = readSharedIds(decoder) end
+    for i = 1, decoder:readVarUInt() do
+        compact.scribedAbilities[i] = { abilityId = decoder:readVarUInt(), scriptIds = readSharedIds(decoder, 3) }
+    end
+    local poisonMask = decoder:readUInt(8)
+    if BitAnd(poisonMask, 1) ~= 0 then compact.frontPoisonItemId = decoder:readVarUInt() end
+    if BitAnd(poisonMask, 2) ~= 0 then compact.backPoisonItemId = decoder:readVarUInt() end
+    if BitAnd(poisonMask, 4) ~= 0 then compact.frontPoisonEffect = decoder:readVarUInt() end
+    if BitAnd(poisonMask, 8) ~= 0 then compact.backPoisonEffect = decoder:readVarUInt() end
+    if compact.isVengeance then
+        compact.loadoutSkillLineId = decoder:readVarUInt()
+        compact.vengeancePerkDefIds = readSharedIds(decoder, 3)
+    end
+    return compact
 end
 
 -- =============================================================================

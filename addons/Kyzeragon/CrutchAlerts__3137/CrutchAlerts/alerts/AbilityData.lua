@@ -145,6 +145,7 @@ Crutch.uninterruptible = {
 
     [168525] = true, -- Imminent Blister (duration before fragility, not initial cast)
     [168526] = true, -- Imminent Chill (duration before fragility, not initial cast)
+    [170409] = true, -- Cinder Shot (DSR)
 }
 
 ---------------------------------------------------------------------
@@ -191,6 +192,8 @@ Crutch.testing = {
     [132571] = true, -- Thunderous Leap (Yandir)
 
     [245208] = true, -- Seething Vile Leap
+
+    [149531] = true, -- Blistering Smash
 }
 
 ---------------------------------------------------------------------
@@ -403,8 +406,8 @@ Crutch.others = {
         [153175] = true, -- Scalding Strike (Fire Behemoth)
         [157482] = true, -- Molten Rain (Ash Titan)
         [152414] = true, -- Meteor Call (Havocrel Torchcaster)
-        [153517] = true, -- Portal CW
-        [153518] = true, -- Portal CCW
+        -- [153517] = true, -- Portal CW
+        -- [153518] = true, -- Portal CCW
     },
 
     -- Sanctum Ophidia

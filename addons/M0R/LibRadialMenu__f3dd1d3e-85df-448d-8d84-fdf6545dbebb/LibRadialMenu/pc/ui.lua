@@ -88,6 +88,11 @@ local function updateEntryDisplay()
 				LibRadialMenuSettingsPanelCurrentEntryInfo.data.text = slotname
 				LibRadialMenuSettingsPanelCurrentEntryDescription.data.text = description
 				LibRadialMenuSettingsPanelCurrentEntryImage.data.texture = slotIcon
+			else
+				LibRadialMenuSettingsPanelCurrentEntryInfo.data.title = ""
+				LibRadialMenuSettingsPanelCurrentEntryInfo.data.text = ""
+				LibRadialMenuSettingsPanelCurrentEntryDescription.data.text = ""
+				LibRadialMenuSettingsPanelCurrentEntryImage.data.texture = "/esoui/art/icons/heraldrycrests_misc_blank_01.dds"
 			end
 		else
 			LibRadialMenuSettingsPanelCurrentEntryInfo.data.title = ""
@@ -110,6 +115,22 @@ local function changeAddon(newAddon)
 	end
 	local indexTable = {}
 	local addonEntries = LibRadialMenu.registeredEntries[currentAddonSelected]
+
+
+	if addonEntries == nil then -- if unassigned
+		local entryText = "Unassigned"
+		local v = "unassigned"
+		entryNameOptions[#entryNameOptions+1] = entryText
+		entryLookup[v] = entryText
+		entryLookup[entryText] = v
+		if LibRadialMenuSettingsPageEntryDropdown then
+			LibRadialMenuSettingsPageEntryDropdown:UpdateChoices()
+			LibRadialMenuSettingsPageEntryDropdown:UpdateValue()
+		end
+		return
+	end
+
+
 	for i,v in pairs(addonEntries) do
 		indexTable[#indexTable+1] = i
 	end
@@ -120,6 +141,7 @@ local function changeAddon(newAddon)
 		entryNameOptions[#entryNameOptions+1] = entryText
 		entryLookup[v] = entryText
 		entryLookup[entryText] = v
+		--x = v
 	end
 	if LibRadialMenuSettingsPageEntryDropdown then
 		LibRadialMenuSettingsPageEntryDropdown:UpdateChoices()
@@ -156,6 +178,9 @@ local function updateAddonList()
 		addonLookup[v] = i
 		addonLookup[i] = v
 	end
+	addonNameOptions[#addonNameOptions+1] = "Unassigned"
+	addonLookup["unassigned"] = "Unassigned"
+	addonLookup["Unassigned"] = "unassigned"
 	if LibRadialMenuSettingsPageAddonDropdown then
 		LibRadialMenuSettingsPageAddonDropdown:UpdateChoices()
 		LibRadialMenuSettingsPageAddonDropdown:UpdateValue()

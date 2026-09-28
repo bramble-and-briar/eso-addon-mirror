@@ -100,8 +100,15 @@ end
 
 ---Performs a full stats list refresh (async, with decoding if needed)
 ---@param journalUI BattleScrolls_Journal_Gamepad The journal UI instance
----@return Effect The running effect (for cancellation)
+---@return Fiber The running refresh (for cancellation)
 function StatsListController.refresh(journalUI)
+    -- Finish the previous refresh's cleanup before touching its list.
+    if journalUI.taskInProgress then
+        journalUI.taskInProgress:Cancel()
+        journalUI.taskInProgress = nil
+        BattleScrolls.gc:RequestGC(5)
+    end
+
     local list = journalUI.statsList
     list:Clear()
 
@@ -113,17 +120,16 @@ function StatsListController.refresh(journalUI)
         return LibEffect.Yield():Run()
     end
 
-    -- Cancel any in-progress task
-    if journalUI.taskInProgress then
-        journalUI.taskInProgress:Cancel()
-        journalUI.taskInProgress = nil
-        BattleScrolls.gc:RequestGC(5)
-    end
-
     -- Check what needs to be decoded/computed
     local needsEncounterDecode = journalUI.decodedEncounter == nil
     local needsAbilityInfo = journalUI.abilityInfo == nil
     local needsArithmancer = journalUI.arithmancer == nil
+
+    -- Renderers add rows across frames, before Commit establishes a selection.
+    -- A header resize in that interval makes ESO try to lay out data index 0.
+    -- Resume dynamic layout only once the list is committed (or cleared).
+    list:SetHandleDynamicViewProperties(false)
+    local committed = false
 
     -- Show loading state
     list:SetNoItemText(GetString(BATTLESCROLLS_LIST_LOADING))
@@ -190,8 +196,9 @@ function StatsListController.refresh(journalUI)
         LibEffect.Yield():Await()
         journalUI.statsRefreshPending = false
         list:Commit()
+        committed = true
 
-        -- Restore saved index (e.g. after favorite toggle) or default to index 2
+        -- Restore saved index (e.g. after favorite toggle) or default to Overview
         local numItems = list:GetNumItems()
         local restoreIndex = journalUI.restoreSelectedIndex
         journalUI.restoreSelectedIndex = nil
@@ -209,6 +216,15 @@ function StatsListController.refresh(journalUI)
         -- Trigger tooltip/panel refresh for the selected entry
         journal.chronicler.refreshTooltip(journalUI, list:GetTargetData())
     end):Ensure(function()
+        -- Cancellation or a renderer error must not leave uncommitted rows for
+        -- the resize handler, including when the journal is being hidden.
+        if not committed then
+            list:Clear()
+            list:Commit()
+        end
+        list:SetHandleDynamicViewProperties(true)
+        -- Catch viewport changes that happened while dynamic layout was paused.
+        list:RefreshVisible()
         list:SetNoItemText(GetString(BATTLESCROLLS_LIST_NO_STATS))
         journalUI.taskInProgress = nil
         BattleScrolls.gc:RequestGC(5)

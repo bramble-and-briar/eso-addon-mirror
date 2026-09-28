@@ -5,10 +5,6 @@ end
 
 BattleScrolls = BattleScrolls or {}
 
--- Navigation & tab constants live in types.lua (BattleScrolls.journal.*),
--- which loads before every other journal module. A second copy used to be
--- defined here as globals; the two drifted (this one had no SHARE mode) and
--- every mode comparison against the missing entry silently became nil == nil.
 local NAVIGATION_MODE = BattleScrolls.journal.NavigationMode
 local STATS_TAB = BattleScrolls.journal.StatsTab
 local INSTANCE_TAB = BattleScrolls.journal.InstanceTab
@@ -44,6 +40,7 @@ local canAddToMainMenu = false
 ---@field encounterList ZO_ParametricScrollList Encounter list control
 ---@field statsList ZO_ParametricScrollList Stats list control
 ---@field settingsList ZO_ParametricScrollList Settings list control
+---@field whatsNewList ZO_ParametricScrollList Release history list
 ---@field pivotConfigList ZO_ParametricScrollList Pivot config list control
 ---@field pivotQuery PivotQuery|nil Current pivot query being configured
 ---@field pivotResult PivotResult|nil Current pivot result
@@ -56,6 +53,7 @@ local canAddToMainMenu = false
 ---@field encounterKeybindStripDescriptor table Encounter list keybinds
 ---@field statsKeybindStripDescriptor table Stats view keybinds
 ---@field settingsKeybindStripDescriptor table Settings view keybinds
+---@field whatsNewKeybindStripDescriptor table Release history keybinds
 ---@field pivotConfigKeybindStripDescriptor table Pivot config keybinds
 ---@field pivotResultKeybindStripDescriptor table Pivot result keybinds
 ---@field textSearchKeybindStripDescriptor table Search header keybinds
@@ -114,7 +112,7 @@ end
 
 function BattleScrolls_Journal_Gamepad:Initialize(control)
     self.control = control
-    self.defaultInstancePosition = 3  -- Skip Settings and Aggregate entries
+    self.defaultInstancePosition = 4  -- First instance, after What's New, Settings and Aggregate
     self.defaultEncounterPosition = 2  -- Skip Aggregate entry
 
     LibEffect.Async(function()
@@ -297,6 +295,9 @@ function BattleScrolls_Journal_Gamepad:RefreshHeader()
     elseif self.mode == NAVIGATION_MODE.SETTINGS then
         self.headerData.titleText = GetString(BATTLESCROLLS_UI_NAME)
         self.headerData.subtitleText = GetString(BATTLESCROLLS_UI_SETTINGS)
+    elseif self.mode == NAVIGATION_MODE.WHATS_NEW then
+        self.headerData.titleText = GetString(BATTLESCROLLS_UI_NAME)
+        self.headerData.subtitleText = GetString(BATTLESCROLLS_WHATS_NEW)
     elseif self.mode == NAVIGATION_MODE.SHARE then
         self.headerData.titleText = GetString(BATTLESCROLLS_UI_NAME)
         self.headerData.subtitleText = GetString(BATTLESCROLLS_SHARE_TITLE)
@@ -341,8 +342,7 @@ function BattleScrolls_Journal_Gamepad:RefreshHeader()
     end
 end
 
----Builds header data pairs for the current stats tab. Same layout on all
----tabs; the player name lives in the generic footer (bottom right) instead.
+---Builds header data pairs for the current stats tab.
 function BattleScrolls_Journal_Gamepad:buildStatsHeaderData()
     self.headerData.data1HeaderText = GetString(BATTLESCROLLS_STAT_DURATION)
     self.headerData.data1Text = BattleScrolls.journal.utils.formatPreciseDuration(self.selectedEncounter.durationMs)
@@ -505,12 +505,22 @@ function BattleScrolls_Journal_Gamepad:InitializeLists()
     self.settingsList = self:AddList("Settings", function(list)
         BattleScrolls.journal.settingsTemplates.setupSettingsList(list)
     end)
+    self.whatsNewList = self:AddList("WhatsNew", function(list)
+        SetupList(list, GetString(BATTLESCROLLS_LIST_NO_DATA))
+    end)
     self.pivotConfigList = self:AddList("PivotConfig", function(list)
         SetupList(list, GetString(BATTLESCROLLS_PIVOT_NO_RESULTS))
     end)
     self.shareList = self:AddList("Share", function(list)
         SetupList(list, GetString(BATTLESCROLLS_LIST_NO_DATA))
     end)
+
+    -- Header layout can change the viewport after Commit has culled its rows.
+    -- Let ESO refresh visible controls and fade gradients when that happens,
+    -- so entries above the selection appear without waiting for a scroll.
+    for _, list in pairs(self.lists) do
+        list:SetHandleDynamicViewProperties(true)
+    end
 
     -- The share stepper re-renders on every transport transition (part fired,
     -- part settled, build finished/failed). It also restores the real keybind
@@ -568,19 +578,6 @@ end
 -- Keybind Management
 -------------------------
 function BattleScrolls_Journal_Gamepad:SetActiveKeybinds(keybindDescriptor)
-    -- The stepper strip's armed/sink/pulled timeline is part of the
-    -- browser-exit leak evidence: what a press can reach depends on it
-    if self.mode == BattleScrolls.journal.NavigationMode.SHARE then
-        local label = "strip pulled"
-        if keybindDescriptor == self.shareKeybindStripDescriptor then
-            label = "strip armed"
-        elseif keybindDescriptor == self.shareInFlightKeybindStripDescriptor then
-            label = "strip sink"
-        elseif keybindDescriptor then
-            label = "strip other"
-        end
-        BattleScrolls.shareTrace.record(label)
-    end
     if self.keybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
     end

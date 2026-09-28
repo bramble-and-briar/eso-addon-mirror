@@ -3,10 +3,10 @@
 
 ## Title: LibCustomNames
 ## Description: a library for custom player names
-## Version: 2026-09-21
+## Version: 2026-09-28
 ## Author: |c76c3f4@m00nyONE|r, |cef7682@seadotarley|r, STUDLETON, |cff7900@BobDRAD|r
 ## APIVersion: 101049 101050
-## AddOnVersion: 20260921
+## AddOnVersion: 20260928
 ## SavedVariables: LibCustomNamesSV
 ## IsLibrary: true
 ## PCDependsOn: LibAddonMenu-2.0>=40

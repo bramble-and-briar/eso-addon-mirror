@@ -69,7 +69,7 @@ local strings = {
     [BATTLESCROLLS_FORMAT_SECONDS] = "<<1>>s",
     [BATTLESCROLLS_FORMAT_MILLISECONDS] = "<<1>>ms",
     [BATTLESCROLLS_TOOLTIP_INTER_CAST_DESC] = "Durchschnittliche Lücke zwischen zwei Einsätzen, gemessen vom Ende der globalen Abklingzeit oder Wirkzeit einer Fähigkeit bis zu deiner nächsten Aktion. In Combat Metrics heißt das Weaving Average.",
-    [BATTLESCROLLS_TOOLTIP_TIME_LOST_DESC] = "Alle Lücken zwischen den Einsätzen, über den ganzen Kampf zusammengezählt. In Combat Metrics heißt das Weaving Total.",
+    [BATTLESCROLLS_TOOLTIP_TIME_LOST_DESC] = "Die Summe kurzer Wirkverzögerungen im Kampf, ohne Pausen ab 3 Sekunden (Leerlaufzeit). In Combat Metrics heißt das Weaving Total.",
     [BATTLESCROLLS_TOOLTIP_MISSED_LA_DESC] = "Fähigkeiten, die direkt nach einer anderen Fähigkeit gewirkt wurden, ohne leichten Angriff dazwischen.",
     [BATTLESCROLLS_TOOLTIP_DOUBLE_LA_DESC] = "Zwei leichte Angriffe hintereinander, ohne Fähigkeit dazwischen.",
 
@@ -93,7 +93,7 @@ local strings = {
 
     [BATTLESCROLLS_SETTINGS_PERSONAL_METER] = "Persönliche Anzeige",
     [BATTLESCROLLS_SETTINGS_GROUP_METER] = "Gruppenanzeige",
-    [BATTLESCROLLS_SETTINGS_GROUP_METER_TEXT] = "Gruppenmitglieder können dein DPS weiterhin sehen, wenn sie das Addon installiert haben.",
+    [BATTLESCROLLS_SETTINGS_GROUP_METER_TEXT] = "Gruppenmitglieder können dein DPS weiterhin sehen, wenn sie die Erweiterung installiert haben.",
     [BATTLESCROLLS_SETTINGS_ENABLED] = "Aktiviert",
     [BATTLESCROLLS_SETTINGS_MODE] = "Modus",
     [BATTLESCROLLS_SETTINGS_DESIGN] = "Design",
@@ -163,9 +163,9 @@ local strings = {
     [BATTLESCROLLS_SETTINGS_STORAGE_SIZE_YOLO] = "Was kann schon schiefgehen?",
     -- Storage tooltip
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_DESC] = "Wie viel Kampfverlauf gespeichert werden soll. Wenn das Limit erreicht wird, werden die ältesten nicht gesperrten Gebiete automatisch entfernt. Du kannst einzelne Gebiete sperren, um sie vor der Bereinigung zu schützen.",
-    [BATTLESCROLLS_SETTINGS_STORAGE_TT_NOTE] = "Dieses Limit gilt nur für gespeicherte Daten: Kämpfe, Builds und Einstellungen. Das Addon verwendet zusätzlich Speicher für den aktuellen Kampf und die Benutzeroberfläche, daher wird der Gesamtverbrauch höher sein.",
+    [BATTLESCROLLS_SETTINGS_STORAGE_TT_NOTE] = "Dieses Limit gilt nur für gespeicherte Daten: Kämpfe, Zusammenstellungen und Einstellungen. Die Erweiterung verwendet zusätzlich Speicher für den aktuellen Kampf und die Benutzeroberfläche, daher wird der Gesamtverbrauch höher sein.",
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_CURRENT] = "Verlauf: <<1>> MB von <<2>> MB (<<3>>%)",
-    [BATTLESCROLLS_SETTINGS_STORAGE_TT_PROTECTED] = "Gesperrte Kämpfe, Builds und Einstellungen allein überschreiten das Limit: Die Bereinigung kann es nicht unterschreiten.",
+    [BATTLESCROLLS_SETTINGS_STORAGE_TT_PROTECTED] = "Gesperrte Kämpfe, Zusammenstellungen und Einstellungen allein überschreiten das Limit: Die Bereinigung kann es nicht unterschreiten.",
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_PRESETS] = "Voreinstellungen (Prüfungs-Run ~0,3 MB, Verlies ~0,15 MB, ein Prog-Abend ~1 MB):",
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_XS] = "  Extra Klein: 5 MB - nur die frischesten Schriftrollen",
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_SMALL] = "  Klein: 8 MB - ein ordentlicher Stapel Schriftrollen",
@@ -174,7 +174,7 @@ local strings = {
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_XL] = "  Extra Groß: 25 MB - ein großes Archiv",
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_CAUTION] = "  Vorsicht: 35 MB - du magst Daten wirklich",
     [BATTLESCROLLS_SETTINGS_STORAGE_TT_YOLO] = "  Was kann schon schiefgehen?: 50 MB - das hast du dir selbst eingebrockt",
-    [BATTLESCROLLS_SETTINGS_STORAGE_TT_WARNING] = "Zu ESO-Speicherlimits: Alle Addons teilen sich 100 MB. Bei 70 MB zeigt ESO eine Warnung. Bei 100 MB lädt die UI neu und deaktiviert alles. Bei vielen Addons eine kleinere Einstellung wählen. Tipp: /addonmemdisplay im Chat eingeben für Echtzeit-Speicheranzeige.",
+    [BATTLESCROLLS_SETTINGS_STORAGE_TT_WARNING] = "Zu ESO-Speicherlimits: Alle Erweiterungen teilen sich 100 MB. Bei 70 MB zeigt ESO eine Warnung. Bei 100 MB lädt die UI neu und deaktiviert alles. Bei vielen Erweiterungen eine kleinere Einstellung wählen. Tipp: /addonmemdisplay im Chat eingeben für Echtzeit-Speicheranzeige.",
 
     -------------------------
     -- Effect Tracking Settings
@@ -312,14 +312,14 @@ local strings = {
     [BATTLESCROLLS_TOOLTIP_YOUR_CONTRIBUTION] = "Dein Beitrag",
     [BATTLESCROLLS_TOOLTIP_YOUR_UPTIME] = "Aktivzeit",
     [BATTLESCROLLS_TOOLTIP_YOUR_APPLICATIONS] = "Anwendungen",
-    [BATTLESCROLLS_TOOLTIP_MAX_STACKS] = "Max. Stapel",
-    [BATTLESCROLLS_TOOLTIP_TIME_AT_MAX_STACKS] = "Zeit bei max. Stapel",
+    [BATTLESCROLLS_TOOLTIP_MAX_STACKS] = "Max. Kumulationen",
+    [BATTLESCROLLS_TOOLTIP_TIME_AT_MAX_STACKS] = "Zeit bei max. Kumulationen",
     [BATTLESCROLLS_TOOLTIP_YOUR_TIME_AT_MAX] = "Deine Zeit bei max.",
     [BATTLESCROLLS_TOOLTIP_AVG_UPTIME_PER_MEMBER] = "Durchschnittliche Aktivzeit pro Mitglied",
     [BATTLESCROLLS_TOOLTIP_MEMBERS_AFFECTED] = "Betroffene Mitglieder",
     [BATTLESCROLLS_TOOLTIP_AVG_UPTIME] = "Durchschnittliche Aktivzeit",
-    [BATTLESCROLLS_TOOLTIP_MAX_STACKS_OBSERVED] = "Max. beobachtete Stapel",
-    [BATTLESCROLLS_TOOLTIP_AVG_TIME_AT_MAX] = "Durchschnittliche Zeit bei max. Stapel",
+    [BATTLESCROLLS_TOOLTIP_MAX_STACKS_OBSERVED] = "Max. beobachtete Kumulationen",
+    [BATTLESCROLLS_TOOLTIP_AVG_TIME_AT_MAX] = "Durchschnittliche Zeit bei maximalen Kumulationen",
     [BATTLESCROLLS_TOOLTIP_YOUR_AVG_TIME_AT_MAX] = "Deine durchschnittliche Zeit bei max.",
     [BATTLESCROLLS_TOOLTIP_PEAK_INSTANCES] = "Max. gleichzeitige Quellen",
     [BATTLESCROLLS_TOOLTIP_AVG_UPTIME_PER_INSTANCE] = "Durchschn. Aktivzeit pro Quelle",
@@ -521,7 +521,7 @@ local strings = {
     [BATTLESCROLLS_SETTINGS_ASYNC_SPEED_SMOOTH] = "Flüssig",
     [BATTLESCROLLS_SETTINGS_ASYNC_SPEED_CUSTOM] = "Benutzerdefiniert (<<1>> FPS)",
     [BATTLESCROLLS_SETTINGS_ASYNC_SPEED_TITLE] = "Verarbeitungsgeschwindigkeit",
-    [BATTLESCROLLS_SETTINGS_ASYNC_SPEED_TEXT] = "Steuert, wie schnell Hintergrundaufgaben verarbeitet werden. Betrifft hauptsächlich die Journal-Oberfläche und die Zeit zwischen Kampfende und dem Erscheinen des Eintrags in der Liste.\n\nLeistung: Schnellste Verarbeitung. Kann kurze Ruckler verursachen.\nFlüssig: Flüssigeres Gameplay, langsamere Verarbeitung. Kann dazu führen, dass Einträge beim Laden hängen bleiben oder nicht im Journal erscheinen.\n\nDiese Einstellung betrifft ALLE Addons, die LibAsync verwenden.",
+    [BATTLESCROLLS_SETTINGS_ASYNC_SPEED_TEXT] = "Steuert, wie schnell Hintergrundaufgaben verarbeitet werden. Betrifft hauptsächlich die Journal-Oberfläche und die Zeit zwischen Kampfende und dem Erscheinen des Eintrags in der Liste.\n\nLeistung: Schnellste Verarbeitung. Kann kurze Ruckler verursachen.\nFlüssig: Flüssigeres Gameplay, langsamere Verarbeitung. Kann dazu führen, dass Einträge beim Laden hängen bleiben oder nicht im Journal erscheinen.\n\nDiese Einstellung betrifft ALLE Erweiterungen, die LibAsync verwenden.",
 
     -------------------------
     -- Onboarding
@@ -754,7 +754,7 @@ local strings = {
     [BATTLESCROLLS_PIVOT_SCOPE_HOUSES] = "Alle Häuser",
     [BATTLESCROLLS_PIVOT_SCOPE_PVP] = "Alle PvP-Gebiete",
     [BATTLESCROLLS_PIVOT_SCOPE_ZONES] = "Nach Gebietsname",
-    [BATTLESCROLLS_PIVOT_SCOPE_SPECIFIC] = "Bestimmte Instanzen",
+    [BATTLESCROLLS_PIVOT_SCOPE_SPECIFIC] = "Bestimmte Gebiete",
 
     -- Time filter options
     [BATTLESCROLLS_PIVOT_TIME_ALL] = "Gesamter Zeitraum",
@@ -792,7 +792,7 @@ local strings = {
     -- Domain names
     [BATTLESCROLLS_PIVOT_DOMAIN_DAMAGE] = "Schaden",
     [BATTLESCROLLS_PIVOT_DOMAIN_HEALING_OUT] = "Heilung ausgehend",
-    [BATTLESCROLLS_PIVOT_DOMAIN_HEALING_IN] = "Heilung eingehend",
+    [BATTLESCROLLS_PIVOT_DOMAIN_HEALING_IN] = "Erhaltene Heilung",
     -- Effects domain labels reuse BATTLESCROLLS_TAB_EFFECTS_* strings
     [BATTLESCROLLS_PIVOT_DOMAIN_GROUP] = "Gruppe",
     [BATTLESCROLLS_PIVOT_DOMAIN_OVERVIEW] = "Übersicht",
@@ -809,7 +809,7 @@ local strings = {
     [BATTLESCROLLS_PIVOT_DIM_GROUP_MEMBER] = "Gruppenmitglied",
     [BATTLESCROLLS_PIVOT_DIM_ROLE] = "Rolle",
     [BATTLESCROLLS_PIVOT_DIM_ENCOUNTER] = "Kampf",
-    [BATTLESCROLLS_PIVOT_DIM_INSTANCE] = "Instanz",
+    [BATTLESCROLLS_PIVOT_DIM_INSTANCE] = "Gebiet",
     [BATTLESCROLLS_PIVOT_COL_METRICS] = "Metriken",
 
     -- Metric names
@@ -832,7 +832,7 @@ local strings = {
     [BATTLESCROLLS_PIVOT_METRIC_UPTIME_PERCENT] = "Aktivzeit %",
     [BATTLESCROLLS_PIVOT_METRIC_PLAYER_UPTIME_PERCENT] = "Deine Aktivzeit %",
     [BATTLESCROLLS_PIVOT_METRIC_APPLICATIONS] = "Anwendungen",
-    [BATTLESCROLLS_PIVOT_METRIC_MAX_STACKS_TIME] = "Max. Stapel-Zeit %",
+    [BATTLESCROLLS_PIVOT_METRIC_MAX_STACKS_TIME] = "Max. Kumulationen-Zeit %",
     [BATTLESCROLLS_PIVOT_METRIC_GROUP_DPS] = "DPS",
     [BATTLESCROLLS_PIVOT_METRIC_GROUP_BOSS_DPS] = "Boss-DPS",
     [BATTLESCROLLS_PIVOT_METRIC_GROUP_TOTAL_DAMAGE] = "Gesamtschaden",
@@ -900,7 +900,7 @@ local strings = {
 
     -- Selector dialogs
     [BATTLESCROLLS_PIVOT_SELECT_ZONES] = "Gebiete auswählen",
-    [BATTLESCROLLS_PIVOT_SELECT_INSTANCES] = "Instanzen auswählen",
+    [BATTLESCROLLS_PIVOT_SELECT_INSTANCES] = "Gebiete auswählen",
     [BATTLESCROLLS_PIVOT_SELECT_ENCOUNTERS] = "Kämpfe auswählen",
     [BATTLESCROLLS_PIVOT_SELECT_BOSSES] = "Bossnamen auswählen",
     [BATTLESCROLLS_PIVOT_SELECT_METRICS] = "Metriken auswählen",
@@ -948,45 +948,12 @@ local shareStrings = {
     [BATTLESCROLLS_SHARE_PART_PENDING] = "Teil <<1>>",
     [BATTLESCROLLS_SHARE_SEND_PART] = "Teil <<1>> von <<2>> senden",
     [BATTLESCROLLS_SHARE_HINT_HEADER] = "So funktioniert es",
+    [BATTLESCROLLS_SHARE_PRIVACY_TITLE] = "Spielernamen und Kampfdaten werden online gespeichert",
+    [BATTLESCROLLS_SHARE_PRIVACY_NOTICE] = "Uploads enthalten deinen Namen und die Namen anderer Spieler, Plattform, Spielserver, Kampfstatistiken und Builds. Berichte verfallen nicht automatisch; jeder mit dem Link kann sie ansehen oder herunterladen. Informiere betroffene Spieler vor dem Teilen. Datenschutz und Löschanfragen: <<1>>",
     [BATTLESCROLLS_SHARE_TT_READY] = "Bestätige die Abfrage des Spiels — die geöffnete Browserseite leitet diesen Teil der Kampfdaten an die Freigabe-Seite weiter, danach kann der Browser geschlossen werden. Kehre ins Spiel zurück und sende den nächsten Teil; der Fortschritt bleibt erhalten, auch wenn du diesen Bildschirm verlässt. Sobald alle Teile angekommen sind, zeigt die Seite deinen ungelisteten Freigabe-Link und einen QR-Code.",
     [BATTLESCROLLS_SHARE_TT_SENT] = "Dieser Teil wurde bereits an den Browser übergeben. Meldet die Browserseite ihn als fehlend (ein abgestürzter Tab verliert seinen Teil), wähle diese Zeile und drücke die Taste zum erneuten Senden.",
     [BATTLESCROLLS_SHARE_TT_PENDING] = "Die Teile werden nacheinander gesendet — dieser wird freigeschaltet, sobald er an der Reihe ist.",
     [BATTLESCROLLS_SHARE_TT_DONE] = "Die Browserseite zeigt jetzt den ungelisteten Freigabe-Link und den QR-Code — nur wer den Link hat, kann die Freigabe öffnen. Meldet die Seite fehlende Teile, wähle sie oben aus und sende sie erneut. „Senden abschließen“ verwirft den Upload im Spiel.",
-    [BATTLESCROLLS_SETTINGS_MEMDIAG_HEADER] = "Speicherdiagnose",
-    [BATTLESCROLLS_MEMDIAG_LUA_HEAP] = "Lua-Heap (alle Addons)",
-    [BATTLESCROLLS_MEMDIAG_RUN_GC] = "Vollständige Speicherbereinigung",
-    [BATTLESCROLLS_MEMDIAG_MEASURE] = "Gespeicherte Daten messen",
-    [BATTLESCROLLS_MEMDIAG_RAW] = "Gespeicherte Daten (Rohmodell)",
-    [BATTLESCROLLS_MEMDIAG_FILE] = "Serialisierte Datei (ca.)",
-    [BATTLESCROLLS_MEMDIAG_SHOWN] = "Verlaufsschätzung (wie angezeigt)",
-    [BATTLESCROLLS_MEMDIAG_ALLOC_STRINGS] = "5 MB Zeichenketten belegen",
-    [BATTLESCROLLS_MEMDIAG_ALLOC_TABLES] = "5 MB Tabellen belegen",
-    [BATTLESCROLLS_MEMDIAG_RELEASE] = "Testdaten freigeben",
-    [BATTLESCROLLS_MEMDIAG_HELD] = "Belegte Testdaten",
-    [BATTLESCROLLS_MEMDIAG_BUSY] = "Wird ausgeführt…",
-    [BATTLESCROLLS_MEMDIAG_VALUE_MB] = "<<1>> MB",
-    [BATTLESCROLLS_MEMDIAG_VALUE_MB_PAIR] = "<<1>> / <<2>> MB",
-    [BATTLESCROLLS_MEMDIAG_GAUGE] = "Add-On-Speicher (Konsolenanzeige)",
-    [BATTLESCROLLS_MEMDIAG_PROBE_STRINGS] = "Zeichenketten-Größenklassen messen",
-    [BATTLESCROLLS_MEMDIAG_PROBE_HEADER] = "Länge: Anzeige / Heap / Modell (Bytes pro Zeichenkette)",
-    [BATTLESCROLLS_MEMDIAG_TEST_CANCELLED] = "Abgebrochen",
-    [BATTLESCROLLS_MEMDIAG_TEST_COMBAT] = "Kampf",
-    [BATTLESCROLLS_MEMDIAG_TEST_DONE] = "Fertig",
-    [BATTLESCROLLS_MEMDIAG_TEST_ERROR] = "Fehler",
-    [BATTLESCROLLS_MEMDIAG_TEST_GC_TIMEOUT] = "GC-Zeitlimit",
-    [BATTLESCROLLS_MEMDIAG_TEST_HEADER] = "MiB G=Anzeige H=Lua; vorher/belegt/frei",
-    [BATTLESCROLLS_MEMDIAG_TEST_HELD] = "Manuelle Testdaten zuerst in Einstellungen freigeben.",
-    [BATTLESCROLLS_MEMDIAG_TEST_IDLE] = "%s G%s>%s H%s>%s",
-    [BATTLESCROLLS_MEMDIAG_TEST_IDLE_END] = "Leerlauf B",
-    [BATTLESCROLLS_MEMDIAG_TEST_IDLE_START] = "Leerlauf A",
-    [BATTLESCROLLS_MEMDIAG_TEST_LIMIT] = "75-MiB-Limit",
-    [BATTLESCROLLS_MEMDIAG_TEST_NOT_RUNNING] = "Kein Speichertest läuft.",
-    [BATTLESCROLLS_MEMDIAG_TEST_NO_REPORT] = "Noch kein Speichertestbericht.",
-    [BATTLESCROLLS_MEMDIAG_TEST_ROW] = "%d G%s/%s/%s H%s/%s/%s",
-    [BATTLESCROLLS_MEMDIAG_TEST_RUNNING] = "Läuft",
-    [BATTLESCROLLS_MEMDIAG_TEST_STARTED] = "Speichertest läuft. Stillstehen und Menüs schließen.",
-    [BATTLESCROLLS_MEMDIAG_TEST_SUMMARY] = "%s %d/%d; max G %s; %ds",
-    [BATTLESCROLLS_MEMDIAG_TEST_USAGE] = "/bsmemtest [cancel|report]",
     [BATTLESCROLLS_SHARE_CHOICE_HEADER] = "Was senden?",
     [BATTLESCROLLS_SHARE_CHOICE_FULL] = "Alle Kämpfe (<<1>>)",
     [BATTLESCROLLS_SHARE_CHOICE_BOSSES] = "Nur Bosse (<<1>>)",
@@ -998,7 +965,6 @@ local shareStrings = {
     [BATTLESCROLLS_SHARE_CONTINUE] = "Teilen fortsetzen",
     [BATTLESCROLLS_SHARE_CANCEL] = "Teilen abbrechen",
     [BATTLESCROLLS_SHARE_FAILED] = "Die Freigabe konnte nicht vorbereitet werden.",
-    [BATTLESCROLLS_SHARE_CANCELLED] = "Freigabe abgebrochen.",
     [BATTLESCROLLS_SHARE_RESEND_PART] = "Teil <<1>> erneut senden",
     [BATTLESCROLLS_SHARE_PART_RESENDING] = "Teil <<1>> — wird erneut gesendet…",
     [BATTLESCROLLS_SHARE_FINISH] = "Freigabe abschließen",
@@ -1015,7 +981,7 @@ local featureStrings = {
     [BATTLESCROLLS_TAB_GROUP_DAMAGE] = "Gruppenschaden",
     [BATTLESCROLLS_FILTER_GROUP_DAMAGE] = "Gruppenschaden filtern",
     [BATTLESCROLLS_FILTER_OTHERS] = "Andere",
-    [BATTLESCROLLS_TOOLTIP_GROUP_DAMAGE_SCOPE] = "Alles, was dein Spielclient gesehen hat: dein Schaden (inklusive Gefährten und Begleiter) plus das, was er bei allen anderen in der Nähe beobachtet hat. Das Spiel meldet nicht, wer den Rest verursacht hat, daher sind „Andere“ ein gemeinsamer Topf.",
+    [BATTLESCROLLS_TOOLTIP_GROUP_DAMAGE_SCOPE] = "Sämtlicher Schaden, den euer Spielclient erfasst hat: euer eigener (einschließlich Begleitern und Gefährten) und der anderer Spieler in der Nähe. ESO meldet nicht, welcher andere Spieler den Schaden verursacht hat. Deshalb wird dieser Schaden unter „Andere“ zusammengefasst.",
 
     [BATTLESCROLLS_GROUP_COL_RES] = "Wdb",
 
@@ -1048,15 +1014,17 @@ local featureStrings = {
     [BATTLESCROLLS_STAT_CRUX_SPENDERS] = "Verbraucher-Einsätze",
     [BATTLESCROLLS_STAT_CRUX_UNDER] = "Unter 3 Crux eingesetzt",
     [BATTLESCROLLS_CRUX_AT_N] = "Bei <<1>> Crux: <<2>>",
-    [BATTLESCROLLS_HEADER_CRUX_BY_ABILITY] = "Schlecht getimte Einsätze nach Fähigkeit",
+    [BATTLESCROLLS_HEADER_CRUX_BY_ABILITY] = "Crux-Nutzung nach Fähigkeit",
 
-    [BATTLESCROLLS_HEADER_ZEN] = "DoT-Stapel (Z'en)",
+    [BATTLESCROLLS_HEADER_ZEN] = "DoT-Kumulationen (Z'en)",
     [BATTLESCROLLS_ZEN_AVG_DOTS] = "Durchschnittliche DoTs",
     [BATTLESCROLLS_ZEN_UPTIME] = "Deine Z'en-Aktivzeit",
     [BATTLESCROLLS_ZEN_PEAK_TIME] = "Zeit bei <<1>>",
     [BATTLESCROLLS_ZEN_DOTS_LABEL] = "<<1>> DoTs",
     [BATTLESCROLLS_ZEN_SHARE_LINE] = "Ø <<1>> — <<2>> mit 5 DoTs",
     [BATTLESCROLLS_ZEN_SHORT] = "Z'en",
+    [BATTLESCROLLS_ZEN_NOTE] = "Deine DoTs werden auch erfasst, wenn du Z'en nicht trägst. Sie zeigen, welchen Bonus du liefern könntest, wenn dein Z'en-Debuff aktiv wäre. Zeiten ohne deinen Z'en-Debuff zeigen nur dieses Potenzial.",
+    [BATTLESCROLLS_ZEN_DISTRIBUTION_NOTE] = "Jede DoT-Zeile zeigt ihren Anteil an der erfassten Zeit. Der Z'en-Prozentwert gibt an, wie lange dein eigener Debuff innerhalb dieser Zeit aktiv war.",
 
     [BATTLESCROLLS_HEADER_SUPPORT] = "Unterstützung",
     [BATTLESCROLLS_STAT_RESURRECTIONS] = "Wiederbelebungen",
@@ -1095,38 +1063,328 @@ for id, str in pairs(activityOverviewStrings) do
     SafeAddString(id, str, 1)
 end
 
--- Memory investigation experiments (slash-command diagnostics)
-SafeAddString(BATTLESCROLLS_MEMLAB_TIMEOUT, "Zeitlimit", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_HEADER, "Lab %s: MiB G=Pool H=Lua; vor/Test/frei", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_SEED_INFO, "%s: n=%d; Datei %s MiB", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_MATCHES, "Nichtleere API-Ergebnisse aller Durchläufe: %d", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_ROW, "%s G%s/%s/%s H%s/%s/%s", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_FOOTER, "%s %d/%d; max G%s H%s; %ds", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_WATCH_STARTED, "Speichermessung läuft. Führe die gewünschte Aktion aus.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_SEED_CLEARED, "Testspeicher entfernt; Kampfverlauf unverändert.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_SAVE_RESTART, "Mit /reloadui speichern, dann Spiel ganz neu starten.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_REMOVE_SEED, "Testdaten löschen und vor Laufzeittests neu starten.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE_WATCH, "/bsmemlab watch [10..120]", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE_ABILITY, "/bsmemlab ability name|icon|desc|ctrl FIRST COUNT(1..256)", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE, "/bsmemlab: layouts shapes control runtime report cancel", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE_SEED, "/bsmemlab seed flat|nested|clear [4096|8192|16384]; load", 1)
+-- Release history
+SafeAddString(BATTLESCROLLS_WHATS_NEW, "Was gibt's Neues?", 1)
+SafeAddString(BATTLESCROLLS_WHATS_NEW_DESC, "Die Änderungen in Battle Scrolls: vom neuesten Update bis zur ersten öffentlichen Veröffentlichung.", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_6_0_0, [=[
+|cD4AF37Neue Funktionen:|r
 
-SafeAddString(BATTLESCROLLS_MEMLAB_TABLE_SEED_REQUIRED, "Vor compact gespeicherte tables-Testdaten laden.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE_TABLES, "/bsmemlab seed tables 4096|8192|16384|32768; compact; census", 1)
+- |cD4AF37Eure Schriftrollen können Tamriel verlassen!|r Teilt einen Kampf oder einen ganzen Durchlauf aus dem Journal und öffnet ihn im Browser. Scannt den QR-Code auf dem Fernseher, um den Link aufs Handy zu holen. Dort könnt ihr den Kampf selbst erkunden oder ihn teilen, wo immer ihr möchtet
 
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_HEADER, "Zählung: MiB; L=Liste K=Hash-Schätzung", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_CACHE, "Verlauf: %d Inst; Cache %.2f (%d fehlen)", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_HISTORY, "Verlauf L%.2f K%.2f", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_SETUPS, "Setups K: eigene %.2f Gruppe %.2f", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_TOTAL, "Gespeichert L%.2f K%.2f", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_ARRAYS, "Arrays %d; gerundete Plätze %d", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CENSUS_STRINGS, "Strings %d; %.2f MiB", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_MIRROR_INFO, "Kopie T%d S%d L%.2f K%.2f", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_MIRROR_CLEAR, "Vor der Kopie Testdaten löschen und Spiel neu starten.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_DISCARD_REQUIRED, "Vor discard Testdaten laden.", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE_MIRROR, "/bsmemlab seed mirror; discard; census live; trace", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_LIVE_COUNTS, "Letztes aktiv %d (1=ja); A%d I%d N%d", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_LIVE_BYTES, "Schreiber extra L%.2f K%.2f", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CALIB_HEADER, "Kalib: dG/dH je Klasse, letzte Hälfte von %d MiB", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_CALIB_ROW, "%s n%d dH%.1f s%s m%s p%s G%s/%s/%s", 1)
-SafeAddString(BATTLESCROLLS_MEMLAB_USAGE_CALIB, "/bsmemlab calib [4..32] [class] (MiB per class)", 1)
+- Seht euch dieselben Daten zu Kämpfen und Zusammenstellungen an wie in der Erweiterung und exportiert sie als |cFFFFFFCSV oder JSON|r für eigene Auswertungen
+
+- |cFFFFFFAktivität|r erfasst jetzt den Aufbau und Verbrauch ultimativer Kraft, die |cFFFFFFCrux-Nutzung|r von Arkanisten, DoTs für Z'en und Wiederbelebungen. Die DoT-Zahlen zeigen, welchen Bonus du mit Z'en liefern könntest, auch wenn du das Set nicht trägst. Weaving trennt kurze Verzögerungen von längeren Leerlaufphasen
+
+- Eure Todesrückblicke zeigen jetzt die |cFFFFFFNamen der Angreifer|r, sofern verfügbar
+
+- |cFFFFFFGruppenschaden|r zeigt sämtlichen vom Client beobachteten Schaden, auch von Spielern ohne Battle Scrolls. ESO nennt diese anderen Verursacher nicht, deshalb erscheinen sie gemeinsam unter „|cFFFFFFAndere|r“
+
+- Wählt eure eigene |cFFFFFFBalkenfarbe|r für die Anzeige „Balken“ aller Gruppenmitglieder und benennt Durchläufe und Kämpfe um
+
+- „|cFFFFFFWas gibt's Neues?|r“ im Journal enthält datierte Versionshinweise in allen sieben Sprachen. Falls euch ein paar Schriftrollen entgangen sind
+
+|cD4AF37Größere Änderungen:|r
+
+- Das überarbeitete Speicherformat fasst wesentlich |cFFFFFFmehr Kämpfe|r auf gleichem Raum. Das neue Format sollte außerdem für |cFFFFFFweniger Ruckler|r nach großen Kämpfen sorgen und Kämpfe beim Öffnen im Journal |cFFFFFFdeutlich schneller laden|r. Bestehende Daten werden nach der Anmeldung |cFFFFFFautomatisch|r im Hintergrund umgestellt; dabei kann es einmalig kurz ruckeln. Jeder Kampf wird vor dem Ersetzen mit dem Original verglichen
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Kämpfe sollten |cFFFFFFdeutlich seltener vorzeitig enden|r, wenn ihr sterbt, während eure Gruppe weiterkämpft. Besonders betroffen war der letzte Kampf in der Luminit-Zitadelle
+
+- |cFFFFFFHeilungsberechnungen|r ignorieren bestimmte Filter nicht mehr; Gifte fehlen nicht mehr in den Zusammenstellungen anderer Gruppenmitglieder. Mehrere Sonderfälle beim Datenaustausch und beim Aufräumen der Historie wurden behoben
+
+- |cFFFFFFZuverlässigere|r Kampfübersichten und Zusammenstellungen der Gruppenmitglieder, mit weniger fehlenden Details nach dem Durchqueren von Türen und nach Ladebildschirmen
+
+|cE6B566Bekannte Probleme:|r
+
+- ESOs Speicheranzeige für Erweiterungen berücksichtigt den durch das Speicherupgrade freigegebenen Platz möglicherweise erst nach einem Neuladen der Benutzeroberfläche
+
+- Nach den |cFFFFFFAlchemieänderungen in Update 51|r können die Namen von Gifteffekten in Zusammenstellungen fehlen oder falsch angezeigt werden. Die Effekte hergestellter Gifte werden in der Webansicht nicht angezeigt
+
+- Das Teilen über den Browser wurde auf |cFFFFFFPlayStation|r noch nicht getestet. Bitte meldet alle Probleme, auch wenn die Funktion bei euch gar nicht funktioniert]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_5_3_1, [=[|cD4AF37Fehlerbehebungen:|r
+
+- |cFFFFFFKlassenmeisterschaft|r und Fertigkeitslinien anderer Spieler werden in ihren Zusammenstellungen im |cFFFFFFGruppenreiter|r korrekt angezeigt]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_5_3_0, [=[|cD4AF37Neue Funktionen:|r
+
+- Passive Fähigkeiten der |cFFFFFFKlassenmeisterschaft|r werden unterstützt. Sobald ihr mindestens eine freigeschaltet habt, erscheinen sie anstelle der Fertigkeitslinien
+
+- In |cFFFFFFVergeltung|r zeigt die |cFFFFFFÜbersicht|r eurer Zusammenstellung die gewählte Ausstattung und Signa. Angaben, die in diesem Modus nicht gelten, werden ausgeblendet
+
+|cD4AF37Kleine Änderungen:|r
+
+- Im Englischen heißt Trash jetzt wie bei den Entwicklern „basepop“]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_5_2_0, [=[|cD4AF37Neue Funktionen:|r
+
+- |cFFFFFFGesundheitsregeneration|r zählt als eigene Heilungsart. Die gesamte Heilung wird aus eurem Regenerationswert im Kampf geschätzt; die Aufteilung in effektive Heilung und Überheilung ergibt sich aus den tatsächlichen Gesundheitsänderungen
+
+- Auf euch angewandte |cFFFFFFHeilungsabsorption|r zählt als eigene Art eingehenden Schadens
+
+- Von Schilden absorbierter ausgehender und eingehender Schaden zählt zum Gesamtschaden und zu DPS/DTPS, jedoch nicht zu Fertigkeits- oder Typaufschlüsselungen
+
+- Absorbierte ausgehende und eingehende Heilung zählt zu Heilung anderer, Selbstheilung und erhaltener Heilung sowie HPS
+
+|cD4AF37Kleine Änderungen:|r
+
+- Detailansichten zeigen immer bis zu 50 Fertigkeiten und 20 Ziele/Quellen statt der bisherigen kontextabhängigen 25/15/10
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Aggregationen ausgehender Heilung nach Heilungsart enthalten nun wie die anderen Ansichten die Selbstheilung
+
+|cE6B566Bekannte Probleme:|r
+
+- Die gesamte Heilung durch |cFFFFFFGesundheitsregeneration|r wird anhand der Überlebenszeit geschätzt, da ESO den genauen Zeitpunkt der Ticks nicht meldet. Verliert ihr gleichzeitig Gesundheit, kann ein Teil der effektiven Heilung unbemerkt bleiben]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_5_1_0, [=[|cD4AF37Neue Funktionen:|r
+
+- |cFFFFFFSchadensschilde|r auf euch und Gruppenmitgliedern zählen als Heilung. Der gewährte Schildwert zählt als gesamte Heilung, tatsächlich absorbierter Schaden als effektive Heilung
+
+- Schilde erscheinen als eigene Heilungsart neben direkter Heilung und HoTs in Reitern, Übersichten und Aggregationen ausgehender Heilung
+
+|cE6B566Bekannte Probleme:|r
+
+- Werden mehrere Schilde innerhalb von 50 ms auf dasselbe Ziel angewandt, können Schild-Ticks selten der falschen Fertigkeit zugeordnet werden
+
+|cD4AF37Kleine Änderungen:|r
+
+- Tooltips zeigen die ESO-Fertigkeits-ID bei Schaden, Heilung, Effekten, Auslösungen, |cFFFFFFWeaving|r und Zusammenstellungen
+
+- Falsche oder allgemeine Symbole korrigiert: „Pragmatischer Schicksalsschnitzer“, „Strahlender Ruhm“, „Flegel des Kephaliarchen“, Tränke, „Essenzdieb“, „Unerschrockenes Gebot“, die Synergien „Reinigen“ und „Blutgelage“, „Runenwächter der stillen Wasser“, „Reinigendes Licht“, „Geübte Inkantation“ sowie die Eigenschaft „Harmonisch“
+
+- Zum Füllen des persönlichen Balkens sind jetzt mehr HPS nötig
+
+- Die Heilungszusammensetzung heißt „Heilung nach Art“; nicht aussagekräftige einseitige Aufschlüsselungen entfallen
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Weniger fälschlich erkannte ausgelassene oder doppelte leichte Angriffe beim |cFFFFFFWeaving|r
+
+- Bosse werden bei deaktivierter Effektverfolgung zuverlässiger erkannt
+
+- Durchschnittliche Heilungs-Ticks liegen in Tooltips nicht mehr unter dem Minimum]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_5_0_0, [=[|cD4AF37Neue Funktionen:|r
+
+- |cFFFFFFWeaving|r wird jetzt erfasst! Seht die durchschnittliche und gesamte verlorene Zeit zwischen Fertigkeiten sowie fehlende leichte Angriffe und Fertigkeiten, sowohl insgesamt als auch je Fertigkeit
+
+- Neuer Aktivitätsreiter für diese Daten
+
+- |cFFFFFFWeaving|r ist auch in Aggregationen mit dem Datenbereich „|cFFFFFFÜbersicht|r“ verfügbar
+
+|cD4AF37Kleine Änderungen:|r
+
+- Auslösungen wandern von der |cFFFFFFÜbersicht|r zur |cFFFFFFAktivität|r. Hattet ihr sie dort überhaupt bemerkt?
+
+- Weniger Speicherbedarf und bessere Leistung im und außerhalb des Kampfes, besonders bei teilweise oder ganz deaktivierter Effektverfolgung
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Bei deaktivierter Effektverfolgung zeigt der |cFFFFFFGruppenreiter|r die tatsächliche Überlebenszeit statt stets 100%]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_4_0_0, [=[|cD4AF37Neue Funktionen:|r
+
+- Schon einmal gedacht: „Meinem Fantasy-MMORPG fehlen |cFFFFFFTabellenkalkulationen|r“? Vermutlich nicht, aber jetzt gibt es sie. Aggregiert gewünschte Daten über beliebig viele vergangene Kämpfe, auch als |cFFFFFFPivot-Tabellen|r
+
+|cD4AF37Kleine Änderungen:|r
+
+- Kämpfe zeigen die Spielversion, etwa 11.3.5
+
+- |cFFFFFFAndere|r sehen euch eine Schriftrolle lesen, während Battle Scrolls geöffnet ist. Was auch sonst?
+
+- Der Gebietsname erscheint als Kopfzeile der Kampfliste
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Die prismatische Verzauberung zur Kostenreduzierung wird in den Zusammenstellungen eurer Gruppenmitglieder korrekt angezeigt
+
+- Die Zusammenstellungen werden in den Reitern „Gruppe“ und „|cFFFFFFZusammenstellung|r“ einheitlich dargestellt]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_3_1_0, [=[|cD4AF37Neue Funktionen:|r
+
+- |cFFFFFFSuche|r im |cFFFFFFEffektreiter|r, ähnlich der Inventarsuche
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Bei den Zusammenstellungen anderer Gruppenmitglieder, die Arkanisten spielen, fehlt die Zeile mit Volk, Klasse und Mundusstein nicht mehr
+
+- Weniger |cFFFFFFFlackern|r im Gruppenmenü, schon wieder]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_3_0_2, "|cFFFFFFWeniger Flackern im Gruppenmenü|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_3_0_1, [=[|cD4AF37Fehlerbehebungen:|r
+
+- |cFFFFFFChampionpunkte|r von Gruppenmitgliedern landen bei leeren Plätzen nicht mehr im falschen Sternbild. Korrektur auf Senderseite: Das Gruppenmitglied braucht ebenfalls das Update
+
+- Beim Wechsel zu einem Spieler ohne gespeicherte |cFFFFFFZusammenstellung|r versucht die Ansicht nicht mehr, dessen fehlende Daten anzuzeigen]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_3_0_0, [=[|cD4AF37Zusammenstellungen aufzeichnen|r
+
+- Zu jedem Kampf wird eure |cFFFFFFZusammenstellung|r gespeichert und im neuen Reiter „|cFFFFFFZusammenstellung|r“ angezeigt. So könnt ihr später genau nachsehen, womit ihr gekämpft habt
+
+- Die |cFFFFFFÜbersicht|r zeigt auch die wichtigsten Teile eurer |cFFFFFFZusammenstellung|r. So könnt ihr mit euren Ergebnissen noch bequemer angeben
+
+- Das |cFFFFFFCharaktermenü|r zeigt eure |cFFFFFFZusammenstellung|r auf einen Blick
+
+- Der |cFFFFFFGruppenreiter|r zeichnet auch Zusammenstellungen anderer Gruppenmitglieder mit Battle Scrolls auf]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_2_1_2, "|cFFFFFFKeine sichtbaren Änderungen, Vorbereitung auf Version 3|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_2_1_1, "|cFFFFFFBerechnungen für Flächen- und Einzelzielschaden an den überarbeiteten Drachenritter angepasst. Gilt rückwirkend.|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_2_1_0, [=[- Neue Navigationsebene: |cFFFFFFUnteransichten|r. Verwandte Ansichten teilen sich einen Reiter; wechseln mit |cFFFFFFSteuerkreuz oder linkem Stick|r nach links/rechts
+  - Schaden und Bossschaden sind Unteransichten von „Schaden“
+  - Heilung anderer, Selbstheilung und erhaltene Heilung gehören zu „Heilung“
+  - Effekte auf euch, Bossen und Gruppe sind getrennte Unteransichten statt einer langen Liste
+
+- „Attempt to read past end of buffer“-Fehler werden unterdrückt. Gruppendaten können nach einem Ladebildschirm am Kampfende noch falsch sein, aber die Meldung springt euch wenigstens nicht mehr ins Gesicht]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_2_0_1, [=[|cD4AF37Gruppenjournal|r
+
+Neuer |cFFFFFFGruppenreiter|r für Kämpfe mit Gruppenmitgliedern, die Battle Scrolls verwenden.
+
+|cD4AF37Übersicht:|r
+
+- Sortierbare Tabelle mit Bossen, DPS, Krit%, DTPS, HPS, Überlebenszeit und Toden
+
+|cD4AF37Spielerdetails:|r
+
+- Schaden: DPS, Summe, Krit%, größter Treffer, direkter Schaden, Flächenschaden, Schadenstypen, DPS-Rang und Vergleich zum Schadensausteiler-Durchschnitt
+
+- Überleben: DTPS, Überlebenszeit, Tode, wichtigste eingehende Fertigkeiten und Todesrückblicke
+
+- Heilung: Gesamt-HPS und effektive HPS, Überheilung und Selbstheilung
+
+- Schaden je Boss mit Zusammensetzung und erlittenem Schaden
+
+|cD4AF37Gruppenvergleiche in bestehenden Tooltips, sofern Daten verfügbar sind:|r
+
+- Bossziele zeigen DPS und Anteil jedes Mitglieds; DPS- und Boss-DPS-Zeilen zeigen den Gruppenbeitrag
+
+- DTPS und Schadensquellen zeigen DTPS je Mitglied
+
+- Schadenszusammensetzung zeigt den Durchschnitt der Schadensausteiler
+
+- Gesamt-HPS und Überheilung zeigen Mitgliedervergleiche bei Heilung anderer und Selbstheilung
+
+|cD4AF37Todesverfolgung:|r
+
+- Todesrückblicke werden gespeichert
+
+- |cFFFFFFÜbersicht|r: Todeszahl beim erlittenen Schaden
+
+- Erlittener Schaden: Zeitpunkte und Rückblick im Tooltip
+
+- Gruppe: erster und letzter Tod mit allen Angriffen
+
+|cD4AF37Kleine Änderungen:|r
+
+- |cFFFFFFÜbersicht|r zeigt direkten Schaden statt DoT-Anteil
+
+- Neue Einstellung für den |cFFFFFFNachtmarkt|r: Zeichnet dort alle Kämpfe auf, unabhängig von den sonstigen Gebietsfiltern
+
+- DPS-Anzeigen liegen hinter anderen UI-Elementen wie der Beuteliste
+
+- „|cFFFFFFÜbersicht|r“ ist standardmäßig auf allen Reitern ausgewählt. Kostet etwas Speicher, aber den braucht ihr doch nicht, oder?
+
+- Spielernamen ohne @
+
+- Die Anzeigen „Hodor“ und „Balken“ zeigen die Kampfdauer im Kopf
+
+- |cFFFFFFAndere|r Klänge für Filter- und Gebietsdialoge
+
+|cD4AF37Lokalisierung:|r
+
+- Pluralformen korrigiert
+
+- Die Bezeichnung für „Stacks“ entspricht jetzt den Beschreibungen von Ausrüstungssets: Kumulation im Deutschen, заряды im Russischen]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_6, "|cFFFFFFUI-Fehler beim Anmelden ohne LibGroupBroadcast behoben|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_5, "|cFFFFFFLibGroupBroadcast vorübergehend optional, um die Probleme mit Erweiterungen auf Konsolen zu umgehen|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_4, "|cFFFFFFKeine sichtbaren Änderungen; Vorbereitung auf Gruppen-DPS im Journal|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_3, "|cFFFFFFKeine sichtbaren Änderungen; Vorbereitung auf Gruppen-DPS im Journal|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_2, [=[|cD4AF37Fehlerbehebungen:|r
+
+- Außerhalb einer Gruppe wird nicht mehr versucht, Gruppen-DPS zu senden. Danke an DakJaniels]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_1, [=[|cD4AF37Fehlerbehebungen:|r
+
+- |cFFFFFFZuverlässigere|r Bosserkennung beim letzten Kampf in der Luminit-Zitadelle und wenn ihr zeitweise vom Boss getrennt seid, etwa in Portalen
+
+- Der gelegentliche Fehler „|cFFFFFF1000ms limit hit|r“ sollte nach komplexen Kämpfen nicht mehr auftreten wie dem letzten in der Luminit-Zitadelle oder dem ersten im Gebeinkäfig]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_3_0, [=[|cD4AF37Neue Funktionen:|r
+
+- Favorisierte Effekte stehen in allen Listen ganz oben
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Effektlaufzeiten später beigetretener Gruppenmitglieder berücksichtigen nur deren tatsächliche Anwesenheit
+
+- Keine kurz sichtbaren leeren Gruppenanzeigen oben links beim ersten Kampfbeginn
+
+|cD4AF37Kleine Änderungen:|r
+
+- Gesamt-DPS erscheint auch bei nur einem Spieler im Schadensausteiler-Bereich]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_2_0, [=[|cD4AF37Neue Funktionen:|r
+
+- Gebiete mit |cFFFFFFX/Quadrat|r sperren: Sie werden bei Überschreitung des Speicherlimits nicht |cFFFFFFautomatisch|r gelöscht. Das neueste Gebiet ist ebenfalls immer geschützt
+
+|cD4AF37Lokalisierung:|r
+
+- Einheitliche Begriffe: „Gebiete“ im Deutschen und „области“ im Russischen
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Die Einstellung „Flüssig“ bleibt nicht mehr beim Laden hängen und verhindert keine Journaleinträge. Nutzer werden beim Update auf die Standardeinstellung „Leistung“ zurückgesetzt]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_1_0, [=[|cD4AF37Neue Funktionen:|r
+
+- Einzelne Gebiete und Kämpfe aus der Historie |cFFFFFFlöschen|r
+
+|cD4AF37Fehlerbehebungen:|r
+
+- Endloses Laden oder fehlender Menüeintrag bei der Einstellung „Flüssig“ der Erweiterung zusammen mit dem Grafikmodus „Qualität“ behoben. Betroffene benötigen nach dem Update eventuell ein zusätzliches |cFFFFFF/reloadui|r
+
+- Spieldialoge, etwa zur Gegenstandszerstörung, funktionieren nach Benutzung der Filter wieder
+
+- Falsche Animationsrichtung beim Zurückkehren zum Journal korrigiert]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_0_3, "|cFFFFFFEin Versuch auf Verdacht, beschädigte Speicherdaten auf der PS5 zu beheben|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_0_2, [=[|cD4AF37Verbesserungen an Speicherung und Effektverfolgung|r
+
+|cD4AF37Speicherung:|r
+
+- Schnellere Kodierung/Dekodierung für kürzere Journal-Ladezeiten
+
+- Weniger |cFFFFFFSpeicherverbrauch|r bei der Kampfverarbeitung
+
+|cD4AF37Effekte:|r
+
+- Falsche Laufzeiten beim Verbindungsverlust von Gruppenmitgliedern im Kampf korrigiert
+
+- Bessere Behandlung ihrer Rückkehr während des Kampfes]=], 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_0_1, "|cFFFFFFEine Fehlerbehebung|r", 1)
+SafeAddString(BATTLESCROLLS_RELEASE_1_0_0, [=[|cD4AF37Erste öffentliche Veröffentlichung|r
+
+|cD4AF37DPS-Anzeige:|r
+
+- Echtzeit-Kampfschaden
+
+- Persönliche Designs: Standard, minimal, Balken
+
+- Gruppendesigns: Text, Hodor-Stil, Balken
+
+- Position, Skalierung und Anzeigedauer nach dem Kampf einstellbar
+
+|cD4AF37Kampfjournal:|r
+
+- Gebiet -> Kampf -> Kennzahlen
+
+- Filter nach Gebiets- und Kampfart
+
+- Einstellbare Speichergrenzen
+
+|cD4AF37Schaden:|r
+
+- Aufschlüsselung nach Ziel und Fertigkeit
+
+- Direkter Schaden, DoTs und kritische Treffer
+
+- Einzelziel- und Flächenschaden
+
+|cD4AF37Heilung:|r
+
+- Verursachte und erhaltene Heilung nach Quelle und Ziel
+
+|cD4AF37Effekte:|r
+
+- Buff-/Debuff-Laufzeiten auf euch und Gruppenmitgliedern, Boss-Debuffs und Auslösungen
+
+Gruppen-DPS-Austausch über |cFFFFFFLibGroupBroadcast|r
+
+|cD4AF37Sprachen:|r Englisch, Deutsch, Französisch, Spanisch, Russisch, Japanisch und Chinesisch]=], 1)

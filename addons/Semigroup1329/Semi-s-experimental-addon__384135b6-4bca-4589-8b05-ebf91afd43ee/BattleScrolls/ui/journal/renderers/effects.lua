@@ -236,6 +236,9 @@ end
 -- Shared Aggregation Helpers
 -------------------------
 
+-- FIXME: Move group buff/boss debuff aggregation and uptime/contribution metrics
+-- into Arithmancer, preserving alive-time weighting and concurrent-instance handling.
+
 ---@class GroupBuffAggregation
 ---@field totalActiveTimeMs number Sum of active time across all members
 ---@field totalEffectiveAliveTimeMs number Sum of effective alive time (alive time × peak instances) for proper avg calculation

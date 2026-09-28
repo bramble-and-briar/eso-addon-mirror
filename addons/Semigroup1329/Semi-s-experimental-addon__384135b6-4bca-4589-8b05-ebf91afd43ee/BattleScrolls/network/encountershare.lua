@@ -6,8 +6,8 @@
 -- group members after each fight. Protocol 437 (V2) is the live
 -- format and cannot change; protocol 439 (V3) adds the
 -- resurrection count and the zen metrics (avg DoT stacks, time
--- at 5 stacks). Both are sent (V3 upserts over V2 on
--- clients that understand it) and both are received.
+-- at 5 stacks). Queue two identical V3 copies for reliability;
+-- keep V2 receive-only during the v5 to v6 rollout.
 -- The one-bit reserved field before setupHash preserves the old
 -- optional-field wire layout on 437.
 -----------------------------------------------------------
@@ -19,8 +19,7 @@ end
 BattleScrolls = BattleScrolls or {}
 
 ---@class EncounterShare
----@field protocol Protocol|nil LibGroupBroadcast encounter share protocol instance (437, live V2)
----@field protocolV3 Protocol|nil V3 protocol instance (439, adds resurrections + zen metrics)
+---@field protocol Protocol|nil Outbound encounter protocol (439, V3)
 local encounterShare = {}
 BattleScrolls.encounterShare = encounterShare
 
@@ -195,7 +194,7 @@ end
 ---Send pre-built SharedEncounterData via LGB
 ---@param sharedData SharedEncounterData The encounter data to send
 ---@param timestampS number The encounter timestamp (for wire format)
----@param setupHash number 16-bit setup hash (protocol 437)
+---@param setupHash number 16-bit setup hash
 function encounterShare:send(sharedData, timestampS, setupHash)
     if not encounterShare.protocol then
         return
@@ -269,7 +268,7 @@ function encounterShare:send(sharedData, timestampS, setupHash)
         topDamageTakenAbilities = sharedData.topDamageTakenAbilities,
         deaths = wireDeaths,
         setupHash = setupHash,
-        -- V3-only fields; 437 ignores undeclared payload keys
+        -- V3-only fields
         resurrections = sharedData.resurrections and sharedData.resurrections > 0
             and sharedData.resurrections or nil,
         zen = wireZen,
@@ -279,10 +278,7 @@ function encounterShare:send(sharedData, timestampS, setupHash)
     sharedData.setupHash = setupHash
 
     if IsUnitGrouped("player") then
-        encounterShare.protocol:Send(payload)
-        if encounterShare.protocolV3 then
-            encounterShare.protocolV3:Send(payload)
-        end
+        BattleScrolls.sendLargeGroupMessage(encounterShare.protocol, payload)
     end
     notifyAllCallbacks("player", sharedData)
     -- BattleScrolls.log.Debug("EncounterShare: sent encounter data")
@@ -404,12 +400,12 @@ function encounterShare:Initialize()
     protocol:AddField(LGB.CreateReservedField("reservedSetupHashIsNil", 1))
     protocol:AddField(LGB.CreateNumericField("setupHash", { minValue = 0, numBits = 16, trimValues = true }))
     protocol:OnData(onReceive)
-    protocol:Finalize({ isRelevantInCombat = false, replaceQueuedMessages = false })
-    encounterShare.protocol = protocol
+    if not protocol:Finalize({ isRelevantInCombat = false, replaceQueuedMessages = false }) then
+        BattleScrolls.log.Warn("EncounterShare: V2 reader 437 failed to finalize")
+    end
 
-    -- V3 (439): V2 layout + resurrection count. Same receive handler - the
-    -- extra field simply arrives populated. matchShare upserts by sender
-    -- encounter identity, so getting both V2 and V3 from one sender is fine.
+    -- V3 (439): V2 layout + resurrections and Z'en. A new ID is necessary:
+    -- LGB rejects missing/trailing fields, so appending to 437 is not safe.
     local protocolV3 = handler:DeclareProtocol(439, "BattleScrolls_EncounterShareV3")
     addEncounterFields(protocolV3, LGB)
     protocolV3:AddField(LGB.CreateReservedField("reservedSetupHashIsNil", 1))
@@ -428,7 +424,7 @@ function encounterShare:Initialize()
     if not protocolV3:Finalize({ isRelevantInCombat = false, replaceQueuedMessages = false }) then
         BattleScrolls.log.Warn("EncounterShare: V3 protocol 439 failed to finalize")
     else
-        encounterShare.protocolV3 = protocolV3
+        encounterShare.protocol = protocolV3
     end
 
     -- BattleScrolls.log.Info("EncounterShare: initialized")

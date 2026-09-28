@@ -17,9 +17,7 @@ journal.keybinds = keybinds
 -- =============================================================================
 -- Closing the console browser with B can deliver that same B to our keybind
 -- strip as the game returns (the app-switcher return path delivers nothing).
--- The delivery path is platform-dependent and has to be measured in situ,
--- so three independent detectors run and every verdict lands in the share
--- trace (rendered on the stepper screen):
+-- Three independent detectors cover the platform-dependent delivery paths:
 --   1. Suspend gap: a wall-clock heartbeat spots frozen update ticks. Only
 --      works if the console actually suspends the game while the browser is
 --      up - if it merely constrains it, no clock ever looks anomalous.
@@ -48,8 +46,6 @@ EVENT_MANAGER:RegisterForUpdate("BattleScrollsShareResumeBeat", 100, function()
     local gameGap = nowMs - lastBeatGameMs
     if wallGap >= RESUME_GAP_S or gameGap >= GAME_GAP_MS then
         resumeGuardUntilMs = nowMs + RESUME_GUARD_MS
-        BattleScrolls.shareTrace.record(string.format(
-            "beat gap wall=%ds game=%dms", wallGap, gameGap))
     end
     lastBeatWallS = nowWallS
     lastBeatGameMs = nowMs
@@ -60,54 +56,27 @@ EVENT_MANAGER:RegisterForEvent("BattleScrollsShareFocus", EVENT_GAME_FOCUS_CHANG
     if hasFocus then
         focusGuardUntilMs = GetGameTimeMilliseconds() + FOCUS_GUARD_MS
     end
-    if BattleScrolls.shareUrl.isBusy() then
-        BattleScrolls.shareTrace.record(hasFocus and "focus gained" or "focus lost")
-    end
 end)
 
----Returns the reason a share-strip press must be discarded as part of the
----browser-exit return path, or nil for a genuine user press. isNegative
----marks the Back keybind - the one the browser exit leaks.
----@param isNegative boolean
----@return string|nil
-local function pressLeakReason(isNegative)
-    local nowMs = GetGameTimeMilliseconds()
-    if GetTimeStamp() - lastBeatWallS >= RESUME_GAP_S then
-        return "pre-beat gap"
-    end
-    if nowMs < resumeGuardUntilMs then
-        return "resume window"
-    end
-    if not hasGameFocus then
-        return "unfocused"
-    end
-    if nowMs < focusGuardUntilMs then
-        return "focus window"
-    end
-    if isNegative and BattleScrolls.shareUrl.consumeBrowserReturnGuard() then
-        return "first B after browser trip"
-    end
-    return nil
-end
-
----Guard wrapper for share-strip callbacks: swallows and traces presses that
+---Guard wrapper for share-strip callbacks: swallows presses that
 ---belong to the browser-exit return. A press that passes clears the
 ---one-shot - the user is demonstrably back and interacting.
----@param keybindLabel string
 ---@param isNegative boolean
 ---@return boolean swallowed
-local function swallowLeakedPress(keybindLabel, isNegative)
-    local reason = pressLeakReason(isNegative)
-    if reason then
+local function swallowLeakedPress(isNegative)
+    local nowMs = GetGameTimeMilliseconds()
+    if GetTimeStamp() - lastBeatWallS >= RESUME_GAP_S
+        or nowMs < resumeGuardUntilMs
+        or not hasGameFocus
+        or nowMs < focusGuardUntilMs
+        or (isNegative and BattleScrolls.shareUrl.consumeBrowserReturnGuard()) then
         if isNegative then
             -- The leaked B has been accounted for either way
             BattleScrolls.shareUrl.consumeBrowserReturnGuard()
         end
-        BattleScrolls.shareTrace.record(keybindLabel .. " swallowed: " .. reason)
         return true
     end
     BattleScrolls.shareUrl.clearBrowserReturnGuard()
-    BattleScrolls.shareTrace.record(keybindLabel .. " ok")
     return false
 end
 
@@ -193,7 +162,7 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
             end,
             callback = function()
                 if BattleScrolls.shareUrl.isSendBlocked()
-                    or swallowLeakedPress("A", false) then
+                    or swallowLeakedPress(false) then
                     return
                 end
                 if BattleScrolls.shareUrl.getState().phase == "choosing" then
@@ -238,7 +207,7 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
             keybind = "UI_SHORTCUT_NEGATIVE",
             name = GetString(SI_GAMEPAD_BACK_OPTION),
             callback = function()
-                if dialogOwnsInput() or swallowLeakedPress("B", true) then
+                if dialogOwnsInput() or swallowLeakedPress(true) then
                     return
                 end
                 leaveShareStepper()
@@ -253,7 +222,7 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
                     or GetString(BATTLESCROLLS_SHARE_CANCEL)
             end,
             callback = function()
-                if dialogOwnsInput() or swallowLeakedPress("X", false) then
+                if dialogOwnsInput() or swallowLeakedPress(false) then
                     return
                 end
                 BattleScrolls.shareUrl.stop()
@@ -272,41 +241,15 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
     -- but a bare do-nothing Back leaves A/X nothing to double-fire AND
     -- catches a browser-exit B that arrives before the round trip settles -
     -- with no strip at all, that B would dispatch to whatever else listens.
-    -- Ethereal: handled but never rendered, so it cannot overlay the URL
-    -- confirm dialog's own keybind bar (the name is debug-only by contract).
+    -- An enabled ethereal binding consumes the press even without a callback
+    -- and never renders over the URL confirm dialog's own keybind bar.
     journalUI.shareInFlightKeybindStripDescriptor = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             keybind = "UI_SHORTCUT_NEGATIVE",
             ethereal = true,
-            name = "BattleScrolls Share B Sink",
-            callback = function()
-                BattleScrolls.shareTrace.record("B sunk (in flight)")
-            end,
         },
     }
-
-    -- Every keybind press attempt while the stepper is on screen goes into
-    -- the trace - including ones no descriptor of ours handles. The leak's
-    -- delivery path (which button, when relative to resume/focus, whether
-    -- our strip was armed) is exactly the unknown being measured.
-    ZO_PreHook(KEYBIND_STRIP, "TryHandlingKeybindDown", function(_, keybind)
-        if journalUI.mode == NAVIGATION_MODE.SHARE
-            and SCENE_MANAGER:IsShowing("battleScrollsJournalGamepad") then
-            BattleScrolls.shareTrace.record("press " .. tostring(keybind))
-        end
-    end)
-
-    -- Scene teardown while a chain is alive is leak evidence too (the
-    -- pre-guard bug closed the whole journal via a remote base-scene kick)
-    local journalScene = SCENE_MANAGER:GetScene("battleScrollsJournalGamepad")
-    if journalScene then
-        journalScene:RegisterCallback("StateChange", function(_, newState)
-            if BattleScrolls.shareUrl.isBusy() then
-                BattleScrolls.shareTrace.record("scene " .. tostring(newState))
-            end
-        end)
-    end
 
     -- Instance list keybinds
     journalUI.instanceKeybindStripDescriptor = {
@@ -317,7 +260,12 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
             callback = function()
                 local targetData = journalUI.instanceList:GetTargetData()
                 ZO_ConveyorSceneFragment_SetMovingForward()
-                if targetData and targetData.isSettings then
+                if targetData and targetData.isWhatsNew then
+                    journalUI.mode = NAVIGATION_MODE.WHATS_NEW
+                    journalUI:SetCurrentList(journalUI.whatsNewList)
+                    journalUI:RefreshList()
+                    journalUI:SetActiveKeybinds(journalUI.whatsNewKeybindStripDescriptor)
+                elseif targetData and targetData.isSettings then
                     -- Navigate to settings
                     journalUI.mode = NAVIGATION_MODE.SETTINGS
                     journalUI:SetCurrentList(journalUI.settingsList)
@@ -349,7 +297,7 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
             end,
             enabled = function()
                 local targetData = journalUI.instanceList:GetTargetData()
-                return targetData ~= nil and (targetData.data ~= nil or targetData.isSettings or targetData.isPivot)
+                return targetData ~= nil and (targetData.data ~= nil or targetData.isSettings or targetData.isPivot or targetData.isWhatsNew)
             end,
             sound = SOUNDS.GAMEPAD_MENU_FORWARD,
         },
@@ -794,6 +742,23 @@ function keybinds.initializeKeybindStripDescriptors(journalUI)
         end
         return nil
     end
+
+    journalUI.whatsNewKeybindStripDescriptor = {
+        alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        {
+            keybind = "UI_SHORTCUT_NEGATIVE",
+            name = GetString(SI_GAMEPAD_BACK_OPTION),
+            callback = function()
+                journalUI.mode = NAVIGATION_MODE.INSTANCES
+                journalUI.pendingTabIndex = journalUI.selectedInstanceTab or INSTANCE_TAB.ALL
+                ZO_ConveyorSceneFragment_SetMovingBackward()
+                journalUI:SetCurrentList(journalUI.instanceList)
+                journalUI:RefreshList()
+                journalUI:SetActiveKeybinds(journalUI.instanceKeybindStripDescriptor)
+            end,
+            sound = SOUNDS.GAMEPAD_MENU_BACK,
+        },
+    }
 
     -- Settings view keybinds
     journalUI.settingsKeybindStripDescriptor = {

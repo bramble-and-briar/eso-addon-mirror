@@ -1,6 +1,6 @@
-2026.09.25
-- /rdpvp no longer requires ON|OFF switch and can detect which is ideal.
-- Various contro panel confirmation dialog additions and simplifications.
+2026.09.27
+- Minor ttc/sell price control improvements in various inventory views for performance and consistancy.
+- long awaited fix for merchant bind on purchase item list refresh.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

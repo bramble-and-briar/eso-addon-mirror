@@ -231,17 +231,6 @@ local function upsertSharedDataEntry(entries, entry)
     end
 
     if existingIndex then
-        -- Same sender encounter arrives on both share protocols (V2 and V3,
-        -- in either order): never let the field-less V2 duplicate clobber
-        -- the richer V3 entry (res and zen ride only V3)
-        local existing = entries[existingIndex]
-        local existingRicher = existing.data
-            and (existing.data.resurrections ~= nil or existing.data.zenByBoss ~= nil)
-        local entryRicher = entry.data
-            and (entry.data.resurrections ~= nil or entry.data.zenByBoss ~= nil)
-        if existingRicher and not entryRicher then
-            return false
-        end
         entries[existingIndex] = entry
         return false
     end
@@ -267,11 +256,6 @@ local function upsertStoredSharedEntry(encounter, entry)
             if existing.d == entry.displayName
                 and existing.t == entry.data.timestampS
                 and existing.u == entry.data.durationMs then
-                -- Keep the richer duplicate (V3 carries res/zen, V2 doesn't)
-                if (existing.s ~= nil or existing.z ~= nil)
-                    and compactEntry.s == nil and compactEntry.z == nil then
-                    return false
-                end
                 entries[i] = compactEntry
                 return false
             end

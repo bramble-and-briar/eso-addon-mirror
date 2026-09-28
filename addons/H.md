@@ -97,6 +97,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HideLoginNotice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideLoginNotice__4248) | VollständigerName | PC / Mac | 1.0.3 |
 | [HidePlayerMapMarker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HidePlayerMapMarker__4249) | VollständigerName | PC / Mac | 1.0.2 |
 | [HideReticleMounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/HideReticleMounted__4332) | VollständigerName | PC / Mac | 1.0.1 |
+| [High-Low - ESO Group Roll Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Riparoo/High-Low---ESO-Group-Roll-Game__4877) | Riparoo | PC / Mac | 0.1.9 |
 | [Highland Sentinel Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Highland-Sentinel-Tick-Tracker__4045) | SkullElf | PC / Mac | 1.2 |
 | [Highly Detailed World Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Highly-Detailed-World-Map__3023) | MrPikPik | PC / Mac | 1.9 |
 | [History](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hisdad/History__1059) | hisdad | PC / Mac | 97 |

@@ -15,11 +15,12 @@ local function NextPoison()
    local PACOMenuFunctions = PA.MenuFunctions.PAConsume
    --Check if the functionality is turned on within the addon
    local smallStacksFirst = PACOMenuFunctions.getAutoConsumePoisonSmallStacksFirstSetting()
+   local yourLevel = GetUnitLevel("player")
    
    local bagCache = SHARED_INVENTORY:GetOrCreateBagCache(BAG_BACKPACK)
    if smallStacksFirst then
      for i, itemData in pairs(bagCache) do
-        if itemData.itemType == ITEMTYPE_POISON then
+        if itemData.itemType == ITEMTYPE_POISON and GetItemRequiredLevel(BAG_BACKPACK, i) <= yourLevel then
           local itemStacks = itemData.stackCount
           if itemStacks < minPoisonStacks and itemStacks ~= 0 then
              minPoisonStacks = itemStacks
@@ -29,7 +30,7 @@ local function NextPoison()
      end
   else
      for i, itemData in pairs(bagCache) do
-        if itemData.itemType == ITEMTYPE_POISON then
+        if itemData.itemType == ITEMTYPE_POISON and GetItemRequiredLevel(BAG_BACKPACK, i) <= yourLevel then
           local itemStacks = itemData.stackCount
           if itemStacks > maxedPoisonStacks then
              maxedPoisonStacks = itemStacks

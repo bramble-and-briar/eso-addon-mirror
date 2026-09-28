@@ -103,11 +103,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibCraftText](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibCraftText__2184) | ziggr | PC / Mac | 5.3.1 |
 | [LibCrypto](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibCrypto__4010) | akamatsu02 | PC / Mac | 1.1 |
 | [LibCustomDialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/LibCustomDialog__2708) | MrPikPik | PC / Mac | 0.3 |
-| [LibCustomIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomIcons__4161) | m00nyONE | PC / Mac | 2026-09-21 |
+| [LibCustomIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomIcons__4161) | m00nyONE | PC / Mac | 2026-09-28 |
 | [LibCustomMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/LibCustomMenu__fff7f7e3-b518-4545-9e96-a4f6c2a28dea) | mYoda01 | Console | — |
 | [LibCustomMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibCustomMenu__1146) | votan | PC / Mac | 7.3.0 |
 | [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__5eaa0d91-47f8-4c5e-8673-db3ab518a752) | m00nyONE | Console | — |
-| [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__4155) | m00nyONE | PC / Mac | 2026-09-21 |
+| [LibCustomNames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/LibCustomNames__4155) | m00nyONE | PC / Mac | 2026-09-28 |
 | [LibDailyReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/LibDailyReset__4424) | atharti | PC / Mac | 1.9 |
 | [LibDataEncode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/LibDataEncode__3980) | Solinur | PC / Mac | 2 |
 | [LibDataPacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibDataPacker__4082) | imPDA | PC / Mac | v5 |
@@ -123,7 +123,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibDynamicMail](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thisbeaurielle/LibDynamicMail__4379) | thisbeaurielle | PC / Mac | 0.2.4 |
 | [LibEmote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibEmote__3715) | akamatsu02 | PC / Mac | 1.13 |
 | [LibEnchantingStation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibEnchantingStation__2437) | votan | PC / Mac | 2.3.5 |
-| [LibEventHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Justinon/LibEventHandler__1452) | Justinon | PC / Mac | 1.3.13 |
+| [LibEventHandler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Justinon/LibEventHandler__1452) | Justinon | PC / Mac | 1.3.14 |
 | [LibExoYsUtilities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ExoY/LibExoYsUtilities__3363) | ExoY | PC / Mac | 9 |
 | [LibExtendedInventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Xhrysanth/LibExtendedInventory__28dff940-503c-4c6c-8921-044ad6e35a86) | Xhrysanth | Console | — |
 | [LibExtendedJournal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibExtendedJournal__4031) | code65536 | PC / Mac | 2.5.3.1 |
@@ -178,7 +178,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibKeepTooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibKeepTooltip__4037) | imPDA | PC / Mac | 1.0.1 |
 | [LibLanguage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/LibLanguage__2837) | Shadowfen | PC / Mac | 48 |
 | [LibLazyCrafting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/LibLazyCrafting__60c046e9-d8e1-4cb9-8df9-fafeebb3c000) | Dolgubon | Console | — |
-| [LibLazyCrafting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/LibLazyCrafting__1594) | Dolgubon | PC / Mac | 4.041 |
+| [LibLazyCrafting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/LibLazyCrafting__1594) | Dolgubon | PC / Mac | 4.042 |
 | [LibLeadDrop](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thevoidcousine/LibLeadDrop__4413) | thevoidcousine | PC / Mac | 1.0.0 |
 | [LibLoadedAddons - OBSOLETE, Please remove from addons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uladz/LibLoadedAddons---OBSOLETE-Please-remove-from-addons__1266) | uladz | PC / Mac | 999 - OBSOLETE |
 | [LibLootSummary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/LibLootSummary__2363) | silvereyes | PC / Mac | 3.1.6 |
@@ -198,7 +198,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibMapThemer Updated (U50)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/LibMapThemer-Updated-U50__4689) | tmp | PC / Mac | 1.1.9 |
 | [LibMarify](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/LibMarify__2542) | Marify | PC / Mac | 1.2.17 |
 | [LibMediaProvider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Calamath/LibMediaProvider__0fa32336-8528-4747-9b01-ccba9408f654) | Calamath | Console | — |
-| [LibMediaProvider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/psypanda/LibMediaProvider__56) | psypanda | PC / Mac | 1.1 r38 |
+| [LibMediaProvider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/psypanda/LibMediaProvider__56) | psypanda | PC / Mac | 1.1 r39 |
 | [LibMessagePlugin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/LibMessagePlugin__90c97baa-6170-421f-bd23-7fd88500168d) | SugaComa | Console | — |
 | [LibMOTD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dryzler.elder-geek.net/LibMOTD__1737) | dryzler.elder-geek.net | PC / Mac | 1.009 |
 | [LibMotif](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/LibMotif__3036) | ziggr | PC / Mac | 7.3.1 |
@@ -233,7 +233,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibQuestStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibQuestStatus__df55d66d-d19b-41dd-99a2-8d385916f4a1) | code65536 | Console | — |
 | [LibQuestStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibQuestStatus__4573) | code65536 | PC / Mac | 1.0.3 |
 | [LibRadialMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/LibRadialMenu__f3dd1d3e-85df-448d-8d84-fdf6545dbebb) | M0R | Console | — |
-| [LibRadialMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/LibRadialMenu__4297) | M0R | PC / Mac | 8 |
+| [LibRadialMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/LibRadialMenu__4297) | M0R | PC / Mac | 9 |
 | [Librarian Book Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Flamage/Librarian-Book-Manager__188) | Flamage | PC / Mac | 3.17 |
 | [LibRecipe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibRecipe__17071a4b-f373-41fa-8874-778672bae73c) | Sharlikran | Console | — |
 | [LibRecipe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibRecipe__3927) | Sharlikran | PC / Mac | 1.12 |
@@ -338,7 +338,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LootWall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vicodine/LootWall__1010) | Vicodine | PC / Mac | 0.7 |
 | [LootWall Ultimate 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redgabber/LootWall-Ultimate-2018__1988) | redgabber | PC / Mac | 1.0.8 |
 | [Lore Book Locations](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni42/Lore-Book-Locations__ca0d62e7-58ab-4ea4-9729-f139cb28a64d) | Shinni42 | Console | — |
-| [LoreBook Locations (3D, Compass, Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/LoreBook-Locations-3D-Compass-Map-Pins__4756) | Shinni | PC / Mac | 1.0.66 |
+| [LoreBook Locations (3D, Compass, Map Pins)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/LoreBook-Locations-3D-Compass-Map-Pins__4756) | Shinni | PC / Mac | 1.0.68 |
 | [LoreBooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/LoreBooks__288) | Kyoma | PC / Mac | 107 |
 | [Lorebooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Lorebooks__d324f223-1cd9-40d2-8e37-8cf302dde557) | Sharlikran | Console | — |
 | [LorebooksColoredLibrary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/LorebooksColoredLibrary__3168) | tim99 | PC / Mac | 4.1 |
@@ -354,9 +354,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.6.3 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.6.4 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
-| [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.2.7 |
+| [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.2.8 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |
 | [LuiExtended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExtended__198814e6-46ba-4bb3-b368-ba1a2af67c52) | Dack.Janiels | Console | — |
 | [LuiginoMP's Adventurer Toolkit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiginomp/LuiginoMP-s-Adventurer-Toolkit__3417) | luiginomp | PC / Mac | 1.5 |
@@ -372,7 +372,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LWT Loot Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drLemis/LWT-Loot-Tracker__4486) | drLemis | PC / Mac | 1.0.0 |
 | [LWT Price Info (formerly Tamriel Trash Centre)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drLemis/LWT-Price-Info-formerly-Tamriel-Trash-Centre__3724) | drLemis | PC / Mac | 2.1.0 |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__529cf85a-e597-4945-86c4-654d2a32a7bc) | Masteroshi430 | Console | — |
-| [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.07.09 |
+| [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.4 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
 | [Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |

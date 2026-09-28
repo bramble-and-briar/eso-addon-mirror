@@ -30,6 +30,7 @@ journal.NavigationMode = {
     SETTINGS = 4,
     PIVOT = 5,
     SHARE = 6,
+    WHATS_NEW = 7,
 }
 
 -------------------------
@@ -277,6 +278,8 @@ journal.AbilityIconStyle = {
 ---| 3 # STATS
 ---| 4 # SETTINGS
 ---| 5 # PIVOT
+---| 6 # SHARE
+---| 7 # WHATS_NEW
 
 ---@alias StatsTab
 ---| 1 # OVERVIEW
@@ -414,6 +417,7 @@ journal.AbilityIconStyle = {
 ---@field scriptIds number[] 3 script IDs (0 = empty)
 
 ---@class CompactSetup
+---@field _migrationFailed boolean|nil Legacy stored build failed round-trip verification; kept plain and not retried
 ---@field _estimatedSize number|nil Cached chunk bytes when stored in the shared setup pool (BattleScrolls.sizeModel)
 ---@field _estimatedSizeV number|nil Model version the cache was computed with
 ---@field classId number 4 bits

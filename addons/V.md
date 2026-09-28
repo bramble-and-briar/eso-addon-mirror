@@ -31,7 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Vesiath's emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vesiath/Vesiath-s-emotes__2401) | Vesiath | PC / Mac | 1.1.5 |
 | [Vestige Mirror](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/Vestige-Mirror__76fce7e2-297a-472f-bdf6-3e80756e7e8c) | Wrynch | Console | — |
 | [Vestige Mirror](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/Vestige-Mirror__4564) | Wrynch | PC / Mac | 1.4.0 |
-| [Vestige's Epic Quest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Vestige-s-Epic-Quest__3228) | Masteroshi430 | PC / Mac | 2026.07.30 |
+| [Vestige's Epic Quest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Vestige-s-Epic-Quest__3228) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [VeterancyAutoClaim](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/VeterancyAutoClaim__4759) | NPViral | PC / Mac | 1.0.2 |
 | [VeterancyBar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/noxenrom/VeterancyBar__4748) | noxenrom | PC / Mac | 1.7.2 |
 | [Vic's CharTrackr](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/crazedvic/Vic-s-CharTrackr__4565) | crazedvic | PC / Mac | 1.5.9 |

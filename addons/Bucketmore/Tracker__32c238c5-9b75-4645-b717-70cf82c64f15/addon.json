@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Bucketmore/Tracker__32c238c5-9b75-4645-b717-70cf82c64f15",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Bucketmore",
+  "canonical_id": "bethesda:32c238c5-9b75-4645-b717-70cf82c64f15",
+  "content_id": "32c238c5-9b75-4645-b717-70cf82c64f15",
+  "deleted": false,
+  "fingerprint": "13fff38e2487e18d48dde3dcd5a1dbc9517aff5121b652b05de97241bf27b38b",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "32c238c5-9b75-4645-b717-70cf82c64f15",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/32c238c5-9b75-4645-b717-70cf82c64f15",
+  "title": "Tracker"
+}

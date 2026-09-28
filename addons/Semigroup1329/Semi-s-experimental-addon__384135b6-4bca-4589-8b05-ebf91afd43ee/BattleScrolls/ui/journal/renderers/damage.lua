@@ -950,6 +950,8 @@ local function groupDamageTables(encounter, sides)
     return damageTables, includeSelf, includeOthers
 end
 
+-- FIXME: Move group damage totals into Arithmancer, preserving Self/Others selection,
+-- target filtering, personal totals, and async yields.
 ---Sums the Group Damage tables under the target filter (async with yields)
 ---@param encounter DecodedEncounter
 ---@param damageTables table<number, table<number, DamageDoneStorage>>[]
@@ -1105,11 +1107,11 @@ function DamageRenderer.renderDamageTaken(ctx)
                     resolvedRows[#resolvedRows + 1] = {
                         icon = utils.getAbilityIcon(attack.abilityId),
                         label = utils.getAbilityDisplayName(attack.abilityId),
-                        -- Attacker on its own line under the attack, like the
-                        -- base game's recap screen (name pre-formatted with
+                        -- Attacker above the ability, like the base game's
+                        -- recap screen (name pre-formatted with
                         -- SI_DEATH_RECAP_ATTACKER_NAME* at capture time)
                         sublabel = attack.attackerName,
-                        value = utils.formatCompact(attack.damage),
+                        value = zo_strformat(SI_NUMBER_FORMAT, attack.damage),
                         isHighlighted = (j == #recap.attacks),
                     }
                 end
@@ -1188,6 +1190,9 @@ end
 -- Overview Panel Data Extraction Helpers
 -- These are used by both damage panel and overview panel
 -------------------------
+
+-- FIXME: Move ability/target/source aggregation into Arithmancer and share it with
+-- the list breakdowns. Keep localized name merging and visible-row limits in the UI.
 
 ---Extracts top abilities sorted by damage from damage tables with detailed stats (async)
 ---Merges abilities by display name

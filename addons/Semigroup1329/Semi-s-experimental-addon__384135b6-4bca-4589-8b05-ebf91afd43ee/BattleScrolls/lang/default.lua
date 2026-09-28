@@ -68,7 +68,7 @@ ZO_CreateStringId("BATTLESCROLLS_STAT_DOUBLE_LA", "Double Light Attacks")
 ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_DELAY_AFTER", "Delay After Cast")
 ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_DELAY_BEFORE", "Delay Before Cast")
 ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_INTER_CAST_DESC", "Average gap between casts, measured from the end of a skill's global cooldown or cast time to your next action. Combat Metrics calls this Weaving Average.")
-ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_TIME_LOST_DESC", "All the gaps between casts added up over the fight. Combat Metrics calls this Weaving Total.")
+ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_TIME_LOST_DESC", "Short cast delays added up over the fight, excluding gaps of 3 seconds or more (Downtime). Combat Metrics calls this Weaving Total.")
 ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_MISSED_LA_DESC", "Skills cast right after another skill, with no light attack in between.")
 ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_DOUBLE_LA_DESC", "Two light attacks in a row, with no skill in between.")
 ZO_CreateStringId("BATTLESCROLLS_FORMAT_SECONDS", "<<1>>s")
@@ -94,7 +94,7 @@ ZO_CreateStringId("BATTLESCROLLS_SETTINGS_UNTIL_RELOAD", "Until reload")
 
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_PERSONAL_METER", "Personal Meter")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_GROUP_METER", "Group Meter")
-ZO_CreateStringId("BATTLESCROLLS_SETTINGS_GROUP_METER_TEXT", "Members of your group will still be able to see your DPS if they have the addon installed.")
+ZO_CreateStringId("BATTLESCROLLS_SETTINGS_GROUP_METER_TEXT", "Members of your group will still be able to see your DPS if they have the add-on installed.")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ENABLED", "Enabled")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_MODE", "Mode")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_DESIGN", "Design")
@@ -205,7 +205,7 @@ ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_SIZE_CAUTION", "Be Careful")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_SIZE_YOLO", "What Could Go Wrong?")
 -- Storage tooltip
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_DESC", "How much combat history to keep. When you exceed the limit, the oldest unlocked zones are automatically removed. You can lock individual zones to protect them from cleanup.")
-ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_NOTE", "This limit covers saved data only: fights, builds and settings. The addon also uses memory for tracking the current combat and rendering the UI, so total usage will be higher than what's shown here.")
+ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_NOTE", "This limit covers saved data only: fights, builds and settings. The add-on also uses memory for tracking the current combat and rendering the UI, so total usage will be higher than what's shown here.")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_CURRENT", "History: <<1>> MB of <<2>> MB (<<3>>%)")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_PROTECTED", "Locked fights, builds and settings alone exceed the limit: cleanup cannot get below it.")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_PRESETS", "Presets (trial run ~0.3 MB, dungeon ~0.15 MB, a night of prog ~1 MB):")
@@ -216,7 +216,7 @@ ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_LARGE", "  Large: 18 MB - a
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_XL", "  Extra Large: 25 MB - a grand archive")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_CAUTION", "  Be Careful: 35 MB - you really like data")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_YOLO", "  What Could Go Wrong?: 50 MB - you did that to yourself")
-ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_WARNING", "About ESO memory limits: all addons share a 100 MB pool. At 70 MB, ESO shows a warning popup. At 100 MB, the UI reloads and disables everything. If you run many addons, pick a smaller preset. Tip: type /addonmemdisplay in chat to see a real-time memory tracker.")
+ZO_CreateStringId("BATTLESCROLLS_SETTINGS_STORAGE_TT_WARNING", "About ESO memory limits: all add-ons share a 100 MB pool. At 70 MB, ESO shows a warning popup. At 100 MB, the UI reloads and disables everything. If you run many add-ons, pick a smaller preset. Tip: type /addonmemdisplay in chat to see a real-time memory tracker.")
 
 -------------------------
 -- Effect Tracking Settings
@@ -648,7 +648,7 @@ ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ASYNC_SPEED_PERFORMANCE", "Performance
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ASYNC_SPEED_SMOOTH", "Smooth")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ASYNC_SPEED_CUSTOM", "Custom (<<1>> FPS)")
 ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ASYNC_SPEED_TITLE", "Processing Speed")
-ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ASYNC_SPEED_TEXT", "Controls how quickly background tasks are processed. This mostly affects the Journal UI and the time between combat ending and the encounter appearing in the list.\n\nPerformance: Fastest processing. May cause brief stutters in large content.\nSmooth: Smoother gameplay, slower processing. May cause encounters to get stuck loading or fail to appear in Journal.\n\nThis setting affects ALL addons using LibAsync.")
+ZO_CreateStringId("BATTLESCROLLS_SETTINGS_ASYNC_SPEED_TEXT", "Controls how quickly background tasks are processed. This mostly affects the Journal UI and the time between combat ending and the encounter appearing in the list.\n\nPerformance: Fastest processing. May cause brief stutters in large content.\nSmooth: Smoother gameplay, slower processing. May cause encounters to get stuck loading or fail to appear in Journal.\n\nThis setting affects ALL add-ons using LibAsync.")
 
 -------------------------
 -- Onboarding
@@ -782,7 +782,7 @@ ZO_CreateStringId("BATTLESCROLLS_PIVOT_TIME_CUSTOM", "Custom...")
 -- Encounter category options
 ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_ALL", "All Encounters")
 ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_BOSS", "Boss Fights")
-ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_TRASH", "Trash Fights")
+ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_TRASH", "Basepop Fights")
 ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_PLAYER", "Player Fights")
 ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_DUMMY", "Dummy Fights")
 ZO_CreateStringId("BATTLESCROLLS_PIVOT_ENC_SPECIFIC", "Specific Encounters")
@@ -946,6 +946,8 @@ ZO_CreateStringId("BATTLESCROLLS_SHARE_PART_READY", "Part <<1>> — ready to sen
 ZO_CreateStringId("BATTLESCROLLS_SHARE_PART_PENDING", "Part <<1>>")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_SEND_PART", "Send Part <<1>> of <<2>>")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_HINT_HEADER", "How this works")
+ZO_CreateStringId("BATTLESCROLLS_SHARE_PRIVACY_TITLE", "Player names and combat data will be stored online")
+ZO_CreateStringId("BATTLESCROLLS_SHARE_PRIVACY_NOTICE", "Uploads include your and other players' names, platform, game server, combat statistics and builds. Reports have no automatic expiry, and anyone with the link can view or download them. Let affected players know before sharing. Privacy and removal requests: <<1>>")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_READY", "Confirm the prompt the game shows — the browser page it opens forwards this part of the combat data to the share site, then the browser can be closed. Return to the game and send the next part; progress is kept even if you leave this screen. Once every part has arrived, the page shows your unlisted share link and QR code.")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_SENT", "This part has already been handed to the browser. If the browser page reports it missing (a crashed tab loses its part), select this row and press the resend keybind.")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_PENDING", "Parts are sent one at a time, in order — this one unlocks when its turn comes.")
@@ -954,56 +956,16 @@ ZO_CreateStringId("BATTLESCROLLS_SHARE_CHOICE_HEADER", "Choose what to send")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_CHOICE_FULL", "All fights (<<1>>)")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_CHOICE_BOSSES", "Bosses only (<<1>>)")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_CHOICE_PARTS", "Parts to send: <<1>>")
-ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_CHOICE_FULL", "Every recorded fight in this instance, including trash pulls. More data — more parts to send through the browser.")
-ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_CHOICE_BOSSES", "Boss fights only. Trash pulls usually dominate the upload size, so this needs far fewer parts.")
+ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_CHOICE_FULL", "Every recorded fight in this instance, including basepop fights. More data — more parts to send through the browser.")
+ZO_CreateStringId("BATTLESCROLLS_SHARE_TT_CHOICE_BOSSES", "Boss fights only. Basepop fights usually dominate the upload size, so this needs far fewer parts.")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_DONE_HEADER", "All parts sent")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_DONE_HINT", "The share link and QR code are on the browser page.")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_CONTINUE", "Continue Sharing")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_CANCEL", "Cancel Sharing")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_FAILED", "Could not prepare the share.")
-ZO_CreateStringId("BATTLESCROLLS_SHARE_CANCELLED", "Share cancelled.")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_RESEND_PART", "Resend Part <<1>>")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_PART_RESENDING", "Part <<1>> — resending…")
 ZO_CreateStringId("BATTLESCROLLS_SHARE_FINISH", "Finish Sharing")
-
--- Memory diagnostics (settings screen)
-ZO_CreateStringId("BATTLESCROLLS_SETTINGS_MEMDIAG_HEADER", "Memory Diagnostics")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_LUA_HEAP", "Lua heap (all addons)")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_RUN_GC", "Run full garbage collection")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_MEASURE", "Measure stored data")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_RAW", "Stored data (raw model)")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_FILE", "Serialized file (approx.)")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_SHOWN", "History estimate (as shown)")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_ALLOC_STRINGS", "Allocate 5 MB of strings")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_ALLOC_TABLES", "Allocate 5 MB of tables")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_RELEASE", "Release test allocations")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_HELD", "Test allocations held")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_BUSY", "Working…")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_VALUE_MB", "<<1>> MB")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_VALUE_MB_PAIR", "<<1>> / <<2>> MB")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_GAUGE", "Add-on memory (console gauge)")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_PROBE_STRINGS", "Probe string size classes")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_PROBE_HEADER", "len: gauge / heap / model (bytes per string)")
-
--- Compact /bsmemtest report: keep every formatted line under 60 characters.
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_CANCELLED", "Cancelled")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_COMBAT", "Combat")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_DONE", "Done")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_ERROR", "Error")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_GC_TIMEOUT", "GC timeout")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_HEADER", "MiB G=gauge H=Lua; before/held/freed")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_HELD", "Release the manual test allocations in Settings first.")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_IDLE", "%s G%s>%s H%s>%s")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_IDLE_END", "Idle end")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_IDLE_START", "Idle start")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_LIMIT", "75 MiB limit")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_NOT_RUNNING", "No memory test running.")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_NO_REPORT", "No memory test report yet.")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_ROW", "%d G%s/%s/%s H%s/%s/%s")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_RUNNING", "Running")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_STARTED", "Memory test started. Stay still with menus closed.")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_SUMMARY", "%s %d/%d; max G %s; %ds")
-ZO_CreateStringId("BATTLESCROLLS_MEMDIAG_TEST_USAGE", "/bsmemtest [cancel|report]")
 
 -- Renaming (instances/encounters)
 ZO_CreateStringId("BATTLESCROLLS_RENAME", "Rename")
@@ -1013,7 +975,7 @@ ZO_CreateStringId("BATTLESCROLLS_RENAME_TEXT", "Enter a new name. Enter the orig
 ZO_CreateStringId("BATTLESCROLLS_TAB_GROUP_DAMAGE", "Group Damage")
 ZO_CreateStringId("BATTLESCROLLS_FILTER_GROUP_DAMAGE", "Filter Group Damage")
 ZO_CreateStringId("BATTLESCROLLS_FILTER_OTHERS", "Others")
-ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_GROUP_DAMAGE_SCOPE", "Everything your game client saw: your damage (pets and companions included) plus what it observed from everyone else nearby. The game does not report who dealt the rest, so Others is one pool.")
+ZO_CreateStringId("BATTLESCROLLS_TOOLTIP_GROUP_DAMAGE_SCOPE", "All damage your game client observed: your own (including pets and companions) and damage from other players nearby. ESO does not identify those other players, so their damage is combined under Others.")
 
 -- Group table resurrection column
 ZO_CreateStringId("BATTLESCROLLS_GROUP_COL_RES", "Res")
@@ -1050,7 +1012,7 @@ ZO_CreateStringId("BATTLESCROLLS_STAT_CRUX_AT_FULL", "Cast at Full Crux")
 ZO_CreateStringId("BATTLESCROLLS_STAT_CRUX_SPENDERS", "Spender Casts")
 ZO_CreateStringId("BATTLESCROLLS_STAT_CRUX_UNDER", "Cast Under 3 Crux")
 ZO_CreateStringId("BATTLESCROLLS_CRUX_AT_N", "At <<1>> Crux: <<2>>")
-ZO_CreateStringId("BATTLESCROLLS_HEADER_CRUX_BY_ABILITY", "Mistimed Casts by Ability")
+ZO_CreateStringId("BATTLESCROLLS_HEADER_CRUX_BY_ABILITY", "Crux Usage by Ability")
 
 -- Z'en / DoT stacking (Activity tab)
 ZO_CreateStringId("BATTLESCROLLS_HEADER_ZEN", "DoT Stacking (Z'en)")
@@ -1060,6 +1022,8 @@ ZO_CreateStringId("BATTLESCROLLS_ZEN_PEAK_TIME", "Time at <<1>>")
 ZO_CreateStringId("BATTLESCROLLS_ZEN_DOTS_LABEL", "<<1>> DoTs")
 ZO_CreateStringId("BATTLESCROLLS_ZEN_SHARE_LINE", "avg <<1>> — <<2>> at 5 DoTs")
 ZO_CreateStringId("BATTLESCROLLS_ZEN_SHORT", "Z'en")
+ZO_CreateStringId("BATTLESCROLLS_ZEN_NOTE", "Your DoTs are tracked even when you aren't wearing Z'en. They show the bonus you could support if your Z'en debuff were active. Time without your Z'en represents potential only.")
+ZO_CreateStringId("BATTLESCROLLS_ZEN_DISTRIBUTION_NOTE", "Each DoT row shows its share of tracked time. The Z'en percentage is the portion of that row's time when your own debuff was active.")
 
 -- Support (Activity tab)
 ZO_CreateStringId("BATTLESCROLLS_HEADER_SUPPORT", "Support")
@@ -1085,38 +1049,400 @@ ZO_CreateStringId("BATTLESCROLLS_DETAIL_LOST", "<<1>> lost")
 ZO_CreateStringId("BATTLESCROLLS_DETAIL_AVG_DOTS", "avg <<1>> DoTs")
 ZO_CreateStringId("BATTLESCROLLS_DETAIL_AT_DOTS", "<<1>> at <<2>>")
 
--- Memory investigation experiments (slash-command diagnostics)
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_TIMEOUT", "Time limit")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_HEADER", "Lab %s: MiB G=pool H=Lua; before/work/freed")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_SEED_INFO", "%s: n=%d; saved file %s MiB")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_MATCHES", "Nonempty API results across passes: %d")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_ROW", "%s G%s/%s/%s H%s/%s/%s")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_FOOTER", "%s %d/%d; max G%s H%s; %ds")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_WATCH_STARTED", "Memory watch started. Perform the activity to measure.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_SEED_CLEARED", "Test seed removed; encounter history is unchanged.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_SAVE_RESTART", "Use /reloadui to save, then fully restart the game.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_REMOVE_SEED", "Clear the test seed and restart before runtime tests.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE_WATCH", "/bsmemlab watch [10..120]")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE_ABILITY", "/bsmemlab ability name|icon|desc|ctrl FIRST COUNT(1..256)")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE", "/bsmemlab: layouts shapes control runtime report cancel")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE_SEED", "/bsmemlab seed flat|nested|clear [4096|8192|16384]; load")
+-- Release history (full notes, also available from the Journal).
+ZO_CreateStringId("BATTLESCROLLS_WHATS_NEW", "What's New")
+ZO_CreateStringId("BATTLESCROLLS_WHATS_NEW_DESC", "Read what changed in Battle Scrolls, from the latest update back to the first public release.")
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_6_0_0", [=[
+|cD4AF37New features:|r
 
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_TABLE_SEED_REQUIRED", "Load a tables seed before running compact.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE_TABLES", "/bsmemlab seed tables 4096|8192|16384|32768; compact; census")
+- |cD4AF37Your scrolls can leave Tamriel now!|r Share a fight or a whole run from the Journal and open it in a browser. Scan the QR code on your TV to get the link on your phone. From there, explore the fight yourself or share it wherever you want
 
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_HEADER", "Census: MiB; L=list K=hash estimates")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_CACHE", "History: %d inst; cache %.2f (%d missing)")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_HISTORY", "History L%.2f K%.2f")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_SETUPS", "Setups K: own %.2f shared %.2f")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_TOTAL", "Saved total L%.2f K%.2f")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_ARRAYS", "Arrays %d; rounded slots %d")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CENSUS_STRINGS", "Strings %d; %.2f MiB")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_MIRROR_INFO", "Mirror T%d S%d L%.2f K%.2f")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_MIRROR_CLEAR", "Clear the test seed and restart before making a mirror.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_DISCARD_REQUIRED", "Load a test seed before running discard.")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE_MIRROR", "/bsmemlab seed mirror; discard; census live; trace")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_LIVE_COUNTS", "Last active %d (1=yes); A%d I%d N%d")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_LIVE_BYTES", "Scribe extra L%.2f K%.2f")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CALIB_HEADER", "Calib: dG/dH per class, last half of %d MiB")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_CALIB_ROW", "%s n%d dH%.1f s%s m%s p%s G%s/%s/%s")
-ZO_CreateStringId("BATTLESCROLLS_MEMLAB_USAGE_CALIB", "/bsmemlab calib [4..32] [class] (MiB per class)")
+- Explore the same combat and build data as in the add-on, with |cFFFFFFCSV and JSON|r export for your own analysis
+
+- Activity now tracks |cFFFFFFUltimate generation and spending|r, |cFFFFFFArcanist Crux usage|r, Z'en DoT stacking and resurrections. DoT counts show the potential Z'en bonus even without wearing the set. Weaving separates short cast delays from longer downtime
+
+- Your death recaps now show |cFFFFFFattacker names|r when available
+
+- |cFFFFFFGroup Damage|r shows all damage your client observed, including players without Battle Scrolls. ESO doesn't identify those other sources, so they share one "|cFFFFFFOthers|r" pool
+
+- Pick your own |cFFFFFFbar color|r for everyone's |cFFFFFFBars meter|r, and rename runs and fights in your history
+
+- |cFFFFFFWhat's New|r is now in the Journal, with dated release notes in all seven languages. In case you missed a few scrolls
+
+|cD4AF37Major changes:|r
+
+- Reworked combat history storage fits substantially |cFFFFFFmore fights|r in the same space. The new format should also mean |cFFFFFFfewer stutters|r after big encounters and |cFFFFFFmuch faster loading|r when opening fights in the Journal. Existing history upgrades |cFFFFFFautomatically|r in the background after login; expect brief stutters during this one-time process. Each fight is checked against its original before being replaced
+
+|cD4AF37Bugfixes:|r
+
+- Fights should be |cFFFFFFmuch less likely to end early|r when you die while your group keeps fighting, especially in Lucent Citadel's final encounter
+
+- Fixed |cFFFFFFhealing calculations|r ignoring some filters, missing poisons in other group members’ builds, and several group sharing and history cleanup edge cases
+
+- |cFFFFFFMore reliable|r group fight summaries and builds, with fewer missing details after door transitions and loading screens
+
+|cE6B566Known issues:|r
+
+- ESO's Add-On Memory gauge may need a |cFFFFFFUI reload|r to reflect the space freed by the storage upgrade
+
+- Poison effect names in builds may be missing or incorrect with |cFFFFFFUpdate 51's alchemy changes|r. Crafted poison effects are not shown in the web viewer
+
+- Web sharing has not been tested on |cFFFFFFPlayStation|r. Please report any problems, including if it does not work at all for you]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_5_3_1", [=[
+|cD4AF37Bugfixes:|r
+
+- Other players' class masteries and skill lines are now correctly displayed in their builds on the |cFFFFFFGroup tab|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_5_3_0", [=[
+|cD4AF37New features:|r
+
+- |cFFFFFFClass Mastery|r passives are now supported and shown instead of the skill line list when there's at least one purchased
+
+- First-class support for |cFFFFFFVengeance|r, with custom Build overview hiding irrelevant parts and showing vengeance-specific details (Loadout and Perks)
+
+|cD4AF37Small changes:|r
+
+- Trash is now called basepop in English to match the language devs are using]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_5_2_0", [=[
+|cD4AF37New features:|r
+
+- |cFFFFFFHealth Recovery|r is now tracked as healing. It contributes raw healing based on your in-combat |cFFFFFFHealth Recovery|r stat, and the effective vs overheal split is estimated from actual health movement during the fight. It is considered a separate delivery type
+
+- |cFFFFFFHeal Absorption|r applied to the player is now tracked as damage taken as a separate delivery type
+
+- Outgoing and incoming shielded damage is now included in total damage / damage taken and derivatives such as DPS/DTPS, but not in ability/type breakdowns
+
+- Outgoing and incoming absorbed healing is now included in healing out / self-healing / healing in and derivatives such as HPS
+
+|cD4AF37Minor changes:|r
+
+- Detailed lists always show up to 50 abilities and 20 targets/sources instead of 25/15/10 depending on the context
+
+|cD4AF37Bugfixes:|r
+
+- |cFFFFFFHealing Out|r delivery aggregations now include self-healing consistently with other |cFFFFFFHealing Out|r aggregation views
+
+|cE6B566Known issues:|r
+
+- |cFFFFFFHealth Recovery|r raw healing is estimated from elapsed alive time without knowing ESO's hidden tick phase. Effective vs overheal split is best effort and may undercount effective recovery when health recovery is hidden inside a net-negative health change]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_5_1_0", [=[
+|cD4AF37New features:|r
+
+- Damage shields applied on you and your group members are now tracked as healing. Shield applications count as raw healing, and shield value that actually absorbs damage is counted as effective healing
+
+- Healing breakdowns now include |cFFFFFFDamage Shields|r as their own healing type, next to Direct and HoT healing. This shows up in healing tabs, overview panels, and |cFFFFFFHealing Out|r aggregations
+
+|cE6B566Known issues:|r
+
+- In rare cases, shield ticks may be attributed to a wrong ability. This only happens when there are multiple shields applied on the same target within 50 ms of each other
+
+|cD4AF37Minor changes:|r
+
+- Ability tooltips now show the actual ESO ability ID in damage, healing, effects, proc, weaving, and setup views
+
+- Fixed several wrong or generic ability icons caused by ESO reporting hidden/helper ability IDs, including Pragmatic Fatecarver, Radiant Glory, Cephaliarch's Flail, potions, Essence Drain, Undaunted Command, Purify/Blood Feast synergies, Runeguard of Still Waters, Purifying Light, Practiced Incantation, and Harmony trait
+
+- It takes more HPS now to fill the personal meter bar
+
+- Healing composition labels now say "Healing by Type" and hide insignificant one-sided breakdowns
+
+|cD4AF37Bugfixes:|r
+
+- Weaving stats should produce fewer false missed and double light attacks
+
+- Enemies are more reliably classified as bosses when effect tracking is disabled
+
+- Some healing ability tooltips no longer have average tick lower than min tick]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_5_0_0", [=[
+|cD4AF37New features:|r
+
+- |cFFFFFFWeaving tracking is here!|r Tracks average and total |cFFFFFFtime lost|r between casts, counts missed light attacks/skills. With overall aggregated data and a per skill breakdown
+
+- Added a new |cFFFFFFActivity tab|r where weaving data lives now
+
+- Weaving data is also accessible for aggregations, but only with Overview domain selected
+
+|cD4AF37Minor changes:|r
+
+- |cFFFFFFProc tracking|r moved from |cFFFFFFOverview tab|r (have you noticed it was there the whole time?) to the new Activity tab
+
+- Memory usage and performance should be a bit better in and out of combat, especially with effect tracking disabled partially or completely
+
+|cD4AF37Bugfixes:|r
+
+- Players that have effect tracking disabled in their settings now show proper alive time % on group tab instead of always 100%]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_4_0_0", [=[
+|cD4AF37New features:|r
+
+- Have you ever thought "I wish my fantasy MMORPG had |cFFFFFFspreadsheets built-in|r"? Probably not, but it's there now. Aggregate over any amount of past encounters, extracting the data you want to see, with |cFFFFFFpivot tables|r support.
+
+|cD4AF37Minor changes:|r
+
+- Current patch version (such as 11.3.5) is now displayed in each encounter
+
+- Other players will see you reading a scroll (what else would it be?) while you're in Battle Scrolls UI
+
+- Instance name is now displayed as list header in encounter list
+
+|cD4AF37Bugfixes:|r
+
+- Prismatic reduce cost enchantment is now correctly displayed when someone in your group is using it
+
+- Layout of build screen is now consistent between Group and Build tabs]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_3_1_0", [=[
+|cD4AF37New features:|r
+
+- Added |cFFFFFFsearch|r to the |cFFFFFFEffects tab|r. Works similarly to how you would search your inventory
+
+|cD4AF37Bugfixes:|r
+
+- Arcanists are no longer missing Race/Class/Mundus line on the Setup screen when looking at other players on |cFFFFFFGroup tab|r
+
+- Reduces |cFFFFFFflickering|r happening in Group menu (again)]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_3_0_2", [=[
+|cFFFFFFReduces flickering happening in Group menu|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_3_0_1", [=[
+|cD4AF37Bugfixes:|r
+
+- |cFFFFFFChampion points|r of group members shouldn't be reported in wrong constellations when you have empty slots (sender-side fix, so requires your groupmate to be on the new version)
+
+- No longer tries to display build information when it's unavailable for a group member when navigating the list from an entry that did have it available]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_3_0_0", [=[
+|cD4AF37Build tracking|r
+
+- Each fight now records the build and displays it on the new |cFFFFFFBuild tab|r, so you can go back and see exactly what you were running
+
+- |cFFFFFFOverview tab|r now also displays most of your build for easier parse bragging
+
+- |cFFFFFFCharacter menu|r now includes high-level overview of your build at a glance
+
+- |cFFFFFFGroup tab|r has been also updated to record setups of other players who use Battle Scrolls in your group]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_2_1_2", [=[
+|cFFFFFFNo visible changes, preparation for v3 release|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_2_1_1", [=[
+|cFFFFFFUpdates AoE vs single target calculations to work on the updated Dragonknight. This change is retroactive.|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_2_1_0", [=[
+- Introduced an additional level of navigation: |cFFFFFFsubcategories|r. Similar contexts are now a part of the same tab and can be switched between with left/right on a d-pad or left stick
+	- |cFFFFFFDamage Done|r and |cFFFFFFBoss Damage Done|r are now just Damage, with old tabs presented as subcategories
+	- |cFFFFFFHealing Out|r, |cFFFFFFSelf Healing|r, and Healing In are now just Healing, with old tabs presented as subcategories
+	- Effects now has separate |cFFFFFFsubcategories|r for effects on you, bosses and group members, instead of having one long list for everything
+
+- "Attempt to read past end of buffer" UI errors are now suppressed. Group data may still be incorrect when going through a loading screen after the fight ends, but at least you aren't getting that information right in your face as soon as you do that]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_2_0_1", [=[
+|cD4AF37Group Journal|r
+
+The Journal now has a |cFFFFFFGroup tab|r for encounters where group members participated and had Battle Scrolls installed
+
+|cD4AF37Overview:|r
+
+- Sortable comparison table with columns for each boss, DPS, Crit%, DTPS, HPS, Alive%, and Deaths
+
+|cD4AF37Per-player detail:|r
+
+- Damage output: DPS, total, crit%, max hit, direct%, AoE%, damage by type, DPS rank and comparison vs DD average
+
+- Survivability: DTPS, alive time, death count, top incoming damage abilities, death recaps
+
+- Healing output: raw HPS, effective HPS, overheal, self-healing
+
+- Per-boss damage bars with damage composition stats and damage taken
+
+|cD4AF37Group context tooltips on the existing tabs when the data is available:|r
+
+- Boss targets on |cFFFFFFDamage Done|r show per-member DPS and contribution %
+
+- DPS and Boss DPS rows show per-member DPS breakdown
+
+- DTPS and damage sources on |cFFFFFFDamage Taken|r show per-member DTPS
+
+- Damage composition stats show DD average for comparison
+
+- |cFFFFFFHealing Out|r/|cFFFFFFSelf Healing|r: raw HPS and overheal show per-member breakdown
+
+|cD4AF37Death Tracking|r
+
+|cD4AF37Death recaps are now saved with encounters and displayed in:|r
+
+- |cFFFFFFOverview tab|r: death count in the damage taken section
+
+- |cFFFFFFDamage Taken|r tab: deaths listed with timestamps, recap viewable in tooltip
+
+- |cFFFFFFGroup tab|r: first and last death per player with full attack details
+
+|cD4AF37Minor changes:|r
+
+- Overview panel now shows Direct % instead of DoT %
+
+- |cFFFFFFNight Market|r option to record all fights there regardless of zone filters
+
+- DPS meters now appear behind other UI elements such as loot history
+
+- "Overview" item is always selected by default on all tabs. This increases |cFFFFFFmemory usage|r a bit, but you didn't want to have free memory anyway, did you?
+
+- Gamertags displayed without @ symbol
+
+- "Hodor" and "Bars" group meters show current fight duration in the header
+
+- Changed sounds for opening and closing filter/instance dialogs
+
+|cD4AF37Localization:|r
+
+- Fixed minor pluralization issues
+
+- Made "stacks" terminology consistent with item sets wording in Russian (стак -> заряд) and German (Stapel -> Kumulation)]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_6", [=[
+|cFFFFFFFix UI error that appears when loading into the game with LibGroupBroadcast absent|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_5", [=[
+|cFFFFFFTemporarily make LibGroupBroadcast optional to work around console add-on apocalypse happening|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_4", [=[
+|cFFFFFFNo visible changes, preparing for viewing group members' DPS in Journal|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_3", [=[
+|cFFFFFFNo visible changes, preparing for viewing group members' DPS in Journal|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_2", [=[
+|cD4AF37Bugfixes:|r
+
+- No longer tries to send DPS data to group while not actually grouped (by DakJaniels)]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_1", [=[
+|cD4AF37Bugfixes:|r
+
+- Boss detection should be more reliable in the last Lucent Citadel encounter and some other boss fights when you get separated from the boss for some time (e.g. when going to do portals)
+
+- "|cFFFFFF1000ms limit hit|r" UI error should no longer sometimes happen after complex encounters (last Lucent Citadel encounter, first Ossein Cage encounter)]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_3_0", [=[
+|cD4AF37New features:|r
+
+- You can now mark effects as |cFFFFFFfavorite|r, which will |cFFFFFFpin them|r at the top of every list they appear in
+
+|cD4AF37Bugfixes:|r
+
+- New group members joining mid-fight now have |cFFFFFFuptimes|r calculated only for the time they were present
+
+- Fixed some group DPS tracker designs displaying empty elements in the top left corner of the screen briefly when entering combat for the first time
+
+|cD4AF37Minor changes:|r
+
+- Total DPS row in group tracker is now displayed even if there is only 1 person in DPS section]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_2_0", [=[
+|cD4AF37New features:|r
+
+- |cFFFFFFZone locking|r: Press |cFFFFFFX/Square|r on any zone in the instance list to lock it. Locked zones are protected from automatic cleanup when you exceed your storage limit. The most recent zone is also always protected
+
+|cD4AF37Localization:|r
+
+- German: Improved terminology consistency ("Zonen" -> "Gebiete")
+
+- Russian: Improved terminology consistency ("зоны" -> "области")
+
+|cD4AF37Bugfixes:|r
+
+- Smooth preset no longer gets UI stuck on "Loading" or prevents encounters from appearing in Journal. Due to it being adjusted, you'll be reset to default "Performance" mode upon updating if you had it selected]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_1_0", [=[
+|cD4AF37New features:|r
+
+- You can now |cFFFFFFdelete individual|r instances and encounters from history
+
+|cD4AF37Bugfixes:|r
+
+- Fixed an infinite load or Battle Scrolls not appearing in the menu at all when having Smooth performance mode and Fidelity graphics mode. You may need to |cFFFFFF/reloadui|r one extra time after updating to this version if you're affected before it works again
+
+- Fixed multiple game dialogs (such as item destruction) failing with UI errors after using filters in Battle Scrolls
+
+- Fixed animation sometimes playing in the wrong direction when exiting from Battle Scrolls back to Journal]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_0_3", [=[
+|cFFFFFFA blind attempt to fix PS5 corrupted save data issue|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_0_2", [=[
+|cD4AF37Storage and effect tracking improvements|r
+
+|cD4AF37Storage|r
+
+- Optimized |cFFFFFFencoding/decoding|r for faster Journal loading
+
+- Reduced |cFFFFFFmemory usage|r during encounter processing
+
+|cD4AF37Effect Tracking|r
+
+- Fixed buff/debuff |cFFFFFFuptimes|r when group members go offline during combat
+
+- Improved handling of group members reconnecting mid-fight]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_0_1", [=[
+|cFFFFFFA bugfix|r]=])
+
+ZO_CreateStringId("BATTLESCROLLS_RELEASE_1_0_0", [=[
+|cD4AF37Initial public release|r
+
+|cD4AF37DPS Meter|r
+
+- Real-time combat damage display
+
+- Personal mode with multiple designs (default, minimal, bar)
+
+- Group mode with multiple designs (text, Hodor-style, bars)
+
+- Configurable position, scale, and linger time
+
+|cD4AF37Combat Journal|r
+
+- Browse past encounters with three-level navigation
+
+- Instance > Encounter > Metrics breakdown
+
+- Filter by zone type and fight type
+
+- Memory management with configurable storage limits
+
+|cD4AF37Damage Tracking|r
+
+- Per-target and per-ability breakdown
+
+- Direct vs DoT damage separation
+
+- Critical hit tracking
+
+- Single-target vs AoE categorization
+
+|cD4AF37Healing Tracking|r
+
+- Healing done and received
+
+- Source and target breakdown
+
+|cD4AF37Effect Tracking|r
+
+- Buff/debuff |cFFFFFFuptimes|r on player
+
+- Group member buff tracking
+
+- Boss debuff tracking
+
+- Proc monitoring
+
+|cD4AF37Group DPS Sharing|r
+
+- Share data with group via |cFFFFFFLibGroupBroadcast|r
+
+|cD4AF37Supported Languages:|r English, German, French, Spanish, Russian, Japanese, Chinese]=])

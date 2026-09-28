@@ -1,0 +1,10 @@
+## Title: Storm Atronach Tracker
+## Author: CodeWarrior82
+## Description: Tracks the buff and cooldown of the Storm Atronach ultimate.
+## APIVersion: 101050
+## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
+## OptionalDependsOn: LibNotify
+## SavedVariables: atAddonVars
+
+atronachTracker.lua
+atronachTracker.xml

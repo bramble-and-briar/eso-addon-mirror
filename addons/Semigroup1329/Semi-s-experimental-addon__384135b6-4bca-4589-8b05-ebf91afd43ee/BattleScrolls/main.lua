@@ -24,7 +24,6 @@ BattleScrolls.addonName = "ESOSemisDebugPlayground"
 ---@param addonName string Name of the loaded addon
 function BattleScrolls.OnAddOnLoaded(_, addonName)
     if addonName == BattleScrolls.addonName then
-        BattleScrolls.memTrace.sample("main0") -- startup timeline, reported by /bsmemlab load
         BattleScrolls.storage:Initialize()
 
         -- Reset stall threshold to default if it's set too high (can cause issues)
@@ -58,7 +57,6 @@ function BattleScrolls.OnAddOnLoaded(_, addonName)
         -- Suppressing "Attempt to read past end of buffer" from LGB
         -- due to https://github.com/sirinsidiator/ESO-LibGroupBroadcast/issues/6
         ZO_ERROR_FRAME.suppressedErrors[0xC078BBA0] = true
-        BattleScrolls.memTrace.sample("main1")
         EVENT_MANAGER:UnregisterForEvent("BattleScrolls_Main", EVENT_ADD_ON_LOADED)
     end
 end

@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="SI_KEYBINDINGS_CATEGORY_HIGHLOW">
+            <Action name="HIGHLOW_TOGGLE_WINDOW">
+                <Down>HighLow:ToggleWindow()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -11,7 +11,7 @@ CrutchAlerts = {
     InfoPanel = {},
 
     name = "CrutchAlerts",
-    version = "2.26.0",
+    version = "2.27.0",
 
     unlock = false,
 }
@@ -72,7 +72,8 @@ local defaultOptions = {
         showGained = true,
         showOthers = true,
         showOthersTrueShot = true,
-        showProminent = true,
+        showProminent = true, -- deprecated
+        prominentSize = 80,
         hitValueBelowThreshold = 75,
         hitValueAboveThreshold = 60000, -- nothing above 1 minute... right?
         showDamageable = true,
@@ -308,7 +309,10 @@ local defaultOptions = {
         abilitiesToReplace = {},
         portalTimeMargin = 4000,
 
+        portalDirectionText = 2, -- 1 = never show, 2 = Clockwise / Counter-Clockwise, 3 = Left / Right, 4 = Right / Left
+
         panel = {
+            showSmash = false,
             showSludge = true,
             showBlitz = true,
 

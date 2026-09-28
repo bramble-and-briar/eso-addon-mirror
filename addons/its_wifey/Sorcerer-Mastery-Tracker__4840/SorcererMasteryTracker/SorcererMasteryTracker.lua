@@ -1,6 +1,6 @@
 local SMT = {}
 SMT.name = "SorcererMasteryTracker"
-SMT.version = "1.2"
+SMT.version = "1.3"
 SMT.svName = "SorcererMasteryTrackerSavedVars"
 
 local MASTERIES = {
@@ -132,6 +132,12 @@ end
 
 function SMT:RefreshVisibility()
     if not self.container then return end
+    -- Do not let the periodic visibility refresh fight the HUD scene fragment.
+    -- When inventory/map/other menus hide the HUD fragment, keep the tracker hidden.
+    if self.hudFragment and not self.hudFragment:IsShowing() then
+        self.container:SetHidden(true)
+        return
+    end
     if IsUnitDead("player") then self.container:SetHidden(true) return end
     if not self.sv.enabled then self.container:SetHidden(true) return end
     local any=false
@@ -321,12 +327,6 @@ function SMT:TestMastery(key)
             SMT:Layout()
         end,1200)
     end
-    -- ESOUI wiki pattern: attach our TopLevelControl to HUD/HUD_UI.
-    -- This makes ESO hide/show the tracker automatically as menus open/close.
-    self.hudFragment = ZO_HUDFadeSceneFragment:New(self.container, nil, 0)
-    HUD_SCENE:AddFragment(self.hudFragment)
-    HUD_UI_SCENE:AddFragment(self.hudFragment)
-
 end
 
 function SMT:CreateSettings()

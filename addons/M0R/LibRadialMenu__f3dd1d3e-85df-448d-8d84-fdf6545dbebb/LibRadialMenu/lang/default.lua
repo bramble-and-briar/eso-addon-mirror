@@ -4,7 +4,7 @@ ZO_CreateStringId(string.format("SI_HOTBARCATEGORY%d",LIBRADIAL_WHEEL), "Addon E
 ZO_CreateStringId("SI_LIBRADIALMENU_ASSIGN_TITLE", "Assign an entry for slot %d.")
 ZO_CreateStringId("SI_LIBRADIALMENU_ASSIGN_SLOT", "Slot %d: ")
 ZO_CreateStringId("SI_LIBRADIALMENU_ASSIGN_NOTHING", "Nothing is assigned to this slot yet!")
-ZO_CreateStringId("SI_LIBRADIALMENU_NUM_SLOTS", "Amount of Slots")
+ZO_CreateStringId("SI_LIBRADIALMENU_NUM_SLOTS", "Number of Slots")
 ZO_CreateStringId("SI_LIBRADIALMENU_NUM_SLOTS_TOOLTIP", "Set the amount of entries on the quickslot wheel.")
 ZO_CreateStringId("SI_LIBRADIALMENU_REFRESH_MENU", "Refresh Settings Menu")
 ZO_CreateStringId("SI_LIBRADIALMENU_REFRESH_MENU_TOOLTIP", "After changing how many entries are present on the quickslot wheel, please press this button to update the below assignment buttons!")

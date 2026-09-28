@@ -607,6 +607,10 @@ local function runAsync(effect, fiber, onDone)
 
         -- Resume with success/value arguments
         local ok, yielded = coroutine.resume(co, nextSuccess, nextValue)
+        -- The coroutine has consumed these values. Keeping the previous
+        -- result here would pin it throughout the next awaited operation,
+        -- including GC intended to reclaim a discarded decoded encounter.
+        nextSuccess, nextValue = nil, nil
 
         -- The body may have cancelled its own fiber during the resume; the
         -- chain already unwound, so drop whatever it yielded

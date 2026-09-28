@@ -23,6 +23,8 @@ local VALUE_SEP = " · "
 
 local TOME_BEARER_INSPIRATION_ID = 186452
 local BANNER_BEARER_ID = 217699
+-- Crypt Transfer donates the whole pool despite a nominal slot cost of 1.
+local CRYPT_TRANSFER_ABILITY_ID = 195031
 
 local ActivityRenderer = {}
 
@@ -76,6 +78,8 @@ end
 -------------------------
 -- Weaving
 -------------------------
+
+-- FIXME: Move weaving totals into Arithmancer for the list and panel to share.
 
 ---@param weaving WeavingData
 ---@return number totalAfterSum
@@ -294,6 +298,8 @@ local function appendSilentUltLines(lines, effectsOnPlayer, ratePerTick, duratio
     end
 end
 
+-- FIXME: Move ultimate spending/source/cast calculations into Arithmancer,
+-- preserving legacy unknown-cost handling and the Crypt Transfer exception.
 ---@class UltSpend
 ---@field known boolean True when every cast carries its pool/cost (v20+ recordings)
 ---@field spent number Sum of cast costs
@@ -308,7 +314,7 @@ local function computeUltSpend(ult)
         if not cast.cost or not cast.poolBefore then
             return { known = false, spent = 0, lost = 0, drained = ult.totalDrained }
         end
-        spent = spent + cast.cost
+        spent = spent + (cast.abilityId == CRYPT_TRANSFER_ABILITY_ID and cast.poolBefore or cast.cost)
         poolSum = poolSum + cast.poolBefore
     end
     return {
@@ -356,7 +362,7 @@ local function collectUltCasts(casts)
             groups[#groups + 1] = group
         end
         group.times[#group.times + 1] = cast.timeMs
-        if cast.cost and cast.poolBefore then
+        if cast.cost and cast.poolBefore and cast.abilityId ~= CRYPT_TRANSFER_ABILITY_ID then
             group.lost = group.lost + math.max(0, cast.poolBefore - cast.cost)
         end
     end
@@ -512,6 +518,8 @@ end
 -------------------------
 -- Crux
 -------------------------
+
+-- FIXME: Move Crux gain/waste and understacked-spend aggregates into Arithmancer.
 
 ---@class CruxGainEntry
 ---@field abilityId number
@@ -777,6 +785,8 @@ end
 -- Z'en / DoT Stacking
 -------------------------
 
+-- FIXME: Move Z'en bucket summary calculations into Arithmancer.
+
 ---@class ZenSummary
 ---@field totalMs number
 ---@field avgDots number
@@ -870,9 +880,13 @@ local function renderZenSection(list, zen, encounter)
         if s.totalMs > 0 then
             local bossName = zenBossName(encounter, key)
             local tooltipLines = {
+                GetString(BATTLESCROLLS_ZEN_NOTE),
+                "",
                 string.format("%s: %.1f", GetString(BATTLESCROLLS_ZEN_AVG_DOTS), s.avgDots),
                 string.format("%s: %.1f%%", GetString(BATTLESCROLLS_ZEN_UPTIME), s.zenPct),
                 string.format("%s: %.1f%%", zo_strformat(GetString(BATTLESCROLLS_ZEN_PEAK_TIME), formatZenDotsLabel(s.peakDots)), s.peakPct),
+                "",
+                GetString(BATTLESCROLLS_ZEN_DISTRIBUTION_NOTE),
                 "",
             }
             for dots = 0, 5 do

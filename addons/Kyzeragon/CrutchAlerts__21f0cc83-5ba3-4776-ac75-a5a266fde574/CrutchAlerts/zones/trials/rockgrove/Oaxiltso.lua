@@ -78,7 +78,16 @@ end
 -- Info Panel
 ---------------------------------------------------------------------
 local PANEL_SLUDGE_INDEX = 3
+local PANEL_SMASH_INDEX = 4
 local PANEL_BLITZ_INDEX = 5
+
+local SMASH_ID = 149531
+local SLUDGE_ID = 149190
+local BLITZ_ID = 149414
+
+local SMASH_PREFIX = zo_strformat("|cff6600<<C:1>>: ", GetAbilityName(SMASH_ID))
+local SLUDGE_PREFIX = zo_strformat("|c64c200<<C:1>>: ", GetAbilityName(SLUDGE_ID))
+local BLITZ_PREFIX = zo_strformat("|cfff1ab<<C:1>>: ", GetAbilityName(BLITZ_ID))
 
 local function IsOax()
     local _, powerMax = GetUnitPower("boss1", COMBAT_MECHANIC_FLAGS_HEALTH)
@@ -88,30 +97,39 @@ local function IsOax()
     return false
 end
 
-local function OnBlitz()
-    Crutch.InfoPanel.CountDownDuration(PANEL_BLITZ_INDEX, "|cfff1ab" .. GetAbilityName(149414) .. ": ", 36000)
+local function OnSmash()
+    Crutch.InfoPanel.CountDownDuration(PANEL_SMASH_INDEX, SMASH_PREFIX, 17800) -- Usually 22s+, but seen a few around 17.8? Also usually lower priority than sludge, but seen sludge happen after slam before... unless sludge timer is very wrong
 end
 
 local function OnSludge()
-    Crutch.InfoPanel.CountDownDuration(PANEL_SLUDGE_INDEX, "|c64c200" .. GetAbilityName(149190) .. ": ", 27000)
+    Crutch.InfoPanel.CountDownDuration(PANEL_SLUDGE_INDEX, SLUDGE_PREFIX, 27000)
+end
+
+local function OnBlitz()
+    Crutch.InfoPanel.CountDownDuration(PANEL_BLITZ_INDEX, BLITZ_PREFIX, 36000)
 end
 
 local function OnEnteredCombat()
     if (IsOax()) then
+        if (Crutch.savedOptions.rockgrove.panel.showSmash) then
+            -- normal testing: 25.1, 21.1, 35.1 (delayed by mini spawn), 21.1, 25.3, 26.0
+            Crutch.InfoPanel.CountDownDuration(PANEL_SMASH_INDEX, SMASH_PREFIX, 21000)
+        end
         if (Crutch.savedOptions.rockgrove.panel.showSludge) then
-            -- normal testing: 21.9, 21.7, 22.4
-            Crutch.InfoPanel.CountDownDuration(PANEL_SLUDGE_INDEX, "|c64c200" .. GetAbilityName(149190) .. ": ", 20000)
+            -- normal testing: 21.9, 21.7, 22.4, 17.5?!
+            Crutch.InfoPanel.CountDownDuration(PANEL_SLUDGE_INDEX, SLUDGE_PREFIX, 17500)
         end
         if (Crutch.savedOptions.rockgrove.panel.showBlitz) then
             -- normal testing: 16.0, 15.6, 15.5, 16.1
-            Crutch.InfoPanel.CountDownDuration(PANEL_BLITZ_INDEX, "|cfff1ab" .. GetAbilityName(149414) .. ": ", 15000)
+            Crutch.InfoPanel.CountDownDuration(PANEL_BLITZ_INDEX, BLITZ_PREFIX, 15000)
         end
     end
 end
 
 local function CleanUp()
-    Crutch.InfoPanel.StopCount(PANEL_BLITZ_INDEX)
+    Crutch.InfoPanel.StopCount(PANEL_SMASH_INDEX)
     Crutch.InfoPanel.StopCount(PANEL_SLUDGE_INDEX)
+    Crutch.InfoPanel.StopCount(PANEL_BLITZ_INDEX)
 end
 
 
@@ -123,12 +141,16 @@ function Crutch.Rockgrove.RegisterOax()
     Crutch.RegisterForEffectChanged("NoxiousSludge", OnNoxiousSludgeGained, 157860, "group")
 
     -- For info panel
-    if (Crutch.savedOptions.rockgrove.panel.showBlitz) then
-        Crutch.RegisterForCombatEvent("Blitz", OnBlitz, ACTION_RESULT_BEGIN, 149414)
+    if (Crutch.savedOptions.rockgrove.panel.showSmash) then
+        Crutch.RegisterForCombatEvent("Smash", OnSmash, ACTION_RESULT_BEGIN, SMASH_ID)
     end
 
     if (Crutch.savedOptions.rockgrove.panel.showSludge) then
-        Crutch.RegisterForCombatEvent("NoxiousSludgeBegin", OnSludge, ACTION_RESULT_BEGIN, 149190)
+        Crutch.RegisterForCombatEvent("NoxiousSludgeBegin", OnSludge, ACTION_RESULT_BEGIN, SLUDGE_ID)
+    end
+
+    if (Crutch.savedOptions.rockgrove.panel.showBlitz) then
+        Crutch.RegisterForCombatEvent("Blitz", OnBlitz, ACTION_RESULT_BEGIN, BLITZ_ID)
     end
 
     Crutch.RegisterEnteredGroupCombatListener("CrutchRockgroveOaxEnteredCombat", OnEnteredCombat)

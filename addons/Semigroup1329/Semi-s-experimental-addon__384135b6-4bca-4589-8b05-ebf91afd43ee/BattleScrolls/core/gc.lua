@@ -8,15 +8,16 @@
 -- hstructures and strings
 -- See: https://www.esoui.com/forums/showthread.php?t=11507
 --
--- Related gauge behavior: the Add-On Memory counter moves in
--- both directions and prompt GC is what keeps it under control
--- (unpaced dry runs climbed to the 90 MB kill zone; the same
--- work with CollectFullAsync pacing held the gauge flat). One
--- observed exception: freeing LONG-LIVED data may not register
--- in-session - the v17 migration shrank stored history by
--- 7.5 MB and the gauge stayed put until a UI reload rebuilt it
--- from live data. Exact rules unknown; object age seems to
--- matter.
+-- The Add-On Memory gauge accounts for allocator backing memory
+-- and some native resources, not just live Lua objects. Prompt
+-- GC makes freed space reusable and limits further growth:
+-- unpaced dry runs approached 90 MB, while CollectFullAsync
+-- pacing held the gauge flat.
+--
+-- Freeing objects need not immediately lower the gauge. Allocator
+-- fragmentation leaves free space mixed with live allocations,
+-- and even empty segments may be returned later. Freed space can
+-- be reused while those segments remain charged to the gauge.
 --
 -- Instead of scattered collectgarbage() calls, this module
 -- provides a RequestGC() API that performs incremental GC

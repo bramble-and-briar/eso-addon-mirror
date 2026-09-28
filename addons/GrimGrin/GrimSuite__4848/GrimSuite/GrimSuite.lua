@@ -2,7 +2,7 @@ GrimSuite = GrimSuite or {}
 local GS = GrimSuite
 
 GS.name = "GrimSuite"
-GS.version = "1.2.2"
+GS.version = "1.3.0"
 
 GS.SV = {
     gcd = 1000,

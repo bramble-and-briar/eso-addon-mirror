@@ -138,7 +138,7 @@ BattleScrolls = BattleScrolls or {}
 ---@class InstanceStorage
 ---@field isHouse boolean|nil True when the zone is a player house
 ---@field isPvP boolean|nil True when an AvA/battleground zone
----@field isAdventureZone boolean|nil True when an adventure zone (infinite archive)
+---@field isAdventureZone boolean|nil True when an adventure zone (night market)
 ---@field _estimatedSize number|nil Cached chunk bytes (BattleScrolls.sizeModel)
 ---@field _estimatedSizeV number|nil Model version the cache was computed with
 ---@field index number|nil Position in history (set by the journal list)
@@ -211,11 +211,9 @@ BattleScrolls = BattleScrolls or {}
 ---@field history InstanceWithIndex[] Flat array of all instances/locations visited
 ---@field nextInstanceIndex number|nil High-water mark for instance.index assignment (auto-initialized from history)
 ---@field settings StorageSettings User settings
----@field sharedSetups table<string, table<number, CompactSetup>>|nil Shared player setups from group members
+---@field sharedSetups table<string, table<number, StoredSharedSetup>>|nil Encoded shared builds by player and hash; plain entries remain readable until migration
 ---@field ownSetups table<number, OwnSetupPoolEntry>|nil Player's own full setups deduplicated by 16-bit setup hash (v17+; referenced by CompactEncounter._setupHash)
----@field migrationDone boolean|nil Retired v17-era flag; migration:Initialize clears it
----@field migrationDoneV18 boolean|nil Retired v18-era flag; migration:Initialize clears it
----@field migrationDoneV20 boolean|nil True once no encounter (live instance included) is left in a pre-v20 format; lets migration skip even its startup scan. Never in defaults: ZO_SavedVars would apply it to existing installations
+---@field migrationDoneV20Setups boolean|nil True once encounters and shared setups are migrated (failed entries excluded). Never in defaults: ZO_SavedVars would apply it to existing installations
 
 ---@class SizePreset
 ---@field key string Preset key
@@ -488,12 +486,20 @@ function storage:GetSizeLimitBytes()
 end
 
 ---Gets the estimated gauge cost of an instance in bytes. The chunk bytes are
----cached on the instance with the model version; older caches are recomputed.
+---cached on the instance; normal reads accept older model estimates.
+-- FIXME: Temporary migration-dependent cache policy. Restoring version-based
+-- invalidation here lets synchronous EstimateSavedSize/GetLockedInstancesSize
+-- walk the whole history and exceed ESO's 1000ms continuous-run allowance,
+-- shutting off the addon. Migration refreshes estimates with per-instance
+-- yields, but its completion flag means future model changes need an explicit
+-- paced refresh. Missing instance caches, setup pools and other saved roots
+-- still need bounded async measurement; this is not a general stall fix.
 ---@param instance Instance
+---@param forceRefresh boolean|nil Recompute now; bulk callers must yield between instances
 ---@return number bytes Estimated gauge bytes
-local function getInstanceSize(instance)
+local function getInstanceSize(instance, forceRefresh)
     local sizeModel = BattleScrolls.sizeModel
-    if not instance._estimatedSize or instance._estimatedSizeV ~= sizeModel.VERSION then
+    if forceRefresh or not instance._estimatedSize then
         instance._estimatedSize = sizeModel.measure(instance)
         instance._estimatedSizeV = sizeModel.VERSION
         BattleScrolls.gc:RequestGC() -- the walk generates a lot of garbage
@@ -502,10 +508,10 @@ local function getInstanceSize(instance)
 end
 
 ---Model bytes of a setup pool payload, cached on the payload with the model
----version like instances, so a login measures only payloads added since.
+---version; unlike instances, older payload caches are recomputed on access.
 ---Strings shared between payloads count once per payload, a small
 ---overstatement.
----@param payload OwnSetupPoolEntry|CompactSetup
+---@param payload OwnSetupPoolEntry|StoredSharedSetup
 ---@return number modelBytes
 local function payloadModelBytes(payload)
     local sizeModel = BattleScrolls.sizeModel
@@ -856,9 +862,10 @@ end
 
 ---Gets the estimated size of an instance in bytes
 ---@param instance Instance
+---@param forceRefresh boolean|nil Recompute now; bulk callers must yield between instances
 ---@return number bytes Estimated memory in bytes
-function storage:EstimateInstanceSize(instance)
-    return getInstanceSize(instance)
+function storage:EstimateInstanceSize(instance, forceRefresh)
+    return getInstanceSize(instance, forceRefresh)
 end
 
 ---Gets the total size of all locked instances

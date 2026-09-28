@@ -3,7 +3,7 @@ GS.ActionBar = GS.ActionBar or {}
 local ActionBar = GS.ActionBar
 
 ---------------------------------------------------------------------
--- GrimSuite Action Bar v1.2.1
+-- GrimSuite Action Bar v1.3.0
 --
 -- Static two-row action bar:
 --   * FRONT BAR is always the top row.
@@ -25,10 +25,11 @@ local ULT_SLOT = 8
 local SLOT_COUNT = 5
 local HOTBAR_CATEGORIES = { HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }
 local SLOT_SIZE = 65
-local POTION_SIZE = 70
+local POTION_SIZE_DEFAULT = 70
 local SLOT_GAP = 3
 local ROW_GAP = 3
 local ULT_GAP = 10
+local UTILITY_ACTIONBAR_TIGHTEN = 32
 
 local FRAME_EDGE = { 0.62, 0.62, 0.62, 0.88 }
 local FRAME_EDGE_ACTIVE = { 0.62, 0.62, 0.62, 0.88 }
@@ -42,6 +43,7 @@ local UNUSABLE_ICON_ALPHA = 0.42
 local UNUSABLE_DESATURATION = 0.65
 local TIMER_FONT = "Univers 67|45|thick-outline"
 local STACK_FONT = "Univers 67|45|thick-outline"
+local POTION_COUNT_FONT = "Univers 67|28|thick-outline"
 local TIMER_COLOR = { 1, 1, 1, 1 }
 local STACK_COLOR = { 1, 1, 1, 1 }
 local ULT_FONT = "Univers 67|35|thick-outline"
@@ -56,6 +58,7 @@ local TOTAL_WIDTH = ROW_WIDTH + ULT_GAP + SLOT_SIZE
 ActionBar.enabled = true
 ActionBar.staticBars = true
 ActionBar.frontBarTop = true
+ActionBar.settingsPreviewVisible = false
 ActionBar.showFrames = true
 ActionBar.showCooldownText = true
 ActionBar.showStackCount = true
@@ -73,8 +76,8 @@ ActionBar.timerSize = 45
 ActionBar.stackSize = 45
 ActionBar.timerFont = "Univers 67"
 ActionBar.stackFont = "Univers 67"
-ActionBar.timerOutline = "thick-outline"
-ActionBar.stackOutline = "thick-outline"
+ActionBar.timerOutline = "outline"
+ActionBar.stackOutline = "outline"
 ActionBar.timerOffsetX = 0
 ActionBar.timerOffsetY = 0
 ActionBar.stackOffsetX = 0
@@ -86,6 +89,38 @@ ActionBar.frontRoot = nil
 ActionBar.backbarRoot = nil
 ActionBar.frontControls = {}
 ActionBar.backbarControls = {}
+ActionBar.frontBarIndicator = nil
+ActionBar.backBarIndicator = nil
+
+-- GrimSuite-owned utility controls.
+-- The native ESO controls remain alive for their actual input handling, but
+-- their visuals are hidden. These controls are the only visible potion and
+-- weapon-swap presentation.
+ActionBar.utilityRoot = nil
+ActionBar.utilityPotion = nil
+ActionBar.utilityWeaponSwap = nil
+
+local nativeUtilityHooks = { weaponSwap = false, potion = false }
+
+local UTILITY_GAP = 1
+local UTILITY_DOWN_OFFSET = 6.5
+local UTILITY_WEAPON_TEXTURE_FALLBACK = "EsoUI/Art/ActionBar/weaponSwap.dds"
+local UTILITY_BAR_INDICATOR_ACTIVE = { 1.0, 0.78, 0.16, 1.0 }
+local UTILITY_BAR_INDICATOR_INACTIVE = { 0.62, 0.62, 0.62, 0.38 }
+local UTILITY_BAR_INDICATOR_GAP = 5
+local UTILITY_BAR_INDICATOR_WIDTH = 16
+local UTILITY_BAR_INDICATOR_HEIGHT = 16
+local UTILITY_BAR_INDICATOR_TEXTURE = "GrimSuite/Textures/bar_indicator_triangle.dds"
+
+-- Optional standalone stack tracker. The tracker shows one entry per supported
+-- stack type, but only when a qualifying skill is slotted on either weapon bar.
+-- The same stack type is never duplicated just because the skill appears on
+-- both bars; this also keeps subclassing combinations predictable.
+ActionBar.showStackTracker = true
+ActionBar.stackTrackerUnlocked = false
+ActionBar.stackTrackerHUDVisible = true
+ActionBar.stackTrackerRoot = nil
+ActionBar.stackTrackerEntries = {}
 
 -- LibAddonMenu configuration + saved layout position.
 -- LibAddonMenu is a required dependency for GrimSuite's settings UI.
@@ -96,6 +131,7 @@ local POSITION_DEFAULTS = {
     positionY = -109,
     unlocked = false,
     iconSize = 65,
+    potionSize = POTION_SIZE_DEFAULT,
     slotGap = 3,
     rowGap = 3,
     backbarOpacity = 0.72,
@@ -107,15 +143,40 @@ local POSITION_DEFAULTS = {
     stackSize = 45,
     timerFont = "Univers 67",
     stackFont = "Univers 67",
-    timerOutline = "thick-outline",
-    stackOutline = "thick-outline",
+    timerOutline = "outline",
+    stackOutline = "outline",
     timerOffsetX = 0,
     timerOffsetY = 0,
     stackOffsetX = 0,
     stackOffsetY = 0,
 }
 
+local STACK_TRACKER_SV_NAME = "GrimSuiteStackTrackerSavedVars"
+local STACK_TRACKER_SV_VERSION = 2
+local STACK_TRACKER_DEFAULTS = {
+    showStackTracker = true,
+    unlocked = false,
+    iconSize = 50,
+    textSize = 45,
+    showBoundArmaments = true,
+    showCrux = true,
+    showBow = true,
+    boundArmamentsX = -54,
+    boundArmamentsY = 250,
+    cruxX = 0,
+    cruxY = 250,
+    bowX = 54,
+    bowY = 250,
+}
+
+local STACK_TRACKER_MIN_ICON_SIZE = 30
+local STACK_TRACKER_MAX_ICON_SIZE = 100
+local STACK_TRACKER_MIN_TEXT_SIZE = 10
+local STACK_TRACKER_MAX_TEXT_SIZE = 80
+local STACK_TRACKER_FRAME_PADDING = 2
+
 local positionSV = nil
+local stackTrackerSV = nil
 local LAM = nil
 local dragState = {
     dragging = false,
@@ -124,6 +185,10 @@ local dragState = {
     startX = 0,
     startY = 0,
 }
+
+local function GetPotionSize()
+    return math.max(40, math.min(100, tonumber(ActionBar.potionSize) or POTION_SIZE_DEFAULT))
+end
 
 local function GetIconSize()
     return math.max(40, math.min(100, tonumber(ActionBar.iconSize) or 65))
@@ -179,7 +244,7 @@ local function BuildOverlayFont(fontName, size, outline)
     fontName = tostring(fontName or "Univers 67")
     local fontPath = OVERLAY_FONT_PATHS[fontName] or OVERLAY_FONT_PATHS["Univers 67"]
     size = tonumber(size) or 45
-    outline = tostring(outline or "thick-outline")
+    outline = tostring(outline or "outline")
     return string.format("%s|%d|%s", fontPath, math.floor(size + 0.5), outline)
 end
 
@@ -189,6 +254,122 @@ end
 
 local function GetStackFont()
     return BuildOverlayFont(ActionBar.stackFont, ActionBar.stackSize, ActionBar.stackOutline)
+end
+
+local function GetStackTrackerIconSize()
+    return math.max(
+        STACK_TRACKER_MIN_ICON_SIZE,
+        math.min(STACK_TRACKER_MAX_ICON_SIZE, tonumber(ActionBar.stackTrackerIconSize) or STACK_TRACKER_DEFAULTS.iconSize)
+    )
+end
+
+local function GetStackTrackerTextSize()
+    return math.max(
+        STACK_TRACKER_MIN_TEXT_SIZE,
+        math.min(STACK_TRACKER_MAX_TEXT_SIZE, tonumber(ActionBar.stackTrackerTextSize) or STACK_TRACKER_DEFAULTS.textSize)
+    )
+end
+
+local function GetStackTrackerFont()
+    return BuildOverlayFont("Univers 67", GetStackTrackerTextSize(), "outline")
+end
+
+
+local function GetFontVerticalOffset(fontName, offsetY)
+    offsetY = tonumber(offsetY) or 0
+    -- All tested overlay fonts need a 1px upward optical correction except
+    -- Skyrim Handwritten, which is already visually centered at the base offset.
+    if tostring(fontName or "") ~= "Skyrim Handwritten" then
+        return offsetY - 1
+    end
+    return offsetY
+end
+
+local function AnchorOverlayText(label, frame, offsetX, offsetY)
+    if not label or not frame then return end
+
+    offsetX = tonumber(offsetX) or 0
+    offsetY = tonumber(offsetY) or 0
+
+    -- Give the label the full icon rectangle and let the alignment flags
+    -- center the rendered glyphs inside that rectangle. Moving both edges by
+    -- the same offset preserves the existing user-facing X/Y settings while
+    -- avoiding font-specific baseline/autosize drift.
+    label:ClearAnchors()
+    label:SetAnchor(TOPLEFT, frame, TOPLEFT, offsetX, offsetY)
+    label:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, offsetX, offsetY)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+end
+
+local PREVIEW_TIMER_DURATIONS = {
+    [3] = 9,
+    [4] = 8,
+    [5] = 7,
+    [6] = 6,
+    [7] = 5,
+    [8] = 9,
+}
+
+local PREVIEW_TIMER_OFFSETS = {
+    [3] = 0.0,
+    [4] = 0.6,
+    [5] = 1.2,
+    [6] = 1.8,
+    [7] = 2.4,
+    [8] = 3.0,
+}
+
+local PREVIEW_STACK_SAMPLE_SLOT = 5
+local PREVIEW_STACK_SAMPLE_TEXT = "3"
+
+local function UpdateSettingsPreviewTimers()
+    if not ActionBar.settingsPreviewVisible then return end
+
+    local now = GetFrameTimeMilliseconds() / 1000
+
+    for rowIndex, controls in ipairs({ ActionBar.frontControls, ActionBar.backbarControls }) do
+        for slot = MIN_SLOT, ULT_SLOT do
+            local data = controls and controls[slot]
+            local duration = PREVIEW_TIMER_DURATIONS[slot]
+
+            if data then
+                -- Reserve the center skill slot on the TOP row for a clear
+                -- Stack Count sample. Every other slot demonstrates Timer text.
+                local isStackSample = rowIndex == 1 and slot == PREVIEW_STACK_SAMPLE_SLOT
+
+                if data.timer then
+                    if isStackSample then
+                        data.timer:SetText("")
+                    elseif duration then
+                        local phase = (now + (PREVIEW_TIMER_OFFSETS[slot] or 0)) % duration
+                        local remaining = duration - phase
+                        if remaining < 0.1 then
+                            remaining = duration
+                        end
+
+                        -- Preview timers intentionally use whole single-digit
+                        -- values so font/outline differences are easy to judge.
+                        data.timer:SetText(tostring(math.max(1, math.ceil(remaining))))
+                    end
+                end
+
+                if data.stack then
+                    data.stack:SetText(isStackSample and PREVIEW_STACK_SAMPLE_TEXT or "")
+                end
+            end
+        end
+    end
+
+    -- Give the Potion preview its own whole-number cooldown as well. The
+    -- actual potion cooldown logic remains untouched outside settings preview.
+    local potion = ActionBar.utilityPotion
+    if potion and potion.timer then
+        local potionDuration = 9
+        local potionPhase = now % potionDuration
+        local potionRemaining = potionDuration - potionPhase
+        potion.timer:SetText(tostring(math.max(1, math.ceil(potionRemaining))))
+    end
 end
 
 local function ApplyOverlayTextStyles()
@@ -204,16 +385,29 @@ local function ApplyOverlayTextStyles()
             if data then
                 if data.timer then
                     data.timer:SetFont(timerFont)
-                    data.timer:ClearAnchors()
-                    data.timer:SetAnchor(CENTER, data.frame, CENTER, timerX, timerY)
+                    AnchorOverlayText(data.timer, data.frame, timerX, GetFontVerticalOffset(ActionBar.timerFont, timerY))
                 end
                 if data.stack then
                     data.stack:SetFont(stackFont)
-                    data.stack:ClearAnchors()
-                    data.stack:SetAnchor(CENTER, data.frame, CENTER, stackX, stackY)
+                    AnchorOverlayText(data.stack, data.frame, stackX, GetFontVerticalOffset(ActionBar.stackFont, stackY))
                 end
             end
         end
+    end
+
+    if ActionBar.utilityPotion then
+        ActionBar.utilityPotion.timer:SetFont(timerFont)
+        AnchorOverlayText(ActionBar.utilityPotion.timer, ActionBar.utilityPotion.frame, timerX, GetFontVerticalOffset(ActionBar.timerFont, timerY))
+        ActionBar.utilityPotion.count:SetFont(POTION_COUNT_FONT)
+        ActionBar.utilityPotion.count:ClearAnchors()
+        ActionBar.utilityPotion.count:SetAnchor(TOP, ActionBar.utilityPotion.frame, BOTTOM, 0, 0)
+        ActionBar.utilityPotion.count:SetDimensions(GetPotionSize(), 30)
+        ActionBar.utilityPotion.count:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        ActionBar.utilityPotion.count:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    end
+    if ActionBar.utilityWeaponSwap then
+        ActionBar.utilityWeaponSwap.count:SetFont(stackFont)
+        ActionBar.utilityWeaponSwap.timer:SetFont(timerFont)
     end
 end
 
@@ -348,9 +542,12 @@ local function CreateDisplayButton(root, x, key, prefix)
 
     local timer = WM:CreateControl(base .. "Timer", frame, CT_LABEL)
     timer:SetFont(GetTimerFont())
-    timer:SetAnchor(CENTER, frame, CENTER, tonumber(ActionBar.timerOffsetX) or 0, tonumber(ActionBar.timerOffsetY) or 0)
-    timer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    timer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    AnchorOverlayText(
+        timer,
+        frame,
+        tonumber(ActionBar.timerOffsetX) or 0,
+        tonumber(ActionBar.timerOffsetY) or 0
+    )
     timer:SetColor(unpack(TIMER_COLOR))
     timer:SetDrawLevel(24)
     timer:SetText("")
@@ -358,9 +555,12 @@ local function CreateDisplayButton(root, x, key, prefix)
 
     local stack = WM:CreateControl(base .. "Stack", frame, CT_LABEL)
     stack:SetFont(GetStackFont())
-    stack:SetAnchor(CENTER, frame, CENTER, tonumber(ActionBar.stackOffsetX) or 0, tonumber(ActionBar.stackOffsetY) or 0)
-    stack:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    stack:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    AnchorOverlayText(
+        stack,
+        frame,
+        tonumber(ActionBar.stackOffsetX) or 0,
+        tonumber(ActionBar.stackOffsetY) or 0
+    )
     stack:SetColor(unpack(STACK_COLOR))
     stack:SetDrawLevel(25)
     stack:SetText("")
@@ -382,10 +582,25 @@ local function CreateDisplayButton(root, x, key, prefix)
     return { frame = frame, icon = icon, shade = shade, pressed = pressed, glow = glow, outerGlow = outerGlow, timer = timer, stack = stack, ultValue = ultValue }
 end
 
+local function CreateBarIndicator(name, parent, rowButton)
+    -- GrimSuite-owned bar selector: a small filled triangle centered on the
+    -- actual action-row button.  Using a texture avoids font glyph/baseline
+    -- alignment issues and keeps the indicator visually consistent.
+    local indicator = WM:CreateControl(name, parent, CT_TEXTURE)
+    indicator:SetDimensions(UTILITY_BAR_INDICATOR_WIDTH, UTILITY_BAR_INDICATOR_HEIGHT)
+    indicator:ClearAnchors()
+    indicator:SetAnchor(RIGHT, rowButton.frame, LEFT, -UTILITY_BAR_INDICATOR_GAP, 0)
+    indicator:SetTexture(UTILITY_BAR_INDICATOR_TEXTURE)
+    indicator:SetColor(unpack(UTILITY_BAR_INDICATOR_INACTIVE))
+    indicator:SetDrawLevel(26)
+    indicator:SetMouseEnabled(false)
+    return indicator
+end
+
 local function CreateRow(rootName, controls, prefix)
     local root = WM:CreateTopLevelWindow(rootName)
     root:SetDimensions(GetTotalWidth(), GetIconSize())
-    root:SetMouseEnabled(false)
+    root:SetMouseEnabled(true)
     root:SetMovable(false)
     root:SetClampedToScreen(true)
     root:SetDrawTier(DT_LOW)
@@ -396,12 +611,346 @@ local function CreateRow(rootName, controls, prefix)
     end
 
     controls[ULT_SLOT] = CreateDisplayButton(root, GetRowWidth() + ULT_GAP, "Ult", prefix)
+    if string.find(rootName, "Front", 1, true) then
+        ActionBar.frontBarIndicator = CreateBarIndicator("GrimSuiteAB_FrontBarIndicator", root, controls[MIN_SLOT])
+    elseif string.find(rootName, "Back", 1, true) then
+        ActionBar.backBarIndicator = CreateBarIndicator("GrimSuiteAB_BackBarIndicator", root, controls[MIN_SLOT])
+    end
     return root
 end
 
 local InstallDragHandlers
+local GetNativeActionBarControls
+
+local function GetNativeWeaponSwapIconTexture(weaponSwap)
+    if not weaponSwap then return nil end
+
+    -- Borrow only the native texture path. The visible control itself belongs
+    -- to GrimSuite, so ESO can continue rebuilding its own hidden control safely.
+    local candidates = {
+        weaponSwap:GetNamedChild("Icon"),
+        weaponSwap:GetNamedChild("WeaponSwapIcon"),
+        weaponSwap:GetNamedChild("Button"),
+    }
+
+    for _, child in ipairs(candidates) do
+        if child then
+            local ok, texture = pcall(function() return child:GetTexture() end)
+            if ok and texture and texture ~= "" then
+                return texture
+            end
+            local okNormal, normal = pcall(function() return child:GetNormalTexture() end)
+            if okNormal and normal and normal ~= "" then
+                return normal
+            end
+        end
+    end
+
+    return UTILITY_WEAPON_TEXTURE_FALLBACK
+end
+
+local function CreateUtilityButton(parent, name, size)
+    local frame = MakeFrame(name .. "Frame", parent)
+    frame:SetDimensions(size, size)
+    -- The utility weapon-swap presentation is icon-only; do not draw an
+    -- otherwise empty GrimSuite action-slot box around it.
+    if string.find(name, "WeaponSwap", 1, true) then
+        frame:SetCenterColor(0, 0, 0, 0)
+        frame:SetEdgeColor(0, 0, 0, 0)
+    end
+    frame:SetMouseEnabled(true)
+
+    local icon = WM:CreateControl(name .. "Icon", frame, CT_TEXTURE)
+    icon:SetAnchor(TOPLEFT, frame, TOPLEFT, 2, 2)
+    icon:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, -2, -2)
+    icon:SetTextureCoords(0, 1, 0, 1)
+    icon:SetDrawLevel(21)
+    icon:SetMouseEnabled(false)
+
+    local shade = WM:CreateControl(name .. "Shade", frame, CT_BACKDROP)
+    shade:SetAnchorFill(icon)
+    if string.find(name, "WeaponSwap", 1, true) then
+        -- Weapon swap is intentionally icon-only. Do not leave the faint
+        -- utility-slot shadow behind it when its icon is transparent.
+        shade:SetCenterColor(0, 0, 0, 0)
+    else
+        shade:SetCenterColor(0, 0, 0, 0.10)
+    end
+    shade:SetEdgeColor(0, 0, 0, 0)
+    shade:SetDrawLevel(22)
+    shade:SetMouseEnabled(false)
+
+    local pressed = WM:CreateControl(name .. "Pressed", frame, CT_BACKDROP)
+    pressed:SetAnchor(TOPLEFT, frame, TOPLEFT, 2, 2)
+    pressed:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, -2, -2)
+    pressed:SetCenterColor(0, 0, 0, 0.28)
+    pressed:SetEdgeColor(1, 1, 1, 0.22)
+    pressed:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 16, 16, 2, 0)
+    pressed:SetDrawLevel(27)
+    pressed:SetHidden(true)
+    pressed:SetMouseEnabled(false)
+
+    local count = WM:CreateControl(name .. "Count", frame, CT_LABEL)
+    count:SetFont(string.find(name, "Potion", 1, true) and POTION_COUNT_FONT or GetStackFont())
+    if string.find(name, "Potion", 1, true) then
+        -- Potion count lives just outside the bottom edge of the icon so it
+        -- never overlaps the cooldown timer.
+        count:SetAnchor(TOP, frame, BOTTOM, 0, 0)
+        count:SetDimensions(size, 30)
+        count:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    else
+        count:SetAnchor(BOTTOM, frame, BOTTOM, 0, -2)
+        count:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
+    end
+    count:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    count:SetColor(unpack(STACK_COLOR))
+    count:SetDrawLevel(25)
+    count:SetText("")
+    count:SetMouseEnabled(false)
+
+    local timer = WM:CreateControl(name .. "Timer", frame, CT_LABEL)
+    timer:SetFont(GetTimerFont())
+    timer:SetAnchor(CENTER, frame, CENTER, tonumber(ActionBar.timerOffsetX) or 0, tonumber(ActionBar.timerOffsetY) or 0)
+    timer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    timer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    timer:SetColor(unpack(TIMER_COLOR))
+    timer:SetDrawLevel(24)
+    timer:SetText("")
+    timer:SetMouseEnabled(false)
+
+    return {
+        frame = frame,
+        icon = icon,
+        shade = shade,
+        pressed = pressed,
+        count = count,
+        timer = timer,
+    }
+end
+
+local UpdatePotionTimer
+
+local function CreateUtilityControls()
+    if ActionBar.utilityRoot then return end
+
+    local root = WM:CreateTopLevelWindow("GrimSuiteAB_UtilityRoot")
+    local potionSize = GetPotionSize()
+    root:SetDimensions(potionSize + UTILITY_GAP + SLOT_SIZE + UTILITY_BAR_INDICATOR_GAP + UTILITY_BAR_INDICATOR_WIDTH, potionSize)
+    root:SetMouseEnabled(false)
+    root:SetMovable(false)
+    root:SetClampedToScreen(true)
+    root:SetDrawTier(DT_LOW)
+
+    -- Quickslot cooldowns do not reliably emit a dedicated countdown event.
+    -- Tick only the GrimSuite-owned potion timer so it visibly counts down
+    -- without rebuilding the whole utility control every frame.
+    local timerAccumulator = 0
+    root:SetHandler("OnUpdate", function(_, delta)
+        timerAccumulator = timerAccumulator + (delta or 0)
+        if timerAccumulator >= 0.05 then
+            timerAccumulator = 0
+            UpdatePotionTimer()
+            UpdateSettingsPreviewTimers()
+        end
+    end)
+
+    ActionBar.utilityRoot = root
+    ActionBar.utilityPotion = CreateUtilityButton(root, "GrimSuiteAB_Potion", potionSize)
+    ActionBar.utilityWeaponSwap = CreateUtilityButton(root, "GrimSuiteAB_WeaponSwap", SLOT_SIZE)
+
+    ActionBar.utilityPotion.frame:SetAnchor(TOPLEFT, root, TOPLEFT, 0, 0)
+    ActionBar.utilityWeaponSwap.frame:SetAnchor(
+        TOPLEFT, root, TOPLEFT,
+        potionSize + UTILITY_GAP,
+        math.max(0, (potionSize - SLOT_SIZE) * 0.5)
+    )
+
+    local potion = ActionBar.utilityPotion
+    potion.frame:SetHandler("OnMouseDown", function(_, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            local slot = GetCurrentQuickslot()
+            if slot and slot > 0 and ZO_ActionBar_CanUseActionSlots() then
+                OnSlotDown(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                ZO_ActionBar_OnActionButtonDown(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                potion.pressed:SetHidden(false)
+            end
+        end
+    end)
+    potion.frame:SetHandler("OnMouseUp", function(_, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            local slot = GetCurrentQuickslot()
+            if slot and slot > 0 then
+                OnSlotUp(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                ZO_ActionBar_OnActionButtonUp(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+            end
+            potion.pressed:SetHidden(true)
+        end
+    end)
+
+    local weapon = ActionBar.utilityWeaponSwap
+    weapon.frame:SetHandler("OnMouseDown", function(_, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            weapon.pressed:SetHidden(false)
+        end
+    end)
+    weapon.frame:SetHandler("OnMouseUp", function(_, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            weapon.pressed:SetHidden(true)
+            OnWeaponSwap()
+        end
+    end)
+end
+
+UpdatePotionTimer = function()
+    local potion = ActionBar.utilityPotion
+    if not potion then return end
+
+    local slot = GetCurrentQuickslot()
+    local remain, duration = 0, 0
+
+    if slot and slot > 0 then
+        local okCooldown, r, d = pcall(GetSlotCooldownInfo, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if okCooldown then
+            remain = r or 0
+            duration = d or 0
+        end
+    end
+
+    -- GetSlotCooldownInfo can report the short global/action cooldown on the
+    -- quickslot when another skill is cast. That is not a potion cooldown and
+    -- should never replace the potion timer. Real potion cooldowns are much
+    -- longer than the ~1 second action/GCD cooldown.
+    local isShortActionCooldown = duration > 0 and duration <= 2000
+
+    if remain > 0 and duration > 0 and not isShortActionCooldown then
+        potion.timer:SetText(ZO_FormatTimeShowUnitOverThresholdShowDecimalUnderThreshold(
+            remain / 1000,
+            ZO_ONE_MINUTE_IN_SECONDS,
+            ZO_EFFECT_EXPIRATION_IMMINENCE_THRESHOLD_S,
+            TIME_FORMAT_STYLE_SHOW_LARGEST_UNIT
+        ))
+    else
+        potion.timer:SetText("")
+    end
+end
+
+local function UpdateUtilityControls()
+    if not ActionBar.utilityRoot then return end
+
+    local weaponSwap, nativePotion = GetNativeActionBarControls()
+    local potion = ActionBar.utilityPotion
+    local weapon = ActionBar.utilityWeaponSwap
+    if not potion or not weapon then return end
+
+    potion.frame:SetHidden(not ActionBar.showQuickslot)
+    weapon.frame:SetHidden(not ActionBar.showWeaponSwap)
+
+    local activeCategory = GetActiveHotbarCategory()
+    if activeCategory ~= HOTBAR_CATEGORY_PRIMARY and activeCategory ~= HOTBAR_CATEGORY_BACKUP then
+        activeCategory = HOTBAR_CATEGORY_PRIMARY
+    end
+
+    -- Each indicator is anchored to the center of its actual GrimSuite row,
+    -- so the top line belongs to the top bar and the bottom line to the bottom
+    -- bar regardless of utility-icon position.
+    if ActionBar.frontBarIndicator then
+        ActionBar.frontBarIndicator:SetColor(unpack(
+            activeCategory == HOTBAR_CATEGORY_PRIMARY
+                and UTILITY_BAR_INDICATOR_ACTIVE or UTILITY_BAR_INDICATOR_INACTIVE
+        ))
+        ActionBar.frontBarIndicator:SetHidden(not ActionBar.showWeaponSwap)
+    end
+    if ActionBar.backBarIndicator then
+        ActionBar.backBarIndicator:SetColor(unpack(
+            activeCategory == HOTBAR_CATEGORY_BACKUP
+                and UTILITY_BAR_INDICATOR_ACTIVE or UTILITY_BAR_INDICATOR_INACTIVE
+        ))
+        ActionBar.backBarIndicator:SetHidden(not ActionBar.showWeaponSwap)
+    end
+
+    if nativePotion then
+        nativePotion:SetScale(1)
+        nativePotion:SetHidden(true)
+    end
+
+    if weaponSwap then
+        weaponSwap:SetScale(1)
+        weaponSwap:SetHidden(true)
+        local texture = GetNativeWeaponSwapIconTexture(weaponSwap)
+        if texture and texture ~= "" then
+            weapon.icon:SetTexture(texture)
+        end
+    end
+
+    local slot = GetCurrentQuickslot()
+    local icon = nil
+    local count = 0
+    local usable = true
+    local remain, duration = 0, 0
+
+    if slot and slot > 0 then
+        local okTexture, slotTexture = pcall(GetSlotTexture, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if okTexture and slotTexture then icon = slotTexture end
+
+        local okCount, slotCount = pcall(GetSlotItemCount, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if okCount and slotCount then count = slotCount end
+
+        local okCooldown, r, d = pcall(GetSlotCooldownInfo, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if okCooldown then
+            remain = r or 0
+            duration = d or 0
+        end
+
+        local quickslotButton = ZO_ActionBar_GetButton(slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if quickslotButton then
+            if quickslotButton.HandleSlotChanged then
+                quickslotButton:HandleSlotChanged(HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+            end
+            usable = quickslotButton.usable
+        end
+    end
+
+    if icon and icon ~= "" then
+        potion.icon:SetTexture(icon)
+        potion.icon:SetHidden(false)
+        potion.shade:SetHidden(false)
+        potion.icon:SetAlpha(usable == false and UNUSABLE_ICON_ALPHA or ACTIVE_ICON_ALPHA)
+        potion.icon:SetDesaturation(usable == false and UNUSABLE_DESATURATION or 0)
+    else
+        potion.icon:SetTexture("")
+        potion.icon:SetHidden(true)
+        potion.shade:SetHidden(true)
+    end
+
+    if count and count > 0 then
+        potion.count:SetText(tostring(count))
+    else
+        potion.count:SetText("")
+    end
+
+    UpdatePotionTimer()
+
+    -- HandleSlotChanged() above may repaint the native quickslot. Hide the
+    -- native presentation again after state synchronization.
+    if nativePotion then nativePotion:SetHidden(true) end
+    if weaponSwap then weaponSwap:SetHidden(true) end
+end
+
+local function AnchorUtilityControls()
+    if not ActionBar.utilityRoot then return end
+    local actionBar = GetControl("ZO_ActionBar1")
+    local weaponSwap = actionBar and actionBar:GetNamedChild("WeaponSwap")
+    if not weaponSwap then return end
+
+    ActionBar.utilityRoot:ClearAnchors()
+    -- Keep the existing horizontal placement, but center the utility root
+    -- vertically on the stable weapon-swap reference instead of using a
+    -- guessed top-edge offset.
+    ActionBar.utilityRoot:SetAnchor(RIGHT, weaponSwap, RIGHT, 0, 0)
+end
 
 function ActionBar:CreateRows()
+    CreateUtilityControls()
     if not self.frontRoot then
         self.frontRoot = CreateRow("GrimSuiteAB_FrontRoot", self.frontControls, "Front")
     end
@@ -463,7 +1012,27 @@ local function StyleDisplay(data, active, hasAbility, usable)
     end
 end
 
+local function InstallNativeUtilitySuppressionHooks()
+    local weaponSwap, potion = GetNativeActionBarControls()
+
+    if weaponSwap and not nativeUtilityHooks.weaponSwap then
+        nativeUtilityHooks.weaponSwap = true
+        ZO_PreHookHandler(weaponSwap, "OnShow", function()
+            weaponSwap:SetHidden(true)
+        end)
+    end
+
+    if potion and not nativeUtilityHooks.potion then
+        nativeUtilityHooks.potion = true
+        ZO_PreHookHandler(potion, "OnShow", function()
+            potion:SetHidden(true)
+        end)
+    end
+end
+
 function ActionBar:UpdateNativeVisualSuppression()
+    InstallNativeUtilitySuppressionHooks()
+
     -- Keep ESO's controls alive for keyboard/mouse/gamepad input, but remove
     -- their visible icon/background so they cannot appear as ghost bars.
     for _, category in ipairs(HOTBAR_CATEGORIES) do
@@ -472,9 +1041,13 @@ function ActionBar:UpdateNativeVisualSuppression()
             if button then HideNativeVisuals(button) end
         end
     end
+
+    local weaponSwap, potion = GetNativeActionBarControls()
+    if weaponSwap then weaponSwap:SetHidden(true) end
+    if potion then potion:SetHidden(true) end
 end
 
-local function GetNativeActionBarControls()
+GetNativeActionBarControls = function()
     local actionBar = GetControl("ZO_ActionBar1")
     if not actionBar then return nil, nil end
 
@@ -533,46 +1106,19 @@ local function ApplyNativeLayoutOffset()
         )
     end
 
-    if potion and weaponSwap then
-        potion:SetHidden(not ActionBar.showQuickslot)
-        potion:ClearAnchors()
-
-        -- QuickslotButton is the actual native potion/quickslot control.
-        -- Scale the real control rather than an unrelated action-bar child.
-        -- SetScale() is absolute, so repeated Refresh()/AnchorRows() calls
-        -- cannot compound the scaling.
-        local potionScale = POTION_SIZE / SLOT_SIZE
-        potion:SetScale(potionScale)
-
-        weaponSwap:SetScale(1)
-        weaponSwap:SetHidden(not ActionBar.showWeaponSwap)
-
-        -- Center the potion on the actual midpoint of the FULL TWO-ROW
-        -- GrimSuite bar.  The back row begins at weaponSwap TOP, and the
-        -- front row ends ROW_GAP pixels above that same point.
-        --
-        -- Using CENTER here is intentional: it makes the potion's center
-        -- independent of POTION_SIZE.  The previous TOPRIGHT + calculated
-        -- height approach could shift the visual center when ESO reported
-        -- the native control's dimensions differently after scaling.
-        local potionVisualSize = (potion:GetHeight() or SLOT_SIZE) * potionScale
-        -- The potion should sit vertically centered on the weapon-swap icon.
-        -- ESO's QuickslotButton is currently several pixels above the swap
-        -- indicator, so give it a fixed downward correction.
-        local barCenterY = 30 - (ROW_GAP * 0.5)
-
-        -- Preserve the existing horizontal relationship: the potion's RIGHT
-        -- edge sits 1px left of weaponSwap's LEFT edge.
-        local potionCenterX = -1 - (potionVisualSize * 0.5)
-
-        potion:SetAnchor(
-            CENTER,
-            weaponSwap,
-            TOPLEFT,
-            potionCenterX,
-            barCenterY
-        )
+    -- Native utility controls remain alive for ESO input/state, but GrimSuite
+    -- owns the visible rendering now.
+    if potion then
+        potion:SetScale(1)
+        potion:SetHidden(true)
     end
+    if weaponSwap then
+        weaponSwap:SetScale(1)
+        weaponSwap:SetHidden(true)
+    end
+
+    AnchorUtilityControls()
+    UpdateUtilityControls()
 end
 
 function ActionBar:AnchorRows()
@@ -598,8 +1144,8 @@ function ActionBar:AnchorRows()
     -- The native weapon-swap control is now the physical position anchor.
     -- Do not apply positionX/positionY a second time here.
     local rowGap = GetRowGap()
-    self.frontRoot:SetAnchor(BOTTOMLEFT, weaponSwap, RIGHT, 0, -rowGap)
-    self.backbarRoot:SetAnchor(TOPLEFT, weaponSwap, RIGHT, 0, 0)
+    self.frontRoot:SetAnchor(BOTTOMLEFT, weaponSwap, RIGHT, -UTILITY_ACTIONBAR_TIGHTEN, -rowGap)
+    self.backbarRoot:SetAnchor(TOPLEFT, weaponSwap, RIGHT, -UTILITY_ACTIONBAR_TIGHTEN, 0)
 
     -- Keep the ultimate beside the bars, centered vertically across the
     -- combined two-row block.  Anchor both ult controls to the same stable
@@ -611,13 +1157,13 @@ function ActionBar:AnchorRows()
     local frontUlt = self.frontControls[ULT_SLOT]
     if frontUlt and frontUlt.frame then
         frontUlt.frame:ClearAnchors()
-        frontUlt.frame:SetAnchor(TOPLEFT, weaponSwap, RIGHT, ultX, ultY)
+        frontUlt.frame:SetAnchor(TOPLEFT, weaponSwap, RIGHT, ultX - UTILITY_ACTIONBAR_TIGHTEN, ultY)
     end
 
     local backUlt = self.backbarControls[ULT_SLOT]
     if backUlt and backUlt.frame then
         backUlt.frame:ClearAnchors()
-        backUlt.frame:SetAnchor(TOPLEFT, weaponSwap, RIGHT, ultX, ultY)
+        backUlt.frame:SetAnchor(TOPLEFT, weaponSwap, RIGHT, ultX - UTILITY_ACTIONBAR_TIGHTEN, ultY)
     end
 end
 
@@ -644,7 +1190,9 @@ end
 --
 -- key   = slotted ability
 -- value = player-effect ability that carries the actual stack count
--- Shared Crux is handled separately so it can only appear on Fatecarver.
+-- Shared Crux is handled separately so the tracker can determine whether
+-- Crux is actually relevant to the current build without tying it to one
+-- specific Arcanist ability.
 local STACK_EFFECT_BY_ABILITY = {
     -- Molten Whip / Seething Fury
     [20805] = 122658,
@@ -675,9 +1223,15 @@ local STACK_EFFECT_BY_ABILITY = {
 
 local CRUX_EFFECT_ID = 184220
 
--- Crux is a shared resource, not a stack counter that belongs on every
--- Arcanist skill that generates or consumes it. GrimSuite only displays the
--- Crux count on Fatecarver and its two morphs.
+-- Crystal Fragments uses a hidden proc/passive effect to signal the empowered
+-- instant-cast state. Keep the proc state separately from normal stack counts.
+local CRYSTAL_FRAGMENTS_EFFECT_ID = 46327
+local CRYSTAL_FRAGMENTS_ABILITY_ID = 114716
+
+-- Crux is a shared resource, so the tracker should only appear when the
+-- player has a slotted ability that can actually consume Crux. Skills that
+-- merely benefit from having Crux but do not spend it do not make the tracker
+-- relevant on their own.
 local function IsFatecarverAbility(abilityId)
     if not abilityId or abilityId <= 0 or not GetAbilityName then
         return false
@@ -712,6 +1266,15 @@ local function IsNecroSkullAbility(abilityId)
         or abilityId == 117637 or abilityId == 123718 or abilityId == 123719
         or abilityId == 117624 or abilityId == 123699 or abilityId == 123704
 end
+
+local CRUX_STACK_EFFECTS = {
+    [CRUX_EFFECT_ID] = true,
+}
+
+-- Forward declarations: these helpers are defined later in the file but are
+-- used by the stack tracker above them.
+local IsTentacularDreadAbility
+local GetCurrentCrux
 
 local function GetLivePlayerStack(effectId, trackedEffects)
     if not trackedEffects[effectId] then
@@ -764,6 +1327,401 @@ local function FindTrackedStack(abilityId)
         return nil
     end
     return entry.stack
+end
+
+---------------------------------------------------------------------
+-- Optional standalone stack tracker
+--
+-- Each supported stack type is represented once. An entry is shown only when
+-- one of its qualifying skills is present on either GrimSuite weapon bar.
+-- This keeps the tracker useful for subclassing without duplicating the same
+-- stack counter when a skill appears on both bars.
+---------------------------------------------------------------------
+
+local BOUND_ARMAMENTS_ABILITY_ID = 24165
+
+-- Any ability matching one of these names is a Crux spender. The tracker
+-- checks both weapon bars, so subclassing and support/tank Arcanist setups
+-- are handled without hard-coding one particular role or rotation.
+local CRUX_CONSUMING_ABILITY_NAMES = {
+    "fatecarver",
+    "tentacular dread",
+    "remedy cascade",
+    "cascading fortune",
+    "curative surge",
+    "tidal chakram",
+    "runespite ward",
+    "impervious runeward",
+    "spiteward of the lucid mind",
+    "unbreakable fate",
+}
+
+local function IsCruxConsumingAbility(abilityId)
+    if not abilityId or abilityId <= 0 or not GetAbilityName then
+        return false
+    end
+
+    local ok, name = pcall(GetAbilityName, abilityId)
+    if not ok or not name then
+        return false
+    end
+
+    name = zo_strlower(tostring(name))
+    for _, cruxName in ipairs(CRUX_CONSUMING_ABILITY_NAMES) do
+        if string.find(name, cruxName, 1, true) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local BOW_STACK_ABILITIES = {
+    [61902] = true, -- Grim Focus
+    [61919] = true, -- Merciless Resolve
+    [61927] = true, -- Relentless Focus
+}
+
+local function IsBowStackAbility(abilityId)
+    return BOW_STACK_ABILITIES[abilityId] == true
+end
+
+local function GetTrackerSlottedAbility(kind)
+    local categories = { HOTBAR_CATEGORY_PRIMARY, HOTBAR_CATEGORY_BACKUP }
+
+    -- Prefer the currently active bar so the displayed icon matches the bar
+    -- the player is currently using when a tracked skill exists there.
+    local activeCategory = GetActiveHotbarCategory()
+    if activeCategory == HOTBAR_CATEGORY_PRIMARY or activeCategory == HOTBAR_CATEGORY_BACKUP then
+        categories = {
+            activeCategory,
+            activeCategory == HOTBAR_CATEGORY_PRIMARY
+                and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY,
+        }
+    end
+
+    for _, category in ipairs(categories) do
+        for slot = MIN_SLOT, MAX_SLOT do
+            local abilityId = GetAbilityForSlot(slot, category)
+            if abilityId and abilityId > 0 then
+                if kind == "BoundArmaments" and abilityId == BOUND_ARMAMENTS_ABILITY_ID then
+                    return abilityId
+                elseif kind == "Crux" and IsCruxConsumingAbility(abilityId) then
+                    return abilityId
+                elseif kind == "Bow" and IsBowStackAbility(abilityId) then
+                    return abilityId
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function GetStackTrackerCount(kind, abilityId)
+    if kind == "BoundArmaments" then
+        return math.max(0, tonumber(FindTrackedStack(BOUND_ARMAMENTS_ABILITY_ID)) or 0)
+    elseif kind == "Crux" then
+        return math.max(0, tonumber(GetCurrentCrux()) or 0)
+    elseif kind == "Bow" then
+        return math.max(0, tonumber(FindTrackedStack(abilityId)) or 0)
+    end
+
+    return 0
+end
+
+local STACK_TRACKER_DEFINITIONS = {
+    {
+        key = "BoundArmaments",
+        name = "Bound Armaments",
+        maxStacks = 4,
+    },
+    {
+        key = "Crux",
+        name = "Crux",
+        maxStacks = 3,
+    },
+    {
+        key = "Bow",
+        name = "Grim Focus / Resolve",
+        maxStacks = 5,
+    },
+}
+
+local stackTrackerDragState = {
+    dragging = false,
+    key = nil,
+    startMouseX = 0,
+    startMouseY = 0,
+    startX = 0,
+    startY = 0,
+}
+
+local function GetStackTrackerVisibilityKey(kind)
+    if kind == "BoundArmaments" then return "showBoundArmaments" end
+    if kind == "Crux" then return "showCrux" end
+    if kind == "Bow" then return "showBow" end
+    return nil
+end
+
+local function GetStackTrackerPositionKeys(kind)
+    if kind == "BoundArmaments" then return "boundArmamentsX", "boundArmamentsY" end
+    if kind == "Crux" then return "cruxX", "cruxY" end
+    if kind == "Bow" then return "bowX", "bowY" end
+    return nil, nil
+end
+
+local function IsStackTrackerVisible(kind)
+    local key = GetStackTrackerVisibilityKey(kind)
+    if not key then return false end
+    return ActionBar[key] == true
+end
+
+local function GetStackTrackerPosition(kind)
+    local xKey, yKey = GetStackTrackerPositionKeys(kind)
+    if not xKey then return 0, 250 end
+
+    return tonumber(ActionBar[xKey]) or tonumber(STACK_TRACKER_DEFAULTS[xKey]) or 0,
+        tonumber(ActionBar[yKey]) or tonumber(STACK_TRACKER_DEFAULTS[yKey]) or 250
+end
+
+local function SaveStackTrackerSetting(key, value)
+    ActionBar[key] = value
+    if stackTrackerSV then
+        stackTrackerSV[key] = value
+    end
+end
+
+local function SaveStackTrackerPosition(kind)
+    if not stackTrackerSV then return end
+
+    local xKey, yKey = GetStackTrackerPositionKeys(kind)
+    if not xKey then return end
+
+    stackTrackerSV[xKey] = tonumber(ActionBar[xKey]) or STACK_TRACKER_DEFAULTS[xKey]
+    stackTrackerSV[yKey] = tonumber(ActionBar[yKey]) or STACK_TRACKER_DEFAULTS[yKey]
+end
+
+local function AnchorStackTrackerEntry(kind)
+    local root = ActionBar.stackTrackerRoot
+    local data = ActionBar.stackTrackerEntries[kind]
+    if not root or not data or not data.frame then return end
+
+    local x, y = GetStackTrackerPosition(kind)
+    data.frame:ClearAnchors()
+    data.frame:SetAnchor(CENTER, root, CENTER, x, y)
+end
+
+local function AnchorAllStackTrackerEntries()
+    for _, definition in ipairs(STACK_TRACKER_DEFINITIONS) do
+        AnchorStackTrackerEntry(definition.key)
+    end
+end
+
+local function UpdateStackTrackerDragEnabled(enabled)
+    enabled = enabled == true
+
+    for _, data in pairs(ActionBar.stackTrackerEntries or {}) do
+        data.frame:SetMouseEnabled(enabled)
+    end
+end
+
+local function BeginStackTrackerDrag(kind)
+    if not ActionBar.stackTrackerUnlocked then return end
+
+    local data = ActionBar.stackTrackerEntries[kind]
+    if not data or data.frame:IsHidden() then return end
+
+    local x, y = GetUIMousePosition()
+    if not x or not y then return end
+
+    local startX, startY = GetStackTrackerPosition(kind)
+
+    stackTrackerDragState.dragging = true
+    stackTrackerDragState.key = kind
+    stackTrackerDragState.startMouseX = x
+    stackTrackerDragState.startMouseY = y
+    stackTrackerDragState.startX = startX
+    stackTrackerDragState.startY = startY
+
+    EM:UnregisterForUpdate(GS.name .. "_AB_StackTrackerDrag")
+    EM:RegisterForUpdate(GS.name .. "_AB_StackTrackerDrag", 16, function()
+        if not stackTrackerDragState.dragging or not ActionBar.stackTrackerUnlocked then
+            EM:UnregisterForUpdate(GS.name .. "_AB_StackTrackerDrag")
+            return
+        end
+
+        local mouseX, mouseY = GetUIMousePosition()
+        if not mouseX or not mouseY then return end
+
+        local key = stackTrackerDragState.key
+        if not key then
+            EM:UnregisterForUpdate(GS.name .. "_AB_StackTrackerDrag")
+            return
+        end
+
+        local xKey, yKey = GetStackTrackerPositionKeys(key)
+        if not xKey then
+            EM:UnregisterForUpdate(GS.name .. "_AB_StackTrackerDrag")
+            return
+        end
+
+        ActionBar[xKey] = stackTrackerDragState.startX + (mouseX - stackTrackerDragState.startMouseX)
+        ActionBar[yKey] = stackTrackerDragState.startY + (mouseY - stackTrackerDragState.startMouseY)
+
+        AnchorStackTrackerEntry(key)
+    end)
+end
+
+local function EndStackTrackerDrag(kind)
+    if not stackTrackerDragState.dragging then return end
+    if kind and stackTrackerDragState.key ~= kind then return end
+
+    local key = stackTrackerDragState.key
+    stackTrackerDragState.dragging = false
+    stackTrackerDragState.key = nil
+    EM:UnregisterForUpdate(GS.name .. "_AB_StackTrackerDrag")
+
+    if key then
+        SaveStackTrackerPosition(key)
+    end
+end
+
+local function CreateStackTracker()
+    if ActionBar.stackTrackerRoot then return end
+
+    local root = WM:CreateTopLevelWindow("GrimSuiteAB_StackTracker")
+    root:SetAnchorFill(GuiRoot)
+    root:SetMovable(false)
+    root:SetClampedToScreen(true)
+    root:SetDrawTier(DT_LOW)
+    root:SetMouseEnabled(false)
+
+    ActionBar.stackTrackerRoot = root
+    ActionBar.stackTrackerEntries = {}
+
+    for _, definition in ipairs(STACK_TRACKER_DEFINITIONS) do
+        local trackerKey = definition.key
+        local frame = WM:CreateControl(
+            "GrimSuiteAB_StackTracker_" .. definition.key .. "_Frame",
+            root,
+            CT_BACKDROP
+        )
+        frame:SetDimensions(GetStackTrackerIconSize(), GetStackTrackerIconSize())
+        frame:SetCenterColor(0.008, 0.008, 0.008, 0.48)
+        frame:SetEdgeColor(unpack(FRAME_EDGE))
+        frame:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 16, 16, 2, 0)
+        frame:SetDrawLevel(20)
+        frame:SetMouseEnabled(false)
+
+        local icon = WM:CreateControl(
+            "GrimSuiteAB_StackTracker_" .. definition.key .. "_Icon",
+            frame,
+            CT_TEXTURE
+        )
+        icon:SetAnchor(TOPLEFT, frame, TOPLEFT, STACK_TRACKER_FRAME_PADDING, STACK_TRACKER_FRAME_PADDING)
+        icon:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, -STACK_TRACKER_FRAME_PADDING, -STACK_TRACKER_FRAME_PADDING)
+        icon:SetDrawLevel(21)
+        icon:SetMouseEnabled(false)
+
+        local stack = WM:CreateControl(
+            "GrimSuiteAB_StackTracker_" .. definition.key .. "_Stack",
+            frame,
+            CT_LABEL
+        )
+        stack:SetFont(GetStackTrackerFont())
+        stack:SetAnchor(CENTER, frame, CENTER, 0, 0)
+        stack:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        stack:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        stack:SetColor(unpack(STACK_COLOR))
+        stack:SetDrawLevel(22)
+        stack:SetText("")
+        stack:SetMouseEnabled(false)
+
+        frame:SetHandler("OnMouseDown", function(_, button)
+            if button == MOUSE_BUTTON_INDEX_LEFT then
+                BeginStackTrackerDrag(trackerKey)
+            end
+        end)
+
+        frame:SetHandler("OnMouseUp", function(_, button)
+            if button == MOUSE_BUTTON_INDEX_LEFT then
+                EndStackTrackerDrag(trackerKey)
+            end
+        end)
+
+        ActionBar.stackTrackerEntries[definition.key] = {
+            definition = definition,
+            frame = frame,
+            icon = icon,
+            stack = stack,
+        }
+    end
+
+    AnchorAllStackTrackerEntries()
+end
+
+local function ApplyStackTrackerAppearance()
+    local iconSize = GetStackTrackerIconSize()
+    local textFont = GetStackTrackerFont()
+
+    for _, definition in ipairs(STACK_TRACKER_DEFINITIONS) do
+        local data = ActionBar.stackTrackerEntries[definition.key]
+        if data then
+            data.frame:SetDimensions(iconSize, iconSize)
+            data.icon:ClearAnchors()
+            data.icon:SetAnchor(TOPLEFT, data.frame, TOPLEFT, STACK_TRACKER_FRAME_PADDING, STACK_TRACKER_FRAME_PADDING)
+            data.icon:SetAnchor(BOTTOMRIGHT, data.frame, BOTTOMRIGHT, -STACK_TRACKER_FRAME_PADDING, -STACK_TRACKER_FRAME_PADDING)
+            data.stack:SetFont(textFont)
+            data.stack:ClearAnchors()
+            data.stack:SetAnchor(CENTER, data.frame, CENTER, 0, 0)
+        end
+    end
+
+    AnchorAllStackTrackerEntries()
+end
+
+local function UpdateStackTracker()
+    if not ActionBar.stackTrackerRoot then return end
+
+    local count = 0
+    local shouldShow = ActionBar.showStackTracker and ActionBar.stackTrackerHUDVisible
+
+    for _, definition in ipairs(STACK_TRACKER_DEFINITIONS) do
+        local data = ActionBar.stackTrackerEntries[definition.key]
+        local abilityId = shouldShow and IsStackTrackerVisible(definition.key)
+            and GetTrackerSlottedAbility(definition.key) or nil
+
+        if data and abilityId then
+            -- Crux is a shared resource, so its tracker icon stays fixed even
+            -- when the qualifying Arcanist skill changes with a bar swap.
+            local iconAbilityId = definition.key == "Crux" and CRUX_EFFECT_ID or abilityId
+            data.icon:SetTexture(GetAbilityIcon(iconAbilityId))
+            data.stack:SetFont(GetStackTrackerFont())
+            data.stack:SetText(tostring(GetStackTrackerCount(definition.key, abilityId)))
+            data.frame:SetHidden(false)
+            count = count + 1
+        elseif data then
+            data.frame:SetHidden(true)
+        end
+    end
+
+    ActionBar.stackTrackerRoot:SetHidden(count == 0 or not shouldShow)
+    UpdateStackTrackerDragEnabled(ActionBar.stackTrackerUnlocked and count > 0)
+end
+
+local function ResetStackTrackerPositions()
+    for _, definition in ipairs(STACK_TRACKER_DEFINITIONS) do
+        local xKey, yKey = GetStackTrackerPositionKeys(definition.key)
+        if xKey then
+            ActionBar[xKey] = STACK_TRACKER_DEFAULTS[xKey]
+            ActionBar[yKey] = STACK_TRACKER_DEFAULTS[yKey]
+            SaveStackTrackerPosition(definition.key)
+        end
+    end
+
+    AnchorAllStackTrackerEntries()
+    UpdateStackTracker()
 end
 
 -- FAB treats Banner Bearer effects as one shared toggle state. Keep the
@@ -833,26 +1791,251 @@ local READY_PROC_STACKS = {
     [123704] = 2,
 }
 
+-- Some ESO action-slot timers are backed by a buff/effect associated with the
+-- slotted skill rather than the skill's own visible duration. When another
+-- source refreshes/re-associates that buff (for example Traveling Knife +
+-- Force refreshing Minor Force while Barbed Trap is active), ESO can briefly
+-- or permanently stop reporting the timer for the original slot. Keep the
+-- last known expiration for that exact slot/ability as a fallback so a valid
+-- timer is not erased just because the action-slot query stopped reporting it.
+--
+-- Boneyard is intentionally different: its action-slot effect can jump to a
+-- longer buff duration when Nazaray extends the associated effect. GrimSuite's
+-- Action Bar timer should represent the ground DoT itself, which is a hard 10s
+-- window. Boneyard therefore gets its own cast-time expiration in the same
+-- cache and ignores later buff extensions for that cast.
+local SLOT_EFFECT_TIMER_CACHE = {}
+
+local BONEYARD_DURATION = 10
+local BONEYARD_ABILITIES = {
+    -- Current Necromancer Boneyard morph IDs.
+    [40117850] = true, -- Avid Boneyard
+    [117805] = true,   -- Unnerving Boneyard
+}
+
+local function IsBoneyardAbility(abilityId)
+    return BONEYARD_ABILITIES[abilityId] == true
+end
+
+local HAUNTING_CURSE_DURATION = 12
+local HAUNTING_CURSE_ABILITIES = {
+    [24324] = true,
+    [24326] = true,
+    [24330] = true,
+}
+
+local function IsHauntingCurseAbility(abilityId)
+    return HAUNTING_CURSE_ABILITIES[abilityId] == true
+end
+
+local function StartBoneyardTimer(slot, category, abilityId)
+    if not IsBoneyardAbility(abilityId) then return end
+
+    local categoryCache = SLOT_EFFECT_TIMER_CACHE[category]
+    if not categoryCache then
+        categoryCache = {}
+        SLOT_EFFECT_TIMER_CACHE[category] = categoryCache
+    end
+
+    categoryCache[slot] = {
+        abilityId = abilityId,
+        expiresAt = GetGameTimeSeconds() + BONEYARD_DURATION,
+        fixedDuration = true,
+    }
+end
+
+local function StartHauntingCurseTimer(slot, category, abilityId)
+    if not IsHauntingCurseAbility(abilityId) then return end
+
+    local categoryCache = SLOT_EFFECT_TIMER_CACHE[category]
+    if not categoryCache then
+        categoryCache = {}
+        SLOT_EFFECT_TIMER_CACHE[category] = categoryCache
+    end
+
+    categoryCache[slot] = {
+        abilityId = abilityId,
+        expiresAt = GetGameTimeSeconds() + HAUNTING_CURSE_DURATION,
+        fixedDuration = true,
+    }
+end
+
 local function GetSlotEffectRemaining(slot, category)
     if not GetActionSlotEffectDuration or not GetActionSlotEffectTimeRemaining then
         return nil
     end
 
+    local abilityId = GetAbilityForSlot(slot, category)
+    if not abilityId or abilityId <= 0 then
+        if SLOT_EFFECT_TIMER_CACHE[category] then
+            SLOT_EFFECT_TIMER_CACHE[category][slot] = nil
+        end
+        return nil
+    end
+
+    local now = GetGameTimeSeconds()
+    local categoryCache = SLOT_EFFECT_TIMER_CACHE[category]
+    if not categoryCache then
+        categoryCache = {}
+        SLOT_EFFECT_TIMER_CACHE[category] = categoryCache
+    end
+
+    local cached = categoryCache[slot]
+
+    -- Boneyard is tracked from the actual cast window and intentionally does
+    -- not inherit later buff extensions such as Nazaray. The cast event below
+    -- refreshes this exact 10s window whenever Boneyard is recast. Do this
+    -- BEFORE consulting the action-slot effect API so an extended buff can
+    -- never replace the hard 10s ground-effect timer.
+    if IsBoneyardAbility(abilityId) then
+        if cached
+            and cached.abilityId == abilityId
+            and cached.fixedDuration
+            and cached.expiresAt > now
+        then
+            return cached.expiresAt - now
+        end
+
+        categoryCache[slot] = nil
+        return nil
+    end
+
+    -- Haunting Curse is a two-hit mechanic with a 12-second full lifecycle.
+    -- Track that full player-useful window directly instead of allowing the
+    -- generic action-slot effect API to swap to an intermediate effect between
+    -- the first and second explosions.
+    if IsHauntingCurseAbility(abilityId) then
+        if cached
+            and cached.abilityId == abilityId
+            and cached.fixedDuration
+            and cached.expiresAt > now
+        then
+            return cached.expiresAt - now
+        end
+
+        categoryCache[slot] = nil
+        return nil
+    end
+
     local okDuration, durationMs = pcall(GetActionSlotEffectDuration, slot, category)
     local okRemain, remainMs = pcall(GetActionSlotEffectTimeRemaining, slot, category)
-    if not okDuration or not okRemain then return nil end
 
     durationMs = tonumber(durationMs) or 0
     remainMs = tonumber(remainMs) or 0
-    if durationMs <= 0 or remainMs <= 0 then return nil end
 
-    local duration = durationMs / 1000
-    local remain = remainMs / 1000
-    if remain > math.max(duration, 0.1) + 0.25 then return nil end
-    return remain
+    if okDuration and okRemain and durationMs > 0 and remainMs > 0 then
+        local duration = durationMs / 1000
+        local remain = remainMs / 1000
+        if remain <= math.max(duration, 0.1) + 0.25 then
+            categoryCache[slot] = {
+                abilityId = abilityId,
+                expiresAt = now + remain,
+            }
+            return remain
+        end
+    end
+
+    -- If ESO stopped reporting the effect but the same ability is still in the
+    -- slot and our last confirmed timer has not expired, continue counting down
+    -- from that previously observed expiration. A fresh ESO value always wins
+    -- and refreshes the cache above for normal skill timers.
+
+    if cached
+        and cached.abilityId == abilityId
+        and cached.expiresAt > now
+    then
+        return cached.expiresAt - now
+    end
+
+    categoryCache[slot] = nil
+    return nil
+end
+
+IsTentacularDreadAbility = function(abilityId)
+    -- Known current Tentacular Dread ability ID.
+    if abilityId == 185823 then
+        return true
+    end
+
+    if not abilityId or abilityId <= 0 or not GetAbilityName then
+        return false
+    end
+
+    local ok, name = pcall(GetAbilityName, abilityId)
+    if not ok or not name then
+        return false
+    end
+
+    name = zo_strlower(tostring(name))
+    return string.find(name, "tentacular dread", 1, true) ~= nil
+end
+
+local function IsCrystalFragmentsAbility(abilityId)
+    return abilityId == CRYSTAL_FRAGMENTS_ABILITY_ID
+end
+
+local function ReadCrystalFragmentsProcState()
+    for i = 1, GetNumBuffs("player") do
+        local _, _, _, _, _, _, _, _, _, _, buffAbilityId = GetUnitBuffInfo("player", i)
+        if buffAbilityId == CRYSTAL_FRAGMENTS_EFFECT_ID then
+            return true
+        end
+    end
+    return false
+end
+
+-- Forward declaration: Crystal Fragments glow refresh is defined before
+-- the shared glow renderer itself.
+local UpdateSlotGlow
+
+local function UpdateCrystalFragmentsGlowForBar(controls, category)
+    if not controls then return end
+
+    for slot = MIN_SLOT, MAX_SLOT do
+        local data = controls[slot]
+        if data and data.glow then
+            local abilityId = GetAbilityForSlot(slot, category)
+            if IsCrystalFragmentsAbility(abilityId) then
+                -- Crystal Fragments' proc is a shared player state. Refresh
+                -- both weapon bars immediately instead of waiting for a swap.
+                UpdateSlotGlow(data, slot, category, false, false)
+            end
+        end
+    end
+end
+
+GetCurrentCrux = function()
+    local liveStack = GetLivePlayerStack(CRUX_EFFECT_ID, CRUX_STACK_EFFECTS)
+    if liveStack ~= nil then
+        return liveStack
+    end
+
+    local entry = ActionBar.effectStacks[CRUX_EFFECT_ID]
+    if not entry then return 0 end
+
+    local now = GetGameTimeSeconds()
+    if entry.endTime and entry.endTime > 0 and entry.endTime <= now then
+        ActionBar.effectStacks[CRUX_EFFECT_ID] = nil
+        return 0
+    end
+
+    return tonumber(entry.stack) or 0
 end
 
 local function IsStackProcReady(abilityId)
+    -- Tentacular Dread becomes a GrimSuite ready-state glow at 3 Crux.
+    -- Crux remains an informational shared resource and is not displayed as
+    -- a stack counter on the Tentacular Dread icon.
+    if IsTentacularDreadAbility(abilityId) then
+        return GetCurrentCrux() >= 3
+    end
+
+    -- Crystal Fragments becomes ready when its hidden proc/passive effect is
+    -- active. This is a state-based proc, not a stack counter.
+    if IsCrystalFragmentsAbility(abilityId) then
+        return ActionBar.crystalFragmentsReady == true
+    end
+
     -- Fatecarver becomes ready to cast at 3 Crux. Crux is a shared resource,
     -- so it is handled separately from the normal per-ability stack map.
     if IsFatecarverAbility(abilityId) then
@@ -885,7 +2068,7 @@ local function IsSimmeringFrenzyAbility(abilityId)
         or string.find(name, "shimmering frenzy", 1, true) ~= nil
 end
 
-local function UpdateSlotGlow(data, slot, category, active, ultimateReady)
+UpdateSlotGlow = function(data, slot, category, active, ultimateReady)
     if not data or not data.glow then return end
     local abilityId = GetAbilityForSlot(slot, category)
     local procReady = abilityId > 0 and IsStackProcReady(abilityId)
@@ -905,6 +2088,23 @@ local function UpdateSlotGlow(data, slot, category, active, ultimateReady)
         data.glow:SetAlpha(ultimateReady and 1.0 or 0.95)
         if data.outerGlow then
             data.outerGlow:SetAlpha(ultimateReady and 0.75 or 0.58)
+        end
+    end
+end
+
+local function UpdateTentacularDreadGlowForBar(controls, category)
+    if not controls then return end
+
+    for slot = MIN_SLOT, MAX_SLOT do
+        local data = controls[slot]
+        if data and data.glow then
+            local abilityId = GetAbilityForSlot(slot, category)
+            if IsTentacularDreadAbility(abilityId) then
+                -- Crux is shared between weapon bars. Refresh Tentacular Dread
+                -- on inactive bars too, so the ready glow appears immediately
+                -- when the third Crux is gained instead of waiting for a bar swap.
+                UpdateSlotGlow(data, slot, category, false, false)
+            end
         end
     end
 end
@@ -1076,6 +2276,7 @@ local function UpdateEffectDisplays()
     -- Ultimate is a shared visual slot in GrimSuite. Its timer may come from
     -- either weapon bar, so render it only after checking both categories.
     UpdateUltimateTimerDisplay()
+    UpdateStackTracker()
 end
 
 local function UpdateActiveBarGlows()
@@ -1099,8 +2300,12 @@ local function UpdateActiveBarGlows()
         end
     end
 
-    -- Crux is shared between bars. Keep Fatecarver synchronized on the inactive
-    -- bar as well.
+    -- Crux is shared between bars. Keep both Crux-driven ready states
+    -- synchronized on inactive bars as well.
+    UpdateTentacularDreadGlowForBar(ActionBar.frontControls, HOTBAR_CATEGORY_PRIMARY)
+    UpdateTentacularDreadGlowForBar(ActionBar.backbarControls, HOTBAR_CATEGORY_BACKUP)
+    UpdateCrystalFragmentsGlowForBar(ActionBar.frontControls, HOTBAR_CATEGORY_PRIMARY)
+    UpdateCrystalFragmentsGlowForBar(ActionBar.backbarControls, HOTBAR_CATEGORY_BACKUP)
     UpdateFatecarverGlowForBar(ActionBar.frontControls, HOTBAR_CATEGORY_PRIMARY)
     UpdateFatecarverGlowForBar(ActionBar.backbarControls, HOTBAR_CATEGORY_BACKUP)
 
@@ -1125,6 +2330,17 @@ end
 local function TrackPlayerEffect(eventCode, change, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
     if unitTag ~= "player" then return end
     if not abilityId or abilityId <= 0 then return end
+
+    -- Crystal Fragments proc is a player-wide state. Track the hidden proc
+    -- directly and immediately refresh both bars.
+    if abilityId == CRYSTAL_FRAGMENTS_EFFECT_ID then
+        local active = change ~= EFFECT_RESULT_FADED
+            and (not endTime or endTime == 0 or endTime > GetGameTimeSeconds())
+        ActionBar.crystalFragmentsReady = active
+        UpdateCrystalFragmentsGlowForBar(ActionBar.frontControls, HOTBAR_CATEGORY_PRIMARY)
+        UpdateCrystalFragmentsGlowForBar(ActionBar.backbarControls, HOTBAR_CATEGORY_BACKUP)
+        return
+    end
 
     -- Crux is a shared player effect. Track it directly by its effect ID,
     -- rather than requiring Crux itself to be the slotted ability.
@@ -1184,6 +2400,8 @@ local function TrackPlayerEffect(eventCode, change, effectSlot, effectName, unit
         -- independent. A zero stack count means simply don't draw a counter.
         ActionBar.effectStacks[trackedEffectId or abilityId] = nil
     end
+
+    UpdateStackTracker()
 end
 
 local function ReconcilePlayerStacks()
@@ -1367,6 +2585,34 @@ local function LayoutDisplayButton(data, parent, x, size)
     data.pressed:SetAnchor(BOTTOMRIGHT, data.frame, BOTTOMRIGHT, -2, -2)
 end
 
+local function LayoutUtilityButton(data, parent, x, size)
+    if not data or not data.frame or not parent then return end
+
+    data.frame:SetDimensions(size, size)
+    data.frame:ClearAnchors()
+    data.frame:SetAnchor(TOPLEFT, parent, TOPLEFT, x, 0)
+
+    if data.icon then
+        data.icon:ClearAnchors()
+        data.icon:SetAnchor(TOPLEFT, data.frame, TOPLEFT, 2, 2)
+        data.icon:SetAnchor(BOTTOMRIGHT, data.frame, BOTTOMRIGHT, -2, -2)
+    end
+
+    if data.pressed then
+        data.pressed:ClearAnchors()
+        data.pressed:SetAnchor(TOPLEFT, data.frame, TOPLEFT, 2, 2)
+        data.pressed:SetAnchor(BOTTOMRIGHT, data.frame, BOTTOMRIGHT, -2, -2)
+    end
+
+    if data.count and data.count:GetName() == "GrimSuiteAB_PotionCount" then
+        data.count:ClearAnchors()
+        data.count:SetAnchor(TOP, data.frame, BOTTOM, 0, 0)
+        data.count:SetDimensions(size, 30)
+        data.count:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        data.count:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    end
+end
+
 local function ApplyGABCustomization()
     if not ActionBar.initialized then return end
 
@@ -1400,12 +2646,34 @@ local function ApplyGABCustomization()
 
     resizeControls(ActionBar.frontControls)
     resizeControls(ActionBar.backbarControls)
+
+    local potionSize = GetPotionSize()
+    if ActionBar.utilityRoot then
+        ActionBar.utilityRoot:SetDimensions(
+            potionSize + UTILITY_GAP + SLOT_SIZE + UTILITY_BAR_INDICATOR_GAP + UTILITY_BAR_INDICATOR_WIDTH,
+            potionSize
+        )
+    end
+    if ActionBar.utilityPotion and ActionBar.utilityPotion.frame then
+        LayoutUtilityButton(ActionBar.utilityPotion, ActionBar.utilityRoot, 0, potionSize)
+    end
+    if ActionBar.utilityWeaponSwap and ActionBar.utilityWeaponSwap.frame and ActionBar.utilityRoot then
+        ActionBar.utilityWeaponSwap.frame:ClearAnchors()
+        ActionBar.utilityWeaponSwap.frame:SetAnchor(
+            TOPLEFT,
+            ActionBar.utilityRoot,
+            TOPLEFT,
+            potionSize + UTILITY_GAP,
+            math.max(0, (potionSize - SLOT_SIZE) * 0.5)
+        )
+    end
+
     ApplyOverlayTextStyles()
     ActionBar:AnchorRows()
 
     local weaponSwap, potion = GetNativeActionBarControls()
     if weaponSwap then weaponSwap:SetScale(1) end
-    if potion then potion:SetScale(POTION_SIZE / SLOT_SIZE) end
+    if potion then potion:SetScale(potionSize / SLOT_SIZE) end
 
     ActionBar:Refresh()
 end
@@ -1427,10 +2695,11 @@ local function CenterOnThirdSlot()
     local desiredRootLeft = screenCenterX - slot5CenterOffset
     local referenceRight = nativeLayoutBase.weaponSwapRight or weaponSwap:GetRight()
 
-    -- positionX is the shared offset applied to the native anchor and the
-    -- GrimSuite bars.  Calculate it from the native control's original
-    -- position so the center button remains exact.
-    ActionBar.positionX = desiredRootLeft - referenceRight
+    -- The displayed rows start UTILITY_ACTIONBAR_TIGHTEN pixels left of
+    -- the native weapon-swap reference. Include that offset when converting
+    -- the desired third-slot center into the shared native-layout position.
+    -- This keeps the center of skill slot 3 exactly on screen center.
+    ActionBar.positionX = desiredRootLeft - referenceRight + UTILITY_ACTIONBAR_TIGHTEN
     SavePosition()
     ActionBar:AnchorRows()
 end
@@ -1443,7 +2712,7 @@ local function ResetPosition()
 end
 
 local GAB_SETTING_KEYS = {
-    "iconSize", "slotGap", "rowGap",
+    "iconSize", "potionSize", "slotGap", "rowGap",
     "backbarOpacity", "backbarDesaturation",
     "showUltimate", "showQuickslot", "showWeaponSwap",
     "timerSize", "stackSize", "timerFont", "stackFont",
@@ -1508,6 +2777,18 @@ local function RegisterLibAddonMenu()
         },
         {
             type = "slider",
+            name = "Potion Size",
+            tooltip = "Changes the size of the GrimSuite potion icon independently from the action-bar skill icons.",
+            min = 40, max = 100, step = 1,
+            getFunc = function() return GetPotionSize() end,
+            setFunc = function(value)
+                SaveGABSetting("potionSize", tonumber(value) or POSITION_DEFAULTS.potionSize)
+                ApplyGABCustomization()
+            end,
+            default = POSITION_DEFAULTS.potionSize,
+        },
+        {
+            type = "slider",
             name = "Icon Spacing",
             tooltip = "Horizontal spacing between skill icons.",
             min = 0, max = 20, step = 1,
@@ -1556,7 +2837,11 @@ local function RegisterLibAddonMenu()
         },
         {
             type = "header",
-            name = "Timer & Stack Text",
+            name = "Cooldown Timer Text",
+        },
+        {
+            type = "description",
+            text = "These settings control the text shown for cooldown and effect timers. The Action Bar preview shows live test numbers.",
         },
         {
             type = "slider",
@@ -1610,7 +2895,7 @@ local function RegisterLibAddonMenu()
             type = "dropdown",
             name = "Timer Outline",
             tooltip = "Outline style used for cooldown/effect timer text.",
-            choices = { "none", "outline", "thick-outline", "soft-shadow-thick-outline", "shadow" },
+            choices = { "none", "outline", "outline", "soft-shadow-thick", "shadow" },
             getFunc = function() return ActionBar.timerOutline end,
             setFunc = function(value)
                 SaveGABSetting("timerOutline", tostring(value))
@@ -1619,8 +2904,16 @@ local function RegisterLibAddonMenu()
             default = POSITION_DEFAULTS.timerOutline,
         },
         {
+            type = "header",
+            name = "Stack Count Text",
+        },
+        {
+            type = "description",
+            text = "These settings control stack-count text on skills that track stacks. A sample stack count is shown in the Action Bar preview.",
+        },
+        {
             type = "slider",
-            name = "Stack Horizontal Position",
+            name = "Stack Count Horizontal Position",
             tooltip = "Moves stack-count text left or right relative to the center of its icon.",
             min = -20, max = 20, step = 1,
             getFunc = function() return tonumber(ActionBar.stackOffsetX) or POSITION_DEFAULTS.stackOffsetX end,
@@ -1632,7 +2925,7 @@ local function RegisterLibAddonMenu()
         },
         {
             type = "slider",
-            name = "Stack Vertical Position",
+            name = "Stack Count Vertical Position",
             tooltip = "Moves stack-count text up or down relative to the center of its icon.",
             min = -20, max = 20, step = 1,
             getFunc = function() return tonumber(ActionBar.stackOffsetY) or POSITION_DEFAULTS.stackOffsetY end,
@@ -1644,8 +2937,8 @@ local function RegisterLibAddonMenu()
         },
         {
             type = "slider",
-            name = "Stack Size",
-            tooltip = "Changes the size of stack-count text on skill slots.",
+            name = "Stack Count Size",
+            tooltip = "Changes the size of stack-count text displayed on abilities with stack counts.",
             min = 10, max = 80, step = 1,
             getFunc = function() return tonumber(ActionBar.stackSize) or POSITION_DEFAULTS.stackSize end,
             setFunc = function(value)
@@ -1656,8 +2949,8 @@ local function RegisterLibAddonMenu()
         },
         {
             type = "dropdown",
-            name = "Stack Font",
-            tooltip = "Font used for stack-count text.",
+            name = "Stack Count Font",
+            tooltip = "Font used for stack-count text displayed on abilities with stack counts.",
             choices = { "Univers 67", "Univers 57", "ProseAntique", "Trajan Pro", "Skyrim Handwritten", "Futura Condensed Light", "Futura Condensed", "Futura Condensed Bold" },
             getFunc = function() return ActionBar.stackFont end,
             setFunc = function(value)
@@ -1668,9 +2961,9 @@ local function RegisterLibAddonMenu()
         },
         {
             type = "dropdown",
-            name = "Stack Outline",
-            tooltip = "Outline style used for stack-count text.",
-            choices = { "none", "outline", "thick-outline", "soft-shadow-thick-outline", "shadow" },
+            name = "Stack Count Outline",
+            tooltip = "Outline style used for stack-count text displayed on abilities with stack counts.",
+            choices = { "none", "outline", "outline", "soft-shadow-thick", "shadow" },
             getFunc = function() return ActionBar.stackOutline end,
             setFunc = function(value)
                 SaveGABSetting("stackOutline", tostring(value))
@@ -1749,18 +3042,218 @@ local function RegisterLibAddonMenu()
         },
     }
 
+    local stackTrackerPanelName = GS.name .. "_StackTracker_Settings"
+    local stackTrackerPanelData = {
+        type = "panel",
+        name = "GrimSuite Stack Tracker",
+        displayName = "GrimSuite Stack Tracker",
+        author = "@GrimGrin94",
+        version = GS.version,
+        registerForRefresh = true,
+        registerForDefaults = true,
+    }
+
+    local stackTrackerOptions = {
+        {
+            type = "header",
+            name = "Stack Tracker",
+        },
+        {
+            type = "checkbox",
+            name = "Show Stack Tracker",
+            tooltip = "Enable the standalone Stack Tracker system.",
+            getFunc = function()
+                return ActionBar.showStackTracker == true
+            end,
+            setFunc = function(value)
+                SaveStackTrackerSetting("showStackTracker", value == true)
+                UpdateStackTracker()
+            end,
+            default = STACK_TRACKER_DEFAULTS.showStackTracker,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Unlock Stack Tracker",
+            tooltip = "When enabled, drag any visible stack tracker with left click to move that tracker independently.",
+            getFunc = function()
+                return ActionBar.stackTrackerUnlocked == true
+            end,
+            setFunc = function(value)
+                ActionBar.stackTrackerUnlocked = value == true
+                if stackTrackerSV then
+                    stackTrackerSV.unlocked = ActionBar.stackTrackerUnlocked
+                end
+                UpdateStackTrackerDragEnabled(ActionBar.stackTrackerUnlocked)
+            end,
+            default = STACK_TRACKER_DEFAULTS.unlocked,
+            width = "full",
+        },
+        {
+            type = "slider",
+            name = "Icon Size",
+            tooltip = "Changes the icon size for all Stack Tracker entries.",
+            min = STACK_TRACKER_MIN_ICON_SIZE,
+            max = STACK_TRACKER_MAX_ICON_SIZE,
+            step = 1,
+            getFunc = function() return GetStackTrackerIconSize() end,
+            setFunc = function(value)
+                local size = tonumber(value) or STACK_TRACKER_DEFAULTS.iconSize
+                ActionBar.stackTrackerIconSize = size
+                if stackTrackerSV then
+                    stackTrackerSV.iconSize = size
+                end
+                ApplyStackTrackerAppearance()
+                UpdateStackTracker()
+            end,
+            default = STACK_TRACKER_DEFAULTS.iconSize,
+        },
+        {
+            type = "slider",
+            name = "Text Size",
+            tooltip = "Changes the stack-count text size for all Stack Tracker entries.",
+            min = STACK_TRACKER_MIN_TEXT_SIZE,
+            max = STACK_TRACKER_MAX_TEXT_SIZE,
+            step = 1,
+            getFunc = function() return GetStackTrackerTextSize() end,
+            setFunc = function(value)
+                local size = tonumber(value) or STACK_TRACKER_DEFAULTS.textSize
+                ActionBar.stackTrackerTextSize = size
+                if stackTrackerSV then
+                    stackTrackerSV.textSize = size
+                end
+                ApplyStackTrackerAppearance()
+                UpdateStackTracker()
+            end,
+            default = STACK_TRACKER_DEFAULTS.textSize,
+        },
+        {
+            type = "description",
+            text = "Each tracker keeps its own position. Enable Unlock Stack Tracker, then drag the individual tracker you want to move.",
+        },
+        {
+            type = "header",
+            name = "Bound Armaments",
+        },
+        {
+            type = "checkbox",
+            name = "Show Bound Armaments",
+            tooltip = "Show the Bound Armaments stack tracker when the ability is slotted on either weapon bar.",
+            getFunc = function() return ActionBar.showBoundArmaments == true end,
+            setFunc = function(value)
+                SaveStackTrackerSetting("showBoundArmaments", value == true)
+                UpdateStackTracker()
+            end,
+            default = STACK_TRACKER_DEFAULTS.showBoundArmaments,
+            width = "full",
+        },
+        {
+            type = "header",
+            name = "Crux",
+        },
+        {
+            type = "checkbox",
+            name = "Show Crux",
+            tooltip = "Show the Crux tracker when a Crux-consuming ability is slotted on either weapon bar.",
+            getFunc = function() return ActionBar.showCrux == true end,
+            setFunc = function(value)
+                SaveStackTrackerSetting("showCrux", value == true)
+                UpdateStackTracker()
+            end,
+            default = STACK_TRACKER_DEFAULTS.showCrux,
+            width = "full",
+        },
+        {
+            type = "header",
+            name = "Nightblade Bow",
+        },
+        {
+            type = "checkbox",
+            name = "Show Nightblade Bow",
+            tooltip = "Show the Nightblade spectral-bow stack tracker when Grim Focus, Merciless Resolve, or Relentless Focus is slotted.",
+            getFunc = function() return ActionBar.showBow == true end,
+            setFunc = function(value)
+                SaveStackTrackerSetting("showBow", value == true)
+                UpdateStackTracker()
+            end,
+            default = STACK_TRACKER_DEFAULTS.showBow,
+            width = "full",
+        },
+        {
+            type = "button",
+            name = "Reset Stack Tracker Positions",
+            tooltip = "Restore the default position of Bound Armaments, Crux, and Nightblade Bow.",
+            func = ResetStackTrackerPositions,
+            width = "half",
+        },
+    }
+
     LAM:RegisterAddonPanel(panelName, panelData)
     LAM:RegisterOptionControls(panelName, options)
+    LAM:RegisterAddonPanel(stackTrackerPanelName, stackTrackerPanelData)
+    LAM:RegisterOptionControls(stackTrackerPanelName, stackTrackerOptions)
+
+    if CALLBACK_MANAGER and not ActionBar.settingsPreviewCallbacksRegistered then
+        ActionBar.settingsPreviewCallbacksRegistered = true
+
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+            local openedName = panel and panel:GetName()
+            ActionBar:SetSettingsPreviewVisible(openedName == panelName)
+        end)
+
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
+            local closedName = panel and panel:GetName()
+            if closedName == panelName then
+                ActionBar:SetSettingsPreviewVisible(false)
+            end
+        end)
+    end
 end
 
 function ActionBar:SetHUDVisible(visible)
     visible = visible == true
+    self.hudVisible = visible
+    self.stackTrackerHUDVisible = visible
+
+    local shouldShowBars = (visible or self.settingsPreviewVisible) and self.showFrames
 
     if self.frontRoot then
-        self.frontRoot:SetHidden(not (visible and self.showFrames))
+        self.frontRoot:SetHidden(not shouldShowBars)
     end
     if self.backbarRoot then
-        self.backbarRoot:SetHidden(not (visible and self.showFrames))
+        self.backbarRoot:SetHidden(not shouldShowBars)
+    end
+
+    -- Utility controls follow the same rule as the Action Bar settings preview:
+    -- visible on the live HUD, and visible while specifically previewing the
+    -- GrimSuite Action Bar settings panel.
+    if self.utilityRoot then
+        self.utilityRoot:SetHidden(not (visible or self.settingsPreviewVisible))
+    end
+
+    UpdateStackTracker()
+end
+
+function ActionBar:SetSettingsPreviewVisible(visible)
+    self.settingsPreviewVisible = visible == true
+
+    local hudVisible = self.hudVisible ~= false
+    local shouldShowBars = (hudVisible or self.settingsPreviewVisible) and self.showFrames
+
+    if self.frontRoot then
+        self.frontRoot:SetHidden(not shouldShowBars)
+    end
+    if self.backbarRoot then
+        self.backbarRoot:SetHidden(not shouldShowBars)
+    end
+
+    if self.utilityRoot then
+        self.utilityRoot:SetHidden(not (hudVisible or self.settingsPreviewVisible))
+    end
+
+    if self.settingsPreviewVisible then
+        ApplyOverlayTextStyles()
+        UpdateSettingsPreviewTimers()
     end
 end
 
@@ -1787,7 +3280,13 @@ function ActionBar:Refresh()
     -- suppress native visuals AFTER the sync/paint pass, just like a final
     -- presentation step.
     self:UpdateNativeVisualSuppression()
+    UpdateUtilityControls()
     UpdateEffectDisplays()
+    UpdateStackTracker()
+
+    -- Settings preview is intentionally layered over the normal paint pass so
+    -- test timers remain visible while changing fonts/sizes/offsets in LAM.
+    UpdateSettingsPreviewTimers()
 end
 
 function ActionBar:Initialize()
@@ -1806,6 +3305,7 @@ function ActionBar:Initialize()
     self.positionUnlocked = positionSV.unlocked == true
 
     self.iconSize = tonumber(positionSV.iconSize) or POSITION_DEFAULTS.iconSize
+    self.potionSize = tonumber(positionSV.potionSize) or POSITION_DEFAULTS.potionSize
     self.slotGap = tonumber(positionSV.slotGap) or POSITION_DEFAULTS.slotGap
     self.rowGap = tonumber(positionSV.rowGap) or POSITION_DEFAULTS.rowGap
     self.backbarOpacity = tonumber(positionSV.backbarOpacity) or POSITION_DEFAULTS.backbarOpacity
@@ -1819,10 +3319,60 @@ function ActionBar:Initialize()
     self.stackFont = tostring(positionSV.stackFont or POSITION_DEFAULTS.stackFont)
     self.timerOutline = tostring(positionSV.timerOutline or POSITION_DEFAULTS.timerOutline)
     self.stackOutline = tostring(positionSV.stackOutline or POSITION_DEFAULTS.stackOutline)
+
+    -- Migrate the pre-fix UI label/value to ESO's actual supported modifier.
+    -- The old "soft-shadow-thick-outline" token was invalid; ESO expects
+    -- "soft-shadow-thick".
+    if self.timerOutline == "soft-shadow-thick-outline" then
+        self.timerOutline = "soft-shadow-thick"
+        positionSV.timerOutline = self.timerOutline
+    end
+    if self.stackOutline == "soft-shadow-thick-outline" then
+        self.stackOutline = "soft-shadow-thick"
+        positionSV.stackOutline = self.stackOutline
+    end
+    -- Migrate the removed Thick Outline option to the remaining Outline style.
+    if self.timerOutline == "thick-outline" then
+        self.timerOutline = "outline"
+        positionSV.timerOutline = self.timerOutline
+    end
+    if self.stackOutline == "thick-outline" then
+        self.stackOutline = "outline"
+        positionSV.stackOutline = self.stackOutline
+    end
     self.timerOffsetX = tonumber(positionSV.timerOffsetX) or POSITION_DEFAULTS.timerOffsetX
     self.timerOffsetY = tonumber(positionSV.timerOffsetY) or POSITION_DEFAULTS.timerOffsetY
     self.stackOffsetX = tonumber(positionSV.stackOffsetX) or POSITION_DEFAULTS.stackOffsetX
     self.stackOffsetY = tonumber(positionSV.stackOffsetY) or POSITION_DEFAULTS.stackOffsetY
+
+    if not stackTrackerSV then
+        stackTrackerSV = ZO_SavedVars:NewAccountWide(
+            STACK_TRACKER_SV_NAME,
+            STACK_TRACKER_SV_VERSION,
+            nil,
+            STACK_TRACKER_DEFAULTS
+        )
+    end
+
+    self.showStackTracker = stackTrackerSV.showStackTracker ~= false
+    self.stackTrackerUnlocked = stackTrackerSV.unlocked == true
+    self.stackTrackerIconSize = tonumber(stackTrackerSV.iconSize) or STACK_TRACKER_DEFAULTS.iconSize
+    self.stackTrackerTextSize = tonumber(stackTrackerSV.textSize) or STACK_TRACKER_DEFAULTS.textSize
+    self.showBoundArmaments = stackTrackerSV.showBoundArmaments ~= false
+    self.showCrux = stackTrackerSV.showCrux ~= false
+    self.showBow = stackTrackerSV.showBow ~= false
+    self.boundArmamentsX = tonumber(stackTrackerSV.boundArmamentsX) or STACK_TRACKER_DEFAULTS.boundArmamentsX
+    self.boundArmamentsY = tonumber(stackTrackerSV.boundArmamentsY) or STACK_TRACKER_DEFAULTS.boundArmamentsY
+    self.cruxX = tonumber(stackTrackerSV.cruxX) or STACK_TRACKER_DEFAULTS.cruxX
+    self.cruxY = tonumber(stackTrackerSV.cruxY) or STACK_TRACKER_DEFAULTS.cruxY
+    self.bowX = tonumber(stackTrackerSV.bowX) or STACK_TRACKER_DEFAULTS.bowX
+    self.bowY = tonumber(stackTrackerSV.bowY) or STACK_TRACKER_DEFAULTS.bowY
+    self.stackTrackerHUDVisible = true
+
+    CreateStackTracker()
+    ApplyStackTrackerAppearance()
+    UpdateStackTrackerDragEnabled(self.stackTrackerUnlocked)
+    UpdateStackTracker()
 
     RegisterLibAddonMenu()
     SetDragEnabled(self.positionUnlocked)
@@ -1881,8 +3431,37 @@ function ActionBar:Initialize()
             self:UpdateRow(self.frontControls, HOTBAR_CATEGORY_PRIMARY, currentCategory == HOTBAR_CATEGORY_PRIMARY)
             self:UpdateRow(self.backbarControls, HOTBAR_CATEGORY_BACKUP, currentCategory == HOTBAR_CATEGORY_BACKUP)
             self:UpdateNativeVisualSuppression()
+            UpdateUtilityControls()
         end, 0)
     end)
+
+    -- Quickslot is no longer part of the normal action-slot update event.
+    -- Keep the GrimSuite-owned potion presentation synchronized with ESO's
+    -- dedicated quickslot events instead.
+    if EVENT_ACTIVE_QUICKSLOT_CHANGED then
+        EM:RegisterForEvent(GS.name .. "_AB_UtilityQuickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
+            if not self.initialized then return end
+            UpdateUtilityControls()
+            self:UpdateNativeVisualSuppression()
+        end)
+    end
+
+    if EVENT_ACTION_UPDATE_COOLDOWNS then
+        EM:RegisterForEvent(GS.name .. "_AB_UtilityCooldowns", EVENT_ACTION_UPDATE_COOLDOWNS, function()
+            if not self.initialized then return end
+            UpdateUtilityControls()
+        end)
+    end
+
+    -- Inventory changes can alter the quickslot count/usable state without
+    -- changing which quickslot is selected.
+    local function RefreshUtilityInventory()
+        if not self.initialized then return end
+        UpdateUtilityControls()
+    end
+    EM:RegisterForEvent(GS.name .. "_AB_UtilityInventoryFull", EVENT_INVENTORY_FULL_UPDATE, RefreshUtilityInventory)
+    EM:RegisterForEvent(GS.name .. "_AB_UtilityInventorySingle", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, RefreshUtilityInventory)
+    EM:RegisterForEvent(GS.name .. "_AB_UtilityItemSlotChanged", EVENT_ITEM_SLOT_CHANGED, RefreshUtilityInventory)
 
     -- Some setup/loadout systems can update both hotbars without changing the
     -- active-hotbar state. This event is the explicit all-bars assignment
@@ -1903,6 +3482,10 @@ function ActionBar:Initialize()
         if slot < MIN_SLOT or slot > ULT_SLOT then return end
 
         local category = GetActiveHotbarCategory()
+        local abilityId = GetAbilityForSlot(slot, category)
+        StartBoneyardTimer(slot, category, abilityId)
+        StartHauntingCurseTimer(slot, category, abilityId)
+
         local controls = category == HOTBAR_CATEGORY_PRIMARY and self.frontControls or self.backbarControls
         local data = controls and controls[slot]
         if data then
@@ -1945,24 +3528,16 @@ function ActionBar:Initialize()
 
     -- Player effect changes provide stack counts. We deliberately only retain
     -- effects whose ability is actually slotted on one of GrimSuite's bars.
+    ActionBar.crystalFragmentsReady = ReadCrystalFragmentsProcState()
     EM:RegisterForEvent(GS.name .. "_AB_Effects", EVENT_EFFECT_CHANGED, TrackPlayerEffect)
 
     -- Action-slot effects are the authoritative source for timers. Update at
     -- a modest rate so the text moves smoothly without rebuilding the bars.
     EM:RegisterForUpdate(GS.name .. "_AB_EffectDisplay", 100, function()
         if self.initialized then
-            ReconcilePlayerStacks()
             ReconcileBannerState()
             UpdateEffectDisplays()
             UpdateActiveBarGlows()
-        end
-    end)
-
-    -- ESO can repaint native action-button visuals during weapon swaps. Keep
-    -- the real controls available for input while suppressing their visuals.
-    EM:RegisterForUpdate(GS.name .. "_AB_NativeSuppress", 16, function()
-        if self.initialized then
-            self:UpdateNativeVisualSuppression()
         end
     end)
 

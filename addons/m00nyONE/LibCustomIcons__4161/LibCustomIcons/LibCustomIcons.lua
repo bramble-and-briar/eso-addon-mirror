@@ -5,7 +5,7 @@
 --- @class LibCustomIcons
 local lib = {
     name = "LibCustomIcons",
-    version = "2026-09-21",
+    version = "2026-09-28",
     author = "@m00nyONE",
 }
 

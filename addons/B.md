@@ -104,7 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Blocking Time - Time Spend Blocking During Combat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Blocking-Time---Time-Spend-Blocking-During-Combat__4191) | Duesentrieb | PC / Mac | 20260220-0002 |
 | [Blood & Treasure](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XLS/Blood-Treasure__2479) | XLS | PC / Mac | 2.0 |
 | [Blood & Treasure (RU)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeadMoroz/Blood-Treasure-RU__2988) | DeadMoroz | PC / Mac | 1.0 |
-| [Blood Hunger Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Blood-Hunger-Tracker__4760) | Irreverend | PC / Mac | 1.0.4 |
+| [Blood Hunger Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Blood-Hunger-Tracker__4760) | Irreverend | PC / Mac | 1.0.5 |
 | [BloodSight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/iamR1K3R/BloodSight__4546) | iamR1K3R | PC / Mac | 1.2.3 |
 | [Bloody Screen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Bloody-Screen__717) | Garkin | PC / Mac | 0.3 |
 | [Bloom HPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Bloom-HPS__adeb7cae-c7d2-4f05-9f6b-398235624c33) | Vixen_Hunny | Console | — |

@@ -234,7 +234,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CP Veterancy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/CP-Veterancy__7f8752f5-11f4-4e26-a26b-fc0ee813d8e1) | clubwratt | Console | — |
 | [CPSlotsConsole](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/CPSlotsConsole__2fe8e45f-ebf9-4507-b981-91023b441f3e) | thewizadt | Console | — |
 | [CPViewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/CPViewer__4294) | Konten | PC / Mac | 1.0.1 |
-| [CQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Calamath/CQuestTracker__3276) | Calamath | PC / Mac | 2.2.7-2 |
+| [CQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Calamath/CQuestTracker__3276) | Calamath | PC / Mac | 2.2.8 |
 | [Craft Bag Balancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Botch_00/Craft-Bag-Balancer__4567) | Botch_00 | PC / Mac | 1.4 |
 | [Craft Bag Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Craft-Bag-Extended__1419) | silvereyes | PC / Mac | 3.0.13 |
 | [Craft Bag Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/autocatalyst/Craft-Bag-Keybind__2474) | autocatalyst | PC / Mac | 1.0.5 |
@@ -277,7 +277,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrownCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/triase/CrownCustomizer__1548) | triase | PC / Mac | 1.0.5 |
 | [CroZone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Obijovi/CroZone__4641) | Obijovi | PC / Mac | 1.1.0 |
 | [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__21f0cc83-5ba3-4776-ac75-a5a266fde574) | Kyzeragon | Console | — |
-| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.26.0 |
+| [CrutchAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts__3137) | Kyzeragon | PC / Mac | 2.27.0 |
 | [CrutchAlerts Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts-Extensions__4693) | Kyzeragon | PC / Mac | 0.3.0 |
 | [CrutchAlerts-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/CrutchAlerts-KR__4517) | Ricci Curvature | PC / Mac | 1.0.0 |
 | [Crux Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Crux-Counter__3639) | g4rr3t | PC / Mac | 1.3.0 |
@@ -313,7 +313,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CustomKillFeed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/CustomKillFeed__3770) | Masteroshi430 | PC / Mac | 2026.07.06 |
 | [Cute Zodiac Icons - icon pack for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/def-venom/Cute-Zodiac-Icons---icon-pack-for-OdySupportIcons__3400) | def venom | PC / Mac | 1.001 |
 | [Cutthroat's Focus/MAJOR VULNERABILITY Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Cutthroat-s-Focus-MAJOR-VULNERABILITY-Tracker__4820) | its_wifey | PC / Mac | 1.4 |
-| [CyrHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sasky/CyrHUD__559) | Sasky | PC / Mac | 2026.07.20 |
+| [CyrHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sasky/CyrHUD__559) | Sasky | PC / Mac | 2026.09.26 |
 | [Cyrillic Chat Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Revived-AddOns/Cyrillic-Chat-Filter__2328) | Revived AddOns | PC / Mac | 5 |
 | [Cyro Quest Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scobster007/Cyro-Quest-Manager__4208) | scobster007 | PC / Mac | 2.1 |
 | [CyroChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/CyroChat__1938) | aldericon | PC / Mac | 11.0 |

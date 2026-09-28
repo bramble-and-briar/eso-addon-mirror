@@ -125,6 +125,7 @@ local LEAP_IDS = {
 -- be set if it's within 3 seconds of the previous update. This is because
 -- both titans jump at different times, to not refresh the timer
 local lastLeap = 0
+local LEAP_PREFIX = zo_strformat("|cfff1ab<<C:1>>: ", GetAbilityName(233453))
 local function CountDownLeap(durationMs, preventOverwrite)
     local currTime = GetGameTimeMilliseconds()
     if (preventOverwrite and currTime - lastLeap < 3000) then
@@ -134,12 +135,13 @@ local function CountDownLeap(durationMs, preventOverwrite)
     lastLeap = currTime
 
     if (Crutch.savedOptions.osseincage.panel.showLeap) then
-        Crutch.InfoPanel.CountDownDuration(PANEL_LEAP_INDEX, "|cfff1ab" .. GetAbilityName(233453) .. ": ", durationMs)
+        Crutch.InfoPanel.CountDownDuration(PANEL_LEAP_INDEX, LEAP_PREFIX, durationMs)
     end
 end
 
 local firstLeap = true -- Used to do initial leap timer
 local numClashes = 0
+local CLASH_PREFIX = zo_strformat("|cff6600<<C:1>>: ", GetAbilityName(232517))
 -- 36.906, 38.246, 36.941, 36.819, 38.268, 38.263, 36.899
 -- 36.6, 36.56, 37.9, 36.9, 36.58, 37.84, 36.9, 36.5
 local function OnClashBegin()
@@ -150,7 +152,7 @@ local function OnClashBegin()
     Crutch.InfoPanel.StopCount(PANEL_LEAP_INDEX)
 
     if (Crutch.savedOptions.osseincage.panel.showClash) then
-        Crutch.InfoPanel.CountDownHardStop(PANEL_CLASH_INDEX, "|cff6600" .. GetAbilityName(232517) .. ": ", 36500, true)
+        Crutch.InfoPanel.CountDownHardStop(PANEL_CLASH_INDEX, CLASH_PREFIX, 36500, true)
     end
 end
 
@@ -442,20 +444,24 @@ end
 local PANEL_ENFEEBLEMENT_INDEX = 7
 local BLAZING_MALEDICTION_ID = 234284
 local SPARKING_MALEDICTION_ID = 234011
+local SEARING_BLAZE_ID = 234277
+local SEARING_SPARKS_ID = 234002
 
 local shouldTargetJynorah = nil
 
 -- Initial curse
-local function OnMaledictionGainedSelf(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
-    shouldTargetJynorah = (abilityId == SPARKING_MALEDICTION_ID) -- do the opposite here initially, because timeout will swap it
+local function OnCurseDamageSelf(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
+    -- If player is initially on Jynorah, they will get blue curse (sparks)
+    shouldTargetJynorah = (abilityId == SEARING_SPARKS_ID) -- timeout will swap it
     Crutch.dbgOther("initialized shouldTargetJynorah " .. tostring(shouldTargetJynorah))
-    Crutch.UnregisterForCombatEvent("SparkingMaledictionInfoPanelSelf")
-    Crutch.UnregisterForCombatEvent("BlazingMaledictionInfoPanelSelf")
+    Crutch.UnregisterForCombatEvent("SearingSparksInfoPanelSelf")
+    Crutch.UnregisterForCombatEvent("SearingBlazeInfoPanelSelf")
 end
 
 -- The player may not be guaranteed to get a curse themselves, so listen for all and debounce
 local function OnMaledictionTimeout()
     EVENT_MANAGER:UnregisterForUpdate(Crutch.name .. "MaledictionTimeout")
+    Crutch.dbgOther("OnMaledictionTimeout")
 
     zo_callLater(function()
         if (not Crutch.groupInCombat) then return end
@@ -477,6 +483,7 @@ local function OnMaledictionTimeout()
 end
 
 local function OnMaledictionGained(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
+    Crutch.dbgOther("OnMaledictionGained")
     EVENT_MANAGER:RegisterForUpdate(Crutch.name .. "MaledictionTimeout", 500, OnMaledictionTimeout)
 end
 
@@ -640,14 +647,14 @@ local function MaybeRegisterTwins()
     -- Info panel target / portal
     if (Crutch.savedOptions.osseincage.panel.showTarget and IsHM() and GetSelectedLFGRole() ~= LFG_ROLE_TANK) then
         Crutch.RegisterForCombatEvent("SparkingMaledictionInfoPanel", OnMaledictionGained, ACTION_RESULT_EFFECT_GAINED, SPARKING_MALEDICTION_ID)
-        Crutch.RegisterForCombatEvent("SparkingMaledictionInfoPanelSelf", OnMaledictionGainedSelf, ACTION_RESULT_EFFECT_GAINED, SPARKING_MALEDICTION_ID, nil, COMBAT_UNIT_TYPE_PLAYER)
+        Crutch.RegisterForCombatEvent("SearingSparksInfoPanelSelf", OnCurseDamageSelf, ACTION_RESULT_DAMAGE, SEARING_SPARKS_ID, nil, COMBAT_UNIT_TYPE_PLAYER)
         Crutch.RegisterForCombatEvent("BlazingMaledictionInfoPanel", OnMaledictionGained, ACTION_RESULT_EFFECT_GAINED, BLAZING_MALEDICTION_ID)
-        Crutch.RegisterForCombatEvent("BlazingMaledictionInfoPanelSelf", OnMaledictionGainedSelf, ACTION_RESULT_EFFECT_GAINED, BLAZING_MALEDICTION_ID, nil, COMBAT_UNIT_TYPE_PLAYER)
+        Crutch.RegisterForCombatEvent("SearingBlazeInfoPanelSelf", OnCurseDamageSelf, ACTION_RESULT_DAMAGE, SEARING_BLAZE_ID, nil, COMBAT_UNIT_TYPE_PLAYER)
     else
         Crutch.UnregisterForCombatEvent("SparkingMaledictionInfoPanel")
-        Crutch.UnregisterForCombatEvent("SparkingMaledictionInfoPanelSelf")
+        Crutch.UnregisterForCombatEvent("SearingSparksInfoPanelSelf")
         Crutch.UnregisterForCombatEvent("BlazingMaledictionInfoPanel")
-        Crutch.UnregisterForCombatEvent("BlazingMaledictionInfoPanelSelf")
+        Crutch.UnregisterForCombatEvent("SearingBlazeInfoPanelSelf")
     end
 
     -- Reflective Scales
@@ -656,7 +663,7 @@ local function MaybeRegisterTwins()
         if (IsHM() and Crutch.savedOptions.osseincage.printHMReflectiveScales) then
             Crutch.RegisterForCombatEvent("OCTitanReflect" .. tostring(damageResult), function(_, _, _, _, _, _, _, sourceType, _, _, _, _, _, _, _, targetUnitId, abilityId)
                 if (sourceType == COMBAT_UNIT_TYPE_PLAYER and titanIds[targetUnitId]) then
-                    Crutch.msg(string.format("You hit %s with |cFF00FF%s|r%s", titanIds[targetUnitId], GetAbilityName(abilityId), str))
+                    Crutch.msg(zo_strformat("You hit <<1>> with |cFF00FF<<C:2>>|r<<3>>", titanIds[targetUnitId], GetAbilityName(abilityId), str))
                 end
             end, damageResult, nil, nil, COMBAT_UNIT_TYPE_NONE)
         else

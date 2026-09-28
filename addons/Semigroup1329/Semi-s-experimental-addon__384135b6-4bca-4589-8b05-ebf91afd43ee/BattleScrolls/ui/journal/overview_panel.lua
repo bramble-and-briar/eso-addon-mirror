@@ -51,6 +51,14 @@ local layoutHandlers = {
         panel:SetQ4Hidden(true)
         panel:SetQ2Width(700)
     end,
+    ["reading"] = function(panel)
+        -- One readable text column, using the existing right-stick scroll area.
+        local width = math.min(900, panel.control:GetWidth() - PANE_INSET_LEFT - PANE_INSET_RIGHT)
+        panel:SetQ4Hidden(true)
+        panel:SetQ3Hidden(true)
+        panel:SetQ2Width(width)
+        panel.control:SetWidth(PANE_INSET_LEFT + width + PANE_INSET_RIGHT)
+    end,
 }
 
 -------------------------
@@ -286,4 +294,3 @@ function OverviewPanel:Render(spec)
     end):Run()
     thisFiber = self.fiber
 end
-

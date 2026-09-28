@@ -57,7 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rare Fish Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Rare-Fish-Tracker__8dc100fb-6c43-4ea7-ba01-1a23d306e216) | votan73 | Console | — |
 | [Rare Fish Tracker jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Rare-Fish-Tracker-jpFix__1402) | 2ch | PC / Mac | 1.23.1 |
 | [ratpins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ratfinx/ratpins__2696) | ratfinx | PC / Mac | 1 |
-| [Ravalox' Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Ravalox-Quest-Tracker__13) | calia1120 | PC / Mac | 3.8.3.2 |
+| [Ravalox' Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Ravalox-Quest-Tracker__13) | calia1120 | PC / Mac | 3.8.3.3 |
 | [ravSpeed (updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/shira/ravSpeed-updated__2840) | shira | PC / Mac | 1.3.1 |
 | [RAWR Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheYcUtS/RAWR-Guild-Hall__2930) | TheYcUtS | PC / Mac | 1.2 |
 | [RawrGuildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/RawrGuildhall__3362) | sityDJVEN25 | PC / Mac | 1.0 |

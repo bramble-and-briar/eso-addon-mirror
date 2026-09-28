@@ -53,7 +53,8 @@ LibNotify.addons = {
 ["wardTracker"] = true,
 ["warHornTracker"] = true,
 ["warmaskTracker"] = true,
-["wretchedVitalityTracker"] = true
+["wretchedVitalityTracker"] = true,
+["atronachTracker"] = true
 }
 
 LibNotify.samples = {

@@ -227,7 +227,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Sora Ultimate Pair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Ultimate-Pair__4583) | sora0v0 | PC / Mac | 1.0.61 |
 | [Sorc Overload Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smasharooisold/Sorc-Overload-Tracker__4785) | Smasharooisold | PC / Mac | 1.0 |
 | [Sorcerer Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vahrokh/Sorcerer-Helper__2576) | Vahrokh | PC / Mac | 3.2.1 |
-| [Sorcerer Mastery Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Sorcerer-Mastery-Tracker__4840) | its_wifey | PC / Mac | 1.2 |
+| [Sorcerer Mastery Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Sorcerer-Mastery-Tracker__4840) | its_wifey | PC / Mac | 1.3 |
 | [Sorry, Not Sorry!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/worb13/Sorry-Not-Sorry__2434) | worb13 | PC / Mac | 0.1.0 |
 | [Sort By Quantity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PacificOshie/Sort-By-Quantity__2305) | PacificOshie | PC / Mac | 21 |
 | [Soul Bombardment Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goron_spice/Soul-Bombardment-Patch__c786f4ab-0ae9-4067-bfd7-5d9ec9b2705b) | goron_spice | Console | — |
@@ -260,7 +260,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Squirrel Slayer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xhiantitu/Squirrel-Slayer__4213) | xhiantitu | PC / Mac | 1.1.1 |
 | [SquishyFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Divnyi/SquishyFinder__2914) | Divnyi | PC / Mac | 1.6 |
 | [SquishyFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/laurj787/SquishyFinder__3640) | laurj787 | PC / Mac | 1.7 |
-| [Srendarr - Aura, Buff & Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655) | Phinix | PC / Mac | 2.5.49 |
+| [Srendarr - Aura, Buff & Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655) | Phinix | PC / Mac | 2.5.50 |
 | [SRS Events](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skyrimredshirts/SRS-Events__4457) | skyrimredshirts | PC / Mac | 5.52 |
 | [SRS Guild Hall Icon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skyrimredshirts/SRS-Guild-Hall-Icon__4456) | skyrimredshirts | PC / Mac | 1.21 |
 | [Stack Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectura/Stack-Master__2508) | Architectura | PC / Mac | 10 |
@@ -301,6 +301,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Storage stacker (updated CDG Bank Stacker with supporting house storage)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ivang/Storage-stacker-updated-CDG-Bank-Stacker-with-supporting-house-storage__4085) | ivang | PC / Mac | 0.1.1 |
 | [StoreHelper - maintain stocks of basic craft style mats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelper---maintain-stocks-of-basic-craft-style-mats__3195) | Rexorn | PC / Mac | 0.26 |
 | [StoreHelperRune - manage potency runes for glyph writs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rexorn/StoreHelperRune---manage-potency-runes-for-glyph-writs__3220) | Rexorn | PC / Mac | 0.23 |
+| [Storm Atronach Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Storm-Atronach-Tracker__a70e4425-99f9-4fdb-85da-dc21b578e10f) | codeWarrior82 | Console | — |
 | [Story Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Story-Saver__2976) | f1rex | PC / Mac | 18 |
 | [Stow It Auto-Sheather](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Stow-It-Auto-Sheather__862) | RunningDuck | PC / Mac | 3.2.7 |
 | [Stow Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Stow-Keybind__1900) | manavortex | PC / Mac | 1.0 |
@@ -333,7 +334,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SwitchBar II](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dopiate/SwitchBar-II__1235) | dopiate | PC / Mac | 1.3.6 |
 | [SwitchInputMode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HoseB/SwitchInputMode__1862) | HoseB | PC / Mac | 1.0 |
 | [Sylirana's New Life Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sylirana/Sylirana-s-New-Life-Travel__2868) | Sylirana | PC / Mac | 1.1.3 |
-| [Synced Account Settings \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Synced-Account-Settings-Masteroshi430-s-branch__3418) | Masteroshi430 | PC / Mac | 2026.07.19 |
+| [Synced Account Settings \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Synced-Account-Settings-Masteroshi430-s-branch__3418) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [SyncMotes - Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/SyncMotes---Revived__976) | sirinsidiator | PC / Mac | 1.1.3sid |
 | [SyncMotes - with toggle command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/SyncMotes---with-toggle-command__1070) | manavortex | PC / Mac | 1.1.4 |
 | [Synergy Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Synergy-Blocker__2281) | Wheels | PC / Mac | 1.19.3 |

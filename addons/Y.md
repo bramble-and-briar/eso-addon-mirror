@@ -8,7 +8,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | --- | --- | --- | --- |
 | [YADE - Yet Another Dice Emulator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tridman/YADE---Yet-Another-Dice-Emulator__69) | tridman | PC / Mac | 1.1.7 |
 | [Yandir Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Yandir-Tracker__2808) | Hyperioxes | PC / Mac | 1.2a |
-| [YANP (You Are Not Prepared)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/YANP-You-Are-Not-Prepared__3837) | SimonIllyan | PC / Mac | 1.12 |
+| [YANP (You Are Not Prepared)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/YANP-You-Are-Not-Prepared__3837) | SimonIllyan | PC / Mac | 1.13 |
 | [YeOlde - Infos (PC/Xbox/PS5)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/YeOlde---Infos-PC-Xbox-PS5__3122) | YeOldeDragon | PC / Mac | 2.0.1 |
 | [YeOlde - LootHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/YeOlde---LootHistory__3283) | YeOldeDragon | PC / Mac | 1.0 |
 | [YeOlde-Infos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YeOldeDragon/YeOlde-Infos__1987390f-3dbd-407c-996d-aa3ef3ad9773) | YeOldeDragon | Console | — |

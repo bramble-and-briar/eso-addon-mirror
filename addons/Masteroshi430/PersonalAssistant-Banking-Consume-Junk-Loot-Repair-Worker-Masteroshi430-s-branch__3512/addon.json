@@ -18,7 +18,7 @@
     "PersonalAssistant"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3512/",
-  "fingerprint": "32396ba1afcfdbd010f9827a163d678b89fe842d6c05b0c146c3ae1759f37591",
+  "fingerprint": "cedc3dac32e0e2c26deac6f7792874245a9ceb9f4940680b6ceb67a8af793eb6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12182.png",
     "https://cdn-eso.mmoui.com/preview/pvw12181.png",
@@ -34,11 +34,11 @@
   "source_id": "3512",
   "source_url": "https://www.esoui.com/downloads/info3512-PersonalAssistantBankingConsumeJunkLootRepairWorkerMasteroshi430sbranch.html",
   "stats": {
-    "downloads": 515721,
-    "favorites": 174,
-    "monthly_downloads": 3769
+    "downloads": 520047,
+    "favorites": 175,
+    "monthly_downloads": 6014
   },
   "title": "PersonalAssistant (Banking, Consume, Junk, Loot, Repair, Worker) [Masteroshi430's branch]",
-  "updated_at": 1788689392000,
-  "version": "2026.09.06"
+  "updated_at": 1790513371000,
+  "version": "2026.09.27"
 }

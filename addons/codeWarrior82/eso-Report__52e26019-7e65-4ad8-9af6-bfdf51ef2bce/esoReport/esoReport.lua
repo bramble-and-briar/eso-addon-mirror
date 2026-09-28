@@ -33,7 +33,7 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     printMessage(zo_strformat("abilityName- <<1>>", abilityName))
     printMessage(zo_strformat("sourceName- <<1>>", sourceName))
     --printMessage(zo_strformat("sourceType- <<1>>", sourceType))
-    --printMessage(zo_strformat("targetName- <<1>>", targetName))
+    printMessage(zo_strformat("targetName- <<1>>", targetName))
     --printMessage(zo_strformat("targetType- <<1>>", targetType))
     --printMessage(zo_strformat("hitValue- <<1>>", hitValue))
     --printMessage(zo_strformat("powerType- <<1>>", powerType))
@@ -74,12 +74,12 @@ end
 
 --register for notifications 
 local function registerAlerts()
-    --EVENT_MANAGER:RegisterForEvent("effectReport", EVENT_EFFECT_CHANGED, effectReport)
-    --EVENT_MANAGER:AddFilterForEvent("effectReport", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 163102)
+    EVENT_MANAGER:RegisterForEvent("effectReport", EVENT_EFFECT_CHANGED, effectReport)
+    EVENT_MANAGER:AddFilterForEvent("effectReport", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 62195)
     --EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
     --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 163108)
     EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
-    --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 126597)
+    EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 62195)
 end
 
 --an addon has loaded

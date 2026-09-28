@@ -19,7 +19,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Fashion Mount](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Fashion-Mount__91a5e014-74ee-4d3b-a612-b2b05dd223d8) | SugaComa | Console | — |
 | [Fast Ride](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Fast-Ride__1936) | Shadowfen | PC / Mac | 3.2.1 |
 | [Fast Travel Spendings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Fast-Travel-Spendings__2798) | MrPikPik | PC / Mac | 1.1 |
-| [Faster Travel (Wayshrines menu & Teleporter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/Faster-Travel-Wayshrines-menu-Teleporter__1089) | SimonIllyan | PC / Mac | 3.3.2 |
+| [Faster Travel (Wayshrines menu & Teleporter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/Faster-Travel-Wayshrines-menu-Teleporter__1089) | SimonIllyan | PC / Mac | 3.3.3 |
 | [Faster Travel Enhancements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ivang/Faster-Travel-Enhancements__4096) | ivang | PC / Mac | 1.0.0 |
 | [FastReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/FastReset__3257) | m00nyONE | PC / Mac | 2025-06-06 |
 | [FastVolume](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/powdercake/FastVolume__2598) | powdercake | PC / Mac | 1.2 |
@@ -90,6 +90,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FlapRider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/FlapRider__4503) | awamani | PC / Mac | 1.0.1 |
 | [FlatUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/FlatUI__3758) | DakJaniels | PC / Mac | 1.0.0 |
 | [Flex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gloomwidow/Flex__2943) | Gloomwidow | PC / Mac | 1.0.1 |
+| [Flexatron](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/Flexatron__cf03f2d9-c234-46ee-a20b-ae75c678e225) | -Chin | Console | — |
 | [Flexible Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Flexible-Bars__4be7617d-7e6d-42bf-bcbb-921e37ace7bc) | M0R | Console | — |
 | [FloatingDamageNumbers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bluraptor7099/FloatingDamageNumbers__4381) | bluraptor7099 | PC / Mac | 1.4.1 |
 | [Floffel's Pledge queuer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floffel/Floffel-s-Pledge-queuer__2563) | Floffel | PC / Mac | 1.42 |

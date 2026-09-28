@@ -32,7 +32,6 @@ local function PrintUsage()
 
     if (Crutch.savedOptions.experimental) then
         Crutch.msg([[EXPERIMENTAL / HIDDEN:
-|cAAAAAA/crutch jet
 |cAAAAAA/crutch meme
 |cAAAAAA/crutch dump
 |cAAAAAA/crutch dumpbhb
@@ -57,18 +56,18 @@ SLASH_COMMANDS["/crutch"] = function(argString)
         local text = "Slotted ability IDs:\n"
         for i = 3, 8 do
             local abilityId = Crutch.GetSlotTrueBoundId(i, HOTBAR_CATEGORY_PRIMARY)
-            text = string.format("%s ||  %d - %s ", text, abilityId, GetAbilityName(abilityId) or "")
+            text = string.format("%s ||  %d - %s ", text, abilityId, Crutch.FormatAbilityName(abilityId) or "")
         end
         text = text .. "\n--------\n"
         for i = 3, 8 do
             local abilityId = Crutch.GetSlotTrueBoundId(i, HOTBAR_CATEGORY_BACKUP)
-            text = string.format("%s ||  %d - %s ", text, abilityId, GetAbilityName(abilityId) or "")
+            text = string.format("%s ||  %d - %s ", text, abilityId, Crutch.FormatAbilityName(abilityId) or "")
         end
         if (IsPlayerInWerewolfForm()) then
             text = text .. "\n--------\n"
             for i = 3, 8 do
                 local abilityId = Crutch.GetSlotTrueBoundId(i, HOTBAR_CATEGORY_WEREWOLF)
-                text = string.format("%s ||  %d - %s ", text, abilityId, GetAbilityName(abilityId) or "")
+                text = string.format("%s ||  %d - %s ", text, abilityId, Crutch.FormatAbilityName(abilityId) or "")
             end
         end
         Crutch.msg(text)
@@ -78,7 +77,7 @@ SLASH_COMMANDS["/crutch"] = function(argString)
         local text = ""
         for i = 1, GetNumBuffs("player") do
             local _, _, _, _, _, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", i)
-            text = string.format("%s\n%d - %s", text, abilityId, GetAbilityName(abilityId))
+            text = string.format("%s\n%d - %s", text, abilityId, Crutch.FormatAbilityName(abilityId))
         end
         Crutch.msg("Current effects:" .. text)
 
@@ -121,11 +120,6 @@ SLASH_COMMANDS["/crutch"] = function(argString)
         return
 
     --------------------
-    elseif (cmd == "jet") then
-        Crutch.savedOptions.cc.jet = not Crutch.savedOptions.cc.jet
-        Crutch.msg("Jets now " .. (Crutch.savedOptions.cc.jet and "ON" or "OFF"))
-
-    --------------------
     elseif (cmd == "healthdebug") then
         Crutch.ToggleHealthDebug()
 
@@ -159,7 +153,8 @@ SLASH_COMMANDS["/crutch"] = function(argString)
     elseif (cmd == "meme") then
         if (#args ~= 2) then
             Crutch.msg([[Usage:
-|cAAAAAA/crutch meme scorejets]])
+|cAAAAAA/crutch meme scorejets
+|cAAAAAA/crutch meme ccjets]])
             return
         end
 
@@ -167,6 +162,9 @@ SLASH_COMMANDS["/crutch"] = function(argString)
             local prev = Crutch.savedOptions.memes.scoreJets or false
             Crutch.savedOptions.memes.scoreJets = not prev
             Crutch.msg("Score Jets now " .. (Crutch.savedOptions.memes.scoreJets and "ON" or "OFF"))
+        elseif (args[2] == "ccjets") then
+            Crutch.savedOptions.cc.jet = not Crutch.savedOptions.cc.jet
+            Crutch.msg("CC Jets now " .. (Crutch.savedOptions.cc.jet and "ON" or "OFF"))
         elseif (args[2] == "alertnames") then
             local prev = Crutch.savedOptions.memes.alertNames or false
             Crutch.savedOptions.memes.alertNames = not prev
@@ -180,7 +178,7 @@ SLASH_COMMANDS["/crutch"] = function(argString)
                     -- TODO: font mem?
                     Crutch.msg("Warning: console does not support depth buffers, so graves will display in front of objects!")
                 else
-                    Crutch.msg("Note: For the best experience, have \"SubSampling Quality\" set to \"High\" in your Video settings, otherwise they will display in front of objects!")
+                    Crutch.msg("Note: For the best experience, ensure \"SubSampling Quality\" is set to \"High\" in your Video settings, otherwise they will display in front of objects!")
                 end
             end
             Crutch.Drawing.Model.InitializeGrave()

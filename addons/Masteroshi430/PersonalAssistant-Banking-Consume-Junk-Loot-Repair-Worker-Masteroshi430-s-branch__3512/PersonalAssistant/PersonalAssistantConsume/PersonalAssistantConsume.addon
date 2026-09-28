@@ -5,8 +5,8 @@
 
 ## Title: |cFFD700P|rersonal|cFFD700A|rssistant |cFFD700C|ronsume
 ## Description: PAConsume consumes food/EXP Buffs & auto equips poisons.
-## Version: 2026.09.06
-## AddOnVersion: 20260906
+## Version: 2026.09.27
+## AddOnVersion: 20260927
 ## Author: Klingo, |c3CB371@Masteroshi430|r
 ## APIVersion: 101051 
 ## SavedVariables: PersonalAssistantConsume_SavedVariables

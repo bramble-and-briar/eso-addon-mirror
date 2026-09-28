@@ -32,7 +32,7 @@ local function UpdateAbilitiesToReplace()
     ZO_ClearTable(abilityIds)
     for id, _ in pairs(Crutch.savedOptions.rockgrove.abilitiesToReplace) do
         table.insert(abilityIds, id)
-        table.insert(abilityNames, string.format("%s (%d)", GetAbilityName(id) or "", id))
+        table.insert(abilityNames, zo_strformat("<<C:1>> (<<2>>)", GetAbilityName(id) or "", id))
     end
     CrutchAlerts_AbilitiesToReplace:UpdateChoices(abilityNames, abilityIds)
 end
@@ -46,7 +46,7 @@ local function UpdateOCAbilitiesToReplace()
     ZO_ClearTable(ocAbilityIds)
     for id, _ in pairs(Crutch.savedOptions.osseincage.abilitiesToReplace) do
         table.insert(ocAbilityIds, id)
-        table.insert(ocAbilityNames, string.format("%s (%d)", GetAbilityName(id) or "", id))
+        table.insert(ocAbilityNames, zo_strformat("<<C:1>> (<<2>>)", GetAbilityName(id) or "", id))
     end
     CrutchAlerts_OCAbilitiesToReplace:UpdateChoices(ocAbilityNames, ocAbilityIds)
 end
@@ -301,6 +301,21 @@ function Crutch:CreateSettingsMenu()
                     disabled = function() return not Crutch.savedOptions.general.showDamageable end,
                 },
                 {
+                    type = "slider",
+                    name = "Prominent alert size",
+                    tooltip = "The size to display the prominent alerts",
+                    min = 5,
+                    max = 200,
+                    step = 1,
+                    default = Crutch.defaultOptions.general.prominentSize,
+                    width = "full",
+                    getFunc = function() return Crutch.savedOptions.general.prominentSize end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.general.prominentSize = value
+                        Crutch.DisplayProminent(C.ID.DROP_FROST)
+                    end,
+                },
+                {
                     type = "divider",
                 },
                 {
@@ -432,7 +447,7 @@ function Crutch:CreateSettingsMenu()
                             text = function()
                                 local str = "Current blacklist: "
                                 for id, _ in pairs(Crutch.savedOptions.general.blacklist) do
-                                    str = string.format("%s%s (%d), ", str, GetAbilityName(id) or "INVALID", id)
+                                    str = zo_strformat("<<1>><<C:2>> (<<3>>), ", str, GetAbilityName(id) or "INVALID", id)
                                 end
                                 return str
                             end,
@@ -1393,7 +1408,10 @@ function Crutch:CreateSettingsMenu()
                 {
                     type = "checkbox",
                     name = "Enable \"fun\" stuff",
-                    tooltip = "This is where I'd put my Easter eggs... if I had any!",
+                    tooltip = function()
+                        local hint = Crutch.Drawing.Model.AreGravesEnabled() and "\n\nHint: if your friends are wondering why they don't see graves, it might not be Halloween for them yet, or they are on console, or they don't have SubSampling set to high. To disregard and show graves anyway, use /crutch meme graves" or ""
+                        return "This is where I'd put my Easter eggs... if I had any! To revisit previous or never-released shenanigans, check out /crutch meme" .. hint
+                    end,
                     default = true,
                     getFunc = function() return Crutch.savedOptions.general.showSpeshul end,
                     setFunc = function(value)
@@ -2494,7 +2512,7 @@ function Crutch:CreateSettingsMenu()
                             return
                         end
                         Crutch.savedOptions.osseincage.abilitiesToReplace[num] = true
-                        Crutch.msg(string.format("Added %s (%d) to abilities to replace.", GetAbilityName(num), num))
+                        Crutch.msg(zo_strformat("Added <<C:1>> (<<2>>) to abilities to replace.", GetAbilityName(num), num))
                     end,
                     width = "full",
                     disabled = function() return not Crutch.savedOptions.osseincage.enableAbilityOverlay end,
@@ -2510,7 +2528,7 @@ function Crutch:CreateSettingsMenu()
                     end,
                     setFunc = function(value)
                         Crutch.savedOptions.osseincage.abilitiesToReplace[value] = nil
-                        Crutch.msg(string.format("Removed %s(%d) from abilities to replace.", GetAbilityName(value), value))
+                        Crutch.msg(zo_strformat("Removed <<C:1>> (<<2>>) from abilities to replace.", GetAbilityName(value), value))
                         UpdateOCAbilitiesToReplace()
                     end,
                     width = "full",
@@ -2589,9 +2607,36 @@ function Crutch:CreateSettingsMenu()
                     width = "full",
                 },
                 {
+                    type = "dropdown",
+                    name = "Show portal direction override",
+                    tooltip = "Shows a general \"alert\" for the portal direction on HM, with overridden text",
+                    choices = {"None", "Clockwise / Counter-Clockwise", "Left / Right", "Right / Left"},
+                    choicesValues = {1, 2, 3, 4},
+                    default = "Clockwise / Counter-Clockwise",
+                    getFunc = function()
+                        return Crutch.savedOptions.rockgrove.portalDirectionText
+                    end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.rockgrove.portalDirectionText = value
+                    end,
+                    width = "full",
+                },
+                {
                     type = "description",
                     title = "|c08BD1DInfo Panel|r",
                     text = "Shows timers or other info in a consolidated panel. Unlock the UI or |c99FF99/crutch unlock|r to reposition the info panel.",
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = "Show time until Blistering Smash",
+                    tooltip = "Shows the time until Oaxiltso may cast the big slam AOE",
+                    default = Crutch.defaultOptions.rockgrove.panel.showSmash,
+                    getFunc = function() return Crutch.savedOptions.rockgrove.panel.showSmash end,
+                    setFunc = function(value)
+                        Crutch.savedOptions.rockgrove.panel.showSmash = value
+                        Crutch.OnPlayerActivated()
+                    end,
                     width = "full",
                 },
                 {
@@ -2800,7 +2845,7 @@ function Crutch:CreateSettingsMenu()
                             return
                         end
                         Crutch.savedOptions.rockgrove.abilitiesToReplace[num] = true
-                        Crutch.msg(string.format("Added %s (%d) to abilities to replace.", GetAbilityName(num), num))
+                        Crutch.msg(zo_strformat("Added <<C:1>> (<<2>>) to abilities to replace.", GetAbilityName(num), num))
                     end,
                     width = "full",
                 },
@@ -2815,7 +2860,7 @@ function Crutch:CreateSettingsMenu()
                     end,
                     setFunc = function(value)
                         Crutch.savedOptions.rockgrove.abilitiesToReplace[value] = nil
-                        Crutch.msg(string.format("Removed %s(%d) from abilities to replace.", GetAbilityName(value), value))
+                        Crutch.msg(zo_strformat("Removed <<C:1>> (<<2>>) from abilities to replace.", GetAbilityName(value), value))
                         UpdateAbilitiesToReplace()
                     end,
                     width = "full",

@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Miner mini game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Miner-mini-game__2457) | Hoft | PC / Mac | 1.5 |
 | [Mini Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hatsune681/Mini-Clock__1197) | hatsune681 | PC / Mac | 7.101035 |
 | [MiniBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LumpyLemon/MiniBars__3121) | LumpyLemon | PC / Mac | 0.3 |
-| [MiniMap by Fyrakin \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/MiniMap-by-Fyrakin-Masteroshi430-s-branch__3384) | Masteroshi430 | PC / Mac | 2026.07.31 |
+| [MiniMap by Fyrakin \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/MiniMap-by-Fyrakin-Masteroshi430-s-branch__3384) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [MiniMap Map API refences](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fyrakin/MiniMap-Map-API-refences__1131) | Fyrakin | PC / Mac | 1.0 |
 | [MiniMap_jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/MiniMap_jpFix__1397) | 2ch | PC / Mac | 3.00.1 |
 | [MiniStats – Post-Combat Summary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PossEU/MiniStats-Post-Combat-Summary__4222) | PossEU | PC / Mac | 0.1.0 |

@@ -22,7 +22,7 @@
     "LibCustomNames"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4155/",
-  "fingerprint": "033485d9cf93e0ed7a63d63cd332d5ff6af1b93c173349bd2fa76eb3b63d0b1f",
+  "fingerprint": "05bb1fc1eed889fc0bd156a32f37b244bbd94b44039d90ed3521747d4ee2b798",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -30,11 +30,11 @@
   "source_id": "4155",
   "source_url": "https://www.esoui.com/downloads/info4155-LibCustomNames.html",
   "stats": {
-    "downloads": 444331,
+    "downloads": 450227,
     "favorites": 42,
-    "monthly_downloads": 25768
+    "monthly_downloads": 25353
   },
   "title": "LibCustomNames",
-  "updated_at": 1789949737000,
-  "version": "2026-09-21"
+  "updated_at": 1790556259000,
+  "version": "2026-09-28"
 }

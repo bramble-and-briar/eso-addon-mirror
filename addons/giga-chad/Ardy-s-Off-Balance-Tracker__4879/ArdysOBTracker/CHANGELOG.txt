@@ -1,0 +1,58 @@
+Ardy's OB Tracker - Release Notes
+=================================
+
+v1.3.0  (2026-09-26)
+  Marker reliability in large fights
+  - Crosshair hold time: the crosshair must stay on an Off Balance enemy for
+    300 ms (adjustable, 0-1000) before it is marked, so sweeping across a
+    crowd can't send a marker to the wrong unit.
+  - Waits for the game to confirm each marker change before acting again,
+    instead of a fixed 0.4 s delay. Prevents double toggles when the server
+    lags.
+  - Removing a marker from a friendly is now confirmed and retried (up to 5
+    times). Previously one attempt was made and, if lag swallowed it, the
+    add-on stopped treating the marker as its own and never retried.
+  - Detects when one of its markers lands on a groupmate right after being
+    placed, warns in chat, and reuses that marker on your next target, which
+    pulls it off the groupmate even if you never look at them.
+  - New keybinds: "Remove marker from target" and "Toggle auto-marking".
+  Off Balance Immunity
+  - Tracker rows turn grey and count down the 15 s Off Balance Immunity after
+    Off Balance ends. Uses the game's own immunity timing when it reports it.
+  - Rows are no longer cleared when you leave combat (they expire on their own).
+  - /obt status shows immunity on your crosshair target.
+  - New settings: "Crosshair hold time", "Show Off Balance Immunity";
+    commands /obt hold <ms> and /obt immunity on|off.
+
+v1.2.1  (2026-09-24)
+  - Minor code improvements.
+
+v1.2.0  (2026-09-24)
+  Friendly protection
+  - A target is only marked if the game says you can attack it AND it shows no
+    friendly sign: ally / friendly NPC / companion reaction, group member, or a
+    player of your own alliance in Cyrodiil or Imperial City (not applied in
+    battlegrounds, where teams ignore alliance).
+  - The target is re-checked in the same moment the marker is placed.
+  - Safety net: if one of this add-on's markers is ever on a friendly, it is
+    removed as soon as your crosshair is on them (chat message confirms).
+    Markers placed by hand are never touched.
+  - New setting: "Remove markers from friendlies" (on by default).
+  - /obt status now shows friendly=true/false for the crosshair target.
+
+v1.1.0  (2026-09-23)
+  Cyrodiil / PvP fixes
+  - Enemy players are now recognized as enemies. Uses the game's own "can
+    attack" check instead of requiring a "hostile" label, which enemy players
+    don't always have.
+  - If a target's range can't be read (e.g. enemy players), it is marked
+    anyway. New setting: "Mark if range can't be read" (on by default).
+  - Tracker window also reads the combat log's Off Balance result as a backup,
+    so rows appear even if the game doesn't report the effect on a target.
+  New
+  - PvP only toggle (/obt pvp on|off and settings panel): runs only where you
+    have Battle Spirit (Cyrodiil, Imperial City, battlegrounds). Off by default.
+  - /obt status shows PvP state and more target details.
+
+v1.0.0  (2026-09-22)
+  - Initial release.

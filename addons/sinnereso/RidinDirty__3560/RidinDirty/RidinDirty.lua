@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.09.25",
+	version = "2026.09.27",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -17,11 +17,11 @@ local oldGuildLabel = ""
 local playerSearch = nil
 local houseSearch = nil
 local chatStamp = nil
-local goldIcon = "|t16:16:/esoui/art/currency/currency_gold.dds|t"
-local apIcon = "|t16:16:/esoui/art/currency/alliancepoints.dds|t"
-local telvarIcon = "|t16:16:/esoui/art/currency/currency_telvar.dds|t"
-local voucherIcon = "|t16:16:/esoui/art/currency/currency_writvoucher.dds|t"
-local veterancyIcon = "|t16:16:/esoui/art/notifications/notificationicon_veterancyrankrewards.dds|t"
+local goldIcon = "|t18:18:/esoui/art/currency/currency_gold.dds|t"
+local apIcon = "|t18:18:/esoui/art/currency/alliancepoints.dds|t"
+local telvarIcon = "|t18:18:/esoui/art/currency/currency_telvar.dds|t"
+local voucherIcon = "|t18:18:/esoui/art/currency/currency_writvoucher.dds|t"
+local veterancyIcon = "|t18:18:/esoui/art/notifications/notificationicon_veterancyrankrewards.dds|t"
 local avpData = {
 	allianceGained = 0,
 	telvarDifference = 0,
@@ -244,7 +244,7 @@ end
 --local statusControl = control:GetNamedChild("StatusTexture")--("StatusIcon")--("Status")
 --if not statusControl then return end
 --df(nameText .. " - " .. tostring(statusControl:IsHidden()))--statusControl:SetHidden(true)
---local RDPrice = ((ItemPriceData.Avg + (ItemPriceData.SaleAvg or ItemPriceData.Avg)) / 2)--<< UNUSED
+--local RDPrice = ((ttcPriceData.Avg + (ttcPriceData.SaleAvg or ttcPriceData.Avg)) / 2)--<< UNUSED
 local function NeedsAndPrice(control, slot)
 	local itemData = control.dataEntry and control.dataEntry.data
 	local bagId = itemData.bagId
@@ -272,23 +272,28 @@ local function NeedsAndPrice(control, slot)
 	if not TamrielTradeCentre or not (RidinDirty.savedVariables.lootManager and RidinDirty.savedVariables.ttcPricing) then return end
 	local SellPriceControl = control:GetNamedChild("SellPriceText") or control:GetNamedChild("SellPrice")
 	if not SellPriceControl then return end
-	local ItemPriceData = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
-	if not ItemPriceData then return end
-	local purchasePrice = itemData.purchasePrice
-	local TTCPrice = ItemPriceData[RidinDirty.savedVariables.ttcPricing] or ItemPriceData.Avg
+	--local originalPrice = SellPriceControl:GetText()--purchasePrice
+	local ttcPriceData = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+	if not ttcPriceData then return end
+	local TTCPrice = ttcPriceData[RidinDirty.savedVariables.ttcPricing] or ttcPriceData.Avg
 	local TTCStackPrice = (TTCPrice * itemData.stackCount)
-	if purchasePrice and RidinDirty.savedVariables.traderEnhance then
-		local originalPrice = SellPriceControl:GetText()--purchasePrice
-		if purchasePrice > (TTCStackPrice * 1.2) then
-			SellPriceControl:SetText("|cFFA2A2" .. originalPrice .. "|r")
-		elseif purchasePrice < (TTCStackPrice * 0.95) and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
-			SellPriceControl:SetText("|c7BF1A8" .. originalPrice .. "|r")
+	if itemData.purchasePrice and RidinDirty.savedVariables.traderEnhance then
+		if itemData.stackCount > 1 and TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+			if itemData.purchasePrice > (TTCStackPrice * 1.2) then
+				SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t|r\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
+			else
+				SellPriceControl:SetText(ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
+			end
+		elseif itemData.purchasePrice > (TTCStackPrice * 1.2) then
+			SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t|r")
+		elseif itemData.purchasePrice < (TTCStackPrice * 0.95) and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
+			SellPriceControl:SetText("|c7BF1A8" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t|r")
 		end
 	elseif TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_BROWSE and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
 		if itemData.stackCount > 1 then
-			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. " |t16:16:/esoui/art/currency/currency_gold.dds|t\n@ " .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCPrice, 1))) .. " |t16:16:/esoui/art/currency/currency_gold.dds|t|r")
+			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t\n@ " .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCPrice, 1))))
 		else
-			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. " |t16:16:/esoui/art/currency/currency_gold.dds|t" .. "|r")
+			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t" .. "|r")
 		end
 	end
 end
@@ -302,7 +307,7 @@ local function TooltipLeadInfo(control, slot)
 	if not antiquityId or antiquityId == 0 then return end
 	local r, g, b = ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB()
 	local numAcquired, numEntries = GetNumAntiquityLoreEntriesAcquired(antiquityId), GetNumAntiquityLoreEntries(antiquityId)
-	if numAcquired > 0 or DoesAntiquityHaveLead(antiquityId) then-- TESTING
+	if numAcquired > 0 or DoesAntiquityHaveLead(antiquityId) then
 		control:AddLine("")
 		ZO_Tooltip_AddDivider(control)
 		control:AddLine(("Collected: " .. tostring(numAcquired) .. " / " .. tostring(numEntries)), "ZoFontWinH4", r, g, b)
@@ -311,6 +316,17 @@ local function TooltipLeadInfo(control, slot)
 		control:AddLine("|c00FF00Use to add to your codex library.|r")
 		ZO_Tooltip_AddDivider(control)
 		control:AddLine(("Collected: " .. tostring(numAcquired) .. " / " .. tostring(numEntries)), "ZoFontWinH4", r, g, b)
+	end
+end
+--STORE_WINDOW:RefreshCurrency()
+--STORE_WINDOW:GetStoreItems()
+--STORE_WINDOW:UpdateList()
+--STORE_WINDOW:InitializeStore()
+--zo_callLater(function() ZO_ScrollList_Commit(STORE_WINDOW.list) end, 500)
+local function RefreshStore()
+	if not STORE_FRAGMENT:IsHidden() then
+		ZO_ScrollList_Commit(STORE_WINDOW.list)
+		return
 	end
 end
 
@@ -744,6 +760,7 @@ local function RDInitializeControls()
 				name = "SAVE BANK MEMORY",
 				tooltip = "Saves current bank inventory to memory for comparison when opening the bank",
 				func = function() SaveBankMemory() end,
+				disabled = function() return not RidinDirty.savedVariables.bankManager end,
 				isDangerous = true,
 			},
 			{
@@ -763,7 +780,7 @@ local function RDInitializeControls()
 				type = "dropdown",
 				name = "Gold Reserve",
 				tooltip = "Maximum gold to reserve on each character",
-				choices = {"|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "0", "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "10,000", "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "50,000", "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "100,000", "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "500,000", "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "1,000,000", "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. "10,000,000"},
+				choices = {"|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "0", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "10,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "50,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "100,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "500,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "1,000,000", "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. "10,000,000"},
 				choicesValues = {0, 10000, 50000, 100000, 500000, 1000000, 10000000},
 				getFunc = function() return RidinDirty.savedVariables.goldReserve end,
 				setFunc = function(var) RidinDirty.savedVariables.goldReserve = (var) end,
@@ -790,7 +807,7 @@ local function RDInitializeControls()
 				type = "dropdown",
 				name = "(AP) Reserve",
 				tooltip = "Maximum AP to reserve on each character",
-				choices = {"|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "0", "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "10,000", "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "50,000", "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "100,000", "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "500,000", "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "1,000,000", "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "10,000,000"},
+				choices = {"|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "0", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "10,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "50,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "100,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "500,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "1,000,000", "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "10,000,000"},
 				choicesValues = {0, 10000, 50000, 100000, 500000, 1000000, 10000000},
 				getFunc = function() return RidinDirty.savedVariables.apReserve end,
 				setFunc = function(var) RidinDirty.savedVariables.apReserve = (var) end,
@@ -808,7 +825,7 @@ local function RDInitializeControls()
 				type = "dropdown",
 				name = "Telvar Reserve",
 				tooltip = "Maximum telvar to reserve on each character for X multiplier",
-				choices = {"|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "0", "|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "99", "|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "1,000", "|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "10,000"},
+				choices = {"|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "0", "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "99", "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "1,000", "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "10,000"},
 				choicesValues = {0, 99, 1000, 10000},
 				choicesTooltips = {"No Multiplier", "2X Queue Max", "3X Multiplier", "4X Multiplier"},
 				getFunc = function() return RidinDirty.savedVariables.telvarReserve end,
@@ -922,7 +939,7 @@ local function RDInitializeControls()
 			{
 				type = "button",
 				name = "RESET JUNK MEMORY",
-				tooltip = "Completely clears junk memory & reloads UI",
+				tooltip = "Completely clears junk memory",
 				func = function() RidinDirty.ClearJunkMemory() end,
 				disabled = function() return not RidinDirty.savedVariables.junkManager end,
 				isDangerous = true,
@@ -1748,16 +1765,16 @@ local function BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTel
 	if moveTelvar then curbankTelvar = (carriedTelvar + GetBankedCurrencyAmount(CURT_TELVAR_STONES)) moveTelvar = false end
 	if moveVoucher then curbankVouchers = (carriedVoucher + GetBankedCurrencyAmount(CURT_WRIT_VOUCHERS)) moveVoucher = false end
 	if curbankGold > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(curbankGold))
+		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(curbankGold))
 	end
 	if curbankAP > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(curbankAP) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(curbankAP) .. "|r")
 	end
 	if curbankTelvar > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(curbankTelvar) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(curbankTelvar) .. "|r")
 	end
 	if curbankVouchers > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t16:16:/esoui/art/currency/currency_writvoucher.dds|t" .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(curbankVouchers) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/currency_writvoucher.dds|t" .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(curbankVouchers) .. "|r")
 	end
 	if bankedCurrencies ~= (rdLogo .. "Balances:") then df(bankedCurrencies) end
 end
@@ -1783,12 +1800,12 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawGold = (goldReserve - carriedGold)
 			carriedGold = (withdrawGold - (withdrawGold*2))
 			WithdrawCurrencyFromBank(CURT_MONEY, withdrawGold)
-			df(rdLogo .. "Withdrew: " .. "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(carriedGold))
+			df(rdLogo .. "Withdrew: " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(carriedGold))
 		elseif (carriedGold > goldReserve) then
 			moveGold = true
 			carriedGold = (carriedGold - goldReserve)
 			DepositCurrencyIntoBank(CURT_MONEY, carriedGold)
-			df(rdLogo .. "Deposited: " .. "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(carriedGold))
+			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(carriedGold))
 		end
 	end
 	if RidinDirty.savedVariables.apDeposit then
@@ -1797,12 +1814,12 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawAP = (apReserve - carriedAP)
 			carriedAP = (withdrawAP - (withdrawAP*2))
 			WithdrawCurrencyFromBank(CURT_ALLIANCE_POINTS, withdrawAP)
-			df(rdLogo .. "Withdrew: " .. "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
+			df(rdLogo .. "Withdrew: " .. "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		elseif (carriedAP > apReserve) then
 			moveAP = true
 			carriedAP = (carriedAP - apReserve)
 			DepositCurrencyIntoBank(CURT_ALLIANCE_POINTS, carriedAP)
-			df(rdLogo .. "Deposited: " .. "|t16:16:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
+			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.telvarDeposit then
@@ -1811,19 +1828,19 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawTelvar = (telvarReserve - carriedTelvar)
 			carriedTelvar = (withdrawTelvar - (withdrawTelvar*2))
 			WithdrawCurrencyFromBank(CURT_TELVAR_STONES, withdrawTelvar)
-			df(rdLogo .. "Withdrew: " .. "|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
+			df(rdLogo .. "Withdrew: " .. "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		elseif (carriedTelvar > telvarReserve) then
 			moveTelvar = true
 			carriedTelvar = (carriedTelvar - telvarReserve)
 			DepositCurrencyIntoBank(CURT_TELVAR_STONES, carriedTelvar)
-			df(rdLogo .. "Deposited: " .. "|t16:16:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
+			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.voucherDeposit then
 		if (carriedVoucher > 0) then
 			moveVoucher = true
 			DepositCurrencyIntoBank(CURT_WRIT_VOUCHERS, carriedVoucher)
-			df(rdLogo .. "Deposited: " .. "|t16:16:/esoui/art/currency/currency_writvoucher.dds|t" .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
+			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/currency_writvoucher.dds|t" .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.balanceDisplay then
@@ -2038,7 +2055,7 @@ local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory
 			end
 		end
 		if stolenValue > 0 then
-			df(rdLogo .. "|cFFA2A2*PREMIUM EXPORTS*|r --> " .. "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(stolenValue)
+			df(rdLogo .. "|cFFA2A2*PREMIUM EXPORTS*|r --> " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(stolenValue)
 				.. " (+" .. (GetItemSellValueWithBonuses(bagId, slotIndex) * ((GetTotalFenceHagglingBonus() + 100) / 100)) .. ")")
 		end
 	end
@@ -2202,14 +2219,14 @@ local function AutoSellRepair()
 			end
 		end
 		if junkValue > 0 then
-			df(rdLogo .. "All junk sold for " .. "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(junkValue))
+			df(rdLogo .. "All junk sold for " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(junkValue))
 		end
 		SellAllJunk()
 	end
 	local repairCost = GetRepairAllCost()
 	if not CanStoreRepair() then return end
 	if repairCost > 0 and repairCost < GetCurrentMoney() then
-		df(rdLogo .. "All items repaired for " .. "|t16:16:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(repairCost))
+		df(rdLogo .. "All items repaired for " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(repairCost))
 		RepairAll()
 	elseif repairCost > 0 and repairCost > GetCurrentMoney() then
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Insufficient gold for repairs.")
@@ -2299,6 +2316,7 @@ function RidinDirty.lootManagerToggle(toggle)
 		SecurePostHook(ZO_LootAlphaContainerList.dataTypes[1], "setupCallback", function(control, slot)
 			NeedsAndPrice(control, slot)
 		end)
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyLoot", EVENT_COLLECTION_UPDATED, RefreshStore)
 		SecurePostHook(ZO_StoreManager, "SetUpBuySlot", function(self, control, slot)
 			NeedsAndPrice(control, slot)
 		end)
@@ -3255,6 +3273,7 @@ local function RDInitializeSettings()
 		SecurePostHook(ZO_LootAlphaContainerList.dataTypes[1], "setupCallback", function(control, slot)
 			NeedsAndPrice(control, slot)
 		end)
+		EVENT_MANAGER:RegisterForEvent("RidinDirtyLoot", EVENT_COLLECTION_UPDATED, RefreshStore)
 		SecurePostHook(ZO_StoreManager, "SetUpBuySlot", function(self, control, slot)
 			NeedsAndPrice(control, slot)
 		end)

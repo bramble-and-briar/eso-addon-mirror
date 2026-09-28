@@ -8,8 +8,8 @@
 -- with group members using a hash-based caching protocol.
 --
 -- Protocol 432: Setup Request (hash only)
--- Protocol 433: Setup Response V4 (read-only: wider ability IDs, 7-entry armor groups)
--- Protocol 436: Setup Response V3 (Class Mastery or Vengeance payload)
+-- Protocol 433: Setup Response V4 (wider ability IDs, 7-entry armor groups)
+-- Protocol 436: Setup Response V3 (receive-only for v5 clients)
 -----------------------------------------------------------
 
 if not SemisPlaygroundCheckAccess() then
@@ -26,8 +26,7 @@ local JEWELRY_SLOT_INDICES = setupAnalysis.JEWELRY_SLOT_INDICES
 
 ---@class SetupShare
 ---@field requestProtocol Protocol|nil Protocol 432
----@field responseProtocolV3 Protocol|nil Protocol 436 response with normal/Vengeance variants
----@field responseProtocolV4 Protocol|nil Protocol 433 read-only response (wider fields)
+---@field responseProtocol Protocol|nil Protocol 433 response with normal/Vengeance variants
 local setupShare = {}
 BattleScrolls.setupShare = setupShare
 
@@ -50,6 +49,11 @@ local localCacheOrder = {} -- oldest first
 local lastResponseTime = {} -- hash → GetGameTimeMilliseconds
 
 local RESPONSE_THROTTLE_MS = 5000
+
+-- Request a fresh build after upgrading, even when equipment is unchanged.
+-- Older cached responses can lack poisons or contain clamped ability IDs.
+-- Existing history retains its original hashes and cached builds.
+local SETUP_HASH_SALT = 0x6000
 
 -- =============================================================================
 -- CONVERT TO COMPACT
@@ -404,7 +408,7 @@ function setupShare.computeHash(compact)
         if compact.backPoisonItemId then mix(compact.backPoisonItemId) end
     end
 
-    return h
+    return BitXor(h, SETUP_HASH_SALT)
 end
 
 -- =============================================================================
@@ -435,7 +439,7 @@ end
 -- PERSISTENT SHARED SETUP STORE
 -- =============================================================================
 
----@type table<string, table<number, CompactSetup>>|nil
+---@type table<string, table<number, StoredSharedSetup>>|nil
 local sharedSetups = nil
 
 ---Checks if a setup is already stored for a player.
@@ -455,7 +459,16 @@ end
 function setupShare:getSetup(displayName, hash)
     if not sharedSetups then return nil end
     local playerSetups = sharedSetups[displayName]
-    return playerSetups and playerSetups[hash] or nil
+    local stored = playerSetups and playerSetups[hash]
+    if not stored then return nil end
+    if rawget(stored, "c") then
+        ---@cast stored EncodedSharedSetup
+        return BattleScrolls.binaryStorage.decodeSharedSetup(stored)
+    end
+    -- Still readable while the delayed startup migration is pending, or
+    -- when its round-trip verification kept a legacy entry untouched.
+    ---@cast stored CompactSetup
+    return stored
 end
 
 ---Stores a setup for a player.
@@ -467,14 +480,14 @@ function setupShare:storeSetup(displayName, hash, compact)
     if not sharedSetups[displayName] then
         sharedSetups[displayName] = {}
     end
-    sharedSetups[displayName][hash] = compact
+    sharedSetups[displayName][hash] = BattleScrolls.binaryStorage.encodeSharedSetup(compact)
 end
 
 -- =============================================================================
 -- ENCOUNTER HASH HANDLER
 -- =============================================================================
 
----Called when an encounter share (protocol 437) provides a setupHash.
+---Called when an encounter share provides a setupHash.
 ---Requests the full setup if not already cached.
 ---@param displayName string Sender's display name
 ---@param hash number 16-bit setup hash
@@ -665,7 +678,7 @@ local function onSetupRequest(unitTag, data)
         return
     end
 
-    if not setupShare.responseProtocolV3 then return end
+    if not setupShare.responseProtocol then return end
     local payload = {
         setupHash = hash,
         classId = compact.classId,
@@ -676,9 +689,9 @@ local function onSetupRequest(unitTag, data)
     else
         payload.normalSetup = buildNormalWirePayload(compact)
     end
-    setupShare.responseProtocolV3:Send(payload)
-
-    lastResponseTime[hash] = now
+    if BattleScrolls.sendLargeGroupMessage(setupShare.responseProtocol, payload) then
+        lastResponseTime[hash] = now
+    end
     -- log.Debug(function() return string.format("SetupShare: sent setup response for hash %d", hash) end)
 end
 
@@ -943,7 +956,7 @@ end
 ---@type SetupWireFieldOptions
 local V3_FIELD_OPTIONS = { abilityIdBits = 18, armorGroupMaxLength = 4 }
 
--- V4 widens ability IDs (live IDs are close to 2^18) and lets armor trait/enchant
+-- V4 widens ability IDs (U51 IDs already exceed 2^18) and lets armor trait/enchant
 -- groups cover all 7 armor slots (the array length prefix is 3 bits either way).
 ---@type SetupWireFieldOptions
 local V4_FIELD_OPTIONS = { abilityIdBits = 19, armorGroupMaxLength = 7 }
@@ -1169,10 +1182,9 @@ function setupShare:Initialize()
     end
     self.requestProtocol = requestProtocol
 
-    -- Protocol 436: Setup Response V3 (live outbound format)
-    self.responseProtocolV3 = declareResponseProtocol(handler, LGB, 436, "BattleScrolls_SetupResponseV3", V3_FIELD_OPTIONS)
-    if not self.responseProtocolV3 then return end
+    -- Protocol 436: receive builds from clients still on v5. Keep its widths.
+    declareResponseProtocol(handler, LGB, 436, "BattleScrolls_SetupResponseV3", V3_FIELD_OPTIONS)
 
-    -- Protocol 433: Setup Response V4 (read-only until enough clients can decode it)
-    self.responseProtocolV4 = declareResponseProtocol(handler, LGB, 433, "BattleScrolls_SetupResponseV4", V4_FIELD_OPTIONS)
+    -- Protocol 433: both copies use the complete format, never a lossy V3 copy.
+    self.responseProtocol = declareResponseProtocol(handler, LGB, 433, "BattleScrolls_SetupResponseV4", V4_FIELD_OPTIONS)
 end

@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dark Brotherhood Spree ZH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NeiL978/Dark-Brotherhood-Spree-ZH__3601) | NeiL978 | PC / Mac | 1.0 |
 | [Dark Convergence Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SaintAres97/Dark-Convergence-Timer__2709a81d-caea-4f77-a89d-0d83661bf7ee) | SaintAres97 | Console | — |
 | [Dark Convergence Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Dark-Convergence-Tracker__8dff29ed-8886-46e4-ad37-c73add153c3f) | codeWarrior82 | Console | — |
-| [Dark Convergence Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Dark-Convergence-Tracker__4770) | Irreverend | PC / Mac | 1.0.1 |
+| [Dark Convergence Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irreverend/Dark-Convergence-Tracker__4770) | Irreverend | PC / Mac | 1.0.2 |
 | [Dark Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Dark-Mode__148076b2-9d29-46c7-aff5-da6dad6bc20d) | Rogue0rbit | Console | — |
 | [Dark Mode ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Dark-Mode-ESO__34dd2c26-eade-48fc-a1d0-4838faaeae0e) | Rogue0rbit | Console | — |
 | [Darker Tamriel Tomes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Darker-Tamriel-Tomes__4523) | Masteroshi430 | PC / Mac | 2026.07.17 |
@@ -86,6 +86,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Detailed Research Scrolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Detailed-Research-Scrolls__1761) | silvereyes | PC / Mac | 1.4.13 |
 | [dev sandbox](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox__436f6695-4798-423f-b276-d8c46cbd938e) | clubwratt | Console | — |
 | [dev sandbox 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-2__bc6b3b76-f701-4533-9492-c50acb1783bc) | clubwratt | Console | — |
+| [dev sandbox 3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-3__3a4024fc-1465-4e5e-a96f-6d6b6a781497) | clubwratt | Console | — |
 | [DiabloFrames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/DiabloFrames__3051) | buldezir | PC / Mac | 1.0.9 |
 | [DiabloOrbs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/DiabloOrbs__4474) | s1by0z | PC / Mac | 2.1.1 |
 | [DIAhelp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/DIAhelp__4876) | alabuzya | PC / Mac | 1.0.4 |
@@ -125,10 +126,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DoItAll (Mass Extract/Deconstruct/Move/Mail attach/...)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thenedus/DoItAll-Mass-Extract-Deconstruct-Move-Mail-attach__690) | Thenedus | PC / Mac | 1.75 |
 | [Dolgubon's Guild Reorder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Guild-Reorder__2238) | Dolgubon | PC / Mac | 1.2.4 |
 | [Dolgubon's Lazy Farming](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Farming__1373) | Dolgubon | PC / Mac | 2.2.7 |
-| [Dolgubon's Lazy Set Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Set-Crafter__1697) | Dolgubon | PC / Mac | 3.0.7.9 |
+| [Dolgubon's Lazy Set Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Set-Crafter__1697) | Dolgubon | PC / Mac | 3.0.8.0 |
 | [Dolgubon's Lazy Set Crafter (XBPA ONLY)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Set-Crafter-XBPA-ONLY__e1b979e5-1c57-4da0-8980-5477f9d3b689) | Dolgubon | Console | — |
 | [Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__eeff2a8e-c911-4984-a07f-784c7155ddad) | Dolgubon | Console | — |
-| [Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__1346) | Dolgubon | PC / Mac | 4.0.5.7.7 |
+| [Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__1346) | Dolgubon | PC / Mac | 4.0.5.7.8 |
 | [DollyCam Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mezzamort/DollyCam-Zoom__796) | Mezzamort | PC / Mac | 1.2 |
 | [Dolmen runner 1.2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xDonny2/Dolmen-runner-1.2__b680d5f3-b8ab-4158-a513-d3f2a14921db) | xDonny2 | Console | — |
 | [Don't Care About Friends](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VisioTempus/Don-t-Care-About-Friends__4186) | VisioTempus | PC / Mac | 1.0.0 |

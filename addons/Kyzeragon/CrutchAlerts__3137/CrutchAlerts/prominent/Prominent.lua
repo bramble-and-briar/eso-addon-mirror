@@ -1,8 +1,6 @@
 local Crutch = CrutchAlerts
 local C = Crutch.Constants
 
-local childNames = {"LeftMid", "LeftTop", "LeftBottom", "RightMid", "RightTop", "RightBottom"}
-
 -- TODO: make these user vars
 -- TODO: interrupted
 local preMillis = 1000
@@ -20,21 +18,83 @@ Crutch.prominent = {
 
 Crutch.prominentDisplaying = {} -- {[12459] = 1,}
 
+
+-------------------------------------------------------------------------------
+-- virtuals
+
+-- x coord is just a multiplier
+local SLOT_COORDS = {
+    [1] = {
+        {-1,    0, LEFT},
+        {-1,  300, LEFT},
+        {-1, -300, LEFT},
+        { 1,    0, RIGHT},
+        { 1,  300, RIGHT},
+        { 1, -300, RIGHT},
+    },
+    [2] = {
+        {-1,  150, LEFT},
+        {-1, -150, LEFT},
+        { 1,  150, RIGHT},
+        { 1, -150, RIGHT},
+    },
+    [3] = {
+        {-1,  225, LEFT},
+        {-1, -225, LEFT},
+        { 1,  225, RIGHT},
+        { 1, -225, RIGHT},
+    },
+    [4] = {
+        { 0,    0, CENTER},
+        {-1,  225, LEFT},
+        {-1, -225, LEFT},
+        { 0,  450, CENTER},
+        { 1,  225, RIGHT},
+        { 1, -225, RIGHT},
+    },
+}
+
+local function CreateProminents(slot)
+    local control = WINDOW_MANAGER:CreateTopLevelWindow("CrutchAlertsProminent" .. slot)
+    for i, _ in ipairs(SLOT_COORDS[slot]) do
+        local line = CreateControlFromVirtual(
+            "$(parent)Line" .. i,
+            control,
+            "CrutchAlertsProminentLineTemplate",
+            "")
+    end
+    return control
+end
+
+
 -------------------------------------------------------------------------------
 local function Display(abilityId, text, color, slot, millis)
     Crutch.prominentDisplaying[abilityId] = slot
 
-    local styles = Crutch.GetStyles()
-
-    local control = GetControl("CrutchAlertsProminent" .. tostring(slot))
-    for _, name in ipairs(childNames) do
-        local label = control:GetNamedChild(name)
-        if (label) then
-            label:SetFont(styles.prominentFont)
-            label:SetText(text)
-            label:SetColor(unpack(color))
-        end
+    -- Get or create
+    local control = GetControl("CrutchAlertsProminent" .. slot)
+    if (not control) then
+        local creationStartTime = GetGameTimeMilliseconds()
+        control = CreateProminents(slot)
+        Crutch.dbgOther("Creating prominents took " .. GetGameTimeMilliseconds() - creationStartTime)
     end
+
+    -- Individual lines
+    local font = Crutch.GetStyles().GetProminentFont(Crutch.savedOptions.general.prominentSize)
+    for i, coords in ipairs(SLOT_COORDS[slot]) do
+        local label = control:GetNamedChild("Line" .. i)
+        label:SetFont(font)
+        label:SetText(text)
+        label:SetColor(unpack(color))
+        label:SetDimensions(2000, 2000)
+        label:SetWidth(label:GetTextWidth())
+        label:SetHeight(label:GetTextHeight())
+
+        label:ClearAnchors()
+        local xOffset = GuiRoot:GetWidth() / 2 * 0.8 * coords[1]
+        label:SetAnchor(coords[3], GuiRoot, CENTER, xOffset, coords[2])
+    end
+
     control:SetHidden(false)
 
     EVENT_MANAGER:RegisterForUpdate(Crutch.name .. "Prominent" .. tostring(slot), millis, function()
@@ -86,8 +146,8 @@ function Crutch.DisplayProminentSpin(text, color, slot, mute)
         end
 
         local control = GetControl("CrutchAlertsProminent" .. tostring(slot))
-        for _, name in ipairs(childNames) do
-            local label = control:GetNamedChild(name)
+        for i = 1, control:GetNumChildren() do
+            local label = control:GetChild(i)
             if (label) then
                 label:SetTransformRotationZ(math.rad(angle))
             end

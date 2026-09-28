@@ -7,7 +7,7 @@ local EM = EVENT_MANAGER
 ---------------------------------------------------------------------
 -- GrimSuite Combat
 --
--- Scope for v0.0.24Dev:
+-- Scope for v1.3.0:
 --   * Simple GCD metronome
 --   * Simplified WeaveDelays
 --
@@ -30,6 +30,7 @@ Combat.gcdDuration = 1000
 Combat.inCombat = false
 Combat.layoutUnlocked = false
 Combat.hudVisible = true
+Combat.settingsPreviewVisible = false
 
 Combat.weave = {
     actions = {},
@@ -299,6 +300,21 @@ function GSAttributeBar:Initialize(unitTag, powerType, topLevelCtrl, reversed)
     self.attrTextPercent = self.control:GetNamedChild("Percent")
     self.attrBar = self.control:GetNamedChild("Bar")
 
+    -- Resource totals are centered within their associated bar.
+    self.attrText:ClearAnchors()
+    self.attrText:SetAnchor(CENTER, self.control, CENTER, 0, 0)
+
+    -- Percentages sit just inside the appropriate outer edge:
+    -- Health = left, Magicka (reversed) = right, Stamina = left.
+    self.attrTextPercent:ClearAnchors()
+    if self.reversed then
+        self.attrTextPercent:SetAnchor(RIGHT, self.control, RIGHT, -10, 0)
+        self.attrTextPercent:SetHorizontalAlignment(RIGHT)
+    else
+        self.attrTextPercent:SetAnchor(LEFT, self.control, LEFT, 10, 0)
+        self.attrTextPercent:SetHorizontalAlignment(LEFT)
+    end
+
     ZO_StatusBar_SetGradientColor(
         self.attrBar,
         ZO_POWER_BAR_GRADIENT_COLORS[powerType]
@@ -467,8 +483,8 @@ function GSAttributeHealthBar:Initialize(unitTag, powerType, topLevelCtrl)
 
     self.shieldBar:SetColor(1, 0.49, 0.13, 0.50)
     self.shieldBar:ClearAnchors()
-    self.shieldBar:SetAnchor(TOPLEFT, self.attrBar, TOPLEFT, 0, 5)
-    self.shieldBar:SetAnchor(BOTTOMRIGHT, self.attrBar, BOTTOMRIGHT, 0, -5)
+    self.shieldBar:SetAnchor(TOPLEFT, self.attrBar, TOPLEFT, 0, 3)
+    self.shieldBar:SetAnchor(BOTTOMRIGHT, self.attrBar, BOTTOMRIGHT, 0, -3)
     self:OnUpdateShield(0, true)
 
     local function OnVisualPower(_, unitTag, unitAttributeVisual, statType, attributeType, powerType, oldValue, newValue, oldMaxValue, newMaxValue)
@@ -533,8 +549,8 @@ function GSAttributeHealthBar:SetHeight(value)
     GSAttributeBar.SetHeight(self, value)
     if self.shieldBar then
         self.shieldBar:ClearAnchors()
-        self.shieldBar:SetAnchor(TOPLEFT, self.attrBar, TOPLEFT, 0, 5)
-        self.shieldBar:SetAnchor(BOTTOMRIGHT, self.attrBar, BOTTOMRIGHT, 0, -5)
+        self.shieldBar:SetAnchor(TOPLEFT, self.attrBar, TOPLEFT, 0, 3)
+        self.shieldBar:SetAnchor(BOTTOMRIGHT, self.attrBar, BOTTOMRIGHT, 0, -3)
     end
 end
 
@@ -617,16 +633,18 @@ function Combat:LayoutAttributes()
     local container = GetControl("GrimSuiteAttributes")
     if not container or not self.attributeHealth then return end
 
-    local gap = IsInGamepadPreferredMode() and 12 or 6
+    -- Slightly tighten the health-to-resource spacing and nudge the health
+    -- bar down a few pixels for a more compact, visually balanced pyramid.
+    local gap = IsInGamepadPreferredMode() and 9 or 3
+    local healthOffsetY = IsInGamepadPreferredMode() and 4 or 3
 
     -- Keep the movable hitbox tight to the actual three-bar layout.
     -- Health is 360px wide; Magicka/Stamina extend 5px beyond each side.
-    -- Height is the two stacked bar rows plus their gap.
     local barHeight = IsInGamepadPreferredMode() and 96 or 32
-    container:SetDimensions(730, (barHeight * 2) + gap)
+    container:SetDimensions(730, (barHeight * 2) + gap + healthOffsetY)
 
     self.attributeHealth.control:ClearAnchors()
-    self.attributeHealth.control:SetAnchor(TOP, container, TOP, 0, 0)
+    self.attributeHealth.control:SetAnchor(TOP, container, TOP, 0, healthOffsetY)
 
     self.attributeMagicka.control:ClearAnchors()
     self.attributeMagicka.control:SetAnchor(TOPRIGHT, self.attributeHealth.control, BOTTOM, -5, gap)
@@ -727,7 +745,7 @@ end
 function Combat:UpdateGCD()
     if not self.gcdFrame then return end
 
-    if not self.hudVisible or not GS.Saved.showGCD then
+    if (not self.hudVisible and not self.settingsPreviewVisible) or not GS.Saved.showGCD then
         self.gcdFrame:SetHidden(true)
         return
     end
@@ -1301,11 +1319,62 @@ function Combat:CreateSettings()
     })
 end
 
+function Combat:SetSettingsPreviewVisible(visible)
+    self.settingsPreviewVisible = visible == true
+
+    if self.settingsPreviewVisible then
+        self:ApplyLayout()
+
+        if self.gcdFrame then
+            self.gcdFrame:SetHidden(not GS.Saved.showGCD)
+        end
+
+        if self.weaveFrame then
+            self.weaveFrame:SetHidden(not GS.Saved.showWeave)
+        end
+
+        if self.weaveAverageFrame then
+            self.weaveAverageFrame:SetHidden(not GS.Saved.showWeave)
+        end
+
+        self:UpdateGCD()
+        self:UpdateWeave()
+    else
+        if self.gcdFrame then
+            self.gcdFrame:SetHidden(not (self.hudVisible and GS.Saved.showGCD))
+        end
+
+        if self.weaveFrame then
+            self.weaveFrame:SetHidden(not (self.hudVisible and GS.Saved.showWeave))
+        end
+
+        if self.weaveAverageFrame then
+            self.weaveAverageFrame:SetHidden(not (self.hudVisible and GS.Saved.showWeave))
+        end
+    end
+end
+
 function Combat:Initialize()
     self:CreateAttributes()
     self:CreateGCD()
     self:CreateWeaveBar()
     self:CreateSettings()
+
+    if CALLBACK_MANAGER and not self.settingsPreviewCallbacksRegistered then
+        self.settingsPreviewCallbacksRegistered = true
+
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+            local openedName = panel and panel:GetName()
+            self:SetSettingsPreviewVisible(openedName == "GrimSuiteSettings")
+        end)
+
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
+            local closedName = panel and panel:GetName()
+            if closedName == "GrimSuiteSettings" then
+                self:SetSettingsPreviewVisible(false)
+            end
+        end)
+    end
 
     EM:RegisterForEvent(GS.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, function(...)
         self:OnCombatState(...)

@@ -58,7 +58,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Taz's Chat Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Taz-s-Chat-Notifier__2764) | Tazmyr | PC / Mac | 1.28 |
 | [TBag Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/TBag-Counter__1976) | kafeijao | PC / Mac | 0.4 |
 | [Tbudko's icons for Makos's ContentHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tbudko/Tbudko-s-icons-for-Makos-s-ContentHelper__4140) | Tbudko | PC / Mac | 1.1.0 |
-| [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.07.30 |
+| [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Tea and Toast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tea-and-Toast__8394c641-1cb2-45f3-8b73-b6f424d6c630) | SugaComa | Console | — |
 | [TeamShadowBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowBuff__4673) | teamfky | PC / Mac | 1.1.9 |
 | [TeamShadowsManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowsManager__4670) | teamfky | PC / Mac | 1.1.18 |
@@ -97,7 +97,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Thank You For Your Service](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/Thank-You-For-Your-Service__2886) | skineh | PC / Mac | 1.0.2 |
 | [Thatchor's Terrible Tips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thatchor/Thatchor-s-Terrible-Tips__2786) | Thatchor | PC / Mac | 1.04 |
 | [The Artaeum Angler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sehts_architect/The-Artaeum-Angler__2918facc-2603-4099-bbcd-e4e91e58c429) | sehts_architect | Console | — |
-| [The Elder Bar Reloaded](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/The-Elder-Bar-Reloaded__3075) | SimonIllyan | PC / Mac | 12.1.2 |
+| [The Elder Bar Reloaded](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/The-Elder-Bar-Reloaded__3075) | SimonIllyan | PC / Mac | 12.1.3 |
 | [The Elder Cam](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldrni/The-Elder-Cam__2237) | Eldrni | PC / Mac | 1.2.1 |
 | [The Librarium](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Librarium__2729) | Alianym | PC / Mac | 2.32 |
 | [The Psijic Way](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/The-Psijic-Way__d55988d9-2bec-4972-b8cb-795ea26131ad) | xbutch | Console | — |
@@ -160,6 +160,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Toudidef Testing Ground](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/Toudidef-Testing-Ground__584f2995-b9a6-4637-b9a1-cfbeafcd46a6) | Toudidef | Console | — |
 | [ToxicIRC](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ToxicSky/ToxicIRC__2097) | ToxicSky | PC / Mac | 0.9 |
 | [ToxicPlayers: Easy Targets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/ToxicPlayers-Easy-Targets__1894) | Mouton | PC / Mac | 2.1.1 |
+| [Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bucketmore/Tracker__32c238c5-9b75-4645-b717-70cf82c64f15) | Bucketmore | Console | — |
 | [Trade Skills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Necis/Trade-Skills__6062f2e4-8b5a-48e5-9327-cf8de18eb5e5) | Necis | Console | — |
 | [Trade Skills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thurderan/Trade-Skills__4232) | Thurderan | PC / Mac | 8.1 |
 | [TraderFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wh0c4r35ab0utth15/TraderFilter__44df98e8-01a5-48d2-903d-41d3516f3289) | wh0c4r35ab0utth15 | Console | — |

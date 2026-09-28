@@ -1,0 +1,44 @@
+<GuiXml>
+    <Animations>
+        <!-- Piggyback on the compass pin lifecycle: OnPlay fires when the engine adds a pin, OnStop when it removes it. -->
+        <AnimationTimeline name="DevSandbox3_CompassPinLifecycle" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <CustomAnimation delay="0" duration="1" />
+            </Animations>
+            <OnPlay>
+                DevSandbox3_OnCompassPinAdded(self:GetFirstAnimation():GetAnimatedControl())
+            </OnPlay>
+            <OnStop>
+                DevSandbox3_OnCompassPinRemoved(self:GetFirstAnimation():GetAnimatedControl())
+            </OnStop>
+        </AnimationTimeline>
+    </Animations>
+    <Controls>
+        <!-- The stock compass never declares these five pin categories, so the engine creates no controls for them.
+             Declaring them (invisible: alpha 0) makes the client track every such object within range and lets us
+             read description/type/distance for whichever one the player faces. drawLevelOffsetBase is unique per
+             type so DevSandbox3CompassUtils.PinTypeFromDrawLevel can classify a control without a centred query. -->
+        <Compass name="ZO_CompassContainer" override="true">
+            <CompassPinType name="HARVEST_NODE" pinTexture="$(COMPASS_PATH)groupMember.dds" pinSize="24" layer="OVERLAY"
+                addedAnimation="DevSandbox3_CompassPinLifecycle" farAlpha="0" closeAlpha="0"
+                farScale="0.0" farScaleDistanceM="200.0" closeScale="2.0" closeScaleDistanceM="0.0"
+                maxDistanceM="200.0" allowUpdatesWhenAnimating="true" drawLevelOffsetBase="120" />
+            <CompassPinType name="LOCATION" pinTexture="$(COMPASS_PATH)groupMember.dds" pinSize="24" layer="OVERLAY"
+                addedAnimation="DevSandbox3_CompassPinLifecycle" farAlpha="0" closeAlpha="0"
+                farScale="0.0" farScaleDistanceM="200.0" closeScale="2.0" closeScaleDistanceM="0.0"
+                maxDistanceM="200.0" allowUpdatesWhenAnimating="true" drawLevelOffsetBase="121" />
+            <CompassPinType name="VENDOR" pinTexture="$(COMPASS_PATH)groupMember.dds" pinSize="24" layer="OVERLAY"
+                addedAnimation="DevSandbox3_CompassPinLifecycle" farAlpha="0" closeAlpha="0"
+                farScale="0.0" farScaleDistanceM="200.0" closeScale="2.0" closeScaleDistanceM="0.0"
+                maxDistanceM="200.0" allowUpdatesWhenAnimating="true" drawLevelOffsetBase="122" />
+            <CompassPinType name="TRAINER" pinTexture="$(COMPASS_PATH)groupMember.dds" pinSize="24" layer="OVERLAY"
+                addedAnimation="DevSandbox3_CompassPinLifecycle" farAlpha="0" closeAlpha="0"
+                farScale="0.0" farScaleDistanceM="200.0" closeScale="2.0" closeScaleDistanceM="0.0"
+                maxDistanceM="200.0" allowUpdatesWhenAnimating="true" drawLevelOffsetBase="123" />
+            <CompassPinType name="NPC_FOLLOWER" pinTexture="$(COMPASS_PATH)groupMember.dds" pinSize="24" layer="OVERLAY"
+                addedAnimation="DevSandbox3_CompassPinLifecycle" farAlpha="0" closeAlpha="0"
+                farScale="0.0" farScaleDistanceM="200.0" closeScale="2.0" closeScaleDistanceM="0.0"
+                maxDistanceM="200.0" allowUpdatesWhenAnimating="true" drawLevelOffsetBase="124" />
+        </Compass>
+    </Controls>
+</GuiXml>

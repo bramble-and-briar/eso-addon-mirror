@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Ardy's OB Tracker">
+            <Action name="ARDYSOBT_CLEAR_MARKER">
+                <Down>ArdysOBTracker.ClearReticleMarker()</Down>
+            </Action>
+            <Action name="ARDYSOBT_TOGGLE_MARKERS">
+                <Down>ArdysOBTracker.ToggleMarkers()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -26,7 +26,7 @@
     "LibRadialMenu"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4297/",
-  "fingerprint": "bde9e03869ade1a721eb6f9022ee6ed1bbf621c9a695c5c4f721d61ecbaf0d4d",
+  "fingerprint": "23ded0e897244bd39d4a90c76a7acfc5f36cdde60923baba3e0fb63b0f77e1f6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14754.png",
     "https://cdn-eso.mmoui.com/preview/pvw14755.png",
@@ -39,11 +39,11 @@
   "source_id": "4297",
   "source_url": "https://www.esoui.com/downloads/info4297-LibRadialMenu.html",
   "stats": {
-    "downloads": 8266,
-    "favorites": 9,
-    "monthly_downloads": 1140
+    "downloads": 9492,
+    "favorites": 11,
+    "monthly_downloads": 1780
   },
   "title": "LibRadialMenu",
-  "updated_at": 1788844259000,
-  "version": "8"
+  "updated_at": 1790556164000,
+  "version": "9"
 }

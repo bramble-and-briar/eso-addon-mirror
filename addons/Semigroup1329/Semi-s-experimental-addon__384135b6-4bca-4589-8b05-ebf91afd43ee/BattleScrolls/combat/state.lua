@@ -1930,6 +1930,11 @@ function state:OnDamageShieldedTaken(_, _result, _isError, _abilityName, _abilit
 
     BattleScrolls.accumulators.damage(self.damageTakenByUnitId, sourceUnitID, targetUnitID, DAMAGE_SHIELDED_ABILITY_ID, hitValue, 0, false)
 
+    -- Shield-absorbed hits can also trigger the player's Cruxweaver Armor.
+    if targetType == COMBAT_UNIT_TYPE_PLAYER then
+        BattleScrolls.crux.onPlayerDamaged()
+    end
+
     -- Track player fights when taking damage from enemy players
     if sourceType == COMBAT_UNIT_TYPE_OTHER then
         self.isPlayerFight = true

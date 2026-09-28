@@ -158,6 +158,8 @@ local function resolveBossName(bossSeqNames, bossTag, tagSeq)
     return zo_strformat(SI_UNIT_NAME, bossTag)
 end
 
+-- FIXME: Move boss DPS and group-average calculations into Arithmancer; centralize
+-- the healer/tank eligibility rules also used by tooltips.buildGroupAvgTooltip.
 ---Computes group average DPS across the top damage dealers.
 ---Stops at the first healer (HPS > DPS) or tank (damage < 1/10th of top).
 ---Members MUST be sorted by DPS descending.

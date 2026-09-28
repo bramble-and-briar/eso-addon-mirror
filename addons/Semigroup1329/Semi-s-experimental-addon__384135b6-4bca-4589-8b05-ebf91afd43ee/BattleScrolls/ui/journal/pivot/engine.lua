@@ -101,6 +101,8 @@ end
 local MAX_VALUE_COLUMNS = 10
 --- Maximum number of result rows to prevent memory exhaustion on large queries
 local MAX_RESULT_ROWS = 500
+--- Encounters processed between awaited collections
+local GC_ENCOUNTER_BATCH_SIZE = 5
 
 -------------------------
 -- Scope Resolution
@@ -1012,7 +1014,12 @@ function engine.runDecodeQueryAsync(query, scopedEncounters, onProgress)
                     end
                 end
             end
-            -- decoded goes out of scope, GC can collect
+            -- Release decoded data before collecting each batch, including
+            -- the final partial batch before building the result.
+            decoded = nil
+            if idx % GC_ENCOUNTER_BATCH_SIZE == 0 or idx == #scopedEncounters then
+                BattleScrolls.gc:CollectFullAsync():Await()
+            end
 
             if onProgress then onProgress(idx, #scopedEncounters) end
         end

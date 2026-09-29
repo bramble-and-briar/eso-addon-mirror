@@ -764,8 +764,11 @@ local function ConfigurePanelDisplayFrame(fromStyleFlag)
                 groupText = strformat('%s |cffd100%s|r,', groupText, L.Group_RaidDebuffs)
                 noGroups = false
             elseif (frame == currentDisplayFrame) then -- this group is being show on this frame
-                groupText = strformat('%s |cffd100%s|r,', groupText, Srendarr.auraGroupStrings[group])
-                noGroups = false
+                local groupName = Srendarr.auraGroupStrings[group]
+                if groupName then
+                    groupText = strformat('%s |cffd100%s|r,', groupText, groupName)
+                    noGroups = false
+                end
             end
         end
 
@@ -1597,7 +1600,8 @@ function Srendarr:PartialUpdate(recheck, completed)
             Srendarr.db.raidAuraMode = 6
         end
 
-        Srendarr.db.updateDB = {} -- reset Major/Minor update table to clear after initial reload (Phinix)
+        -- Do not clear updateDB/toggled here: FullUpdate/GetToggled export to SavedVariables on ReloadUI.
+        -- Wiping on load overwrote the dump on the next save. FullUpdate resets updateDB when a scan starts.
 
         -- populate the last character name if not using global settings (Phinix)
         self.db.lastCharname = (SrendarrDB.Default[GetDisplayName()]['$AccountWide'].useAccountWide) and L.Profile_AccountWide or zo_strformat(SI_UNIT_NAME, GetUnitName('player'))
@@ -2456,6 +2460,12 @@ tabPanelData =
                         local bState = GetActiveHotbarCategory()
                         for slot = 3, 8 do
                             Srendarr.OnActionSlotUpdated(slot, bState)
+                        end
+                        for slot = 3, 7 do
+                            local button = ZO_ActionBar_GetButton(slot)
+                            if button then
+                                button:UpdateActivationHighlight()
+                            end
                         end
                     end,
                 },

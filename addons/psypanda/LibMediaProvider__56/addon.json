@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/psypanda/LibMediaProvider__56",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "psypanda",
   "canonical_id": "esoui:56",
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:56",
@@ -17,7 +18,7 @@
     "LibMediaProvider"
   ],
   "download_url": "https://www.esoui.com/downloads/dl56/",
-  "fingerprint": "28efaab82a2dbd721d3a06c84f495ba7b49009827f32efa928b43011271d6dfa",
+  "fingerprint": "ed40f261063183d11b808ea0d2e24434d10c1936db9102f8e697518f77405018",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -25,11 +26,11 @@
   "source_id": "56",
   "source_url": "https://www.esoui.com/downloads/info56-LibMediaProvider.html",
   "stats": {
-    "downloads": 3812355,
-    "favorites": 1159,
-    "monthly_downloads": 38742
+    "downloads": 3860875,
+    "favorites": 1165,
+    "monthly_downloads": 26588
   },
   "title": "LibMediaProvider",
-  "updated_at": 1782720344000,
-  "version": "1.1 r38"
+  "updated_at": 1790583477000,
+  "version": "1.1 r39"
 }

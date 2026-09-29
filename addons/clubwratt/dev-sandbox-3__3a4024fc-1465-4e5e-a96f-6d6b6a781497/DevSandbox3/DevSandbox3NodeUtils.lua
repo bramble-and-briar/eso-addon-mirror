@@ -31,8 +31,27 @@ for _, name in ipairs({
     "Quicksilver Ore", "Rubedite Ore", "Ruby Ash Wood", "Runestone", "Scrap Wood", "Silver Seam", "Silverweed",
     "Spidersilk", "Stinkhorn", "Torn Cloth", "Violet Coprinus", "Void Bloom", "Voidstone Ore", "Water Hyacinth",
     "Water Skin", "White Cap", "Wormwood", "Yew",
+    -- Cyrodiil-flavoured names seen in testing
+    "Protean Runestone", "Rich Iron Ore", "Rich Platinum Seam",
 }) do
     NodeUtils.KNOWN_MATERIALS[string.lower(name)] = true
+end
+
+-- Cyrodiil prefixes an ordinary material with "Rich " for bonus-yield nodes.
+NodeUtils.MATERIAL_PREFIXES = { "rich " }
+
+---@param lowered string already-lowercased interactable name
+---@return boolean
+function NodeUtils.IsKnownMaterial(lowered)
+    if NodeUtils.KNOWN_MATERIALS[lowered] then
+        return true
+    end
+    for _, prefix in ipairs(NodeUtils.MATERIAL_PREFIXES) do
+        if string.sub(lowered, 1, #prefix) == prefix and NodeUtils.KNOWN_MATERIALS[string.sub(lowered, #prefix + 1)] then
+            return true
+        end
+    end
+    return false
 end
 
 NodeUtils.CLASS_MATERIAL = "material"
@@ -75,7 +94,7 @@ function NodeUtils.ClassifyHarvestNode(name, ignoredNames)
         return NodeUtils.CLASS_WAR_TORTE
     end
     local lowered = string.lower(name)
-    if NodeUtils.KNOWN_MATERIALS[lowered] or (ignoredNames and ignoredNames[lowered]) then
+    if NodeUtils.IsKnownMaterial(lowered) or (ignoredNames and ignoredNames[lowered]) then
         return NodeUtils.CLASS_MATERIAL
     end
     return NodeUtils.CLASS_UNKNOWN

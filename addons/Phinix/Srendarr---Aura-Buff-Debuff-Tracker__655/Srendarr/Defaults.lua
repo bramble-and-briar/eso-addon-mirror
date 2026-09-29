@@ -138,7 +138,7 @@ Srendarr.STR_BLOCKBYID = 'BlockByID'
 Srendarr.STR_GROUPBUFFBYID = 'GroupBuffByID'
 Srendarr.STR_GROUPDEBUFFBYID = 'GroupDebuffByID'
 
-Srendarr.maxSearchStage = 6          -- number * 50k (currently 250000) is the highest ability ID Srendarr will search for - increases with game updates (Phinix) - last highest 242578 on 3-25-25
+Srendarr.maxSearchStage = 6          -- number * 50k (currently 300000) is the highest ability ID Srendarr will search for - increases with game updates (Phinix) - last highest 272637 on 8-26-26
 Srendarr.maxAbilityID = 300000       -- addon will not look for abilities with ID above this limit (Phinix)
 Srendarr.castBarID = 916120          -- unique ID so castbar sample can show in menus (Phinix)
 
@@ -270,6 +270,7 @@ local defaults =
     groupDebuffWhitelist    = {}, -- list of debuffs that are filtered to group frames
     blacklist               = {}, -- list of auras that are to be blacklisted from display
     updateDB                = {}, -- temp table for Major/Minor database update export
+    toggled                 = {}, -- temp table for toggledAuras patch export (GetToggled)
 
     -- filters
     filtersGroup            =

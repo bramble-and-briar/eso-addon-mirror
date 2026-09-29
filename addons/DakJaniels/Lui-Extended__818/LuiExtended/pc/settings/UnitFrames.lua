@@ -1742,7 +1742,9 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.ShowPlayerDodgePrediction = value
-                    UnitFrames.PlayerDodgePrediction.Refresh()
+                    if UnitFrames.dodgePrediction then
+                        UnitFrames.dodgePrediction:Refresh()
+                    end
                 end,
                 width = "full",
                 default = Defaults.ShowPlayerDodgePrediction,
@@ -1759,7 +1761,9 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (r, g, b, a)
                     Settings.PlayerDodgePredictionColor = { r, g, b, a }
-                    UnitFrames.PlayerDodgePrediction.Refresh()
+                    if UnitFrames.dodgePrediction then
+                        UnitFrames.dodgePrediction:Refresh()
+                    end
                 end,
                 width = "full",
                 default =
@@ -3255,6 +3259,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.GroupCombatGlow = value
+                    UnitFrames.UpdateGroupCombatGlow()
                 end,
                 width = "full",
                 default = Defaults.GroupCombatGlow,
@@ -3646,6 +3651,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.RaidCombatGlow = value
+                    UnitFrames.UpdateGroupCombatGlow()
                 end,
                 width = "full",
                 default = Defaults.RaidCombatGlow,

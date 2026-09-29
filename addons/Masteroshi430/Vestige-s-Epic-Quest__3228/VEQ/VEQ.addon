@@ -5,9 +5,9 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: |cf49b42Vestige's Epic Quest|r 
-## APIVersion: 101050
+## APIVersion: 101051
 ## Author: |c3CB371@Masteroshi430|r
-## Version: 2026.07.30
+## Version: 2026.09.28
 ## Description: Vestige's Epic Quest turns many things in-game into a mini quest.
 ## DependsOn: LibAddonMenu-2.0>=43 LibMediaProvider>=37 LibTreasure>=24 LibGPS>=73  LibDialog>=127
 ## OptionalDependsOn: WritWorthy 

@@ -1,11 +1,12 @@
 ## Title: RidingSchool
-## Version: 1.4.21
-## AddOnVersion: 25
-## APIVersion: 101050 101051
+## Version: 1.4.22
+## AddOnVersion: 26
+## IsLibrary: false
+## APIVersion: 101052 101051
 ## Author: Shadowfen
 ## Description: Automates rider training
 ## SavedVariables: RidingSchoolVars
-## DependsOn: LibAddonMenu-2.0>=41 LibSFUtils>=66
+## DependsOn: LibAddonMenu-2.0>=43 LibSFUtils>=78
 
 lang/strings.lua
 lang/$(language).lua

@@ -2,8 +2,8 @@
 ## Title: LuiData
 ## Author: @dack_janiels[PC]
 ## LegacyAuthors: ArtOfShred, psypanda, Saenic & SpellBuilder
-## AddOnVersion: 7227
-## Version: 7.2.2.7
+## AddOnVersion: 7228
+## Version: 7.2.2.8
 ## Description: Provides data for LuiExtended.
 ## DependsOn: LuiMedia>=7133
 ## IsLibrary: true
@@ -76,6 +76,7 @@ Effects/DisguiseIcons.lua
 # Effects - Fake Effects
 Effects/Fake/FakeAddGroundDamageAura.lua
 Effects/Fake/FakeEffectGroundDisplay.lua
+Effects/Fake/CombatEventStatusEffects.lua
 Effects/Fake/FakeExternalBuffs.lua
 Effects/Fake/FakeExternalDebuffs.lua
 Effects/Fake/FakePlayerBuffs.lua

@@ -21,6 +21,7 @@ A.get_bg_round_index = GetCurrentBattlegroundRoundIndex
 A.is_active_bg       = IsActiveWorldBattleground
 A.get_bg_name        = GetBattlegroundName
 A.get_bg_team_size   = GetBattlegroundTeamSize
+A.get_bg_num_teams   = GetBattlegroundNumTeams
 A.get_local_team     = function() return GetUnitBattlegroundTeam("player") end
 A.get_result_for_team = GetBattlegroundResultForTeam
 A.get_num_rounds     = GetBattlegroundNumRounds

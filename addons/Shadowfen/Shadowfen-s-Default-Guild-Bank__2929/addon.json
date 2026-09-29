@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Shadowfen/Shadowfen-s-Default-Guild-Bank__2929",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Shadowfen",
   "canonical_id": "esoui:2929",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "DefaultGuildBank"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2929/",
-  "fingerprint": "8b32a352c5fb3bd11cf15255a14d53237d8697ccb2df3b776b16e9fc41bc9d21",
+  "fingerprint": "cc1c60e2eb63bebe68018be8014eb2d88419b2be4267e288dcf8b8713d9ff696",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10821.png"
   ],
@@ -79,11 +84,11 @@
   "source_id": "2929",
   "source_url": "https://www.esoui.com/downloads/info2929-ShadowfensDefaultGuildBank.html",
   "stats": {
-    "downloads": 10244,
+    "downloads": 10490,
     "favorites": 13,
-    "monthly_downloads": 144
+    "monthly_downloads": 103
   },
   "title": "Shadowfen's Default Guild Bank",
-  "updated_at": 1781033390000,
-  "version": "1.21"
+  "updated_at": 1790620089000,
+  "version": "1.23"
 }

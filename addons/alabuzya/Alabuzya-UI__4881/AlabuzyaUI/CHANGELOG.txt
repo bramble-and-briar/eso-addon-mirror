@@ -1,0 +1,49 @@
+Alabuzya UI 0.1.39 — 2026-09-28
+
+ENGLISH
+- Fixed a login Lua error in the bundled QuestArrow module caused by four
+  references to the old theme variable. Font lookups now use AlabuzyaUI.Theme.
+- Interface layout, textures, saved settings and declared API version are unchanged.
+- Further Update 51 compatibility work is deferred pending in-game testing.
+
+РУССКИЙ
+- Исправлена ошибка Lua при входе в игру во встроенном QuestArrow: четыре
+  обращения к старой переменной темы заменены на AlabuzyaUI.Theme.
+- Расположение интерфейса, текстуры, настройки и заявленная версия API сохранены.
+- Остальные изменения для Update 51 отложены до проверки в игре.
+
+Alabuzya UI 0.1.38 — 2026-09-28
+
+ENGLISH
+Documentation revision (same code version)
+- Rewritten English/Russian description, README and credits for Alabuzya UI.
+- AI disclosure and LibAddonMenu-2.0 installation instructions moved to the top.
+- Clarified the new generated custom textures, newly written resource/theme
+  system and reworked functional modules.
+- Historical development notes moved out of the user-facing addon package.
+- Gameplay code, artwork, settings defaults and UI layout are unchanged.
+
+Technical changes in 0.1.38
+- One public addon namespace and one addon-load callback.
+- Modules and bundled QuestArrow initialize through the main addon.
+- EU, NA and PTS use separate saved profiles; character IDs remain separate.
+- Old settings migrate automatically to missing server entries, retaining
+  the legacy data for rollback. Existing server settings are not overwritten.
+- Standalone QuestArrow takes priority over the bundled module.
+
+РУССКИЙ
+Обновление документации (версия кода сохранена)
+- Переписаны описание, README и сведения об авторстве на английском и русском.
+- В начало вынесены уведомление об ИИ и установка LibAddonMenu-2.0.
+- Уточнено происхождение новых сгенерированных текстур, заново написанной
+  системы оформления и ресурсов, переработанных функциональных модулей.
+- Исторические заметки разработки убраны из пользовательского архива.
+- Игровой код, графика, настройки по умолчанию и расположение элементов сохранены.
+
+Технические изменения версии 0.1.38
+- Единое пространство имён и один обработчик загрузки аддона.
+- Общий запуск модулей и встроенного QuestArrow.
+- Раздельные профили EU, NA и PTS; настройки персонажей остаются привязаны к ID.
+- Старые настройки автоматически копируются в отсутствующие серверные записи.
+  Исходные данные остаются для отката, существующие серверные записи сохраняются.
+- Отдельно установленный QuestArrow имеет приоритет над встроенным модулем.

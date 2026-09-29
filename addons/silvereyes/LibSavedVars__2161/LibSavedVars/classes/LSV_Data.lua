@@ -715,8 +715,7 @@ function LSV_Data:GetDebugMode()
     return debugMode
 end
 
---[[
-     Upgrades all saved vars tracked by this data instance of a given scope to the given version number.  
+--[[ Upgrades all saved vars tracked by this data instance of a given scope to the given version number.  
      Has no effect on saved vars at or above the given version.
      
      version:         Settings are only upgraded on saved vars below this version number.
@@ -939,8 +938,7 @@ function LSV_Data.tableFilterKeys(tbl, keyTable)
     return filtered
 end
 
---[[
-    Throw an error message if the scope is not valid, i.e.
+--[[ Throw an error message if the scope is not valid, i.e.
         numbers outside of [LIBSAVEDVARS_SCOPE_MIN, LIBSAVEDVARS_SCOPE_MAX]
         strings not equal to "*"
     For valid values, the function simply returns.

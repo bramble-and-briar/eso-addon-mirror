@@ -22,6 +22,9 @@ local LUIE = LUIE
 --- @field ccImmunityAbilityById table<integer, true>
 --- @field windowTitles table<string, string>
 --- @field containerRouting table<string, string>
+--- @field uniqueDisplayContainers string[]
+--- @field RebuildUniqueDisplayContainers fun()
+--- @field GetUniqueDisplayContainers fun(): string[]
 --- @field alignmentDirection table<string, string>
 --- @field sortDirection table<string, string>
 --- @field playerActive boolean
@@ -44,6 +47,7 @@ local LUIE = LUIE
 --- @field CombatCcByAbilityId table<integer, { ccType: integer, expires: number, targetUnitTag?: string }>
 --- @field CombatCcByTargetAbilityId table<string, integer>
 --- @field combatDamageTypeByAbilityId table<integer, { damageType: integer, expires: number }>
+--- @field reticleCombatUnitId integer|nil
 local SpellCastBuffs = ZO_Object:Subclass()
 
 ------------------------------------------------
@@ -469,6 +473,8 @@ SpellCastBuffs.SV = ...
 --- | `"reticleover2"`
 --- | `"ground"`
 --- | `"saved"`
+--- | `"promd_ground"`
+--- | `"promb_ground"`
 --- | `"promd_player"`
 --- | `"promb_player"`
 --- | `"promd_target"`
@@ -569,6 +575,10 @@ local uiTlw = {} -- GUI
 --- @type table<string, string>
 SpellCastBuffs.containerRouting = {}
 
+--- Deduped container keys from containerRouting (promb_* → prominentbuffs, player_long once).
+--- @type string[]
+SpellCastBuffs.uniqueDisplayContainers = {}
+
 SpellCastBuffs.alignmentDirection = {}         --- @type table<string, string> Holds alignment direction for all containers
 SpellCastBuffs.sortDirection = {}              --- @type table<string, string> Holds sorting direction for all containers
 
@@ -599,6 +609,10 @@ SpellCastBuffs.werewolfQuest = 0   --- @type number
 -- Counter variable for ACTION_RESULT_EFFECT_GAINED / ACTION_RESULT_EFFECT_FADED tracking for some buffs that are broken
 --- @type table
 SpellCastBuffs.InternalStackCounter = {}
+
+--- Combat unitId of the current reticleover target, cached from EVENT_EFFECT_CHANGED
+--- or matching EVENT_COMBAT_EVENT. There is no GetUnitId("reticleover") API.
+SpellCastBuffs.reticleCombatUnitId = nil
 
 --- @class (partial) LUIE.SpellCastBuffs : SpellCastBuffs
 LUIE.SpellCastBuffs = SpellCastBuffs:New()

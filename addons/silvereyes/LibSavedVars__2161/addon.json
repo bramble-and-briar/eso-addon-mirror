@@ -74,7 +74,7 @@
     "LibSavedVars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2161/",
-  "fingerprint": "b0d71ce836406ea8ed344004db1b9da4c48d53e9c3d7a8bb912a33431f089730",
+  "fingerprint": "a9ab26a1b24d82efc7a81d6d9a3933058709fe48d63b9bc53b106132f8e58154",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7350.png"
   ],
@@ -84,11 +84,11 @@
   "source_id": "2161",
   "source_url": "https://www.esoui.com/downloads/info2161-LibSavedVars.html",
   "stats": {
-    "downloads": 2021726,
-    "favorites": 981,
-    "monthly_downloads": 50198
+    "downloads": 2088303,
+    "favorites": 985,
+    "monthly_downloads": 24414
   },
   "title": "LibSavedVars",
-  "updated_at": 1786581659000,
-  "version": "6.1"
+  "updated_at": 1790619794000,
+  "version": "6.1.1"
 }

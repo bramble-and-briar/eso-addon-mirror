@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Dolgubon/Dolgubon-s-Lazy-Set-Crafter__1697",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Dolgubon",
   "canonical_id": "esoui:1697",
   "category_id": "40",
@@ -21,7 +22,7 @@
     "DolgubonsLazySetCrafter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1697/",
-  "fingerprint": "a315b570bc635549ca6b1a14c3908b7ca6bdb9abc0b660799dcdf96855c45375",
+  "fingerprint": "b9ea19f451f6860e24a5f25f8764d81dca5b7593a663465e8f37b1e147c91bdd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14079.png",
     "https://cdn-eso.mmoui.com/preview/pvw12852.png"
@@ -32,11 +33,11 @@
   "source_id": "1697",
   "source_url": "https://www.esoui.com/downloads/info1697-DolgubonsLazySetCrafter.html",
   "stats": {
-    "downloads": 1187349,
-    "favorites": 495,
-    "monthly_downloads": 5138
+    "downloads": 1195827,
+    "favorites": 500,
+    "monthly_downloads": 5233
   },
   "title": "Dolgubon's Lazy Set Crafter",
-  "updated_at": 1782340537000,
-  "version": "3.0.7.9"
+  "updated_at": 1790567431000,
+  "version": "3.0.8.0"
 }

@@ -283,6 +283,7 @@ ChatAnnouncements.Defaults =
         CollectibleColor2 = { 0.75, 0.75, 0.75, 1 },
         CollectibleCategory = true,
         CollectibleSubcategory = true,
+        CollectibleCondense = false,
         CollectibleUseCA = false,
         CollectibleUseAlert = false,
         CollectibleUsePetNickname = false,
@@ -670,6 +671,8 @@ ChatAnnouncements.Defaults =
         CurrencyMessageUse = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_USE),
         CurrencyMessageCraft = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_CRAFT),
         CurrencyMessageExtract = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_EXTRACT),
+        CurrencyMessageGemExtract = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_GEM_EXTRACT),
+        CurrencyMessageGemExtractFrom = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_GEM_EXTRACT_FROM),
         CurrencyMessageUpgrade = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_UPGRADE),
         CurrencyMessageUpgradeFail = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_UPGRADE_FAIL),
         CurrencyMessageRefine = GetString(LUIE_STRING_CA_CURRENCY_MESSAGE_REFINE),
@@ -808,6 +811,30 @@ ChatAnnouncements.Defaults =
             CSA = true,
             Alert = false,
         },
+        ZoneDynamicEncounterVampireHunt =
+        {
+            CA = false,
+            CSA = true,
+            Alert = false,
+        },
+        ZoneDynamicEncounterFlowervineFarm =
+        {
+            CA = false,
+            CSA = true,
+            Alert = false,
+        },
+        ZoneDynamicEncounterBilsaDelivery =
+        {
+            CA = false,
+            CSA = true,
+            Alert = false,
+        },
+        ZoneDynamicEncounterMisc =
+        {
+            CA = false,
+            CSA = true,
+            Alert = false,
+        },
     },
 }
 
@@ -882,6 +909,8 @@ ChatAnnouncements.ContextMessageDefaultStringIds =
     CurrencyMessageUse = LUIE_STRING_CA_CURRENCY_MESSAGE_USE,
     CurrencyMessageCraft = LUIE_STRING_CA_CURRENCY_MESSAGE_CRAFT,
     CurrencyMessageExtract = LUIE_STRING_CA_CURRENCY_MESSAGE_EXTRACT,
+    CurrencyMessageGemExtract = LUIE_STRING_CA_CURRENCY_MESSAGE_GEM_EXTRACT,
+    CurrencyMessageGemExtractFrom = LUIE_STRING_CA_CURRENCY_MESSAGE_GEM_EXTRACT_FROM,
     CurrencyMessageUpgrade = LUIE_STRING_CA_CURRENCY_MESSAGE_UPGRADE,
     CurrencyMessageUpgradeFail = LUIE_STRING_CA_CURRENCY_MESSAGE_UPGRADE_FAIL,
     CurrencyMessageRefine = LUIE_STRING_CA_CURRENCY_MESSAGE_REFINE,

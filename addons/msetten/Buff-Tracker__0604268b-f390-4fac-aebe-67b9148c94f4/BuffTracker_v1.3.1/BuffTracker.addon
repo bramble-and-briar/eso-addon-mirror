@@ -1,0 +1,15 @@
+## Title: Buff Tracker
+## Author: msetten
+## Version: 1.3.1
+## APIVersion: 101048 101049 101050 101051
+## AddOnVersion: 1
+## SavedVariables: BuffTrackerSavedVars BuffTrackerCharVars
+## DependsOn: LibAddonMenu-2.0
+
+lang/en.lua
+lang/$(language).lua
+Utils.lua
+Abilities.lua
+Settings.lua
+BuffTracker.lua
+BuffTracker.xml

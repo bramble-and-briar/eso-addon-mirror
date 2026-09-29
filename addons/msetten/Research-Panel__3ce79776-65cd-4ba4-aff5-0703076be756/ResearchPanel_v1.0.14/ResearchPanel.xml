@@ -1,0 +1,63 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="ResearchPanelContainer" clampedToScreen="true" mouseEnabled="false" movable="true" hidden="false">
+        <Dimensions x="120" y="200" />
+        <Anchor point="BOTTOMLEFT" relativeTo="GuiRoot" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+        <Controls>
+          <!-- <Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000" inherits="ZO_InsetBackdrop" mouseEnabled="false"> -->
+          <Backdrop name="$(parent)Backdrop" centerColor="FFFFFF" edgeColor="00000000" mouseEnabled="false">
+            <AnchorFill />
+            <Edge edgeSize="1" />
+            <Controls>
+              <Label name="$(parent)Blacksmithing" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="LEFT"
+                verticalAlignment="LEFT" text="0/0" mouseEnabled="false">
+                <Anchor point="TOPLEFT" relativeTo="$(parent)Backdrop" relativePoint="TOPLEFT" offsetX="10" offsetY="0" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)Clothier" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="LEFT"
+                verticalAlignment="LEFT" text="0/0" mouseEnabled="false">
+                <Anchor point="TOPLEFT" relativeTo="$(parent)Backdrop" relativePoint="TOPLEFT" offsetX="10" offsetY="50" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)Jewelrycrafting" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="LEFT"
+                verticalAlignment="LEFT" text="0/0" mouseEnabled="false">
+                <Anchor point="TOPLEFT" relativeTo="$(parent)Backdrop" relativePoint="TOPLEFT" offsetX="10" offsetY="100" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)Woodworking" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="LEFT"
+                verticalAlignment="LEFT" text="0/0" mouseEnabled="false">
+                <Anchor point="TOPLEFT" relativeTo="$(parent)Backdrop" relativePoint="TOPLEFT" offsetX="10" offsetY="150" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)BlacksmithingPercentage" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="RIGHT"
+                verticalAlignment="LEFT" text="0%" mouseEnabled="false">
+                <Anchor point="TOPRIGHT" relativeTo="$(parent)Backdrop" relativePoint="TOPRIGHT" offsetX="10" offsetY="0" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)ClothierPercentage" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="RIGHT"
+                verticalAlignment="LEFT" text="0%" mouseEnabled="false">
+                <Anchor point="TOPRIGHT" relativeTo="$(parent)Backdrop" relativePoint="TOPRIGHT" offsetX="10" offsetY="50" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)JewelrycraftingPercentage" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="RIGHT"
+                verticalAlignment="LEFT" text="0%" mouseEnabled="false">
+                <Anchor point="TOPRIGHT" relativeTo="$(parent)Backdrop" relativePoint="TOPRIGHT" offsetX="10" offsetY="100" />
+              </Label>
+            </Controls>
+            <Controls>
+              <Label name="$(parent)WoodworkingPercentage" font="ZoFontGamepad20" color="cccccc" wrapMode="TRUNCATE" horizontalAlignment="RIGHT"
+                verticalAlignment="LEFT" text="0%" mouseEnabled="false">
+                <Anchor point="TOPRIGHT" relativeTo="$(parent)Backdrop" relativePoint="TOPRIGHT" offsetX="10" offsetY="150" />
+              </Label>
+            </Controls>
+          </Backdrop>
+        </Controls>
+      </TopLevelControl>
+    </Controls>
+</GuiXml>

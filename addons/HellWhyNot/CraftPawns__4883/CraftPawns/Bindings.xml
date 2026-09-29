@@ -1,0 +1,15 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+        <Category name="CraftPawns">
+            <Action name="CRAFTPAWNS_TOGGLE" rebindable="true">
+                <Down>CraftPawns_ToggleBinding()</Down>
+            </Action>
+            <Action name="CRAFTPAWNS_AUTO_RESEARCH" rebindable="true">
+                <Down>CraftPawns_AutoResearchBinding()</Down>
+            </Action>
+            <Action name="CRAFTPAWNS_ATTACH_WRIT_MAIL" rebindable="true">
+                <Down>CraftPawns_AttachWritMailBinding()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

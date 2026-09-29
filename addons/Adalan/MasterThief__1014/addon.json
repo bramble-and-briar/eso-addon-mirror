@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Adalan/MasterThief__1014",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Adalan",
   "canonical_id": "esoui:1014",
   "category_id": "27",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1014",
@@ -17,7 +18,7 @@
     "MasterThief"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1014/",
-  "fingerprint": "d62bd3732ad6cb11860e0b9a0cb518b3dab70cbfb16228e50d907937089db462",
+  "fingerprint": "dee0a3e5e52f58cdb577d6340237a878fff5f108088344f01fdd6bed791bb282",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15522.png",
     "https://cdn-eso.mmoui.com/preview/pvw15521.png",
@@ -31,11 +32,11 @@
   "source_id": "1014",
   "source_url": "https://www.esoui.com/downloads/info1014-MasterThief.html",
   "stats": {
-    "downloads": 85699,
+    "downloads": 86161,
     "favorites": 105,
-    "monthly_downloads": 287
+    "monthly_downloads": 141
   },
   "title": "MasterThief",
-  "updated_at": 1780940138000,
-  "version": "1.8"
+  "updated_at": 1790646959000,
+  "version": "1.9"
 }

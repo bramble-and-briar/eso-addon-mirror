@@ -1,4 +1,42 @@
 GuildPlannerPro_Character = {}
+GuildPlannerPro_Character.__index = GuildPlannerPro_Character
+
+function GuildPlannerPro_Character:New()
+    local newObj = setmetatable({}, self)
+    newObj.AvaRank = {}
+    newObj.DefaultSetup = {}
+    newObj.Builds = {}
+    newObj.CarriedSets = {}
+    newObj.Achievements = {}
+    newObj.Wallet = {}
+
+    newObj.BankedSets = {
+        [BAG_BANK] = {},
+        [BAG_SUBSCRIBER_BANK] = {},
+        [BAG_HOUSE_BANK_ONE] = {},
+        [BAG_HOUSE_BANK_TWO] = {},
+        [BAG_HOUSE_BANK_THREE] = {},
+        [BAG_HOUSE_BANK_FOUR] = {},
+        [BAG_HOUSE_BANK_FIVE] = {},
+        [BAG_HOUSE_BANK_SIX] = {},
+        [BAG_HOUSE_BANK_SEVEN] = {},
+        [BAG_HOUSE_BANK_EIGHT] = {},
+        [BAG_HOUSE_BANK_NINE] = {},
+        [BAG_HOUSE_BANK_TEN] = {},
+    }
+
+    return newObj
+end
+
+function GuildPlannerPro_Character:Initialize()
+    GuildPlannerPro_Character.ExportCharacterBaseInfo(self)
+
+    self.AvaRank = GuildPlannerPro_Character:ExportAvARank()
+    self.CarriedSets = GuildPlannerPro_Character:CheckBackpackForSets()
+    self.Achievements = GuildPlannerPro_Achievements:ExportAchievementsCompletionData(ACHIEVEMENT_PERSISTENCE_CHARACTER)
+    self.DefaultSetup = GuildPlannerPro_Armory:ParseArmoryBuild(0, true)
+    self.Wallet = GuildPlannerPro_Character:GetCurrencyAmountForGivenWallet(CURRENCY_LOCATION_CHARACTER)
+end
 
 function GuildPlannerPro_Character:CheckEquipment()
     local EQUIP_SLOTS =
@@ -117,29 +155,29 @@ function GuildPlannerPro_Character:ExportLevel()
     return level
 end
 
-function GuildPlannerPro_Character:ExportCharacterBaseInfo(character)
+function GuildPlannerPro_Character:ExportCharacterBaseInfo()
     local _, isEmperor = GetAchievementCriterion(935, 1)
 
-    character.Id = GetCurrentCharacterId()
-    character.Title = GetUnitTitle("player")
-    character.Gender = GuildPlannerPro_Const.Gender[GetUnitGender("player")]
-    character.GenderId = GetUnitGender("player")
-    character.AllianceId = GetUnitAlliance("player")
-    character.RaceId = GetUnitRaceId("player")
-    character.ClassId = GetUnitClassId("player")
-    character.SilhouetteIcon = GetUnitSilhouetteTexture("player")
-    character.Level = GuildPlannerPro_Character:ExportLevel()
-    character.Emperor = isEmperor
-    character.AchievementPointsEarned = GetEarnedAchievementPoints()
-    character.AchievementPointsTotal = GetTotalAchievementPoints()
-    character.VeterancyRank = GetUnitVeterancyRank("player")
-    character.AvailableSkillPoints = GetAvailableSkillPoints()
-    character.ZoneId = GetZoneId(GetCurrentMapZoneIndex())
-    character.RepresentedGuildId = GetRepresentedGuildId()
-    character.Playtime = GetSecondsPlayed()
-    character.TimeStamp = GetTimeStamp()
+    self.Id = GetCurrentCharacterId()
+    self.Title = GetUnitTitle("player")
+    self.Gender = GuildPlannerPro_Const.Gender[GetUnitGender("player")]
+    self.GenderId = GetUnitGender("player")
+    self.AllianceId = GetUnitAlliance("player")
+    self.RaceId = GetUnitRaceId("player")
+    self.ClassId = GetUnitClassId("player")
+    self.SilhouetteIcon = GetUnitSilhouetteTexture("player")
+    self.Level = GuildPlannerPro_Character:ExportLevel()
+    self.Emperor = isEmperor
+    self.AchievementPointsEarned = GetEarnedAchievementPoints()
+    self.AchievementPointsTotal = GetTotalAchievementPoints()
+    self.VeterancyRank = GetUnitVeterancyRank("player")
+    self.AvailableSkillPoints = GetAvailableSkillPoints()
+    self.ZoneId = GetZoneId(GetCurrentMapZoneIndex())
+    self.RepresentedGuildId = GetRepresentedGuildId()
+    self.Playtime = GetSecondsPlayed()
+    self.TimeStamp = GetTimeStamp()
 
-    character.MundusStone = GuildPlannerPro_Character:ExportMundus()
+    self.MundusStone = GuildPlannerPro_Character:ExportMundus()
 end
 
 function GuildPlannerPro_Character:GetCurrencyAmountForGivenWallet(currencyLocation)

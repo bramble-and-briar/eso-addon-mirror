@@ -1,6 +1,7 @@
+local DIAhelp = DIAhelp
 -- Original DIAhelp equipment maintenance. GPL-3.0-or-later.
-DIAhelpMaintenance = {}
-local M=DIAhelpMaintenance
+DIAhelp.Maintenance = {}
+local M=DIAhelp.Maintenance
 local pending, retryAfter
 local function Value(kind,slot)
     if kind=="repair" then return GetItemCondition(BAG_WORN,slot) end
@@ -88,13 +89,11 @@ function M.Tick()
         end
     end
 end
-EVENT_MANAGER:RegisterForEvent("DIAhelpMaintenance",EVENT_ADD_ON_LOADED,function(_,name)
-    if name~="DIAhelp" then return end
-    EVENT_MANAGER:UnregisterForEvent("DIAhelpMaintenance",EVENT_ADD_ON_LOADED)
+function DIAhelp.Maintenance.Initialize()
     EVENT_MANAGER:RegisterForEvent("DIAhelpMaintenance",EVENT_PLAYER_ACTIVATED,function()
         EVENT_MANAGER:RegisterForUpdate("DIAhelpMaintenance",2000,M.Tick)
     end)
     EVENT_MANAGER:RegisterForEvent("DIAhelpMaintenance",EVENT_PLAYER_DEACTIVATED,function()
         EVENT_MANAGER:UnregisterForUpdate("DIAhelpMaintenance")
     end)
-end)
+end

@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/YudoAn/Yudo-s-Kill-Feed__4390",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "YudoAn",
   "canonical_id": "esoui:4390",
   "category_id": "96",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4390",
@@ -17,7 +18,7 @@
     "YudosKillFeed"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4390/",
-  "fingerprint": "fe2a27454a34f5dd4276a14c85d6d58945f537e80a92d4bde4d9e663f350e8bf",
+  "fingerprint": "901648426b0365d6d31bc67d797cd85372fb707641a547ef9f6b551ccd7dbd2e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16444.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4390",
   "source_url": "https://www.esoui.com/downloads/info4390-YudosKillFeed.html",
   "stats": {
-    "downloads": 291,
-    "favorites": 2,
-    "monthly_downloads": 43
+    "downloads": 340,
+    "favorites": 3,
+    "monthly_downloads": 32
   },
   "title": "Yudo's Kill Feed",
-  "updated_at": 1782633437000,
-  "version": "1.3.4"
+  "updated_at": 1790614800000,
+  "version": "1.3.5"
 }

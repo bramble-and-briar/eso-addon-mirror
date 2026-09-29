@@ -3,7 +3,7 @@ EsoTH = EsoTH or {
   name = "EsoTH",
   firstInit = true,
   chat = { changed = true, privCursorPos = 0, editing = false },
-  version = "0.14.2",
+  version = "0.15",
   langKeyboard = "en",
   langVer = {
   ["stable"] = "th",

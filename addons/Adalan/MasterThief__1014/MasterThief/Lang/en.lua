@@ -19,6 +19,8 @@ local localization_strings = {
 	MT_LOOT_UNKNOWN_RECIPES_TEXT = "Loot all unknown recipes and blueprints regardless of set quality level. If it's disabled then you autoloot only recipes and blueprints of the set quality level or higher.",
 	MT_AUTOLOOT_FROM_LOOTLIST_NAME = "Loot list autoloot",	
 	MT_AUTOLOOT_FROM_LOOTLIST_TEXT = "If activated, you automatically steal items added to the loot list. Get access to the loot window by typing |cedbe3e/mtloot|r.",
+	MT_PICKPOCKET_COUNTER_NAME = "Pickpocket counter",
+	MT_PICKPOCKET_COUNTER_TEXT = "On-screen pickpocket counter since NPCs like to move around. Kill to reset counter. Will apply to all NPCs of the same generic name, such as Lion Guard, so be sure to reset by killing or teleporting.",
 	
 	-- options slider
 	MT_MESSAGE_DELAY_NAME = "Message delay",

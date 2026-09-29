@@ -63,7 +63,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Master-Merchant-3.0__2753) | Sharlikran | PC / Mac | 3.8.33 |
 | [Master Merchant RU Patch (for v1.9.2)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/Master-Merchant-RU-Patch-for-v1.9.2__1450) | ForgottenLight | PC / Mac | 1.9.2.1 |
 | [Master Writ Inventory Marker (WritWorthy Extension)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Master-Writ-Inventory-Marker-WritWorthy-Extension__2887) | code65536 | PC / Mac | 4.0.4 |
-| [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Adalan/MasterThief__1014) | Adalan | PC / Mac | 1.8 |
+| [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Adalan/MasterThief__1014) | Adalan | PC / Mac | 1.9 |
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/MasterThief__f3c99a31-b8b1-46d8-9717-1c3877f00995) | thewizadt | Console | — |
 | [MasterThief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/MasterThief__f7a31693-2690-4ce0-973f-0af5e5ce92f8) | thewizadt | Console | — |
 | [MatCalc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claymourn/MatCalc__2733) | Claymourn | PC / Mac | 1.1.3 |
@@ -84,7 +84,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Mer Crafting Writ Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/merlight/Mer-Crafting-Writ-Filters__1170) | merlight | PC / Mac | 1.3 |
 | [Mer Quickslot Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/merlight/Mer-Quickslot-Filters__707) | merlight | PC / Mac | 1.8 |
 | [Mer Quickslot Filters - Fixed Update43](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Quickslot-Filters---Fixed-Update43__953) | Baertram | PC / Mac | 3.0 |
-| [Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Torchbug---Fixed-and-Improved-Variable-inspector-Scripts-Events-and-more__2601) | Baertram | PC / Mac | 1.76 |
+| [Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Mer-Torchbug---Fixed-and-Improved-Variable-inspector-Scripts-Events-and-more__2601) | Baertram | PC / Mac | 1.77 |
 | [Meridias Block Pooky](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claudi/Meridias-Block-Pooky__4353) | Claudi | PC / Mac | 2.21 |
 | [Merlin the Enchanter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khrill/Merlin-the-Enchanter__659) | Khrill | PC / Mac | 1.8.2 |
 | [Merlin's Heal Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Just_Merlin/Merlin-s-Heal-Helper__1599) | Just_Merlin | PC / Mac | 1.2.0 |

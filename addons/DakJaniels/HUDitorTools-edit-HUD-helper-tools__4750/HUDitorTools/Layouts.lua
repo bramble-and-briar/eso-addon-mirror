@@ -20,18 +20,17 @@ local function GetLiveHudProfile()
 end
 
 local function CopyPayload(payload)
-    local copiedPayload =
-    {
-        keyboardElements = {},
-        gamepadElements = {},
-    }
-    ZO_DeepTableCopy(payload.keyboardElements, copiedPayload.keyboardElements)
-    ZO_DeepTableCopy(payload.gamepadElements, copiedPayload.gamepadElements)
-    return copiedPayload
+    return HT.NormalizeLayoutPayload(payload)
 end
 
 function HT.CollectLiveHudPayload()
-    return CopyPayload(GetLiveHudProfile())
+    local profile = GetLiveHudProfile()
+    return HT.NormalizeLayoutPayload({
+        keyboardElements = profile.keyboardElements,
+        gamepadElements = profile.gamepadElements,
+        elementAppearance = HT.SV.elementAppearance,
+        resourceBarGroup = HT.SV.resourceBarGroup,
+    })
 end
 
 local function SetLiveLayoutBaseline(payload)
@@ -240,6 +239,8 @@ function HT.ApplyHudLayoutPayload(payload, layoutName)
     local profile = GetLiveHudProfile()
     local payloadToApply = CopyPayload(payload)
     suppressOffsetsChangedRefresh = true
+    HT.SV.elementAppearance = HT.CopyElementAppearance(payloadToApply.elementAppearance)
+    HT.SV.resourceBarGroup = HT.CopyResourceBarGroup(payloadToApply.resourceBarGroup)
 
     -- Callbacks need the previous SavedVars values as oldValue. Apply options first,
     -- then replace the maps so omitted saveKeys (including unloaded addons) are cleared.

@@ -674,6 +674,9 @@ function WritWorthyInventoryList:CanQueue(inventory_data)
     return false, "completed"
   end
   if not inventory_data.llc_func then
+    if inventory_data.parser and inventory_data.parser.mat_list_fail_reason then
+      return false, inventory_data.parser.mat_list_fail_reason
+    end
     return false, "WritWorthy bug: Missing LLC data"
   end
   if
@@ -795,10 +798,21 @@ function WritWorthyInventoryList:PopulateUIFields(inventory_data)
   elseif parser.class == WritWorthy.Alchemy.Parser.class then
     inventory_data.ui_type = UI_TYPE_ALCHEMY
     local mat_list = parser:ToMatList()
-    inventory_data.ui_detail1 = mat_list[1].name
-    inventory_data.ui_detail2 = mat_list[2].name
-    inventory_data.ui_detail3 = mat_list[3].name
-    inventory_data.ui_detail4 = mat_list[4].name
+    if mat_list then
+      inventory_data.ui_detail1 = mat_list[1].name
+      inventory_data.ui_detail2 = mat_list[2].name
+      inventory_data.ui_detail3 = mat_list[3].name
+      inventory_data.ui_detail4 = mat_list[4].name
+    else
+      if parser.is_poison then
+        inventory_data.ui_detail1 = "Alkahest"
+      else
+        inventory_data.ui_detail1 = "Lorkhan's Tears"
+      end
+      inventory_data.ui_detail2 = parser.effects[1] and parser.effects[1].name or ""
+      inventory_data.ui_detail3 = parser.effects[2] and parser.effects[2].name or ""
+      inventory_data.ui_detail4 = parser.effects[3] and parser.effects[3].name or ""
+    end
   elseif parser.class == WritWorthy.Enchanting.Parser.class then
     inventory_data.ui_type = UI_TYPE_ENCHANTING
     if parser.level == 150 then
@@ -1433,6 +1447,9 @@ function WritWorthy_LLC_IsItemCraftable(self, station_crafting_type, request)
     return orig_can_craft
   end
   local mat_list = inventory_data.parser:ToMatList()
+  if not mat_list then
+    return orig_can_craft
+  end
   for _, mat_row in ipairs(mat_list) do
     local have_ct = Util.MatHaveCt(mat_row.link)
     if have_ct < mat_row.ct then

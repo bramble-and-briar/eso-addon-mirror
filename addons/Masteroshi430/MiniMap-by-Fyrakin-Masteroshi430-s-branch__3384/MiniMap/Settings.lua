@@ -148,7 +148,7 @@ end
 
 function MM_SetMapHeight(value)
 if value == nil or FyrMM.SV.WheelMap then return end
-if FyrMM.SV.LockPosition and FyrMM.Initialized then return end 
+if FyrMM.SV.LockResizing and FyrMM.Initialized then return end 
 	FyrMM.SV.MapHeight = value
 	Fyr_MM_Scroll:SetHeight(value)
 	Fyr_MM_Border:SetHeight(value+8)
@@ -160,7 +160,7 @@ end
 
 function MM_SetMapWidth(value)
 if value == nil then return end
-	if FyrMM.SV.LockPosition and FyrMM.Initialized then return end 
+	if FyrMM.SV.LockResizing and FyrMM.Initialized then return end 
 	FyrMM.SV.MapWidth = value
 	Fyr_MM_Scroll:SetWidth(value)
 	Fyr_MM_Border:SetWidth(value+8)
@@ -421,15 +421,15 @@ if value == nil then return end
 	FyrMM.SV.MapHeading = value
 end
 
-function MM_GetClampedToScreen()
- return FyrMM.SV.ClampedToScreen
-end
+-- function MM_GetClampedToScreen()
+ -- return FyrMM.SV.ClampedToScreen
+-- end
 
-function MM_SetClampedToScreen(value)
-if value == nil then return end
- FyrMM.SV.ClampedToScreen = value
- Fyr_MM:SetClampedToScreen(value)
-end
+-- function MM_SetClampedToScreen(value)
+-- if value == nil then return end
+ -- FyrMM.SV.ClampedToScreen = value
+ -- Fyr_MM:SetClampedToScreen(value)
+-- end
 
 function MM_GetMapRefreshRate()
  return FyrMM.SV.MapRefreshRate
@@ -607,17 +607,16 @@ if value == nil then return end
 	FyrMM.SV.MemberPin = value
 end
 
-function MM_SetLockPosition(value)
+function MM_SetLockResizing(value)
 	if value == nil then return end
-	FyrMM.SV.LockPosition = value
-	if FyrMM.SV.LockPosition then
+	FyrMM.SV.LockResizing = value
+	if FyrMM.SV.LockResizing then
 		Fyr_MM_PinDown:SetHidden(true)
 		Fyr_MM_PinUp:SetHidden(false)
 	else
 		Fyr_MM_PinDown:SetHidden(false)
 		Fyr_MM_PinUp:SetHidden(true)
 	end
-	Fyr_MM:SetMovable(not value)
 end
 
 function  MM_SetMemberPinSize(value)
@@ -1060,7 +1059,7 @@ FyrMM.Defaults = {
 		["AfterCombatUnhideDelay"] = 5,
         ["InHouseAutoHide"] = false,
 		["InEndLessDungeonAutoHide"] = false,
-		["LockPosition"] = false,
+		["LockResizing"] = false,
 		["UseOriginalAPI"] = true,
 		["ShowUnexploredPins"] = true,
 		["ShowUndiscoveredSkyshards"] = false,
@@ -2596,7 +2595,7 @@ FyrMM.Panel = {
 	name = "MiniMap by Fyrakin",
 	displayName = GetString(SI_MM_STRING_SETTINGS),
 	author = "|c3CB371@Masteroshi430|r, |c006600Fyrakin|r, Zerorez, deathangel1479",
-	version = "2026.07.31",
+	version = "2026.09.28",
 	website = "https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html",
 	slashCommand = "/fyrmmset",
 	registerForRefresh = true,
@@ -2655,36 +2654,21 @@ FyrMM.Panel = {
 								
 	[9] = { type = "submenu", name = GetString(SI_MM_SETTING_SIZEOPTIONS),
 			controls = {
-						[1] = { type = "slider", name = GetString(SI_MM_SETTING_X), tooltip = GetString(SI_MM_SETTING_X_TOOTLITP),
-								min = 0, max = zo_round(GuiRoot:GetWidth()-Fyr_MM:GetWidth()), step = 1,
-								getFunc = function() return zo_round(Fyr_MM:GetLeft()) end,
-								setFunc = function(value) if FyrMM.SV.LockPosition then return end local pos = {} pos.anchorTo = GetControl(pos.anchorTo) FyrMM.SV.position.offsetX = value
-										Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint, value, FyrMM.SV.position.offsetY) end,
-								width = "half",	disabled = function() return FyrMM.SV.LockPosition end, default = 0, },
-						[2] = {	type = "slider", name = GetString(SI_MM_SETTING_Y), tooltip = GetString(SI_MM_SETTING_Y_TOOLTIP),
-								min = 0, max = zo_round(GuiRoot:GetHeight()-Fyr_MM:GetHeight()), step = 1,
-								getFunc = function() return zo_round(Fyr_MM:GetTop()) end,
-								setFunc = function(value)	if FyrMM.SV.LockPosition then return end local pos = {} pos.anchorTo = GetControl(pos.anchorTo) FyrMM.SV.position.offsetY = value
-										Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint, FyrMM.SV.position.offsetX, value) end,
-								width = "half",	disabled = function() return FyrMM.SV.LockPosition end, default = 0, },
-						[3] = { type = "slider", name = GetString(SI_MM_SETTING_WIDTH), tooltip = GetString(SI_MM_SETTING_WIDTH_TOOLTIP),
+						[1] = { type = "slider", name = GetString(SI_MM_SETTING_WIDTH), tooltip = GetString(SI_MM_SETTING_WIDTH_TOOLTIP),
 								min = 50, max = zo_round(GuiRoot:GetWidth()), step = 1,
 								getFunc = function() return MM_GetMapWidth() end,
 								setFunc = function(value) MM_SetMapWidth(value) end,
-								width = "half",	disabled = function() return FyrMM.SV.LockPosition end, default = 280, },
-						[4] = {	type = "slider", name = GetString(SI_MM_SETTING_HEIGHT), tooltip = GetString(SI_MM_SETTING_HEIGHT_TOOLTIP),
+								width = "half",	disabled = function() return FyrMM.SV.LockResizing end, default = 280, },
+						[2] = {	type = "slider", name = GetString(SI_MM_SETTING_HEIGHT), tooltip = GetString(SI_MM_SETTING_HEIGHT_TOOLTIP),
 								min = 50, max = zo_round(GuiRoot:GetHeight()), step = 1,
 								getFunc = function() return MM_GetMapHeight() end,
 								setFunc = function(value) MM_SetMapHeight(value) end,
-								width = "half",	disabled = function() return FyrMM.SV.LockPosition end, default = 280, },
-						[5] = { type = "checkbox", name = GetString(SI_MM_SETTING_LOCK), tooltip = GetString(SI_MM_SETTING_LOCK_TOOLTIP),
-								getFunc = function() return FyrMM.SV.LockPosition end,
-								setFunc = function(value) MM_SetLockPosition(value) end,
+								width = "half",	 disabled = function() return FyrMM.SV.LockResizing end, default = 280, },
+						[3] = { type = "checkbox", name = GetString(SI_MM_SETTING_LOCK), tooltip = GetString(SI_MM_SETTING_LOCK_TOOLTIP),
+								getFunc = function() return FyrMM.SV.LockResizing end,
+								setFunc = function(value) MM_SetLockResizing(value) end,
 								width = "half",	default = false, },
-						[6] = { type = "checkbox", name = GetString(SI_MM_SETTING_CLAMP), tooltip = GetString(SI_MM_SETTING_CLAPM_TOOLTIP),
-								getFunc = function() return MM_GetClampedToScreen() end,
-								setFunc = function(value) MM_SetClampedToScreen(value) end,
-								width = "half",	default = true,	}, }, },
+                }, },
 								
 	[10] = { type = "submenu", name = GetString(SI_MM_SETTING_MODEOPTIONS),
 			controls = {
@@ -3139,14 +3123,14 @@ FyrMM.Panel = {
 end
 
 function MM_ResetToDefaults() -- Hardcoded reset
-	MM_SetLockPosition(false)
+	MM_SetLockResizing(false)
 	FyrMM.SV.HideZoneLabel = false
 	FyrMM.SV.HideZoomLevel = false
 	FyrMM.SV.ShowBorder = true
-	FyrMM.SV.ClampedToScreen = true
+	--FyrMM.SV.ClampedToScreen = true
 	local pos = {}
 	pos.anchorTo = GetControl(pos.anchorTo)
-	Fyr_MM:SetAnchor(TOPLEFT, pos.anchorTo, TOPLEFT, 0, 0)
+	--Fyr_MM:SetAnchor(TOPLEFT, pos.anchorTo, TOPLEFT, 0, 0)
 	FyrMM.SV.MapHeight = 280
 	FyrMM.SV.MapWidth = 280
 	MM_SetMapHeight(280)
@@ -3214,7 +3198,7 @@ function MM_LoadSavedVars()
 	if FyrMM.SV.position ~= nil then
 		local pos = {}
 		pos.anchorTo = GetControl(pos.anchorTo)
-		Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint, FyrMM.SV.position.offsetX, FyrMM.SV.position.offsetY)
+		--Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint, FyrMM.SV.position.offsetX, FyrMM.SV.position.offsetY)
 		Fyr_MM_Bg:SetAnchorFill(Fyr_MM)
 	end
 	if FyrMM.SV.ZoneList ~= nil then FyrMM.SV.ZoneList = nil end
@@ -3225,7 +3209,7 @@ function MM_LoadSavedVars()
 	if FyrMM.SV.ShowBorder ~= nil then MM_SetShowBorder(FyrMM.SV.ShowBorder) end
 	if FyrMM.SV.Heading ~= nil then MM_SetHeading(FyrMM.SV.Heading) end
 	if FyrMM.SV.MapHeading ~= nil then MM_SetMapHeading(FyrMM.SV.MapHeading) end
-	if FyrMM.SV.ClampedToScreen ~= nil then MM_SetClampedToScreen(FyrMM.SV.ClampedToScreen) end
+	--if FyrMM.SV.ClampedToScreen ~= nil then MM_SetClampedToScreen(FyrMM.SV.ClampedToScreen) end
 	if FyrMM.SV.hideCompass ~= nil then MM_SetHideCompass(FyrMM.SV.hideCompass) end
 	if FyrMM.SV.ShowCompassInAvAZoneOnly ~= nil then MM_SetShowCompassInAvAZoneOnly(FyrMM.SV.ShowCompassInAvAZoneOnly) end
 	if FyrMM.SV.miniCompassOption ~= nil then MM_SetMiniCompassOption(FyrMM.SV.miniCompassOption) end
@@ -3287,7 +3271,7 @@ function MM_LoadSavedVars()
 	if FyrMM.SV.InCombatAutoHide ~=nil then MM_SetInCombatAutoHide(FyrMM.SV.InCombatAutoHide) end
 	if FyrMM.SV.InHouseAutoHide ~=nil then MM_SetInHouseAutoHide(FyrMM.SV.InHouseAutoHide) end	
 	if FyrMM.SV.AfterCombatUnhideDelay ~=nil then MM_SetAfterCombatUnhideDelay(FyrMM.SV.AfterCombatUnhideDelay) end
-	if FyrMM.SV.LockPosition ~=nil then MM_SetLockPosition(FyrMM.SV.LockPosition) end
+	if FyrMM.SV.LockResizing ~=nil then MM_SetLockResizing(FyrMM.SV.LockResizing) end
 	if FyrMM.SV.UseOriginalAPI ~= nil then MM_SetUseOriginalAPI(FyrMM.SV.UseOriginalAPI) end
 	if FyrMM.SV.ShowUnexploredPins ~= nil then MM_SetShowUnexploredPins(FyrMM.SV.ShowUnexploredPins) end
 	if FyrMM.SV.RotateMap ~= nil then MM_SetRotateMap(FyrMM.SV.RotateMap) end

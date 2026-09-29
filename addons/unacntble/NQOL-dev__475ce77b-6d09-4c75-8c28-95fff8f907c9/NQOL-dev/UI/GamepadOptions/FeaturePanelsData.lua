@@ -447,7 +447,6 @@ end
 function GamepadOptions.BuildActiveQuestOptionsData()
     return {
         GamepadOptions.BuildActiveQuestEnabledOption(),
-        GamepadOptions.BuildActiveQuestShowInSettingsOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildActiveQuestHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildActiveQuestVerticalOffsetOption(),
     }
@@ -456,7 +455,6 @@ end
 function GamepadOptions.BuildActiveCombatTipsOptionsData()
     return {
         GamepadOptions.BuildActiveCombatTipsEnabledOption(),
-        GamepadOptions.BuildActiveCombatTipsDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildActiveCombatTipsHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildActiveCombatTipsVerticalOffsetOption(),
     }
@@ -465,7 +463,6 @@ end
 function GamepadOptions.BuildSynergyPromptsOptionsData()
     return {
         GamepadOptions.BuildSynergyPromptsEnabledOption(),
-        GamepadOptions.BuildSynergyPromptsDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildSynergyPromptsHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildSynergyPromptsVerticalOffsetOption(),
     }
@@ -474,7 +471,6 @@ end
 function GamepadOptions.BuildCenterScreenAnnounceOptionsData()
     return {
         GamepadOptions.BuildCenterScreenAnnounceEnabledOption(),
-        GamepadOptions.BuildCenterScreenAnnounceDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildCenterScreenAnnounceHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildCenterScreenAnnounceVerticalOffsetOption(),
     }
@@ -483,7 +479,6 @@ end
 function GamepadOptions.BuildAnnouncementsOptionsData()
     return {
         GamepadOptions.BuildAnnouncementsEnabledOption(),
-        GamepadOptions.BuildAnnouncementsDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildAnnouncementsHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildAnnouncementsVerticalOffsetOption(),
     }
@@ -492,7 +487,6 @@ end
 function GamepadOptions.BuildInfiniteArchiveFrameOptionsData()
     return {
         GamepadOptions.BuildInfiniteArchiveFrameEnabledOption(),
-        GamepadOptions.BuildInfiniteArchiveFrameDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildInfiniteArchiveFrameHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildInfiniteArchiveFrameVerticalOffsetOption(),
     }
@@ -501,7 +495,6 @@ end
 function GamepadOptions.BuildPlayerInteractionOptionsData()
     return {
         GamepadOptions.BuildPlayerInteractionEnabledOption(),
-        GamepadOptions.BuildPlayerInteractionDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildPlayerInteractionHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildPlayerInteractionVerticalOffsetOption(),
     }
@@ -510,7 +503,6 @@ end
 function GamepadOptions.BuildSubtitlesOptionsData()
     return {
         GamepadOptions.BuildSubtitlesEnabledOption(),
-        GamepadOptions.BuildSubtitlesDrawBordersOption(),
         GamepadOptions.WithHeader(GamepadOptions.BuildSubtitlesHorizontalOffsetOption(), NQOL.L("ui.headers.position_cf1c85a")),
         GamepadOptions.BuildSubtitlesVerticalOffsetOption(),
     }

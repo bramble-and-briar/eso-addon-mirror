@@ -568,29 +568,37 @@ function M.refresh()
         r.highlight:SetHidden(true)
         r.delArm:SetHidden(armed_index ~= idx)
         r.name:SetWidth(math.max(72, roww - 250))
-        local tx = m.pinned and TX.lock or TX.unlock
-        r.lock:SetNormalTexture(tx.n)
-        r.lock:SetPressedTexture(tx.p)
-        r.lock:SetMouseOverTexture(tx.o)
-        r.lock._tex_normal = tx.n
-        r.lock:SetAlpha(m.pinned and 1 or 0.55)
-        r.lockTip = m.pinned and "Saved: never pruned\nClick to release it"
-            or string.format("Save this match\nKept outside the %d cap, charts and all", BGMeter.History.PIN_CAP)
-        P.set_rect_color(r.pip, result_color(m.result))
-        set_text(r.name, m.name or "Battleground")
-        S.color(r.name, (BGMeter.UI.window.current() == idx and not BGMeter.UI.window.is_hidden()) and K.COLOR.you or K.COLOR.text)
-        set_text(r.mode, mode_tag(m))
-        set_text(r.ago, ago_label(m.capturedAt))
-        local lr = BGMeter.Match.local_row(m)
-        set_text(r.kda, lr and string.format("|c%s%d|r/%d/%d", U.hexc(K.COLOR.you), lr.kills or 0, lr.deaths or 0, lr.assists or 0) or "")
-        local score = m.result or ""
-        if m.teams and #m.teams >= 2 then
-            score = string.format("%s  %d - %d", m.result or "", m.teams[1].score or 0, m.teams[2].score or 0)
+        local pinned = m.pinned and true or false
+        if r.m ~= m or r._pinned ~= pinned then
+            local tx = pinned and TX.lock or TX.unlock
+            r.lock:SetNormalTexture(tx.n)
+            r.lock:SetPressedTexture(tx.p)
+            r.lock:SetMouseOverTexture(tx.o)
+            r.lock._tex_normal = tx.n
+            r.lock:SetAlpha(pinned and 1 or 0.55)
+            r.lockTip = pinned and "Saved: never pruned\nClick to release it"
+                or string.format("Save this match\nKept outside the %d cap, charts and all", BGMeter.History.PIN_CAP)
+            P.set_rect_color(r.pip, result_color(m.result))
+            set_text(r.name, m.name or "Battleground")
+            set_text(r.mode, mode_tag(m))
+            local lr = BGMeter.Match.local_row(m)
+            set_text(r.kda, lr and string.format("|c%s%d|r/%d/%d", U.hexc(K.COLOR.you), lr.kills or 0, lr.deaths or 0, lr.assists or 0) or "")
+            local score = m.result or ""
+            if m.teams and #m.teams >= 2 then
+                score = string.format("%s  %d - %d", m.result or "", m.teams[1].score or 0, m.teams[2].score or 0)
+            end
+            r.tip = string.format("%s\n%s%s", clean(m.name) or "Battleground", score,
+                lr and string.format("\nyou  %d/%d/%d  ·  %s dmg  ·  %s heal",
+                    lr.kills or 0, lr.deaths or 0, lr.assists or 0,
+                    F.abbrev(lr.damage or 0), F.abbrev(lr.healing or 0)) or "")
+            r.m, r._pinned = m, pinned
         end
-        r.tip = string.format("%s\n%s%s", clean(m.name) or "Battleground", score,
-            lr and string.format("\nyou  %d/%d/%d  ·  %s dmg  ·  %s heal",
-                lr.kills or 0, lr.deaths or 0, lr.assists or 0,
-                F.abbrev(lr.damage or 0), F.abbrev(lr.healing or 0)) or "")
+        S.color(r.name, (BGMeter.UI.window.current() == idx and not BGMeter.UI.window.is_hidden()) and K.COLOR.you or K.COLOR.text)
+        local ago = ago_label(m.capturedAt)
+        if r._ago ~= ago then
+            set_text(r.ago, ago)
+            r._ago = ago
+        end
     end
     for i = vis + 1, #rows do
         rows[i].container:SetHidden(true)

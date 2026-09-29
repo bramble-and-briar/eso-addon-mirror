@@ -1,0 +1,45 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/alabuzya/Alabuzya-UI__4881",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "alabuzya",
+  "canonical_id": "esoui:4881",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4881",
+  "deleted": false,
+  "directories": [
+    "AlabuzyaUI"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4881/",
+  "fingerprint": "6935ba36c3d27018aaac003b0b4a5a54f312765d7198344d016d62d18cc093bd",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17578.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17579.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17580.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17581.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4881",
+  "source_url": "https://www.esoui.com/downloads/info4881-AlabuzyaUI.html",
+  "stats": {
+    "downloads": 37,
+    "favorites": 1,
+    "monthly_downloads": 28
+  },
+  "title": "Alabuzya UI",
+  "updated_at": 1790620612000,
+  "version": "0.1.39"
+}

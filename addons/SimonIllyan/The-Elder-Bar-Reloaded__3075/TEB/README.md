@@ -72,7 +72,11 @@ The Elder Bar Reloaded is an addon for Elder Scrolls Online. This addon adds an 
 43. Writ Vouchers
 
 ## Change Log
-Changes in version 12.1.2 (2026-06-08)
+Changes in version 12.1.3 (2026-09-28)
+	- updated for API 101051
+	- updated dependencies
+	
+	Changes in version 12.1.2 (2026-06-08)
 	- updated for API 101050
 	- Endeavor Seals became just Seals
 

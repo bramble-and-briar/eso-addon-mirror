@@ -1,8 +1,8 @@
 ## Title: MiniMap by |c006600Fyrakin|r
 ## Description: This add-on adds MiniMap functionality to UI
 ## Author: |c006600Fyrakin|r, |c3CB371@Masteroshi430|r, Zerorez, deathangel1479 
-## Version: 2026.07.31
-## APIVersion: 101050
+## Version: 2026.09.28
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: ColorfulMapAreas 
 ## SavedVariables: FyrMMSV

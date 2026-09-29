@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Baertram/LibSets-All-set-items-ingame-preview.-lua-API-excel-sheet__2241",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Baertram",
   "canonical_id": "esoui:2241",
   "category_id": "53",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "LibSets"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2241/",
-  "fingerprint": "a7d70989a16c813fd1a2e5de6f1358c11e4b358d65d1a746cc19790a9ed69582",
+  "fingerprint": "df4d3c4e4035a541ed3ffd75500905062e4ef5228fa67888e22a262714a6f1f9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12992.png",
     "https://cdn-eso.mmoui.com/preview/pvw12665.png",
@@ -88,11 +93,11 @@
   "source_id": "2241",
   "source_url": "https://www.esoui.com/downloads/info2241-LibSetsAllsetitemsingamepreview.luaAPIexcelsheet.html",
   "stats": {
-    "downloads": 4415223,
-    "favorites": 822,
-    "monthly_downloads": 42808
+    "downloads": 4454230,
+    "favorites": 826,
+    "monthly_downloads": 18762
   },
   "title": "LibSets (All set items ingame & preview. lua API + excel sheet)",
-  "updated_at": 1783884892000,
-  "version": "0.9.3"
+  "updated_at": 1790614412000,
+  "version": "0.9.4"
 }

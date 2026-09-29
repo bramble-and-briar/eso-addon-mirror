@@ -57,6 +57,10 @@ local function on_player_activated()
         if Capture.is_active() then Capture.abort() end
         BGMeter.Pipeline.presentation.on_player_activated()
     end
+    if BGMeter.UI and BGMeter.UI.panel and BGMeter.UI.panel.mark_vet_dirty then BGMeter.UI.panel.mark_vet_dirty() end
+    if BGMeter.UI and BGMeter.UI.warmup then
+        BGMeter.UI.warmup.start()
+    end
 end
 
 function Acquisition.init()
@@ -69,8 +73,14 @@ function Acquisition.init()
     E.register(PREFIX .. "AP",    C.EVENT_ALLIANCE_POINT_UPDATE,      Capture.on_ap)
     E.register(PREFIX .. "XP",    C.EVENT_EXPERIENCE_GAIN,            Capture.on_xp)
     E.register(PREFIX .. "CP",    C.EVENT_CHAMPION_POINT_GAINED,      Capture.on_cp)
-    E.register(PREFIX .. "Vet",   C.EVENT_REWARD_TRACK_PROGRESS_GAINED, Capture.on_reward_track)
+    E.register(PREFIX .. "Vet",   C.EVENT_REWARD_TRACK_PROGRESS_GAINED, function(...)
+        if BGMeter.UI and BGMeter.UI.panel and BGMeter.UI.panel.mark_vet_dirty then BGMeter.UI.panel.mark_vet_dirty() end
+        return Capture.on_reward_track(...)
+    end)
     E.register(PREFIX .. "Kill",  C.EVENT_BATTLEGROUND_KILL,          Capture.on_kill)
+    if C.EVENT_BATTLEGROUND_SCOREBOARD_UPDATED then
+        E.register(PREFIX .. "Roster", C.EVENT_BATTLEGROUND_SCOREBOARD_UPDATED, Capture.on_scoreboard)
+    end
     if C.EVENT_RETICLE_TARGET_PLAYER_CHANGED then
         E.register(PREFIX .. "Reticle", C.EVENT_RETICLE_TARGET_PLAYER_CHANGED, Capture.on_reticle_player)
     end
@@ -83,6 +93,7 @@ function Acquisition.init()
     end
     E.register(PREFIX .. "Board", C.EVENT_BATTLEGROUND_LEADERBOARD_DATA_RECEIVED, BGMeter.Standing.on_data)
     local function on_claimed()
+        if BGMeter.UI and BGMeter.UI.panel and BGMeter.UI.panel.mark_vet_dirty then BGMeter.UI.panel.mark_vet_dirty() end
         if BGMeter.UI and BGMeter.UI.menu then BGMeter.UI.menu.refresh_if_visible() end
     end
     if C.EVENT_REWARD_TRACK_REWARD_CLAIMED then

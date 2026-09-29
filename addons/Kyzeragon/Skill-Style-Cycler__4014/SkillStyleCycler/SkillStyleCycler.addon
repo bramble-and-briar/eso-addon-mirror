@@ -8,10 +8,10 @@
 ## Description: Cycle or randomize your skill styles, because fashion is the true endgame.
 ## Author: Kyzeragon
 ## Contributors: Kortekk (idea, testing, feedback)
-## Version: 1.4.2
-## AddOnVersion: 10402
-## APIVersion: 101049
-## DependsOn: LibAddonMenu-2.0>=41
+## Version: 1.4.3
+## AddOnVersion: 10403
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0>=43
 
 ## SavedVariables: SkillStyleCyclerSavedVariables
 

@@ -118,19 +118,19 @@ function VEQ.AddNewTitle(qindex, qlevel, qname, qtype, qzone, qfocusedzoneval)
 	VEQ.textbox[VEQ.boxmarker]:SetDimensionConstraints(VEQ.SavedVars.BgWidth-VEQ.SavedVars.TitlePadding,-1,VEQ.SavedVars.BgWidth-VEQ.SavedVars.TitlePadding,-1)
 	VEQ.textbox[VEQ.boxmarker]:SetFont(("%s|%s|%s"):format(LMP:Fetch('font', VEQ.SavedVars.TitleFont), VEQ.SavedVars.TitleSize, VEQ.SavedVars.TitleStyle))
  
-	if VEQ.SavedVars.PositionLockOption == true then
+	-- if VEQ.SavedVars.PositionLockOption == true then
 		if not VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
 			VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(true)
 		end
 		VEQ.textbox[VEQ.boxmarker]:SetHandler("OnMouseDown", function(self, click)
 			VEQ.MouseController(click, qindex, qname)
 		end)
-	else
-		if VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
-			VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(false)
-		end
-		VEQ.textbox[VEQ.boxmarker]:SetHandler()
-	end	
+	-- else
+		-- if VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
+			-- VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(false)
+		-- end
+		-- VEQ.textbox[VEQ.boxmarker]:SetHandler()
+	-- end	
  
 	local CurrentFocusedQuest = GetTrackedIsAssisted(TRACK_TYPE_QUEST,qindex,0)
 	if CurrentFocusedQuest == true then
@@ -237,7 +237,9 @@ function VEQ.AddNewTitle(qindex, qlevel, qname, qtype, qzone, qfocusedzoneval)
 		elseif qtype == QUEST_TYPE_DUNGEON then
          if qInstanceDisplayType == ZONE_DISPLAY_TYPE_SOLO  then 
 			      VEQ.icon[VEQ.boxmarker]:SetTexture("esoui/art/icons/poi/poi_solotrial_complete.dds") 
-			   else 
+         elseif qInstanceDisplayType == ZONE_DISPLAY_TYPE_SOLO_DUNGEON  then 
+			      VEQ.icon[VEQ.boxmarker]:SetTexture("esoui/art/journal/gamepad/gp_journal_quest_solo_dungeon.dds") 
+         else 
 			      VEQ.icon[VEQ.boxmarker]:SetTexture("esoui/art/icons/poi/poi_groupinstance_complete.dds")
 			   end
 		elseif qtype == QUEST_TYPE_RAID then
@@ -263,8 +265,7 @@ function VEQ.AddNewTitle(qindex, qlevel, qname, qtype, qzone, qfocusedzoneval)
 				VEQ.icon[VEQ.boxmarker]:SetTexture("esoui/art/writadvisor/advisor_trackedpin_icon.dds") -- regular quest pin
 			end
 		end
-    
-    -- /esoui/art/journal/gamepad/gp_journal_tabicon_rumors_up.dds -- Rumors
+
 		
 		--hide quest icon if it is the same as the previous one  
 		if CurrentFocusedQuest == true then  
@@ -342,7 +343,7 @@ function VEQ.AddNewContent(qindex, qstep, qtext, mytype, qzone, qfocusedzoneval,
 	VEQ.textbox[VEQ.boxmarker]:SetFont(("%s|%s|%s"):format(LMP:Fetch('font', VEQ.SavedVars.TextFont), VEQ.SavedVars.TextSize, VEQ.SavedVars.TextStyle))
  
     local qname = GetJournalQuestName(qindex)
-	if VEQ.SavedVars.PositionLockOption == true then
+	--if VEQ.SavedVars.PositionLockOption == true then
 		if not VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
 			VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(true)
 		end
@@ -350,12 +351,12 @@ function VEQ.AddNewContent(qindex, qstep, qtext, mytype, qzone, qfocusedzoneval,
 			
 			VEQ.MouseController(click, qindex, qname)
 		end)
-	else
-		if VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
-			VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(false)
-		end
-		VEQ.textbox[VEQ.boxmarker]:SetHandler()
-	end	
+	-- else
+		-- if VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
+			-- VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(false)
+		-- end
+		-- VEQ.textbox[VEQ.boxmarker]:SetHandler()
+	-- end	
 	local CurrentFocusedQuest = GetTrackedIsAssisted(TRACK_TYPE_QUEST,qindex,0)
  
 	-- Quest conditions/steps assigment of mytype
@@ -764,7 +765,7 @@ end
  
  
 ------ add miniquest to table
-function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture, bagId, slotIndex, zoneId, iconColor, timeLimit)
+function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture, bagId, slotIndex, zoneId, iconColor, timeLimit) -- hereherehere
  
   if index == 2 or index == 4 or index == 8 or index == 22 or index == 24 then -- 2 is zone todo list, 4 is Rumors, 8 is Tamriel tomes, 22 is Golden pursuits, 24 is community events
  
@@ -803,8 +804,12 @@ function VEQ.LoadMiniQuestsInfo(index, uniqueId, name, objective, zone, texture,
   if VEQ.MiniQuestList then VEQ.updateTableLength(VEQ.MiniQuestList) end
  
   -- newest added miniquest becomes focused miniquest
-  if index ~= 2 and index ~= 8 and index ~= 17 then
-     VEQ.FocusedMiniQuest = index  -- not for 2 (zone todo list), 8 (Tamriel tomes), 17 (repeatable quest counter) 
+  if index ~= 2 and index ~= 8 and index ~= 17 and index ~= 22 and index ~= 24 and index ~= 23 then -- not for 2 (zone todo list), 8 (Tamriel tomes), 17 (repeatable quest counter), 22 (golden pursuits), 24 (community events), 23 achievements
+     if index == 4 then
+         VEQ.FocusedMiniQuest = uniqueId  -- rumor update becomes focused miniquest
+     else
+         VEQ.FocusedMiniQuest = index
+     end
   end
 
 end
@@ -830,8 +835,7 @@ function VEQ.DisplayFocusedMiniQuest()
 			
        -- background texture
 			 if VEQ.textbox[VEQ.boxmarker-1] then
-			 	--(VEQ.main:GetWidth())+60, 
-	        VEQ.bgtx:SetDimensions(VEQ.main:GetWidth(), (VEQ.textbox[VEQ.boxmarker-1]:GetBottom()-VEQ.main:GetTop())+150) 
+	        VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+60, (VEQ.textbox[VEQ.boxmarker-1]:GetBottom()-VEQ.main:GetTop())+150) 
        end
  
 			 BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move battlegrounds UI at the bottom of VEQ
@@ -992,17 +996,17 @@ function VEQ.DisplayFocusedMiniQuest()
 			    VEQ.objMiniQuestmarker:SetText(string.format("%s%s", zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), objective))
 			end
 			
-			-- clickable descriptions
+			-- clickable descriptions hereherehere
 			if index == 18 then -- Click for dungeon finder Ui
 				   VEQ.objMiniQuestmarker:SetMouseEnabled(true)
 				   VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
 						 if upInside then
 						    if IsInGamepadPreferredMode() then
 							    ZO_ACTIVITY_FINDER_ROOT_GAMEPAD:ShowCategory(DUNGEON_FINDER_MANAGER:GetCategoryData())
-							else
-							    SCENE_MANAGER:Show("groupMenuKeyboard") -- open LFG menu
-							    GROUP_MENU_KEYBOARD:ShowCategory(DUNGEON_FINDER_KEYBOARD:GetFragment()) -- choose category
-							end
+                else
+                    SCENE_MANAGER:Show("groupMenuKeyboard") -- open LFG menu
+                    GROUP_MENU_KEYBOARD:ShowCategory(DUNGEON_FINDER_KEYBOARD:GetFragment()) -- choose category
+                end
 						 end
 				   end)
 			elseif index == 19 then -- Click for battleground finder UI
@@ -1029,22 +1033,56 @@ function VEQ.DisplayFocusedMiniQuest()
 							end   
 						 end
 				   end) 
-			elseif index == 4 then -- Click for leads finder UI
+			elseif index == 4 then -- Click for Rumors UI 
 				   VEQ.objMiniQuestmarker:SetMouseEnabled(true)
 				   VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
 						 if upInside then
-						    if zoneId ~= 0 and zoneId ~= GetZoneId(GetUnitZoneIndex("player")) and BMU then 
-							    BMU.sc_porting(zoneId)
-							else
 								if IsInGamepadPreferredMode() then 
-									SYSTEMS:GetObject("mainMenu"):ShowScryableAntiquities()
+                    QUEST_JOURNAL_GAMEPAD:SetMode(ZO_QUEST_JOURNAL_MODE.RUMORS)
+                    SCENE_MANAGER:Show("gamepad_quest_journal")
 								else
-									MAIN_MENU_KEYBOARD:ShowSceneGroup("journalSceneGroup", "antiquityJournalKeyboard")
-									ANTIQUITY_JOURNAL_KEYBOARD:ShowScryable()
+                    QUEST_JOURNAL_KEYBOARD:SetMode(ZO_QUEST_JOURNAL_MODE.RUMORS)
+                    SCENE_MANAGER:Show("questJournal")
 								end 
-                            end
 						 end
-				   end) 
+				   end)
+			elseif index == 23 then -- Click for Achievements UI 
+				   VEQ.objMiniQuestmarker:SetMouseEnabled(true)
+				   VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+						 if upInside then
+								if IsInGamepadPreferredMode() then 
+                    SCENE_MANAGER:Show("achievementsGamepad")
+								else
+                    SCENE_MANAGER:Show("achievements")
+								end 
+						 end
+				   end)
+			elseif index == 22 then -- Click for Golden Pursuits UI 
+				   VEQ.objMiniQuestmarker:SetMouseEnabled(true)
+				   VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+						 if upInside then
+						    if IsInGamepadPreferredMode() then
+							    ZO_ACTIVITY_FINDER_ROOT_GAMEPAD:ShowCategory(PROMOTIONAL_EVENTS_GAMEPAD:GetCategoryData())
+                else
+                    SCENE_MANAGER:Show("groupMenuKeyboard") -- open LFG menu
+                    GROUP_MENU_KEYBOARD:ShowCategory(PROMOTIONAL_EVENTS_KEYBOARD:GetFragment()) -- choose category
+                end
+						 end
+				   end)
+			elseif index == 8 then -- Click for Tamriel Tomes UI 
+				   VEQ.objMiniQuestmarker:SetMouseEnabled(true)
+				   VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
+						 if upInside then
+						    if IsInGamepadPreferredMode() then
+                    --TAMRIEL_TOMES_SCENE_GROUP_GAMEPAD:SetActiveScene("TamrielTomesSceneGamepad")
+							     -- SCENE_MANAGER:Show("TamrielTomesSceneGamepad")
+                else
+                   -- TAMRIEL_TOMES_SCENE_GROUP_KEYBOARD:SetActiveScene("TamrielTomesSceneKeyboard")
+							     -- SCENE_MANAGER:Show("TamrielTomesSceneKeyboard")
+                    --TAMRIEL_TOMES_MANAGER:OpenTamrielTome( GetActiveReferenceTrackIdsForRewardTrackType(REWARD_TRACK_TYPE_TAMRIEL_TOMES), false)
+                end
+						 end
+				   end)
 			elseif index == 2 and bagId ~= 0 and slotIndex ~= 0 then -- Click to start doable writ UI
 				   VEQ.objMiniQuestmarker:SetMouseEnabled(true)
 				   VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
@@ -1052,26 +1090,34 @@ function VEQ.DisplayFocusedMiniQuest()
                 CallSecureProtected("UseItem", bagId, slotIndex)
 						 end
 					end)	 
-			elseif index == 2 and BMU and zoneId ~= 0 then -- Click to port to treasure / survey with BeamMeUp
+			elseif index == 2 and BMU and zoneId ~= 0 then -- Click to port to treasure / survey with BeamMeUp and leads finder UI if in zone
 				     VEQ.objMiniQuestmarker:SetMouseEnabled(true)
 				     VEQ.objMiniQuestmarker:SetHandler("OnMouseUp", function(self, button, upInside, ctrl, alt, shift, command)
-				     if upInside then
-	              BMU.sc_porting(zoneId)
+						 if upInside then
+						    if zoneId ~= 0 and zoneId ~= GetZoneId(GetUnitZoneIndex("player")) and BMU then 
+							    BMU.sc_porting(zoneId)
+							  else
+                  if IsInGamepadPreferredMode() then 
+                    SYSTEMS:GetObject("mainMenu"):ShowScryableAntiquities()
+                  else
+                    MAIN_MENU_KEYBOARD:ShowSceneGroup("journalSceneGroup", "antiquityJournalKeyboard")
+                    ANTIQUITY_JOURNAL_KEYBOARD:ShowScryable()
+                  end 
+                end
 						 end
 				   end) 
-			else
+			else 
 			    VEQ.objMiniQuestmarker:SetMouseEnabled(false)
 			end
 			
 			
 			
-		    VEQ.objMiniQuestmarker:SetColor(VEQ.SavedVars.TextColor.r, VEQ.SavedVars.TextColor.g, VEQ.SavedVars.TextColor.b, VEQ.SavedVars.TextColor.a)
-            VEQ.objMiniQuestmarker:ClearAnchors()
+		  VEQ.objMiniQuestmarker:SetColor(VEQ.SavedVars.TextColor.r, VEQ.SavedVars.TextColor.g, VEQ.SavedVars.TextColor.b, VEQ.SavedVars.TextColor.a)
+      VEQ.objMiniQuestmarker:ClearAnchors()
 			VEQ.objMiniQuestmarker:SetAnchor(CENTER,VEQ.objMiniQuestmarkerBox,CENTER,0,0)
  
  		    -- background texture
-			--(VEQ.main:GetWidth())+60, 
-		    VEQ.bgtx:SetDimensions(VEQ.main:GetWidth(), (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop())+200)
+		    VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+60, (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop())+200)
 		
 			BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move battlegrounds UI at the bottom of VEQ
 			if ZO_EndDunHUDTracker then
@@ -1302,19 +1348,19 @@ function VEQ.QuestsLoop()
 					VEQ.box[VEQ.currentAreaBox]:SetAlpha(VEQ.SavedVars.QuestsNoFocusTransparency/100)
 				end
 			end	
-			if VEQ.SavedVars.PositionLockOption == true then
+			--if VEQ.SavedVars.PositionLockOption == true then
 				if not VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
 					VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(true)
 				end
 				VEQ.textbox[VEQ.boxmarker]:SetHandler("OnMouseDown", function(self, click)
 					VEQ.MouseTitleController(click, myzone)
 				end)
-			else
-				if VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
-					VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(false)
-				end
-				VEQ.textbox[VEQ.boxmarker]:SetHandler()
-			end
+			-- else
+				-- if VEQ.textbox[VEQ.boxmarker]:IsMouseEnabled() then
+					-- VEQ.textbox[VEQ.boxmarker]:SetMouseEnabled(false)
+				-- end
+				-- VEQ.textbox[VEQ.boxmarker]:SetHandler()
+			-- end
 			VEQ.textbox[VEQ.boxmarker]:SetAnchor(CENTER,VEQ.box[VEQ.boxmarker],CENTER,0,0)
 			VEQ.boxmarker = VEQ.boxmarker + 1
 			VEQ.zonename = z.myzone
@@ -1400,7 +1446,6 @@ function VEQ.QuestsListUpdate(eventCode)
 		--Coding tofix Quest Lock Bug, may use it to more intelligently set the next focused quest
 		-- 131092 remove++++131093 complete--tracking update
 		if eventCode == 131092 then 
- 
 			VEQ.ForcedFocusedQuest(0) 
 		end
  
@@ -1423,7 +1468,7 @@ function VEQ.QuestsListUpdate(eventCode)
 		VEQ.QuestsLoop()
  
 	end
-	EM:UnregisterForEvent("VEQ", EVENT_PLAYER_ACTIVATED)
+	  -- EM:UnregisterForEvent("VEQ", EVENT_PLAYER_ACTIVATED) -- commenting fixes U51 vanilla quest tracker reappearing
 end
  
  
@@ -1449,40 +1494,57 @@ function VEQ.Init(eventCode, addOnName)
 		if not VEQ.CharSavedVars then
 			VEQ.CharSavedVars = ZO_SavedVars:NewCharacterIdSettings("VEQSavedVars", 5, nil, VEQ.charDefaults) or VEQ.charDefaults
 		end
+    
+    -- if not VEQ.HUDManagerAnchor then
+       -- if _G["ZO_Ingame_SavedVariables"] and _G["ZO_Ingame_SavedVariables"]["Default"] and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()] and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]
+       -- and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"] and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"]
+       -- and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1] and  _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]
+       -- and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]["VEQ main"] then
+           -- VEQ.HUDManagerAnchor = {}
+           -- VEQ.HUDManagerAnchor.offsetX = _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]["VEQ main"]["offsetX"]
+           -- VEQ.HUDManagerAnchor.offsetY = _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]["VEQ main"]["offsetY"]
+       -- end
+    -- end
  
  
 		-- Create the UI boxes
 		-- Main Box
-		VEQ.main = WM:CreateTopLevelWindow(nil)
+		VEQ.main = GetControl("VEQ main")
 		VEQ.main:ClearAnchors()
-		VEQ.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 200, 200)
 		VEQ.main:SetDimensions(200,40)
 		VEQ.main:SetDrawLayer(1)
 		VEQ.main:SetResizeToFitDescendents(true)
 		VEQ.main:SetAlpha(1)
+    
+    HUD_MANAGER:RegisterKeyboardElement(VEQ.main, "Vestige's Epic Quest", { defaultAnchor = ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, 200, 200) }, COMPASS_OPTIONS) -- for Keyboard UI 
+    HUD_MANAGER:RegisterGamepadElement(VEQ.main, "Vestige's Epic Quest", { defaultAnchor = ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, 200, 200) }, COMPASS_OPTIONS) --for Gamepad UI
 		
  
 		-- Load User Main Box position
-		if VEQ.SavedVars.position ~= nil then
-			VEQ.main:ClearAnchors()
-			VEQ.main:SetAnchor(VEQ.SavedVars.position.point, GuiRoot, VEQ.SavedVars.position.relativePoint, VEQ.SavedVars.position.offsetX, VEQ.SavedVars.position.offsetY)
-		end
+		-- if VEQ.SavedVars.position ~= nil then
+			-- VEQ.main:ClearAnchors()
+      -- if not VEQ.HUDManagerAnchor then
+			    -- VEQ.main:SetAnchor(VEQ.SavedVars.position.point, GuiRoot, VEQ.SavedVars.position.relativePoint, VEQ.SavedVars.position.offsetX, VEQ.SavedVars.position.offsetY)
+      -- else
+          -- VEQ.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, VEQ.HUDManagerAnchor.offsetX, VEQ.HUDManagerAnchor.offsetY)
+      -- end
+		-- end
  
-		if VEQ.SavedVars.PositionLockOption == true then
-			VEQ.main:SetMouseEnabled(false)
-			VEQ.main:SetMovable(false)
-		else
-			VEQ.main:SetMouseEnabled(true)
-			VEQ.main:SetMovable(true)
-		end
+		-- if VEQ.SavedVars.PositionLockOption == true then
+			-- VEQ.main:SetMouseEnabled(false)
+			-- VEQ.main:SetMovable(false)
+		-- else
+			-- VEQ.main:SetMouseEnabled(true)
+			-- VEQ.main:SetMovable(true)
+		-- end
  
 		-- Trigger to Backup Main Box position & refresh main anchor
-		VEQ.main:SetHandler("OnMouseUp", function(self) 
-			VEQ.SavedVars.position.offsetX = VEQ.main:GetLeft()
-			VEQ.SavedVars.position.offsetY = VEQ.main:GetTop()
-			VEQ.main:ClearAnchors()
-			VEQ.main:SetAnchor(VEQ.SavedVars.position.point, GuiRoot, VEQ.SavedVars.position.relativePoint, VEQ.SavedVars.position.offsetX, VEQ.SavedVars.position.offsetY)
-		end)
+		-- VEQ.main:SetHandler("OnMouseUp", function(self) 
+			-- VEQ.SavedVars.position.offsetX = VEQ.main:GetLeft()
+			-- VEQ.SavedVars.position.offsetY = VEQ.main:GetTop()
+			-- VEQ.main:ClearAnchors()
+			-- VEQ.main:SetAnchor(VEQ.SavedVars.position.point, GuiRoot, VEQ.SavedVars.position.relativePoint, VEQ.SavedVars.position.offsetX, VEQ.SavedVars.position.offsetY)
+		-- end)
  
 		-- Main Background
 		VEQ.bg = WM:CreateControl(nil, VEQ.main, CT_STATUSBAR)
@@ -1555,12 +1617,13 @@ function VEQ.Init(eventCode, addOnName)
 		
 		-- Backgroud texture
     VEQ.bgtx = WM:CreateControl(nil, VEQ.main, CT_TEXTURE)
-		VEQ.bgtx:ClearAnchors()
-		VEQ.bgtx:SetAnchor(TOPLEFT, VEQ.main, TOPLEFT, -60, -60)
-		VEQ.bgtx:SetDrawTier(0)
-		VEQ.bgtx:SetDrawLayer(0)
-		VEQ.bgtx:SetDrawLevel(0)
-    VEQ.bgtx:SetTexture("esoui/art/miscellaneous/centerscreen_left.dds") -- "esoui/art/login/keyboard/login_credentialsbackground.dds"
+    VEQ.bgtx:ClearAnchors()
+    VEQ.bgtx:SetExcludeFromResizeToFitExtents(true) 
+    VEQ.bgtx:SetAnchor(TOPLEFT, VEQ.main, TOPLEFT, -60, -60)
+    VEQ.bgtx:SetDrawTier(0)
+    VEQ.bgtx:SetDrawLayer(0)
+    VEQ.bgtx:SetDrawLevel(0)
+    VEQ.bgtx:SetTexture("esoui/art/miscellaneous/centerscreen_left.dds")
 
  
  
@@ -1604,7 +1667,7 @@ function VEQ.Init(eventCode, addOnName)
 		--EVENT_PLAYER_ACTIVATED
 		--EVENT_QUEST_ADVANCED
 		--EVENT_LEVEL_UPDATE
-		EM:RegisterForEvent("VEQ", EVENT_PLAYER_ACTIVATED, function(code) VEQ.QuestsListUpdate(code) zo_callLater(function() VEQ.CheckMode()  end, 100) end) --> EC:131072 Update after zoning
+		EM:RegisterForEvent("VEQ", EVENT_PLAYER_ACTIVATED, function(code) VEQ.QuestsListUpdate(code) zo_callLater(function() VEQ.CheckMode()  end, 1000) end) --> EC:131072 Update after zoning
 		--EVENT_QUEST_REMOVED = 131092
 		EM:RegisterForEvent("VEQ", EVENT_QUEST_REMOVED,
 		   function(eventCode, isCompleted, _, questName, _, _, questId)
@@ -1805,11 +1868,29 @@ function VEQ.Init(eventCode, addOnName)
 		--EM:RegisterForEvent("VEQ", EVENT_ZONE_STORY_ACTIVITY_TRACKING_INIT, VEQ.zoneStoryTracker)
  
 		EM:RegisterForEvent("VEQ", EVENT_ZONE_CHANGED, function()
-		    local zoneName = GetZoneNameById(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap())
+		   local zoneName = GetZoneNameById(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap())
 			 if zoneName and zoneName ~= VEQ.lastZoneName and ZO_WorldMap:IsHidden() then
-				VEQ.zoneStoryTracker()
-				VEQ.mapCompletion(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap(), true)
-				VEQ.lastZoneName = zoneName
+				  VEQ.zoneStoryTracker()
+				  VEQ.mapCompletion(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap(), true)
+				  VEQ.lastZoneName = zoneName
+         
+          -- remove the Nirncrux counters out of Craglorn 
+          if ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap() ~= 888 then
+             local updated = false
+             -- create table if it doesn't exist
+             VEQ.PerUniqueIdList = VEQ.PerUniqueIdList or {}
+             if VEQ.PerUniqueIdList["fortifiedNirncrux"] then 
+                VEQ.PerUniqueIdList["fortifiedNirncrux"] = nil
+                updated = true
+             end
+             if VEQ.PerUniqueIdList["potentNirncrux"] then 
+                VEQ.PerUniqueIdList["potentNirncrux"] = nil
+                updated = true
+             end
+             if updated == true then
+                VEQ.updatePerZoneDisplay()
+             end
+          end
 			 end
 		end)
 		
@@ -1850,6 +1931,7 @@ function VEQ.Init(eventCode, addOnName)
 		-- achievements
 		EM:RegisterForEvent("VEQ", EVENT_ACHIEVEMENT_UPDATED, function(_,id) VEQ.GetNearlyDoneAchievement(id) if VEQ.SavedVars.CommunityEvents then VEQ.CommunityEvents() end end )
 		EM:RegisterForEvent("VEQ", EVENT_ACHIEVEMENT_AWARDED, function(_,_, _, id) VEQ.GetNearlyDoneAchievement(id) if VEQ.SavedVars.CommunityEvents then VEQ.CommunityEvents() end end )
+    EM:RegisterForEvent("VEQ", EVENT_ACHIEVEMENT_TRACKING_UPDATE, function(_,id) VEQ.GetNearlyDoneAchievement(id) end )
     
     -- activity finder status
     EM:RegisterForEvent("VEQ", EVENT_ACTIVITY_FINDER_STATUS_UPDATE, function(_,AFStatus) VEQ.AFStatus = AFStatus end )
@@ -1857,17 +1939,26 @@ function VEQ.Init(eventCode, addOnName)
 		
 		EM:RegisterForEvent("VEQ", EVENT_LOOT_RECEIVED, function(_,receivedBy,_,_,_,_,_,_,_,itemId) 
 		    if VEQ.SavedVars.FishingAchievements and GetRawUnitName("player") == receivedBy then  
-             local itemType, specializedItemType = GetItemLinkItemType(string.format("|H0:item:%s:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId))
-			       if itemType == ITEMTYPE_COLLECTIBLE and specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH then -- 34 - 80
-                 VEQ.Fishing()
-             end 
+            VEQ.Fishing(itemId)
         end
     end)
+    
+      -- -- cancel achievement tracker show
+      -- local achFragment = ACHIEVEMENT_TRACKER_FRAGMENT
+      -- ZO_PreHook(achFragment, "Show", function(self)
+           -- return true 
+      -- end)
 			
+      -- -- cancel zone story tracker show
+      -- local zoneFragment = ZONE_STORY_TRACKER_FRAGMENT
+      -- ZO_PreHook(zoneFragment, "Show", function(self)
+           -- return true 
+      -- end)
+      
 			
-		if VEQ.SavedVars.PositionLockOption == false then
-			libDialog:ShowDialog("VEQ", "TrackerUnlocked", data)
-		end
+		-- if VEQ.SavedVars.PositionLockOption == false then
+			-- libDialog:ShowDialog("VEQ", "TrackerUnlocked", data)
+		-- end
  
       zo_callLater(function() VEQ.checkInventoryOnStartup() end, 4900)
 	    zo_callLater(function() VEQ.zoneStoryTracker() VEQ.mapCompletion(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap()) end, 5000)

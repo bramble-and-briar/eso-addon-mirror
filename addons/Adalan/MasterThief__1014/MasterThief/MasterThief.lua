@@ -20,7 +20,7 @@ MasterThief._addon = {
 	Name = "MasterThief",
 	DisplayName = "MasterThief",
 	Author = "Adalan & WolfStar07",
-	Version = "1.7",
+	Version = "1.8",
 }
 
 ZO_CreateStringId("SI_ITEM_ACTION_MASTERTHIEF_MARK", "Mark for Auto-Loot")
@@ -633,7 +633,6 @@ function MT:Initialize()
 	-- Initialize variables
 	stolenTotal = MT.SavedVarsValues.stolenValuesTotal
 	gPlayerChar = GetUnitName("player")
-	libScroll = LibScroll
 	
 	-- Wait for player activation for UI setup
 	EVENT_MANAGER:RegisterForEvent(MT.name, EVENT_PLAYER_ACTIVATED, function()

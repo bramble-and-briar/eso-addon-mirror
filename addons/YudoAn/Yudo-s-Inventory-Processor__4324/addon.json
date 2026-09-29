@@ -18,7 +18,7 @@
     "YudosInventoryProcessor"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4324/",
-  "fingerprint": "b111cf24efc81aa1f742c7c62e763a92d9ccb852e7dc4eb152851c600c041305",
+  "fingerprint": "c333a6311c8cbdb6e2bd4d96f1cebc6bdde95d092cbacd5b9a86f31da64be7f9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15774.png",
     "https://cdn-eso.mmoui.com/preview/pvw15447.png",
@@ -31,11 +31,11 @@
   "source_id": "4324",
   "source_url": "https://www.esoui.com/downloads/info4324-YudosInventoryProcessor.html",
   "stats": {
-    "downloads": 2730,
-    "favorites": 3,
-    "monthly_downloads": 97
+    "downloads": 2893,
+    "favorites": 4,
+    "monthly_downloads": 196
   },
   "title": "Yudo's Inventory Processor",
-  "updated_at": 1788888169000,
-  "version": "1.12.0"
+  "updated_at": 1790614729000,
+  "version": "1.12.1"
 }

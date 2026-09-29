@@ -122,7 +122,7 @@
         <TopLevelControl name="DIAhelpFrameTLC">
             <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="0"/>
             <OnInitialized>
-                DIAhelpFrame_Initialize(self)
+                DIAhelp.Frame.OnControlInitialized(self)
             </OnInitialized>
             <Controls>
 

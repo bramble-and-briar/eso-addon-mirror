@@ -229,7 +229,7 @@ local function applyGroupVisual(unitTag, data)
 end
 
 local function updateGroupPositions()
-    if not PGT.sv or not PGT.sv.showGroupRanges or not IsUnitGrouped("player") then
+    if not PGT.sv or not PGT.sv.enabled or not PGT.sv.showGroupRanges or not IsUnitGrouped("player") then
         hideAllGroupGlows()
         return
     end
@@ -257,8 +257,14 @@ local function updateGroupPositions()
     end
 end
 
-sendGroupState = function(syncRequest)
+sendGroupState = function(syncRequest, forceHidden)
     if not PGT.groupProtocol or not PGT.sv or not PGT.sv.shareMyRange or not IsUnitGrouped("player") then
+        return
+    end
+
+    -- Master OFF is a true kill switch. Allow only one forced hidden packet
+    -- when switching OFF so peers can immediately remove our old circle.
+    if not PGT.sv.enabled and not forceHidden then
         return
     end
 
@@ -269,7 +275,7 @@ sendGroupState = function(syncRequest)
         green = zo_clamp(zo_round(c[2] * 100), 0, 100),
         blue = zo_clamp(zo_round(c[3] * 100), 0, 100),
         intensity = zo_clamp(zo_round(PGT.sv.intensity * 100), 10, 100),
-        visible = shouldShow(),
+        visible = forceHidden and false or shouldShow(),
         syncRequest = syncRequest == true,
     })
 end
@@ -298,6 +304,8 @@ local function setupGroupSharing()
 
     protocol:OnData(function(unitTag, data)
         if not unitTag or unitTag == "player" then return end
+        -- Master OFF ignores incoming RR sharing completely.
+        if not PGT.sv or not PGT.sv.enabled then return end
         PGT.groupData[unitTag] = data
         applyGroupVisual(unitTag, data)
         updateGroupPositions()
@@ -348,7 +356,7 @@ local function createSettings()
         name = "Radiant Range |t22:22:RadiantRange/star.dds|t",
         displayName = "Radiant Range |t22:22:RadiantRange/star.dds|t",
         author = "WifeyRytic",
-        version = "1.0.1",
+        version = "1.0.3",
         registerForRefresh = true,
         registerForDefaults = false,
     }
@@ -362,9 +370,20 @@ local function createSettings()
             tooltip = "Turns the floor circle on or off for this character.",
             getFunc = function() return PGT.sv.enabled end,
             setFunc = function(value)
-                PGT.sv.enabled = value
-                refreshRuntime()
-                sendGroupState()
+                if value then
+                    PGT.sv.enabled = true
+                    refreshRuntime()
+                    -- Restore the saved sharing choices and request fresh peer state.
+                    sendGroupState(true)
+                else
+                    PGT.sv.enabled = false
+                    refreshRuntime()
+                    hideAllGroupGlows()
+                    PGT.groupData = {}
+                    -- One final hidden state removes our circle from peers; after this,
+                    -- master OFF prevents all normal RR broadcasts and receives.
+                    sendGroupState(false, true)
+                end
             end,
             width = "full",
         },

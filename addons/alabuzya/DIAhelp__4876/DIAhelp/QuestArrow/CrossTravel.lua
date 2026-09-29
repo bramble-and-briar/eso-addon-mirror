@@ -1,8 +1,9 @@
--- Bundled QuestArrow 0.2.1 by alabuzya.
-if not DIAhelpUseBundledQuestArrow then return end
+local DIAhelp = DIAhelp
+-- Bundled QuestArrow 0.2.2 by alabuzya.
+if not DIAhelp.UseBundledQuestArrow then return end
 -- Destination discovery uses a synchronous, restored map snapshot. Never leave
 -- a remote map selected while waiting for an asynchronous quest-position reply.
-local A, P = QuestArrow, QuestArrow.Planner
+local A, P = DIAhelp.QuestArrow, DIAhelp.QuestArrow.Planner
 local X = { cache = {} }
 A.CrossTravel = X
 

@@ -1,6 +1,6 @@
 <Bindings>
     <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
-        <Category name="Companion Roster">
+        <Category name="Feliks' Companion Roster">
             <Action name="COMPANIONROSTER_TOGGLE">
                 <Down>
                     CompanionRoster.ToggleWindow()

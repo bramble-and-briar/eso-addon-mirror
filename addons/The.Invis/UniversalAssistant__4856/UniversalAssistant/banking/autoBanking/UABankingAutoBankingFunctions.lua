@@ -8,6 +8,8 @@ local PERSONAL_MOVE_DELAY_MS = 15
 local GUILD_MOVE_DELAY_MS = 100
 local MOVE_TIMEOUT_MS = 5000
 local OPEN_DELAY_MS = 350
+local PERSONAL_RESCAN_DELAY_MS = 500
+local PERSONAL_RESCAN_LIMIT = 3
 local EVENT_NAMESPACE = ua.addonName .. "AutoBanking"
 
 local MODE_NONE = "none"
@@ -277,6 +279,33 @@ end
 
 local ProcessNextCandidate
 
+local function SchedulePersonalRescan()
+    if
+        autoBanking.interactionKind ~= "personal"
+        or autoBanking.stackPlacementPhase
+        or autoBanking.personalRescanCount >= PERSONAL_RESCAN_LIMIT
+    then
+        return false
+    end
+
+    autoBanking.personalRescanCount = autoBanking.personalRescanCount + 1
+
+    ScheduleForSession(function()
+        if
+            not autoBanking.processActive
+            or autoBanking.interactionKind ~= "personal"
+            or not IsBankInteractionActive()
+        then
+            return
+        end
+
+        autoBanking.queue = CollectCandidates()
+        ProcessNextCandidate()
+    end, PERSONAL_RESCAN_DELAY_MS)
+
+    return true
+end
+
 local function RecordMove(candidate, movedCount)
     if movedCount <= 0 then
         return
@@ -488,6 +517,10 @@ ProcessNextCandidate = function()
     local candidate, destinationBag, destinationSlot, moveCount = GetNextMovableCandidate()
 
     if not candidate then
+        if SchedulePersonalRescan() then
+            return
+        end
+
         FinishProcess()
         return
     end
@@ -558,6 +591,7 @@ function autoBanking.Process()
     autoBanking.movedItemOrder = {}
     autoBanking.processActive = true
     autoBanking.stackPlacementPhase = false
+    autoBanking.personalRescanCount = 0
     autoBanking.moveToken = autoBanking.moveToken + 1
     ProcessNextCandidate()
 end
@@ -584,6 +618,7 @@ function autoBanking.ProcessGuildBank()
     autoBanking.movedItemOrder = {}
     autoBanking.processActive = true
     autoBanking.stackPlacementPhase = false
+    autoBanking.personalRescanCount = 0
     autoBanking.moveToken = autoBanking.moveToken + 1
     ProcessNextCandidate()
 end
@@ -607,6 +642,7 @@ function autoBanking.ProcessHouseBank(bankBagId)
     autoBanking.movedItemOrder = {}
     autoBanking.processActive = true
     autoBanking.stackPlacementPhase = false
+    autoBanking.personalRescanCount = 0
     autoBanking.moveToken = autoBanking.moveToken + 1
     ProcessNextCandidate()
 end
@@ -731,6 +767,7 @@ function autoBanking.Initialize()
     autoBanking.guildReadyToken = 0
     autoBanking.moveToken = 0
     autoBanking.stackPlacementPhase = false
+    autoBanking.personalRescanCount = 0
 
     autoBanking.CraftingItems.Initialize()
     autoBanking.StackPlacement.Initialize()

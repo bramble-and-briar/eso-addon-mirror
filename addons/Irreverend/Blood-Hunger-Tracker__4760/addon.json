@@ -8,8 +8,8 @@
   "category_id": "22",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4760",
@@ -18,7 +18,7 @@
     "BloodHungerTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4760/",
-  "fingerprint": "296d5b566849611f3e6246a18694a0c5c5f0e5a54481df0d113f127130626572",
+  "fingerprint": "337b1ba75a42fec9c6b340561fc7cdba84be6cd50397579e32ab8ac3516a408f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16940.png",
     "https://cdn-eso.mmoui.com/preview/pvw16982.png"
@@ -29,11 +29,11 @@
   "source_id": "4760",
   "source_url": "https://www.esoui.com/downloads/info4760-BloodHungerTracker.html",
   "stats": {
-    "downloads": 70,
+    "downloads": 143,
     "favorites": 1,
-    "monthly_downloads": 66
+    "monthly_downloads": 38
   },
   "title": "Blood Hunger Tracker",
-  "updated_at": 1786752569000,
-  "version": "1.0.4"
+  "updated_at": 1790566362000,
+  "version": "1.0.5"
 }

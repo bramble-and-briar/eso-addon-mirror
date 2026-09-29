@@ -1,7 +1,7 @@
 ## Title: Yudo's Inventory Processor
 ## Author: YudoAn
-## Version: 1.12.0
-## APIVersion: 101050
+## Version: 1.12.1
+## APIVersion: 101051
 ## SavedVariables: YudosInventoryProcessorVars
 ## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: FCOItemSaver DolgubonsLazyWritCreator

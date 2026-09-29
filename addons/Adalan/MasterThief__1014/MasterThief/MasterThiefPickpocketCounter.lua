@@ -132,6 +132,8 @@ end
 -- Core: record a pickpocket on the current reticle target
 ----------------------------------------
 function MT:RecordPickpocketForReticle()
+    if not MasterThief.SavedVarsOptions.PickpocketCounterEnabled then return end
+	
     local key = GetReticleKey()
     if not key then return end
 
@@ -183,6 +185,15 @@ end
 ----------------------------------------
 -- Public init
 ----------------------------------------
+function MT:SetPickpocketCounterEnabled(enabled)
+    MasterThief.SavedVarsOptions.PickpocketCounterEnabled = enabled
+    if not enabled then
+        _entries = {}
+        StopPoll()
+        HideDisplay()
+    end
+end
+
 function MT:InitPickpocketCounter()
     EnsureControls()
 

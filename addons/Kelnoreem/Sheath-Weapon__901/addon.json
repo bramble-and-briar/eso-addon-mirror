@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Kelnoreem/Sheath-Weapon__901",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Kelnoreem",
   "canonical_id": "esoui:901",
   "category_id": "25",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     },
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:901",
@@ -21,7 +22,7 @@
     "SheathWeapon"
   ],
   "download_url": "https://www.esoui.com/downloads/dl901/",
-  "fingerprint": "1015dc42a730f5b518032870690a8303ad2065786b74fdb4f9345b65fd9919d3",
+  "fingerprint": "64de1a4e22b9bff676b06dcbcefcaf86be1da9f6dabfb746b3e0471dd2b76bd6",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -29,11 +30,11 @@
   "source_id": "901",
   "source_url": "https://www.esoui.com/downloads/info901-SheathWeapon.html",
   "stats": {
-    "downloads": 49747,
+    "downloads": 49956,
     "favorites": 57,
-    "monthly_downloads": 103
+    "monthly_downloads": 98
   },
   "title": "Sheath Weapon",
-  "updated_at": 1781047622000,
-  "version": "3.23"
+  "updated_at": 1790629885000,
+  "version": "3.24"
 }

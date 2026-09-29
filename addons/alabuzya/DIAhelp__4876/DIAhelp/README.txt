@@ -1,3 +1,23 @@
+DIAhelp 1.0.5
+Developed with AI assistance, including code generation.
+Author: alabuzya <aabuziarov@gmail.com>
+
+Update notes / Обновление
+EN: Settings are now independent for each server and account. Character settings
+remain per character ID, also separated from PTS copies. Legacy settings migrate
+automatically on first use of each server; previous data is retained for rollback.
+Already separated server settings are not overwritten. No manual file editing or
+extra reload is required when updating from the previous version of this addon.
+See CHANGELOG.txt and CREDITS.txt. UI appearance and feature behavior are unchanged.
+RU: Настройки разделены по серверам и аккаунтам. Настройки персонажа остаются
+привязаны к его ID, включая отдельную копию на PTS. Старые значения переносятся
+автоматически при первом использовании на сервере; исходные данные сохраняются.
+Уже существующие серверные настройки не перезаписываются. Для обычного обновления
+не нужно редактировать сохранения или дополнительно перезагружать интерфейс.
+Внешний вид и поведение функций сохранены. Подробности: CHANGELOG.txt, CREDITS.txt.
+
+Usage guide and previous release notes / Инструкция и история версий
+
 DIAhelp 1.0.4
 Русский / English
 Автор / Author: alabuzya

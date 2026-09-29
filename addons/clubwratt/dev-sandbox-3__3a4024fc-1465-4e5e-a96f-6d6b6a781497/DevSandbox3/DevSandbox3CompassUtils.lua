@@ -6,14 +6,22 @@ local CompassUtils = {}
 CompassUtils.HARVEST_NODE_PIN_TYPE = MAP_PIN_TYPE_HARVEST_NODE or 179
 
 -- Every compass pin category we declare invisibly in DevSandbox3Compass.xml, keyed by pin type id.
--- drawLevel = drawLevelOffsetBase from the XML, used to classify a pin control at add/remove time.
+-- Each type has its own added-animation in the XML, which passes the name to the add/remove callbacks.
 CompassUtils.PROBE_TYPES = {
-    [MAP_PIN_TYPE_HARVEST_NODE or 179] = { name = "HARVEST_NODE", drawLevel = 120 },
-    [MAP_PIN_TYPE_LOCATION or 178]     = { name = "LOCATION",     drawLevel = 121 },
-    [MAP_PIN_TYPE_VENDOR or 180]       = { name = "VENDOR",       drawLevel = 122 },
-    [MAP_PIN_TYPE_TRAINER or 181]      = { name = "TRAINER",      drawLevel = 123 },
-    [MAP_PIN_TYPE_NPC_FOLLOWER or 182] = { name = "NPC_FOLLOWER", drawLevel = 124 },
+    [MAP_PIN_TYPE_HARVEST_NODE or 179] = { name = "HARVEST_NODE" },
+    [MAP_PIN_TYPE_LOCATION or 178]     = { name = "LOCATION" },
+    [MAP_PIN_TYPE_VENDOR or 180]       = { name = "VENDOR" },
+    [MAP_PIN_TYPE_TRAINER or 181]      = { name = "TRAINER" },
+    [MAP_PIN_TYPE_NPC_FOLLOWER or 182] = { name = "NPC_FOLLOWER" },
 }
+
+CompassUtils.PROBE_TYPE_BY_NAME = {}
+for pinType, probe in pairs(CompassUtils.PROBE_TYPES) do
+    CompassUtils.PROBE_TYPE_BY_NAME[probe.name] = pinType
+end
+
+-- Names seen per type are kept in memory for /ds3 scan; cap so a long session can't grow unbounded.
+CompassUtils.MAX_SEEN_NAMES_PER_TYPE = 40
 
 ---@param pinType integer|nil
 ---@return string
@@ -28,17 +36,25 @@ function CompassUtils.IsProbeType(pinType)
     return pinType ~= nil and CompassUtils.PROBE_TYPES[pinType] ~= nil
 end
 
----Map a compass pin control's draw level back to the pin type we declared it with.
----@param drawLevel integer|nil
+---Resolve the type name the XML animation passed to the add/remove callbacks.
+---@param typeName string|nil
 ---@return integer|nil pinType
-function CompassUtils.PinTypeFromDrawLevel(drawLevel)
-    if not drawLevel then return nil end
-    for pinType, probe in pairs(CompassUtils.PROBE_TYPES) do
-        if probe.drawLevel == drawLevel then
-            return pinType
+function CompassUtils.PinTypeFromName(typeName)
+    return typeName and CompassUtils.PROBE_TYPE_BY_NAME[typeName] or nil
+end
+
+---Sorted "NAME xN" summary of a per-type count table.
+---@param counts table<integer, integer>
+---@return string
+function CompassUtils.DescribeCounts(counts)
+    local parts = {}
+    for pinType, count in pairs(counts) do
+        if count > 0 then
+            parts[#parts + 1] = string.format("%s x%d", CompassUtils.PinTypeName(pinType), count)
         end
     end
-    return nil
+    table.sort(parts)
+    return #parts > 0 and table.concat(parts, ", ") or "none"
 end
 
 -- Poll cadence for the centered-pin query while any harvest pin is in range.

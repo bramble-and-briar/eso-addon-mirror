@@ -1,80 +1,69 @@
 ## Title: |cffdd00Dovah|r|c0057b8Mova|r
-## APIVersion: 101046
-## Version: 1.4.2
+## Description: DovahMova — Ukrainian localization helper for ESO: English names next to Ukrainian ones, adjective agreement and Ukrainian support for popular addons.
 ## Author: Frozenshtoldts and DovahMova Team
-## Description: DovahMova - Ukrainian interface AI translation for ESO
+## Version: 1.5.0
+## AddOnVersion: 10500
+## APIVersion: 101050 101051
 ## SavedVariables: DovahMovaVariables
 ## DependsOn: LibAddonMenu-2.0>=40
-## OptionalDependsOn: AwesomeGuildStore DolgubonsLazyWritCreator TamrielTradeCentre HarvestMap CombatMetrics Dustman AsylumTracker vASHelper CrutchAlerts AUI LucentCitadelHelper QcellRockgroveHelper SanitysEdgeHelper HowToCloudrest PotionMaker ActionDurationReminder AsquartOsseinCageHelper MapPins RareFishTracker VotansFisherman
+## OptionalDependsOn: AUI AsquartOsseinCageHelper AsylumTracker CombatMetrics CrutchAlerts DolgubonsLazyWritCreator Dustman HarvestMap HowToCloudrest LucentCitadelHelper
+## OptionalDependsOn: MapPins PotionMaker QcellRockgroveHelper QuestMap RareFishTracker SanitysEdgeHelper TamrielTradeCentre VotansFisherman vASHelper
 
-integration/ActionDurationReminderUA/integration.lua
+; Ядро: створює єдину глобальну таблицю DovahMova
+Core.lua
 
-integration/DolgubonsLazyWritCreatorUA/ua.lua
-
-integration/HarvestMapUA/integration.lua
-integration/HarvestMapUA/ua.lua
-
-integration/CombatMetricsUA/comprehensive_integration.lua
-
-integration/DustmanUA/ua_strings.lua
-integration/DustmanUA/integration.lua
-
-integration/AsylumTrackerUA/integration.lua
-
-integration/vASHelperUA/ua_strings.lua
-integration/vASHelperUA/integration.lua
-integration/vASHelperUA/ua.lua
-
-integration/CrutchAlertsUA/ua_boss_names.lua
-integration/CrutchAlertsUA/ua.lua
-integration/CrutchAlertsUA/integration.lua
-
-integration/AUIUA/ua_strings.lua
-integration/AUIUA/integration.lua
-
-integration/LucentCitadelHelperUA/ua.lua
-integration/LucentCitadelHelperUA/integration.lua
-
-integration/QcellDreadsailReefHelperUA/ua.lua
-integration/QcellDreadsailReefHelperUA/integration.lua
-
-integration/QcellRockgroveHelperUA/integration.lua
-
-integration/SanitysEdgeHelperUA/ua.lua
-integration/SanitysEdgeHelperUA/integration.lua
-
-integration/HowToCloudrestUA/integration.lua
-
-integration/QuestMapUA/ua.lua
-integration/QuestMapUA/integration.lua
-
-integration/RareFishTrackerUA/ua.lua
-integration/RareFishTrackerUA/integration.lua
-
-integration/VotansFishermanUA/ua.lua
-integration/VotansFishermanUA/integration.lua
-
-integration/PotionMakerUA/ua.lua
-integration/PotionMakerUA/integration.lua
-
-integration/AsquartOsseinCageHelperUA/ua.lua
-integration/AsquartOsseinCageHelperUA/integration.lua
-
-integration/MapPinsUA/integration.lua
-
+; Статичні дані
 engPostfix/data/links.lua
 engPostfix/data/locations.lua
+
+; Модулі перекладу назв
 engPostfix/modules/adjectives.lua
-engPostfix/modules/craft.lua
+engPostfix/modules/itemNames.lua
+engPostfix/modules/itemsDisplay.lua
+engPostfix/modules/itemTooltips.lua
 engPostfix/modules/abilities.lua
 engPostfix/modules/champion.lua
-engPostfix/modules/items.lua
-engPostfix/modules/itemsDisplay.lua
-engPostfix/modules/dungeons.lua
 engPostfix/modules/collections.lua
-engPostfix/modules/armorSets.lua
+engPostfix/modules/craft.lua
+engPostfix/modules/dungeons.lua
 engPostfix/modules/scribing.lua
-engPostfix/modules/guildStore.lua
 
-DovahMova.lua
+Database.lua
+MailHandler.lua
+
+; Інтеграції з іншими адонами (Prepare — одразу, до ініціалізації цільових адонів; Apply — з EVENT_ADD_ON_LOADED)
+integration/AUIUA/ua.lua
+integration/AUIUA/integration.lua
+integration/AsquartOsseinCageHelperUA/ua.lua
+integration/AsquartOsseinCageHelperUA/integration.lua
+integration/AsylumTrackerUA/integration.lua
+integration/CombatMetricsUA/ua.lua
+integration/CombatMetricsUA/integration.lua
+integration/CrutchAlertsUA/ua_boss_names.lua
+integration/CrutchAlertsUA/integration.lua
+integration/DolgubonsLazyWritCreatorUA/integration.lua
+integration/DustmanUA/ua.lua
+integration/DustmanUA/integration.lua
+integration/HarvestMapUA/ua.lua
+integration/HarvestMapUA/integration.lua
+integration/HowToCloudrestUA/integration.lua
+integration/LucentCitadelHelperUA/ua.lua
+integration/LucentCitadelHelperUA/integration.lua
+integration/MapPinsUA/integration.lua
+integration/PotionMakerUA/ua.lua
+integration/PotionMakerUA/integration.lua
+integration/QcellRockgroveHelperUA/integration.lua
+integration/QuestMapUA/ua.lua
+integration/QuestMapUA/integration.lua
+integration/RareFishTrackerUA/ua.lua
+integration/RareFishTrackerUA/integration.lua
+integration/SanitysEdgeHelperUA/ua.lua
+integration/SanitysEdgeHelperUA/integration.lua
+integration/TamrielTradeCentreUA/ttc_names.lua
+integration/TamrielTradeCentreUA/integration.lua
+integration/VotansFishermanUA/ua.lua
+integration/VotansFishermanUA/integration.lua
+integration/vASHelperUA/integration.lua
+
 settings.lua
+DovahMova.lua

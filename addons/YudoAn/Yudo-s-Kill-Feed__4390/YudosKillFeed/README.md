@@ -1,7 +1,7 @@
 # Yudo's Kill Feed
 **Author:** YudoAn
 **License:** Artistic-2.0
-**Version:** 1.3.4
+**Version:** 1.3.5
 
 ## Description
 Yudo's Kill Feed is a utility addon for The Elder Scrolls Online. It acts as a "Gatekeeper" for the native PvP Kill Feed, filtering strictly on the events that matter to you to avoid spam.

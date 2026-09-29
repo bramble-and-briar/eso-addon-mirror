@@ -3,7 +3,7 @@ TEB = {
     displayName = "The Elder Bar |cD6660CReloaded|r",
     author = "SimonIllyan",
     website = "",
-    version = "12.1.2",
+    version = "12.1.3",
     debug = { },
 }
 

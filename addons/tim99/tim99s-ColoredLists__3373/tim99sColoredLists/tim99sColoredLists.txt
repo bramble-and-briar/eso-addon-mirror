@@ -1,7 +1,7 @@
 ## Title: |c9B30FFtim99s Colored Lists|r
 ## Author: |c595959tim99|r
 ## Version: 1.0.1
-## APIVersion: 101050
+## APIVersion: 101051
 ## SavedVariables: Tim99sColoredLists
 ## DependsOn: LibAddonMenu-2.0>=33
 ## OptionalDependsOn: pchat LoreBooks DungeonQueue4Stickerbook

@@ -6,7 +6,9 @@
 -- -----------------------------------------------------------------------------
 local HT = HUDitorTools
 
-HT.HUDT_FORMAT_VERSION = 1
+HT.HUDT_FORMAT_VERSION = 3
+HT.HUDT_FORMAT_VERSION_V1 = 1
+HT.HUDT_FORMAT_VERSION_V2 = 2
 HT.HUDT_MAGIC = "HUDT"
 
 -- Offset precision matches ZO_HUDManager:SaveAnchorOffsets (hudmanager.lua)
@@ -77,6 +79,12 @@ local SAVE_KEY_BY_ID =
     "ZO_TimedActivityTracker_TL",
     "ZO_TutorialHudInfoTipGamepad",
     "ZO_TutorialHudInfoTipKeyboard",
+    "ZO_BattlegroundHUDFragmentTopLevel",
+    "ZO_PlayerProgress",
+    "ZO_RamTopLevel",
+    "ZO_ReticleContainerInteract",
+    "ZO_ReticleContainerReticle",
+    "ZO_ReticleContainerStealthIcon",
 }
 
 local SAVE_KEY_ID_BY_NAME = {}
@@ -119,6 +127,27 @@ local function FormatNumberToken(value)
         return tostring(zo_floor(numberValue))
     end
     return FormatOffsetToken(numberValue)
+end
+
+local function EscapeTextToken(text)
+    text = tostring(text or "")
+    text = string.gsub(text, "\\", "\\\\")
+    text = string.gsub(text, " ", "\\s")
+    if text == "" then
+        return "-"
+    end
+    return text
+end
+
+local function UnescapeTextToken(token)
+    if token == nil or token == "-" then
+        return ""
+    end
+    local placeholder = "\1"
+    token = string.gsub(token, "\\\\", placeholder)
+    token = string.gsub(token, "\\s", " ")
+    token = string.gsub(token, placeholder, "\\")
+    return token
 end
 
 local function EncodeSaveKeyToken(saveKey)
@@ -367,6 +396,68 @@ local function DecodeElementMap(tokens, tokenIndex, elementCount)
     return elementMap, tokenIndex, nil
 end
 
+local function EncodeAppearanceMap(modeMap, tokens)
+    local saveKeys = {}
+    if type(modeMap) == "table" then
+        for saveKey, row in pairs(modeMap) do
+            if not HT.IsAppearanceRowDefault(row) then
+                saveKeys[#saveKeys + 1] = saveKey
+            end
+        end
+    end
+    table.sort(saveKeys)
+    tokens[#tokens + 1] = tostring(#saveKeys)
+    for _, saveKey in ipairs(saveKeys) do
+        local row = modeMap[saveKey]
+        tokens[#tokens + 1] = EncodeSaveKeyToken(saveKey)
+        tokens[#tokens + 1] = FormatOffsetToken(row.scale or 1)
+        tokens[#tokens + 1] = EscapeTextToken(row.fontFace or "")
+        tokens[#tokens + 1] = tostring(zo_floor(tonumber(row.fontSize) or HT.APPEARANCE_FONT_SIZE_DEFAULT))
+        tokens[#tokens + 1] = EscapeTextToken(row.fontOutline or "")
+    end
+end
+
+local function DecodeAppearanceMap(tokens, tokenIndex)
+    local countToken = tokens[tokenIndex]
+    if countToken == nil then
+        return nil, tokenIndex, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED)
+    end
+    local rowCount = tonumber(countToken)
+    if rowCount == nil or rowCount < 0 or rowCount ~= zo_floor(rowCount) then
+        return nil, tokenIndex, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER)
+    end
+    tokenIndex = tokenIndex + 1
+    local modeMap = {}
+    for _ = 1, rowCount do
+        local saveKeyToken = tokens[tokenIndex]
+        local scaleToken = tokens[tokenIndex + 1]
+        local fontFaceToken = tokens[tokenIndex + 2]
+        local fontSizeToken = tokens[tokenIndex + 3]
+        local fontOutlineToken = tokens[tokenIndex + 4]
+        if saveKeyToken == nil or scaleToken == nil or fontFaceToken == nil or fontSizeToken == nil or fontOutlineToken == nil then
+            return nil, tokenIndex, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED)
+        end
+        local saveKey, saveKeyError = DecodeSaveKeyToken(saveKeyToken)
+        if saveKeyError then
+            return nil, tokenIndex, saveKeyError
+        end
+        local scale = tonumber(scaleToken)
+        local fontSize = tonumber(fontSizeToken)
+        if scale == nil or fontSize == nil then
+            return nil, tokenIndex, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER)
+        end
+        modeMap[saveKey] =
+        {
+            scale = scale,
+            fontFace = UnescapeTextToken(fontFaceToken),
+            fontSize = fontSize,
+            fontOutline = UnescapeTextToken(fontOutlineToken),
+        }
+        tokenIndex = tokenIndex + 5
+    end
+    return modeMap, tokenIndex, nil
+end
+
 function HT.EncodeHudLayoutPayload(payload)
     local tokens =
     {
@@ -375,10 +466,30 @@ function HT.EncodeHudLayoutPayload(payload)
         "0",
         "0",
     }
-    local keyboardCount = EncodeElementMap(payload.keyboardElements, tokens)
-    local gamepadCount = EncodeElementMap(payload.gamepadElements, tokens)
+    local keyboardCount = EncodeElementMap(payload.keyboardElements or {}, tokens)
+    local gamepadCount = EncodeElementMap(payload.gamepadElements or {}, tokens)
     tokens[3] = tostring(keyboardCount)
     tokens[4] = tostring(gamepadCount)
+
+    local appearance = payload.elementAppearance or {}
+    tokens[#tokens + 1] = "A"
+    EncodeAppearanceMap(appearance.keyboard, tokens)
+    EncodeAppearanceMap(appearance.gamepad, tokens)
+
+    local resourceBarGroup = payload.resourceBarGroup or {}
+    local resourceEnabled = "0"
+    if resourceBarGroup.enabled then
+        resourceEnabled = "1"
+    end
+    local preventExpandToken = "0"
+    if resourceBarGroup.preventExpand then
+        preventExpandToken = "1"
+    end
+    tokens[#tokens + 1] = "R"
+    tokens[#tokens + 1] = resourceEnabled
+    tokens[#tokens + 1] = tostring(zo_floor(tonumber(resourceBarGroup.healthWidth) or HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH or 474))
+    tokens[#tokens + 1] = preventExpandToken
+
     -- table.concat matches zo_strjoin(" ", ...) without Lua 5.1 vararg limits
     return table.concat(tokens, " ")
 end
@@ -395,7 +506,9 @@ function HT.DecodeHudLayoutString(sourceString)
         return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC)
     end
     local formatVersion = tonumber(tokens[2])
-    if formatVersion ~= HT.HUDT_FORMAT_VERSION then
+    if formatVersion ~= HT.HUDT_FORMAT_VERSION
+        and formatVersion ~= HT.HUDT_FORMAT_VERSION_V1
+        and formatVersion ~= HT.HUDT_FORMAT_VERSION_V2 then
         return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION)
     end
     local keyboardCount = tonumber(tokens[3])
@@ -415,12 +528,84 @@ function HT.DecodeHudLayoutString(sourceString)
     if gamepadError then
         return nil, gamepadError
     end
-    if endIndex <= #tokens then
+
+    local elementAppearance =
+    {
+        keyboard = {},
+        gamepad = {},
+    }
+    local resourceBarGroup =
+    {
+        enabled = false,
+        healthWidth = HT.RESOURCE_BAR_GROUP_DEFAULT_WIDTH or 474,
+        preventExpand = false,
+    }
+
+    if formatVersion == HT.HUDT_FORMAT_VERSION_V1 then
+        if endIndex <= #tokens then
+            return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING)
+        end
+        return {
+            keyboardElements = keyboardElements,
+            gamepadElements = gamepadElements,
+            elementAppearance = elementAppearance,
+            resourceBarGroup = resourceBarGroup,
+        }, nil
+    end
+
+    if tokens[endIndex] ~= "A" then
+        return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA)
+    end
+    local keyboardAppearance, appearanceIndex, keyboardAppearanceError = DecodeAppearanceMap(tokens, endIndex + 1)
+    if keyboardAppearanceError then
+        return nil, keyboardAppearanceError
+    end
+    local gamepadAppearance, resourceIndex, gamepadAppearanceError = DecodeAppearanceMap(tokens, appearanceIndex)
+    if gamepadAppearanceError then
+        return nil, gamepadAppearanceError
+    end
+    if tokens[resourceIndex] ~= "R" then
+        return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA)
+    end
+    local enabledToken = tokens[resourceIndex + 1]
+    local widthToken = tokens[resourceIndex + 2]
+    if enabledToken == nil or widthToken == nil then
+        return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED)
+    end
+    local healthWidth = tonumber(widthToken)
+    if healthWidth == nil or (enabledToken ~= "0" and enabledToken ~= "1") then
+        return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER)
+    end
+    local preventExpand = false
+    local trailingIndex = resourceIndex + 3
+    if formatVersion == HT.HUDT_FORMAT_VERSION then
+        local preventExpandToken = tokens[resourceIndex + 3]
+        if preventExpandToken == nil then
+            return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED)
+        end
+        if preventExpandToken ~= "0" and preventExpandToken ~= "1" then
+            return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER)
+        end
+        preventExpand = preventExpandToken == "1"
+        trailingIndex = resourceIndex + 4
+    end
+    if trailingIndex <= #tokens then
         return nil, GetString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING)
     end
 
     return {
         keyboardElements = keyboardElements,
         gamepadElements = gamepadElements,
+        elementAppearance =
+        {
+            keyboard = keyboardAppearance,
+            gamepad = gamepadAppearance,
+        },
+        resourceBarGroup =
+        {
+            enabled = enabledToken == "1",
+            healthWidth = healthWidth,
+            preventExpand = preventExpand,
+        },
     }, nil
 end

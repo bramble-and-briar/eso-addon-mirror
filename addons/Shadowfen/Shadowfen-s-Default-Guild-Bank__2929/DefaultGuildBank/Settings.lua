@@ -8,9 +8,9 @@ local function makePanelData(_name, _author, _version, _slash)
 	local panelData = {
 	   type = "panel",
 	   name = _name,
-	   displayName = SF.GetIconized(_name, color.gold),
-	   author = SF.GetIconized(_author, color.purple),
-	   version = SF.GetIconized(_version, color.gold),
+	   displayName = SF.colors.gold(_name),
+	   author = SF.colors.purple(_author),
+	   version = SF.colors.gold(_version),
 	   slashCommand = _slash,
 	   registerForRefresh = true,
 	}
@@ -26,7 +26,26 @@ local accountwide_section = {
 	}
 
 
--- settings page
+--[[ SGB.RegisterSettings
+
+    Creates and registers the LibAddonMenu2 settings panel for DefaultGuildBank.
+
+    Builds the complete settings UI including the account-wide toggle,
+    guild bank selection dropdown, and auto-enable checkbox. This function
+    integrates with LAM2 (LibAddonMenu2) to present configuration options
+    in the ESO Addons menu, allowing users to enable/disable the addon
+    and choose which guild bank to use as their default.
+
+    The settings panel is registered during onAddonLoaded(), before the
+    player character is active. This is safe because settings callbacks
+    only manipulate saved variables and do not depend on player inventory
+    or guild membership state.
+
+    @return nil
+        No value is returned. Side effects are LAM panel registration and
+        option control binding via LAM:RegisterAddonPanel() and
+        LAM:RegisterOptionControls().
+--]]
 function SGB.RegisterSettings()
 
 	if LAM == nil then return end

@@ -5,7 +5,7 @@ local DEBUG_MODE 			= true
 QUESTTRACKER_DEBUG_TABLE 	= {}
 
 local ADDON_NAME	= "RavaloxsQuestTracker"
-local VERSION_CODE	= "3.8.3.2"
+local VERSION_CODE	= "3.8.3.3"
 
 local CONSTRAINT_WIDTH = 100
 local CONSTRAINT_HEIGHT = 60
@@ -317,7 +317,9 @@ local function OnInterfaceSettingChanged(eventCode, system, settingId)
 		end
 -- V3.8.2.3 Calamath NOTE : Use FOCUSED_QUEST_TRACKER instead to avoid nil reference errors. And the UpdateVisibility method has no arguments.
 --       ZO_FocusedQuestTracker:UpdateVisibility (false, newValue)
-		FOCUSED_QUEST_TRACKER:UpdateVisibility()
+-- V3.8.3.3 Calamath NOTE : The method name was adjusted as part of the refactoring of the vanilla quest tracker in Update51.
+--		FOCUSED_QUEST_TRACKER:UpdateVisibility()
+		FOCUSED_QUEST_TRACKER:Update()
 	elseif settingId == UI_SETTING_AUTOMATIC_QUEST_TRACKING then
 		local newValue = GetSetting_Bool(SETTING_TYPE_UI, UI_SETTING_AUTOMATIC_QUEST_TRACKING)
 		if QUESTTRACKER_AUTOMATICTRACKADDEDQUEST then

@@ -19,8 +19,9 @@ end
 function M.register(name, event_code, handler)
     EM:RegisterForEvent(name, event_code, function(...)
         local ok, err = pcall(handler, ...)
-        if not ok and BGMeter.Log then
-            BGMeter.Log.error("handler '%s' failed: %s", name, tostring(err))
+        if not ok then
+            if BGMeter.Log then BGMeter.Log.error("handler '%s' failed: %s", name, tostring(err)) end
+            if BGMeter.Validate then BGMeter.Validate.fail("handler." .. name, err) end
         end
     end)
 end
@@ -36,8 +37,9 @@ end
 function M.register_update(name, interval_ms, handler)
     EM:RegisterForUpdate(name, interval_ms, function(...)
         local ok, err = pcall(handler, ...)
-        if not ok and BGMeter.Log then
-            BGMeter.Log.error("update '%s' failed: %s", name, tostring(err))
+        if not ok then
+            if BGMeter.Log then BGMeter.Log.error("update '%s' failed: %s", name, tostring(err)) end
+            if BGMeter.Validate then BGMeter.Validate.fail("update." .. name, err) end
         end
     end)
 end

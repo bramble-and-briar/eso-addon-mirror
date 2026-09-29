@@ -12,7 +12,7 @@ if SW == nil then SW = {} end
 
 -- The AddOn name
 SW.name = "SheathWeapon"
-SW.version = "3.23"
+SW.version = "3.24"
 
 SW.settings = {}                          
 

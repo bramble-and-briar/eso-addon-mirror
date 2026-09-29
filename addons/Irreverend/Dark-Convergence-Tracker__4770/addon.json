@@ -18,7 +18,7 @@
     "DarkConvergenceTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4770/",
-  "fingerprint": "096576d4dc44eb01abbcc6b7f9d82217ac65db0dd3e8aec4007c305d0e5cb264",
+  "fingerprint": "0c45b9bb870e973ded0990b192a4c5a569d75e41b5d2f4a2305cdcd4f2043202",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16980.png",
     "https://cdn-eso.mmoui.com/preview/pvw16978.png",
@@ -30,11 +30,11 @@
   "source_id": "4770",
   "source_url": "https://www.esoui.com/downloads/info4770-DarkConvergenceTracker.html",
   "stats": {
-    "downloads": 37,
+    "downloads": 124,
     "favorites": 1,
-    "monthly_downloads": 36
+    "monthly_downloads": 53
   },
   "title": "Dark Convergence Tracker",
-  "updated_at": 1787095304000,
-  "version": "1.0.1"
+  "updated_at": 1790566243000,
+  "version": "1.0.2"
 }

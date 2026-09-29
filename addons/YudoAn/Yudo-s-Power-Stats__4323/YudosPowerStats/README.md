@@ -2,7 +2,7 @@
 
 **Author:** YudoAn
 **License:** Artistic-2.0
-**Version:** 1.6.1
+**Version:** 1.6.2
 
 ## Description
 Yudo's Power Stats is a utility addon for The Elder Scrolls Online that displays and tracks your vital combat metrics in real-time.

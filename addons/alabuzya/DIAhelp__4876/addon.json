@@ -18,7 +18,7 @@
     "DIAhelp"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4876/",
-  "fingerprint": "f8092bc01736cf677a74784b90a833fc028b6957a4bf6d4bbfe07ac56ecabc36",
+  "fingerprint": "a7781fa0dea1e8d489dbcb117bd43ebccfac4eed6484d9ddfd9cbe06c516937f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17561.png",
     "https://cdn-eso.mmoui.com/preview/pvw17562.png",
@@ -30,11 +30,11 @@
   "source_id": "4876",
   "source_url": "https://www.esoui.com/downloads/info4876-DIAhelp.html",
   "stats": {
-    "downloads": 3,
-    "favorites": 2,
-    "monthly_downloads": 3
+    "downloads": 26,
+    "favorites": 1,
+    "monthly_downloads": 22
   },
   "title": "DIAhelp",
-  "updated_at": 1790424353000,
-  "version": "1.0.4"
+  "updated_at": 1790610384000,
+  "version": "1.0.5"
 }

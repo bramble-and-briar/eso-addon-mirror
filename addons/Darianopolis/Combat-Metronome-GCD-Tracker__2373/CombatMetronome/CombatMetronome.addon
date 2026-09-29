@@ -1,11 +1,11 @@
 ## Title: |ce11212C|rombat |ce11212M|retronome
 ## Description: The All-in-one Combat Timing bar. Track your heavy swings, ability cooldowns and cast/channels all in one bar to help you perfect your rotation timing and take advantage of abilty queuing with live latency information.
 ## Author: Darianopolis, |c2a52beb|rarny
-## Version: 1.7.6
-## AddOnVersion: 010706
-## APIVersion: 101050
+## Version: 1.7.7
+## AddOnVersion: 010707
+## APIVersion: 101051
 ## SavedVariables: CombatMetronomeSavedVars
-## DependsOn: LibAddonMenu-2.0>=43 libAddonKeybinds>=6 DariansUtilities>=10805 LibChatMessage>=120 LibNotification>=15
+## DependsOn: LibAddonMenu-2.0>=43 libAddonKeybinds>=6 DariansUtilities>=10807 LibChatMessage>=120 LibNotification>=15
 ## OptionalDependsOn: LibSetDetection>=5
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax

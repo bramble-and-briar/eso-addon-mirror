@@ -549,12 +549,24 @@ end
 
 -- populate the entriesByName and entriesByBag lists in the cache from the saved.bags table
 function AutoCat.cacheBagInitialize()
-	-- initialize the bag-based lookups
-    ZO_ClearTable(cache.entriesByName)
-    ZO_ClearTable(cache.entriesByBag)
-    ZO_ClearTable(cache.entriesByShowBag)
+	-- initialize the bag-based lookup tables
+	if not cache.entriesByName then
+		cache.entriesByName = {}
+	else
+    	ZO_ClearTable(cache.entriesByName)
+	end
+	if not cache.entriesByBag then
+		cache.entriesByBag = {}
+	else
+    	ZO_ClearTable(cache.entriesByBag)
+	end
+	if not cache.entriesByShowBag then
+		cache.entriesByShowBag = {}
+	else
+    	ZO_ClearTable(cache.entriesByShowBag)
+	end
 
-	-- fill the bag-based lookups
+	-- fill the bag-based lookup tables
     -- load in the bagged rules (sorted by runpriority high-to-low) into the dropdown
     AutoCategory.foreachBag(AutoCat.cacheInitBag)
 end
@@ -569,7 +581,6 @@ function AutoCat.cacheInitialize()
     AutoCat.cacheRuleInitialize()
     AutoCat.cacheBagInitialize()
 end
-
 
 -- find and return the rule referenced by name
 function AutoCat.GetRuleByName(name)

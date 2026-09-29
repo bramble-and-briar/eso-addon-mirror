@@ -20,7 +20,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [EasyTravel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/EasyTravel__1454) | sirinsidiator | PC / Mac | 1.9.7 |
 | [EB-Pixart Live Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EB-Pixart/EB-Pixart-Live-Stats__4479) | EB-Pixart | PC / Mac | Version 1.0.4.1 |
 | [Echoes of Lore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/Echoes-of-Lore__2228) | Echomap | PC / Mac | 0.0.1 |
-| [EchoExperience](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/EchoExperience__2071) | Echomap | PC / Mac | 0.0.62 |
+| [EchoExperience](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/EchoExperience__2071) | Echomap | PC / Mac | 0.0.63 |
 | [Effective Damage](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/harog/Effective-Damage__3975) | harog | PC / Mac | 1.5 |
 | [Eidetic Memory Of Item](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Eidetic-Memory-Of-Item__1854) | 2ch | PC / Mac | 4.7 |
 | [EisherzGuildIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SamoAquila/EisherzGuildIcons__4495) | SamoAquila | PC / Mac | 1.0.2 |
@@ -77,7 +77,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO-Database.com Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Export-AddOn__916) | Keldor | PC / Mac | 4.6.18 |
 | [ESO-Database.com Game Data Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Game-Data-Export-AddOn__2687) | Keldor | PC / Mac | 1.0.24 |
 | [ESO-Database.com Leaderboard Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Leaderboard-Export-AddOn__3438) | Keldor | PC / Mac | 1.0.13 |
-| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.09.28.02.54 |
+| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.09.28.14.12 |
 | [ESO-Skillfactory.com Build Export](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Skillfactory.com-Build-Export__2899) | Keldor | PC / Mac | 1.2.12 |
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |
@@ -98,7 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [EsoRP - Communicative roleplay addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Connor/EsoRP---Communicative-roleplay-addon__1957) | Connor | PC / Mac | Alpha 5.2.6 |
 | [EsoSets - Set Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Swizz/EsoSets---Set-Search__1999) | Dr_Swizz | PC / Mac | 1.6 |
 | [esoTestAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/esoTestAddon__e60b762b-efc6-4d5b-bfc6-d9b02453c067) | codeWarrior82 | Console | — |
-| [EsoTH - Thai Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bagheera9/EsoTH---Thai-Localization__4057) | Bagheera9 | PC / Mac | 0.14.2 |
+| [EsoTH - Thai Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bagheera9/EsoTH---Thai-Localization__4057) | Bagheera9 | PC / Mac | 0.15 |
 | [ESOTheater](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Halja/ESOTheater__59) | Halja | PC / Mac | 0.4.8 |
 | [ESOTR_TEST_MODUL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/ESOTR_TEST_MODUL__cbc2e748-501a-4137-8faa-cabf349da2d7) | XANTOSTR | Console | — |
 | [EsoUA — Ukrainian Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w2unemdhysend/EsoUA-Ukrainian-Localization__3437) | w2unemdhysend | PC / Mac | 1.07 |

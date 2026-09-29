@@ -39,6 +39,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Importers for Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Importers-for-Master-Merchant-3.0__3334) | Sharlikran | PC / Mac | 1.03 |
 | [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.6 |
 | [Improved Achievement Categories](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Achievement-Categories__3114) | MrPikPik | PC / Mac | 1.0.4 |
+| [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__11036cca-172c-4428-83fe-301cb496b33e) | code65536 | Console | — |
+| [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.0.0 |
 | [Improved Companion Rapport Information](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Companion-Rapport-Information__3103) | code65536 | PC / Mac | 1.0.0 |
 | [Improved Death Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Improved-Death-Recap__1319) | Solinur | PC / Mac | 1.0.2 |
 | [Improved Golden Pursuit Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Golden-Pursuit-Filters__4005) | MrPikPik | PC / Mac | 1.5.1 |

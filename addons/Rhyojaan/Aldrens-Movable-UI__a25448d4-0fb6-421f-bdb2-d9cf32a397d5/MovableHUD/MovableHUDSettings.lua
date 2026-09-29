@@ -40,9 +40,28 @@ local function AddSection(panel, library, targetKey, title, supportsDimensions)
         label = title,
     })
 
+    local native = MH.nativeTargets[targetKey]
+    if native and native.unavailable then
+        panel:AddSetting({type = library.ST_LABEL, label = native.unavailable})
+        return
+    end
+
     panel:AddSetting({
         type = library.ST_CHECKBOX,
-        label = "Enable position and size override",
+        label = "Preview this element",
+        tooltip = "This box also appears automatically when enabling its mover or adjusting its sliders. Hidden elements use their last observed bounds or a labeled sample, not an exact native-position prediction. Leaving this page ends the preview.",
+        default = false,
+        getFunction = function() return MH:IsElementPreviewEnabled(targetKey) end,
+        setFunction = function(value)
+            MH:SetElementPreviewEnabled(targetKey, value)
+            -- Let the settings library retain controller focus and update its row.
+            -- Reselecting this panel from the checkbox callback can navigate back.
+        end,
+    })
+
+    panel:AddSetting({
+        type = library.ST_CHECKBOX,
+        label = "Enable override (native movers start OFF)",
         tooltip = "When disabled, ESO's original placement is restored for this HUD element.",
         getFunction = function()
             local settings = GetSettings(targetKey)
@@ -51,7 +70,7 @@ local function AddSection(panel, library, targetKey, title, supportsDimensions)
         setFunction = function(value)
             MH:SetElementEnabled(targetKey, value)
         end,
-        default = true,
+        default = not MH.nativeTargets[targetKey],
     })
 
     local function IsDisabled()
@@ -141,6 +160,7 @@ local function AddSection(panel, library, targetKey, title, supportsDimensions)
         })
     end
 
+    if not MH.nativeTargets[targetKey] then
     panel:AddSetting({
         type = library.ST_SLIDER,
         label = "Scale",
@@ -162,6 +182,8 @@ local function AddSection(panel, library, targetKey, title, supportsDimensions)
         disable = IsDisabled,
         default = 100,
     })
+
+    end
 
     panel:AddSetting({
         type = library.ST_BUTTON,
@@ -197,10 +219,11 @@ function MH:RegisterSettingsPanel()
     end
 
     self.settingsPanel = panel
+    self:InstallPreviewVisibilityTracking()
 
     panel:AddSetting({
         type = library.ST_LABEL,
-        label = "Move and resize supported HUD elements here. Changes apply immediately and are saved account-wide. Live outlines now follow the actual UI controls.",
+        label = "Existing settings are preserved. Native movers start OFF and use X/Y offsets from ESO placement. Reset disables a native mover. Hidden or unavailable elements wait until ESO creates and shows them. Native scaling is intentionally unavailable.",
         tooltip = "The native settings screen captures controller focus, so its buttons will not activate gameplay actions.",
     })
 
@@ -217,9 +240,14 @@ function MH:RegisterSettingsPanel()
         default = true,
     })
 
+    self:AddColorSettings(panel, library)
+
     AddSection(panel, library, "chat", "Chat Box", true)
     AddSection(panel, library, "quest", "Quest Tracker", true)
     AddSection(panel, library, "group", "Group & Companion Frames", false)
+    for _, key in ipairs(self.nativeOrder) do
+        AddSection(panel, library, key, self:GetTargetName(key), false)
+    end
 
     panel:AddSetting({
         type = library.ST_SECTION,
@@ -229,7 +257,7 @@ function MH:RegisterSettingsPanel()
     panel:AddSetting({
         type = library.ST_BUTTON,
         label = "Restore every supported HUD element",
-        tooltip = "Restores chat, quest, group, and solo companion placement together.",
+        tooltip = "Restores existing movers and disables all native movers, returning their anchors to ESO.",
         buttonText = "Reset All",
         clickHandler = function()
             MH:ResetAll()
@@ -244,3 +272,4 @@ function MH:RegisterSettingsPanel()
 
     return true
 end
+

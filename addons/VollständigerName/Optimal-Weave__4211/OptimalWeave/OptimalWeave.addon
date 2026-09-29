@@ -1,7 +1,7 @@
 ## Title: |c6D6D6DOp|r|c8A8A8Atim|r|cA7A7A7al |r|cC4C4C4Wea|r|c6D6D6Dve|r
-## Version: 1.17.0
-## APIVersion: 101050
-## AddOnVersion: 1170
+## Version: 1.18.0
+## APIVersion: 101051
+## AddOnVersion: 1180
 ## Author: |c8A2BE2Orollas|r & |cEBD03CVollständigerName|r
 ## Description: Optimal Weave is a Weave helper that makes timing between Light Attacks and abilities more reliable. It uses a skill block system to stop abilities from firing when a Light Attack is still missing, which helps prevent early or repeated casts.
 ## SavedVariables: OptimalWeaveSV

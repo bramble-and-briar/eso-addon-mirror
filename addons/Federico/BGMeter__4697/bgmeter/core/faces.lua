@@ -53,7 +53,12 @@ function Faces.count_kills(L, killfeed)
     return n
 end
 
+Faces._rev = 0
+
+function Faces.rev() return Faces._rev end
+
 function Faces.record(match)
+    Faces._rev = Faces._rev + 1
     local L = ledger()
     if not L or not match or not match.battle then return 0 end
     local mine = match.localTeam
@@ -133,6 +138,7 @@ function Faces.list(filter, limit)
 end
 
 function Faces.forget()
+    Faces._rev = Faces._rev + 1
     local data = sv()
     if not data then return 0 end
     local n = Faces.count()
@@ -166,6 +172,7 @@ function Faces.brief(e)
 end
 
 function Faces.backfill_kills()
+    Faces._rev = Faces._rev + 1
     local data = sv()
     if not data or data.faces_kills_seeded then return 0 end
     data.faces_kills_seeded = true
@@ -181,6 +188,7 @@ function Faces.backfill_kills()
 end
 
 function Faces.backfill()
+    Faces._rev = Faces._rev + 1
     local data = sv()
     if not data or data.faces_seeded then return 0 end
     data.faces_seeded = true

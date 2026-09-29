@@ -156,9 +156,9 @@ function rChat_Internals.formatTag(entry, ndx)
         tag = guild_number .. "-" .. tag
     end
 
-    local link_tag
+    local link_tag = ""
     if tag then
-        link_tag = ZO_LinkHandler_CreateLink(tag, nil, CHANNEL_LINK_TYPE, entry.channel)
+        link_tag = ZO_LinkHandler_CreateLink(tag, nil, CHANNEL_LINK_TYPE, entry.channel) or ""
         tag = "["..tag.."] "
         link_tag = link_tag .. " "
     end

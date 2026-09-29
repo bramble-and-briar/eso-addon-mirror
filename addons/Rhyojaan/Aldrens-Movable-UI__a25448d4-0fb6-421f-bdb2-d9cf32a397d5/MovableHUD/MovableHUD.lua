@@ -4,7 +4,7 @@ local SAVED_VARIABLES_VERSION = 1
 
 local MH = {
     name = ADDON_NAME,
-    version = "2.2.4",
+    version = "2.4.11",
     runtime = {},
     targetOrder = { "chat", "quest", "group" },
 }
@@ -262,14 +262,17 @@ function MH:CaptureControlState(targetKey, control)
     if control.GetNumAnchors and control.GetAnchor then
         local numAnchors = control:GetNumAnchors() or 0
         for anchorIndex = 0, numAnchors - 1 do
-            local point, relativeTo, relativePoint, offsetX, offsetY = control:GetAnchor(anchorIndex)
+            local valid, point, relativeTo, relativePoint, offsetX, offsetY, constraints = control:GetAnchor(anchorIndex)
+            if valid then
             state.anchors[#state.anchors + 1] = {
                 point = point,
                 relativeTo = relativeTo,
                 relativePoint = relativePoint,
                 offsetX = offsetX,
                 offsetY = offsetY,
+                constraints = constraints,
             }
+            end
         end
     end
 
@@ -292,7 +295,8 @@ function MH:RestoreControlState(targetKey, control)
                 anchor.relativeTo,
                 anchor.relativePoint,
                 anchor.offsetX,
-                anchor.offsetY
+                anchor.offsetY,
+                anchor.constraints
             )
         end
     else
@@ -701,7 +705,7 @@ function MH:CreatePreviewControl(targetKey)
     root:SetClampedToScreen(false)
     root:SetDrawTier(DT_HIGH)
     root:SetDrawLayer(DL_OVERLAY)
-    root:SetDrawLevel(1)
+    root:SetDrawLevel(10000)
     root:SetHidden(true)
 
     local fill = WINDOW_MANAGER:CreateControl(controlName .. "Fill", root, CT_TEXTURE)
@@ -734,7 +738,9 @@ function MH:CreatePreviewControl(targetKey)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     label:SetColor(1, 1, 1, 1)
     label:SetText(self:GetTargetName(targetKey) .. " Preview")
+    root.movableHUDPreviewLabel = label
 
+    root.movableHUDColorParts = { fill = fill, borders = borders }
     self.previewControls[targetKey] = root
     return root
 end
@@ -815,38 +821,40 @@ function MH:GetGroupPreviewGeometry()
     return nil
 end
 
-function MH:IsSettingsPanelVisible()
-    if not self.saved or self.saved.previewEnabled == false then
-        return false
+function MH:InstallPreviewVisibilityTracking()
+    if self.previewVisibilityInstalled then return end
+    self.previewVisibilityInstalled = true
+    if CALLBACK_MANAGER then
+        CALLBACK_MANAGER:RegisterCallback("LibHarvensAddonSettings_AddonSelected", function(_, panel)
+            MH.previewPanelOwner = panel
+            if panel ~= MH.settingsPanel then
+                MH:ClearElementPreview()
+            end
+        end)
     end
-
-    local panel = self.settingsPanel
-    if not panel or not panel.selected then
-        return false
-    end
-
-    -- Some versions of LibHarvens/LibVotans keep the panel object selected for
-    -- a frame while switching pages. Reject it when a known panel container is
-    -- hidden so previews do not leak into a neighboring settings section.
-    local panelControl = panel.control or panel.container or panel.scroll
-    local panelControlType = type(panelControl)
-    if (panelControlType == "table" or panelControlType == "userdata")
-        and panelControl.IsHidden and panelControl:IsHidden() then
-        return false
-    end
-
-    if GAMEPAD_OPTIONS_ROOT_SCENE and GAMEPAD_OPTIONS_ROOT_SCENE.GetState then
-        local state = GAMEPAD_OPTIONS_ROOT_SCENE:GetState()
-        return state == SCENE_SHOWING or state == SCENE_SHOWN
-    end
-
-    if SCENE_MANAGER and SCENE_MANAGER.IsShowing then
-        return SCENE_MANAGER:IsShowing("gamepad_options_root")
-    end
-
-    return false
 end
 
+function MH:IsSettingsPanelVisible(ignorePreviewPreference)
+    if not self.saved or (not ignorePreviewPreference and self.saved.previewEnabled == false) then return false end
+    local library = LibHarvensAddonSettings
+    local scene = library and library.scene
+    -- Console owns a dedicated scene. General options visibility and the library's
+    -- sticky panel.selected flag do not establish ownership of the displayed page.
+    if not scene or not scene.GetState then return false end
+    if self.previewTrackedScene ~= scene then
+        self.previewTrackedScene = scene
+        if scene.RegisterCallback then
+            scene:RegisterCallback("StateChange", function(_, state)
+                if state ~= SCENE_SHOWING and state ~= SCENE_SHOWN then
+                    MH:ClearElementPreview()
+                end
+            end)
+        end
+    end
+    if self.previewPanelOwner ~= self.settingsPanel or not self.settingsPanel then return false end
+    local state = scene:GetState()
+    return state == SCENE_SHOWING or state == SCENE_SHOWN
+end
 function MH:HidePreviews()
     for _, control in pairs(self.previewControls or {}) do
         control:SetHidden(true)
@@ -896,8 +904,8 @@ function MH:SetPreviewEnabled(enabled)
 end
 
 function MH:InstallHooks()
-    if GamepadChatContainer and GamepadChatContainer.LoadSettings then
-        ZO_PostHook(GamepadChatContainer, "LoadSettings", function(container)
+    if SecurePostHook and GamepadChatContainer and GamepadChatContainer.LoadSettings then
+        SecurePostHook(GamepadChatContainer, "LoadSettings", function(container)
             if GAMEPAD_CHAT_SYSTEM and container == GAMEPAD_CHAT_SYSTEM.primaryContainer then
                 MH:ApplySoon(0, "chat")
             end
@@ -910,8 +918,8 @@ function MH:InstallHooks()
         end)
     end
 
-    if ZO_UnitFrames_Manager and ZO_UnitFrames_Manager.CreateFrame then
-        ZO_PostHook(ZO_UnitFrames_Manager, "CreateFrame", function(manager, unitTag)
+    if SecurePostHook and ZO_UnitFrames_Manager and ZO_UnitFrames_Manager.CreateFrame then
+        SecurePostHook(ZO_UnitFrames_Manager, "CreateFrame", function(manager, unitTag)
             -- CreateFrame also reanchors an existing frame. Forget its old native
             -- snapshot so the next apply uses the current small-group/raid layout.
             local frameObject = manager and manager.GetFrame and manager:GetFrame(unitTag)
@@ -1023,4 +1031,13 @@ local function OnAddOnLoaded(_, addonName)
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
+
+
+
+
+
+
+
+
+
 

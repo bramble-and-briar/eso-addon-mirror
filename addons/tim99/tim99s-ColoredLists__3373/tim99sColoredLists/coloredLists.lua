@@ -263,16 +263,16 @@ local function OnPlayerActivated()
 		SecurePostHook(ACHIEVEMENTS, "OnDeferredInitialize", function()
 			--Unterbäume
 			if tcl.svChar.doAchievements then
-				SecurePostHook(ACHIEVEMENTS.categoryTree.templateInfo.ZO_TreeLabelSubCategory, "setupFunction",	function(node, control, data, open, userRequested, enabled)
+				SecurePostHook(ACHIEVEMENTS.categoryTree.templateInfo.ZO_Achievements_SubCategory, "setupFunction",	function(node, control, data, open, userRequested, enabled)
 					tcl.AchievementSetupFunction(node, control, data, open, userRequested, enabled)
 				end)
 			end
 			--Header mit Childs und ohne Childs
 			if tcl.svChar.doAchievHeader then
-				SecurePostHook(ACHIEVEMENTS.categoryTree.templateInfo.ZO_IconHeader, "setupFunction", function(node, control, data, open, userRequested, enabled)
+				SecurePostHook(ACHIEVEMENTS.categoryTree.templateInfo.ZO_Achievements_StatusIconHeader, "setupFunction", function(node, control, data, open, userRequested, enabled)
 					tcl.ColorAchievementHeader(control, data)
 				end)
-				SecurePostHook(ACHIEVEMENTS.categoryTree.templateInfo.ZO_IconChildlessHeader, "setupFunction", function(node, control, data, open, userRequested, enabled)
+				SecurePostHook(ACHIEVEMENTS.categoryTree.templateInfo.ZO_Achievements_StatusIconChildlessHeader, "setupFunction", function(node, control, data, open, userRequested, enabled)
 					tcl.ColorAchievementHeader(control, data)
 				end)
 			end

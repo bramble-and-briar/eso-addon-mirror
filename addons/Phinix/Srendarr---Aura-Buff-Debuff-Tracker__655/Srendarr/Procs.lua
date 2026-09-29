@@ -44,7 +44,7 @@ function Srendarr:ProcAnimationStart(slot, silent, reset)
 end
 
 function Srendarr:ProcAnimationStop(slot)
-    if (animsEnabled and procAnims[slot] and procAnims[slot].isPlaying) then
+    if (procAnims[slot] and procAnims[slot].isPlaying) then
         procAnims[slot].isPlaying = false
         procAnims[slot].loopTexture:SetHidden(true)
         procAnims[slot].loop:Stop()
@@ -76,12 +76,30 @@ end
 -- ------------------------
 -- PROC INIT & CONFIG
 -- ------------------------
+function Srendarr:HideGrimActivationHighlight(button)
+    if self.db.grimProcAnims then return end
+    if not button or not button.activationHighlight then return end
+
+    local slot = button:GetSlot()
+    local hotbarCategory = button:GetHotbarCategory()
+    local abilityID = self.GetSlotBoundAbilityId(slot, hotbarCategory)
+    if not self.grimBar[abilityID] then return end
+
+    local highlight = button.activationHighlight
+    highlight:SetHidden(true)
+    local anim = highlight.animation
+    if anim then
+        anim:GetTimeline():Stop()
+    end
+end
+
 function Srendarr:ConfigureProcs()
     animsEnabled = self.db.procEnableAnims
     procSound = LMP:Fetch('sound', self.db.procPlaySound)
 
-    if (not animsEnabled) then -- ensure animations are hidden if not using
+    if (not animsEnabled) then -- hide animations if not using
         for slot = 3, 7 do
+            procAnims[slot].isPlaying = false
             procAnims[slot].loopTexture:SetHidden(true)
             procAnims[slot].loop:Stop()
         end
@@ -110,6 +128,10 @@ function Srendarr:InitializeProcs()
         procAnims[slot].loop = ANIMATION_MANAGER:CreateTimelineFromVirtual('UltimateReadyLoop', ctrl)
         procAnims[slot].loop:SetHandler('OnStop', function ()
             procAnims[slot].loopTexture:SetHidden(true)
+        end)
+
+        SecurePostHook(button, 'UpdateActivationHighlight', function (actionButton)
+            Srendarr:HideGrimActivationHighlight(actionButton)
         end)
     end
 

@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.QuestTracker = {}
 -- Original DIAhelp quest list. Public journal API; no third-party code.
 local root,viewport,settings,ru
 local controls={}
@@ -88,11 +90,9 @@ Render=function()
     viewport:SetHeight(math.max(24,math.min(HEIGHT,y)))
     root:SetHeight(math.max(24,math.min(HEIGHT,y))+32)
 end
-EVENT_MANAGER:RegisterForEvent('DIAhelpQuestTracker',EVENT_ADD_ON_LOADED,function(_,name)
-    if name~='DIAhelp' then return end
-    EVENT_MANAGER:UnregisterForEvent('DIAhelpQuestTracker',EVENT_ADD_ON_LOADED)
+function DIAhelp.QuestTracker.Initialize()
     ru=GetCVar('language.2')=='ru'
-    settings=ZO_SavedVars:NewAccountWide('DIAhelpSavedVariables',1,'questTracker',{collapsed={}})
+    settings=DIAhelp.SavedVariables.Account('questTracker',{collapsed={}})
     root=WINDOW_MANAGER:CreateTopLevelWindow('DIAhelpQuestTracker')
     root:SetDimensions(WIDTH+8,HEIGHT+32)
     root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or GuiRoot:GetWidth()-WIDTH-16,settings.y or 398)
@@ -120,4 +120,4 @@ EVENT_MANAGER:RegisterForEvent('DIAhelpQuestTracker',EVENT_ADD_ON_LOADED,functio
         HideNative()
     end)
     Render() HideNative()
-end)
+end

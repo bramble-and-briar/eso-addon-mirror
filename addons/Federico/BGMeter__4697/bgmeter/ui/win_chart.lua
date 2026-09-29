@@ -445,12 +445,6 @@ function SEC.race(b, race, smooth, tl, n, tspan, w, race_h, race_off)
         end
     end
     for _, team in ipairs(race.teams) do
-        local py = py_of(smooth[team])
-        if b.lines_ok then
-            polyline(b, b.race_line_pool, b.race_pool, b.race, px, py, count, S.team_color(team), 5, K.ALPHA.race_halo)
-        end
-    end
-    for _, team in ipairs(race.teams) do
         polyline(b, b.race_line_pool, b.race_pool, b.race, px, py_of(smooth[team]), count, S.team_color(team), 2, 0.9)
     end
     if race.mine and smooth.mine then
@@ -569,15 +563,38 @@ local function stop_color(st)
     return K.COLOR.accent
 end
 
-local function exp_paint(blk, icon, mineE, otherE, key, avgKey, room)
+local function exp_layout(blk, three)
+    if blk._three == three then return end
+    blk._three = three
+    local right = blk.right
+    local function put(ctl, x, y, h)
+        ctl:ClearAnchors()
+        ctl:SetAnchor(TOPRIGHT, blk.parent, TOPRIGHT, x, y)
+        if h then ctl:SetHeight(h) end
+    end
+    if three then
+        put(blk.barM, -(right + 50), 16, 4); blk.fillM:SetHeight(4); put(blk.valM, -right, 12, 11)
+        put(blk.barO, -(right + 50), 27, 4); blk.fillO:SetHeight(4); put(blk.valO, -right, 23, 11)
+    else
+        put(blk.barM, -(right + 50), 22, 5); blk.fillM:SetHeight(5); put(blk.valM, -right, 18, 12)
+        put(blk.barO, -(right + 50), 36, 5); blk.fillO:SetHeight(5); put(blk.valO, -right, 32, 12)
+    end
+end
+
+local function exp_paint(blk, icon, mineE, otherE, thirdE, key, avgKey, room)
     local mv = mineE and mineE[key] or 0
     local ov = otherE and otherE[key] or 0
-    local top = math.max(mv, ov)
+    local tv = thirdE and thirdE[key] or 0
+    local top = math.max(mv, ov, tv)
     if top <= 0 or not room then
         for _, c in ipairs(blk.all) do c:SetHidden(true) end
+        for _, c in ipairs(blk.three) do c:SetHidden(true) end
         return nil
     end
+    local three = thirdE ~= nil
+    exp_layout(blk, three)
     for _, c in ipairs(blk.all) do c:SetHidden(false) end
+    for _, c in ipairs(blk.three) do c:SetHidden(not three) end
     if icon then blk.icon:SetTexture(icon) else blk.icon:SetHidden(true) end
     local mc = mineE and S.team_color(mineE.team) or K.COLOR.text_dim
     local oc = otherE and S.team_color(otherE.team) or K.COLOR.text_dim
@@ -592,8 +609,16 @@ local function exp_paint(blk, icon, mineE, otherE, key, avgKey, room)
     end
     blk.valM:SetText(txt(mineE, mv))
     blk.valO:SetText(txt(otherE, ov))
-    local cov = (otherE and otherE.seen < otherE.n) and string.format(" (%d/%d)", otherE.seen, otherE.n) or ""
-    return string.format("|c%s%s|r vs |c%s%s|r%s", hexc(mc), F.commas(mv), hexc(oc), F.commas(ov), cov)
+    local function cov_of(e) return (e and e.seen < e.n) and string.format(" (%d/%d)", e.seen, e.n) or "" end
+    local line = string.format("|c%s%s|r vs |c%s%s|r%s", hexc(mc), F.commas(mv), hexc(oc), F.commas(ov), cov_of(otherE))
+    if three then
+        local tc = S.team_color(thirdE.team)
+        blk.fillT:SetWidth(math.floor(44 * tv / top + 0.5))
+        P.set_rect_color(blk.fillT, { tc[1], tc[2], tc[3], 0.8 })
+        blk.valT:SetText(txt(thirdE, tv))
+        line = line .. string.format(" vs |c%s%s|r%s", hexc(tc), F.commas(tv), cov_of(thirdE))
+    end
+    return line
 end
 
 function SEC.balance(b, bal, sur, bal_h, bal_off, ex)
@@ -627,8 +652,8 @@ function SEC.balance(b, bal, sur, bal_h, bal_off, ex)
     local free = (b.bal:GetWidth() or 0) - b.balLeftW - 8
     local roomOne = free >= b.balAva.width + 6
     local roomTwo = free >= 2 * b.balAva.width + 14
-    local vetLine = exp_paint(b.balVet, vetIcon, ex and ex.mine, ex and ex.other, "vet", "vetAvg", roomTwo)
-    local avaLine = exp_paint(b.balAva, avaIcon, ex and ex.mine, ex and ex.other, "ava", "avaAvg", roomOne)
+    local vetLine = exp_paint(b.balVet, vetIcon, ex and ex.mine, ex and ex.other, ex and ex.third, "vet", "vetAvg", roomTwo)
+    local avaLine = exp_paint(b.balAva, avaIcon, ex and ex.mine, ex and ex.other, ex and ex.third, "ava", "avaAvg", roomOne)
     local dim = hexc(K.COLOR.text_dim)
     local lines = {
         string.format("|c%sBALANCE %d|r", hexc(bc), bal.score),

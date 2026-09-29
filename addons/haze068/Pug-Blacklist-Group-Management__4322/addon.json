@@ -1,0 +1,46 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/haze068/Pug-Blacklist-Group-Management__4322",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "haze068",
+  "canonical_id": "esoui:4322",
+  "category_id": "55",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4322",
+  "deleted": false,
+  "directories": [
+    "PugBlacklist"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4322/",
+  "fingerprint": "8f8e0e38fb836ae10fb60f936e3a1d80c0e5057530bc8c845e7ab326dcd7a0e7",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17613.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17606.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17607.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17612.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17609.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17610.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17611.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17608.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4322",
+  "source_url": "https://www.esoui.com/downloads/info4322-PugBlacklistGroupManagement.html",
+  "stats": {
+    "downloads": 372,
+    "favorites": 0,
+    "monthly_downloads": 14
+  },
+  "title": "Pug Blacklist (Group Management)",
+  "updated_at": 1790671130000,
+  "version": "5"
+}

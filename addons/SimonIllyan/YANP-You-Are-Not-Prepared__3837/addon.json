@@ -1,22 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/SimonIllyan/YANP-You-Are-Not-Prepared__3837",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "SimonIllyan",
   "canonical_id": "esoui:3837",
   "category_id": "45",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
-    },
-    {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3837",
@@ -25,7 +18,7 @@
     "YANP"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3837/",
-  "fingerprint": "92c1d1d4b87e2c5a238604340b86a3b5e968e93f76dc50d034ce9d15b183d86a",
+  "fingerprint": "66673afaf3ce2547ddaac8e1f9f7a425f272c0522931171a8abad2cbe477e4e2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13037.jpg"
   ],
@@ -35,11 +28,11 @@
   "source_id": "3837",
   "source_url": "https://www.esoui.com/downloads/info3837-YANPYouAreNotPrepared.html",
   "stats": {
-    "downloads": 3035,
+    "downloads": 3090,
     "favorites": 3,
-    "monthly_downloads": 23
+    "monthly_downloads": 35
   },
   "title": "YANP (You Are Not Prepared)",
-  "updated_at": 1780917275000,
-  "version": "1.12"
+  "updated_at": 1790586534000,
+  "version": "1.13"
 }

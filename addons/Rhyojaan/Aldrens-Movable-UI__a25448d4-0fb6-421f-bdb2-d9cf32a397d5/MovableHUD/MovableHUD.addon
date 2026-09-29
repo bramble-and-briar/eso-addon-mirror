@@ -1,11 +1,25 @@
 ## Title: Movable HUD
-## APIVersion: 101050
-## Version: 2.2.4
-## AddOnVersion: 20204
+## APIVersion: 101050 101051
+## Version: 2.4.11
+## AddOnVersion: 20411
 ## Author: Rhyojaan
-## Description: Moves and resizes chat, quests, group frames, and the solo companion frame with saved controller-friendly settings.
+## Description: Console HUD customization: preserves existing movers and adds 54 opt-in native HUD position controls, outline RGB and 12 optional HUD color groups.
 ## SavedVariables: MovableHUDSavedVariables
 ## DependsOn: LibHarvensAddonSettings
 
 MovableHUD.lua
+MovableHUDRegistry.lua
+MovableHUDNative.lua
+MovableHUDColors.lua
+MovableHUDQuest.lua
+MovableHUDPreview.lua
 MovableHUDSettings.lua
+
+
+
+
+
+
+
+
+

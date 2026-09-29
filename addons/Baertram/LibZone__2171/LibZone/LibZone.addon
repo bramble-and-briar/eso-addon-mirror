@@ -1,9 +1,9 @@
 ﻿## Title: LibZone
 ## Description: Collects and provides zone information from the available zones/subzones ingame. Fixes for geographical zone parents
 ## Author: Baertram
-## AddOnVersion: 0900
-## Version: 9.00
-## APIVersion: 101050 101051
+## AddOnVersion: 0901
+## Version: 9.01
+## APIVersion: 101051 101052
 ## SavedVariables: LibZone_SV_Data LibZone_Localized_SV_Data LibZone_GeoDebug_SV_Data LibZone_Debug_SV_Data
 ## OptionalDependsOn: LibSlashCommander
 ## IsLibrary: true
@@ -14,7 +14,7 @@
 LibZone_Constants.lua
 
 ##Optional: If library LibSlashCommander is loaded: Chat auto completion for zone names
-LibZone_AutoCompletion.lua
+PC/LibZone_AutoCompletion.lua
 
 ##LibZone API functions
 LibZone.lua

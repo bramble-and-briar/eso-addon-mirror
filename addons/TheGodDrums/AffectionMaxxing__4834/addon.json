@@ -10,10 +10,6 @@
     {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:4834",
@@ -22,7 +18,7 @@
     "AffectionMaxxing"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4834/",
-  "fingerprint": "04a13ffea2c2a0824b3ca624ce83b76769febe6e342242de6a80d0c858b0810c",
+  "fingerprint": "498c8164d33a9ab2063e559f12cfa4d57be439df84f797533aa96b82231ec73e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17359.png"
   ],
@@ -32,11 +28,11 @@
   "source_id": "4834",
   "source_url": "https://www.esoui.com/downloads/info4834-AffectionMaxxing.html",
   "stats": {
-    "downloads": 24,
-    "favorites": 2,
-    "monthly_downloads": 9
+    "downloads": 93,
+    "favorites": 3,
+    "monthly_downloads": 88
   },
   "title": "AffectionMaxxing",
-  "updated_at": 1789332177000,
-  "version": "1.0.3"
+  "updated_at": 1790614498000,
+  "version": "1.0.4"
 }

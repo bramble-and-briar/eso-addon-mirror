@@ -1,8 +1,8 @@
 ## Title: Gilded UI
 ## Description: Something.
-## Version: 0.2.33
+## Version: 0.2.46
 ## Author: Fluazinam
-## APIVersion: 101050
+## APIVersion: 101050 101051
 ## SavedVariables: GildedUISV
 
 ## ConsoleDependsOn: LibConsoleMenu>=1

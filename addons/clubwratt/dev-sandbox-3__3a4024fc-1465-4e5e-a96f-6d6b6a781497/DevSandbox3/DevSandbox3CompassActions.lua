@@ -1,8 +1,8 @@
--- DevSandbox3CompassActions.lua: HarvestMap-style detection via the engine's hidden HARVEST_NODE compass pins.
+-- DevSandbox3CompassActions.lua: HarvestMap-style detection via the engine's hidden compass pins.
 --
--- Once DevSandbox3Compass.xml declares the HARVEST_NODE compass pin type, the client creates an (invisible)
--- compass pin for every resource node within 200 m. When the player faces one, the compass reports its
--- description and distance from the player, which is enough to place it in the world.
+-- DevSandbox3Compass.xml declares five compass pin categories the stock UI leaves undeclared. Once declared,
+-- the client creates an (invisible) compass pin for every such object within 200 m and, when the player faces
+-- one, reports its description and distance, which is enough to place it in the world.
 
 local CompassActions = {}
 
@@ -14,6 +14,10 @@ local UPDATE_NAME = DevSandbox3.name .. "_CompassPoll"
 
 CompassActions.pinsInRange = 0
 CompassActions.pinsInRangeByType = {}
+-- Totals since login, so /ds3 scan can answer "has a VENDOR pin EVER fired?" even when none is in range now.
+CompassActions.sessionAddedByType = {}
+-- Distinct centred descriptions per type since login (for /ds3 scan; capped).
+CompassActions.seenNamesByType = {}
 CompassActions.lastLoggedAt = {}
 CompassActions.lastRecordedKey = nil
 CompassActions.cameraControl = nil
@@ -25,24 +29,23 @@ local function IsTypeActive(pinType)
     return CompassUtils.IsProbeType(pinType) and DevSandbox3.state.savedVars.settings.probeAllTypes == true
 end
 
----@param control table
----@return integer|nil pinType
-local function PinTypeOfControl(control)
-    local ok, drawLevel = pcall(function() return control:GetDrawLevel() end)
-    if not ok then return nil end
-    return CompassUtils.PinTypeFromDrawLevel(drawLevel)
-end
-
 ---@return string
 local function DescribeInRange()
-    local parts = {}
-    for pinType, count in pairs(CompassActions.pinsInRangeByType) do
-        if count > 0 then
-            parts[#parts + 1] = string.format("%s x%d", CompassUtils.PinTypeName(pinType), count)
-        end
+    return CompassUtils.DescribeCounts(CompassActions.pinsInRangeByType)
+end
+
+---@param pinType integer
+---@param description string
+local function RememberSeenName(pinType, description)
+    local seen = CompassActions.seenNamesByType[pinType]
+    if not seen then
+        seen = { list = {}, set = {} }
+        CompassActions.seenNamesByType[pinType] = seen
     end
-    table.sort(parts)
-    return #parts > 0 and table.concat(parts, ", ") or "none"
+    if not seen.set[description] and #seen.list < CompassUtils.MAX_SEEN_NAMES_PER_TYPE then
+        seen.set[description] = true
+        seen.list[#seen.list + 1] = description
+    end
 end
 
 ---@return number forwardX
@@ -54,7 +57,7 @@ local function GetCameraForward()
     return forwardX, forwardZ
 end
 
----Resolve a centered harvest pin into a zone-normalized position.
+---Resolve a centered pin into a zone-normalized position.
 ---@param distanceCm number
 ---@return integer zoneId
 ---@return number nx
@@ -67,7 +70,7 @@ local function ResolveCenteredPinPosition(distanceCm)
     return zoneId, nx, ny
 end
 
----Poll the compass for harvest pins the player is currently facing.
+---Poll the compass for pins the player is currently facing.
 local function PollCenteredPins()
     if CompassActions.pinsInRange <= 0 then
         return
@@ -80,8 +83,14 @@ local function PollCenteredPins()
     local now = GetTimeStamp()
     for i = 1, container:GetNumCenterOveredPins() do
         local description, pinType, distanceCm = container:GetCenterOveredPinInfo(i)
-        if IsTypeActive(pinType) and description and description ~= "" then
+        if not description or description == "" then
+            -- nothing to classify
+        elseif NodeUtils.IsWarTorteName(description) or IsTypeActive(pinType) then
+            -- A war torte name is definitive whatever compass category the engine filed it under.
             local typeName = CompassUtils.PinTypeName(pinType)
+            if CompassUtils.IsProbeType(pinType) then
+                RememberSeenName(pinType, description)
+            end
             if CompassUtils.ShouldDebugLog(CompassActions.lastLoggedAt, typeName .. "|" .. description, now) then
                 LogUtils.Debug("compass: [%s] %s @ %s (in range: %s)", typeName, description, CompassUtils.FormatDistance(distanceCm), DescribeInRange())
             end
@@ -106,7 +115,7 @@ local function PollCenteredPins()
                         if isCandidate then
                             LogUtils.Log("Unrecognized %s '%s' @ %s - saved as candidate (%d total). If it's nothing: /ds3 ignore %s", typeName, description, distanceText, #savedVars.nodes, description)
                         else
-                            LogUtils.Log("%s war torte recipe spawn via compass: %s @ %s (%d total)", isNew and "New" or "Known", description, distanceText, #savedVars.nodes)
+                            LogUtils.Log("%s war torte recipe spawn via compass (%s): %s @ %s (%d total)", isNew and "New" or "Known", typeName, description, distanceText, #savedVars.nodes)
                         end
                         DevSandbox3.AlertActions.Show(description, distanceText, isCandidate)
                     end
@@ -127,11 +136,13 @@ end
 
 ---XML callback: the engine added one of our probe compass pins (an object entered 200 m).
 ---@param control table
-function CompassActions.OnPinAdded(control)
+---@param typeName string|nil pin type name passed by the per-type animation in DevSandbox3Compass.xml
+function CompassActions.OnPinAdded(control, typeName)
     CompassActions.pinsInRange = CompassActions.pinsInRange + 1
-    local pinType = PinTypeOfControl(control)
+    local pinType = CompassUtils.PinTypeFromName(typeName)
     if pinType then
         CompassActions.pinsInRangeByType[pinType] = (CompassActions.pinsInRangeByType[pinType] or 0) + 1
+        CompassActions.sessionAddedByType[pinType] = (CompassActions.sessionAddedByType[pinType] or 0) + 1
     end
     if CompassActions.pinsInRange == 1 then
         StartPolling()
@@ -146,9 +157,10 @@ end
 
 ---XML callback: the engine removed one of our probe compass pins.
 ---@param control table
-function CompassActions.OnPinRemoved(control)
+---@param typeName string|nil
+function CompassActions.OnPinRemoved(control, typeName)
     CompassActions.pinsInRange = math.max(0, CompassActions.pinsInRange - 1)
-    local pinType = PinTypeOfControl(control)
+    local pinType = CompassUtils.PinTypeFromName(typeName)
     if pinType and CompassActions.pinsInRangeByType[pinType] then
         CompassActions.pinsInRangeByType[pinType] = math.max(0, CompassActions.pinsInRangeByType[pinType] - 1)
     end
@@ -157,11 +169,20 @@ function CompassActions.OnPinRemoved(control)
     end
 end
 
----Manual snapshot for /ds3 scan.
+---Manual snapshot for /ds3 scan: what's in range now, what has ever fired this session, and the names seen per type.
 function CompassActions.Scan()
     local container = ZO_CompassContainer
     local centered = container:GetNumCenterOveredPins()
-    LogUtils.Log("compass: %d probe pin(s) within 200m (%s), %d pin(s) centered%s", CompassActions.pinsInRange, DescribeInRange(), centered, DevSandbox3.state.savedVars.settings.probeAllTypes and "" or " [only HARVEST_NODE is acted on; enable 'Probe all compass pin types' to test the rest]")
+    local probing = DevSandbox3.state.savedVars.settings.probeAllTypes
+    LogUtils.Log("compass: %d probe pin(s) within 200m (%s), %d pin(s) centered%s", CompassActions.pinsInRange, DescribeInRange(), centered,
+        probing and "" or " [probe all types is OFF: only HARVEST_NODE + war torte names are acted on]")
+    LogUtils.Log("compass: pins added since login by type: %s", CompassUtils.DescribeCounts(CompassActions.sessionAddedByType))
+    for pinType, probe in pairs(CompassUtils.PROBE_TYPES) do
+        local seen = CompassActions.seenNamesByType[pinType]
+        if seen and #seen.list > 0 then
+            LogUtils.Log("  %s names seen: %s", probe.name, table.concat(seen.list, ", "))
+        end
+    end
     for i = 1, centered do
         local description, pinType, distanceCm = container:GetCenterOveredPinInfo(i)
         LogUtils.Log("  centered %d: [%s] '%s' @ %s", i, CompassUtils.PinTypeName(pinType), tostring(description), CompassUtils.FormatDistance(distanceCm or 0))
@@ -180,12 +201,12 @@ function CompassActions.Initialize()
 end
 
 -- Globals referenced from DevSandbox3Compass.xml
-function DevSandbox3_OnCompassPinAdded(control)
-    CompassActions.OnPinAdded(control)
+function DevSandbox3_OnCompassPinAdded(control, typeName)
+    CompassActions.OnPinAdded(control, typeName)
 end
 
-function DevSandbox3_OnCompassPinRemoved(control)
-    CompassActions.OnPinRemoved(control)
+function DevSandbox3_OnCompassPinRemoved(control, typeName)
+    CompassActions.OnPinRemoved(control, typeName)
 end
 
 DevSandbox3.CompassActions = CompassActions

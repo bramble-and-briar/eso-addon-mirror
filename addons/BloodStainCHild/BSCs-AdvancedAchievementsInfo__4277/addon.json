@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/BloodStainCHild/BSCs-AdvancedAchievementsInfo__4277",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "BloodStainCHild",
   "canonical_id": "esoui:4277",
   "category_id": "18",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -29,7 +34,7 @@
     "BSCs-AdvancedAchievementsInfo"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4277/",
-  "fingerprint": "4815868e3fd6b966e81f7496e9cb7c4b0ba91c744eeaa3afd054c25a2cc5e6dc",
+  "fingerprint": "ff4644dccc725804587228d07385784c929299aee436c898a0d0a203ef46c514",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14688.png",
     "https://cdn-eso.mmoui.com/preview/pvw14689.png",
@@ -45,11 +50,11 @@
   "source_id": "4277",
   "source_url": "https://www.esoui.com/downloads/info4277-BSCs-AdvancedAchievementsInfo.html",
   "stats": {
-    "downloads": 1125,
-    "favorites": 7,
-    "monthly_downloads": 86
+    "downloads": 1320,
+    "favorites": 8,
+    "monthly_downloads": 133
   },
   "title": "BSCs-AdvancedAchievementsInfo",
-  "updated_at": 1782428625000,
-  "version": "2.0.7"
+  "updated_at": 1790608921000,
+  "version": "2.0.9"
 }

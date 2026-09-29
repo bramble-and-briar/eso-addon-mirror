@@ -1617,6 +1617,7 @@ tbug._contextMenuLast.canEditValue =  canEditValue
                 local searchValuesAdded = {}
                 local searchSubmenu = {}
                 local keyStr = key
+                local keyStrType = type(keyStr)
                 if keyType == numberType then
                     keyStr = p_data.keyText
                     if keyStr == nil then
@@ -1756,6 +1757,9 @@ tbug._contextMenuLast.canEditValue =  canEditValue
 
                 --External search in ESOUI GitHub sources
                 local externalSearchSubmenu = {}
+                if keyStrType ~= "string" then
+                    keyStr = tostring(keyStr)
+                end
                 if keyStr ~= nil and keyStr ~= "" then
                     tins(externalSearchSubmenu,
                             {

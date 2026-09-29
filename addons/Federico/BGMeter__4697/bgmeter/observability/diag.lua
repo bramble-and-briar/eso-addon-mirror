@@ -8,42 +8,11 @@ local gcc = collectgarbage
 
 local STALL_MS = 1000
 
-local probes, plist = {}, {}
 local frame = { n = 0, ms = 0, max = 0, maxAt = 0, b8 = 0, b16 = 0, b25 = 0, b33 = 0, bx = 0, last = 0,
                 stalls = 0, stallMs = 0, stallMax = 0 }
 local heap = { cur = 0, min = math.huge, max = 0, alloc = 0, cycles = 0, last = 0 }
 local gp = { active = false, result = nil }
 local armedAt = 0
-
-local function probe(name)
-    local p = probes[name]
-    if not p then
-        p = { name = name, calls = 0, ms = 0, maxMs = 0, kb = 0, maxKb = 0, gc = 0 }
-        probes[name] = p
-        plist[#plist + 1] = p
-    end
-    return p
-end
-
-local function wrap_fn(fn, p)
-    return function(...)
-        local k0 = gcc("count")
-        local t0 = now()
-        local r1, r2, r3, r4 = fn(...)
-        local dt = now() - t0
-        local dk = gcc("count") - k0
-        p.calls = p.calls + 1
-        p.ms = p.ms + dt
-        if dt > p.maxMs then p.maxMs = dt end
-        if dk >= 0 then
-            p.kb = p.kb + dk
-            if dk > p.maxKb then p.maxKb = dk end
-        else
-            p.gc = p.gc + 1
-        end
-        return r1, r2, r3, r4
-    end
-end
 
 local function on_frame()
     local t = now()
@@ -103,6 +72,44 @@ local function on_heap()
     if kb > heap.max then heap.max = kb end
 end
 
+function Diag.probe_anchors(count)
+    if not Diag.on then return { "probe: dev build only" } end
+    local MapUI = BGMeter.UI and BGMeter.UI.map
+    if not (MapUI and MapUI.ensure_built) then return { "probe: map not available" } end
+    MapUI.ensure_built()
+    local c = MapUI.controls()
+    local pool = c and c.line_pool
+    if not pool then return { "probe: no line pool" } end
+    count = count or 100
+    local map = c.map
+    local lines, keys = {}, {}
+    for i = 1, count do
+        local ln, key = pool:acquire()
+        lines[i], keys[i] = ln, key
+    end
+    local L = {}
+    local function bench(label, fn)
+        local t0 = now()
+        for i = 1, count do fn(lines[i], i) end
+        local dt = now() - t0
+        L[#L + 1] = string.format("  %-34s %5d ms for %d  ·  %.2f ms each", label, dt, count, dt / count)
+    end
+    bench("ClearAnchors + 2 SetAnchor", function(ln, i)
+        ln:ClearAnchors()
+        ln:SetAnchor(TOPLEFT, map, TOPLEFT, i, i)
+        ln:SetAnchor(TOPRIGHT, map, TOPLEFT, i + 10, i + 3)
+    end)
+    bench("SetColor", function(ln) ln:SetColor(1, 0.9, 0.5, 1) end)
+    bench("SetThickness", function(ln) if ln.SetThickness then ln:SetThickness(3) end end)
+    bench("SetHidden(false)", function(ln) ln:SetHidden(false) end)
+    bench("SetHidden(true)", function(ln) ln:SetHidden(true) end)
+    bench("SetDrawLevel", function(ln) if ln.SetDrawLevel then ln:SetDrawLevel(4) end end)
+    for i = 1, count do pool:release(keys[i]) end
+    table.insert(L, 1, string.format("--- anchor probe  ·  %d map line controls ---", count))
+    for _, l in ipairs(L) do BGMeter.Log.say(l) end
+    return L
+end
+
 function Diag.gcprobe(sec)
     if not Diag.on then return end
     sec = sec or 10
@@ -115,10 +122,8 @@ function Diag.gcprobe(sec)
 end
 
 function Diag.reset()
-    for i = 1, #plist do
-        local p = plist[i]
-        p.calls, p.ms, p.maxMs, p.kb, p.maxKb, p.gc = 0, 0, 0, 0, 0, 0
-    end
+    BGMeter.Prof.reset()
+    BGMeter.Validate.reset()
     frame.n, frame.ms, frame.max, frame.maxAt = 0, 0, 0, 0
     frame.b8, frame.b16, frame.b25, frame.b33, frame.bx, frame.last = 0, 0, 0, 0, 0, 0
     frame.stalls, frame.stallMs, frame.stallMax = 0, 0, 0
@@ -161,20 +166,8 @@ function Diag.lines()
     if gp.result then add(gp.result) end
     if gp.active then add("gcprobe: RUNNING") end
 
-    local sorted = {}
-    for i = 1, #plist do sorted[i] = plist[i] end
-    table.sort(sorted, function(a, b) return a.kb > b.kb end)
-    add("probes (calls / alloc total / avg-per-call / WORST call / time total / worst ms / gc-during):")
-    local shown = 0
-    for i = 1, #sorted do
-        local p = sorted[i]
-        if p.calls > 0 then
-            shown = shown + 1
-            add("  %-24s %6d  %8.1f KB  %6.0f B  %7.1f KB  %5dms  %3dms  %d",
-                p.name, p.calls, p.kb, p.kb * 1024 / p.calls, p.maxKb, p.ms, p.maxMs, p.gc)
-        end
-    end
-    if shown == 0 then add("  (no probe has fired yet)") end
+    for _, l in ipairs(BGMeter.Prof.lines()) do L[#L + 1] = l end
+    for _, l in ipairs(BGMeter.Validate.lines()) do L[#L + 1] = l end
     return L
 end
 
@@ -185,44 +178,21 @@ function Diag.install()
     Diag.on = true
     armedAt = now()
 
+    local Prof = BGMeter.Prof
     local E = BGMeter.zenimax.events
     local reg, regu = E.register, E.register_update
     E.register = function(name, code, handler)
-        return reg(name, code, wrap_fn(handler, probe("ev:" .. name)))
+        return reg(name, code, Prof.wrap("ev:" .. name, handler))
     end
     E.register_update = function(name, ms, handler)
-        return regu(name, ms, wrap_fn(handler, probe("up:" .. name)))
+        return regu(name, ms, Prof.wrap("up:" .. name, handler))
     end
-
-    local W = BGMeter.UI and BGMeter.UI.window
-    if W then
-        local keys = { "render", "render_detail", "show_match" }
-        for i = 1, #keys do
-            local k = keys[i]
-            if type(W[k]) == "function" then W[k] = wrap_fn(W[k], probe("ui:" .. k)) end
-        end
-        if type(W._sections) == "table" then
-            for k, fn in pairs(W._sections) do
-                if type(fn) == "function" then
-                    W._sections[k] = wrap_fn(fn, probe("sec:" .. k))
-                end
-            end
-        end
-    end
-
-    local Cap = BGMeter.Capture
-    if Cap then
-        local keys = { "begin", "rescan", "read_battle", "finalize" }
-        for i = 1, #keys do
-            local k = keys[i]
-            if type(Cap[k]) == "function" then Cap[k] = wrap_fn(Cap[k], probe("cap:" .. k)) end
-        end
-    end
+    Prof.install()
 
     regu("BGMeterDiagFrame", 0, on_frame)
     regu("BGMeterDiagHeap", 1000, on_heap)
 
-    BGMeter.Log.debug("diag layer armed (frame + heap samplers, event/update/render/capture probes)")
+    BGMeter.Log.debug("diag layer armed (frame + heap samplers, profiler spans, validation layer)")
 end
 
 BGMeter.Diag = Diag

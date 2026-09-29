@@ -111,7 +111,131 @@ function UnchainedHelper.setupMenu()
             setFunc = function(value) UnchainedHelper.savedVars.showProgressCallouts = value end,
             default = UnchainedHelper.defaults.showProgressCallouts,
         },
+        {
+            type = "header",
+            name = "Wave spawn callout",
+        },
+        {
+            type = "checkbox",
+            name = "Show detailed spawn callout",
+            tooltip = "Briefly shows the enemies expected in each Blackrose wave.",
+            getFunc = function() return UnchainedHelper.savedVars.showSpawnCallout ~= false end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.showSpawnCallout = value
+                if not value and UnchainedHelper.HideSpawnCallout then UnchainedHelper.HideSpawnCallout() end
+            end,
+            default = UnchainedHelper.defaults.showSpawnCallout,
+        },
+        {
+            type = "slider",
+            name = "Spawn callout duration",
+            min = 2,
+            max = 8,
+            step = 1,
+            getFunc = function() return UnchainedHelper.savedVars.spawnCalloutDuration end,
+            setFunc = function(value) UnchainedHelper.savedVars.spawnCalloutDuration = value end,
+            default = UnchainedHelper.defaults.spawnCalloutDuration,
+        },
+        {
+            type = "slider",
+            name = "Spawn callout scale",
+            min = 70,
+            max = 140,
+            step = 5,
+            getFunc = function() return UnchainedHelper.savedVars.spawnCalloutScale end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.spawnCalloutScale = value
+                if UnchainedHelper.UpdateSpawnCalloutPosition then UnchainedHelper.UpdateSpawnCalloutPosition() end
+            end,
+            default = UnchainedHelper.defaults.spawnCalloutScale,
+        },
+        {
+            type = "slider",
+            name = "Spawn callout X position",
+            min = -1200,
+            max = 1200,
+            step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.spawnCalloutOffsetX end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.spawnCalloutOffsetX = value
+                if UnchainedHelper.UpdateSpawnCalloutPosition then UnchainedHelper.UpdateSpawnCalloutPosition() end
+            end,
+            default = UnchainedHelper.defaults.spawnCalloutOffsetX,
+        },
+        {
+            type = "slider",
+            name = "Spawn callout Y position",
+            min = -700,
+            max = 700,
+            step = 20,
+            getFunc = function() return UnchainedHelper.savedVars.spawnCalloutOffsetY end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.spawnCalloutOffsetY = value
+                if UnchainedHelper.UpdateSpawnCalloutPosition then UnchainedHelper.UpdateSpawnCalloutPosition() end
+            end,
+            default = UnchainedHelper.defaults.spawnCalloutOffsetY,
+        },
+        {
+            type = "checkbox",
+            name = "Show Totem Active alert",
+            tooltip = "Flashes TOTEM ACTIVE when Barrage of Stone is detected in Blackrose Prison.",
+            getFunc = function() return UnchainedHelper.savedVars.showTotemAlert ~= false end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.showTotemAlert = value
+                if value then
+                    if UnchainedHelper.IsInBlackrose and UnchainedHelper.IsInBlackrose() then UnchainedHelper.RegisterTotemDetector() end
+                else
+                    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
+                    if UnchainedHelper.HideTotemAlert then UnchainedHelper.HideTotemAlert() end
+                end
+            end,
+            default = UnchainedHelper.defaults.showTotemAlert,
+        },
+        {
+            type = "slider",
+            name = "Totem alert duration",
+            min = 1,
+            max = 6,
+            step = 1,
+            getFunc = function() return UnchainedHelper.savedVars.totemAlertDuration or 3 end,
+            setFunc = function(value) UnchainedHelper.savedVars.totemAlertDuration = value end,
+            default = UnchainedHelper.defaults.totemAlertDuration,
+        },
 
+        {
+            type = "checkbox",
+            name = "Stage 2 Poison Netch alert",
+            tooltip = "Warns when Poisonbloom from a Bull Netch affects your character during Stage 2.",
+            getFunc = function() return UnchainedHelper.savedVars.showNetchDangerAlert ~= false end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.showNetchDangerAlert = value
+                if value then
+                    if UnchainedHelper.UpdateNetchDangerDetector then UnchainedHelper.UpdateNetchDangerDetector() end
+                else
+                    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
+                    UnchainedHelper.netchDetectorRegistered = false
+                    if UnchainedHelper.HideNetchDangerAlert then UnchainedHelper.HideNetchDangerAlert() end
+                end
+            end,
+            default = UnchainedHelper.defaults.showNetchDangerAlert,
+        },
+        {
+            type = "checkbox",
+            name = "Poison Netch warning sound",
+            getFunc = function() return UnchainedHelper.savedVars.netchDangerSound ~= false end,
+            setFunc = function(value) UnchainedHelper.savedVars.netchDangerSound = value end,
+            default = UnchainedHelper.defaults.netchDangerSound,
+        },
+        {
+            type = "slider",
+            name = "Netch alert duration",
+            min = 1,
+            max = 5,
+            step = 1,
+            getFunc = function() return UnchainedHelper.savedVars.netchDangerDuration or 2 end,
+            setFunc = function(value) UnchainedHelper.savedVars.netchDangerDuration = value end,
+            default = UnchainedHelper.defaults.netchDangerDuration,
+        },
         {
             type = "header",
             name = "Markers",

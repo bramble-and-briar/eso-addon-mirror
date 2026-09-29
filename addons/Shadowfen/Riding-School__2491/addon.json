@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Shadowfen/Riding-School__2491",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Shadowfen",
   "canonical_id": "esoui:2491",
   "category_id": "159",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "RidingSchool"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2491/",
-  "fingerprint": "6f030882f3813f9c4bbfab1d61cc4eac01485b2e113128be42faba9cc4b5a299",
+  "fingerprint": "2e67b72a7138d913191b02d8ed09cabec314b8b376a81e963e05dbc56ad91e50",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8538.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw8537.jpg",
@@ -83,11 +88,11 @@
   "source_id": "2491",
   "source_url": "https://www.esoui.com/downloads/info2491-RidingSchool.html",
   "stats": {
-    "downloads": 17596,
-    "favorites": 34,
-    "monthly_downloads": 75
+    "downloads": 17731,
+    "favorites": 33,
+    "monthly_downloads": 65
   },
   "title": "Riding School",
-  "updated_at": 1781033448000,
-  "version": "1.4.21"
+  "updated_at": 1790620170000,
+  "version": "1.4.22"
 }

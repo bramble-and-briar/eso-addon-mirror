@@ -1,6 +1,5 @@
 local sf = string.format
 local zo_str = zo_strformat
-local MOTIF_KNOWLEDGE_SYNC_VERSION = 2 -- bump to force a re-sync of all characters' motif knowledge on next login
 
 local GAMEPAD_STYLE_1 = {
 	fontSize = 32,
@@ -327,7 +326,7 @@ end
 
 function TB_Object:Initialize()
 	self.ADDON_NAME = "TraitBuddy"
-	self.ADDON_VERSION = "9.11.2"
+	self.ADDON_VERSION = "9.6"
 	self.settings = {}
 	self.player_activated = false
 	self.characterId = 0
@@ -516,13 +515,6 @@ function TB_Object:StructureAndFix()
 						c.motifs[order] = c.motifs[order] or false
 					end
 				end
-				if id == self.characterId then
-					c.motifSyncVersion = c.motifSyncVersion or 0
-					if c.motifSyncVersion < MOTIF_KNOWLEDGE_SYNC_VERSION then
-						self:SyncMotifKnowledgeFromGame(c)
-						c.motifSyncVersion = MOTIF_KNOWLEDGE_SYNC_VERSION
-					end
-				end
 			end
 		end
 	end
@@ -554,15 +546,14 @@ function TB_Object:GetMotifKnowledgeForCharacter(characterId, itemStyleId, chapt
 		return false
 	end
 	
-	local server = GetWorldName()
 	local charIdStr = tostring(characterId)
-	
-	-- For non-chaptered motifs, we need to check chapter 1 specifically
-	-- because LCK stores them as "styleId + chapter 1 known" 
-	local chapterToCheck = hasChapters and chapter or 1
-	
-	-- Get knowledge status from LCK
-	local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, chapterToCheck, server, charIdStr)
+
+	local chapterToCheck = ITEM_STYLE_CHAPTER_ALL
+	if hasChapters then
+		chapterToCheck = TraitBuddy.data:GetChapterConstant(chapter) or ITEM_STYLE_CHAPTER_ALL
+	end
+
+	local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, chapterToCheck, nil, charIdStr)
 	
 	-- LCK returns one of these values:
 	-- LCK.KNOWLEDGE_KNOWN = 1 (known)
@@ -595,42 +586,13 @@ function TB_Object:UpdateMotifs()
 	end
 end
 
-function TB_Object:SyncMotifKnowledgeFromGame(c)
-    c = c or self:GetCharacter(self.characterId)
-    if not c then return end
-    local changed = false
-    for order, motif in pairs(TraitBuddy.data:GetMotifs()) do
-        if motif:HasChapters() then
-            c.motifs[order] = c.motifs[order] or {}
-            for chapter = 1, TraitBuddy.data:GetNumChapters() do
-                local known = motif:IsLoreBookChapterKnown(chapter)
-                if c.motifs[order][chapter] ~= known then
-                    c.motifs[order][chapter] = known
-                    changed = true
-                end
-            end
-        else
-            local known = IsSmithingStyleKnown(motif:ItemStyleId(), 1)
-            if c.motifs[order] ~= known then
-                c.motifs[order] = known
-                changed = true
-            end
-        end
-    end
-    if changed and self.ui and self.ui.motifs then
-        self.ui.motifs:UpdateUI()
-    end
-    return changed
-end
-
 function TB_Object:UpdateAllCharacterMotifsFromLCK()
 	if not LCK then
 		d("TraitBuddy: LibCharacterKnowledge not available - install LCK to track other characters")
 		return
 	end
 	
-	local server = GetWorldName()
-	local lckCharacters = LCK.GetCharacterList(server)
+	local lckCharacters = LCK.GetCharacterList(nil)
 	local numChapters = TraitBuddy.Data:GetNumChapters()
 	
 	d(sf("TraitBuddy: Syncing motif knowledge for %d characters from LCK...", #lckCharacters))
@@ -661,7 +623,8 @@ function TB_Object:UpdateAllCharacterMotifsFromLCK()
 							-- Chaptered motifs
 							tbChar.motifs[order] = tbChar.motifs[order] or {}
 							for chapter = 1, numChapters do
-								local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, chapter, server, lckChar.id)
+								local chapterConstant = TraitBuddy.data:GetChapterConstant(chapter)
+								local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, chapterConstant, nil, lckChar.id)
 								if knowledge == LCK.KNOWLEDGE_KNOWN then
 									tbChar.motifs[order][chapter] = true
 								elseif knowledge == LCK.KNOWLEDGE_UNKNOWN then
@@ -671,7 +634,7 @@ function TB_Object:UpdateAllCharacterMotifsFromLCK()
 							end
 						else
 							-- Non-chaptered motifs - check chapter 1
-							local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, 1, server, lckChar.id)
+							local knowledge = LCK.GetMotifKnowledgeForCharacter(itemStyleId, ITEM_STYLE_CHAPTER_ALL, nil, lckChar.id)
 							if knowledge == LCK.KNOWLEDGE_KNOWN then
 								tbChar.motifs[order] = true
 							elseif knowledge == LCK.KNOWLEDGE_UNKNOWN then
@@ -1351,11 +1314,6 @@ function TB_Object:OnLoaded(addonName)
 	SCENE_MANAGER:RegisterTopLevel(TB, false)
 	SLASH_COMMANDS["/tb"] = function(args) self.ui:Toggle() end
 	SLASH_COMMANDS["/traitbuddy"] = function(args) self.ui:Toggle() end
-	SLASH_COMMANDS["/tbfixmotifchapters"] = function()
-		local c = TraitBuddy:GetCharacter(TraitBuddy.characterId)
-		local changed = TraitBuddy:SyncMotifKnowledgeFromGame(c)
-		d(changed and "TraitBuddy: motif knowledge corrected for this character." or "TraitBuddy: no changes needed.")
-	end
 	
 	SLASH_COMMANDS["/tbchecksets"] = function()
 		d("=== LibSets Integration Check ===")

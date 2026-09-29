@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Dolgubon/LibLazyCrafting__1594",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Dolgubon",
   "canonical_id": "esoui:1594",
   "category_id": "53",
@@ -21,7 +22,7 @@
     "LibLazyCrafting"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1594/",
-  "fingerprint": "03df7f477095f4fe475127d29f0f5de6199a2993e653bd2acd2e5308ce447457",
+  "fingerprint": "7c926f269bf2989ee74f2d3ae7aca5b793cdc372358a1f0b87d783c8fde47c25",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -29,11 +30,11 @@
   "source_id": "1594",
   "source_url": "https://www.esoui.com/downloads/info1594-LibLazyCrafting.html",
   "stats": {
-    "downloads": 6618296,
-    "favorites": 1169,
-    "monthly_downloads": 30164
+    "downloads": 6667819,
+    "favorites": 1174,
+    "monthly_downloads": 27992
   },
   "title": "LibLazyCrafting",
-  "updated_at": 1782339388000,
-  "version": "4.041"
+  "updated_at": 1790567416000,
+  "version": "4.042"
 }

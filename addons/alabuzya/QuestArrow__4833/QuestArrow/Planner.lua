@@ -1,5 +1,6 @@
 -- Pure geometry: distances are fractions of map height, NOT metres.
 QuestArrow = QuestArrow or {}
+local QuestArrow = QuestArrow
 local P = {}
 QuestArrow.Planner = P
 

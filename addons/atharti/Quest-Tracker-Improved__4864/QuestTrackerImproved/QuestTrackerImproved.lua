@@ -4,28 +4,28 @@ local EM = EVENT_MANAGER
 
 QTI.name = "QuestTrackerImproved"
 
-QTI.ENTRY_TYPE_SUBCATEGORY_CONDITION = 4
+local ENTRY_TYPE_SUBCATEGORY_CONDITION = 4
 
-QTI.ICON_QUEST = "/esoui/art/floatingmarkers/quest_icon_assisted.dds"
-QTI.ICON_ZONE_STORY = "/esoui/art/journal/gamepad/gp_questtypeicon_zonestory.dds"
-QTI.ICON_RAID = "esoui/art/icons/mapkey/mapkey_raiddungeon.dds"
-QTI.ICON_DUNGEON = "/esoui/art/loadingtips/loadingtip_soloinstance.dds"
-QTI.ICON_GROUP_DUNGEON = "esoui/art/icons/mapkey/mapkey_groupinstance.dds"
-QTI.ICON_GROUP_DELVE = "/esoui/art/journal/gamepad/gp_questtypeicon_groupdelve.dds"
-QTI.ICON_GROUP_AREA = "/esoui/art/journal/gamepad/gp_questtypeicon_grouparea.dds"
-QTI.ICON_PUBLIC_DUNGEON = "/esoui/art/zonestories/completiontypeicon_publicdungeon.dds"
-QTI.ICON_DELVE = "/esoui/art/journal/gamepad/gp_questtypeicon_delve.dds"
-QTI.ICON_ENDLESS_DUNGEON = "/esoui/art/journal/gamepad/gp_questtypeicon_endlessdungeon.dds"
-QTI.ICON_COMPANION = "/esoui/art/journal/gamepad/gp_questtypeicon_companion.dds"
-QTI.ICON_ADVENTURE_ZONE = "/esoui/art/journal/gamepad/gp_questtypeicon_adventurezone.dds"
-QTI.ICON_AVA = "/esoui/art/journal/gamepad/gp_questtypeicon_ava.dds"
-QTI.ICON_FAVOR = "/esoui/art/journal/gamepad/gp_questtypeicon_repeatable_favor.dds"
-QTI.ICON_BATTLEGROUND = "/esoui/art/battlegrounds/gamepad/gp_battlegrounds_tabicon_battlegrounds.dds"
-QTI.ICON_HOUSING = "/esoui/art/icons/mapkey/mapkey_housing.dds"
-QTI.ICON_CRAFTING = "/esoui/art/journal/gamepad/gp_questtypeicon_crafting.dds"
-QTI.ICON_TRIBUTE = "/esoui/art/tribute/gamepad/gp_tribute_tabicon_tribute.dds"
+local ICON_QUEST = "/esoui/art/floatingmarkers/quest_icon_assisted.dds"
+local ICON_ZONE_STORY = "/esoui/art/journal/gamepad/gp_questtypeicon_zonestory.dds"
+local ICON_RAID = "esoui/art/icons/mapkey/mapkey_raiddungeon.dds"
+local ICON_DUNGEON = "/esoui/art/loadingtips/loadingtip_soloinstance.dds"
+local ICON_GROUP_DUNGEON = "esoui/art/icons/mapkey/mapkey_groupinstance.dds"
+local ICON_GROUP_DELVE = "/esoui/art/journal/gamepad/gp_questtypeicon_groupdelve.dds"
+local ICON_GROUP_AREA = "/esoui/art/journal/gamepad/gp_questtypeicon_grouparea.dds"
+local ICON_PUBLIC_DUNGEON = "/esoui/art/zonestories/completiontypeicon_publicdungeon.dds"
+local ICON_DELVE = "/esoui/art/journal/gamepad/gp_questtypeicon_delve.dds"
+local ICON_ENDLESS_DUNGEON = "/esoui/art/journal/gamepad/gp_questtypeicon_endlessdungeon.dds"
+local ICON_COMPANION = "/esoui/art/journal/gamepad/gp_questtypeicon_companion.dds"
+local ICON_ADVENTURE_ZONE = "/esoui/art/journal/gamepad/gp_questtypeicon_adventurezone.dds"
+local ICON_AVA = "/esoui/art/journal/gamepad/gp_questtypeicon_ava.dds"
+local ICON_FAVOR = "/esoui/art/journal/gamepad/gp_questtypeicon_repeatable_favor.dds"
+local ICON_BATTLEGROUND = "/esoui/art/battlegrounds/gamepad/gp_battlegrounds_tabicon_battlegrounds.dds"
+local ICON_HOUSING = "/esoui/art/icons/mapkey/mapkey_housing.dds"
+local ICON_CRAFTING = "/esoui/art/journal/gamepad/gp_questtypeicon_crafting.dds"
+local ICON_TRIBUTE = "/esoui/art/tribute/gamepad/gp_tribute_tabicon_tribute.dds"
 
-QTI.REPEATABLE_COLOR = { r = 112/255, g = 180/255, b = 184/255, a = 1 }
+local REPEATABLE_COLOR = { r = 112/255, g = 180/255, b = 184/255, a = 1 }
 
 local TIMER_ICON = "|t24:24:esoui/art/miscellaneous/timer_32.dds|t"
 
@@ -66,7 +66,7 @@ function QTI.ApplyControlColor(control, color)
 end
 
 function QTI.ApplyConditionStyle(control)
-	if control.entryType == QTI.ENTRY_TYPE_SUBCATEGORY_CONDITION then
+	if control.entryType == ENTRY_TYPE_SUBCATEGORY_CONDITION then
 		control:SetFont(QTI.GetFont(QTI.SV.hintDescFont, QTI.SV.hintDescSize, QTI.SV.hintDescStyle))
 		QTI.ApplyControlColor(control, QTI.SV.hintDescColor)
 	else
@@ -77,47 +77,47 @@ end
 
 function QTI.GetQuestIconTexture(questType, zoneDisplayType)
 	if zoneDisplayType == ZONE_DISPLAY_TYPE_ZONE_STORY then
-		return QTI.ICON_ZONE_STORY
+		return ICON_ZONE_STORY
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_RAID then
-		return QTI.ICON_RAID
+		return ICON_RAID
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_GROUP_DUNGEON then
-		return QTI.ICON_GROUP_DUNGEON
+		return ICON_GROUP_DUNGEON
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_GROUP_DELVE then
-		return QTI.ICON_GROUP_DELVE
+		return ICON_GROUP_DELVE
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_GROUP_AREA then
-		return QTI.ICON_GROUP_AREA
+		return ICON_GROUP_AREA
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_PUBLIC_DUNGEON then
-		return QTI.ICON_PUBLIC_DUNGEON
+		return ICON_PUBLIC_DUNGEON
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_DELVE then
-		return QTI.ICON_DELVE
+		return ICON_DELVE
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_ENDLESS_DUNGEON then
-		return QTI.ICON_ENDLESS_DUNGEON
+		return ICON_ENDLESS_DUNGEON
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_COMPANION then
-		return QTI.ICON_COMPANION
+		return ICON_COMPANION
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_ADVENTURE_ZONE then
-		return QTI.ICON_ADVENTURE_ZONE
+		return ICON_ADVENTURE_ZONE
 	elseif zoneDisplayType == ZONE_DISPLAY_TYPE_HOUSING then
-		return QTI.ICON_HOUSING
+		return ICON_HOUSING
 
 	elseif questType == QUEST_TYPE_AVA or questType == QUEST_TYPE_AVA_GRAND or questType == QUEST_TYPE_AVA_GROUP then
-		return QTI.ICON_AVA
+		return ICON_AVA
 	elseif questType == QUEST_TYPE_UNDAUNTED_PLEDGE then
-		return QTI.ICON_GROUP_DUNGEON
+		return ICON_GROUP_DUNGEON
 	elseif questType == QUEST_TYPE_BATTLEGROUND then
-		return QTI.ICON_BATTLEGROUND
+		return ICON_BATTLEGROUND
 	elseif questType == QUEST_TYPE_DUNGEON then
-		return QTI.ICON_DUNGEON
+		return ICON_DUNGEON
 	elseif questType == QUEST_TYPE_FAVOR then
-		return QTI.ICON_FAVOR
+		return ICON_FAVOR
 	elseif questType == QUEST_TYPE_PROLOGUE then
-		return QTI.ICON_ZONE_STORY
+		return ICON_ZONE_STORY
 	elseif questType == QUEST_TYPE_CRAFTING then
-		return QTI.ICON_CRAFTING
+		return ICON_CRAFTING
 	elseif questType == QUEST_TYPE_TRIBUTE then
-        return QTI.ICON_TRIBUTE	
+		return ICON_TRIBUTE
 
 	else
-		return QTI.ICON_QUEST
+		return ICON_QUEST
 	end
 end
 
@@ -136,10 +136,10 @@ function QTI.ApplyHeaderIcon(questHeader)
 	local alignOffset = -((QTI.SV.iconSize - QTI.SV.headerSize) / 2)
 	icon:SetAnchor(TOPRIGHT, questHeader, TOPLEFT, -5, alignOffset + styleOffset + 2)
 
-	local isFavorIcon = (iconTexture == QTI.ICON_FAVOR)
+	local isFavorIcon = (iconTexture == ICON_FAVOR)
 
 	if not isFavorIcon and repeatableType ~= QUEST_REPEAT_NOT_REPEATABLE then
-		icon:SetColor(QTI.REPEATABLE_COLOR.r, QTI.REPEATABLE_COLOR.g, QTI.REPEATABLE_COLOR.b, QTI.REPEATABLE_COLOR.a)
+		icon:SetColor(REPEATABLE_COLOR.r, REPEATABLE_COLOR.g, REPEATABLE_COLOR.b, REPEATABLE_COLOR.a)
 	else
 		icon:SetColor(1, 1, 1, 1)
 	end
@@ -318,10 +318,10 @@ function QTI.OnAddOnLoaded(_, addOnName)
 	EM:RegisterForEvent(QTI.name, EVENT_QUEST_ADVANCED, function(_, questIndex)
 		FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
 	end)
-	
+
 	EM:RegisterForEvent(QTI.name, EVENT_QUEST_CONDITION_COUNTER_CHANGED, function(_, questIndex)
 		FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
-	end)	 
+	end)
 end
 
 EM:RegisterForEvent(QTI.name, EVENT_ADD_ON_LOADED, QTI.OnAddOnLoaded)

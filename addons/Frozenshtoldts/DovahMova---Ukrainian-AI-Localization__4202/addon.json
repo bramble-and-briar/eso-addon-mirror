@@ -40,7 +40,7 @@
     "gamedata"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4202/",
-  "fingerprint": "9f486b93ea1baa3ec88f010eaca1b33b35381b35596dbd364e30f25838a4bcd4",
+  "fingerprint": "be4fc822d0b4f31dd0e38754179ff56f46548683983f871bffa48df833b73f63",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14525.png",
     "https://cdn-eso.mmoui.com/preview/pvw14363.png",
@@ -56,11 +56,11 @@
   ],
   "omitted_files": [
     {
-      "bytes": 143461920,
+      "bytes": 144812934,
       "download_url": "https://www.esoui.com/downloads/dl4202/",
       "path": "gamedata/lang/ua.lang",
       "reason": "exceeds the mirror's 95 MiB per-file Git limit",
-      "sha256": "a69017fe835b021c5e798b6bfe3aef2788df09635d02ec55ba1120d7535ec8d3"
+      "sha256": "c35a862d792247a663adbb51853ad398951e4ada43170f3a5fc8e70c72e05c46"
     }
   ],
   "platform": "pc",
@@ -69,11 +69,11 @@
   "source_id": "4202",
   "source_url": "https://www.esoui.com/downloads/info4202-DovahMova-UkrainianAILocalization.html",
   "stats": {
-    "downloads": 3899,
-    "favorites": 13,
-    "monthly_downloads": 283
+    "downloads": 4090,
+    "favorites": 15,
+    "monthly_downloads": 133
   },
   "title": "DovahMova - Ukrainian AI Localization",
-  "updated_at": 1787629138000,
-  "version": "1.4.2"
+  "updated_at": 1790625401000,
+  "version": "1.5.0"
 }

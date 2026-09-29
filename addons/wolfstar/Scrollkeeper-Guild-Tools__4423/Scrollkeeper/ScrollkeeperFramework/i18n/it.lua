@@ -52,6 +52,7 @@ Scrollkeeper.Localization["ScrollkeeperColorThemes"] = {
   THEME_SKY = "Cielo",
   THEME_REGALIA = "Regalia",
   THEME_BRIAR = "Rovo",
+  THEME_JUNGLE = "Giungla",
   
   -- Status Messages
   STATUS_UNKNOWN = "Sconosciuto",

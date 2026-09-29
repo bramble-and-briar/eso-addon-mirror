@@ -3,7 +3,7 @@
 
 local ADDON_NAME = "BloodHungerTracker"
 local ADDON_VERSION = 1
-local ADDON_DISPLAY_VERSION = "1.0.4"
+local ADDON_DISPLAY_VERSION = "1.0.5"
 
 local BloodHungerTracker = {}
 local addon = BloodHungerTracker

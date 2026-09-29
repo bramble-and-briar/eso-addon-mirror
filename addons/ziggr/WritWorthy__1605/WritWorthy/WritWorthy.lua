@@ -53,7 +53,7 @@ local WW = WritWorthy
 local LAM2 = LibAddonMenu2
 
 WritWorthy.name = "WritWorthy"
-WritWorthy.version = "7.5.8"
+WritWorthy.version = "7.5.9"
 WritWorthy.savedVarVersion = 1
 
 WritWorthy.default = {
@@ -429,7 +429,7 @@ function WritWorthy:ScanInventoryForMasterWrits()
         local unique_id = WritWorthy.UniqueID(bag_id, slot_index)
         local llc_req = {}
         if parser.ToDolRequest then
-          llc_req = parser:ToDolRequest(unique_id)
+          llc_req = parser:ToDolRequest(unique_id) or {}
         end
         local inventory_data = {
           item_link = item_link,

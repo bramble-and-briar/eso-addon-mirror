@@ -12,6 +12,7 @@ local L = BGMeter.Constants.LAYOUT
 local F = BGMeter.Format
 local P = BGMeter.Plot.primitives
 local S = BGMeter.Plot.style
+local Prof = BGMeter.Prof
 local Prefs = BGMeter.Prefs
 local Sound = BGMeter.Sound
 local Scene = BGMeter.zenimax.scene
@@ -31,7 +32,7 @@ local PIP_ME = PIP_MATE
 local DOCK_SNAP = 48
 local FALLBACK_PIN = "EsoUI/Art/MapPins/battlegrounds_murderball_neutral.dds"
 local FALLBACK_AREA = "EsoUI/Art/MapPins/battlegrounds_capturePoint_pin_neutral.dds"
-local LV = { tile = 1, heat = 2, path = 3, mark = 4, hit = 5 }
+local LV = { tile = 1, heat = 2, halo = 3, path = 4, mark = 5, hit = 6 }
 
 local LAYERS = {
     { key = "map_path",   label = "Your path",  tip = "Where you went, up to this second" },
@@ -224,8 +225,11 @@ local function build()
     if probe then
         probe:SetHidden(true)
         c.line_pool = leveled_pool(function() return P.line(c.map, { 1, 1, 1, 1 }, 2) end, LV.path)
+        c.team_pool = leveled_pool(function() return P.line(c.map, { 1, 1, 1, 1 }, 2) end, LV.path)
     end
     c.icon_pool = leveled_pool(function() return P.icon(c.map, "") end, LV.mark)
+    c.heat_pool.label, c.dot_pool.label, c.icon_pool.label = "map.heat", "map.dots", "map.icons"
+    if c.line_pool then c.line_pool.label, c.team_pool.label = "map.path", "map.team" end
     c.hit_pool = BGMeter.Plot.pool.new(
         function()
             local h = BGMeter.zenimax.ui.create_control(nil, c.map, CT_CONTROL)
@@ -406,9 +410,9 @@ local function sz(base)
     return math.floor(base * k + 0.5)
 end
 
-local function polyline(xs, ys, n, color, thick, alpha)
+local function polyline(pool, xs, ys, n, color, thick, alpha)
     if n < 2 then return end
-    if not c.line_pool then
+    if not pool then
         for i = 1, n do
             local d = c.dot_pool:acquire()
             d:ClearAnchors()
@@ -420,7 +424,7 @@ local function polyline(xs, ys, n, color, thick, alpha)
         return
     end
     for i = 2, n do
-        local ln = c.line_pool:acquire()
+        local ln = pool:acquire()
         ln:ClearAnchors()
         ln:SetAnchor(TOPLEFT, c.map, TOPLEFT, xs[i - 1], ys[i - 1])
         ln:SetAnchor(TOPRIGHT, c.map, TOPLEFT, xs[i], ys[i])
@@ -444,7 +448,9 @@ end
 
 local SCR = { xs = {}, ys = {}, px = {}, py = {}, sx = {}, sy = {} }
 
-local function scaled(series, upto, smooth)
+local MAX_PATH_SEGMENTS = 1500
+
+local function scaled(series, upto, smooth, sub)
     local xs, ys = SCR.xs, SCR.ys
     local first = present_span(series, upto)
     if not first then return xs, ys, 0 end
@@ -456,7 +462,7 @@ local function scaled(series, upto, smooth)
     end
     local n = 0
     if smooth and m >= 3 then
-        local sx, sy, sn = BGMeter.Match.geo_spline(px, py, m, 3, SCR.sx, SCR.sy)
+        local sx, sy, sn = BGMeter.Match.geo_spline(px, py, m, sub or 3, SCR.sx, SCR.sy)
         for i = 1, sn do xs[i], ys[i] = mx(sx[i]), mx(sy[i]) end
         n = sn
     else
@@ -469,7 +475,7 @@ end
 local function release_all(keep_heat)
     if not keep_heat then c.heat_pool:release_all() end
     c.dot_pool:release_all()
-    if c.line_pool then c.line_pool:release_all() end
+    if c.team_pool then c.team_pool:release_all() end
     c.icon_pool:release_all()
     c.hit_pool:release_all()
 end
@@ -500,6 +506,119 @@ local function draw_heat(geo, m, mode)
     end
 end
 
+local function presized(n)
+    local t = {}
+    for i = 1, n do t[i] = 0 end
+    for i = n, 1, -1 do t[i] = nil end
+    return t
+end
+
+local PATH = { key = nil, xs = presized(MAX_PATH_SEGMENTS + 2), ys = presized(MAX_PATH_SEGMENTS + 2), cum = presized(1600),
+               total = 0, m = 0, sub = 1, line = presized(MAX_PATH_SEGMENTS + 2), shown = 0 }
+
+local function path_reset()
+    PATH.key, PATH.total, PATH.m, PATH.sub, PATH.shown = nil, 0, 0, 1, 0
+    for k = #PATH.line, 1, -1 do PATH.line[k] = nil end
+    if c.line_pool then c.line_pool:release_all() end
+end
+
+local function path_sub(count)
+    if count < 3 then return 1 end
+    local sub = math.floor(MAX_PATH_SEGMENTS / count)
+    if sub > 3 then sub = 3 end
+    if sub < 1 then sub = 1 end
+    return sub
+end
+
+local function path_prepare(geo, m)
+    local me = geo.me
+    local s = me or (geo.mine and geo.pos[geo.mine])
+    if not s then
+        path_reset()
+        return nil
+    end
+    local n = me and me.n or geo.n
+    local key = tostring(m) .. "|" .. tostring(m.capturedAt) .. "|" .. tostring(state.side) .. "|" .. (me and "me" or "pos")
+    if PATH.key == key then return s end
+    path_reset()
+    PATH.key = key
+    local smooth = me ~= nil
+    local cnt = 0
+    for i = 1, n do
+        local x, y = s.x[i] or 0, s.y[i] or 0
+        if x > 0 or y > 0 then cnt = cnt + 1 end
+        PATH.cum[i] = cnt
+    end
+    for i = n + 1, #PATH.cum do PATH.cum[i] = nil end
+    local sub = smooth and path_sub(cnt) or 1
+    local xs, ys, total = scaled(s, n, smooth, sub)
+    for i = 1, total do PATH.xs[i], PATH.ys[i] = xs[i], ys[i] end
+    for i = total + 1, #PATH.xs do PATH.xs[i], PATH.ys[i] = nil, nil end
+    PATH.total, PATH.m = total, cnt
+    PATH.sub = (smooth and cnt >= 3) and sub or 1
+    return s
+end
+
+local function path_segment(k)
+    local l = PATH.line[k]
+    if l then return l end
+    local x0, y0, x1, y1 = PATH.xs[k], PATH.ys[k], PATH.xs[k + 1], PATH.ys[k + 1]
+    l = c.line_pool:acquire()
+    if l.SetDrawLevel then l:SetDrawLevel(LV.path) end
+    l:ClearAnchors()
+    l:SetAnchor(TOPLEFT, c.map, TOPLEFT, x0, y0)
+    l:SetAnchor(TOPRIGHT, c.map, TOPLEFT, x1, y1)
+    l:SetColor(K.COLOR.you[1], K.COLOR.you[2], K.COLOR.you[3], 1)
+    if l.SetThickness then l:SetThickness(3) end
+    PATH.line[k] = l
+    return l
+end
+
+local PATH_STEP = 40
+local path_show
+local path_pending = false
+
+local function path_continue()
+    path_pending = false
+    if not built or c.win:IsHidden() or not state.geo or PATH.key == nil or PATH.upto == nil then return end
+    path_show(PATH.upto)
+end
+
+path_show = function(upto)
+    PATH.upto = upto
+    local mt = PATH.cum[upto] or 0
+    local pts
+    if mt <= 0 then pts = 0
+    elseif mt >= PATH.m then pts = PATH.total
+    else pts = (mt - 1) * PATH.sub + 1 end
+    local want = math.max(0, pts - 1)
+    if want > PATH.shown then
+        local made = 0
+        local k = PATH.shown + 1
+        while k <= want do
+            if not PATH.line[k] then
+                made = made + 1
+                if made > PATH_STEP then break end
+            end
+            path_segment(k):SetHidden(false)
+            k = k + 1
+        end
+        PATH.shown = k - 1
+        if k <= want and not path_pending then
+            path_pending = true
+            if type(zo_callLater) == "function" then zo_callLater(path_continue, 0) else path_continue() end
+        end
+        return
+    elseif want < PATH.shown then
+        for k = want + 1, PATH.shown do
+            PATH.line[k]:SetHidden(true)
+        end
+    end
+    PATH.shown = want
+end
+
+function M.path_step() return PATH_STEP end
+
 local function draw_paths(geo, m, idx, t)
     local mine = geo.mine
     if Prefs.get("map_team") then
@@ -507,22 +626,28 @@ local function draw_paths(geo, m, idx, t)
         for name, s in pairs(geo.pos) do
             if name ~= mine then
                 local xs, ys, n = scaled(s, idx, false)
-                polyline(xs, ys, n, tc, 1, 0.45)
+                polyline(c.team_pool, xs, ys, n, tc, 1, 0.45)
             end
         end
     end
-    if Prefs.get("map_path") then
-        local me = geo.me
-        local upto = me and BGMeter.Match.geo_index_of(me.t, me.n, t) or idx
+    if not Prefs.get("map_path") then
+        if PATH.shown > 0 then path_show(0) end
+        return
+    end
+    local me = geo.me
+    local upto = me and BGMeter.Match.geo_index_of(me.t, me.n, t) or idx
+    if not c.line_pool then
         local s = me or (mine and geo.pos[mine])
         if s then
             local xs, ys, n = scaled(s, upto, me ~= nil)
-            local tc = S.team_color(m.localTeam)
-            polyline(xs, ys, n, tc, 7, 0.40)
-            polyline(xs, ys, n, K.COLOR.you, 3, 1)
+            polyline(nil, xs, ys, n, K.COLOR.you, 3, 1)
         end
+        return
     end
+    if path_prepare(geo, m) then path_show(upto) end
 end
+
+function M.path_state() return PATH end
 
 local function draw_deaths(geo, m, t)
     for _, k in ipairs(m.killfeed or {}) do
@@ -689,6 +814,8 @@ function M.render()
     apply_tiles(m or {})
     if not state.geo then
         state.heatKey = nil
+        state.lastM = nil
+        path_reset()
         c.empty:SetHidden(false)
         set_text(c.sub, m and (m.name or "Battleground") or "")
         for _, l in ipairs(c.nowLines) do set_text(l, "") end
@@ -707,15 +834,45 @@ function M.render()
     c.slider:SetValue(state.t)
     state.applying = false
     local idx = BGMeter.Match.geo_index(geo, state.t)
+    state.lastIdx = idx
+    state.lastMeIdx = geo.me and BGMeter.Match.geo_index_of(geo.me.t, geo.me.n, state.t) or idx
+    state.lastM = m
     set_text(c.sub, string.format("%s  ·  %s", m.name or "Battleground", m.map and m.map.name or ""))
-    if hm ~= "off" and not keep_heat then draw_heat(geo, m, hm) end
+    if hm ~= "off" and not keep_heat then
+        Prof.enter("map:heat")
+        draw_heat(geo, m, hm)
+        Prof.exit("map:heat")
+    end
+    Prof.enter("map:paths")
     draw_paths(geo, m, idx, state.t)
+    Prof.exit("map:paths")
+    Prof.enter("map:marks")
     if Prefs.get("map_deaths") then draw_deaths(geo, m, state.t) end
     if Prefs.get("map_pins") then draw_pins(geo, idx) end
     draw_positions(geo, m, idx, state.t)
+    Prof.exit("map:marks")
     set_text(c.timeLabel, "t " .. F.duration(state.t))
     local lines = now_lines(m, geo, state.t)
     for i, l in ipairs(c.nowLines) do set_text(l, lines[i] or "") end
+end
+
+local function scrub_impl()
+    state.scrubQueued = false
+    if not built or c.win:IsHidden() or not state.geo then return end
+    local geo, m = state.geo, state.m
+    local idx = BGMeter.Match.geo_index(geo, state.t)
+    local meIdx = geo.me and BGMeter.Match.geo_index_of(geo.me.t, geo.me.n, state.t) or idx
+    if state.lastM == m and state.lastIdx == idx and state.lastMeIdx == meIdx then
+        set_text(c.timeLabel, "t " .. F.duration(state.t))
+        local lines = now_lines(m, geo, state.t)
+        for i, l in ipairs(c.nowLines) do set_text(l, lines[i] or "") end
+        return
+    end
+    M.render()
+end
+
+local function scrub_flush()
+    Prof.span("map:scrub", scrub_impl)
 end
 
 function M.set_time(t, from_chart, force)
@@ -729,7 +886,13 @@ function M.set_time(t, from_chart, force)
         c.slider:SetValue(t)
         state.applying = false
     end
-    M.render()
+    if force then
+        M.render()
+        return
+    end
+    if state.scrubQueued then return end
+    state.scrubQueued = true
+    if type(zo_callLater) == "function" then zo_callLater(scrub_flush, 0) else scrub_flush() end
 end
 
 function M.time() return state.t end
@@ -821,6 +984,8 @@ end
 
 function M.controls() return c end
 
+function M.ensure_built() build() end
+
 local MINI_TICK_MS = 100
 local MINI_LOOP_MS = 22000
 local MINI_NAME = "BGMeterMiniPlay"
@@ -852,6 +1017,9 @@ local function mini_build(parent)
         mini.line_pool = leveled_pool(function() return P.line(r, { 1, 1, 1, 1 }, 2) end, LV.path)
     end
     mini.icon_pool = leveled_pool(function() return P.icon(r, "") end, LV.mark)
+    mini.dot_pool.label, mini.icon_pool.label = "mini.dots", "mini.icons"
+    if mini.line_pool then mini.line_pool.label = "mini.path" end
+    mini.slots, mini.used, mini.next = {}, 0, 0
     mini.glow = P.rect(r, gold(0))
     mini.glow:SetAnchorFill(r)
     if mini.glow.SetDrawLevel then mini.glow:SetDrawLevel(LV.hit) end
@@ -928,12 +1096,24 @@ local function mini_prepare()
     mscratch.n, mscratch.drawn, mscratch.side, mscratch.geo = n, 0, mstate.side, geo
 end
 
+local function mini_slot()
+    local n = mini.next + 1
+    mini.next = n
+    local d = mini.slots[n]
+    if not d then
+        d = mini.icon_pool:acquire()
+        mini.slots[n] = d
+    end
+    d:SetHidden(false)
+    return d
+end
+
 local function mini_draw()
     local geo, m = mstate.geo, mstate.m
     if not geo then
-        mini.dot_pool:release_all()
         if mini.line_pool then mini.line_pool:release_all() end
-        mini.icon_pool:release_all()
+        for i = 1, mini.used do mini.slots[i]:SetHidden(true) end
+        mini.used = 0
         return
     end
     if mscratch.geo ~= geo or mscratch.side ~= mstate.side then mini_prepare() end
@@ -962,41 +1142,40 @@ local function mini_draw()
         end
     end
     if upto > mscratch.drawn then mscratch.drawn = upto end
-    mini.icon_pool:release_all()
-    mini.dot_pool:release_all()
+    mini.next = 0
     if upto >= 1 and xs[upto] then
-        local d = mini.icon_pool:acquire()
-        d:SetTexture(PIP_ME)
+        local d = mini_slot()
+        if d._mini_tex ~= PIP_ME then d:SetTexture(PIP_ME); d._mini_tex = PIP_ME end
         d:ClearAnchors()
         d:SetAnchor(CENTER, mini.root, TOPLEFT, xs[upto], ys[upto])
         d:SetDimensions(16, 16)
         d:SetColor(K.COLOR.you[1], K.COLOR.you[2], K.COLOR.you[3], 1)
-        d:SetHidden(false)
     end
     local tc = S.team_color(m.localTeam)
     for name, s in pairs(geo.pos) do
         if name ~= geo.mine and s.x[idx] and s.y[idx] and (s.x[idx] > 0 or s.y[idx] > 0) then
-            local d = mini.icon_pool:acquire()
-            d:SetTexture(PIP_MATE)
+            local d = mini_slot()
+            if d._mini_tex ~= PIP_MATE then d:SetTexture(PIP_MATE); d._mini_tex = PIP_MATE end
             d:ClearAnchors()
             d:SetAnchor(CENTER, mini.root, TOPLEFT, mini_scale(s.x[idx]), mini_scale(s.y[idx]))
             d:SetDimensions(10, 10)
             d:SetColor(tc[1], tc[2], tc[3], 1)
-            d:SetHidden(false)
         end
     end
     for _, pin in ipairs(geo.pins) do
         local x, y = pin.x[idx], pin.y[idx]
         if x and y and (x > 0 or y > 0) then
-            local ic = mini.icon_pool:acquire()
-            ic:SetTexture(pin_texture(pin.ty[idx], pin.kind))
+            local ic = mini_slot()
+            local tex = pin_texture(pin.ty[idx], pin.kind)
+            if ic._mini_tex ~= tex then ic:SetTexture(tex); ic._mini_tex = tex end
             ic:SetColor(1, 1, 1, 1)
             ic:SetDimensions(14, 14)
             ic:ClearAnchors()
             ic:SetAnchor(CENTER, mini.root, TOPLEFT, mini_scale(x), mini_scale(y))
-            ic:SetHidden(false)
         end
     end
+    for i = mini.next + 1, mini.used do mini.slots[i]:SetHidden(true) end
+    mini.used = mini.next
 end
 
 local function mini_stop()

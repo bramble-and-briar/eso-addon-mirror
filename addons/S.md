@@ -42,7 +42,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ScribingUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace-r/ScribingUI__3888) | Ace'r | PC / Mac | 1.0 |
 | [Script Tracker - Track Scribing Scripts on other Characters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Script-Tracker---Track-Scribing-Scripts-on-other-Characters__3887) | akamatsu02 | PC / Mac | 1.21 |
 | [Scroll List Example](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pills/Scroll-List-Example__569) | pills | PC / Mac | 2.0.3 |
-| [Scrollkeeper Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wolfstar/Scrollkeeper-Guild-Tools__4423) | wolfstar | PC / Mac | 1.3 |
+| [Scrollkeeper Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wolfstar/Scrollkeeper-Guild-Tools__4423) | wolfstar | PC / Mac | 1.4 |
 | [Scrooge McDuck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mcouture/Scrooge-McDuck__1144) | mcouture | PC / Mac | 1.1 |
 | [ScrySpy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScrySpy__2647) | Sharlikran | PC / Mac | 1.44 |
 | [ScuttleBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScuttleBuddy__2719) | Sharlikran | PC / Mac | 1.14 |
@@ -61,6 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Session Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Session-Timer__2259) | Rhyono | PC / Mac | 1.11 |
 | [Set Collection Marker (Sticker Book)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Set-Collection-Marker-Sticker-Book__2804) | Kyzeragon | PC / Mac | 3.0.0 |
 | [Set Container Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Set-Container-Collector__4652) | FirewoodDoge | PC / Mac | 1.0.1 |
+| [Set Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter__4882) | brianmit | PC / Mac | 1.0.1 |
 | [Set Junker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HerrPulaRau/Set-Junker__2572) | HerrPulaRau | PC / Mac | 1.3.1 |
 | [Set Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoltActionBalrog/Set-Master__3192) | BoltActionBalrog | PC / Mac | 1.3.1 |
 | [Set Tracker updated 2025 01](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Set-Tracker-updated-2025-01__4019) | Shinntarou | PC / Mac | 3.2.0 |
@@ -71,11 +72,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Settings Profiler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Settings-Profiler__2044) | SDPhantom | PC / Mac | 2.5 |
 | [Shadow Image Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Shadow-Image-Range__2458) | andy.s | PC / Mac | 1.4 |
 | [Shadow Image Range - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Light100/Shadow-Image-Range---Updated__3704) | Light100 | PC / Mac | 1.4.1 |
-| [Shadowfen's Default Guild Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Shadowfen-s-Default-Guild-Bank__2929) | Shadowfen | PC / Mac | 1.21 |
+| [Shadowfen's Default Guild Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Shadowfen-s-Default-Guild-Bank__2929) | Shadowfen | PC / Mac | 1.23 |
 | [Shai-hulud Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukikon/Shai-hulud-Guild-Hall__2550) | manukikon | PC / Mac | 1.0.0 |
 | [Shalk Tracker (Warden Subterranean Assault Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Shalk-Tracker-Warden-Subterranean-Assault-Tracker__2897) | ownedbynico | PC / Mac | 1.0 |
 | [ShardVolley Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Matt_Eweroun/ShardVolley-Alert__4866) | Matt_Eweroun | PC / Mac | 1.0 |
-| [Sheath Weapon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelnoreem/Sheath-Weapon__901) | Kelnoreem | PC / Mac | 3.23 |
+| [Sheath Weapon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelnoreem/Sheath-Weapon__901) | Kelnoreem | PC / Mac | 3.24 |
 | [ShibUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shibui/ShibUI__4171) | Shibui | PC / Mac | 1.10.48 |
 | [Shields](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Shields__2621) | MrPikPik | PC / Mac | 2.2.2 |
 | [Shifty's Craft Cost Calculator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/shiftyshifter/Shifty-s-Craft-Cost-Calculator__4731) | shiftyshifter | PC / Mac | 1.1.0 |
@@ -161,7 +162,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Issue Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/Skill-Issue-Tracker__4744) | Drako-Ei | PC / Mac | 1.0.3 |
 | [Skill Lines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Skill-Lines__4041) | Ranckor90 | PC / Mac | v2.1.2 |
 | [Skill Ranks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Ranks__3745) | notnear | PC / Mac | 1.4.0 |
-| [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.2 |
+| [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |
 | [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 1.9 |
 | [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.0 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
@@ -181,7 +182,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Slash Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Home__2113) | Circuitous | PC / Mac | 1.0.101047 |
 | [Slash Mate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Mate__2638) | Circuitous | PC / Mac | 1.0.101047-1 |
 | [Slash Shop, Fence, and Bank (and More)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Shop-Fence-and-Bank-and-More__2469) | Circuitous | PC / Mac | 1.27.101049 |
-| [Slasher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Slasher__1887) | Shadowfen | PC / Mac | 2.49 |
+| [Slasher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Slasher__1887) | Shadowfen | PC / Mac | 2.50 |
 | [SlashVivec](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/damage_1/SlashVivec__3260) | damage_1 | PC / Mac | 0.6.9 |
 | [Slayer Tracker (PC & Console) + Buff Uptime and Statistics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Slayer-Tracker-PC-Console-Buff-Uptime-and-Statistics__4680) | Duesentrieb | PC / Mac | 20260709-0001 |
 | [Slightly Improved™ Attribute Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/L8Knight/Slightly-ImprovedTM-Attribute-Bars__72) | L8Knight | PC / Mac | 2.2.2 |
@@ -260,7 +261,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Squirrel Slayer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xhiantitu/Squirrel-Slayer__4213) | xhiantitu | PC / Mac | 1.1.1 |
 | [SquishyFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Divnyi/SquishyFinder__2914) | Divnyi | PC / Mac | 1.6 |
 | [SquishyFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/laurj787/SquishyFinder__3640) | laurj787 | PC / Mac | 1.7 |
-| [Srendarr - Aura, Buff & Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655) | Phinix | PC / Mac | 2.5.50 |
+| [Srendarr - Aura, Buff & Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655) | Phinix | PC / Mac | 2.5.51 |
 | [SRS Events](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skyrimredshirts/SRS-Events__4457) | skyrimredshirts | PC / Mac | 5.52 |
 | [SRS Guild Hall Icon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skyrimredshirts/SRS-Guild-Hall-Icon__4456) | skyrimredshirts | PC / Mac | 1.21 |
 | [Stack Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectura/Stack-Master__2508) | Architectura | PC / Mac | 10 |

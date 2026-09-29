@@ -1,13 +1,5 @@
--- Ukrainian translation for PotionMaker
--- Український переклад для PotionMaker
--- Author: DovahMova Team
-
--- Перевірка, чи PotionMaker встановлений
-if not PotMaker then
-	return
-end
-
-PotMaker:LoadLanguage {
+-- Український переклад для PotionMaker (формат таблиці PotMaker:LoadLanguage).
+DovahMova.IntegrationStrings.PotionMaker = {
 	name = "ua",
 	check_all = "Виключити все",
 	uncheck_all = "Дозволити все",
@@ -99,31 +91,3 @@ PotMaker:LoadLanguage {
 		["Timidity"] = "Боязкість",
 	},
 }
-
--- Захист від nil - перевіряємо чи PotMaker і його language існують
-local strings = {}
-if PotMaker and PotMaker.language then
-	strings = {
-		["SI_BINDING_NAME_POTIONMAKER"] = "Potion Maker",
-		["SI_BINDING_NAME_POISONMAKER"] = "Poison Maker",
-		["SI_BINDING_NAME_POTIONMAKER_SEARCH"] = PotMaker.language.search or "Пошук",
-		["SI_BINDING_NAME_POTIONMAKER_SEARCH_WRITS"] = GetString(SI_CUSTOMERSERVICESUBMITFEEDBACKSUBCATEGORIES212),
-		["SI_BINDING_NAME_POTIONMAKER_SEARCH_FAVORITS"] = PotMaker.language.favorites or "Обране",
-	}
-else
-	-- Fallback якщо PotMaker недоступний
-	strings = {
-		["SI_BINDING_NAME_POTIONMAKER"] = "Potion Maker",
-		["SI_BINDING_NAME_POISONMAKER"] = "Poison Maker",
-		["SI_BINDING_NAME_POTIONMAKER_SEARCH"] = "Пошук",
-		["SI_BINDING_NAME_POTIONMAKER_SEARCH_WRITS"] = GetString(SI_CUSTOMERSERVICESUBMITFEEDBACKSUBCATEGORIES212),
-		["SI_BINDING_NAME_POTIONMAKER_SEARCH_FAVORITS"] = "Обране",
-	}
-end
-strings["SI_KEYBINDINGS_CATEGORY_POTIONMAKER"] = strings["SI_BINDING_NAME_POTIONMAKER"]
-strings["SI_KEYBINDINGS_LAYER_POTIONMAKER"] = strings["SI_BINDING_NAME_POTIONMAKER"]
-
-for id, text in pairs(strings) do
-	ZO_CreateStringId(id, text)
-end
-

@@ -504,26 +504,78 @@ function Match.geo(m)
     return { n = n, t = tl.pt, pos = pos, pins = pins, team = team, mine = mine, teammates = teammates, stepMs = stepMs, me = me, startT = startT }
 end
 
-local geo_cache = { m = nil, geo = nil, kb = 0 }
+local GEO_MEMO_ENTRIES = 3
+local GEO_MEMO_KB = 4096
+local geo_memo = { n = 0, kb = 0 }
+local geo_tick = 0
+
+local function geo_evict(i)
+    local e = geo_memo[i]
+    geo_memo.kb = geo_memo.kb - e.kb
+    geo_memo[i] = geo_memo[geo_memo.n]
+    geo_memo[geo_memo.n] = nil
+    geo_memo.n = geo_memo.n - 1
+end
+
+local function geo_evict_oldest()
+    local oldest, at = nil, 0
+    for i = 1, geo_memo.n do
+        if oldest == nil or geo_memo[i].tick < oldest then oldest, at = geo_memo[i].tick, i end
+    end
+    if at > 0 then geo_evict(at) end
+end
 
 function Match.geo_cached(m)
     if m == nil then return nil end
-    if geo_cache.m == m then return geo_cache.geo end
+    geo_tick = geo_tick + 1
+    for i = 1, geo_memo.n do
+        local e = geo_memo[i]
+        if e.m == m then
+            e.tick = geo_tick
+            return e.geo
+        end
+    end
     collectgarbage("stop")
     local k0 = collectgarbage("count")
     local geo = Match.geo(m)
     local kb = collectgarbage("count") - k0
     collectgarbage("restart")
-    geo_cache.m, geo_cache.geo, geo_cache.kb = m, geo, (kb > 0) and kb or 0
+    if kb < 0 then kb = 0 end
+    geo_memo.n = geo_memo.n + 1
+    geo_memo[geo_memo.n] = { m = m, geo = geo, kb = kb, tick = geo_tick }
+    geo_memo.kb = geo_memo.kb + kb
+    while geo_memo.n > GEO_MEMO_ENTRIES or (geo_memo.kb > GEO_MEMO_KB and geo_memo.n > 1) do geo_evict_oldest() end
     return geo
 end
 
+function Match.geo_cache_forget(m)
+    for i = 1, geo_memo.n do
+        if geo_memo[i].m == m then
+            geo_evict(i)
+            return true
+        end
+    end
+    return false
+end
+
+function Match.geo_cache_has(m)
+    for i = 1, geo_memo.n do
+        if geo_memo[i].m == m then return true end
+    end
+    return false
+end
+
 function Match.geo_cache_clear()
-    geo_cache.m, geo_cache.geo, geo_cache.kb = nil, nil, 0
+    for i = geo_memo.n, 1, -1 do geo_memo[i] = nil end
+    geo_memo.n, geo_memo.kb = 0, 0
 end
 
 function Match.geo_cache_report()
-    return { held = geo_cache.geo ~= nil, bytes = math.floor(geo_cache.kb * 1024 + 0.5), m = geo_cache.m }
+    local newest, m = -1, nil
+    for i = 1, geo_memo.n do
+        if geo_memo[i].tick > newest then newest, m = geo_memo[i].tick, geo_memo[i].m end
+    end
+    return { held = geo_memo.n > 0, entries = geo_memo.n, bytes = math.floor(geo_memo.kb * 1024 + 0.5), m = m }
 end
 
 function Match.geo_index(geo, t)
@@ -968,11 +1020,15 @@ function Match.experience(m)
         e.avaAvg = (e.avaN > 0) and e.ava / e.avaN or nil
     end
     local mine = m.localTeam and teams[m.localTeam] or nil
-    local other, best, bestT = nil, -1, nil
+    local others = {}
     for t, e in pairs(teams) do
-        if t ~= m.localTeam and (e.n > best or (e.n == best and t < bestT)) then other, best, bestT = e, e.n, t end
+        if t ~= m.localTeam then others[#others + 1] = e end
     end
-    return { mine = mine, other = other, teams = teams }
+    table.sort(others, function(a, b)
+        if a.n ~= b.n then return a.n > b.n end
+        return a.team < b.team
+    end)
+    return { mine = mine, other = others[1], third = others[2], others = others, teams = teams }
 end
 
 local function median_of(vals)

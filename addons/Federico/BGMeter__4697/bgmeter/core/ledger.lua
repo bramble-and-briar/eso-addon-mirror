@@ -27,11 +27,24 @@ local balance_memo = setmetatable({}, { __mode = "k" })
 
 local function balance_of(m)
     if not m then return nil end
+    if type(m.bal) == "number" then return m.bal end
     local cached = balance_memo[m]
     if cached ~= nil then return cached or nil end
     local b = BGMeter.Match.balance and BGMeter.Match.balance(m)
     balance_memo[m] = b and b.score or false
+    if b then m.bal = b.score end
     return b and b.score or nil
+end
+
+function Ledger.stamp_balance()
+    local data = sv()
+    if not data or data.bal_stamped then return 0 end
+    data.bal_stamped = true
+    local n = 0
+    for _, m in ipairs(data.matches or {}) do
+        if balance_of(m) then n = n + 1 end
+    end
+    return n
 end
 
 local function add_balance(e, m, score)
@@ -94,7 +107,12 @@ function Ledger.arena_of(m)
     return "unknown arena"
 end
 
+Ledger._rev = 0
+
+function Ledger.rev() return Ledger._rev end
+
 function Ledger.record(m)
+    Ledger._rev = Ledger._rev + 1
     local L = root()
     if not L or not m then return false end
     local lr = BGMeter.Match.local_row(m)
@@ -120,6 +138,7 @@ function Ledger.record(m)
 end
 
 function Ledger.backfill()
+    Ledger._rev = Ledger._rev + 1
     local data = sv()
     if not data or data.ledger_seeded then return 0 end
     data.ledger_seeded = true
@@ -134,6 +153,7 @@ function Ledger.backfill()
 end
 
 function Ledger.backfill_balance()
+    Ledger._rev = Ledger._rev + 1
     local data = sv()
     if not data or data.ledger_balance_seeded then return 0 end
     data.ledger_balance_seeded = true

@@ -1,6 +1,7 @@
+local DIAhelp = DIAhelp
 -- Original DIAhelp player-effect panels. GPL-3.0-or-later.
-DIAhelpBuffs={}
-local M=DIAhelpBuffs
+DIAhelp.Buffs={}
+local M=DIAhelp.Buffs
 function M.IsLong(startTime,endTime,effectType)
     return effectType~=BUFF_EFFECT_TYPE_DEBUFF and (endTime<=startTime or endTime-startTime>=120)
 end
@@ -84,9 +85,7 @@ local function Update()
     table.sort(longs,Sort) table.sort(shorts,Sort)
     Draw(longs,longIcons,longRoot,true,now) Draw(shorts,shortIcons,shortRoot,false,now)
 end
-EVENT_MANAGER:RegisterForEvent('DIAhelpBuffs',EVENT_ADD_ON_LOADED,function(_,name)
-    if name~='DIAhelp' then return end
-    EVENT_MANAGER:UnregisterForEvent('DIAhelpBuffs',EVENT_ADD_ON_LOADED)
+function DIAhelp.Buffs.Initialize()
     longRoot=Root('DIAhelpLongBuffs',32,32,BOTTOMRIGHT,BOTTOMRIGHT,-5,-8)
     shortRoot=Root('DIAhelpShortBuffs',450,40,BOTTOM,BOTTOM,0,-230)
     -- Replace only the player's native panel, preserving target effects.
@@ -97,4 +96,4 @@ EVENT_MANAGER:RegisterForEvent('DIAhelpBuffs',EVENT_ADD_ON_LOADED,function(_,nam
     end
     EVENT_MANAGER:RegisterForUpdate('DIAhelpBuffs',250,Update)
     Update()
-end)
+end

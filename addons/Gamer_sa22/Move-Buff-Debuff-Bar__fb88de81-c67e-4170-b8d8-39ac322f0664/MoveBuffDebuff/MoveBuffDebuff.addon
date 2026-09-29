@@ -1,7 +1,7 @@
 ## Title: Move Buff Debuff Bar
-## APIVersion: 101050
+## APIVersion: 101051
 ## Description: Move the Buff Debuff Bar around on your screen
-## Version: 50.04
+## Version: 51.00
 ## Author: Gamer_sa22
 ## ConsoleDependsOn: LibHarvensAddonSettings
 ## SavedVariables: MoveBuffDebuffSavedVariables

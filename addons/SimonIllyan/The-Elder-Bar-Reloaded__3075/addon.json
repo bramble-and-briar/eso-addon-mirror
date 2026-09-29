@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/SimonIllyan/The-Elder-Bar-Reloaded__3075",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "SimonIllyan",
   "canonical_id": "esoui:3075",
   "category_id": "109",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3075",
@@ -21,7 +18,7 @@
     "TEB"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3075/",
-  "fingerprint": "73412e1f38b75ac0a81e373aa1356a0ebe761c8097a495636f46e4e5ec3a1c74",
+  "fingerprint": "9b8129cca208d7b0f0853bde48e59446d8cd0c2896dcfb8a73b1d7ee3c9cb751",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10750.png",
     "https://cdn-eso.mmoui.com/preview/pvw10344.png",
@@ -33,11 +30,11 @@
   "source_id": "3075",
   "source_url": "https://www.esoui.com/downloads/info3075-TheElderBarReloaded.html",
   "stats": {
-    "downloads": 75791,
+    "downloads": 76257,
     "favorites": 63,
-    "monthly_downloads": 136
+    "monthly_downloads": 302
   },
   "title": "The Elder Bar Reloaded",
-  "updated_at": 1780917889000,
-  "version": "12.1.2"
+  "updated_at": 1790586946000,
+  "version": "12.1.3"
 }

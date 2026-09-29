@@ -20,6 +20,19 @@ local relic_lookup = {}
 
 local MAX_OBJ_EVENTS = 600
 
+local Prof = BGMeter.Prof
+local Val = BGMeter.Validate
+local MAX_SCORE_SAMPLES = 1000
+local MAX_KILLS = 1000
+
+local MAX_POS = 900
+
+local function presize(t, n)
+    for i = 1, n do t[i] = 0 end
+    for i = n, 1, -1 do t[i] = nil end
+    return t
+end
+
 local function safe(fn, ...)
     if type(fn) ~= "function" then return nil end
     local ok, a, b, c, d = pcall(fn, ...)
@@ -379,7 +392,7 @@ local function sample_players(tl, i, round)
         local nm = clean_name(displayName or charName)
         if nm then
             local rec = tl.p[nm]
-            if not rec then rec = { d = {} }; tl.p[nm] = rec end
+            if not rec then rec = { d = presize({}, MAX_SCORE_SAMPLES) }; tl.p[nm] = rec end
             rec.d[i] = read_score(e, C.SCORE_TRACKER_TYPE_DAMAGE_DONE, round)
             if team and team ~= 0 then rec.tm = team end
         end
@@ -418,7 +431,8 @@ local function pin_slot(tl, keepId, objectiveId, ctx)
     local name, otype = safe(A.get_objective_info, keepId, objectiveId, ctx)
     idx = #tl.pin + 1
     tl.pin[idx] = { keepId = keepId, objectiveId = objectiveId, name = clean_name(name),
-                    kind = (otype == C.OBJECTIVE_CAPTURE_AREA) and "area" or "carry", x = {}, y = {}, ty = {} }
+                    kind = (otype == C.OBJECTIVE_CAPTURE_AREA) and "area" or "carry",
+                    x = presize({}, MAX_POS), y = presize({}, MAX_POS), ty = presize({}, MAX_POS) }
     tl.pinIdx[key] = idx
     return idx
 end
@@ -428,17 +442,18 @@ local function sample_positions()
     local A = BGMeter.zenimax.api
     local tl = active.timeline
     if not tl.pt then
-        tl.pt, tl.pos, tl.pin, tl.pinIdx = {}, {}, {}, {}
+        tl.pt, tl.pos, tl.pin, tl.pinIdx = presize({}, MAX_POS), {}, {}, {}
     end
     local i = #tl.pt + 1
-    if i > 900 then return end
+    if i > MAX_POS then return end
     local now = (safe(A.now_ms) or 0) - (active.startMs or 0)
     if i > 1 and tl.pt[i - 1] == now then return end
+    Val.monotonic("pos", tl.pt[i - 1], now)
     tl.pt[i] = now
     local function put(name, x, y, inMap)
         if not name or x == nil or inMap == false then return end
         local rec = tl.pos[name]
-        if not rec then rec = { x = {}, y = {} }; tl.pos[name] = rec end
+        if not rec then rec = { x = presize({}, MAX_POS), y = presize({}, MAX_POS) }; tl.pos[name] = rec end
         rec.x[i], rec.y[i] = q(x), q(y)
     end
     local px, py, _, pin = safe(A.get_map_player_position, "player")
@@ -474,11 +489,61 @@ local function sample_positions()
     end
 end
 
+local function discover_roster()
+    if not active or not active.timeline then return end
+    local A = BGMeter.zenimax.api
+    local tl = active.timeline
+    local round = current_round()
+    local n = safe(A.get_num_entries, round) or 0
+    if n > 0 then
+        tl.p = tl.p or {}
+        for e = 1, n do
+            local charName, displayName, team = safe(A.get_entry_info, e, round)
+            local nm = clean_name(displayName or charName)
+            if nm and not tl.p[nm] then
+                tl.p[nm] = { d = presize({}, MAX_SCORE_SAMPLES), tm = (team and team ~= 0) and team or nil }
+            end
+        end
+    end
+    if not tl.pt then
+        tl.pt, tl.pos, tl.pin, tl.pinIdx = presize({}, MAX_POS), {}, {}, {}
+    end
+    if active.localName and not tl.pos[active.localName] then
+        tl.pos[active.localName] = { x = presize({}, MAX_POS), y = presize({}, MAX_POS) }
+    end
+    local g = safe(A.get_group_size) or 0
+    for i = 1, math.min(g, 8) do
+        local tag = safe(A.get_group_unit_tag, i)
+        if tag and safe(A.are_units_equal, tag, "player") ~= true then
+            local nm = clean_name(safe(A.get_unit_display_name, tag)) or clean_name(safe(A.get_unit_name, tag))
+            if nm and nm ~= active.localName and not tl.pos[nm] then
+                tl.pos[nm] = { x = presize({}, MAX_POS), y = presize({}, MAX_POS) }
+            end
+        end
+    end
+end
+
+local function discover_pins()
+    if not active or not active.timeline then return end
+    local A = BGMeter.zenimax.api
+    local tl = active.timeline
+    if not tl.pt then
+        tl.pt, tl.pos, tl.pin, tl.pinIdx = presize({}, MAX_POS), {}, {}, {}
+    end
+    local nobj = safe(A.get_num_objectives) or 0
+    for o = 1, math.min(nobj, MAX_PINS) do
+        local keepId, objectiveId, ctx = safe(A.get_objective_ids, o)
+        if keepId and objectiveId and safe(A.is_bg_objective, keepId, objectiveId, ctx) then
+            pin_slot(tl, keepId, objectiveId, ctx)
+        end
+    end
+end
+
 local function sample_me()
     if not active or not active.timeline then return end
     local A = BGMeter.zenimax.api
     local tl = active.timeline
-    if not tl.mt then tl.mt, tl.mx, tl.my = {}, {}, {} end
+    if not tl.mt then tl.mt, tl.mx, tl.my = presize({}, MAX_ME), presize({}, MAX_ME), presize({}, MAX_ME) end
     local i = #tl.mt + 1
     if i > MAX_ME then return end
     local now = (safe(A.now_ms) or 0) - (active.startMs or 0)
@@ -486,6 +551,7 @@ local function sample_me()
     local px, py = safe(A.get_map_player_position, "player")
     local qx, qy = q(px), q(py)
     if not qx or not qy then return end
+    Val.monotonic("me", tl.mt[i - 1], now)
     tl.mt[i], tl.mx[i], tl.my[i] = now, qx, qy
 end
 
@@ -548,6 +614,7 @@ local function sample_scores()
     active.lastRound = round
     local i = #tl.t + 1
     tl.t[i] = (safe(A.now_ms) or 0) - (active.startMs or 0)
+    Val.monotonic("score", tl.t[i - 1], tl.t[i])
     tl.r[i] = round
     local teams = team_list()
     tl.s1[i] = (teams[1] ~= nil and safe(A.get_team_score, round, teams[1])) or 0
@@ -604,12 +671,17 @@ function Capture.begin()
     active.localTeam = safe(A.get_local_team)
     active.localName = clean_name(safe(A.get_display_name)) or clean_name(safe(A.get_char_name))
     active.teamSize  = active.bgId and safe(A.get_bg_team_size, active.bgId) or nil
+    active.numTeams  = active.bgId and safe(A.get_bg_num_teams, active.bgId) or nil
     if active.teamSize then active.competitive = (active.teamSize == 4) end
-    active.timeline  = { t = {}, r = {}, s1 = {}, s2 = {}, s3 = {}, teams = team_list() }
-    active.killfeed  = {}
+    active.timeline  = { t = presize({}, MAX_SCORE_SAMPLES), r = presize({}, MAX_SCORE_SAMPLES),
+                         s1 = presize({}, MAX_SCORE_SAMPLES), s2 = presize({}, MAX_SCORE_SAMPLES), s3 = presize({}, MAX_SCORE_SAMPLES),
+                         teams = team_list() }
+    active.killfeed  = presize({}, MAX_KILLS)
     active.exp       = {}
-    active.objectives = { list = {}, t = {}, r = {}, o = {}, ev = {}, st = {}, own = {} }
-    active.relics = { list = {}, t = {}, r = {}, o = {}, ev = {}, hold = {}, last = {}, who = {} }
+    active.objectives = { list = {}, t = presize({}, MAX_OBJ_EVENTS), r = presize({}, MAX_OBJ_EVENTS), o = presize({}, MAX_OBJ_EVENTS),
+                          ev = presize({}, MAX_OBJ_EVENTS), st = presize({}, MAX_OBJ_EVENTS), own = presize({}, MAX_OBJ_EVENTS) }
+    active.relics = { list = {}, t = presize({}, MAX_RELIC_EVENTS), r = presize({}, MAX_RELIC_EVENTS), o = presize({}, MAX_RELIC_EVENTS),
+                      ev = presize({}, MAX_RELIC_EVENTS), hold = presize({}, MAX_RELIC_EVENTS), last = presize({}, MAX_RELIC_EVENTS), who = {} }
     obj_lookup = {}
     obj_last = {}
     relic_lookup = {}
@@ -624,8 +696,11 @@ function Capture.begin()
 
     active.map = read_map()
     start_sampler()
+    pcall(discover_roster)
+    pcall(discover_pins)
     sample_scores()
     pcall(sample_positions)
+    pcall(sample_me)
     pcall(scan_group_experience)
 
     local C = BGMeter.zenimax.constants
@@ -703,11 +778,16 @@ function Capture.finalize()
     local Match = BGMeter.Match
 
     stop_sampler()
+    Prof.enter("cap:finalize.sample")
     local ok, err = pcall(sample_scores)
     if not ok then BGMeter.Log.debug("final sample failed: %s", tostring(err)) end
     pcall(sample_positions)
     pcall(sample_me)
+    Prof.exit("cap:finalize.sample")
+    Val.roundtrip("finalize", active)
+    Prof.enter("cap:finalize.pack")
     pcall(Match.pack_timeline, active)
+    Prof.exit("cap:finalize.pack")
 
     active.endMs = safe(A.now_ms) or active.startMs
     close_run(active.endMs)
@@ -716,10 +796,12 @@ function Capture.finalize()
     active.capturedAt = safe(A.get_timestamp)
     active.result = read_result(active.localTeam)
 
+    Prof.enter("cap:finalize.battle")
     pcall(scan_group_experience)
     Capture.read_battle(active)
     read_teams(active)
     attach_experience(active)
+    Prof.exit("cap:finalize.battle")
 
     if baseline then
         local apNow = safe(A.get_alliance_points)
@@ -735,10 +817,27 @@ function Capture.finalize()
     if lr then active.haul.medals = lr.medals end
 
     Match.derive(active)
+    local balOk, bal = pcall(Match.balance, active)
+    if balOk and bal then active.bal = bal.score end
+
+    local tl = active.timeline
+    Val.cap("score", #tl.t, MAX_SCORE_SAMPLES)
+    Val.cap("pos", tl.pt and #tl.pt or 0, MAX_POS)
+    Val.cap("me", tl.mt and (type(tl.mt[1]) == "number" and #tl.mt or 0) or 0, MAX_ME)
+    Val.cap("objectives", #active.objectives.t, MAX_OBJ_EVENTS)
+    Val.cap("relics", #active.relics.t, MAX_RELIC_EVENTS)
+    Val.cap("kills", #active.killfeed, MAX_KILLS)
+    Val.finite("match", active)
 
     local finished = active
     active, baseline = nil, nil
     return finished
+end
+
+function Capture.on_scoreboard()
+    if not active then return end
+    pcall(discover_roster)
+    pcall(discover_pins)
 end
 
 function Capture.rescan(reason)
@@ -751,6 +850,8 @@ function Capture.mark_running()
     local A = BGMeter.zenimax.api
     local now = safe(A.now_ms) or active.startMs
     open_run(now)
+    pcall(discover_roster)
+    pcall(discover_pins)
     if active.runMs then return end
     active.runMs = now
     BGMeter.Log.debug("gates open at %s", BGMeter.Format.duration(active.runMs - (active.startMs or 0)))
@@ -787,6 +888,7 @@ function Capture.snapshot_now()
     m.gameType = safe(A.get_bg_game_type)
     m.localTeam = safe(A.get_local_team)
     m.teamSize = m.bgId and safe(A.get_bg_team_size, m.bgId) or nil
+    m.numTeams = m.bgId and safe(A.get_bg_num_teams, m.bgId) or nil
     if m.teamSize then m.competitive = (m.teamSize == 4) end
     m.result   = read_result(m.localTeam)
     Capture.read_battle(m)

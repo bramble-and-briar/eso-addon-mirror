@@ -1,12 +1,13 @@
 ## Title: |c5282BDTDAddon|r
 ## Description: Addon for The Daggerfall Authority PvP Guild (PC EU) 
-## Version: 2026.07.30
+## Version: 2026.09.28
 ## Author: |c3CB371@Masteroshi430|r
 ## SavedVariables: TDAVars
 ## DependsOn: LibAddonMenu-2.0>=38 LibGroupCombatStats
 ## OptionalDependsOn: LightsOfMeridia AutoInvite ForwardCampPreview PersonalAssistant 
-## APIVersion: 101050
+## APIVersion: 101051
 
+TDAddon.xml
 TDAddon.lua
 
 Bindings/bindings.xml

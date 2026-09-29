@@ -1,9 +1,9 @@
 ## Title: |c00FF2BBSC's AdvancedAchievement Info|r
 ## Description: Get your 100%!!
 ## Author: |cFF0000BloodStainChild666|r
-## Version: 2.0.7
-## APIVersion: 101050
-## AddOnVersion: 06092028
+## Version: 2.0.9
+## APIVersion: 101051
+## AddOnVersion: 028092026
 ## SavedVariables: BSCAAIS
 ## OptionalDependsOn: LibAddonMenu-2.0>=40
 

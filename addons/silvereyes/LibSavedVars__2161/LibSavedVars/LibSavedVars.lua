@@ -348,6 +348,29 @@ end
      object that is returned by this function.
      
      See classes/LSV_Data.lua => LSV_Data:AddCharacterSettingsToggle()
+     
+    Creates a new data object with account-wide saved vars as the default. You can add a character-specific saved vars
+     toggle by chaining :AddCharacterSettingsToggle() below.  
+     
+     You can also chain with several other methods, such as :Migrate(), :RemoveSettings(), :RenameSettings() and 
+     :Version().
+     
+     savedVariableTableName:  The name of the top-level global table containing the saved vars. Required. 
+                              Matches the name in ## SavedVariables: in the manifest text file.
+     
+     version:                 (optional) The numeric current saved vars version. Defaults to 1.
+                                         WARNING! Incrementing this value without adding a chained :Version() call after
+                                         for the new version number will cause all settings to be reset to defaults.
+     
+     namespace:               (optional) An string namespace to separate other variables using the same table.
+     
+     defaults:                (optional) A table describing the default saved variables.
+     
+     profile:                 (optional) String used to group several saved vars tables together as a unit.  
+                                         Usually either nil, "Default" or the megaserver name 
+                                         (i.e. "NA Megaserver", "EU Megaserver", "PTS"). Defaults to megaserver name.
+                                         
+     displayName:             (optional) The account name the saved vars are for. Defaults to the current account name.
 --]]
 function LibSavedVars:NewAccountWide(savedVariableTable, version, namespace, defaults, profile, displayName)
     return LSV_Data:NewAccountWide(savedVariableTable, version, namespace, defaults, profile, displayName)

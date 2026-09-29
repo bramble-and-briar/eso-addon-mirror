@@ -614,6 +614,20 @@ function GamepadOptions.ReplaceSubpanelBackKeybind()
     end)
 end
 
+local function SetDefaultFramePreviewPanel(panelId)
+    if not NQOL.Features or not NQOL.Features.UI then return end
+
+    local ui = NQOL.Features.UI
+    ui.SetActiveQuestSettingsPanelVisible(panelId == ACTIVE_QUEST_PANEL_ID)
+    ui.SetActiveCombatTipsSettingsPanelVisible(panelId == ACTIVE_COMBAT_TIPS_PANEL_ID)
+    ui.SetSynergyPromptsSettingsPanelVisible(panelId == SYNERGY_PROMPTS_PANEL_ID)
+    ui.SetCenterScreenAnnounceSettingsPanelVisible(panelId == CENTER_SCREEN_ANNOUNCE_PANEL_ID)
+    ui.SetAnnouncementsSettingsPanelVisible(panelId == ANNOUNCEMENTS_PANEL_ID)
+    ui.SetInfiniteArchiveSettingsPanelVisible(panelId == INFINITE_ARCHIVE_FRAME_PANEL_ID)
+    ui.SetPlayerInteractionSettingsPanelVisible(panelId == PLAYER_INTERACTION_PANEL_ID)
+    ui.SetSubtitlesSettingsPanelVisible(panelId == SUBTITLES_PANEL_ID)
+end
+
 function GamepadOptions.ShowPanel(panelId, selectedIndex)
     local currentPanelId = GAMEPAD_OPTIONS.currentCategory
 
@@ -647,15 +661,8 @@ function GamepadOptions.ShowPanel(panelId, selectedIndex)
 
     if NQOL.Features and NQOL.Features.UI then
         NQOL.Features.UI.SetCombatReticleSettingsPanelVisible(COMBAT_RETICLE_PREVIEW_PANEL_IDS[panelId] == true)
-        NQOL.Features.UI.SetActiveQuestSettingsPanelVisible(panelId == ACTIVE_QUEST_PANEL_ID)
-        NQOL.Features.UI.SetActiveCombatTipsSettingsPanelVisible(panelId == ACTIVE_COMBAT_TIPS_PANEL_ID)
-        NQOL.Features.UI.SetSynergyPromptsSettingsPanelVisible(panelId == SYNERGY_PROMPTS_PANEL_ID)
-        NQOL.Features.UI.SetCenterScreenAnnounceSettingsPanelVisible(panelId == CENTER_SCREEN_ANNOUNCE_PANEL_ID)
-        NQOL.Features.UI.SetAnnouncementsSettingsPanelVisible(panelId == ANNOUNCEMENTS_PANEL_ID)
-        NQOL.Features.UI.SetInfiniteArchiveSettingsPanelVisible(panelId == INFINITE_ARCHIVE_FRAME_PANEL_ID)
-        NQOL.Features.UI.SetPlayerInteractionSettingsPanelVisible(panelId == PLAYER_INTERACTION_PANEL_ID)
-        NQOL.Features.UI.SetSubtitlesSettingsPanelVisible(panelId == SUBTITLES_PANEL_ID)
     end
+    SetDefaultFramePreviewPanel(panelId)
 
     if NQOL.Features and NQOL.Features.UIPlayerInfo then
         NQOL.Features.UIPlayerInfo.SetSettingsPanelVisible(panelId == PLAYER_INFO_PANEL_ID)
@@ -2247,15 +2254,8 @@ local function OpenRootPanel()
     GAMEPAD_OPTIONS.currentCategory = ROOT_PANEL_ID
     if NQOL.Features and NQOL.Features.UI then
         NQOL.Features.UI.SetCombatReticleSettingsPanelVisible(false)
-        NQOL.Features.UI.SetActiveQuestSettingsPanelVisible(false)
-        NQOL.Features.UI.SetActiveCombatTipsSettingsPanelVisible(false)
-        NQOL.Features.UI.SetSynergyPromptsSettingsPanelVisible(false)
-        NQOL.Features.UI.SetCenterScreenAnnounceSettingsPanelVisible(false)
-        NQOL.Features.UI.SetAnnouncementsSettingsPanelVisible(false)
-        NQOL.Features.UI.SetInfiniteArchiveSettingsPanelVisible(false)
-        NQOL.Features.UI.SetPlayerInteractionSettingsPanelVisible(false)
-        NQOL.Features.UI.SetSubtitlesSettingsPanelVisible(false)
     end
+    SetDefaultFramePreviewPanel(nil)
     if NQOL.Features and NQOL.Features.UIPlayerInfo then
         NQOL.Features.UIPlayerInfo.SetSettingsPanelVisible(false)
     end
@@ -2538,6 +2538,7 @@ function GamepadOptions.InstallSubpanelBackOverride()
         if newState == SCENE_SHOWING or newState == "showing" then
             if NQOL.Features and NQOL.Features.UI and GAMEPAD_OPTIONS then
                 NQOL.Features.UI.SetCombatReticleSettingsPanelVisible(COMBAT_RETICLE_PREVIEW_PANEL_IDS[GAMEPAD_OPTIONS.currentCategory] == true)
+                SetDefaultFramePreviewPanel(GAMEPAD_OPTIONS.currentCategory)
             end
             if GAMEPAD_OPTIONS and GamepadOptions.IsSubpanel(GAMEPAD_OPTIONS.currentCategory) then
                 GamepadOptions.ReplaceSubpanelBackKeybind()
@@ -2545,15 +2546,8 @@ function GamepadOptions.InstallSubpanelBackOverride()
         elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN or newState == "hiding" or newState == "hidden" then
             if NQOL.Features and NQOL.Features.UI then
                 NQOL.Features.UI.SetCombatReticleSettingsPanelVisible(false)
-                NQOL.Features.UI.SetActiveQuestSettingsPanelVisible(false)
-                NQOL.Features.UI.SetActiveCombatTipsSettingsPanelVisible(false)
-                NQOL.Features.UI.SetSynergyPromptsSettingsPanelVisible(false)
-                NQOL.Features.UI.SetCenterScreenAnnounceSettingsPanelVisible(false)
-                NQOL.Features.UI.SetAnnouncementsSettingsPanelVisible(false)
-                NQOL.Features.UI.SetInfiniteArchiveSettingsPanelVisible(false)
-                NQOL.Features.UI.SetPlayerInteractionSettingsPanelVisible(false)
-                NQOL.Features.UI.SetSubtitlesSettingsPanelVisible(false)
             end
+            SetDefaultFramePreviewPanel(nil)
             if NQOL.Features and NQOL.Features.PlayerBars then
                 NQOL.Features.PlayerBars.SetSettingsPanelVisible(false)
                 NQOL.Features.PlayerBars.SetCompanionSettingsPanelVisible(false)

@@ -1,0 +1,13 @@
+## Title: Group Moderation - Blacklist
+## APIVersion: 101045
+## AddonVersion: 1
+## SavedVariables: GroupModerationBlacklistSV
+## OptionalDependsOn: LibAddonMenu-2.0
+
+GroupModerationBlacklist.lua
+Moderation.lua
+GroupActivity.lua
+UI.lua
+Settings.lua
+blacklist.xml
+TESTING.md

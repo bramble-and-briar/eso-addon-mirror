@@ -6,6 +6,12 @@ function Addon:BuildTrackerColumnMenu(H)
     local sv = self.state.sv
     local limits = self.limits
     local controls = {
+        H.Toggle(
+            "Enable Tracker Column",
+            function() return sv.trackerColumnEnabled end,
+            function(v) Addon:SetTrackerColumnEnabled(v) end,
+            Addon.defaults.trackerColumnEnabled
+        ),
         H.Slider(
             "Position Y",
             limits.posY.min,
@@ -30,21 +36,18 @@ function Addon:BuildTrackerColumnMenu(H)
             end,
             Addon.defaults.trackerColumnScale
         ),
-        H.Toggle(
-            "Show layout preview",
-            function() return sv.trackerColumnShowPreview end,
-            function(v)
-                sv.trackerColumnShowPreview = v
-                Addon:UpdateTrackerColumnPreview()
-            end,
-            Addon.defaults.trackerColumnShowPreview
-        ),
     }
 
     return {
         type = "submenu",
         name = "Tracker Column",
-        tooltip = "Moves and scales the whole right-side tracker stack (Archive through Activity Finder).",
+        tooltip = "Moves and scales the right-side HUD tracker panel (quests, archive, activities, and similar).",
+        onEnter = function()
+            Addon:SetTrackerColumnMenuPreview(true)
+        end,
+        onExit = function()
+            Addon:SetTrackerColumnMenuPreview(false)
+        end,
         options = controls,
     }
 end

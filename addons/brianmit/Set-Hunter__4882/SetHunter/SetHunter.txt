@@ -1,0 +1,27 @@
+## Title: Set Hunter
+## Description: Where every set drops, your Set Collection progress, a wishlist down to the piece and trait, all your set items across every character, bank and house, plus an XP farming guide with grind spots, XP boosts and an XP-per-hour tracker.
+## Author: brianmit
+## Version: 1.0.1
+## AddOnVersion: 101
+## APIVersion: 101050 101051
+## SavedVariables: SetHunter_SV
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibItemSets>=100010
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved
+;
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+SetHunter_Strings.lua
+SetHunter_Data.lua
+SetHunter.lua
+SetHunter_Inventory.lua
+SetHunter_UI.lua
+SetHunter_Run.lua
+SetHunter_XP.lua
+SetHunter_Alerts.lua
+SetHunter_Settings.lua
+SetHunter.xml
+Bindings.xml

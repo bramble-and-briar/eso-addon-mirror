@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Masteroshi430/Synced-Account-Settings-Masteroshi430-s-branch__3418",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Masteroshi430",
   "canonical_id": "esoui:3418",
   "category_id": "159",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3418",
@@ -17,7 +18,7 @@
     "AccountSettings"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3418/",
-  "fingerprint": "d5a662e9ba60a8a640b2eb8d94d257ff1d9a44afb4290aab3d9913e2e489cb5c",
+  "fingerprint": "ccbdd199e09741ad23b566f98d9cfd6c003c610d368a355796da776a4970faab",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11687.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "3418",
   "source_url": "https://www.esoui.com/downloads/info3418-SyncedAccountSettingsMasteroshi430sbranch.html",
   "stats": {
-    "downloads": 180836,
-    "favorites": 153,
-    "monthly_downloads": 7804
+    "downloads": 186617,
+    "favorites": 156,
+    "monthly_downloads": 3214
   },
   "title": "Synced Account Settings [Masteroshi430's branch]",
-  "updated_at": 1784497940000,
-  "version": "2026.07.19"
+  "updated_at": 1790610763000,
+  "version": "2026.09.28"
 }

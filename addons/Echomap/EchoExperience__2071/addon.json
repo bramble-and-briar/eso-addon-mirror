@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Echomap/EchoExperience__2071",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Echomap",
   "canonical_id": "esoui:2071",
   "category_id": "26",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -65,7 +74,7 @@
     "EchoExperience"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2071/",
-  "fingerprint": "21e383a0f6b571064c9291e7d97a3edc31c687a54fdc59a9b4aa913da66f2903",
+  "fingerprint": "3da164de3d77aa7c41cdda893726de243db605752390b757191c939e4450d101",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7594.png",
     "https://cdn-eso.mmoui.com/preview/pvw6983.png",
@@ -84,11 +93,11 @@
   "source_id": "2071",
   "source_url": "https://www.esoui.com/downloads/info2071-EchoExperience.html",
   "stats": {
-    "downloads": 18521,
+    "downloads": 18568,
     "favorites": 12,
-    "monthly_downloads": 30
+    "monthly_downloads": 16
   },
   "title": "EchoExperience",
   "updated_at": 1774908398000,
-  "version": "0.0.62"
+  "version": "0.0.63"
 }

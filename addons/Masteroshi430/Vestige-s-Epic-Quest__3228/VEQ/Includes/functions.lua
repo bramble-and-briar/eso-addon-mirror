@@ -8,6 +8,7 @@ VEQ = VEQ or {}
 
 VEQ.MuseumPieces = VEQ.MuseumPieces or {}
 VEQ.MuseumPieces.Thieves = {73785, 73786, 73787, 73772, 73773, 73774, 73775, 73776, 73777, 73778, 73779, 73780, 73781, 73782, 73783, 73784}
+VEQ.MuseumPieces.Artaeum = {133605, 133606, 133607, 133608, 133609, 133610, 133611, 133612, 133613, 133614, 133615, 133616, 133617, 133618, 133619, 133620, 133621, 133622, 133623, 133624}
 
 
 -- General Buffer made by Wykkyd : http://wiki.esoui.com/Event_%26_Update_Buffering
@@ -79,7 +80,6 @@ end
 -- * VEQ Specific Functions                                                                  *
 -- *********************************************************************************************
 
-
 function VEQ.CheckMode() -- Check menu /UIs witch are opened
 
   if VEQ.main then
@@ -88,21 +88,29 @@ function VEQ.CheckMode() -- Check menu /UIs witch are opened
     local DialogueIsHidden = ZO_InteractWindow:IsHidden()
     local JournalIsHidden = ZO_QuestJournal:IsHidden()
     local IsControllingSiegeWeapon = IsPlayerControllingSiegeWeapon()
+    --local editHUDnotShowing = not HUD_EDITOR_SCENE_KEYBOARD:IsShowing()
     
     -- hides default tracker
-    ZO_FocusedQuestTrackerPanel:SetHidden(true)
+    --ZO_FocusedQuestTrackerPanel:SetHidden(true)
+    FOCUSED_QUEST_TRACKER:GetFragment():SetHiddenForReason("I'm a liar", true)
     
     -- hides Golden Pursuits tracker
-    ZO_PromotionalEventTracker_TL:SetHidden(true)
+    --ZO_PromotionalEventTracker_TL:SetHidden(true)
+    TIMED_ACTIVITY_TRACKER:GetFragment():SetHiddenForReason("I'm a liar", true)
+    
+    -- hides achievements tracker
+    ACHIEVEMENT_TRACKER:GetFragment():SetHiddenForReason("I'm a liar", true)
     
     -- hides default activity tracker 
-    ZO_ActivityTracker:SetHidden(true)
+    --ZO_ActivityTracker:SetHidden(true)
+    ACTIVITY_TRACKER:GetFragment():SetHiddenForReason("I'm a liar", true)
     
     -- hides default zonestory tracker
-    ZO_ZoneStoryTracker:SetHidden(true)
+    ZONE_STORY_TRACKER:GetFragment():SetHiddenForReason("I'm a liar", true)
     
     -- hides ready check tracker 
-    ZO_ReadyCheckTrackerTopLevel:SetHidden(true)
+    --ZO_ReadyCheckTrackerTopLevel:SetHidden(true)
+    READY_CHECK_TRACKER:GetFragment():SetHiddenForReason("I'm a liar", true)
     
     --hides group lifebars
     if VEQ.SavedVars.hideDefaultGroupFrames then 
@@ -135,7 +143,7 @@ function VEQ.CheckMode() -- Check menu /UIs witch are opened
       end
     else
     
-      if InteractiveMenuIsHidden == true and GameMenuIsHidden == true and DialogueIsHidden == true then
+      if HUD_SCENE:IsShowing() then --InteractiveMenuIsHidden == true and GameMenuIsHidden == true and DialogueIsHidden == true and editHUDnotShowing == true then
         VEQ.main:SetHidden(false)
         if IsUnitInCombat('player') and VEQ.SavedVars.HideInCombatOption then VEQ.main:SetHidden(true) else VEQ.main:SetHidden(false) end
       elseif (InteractiveMenuIsHidden == false or GameMenuIsHidden == false or DialogueIsHidden == false) and not IsControllingSiegeWeapon then
@@ -268,6 +276,8 @@ function VEQ.FindMyZone(dzone, dtype, dInstanceDisplayType, dRepeatType, qname, 
     elseif dtype == QUEST_TYPE_DUNGEON then
          if dInstanceDisplayType == ZONE_DISPLAY_TYPE_SOLO  then 
              zone = string.format("%s %s%s", VEQ.mylanguage.lang_tracker_type_solo, VEQ.mylanguage.lang_tracker_type_arena, pzone)
+         elseif dInstanceDisplayType == ZONE_DISPLAY_TYPE_SOLO_DUNGEON  then 
+             zone = string.format("%s %s%s", VEQ.mylanguage.lang_tracker_type_solo, VEQ.mylanguage.lang_tracker_type_dungeon, pzone)
          elseif VEQ.GetQuestLine(qname) == VEQ.mylanguage.lang_tracker_type_arena then
              zone = string.format("%s %s%s", VEQ.mylanguage.lang_tracker_type_group, VEQ.mylanguage.lang_tracker_type_arena, pzone)
          else
@@ -832,22 +842,22 @@ function VEQ.CMD_DEBUG4()
   end
 end
 
-function VEQ.CMD_Position()
-  VEQ.SetPositionLockOption (false)
-  VEQ.main:ClearAnchors()
-  VEQ.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 200, 200)
-  d("VEQ Tracker reset to be visible!  Tracker is unlocked, position and be sure to lock otherwise you will not be able to select quests with mouse!")
-end
+-- function VEQ.CMD_Position()
+  -- VEQ.SetPositionLockOption (false)
+  -- VEQ.main:ClearAnchors()
+  -- VEQ.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 200, 200)
+  -- d("VEQ Tracker reset to be visible!  Tracker is unlocked, position and be sure to lock otherwise you will not be able to select quests with mouse!")
+-- end
 
-function VEQ.CMD_ToggleLock()
-  if VEQ.SavedVars.PositionLockOption == true then
-  VEQ.SetPositionLockOption(false)
-  d("Tracker Position Unlocked")
-  else
-  VEQ.SetPositionLockOption(true)
-  d("Tracker Position Locked")
-  end
-end
+-- function VEQ.CMD_ToggleLock()
+  -- if VEQ.SavedVars.PositionLockOption == true then
+  -- VEQ.SetPositionLockOption(false)
+  -- d("Tracker Position Unlocked")
+  -- else
+  -- VEQ.SetPositionLockOption(true)
+  -- d("Tracker Position Locked")
+  -- end
+-- end
 
 --*********************************************************************************
 --* Get/Set Commands                                                              *
@@ -901,20 +911,20 @@ end
 
 
 -- Position
-function VEQ.GetPositionLockOption()
-  return VEQ.SavedVars.PositionLockOption
-end
-function VEQ.SetPositionLockOption(newOpt)
-  VEQ.SavedVars.PositionLockOption = newOpt
-  if newOpt == true then
-    VEQ.main:SetMouseEnabled(false)
-    VEQ.main:SetMovable(false)
-  else
-    VEQ.main:SetMouseEnabled(true)
-    VEQ.main:SetMovable(true)
-  end
-  VEQ.QuestsListUpdate(1)
-end
+-- function VEQ.GetPositionLockOption()
+  -- return VEQ.SavedVars.PositionLockOption
+-- end
+-- function VEQ.SetPositionLockOption(newOpt)
+  -- VEQ.SavedVars.PositionLockOption = newOpt
+  -- if newOpt == true then
+    -- VEQ.main:SetMouseEnabled(false)
+    -- VEQ.main:SetMovable(false)
+  -- else
+    -- VEQ.main:SetMouseEnabled(true)
+    -- VEQ.main:SetMovable(true)
+  -- end
+  -- VEQ.QuestsListUpdate(1)
+-- end
 
 -- JournalInfos
 function VEQ.GetShowNumbQuestOption()
@@ -1790,7 +1800,7 @@ end
 function VEQ.SetSkyshardsOption(NewVal)
   VEQ.SavedVars.Preset = "Custom"
   VEQ.SavedVars.Skyshards = NewVal
-  CheckSkyshardDistance()
+  VEQ.CheckSkyshardDistance()
 end
 
 function VEQ.GetLeadsOption()
@@ -2614,7 +2624,15 @@ function VEQ.checkInventoryOnStartup()-- on init only
                    thievesMuseumPiece = true break
                 end 
              end
-             if (specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_MUSEUM_PIECE or thievesMuseumPiece) and isBound and IsItemLinkBook(itemLink) == false and DoesItemLinkStartQuest(itemLink) == false then 
+             
+             ArtaeumMuseumPiece = false
+             for _,v in pairs(VEQ.MuseumPieces.Artaeum) do
+                if itemId == v then
+                   ArtaeumMuseumPiece = true break
+                end 
+             end
+             
+             if (specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_MUSEUM_PIECE or thievesMuseumPiece or ArtaeumMuseumPiece) and isBound and IsItemLinkBook(itemLink) == false and DoesItemLinkStartQuest(itemLink) == false then 
                local itemDesc = GetItemLinkFlavorText(itemLink)
              local zoneId = 1
              
@@ -2637,7 +2655,11 @@ function VEQ.checkInventoryOnStartup()-- on init only
              if zoneId == 1 and thievesMuseumPiece then
                  zoneId = 816
              end
-
+             
+             -- Artaeum / Thieves Guild Dead Drops
+             if zoneId == 1 and ArtaeumMuseumPiece then
+                 zoneId = 1011
+             end
              
              local icon = zo_iconFormatInheritColor("esoui/art/icons/servicemappins/servicepin_museum.dds", 24, 24) 
              VEQ.PerUniqueIdList[uniqueId] =  VEQ.PerUniqueIdList[uniqueId] or {}
@@ -2698,7 +2720,7 @@ function VEQ.updateTableLength(T) -- update number of miniquests
 end
 
 
-function VEQ.SlotUpdated(bagId, slotIndex)
+function VEQ.SlotUpdated(bagId, slotIndex, isNew)
   if not IsPlayerActivated() then return end 
     -- create table if it doesn't exist
    VEQ.MiniQuestList = VEQ.MiniQuestList or {}
@@ -2720,7 +2742,7 @@ function VEQ.SlotUpdated(bagId, slotIndex)
   if bagId ~= BAG_BACKPACK then
     if bagId == BAG_WORN and (slotIndex == EQUIP_SLOT_POISON or slotIndex == EQUIP_SLOT_BACKUP_POISON) then
       VEQ.CombatState()
-    else
+    elseif bagId ~= BAG_VIRTUAL then
       return
     end 
   end
@@ -2843,11 +2865,17 @@ function VEQ.SlotUpdated(bagId, slotIndex)
   if VEQ.SavedVars.MuseumPieces then
        thievesMuseumPiece = false
      for _,v in pairs(VEQ.MuseumPieces.Thieves) do
-      if itemId == v then
-         thievesMuseumPiece = true break
-      end 
+        if itemId == v then
+           thievesMuseumPiece = true break
+        end 
      end
-     if (specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_MUSEUM_PIECE or thievesMuseumPiece) and isBound and IsItemLinkBook(link) == false and DoesItemLinkStartQuest(link) == false then  
+     ArtaeumMuseumPiece = false
+     for _,v in pairs(VEQ.MuseumPieces.Artaeum) do
+        if itemId == v then
+           ArtaeumMuseumPiece = true break
+        end 
+     end
+     if (specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_MUSEUM_PIECE or thievesMuseumPiece or ArtaeumMuseumPiece) and isBound and IsItemLinkBook(link) == false and DoesItemLinkStartQuest(link) == false then
        local itemDesc = GetItemLinkFlavorText(link)
        local zoneId = 1
        
@@ -2871,6 +2899,11 @@ function VEQ.SlotUpdated(bagId, slotIndex)
          zoneId = 816
        end
        
+       -- Artaeum / Thieves Guild Dead Drops
+       if zoneId == 1 and ArtaeumMuseumPiece then
+           zoneId = 1011
+       end
+       
        local icon = zo_iconFormatInheritColor("esoui/art/icons/servicemappins/servicepin_museum.dds", 24, 24)
        VEQ.PerUniqueIdList[uniqueId] =  VEQ.PerUniqueIdList[uniqueId] or {}
        VEQ.PerUniqueIdList[uniqueId].zoneId = zoneId
@@ -2883,31 +2916,29 @@ function VEQ.SlotUpdated(bagId, slotIndex)
   
   -- perfect roe counter when fishing
   if VEQ.SavedVars.FishingAchievements then
-      if itemId == 64222 and VEQ.main and not VEQ.main:IsHidden() then
-        VEQ.Fishing()
+      if itemId == 64222 and VEQ.main and not VEQ.main:IsHidden() and isNew then
+        VEQ.Fishing(64222)
     end
   end
   
   local isInCraglorn = GetCurrentMapId() == 1126
-
-  
   -- Fortified Nirncrux counter
-  if itemId == 56862 and isInCraglorn then
+  if itemId == 56862 and isInCraglorn and isNew then
      local fortifiedNirncruxCount = GetItemLinkInventoryCount(link, INVENTORY_COUNT_BAG_OPTION_BACKPACK_AND_BANK_AND_CRAFT_BAG)
      local icon = zo_iconFormatInheritColor("/esoui/art/icons/crafting_potent_nirncrux_stone.dds", 24, 24)
-     VEQ.PerUniqueIdList[uniqueId] =  VEQ.PerUniqueIdList[uniqueId] or {}
-     VEQ.PerUniqueIdList[uniqueId].zoneId = 888
-     VEQ.PerUniqueIdList[uniqueId].text = string.format("%s%s x%s", icon, itemName, fortifiedNirncruxCount)
+     VEQ.PerUniqueIdList["fortifiedNirncrux"] =  VEQ.PerUniqueIdList["fortifiedNirncrux"] or {}
+     VEQ.PerUniqueIdList["fortifiedNirncrux"].zoneId = 888
+     VEQ.PerUniqueIdList["fortifiedNirncrux"].text = string.format("%s%s x%s", icon, itemName, fortifiedNirncruxCount)
      updateIdList = true
   end 
 
   -- Potent Nirncrux counter
-  if itemId == 56863 and isInCraglorn then
+  if itemId == 56863 and isInCraglorn and isNew then
      local potentNirncruxCount = GetItemLinkInventoryCount(link, INVENTORY_COUNT_BAG_OPTION_BACKPACK_AND_BANK_AND_CRAFT_BAG)
      local icon = zo_iconFormatInheritColor("/esoui/art/icons/crafting_potent_nirncrux_dust.dds", 24, 24)
-     VEQ.PerUniqueIdList[uniqueId] =  VEQ.PerUniqueIdList[uniqueId] or {}
-     VEQ.PerUniqueIdList[uniqueId].zoneId = 888
-     VEQ.PerUniqueIdList[uniqueId].text = string.format("%s%s x%s", icon, itemName, potentNirncruxCount)
+     VEQ.PerUniqueIdList["potentNirncrux"] =  VEQ.PerUniqueIdList["potentNirncrux"] or {}
+     VEQ.PerUniqueIdList["potentNirncrux"].zoneId = 888
+     VEQ.PerUniqueIdList["potentNirncrux"].text = string.format("%s%s x%s", icon, itemName, potentNirncruxCount)
      updateIdList = true
   end
 
@@ -2918,21 +2949,20 @@ function VEQ.SlotUpdated(bagId, slotIndex)
 end
 
 function VEQ.SlotRemoved(bagId, slotIndex, oldSlotData)
-  if bagId ~= BAG_BACKPACK then return end
+  if bagId ~= BAG_BACKPACK then return end 
   
-   if not IsPlayerActivated() then return end
-   -- create table if it doesn't exist
-   VEQ.PerUniqueIdList = VEQ.PerUniqueIdList or {}
+  if not IsPlayerActivated() then return end
+  -- create table if it doesn't exist
+  VEQ.PerUniqueIdList = VEQ.PerUniqueIdList or {}
   
-    -- Lost treasure integration
+  -- Lost treasure integration
   if VEQ.PerUniqueIdList[oldSlotData.uniqueId] then 
       VEQ.PerUniqueIdList[oldSlotData.uniqueId] = nil
-    
-    VEQ.updatePerZoneDisplay()
+      VEQ.updatePerZoneDisplay()
   end
-  
-   VEQ.UpdateInventory()
-
+  if bagId == BAG_BACKPACK then
+     VEQ.UpdateInventory()
+  end
 end
 
 
@@ -4187,8 +4217,8 @@ local VEQ_FishingZoneToAchievement = { -- that list is taken from Rare Fish Trac
   -- 4460 -- eastern
 }
 
-function VEQ.Fishing()
-    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+function VEQ.Fishing(itemId)
+    local zoneId = ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap()
     local achievementId = VEQ_FishingZoneToAchievement[zoneId]
   
   if zoneId == 1502 then -- Eastern or Western Solstice? 
@@ -4202,47 +4232,82 @@ function VEQ.Fishing()
     else
         achievementId = 4460 -- Western Solstice
     end
-    
   end
+  
+  VEQ.FishingCounter = VEQ.FishingCounter or {}
   
   local achievementName, achievementDescription, achievementPoints, achievementIcon, achievementCompleted, achievementDate, achievementTime = GetAchievementInfo(achievementId)
   local numCriteria = GetAchievementNumCriteria(achievementId)
   
-  local numPerfectRoe = GetItemLinkInventoryCount("|H0:item:64222:370:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", INVENTORY_COUNT_BAG_OPTION_BACKPACK_AND_BANK_AND_CRAFT_BAG)
-   
-    if achievementCompleted and numPerfectRoe == 0 then 
-    if VEQ.MiniQuestList[21] then VEQ.MiniQuestList[21] = nil end
-    if VEQ.MiniQuestList then VEQ.updateTableLength(VEQ.MiniQuestList) end
-    VEQ.DisplayFocusedMiniQuest()
-    return  
+  --local numPerfectRoe = GetItemLinkInventoryCount("|H0:item:64222:370:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", INVENTORY_COUNT_BAG_OPTION_BACKPACK_AND_BANK_AND_CRAFT_BAG)
+  local itemType, specializedItemType = GetItemLinkItemType(string.format("|H0:item:%s:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId))
+  
+  local nonFishCatches = {[217654] = true, [197853] = true, [139011] = true, [140443] = true, [43757] = true,
+  [118903] = true, [118902] = true, [118338] = true, [118359] = true, [118358] = true, [118339] = true, [118357] = true, [118337] = true, [120753] = true, [120755] = true, [120754] = true, [118901] = true, [118900] = true, [118897] = true, [118896] = true, [118899] = true, [118898] = true, [139082] = true, [139081] = true, [139080] = true, [139077] = true, [139079] = true, [139078] = true, [145402] = true, [64222] = true}
+  
+  -- we count every item for the future display
+  if itemType == ITEMTYPE_FISH or specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH or nonFishCatches[itemId] then
+     local icon = GetItemLinkIcon(string.format("|H0:item:%s:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId))
+     local name = GetItemLinkName(string.format("|H0:item:%s:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId))
+     local format = "|t24:24:"..icon.."|t".." "..VEQ.KillTheRubbish(name)
+     
+     VEQ.FishingCounter[zoneId] = VEQ.FishingCounter[zoneId] or {}
+     VEQ.FishingCounter[zoneId][format] = VEQ.FishingCounter[zoneId][format] or {}
+     if VEQ.FishingCounter[zoneId][format].counter then
+        VEQ.FishingCounter[zoneId][format].counter = VEQ.FishingCounter[zoneId][format].counter + 1
+     else
+        VEQ.FishingCounter[zoneId][format].counter = 1
+     end
+     VEQ.FishingCounter[zoneId][format].text = format.." x"..VEQ.FishingCounter[zoneId][format].counter
   end
+  
+   VEQ.FishingCounter[zoneId] = VEQ.FishingCounter[zoneId] or {}
+   if NonContiguousCount( VEQ.FishingCounter[zoneId]) == 0  then
+       return
+   end
    
    local criterionText = {}
-   for criterionIndex=1, numCriteria do
-     local description, numCompleted, numRequired = GetAchievementCriterion(achievementId, criterionIndex)
+   if not achievementCompleted then
+     for criterionIndex=1, numCriteria do
+       local description, numCompleted, numRequired = GetAchievementCriterion(achievementId, criterionIndex)
+       
+      if NonContiguousCount(criterionText) == 0 then 
+           table.insert(criterionText, string.format("%s\n",  achievementDescription))
+       end
+       if numCompleted ~= numRequired then 
+           table.insert(criterionText, string.format("%s%s\n", zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), description))
+       end
+     end
      
-    if NonContiguousCount(criterionText) == 0 then 
-         table.insert(criterionText, string.format("%s\n",  achievementDescription))
+     -- fish counter after angler achievement 
+     VEQ.FishingCounter[zoneId] = VEQ.FishingCounter[zoneId] or {}
+     table.insert(criterionText, string.format("\n%s%s:\n", zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10),GetString(SI_ITEM_SET_CATEGORY_SUMMARY_LABEL)))
+     for k, v in pairs(VEQ.FishingCounter[zoneId]) do
+          table.insert(criterionText, string.format("%s\n",  v.text))
      end
-     if numCompleted ~= numRequired then 
-         table.insert(criterionText, string.format("%s%s\n", zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), description))
-     end
+     
+   else -- fish counter after angler achievement 
+       VEQ.FishingCounter[zoneId] = VEQ.FishingCounter[zoneId] or {}
+       table.insert(criterionText, string.format("%s:\n",  GetString(SI_ITEM_SET_CATEGORY_SUMMARY_LABEL)))
+       for k, v in pairs(VEQ.FishingCounter[zoneId]) do
+          table.insert(criterionText, string.format("%s\n",  v.text))
+       end
    end
    
    criterionText = table.concat(criterionText)
    
-   local perfectRoetext = "" 
+   -- local perfectRoetext = "" 
    
-   if numPerfectRoe > 0 then
-       perfectRoetext = string.format("%s: %s", GetItemLinkName("|H0:item:64222:370:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"), numPerfectRoe)
-   end
+   -- if numPerfectRoe > 0 then
+       -- perfectRoetext = string.format("%s: %s", GetItemLinkName("|H0:item:64222:370:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"), numPerfectRoe)
+   -- end
    
    
-   if criterionText == "" then
-      criterionText = string.format("%s%s\n", criterionText, perfectRoetext)
-   elseif perfectRoetext ~= "" then
-      criterionText = string.format("%s%s%s\n", criterionText, zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), perfectRoetext)
-   end
+   -- if criterionText == "" then
+      -- criterionText = string.format("%s%s\n", criterionText, perfectRoetext)
+   -- elseif perfectRoetext ~= "" then
+      -- criterionText = string.format("%s%s%s\n", criterionText, zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), perfectRoetext)
+   -- end
    
    VEQ.LoadMiniQuestsInfo(21, 21, achievementName, criterionText, string.format("%s - %s", GetString(SI_GUILDACTIVITYATTRIBUTEVALUE9), GetUnitZone("player")), "esoui/art/tutorial/gamepad/achievement_categoryicon_fishing.dds")
    VEQ.DisplayFocusedMiniQuest()
@@ -4296,7 +4361,7 @@ function VEQ.zoneStoryTracker(dontTrack)
      
      -- auto enable zone story tracker for current zone if there is no active quest in zone
      if (not VEQ.isThereAnyActiveQuestInZone()) and (not VEQ.isCurrentZoneTrackedZoneStory()) and not dontTrack then 
-       TrackNextActivityForZoneStory(pZoneID, nil, false)
+       TrackNextActivityForZoneStory(pZoneID, nil, nil, false)
        VEQ.zoneStoryTracker(true)
      end
 end
@@ -5586,13 +5651,13 @@ function VEQ.DrawHealthBarName(unitTag, groupedCompanion)
    if unitName == "" then unitName = GetRawUnitName(unitTag) or "Companion" end
    if groupedCompanion then unitName = GetString(SI_COLLECTIBLECATEGORYTYPE27) end
    
-     local currentHealth, maxHealth, effectiveMaxHealth = GetUnitPower(unitTag, POWERTYPE_HEALTH)
+   local currentHealth, maxHealth, effectiveMaxHealth = GetUnitPower(unitTag, POWERTYPE_HEALTH)
    if IsUnitDead(unitTag) then currentHealth = 0 end
    local healthPercent = math.floor(currentHealth/maxHealth*100)
    local formattedHealth = currentHealth
    if formattedHealth > 999 then
       formattedHealth = string.format("%sK", math.floor((formattedHealth/1000)*10)/10)
-     end
+   end
    
    local healthPercentText = ""
    if (healthPercent ~= 100 and healthPercent ~= 0) or (maxHealth < 30000 and IsPlayerInAvAWorld()) then -- Grouped players with less than 30k health are exposed in AvA
@@ -5757,7 +5822,7 @@ function VEQ.Rumors()
   end
   
    local pendingRumors = GetNumPendingRumors()
-   local maxPendingRumors = GetMaxPendingRumors() -- max = 5
+   local maxPendingRumors = GetMaxPendingRumors()
    
    if pendingRumors == 0 then
        -- stop displaying & return
@@ -5765,32 +5830,55 @@ function VEQ.Rumors()
        return
    end
    
+   local function get_last_book(tbl)
+        if NonContiguousCount(tbl) == 0 then return 0 end 
+        local max_val = 0 
+        local book_id = 0
+        for i, v in pairs(tbl) do
+            if v.order > max_val then
+                max_val = v.order
+                book_id = v.bookId
+            end
+        end
+        return book_id
+   end
+   
+   
    for i = 1, GetNumRumors() do
       local rumorId = GetRumorIdAtIndex(i)
       if IsRumorPending(rumorId) then
           -- display rumor
           local rumorName = GetRumorDisplayName(rumorId)
-          local rumorType = GetString("SI_RUMORTYPE", GetRumorType(rumorId))
+          local rumorType = GetString(SI_GAMEPAD_QUEST_JOURNAL_RUMORS_CURRENT_MAX_LABEL).." "..pendingRumors.."/"..maxPendingRumors.." - "..GetString("SI_RUMORTYPE", GetRumorType(rumorId))
           local backgroundText = GetRumorBackgroundText(rumorId)
-          local completeText = GetRumorCompleteText(rumorId)
           local text = {}
           table.insert(text, string.format("%s\n", backgroundText))
-          table.insert(text, string.format("%s%s\n", zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), completeText))
           
+          local function ReplaceColorTag(text)
+              return string.gsub(text, "(|c)%x%x%x%x%x%x", "%1" .. "9DFE00") 
+          end
           
-          for j = 1, GetNumHintsForPendingRumor(rumorId) do
+          local numHints = GetNumHintsForPendingRumor(rumorId)
+          for j = 1, numHints do
               local discovered = HasDiscoveredRumorHint(rumorId, j)
               local hintName = GetRumorHintDisplayName(rumorId, j)
               local hintDescription = GetRumorHintDescription(rumorId, j)
               local hintIcon = GetRumorHintIcon(rumorId, j)
+              local rumorHintBookId = GetRumorHintBook(rumorId, j)
+              local body = ReadLoreBook(GetLoreBookIndicesFromBookId(rumorHintBookId))
+              local libraryIcon = ""
               
-              if not discovered then
-                 table.insert(text, string.format("%s%s\n%s%s\n", zo_iconFormatInheritColor(hintIcon,24,4), hintName, zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), hintDescription))
+              if body and body ~= "" and rumorHintBookId ~= 0 then
+                 libraryIcon = zo_iconFormatInheritColor("/esoui/art/menubar/gamepad/gp_playermenu_icon_lorelibrary.dds",24,24)
+              end
+
+              if discovered then
+                 table.insert(text, string.format("\n%s%s%s\n%s\n", zo_iconFormatInheritColor(hintIcon,24,24), hintName, libraryIcon, hintDescription))
               end
           end
           
           text = table.concat(text)
-          VEQ.LoadMiniQuestsInfo(4, rumorName, rumorType, text,  rumorName, "esoui/art/journal/gamepad/gp_journal_rumors_tabicon_up.dds", 0, 0)
+          VEQ.LoadMiniQuestsInfo(4, rumorName, rumorName, text, rumorType, "esoui/art/journal/gamepad/gp_journal_rumors_tabicon_up.dds", 0, 0)
       else
            -- remove from display
           if VEQ.MiniQuestList[GetRumorDisplayName(rumorId)] then VEQ.MiniQuestList[GetRumorDisplayName(rumorId)] = nil end
@@ -6036,8 +6124,7 @@ function VEQ.CheckDragonguardSupplyChest()
    end    
 end
 
--- /script VEQ.GetNearlyDoneAchievement(1689)
--- /script VEQ.GetNearlyDoneAchievement(3911)
+
 function VEQ.GetNearlyDoneAchievement(id)
     
   if not VEQ.SavedVars.NearlyDoneAchievements then
@@ -6051,10 +6138,23 @@ function VEQ.GetNearlyDoneAchievement(id)
     return
   end
   
+  if id and id == 0 then
+      id = nil 
+      VEQ.CurrentAchievementId = nil
+  end
+  
+  local pinned = ""
+  local trackedAchievementId, trackedCriterion =  GetTrackedAchievement()
+  if trackedAchievementId and trackedAchievementId ~= 0 then
+      id = trackedAchievementId 
+      VEQ.CurrentAchievementId = trackedAchievementId
+      pinned = zo_iconFormat("/esoui/art/tutorial/gamepad/gp_trackingpin.dds",20,20)
+  end  
+  
   local nearlyDoneAchievements = {}
   
   if id and id == VEQ.CurrentAchievementId then
-      local achievementId = id
+    local achievementId = id
     local name, description, points, icon, completed = GetAchievementInfo(achievementId)
     if not completed then
       local numCriterion = GetAchievementNumCriteria(achievementId)
@@ -6173,7 +6273,7 @@ function VEQ.GetNearlyDoneAchievement(id)
         persistanceIcon = ZO_SECOND_SELECTED_TEXT:Colorize(zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_charnameicon.dds", 24, 24))
       end
     
-    VEQ.LoadMiniQuestsInfo(23, 23, string.format("%s %s", nearlyDoneAchievements[randomIndex].name, nearlyDoneAchievements[randomIndex].completion), nearlyDoneAchievements[randomIndex].description, string.format("%s%s", persistanceIcon, GetString(SI_GROUPFINDERPLAYSTYLE8)), "esoui/art/menubar/gamepad/gp_playermenu_icon_achievements.dds")
+    VEQ.LoadMiniQuestsInfo(23, 23, string.format("%s %s", nearlyDoneAchievements[randomIndex].name, nearlyDoneAchievements[randomIndex].completion), nearlyDoneAchievements[randomIndex].description, string.format("%s%s", persistanceIcon, pinned..GetString(SI_GROUPFINDERPLAYSTYLE8)), "esoui/art/menubar/gamepad/gp_playermenu_icon_achievements.dds")
     VEQ.DisplayFocusedMiniQuest()
   end
 end
@@ -6182,7 +6282,7 @@ end
 function VEQ.UpdatebackgroundOpacity()
    -- Prevent the 1s ClockUpdate tick from spawning a second overlapping
    -- 50ms fade chain while a previous one is still running.
-   if VEQ.isFadingBG then return end
+   if VEQ.isFadingBG or SCENE_MANAGER:GetCurrentSceneName() ==  "hud_editor_keyboard" then return end
 
    local currentOpacity = VEQ.bgtx:GetAlpha()
    if IsPlayerMoving() or IsUnitActivelyEngaged("player") or VEQ.bg:IsHidden() or not VEQ.SavedVars.IntelligentBackground then

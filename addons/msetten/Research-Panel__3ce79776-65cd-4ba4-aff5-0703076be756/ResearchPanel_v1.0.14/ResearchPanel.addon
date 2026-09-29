@@ -1,0 +1,12 @@
+## Title: Research Panel
+## Author: msetten
+## Version: 1.0.14
+## APIVersion: 101048 101049 101050 101051
+## AddOnVersion: 1
+## SavedVariables: ResearchPanelSavedVars ResearchPanelCharVars
+## OptionalDependsOn: LibAddonMenu-2.0
+
+Languages.lua
+Settings.lua
+ResearchPanel.lua
+ResearchPanel.xml

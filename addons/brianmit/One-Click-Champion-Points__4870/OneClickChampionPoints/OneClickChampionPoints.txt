@@ -1,0 +1,17 @@
+## Title: One Click Champion Points
+## Description: Displays recommended Champion Point setups for every class and role (PvE Damage Dealer, Tank and Healer, plus PvP) and applies the selected setup in a single click after your Champion Points have been redistributed.
+## Author: brianmit
+## Version: 1.1.0
+## AddOnVersion: 110
+## APIVersion: 101050 101051
+## SavedVariables: OCCP_SV
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved
+;
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+OCCP_Data.lua
+OCCP_Apply.lua
+OCCP.lua

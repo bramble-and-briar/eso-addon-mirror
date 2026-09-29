@@ -190,60 +190,76 @@ A.BREACH = Effect:New(8, "Breach")
 A.COWARDICE = Effect:New(12, "Cowardice")
 A.DEFILE = Effect:New(30, "Defile")
 A.DETECTION = Effect:New(21, "Detection")
-A.ENERVATION = Effect:New(18, "Enervation")
+A.ENERVATION = Effect:New(36, "Enervation")
 A.ENTRAPMENT = Effect:New(20, "Entrapment")
 A.FRACTURE = Effect:New(10, "Fracture")
 A.GRADUAL_RAVAGE_HEALTH = Effect:New(28, "Gradual Ravage Health")
+A.HEAL_ABSORPTION = Effect:New(34, "Heal Absorption")
 A.HINDRANCE = Effect:New(24, "Hindrance")
-A.INCREASE_ARMOR = Effect:New(9, "Increase Armor", A.FRACTURE)
-A.INCREASE_SPELL_POWER = Effect:New(11, "Increase Spell Power", A.COWARDICE)
-A.INCREASE_SPELL_RESIST = Effect:New(7, "Increase Spell Resist", A.BREACH)
-A.INCREASE_WEAPON_POWER = Effect:New(13, "Increase Weapon Power")
-A.INVISIBLE = Effect:New(22, "Invisible", A.DETECTION)
-A.LINGERING_HEALTH = Effect:New(27, "Lingering Health", A.GRADUAL_RAVAGE_HEALTH)
-A.MAIM = Effect:New(14, "Maim", A.INCREASE_WEAPON_POWER)
-A.PROTECTION = Effect:New(25, "Protection")
 A.RAVAGE_HEALTH = Effect:New(2, "Ravage Health")
 A.RAVAGE_MAGICKA = Effect:New(4, "Ravage Magicka")
 A.RAVAGE_STAMINA = Effect:New(6, "Ravage Stamina")
+A.TIMIDITY = Effect:New(32, "Timidity")
+A.UNCERTAINTY = Effect:New(16, "Uncertainty")
+A.VEXATION = Effect:New(38, "Vexation")
+A.VULNERABILITY = Effect:New(26, "Vulnerability")
+A.CRITICAL = Effect:New(15, "Critical", A.UNCERTAINTY)
+A.DAMAGE_SHIELD = Effect:New(33, "Damage Shield", A.HEAL_ABSORPTION)
+A.FORCE = Effect:New(35, "Force", A.ENERVATION)
+A.HEROISM = Effect:New(31, "Heroism", A.TIMIDITY)
+A.INCREASE_ARMOR = Effect:New(9, "Increase Armor", A.FRACTURE)
+A.INCREASE_POWER = Effect:New(11, "Increase Power", A.COWARDICE)
+A.INCREASE_SPELL_RESIST = Effect:New(7, "Increase Spell Resist", A.BREACH)
+A.INVISIBLE = Effect:New(22, "Invisible", A.DETECTION)
+A.LINGERING_HEALTH = Effect:New(27, "Lingering Health", A.GRADUAL_RAVAGE_HEALTH)
+A.MENDING = Effect:New(37, "Mending", A.VEXATION)
+A.PROTECTION = Effect:New(25, "Protection", A.VULNERABILITY)
 A.RESTORE_HEALTH = Effect:New(1, "Restore Health", A.RAVAGE_HEALTH)
 A.RESTORE_MAGICKA = Effect:New(3, "Restore Magicka", A.RAVAGE_MAGICKA)
 A.RESTORE_STAMINA = Effect:New(5, "Restore Stamina", A.RAVAGE_STAMINA)
 A.SPEED = Effect:New(23, "Speed", A.HINDRANCE)
-A.SPELL_CRITICAL = Effect:New(15, "Spell Critical")
-A.UNCERTAINTY = Effect:New(16, "Uncertainty", A.SPELL_CRITICAL)
 A.UNSTOPPABLE = Effect:New(19, "Unstoppable", A.ENTRAPMENT)
 A.VITALITY = Effect:New(29, "Vitality", A.DEFILE)
-A.VULNERABILITY = Effect:New(26, "Vulnerability", A.PROTECTION)
-A.WEAPON_CRITICAL = Effect:New(17, "Weapon Critical", A.ENERVATION)
 
 -- Reagents
-A.BLESSED_THISTLE = Reagent:New("Blessed Thistle", { A.RESTORE_STAMINA, A.INCREASE_WEAPON_POWER, A.RAVAGE_HEALTH, A.SPEED })
-A.BLUE_ENTOLOMA = Reagent:New("Blue Entoloma", { A.RAVAGE_MAGICKA, A.COWARDICE, A.RESTORE_HEALTH, A.INVISIBLE })
-A.BUGLOSS = Reagent:New("Bugloss", { A.INCREASE_SPELL_RESIST, A.COWARDICE, A.RESTORE_HEALTH, A.RESTORE_MAGICKA })
-A.COLUMBINE = Reagent:New("Columbine", { A.RESTORE_HEALTH, A.RESTORE_STAMINA, A.RESTORE_MAGICKA, A.UNSTOPPABLE })
-A.CORN_FLOWER = Reagent:New("Corn Flower", { A.RESTORE_MAGICKA, A.RAVAGE_HEALTH, A.INCREASE_SPELL_POWER, A.DETECTION })
-A.DRAGONTHORN = Reagent:New("Dragonthorn", { A.INCREASE_WEAPON_POWER, A.FRACTURE, A.RESTORE_STAMINA, A.WEAPON_CRITICAL })
-A.EMETIC_RUSSULA = Reagent:New("Emetic Russula", { A.RAVAGE_HEALTH, A.RAVAGE_STAMINA, A.RAVAGE_MAGICKA, A.ENTRAPMENT })
-A.IMP_STOOL = Reagent:New("Imp Stool", { A.MAIM, A.INCREASE_ARMOR, A.RAVAGE_STAMINA, A.ENERVATION })
-A.LADYS_SMOCK = Reagent:New("Lady's Smock", { A.INCREASE_SPELL_POWER, A.BREACH, A.RESTORE_MAGICKA, A.SPELL_CRITICAL })
-A.LUMINOUS_RUSSULA = Reagent:New("Luminous Russula", { A.RAVAGE_STAMINA, A.RESTORE_HEALTH, A.MAIM, A.HINDRANCE })
-A.MOUNTAIN_FLOWER = Reagent:New("Mountain flower", { A.INCREASE_ARMOR, A.MAIM, A.RESTORE_HEALTH, A.RESTORE_STAMINA })
-A.NAMIRAS_ROT = Reagent:New("Namira's Rot", { A.SPELL_CRITICAL, A.INVISIBLE, A.SPEED, A.UNSTOPPABLE })
-A.NIRNROOT = Reagent:New("Nirnroot", { A.RAVAGE_HEALTH, A.ENERVATION, A.UNCERTAINTY, A.INVISIBLE })
-A.STINKHORN = Reagent:New("Stinkhorn", { A.FRACTURE, A.INCREASE_WEAPON_POWER, A.RAVAGE_HEALTH, A.RAVAGE_STAMINA })
-A.VIOLET_COPRINUS = Reagent:New("Violet Coprinus", { A.BREACH, A.INCREASE_SPELL_POWER, A.RAVAGE_HEALTH, A.RAVAGE_MAGICKA })
-A.WATER_HYACINTH = Reagent:New("Water Hyacinth", { A.RESTORE_HEALTH, A.WEAPON_CRITICAL, A.SPELL_CRITICAL, A.ENTRAPMENT })
-A.WHITE_CAP = Reagent:New("White Cap", { A.COWARDICE, A.INCREASE_SPELL_RESIST, A.RAVAGE_MAGICKA, A.DETECTION })
-A.WORMWOOD = Reagent:New("Wormwood", { A.WEAPON_CRITICAL, A.DETECTION, A.HINDRANCE, A.UNSTOPPABLE })
-A.BEETLE_SCUTTLE = Reagent:New("Beetle Scuttle", { A.BREACH, A.PROTECTION, A.INCREASE_ARMOR, A.VITALITY })
-A.BUTTERFLY_WING = Reagent:New("Butterfly Wing", { A.RESTORE_HEALTH, A.LINGERING_HEALTH, A.UNCERTAINTY, A.VITALITY })
-A.FLESHFLY_LARVA = Reagent:New("Fleshfly Larva", { A.RAVAGE_STAMINA, A.GRADUAL_RAVAGE_HEALTH, A.VULNERABILITY, A.VITALITY })
-A.MUDCRAB_CHITIN = Reagent:New("Mudcrab Chitin", { A.INCREASE_SPELL_RESIST, A.PROTECTION, A.INCREASE_ARMOR, A.DEFILE })
-A.NIGHTSHADE = Reagent:New("Nightshade", { A.RAVAGE_HEALTH, A.GRADUAL_RAVAGE_HEALTH, A.PROTECTION, A.DEFILE })
-A.SCRIB_JELLY = Reagent:New("Scrib Jelly", { A.RAVAGE_MAGICKA, A.VULNERABILITY, A.SPEED, A.LINGERING_HEALTH })
-A.SPIDER_EGG = Reagent:New("Spider Egg", { A.HINDRANCE, A.LINGERING_HEALTH, A.INVISIBLE, A.DEFILE })
-A.TORCHBUG_THORAX = Reagent:New("Torchbug Thorax", { A.FRACTURE, A.DETECTION, A.ENERVATION, A.VITALITY })
+A.BEETLE_SCUTTLE = Reagent:New("Beetle Scuttle", { A.BREACH, A.INCREASE_ARMOR, A.PROTECTION, A.VITALITY })
+A.BLESSED_THISTLE = Reagent:New("Blessed Thistle", { A.RESTORE_STAMINA, A.INCREASE_POWER, A.HEAL_ABSORPTION, A.SPEED })
+A.BLUE_ENTOLOMA = Reagent:New("Blue Entoloma", { A.RAVAGE_MAGICKA, A.HEAL_ABSORPTION, A.RESTORE_HEALTH, A.INVISIBLE })
+A.BUGLOSS = Reagent:New("Bugloss", { A.INCREASE_SPELL_RESIST, A.RESTORE_HEALTH, A.MENDING, A.RESTORE_MAGICKA })
+A.BUTTERFLY_WING = Reagent:New("Butterfly Wing", { A.RESTORE_HEALTH, A.DAMAGE_SHIELD, A.LINGERING_HEALTH, A.VITALITY })
+A.CHAURUS_EGG = Reagent:New("Chaurus Egg", { A.TIMIDITY, A.RAVAGE_MAGICKA, A.VEXATION, A.DETECTION })
+A.CLAM_GALL = Reagent:New("Clam Gall", { A.INCREASE_SPELL_RESIST, A.HINDRANCE, A.VULNERABILITY, A.DEFILE })
+A.COLUMBINE = Reagent:New("Columbine", { A.RESTORE_HEALTH, A.RESTORE_MAGICKA, A.RESTORE_STAMINA, A.UNSTOPPABLE })
+A.CORN_FLOWER = Reagent:New("Corn Flower", { A.RESTORE_MAGICKA, A.INCREASE_POWER, A.RAVAGE_HEALTH, A.DETECTION })
+A.CRIMSON_NIRNROOT = Reagent:New("Crimson Nirnroot", { A.TIMIDITY, A.FORCE, A.GRADUAL_RAVAGE_HEALTH, A.RESTORE_HEALTH })
+A.CULTIVATED_CRYPTPODS = Reagent:New("Cultivated Cryptpods", { A.HEROISM, A.INCREASE_POWER, A.MENDING, A.DAMAGE_SHIELD })
+A.DAEDRA_BLOOD_MAGGOTS = Reagent:New("Daedra-Blood Maggots", { A.DEFILE, A.HEAL_ABSORPTION, A.COWARDICE, A.ENTRAPMENT })
+A.DRAGONS_BILE = Reagent:New("Dragon's Bile", { A.HEROISM, A.VULNERABILITY, A.INVISIBLE, A.VITALITY })
+A.DRAGONS_BLOOD = Reagent:New("Dragon's Blood", { A.LINGERING_HEALTH, A.RESTORE_STAMINA, A.HEROISM, A.DEFILE })
+A.DRAGON_RHEUM = Reagent:New("Dragon Rheum", { A.RESTORE_MAGICKA, A.UNCERTAINTY, A.HEROISM, A.SPEED })
+A.DRAGONTHORN = Reagent:New("Dragonthorn", { A.INCREASE_POWER, A.RESTORE_STAMINA, A.FRACTURE, A.CRITICAL })
+A.EMETIC_RUSSULA = Reagent:New("Emetic Russula", { A.RAVAGE_HEALTH, A.RAVAGE_MAGICKA, A.RAVAGE_STAMINA, A.ENTRAPMENT })
+A.FLESHFLY_LARVA = Reagent:New("Fleshfly Larva", { A.RAVAGE_STAMINA, A.VULNERABILITY, A.GRADUAL_RAVAGE_HEALTH, A.VITALITY })
+A.FOSSILIZED_VERMINOUS_BONES = Reagent:New("Fossilized Verminous Bones", { A.HEROISM, A.RESTORE_STAMINA, A.FORCE, A.DETECTION })
+A.IMP_STOOL = Reagent:New("Imp Stool", { A.COWARDICE, A.RAVAGE_STAMINA, A.INCREASE_ARMOR, A.ENERVATION })
+A.LADYS_SMOCK = Reagent:New("Lady's Smock", { A.FORCE, A.RESTORE_MAGICKA, A.BREACH, A.CRITICAL })
+A.LUMINOUS_RUSSULA = Reagent:New("Luminous Russula", { A.RAVAGE_STAMINA, A.RESTORE_HEALTH, A.HINDRANCE, A.COWARDICE })
+A.MOUNTAIN_FLOWER = Reagent:New("Mountain flower", { A.INCREASE_ARMOR, A.RESTORE_HEALTH, A.COWARDICE, A.RESTORE_STAMINA })
+A.MUDCRAB_CHITIN = Reagent:New("Mudcrab Chitin", { A.INCREASE_SPELL_RESIST, A.INCREASE_ARMOR, A.PROTECTION, A.DEFILE })
+A.NAMIRAS_ROT = Reagent:New("Namira's Rot", { A.ENERVATION, A.SPEED, A.INVISIBLE, A.UNSTOPPABLE })
+A.NIGHTSHADE = Reagent:New("Nightshade", { A.RAVAGE_HEALTH, A.PROTECTION, A.GRADUAL_RAVAGE_HEALTH, A.DEFILE })
+A.NIRNROOT = Reagent:New("Nirnroot", { A.RAVAGE_HEALTH, A.UNCERTAINTY, A.INVISIBLE, A.HEAL_ABSORPTION })
+A.POWDERED_MOTHER_OF_PEARL = Reagent:New("Powdered Mother of Pearl", { A.MENDING, A.SPEED, A.VITALITY, A.PROTECTION })
+A.SCRIB_JELLY = Reagent:New("Scrib Jelly", { A.VEXATION, A.SPEED, A.VULNERABILITY, A.LINGERING_HEALTH })
+A.SPIDER_EGG = Reagent:New("Spider Egg", { A.HINDRANCE, A.INVISIBLE, A.DAMAGE_SHIELD, A.DEFILE })
+A.STINKHORN = Reagent:New("Stinkhorn", { A.FRACTURE, A.RAVAGE_HEALTH, A.FORCE, A.RAVAGE_STAMINA })
+A.TORCHBUG_THORAX = Reagent:New("Torchbug Thorax", { A.FRACTURE, A.UNCERTAINTY, A.DETECTION, A.MENDING })
+A.VILE_COAGULANT = Reagent:New("Vile Coagulant", { A.TIMIDITY, A.RAVAGE_HEALTH, A.RESTORE_MAGICKA, A.PROTECTION })
+A.VIOLET_COPRINUS = Reagent:New("Violet Coprinus", { A.BREACH, A.RAVAGE_HEALTH, A.INCREASE_POWER, A.RAVAGE_MAGICKA })
+A.WATER_HYACINTH = Reagent:New("Water Hyacinth", { A.RESTORE_HEALTH, A.CRITICAL, A.ENTRAPMENT, A.DAMAGE_SHIELD })
+A.WHITE_CAP = Reagent:New("White Cap", { A.ENERVATION, A.RAVAGE_MAGICKA, A.INCREASE_SPELL_RESIST, A.DETECTION })
+A.WINTERS_GRAVE_TONGUE = Reagent:New("Winter's Grave Tongue", { A.VEXATION, A.HEAL_ABSORPTION, A.DEFILE, A.BREACH })
+A.WORMWOOD = Reagent:New("Wormwood", { A.CRITICAL, A.HINDRANCE, A.DETECTION, A.UNSTOPPABLE })
 
 -- If a permutation of three reagents produces the requested three effects,
 -- return true. If not, false.
@@ -419,6 +435,9 @@ end
 
 function Parser:ToMatList()
   -- d("self.r3list ct:"..tostring(#self.r3list))
+  if self.mat_list_fail_reason then
+    return nil
+  end
 
   -- Find the cheapest of multiple possible 3-tuples.
   local MatRow = WritWorthy.MatRow
@@ -447,6 +466,14 @@ function Parser:ToMatList()
       min_gold = mat_total
       min_r3 = r3
     end
+  end
+  if not min_r3 then
+    local effect_name_1 = self.effects[1] and self.effects[1].name or "?"
+    local effect_name_2 = self.effects[2] and self.effects[2].name or "?"
+    local effect_name_3 = self.effects[3] and self.effects[3].name or "?"
+    self.mat_list_fail_reason = "No reagent combo for:" .. effect_name_1 .. " + " .. effect_name_2 .. " + " .. effect_name_3
+    -- return Fail(self.mat_list_fail_reason)
+    return nil
   end
   -- Return materials for one batch of potion or poison.
   self.mat_list = {}
@@ -478,6 +505,9 @@ end
 
 function Parser:ToDolRequest(unique_id)
   local mat_list = self:ToMatList()
+  if not (mat_list and mat_list[1] and mat_list[2] and mat_list[3] and mat_list[4]) then
+    return nil
+  end
   local o = {}
   o[1] = GetItemIDFromLink(mat_list[1].link) -- solvent
   o[2] = GetItemIDFromLink(mat_list[2].link) -- reagent1

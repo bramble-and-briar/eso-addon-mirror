@@ -1,6 +1,6 @@
 ## Title: EsoTH - Thai Localization
 ## Description: Unofficial Thai Translation for The Elder Scrolls Online (Co-developed and translated by @artharth, @AAugusta, @ineonez, @Dexdota, @Curse_Thewind, @ROUGH-JOBS, @DaddyCrazy)
-## Version: 0.14.2
+## Version: 0.15
 ## APIVersion: 101044
 ## Author: @Bagheera9
 ## SavedVariables: EsoTH_Variables

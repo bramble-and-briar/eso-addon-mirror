@@ -515,20 +515,22 @@ function WritWorthy.MatUI:BuildMasterlist()
     if is_queued and not is_completed then
       local parser = inventory_data.parser
       local mat_list = parser:ToMatList()
-      for _, mat_row in ipairs(mat_list) do
-        -- Replace style mat with mimic stone, if requested.
-        local item_link = mat_row.link
-        if is_use_mimic and mat_row.can_mimic then
-          item_link = WritWorthy.LINK["mimic"]
-        end
-        -- Add to existing accumulator cell, or...
-        local mr2 = mat_table[item_link]
-        if mr2 then
-          mr2.ct = mr2.ct + mat_row.ct
-        else
-          -- Create new accumulator cell for this first appearance.
-          mr2 = WritWorthy.MatRow:FromLink(item_link, mat_row.ct)
-          mat_table[item_link] = mr2
+      if mat_list then
+        for _, mat_row in ipairs(mat_list) do
+          -- Replace style mat with mimic stone, if requested.
+          local item_link = mat_row.link
+          if is_use_mimic and mat_row.can_mimic then
+            item_link = WritWorthy.LINK["mimic"]
+          end
+          -- Add to existing accumulator cell, or...
+          local mr2 = mat_table[item_link]
+          if mr2 then
+            mr2.ct = mr2.ct + mat_row.ct
+          else
+            -- Create new accumulator cell for this first appearance.
+            mr2 = WritWorthy.MatRow:FromLink(item_link, mat_row.ct)
+            mat_table[item_link] = mr2
+          end
         end
       end
     end

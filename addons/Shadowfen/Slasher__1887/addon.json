@@ -74,7 +74,7 @@
     "Slasher"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1887/",
-  "fingerprint": "65972762f619a2f5f52f8297f977f1359572c638e230024f83b4090f4fb52291",
+  "fingerprint": "a111691893931d558c0887cb9fc3ebbd59e0a850f2a78649dd0f4e3cebf8f481",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10884.png",
     "https://cdn-eso.mmoui.com/preview/pvw10883.png",
@@ -88,11 +88,11 @@
   "source_id": "1887",
   "source_url": "https://www.esoui.com/downloads/info1887-Slasher.html",
   "stats": {
-    "downloads": 25128,
+    "downloads": 25297,
     "favorites": 34,
-    "monthly_downloads": 188
+    "monthly_downloads": 86
   },
   "title": "Slasher",
-  "updated_at": 1787028780000,
-  "version": "2.49"
+  "updated_at": 1790620652000,
+  "version": "2.50"
 }

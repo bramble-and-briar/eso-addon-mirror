@@ -1,0 +1,24 @@
+## Title: CraftPawns
+## Description: Cross-character crafting-alt progression and round-based research preparation.
+## Author: HellWhyNot
+## Version: 1.1.4
+## APIVersion: 101051
+## SavedVariables: CraftPawnsSavedVariables
+## DependsOn: LibLazyCrafting>=4042
+## AddOnVersion: 114
+
+Core.lua
+SavedData.lua
+ResearchTiming.lua
+ResearchPlanner.lua
+SkillPreset.lua
+Knowledge.lua
+CharacterScanner.lua
+ResearchScrolls.lua
+Integration_LazySetCrafter.lua
+AutoResearch.lua
+MailTransfer.lua
+Bindings.lua
+UI.lua
+Settings.lua
+Bindings.xml

@@ -1,7 +1,7 @@
 YANP = {
 	name = "YANP",
 	settingsRev = 1,
-	version = "1.12",
+	version = "1.13",
     author = "SimonIllyan",
 	prefix = "[YANP] ",
 }

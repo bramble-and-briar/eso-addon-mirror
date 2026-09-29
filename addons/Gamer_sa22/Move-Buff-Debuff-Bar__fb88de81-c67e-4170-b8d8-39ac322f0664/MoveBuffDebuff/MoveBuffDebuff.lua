@@ -304,7 +304,7 @@ function MoveBuffDebuff.Initialize()
 	local serverName = GetWorldName()
 	MoveBuffDebuff.savedvars = ZO_SavedVars:NewAccountWide("MoveBuffDebuffSavedVariables", MoveBuffDebuff.version, serverName, MoveBuffDebuff.default)
 	MoveBuffDebuff.charSavedVars = ZO_SavedVars:NewCharacterIdSettings("MoveBuffDebuffSavedVariables",MoveBuffDebuff.version, serverName, MoveBuffDebuff.savedvars.accountWideProfile) 	
-	MoveBuffDebuff.ApplyAnchor() --move to saved position	
+	zo_callLater(function() MoveBuffDebuff.ApplyAnchor() end, 200) --move to saved position	
 	SecurePostHook(BUFF_DEBUFF.containerObjectsByUnitTag["player"], "Update",function(self) thebuffDebuffContainer = self ApplyGrid() end)
 	MoveBuffDebuff.BuildSettings()
 end

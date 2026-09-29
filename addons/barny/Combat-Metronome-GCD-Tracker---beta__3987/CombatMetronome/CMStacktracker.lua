@@ -181,6 +181,8 @@ function StackTracker:UpdateTimers()
 				if not sv.showTimer then
 					ui.timerBarTimer:SetHidden(false)
 					ui.timerBarTimer:SetText(CalculateTimer(timeLeft))
+				elseif sv.showTimer then
+					ui.timerBarTimer:SetHidden(true)
 				end
 				
 				if sv.soundReminder and doReminder and timeLeft <= sv.expirationTimer and not entry.soundPlayed then

@@ -19,6 +19,8 @@ local localization_strings = {
 	MT_LOOT_UNKNOWN_RECIPES_TEXT = "Alle unbekannten Rezepte und Baupläne plündern, unabhängig vom eingestellten Qualitätslevel. Wenn deaktiviert, werden nur Rezepte und Baupläne mit dem eingestellten Qualitätslevel oder höher automatisch geplündert.",
 	MT_AUTOLOOT_FROM_LOOTLIST_NAME = "Beuteliste automatisch plündern",	
 	MT_AUTOLOOT_FROM_LOOTLIST_TEXT = "Wenn aktiviert, stiehlst du automatisch Gegenstände, die zur Beuteliste hinzugefügt wurden. Zugriff auf das Beutefenster erhältst du durch Eingabe von |cedbe3e/mtloot|r.",
+	MT_PICKPOCKET_COUNTER_NAME = "Taschendiebstahlzähler",
+	MT_PICKPOCKET_COUNTER_TEXT = "Taschendiebstahlzähler auf dem Bildschirm, da NPCs sich gerne bewegen. Töten setzt den Zähler zurück. Gilt für alle NPCs mit demselben generischen Namen, z. B. Löwengarde, also unbedingt durch Töten oder Teleportieren zurücksetzen.",
 	
 	-- options slider
 	MT_MESSAGE_DELAY_NAME = "Nachrichtenverzögerung",

@@ -1,7 +1,7 @@
 ## Title: |cFFD700Unchained Helper|r
-## Description: Blackrose Prison helper for Unchained runs. Shows fixed spawn markers, active marker legend, round/stage callouts, purge alerts, and optional sigil blocking.
+## Description: Blackrose Prison helper for Unchained runs. Includes spawn markers, wave callouts, Stage 2 Poison Netch alerts, purge and totem alerts, progress tracking, and optional sigil blocking.
 ## Author: BLKx777
-## Version: 1.0.0
+## Version: 1.0.9
 ## APIVersion: 101050
 ## SavedVariables: UnchainedHelperSavedVars
 ## OptionalDependsOn: LibAddonMenu-2.0

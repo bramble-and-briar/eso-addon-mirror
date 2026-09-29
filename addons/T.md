@@ -108,8 +108,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TheElderSporesOnline](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/reishi_spores/TheElderSporesOnline__4386) | reishi_spores | PC / Mac | 2.2.1 |
 | [ThemeUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KA3ZUS/ThemeUI__3734) | KA3ZUS | PC / Mac | 0.1.1 |
 | [TheShining - AoE & Target Glow Brightness](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/TheShining---AoE-Target-Glow-Brightness__3081) | Odylon | PC / Mac | 1.0.1 |
-| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.4.3 |
-| [Thief Tools - Filtered AutoSteal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools---Filtered-AutoSteal__3752) | Shadowfen | PC / Mac | 1.3.9 |
+| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.4.4 |
+| [Thief Tools - Filtered AutoSteal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools---Filtered-AutoSteal__3752) | Shadowfen | PC / Mac | 1.3.10 |
 | [Thief Tools Stolen Item Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/linuxhell/Thief-Tools-Stolen-Item-Counter__4813) | linuxhell | PC / Mac | 4.0.0 |
 | [ThiefHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/ThiefHelper__1473) | Upyachka | PC / Mac | 1.1_1 |
 | [ThiefHelper: Version for testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/ThiefHelper-Version-for-testing__1477) | Upyachka | PC / Mac | 1.1 |
@@ -124,7 +124,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tic Tac Toe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Colligation/Tic-Tac-Toe__4757) | Colligation | PC / Mac | 1.0 |
 | [TiEmote Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khrill/TiEmote-Extended__763) | Khrill | PC / Mac | 1.83 |
 | [Tim's Collectibles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Tim-s-Collectibles__4822) | tim-p | PC / Mac | 1.0 |
-| [tim99s ColoredLists](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-ColoredLists__3373) | tim99 | PC / Mac | 10.0 |
+| [tim99s ColoredLists](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-ColoredLists__3373) | tim99 | PC / Mac | 10.1 |
 | [tim99s FTSIO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-FTSIO__3423) | tim99 | PC / Mac | 3 |
 | [tim99s Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-Toolbar__3187) | tim99 | PC / Mac | 19.6 |
 | [Time To Heal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PlaceHolder/Time-To-Heal__2712) | PlaceHolder | PC / Mac | 1.0.8 |
@@ -168,7 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Traduzione Italiana ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muflonebarbuto/Traduzione-Italiana-ESO__4271) | Muflonebarbuto | PC / Mac | 2.0.0 |
 | [Tradução Português - ESOBR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/frooke/Tradução-Português---ESOBR__2f8a0754-ae3b-42c9-ad8a-90fd7b23daf5) | frooke | Console | — |
 | [Trait Rename](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Trait-Rename__1634) | silvereyes | PC / Mac | 1.5.11 |
-| [TraitBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weolo/TraitBuddy__1058) | Weolo | PC / Mac | 9.11.2 |
+| [TraitBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weolo/TraitBuddy__1058) | Weolo | PC / Mac | 9.11.3 |
 | [TraitBuddy \[3.1 - Menu Button\] \[Added To Original Addon\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitsarugi/TraitBuddy-3.1---Menu-Button-Added-To-Original-Addon__1506) | Mitsarugi | PC / Mac | 3.1 |
 | [TraitBuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jacoboon/TraitBuster__2075) | Jacoboon | PC / Mac | 1.1 |
 | [TraitCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saranicole1980/TraitCraft__6214b947-f6ff-4d1b-b443-987daf528ecb) | saranicole1980 | Console | — |

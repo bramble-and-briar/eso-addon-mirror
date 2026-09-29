@@ -8,6 +8,10 @@
   "category_id": "33",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -70,7 +74,7 @@
     "merTorchbug"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2601/",
-  "fingerprint": "be426730a765021ba4b8db4700b1e2aa49c43a670f1127637cb8d16c20cf9e40",
+  "fingerprint": "232fc2bcc30003c3525ec06ec888870cd5bcdf332f0cf2c6f6ab54f8831adcd9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15190.png",
     "https://cdn-eso.mmoui.com/preview/pvw15191.png",
@@ -89,11 +93,11 @@
   "source_id": "2601",
   "source_url": "https://www.esoui.com/downloads/info2601-MerTorchbug-FixedandImprovedVariableinspectorScriptsEventsandmore.html",
   "stats": {
-    "downloads": 19126,
-    "favorites": 16,
-    "monthly_downloads": 56
+    "downloads": 19377,
+    "favorites": 15,
+    "monthly_downloads": 63
   },
   "title": "Mer Torchbug - Fixed and Improved (Variable inspector/Scripts/Events/and more)",
-  "updated_at": 1785550981000,
-  "version": "1.76"
+  "updated_at": 1790628355000,
+  "version": "1.77"
 }

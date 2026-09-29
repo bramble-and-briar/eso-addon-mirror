@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Vur/BateBeta__4880",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Vur",
+  "canonical_id": "esoui:4880",
+  "category_id": "155",
+  "compatibility": [
+    {
+      "name": "Scribes of Fate",
+      "version": "8.3.5"
+    }
+  ],
+  "content_id": "esoui:4880",
+  "deleted": false,
+  "directories": [
+    "GroupModerationBlacklist"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4880/",
+  "fingerprint": "0e0349c5ff2e0dc1da0b5cb68447cb7d7346ca089ca75d56a90eb96da477e6ad",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17571.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4880",
+  "source_url": "https://www.esoui.com/downloads/info4880-BateBeta.html",
+  "stats": {
+    "downloads": 12,
+    "favorites": 0,
+    "monthly_downloads": 10
+  },
+  "title": "BateBeta",
+  "updated_at": 1790594091000,
+  "version": "0.0.1"
+}

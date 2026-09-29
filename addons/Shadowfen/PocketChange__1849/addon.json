@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Shadowfen/PocketChange__1849",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Shadowfen",
   "canonical_id": "esoui:1849",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "PocketChange"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1849/",
-  "fingerprint": "9f1ac81aa767126037fc70c5b963f5591cb79e4252f8a7b0566630e8ff57330c",
+  "fingerprint": "c8dfe28643c2ce7a7040fafeafc9956b093de30edf8d66b24c0a36e24b32d86b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10888.png",
     "https://cdn-eso.mmoui.com/preview/pvw10887.png",
@@ -81,11 +86,11 @@
   "source_id": "1849",
   "source_url": "https://www.esoui.com/downloads/info1849-PocketChange.html",
   "stats": {
-    "downloads": 23635,
+    "downloads": 23744,
     "favorites": 39,
-    "monthly_downloads": 47
+    "monthly_downloads": 59
   },
   "title": "PocketChange",
-  "updated_at": 1781033601000,
-  "version": "1.36"
+  "updated_at": 1790620248000,
+  "version": "1.39"
 }

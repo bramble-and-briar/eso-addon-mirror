@@ -57,7 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FCO Ultimate Sound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Ultimate-Sound__979) | Baertram | PC / Mac | 0.1.8 |
 | [Featured pledges in the Dungeon Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stefanoo/Featured-pledges-in-the-Dungeon-Finder__4555) | Stefanoo | PC / Mac | 130 |
 | [Feeding Frenzy Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Feeding-Frenzy-Tracker__9526cff9-d7f1-4c3c-a96b-aecfb0daa347) | codeWarrior82 | Console | — |
-| [Feliks' Companion Roster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Roster__4862) | AFeliks | PC / Mac | 2.0.8 |
+| [Feliks' Companion Roster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Roster__4862) | AFeliks | PC / Mac | 2.1.0 |
 | [Fighting Display - Shows Fighting! when in combat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Fighting-Display---Shows-Fighting-when-in-combat__4246) | Duesentrieb | PC / Mac | 20250909-1138 |
 | [Filtered Loot Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MycroftJr/Filtered-Loot-Tracker__3932) | MycroftJr | PC / Mac | 1.0.0 |
 | [Find My Stuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Find-My-Stuff__3a04382d-3f1c-4340-9fa5-abd6af19a2af) | Vixen_Hunny | Console | — |
@@ -121,7 +121,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Friend Auto Trade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Quazzert/Friend-Auto-Trade__1168) | Quazzert | PC / Mac | 0.1 |
 | [Friend Removed Notification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Friend-Removed-Notification__1225) | CaptainBlagbird | PC / Mac | 2.01 |
 | [Friendly Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crunatus/Friendly-Reminder__2882) | Crunatus | PC / Mac | 1.3 |
-| [Frostfall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Frostfall__4710) | kreksar@gmail.com | PC / Mac | 3.4.33 |
+| [Frostfall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Frostfall__4710) | kreksar@gmail.com | PC / Mac | 3.4.34 |
 | [FsBountyDecay](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FelipeS11/FsBountyDecay__2486) | FelipeS11 | PC / Mac | 3.0 |
 | [Full Moon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Full-Moon__2107) | g4rr3t | PC / Mac | 1.2.4 |
 | [Fun Kill Feed - (tested on console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Fun-Kill-Feed---tested-on-console__4286) | SugaComa | PC / Mac | 1.3.5 |

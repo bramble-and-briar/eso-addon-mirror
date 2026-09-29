@@ -2,15 +2,15 @@ local SF = LibSFUtils
 
 TTFAS = ZO_Object:Subclass()
 
-TTFAS.version = "1.3.9"
+TTFAS.version = "1.3.10"
 TTFAS.name = "TTFAS"
 TTFAS.settingName = "ThiefTools - Filtered Auto Steal"
 TTFAS.settingDisplayName = "ThiefTools - Filtered Auto Steal"
 TTFAS.author = "Shadowfen"
 
-TTFAS.settingDisplayName = SF.colors.gold:Colorize(TTFAS.settingDisplayName)
-TTFAS.version = SF.colors.gold:Colorize(TTFAS.version)
-TTFAS.author = SF.colors.purple:Colorize(TTFAS.author)
+TTFAS.settingDisplayName = SF.colors.gold(TTFAS.settingDisplayName)
+TTFAS.version = SF.colors.gold(TTFAS.version)
+TTFAS.author = SF.colors.purple(TTFAS.author)
 
 TTFAS.StartupInfo = false
 
@@ -19,12 +19,15 @@ TTFAS.currentProfile = {}
 -- load in localization strings
 SF.LoadLanguage(TTFAS_localization_strings, "en")
 
--- Returns a function to return a logger object when it is called (creating one if necessary first)
-TTFASLogger = SF.SafeLoggerFunction("TTFAS","logger")
+-- Create the delayed instantiation logger functor and utility functions for ThiefTools.
+TTFASLogger, TTFAS.logDebug, TTFAS.logWouldDebug = 
+            SF.InitSafeLogger(TTFAS, "logger", "TTFAS")
 
-
---TTFAS.logger = LibDebugLogger.Create("TTFAS")
---TTFAS.logger:SetEnabled(true)
+--[[ The following SetDebug() call is commented out because it severely slows down 
+    addon operation. Turning it on does however provide lots and lots of debug logging.
+    Never leave this uncommented when releasing!!
+--]]
+TTFASLogger():SetDebug(true)
 
 -- Create a lookup table for dropdown values
 FAS_NEVER = 1
@@ -80,7 +83,7 @@ function TTFAS.checkLibraryVersions()
     vc:Enable(logger)
     vc:CheckVersion("LibAddonMenu-2.0", 35)
     vc:CheckVersion("LibDebugLogger",263)
-    vc:CheckVersion("LibSFUtils",49)
+    vc:CheckVersion("LibSFUtils",77)
     
     if ThiefTools then
         vc:CheckVersion("ThiefTools",48)

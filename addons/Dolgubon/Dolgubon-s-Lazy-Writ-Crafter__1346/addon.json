@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__1346",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Dolgubon",
   "canonical_id": "esoui:1346",
   "category_id": "40",
@@ -21,7 +22,7 @@
     "DolgubonsLazyWritCreator"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1346/",
-  "fingerprint": "8abd6ebc5b8bc9c09d39b50c7b0fe10c30a6ed15d1861ed788f751766c51b7c5",
+  "fingerprint": "27d92726a5995794b4b463d3bee024491e32614f5c7fc3d49563ac6d6764b697",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw6173.png",
     "https://cdn-eso.mmoui.com/preview/pvw6174.png",
@@ -33,11 +34,11 @@
   "source_id": "1346",
   "source_url": "https://www.esoui.com/downloads/info1346-DolgubonsLazyWritCrafter.html",
   "stats": {
-    "downloads": 9537383,
-    "favorites": 2196,
-    "monthly_downloads": 17767
+    "downloads": 9579698,
+    "favorites": 2205,
+    "monthly_downloads": 24307
   },
   "title": "Dolgubon's Lazy Writ Crafter",
-  "updated_at": 1780802822000,
-  "version": "4.0.5.7.7"
+  "updated_at": 1790578211000,
+  "version": "4.0.5.7.8"
 }

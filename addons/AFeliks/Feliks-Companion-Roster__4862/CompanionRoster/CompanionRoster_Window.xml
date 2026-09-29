@@ -4,7 +4,7 @@
              Instantiated MAX_COMPANION_ROWS times below as fixed, permanent
              controls - no scroll list, no pooling. Unused rows are just hidden. -->
         <Control name="CompanionRoster_CompanionRow" virtual="true">
-            <Dimensions x="335" y="26" />
+            <Dimensions x="350" y="26" />
 
             <Controls>
                 <Backdrop name="$(parent)Stripe" centerColor="00000000" edgeColor="00000000">
@@ -20,13 +20,39 @@
                         ZO_Tooltips_HideTextTooltip()
                     </OnMouseExit>
                 </Label>
-                <Label name="$(parent)Level" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                <Control name="$(parent)Role" mouseEnabled="true">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Companion" relativePoint="RIGHT" offsetX="4" />
+                    <OnMouseUp>
+                        if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
+                            CompanionRoster.OnRoleMouseUp(self)
+                        end
+                    </OnMouseUp>
+                    <OnMouseEnter>
+                        CompanionRoster.OnRoleMouseEnter(self)
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ZO_Tooltips_HideTextTooltip()
+                    </OnMouseExit>
+                    <Controls>
+                        <Texture name="$(parent)Icon">
+                            <AnchorFill />
+                        </Texture>
+                    </Controls>
+                </Control>
+                <Label name="$(parent)Level" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER" mouseEnabled="true">
                     <Dimensions x="55" />
-                    <Anchor point="LEFT" relativeTo="$(parent)Companion" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Role" relativePoint="RIGHT" offsetX="4" />
+                    <OnMouseEnter>
+                        CompanionRoster.OnLevelMouseEnter(self)
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ZO_Tooltips_HideTextTooltip()
+                    </OnMouseExit>
                 </Label>
                 <Label name="$(parent)Rapport" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER" mouseEnabled="true">
                     <Dimensions x="90" />
-                    <Anchor point="LEFT" relativeTo="$(parent)Level" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Level" relativePoint="RIGHT" offsetX="2" />
                     <OnMouseEnter>
                         CompanionRoster.OnRapportMouseEnter(self)
                     </OnMouseEnter>
@@ -38,7 +64,7 @@
         </Control>
 
         <TopLevelControl name="CompanionRosterWindow" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true">
-            <Dimensions x="345" y="350" />
+            <Dimensions x="360" y="350" />
             <Anchor point="CENTER" />
 
             <OnMoveStop>
@@ -65,7 +91,7 @@
                     </OnMouseUp>
 
                     <Controls>
-                        <Label name="$(parent)Title" font="ZoFontWinH3" text="Companion Roster" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                        <Label name="$(parent)Title" font="ZoFontWinH3" text="Feliks' Companion Roster" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <AnchorFill />
                         </Label>
                     </Controls>
@@ -88,11 +114,11 @@
                 </Label>
                 <Label name="$(parent)ColumnLevel" font="ZoFontWinH5" text="Level" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Dimensions x="55" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnCompanion" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnCompanion" relativePoint="RIGHT" offsetX="28" />
                 </Label>
                 <Label name="$(parent)ColumnRapport" font="ZoFontWinH5" text="Rapport" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Dimensions x="90" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnLevel" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnLevel" relativePoint="RIGHT" offsetX="2" />
                 </Label>
 
                 <Backdrop name="$(parent)HeaderDivider" centerColor="FFFFFF40" edgeColor="00000000">

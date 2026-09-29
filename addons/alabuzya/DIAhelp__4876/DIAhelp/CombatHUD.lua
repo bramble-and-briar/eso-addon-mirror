@@ -1,6 +1,8 @@
+local DIAhelp = DIAhelp
+DIAhelp.CombatHUD = {}
 -- DIAhelp combat meter and stat gauges, alabuzya. GPL-3.0-or-later.
 -- Independent implementation; no Bandits UI code or assets included.
-local M=DIAhelpCombatModel
+local M=DIAhelp.CombatModel
 local session=M.New()
 local observedIds={}
 local settings, meter, summary, gauges, labels
@@ -145,11 +147,9 @@ local function Combat(_,result,isError,abilityName,graphic,slotType,sourceName,s
         M.Add(session,"healing",value,false)
     end
 end
-EVENT_MANAGER:RegisterForEvent("DIAhelpCombatHUD",EVENT_ADD_ON_LOADED,function(_,name)
-    if name~="DIAhelp" then return end
-    EVENT_MANAGER:UnregisterForEvent("DIAhelpCombatHUD",EVENT_ADD_ON_LOADED)
+function DIAhelp.CombatHUD.Initialize()
     ru=GetCVar("language.2")=="ru"
-    settings=ZO_SavedVars:NewAccountWide("DIAhelpSavedVariables",1,"combatHUD",{compact=false})
+    settings=DIAhelp.SavedVariables.Account("combatHUD",{compact=false})
     meter=WINDOW_MANAGER:CreateTopLevelWindow("DIAhelpCombatMeter")
     Position(meter,"meter",8,6)
     Movable(meter,"meter")
@@ -204,4 +204,4 @@ EVENT_MANAGER:RegisterForEvent("DIAhelpCombatHUD",EVENT_ADD_ON_LOADED,function(_
         if not meter:IsHidden() then Paint() Stats() end
     end)
     Paint() Stats()
-end)
+end

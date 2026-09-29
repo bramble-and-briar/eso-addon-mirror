@@ -26,13 +26,18 @@ local function ResetLine(line)
     line:SetHidden(true)
 end
 
+local function FormatUiLayoutMeasurement(layoutValue)
+    return string.format("%dui", zo_round(layoutValue))
+end
+
 local function ApplyLineStyle(line)
     line:SetDrawLayer(DL_BACKGROUND)
     line:SetDrawTier(DT_LOW)
     line:SetDrawLevel(2)
     local color = HT.SV.gridColor
     line:SetColor(color.r, color.g, color.b, color.a)
-    line:SetThickness(1)
+    line:SetThickness("1px")
+    line:SetPixelRoundingEnabled(true)
 end
 
 local Overlay = ZO_DeferredInitializingObject:Subclass()
@@ -101,32 +106,36 @@ function Overlay:UpdateLines(gridSize)
     if not self.control or not gridSize or gridSize <= 0 then
         return
     end
-    local rootWidth = GuiRoot:GetWidth()
-    local rootHeight = GuiRoot:GetHeight()
-    if self.lastGridSize == gridSize and self.lastRootWidth == rootWidth and self.lastRootHeight == rootHeight then
+    local canvasWidth, canvasHeight = self.control:GetDimensions()
+    canvasWidth = canvasWidth or 0
+    canvasHeight = canvasHeight or 0
+    if self.lastGridSize == gridSize and self.lastRootWidth == canvasWidth and self.lastRootHeight == canvasHeight then
         return
     end
     self.lastGridSize = gridSize
-    self.lastRootWidth = rootWidth
-    self.lastRootHeight = rootHeight
+    self.lastRootWidth = canvasWidth
+    self.lastRootHeight = canvasHeight
 
-    local verticalLineCount = zo_floor(rootWidth / gridSize)
+    local layoutOffsetZero = FormatUiLayoutMeasurement(0)
+    local verticalLineCount = zo_floor(canvasWidth / gridSize)
     for lineIndex = 0, verticalLineCount do
         local offsetX = zo_round(lineIndex * gridSize)
+        local layoutOffsetX = FormatUiLayoutMeasurement(offsetX)
         local line = self:AcquireLine(self.verticalPool, lineIndex)
         line:ClearAnchors()
-        line:SetAnchor(TOPLEFT, self.control, TOPLEFT, offsetX, 0)
-        line:SetAnchor(BOTTOMLEFT, self.control, BOTTOMLEFT, offsetX, 0)
+        line:SetAnchor(TOPLEFT, self.control, TOPLEFT, layoutOffsetX, layoutOffsetZero)
+        line:SetAnchor(BOTTOMLEFT, self.control, BOTTOMLEFT, layoutOffsetX, layoutOffsetZero)
     end
     self:ReleaseUnused(self.verticalPool, verticalLineCount)
 
-    local horizontalLineCount = zo_floor(rootHeight / gridSize)
+    local horizontalLineCount = zo_floor(canvasHeight / gridSize)
     for lineIndex = 0, horizontalLineCount do
         local offsetY = zo_round(lineIndex * gridSize)
+        local layoutOffsetY = FormatUiLayoutMeasurement(offsetY)
         local line = self:AcquireLine(self.horizontalPool, lineIndex)
         line:ClearAnchors()
-        line:SetAnchor(TOPLEFT, self.control, TOPLEFT, 0, offsetY)
-        line:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, 0, offsetY)
+        line:SetAnchor(TOPLEFT, self.control, TOPLEFT, layoutOffsetZero, layoutOffsetY)
+        line:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, layoutOffsetZero, layoutOffsetY)
     end
     self:ReleaseUnused(self.horizontalPool, horizontalLineCount)
 end

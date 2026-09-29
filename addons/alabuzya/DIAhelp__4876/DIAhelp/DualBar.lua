@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.DualBar = {}
 -- DIAhelp dual weapon bar, alabuzya, 2026-09-24. GPL-3.0-or-later.
 local rows = {}
 local emptyActive = {}
@@ -20,7 +22,7 @@ local function Refresh()
         cell:SetHidden(false)
     end
 end
-function DIAhelp_LayoutDualBar(topLevelCtrl, style)
+function DIAhelp.DualBar.Layout(topLevelCtrl, style)
     root, currentStyle = topLevelCtrl, style
     local container = GetControl(root, "ActionBarContainer")
     local size, gap = style.abilitySlotWidth, style.abilitySlotOffsetX
@@ -100,7 +102,7 @@ function DIAhelp_LayoutDualBar(topLevelCtrl, style)
         local function Update()
             -- Run after the game's own action-bar reanchoring and assignments.
             zo_callLater(function()
-                if root then DIAhelp_LayoutDualBar(root, currentStyle) end
+                if root then DIAhelp.DualBar.Layout(root, currentStyle) end
             end, 0)
         end
         for _, event in ipairs({EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED,

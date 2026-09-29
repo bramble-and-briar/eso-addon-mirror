@@ -423,6 +423,7 @@ local function createDonationWindow(displayName)
     if window.updateTheme then window.updateTheme() end
   end, 100)
   
+  SF.addOrnateFrame(window)
   return window
 end
 

@@ -75,9 +75,13 @@ function UnitFrames.CustomFramesApplyBarAlignment()
         if stamBar and stamBar.bar then
             local staminaAlignment = UnitFrames.SV.BarAlignPlayerStamina or 1
             stamBar.bar:SetBarAlignment(staminaAlignment - 1)
-            UnitFrames.PlayerDodgePrediction.StopStaminaBarSmoothAnimation(stamBar.bar)
+            if UnitFrames.dodgePrediction then
+                UnitFrames.dodgePrediction:StopSmoothAnimation(stamBar.bar)
+            end
         end
-        UnitFrames.PlayerDodgePrediction.Refresh()
+        if UnitFrames.dodgePrediction then
+            UnitFrames.dodgePrediction:Refresh()
+        end
     end
 
     if UnitFrames.CustomFrames["reticleover"] then
@@ -210,7 +214,9 @@ function UnitFrames.Initialize(enabled)
     UnitFrames.CreateDefaultFrames()
     UnitFrames.CreateCustomFrames()
     UnitFrames.ApplyHideDefaultPlayerAttributeBarsIfNeeded()
-    UnitFrames.PlayerDodgePrediction.Initialize()
+    if not UnitFrames.dodgePrediction then
+        UnitFrames.dodgePrediction = LUIE_PlayerDodgePrediction:New()
+    end
 
     -- Initialize LibGroupBroadcast integrations if available
     if UnitFrames.GroupResources then
@@ -311,11 +317,6 @@ function UnitFrames.Initialize(enabled)
             -- end
             UnitFrames.CustomFramesSetPositions()
         end)
-
-        -- Register periodic update for group combat glow (checks every 500ms)
-        if UnitFrames.CustomFrames["SmallGroup1"] or UnitFrames.CustomFrames["RaidGroup1"] then
-            eventManager:RegisterForUpdate(moduleName .. "_CombatGlow", 500, UnitFrames.UpdateGroupCombatGlow)
-        end
 
         if UnitFrames.CustomFrames["companion"] then
             eventManager:RegisterForUpdate(moduleName .. "_CompanionCombat", 500, function ()
@@ -1029,6 +1030,14 @@ end
 function UnitFrames.OnPlayerCombatState(eventCode, inCombat)
     UnitFrames.statFull.combat = not inCombat
     UnitFrames.CustomFramesApplyInCombat()
+    -- Group members often enter/leave combat with the local player; one full read of IsUnitInCombat per slot.
+    UnitFrames.UpdateGroupCombatGlow()
+end
+
+local function HideFrameCombatGlow(frame)
+    if frame and frame[COMBAT_MECHANIC_FLAGS_HEALTH] and frame[COMBAT_MECHANIC_FLAGS_HEALTH].combatGlow then
+        frame[COMBAT_MECHANIC_FLAGS_HEALTH].combatGlow:SetHidden(true)
+    end
 end
 
 local function UpdateFrameCombatGlow(frame, unitTag, glowColor)
@@ -1037,6 +1046,11 @@ local function UpdateFrameCombatGlow(frame, unitTag, glowColor)
     end
     local glow = frame[COMBAT_MECHANIC_FLAGS_HEALTH].combatGlow
     if not unitTag or not DoesUnitExist(unitTag) then
+        glow:SetHidden(true)
+        return
+    end
+    -- Disconnected group members keep a stale IsUnitInCombat / IsUnitActivelyEngaged flag.
+    if ZO_Group_IsGroupUnitTag(unitTag) and not IsUnitOnline(unitTag) then
         glow:SetHidden(true)
         return
     end
@@ -1052,24 +1066,49 @@ local function UpdateGroupFrameCombatGlow(frame, unitTag, isGroupFrame)
     UpdateFrameCombatGlow(frame, unitTag, glowColor)
 end
 
--- Updates combat glow on group frames based on combat state
-function UnitFrames.UpdateGroupCombatGlow()
-    if not IsUnitGrouped("player") then
+--- Refresh combat glow on the custom frame aliased to a game unitTag (groupN).
+--- @param unitTag string
+function UnitFrames.RefreshCombatGlowForUnit(unitTag)
+    if not unitTag then
         return
     end
-    if UnitFrames.SV.GroupCombatGlow and UnitFrames.CustomFrames["SmallGroup1"] and UnitFrames.CustomFrames["SmallGroup1"].tlw then
+    local frame = UnitFrames.CustomFrames[unitTag]
+    if not frame then
+        return
+    end
+    local isSmallGroupFrame = UnitFrames.isRaid ~= true
+    local glowEnabled = isSmallGroupFrame and UnitFrames.SV.GroupCombatGlow or UnitFrames.SV.RaidCombatGlow
+    if glowEnabled then
+        UpdateGroupFrameCombatGlow(frame, unitTag, isSmallGroupFrame)
+    else
+        HideFrameCombatGlow(frame)
+    end
+end
+
+-- Updates combat glow on group frames based on combat state
+function UnitFrames.UpdateGroupCombatGlow()
+    local isGrouped = IsUnitGrouped("player")
+    if UnitFrames.CustomFrames["SmallGroup1"] and UnitFrames.CustomFrames["SmallGroup1"].tlw then
         for i = 1, 4 do
             local frame = UnitFrames.CustomFrames["SmallGroup" .. i]
             if frame then
-                UpdateGroupFrameCombatGlow(frame, frame.unitTag, true)
+                if isGrouped and UnitFrames.SV.GroupCombatGlow then
+                    UpdateGroupFrameCombatGlow(frame, frame.unitTag, true)
+                else
+                    HideFrameCombatGlow(frame)
+                end
             end
         end
     end
-    if UnitFrames.SV.RaidCombatGlow and UnitFrames.CustomFrames["RaidGroup1"] and UnitFrames.CustomFrames["RaidGroup1"].tlw then
+    if UnitFrames.CustomFrames["RaidGroup1"] and UnitFrames.CustomFrames["RaidGroup1"].tlw then
         for i = 1, 12 do
             local frame = UnitFrames.CustomFrames["RaidGroup" .. i]
             if frame then
-                UpdateGroupFrameCombatGlow(frame, frame.unitTag, false)
+                if isGrouped and UnitFrames.SV.RaidCombatGlow then
+                    UpdateGroupFrameCombatGlow(frame, frame.unitTag, false)
+                else
+                    HideFrameCombatGlow(frame)
+                end
             end
         end
     end
@@ -1117,6 +1156,7 @@ function UnitFrames.OnGroupMemberConnectedStatus(eventCode, unitTag, isOnline)
     if UnitFrames.CustomFrames[unitTag] and UnitFrames.CustomFrames[unitTag].dead then
         UnitFrames.CustomFramesSetDeadLabel(UnitFrames.CustomFrames[unitTag], isOnline and nil or strOffline)
     end
+    UnitFrames.RefreshCombatGlowForUnit(unitTag)
     if isOnline and (UnitFrames.SV.ColorRoleGroup or UnitFrames.SV.ColorRoleRaid) then
         UnitFrames.CustomFramesApplyColors()
     end
@@ -1182,6 +1222,10 @@ function UnitFrames.OnDeath(eventCode, unitTag, isDead)
 
     if unitTag == "player" then
         UnitFrames.UpdatePlayerFrameDeathVisibility()
+    end
+
+    if ZO_Group_IsGroupUnitTag(unitTag) then
+        UnitFrames.RefreshCombatGlowForUnit(unitTag)
     end
 end
 
@@ -1422,7 +1466,14 @@ function UnitFrames.CustomFramesSetDeadLabel(unitFrame, newValue)
             unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].labelOne:SetHidden(newValue ~= nil)
         end
         if unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].labelTwo ~= nil then
-            unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].labelTwo:SetHidden(newValue ~= nil)
+            local hideLabelTwo = newValue ~= nil
+            -- Clearing dead/offline must not re-show percentage on invulnerable guards / critters.
+            if not hideLabelTwo and unitFrame.unitTag == "reticleover" and DoesUnitExist("reticleover") then
+                local isGuard = IsUnitInvulnerableGuard("reticleover")
+                local isCritter = UnitFrames.savedHealth.reticleover and UnitFrames.savedHealth.reticleover[3] <= 9
+                hideLabelTwo = isGuard or isCritter
+            end
+            unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].labelTwo:SetHidden(hideLabelTwo)
         end
         if unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].name ~= nil then
             unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].name:SetHidden(newValue ~= nil)
@@ -1554,6 +1605,7 @@ function UnitFrames.CustomFramesGroupUpdate()
     end
 
     UnitFrames.RefreshCustomFrameShields()
+    UnitFrames.UpdateGroupCombatGlow()
 
     -- Setup LibGroupBroadcast integrations on active frames
     if UnitFrames.GroupCombatStats then
@@ -1658,6 +1710,11 @@ end
 
 --- Set anchors for all top level windows of CustomFrames
 function UnitFrames.CustomFramesSetPositions()
+    -- SV starts as {} and Enabled stays false until Initialize. Screen resize can run before that.
+    if not UnitFrames.Enabled then
+        return
+    end
+
     --- @type table<string, table>
     local default_anchors = {}
 
@@ -1729,8 +1786,10 @@ function UnitFrames.CustomFramesSetPositions()
         if UnitFrames.CustomFrames[unitTag] and UnitFrames.CustomFrames[unitTag].tlw then
             local savedPos = UnitFrames.SV[UnitFrames.CustomFrames[unitTag].tlw.customPositionAttr]
             local anchors = (savedPos ~= nil and #savedPos == 2) and { TOPLEFT, TOPLEFT, savedPos[1], savedPos[2] } or default_anchors[unitTag]
+            local layoutOffsetX = LUIE.FormatUiLayoutMeasurement(anchors[3])
+            local layoutOffsetY = LUIE.FormatUiLayoutMeasurement(anchors[4])
             UnitFrames.CustomFrames[unitTag].tlw:ClearAnchors()
-            UnitFrames.CustomFrames[unitTag].tlw:SetAnchor(anchors[1], GuiRoot, anchors[2], anchors[3], anchors[4])
+            UnitFrames.CustomFrames[unitTag].tlw:SetAnchor(anchors[1], GuiRoot, anchors[2], layoutOffsetX, layoutOffsetY)
             if UnitFrames.CustomFrames[unitTag].tlw.preview.anchorLabel then
                 UnitFrames.CustomFrames[unitTag].tlw.preview.anchorLabel:SetText((savedPos ~= nil and #savedPos == 2) and zo_strformat("<<1>>, <<2>>", savedPos[1], savedPos[2]) or "default")
             end
@@ -2092,7 +2151,9 @@ function UnitFrames.CustomFramesApplyLayoutPlayerFrame(unhide)
     end
 
     UnitFrames.CustomFramesTryUnhideTlw("player", unhide)
-    UnitFrames.PlayerDodgePrediction.Refresh()
+    if UnitFrames.dodgePrediction then
+        UnitFrames.dodgePrediction:Refresh()
+    end
 end
 
 -- Only AvA rank label/icon on custom reticleover. Do not call full UpdateStaticControls from layout:
@@ -2157,17 +2218,24 @@ function UnitFrames.CustomFramesApplyLayoutReticleoverFrame(unhide)
     target.buffs:SetWidth(buffsWidth)
     target.debuffs:SetWidth(buffsWidth)
 
-    local showTitle = UnitFrames.SV.TargetEnableTitle or UnitFrames.SV.TargetEnableRank
-    target.title:SetHidden(not showTitle)
-
-    local enableBuffAnchor = showTitle or UnitFrames.SV.TargetEnableRankIcon
-    local buffsAnchor = enableBuffAnchor and target.buffAnchor or target.control
-    if UnitFrames.SV.PlayerFrameOptions == 1 then
-        target.buffs:ClearAnchors()
-        target.buffs:SetAnchor(TOP, buffsAnchor, BOTTOM, 0, 5)
+    -- Title / NPC caption visibility is unit-aware (Title for NPCs; Title or Rank name for players).
+    -- Refresh static title+buff anchors here so layout-only settings do not leave Rank gating NPC captions.
+    local unitTag = target.unitTag or "reticleover"
+    if DoesUnitExist(unitTag) then
+        FrameObject.ApplyStaticControlUnitFields(target)
+        local savedTitle = FrameObject.UpdateStaticControlTitleAndAva(target)
+        FrameObject.UpdateStaticControlReticleBuffAnchors(target, savedTitle)
     else
-        target.debuffs:ClearAnchors()
-        target.debuffs:SetAnchor(TOP, buffsAnchor, BOTTOM, 0, 5)
+        target.title:SetHidden(true)
+        local enableBuffAnchor = UnitFrames.SV.TargetEnableRankIcon
+        local buffsAnchor = enableBuffAnchor and target.buffAnchor or target.control
+        if UnitFrames.SV.PlayerFrameOptions == 1 then
+            target.buffs:ClearAnchors()
+            target.buffs:SetAnchor(TOP, buffsAnchor, BOTTOM, 0, 5)
+        else
+            target.debuffs:ClearAnchors()
+            target.debuffs:SetAnchor(TOP, buffsAnchor, BOTTOM, 0, 5)
+        end
     end
 
     if target.frameCategory == "avaTarget" then
@@ -2183,7 +2251,7 @@ function UnitFrames.CustomFramesApplyLayoutReticleoverFrame(unhide)
     thb.labelOne:SetDimensions(UnitFrames.SV.TargetBarWidth - 50, UnitFrames.SV.TargetBarHeight - 2)
     thb.labelTwo:SetDimensions(UnitFrames.SV.TargetBarWidth - 50, UnitFrames.SV.TargetBarHeight - 2)
 
-    CustomFramesLayoutRefreshReticleoverAvaRankOnly(target.unitTag or "reticleover")
+    CustomFramesLayoutRefreshReticleoverAvaRankOnly(unitTag)
 
     UnitFrames.CustomFramesTryUnhideTlw("reticleover", unhide)
     if unhide then
@@ -2689,7 +2757,7 @@ function UnitFrames.CustomFramesApplyLayoutRaid(unhide, layoutAllRaidSlots)
                 unitFrame.leader:SetTexture(leaderIcons[0])
             end
 
-            -- Set label dimensions (always — driven purely by SV geometry)
+            -- Set label dimensions (always - driven purely by SV geometry)
             unitFrame.dead:SetDimensions(UnitFrames.SV.RaidBarWidth - 50, UnitFrames.SV.RaidBarHeight - 2)
             unitFrame[COMBAT_MECHANIC_FLAGS_HEALTH].label:SetDimensions(UnitFrames.SV.RaidBarWidth - 50, UnitFrames.SV.RaidBarHeight - 2)
 

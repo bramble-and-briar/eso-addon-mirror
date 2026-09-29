@@ -11,6 +11,25 @@ local MT = MasterThief
 ----------------------------------------
 -- Scroll List Functions
 ----------------------------------------
+local ROW_TYPE_ID = 1
+
+local function CreateScrollList(scrollData)
+    local scrollList = WINDOW_MANAGER:CreateControlFromVirtual(scrollData.name, scrollData.parent, "ZO_ScrollList")
+    scrollList:SetDimensions(scrollData.width, scrollData.height)
+    ZO_ScrollList_AddDataType(scrollList, ROW_TYPE_ID, scrollData.rowTemplate or "ZO_SelectableLabel", scrollData.rowHeight, scrollData.setupCallback)
+    return scrollList
+end
+
+local function UpdateScrollList(scrollList, dataTable)
+    local dataList = ZO_ScrollList_GetDataList(scrollList)
+    ZO_ScrollList_Clear(scrollList)
+    for _, dataItem in ipairs(dataTable) do
+        local entry = ZO_ScrollList_CreateDataEntry(ROW_TYPE_ID, dataItem)
+        table.insert(dataList, entry)
+    end
+    ZO_ScrollList_Commit(scrollList)
+end
+														   
 function MasterThief.SetupDataRow(rowControl, data, scrollList)
     rowControl:SetText(data[1])
     rowControl:SetFont("ZoFontGame")
@@ -100,12 +119,12 @@ function MasterThief:CreatePanels(win)
             setupCallback = MasterThief.SetupDataRow,
         }
         
-        scrollList = libScroll:CreateScrollList(scrollData)
+        scrollList = CreateScrollList(scrollData)
         scrollList:SetAnchor(TOPLEFT, lootPanel, TOPLEFT, 5, 5)
         scrollList:SetAnchor(BOTTOMRIGHT, lootPanel, BOTTOMRIGHT, -5, -35)
         
         if scrollListData and #scrollListData > 0 then
-            scrollList:Update(scrollListData)
+            UpdateScrollList(scrollList, scrollListData)
             d("[MasterThief] Loaded " .. #scrollListData .. " items into scrollList")
         end
     else
@@ -507,7 +526,7 @@ function MasterThief:RefreshLootlistWindow()
     end
 
     -- Update scroll list
-    scrollList:Update(scrollListData)
+    UpdateScrollList(scrollList, scrollListData)
 
     -- Update counter
     if self.lootlistCounter then

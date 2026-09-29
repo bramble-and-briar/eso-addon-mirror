@@ -20,7 +20,7 @@ function SpellCastBuffs.ReloadEffects(unitTag)
     end
 
     -- When reticle is cleared, optionally keep target buffs/debuffs visible (target frame linger in cursor mode)
-    if unitTag == "reticleover" and GetUnitName(unitTag) == "" then
+    if unitTag == "reticleover" and not DoesUnitExist(unitTag) then
         if LUIE.UnitFrames and LUIE.UnitFrames.SV and LUIE.UnitFrames.SV.TargetLingerInCursorMode and LUIE.UnitFrames.targetFrameLingered then
             return
         end
@@ -34,7 +34,17 @@ function SpellCastBuffs.ReloadEffects(unitTag)
     if unitTag == "player" then
         local context = { "promb_player", "promb_ground", "promd_player", "promd_ground" }
         for _, v in pairs(context) do
-            SpellCastBuffs.EffectsList[v] = {}
+            if v == "promd_ground" then
+                local keptFakes = {}
+                for listKey, effectRow in pairs(SpellCastBuffs.EffectsList[v]) do
+                    if effectRow.savedName ~= nil or (effectRow.savedUnitId and effectRow.savedUnitId ~= 0) then
+                        keptFakes[listKey] = effectRow
+                    end
+                end
+                SpellCastBuffs.EffectsList[v] = keptFakes
+            else
+                SpellCastBuffs.EffectsList[v] = {}
+            end
         end
     else
         local context = { "promb_target", "promd_target" }

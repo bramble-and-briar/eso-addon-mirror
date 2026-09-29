@@ -8,8 +8,8 @@
   "category_id": "94",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4095",
@@ -18,7 +18,7 @@
     "LibEsoHubPrices"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4095/",
-  "fingerprint": "b7025bcfdb58fa720ce2e6885382e745a9b69d73345978c031c275435303bb45",
+  "fingerprint": "5a01a8fcb6589d32ec360e479fc1a17802fb413ca6e9bdab9d64e68331159ecb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13963.png",
     "https://cdn-eso.mmoui.com/preview/pvw13964.png",
@@ -31,11 +31,11 @@
   "source_id": "4095",
   "source_url": "https://www.esoui.com/downloads/info4095-ESO-HubTrading.html",
   "stats": {
-    "downloads": 164912,
-    "favorites": 29,
-    "monthly_downloads": 8167
+    "downloads": 168248,
+    "favorites": 30,
+    "monthly_downloads": 9262
   },
   "title": "ESO-Hub Trading",
-  "updated_at": 1789959264000,
-  "version": "2026.09.21.02.54"
+  "updated_at": 1790604742000,
+  "version": "2026.09.28.14.12"
 }

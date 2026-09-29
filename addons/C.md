@@ -155,7 +155,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Combat FPS Booster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/Combat-FPS-Booster__3daa21d2-07bf-4ab5-bd84-fc58fb9dbdc7) | Tetsurion | Console | — |
 | [Combat Indicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Combat-Indicator__1543) | Crabby654 | PC / Mac | 1.8.7 |
 | [Combat Metrics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Combat-Metrics__1360) | Solinur | PC / Mac | 1.7.8 |
-| [Combat Metronome (GCD Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Darianopolis/Combat-Metronome-GCD-Tracker__2373) | Darianopolis | PC / Mac | 1.7.6 |
+| [Combat Metronome (GCD Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Darianopolis/Combat-Metronome-GCD-Tracker__2373) | Darianopolis | PC / Mac | 1.7.7 |
 | [Combat Metronome (GCD Tracker) - beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/barny/Combat-Metronome-GCD-Tracker---beta__3987) | barny | PC / Mac | 1.7.7 - beta |
 | [Combat Music](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Combat-Music__2258) | CaptainBlagbird | PC / Mac | 1.0.1 |
 | [Combat Pet Cooldown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scorpius2k1/Combat-Pet-Cooldown__3039) | scorpius2k1 | PC / Mac | 1.2 |
@@ -260,6 +260,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CraftingHouse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PrimeRibeye/CraftingHouse__3492) | PrimeRibeye | PC / Mac | 1.4 |
 | [CraftMaterialAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant__949980bd-b411-4102-82d7-4e64ba17bc3a) | lesse83 | Console | — |
 | [CraftMaterialAssistant (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant-Beta__96d1c172-661c-4739-960f-fcf660401298) | lesse83 | Console | — |
+| [CraftPawns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HellWhyNot/CraftPawns__4883) | HellWhyNot | PC / Mac | 1.1.1 |
 | [CraftStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/CraftStore__1590) | Rhyono | PC / Mac | 3.05 |
 | [CRAFTY Stocklist - The craftbag stock watchlist for your crafting profession](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rp12439_3/CRAFTY-Stocklist---The-craftbag-stock-watchlist-for-your-crafting-profession__3116) | rp12439_3 | PC / Mac | V2.65 |
 | [Criminal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/napalmskull/Criminal__3765) | napalmskull | PC / Mac | 1.0.1 |

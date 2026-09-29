@@ -13,7 +13,7 @@ QuestMover.defaultCharacter =
 QuestMover.default = {
 	["accountWideProfile"] = QuestMover.defaultCharacter,
 }
-
+local testHUDthing=nil
 function QuestMover.GetSettings()--
 	if QuestMover.charSavedVars.useCharacterSettings then
 		return QuestMover.charSavedVars
@@ -27,11 +27,6 @@ function QuestMover.ApplyAnchor()
 	ZO_FocusedQuestTrackerPanel:SetAnchor(9, GuiRoot, 0, QuestMover.GetSettings().offsetX, QuestMover.GetSettings().offsetY)	
 end	
 local ZoneStoryQuest =false
-function QuestMover.ApplyGoldenAnchor()
-	--normally has a Anchor with ANCHOR_CONSTRAINS_X on it so we remove it
-	ZO_PromotionalEventTracker_TL:ClearAnchors()
-	ZO_PromotionalEventTracker_TL:SetAnchor(BOTTOMRIGHT, ZO_ZoneStoryTracker, BOTTOMRIGHT,0,151*QuestMover.GetSettings().scale)
-end
 function QuestMover.enableInheritScaleRecursive(control)
     if not control then return end
     if not control:GetInheritsScale() then control:SetInheritScale(true) end
@@ -44,6 +39,19 @@ function QuestMover.enableInheritScaleRecursive(control)
     end
 end
 
+function ZO_HUDManager_Element:GetSavedAnchor()
+    --TODO Custom HUD: Remove this check once we build the gamepad editor	
+    local offsetX, offsetY = HUD_MANAGER:GetSavedAnchorOffsets(self)
+	if self.saveKey =="ZO_HUDTrackers" then  
+		offsetX = QuestMover.GetSettings().offsetX
+		offsetY = QuestMover.GetSettings().offsetY
+	end
+    if offsetX then
+        self.savedAnchor:SetOffsets(offsetX, offsetY)
+        return self.savedAnchor
+    end
+    return self.defaultAnchor
+end
 ---Applies scale transform to Quest Tracker (ty DakJaniels)
 function QuestMover.applyScale(controlToScale, scale)
     if not controlToScale then return end
@@ -62,12 +70,8 @@ function QuestMover.Initialize()
 	local serverName = GetWorldName()
 	QuestMover.savedvars = ZO_SavedVars:NewAccountWide("QuestMoverSavedVariables", QuestMover.version, serverName, QuestMover.default)
 	QuestMover.charSavedVars = ZO_SavedVars:NewCharacterIdSettings("QuestMoverSavedVariables",QuestMover.version, serverName, QuestMover.savedvars.accountWideProfile) 	
-	QuestMover.ApplyAnchor() --move to saved position
-	--The position of Golden Pursuit Resets when we come out of a menu this should fix it
-	ZO_FocusedQuestTrackerPanelContainer:SetHandler("OnShow",function() ZoneStoryQuest=false QuestMover.ApplyGoldenAnchor() end)
-	ZO_ZoneStoryTrackerContainer:SetHandler("OnShow",function()ZoneStoryQuest=true QuestMover.ApplyGoldenAnchor() end)
-	QuestMover.ApplyGoldenAnchor()
 	QuestMover.applyScales()
+	
     local LHAS = LibHarvensAddonSettings
 
 
@@ -110,7 +114,6 @@ function QuestMover.Initialize()
 			ZO_FocusedQuestTrackerPanelContainer:SetHidden(false)
 		end
 		QuestTrackerInMenu = true	
-		QuestMover.ApplyGoldenAnchor()
 	end
 	
 	local function addonSelected(_, addonSettings)
@@ -191,6 +194,14 @@ function QuestMover.Initialize()
         max = 1.5,
         step = 0.05
     })
+	settings:AddSetting({
+        type = LHAS.ST_BUTTON,
+		tooltip = "Reloads UI so it can load the position",
+		buttonText = "Update UI",
+		clickHandler = function(control, button)
+			ReloadUI()
+			end,
+	})
 	settings:AddSetting({
         type = LHAS.ST_BUTTON,
         label = "Submit Feedback / Request",

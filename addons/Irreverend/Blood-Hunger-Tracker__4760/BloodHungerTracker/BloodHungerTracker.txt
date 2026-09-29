@@ -1,8 +1,8 @@
 ## Title: |cAA3333Blood Hunger Tracker|r
 ## Author: Irreverend
-## Version: 1.0.4
-## AddOnVersion: 104
-## APIVersion: 101050
+## Version: 1.0.5
+## AddOnVersion: 105
+## APIVersion: 101050 101051
 ## SavedVariables: BloodHungerTrackerSavedVariables BloodHungerTrackerPosition
 ## DependsOn: LibAddonMenu-2.0>=43
 ## Description: Displays your Werewolf Blood Hunger stacks as an on-screen pip counter while you are transformed.

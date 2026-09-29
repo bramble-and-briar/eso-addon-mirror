@@ -1,6 +1,7 @@
+local DIAhelp = DIAhelp
 -- Original chat formatting and copy helper. No pChat code included.
-DIAhelpChat={}
-local M=DIAhelpChat
+DIAhelp.Chat={}
+local M=DIAhelp.Chat
 local history,serial={},0
 local copyWindow,edit
 function M.Plain(text)
@@ -34,9 +35,7 @@ local palette={}
 local function Color(name,r,g,b)
     local category=_G[name] if category then palette[category]={r,g,b} end
 end
-EVENT_MANAGER:RegisterForEvent('DIAhelpChat',EVENT_ADD_ON_LOADED,function(_,name)
-    if name~='DIAhelp' then return end
-    EVENT_MANAGER:UnregisterForEvent('DIAhelpChat',EVENT_ADD_ON_LOADED)
+function DIAhelp.Chat.Initialize()
     -- Respect a deliberately enabled standalone chat replacement.
     if pChat then return end
     Color('CHAT_CATEGORY_SAY',0.92,0.90,0.78)
@@ -72,4 +71,4 @@ EVENT_MANAGER:RegisterForEvent('DIAhelpChat',EVENT_ADD_ON_LOADED,function(_,name
     end
     LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT,Click)
     LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_CLICKED_EVENT,Click)
-end)
+end

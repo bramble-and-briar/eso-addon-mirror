@@ -437,6 +437,7 @@ local function createTaskRemovalWindow()
 
   window.titleBar = titleBar
   window.titleText = title
+  SF.addOrnateFrame(window)
   return window
 end
 
@@ -693,6 +694,7 @@ local function createTaskManagementWindow()
   
   window.titleBar = titleBar
   window.titleText = title
+  SF.addOrnateFrame(window)
   return window
 end
 

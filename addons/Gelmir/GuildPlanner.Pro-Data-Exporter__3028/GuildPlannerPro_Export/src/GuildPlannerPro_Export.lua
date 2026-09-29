@@ -2,48 +2,14 @@ GuildPlannerPro_Export = {}
 
 GuildPlannerPro_Export.Name = "GuildPlannerPro_Export"
 GuildPlannerPro_Export.DisplayName = "GuildPlanner.Pro Export"
-GuildPlannerPro_Export.AddonVersion = "2.20.1"
+GuildPlannerPro_Export.AddonVersion = "2.21.0"
 GuildPlannerPro_Export.PlayerDataExportSavedVariablesName = "GuildPlannerPro_PlayerDataExport"
 GuildPlannerPro_Export.GameDataExportSavedVariablesName = "GuildPlannerPro_GameDataExport"
-GuildPlannerPro_Export.VariableVersion = 220010001
+GuildPlannerPro_Export.VariableVersion = 221000001
 GuildPlannerPro_Export.ScanIntervalEveryMinute = 60000
 
-local characterDefault = {
-    AvaRank = {},
-    DefaultSetup = {},
-    Builds = {},
-    CarriedSets = {},
-    Achievements = {},
-    Wallet = {}
-}
-local accountDefault = {
-    ChampionLevel = {},
-    BankedSets = {
-        [BAG_BANK] = {},
-        [BAG_SUBSCRIBER_BANK] = {},
-        [BAG_HOUSE_BANK_ONE] = {},
-        [BAG_HOUSE_BANK_TWO] = {},
-        [BAG_HOUSE_BANK_THREE] = {},
-        [BAG_HOUSE_BANK_FOUR] = {},
-        [BAG_HOUSE_BANK_FIVE] = {},
-        [BAG_HOUSE_BANK_SIX] = {},
-        [BAG_HOUSE_BANK_SEVEN] = {},
-        [BAG_HOUSE_BANK_EIGHT] = {},
-        [BAG_HOUSE_BANK_NINE] = {},
-        [BAG_HOUSE_BANK_TEN] = {},
-    },
-    Guilds = {},
-    IsESOPlusSubscriber = IsESOPlusSubscriber(),
-    ItemSetCollectionSets = {},
-    Language = GetCVar("language.2"),
-    Achievements = {},
-    Stories = {},
-    TimeStamp = GetTimeStamp(),
-    FormattedTime = GetFormattedTime(),
-    SecondsSinceMidnight = GetSecondsSinceMidnight(),
-    Wallet = {},
-    BankWallet = {}
-}
+local characterDefault = GuildPlannerPro_Character:New()
+local accountDefault = GuildPlannerPro_Account:New()
 local gameDefault = {
     Achievements = {},
     Activities = {},
@@ -61,7 +27,7 @@ local account -- SavedVariable for exported account data
 local game -- SavedVariable for exported game data
 
 function GuildPlannerPro_Export:ExportGameData()
-    game.Achievements = GuildPlannerPro_Achievements:MapAllAchievements {}
+    game.Achievements = GuildPlannerPro_Achievements:MapAllAchievements()
     GuildPlannerPro_Utils:PrintMessage("PveAchievements exported.")
     game.ChampionPoints = GuildPlannerPro_Skills:MapChampionPoints()
     GuildPlannerPro_Utils:PrintMessage("Champion Points exported.")
@@ -93,21 +59,8 @@ function GuildPlannerPro_Export:ClearGameData()
 end
 
 function GuildPlannerPro_Export:Init()
-    account.TimeStamp = GetTimeStamp()
-    account.IsESOPlusSubscriber = IsESOPlusSubscriber()
-    account.ChampionLevel = GuildPlannerPro_Character:ExportChampionRank()
-    account.Guilds = GuildPlannerPro_Guilds:GetGuilds()
-    account.ItemSetCollectionSets = GuildPlannerPro_Sets:ExportItemSetCollectionSets()
-    account.Achievements = GuildPlannerPro_Achievements:ExportAchievementsCompletionData(ACHIEVEMENT_PERSISTENCE_ACCOUNT)
-    account.Stories = GuildPlannerPro_Collectibles:ExportStoriesCollectibles()
-    account.Wallet = GuildPlannerPro_Character:GetCurrencyAmountForGivenWallet(CURRENCY_LOCATION_ACCOUNT)
-
-    GuildPlannerPro_Character:ExportCharacterBaseInfo(character)
-    character.AvaRank = GuildPlannerPro_Character:ExportAvARank()
-    character.CarriedSets = GuildPlannerPro_Character:CheckBackpackForSets()
-    character.Achievements = GuildPlannerPro_Achievements:ExportAchievementsCompletionData(ACHIEVEMENT_PERSISTENCE_CHARACTER)
-    character.DefaultSetup = GuildPlannerPro_Armory:ParseArmoryBuild(0, true)
-    character.Wallet = GuildPlannerPro_Character:GetCurrencyAmountForGivenWallet(CURRENCY_LOCATION_CHARACTER)
+    GuildPlannerPro_Account.Initialize(account)
+    GuildPlannerPro_Character.Initialize(character)
 end
 
 local function UpdateEveryMinute()

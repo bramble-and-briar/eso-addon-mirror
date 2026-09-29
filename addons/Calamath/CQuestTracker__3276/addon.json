@@ -8,8 +8,8 @@
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3276",
@@ -18,7 +18,7 @@
     "CQuestTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3276/",
-  "fingerprint": "86e7952da6a18afe0ada06c0d71a6e07c92faca979a99342118b03eb8e78421e",
+  "fingerprint": "2619ad37c9fab7d4d3c2ebf1b08f70b5132e9815f2556e60b4c5777167e871c8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11342.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw11166.jpg",
@@ -30,11 +30,11 @@
   "source_id": "3276",
   "source_url": "https://www.esoui.com/downloads/info3276-CQuestTracker.html",
   "stats": {
-    "downloads": 58251,
+    "downloads": 59752,
     "favorites": 88,
-    "monthly_downloads": 1959
+    "monthly_downloads": 673
   },
   "title": "CQuestTracker",
-  "updated_at": 1786011522000,
-  "version": "2.2.7-2"
+  "updated_at": 1790583706000,
+  "version": "2.2.8"
 }

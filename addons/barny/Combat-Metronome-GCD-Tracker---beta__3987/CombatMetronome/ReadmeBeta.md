@@ -6,7 +6,6 @@ This version includes experimental features and updates that are not yet part of
 
 [b]Key Features of the Beta:[/b]
 [list]
-[*] [color=#00FF00]New experimental mechanics for advanced combat tracking[/color]
 [*] Optimizations to reduce in-game performance impact
 [*] Early access to upcoming features
 [/list]
@@ -31,6 +30,14 @@ If you like my work and want to support what I'm doing, consider supporting me o
 
 [b]Current changes:[/b]
 [list]
-[*] Moved 'tick' & 'tock' sounds out of the updater function
-[*] Added 'tick' & 'tock' sound queues for abilities > 1 sec if they were ended early
+[*]Fixed Sound 'tock' effect now playing at correct volume if in settings menu
+[*]Fixed 'tock' being played on heavy attacks even though turned off
+[*]Fixed bar behavior on heavy attacks with cast time lower 1sec
+[*]Fixed 'tick'&'tock' being played on initial load
+[*]Added 'tick'&'tock' queues for abilities > 1 sec if ended early
+[*]Fixed LATracker not showing when reset timer > 0
+[*]Fixed initial showing of LATracker when reset timer = 0
+[*]Fixed event.ending calculations to not end events too early
+[*]Fixed heavy attacks not being interrupted by bar swaps (only affects heavy attack tracking ofc)
+[*]Fixed stacks timers being hidden correctly
 [/list]

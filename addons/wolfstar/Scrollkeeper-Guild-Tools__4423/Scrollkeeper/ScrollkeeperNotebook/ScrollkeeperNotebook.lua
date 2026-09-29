@@ -6,6 +6,8 @@ local Scrollkeeper = Scrollkeeper
 local SF = Scrollkeeper.Framework
 local SF_Set = Scrollkeeper.Settings
 
+local LibTextFilter = LibTextFilter
+
 if type(SF) ~= "table" or not SF.initAddon then
   d(SF.func._L("ScrollkeeperNotebook", "ERROR_FRAMEWORK_MISSING"))
   return
@@ -161,20 +163,29 @@ local function refreshNoteList()
     local matches = true
     
     if settings.settings.enableSearchFilter and searchTerm ~= "" then
-      local titleMatch = title:lower():find(searchTerm, 1, true)
-      local bodyMatch = (note.body or ""):lower():find(searchTerm, 1, true)
-      local tagMatch = false
-      
-      if note.tags then
-        for _, tag in ipairs(note.tags) do
-          if tag:lower():find(searchTerm, 1, true) then
-            tagMatch = true
-            break
+      if LibTextFilter then
+        local tagText = ""
+        if note.tags then
+          tagText = table.concat(note.tags, " "):lower()
+        end
+        local searchText = title:lower() .. " " .. (note.body or ""):lower() .. " " .. tagText
+        matches = LibTextFilter:Filter(searchText, searchTerm)
+      else
+        local titleMatch = title:lower():find(searchTerm, 1, true)
+        local bodyMatch = (note.body or ""):lower():find(searchTerm, 1, true)
+        local tagMatch = false
+
+        if note.tags then
+          for _, tag in ipairs(note.tags) do
+            if tag:lower():find(searchTerm, 1, true) then
+              tagMatch = true
+              break
+            end
           end
         end
+
+        matches = titleMatch or bodyMatch or tagMatch
       end
-      
-      matches = titleMatch or bodyMatch or tagMatch
     end
     
     if matches then
@@ -758,6 +769,7 @@ local function createNotebookPreviewWindow()
     if window.updateTheme then window.updateTheme() end
   end, 100)
   
+  SF.addOrnateFrame(window)
   return window
 end
 
@@ -809,7 +821,12 @@ local function createNotebookWindow()
   closeBtn:SetNormalTexture("/esoui/art/buttons/decline_up.dds")
   closeBtn:SetPressedTexture("/esoui/art/buttons/decline_down.dds")
   closeBtn:SetMouseOverTexture("/esoui/art/buttons/decline_over.dds")
-  closeBtn:SetHandler("OnClicked", function() window:SetHidden(true) end)
+  closeBtn:SetHandler("OnClicked", function()
+    window:SetHidden(true)
+    if LibTextFilter then
+      LibTextFilter:ClearCachedTokens()
+    end
+  end)
   
   -- Left panel for note management
   local leftPanel = WINDOW_MANAGER:CreateControl(windowName .. "_LeftPanel", window, CT_BACKDROP)
@@ -1339,6 +1356,7 @@ local function createNotebookWindow()
     applyNotebookTheme(window)
   end, 100)
   
+  SF.addOrnateFrame(window)
   return window
 end
 

@@ -26,6 +26,11 @@ local function ApplyCustomPlayerHideBarLayout()
     UnitFrames.CustomFramesSetupAlternative()
 end
 
+local function ApplyCustomReticleoverTitleRankSettings()
+    UnitFrames.UpdateStaticControls(UnitFrames.CustomFrames["reticleover"])
+    UnitFrames.CustomFramesApplyLayoutReticleoverFrame(false)
+end
+
 local nameDisplayOptions =
 {
     GetString(LUIE_STRING_LAM_UF_NAMEDISPLAY_USERID),
@@ -1737,7 +1742,9 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.ShowPlayerDodgePrediction = value
-                    UnitFrames.PlayerDodgePrediction.Refresh()
+                    if UnitFrames.dodgePrediction then
+                        UnitFrames.dodgePrediction:Refresh()
+                    end
                 end,
                 width = "full",
                 default = Defaults.ShowPlayerDodgePrediction,
@@ -1754,7 +1761,9 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (r, g, b, a)
                     Settings.PlayerDodgePredictionColor = { r, g, b, a }
-                    UnitFrames.PlayerDodgePrediction.Refresh()
+                    if UnitFrames.dodgePrediction then
+                        UnitFrames.dodgePrediction:Refresh()
+                    end
                 end,
                 width = "full",
                 default =
@@ -2220,7 +2229,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.TargetEnableTitle = value
-                    UnitFrames.CustomFramesApplyLayoutReticleoverFrame(false)
+                    ApplyCustomReticleoverTitleRankSettings()
                 end,
                 width = "full",
                 default = Defaults.TargetEnableTitle,
@@ -2306,7 +2315,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.TargetEnableRank = value
-                    UnitFrames.CustomFramesApplyLayoutReticleoverFrame(false)
+                    ApplyCustomReticleoverTitleRankSettings()
                 end,
                 width = "full",
                 default = Defaults.TargetEnableRank,
@@ -2326,7 +2335,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.TargetTitlePriority = value
-                    UnitFrames.CustomFramesApplyLayoutReticleoverFrame(false)
+                    ApplyCustomReticleoverTitleRankSettings()
                 end,
                 width = "full",
                 default = Defaults.TargetTitlePriority,
@@ -2344,7 +2353,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.TargetEnableRankIcon = value
-                    UnitFrames.CustomFramesApplyLayoutReticleoverFrame(false)
+                    ApplyCustomReticleoverTitleRankSettings()
                 end,
                 width = "full",
                 default = Defaults.TargetEnableRankIcon,
@@ -3250,6 +3259,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.GroupCombatGlow = value
+                    UnitFrames.UpdateGroupCombatGlow()
                 end,
                 width = "full",
                 default = Defaults.GroupCombatGlow,
@@ -3641,6 +3651,7 @@ function UnitFrames.CreateSettings()
                 end,
                 setFunc = function (value)
                     Settings.RaidCombatGlow = value
+                    UnitFrames.UpdateGroupCombatGlow()
                 end,
                 width = "full",
                 default = Defaults.RaidCombatGlow,

@@ -3,13 +3,13 @@ TDAddon.name = "TDAddon"
 -- Reused color constants (avoid allocating a new ZO_ColorDef per group member on every UI refresh)
 TDAddon.GreenColor = ZO_ColorDef:New("2FC821")
 TDAddon.RedColor = ZO_ColorDef:New("FF0000")
-TDAddon.version = "2026.07.30"
+TDAddon.version = "2026.09.28"
 TDAddon.defaults = {
   UltiWindowSelfPoint = CENTER, 
   UltiWindowAnchPoint = CENTER,
   UltiWindowXoff = 0,
   UltiWindowYoff = 0,
-  LockUltiWindow = false,
+  --LockUltiWindow = false,
   HideUltiWindow = false,
   HideSigilCircle = false,
   HideResurrect = false,
@@ -61,20 +61,20 @@ TDAddon.SynergySoundChoices =
 TDAddon.ScrollQuestChoices =
 	{
 		 "All",
-		 GetQuestName(2635), -- Alma Ruma	
+		 GetQuestName(2635), -- Alma Ruma
 		 GetQuestName(2638),  -- Mnem
 		 GetQuestName(2640),  -- Chim
 		 GetQuestName(2634),  -- Ni Mhok
 		 GetQuestName(2610),  -- Altadoon
-		 GetQuestName(2639),  -- Ghartok	
+		 GetQuestName(2639),  -- Ghartok
 	}	
 
 function TDAddon.Membership()
     TDAddon.isInGuild = IsPlayerInGuild(2897)
 
     if TDAddon.isInGuild then
-	     local gmIndex = GetPlayerGuildMemberIndex(2897)
-         local _, _, rankIndex = GetGuildMemberInfo(2897, gmIndex)
+	   local gmIndex = GetPlayerGuildMemberIndex(2897)
+     local _, _, rankIndex = GetGuildMemberInfo(2897, gmIndex)
 		 local rankName = GetGuildRankCustomName(2897, rankIndex)
 		 local iconIndex = GetGuildRankIconIndex(2897, rankIndex)
 		 local icon = GetGuildRankSmallIcon(iconIndex)
@@ -159,60 +159,60 @@ function TDAddon.CreateMenu()
 	                name = "|c5282BDSettings|r",
 	                width = "full"
 			},
+		    -- [15] = {type = "checkbox",
+					-- name = "Lock ultimate share window",
+					-- getFunc = function() return TDAddon.vars.LockUltiWindow end,
+					-- setFunc = function(value) TDAddon.vars.LockUltiWindow = value TDAddon.ultiUi:SetMovable(not value) end,
+					-- default = TDAddon.defaults.LockUltiWindow,
+					-- width = "half",
+		    -- },
 		    [15] = {type = "checkbox",
-					name = "Lock ultimate share window",
-					getFunc = function() return TDAddon.vars.LockUltiWindow end,
-					setFunc = function(value) TDAddon.vars.LockUltiWindow = value TDAddon.ultiUi:SetMovable(not value) end,
-					default = TDAddon.defaults.LockUltiWindow,
-					width = "half",
-		    },
-		    [16] = {type = "checkbox",
 					name = "Hide ultimate share window",
 					getFunc = function() return TDAddon.vars.HideUltiWindow end,
 					setFunc = function(value) TDAddon.vars.HideUltiWindow = value end,
 					default = TDAddon.defaults.HideUltiWindow,
 					width = "half",
 		    },
-		    [17] = {type = "checkbox",
+		    [16] = {type = "checkbox",
 					name = "Hide Resurrect Soulgem",
 					getFunc = function() return TDAddon.vars.HideResurrect end,
 					setFunc = function(value) TDAddon.vars.HideResurrect = value end,
 					default = TDAddon.defaults.HideResurrect,
-					width = "full",
+					width = "half",
 		    },
-		    [18] = {type = "checkbox",
+		    [17] = {type = "checkbox",
 					name = "Hide Sigil Circle",
 					getFunc = function() return TDAddon.vars.HideSigilCircle end,
 					setFunc = function(value) TDAddon.vars.HideSigilCircle = value end,
 					default = TDAddon.defaults.HideSigilCircle,
 					width = "half",
 		    },
-			[19] = {type = "colorpicker", name = "Main circle",
+			[18] = {type = "colorpicker", name = "Main circle",
 					getFunc = function() return TDAddon.vars.MainCircle.r, TDAddon.vars.MainCircle.g, TDAddon.vars.MainCircle.b, TDAddon.vars.MainCircle.a end,
 					setFunc = function(r,g,b,a) TDAddon.vars.MainCircle.r = r TDAddon.vars.MainCircle.g = g TDAddon.vars.MainCircle.b = b TDAddon.vars.MainCircle.a = a
 					if TDAddon.sigilCircleControl then TDAddon.sigilCircleControl:SetColor(r,g,b,a) end end,
 					width = "half",disabled = function() return TDAddon.vars.HideSigilCircle end,
 					},
-			[20] = {type = "colorpicker", name = "Twice group range circle",
+			[19] = {type = "colorpicker", name = "Twice group range circle",
 					getFunc = function() return TDAddon.vars.TGRCircle.r, TDAddon.vars.TGRCircle.g, TDAddon.vars.TGRCircle.b, TDAddon.vars.TGRCircle.a end,
 					setFunc = function(r,g,b,a) TDAddon.vars.TGRCircle.r = r TDAddon.vars.TGRCircle.g = g TDAddon.vars.TGRCircle.b = b TDAddon.vars.TGRCircle.a = a
 					if TDAddon.sigilCircleTwoControl then TDAddon.sigilCircleTwoControl:SetColor(r,g,b,a) end end,
 					width = "half",disabled = function() return TDAddon.vars.HideSigilCircle end,
 					},
-			[21] = {type = "colorpicker", name = "Group range circle",
+			[20] = {type = "colorpicker", name = "Group range circle",
 					getFunc = function() return TDAddon.vars.GRCircle.r, TDAddon.vars.GRCircle.g, TDAddon.vars.GRCircle.b, TDAddon.vars.GRCircle.a end,
 					setFunc = function(r,g,b,a) TDAddon.vars.GRCircle.r = r TDAddon.vars.GRCircle.g = g TDAddon.vars.GRCircle.b = b TDAddon.vars.GRCircle.a = a
 					if TDAddon.rangeSigilCircleControl then TDAddon.rangeSigilCircleControl:SetColor(r,g,b,a) end end,
 					width = "half",disabled = function() return TDAddon.vars.HideSigilCircle end,
 					},
-		    [22] = {type = "checkbox",
+		    [21] = {type = "checkbox",
 					name = "Hide Campaign Queue",
 					getFunc = function() return TDAddon.vars.HideCampaignQueue end,
 					setFunc = function(value) TDAddon.vars.HideCampaignQueue = value end,
 					default = TDAddon.defaults.HideCampaignQueue,
 					width = "half",
 		    },
-		    [23] = {type = "checkbox",
+		    [22] = {type = "checkbox",
 					name = "Hide Forward Camp Timer",
 					getFunc = function() return TDAddon.vars.HideForwardCampTimer end,
 					setFunc = function(value) TDAddon.vars.HideForwardCampTimer = value end,
@@ -220,7 +220,7 @@ function TDAddon.CreateMenu()
 					width = "half",
 		    },
 			
-			[24] ={type = "dropdown",
+			[23] ={type = "dropdown",
 				   name = "Synergy ready sound",
 				   choices = TDAddon.SynergySoundChoices,
 				   getFunc = function() return TDAddon.vars.SynergySound end,
@@ -229,25 +229,25 @@ function TDAddon.CreateMenu()
 				   PlaySound(SOUNDS.ABILITY_SYNERGY_READY) end,
 				   width = "half",
             },
-			[25] ={type = "checkbox",
+			[24] ={type = "checkbox",
 				   name = "Kill Enemy Players quest only (reroll)",
 				   getFunc = function() return TDAddon.vars.KillTwentyPlayersOnly end,
 				   setFunc = function(value) TDAddon.vars.KillTwentyPlayersOnly = value end,
 				   default = TDAddon.defaults.KillTwentyPlayersOnly,
 				   width = "half",
             },
-			[26] ={type = "dropdown",
+			[25] ={type = "dropdown",
 				   name = "Wanted Scroll Quest (reroll)",
 				   choices = TDAddon.ScrollQuestChoices,
 				   getFunc = function() return TDAddon.vars.WantedScrollQuest end,
 				   setFunc = function(value) TDAddon.vars.WantedScrollQuest = value end,
 				   width = "half",
             },
-			[27] = { type = "description",
+			[26] = { type = "description",
 		            title = "|c5282BDWanted scroll quest slash commands|r\n /scall (default)\n /scalma\n /scmnem\n /scchim\n /scni\n /scalta\n /scghar", 
 					width = "half"
 			 },
-			[28] ={type = "checkbox",
+			[27] ={type = "checkbox",
 				   name = "Auto allow Encounter log only while grouped in campaign",
            tooltip = "Auto allow Encounter log only while grouped in campaign",
 				   getFunc = function() return TDAddon.vars.CampaignGroupOnlyEncounterLog end,
@@ -450,491 +450,491 @@ function TDAddon.GroupUltimateStateLoop()
 
 			 -- we only draw something if we have someone
          if displayName and displayName ~= "" and not doNotDisplay then 
-			 
-				 local ult = {}
-				 if stats then
-				    ult = stats.ult
-				 end
-				 
-				 ult.ult1ID = ult.ult1ID or 0
-				 ult.ult2ID = ult.ult2ID or 0
-				 
-				 -- we make a database to keep the ultimate ids because the lib kinds of forgets them :-/
-				 TDAddon.ultimateDataBase = TDAddon.ultimateDataBase or {}
-				 if ult.ult1ID ~= 0 then
-				      TDAddon.ultimateDataBase[displayName] = TDAddon.ultimateDataBase[displayName] or {}
-				      TDAddon.ultimateDataBase[displayName].ult1ID = ult.ult1ID
-				 else
-				     if TDAddon.ultimateDataBase[displayName] and TDAddon.ultimateDataBase[displayName].ult1ID then
-					     ult.ult1ID = TDAddon.ultimateDataBase[displayName].ult1ID
-					 end
-				 end
-				 if ult.ult2ID ~= 0 then
-				      TDAddon.ultimateDataBase[displayName] = TDAddon.ultimateDataBase[displayName] or {}
-				      TDAddon.ultimateDataBase[displayName].ult2ID = ult.ult2ID
-				 else
-				     if TDAddon.ultimateDataBase[displayName] and TDAddon.ultimateDataBase[displayName].ult2ID then
-					     ult.ult2ID = TDAddon.ultimateDataBase[displayName].ult2ID
-					 end
-				 end
-				
-                -- display group member holding scroll or volendrung (precomputed above)
-				local carriableObjectIcon = carriableObjectIconByName[displayName]
+         
+           local ult = {}
+           if stats then
+              ult = stats.ult
+           end
+           
+           ult.ult1ID = ult.ult1ID or 0
+           ult.ult2ID = ult.ult2ID or 0
+           
+           -- we make a database to keep the ultimate ids because the lib kinds of forgets them :-/
+           TDAddon.ultimateDataBase = TDAddon.ultimateDataBase or {}
+           if ult.ult1ID ~= 0 then
+                TDAddon.ultimateDataBase[displayName] = TDAddon.ultimateDataBase[displayName] or {}
+                TDAddon.ultimateDataBase[displayName].ult1ID = ult.ult1ID
+           else
+               if TDAddon.ultimateDataBase[displayName] and TDAddon.ultimateDataBase[displayName].ult1ID then
+                 ult.ult1ID = TDAddon.ultimateDataBase[displayName].ult1ID
+             end
+           end
+           if ult.ult2ID ~= 0 then
+                TDAddon.ultimateDataBase[displayName] = TDAddon.ultimateDataBase[displayName] or {}
+                TDAddon.ultimateDataBase[displayName].ult2ID = ult.ult2ID
+           else
+               if TDAddon.ultimateDataBase[displayName] and TDAddon.ultimateDataBase[displayName].ult2ID then
+                 ult.ult2ID = TDAddon.ultimateDataBase[displayName].ult2ID
+             end
+           end
+          
+                  -- display group member holding scroll or volendrung (precomputed above)
+          local carriableObjectIcon = carriableObjectIconByName[displayName]
 
 
-				 local ultOneIcon = GetAbilityIcon(ult.ult1ID) 
-				 local ultTwoIcon = GetAbilityIcon(ult.ult2ID)
-				 
-				 if ultOneIcon == "/esoui/art/icons/icon_missing.dds" then
-				     ultOneIcon = "TDAddon/Textures/tda.dds"
-				 end
-				 if ultTwoIcon == "/esoui/art/icons/icon_missing.dds" then
-				     ultTwoIcon = "TDAddon/Textures/tda.dds" 
-				 end
-				 
-				 ult.ultValue = ult.ultValue or 0
-				 ult.ult1Cost = ult.ult1Cost or 0
-				 ult.ult2Cost = ult.ult2Cost or 0
-				 
-				 local ultOnePercentage = math.floor(ult.ultValue/ult.ult1Cost*100)  
-				 local ultTwoPercentage = math.floor(ult.ultValue/ult.ult2Cost*100)	
-				 
-				 if ult.ult1Cost == 0 then
-					 ultOnePercentage = "?"
-				 end 
-				 
-				 if ult.ult2Cost == 0 then
-					 ultTwoPercentage = "?"
-				 end 
+           local ultOneIcon = GetAbilityIcon(ult.ult1ID) 
+           local ultTwoIcon = GetAbilityIcon(ult.ult2ID)
+           
+           if ultOneIcon == "/esoui/art/icons/icon_missing.dds" then
+               ultOneIcon = "TDAddon/Textures/tda.dds"
+           end
+           if ultTwoIcon == "/esoui/art/icons/icon_missing.dds" then
+               ultTwoIcon = "TDAddon/Textures/tda.dds" 
+           end
+           
+           ult.ultValue = ult.ultValue or 0
+           ult.ult1Cost = ult.ult1Cost or 0
+           ult.ult2Cost = ult.ult2Cost or 0
+           
+           local ultOnePercentage = math.floor(ult.ultValue/ult.ult1Cost*100)  
+           local ultTwoPercentage = math.floor(ult.ultValue/ult.ult2Cost*100)	
+           
+           if ult.ult1Cost == 0 then
+             ultOnePercentage = "?"
+           end 
+           
+           if ult.ult2Cost == 0 then
+             ultTwoPercentage = "?"
+           end 
 
-                 if ultOnePercentage == "?" then
-                    ultOnePercentage = ""
-                 elseif ultOnePercentage >= 100 then
-				     ultOnePercentage = "R" 
-				 else
-				     ultOnePercentage = ultOnePercentage.."%"
-				 end
-				 
-				if ultTwoPercentage == "?" then
-                    ultTwoPercentage = ""
-                elseif ultTwoPercentage >= 100 then
-				    ultTwoPercentage = "R"
-                 else
-				     ultTwoPercentage = ultTwoPercentage.."%"
-                 end
-				 
-				 local globalAlpha = 1
-				 if not IsUnitInGroupSupportRange(unitTag) then
-				     globalAlpha = 0.33
-				 end
-				 
-				 
-				 -- ultimate one
-				 local ultOneIconControl = GetControl("ultOneIcon"..index)
-				 if not ultOneIconControl then
-				    -- draw layer/level and dimensions never change after creation, so set
-				    -- them once here instead of every time this loop runs (this function
-				    -- fires on every group ultimate update, which can be very frequent
-				    -- in large fights).
-				    ultOneIconControl = WINDOW_MANAGER:CreateControl("ultOneIcon"..index, TDAddon.ultiUi, CT_TEXTURE)
-				    ultOneIconControl:SetDrawLayer(0)
-				    ultOneIconControl:SetDrawLevel(1)
-				    ultOneIconControl:SetDimensions(40, 40)
-				 end
-            ultOneIconControl:SetTexture(ultOneIcon)
-            ultOneIconControl:SetHidden(false)
-				    ultOneIconControl:SetAlpha(globalAlpha)
-            ultOneIconControl:ClearAnchors()
-				 if prevIndex == "" then
-            ultOneIconControl:SetAnchor(TOPLEFT, TDAddon.ultiUi, TOPLEFT, 0, 0)
-				 else
-				     local prevControl = GetControl("ultOneIcon"..prevIndex)
-				     ultOneIconControl:SetAnchor(TOP, prevControl, BOTTOM, 0, 20) 
-				 end
- 
-				 
-				 -- draw display name only if we have the info
-				 if displayName ~= "" then
-					 local dnTextControl = GetControl("displayNameText"..index)
-					 if not dnTextControl then
-						-- one-time setup (see ultOneIconControl above for rationale)
-						dnTextControl = WINDOW_MANAGER:CreateControl("displayNameText"..index, TDAddon.ultiUi, CT_LABEL)
-						dnTextControl:SetFont('$(MEDIUM_FONT)|$(KB_14)|thick-outline')
-						dnTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-						dnTextControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-						dnTextControl:SetDrawLayer(1)
-						dnTextControl:SetDrawLevel(1)
-					 end 				 
-					 dnTextControl:ClearAnchors()
-					 dnTextControl:SetAnchor(TOPLEFT, ultOneIconControl, TOPLEFT, 0, -15)
-					 dnTextControl:SetText(displayName)
-					 dnTextControl:SetHidden(false)
-				 end
-				 
-				 -- player state with left side icon
-				 local inCombat = IsUnitInCombat(unitTag)
-				 local dead = IsUnitDead(unitTag)
-				 local beingResurrected = IsUnitBeingResurrected(unitTag) and dead
-				 local reincarnating = IsUnitReincarnating(unitTag)
-				 -- single call instead of three identical calls with the same argument
-				 local mountedState, isOnGroupMount, hasFreeSlot = GetTargetMountedStateInfo(GetRawUnitName(unitTag))
-         local isMounted = mountedState ~= MOUNTED_STATE_NOT_MOUNTED
-         local isPassenger = mountedState == MOUNTED_STATE_MOUNT_PASSENGER
-				 local isStealthed = GetUnitStealthState(unitTag) ~= STEALTH_STATE_NONE 
-				 local isSwimming = IsUnitSwimming(unitTag)
-				 local isOffline = not IsUnitOnline(unitTag) 
-				 local isInRemoteRegion = IsGroupMemberInRemoteRegion(unitTag) 
-				 
-				 local isInLoadingScreen = false
-         local role = GetGroupMemberSelectedRole(unitTag)
-         if role ~= LFG_ROLE_HEAL and role ~= LFG_ROLE_TANK and role ~= LFG_ROLE_DPS then
-            -- no role
-            local DclassID = GetUnitClassId(unitTag)
-            if DclassID ~= 0 and not isInRemoteRegion then 
-            else 
-               -- no role + no class = player is porting
-               isInLoadingScreen = true                
-            end
-         end         
-         
-         
-         
-         
-				 
-				 if inCombat or dead or beingResurrected or isMounted or isStealthed or isSwimming or isOffline or isInRemoteRegion or isInLoadingScreen or reincarnating then
-				     local inCombatControl = GetControl("inCombatControl"..index)
-					 if not inCombatControl then
-						-- one-time setup (see ultOneIconControl above for rationale)
-						inCombatControl = WINDOW_MANAGER:CreateControl("inCombatControl"..index, TDAddon.ultiUi, CT_TEXTURE)
-						inCombatControl:SetDrawLayer(0)
-						inCombatControl:SetDrawLevel(0)
-						inCombatControl:SetDimensions(40, 40)
-					 end
-
-					 if isOffline then
- 					        inCombatControl:SetTexture("TDAddon/Textures/offline.dds")
-					 elseif isInLoadingScreen then
-					     inCombatControl:SetTexture("esoui/art/treeicons/gamepad/gp_ouroboros_indexicon.dds")
-					 elseif isInRemoteRegion then
-					     local dnTextControl = GetControl("displayNameText"..index)
-					     local zone = GetUnitZone(unitTag) 
-                         if dnTextControl then
-						                dnTextControl:SetText(displayName.." ("..zone..")")
-                         end
-					     inCombatControl:SetTexture("esoui/art/icons/mapkey/mapkey_portal.dds")
-					 elseif beingResurrected then
-					     inCombatControl:SetTexture("/esoui/art/icons/soulgem_006_filled.dds")
-					 elseif reincarnating then
-					     inCombatControl:SetTexture("TDAddon/Textures/ghost.dds")
-					 elseif dead then
-					     inCombatControl:SetTexture("/esoui/art/compass/target_white_skull.dds")
-					 elseif inCombat then
-					     inCombatControl:SetTexture("esoui/art/mappins/ava_attackburst_32.dds")
-					elseif isStealthed then
-					     inCombatControl:SetTexture("TDAddon/Textures/stealthed.dds")
-					elseif isMounted and isSwimming then
-					     inCombatControl:SetTexture("TDAddon/Textures/mountswim.dds")
-					elseif isSwimming then
-					     inCombatControl:SetTexture("TDAddon/Textures/swimming.dds")
-					elseif isMounted then
-               if isPassenger then 
-                       inCombatControl:SetTexture("TDAddon/Textures/princess.dds") 
-               elseif isOnGroupMount then
-                   if hasFreeSlot then 
-                       inCombatControl:SetTexture("TDAddon/Textures/rainbow.dds")
+                   if ultOnePercentage == "?" then
+                      ultOnePercentage = ""
+                   elseif ultOnePercentage >= 100 then
+               ultOnePercentage = "R" 
+           else
+               ultOnePercentage = ultOnePercentage.."%"
+           end
+           
+          if ultTwoPercentage == "?" then
+                      ultTwoPercentage = ""
+                  elseif ultTwoPercentage >= 100 then
+              ultTwoPercentage = "R"
                    else
-                       inCombatControl:SetTexture("TDAddon/Textures/unicorn.dds")
+               ultTwoPercentage = ultTwoPercentage.."%"
                    end
-               else
-					         inCombatControl:SetTexture("TDAddon/Textures/mount.dds")
-               end    
-					end
-				      
-					  inCombatControl:SetHidden(false)
-					  inCombatControl:SetAlpha(globalAlpha)
-            inCombatControl:ClearAnchors()
-					  inCombatControl:SetAnchor(CENTER, ultOneIconControl, LEFT, 0, 0)
-				 else -- nothing to display
-				      local inCombatControl = GetControl("inCombatControl"..index)
-					  if inCombatControl then
-				         inCombatControl:SetHidden(true)
-					  end
-				 end
-				 
-				 -- ultimate is ready
-				 if ultOnePercentage == "R" then
-					 local readyBurstControl = GetControl("readyBurst"..index)
-					 if not readyBurstControl then
-						-- one-time setup (see ultOneIconControl above for rationale)
-						readyBurstControl = WINDOW_MANAGER:CreateControl("readyBurst"..index, TDAddon.ultiUi, CT_TEXTURE)
-						readyBurstControl:SetTexture("EsoUI/Art/ActionBar/coolDown_completeEFX.dds")
-						readyBurstControl:SetBlendMode(TEX_BLEND_MODE_ADD)
-						readyBurstControl:SetDrawLayer(1)
-						readyBurstControl:SetDrawLevel(1)
-						readyBurstControl:SetDimensions(40, 40)
-					 end 
-					 if not readyBurstControl.ultimateReadyBurstTimeline then
-						readyBurstControl.ultimateReadyBurstTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyBurst", readyBurstControl)
-						readyBurstControl.ultimateReadyBurstTimeline:PlayFromStart()
-					 elseif not readyBurstControl.ultimateReadyBurstTimeline:IsPlaying() then
-					    readyBurstControl.ultimateReadyBurstTimeline:PlayFromStart() 
-					 end
-					 readyBurstControl:ClearAnchors()
-					 readyBurstControl:SetAnchor(TOPLEFT, ultOneIconControl, TOPLEFT, 0, 0)
-					 readyBurstControl:SetHidden(false)
-					 readyBurstControl:SetAlpha(globalAlpha)
-					 
-					 local readyLoopControl = GetControl("readyLoop"..index)
-					 if not readyLoopControl then
-						-- one-time setup (see ultOneIconControl above for rationale)
-						readyLoopControl = WINDOW_MANAGER:CreateControl("readyLoop"..index, TDAddon.ultiUi, CT_TEXTURE)
-						readyLoopControl:SetTexture("EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds")
-						readyLoopControl:SetBlendMode(TEX_BLEND_MODE_ADD)
-						readyLoopControl:SetDrawLayer(1)
-						readyLoopControl:SetDrawLevel(1)
-						readyLoopControl:SetDimensions(40, 40)
-					 end
-					 if not readyLoopControl.ultimateReadyLoopTimeline then
-						readyLoopControl.ultimateReadyLoopTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyLoop", readyLoopControl)
-						readyLoopControl.ultimateReadyLoopTimeline:PlayFromStart()
-					 elseif not readyLoopControl.ultimateReadyLoopTimeline:IsPlaying() then
-					     readyLoopControl.ultimateReadyLoopTimeline:PlayFromStart()
-					 end
-					 readyLoopControl:ClearAnchors()
-					 readyLoopControl:SetAnchor(TOPLEFT, ultOneIconControl, TOPLEFT, 0, 0)
-					 readyLoopControl:SetHidden(false)
-					 readyLoopControl:SetAlpha(globalAlpha)
-      
-				 else -- ultimate is not ready
-					 local readyBurstControl = GetControl("readyBurst"..index)
-					 if readyBurstControl then
-					     if readyBurstControl.ultimateReadyBurstTimeline then
-					        readyBurstControl.ultimateReadyBurstTimeline:Stop()
-						 end
-					    readyBurstControl:SetHidden(true)
-					 end
-					 local readyLoopControl = GetControl("readyLoop"..index)
-					 if readyLoopControl then
-					    if readyLoopControl.ultimateReadyLoopTimeline then
-					       readyLoopControl.ultimateReadyLoopTimeline:Stop() 
-						end
-					    readyLoopControl:SetHidden(true)
-					 end
-				 end
-				
-                 -- draw ultimate one percentage
-                 local ultOneTextControl = GetControl("ultOneText"..index)
-				 if not ultOneTextControl then
-				    -- one-time setup (see ultOneIconControl above for rationale)
-				    ultOneTextControl = WINDOW_MANAGER:CreateControl("ultOneText"..index, TDAddon.ultiUi, CT_LABEL)
-				    ultOneTextControl:SetFont('$(MEDIUM_FONT)|$(KB_22)|thick-outline')
-				    ultOneTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-				    ultOneTextControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-				    ultOneTextControl:SetDrawLayer(1)
-				    ultOneTextControl:SetDrawLevel(1)
-				 end 				 
-				 if ultOnePercentage == "R" then
-					 if TDAddon.IsBarrier(ult.ult1ID) then -- barrier
-						  ultOneTextControl:SetColor(TDAddon.GreenColor:UnpackRGB())
-						  ultOnePercentage = "BAR"
-					 elseif TDAddon.IsNegate(ult.ult1ID) then -- negate
-						  ultOneTextControl:SetColor(TDAddon.RedColor:UnpackRGB())
-						  ultOnePercentage = "NEG"
-					 else 
-						 ultOnePercentage = ""
-					 end     
-				 else
-					  ultOneTextControl:SetColor(1,1,1)
-				 end
-				 ultOneTextControl:ClearAnchors()
-				 ultOneTextControl:SetAnchor(CENTER, ultOneIconControl, BOTTOM, 0, -10)
-				 ultOneTextControl:SetText(ultOnePercentage)
-				 ultOneTextControl:SetHidden(false)
-				 ultOneTextControl:SetAlpha(globalAlpha)
-				 
-				 -- ultimate one icon has been drawn so we populate prevIndex 
-				 prevIndex = index
-				 
-				 -- we draw ultimate two icon only if it is different from ultimate one
-				 if ultTwoIcon and ultTwoIcon ~= "" and ultOneIcon ~= ultTwoIcon and ultTwoPercentage ~= "" then
-					 -- ultimate two
-					 local ultTwoIconControl = GetControl("ultTwoIcon"..index)
-					 if not ultTwoIconControl then
-						-- one-time setup (see ultOneIconControl above for rationale)
-						ultTwoIconControl = WINDOW_MANAGER:CreateControl("ultTwoIcon"..index, TDAddon.ultiUi, CT_TEXTURE)
-						ultTwoIconControl:SetDimensions(40, 40)
-					 end
-					 ultTwoIconControl:SetTexture(ultTwoIcon)
-					 ultTwoIconControl:SetHidden(false)
-					 ultTwoIconControl:SetAlpha(globalAlpha)
-					 ultTwoIconControl:ClearAnchors()
-					 ultTwoIconControl:SetAnchor(LEFT, ultOneIconControl, RIGHT, 0, 0)	
-					 
-					 -- ultimate two is ready
-					 if ultTwoPercentage == "R" then
-						 local readyBurstTwoControl = GetControl("readyBurstTwo"..index)
-						 if not readyBurstTwoControl then
-							-- one-time setup (see ultOneIconControl above for rationale)
-							readyBurstTwoControl = WINDOW_MANAGER:CreateControl("readyBurstTwo"..index, TDAddon.ultiUi, CT_TEXTURE)
-							readyBurstTwoControl:SetTexture("EsoUI/Art/ActionBar/coolDown_completeEFX.dds")
-							readyBurstTwoControl:SetBlendMode(TEX_BLEND_MODE_ADD)
-							readyBurstTwoControl:SetDrawLayer(1)
-							readyBurstTwoControl:SetDrawLevel(1)
-							readyBurstTwoControl:SetDimensions(40, 40)
-						 end 
-						 if not readyBurstTwoControl.ultimateReadyBurstTimeline then
-							readyBurstTwoControl.ultimateReadyBurstTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyBurst", readyBurstTwoControl)
-							readyBurstTwoControl.ultimateReadyBurstTimeline:PlayFromStart()
-                         elseif not readyBurstTwoControl.ultimateReadyBurstTimeline:IsPlaying() then
-						    readyBurstTwoControl.ultimateReadyBurstTimeline:PlayFromStart()
-						 end							
-						 readyBurstTwoControl:ClearAnchors()
-						 readyBurstTwoControl:SetAnchor(TOPLEFT, ultTwoIconControl, TOPLEFT, 0, 0)
-						 readyBurstTwoControl:SetHidden(false)
-						 readyBurstTwoControl:SetAlpha(globalAlpha)
-						 
-						 local readyLoopTwoControl = GetControl("readyLoopTwo"..index)
-						 if not readyLoopTwoControl then
-							-- one-time setup (see ultOneIconControl above for rationale)
-							readyLoopTwoControl = WINDOW_MANAGER:CreateControl("readyLoopTwo"..index, TDAddon.ultiUi, CT_TEXTURE)
-							readyLoopTwoControl:SetTexture("EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds")
-							readyLoopTwoControl:SetBlendMode(TEX_BLEND_MODE_ADD)
-							readyLoopTwoControl:SetDrawLayer(1)
-							readyLoopTwoControl:SetDrawLevel(1)
-							readyLoopTwoControl:SetDimensions(40, 40)
-						 end
-						 if not readyLoopTwoControl.ultimateReadyLoopTimeline then
-							readyLoopTwoControl.ultimateReadyLoopTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyLoop", readyLoopTwoControl)
-							readyLoopTwoControl.ultimateReadyLoopTimeline:PlayFromStart()
-						 elseif not readyLoopTwoControl.ultimateReadyLoopTimeline:IsPlaying() then
-						     readyLoopTwoControl.ultimateReadyLoopTimeline:PlayFromStart()
-						 end
-						 readyLoopTwoControl:ClearAnchors()
-						 readyLoopTwoControl:SetAnchor(TOPLEFT, ultTwoIconControl, TOPLEFT, 0, 0)
-						 readyLoopTwoControl:SetHidden(false)
-						 readyLoopTwoControl:SetAlpha(globalAlpha)
-		  
-					 else -- ultimate two is not ready
-						 local readyBurstTwoControl = GetControl("readyBurstTwo"..index)
-						 if readyBurstTwoControl then
-						    if readyBurstTwoControl.ultimateReadyBurstTimeline then
-						       readyBurstTwoControl.ultimateReadyBurstTimeline:Stop()
-							end
-							readyBurstTwoControl:SetHidden(true)
-						 end
-						 local readyLoopTwoControl = GetControl("readyLoopTwo"..index)
-						 if readyLoopTwoControl then
-						    if readyLoopTwoControl.ultimateReadyLoopTimeline then
-						       readyLoopTwoControl.ultimateReadyLoopTimeline:Stop() 
-							end
-							readyLoopTwoControl:SetHidden(true)
-						 end
-						 
-					 end 
-					 
-					 -- draw ultimate two percentage
-					 local ultTwoTextControl = GetControl("ultTwoText"..index)
-					 if not ultTwoTextControl then
-						-- one-time setup (see ultOneIconControl above for rationale)
-						ultTwoTextControl = WINDOW_MANAGER:CreateControl("ultTwoText"..index, TDAddon.ultiUi, CT_LABEL)
-						ultTwoTextControl:SetFont('$(MEDIUM_FONT)|$(KB_22)|thick-outline')
-						ultTwoTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-						ultTwoTextControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-						ultTwoTextControl:SetDrawLayer(1)
-						ultTwoTextControl:SetDrawLevel(1)
-					 end 				 
-					 if ultTwoPercentage == "R" then
-					     if TDAddon.IsBarrier(ult.ult2ID) then -- barrier
-						      ultTwoTextControl:SetColor(TDAddon.GreenColor:UnpackRGB())
-							  ultTwoPercentage = "BAR"
-                         elseif TDAddon.IsNegate(ult.ult2ID) then -- negate
-						      ultTwoTextControl:SetColor(TDAddon.RedColor:UnpackRGB())
-							  ultTwoPercentage = "NEG"
-                         else 
-						     ultTwoPercentage = ""
-                         end 						 
-					 else
-						  ultTwoTextControl:SetColor(1,1,1)
-					 end
-					 ultTwoTextControl:ClearAnchors()
-					 ultTwoTextControl:SetAnchor(CENTER, ultTwoIconControl, BOTTOM, 0, -10)
-					 ultTwoTextControl:SetText(ultTwoPercentage)
-					 ultTwoTextControl:SetHidden(false)
-					 ultTwoTextControl:SetAlpha(globalAlpha)
-					 
-					
-                    -- holding object				
-					if carriableObjectIcon then
-					    local carriableObjectControl = GetControl("carriableObjectControl"..index)
-						if not carriableObjectControl then
-							-- one-time setup (see ultOneIconControl above for rationale)
-							carriableObjectControl = WINDOW_MANAGER:CreateControl("carriableObjectControl"..index, TDAddon.ultiUi, CT_TEXTURE)
-							carriableObjectControl:SetDrawLayer(0)
-							carriableObjectControl:SetDrawLevel(0)
-							carriableObjectControl:SetDimensions(40, 40)
-						end
-					  carriableObjectControl:SetTexture(carriableObjectIcon)
-					  carriableObjectControl:SetHidden(false)
-					  carriableObjectControl:SetAlpha(globalAlpha)
-                      carriableObjectControl:ClearAnchors()
-					  carriableObjectControl:SetAnchor(CENTER, ultTwoIconControl, RIGHT, 0, 0)
-					else
-				      local carriableObjectControl = GetControl("carriableObjectControl"..index)
-					  if carriableObjectControl then
-				         carriableObjectControl:SetHidden(true)
-					  end
-                    end					
-					 
+           
+           local globalAlpha = 1
+           if not IsUnitInGroupSupportRange(unitTag) then
+               globalAlpha = 0.33
+           end
+           
+           
+           -- ultimate one
+           local ultOneIconControl = GetControl("ultOneIcon"..index)
+           if not ultOneIconControl then
+              -- draw layer/level and dimensions never change after creation, so set
+              -- them once here instead of every time this loop runs (this function
+              -- fires on every group ultimate update, which can be very frequent
+              -- in large fights).
+              ultOneIconControl = WINDOW_MANAGER:CreateControl("ultOneIcon"..index, TDAddon.ultiUi, CT_TEXTURE)
+              ultOneIconControl:SetDrawLayer(0)
+              ultOneIconControl:SetDrawLevel(1)
+              ultOneIconControl:SetDimensions(40, 40)
+           end
+              ultOneIconControl:SetTexture(ultOneIcon)
+              ultOneIconControl:SetHidden(false)
+              ultOneIconControl:SetAlpha(globalAlpha)
+              ultOneIconControl:ClearAnchors()
+           if prevIndex == "" then
+              ultOneIconControl:SetAnchor(TOPLEFT, TDAddon.ultiUi, TOPLEFT, 0, 0)
+           else
+               local prevControl = GetControl("ultOneIcon"..prevIndex)
+               ultOneIconControl:SetAnchor(TOP, prevControl, BOTTOM, 0, 20) 
+           end
+   
+           
+           -- draw display name only if we have the info
+           if displayName ~= "" then
+             local dnTextControl = GetControl("displayNameText"..index)
+             if not dnTextControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              dnTextControl = WINDOW_MANAGER:CreateControl("displayNameText"..index, TDAddon.ultiUi, CT_LABEL)
+              dnTextControl:SetFont('$(MEDIUM_FONT)|$(KB_14)|thick-outline')
+              dnTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+              dnTextControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+              dnTextControl:SetDrawLayer(1)
+              dnTextControl:SetDrawLevel(1)
+             end 				 
+             dnTextControl:ClearAnchors()
+             dnTextControl:SetAnchor(TOPLEFT, ultOneIconControl, TOPLEFT, 0, -15)
+             dnTextControl:SetText(displayName)
+             dnTextControl:SetHidden(false)
+           end
+           
+           -- player state with left side icon
+           local inCombat = IsUnitInCombat(unitTag)
+           local dead = IsUnitDead(unitTag)
+           local beingResurrected = IsUnitBeingResurrected(unitTag) and dead
+           local reincarnating = IsUnitReincarnating(unitTag)
+           -- single call instead of three identical calls with the same argument
+           local mountedState, isOnGroupMount, hasFreeSlot = GetTargetMountedStateInfo(GetRawUnitName(unitTag))
+           local isMounted = mountedState ~= MOUNTED_STATE_NOT_MOUNTED
+           local isPassenger = mountedState == MOUNTED_STATE_MOUNT_PASSENGER
+           local isStealthed = GetUnitStealthState(unitTag) ~= STEALTH_STATE_NONE 
+           local isSwimming = IsUnitSwimming(unitTag)
+           local isOffline = not IsUnitOnline(unitTag) 
+           local isInRemoteRegion = IsGroupMemberInRemoteRegion(unitTag) 
+           
+           local isInLoadingScreen = false
+           local role = GetGroupMemberSelectedRole(unitTag)
+           if role ~= LFG_ROLE_HEAL and role ~= LFG_ROLE_TANK and role ~= LFG_ROLE_DPS then
+              -- no role
+              local DclassID = GetUnitClassId(unitTag)
+              if DclassID ~= 0 and not isInRemoteRegion then 
+              else 
+                 -- no role + no class = player is porting
+                 isInLoadingScreen = true                
+              end
+           end         
+           
+           
+           
+           
+           
+           if inCombat or dead or beingResurrected or isMounted or isStealthed or isSwimming or isOffline or isInRemoteRegion or isInLoadingScreen or reincarnating then
+               local inCombatControl = GetControl("inCombatControl"..index)
+             if not inCombatControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              inCombatControl = WINDOW_MANAGER:CreateControl("inCombatControl"..index, TDAddon.ultiUi, CT_TEXTURE)
+              inCombatControl:SetDrawLayer(0)
+              inCombatControl:SetDrawLevel(0)
+              inCombatControl:SetDimensions(40, 40)
+             end
 
-				 else -- same ultimate slotted on both bars so we don't display it twice
-				     local ultTwoIconControl = GetControl("ultTwoIcon"..index)
-					 if ultTwoIconControl then
-					    ultTwoIconControl:SetHidden(true) 
-					 end
-					 local ultTwoTextControl = GetControl("ultTwoText"..index)
-					 if ultTwoTextControl then
-					    ultTwoTextControl:SetHidden(true) 
-					 end
-					 local readyBurstTwoControl = GetControl("readyBurstTwo"..index)
-					 if readyBurstTwoControl then
-						if readyBurstTwoControl.ultimateReadyBurstTimeline then
-						   readyBurstTwoControl.ultimateReadyBurstTimeline:Stop()
-						end
-						readyBurstTwoControl:SetHidden(true)
-					 end
-					 local readyLoopTwoControl = GetControl("readyLoopTwo"..index)
-					 if readyLoopTwoControl then
-						if readyLoopTwoControl.ultimateReadyLoopTimeline then
-						   readyLoopTwoControl.ultimateReadyLoopTimeline:Stop() 
-						end
-						readyLoopTwoControl:SetHidden(true)
-					 end
-					 
-					 
-						-- holding object				
-						if carriableObjectIcon then
-							local carriableObjectControl = GetControl("carriableObjectControl"..index)
-							if not carriableObjectControl then
-								-- one-time setup (see ultOneIconControl above for rationale)
-								carriableObjectControl = WINDOW_MANAGER:CreateControl("carriableObjectControl"..index, TDAddon.ultiUi, CT_TEXTURE)
-								carriableObjectControl:SetDrawLayer(0)
-								carriableObjectControl:SetDrawLevel(0)
-								carriableObjectControl:SetDimensions(40, 40)
-							end
-						  carriableObjectControl:SetTexture(carriableObjectIcon)
-						  carriableObjectControl:SetHidden(false)
-						  carriableObjectControl:SetAlpha(globalAlpha)
-						  carriableObjectControl:ClearAnchors()
-						  carriableObjectControl:SetAnchor(CENTER, ultOneIconControl, RIGHT, 0, 0)
-						else
-						  local carriableObjectControl = GetControl("carriableObjectControl"..index)
-						  if carriableObjectControl then
-							 carriableObjectControl:SetHidden(true)
-						  end
-						end
-					 
-				 end
-				 
+             if isOffline then
+                    inCombatControl:SetTexture("TDAddon/Textures/offline.dds")
+             elseif isInLoadingScreen then
+                 inCombatControl:SetTexture("esoui/art/treeicons/gamepad/gp_ouroboros_indexicon.dds")
+             elseif isInRemoteRegion then
+                 local dnTextControl = GetControl("displayNameText"..index)
+                 local zone = GetUnitZone(unitTag) 
+                           if dnTextControl then
+                              dnTextControl:SetText(displayName.." ("..zone..")")
+                           end
+                 inCombatControl:SetTexture("esoui/art/icons/mapkey/mapkey_portal.dds")
+             elseif beingResurrected then
+                 inCombatControl:SetTexture("/esoui/art/icons/soulgem_006_filled.dds")
+             elseif reincarnating then
+                 inCombatControl:SetTexture("TDAddon/Textures/ghost.dds")
+             elseif dead then
+                 inCombatControl:SetTexture("/esoui/art/compass/target_white_skull.dds")
+             elseif inCombat then
+                 inCombatControl:SetTexture("esoui/art/mappins/ava_attackburst_32.dds")
+            elseif isStealthed then
+                 inCombatControl:SetTexture("TDAddon/Textures/stealthed.dds")
+            elseif isMounted and isSwimming then
+                 inCombatControl:SetTexture("TDAddon/Textures/mountswim.dds")
+            elseif isSwimming then
+                 inCombatControl:SetTexture("TDAddon/Textures/swimming.dds")
+            elseif isMounted then
+                 if isPassenger then 
+                         inCombatControl:SetTexture("TDAddon/Textures/princess.dds") 
+                 elseif isOnGroupMount then
+                     if hasFreeSlot then 
+                         inCombatControl:SetTexture("TDAddon/Textures/rainbow.dds")
+                     else
+                         inCombatControl:SetTexture("TDAddon/Textures/unicorn.dds")
+                     end
+                 else
+                     inCombatControl:SetTexture("TDAddon/Textures/mount.dds")
+                 end    
+            end
+                
+              inCombatControl:SetHidden(false)
+              inCombatControl:SetAlpha(globalAlpha)
+              inCombatControl:ClearAnchors()
+              inCombatControl:SetAnchor(CENTER, ultOneIconControl, LEFT, 0, 0)
+           else -- nothing to display
+                local inCombatControl = GetControl("inCombatControl"..index)
+              if inCombatControl then
+                   inCombatControl:SetHidden(true)
+              end
+           end
+           
+           -- ultimate is ready
+           if ultOnePercentage == "R" then
+             local readyBurstControl = GetControl("readyBurst"..index)
+             if not readyBurstControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              readyBurstControl = WINDOW_MANAGER:CreateControl("readyBurst"..index, TDAddon.ultiUi, CT_TEXTURE)
+              readyBurstControl:SetTexture("EsoUI/Art/ActionBar/coolDown_completeEFX.dds")
+              readyBurstControl:SetBlendMode(TEX_BLEND_MODE_ADD)
+              readyBurstControl:SetDrawLayer(1)
+              readyBurstControl:SetDrawLevel(1)
+              readyBurstControl:SetDimensions(40, 40)
+             end 
+             if not readyBurstControl.ultimateReadyBurstTimeline then
+              readyBurstControl.ultimateReadyBurstTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyBurst", readyBurstControl)
+              readyBurstControl.ultimateReadyBurstTimeline:PlayFromStart()
+             elseif not readyBurstControl.ultimateReadyBurstTimeline:IsPlaying() then
+                readyBurstControl.ultimateReadyBurstTimeline:PlayFromStart() 
+             end
+             readyBurstControl:ClearAnchors()
+             readyBurstControl:SetAnchor(TOPLEFT, ultOneIconControl, TOPLEFT, 0, 0)
+             readyBurstControl:SetHidden(false)
+             readyBurstControl:SetAlpha(globalAlpha)
+             
+             local readyLoopControl = GetControl("readyLoop"..index)
+             if not readyLoopControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              readyLoopControl = WINDOW_MANAGER:CreateControl("readyLoop"..index, TDAddon.ultiUi, CT_TEXTURE)
+              readyLoopControl:SetTexture("EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds")
+              readyLoopControl:SetBlendMode(TEX_BLEND_MODE_ADD)
+              readyLoopControl:SetDrawLayer(1)
+              readyLoopControl:SetDrawLevel(1)
+              readyLoopControl:SetDimensions(40, 40)
+             end
+             if not readyLoopControl.ultimateReadyLoopTimeline then
+              readyLoopControl.ultimateReadyLoopTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyLoop", readyLoopControl)
+              readyLoopControl.ultimateReadyLoopTimeline:PlayFromStart()
+             elseif not readyLoopControl.ultimateReadyLoopTimeline:IsPlaying() then
+                 readyLoopControl.ultimateReadyLoopTimeline:PlayFromStart()
+             end
+             readyLoopControl:ClearAnchors()
+             readyLoopControl:SetAnchor(TOPLEFT, ultOneIconControl, TOPLEFT, 0, 0)
+             readyLoopControl:SetHidden(false)
+             readyLoopControl:SetAlpha(globalAlpha)
+        
+           else -- ultimate is not ready
+             local readyBurstControl = GetControl("readyBurst"..index)
+             if readyBurstControl then
+                 if readyBurstControl.ultimateReadyBurstTimeline then
+                    readyBurstControl.ultimateReadyBurstTimeline:Stop()
+               end
+                readyBurstControl:SetHidden(true)
+             end
+             local readyLoopControl = GetControl("readyLoop"..index)
+             if readyLoopControl then
+                if readyLoopControl.ultimateReadyLoopTimeline then
+                   readyLoopControl.ultimateReadyLoopTimeline:Stop() 
+              end
+                readyLoopControl:SetHidden(true)
+             end
+           end
+          
+           -- draw ultimate one percentage
+           local ultOneTextControl = GetControl("ultOneText"..index)
+           if not ultOneTextControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              ultOneTextControl = WINDOW_MANAGER:CreateControl("ultOneText"..index, TDAddon.ultiUi, CT_LABEL)
+              ultOneTextControl:SetFont('$(MEDIUM_FONT)|$(KB_22)|thick-outline')
+              ultOneTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+              ultOneTextControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+              ultOneTextControl:SetDrawLayer(1)
+              ultOneTextControl:SetDrawLevel(1)
+           end 				 
+           if ultOnePercentage == "R" then
+             if TDAddon.IsBarrier(ult.ult1ID) then -- barrier
+                ultOneTextControl:SetColor(TDAddon.GreenColor:UnpackRGB())
+                ultOnePercentage = "BAR"
+             elseif TDAddon.IsNegate(ult.ult1ID) then -- negate
+                ultOneTextControl:SetColor(TDAddon.RedColor:UnpackRGB())
+                ultOnePercentage = "NEG"
+             else 
+               ultOnePercentage = ""
+             end     
+           else
+              ultOneTextControl:SetColor(1,1,1)
+           end
+           ultOneTextControl:ClearAnchors()
+           ultOneTextControl:SetAnchor(CENTER, ultOneIconControl, BOTTOM, 0, -10)
+           ultOneTextControl:SetText(ultOnePercentage)
+           ultOneTextControl:SetHidden(false)
+           ultOneTextControl:SetAlpha(globalAlpha)
+           
+           -- ultimate one icon has been drawn so we populate prevIndex 
+           prevIndex = index
+           
+           -- we draw ultimate two icon only if it is different from ultimate one
+           if ultTwoIcon and ultTwoIcon ~= "" and ultOneIcon ~= ultTwoIcon and ultTwoPercentage ~= "" then
+             -- ultimate two
+             local ultTwoIconControl = GetControl("ultTwoIcon"..index)
+             if not ultTwoIconControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              ultTwoIconControl = WINDOW_MANAGER:CreateControl("ultTwoIcon"..index, TDAddon.ultiUi, CT_TEXTURE)
+              ultTwoIconControl:SetDimensions(40, 40)
+             end
+             ultTwoIconControl:SetTexture(ultTwoIcon)
+             ultTwoIconControl:SetHidden(false)
+             ultTwoIconControl:SetAlpha(globalAlpha)
+             ultTwoIconControl:ClearAnchors()
+             ultTwoIconControl:SetAnchor(LEFT, ultOneIconControl, RIGHT, 0, 0)	
+             
+             -- ultimate two is ready
+             if ultTwoPercentage == "R" then
+               local readyBurstTwoControl = GetControl("readyBurstTwo"..index)
+               if not readyBurstTwoControl then
+                -- one-time setup (see ultOneIconControl above for rationale)
+                readyBurstTwoControl = WINDOW_MANAGER:CreateControl("readyBurstTwo"..index, TDAddon.ultiUi, CT_TEXTURE)
+                readyBurstTwoControl:SetTexture("EsoUI/Art/ActionBar/coolDown_completeEFX.dds")
+                readyBurstTwoControl:SetBlendMode(TEX_BLEND_MODE_ADD)
+                readyBurstTwoControl:SetDrawLayer(1)
+                readyBurstTwoControl:SetDrawLevel(1)
+                readyBurstTwoControl:SetDimensions(40, 40)
+               end 
+               if not readyBurstTwoControl.ultimateReadyBurstTimeline then
+                readyBurstTwoControl.ultimateReadyBurstTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyBurst", readyBurstTwoControl)
+                readyBurstTwoControl.ultimateReadyBurstTimeline:PlayFromStart()
+                           elseif not readyBurstTwoControl.ultimateReadyBurstTimeline:IsPlaying() then
+                  readyBurstTwoControl.ultimateReadyBurstTimeline:PlayFromStart()
+               end							
+               readyBurstTwoControl:ClearAnchors()
+               readyBurstTwoControl:SetAnchor(TOPLEFT, ultTwoIconControl, TOPLEFT, 0, 0)
+               readyBurstTwoControl:SetHidden(false)
+               readyBurstTwoControl:SetAlpha(globalAlpha)
+               
+               local readyLoopTwoControl = GetControl("readyLoopTwo"..index)
+               if not readyLoopTwoControl then
+                -- one-time setup (see ultOneIconControl above for rationale)
+                readyLoopTwoControl = WINDOW_MANAGER:CreateControl("readyLoopTwo"..index, TDAddon.ultiUi, CT_TEXTURE)
+                readyLoopTwoControl:SetTexture("EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds")
+                readyLoopTwoControl:SetBlendMode(TEX_BLEND_MODE_ADD)
+                readyLoopTwoControl:SetDrawLayer(1)
+                readyLoopTwoControl:SetDrawLevel(1)
+                readyLoopTwoControl:SetDimensions(40, 40)
+               end
+               if not readyLoopTwoControl.ultimateReadyLoopTimeline then
+                readyLoopTwoControl.ultimateReadyLoopTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("UltimateReadyLoop", readyLoopTwoControl)
+                readyLoopTwoControl.ultimateReadyLoopTimeline:PlayFromStart()
+               elseif not readyLoopTwoControl.ultimateReadyLoopTimeline:IsPlaying() then
+                   readyLoopTwoControl.ultimateReadyLoopTimeline:PlayFromStart()
+               end
+               readyLoopTwoControl:ClearAnchors()
+               readyLoopTwoControl:SetAnchor(TOPLEFT, ultTwoIconControl, TOPLEFT, 0, 0)
+               readyLoopTwoControl:SetHidden(false)
+               readyLoopTwoControl:SetAlpha(globalAlpha)
+        
+             else -- ultimate two is not ready
+               local readyBurstTwoControl = GetControl("readyBurstTwo"..index)
+               if readyBurstTwoControl then
+                  if readyBurstTwoControl.ultimateReadyBurstTimeline then
+                     readyBurstTwoControl.ultimateReadyBurstTimeline:Stop()
+                end
+                readyBurstTwoControl:SetHidden(true)
+               end
+               local readyLoopTwoControl = GetControl("readyLoopTwo"..index)
+               if readyLoopTwoControl then
+                  if readyLoopTwoControl.ultimateReadyLoopTimeline then
+                     readyLoopTwoControl.ultimateReadyLoopTimeline:Stop() 
+                end
+                readyLoopTwoControl:SetHidden(true)
+               end
+               
+             end 
+             
+             -- draw ultimate two percentage
+             local ultTwoTextControl = GetControl("ultTwoText"..index)
+             if not ultTwoTextControl then
+              -- one-time setup (see ultOneIconControl above for rationale)
+              ultTwoTextControl = WINDOW_MANAGER:CreateControl("ultTwoText"..index, TDAddon.ultiUi, CT_LABEL)
+              ultTwoTextControl:SetFont('$(MEDIUM_FONT)|$(KB_22)|thick-outline')
+              ultTwoTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+              ultTwoTextControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+              ultTwoTextControl:SetDrawLayer(1)
+              ultTwoTextControl:SetDrawLevel(1)
+             end 				 
+             if ultTwoPercentage == "R" then
+                 if TDAddon.IsBarrier(ult.ult2ID) then -- barrier
+                    ultTwoTextControl:SetColor(TDAddon.GreenColor:UnpackRGB())
+                  ultTwoPercentage = "BAR"
+                           elseif TDAddon.IsNegate(ult.ult2ID) then -- negate
+                    ultTwoTextControl:SetColor(TDAddon.RedColor:UnpackRGB())
+                  ultTwoPercentage = "NEG"
+                           else 
+                   ultTwoPercentage = ""
+                           end 						 
+             else
+                ultTwoTextControl:SetColor(1,1,1)
+             end
+             ultTwoTextControl:ClearAnchors()
+             ultTwoTextControl:SetAnchor(CENTER, ultTwoIconControl, BOTTOM, 0, -10)
+             ultTwoTextControl:SetText(ultTwoPercentage)
+             ultTwoTextControl:SetHidden(false)
+             ultTwoTextControl:SetAlpha(globalAlpha)
+             
+            
+                      -- holding object				
+            if carriableObjectIcon then
+                local carriableObjectControl = GetControl("carriableObjectControl"..index)
+              if not carriableObjectControl then
+                -- one-time setup (see ultOneIconControl above for rationale)
+                carriableObjectControl = WINDOW_MANAGER:CreateControl("carriableObjectControl"..index, TDAddon.ultiUi, CT_TEXTURE)
+                carriableObjectControl:SetDrawLayer(0)
+                carriableObjectControl:SetDrawLevel(0)
+                carriableObjectControl:SetDimensions(40, 40)
+              end
+              carriableObjectControl:SetTexture(carriableObjectIcon)
+              carriableObjectControl:SetHidden(false)
+              carriableObjectControl:SetAlpha(globalAlpha)
+                        carriableObjectControl:ClearAnchors()
+              carriableObjectControl:SetAnchor(CENTER, ultTwoIconControl, RIGHT, 0, 0)
+            else
+                local carriableObjectControl = GetControl("carriableObjectControl"..index)
+              if carriableObjectControl then
+                   carriableObjectControl:SetHidden(true)
+              end
+                      end					
+             
+
+           else -- same ultimate slotted on both bars so we don't display it twice
+               local ultTwoIconControl = GetControl("ultTwoIcon"..index)
+             if ultTwoIconControl then
+                ultTwoIconControl:SetHidden(true) 
+             end
+             local ultTwoTextControl = GetControl("ultTwoText"..index)
+             if ultTwoTextControl then
+                ultTwoTextControl:SetHidden(true) 
+             end
+             local readyBurstTwoControl = GetControl("readyBurstTwo"..index)
+             if readyBurstTwoControl then
+              if readyBurstTwoControl.ultimateReadyBurstTimeline then
+                 readyBurstTwoControl.ultimateReadyBurstTimeline:Stop()
+              end
+              readyBurstTwoControl:SetHidden(true)
+             end
+             local readyLoopTwoControl = GetControl("readyLoopTwo"..index)
+             if readyLoopTwoControl then
+              if readyLoopTwoControl.ultimateReadyLoopTimeline then
+                 readyLoopTwoControl.ultimateReadyLoopTimeline:Stop() 
+              end
+              readyLoopTwoControl:SetHidden(true)
+             end
+             
+             
+              -- holding object
+              if carriableObjectIcon then
+                local carriableObjectControl = GetControl("carriableObjectControl"..index)
+                if not carriableObjectControl then
+                  -- one-time setup (see ultOneIconControl above for rationale)
+                  carriableObjectControl = WINDOW_MANAGER:CreateControl("carriableObjectControl"..index, TDAddon.ultiUi, CT_TEXTURE)
+                  carriableObjectControl:SetDrawLayer(0)
+                  carriableObjectControl:SetDrawLevel(0)
+                  carriableObjectControl:SetDimensions(40, 40)
+                end
+                carriableObjectControl:SetTexture(carriableObjectIcon)
+                carriableObjectControl:SetHidden(false)
+                carriableObjectControl:SetAlpha(globalAlpha)
+                carriableObjectControl:ClearAnchors()
+                carriableObjectControl:SetAnchor(CENTER, ultOneIconControl, RIGHT, 0, 0)
+              else
+                local carriableObjectControl = GetControl("carriableObjectControl"..index)
+                if carriableObjectControl then
+                 carriableObjectControl:SetHidden(true)
+                end
+              end
+             
+           end
+           
 			 else -- no data, we hide that control
 			     local ultOneIconControl = GetControl("ultOneIcon"..index)
 				 if ultOneIconControl then
@@ -1846,24 +1846,31 @@ local function OnAddonLoaded(event, addonName)
        TDAddon.vars = ZO_SavedVars:NewAccountWide("TDAVars", 2, nil, TDAddon.defaults)
        TDAddon.CreateConfiguration()
 	   
-		TDAddon.ultiUi = WINDOW_MANAGER:CreateTopLevelWindow("TDAddon_ultiUi")
+		TDAddon.ultiUi = GetControl("TDAddon_ultiUi")
 		TDAddon.ultiUi:SetDimensions(80, 480)
 		TDAddon.ultiUi:SetMouseEnabled(true)
-		if TDAddon.vars.LockUltiWindow then
+		--if TDAddon.vars.LockUltiWindow then
 		    TDAddon.ultiUi:SetMovable(false)
-		else
-		    TDAddon.ultiUi:SetMovable(true)
-		end
+		--else
+		  --  TDAddon.ultiUi:SetMovable(true)
+		--end
 		TDAddon.ultiUi:SetClampedToScreen(true)
-		TDAddon.ultiUi:SetHandler("OnMoveStop", TDAddon.saveUltiWindowPosition) 
-        TDAddon.ultiUi:ClearAnchors()
-        TDAddon.ultiUi:SetAnchor(TDAddon.vars.UltiWindowSelfPoint or TOPLEFT, GuiRoot, TDAddon.vars.UltiWindowAnchPoint or CENTER, TDAddon.vars.UltiWindowXoff, TDAddon.vars.UltiWindowYoff)
+		--TDAddon.ultiUi:SetHandler("OnMoveStop", TDAddon.saveUltiWindowPosition) 
+    TDAddon.ultiUi:ClearAnchors()
+    --TDAddon.ultiUi:SetAnchor(TDAddon.vars.UltiWindowSelfPoint or TOPLEFT, GuiRoot, TDAddon.vars.UltiWindowAnchPoint or CENTER, TDAddon.vars.UltiWindowXoff, TDAddon.vars.UltiWindowYoff)
 		
 		-- forward camp container
-		TDAddon.fwcUi = WINDOW_MANAGER:CreateTopLevelWindow("TDAddon_fwcUi")
-		TDAddon.fwcUi:SetClampedToScreen(true)	
+		TDAddon.fwcUi = GetControl("TDAddon_fwcUi")
+		TDAddon.fwcUi:SetClampedToScreen(true)
+    TDAddon.fwcUi:SetDimensions(80, 80)
 		TDAddon.fwcUi:ClearAnchors()
-		TDAddon.fwcUi:SetAnchor(BOTTOMLEFT, TDAddon.ultiUi, TOPLEFT, 0, -40)
+		--TDAddon.fwcUi:SetAnchor(BOTTOMLEFT, GuiRoot, TOPLEFT, 0, 40)
+    
+    HUD_MANAGER:RegisterKeyboardElement(TDAddon.ultiUi, "TDAddon ultimate bar", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) -- for Keyboard UI 
+    HUD_MANAGER:RegisterGamepadElement(TDAddon.ultiUi, "TDAddon ultimate bar", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) --for Gamepad UI
+    
+    HUD_MANAGER:RegisterKeyboardElement(TDAddon.fwcUi, "TDAddon Forward camp & Queue", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) -- for Keyboard UI 
+    HUD_MANAGER:RegisterGamepadElement(TDAddon.fwcUi, "TDAddon Forward camp & Queue", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) --for Gamepad UI
 		
 		-- sigil circle
 		TDAddon.sigilCircle = WINDOW_MANAGER:CreateTopLevelWindow("TDAddon_sigilCircle")
@@ -1875,7 +1882,7 @@ local function OnAddonLoaded(event, addonName)
 		TDAddon.resurrectWindow = WINDOW_MANAGER:CreateTopLevelWindow("TDAddon_resurrectWindow")
 		TDAddon.resurrectWindow:SetClampedToScreen(true)	
 	  TDAddon.resurrectWindow:SetAnchorFill(GuiRoot)
-    TDAddon.resurrectWindow:Create3DRenderSpace()       
+    TDAddon.resurrectWindow:Create3DRenderSpace()
 		
 		if GetUnitDisplayName("player") == "@Yökarhu" then
 		    TDAddon.sigilCircle:SetClampedToScreen(false)

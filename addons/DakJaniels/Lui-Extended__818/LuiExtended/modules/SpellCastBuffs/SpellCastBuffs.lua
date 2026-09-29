@@ -532,9 +532,12 @@ function SpellCastBuffs.Initialize(enabled)
     -- Set Buff Container Positions
     SpellCastBuffs.SetTlwPosition()
 
+    SpellCastBuffs.RebuildUniqueDisplayContainers()
+
     -- Initialize layout (draw layer, preview, iconHolder, icons) for each container
-    for _, routedContainerKey in pairs(SpellCastBuffs.containerRouting) do
-        InitializeContainerLayout(routedContainerKey)
+    local uniqueContainers = SpellCastBuffs.GetUniqueDisplayContainers()
+    for i = 1, #uniqueContainers do
+        InitializeContainerLayout(uniqueContainers[i])
     end
 
     SpellCastBuffs.Reset()
@@ -581,6 +584,10 @@ function SpellCastBuffs.Initialize(enabled)
     for k, v in pairs(Effects.AddNameOnEvent) do
         eventManager:RegisterForEvent(moduleName .. "Event4" .. tostring(k), EVENT_COMBAT_EVENT, SpellCastBuffs.OnCombatAddNameEvent)
         eventManager:AddFilterForEvent(moduleName .. "Event4" .. tostring(k), EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, k)
+    end
+    for statusAbilityId in pairs(Effects.CombatEventStatusEffects) do
+        eventManager:RegisterForEvent(moduleName .. "Status" .. tostring(statusAbilityId), EVENT_COMBAT_EVENT, SpellCastBuffs.OnCombatEventStatus)
+        eventManager:AddFilterForEvent(moduleName .. "Status" .. tostring(statusAbilityId), EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, statusAbilityId, REGISTER_FILTER_IS_ERROR, false)
     end
     eventManager:RegisterForEvent(moduleName, EVENT_BOSSES_CHANGED, SpellCastBuffs.AddNameOnBossEngaged)
 
@@ -831,6 +838,29 @@ function SpellCastBuffs.ResetContainerOrientation()
 
     -- Set Buff Container Positions
     SpellCastBuffs.SetTlwPosition()
+    SpellCastBuffs.RebuildUniqueDisplayContainers()
+end
+
+-- Deduped display containers from containerRouting (promb_* share prominentbuffs, player_long once).
+-- Called after routing is assigned (Initialize, ResetContainerOrientation).
+function SpellCastBuffs.RebuildUniqueDisplayContainers()
+    local seen = {}
+    local unique = SpellCastBuffs.uniqueDisplayContainers
+    ZO_ClearNumericallyIndexedTable(unique)
+    for _, container in pairs(SpellCastBuffs.containerRouting) do
+        if container and not seen[container] then
+            seen[container] = true
+            unique[#unique + 1] = container
+        end
+    end
+end
+
+function SpellCastBuffs.GetUniqueDisplayContainers()
+    local unique = SpellCastBuffs.uniqueDisplayContainers
+    if not unique or #unique == 0 then
+        SpellCastBuffs.RebuildUniqueDisplayContainers()
+    end
+    return SpellCastBuffs.uniqueDisplayContainers
 end
 
 -- Populate SpellCastBuffs.alignmentDirection from SV settings.
@@ -867,7 +897,7 @@ function SpellCastBuffs.SetupContainerAlignment()
         SpellCastBuffs.alignmentDirection.prominentdebuffs = SpellCastBuffs.SV.AlignmentPromDebuffsVert
     end
 
-    for k, v in pairs(SpellCastBuffs.containerRouting) do
+    for _, v in ipairs(SpellCastBuffs.GetUniqueDisplayContainers()) do
         local bc = SpellCastBuffs.BuffContainers[v]
         if bc and bc.iconHolder then
             ApplyFlexContainerConfig(v)
@@ -917,7 +947,7 @@ function SpellCastBuffs.SetupContainerSort()
         SpellCastBuffs.sortDirection.prominentdebuffs = SpellCastBuffs.SV.SortPromDebuffsVert
     end
 
-    for k, v in pairs(SpellCastBuffs.containerRouting) do
+    for _, v in ipairs(SpellCastBuffs.GetUniqueDisplayContainers()) do
         ApplyFlexContainerConfig(v)
     end
 end
@@ -965,7 +995,7 @@ local function ApplySimpleTlwPosition(container, savedX, savedY, defaultPoint, d
         if IsSnapToGridBuffsEnabled() then
             positionX, positionY = LUIE.ApplyGridSnap(positionX, positionY, "buffs")
         end
-        container:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, positionX, positionY)
+        container:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, LUIE.FormatUiLayoutMeasurement(positionX), LUIE.FormatUiLayoutMeasurement(positionY))
     else
         container:SetAnchor(defaultPoint, defaultOwner, defaultOwnerPoint, defaultOffsetX, defaultOffsetY)
     end
@@ -992,7 +1022,7 @@ local function ApplyDualAlignmentTlwPosition(container, savedVX, savedVY, savedH
         if IsSnapToGridBuffsEnabled() then
             positionX, positionY = LUIE.ApplyGridSnap(positionX, positionY, "buffs")
         end
-        container:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, positionX, positionY)
+        container:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, LUIE.FormatUiLayoutMeasurement(positionX), LUIE.FormatUiLayoutMeasurement(positionY))
     else
         container:SetAnchor(defaultAnchor.point, defaultAnchor.owner, defaultAnchor.ownerPoint, defaultAnchor.offsetX, defaultAnchor.offsetY)
     end
@@ -1110,7 +1140,7 @@ function SpellCastBuffs.SetMovingState(state)
             if IsSnapToGridBuffsEnabled() then
                 left, top = LUIE.ApplyGridSnap(left, top, "buffs")
                 self:ClearAnchors()
-                self:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, left, top)
+                self:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, LUIE.FormatUiLayoutMeasurement(left), LUIE.FormatUiLayoutMeasurement(top))
             end
             saveCallback(self, left, top)
         end)
@@ -1178,7 +1208,7 @@ function SpellCastBuffs.SetMovingState(state)
         end)
     end
 
-    for _, routedContainerKey in pairs(SpellCastBuffs.containerRouting) do
+    for _, routedContainerKey in ipairs(SpellCastBuffs.GetUniqueDisplayContainers()) do
         SpellCastBuffs.BuffContainers[routedContainerKey].preview:SetHidden(not state)
     end
 
@@ -1257,7 +1287,7 @@ function SpellCastBuffs.Reset()
     SpellCastBuffs.SetupContainerAlignment()
     SpellCastBuffs.SetupContainerSort()
 
-    for _, routedContainerKey in pairs(SpellCastBuffs.containerRouting) do
+    for _, routedContainerKey in ipairs(SpellCastBuffs.GetUniqueDisplayContainers()) do
         local container = buffContainers[routedContainerKey]
         for iconIndex = 1, #container.icons do
             SpellCastBuffs.ResetSingleIcon(routedContainerKey, container.icons[iconIndex])
@@ -1267,7 +1297,7 @@ function SpellCastBuffs.Reset()
     if IsPlayerActivated() then
         SpellCastBuffs.playerActive = true
         SpellCastBuffs.ReloadEffects("player")
-        if GetUnitName("reticleover") ~= "" then
+        if DoesUnitExist("reticleover") then
             SpellCastBuffs.ReloadEffects("reticleover")
         end
     end
@@ -1485,7 +1515,7 @@ function SpellCastBuffs.ApplyBuffIconInsetVisual(buff, container, effectContext)
     if buff.iconbg then
         buff.iconbg:SetHidden(not showIconBg)
         if showIconBg then
-            buff.iconbg:SetTexture(SpellCastBuffs.GetGenericIconInsetTexture())
+            SpellCastBuffs.SetTextureIfChanged(buff.iconbg, SpellCastBuffs.GetGenericIconInsetTexture())
         end
     end
 end
@@ -1595,7 +1625,7 @@ function SpellCastBuffs.ApplySingleIconLayout(container, buff)
     buff.frame:SetPixelRoundingEnabled(true)
     if buff.buffType then
         local borderTexture = (buff.buffType == BUFF_EFFECT_TYPE_BUFF) and SpellCastBuffs.GetBuffBorderTexture() or SpellCastBuffs.GetDebuffBorderTexture()
-        buff.back:SetTexture(borderTexture)
+        SpellCastBuffs.SetTextureIfChanged(buff.back, borderTexture)
     end
     SpellCastBuffs.ApplyAbilityFrameTextureCoords(buff.back, buffSize)
     buff.label:SetAnchor(TOPLEFT, buff, LEFT, -SpellCastBuffs.padding, -SpellCastBuffs.SV.LabelPosition)
@@ -1653,7 +1683,7 @@ function SpellCastBuffs.ApplySingleIconLayout(container, buff)
             buff.bar.backdrop:SetAnchor(BOTTOMRIGHT, buff, BOTTOMLEFT, -4, 0)
             buff.bar.backdrop:SetAnchor(BOTTOMRIGHT, buff, BOTTOMLEFT, -4, 0)
 
-            buff.bar.bar:SetTexture(LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
+            SpellCastBuffs.SetTextureIfChanged(buff.bar.bar, LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
             buff.bar.bar:SetBarAlignment(BAR_ALIGNMENT_REVERSE)
             buff.bar.bar:ClearAnchors()
             buff.bar.bar:SetAnchor(CENTER, buff.bar.backdrop, CENTER, 0, 0)
@@ -1665,7 +1695,7 @@ function SpellCastBuffs.ApplySingleIconLayout(container, buff)
             buff.bar.backdrop:SetAnchor(BOTTOMLEFT, buff, BOTTOMRIGHT, 4, 0)
             buff.bar.backdrop:SetAnchor(BOTTOMLEFT, buff, BOTTOMRIGHT, 4, 0)
 
-            buff.bar.bar:SetTexture(LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
+            SpellCastBuffs.SetTextureIfChanged(buff.bar.bar, LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
             buff.bar.bar:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
             buff.bar.bar:ClearAnchors()
             buff.bar.bar:SetAnchor(CENTER, buff.bar.backdrop, CENTER, 0, 0)
@@ -1681,7 +1711,7 @@ function SpellCastBuffs.ApplySingleIconLayout(container, buff)
             buff.bar.backdrop:SetAnchor(BOTTOMLEFT, buff, BOTTOMRIGHT, 4, 0)
             buff.bar.backdrop:SetAnchor(BOTTOMLEFT, buff, BOTTOMRIGHT, 4, 0)
 
-            buff.bar.bar:SetTexture(LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
+            SpellCastBuffs.SetTextureIfChanged(buff.bar.bar, LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
             buff.bar.bar:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
             buff.bar.bar:ClearAnchors()
             buff.bar.bar:SetAnchor(CENTER, buff.bar.backdrop, CENTER, 0, 0)
@@ -1693,7 +1723,7 @@ function SpellCastBuffs.ApplySingleIconLayout(container, buff)
             buff.bar.backdrop:SetAnchor(BOTTOMRIGHT, buff, BOTTOMLEFT, -4, 0)
             buff.bar.backdrop:SetAnchor(BOTTOMRIGHT, buff, BOTTOMLEFT, -4, 0)
 
-            buff.bar.bar:SetTexture(LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
+            SpellCastBuffs.SetTextureIfChanged(buff.bar.bar, LUIE.StatusbarTextures[SpellCastBuffs.SV.ProminentProgressTexture])
             buff.bar.bar:SetBarAlignment(BAR_ALIGNMENT_REVERSE)
             buff.bar.bar:ClearAnchors()
             buff.bar.bar:SetAnchor(CENTER, buff.bar.backdrop, CENTER, 0, 0)
@@ -2167,7 +2197,7 @@ function SpellCastBuffs.RefreshAllAbilityIdDebugLabels()
     if not SpellCastBuffs.Enabled or not SpellCastBuffs.SV.ShowDebugAbilityId then
         return
     end
-    for _, containerKey in pairs(SpellCastBuffs.containerRouting) do
+    for _, containerKey in ipairs(SpellCastBuffs.GetUniqueDisplayContainers()) do
         local container = SpellCastBuffs.BuffContainers[containerKey]
         if container and container.icons then
             for i = 1, #container.icons do
@@ -2181,22 +2211,6 @@ function SpellCastBuffs.RefreshAllAbilityIdDebugLabels()
                         SpellCastBuffs.MarkAbilityIdLabelDirty(buff)
                         SpellCastBuffs.FitAbilityIdLabelFont(buff)
                     end
-                end
-            end
-        end
-    end
-    local longContainer = SpellCastBuffs.BuffContainers.player_long
-    if longContainer and longContainer.icons then
-        for i = 1, #longContainer.icons do
-            local buff = longContainer.icons[i]
-            if buff and buff.abilityId and not buff:IsHidden() then
-                local idText = buff.lastAbilityIdText or buff.abilityId:GetText()
-                if idText and idText ~= "" then
-                    buff.lastAbilityIdLayoutIconSize = nil
-                    SpellCastBuffs.ApplyBuffIconAbilityIdLayout(buff)
-                    buff.abilityId:SetHidden(false)
-                    SpellCastBuffs.MarkAbilityIdLabelDirty(buff)
-                    SpellCastBuffs.FitAbilityIdLabelFont(buff)
                 end
             end
         end
@@ -2300,15 +2314,12 @@ function SpellCastBuffs.ApplyFont()
     local prominentSize = (SpellCastBuffs.SV.ProminentLabelFontSize and SpellCastBuffs.SV.ProminentLabelFontSize > 0) and SpellCastBuffs.SV.ProminentLabelFontSize or 17
     SpellCastBuffs.prominentFont = LUIE.Font.Resolve(SpellCastBuffs.SV.ProminentLabelFontFace, prominentSize, prominentStyle)
 
-    local needs_reset = {}
-    -- And reset sizes of already existing icons
-    for _, container in pairs(SpellCastBuffs.containerRouting) do
-        needs_reset[container] = true
-    end
-    for _, container in pairs(SpellCastBuffs.containerRouting) do
-        if needs_reset[container] then
-            for i = 1, #SpellCastBuffs.BuffContainers[container].icons do
-                local icon = SpellCastBuffs.BuffContainers[container].icons[i]
+    -- And reset fonts of already existing icons (unique containers; player_long is in that list)
+    for _, container in ipairs(SpellCastBuffs.GetUniqueDisplayContainers()) do
+        local buffContainer = SpellCastBuffs.BuffContainers[container]
+        if buffContainer and buffContainer.icons then
+            for i = 1, #buffContainer.icons do
+                local icon = buffContainer.icons[i]
                 icon.label:SetFont(SpellCastBuffs.buffsFont)
                 if icon.stack then
                     icon.stack:SetFont(SpellCastBuffs.buffsFont)
@@ -2324,7 +2335,6 @@ function SpellCastBuffs.ApplyFont()
                 end
             end
         end
-        needs_reset[container] = false
     end
 
     SpellCastBuffs.MarkDisplayLayoutDirty()
@@ -2552,6 +2562,7 @@ end
 -- Runs on the EVENT_RETICLE_TARGET_CHANGED listener.
 -- This handler fires every time the player's reticle target changes
 function SpellCastBuffs.OnReticleTargetChanged(eventCode)
+    SpellCastBuffs.reticleCombatUnitId = nil
     SpellCastBuffs.ReloadEffects("reticleover")
 end
 
@@ -2581,28 +2592,88 @@ function SpellCastBuffs.ShowRecallCooldown()
     end
 end
 
+--- Formatted hard-target name for reticleover.
+--- GetRawUnitName stays "" when the unit is gone. GetUnitName can be nil, and zo_strformat asserts on nil.
+--- @return string
+function SpellCastBuffs.GetFormattedReticleUnitName()
+    if not DoesUnitExist("reticleover") then
+        return ""
+    end
+    local rawUnitName = GetRawUnitName("reticleover")
+    if type(rawUnitName) ~= "string" or rawUnitName == "" then
+        return ""
+    end
+    return zo_strformat("<<C:1>>", rawUnitName)
+end
+
 -- Called by EVENT_RETICLE_TARGET_CHANGED listener - Saves active FAKE debuffs on enemies and moves them back and forth between the active container or hidden.
 function SpellCastBuffs.RestoreSavedFakeEffects()
-    -- Restore Ground Effects
-    for _, effectsList in pairs({ SpellCastBuffs.EffectsList.ground, SpellCastBuffs.EffectsList.saved }) do
-        -- local container = SpellCastBuffs.containerRouting[context]
-        for k, v in pairs(effectsList) do
-            if v.savedName ~= nil then
-                local unitName = zo_strformat("<<C:1>>", GetUnitName("reticleover"))
-                if unitName == v.savedName then
-                    if SpellCastBuffs.EffectsList.saved[k] then
-                        SpellCastBuffs.EffectsList.ground[k] = SpellCastBuffs.EffectsList.saved[k]
-                        SpellCastBuffs.EffectsList.ground[k].iconNum = 0
-                        SpellCastBuffs.EffectsList.saved[k] = nil
-                    end
-                else
-                    if SpellCastBuffs.EffectsList.ground[k] then
-                        SpellCastBuffs.EffectsList.saved[k] = SpellCastBuffs.EffectsList.ground[k]
-                        SpellCastBuffs.EffectsList.ground[k] = nil
-                    end
+    local reticleName = SpellCastBuffs.GetFormattedReticleUnitName()
+    local reticleUnitId = SpellCastBuffs.reticleCombatUnitId
+    local lists =
+    {
+        ground = SpellCastBuffs.EffectsList.ground,
+        promd_ground = SpellCastBuffs.EffectsList.promd_ground,
+        saved = SpellCastBuffs.EffectsList.saved,
+    }
+
+    --- @param effectRow table
+    --- @return boolean
+    local function fakeMatchesReticle(effectRow)
+        if effectRow.savedUnitId and effectRow.savedUnitId ~= 0 and reticleUnitId and reticleUnitId ~= 0 then
+            return effectRow.savedUnitId == reticleUnitId
+        end
+        return effectRow.savedName ~= nil and reticleName == effectRow.savedName
+    end
+
+    --- @param effectRow table
+    --- @return string|nil
+    local function resolveFakeRestoreContext(effectRow)
+        if not fakeMatchesReticle(effectRow) then
+            return "saved"
+        end
+        if effectRow.id and SpellCastBuffs.UnitHasBuffAbilityId("reticleover", effectRow.id) then
+            return nil
+        end
+        if SpellCastBuffs.WantsProminentDebuff(effectRow.id, effectRow.name) then
+            return "promd_ground"
+        end
+        return "ground"
+    end
+
+    local pendingMoves = {}
+    for listName, effectsList in pairs(lists) do
+        for listKey, effectRow in pairs(effectsList) do
+            if effectRow.savedName ~= nil or (effectRow.savedUnitId and effectRow.savedUnitId ~= 0) then
+                local destContext = resolveFakeRestoreContext(effectRow)
+                if destContext ~= listName then
+                    pendingMoves[#pendingMoves + 1] =
+                    {
+                        listKey = listKey,
+                        fromList = listName,
+                        destContext = destContext,
+                        effectRow = effectRow,
+                    }
                 end
             end
         end
+    end
+
+    for i = 1, #pendingMoves do
+        local move = pendingMoves[i]
+        lists[move.fromList][move.listKey] = nil
+        if move.destContext then
+            move.effectRow.iconNum = 0
+            if move.destContext == "promd_ground" then
+                move.effectRow.target = "prominent"
+            else
+                move.effectRow.target = "reticleover"
+            end
+            lists[move.destContext][move.listKey] = move.effectRow
+        end
+    end
+    if #pendingMoves > 0 then
+        SpellCastBuffs.MarkDisplayDirty()
     end
 end
 
@@ -2994,25 +3065,27 @@ function SpellCastBuffs.OnVibration(eventCode, duration, coarseMotor, fineMotor,
     elseif SpellCastBuffs.playerResurrectStage == 2 and duration == 0 then
         SpellCastBuffs.playerResurrectStage = 3
     elseif SpellCastBuffs.playerResurrectStage == 3 and duration == 350 and SpellCastBuffs.SV.ShowResurrectionImmunity then
-        -- We got correct sequence, so let us create a buff and reset the SpellCastBuffs.playerResurrectStage
+        -- Self-rez rumble fallback when combat GAINED_DURATION for 14646 was missed (relog while dead).
         SpellCastBuffs.playerResurrectStage = nil
-        local currentTimeMs = GetFrameTimeMilliseconds()
         local abilityId = 14646
         local abilityName = Abilities.Innate_Resurrection_Immunity
         local context = SpellCastBuffs.DetermineContextSimple("player1", abilityId, abilityName)
-        SpellCastBuffs.EffectsList[context][abilityId] =
-        {
-            target = SpellCastBuffs.DetermineTarget(context),
-            type = 1,
-            id = abilityId,
-            name = abilityName,
-            icon = LUIE_MEDIA_ICONS_ABILITIES_ABILITY_INNATE_RESURRECTION_IMMUNITY_DDS,
-            dur = 10000,
-            starts = currentTimeMs,
-            ends = currentTimeMs + 10000,
-            restart = true,
-            iconNum = 0,
-        }
+        if SpellCastBuffs.GetFakeEffectEntry(context, abilityId) or SpellCastBuffs.UnitHasBuffAbilityId("player", abilityId) then
+            return
+        end
+        SpellCastBuffs.SetFakeCombatEffect(
+            context,
+            abilityId,
+            SpellCastBuffs.BuildFakeCombatEffectEntry(
+                context,
+                BUFF_EFFECT_TYPE_BUFF,
+                abilityId,
+                abilityName,
+                LUIE_MEDIA_ICONS_ABILITIES_ABILITY_INNATE_RESURRECTION_IMMUNITY_DDS,
+                14000,
+                0
+            )
+        )
     else
         -- This event does not seem to have anything to do with player self-resurrection
         SpellCastBuffs.playerResurrectStage = nil

@@ -497,15 +497,9 @@ do ------------------------
         if grimBase[abilityOffset] then -- Grim Focus (Phinix)
             local tUnit = self.unitTag
             if tUnit ~= 'notag' then
-                Srendarr.db.grimTracker[abilityOffset].stacks = 0
-                local numAuras = GetNumBuffs(tUnit)
-                if numAuras > 0 then
-                    for i = 1, numAuras do -- reset last stack count if passive not present when ability is cast (Phinix)
-                        local _, _, _, _, tStacks, _, _, _, _, _, tAbility = GetUnitBuffInfo(tUnit, i)
-                        if tAbility == abilityOffset then
-                            Srendarr.db.grimTracker[abilityOffset].stacks = tStacks
-                        end
-                    end
+                local gameStacks = Srendarr.GetGrimBuffStacks(tUnit, abilityOffset)
+                if gameStacks ~= nil then
+                    Srendarr.db.grimTracker[abilityOffset].stacks = gameStacks
                 end
                 self.stacks = Srendarr.db.grimTracker[abilityOffset].stacks -- set the current stacks to saved value for Grim Focus morph when passive exists (Phinix)
             end
@@ -593,7 +587,7 @@ do ------------------------
 
         if grimBase[abilityOffset] then -- Grim Focus (Phinix)
             self.proc:SetDimensions(AURA_HEIGHT - 6, AURA_HEIGHT - 6)
-            if self.stacks == 5 then
+            if Srendarr.IsGrimProcReady(abilityOffset, self.stacks) then
                 self.icon:SetTexture('/esoui/art/icons/ability_rogue_058.dds')
                 if (grimProcAnims) then
                     if not self.isPlaying then
@@ -748,7 +742,7 @@ function Aura:Update(start, finish, stacks, refresh)
     end
 
     if grimBase[abilityOffset] then -- Grim Focus (Phinix)
-        if nStacks == 5 then
+        if Srendarr.IsGrimProcReady(abilityOffset, nStacks) then
             self.icon:SetTexture('/esoui/art/icons/ability_rogue_058.dds')
             if (grimProcAnims) then
                 if not self.isPlaying then

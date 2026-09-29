@@ -47,9 +47,14 @@ local MODE_SHORT = {
 local function mode_tag(m)
     local gt = C.GAME_TYPE_LABEL[m.gameType]
     local tag = MODE_SHORT[gt] or "?"
-    if m.teamSize then tag = tag .. "  " .. m.teamSize .. "v" .. m.teamSize end
+    if m.teamSize then
+        local k = m.numTeams or (type(m.teams) == "table" and #m.teams) or 2
+        if k < 2 then k = 2 end
+        tag = tag .. "  " .. string.rep(m.teamSize .. "v", k - 1) .. m.teamSize
+    end
     return tag
 end
+U.mode_tag = mode_tag
 
 local function result_color(res)
     if res == "WIN" then return K.COLOR.heal end

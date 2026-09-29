@@ -262,7 +262,7 @@ end
 function Ability.Tracker:HandleBarSwap(_, barswap, _, _)
     if self.barswap == barswap then return end
     self.barswap = barswap == true
-    if self.barswap and self.currentEvent and self.currentEvent.ability and self.currentEvent.ability.delay > 1000 then
+    if self.barswap and self.currentEvent and self.currentEvent.ability and (self.currentEvent.ability.delay > 1000 or self.currentEvent.ability.heavy) then
         self:CancelCurrentEvent("Barswap")
         self.barswap = false
     end

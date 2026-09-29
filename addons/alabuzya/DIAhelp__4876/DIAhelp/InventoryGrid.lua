@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.InventoryGrid = {}
 -- DIAhelp InventoryGrid, alabuzya, 2026-09-24. GPL-3.0-or-later.
 -- Original implementation using ESO scroll-list operations; no GridList assets/code bundled.
 local SIZE, GAP = 64, 5
@@ -198,10 +200,8 @@ Discover = function()
         FindCraftingLists(_G[name], seen, 0)
     end
 end
-EVENT_MANAGER:RegisterForEvent("DIAhelpInventoryGrid",EVENT_ADD_ON_LOADED,function(_,name)
-    if name~="DIAhelp" then return end
-    EVENT_MANAGER:UnregisterForEvent("DIAhelpInventoryGrid",EVENT_ADD_ON_LOADED)
-    saved=ZO_SavedVars:NewAccountWide("DIAhelpSavedVariables",1,"inventoryGrid",{})
+function DIAhelp.InventoryGrid.Initialize()
+    saved=DIAhelp.SavedVariables.Account("inventoryGrid",{})
     EVENT_MANAGER:RegisterForEvent("DIAhelpInventoryGrid",EVENT_PLAYER_ACTIVATED,Discover)
     EVENT_MANAGER:RegisterForEvent("DIAhelpInventoryGrid",EVENT_OPEN_STORE,Discover)
     EVENT_MANAGER:RegisterForEvent("DIAhelpInventoryGrid",EVENT_OPEN_BANK,Discover)
@@ -222,4 +222,4 @@ EVENT_MANAGER:RegisterForEvent("DIAhelpInventoryGrid",EVENT_ADD_ON_LOADED,functi
         for _,state in pairs(states) do Apply(state) end
     end)
     Discover()
-end)
+end

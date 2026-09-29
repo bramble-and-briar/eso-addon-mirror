@@ -58,7 +58,34 @@ end
 local HEAVY_OMIT = {}
 for _, k in ipairs(HEAVY_KEYS) do HEAVY_OMIT[k] = true end
 
+local REST_OMIT = { matches = true, faces = true, ledger = true }
 local cache = { key = nil, report = nil }
+local match_memo = setmetatable({}, { __mode = "k" })
+local faces_memo = { rev = nil, count = nil, bytes = 0 }
+local ledger_memo = { rev = nil, bytes = 0 }
+
+local function match_estimates(m)
+    local heavy = m.timeline ~= nil
+    local geoKey = heavy and m.timeline.pt ~= nil
+    local e = match_memo[m]
+    if e and e.heavy == heavy and e.geoKey == geoKey and e.pinned == (m.pinned and true or false) then return e end
+    e = { heavy = heavy, geoKey = geoKey, pinned = m.pinned and true or false }
+    e.bytes = Storage.estimate(m)
+    if heavy then
+        e.stripped = Storage.estimate(m, HEAVY_OMIT)
+        local tl = m.timeline
+        if tl.pt then
+            e.geo = Storage.estimate({ pt = tl.pt, pos = tl.pos, pin = tl.pin, mt = tl.mt, mx = tl.mx, my = tl.my })
+                + (m.map and Storage.estimate(m.map) or 0)
+        end
+    end
+    match_memo[m] = e
+    return e
+end
+
+function Storage.forget(m)
+    if m then match_memo[m] = nil end
+end
 
 local function cache_key(data)
     local matches = data.matches or {}
@@ -88,19 +115,17 @@ function Storage.report()
     local geoSum, geoN = 0, 0
     for i = 1, n do
         local m = matches[i]
-        local bytes = Storage.estimate(m)
+        local e = match_estimates(m)
         if m.pinned then pinnedN = pinnedN + 1 end
-        local tl = m.timeline
-        if tl and tl.pt then
-            geoSum = geoSum + Storage.estimate({ pt = tl.pt, pos = tl.pos, pin = tl.pin, mt = tl.mt, mx = tl.mx, my = tl.my })
-                + (m.map and Storage.estimate(m.map) or 0)
+        if e.geo then
+            geoSum = geoSum + e.geo
             geoN = geoN + 1
         end
-        if m.timeline then
-            heavySum, heavyN = heavySum + bytes, heavyN + 1
-            strippedSum = strippedSum + Storage.estimate(m, HEAVY_OMIT)
+        if e.heavy then
+            heavySum, heavyN = heavySum + e.bytes, heavyN + 1
+            strippedSum = strippedSum + e.stripped
         else
-            lightSum, lightN = lightSum + bytes, lightN + 1
+            lightSum, lightN = lightSum + e.bytes, lightN + 1
         end
     end
     local usedMatches = heavySum + lightSum
@@ -117,11 +142,21 @@ function Storage.report()
     local faces = data.faces or {}
     local facesN = count(faces)
     local facesCap = Faces.CAP or 1500
-    local usedFaces = (facesN > 0) and Storage.estimate(faces) or 0
+    local frev = Faces.rev and Faces.rev() or nil
+    if faces_memo.rev ~= frev or faces_memo.count ~= facesN or frev == nil then
+        faces_memo.rev, faces_memo.count = frev, facesN
+        faces_memo.bytes = (facesN > 0) and Storage.estimate(faces) or 0
+    end
+    local usedFaces = faces_memo.bytes
     local projectedFaces = (facesN > 0) and (usedFaces / facesN * facesCap) or 0
     if projectedFaces < usedFaces then projectedFaces = usedFaces end
 
-    local usedLedger = data.ledger and Storage.estimate(data.ledger) or 0
+    local lrev = BGMeter.Ledger and BGMeter.Ledger.rev and BGMeter.Ledger.rev() or nil
+    if ledger_memo.rev ~= lrev or lrev == nil then
+        ledger_memo.rev = lrev
+        ledger_memo.bytes = data.ledger and Storage.estimate(data.ledger) or 0
+    end
+    local usedLedger = ledger_memo.bytes
     local geoAvg = (geoN > 0) and (geoSum / geoN) or 0
     local projectedGeo = geoAvg * (heavyKeep + pinCap)
     if projectedGeo < geoSum then projectedGeo = geoSum end
@@ -132,7 +167,7 @@ function Storage.report()
         faces   = { used = usedFaces, cap = projectedFaces, count = facesN, capCount = facesCap },
         ledger  = { used = usedLedger },
         map     = { used = geoSum, cap = projectedGeo, count = geoN },
-        total   = Storage.estimate(data),
+        total   = usedMatches + usedFaces + usedLedger + Storage.estimate(data, REST_OMIT),
     }
     cache.key, cache.report = key, report
     return report

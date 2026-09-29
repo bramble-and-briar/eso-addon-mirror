@@ -1,8 +1,9 @@
 ﻿## Title: ThiefTools
-## Version: 3.4.3
-## APIVersion: 101050 101051
-## AddOnVersion: 54
-## DependsOn: LibAddonMenu-2.0>=41 LibSFUtils>=66 LibDebugLogger>=268
+## Version: 3.4.4
+## APIVersion: 101052 101051
+## AddOnVersion: 55
+## IsLibrary: false
+## DependsOn: LibAddonMenu-2.0>=43 LibSFUtils>=78 LibDebugLogger>=307
 ## SavedVariables: ThiefToolsVars
 ## Author: Shadowfen
 

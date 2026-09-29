@@ -4,7 +4,7 @@
 --[[
     AddOn Name:         OptimalWeave
     Description:        Advanced GCD management system for perfect light attack weaving
-    Version:            1.17.0
+    Version:            1.18.0
     Author:             Orollas & VollständigerName
     Dependencies:       LibAddonMenu-2.0
 --]]
@@ -109,7 +109,7 @@ local defaults = {
     arcaBeamSkillIds = {
         [185805] = false, -- Base Mag
         [183122] = false, -- Exhausting Fatecarver Mag
-        [186366] = false,  -- Pragmatic Fatecarver Mag
+        [186366] = false, -- Pragmatic Fatecarver Mag
         [193397] = false, -- Base Stam
         [193398] = false, -- Exhausting Fatecarver Stam
         [193331] = false  -- Pragmatic Fatecarver Stam
@@ -211,9 +211,9 @@ local defaults = {
     -- =========================================================================
     -- == RESET BEHAVIOR SETTINGS ==============================================
     -- =========================================================================
-    resetOnDodge = true,    -- Reset on dodge: Clear GCD state when player dodges
-    resetOnBarswap = true,  -- Reset on bar swap: Clear GCD state when swapping bars
-    resetAfterSeconds = 25, -- Inactivity reset timer: Seconds of inactivity before GCD state resets
+    resetOnDodge = true,     -- Reset on dodge: Clear GCD state when player dodges
+    resetOnBarswap = false,  -- Reset on bar swap: Clear GCD state when swapping bars
+    resetAfterSeconds = 25,  -- Inactivity reset timer: Seconds of inactivity before GCD state resets
 
     -- =========================================================================
     -- == IN COMBAT MENU BLOCKING ==============================================
@@ -1482,10 +1482,50 @@ local function HookAssignableSkillsMenu()
     end)
 end
 
+-- =============================================================================
+-- == SKILLS WINDOW (KEY K) RIGHT-CLICK HOOK ===================================
+-- =============================================================================
+--[[
+    Purpose: Allows you to right-click on any skill in the Skills window
+             to display the same context menu as in the action bar.
+--]]
+
+local function HookSkillsWindow()
+    local function HookAbilitySlotMouseUp(abilityControl)
+        local slotControl = abilityControl:GetNamedChild("Slot")
+        if not slotControl or slotControl._owSkillsHooked then
+            return
+        end
+        slotControl._owSkillsHooked = true
+
+        ZO_PreHookHandler(slotControl, "OnMouseUp", function(control, button, upInside)
+            if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
+                local abilityId = control.abilityId
+                    or (abilityControl.skillProgressionData and abilityControl.skillProgressionData:GetAbilityId())
+
+                if abilityId and abilityId ~= 0 then
+                    local abilityName = zo_strformat("<<1>>", GetAbilityName(abilityId))
+                    control._customMenuData = {
+                        abilityId = abilityId,
+                        abilityName = abilityName,
+                    }
+                end
+            end
+            return false
+        end)
+    end
+
+    ZO_PreHook("ZO_Skills_AbilityEntry_Setup", function(abilityControl, skillData)
+        HookAbilitySlotMouseUp(abilityControl)
+        return false
+    end)
+end
+
 
 local function SetupAbilityIDHooks()
     HookActionBarRightClick()
     HookAssignableSkillsMenu()
+    HookSkillsWindow()
 end
 
 -- =============================================================================
@@ -1527,11 +1567,13 @@ local function Initialize()
     -- =============================================================================
     -- Reset tracking
 	EM:RegisterForEvent(NAME.."_BARSWAP", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, ResetGCDOnBarswap) 
+    EM:AddFilterForEvent(NAME .. "_BARSWAP", EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
     EM:RegisterForEvent(NAME.."_SWIMMING", EVENT_PLAYER_SWIMMING, ResetGCD)
     EM:RegisterForEvent(NAME.."_DEAD", EVENT_PLAYER_DEAD, ResetGCD)
 
     EM:RegisterForEvent(NAME .."_BLOCK", EVENT_COMBAT_EVENT, CastCanceled)
+    EM:AddFilterForEvent(NAME .. "_BLOCK", EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
 
     EM:RegisterForEvent(NAME.."_DODGE", EVENT_COMBAT_EVENT, ResetGCDOnDodge)
     EM:AddFilterForEvent(NAME.. "_DODGE", EVENT_COMBAT_EVENT, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
@@ -1601,8 +1643,37 @@ local function Initialize()
         EM:RegisterForEvent(NAME .. "_EquipInteraction", EVENT_INTERACTION_ENDED, EquipWeaponsStateChange)
     end    
 
+-- local function test(eventCode, result, isError, abilityName, abilityGraphic,
+--                     abilityActionSlotType, sourceName, sourceType, targetName,
+--                     targetType, hitValue, powerType, damageType, log,
+--                     sourceUnitId, targetUnitId, abilityId, overflow)
+
+--     if sourceType ~= COMBAT_UNIT_TYPE_PLAYER then
+--         return
+--     end
+
+--     local slotTypeNames = {
+--         [ACTION_SLOT_TYPE_NORMAL_ABILITY] = "NORMAL_ABILITY",
+--         [ACTION_SLOT_TYPE_WEAPON_ATTACK]  = "WEAPON_ATTACK",
+--         [ACTION_SLOT_TYPE_ULTIMATE]       = "ULTIMATE",
+--         [ACTION_SLOT_TYPE_OTHER]          = "OTHER",
+--         [ACTION_SLOT_TYPE_BLOCK]          = "BLOCK",
+--         [ACTION_SLOT_TYPE_LIGHT_ATTACK]   = "LIGHT_ATTACK",
+--         [ACTION_SLOT_TYPE_HEAVY_ATTACK]   = "HEAVY_ATTACK",
+--     }
+
+--     local typeName = slotTypeNames[abilityActionSlotType] or "UNKNOWN"
+--     d(string.format("ActionSlotType: %d (%s) | Ability: %s (ID: %d)",
+--         abilityActionSlotType, typeName, abilityName or "?", abilityId or 0))
+-- end
     -- Action system integration
     EM:RegisterForEvent(NAME, EVENT_ACTION_SLOT_ABILITY_USED, AbilityUsed)
+    EM:AddFilterForEvent(NAME, EVENT_COMBAT_EVENT,
+    REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+
+    -- EM:RegisterForEvent(NAME .. "Test", EVENT_COMBAT_EVENT, test)
+    -- EM:AddFilterForEvent(NAME .. "Test", EVENT_COMBAT_EVENT,
+    -- REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
     
     -- =============================================================================
     -- == PRE HOOKS INITIALIZATION =================================================

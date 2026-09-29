@@ -10,10 +10,6 @@
     {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:4862",
@@ -22,7 +18,7 @@
     "CompanionRoster"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4862/",
-  "fingerprint": "2641fb5556b2a3af459c2c3d6ff8e3f6239fe6d10f0fb385fabbad79ae2bf49c",
+  "fingerprint": "c2e9ceb3ea8dc1549615feff8a978a109a5689a920b3deef1d08b286adfb1458",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17486.png",
     "https://cdn-eso.mmoui.com/preview/pvw17487.png",
@@ -35,11 +31,11 @@
   "source_id": "4862",
   "source_url": "https://www.esoui.com/downloads/info4862-FeliksCompanionRoster.html",
   "stats": {
-    "downloads": 16,
+    "downloads": 79,
     "favorites": 2,
-    "monthly_downloads": 7
+    "monthly_downloads": 54
   },
   "title": "Feliks' Companion Roster",
-  "updated_at": 1790206669000,
-  "version": "2.0.8"
+  "updated_at": 1790648711000,
+  "version": "2.1.0"
 }

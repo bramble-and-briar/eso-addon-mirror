@@ -1,11 +1,12 @@
 ## Title: HUDditor Tools
 ## Author: @dack_janiels[PC], Baertram[PC]
 ## APIVersion: 101051
-## Version: 1.1.0
-## AddOnVersion: 11000
+## Version: 1.2.0
+## AddOnVersion: 12000
 ## Description: HUD editor tools: named layouts with import/export, grid overlay and snap-to-grid, colored borders for hidden elements & other features.
 ## SavedVariables: HUDitorToolsSV
 ## DependsOn: LibAddonMenu-2.0>=43 LibScrollableMenu>=020405
+## OptionalDependsOn: LibMediaProvider>=38
 
 ;Locales (English first, then client language)
 lang/en.lua
@@ -13,6 +14,9 @@ lang/$(language).lua
 
 ;Main addon
 HUDitorTools.lua
+ElementAppearance.lua
+ExtraHudElements.lua
+ResourceBarGroup.lua
 SettingsMenu.lua
 
 ;Grid & snap

@@ -191,7 +191,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [GuildFlex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zynight/GuildFlex__4659) | zynight | PC / Mac | 1.0.1 |
 | [Guildmember info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rednas/Guildmember-info__3548) | Rednas | PC / Mac | 1.2.1 |
 | [GuildMemberNoteTemplate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/GuildMemberNoteTemplate__2196) | Coorbin | PC / Mac | 1.1 |
-| [GuildPlanner.Pro Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gelmir/GuildPlanner.Pro-Data-Exporter__3028) | Gelmir | PC / Mac | 2.20.1 |
+| [GuildPlanner.Pro Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gelmir/GuildPlanner.Pro-Data-Exporter__3028) | Gelmir | PC / Mac | 2.21.0 |
 | [GuildRankNotifier - Guild Rank Change Notifications](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/GuildRankNotifier---Guild-Rank-Change-Notifications__1660) | Valve | PC / Mac | 1.2.0 |
 | [GuildSalesJournal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/GuildSalesJournal__13c6152d-1296-46e6-8b14-b42b77bb68df) | SugaComa | Console | — |
 | [GuildSalesTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/GuildSalesTracker__4559) | NPViral | PC / Mac | 1.2 |

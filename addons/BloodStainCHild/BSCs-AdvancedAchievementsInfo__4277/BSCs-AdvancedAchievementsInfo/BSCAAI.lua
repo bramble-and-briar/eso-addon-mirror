@@ -5,7 +5,7 @@ BSCAAI.Name = "BSCs-AdvancedAchievementsInfo"
 BSCAAI.NameSpaced = "AdvancedAchievementsInfo"
 BSCAAI.Author = "BloodStainChild666"
 BSCAAI.Version = 1
-BSCAAI.VersionDisplay = "2.0.7"
+BSCAAI.VersionDisplay = "2.0.9"
 
 -- Kategorie IDs
 local BSCAAInfo         = 6666
@@ -40,14 +40,32 @@ local function GetMonthName(month)
 end
 
 local function CalculateTimeStamp(year, month, day, hour, minute, second)
-	return os.time({
-		year = year or 1970,
-		month = month or 1,
-		day = day or 1,
-		hour = hour or 0,
-		minute = minute or 0,
-		sec = second or 0
-	})
+    year   = tonumber(year)
+    month  = tonumber(month)
+    day    = tonumber(day)
+    hour   = tonumber(hour)   or 0
+    minute = tonumber(minute) or 0
+    second = tonumber(second) or 0
+
+    -- Ungültiges oder nicht vorhandenes Datum
+    if not year or year < 1970
+        or not month or month < 1 or month > 12
+        or not day or day < 1 or day > 31
+        or hour < 0 or hour > 23
+        or minute < 0 or minute > 59
+        or second < 0 or second > 59
+    then
+        return 0
+    end
+
+    return os.time({
+        year  = year,
+        month = month,
+        day   = day,
+        hour  = hour,
+        min   = minute,
+        sec   = second,
+    })
 end
 
 local function BSC_IsAchievementComplete(id)
@@ -294,14 +312,44 @@ function BSCAAI.CreateCustomTabs()
 
         local result = org_AddTopLevelCategory(...)
         local lookup, tree = self.nodeLookupData, self.categoryTree
-        local nodeTemplate = "ZO_IconHeader"
-        local subTemplate  = "ZO_TreeLabelSubCategory"
+
+        -- Update 51 replaced the generic ZO_Tree templates used by the
+        -- achievement category tree with achievement-specific templates.
+        local isUpdate51OrNewer = GetAPIVersion() >= 101051
+        local nodeTemplate = isUpdate51OrNewer and "ZO_Achievements_StatusIconHeader" or "ZO_IconHeader"
+        local subTemplate  = isUpdate51OrNewer and "ZO_Achievements_SubCategory" or "ZO_TreeLabelSubCategory"
+
         local normalIcon   = "esoui/art/market/keyboard/giftmessageicon_up.dds"
         local pressedIcon  = "esoui/art/market/keyboard/giftmessageicon_down.dds"
         local mouseoverIcon= "esoui/art/market/keyboard/giftmessageicon_over.dds"
 
+        -- A custom top-level node may be marked as a summary so selecting the
+        -- header itself does not query a real achievement category. It must NOT
+        -- be marked as a faked subcategory: AddCategory would otherwise store
+        -- it under ZO_ACHIEVEMENTS_ROOT_SUBCATEGORY instead of its category ID.
+        -- Update 51 iterates nodeLookupData and requires every top-level lookup
+        -- entry to contain a valid .node.
+        local function AddCustomTopLevel(categoryIndex, name)
+            local IS_SUMMARY = true
+            local IS_NOT_FAKED_SUBCATEGORY = false
+            return self:AddCategory(
+                lookup,
+                tree,
+                nodeTemplate,
+                nil,
+                categoryIndex,
+                name,
+                false,
+                normalIcon,
+                pressedIcon,
+                mouseoverIcon,
+                IS_SUMMARY,
+                IS_NOT_FAKED_SUBCATEGORY
+            )
+        end
+
         -- Completed
-        local completedNode = self:AddCategory(lookup, tree, nodeTemplate, nil, BSCAAInfo, "Completed LIST", false, normalIcon, pressedIcon, mouseoverIcon, true, true)
+        local completedNode = AddCustomTopLevel(BSCAAInfo, "Completed LIST")
         self:AddCategory(lookup, tree, subTemplate, completedNode, BSCAAInfo, "Last 50", false)
         for i, name in ipairs(DSUB_CAT_LIST) do
             self:AddCategory(lookup, tree, subTemplate, completedNode, tonumber(DSUB_CAT_IDS[i]), name, true)
@@ -310,7 +358,7 @@ function BSCAAI.CreateCustomTabs()
         -- Favorites
 		local accountTrack, charTrack = BSCAAI:GetTrackingSplit()
 		if #accountTrack > 0 or #charTrack > 0 then
-			local favNode = self:AddCategory(lookup, tree, nodeTemplate, nil, BSCAAInfo_FAV, "Achievement Tracking", false, normalIcon, pressedIcon, mouseoverIcon, true, true)
+			local favNode = AddCustomTopLevel(BSCAAInfo_FAV, "Achievement Tracking")
 			if #accountTrack > 0 then
 				self:AddCategory(lookup, tree, subTemplate, favNode, BSCAAInfo_FAV_ACC, "Account", false)
 			end
@@ -320,7 +368,7 @@ function BSCAAI.CreateCustomTabs()
 		end
         -- TODO LIST (Account)
 		if #NSUB_CAT_LIST > 0 then
-			local todoNodeAcc = self:AddCategory(lookup, tree, nodeTemplate, nil, BSCAAInfo_notD, "TODO LIST (Account)", false, normalIcon, pressedIcon, mouseoverIcon, true, true)
+			local todoNodeAcc = AddCustomTopLevel(BSCAAInfo_notD, "TODO LIST (Account)")
 			for idx, subName in ipairs(NSUB_CAT_LIST) do
 				local count = #GetAchievementNDoneByCatIDX_ACC(idx)
 				self:AddCategory(lookup, tree, subTemplate, todoNodeAcc, idx, string.format("%s (%d)", subName, count), true)
@@ -329,7 +377,7 @@ function BSCAAI.CreateCustomTabs()
 
         -- TODO LIST (Char)
 		if #NSUB_CAT_LIST_CHAR > 0 then
-			local todoNodeChar = self:AddCategory(lookup, tree, nodeTemplate, nil, BSCAAInfo_notD_CH, "TODO LIST (Char)", false, normalIcon, pressedIcon, mouseoverIcon, true, true)
+			local todoNodeChar = AddCustomTopLevel(BSCAAInfo_notD_CH, "TODO LIST (Char)")
 			for idx, subName in ipairs(NSUB_CAT_LIST_CHAR) do
 				local count = #GetAchievementNDoneByCatIDX_CHAR(idx)
 				self:AddCategory(lookup, tree, subTemplate, todoNodeChar, idx, string.format("%s (%d)", subName, count), true)

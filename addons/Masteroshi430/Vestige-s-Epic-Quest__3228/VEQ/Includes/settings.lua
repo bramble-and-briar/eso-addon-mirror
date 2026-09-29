@@ -9,7 +9,7 @@ function VEQ.CreateSettings()
     local LMP = LibMediaProvider 
 	
 	local VEQAuthor = "|c3CB371@Masteroshi430|r"
-	local VEQVersion = "2026.07.30"
+	local VEQVersion = "2026.09.28"
 	local fontList = LMP:List('font')
 	local fontStyles = {"normal", "outline", "shadow", "soft-shadow-thick", "soft-shadow-thin", "thick-outline"}
 	local iconList = {"Arrow ESO (Default)", "Icon Dragonknight", "Icon Nightblade", "Icon Sorcerer", "Icon Templar"}
@@ -60,13 +60,13 @@ function VEQ.CreateSettings()
 				getFunc = VEQ.GetBgWidth,
 				setFunc = VEQ.SetBgWidth,
 			},
-			{--Lock BackGround Position
-				type = "checkbox",
-				name = VEQ.mylanguage.lang_position_lock,
-				tooltip = VEQ.mylanguage.lang_position_lock_tip,
-				getFunc = VEQ.GetPositionLockOption,
-				setFunc = VEQ.SetPositionLockOption,
-			},
+			-- {--Lock BackGround Position
+				-- type = "checkbox",
+				-- name = VEQ.mylanguage.lang_position_lock,
+				-- tooltip = VEQ.mylanguage.lang_position_lock_tip,
+				-- getFunc = VEQ.GetPositionLockOption,
+				-- setFunc = VEQ.SetPositionLockOption,
+			-- },
 			{--intelligent Background
 				type = "checkbox",
 				name = VEQ.mylanguage.lang_intelligent_background,

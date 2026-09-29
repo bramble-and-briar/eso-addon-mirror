@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Baertram/LibZone__2171",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Baertram",
   "canonical_id": "esoui:2171",
   "category_id": "53",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "LibZone"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2171/",
-  "fingerprint": "2565d518344bcd3a6cd0f19fedb805bb262702a685e9fc8b90ba72e0e22ee387",
+  "fingerprint": "0a881fcfc414b144a520d064932eccc9e2810ebecc03b11518c514a1636d63de",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7682.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw7683.jpg"
@@ -80,11 +85,11 @@
   "source_id": "2171",
   "source_url": "https://www.esoui.com/downloads/info2171-LibZone.html",
   "stats": {
-    "downloads": 1984452,
-    "favorites": 442,
-    "monthly_downloads": 33450
+    "downloads": 2012256,
+    "favorites": 449,
+    "monthly_downloads": 13188
   },
   "title": "LibZone",
-  "updated_at": 1783878460000,
-  "version": "9.00"
+  "updated_at": 1790614924000,
+  "version": "9.1"
 }

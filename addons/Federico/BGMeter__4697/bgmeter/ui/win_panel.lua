@@ -205,6 +205,20 @@ local function ensure_fx_controls(st)
     end
 end
 
+local vet_dirty = true
+
+local function same(st, a, b, c, d, e, f, g)
+    if st._k1 == a and st._k2 == b and st._k3 == c and st._k4 == d and st._k5 == e and st._k6 == f and st._k7 == g and st._keyed then
+        return true
+    end
+    st._k1, st._k2, st._k3, st._k4, st._k5, st._k6, st._k7, st._keyed = a, b, c, d, e, f, g, true
+    return false
+end
+
+function Panel.mark_vet_dirty() vet_dirty = true end
+
+function Panel.stats() return stats end
+
 local function refresh_ava()
     local A = BGMeter.zenimax.api
     local st = stats.ava
@@ -212,12 +226,13 @@ local function refresh_ava()
     if not (rank and rank > 0) then st.c:SetHidden(true) return end
     st.c:SetHidden(false)
     local gender = safe(A.get_gender) or 1
-    local rname = clean(safe(A.get_ava_rank_name, gender, rank)) or "?"
-    if st.icon then st.icon:SetTexture(safe(A.get_ava_rank_icon, rank) or "") end
-    set_text(st.label, string.format("%s  %d", rname, rank))
     local pts = safe(A.get_ava_rank_points) or 0
     local base = safe(A.get_ava_points_needed, rank) or 0
     local nextNeed = safe(A.get_ava_points_needed, rank + 1)
+    if same(st, rank, gender, pts, base, nextNeed) then return end
+    local rname = clean(safe(A.get_ava_rank_name, gender, rank)) or "?"
+    if st.icon then st.icon:SetTexture(safe(A.get_ava_rank_icon, rank) or "") end
+    set_text(st.label, string.format("%s  %d", rname, rank))
     if nextNeed and nextNeed > pts then
         st.tip = string.format("Alliance War rank %d\n%s AP to the next rank", rank, F.commas(nextNeed - pts))
     else
@@ -237,6 +252,8 @@ end
 local function refresh_vet()
     local A = BGMeter.zenimax.api
     local st = stats.vet
+    if not vet_dirty and st._seen then return end
+    vet_dirty, st._seen = false, true
     local snap = BGMeter.Veterancy and BGMeter.Veterancy.snapshot()
     if st.link then st.link:SetHidden(not (snap and snap.rank)) end
     if not (snap and snap.rank) then st.c:SetHidden(true) return end
@@ -285,6 +302,7 @@ local function refresh_standing()
     if demo then standing = { rank = demo, score = 123456 } end
     st.c:SetHidden(false)
     if st.link then st.link:SetHidden(false) end
+    if same(st, standing and standing.rank or 0, standing and standing.score or 0, demo or 0, Prefs.get("animate") and 1 or 0) then return end
     if standing and (standing.rank or 0) > 0 then
         local tier = trophy_tier(standing.rank)
         if st.icon then
@@ -334,16 +352,22 @@ local function refresh_currencies()
     local C = BGMeter.zenimax.constants
     local st = stats.ap
     st.c:SetHidden(false)
-    if st.icon then st.icon:SetTexture(safe(A.get_currency_icon, C.CURT_ALLIANCE_POINTS) or "") end
-    set_text(st.label, F.commas(safe(A.get_alliance_points) or 0))
-    st.tip = "Alliance Points"
+    local ap = safe(A.get_alliance_points) or 0
+    if not same(st, ap) then
+        if st.icon then st.icon:SetTexture(safe(A.get_currency_icon, C.CURT_ALLIANCE_POINTS) or "") end
+        set_text(st.label, F.commas(ap))
+        st.tip = "Alliance Points"
+    end
 
     st = stats.telvar
     if TELVAR then
         st.c:SetHidden(false)
-        if st.icon then st.icon:SetTexture(safe(A.get_currency_icon, TELVAR) or "") end
-        set_text(st.label, F.commas(safe(A.get_currency, TELVAR, C.CURRENCY_LOCATION_CHARACTER) or 0))
-        st.tip = "Tel Var Stones"
+        local tv = safe(A.get_currency, TELVAR, C.CURRENCY_LOCATION_CHARACTER) or 0
+        if not same(st, tv) then
+            if st.icon then st.icon:SetTexture(safe(A.get_currency_icon, TELVAR) or "") end
+            set_text(st.label, F.commas(tv))
+            st.tip = "Tel Var Stones"
+        end
     else
         st.c:SetHidden(true)
     end
@@ -352,6 +376,12 @@ end
 local function refresh_session()
     local st = stats.session
     local sess = BGMeter.Session
+    local lrev = BGMeter.Ledger and BGMeter.Ledger.rev and BGMeter.Ledger.rev() or 0
+    local hrev = BGMeter.History.rev and BGMeter.History.rev() or 0
+    if same(st, sess and sess.matches or 0, sess and sess.wins or 0, sess and sess.losses or 0, sess and sess.streak or 0, sess and sess.ap or 0, sess and sess.xp or 0, lrev * 100003 + hrev) then
+        st.c:SetHidden(false)
+        return
+    end
     if sess and sess.matches > 0 then
         if (sess.streak or 0) >= 2 then
             set_text(st.label, string.format("%dW-%dL  ·  %dx streak", sess.wins, sess.losses, sess.streak))
@@ -397,6 +427,7 @@ local function refresh_balance()
     local st = stats.balance
     local Ledger = BGMeter.Ledger
     if not (st and Ledger and Ledger.recent_balance) then return end
+    if same(st, Ledger.rev and Ledger.rev() or 0, BGMeter.History.rev and BGMeter.History.rev() or 0) then return end
     local recent, rn = Ledger.recent_balance(20)
     if not recent then
         st.c:SetHidden(true)

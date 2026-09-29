@@ -223,9 +223,21 @@ local function BuildSections()
             or specializedItemType == SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_FOOD
     end
     local furnishingPlanMatcher = function(itemLink)
-        local _, specializedItemType = GetItemLinkItemType(itemLink)
+        local itemType, specializedItemType = GetItemLinkItemType(itemLink)
 
-        return FURNISHING_PLAN_TYPES[specializedItemType] == true
+        if FURNISHING_PLAN_TYPES[specializedItemType] == true then
+            return true
+        end
+
+        if itemType ~= ITEMTYPE_RECIPE then
+            return false
+        end
+
+        local resultItemLink = GetItemLinkRecipeResultItemLink(itemLink, LINK_STYLE_DEFAULT)
+
+        return resultItemLink
+            and resultItemLink ~= ""
+            and IsItemLinkPlaceableFurniture(resultItemLink)
     end
     local stylePageMatcher = function(itemLink)
         return MatchesSpecializedType(itemLink, SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE)

@@ -1,4 +1,5 @@
-2026-09-11 v1.7.7
+2026-09-28 v1.7.7
++  API bump
 +  Moved 'Show permanently' settings option to 'Behavior' submenu
 !  Fixed Sound 'tock' effect now playing at correct volume if in settings menu
 !  Fixed 'tock' being played on heavy attacks even though turned off
@@ -10,6 +11,8 @@
 !  Fixed LATracker not showing when reset timer > 0
 !  Fixed initial showing of LATracker when reset timer = 0
 !  Fixed event.ending calculations to not end events too early
+!  Fixed heavy attacks not being interrupted by bar swaps (only affects heavy attack tracking ofc)
+!  Fixed stacks timers being hidden correctly
 
 2026-08-15 v1.7.6
 !  Fix for toggle abilities on toggle off

@@ -1,5 +1,5 @@
 --[[
-   Yudo's Power Stats v1.6.1
+   Yudo's Power Stats v1.6.2
 --]]
 
 -- Localized API functions for high-frequency updates
@@ -481,7 +481,7 @@ function YPS.InitializeSettings()
         name = "Yudo's Power Stats",
         displayName = "Yudo's Power Stats",
         author = "YudoAn",
-        version = "1.6.1",
+        version = "1.6.2",
         website = "https://www.esoui.com/downloads/info4323-YudosPowerStats.html",
         registerForRefresh = true,
     }

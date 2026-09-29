@@ -1,19 +1,5 @@
--- HarvestMap Ukrainian Localization
--- Інтеграція з DovahMova для української локалізації HarvestMap
--- Автор: DovahMova Team
-
--- Перевіряємо, чи встановлений HarvestMap
-if not Harvest then
-    return
-end
-
--- Перевіряємо, чи поточна мова - українська
-if GetCVar("language.2") ~= "ua" then
-    return
-end
-
--- Українська локалізація для HarvestMap
-Harvest.localizedStrings = {
+-- Українські рядки для HarvestMap: тег Harvest.GetLocalization -> текст.
+DovahMova.IntegrationStrings.HarvestMap = {
     -- Основний опис
     esouidescription = "Для опису аддона та FAQ відвідайте сторінку аддона на esoui.com",
     openesoui = "Відкрити ESOUI",
@@ -201,95 +187,15 @@ Harvest.localizedStrings = {
     HARVESTFARM_EDITOR = "Редагувати тур",
     HARVESTFARM_SAVE = "Зберегти/Завантажити тур",
 }
-
--- Додаємо українські назви інтерактивних об'єктів
-local interactableName2PinTypeId = {
-    ["важкий мішок"] = Harvest.HEAVYSACK,
-    ["важка скриня"] = Harvest.HEAVYSACK,
-    ["скарб злодіїв"] = Harvest.TROVE,
-    ["розхитана панель"] = Harvest.STASH,
-    ["розхитана плитка"] = Harvest.STASH,
-    ["розхитаний камінь"] = Harvest.STASH,
-    ["псіїчний портал"] = Harvest.PSIJIC,
-    ["гігантський молюск"] = Harvest.CLAM,
-    ["торбинка травника"] = Harvest.HERBALIST,
+-- Назви об'єктів під прицілом (як у ua.lang) -> поле Harvest з типом піна
+DovahMova.IntegrationStrings.HarvestMapInteractables = {
+	["важкий мішок"] = "HEAVYSACK",
+	["важкий ящик"] = "HEAVYSACK",
+	["схованка злодіїв"] = "TROVE",
+	["вільна панель"] = "STASH",
+	["вільна плитка"] = "STASH",
+	["вільний камінь"] = "STASH",
+	["портал псіджиків"] = "PSIJIC",
+	["велетенська морська молюска"] = "CLAM",
+	["сумка травника"] = "HERBALIST",
 }
-
--- Конвертуємо в нижній регістр та додаємо до глобального списку
-if Harvest.interactableName2PinTypeId then
-    for name, pinTypeId in pairs(interactableName2PinTypeId) do
-        Harvest.interactableName2PinTypeId[zo_strlower(name)] = pinTypeId
-    end
-end
-
--- Створюємо UI рядки для української мови
-local UIStrings = {
-    "SI_BINDING_NAME_HARVEST_SHOW_FILTER", 
-    "SI_BINDING_NAME_SKIP_TARGET", 
-    "SI_BINDING_NAME_TOGGLE_WORLDPINS", 
-    "SI_BINDING_NAME_TOGGLE_MAPPINS", 
-    "SI_BINDING_NAME_TOGGLE_MINIMAPPINS", 
-    "SI_BINDING_NAME_HARVEST_SHOW_PANEL",
-    "HARVESTFARM_GENERATOR",
-    "HARVESTFARM_EDITOR",
-    "HARVESTFARM_SAVE"
-}
-
-for _, str in pairs(UIStrings) do
-    if Harvest.localizedStrings[str] then
-        ZO_CreateStringId(str, Harvest.localizedStrings[str])
-    end
-end
-
--- Перезаписуємо GetLocalization для використання нашої локалізації
-if Harvest.GetLocalization then
-    local originalGetLocalization = Harvest.GetLocalization
-    Harvest.GetLocalization = function(tag)
-        -- Спочатку шукаємо в нашій українській локалізації
-        if Harvest.localizedStrings and Harvest.localizedStrings[tag] then
-            return Harvest.localizedStrings[tag]
-        end
-        -- Якщо не знайдено, використовуємо оригінальну функцію
-        return originalGetLocalization(tag)
-    end
-end
-
--- Повідомляємо про успішне завантаження української локалізації
-if d then
-    d("HarvestMap: Українська локалізація завантажена успішно!")
-end
-
--- Команда для ручного застосування локалізації
-SLASH_COMMANDS["/harvestmapua"] = function()
-    if not Harvest then
-        d("❌ HarvestMap не завантажений!")
-        return
-    end
-    
-    -- Перезаписуємо GetLocalization
-    if Harvest.GetLocalization then
-        local originalGetLocalization = Harvest.GetLocalization
-        Harvest.GetLocalization = function(tag)
-            if Harvest.localizedStrings and Harvest.localizedStrings[tag] then
-                return Harvest.localizedStrings[tag]
-            end
-            return originalGetLocalization(tag)
-        end
-        
-        d("✅ HarvestMap: Українська локалізація форсовано застосована!")
-        
-        -- Тестуємо
-        d("Тест mappins: " .. Harvest.GetLocalization("mappins"))
-        d("Тест pintype1: " .. Harvest.GetLocalization("pintype1"))
-        
-        -- Оновлюємо панель LAM, якщо існує
-        if Harvest.optionsPanel and CALLBACK_MANAGER then
-            zo_callLater(function()
-                CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", Harvest.optionsPanel)
-            end, 500)
-            d("✅ Панель налаштувань оновлена!")
-        end
-    else
-        d("❌ GetLocalization функція не знайдена!")
-    end
-end

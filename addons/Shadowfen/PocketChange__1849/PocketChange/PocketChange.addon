@@ -1,10 +1,11 @@
 ## Title: PocketChange
 ## Author: Shadowfen
-## Version: 1.36
-## AddOnVerson: 36
-## APIVersion: 101050 101051
+## Version: 1.38
+## AddOnVerson: 38
+## IsLibrary: false
+## APIVersion: 101052 101051
 ## SavedVariables: PocketChangeVar
-## DependsOn: LibAddonMenu-2.0>=43 LibSFUtils>=71
+## DependsOn: LibAddonMenu-2.0>=43 LibSFUtils>=77 LibLanguage>=47
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls� and related logos are
@@ -15,5 +16,6 @@
 lang\en.lua
 lang\$(language).lua
 
+PocketChange_Global.lua
 PocketChange.lua
 Bag.lua

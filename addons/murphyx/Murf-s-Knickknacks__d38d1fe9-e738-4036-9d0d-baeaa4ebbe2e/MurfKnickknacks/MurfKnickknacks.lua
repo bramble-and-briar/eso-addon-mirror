@@ -1,7 +1,7 @@
 local u="MurfKnickknacks"
-local g="Murf's\194\160Knickknacks"
-local p="MurfKnickknacks_SavedVars"
-local b=2
+local k="Murf's\194\160Knickknacks"
+local g="MurfKnickknacks_SavedVars"
+local q=2
 local e
 local t={
 nearDistanceShow=true,
@@ -12,6 +12,7 @@ bossBar="show",
 guildStoreTimeSort=false,
 mapZoomFactor=1.,
 mapZoomSpeed=1.,
+platformShow=true,
 canLearnShow=true,
 canLearnColor={1,1,1},
 lockedSetShow=true,
@@ -21,38 +22,38 @@ newIconShow=true,
 transmuteShow=true,
 guildMailHide={[1]=false,[2]=false,[3]=false,[4]=false,[5]=false},
 }
-local function n(e)
+local function s(e)
 return e[1]==1 and e[2]==1 and e[3]==1
 end
-local function s()
+local function n()
 if not e.nearDistanceShow then
 EsoStrings[SI_COMPASS_PIN_DISTANCE_FORMATTER]=""
-elseif not n(e.nearDistanceColor)then
-local t=e.nearDistanceColor[1]*255
-local a=e.nearDistanceColor[2]*255
+elseif not s(e.nearDistanceColor)then
+local a=e.nearDistanceColor[1]*255
+local t=e.nearDistanceColor[2]*255
 local e=e.nearDistanceColor[3]*255
-EsoStrings[SI_COMPASS_PIN_DISTANCE_FORMATTER]=string.format("|c%02X%02X%02X<<1>>m|r",t,a,e)
+EsoStrings[SI_COMPASS_PIN_DISTANCE_FORMATTER]=string.format("|c%02X%02X%02X<<1>>m|r",a,t,e)
 else
 EsoStrings[SI_COMPASS_PIN_DISTANCE_FORMATTER]="<<1>>m"
 end
 if not e.farDistanceShow then
 EsoStrings[SI_COMPASS_PIN_LONG_DISTANCE_FORMATTER]=""
-elseif not n(e.farDistanceColor)then
-local t=e.farDistanceColor[1]*255
-local a=e.farDistanceColor[2]*255
+elseif not s(e.farDistanceColor)then
+local a=e.farDistanceColor[1]*255
+local t=e.farDistanceColor[2]*255
 local e=e.farDistanceColor[3]*255
-EsoStrings[SI_COMPASS_PIN_LONG_DISTANCE_FORMATTER]=string.format("|c%02X%02X%02X<<1>>km|r",t,a,e)
+EsoStrings[SI_COMPASS_PIN_LONG_DISTANCE_FORMATTER]=string.format("|c%02X%02X%02X<<1>>km|r",a,t,e)
 else
 EsoStrings[SI_COMPASS_PIN_LONG_DISTANCE_FORMATTER]="<<1>>km"
 end
 end
-local c
-local w
+local f
+local y
 local function m(t)
 if t=="show"then
-if not c then return end
-COMPASS_FRAME.RefreshVisible=c
-COMPASS_FRAME.SetCompassHidden=w
+if not f then return end
+COMPASS_FRAME.RefreshVisible=f
+COMPASS_FRAME.SetCompassHidden=y
 COMPASS_FRAME:RefreshVisible()
 return
 elseif t=="hide"then
@@ -83,7 +84,7 @@ end
 end
 COMPASS_FRAME:RefreshVisible()
 end
-local function y()
+local function p()
 if TRADING_HOUSE_SEARCH==nil or GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS==nil then return end
 TRADING_HOUSE_SEARCH:ChangeSort(TRADING_HOUSE_SORT_TYPE_TIME,ZO_SORT_ORDER_DOWN)
 local e=GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS.sortHeaderGroup
@@ -116,13 +117,13 @@ o.mapMax=t
 o:RefreshZoom()
 end
 a.AddZoomDeltaGamepad=function(t,a,s)
-local n=2
-local o=2*e.mapZoomSpeed
-local i=t.targetNormalizedZoom or t.currentNormalizedZoom
+local o=2
+local i=2*e.mapZoomSpeed
+local n=t.targetNormalizedZoom or t.currentNormalizedZoom
 local e=t.mapMax-t.mapMin
-local o=a*zo_max(o,e/n)
+local o=a*zo_max(i,e/o)
 local e=e>0 and(o/e)or 0
-local e=zo_clamp(i+s*e,0,1)
+local e=zo_clamp(n+s*e,0,1)
 t:SetLockedNormalizedZoom(e,ZO_WorldMapScroll:GetCenter())
 if a>0 and t.canZoomInFurther then
 PlaySound(SOUNDS.MAP_ZOOM_IN)
@@ -138,14 +139,25 @@ if e.mapMin and e.mapMax then
 e:SetMapZoomMinMax(e.mapMin,e.mapMax)
 end
 end
+local a
+local function r()
+if not a then
+a=ZO_GetPlatformDisplayNameIcon
+end
+if e.platformShow then
+ZO_GetPlatformDisplayNameIcon=a
+else
+ZO_GetPlatformDisplayNameIcon=function()return nil end
+end
+end
 local o
 local a
 local l
-local f="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_can_learn.dds"
-local v="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_locked_set_piece.dds"
-local k="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_retrait_icon.dds"
-local q="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_reconstruct_icon.dds"
-local function r()
+local w="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_can_learn.dds"
+local b="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_locked_set_piece.dds"
+local j="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_retrait_icon.dds"
+local v="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_reconstruct_icon.dds"
+local function c()
 local o=ZO_MultiIconAnimation_OnStop
 function ZO_MultiIconAnimation_OnStop(t)
 local a=575-e.multiIconSpeed*75
@@ -167,15 +179,15 @@ if not l then
 l=t.AddIcon
 end
 t.AddIcon=function(o,t,a,i)
-if t==f then
+if t==w then
 if not e.canLearnShow then return end
 a=ZO_ColorDef:New(e.canLearnColor[1],e.canLearnColor[2],e.canLearnColor[3],1)
-elseif t==v then
+elseif t==b then
 if not e.lockedSetShow then return end
 a=ZO_ColorDef:New(e.lockedSetColor[1],e.lockedSetColor[2],e.lockedSetColor[3],1)
-elseif t==k then
+elseif t==j then
 if not e.transmuteShow then return end
-elseif t==q then
+elseif t==v then
 if not e.transmuteShow then return end
 end
 l(o,t,a,i)
@@ -200,7 +212,7 @@ end
 ZO_GamepadEntryData.CanLevel=function(e)return false end
 end
 local a
-local function f()
+local function w()
 if a then return end
 a=MAIL_MANAGER.HasDeletedGuildMail
 MAIL_MANAGER.HasDeletedGuildMail=function(i,t)
@@ -216,11 +228,11 @@ local o={
 ["Compass"]={"bossBar","nearDistanceShow","nearDistanceColor","farDistanceShow","farDistanceColor"},
 ["Guild Store"]={"guildStoreTimeSort"},
 ["Map Zoom"]={"mapZoomFactor","mapZoomSpeed"},
-["Icon Tweaks"]={"canLearnShow","canLearnColor","lockedSetShow","lockedSetColor",
+["Icon Tweaks"]={"platformShow","canLearnShow","canLearnColor","lockedSetShow","lockedSetColor",
 "multiIconSpeed","newIconShow","transmuteShow"},
 ["Guild Mail"]={"guildMailHide"},
 }
-local function k()
+local function b()
 local a=LibHarvensAddonSettings.list.currentSection
 local a=a and a.labelText
 local o=o[a]
@@ -228,21 +240,22 @@ if not o then return end
 for o,a in ipairs(o)do e[a]=t[a]end
 if a=="Compass"then
 m(e.bossBar)
-s()
+n()
 elseif a=="Map Zoom"then
 h()
 elseif a=="Icon Tweaks"then
-i()
 r()
+i()
+c()
 l()
 end
 end
 local function v()
 local a=LibHarvensAddonSettings
-local o=a:AddAddon(g,{
+local o=a:AddAddon(k,{
 allowDefaults=true,
 allowRefresh=true,
-defaultsFunction=k,
+defaultsFunction=b,
 })
 o:AddSetting({
 type=a.ST_SECTION,
@@ -275,7 +288,7 @@ default=t.nearDistanceShow,
 ignoreDefault=true,
 setFunction=function(t)
 e.nearDistanceShow=t
-s()
+n()
 end,
 getFunction=function()
 return e.nearDistanceShow
@@ -287,9 +300,9 @@ type=a.ST_COLOR,
 label="Text Color (Near)",
 tooltip="Color of the distance on the compass when a target is nearby.",
 setFunction=function(...)
-local o,a,t=...
-e.nearDistanceColor={o,a,t}
-s()
+local a,o,t=...
+e.nearDistanceColor={a,o,t}
+n()
 end,
 default=t.nearDistanceColor,
 ignoreDefault=true,
@@ -306,7 +319,7 @@ default=t.farDistanceShow,
 ignoreDefault=true,
 setFunction=function(t)
 e.farDistanceShow=t
-s()
+n()
 end,
 getFunction=function()
 return e.farDistanceShow
@@ -318,9 +331,9 @@ type=a.ST_COLOR,
 label="Text Color (Far)",
 tooltip="Color of the distance on the compass when a target is far away.",
 setFunction=function(...)
-local t,a,o=...
-e.farDistanceColor={t,a,o}
-s()
+local o,a,t=...
+e.farDistanceColor={o,a,t}
+n()
 end,
 default=t.farDistanceColor,
 ignoreDefault=true,
@@ -344,7 +357,7 @@ return e.guildStoreTimeSort
 end,
 setFunction=function(t)
 e.guildStoreTimeSort=t
-if t then y()end
+if t then p()end
 end,
 })
 o:AddSetting({
@@ -389,6 +402,20 @@ label="Icon Tweaks",
 })
 o:AddSetting({
 type=a.ST_CHECKBOX,
+label="Show Platform",
+tooltip="Show the platform icon in userids.",
+default=t.platformShow,
+ignoreDefault=true,
+setFunction=function(t)
+e.platformShow=t
+r()
+end,
+getFunction=function()
+return e.platformShow
+end,
+})
+o:AddSetting({
+type=a.ST_CHECKBOX,
 label="Show Can Learn",
 tooltip="Show icon when an item can be learned.",
 default=t.canLearnShow,
@@ -406,8 +433,8 @@ type=a.ST_COLOR,
 label="Color (Can Learn)",
 tooltip="Color of the icon for items that can be learned. Changes will be applied on next login.",
 setFunction=function(...)
-local o,a,t=...
-e.canLearnColor={o,a,t}
+local t,a,o=...
+e.canLearnColor={t,a,o}
 i()
 end,
 default=t.canLearnColor,
@@ -436,8 +463,8 @@ type=a.ST_COLOR,
 label="Color (Uncollected Gear)",
 tooltip="Color of the icon for gear that can be added to your sets collection. Changes will be applied on next login.",
 setFunction=function(...)
-local a,t,o=...
-e.lockedSetColor={a,t,o}
+local o,a,t=...
+e.lockedSetColor={o,a,t}
 i()
 end,
 default=t.lockedSetColor,
@@ -453,9 +480,9 @@ label="Apply Classic colors",
 tooltip="Use classic colors for the above icons.",
 buttonText="Apply",
 clickHandler=function(t,t)
-local t,o,a=ZO_SUCCEEDED_TEXT:UnpackRGBA()
-e.canLearnColor={t,o,a}
-e.lockedSetColor={t,o,a}
+local a,o,t=ZO_SUCCEEDED_TEXT:UnpackRGBA()
+e.canLearnColor={a,o,t}
+e.lockedSetColor={a,o,t}
 i()
 end,
 })
@@ -472,7 +499,7 @@ decimals=1,
 getFunction=function()return e.multiIconSpeed end,
 setFunction=function(t)
 e.multiIconSpeed=t
-r()
+c()
 end,
 })
 o:AddSetting({
@@ -519,7 +546,7 @@ default=t.guildMailHide[i],
 ignoreDefault=true,
 setFunction=function(t)
 e.guildMailHide[i]=t
-f()
+w()
 end,
 getFunction=function()
 return e.guildMailHide[i]
@@ -530,19 +557,20 @@ end
 local function a(o,a)
 if a~=u then return end
 EVENT_MANAGER:UnregisterForEvent(u,EVENT_ADD_ON_LOADED)
-c=COMPASS_FRAME.RefreshVisible
-w=COMPASS_FRAME.SetCompassHidden
-e=ZO_SavedVars:NewAccountWide(p,b,GetWorldName(),t)
+f=COMPASS_FRAME.RefreshVisible
+y=COMPASS_FRAME.SetCompassHidden
+e=ZO_SavedVars:NewAccountWide(g,q,GetWorldName(),t)
 v()
 if e.bossBar~=t.bossBar then m(e.bossBar)end
 if not(e.nearDistanceShow and e.farDistanceShow
-and n(e.nearDistanceColor)
-and n(e.farDistanceColor))then s()end
-if e.guildStoreTimeSort~=t.guildStoreTimeSort then y()end
+and s(e.nearDistanceColor)
+and s(e.farDistanceColor))then n()end
+if e.guildStoreTimeSort~=t.guildStoreTimeSort then p()end
 if e.mapZoomFactor~=t.mapZoomFactor or e.mapZoomSpeed~=t.mapZoomSpeed then h()end
-if not(e.canLearnShow==t.canLearnShow and n(e.canLearnColor)and e.lockedSetShow==t.lockedSetShow and n(e.lockedSetColor)and e.transmuteShow==t.transmuteShow)then i()end
-if e.multiIconSpeed~=t.multiIconSpeed then r()end
+if e.platformShow~=t.platformShow then r()end
+if not(e.canLearnShow==t.canLearnShow and s(e.canLearnColor)and e.lockedSetShow==t.lockedSetShow and s(e.lockedSetColor)and e.transmuteShow==t.transmuteShow)then i()end
+if e.multiIconSpeed~=t.multiIconSpeed then c()end
 if e.newIconShow~=t.newIconShow then l()end
-if not ZO_AreNumericallyIndexedTablesEqual(e.guildMailHide,t.guildMailHide)then f()end
+if not ZO_AreNumericallyIndexedTablesEqual(e.guildMailHide,t.guildMailHide)then w()end
 end
 EVENT_MANAGER:RegisterForEvent(u,EVENT_ADD_ON_LOADED,a)

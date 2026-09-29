@@ -15,14 +15,15 @@
   "content_id": "esoui:4870",
   "deleted": false,
   "directories": [
-    "CPBIS"
+    "OneClickChampionPoints"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4870/",
-  "fingerprint": "5fc71b7e31efaa004e35c9146313e6129bf8da46266c3dbd826b870c1e833ab3",
+  "fingerprint": "a8ea072bf6b5eed8a21efd517f5f5e6e48848c42fc0428f3522d81fa637d2ba5",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17530.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17531.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17532.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17572.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17573.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17576.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17577.png"
   ],
   "platform": "pc",
   "published": true,
@@ -30,11 +31,11 @@
   "source_id": "4870",
   "source_url": "https://www.esoui.com/downloads/info4870-OneClickChampionPoints.html",
   "stats": {
-    "downloads": 36,
+    "downloads": 83,
     "favorites": 1,
-    "monthly_downloads": 8
+    "monthly_downloads": 72
   },
   "title": "One Click Champion Points",
-  "updated_at": 1790266230000,
-  "version": "1.0.0"
+  "updated_at": 1790612465000,
+  "version": "1.1.0"
 }

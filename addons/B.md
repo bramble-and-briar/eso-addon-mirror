@@ -45,6 +45,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [barny's CC Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/barny/barny-s-CC-Tracker__3971) | barny | PC / Mac | 1.1.3 |
 | [barny's CC Tracker - beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/barny/barny-s-CC-Tracker---beta__3988) | barny | PC / Mac | 1.1.3 - beta |
 | [Barrier Frame Tracker (Bandits User Interface)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Barrier-Frame-Tracker-Bandits-User-Interface__4853) | its_wifey | PC / Mac | 1.0.1 |
+| [BateBeta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vur/BateBeta__4880) | Vur | PC / Mac | 0.0.1 |
 | [batmaans Reconstructed Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/batmaan/batmaans-Reconstructed-Filter__3541) | batmaan | PC / Mac | 1.0 |
 | [Batman's Home and Out](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Batman-s-Home-and-Out__3503) | Irniben | PC / Mac | 1.0.0 |
 | [Battery Charger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Estrela/Battery-Charger__2902) | Estrela | PC / Mac | 1.1 |
@@ -79,7 +80,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BetterSynergy - Synergy Text Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/BetterSynergy---Synergy-Text-Hider__4029) | SkullElf | PC / Mac | 1.4 |
 | [BetterUI :: Gamepad Interface Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goobsnake/BetterUI-Gamepad-Interface-Improvements__2013) | goobsnake | PC / Mac | 3.06 |
 | [BGHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/BGHelper__4527) | NPViral | PC / Mac | 3.0 |
-| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.5.0 |
+| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.6.0 |
 | [Bigger Chat Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Bigger-Chat-Window__657) | Crabby654 | PC / Mac | 1.6.3 |
 | [Bind As Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Bind-As-Junk__4608) | Fluffiels | PC / Mac | 1.03 |
 | [BindAll (Sticker Book Collector)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/BindAll-Sticker-Book-Collector__2825) | ownedbynico | PC / Mac | 1.5 |
@@ -144,7 +145,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bright Harbinger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Bright-Harbinger__4818) | its_wifey | PC / Mac | 1.5 |
 | [bright harbinger tracker by JH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/bright-harbinger-tracker-by-JH__9da5a4a2-9707-44e3-b201-a2551df3762b) | j.hhh | Console | — |
 | [BSC-CompanionInfo Extension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DoonerSeraph/BSC-CompanionInfo-Extension__3151) | DoonerSeraph | PC / Mac | 2.0.5 |
-| [BSCs-AdvancedAchievementsInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AdvancedAchievementsInfo__4277) | BloodStainCHild | PC / Mac | 2.0.7 |
+| [BSCs-AdvancedAchievementsInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AdvancedAchievementsInfo__4277) | BloodStainCHild | PC / Mac | 2.0.9 |
 | [BSCs-AdvancedPotions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AdvancedPotions__3716) | BloodStainCHild | PC / Mac | 1.0.1 |
 | [BSCs-AdvancedSynergy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AdvancedSynergy__2403) | BloodStainCHild | PC / Mac | 2.3.8 |
 | [BSCs-AdvancedSynergyZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BSCs-AdvancedSynergyZHPatch__3902) | FusRoDah | PC / Mac | 2.1.1.b |
@@ -176,7 +177,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Buffy: Live Buff Tracking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YFNatey/Buffy-Live-Buff-Tracking__782c659c-1b9a-4e03-aaef-6526095363ad) | YFNatey | Console | — |
 | [buffybeta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YFNatey/buffybeta__086be98f-893e-4cea-a222-aad748e474c9) | YFNatey | Console | — |
 | [BugCatcher Keybinds - Adds Custom Keybinds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/BugCatcher-Keybinds---Adds-Custom-Keybinds__4621) | Duesentrieb | PC / Mac | 20260609-0001 |
-| [BugCatcher Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/BugCatcher-Updated__2566) | Shadowfen | PC / Mac | 042 |
+| [BugCatcher Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/BugCatcher-Updated__2566) | Shadowfen | PC / Mac | 043 |
 | [bugfixxxxx](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/bugfixxxxx__b057d22b-1ffd-455c-834a-af582e3e270a) | Vixen_Hunny | Console | — |
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |

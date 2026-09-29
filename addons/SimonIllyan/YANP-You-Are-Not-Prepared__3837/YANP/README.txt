@@ -39,7 +39,10 @@ Mandatory dependencies:
 - LibSets
 
 RECENT CHANGES LOG
-Version 1.12 (2026-06-08)
+Version 1.13 (2026-09-28)
+  - update for API 101051
+
+  Version 1.12 (2026-06-08)
   - update for API 101050
 
 Version 1.11 (2026-03-03)

@@ -1,4 +1,4 @@
-Ardy's OB Tracker  v1.3.0
+Ardy's OB Tracker  v1.3.1
 =========================
 
 INSTALL

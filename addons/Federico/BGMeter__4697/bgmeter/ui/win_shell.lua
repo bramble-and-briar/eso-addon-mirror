@@ -544,6 +544,10 @@ function W.on_combat(_, inCombat)
     apply_visibility()
 end
 
+function W.in_combat() return in_combat end
+
+function W.ensure_built() build() end
+
 function W.show_match(index)
     build()
     if BGMeter.UI.menu and BGMeter.UI.menu.clear_unread then BGMeter.UI.menu.clear_unread() end

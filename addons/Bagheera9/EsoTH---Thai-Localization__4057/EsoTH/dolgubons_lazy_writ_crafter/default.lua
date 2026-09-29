@@ -149,10 +149,13 @@ function WritCreater.writCompleteStrings() -- Vital for translation
 	return strings
 end
 
-local function masterWritSmithCraft (link, trait, style, quality, writName)
+local function masterWritSmithCraft (link, trait, style, quality, writName, usedMimicStone)
 	-- local partialString = zo_strformat("Crafting a CP150 <<t:6>> <<t:1>> from <<t:2>> with the <<t:3>> trait and <<t:4>> style at <<t:5>> quality",pat,set,trait,style,qual,mat)
-	local partialString = zo_strformat("<<t:5>>: Crafting a CP150 <<t:1>> with the <<t:2>> trait and <<t:3>> style at <<t:4>> quality", link, trait, style, quality, writName)
-	return partialString
+	if usedMimicStone then
+		return zo_strformat("<<t:5>>: Crafting a CP150 <<t:1>> with the <<t:2>> trait and <<t:3>> style at <<t:4>> quality with a mimic stone", link, trait, style, quality, writName)
+	else
+		return zo_strformat("<<t:5>>: Crafting a CP150 <<t:1>> with the <<t:2>> trait and <<t:3>> style at <<t:4>> quality", link, trait, style, quality, writName)
+	end
 end
 
 WritCreater.missingTranslations = {}
@@ -166,7 +169,7 @@ WritCreater.missingTranslationsOrder[#WritCreater.missingTranslationsOrder+1] = 
 ["__index"] = function(t, k) return stringIndexTable[tostring(t)][k] end,
 }
 
-WritCreater.strings = {}
+WritCreater.strings = WritCreater.strings or {}
 setmetatable(WritCreater.strings, findMissingTranslationsMetatable)
 
 WritCreater.strings["runeReq"] 						= function (essence, potency,taStack,essenceStack,potencyStack) 
@@ -233,7 +236,7 @@ WritCreater.strings['goldenPursuitCraft']			= "Craft set items for unfinished go
 WritCreater.strings['fullInventory']				= "Your inventory is full"
 WritCreater.strings['provisioningUnknownRecipe']	= "You do not know the recipe for <<1>>"
 WritCreater.strings['provisioningCraft']			= "Writ Crafter will craft <<1>>"
-WritCreater.strings['transmuteLooted']				= "<<1>> Transmute Stone recieved (You have <<2>>)"
+WritCreater.strings['transmuteLooted']				= "<<1>> Transmute Stone received (You have <<2>>)"
 WritCreater.strings['transmuteLimitApproach']		= "You are approaching the transmute stone limit. If a box would put you over the transmute stone limit, Writ Crafter will not loot the stones."
 WritCreater.strings['transmuteLimitHit']			= "Looting these transmute stones would put you over the maximum, so <<1>> transmute stones were not looted"
 WritCreater.strings['lootingMarkJunk']				= "Writ Crafter: Marked <<1>> as junk"
@@ -257,11 +260,14 @@ WritCreater.strings['statsWitsDone']				= "Writs Done: <<1>> in the past <<2>> d
 WritCreater.strings['deconstructSuccess']			= "Writ Crafter: Deconstructed <<1>>"
 WritCreater.strings['potion']						= "potion"
 WritCreater.strings['poison']						= "poison"
+WritCreater.strings['junkSold']						= "Writ Crafter: Sold all Junk items"
+WritCreater.strings['boxLootRemaining']				= "<<1>>/<<2>> boxes remaining"
+WritCreater.strings['aethericCipherCongrats']		= "You just got an |H0:item:115028:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h!! Congratulations!"
 
 
 
 
-WritCreater.optionStrings = {}
+WritCreater.optionStrings = WritCreater.optionStrings or {}
 
 setmetatable(WritCreater.optionStrings, findMissingTranslationsMetatable)
 
@@ -397,9 +403,10 @@ WritCreater.optionStrings["jubilee"]									= "Loot Anniversary/Zenithar Boxes"
 WritCreater.optionStrings["jubilee tooltip"]							= "Auto Loots Anniversary and Zenithar Boxes"
 WritCreater.optionStrings["skin"]										= "Writ Crafter Skin"
 WritCreater.optionStrings["skinTooltip"]								= "The skin for the Writ Crafter UI"
-WritCreater.optionStrings["skinOptions"]								= {"Default", "Cheesy", "Goaty"}
+WritCreater.optionStrings["skinOptions"]								= {"Default", "Cheesy", "Goaty", "Fabulous"}
 WritCreater.optionStrings["goatSkin"]									= "Goaty"
 WritCreater.optionStrings["cheeseSkin"]									= "Cheesy"
+WritCreater.optionStrings["fabulousSkin"]								= "Fabulous"
 WritCreater.optionStrings["defaultSkin"]								= "Default"
 WritCreater.optionStrings["rewardChoices"]								= {"Nothing","Deposit","Junk", "Destroy", "Deconstruct"}
 WritCreater.optionStrings["scan for unopened"]							= "Open containers on Login"
@@ -425,7 +432,7 @@ WritCreater.optionStrings['smartMultiplier']							= "Smart Multiplier"
 WritCreater.optionStrings['smartMultiplierTooltip']						= "If on, Writ Crafter will craft items for the full cycle of 3 days of writs. It will also check to see if you have any writ items"..
 " already, and take that into consideration. If off, Writ Crafter will simply craft multiple items of the current day's writs"
 WritCreater.optionStrings['craftHousePort']								= "Port to crafting house"
-WritCreater.optionStrings['craftHousePortTooltip'] 						= "Port to a publicly available crafting house"
+WritCreater.optionStrings['craftHousePortTooltip'] 						= "Port to a publicly available crafting house. If you use this often, you can use LibRadialMenu to have a shortcut"
 WritCreater.optionStrings['craftHousePortButton']						= "Port"
 WritCreater.optionStrings['reportBug']									= "Report a bug"
 WritCreater.optionStrings['reportBugTooltip']							= "Open a thread to report bugs specifically with the console version of writ crafter. Please check to make sure the issue hasn't been reported yet."
@@ -433,10 +440,10 @@ WritCreater.optionStrings['openUrlButtonText']							= "Open URL"
 WritCreater.optionStrings['donate']										= "Donate"
 WritCreater.optionStrings['donateTooltip']								= "Donate to Dolgubon on Paypal"
 WritCreater.optionStrings['writStats']									= "Writ Stats"
-WritCreater.optionStrings['writStatsTooltip']							= "View historical writ reward statistics of writs done with the addon installed"
+WritCreater.optionStrings['writStatsTooltip']							= "View historical writ reward statistics of writs done with the addon installed. If you use this often, you can use LibRadialMenu to have a shortcut"
 WritCreater.optionStrings['writStatsButton']							= "Open window"
 WritCreater.optionStrings['queueWrits']									= "Queue all sealed writs"
-WritCreater.optionStrings['queueWritsTooltip']							= "Queue all sealed writs in your inventory"
+WritCreater.optionStrings['queueWritsTooltip']							= "Queue all sealed writs in your inventory. If you use this often, you can use LibRadialMenu to have a shortcut"
 WritCreater.optionStrings['queueWritsButton']							= "Queue"
 WritCreater.optionStrings['mainSettings']								= "Main Settings"
 WritCreater.optionStrings['statusBarHorizontal']						= "Horizontal Position"
@@ -445,7 +452,18 @@ WritCreater.optionStrings['statusBarVertical']							= "Vertical Position"
 WritCreater.optionStrings['statusBarVerticalTooltip']					= "Vertical position of the status bar"
 WritCreater.optionStrings['keepItemWritFormat']							= "Keep <<1>>"
 WritCreater.optionStrings["npcStyleStoneReminder"]						= "Reminder: You can purchase base racial style stones from any crafting NPC vendor for 15g each"
-
+WritCreater.optionStrings['voucherCount']								= "Count # of unearned Writ Vouchers"
+WritCreater.optionStrings['voucherCountTooltip']						= "Output the total number of writ vouchers of all sealed master writs in the player's inventory and bank"
+WritCreater.optionStrings['surveyCount']								= "Count # of surveys"
+WritCreater.optionStrings['surveyCountTooltip']							= "Outputs a breakdown of the number of surveys in the player's inventory and bank"
+WritCreater.optionStrings["mimicStoneUse"]								= "Mimic stones for master writs"
+WritCreater.optionStrings["mimicStoneUseTooltip"]						= "Defines the usage of mimic stones for master writs. Clears current master writ queue\nMimic stones will never be used for daily writs. (Buy for 15g ea. from NPC merchants)"
+WritCreater.optionStrings['mimicStoneUseChoices']						= {"Do not use" , "Always use", "Use if no style stones", "Use if price > 1k", "Use if price > 3k"}
+WritCreater.optionStrings['masterWritQueueCleared']						= "Master Writ crafting queue cleared"
+WritCreater.optionStrings["onomatopoeia"]								= "Crafting Onomatopoeia"
+WritCreater.optionStrings["onomatopoeiaTooltip"]						= "Turns on the crafting onomatopoeia from LWC 2026 April Fools"
+WritCreater.optionStrings['showBoxCountdown']							= "Show Box Countdown"
+WritCreater.optionStrings['showBoxCountdownTooltip']					= "Show box countdown"
 
 
 
@@ -489,61 +507,93 @@ end
 WritCreater.cheeseyLocalizations
 =
 {
-	['menuName'] = "DO NOT TRANSLATE: Work in progress |cFFBF00Pyrite|r", -- Pyrite
-	['endeavorName'] = "Pyrite Endeavors",
+	-- Note for translation: Anything on the same line after two -- should not be translated
+	['menuName'] = "|cFFBF00Pyrite Pursuit|r",
+	['initialDescription'] = "Why not just /read the pamphlet first?",
+	['readDescription'] = "After discovering that his head crafter was using a Crafting Helper Add-on To Generate Processed Trash, the Lord of the Creatives is looking for a new lead crafter. Try your hand at getting the job!",
+	['endeavorName'] = "Pyrite Pursuits",-- Note for translation: Pyrite, aka Fool's Gold. Play on Fool = Crazy =  Sheogorath, Fool in April Fools, and Golden Pursuits, bc that's where this lives
+	['completionShout'] = "<<1>>/<<2>> |cFFBF00Pyrite Pursuit|r Completed!", -- e.g. 1/6 pyrite pursuit completed!
 	['tasks']={
-		{original="You found a pamphlet titled 'Help Wanted'... Maybe you should /read it",name="You found a Help Wanted pamphlet from the Lord of the Creatives", completion = "Seems like the Lord of the Creatives is hiring",
-			description="Use the /read emote"},
+		-------------------------
+		-- Note for translations:
+		-- The list contains some wordplay on various daedric artefacts or other jokes. If they don't translate well (good chance) feel free to just do literal translations.
+		-- Robber's Jack: Sounds like Wabbajack. Satisfied by creating a Jack from one of: the Redistributor set, the Daedric trickery set, or the Daring corsair set
+		-- Amulet of Blings: Rhymes with Amulet of Kings. Satisfied by creating an electrum necklace
+		-- Totally real ebony blade: Refers to the ebony blade (Mephala artefact, from crypt of hearts). Satisfied by, you guessed it, an ebony blade
+		-- Staff of Magnus Gift: Gift is crossed out. Refers to the Staff of Magnus. Satisfied by a staff from the Magnus Gift set
+		-- Cheesecake is a lie: Refers to 'the cake is a lie' and Sheogorath liking cheese. Satisfied by making a cheesecake
+		-- Lord of the creatives, trickster, lord of the dranged, fourth corner (of the house of troubles), lord of the never there, and Dam Dog (Mad God backwards) are all names for sheogorath. 
+		-- Translations can use any nickname for him, Uncle Sheo, or even just do Sheogorath if you can't find/don't know any
 
-		{original="???", name = "Craft a Robber's Jack", completion = "It might not transform anyone into cheese, but it'll still transform your look!",
-			description="The Trickster likes to transform things. Transform yourself into a robber by crafting a jack from the Daring Corsair set", noskill=""}, -- requires 3 traits
+		-- Original: Shown prior to the completion of the first task
+		-- Name: Shown in the pursuits window
+		-- placehold: shown in place of name after completion (if present)
+		-- completion: Shown as a popup when task is complete
+		-- Description: Long form description. Should explain exactly what needs to be done. Shown as a tooltip on PC
+		-- completedDescription: description after completion
+		-------------------------
+		{original="You found a pamphlet titled 'Help Wanted'... Maybe you should /read it",name="/Read the pamphlet you found",placehold="You found a Help Wanted pamphlet from the Lord of the Creatives", completion = "Seems like the Lord of the Creatives is hiring?",
+			description="You found a pamphlet labelled 'Help Wanted'. You can use the /read emote to read it", completedDescription="You read the pamphlet"},
 
-		{original="???", name = "Craft the Amulet of Blings", completion = "This necklace would look fabulous on you! Except in Tamriel, you can't see it here.",
-			description="The Lord of the Deranged is rich! Show him you can make use of his riches by making an Electrum Necklace"},
+		{original="???", name = "Craft a Robber Jack", completion = "It might not transform anyone into cheese, but it'll still transform your look!",
+			description="The Trickster likes to transform things. Transform yourself into a robber by crafting a jack from the Daring Corsair set", 
+			completedDescription="Maybe in time, the Robbajack will become just as powerful as the Wabbajack."}, -- requires 3 traits
+
+		{original="???", name = "Craft the Amulet of Blings", completion = "This necklace would probably look fabulous on you! If only you could see it when you wear it",
+			description="The Lord of the Deranged is rich! Show him you can make use of his riches by making an Electrum Necklace",
+		completedDescription="Despite being made of real metal, it seems to disappear when you wear it... a sign of power, maybe?"},
 
 		{original="???", name = "Craft the Ebony Blade", completion = "Wasn't this supposed to steal your soul or something? Maybe you made it wrong",
-			description="Uncle Sheo would love to replicate the Ebony Blade's ability to turn its useers insane, so he needs someone who can make a new one"},
+			description="The Fourth Corner would love to replicate the Ebony Blade's ability to turn its users insane. Show that you can help by making a bladed Ebony weapon",
+		completedDescription="The Ebony Blade. Such an unassuming name for such a... Actually, this blade is pretty mundane, so the name fits perfectly."},
 
 		{original="???", name = "Craft a Staff of Magnus |L0:0:0:40%%:20%%:|lGift|l", completion = "The power of Magnus |L0:0:0:40%%:20%%:|lGift|l is yours!",
-		description="The Lord of the Never-There's lead crafter needs to be able to create |L0:0:0:50%%:10%%:|lpowerful|l staves. Create a staff from the Magnus' Gift set"}, -- requires 4 traits
+		description="The Lord of the Never-There's lead crafter needs to be able to create |L0:0:0:50%%:10%%:|lpowerful|l staves. Create a staff from the Magnus' Gift set",
+		completedDescription="Unfortunately, ignoring that pesky |L0:0:0:50%%:10%%:|lgift|l in the name didn't make it anymore powerful"}, -- requires 4 traits
 
-		{original="???", name = "Bake 1 Cheesecake is a lie", completion = "CHEEEEEESEcake",
-		description="Skooma Cats love cheesecake! A lead crafter would need to be able to bake the best type of cake"},
+		{original="???", name = "Bake 1 Cheesecake is a lie", completion = "CHEEEEEESEcake.. It definitely seems real enough",
+		description="Dam Dogs love to eat cheesecake! A lead crafter would need to be able to bake the BEST type of cake",completedDescription="You crafted a cheesecake and you're pretty sure it's real"},
 	},
-	["completePrevious"] = "You should probably complete the previous steps first",
-	['allComplete'] = "Congrats on the new 'job'!",
-	['simpleComplete'] = "You might not have gotten the job, but hopefully at least you had fun",
-	['allCompleteSubheading'] = "Check out Writ Crafter's new look!",
-	-- Note if translating: The list contains some wordplay on various daedric artefacts. When it's set in stone, I'll make a list of the answers + what they refer to. But they probably still won't translate well :(
-	-- Robber's Jack: Sounds like Wabbajack. Satisfied by creating a Jack from one of: the Redistributor set, the Daedric trickery set, or the Daring corsair set
-	-- Amulet of Blings: Rhymes with Amulet of Kings. Satisfied by creating an electrum necklace
-	-- Totally real ebony blade: Refers to the ebony blade (Mephala artefact, from crypt of hearts). Satisfied by, you guessed it, an ebony blade
-	-- Staff of Magnus Gift: Gift is crossed out. Refers to the Staff of Magnus. Satisfied by a staff from the Magnus Gift set
-	-- Cheesecake is a lie: Refers to 'the cake is a lie' and Sheogorath liking cheese. Satisfied by making a cheesecake
+	["unknownMonumentalTask"] = "Read the pamphlet to reveal the task",
+	['claimRewardHeader'] = "Hope you had fun doing some |cFFBF00Pyrite Pursuits|r!",
+	['claimRewardSubheading'] = "Check out Writ Crafter's new look next time you do writs!",
+
+	-- Note for translation: Crafting Helper Add-on To Generate Processed Trash = CHAT GPT. For translations, could also use/reference AI, Automation, etc.
 	["bookText"] = 
 [[
-After discovering that his head crafter was using a crafting helper add-on to generate processed trash, the Lord of the Creatives is looking for a new lead crafter! (He still has a head crafter, but they're kinda useless without a body)
+After discovering that his head crafter was using a Crafting Helper Add-on To Generate Processed Trash, the Lord of the Creatives is looking for a new lead crafter! (He still has a head crafter, but they're kinda useless without a body)
 
 To apply, please craft the following:
-1 Robber's Jack
+1 Robber Jack
 1 Amulet of Blings
 1 Totally real Ebony Blade
 1 Staff of Magnus |L0:0:0:40%%:20%%:|lGift|l
 1 Cheesecake is a lie
 ]],
--- 1 Stuff of Worms
--- Maybe replace craft result with 'new name'?
--- A jack from  (Redistributor set IC, 7 trait, Daedric trickery - vvardenfell, 8 trait Daring corsair 3 trait, south elsweyr)
--- Alchemical mix of violet coprinus and Dragon's Bile - inert. Might need to rethink
--- Gold Necklace - Amulet of Blings
--- Ghastly Eye Bowl - Crafted using worms. So 'Stuff' of worms
--- Ebony Blade - also not a pun. Literally just a blade made using ebony ingots
--- Vile and dung/Bile an' Dung - imp stoll + Vile Coagulant or Dragon's Bile. But both are inert as well
--- Staff of Magnus --Gift-- (gift crossed out)
--- 1 Cheesecake -> Any of |H1:item:28330:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h|H1:item:33870:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h[Creamcheese Frosted Gorapple Cake]|h|H1:item:42807:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h[Pumpkin Cheesecake]|h
 	["bookTitle"] = "Help Wanted",
-	["extraSlash"] = nil, -- if your language has a translation for /read, put it here
+	["superAmazingCraftSounds"] = { 
+		-- Translation notes: These are displayed randomly when crafting around the screen
+		{"CLANG","CLING","CLINK","CLUNK","PING"}, -- Blacksmithing sounds
+		{"SNIP","RUSTLE"}, -- Clothing sounds
+		{"ALAKAZAM","ABRACADABRA","HOCUS POCUS","PRESTO"}, -- Enchanting sounds
+		{"SPLISH","SPLASH","PLOP","SLOSH"}, -- Alchemy sounds
+		{"SIZZLE","POP","BUBBLE"}, -- Cooking sounds
+		{"BUZZ","THUD","CRACK","WHACK"}, -- Woodworking sounds
+		{"TING","PLINK","PING"}, -- Jewelry sounds
+	},
+	["extraSlash"] = nil, -- if your language has a translation for /read, put it here. 
 }
+
+-------------------------------
+-- END TRANSLATIONS HERE, DO NOT TRANSLATE FURTHER
+-- Deleted ideas:
+-- Stuff of Worms
+-- Ghastly Eye Bowl - Crafted using worms. So 'Stuff' of worms
+-- Maybe replace craft result with 'new name'?
+-- Alchemical mix of violet coprinus and Dragon's Bile - inert. Might need to rethink
+-- Vile and dung/Bile an' Dung - imp stoll + Vile Coagulant or Dragon's Bile. But both are inert as well
+
+
 --/esoui/art/icons/pet_041.dds
 --/esoui/art/icons/pet_042.dds
 --/esoui/art/icons/pet_sheepbrown.dds

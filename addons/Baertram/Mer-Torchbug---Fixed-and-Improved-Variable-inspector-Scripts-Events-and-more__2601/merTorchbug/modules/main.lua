@@ -40,8 +40,9 @@ tbug.IsEventTracking = false
 
 local tbug_inspectorScrollLists = tbug.inspectorScrollLists
 
-local titlePatterns =       tbug.titlePatterns
-local titleTemplate =       titlePatterns.normalTemplate
+local titlePatterns      =       tbug.titlePatterns
+local tablePatternPrefix =   "^table: "
+local titleTemplate      =       titlePatterns.normalTemplate
 local titleMocTemplate =    titlePatterns.mouseOverTemplate
 local titleMocTemplatePattern
 local title2ChatCleanUpIndex =              titlePatterns.title2ChatCleanUpIndex
@@ -1995,22 +1996,57 @@ function tbug.refreshScenes()
     tbug.FragmentsOutput = {}
     scenes = {}
     fragments = {}
+    local fragmentsWithError = {}
     local globalScenes = _G.SCENE_MANAGER.scenes
     if globalScenes ~= nil then
-        for k,v in pairs(globalScenes) do
+        for sceneName, scene in pairs(globalScenes) do
             --Add the scenes for the output at the "Scenes" tbug globalInspector tab
-            scenes[k] = v
-            tbug.ScenesOutput[k] = v
+            scenes[sceneName]            = scene
+            tbug.ScenesOutput[sceneName] = scene
 
             --Add the fragments for the output at the "Fragm." tbug globalInspector tab
-            if v.fragments ~= nil then
-                local fragmentsOfScene = v.fragments
+            if scene.fragments ~= nil then
+                local fragmentsOfScene = scene.fragments
                 for kf, vf in ipairs(fragmentsOfScene) do
                     local fragmentName = tbug_glookup(vf)
+                    local fragmentNameType = type(fragmentName)
+                    if fragmentNameType ~= "string" then
+                        local fragmentNameWithoutTablePrefix = strgsub(tos(vf), tablePatternPrefix, "")
+                        --d("[tbug]ERROR: Fragment name type wrong: " ..tos(fragmentNameType) .. ", Scene: " .. tos(v.name))
+                        local wrongFragmentName = fragmentName
+                        local metaTableName = (vf.__index ~= nil and "--" .. (tbug_glookup(vf.__index) or strgsub(tos(vf.__index), tablePatternPrefix, ""))) or ""
+                        fragmentName = "_" .. ( (vf.control ~= nil and "CONTROL-" .. getControlName(vf.control))
+                                                    or  (vf.actionLayerName ~= nil and "ACTION_LAYER-" .. tos(vf.actionLayerName))
+                                                    or  (vf.__index ~= nil and (
+                                                        (
+                                                            ( vf.__index == ZO_WindowSoundFragment and "WINDOW_SOUND" .. (sceneName ~= nil and "_SCENE-" .. sceneName) .. ((vf.showSoundId ~= nil and "_ShowSoundId-" .. tos(vf.showSoundId)) or (vf.hideSoundId ~= nil and "_HideSoundId-" .. tos(vf.hideSoundId))) )
+                                                            or ( vf.__index == ZO_TutorialTriggerFragment and "TUTORIAL_TRIGGER" .. ((vf.onShowTutorialTriggerType ~= nil and "_Type-" .. tos(vf.onShowTutorialTriggerType))) )
+                                                            or ( vf.title ~= nil and "TITLE-" .. tos(vf.title) .. metaTableName )
+                                                            or ( "METATABLE" .. metaTableName )
+                                                        )
+                                                        .. "-" .. fragmentNameWithoutTablePrefix
+                                                        )
+                                                    )
+                                                    or  ("-" .. fragmentNameWithoutTablePrefix) )
+                                        .. "_FRAGMENT"
+                        local fragmentWithoutNameData = fragmentsWithError[fragmentName]
+                        if fragmentWithoutNameData ~= nil then
+                            fragmentWithoutNameData.__scenes = fragmentWithoutNameData.__scenes or {}
+                            fragmentWithoutNameData.__scenes[sceneName] = scene
+                        else
+                            fragmentWithoutNameData = {
+                                __scenes = { [sceneName] = scene },
+                                _object = vf,
+                                nameWrongType = wrongFragmentName,
+                                name = fragmentName,
+                            }
+                        end
+                        fragmentsWithError[fragmentName] = fragmentWithoutNameData
+                    end
                     if fragmentName ~= nil and fragmentName ~= "" then
                         fragments[fragmentName] = fragments[fragmentName] or vf
-                        fragments[fragmentName][customKey__usedInScenes] = fragments[fragmentName][customKey__usedInScenes] or {}
-                        fragments[fragmentName][customKey__usedInScenes][k] = v
+                        fragments[fragmentName][customKey__usedInScenes]            = fragments[fragmentName][customKey__usedInScenes] or {}
+                        fragments[fragmentName][customKey__usedInScenes][sceneName] = scene
                     end
                 end
             end
@@ -2022,6 +2058,7 @@ function tbug.refreshScenes()
     for fragmentName, fragmentData in pairs(fragments) do
         table.insert(orderFragmentsTab, fragmentName)
     end
+tbug._fragmentsWithError = fragmentsWithError
     tsort(orderFragmentsTab)
     for _, fragmentName in ipairs(orderFragmentsTab) do
         tbug.FragmentsOutput[fragmentName] = fragments[fragmentName]

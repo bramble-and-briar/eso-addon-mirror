@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.TargetHealth = {}
 -- Health labels independent of the user's native resource-number setting.
 local targetLabel
 local function GroupDigits(value)
@@ -35,9 +37,7 @@ local function Update()
     targetLabel:SetHidden(not show)
     if show then targetLabel:SetText(Format(health,maximum)) end
 end
-EVENT_MANAGER:RegisterForEvent("DIAhelpTargetHealth",EVENT_ADD_ON_LOADED,function(_,name)
-    if name~="DIAhelp" then return end
-    EVENT_MANAGER:UnregisterForEvent("DIAhelpTargetHealth",EVENT_ADD_ON_LOADED)
+function DIAhelp.TargetHealth.Initialize()
     if BOSS_BAR then ZO_PostHook(BOSS_BAR,"RefreshBossHealthBar",Update) end
     EVENT_MANAGER:RegisterForUpdate("DIAhelpTargetHealth",100,Update)
-end)
+end

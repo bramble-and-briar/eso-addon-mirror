@@ -23,7 +23,9 @@ sfutil.colors = {
     lime = SF_Color:New("00E600"), -- {hex ="00E600", rgb = {0, 230/255, 0}, },
     green = SF_Color:New("2dc50e"), -- {hex ="2dc50e", rgb = {45/255, 197/255, 14/255}, },
     goldenrod = SF_Color:New("EECA00"), -- {hex ="EECA00", rgb = {238/255, 202/255, 0}, },
+    yellow = SF_Color:New("FFFF00"),
     blue = SF_Color:New("0000FF"), -- {hex ="0000FF", rgb = {0, 0, 1}, },
+    cyan = SF_Color:New("00FFFF"), 
     purple = SF_Color:New("b000ff"), -- {hex ="b000ff", rgb = {176/255, 0, 1}, },
     bronze = SF_Color:New("ff9900"), -- {hex ="ff9900", rgb = {1, 153/255, 0}, },
     ltskyblue = SF_Color:New("87cefa"), -- {hex ="87cefa", rgb = {135/255, 206/255, 250/255}, },
@@ -51,7 +53,9 @@ sfutil.hex = {
     teal = sfutil.colors.teal.hex,
     lime = sfutil.colors.lime.hex,
     goldenrod = sfutil.colors.goldenrod.hex,
+    yellow = sfutil.colors.yellow.hex,
     blue = sfutil.colors.blue.hex,
+    cyan = sfutil.colors.cyan.hex,
     purple = sfutil.colors.purple.hex,
     bronze = sfutil.colors.bronze.hex,
     ltskyblue = sfutil.colors.ltskyblue.hex,
@@ -75,7 +79,9 @@ sfutil.rgb = {
     teal = sfutil.colors.teal.rgb,
     lime = sfutil.colors.lime.rgb,
     goldenrod = sfutil.colors.goldenrod.rgb,
+    yellow = sfutil.colors.yellow.rgb,
     blue = sfutil.colors.blue.rgb,
+    cyan = sfutil.colors.cyan.rgb,
     purple = sfutil.colors.purple.rgb,
     bronze = sfutil.colors.bronze.rgb,
     ltskyblue = sfutil.colors.ltskyblue.rgb,
@@ -101,9 +107,63 @@ local function ZOS_addSystemMsg(msg)
     CHAT_ROUTER:AddSystemMessage(msg)
 end
 
--- create a varargs iterator function
--- without using the 5.2 table.pack()
--- returns index, value, total with each iteration. (total does not change until ... does)
+--[[ Extended type inspection utility with custom type metadata support.
+    
+    Returns the Lua type of an object, but for tables and userdata with a
+    metatable containing `__type` string, returns that custom type instead.
+    Useful for polymorphic dispatch, serialization, and debug logging where
+    custom class-like types need to be distinguished from generic tables.
+    
+    Parameters
+        obj     any     The object to inspect for its type.
+
+    Returns
+        string The type name (custom `__type` if present, otherwise native Lua type).
+    
+    Note
+        - Only tables and userdata have metatables in Lua. Primitives (number,
+         string, boolean, nil, function, thread) always return their standard
+         Lua type. The __type field must be a string; other types are ignored.
+
+    Usage
+        local widget = MyWidget:new()
+        print(sfutil.typeof(widget))  -- "Widget" (custom type)
+        print(sfutil.typeof(42))      -- "number" (native type)
+--]]
+function sfutil.typeof(obj)
+    -- Check if the object is a table or userdata (the only types with metatables)
+    if type(obj) == "table" or type(obj) == "userdata" then
+        local mt = getmetatable(obj)
+        -- If a custom __type string exists in the metatable, return it
+        if mt and type(mt.__type) == "string" then
+            return mt.__type
+        end
+    end
+    -- Fall back to the original behavior for native types
+    return type(obj)
+end
+
+--[[ Varargs iterator function for iterating over function arguments.
+    
+    Provides indexed iteration over variable arguments (...), returning the
+    current index, value, and total count on each iteration. Designed for
+    environments where Lua 5.2+ table.pack() is unavailable or deprecated.
+    
+    Captures the arguments at call time in a closure, so the total count
+    remains constant even if the varargs source changes during iteration.
+    
+    Parameters
+        ...     any     Variable number of arguments to iterate over.
+    Returns
+        function A closure that returns (index, value, total) on each call.
+                     Returns (nil, nil, total) when iteration completes.
+    
+    Note   
+        The total count is captured at iteration start and does not update
+        dynamically. Arguments are stored in a temporary table for access.
+        For large argument lists, this incurs memory overhead proportional
+        to the argument count.
+--]]
 function sfutil.iter_args(...)
     local args = {...}
     local n = select("#", ...)
@@ -516,54 +576,46 @@ end
 -- -----------------------------------------------------------------------
 -- Utility for parsing delimited strings
 
--- Split a string into sections using a pattern as a delimiter
--- When delimiter starts or ends the string, an empty string is considered
--- to be before/after the delimiter. When two or more delimiters are together,
--- there is considered to be empty strings between them.
---   str = string
---   pat = delimiter pattern
+-- Split a string into sections using a pattern as a delimiter.
 --
--- Returns table of strings that were separated by delimiters
--- (The delimiters are NOT included in the table.)
+-- When delimiter starts or ends the string, an empty string is
+-- considered to be before/after the delimiter. When two or more
+-- delimiters are together, there are empty strings between them.
+--
+-- str = string
+-- pat = delimiter pattern
+--
+-- Returns a table of strings separated by delimiters.
+-- The delimiters are NOT included in the table.
 function sfutil.gsplit(str, pat)
-    local t1 = {}
     if not str then
         return {}
     end
 
     if not pat or pat == "" then
-        -- special case - no delimiter
-        return {str}
+        return { str }
     end
 
+    local result = {}
     local fpat = "(.-)" .. pat
     local last_end = 1
-    local s1, e1, cap = str:find(fpat, 1)
-    local tbl_insert = table.insert
-    if not s1 then
-        -- special case - string does not contain delimiter
-        tbl_insert(t1, str)
-        return t1
+
+    while true do
+        local s, e, cap = str:find(fpat, last_end)
+
+        if not s then
+            break
+        end
+
+        table.insert(result, cap)
+        last_end = e + 1
     end
 
-    while s1 do
-        if not cap then
-            -- delimiter was the beginning of the string
-            -- so first capture is empty string
-            cap = ""
-        end
-        -- save the front captured piece of the string
-        tbl_insert(t1, cap)
-        last_end = e1 + 1
-        s1, e1, cap = str:find(fpat, last_end)
-    end
-    -- we have run out of delimiters to find
-    if last_end - 1 <= #str then
-        -- still have the last piece of string without delimiters
-        cap = str:sub(last_end)
-        tbl_insert(t1, cap)
-    end
-    return t1
+    -- Always add the remainder. This also correctly adds ""
+    -- when the delimiter ends the string.
+    table.insert(result, str:sub(last_end))
+
+    return result
 end
 
 -- -----------------------------------------------------------------------
@@ -626,8 +678,7 @@ function sfutil.getAllColorDelim(str)
     return t1
 end
 
---[[
-Regularizes an ESO color delimiter table against a string.
+--[[ Regularizes an ESO color delimiter table against a string.
 
 Examines the supplied markers table and identifies delimiter corrections
 needed to make the color sequence valid and balanced.
@@ -794,41 +845,130 @@ function sfutil.regularizeColors(markers, str)
     return result
 end
 
+--[[ Applies a color hex code to a string, respecting existing embedded color markers.
+    
+    Wraps portions of the input string with ESO-style color markup (|cHEXCOLOR|r),
+    detecting and preserving any existing |c...|r embedded color sequences.
+
+    Existing color delimiters are regularized before the new color is applied.
+    Delimiters marked with action == "-" are omitted.
+
+    Parameters
+        str             string      The input string to colorize.
+        colorhex        string      Hex color code without '#' (e.g., "FFA500").
+
+    Returns
+        string|nil                  The colorized string, or nil if str is nil.
+
+    Note
+        If colorhex is nil or empty, the original string is returned unchanged.
+--]]
 function sfutil.applyColor(str, colorhex)
     if not str then
         return nil
     end
-    if not colorhex then
+
+    if not colorhex or colorhex == "" then
         return str
     end
 
-    local parsetbl = sfutil.getAllColorDelim(str)
-    sfutil.regularizeColors(parsetbl, str)
-    local newtbl = {}
-    local incolor = false
-    for _, v in ipairs(parsetbl) do
-        if string.find(str, "|+[Cc]", v) then
-            -- starting embedded color
-            if incolor == true then
-                newtbl[#newtbl] = "|r"
-                incolor = false
+    local markers = sfutil.getAllColorDelim(str)
+
+    if #markers == 0 then
+        return "|c" .. colorhex .. str .. "|r"
+    end
+
+    markers = sfutil.regularizeColors(markers, str)
+
+    local result = {}
+    local append = function(value)
+        result[#result + 1] = value
+    end
+
+    local pos = 1
+    local embedded = false
+
+    for _, marker in ipairs(markers) do
+
+        -- Synthetic markers have no source characters.
+        if marker.action == "+" then
+
+            -- First process any source text before the synthetic marker.
+            if marker.start > pos then
+                if not embedded then
+                    append("|c" .. colorhex)
+                end
+
+                append(str:sub(pos, marker.start - 1))
+
+                if not embedded then
+                    append("|r")
+                end
+
+                pos = marker.start
             end
-            newtbl[#newtbl] = v
-        elseif string.find(str, "|+[Rr]", v) then
-            -- exitting embedded color
-            newtbl[#newtbl] = v
-            newtbl[#newtbl] = string.format("|c%s", colorhex)
-            incolor = true
+
+            if marker.code == "r" then
+                append("|r")
+                embedded = false
+            elseif marker.code == "c" then
+                append("|c" .. colorhex)
+                embedded = true
+            end
+
         else
-            if incolor == false then
-                newtbl[#newtbl] = string.format("|c%s", colorhex)
-                incolor = true
+            -- Original source marker.
+            if marker.start > pos then
+                if not embedded then
+                    append("|c" .. colorhex)
+                end
+
+                append(str:sub(pos, marker.start - 1))
+
+                if not embedded then
+                    append("|r")
+                end
             end
-            newtbl[#newtbl] = v
+
+            if marker.action ~= "-" then
+                append(str:sub(marker.start, marker.estr))
+
+                if marker.code == "c" then
+                    embedded = true
+                elseif marker.code == "r" then
+                    embedded = false
+                end
+            end
+
+            -- Removed or retained source markers both consume
+            -- their original source characters.
+            pos = marker.estr + 1
         end
     end
-    return table.concat(newtbl)
+
+    -- Remaining source text.
+    if pos <= #str then
+        if not embedded then
+            append("|c" .. colorhex)
+            append(str:sub(pos))
+            append("|r")
+        else
+            append(str:sub(pos))
+            append("|r")
+        end
+
+    elseif #result == 0 then
+        -- All source content consisted of removable color delimiters.
+        -- Treat the normalized result as an empty string.
+        append("|c" .. colorhex)
+        append("|r")
+    end
+
+    return table.concat(result)
 end
+
+
+
 
 -- Strip all of the color markers out of the string.
 -- Uses the source string and a marker table as produced by
@@ -892,81 +1032,100 @@ function sfutil.stripColors(markertable, str)
     return table.concat(t2)
 end
 
--- Splits the string into sections corresponding the color markers themselves
--- and the text around the markers. Doing a table.concat() will join the contents
--- of the returned table into a properly color-marked string.
--- Returns the table of sections
+--[[ Splits a string into text sections and canonical color markers.
+    
+    Takes a table of marker positions (from sfutil.getAllColorDelim)
+    and splits the input string at color markers. Color markers are
+    normalized to the canonical ESO forms "|crrggbb" and "|r".
+    
+    Parameters
+        markertable   table     Array of marker info tables with
+                                `code`, `action`, and `start`.
+        str           string    The string to split.
+    
+    Returns
+        table                   Table of text fragments and canonical
+                                color markers. The elements can be
+                                joined with table.concat() to reconstruct
+                                the normalized color-marked string.
+                                Returns {} if str is nil or empty.
+    
+    Notes
+        Uses 1-based string positions (Lua convention).
+        Marker positions should correspond to positions in `str`,
+        or -1 for skipped markers.
+        Malformed markers terminate further marker processing; the
+        unprocessed remainder is returned as text.
+--]]
+
 function sfutil.colorsplit(markertable, str)
-    if not str then
+    if not str or #str == 0 then
         return {}
     end
+
     if not markertable or #markertable == 0 then
-        -- no delimiters in string
         return {str}
     end
 
-    -- break string into sections with color markers separated out
-    local t2 = {}
-    local lastv = 0
-    local ss, es, cs
-    local tbl_insert = table.insert
-    for _, v in ipairs(markertable) do
-        if v then
-            local code = v.code
-            local action = v.action
-            if not action then
-                -- it's a section we're keeping
-                if v.start > lastv + 1 then
-                    tbl_insert(t2, str:sub(lastv + 1, v.start - 1))
+    local result = {}
+    local insert = table.insert
+    local last = 0
+
+    for _, marker in ipairs(markertable) do
+        if marker then
+            local start = marker.start
+            local action = marker.action
+            local code = marker.code
+
+            if action == "+" then
+                -- Synthetic reset. Does not consume source characters.
+                if start > last + 1 then
+                    insert(result, str:sub(last + 1, start - 1))
                 end
-                -- string fragment
-                if code == "c" then
-                    -- expect color
-                    ss, es, cs = string.find(str, "|+[Cc](%x%x%x%x%x%x)", v.start)
-                    if ss == nil or es == nil then
-                        break
+
+                insert(result, "|r")
+                last = start - 1
+
+            elseif action == "-" then
+                -- Removed marker. Consume it without emitting it.
+                if start ~= -1 then
+                    if start > last + 1 then
+                        insert(result, str:sub(last + 1, start - 1))
                     end
-                    tbl_insert(t2, string.format("|c%s", cs))
-                    lastv = es
+
+                    last = marker.estr
+                end
+
+            else
+                -- Normal marker. Emit preceding text first.
+                if start > last + 1 then
+                    insert(result, str:sub(last + 1, start - 1))
+                end
+
+                if code == "c" then
+                    -- Canonicalize the color marker to |cRRGGBB.
+                    -- estr is the end of the complete marker, regardless
+                    -- of how many leading pipes were present.
+                    insert(result, "|c" .. str:sub(marker.estr - 5, marker.estr))
+                    last = marker.estr
+
                 elseif code == "r" then
-                    -- end color
-                    ss, es = string.find(str, "|+[Rr]", v.start)
-                    if ss == nil or es == nil then
-                        break
-                    end
-                    tbl_insert(t2, "|r")
-                    lastv = es
-                end
-            elseif action == "+" then
-                -- new string fragment (|r)
-                if v.start > lastv + 1 then
-                    tbl_insert(t2, str:sub(lastv + 1, v.start - 1))
-                end
-                tbl_insert(t2, "|r")
-                lastv = v.start + 1
-            else -- action == "-"
-                if code == "c" then
-                    ss, es = string.find(str, "|+[Cc]%x%x%x%x%x%x", v.start)
-                    if ss == nil or es == nil then
-                        break
-                    end
-                    lastv = es
-                elseif code == "r" and v.start ~= -1 then
-                    ss, es = string.find(str, "|+[Rr]", v.start)
-                    if ss == nil or es == nil then
-                        break
-                    end
-                    lastv = es
+                    -- Canonicalize reset to |r.
+                    insert(result, "|r")
+                    last = marker.estr
                 end
             end
         end
     end
-    if lastv <= #str then
-        lastv = lastv + 1
-        tbl_insert(t2, str:sub(lastv))
+
+    if last < #str then
+        insert(result, str:sub(last + 1))
     end
-    return t2
+
+    return result
 end
+
+
 
 -- -----------------------------------------------------------------------
 -- temporary hacks

@@ -1,0 +1,14 @@
+Old DiaUI name migration (only if you are still using DiaUI)
+Close ESO and back up SavedVariables/DiaUI.lua. If AlabuzyaUI.lua does not exist,
+copy DiaUI.lua to AlabuzyaUI.lua and replace the exact text DiaUI with AlabuzyaUI
+inside the copied file (including DiaUISavedVariables and control-position keys).
+Keep the original file and move the old AddOns/DiaUI folder outside AddOns.
+Do not run both names together. Existing AlabuzyaUI users need no manual migration.
+The optional offline Python helper is retained in the working project's tools/
+directory; it is NOT bundled or required by the ESOUI release archive.
+
+RU: Только для перехода со старого DiaUI: закройте ESO и сделайте резервную копию
+SavedVariables/DiaUI.lua. Если AlabuzyaUI.lua ещё нет, скопируйте туда DiaUI.lua
+и замените в копии точный текст DiaUI на AlabuzyaUI. Сохраните исходный файл.
+Старую папку AddOns/DiaUI уберите за пределы AddOns. Не включайте оба аддона.
+Если вы уже используете AlabuzyaUI, этот перенос повторять не нужно.

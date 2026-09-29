@@ -28,10 +28,13 @@ local PREVIEW_BORDER_COLOR = { 1, 0.48, 0 }
 local ACTIVE_COMBAT_TIPS_PANEL_ID = 9142
 local SYNERGY_PROMPTS_PANEL_ID = 9143
 local CENTER_SCREEN_ANNOUNCE_PANEL_ID = 9144
+local ACTIVE_QUEST_PREVIEW_WIDTH = 350
+local ACTIVE_QUEST_PREVIEW_HEIGHT = 120
 local ACTIVE_COMBAT_TIPS_PREVIEW_WIDTH = 250
 local ACTIVE_COMBAT_TIPS_PREVIEW_HEIGHT = 20
 local SYNERGY_PROMPTS_PREVIEW_WIDTH = 200
 local SYNERGY_PROMPTS_PREVIEW_HEIGHT = 50
+local ACTIVE_QUEST_SEPARATION_KEYS = { { false, "originalSeparatedKeyboard" }, { true, "originalSeparatedGamepad" } }
 local MOVABLE_UI_FRAMES = {
     announcements = {
         controlName = "ZO_AlertTextNotificationGamepad",
@@ -94,6 +97,7 @@ local MOVABLE_UI_FRAMES = {
 }
 local PREVIEW_BORDER_LABELS = {
     ActiveCombatTips = NQOL.L("features.ui.active_combat_tips"),
+    ActiveQuest = NQOL.L("ui.gamepad_options.active_quest_8036d24"),
     Announcements = NQOL.L("features.ui.announcements"),
     InfiniteArchive = NQOL.L("features.ui.infinite_archive"),
     PlayerInteraction = NQOL.L("features.ui.player_interaction"),
@@ -107,6 +111,7 @@ NQOL.Lexicon.RegisterRefreshCallback(function()
     MOVABLE_UI_FRAMES.playerInteraction.label = NQOL.L("features.ui.player_interaction_e138127")
     MOVABLE_UI_FRAMES.subtitles.label = NQOL.L("features.ui.subtitles_1777047")
     PREVIEW_BORDER_LABELS.ActiveCombatTips = NQOL.L("features.ui.active_combat_tips")
+    PREVIEW_BORDER_LABELS.ActiveQuest = NQOL.L("ui.gamepad_options.active_quest_8036d24")
     PREVIEW_BORDER_LABELS.Announcements = NQOL.L("features.ui.announcements")
     PREVIEW_BORDER_LABELS.InfiniteArchive = NQOL.L("features.ui.infinite_archive")
     PREVIEW_BORDER_LABELS.PlayerInteraction = NQOL.L("features.ui.player_interaction")
@@ -136,49 +141,41 @@ local defaults = {
             enabled = false,
             horizontalPosition = 100,
             verticalPosition = 50,
-            showInSettings = true,
         },
         activeCombatTips = {
             enabled = false,
             horizontalPosition = 50,
             verticalPosition = 82,
-            drawBorders = false,
         },
         synergyPrompts = {
             enabled = false,
             horizontalPosition = 50,
             verticalPosition = 85,
-            drawBorders = false,
         },
         centerScreenAnnounce = {
             enabled = false,
             horizontalPosition = 50,
             verticalPosition = 27,
-            drawBorders = false,
         },
         announcements = {
             enabled = false,
             horizontalPosition = 100,
             verticalPosition = 0,
-            drawBorders = false,
         },
         infiniteArchive = {
             enabled = false,
             horizontalPosition = 100,
             verticalPosition = 0,
-            drawBorders = false,
         },
         playerInteraction = {
             enabled = false,
             horizontalPosition = 50,
             verticalPosition = 90,
-            drawBorders = false,
         },
         subtitles = {
             enabled = false,
             horizontalPosition = 50,
             verticalPosition = 86,
-            drawBorders = false,
         },
         lootLog = {
             showTotals = false,
@@ -192,6 +189,7 @@ local defaults = {
 local savedVariables
 local initialized = false
 local activeQuestApplyQueued = false
+local activeQuestLayoutHookInstalled = false
 local activeCombatTipsApplyQueued = false
 local synergyPromptsApplyQueued = false
 local centerScreenAnnounceApplyQueued = false
@@ -212,7 +210,6 @@ local activeCombatTipsSettingsPanelVisible = false
 local synergyPromptsSettingsPanelVisible = false
 local centerScreenAnnounceSettingsPanelVisible = false
 local movableUiFrameSettingsPanelVisible = {}
-local activeQuestPreviewScene
 local previewBorders = {}
 local officialPlayerFrameBarRequirements = {}
 local UpdatePositionPreviewBorder
@@ -315,7 +312,8 @@ local function GetSettings()
     NQOL.Settings.Boolean(activeQuestSettings, activeQuestDefaults, "enabled")
     NQOL.Settings.ClampedNumber(activeQuestSettings, activeQuestDefaults, "horizontalPosition", 0, 100)
     NQOL.Settings.ClampedNumber(activeQuestSettings, activeQuestDefaults, "verticalPosition", 0, 100)
-    NQOL.Settings.Default(activeQuestSettings, activeQuestDefaults, "showInSettings")
+    activeQuestSettings.showInSettings = nil
+    activeQuestSettings.drawBorders = nil
 
     local activeCombatTipsSettings = NQOL.Settings.EnsureTable(settings, "activeCombatTips")
     local activeCombatTipsDefaults = defaults.ui.activeCombatTips
@@ -323,7 +321,7 @@ local function GetSettings()
     NQOL.Settings.Boolean(activeCombatTipsSettings, activeCombatTipsDefaults, "enabled")
     NQOL.Settings.ClampedNumber(activeCombatTipsSettings, activeCombatTipsDefaults, "horizontalPosition", 0, 100)
     NQOL.Settings.ClampedNumber(activeCombatTipsSettings, activeCombatTipsDefaults, "verticalPosition", 0, 100)
-    NQOL.Settings.Boolean(activeCombatTipsSettings, activeCombatTipsDefaults, "drawBorders")
+    activeCombatTipsSettings.drawBorders = nil
 
     local synergyPromptsSettings = NQOL.Settings.EnsureTable(settings, "synergyPrompts")
     local synergyPromptsDefaults = defaults.ui.synergyPrompts
@@ -331,7 +329,7 @@ local function GetSettings()
     NQOL.Settings.Boolean(synergyPromptsSettings, synergyPromptsDefaults, "enabled")
     NQOL.Settings.ClampedNumber(synergyPromptsSettings, synergyPromptsDefaults, "horizontalPosition", 0, 100)
     NQOL.Settings.ClampedNumber(synergyPromptsSettings, synergyPromptsDefaults, "verticalPosition", 0, 100)
-    NQOL.Settings.Boolean(synergyPromptsSettings, synergyPromptsDefaults, "drawBorders")
+    synergyPromptsSettings.drawBorders = nil
 
     local centerScreenAnnounceSettings = NQOL.Settings.EnsureTable(settings, "centerScreenAnnounce")
     local centerScreenAnnounceDefaults = defaults.ui.centerScreenAnnounce
@@ -339,7 +337,7 @@ local function GetSettings()
     NQOL.Settings.Boolean(centerScreenAnnounceSettings, centerScreenAnnounceDefaults, "enabled")
     NQOL.Settings.ClampedNumber(centerScreenAnnounceSettings, centerScreenAnnounceDefaults, "horizontalPosition", 0, 100)
     NQOL.Settings.ClampedNumber(centerScreenAnnounceSettings, centerScreenAnnounceDefaults, "verticalPosition", 0, 100)
-    NQOL.Settings.Boolean(centerScreenAnnounceSettings, centerScreenAnnounceDefaults, "drawBorders")
+    centerScreenAnnounceSettings.drawBorders = nil
 
     for key in pairs(MOVABLE_UI_FRAMES) do
         local frameSettings = NQOL.Settings.EnsureTable(settings, key)
@@ -348,7 +346,7 @@ local function GetSettings()
         NQOL.Settings.Boolean(frameSettings, frameDefaults, "enabled")
         NQOL.Settings.ClampedNumber(frameSettings, frameDefaults, "horizontalPosition", 0, 100)
         NQOL.Settings.ClampedNumber(frameSettings, frameDefaults, "verticalPosition", 0, 100)
-        NQOL.Settings.Boolean(frameSettings, frameDefaults, "drawBorders")
+        frameSettings.drawBorders = nil
     end
 
     local lootLogSettings = NQOL.Settings.EnsureTable(settings, "lootLog")
@@ -414,59 +412,104 @@ local function IsGamepadOptionsPanelActive(panelId)
 end
 
 local function IsActiveCombatTipsPreviewActive()
-    return GetActiveCombatTipsSettings().drawBorders == true
+    return activeCombatTipsSettingsPanelVisible
 end
 
 local function IsSynergyPromptsPreviewActive()
-    return GetSynergyPromptsSettings().drawBorders == true
+    return synergyPromptsSettingsPanelVisible
 end
 
 local function IsMovableUiFramePreviewActive(key)
-    return GetMovableUiFrameSettings(key).drawBorders == true
+    return movableUiFrameSettingsPanelVisible[key] == true
 end
 
 local function IsCenterScreenAnnouncePreviewActive()
-    return GetCenterScreenAnnounceSettings().drawBorders == true
+    return centerScreenAnnounceSettingsPanelVisible
 end
 
 function runtimeState.IsActiveCombatTipsActive()
     local settings = GetActiveCombatTipsSettings()
-    return settings.enabled == true or settings.drawBorders == true
+    return settings.enabled == true or activeCombatTipsSettingsPanelVisible
 end
 
 function runtimeState.IsSynergyPromptsActive()
     local settings = GetSynergyPromptsSettings()
-    return settings.enabled == true or settings.drawBorders == true
+    return settings.enabled == true or synergyPromptsSettingsPanelVisible
 end
 
 function runtimeState.IsCenterScreenAnnounceActive()
     local settings = GetCenterScreenAnnounceSettings()
-    return settings.enabled == true or settings.drawBorders == true
+    return settings.enabled == true or centerScreenAnnounceSettingsPanelVisible
 end
 
 function runtimeState.IsMovableUiFrameActive(key)
     local settings = GetMovableUiFrameSettings(key)
-    return settings.enabled == true or settings.drawBorders == true
+    return settings.enabled == true or movableUiFrameSettingsPanelVisible[key] == true
 end
 
 local function ApplyActiveQuestPosition()
     local settings = GetActiveQuestSettings()
-    if settings.enabled ~= true and not (activeQuestSettingsPanelVisible and settings.showInSettings == true) then
+    if not HUD_TRACKER_MANAGER or not HUD_TRACKER_MANAGER.isFullyLoaded or not FOCUSED_QUEST_TRACKER then
         return
+    end
+
+    -- The HUD tracker manager rebuilds anchors for grouped trackers.
+    -- Separate the quest tracker while NQOL controls its position.
+    if settings.enabled == true then
+        local element = HUD_TRACKER_MANAGER:GetPlatformHUDElement()
+        local originalKey = IsInGamepadPreferredMode() and "originalSeparatedGamepad" or "originalSeparatedKeyboard"
+        local separated = element:GetCustomOptionValue("SeparatedTrackers", "Quest") == true
+        if settings[originalKey] == nil then
+            settings[originalKey] = separated
+        end
+        if not separated then
+            element:SetCustomOptionValue("SeparatedTrackers", "Quest", true)
+        end
+    else
+        local hadSeparationOverride = false
+        for _, entry in ipairs(ACTIVE_QUEST_SEPARATION_KEYS) do
+            local original = settings[entry[2]]
+            if original ~= nil then
+                hadSeparationOverride = true
+                local element = HUD_TRACKER_MANAGER:GetHUDElement(entry[1])
+                if element:GetCustomOptionValue("SeparatedTrackers", "Quest") ~= original then
+                    element:SetCustomOptionValue("SeparatedTrackers", "Quest", original)
+                end
+                settings[entry[2]] = nil
+            end
+        end
+        if hadSeparationOverride then
+            HUD_TRACKER_MANAGER:RefreshLayout()
+        end
     end
 
     local control = ZO_FocusedQuestTrackerPanel
-    if not control or not GuiRoot then
+    if not GuiRoot then
         return
     end
 
-    local width = control:GetWidth()
-    local height = control:GetHeight()
-    local x = math.max(GetScreenWidth() - width, 0) * settings.horizontalPosition * 0.01
-    local y = math.max(GetScreenHeight() - height, 0) * settings.verticalPosition * 0.01
+    local width = control and control:GetWidth() or 0
+    local height = control and control:GetHeight() or 0
+    if width <= 0 then width = ACTIVE_QUEST_PREVIEW_WIDTH end
+    if height <= 0 then height = ACTIVE_QUEST_PREVIEW_HEIGHT end
 
-    control:ClearAnchors()
-    control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+    if settings.enabled == true and control then
+        local x = math.max(GetScreenWidth() - width, 0) * settings.horizontalPosition * 0.01
+        local y = math.max(GetScreenHeight() - height, 0) * settings.verticalPosition * 0.01
+        control:ClearAnchors()
+        control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+    end
+
+    UpdatePositionPreviewBorder("ActiveQuest", settings, activeQuestSettingsPanelVisible, width, height)
+end
+
+local function InstallActiveQuestLayoutHook()
+    if activeQuestLayoutHookInstalled or not HUD_TRACKER_MANAGER or not HUD_TRACKER_MANAGER.RefreshLayout then
+        return
+    end
+
+    activeQuestLayoutHookInstalled = true
+    SecurePostHook(HUD_TRACKER_MANAGER, "RefreshLayout", ApplyActiveQuestPosition)
 end
 
 local function ApplyMovedControlPosition(control, settings, settingsPanelVisible, showControlInPreview)
@@ -645,33 +688,15 @@ local function GetPreviewBorder(name)
     return border
 end
 
-local function UpdatePreviewBorder(name, control, show, fallbackWidth, fallbackHeight)
-    if not show or not control then
-        if previewBorders[name] then
-            previewBorders[name]:SetHidden(true)
-        end
-        return
+local function HidePreviewBorder(name)
+    if previewBorders[name] then
+        previewBorders[name]:SetHidden(true)
     end
-
-    local border = GetPreviewBorder(name)
-    if not border then
-        return
-    end
-
-    local width = math.max(control:GetWidth() or 0, fallbackWidth or PREVIEW_BORDER_MIN_WIDTH)
-    local height = math.max(control:GetHeight() or 0, fallbackHeight or PREVIEW_BORDER_MIN_HEIGHT)
-
-    border:ClearAnchors()
-    border:SetAnchor(CENTER, control, CENTER, 0, 0)
-    border:SetDimensions(width + PREVIEW_BORDER_PADDING * 2, height + PREVIEW_BORDER_PADDING * 2)
-    border:SetHidden(false)
 end
 
 local function UpdatePreviewBorderBounds(name, show, left, top, right, bottom)
     if not show or not left or not top or not right or not bottom or right <= left or bottom <= top then
-        if previewBorders[name] then
-            previewBorders[name]:SetHidden(true)
-        end
+        HidePreviewBorder(name)
         return
     end
 
@@ -786,9 +811,7 @@ end
 
 function UpdatePositionPreviewBorder(name, settings, show, width, height)
     if not show or not GuiRoot then
-        if previewBorders[name] then
-            previewBorders[name]:SetHidden(true)
-        end
+        HidePreviewBorder(name)
         return
     end
 
@@ -812,7 +835,7 @@ end
 local function ClearMovableUiFrameBorder(key)
     local frame = MOVABLE_UI_FRAMES[key]
     if frame then
-        UpdatePreviewBorder(frame.previewName, nil, false)
+        HidePreviewBorder(frame.previewName)
     end
 end
 
@@ -865,12 +888,12 @@ local function ApplyCenterScreenAnnouncePosition()
     if bounds then
         UpdatePreviewBorderBounds("CenterScreenAnnounce", IsCenterScreenAnnouncePreviewActive(), bounds.left, bounds.top, bounds.right, bounds.bottom)
     else
-        UpdatePreviewBorder("CenterScreenAnnounce", control, IsCenterScreenAnnouncePreviewActive(), 1160, 160)
+        UpdatePositionPreviewBorder("CenterScreenAnnounce", settings, IsCenterScreenAnnouncePreviewActive(), 1160, 160)
     end
 end
 
 local function ClearActiveCombatTipsBorder()
-    UpdatePreviewBorder("ActiveCombatTips", nil, false)
+    HidePreviewBorder("ActiveCombatTips")
 
     if ZO_ActiveCombatTipsTip and (not ACTIVE_COMBAT_TIP_SYSTEM or not ACTIVE_COMBAT_TIP_SYSTEM.activeCombatTipId) then
         ZO_ActiveCombatTipsTip:SetAlpha(0)
@@ -881,7 +904,7 @@ local function ClearActiveCombatTipsBorder()
 end
 
 local function ClearSynergyPromptsBorder()
-    UpdatePreviewBorder("SynergyPrompts", nil, false)
+    HidePreviewBorder("SynergyPrompts")
 
     ClearNamedChildText(ZO_SynergyTopLevelContainer, "Action", NQOL.L("features.ui.synergy_prompt"))
 
@@ -1319,57 +1342,13 @@ function runtimeState.RefreshMovableUiFrames()
     end
 end
 
-local function RefreshActiveQuestSettingsPreview()
-    if not SCENE_MANAGER or not FOCUSED_QUEST_TRACKER_FRAGMENT then
-        return
-    end
-
-    local activeQuestSettings = GetActiveQuestSettings()
-    local shouldShow = activeQuestSettingsPanelVisible and activeQuestSettings.showInSettings == true
-
-    if not shouldShow then
-        if activeQuestPreviewScene then
-            activeQuestPreviewScene:RemoveFragment(FOCUSED_QUEST_TRACKER_FRAGMENT)
-            if FOCUSED_QUEST_TRACKER_FRAGMENT.Refresh then
-                FOCUSED_QUEST_TRACKER_FRAGMENT:Refresh()
-            end
-            activeQuestPreviewScene = nil
-        end
-        return
-    end
-
-    local scene = SCENE_MANAGER:GetCurrentScene()
-    if not scene then
-        return
-    end
-
-    if activeQuestPreviewScene and activeQuestPreviewScene ~= scene then
-        activeQuestPreviewScene:RemoveFragment(FOCUSED_QUEST_TRACKER_FRAGMENT)
-    end
-
-    if activeQuestPreviewScene ~= scene then
-        scene:AddFragment(FOCUSED_QUEST_TRACKER_FRAGMENT)
-    end
-
-    if FOCUSED_QUEST_TRACKER_FRAGMENT.Refresh then
-        FOCUSED_QUEST_TRACKER_FRAGMENT:Refresh()
-    end
-
-    if ZO_FocusedQuestTrackerPanelContainer then
-        ZO_FocusedQuestTrackerPanelContainer:SetHidden(false)
-    end
-
-    activeQuestPreviewScene = scene
-    QueueActiveQuestApply()
-end
-
 local function RefreshActiveCombatTipsSettingsPreview()
     if not IsActiveCombatTipsPreviewActive() then
         ClearActiveCombatTipsBorder()
         return
     end
 
-    QueueActiveCombatTipsApply()
+    ApplyActiveCombatTipsPosition()
 end
 
 local function RefreshSynergyPromptsSettingsPreview()
@@ -1378,16 +1357,16 @@ local function RefreshSynergyPromptsSettingsPreview()
         return
     end
 
-    QueueSynergyPromptsApply()
+    ApplySynergyPromptsPosition()
 end
 
 local function RefreshCenterScreenAnnounceSettingsPreview()
     if not IsCenterScreenAnnouncePreviewActive() then
-        UpdatePreviewBorder("CenterScreenAnnounce", nil, false)
+        HidePreviewBorder("CenterScreenAnnounce")
         return
     end
 
-    QueueCenterScreenAnnounceApply()
+    ApplyCenterScreenAnnouncePosition()
 end
 
 local function RefreshMovableUiFrameSettingsPreview(key)
@@ -1396,7 +1375,7 @@ local function RefreshMovableUiFrameSettingsPreview(key)
         return
     end
 
-    QueueMovableUiFrameApply(key)
+    ApplyMovableUiFramePosition(key)
 end
 
 local function ClearAlertManager(alertManager)
@@ -1780,33 +1759,46 @@ function UI.Initialize()
     runtimeState.RefreshOfficialPlayerFrame()
     runtimeState.RefreshOfficialCompanionFrame()
     runtimeState.RefreshOfficialGroupFrame()
-    if GetActiveQuestSettings().enabled == true then
-        QueueActiveQuestApply()
-    end
+    InstallActiveQuestLayoutHook()
+    QueueActiveQuestApply()
 end
 
 function UI.SetActiveQuestSettingsPanelVisible(visible)
-    activeQuestSettingsPanelVisible = visible == true
-    RefreshActiveQuestSettingsPreview()
+    visible = visible == true
+    if activeQuestSettingsPanelVisible == visible then return end
+    activeQuestSettingsPanelVisible = visible
+    ApplyActiveQuestPosition()
 end
 
 function UI.SetActiveCombatTipsSettingsPanelVisible(visible)
-    activeCombatTipsSettingsPanelVisible = visible == true
+    visible = visible == true
+    if activeCombatTipsSettingsPanelVisible == visible then return end
+    activeCombatTipsSettingsPanelVisible = visible
+    runtimeState.RefreshActiveCombatTips()
     RefreshActiveCombatTipsSettingsPreview()
 end
 
 function UI.SetSynergyPromptsSettingsPanelVisible(visible)
-    synergyPromptsSettingsPanelVisible = visible == true
+    visible = visible == true
+    if synergyPromptsSettingsPanelVisible == visible then return end
+    synergyPromptsSettingsPanelVisible = visible
+    runtimeState.RefreshSynergyPrompts()
     RefreshSynergyPromptsSettingsPreview()
 end
 
 function UI.SetCenterScreenAnnounceSettingsPanelVisible(visible)
-    centerScreenAnnounceSettingsPanelVisible = visible == true
+    visible = visible == true
+    if centerScreenAnnounceSettingsPanelVisible == visible then return end
+    centerScreenAnnounceSettingsPanelVisible = visible
+    runtimeState.RefreshCenterScreenAnnounce()
     RefreshCenterScreenAnnounceSettingsPreview()
 end
 
 local function SetMovableUiFrameSettingsPanelVisible(key, visible)
-    movableUiFrameSettingsPanelVisible[key] = visible == true
+    visible = visible == true
+    if (movableUiFrameSettingsPanelVisible[key] == true) == visible then return end
+    movableUiFrameSettingsPanelVisible[key] = visible
+    runtimeState.RefreshMovableUiFrames()
     RefreshMovableUiFrameSettingsPreview(key)
 end
 
@@ -1854,16 +1846,6 @@ local function RegisterMovableUiFrameApi(key, prefix)
         if runtimeState.movableUiFrameActive[key] then
             QueueMovableUiFrameApply(key)
         end
-        RefreshMovableUiFrameSettingsPreview(key)
-    end
-
-    UI["Get" .. prefix .. "DrawBorders"] = function()
-        return GetMovableUiFrameSettings(key).drawBorders
-    end
-
-    UI["Set" .. prefix .. "DrawBorders"] = function(value)
-        GetMovableUiFrameSettings(key).drawBorders = value == true
-        runtimeState.RefreshMovableUiFrames()
         RefreshMovableUiFrameSettingsPreview(key)
     end
 
@@ -1916,14 +1898,6 @@ local function RegisterMovableUiFrameApi(key, prefix)
         return NQOL.L("features.ui.frame_vertical", NQOL.Util.Lower(frame.label))
     end
 
-    UI["Get" .. prefix .. "DrawBordersLabel"] = function()
-        return NQOL.L("features.ui.active_combat_tips_draw_borders_label")
-    end
-
-    UI["Get" .. prefix .. "DrawBordersTooltip"] = function()
-        return NQOL.L("features.ui.frame_border", NQOL.Util.Lower(frame.label))
-    end
-
     UI["Get" .. prefix .. "EnabledLabel"] = function()
         return NQOL.L("features.ui.active_quest_enabled_label")
     end
@@ -1952,12 +1926,7 @@ end
 
 function UI.SetActiveQuestEnabled(value)
     GetActiveQuestSettings().enabled = value == true
-
-    if GetActiveQuestSettings().enabled == true then
-        QueueActiveQuestApply()
-    end
-
-    RefreshActiveQuestSettingsPreview()
+    QueueActiveQuestApply()
 end
 
 function UI.SetActiveQuestHorizontalOffset(value)
@@ -1976,15 +1945,6 @@ end
 function UI.SetActiveQuestVerticalOffset(value)
     GetActiveQuestSettings().verticalPosition = Clamp(value, 0, 100)
     QueueActiveQuestApply()
-end
-
-function UI.GetActiveQuestShowInSettings()
-    return GetActiveQuestSettings().showInSettings
-end
-
-function UI.SetActiveQuestShowInSettings(value)
-    GetActiveQuestSettings().showInSettings = value == true
-    RefreshActiveQuestSettingsPreview()
 end
 
 function UI.GetActiveCombatTipsHorizontalOffset()
@@ -2029,18 +1989,6 @@ function UI.SetActiveCombatTipsVerticalOffset(value)
     RefreshActiveCombatTipsSettingsPreview()
 end
 
-function UI.GetActiveCombatTipsDrawBorders()
-    return GetActiveCombatTipsSettings().drawBorders
-end
-
-function UI.SetActiveCombatTipsDrawBorders(value)
-    GetActiveCombatTipsSettings().drawBorders = value == true
-    runtimeState.RefreshActiveCombatTips()
-    if value ~= true then
-        ClearActiveCombatTipsBorder()
-    end
-end
-
 function UI.GetSynergyPromptsHorizontalOffset()
     return GetSynergyPromptsSettings().horizontalPosition
 end
@@ -2083,18 +2031,6 @@ function UI.SetSynergyPromptsVerticalOffset(value)
     RefreshSynergyPromptsSettingsPreview()
 end
 
-function UI.GetSynergyPromptsDrawBorders()
-    return GetSynergyPromptsSettings().drawBorders
-end
-
-function UI.SetSynergyPromptsDrawBorders(value)
-    GetSynergyPromptsSettings().drawBorders = value == true
-    runtimeState.RefreshSynergyPrompts()
-    if value ~= true then
-        ClearSynergyPromptsBorder()
-    end
-end
-
 function UI.GetCenterScreenAnnounceHorizontalOffset()
     return GetCenterScreenAnnounceSettings().horizontalPosition
 end
@@ -2132,18 +2068,6 @@ function UI.SetCenterScreenAnnounceVerticalOffset(value)
     GetCenterScreenAnnounceSettings().verticalPosition = Clamp(value, 0, 100)
     if runtimeState.centerScreenAnnounceActive then
         QueueCenterScreenAnnounceApply()
-    end
-end
-
-function UI.GetCenterScreenAnnounceDrawBorders()
-    return GetCenterScreenAnnounceSettings().drawBorders
-end
-
-function UI.SetCenterScreenAnnounceDrawBorders(value)
-    GetCenterScreenAnnounceSettings().drawBorders = value == true
-    runtimeState.RefreshCenterScreenAnnounce()
-    if value ~= true then
-        UpdatePreviewBorder("CenterScreenAnnounce", nil, false)
     end
 end
 
@@ -2301,14 +2225,6 @@ function UI.GetActiveQuestVerticalOffsetTooltip()
     return NQOL.L("features.ui.active_quest_vertical_offset_tooltip")
 end
 
-function UI.GetActiveQuestShowInSettingsLabel()
-    return NQOL.L("features.ui.active_quest_show_in_settings_label")
-end
-
-function UI.GetActiveQuestShowInSettingsTooltip()
-    return NQOL.L("features.ui.active_quest_show_in_settings_tooltip")
-end
-
 function UI.GetActiveQuestEnabledLabel()
     return NQOL.L("features.ui.active_quest_enabled_label")
 end
@@ -2347,14 +2263,6 @@ end
 
 function UI.GetActiveCombatTipsVerticalOffsetTooltip()
     return NQOL.L("features.ui.active_combat_tips_vertical_offset_tooltip")
-end
-
-function UI.GetActiveCombatTipsDrawBordersLabel()
-    return NQOL.L("features.ui.active_combat_tips_draw_borders_label")
-end
-
-function UI.GetActiveCombatTipsDrawBordersTooltip()
-    return NQOL.L("features.ui.active_combat_tips_draw_borders_tooltip")
 end
 
 function UI.GetActiveCombatTipsEnabledLabel()
@@ -2397,14 +2305,6 @@ function UI.GetSynergyPromptsVerticalOffsetTooltip()
     return NQOL.L("features.ui.synergy_prompts_vertical_offset_tooltip")
 end
 
-function UI.GetSynergyPromptsDrawBordersLabel()
-    return NQOL.L("features.ui.synergy_prompts_draw_borders_label")
-end
-
-function UI.GetSynergyPromptsDrawBordersTooltip()
-    return NQOL.L("features.ui.synergy_prompts_draw_borders_tooltip")
-end
-
 function UI.GetSynergyPromptsEnabledLabel()
     return NQOL.L("features.ui.synergy_prompts_enabled_label")
 end
@@ -2443,14 +2343,6 @@ end
 
 function UI.GetCenterScreenAnnounceVerticalOffsetTooltip()
     return NQOL.L("features.ui.center_screen_announce_vertical_offset_tooltip")
-end
-
-function UI.GetCenterScreenAnnounceDrawBordersLabel()
-    return NQOL.L("features.ui.center_screen_announce_draw_borders_label")
-end
-
-function UI.GetCenterScreenAnnounceDrawBordersTooltip()
-    return NQOL.L("features.ui.center_screen_announce_draw_borders_tooltip")
 end
 
 function UI.GetCenterScreenAnnounceEnabledLabel()

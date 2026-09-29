@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Shadowfen/rChat__2500",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Shadowfen",
   "canonical_id": "esoui:2500",
   "category_id": "55",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "rChat"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2500/",
-  "fingerprint": "e966c421d07b4905fb31ce990c07532062641a966b7c21c856bda947abf36f64",
+  "fingerprint": "1c349c44a12df21524ed636aae6221ad81c2d115c2e40871d9b207930ada4309",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8568.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw8569.jpg",
@@ -88,11 +93,11 @@
   "source_id": "2500",
   "source_url": "https://www.esoui.com/downloads/info2500-rChat.html",
   "stats": {
-    "downloads": 80560,
-    "favorites": 87,
-    "monthly_downloads": 273
+    "downloads": 81145,
+    "favorites": 88,
+    "monthly_downloads": 283
   },
   "title": "rChat",
-  "updated_at": 1781033889000,
-  "version": "2.0.5"
+  "updated_at": 1790620496000,
+  "version": "2.0.6"
 }

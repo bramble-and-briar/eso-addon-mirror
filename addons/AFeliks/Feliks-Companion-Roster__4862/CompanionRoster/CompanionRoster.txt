@@ -1,12 +1,13 @@
-## Title: Companion Roster
+## Title: Feliks' Companion Roster
 ## Author: Feliks Blackwood
-## Version: 2.0.8
-## APIVersion: 101050
+## Version: 2.1.0
+## APIVersion: 101051
 ## SavedVariables: CompanionRoster_SavedVariables
-## DependsOn: LibSlashCommander>=45
+## DependsOn: LibSlashCommander>=45 LibAddonMenu-2.0>=43
 ## Description: Tracks companion rapport and recruitment status across every character you play, so you can see who's still unrecruited, un-leveled, or fully caught up with which companion.
 
 CompanionRoster_Data.lua
 CompanionRoster_Window.xml
 Bindings.xml
 CompanionRoster_UI.lua
+CompanionRoster_Settings.lua

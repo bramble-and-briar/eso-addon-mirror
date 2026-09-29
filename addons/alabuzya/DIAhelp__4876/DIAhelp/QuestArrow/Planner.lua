@@ -1,9 +1,10 @@
--- Bundled QuestArrow 0.2.1 by alabuzya.
-if not DIAhelpUseBundledQuestArrow then return end
+local DIAhelp = DIAhelp
+-- Bundled QuestArrow 0.2.2 by alabuzya.
+if not DIAhelp.UseBundledQuestArrow then return end
 -- Pure geometry: distances are fractions of map height, NOT metres.
-QuestArrow = QuestArrow or {}
+DIAhelp.QuestArrow = DIAhelp.QuestArrow or {}
 local P = {}
-QuestArrow.Planner = P
+DIAhelp.QuestArrow.Planner = P
 
 function P.ValidPoint(p)
     return p and type(p.x) == "number" and type(p.y) == "number"

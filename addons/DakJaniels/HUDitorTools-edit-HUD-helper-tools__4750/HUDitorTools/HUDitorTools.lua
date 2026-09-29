@@ -10,7 +10,7 @@ local HT = HUDitorTools
 
 -- Addon data
 local addonWebsite = "https://www.esoui.com/downloads/info4750"
-HT.version = "1.1.0"
+HT.version = "1.2.0"
 HT.name = "HUDitor Tools"
 HT.displayName = "|c00FF00HUD|cFFFF00itor|r Tools"
 HT.eventName = "HUDitorTools"
@@ -103,6 +103,18 @@ HT.Defaults =
     hudLayoutsCharacter                = {},
     hudLayoutSelectionByCharacter      = {},
     showChatMessages                   = false,
+
+    elementAppearance                  =
+    {
+        keyboard = {},
+        gamepad = {},
+    },
+    resourceBarGroup                   =
+    {
+        enabled = false,
+        healthWidth = 474,
+        preventExpand = false,
+    },
 }
 
 -- CHAT_ROUTER:AddSystemMessage (EsoUI/Ingame/ChatSystem/ChatHandlers.lua)
@@ -1224,6 +1236,7 @@ local function OnEditorSceneStateChange(oldState, newState)
         HT.HideGridOverlay()
         HT.RefreshColorPickerVisibility()
         HT.HideLayoutDialogs()
+        HT.ApplyAllElementAppearances()
     end
 end
 
@@ -1247,9 +1260,14 @@ local function OnAddOnLoaded(_, addonName)
     HT.buildSettingsMenu()
 
     -- Create controls etc.
+    HT.InitializeElementAppearance()
+    HT.InitializeExtraHudElements()
+    HT.InitializeResourceBarGroup()
+
     HT.InstallInfoBoxControls()
     HT.InstallColorPicker()
     HT.InstallLayoutInfoBoxSection()
+    HT.InstallAppearanceInfoBoxSection()
     HT.InitializeHudLayouts()
 
     -- Scenes and hooks

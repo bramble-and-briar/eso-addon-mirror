@@ -12,8 +12,8 @@ rChatData = {
 local MAX_HISTORY_LENGTH = 5000
 local TRIMMED_HISTORY_LENGTH = 4000
 
-local cache
-local cmds
+local cache = rChatData.cache
+local cmds = rChatData.cmds
 
 -- ------------------------------------------------------
 -- Entries functions
@@ -99,45 +99,6 @@ function rChatData.SetLine(index, entry)
     return index
 end
 
--- obsolete - use filter*() instead
--- Truncate overflow entries from a table
--- Specifying maxage is optional
---[[
-function rChatData.truncate(tbl, maxlen, trunclen, maxage)
-    local tmptbl = {}
-    if not tbl or type(tbl) ~= "table" or not next(tbl) then return {} end
-
-    if #tbl >= maxlen or maxage then
-        local currentTime= GetTimeStamp()
-        local start = #tbl - trunclen + 1
-        if start < 1 then start = 1 end
-        for i = start, #tbl do
-            if   CHAT_CHANNEL_MONSTER_SAY     == tbl[i].channel
-              or CHAT_CHANNEL_MONSTER_YELL    == tbl[i].channel
-              or CHAT_CHANNEL_MONSTER_EMOTE   == tbl[i].channel
-              or CHAT_CHANNEL_MONSTER_WHISPER == tbl[i].channel then
-                -- ignore it
-            elseif maxage then
-                if tbl[i].timestamp then
-                    if tbl[i].timestamp > maxage  then
-                        if tbl[i].timestamp > currentTime + 60 then
-                            -- adjust misaligned clock?
-                            tbl[i].timestamp = currentTime
-                        end
-                        table.insert(tmptbl, tbl[i])  -- still young enough
-                    end
-                else
-                    table.insert(tmptbl, tbl[i])  -- without a timestamp we cannot age
-                end
-            else
-                table.insert(tmptbl, tbl[i]) -- no maxage, so we cannot age-check
-            end
-        end
-        tbl = tmptbl
-    end
-    return tbl, #tbl+1
-end
---]]
 
 -- filter out the chat entries from the specified channels
 -- in the excludeChannels table (key = channel id, value=anything)

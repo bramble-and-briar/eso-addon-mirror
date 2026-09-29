@@ -74,7 +74,7 @@
     "AutoCategory"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2300/",
-  "fingerprint": "9a1c91292fcd64f66f2d24a6060b59ad8038d20a5b100c5be9fb623a0cf81a0c",
+  "fingerprint": "730f83cb1338dbd1578e80f5d801e0063bb7b4de0dfe6d2aa796d872ff9fbb9d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8077.png",
     "https://cdn-eso.mmoui.com/preview/pvw8078.png",
@@ -92,11 +92,11 @@
   "source_id": "2300",
   "source_url": "https://www.esoui.com/downloads/info2300-AutoCategory-Revised.html",
   "stats": {
-    "downloads": 1218452,
+    "downloads": 1223747,
     "favorites": 414,
-    "monthly_downloads": 12509
+    "monthly_downloads": 16939
   },
   "title": "Auto Category - Revised",
-  "updated_at": 1790396050000,
-  "version": "4.6.16"
+  "updated_at": 1790620725000,
+  "version": "4.6.17"
 }

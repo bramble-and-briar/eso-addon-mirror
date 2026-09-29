@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.GroupFrames = {}
 -- Independent compact group frames, GPL-3.0-or-later.
 local root,settings,ru
 local rows={}
@@ -85,7 +87,7 @@ local function Row(index)
         end
         if button==MOUSE_BUTTON_INDEX_RIGHT and inside~=false then
             ClearHover()
-            DIAhelpGroupMenu.Show(hit,row.unitTag,row.companion)
+            DIAhelp.GroupMenu.Show(hit,row.unitTag,row.companion)
         end
     end)
     hit:SetHandler("OnMouseEnter",function()
@@ -186,11 +188,9 @@ local function Update()
     if hoveredRow then ShowLocation(hoveredRow) end
     root:SetDimensions(math.max(1,math.ceil(#units/perColumn))*(width+8)-8,totalHeight)
 end
-EVENT_MANAGER:RegisterForEvent("DIAhelpGroupFrames",EVENT_ADD_ON_LOADED,function(_,name)
-    if name~="DIAhelp" then return end
-    EVENT_MANAGER:UnregisterForEvent("DIAhelpGroupFrames",EVENT_ADD_ON_LOADED)
+function DIAhelp.GroupFrames.Initialize()
     ru=GetCVar("language.2")=="ru"
-    settings=ZO_SavedVars:NewAccountWide("DIAhelpSavedVariables",1,"groupFrames",{})
+    settings=DIAhelp.SavedVariables.Account("groupFrames",{})
     root=WINDOW_MANAGER:CreateTopLevelWindow("DIAhelpGroupFrames")
     root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or 28,settings.y or 100)
     root:SetMouseEnabled(false) root:SetMovable(false) root:SetClampedToScreen(true)
@@ -203,4 +203,4 @@ EVENT_MANAGER:RegisterForEvent("DIAhelpGroupFrames",EVENT_ADD_ON_LOADED,function
     if ZO_UnitFramesGroups then ZO_PostHookHandler(ZO_UnitFramesGroups,"OnShow",HideNative) end
     EVENT_MANAGER:RegisterForEvent("DIAhelpGroupFrames",EVENT_PLAYER_ACTIVATED,function() Update() HideNative() end)
     EVENT_MANAGER:RegisterForUpdate("DIAhelpGroupFrames",250,function() Update() HideNative() end)
-end)
+end

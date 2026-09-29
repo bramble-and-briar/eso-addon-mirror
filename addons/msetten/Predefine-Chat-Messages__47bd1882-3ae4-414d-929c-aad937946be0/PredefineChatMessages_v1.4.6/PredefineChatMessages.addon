@@ -1,0 +1,10 @@
+## Title: Predefine Chat Messages
+## APIVersion: 101048 101049 101050 101051
+## Author: msetten
+## Version: 1.4.6
+## AddOnVersion: 1
+## SavedVariables: PredefineChatMessagesSaved
+## DependsOn: LibChatMessage
+## OptionalDependsOn: LibAddonMenu-2.0 
+
+PredefineChatMessages.lua

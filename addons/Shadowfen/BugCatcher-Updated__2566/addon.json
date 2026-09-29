@@ -8,6 +8,10 @@
   "category_id": "159",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -70,7 +74,7 @@
     "BugCatcher"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2566/",
-  "fingerprint": "c4cb240a1250e62c1c1cd15939ec9a1116fa31b4a6d890f3c6482b68fe71b6c0",
+  "fingerprint": "86d28174a29f1e2e32eee7f2a96554164e245fcac78808fc7cc96961d684440c",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -78,11 +82,11 @@
   "source_id": "2566",
   "source_url": "https://www.esoui.com/downloads/info2566-BugCatcherUpdated.html",
   "stats": {
-    "downloads": 243179,
+    "downloads": 255655,
     "favorites": 150,
-    "monthly_downloads": 2404
+    "monthly_downloads": 3753
   },
   "title": "BugCatcher Updated",
-  "updated_at": 1785995262000,
-  "version": "042"
+  "updated_at": 1790620567000,
+  "version": "043"
 }

@@ -1,10 +1,10 @@
 ## Title: LibSavedVars
 ## Author: silvereyes, Shadowfen
 ## Description: A library to manage and migrate to addon settings that support scopes per server, per account and per character.
-## Version: 6.1.0
-## AddOnVersion: 60100
+## Version: 6.1.1
+## AddOnVersion: 60101
 ## IsLibrary: true
-## APIVersion: 101050 101051
+## APIVersion: 101052 101051
 
 ## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
 ## The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the 

@@ -17,6 +17,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Yokeda](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Yokeda/Yokeda__cd627f74-6399-4b3d-9218-b2e0866b936d) | Yokeda | Console | — |
 | [YsgramorCompanions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Darkroger01/YsgramorCompanions__3943) | Darkroger01 | PC / Mac | v1.0.12 |
 | [YssEquipmentIndicator Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/QuadroTony/YssEquipmentIndicator-Revived__975) | QuadroTony | PC / Mac | 0.2.2 |
-| [Yudo's Inventory Processor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudoAn/Yudo-s-Inventory-Processor__4324) | YudoAn | PC / Mac | 1.12.0 |
-| [Yudo's Kill Feed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudoAn/Yudo-s-Kill-Feed__4390) | YudoAn | PC / Mac | 1.3.4 |
-| [Yudo's Power Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudoAn/Yudo-s-Power-Stats__4323) | YudoAn | PC / Mac | 1.6.1 |
+| [Yudo's Inventory Processor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudoAn/Yudo-s-Inventory-Processor__4324) | YudoAn | PC / Mac | 1.12.1 |
+| [Yudo's Kill Feed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudoAn/Yudo-s-Kill-Feed__4390) | YudoAn | PC / Mac | 1.3.5 |
+| [Yudo's Power Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudoAn/Yudo-s-Power-Stats__4323) | YudoAn | PC / Mac | 1.6.2 |

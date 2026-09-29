@@ -276,7 +276,21 @@ local function build_battle(win)
         U.clamp_line(e.valO)
         e.valO:SetAnchor(TOPRIGHT, b.bal, TOPRIGHT, -right, 32)
         e.valO:SetDimensions(46, 12)
+        e.barT = P.rect(b.bal, { 1, 1, 1, 0.10 })
+        e.barT:SetDimensions(44, 4)
+        e.barT:SetAnchor(TOPRIGHT, b.bal, TOPRIGHT, -(right + 50), 39)
+        e.fillT = P.rect(b.bal, { 1, 1, 1, 0.8 })
+        e.fillT:SetAnchor(TOPLEFT, e.barT, TOPLEFT, 0, 0)
+        e.fillT:SetDimensions(0, 4)
+        e.valT = P.label(b.bal, S.FONT.small, K.COLOR.text)
+        U.clamp_line(e.valT)
+        e.valT:SetAnchor(TOPRIGHT, b.bal, TOPRIGHT, -right, 35)
+        e.valT:SetDimensions(46, 11)
+        e.barT:SetHidden(true); e.fillT:SetHidden(true); e.valT:SetHidden(true)
+        e.right = right
+        e.parent = b.bal
         e.all = { e.icon, e.barM, e.fillM, e.valM, e.barO, e.fillO, e.valO }
+        e.three = { e.barT, e.fillT, e.valT }
         return e
     end
     b.balAva = exp_block(6, 28)

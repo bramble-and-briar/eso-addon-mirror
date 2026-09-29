@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.Frame = {}
 -- DIAhelp fork by alabuzya, modified 2026-09-22. GPL-3.0-or-later.
 -- Original code: BulDeZir; artwork: Forsion. See CREDITS.txt.
 local NAME = "DIAhelp"
@@ -168,7 +170,7 @@ local function RestyleActionBar(topLevelCtrl, style, actionBarContainer)
         end, 150)
     end
 
-    DIAhelp_ApplyCompanionPolicy()
+    DIAhelp.Companion.ApplyPolicy()
 
     ZO_HUDEquipmentStatus:ClearAnchors()
     ZO_HUDEquipmentStatus:SetAnchor(RIGHT, GuiRoot, RIGHT, -(style.abilitySlotOffsetX + 13), 0)
@@ -185,7 +187,7 @@ local function RestyleActionBar(topLevelCtrl, style, actionBarContainer)
 
     ApplyTemplateToControl(topLevelCtrl, ZO_GetPlatformTemplate(template))
     if actionBarContainer == nil then
-        DIAhelp_LayoutDualBar(topLevelCtrl, style)
+        DIAhelp.DualBar.Layout(topLevelCtrl, style)
     end
 end
 
@@ -348,134 +350,130 @@ local function updateFood(topLevelCtrl)
     end
 end
 
-function DIAhelpFrame_Initialize(topLevelCtrl)
+function DIAhelp.Frame.OnControlInitialized(control)
+    DIAhelp.Frame.control = control
+end
 
-    local function OnAddOnLoaded(_, addonName)
-        if addonName == NAME then
-
-            -----------------
-            -- POWER POOLS --
-            -----------------
-            local pools = {
-                [POWERTYPE_HEALTH] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Health'), POWERTYPE_HEALTH),
-                [POWERTYPE_MAGICKA] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Magicka'), POWERTYPE_MAGICKA),
-                [POWERTYPE_STAMINA] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Stamina'), POWERTYPE_STAMINA),
-                [POWERTYPE_MOUNT_STAMINA] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'MountStamina'), POWERTYPE_MOUNT_STAMINA),
-                [POWERTYPE_WEREWOLF] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'WerewolfTimer'), POWERTYPE_WEREWOLF),
-            }
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax)
-                local pool = pools[powerType]
-                if pool ~= nil then
-                    ZO_StatusBar_SmoothTransition(pool, powerValue, powerMax)
-                end
-            end)
-            EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
-
-            -----------------
-            -- SHIELD --
-            -----------------
-            local shield = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Shield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
-
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(_, _, unitAttributeVisual, _, _, _, value)
-                if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-                    shield.label:GetParent():SetHidden(false)
-                    ZO_StatusBar_SmoothTransition(shield, value, pools[POWERTYPE_HEALTH]:GetMax())
-                end
-            end)
-            EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, "player")
-
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, function(_, _, unitAttributeVisual, _, _, _, _, newValue)
-                if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-                    ZO_StatusBar_SmoothTransition(shield, newValue, pools[POWERTYPE_HEALTH]:GetMax())
-                end
-            end)
-            EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, "player")
-
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
-                if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-                    ZO_StatusBar_SmoothTransition(shield, 0, pools[POWERTYPE_HEALTH]:GetMax())
-                    shield.label:GetParent():SetHidden(true)
-                end
-            end)
-            EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, "player")
-
-            -----------------
-            -- MOUNT STATE --
-            -----------------
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_MOUNTED_STATE_CHANGED, function(_, state)
-                pools[POWERTYPE_MOUNT_STAMINA].control:SetHidden(not state)
-            end)
-
-            -----------------
-            -- WW STATE --
-            -----------------
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_WEREWOLF_STATE_CHANGED, function(_, state)
-                pools[POWERTYPE_WEREWOLF].control:SetHidden(not state)
-            end)
- 
- 
-            -----------------
-            -- FOOD --
-            -----------------
-            EVENT_MANAGER:RegisterForUpdate(NAME .. "Food", 3000, function() updateFood(topLevelCtrl) end)
-
-            -----------------
-            -- FRAGMENT --
-            -----------------
-            local fragment = ZO_HUDFadeSceneFragment:New(topLevelCtrl)
-            HUD_SCENE:AddFragment(fragment)
-            HUD_UI_SCENE:AddFragment(fragment)
-            local function UpdateDeathFragment()
-                fragment:SetHiddenForReason("Dead", IsUnitDead("player"))
-            end
-            PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('DIAhelp', true)
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
-            -----------------
-            -- Target (ReticleOver) --
-            -----------------
-            -- отключил, пока сыро
-            --ReTexture()
-            --RestyleTargetFrames()
-            --EVENT_MANAGER:RegisterForEvent(NAME, EVENT_RETICLE_TARGET_CHANGED, RestyleCurrentTarget)
-            -----------------
-            -- PLAYER_ACTIVATED --
-            -----------------
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, function()
-                UpdateDeathFragment()
-                DIAhelp_ApplyCompanionPolicy()
-
-                for powerType in pairs(pools) do
-                    local powerValue, powerMax = GetUnitPower("player", powerType)
-                    ZO_StatusBar_SmoothTransition(pools[powerType], powerValue, powerMax)
-                end
-
-                shield:SetMinMax(0, pools[POWERTYPE_HEALTH]:GetMax())
-                shield:SetValue(0)
-
-                updateFood(topLevelCtrl)
-
-                pools[POWERTYPE_MOUNT_STAMINA].control:SetHidden(not IsMounted())
-            end)
-
-            -----------------
-            -- APPLY STYLE --
-            -----------------
-            local styleManager = ZO_PlatformStyle:New(function(style)
-                if AltAB_ActionBar ~= nil then
-                    RestyleActionBar(topLevelCtrl, style, AltAB_ActionBar)
-                elseif FAB_ActionBar ~= nil then
-                    RestyleActionBar(topLevelCtrl, style, FAB_ActionBar)
-                else
-                    RestyleActionBar(topLevelCtrl, style)
-                end
-            end, KEYBOARD_CONSTANTS, GAMEPAD_CONSTANTS)
-
-            EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ACTIVE_COMPANION_STATE_CHANGED, function() styleManager:Apply() end)
-
-            EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
+function DIAhelp.Frame.Initialize()
+    local topLevelCtrl = assert(DIAhelp.Frame.control, "Missing resource frame")
+    -----------------
+    -- POWER POOLS --
+    -----------------
+    local pools = {
+        [POWERTYPE_HEALTH] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Health'), POWERTYPE_HEALTH),
+        [POWERTYPE_MAGICKA] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Magicka'), POWERTYPE_MAGICKA),
+        [POWERTYPE_STAMINA] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Stamina'), POWERTYPE_STAMINA),
+        [POWERTYPE_MOUNT_STAMINA] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'MountStamina'), POWERTYPE_MOUNT_STAMINA),
+        [POWERTYPE_WEREWOLF] = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'WerewolfTimer'), POWERTYPE_WEREWOLF),
+    }
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax)
+        local pool = pools[powerType]
+        if pool ~= nil then
+            ZO_StatusBar_SmoothTransition(pool, powerValue, powerMax)
         end
-    end
+    end)
+    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
+    -----------------
+    -- SHIELD --
+    -----------------
+    local shield = DIAhelpStatusBar:New(GetControl(topLevelCtrl, 'Shield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
+
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(_, _, unitAttributeVisual, _, _, _, value)
+        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+            shield.label:GetParent():SetHidden(false)
+            ZO_StatusBar_SmoothTransition(shield, value, pools[POWERTYPE_HEALTH]:GetMax())
+        end
+    end)
+    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, "player")
+
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, function(_, _, unitAttributeVisual, _, _, _, _, newValue)
+        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+            ZO_StatusBar_SmoothTransition(shield, newValue, pools[POWERTYPE_HEALTH]:GetMax())
+        end
+    end)
+    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, "player")
+
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
+        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+            ZO_StatusBar_SmoothTransition(shield, 0, pools[POWERTYPE_HEALTH]:GetMax())
+            shield.label:GetParent():SetHidden(true)
+        end
+    end)
+    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, "player")
+
+    -----------------
+    -- MOUNT STATE --
+    -----------------
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_MOUNTED_STATE_CHANGED, function(_, state)
+        pools[POWERTYPE_MOUNT_STAMINA].control:SetHidden(not state)
+    end)
+
+    -----------------
+    -- WW STATE --
+    -----------------
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_WEREWOLF_STATE_CHANGED, function(_, state)
+        pools[POWERTYPE_WEREWOLF].control:SetHidden(not state)
+    end)
+ 
+ 
+    -----------------
+    -- FOOD --
+    -----------------
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "Food", 3000, function() updateFood(topLevelCtrl) end)
+
+    -----------------
+    -- FRAGMENT --
+    -----------------
+    local fragment = ZO_HUDFadeSceneFragment:New(topLevelCtrl)
+    HUD_SCENE:AddFragment(fragment)
+    HUD_UI_SCENE:AddFragment(fragment)
+    local function UpdateDeathFragment()
+        fragment:SetHiddenForReason("Dead", IsUnitDead("player"))
+    end
+    PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('DIAhelp', true)
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
+    -----------------
+    -- Target (ReticleOver) --
+    -----------------
+    -- отключил, пока сыро
+    --ReTexture()
+    --RestyleTargetFrames()
+    --EVENT_MANAGER:RegisterForEvent(NAME, EVENT_RETICLE_TARGET_CHANGED, RestyleCurrentTarget)
+    -----------------
+    -- PLAYER_ACTIVATED --
+    -----------------
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, function()
+        UpdateDeathFragment()
+        DIAhelp.Companion.ApplyPolicy()
+
+        for powerType in pairs(pools) do
+            local powerValue, powerMax = GetUnitPower("player", powerType)
+            ZO_StatusBar_SmoothTransition(pools[powerType], powerValue, powerMax)
+        end
+
+        shield:SetMinMax(0, pools[POWERTYPE_HEALTH]:GetMax())
+        shield:SetValue(0)
+
+        updateFood(topLevelCtrl)
+
+        pools[POWERTYPE_MOUNT_STAMINA].control:SetHidden(not IsMounted())
+    end)
+
+    -----------------
+    -- APPLY STYLE --
+    -----------------
+    local styleManager = ZO_PlatformStyle:New(function(style)
+        if AltAB_ActionBar ~= nil then
+            RestyleActionBar(topLevelCtrl, style, AltAB_ActionBar)
+        elseif FAB_ActionBar ~= nil then
+            RestyleActionBar(topLevelCtrl, style, FAB_ActionBar)
+        else
+            RestyleActionBar(topLevelCtrl, style)
+        end
+    end, KEYBOARD_CONSTANTS, GAMEPAD_CONSTANTS)
+
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ACTIVE_COMPANION_STATE_CHANGED, function() styleManager:Apply() end)
+
 end

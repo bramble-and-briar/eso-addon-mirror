@@ -1,3 +1,22 @@
+[COLOR="DeepSkyBlue"]1.39 (39)[/COLOR]:
+[LIST]
+[*] API bump.
+[/LIST]
+
+[COLOR="DeepSkyBlue"]1.38 (38)[/COLOR]:
+[LIST]
+[*] Start using LibSFUtils logging.
+[*] Added locale string support with LibLanguage
+[/LIST]
+
+[COLOR="DeepSkyBlue"]1.37 (37)[/COLOR]:
+[LIST]
+[*] Update to use LibSFUtils 77
+[*] Cleanup code
+[*] Fixed settings default value for money.
+[*] Fixed misc subtle errors.
+[/LIST]
+
 [COLOR="DeepSkyBlue"]1.36 (36)[/COLOR]:
 [LIST]
 [*] API bump.

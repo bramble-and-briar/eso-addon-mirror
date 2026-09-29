@@ -1,6 +1,6 @@
 local A = QuestArrow
 local P, U = A.Planner, A.UI
-A.name, A.version = "QuestArrow", "0.2.1"
+A.name, A.version = "QuestArrow", "0.2.2"
 A.pending, A.targets, A.nodes = {}, {}, {}
 A.generation, A.nextRequest, A.nextPlan, A.nextNodes = 0, 0, 0, 0
 A.defaults = { x = 0.5, y = 0.27, scale = 1, alpha = 1, locked = true,
@@ -352,7 +352,9 @@ function A:Command(input)
 end
 
 function A:Initialize()
-    self.saved = ZO_SavedVars:NewCharacterIdSettings("QuestArrowSavedVariables", 1, nil, self.defaults)
+    if self.initialized then return end
+    self.initialized = true
+    self.saved = A.SavedVariables.Character(nil, self.defaults)
     U:Create()
     U:Journal()
     SLASH_COMMANDS["/qa"] = function(input) self:Command(input) end

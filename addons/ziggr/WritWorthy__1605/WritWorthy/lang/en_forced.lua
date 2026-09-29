@@ -346,6 +346,10 @@ WritWorthy.I18N["mat"]["en"] = {
   [150672] = "Crimson Nirnroot",
   [150731] = "Dragon's Blood",
   [150789] = "Dragon's Bile",
+  [224357] = "Cultivated Cryptpods",
+  [224358] = "Daedra-Blood Maggots",
+  [224359] = "Fossilized Verminous Bones",
+  [224360] = "Winter's Grave Tongue",
   [114893] = "Alchemical Resin",
 }
 

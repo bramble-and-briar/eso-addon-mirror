@@ -1,0 +1,17 @@
+## Title: AutoBind Uncollected Set Items
+## APIVersion: 101048 101049 101050 101051
+## Author: msetten
+## Version: 1.16.5
+## AddOnVersion: 1
+## SavedVariables: AutoBindSetItemsSaved
+## DependsOn: LibChatMessage
+## OptionalDependsOn: LibAddonMenu-2.0
+
+## Description:
+## Automatically binds uncollected set items to help complete your set collections (stickerbook).
+## This addon works account-wide and provides a toggle in the addon settings menu.
+
+lang/en.lua
+lang/$(language).lua
+Settings.lua
+AutoBindSetItems.lua 

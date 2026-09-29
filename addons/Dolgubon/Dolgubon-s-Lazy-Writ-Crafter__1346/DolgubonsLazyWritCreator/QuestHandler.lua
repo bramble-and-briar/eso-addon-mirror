@@ -185,7 +185,7 @@ local function checkMasterWritCraftable(bag, slot)
 	if GetItemType(bag, slot)~=ITEMTYPE_MASTER_WRIT then return end
 	local link = GetItemLink(bag, slot)
 	local station = WritCreater.sealedWritNames[GetItemLinkName(link)]
-	if station == CRAFTING_TYPE_ALCHEMY then
+	if station == CRAFTING_TYPE_ALCHEMY and WritCreater.isAlchemyWritCraftable(bag, slot) then
 		lastSlotCraftable = true
 		return
 	elseif station == CRAFTING_TYPE_PROVISIONING then

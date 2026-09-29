@@ -210,10 +210,26 @@ local motifs = {
 	[134] = M:New("Tide-Born", 157, 4242, 13183, 212118),
 	[135] = M:New("Black Soul Gem", 158, 4289, 13310, 212424),
 	[136] = M:New("Voskrona Guardian", 159, 4290, 13342, 212441),
-	[137] = M:New("Koldane Cartel", 162, 4491, 14228, 223947),
+	[137] = M:New("Koldane Cartel", 162, 4491, 14228,223947),
 }
 
 TB_Data = ZO_Object:Subclass()
+
+local chapterConstant = nil
+local function GetChapterConstantTable()
+	if not chapterConstant then
+		chapterConstant = {}
+		for constant, order in pairs(chapterOrder) do
+			chapterConstant[order] = constant
+		end
+	end
+	return chapterConstant
+end
+
+function TB_Data:GetChapterConstant(order)
+	return GetChapterConstantTable()[order]
+end
+
 function TB_Data:New(...)
 	local object = ZO_Object.New(self)
 	object:Initialize(...)
@@ -455,7 +471,7 @@ function TB_Data:Initialize()
 	self:Initialize_Motifs()
 	if GetAPIVersion() < 101050 then
 		--Remove content until it is active
---		motifs[137] = nil
+		motifs[137] = nil
 		motifs[138] = nil
 --		sets[60] = nil
 

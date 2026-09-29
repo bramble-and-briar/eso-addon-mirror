@@ -1,18 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/DakJaniels/LuiData__4373",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "DakJaniels",
   "canonical_id": "esoui:4373",
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     },
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:4373",
@@ -21,7 +22,7 @@
     "LuiData"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4373/",
-  "fingerprint": "28ec827ec53c697ab481b5b89134983ced6e571a7d71dfbc3a17fd368bb0413c",
+  "fingerprint": "792218ef06d2eaab6bfbf1ac7ec824e64b752090b1dbc751f51932b16c9408c7",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -29,11 +30,11 @@
   "source_id": "4373",
   "source_url": "https://www.esoui.com/downloads/info4373-LuiData.html",
   "stats": {
-    "downloads": 118053,
-    "favorites": 37,
-    "monthly_downloads": 18901
+    "downloads": 129346,
+    "favorites": 38,
+    "monthly_downloads": 5879
   },
   "title": "LuiData",
-  "updated_at": 1784331699000,
-  "version": "7.2.2.7"
+  "updated_at": 1790583757000,
+  "version": "7.2.2.8"
 }

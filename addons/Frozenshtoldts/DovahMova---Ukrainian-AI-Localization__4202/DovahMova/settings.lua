@@ -1,487 +1,184 @@
-local DovahMovaSettings = ZO_Object:Subclass()
-DOVAHMOVA_SETTINGS = DovahMovaSettings
+-- =================================================================================================
+-- Панель налаштувань (LibAddonMenu-2.0).
+-- =================================================================================================
 
--- Helper function to safely call postfix functions
-local function SafeCallPostfixFunction(functionName, DovahMova)
-	-- Try to access the function
-	local func = _G[functionName]
-	
-	if type(func) == "function" then
-		-- Use pcall to safely call the function
-		local success, error = pcall(func, DovahMova)
-		if not success then
-			d("DovahMova: Error calling " .. functionName .. ": " .. tostring(error))
-		end
-		return success
-	else
-		-- Function not available, just skip it
-		d("DovahMova: " .. functionName .. " function not available, skipping...")
-		return false
+local DovahMova = DovahMova
+
+local SettingsMenu = {}
+DovahMova.SettingsMenu = SettingsMenu
+
+local UA, UAEN, EN = DovahMova.MODE_UA, DovahMova.MODE_UAEN, DovahMova.MODE_EN
+local RELOAD_WARNING = "|cffcc00Увага:|r Зміна цього налаштування призведе до перезавантаження інтерфейсу."
+
+local function ReloadInterface()
+	ReloadUI("ingame")
+end
+
+local function IsDatabaseOutdated()
+	return DovahMova.Database.IsOutdated()
+end
+
+local function DatabaseWarning()
+	return IsDatabaseOutdated() and "Необхідно оновити мовну базу." or nil
+end
+
+--- Випадаючий список режиму відображення назв.
+-- @param onChange  function(newValue) — застосувати зміну (необов'язково)
+local function ModeDropdown(name, tooltip, settingKey, modes, onChange)
+	local choices = {}
+	for i, mode in ipairs(modes) do
+		choices[i] = DovahMova.MODE_LABELS[mode]
 	end
+	return {
+		type = "dropdown",
+		name = name,
+		tooltip = tooltip,
+		choices = choices,
+		choicesValues = modes,
+		warning = DatabaseWarning,
+		disabled = IsDatabaseOutdated,
+		getFunc = function() return DovahMova.settings[settingKey] end,
+		setFunc = function(value)
+			DovahMova.settings[settingKey] = value
+			if onChange then
+				onChange(value)
+			end
+		end,
+		width = "full",
+	}
 end
 
-function DovahMovaSettings:New(...)
-    local settings = ZO_Object.New(self)
-    settings:Initialize(...)
-    return settings
+local function Checkbox(name, tooltip, settingKey, extra)
+	local option = {
+		type = "checkbox",
+		name = name,
+		tooltip = tooltip,
+		getFunc = function() return DovahMova.settings[settingKey] end,
+		setFunc = function(value) DovahMova.settings[settingKey] = value end,
+		width = "full",
+	}
+	for key, value in pairs(extra or {}) do
+		option[key] = value
+	end
+	return option
 end
 
-function DovahMovaSettings:Initialize(DovahMova)
-	self.LAM = LibAddonMenu2
-	self:InitSettings(DovahMova)
+local function Header(name)
+	return { type = "header", name = name, width = "full" }
 end
 
-function DovahMovaSettings:InitSettings(DovahMova)
+local function Label(text)
+	return { type = "description", text = text, width = "full" }
+end
 
-    local panelData = {
+local function GenerateTTCTable()
+	local ttcPrices = DovahMova.TTCPrices
+	if not ttcPrices or not ttcPrices.IsAvailable() then
+		DovahMova.Print("Tamriel Trade Centre не завантажено або не пропатчено скриптом ttc_ua_setup (див. README).")
+		return
+	end
+	DovahMova.Print("генерую українську таблицю цін TTC...")
+	DovahMova.Print("таблицю TTC згенеровано: %d назв.", ttcPrices.Generate())
+end
+
+local function BuildOptions()
+	local modules = DovahMova
+	return {
+		Header("Загальні"),
+		Label(RELOAD_WARNING),
+		{
+			type = "checkbox",
+			name = "Увімкнути українську мову",
+			tooltip = "Негайно вмикає/вимикає українську мову та перезавантажує UI.",
+			getFunc = DovahMova.IsUkrainian,
+			setFunc = function(enabled) DovahMova.SetClientLanguage(enabled and "ua" or "en") end,
+			width = "full",
+		},
+		{
+			type = "button",
+			name = "Оновити мовну базу",
+			tooltip = "Виконує індексацію мовного файлу після оновлення гри чи аддона.",
+			func = function() DovahMova.Database.StartRebuild() end,
+			width = "full",
+		},
+		{ type = "divider", width = "full" },
+		Checkbox("Автозбір листів від найманців",
+			"Автоматично збирати матеріали з листів від найманців при відкритті поштової скриньки.",
+			"AutoCollectHirelingMail"),
+		Checkbox("Видаляти листи після збору",
+			"Автоматично видаляти листи від найманців після збору матеріалів.",
+			"AutoDeleteHirelingMail",
+			{ disabled = function() return not DovahMova.settings.AutoCollectHirelingMail end }),
+		Label("|cffcc00Увага:|r Генеруйте таблицю TTC щоразу, коли змінюєте «Предмети в інвентарі»."),
+		{
+			type = "button",
+			name = "Згенерувати TTC",
+			tooltip = "Створює українську таблицю пошуку для Tamriel Trade Centre, щоб ціни відображалися для українських назв предметів. Потрібно виконати після запуску скрипту інтеграції.",
+			func = GenerateTTCTable,
+			width = "full",
+		},
+		Checkbox("Двомовний пошук сетів в меню колекцій",
+			"Дозволяє використовувати англійські назви сетів під час пошуку в меню колекцій.",
+			"EnglishSearch",
+			{ warning = DatabaseWarning, disabled = IsDatabaseOutdated }),
+
+		Header("Інтерфейс"),
+		ModeDropdown("Предмети в інвентарі (reloadui)",
+			"Мова назв предметів в інвентарі, банку та у торговців. " .. RELOAD_WARNING,
+			"ShowItemsDisplay", { UA, UAEN }, ReloadInterface),
+		ModeDropdown("Гільдійський магазин (reloadui)",
+			"Мова назв предметів у гільдійському магазині. Працює з Awesome Guild Store. " .. RELOAD_WARNING,
+			"ShowGuildStoreDisplay", { UA, UAEN }, ReloadInterface),
+		ModeDropdown("Назви підземель (reloadui)",
+			"Мова назв підземель. " .. RELOAD_WARNING,
+			"ShowLocations", { UA, UAEN }, ReloadInterface),
+		ModeDropdown("Здібності",
+			"Мова назв умінь у вікні навичок.",
+			"ShowAbilitiesMenu", { UA, EN }, function() modules.Abilities.Refresh() end),
+		ModeDropdown("Система ЧП",
+			"Мова назв умінь у розділі ЧП.",
+			"ShowChampionTooltip", { UA, UAEN }),
+		ModeDropdown("Сети обладунків",
+			"Мова назв сетів обладунків у меню колекцій.",
+			"ShowCollectionsSetsMenu", { UA, UAEN }, function() modules.Collections.Refresh() end),
+		ModeDropdown("Скрипти скрайбінгу",
+			"Мова назв скриптів скрайбінгу в меню скрайбінгу.",
+			"ShowScribing", { UA, UAEN }),
+		ModeDropdown("Назви комплектів у ремісничих верстатах",
+			"Мова назв комплектів при наведенні на ремісничі верстати.",
+			"ShowCraft", { UA, UAEN }),
+		ModeDropdown("Трейти",
+			"Мова назв трейтів у спливаючих вікнах.",
+			"ShowItemsTraitsTooltip", { UA, UAEN }),
+
+		Header("Спливаючі вікна"),
+		ModeDropdown("Уміння",
+			"Мова назв умінь у спливаючих вікнах.",
+			"ShowAbilitiesTooltip", { UA, UAEN }),
+		ModeDropdown("Предмети",
+			"Мова назв предметів у спливаючих вікнах.",
+			"ShowItemsNamesTooltip", { UA, UAEN }),
+		ModeDropdown("Зачарування",
+			"Мова назв зачарувань у спливаючих вікнах.",
+			"ShowItemsEnchantsTooltip", { UA, UAEN }),
+		ModeDropdown("Сети обладунків",
+			"Мова назв комплектів у спливаючих вікнах.",
+			"ShowItemsSetsTooltip", { UA, UAEN }),
+	}
+end
+
+function SettingsMenu.Initialize()
+	local LAM = LibAddonMenu2
+	local panelName = DovahMova.name .. "Settings"
+	LAM:RegisterAddonPanel(panelName, {
 		type = "panel",
-		name = DovahMova.Name,
-		displayName = DovahMova.Name,
-		author = "Frozenshtoldts and DovahMova Team",
-		version = DovahMova.Version,
+		name = DovahMova.name,
+		displayName = "|cffdd00Dovah|r|c0057b8Mova|r",
+		author = DovahMova.author,
+		version = DovahMova.version,
 		slashCommand = "/dovahmova",
 		registerForRefresh = true,
 		registerForDefaults = true,
-	}
-	
-	self.LAM:RegisterAddonPanel(panelData.name, panelData)
-	
-	local optionsTable = {}
-	
-	table.insert(optionsTable, {
-		type = "header",
-		name = "Загальні",
-		width = "full",
 	})
-	
-	table.insert(optionsTable, {
-		type = "label",
-		text = "|cffcc00Увага:|r Зміна цього налаштування призведе до негайного перезавантаження інтерфейсу.",
-	})
-	
-	table.insert(optionsTable, {
-		type = "checkbox",
-		name = "Увімкнути українську мову",
-		tooltip = "Негайно вмикає/вимикає українську мову та перезавантажує UI.",
-		getFunc = function() 
-			return GetCVar("language.2") == "ua" 
-		end,
-		setFunc = function(value)
-			if value then
-				SetCVar("language.2", "ua")
-			else
-				SetCVar("language.2", "en")
-			end
-		end,
-	})
-	
-
-	
-	table.insert(optionsTable, {
-		type = "button",
-		name = "Оновити мовну базу",
-		tooltip = "Виконує індексацію мовного файлу після оновлення гри чи аддона.",
-		func = DovahMova_Dump,
-	})
-	
-	table.insert(optionsTable, {
-		type = "divider",
-		width = "full",
-	})
-	
-	table.insert(optionsTable, {
-		type = "checkbox",
-		name = "Автозбір листів від найманців",
-		tooltip = "Автоматично збирати матеріали з листів від найманців при відкритті поштової скриньки.",
-		getFunc = function() return DovahMova.Settings.AutoCollectHirelingMail end,
-		setFunc = function(value)
-			DovahMova.Settings.AutoCollectHirelingMail = value
-		end,
-		width = "full",
-	})
-	
-	table.insert(optionsTable, {
-		type = "checkbox",
-		name = "Видаляти листи після збору",
-		tooltip = "Автоматично видаляти листи від найманців після збору матеріалів.",
-		disabled = function() return not DovahMova.Settings.AutoCollectHirelingMail end,
-		getFunc = function() return DovahMova.Settings.AutoDeleteHirelingMail end,
-		setFunc = function(value)
-			DovahMova.Settings.AutoDeleteHirelingMail = value
-		end,
-		width = "full",
-	})
-	
-	table.insert(optionsTable, {
-		type = "label",
-		text = "|cffcc00Увага:|r Генеруйте TTC кожен раз коли міняєте 'Предмети в інвентарі'.",
-	})
-	
-	table.insert(optionsTable, {
-		type = "button",
-		name = "Згенерувати TTC",
-		tooltip = "Створює українську таблицю пошуку для Tamriel Trade Centre, щоб ціни відображалися для українських назв предметів. Потрібно виконати після запуску скрипту інтеграції.",
-		func = function()
-			if DOVAHMOVA_GENERATE_TTC_UA then
-				d("Generating Ukrainian TTC lookup table...")
-				DOVAHMOVA_GENERATE_TTC_UA()
-				d("TTC generation complete! The table should now persist after reload.")
-				d("If prices don't show after reload, try /testttc to diagnose the issue.")
-			else
-				d("ERROR: TTC integration not loaded!")
-				d("Make sure you have run the integration setup script first.")
-			end
-		end,
-	})
-
-	table.insert(optionsTable, {
-		type = "checkbox",
-		name = "Двомовний пошук сетів в меню колекцій",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		tooltip = "Дозволяє використовувати англійські назви сетів під час пошуку в меню колекцій.",
-		getFunc = function() return DovahMova.Settings.EnglishSearch end,
-		setFunc = (function(value)
-			DovahMova.Settings.EnglishSearch = value
-			
-			if value and DovahMova_doubleNamesCollections then
-				DovahMova_doubleNamesCollections(DovahMova)
-			end
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "header",
-		name = "Інтерфейс",
-		width = "full",
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Предмети в інвентарі (reloadui)",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв предметів в інвентарі, банку та у торговців. |cffcc00Увага:|r Зміна цього налаштування призведе до перезавантаження інтерфейсу.",
-		getFunc = function() return DovahMova.Settings.ShowItemsDisplay end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowItemsDisplay = value
-			
-			-- Force UI reload to apply changes
-			ReloadUI()
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Гільдійський магазин (reloadui)",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв предметів в гільдійському магазині. Працює з Awesome Guild Store. |cffcc00Увага:|r Зміна цього налаштування призведе до перезавантаження інтерфейсу.",
-		getFunc = function() return DovahMova.Settings.ShowGuildStoreDisplay end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowGuildStoreDisplay = value
-			
-			-- Force UI reload to apply changes
-			ReloadUI()
-		end),
-	})
-
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Назви підземель (reloadui)",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв підземель. |cffcc00Увага:|r Зміна цього налаштування призведе до перезавантаження інтерфейсу.",
-		getFunc = function() return DovahMova.Settings.ShowLocations end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowLocations = value
-			
-			-- Force UI reload to apply changes
-			ReloadUI()
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Здібності",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Потрібне оновлення бази."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["en"]},
-		choicesValues = {"ua", "en"},
-		tooltip = "Дозволяє налаштувати мову відображення назв умінь у відповідному розділі.",
-		getFunc = function() return DovahMova.Settings.ShowAbilitiesMenu end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowAbilitiesMenu = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesAbilities", DovahMova)
-			end
-			
-			SKILLS_WINDOW:RebuildSkillLineList()
-			COMPANION_SKILLS_DATA_MANAGER:RebuildSkillsData()
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Система ЧП",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Потрібне оновлення бази."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє налаштувати мову відображення назв умінь у розділі ЧП.",
-		getFunc = function() return DovahMova.Settings.ShowChampionTooltip end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowChampionTooltip = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesChampion", DovahMova)
-			end
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Сети Обладунків",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв сетів обладунків у меню колекцій.",
-		getFunc = function() return DovahMova.Settings.ShowCollectionsSetsMenu end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowCollectionsSetsMenu = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesCollections", DovahMova)
-			end
-			ITEM_SET_COLLECTIONS_DATA_MANAGER:SortTopLevelCategories()
-			ITEM_SET_COLLECTIONS_DATA_MANAGER:FireCallbacks("CollectionsUpdated")
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Скрипти скрайбінгу",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв скриптів скрайбінгу в меню скрайбінгу.",
-		getFunc = function() return DovahMova.Settings.ShowScribing end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowScribing = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesScribing", DovahMova)
-			end
-		end),
-	})
-	
-		table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Назви комплектів у ремісничих верстатах",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		tooltip = "Дозволяє вибрати мову відображення назв комплектів при наведенні на ремісничі верстати.",
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		getFunc = function() return DovahMova.Settings.ShowCraft end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowCraft = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesBoth", DovahMova)
-			end
-		end),
-		width = "full",
-	})
-
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Трейти",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв трейтів у спливаючих вікнах.",
-		getFunc = function() return DovahMova.Settings.ShowItemsTraitsTooltip end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowItemsTraitsTooltip = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesItems", DovahMova)
-			end
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "header",
-		name = "Спливаючі вікна",
-		width = "full",
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Уміння",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Потрібне оновлення бази."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв умінь у спливаючих вікнах.",
-		getFunc = function() return DovahMova.Settings.ShowAbilitiesTooltip end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowAbilitiesTooltip = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesAbilities", DovahMova)
-			end
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Предмети",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Потрібне оновлення бази."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв предметів у спливаючих вікнах.",
-		getFunc = function() return DovahMova.Settings.ShowItemsNamesTooltip end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowItemsNamesTooltip = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesItems", DovahMova)
-			end
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Зачарування",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Потрібне оновлення бази."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв заклять у спливаючих вікнах.",
-		getFunc = function() return DovahMova.Settings.ShowItemsEnchantsTooltip end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowItemsEnchantsTooltip = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesItems", DovahMova)
-			end
-		end),
-	})
-	
-	table.insert(optionsTable, {
-		type = "dropdown",
-		name = "Сети Обладунків",
-		warning = (function()
-			if DovahMova:IsDBOld() then
-				return "Необхідно оновити мовну базу."
-			else
-				return false
-			end
-		end),
-		disabled = function() return DovahMova:IsDBOld() end,
-		choices = {DovahMova.DropdownParameters["ua"], DovahMova.DropdownParameters["uaen"]},
-		choicesValues = {"ua", "uaen"},
-		tooltip = "Дозволяє вибрати мову відображення назв комплектів у спливаючих вікнах.",
-		getFunc = function() return DovahMova.Settings.ShowItemsSetsTooltip end,
-		setFunc = (function(value)
-			DovahMova.Settings.ShowItemsSetsTooltip = value
-			
-			if value ~= "ua" then
-				SafeCallPostfixFunction("DovahMova_doubleNamesItems", DovahMova)
-			end
-		end),
-	})
-	
-	self.LAM:RegisterOptionControls(panelData.name, optionsTable)
+	LAM:RegisterOptionControls(panelName, BuildOptions())
 end

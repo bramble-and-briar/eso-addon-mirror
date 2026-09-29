@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/HellWhyNot/CraftPawns__4883",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "HellWhyNot",
+  "canonical_id": "esoui:4883",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4883",
+  "deleted": false,
+  "directories": [
+    "CraftPawns"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4883/",
+  "fingerprint": "098554d20c92d90ca42c6966d062843622cf6f16a588245152657c6185b508a5",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17602.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17603.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4883",
+  "source_url": "https://www.esoui.com/downloads/info4883-CraftPawns.html",
+  "stats": {
+    "downloads": 58,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "CraftPawns",
+  "updated_at": 1790633172000,
+  "version": "1.1.1"
+}

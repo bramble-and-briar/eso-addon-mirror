@@ -629,6 +629,7 @@ local function createPreviewWindow()
     if window.updateTheme then window.updateTheme() end
   end, 100)
   
+  SF.addOrnateFrame(window)
   return window
 end
 
@@ -818,12 +819,12 @@ local function createMailWindow()
   local kickLabel = WINDOW_MANAGER:CreateControl(windowName .. "_KickLabel", leftPanel, CT_LABEL)
   kickLabel:SetFont("$(PROSE_ANTIQUE_FONT)|18")
   kickLabel:SetText(SF.func._L("ScrollkeeperNotebookMail", "KICK_AFTER_MAIL"))
-  kickLabel:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 5, 275)
+  kickLabel:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 5, 297)
   kickLabel:SetColor(0.8, 0.8, 0.8, 1)
   
   local kickDropdown = WINDOW_MANAGER:CreateControlFromVirtual(windowName .. "_KickDropdown", leftPanel, "ZO_ComboBox")
   kickDropdown:SetDimensions(260, 30)
-  kickDropdown:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 5, 295)
+  kickDropdown:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 5, 317)
   
   local kickCombo = ZO_ComboBox_ObjectFromContainer(kickDropdown)
   kickCombo:SetSortsItems(false)
@@ -879,18 +880,21 @@ local function createMailWindow()
 
   -- Use Provisional button
   local useProvisionBtn = WINDOW_MANAGER:CreateControl(windowName .. "_UseProvisionBtn", leftPanel, CT_BUTTON)
-  useProvisionBtn:SetDimensions(200, 30)
-  useProvisionBtn:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 35, 240)
-  useProvisionBtn:SetNormalTexture("EsoUI/Art/Buttons/button_up.dds")
-  useProvisionBtn:SetPressedTexture("EsoUI/Art/Buttons/button_down.dds")
-  useProvisionBtn:SetMouseOverTexture("EsoUI/Art/Buttons/button_over.dds")
+  useProvisionBtn:SetDimensions(180, 27)
+  useProvisionBtn:SetAnchor(TOPLEFT, leftPanel, TOPLEFT, 45, 255)
+  local useProvisionBtnBg = WINDOW_MANAGER:CreateControl(nil, useProvisionBtn, CT_BACKDROP)
+  useProvisionBtnBg:SetAnchorFill(useProvisionBtn)
+  ApplyTemplateToControl(useProvisionBtnBg, "ZO_DefaultBackdrop")
+  if SF.applyThemeColor then
+    SF.applyThemeColor(useProvisionBtnBg, "accent")
+  end
 
   local useProvisionLabel = WINDOW_MANAGER:CreateControl(nil, useProvisionBtn, CT_LABEL)
   useProvisionLabel:SetFont("$(PROSE_ANTIQUE_FONT)|18")
   useProvisionLabel:SetText(SF.func._L("ScrollkeeperNotebookMail", "USE_PROVISIONAL"))
   useProvisionLabel:SetAnchor(CENTER, useProvisionBtn, CENTER, 0, 0)
   useProvisionLabel:SetColor(1, 1, 1, 1)
-  useProvisionLabel:SetDimensionConstraints(0, 0, 190, 25)
+  useProvisionLabel:SetDimensionConstraints(0, 0, 170, 25)
 
   useProvisionBtn:SetHandler("OnClicked", function()
     if not window.selectedGuildId then
@@ -1324,6 +1328,7 @@ local function createMailWindow()
     applyMailTheme(window)
   end, 100)
   
+  SF.addOrnateFrame(window)
   return window
 end
 

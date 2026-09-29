@@ -210,6 +210,45 @@ do
 end
 
 -- -----------------------------------------------------------------------------
+--- Snap a coordinate to the nearest grid point.
+--- Used by Unit Frames / SpellCastBuffs / Combat Text movers (formerly Unlock.lua).
+--- @param position number
+--- @param gridSize number
+--- @return number
+function LUIE.SnapToGrid(position, gridSize)
+    position = zo_floor(position)
+    if (position % gridSize >= gridSize / 2) then
+        return position + (gridSize - (position % gridSize))
+    end
+    return position - (position % gridSize)
+end
+
+--- Layout measurement in UI units. Line and mover anchors use this so they stay in one space when custom UI scale changes.
+--- @param layoutValue number
+--- @return string
+function LUIE.FormatUiLayoutMeasurement(layoutValue)
+    return string_format("%dui", zo_round(layoutValue))
+end
+
+--- Apply grid snapping to coordinates when the matching snapToGrid_* SV is enabled.
+--- @param left number
+--- @param top number
+--- @param gridType string|"default"|"unitFrames"|"buffs"|"combatText"|nil
+--- @return number left
+--- @return number top
+function LUIE.ApplyGridSnap(left, top, gridType)
+    local gridSetting = "snapToGrid" .. (gridType and ("_" .. gridType) or "")
+    local sizeSetting = "snapToGridSize_default"
+
+    if LUIE.SV[gridSetting] then
+        local gridSize = LUIE.SV[sizeSetting] or 10
+        left = LUIE.SnapToGrid(left, gridSize)
+        top = LUIE.SnapToGrid(top, gridSize)
+    end
+    return left, top
+end
+
+-- -----------------------------------------------------------------------------
 --- Toggle the display of the Alert Frame.
 --- Sets the visibility of the ZO_AlertTextNotification based on the value of LUIE.SV.HideAlertFrame.
 function LUIE.SetupAlertFrameVisibility()
@@ -1055,7 +1094,7 @@ do
             return SneakMovementTooltipBody()
         end,
 
-        -- Sneak buff / stealth (live unit buff id — matches client; body depends on stealth state)
+        -- Sneak buff / stealth (live unit buff id - matches client; body depends on stealth state)
         [20309] = function (unitTag)
             unitTag = unitTag or "player"
             local stealthState = GetUnitStealthState(unitTag)
@@ -1093,7 +1132,7 @@ do
             return zo_strformat(GetString(LUIE_STRING_SKILL_IMMOVABLE), duration, counter, 65 + counter)
         end,
 
-        -- Web (stacking Ensnared snare) — GetAbilityDescription / GetAbilityEffectDescription often return |cFFFFFF0|r% placeholders until stack context is applied.
+        -- Web (stacking Ensnared snare) - GetAbilityDescription / GetAbilityEffectDescription often return |cFFFFFF0|r% placeholders until stack context is applied.
         [256674] = function (unitTag)
             unitTag = unitTag or "player"
             local stacks = 0
@@ -1114,7 +1153,7 @@ do
             return zo_strformat(GetString(LUIE_STRING_SKILL_WEB_ENSNARED_STACK_TP), perStack, total)
         end,
 
-        -- Fated Fortune (Herald) — passive rank and timed stack share <<1>> crit bonus; API sheet/effect text stays at 0%%.
+        -- Fated Fortune (Herald) - passive rank and timed stack share <<1>> crit bonus; API sheet/effect text stays at 0%%.
         [184844] = function ()
             return FatedFortuneTooltip(184844)
         end,

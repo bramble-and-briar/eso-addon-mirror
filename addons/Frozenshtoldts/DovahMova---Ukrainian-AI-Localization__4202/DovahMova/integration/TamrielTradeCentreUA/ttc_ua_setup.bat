@@ -62,33 +62,11 @@ echo.
 :: Step 1: Create Ukrainian language file
 echo Step 1: Creating Ukrainian language file...
 if not exist "lang" mkdir "lang"
-if exist "%DOVAHMOVA_PATH%\integration\TamrielTradeCentreUA\ua.lua" (
-    copy "%DOVAHMOVA_PATH%\integration\TamrielTradeCentreUA\ua.lua" "lang\ua.lua" >nul
+if exist "%DOVAHMOVA_PATH%\integration\TamrielTradeCentreUA\ttc_lang_ua.lua" (
+    copy "%DOVAHMOVA_PATH%\integration\TamrielTradeCentreUA\ttc_lang_ua.lua" "lang\ua.lua" >nul
     echo ✓ Ukrainian language file created: lang\ua.lua
 ) else (
-    echo Creating Ukrainian language file content...
-    echo -- Ukrainian language file for TamrielTradeCentre > "lang\ua.lua"
-    echo TTC_PRICE_PRICETOCHAT_UA = "Ціна в чат" >> "lang\ua.lua"
-    echo TTC_SEARCHONLINE_UA = "Пошук онлайн" >> "lang\ua.lua"
-    echo TTC_PRICEHISTORYONLINE_UA = "Історія цін онлайн" >> "lang\ua.lua"
-    echo TTC_ERROR_UNSUPPORTED_LANGUAGE_UA = "Tamriel Trade Centre підтримує українську мову" >> "lang\ua.lua"
-    echo TTC_ERROR_NO_PRICE_DATA_UA = "Немає даних про ціни" >> "lang\ua.lua"
-    echo TTC_ERROR_ITEM_NOT_FOUND_UA = "Предмет не знайдено" >> "lang\ua.lua"
-    echo TTC_MENU_PRICE_INFO_UA = "Інформація про ціну" >> "lang\ua.lua"
-    echo TTC_MENU_SEARCH_UA = "Пошук" >> "lang\ua.lua"
-    echo TTC_MENU_HISTORY_UA = "Історія" >> "lang\ua.lua"
-    echo TTC_PRICE_AVERAGE_UA = "Середня ціна" >> "lang\ua.lua"
-    echo TTC_PRICE_MIN_UA = "Мін. ціна" >> "lang\ua.lua"
-    echo TTC_PRICE_MAX_UA = "Макс. ціна" >> "lang\ua.lua"
-    echo TTC_PRICE_SUGGESTED_UA = "Рекомендована ціна" >> "lang\ua.lua"
-    echo TTC_PRICE_LAST_UPDATE_UA = "Останнє оновлення" >> "lang\ua.lua"
-    echo TTC_TIME_DAYS_UA = "днів" >> "lang\ua.lua"
-    echo TTC_TIME_HOURS_UA = "годин" >> "lang\ua.lua"
-    echo TTC_TIME_MINUTES_UA = "хвилин" >> "lang\ua.lua"
-    echo TTC_CURRENCY_GOLD_UA = "золото" >> "lang\ua.lua"
-    echo TTC_CURRENCY_K_UA = "K" >> "lang\ua.lua"
-    echo TTC_CURRENCY_M_UA = "M" >> "lang\ua.lua"
-    echo ✓ Ukrainian language file created: lang\ua.lua
+    echo ✗ ERROR: ttc_lang_ua.lua not found in DovahMova
 )
 echo.
 
@@ -103,30 +81,19 @@ if exist "ItemLookUpTable_EN.lua" (
 )
 echo.
 
-:: Step 3: Copy Ukrainian ItemLookUpTable generator
-echo Step 3: Installing Ukrainian ItemLookUpTable generator...
-if exist "%DOVAHMOVA_PATH%\integration\TamrielTradeCentreUA\generate_ua_itemlookup.lua" (
-    copy "%DOVAHMOVA_PATH%\integration\TamrielTradeCentreUA\generate_ua_itemlookup.lua" "generate_ua_itemlookup.lua" >nul
-    echo ✓ Ukrainian ItemLookUpTable generator installed
-) else (
-    echo ✗ WARNING: Ukrainian ItemLookUpTable generator not found
+:: Step 3: Remove the generator installed by older DovahMova versions
+:: (since DovahMova 1.5.0 the price table is built by DovahMova itself)
+echo Step 3: Removing old DovahMova generator from TamrielTradeCentre...
+if exist "generate_ua_itemlookup.lua" (
+    del "generate_ua_itemlookup.lua"
+    echo ✓ generate_ua_itemlookup.lua removed
 )
-echo.
-
-:: Step 5: Update TamrielTradeCentre.txt to include generator
-echo Step 5: Updating TamrielTradeCentre.txt...
 if exist "TamrielTradeCentre.txt" (
-    :: Check if the generator is already included
     findstr /C:"generate_ua_itemlookup.lua" "TamrielTradeCentre.txt" >nul
-    if errorlevel 1 (
-        :: Insert the generator line right after TamrielTradeCentreInit.lua
-        powershell -Command "$content = Get-Content 'TamrielTradeCentre.txt'; $newContent = @(); foreach($line in $content) { $newContent += $line; if($line -eq 'TamrielTradeCentreInit.lua') { $newContent += 'generate_ua_itemlookup.lua'; } }; $newContent | Set-Content 'TamrielTradeCentre.txt'"
-        echo ✓ TamrielTradeCentre.txt updated to include generator and debug script
-    ) else (
-        echo ✓ Generator already included in TamrielTradeCentre.txt
+    if not errorlevel 1 (
+        powershell -Command "(Get-Content 'TamrielTradeCentre.txt') | Where-Object { $_ -ne 'generate_ua_itemlookup.lua' } | Set-Content 'TamrielTradeCentre.txt'"
+        echo ✓ TamrielTradeCentre.txt cleaned
     )
-) else (
-    echo ✗ ERROR: TamrielTradeCentre.txt not found
 )
 echo.
 
@@ -182,8 +149,7 @@ echo.
 echo ✓ Backup created at: %BACKUP_DIR%
 echo ✓ Ukrainian language file: lang\ua.lua
 echo ✓ Ukrainian ItemLookUpTable: ItemLookUpTable_UA.lua
-echo ✓ Ukrainian ItemLookUpTable generator: generate_ua_itemlookup.lua
-echo ✓ TamrielTradeCentre.txt updated
+echo ✓ Old DovahMova generator removed from TamrielTradeCentre
 echo ✓ TamrielTradeCentre.lua patched for Ukrainian support
 echo.
 echo ========================================
@@ -198,7 +164,7 @@ echo 2. Restart ESO completely
 echo 3. Make sure your ESO client is set to Ukrainian language
 echo 4. Load into the game
 echo 5. Check if TamrielTradeCentre loads without the "unsupported language" error
-echo 6. Use /generateua in-game to create proper Ukrainian item mappings
+echo 6. Open DovahMova settings and press "Згенерувати TTC"
 echo.
 echo ========================================
 echo Troubleshooting

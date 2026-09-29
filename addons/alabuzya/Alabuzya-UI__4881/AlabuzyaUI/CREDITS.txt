@@ -1,0 +1,59 @@
+Alabuzya UI
+Developed with AI assistance, including code generation and new UI artwork.
+Разработано с помощью ИИ, включая написание кода и создание новых текстур интерфейса.
+
+ENGLISH
+Author and maintainer: alabuzya <aabuziarov@gmail.com>, 2026.
+
+Alabuzya UI has a newly written resource display and theme system. Supporting
+functional modules are adapted from the author's DIAhelp project and reworked
+for this addon. Bundled QuestArrow 0.2.2 is also by alabuzya.
+
+The custom UI texture sources were newly generated with OpenAI image generation,
+then prepared as game-ready DDS assets, including masks and overlays. Source
+images and generation prompts are retained in the working project. A visual
+reference was provided by the maintainer; that screenshot is not distributed.
+Game-provided maps, icons and fonts are referenced through ESO and are not bundled.
+
+OpenAI AI assistance was used for code generation, refactoring, documentation
+and artwork. This disclosure does not replace the maintainer's review and testing.
+
+Optional settings library: LibAddonMenu-2.0, by sirinsidiator and Seerah.
+https://www.esoui.com/downloads/info7-LibAddonMenu-2.0.html
+It is installed separately; its code is not bundled in this addon.
+Other addon names identify compatibility integrations, not bundled third-party code.
+API references: https://wiki.esoui.com/ and https://github.com/esoui/esoui
+The ESO SavedVars implementation used as a test fixture is kept outside the addon
+and is not included in the release ZIP.
+
+Code is distributed under GNU GPL version 3 or later; see LICENSE. Generated
+custom textures are distributed on the same terms to the extent the maintainer
+holds applicable rights. No ownership of game assets or trademarks is claimed.
+Not affiliated with or sponsored by ZeniMax Media Inc.
+
+РУССКИЙ
+Автор и сопровождающий: alabuzya <aabuziarov@gmail.com>, 2026.
+
+Панель ресурсов и система оформления Alabuzya UI написаны заново. Вспомогательные
+функциональные модули адаптированы из собственного проекта автора DIAhelp
+и переработаны для этого аддона. Встроенный QuestArrow 0.2.2 также создан alabuzya.
+
+Исходные изображения собственных текстур заново сгенерированы с помощью OpenAI,
+затем подготовлены в формате DDS, включая маски и накладки. Исходные изображения
+и запросы для генерации сохранены в рабочем проекте. Предоставленный автором
+скриншот-референс не распространяется. Штатные карты, значки и шрифты берутся
+из ESO и не включены в архив аддона.
+
+Помощь ИИ OpenAI использовалась для генерации и переработки кода, документации
+и графики. Это уведомление не заменяет проверку и тестирование автором.
+
+Необязательная библиотека меню настроек — LibAddonMenu-2.0, авторы sirinsidiator
+и Seerah. Ссылка приведена выше. Библиотека устанавливается отдельно, её код
+не входит в аддон. Названия других аддонов указывают на интеграции совместимости.
+Источники сведений об API — ESOUI wiki и опубликованный код клиента ESOUI.
+Используемый в тестах код ESO SavedVars хранится вне аддона и не входит в ZIP.
+
+Код распространяется по GNU GPL версии 3 или более поздней; см. LICENSE.
+Сгенерированные собственные текстуры предоставляются на тех же условиях
+в пределах прав автора. Права на игровые материалы и товарные знаки не заявляются.
+Аддон не связан с ZeniMax Media Inc. и не спонсируется ею.

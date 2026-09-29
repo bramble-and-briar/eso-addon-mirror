@@ -130,7 +130,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Aetherius Badge Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/Aetherius-Badge-Filter__1354) | sirinsidiator | PC / Mac | 1.11.0 |
 | [Aetherius GuildHalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MecHaN1ck/Aetherius-GuildHalls__2813) | MecHaN1ck | PC / Mac | V0.0.6 |
 | [Aethluna Antiquarian's Eye Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luocangli/Aethluna-Antiquarian-s-Eye-Helper__4646) | luocangli | PC / Mac | 1.1.1 |
-| [AffectionMaxxing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGodDrums/AffectionMaxxing__4834) | TheGodDrums | PC / Mac | 1.0.3 |
+| [AffectionMaxxing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGodDrums/AffectionMaxxing__4834) | TheGodDrums | PC / Mac | 1.0.4 |
 | [AgonyWarning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Citats/AgonyWarning__4028) | Citats | PC / Mac | 1.0 |
 | [Ags Invididual Item Price Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/be.ste/Ags-Invididual-Item-Price-Filter__2928) | be.ste | PC / Mac | 1.0.1 |
 | [AGS-SortOrder - MasterMerchant Deal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Red_Freak/AGS-SortOrder---MasterMerchant-Deal__2518) | Red_Freak | PC / Mac | 0.0.2 |
@@ -153,6 +153,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 0.1.39 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |
@@ -239,7 +240,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
-| [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.3.0 |
+| [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.3.1 |
 | [Are We Mounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaWeedle/Are-We-Mounted__4134) | DaWeedle | PC / Mac | 1.0.0 |
 | [Are we there yet?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitaa/Are-we-there-yet__2682) | Mitaa | PC / Mac | 0.6.4 |
 | [AreYouSlow?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/AreYouSlow__11615176-cc74-452d-a5b3-cd3fe5272a2a) | Th3rtythr33 | Console | — |
@@ -302,7 +303,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Abandon Not Killing Spree Contracts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furious_Sniper/Auto-Abandon-Not-Killing-Spree-Contracts__4481) | Furious_Sniper | PC / Mac | 1.1 |
 | [Auto Accept Duel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GhostGat/Auto-Accept-Duel__3468) | GhostGat | PC / Mac | 1.0 |
 | [Auto Banish Pets/Assistants/Companions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Auto-Banish-Pets-Assistants-Companions__3099) | tdenc | PC / Mac | 0.8.0 |
-| [Auto Category - Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Auto-Category---Revised__2300) | Shadowfen | PC / Mac | 4.6.16 |
+| [Auto Category - Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Auto-Category---Revised__2300) | Shadowfen | PC / Mac | 4.6.17 |
 | [Auto Category - Revised plugin for CraftStore FoA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rufusredbeard/Auto-Category---Revised-plugin-for-CraftStore-FoA__2535) | rufusredbeard | PC / Mac | 2.17 |
 | [Auto Category - Revised plugin for Research Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saenic/Auto-Category---Revised-plugin-for-Research-Assistant__2742) | Saenic | PC / Mac | 1.0 |
 | [Auto Complete](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Complete__e1ed5f61-10b6-43bf-baaf-3da81a8c26a3) | Dolgubon | Console | — |

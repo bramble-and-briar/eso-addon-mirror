@@ -26,7 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Verditer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/Verditer__4651) | Federico | PC / Mac | 0.9.0 |
 | [Vermilion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/Vermilion__4616) | Federico | PC / Mac | 1.2.1 |
 | [VersesAndVisions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/VersesAndVisions__e4f41108-4101-452e-8607-b469bc8eb4b0) | Masteroshi430 | Console | — |
-| [VersesAndVisions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/VersesAndVisions__3761) | Masteroshi430 | PC / Mac | 2026.07.07 |
+| [VersesAndVisions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/VersesAndVisions__3761) | Masteroshi430 | PC / Mac | 2026.09.29 |
 | [VerticalBuffsDebuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/VerticalBuffsDebuffs__73d5304a-565a-4a9d-bd38-aa245219f955) | user562x | Console | — |
 | [Vesiath's emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vesiath/Vesiath-s-emotes__2401) | Vesiath | PC / Mac | 1.1.5 |
 | [Vestige Mirror](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/Vestige-Mirror__76fce7e2-297a-472f-bdf6-3e80756e7e8c) | Wrynch | Console | — |

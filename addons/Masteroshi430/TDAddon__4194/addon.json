@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Masteroshi430/TDAddon__4194",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Masteroshi430",
   "canonical_id": "esoui:4194",
   "category_id": "96",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4194",
@@ -17,7 +18,7 @@
     "TDAddon"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4194/",
-  "fingerprint": "306842050ebf5e3446a1d0ef0977967ade0e32fdc6a3d80e18a65133d6df5ef3",
+  "fingerprint": "af76138b9272994adb518d267ff1e7f9dd0a87bb8cf784d6a751b515665c79db",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14343.jpg"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4194",
   "source_url": "https://www.esoui.com/downloads/info4194-TDAddon.html",
   "stats": {
-    "downloads": 2486,
+    "downloads": 2678,
     "favorites": 2,
-    "monthly_downloads": 287
+    "monthly_downloads": 117
   },
   "title": "TDAddon",
-  "updated_at": 1785388223000,
-  "version": "2026.07.30"
+  "updated_at": 1790582846000,
+  "version": "2026.09.28"
 }

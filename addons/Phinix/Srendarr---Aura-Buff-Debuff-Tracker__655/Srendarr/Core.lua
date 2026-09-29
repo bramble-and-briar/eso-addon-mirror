@@ -42,8 +42,8 @@ local ZOSName = function (abilityID) return zo_strformat('<<t:1>>', GetAbilityNa
 
 Srendarr.name = 'Srendarr'
 Srendarr.slash = '/srendarr'
-Srendarr.version = '2.5.49'
-Srendarr.addonVersion = 2549
+Srendarr.version = '2.5.51'
+Srendarr.addonVersion = 2551
 Srendarr.fversion = 2.549
 Srendarr.versionDB = 3
 
@@ -656,17 +656,22 @@ do
 
         Srendarr.db.grimTracker[gIDcheck].slot = slot
         local stacks = Srendarr.db.grimTracker[gIDcheck].stacks
-        local silent = (grimStacks == stacks) and (grimSet == cBar)
+        local previousStacks = grimStacks
+        local silent = (previousStacks == stacks) and (grimSet == cBar)
         grimMorph = gIDcheck
         grimStacks = stacks
         grimSlot = slot
         grimSet = cBar
 
+        local procReady = Srendarr.IsGrimProcReady(gIDcheck, stacks)
         local aIcon = GetControl('ActionButton' .. tostring(slot) .. 'Icon')
-        if (stacks == 5) then
+        if procReady then
             if aIcon then aIcon:SetTexture('/esoui/art/icons/ability_rogue_058.dds') end
             if (Srendarr.db.grimProcAnims) then
-                Srendarr:ProcAnimationStart(slot, silent, true)
+                local crossedProc = previousStacks < grimBase[gIDcheck].procStacks
+                Srendarr:ProcAnimationStart(slot, silent or not crossedProc, crossedProc)
+            else
+                Srendarr:ProcAnimationStop(slot)
             end
         else
             if aIcon then aIcon:SetTexture(grimBase[gIDcheck].icon) end
@@ -715,7 +720,7 @@ do
             'player',
             currentTime,
             currentTime,
-            (stacks == 5) and '/esoui/art/icons/ability_rogue_058.dds' or grimBase[gIDcheck].icon,
+            Srendarr.IsGrimProcReady(gIDcheck, stacks) and '/esoui/art/icons/ability_rogue_058.dds' or grimBase[gIDcheck].icon,
             BUFF_EFFECT_TYPE_BUFF,
             ABILITY_TYPE_NONE,
             gIDcheck,

@@ -1,9 +1,9 @@
 ## Title: |c66FF66GuildPlanner.Pro|r Export
 ## Description: Data addon to collect and import your game data to GuildPlanner.Pro website.
 ## Author: GuildPlanner.Pro
-## Version: 2.20.1
-## IntVersion: 220010001
-## APIVersion: 101050
+## Version: 2.21.0
+## IntVersion: 221000001
+## APIVersion: 101051
 ## SavedVariables: GuildPlannerPro_PlayerDataExport GuildPlannerPro_GameDataExport
 ## DisableSavedVariablesAutoSaving: 0
 
@@ -12,6 +12,7 @@ src/Cache/ItemSets.lua
 src/Core/GuildPlannerPro_Const.lua
 src/Core/GuildPlannerPro_Utils.lua
 src/Core/GuildPlannerPro_Command.lua
+src/Database/GuildPlannerPro_Account.lua
 src/Database/GuildPlannerPro_Achievements.lua
 src/Database/GuildPlannerPro_Armory.lua
 src/Database/GuildPlannerPro_Character.lua

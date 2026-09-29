@@ -89,7 +89,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [dev sandbox 3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-3__3a4024fc-1465-4e5e-a96f-6d6b6a781497) | clubwratt | Console | — |
 | [DiabloFrames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/DiabloFrames__3051) | buldezir | PC / Mac | 1.0.9 |
 | [DiabloOrbs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/DiabloOrbs__4474) | s1by0z | PC / Mac | 2.1.1 |
-| [DIAhelp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/DIAhelp__4876) | alabuzya | PC / Mac | 1.0.4 |
+| [DIAhelp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/DIAhelp__4876) | alabuzya | PC / Mac | 1.0.5 |
 | [Dialog Corrector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architecture/Dialog-Corrector__1907) | Architecture | PC / Mac | 1.1.2 |
 | [Dialog Tweaks (updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Dialog-Tweaks-updated__624) | Garkin | PC / Mac | 1.6 |
 | [DialogColors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/DialogColors__1316) | Shinni | PC / Mac | 1 |
@@ -110,7 +110,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Divergent Tales](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ericstoesser/Divergent-Tales__4415) | ericstoesser | PC / Mac | 2.0.0 |
 | [Dizzy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PurpleFinch/Dizzy__4021) | PurpleFinch | PC / Mac | 1.23 |
 | [DK MASTERY TRACKER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/DK-MASTERY-TRACKER__4857) | its_wifey | PC / Mac | 1.0.4 |
-| [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.05 |
+| [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.06 |
 | [DLC Notice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrilledSpamSteaks/DLC-Notice__3603) | GrilledSpamSteaks | PC / Mac | 1.6 |
 | [DLC Yes No](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Takadol/DLC-Yes-No__4451) | Takadol | PC / Mac | 2.4 |
 | [DLJ's EXP Scroll Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/darkladyjupiter/DLJ-s-EXP-Scroll-Reminder__ee8ca2af-a359-45b8-98c7-8cb4edcd19d2) | darkladyjupiter | Console | — |
@@ -138,7 +138,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Donation Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Libum/Donation-Tracker__2191) | Libum | PC / Mac | 1.20 |
 | [Dont Portal Twice (Cloudrest)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Dont-Portal-Twice-Cloudrest__2511) | ownedbynico | PC / Mac | 1.3 |
 | [DontLeaveGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uberswe/DontLeaveGuild__3335) | uberswe | PC / Mac | 1.2 |
-| [DovahMova - Ukrainian AI Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/DovahMova---Ukrainian-AI-Localization__4202) | Frozenshtoldts | PC / Mac | 1.4.2 |
+| [DovahMova - Ukrainian AI Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/DovahMova---Ukrainian-AI-Localization__4202) | Frozenshtoldts | PC / Mac | 1.5.0 |
 | [DoYouEvenDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AiMPlAyEr/DoYouEvenDebuff__2243) | AiMPlAyEr | PC / Mac | 1.7 |
 | [DPSMeterFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/voidbiscuit/DPSMeterFix__3416) | voidbiscuit | PC / Mac | 0.0.0 |
 | [Dragon Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Dragon-Hunter__3550) | kawamonkey | PC / Mac | 1.0 |

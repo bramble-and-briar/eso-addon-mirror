@@ -1,6 +1,7 @@
+local DIAhelp = DIAhelp
 -- DIAhelp combat session arithmetic, original code, GPL-3.0-or-later.
-DIAhelpCombatModel = {}
-local M = DIAhelpCombatModel
+DIAhelp.CombatModel = {}
+local M = DIAhelp.CombatModel
 function M.New()
     return {active=false, damage=0, healing=0, incoming=0, hits=0, crits=0, duration=0, targets={}}
 end

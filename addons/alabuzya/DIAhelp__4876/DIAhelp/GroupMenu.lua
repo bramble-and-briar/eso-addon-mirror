@@ -1,6 +1,7 @@
+local DIAhelp = DIAhelp
 -- Group actions are performed only after an explicit menu click.
-DIAhelpGroupMenu={}
-local M=DIAhelpGroupMenu
+DIAhelp.GroupMenu={}
+local M=DIAhelp.GroupMenu
 local function FindMember(account)
     for i=1,GROUP_SIZE_MAX do
         local tag=GetGroupUnitTagByIndex(i)

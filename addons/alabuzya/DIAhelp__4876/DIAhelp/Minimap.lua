@@ -1,3 +1,5 @@
+local DIAhelp = DIAhelp
+DIAhelp.Minimap = {}
 -- Original DIAhelp minimap. Uses ESO map tiles; no third-party addon dependency.
 local root,view,title,clock,settings,player
 local tiles,pins={},{}
@@ -140,10 +142,8 @@ local function Update()
     -- Player anchor is fixed at initialization; only heading changes here.
     player:SetDrawLevel(count+1) player:SetTextureRotation(heading) player:SetHidden(false)
 end
-EVENT_MANAGER:RegisterForEvent('DIAhelpMinimap',EVENT_ADD_ON_LOADED,function(_,name)
-    if name~='DIAhelp' then return end
-    EVENT_MANAGER:UnregisterForEvent('DIAhelpMinimap',EVENT_ADD_ON_LOADED)
-    settings=ZO_SavedVars:NewAccountWide('DIAhelpSavedVariables',1,'minimap',{zoomBias=1})
+function DIAhelp.Minimap.Initialize()
+    settings=DIAhelp.SavedVariables.Account('minimap',{zoomBias=1})
     root=WINDOW_MANAGER:CreateTopLevelWindow('DIAhelpMinimap')
     root:SetDimensions(SIZE+8,SIZE+64)
     root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or GuiRoot:GetWidth()-SIZE-16,settings.y or 0)
@@ -168,4 +168,4 @@ EVENT_MANAGER:RegisterForEvent('DIAhelpMinimap',EVENT_ADD_ON_LOADED,function(_,n
     local fragment=ZO_HUDFadeSceneFragment:New(root)
     HUD_SCENE:AddFragment(fragment) HUD_UI_SCENE:AddFragment(fragment)
     root:SetHandler('OnUpdate',Update)
-end)
+end

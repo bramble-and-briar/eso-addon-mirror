@@ -18,9 +18,12 @@ are included in this distribution.
 Modified by alabuzya with AI assistance, September 2026: renamed and adapted
 the DiabloFrames interface; fixed initialization and texture references;
 added inventory, combat, group, map, quest, buff, chat and maintenance modules.
-Bundled QuestArrow 0.2.1 is by alabuzya.
+Bundled QuestArrow 0.2.2 is by alabuzya.
 Other referenced add-on names describe compatibility or similar features;
 DIAhelp does not include their code or assets.
 
 This is an independent fork, not an official DiabloFrames update.
 Not affiliated with or sponsored by ZeniMax Media Inc.
+2026-09-28: namespace, initialization and server-save refactoring with OpenAI AI assistance.
+ESO API reference: https://github.com/esoui/esoui
+The test-only ESO SavedVars fixture is not included in the addon archive.

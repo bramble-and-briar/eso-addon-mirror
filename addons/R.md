@@ -8,7 +8,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | --- | --- | --- | --- |
 | [Racing Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Undyne/Racing-Panel__2358) | Undyne | PC / Mac | 1 |
 | [Radiant Duration](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aaxc/Radiant-Duration__2323) | Aaxc | PC / Mac | 1.2.1 |
-| [Radiant Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Radiant-Range__4868) | its_wifey | PC / Mac | 1.0.2 |
+| [Radiant Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Radiant-Range__4868) | its_wifey | PC / Mac | 1.0.3 |
 | [Radiant Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fortan/Radiant-Time__1589) | Fortan | PC / Mac | 1.2 |
 | [Radiating Regen Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Radiating-Regen-Tracker__3678) | branddi | PC / Mac | 1.0.1 |
 | [RAETIA InfoHub](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kraeius/RAETIA-InfoHub__417) | Kraeius | PC / Mac | 1.2.4 |
@@ -61,7 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ravSpeed (updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/shira/ravSpeed-updated__2840) | shira | PC / Mac | 1.3.1 |
 | [RAWR Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheYcUtS/RAWR-Guild-Hall__2930) | TheYcUtS | PC / Mac | 1.2 |
 | [RawrGuildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/RawrGuildhall__3362) | sityDJVEN25 | PC / Mac | 1.0 |
-| [rChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/rChat__2500) | Shadowfen | PC / Mac | 2.0.5 |
+| [rChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/rChat__2500) | Shadowfen | PC / Mac | 2.0.6 |
 | [RdK Group Tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sordrak/RdK-Group-Tool__2475) | Sordrak | PC / Mac | 2.2.2 |
 | [RdK Group Tool Patcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/RdK-Group-Tool-Patcher__2512) | Phuein | PC / Mac | 1.02 |
 | [Ready Check Randomiser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calexus1986/Ready-Check-Randomiser__2477) | calexus1986 | PC / Mac | 1.4 |
@@ -126,7 +126,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
 | [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.27 |
-| [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.21 |
+| [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
 | [Riptide Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZaiZah/Riptide-Tracker__3663) | ZaiZah | PC / Mac | 1.3 |

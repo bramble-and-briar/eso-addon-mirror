@@ -22,7 +22,7 @@
     "QuestArrow"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4833/",
-  "fingerprint": "1fd71eb565724b16865e9e8379eac03c4b8d81ed5637ff49e4d03b0b523e8a41",
+  "fingerprint": "03c10869db9488c9137b5eddad48d0c8eb203de39ff7003fdc6735537a836ade",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17358.png"
   ],
@@ -32,11 +32,11 @@
   "source_id": "4833",
   "source_url": "https://www.esoui.com/downloads/info4833-QuestArrow.html",
   "stats": {
-    "downloads": 2,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 101,
+    "favorites": 1,
+    "monthly_downloads": 95
   },
   "title": "QuestArrow",
-  "updated_at": 1789247296000,
-  "version": "0.2.1"
+  "updated_at": 1790610076000,
+  "version": "0.2.2"
 }

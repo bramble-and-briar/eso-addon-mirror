@@ -10,7 +10,7 @@ CompanionRoster.Data = {}
 -- string back (GetAddOnManager():GetAddOnVersion() returns the separate
 -- numeric ## AddOnVersion tag instead, meant for dependency checks, not
 -- display), so this has to be maintained by hand.
-CompanionRoster.version = "2.0.8"
+CompanionRoster.version = "2.1.0"
 
 local savedVars = nil
 
@@ -57,6 +57,38 @@ function CompanionRoster.Data.GetAllCompanions()
     return companions
 end
 
+-- The skill types shown grouped in the Level tooltip - not Racial (the
+-- reasoning was "I would summon them for that info") and not every
+-- SKILL_TYPE_* that exists, just the ones companions actually have.
+local COMPANION_SKILL_TYPES = { SKILL_TYPE_CLASS, SKILL_TYPE_WEAPON, SKILL_TYPE_ARMOR, SKILL_TYPE_GUILD }
+
+-- Skill line names/ranks for whichever companion is currently summoned,
+-- grouped by type. Like rapport, this is only readable while that
+-- companion is actually summoned - returns nil if companion skill data
+-- hasn't initialized yet (e.g. right at summon).
+local function GetActiveCompanionSkillLines()
+    if not AreCompanionSkillsInitialized() then
+        return nil
+    end
+
+    local skillTypeGroups = {}
+    for _, skillType in ipairs(COMPANION_SKILL_TYPES) do
+        local lines = {}
+        for skillLineIndex = 1, GetNumCompanionSkillLines(skillType) do
+            local skillLineId = GetCompanionSkillLineId(skillType, skillLineIndex)
+            local currentRank = GetCompanionSkillLineDynamicInfo(skillLineId)
+            table.insert(lines, {
+                name = zo_strformat("<<1>>", GetCompanionSkillLineNameById(skillLineId)),
+                rank = currentRank,
+            })
+        end
+        if #lines > 0 then
+            table.insert(skillTypeGroups, { typeName = GetString("SI_SKILLTYPE", skillType), lines = lines })
+        end
+    end
+    return skillTypeGroups
+end
+
 local function RecordActiveCompanion()
     if not HasActiveCompanion() then
         return
@@ -71,19 +103,28 @@ local function RecordActiveCompanion()
     local level = GetActiveCompanionLevelInfo()
     local passivePerkId = GetCompanionPassivePerkAbilityId(companionId)
 
-    local entry = {
-        name = zo_strformat("<<1>>", GetCompanionName(companionId)),
-        level = level,
-        rapportValue = GetActiveCompanionRapport(),
-        rapportMax = GetMaximumRapport(),
-        rapportLevel = rapportLevel,
-        rapportLevelText = GetActiveCompanionRapportLevelDescription(rapportLevel),
-        passivePerkName = zo_strformat("<<1>>", GetAbilityName(passivePerkId)),
-        passivePerkDescription = GetAbilityDescription(passivePerkId),
-        lastUpdated = GetTimeStamp(),
-    }
-
     local character = GetOrCreateCharacterEntry(GetCharacterKey())
+    -- Start from the existing entry (not a fresh table) so a capture that
+    -- catches companion skills before they've initialized (see
+    -- GetActiveCompanionSkillLines) doesn't wipe out a previously-recorded
+    -- skillLines with nil.
+    local entry = character.companions[companionId] or {}
+
+    entry.name = zo_strformat("<<1>>", GetCompanionName(companionId))
+    entry.level = level
+    entry.rapportValue = GetActiveCompanionRapport()
+    entry.rapportMax = GetMaximumRapport()
+    entry.rapportLevel = rapportLevel
+    entry.rapportLevelText = GetActiveCompanionRapportLevelDescription(rapportLevel)
+    entry.passivePerkName = zo_strformat("<<1>>", GetAbilityName(passivePerkId))
+    entry.passivePerkDescription = GetAbilityDescription(passivePerkId)
+    entry.lastUpdated = GetTimeStamp()
+
+    local skillLines = GetActiveCompanionSkillLines()
+    if skillLines then
+        entry.skillLines = skillLines
+    end
+
     character.companions[companionId] = entry
 end
 
@@ -127,6 +168,14 @@ local function OnCompanionExperienceGain()
     RecordActiveCompanion()
 end
 
+-- Companion skills initialize on their own timeline after summon (the
+-- client's own source notes they're built and torn down as the active
+-- companion changes) - re-capture here rather than waiting for a rapport
+-- or XP event that might not happen this session.
+local function OnCompanionSkillsFullUpdate()
+    RecordActiveCompanion()
+end
+
 function CompanionRoster.Data.GetCharacterNames()
     local names = {}
     for characterKey in pairs(savedVars.characters) do
@@ -150,6 +199,29 @@ function CompanionRoster.Data.GetWindowPosition()
     return savedVars.windowPosition
 end
 
+-- The chat command that toggles the window - also a UI preference, so
+-- account-wide like the window position above. Changing it is applied live
+-- (LibSlashCommander's Command:RemoveAlias/AddAlias write straight into the
+-- real SLASH_COMMANDS table), not just recorded for next login.
+function CompanionRoster.Data.GetSlashCommand()
+    return savedVars.slashCommand
+end
+
+function CompanionRoster.Data.SetSlashCommand(command)
+    savedVars.slashCommand = command
+end
+
+-- Also a UI preference, account-wide like the two above. Off by default -
+-- specifically for entering combat (EVENT_PLAYER_COMBAT_STATE), not
+-- movement - see CompanionRoster_UI.lua for why movement isn't supported.
+function CompanionRoster.Data.GetCloseOnCombat()
+    return savedVars.closeOnCombat
+end
+
+function CompanionRoster.Data.SetCloseOnCombat(enabled)
+    savedVars.closeOnCombat = enabled
+end
+
 function CompanionRoster.Data.GetCompanionsForCharacter(characterKey)
     local character = savedVars.characters[characterKey]
     if character == nil then
@@ -169,6 +241,34 @@ function CompanionRoster.Data.GetPassivePerkInfo(companionId)
         end
     end
     return nil, nil
+end
+
+-- Companion skill progress is account-wide, like the passive perk above -
+-- fall back to any character that has recorded it for this companion.
+-- Returns nil if no character has recorded it yet. Shape: an ordered list
+-- of { typeName = "Class", lines = { { name = "Ardent Warrior", rank = 20 }, ... } }.
+function CompanionRoster.Data.GetSkillLinesForCompanion(companionId)
+    for _, character in pairs(savedVars.characters) do
+        local info = character.companions[companionId]
+        if info and info.skillLines then
+            return info.skillLines
+        end
+    end
+    return nil
+end
+
+-- The player's own tag for how they've built a companion (Tank/Healer/DPS)
+-- - there's no API to derive this from gear or slotted skills, it's purely
+-- a manual label. Stored account-wide (independent of savedVars.characters)
+-- since a companion's actual build already is - see GetSkillLinesForCompanion
+-- above. Value is nil (no role set) or one of LFG_ROLE_TANK/LFG_ROLE_HEAL/
+-- LFG_ROLE_DPS, the same engine constants the game's own Group Finder uses.
+function CompanionRoster.Data.GetCompanionRole(companionId)
+    return savedVars.companionRoles[companionId]
+end
+
+function CompanionRoster.Data.SetCompanionRole(companionId, role)
+    savedVars.companionRoles[companionId] = role
 end
 
 -- Companion -> Keepsake collectible id. The Keepsake (Collections >
@@ -235,12 +335,13 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- rather than mixing it - matters because data here is keyed by
     -- character name, not character id, and the same @account can play on
     -- more than one server where two different characters could share a name.
-    local defaults = { characters = {} }
+    local defaults = { characters = {}, companionRoles = {}, slashCommand = "/fcr", closeOnCombat = false }
     savedVars = ZO_SavedVars:NewAccountWide("CompanionRoster_SavedVariables", CompanionRoster.savedVariablesVersion, GetWorldName(), defaults)
 
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_RAPPORT_UPDATE, OnCompanionRapportUpdate)
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_EXPERIENCE_GAIN, OnCompanionExperienceGain)
+    EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_SKILLS_FULL_UPDATE, OnCompanionSkillsFullUpdate)
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 end
 

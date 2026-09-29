@@ -1,64 +1,28 @@
-function DovahMova_doubleNamesScribing(DovahMova)
-	if DovahMova:GetLanguage() == "ua" then
-		local rsd = DovahMova.Settings.Data
-		
-		-- Hook scribing script name functions
-		local GetCraftedAbilityScriptDisplayNameOld = GetCraftedAbilityScriptDisplayName
-		function GetCraftedAbilityScriptDisplayName(scriptId)
-			local scriptName = GetCraftedAbilityScriptDisplayNameOld(scriptId)
-			
-			if (scriptName == nil or DovahMova.Settings.ShowScribing == "ua") then
-				return scriptName
-			end
-			
-			-- Look for English name in the data
-			local englishName = rsd.ScribingScripts and rsd.ScribingScripts[scriptId]
-			
-			if englishName ~= nil then
-				if DovahMova.Settings.ShowScribing == "uaen" then
-					scriptName = scriptName .. " (" .. englishName .. ")"
-				else
-					scriptName = englishName
-				end
-			end
-			
-			return scriptName
-		end
-		
+-- =================================================================================================
+-- Назви скриптів скрайбінгу.
+-- =================================================================================================
 
-		
-		-- Hook scribing UI elements
-		if ZO_Scribing then
-			-- Hook scribing script list entries
-			local originalSetupScribingScriptEntry = ZO_Scribing.SetupScriptEntry
-			if originalSetupScribingScriptEntry then
-				ZO_Scribing.SetupScriptEntry = function(self, control, scriptData)
-					originalSetupScribingScriptEntry(self, control, scriptData)
-					
-					local scriptId = scriptData.scriptId
-					if scriptId then
-						local scriptName = GetCraftedAbilityScriptDisplayNameOld(scriptId)
-						if scriptName then
-							local englishName = rsd.ScribingScripts and rsd.ScribingScripts[scriptId]
-							if englishName and DovahMova.Settings.ShowScribing ~= "ua" then
-								local finalName
-								if DovahMova.Settings.ShowScribing == "uaen" then
-									finalName = scriptName .. " (" .. englishName .. ")"
-								else
-									finalName = englishName
-								end
-								
-								local nameControl = control:GetNamedChild("Name")
-								if nameControl then
-									nameControl:SetText(DovahMova:MagicReplace(nameControl:GetText(), scriptName, finalName))
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-		
+local DovahMova = DovahMova
+local Util = DovahMova.Util
 
+local Scribing = {}
+DovahMova.Scribing = Scribing
+
+local installed = false
+
+function Scribing.Install()
+	if installed then
+		return
+	end
+	installed = true
+
+	local originalGetScriptName = GetCraftedAbilityScriptDisplayName
+	GetCraftedAbilityScriptDisplayName = function(scriptId)
+		local ukrainianName = originalGetScriptName(scriptId)
+		if not ukrainianName or DovahMova.isBuildingDatabase then
+			return ukrainianName
+		end
+		local englishName = DovahMova.db.ScribingScripts[scriptId]
+		return Util.FormatBilingual(ukrainianName, englishName, DovahMova.settings.ShowScribing)
 	end
 end

@@ -8,9 +8,9 @@
 
 ## Title: Dark Convergence Tracker
 ## Author: Irreverend
-## Version: 1.0.1
-## AddOnVersion: 2
-## APIVersion: 101050
+## Version: 1.0.2
+## AddOnVersion: 3
+## APIVersion: 101050 101051
 ## SavedVariables: DarkConvergenceTrackerSavedVariables DarkConvergenceTrackerPosition
 ## DependsOn: LibAddonMenu-2.0>=43
 ## IsLibrary: false

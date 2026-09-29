@@ -14,7 +14,7 @@ local SF = LibSFUtils
  
 AutoCategory = {
     name = "AutoCategory",
-    version = SF.colors.gold("4.6.16"),
+    version = SF.colors.gold("4.6.17"),
     settingName = "AutoCategory",
     settingDisplayName = SF.colors.gold("AutoCategory - Revised"),
     author = SF.colors.purple("Shadowfen, crafty35, RockingDice, Friday_the13_rus"),

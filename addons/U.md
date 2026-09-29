@@ -37,7 +37,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [UniqueIconMech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/UniqueIconMech__4169) | Tenshiraito | PC / Mac | 1.0 |
 | [Unit Frames Rebirth (incl. Pet)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Unit-Frames-Rebirth-incl.-Pet__2287) | votan | PC / Mac | 1.2.6 |
 | [Universal Effect Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Universal-Effect-Tracker__0b7868ba-bd96-4cff-a633-8ad4ff7c5829) | Shienar | Console | — |
-| [UniversalAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/The.Invis/UniversalAssistant__4856) | The.Invis | PC / Mac | 1.0.0 |
+| [UniversalAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/The.Invis/UniversalAssistant__4856) | The.Invis | PC / Mac | 1.0.1 |
 | [Unknown Insight (with Scribing)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Unknown-Insight-with-Scribing__2513) | zelenin | PC / Mac | 0.7.0 |
 | [Unknown POI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/f1rex/Unknown-POI__2966) | f1rex | PC / Mac | 5 |
 | [Unknown Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Unknown-Tracker__2325) | kadeer | PC / Mac | v0.79 |

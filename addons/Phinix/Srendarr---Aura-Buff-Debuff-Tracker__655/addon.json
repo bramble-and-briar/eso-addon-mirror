@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Phinix",
   "canonical_id": "esoui:655",
   "category_id": "22",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -17,7 +22,7 @@
     "Srendarr"
   ],
   "download_url": "https://www.esoui.com/downloads/dl655/",
-  "fingerprint": "4b4e9a6c681083c688bb3b359ac5378d9282931ee49c8dd636ff731fb80c6310",
+  "fingerprint": "4dd4a1d01f989fdf100fd78ee8831c48dacb3a86bee071e60d0ad67eb5e26daa",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5321.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5306.jpg",
@@ -35,11 +40,11 @@
   "source_id": "655",
   "source_url": "https://www.esoui.com/downloads/info655-Srendarr-AuraBuffDebuffTracker.html",
   "stats": {
-    "downloads": 5093450,
-    "favorites": 1506,
-    "monthly_downloads": 30907
+    "downloads": 5113723,
+    "favorites": 1504,
+    "monthly_downloads": 10995
   },
   "title": "Srendarr - Aura, Buff & Debuff Tracker",
-  "updated_at": 1784331960000,
-  "version": "2.5.49"
+  "updated_at": 1790625026000,
+  "version": "2.5.51"
 }

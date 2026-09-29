@@ -1,0 +1,33 @@
+<GuiXml>
+    <Controls>
+        <!-- Шаблон строки чёрного списка для ZO_ScrollList -->
+        <Control name="ZO_BlacklistEntryTemplate" virtual="true">
+            <Dimensions y="40" />
+            <Controls>
+                <!-- Имя аккаунта -->
+                <Label name="$(parent)Label" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                    <Anchor point="TOPLEFT" offsetX="10" offsetY="5" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-100" offsetY="-5" />
+                </Label>
+
+                <!-- Дата добавления -->
+                <Label name="$(parent)Date" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED">
+                    <Anchor point="TOPRIGHT" offsetX="-50" offsetY="5" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" offsetY="-5" />
+                </Label>
+
+                <!-- Кнопка удаления -->
+                <Button name="$(parent)DeleteButton" inherits="ZO_DefaultButton">
+                    <Dimensions x="30" y="30" />
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="5" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" offsetY="-5" />
+                    <Textures
+                        normal="EsoUI/Art/Buttons/closebutton_up.dds"
+                        pressed="EsoUI/Art/Buttons/closebutton_down.dds"
+                        mouseOver="EsoUI/Art/Buttons/closebutton_mouseover.dds"
+                    />
+                </Button>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

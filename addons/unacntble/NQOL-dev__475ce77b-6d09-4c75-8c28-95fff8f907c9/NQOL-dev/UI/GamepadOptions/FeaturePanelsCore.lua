@@ -328,11 +328,6 @@ function GamepadOptions.BuildActiveQuestVerticalOffsetOption()
     return GamepadOptions.BuildPositionSliderOption(ACTIVE_QUEST_PANEL_ID, 4, ui.GetActiveQuestVerticalOffsetLabel(), ui.GetActiveQuestVerticalOffsetTooltip(), ui.GetActiveQuestVerticalOffsetMin(), ui.GetActiveQuestVerticalOffsetMax(), "%.0f", ui.GetActiveQuestVerticalOffset, ui.SetActiveQuestVerticalOffset, nil, ui.GetActiveQuestVerticalOffsetDefault)
 end
 
-function GamepadOptions.BuildActiveQuestShowInSettingsOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(ACTIVE_QUEST_PANEL_ID, 2, ui.GetActiveQuestShowInSettingsLabel(), ui.GetActiveQuestShowInSettingsTooltip(), ui.GetActiveQuestShowInSettings, ui.SetActiveQuestShowInSettings)
-end
-
 function GamepadOptions.BuildActiveQuestEnabledOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildCheckboxOption(ACTIVE_QUEST_PANEL_ID, 1, ui.GetActiveQuestEnabledLabel(), ui.GetActiveQuestEnabledTooltip(), ui.GetActiveQuestEnabled, ui.SetActiveQuestEnabled, nil, ui.GetActiveQuestEnabledDefault)
@@ -346,11 +341,6 @@ end
 function GamepadOptions.BuildActiveCombatTipsVerticalOffsetOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildPositionSliderOption(ACTIVE_COMBAT_TIPS_PANEL_ID, 4, ui.GetActiveCombatTipsVerticalOffsetLabel(), ui.GetActiveCombatTipsVerticalOffsetTooltip(), ui.GetActiveCombatTipsVerticalOffsetMin(), ui.GetActiveCombatTipsVerticalOffsetMax(), "%.0f", ui.GetActiveCombatTipsVerticalOffset, ui.SetActiveCombatTipsVerticalOffset, nil, ui.GetActiveCombatTipsVerticalOffsetDefault)
-end
-
-function GamepadOptions.BuildActiveCombatTipsDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(ACTIVE_COMBAT_TIPS_PANEL_ID, 2, ui.GetActiveCombatTipsDrawBordersLabel(), ui.GetActiveCombatTipsDrawBordersTooltip(), ui.GetActiveCombatTipsDrawBorders, ui.SetActiveCombatTipsDrawBorders)
 end
 
 function GamepadOptions.BuildActiveCombatTipsEnabledOption()
@@ -368,11 +358,6 @@ function GamepadOptions.BuildSynergyPromptsVerticalOffsetOption()
     return GamepadOptions.BuildPositionSliderOption(SYNERGY_PROMPTS_PANEL_ID, 4, ui.GetSynergyPromptsVerticalOffsetLabel(), ui.GetSynergyPromptsVerticalOffsetTooltip(), ui.GetSynergyPromptsVerticalOffsetMin(), ui.GetSynergyPromptsVerticalOffsetMax(), "%.0f", ui.GetSynergyPromptsVerticalOffset, ui.SetSynergyPromptsVerticalOffset, nil, ui.GetSynergyPromptsVerticalOffsetDefault)
 end
 
-function GamepadOptions.BuildSynergyPromptsDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(SYNERGY_PROMPTS_PANEL_ID, 2, ui.GetSynergyPromptsDrawBordersLabel(), ui.GetSynergyPromptsDrawBordersTooltip(), ui.GetSynergyPromptsDrawBorders, ui.SetSynergyPromptsDrawBorders)
-end
-
 function GamepadOptions.BuildSynergyPromptsEnabledOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildCheckboxOption(SYNERGY_PROMPTS_PANEL_ID, 1, ui.GetSynergyPromptsEnabledLabel(), ui.GetSynergyPromptsEnabledTooltip(), ui.GetSynergyPromptsEnabled, ui.SetSynergyPromptsEnabled, nil, ui.GetSynergyPromptsEnabledDefault)
@@ -386,11 +371,6 @@ end
 function GamepadOptions.BuildCenterScreenAnnounceVerticalOffsetOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildPositionSliderOption(CENTER_SCREEN_ANNOUNCE_PANEL_ID, 4, ui.GetCenterScreenAnnounceVerticalOffsetLabel(), ui.GetCenterScreenAnnounceVerticalOffsetTooltip(), ui.GetCenterScreenAnnounceVerticalOffsetMin(), ui.GetCenterScreenAnnounceVerticalOffsetMax(), "%.0f", ui.GetCenterScreenAnnounceVerticalOffset, ui.SetCenterScreenAnnounceVerticalOffset, nil, ui.GetCenterScreenAnnounceVerticalOffsetDefault)
-end
-
-function GamepadOptions.BuildCenterScreenAnnounceDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(CENTER_SCREEN_ANNOUNCE_PANEL_ID, 2, ui.GetCenterScreenAnnounceDrawBordersLabel(), ui.GetCenterScreenAnnounceDrawBordersTooltip(), ui.GetCenterScreenAnnounceDrawBorders, ui.SetCenterScreenAnnounceDrawBorders)
 end
 
 function GamepadOptions.BuildCenterScreenAnnounceEnabledOption()
@@ -408,11 +388,6 @@ function GamepadOptions.BuildAnnouncementsVerticalOffsetOption()
     return GamepadOptions.BuildPositionSliderOption(ANNOUNCEMENTS_PANEL_ID, 4, ui.GetAnnouncementsVerticalOffsetLabel(), ui.GetAnnouncementsVerticalOffsetTooltip(), ui.GetAnnouncementsVerticalOffsetMin(), ui.GetAnnouncementsVerticalOffsetMax(), "%.0f", ui.GetAnnouncementsVerticalOffset, ui.SetAnnouncementsVerticalOffset, nil, ui.GetAnnouncementsVerticalOffsetDefault)
 end
 
-function GamepadOptions.BuildAnnouncementsDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(ANNOUNCEMENTS_PANEL_ID, 2, ui.GetAnnouncementsDrawBordersLabel(), ui.GetAnnouncementsDrawBordersTooltip(), ui.GetAnnouncementsDrawBorders, ui.SetAnnouncementsDrawBorders)
-end
-
 function GamepadOptions.BuildAnnouncementsEnabledOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildCheckboxOption(ANNOUNCEMENTS_PANEL_ID, 1, ui.GetAnnouncementsEnabledLabel(), ui.GetAnnouncementsEnabledTooltip(), ui.GetAnnouncementsEnabled, ui.SetAnnouncementsEnabled, nil, ui.GetAnnouncementsEnabledDefault)
@@ -426,11 +401,6 @@ end
 function GamepadOptions.BuildInfiniteArchiveFrameVerticalOffsetOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildPositionSliderOption(INFINITE_ARCHIVE_FRAME_PANEL_ID, 4, ui.GetInfiniteArchiveVerticalOffsetLabel(), ui.GetInfiniteArchiveVerticalOffsetTooltip(), ui.GetInfiniteArchiveVerticalOffsetMin(), ui.GetInfiniteArchiveVerticalOffsetMax(), "%.0f", ui.GetInfiniteArchiveVerticalOffset, ui.SetInfiniteArchiveVerticalOffset, nil, ui.GetInfiniteArchiveVerticalOffsetDefault)
-end
-
-function GamepadOptions.BuildInfiniteArchiveFrameDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(INFINITE_ARCHIVE_FRAME_PANEL_ID, 2, ui.GetInfiniteArchiveDrawBordersLabel(), ui.GetInfiniteArchiveDrawBordersTooltip(), ui.GetInfiniteArchiveDrawBorders, ui.SetInfiniteArchiveDrawBorders)
 end
 
 function GamepadOptions.BuildInfiniteArchiveFrameEnabledOption()
@@ -448,11 +418,6 @@ function GamepadOptions.BuildPlayerInteractionVerticalOffsetOption()
     return GamepadOptions.BuildPositionSliderOption(PLAYER_INTERACTION_PANEL_ID, 4, ui.GetPlayerInteractionVerticalOffsetLabel(), ui.GetPlayerInteractionVerticalOffsetTooltip(), ui.GetPlayerInteractionVerticalOffsetMin(), ui.GetPlayerInteractionVerticalOffsetMax(), "%.0f", ui.GetPlayerInteractionVerticalOffset, ui.SetPlayerInteractionVerticalOffset, nil, ui.GetPlayerInteractionVerticalOffsetDefault)
 end
 
-function GamepadOptions.BuildPlayerInteractionDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(PLAYER_INTERACTION_PANEL_ID, 2, ui.GetPlayerInteractionDrawBordersLabel(), ui.GetPlayerInteractionDrawBordersTooltip(), ui.GetPlayerInteractionDrawBorders, ui.SetPlayerInteractionDrawBorders)
-end
-
 function GamepadOptions.BuildPlayerInteractionEnabledOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildCheckboxOption(PLAYER_INTERACTION_PANEL_ID, 1, ui.GetPlayerInteractionEnabledLabel(), ui.GetPlayerInteractionEnabledTooltip(), ui.GetPlayerInteractionEnabled, ui.SetPlayerInteractionEnabled, nil, ui.GetPlayerInteractionEnabledDefault)
@@ -466,11 +431,6 @@ end
 function GamepadOptions.BuildSubtitlesVerticalOffsetOption()
     local ui = NQOL.Features.UI
     return GamepadOptions.BuildPositionSliderOption(SUBTITLES_PANEL_ID, 4, ui.GetSubtitlesVerticalOffsetLabel(), ui.GetSubtitlesVerticalOffsetTooltip(), ui.GetSubtitlesVerticalOffsetMin(), ui.GetSubtitlesVerticalOffsetMax(), "%.0f", ui.GetSubtitlesVerticalOffset, ui.SetSubtitlesVerticalOffset, nil, ui.GetSubtitlesVerticalOffsetDefault)
-end
-
-function GamepadOptions.BuildSubtitlesDrawBordersOption()
-    local ui = NQOL.Features.UI
-    return GamepadOptions.BuildCheckboxOption(SUBTITLES_PANEL_ID, 2, ui.GetSubtitlesDrawBordersLabel(), ui.GetSubtitlesDrawBordersTooltip(), ui.GetSubtitlesDrawBorders, ui.SetSubtitlesDrawBorders)
 end
 
 function GamepadOptions.BuildSubtitlesEnabledOption()

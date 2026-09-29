@@ -2,7 +2,7 @@ TBUG = {}
 local tbug = TBUG or SYSTEMS:GetSystem("merTorchbug")
 
 --Version and name of the AddOn
-tbug.version =  "1.76"
+tbug.version =  "1.77"
 tbug.name =     "merTorchbug"
 tbug.author =   "merlight, Baertram"
 
@@ -51,21 +51,13 @@ tbug.author =   "merlight, Baertram"
 
 
 -- [Working on]
---260216 DakJaniels: Fix /tb APIFunc(param1, param2) where it should be /tb APIFunc(param1, param2, param3) showing the error about missing/wrong params again:
---index nil error globalinspector.lua:309 while automatic Events were started after login (while changing SVs to start after next reloadui)
---ContextMenu entries at E button (global inspector headline) "Events":
----Automatically start at next login
----Automatically start at next client start
---2 new parameters for slash command /tbug events <param here> or /tbe <param here>
---- /tbe reload     enable event tracking after reloadui, and reloadui now
---- /tbe login      enable event tracking at next login (PreHook logout/quit functions and set the automaticEventTracking flag then only)
----->tbug.slashCommandEvents(args)
 
---------------------------------------- Version 1.76 - Baertram (last updated 2026-07-29)
+--------------------------------------- Version 1.77 - Baertram (last updated 2026-09-20)
 ---- [Added]
 
 ---- [Fixed]
-
+--Error on fragments without names, if /tb command was used without any parameter
+--nil error on contextMenu for right clicked table in inspector
 
 ------------------------------------------------------------------------------------------------------------------------
 

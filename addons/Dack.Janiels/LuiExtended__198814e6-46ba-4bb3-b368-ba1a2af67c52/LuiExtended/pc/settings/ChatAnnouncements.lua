@@ -3863,6 +3863,40 @@ function ChatAnnouncements.CreateSettings()
                 default = Defaults.ContextMessages.CurrencyMessageExtract,
             },
             {
+                -- Loot Message (Gem Extraction)
+                type = "editbox",
+                name = GetString(LUIE_STRING_LAM_CA_CURRENCY_MESSAGE_GEM_EXTRACT),
+                tooltip = GetString(LUIE_STRING_LAM_CA_CURRENCY_MESSAGE_GEM_EXTRACT_TP),
+                getFunc = function ()
+                    return ChatAnnouncements.GetContextMessage("CurrencyMessageGemExtract")
+                end,
+                setFunc = function (value)
+                    Settings.ContextMessages.CurrencyMessageGemExtract = value
+                end,
+                width = "full",
+                disabled = function ()
+                    return not LUIE.SV.ChatAnnouncements_Enable
+                end,
+                default = Defaults.ContextMessages.CurrencyMessageGemExtract,
+            },
+            {
+                -- Loot Message (Gem Extraction - From Item)
+                type = "editbox",
+                name = GetString(LUIE_STRING_LAM_CA_CURRENCY_MESSAGE_GEM_EXTRACT_FROM),
+                tooltip = GetString(LUIE_STRING_LAM_CA_CURRENCY_MESSAGE_GEM_EXTRACT_FROM_TP),
+                getFunc = function ()
+                    return ChatAnnouncements.GetContextMessage("CurrencyMessageGemExtractFrom")
+                end,
+                setFunc = function (value)
+                    Settings.ContextMessages.CurrencyMessageGemExtractFrom = value
+                end,
+                width = "full",
+                disabled = function ()
+                    return not LUIE.SV.ChatAnnouncements_Enable
+                end,
+                default = Defaults.ContextMessages.CurrencyMessageGemExtractFrom,
+            },
+            {
                 -- Loot Message (Upgrade)
                 type = "editbox",
                 name = GetString(LUIE_STRING_LAM_CA_CURRENCY_MESSAGE_UPGRADE),
@@ -5703,6 +5737,23 @@ function ChatAnnouncements.CreateSettings()
                     return not (Settings.Collectibles.CollectibleCA or Settings.Collectibles.CollectibleCSA or Settings.Collectibles.CollectibleAlert and LUIE.SV.ChatAnnouncements_Enable)
                 end,
                 default = Defaults.Collectibles.CollectibleSubcategory,
+            },
+            {
+                -- Condense Multiple Collectible Unlocks
+                type = "checkbox",
+                name = zo_strformat("\t\t\t\t\t<<1>>", GetString(LUIE_STRING_LAM_CA_COLLECTIBLE_CONDENSE)),
+                tooltip = GetString(LUIE_STRING_LAM_CA_COLLECTIBLE_CONDENSE_TP),
+                getFunc = function ()
+                    return Settings.Collectibles.CollectibleCondense
+                end,
+                setFunc = function (value)
+                    Settings.Collectibles.CollectibleCondense = value
+                end,
+                width = "full",
+                disabled = function ()
+                    return not (Settings.Collectibles.CollectibleCA or Settings.Collectibles.CollectibleCSA or Settings.Collectibles.CollectibleAlert and LUIE.SV.ChatAnnouncements_Enable)
+                end,
+                default = Defaults.Collectibles.CollectibleCondense,
             },
             {
                 -- Collectible Usage
@@ -9296,6 +9347,132 @@ function ChatAnnouncements.CreateSettings()
                 width = "full",
                 disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
                 default = Defaults.DisplayAnnouncements.ZoneNightMarketMisc.Alert,
+            },
+            {
+                -- Dynamic Encounters Header
+                type = "header",
+                name = GetString(LUIE_STRING_LAM_CA_DISPLAY_HEADER_DYNAMIC_ENCOUNTER),
+                width = "full",
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_VAMPIRE_HUNT), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_VAMPIRE_HUNT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.CA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.CA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.CA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_VAMPIRE_HUNT), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_VAMPIRE_HUNT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.CSA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.CSA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.CSA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_VAMPIRE_HUNT), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_VAMPIRE_HUNT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.Alert end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.Alert = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterVampireHunt.Alert,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_FLOWERVINE_FARM), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_FLOWERVINE_FARM_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.CA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.CA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.CA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_FLOWERVINE_FARM), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_FLOWERVINE_FARM_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.CSA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.CSA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.CSA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_FLOWERVINE_FARM), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_FLOWERVINE_FARM_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.Alert end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.Alert = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterFlowervineFarm.Alert,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_BILSA_DELIVERY), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_BILSA_DELIVERY_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.CA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.CA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.CA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_BILSA_DELIVERY), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_BILSA_DELIVERY_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.CSA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.CSA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.CSA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_BILSA_DELIVERY), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_BILSA_DELIVERY_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.Alert end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.Alert = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterBilsaDelivery.Alert,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_MISC), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_MISC_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterMisc.CA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterMisc.CA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterMisc.CA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_MISC), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_MISC_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterMisc.CSA end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterMisc.CSA = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterMisc.CSA,
+            },
+            {
+                type = "checkbox",
+                name = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_MISC), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+                tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_DISPLAY_DYNAMIC_ENCOUNTER_MISC_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+                getFunc = function () return Settings.DisplayAnnouncements.ZoneDynamicEncounterMisc.Alert end,
+                setFunc = function (value) Settings.DisplayAnnouncements.ZoneDynamicEncounterMisc.Alert = value end,
+                width = "full",
+                disabled = function () return not LUIE.SV.ChatAnnouncements_Enable end,
+                default = Defaults.DisplayAnnouncements.ZoneDynamicEncounterMisc.Alert,
             },
             {
                 -- Zone Notifications Header

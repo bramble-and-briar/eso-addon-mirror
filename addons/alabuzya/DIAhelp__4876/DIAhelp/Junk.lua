@@ -1,6 +1,7 @@
+local DIAhelp = DIAhelp
 -- Sell only explicitly marked junk to ordinary merchants. Original code.
-DIAhelpJunk={}
-local M=DIAhelpJunk
+DIAhelp.Junk={}
+local M=DIAhelp.Junk
 local active,pending,total=false,nil,0
 local started=0
 function M.Eligible(slot)
@@ -45,9 +46,7 @@ function M.Start()
     active=true total=0 pending=nil started=GetFrameTimeSeconds()+0.5
     EVENT_MANAGER:RegisterForUpdate('DIAhelpJunk',250,M.Tick)
 end
-EVENT_MANAGER:RegisterForEvent('DIAhelpJunk',EVENT_ADD_ON_LOADED,function(_,name)
-    if name~='DIAhelp' then return end
-    EVENT_MANAGER:UnregisterForEvent('DIAhelpJunk',EVENT_ADD_ON_LOADED)
+function DIAhelp.Junk.Initialize()
     EVENT_MANAGER:RegisterForEvent('DIAhelpJunk',EVENT_OPEN_STORE,M.Start)
     EVENT_MANAGER:RegisterForEvent('DIAhelpJunk',EVENT_CLOSE_STORE,Stop)
-end)
+end

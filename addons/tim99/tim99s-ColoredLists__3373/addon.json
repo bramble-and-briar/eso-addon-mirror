@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/tim99/tim99s-ColoredLists__3373",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "tim99",
   "canonical_id": "esoui:3373",
   "category_id": "147",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -65,7 +74,7 @@
     "tim99sColoredLists"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3373/",
-  "fingerprint": "7985f89d85894cc111ebca257e08c5c3449e7736313c4819dc0714eef297592d",
+  "fingerprint": "49d8e69246072a1754985fd2d058490201335829b489827aec4327cb73b62d49",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16529.png",
     "https://cdn-eso.mmoui.com/preview/pvw16528.png",
@@ -87,11 +96,11 @@
   "source_id": "3373",
   "source_url": "https://www.esoui.com/downloads/info3373-tim99sColoredLists.html",
   "stats": {
-    "downloads": 17072,
+    "downloads": 17764,
     "favorites": 46,
-    "monthly_downloads": 787
+    "monthly_downloads": 418
   },
   "title": "tim99s ColoredLists",
-  "updated_at": 1783005350000,
-  "version": "10.0"
+  "updated_at": 1790609787000,
+  "version": "10.1"
 }

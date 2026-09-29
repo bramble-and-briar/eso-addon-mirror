@@ -1,12 +1,12 @@
 ## Title: |cF5DA81Scrollkeeper Guild Tools Suite|r
-## APIVersion: 101050 101051
+## APIVersion: 101052 101051
 ## Author: WolfStar07
-## Version: 1.3
-## AddOnVersion: 1.3
+## Version: 1.4
+## AddOnVersion: 1.4
 ## Description: Master load manifest for the Scrollkeeper suite. Ensures core framework loads before all modules.
 ## SavedVariables: ScrollkeeperSettings
-## DependsOn: LibAddonMenu-2.0>=43 LibHistoire>=1101 LibAsync>=30103 LibTextFilter>=13 LibDateTime>=28 LibChatMenuButton>=1006
-## OptionalDependsOn: Advanced Member Tooltip (LibHistoire) pChat DolgubonsGuildReorder LibScroll
+## DependsOn: LibAddonMenu-2.0>=43 LibHistoire>=1103 LibAsync>=30104 LibTextFilter>=13 LibDateTime>=28
+## OptionalDependsOn: Advanced Member Tooltip (LibHistoire) pChat DolgubonsGuildReorder LibChatMenuButton
 
 # Localization (must load first)
 ScrollkeeperFramework/i18n/en.lua
@@ -26,7 +26,9 @@ ScrollkeeperNotebook/ScrollkeeperNotebook.lua
 ScrollkeeperNotebook/ScrollkeeperNotebookMail.lua
 ScrollkeeperApplications/ScrollkeeperApplications.lua
 
-ScrollkeeperProvisionMember/ScrollkeeperProvisionMember.lua
+ScrollkeeperProvisionMember/ScrollkeeperProvisionMemberCore.lua
+ScrollkeeperProvisionMember/ScrollkeeperProvisionMemberUI.lua
+ScrollkeeperProvisionMember/ScrollkeeperProvisionMemberCommands.lua
 ScrollkeeperContextMenu/ScrollkeeperContextMenu.lua
 ScrollkeeperWelcome/ScrollkeeperWelcome.lua
 ScrollkeeperRoster/ScrollkeeperRoster.lua

@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Gelmir/GuildPlanner.Pro-Data-Exporter__3028",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Gelmir",
   "canonical_id": "esoui:3028",
   "category_id": "26",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3028",
@@ -17,7 +18,7 @@
     "GuildPlannerPro_Export"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3028/",
-  "fingerprint": "8f5221a5e4a731ba81aea78ea3a9d1d3462b67eea98a788655ce4a40f64ff185",
+  "fingerprint": "ae1f0c8c6376f9a302ac4199f4f2823c8f0c99139b40c6a1cf0448629bee3179",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10983.png",
     "https://cdn-eso.mmoui.com/preview/pvw10981.png",
@@ -35,11 +36,11 @@
   "source_id": "3028",
   "source_url": "https://www.esoui.com/downloads/info3028-GuildPlanner.ProDataExporter.html",
   "stats": {
-    "downloads": 13604,
+    "downloads": 13647,
     "favorites": 4,
-    "monthly_downloads": 22
+    "monthly_downloads": 21
   },
   "title": "GuildPlanner.Pro Data Exporter",
-  "updated_at": 1782668894000,
-  "version": "2.20.1"
+  "updated_at": 1790624160000,
+  "version": "2.21.0"
 }

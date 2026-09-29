@@ -1,0 +1,10 @@
+QuestArrow by alabuzya <aabuziarov@gmail.com>.
+Developed with OpenAI AI assistance, including code generation and refactoring.
+Navigation, geometry and UI code are maintained by alabuzya.
+Uses ESO's public Lua/UI APIs and client-supplied fonts. No third-party addon
+code, libraries or texture assets are bundled in this addon archive.
+API research: ESOUI wiki and ESOUI's published client Lua source.
+https://wiki.esoui.com/
+https://github.com/esoui/esoui
+The test-only ESO SavedVars fixture is outside the addon and is not distributed.
+Not affiliated with or sponsored by ZeniMax Media Inc.

@@ -451,8 +451,11 @@ function DisplayFrame:ConfigureDragOverlay()
 
     for group, frame in pairs(Srendarr.db.auraGroups) do
         if frame == self.displayID then -- this group is being show on this frame
-            self.tooltipText = string.format('%s\n%s', self.tooltipText, Srendarr.auraGroupStrings[group])
-            noGroups = false
+            local groupName = Srendarr.auraGroupStrings[group]
+            if groupName then
+                self.tooltipText = string.format('%s\n%s', self.tooltipText, groupName)
+                noGroups = false
+            end
         end
     end
 

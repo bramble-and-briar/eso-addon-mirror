@@ -1,8 +1,9 @@
--- Bundled QuestArrow 0.2.1 by alabuzya.
-if not DIAhelpUseBundledQuestArrow then return end
-local A = QuestArrow
+local DIAhelp = DIAhelp
+-- Bundled QuestArrow 0.2.2 by alabuzya.
+if not DIAhelp.UseBundledQuestArrow then return end
+local A = DIAhelp.QuestArrow
 local P, U = A.Planner, A.UI
-A.name, A.version = "QuestArrow", "0.2.1"
+A.name, A.version = "DIAhelpQuestArrow", "0.2.2"
 A.pending, A.targets, A.nodes = {}, {}, {}
 A.generation, A.nextRequest, A.nextPlan, A.nextNodes = 0, 0, 0, 0
 A.defaults = { x = 0.5, y = 0.27, scale = 1, alpha = 1, locked = true,
@@ -354,7 +355,7 @@ function A:Command(input)
 end
 
 function A:Initialize()
-    self.saved = ZO_SavedVars:NewCharacterIdSettings("DIAhelpSavedVariables", 1, "questArrow", self.defaults)
+    self.saved = DIAhelp.SavedVariables.Character("questArrow", self.defaults)
     U:Create()
     U:Journal()
     SLASH_COMMANDS["/qa"] = function(input) self:Command(input) end
@@ -387,8 +388,3 @@ function A:Initialize()
     chat("v" .. self.version .. " загружен. Кнопка в журнале; /qa help — команды.")
 end
 
-EVENT_MANAGER:RegisterForEvent(A.name, EVENT_ADD_ON_LOADED, function(_, addonName)
-    if addonName ~= "DIAhelp" then return end
-    EVENT_MANAGER:UnregisterForEvent(A.name, EVENT_ADD_ON_LOADED)
-    A:Initialize()
-end)

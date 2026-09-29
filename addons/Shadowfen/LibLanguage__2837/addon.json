@@ -74,7 +74,7 @@
     "LibLanguage"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2837/",
-  "fingerprint": "9b0ff9807401b3a3e94d1526345fbdebf5d0d19875273019b8195b5e226630f2",
+  "fingerprint": "9886402b0e6ca8dfacb4009399f0df865d75b7b399d8fd87a19e2c4317e231b8",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -82,11 +82,11 @@
   "source_id": "2837",
   "source_url": "https://www.esoui.com/downloads/info2837-LibLanguage.html",
   "stats": {
-    "downloads": 179520,
+    "downloads": 181516,
     "favorites": 19,
-    "monthly_downloads": 1036
+    "monthly_downloads": 2642
   },
   "title": "LibLanguage",
-  "updated_at": 1789603325000,
-  "version": "48"
+  "updated_at": 1790619568000,
+  "version": "49"
 }

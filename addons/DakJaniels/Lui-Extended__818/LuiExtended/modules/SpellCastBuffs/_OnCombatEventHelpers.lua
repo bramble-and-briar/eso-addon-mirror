@@ -290,6 +290,7 @@ end
 --- @field toggle? boolean
 --- @field fakeDuration? boolean
 --- @field savedName? string
+--- @field savedUnitId? integer
 
 --- @param context string
 --- @param effectType integer
@@ -334,6 +335,9 @@ function SpellCastBuffs.BuildFakeCombatEffectEntry(context, effectType, id, name
     end
     if opts.savedName ~= nil then
         entry.savedName = opts.savedName
+    end
+    if opts.savedUnitId ~= nil then
+        entry.savedUnitId = opts.savedUnitId
     end
     return entry
 end
@@ -395,7 +399,7 @@ function SpellCastBuffs.HandleIncomingGroundDamageAura(result, abilityId, abilit
     local context = "player" .. effectType
     stack = SpellCastBuffs.IncrementCombatEffectStack(context, buffSlot, abilityId, stack)
 
-    SpellCastBuffs.EffectsList[context][buffSlot] = SpellCastBuffs.BuildFakeCombatEffectEntry(
+    local fresh = SpellCastBuffs.BuildFakeCombatEffectEntry(
         context,
         effectType,
         abilityId,
@@ -411,6 +415,13 @@ function SpellCastBuffs.HandleIncomingGroundDamageAura(result, abilityId, abilit
             fakeDuration = true,
         }
     )
+    local effectsList = SpellCastBuffs.EffectsList[context]
+    local existing = effectsList[buffSlot]
+    if existing then
+        SpellCastBuffs.ApplyEffectRowRefresh(existing, fresh)
+        return
+    end
+    effectsList[buffSlot] = fresh
     SpellCastBuffs.MarkDisplayDirty()
 end
 
@@ -598,6 +609,9 @@ function SpellCastBuffs.HandleIncomingFakePlayerBuff(result, abilityId, sourceNa
         return
     end
     if SpellCastBuffs.ShouldIgnoreFakeCombatEvent(config, result) then
+        return
+    end
+    if SpellCastBuffs.hidePlayerEffects[abilityId] then
         return
     end
 
@@ -903,13 +917,13 @@ local function placeOutgoingReticleTargetFakeEffect(abilityId, targetName, sourc
         return
     end
 
-    local unitName = zo_strformat("<<C:1>>", GetUnitName("reticleover"))
+    local unitName = SpellCastBuffs.GetFormattedReticleUnitName()
     local listKey = unitName == target and "ground" or "saved"
     opts = opts or {}
     opts.groundLabel = groundLabel
     opts.savedName = zo_strformat("<<C:1>>", targetName)
 
-    SpellCastBuffs.EffectsList[listKey][abilityId] = SpellCastBuffs.BuildFakeCombatEffectEntry(
+    local fresh = SpellCastBuffs.BuildFakeCombatEffectEntry(
         context,
         BUFF_EFFECT_TYPE_DEBUFF,
         abilityId,
@@ -919,6 +933,13 @@ local function placeOutgoingReticleTargetFakeEffect(abilityId, targetName, sourc
         unbreakable,
         opts
     )
+    local effectsList = SpellCastBuffs.EffectsList[listKey]
+    local existing = effectsList[abilityId]
+    if existing then
+        SpellCastBuffs.ApplyEffectRowRefresh(existing, fresh)
+        return
+    end
+    effectsList[abilityId] = fresh
     SpellCastBuffs.MarkDisplayDirty()
 end
 

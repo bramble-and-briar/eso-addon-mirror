@@ -10,7 +10,7 @@ CombatMetronome = {
     version = {
 		["patch"] = 1,
 		["major"] = 7,
-		["minor"] = 6,
+		["minor"] = 7,
 	},
 	API = GetAPIVersion(),
 	beta = beta,
@@ -77,11 +77,14 @@ function CombatMetronome:Init()
     self.inCombat = IsUnitInCombat("player")
     self.currentEvent = nil
 	self.gcdEvent = {finished = 0}
+	
+	-- self.currentEventIdentifier = 0
+	-- self.lastEventIdentifier = 0
+	-- self.identifiersToSkip = {}
 
     self.gcd = 1000
 
 	self.Progressbar = {}
-	self.Progressbar.soundTockPlayed = true
 	self.Progressbar.activeMount = {}
 	self.Progressbar.activeMount.name = Util.Text.CropZOSString(GetCollectibleNickname(GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT,GAMEPLAY_ACTOR_CATEGORY_PLAYER)), "collectible")
 	self.Progressbar.activeMount.icon = GetCollectibleIcon(GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT,GAMEPLAY_ACTOR_CATEGORY_PLAYER))
@@ -90,12 +93,13 @@ function CombatMetronome:Init()
 	self.Progressbar.collectibleInUse = nil
 	self.Progressbar.synergy = {}
     self.Progressbar.UI = self:BuildUI()
-    -- CombatMetronome:BuildMenu()
-	-- CombatMetronome:UpdateAdjustChoices()
-
-    self.Progressbar.lastInterval = 0
-	-- StackTracker.actionSlotCache = self.currentlyEquippedAbilities.data
-
+	
+	
+	-- to prevent triggering on initial load
+	self.Progressbar.soundTickPlayed = true
+	self.Progressbar.soundTockPlayed = true
+	self.lastAbilityFinished = 0
+	self.abilityFinished = 0
 	
 	Util.Ability.Tracker.CombatMetronome = self
     Util.Ability.Tracker:Start()
@@ -121,7 +125,6 @@ function CombatMetronome:Init()
 	
 	LATracker:BuildUI()
 	LATracker.frame:SetUnlocked(CombatMetronome.SV.LATracker.isUnlocked)
-	LATracker:DisplayText()
 	
 	--------------
 	-- Metadata --
@@ -202,6 +205,7 @@ function CombatMetronome:RegisterMetadata()
 			self.inPVPZone = self:IsInPvPZone()
 			self:CMPVPSwitch()
 			self:ResourcesPVPSwitch()
+			self.LATracker:DisplayText()
 			for skill, _ in pairs(CombatMetronome.StackTracker.SKILL_ATTRIBUTES) do	
 				StackTracker:PVPSwitch(skill)
 			end

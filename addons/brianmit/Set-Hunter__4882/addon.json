@@ -1,0 +1,51 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/brianmit/Set-Hunter__4882",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "brianmit",
+  "canonical_id": "esoui:4882",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4882",
+  "deleted": false,
+  "directories": [
+    "SetHunter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4882/",
+  "fingerprint": "681397504621e00fcfe78df22480d09a8b7a3edab5c7e9f4fb945d8f6bd8f1d3",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17592.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17593.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17594.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17595.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17596.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17597.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17598.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17599.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17600.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17601.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4882",
+  "source_url": "https://www.esoui.com/downloads/info4882-SetHunter.html",
+  "stats": {
+    "downloads": 35,
+    "favorites": 0,
+    "monthly_downloads": 11
+  },
+  "title": "Set Hunter",
+  "updated_at": 1790626864000,
+  "version": "1.0.1"
+}

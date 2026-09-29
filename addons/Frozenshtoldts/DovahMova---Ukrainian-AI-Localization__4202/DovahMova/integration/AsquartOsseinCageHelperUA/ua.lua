@@ -1,14 +1,5 @@
--- AsquartOsseinCageHelper Ukrainian Localization
--- Українська локалізація для AsquartOsseinCageHelper
--- Автор: DovahMova Team
-
--- Перевіряємо, чи поточна мова - українська
-if GetCVar("language.2") ~= "ua" then
-    return
-end
-
--- Визначаємо українські рядки для AsquartOsseinCageHelper
-local strings = {
+-- Українські рядки для Asquart's Ossein Cage Helper (імена босів і NPC відповідають ua.lang).
+DovahMova.IntegrationStrings.AsquartOsseinCageHelper = {
     AOCH_LANG = "ua",
     
     AOCH_InitMSG                = "[AOCH] Дякуємо за використання Asquart's Ossein Cage Helper. Будь ласка, повідомляйте про проблеми в Discord користувачу asquart",
@@ -40,14 +31,3 @@ local strings = {
     AOCH_Kazpian                = "Наддемон Каспіан", -- A117085
     AOCH_AgonizerBomb           = "Бомба Мучителя", -- A118272
 }
-
--- Експортуємо рядки для використання інтеграцією
-_G["AsquartOsseinCageHelperUA_Strings"] = strings
-
--- ЗАВЖДИ застосовуємо українські рядки
--- Це перезапише англійські рядки які AOCH завантажив з Lang/en.lua
-for stringId, stringValue in pairs(strings) do
-    ZO_CreateStringId(stringId, stringValue)
-    SafeAddVersion(stringId, 1)
-end
-

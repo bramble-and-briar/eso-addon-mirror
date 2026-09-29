@@ -46,7 +46,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HarvestPins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hatory/HarvestPins__2435) | Hatory | PC / Mac | 1.9 |
 | [HarvestPins - Hidden Stash Addon (Khajiit Paw)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Craziux/HarvestPins---Hidden-Stash-Addon-Khajiit-Paw__2803) | Craziux | PC / Mac | 1.0 |
 | [HarvestRoute for HarvestMap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/generic/HarvestRoute-for-HarvestMap__3356) | generic | PC / Mac | 1.1.0 |
-| [Haze Charswap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/Haze-Charswap__4588) | haze068 | PC / Mac | 1.0 |
+| [Haze Charswap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/Haze-Charswap__4588) | haze068 | PC / Mac | 2.0 |
 | [HCMP Night Market pin importer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DewiMorgan/HCMP-Night-Market-pin-importer__4577) | DewiMorgan | PC / Mac | 2026.05.11 |
 | [Heal Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aldericon/Heal-Counter__1833) | aldericon | PC / Mac | 12.0 |
 | [Healer BFF](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JRCandeias/Healer-BFF__1840) | JRCandeias | PC / Mac | 1.0.9 |
@@ -141,7 +141,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [HowToKyne](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/HowToKyne__3486) | Floliroy | PC / Mac | 1.1 |
 | [HowToSunspire](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/HowToSunspire__2430) | Floliroy | PC / Mac | 1.3.10 |
 | [Huah's Add-on Lab](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/huahtu/Huah-s-Add-on-Lab__41cdae3a-ab73-4780-8ab7-c1e464ec55fe) | huahtu | Console | — |
-| [HUDitorTools (edit HUD helper tools)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/HUDitorTools-edit-HUD-helper-tools__4750) | DakJaniels | PC / Mac | 1.1.0 |
+| [HUDitorTools (edit HUD helper tools)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/HUDitorTools-edit-HUD-helper-tools__4750) | DakJaniels | PC / Mac | 1.2.0 |
 | [Huntsman Warmask Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VollständigerName/Huntsman-Warmask-Reminder__4287) | VollständigerName | PC / Mac | 2.0.5 |
 | [Hyborem Assistant Rotation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Hyborem-Assistant-Rotation__4410) | Hyborem | PC / Mac | v.1.6 |
 | [Hyborem's Bugs'n'Weeds (based on Flowers She Likes by Ayantir)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Hyborem-s-Bugs-n-Weeds-based-on-Flowers-She-Likes-by-Ayantir__4528) | Hyborem | PC / Mac | v.2.0.0 |

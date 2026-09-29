@@ -18,7 +18,7 @@
     "RadiantRange"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4868/",
-  "fingerprint": "8fd715a264c426c11b250103e4739eb46a49e8ea7e52c36512c555a096812360",
+  "fingerprint": "8d4e31de0294b90b2636118220a348570e580281947fc38361742ae9fdea5015",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17525.png",
     "https://cdn-eso.mmoui.com/preview/pvw17526.png"
@@ -29,11 +29,11 @@
   "source_id": "4868",
   "source_url": "https://www.esoui.com/downloads/info4868-RadiantRange.html",
   "stats": {
-    "downloads": 16,
+    "downloads": 65,
     "favorites": 0,
-    "monthly_downloads": 12
+    "monthly_downloads": 37
   },
   "title": "Radiant Range",
-  "updated_at": 1790264947000,
-  "version": "1.0.2"
+  "updated_at": 1790643510000,
+  "version": "1.0.3"
 }

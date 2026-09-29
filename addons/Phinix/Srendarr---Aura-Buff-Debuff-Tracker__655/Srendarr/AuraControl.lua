@@ -35,6 +35,7 @@ local GetGameTimeMillis = GetGameTimeMilliseconds
 local IsToggledAura = Srendarr.IsToggledAura
 local IsMajorEffect = Srendarr.IsMajorEffect -- technically only used for major|minor buffs on the player, major|minor debuffs
 local IsMinorEffect = Srendarr.IsMinorEffect -- are filtered to the debuff grouping before being checked for
+local IsAlwaysShowTargetDebuff = Srendarr.IsAlwaysShowTargetDebuff
 local IsEnchantProc = Srendarr.IsEnchantProc
 local IsAlternateAura = Srendarr.IsAlternateAura
 local auraLookup = Srendarr.auraLookup
@@ -1034,7 +1035,7 @@ do ------------------------
                     elseif (castByPlayer) or (debuffSwitch ~= BUFF_EFFECT_TYPE_DEBUFF) then                            -- always process target buffs or debuffs cast by player
                         ProcessAura(false, auraName, start, finish, stacks, icon, debuffSwitch, abilityType, abilityId, castByPlayer)
                     elseif (debuffSwitch == BUFF_EFFECT_TYPE_DEBUFF) and (targetDebuff ~= 0) then
-                        if (not onlyPlayerDebuffs) or ((IsMajorEffect(abilityId)) or (IsMinorEffect(abilityId))) then -- process non-stacking non-player debuffs if not assigned to prominent and not set to only show player's debuffs
+                        if (not onlyPlayerDebuffs) or ((IsMajorEffect(abilityId)) or (IsMinorEffect(abilityId)) or (IsAlwaysShowTargetDebuff(abilityId))) then -- process non-stacking non-player debuffs if not assigned to prominent and not set to only show player's debuffs
                             ProcessAura(false, auraName, start, finish, stacks, icon, debuffSwitch, abilityType, abilityId, castByPlayer)
                         end
                     end
@@ -1116,6 +1117,23 @@ do ------------------------
         if abilityCooldowns[abilityId] and abilityCooldowns[abilityId].cdE == 1 then return end -- avoid duplicating cooldown abilities tracked through combat events (Phinix)
         if specialProcs[abilityId] then return end                                              -- avoid duplicating special procs tracked through combat events (Phinix)
         if grimBase[abilityId] then return end                                                  -- let grim focus and morphs be handled entirely by custom tracker (Phinix)
+
+        local grimTrackerId = Srendarr.grimBuffToTracker[abilityId]
+        if grimTrackerId then
+            if unitTag ~= 'player' then return end
+            local remainingStacks = stack
+            if change == EFFECT_RESULT_FADED then
+                remainingStacks = Srendarr.GetGrimBuffStacks('player', grimTrackerId)
+                if remainingStacks == nil then remainingStacks = 0 end
+            end
+            Srendarr.db.grimTracker[grimTrackerId].stacks = remainingStacks
+            Srendarr.GrimStackCheck(remainingStacks, grimTrackerId)
+            if auraLookup['player'][grimTrackerId] then
+                local grimAura = auraLookup['player'][grimTrackerId]
+                grimAura:Update(grimAura.start, grimAura.finish, remainingStacks, true)
+            end
+            return
+        end
         local unitIsGroup = false
         local unitTagt
 
@@ -1250,7 +1268,7 @@ do ------------------------
         if unitTagt == 'reticleover' and typeSwitch == BUFF_EFFECT_TYPE_DEBUFF then
             if (not isPlayerSource) and (((isProminent) and (pCast)) or ((not isProminent) and (Srendarr.db.filtersTarget.onlyPlayerDebuffs))) then
                 -- allow effects that don't stack from multiple sources to release to avoid not knowing when critical buffs/debuffs are missing (Phinix)
-                if ((isMajor) or (isMinor)) and (change == EFFECT_RESULT_FADED) then else return end
+                if ((isMajor) or (isMinor) or (IsAlwaysShowTargetDebuff(abilityId))) and (change == EFFECT_RESULT_FADED) then else return end
             end
         end
 
@@ -1264,7 +1282,7 @@ do ------------------------
 
             if fadedAura ~= nil then
                 if unitTagt == 'reticleover' then
-                    if ((isPlayerSource) or ((isMajor) or (isMinor))) then
+                    if ((isPlayerSource) or ((isMajor) or (isMinor) or (IsAlwaysShowTargetDebuff(abilityId)))) then
                         if trackTargets[abilityId] and trackTargets[abilityId][fName] then trackTargets[abilityId][fName] = nil end
                         if fakeTargetsDB[abilityId] and not Srendarr.fakeTargetDebuffs[abilityId] then fakeTargetsDB[abilityId] = nil end
                     end
@@ -1456,25 +1474,20 @@ do ------------------------
         local dbTag = (groupType == 0 or groupType == 1) and unitTag or groupTag
 
         if eType == TYPE_GRIM then
-            local numAuras = GetNumBuffs('player')
-            if numAuras > 0 then -- player has auras, scan and send to handle
-                for i = 1, numAuras do
-                    local _, caName, caStart, caFinish, caStacks, caIcon, caEType, caAType, caAId, caPCast
-                    caName, caStart, caFinish, _, caStacks, caIcon, _, caEType, caAType, _, caAId, _, caPCast = GetUnitBuffInfo('player', i)
-                    if caAId == abilityId then
-                        for _, auras in pairs(auraLookup) do         -- iterate all aura lookups
-                            for id, aura in pairs(auras) do          -- iterate all auras for each lookup
-                                if grimBase[id] and id ~= caAId then -- clear tracking aura for other morphs when changing
-                                    aura:Release(true)
-                                end
-                            end
+            local gameStacks = Srendarr.GetGrimBuffStacks('player', abilityId)
+            if gameStacks ~= nil then
+                for _, auras in pairs(auraLookup) do         -- iterate all aura lookups
+                    for id, aura in pairs(auras) do          -- iterate all auras for each lookup
+                        if grimBase[id] and id ~= abilityId then -- clear tracking aura for other morphs when changing
+                            aura:Release(true)
                         end
-                        Srendarr.db.grimTracker[abilityId].stacks = caStacks
-                        GrimStackCheck(caStacks, caAId)
-                        stacks = caStacks
-                        break
                     end
                 end
+                Srendarr.db.grimTracker[abilityId].stacks = gameStacks
+                GrimStackCheck(gameStacks, abilityId)
+                stacks = gameStacks
+            else
+                stacks = Srendarr.db.grimTracker[abilityId].stacks
             end
         elseif eType == TYPE_ENCHANT then -- enchantProcs[abilityId] ~= nil
             dbTime = enchantProcs[abilityId].duration
@@ -1581,7 +1594,7 @@ do ------------------------
         if dbTag == 'reticleover' and eType == TYPE_TARGET_DEBUFF then
             if (not isPlayerSource) and (((isProminent) and (pCast)) or ((not isProminent) and (Srendarr.db.filtersTarget.onlyPlayerDebuffs))) then
                 -- allow effects that don't stack from multiple sources to release to avoid not knowing when critical buffs/debuffs are missing (Phinix)
-                if ((isMajor) or (isMinor)) and (eType == TYPE_RELEASE) then else return end
+                if ((isMajor) or (isMinor) or (IsAlwaysShowTargetDebuff(abilityId))) and (eType == TYPE_RELEASE) then else return end
             end
         end
 
@@ -1627,21 +1640,26 @@ do ------------------------
 
             if grimBase[releaseOffset] then -- Grim Focus (Phinix)
                 if (isPlayerSource) and (result == 2240) then
-                    Srendarr.db.grimTracker[releaseOffset].stacks = 0
-                    GrimStackCheck(0, releaseOffset)
+                    local remainingStacks = Srendarr.GetGrimBuffStacks('player', releaseOffset)
+                    if remainingStacks == nil then
+                        remainingStacks = Srendarr.GetGrimRemainingStacks(releaseOffset, Srendarr.db.grimTracker[releaseOffset].stacks)
+                    end
+                    local procReady = Srendarr.IsGrimProcReady(releaseOffset, remainingStacks)
+                    Srendarr.db.grimTracker[releaseOffset].stacks = remainingStacks
+                    GrimStackCheck(remainingStacks, releaseOffset)
                     if (auraLookup[dbTag][releaseOffset]) then
                         local modAura = auraLookup[dbTag][releaseOffset]
                         local modName = modAura.auraName
                         local modStart = modAura.start
                         local modFinish = modAura.finish
-                        if modAura.isPlaying then
+                        if modAura.isPlaying and not procReady then
                             modAura.loopTexture:SetHidden(true)
                             modAura.loop:Stop()
                             modAura.isPlaying = false
                         end
-                        local modIcon = grimBase[releaseOffset].icon
+                        local modIcon = procReady and '/esoui/art/icons/ability_rogue_058.dds' or grimBase[releaseOffset].icon
                         local modProminent = (Srendarr.prominentIDs[releaseOffset] ~= nil and Srendarr.prominentPlayer[releaseOffset] ~= nil)
-                        AuraHandler(false, modName, dbTag, modStart, modFinish, modIcon, BUFF_EFFECT_TYPE_BUFF, ABILITY_TYPE_NONE, releaseOffset, 1, 0, nil, modProminent, nil, pType, pFrame)
+                        AuraHandler(false, modName, dbTag, modStart, modFinish, modIcon, BUFF_EFFECT_TYPE_BUFF, ABILITY_TYPE_NONE, releaseOffset, 1, remainingStacks, nil, modProminent, nil, pType, pFrame)
                     end
                 end
             else

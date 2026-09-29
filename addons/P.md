@@ -50,7 +50,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Perfect Rockgrove](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Perfect-Rockgrove__3238) | buldezir | PC / Mac | 1.0.7 |
 | [Perfect Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Perfect-Weave__2918) | andy.s | PC / Mac | 0.8 |
 | [Perfect Weave (bugfix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Perfect-Weave-bugfix__4468) | code65536 | PC / Mac | 0.9 |
-| [PerfectPixel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/PerfectPixel__2103) | KLISK | PC / Mac | 0.13.38 |
+| [PerfectPixel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KLISK/PerfectPixel__2103) | KLISK | PC / Mac | 0.13.39 |
 | [PerfectWeavePort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/PerfectWeavePort__c0bb6f24-c2ad-470f-885d-34928944caba) | mYoda01 | Console | — |
 | [Performance Statz](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toirealach/Performance-Statz__3458) | Toirealach | PC / Mac | 1.0.13 |
 | [PermAlmalexia: Permanent Mementos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/PermAlmalexia-Permanent-Mementos__3578) | Mouton | PC / Mac | 1.2.1 |
@@ -153,7 +153,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pocket Adeptus (Red Trial CP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Pocket-Adeptus-Red-Trial-CP__2057) | init3 | PC / Mac | 2.4 |
 | [Pocket Adeptus Red Trial CP - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EternalSessions6/Pocket-Adeptus-Red-Trial-CP---Updated__2782) | EternalSessions6 | PC / Mac | 1.0 |
 | [Pocket Money](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Pocket-Money__b2d38492-3b20-43e0-9262-af382d04fb04) | msetten | Console | — |
-| [PocketChange](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/PocketChange__1849) | Shadowfen | PC / Mac | 1.36 |
+| [PocketChange](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/PocketChange__1849) | Shadowfen | PC / Mac | 1.39 |
 | [PointsofColor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/PointsofColor__ffe303a8-aa0e-4c0c-a21f-62dcc0da1107) | Sharlikran | Console | — |
 | [PointsofColor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/PointsofColor__2090) | Sharlikran | PC / Mac | 2.65 |
 | [Poison Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Poison-Master__1392) | Phinix | PC / Mac | 1.16 |
@@ -219,6 +219,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PT-BR Patch for Tamriel Trade Centre](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/frooke/PT-BR-Patch-for-Tamriel-Trade-Centre__3506) | frooke | PC / Mac | 2.0.1 |
 | [PTS Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/PTS-Assistant__4352) | imPDA | PC / Mac | 5 |
 | [Public Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhaossa-daro/Public-Dungeon-Tracker__4214) | Rhaossa-daro | PC / Mac | 1.0.1 |
+| [Pug Blacklist (Group Management)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/Pug-Blacklist-Group-Management__4322) | haze068 | PC / Mac | 5 |
 | [PUGmo - The Pick Up Group utility + more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tigertron/PUGmo---The-Pick-Up-Group-utility-more__3207) | Tigertron | PC / Mac | 21.10.09 |
 | [PUGSupportIcons - icon pack for OdySupport Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/def-venom/PUGSupportIcons---icon-pack-for-OdySupport-Icons__3397) | def venom | PC / Mac | 1.001 |
 | [Puma](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Puma__5fcc6401-3a36-427e-acd5-9611fb589e78) | Vixen_Hunny | Console | — |

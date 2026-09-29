@@ -21,10 +21,10 @@ _G.ScrollkeeperColorThemes = Scrollkeeper.ColorThemes
 
 -- 🎨 Define themes with hex values
 local themes = {
-  Ember = { 
-    border = "5c1818",  -- Red borders
-    header = "EAC76A",  -- Flame gold headers
-    text = "D9772A",    -- Copper text
+  Ember = { -- For Dingo
+    border = "5c1818",  -- Red borders (title bar)
+    header = "EAC76A",  -- Flame gold headers (titles)
+    text = "D9772A",    -- Copper text (context menus)
     panel = "811b1b",   -- Dark panels
     accent = "bc9153"   -- Yellow accent
   },
@@ -35,33 +35,40 @@ local themes = {
     panel = "262424",   -- Very dark panels
     accent = "5C5A57"   -- Iron accent
   },
-  Ocean = { 
+  Ocean = { -- For Meg
     border = "194174",  -- Blue borders
     header = "6FD3C3",  -- Foam green headers
     text = "33CCCC",    -- Turquoise text
     panel = "153241",   -- Dark blue panels
     accent = "1E6F63"   -- Kelp accent
   },
-  Sky = { 
+  Sky = {
     border = "502857",  -- Violet borders
     header = "F2A3C7",  -- Pink headers
     text = "C6B6D9",    -- Lavender text
     panel = "40364A",   -- Twilight panels
     accent = "843356"   -- Rosy accent
   },
-  Regalia = { 
+  Regalia = { -- For Brady
     border = "702963",  -- Byzantine purple borders
     header = "E4D7A3",  -- Ivory headers
     text = "ADB2BE",    -- Pewter text
     panel = "3A1730",   -- Aubergine panels
     accent = "7F6026"   -- Ochre accent
   },
-  Briar = { 
+  Briar = { -- For EU's Rose guilds
     border = "5B2A2A",  -- Rosewood borders
     header = "E6DCCB",  -- Parchment headers
     text = "7C8F55",    -- Olive text
     panel = "9B6A6A",   -- Faded Rose Ash panels
     accent = "5F7F73"   -- Verdigris accent
+  },  
+  Jungle = { -- For Wookie
+    border = "3F4935", -- Olive bark
+    header = "C8BD72", -- Filtered sunlight
+    text   = "5EAA8A", -- Jade foliage
+    panel  = "0B291B", -- Deep forest
+    accent = "667F61"  -- Deep sage
   },
 }
 
@@ -99,7 +106,8 @@ local function buildControls()
     SF.func._L("ScrollkeeperColorThemes", "THEME_OCEAN"),
     SF.func._L("ScrollkeeperColorThemes", "THEME_SKY"),
 	SF.func._L("ScrollkeeperColorThemes", "THEME_REGALIA"),
-	SF.func._L("ScrollkeeperColorThemes", "THEME_BRIAR")
+	SF.func._L("ScrollkeeperColorThemes", "THEME_BRIAR"),
+	SF.func._L("ScrollkeeperColorThemes", "THEME_JUNGLE")
   }
          
   return {

@@ -1,13 +1,14 @@
 ## Title: |cCC922FThiefTools-FilteredAutoSteal|r
 ## Author: Shadowfen
 ## Description: A filtered auto-stealing manager to make your stealing faster and easier.
-## APIVersion: 101050 101051
-## Version: 1.3.9
-## AddOnVersion: 12
+## APIVersion: 101052 101051
+## Version: 1.3.10
+## AddOnVersion: 13
+## IsLibrary: false
 ## SavedVariables: TTFAS_VARS TTFAS_Profiles
-## DependsOn: LibAddonMenu-2.0>=41 LibSFUtils>=66 LibDebugLogger>=268
-## OptionalDependsOn: ThiefTools>=54 
-## OptionalDependsOn: UnknownTracker>=79 TamrielTradeCentre
+## DependsOn: LibAddonMenu-2.0>=43 LibSFUtils>=78 LibDebugLogger>=307
+## OptionalDependsOn: ThiefTools
+## OptionalDependsOn: UnknownTracker TamrielTradeCentre
 
 
 lang/en.lua

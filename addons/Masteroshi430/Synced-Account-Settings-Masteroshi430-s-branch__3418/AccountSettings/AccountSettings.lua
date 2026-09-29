@@ -1572,6 +1572,18 @@ AccountSettings.SettingIds = {
             text = SI_INTERFACE_OPTIONS_COMBAT_ALLOW_COMPANION_AUTO_ULTIMATE,
             tooltipText = SI_INTERFACE_OPTIONS_COMBAT_ALLOW_COMPANION_AUTO_ULTIMATE_TOOLTIP,
         },
+        --Options_Gameplay_DamageShieldVisibility
+        [COMBAT_SETTING_DAMAGE_SHIELD_VISIBILITY] =
+        {
+            controlType = OPTIONS_FINITE_LIST,
+            system = SETTING_TYPE_COMBAT,
+            settingId = COMBAT_SETTING_DAMAGE_SHIELD_VISIBILITY,
+            panel = SETTING_PANEL_GAMEPLAY,
+            text = SI_INTERFACE_OPTIONS_COMBAT_DAMAGE_SHIELD_VISIBILITY,
+            tooltipText = SI_INTERFACE_OPTIONS_COMBAT_DAMAGE_SHIELD_VISIBILITY_TOOLTIP,
+            valid = {DAMAGE_SHIELD_VISIBILITY_SETTING_OFF, DAMAGE_SHIELD_VISIBILITY_SETTING_CURRENT_HEALTH, DAMAGE_SHIELD_VISIBILITY_SETTING_START_TIME},
+            valueStringPrefix = "SI_DAMAGESHIELDVISIBILITYSETTING",
+        },
     },
 
     --Gamepad
@@ -2406,6 +2418,39 @@ AccountSettings.SettingIds = {
             tooltipText = SI_GRAPHICS_OPTIONS_VIDEO_SHOW_ADDITIONAL_ALLY_EFFECTS_TOOLTIP,
             exists = ZO_IsPCUI,
         },
+        [GRAPHICS_SETTING_VFX_SELF_INTENSITY] =
+        {
+            controlType = OPTIONS_FINITE_LIST,
+            system = SETTING_TYPE_GRAPHICS,
+            settingId = GRAPHICS_SETTING_VFX_SELF_INTENSITY,
+            panel = SETTING_PANEL_VIDEO,
+            text = SI_GRAPHICS_OPTIONS_VIDEO_VFX_SELF_INTENSITY,
+            tooltipText = SI_GRAPHICS_OPTIONS_VIDEO_VFX_SELF_INTENSITY_TOOLTIP,
+            valid = { VFX_INTENSITY_VALUE_NORMAL, VFX_INTENSITY_VALUE_LOW, VFX_INTENSITY_VALUE_MINIMAL},
+            valueStringPrefix = "SI_VFXINTENSITYVALUE",
+        },
+        [GRAPHICS_SETTING_VFX_FRIENDLY_INTENSITY] =
+        {
+            controlType = OPTIONS_FINITE_LIST,
+            system = SETTING_TYPE_GRAPHICS,
+            settingId = GRAPHICS_SETTING_VFX_FRIENDLY_INTENSITY,
+            panel = SETTING_PANEL_VIDEO,
+            text = SI_GRAPHICS_OPTIONS_VIDEO_VFX_FRIENDLY_INTENSITY,
+            tooltipText = SI_GRAPHICS_OPTIONS_VIDEO_VFX_FRIENDLY_INTENSITY_TOOLTIP,
+            valid = { VFX_INTENSITY_VALUE_NORMAL, VFX_INTENSITY_VALUE_LOW, VFX_INTENSITY_VALUE_MINIMAL},
+            valueStringPrefix = "SI_VFXINTENSITYVALUE",
+        },
+        [GRAPHICS_SETTING_VFX_ENEMY_INTENSITY] =
+        {
+            controlType = OPTIONS_FINITE_LIST,
+            system = SETTING_TYPE_GRAPHICS,
+            settingId = GRAPHICS_SETTING_VFX_ENEMY_INTENSITY,
+            panel = SETTING_PANEL_VIDEO,
+            text = SI_GRAPHICS_OPTIONS_VIDEO_VFX_ENEMY_INTENSITY,
+            tooltipText = SI_GRAPHICS_OPTIONS_VIDEO_VFX_ENEMY_INTENSITY_TOOLTIP,
+            valid = { VFX_INTENSITY_VALUE_NORMAL, VFX_INTENSITY_VALUE_LOW, VFX_INTENSITY_VALUE_MINIMAL},
+            valueStringPrefix = "SI_VFXINTENSITYVALUE",
+        },
     },
 
     --In world
@@ -3105,33 +3150,49 @@ AccountSettings.SettingIds = {
             text = SI_INTERFACE_OPTIONS_ULTIMATE_NUMBER,
             tooltipText = SI_INTERFACE_OPTIONS_ULTIMATE_NUMBER_TOOLTIP,
         },
-       [UI_SETTING_PRIMARY_PLAYER_NAME_KEYBOARD] =
+        [UI_SETTING_PRIMARY_PLAYER_NAME_PC] =
         {
             controlType = OPTIONS_FINITE_LIST,
             system = SETTING_TYPE_UI,
             panel = SETTING_PANEL_INTERFACE,
-            settingId = UI_SETTING_PRIMARY_PLAYER_NAME_KEYBOARD,
-            text = SI_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME_KEYBOARD,
-            tooltipText = SI_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME_TOOLTIP_KEYBOARD,
-            valid = {PRIMARY_PLAYER_NAME_SETTING_PREFER_USERID, PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER,},
+            settingId = UI_SETTING_PRIMARY_PLAYER_NAME_PC,
+            text = SI_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME,
+            tooltipText = SI_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME_TOOLTIP,
+            exists = ZO_IsPCUI,
+            valid =
+            {
+                PRIMARY_PLAYER_NAME_SETTING_PREFER_CROSSPLAY,
+                PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER,
+            },
             valueStrings =
             {
-                function() return zo_strformat(GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_USERID), ZO_GetPlatformAccountLabel()) end,
-                function() return GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER) end
+                function() return GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_CROSSPLAY) end,
+                function() return GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER) end,
             }
         },
-        [UI_SETTING_PRIMARY_PLAYER_NAME_GAMEPAD] =
+        [UI_SETTING_PRIMARY_PLAYER_NAME_CONSOLE] =
         {
             controlType = OPTIONS_FINITE_LIST,
             system = SETTING_TYPE_UI,
             panel = SETTING_PANEL_INTERFACE,
-            settingId = UI_SETTING_PRIMARY_PLAYER_NAME_GAMEPAD,
-            text = SI_GAMEPAD_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME,
-            tooltipText = SI_GAMEPAD_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME_TOOLTIP,
-            valid = {PRIMARY_PLAYER_NAME_SETTING_PREFER_USERID, PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER,},
+            settingId = UI_SETTING_PRIMARY_PLAYER_NAME_CONSOLE,
+            text = SI_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME,
+            tooltipText = SI_INTERFACE_OPTIONS_PRIMARY_PLAYER_NAME_TOOLTIP,
+            exists = ZO_IsConsoleOrGameCoreUI,
+            valid =
+            {
+                PRIMARY_PLAYER_NAME_SETTING_PREFER_PLATFORM,
+                 
+
+
+                PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER,
+            },
             valueStrings =
             {
-                function() return zo_strformat(GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_USERID), ZO_GetPlatformAccountLabel()) end,
+                function() return zo_strformat(GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_PLATFORM), ZO_GetPlatformAccountLabel()) end,
+                
+
+
                 function() return GetString("SI_PRIMARYPLAYERNAMESETTING", PRIMARY_PLAYER_NAME_SETTING_PREFER_CHARACTER) end
             }
         },
@@ -4464,7 +4525,7 @@ function AccountSettings:CreateSettingsWindow()
         type = "panel",
         name = AccountSettings.displayName,
         author = "|cff00ffJodynn|r, |c3CB371@Masteroshi430|r",
-        version = "2026.07.19",
+        version = "2026.09.28",
         registerForRefresh = true,
         registerForDefaults = true,
         slashCommand = "/accountsettings"

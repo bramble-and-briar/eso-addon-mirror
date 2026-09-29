@@ -52,6 +52,7 @@ CombatMetronome.DEFAULT_SAVED_VARS = {
 		["soundTockEnabled"] = false,
 		["soundTockEffect"] = "Dialog_Decline",
 		["soundTockOffset"] = 300,
+		["playSoundsOOC"] = false,
 		["forceSoundTock"] = true,
 		["stopHATracking"] = false,
 		["makeItFancy"] = false,
@@ -60,6 +61,10 @@ CombatMetronome.DEFAULT_SAVED_VARS = {
 		["expandDynamically"] = false,
 		["moveIconDynamically"] = true,
 		["dynamicExpansionMultiplyer"] = 1,
+		["forceTickMSBeforeEnd"] = false,
+		["forceTickTime"] = 500,
+		["noSoundOnLongAbilities"] = false,
+		-- ["hardForceTickTock"] = false,
 	},
 	["Resources"] = {
 		["anchorResourcesToProgressbar"] = true,
@@ -124,6 +129,7 @@ CombatMetronome.DEFAULT_SAVED_VARS = {
 			["list"] = {},
 			["ids"] = {},
 		},
+		["tickTock"] = false,
 	},
 }
 

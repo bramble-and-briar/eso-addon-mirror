@@ -74,5 +74,228 @@
         </Control>
       </Controls>
     </Control>
+
+    <Control name="HUDitorTools_AppearanceInfoBoxSection"
+             virtual="true"
+             resizeToFitDescendents="true"
+             resizeToFitConstrains="Y"
+             mouseEnabled="true">
+      <Dimensions x="90%" />
+      <Controls>
+        <Label name="$(parent)Header"
+               font="ZoFontGame"
+               text="SI_HUDITORTOOLS_APPEARANCE"
+               color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+          <Anchor point="TOPLEFT" />
+          <Anchor point="TOPRIGHT"
+                  constrains="X" />
+        </Label>
+        <Control name="$(parent)ScaleRow"
+                 resizeToFitDescendents="true">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)Header"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="8" />
+          <Controls>
+            <Label name="$(parent)Name"
+                   font="ZoFontGame"
+                   text="SI_HUDITORTOOLS_APPEARANCE_SCALE"
+                   color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+              <Anchor point="TOPLEFT" />
+              <Dimensions x="140" />
+            </Label>
+            <Backdrop name="$(parent)Backdrop"
+                      layer="CONTROLS"
+                      inherits="ZO_SingleLineEditBackdrop_Keyboard">
+              <Anchor point="LEFT"
+                      relativeTo="$(parent)Name"
+                      relativePoint="RIGHT"
+                      offsetX="10" />
+              <Dimensions x="72"
+                          y="18" />
+              <Controls>
+                <EditBox name="$(parent)Edit"
+                         inherits="ZO_DefaultEditForBackdrop"
+                         maxInputCharacters="6"
+                         textType="NUMERIC_UNSIGNED_INT"
+                         level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL" />
+              </Controls>
+            </Backdrop>
+          </Controls>
+        </Control>
+        <Label name="$(parent)FontLabel"
+               font="ZoFontGame"
+               text="SI_HUDITORTOOLS_APPEARANCE_FONT"
+               color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)ScaleRow"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="10" />
+        </Label>
+        <Control name="$(parent)FontCombo"
+                 inherits="ZO_ComboBox"
+                 level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)FontLabel"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="4" />
+          <Anchor point="TOPRIGHT"
+                  relativeTo="$(parent)Header"
+                  relativePoint="BOTTOMRIGHT"
+                  constrains="X" />
+          <Dimensions y="31" />
+          <Controls>
+            <Backdrop name="$(parent)BG"
+                      override="true"
+                      layer="CONTROLS" />
+            <Button name="$(parent)OpenDropdown"
+                    override="true"
+                    level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL" />
+          </Controls>
+        </Control>
+        <Control name="$(parent)FontSizeRow"
+                 resizeToFitDescendents="true">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)FontCombo"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="8" />
+          <Controls>
+            <Label name="$(parent)Name"
+                   font="ZoFontGame"
+                   text="SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"
+                   color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+              <Anchor point="TOPLEFT" />
+              <Dimensions x="140" />
+            </Label>
+            <Backdrop name="$(parent)Backdrop"
+                      layer="CONTROLS"
+                      inherits="ZO_SingleLineEditBackdrop_Keyboard">
+              <Anchor point="LEFT"
+                      relativeTo="$(parent)Name"
+                      relativePoint="RIGHT"
+                      offsetX="10" />
+              <Dimensions x="50"
+                          y="18" />
+              <Controls>
+                <EditBox name="$(parent)Edit"
+                         inherits="ZO_DefaultEditForBackdrop"
+                         maxInputCharacters="4"
+                         textType="NUMERIC_UNSIGNED_INT"
+                         level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL" />
+              </Controls>
+            </Backdrop>
+          </Controls>
+        </Control>
+        <Label name="$(parent)OutlineLabel"
+               font="ZoFontGame"
+               text="SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"
+               color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)FontSizeRow"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="10" />
+        </Label>
+        <Control name="$(parent)OutlineCombo"
+                 inherits="ZO_ComboBox"
+                 level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)OutlineLabel"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="4" />
+          <Anchor point="TOPRIGHT"
+                  relativeTo="$(parent)Header"
+                  relativePoint="BOTTOMRIGHT"
+                  constrains="X" />
+          <Dimensions y="31" />
+          <Controls>
+            <Backdrop name="$(parent)BG"
+                      override="true"
+                      layer="CONTROLS" />
+            <Button name="$(parent)OpenDropdown"
+                    override="true"
+                    level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL" />
+          </Controls>
+        </Control>
+        <Button name="$(parent)Reset"
+                inherits="ZO_DefaultButton"
+                text="SI_HUDITORTOOLS_APPEARANCE_RESET"
+                level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)OutlineCombo"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="10" />
+          <Dimensions x="200"
+                      y="28" />
+        </Button>
+        <Control name="$(parent)ResourceGroup"
+                 resizeToFitDescendents="true">
+          <Anchor point="TOPLEFT"
+                  relativeTo="$(parent)Reset"
+                  relativePoint="BOTTOMLEFT"
+                  offsetY="12" />
+          <Anchor point="RIGHT"
+                  relativeTo="$(parent)Header"
+                  relativePoint="RIGHT"
+                  constrains="X" />
+          <Controls>
+            <Label name="$(parent)Header"
+                   font="ZoFontGame"
+                   text="SI_HUDITORTOOLS_RESOURCE_GROUP"
+                   color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+              <Anchor point="TOPLEFT" />
+              <Anchor point="TOPRIGHT"
+                      constrains="X" />
+            </Label>
+            <Button name="$(parent)EnableCheck"
+                    inherits="ZO_HUDInfoBoxCheckButton_Keyboard">
+              <Anchor point="TOPLEFT"
+                      relativeTo="$(parent)Header"
+                      relativePoint="BOTTOMLEFT"
+                      offsetY="8" />
+            </Button>
+            <Button name="$(parent)PreventExpandCheck"
+                    inherits="ZO_HUDInfoBoxCheckButton_Keyboard">
+              <Anchor point="TOPLEFT"
+                      relativeTo="$(parent)EnableCheck"
+                      relativePoint="BOTTOMLEFT"
+                      offsetY="6" />
+            </Button>
+            <Control name="$(parent)WidthRow"
+                     resizeToFitDescendents="true">
+              <Anchor point="TOPLEFT"
+                      relativeTo="$(parent)PreventExpandCheck"
+                      relativePoint="BOTTOMLEFT"
+                      offsetY="8" />
+              <Controls>
+                <Label name="$(parent)Name"
+                       font="ZoFontGame"
+                       text="SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"
+                       color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                  <Anchor point="TOPLEFT" />
+                  <Dimensions x="140" />
+                </Label>
+                <Backdrop name="$(parent)Backdrop"
+                          layer="CONTROLS"
+                          inherits="ZO_SingleLineEditBackdrop_Keyboard">
+                  <Anchor point="LEFT"
+                          relativeTo="$(parent)Name"
+                          relativePoint="RIGHT"
+                          offsetX="10" />
+                  <Dimensions x="50"
+                              y="18" />
+                  <Controls>
+                    <EditBox name="$(parent)Edit"
+                             inherits="ZO_DefaultEditForBackdrop"
+                             maxInputCharacters="4"
+                             textType="NUMERIC_UNSIGNED_INT"
+                             level="ZO_HUD_EDITOR_KEYBOARD_INFO_BOX_INTERACTABLE_ELEMENT_LEVEL" />
+                  </Controls>
+                </Backdrop>
+              </Controls>
+            </Control>
+          </Controls>
+        </Control>
+      </Controls>
+    </Control>
   </Controls>
 </GuiXml>

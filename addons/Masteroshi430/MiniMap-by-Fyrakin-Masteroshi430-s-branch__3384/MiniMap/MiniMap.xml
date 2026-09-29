@@ -19,8 +19,7 @@
     </AnimationTimeline>
   </Animations>
   <Controls>
-  
-    <TopLevelControl name="Fyr_MM" mouseEnabled="true" movable="true" hidden="true" tier="MEDIUM" layer="BACKGROUND" level="0" >
+    <TopLevelControl name="Fyr_MM" mouseEnabled="true" hidden="true" tier="MEDIUM" layer="BACKGROUND" level="0" inherits="ZO_HUDManager_Element">
       <Controls>
         <Texture name="$(parent)_Camera" resizeToFitFile="true" layer="4" tier="MEDIUM" scale="1" >
           <Anchor relativeTo="Fyr_MM_Scroll" point="CENTER" relativePoint="CENTER" />
@@ -33,7 +32,7 @@
           <Insets left="-6" top="-6" right="6" bottom="6"></Insets>
           <OnInitialized>
                         self:SetCenterColor(0, 0, 0, 0)
-                    </OnInitialized>
+          </OnInitialized>
           <Anchor point="TOPLEFT" relativeTo="Fyr_MM" offsetX="-4" offsetY="-4"></Anchor>
           <Anchor point="BOTTOMRIGHT" relativeTo="Fyr_MM" />
         </Backdrop>

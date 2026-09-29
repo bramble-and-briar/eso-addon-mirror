@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/YudoAn/Yudo-s-Power-Stats__4323",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "YudoAn",
   "canonical_id": "esoui:4323",
   "category_id": "25",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4323",
@@ -17,7 +18,7 @@
     "YudosPowerStats"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4323/",
-  "fingerprint": "77b5e6d45ab515a6a476818a8511eb8e5e210cfc1b428bb995615e9b2cdf0e60",
+  "fingerprint": "1b0b1dcb74c818e404f1bd4c1831075ee44a6ec39bd0cb3e6d87dbf288e0b46e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15154.png",
     "https://cdn-eso.mmoui.com/preview/pvw16253.png",
@@ -31,11 +32,11 @@
   "source_id": "4323",
   "source_url": "https://www.esoui.com/downloads/info4323-YudosPowerStats.html",
   "stats": {
-    "downloads": 1636,
-    "favorites": 7,
-    "monthly_downloads": 127
+    "downloads": 1859,
+    "favorites": 8,
+    "monthly_downloads": 107
   },
   "title": "Yudo's Power Stats",
-  "updated_at": 1785088645000,
-  "version": "1.6.1"
+  "updated_at": 1790614881000,
+  "version": "1.6.2"
 }

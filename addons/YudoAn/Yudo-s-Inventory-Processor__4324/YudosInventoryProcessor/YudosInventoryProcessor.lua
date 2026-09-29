@@ -978,7 +978,7 @@ function YIP.InitializeSettings()
         name = "Yudo's Inventory Processor",
         displayName = "Yudo's Inventory Processor",
         author = "YudoAn",
-        version = "1.12.0",
+        version = "1.12.1",
         website = "https://www.esoui.com/downloads/info4324-YudosInventoryProcessor.html",
         registerForRefresh = true,
     }

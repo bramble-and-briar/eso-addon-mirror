@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Shadowfen/Where-s-My-Guild-Hall__1757",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Shadowfen",
   "canonical_id": "esoui:1757",
   "category_id": "160",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "WheresMyGuildHall"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1757/",
-  "fingerprint": "8fb6ba547b5b1f4cfa5f7541bc705c128be05cf8058b1fbf55c120a9288a0aa5",
+  "fingerprint": "44f2a6fecb9a81750c9dce373ad19a3d49501b742392fbbd1f442a27da874267",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5798.png",
     "https://cdn-eso.mmoui.com/preview/pvw5797.png",
@@ -82,11 +87,11 @@
   "source_id": "1757",
   "source_url": "https://www.esoui.com/downloads/info1757-WheresMyGuildHall.html",
   "stats": {
-    "downloads": 32552,
+    "downloads": 32629,
     "favorites": 43,
-    "monthly_downloads": 31
+    "monthly_downloads": 42
   },
   "title": "Where's My Guild Hall",
-  "updated_at": 1781033522000,
-  "version": "2.13.7"
+  "updated_at": 1790619940000,
+  "version": "2.13.8"
 }

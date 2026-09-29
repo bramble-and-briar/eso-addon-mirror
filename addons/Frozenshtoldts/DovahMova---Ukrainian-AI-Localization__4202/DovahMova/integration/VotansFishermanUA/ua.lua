@@ -1,81 +1,84 @@
-SafeAddString(SI_FISHERMAN_TOOLTIP0, "Можна використовувати будь-де", 1)
-SafeAddString(SI_FISHERMAN_TOOLTIP1, "Використовується для стічної води", 1)
-SafeAddString(SI_FISHERMAN_TOOLTIP2, "Використовується для річок", 1)
-SafeAddString(SI_FISHERMAN_TOOLTIP3, "Використовується для озер", 1)
-SafeAddString(SI_FISHERMAN_TOOLTIP4, "Використовується для солоної води", 1)
-SafeAddString(SI_FISHERMAN_QUICKMENU0, "Будь-де", 1)
-SafeAddString(SI_FISHERMAN_QUICKMENU1, "Стічна вода", 1)
-SafeAddString(SI_FISHERMAN_QUICKMENU2, "Річки", 1)
-SafeAddString(SI_FISHERMAN_QUICKMENU3, "Озера", 1)
-SafeAddString(SI_FISHERMAN_QUICKMENU4, "Моря", 1)
+-- Українські рядки для Votan's Fisherman: назва рядка SI_FISHERMAN_* -> текст.
+DovahMova.IntegrationStrings.VotansFisherman = {
+	SI_FISHERMAN_TOOLTIP0 = "Можна використовувати будь-де",
+	SI_FISHERMAN_TOOLTIP1 = "Використовується для стічної води",
+	SI_FISHERMAN_TOOLTIP2 = "Використовується для річок",
+	SI_FISHERMAN_TOOLTIP3 = "Використовується для озер",
+	SI_FISHERMAN_TOOLTIP4 = "Використовується для солоної води",
+	SI_FISHERMAN_QUICKMENU0 = "Будь-де",
+	SI_FISHERMAN_QUICKMENU1 = "Стічна вода",
+	SI_FISHERMAN_QUICKMENU2 = "Річки",
+	SI_FISHERMAN_QUICKMENU3 = "Озера",
+	SI_FISHERMAN_QUICKMENU4 = "Моря",
 
-SafeAddString(SI_FISHERMAN_INTERACT1, "Стічна", 1)
-SafeAddString(SI_FISHERMAN_INTERACT1B, "Масляниста", 1)
-SafeAddString(SI_FISHERMAN_INTERACT2, "Річка", 1)
-SafeAddString(SI_FISHERMAN_INTERACT3, "Озеро", 1)
-SafeAddString(SI_FISHERMAN_INTERACT4, "Морська", 1)
-SafeAddString(SI_FISHERMAN_INTERACT4B, "Містична", 1)
+	SI_FISHERMAN_INTERACT1 = "Стічна",
+	SI_FISHERMAN_INTERACT1B = "Масляниста",
+	SI_FISHERMAN_INTERACT2 = "Річка",
+	SI_FISHERMAN_INTERACT3 = "Озеро",
+	SI_FISHERMAN_INTERACT4 = "Морська",
+	SI_FISHERMAN_INTERACT4B = "Містична",
 
--- Settings
-SafeAddString(SI_FISHERMAN_SETTING_PIN_LEVEL, "Рівень піна", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PIN_SIZE, "Розмір піна", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PIN_SHOW_POIS, "Показувати POI", 1)
-SafeAddString(SI_FISHERMAN_SETTING_SHOW_LOOT_HUD, "Показувати здобич на HUD", 1)
-SafeAddString(SI_FISHERMAN_SETTING_SHOW_LOOT_MAP, "Показувати здобич на карті", 1)
-SafeAddString(SI_FISHERMAN_SETTING_SHOW_DEFAULT_LOOT, "Показувати звичайну здобич", 1)
-SafeAddString(SI_FISHERMAN_SETTING_SHOW_REEL_IN, "Сповіщення \"Тягни\"", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN, "Тягни - Подія", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_ANIM, "Анімація", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_COLOR, "Колір", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_SIZE, "Розмір (%)", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_SOUND, "Звук", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_NO_SOUND, "Без звуку", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_RETURN, "Повернутися до меню взаємодії", 1)
-SafeAddString(SI_FISHERMAN_SETTING_REEL_IN_RETURN_TOOLTIP, "Закриває меню, такі як інвентар, і зупиняє режим вказівника миші", 1)
-SafeAddString(SI_FISHERMAN_SETTING_AUTO_SWITCH_BAIT, "Автоматична зміна наживки", 1)
-SafeAddString(SI_FISHERMAN_SETTING_AUTO_SWITCH_BAIT_TOOLTIP, "Перемикатися на відповідну наживку при першій взаємодії з відомим місцем риболовлі.", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PREFER_BETTER_BAIT, "Віддавати перевагу кращій наживці", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PREFER_BETTER_BAIT_TOOLTIP, "Якщо автоматично перемикатися на відповідну наживку, віддавати перевагу кращій наживці над простою.", 1)
+	-- Settings
+	SI_FISHERMAN_SETTING_PIN_LEVEL = "Рівень піна",
+	SI_FISHERMAN_SETTING_PIN_SIZE = "Розмір піна",
+	SI_FISHERMAN_SETTING_PIN_SHOW_POIS = "Показувати POI",
+	SI_FISHERMAN_SETTING_SHOW_LOOT_HUD = "Показувати здобич на HUD",
+	SI_FISHERMAN_SETTING_SHOW_LOOT_MAP = "Показувати здобич на карті",
+	SI_FISHERMAN_SETTING_SHOW_DEFAULT_LOOT = "Показувати звичайну здобич",
+	SI_FISHERMAN_SETTING_SHOW_REEL_IN = "Сповіщення \"Тягни\"",
+	SI_FISHERMAN_SETTING_REEL_IN = "Тягни - Подія",
+	SI_FISHERMAN_SETTING_REEL_IN_ANIM = "Анімація",
+	SI_FISHERMAN_SETTING_REEL_IN_COLOR = "Колір",
+	SI_FISHERMAN_SETTING_REEL_IN_SIZE = "Розмір (%)",
+	SI_FISHERMAN_SETTING_REEL_IN_SOUND = "Звук",
+	SI_FISHERMAN_SETTING_REEL_IN_NO_SOUND = "Без звуку",
+	SI_FISHERMAN_SETTING_REEL_IN_RETURN = "Повернутися до меню взаємодії",
+	SI_FISHERMAN_SETTING_REEL_IN_RETURN_TOOLTIP = "Закриває меню, такі як інвентар, і зупиняє режим вказівника миші",
+	SI_FISHERMAN_SETTING_AUTO_SWITCH_BAIT = "Автоматична зміна наживки",
+	SI_FISHERMAN_SETTING_AUTO_SWITCH_BAIT_TOOLTIP = "Перемикатися на відповідну наживку при першій взаємодії з відомим місцем риболовлі.",
+	SI_FISHERMAN_SETTING_PREFER_BETTER_BAIT = "Віддавати перевагу кращій наживці",
+	SI_FISHERMAN_SETTING_PREFER_BETTER_BAIT_TOOLTIP = "Якщо автоматично перемикатися на відповідну наживку, віддавати перевагу кращій наживці над простою.",
 
-SafeAddString(SI_FISHERMAN_SETTING_EXTRAS, "Додатково", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PIN_SHOW_DEBUG, "Показати налагодження", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PIN_SHOW_CONTEXTMENU, "Показати контекстне меню піна карти", 1)
-SafeAddString(SI_FISHERMAN_SETTING_PIN_SHOW_TOOLTIP, "Показати підказку піна карти", 1)
-SafeAddString(SI_FISHERMAN_SETTING_SHOW_HIDE_RFT, "Показати/Приховати Rare Fish Tracker", 1)
+	SI_FISHERMAN_SETTING_EXTRAS = "Додатково",
+	SI_FISHERMAN_SETTING_PIN_SHOW_DEBUG = "Показати налагодження",
+	SI_FISHERMAN_SETTING_PIN_SHOW_CONTEXTMENU = "Показати контекстне меню піна карти",
+	SI_FISHERMAN_SETTING_PIN_SHOW_TOOLTIP = "Показати підказку піна карти",
+	SI_FISHERMAN_SETTING_SHOW_HIDE_RFT = "Показати/Приховати Rare Fish Tracker",
 
-SafeAddString(SI_FISHERMAN_SETTING_DATA_RESTART, "Перезапустити вимірювання", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_RESTART_HINT, "Щоразу, коли ви наближаєтеся до місця риболовлі або рухаєтеся навколо нього, фокусуючись, ваша поточна позиція та напрямок використовуються для уточнення позиції місця риболовлі. При 100% позиція місця риболовлі фіксується.", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_RESTART_HINT2, "Натискання кнопки скидає лічильник найближчих місць риболовлі до 1. Дані не втрачаються.", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_RESTART_BUTTON, "Перезапустити", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_RESTART_TOOLTIP, "Перезапустити вимірювання", 1)
+	SI_FISHERMAN_SETTING_DATA_RESTART = "Перезапустити вимірювання",
+	SI_FISHERMAN_SETTING_DATA_RESTART_HINT = "Щоразу, коли ви наближаєтеся до місця риболовлі або рухаєтеся навколо нього, фокусуючись, ваша поточна позиція та напрямок використовуються для уточнення позиції місця риболовлі. При 100% позиція місця риболовлі фіксується.",
+	SI_FISHERMAN_SETTING_DATA_RESTART_HINT2 = "Натискання кнопки скидає лічильник найближчих місць риболовлі до 1. Дані не втрачаються.",
+	SI_FISHERMAN_SETTING_DATA_RESTART_BUTTON = "Перезапустити",
+	SI_FISHERMAN_SETTING_DATA_RESTART_TOOLTIP = "Перезапустити вимірювання",
 
-SafeAddString(SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST, "Очистити список виловленого", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST_HINT, "Очищає список виловленої риби та предметів найближчих місць риболовлі. Тип зберігається.", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST_BUTTON, "Очистити", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST_TOOLTIP, "Очистити список виловленого", 1)
+	SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST = "Очистити список виловленого",
+	SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST_HINT = "Очищає список виловленої риби та предметів найближчих місць риболовлі. Тип зберігається.",
+	SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST_BUTTON = "Очистити",
+	SI_FISHERMAN_SETTING_DATA_CAUGHT_LIST_TOOLTIP = "Очистити список виловленого",
 
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE, "Об'єднати місця риболовлі", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_HINT, "Об'єднує помилково виявлені місця риболовлі навколо поточної позиції гравця в одне.", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_VERY_CLOSE, "Дуже близько", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_VERY_CLOSE, "Об'єднати дуже близькі місця риболовлі. (діапазон 25%)", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_CLOSE, "Близько", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_CLOSE, "Об'єднати близькі місця риболовлі. (діапазон 50%)", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_NEAR, "Поруч", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_NEAR, "Об'єднати місця риболовлі поруч. (діапазон 100%)", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_RANGE, "Діапазон", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_MERGE_RANGE, "Об'єднати місця риболовлі в діапазоні. (діапазон 125%)", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_TO_PLAYER_POS, "Встановити на позицію гравця", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_PLAYER_TOO_FAR, "Гравець занадто далеко.", 1)
+	SI_FISHERMAN_SETTING_DATA_MERGE = "Об'єднати місця риболовлі",
+	SI_FISHERMAN_SETTING_DATA_MERGE_HINT = "Об'єднує помилково виявлені місця риболовлі навколо поточної позиції гравця в одне.",
+	SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_VERY_CLOSE = "Дуже близько",
+	SI_FISHERMAN_SETTING_DATA_MERGE_VERY_CLOSE = "Об'єднати дуже близькі місця риболовлі. (діапазон 25%)",
+	SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_CLOSE = "Близько",
+	SI_FISHERMAN_SETTING_DATA_MERGE_CLOSE = "Об'єднати близькі місця риболовлі. (діапазон 50%)",
+	SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_NEAR = "Поруч",
+	SI_FISHERMAN_SETTING_DATA_MERGE_NEAR = "Об'єднати місця риболовлі поруч. (діапазон 100%)",
+	SI_FISHERMAN_SETTING_DATA_MERGE_BUTTON_RANGE = "Діапазон",
+	SI_FISHERMAN_SETTING_DATA_MERGE_RANGE = "Об'єднати місця риболовлі в діапазоні. (діапазон 125%)",
+	SI_FISHERMAN_SETTING_DATA_TO_PLAYER_POS = "Встановити на позицію гравця",
+	SI_FISHERMAN_SETTING_DATA_PLAYER_TOO_FAR = "Гравець занадто далеко.",
 
-SafeAddString(SI_FISHERMAN_SETTING_DATA_ERASE, "Стерти дані", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_ERASE_HINT, "Видаляє найближчі місця риболовлі. Будьте обережні!", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_ERASE_BUTTON, "Стерти поруч", 1)
-SafeAddString(SI_FISHERMAN_SETTING_DATA_ERASE_TOOLTIP, "Що зникло, те зникло!", 1)
+	SI_FISHERMAN_SETTING_DATA_ERASE = "Стерти дані",
+	SI_FISHERMAN_SETTING_DATA_ERASE_HINT = "Видаляє найближчі місця риболовлі. Будьте обережні!",
+	SI_FISHERMAN_SETTING_DATA_ERASE_BUTTON = "Стерти поруч",
+	SI_FISHERMAN_SETTING_DATA_ERASE_TOOLTIP = "Що зникло, те зникло!",
 
-SafeAddString(SI_FISHERMAN_STATS_TOTAL, "Всього", 1)
-SafeAddString(SI_FISHERMAN_STATS_UNKNOWN, "Невідомо", 1)
+	SI_FISHERMAN_STATS_TOTAL = "Всього",
+	SI_FISHERMAN_STATS_UNKNOWN = "Невідомо",
 
-SafeAddString(SI_FISHERMAN_ACTIONNAME1, "Стічна риба", 1)
-SafeAddString(SI_FISHERMAN_ACTIONNAME2, "Річкова риба", 1)
-SafeAddString(SI_FISHERMAN_ACTIONNAME3, "Озерна риба", 1)
-SafeAddString(SI_FISHERMAN_ACTIONNAME4, "Сорська риба", 1)
+	SI_FISHERMAN_ACTIONNAME1 = "Стічна риба",
+	SI_FISHERMAN_ACTIONNAME2 = "Річкова риба",
+	SI_FISHERMAN_ACTIONNAME3 = "Озерна риба",
+	SI_FISHERMAN_ACTIONNAME4 = "Морська риба",
+}

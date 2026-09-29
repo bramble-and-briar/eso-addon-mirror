@@ -2,7 +2,7 @@
 DevSandbox3 = {
     name = "DevSandbox3",
     displayName = "dev sandbox 3",
-    version = "0.5.1",
+    version = "0.6.0",
     savedVarsName = "DevSandbox3SavedVars",
     savedVarsVersion = 1,
     pinType = "DevSandbox3_WarTortePin",

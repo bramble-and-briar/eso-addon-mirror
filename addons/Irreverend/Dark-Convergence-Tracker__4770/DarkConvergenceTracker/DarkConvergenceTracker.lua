@@ -6,7 +6,7 @@
 
 local ADDON_NAME = "DarkConvergenceTracker"
 local ADDON_VERSION = 1
-local ADDON_DISPLAY_VERSION = "1.0.1"
+local ADDON_DISPLAY_VERSION = "1.0.2"
 
 local DCTracker = {}
 local addon = DCTracker

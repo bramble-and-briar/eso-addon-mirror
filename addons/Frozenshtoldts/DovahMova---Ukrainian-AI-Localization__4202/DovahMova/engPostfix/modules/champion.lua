@@ -1,87 +1,72 @@
-function DovahMova_doubleNamesChampion(DovahMova)
-	if DovahMova:GetLanguage() == "ua" then
-		local rsd = DovahMova.Settings.Data
-		
-		local GetChampionSkillNameOld = GetChampionSkillName
-		
-		function GetChampionSkillName(...)
-			local championSkillId = ...
-			local abilityId = GetChampionAbilityId(championSkillId)
-			local ukrName = GetChampionSkillNameOld(...)
-			
-			-- Захист від nil
-			if not ukrName then
-				return ""
-			end
-			
-			if DovahMova.Settings.ShowChampionTooltip == "ua" or not abilityId then
-				return ukrName
-			end
-			
-			if not abilityId or not rsd.Abilities[abilityId] then
-				return ukrName
-			end
-			
-			if DovahMova.Settings.ShowChampionTooltip == "uaen" then
-				return string.format("%s (%s)", ukrName, rsd.Abilities[abilityId])
-			else
-				return DovahMova.Settings.Data.Abilities[abilityId] or ukrName
-			end
-		end
-		
-	-- Tooltips
-	
-	local function getIdFromSkillId(championSkillId)
-		local abilityId = GetChampionAbilityId(championSkillId)
-		local ukrName = GetChampionSkillNameOld(championSkillId)
-		
-		return abilityId, ukrName
+-- =================================================================================================
+-- Назви навичок системи чемпіонства (ЧП).
+-- =================================================================================================
+
+local DovahMova = DovahMova
+local Util = DovahMova.Util
+
+local Champion = {}
+DovahMova.Champion = Champion
+
+local STRING_OVERRIDE_VERSION = 10
+local originalTooltipName
+
+local function GetMode()
+	return DovahMova.settings.ShowChampionTooltip
+end
+
+local function FormatName(abilityId, ukrainianName)
+	local englishName = abilityId and DovahMova.db.Abilities[abilityId]
+	if not ukrainianName or GetMode() == DovahMova.MODE_UA then
+		return ukrainianName
 	end
-	
-	local function getIdFromAbilityId(abilityId)
-		local ukrName = GetAbilityName(abilityId)
-		
-		return abilityId, ukrName
+	return Util.FormatBilingual(ukrainianName, englishName, GetMode())
+end
+
+local function PrepareTooltip(abilityId, ukrainianName)
+	local text = FormatName(abilityId, ukrainianName)
+	if text and text ~= ukrainianName then
+		SafeAddString(SI_ABILITY_TOOLTIP_NAME, text, STRING_OVERRIDE_VERSION)
 	end
-	
-	local function modifyTooltip(abilityId, ukrName)
-		
-		local finalName
-		
-		if DovahMova.Settings.ShowChampionTooltip ~= "ua" and abilityId and rsd.Abilities[abilityId] and ukrName then
-			-- Check if the name already has a postfix to prevent duplication
-			-- This happens when itemsDisplay.lua has already formatted the name
-			if string.find(ukrName, " %(") and string.find(ukrName, "%)$") then
-				-- Name already has postfix, don't add another one
-				SafeAddString(SI_ABILITY_TOOLTIP_NAME, ukrName, 10)
-			else
-				if DovahMova.Settings.ShowChampionTooltip == "uaen" then
-					finalName = string.format("%s (%s)", ukrName, rsd.Abilities[abilityId])
-				else
-					finalName = rsd.Abilities[abilityId]
-				end
-				
-				if finalName then
-					SafeAddString(SI_ABILITY_TOOLTIP_NAME, finalName, 10)
-				end
-			end
+end
+
+local function RestoreTooltip()
+	SafeAddString(SI_ABILITY_TOOLTIP_NAME, originalTooltipName, STRING_OVERRIDE_VERSION)
+end
+
+local installed = false
+
+function Champion.Install()
+	if installed then
+		return
+	end
+	installed = true
+	originalTooltipName = GetString(SI_ABILITY_TOOLTIP_NAME)
+
+	local originalGetChampionSkillName = GetChampionSkillName
+	GetChampionSkillName = function(championSkillId, ...)
+		local ukrainianName = originalGetChampionSkillName(championSkillId, ...)
+		return FormatName(GetChampionAbilityId(championSkillId), ukrainianName) or ""
+	end
+
+	local function HookTooltipMethod(methodName, getAbilityAndName)
+		local original = ChampionSkillTooltip[methodName]
+		ChampionSkillTooltip[methodName] = function(self, ...)
+			PrepareTooltip(getAbilityAndName(...))
+			original(self, ...)
+			RestoreTooltip()
 		end
 	end
-	
-	local function abilityTooltipHook(tooltipControl, method, linkFunc)
-		local origMethod = tooltipControl[method]
-		tooltipControl[method] = function(self, ...)
-			
-			modifyTooltip(linkFunc(...))
-			
-			origMethod(self, ...)
-			
-			SafeAddString(SI_ABILITY_TOOLTIP_NAME, DovahMova.StringsBackup["SI_ABILITY_TOOLTIP_NAME"], 10)
-		end
-	end
-	
-	abilityTooltipHook(ChampionSkillTooltip, "SetChampionSkill", getIdFromSkillId)
-	abilityTooltipHook(ChampionSkillTooltip, "SetAbilityId", getIdFromAbilityId)
-	ZO_PreHook(CHAMPION_PERKS, "LayoutRightTooltipChampionSkillAbility", function(tooltip, ...)   modifyTooltip(...) end)
-	end
+
+	HookTooltipMethod("SetChampionSkill", function(championSkillId)
+		return GetChampionAbilityId(championSkillId), originalGetChampionSkillName(championSkillId)
+	end)
+	HookTooltipMethod("SetAbilityId", function(abilityId)
+		return abilityId, GetAbilityName(abilityId)
+	end)
+
+	ZO_PreHook(CHAMPION_PERKS, "LayoutRightTooltipChampionSkillAbility", function(_, abilityId, ukrainianName)
+		PrepareTooltip(abilityId, ukrainianName)
+	end)
+	ZO_PostHook(CHAMPION_PERKS, "LayoutRightTooltipChampionSkillAbility", RestoreTooltip)
 end

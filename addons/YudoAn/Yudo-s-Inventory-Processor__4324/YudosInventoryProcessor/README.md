@@ -1,5 +1,5 @@
 # Yudo's Inventory Processor
-*Version:* 1.12.0
+*Version:* 1.12.1
 *Author:* YudoAn
 *License:* Artistic-2.0
 

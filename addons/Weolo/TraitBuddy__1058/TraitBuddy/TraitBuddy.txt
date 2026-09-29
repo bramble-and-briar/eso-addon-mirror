@@ -2,14 +2,14 @@
 ## Description: Manage and track your characters' crafting traits and motifs knowledge.
 ## Author: Weolo, WolfStar07
 ## SavedVariables: TraitBuddySettings
-## Version: 9.11.2
-## AddOnVersion: 144
-## APIVersion: 101050 101051
-## DependsOn: LibAddonMenu-2.0>=43 LibCharacterKnowledge>=300070 LibSets>=9020
+## Version: 9.11.3
+## AddOnVersion: 145
+## APIVersion: 101052 101051
+## DependsOn: LibAddonMenu-2.0>=43 LibCharacterKnowledge>=301020 LibSets>=9040
 ## OptionalDependsOn: LibLazyCrafting
 lang/$(language).lua
 
-; Data layer - load these FIRST
+; Data layer
 data/setLocation.lua
 data/motif.lua
 data/data.lua
@@ -36,7 +36,7 @@ ui/sets.xml
 ui/sets.lua
 ui/crafting.lua
 
-; Main addon file - loads LAST
+; Main addon file
 TraitBuddy.lua
 Bindings.xml
 

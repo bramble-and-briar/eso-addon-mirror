@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/wolfstar/Scrollkeeper-Guild-Tools__4423",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "wolfstar",
   "canonical_id": "esoui:4423",
   "category_id": "95",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4423",
@@ -17,7 +18,7 @@
     "Scrollkeeper"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4423/",
-  "fingerprint": "4bed1b46603be370016c53642bd8011f99f53ce235462c3ac324a68249488366",
+  "fingerprint": "a281426fe32858bbe546e157bee15dc0611f04324e457d4d92c03f01e5178479",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15342.png",
     "https://cdn-eso.mmoui.com/preview/pvw15356.png",
@@ -35,11 +36,11 @@
   "source_id": "4423",
   "source_url": "https://www.esoui.com/downloads/info4423-ScrollkeeperGuildTools.html",
   "stats": {
-    "downloads": 393,
-    "favorites": 2,
-    "monthly_downloads": 16
+    "downloads": 538,
+    "favorites": 8,
+    "monthly_downloads": 97
   },
   "title": "Scrollkeeper Guild Tools",
-  "updated_at": 1780944471000,
-  "version": "1.3"
+  "updated_at": 1790646484000,
+  "version": "1.4"
 }

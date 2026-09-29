@@ -9,6 +9,7 @@ local ROSTER = {
     "Lyra Heartwood", "@FrostCaller", "Dro-mathra", "@HealBot",
     "@NightAxe", "Serenna Vox", "@Kagouti", "Tullius Rane",
     "@BogBlossom", "Yrsa Frost", "@PortalMonk", "Vexara",
+    "@Ashfall", "Nerien'eth Vale",
 }
 
 local function rev(map, label)
@@ -42,7 +43,7 @@ local function make_rows(m, n, teams, tracker)
     end
 end
 
-local function make_timeline(m, teams, dur, rounds, top1, top2, step)
+local function make_timeline(m, teams, dur, rounds, top1, top2, step, top3)
     local tl = { t = {}, r = {}, s1 = {}, s2 = {}, s3 = {}, teams = teams }
     local n = 72
     for i = 1, n do
@@ -54,11 +55,12 @@ local function make_timeline(m, teams, dur, rounds, top1, top2, step)
         if step then
             tl.s1[i] = math.floor(top1 * (p * 0.92) / step + 0.001) * step
             tl.s2[i] = math.floor(top2 * p / step + 0.001) * step
+            tl.s3[i] = top3 and math.floor(top3 * (p * 0.97) / step + 0.001) * step or 0
         else
             tl.s1[i] = math.floor(top1 * rp * (0.85 + 0.15 * math.sin(p * 9)))
             tl.s2[i] = math.floor(top2 * rp * (0.90 + 0.10 * math.sin(3 + p * 7)))
+            tl.s3[i] = top3 and math.floor(top3 * rp * (0.88 + 0.12 * math.sin(5 + p * 8))) or 0
         end
-        tl.s3[i] = 0
     end
     m.timeline = tl
 end
@@ -371,6 +373,164 @@ function BUILDERS.capture_the_flag()
     finish(m, "capture the relic")
 end
 
+local TRI = {}
+
+local function tri_base(name, gt, dur, scores)
+    local CZ = BGMeter.zenimax.constants
+    local Match = BGMeter.Match
+    local m = Match.new()
+    local teams = { CZ.BATTLEGROUND_TEAM_FIRE_DRAKES, CZ.BATTLEGROUND_TEAM_PIT_DAEMONS, CZ.BATTLEGROUND_TEAM_STORM_LORDS }
+    m.name = name
+    m.gameType = rev(CZ.GAME_TYPE_LABEL, gt)
+    m.teamSize, m.competitive, m.numTeams = 6, false, 3
+    m.startMs, m.endMs = 0, dur
+    m.numRounds = 1
+    m.teams = {}
+    for i = 1, 3 do m.teams[i] = { team = teams[i], score = scores[i], roundsWon = 0 } end
+    return m, teams
+end
+
+local function tri_close(m, teams, mode)
+    local lr = BGMeter.Match.local_row(m)
+    m.localTeam = lr and lr.team or teams[1]
+    local best = 0
+    for i = 1, 3 do if m.teams[i].score > best then best = m.teams[i].score end end
+    local mine = 0
+    for i = 1, 3 do if m.teams[i].team == m.localTeam then mine = m.teams[i].score end end
+    m.result = (mine >= best) and "WIN" or "LOSS"
+    finish(m, mode)
+end
+
+function TRI.deathmatch()
+    local dur = 12 * 60000
+    local m, teams = tri_base("Foyada Quarry TDM", "deathmatch", dur, { 500, 431, 377 })
+    make_rows(m, 18, teams)
+    make_timeline(m, teams, dur, 1, 500, 431, nil, 377)
+    make_killfeed(m, dur, teams)
+    tri_close(m, teams, "deathmatch 6v6v6")
+end
+
+function TRI.domination()
+    local dur = 13 * 60000
+    local m, teams = tri_base("Istirus Outpost DOM", "domination", dur, { 412, 500, 366 })
+    make_rows(m, 18, teams, function(r, i)
+        r.caps   = jit(i + 70, 0, 11)
+        r.defPts = r.caps * jit(i + 80, 30, 60)
+    end)
+    make_timeline(m, teams, dur, 1, 412, 500, nil, 366)
+    make_killfeed(m, dur, teams)
+    local script = {}
+    local flags = { { "A", "North Flag" }, { "B", "East Flag" }, { "C", "South Flag" } }
+    for fi = 1, 3 do
+        local s = function(t, ev, own) script[#script + 1] = { t * 1000, fi, ev, own } end
+        s(50 + fi * 4, "neutral", 0)
+        local own = fi
+        for k = 1, 7 do
+            local t = 60 + (k - 1) * 100 + fi * 7
+            s(t,      "lost",       own)
+            s(t + 8,  "captured",   own)
+            s(t + 16, "fully_held", own)
+            own = (own % 3) + 1
+        end
+    end
+    table.sort(script, function(a, z) return a[1] < z[1] end)
+    make_objectives(m, flags, script)
+    tri_close(m, teams, "domination 6v6v6")
+end
+
+function TRI.crazy_king()
+    local dur = 11 * 60000
+    local m, teams = tri_base("Deeping Drome CK", "crazy_king", dur, { 388, 500, 455 })
+    make_rows(m, 18, teams, function(r, i)
+        r.caps   = jit(i + 90, 0, 9)
+        r.defPts = r.caps * jit(i + 95, 25, 55)
+    end)
+    make_timeline(m, teams, dur, 1, 388, 500, nil, 455)
+    make_killfeed(m, dur, teams)
+    local flags = {
+        { "A", "Ruined Gate Flag" }, { "B", "Cistern Flag" }, { "C", "Drome Floor Flag" },
+        { "A", "Balcony Flag" }, { "B", "Sluice Flag" }, { "C", "Stairwell Flag" },
+    }
+    local script = {}
+    for o = 1, #flags do
+        local own1 = ((o - 1) % 3) + 1
+        flag_cycle(script, o, 55000 + (o - 1) * 76000, own1, (own1 % 3) + 1)
+    end
+    flag_cycle(script, 1, 520000, 3, 2)
+    flag_cycle(script, 2, 300000, 2, 3)
+    table.sort(script, function(a, z) return a[1] < z[1] end)
+    make_objectives(m, flags, script)
+    tri_close(m, teams, "crazy king 6v6v6")
+end
+
+function TRI.murderball()
+    local dur = 10 * 60000
+    local m, teams = tri_base("City Streets Chaosball", "murderball", dur, { 500, 402, 318 })
+    make_rows(m, 18, teams, function(r, i)
+        r.carried = jit(i + 100, 0, 200)
+        r.caps = math.floor(r.carried * (0.8 + (i % 5) * 0.12))
+        r.carrierKills = jit(i + 110, 0, 3)
+    end)
+    make_timeline(m, teams, dur, 1, 500, 402, nil, 318)
+    make_killfeed(m, dur, teams)
+    local balls = { { name = "Chaosball" }, { name = "Chaosball" }, { name = "Chaosball" } }
+    local carriers = {
+        { "Velladocuments", "Brakka gro-Mug", "Dro-mathra", "Serenna Vox", "@BogBlossom", "Vexara" },
+        { "@StormLord", "Lyra Heartwood", "@HealBot", "@Kagouti", "Yrsa Frost", "@Ashfall" },
+        { "Shadowmend", "@FrostCaller", "@NightAxe", "Tullius Rane", "@PortalMonk", "Nerien'eth Vale" },
+    }
+    local script = {}
+    for o = 1, 3 do
+        local t = 22000 + o * 4000
+        script[#script + 1] = { t - 3000, o, "flag_spawned", 0, 0 }
+        local ti = o
+        while t < 560000 do
+            local hold = jit(o * 100 + t, 18, 65) * 1000
+            local tm = teams[ti]
+            local who = carriers[ti][jit(o * 400 + t, 1, 7)]
+            script[#script + 1] = { t, o, "flag_taken", tm, 0, who }
+            script[#script + 1] = { t + hold, o, "flag_dropped", 0, tm }
+            local loose = jit(o * 200 + t, 4, 22) * 1000
+            script[#script + 1] = { t + hold + loose, o, "flag_timer_return", 0, tm }
+            t = t + hold + loose + jit(o * 300 + t, 3, 14) * 1000
+            ti = (ti % 3) + 1
+        end
+    end
+    make_relics(m, balls, script)
+    tri_close(m, teams, "chaosball 6v6v6")
+end
+
+function TRI.capture_the_flag()
+    local dur = math.floor(14.6 * 60000)
+    local m, teams = tri_base("Sewer CTF", "capture_the_flag", dur, { 300, 500, 200 })
+    local capsPlan = { [2] = 200, [4] = 100, [6] = 100, [9] = 100, [13] = 100, [17] = 100, [3] = 100, [7] = 200 }
+    make_rows(m, 18, teams, function(r, i)
+        r.caps = capsPlan[i] or 0
+        r.carried = (r.caps > 0) and jit(i + 120, 40, 430) or ((i % 4 == 1) and jit(i + 130, 0, 150) or 0)
+        r.carrierKills = (i % 6 == 0) and jit(i + 140, 1, 2) or 0
+    end)
+    make_timeline(m, teams, dur, 1, 300, 500, 100, 200)
+    make_killfeed(m, dur, teams, 2)
+    local relics = {
+        { name = "Fire Drakes Relic", home = teams[1] },
+        { name = "Pit Daemons Relic", home = teams[2] },
+        { name = "Storm Lords Relic", home = teams[3] },
+    }
+    local script = {}
+    relic_run(script, 1, 109, 60,  teams[2], "goal", "@StormLord")
+    relic_run(script, 1, 401, 50,  teams[3], "goal", "Shadowmend")
+    relic_run(script, 1, 615, 21,  teams[2], "stopped")
+    relic_run(script, 2, 117, 80,  teams[1], "goal", "@NightAxe")
+    relic_run(script, 2, 460, 45,  teams[3], "goal", "@FrostCaller")
+    relic_run(script, 2, 700, 30,  teams[1], "stopped")
+    relic_run(script, 3, 150, 70,  teams[2], "goal", "@StormLord")
+    relic_run(script, 3, 330, 40,  teams[2], "goal", "Brakka gro-Mug")
+    relic_run(script, 3, 520, 55,  teams[1], "goal", "Velladocuments")
+    relic_run(script, 3, 760, 30,  teams[2], "stopped")
+    make_relics(m, relics, script)
+    tri_close(m, teams, "capture the relic 6v6v6")
+end
+
 local ALIAS = {
     dm = "deathmatch", deathmatch = "deathmatch",
     dom = "domination", domination = "domination",
@@ -380,12 +540,15 @@ local ALIAS = {
 }
 
 function Mock.run(arg)
-    local mode = ALIAS[(arg or ""):lower():gsub("%s+", "")]
+    local a = (arg or ""):lower()
+    local tri = a:match("^%s*tri") ~= nil
+    if tri then a = a:gsub("^%s*tri", "") end
+    local mode = ALIAS[a:gsub("%s+", "")]
     if not mode then
-        BGMeter.Log.say("mock modes: dm  dom  ck  ball  relic")
+        BGMeter.Log.say("mock modes: dm  dom  ck  ball  relic  ·  three-sided: tri dm  tri dom  tri ck  tri ball  tri relic")
         return
     end
-    BUILDERS[mode]()
+    if tri then TRI[mode]() else BUILDERS[mode]() end
 end
 
 local VET_PRESETS = {
@@ -439,6 +602,7 @@ local function vet_install(p)
         p.unclaimed = {}
         p.claimed = p.claimed + (p.claimable or 0)
         p.claimable = 0
+        if BGMeter.UI and BGMeter.UI.panel then BGMeter.UI.panel.mark_vet_dirty() end
         if BGMeter.UI and BGMeter.UI.menu then BGMeter.UI.menu.refresh_if_visible() end
     end
 end
@@ -474,6 +638,7 @@ function Mock.vet(arg)
         m.haul.vetRankUp = false
         BGMeter.UI.window.show_match(1)
     end
+    if BGMeter.UI.panel then BGMeter.UI.panel.mark_vet_dirty() end
     if BGMeter.UI.menu then BGMeter.UI.menu.refresh() end
     Log.say("vetmock %s: rank=%d cur=%d prog=%s total=%s claimed=%d -> laps=%s within=%s pct=%.2f",
         key, p.rank, p.cur, tostring(p.prog), tostring(p.total), p.claimed,

@@ -377,7 +377,7 @@ local function collectGuildEvents(guildName, maxEvents, searchTerm, selectedCate
       
       local matches = false
       if LibTextFilter then
-        matches = LibTextFilter:Filter(searchText, searchTerm)
+        matches = LibTextFilter:Filter(searchText, string.lower(searchTerm))
       else
         matches = string.find(searchText, string.lower(searchTerm), 1, true) ~= nil
       end
@@ -417,7 +417,13 @@ local function setupSmoothScroll(scrollControl, scrollBar, contentHeight, visibl
         if newValue ~= current then
           scrollBar:SetValue(newValue)
           window.scrollOffset = math.floor(newValue)
-          updateFunc(window)
+          local pendingGeneration = (self.pendingGeneration or 0) + 1
+          self.pendingGeneration = pendingGeneration
+          zo_callLater(function()
+            if self.pendingGeneration == pendingGeneration then
+              updateFunc(window)
+            end
+          end, 16)
         end
       end
     end)
@@ -498,7 +504,12 @@ local function createHistoryWindow()
   closeBtn:SetDimensions(25, 25)
   closeBtn:SetAnchor(RIGHT, titleBar, RIGHT, -5, 0)
   closeBtn:SetNormalTexture("/esoui/art/buttons/decline_up.dds")
-  closeBtn:SetHandler("OnClicked", function() window:SetHidden(true) end)
+  closeBtn:SetHandler("OnClicked", function()
+    window:SetHidden(true)
+    if LibTextFilter then
+      LibTextFilter:ClearCachedTokens()
+    end
+  end)
   
   -- Control panel
   local controlPanel = WINDOW_MANAGER:CreateControl(nil, window, CT_BACKDROP)
@@ -589,43 +600,43 @@ local function createHistoryWindow()
   
   -- Scroll container for events
   local scrollContainer = WINDOW_MANAGER:CreateControl(nil, window, CT_CONTROL)
-  scrollContainer:SetDimensions(960, 510)
+  scrollContainer:SetDimensions(980, 510)
   scrollContainer:SetAnchor(TOPLEFT, controlPanel, BOTTOMLEFT, 0, 10)
 
   -- Headers
   local headerPanel = WINDOW_MANAGER:CreateControl(nil, scrollContainer, CT_BACKDROP)
-  headerPanel:SetDimensions(960, 30)
+  headerPanel:SetDimensions(980, 30)
   headerPanel:SetAnchor(TOPLEFT, scrollContainer, TOPLEFT, 0, 0)
   headerPanel:SetCenterColor(0.1, 0.1, 0.2, 1)
   
   local timeHeader = WINDOW_MANAGER:CreateControl(nil, headerPanel, CT_LABEL)
   timeHeader:SetFont("ZoFontGameBold")
   timeHeader:SetText(SF.func._L("ScrollkeeperHistory", "HEADER_TIME"))
-  timeHeader:SetAnchor(TOPLEFT, headerPanel, TOPLEFT, 10, 2)
+  timeHeader:SetAnchor(LEFT, headerPanel, LEFT, 10, 0)
   timeHeader:SetColor(1, 1, 1, 1)
   
   local categoryHeader = WINDOW_MANAGER:CreateControl(nil, headerPanel, CT_LABEL)
   categoryHeader:SetFont("ZoFontGameBold")
   categoryHeader:SetText(SF.func._L("ScrollkeeperHistory", "HEADER_CATEGORY"))
-  categoryHeader:SetAnchor(TOPLEFT, headerPanel, TOPLEFT, 100, 2)
+  categoryHeader:SetAnchor(LEFT, headerPanel, LEFT, 100, 0)
   categoryHeader:SetColor(1, 1, 1, 1)
   
   local eventHeader = WINDOW_MANAGER:CreateControl(nil, headerPanel, CT_LABEL)
   eventHeader:SetFont("ZoFontGameBold")
   eventHeader:SetText(SF.func._L("ScrollkeeperHistory", "HEADER_EVENT"))
-  eventHeader:SetAnchor(TOPLEFT, headerPanel, TOPLEFT, 200, 2)
+  eventHeader:SetAnchor(LEFT, headerPanel, LEFT, 200, 0)
   eventHeader:SetColor(1, 1, 1, 1)
   
   local memberHeader = WINDOW_MANAGER:CreateControl(nil, headerPanel, CT_LABEL)
   memberHeader:SetFont("ZoFontGameBold")
   memberHeader:SetText(SF.func._L("ScrollkeeperHistory", "HEADER_MEMBER"))
-  memberHeader:SetAnchor(TOPLEFT, headerPanel, TOPLEFT, 380, 2)
+  memberHeader:SetAnchor(LEFT, headerPanel, LEFT, 380, 0)
   memberHeader:SetColor(1, 1, 1, 1)
   
   local detailsHeader = WINDOW_MANAGER:CreateControl(nil, headerPanel, CT_LABEL)
   detailsHeader:SetFont("ZoFontGameBold")
   detailsHeader:SetText(SF.func._L("ScrollkeeperHistory", "HEADER_DETAILS"))
-  detailsHeader:SetAnchor(TOPLEFT, headerPanel, TOPLEFT, 600, 2)
+  detailsHeader:SetAnchor(LEFT, headerPanel, LEFT, 600, 0)
   detailsHeader:SetColor(1, 1, 1, 1)
   
   -- Scroll bar
@@ -641,7 +652,7 @@ local function createHistoryWindow()
 
   -- Event list area
   local listArea = WINDOW_MANAGER:CreateControl(nil, scrollContainer, CT_CONTROL)
-  listArea:SetDimensions(940, 465)
+  listArea:SetDimensions(960, 465)
   listArea:SetAnchor(TOPLEFT, headerPanel, BOTTOMLEFT, 0, 5)
   listArea:SetMouseEnabled(true)
  
@@ -737,6 +748,7 @@ local function createHistoryWindow()
     applyHistoryTheme(window)
   end, 100)
     
+  SF.addOrnateFrame(window)
   return window
 end
 
@@ -789,7 +801,7 @@ updateEventList = function(window)
       
       -- Create row
       local row = WINDOW_MANAGER:CreateControl(nil, window.listArea, CT_CONTROL)
-      row:SetDimensions(940, rowHeight)
+      row:SetDimensions(960, rowHeight)
       row:SetAnchor(TOPLEFT, window.listArea, TOPLEFT, 0, rowIndex * rowHeight)
       
       table.insert(window.eventRows, row)
@@ -1029,6 +1041,7 @@ local function createExportWindow(exportText)
   local existingWindow = GetControl(windowName)
   if existingWindow then
     existingWindow:SetHidden(false)
+	-- Update text content
     local textControl = existingWindow.textArea
     if textControl then
       textControl:SetText(exportText)
@@ -1093,12 +1106,16 @@ local function createExportWindow(exportText)
   
   window.textArea = editBox
   
+  -- Select All button
   local selectAllBtn = WINDOW_MANAGER:CreateControl(nil, window, CT_BUTTON)
-  selectAllBtn:SetDimensions(100, 30)
-  selectAllBtn:SetAnchor(BOTTOM, window, BOTTOM, 0, -40)
-  selectAllBtn:SetNormalTexture("EsoUI/Art/Buttons/button_up.dds")
-  selectAllBtn:SetPressedTexture("EsoUI/Art/Buttons/button_down.dds")
-  selectAllBtn:SetMouseOverTexture("EsoUI/Art/Buttons/button_over.dds")
+  selectAllBtn:SetDimensions(95, 27)
+  selectAllBtn:SetAnchor(BOTTOM, window, BOTTOM, 0, -35)
+  local selectAllBtnBg = WINDOW_MANAGER:CreateControl(nil, selectAllBtn, CT_BACKDROP)
+  selectAllBtnBg:SetAnchorFill(selectAllBtn)
+  ApplyTemplateToControl(selectAllBtnBg, "ZO_DefaultBackdrop")
+  if SF.applyThemeColor then
+    SF.applyThemeColor(selectAllBtnBg, "accent")
+  end
   
   local selectAllLabel = WINDOW_MANAGER:CreateControl(nil, selectAllBtn, CT_LABEL)
   selectAllLabel:SetFont("$(PROSE_ANTIQUE_FONT)|19")
@@ -1114,7 +1131,7 @@ local function createExportWindow(exportText)
   local instruction = WINDOW_MANAGER:CreateControl(nil, window, CT_LABEL)
   instruction:SetFont("ZoFontGame")
   instruction:SetText(SF.func._L("ScrollkeeperHistory", "EXPORT_INSTRUCTION"))
-  instruction:SetAnchor(BOTTOMLEFT, window, BOTTOMLEFT, 10, -10)
+  instruction:SetAnchor(BOTTOMLEFT, window, BOTTOMLEFT, 10, -5)
   instruction:SetColor(0.8, 0.8, 0.8, 1)
   
   zo_callLater(function()
@@ -1138,6 +1155,7 @@ local function createExportWindow(exportText)
   zo_callLater(function()
     if window.updateTheme then window.updateTheme() end
   end, 100)
+  SF.addOrnateFrame(window)
   return window
 end
 

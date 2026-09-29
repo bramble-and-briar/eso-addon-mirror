@@ -18,7 +18,7 @@ local g_currentDuelTarget = nil -- Saved Duel Target for generating Battle Spiri
 local BATTLE_SPIRIT_ICON = "/esoui/art/icons/artificialeffect_battle-spirit.dds"
 local BATTLE_SPIRIT_FAKE_ABILITY_ID = 999014
 
---- Player Battle Spirit when API artificial ids 1/3 are missing (not Cyro Vengeance — no Battle Spirit there).
+--- Player Battle Spirit when API artificial ids 1/3 are missing (not Cyro Vengeance - no Battle Spirit there).
 --- @return boolean
 function SpellCastBuffs.ShouldCreatePlayerBattleSpiritFallback()
     if SpellCastBuffs.SV.IgnoreBattleSpiritPlayer then
@@ -69,9 +69,10 @@ end
 -- EVENT_DUEL_STARTED handler for creating Battle Spirit Icon on Target
 --- @param eventId integer|nil
 function SpellCastBuffs.DuelStart(eventId)
-    local duelState, characterName = GetDuelInfo()
+    -- P51 GetDuelInfo: duelState, partnerCharacterName, partnerCrossplayDisplayName, timeRemainingMS, partnerPlatformDisplayName
+    local duelState, partnerCharacterName = GetDuelInfo()
     if duelState == 3 and not SpellCastBuffs.SV.HideTargetBuffs and not SpellCastBuffs.SV.IgnoreBattleSpiritTarget then
-        g_currentDuelTarget = zo_strformat("<<C:1>>", characterName)
+        g_currentDuelTarget = zo_strformat("<<C:1>>", partnerCharacterName)
         SpellCastBuffs.ReloadEffects("reticleover")
     end
 end
@@ -81,12 +82,13 @@ end
 --- @param duelResult DuelResult
 --- @param wasLocalPlayersResult boolean
 --- @param opponentCharacterName string
---- @param opponentDisplayName string
+--- @param opponentCrossplayDisplayName string
 --- @param opponentAlliance Alliance
 --- @param opponentGender Gender
 --- @param opponentClassId integer
 --- @param opponentRaceId integer
-function SpellCastBuffs.DuelEnd(eventId, duelResult, wasLocalPlayersResult, opponentCharacterName, opponentDisplayName, opponentAlliance, opponentGender, opponentClassId, opponentRaceId)
+--- @param opponentPlatformDisplayName string|nil
+function SpellCastBuffs.DuelEnd(eventId, duelResult, wasLocalPlayersResult, opponentCharacterName, opponentCrossplayDisplayName, opponentAlliance, opponentGender, opponentClassId, opponentRaceId, opponentPlatformDisplayName)
     g_currentDuelTarget = nil
     SpellCastBuffs.ReloadEffects("reticleover")
 end

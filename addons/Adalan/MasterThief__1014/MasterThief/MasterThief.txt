@@ -1,13 +1,12 @@
 ## Title: MasterThief by |c0F6F0FAdalan|r
 ## Description: This addon helps you steal just what is valuable
 ## Author: |c0F6F0FAdalan|r and WolfStar07
-## Version: 1.8
-## DependsOn: LibAddonMenu-2.0>=43 LibScroll>=2 LibCharacterKnowledge>=300050 LibCustomMenu>=730
+## Version: 1.9
+## DependsOn: LibAddonMenu-2.0>=43 LibCharacterKnowledge>=301020 LibCustomMenu>=730
 ## OptionalDependsOn: LibChatMenuButton
-## APIVersion: 101050 101051
+## APIVersion: 101052 101051
 
-## SavedVariables: MasterThiefVars
-## SavedVariables: MasterThiefLoot
+## SavedVariables: MasterThiefVars MasterThiefLoot
 
 
 MasterThiefMenu.lua

@@ -1,11 +1,11 @@
 {
   "files": [
     {
-      "bytes": 143461920,
+      "bytes": 144812934,
       "download_url": "https://www.esoui.com/downloads/dl4202/",
       "path": "gamedata/lang/ua.lang",
       "reason": "exceeds the mirror's 95 MiB per-file Git limit",
-      "sha256": "a69017fe835b021c5e798b6bfe3aef2788df09635d02ec55ba1120d7535ec8d3"
+      "sha256": "c35a862d792247a663adbb51853ad398951e4ada43170f3a5fc8e70c72e05c46"
     }
   ]
 }

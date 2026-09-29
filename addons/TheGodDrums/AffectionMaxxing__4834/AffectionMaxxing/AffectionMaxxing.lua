@@ -3,7 +3,7 @@ local AM = AffectionMaxxing
 
 AM.name = "AffectionMaxxing"
 AM.title = "Affection Maxxing"
-AM.version = "1.0.3"
+AM.version = "1.0.4"
 
 local SAVED_VARIABLES = "AffectionMaxxing_SV"
 local CHAT_PREFIX = "|cE8A0C8Affection Maxxing|r: "

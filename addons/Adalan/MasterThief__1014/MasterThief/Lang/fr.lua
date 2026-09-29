@@ -19,6 +19,8 @@ local localization_strings = {
 	MT_LOOT_UNKNOWN_RECIPES_TEXT = "Piller toutes les recettes et plans inconnus quel que soit le niveau de qualité défini. Si désactivé, seules les recettes et plans du niveau de qualité défini ou supérieur seront automatiquement pillés.",
 	MT_AUTOLOOT_FROM_LOOTLIST_NAME = "Pillage automatique de la liste de butin",	
 	MT_AUTOLOOT_FROM_LOOTLIST_TEXT = "Si activé, vous volez automatiquement les objets ajoutés à la liste de butin. Accédez à la fenêtre de butin en tapant |cedbe3e/mtloot|r.",
+	MT_PICKPOCKET_COUNTER_NAME = "Compteur de pickpocket",
+	MT_PICKPOCKET_COUNTER_TEXT = "Compteur de pickpocket à l'écran, car les PNJ ont tendance à se déplacer. Tuez pour réinitialiser le compteur. S'applique à tous les PNJ portant le même nom générique, comme garde du Lion, alors pensez à réinitialiser en tuant ou en vous téléportant.",
 	
 	-- options slider
 	MT_MESSAGE_DELAY_NAME = "Délai des messages",

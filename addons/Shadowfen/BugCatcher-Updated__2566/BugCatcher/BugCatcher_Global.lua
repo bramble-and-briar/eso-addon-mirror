@@ -3,7 +3,7 @@ local SF_Color = SF.SF_Color
 
 BugCatcher = {
     name = "BugCatcher",
-    version = "042",
+    version = "043",
 	author = "Werewolf Finds Dragon, Shadowfen",
     displayName = "Bug Catcher - Updated",
     evtmgr = SF.EvtMgr:New("BugCatcher"),

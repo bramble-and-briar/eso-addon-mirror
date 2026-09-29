@@ -70,6 +70,8 @@ MasterThief.OptionsDefault =
 	CompanionWarnActions = true,
 	CompanionBlockActions = true,
 	CompanionAutoDismiss = false,
+	-- show the reticle-anchored pickpocket count display
+	PickpocketCounterEnabled = true,
 }
 
 MasterThief.StolenValuesDefault = 
@@ -196,6 +198,14 @@ function MasterThief:CreateSettingsMenu()
           tooltip = GetString(MT_AUTOLOOT_FROM_LOOTLIST_TEXT),
           getFunc = function() return MasterThief.SavedVarsOptions.lootlist end,
           setFunc = function(value) MasterThief.SavedVarsOptions.lootlist = value end,
+          width = "full",
+    	},
+    	{
+          type = "checkbox",
+          name = GetString(MT_PICKPOCKET_COUNTER_NAME),
+          tooltip = GetString(MT_PICKPOCKET_COUNTER_TEXT),
+          getFunc = function() return MasterThief.SavedVarsOptions.PickpocketCounterEnabled end,
+          setFunc = function(value) MasterThief:SetPickpocketCounterEnabled(value) end,
           width = "full",
     	},		
     	{

@@ -832,10 +832,10 @@ function FyrMM.TooltipExit()
     ClearTooltip(InformationTooltip)
 end
 
-function FyrMM.PinToggle(value)
-    MM_SetLockPosition(value)
-    MM_RefreshPanel()
-end
+-- function FyrMM.PinToggle(value)
+    -- MM_SetLockResizing(value)
+    -- MM_RefreshPanel()
+-- end
 
 function FyrMM.OpenSettingsPanel()
     FyrMM.LAM:OpenToPanel(FyrMM.CPL)
@@ -2024,6 +2024,16 @@ local function RemoveBorderPin(pin)
     pin:SetHidden(true)
     pin:SetMouseEnabled(false)
 
+    -- stop any leftover ZOS texture-frame animation before this control is recycled for a
+    -- different pin type, otherwise the stale timeline keeps stepping frames on whatever
+    -- static texture gets assigned next (border pin "randomly animates" bug)
+    if pin.m_textureAnimTimeline then
+        if pin.m_textureAnimTimeline ~= "yes" then
+            pin.m_textureAnimTimeline:Stop()
+        end
+        pin.m_textureAnimTimeline = nil
+    end
+
     if pin.pin then
         if pin.pin.OnBorder then
             pin.pin.OnBorder = nil
@@ -2544,16 +2554,23 @@ function FyrMM.PinOnMouseEnter(pin)
 	
     if pin.m_PinType ~= nil then
        if pin.context ~= nil then  -- world events and dragons
-            InitializeTooltip(InformationTooltip, Fyr_MM, TOPLEFT, 0, 0)
-			      InformationTooltip:AddLine(GetString(SI_ZONECOMPLETIONTYPE8), FyrMM.HeaderFontType, ZO_WHITE:UnpackRGB())
-			      ZO_Tooltip_AddDivider(InformationTooltip)
-		        InformationTooltip:AddLine(zo_strformat(SI_WORLD_MAP_LOCATION_NAME, pin.name), FyrMM.DefaultFontType, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB())
+            if pin.context == 9999 then -- dynamic encounter
+                  if ZO_MapPin.TOOLTIP_CREATORS[MAP_PIN_TYPE_LOCATION].tooltip then
+                      InitializeTooltip(ZO_MapLocationTooltip, Fyr_MM, TOPLEFT, 0, 0)
+                      ZO_MapPin.TOOLTIP_CREATORS[MAP_PIN_TYPE_LOCATION].creator(pin.m_Pin)
+                  end
+            else -- other worls events
+                InitializeTooltip(InformationTooltip, Fyr_MM, TOPLEFT, 0, 0)
+                InformationTooltip:AddLine(GetString(SI_ZONECOMPLETIONTYPE8), FyrMM.HeaderFontType, ZO_WHITE:UnpackRGB())
+			          ZO_Tooltip_AddDivider(InformationTooltip)
+                InformationTooltip:AddLine(zo_strformat(SI_WORLD_MAP_LOCATION_NAME, pin.name), FyrMM.DefaultFontType, ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB())
+            end
             IsCurrentLocation(pin)
             return 
         elseif QUEST_PIN_TYPES[pin.m_PinType] then -- quests
             InitializeTooltip(InformationTooltip, Fyr_MM, TOPLEFT, 0, 0)
-			InformationTooltip:AddLine(GetString(SI_GUILDACTIVITYATTRIBUTEVALUE6), FyrMM.HeaderFontType, ZO_WHITE:UnpackRGB())
-			ZO_Tooltip_AddDivider(InformationTooltip)
+			      InformationTooltip:AddLine(GetString(SI_GUILDACTIVITYATTRIBUTEVALUE6), FyrMM.HeaderFontType, ZO_WHITE:UnpackRGB())
+			      ZO_Tooltip_AddDivider(InformationTooltip)
             SetQuestTooltip(pin)
             IsCurrentLocation(pin)
             return
@@ -4361,7 +4378,7 @@ function FyrMM.Show()
 	
     if FyrMM.ActionMapMode then
 	    FyrMM.ActionMap.Hide()
-	end
+	 end
 
     if not (IsPlayerControllingSiegeWeapon() and FyrMM.SV.Siege) then
         if not FyrMM.Visible or FyrMM.worldMapShowing or not ZO_KeybindStripControl:IsHidden() or
@@ -4424,6 +4441,12 @@ end
 
 function FyrMM.ActionMap.Show() 
 	if not IsPlayerActivated() then return end
+  
+  local isValid, point, relativeTo, relativePoint, offsetX, offsetY = Fyr_MM:GetAnchor(0)
+  if isValid then
+     FyrMM.lastTLCanchor = { point, GuiRoot, relativePoint, offsetX, offsetY }
+  end
+  
     FyrMM.ActionMapMode = true
 	
     Fyr_MM_Border:SetHidden(true)
@@ -4459,9 +4482,7 @@ function FyrMM.ActionMap.Show()
 	local screenWidth, screenHeight = GuiRoot:GetDimensions()
 	local actionMapSize = math.min(screenWidth,screenHeight)/1.25 
 	
-	local pos = {}
-	pos.anchorTo = GetControl(pos.anchorTo)
-	Fyr_MM:SetAnchor(TOPLEFT, pos.anchorTo, TOPLEFT, screenCenterX/2, screenCenterY/8)
+	Fyr_MM:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, screenCenterX/2, screenCenterY/8)
 	
 	
 	--Fyr_MM_Wheel_Background:SetDimensions(actionMapSize+8, actionMapSize+8) 
@@ -4474,8 +4495,7 @@ function FyrMM.ActionMap.Show()
 	Fyr_MM:SetWidth(actionMapSize)
 	FyrMM.MapHalfDiagonal()
 	
-    FyrMM.UpdateMapTiles(true)
- 
+  FyrMM.UpdateMapTiles(true)
    
 end
 
@@ -4486,13 +4506,13 @@ end
 function FyrMM.ActionMap.Hide() 
    FyrMM.ActionMapMode = false
    
-    Fyr_MM:SetAlpha(FyrMM.SV.MapAlpha/100) 
+  Fyr_MM:SetAlpha(FyrMM.SV.MapAlpha/100) 
 	Fyr_MM_Scroll_WheelWE:SetAlpha(FyrMM.SV.MapAlpha/100)
 	Fyr_MM_Scroll_WheelNS:SetAlpha(FyrMM.SV.MapAlpha/100)
 	Fyr_MM_Scroll_WheelCenter:SetAlpha(FyrMM.SV.MapAlpha/100)
-    Fyr_MM_Axis_Control:SetAlpha(1)	
+  Fyr_MM_Axis_Control:SetAlpha(1)	
    
-    if not FyrMM.SV.WheelMap then
+  if not FyrMM.SV.WheelMap then
 		Fyr_MM_Scroll:SetHeight(FyrMM.SV.MapHeight)
 		Fyr_MM_Border:SetHeight(FyrMM.SV.MapHeight+8)
 		Fyr_MM:SetHeight(FyrMM.SV.MapHeight)
@@ -4523,10 +4543,7 @@ function FyrMM.ActionMap.Hide()
 
    MM_SetMapWidth(FyrMM.SV.MapWidth)
    
-   local pos = {}
-   pos.anchorTo = GetControl(pos.anchorTo)
-   Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint, FyrMM.SV.position.offsetX, FyrMM.SV.position.offsetY)
-
+   Fyr_MM:SetAnchor(FyrMM.lastTLCanchor)
    
    FyrMM.Hide()
    FyrMM.Show()
@@ -4536,13 +4553,11 @@ end
 
 
 function FyrMM.ActionMap.Toggle()
-
    if FyrMM.ActionMapMode then
        FyrMM.ActionMap.Hide()  
    else
        FyrMM.ActionMap.Show()
    end
-
 end
 
 
@@ -7340,7 +7355,7 @@ local function AddWorldEvent(worldEventInstanceId)
 
         local zoneIndex, poiIndex = GetWorldEventPOIInfo(worldEventInstanceId)
         
-        if zoneIndex == 1 and poiIndex  == 1 then -- it's a location = it's a participating world event we abort
+        if zoneIndex == 1 and poiIndex  == 1 then -- it's a location = it's a participating dynamic world event we abort
             return
         end
         
@@ -10142,7 +10157,7 @@ local function CreatePin(obj, pinType, pinTag, x, y, radius, borderInformation, 
     end
 
 
-    if not FyrMM.worldMapShowing and not FyrMM.FastTravelOpen and x ~= nil and y ~= nil and CustomWaypoints[pinType] and CustomPinMapId ~= 0 then 
+    if CurrentMap.MapId == mapId and not FyrMM.worldMapShowing and not FyrMM.FastTravelOpen and x ~= nil and y ~= nil and CustomWaypoints[pinType] and CustomPinMapId ~= 0 then 
         if pinType == MAP_PIN_TYPE_PING and FyrMM.Ping ~= nil then
             FyrMM.Ping.nX = x
             FyrMM.Ping.nY = y
@@ -10783,6 +10798,13 @@ local function OnLoaded(eventCode, addOnName)
         MM_LoadSavedVars()
     end
     FyrMM.API_Check()
+
+    if not FyrMM.HudElementRegistered then
+        HUD_MANAGER:RegisterKeyboardElement(GetControl("Fyr_MM"), "Minimap by Fyrakin", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) -- for Keyboard UI
+        HUD_MANAGER:RegisterGamepadElement(GetControl("Fyr_MM"), "Minimap by Fyrakin", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) --for Gamepad UI
+        FyrMM.HudElementRegistered = true
+    end
+
     Fyr_MM:SetResizeHandleSize(MOUSE_CURSOR_RESIZE_NS)
     Fyr_MM:SetHandler("OnMouseEnter", function()
         FyrMM.OverMiniMap = true
@@ -10804,24 +10826,24 @@ local function OnLoaded(eventCode, addOnName)
         zo_callLater(FyrMM.MenuFadeOut, 3000) -- zo_callLater ok
         Fyr_MM_Close:SetAlpha(0)
     end)
-    Fyr_MM:SetHandler("OnMouseUp", function(self)
-        if not FyrMM.SV.LockPosition then
-            local width = Fyr_MM:GetWidth()
-            local height = Fyr_MM:GetHeight()
-            MM_SetMapWidth(width)
-            MM_SetMapHeight(height)
-            FyrMM.SV.position.offsetX = Fyr_MM:GetLeft()
-            FyrMM.SV.position.offsetY = Fyr_MM:GetTop()
-            FyrMM.MapHalfDiagonal()
-            MM_RefreshPanel()
-        else
-            local pos = {}
-            pos.anchorTo = GetControl(pos.anchorTo)
-            Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint,
-            FyrMM.SV.position.offsetX, FyrMM.SV.position.offsetY)
-            Fyr_MM:SetDimensions(FyrMM.SV.MapWidth, FyrMM.SV.MapHeight)
-        end
-    end)
+    -- Fyr_MM:SetHandler("OnMouseUp", function(self)
+        -- if not FyrMM.SV.LockResizing then
+            -- local width = Fyr_MM:GetWidth()
+            -- local height = Fyr_MM:GetHeight()
+            -- MM_SetMapWidth(width)
+            -- MM_SetMapHeight(height)
+            -- FyrMM.SV.position.offsetX = Fyr_MM:GetLeft()
+            -- FyrMM.SV.position.offsetY = Fyr_MM:GetTop()
+            -- FyrMM.MapHalfDiagonal()
+            -- MM_RefreshPanel()
+        -- else
+            -- local pos = {}
+            -- pos.anchorTo = GetControl(pos.anchorTo)
+            -- Fyr_MM:SetAnchor(FyrMM.SV.position.point, pos.anchorTo, FyrMM.SV.position.relativePoint,
+            -- FyrMM.SV.position.offsetX, FyrMM.SV.position.offsetY)
+            -- Fyr_MM:SetDimensions(FyrMM.SV.MapWidth, FyrMM.SV.MapHeight)
+        -- end
+    -- end)
     Fyr_MM_Coordinates:SetHandler("OnMouseUp", function(self)
         local pos = {}
 		pos[1] = CENTER 

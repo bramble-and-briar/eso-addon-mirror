@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Where Are You](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/Where-Are-You__2664) | kadeer | PC / Mac | v0.3 alpha |
 | [Where Is It?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/Where-Is-It__45d919f9-f85b-4930-9348-94fe2e245f98) | user562x | Console | — |
 | [Where Is My Olorime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Where-Is-My-Olorime__3680) | branddi | PC / Mac | 1.0.1 |
-| [Where's My Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Where-s-My-Guild-Hall__1757) | Shadowfen | PC / Mac | 2.13.7 |
+| [Where's My Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Where-s-My-Guild-Hall__1757) | Shadowfen | PC / Mac | 2.13.8 |
 | [Where's My Guildhall - MycroftJr Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MycroftJr/Where-s-My-Guildhall---MycroftJr-Patch__2454) | MycroftJr | PC / Mac | 2.1.3 |
 | [Where's My Sul'Xans Buff?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Where-s-My-Sul-Xans-Buff__61069d72-f6b1-401b-b5a7-e7c3f1b32c5e) | ParanoidGaming | Console | — |
 | [Whiskers' Butterfly Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Whiskers/Whiskers-Butterfly-Counter__4393) | Whiskers | PC / Mac | 1.2 |
@@ -87,7 +87,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [WritGrabber](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kendaron/WritGrabber__1179) | kendaron | PC / Mac | 1.0.14 |
 | [WritHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/WritHelper__1610) | Wheels | PC / Mac | 1.0.1 |
 | [Written Item Quality](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SatinderESO/Written-Item-Quality__4721) | SatinderESO | PC / Mac | 1.0.1 |
-| [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.5.8 |
+| [WritWorthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/WritWorthy__1605) | ziggr | PC / Mac | 7.5.9 |
 | [WTBConduits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/WTBConduits__2176) | init3 | PC / Mac | 3.1 |
 | [WtWsGuildhall for GuildMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/WtWsGuildhall-for-GuildMenu__3286) | sityDJVEN25 | PC / Mac | 2.0 beta |
 | [WtWsGuildhallforChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/WtWsGuildhallforChat__3278) | sityDJVEN25 | PC / Mac | 2.0 beta |

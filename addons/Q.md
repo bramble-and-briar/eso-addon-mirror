@@ -26,7 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Quest Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Quest-Test__752b2e95-d14a-48f3-894f-3831aea7ce25) | ParanoidGaming | Console | — |
 | [Quest Tracker Improved](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Quest-Tracker-Improved__4864) | atharti | PC / Mac | 1.4 |
 | [Quest Tracker Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/Quest-Tracker-Toggle__4040) | SkullElf | PC / Mac | 1.4 |
-| [QuestArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/QuestArrow__4833) | alabuzya | PC / Mac | 0.2.1 |
+| [QuestArrow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/QuestArrow__4833) | alabuzya | PC / Mac | 0.2.2 |
 | [QuestSkipper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/helixanon/QuestSkipper__3062) | helixanon | PC / Mac | 1.4.0 |
 | [Quick Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ranckor90/Quick-Bank__4109) | Ranckor90 | PC / Mac | v1.0.2 |
 | [Quick Bind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Quick-Bind__3562) | notnear | PC / Mac | 1.0.1 |

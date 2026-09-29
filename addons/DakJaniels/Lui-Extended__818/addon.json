@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/DakJaniels/Lui-Extended__818",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "DakJaniels",
   "canonical_id": "esoui:818",
   "category_id": "17",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -17,7 +22,7 @@
     "LuiExtended"
   ],
   "download_url": "https://www.esoui.com/downloads/dl818/",
-  "fingerprint": "d5869c2b4bfb9fab8d95d1c6d95b28b13b9d05b4bb93c6466f79cf17294cd22b",
+  "fingerprint": "7230e422fa6f143dbd7497a773fe08f30cf2a5abc1f7a2e447ef464d5a53921e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10179.png",
     "https://cdn-eso.mmoui.com/preview/pvw10199.png",
@@ -36,11 +41,11 @@
   "source_id": "818",
   "source_url": "https://www.esoui.com/downloads/info818-LuiExtended.html",
   "stats": {
-    "downloads": 3069324,
+    "downloads": 3085319,
     "favorites": 1124,
-    "monthly_downloads": 32295
+    "monthly_downloads": 7465
   },
   "title": "Lui Extended",
-  "updated_at": 1784331741000,
-  "version": "7.2.6.3"
+  "updated_at": 1790650810000,
+  "version": "7.2.6.6"
 }

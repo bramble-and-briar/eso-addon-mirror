@@ -1,7 +1,9 @@
+local DIAhelp = DIAhelp
+DIAhelp.Companion = {}
 -- DIAhelp, alabuzya, 2026-09-24. GPL-3.0-or-later.
 -- Use the native companion AI. No ability is cast by this module.
 local hookedSlots = setmetatable({}, { __mode = "k" })
-function DIAhelp_ApplyCompanionPolicy()
+function DIAhelp.Companion.ApplyPolicy()
     if GetSetting(SETTING_TYPE_COMBAT, COMBAT_SETTING_ALLOW_COMPANION_AUTO_ULTIMATE) ~= "1" then
         SetSetting(SETTING_TYPE_COMBAT, COMBAT_SETTING_ALLOW_COMPANION_AUTO_ULTIMATE, "1")
     end

@@ -25,7 +25,7 @@ local OBM = ArdysOBTracker
 
 OBM.name    = "ArdysOBTracker"
 OBM.title   = "|c9B30FFArdy's OB Tracker|r"
-OBM.version = "1.3.0"
+OBM.version = "1.3.1"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER

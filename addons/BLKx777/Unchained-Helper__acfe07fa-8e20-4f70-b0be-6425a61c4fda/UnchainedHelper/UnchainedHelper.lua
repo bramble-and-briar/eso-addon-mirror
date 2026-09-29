@@ -2,8 +2,8 @@ UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
 UnchainedHelper.name		= "UnchainedHelper"
-UnchainedHelper.version		= "1.0.0"
-UnchainedHelper.varVersion 	= "6"
+UnchainedHelper.version = "1.0.9"
+UnchainedHelper.varVersion 	= "9"
 
 UnchainedHelper.defaults	= {
 	["enabled"] = true,
@@ -11,6 +11,17 @@ UnchainedHelper.defaults	= {
     ["blockBlackroseSigils"] = false,
     ["sigilBlockNotice"] = true,
     ["showProgressCallouts"] = true,
+    ["showSpawnCallout"] = true,
+    ["spawnCalloutDuration"] = 4,
+    ["spawnCalloutScale"] = 100,
+    ["spawnCalloutOffsetX"] = 0,
+    ["spawnCalloutOffsetY"] = -150,
+    ["showTotemAlert"] = true,
+    ["totemAlertDuration"] = 3,
+    ["totemAbilityId"] = 0,
+    ["showNetchDangerAlert"] = true,
+    ["netchDangerSound"] = true,
+    ["netchDangerDuration"] = 2,
 	["showRaisedMarkers"] = true,
 	["markerSize"] = 175,
 	["markerHeight"] = 280,
@@ -80,6 +91,11 @@ UnchainedHelper.currentRound = 0
 UnchainedHelper.currentWave = 0
 
 UnchainedHelper.lastPortalSpawn = 0
+UnchainedHelper.lastTotemAlert = 0
+UnchainedHelper.totemAlertHideAt = 0
+UnchainedHelper.lastNetchDangerAlert = 0
+UnchainedHelper.netchDangerHideAt = 0
+UnchainedHelper.netchDetectorRegistered = false
 
 
 UnchainedHelper.drawNextFightIconTime = 0
@@ -893,6 +909,297 @@ function UnchainedHelper.RedrawActiveMarkers()
     UnchainedHelper.RefreshLegend()
 end
 
+
+
+UnchainedHelper.SpawnCallouts = {
+    [1] = {
+        [1] = {
+            [1] = "3 Footsoldiers + 3 Archers",
+            [2] = "Cleaver + 3 Archers",
+            [3] = "Dreadknight + 3 Archers",
+        },
+        [2] = {
+            [1] = "2 Footsoldiers + 2 Archers + Mage",
+            [2] = "2 Archers + 6 Footsoldiers",
+            [3] = "4 Archers + Dreadknight",
+        },
+        [3] = {
+            [1] = "4 Archers + Cleaver",
+            [2] = "2 Archers + Cleaver + Mage",
+            [3] = "3 Archers + Dreadknight + Mage",
+        },
+        [4] = {
+            [1] = "2 Cleavers + Archer",
+            [2] = "2 Mages + Cleaver + 2 Archers",
+            [3] = "2 Dreadknights + 2 Archers",
+        },
+        [5] = {
+            [1] = "Boss",
+        },
+    },
+    [2] = {
+        [1] = {
+            [1] = "3 Spiders + 2 Hackwings",
+            [2] = "2 Crocodiles + 2 Hoarvors + 2 Spiders",
+            [3] = "Beastmaster + 3 Hackwings",
+        },
+        [2] = {
+            [1] = "3 Spiders + 3 Hoarvors",
+            [2] = "Haj Mota + Crocodile + 3 Spiders",
+            [3] = "3 Spiders + Beastmaster",
+        },
+        [3] = {
+            [1] = "2 Hackwings + 2 Spiders + Troll",
+            [2] = "Troll + 2 Crocodiles",
+            [3] = "Troll + Beastmaster",
+        },
+        [4] = {
+            [1] = "4 Spiders + 2 Crocodiles",
+            [2] = "2 Beastmasters + Wamasu + 3 Spiders",
+        },
+        [5] = {
+            [1] = "Tames-the-Beast",
+        },
+    },
+    [3] = {
+        [1] = {
+            [1] = "4 Bloodfiends + Cold Mage",
+            [2] = "3 Infusers",
+            [3] = "2 Infusers + Gargoyle",
+        },
+        [2] = {
+            [1] = "6 Bloodfiends + 2 Infusers",
+            [2] = "2 Cold Mages",
+            [3] = "Gargoyle + 2 Bats",
+        },
+        [3] = {
+            [1] = "2 Cold Mages + 2 Infusers",
+            [2] = "Gargoyle + 2 Cold Mages + Infuser + 3 Bloodfiends",
+            [3] = "2 Cold Mages + Infuser + 3 Bloodfiends",
+        },
+        [4] = {
+            [1] = "4 Infusers + 2 Bats + 2 Bloodfiends",
+            [2] = "2 Cold Mages",
+            [3] = "2 Gargoyles",
+        },
+        [5] = {
+            [1] = "Lady Minara",
+        },
+    },
+    [4] = {
+        [1] = {
+            [1] = "2 Footsoldiers + 2 Spiders + Cleaver",
+            [2] = "Infuser + Crocodile + 2 Incinerators",
+            [3] = "2 Hoarvors + 2 Bloodfiends + Beastmaster",
+        },
+        [2] = {
+            [1] = "2 Archers + Cleaver + Incinerator",
+            [2] = "2 Footsoldiers + Archer + Dreadknight",
+            [3] = "2 Incinerators + Boss",
+        },
+        [3] = {
+            [1] = "4 Hackwings + Beastmaster",
+            [2] = "4 Spiders + Haj Mota",
+            [3] = "Tames-the-Beast + 2 Crocodiles",
+        },
+        [4] = {
+            [1] = "Cold Mage + 2 Bloodfiends + 2 Bats",
+            [2] = "2 Infusers + Gargoyle",
+            [3] = "Infuser + Cold Mage + Lady Minara",
+        },
+        [5] = {
+            [1] = "Boss",
+            [2] = "Tames-the-Beast",
+            [3] = "Lady Minara",
+        },
+    },
+    [5] = {
+        [1] = {
+            [1] = "2 Convicts + 2 Prisoners",
+            [2] = "2 Convicts + Soul Void",
+            [3] = "Vengeful Revenant",
+        },
+        [2] = {
+            [1] = "2 Prisoners + Soul Void",
+            [2] = "Prisoner + Vengeful Revenant",
+            [3] = "2 Convicts + Soul Void",
+        },
+        [3] = {
+            [1] = "Prisoner + 2 Convicts + Soul Void",
+            [2] = "2 Soul Voids + Convict",
+            [3] = "Prisoner + Convict + Vengeful Revenant",
+        },
+        [4] = {
+            [1] = "2 Convicts + 2 Prisoners + Soul Void",
+            [2] = "2 Prisoners + 2 Soul Voids",
+            [3] = "Prisoner + 2 Convicts + Boss",
+        },
+        [5] = {
+            [1] = "Boss",
+        },
+    },
+}
+
+function UnchainedHelper.GetSpawnCallout(stage, round, wave)
+    local stageData = UnchainedHelper.SpawnCallouts[stage]
+    local roundData = stageData and stageData[round]
+    return roundData and roundData[wave] or nil
+end
+
+function UnchainedHelper.UpdateSpawnCalloutPosition()
+    if not UnchainedHelperSpawnCallout or not UnchainedHelper.savedVars then return end
+    UnchainedHelperSpawnCallout:ClearAnchors()
+    UnchainedHelperSpawnCallout:SetAnchor(CENTER, GuiRoot, CENTER, UnchainedHelper.savedVars.spawnCalloutOffsetX or 0, UnchainedHelper.savedVars.spawnCalloutOffsetY or -150)
+    UnchainedHelperSpawnCallout:SetScale((UnchainedHelper.savedVars.spawnCalloutScale or 100) / 100)
+end
+
+function UnchainedHelper.HideSpawnCallout()
+    EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name .. "SpawnCalloutHide")
+    if UnchainedHelperSpawnCallout then UnchainedHelperSpawnCallout:SetHidden(true) end
+end
+
+function UnchainedHelper.ShowSpawnCallout(stage, round, wave)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showSpawnCallout == false then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.HideSpawnCallout()
+        return
+    end
+
+    local actualStage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    if actualStage <= 0 or stage ~= actualStage then
+        UnchainedHelper.HideSpawnCallout()
+        return
+    end
+
+    local spawnText = UnchainedHelper.GetSpawnCallout(stage, round, wave)
+    if not spawnText then return end
+
+    local key = string.format("%d.%d.%d", stage, round, wave)
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    if UnchainedHelper.lastSpawnCalloutKey == key and UnchainedHelper.lastSpawnCalloutTime and now - UnchainedHelper.lastSpawnCalloutTime < 1000 then return end
+    UnchainedHelper.lastSpawnCalloutKey = key
+    UnchainedHelper.lastSpawnCalloutTime = now
+
+    UnchainedHelper.UpdateSpawnCalloutPosition()
+    if UnchainedHelperSpawnCalloutProgress then
+        UnchainedHelperSpawnCalloutProgress:SetText(string.format("Round: %d/5 - Stage: %d/5", round, stage))
+    end
+    if UnchainedHelperSpawnCalloutText then
+        UnchainedHelperSpawnCalloutText:SetText("Spawning: " .. spawnText)
+    end
+    if UnchainedHelperSpawnCallout then UnchainedHelperSpawnCallout:SetHidden(false) end
+
+    EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name .. "SpawnCalloutHide")
+    local duration = math.max(1, math.min(8, UnchainedHelper.savedVars.spawnCalloutDuration or 4)) * 1000
+    EVENT_MANAGER:RegisterForUpdate(UnchainedHelper.name .. "SpawnCalloutHide", duration, function()
+        UnchainedHelper.HideSpawnCallout()
+    end)
+end
+
+function UnchainedHelper.HideNetchDangerAlert()
+    UnchainedHelper.netchDangerHideAt = 0
+    if UnchainedHelperNetchDangerAlert then
+        UnchainedHelperNetchDangerAlert:SetHidden(true)
+    end
+end
+
+local function UH_NormalizeCombatName(value)
+    local text = tostring(value or "")
+    if zo_strformat then
+        local ok, formatted = pcall(zo_strformat, "<<1>>", text)
+        if ok and formatted then text = formatted end
+    end
+    if zo_strlower then return zo_strlower(text) end
+    return string.lower(text)
+end
+
+function UnchainedHelper.IsLocalPlayerCombatTarget(targetName, targetType, targetUnitId)
+    if GetUnitId and targetUnitId and targetUnitId ~= 0 then
+        local ok, playerUnitId = pcall(GetUnitId, "player")
+        if ok and playerUnitId and playerUnitId ~= 0 and targetUnitId == playerUnitId then
+            return true
+        end
+    end
+
+    if COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER then
+        local target = UH_NormalizeCombatName(targetName)
+        if target == "" then return true end
+    end
+
+    local target = UH_NormalizeCombatName(targetName)
+    if target == "" then return false end
+    local playerName = UH_NormalizeCombatName(GetUnitName and GetUnitName("player") or "")
+    local rawPlayerName = UH_NormalizeCombatName(GetRawUnitName and GetRawUnitName("player") or "")
+    return (playerName ~= "" and target == playerName) or (rawPlayerName ~= "" and target == rawPlayerName)
+end
+
+function UnchainedHelper.IsActualStage2()
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return false end
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    return stage == 2
+end
+
+function UnchainedHelper.ShowNetchDangerAlert(kind, abilityId)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showNetchDangerAlert == false then return end
+    if not UnchainedHelper.IsActualStage2() then return end
+
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    if UnchainedHelper.lastNetchDangerAlert and now - UnchainedHelper.lastNetchDangerAlert < 1200 then return end
+    UnchainedHelper.lastNetchDangerAlert = now
+
+    if UnchainedHelperNetchDangerAlertText then
+        UnchainedHelperNetchDangerAlertText:SetText("NETCH POISON - MOVE")
+        if UnchainedHelperNetchDangerAlertText.SetColor then
+            UnchainedHelperNetchDangerAlertText:SetColor(0.55, 1.0, 0.38, 1)
+        end
+    end
+    if UnchainedHelperNetchDangerAlert then
+        UnchainedHelperNetchDangerAlert:SetHidden(false)
+    end
+
+    if UnchainedHelper.savedVars.netchDangerSound ~= false and PlaySound then
+        pcall(PlaySound, "Duel_Boundary_Warning")
+    end
+
+    local seconds = math.max(1, math.min(5, UnchainedHelper.savedVars.netchDangerDuration or 2))
+    UnchainedHelper.netchDangerHideAt = now + (seconds * 1000)
+end
+
+function UnchainedHelper.NetchDangerCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, combatEventLog, sourceUnitId, targetUnitId, abilityId)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showNetchDangerAlert == false then return end
+    if not UnchainedHelper.IsActualStage2() then return end
+    if abilityId ~= 114801 then return end
+    if not UnchainedHelper.IsLocalPlayerCombatTarget(targetName, targetType, targetUnitId) then return end
+
+    UnchainedHelper.ShowNetchDangerAlert("poison", abilityId)
+end
+
+function UnchainedHelper.RegisterNetchDangerDetector()
+    local eventName = UnchainedHelper.name .. "NetchDangerDetector"
+    EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_COMBAT_EVENT)
+    UnchainedHelper.netchDetectorRegistered = false
+
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showNetchDangerAlert == false then return end
+    if not UnchainedHelper.IsActualStage2() then return end
+
+    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, UnchainedHelper.NetchDangerCombatEvent)
+    EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 114801, REGISTER_FILTER_IS_ERROR, false)
+    UnchainedHelper.netchDetectorRegistered = true
+end
+
+function UnchainedHelper.UpdateNetchDangerDetector()
+    local shouldRun = UnchainedHelper.savedVars
+        and UnchainedHelper.savedVars.showNetchDangerAlert ~= false
+        and UnchainedHelper.IsActualStage2()
+    if shouldRun and not UnchainedHelper.netchDetectorRegistered then
+        UnchainedHelper.RegisterNetchDangerDetector()
+    elseif not shouldRun and UnchainedHelper.netchDetectorRegistered then
+        EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
+        UnchainedHelper.netchDetectorRegistered = false
+        UnchainedHelper.HideNetchDangerAlert()
+    end
+end
+
 function UnchainedHelper.NotifyNewWave(nextFight)
     --d("nextFlight:",nextFight)
 	local s = UnchainedHelper.GetCurrentStage()
@@ -919,6 +1226,7 @@ function UnchainedHelper.NotifyNewWave(nextFight)
     	end
     end
 
+    UnchainedHelper.ShowSpawnCallout(s, r, w)
     UnchainedHelper.ClearIcons()
 
     if s == 1 and r == 1 and w == 1 then
@@ -2348,7 +2656,81 @@ function UnchainedHelper.ClearIcons(keepRequests)
     end
 end
 
+function UnchainedHelper.HideTotemAlert()
+    UnchainedHelper.totemAlertHideAt = 0
+    if UnchainedHelperTotemAlert then
+        UnchainedHelperTotemAlert:SetHidden(true)
+    end
+end
+
+function UnchainedHelper.ShowTotemAlert(abilityId)
+    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.showTotemAlert then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    if UnchainedHelper.lastTotemAlert and now - UnchainedHelper.lastTotemAlert < 4000 then return end
+    UnchainedHelper.lastTotemAlert = now
+
+    if abilityId and abilityId > 0 and (UnchainedHelper.savedVars.totemAbilityId or 0) == 0 then
+        UnchainedHelper.savedVars.totemAbilityId = abilityId
+    end
+
+    if UnchainedHelperTotemAlertText then
+        UnchainedHelperTotemAlertText:SetText("TOTEM ACTIVE")
+    end
+    if UnchainedHelperTotemAlert then
+        UnchainedHelperTotemAlert:SetHidden(false)
+    end
+
+    local seconds = UnchainedHelper.savedVars.totemAlertDuration or 3
+    UnchainedHelper.totemAlertHideAt = now + (seconds * 1000)
+end
+
+function UnchainedHelper.TotemCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, combatEventLog, sourceUnitId, targetUnitId, abilityId)
+    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.showTotemAlert then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+
+    local learnedId = UnchainedHelper.savedVars.totemAbilityId or 0
+    if learnedId > 0 then
+        if abilityId == learnedId then
+            UnchainedHelper.ShowTotemAlert(abilityId)
+        end
+        return
+    end
+
+    local ability = zo_strlower and zo_strlower(abilityName or "") or string.lower(abilityName or "")
+    local source = zo_strlower and zo_strlower(sourceName or "") or string.lower(sourceName or "")
+
+    if string.find(ability, "barrage of stone", 1, true)
+        or (string.find(source, "totem of stone", 1, true) and string.find(ability, "barrage", 1, true)) then
+        UnchainedHelper.ShowTotemAlert(abilityId)
+    end
+end
+
+function UnchainedHelper.RegisterTotemDetector()
+    local eventName = UnchainedHelper.name .. "TotemDetector"
+    EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_COMBAT_EVENT)
+    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.showTotemAlert then return end
+
+    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, UnchainedHelper.TotemCombatEvent)
+    EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false)
+
+    local learnedId = UnchainedHelper.savedVars.totemAbilityId or 0
+    if learnedId > 0 then
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, learnedId)
+    end
+end
+
 function UnchainedHelper.UpdateTimer()
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    if UnchainedHelper.totemAlertHideAt and UnchainedHelper.totemAlertHideAt > 0 and now >= UnchainedHelper.totemAlertHideAt then
+        UnchainedHelper.HideTotemAlert()
+    end
+    if UnchainedHelper.netchDangerHideAt and UnchainedHelper.netchDangerHideAt > 0 and now >= UnchainedHelper.netchDangerHideAt then
+        UnchainedHelper.HideNetchDangerAlert()
+    end
+    UnchainedHelper.UpdateNetchDangerDetector()
+
     if UnchainedHelper.eraseIconTime==0 or UnchainedHelper.eraseIconTime > GetGameTimeMilliseconds() then
     else
        UnchainedHelper.ClearIcons()
@@ -2362,12 +2744,18 @@ end
 
 
 function UnchainedHelper.UnregisterZoneEvents()
+    UnchainedHelper.HideSpawnCallout()
+    UnchainedHelper.HideNetchDangerAlert()
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "Ability" .. 114578, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "Announcement", EVENT_DISPLAY_ANNOUNCEMENT)
     EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name.."Update")
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."PassiveHide", EVENT_PLAYER_COMBAT_STATE)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."ECE"..109992, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT)
+    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
+    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
+    UnchainedHelper.netchDetectorRegistered = false
+            UnchainedHelper.HideTotemAlert()
     UnchainedHelper.ClearIcons()
 end
 
@@ -2395,6 +2783,9 @@ function UnchainedHelper.PlayerActivated()
 
         EVENT_MANAGER:RegisterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT, UnchainedHelper.combatEvent)
         EVENT_MANAGER:AddFilterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 113150, REGISTER_FILTER_IS_ERROR, false)
+
+        UnchainedHelper.RegisterTotemDetector()
+        UnchainedHelper.UpdateNetchDangerDetector()
 
 
         UnchainedHelperFramePurge:SetText("")
@@ -2432,6 +2823,7 @@ function UnchainedHelper.Init(event, addon)
 
     UnchainedHelper.savedVars = ZO_SavedVars:New(UnchainedHelper.name.."SavedVars", UnchainedHelper.varVersion, nil, UnchainedHelper.defaults)
     UnchainedHelper.setPos()
+    UnchainedHelper.UpdateSpawnCalloutPosition()
     UnchainedHelper.InstallSigilBlocker()
     UnchainedHelper.UpdateLegendPosition()
     UnchainedHelper.RefreshLegend()

@@ -1,7 +1,7 @@
 -- Global Table definition
 YudosKillFeed = {
     name = "YudosKillFeed",
-    version = "1.3.4",
+    version = "1.3.5",
     groupCache = {},
     guildCache = {},
     guildUpdateHandle = nil, -- Handle for zo_callLater debouncing

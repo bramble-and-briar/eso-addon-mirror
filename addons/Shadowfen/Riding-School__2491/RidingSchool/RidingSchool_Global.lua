@@ -2,7 +2,7 @@ local SF = LibSFUtils
 
 RidingSchool = {
     name = "RidingSchool",
-    version = "1.4.21",
+    version = "1.4.22",
     settingName = "RidingSchool",
     settingDisplayName = "RidingSchool",
     author = "Shadowfen",

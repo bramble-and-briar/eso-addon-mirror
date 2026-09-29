@@ -1,7 +1,7 @@
 SkillStyleCycler = SkillStyleCycler or {}
 local SSC = SkillStyleCycler
 SSC.name = "SkillStyleCycler"
-SSC.version = "1.4.2"
+SSC.version = "1.4.3"
 
 SSC.Modes = {
     DO_NOTHING = "Do nothing",

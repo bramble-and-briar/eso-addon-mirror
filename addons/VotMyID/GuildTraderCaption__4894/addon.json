@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/VotMyID/GuildTraderCaption__4894",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "VotMyID",
+  "canonical_id": "esoui:4894",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4894",
+  "deleted": false,
+  "directories": [
+    "GuildTraderCaption"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4894/",
+  "fingerprint": "861017008bfd44269a638d3102df2e2a29c3d48fd7223a10029ebbbc92987ca7",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4894",
+  "source_url": "https://www.esoui.com/downloads/info4894-GuildTraderCaption.html",
+  "stats": {
+    "downloads": 2,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "GuildTraderCaption",
+  "updated_at": 1790751068000,
+  "version": "0.1"
+}

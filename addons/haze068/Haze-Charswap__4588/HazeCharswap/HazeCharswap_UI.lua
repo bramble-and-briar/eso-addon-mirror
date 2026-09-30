@@ -1,16 +1,12 @@
 local HCS = HazeCharswap
 
 local win
-local scrollList
 local rowPool
 local profileDropdown
 
 local SCROLL_TEMPLATE_NAME = "HazeCharswap_RowTemplate"
 
-
--- =============================================================================
--- Data preparation
--- =============================================================================
+-- daten für die liste
 
 local function BuildDisplayList()
     local invItems, bankItems = HCS.GetMarkedItemsByLocation()
@@ -75,10 +71,7 @@ local function BuildDisplayList()
     return rows
 end
 
-
--- =============================================================================
--- Row rendering
--- =============================================================================
+-- zeilen
 
 local function SetupRow(rowControl, data)
     local icon     = rowControl:GetNamedChild("Icon")
@@ -102,9 +95,11 @@ local function SetupRow(rowControl, data)
 
     location:SetText(data.location or "")
     if data.locationKey == 1 then
-        location:SetColor(0.6, 1.0, 0.6, 1.0)
+        local c = HCS.sv.bagColor or { 0.6, 1.0, 0.6 }
+        location:SetColor(c[1], c[2], c[3], 1.0)
     elseif data.locationKey == 2 then
-        location:SetColor(0.6, 0.8, 1.0, 1.0)
+        local c = HCS.sv.bankColor or { 0.6, 0.8, 1.0 }
+        location:SetColor(c[1], c[2], c[3], 1.0)
     else
         location:SetColor(0.7, 0.7, 0.7, 1.0)
     end
@@ -159,10 +154,7 @@ local function RenderList()
     end
 end
 
-
--- =============================================================================
--- Profile dropdown
--- =============================================================================
+-- profil-dropdown
 
 function HCS.UI_RefreshProfileDropdown()
     if not profileDropdown then return end
@@ -180,10 +172,7 @@ function HCS.UI_RefreshProfileDropdown()
     profileDropdown:SetSelectedItemText(HCS.GetActiveProfileName())
 end
 
-
--- =============================================================================
--- Public UI functions
--- =============================================================================
+-- fenster
 
 function HCS.UI_Refresh()
     if not win or win:IsHidden() then return end
@@ -268,10 +257,7 @@ function HCS.UI_RowMouseExit(rowControl)
     ClearTooltip(ItemTooltip)
 end
 
-
--- =============================================================================
--- Profile buttons
--- =============================================================================
+-- profil-buttons
 
 function HCS.UI_OnProfileNewClicked()
     ZO_Dialogs_ShowDialog("HAZECS_NEW_PROFILE")
@@ -287,10 +273,7 @@ function HCS.UI_OnProfileDeleteClicked()
         { mainTextParams = { active } })
 end
 
-
--- =============================================================================
--- Dialogs
--- =============================================================================
+-- dialoge
 
 local function CreateDialogs()
     ZO_Dialogs_RegisterCustomDialog("HAZECS_CONFIRM_CLEAR", {
@@ -359,10 +342,18 @@ local function CreateDialogs()
     })
 end
 
+-- init
 
--- =============================================================================
--- Init
--- =============================================================================
+-- gewählte farben aufs fenster anwenden
+function HCS.UI_ApplyColors()
+    if not win then return end
+    local title = win:GetNamedChild("Title")
+    if title then
+        local c = HCS.sv.accentColor or { 1.0, 0.843, 0.0 }
+        title:SetColor(c[1], c[2], c[3], 1.0)
+    end
+    if not win:IsHidden() then HCS.UI_Refresh() end
+end
 
 function HCS.UI_Initialize()
     win = HazeCharswapWindow
@@ -396,8 +387,8 @@ function HCS.UI_Initialize()
     profileDropdown:SetSortsItems(false)
     HCS.UI_RefreshProfileDropdown()
 
-    scrollList = win:GetNamedChild("ScrollContainer")
-    local scrollParent = scrollList:GetNamedChild("ScrollChild") or scrollList
+    local container    = win:GetNamedChild("ScrollContainer")
+    local scrollParent = container:GetNamedChild("ScrollChild") or container
 
     rowPool = ZO_ObjectPool:New(
         function(pool)
@@ -416,6 +407,8 @@ function HCS.UI_Initialize()
     )
 
     CreateDialogs()
+
+    HCS.UI_ApplyColors()
 
     if HCS.sv.uiHidden then
         win:SetHidden(true)

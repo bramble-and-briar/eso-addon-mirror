@@ -1,13 +1,19 @@
 -=-=-=ESOA=-=-=-
 -=-=-=-=-=-=-=-
 ==Unpublished ESOA==
-2.00.10
+2.00.11
 [list]
 [*] 
 [/list]
 
 
 ==ESOA Published V1.00.XX==
+2.00.10
+[list]
+[*] U51
+[*] fix to reset to default
+[*] some Vengeance skill issues
+[/list]
 2.00.09
 [list]
 [*] U50

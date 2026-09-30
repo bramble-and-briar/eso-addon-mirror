@@ -1,0 +1,63 @@
+<GuiXml>
+    <Controls>
+        <Control name="OneDungeonRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="32" />
+            <OnInitialized>OneDungeon:InitializeRow(self)</OnInitialized>
+            <Controls>
+                <Button name="$(parent)Normal" inherits="ZO_CheckButton">
+                    <Anchor point="LEFT" offsetX="2" />
+                </Button>
+                <Button name="$(parent)Veteran" inherits="ZO_CheckButton">
+                    <Anchor point="LEFT" offsetX="34" />
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontWinH3" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Dimensions y="32" />
+                    <Anchor point="TOPLEFT" offsetX="68" />
+                    <Anchor point="TOPRIGHT" offsetX="-278" />
+                </Label>
+                <Control name="$(parent)Quest" mouseEnabled="true">
+                    <Dimensions x="114" y="32" />
+                    <Anchor point="RIGHT" offsetX="-156" />
+                    <Controls>
+                        <Texture name="$(parent)Story" textureFile="EsoUI/Art/Compass/quest_icon.dds" hidden="true">
+                            <Dimensions x="24" y="24" />
+                            <Anchor point="LEFT" offsetX="4" />
+                        </Texture>
+                        <Texture name="$(parent)PledgeGlow" textureFile="EsoUI/Art/Compass/repeatableQuest_icon_assisted.dds" blendMode="ADD" layer="BACKGROUND" hidden="true">
+                            <Dimensions x="36" y="32" />
+                            <Anchor point="LEFT" offsetX="32" />
+                        </Texture>
+                        <Texture name="$(parent)Pledge" textureFile="EsoUI/Art/Compass/repeatableQuest_icon.dds" hidden="true">
+                            <Dimensions x="24" y="24" />
+                            <Anchor point="LEFT" offsetX="38" />
+                        </Texture>
+                    </Controls>
+                </Control>
+                <Control name="$(parent)Clear" mouseEnabled="true">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="RIGHT" offsetX="-120" />
+                    <Controls>
+                        <Texture name="$(parent)Icon"><AnchorFill /></Texture>
+                        <Label name="$(parent)State" font="ZoFontWinH3" horizontalAlignment="CENTER"><AnchorFill /></Label>
+                    </Controls>
+                </Control>
+                <Control name="$(parent)HardMode" mouseEnabled="true">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="RIGHT" offsetX="-72" />
+                    <Controls>
+                        <Texture name="$(parent)Icon"><AnchorFill /></Texture>
+                        <Label name="$(parent)State" font="ZoFontWinH3" horizontalAlignment="CENTER"><AnchorFill /></Label>
+                    </Controls>
+                </Control>
+                <Control name="$(parent)Trifecta" mouseEnabled="true">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="RIGHT" offsetX="-24" />
+                    <Controls>
+                        <Texture name="$(parent)Icon"><AnchorFill /></Texture>
+                        <Label name="$(parent)State" font="ZoFontWinH3" horizontalAlignment="CENTER"><AnchorFill /></Label>
+                    </Controls>
+                </Control>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

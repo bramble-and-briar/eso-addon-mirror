@@ -211,16 +211,16 @@ function H:Initialize()
     local s = self:EnsureSaved()
     if not s then return end
     local prefix = EPC.name .. "_ActivityRunHistory"
-    if EVENT_PLAYER_ACTIVATED ~= nil then EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:OnActivated() end) end
-    if EVENT_PLAYER_DEACTIVATED ~= nil then EVENT_MANAGER:RegisterForEvent(prefix .. "_Deactivated", EVENT_PLAYER_DEACTIVATED, function() self:OnDeactivated() end) end
+    if EVENT_PLAYER_ACTIVATED ~= nil then EPC.Runtime:RegisterEvent("ActivityRunHistory", "Activated", EVENT_PLAYER_ACTIVATED, function() self:OnActivated() end) end
+    if EVENT_PLAYER_DEACTIVATED ~= nil then EPC.Runtime:RegisterEvent("ActivityRunHistory", "Deactivated", EVENT_PLAYER_DEACTIVATED, function() self:OnDeactivated() end) end
     if EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE ~= nil then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_FinderComplete", EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE, function() self:RecordCurrent("ACTIVITY_FINDER") end)
+        EPC.Runtime:RegisterEvent("ActivityRunHistory", "FinderComplete", EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE, function() self:RecordCurrent("ACTIVITY_FINDER") end)
     end
     if EVENT_RAID_TRIAL_COMPLETE ~= nil then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_TrialComplete", EVENT_RAID_TRIAL_COMPLETE, function() self:Record("TRIAL", difficultyLabel(), "TRIAL_COMPLETE", true) end)
+        EPC.Runtime:RegisterEvent("ActivityRunHistory", "TrialComplete", EVENT_RAID_TRIAL_COMPLETE, function() self:Record("TRIAL", difficultyLabel(), "TRIAL_COMPLETE", true) end)
     end
     if EVENT_BATTLEGROUND_STATE_CHANGED ~= nil then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_BGState", EVENT_BATTLEGROUND_STATE_CHANGED, function(_, oldState, newState)
+        EPC.Runtime:RegisterEvent("ActivityRunHistory", "BGState", EVENT_BATTLEGROUND_STATE_CHANGED, function(_, oldState, newState)
             if BATTLEGROUND_STATE_RUNNING ~= nil and newState == BATTLEGROUND_STATE_RUNNING then self:StartSession("BATTLEGROUND", "BATTLEGROUND", "BG_STATE") end
             if BATTLEGROUND_STATE_FINISHED ~= nil and newState == BATTLEGROUND_STATE_FINISHED then self:Record("BATTLEGROUND", "BATTLEGROUND", "BG_FINISHED", true) end
         end)

@@ -1,0 +1,9 @@
+## Title: |cf49b42VFX Fade|r 
+## Description: Lowers Self/Friendly/Enemy VFX Intensity one step every N minutes of session play.
+## Author: |c3CB371@Masteroshi430|r
+## Version: 2026.09.29
+## APIVersion: 101051
+## SavedVariables: VFXFade_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+
+VFXFade.lua

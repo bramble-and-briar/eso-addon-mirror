@@ -182,7 +182,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Slash Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Home__2113) | Circuitous | PC / Mac | 1.0.101047 |
 | [Slash Mate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Mate__2638) | Circuitous | PC / Mac | 1.0.101047-1 |
 | [Slash Shop, Fence, and Bank (and More)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Shop-Fence-and-Bank-and-More__2469) | Circuitous | PC / Mac | 1.27.101049 |
-| [Slasher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Slasher__1887) | Shadowfen | PC / Mac | 2.50 |
+| [Slasher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Slasher__1887) | Shadowfen | PC / Mac | 2.51 |
 | [SlashVivec](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/damage_1/SlashVivec__3260) | damage_1 | PC / Mac | 0.6.9 |
 | [Slayer Tracker (PC & Console) + Buff Uptime and Statistics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Slayer-Tracker-PC-Console-Buff-Uptime-and-Statistics__4680) | Duesentrieb | PC / Mac | 20260709-0001 |
 | [Slightly Improved™ Attribute Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/L8Knight/Slightly-ImprovedTM-Attribute-Bars__72) | L8Knight | PC / Mac | 2.2.2 |
@@ -199,7 +199,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SlowDialogs - Custom Control Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/SlowDialogs---Custom-Control-Patch__1767) | Tyx | PC / Mac | 1.1.3 |
 | [Smart Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Smart-Chat-Messages__4482) | evainefaye | PC / Mac | 1.9.1 |
 | [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__09511722-e9f3-4e32-b5f9-d04c0cbee9c4) | code65536 | Console | — |
-| [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__2303) | code65536 | PC / Mac | 1.1.1 |
+| [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__2303) | code65536 | PC / Mac | 1.1.2 |
 | [Smart Node Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockintrumpet/Smart-Node-Radar__923318b4-3671-40d4-93f3-49d2f9203093) | rockintrumpet | Console | — |
 | [Smart Trader](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Smart-Trader__d9742ac5-f315-4712-8383-b1a170801ba9) | clubwratt | Console | — |
 | [SmartBags Renascence](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/SmartBags-Renascence__1952) | Werewolf Finds Dragon | PC / Mac | 003-100022 |
@@ -209,6 +209,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SmartCombatAlertv1](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockintrumpet/SmartCombatAlertv1__19ce6fa1-98c2-458e-b92b-c47fc6f55b55) | rockintrumpet | Console | — |
 | [Smarter AutoLoot (S.A.L.)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Agathorn/Smarter-AutoLoot-S.A.L__1127) | Agathorn | PC / Mac | 1.8.0 |
 | [SmartGear - Intelligent Gear Advisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Negifis/SmartGear---Intelligent-Gear-Advisor__4478) | Negifis | PC / Mac | 1.1.1 |
+| [SmartPickpocket](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SmartPickpocket__4895) | VotMyID | PC / Mac | 0.2.0 |
 | [SmartPricer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LimPack/SmartPricer__4562) | LimPack | PC / Mac | 1.1 |
 | [SMC Guild Halls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/SMC-Guild-Halls__3587) | sshogrin | PC / Mac | 1.0.3 |
 | [Snake](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/Snake__4038) | tmp | PC / Mac | 1.2 |

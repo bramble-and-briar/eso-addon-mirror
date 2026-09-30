@@ -169,6 +169,14 @@
 --          (self, interactionPossible), and clears the remembered prompt
 --          text when nothing is interactable, so a later interact-key
 --          press with nothing targeted can't reuse an old "Sit" prompt.
+-- v3.4.34: Renamed the LibAddonMenu panel from "Frostfall" to
+--          "FrostfallPanel". LAM names the panel control after it, and ESO
+--          makes every named control a global, so the old name overwrote
+--          the global Frostfall table with the panel control once
+--          ConfigMenu initialized. Frostfall kept working (it uses the
+--          local FV), but other addons reading the global - RND's
+--          Frostfall:GetEffectiveTemp() / Frostfall.State.isSwimming -
+--          silently fell back to LibZoneTemp's raw ambient temperature.
 
 Frostfall = Frostfall or {}
 local FV = Frostfall
@@ -177,7 +185,7 @@ local FV = Frostfall
 -- CONSTANTS
 -- ============================================================
 FV.NAME            = "Frostfall"
-FV.VERSION         = "3.4.33"
+FV.VERSION         = "3.4.34"
 FV.DISPLAY_NAME    = "Frostfall Temperature System"
 FV.SAVED_VARS_VER  = 8   -- unchanged: spellResistRemainingSeconds (v3.4.21, replacing v3.4.19's spellResistEndTimestamp) is additive and needs no data migration
 

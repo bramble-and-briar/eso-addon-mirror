@@ -522,21 +522,6 @@ function N:GetSettingsOptions()
     }
 end
 
-function N:InstallSettingsInjection()
-    local LAM = LibAddonMenu2
-    if not LAM or type(LAM.RegisterOptionControls) ~= "function" or LAM._easGroupLootNotifierSettings029665 then return end
-    LAM._easGroupLootNotifierSettings029665 = true
-    local original = LAM.RegisterOptionControls
-    LAM.RegisterOptionControls = function(lam, panelName, options, ...)
-        if panelName == "ESOProgressionCoachSettings" and type(options) == "table" and not N.settingsInjected then
-            N.settingsInjected = true
-            local extra = N:GetSettingsOptions()
-            for i = 1, #extra do options[#options + 1] = extra[i] end
-        end
-        return original(lam, panelName, options, ...)
-    end
-end
-
 function N:Initialize()
     if self.initialized then return end
     self.initialized = true
@@ -550,7 +535,6 @@ function N:Initialize()
     end
 end
 
-N:InstallSettingsInjection()
 
 if EVENT_MANAGER then
     EVENT_MANAGER:RegisterForEvent(N.eventNamespace .. "_Load", EVENT_ADD_ON_LOADED, function(_, addonName)

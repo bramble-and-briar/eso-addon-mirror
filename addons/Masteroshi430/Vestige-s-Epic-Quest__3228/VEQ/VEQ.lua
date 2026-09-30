@@ -835,17 +835,15 @@ function VEQ.DisplayFocusedMiniQuest()
 			
        -- background texture
 			 if VEQ.textbox[VEQ.boxmarker-1] then
-	        VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+60, (VEQ.textbox[VEQ.boxmarker-1]:GetBottom()-VEQ.main:GetTop())+150) 
+	        VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+65, (VEQ.textbox[VEQ.boxmarker-1]:GetBottom()-VEQ.main:GetTop())+150) 
        end
  
 			 BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move battlegrounds UI at the bottom of VEQ
 			 if ZO_EndDunHUDTracker then
 			    ZO_EndDunHUDTracker:ClearAnchors()
-			    ZO_EndDunHUDTracker:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move endless dungeon UI at the bottom of VEQ
+			    ZO_EndDunHUDTracker:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, -(VEQ.main:GetWidth()-100), 40) -- move endless dungeon UI at the bottom of VEQ
 			 end
 			 ZO_HouseInformationTrackerTopLevel:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move house information UI at the bottom of VEQ
-			 --if CyrHUD and CyrHUD.ui then CyrHUD.ui:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 0) end -- move CyrHUD UI at the bottom of VEQ if you have it installed
-
 		     return 
 		  end
  
@@ -888,7 +886,7 @@ function VEQ.DisplayFocusedMiniQuest()
        if not totalQuests or totalQuests == 0 then -- move miniquest list upwards if there is no quests in journal 
               VEQ.bg:SetResizeToFitDescendents(false)
 			        boxHeight = 30
-       end 		   
+       end
  
  
 		   -- adds total number of miniquests 
@@ -900,7 +898,7 @@ function VEQ.DisplayFocusedMiniQuest()
 			VEQ.totalMiniQuestmarker:SetText(VEQ.totalMiniQuests)
 			VEQ.totalMiniQuestmarker:SetColor(VEQ.SavedVars.ShowJournalInfosColor.r, VEQ.SavedVars.ShowJournalInfosColor.g, VEQ.SavedVars.ShowJournalInfosColor.b, VEQ.SavedVars.ShowJournalInfosColor.a)
 			VEQ.totalMiniQuestmarker:ClearAnchors()
-			VEQ.totalMiniQuestmarker:SetAnchor(LEFT,VEQ.box[VEQ.boxmarker-1],RIGHT,-40,boxHeight-20)
+			VEQ.totalMiniQuestmarker:SetAnchor(LEFT,VEQ.box[VEQ.boxmarker-1],RIGHT,-40,boxHeight-20) 
  
 			if not VEQ.SavedVars.ShowNumbMiniQuestOption then VEQ.totalMiniQuestmarker:SetHidden(true) end
  
@@ -1116,17 +1114,16 @@ function VEQ.DisplayFocusedMiniQuest()
       VEQ.objMiniQuestmarker:ClearAnchors()
 			VEQ.objMiniQuestmarker:SetAnchor(CENTER,VEQ.objMiniQuestmarkerBox,CENTER,0,0)
  
- 		    -- background texture
-		    VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+60, (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop())+200)
+ 		  -- background texture 
+		  VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+65, (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop())+200)
 		
 			BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move battlegrounds UI at the bottom of VEQ
 			if ZO_EndDunHUDTracker then
 			   ZO_EndDunHUDTracker:ClearAnchors()
-			   ZO_EndDunHUDTracker:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move endless dungeon UI at the bottom of VEQ
+			   ZO_EndDunHUDTracker:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, -(VEQ.main:GetWidth()-120), 80) -- move endless dungeon UI at the bottom of VEQ
 			end
 			ZO_HouseInformationTrackerTopLevel:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move house information UI at the bottom of VEQ
-			--if CyrHUD and CyrHUD.ui then CyrHUD.ui:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, -20, 0) end -- move CyrHUD UI at the bottom of VEQ if you have it installed
-
+      
 end
  
  
@@ -1156,15 +1153,13 @@ function VEQ.QuestsLoop()
 	-- Display number of quests
 	if VEQ.SavedVars.ShowNumbQuestOption == true and nbquests > 0 then
  
-		VEQ.boxinfos:SetFont(("%s|%s|%s"):format(LMP:Fetch('font', VEQ.SavedVars.ShowJournalInfosFont), VEQ.SavedVars.ShowJournalInfosSize, VEQ.SavedVars.ShowJournalInfosStyle))
-		VEQ.boxinfos:SetText(string.format("%s/%s", nbquests, MAX_JOURNAL_QUESTS))
-		VEQ.boxinfos:SetDrawLayer(1)
-		VEQ.boxinfos:SetColor(VEQ.SavedVars.ShowJournalInfosColor.r, VEQ.SavedVars.ShowJournalInfosColor.g, VEQ.SavedVars.ShowJournalInfosColor.b, VEQ.SavedVars.ShowJournalInfosColor.a)
-		VEQ.boxinfos:SetHidden(false)
- 
+	  	VEQ.boxinfos:SetFont(("%s|%s|%s"):format(LMP:Fetch('font', VEQ.SavedVars.ShowJournalInfosFont), VEQ.SavedVars.ShowJournalInfosSize, VEQ.SavedVars.ShowJournalInfosStyle))
+	  	VEQ.boxinfos:SetText(string.format("%s/%s", nbquests, MAX_JOURNAL_QUESTS))
+	  	VEQ.boxinfos:SetDrawLayer(1)
+		  VEQ.boxinfos:SetColor(VEQ.SavedVars.ShowJournalInfosColor.r, VEQ.SavedVars.ShowJournalInfosColor.g, VEQ.SavedVars.ShowJournalInfosColor.b, VEQ.SavedVars.ShowJournalInfosColor.a)
+		  VEQ.boxinfos:SetHidden(false)
 	else
- 
-		VEQ.boxinfos:SetHidden(true)
+		  VEQ.boxinfos:SetHidden(true)
 	end
 
 
@@ -1494,24 +1489,12 @@ function VEQ.Init(eventCode, addOnName)
 		if not VEQ.CharSavedVars then
 			VEQ.CharSavedVars = ZO_SavedVars:NewCharacterIdSettings("VEQSavedVars", 5, nil, VEQ.charDefaults) or VEQ.charDefaults
 		end
-    
-    -- if not VEQ.HUDManagerAnchor then
-       -- if _G["ZO_Ingame_SavedVariables"] and _G["ZO_Ingame_SavedVariables"]["Default"] and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()] and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]
-       -- and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"] and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"]
-       -- and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1] and  _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]
-       -- and _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]["VEQ main"] then
-           -- VEQ.HUDManagerAnchor = {}
-           -- VEQ.HUDManagerAnchor.offsetX = _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]["VEQ main"]["offsetX"]
-           -- VEQ.HUDManagerAnchor.offsetY = _G["ZO_Ingame_SavedVariables"]["Default"][GetDisplayName()]["$AccountWide"]["ZO_HUDManager"]["profiles"][1]["keyboardElements"]["VEQ main"]["offsetY"]
-       -- end
-    -- end
- 
  
 		-- Create the UI boxes
 		-- Main Box
 		VEQ.main = GetControl("VEQ main")
 		VEQ.main:ClearAnchors()
-		VEQ.main:SetDimensions(200,40)
+		--VEQ.main:SetDimensions(200,40)
 		VEQ.main:SetDrawLayer(1)
 		VEQ.main:SetResizeToFitDescendents(true)
 		VEQ.main:SetAlpha(1)
@@ -1520,37 +1503,11 @@ function VEQ.Init(eventCode, addOnName)
     HUD_MANAGER:RegisterGamepadElement(VEQ.main, "Vestige's Epic Quest", { defaultAnchor = ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, 200, 200) }, COMPASS_OPTIONS) --for Gamepad UI
 		
  
-		-- Load User Main Box position
-		-- if VEQ.SavedVars.position ~= nil then
-			-- VEQ.main:ClearAnchors()
-      -- if not VEQ.HUDManagerAnchor then
-			    -- VEQ.main:SetAnchor(VEQ.SavedVars.position.point, GuiRoot, VEQ.SavedVars.position.relativePoint, VEQ.SavedVars.position.offsetX, VEQ.SavedVars.position.offsetY)
-      -- else
-          -- VEQ.main:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, VEQ.HUDManagerAnchor.offsetX, VEQ.HUDManagerAnchor.offsetY)
-      -- end
-		-- end
- 
-		-- if VEQ.SavedVars.PositionLockOption == true then
-			-- VEQ.main:SetMouseEnabled(false)
-			-- VEQ.main:SetMovable(false)
-		-- else
-			-- VEQ.main:SetMouseEnabled(true)
-			-- VEQ.main:SetMovable(true)
-		-- end
- 
-		-- Trigger to Backup Main Box position & refresh main anchor
-		-- VEQ.main:SetHandler("OnMouseUp", function(self) 
-			-- VEQ.SavedVars.position.offsetX = VEQ.main:GetLeft()
-			-- VEQ.SavedVars.position.offsetY = VEQ.main:GetTop()
-			-- VEQ.main:ClearAnchors()
-			-- VEQ.main:SetAnchor(VEQ.SavedVars.position.point, GuiRoot, VEQ.SavedVars.position.relativePoint, VEQ.SavedVars.position.offsetX, VEQ.SavedVars.position.offsetY)
-		-- end)
- 
 		-- Main Background
 		VEQ.bg = WM:CreateControl(nil, VEQ.main, CT_STATUSBAR)
 		VEQ.bg:ClearAnchors()
 		VEQ.bg:SetAnchor(TOPLEFT, VEQ.main, TOPLEFT, 0, 0)
-		VEQ.bg:SetDimensions(200,40)
+		--VEQ.bg:SetDimensions(200,40)
 		VEQ.bg:SetDrawLayer(1)
 		VEQ.bg:SetResizeToFitDescendents(true)
 		VEQ.bg:SetDimensionConstraints(VEQ.SavedVars.BgWidth,-1,VEQ.SavedVars.BgWidth,-1)
@@ -1559,10 +1516,9 @@ function VEQ.Init(eventCode, addOnName)
 		-- Journal Infos (number of quests / max quests)
 		VEQ.boxinfos = WM:CreateControl(nil, VEQ.bg , CT_LABEL)
 		VEQ.boxinfos:ClearAnchors()
-		VEQ.boxinfos:SetAnchor(TOPRIGHT,VEQ.bg,TOPRIGHT,-5,0)
-		VEQ.boxinfos:SetDimensions(40,40)
+		VEQ.boxinfos:SetAnchor(TOPRIGHT,VEQ.bg,TOPRIGHT,0,0) --VEQ.boxinfos:SetAnchor(TOPRIGHT,VEQ.bg,TOPRIGHT,-5,0)
+		--VEQ.boxinfos:SetDimensions(40,40)
 		VEQ.boxinfos:SetDrawLayer(4)
-		--VEQ.boxinfos:SetResizeToFitDescendents(true)
 		VEQ.boxinfos:SetMouseEnabled(true)
 		VEQ.boxinfos:SetHandler("OnMouseDown", function(self, button)
 			if  button == 1 or button == 2 or button == 3 then
@@ -1575,9 +1531,8 @@ function VEQ.Init(eventCode, addOnName)
 		VEQ.clockInfos = WM:CreateControl(nil, VEQ.bg , CT_LABEL)
 		VEQ.clockInfos:ClearAnchors()
 		VEQ.clockInfos:SetAnchor(TOPLEFT,VEQ.bg,TOPLEFT,0,0)  -- TOPLEFT,VEQ.bg,TOPRIGHT,-295,0
-		VEQ.clockInfos:SetDimensions(100,40)
+		--VEQ.clockInfos:SetDimensions(100,40)
 		VEQ.clockInfos:SetDrawLayer(4)
-		--VEQ.clockInfos:SetResizeToFitDescendents(true)
  
  
 		-- T button
@@ -1597,13 +1552,6 @@ function VEQ.Init(eventCode, addOnName)
 		VEQ.boxqtimer:SetDimensions(100,40)
 		VEQ.boxqtimer:SetDimensionConstraints(VEQ.SavedVars.BgWidth,-1,VEQ.SavedVars.BgWidth,-1)
 		VEQ.boxqtimer:SetDrawLayer(1)
-		--VEQ.boxqtimer:SetResizeToFitDescendents(true)
-		--VEQ.boxqtimer:SetMouseEnabled(true)
-		--VEQ.boxqtimer:SetHandler("OnMouseDown", function(self, button)
-		--	if  button == 1 or button == 2 or button == 3 then
-		--		VEQ.SwitchDisplayMode()
-		--	end
-		--end)
  
  
  

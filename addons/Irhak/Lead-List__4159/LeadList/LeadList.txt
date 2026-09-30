@@ -7,9 +7,9 @@
 
 ## Title: LeadList
 ## Description: Displays Antiquity Leads with Location Data
-## Version: 50.1.1
+## Version: 51.0.0
 ## Author: Irhak
-## APIVersion: 101050
+## APIVersion: 101051
 ## SavedVariables: ILeadListVars
 
 bootstrap.lua

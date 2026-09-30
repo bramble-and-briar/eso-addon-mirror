@@ -1,7 +1,7 @@
 ## Title: Quest Mover
 ## APIVersion: 101051
 ## Description: Move the Quest Log around on your screen
-## Version: 51.02
+## Version: 51.03
 ## Author: Gamer_sa22
 ## DependsOn: LibHarvensAddonSettings
 ## SavedVariables: QuestMoverSavedVariables

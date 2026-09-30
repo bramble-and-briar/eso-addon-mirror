@@ -238,8 +238,8 @@ function P:Initialize()
     self:Create()
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_PerformanceOverlay"
 
-    EVENT_MANAGER:UnregisterForUpdate(prefix .. "_Pulse")
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Pulse", 500, function()
+    if EPC.Runtime then EPC.Runtime:UnregisterUpdate("PerformanceOverlay","Pulse") end
+    EPC.Runtime:RegisterUpdate("PerformanceOverlay","Pulse",500,function()
         if not P.frame or not EPC.saved then return end
         local enabled = EPC.saved.showPerformanceOverlay ~= false
         P:SuppressNative(enabled and EPC.saved.suppressNativePerformanceMeters ~= false)
@@ -249,7 +249,7 @@ function P:Initialize()
     end)
 
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+        EPC.Runtime:RegisterEvent("PerformanceOverlay","Activated",EVENT_PLAYER_ACTIVATED,function()
             P:Refresh(true)
         end)
     end

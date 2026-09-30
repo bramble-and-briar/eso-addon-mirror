@@ -62,7 +62,7 @@
     "SmartLooter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2303/",
-  "fingerprint": "8f75eecd711d911424083c4398a42839f20b8d91630edfe7a5c9a18bf6ea97e4",
+  "fingerprint": "adb8e490cedb36d16f44ec743993672afa8bc3e22c9d96abecb347e5596e7208",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -70,11 +70,11 @@
   "source_id": "2303",
   "source_url": "https://www.esoui.com/downloads/info2303-SmartLooter.html",
   "stats": {
-    "downloads": 36956,
+    "downloads": 37262,
     "favorites": 79,
-    "monthly_downloads": 144
+    "monthly_downloads": 357
   },
   "title": "Smart Looter",
-  "updated_at": 1788350105000,
-  "version": "1.1.1"
+  "updated_at": 1790743949000,
+  "version": "1.1.2"
 }

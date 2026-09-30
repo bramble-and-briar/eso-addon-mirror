@@ -83,7 +83,7 @@ function T:IsLibTreasureAvailable()
     return type(_G.LibTreasure_GetMapIdData) == "function"
 end
 
-function T:IsCompassAvailable()
+local function EAS_LegacyIsCompassAvailable(self)
     return _G.COMPASS_PINS ~= nil
         and type(_G.COMPASS_PINS.AddCustomPin) == "function"
         and type(_G.COMPASS_PINS.RefreshPins) == "function"
@@ -318,7 +318,7 @@ function T:GetCurrentMapPins(typeKey)
     return result
 end
 
-function T:CreateMapPins(typeKey)
+local function EAS_LegacyCreateMapPins(self, typeKey)
     if not EPC.saved or EPC.saved.treasureLocatorShowMap == false then return end
     local lib = _G.LibMapPins
     local def = TYPES[typeKey]
@@ -331,7 +331,7 @@ function T:CreateMapPins(typeKey)
     end
 end
 
-function T:CreateCompassPins(typeKey)
+local function EAS_LegacyCreateCompassPins(self, typeKey)
     if not EPC.saved or EPC.saved.treasureLocatorShowCompass == false or not self:IsCompassAvailable() then return end
     local def = TYPES[typeKey]
     local manager = _G.COMPASS_PINS and _G.COMPASS_PINS.pinManager or nil
@@ -345,7 +345,7 @@ function T:CreateCompassPins(typeKey)
     end
 end
 
-function T:ApplyPinLayouts()
+local function EAS_LegacyApplyPinLayouts(self)
     local lib = _G.LibMapPins
     local size = math.max(18, math.min(64, num(EPC.saved and EPC.saved.treasureLocatorPinSize, 32)))
     for _, typeKey in ipairs(TYPE_ORDER) do
@@ -362,7 +362,7 @@ function T:ApplyPinLayouts()
     end
 end
 
-function T:RegisterPinTypes()
+local function EAS_LegacyRegisterPinTypes(self)
     if self.pinTypesRegistered or not self:IsLibTreasureAvailable() then return end
     local lib = _G.LibMapPins
     if not lib or type(lib.AddPinType) ~= "function" then return end
@@ -385,7 +385,7 @@ function T:RegisterPinTypes()
     self:ApplyPinLayouts()
 end
 
-function T:RefreshPins()
+local function EAS_LegacyRefreshPins(self)
     if not self.pinTypesRegistered then self:RegisterPinTypes() end
     if not self.pinTypesRegistered then return end
 
@@ -412,7 +412,7 @@ function T:RefreshPins()
 end
 
 
-function T:BuildMiniMapCache()
+local function EAS_LegacyBuildMiniMapCache(self)
     local result = {}
     local mapId = num(safeCall(GetCurrentMapId, 0), 0)
     if EPC.saved and EPC.saved.treasureLocatorShowMap ~= false and self:IsEnabled() then
@@ -438,7 +438,7 @@ function T:BuildMiniMapCache()
     return result
 end
 
-function T:GetMiniMapPins()
+local function EAS_LegacyGetMiniMapPins(self)
     local mapId = num(safeCall(GetCurrentMapId, 0), 0)
     if type(self.miniMapPinsCache) ~= "table" or self.miniMapPinsCacheMapId ~= mapId then
         return self:BuildMiniMapCache()
@@ -509,7 +509,7 @@ function T:GetCurrentMapStatusCounts()
     return counts
 end
 
-function T:GetDetailedStatusText()
+local function EAS_BaseDetailedStatusText(self)
     if not self:IsLibTreasureAvailable() then
         return "|cFF5555LibTreasure: NOT LOADED|r  |  Locator inactive. Install LibTreasure to supply Treasure Map, Survey, and Tribute Clue coordinates."
     end
@@ -645,7 +645,7 @@ function T:GetDependencyStatusText()
     return "LibTreasure location data is loaded. Treasure, survey, and Tribute-clue locator is ready."
 end
 
-function T:Initialize()
+local function EAS_BaseInitialize(self)
     self.inventoryItems = self.inventoryItems or {}
     self.openedItems = self.openedItems or {}
     self:BuildInventoryCache()
@@ -1007,16 +1007,14 @@ function T:GetRendererStatus029148()
         mapCount, worldDrawn, num(self.lastMiniMapCached029148, 0), compassCount, compassDrawn)
 end
 
-local EAS_GetDetailedStatusTextBase029148 = T.GetDetailedStatusText
 function T:GetDetailedStatusText()
-    local base = EAS_GetDetailedStatusTextBase029148(self)
+    local base = EAS_BaseDetailedStatusText(self)
     if not self:IsLibTreasureAvailable() then return base end
     return base .. "\n" .. self:GetRendererStatus029148()
 end
 
-local EAS_InitializeBase029148 = T.Initialize
 function T:Initialize()
-    EAS_InitializeBase029148(self)
+    EAS_BaseInitialize(self)
     -- Optional libraries can finish initialization after this module. Retry the
     -- independent renderer registrations after the UI has settled.
     if type(zo_callLater) == "function" then

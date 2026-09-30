@@ -228,6 +228,57 @@ announcements (20).
 `GetDrawTier` / `GetDrawLevel` exist, so the pair is read off the control with the anchor and put
 back on reset. `DT_PARENT` is not offered: it is meaningless for a top-level window.
 
+## 10. Update 51: the chat is a customizable HUD element
+
+**Found on a PS5 (the window wrong after a wayshrine or a dungeon, right again after opening a
+menu), then read in the U51 source.** `ZO_GamepadChatSystem:Initialize` now ends with
+
+```lua
+local CONFIG =
+{
+    defaultAnchor = ZO_Anchor:New(ANCHOR_SETTINGS.point, nil, ANCHOR_SETTINGS.relPoint, ANCHOR_SETTINGS.x, ANCHOR_SETTINGS.y),
+    isValid = function(element) ... end,
+}
+self.hudElement = HUD_MANAGER:RegisterGamepadElement(self.control, DISPLAY_NAME, CONFIG)
+```
+
+and `ZO_GamepadTextChat` inherits `ZO_HUDManager_Element`. The manager re-applies elements itself:
+
+```lua
+function ZO_HUDManager:PropagateSettings()
+    for _, element in self:GamepadElementIterator() do
+        element:RevertOffsetModifications()   -- savedAnchor:Set(self.control)
+    end
+end
+```
+
+`ZO_Anchor:Set` is `ClearAnchors()` plus `SetAnchor()`, and on console `GetSavedAnchor` returns
+the **default** anchor -- the gamepad editor is still a TODO in the client's own comment -- so
+every propagation is the game's bottom-right 490 x 280 placement. It runs on
+`EVENT_SCREEN_RESIZED`, on `EVENT_GAMEPAD_PREFERRED_MODE_CHANGED`, and once on
+`EVENT_ADD_ONS_LOADED`.
+
+So an anchor written once is no longer the whole story. Two changes:
+
+* **The element's default anchor is written instead of fought.** `ZO_Anchor` is a data object with
+  `SetMyPoint` / `SetRelativePoint` / `SetOffsets` / `SetTarget`; the player's placement goes in
+  there, and the client's own re-application then produces it. `element.currentAnchor` is left
+  pointing at that same object, because `IsUsingDefaultAnchor` is an identity test and
+  `ZO_HUDTracker_Manager:OnAnchorStateChanged` reads it to decide whether to stack the trackers
+  above the chat window -- keeping it true is what makes the tracker column follow the window.
+  The original values are captured first and restored on reset, like everything else.
+* **Dimensions are not part of an anchor**, and the client gives no "finished" signal after a zone
+  load, so the window is looked at again 250 ms, 1 s, 3 s, 6 s and 10 s after
+  `EVENT_PLAYER_ACTIVATED`, and 50 ms after a resize or a mode change. Each look writes only what
+  no longer matches, and records what it found -- `status` prints the last few, with how long
+  after the zone load each was seen. That log is the measurement for the next round: it says
+  whether the size, the position, or the element's anchor is what moves, and when.
+
+Also new in U51, and left alone: `GamepadChatSystemStateChanged` (a callback fired on every
+minimise and maximise, which would be a tidier signal than the ten-second push if it turns out to
+be needed), and `GamepadChatContainer:StartDraggingTab` / `StopDraggingTab`, now no-ops
+"managed through Customizable HUD".
+
 ---
 
 ## Still to measure on a PS5
@@ -266,5 +317,12 @@ back on reset. `DT_PARENT` is not offered: it is meaningless for a top-level win
    client.
 11. **Is it readable over a menu?** This is why the draw order is there; if a gamepad panel
    covers it, "in front of the interface" is the answer.
-12. **Do the tiers do what they say?** With "in front of the interface", whatever was covering
+12. **Is the window still right after a wayshrine and after a dungeon?** This is the U51 report
+   (§10). If it is wrong again, run `/pbchatwin status` **without** opening any other menu first
+   and send the "put right after something else wrote to the window" lines: they say what the
+   window had and how long after the load it was seen, which is what decides whether the looks
+   need to run later than 10 s or something else entirely is writing.
+13. **Do the trackers still sit above the chat window?** The quest tracker column follows the chat
+   through the element, so moving the window should move the column with it.
+14. **Do the tiers do what they say?** With "in front of the interface", whatever was covering
    the chat must be behind it. `status` prints the tier and level the control really has.

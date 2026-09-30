@@ -4,7 +4,7 @@ ESO ADVENTURER SUITE - OWNERSHIP NOTICE
 Project: ESO Adventurer Suite
 Author / Copyright Owner: HoZayyBadazz
 Copyright: (c) 2026 HoZayyBadazz. All Rights Reserved.
-Release: 0.29.696
+Release: 0.29.750
 
 This package is source-visible because ESO add-ons are installed locally for the game client to load them. Source visibility is not permission to copy, republish, redistribute, rebrand, sell, or claim authorship of this project.
 
@@ -16,5 +16,7 @@ THIRD-PARTY REFERENCE DATA / FEATURE REFERENCES
 The Antiquity known dig-spawn reference table in AntiquityKnownDigSpawns.lua was derived from the user-provided ScrySpy 1.44 location dataset. Original ScrySpy author: Sharlikran.
 
 The Group Finder Plus feature set was reimplemented for ESO Adventurer Suite after reviewing a user-provided GroupFinderPlus package credited in that package to @Atharti. ESO Adventurer Suite does not require the standalone GroupFinderPlus addon at runtime. Group Finder compatibility work also references ESO's public 12.0.8 UI source/API behavior.
+
+The Skill Point Finder's curated historical quest, group-dungeon, and public-dungeon reference IDs were independently reimplemented after reviewing the public Urich's Skill Point Finder data set (yachoor/uspf). ESO Adventurer Suite does not require Urich's Skill Point Finder at runtime; live completion, skyshard, wayshrine, quest-reward, and character state comes from ESO's current API.
 
 The Market Price Checker can read public runtime data exposed by separately installed LibEsoHubPrices and Tamriel Trade Centre. Those projects remain independent third-party software and are not redistributed as Suite-owned code.

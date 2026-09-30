@@ -1,12 +1,12 @@
 ## Title: |c0d0d0dAnimatedAction|r |ce90101Bar+|r
 ## Author: |c09e8ech|r|c4509eca|r|c094decz|r|c09e8ece|r|cec09e5068|r
 ## Description: Animations + Pulse-Glow for your action bar.
-## Version: 1.8.1
-## AddOnVersion: 1
-## APIVersion: 101049 101050
+## Version: 2.0.0
+## AddOnVersion: 2
+## APIVersion: 101050 101051
 ## SavedVariables: AnimatedActionBarPlusSV
 ## DependsOn: LibAddonMenu-2.0>=43
-## OptionalDependsOn: FancyActionBar+ BanditUI LuiExtended Azurah AlphaGear
+## OptionalDependsOn: FancyActionBar+ LuiExtended Azurah AlphaGear
 
 lang/en.lua
 lang/$(language).lua

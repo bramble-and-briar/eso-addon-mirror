@@ -251,15 +251,7 @@ local function InitializeMenu(MS)
         setFunc = function(value)
             MS.db.sharedSettings.renderTick = value
             for _, mod in pairs(MS.modules) do
-                local showKey = "show"..string.gsub(mod.name,"^%l",string.upper)
-                if MS.db.sharedSettings[showKey] then
-                    EVENT_MANAGER:UnregisterForUpdate(mod.eventNamespace .. "Render")
-                    EVENT_MANAGER:RegisterForUpdate(
-                        mod.eventNamespace .. "Render",
-                        value,
-                        function() mod:Render() end
-                    )
-                end
+                mod:UpdateRenderTick()
             end
         end,
         default = MS.defaults.sharedSettings.renderTick,

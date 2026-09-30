@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/haze068/Haze-Charswap__4588",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "haze068",
   "canonical_id": "esoui:4588",
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4588",
@@ -17,7 +18,7 @@
     "HazeCharswap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4588/",
-  "fingerprint": "579cd3e231374986700788a0ce13e8b29d0be7a062955dd54263c45edcda6448",
+  "fingerprint": "6d09eadf6f0bced5a2afb766094b05a60503c1b04f052a478ef36ca8982ba820",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16102.png",
     "https://cdn-eso.mmoui.com/preview/pvw16103.png",
@@ -29,11 +30,11 @@
   "source_id": "4588",
   "source_url": "https://www.esoui.com/downloads/info4588-HazeCharswap.html",
   "stats": {
-    "downloads": 90,
-    "favorites": 2,
-    "monthly_downloads": 11
+    "downloads": 120,
+    "favorites": 3,
+    "monthly_downloads": 17
   },
   "title": "Haze Charswap",
-  "updated_at": 1779406306000,
-  "version": "1.0"
+  "updated_at": 1790715097000,
+  "version": "2.0"
 }

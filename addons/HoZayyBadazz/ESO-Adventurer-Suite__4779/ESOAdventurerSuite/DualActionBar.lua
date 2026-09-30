@@ -88,7 +88,11 @@ end
 -- Get the selected Skill Style artwork without changing ESO's native action bar.
 -- If another installed addon exposes the common GetSkillStyleIconForAbilityId
 -- helper, use it first for maximum compatibility with special-case abilities.
-function D:GetSkillStyleIcon(abilityId, fallbackIcon)
+local GetSkillStyleIconImpl
+function D:GetSkillStyleIcon(...)
+    return GetSkillStyleIconImpl(self, ...)
+end
+GetSkillStyleIconImpl = function(self, abilityId, fallbackIcon)
     if not EPC.saved or EPC.saved.dualActionBarSkillStyles029189 == false then
         return fallbackIcon or ""
     end
@@ -388,7 +392,15 @@ function D:AnchorWindow()
     end
 end
 
-function D:CreateUI()
+local CreateUIImpl
+
+function D:CreateUI(...)
+
+    return CreateUIImpl(self, ...)
+
+end
+
+CreateUIImpl = function(self)
     if self.window then return end
     self.slots = getSlots()
     local window = WM:CreateTopLevelWindow("EAS_DualActionBarHUD029189")
@@ -547,7 +559,9 @@ function D:RefreshRow(row, activeCategory)
 
         local bind = used and self:GetBindingMarkup(slot) or ""
         frame.epcHotkey:SetText(bind)
-        local usesMarkup = bind:find("|t", 1, true) ~= nil
+        local usesMarkup = bind:find("|k", 1, true) ~= nil
+            or bind:find("|u", 1, true) ~= nil
+            or bind:find("|t", 1, true) ~= nil
         frame.epcHotkey:SetFont(usesMarkup and "$(BOLD_FONT)|14|soft-shadow-thick" or "$(BOLD_FONT)|13|soft-shadow-thick")
 
         local isUltimate = ordinal == #self.slots
@@ -578,7 +592,15 @@ end
 
 -- v0.29.341: obsolete pre-0.29.311 full Refresh implementation removed.
 
-function D:SetSmartRecommendation029189(slot, category, pulse, needsSwap)
+local SetSmartRecommendationImpl
+
+function D:SetSmartRecommendation029189(...)
+
+    return SetSmartRecommendationImpl(self, ...)
+
+end
+
+SetSmartRecommendationImpl = function(self, slot, category, pulse, needsSwap)
     self.smartSlot029189 = tonumber(slot)
     self.smartCategory029189 = category
     self.smartPulse029189 = tonumber(pulse)
@@ -586,7 +608,15 @@ function D:SetSmartRecommendation029189(slot, category, pulse, needsSwap)
     return self.smartSlot029189 ~= nil
 end
 
-function D:ClearSmartRecommendation029189()
+local ClearSmartRecommendationImpl
+
+function D:ClearSmartRecommendation029189(...)
+
+    return ClearSmartRecommendationImpl(self, ...)
+
+end
+
+ClearSmartRecommendationImpl = function(self)
     self.smartSlot029189 = nil
     self.smartCategory029189 = nil
     self.smartPulse029189 = nil
@@ -766,7 +796,15 @@ function D:IsVisibleNow029311()
     return show
 end
 
-function D:RefreshStatic029311()
+local RefreshStaticImpl
+
+function D:RefreshStatic029311(...)
+
+    return RefreshStaticImpl(self, ...)
+
+end
+
+RefreshStaticImpl = function(self)
     self:CreateUI()
     if not self.window then return end
     self:ApplyDimensions()
@@ -824,7 +862,9 @@ function D:RefreshStatic029311()
 
             local bind = used and self:GetBindingMarkup(ability.slot) or ""
             EAS_DAB_SetText029311(frame.epcHotkey, frame, "hotkeyText029311", bind)
-            local usesMarkup = bind:find("|t", 1, true) ~= nil
+            local usesMarkup = bind:find("|k", 1, true) ~= nil
+            or bind:find("|u", 1, true) ~= nil
+            or bind:find("|t", 1, true) ~= nil
             local fontKey = usesMarkup and "markup" or "text"
             if frame.hotkeyFont029311 ~= fontKey then
                 frame.hotkeyFont029311 = fontKey
@@ -841,7 +881,15 @@ function D:RefreshStatic029311()
     end
 end
 
-function D:RefreshDynamic029311(force)
+local RefreshDynamicImpl
+
+function D:RefreshDynamic029311(...)
+
+    return RefreshDynamicImpl(self, ...)
+
+end
+
+RefreshDynamicImpl = function(self, force)
     if not self:IsVisibleNow029311() then return end
     local nowValue = nowMS()
     local inCombat = type(IsUnitInCombat) == "function" and safe(IsUnitInCombat, false, "player") == true
@@ -922,14 +970,14 @@ function D:Refresh()
     self:RefreshDynamic029311(true)
 end
 
-local EAS_DAB_SetSmartBase029311 = D.SetSmartRecommendation029189
-function D:SetSmartRecommendation029189(slot, category, pulse, needsSwap)
+local EAS_DAB_SetSmartBase029311 = SetSmartRecommendationImpl
+SetSmartRecommendationImpl = function(self, slot, category, pulse, needsSwap)
     local result = EAS_DAB_SetSmartBase029311(self, slot, category, pulse, needsSwap)
     return result
 end
 
-local EAS_DAB_ClearSmartBase029311 = D.ClearSmartRecommendation029189
-function D:ClearSmartRecommendation029189()
+local EAS_DAB_ClearSmartBase029311 = ClearSmartRecommendationImpl
+ClearSmartRecommendationImpl = function(self)
     EAS_DAB_ClearSmartBase029311(self)
     -- Clear stale glow immediately without rebuilding any ability data.
     if self.rows then
@@ -942,53 +990,54 @@ function D:ClearSmartRecommendation029189()
     end
 end
 
-function D:Initialize()
+local InitializeImpl
+
+function D:Initialize(...)
+
+    return InitializeImpl(self, ...)
+
+end
+
+InitializeImpl = function(self)
     self:CreateUI()
     local prefix = EPC.name .. "_DualActionBar029189"
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("DualActionBar","Activated",EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
     end
     if EVENT_ACTION_SLOT_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Slot", EVENT_ACTION_SLOT_UPDATED, function()
+        EPC.Runtime:RegisterEvent("DualActionBar","Slot",EVENT_ACTION_SLOT_UPDATED, function()
             self:InvalidateStyleCache029189()
             self:Refresh()
         end)
     end
     if EVENT_ACTIVE_WEAPON_PAIR_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Bar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("DualActionBar","Bar",EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() self:Refresh() end)
     end
     if EVENT_COLLECTIBLE_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Collectible", EVENT_COLLECTIBLE_UPDATED, function()
+        EPC.Runtime:RegisterEvent("DualActionBar","Collectible",EVENT_COLLECTIBLE_UPDATED, function()
             self:InvalidateStyleCache029189()
             self:Refresh()
         end)
     end
     if EVENT_PLAYER_COMBAT_STATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Combat", EVENT_PLAYER_COMBAT_STATE, function()
+        EPC.Runtime:RegisterEvent("DualActionBar","Combat",EVENT_PLAYER_COMBAT_STATE, function()
             self:RefreshDynamic029311(true)
         end)
     end
     if EVENT_POWER_UPDATE then
         local powerRegistration = prefix .. "_Power"
-        EVENT_MANAGER:RegisterForEvent(powerRegistration, EVENT_POWER_UPDATE, function(_, unitTag, powerIndex, powerType)
+        EPC.Runtime:RegisterEvent("DualActionBar","Power",EVENT_POWER_UPDATE,function(_, unitTag, powerIndex, powerType)
             if unitTag == "player" and (powerType == COMBAT_MECHANIC_FLAGS_ULTIMATE or powerType == POWERTYPE_ULTIMATE) then
                 self:RefreshDynamic029311(false)
             end
-        end)
-        -- v0.29.341: without native filters this callback received every Player,
-        -- target, group and companion power change even though the Dual Bar only
-        -- cares about Player Ultimate. Let ESO discard unrelated power events
-        -- before they enter Lua.
-        if REGISTER_FILTER_UNIT_TAG then
-            EVENT_MANAGER:AddFilterForEvent(powerRegistration, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
-        end
-        if REGISTER_FILTER_POWER_TYPE and POWERTYPE_ULTIMATE ~= nil then
-            EVENT_MANAGER:AddFilterForEvent(powerRegistration, EVENT_POWER_UPDATE, REGISTER_FILTER_POWER_TYPE, POWERTYPE_ULTIMATE)
-        end
+        end, {
+            {REGISTER_FILTER_UNIT_TAG, "player"},
+            {REGISTER_FILTER_POWER_TYPE, POWERTYPE_ULTIMATE},
+        })
     end
 
-    EVENT_MANAGER:UnregisterForUpdate(prefix .. "_Tick")
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Tick", 125, function()
+    EPC.Runtime:UnregisterUpdate("DualActionBar","Tick")
+    EPC.Runtime:RegisterUpdate("DualActionBar","Tick",125, function()
         if not EPC.saved or EPC.saved.showDualActionBar029189 ~= true then return end
         local nowValue = type(GetFrameTimeMilliseconds) == "function" and (tonumber(GetFrameTimeMilliseconds()) or 0) or 0
         local inCombat = type(IsUnitInCombat) == "function" and safe(IsUnitInCombat, false, "player") == true
@@ -1012,8 +1061,8 @@ end
 -- Defer a real clear for a very short grace window. A same-pass Set cancels the
 -- pending clear, so an unchanged recommendation remains continuously visible.
 -- A genuine HideActionGuidance still clears normally after the grace window.
-local EAS_DAB_ClearSmartImmediate029321 = D.ClearSmartRecommendation029189
-local EAS_DAB_SetSmartImmediate029321 = D.SetSmartRecommendation029189
+local EAS_DAB_ClearSmartImmediate029321 = ClearSmartRecommendationImpl
+local EAS_DAB_SetSmartImmediate029321 = SetSmartRecommendationImpl
 
 function D:ApplySmartHighlightOnly029321()
     if not self.rows then return end
@@ -1045,7 +1094,7 @@ function D:ApplySmartHighlightOnly029321()
     end
 end
 
-function D:SetSmartRecommendation029189(slot, category, pulse, needsSwap)
+SetSmartRecommendationImpl = function(self, slot, category, pulse, needsSwap)
     -- Cancel any clear queued by the beginning of this same advisor pass.
     self.smartClearGeneration029321 = (tonumber(self.smartClearGeneration029321) or 0) + 1
 
@@ -1064,7 +1113,7 @@ function D:SetSmartRecommendation029189(slot, category, pulse, needsSwap)
     return result
 end
 
-function D:ClearSmartRecommendation029189()
+ClearSmartRecommendationImpl = function(self)
     self.smartClearGeneration029321 = (tonumber(self.smartClearGeneration029321) or 0) + 1
     local generation = self.smartClearGeneration029321
 
@@ -1086,7 +1135,7 @@ end
 -- ============================================================================
 -- v0.29.365 - proc/Ultimate readiness glow + sound on the dual action bar too.
 -- ============================================================================
-local EAS_DAB_RefreshDynamicBase029365 = D.RefreshDynamic029311
+local EAS_DAB_RefreshDynamicBase029365 = RefreshDynamicImpl
 local function EAS_DAB_EnsureReadyGlow029365(frame)
     if not frame or frame.epcReadyGlow029365 then return end
     local glow = WM:CreateControl(nil, frame, CT_BACKDROP)
@@ -1112,7 +1161,7 @@ local function EAS_DAB_Signature029365(slot, category)
     return tostring(base) .. ":" .. tostring(effective) .. ":" .. texture, base, effective
 end
 
-function D:RefreshDynamic029311(force)
+RefreshDynamicImpl = function(self, force)
     EAS_DAB_RefreshDynamicBase029365(self, force)
     if not self.window or self.window:IsHidden() then return end
     local activeCategory = safe(GetActiveHotbarCategory, nil)
@@ -1164,8 +1213,8 @@ end
 --  * refresh newly slotted skills after ESO finishes the slot mutation;
 --  * wake stack rendering from effect events and bridge brief snapshot gaps.
 -- ============================================================================
-local EAS_DAB_RefreshStaticBase029376 = D.RefreshStatic029311
-local EAS_DAB_RefreshDynamicBase029376 = D.RefreshDynamic029311
+local EAS_DAB_RefreshStaticBase029376 = RefreshStaticImpl
+local EAS_DAB_RefreshDynamicBase029376 = RefreshDynamicImpl
 -- v0.29.386 - combat performance: player EVENT_EFFECT_CHANGED can fire many
 -- times in a single frame. Collapse those bursts into one dynamic refresh.
 function D:QueueDynamicRefresh029386(force)
@@ -1183,7 +1232,7 @@ function D:QueueDynamicRefresh029386(force)
     if type(zo_callLater) == "function" then zo_callLater(run, 50) else run() end
 end
 
-local EAS_DAB_InitializeBase029376 = D.Initialize
+local EAS_DAB_InitializeBase029376 = InitializeImpl
 
 local function EAS_DAB_ProgressionId029376(abilityId)
     abilityId = tonumber(abilityId) or 0
@@ -1195,7 +1244,7 @@ local function EAS_DAB_ProgressionId029376(abilityId)
     return tonumber((value)) or 0
 end
 
-function D:RefreshStatic029311(...)
+RefreshStaticImpl = function(self, ...)
     local result = EAS_DAB_RefreshStaticBase029376(self, ...)
     self.stableStyleBySlot029376 = self.stableStyleBySlot029376 or {}
     for _, row in ipairs(self.rows or {}) do
@@ -1242,7 +1291,7 @@ function D:RefreshStatic029311(...)
     return result
 end
 
-function D:RefreshDynamic029311(force)
+RefreshDynamicImpl = function(self, force)
     local result = EAS_DAB_RefreshDynamicBase029376(self, force)
     if not self.rows then return result end
     self.stackGrace029376 = self.stackGrace029376 or {}
@@ -1286,7 +1335,7 @@ function D:RefreshDynamic029311(force)
     return result
 end
 
-function D:Initialize()
+InitializeImpl = function(self)
     local result = EAS_DAB_InitializeBase029376(self)
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029376"
 
@@ -1294,7 +1343,7 @@ function D:Initialize()
     -- visible to GetSlotBoundId/GetSlotTexture. Re-read on the next short frame
     -- boundary so drag/drop skill changes appear without requiring a bar swap.
     if EVENT_ACTION_SLOT_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_SlotSettled", EVENT_ACTION_SLOT_UPDATED, function()
+        EPC.Runtime:RegisterEvent("DualActionBar","SlotSettled",EVENT_ACTION_SLOT_UPDATED, function()
             local function refreshSettled()
                 if EPC and EPC.DualActionBar then
                     EPC.DualActionBar:InvalidateStyleCache029189()
@@ -1308,26 +1357,24 @@ function D:Initialize()
         end)
     end
     if EVENT_ACTION_SLOTS_FULL_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_SlotsFull", EVENT_ACTION_SLOTS_FULL_UPDATE, function()
+        EPC.Runtime:RegisterEvent("DualActionBar","SlotsFull",EVENT_ACTION_SLOTS_FULL_UPDATE, function()
             if type(zo_callLater) == "function" then
                 zo_callLater(function() if EPC and EPC.DualActionBar then EPC.DualActionBar:Refresh() end end, 30)
             elseif EPC and EPC.DualActionBar then EPC.DualActionBar:Refresh() end
         end)
     end
     if EVENT_ACTION_SLOT_ABILITY_USED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Used", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
+        EPC.Runtime:RegisterEvent("DualActionBar","Used",EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
             local category = safe(GetActiveHotbarCategory, nil)
             if self.stackGrace029376 then self.stackGrace029376[tostring(category) .. ":" .. tostring(slot)] = nil end
             self:RefreshDynamic029311(true)
         end)
     end
     if EVENT_EFFECT_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Effect", EVENT_EFFECT_CHANGED, function()
+        local filters = REGISTER_FILTER_UNIT_TAG and {{REGISTER_FILTER_UNIT_TAG, "player"}} or nil
+        EPC.Runtime:RegisterEvent("DualActionBar", "Effect", EVENT_EFFECT_CHANGED, function()
             self:QueueDynamicRefresh029386(true)
-        end)
-        if REGISTER_FILTER_UNIT_TAG then
-            EVENT_MANAGER:AddFilterForEvent(prefix .. "_Effect", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
-        end
+        end, filters)
     end
     return result
 end
@@ -1337,8 +1384,8 @@ end
 -- Fixes delayed hide/show on menu scene transitions and stale/delayed stack
 -- counters (notably Grim Focus-family abilities after heavy attacks/consume).
 -- ============================================================================
-local EAS_DAB_InitializeBase029380 = D.Initialize
-local EAS_DAB_RefreshDynamicBase029380 = D.RefreshDynamic029311
+local EAS_DAB_InitializeBase029380 = InitializeImpl
+local EAS_DAB_RefreshDynamicBase029380 = RefreshDynamicImpl
 
 local function EAS_DAB_Now029380()
     if type(GetFrameTimeMilliseconds) == "function" then
@@ -1386,7 +1433,7 @@ local function EAS_DAB_RegisterSceneCallbacks029380(self)
     end
 end
 
-function D:RefreshDynamic029311(force)
+RefreshDynamicImpl = function(self, force)
     local result = EAS_DAB_RefreshDynamicBase029380(self, force)
     if not self.rows then return result end
     self.stackDirect029380 = self.stackDirect029380 or { byId = {}, byName = {} }
@@ -1426,7 +1473,7 @@ function D:RefreshDynamic029311(force)
     return result
 end
 
-function D:Initialize()
+InitializeImpl = function(self)
     local result = EAS_DAB_InitializeBase029380(self)
     EAS_DAB_RegisterSceneCallbacks029380(self)
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029380"
@@ -1434,7 +1481,7 @@ function D:Initialize()
     self.stackConsumedUntil029380 = self.stackConsumedUntil029380 or {}
 
     if EVENT_EFFECT_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Stacks", EVENT_EFFECT_CHANGED,
+        EPC.Runtime:RegisterEvent("DualActionBar", "Stacks", EVENT_EFFECT_CHANGED,
             function(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName,
                      buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
                 local count = math.max(0, tonumber(stackCount) or 0)
@@ -1450,14 +1497,11 @@ function D:Initialize()
                 end
                 self.lastDynamicAt029311 = nil
                 self:QueueDynamicRefresh029386(true)
-            end)
-        if REGISTER_FILTER_UNIT_TAG then
-            EVENT_MANAGER:AddFilterForEvent(prefix .. "_Stacks", EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
-        end
+            end, REGISTER_FILTER_UNIT_TAG and {{REGISTER_FILTER_UNIT_TAG, "player"}} or nil)
     end
 
     if EVENT_ACTION_SLOT_ABILITY_USED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Consume", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
+        EPC.Runtime:RegisterEvent("DualActionBar","Consume",EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
             local category = safe(GetActiveHotbarCategory, nil)
             local key = tostring(category) .. ":" .. tostring(slot)
             self.stackConsumedUntil029380[key] = EAS_DAB_Now029380() + 900
@@ -1489,8 +1533,8 @@ end
 -- static bar directly from the hotbar APIs at several settled frame boundaries
 -- so a newly moved/replaced skill never waits for a weapon swap.
 -- ============================================================================
-local EAS_DAB_InitializeBase029381 = D.Initialize
-function D:Initialize()
+local EAS_DAB_InitializeBase029381 = InitializeImpl
+InitializeImpl = function(self)
     local result = EAS_DAB_InitializeBase029381(self)
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029381"
     local function hardRefresh()
@@ -1510,10 +1554,10 @@ function D:Initialize()
         end
     end
     if EVENT_ACTION_SLOT_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Slot", EVENT_ACTION_SLOT_UPDATED, function() settle() end)
+        EPC.Runtime:RegisterEvent("DualActionBar","Slot",EVENT_ACTION_SLOT_UPDATED, function() settle() end)
     end
     if EVENT_ACTION_SLOTS_FULL_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Full", EVENT_ACTION_SLOTS_FULL_UPDATE, function() settle() end)
+        EPC.Runtime:RegisterEvent("DualActionBar","Full",EVENT_ACTION_SLOTS_FULL_UPDATE, function() settle() end)
     end
     return result
 end
@@ -1527,7 +1571,7 @@ end
 -- state continue to use the effective-ability proc glow, so no English skill
 -- name matching is required here.
 -- ============================================================================
-local EAS_DAB_RefreshDynamicBase029382 = D.RefreshDynamic029311
+local EAS_DAB_RefreshDynamicBase029382 = RefreshDynamicImpl
 
 local function EAS_DAB_ParseStacks029382(frame)
     if not frame or not frame.epcStack or type(frame.epcStack.GetText) ~= "function" then return 0, 0 end
@@ -1537,7 +1581,7 @@ local function EAS_DAB_ParseStacks029382(frame)
     return tonumber(text:match("^(%d+)$")) or 0, 0
 end
 
-function D:RefreshDynamic029311(force)
+RefreshDynamicImpl = function(self, force)
     local result = EAS_DAB_RefreshDynamicBase029382(self, force)
     if not self.window or self.window:IsHidden() then return result end
     local activeCategory = safe(GetActiveHotbarCategory, nil)
@@ -1606,8 +1650,8 @@ local function EAS_DAB_GetActiveStyleCollectible029383(abilityId)
     return tonumber(safe(GetActiveProgressionSkillAbilityFxOverrideCollectibleId, 0, progressionId)) or 0
 end
 
-local EAS_DAB_GetSkillStyleIconBase029383 = D.GetSkillStyleIcon
-function D:GetSkillStyleIcon(abilityId, fallbackIcon)
+local EAS_DAB_GetSkillStyleIconBase029383 = GetSkillStyleIconImpl
+GetSkillStyleIconImpl = function(self, abilityId, fallbackIcon)
     if not EPC.saved or EPC.saved.dualActionBarSkillStyles029189 == false then return fallbackIcon or "" end
     -- The previous stable-style cache could keep a formerly selected style after
     -- the player switched back to the default skill appearance. ESO's active
@@ -1619,8 +1663,8 @@ function D:GetSkillStyleIcon(abilityId, fallbackIcon)
     return EAS_DAB_GetSkillStyleIconBase029383(self, abilityId, fallbackIcon)
 end
 
-local EAS_DAB_RefreshStaticBase029383 = D.RefreshStatic029311
-function D:RefreshStatic029311(...)
+local EAS_DAB_RefreshStaticBase029383 = RefreshStaticImpl
+RefreshStaticImpl = function(self, ...)
     local result = EAS_DAB_RefreshStaticBase029383(self, ...)
     -- Drop a remembered styled texture immediately when that slot no longer has
     -- an active Skill Style. This deliberately does not disturb an active style
@@ -1653,8 +1697,8 @@ local function EAS_DAB_IsVenomSkull029383(ability)
     return false
 end
 
-local EAS_DAB_RefreshDynamicBase029383 = D.RefreshDynamic029311
-function D:RefreshDynamic029311(force)
+local EAS_DAB_RefreshDynamicBase029383 = RefreshDynamicImpl
+RefreshDynamicImpl = function(self, force)
     local result = EAS_DAB_RefreshDynamicBase029383(self, force)
     if not self.rows then return result end
 
@@ -1821,21 +1865,21 @@ function D:InstallSlotInteraction029383(frame)
     end)
 end
 
-local EAS_DAB_CreateUIBase029383 = D.CreateUI
-function D:CreateUI()
+local EAS_DAB_CreateUIBase029383 = CreateUIImpl
+CreateUIImpl = function(self)
     EAS_DAB_CreateUIBase029383(self)
     for _, row in ipairs(self.rows or {}) do
         for _, frame in ipairs(row.slots or {}) do self:InstallSlotInteraction029383(frame) end
     end
 end
 
-local EAS_DAB_InitializeBase029383 = D.Initialize
-function D:Initialize()
+local EAS_DAB_InitializeBase029383 = InitializeImpl
+InitializeImpl = function(self)
     local result = EAS_DAB_InitializeBase029383(self)
     self:CreateUI()
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029383"
     if EVENT_ACTION_SLOT_ABILITY_USED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_VenomConsume", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
+        EPC.Runtime:RegisterEvent("DualActionBar","VenomConsume",EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
             local category = safe(GetActiveHotbarCategory, nil)
             for _, row in ipairs(self.rows or {}) do
                 if row.epcCategory == category then
@@ -1870,8 +1914,8 @@ end
 -- ============================================================================
 -- v0.29.384 - Grim Focus release reset + settled slot mutation refresh.
 -- ============================================================================
-local EAS_DAB_RefreshDynamicBase029384 = D.RefreshDynamic029311
-local EAS_DAB_InitializeBase029384 = D.Initialize
+local EAS_DAB_RefreshDynamicBase029384 = RefreshDynamicImpl
+local EAS_DAB_InitializeBase029384 = InitializeImpl
 
 local function EAS_DAB_StackNumbers029384(frame)
     if not frame or not frame.epcStack or not frame.epcStack.GetText then return 0, 0 end
@@ -1881,7 +1925,7 @@ local function EAS_DAB_StackNumbers029384(frame)
     return tonumber(text:match("^(%d+)$")) or 0, 0
 end
 
-function D:RefreshDynamic029311(force)
+RefreshDynamicImpl = function(self, force)
     local result = EAS_DAB_RefreshDynamicBase029384(self, force)
     if not self.rows then return result end
     self.stackReleaseSuppress029384 = self.stackReleaseSuppress029384 or {}
@@ -1906,7 +1950,7 @@ function D:RefreshDynamic029311(force)
     return result
 end
 
-function D:Initialize()
+InitializeImpl = function(self)
     local result = EAS_DAB_InitializeBase029384(self)
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029384"
     self.stackReleaseSuppress029384 = self.stackReleaseSuppress029384 or {}
@@ -1915,7 +1959,7 @@ function D:Initialize()
     -- chance to repaint a stale snapshot.  This is language-agnostic: it keys
     -- from the visible N/N threshold rather than English ability names.
     if EVENT_ACTION_SLOT_ABILITY_USED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_FullStackConsume", EVENT_ACTION_SLOT_ABILITY_USED, function(_, usedSlot)
+        EPC.Runtime:RegisterEvent("DualActionBar","FullStackConsume",EVENT_ACTION_SLOT_ABILITY_USED, function(_, usedSlot)
             local category = safe(GetActiveHotbarCategory, nil)
             for _, row in ipairs(self.rows or {}) do
                 if row.epcCategory == category then
@@ -1958,10 +2002,10 @@ function D:Initialize()
         end
     end
     if EVENT_ACTION_SLOT_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_SlotSettle", EVENT_ACTION_SLOT_UPDATED, scheduleSettledRefreshes)
+        EPC.Runtime:RegisterEvent("DualActionBar","SlotSettle",EVENT_ACTION_SLOT_UPDATED, scheduleSettledRefreshes)
     end
     if EVENT_ACTION_SLOTS_FULL_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_FullSettle", EVENT_ACTION_SLOTS_FULL_UPDATE, scheduleSettledRefreshes)
+        EPC.Runtime:RegisterEvent("DualActionBar","FullSettle",EVENT_ACTION_SLOTS_FULL_UPDATE, scheduleSettledRefreshes)
     end
 
     return result
@@ -1982,7 +2026,7 @@ end
 -- This is visual-only. It never mutates ESO's action slots and has no OnUpdate of
 -- its own; it rides the DualActionBar's existing lightweight dynamic refresh.
 -- ============================================================================
-local EAS_DAB_RefreshDynamicBase029385 = D.RefreshDynamic029311
+local EAS_DAB_RefreshDynamicBase029385 = RefreshDynamicImpl
 
 local function EAS_DAB_GetLiveModeState029385(ability, slot, category)
     if not ability or not slot then return false, 0, 0, "", "" end
@@ -2021,7 +2065,7 @@ local function EAS_DAB_PlayProcCue029385()
     if sound then pcall(PlaySound, sound) end
 end
 
-function D:RefreshDynamic029311(force)
+RefreshDynamicImpl = function(self, force)
     local result = EAS_DAB_RefreshDynamicBase029385(self, force)
     if not self.window or self.window:IsHidden() or not self.rows then return result end
 
@@ -2100,3 +2144,1024 @@ function D:RefreshDynamic029311(force)
 
     return result
 end
+
+
+-- Absorbed passive action-bar correction layers
+
+-- BEGIN ABSORBED: DualActionBarActiveIndicatorFix.lua
+-- ESO Adventurer Suite
+-- v0.29.651 - zero-heavy-work active weapon-bar indicator synchronization.
+-- IMPORTANT: this file must never trigger a full Dual Action Bar refresh on a
+-- normal weapon swap. GlobalWeaponSwapPerformanceFix.lua remains the sole owner
+-- of expensive/structural weapon-swap work.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.DualActionBar or not EVENT_MANAGER then return end
+
+local D = EPC.DualActionBar
+local EM = EVENT_MANAGER
+local NAME = (EPC.name or "ESOAdventurerSuite") .. "_ActiveBarIndicator029651"
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a = pcall(fn, ...)
+    if not ok or a == nil then return fallback end
+    return a
+end
+
+local function clamp(v, lo, hi)
+    v = tonumber(v) or lo
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+local function refreshIndicatorOnly()
+    local bar = EPC and EPC.DualActionBar
+    if not bar or not bar.rows then return end
+
+    local activeCategory = safe(GetActiveHotbarCategory, nil)
+    if activeCategory == nil then return end
+
+    bar.lastActiveCategory029311 = activeCategory
+    bar._easLiveActiveCategory029638 = activeCategory
+
+    local inactiveAlpha = clamp(((tonumber(EPC.saved and EPC.saved.dualActionBarInactiveAlpha029189) or 45) / 100), 0.10, 1.0)
+    local markerMode = type(bar.GetMarkerMode029191) == "function" and bar:GetMarkerMode029191() or "ICON_GLOW"
+
+    for _, row in ipairs(bar.rows) do
+        if row then
+            local active = row.epcCategory == activeCategory
+
+            if type(row.SetAlpha) == "function" then
+                row:SetAlpha(active and 1.0 or inactiveAlpha)
+            end
+
+            -- Keep the weapon symbol synchronized without invoking any heavy bar
+            -- refresh or ability/cooldown/stack work.
+            if type(bar.RefreshMarker029191) == "function" then
+                pcall(bar.RefreshMarker029191, bar, row, active)
+            end
+
+            -- Keep the marker's gold border/background on the same row as the
+            -- active weapon symbol. This mirrors DualActionBar:RefreshRow but is
+            -- intentionally visual-only.
+            if row.marker and row.marker.SetCenterColor and row.marker.SetEdgeColor then
+                if active then
+                    if markerMode == "ICON_GLOW" then
+                        row.marker:SetCenterColor(0.20, 0.14, 0.03, 0.20)
+                        row.marker:SetEdgeColor(1.00, 0.74, 0.18, 0.72)
+                    else
+                        row.marker:SetCenterColor(0.05, 0.055, 0.08, 0.16)
+                        row.marker:SetEdgeColor(0.86, 0.72, 0.30, 0.46)
+                    end
+                elseif markerMode == "NUMBER" then
+                    row.marker:SetCenterColor(0.02, 0.025, 0.04, 0.88)
+                    row.marker:SetEdgeColor(0.30, 0.32, 0.38, 0.90)
+                else
+                    row.marker:SetCenterColor(0, 0, 0, 0)
+                    row.marker:SetEdgeColor(0, 0, 0, 0)
+                end
+            end
+
+            if row.markerText and row.markerText.SetColor then
+                if active then
+                    row.markerText:SetColor(1.00, 0.86, 0.36, 1)
+                else
+                    row.markerText:SetColor(0.72, 0.74, 0.80, 1)
+                end
+            end
+
+            -- The active row's individual ability cells also use a gold border.
+            -- Flip those borders here so they cannot remain on the previously
+            -- active weapon bar while the symbol has already moved.
+            for _, frame in ipairs(row.slots or {}) do
+                if frame and frame.epcBG and frame.epcBG.SetEdgeColor then
+                    if active then
+                        frame.epcBG:SetEdgeColor(0.38, 0.30, 0.12, 0.98)
+                    else
+                        frame.epcBG:SetEdgeColor(0.16, 0.18, 0.22, 0.90)
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED is the settled hotbar notification.
+-- Do visual-state work only: no zo_callLater chain, no static rebuild, no dynamic
+-- refresh, no skill/cooldown/stack scan, and no duplicate pair-change listener.
+if EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED ~= nil then
+    EM:UnregisterForEvent(NAME, EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED)
+    EM:RegisterForEvent(NAME, EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED, refreshIndicatorOnly)
+end
+
+D.activeBarIndicatorFix029651Installed = true
+
+-- END ABSORBED: DualActionBarActiveIndicatorFix.lua
+
+-- BEGIN ABSORBED: DualActionBarCastPerformanceFix.lua
+-- ESO Adventurer Suite
+-- v0.29.646 - Dual Action Bar cast-time performance fix + swap-local hard guard.
+-- EVENT_ACTION_SLOT_UPDATED can fire during ordinary ability use and in bursts
+-- during weapon swaps. Static slot signatures are only scanned when no normal
+-- weapon swap is settling, so this file remains safe even if another owner later
+-- reinstalls its event handler.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.DualActionBar or not EVENT_MANAGER then return end
+
+local D = EPC.DualActionBar
+local EM = EVENT_MANAGER
+
+local BASE_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029189"
+local TRANSFORM_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_TransformBar029554"
+local PERF_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_DualBarCastPerf029561"
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, value = pcall(fn, ...)
+    if not ok or value == nil then return fallback end
+    return value
+end
+
+local function nowMs()
+    if type(GetFrameTimeMilliseconds) == "function" then
+        return tonumber(safe(GetFrameTimeMilliseconds, 0)) or 0
+    end
+    if type(GetGameTimeMilliseconds) == "function" then
+        return tonumber(safe(GetGameTimeMilliseconds, 0)) or 0
+    end
+    return 0
+end
+
+local function weaponSwapBlocked()
+    local stamp = nowMs()
+    local untilMs = tonumber(EPC.weaponSwapBroadRefreshUntil029636)
+        or tonumber(EPC.weaponSwapSettlingUntil029636)
+        or tonumber(EPC.weaponSwapSettlingUntil029635)
+        or 0
+    return stamp > 0 and stamp < untilMs
+end
+
+local function slotSignature(slot, category)
+    if slot == nil or category == nil then return "" end
+    local bound = tonumber(safe(GetSlotBoundId, 0, slot, category)) or 0
+    local used = safe(IsSlotUsed, false, slot, category) == true and 1 or 0
+    local icon = tostring(safe(GetSlotTexture, "", slot, category) or "")
+    return tostring(bound) .. ":" .. tostring(used) .. ":" .. icon
+end
+
+function D:CaptureStaticSlotSignatures029561()
+    -- Never scan both bars inside ESO's weapon swap transition.
+    if weaponSwapBlocked() and self.layoutMode ~= true then return false end
+
+    self.staticSlotSignatures029561 = self.staticSlotSignatures029561 or {}
+    local seen = {}
+    for _, row in ipairs(self.rows or {}) do
+        local category = row and row.epcCategory
+        if category ~= nil and not seen[category] then
+            seen[category] = true
+            local categoryCache = self.staticSlotSignatures029561[category] or {}
+            self.staticSlotSignatures029561[category] = categoryCache
+            for _, slot in ipairs(self.slots or {}) do
+                categoryCache[slot] = slotSignature(slot, category)
+            end
+        end
+    end
+    return true
+end
+
+function D:DidStaticSlotDataChange029561()
+    -- This is the expensive part: two bars x six slots x several ESO API calls.
+    -- A weapon swap never changes the configured slots, so there is nothing to
+    -- detect here until the transition is over.
+    if weaponSwapBlocked() and self.layoutMode ~= true then return false end
+
+    self.staticSlotSignatures029561 = self.staticSlotSignatures029561 or {}
+    local changed = false
+    local seen = {}
+    for _, row in ipairs(self.rows or {}) do
+        local category = row and row.epcCategory
+        if category ~= nil and not seen[category] then
+            seen[category] = true
+            local categoryCache = self.staticSlotSignatures029561[category] or {}
+            self.staticSlotSignatures029561[category] = categoryCache
+            for _, slot in ipairs(self.slots or {}) do
+                local signature = slotSignature(slot, category)
+                if categoryCache[slot] ~= signature then
+                    categoryCache[slot] = signature
+                    changed = true
+                end
+            end
+        end
+    end
+    return changed
+end
+
+function D:ScheduleStaticRefresh029561()
+    EM:UnregisterForUpdate(PERF_PREFIX .. "_Static")
+    EM:RegisterForUpdate(PERF_PREFIX .. "_Static", 35, function()
+        EM:UnregisterForUpdate(PERF_PREFIX .. "_Static")
+        if not D or (D.layoutMode ~= true and weaponSwapBlocked()) then return end
+        if type(D.InvalidateStyleCache029189) == "function" then D:InvalidateStyleCache029189() end
+        if type(D.RefreshStatic029311) == "function" then D:RefreshStatic029311() end
+        if type(D.CaptureStaticSlotSignatures029561) == "function" then D:CaptureStaticSlotSignatures029561() end
+        if type(D.RefreshDynamic029311) == "function" then D:RefreshDynamic029311(false) end
+    end)
+end
+
+local function installLightSlotHandler()
+    if not rawget(_G, "EVENT_ACTION_SLOT_UPDATED") then return end
+
+    -- Remove both previous heavy handlers. The transformation module still keeps
+    -- its dedicated active-hotbar and weapon-pair events for actual form changes.
+    EM:UnregisterForEvent(BASE_PREFIX .. "_Slot", EVENT_ACTION_SLOT_UPDATED)
+    EM:UnregisterForEvent(TRANSFORM_PREFIX .. "_Slot", EVENT_ACTION_SLOT_UPDATED)
+    EM:UnregisterForEvent(PERF_PREFIX .. "_Slot", EVENT_ACTION_SLOT_UPDATED)
+
+    EM:RegisterForEvent(PERF_PREFIX .. "_Slot", EVENT_ACTION_SLOT_UPDATED, function()
+        if not D or not EPC.saved or EPC.saved.showDualActionBar029189 ~= true then return end
+
+        -- ESO emits a slot-event burst during Primary/Backup swapping. Never scan
+        -- signatures or enter dynamic refresh from those events.
+        if D.layoutMode ~= true and weaponSwapBlocked() then return end
+
+        if D:DidStaticSlotDataChange029561() then
+            -- Dragging/replacing/morphing a skill changed actual slot metadata.
+            D:ScheduleStaticRefresh029561()
+        elseif type(D.RefreshDynamic029311) == "function" then
+            -- Ordinary cast/cooldown/effect update: no icon/style/hotkey rebuild.
+            D:RefreshDynamic029311(false)
+        end
+    end)
+end
+
+-- TransformationFix registers its slot listener at file load, so remove it now.
+if rawget(_G, "EVENT_ACTION_SLOT_UPDATED") then
+    EM:UnregisterForEvent(TRANSFORM_PREFIX .. "_Slot", EVENT_ACTION_SLOT_UPDATED)
+end
+
+-- DualActionBar registers its legacy slot listener inside Initialize(). Wrap that
+-- initializer so our lightweight handler becomes authoritative immediately after.
+if type(D.Initialize) == "function" and not D._castPerfInitializeWrap029561 then
+    local baseInitialize = InitializeImpl
+    InitializeImpl = function(self, ...)
+        local result = baseInitialize(self, ...)
+        self:CaptureStaticSlotSignatures029561()
+        installLightSlotHandler()
+        return result
+    end
+    D._castPerfInitializeWrap029561 = true
+end
+
+-- Safe for reloads/late loads where the Dual Bar has already initialized.
+if D.window then
+    D:CaptureStaticSlotSignatures029561()
+    installLightSlotHandler()
+end
+
+-- END ABSORBED: DualActionBarCastPerformanceFix.lua
+
+-- BEGIN ABSORBED: GlobalWeaponSwapPerformanceFix.lua
+-- ESO Adventurer Suite
+-- v0.29.706 - authoritative shared weapon-swap suppression owner.
+-- Normal Primary <-> Backup swaps only flip the already-rendered row alpha after
+-- ESO settles. Core-wide refresh/snapshot work, ability models, slot signatures,
+-- marker re-anchoring, and static bar rebuilds are excluded from the swap path.
+-- Special/transformed hotbars retain one deferred structural refresh.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EVENT_MANAGER then return end
+
+local EM = EVENT_MANAGER
+local NAME = (EPC.name or "ESOAdventurerSuite") .. "_WeaponSwapOwner029636"
+local BASE_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_DualActionBar029189"
+local TRANSFORM_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_TransformBar029554"
+local SWAP_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_DualBarSwapPerf029567"
+local OLD_GLOBAL_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_GlobalSwapPerf029568"
+local OLD_OWNER_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_WeaponSwapOwner029635"
+local ABILITY_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_AbilityOverlays"
+local READY_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_ReadyAlerts029365"
+local ROTATION_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_RotationAssistant"
+local CAST_PREFIX = (EPC.name or "ESOAdventurerSuite") .. "_DualBarCastPerf029561"
+
+local SETTLE_MS = 260
+-- ESO can continue emitting slot/effect/hotbar notifications well after the pair
+-- event itself. Keep every heavy Suite action-bar system out until the transition
+-- is fully over; active-row alpha still changes immediately.
+local BROAD_SUPPRESS_MS = 1200
+local APPLY_DELAY_MS = 40
+local STRUCTURAL_DELAY_MS = 140
+local SLOT_COALESCE_MS = 110
+local BROAD_REFRESH_DELAY_MS = 180
+
+local function nowMs()
+    if type(GetFrameTimeMilliseconds) == "function" then
+        return tonumber(GetFrameTimeMilliseconds()) or 0
+    end
+    if type(GetGameTimeMilliseconds) == "function" then
+        return tonumber(GetGameTimeMilliseconds()) or 0
+    end
+    return 0
+end
+
+local function activeCategory()
+    if type(GetActiveHotbarCategory) ~= "function" then return nil end
+    local ok, value = pcall(GetActiveHotbarCategory)
+    return ok and value or nil
+end
+
+local function normalCategories()
+    local primary = rawget(_G, "HOTBAR_CATEGORY_PRIMARY")
+    local backup = rawget(_G, "HOTBAR_CATEGORY_BACKUP")
+    if primary == nil then primary = 0 end
+    if backup == nil then backup = 1 end
+    return primary, backup
+end
+
+local function isNormalCategory(category)
+    local primary, backup = normalCategories()
+    return category == primary or category == backup
+end
+
+local function swapSettling()
+    local untilMs = tonumber(EPC.weaponSwapSettlingUntil029636)
+        or tonumber(EPC.weaponSwapSettlingUntil029635) or 0
+    local stamp = nowMs()
+    return stamp > 0 and stamp < untilMs
+end
+
+local function broadRefreshSuppressed()
+    local untilMs = tonumber(EPC.weaponSwapBroadRefreshUntil029636) or 0
+    local stamp = nowMs()
+    return stamp > 0 and stamp < untilMs
+end
+
+local function coreRegistration(eventCode)
+    if eventCode == nil then return nil end
+    return (EPC.name or "ESOAdventurerSuite") .. "_" .. tostring(eventCode)
+end
+
+local function removeEventNames(eventCode, names)
+    if eventCode == nil then return end
+    for i = 1, #names do
+        EM:UnregisterForEvent(names[i], eventCode)
+    end
+end
+
+local function removeLegacyListeners()
+    if EVENT_ACTIVE_WEAPON_PAIR_CHANGED ~= nil then
+        local coreName = coreRegistration(EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
+        local names = {
+            BASE_PREFIX .. "_Bar",
+            TRANSFORM_PREFIX .. "_Pair",
+            SWAP_PREFIX .. "_Pair",
+            OLD_GLOBAL_PREFIX .. "_Weapon",
+            OLD_OWNER_PREFIX .. "_Pair",
+            ABILITY_PREFIX .. "_Weapon",
+            READY_PREFIX .. "_Weapon",
+            ROTATION_PREFIX .. "_Bar",
+        }
+        if coreName then names[#names + 1] = coreName end
+        removeEventNames(EVENT_ACTIVE_WEAPON_PAIR_CHANGED, names)
+    end
+
+    if EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED ~= nil then
+        removeEventNames(EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED, {
+            TRANSFORM_PREFIX .. "_Hotbar",
+            SWAP_PREFIX .. "_Hotbar",
+            OLD_GLOBAL_PREFIX .. "_Hotbar",
+            OLD_OWNER_PREFIX .. "_Hotbar",
+            ABILITY_PREFIX .. "_Bar",
+            READY_PREFIX .. "_Bar",
+        })
+    end
+
+    if EVENT_ACTION_SLOT_UPDATED ~= nil then
+        removeEventNames(EVENT_ACTION_SLOT_UPDATED, {
+            BASE_PREFIX .. "_Slot",
+            TRANSFORM_PREFIX .. "_Slot",
+            CAST_PREFIX .. "_Slot",
+            OLD_OWNER_PREFIX .. "_Slot",
+            ABILITY_PREFIX .. "_Slot",
+            ROTATION_PREFIX .. "_Slot",
+        })
+    end
+
+    if EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED ~= nil then
+        local coreName = coreRegistration(EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED)
+        if coreName then EM:UnregisterForEvent(coreName, EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED) end
+        EM:UnregisterForEvent(OLD_OWNER_PREFIX .. "_AllHotbars", EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED)
+    end
+
+    EM:UnregisterForUpdate(OLD_GLOBAL_PREFIX .. "_Ability")
+    EM:UnregisterForUpdate(TRANSFORM_PREFIX .. "_Deferred")
+    EM:UnregisterForUpdate(OLD_OWNER_PREFIX .. "_Apply")
+    EM:UnregisterForUpdate(OLD_OWNER_PREFIX .. "_Structural")
+    EM:UnregisterForUpdate(OLD_OWNER_PREFIX .. "_SlotCheck")
+end
+
+local function clamp(value, low, high)
+    value = tonumber(value) or low
+    if value < low then return low end
+    if value > high then return high end
+    return value
+end
+
+local function applyNormalSwapVisuals(category)
+    local D = EPC.DualActionBar
+    if not D or not D.rows or category == nil then return end
+
+    D.lastActiveCategory029311 = category
+    D._lastSeenHotbar029554 = category
+    D._lastLightSwapCategory029567 = category
+    D._easLiveActiveCategory029638 = category
+
+    local inactiveAlpha = clamp(
+        ((tonumber(EPC.saved and EPC.saved.dualActionBarInactiveAlpha029189) or 45) / 100),
+        0.10, 1.0)
+
+    for _, row in ipairs(D.rows) do
+        if row and type(row.SetAlpha) == "function" then
+            row:SetAlpha(row.epcCategory == category and 1.0 or inactiveAlpha)
+        end
+    end
+end
+
+local function scheduleStructuralRefresh()
+    EM:UnregisterForUpdate(NAME .. "_Structural")
+    EM:RegisterForUpdate(NAME .. "_Structural", STRUCTURAL_DELAY_MS, function()
+        EM:UnregisterForUpdate(NAME .. "_Structural")
+        local D = EPC.DualActionBar
+        if not D then return end
+
+        if type(D.ApplyTransformedHotbarLayout029554) == "function" then
+            pcall(D.ApplyTransformedHotbarLayout029554, D, true)
+        end
+        if type(D.InvalidateStyleCache029189) == "function" then
+            pcall(D.InvalidateStyleCache029189, D)
+        end
+        if type(D.RefreshStatic029311) == "function" then
+            pcall(D.RefreshStatic029311, D, true)
+        end
+        if type(D.CaptureStaticSlotSignatures029561) == "function" then
+            pcall(D.CaptureStaticSlotSignatures029561, D)
+        end
+
+        local category = activeCategory()
+        D.lastActiveCategory029311 = category
+        D._lastSeenHotbar029554 = category
+        D._lastLightSwapCategory029567 = category
+        D._easLiveActiveCategory029638 = category
+
+        if type(D.RefreshDynamic029311) == "function" then
+            pcall(D.RefreshDynamic029311, D, true)
+        end
+    end)
+end
+
+local function processStableSwap()
+    local D = EPC.DualActionBar
+    if not D then return end
+
+    local category = activeCategory()
+    if category == nil then return end
+
+    -- In single-bar mode the native ESO action bar owns the visual swap.
+    -- Keep the global suppression window active, but do not touch hidden
+    -- Dual Action Bar controls for ordinary Primary/Backup changes.
+    if (not EPC.saved or EPC.saved.showDualActionBar029189 ~= true)
+        and isNormalCategory(category) then
+        return
+    end
+
+    local wasTransformed = D._transformed029554 == true
+    local transformed = not isNormalCategory(category)
+    if type(D.IsSingleTransformedHotbar029554) == "function" then
+        local ok, value = pcall(D.IsSingleTransformedHotbar029554, D, category)
+        if ok then transformed = value == true end
+    end
+
+    if isNormalCategory(category) and not transformed and not wasTransformed then
+        applyNormalSwapVisuals(category)
+        return
+    end
+
+    scheduleStructuralRefresh()
+end
+
+local function onSwapNotification()
+    local stamp = nowMs()
+    EPC.weaponSwapSettlingUntil029636 = stamp + SETTLE_MS
+    EPC.weaponSwapSettlingUntil029635 = EPC.weaponSwapSettlingUntil029636
+    EPC.weaponSwapBroadRefreshUntil029636 = stamp + BROAD_SUPPRESS_MS
+
+    EM:UnregisterForUpdate(NAME .. "_BroadRefresh")
+    EM:UnregisterForUpdate(NAME .. "_SlotCheck")
+
+    -- Kill pending bar-local work that may have been queued just before the
+    -- swap event. Those callbacks otherwise execute inside ESO's transition.
+    EM:UnregisterForUpdate(CAST_PREFIX .. "_Static")
+    EM:UnregisterForUpdate((EPC.name or "ESOAdventurerSuite") .. "_LiveAbilityState029638_Static")
+    EM:UnregisterForUpdate(BASE_PREFIX .. "_DynamicRefresh")
+
+    local D = EPC.DualActionBar
+    if D then
+        D.pendingDynamicRefresh029386 = false
+        D.pendingDynamicRefreshForce029386 = false
+    end
+
+    EM:UnregisterForUpdate(NAME .. "_Apply")
+
+    -- Single-bar normal swaps need the SAME broad suppression that makes the
+    -- Dual Action Bar smooth, but they do not need any delayed Dual-Bar visual
+    -- work. The lightweight single-bar icon handoff is owned separately.
+    local category = activeCategory()
+    if (not EPC.saved or EPC.saved.showDualActionBar029189 ~= true)
+        and isNormalCategory(category) then
+        return
+    end
+
+    EM:RegisterForUpdate(NAME .. "_Apply", APPLY_DELAY_MS, function()
+        EM:UnregisterForUpdate(NAME .. "_Apply")
+        processStableSwap()
+    end)
+end
+
+local function onSlotNotification()
+    -- Use the full 1.2s suppression window, not only the short pair-settle time.
+    if broadRefreshSuppressed() or swapSettling() then return end
+
+    EM:UnregisterForUpdate(NAME .. "_SlotCheck")
+    EM:RegisterForUpdate(NAME .. "_SlotCheck", SLOT_COALESCE_MS, function()
+        EM:UnregisterForUpdate(NAME .. "_SlotCheck")
+        if broadRefreshSuppressed() or swapSettling() then return end
+
+        local D = EPC.DualActionBar
+        if not D then return end
+        local changed = false
+        if type(D.DidStaticSlotDataChange029561) == "function" then
+            local ok, value = pcall(D.DidStaticSlotDataChange029561, D)
+            changed = ok and value == true
+        end
+
+        if changed then
+            if type(D.ScheduleStaticRefresh029561) == "function" then
+                pcall(D.ScheduleStaticRefresh029561, D)
+            elseif type(D.RefreshStatic029311) == "function" then
+                pcall(D.RefreshStatic029311, D, true)
+            end
+        end
+    end)
+end
+
+local function onAllHotbarsUpdated()
+    if broadRefreshSuppressed() or swapSettling() then return end
+
+    EM:UnregisterForUpdate(NAME .. "_BroadRefresh")
+    EM:RegisterForUpdate(NAME .. "_BroadRefresh", BROAD_REFRESH_DELAY_MS, function()
+        EM:UnregisterForUpdate(NAME .. "_BroadRefresh")
+        if broadRefreshSuppressed() or swapSettling() then return end
+        if type(EPC.RequestRefresh) == "function" then
+            EPC:RequestRefresh("hotbars-updated")
+        end
+    end)
+end
+
+local function installSettlingGuards()
+    local D = EPC.DualActionBar
+    if D and type(D.RefreshDynamic029311) == "function"
+        and not D._easSwapSettlingGuard029635 then
+        D._easSwapSettlingGuard029635 = true
+        local baseDynamic = RefreshDynamicImpl
+        D.RefreshDynamic029311 = function(self, force, ...)
+            if self.layoutMode ~= true and broadRefreshSuppressed() then return nil end
+            return baseDynamic(self, force, ...)
+        end
+    end
+
+    local A = EPC.AbilityOverlays
+    if A and type(A.Refresh) == "function" and not A._easSwapSettlingGuard029635 then
+        A._easSwapSettlingGuard029635 = true
+        local baseRefresh = A.Refresh
+        A.Refresh = function(self, ...)
+            if self.layoutMode ~= true and broadRefreshSuppressed() then return nil end
+            return baseRefresh(self, ...)
+        end
+    end
+
+    local R = EPC.RotationAssistant
+    if R and type(R.Refresh) == "function" and not R._easSwapSettlingGuard029635 then
+        R._easSwapSettlingGuard029635 = true
+        local baseRefresh = R.Refresh
+        R.Refresh = function(self, ...)
+            if self.layoutMode ~= true and broadRefreshSuppressed() then return nil end
+            return baseRefresh(self, ...)
+        end
+    end
+end
+
+local function installOwnership()
+    removeLegacyListeners()
+    installSettlingGuards()
+
+    if EVENT_ACTIVE_WEAPON_PAIR_CHANGED ~= nil then
+        EM:UnregisterForEvent(NAME .. "_Pair", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
+        EM:RegisterForEvent(NAME .. "_Pair", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, onSwapNotification)
+    end
+    if EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED ~= nil then
+        EM:UnregisterForEvent(NAME .. "_Hotbar", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED)
+        EM:RegisterForEvent(NAME .. "_Hotbar", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED, onSwapNotification)
+    end
+    if EVENT_ACTION_SLOT_UPDATED ~= nil then
+        EM:UnregisterForEvent(NAME .. "_Slot", EVENT_ACTION_SLOT_UPDATED)
+        EM:RegisterForEvent(NAME .. "_Slot", EVENT_ACTION_SLOT_UPDATED, onSlotNotification)
+    end
+    if EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED ~= nil then
+        EM:UnregisterForEvent(NAME .. "_AllHotbars", EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED)
+        EM:RegisterForEvent(NAME .. "_AllHotbars", EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED, onAllHotbarsUpdated)
+    end
+
+    EPC.weaponSwapOwner029635 = true
+    EPC.weaponSwapOwner029636 = true
+end
+
+if EVENT_PLAYER_ACTIVATED ~= nil then
+    EM:RegisterForEvent(NAME .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+        installOwnership()
+        if type(zo_callLater) == "function" then
+            zo_callLater(installOwnership, 250)
+            zo_callLater(installOwnership, 900)
+        end
+    end)
+end
+
+if EPC.DualActionBar and EPC.DualActionBar.window then
+    installOwnership()
+end
+
+SLASH_COMMANDS = SLASH_COMMANDS or {}
+SLASH_COMMANDS["/easswapperf"] = function()
+    local category = activeCategory()
+    local state = EPC.weaponSwapOwner029636 == true and "OWNED" or "WAITING"
+    local text = string.format(
+        "ESO Adventurer Suite weapon swap: %s | category=%s | settling=%s | broad=%s",
+        state, tostring(category), swapSettling() and "yes" or "no",
+        broadRefreshSuppressed() and "blocked" or "clear")
+    if type(d) == "function" then d(text) end
+end
+
+-- END ABSORBED: GlobalWeaponSwapPerformanceFix.lua
+
+-- BEGIN ABSORBED: SingleBarWeaponSwapLatencyFix.lua
+-- ESO Adventurer Suite
+-- v0.29.706 - single-bar visual handoff using the proven global swap owner.
+-- IMPORTANT: Do not unregister the global weapon-swap performance owner here.
+-- That owner is what keeps the Dual Action Bar smooth. Single-bar mode now uses
+-- the same broad suppression window and performs only a six-icon visual handoff.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EVENT_MANAGER then return end
+
+local EM = EVENT_MANAGER
+local BASE = EPC.name or "ESOAdventurerSuite"
+local NAME = BASE .. "_SingleBarSwap029706"
+
+local function singleBarMode()
+    return not EPC.saved or EPC.saved.showDualActionBar029189 ~= true
+end
+
+local function activeCategory()
+    if type(GetActiveHotbarCategory) ~= "function" then return nil end
+    local ok, value = pcall(GetActiveHotbarCategory)
+    return ok and value or nil
+end
+
+local function removeOldSingleBarRegistrations()
+    local old = {
+        BASE .. "_SingleBarSwap029699",
+        BASE .. "_SingleBarSwap029700",
+        BASE .. "_SingleBarSwap029701",
+        BASE .. "_SingleBarSwap029702",
+        BASE .. "_SingleBarSwap029703",
+        BASE .. "_SingleBarSwap029704",
+        BASE .. "_SingleBarQuiet029705",
+    }
+
+    for i = 1, #old do
+        local prefix = old[i]
+        if EVENT_ACTIVE_WEAPON_PAIR_CHANGED ~= nil then
+            EM:UnregisterForEvent(prefix .. "_Pair", EVENT_ACTIVE_WEAPON_PAIR_CHANGED)
+        end
+        if EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED ~= nil then
+            EM:UnregisterForEvent(prefix .. "_Hotbar", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED)
+        end
+        if EVENT_ACTION_SLOT_UPDATED ~= nil then
+            EM:UnregisterForEvent(prefix .. "_Slot", EVENT_ACTION_SLOT_UPDATED)
+        end
+        if EVENT_PLAYER_ACTIVATED ~= nil then
+            EM:UnregisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED)
+        end
+        EM:UnregisterForUpdate(prefix .. "_Apply")
+    end
+end
+
+local function baseOverlayVisible(A)
+    if not EPC.saved or EPC.saved.showAbilityOverlays == false then return false end
+    if A and A.layoutMode == true then return true end
+    if EPC.IsGameplayHudSuppressed and EPC:IsGameplayHudSuppressed() then return false end
+    if EPC.OverlayModeAllows and EPC:OverlayModeAllows("abilityOverlayVisibility") == false then return false end
+    return true
+end
+
+local function handoffIcons(category)
+    if not singleBarMode() or category == nil then return end
+
+    local A = EPC.AbilityOverlays
+    if not A or type(A.widgets) ~= "table" then return end
+
+    local allow = baseOverlayVisible(A)
+    for _, widget in ipairs(A.widgets) do
+        if widget then
+            local slot = widget.epcSlot
+            local used = false
+            if allow and type(IsSlotUsed) == "function" then
+                local ok, value = pcall(IsSlotUsed, slot, category)
+                used = ok and value == true
+            end
+
+            local show = allow and used
+            if widget.SetHidden then widget:SetHidden(not show) end
+
+            if show and widget.epcIcon and type(GetSlotTexture) == "function" then
+                local ok, texture = pcall(GetSlotTexture, slot, category)
+                if ok and texture and texture ~= "" then
+                    widget.epcIcon:SetTexture(texture)
+                    if widget.epcIcon.SetHidden then widget.epcIcon:SetHidden(false) end
+                elseif widget.epcIcon.SetHidden then
+                    widget.epcIcon:SetHidden(true)
+                end
+            end
+        end
+    end
+end
+
+removeOldSingleBarRegistrations()
+
+local lastCategory = nil
+
+if EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED ~= nil then
+    EM:UnregisterForEvent(NAME .. "_Hotbar", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED)
+    EM:RegisterForEvent(NAME .. "_Hotbar", EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED, function()
+        if not singleBarMode() then return end
+
+        local category = activeCategory()
+        if category == nil or category == lastCategory then return end
+        lastCategory = category
+
+        -- The global owner has already opened its broad no-heavy-work window.
+        -- This callback does not call Refresh/RefreshWidget/Rotation/Ready-state
+        -- code. It only hands the six visible icon textures to the settled bar.
+        handoffIcons(category)
+    end)
+end
+
+if EVENT_PLAYER_ACTIVATED ~= nil then
+    EM:UnregisterForEvent(NAME .. "_Activated", EVENT_PLAYER_ACTIVATED)
+    EM:RegisterForEvent(NAME .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+        removeOldSingleBarRegistrations()
+        if not singleBarMode() then return end
+        lastCategory = activeCategory()
+        if lastCategory ~= nil then handoffIcons(lastCategory) end
+    end)
+end
+
+EPC.singleBarWeaponSwapLatencyFix029706 = true
+
+-- END ABSORBED: SingleBarWeaponSwapLatencyFix.lua
+
+
+-- BEGIN ABSORBED: DualActionBarTransformationFix.lua
+-- ESO Adventurer Suite
+-- v0.29.646 - transformed/special hotbar support with normal-swap isolation.
+-- Werewolf/temporary hotbars still get structural refreshes. Ordinary Primary
+-- <-> Backup weapon swaps never use this structural path, even if its listeners
+-- survive or are reinstalled later.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.DualActionBar then return end
+
+local D = EPC.DualActionBar
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a = pcall(fn, ...)
+    if not ok or a == nil then return fallback end
+    return a
+end
+
+local function nowMs()
+    if type(GetFrameTimeMilliseconds) == "function" then
+        return tonumber(safe(GetFrameTimeMilliseconds, 0)) or 0
+    end
+    if type(GetGameTimeMilliseconds) == "function" then
+        return tonumber(safe(GetGameTimeMilliseconds, 0)) or 0
+    end
+    return 0
+end
+
+local function activeCategory()
+    return safe(GetActiveHotbarCategory, nil)
+end
+
+local function normalCategories()
+    local primary = rawget(_G, "HOTBAR_CATEGORY_PRIMARY")
+    local backup = rawget(_G, "HOTBAR_CATEGORY_BACKUP")
+    if primary == nil then primary = 0 end
+    if backup == nil then backup = 1 end
+    return primary, backup
+end
+
+local function isWerewolfForm()
+    local fn = rawget(_G, "IsWerewolf")
+    if type(fn) == "function" then
+        return safe(fn, false) == true
+    end
+    return false
+end
+
+local function normalWeaponSwapBlocked()
+    local stamp = nowMs()
+    local untilMs = tonumber(EPC.weaponSwapBroadRefreshUntil029636)
+        or tonumber(EPC.weaponSwapSettlingUntil029636)
+        or tonumber(EPC.weaponSwapSettlingUntil029635)
+        or 0
+    if stamp <= 0 or stamp >= untilMs then return false end
+
+    local category = activeCategory()
+    local primary, backup = normalCategories()
+    if category ~= primary and category ~= backup then return false end
+    if isWerewolfForm() then return false end
+    return true
+end
+
+function D:IsSingleTransformedHotbar029554(category)
+    category = category ~= nil and category or activeCategory()
+    local primary, backup = normalCategories()
+
+    if category ~= nil and category ~= primary and category ~= backup then
+        return true
+    end
+    return isWerewolfForm()
+end
+
+function D:ApplyTransformedHotbarLayout029554(force)
+    if not self.window or not self.rows or #self.rows < 2 then return false end
+
+    -- Structural layout changes are never needed for ordinary weapon swapping.
+    if self.layoutMode ~= true and normalWeaponSwapBlocked() and self._transformed029554 ~= true then
+        return false
+    end
+
+    local category = activeCategory()
+    local transformed = self:IsSingleTransformedHotbar029554(category)
+    local row1, row2 = self.rows[1], self.rows[2]
+
+    if transformed then
+        if not self._transformed029554 or self._transformedCategory029554 ~= category or force == true then
+            self._transformed029554 = true
+            self._transformedCategory029554 = category
+            self._normalRowCategories029554 = self._normalRowCategories029554 or {
+                row1 and row1.epcCategory,
+                row2 and row2.epcCategory,
+            }
+        end
+
+        if row1 then
+            row1.epcCategory = category
+            row1.epcBarNumber = 1
+            if row1.SetHidden then row1:SetHidden(false) end
+            if row1.SetAlpha then row1:SetAlpha(1) end
+        end
+        if row2 and row2.SetHidden then row2:SetHidden(true) end
+
+        local size = tonumber(EPC.saved and EPC.saved.dualActionBarIconSize029189) or 54
+        size = math.max(42, math.min(78, size))
+        local oneRowHeight = size + 8
+        local currentWidth = self.window.GetWidth and self.window:GetWidth() or 0
+        if self.window.SetDimensions and currentWidth and currentWidth > 0 then
+            self.window:SetDimensions(currentWidth, oneRowHeight)
+        elseif self.window.SetHeight then
+            self.window:SetHeight(oneRowHeight)
+        end
+        return true
+    end
+
+    if self._transformed029554 then
+        self._transformed029554 = false
+        self._transformedCategory029554 = nil
+
+        local order = type(self.GetBarOrder) == "function" and self:GetBarOrder() or nil
+        if type(order) == "table" then
+            for index, row in ipairs(self.rows) do
+                local entry = order[index]
+                if entry then
+                    row.epcCategory = entry.category
+                    row.epcBarNumber = entry.number
+                end
+                if row.SetHidden then row:SetHidden(false) end
+            end
+        else
+            local primary, backup = normalCategories()
+            if row1 then row1.epcCategory = primary row1.epcBarNumber = 1 if row1.SetHidden then row1:SetHidden(false) end end
+            if row2 then row2.epcCategory = backup row2.epcBarNumber = 2 if row2.SetHidden then row2:SetHidden(false) end end
+        end
+
+        if type(self.ApplyDimensions) == "function" then self:ApplyDimensions(true) end
+    end
+    return false
+end
+
+if type(D.RefreshStatic029311) == "function" and not D._transformedStaticWrap029554 then
+    local base = RefreshStaticImpl
+    RefreshStaticImpl = function(self, ...)
+        if self.layoutMode ~= true and normalWeaponSwapBlocked() and self._transformed029554 ~= true then
+            return nil
+        end
+        self:ApplyTransformedHotbarLayout029554(false)
+        local result = base(self, ...)
+        self:ApplyTransformedHotbarLayout029554(false)
+        return result
+    end
+    D._transformedStaticWrap029554 = true
+end
+
+if type(D.RefreshDynamic029311) == "function" and not D._transformedDynamicWrap029554 then
+    local base = RefreshDynamicImpl
+    RefreshDynamicImpl = function(self, force)
+        if self.layoutMode ~= true and normalWeaponSwapBlocked() and self._transformed029554 ~= true then
+            return nil
+        end
+
+        local category = activeCategory()
+        local changed = category ~= self._lastSeenHotbar029554
+        self._lastSeenHotbar029554 = category
+        local wasTransformed = self._transformed029554 == true
+        local isTransformed = self:IsSingleTransformedHotbar029554(category)
+
+        if changed or wasTransformed ~= isTransformed then
+            self:ApplyTransformedHotbarLayout029554(true)
+            if type(self.RefreshStatic029311) == "function" then
+                self:RefreshStatic029311(true)
+            end
+            force = true
+        else
+            self:ApplyTransformedHotbarLayout029554(false)
+        end
+
+        return base(self, force)
+    end
+    D._transformedDynamicWrap029554 = true
+end
+
+-- Event response is retained only for genuine transformed/special hotbar state.
+-- Ordinary front/back swaps are explicitly ignored here, so this module cannot
+-- become a swap hitch even if another file fails to unregister its listeners.
+if EVENT_MANAGER then
+    local prefix = (EPC.name or "ESOAdventurerSuite") .. "_TransformBar029554"
+    local function refreshSoon()
+        if not EVENT_MANAGER then return end
+        if normalWeaponSwapBlocked() and D._transformed029554 ~= true then return end
+
+        local category = activeCategory()
+        local transformedNow = D:IsSingleTransformedHotbar029554(category)
+        if not transformedNow and D._transformed029554 ~= true then return end
+
+        EPC.Runtime:UnregisterUpdate("DualActionBarTransformation","Deferred")
+        EPC.Runtime:RegisterUpdate("DualActionBarTransformation","Deferred",80, function()
+            EPC.Runtime:UnregisterUpdate("DualActionBarTransformation","Deferred")
+            if normalWeaponSwapBlocked() and D._transformed029554 ~= true then return end
+            if D and D.RefreshStatic029311 then D:RefreshStatic029311(true) end
+            if D and D.RefreshDynamic029311 then D:RefreshDynamic029311(true) end
+        end)
+    end
+
+    if rawget(_G, "EVENT_ACTIVE_WEAPON_PAIR_CHANGED") then
+        EPC.Runtime:RegisterEvent("DualActionBarTransformation","Pair",EVENT_ACTIVE_WEAPON_PAIR_CHANGED, refreshSoon)
+    end
+    if rawget(_G, "EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED") then
+        EPC.Runtime:RegisterEvent("DualActionBarTransformation","Hotbar",EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED, refreshSoon)
+    end
+    if rawget(_G, "EVENT_ACTION_SLOT_UPDATED") then
+        EPC.Runtime:RegisterEvent("DualActionBarTransformation","Slot",EVENT_ACTION_SLOT_UPDATED, refreshSoon)
+    end
+end
+
+if D.window then
+    D:ApplyTransformedHotbarLayout029554(true)
+    if D.RefreshStatic029311 then D:RefreshStatic029311(true) end
+    if D.RefreshDynamic029311 then D:RefreshDynamic029311(true) end
+end
+
+-- END ABSORBED: DualActionBarTransformationFix.lua

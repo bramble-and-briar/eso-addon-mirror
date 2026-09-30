@@ -27,35 +27,42 @@ local TEAM_TYPE_4_GROUP = 3
 local TEAM_TYPE_8_GROUP = 4
 local TEAM_TYPE_4_3_SOLO = 5
 local TEAM_TYPE_4_3_GROUP = 6
+local TEAM_TYPE_6_3_SOLO = 7
+local TEAM_TYPE_6_3_GROUP = 8
+local TEAM_TYPE_9_SOLO = 9
+local TEAM_TYPE_9_GROUP = 10
+
+local TEAM_TYPE_MAP = {
+    [2] = {  -- 2 teams
+        [4] = {  -- 4 players per team
+            [LFG_GROUP_TYPE_NONE] = TEAM_TYPE_4_SOLO,
+            [LFG_GROUP_TYPE_REGULAR] = TEAM_TYPE_4_GROUP,
+        },
+        [8] = {  -- 8 players per team (removed in U51)
+            [LFG_GROUP_TYPE_NONE] = TEAM_TYPE_8_SOLO,
+            [LFG_GROUP_TYPE_BIG_TEAM_BATTLE] = TEAM_TYPE_8_GROUP,
+        },
+        [9] = {  -- 9 players per team (new in U51)
+            [LFG_GROUP_TYPE_NONE] = TEAM_TYPE_9_SOLO,
+            [LFG_GROUP_TYPE_BIG_TEAM_BATTLE] = TEAM_TYPE_9_GROUP,
+        }
+    },
+    [3] = {  -- 3 teams
+        [4] = {  -- 4 players per team (old format)
+            [LFG_GROUP_TYPE_NONE] = TEAM_TYPE_4_3_SOLO,
+            [LFG_GROUP_TYPE_REGULAR] = TEAM_TYPE_4_3_GROUP,
+        },
+        [6] = {  -- 6 players per team (new in U51)
+            [LFG_GROUP_TYPE_NONE] = TEAM_TYPE_6_3_SOLO,
+            [LFG_GROUP_TYPE_REGULAR] = TEAM_TYPE_6_3_GROUP,
+        },
+    }
+}
 
 local function getTeamType(lfgActivityId, teamSize, numTeams)
     local groupType = GetActivityGroupType(lfgActivityId)
 
-    local teamType
-
-    if teamSize == 8 then
-        if groupType == LFG_GROUP_TYPE_NONE then
-            teamType = TEAM_TYPE_8_SOLO
-        -- elseif groupType == LFG_GROUP_TYPE_REGULAR then
-        --     teamType = TEAM_TYPE_8_GROUP
-        elseif groupType == LFG_GROUP_TYPE_BIG_TEAM_BATTLE then
-            teamType = TEAM_TYPE_8_GROUP
-        end
-    elseif teamSize == 4 then
-        if numTeams == 2 then
-            if groupType == LFG_GROUP_TYPE_NONE then
-                teamType = TEAM_TYPE_4_SOLO
-            elseif groupType == LFG_GROUP_TYPE_REGULAR then
-                teamType = TEAM_TYPE_4_GROUP
-            end
-        elseif numTeams == 3 then
-            if groupType == LFG_GROUP_TYPE_NONE then
-                teamType = TEAM_TYPE_4_3_SOLO
-            elseif groupType == LFG_GROUP_TYPE_REGULAR then
-                teamType = TEAM_TYPE_4_3_GROUP
-            end
-        end
-    end
+    local teamType = TEAM_TYPE_MAP[numTeams][teamSize][groupType]
 
     if not teamType then
         Log('Can\'t decide team type for teamSize %d, groupType %d and %d teams', teamSize, groupType, numTeams)
@@ -633,7 +640,7 @@ local CLASSES_LOOKUP_TABLE = {
 }
 
 local APIS_LOOKUP_TABLE = {
-    101044, 101045, 101046, 101047, 101048, 101049, 101050,
+    101044, 101045, 101046, 101047, 101048, 101049, 101050, 101051,
 }
 
 local RACES_LOOKUP_TABLE = {
@@ -669,16 +676,42 @@ local BATTLEGROUND_ROUND_RESULT_LOOKUP_TABLE = {
     BATTLEGROUND_ROUND_RESULT_TIEBREAKER_PLAYERS_ALIVE,
 }
 
-local TEAM_SIZE_LOOKUP_TABLE = {
+local TEAM_SIZE_LOOKUP_TABLE_pre1157000 = {
     4, 8,
 }
 
-local TEAM_TYPE_LOOKUP_TABLE_pre1151000 = {
-    1, 2, 3, 4,
+local TEAM_SIZE_LOOKUP_TABLE = {
+    4, 8, 6, 9
 }
 
+local TEAM_TYPE_LOOKUP_TABLE_pre1151000 = {
+    TEAM_TYPE_4_SOLO,
+    TEAM_TYPE_8_SOLO,
+    TEAM_TYPE_4_GROUP,
+    TEAM_TYPE_8_GROUP,
+}
+
+local TEAM_TYPE_LOOKUP_TABLE_pre1157000 = {
+    TEAM_TYPE_4_SOLO,
+    TEAM_TYPE_8_SOLO,
+    TEAM_TYPE_4_GROUP,
+    TEAM_TYPE_8_GROUP,
+    TEAM_TYPE_4_3_SOLO,
+    TEAM_TYPE_4_3_GROUP,
+}
+
+-- 2^5-1 = 31 TEAM_TYPE reserved since 1.5.7
 local TEAM_TYPE_LOOKUP_TABLE = {
-    1, 2, 3, 4, 5, 6
+    TEAM_TYPE_4_SOLO,
+    TEAM_TYPE_8_SOLO,
+    TEAM_TYPE_4_GROUP,
+    TEAM_TYPE_8_GROUP,
+    TEAM_TYPE_4_3_SOLO,
+    TEAM_TYPE_4_3_GROUP,
+    TEAM_TYPE_6_3_SOLO,
+    TEAM_TYPE_6_3_GROUP,
+    TEAM_TYPE_9_SOLO,
+    TEAM_TYPE_9_GROUP,
 }
 
 local MATCH_TYPE_LOOKUP_TABLE = {
@@ -788,7 +821,7 @@ local MatchSchema_1 = Field.Table(nil, {
         Field.Enum('result', BATTLEGROUND_ROUND_RESULT_LOOKUP_TABLE, INVERSED),
         Field.VLArray('scores', 3, Field.Number(nil, 10)),
     })),
-    --[[13]] Field.Enum('teamSize', TEAM_SIZE_LOOKUP_TABLE, INVERSED),
+    --[[13]] Field.Enum('teamSize', TEAM_SIZE_LOOKUP_TABLE_pre1157000, INVERSED),
     --[[14]] Field.Enum('teamType', TEAM_TYPE_LOOKUP_TABLE_pre1151000, INVERSED),
     --[[15]] Field.Enum('type', MATCH_TYPE_LOOKUP_TABLE, INVERSED),
     --[[16]] Field.Number('zoneId', 11),  -- TODO: check
@@ -798,13 +831,17 @@ local MatchSchema_1 = Field.Table(nil, {
 
 local MatchSchema_2 = MatchSchema_1:ShallowCopy()
 MatchSchema_2:Replace('api', Field.Enum('api', APIS_LOOKUP_TABLE, INVERSED, 8))
--- This can handle 2^8-1 API versions in total
+-- This can handle 2^8-1 API versions in total (255)
 
 local MatchSchema_3 = MatchSchema_2:ShallowCopy()
-MatchSchema_3:Replace('teamType', Field.Enum('teamType', TEAM_TYPE_LOOKUP_TABLE, INVERSED))
+MatchSchema_3:Replace('teamType', Field.Enum('teamType', TEAM_TYPE_LOOKUP_TABLE_pre1157000, INVERSED))
+
+local MatchSchema_4 = MatchSchema_2:ShallowCopy()
+MatchSchema_4:Replace('teamType', Field.Enum('teamType', TEAM_TYPE_LOOKUP_TABLE, INVERSED, 5))  -- 2^5-1 = 31 TEAM_TYPE
+MatchSchema_4:Replace('teamSize', Field.Enum('teamSize', TEAM_SIZE_LOOKUP_TABLE, INVERSED))
 
 -- IMP_STATS_MATCH_SCHEMA = MatchSchema
-local LAST_MATCH_SCHEMA = MatchSchema_3
+local LAST_MATCH_SCHEMA = MatchSchema_4
 
 local ReadMatchSchema = ZO_DeepTableCopy(LAST_MATCH_SCHEMA)
 ReadMatchSchema._fields[12].subType._fields[1] = ReadPlayers
@@ -1170,6 +1207,37 @@ local function UpdateSavedVariablesVersion(svTable)
                             data[matchId] = result
                         else
                             problems:AddProblemWithMatchId(matchId, 'failed to pack match')
+                            Log(result)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    UpdateToVersion(svTable, 1157000, function(sv, problems)
+        for key, data in pairs(sv) do
+            if key ~= 'version' and type(key) == 'string' then
+                Log('Updating %s matches', key)
+                for matchId = 1, #data do
+                    if type(data[matchId]) == 'string' then
+                        local success, result = pcall(LDP.Repack, data[matchId], MatchSchema_3, MatchSchema_4, ENCODE_BASE)
+                        if success then
+                            data[matchId] = result
+                        else
+                            problems:AddProblemWithMatchId(matchId, 'failed to repack data for 1.5.7')
+                            Log(result)
+                        end
+                    elseif type(data[matchId]) == 'table' then
+                        local matchData = data[matchId]
+
+                        matchData.teamType = getTeamType(matchData.lfgActivityId, matchData.teamSize, getNumTeams(matchData))
+
+                        local success, result = pcall(LDP.Pack, data[matchId], MatchSchema_4, ENCODE_BASE)
+                        if success then
+                            data[matchId] = result
+                        else
+                            problems:AddProblemWithMatchId(matchId, 'failed to pack data for 1.5.7')
                             Log(result)
                         end
                     end

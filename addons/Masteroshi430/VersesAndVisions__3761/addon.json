@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Masteroshi430/VersesAndVisions__3761",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Masteroshi430",
   "canonical_id": "esoui:3761",
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3761",
@@ -17,7 +18,7 @@
     "VersesAndVisions"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3761/",
-  "fingerprint": "dfa531b5be6c79cbfb5bb89cc331c34dcf9540b73ccc614b4baed4aca6a6d3ad",
+  "fingerprint": "55a129d079190ace4f72276a8be4220762a1581ff3e5ef3850b70ff7ce72b919",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12750.png",
     "https://cdn-eso.mmoui.com/preview/pvw12747.png",
@@ -30,11 +31,11 @@
   "source_id": "3761",
   "source_url": "https://www.esoui.com/downloads/info3761-VersesAndVisions.html",
   "stats": {
-    "downloads": 7333,
-    "favorites": 16,
-    "monthly_downloads": 242
+    "downloads": 7623,
+    "favorites": 17,
+    "monthly_downloads": 162
   },
   "title": "VersesAndVisions",
-  "updated_at": 1783451302000,
-  "version": "2026.07.07"
+  "updated_at": 1790677896000,
+  "version": "2026.09.29"
 }

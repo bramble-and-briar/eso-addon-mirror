@@ -1,0 +1,5 @@
+## Title: Guild Trader Caption
+## APIVersion: 101051
+## Version: 0.1
+## Author: KSD
+GuildTraderCaption.lua

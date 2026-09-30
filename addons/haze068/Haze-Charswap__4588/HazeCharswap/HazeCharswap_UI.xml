@@ -48,7 +48,7 @@
                     <Anchor point="TOPRIGHT" offsetX="-20" offsetY="48" />
                 </Texture>
 
-                <!-- Profile bar -->
+                <!-- profil-leiste -->
                 <Label name="$(parent)ProfileLabel"
                        font="ZoFontGameSmall"
                        color="CCCCCC"
@@ -86,7 +86,7 @@
                     </OnClicked>
                 </Button>
 
-                <!-- Bank status -->
+                <!-- bank-status -->
                 <Label name="$(parent)BankStatus"
                        font="ZoFontGameSmall"
                        wrapMode="ELLIPSIS">
@@ -94,7 +94,7 @@
                     <Anchor point="TOPRIGHT" offsetX="-220" offsetY="108" />
                 </Label>
 
-                <!-- Scrollable list -->
+                <!-- liste -->
                 <Control name="$(parent)ScrollContainer" inherits="ZO_ScrollContainer">
                     <Anchor point="TOPLEFT" offsetX="20" offsetY="134" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-20" offsetY="-110" />

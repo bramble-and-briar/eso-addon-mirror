@@ -1217,7 +1217,7 @@ function G:ScoreFallbackAbility(a, profile)
 end
 
 
-function G:GetWornBuildContext()
+local function EAS_BaseWornBuildContext(self)
     local profile = self:GetProfile()
     local role = EPC.Role and EPC.Role:GetRole() or "DAMAGE"
     local sets = {}
@@ -1263,7 +1263,7 @@ function G:GetWornBuildContext()
     }
 end
 
-function G:ScoreAbilityForCurrentBuild(a, context)
+local function EAS_BaseScoreAbilityForCurrentBuild(self, a, context)
     local profile = context.profile or self:GetProfile()
     local role = context.role or "DAMAGE"
     local score = self:ScoreFallbackAbility(a, profile)
@@ -1362,7 +1362,7 @@ function G:GetTotalSkillPointBudget()
     return math.max(0,available + allocated), available, allocated
 end
 
-function G:ScorePassiveForCurrentBuild(entry, context)
+local function EAS_BaseScorePassiveForCurrentBuild(self, entry, context)
     local n = lower(entry.name or "")
     local role = context.role or "DAMAGE"
     local profile = context.profile or self:GetProfile()
@@ -1476,7 +1476,7 @@ function G:IsPlannedAbilityCompatibleWithWeapon(entry, weaponType)
 end
 
 
-function G:GetSkillMetaForContext(context)
+local function EAS_BaseSkillMetaForContext(self, context)
     context=context or self:GetWornBuildContext()
     local presetKey=context.presetKey or select(1,self:GetPreset())
     if not EPC.SkillMeta or type(EPC.SkillMeta.GetProfile)~="function" then return nil,presetKey end
@@ -2939,7 +2939,7 @@ function G:ApplyFullSkillPlan(plan)
     return false
 end
 
-function G:RespecAndApplyBestBuild()
+local function EAS_BaseRespecAndApplyBestBuild(self)
     if safe(IsUnitInCombat,false,"player")==true then
         self:NotifyResult("RESPEC BUILD: leave combat first.",false)
         return false
@@ -3164,9 +3164,8 @@ function G:GetSkillPresetForMaxPower029174(mode)
     return "TRIAL"
 end
 
-local EAS_GetWornBuildContextBase029174=G.GetWornBuildContext
 function G:GetWornBuildContext()
-    local context=EAS_GetWornBuildContextBase029174(self) or {}
+    local context=EAS_BaseWornBuildContext(self) or {}
     context.maxPowerMode=self:ResolveMaxPowerMode029174()
     context.maxPowerLabel=self.MAX_POWER_MODE_LABELS_029174[context.maxPowerMode] or context.maxPowerMode
     context.power=self:GetPowerSnapshot029174()
@@ -3207,10 +3206,9 @@ local function easAbilityDescription029174(a)
     return ""
 end
 
-local EAS_ScoreAbilityForCurrentBuildBase029174=G.ScoreAbilityForCurrentBuild
 function G:ScoreAbilityForCurrentBuild(a,context)
     context=context or self:GetWornBuildContext()
-    local score=EAS_ScoreAbilityForCurrentBuildBase029174(self,a,context)
+    local score=EAS_BaseScoreAbilityForCurrentBuild(self,a,context)
     local n=lower(a and a.name or "")
     local d=easAbilityDescription029174(a)
     local text=n.." "..d
@@ -3275,10 +3273,9 @@ function G:ScoreAbilityForCurrentBuild(a,context)
     return score
 end
 
-local EAS_ScorePassiveForCurrentBuildBase029174=G.ScorePassiveForCurrentBuild
 function G:ScorePassiveForCurrentBuild(entry,context)
     context=context or self:GetWornBuildContext()
-    local score=EAS_ScorePassiveForCurrentBuildBase029174(self,entry,context)
+    local score=EAS_BaseScorePassiveForCurrentBuild(self,entry,context)
     local id=tonumber(entry and entry.abilityId) or 0
     local d=""
     if id>0 and type(GetAbilityDescription)=="function" then d=lower(safe(GetAbilityDescription,"",id) or "") end
@@ -3317,11 +3314,10 @@ function G:AnalyzeSkillPlan029174(plan)
     return counts
 end
 
-local EAS_RespecAndApplyBestBuildBase029174=G.RespecAndApplyBestBuild
 function G:RespecAndApplyBestBuild()
     local context=self:GetWornBuildContext()
     local mode=context.maxPowerLabel or context.maxPowerMode or "AUTO"
     local power=context.power or {}
     self:NotifyResult(string.format("MAX POWER BUILD: %s | %s | Health %d | Magicka %d | Stamina %d | Pen %d/%d target",tostring(context.archetype or context.role or "BUILD"),tostring(mode),tonumber(power.maxHealth) or 0,tonumber(power.maxMagicka) or 0,tonumber(power.maxStamina) or 0,tonumber(context.personalPen) or 0,tonumber(context.personalPenTarget) or 0),true)
-    return EAS_RespecAndApplyBestBuildBase029174(self)
+    return EAS_BaseRespecAndApplyBestBuild(self)
 end

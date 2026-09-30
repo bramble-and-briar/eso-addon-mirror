@@ -5,7 +5,7 @@ screen instead of fading away, and decides what it is drawn over, in The Elder S
 console.
 
 - **Author:** PinkBanther
-- **Version:** 1.2.0
+- **Version:** 1.3.0
 - **Optional:** `LibHarvensAddonSettings` >= 20106 (for the settings panel; the chat commands
   work without it)
 
@@ -158,6 +158,27 @@ add-on frame near that code is how private-function errors start — see FINDING
 The game's own anchor, size and limits are read off the control before the first write of each
 session. Reset, the on/off switch, and a slider moved back to the default all put exactly those
 back.
+
+## Update 51 and the customizable HUD
+
+U51 registers the chat window with the game's new HUD manager. From then on the client puts HUD
+elements back by itself — `PropagateSettings` → `RevertOffsetModifications` — whenever the screen
+is resized, the input mode changes, or add-ons finish loading. On console it always puts back the
+*game's* placement, because the gamepad HUD editor does not exist yet.
+
+That is why a wayshrine or a dungeon left the window wrong until a menu was opened, which is when
+this add-on re-applied. From 1.3.0:
+
+- the player's corner and distances are written into the HUD element's own default anchor, so the
+  client's re-applies put the window where the player asked. The element still counts as "using
+  its default anchor", which is what makes the U51 tracker column keep stacking above the chat;
+- the window is checked again a few times over the ten seconds after a zone load, and after a
+  screen resize or a mode change, because dimensions are not part of an anchor and the client
+  does not say when it has finished;
+- anything found out of place is recorded, and `/pbchatwin status` prints the last few — what the
+  window had, and how long after the zone load it was found.
+
+Reset puts the element's own anchor back exactly as the client had it.
 
 ## What it does not touch
 

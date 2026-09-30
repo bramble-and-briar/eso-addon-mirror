@@ -145,7 +145,15 @@ function R:ScoreAbility(a, targetHP, proc)
     return score, reason
 end
 
-function R:BuildRecommendations()
+local BuildRecommendationsImplArch
+
+function R:BuildRecommendations(...)
+
+    return BuildRecommendationsImplArch(self, ...)
+
+end
+
+BuildRecommendationsImplArch = function(self)
     local abilities = self:GetBarAbilities()
     local hp = self:GetTargetHealth()
     local proc = self:HasCrystalProc()
@@ -162,7 +170,15 @@ function R:BuildRecommendations()
     return result, hp, proc
 end
 
-function R:CreateUI()
+local CreateUIImplArch
+
+function R:CreateUI(...)
+
+    return CreateUIImplArch(self, ...)
+
+end
+
+CreateUIImplArch = function(self)
     if self.window then return end
 
     local s = EPC.saved or {}
@@ -287,7 +303,15 @@ function R:UpdateScale()
     self.canvas:SetScale(scale)
 end
 
-function R:Refresh()
+local RefreshImplArch
+
+function R:Refresh(...)
+
+    return RefreshImplArch(self, ...)
+
+end
+
+RefreshImplArch = function(self)
     self:CreateUI()
     local enabled=EPC.saved and EPC.saved.rotationAssistantEnabled ~= false
     local combat=safe(IsUnitInCombat,false,"player")
@@ -314,7 +338,15 @@ function R:Refresh()
     self.queue:SetText(#q>0 and ("Next: "..table.concat(q,"  →  ")) or "")
 end
 
-function R:SetLayoutMode(active)
+local SetLayoutModeImplArch
+
+function R:SetLayoutMode(...)
+
+    return SetLayoutModeImplArch(self, ...)
+
+end
+
+SetLayoutModeImplArch = function(self, active)
     self.layoutMode = active == true
     if not self.window then self:CreateUI() end
     self.window:SetMouseEnabled(self.layoutMode)
@@ -323,7 +355,15 @@ function R:SetLayoutMode(active)
     self:Refresh()
 end
 
-function R:ResetPosition()
+local ResetPositionImplArch
+
+function R:ResetPosition(...)
+
+    return ResetPositionImplArch(self, ...)
+
+end
+
+ResetPositionImplArch = function(self)
     if not self.window or not EPC.saved then return end
     EPC.saved.rotationAssistantLeft = -1
     EPC.saved.rotationAssistantTop = -1
@@ -335,15 +375,23 @@ function R:ResetPosition()
     self:UpdateScale()
 end
 
-function R:Initialize()
+local InitializeImplArch
+
+function R:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.slots=self:GetSlots()
     self:CreateUI()
     local p=EPC.name.."_RotationAssistant"
-    if EVENT_PLAYER_COMBAT_STATE then EVENT_MANAGER:RegisterForEvent(p.."_Combat",EVENT_PLAYER_COMBAT_STATE,function() self:Refresh() end) end
-    if EVENT_ACTION_SLOT_UPDATED then EVENT_MANAGER:RegisterForEvent(p.."_Slot",EVENT_ACTION_SLOT_UPDATED,function() self:Refresh() end) end
-    if EVENT_ACTIVE_WEAPON_PAIR_CHANGED then EVENT_MANAGER:RegisterForEvent(p.."_Bar",EVENT_ACTIVE_WEAPON_PAIR_CHANGED,function() self:Refresh() end) end
-    if EVENT_PLAYER_ACTIVATED then EVENT_MANAGER:RegisterForEvent(p.."_Activated",EVENT_PLAYER_ACTIVATED,function() self:Refresh() end) end
-    EVENT_MANAGER:RegisterForUpdate(p.."_Tick",350,function()
+    if EVENT_PLAYER_COMBAT_STATE then EPC.Runtime:RegisterEvent("RotationAssistant","Combat",EVENT_PLAYER_COMBAT_STATE,function() self:Refresh() end) end
+    if EVENT_ACTION_SLOT_UPDATED then EPC.Runtime:RegisterEvent("RotationAssistant","Slot",EVENT_ACTION_SLOT_UPDATED,function() self:Refresh() end) end
+    if EVENT_ACTIVE_WEAPON_PAIR_CHANGED then EPC.Runtime:RegisterEvent("RotationAssistant","Bar",EVENT_ACTIVE_WEAPON_PAIR_CHANGED,function() self:Refresh() end) end
+    if EVENT_PLAYER_ACTIVATED then EPC.Runtime:RegisterEvent("RotationAssistant","Activated",EVENT_PLAYER_ACTIVATED,function() self:Refresh() end) end
+    EPC.Runtime:RegisterUpdate("RotationAssistant","Tick",350,function()
         if not EPC.saved or EPC.saved.rotationAssistantEnabled == false then return end
         if self.layoutMode ~= true and type(IsUnitInCombat) == "function" and safe(IsUnitInCombat, false, "player") ~= true then return end
         self:Refresh()
@@ -358,10 +406,10 @@ end
 
 -- v0.29.161 - Smart Combat Advisor + adaptive block warning.
 -- Guidance only: this module never casts abilities, blocks, swaps bars, or sends input.
-local EAS_RA_CreateUIBase029161 = R.CreateUI
-local EAS_RA_InitializeBase029161 = R.Initialize
-local EAS_RA_SetLayoutModeBase029161 = R.SetLayoutMode
-local EAS_RA_ResetPositionBase029161 = R.ResetPosition
+local EAS_RA_CreateUIBase029161 = CreateUIImplArch
+local EAS_RA_InitializeBase029161 = InitializeImplArch
+local EAS_RA_SetLayoutModeBase029161 = SetLayoutModeImplArch
+local EAS_RA_ResetPositionBase029161 = ResetPositionImplArch
 
 local function pct(currentValue, maxValue)
     local current = tonumber(currentValue) or 0
@@ -485,7 +533,15 @@ function R:GetAbilityDescription029161(abilityId)
     return tostring(safe(GetAbilityDescription, "", abilityId) or "")
 end
 
-function R:GetBarAbilities029161(category)
+local GetBarAbilities029161ImplArch
+
+function R:GetBarAbilities029161(...)
+
+    return GetBarAbilities029161ImplArch(self, ...)
+
+end
+
+GetBarAbilities029161ImplArch = function(self, category)
     local activeCategory = self:GetCategory()
     local out = {}
     for ordinal, slot in ipairs(self.slots or self:GetSlots()) do
@@ -537,7 +593,15 @@ function R:GetAllBarAbilities029161()
     return result
 end
 
-function R:ClassifyAbility029161(a)
+local ClassifyAbility029161ImplArch
+
+function R:ClassifyAbility029161(...)
+
+    return ClassifyAbility029161ImplArch(self, ...)
+
+end
+
+ClassifyAbility029161ImplArch = function(self, a)
     local text = lower((a.name or "") .. " " .. (a.description or ""))
     local c = {}
     -- Set this before deriving spammable. Otherwise an Ultimate that deals
@@ -560,7 +624,15 @@ function R:ClassifyAbility029161(a)
     return c
 end
 
-function R:IsUltimateReady029161(a)
+local IsUltimateReady029161ImplArch
+
+function R:IsUltimateReady029161(...)
+
+    return IsUltimateReady029161ImplArch(self, ...)
+
+end
+
+IsUltimateReady029161ImplArch = function(self, a)
     if not a or not a.isUltimate or not COMBAT_MECHANIC_FLAGS_ULTIMATE then return false end
     -- GetUnitPower returns multiple values (current, max, effective max).
     -- Parenthesize the safe() call so only the first return value reaches
@@ -571,7 +643,15 @@ function R:IsUltimateReady029161(a)
     return cost > 0 and current >= cost
 end
 
-function R:ScoreSmartAbility029161(a, context)
+local ScoreSmartAbility029161ImplArch
+
+function R:ScoreSmartAbility029161(...)
+
+    return ScoreSmartAbility029161ImplArch(self, ...)
+
+end
+
+ScoreSmartAbility029161ImplArch = function(self, a, context)
     if not a.used or a.name == "" then return -1000, "Unavailable" end
     if not a.usable then return -600, "Not usable" end
     if a.remain > 0 and a.duration > 0 and not a.global then return -500, "Cooldown" end
@@ -634,7 +714,7 @@ function R:ScoreSmartAbility029161(a, context)
     return score, reason
 end
 
-function R:BuildRecommendations()
+BuildRecommendationsImplArch = function(self)
     local role = self:GetAdvisorRole029161()
     local magickaPct = self:GetResourcePct029161(POWERTYPE_MAGICKA)
     local staminaPct = self:GetResourcePct029161(POWERTYPE_STAMINA)
@@ -783,7 +863,7 @@ function R:CreateSmartUI029161()
     self.smartUI029161 = true
 end
 
-function R:CreateUI()
+CreateUIImplArch = function(self)
     EAS_RA_CreateUIBase029161(self)
     self:CreateSmartUI029161()
 end
@@ -854,7 +934,15 @@ function R:HideNativeSlotHighlights029165()
     end
 end
 
-function R:HideActionGuidance029161()
+local HideActionGuidance029161ImplArch
+
+function R:HideActionGuidance029161(...)
+
+    return HideActionGuidance029161ImplArch(self, ...)
+
+end
+
+HideActionGuidance029161ImplArch = function(self)
     -- Keep the old top-level control permanently hidden for saved-runtime
     -- compatibility, but use only the native in-slot highlights from v0.29.165.
     if self.actionHighlight029161 then self.actionHighlight029161:SetHidden(true) end
@@ -870,7 +958,15 @@ function R:HideActionGuidance029161()
     if EPC.AbilityOverlays then EPC.AbilityOverlays.smartRecommendedSlot029161 = nil end
 end
 
-function R:ShowActionHighlight029161(entry)
+local ShowActionHighlight029161ImplArch
+
+function R:ShowActionHighlight029161(...)
+
+    return ShowActionHighlight029161ImplArch(self, ...)
+
+end
+
+ShowActionHighlight029161ImplArch = function(self, entry)
     self:HideActionGuidance029161()
     if not entry or not entry.a then return end
 
@@ -985,11 +1081,12 @@ function R:RegisterBlockEvents029161()
     for _, item in ipairs(results) do
         local suffix, result = item[1], item[2]
         if result ~= nil then
-            local registration = prefix .. suffix
-            EVENT_MANAGER:RegisterForEvent(registration, EVENT_COMBAT_EVENT, function(...) self:OnIncomingCombat029161(...) end)
-            EVENT_MANAGER:AddFilterForEvent(registration, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, result)
-            EVENT_MANAGER:AddFilterForEvent(registration, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
-            if REGISTER_FILTER_IS_ERROR then EVENT_MANAGER:AddFilterForEvent(registration, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false) end
+            local filters = {
+                { REGISTER_FILTER_COMBAT_RESULT, result },
+                { REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER },
+            }
+            if REGISTER_FILTER_IS_ERROR then filters[#filters + 1] = { REGISTER_FILTER_IS_ERROR, false } end
+            EPC.Runtime:RegisterEvent("RotationAssistant", "SmartBlock" .. suffix, EVENT_COMBAT_EVENT, function(...) self:OnIncomingCombat029161(...) end, filters)
         end
     end
 end
@@ -1003,7 +1100,7 @@ function R:RefreshBlockCue029161(combat)
     if self.blockWindow029161 then self.blockWindow029161:SetHidden(true) end
 end
 
-function R:Refresh()
+RefreshImplArch = function(self)
     self:CreateUI()
     local enabled = EPC.saved and EPC.saved.rotationAssistantEnabled ~= false
     local combat = safe(IsUnitInCombat, false, "player") == true
@@ -1056,7 +1153,7 @@ function R:Refresh()
     self.queue:SetText(#q > 0 and ("Next: " .. table.concat(q, "  →  ")) or "")
 end
 
-function R:SetLayoutMode(active)
+SetLayoutModeImplArch = function(self, active)
     EAS_RA_SetLayoutModeBase029161(self, active)
     self:CreateSmartUI029161()
     local layout = active == true
@@ -1072,7 +1169,7 @@ function R:SetLayoutMode(active)
     self:Refresh()
 end
 
-function R:ResetPosition()
+ResetPositionImplArch = function(self)
     EAS_RA_ResetPositionBase029161(self)
     if EPC.saved then
         EPC.saved.rotationBlockWarningLeft029161 = -1
@@ -1090,7 +1187,7 @@ function R:ResetPosition()
     end
 end
 
-function R:Initialize()
+InitializeImplArch = function(self)
     EAS_RA_InitializeBase029161(self)
     self:RegisterBlockEvents029161()
     self:Refresh()
@@ -1100,7 +1197,11 @@ end
 -- Anchor a high-layer top-level glow directly to ZO_ActionBar_GetButton(slot).button.
 -- The .button control is ESO's actual visible/clickable action button and avoids
 -- clipping/draw-order problems seen when parenting highlights to slot/icon wrappers.
-function R:GetVisibleActionButtonControl029166(entry)
+local GetVisibleActionButtonControl029166ImplArch
+function R:GetVisibleActionButtonControl029166(...)
+    return GetVisibleActionButtonControl029166ImplArch(self, ...)
+end
+GetVisibleActionButtonControl029166ImplArch = function(self, entry)
     if not entry or not entry.a or entry.needsSwap then return nil end
     if type(ZO_ActionBar_GetButton) ~= "function" then return nil end
     local slot = tonumber(entry.a.slot)
@@ -1165,13 +1266,13 @@ function R:HideVisibleActionHighlight029166()
     if self.visibleActionHighlight029166 then self.visibleActionHighlight029166:SetHidden(true) end
 end
 
-local EAS_HideActionGuidanceBase029166 = R.HideActionGuidance029161
-function R:HideActionGuidance029161()
+local EAS_HideActionGuidanceBase029166 = HideActionGuidance029161ImplArch
+HideActionGuidance029161ImplArch = function(self)
     EAS_HideActionGuidanceBase029166(self)
     self:HideVisibleActionHighlight029166()
 end
 
-function R:ShowActionHighlight029161(entry)
+ShowActionHighlight029161ImplArch = function(self, entry)
     self:HideActionGuidance029161()
     if not entry or not entry.a then return end
 
@@ -1236,8 +1337,8 @@ function R:TestActionHighlight029166()
     return true
 end
 
-local EAS_RA_RefreshBase029166 = R.Refresh
-function R:Refresh()
+local EAS_RA_RefreshBase029166 = RefreshImplArch
+RefreshImplArch = function(self)
     local result = EAS_RA_RefreshBase029166(self)
     if self.testHighlightEntry029166 and (tonumber(self.testHighlightUntil029166) or 0) > now() then
         self:ShowActionHighlight029161(self.testHighlightEntry029166)
@@ -1254,8 +1355,8 @@ end
 -- stock ZO_ActionBar controls. Anchoring to stock controls caused the advisor
 -- glow to appear offset from the Suite boxes. Prefer the exact Suite widget and
 -- use the native action bar only as a fallback when Suite overlays are hidden.
-local EAS_HideActionGuidanceBase029167 = R.HideActionGuidance029161
-function R:HideActionGuidance029161()
+local EAS_HideActionGuidanceBase029167 = HideActionGuidance029161ImplArch
+HideActionGuidance029161ImplArch = function(self)
     EAS_HideActionGuidanceBase029167(self)
     if EPC.AbilityOverlays and EPC.AbilityOverlays.ClearSmartRecommendation029167 then
         EPC.AbilityOverlays:ClearSmartRecommendation029167()
@@ -1267,7 +1368,7 @@ end
 
 -- Improve the stock-action-bar fallback too: the Icon texture is the exact
 -- visible 47x47/61x61 artwork, while .button is a larger interaction wrapper.
-function R:GetVisibleActionButtonControl029166(entry)
+GetVisibleActionButtonControl029166ImplArch = function(self, entry)
     if not entry or not entry.a or entry.needsSwap then return nil end
     if type(ZO_ActionBar_GetButton) ~= "function" then return nil end
     local slot = tonumber(entry.a.slot)
@@ -1287,8 +1388,8 @@ function R:GetVisibleActionButtonControl029166(entry)
     return nil, actionButton
 end
 
-local EAS_ShowActionHighlightBase029167 = R.ShowActionHighlight029161
-function R:ShowActionHighlight029161(entry)
+local EAS_ShowActionHighlightBase029167 = ShowActionHighlight029161ImplArch
+ShowActionHighlight029161ImplArch = function(self, entry)
     self:HideActionGuidance029161()
     if not entry or not entry.a then return end
 
@@ -1362,7 +1463,15 @@ function R:GetAbilityDuration029169(abilityId)
     return math.max(0, tonumber((safe(GetAbilityDuration, 0, abilityId))) or 0)
 end
 
-function R:ReadUnitEffects029169(unitTag)
+local ReadUnitEffects029169ImplArch
+
+function R:ReadUnitEffects029169(...)
+
+    return ReadUnitEffects029169ImplArch(self, ...)
+
+end
+
+ReadUnitEffects029169ImplArch = function(self, unitTag)
     local effects = {}
     if type(GetNumBuffs) ~= "function" or type(GetUnitBuffInfo) ~= "function" then return effects end
     if unitTag ~= "player" and type(DoesUnitExist) == "function" and safe(DoesUnitExist, false, unitTag) ~= true then
@@ -1463,8 +1572,8 @@ function R:GetTrackedEffectRemaining029169(a, cls)
     return best
 end
 
-local EAS_GetBarAbilitiesBase029169 = R.GetBarAbilities029161
-function R:GetBarAbilities029161(category)
+local EAS_GetBarAbilitiesBase029169 = GetBarAbilities029161ImplArch
+GetBarAbilities029161ImplArch = function(self, category)
     local abilities = EAS_GetBarAbilitiesBase029169(self, category) or {}
     for _, ability in ipairs(abilities) do
         ability.buffType029169 = self:GetAbilityBuffType029169(ability.abilityId)
@@ -1473,8 +1582,8 @@ function R:GetBarAbilities029161(category)
     return abilities
 end
 
-local EAS_ClassifyAbilityBase029169 = R.ClassifyAbility029161
-function R:ClassifyAbility029161(a)
+local EAS_ClassifyAbilityBase029169 = ClassifyAbility029161ImplArch
+ClassifyAbility029161ImplArch = function(self, a)
     local c = EAS_ClassifyAbilityBase029169(self, a)
     local text = lower((a and a.name or "") .. " " .. (a and a.description or ""))
     local duration = tonumber(a and a.abilityDuration029169) or self:GetAbilityDuration029169(a and a.abilityId)
@@ -1544,8 +1653,8 @@ function R:ClassifyAbility029161(a)
     return c
 end
 
-local EAS_ScoreSmartAbilityBase029169 = R.ScoreSmartAbility029161
-function R:ScoreSmartAbility029161(a, context)
+local EAS_ScoreSmartAbilityBase029169 = ScoreSmartAbility029161ImplArch
+ScoreSmartAbility029161ImplArch = function(self, a, context)
     if not a or not context then return -1000, "Unavailable" end
     local cls = self:ClassifyAbility029161(a)
     if cls.passiveOnly then return -50, "Passive while slotted" end
@@ -1573,8 +1682,8 @@ function R:ScoreSmartAbility029161(a, context)
     return score, reason
 end
 
-local EAS_BuildRecommendationsBase029169 = R.BuildRecommendations
-function R:BuildRecommendations()
+local EAS_BuildRecommendationsBase029169 = BuildRecommendationsImplArch
+BuildRecommendationsImplArch = function(self)
     local snapshot = self.smartEffects029169
     if type(snapshot) ~= "table" or (now() - (tonumber(snapshot.at) or 0)) >= 200 then
         self:RefreshSmartEffectSnapshots029169()
@@ -1680,7 +1789,7 @@ end
 -- Keep all values from GetUnitBuffInfo that the advisor needs.  In particular,
 -- stackCount is required for Bound Armaments, Grim Focus morphs, Molten Whip,
 -- and other stack-builder/spender abilities.
-function R:ReadUnitEffects029169(unitTag)
+ReadUnitEffects029169ImplArch = function(self, unitTag)
     local effects = {}
     if type(GetNumBuffs) ~= "function" or type(GetUnitBuffInfo) ~= "function" then return effects end
     if unitTag ~= "player" and type(DoesUnitExist) == "function" and safe(DoesUnitExist, false, unitTag) ~= true then
@@ -1727,8 +1836,8 @@ function R:ReadUnitEffects029169(unitTag)
     return effects
 end
 
-local EAS_GetBarAbilitiesBase029170 = R.GetBarAbilities029161
-function R:GetBarAbilities029161(category)
+local EAS_GetBarAbilitiesBase029170 = GetBarAbilities029161ImplArch
+GetBarAbilities029161ImplArch = function(self, category)
     local abilities = EAS_GetBarAbilitiesBase029170(self, category) or {}
     for _, ability in ipairs(abilities) do
         ability.runtime029170 = self:GetAbilityRuntimeMeta029170(ability.abilityId)
@@ -1856,8 +1965,8 @@ function R:GetAbilityEffectState029170(a, cls)
     }
 end
 
-local EAS_ClassifyAbilityBase029170 = R.ClassifyAbility029161
-function R:ClassifyAbility029161(a)
+local EAS_ClassifyAbilityBase029170 = ClassifyAbility029161ImplArch
+ClassifyAbility029161ImplArch = function(self, a)
     local c = EAS_ClassifyAbilityBase029170(self, a)
     local runtime = a and a.runtime029170 or self:GetAbilityRuntimeMeta029170(a and a.abilityId)
     local text = EAS_RA_Normalize029170((a and a.name or "") .. " " .. (a and a.description or ""))
@@ -1908,7 +2017,7 @@ function R:ClassifyAbility029161(a)
     return c
 end
 
-function R:IsUltimateReady029161(a)
+IsUltimateReady029161ImplArch = function(self, a)
     if not a or not a.isUltimate or COMBAT_MECHANIC_FLAGS_ULTIMATE == nil then return false end
     local current = tonumber((safe(GetUnitPower, 0, "player", COMBAT_MECHANIC_FLAGS_ULTIMATE))) or 0
     local cost = tonumber(a.cost) or 0
@@ -1941,7 +2050,7 @@ function R:IsReticleTargetHidden029170()
     return false
 end
 
-function R:ScoreSmartAbility029161(a, context)
+ScoreSmartAbility029161ImplArch = function(self, a, context)
     if not a or not context or not a.used or tostring(a.name or "") == "" then return -1000, "Unavailable" end
     if not a.usable then return -600, "Not usable" end
     if a.remain > 0 and a.duration > 0 and not a.global then return -500, "Cooldown" end
@@ -2054,7 +2163,7 @@ function R:ScoreSmartAbility029161(a, context)
     return 150, "Situational utility"
 end
 
-function R:BuildRecommendations()
+BuildRecommendationsImplArch = function(self)
     local role = self:GetAdvisorRole029161()
     local magickaPct = self:GetResourcePct029161(POWERTYPE_MAGICKA)
     local staminaPct = self:GetResourcePct029161(POWERTYPE_STAMINA)
@@ -2132,7 +2241,15 @@ local function EAS_RA_EffectUrgency029171(remainingMs, durationMs, refreshFloorM
     return 0, false, false
 end
 
-function R:RegisterMomentToMomentEvents029171()
+local RegisterMomentToMomentEvents029171ImplArch
+
+function R:RegisterMomentToMomentEvents029171(...)
+
+    return RegisterMomentToMomentEvents029171ImplArch(self, ...)
+
+end
+
+RegisterMomentToMomentEvents029171ImplArch = function(self)
     if self.momentEventsRegistered029171 then return end
     self.momentEventsRegistered029171 = true
     self.lastUsedAbility029171 = self.lastUsedAbility029171 or {}
@@ -2140,7 +2257,7 @@ function R:RegisterMomentToMomentEvents029171()
 
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_SmartMoment029171"
     if EVENT_ACTION_SLOT_ABILITY_USED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Used", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotNum)
+        EPC.Runtime:RegisterEvent("RotationAssistant","Used",EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotNum)
             local slot = tonumber(slotNum) or 0
             local category = safe(GetActiveHotbarCategory, nil)
             local abilityId = 0
@@ -2165,7 +2282,7 @@ function R:RegisterMomentToMomentEvents029171()
     end
 
     if EVENT_ACTIVE_WEAPON_PAIR_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Bar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
+        EPC.Runtime:RegisterEvent("RotationAssistant","ProcBar",EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
             self.lastBarSwapAt029171 = now()
         end)
     end
@@ -2355,11 +2472,11 @@ end
 
 -- Replace the previous scoring entry point so all existing UI/highlight code
 -- automatically receives the new moment-to-moment priority values.
-function R:ScoreSmartAbility029161(a, context)
+ScoreSmartAbility029161ImplArch = function(self, a, context)
     return self:ScoreBestNextAction029171(a, context)
 end
 
-function R:BuildRecommendations()
+BuildRecommendationsImplArch = function(self)
     local role = self:GetAdvisorRole029161()
     local magickaPct = self:GetResourcePct029161(POWERTYPE_MAGICKA)
     local staminaPct = self:GetResourcePct029161(POWERTYPE_STAMINA)
@@ -2420,8 +2537,8 @@ function R:BuildRecommendations()
     return result, context.targetHP, context.crystalProc, context
 end
 
-local EAS_RA_InitializeBase029171 = R.Initialize
-function R:Initialize()
+local EAS_RA_InitializeBase029171 = InitializeImplArch
+InitializeImplArch = function(self)
     -- v0.29.196: retire the large advisor card as the out-of-box experience.
     -- Existing FULL/COMPACT installs move once to action-bar highlighting;
     -- players can still explicitly select Full Overlay or Compact afterward.
@@ -2441,8 +2558,8 @@ end
 -- ============================================================================
 -- v0.29.365 - hold advisor recommendation through cast/channel completion.
 -- ============================================================================
-local EAS_BuildRecommendationsBase029365=R.BuildRecommendations
-function R:BuildRecommendations()
+local EAS_BuildRecommendationsBase029365= BuildRecommendationsImplArch
+BuildRecommendationsImplArch = function(self)
     local t=now()
     if (tonumber(self.advisorCastLockUntil029365) or 0)>t and type(self.advisorLockedRecommendations029365)=="table" then
         local c=self.advisorLockedContext029365 or self.lastSmartContext029161 or {}
@@ -2453,14 +2570,14 @@ function R:BuildRecommendations()
     self.advisorLockedContext029365=d
     return a,b,c,d
 end
-local EAS_RegisterMomentBase029365=R.RegisterMomentToMomentEvents029171
-function R:RegisterMomentToMomentEvents029171()
+local EAS_RegisterMomentBase029365= RegisterMomentToMomentEvents029171ImplArch
+RegisterMomentToMomentEvents029171ImplArch = function(self)
     if self.castLockEventInstalled029365 then return EAS_RegisterMomentBase029365(self) end
     EAS_RegisterMomentBase029365(self)
     self.castLockEventInstalled029365=true
     local prefix=(EPC.name or "ESOAdventurerSuite").."_CastLock029365"
     if EVENT_ACTION_SLOT_ABILITY_USED then
-        EVENT_MANAGER:RegisterForEvent(prefix,EVENT_ACTION_SLOT_ABILITY_USED,function(_,slotNum)
+        EPC.Runtime:RegisterEvent("RotationAssistant","AbilityUsedFinal",EVENT_ACTION_SLOT_ABILITY_USED,function(_,slotNum)
             local slot=tonumber(slotNum) or 0; local category=safe(GetActiveHotbarCategory,nil)
             local abilityId=tonumber(safe(GetSlotBoundId,0,slot,category)) or 0
             if abilityId<=0 or type(self.GetAbilityRuntimeMeta029170)~="function" then return end

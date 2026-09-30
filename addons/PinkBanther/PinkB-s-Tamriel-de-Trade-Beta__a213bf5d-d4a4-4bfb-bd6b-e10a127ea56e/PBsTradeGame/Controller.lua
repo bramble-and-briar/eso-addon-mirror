@@ -76,6 +76,7 @@ function A:TreasuryOptions()
 end
 function A:Rows()
     local rows={}
+    if self.screen=="hub" then return {{label="交易拠点"}} end
     if self.screen=="title" then
         if not self.state.companyName then rows[1]={label="新しい商会を興す",command="found"}
         else
@@ -120,6 +121,7 @@ function A:Rows()
     elseif self.screen=="tactics" then
         for _,tactic in ipairs(D.tactics) do rows[#rows+1]={id=tactic.id,label=tactic.name,tactic=tactic,learned=self.state.learnedTactics[tactic.id]} end
     elseif self.screen=="management" then
+        if self.state.chapter>=3 then rows[#rows+1]={label="交易拠点を見る（建設は内政で）",command="hub"} end
         local status=M.CampaignStatus(self.state)
         rows[#rows+1]={label="第"..self.state.chapter.."章の進行  "..status.short,command="campaign",status=status}
         rows[#rows+1]={label="決算と財務  第"..M.CurrentPeriod(self.state).."期 進行中 / 負債 "..self.state.debt,command="finance"}
@@ -234,6 +236,7 @@ function A:Rows()
         table.insert(rows,1,{command="finish",label="▶ 内政を終えて決算へ",detailText="内政を終える\n\n"
             ..(left>0 and ("残り "..left.." 行動を使わずに、") or "").."資金力ランキングと決算へ進みます。"
             .."\n\n今期の内政："..(#log>0 and ("\n"..table.concat(log,"\n")) or "なし")})
+        if self.state.chapter>=3 then table.insert(rows,2,{label="交易拠点を育てる（内政行動の消費なし）",command="hub",detailText="交易拠点\n\n施設を建設して5つの能力を育てます。\n内政行動は使わず、同時工事2枠で運営します。\n工事・収益は決算で自動進行します。"}) end
     elseif self.screen=="admin_pick" then
         local kind=self.admin and self.admin.kind; local K=C.admin
         if kind=="alliance" then
@@ -343,8 +346,11 @@ function A:ShowChapterIntro()
     if chapter.id==2 and M.IsAllied(self.state,C.campaign.chapterTwoAlly) then
         alliance="\n\n◆ フルブライト商会が盟約に応じ、自動的に同盟商会となりました。"
     end
+    local newFacilities={}
+    for _,f in ipairs(PBTrade.HubData.facilities) do if (f.minChapter or 3)==self.state.chapter then newFacilities[#newFacilities+1]=f.name end end
+    local hubUnlock=#newFacilities>0 and ("\n新施設："..table.concat(newFacilities,"・")) or ""
     self.modal={campaign=true,background=chapter.background,text=chapter.title.."\n"..chapter.subtitle.."\n\n"..chapter.description
-        ..alliance..takeover.."\n\n目標\n"..status.summary.."\n\n× / ○：交易地図へ"}
+        ..alliance..takeover..hubUnlock..(self.state.chapter>=3 and ("\n\n交易拠点："..PBTrade.Hub.Size(self.state.chapter).."×"..PBTrade.Hub.Size(self.state.chapter).."区画 / 建設"..#PBTrade.Hub.Catalogue(self.state.chapter).."種類が利用可能") or "").."\n\n目標\n"..status.summary.."\n\n× / ○：交易地図へ"}
     if r then
         local flash=r.count>0 and ("鎖の侵食  "..r.count.."件が離反") or "最終居城が経済要塞化"
         self:Flash("defection",flash,3.2); self:Save()
@@ -413,6 +419,8 @@ function A:PromptAcquisition(property)
     end
     local advice=self:StanceAdvice(M.NegotiationStances(self.state,property))
     if advice then warning=warning.."\n\n"..advice end
+    local hubAdvice=M.HubSummary(self.state,property)
+    if hubAdvice then warning=warning.."\n\n"..hubAdvice end
     self.pendingId=property.id
     self.modal={action="start",text=property.name
         .."\n\n買収交渉を始めますか？\n単体調達で物件の負担が増えます。\n投入資金は結果にかかわらず消費します。"
@@ -432,7 +440,7 @@ function A:ShowOpening(nextStep,story)
     local pages={}; local company=M.CompanyName(self.state):gsub("%%","%%%%")
     for _,page in ipairs(source) do
         if type(page)=="table" and type(page.bg)=="string" and type(page.text)=="string" and page.text~="" then
-            pages[#pages+1]={bg=page.bg,text=(page.text:gsub("{company}",company))}
+            pages[#pages+1]={bg=page.bg,text=(page.text:gsub("{company}",company)),speaker=page.speaker,portrait=page.portrait}
         end
     end
     if #pages==0 then self.notice="物語データを読み込めませんでした"; return false end
@@ -553,13 +561,17 @@ function A:ExecuteDelegation(id)
     self:Save(); self:CounterattackCheck()
 end
 function A:Act(action)
+    if self.screen=="hub" and self.modal and self.modal.hubPolicy then return self:HubPolicyAct(action) end
+    if self.screen=="hub" and not self.modal then return self:HubAct(action) end
     if self.screen=="opening" then return self:OpeningAct(action) end
     if (self.screen=="admin" or self.screen=="admin_pick") and not self.modal then return self:AdminAct(action) end
     if (self.screen=="title" or self.screen=="naming") and not self.modal then return self:TitleAct(action) end
     if self.modal then
         if action=="confirm" then
             local pending=self.modal.action; self.modal=nil
-            if pending=="tutorial" then
+            if pending=="hubBuild" then self:ConfirmHubBuild()
+            elseif pending=="hubChange" then self:ConfirmHubChange()
+            elseif pending=="tutorial" then
                 self.tutorialPage=self.tutorialPage+1
                 if self.tutorialPage<=#tutorial then self:ShowTutorialPage() else self.tutorialComplete=true; self:Save(); self:FlushSave(); self:ShowChapterIntro() end
             elseif pending=="start" then
@@ -569,7 +581,7 @@ function A:Act(action)
             elseif pending=="delegate" then self:ExecuteDelegation(self.pendingDelegateId)
             elseif pending=="endlessOffer" then self:BeginEndless() end
         elseif action=="back" and self.modal.action=="tutorial" then self.modal=nil; self.tutorialComplete=true; self:Save(); self:FlushSave(); self:ShowChapterIntro()
-        elseif action=="back" or action=="info" or action=="detail" then self.modal=nil end
+        elseif action=="back" or action=="info" or action=="detail" then self.modal=nil; self.hubOrder=nil end
         return
     end
     if action=="previous" then return self:Tab(-1) end
@@ -595,7 +607,7 @@ function A:Act(action)
         local season=M.BeginStrategicSeason(self.state,self.random)
         if M.CheckTrueEnding(self.state) then
             -- Every property is ours: the true ending plays, then the ledger (free play) resumes.
-            self:Save(); self:FlushSave(); self:ShowOpening("map","trueEnding"); self:Flash("ending","真のエンディング",4)
+            self:Save(); self:FlushSave(); self:ShowOpening("title","trueEnding"); self:Flash("ending","真のエンディング",4)
             return
         end
         local chapterTakeovers=nextChapter and not nextChapter.ending and M.CheckTakeovers(self.state) or {}
@@ -604,6 +616,22 @@ function A:Act(action)
         local reportText="第"..report.cycle.."期 決算\n\n事業収益："..comma(report.gross).." ゴールド\n負債返済："..comma(report.debtPayment)
             .."\n手取："..comma(report.net).."\n調達余力回復："..comma(report.reserveRecovered)
             .."\n全市場の評価増："..M.FormatCompact(report.marketGrowth).."\n最高物件価格："..M.FormatCompact(report.highestValue)
+        if self.state.chapter>=3 then
+            reportText=reportText.."\n拠点純収益："..comma(report.hub.net).." ゴールド"
+            if #report.hub.completed>0 then
+                reportText=reportText.."\n工事完了："..table.concat(report.hub.completed,"・")
+                PBTrade.Audio.Play("discovery")
+            end
+            if report.hub.policy then reportText=reportText.."\n拠点方針："..report.hub.policy end
+            if report.hub.event then
+                reportText=reportText.."\n拠点事件："..report.hub.event.name.."（"..report.hub.event.description.." / "..report.hub.event.duration.."期）"
+                PBTrade.Audio.Play(report.hub.event.adverse and "statusNegative" or "statusPositive")
+            end
+            if #(report.hub.districts or {})>0 then
+                reportText=reportText.."\n専門地区成立："..table.concat(report.hub.districts,"・")
+                PBTrade.Audio.Play("discovery")
+            end
+        end
         if #deals>0 then
             local lines={}
             for i=1,math.min(#deals,C.rivals.reportLines) do local d=deals[i]
@@ -666,7 +694,8 @@ function A:Act(action)
     elseif self.screen=="tactics" then
         self.modal={text=self:TacticDetail(row.tactic).."\n\n× / ○：閉じる"}
     elseif self.screen=="management" then
-        if row.command=="rebuild" then
+        if row.command=="hub" then return self:OpenHub()
+        elseif row.command=="rebuild" then
             local ok,value=M.Rebuild(self.state); self.notice=ok and "再建融資を受けました" or value
             if ok then self:Save(); self:Flash("settlement","再建融資  +"..value,2.5) end
         elseif row.command=="skip" then return self:SkipPeriod()
@@ -797,7 +826,7 @@ function A:AfterBattle()
     if b.mode~="defense" and b.result=="won" and target and target.finalAcquisition and M.CheckTrueEnding(self.state) then
         -- The final deed closes the story immediately; no routine counterattack or settlement
         -- is allowed to interrupt the true-ending payoff.
-        self:Save(); self:FlushSave(); self:ShowOpening("map","trueEnding"); self:Flash("ending","真のエンディング",4)
+        self:Save(); self:FlushSave(); self:ShowOpening("title","trueEnding"); self:Flash("ending","真のエンディング",4)
         return
     end
     if b.mode=="defense" or self.counterattackChecked then self:StartAdministration(); return end
@@ -827,6 +856,7 @@ function A:CounterattackCheck()
             end
             self.modal={pauseBattle=true,text="敵商会が買収を仕掛けました\n\n"..message.."\n攻撃元："..self.state.properties[attack.sourcePropertyId].name
                 .."\n攻勢："..(attack.threat or "買収攻勢").."\n敵の動員可能資金："..M.FormatMoney(attack.funding or 0)
+                ..(M.HubSummary(self.state,self.state.properties[attack.propertyId],attack.companyId) and ("\n"..M.HubSummary(self.state,self.state.properties[attack.propertyId],attack.companyId)) or "")
                 .."\n\n境目を左端まで押し返せば防衛成功。\n右端到達・期限切れ・撤退では物件を失います。\n防衛が終わると内政へ進みます。\n\n×：防衛戦へ"}
             return
         end
@@ -876,6 +906,7 @@ function A:AdminAct(action)
     if action=="back" then self.notice="内政を終えるには「内政を終えて決算へ」を選んでください"; return end
     if action~="confirm" then return end
     local row=self:Selected(); if not row then return end
+    if row.command=="hub" then return self:OpenHub() end
     if row.command=="finish" then return self:FinishAdministration() end
     if row.enabled==false then self.notice=row.hint or "実行できません"; return end
     if row.command=="invest" or row.command=="lobby" or row.command=="divest" or row.command=="sabotage" or row.command=="alliance" then
@@ -911,8 +942,15 @@ function A:StanceAdvice(ids)
             if usable then counters[#counters+1]="グループに要求" end
         end
         if st.breakByAlly then for id in pairs(self.state.alliances or {}) do if M.IsAllied(self.state,id) then counters[#counters+1]="同盟の支援"; break end end end
+        local relief,ability,have=M.HubStanceRelief(self.state,sid)
+        local hubLine=""
+        if ability and self.state.chapter>=PBTrade.HubData.minChapter then
+            local name; for _,a in ipairs(PBTrade.HubData.abilities) do if a.id==ability then name=a.name end end
+            hubLine="\n交易拠点："..name.." "..have.." → 構えを"..math.floor(relief*100+.5).."%緩和"
+                ..(relief<.05 and "（"..name.."を育てると和らぎます）" or "")
+        end
         lines[#lines+1]="◆ 構え「"..st.name.."」\n"..st.hint.."\n手持ちの対抗手段："
-            ..(#counters>0 and table.concat(counters,"・") or "なし（資金で押し切るしかない）")
+            ..(#counters>0 and table.concat(counters,"・") or "なし（資金で押し切るしかない）")..hubLine
     end
     return #lines>0 and table.concat(lines,"\n\n") or nil
 end
@@ -935,6 +973,7 @@ function A:Detail(p)
     if p.owner~=C.playerId then
         local advice=self:StanceAdvice(M.NegotiationStances(self.state,p))
         text=text.."\n\n"..(advice or "構え：なし（今期は資金が素直に効く）")
+        local hub=M.HubSummary(self.state,p); if hub then text=text.."\n"..hub end
     end
     return text
 end

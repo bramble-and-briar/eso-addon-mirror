@@ -2,7 +2,7 @@ local Addon = {}
 Addon.Name = "LeadList"
 Addon.DisplayName = "Lead List"
 Addon.Author = "Irhak"
-Addon.Version = "50.1.1"
+Addon.Version = "51.0.0"
 
 ILeadList = ILeadList or {}
 local ILL = ILeadList

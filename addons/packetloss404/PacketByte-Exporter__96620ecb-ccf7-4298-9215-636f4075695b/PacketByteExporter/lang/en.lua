@@ -1,0 +1,5 @@
+ZO_CreateStringId("SI_BINDING_NAME_PBE_CAPTURE_QUICK", "Capture quick snapshot")
+ZO_CreateStringId("SI_BINDING_NAME_PBE_CAPTURE_BUILD", "Capture full build snapshot")
+ZO_CreateStringId("SI_BINDING_NAME_PBE_CAPTURE_ALL", "Capture extended snapshot")
+ZO_CreateStringId("SI_BINDING_NAME_PBE_SUBMIT_NEXT", "Submit next export chunk")
+ZO_CreateStringId("SI_BINDING_NAME_PBE_RETRY_LAST", "Retry last export chunk")

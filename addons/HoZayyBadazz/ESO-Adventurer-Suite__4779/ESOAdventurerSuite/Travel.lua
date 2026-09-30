@@ -275,7 +275,15 @@ local function isPermanentJumpFailure(result)
     return false
 end
 
-function T:Initialize()
+local InitializeImplArch
+
+function T:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.selectedKey = nil
     self.lastView = nil
     self.lastFocusedQuestKey = nil
@@ -285,7 +293,7 @@ function T:Initialize()
     self.pendingServiceWaypoint = nil
 
     if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED ~= nil then
-        EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_TravelServiceWaypoint", EVENT_PLAYER_ACTIVATED, function()
+        EPC.Runtime:RegisterEvent("Travel", "ServiceWaypoint", EVENT_PLAYER_ACTIVATED, function()
             if EPC.Travel and EPC.Travel.TryPlacePendingServiceWaypoint then
                 zo_callLater(function() EPC.Travel:TryPlacePendingServiceWaypoint() end, 700)
             end
@@ -301,7 +309,7 @@ function T:Initialize()
     end
 
     if EVENT_MANAGER and EVENT_PREPARE_FOR_JUMP ~= nil then
-        EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_MapTeleporterDiscoveryPrepare02989", EVENT_PREPARE_FOR_JUMP, function()
+        EPC.Runtime:RegisterEvent("Travel", "DiscoveryPrepare", EVENT_PREPARE_FOR_JUMP, function()
             local travel = EPC.Travel
             local pending = travel and travel.mapTeleporterDiscoveryPending or nil
             if travel and travel.mapTeleporterDiscoveryActive and type(pending) == "table" then
@@ -2609,7 +2617,15 @@ function T:TravelToSelectedGuildLeaderHome()
     end
 end
 
-function T:GetGuildMembers(snapshot)
+local GetGuildMembersImplArch
+
+function T:GetGuildMembers(...)
+
+    return GetGuildMembersImplArch(self, ...)
+
+end
+
+GetGuildMembersImplArch = function(self, snapshot)
     local entries = {}
     local seen = {}
     local currentZone = lower(snapshot and snapshot.zoneName or "")
@@ -3137,7 +3153,15 @@ function T:GetMapTeleporterMapControl()
     return nil
 end
 
-function T:LayoutMapTeleporter()
+local LayoutMapTeleporterImplArch
+
+function T:LayoutMapTeleporter(...)
+
+    return LayoutMapTeleporterImplArch(self, ...)
+
+end
+
+LayoutMapTeleporterImplArch = function(self)
     local root = self.mapTeleporter
     if not root then return end
 
@@ -3158,7 +3182,15 @@ function T:LayoutMapTeleporter()
     end
 end
 
-function T:DockMapTeleporterToWorldMap()
+local DockMapTeleporterToWorldMapImplArch
+
+function T:DockMapTeleporterToWorldMap(...)
+
+    return DockMapTeleporterToWorldMapImplArch(self, ...)
+
+end
+
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root = self.mapTeleporter
     if not root then return end
 
@@ -3195,7 +3227,15 @@ function T:GetMapTeleporterSnapshot()
     return { zoneName = zoneName }
 end
 
-function T:BuildMapTeleporterEntries()
+local BuildMapTeleporterEntriesImplArch
+
+function T:BuildMapTeleporterEntries(...)
+
+    return BuildMapTeleporterEntriesImplArch(self, ...)
+
+end
+
+BuildMapTeleporterEntriesImplArch = function(self)
     local snapshot = self:GetMapTeleporterSnapshot()
     local mode = self.mapTeleporterMode or "ALL"
     local combined = {}
@@ -3239,7 +3279,15 @@ function T:BuildMapTeleporterEntries()
     return combined
 end
 
-function T:TravelMapTeleporterEntry(entry)
+local TravelMapTeleporterEntryImplArch
+
+function T:TravelMapTeleporterEntry(...)
+
+    return TravelMapTeleporterEntryImplArch(self, ...)
+
+end
+
+TravelMapTeleporterEntryImplArch = function(self, entry)
     if not entry then return end
     local canLeave, reason = self:CanLeaveNow()
     if not canLeave then EPC:Print(tostring(reason or "Travel is unavailable") .. ".") return end
@@ -3263,7 +3311,15 @@ function T:TravelMapTeleporterEntry(entry)
     if not ok then EPC:Print("ESO rejected the travel request. The player's location or access state may have changed.") end
 end
 
-function T:SetMapTeleporterMode(mode)
+local SetMapTeleporterModeImplArch
+
+function T:SetMapTeleporterMode(...)
+
+    return SetMapTeleporterModeImplArch(self, ...)
+
+end
+
+SetMapTeleporterModeImplArch = function(self, mode)
     local valid = { ALL=true, GROUP=true, FRIENDS=true, GUILD=true }
     mode = valid[mode] and mode or "ALL"
     self.mapTeleporterMode = mode
@@ -3276,7 +3332,15 @@ function T:ChangeMapTeleporterPage(delta)
     self:RefreshMapTeleporter()
 end
 
-function T:CreateMapTeleporter()
+local CreateMapTeleporterImplArch
+
+function T:CreateMapTeleporter(...)
+
+    return CreateMapTeleporterImplArch(self, ...)
+
+end
+
+CreateMapTeleporterImplArch = function(self)
     if self.mapTeleporter then return self.mapTeleporter end
     if not WINDOW_MANAGER or not GuiRoot then return nil end
 
@@ -3449,7 +3513,15 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:RefreshMapTeleporter()
+local RefreshMapTeleporterImplArch
+
+function T:RefreshMapTeleporter(...)
+
+    return RefreshMapTeleporterImplArch(self, ...)
+
+end
+
+RefreshMapTeleporterImplArch = function(self)
     local root = self.mapTeleporter
     if not root or root:IsHidden() then return end
     self:DockMapTeleporterToWorldMap()
@@ -3496,7 +3568,15 @@ function T:RefreshMapTeleporter()
     end
 end
 
-function T:SetMapTeleporterVisible(visible)
+local SetMapTeleporterVisibleImplArch
+
+function T:SetMapTeleporterVisible(...)
+
+    return SetMapTeleporterVisibleImplArch(self, ...)
+
+end
+
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local root = self:CreateMapTeleporter()
     if not root then return end
     visible = visible == true and EPC.saved and EPC.saved.mapTeleporterEnabled ~= false
@@ -3509,21 +3589,29 @@ function T:SetMapTeleporterVisible(visible)
         zo_callLater(function() if EPC.Travel then EPC.Travel:DockMapTeleporterToWorldMap() end end, 60)
         zo_callLater(function() if EPC.Travel then EPC.Travel:DockMapTeleporterToWorldMap() end end, 220)
         if EVENT_MANAGER then
-            EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
-            EVENT_MANAGER:RegisterForUpdate(MAP_TELEPORTER_REFRESH, 4000, function()
+            EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
+            EPC.Runtime:RegisterUpdate("Travel", "MapTeleporterRefresh", 4000, function()
                 if EPC.Travel and EPC.Travel.mapTeleporter and not EPC.Travel.mapTeleporter:IsHidden() and EPC.Travel:IsMapTeleporterMapShowing() then
                     EPC.Travel:RefreshMapTeleporter()
                 else
-                    EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+                    EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
                 end
             end)
         end
     elseif EVENT_MANAGER then
-        EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+        EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
     end
 end
 
-function T:RefreshMapTeleporterVisibility()
+local RefreshMapTeleporterVisibilityImplArch
+
+function T:RefreshMapTeleporterVisibility(...)
+
+    return RefreshMapTeleporterVisibilityImplArch(self, ...)
+
+end
+
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local shouldShow = EPC.saved and EPC.saved.mapTeleporterEnabled ~= false and self:IsMapTeleporterMapShowing()
     self:SetMapTeleporterVisible(shouldShow)
 end
@@ -3674,7 +3762,15 @@ function T:GetMapTeleporterDisplayedZone()
     return zoneId, zoneName
 end
 
-function T:GetMapTeleporterHouseEntries()
+local GetMapTeleporterHouseEntriesImplArch
+
+function T:GetMapTeleporterHouseEntries(...)
+
+    return GetMapTeleporterHouseEntriesImplArch(self, ...)
+
+end
+
+GetMapTeleporterHouseEntriesImplArch = function(self)
     local rows, seen = {}, {}
     local owned = nil
     if COLLECTIONS_BOOK_SINGLETON and type(COLLECTIONS_BOOK_SINGLETON.GetOwnedHouses) == "function" then
@@ -3723,7 +3819,15 @@ function T:GetMapTeleporterHouseEntries()
     return rows
 end
 
-function T:GetMapTeleporterInstanceEntries()
+local GetMapTeleporterInstanceEntriesImplArch
+
+function T:GetMapTeleporterInstanceEntries(...)
+
+    return GetMapTeleporterInstanceEntriesImplArch(self, ...)
+
+end
+
+GetMapTeleporterInstanceEntriesImplArch = function(self)
     local rows, total = {}, 0
     if type(GetNumFastTravelNodes) == "function" then local ok,v=pcall(GetNumFastTravelNodes); if ok then total=safeNumber(v,0) end end
     for nodeIndex=1,total do
@@ -3827,7 +3931,15 @@ function T:GetMapTeleporterCurrentMapEntries()
     return rows
 end
 
-function T:GetMapTeleporterFavoriteEntries()
+local GetMapTeleporterFavoriteEntriesImplArch
+
+function T:GetMapTeleporterFavoriteEntries(...)
+
+    return GetMapTeleporterFavoriteEntriesImplArch(self, ...)
+
+end
+
+GetMapTeleporterFavoriteEntriesImplArch = function(self)
     local rows={}
     local sources={self:GetMapTeleporterSocialEntries(),self:GetMapTeleporterZoneEntries(),self:GetMapTeleporterHouseEntries(),self:GetWayshrines(self:GetMapTeleporterSnapshot()),self:GetMapTeleporterInstanceEntries()}
     local seen={}
@@ -3853,7 +3965,7 @@ function T:SortMapTeleporterEntries(entries)
     end)
 end
 
-function T:BuildMapTeleporterEntries()
+BuildMapTeleporterEntriesImplArch = function(self)
     local mode=self.mapTeleporterMode or "ALL"; local snapshot=self:GetMapTeleporterSnapshot(); local entries={}
     if mode=="GROUP" then entries=self:GetGroupMembers(snapshot)
     elseif mode=="FRIENDS" then entries=self:GetFriends(snapshot)
@@ -3887,7 +3999,7 @@ function T:RecordMapTeleporterTravel(entry)
     EPC.saved.mapTeleporterLastUsed[k]=type(GetTimeStamp)=="function" and GetTimeStamp() or 0
 end
 
-function T:TravelMapTeleporterEntry(entry)
+TravelMapTeleporterEntryImplArch = function(self, entry)
     if not entry then return end
     if entry.travelEntry then return self:TravelMapTeleporterEntry(entry.travelEntry) end
     local canLeave,reason=self:CanLeaveNow(); if not canLeave then EPC:Print(tostring(reason or "Travel is unavailable")..".") return end
@@ -3914,7 +4026,15 @@ function T:MapTeleporterQuickHome(outside)
     pcall(RequestJumpToHouse,id,outside==true)
 end
 
-function T:MapTeleporterQuickLeader()
+local MapTeleporterQuickLeaderImplArch
+
+function T:MapTeleporterQuickLeader(...)
+
+    return MapTeleporterQuickLeaderImplArch(self, ...)
+
+end
+
+MapTeleporterQuickLeaderImplArch = function(self)
     local rows=self:GetGroupMembers(self:GetMapTeleporterSnapshot()); local leader=nil
     for _,e in ipairs(rows or {}) do if e.isLeader then leader=e break end end
     if not leader and rows and rows[1] then leader=rows[1] end
@@ -3925,7 +4045,15 @@ function T:MapTeleporterQuickQuest()
     local rows=self:GetMapTeleporterQuestEntries(); if rows[1] and rows[1].travelEntry then self:TravelMapTeleporterEntry(rows[1]) else EPC:Print("No active quest has an available travel route.") end
 end
 
-function T:ShowMapTeleporterContextMenu(entry, owner)
+local ShowMapTeleporterContextMenuImplArch
+
+function T:ShowMapTeleporterContextMenu(...)
+
+    return ShowMapTeleporterContextMenuImplArch(self, ...)
+
+end
+
+ShowMapTeleporterContextMenuImplArch = function(self, entry, owner)
     if not entry or type(ClearMenu)~="function" or type(AddMenuItem)~="function" or type(ShowMenu)~="function" then return false end
     ClearMenu()
     AddMenuItem(self:IsMapTeleporterFavorite(entry) and "Remove Favorite" or "Add Favorite", function() self:ToggleMapTeleporterFavorite(entry) end)
@@ -3951,12 +4079,20 @@ function T:ShowMapTeleporterContextMenu(entry, owner)
     return true
 end
 
-function T:SetMapTeleporterMode(mode)
+SetMapTeleporterModeImplArch = function(self, mode)
     local valid={}; for _,m in ipairs(MAP_TELEPORTER_MODES_02966) do valid[m[1]]=true end
     self.mapTeleporterMode=valid[mode] and mode or "ALL"; self.mapTeleporterPage=1; self:RefreshMapTeleporter()
 end
 
-function T:HideMapCompletionForTeleporter(hide)
+local HideMapCompletionForTeleporterImplArch
+
+function T:HideMapCompletionForTeleporter(...)
+
+    return HideMapCompletionForTeleporterImplArch(self, ...)
+
+end
+
+HideMapCompletionForTeleporterImplArch = function(self, hide)
     self.mapTeleporterHiddenCompletion=self.mapTeleporterHiddenCompletion or {}
     local candidates={"ZO_WorldMapZoneStoryTopLevel","ZO_WorldMapZoneStory","ZO_WorldMapZoneStoryKeyboard","ZO_WorldMapZoneStoryPane","ZO_WorldMapZoneGuide","ZO_WorldMapZoneGuideKeyboard"}
     for _,name in ipairs(candidates) do
@@ -3972,7 +4108,7 @@ function T:HideMapCompletionForTeleporter(hide)
     end
 end
 
-function T:DockMapTeleporterToWorldMap()
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root=self.mapTeleporter; if not root then return end
     local mapControl=self:GetMapTeleporterMapControl(); root:ClearAnchors()
     if mapControl then
@@ -3985,14 +4121,14 @@ function T:DockMapTeleporterToWorldMap()
     self:LayoutMapTeleporter()
 end
 
-function T:LayoutMapTeleporter()
+LayoutMapTeleporterImplArch = function(self)
     local root=self.mapTeleporter; if not root then return end
     local startY=236; local footerReserve=44; local height=math.max(560,safeNumber(root:GetHeight(),700)); local visibleRows=safeNumber(EPC.saved and EPC.saved.mapTeleporterVisibleRows,15); visibleRows=math.max(8,math.min(20,visibleRows)); root.visibleRows=visibleRows
     local available=math.max(260,height-startY-footerReserve); local rowH=math.max(28,math.min(42,math.floor(available/visibleRows)))
     for i,row in ipairs(root.rows or {}) do row:ClearAnchors(); row:SetAnchor(TOPLEFT,root,TOPLEFT,10,startY+((i-1)*rowH)); row:SetAnchor(TOPRIGHT,root,TOPRIGHT,-10,startY+((i-1)*rowH)); row:SetHeight(math.max(26,rowH-2)); row:SetHidden(i>visibleRows or row.entry==nil) end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     if self.mapTeleporter then return self.mapTeleporter end
     if not WINDOW_MANAGER or not GuiRoot then return nil end
     local wm=WINDOW_MANAGER; local root=wm:CreateTopLevelWindow("EAS_WorldMapTeleporter02966")
@@ -4042,7 +4178,7 @@ function T:CreateMapTeleporter()
     root:SetHandler("OnMouseWheel",function(_,delta) self:ChangeMapTeleporterPage(delta<0 and 1 or -1) end); self.mapTeleporter=root; self:DockMapTeleporterToWorldMap(); return root
 end
 
-function T:RefreshMapTeleporter()
+RefreshMapTeleporterImplArch = function(self)
     local root=self.mapTeleporter; if not root or root:IsHidden() then return end; self:DockMapTeleporterToWorldMap(); local entries=self:BuildMapTeleporterEntries(); self.mapTeleporterEntries=entries
     local perPage=safeNumber(root.visibleRows,15); local pages=math.max(1,math.ceil(#entries/perPage)); local page=math.max(1,math.min(safeNumber(self.mapTeleporterPage,1),pages)); self.mapTeleporterPage=page; local first=((page-1)*perPage)+1
     local mode=self.mapTeleporterMode or "ALL"; root.stats:SetText(string.format("%d DESTINATION%s  |  %s",#entries,#entries==1 and "" or "S",mode)); root.sortInfo:SetText("SORT: "..tostring((EPC.saved and EPC.saved.mapTeleporterSortMode) or "SMART")); root.page:SetText(string.format("PAGE %d / %d",page,pages)); root.prev:SetEnabled(page>1); root.next:SetEnabled(page<pages)
@@ -4059,10 +4195,10 @@ function T:RefreshMapTeleporter()
     self:LayoutMapTeleporter()
 end
 
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local root=self:CreateMapTeleporter(); if not root then return end; visible=visible==true and EPC.saved and EPC.saved.mapTeleporterEnabled~=false; root:SetHidden(not visible); self:HideMapCompletionForTeleporter(visible)
-    if visible then self.mapTeleporterPage=self.mapTeleporterPage or 1; self.mapTeleporterMode=self.mapTeleporterMode or "ALL"; self:DockMapTeleporterToWorldMap(); self:RefreshMapTeleporter(); if EVENT_MANAGER then EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH); EVENT_MANAGER:RegisterForUpdate(MAP_TELEPORTER_REFRESH,4000,function() if EPC.Travel and EPC.Travel.mapTeleporter and not EPC.Travel.mapTeleporter:IsHidden() and EPC.Travel:IsMapTeleporterMapShowing() then EPC.Travel:HideMapCompletionForTeleporter(true); EPC.Travel:RefreshMapTeleporter() else EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH) end end) end
-    elseif EVENT_MANAGER then EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH) end
+    if visible then self.mapTeleporterPage=self.mapTeleporterPage or 1; self.mapTeleporterMode=self.mapTeleporterMode or "ALL"; self:DockMapTeleporterToWorldMap(); self:RefreshMapTeleporter(); if EVENT_MANAGER then EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh"); EPC.Runtime:RegisterUpdate("Travel", "MapTeleporterRefresh",4000,function() if EPC.Travel and EPC.Travel.mapTeleporter and not EPC.Travel.mapTeleporter:IsHidden() and EPC.Travel:IsMapTeleporterMapShowing() then EPC.Travel:HideMapCompletionForTeleporter(true); EPC.Travel:RefreshMapTeleporter() else EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh") end end) end
+    elseif EVENT_MANAGER then EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh") end
 end
 
 -- ============================================================================
@@ -4150,7 +4286,15 @@ function T:GetMapTeleporterLeadEntries()
     return rows
 end
 
-function T:GetMapTeleporterItemEntries()
+local GetMapTeleporterItemEntriesImplArch
+
+function T:GetMapTeleporterItemEntries(...)
+
+    return GetMapTeleporterItemEntriesImplArch(self, ...)
+
+end
+
+GetMapTeleporterItemEntriesImplArch = function(self)
     local rows, grouped = {}, {}
     local snapshot = self:GetMapTeleporterSnapshot()
     local social = self:GetMapTeleporterSocialEntries()
@@ -4236,7 +4380,7 @@ local function mtClassifyFastTravelNode02966(name, poiType, zoneIndex)
     return "INSTANCE"
 end
 
-function T:GetMapTeleporterInstanceEntries()
+GetMapTeleporterInstanceEntriesImplArch = function(self)
     local rows, total = {}, 0
     if type(GetNumFastTravelNodes) == "function" then local ok, v = pcall(GetNumFastTravelNodes); if ok then total = safeNumber(v, 0) end end
     local poiIndexFunction = GetFastTravelNodePOIIndicies or GetFastTravelNodePOIIndices
@@ -4841,7 +4985,7 @@ function T:GetMapTeleporterDungeonDifficultyText()
     return self:IsMapTeleporterVeteranDifficulty() and "VET" or "NORMAL"
 end
 
-function T:BuildMapTeleporterEntries()
+BuildMapTeleporterEntriesImplArch = function(self)
     local mode = self.mapTeleporterMode or "ALL"
     local snapshot = self:GetMapTeleporterSnapshot()
     local entries = {}
@@ -4887,7 +5031,7 @@ function T:BuildMapTeleporterEntries()
     return filtered
 end
 
-function T:TravelMapTeleporterEntry(entry)
+TravelMapTeleporterEntryImplArch = function(self, entry)
     if not entry then return false end
     if entry.travelEntry then return self:TravelMapTeleporterEntry(entry.travelEntry) end
     local canLeave, reason = self:CanLeaveNow()
@@ -4930,7 +5074,7 @@ function T:TravelMapTeleporterEntry(entry)
     return true
 end
 
-function T:MapTeleporterQuickLeader()
+MapTeleporterQuickLeaderImplArch = function(self)
     local rows = self:GetGroupMembers(self:GetMapTeleporterSnapshot())
     local leader = nil
     for _, e in ipairs(rows or {}) do
@@ -4940,7 +5084,7 @@ function T:MapTeleporterQuickLeader()
     if leader then self:TravelMapTeleporterEntry(leader) else EPC:Print("No group leader is available to travel to.") end
 end
 
-function T:ShowMapTeleporterContextMenu(entry, owner)
+ShowMapTeleporterContextMenuImplArch = function(self, entry, owner)
     if not entry or type(ClearMenu) ~= "function" or type(AddMenuItem) ~= "function" or type(ShowMenu) ~= "function" then return false end
     ClearMenu()
     AddMenuItem(self:IsMapTeleporterFavorite(entry) and "Remove Favorite" or "Add Favorite", function() self:ToggleMapTeleporterFavorite(entry) end)
@@ -4987,7 +5131,7 @@ function T:ShowMapTeleporterContextMenu(entry, owner)
     return true
 end
 
-function T:LayoutMapTeleporter()
+LayoutMapTeleporterImplArch = function(self)
     local root = self.mapTeleporter
     if not root then return end
     local tabCount = #MAP_TELEPORTER_MODES_02966
@@ -5009,7 +5153,7 @@ end
 
 
 -- The Favorites view spans every native Suite destination source, not only social rows.
-function T:GetMapTeleporterFavoriteEntries()
+GetMapTeleporterFavoriteEntriesImplArch = function(self)
     local rows, seen = {}, {}
     local snapshot = self:GetMapTeleporterSnapshot()
     local sources = {
@@ -5067,7 +5211,7 @@ end
 
 -- Rebuild the teleporter once with all tabs. This override intentionally uses a
 -- new control name so stale controls from older builds cannot collide after reload.
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     if self.mapTeleporter then return self.mapTeleporter end
     if not WINDOW_MANAGER or not GuiRoot then return nil end
     local wm = WINDOW_MANAGER
@@ -5141,7 +5285,7 @@ function T:CreateMapTeleporter()
     self.mapTeleporter = root; self:DockMapTeleporterToWorldMap(); return root
 end
 
-function T:RefreshMapTeleporter()
+RefreshMapTeleporterImplArch = function(self)
     local root = self.mapTeleporter
     if not root or root:IsHidden() then return end
     self:DockMapTeleporterToWorldMap()
@@ -5190,7 +5334,11 @@ end
 -- Keep the main panel below ESO's popup surfaces and explicitly raise the
 -- standard keyboard menu/tooltip controls whenever a Teleporter popup opens.
 -- ============================================================================
-function T:RaiseMapTeleporterPopupSurfaces02968()
+local RaiseMapTeleporterPopupSurfaces02968ImplArch
+function T:RaiseMapTeleporterPopupSurfaces02968(...)
+    return RaiseMapTeleporterPopupSurfaces02968ImplArch(self, ...)
+end
+RaiseMapTeleporterPopupSurfaces02968ImplArch = function(self)
     local names = {
         "ZO_Menu",
         "ZO_ComboBoxDropdown",
@@ -5213,7 +5361,15 @@ function T:RaiseMapTeleporterPopupSurfaces02968()
     end
 end
 
-function T:RaiseMapTeleporterPopupSurfacesDeferred02968()
+local RaiseMapTeleporterPopupSurfacesDeferred02968ImplArch
+
+function T:RaiseMapTeleporterPopupSurfacesDeferred02968(...)
+
+    return RaiseMapTeleporterPopupSurfacesDeferred02968ImplArch(self, ...)
+
+end
+
+RaiseMapTeleporterPopupSurfacesDeferred02968ImplArch = function(self)
     self:RaiseMapTeleporterPopupSurfaces02968()
     if type(zo_callLater) == "function" then
         zo_callLater(function()
@@ -5260,7 +5416,15 @@ function T:GetMapTeleporterViewLabel02967(mode)
     return "All Destinations"
 end
 
-function T:ShowMapTeleporterViewMenu02967(owner)
+local ShowMapTeleporterViewMenu02967ImplArch
+
+function T:ShowMapTeleporterViewMenu02967(...)
+
+    return ShowMapTeleporterViewMenu02967ImplArch(self, ...)
+
+end
+
+ShowMapTeleporterViewMenu02967ImplArch = function(self, owner)
     if type(ClearMenu) ~= "function" or type(AddMenuItem) ~= "function" or type(ShowMenu) ~= "function" then return end
     ClearMenu()
     local selected = self.mapTeleporterMode or "ALL"
@@ -5281,7 +5445,15 @@ function T:SetMapTeleporterSortMode02967(mode)
     self:RefreshMapTeleporter()
 end
 
-function T:ShowMapTeleporterToolsMenu02967(owner)
+local ShowMapTeleporterToolsMenu02967ImplArch
+
+function T:ShowMapTeleporterToolsMenu02967(...)
+
+    return ShowMapTeleporterToolsMenu02967ImplArch(self, ...)
+
+end
+
+ShowMapTeleporterToolsMenu02967ImplArch = function(self, owner)
     if type(ClearMenu) ~= "function" or type(AddMenuItem) ~= "function" or type(ShowMenu) ~= "function" then return end
     ClearMenu()
     AddMenuItem("Travel Home", function() self:MapTeleporterQuickHome(false) end)
@@ -5322,7 +5494,7 @@ local function mtToolbarButton02967(wm, root, text, width)
     return button
 end
 
-function T:LayoutMapTeleporter()
+LayoutMapTeleporterImplArch = function(self)
     local root = self.mapTeleporter
     if not root then return end
 
@@ -5380,7 +5552,7 @@ function T:LayoutMapTeleporter()
     end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     if self.mapTeleporter then return self.mapTeleporter end
     if not WINDOW_MANAGER or not GuiRoot then return nil end
 
@@ -5548,7 +5720,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:RefreshMapTeleporter()
+RefreshMapTeleporterImplArch = function(self)
     local root = self.mapTeleporter
     if not root or root:IsHidden() then return end
 
@@ -5646,15 +5818,15 @@ end
 -- top-level control for mouse ownership. Keep View, Tools and row actions inside
 -- the Teleporter itself so there is only one interactive UI hierarchy.
 -- ============================================================================
-local MAP_TELEPORTER_REFRESH_BASE_02969 = T.RefreshMapTeleporter
-local MAP_TELEPORTER_CREATE_BASE_02969 = T.CreateMapTeleporter
+local MAP_TELEPORTER_REFRESH_BASE_02969 = RefreshMapTeleporterImplArch
+local MAP_TELEPORTER_CREATE_BASE_02969 = CreateMapTeleporterImplArch
 
-function T:RaiseMapTeleporterPopupSurfaces02968()
+RaiseMapTeleporterPopupSurfaces02968ImplArch = function(self)
     -- Intentionally disabled in 0.29.69. Changing draw tiers on ESO's global
     -- menu/tooltip controls while they are open can break their mouse handling.
 end
 
-function T:RaiseMapTeleporterPopupSurfacesDeferred02968()
+RaiseMapTeleporterPopupSurfacesDeferred02968ImplArch = function(self)
     -- Internal Teleporter flyouts no longer need global popup manipulation.
 end
 
@@ -5800,7 +5972,15 @@ function T:EnsureMapTeleporterFlyout02969()
     return flyout
 end
 
-function T:ShowMapTeleporterFlyout02969(titleText, items, owner, contextMode)
+local ShowMapTeleporterFlyout02969ImplArch
+
+function T:ShowMapTeleporterFlyout02969(...)
+
+    return ShowMapTeleporterFlyout02969ImplArch(self, ...)
+
+end
+
+ShowMapTeleporterFlyout02969ImplArch = function(self, titleText, items, owner, contextMode)
     local root = self.mapTeleporter
     local flyout = self:EnsureMapTeleporterFlyout02969()
     if not root or not flyout then return false end
@@ -5866,7 +6046,7 @@ function T:ShowMapTeleporterFlyout02969(titleText, items, owner, contextMode)
     return true
 end
 
-function T:ShowMapTeleporterViewMenu02967(owner)
+ShowMapTeleporterViewMenu02967ImplArch = function(self, owner)
     local selected = self.mapTeleporterMode or "ALL"
     local items = {}
     for _, spec in ipairs(MAP_TELEPORTER_VIEW_MENU_02967 or {}) do
@@ -5880,7 +6060,7 @@ function T:ShowMapTeleporterViewMenu02967(owner)
     return self:ShowMapTeleporterFlyout02969("DESTINATIONS", items, owner, false)
 end
 
-function T:ShowMapTeleporterToolsMenu02967(owner)
+ShowMapTeleporterToolsMenu02967ImplArch = function(self, owner)
     local currentSort = (EPC.saved and EPC.saved.mapTeleporterSortMode) or "SMART"
     local items = {
         {label = "Travel Home", action = function() self:MapTeleporterQuickHome(false) end},
@@ -5971,7 +6151,7 @@ function T:BuildMapTeleporterContextItems02969(entry)
     return items
 end
 
-function T:ShowMapTeleporterContextMenu(entry, owner)
+ShowMapTeleporterContextMenuImplArch = function(self, entry, owner)
     if not entry then return false end
     return self:ShowMapTeleporterFlyout02969("TRAVEL OPTIONS", self:BuildMapTeleporterContextItems02969(entry), owner, true)
 end
@@ -6027,13 +6207,13 @@ function T:InstallMapTeleporterInputFix02969(root)
     end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = MAP_TELEPORTER_CREATE_BASE_02969(self)
     if root then self:InstallMapTeleporterInputFix02969(root) end
     return root
 end
 
-function T:RefreshMapTeleporter(force02969)
+RefreshMapTeleporterImplArch = function(self, force02969)
     if force02969 ~= true and self:IsMapTeleporterFlyoutOpen02969() then
         -- Do not mutate the destination controls under the user's mouse while
         -- an action menu is open. The regular 1.6 second refresh resumes after
@@ -6043,8 +6223,8 @@ function T:RefreshMapTeleporter(force02969)
     return MAP_TELEPORTER_REFRESH_BASE_02969(self)
 end
 
-local MAP_TELEPORTER_VISIBILITY_BASE_02969 = T.RefreshMapTeleporterVisibility
-function T:RefreshMapTeleporterVisibility(...)
+local MAP_TELEPORTER_VISIBILITY_BASE_02969 = RefreshMapTeleporterVisibilityImplArch
+RefreshMapTeleporterVisibilityImplArch = function(self, ...)
     local result = MAP_TELEPORTER_VISIBILITY_BASE_02969(self, ...)
     if self.mapTeleporter and self.mapTeleporter:IsHidden() then self:HideMapTeleporterFlyout02969() end
     return result
@@ -6056,7 +6236,11 @@ end
 -- rather than inventing a second close key. A small clickable title-bar hint is
 -- also provided as a fallback if ESO's global keybind strip is unavailable.
 -- ============================================================================
-function T:GetMapToggleKeyText02971()
+local GetMapToggleKeyText02971ImplArch
+function T:GetMapToggleKeyText02971(...)
+    return GetMapToggleKeyText02971ImplArch(self, ...)
+end
+GetMapToggleKeyText02971ImplArch = function(self)
     if type(GetActionBindingInfo) == "function" and type(GetKeyName) == "function" then
         local ok, keyCode = pcall(GetActionBindingInfo, "TOGGLE_MAP", 1)
         if ok and keyCode and (KEY_INVALID == nil or keyCode ~= KEY_INVALID) then
@@ -6068,7 +6252,15 @@ function T:GetMapToggleKeyText02971()
     return "M"
 end
 
-function T:CloseWorldMap02971()
+local CloseWorldMap02971ImplArch
+
+function T:CloseWorldMap02971(...)
+
+    return CloseWorldMap02971ImplArch(self, ...)
+
+end
+
+CloseWorldMap02971ImplArch = function(self)
     self:HideMapTeleporterFlyout02969()
 
     -- Use ESO's own main-menu map category first. This is the same system used
@@ -6103,7 +6295,15 @@ function T:EnsureMapTeleporterCloseKeybind02971()
     return self.mapTeleporterCloseKeybindGroup02971
 end
 
-function T:SetMapTeleporterCloseKeybindVisible02971(visible)
+local SetMapTeleporterCloseKeybindVisible02971ImplArch
+
+function T:SetMapTeleporterCloseKeybindVisible02971(...)
+
+    return SetMapTeleporterCloseKeybindVisible02971ImplArch(self, ...)
+
+end
+
+SetMapTeleporterCloseKeybindVisible02971ImplArch = function(self, visible)
     local strip = KEYBIND_STRIP
     if not strip then return end
     local group = self:EnsureMapTeleporterCloseKeybind02971()
@@ -6122,8 +6322,8 @@ function T:SetMapTeleporterCloseKeybindVisible02971(visible)
     end
 end
 
-local MAP_TELEPORTER_CREATE_BASE_02971 = T.CreateMapTeleporter
-function T:CreateMapTeleporter()
+local MAP_TELEPORTER_CREATE_BASE_02971 = CreateMapTeleporterImplArch
+CreateMapTeleporterImplArch = function(self)
     local root = MAP_TELEPORTER_CREATE_BASE_02971(self)
     if not root or not WINDOW_MANAGER then return root end
 
@@ -6157,8 +6357,8 @@ function T:CreateMapTeleporter()
     return root
 end
 
-local MAP_TELEPORTER_REFRESH_BASE_02971 = T.RefreshMapTeleporter
-function T:RefreshMapTeleporter()
+local MAP_TELEPORTER_REFRESH_BASE_02971 = RefreshMapTeleporterImplArch
+RefreshMapTeleporterImplArch = function(self)
     local result = MAP_TELEPORTER_REFRESH_BASE_02971(self)
     local root = self.mapTeleporter
     if root and root.closeMapButton02971 then
@@ -6167,8 +6367,8 @@ function T:RefreshMapTeleporter()
     return result
 end
 
-local MAP_TELEPORTER_VISIBLE_BASE_02971 = T.SetMapTeleporterVisible
-function T:SetMapTeleporterVisible(visible)
+local MAP_TELEPORTER_VISIBLE_BASE_02971 = SetMapTeleporterVisibleImplArch
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local result = MAP_TELEPORTER_VISIBLE_BASE_02971(self, visible)
     local root = self.mapTeleporter
     local actuallyVisible = root and not root:IsHidden() and self:IsMapTeleporterMapShowing()
@@ -6205,7 +6405,7 @@ local function EAS_MapBindingText02972()
     return "M"
 end
 
-function T:GetMapToggleKeyText02971()
+GetMapToggleKeyText02971ImplArch = function(self)
     return EAS_MapBindingText02972()
 end
 
@@ -6239,22 +6439,22 @@ function T:CloseWorldMap02972()
     if type(zo_callLater) == "function" then zo_callLater(verifyClosed, 60) else verifyClosed() end
 end
 
-function T:CloseWorldMap02971()
+CloseWorldMap02971ImplArch = function(self)
     return self:CloseWorldMap02972()
 end
 
 -- The old KEYBIND_STRIP entry used TOGGLE_MAP as a keybind-strip action. Keep
 -- ESO's strip untouched; the dedicated Suite control below always shows the
 -- actual Map binding and cannot become "Not Bound" because of UI_SHORTCUT_EXIT.
-function T:SetMapTeleporterCloseKeybindVisible02971(visible)
+SetMapTeleporterCloseKeybindVisible02971ImplArch = function(self, visible)
     if self.mapTeleporterCloseKeybindAdded02971 and KEYBIND_STRIP and type(KEYBIND_STRIP.RemoveKeybindButtonGroup) == "function" then
         pcall(KEYBIND_STRIP.RemoveKeybindButtonGroup, KEYBIND_STRIP, self.mapTeleporterCloseKeybindGroup02971)
     end
     self.mapTeleporterCloseKeybindAdded02971 = false
 end
 
-local EAS_CreateMapTeleporterBase02972 = T.CreateMapTeleporter
-function T:CreateMapTeleporter()
+local EAS_CreateMapTeleporterBase02972 = CreateMapTeleporterImplArch
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase02972(self)
     if not root or not WINDOW_MANAGER then return root end
 
@@ -6297,8 +6497,8 @@ function T:CreateMapTeleporter()
     return root
 end
 
-local EAS_RefreshMapTeleporterBase02972 = T.RefreshMapTeleporter
-function T:RefreshMapTeleporter(...)
+local EAS_RefreshMapTeleporterBase02972 = RefreshMapTeleporterImplArch
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase02972(self, ...)
     local root = self.mapTeleporter
     if root then
@@ -6316,9 +6516,9 @@ end
 -- If a Teleporter search edit box owns keyboard focus, forward that same map
 -- binding to ESO's native main-menu map toggle instead of inserting the key.
 -- ============================================================================
-local EAS_CreateMapTeleporterBase02983 = T.CreateMapTeleporter
-local EAS_RefreshMapTeleporterBase02983 = T.RefreshMapTeleporter
-local EAS_LayoutMapTeleporterBase02983 = T.LayoutMapTeleporter
+local EAS_CreateMapTeleporterBase02983 = CreateMapTeleporterImplArch
+local EAS_RefreshMapTeleporterBase02983 = RefreshMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase02983 = LayoutMapTeleporterImplArch
 
 local function EAS_ToggleNativeWorldMap02983()
     if SYSTEMS and type(SYSTEMS.GetObject) == "function" and MENU_CATEGORY_MAP ~= nil then
@@ -6433,18 +6633,18 @@ local function EAS_CleanTeleporterStaticText02983(self, root)
     end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase02983(self)
     EAS_CleanTeleporterStaticText02983(self, root)
     return root
 end
 
-function T:LayoutMapTeleporter()
+LayoutMapTeleporterImplArch = function(self)
     EAS_LayoutMapTeleporterBase02983(self)
     EAS_CleanTeleporterStaticText02983(self, self.mapTeleporter)
 end
 
-function T:RefreshMapTeleporter(...)
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase02983(self, ...)
     local root = self.mapTeleporter
     if not root then return result end
@@ -6475,8 +6675,8 @@ function T:RefreshMapTeleporter(...)
 end
 
 -- Keep the internal flyout menus plain-text as well.
-local EAS_ShowMapTeleporterFlyoutBase02983 = T.ShowMapTeleporterFlyout02969
-function T:ShowMapTeleporterFlyout02969(titleText, items, owner, contextMode)
+local EAS_ShowMapTeleporterFlyoutBase02983 = ShowMapTeleporterFlyout02969ImplArch
+ShowMapTeleporterFlyout02969ImplArch = function(self, titleText, items, owner, contextMode)
     local result = EAS_ShowMapTeleporterFlyoutBase02983(self, titleText, items, owner, contextMode)
     local root = self.mapTeleporter
     if root and root.flyout02969 then
@@ -6505,8 +6705,8 @@ end
 -- focus leaves the search boxes, ESO's native TOGGLE_MAP binding closes the map
 -- exactly as it does without the Teleporter.
 -- ============================================================================
-local EAS_CreateMapTeleporterBase02984 = T.CreateMapTeleporter
-local EAS_LayoutMapTeleporterBase02984 = T.LayoutMapTeleporter
+local EAS_CreateMapTeleporterBase02984 = CreateMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase02984 = LayoutMapTeleporterImplArch
 
 function T:ReleaseMapTeleporterSearchFocus02984()
     local root = self.mapTeleporter
@@ -6555,13 +6755,13 @@ function T:ApplyMapTeleporterSearchFocus02984(root)
     end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase02984(self)
     self:ApplyMapTeleporterSearchFocus02984(root)
     return root
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase02984(self, ...)
     self:ApplyMapTeleporterSearchFocus02984(self.mapTeleporter)
     return result
@@ -6608,7 +6808,15 @@ function T:EnsureNativeMapToggleDescriptor02985()
     return self.nativeMapToggleDescriptor02985
 end
 
-function T:UpdateNativeMapToggleStrip02985()
+local UpdateNativeMapToggleStrip02985ImplArch
+
+function T:UpdateNativeMapToggleStrip02985(...)
+
+    return UpdateNativeMapToggleStrip02985ImplArch(self, ...)
+
+end
+
+UpdateNativeMapToggleStrip02985ImplArch = function(self)
     local strip = KEYBIND_STRIP
     if not strip then return end
     local root = self.mapTeleporter
@@ -6680,32 +6888,32 @@ function T:ApplyMapTeleporterSearchFocus02985(root)
     install(root.zoneSearch)
 end
 
-local EAS_CreateMapTeleporterBase02985 = T.CreateMapTeleporter
-local EAS_LayoutMapTeleporterBase02985 = T.LayoutMapTeleporter
-local EAS_SetMapTeleporterVisibleBase02985 = T.SetMapTeleporterVisible
-local EAS_RefreshMapTeleporterVisibilityBase02985 = T.RefreshMapTeleporterVisibility
+local EAS_CreateMapTeleporterBase02985 = CreateMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase02985 = LayoutMapTeleporterImplArch
+local EAS_SetMapTeleporterVisibleBase02985 = SetMapTeleporterVisibleImplArch
+local EAS_RefreshMapTeleporterVisibilityBase02985 = RefreshMapTeleporterVisibilityImplArch
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase02985(self)
     self:ApplyMapTeleporterSearchFocus02985(root)
     return root
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase02985(self, ...)
     self:ApplyMapTeleporterSearchFocus02985(self.mapTeleporter)
     self:UpdateNativeMapToggleStrip02985()
     return result
 end
 
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local result = EAS_SetMapTeleporterVisibleBase02985(self, visible)
     self:ApplyMapTeleporterSearchFocus02985(self.mapTeleporter)
     self:UpdateNativeMapToggleStrip02985()
     return result
 end
 
-function T:RefreshMapTeleporterVisibility(...)
+RefreshMapTeleporterVisibilityImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterVisibilityBase02985(self, ...)
     self:UpdateNativeMapToggleStrip02985()
     return result
@@ -6719,7 +6927,11 @@ end
 -- compare it against the player's real TOGGLE_MAP binding. Search edit boxes
 -- remain exempt so typing is never treated as a map-close request.
 -- ============================================================================
-function T:RawKeyMatchesAction02986(actionName, key, ctrl, alt, shift, command)
+local RawKeyMatchesAction02986ImplArch
+function T:RawKeyMatchesAction02986(...)
+    return RawKeyMatchesAction02986ImplArch(self, ...)
+end
+RawKeyMatchesAction02986ImplArch = function(self, actionName, key, ctrl, alt, shift, command)
     if type(GetNumActionLayers) ~= "function" or type(GetActionLayerInfo) ~= "function"
         or type(GetActionLayerCategoryInfo) ~= "function" or type(GetActionInfo) ~= "function"
         or type(GetActionBindingInfo) ~= "function" then
@@ -6824,7 +7036,15 @@ function T:ForceCloseWorldMap02986()
     return true
 end
 
-function T:ApplyRawMapToggleHandler02986(root)
+local ApplyRawMapToggleHandler02986ImplArch
+
+function T:ApplyRawMapToggleHandler02986(...)
+
+    return ApplyRawMapToggleHandler02986ImplArch(self, ...)
+
+end
+
+ApplyRawMapToggleHandler02986ImplArch = function(self, root)
     if not root then return end
     if root.SetKeyboardEnabled then root:SetKeyboardEnabled(true) end
     root:SetHandler("OnKeyDown", function(_, key, ctrl, alt, shift, command)
@@ -6842,23 +7062,23 @@ function T:ApplyRawMapToggleHandler02986(root)
     end
 end
 
-local EAS_CreateMapTeleporterBase02986 = T.CreateMapTeleporter
-local EAS_LayoutMapTeleporterBase02986 = T.LayoutMapTeleporter
-local EAS_SetMapTeleporterVisibleBase02986 = T.SetMapTeleporterVisible
+local EAS_CreateMapTeleporterBase02986 = CreateMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase02986 = LayoutMapTeleporterImplArch
+local EAS_SetMapTeleporterVisibleBase02986 = SetMapTeleporterVisibleImplArch
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase02986(self)
     self:ApplyRawMapToggleHandler02986(root)
     return root
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase02986(self, ...)
     self:ApplyRawMapToggleHandler02986(self.mapTeleporter)
     return result
 end
 
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local result = EAS_SetMapTeleporterVisibleBase02986(self, visible)
     self:ApplyRawMapToggleHandler02986(self.mapTeleporter)
     return result
@@ -6871,9 +7091,9 @@ end
 -- small frame-sized batches, reuse the completed cache, and coalesce duplicate
 -- scene callbacks so opening/closing the map does not hitch the UI.
 -- ============================================================================
-local EAS_GetGuildMembersSyncBase029114 = T.GetGuildMembers
-local EAS_RefreshMapTeleporterBase029114 = T.RefreshMapTeleporter
-local EAS_SetMapTeleporterVisibleBase029114 = T.SetMapTeleporterVisible
+local EAS_GetGuildMembersSyncBase029114 = GetGuildMembersImplArch
+local EAS_RefreshMapTeleporterBase029114 = RefreshMapTeleporterImplArch
+local EAS_SetMapTeleporterVisibleBase029114 = SetMapTeleporterVisibleImplArch
 
 local function EAS_MapTeleporterNowMs029114()
     if type(GetFrameTimeMilliseconds) == "function" then
@@ -7031,7 +7251,7 @@ function T:StartMapTeleporterGuildCacheBuild029114(snapshot)
     if type(zo_callLater) == "function" then zo_callLater(step, 0) else step() end
 end
 
-function T:GetGuildMembers(snapshot)
+GetGuildMembersImplArch = function(self, snapshot)
     local now = EAS_MapTeleporterNowMs029114()
     local cache = self.mapTeleporterGuildCache029114
     local expires = safeNumber(self.mapTeleporterGuildCacheExpires029114, 0)
@@ -7047,7 +7267,7 @@ function T:GetGuildMembers(snapshot)
     return type(cache) == "table" and cache or {}
 end
 
-function T:RefreshMapTeleporter(force029114)
+RefreshMapTeleporterImplArch = function(self, force029114)
     local root = self.mapTeleporter
     if not root or root:IsHidden() then return end
 
@@ -7079,7 +7299,7 @@ function T:RefreshMapTeleporter(force029114)
     return EAS_RefreshMapTeleporterBase029114(self)
 end
 
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local wantVisible = visible == true and EPC.saved and EPC.saved.mapTeleporterEnabled ~= false
     local root = self.mapTeleporter
     local currentlyVisible = root and not root:IsHidden() or false
@@ -7107,14 +7327,14 @@ function T:SetMapTeleporterVisible(visible)
         -- Group/friend rows still stay current, while guild data is maintained by
         -- the frame-sliced cache above.
         if EVENT_MANAGER then
-            EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
-            EVENT_MANAGER:RegisterForUpdate(MAP_TELEPORTER_REFRESH, 3500, function()
+            EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
+            EPC.Runtime:RegisterUpdate("Travel", "MapTeleporterRefresh", 3500, function()
                 local travel = EPC and EPC.Travel
                 if travel and travel.mapTeleporter and not travel.mapTeleporter:IsHidden() and travel:IsMapTeleporterMapShowing() then
                     if travel.HideMapCompletionForTeleporter then travel:HideMapCompletionForTeleporter(true) end
                     travel:RefreshMapTeleporter()
                 else
-                    EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+                    EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
                 end
             end)
         end
@@ -7136,7 +7356,7 @@ function T:SetMapTeleporterVisible(visible)
         end
     else
         self.mapTeleporterRefreshPending029114 = false
-        if EVENT_MANAGER then EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH) end
+        if EVENT_MANAGER then EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh") end
     end
 
     return result
@@ -7144,8 +7364,8 @@ end
 
 -- Fast TOGGLE_MAP key matching for the Teleporter close handler.  The direct
 -- binding API avoids walking every action layer/category/action on each keydown.
-local EAS_RawKeyMatchesActionBase029114 = T.RawKeyMatchesAction02986
-function T:RawKeyMatchesAction02986(actionName, key, ctrl, alt, shift, command)
+local EAS_RawKeyMatchesActionBase029114 = RawKeyMatchesAction02986ImplArch
+RawKeyMatchesAction02986ImplArch = function(self, actionName, key, ctrl, alt, shift, command)
     if type(GetHighestPriorityActionBindingInfoFromName) == "function" then
         local ok, boundKey, mod1, mod2, mod3, mod4 = pcall(GetHighestPriorityActionBindingInfoFromName, actionName, false)
         if ok and boundKey and (KEY_INVALID == nil or boundKey ~= KEY_INVALID) then
@@ -7176,10 +7396,10 @@ end
 -- other map action.  Only the two search edit boxes take keyboard focus when
 -- the user explicitly clicks them.
 -- ============================================================================
-local EAS_CreateMapTeleporterBase029128 = T.CreateMapTeleporter
-local EAS_LayoutMapTeleporterBase029128 = T.LayoutMapTeleporter
-local EAS_RefreshMapTeleporterBase029128 = T.RefreshMapTeleporter
-local EAS_SetMapTeleporterVisibleBase029128 = T.SetMapTeleporterVisible
+local EAS_CreateMapTeleporterBase029128 = CreateMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase029128 = LayoutMapTeleporterImplArch
+local EAS_RefreshMapTeleporterBase029128 = RefreshMapTeleporterImplArch
+local EAS_SetMapTeleporterVisibleBase029128 = SetMapTeleporterVisibleImplArch
 
 local function EAS_SetControlHidden029128(control, hidden)
     if control and type(control.SetHidden) == "function" then
@@ -7187,7 +7407,15 @@ local function EAS_SetControlHidden029128(control, hidden)
     end
 end
 
-function T:RestoreNativeWorldMapKeys029128(root)
+local RestoreNativeWorldMapKeys029128ImplArch
+
+function T:RestoreNativeWorldMapKeys029128(...)
+
+    return RestoreNativeWorldMapKeys029128ImplArch(self, ...)
+
+end
+
+RestoreNativeWorldMapKeys029128ImplArch = function(self, root)
     if not root then return end
 
     -- A top-level keyboard-enabled Teleporter consumes keys before the native
@@ -7217,13 +7445,13 @@ end
 
 -- Disable the old Teleporter-owned TOGGLE_MAP interception.  Calls from older
 -- wrapper layers now simply restore native keyboard ownership.
-function T:ApplyRawMapToggleHandler02986(root)
+ApplyRawMapToggleHandler02986ImplArch = function(self, root)
     self:RestoreNativeWorldMapKeys029128(root)
 end
 
 -- Do not replace ESO's standard Exit/map keybind strip.  Restore it if an older
 -- Suite version removed it during this session.
-function T:UpdateNativeMapToggleStrip02985()
+UpdateNativeMapToggleStrip02985ImplArch = function(self)
     local strip = KEYBIND_STRIP
     if not strip then return end
 
@@ -7239,7 +7467,15 @@ function T:UpdateNativeMapToggleStrip02985()
     self.nativeDefaultExitRemoved02985 = false
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+local SetMapTeleporterExpanded029128ImplArch
+
+function T:SetMapTeleporterExpanded029128(...)
+
+    return SetMapTeleporterExpanded029128ImplArch(self, ...)
+
+end
+
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     local root = self.mapTeleporter
     if not root then return end
     expanded = expanded == true
@@ -7286,14 +7522,14 @@ function T:SetMapTeleporterExpanded029128(expanded, saveState)
         if not root:IsHidden() and self:IsMapTeleporterMapShowing() then
             EAS_RefreshMapTeleporterBase029128(self)
             if EVENT_MANAGER then
-                EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
-                EVENT_MANAGER:RegisterForUpdate(MAP_TELEPORTER_REFRESH, 3500, function()
+                EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
+                EPC.Runtime:RegisterUpdate("Travel", "MapTeleporterRefresh", 3500, function()
                     local travel = EPC and EPC.Travel
                     if travel and travel.mapTeleporter and not travel.mapTeleporter:IsHidden()
                         and travel.mapTeleporterExpanded029128 == true and travel:IsMapTeleporterMapShowing() then
                         travel:RefreshMapTeleporter()
                     else
-                        EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+                        EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
                     end
                 end)
             end
@@ -7301,7 +7537,7 @@ function T:SetMapTeleporterExpanded029128(expanded, saveState)
     else
         -- Compact drawer tab: the map remains unobstructed until requested.
         root:SetDimensions(136, 42)
-        if EVENT_MANAGER then EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH) end
+        if EVENT_MANAGER then EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh") end
     end
 
     self:RestoreNativeWorldMapKeys029128(root)
@@ -7311,7 +7547,7 @@ function T:ToggleMapTeleporterDrawer029128()
     self:SetMapTeleporterExpanded029128(not (self.mapTeleporterExpanded029128 == true), true)
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029128(self)
     if not root or not WINDOW_MANAGER then return root end
 
@@ -7339,7 +7575,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local root = self.mapTeleporter
     if root and self.mapTeleporterExpanded029128 ~= true then
         root:ClearAnchors()
@@ -7353,7 +7589,7 @@ function T:LayoutMapTeleporter(...)
     return result
 end
 
-function T:RefreshMapTeleporter(...)
+RefreshMapTeleporterImplArch = function(self, ...)
     local root = self.mapTeleporter
     if root and self.mapTeleporterExpanded029128 ~= true then
         -- No roster/guild destination rebuild while the drawer is folded.
@@ -7363,7 +7599,7 @@ function T:RefreshMapTeleporter(...)
     return EAS_RefreshMapTeleporterBase029128(self, ...)
 end
 
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     local result = EAS_SetMapTeleporterVisibleBase029128(self, visible)
     local root = self.mapTeleporter
     if not root then return result end
@@ -7390,7 +7626,7 @@ end
 -- while ESO zooms/pans/animates the map.  Keeping the drawer on GuiRoot also
 -- prevents map zoom from visually scaling or shifting the Teleporter.
 -- ============================================================================
-function T:DockMapTeleporterToWorldMap()
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root = self.mapTeleporter
     if not root or not GuiRoot then return end
 
@@ -7409,8 +7645,8 @@ end
 -- Wrap creation once more so older creation layers cannot restore their
 -- mouse-wheel pagination handler.  Wheel input over the actual map remains
 -- native ESO zoom; wheel input over the Teleporter itself does nothing.
-local EAS_CreateMapTeleporterBase029129 = T.CreateMapTeleporter
-function T:CreateMapTeleporter()
+local EAS_CreateMapTeleporterBase029129 = CreateMapTeleporterImplArch
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029129(self)
     if not root then return root end
 
@@ -7430,10 +7666,10 @@ end
 -- HUD-fade fragment behavior, while remaining available on the World Map.
 -- HUD Layout Mode temporarily expands/unlocks it and saves a screen position.
 -- ============================================================================
-local EAS_CreateMapTeleporterBase029130 = T.CreateMapTeleporter
-local EAS_LayoutMapTeleporterBase029130 = T.LayoutMapTeleporter
-local EAS_RefreshMapTeleporterBase029130 = T.RefreshMapTeleporter
-local EAS_SetMapTeleporterExpandedBase029130 = T.SetMapTeleporterExpanded029128
+local EAS_CreateMapTeleporterBase029130 = CreateMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase029130 = LayoutMapTeleporterImplArch
+local EAS_RefreshMapTeleporterBase029130 = RefreshMapTeleporterImplArch
+local EAS_SetMapTeleporterExpandedBase029130 = SetMapTeleporterExpanded029128ImplArch
 
 local function EAS_MapTeleporterMode029130()
     if not EPC or not EPC.saved then return "MAP" end
@@ -7528,29 +7764,29 @@ end
 
 function T:UpdateMapTeleporterRefreshPulse029130()
     if not EVENT_MANAGER then return end
-    EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+    EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
     local root = self.mapTeleporter
     if not root or root:IsHidden() or self.mapTeleporterExpanded029128 ~= true then return end
     if self.mapTeleporterLayoutMode029130 == true then return end
     local mapShowing = self:IsMapTeleporterMapShowing()
     if not mapShowing and EAS_MapTeleporterMode029130() ~= "ALWAYS" then return end
 
-    EVENT_MANAGER:RegisterForUpdate(MAP_TELEPORTER_REFRESH, 4500, function()
+    EPC.Runtime:RegisterUpdate("Travel", "MapTeleporterRefresh", 4500, function()
         local travel = EPC and EPC.Travel
         if not travel or not travel.mapTeleporter or travel.mapTeleporter:IsHidden()
             or travel.mapTeleporterExpanded029128 ~= true then
-            EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+            EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
             return
         end
         if not travel:IsMapTeleporterMapShowing() and EAS_MapTeleporterMode029130() ~= "ALWAYS" then
-            EVENT_MANAGER:UnregisterForUpdate(MAP_TELEPORTER_REFRESH)
+            EPC.Runtime:UnregisterUpdate("Travel", "MapTeleporterRefresh")
             return
         end
         travel:RefreshMapTeleporter(true)
     end)
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029130(self)
     if not root or not WINDOW_MANAGER then return root end
 
@@ -7589,7 +7825,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:DockMapTeleporterToWorldMap()
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root = self.mapTeleporter
     if not root then return end
     if self.mapTeleporterExpanded029128 == true then
@@ -7600,7 +7836,7 @@ function T:DockMapTeleporterToWorldMap()
     self:AnchorMapTeleporter029130()
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local root = self.mapTeleporter
     if root then
         if self.mapTeleporterExpanded029128 == true then
@@ -7614,7 +7850,7 @@ function T:LayoutMapTeleporter(...)
     return result
 end
 
-function T:RefreshMapTeleporter(force029130)
+RefreshMapTeleporterImplArch = function(self, force029130)
     local root = self.mapTeleporter
     if not root or root:IsHidden() or self.mapTeleporterExpanded029128 ~= true then return end
     -- The older anti-hitch wrapper only schedules delayed retries while the map
@@ -7629,7 +7865,7 @@ function T:RefreshMapTeleporter(force029130)
     return result
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     local result = EAS_SetMapTeleporterExpandedBase029130(self, expanded, saveState)
     local root = self.mapTeleporter
     if not root then return result end
@@ -7685,7 +7921,7 @@ function T:SetLayoutMode(active)
     self:RefreshMapTeleporterVisibility()
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local root = self:CreateMapTeleporter()
     if not root or not EPC.saved then return end
     local enabled = EPC.saved.mapTeleporterEnabled ~= false
@@ -7734,7 +7970,7 @@ end
 
 -- Keep compatibility with older wrappers/callers that explicitly request a
 -- visibility change; the final policy is now determined by Settings + context.
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     if visible == false and EAS_MapTeleporterMode029130() == "MAP" and not self:IsMapTeleporterMapShowing() then
         local root = self.mapTeleporter
         if root then root:SetHidden(true) end
@@ -7749,10 +7985,10 @@ end
 -- also refreshed when ESO returns to HUD gameplay so the drawer is genuinely
 -- usable outside the World Map while still following the native HUD fragment.
 -- ============================================================================
-local EAS_LayoutMapTeleporterBase029131 = T.LayoutMapTeleporter
-local EAS_SetMapTeleporterExpandedBase029131 = T.SetMapTeleporterExpanded029128
-local EAS_RefreshMapTeleporterVisibilityBase029131 = T.RefreshMapTeleporterVisibility
-local EAS_CreateMapTeleporterBase029131 = T.CreateMapTeleporter
+local EAS_LayoutMapTeleporterBase029131 = LayoutMapTeleporterImplArch
+local EAS_SetMapTeleporterExpandedBase029131 = SetMapTeleporterExpanded029128ImplArch
+local EAS_RefreshMapTeleporterVisibilityBase029131 = RefreshMapTeleporterVisibilityImplArch
+local EAS_CreateMapTeleporterBase029131 = CreateMapTeleporterImplArch
 
 local function EAS_SetHiddenSafe029131(control, hidden)
     if control and type(control.SetHidden) == "function" then
@@ -7812,7 +8048,7 @@ function T:ApplyMapTeleporterCollapsedPresentation029131(collapsed)
     EAS_SetHiddenSafe029131(root.closeMapButton02971, true)
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local root = self.mapTeleporter
     if root and self.mapTeleporterExpanded029128 ~= true then
         root:SetDimensions(136, 42)
@@ -7828,7 +8064,7 @@ function T:LayoutMapTeleporter(...)
     return result
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     expanded = expanded == true
     local result = EAS_SetMapTeleporterExpandedBase029131(self, expanded, saveState)
     local root = self.mapTeleporter
@@ -7873,7 +8109,7 @@ function T:RegisterMapTeleporterHudVisibility029131()
     if HUD_UI_SCENE ~= HUD_SCENE then register(HUD_UI_SCENE) end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029131(self)
     if not root then return root end
     self:RegisterMapTeleporterHudVisibility029131()
@@ -7881,7 +8117,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local root = self:CreateMapTeleporter()
     if not root or not EPC.saved then return end
 
@@ -7937,7 +8173,7 @@ function T:RefreshMapTeleporterVisibility()
 end
 
 -- Compatibility callers still funnel through the final policy above.
-function T:SetMapTeleporterVisible(visible)
+SetMapTeleporterVisibleImplArch = function(self, visible)
     if visible == false and EPC.saved and EPC.saved.mapTeleporterDisplayMode ~= "ALWAYS"
         and not self:IsMapTeleporterMapShowing() then
         local root = self.mapTeleporter
@@ -7954,7 +8190,11 @@ end
 -- Teleporter while adventuring, enter UI mode to interact with it, and press
 -- the same key again to fold it back down and return to gameplay.
 -- ============================================================================
-function T:SetMapTeleporterOverlayUIMode029132(active)
+local SetMapTeleporterOverlayUIMode029132ImplArch
+function T:SetMapTeleporterOverlayUIMode029132(...)
+    return SetMapTeleporterOverlayUIMode029132ImplArch(self, ...)
+end
+SetMapTeleporterOverlayUIMode029132ImplArch = function(self, active)
     active = active == true
     local changed = false
     if type(SetGameCameraUIMode) == "function" then
@@ -7980,7 +8220,15 @@ function T:PopMapTeleporterActionLayer029132()
     self.mapTeleporterActionLayerPushed029132 = false
 end
 
-function T:OpenMapTeleporterOverlay029132()
+local OpenMapTeleporterOverlay029132ImplArch
+
+function T:OpenMapTeleporterOverlay029132(...)
+
+    return OpenMapTeleporterOverlay029132ImplArch(self, ...)
+
+end
+
+OpenMapTeleporterOverlay029132ImplArch = function(self)
     if not EPC.saved or EPC.saved.mapTeleporterEnabled == false then
         if EPC.Print then EPC:Print("Map Teleporter is disabled. Enable it in Suite Settings > Map Teleporter.") end
         return false
@@ -8021,7 +8269,15 @@ function T:OpenMapTeleporterOverlay029132()
     return true
 end
 
-function T:CloseMapTeleporterOverlay029132(skipRefresh)
+local CloseMapTeleporterOverlay029132ImplArch
+
+function T:CloseMapTeleporterOverlay029132(...)
+
+    return CloseMapTeleporterOverlay029132ImplArch(self, ...)
+
+end
+
+CloseMapTeleporterOverlay029132ImplArch = function(self, skipRefresh)
     local root = self.mapTeleporter
     self.mapTeleporterHotkeySession029132 = false
 
@@ -8044,7 +8300,15 @@ function T:CloseMapTeleporterOverlay029132(skipRefresh)
     return true
 end
 
-function T:ToggleMapTeleporterOverlay029132()
+local ToggleMapTeleporterOverlay029132ImplArch
+
+function T:ToggleMapTeleporterOverlay029132(...)
+
+    return ToggleMapTeleporterOverlay029132ImplArch(self, ...)
+
+end
+
+ToggleMapTeleporterOverlay029132ImplArch = function(self)
     if not EPC.saved or EPC.saved.mapTeleporterEnabled == false then
         if EPC.Print then EPC:Print("Map Teleporter is disabled. Enable it in Suite Settings > Map Teleporter.") end
         return
@@ -8069,11 +8333,11 @@ function T:ToggleMapTeleporterOverlay029132()
     end
 end
 
-local EAS_CreateMapTeleporterBase029132 = T.CreateMapTeleporter
-local EAS_SetMapTeleporterExpandedBase029132 = T.SetMapTeleporterExpanded029128
-local EAS_RefreshMapTeleporterVisibilityBase029132 = T.RefreshMapTeleporterVisibility
+local EAS_CreateMapTeleporterBase029132 = CreateMapTeleporterImplArch
+local EAS_SetMapTeleporterExpandedBase029132 = SetMapTeleporterExpanded029128ImplArch
+local EAS_RefreshMapTeleporterVisibilityBase029132 = RefreshMapTeleporterVisibilityImplArch
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029132(self)
     if not root then return root end
 
@@ -8093,7 +8357,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     local result = EAS_SetMapTeleporterExpandedBase029132(self, expanded, saveState)
     if expanded ~= true and self.mapTeleporterHotkeySession029132 == true and not self:IsMapTeleporterMapShowing() then
         self:CloseMapTeleporterOverlay029132(true)
@@ -8101,7 +8365,7 @@ function T:SetMapTeleporterExpanded029128(expanded, saveState)
     return result
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local result = EAS_RefreshMapTeleporterVisibilityBase029132(self)
     local enabled = EPC.saved and EPC.saved.mapTeleporterEnabled ~= false
     local mode = EPC.saved and EPC.saved.mapTeleporterDisplayMode or "MAP"
@@ -8111,11 +8375,7 @@ function T:RefreshMapTeleporterVisibility()
     return result
 end
 
-function ESOAdventurerSuite_ToggleMapTeleporterOverlay()
-    if EPC and EPC.Travel and EPC.Travel.ToggleMapTeleporterOverlay029132 then
-        EPC.Travel:ToggleMapTeleporterOverlay029132()
-    end
-end
+-- Public teleporter toggle is defined once after the final state machine.
 
 
 -- ============================================================================
@@ -8135,7 +8395,15 @@ function T:SetMapTeleporterNormalGameplayLayer029133(root)
     end)
 end
 
-function T:SetMapTeleporterInteractiveLayer029133(root)
+local SetMapTeleporterInteractiveLayer029133ImplArch
+
+function T:SetMapTeleporterInteractiveLayer029133(...)
+
+    return SetMapTeleporterInteractiveLayer029133ImplArch(self, ...)
+
+end
+
+SetMapTeleporterInteractiveLayer029133ImplArch = function(self, root)
     if not root then return end
     pcall(function()
         if root.SetTopLevel then root:SetTopLevel(true) end
@@ -8146,7 +8414,7 @@ function T:SetMapTeleporterInteractiveLayer029133(root)
     end)
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local root = self:CreateMapTeleporter()
     if not root or not EPC.saved then return end
 
@@ -8225,8 +8493,8 @@ end
 -- Teleporter in UI mode, the same key closes it, and clicking anywhere outside
 -- the Teleporter closes it and returns to gameplay.
 -- ============================================================================
-local EAS_RefreshMapTeleporterVisibilityBase029134 = T.RefreshMapTeleporterVisibility
-local EAS_CreateMapTeleporterBase029134 = T.CreateMapTeleporter
+local EAS_RefreshMapTeleporterVisibilityBase029134 = RefreshMapTeleporterVisibilityImplArch
+local EAS_CreateMapTeleporterBase029134 = CreateMapTeleporterImplArch
 
 function T:IsMapTeleporterToggleKey029134(key, ctrl, alt, shift, command)
     if type(self.RawKeyMatchesAction02986) == "function" then
@@ -8253,7 +8521,7 @@ end
 
 function T:UnregisterMapTeleporterClickAway029134()
     if EVENT_MANAGER and EVENT_GLOBAL_MOUSE_DOWN then
-        EVENT_MANAGER:UnregisterForEvent((EPC.name or "ESOAdventurerSuite") .. "_TeleporterClickAway029134", EVENT_GLOBAL_MOUSE_DOWN)
+        EPC.Runtime:UnregisterEvent("Travel", "ClickAwayMouseDown")
     end
     self.mapTeleporterClickAwayRegistered029134 = false
 end
@@ -8262,7 +8530,7 @@ function T:RegisterMapTeleporterClickAway029134()
     if self.mapTeleporterClickAwayRegistered029134 or not EVENT_MANAGER or not EVENT_GLOBAL_MOUSE_DOWN then return end
     self.mapTeleporterClickAwayRegistered029134 = true
     local eventName = (EPC.name or "ESOAdventurerSuite") .. "_TeleporterClickAway029134"
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_DOWN, function()
+    EPC.Runtime:RegisterEvent("Travel", "ClickAwayMouseDown", EVENT_GLOBAL_MOUSE_DOWN, function()
         if not EPC or not EPC.Travel or EPC.Travel.mapTeleporterHotkeySession029132 ~= true then return end
         local travel = EPC.Travel
         local function checkClick()
@@ -8337,7 +8605,15 @@ local function EAS_TeleporterNowMs029134()
     return 0
 end
 
-function T:OpenMapTeleporterOverlay029134()
+local OpenMapTeleporterOverlay029134ImplArch
+
+function T:OpenMapTeleporterOverlay029134(...)
+
+    return OpenMapTeleporterOverlay029134ImplArch(self, ...)
+
+end
+
+OpenMapTeleporterOverlay029134ImplArch = function(self)
     if not EPC.saved or EPC.saved.mapTeleporterEnabled == false then
         if EPC.Print then EPC:Print("Map Teleporter is disabled. Enable it in Suite Settings > Map Teleporter.") end
         return false
@@ -8379,7 +8655,15 @@ function T:OpenMapTeleporterOverlay029134()
     return true
 end
 
-function T:CloseMapTeleporterOverlay029134(skipRefresh)
+local CloseMapTeleporterOverlay029134ImplArch
+
+function T:CloseMapTeleporterOverlay029134(...)
+
+    return CloseMapTeleporterOverlay029134ImplArch(self, ...)
+
+end
+
+CloseMapTeleporterOverlay029134ImplArch = function(self, skipRefresh)
     if self.mapTeleporterClosing029134 then return true end
     self.mapTeleporterClosing029134 = true
 
@@ -8408,10 +8692,10 @@ function T:CloseMapTeleporterOverlay029134(skipRefresh)
 end
 
 -- Redirect legacy 0.29.132 callers to the corrected implementation.
-function T:OpenMapTeleporterOverlay029132() return self:OpenMapTeleporterOverlay029134() end
-function T:CloseMapTeleporterOverlay029132(skipRefresh) return self:CloseMapTeleporterOverlay029134(skipRefresh) end
+OpenMapTeleporterOverlay029132ImplArch = function(self) return self:OpenMapTeleporterOverlay029134() end
+CloseMapTeleporterOverlay029132ImplArch = function(self, skipRefresh) return self:CloseMapTeleporterOverlay029134(skipRefresh) end
 
-function T:ToggleMapTeleporterOverlay029132()
+ToggleMapTeleporterOverlay029132ImplArch = function(self)
     if not EPC.saved or EPC.saved.mapTeleporterEnabled == false then
         if EPC.Print then EPC:Print("Map Teleporter is disabled. Enable it in Suite Settings > Map Teleporter.") end
         return
@@ -8435,7 +8719,7 @@ function T:ToggleMapTeleporterOverlay029132()
     end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029134(self)
     if not root then return root end
     if self.mapTeleporterHotkeySession029132 == true and not self:IsMapTeleporterMapShowing() then
@@ -8444,7 +8728,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local result = EAS_RefreshMapTeleporterVisibilityBase029134(self)
     local root = self.mapTeleporter
     if not root or not EPC.saved then return result end
@@ -8477,7 +8761,11 @@ end
 -- all Teleporter input before returning camera control, then verifies the owned
 -- UI mode was actually released on the next frames.
 -- ============================================================================
-function T:SetMapTeleporterOverlayUIMode029135(active)
+local SetMapTeleporterOverlayUIMode029135ImplArch
+function T:SetMapTeleporterOverlayUIMode029135(...)
+    return SetMapTeleporterOverlayUIMode029135ImplArch(self, ...)
+end
+SetMapTeleporterOverlayUIMode029135ImplArch = function(self, active)
     active = active == true
     if type(SetGameCameraUIMode) == "function" then
         local ok = pcall(SetGameCameraUIMode, active)
@@ -8491,7 +8779,7 @@ function T:SetMapTeleporterOverlayUIMode029135(active)
 end
 
 -- Redirect the older helper so every Teleporter path uses only one UI-mode API.
-function T:SetMapTeleporterOverlayUIMode029132(active)
+SetMapTeleporterOverlayUIMode029132ImplArch = function(self, active)
     return self:SetMapTeleporterOverlayUIMode029135(active)
 end
 
@@ -8526,8 +8814,8 @@ function T:ForceReleaseMapTeleporterGameplayInput029135()
     end
 end
 
-local EAS_OpenMapTeleporterOverlayBase029135 = T.OpenMapTeleporterOverlay029134
-function T:OpenMapTeleporterOverlay029134()
+local EAS_OpenMapTeleporterOverlayBase029135 = OpenMapTeleporterOverlay029134ImplArch
+OpenMapTeleporterOverlay029134ImplArch = function(self)
     local result = EAS_OpenMapTeleporterOverlayBase029135(self)
     if result == true and self.mapTeleporterHotkeySession029132 == true then
         -- Snapshot the ownership decided by the existing open routine. This is
@@ -8537,7 +8825,7 @@ function T:OpenMapTeleporterOverlay029134()
     return result
 end
 
-function T:CloseMapTeleporterOverlay029134(skipRefresh)
+CloseMapTeleporterOverlay029134ImplArch = function(self, skipRefresh)
     if self.mapTeleporterClosing029135 then return true end
     self.mapTeleporterClosing029135 = true
 
@@ -8602,14 +8890,14 @@ function T:CloseMapTeleporterOverlay029134(skipRefresh)
 end
 
 -- Keep the legacy aliases pointed at the final close/open implementation.
-function T:OpenMapTeleporterOverlay029132() return self:OpenMapTeleporterOverlay029134() end
-function T:CloseMapTeleporterOverlay029132(skipRefresh) return self:CloseMapTeleporterOverlay029134(skipRefresh) end
+OpenMapTeleporterOverlay029132ImplArch = function(self) return self:OpenMapTeleporterOverlay029134() end
+CloseMapTeleporterOverlay029132ImplArch = function(self, skipRefresh) return self:CloseMapTeleporterOverlay029134(skipRefresh) end
 
 -- Re-enable mouse interaction whenever the Teleporter is deliberately promoted
 -- again (World Map, HUD Layout, or a new hotkey session) after the hard close
 -- above disabled its top-level mouse input.
-local EAS_SetMapTeleporterInteractiveLayerBase029135 = T.SetMapTeleporterInteractiveLayer029133
-function T:SetMapTeleporterInteractiveLayer029133(root)
+local EAS_SetMapTeleporterInteractiveLayerBase029135 = SetMapTeleporterInteractiveLayer029133ImplArch
+SetMapTeleporterInteractiveLayer029133ImplArch = function(self, root)
     root = root or self.mapTeleporter
     if root and root.SetMouseEnabled then root:SetMouseEnabled(true) end
     if EAS_SetMapTeleporterInteractiveLayerBase029135 then
@@ -8627,14 +8915,22 @@ end
 -- MAP mode anchors to the stable ZO_WorldMap top-level (never the zoom canvas),
 -- while hotkey/layout mode anchors to the saved HUD position on GuiRoot.
 -- ============================================================================
-local EAS_RefreshMapTeleporterVisibilityBase029136 = T.RefreshMapTeleporterVisibility
-local EAS_CreateMapTeleporterBase029136 = T.CreateMapTeleporter
-local EAS_RestoreNativeWorldMapKeysBase029136 = T.RestoreNativeWorldMapKeys029128
-local EAS_RefreshMapTeleporterBase029136 = T.RefreshMapTeleporter
-local EAS_LayoutMapTeleporterBase029136 = T.LayoutMapTeleporter
-local EAS_SetMapTeleporterExpandedBase029136 = T.SetMapTeleporterExpanded029128
+local EAS_RefreshMapTeleporterVisibilityBase029136 = RefreshMapTeleporterVisibilityImplArch
+local EAS_CreateMapTeleporterBase029136 = CreateMapTeleporterImplArch
+local EAS_RestoreNativeWorldMapKeysBase029136 = RestoreNativeWorldMapKeys029128ImplArch
+local EAS_RefreshMapTeleporterBase029136 = RefreshMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase029136 = LayoutMapTeleporterImplArch
+local EAS_SetMapTeleporterExpandedBase029136 = SetMapTeleporterExpanded029128ImplArch
 
-function T:EnsureMapTeleporterInteractionHost029136()
+local EnsureMapTeleporterInteractionHost029136ImplArch
+
+function T:EnsureMapTeleporterInteractionHost029136(...)
+
+    return EnsureMapTeleporterInteractionHost029136ImplArch(self, ...)
+
+end
+
+EnsureMapTeleporterInteractionHost029136ImplArch = function(self)
     if self.mapTeleporterInteractionHost029136 then return self.mapTeleporterInteractionHost029136 end
     if not WINDOW_MANAGER or not SCENE_MANAGER or type(SCENE_MANAGER.RegisterTopLevel) ~= "function" then return nil end
 
@@ -8699,17 +8995,25 @@ function T:UnregisterMapTeleporterClickAway029136()
     -- earlier wrapper during the same UI session.
     if self.UnregisterMapTeleporterClickAway029134 then self:UnregisterMapTeleporterClickAway029134() end
     if EVENT_MANAGER and EVENT_GLOBAL_MOUSE_UP then
-        EVENT_MANAGER:UnregisterForEvent((EPC.name or "ESOAdventurerSuite") .. "_TeleporterClickAway029136", EVENT_GLOBAL_MOUSE_UP)
+        EPC.Runtime:UnregisterEvent("Travel", "ClickAwayMouseUp")
     end
     self.mapTeleporterClickAwayRegistered029136 = false
 end
 
-function T:RegisterMapTeleporterClickAway029136()
+local RegisterMapTeleporterClickAway029136ImplArch
+
+function T:RegisterMapTeleporterClickAway029136(...)
+
+    return RegisterMapTeleporterClickAway029136ImplArch(self, ...)
+
+end
+
+RegisterMapTeleporterClickAway029136ImplArch = function(self)
     self:UnregisterMapTeleporterClickAway029136()
     if not EVENT_MANAGER or not EVENT_GLOBAL_MOUSE_UP then return end
     self.mapTeleporterClickAwayRegistered029136 = true
     local eventName = (EPC.name or "ESOAdventurerSuite") .. "_TeleporterClickAway029136"
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP, function()
+    EPC.Runtime:RegisterEvent("Travel", "ClickAwayMouseUp", EVENT_GLOBAL_MOUSE_UP, function()
         local travel = EPC and EPC.Travel
         if not travel or travel.mapTeleporterHotkeySession029132 ~= true or travel:IsMapTeleporterMapShowing() then return end
         -- Run after the completed mouse-up dispatch. This avoids tearing down UI
@@ -8752,7 +9056,7 @@ function T:ApplyMapTeleporterHotkeySearchKeys029136(root)
     wire(root.zoneSearch)
 end
 
-function T:RestoreNativeWorldMapKeys029128(root)
+RestoreNativeWorldMapKeys029128ImplArch = function(self, root)
     if EAS_RestoreNativeWorldMapKeysBase029136 then
         EAS_RestoreNativeWorldMapKeysBase029136(self, root)
     end
@@ -8761,7 +9065,7 @@ function T:RestoreNativeWorldMapKeys029128(root)
     end
 end
 
-function T:DockMapTeleporterToWorldMap()
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root = self.mapTeleporter
     if not root or not GuiRoot then return end
 
@@ -8785,7 +9089,7 @@ function T:DockMapTeleporterToWorldMap()
     end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029136(self)
     if not root then return root end
     self:EnsureMapTeleporterInteractionHost029136()
@@ -8797,7 +9101,15 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:FinishMapTeleporterHotkeyClose029136(skipRefresh, hostAlreadyHidden)
+local FinishMapTeleporterHotkeyClose029136ImplArch
+
+function T:FinishMapTeleporterHotkeyClose029136(...)
+
+    return FinishMapTeleporterHotkeyClose029136ImplArch(self, ...)
+
+end
+
+FinishMapTeleporterHotkeyClose029136ImplArch = function(self, skipRefresh, hostAlreadyHidden)
     if self.mapTeleporterClosing029136 then return true end
     self.mapTeleporterClosing029136 = true
 
@@ -8838,7 +9150,15 @@ function T:CloseMapTeleporterOverlay029136(skipRefresh)
     return self:FinishMapTeleporterHotkeyClose029136(skipRefresh, false)
 end
 
-function T:OpenMapTeleporterOverlay029136()
+local OpenMapTeleporterOverlay029136ImplArch
+
+function T:OpenMapTeleporterOverlay029136(...)
+
+    return OpenMapTeleporterOverlay029136ImplArch(self, ...)
+
+end
+
+OpenMapTeleporterOverlay029136ImplArch = function(self)
     if not EPC.saved or EPC.saved.mapTeleporterEnabled == false then
         if EPC.Print then EPC:Print("Map Teleporter is disabled. Enable it in Suite Settings > Map Teleporter.") end
         return false
@@ -8920,7 +9240,7 @@ function T:ToggleMapTeleporterOverlay029136()
     end
 end
 
-function T:RefreshMapTeleporter(...)
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase029136(self, ...)
     self:DockMapTeleporterToWorldMap()
     if self.mapTeleporterHotkeySession029132 == true and not self:IsMapTeleporterMapShowing() then
@@ -8929,19 +9249,19 @@ function T:RefreshMapTeleporter(...)
     return result
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase029136(self, ...)
     self:DockMapTeleporterToWorldMap()
     return result
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     local result = EAS_SetMapTeleporterExpandedBase029136(self, expanded, saveState)
     self:DockMapTeleporterToWorldMap()
     return result
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local mapShowing = self:IsMapTeleporterMapShowing()
 
     -- If the player opens the actual World Map while the outside-map Teleporter
@@ -8988,11 +9308,11 @@ function T:RefreshMapTeleporterVisibility()
 end
 
 -- Keep every older public/legacy entry point pointed at the final state machine.
-function T:OpenMapTeleporterOverlay029134() return self:OpenMapTeleporterOverlay029136() end
-function T:OpenMapTeleporterOverlay029132() return self:OpenMapTeleporterOverlay029136() end
-function T:CloseMapTeleporterOverlay029134(skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
-function T:CloseMapTeleporterOverlay029132(skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
-function T:ToggleMapTeleporterOverlay029132() return self:ToggleMapTeleporterOverlay029136() end
+OpenMapTeleporterOverlay029134ImplArch = function(self) return self:OpenMapTeleporterOverlay029136() end
+OpenMapTeleporterOverlay029132ImplArch = function(self) return self:OpenMapTeleporterOverlay029136() end
+CloseMapTeleporterOverlay029134ImplArch = function(self, skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
+CloseMapTeleporterOverlay029132ImplArch = function(self, skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
+ToggleMapTeleporterOverlay029132ImplArch = function(self) return self:ToggleMapTeleporterOverlay029136() end
 
 function ESOAdventurerSuite_ToggleMapTeleporterOverlay()
     if EPC and EPC.Travel and EPC.Travel.ToggleMapTeleporterOverlay029136 then
@@ -9009,15 +9329,15 @@ end
 -- the map's top-left corner, and hide ESO's generic map-completion/zone-guide
 -- panes for the entire time the Teleporter feature is active on the map.
 -- ============================================================================
-local EAS_DockMapTeleporterBase029138 = T.DockMapTeleporterToWorldMap
-local EAS_RefreshMapTeleporterVisibilityBase029138 = T.RefreshMapTeleporterVisibility
+local EAS_DockMapTeleporterBase029138 = DockMapTeleporterToWorldMapImplArch
+local EAS_RefreshMapTeleporterVisibilityBase029138 = RefreshMapTeleporterVisibilityImplArch
 
 local function EAS_GetMapTeleporterMapHost029138()
     if _G and _G["ZO_WorldMap"] then return _G["ZO_WorldMap"] end
     return nil
 end
 
-function T:HideMapCompletionForTeleporter(hide)
+HideMapCompletionForTeleporterImplArch = function(self, hide)
     self.mapTeleporterHiddenCompletion = self.mapTeleporterHiddenCompletion or {}
     local candidates = {
         "ZO_WorldMapZoneStoryTopLevel", "ZO_WorldMapZoneStory", "ZO_WorldMapZoneStoryKeyboard",
@@ -9042,7 +9362,7 @@ function T:HideMapCompletionForTeleporter(hide)
     end
 end
 
-function T:DockMapTeleporterToWorldMap()
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root = self.mapTeleporter
     if not root or not GuiRoot then return end
 
@@ -9078,7 +9398,7 @@ end
 -- v0.29.139: Map completion stats are hidden only while the Teleporter is expanded.
 -- Folding the Teleporter or closing the World Map restores ESO's completion UI.
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local result = EAS_RefreshMapTeleporterVisibilityBase029138(self)
     local enabled = EPC and EPC.saved and EPC.saved.mapTeleporterEnabled ~= false
     local mapShowing = self:IsMapTeleporterMapShowing()
@@ -9108,9 +9428,9 @@ end
 -- PLAYER/ZONE search controls from the actual Teleporter width so the ZONE box
 -- cannot extend past the panel after docking/resizing.
 -- ============================================================================
-local EAS_RefreshMapTeleporterVisibilityBase029140 = T.RefreshMapTeleporterVisibility
-local EAS_SetMapTeleporterExpandedBase029140 = T.SetMapTeleporterExpanded029128
-local EAS_LayoutMapTeleporterBase029140 = T.LayoutMapTeleporter
+local EAS_RefreshMapTeleporterVisibilityBase029140 = RefreshMapTeleporterVisibilityImplArch
+local EAS_SetMapTeleporterExpandedBase029140 = SetMapTeleporterExpanded029128ImplArch
+local EAS_LayoutMapTeleporterBase029140 = LayoutMapTeleporterImplArch
 
 function T:ApplyMapTeleporterSearchBounds029140()
     local root = self.mapTeleporter
@@ -9144,7 +9464,7 @@ function T:ApplyMapTeleporterSearchBounds029140()
     end
 end
 
-function T:DockMapTeleporterToWorldMap()
+DockMapTeleporterToWorldMapImplArch = function(self)
     local root = self.mapTeleporter
     if not root or not GuiRoot then return end
 
@@ -9183,7 +9503,15 @@ function T:DockMapTeleporterToWorldMap()
     self:ApplyMapTeleporterSearchBounds029140()
 end
 
-function T:UpdateMapCompletionForTeleporter029140()
+local UpdateMapCompletionForTeleporter029140ImplArch
+
+function T:UpdateMapCompletionForTeleporter029140(...)
+
+    return UpdateMapCompletionForTeleporter029140ImplArch(self, ...)
+
+end
+
+UpdateMapCompletionForTeleporter029140ImplArch = function(self)
     local root = self.mapTeleporter
     local hide = EPC and EPC.saved and EPC.saved.mapTeleporterEnabled ~= false
         and self:IsMapTeleporterMapShowing()
@@ -9193,21 +9521,21 @@ function T:UpdateMapCompletionForTeleporter029140()
     self:HideMapCompletionForTeleporter(hide)
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     local result = EAS_SetMapTeleporterExpandedBase029140(self, expanded, saveState)
     self:DockMapTeleporterToWorldMap()
     self:UpdateMapCompletionForTeleporter029140()
     return result
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase029140(self, ...)
     self:DockMapTeleporterToWorldMap()
     self:ApplyMapTeleporterSearchBounds029140()
     return result
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local result = EAS_RefreshMapTeleporterVisibilityBase029140(self)
     self:DockMapTeleporterToWorldMap()
     self:ApplyMapTeleporterSearchBounds029140()
@@ -9222,9 +9550,9 @@ end
 -- guide, info, filter, or legend controls. The three primary toolbar buttons
 -- use one deterministic left-to-right layout with consistent sizing/gaps.
 -- ============================================================================
-local EAS_LayoutMapTeleporterBase029141 = T.LayoutMapTeleporter
-local EAS_SetMapTeleporterExpandedBase029141 = T.SetMapTeleporterExpanded029128
-local EAS_RefreshMapTeleporterVisibilityBase029141 = T.RefreshMapTeleporterVisibility
+local EAS_LayoutMapTeleporterBase029141 = LayoutMapTeleporterImplArch
+local EAS_SetMapTeleporterExpandedBase029141 = SetMapTeleporterExpanded029128ImplArch
+local EAS_RefreshMapTeleporterVisibilityBase029141 = RefreshMapTeleporterVisibilityImplArch
 
 function T:RestoreMapCompletionState029141()
     local saved = self.mapTeleporterHiddenCompletion
@@ -9239,11 +9567,11 @@ function T:RestoreMapCompletionState029141()
 end
 
 -- Final policy: Map Teleporter never owns ESO's completion/zone-guide UI.
-function T:HideMapCompletionForTeleporter(hide)
+HideMapCompletionForTeleporterImplArch = function(self, hide)
     self:RestoreMapCompletionState029141()
 end
 
-function T:UpdateMapCompletionForTeleporter029140()
+UpdateMapCompletionForTeleporter029140ImplArch = function(self)
     self:RestoreMapCompletionState029141()
 end
 
@@ -9307,21 +9635,21 @@ function T:ApplyMapTeleporterToolbar029141()
     if root.toolsButton then root.toolsButton:SetFont("ZoFontGameBold") end
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase029141(self, ...)
     self:ApplyMapTeleporterToolbar029141()
     if self.ApplyMapTeleporterSearchBounds029140 then self:ApplyMapTeleporterSearchBounds029140() end
     return result
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     local result = EAS_SetMapTeleporterExpandedBase029141(self, expanded, saveState)
     self:RestoreMapCompletionState029141()
     if expanded == true then self:ApplyMapTeleporterToolbar029141() end
     return result
 end
 
-function T:RefreshMapTeleporterVisibility()
+RefreshMapTeleporterVisibilityImplArch = function(self)
     local result = EAS_RefreshMapTeleporterVisibilityBase029141(self)
     self:RestoreMapCompletionState029141()
     self:ApplyMapTeleporterToolbar029141()
@@ -9332,9 +9660,9 @@ end
 -- ============================================================================
 -- v0.29.142 - Destination labels without VIEW prefix + guaranteed text fit.
 -- ============================================================================
-local EAS_RefreshMapTeleporterBase029142 = T.RefreshMapTeleporter
-local EAS_LayoutMapTeleporterBase029142 = T.LayoutMapTeleporter
-local EAS_CreateMapTeleporterBase029142 = T.CreateMapTeleporter
+local EAS_RefreshMapTeleporterBase029142 = RefreshMapTeleporterImplArch
+local EAS_LayoutMapTeleporterBase029142 = LayoutMapTeleporterImplArch
+local EAS_CreateMapTeleporterBase029142 = CreateMapTeleporterImplArch
 
 function T:ApplyMapTeleporterDestinationLabel029142()
     local root = self.mapTeleporter
@@ -9352,20 +9680,20 @@ function T:ApplyMapTeleporterDestinationLabel029142()
     if root.viewButton.SetHorizontalAlignment then root.viewButton:SetHorizontalAlignment(TEXT_ALIGN_CENTER) end
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029142(self)
     self:ApplyMapTeleporterDestinationLabel029142()
     return root
 end
 
-function T:LayoutMapTeleporter(...)
+LayoutMapTeleporterImplArch = function(self, ...)
     local result = EAS_LayoutMapTeleporterBase029142(self, ...)
     if self.ApplyMapTeleporterToolbar029141 then self:ApplyMapTeleporterToolbar029141() end
     self:ApplyMapTeleporterDestinationLabel029142()
     return result
 end
 
-function T:RefreshMapTeleporter(...)
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase029142(self, ...)
     if self.ApplyMapTeleporterToolbar029141 then self:ApplyMapTeleporterToolbar029141() end
     self:ApplyMapTeleporterDestinationLabel029142()
@@ -9380,10 +9708,10 @@ end
 -- the panel is already visible. Static owned-house data is cached separately so
 -- ESO's collection book is not rescanned on every open.
 -- ============================================================================
-local EAS_BuildMapTeleporterEntriesBase029143 = T.BuildMapTeleporterEntries
-local EAS_GetMapTeleporterHouseEntriesBase029143 = T.GetMapTeleporterHouseEntries
-local EAS_SetMapTeleporterExpandedBase029143 = T.SetMapTeleporterExpanded029128
-local EAS_InitializeTravelBase029143 = T.Initialize
+local EAS_BuildMapTeleporterEntriesBase029143 = BuildMapTeleporterEntriesImplArch
+local EAS_GetMapTeleporterHouseEntriesBase029143 = GetMapTeleporterHouseEntriesImplArch
+local EAS_SetMapTeleporterExpandedBase029143 = SetMapTeleporterExpanded029128ImplArch
+local EAS_InitializeTravelBase029143 = InitializeImplArch
 
 local function EAS_TeleporterNowMs029143()
     if type(GetFrameTimeMilliseconds) == "function" then
@@ -9410,7 +9738,7 @@ function T:GetMapTeleporterBuildCacheKey029143()
     }, "|")
 end
 
-function T:GetMapTeleporterHouseEntries()
+GetMapTeleporterHouseEntriesImplArch = function(self)
     local now = EAS_TeleporterNowMs029143()
     local cache = self.mapTeleporterHouseCache029143
     local expires = safeNumber(self.mapTeleporterHouseCacheExpires029143, 0)
@@ -9426,7 +9754,7 @@ function T:GetMapTeleporterHouseEntries()
     return rows
 end
 
-function T:BuildMapTeleporterEntries()
+BuildMapTeleporterEntriesImplArch = function(self)
     local key = self:GetMapTeleporterBuildCacheKey029143()
     self.mapTeleporterBuildCache029143 = self.mapTeleporterBuildCache029143 or {}
     local cached = self.mapTeleporterBuildCache029143[key]
@@ -9481,7 +9809,7 @@ function T:ScheduleMapTeleporterDeferredRefresh029143()
     end
 end
 
-function T:SetMapTeleporterExpanded029128(expanded, saveState)
+SetMapTeleporterExpanded029128ImplArch = function(self, expanded, saveState)
     expanded = expanded == true
     local wasExpanded = self.mapTeleporterExpanded029128 == true
 
@@ -9514,7 +9842,7 @@ function T:PrewarmMapTeleporterCaches029143()
     end
 end
 
-function T:Initialize()
+InitializeImplArch = function(self)
     local result = EAS_InitializeTravelBase029143(self)
     local function schedulePrewarm()
         if type(zo_callLater) == "function" then
@@ -9531,8 +9859,8 @@ function T:Initialize()
     -- Wait until the player is actually activated so collection/social data is
     -- ready; otherwise an early empty housing result could be cached.
     if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED ~= nil then
-        EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_TeleporterPrewarm029143", EVENT_PLAYER_ACTIVATED, function()
-            EVENT_MANAGER:UnregisterForEvent("ESOAdventurerSuite_TeleporterPrewarm029143", EVENT_PLAYER_ACTIVATED)
+        EPC.Runtime:RegisterEvent("Travel", "Prewarm", EVENT_PLAYER_ACTIVATED, function()
+            EPC.Runtime:UnregisterEvent("Travel", "Prewarm")
             schedulePrewarm()
         end)
     else
@@ -9548,15 +9876,15 @@ end
 -- the older direct camera-UI helpers so no legacy handler can change camera mode
 -- behind the native host, then refresh Suite 3D render spaces after close.
 -- ============================================================================
-function T:SetMapTeleporterOverlayUIMode029135(active)
+SetMapTeleporterOverlayUIMode029135ImplArch = function(self, active)
     return false
 end
-function T:SetMapTeleporterOverlayUIMode029132(active)
+SetMapTeleporterOverlayUIMode029132ImplArch = function(self, active)
     return false
 end
 
-local EAS_FinishMapTeleporterHotkeyCloseBase029144 = T.FinishMapTeleporterHotkeyClose029136
-function T:FinishMapTeleporterHotkeyClose029136(skipRefresh, hostAlreadyHidden)
+local EAS_FinishMapTeleporterHotkeyCloseBase029144 = FinishMapTeleporterHotkeyClose029136ImplArch
+FinishMapTeleporterHotkeyClose029136ImplArch = function(self, skipRefresh, hostAlreadyHidden)
     local result = EAS_FinishMapTeleporterHotkeyCloseBase029144(self, skipRefresh, hostAlreadyHidden)
     if EPC and EPC.ResourcePins and EPC.ResourcePins.ScheduleSuite3DRecovery029144 then
         EPC.ResourcePins:ScheduleSuite3DRecovery029144("Teleporter closed", 220)
@@ -9567,12 +9895,12 @@ end
 -- ============================================================================
 -- v0.29.358 - Teleporter input, tab responsiveness, click-away and localization.
 -- ============================================================================
-local EAS_BuildMapTeleporterEntriesBase029358 = T.BuildMapTeleporterEntries
-local EAS_SetMapTeleporterModeBase029358 = T.SetMapTeleporterMode
-local EAS_RefreshMapTeleporterBase029358 = T.RefreshMapTeleporter
-local EAS_OpenMapTeleporterOverlayBase029358 = T.OpenMapTeleporterOverlay029136
-local EAS_FinishMapTeleporterHotkeyCloseBase029358 = T.FinishMapTeleporterHotkeyClose029136
-local EAS_RegisterMapTeleporterClickAwayBase029358 = T.RegisterMapTeleporterClickAway029136
+local EAS_BuildMapTeleporterEntriesBase029358 = BuildMapTeleporterEntriesImplArch
+local EAS_SetMapTeleporterModeBase029358 = SetMapTeleporterModeImplArch
+local EAS_RefreshMapTeleporterBase029358 = RefreshMapTeleporterImplArch
+local EAS_OpenMapTeleporterOverlayBase029358 = OpenMapTeleporterOverlay029136ImplArch
+local EAS_FinishMapTeleporterHotkeyCloseBase029358 = FinishMapTeleporterHotkeyClose029136ImplArch
+local EAS_RegisterMapTeleporterClickAwayBase029358 = RegisterMapTeleporterClickAway029136ImplArch
 
 local function EAS_TeleporterNowMs029358()
     if type(GetFrameTimeMilliseconds) == "function" then
@@ -9632,7 +9960,7 @@ local function EAS_NormalizeTeleporterEntry029358(entry)
     return entry
 end
 
-function T:BuildMapTeleporterEntries()
+BuildMapTeleporterEntriesImplArch = function(self)
     local key = self.GetMapTeleporterBuildCacheKey029143 and self:GetMapTeleporterBuildCacheKey029143() or nil
     local now = EAS_TeleporterNowMs029358()
     local cache = key and self.mapTeleporterBuildCache029143 and self.mapTeleporterBuildCache029143[key] or nil
@@ -9653,7 +9981,7 @@ function T:BuildMapTeleporterEntries()
     return entries
 end
 
-function T:SetMapTeleporterMode(mode)
+SetMapTeleporterModeImplArch = function(self, mode)
     local previous = self.mapTeleporterMode or "ALL"
     if mode == previous then return end
 
@@ -9717,15 +10045,15 @@ function T:IsMouseInsideMapTeleporterFlyout029358()
     return false
 end
 
-function T:RegisterMapTeleporterClickAway029136()
+RegisterMapTeleporterClickAway029136ImplArch = function(self)
     if EAS_RegisterMapTeleporterClickAwayBase029358 then
         EAS_RegisterMapTeleporterClickAwayBase029358(self)
     end
     if not EVENT_MANAGER or not EVENT_GLOBAL_MOUSE_UP then return end
 
     local eventName = (EPC.name or "ESOAdventurerSuite") .. "_TeleporterFlyoutClickAway029358"
-    EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP)
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP, function()
+    EPC.Runtime:UnregisterEvent("Travel", "FlyoutClickAway")
+    EPC.Runtime:RegisterEvent("Travel", "ClickAwayMouseUp", EVENT_GLOBAL_MOUSE_UP, function()
         local travel = EPC and EPC.Travel
         if not travel then return end
         local root = travel.mapTeleporter
@@ -9741,7 +10069,15 @@ function T:RegisterMapTeleporterClickAway029136()
     end)
 end
 
-function T:ApplyMapTeleporterOutsideInput029358(root)
+local ApplyMapTeleporterOutsideInput029358ImplArch
+
+function T:ApplyMapTeleporterOutsideInput029358(...)
+
+    return ApplyMapTeleporterOutsideInput029358ImplArch(self, ...)
+
+end
+
+ApplyMapTeleporterOutsideInput029358ImplArch = function(self, root)
     root = root or self.mapTeleporter
     if not root or self:IsMapTeleporterMapShowing() or self.mapTeleporterHotkeySession029132 ~= true then return end
 
@@ -9758,15 +10094,15 @@ function T:ApplyMapTeleporterOutsideInput029358(root)
     end)
 end
 
-function T:OpenMapTeleporterOverlay029136()
+OpenMapTeleporterOverlay029136ImplArch = function(self)
     local result = EAS_OpenMapTeleporterOverlayBase029358(self)
     if result then self:ApplyMapTeleporterOutsideInput029358(self.mapTeleporter) end
     return result
 end
 
-function T:FinishMapTeleporterHotkeyClose029136(skipRefresh, hostAlreadyHidden)
+FinishMapTeleporterHotkeyClose029136ImplArch = function(self, skipRefresh, hostAlreadyHidden)
     if EVENT_MANAGER and EVENT_GLOBAL_MOUSE_UP then
-        EVENT_MANAGER:UnregisterForEvent((EPC.name or "ESOAdventurerSuite") .. "_TeleporterFlyoutClickAway029358", EVENT_GLOBAL_MOUSE_UP)
+        EPC.Runtime:UnregisterEvent("Travel", "FlyoutClickAway")
     end
     local root = self.mapTeleporter
     if root and root.SetKeyboardEnabled then root:SetKeyboardEnabled(false) end
@@ -9774,7 +10110,7 @@ function T:FinishMapTeleporterHotkeyClose029136(skipRefresh, hostAlreadyHidden)
     return EAS_FinishMapTeleporterHotkeyCloseBase029358(self, skipRefresh, hostAlreadyHidden)
 end
 
-function T:RefreshMapTeleporter(...)
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase029358(self, ...)
     if self.mapTeleporterHotkeySession029132 == true and not self:IsMapTeleporterMapShowing() then
         self:ApplyMapTeleporterOutsideInput029358(self.mapTeleporter)
@@ -9783,10 +10119,10 @@ function T:RefreshMapTeleporter(...)
 end
 
 -- Keep old public aliases on the corrected outside-map state machine.
-function T:OpenMapTeleporterOverlay029134() return self:OpenMapTeleporterOverlay029136() end
-function T:OpenMapTeleporterOverlay029132() return self:OpenMapTeleporterOverlay029136() end
-function T:CloseMapTeleporterOverlay029134(skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
-function T:CloseMapTeleporterOverlay029132(skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
+OpenMapTeleporterOverlay029134ImplArch = function(self) return self:OpenMapTeleporterOverlay029136() end
+OpenMapTeleporterOverlay029132ImplArch = function(self) return self:OpenMapTeleporterOverlay029136() end
+CloseMapTeleporterOverlay029134ImplArch = function(self, skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
+CloseMapTeleporterOverlay029132ImplArch = function(self, skipRefresh) return self:CloseMapTeleporterOverlay029136(skipRefresh) end
 
 -- ============================================================================
 -- v0.29.361 - Teleporter tab click restoration.
@@ -9795,7 +10131,11 @@ function T:CloseMapTeleporterOverlay029132(skipRefresh) return self:CloseMapTele
 -- firing at all. Flyout dismissal is performed inside the existing OnClicked
 -- path instead, after the button has received the click normally.
 -- ============================================================================
-function T:ApplyMapTeleporterFlyoutPassThrough029361(root)
+local ApplyMapTeleporterFlyoutPassThrough029361ImplArch
+function T:ApplyMapTeleporterFlyoutPassThrough029361(...)
+    return ApplyMapTeleporterFlyoutPassThrough029361ImplArch(self, ...)
+end
+ApplyMapTeleporterFlyoutPassThrough029361ImplArch = function(self, root)
     root = root or self.mapTeleporter
     if not root then return end
 
@@ -9869,15 +10209,15 @@ function T:ApplyMapTeleporterFlyoutPassThrough029361(root)
     end
 end
 
-local EAS_CreateMapTeleporterBase029361 = T.CreateMapTeleporter
-function T:CreateMapTeleporter()
+local EAS_CreateMapTeleporterBase029361 = CreateMapTeleporterImplArch
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029361(self)
     self:ApplyMapTeleporterFlyoutPassThrough029361(root)
     return root
 end
 
-local EAS_RefreshMapTeleporterBase029361 = T.RefreshMapTeleporter
-function T:RefreshMapTeleporter(...)
+local EAS_RefreshMapTeleporterBase029361 = RefreshMapTeleporterImplArch
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase029361(self, ...)
     self:ApplyMapTeleporterFlyoutPassThrough029361(self.mapTeleporter)
     return result
@@ -9914,15 +10254,15 @@ function T:IsMapTeleporterClickAwaySuppressed029362()
     return untilMs > EAS_MapTeleporterNowMs029362()
 end
 
-function T:RegisterMapTeleporterClickAway029136()
+RegisterMapTeleporterClickAway029136ImplArch = function(self)
     if EAS_RegisterMapTeleporterClickAwayBase029358 then
         EAS_RegisterMapTeleporterClickAwayBase029358(self)
     end
     if not EVENT_MANAGER or not EVENT_GLOBAL_MOUSE_UP then return end
 
     local eventName = (EPC.name or "ESOAdventurerSuite") .. "_TeleporterFlyoutClickAway029358"
-    EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP)
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_GLOBAL_MOUSE_UP, function()
+    EPC.Runtime:UnregisterEvent("Travel", "FlyoutClickAway")
+    EPC.Runtime:RegisterEvent("Travel", "ClickAwayMouseUp", EVENT_GLOBAL_MOUSE_UP, function()
         local travel = EPC and EPC.Travel
         if not travel then return end
         local root = travel.mapTeleporter
@@ -9940,7 +10280,7 @@ function T:RegisterMapTeleporterClickAway029136()
     end)
 end
 
-function T:ApplyMapTeleporterFlyoutPassThrough029361(root)
+ApplyMapTeleporterFlyoutPassThrough029361ImplArch = function(self, root)
     root = root or self.mapTeleporter
     if not root then return end
 
@@ -10018,7 +10358,11 @@ end
 -- ============================================================================
 -- v0.29.365 - survey/treasure destinations resolve by LibTreasure item ID.
 -- ============================================================================
-function T:EnsureMapTeleporterTreasureIndex029365()
+local EnsureMapTeleporterTreasureIndex029365ImplArch
+function T:EnsureMapTeleporterTreasureIndex029365(...)
+    return EnsureMapTeleporterTreasureIndex029365ImplArch(self, ...)
+end
+EnsureMapTeleporterTreasureIndex029365ImplArch = function(self)
     if self.mapTeleporterTreasureIndexReady029365 or self.mapTeleporterTreasureIndexBuilding029365 then return end
     if type(_G.LibTreasure_GetMapIdData)~="function" or type(GetNumMaps)~="function" or type(GetMapIdByIndex)~="function" then return end
     self.mapTeleporterTreasureIndexBuilding029365=true; self.mapTeleporterTreasureIndex029365=self.mapTeleporterTreasureIndex029365 or {}
@@ -10053,8 +10397,8 @@ function T:EnsureMapTeleporterTreasureIndex029365()
     end
     step()
 end
-local EAS_GetMapTeleporterItemEntriesBase029365=T.GetMapTeleporterItemEntries
-function T:GetMapTeleporterItemEntries()
+local EAS_GetMapTeleporterItemEntriesBase029365= GetMapTeleporterItemEntriesImplArch
+GetMapTeleporterItemEntriesImplArch = function(self)
     self:EnsureMapTeleporterTreasureIndex029365()
     local rows=EAS_GetMapTeleporterItemEntriesBase029365(self)
     local idx=self.mapTeleporterTreasureIndex029365 or {}; local routing=nil
@@ -10081,13 +10425,13 @@ end
 -- ============================================================================
 -- v0.29.376 - Teleporter input/localization/survey hardening.
 -- ============================================================================
-local EAS_EnsureTeleporterHostBase029376 = T.EnsureMapTeleporterInteractionHost029136
-local EAS_InitializeTravelBase029376 = T.Initialize
+local EAS_EnsureTeleporterHostBase029376 = EnsureMapTeleporterInteractionHost029136ImplArch
+local EAS_InitializeTravelBase029376 = InitializeImplArch
 
 -- Use a full-screen, low-tier interaction host while the outside-map Teleporter
 -- owns UI mode. The Teleporter itself remains DT_HIGH, so its buttons win mouse
 -- hit-testing; blank screen clicks hit this host and close the overlay reliably.
-function T:EnsureMapTeleporterInteractionHost029136()
+EnsureMapTeleporterInteractionHost029136ImplArch = function(self)
     local host = EAS_EnsureTeleporterHostBase029376(self)
     if not host or not GuiRoot then return host end
     host:ClearAnchors(); host:SetAnchorFill(GuiRoot)
@@ -10167,7 +10511,7 @@ local function EAS_MapZoneId029376(mapId, mapMeta)
     return zoneId,zoneName
 end
 
-function T:EnsureMapTeleporterTreasureIndex029365()
+EnsureMapTeleporterTreasureIndex029365ImplArch = function(self)
     if self.mapTeleporterTreasureIndexReady029376 or self.mapTeleporterTreasureIndexBuilding029376 then return end
     if type(_G.LibTreasure_GetMapIdData)~="function" or type(GetNumMaps)~="function" or type(GetMapIdByIndex)~="function" then return end
     self.mapTeleporterTreasureIndexBuilding029376=true
@@ -10224,12 +10568,11 @@ function T:EnsureMapTeleporterTreasureIndex029365()
     metaStep()
 end
 
-function T:Initialize()
+InitializeImplArch = function(self)
     local result=EAS_InitializeTravelBase029376(self)
     local prefix=(EPC.name or "ESOAdventurerSuite").."_TeleporterInput029376"
     if EVENT_GAME_CAMERA_UI_MODE_CHANGED then
-        EVENT_MANAGER:UnregisterForEvent(prefix,EVENT_GAME_CAMERA_UI_MODE_CHANGED)
-        EVENT_MANAGER:RegisterForEvent(prefix,EVENT_GAME_CAMERA_UI_MODE_CHANGED,function()
+        EPC.Runtime:RegisterEvent("Travel", "CameraUiMode", EVENT_GAME_CAMERA_UI_MODE_CHANGED,function()
             local travel=EPC and EPC.Travel
             if not travel or travel.mapTeleporterHotkeySession029132~=true or travel:IsMapTeleporterMapShowing() then return end
             local inUi = true
@@ -10279,7 +10622,7 @@ local function EAS_TeleporterStripGrammar029381(value, fallback)
 end
 EAS_LocalizedText029358 = EAS_TeleporterStripGrammar029381
 
-function T:ApplyMapTeleporterOutsideInput029358(root)
+ApplyMapTeleporterOutsideInput029358ImplArch = function(self, root)
     root = root or self.mapTeleporter
     if not root or self:IsMapTeleporterMapShowing() or self.mapTeleporterHotkeySession029132 ~= true then return end
     local function keyHandler(_, key, ctrl, alt, shift, command)
@@ -10325,8 +10668,8 @@ function T:ApplyMapTeleporterOutsideInput029358(root)
     end
 end
 
-local EAS_RefreshMapTeleporterBase029381 = T.RefreshMapTeleporter
-function T:RefreshMapTeleporter(...)
+local EAS_RefreshMapTeleporterBase029381 = RefreshMapTeleporterImplArch
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase029381(self, ...)
     local root = self.mapTeleporter
     if root then
@@ -10350,9 +10693,9 @@ end
 -- ============================================================================
 -- v0.29.384 - World Map Teleporter ESC/click-away + Russian label hardening.
 -- ============================================================================
-local EAS_CreateMapTeleporterBase029384 = T.CreateMapTeleporter
-local EAS_RefreshMapTeleporterBase029384 = T.RefreshMapTeleporter
-local EAS_ShowMapTeleporterFlyoutBase029384 = T.ShowMapTeleporterFlyout02969
+local EAS_CreateMapTeleporterBase029384 = CreateMapTeleporterImplArch
+local EAS_RefreshMapTeleporterBase029384 = RefreshMapTeleporterImplArch
+local EAS_ShowMapTeleporterFlyoutBase029384 = ShowMapTeleporterFlyout02969ImplArch
 
 local function EAS_TeleporterDisplayText029384(value, fallback)
     local text = tostring(value or "")
@@ -10377,7 +10720,7 @@ local function EAS_TeleporterDisplayText029384(value, fallback)
     return text ~= "" and text or tostring(fallback or "")
 end
 
-function T:CreateMapTeleporter()
+CreateMapTeleporterImplArch = function(self)
     local root = EAS_CreateMapTeleporterBase029384(self)
     -- Click-away must also be registered for the docked World Map Teleporter,
     -- not only for the hotkey/outside-map session.
@@ -10385,7 +10728,7 @@ function T:CreateMapTeleporter()
     return root
 end
 
-function T:ShowMapTeleporterFlyout02969(titleText, items, owner, contextMode)
+ShowMapTeleporterFlyout02969ImplArch = function(self, titleText, items, owner, contextMode)
     local cleanItems = {}
     for i, item in ipairs(items or {}) do
         if type(item) == "table" then
@@ -10401,7 +10744,7 @@ function T:ShowMapTeleporterFlyout02969(titleText, items, owner, contextMode)
     return EAS_ShowMapTeleporterFlyoutBase029384(self, EAS_TeleporterDisplayText029384(titleText, "OPTIONS"), cleanItems, owner, contextMode)
 end
 
-function T:RefreshMapTeleporter(...)
+RefreshMapTeleporterImplArch = function(self, ...)
     local result = EAS_RefreshMapTeleporterBase029384(self, ...)
     local root = self.mapTeleporter
     if not root then return result end
@@ -10443,3 +10786,370 @@ function T:RefreshMapTeleporter(...)
     end
     return result
 end
+
+
+-- BEGIN ABSORBED: TeleporterArenaDelveFix.lua
+-- ESO Adventurer Suite
+-- v0.29.643 - Teleporter arena + delve destination bridge.
+-- Adds ESO POI/activity-backed Delves and Arenas to the same shared Teleporter
+-- dataset used by the World Map panel and hotkey window. Direct instance nodes
+-- are preferred; otherwise the entry routes through the nearest known wayshrine.
+-- Static POI/activity discovery is cached for the session; route-node matching is
+-- rebuilt only after player activation so repeated Teleporter refreshes stay cheap.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.Travel then return end
+local T = EPC.Travel
+
+local function num(v, fallback)
+    v = tonumber(v)
+    if v == nil then return fallback or 0 end
+    return v
+end
+
+local function clean(v, fallback)
+    v = tostring(v or "")
+    v = v:gsub("[%c]+", " "):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+    if v == "" then return fallback or "" end
+    return v
+end
+
+local function lower(v)
+    return string.lower(clean(v, ""))
+end
+
+local function call1(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a = pcall(fn, ...)
+    if not ok or a == nil then return fallback end
+    return a
+end
+
+local function zoneIndexForId(zoneId)
+    zoneId = num(zoneId, 0)
+    if zoneId <= 0 or type(GetZoneIndex) ~= "function" then return 0 end
+    return num(call1(GetZoneIndex, 0, zoneId), 0)
+end
+
+local function zoneIdForIndex(zoneIndex)
+    zoneIndex = num(zoneIndex, 0)
+    if zoneIndex <= 0 or type(GetZoneId) ~= "function" then return 0 end
+    return num(call1(GetZoneId, 0, zoneIndex), 0)
+end
+
+local function parentZoneId(zoneId)
+    zoneId = num(zoneId, 0)
+    if zoneId <= 0 or type(GetParentZoneId) ~= "function" then return zoneId end
+    local parent = num(call1(GetParentZoneId, 0, zoneId), 0)
+    if parent <= 0 or parent == zoneId then return zoneId end
+    return parent
+end
+
+local function poiTypeEquals(value, constantName)
+    local constant = rawget(_G, constantName)
+    return constant ~= nil and value == constant
+end
+
+local function getNodeZoneIndex(nodeIndex)
+    local fn = rawget(_G, "GetFastTravelNodePOIIndicies") or rawget(_G, "GetFastTravelNodePOIIndices")
+    if type(fn) ~= "function" then return 0 end
+    local ok, zoneIndex = pcall(fn, nodeIndex)
+    return ok and num(zoneIndex, 0) or 0
+end
+
+function T:InvalidateArenaDelveRouteCache029643()
+    self._arenaDelveRouteNodes029643 = nil
+    self._arenaDelveExtraEntries029643 = nil
+end
+
+function T:BuildArenaDelveStaticDestinations029643()
+    if self._arenaDelveStaticDestinations029643 then
+        return self._arenaDelveStaticDestinations029643
+    end
+
+    local rows, seen = {}, {}
+    local function add(kind, name, zoneIndex, zoneId, x, y, poiIndex, activityId)
+        name = clean(name, kind == "ARENA" and "Arena" or "Delve")
+        zoneIndex = num(zoneIndex, 0)
+        zoneId = num(zoneId, 0)
+        if zoneId <= 0 and zoneIndex > 0 then zoneId = zoneIdForIndex(zoneIndex) end
+        if zoneIndex <= 0 and zoneId > 0 then zoneIndex = zoneIndexForId(zoneId) end
+        if zoneId <= 0 and zoneIndex <= 0 then return end
+
+        local key = kind .. ":" .. tostring(zoneId) .. ":" .. lower(name)
+        if seen[key] then
+            -- Prefer a POI-backed record because it has real map coordinates.
+            local existing = seen[key]
+            if (not existing.x or not existing.y) and x and y then
+                existing.x, existing.y = tonumber(x), tonumber(y)
+                existing.poiIndex = poiIndex
+            end
+            if activityId and not existing.activityId then existing.activityId = activityId end
+            return
+        end
+
+        local zoneName = ""
+        if zoneIndex > 0 and type(GetZoneNameByIndex) == "function" then
+            zoneName = clean(call1(GetZoneNameByIndex, "", zoneIndex), "")
+        end
+        if zoneName == "" and zoneId > 0 and type(GetZoneNameById) == "function" then
+            zoneName = clean(call1(GetZoneNameById, "", zoneId), "")
+        end
+
+        local row = {
+            instanceCategory = kind,
+            name = name,
+            zoneName = zoneName ~= "" and zoneName or "Tamriel",
+            zoneIndex = zoneIndex,
+            zoneId = zoneId,
+            parentZoneId = parentZoneId(zoneId),
+            x = tonumber(x), y = tonumber(y),
+            poiIndex = poiIndex,
+            activityId = activityId,
+        }
+        rows[#rows + 1] = row
+        seen[key] = row
+    end
+
+    -- POIs are authoritative for Delves and useful for Arenas because they give
+    -- us the exact map position needed to pick the nearest wayshrine.
+    if type(GetNumZones) == "function" and type(GetNumPOIs) == "function" and type(GetPOIType) == "function" then
+        local zoneCount = num(call1(GetNumZones, 0), 0)
+        for zoneIndex = 1, zoneCount do
+            local zoneId = zoneIdForIndex(zoneIndex)
+            local poiCount = num(call1(GetNumPOIs, 0, zoneIndex), 0)
+            for poiIndex = 1, poiCount do
+                local poiType = call1(GetPOIType, nil, zoneIndex, poiIndex)
+                local kind = nil
+                if poiTypeEquals(poiType, "POI_TYPE_DELVE") then kind = "DELVE"
+                elseif poiTypeEquals(poiType, "POI_TYPE_ARENA") then kind = "ARENA" end
+
+                if kind then
+                    local name = ""
+                    if type(GetPOIInfo) == "function" then
+                        name = clean(call1(GetPOIInfo, "", zoneIndex, poiIndex), "")
+                    end
+                    local x, y, shown, locked
+                    if type(GetPOIMapInfo) == "function" then
+                        local ok, px, py, _, _, isShown, collectibleLocked = pcall(GetPOIMapInfo, zoneIndex, poiIndex)
+                        if ok then x, y, shown, locked = tonumber(px), tonumber(py), isShown, collectibleLocked end
+                    end
+                    -- Keep discovered/unlocked POIs and also named POIs that ESO
+                    -- exposes even when their current-map visibility is false.
+                    if name ~= "" and locked ~= true then
+                        add(kind, name, zoneIndex, zoneId, x, y, poiIndex, nil)
+                    end
+                end
+            end
+        end
+    end
+
+    -- Activity Finder/Group Finder data fills Arena gaps that do not expose a
+    -- normal map POI or fast-travel node. LFG_ACTIVITY_ARENA is the native type.
+    local arenaType = rawget(_G, "LFG_ACTIVITY_ARENA")
+    if arenaType ~= nil and type(GetNumActivitiesByType) == "function" and type(GetActivityIdByTypeAndIndex) == "function" then
+        local count = num(call1(GetNumActivitiesByType, 0, arenaType), 0)
+        for i = 1, count do
+            local activityId = num(call1(GetActivityIdByTypeAndIndex, 0, arenaType, i), 0)
+            if activityId > 0 then
+                local name = ""
+                if type(GetActivityInfo) == "function" then
+                    name = clean(call1(GetActivityInfo, "", activityId), "")
+                end
+                local zoneId = 0
+                if type(GetActivityZoneId) == "function" then
+                    zoneId = num(call1(GetActivityZoneId, 0, activityId), 0)
+                end
+                if name ~= "" and zoneId > 0 then
+                    add("ARENA", name, zoneIndexForId(zoneId), zoneId, nil, nil, nil, activityId)
+                end
+            end
+        end
+    end
+
+    table.sort(rows, function(a, b)
+        if a.instanceCategory ~= b.instanceCategory then return a.instanceCategory < b.instanceCategory end
+        if lower(a.zoneName) ~= lower(b.zoneName) then return lower(a.zoneName) < lower(b.zoneName) end
+        return lower(a.name) < lower(b.name)
+    end)
+
+    self._arenaDelveStaticDestinations029643 = rows
+    return rows
+end
+
+function T:BuildArenaDelveRouteNodes029643()
+    if self._arenaDelveRouteNodes029643 then return self._arenaDelveRouteNodes029643 end
+
+    local nodes = {}
+    local count = type(GetNumFastTravelNodes) == "function" and num(call1(GetNumFastTravelNodes, 0), 0) or 0
+    for nodeIndex = 1, count do
+        local ok, known, name, x, y, _, _, poiType, _, locked = pcall(GetFastTravelNodeInfo, nodeIndex)
+        if ok and known == true and locked ~= true then
+            local zoneIndex = getNodeZoneIndex(nodeIndex)
+            local zoneId = zoneIdForIndex(zoneIndex)
+            local houseId = 0
+            if type(GetFastTravelNodeHouseId) == "function" then
+                houseId = num(call1(GetFastTravelNodeHouseId, 0, nodeIndex), 0)
+            end
+            if houseId <= 0 then
+                nodes[#nodes + 1] = {
+                    nodeIndex = nodeIndex,
+                    name = clean(name, "Travel Node"),
+                    x = tonumber(x), y = tonumber(y),
+                    zoneIndex = zoneIndex,
+                    zoneId = zoneId,
+                    parentZoneId = parentZoneId(zoneId),
+                    poiType = poiType,
+                    isWayshrine = rawget(_G, "POI_TYPE_WAYSHRINE") ~= nil and poiType == POI_TYPE_WAYSHRINE,
+                }
+            end
+        end
+    end
+    self._arenaDelveRouteNodes029643 = nodes
+    return nodes
+end
+
+local function routeScore(destination, node)
+    local exactZone = destination.zoneId > 0 and node.zoneId == destination.zoneId
+    local parentMatch = destination.parentZoneId > 0
+        and (node.zoneId == destination.parentZoneId or node.parentZoneId == destination.parentZoneId)
+    if not exactZone and not parentMatch then return nil end
+
+    local score = exactZone and 0 or 100
+    if node.isWayshrine then score = score + 10 end
+    if destination.x and destination.y and node.x and node.y then
+        local dx, dy = destination.x - node.x, destination.y - node.y
+        score = score + (dx * dx + dy * dy)
+    else
+        score = score + 1
+    end
+    return score
+end
+
+function T:FindArenaDelveRouteNode029643(destination)
+    local nodes = self:BuildArenaDelveRouteNodes029643()
+    local best, bestScore = nil, nil
+
+    -- Prefer a direct Arena/Delve node for the same destination when ESO exposes
+    -- one. Name matching is only used as a preference, never as the sole route.
+    local wanted = lower(destination.name)
+    for _, node in ipairs(nodes) do
+        local score = routeScore(destination, node)
+        if score then
+            local nodeName = lower(node.name)
+            local directType = (destination.instanceCategory == "ARENA" and poiTypeEquals(node.poiType, "POI_TYPE_ARENA"))
+                or (destination.instanceCategory == "DELVE" and poiTypeEquals(node.poiType, "POI_TYPE_DELVE"))
+            if directType then score = score - 50 end
+            if wanted ~= "" and nodeName ~= "" and (nodeName == wanted or nodeName:find(wanted, 1, true) or wanted:find(nodeName, 1, true)) then
+                score = score - 25
+            end
+            if bestScore == nil or score < bestScore then best, bestScore = node, score end
+        end
+    end
+    return best
+end
+
+function T:GetArenaDelveExtraEntries029643()
+    if self._arenaDelveExtraEntries029643 then return self._arenaDelveExtraEntries029643 end
+
+    local out = {}
+    for _, destination in ipairs(self:BuildArenaDelveStaticDestinations029643()) do
+        local route = self:FindArenaDelveRouteNode029643(destination)
+        local cost = 0
+        if route and type(self.GetLiveWayshrineTravelCost) == "function" then
+            local ok, value = pcall(self.GetLiveWayshrineTravelCost, self, route.nodeIndex)
+            if ok then cost = num(value, 0) end
+        end
+        out[#out + 1] = {
+            kind = "INSTANCE",
+            key = "I:EAS643:" .. destination.instanceCategory .. ":" .. tostring(destination.zoneId) .. ":" .. lower(destination.name),
+            nodeIndex = route and route.nodeIndex or nil,
+            name = destination.name,
+            displayName = destination.name,
+            zoneName = destination.zoneName,
+            zoneId = destination.zoneId,
+            zoneIndex = destination.zoneIndex,
+            parentZoneId = destination.parentZoneId,
+            normalizedX = destination.x or (route and route.x),
+            normalizedY = destination.y or (route and route.y),
+            poiType = destination.instanceCategory == "DELVE" and rawget(_G, "POI_TYPE_DELVE") or rawget(_G, "POI_TYPE_ARENA"),
+            instanceCategory = destination.instanceCategory,
+            activityId = destination.activityId,
+            routeViaWayshrine029643 = route and route.isWayshrine == true or false,
+            routeNodeName029643 = route and route.name or "",
+            canTravel = route ~= nil,
+            statusText = route and nil or "No discovered travel node is currently available near this destination.",
+            costText = cost <= 0 and "Free" or (tostring(math.floor(cost + 0.5)) .. " gold"),
+        }
+    end
+
+    self._arenaDelveExtraEntries029643 = out
+    return out
+end
+
+-- One shared source feeds ALL / DELVES / DUNGEONS / INSTANCES in both the big
+-- World Map panel and hotkey Teleporter, so fixing the instance source fixes both.
+if type(T.GetMapTeleporterInstanceEntries) == "function" and not T._easArenaDelveWrapped029643 then
+    T._easArenaDelveWrapped029643 = true
+    local baseInstances = GetMapTeleporterInstanceEntriesImplArch
+    GetMapTeleporterInstanceEntriesImplArch = function(self, ...)
+        local rows = baseInstances(self, ...) or {}
+        local seen = {}
+        for _, entry in ipairs(rows) do
+            local key = lower(entry and entry.name or "") .. ":" .. tostring(num(entry and entry.zoneId, 0))
+            seen[key] = true
+        end
+        for _, entry in ipairs(self:GetArenaDelveExtraEntries029643()) do
+            local key = lower(entry.name) .. ":" .. tostring(num(entry.zoneId, 0))
+            if not seen[key] then
+                rows[#rows + 1] = entry
+                seen[key] = true
+            end
+        end
+        table.sort(rows, function(a, b)
+            local ca, cb = tostring(a.instanceCategory or "INSTANCE"), tostring(b.instanceCategory or "INSTANCE")
+            if ca ~= cb then return ca < cb end
+            if lower(a.zoneName) ~= lower(b.zoneName) then return lower(a.zoneName) < lower(b.zoneName) end
+            return lower(a.name) < lower(b.name)
+        end)
+        return rows
+    end
+end
+
+-- Make routed entries explicit in chat so a Delve/Arena entry never pretends a
+-- nearby wayshrine is the instance door itself.
+if type(T.TravelMapTeleporterEntry) == "function" and not T._easArenaDelveTravelWrapped029643 then
+    T._easArenaDelveTravelWrapped029643 = true
+    local baseTravel = TravelMapTeleporterEntryImplArch
+    TravelMapTeleporterEntryImplArch = function(self, entry, ...)
+        if entry and entry.routeViaWayshrine029643 and entry.routeNodeName029643 ~= "" and EPC.Print then
+            EPC:Print("Routing to " .. clean(entry.name, "destination") .. " via " .. entry.routeNodeName029643 .. ".")
+        end
+        return baseTravel(self, entry, ...)
+    end
+end
+
+if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED then
+    EPC.Runtime:RegisterEvent("Travel", "ArenaDelveRoutes", EVENT_PLAYER_ACTIVATED, function()
+        if EPC.Travel and EPC.Travel.InvalidateArenaDelveRouteCache029643 then
+            EPC.Travel:InvalidateArenaDelveRouteCache029643()
+        end
+    end)
+end
+
+SLASH_COMMANDS = SLASH_COMMANDS or {}
+SLASH_COMMANDS["/easdestinations"] = function()
+    local static = T:BuildArenaDelveStaticDestinations029643()
+    local delves, arenas = 0, 0
+    for _, d in ipairs(static) do
+        if d.instanceCategory == "DELVE" then delves = delves + 1
+        elseif d.instanceCategory == "ARENA" then arenas = arenas + 1 end
+    end
+    local extras = T:GetArenaDelveExtraEntries029643()
+    local routable = 0
+    for _, e in ipairs(extras) do if e.canTravel ~= false then routable = routable + 1 end end
+    local text = string.format("EAS Teleporter destinations | delves=%d arenas=%d routable=%d/%d", delves, arenas, routable, #extras)
+    if type(d) == "function" then d(text) elseif EPC.Print then EPC:Print(text) end
+end
+
+-- END ABSORBED: TeleporterArenaDelveFix.lua

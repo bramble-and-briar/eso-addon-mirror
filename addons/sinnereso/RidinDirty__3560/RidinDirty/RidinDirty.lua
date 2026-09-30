@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.09.27",
+	version = "2026.09.29",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -1352,6 +1352,11 @@ local function OnPlayerActivated()
 				end
 			end)
 	end
+	if RidinDirty.savedVariables.stackAttributes then
+		ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
+		ZO_PlayerAttributeMagicka:SetAnchor(TOPRIGHT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
+		ZO_PlayerAttributeStamina:SetAnchor(TOPLEFT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
+	end
 	if RidinDirty.savedVariables.fontBoost then
 		SetNameplateKeyboardFont(string.format("%s|%d", "$(BOLD_FONT)", RidinDirty.savedVariables.fontBoost), FONT_STYLE_SOFT_SHADOW_THIN)
 	end
@@ -1511,7 +1516,9 @@ function RidinDirty.TravelToPlayer()
 				end
 			else
 				if IsMounted() then CallSecureProtected("ToggleMount") end
-				df(rdLogo .. "Traveling to " .. displayNamePref .. " in zone")
+				local targetLocation = "zone"
+				if spInGroup then targetLocation = zoneName end
+				df(rdLogo .. "Traveling to " .. displayNamePref .. " in " .. targetLocation)
 				JumpToGroupMember(playerDisplayName)
 				return
 			end
@@ -1922,8 +1929,13 @@ end
 ---------------------------------------------
 ----- WITHDRAW 1 and CUSTOM POPUP MENU --
 ---------------------------------------------
---local function RidinDirty.CloseGuildBank(eventCode)
+--local function CloseGuildBank(eventCode)
 	--EVENT_MANAGER:UnregisterForEvent("RidinDirtyWithdrawOne", EVENT_CLOSE_GUILD_BANK)
+	--StackBag(BAG_BACKPACK)
+--end
+
+--local function OpenGuildBank(eventCode)
+	--EVENT_MANAGER:RegisterForEvent("RidinDirtyWithdrawOne", EVENT_CLOSE_GUILD_BANK, CloseGuildBank)
 --end
 
 local function WithdrawReturn(bagId, slotIndex, targetSlot)
@@ -1931,7 +1943,6 @@ local function WithdrawReturn(bagId, slotIndex, targetSlot)
 		if not (targetSlot == _slotIndex) then return end
 		EVENT_MANAGER:UnregisterForEvent("RidinDirtyWithdrawOne", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 		TransferToGuildBank(bagId, slotIndex)
-		--EVENT_MANAGER:RegisterForEvent("RidinDirtyWithdrawOne", EVENT_CLOSE_GUILD_BANK, RidinDirty.CloseGuildBank)
 	end
 end
 
@@ -1984,6 +1995,7 @@ local function ValidWithdrawContainer(inventorySlot, amount)
 	if not (slotType == SLOT_TYPE_BANK_ITEM or slotType == SLOT_TYPE_GUILD_BANK_ITEM or slotType == SLOT_TYPE_CRAFT_BAG_ITEM or slotType == SLOT_TYPE_FURNITURE_VAULT) then return false end
 	if not (GetSlotStackSize(bagId, slotIndex) > amount) then return false end
 	if slotType == SLOT_TYPE_GUILD_BANK_ITEM then
+		if not CheckInventorySpaceSilently(2) then return false end
 		local guildId = GetSelectedGuildBankId()
 		if not guildId then return false end
 		if not DoesGuildHavePrivilege(guildId, GUILD_PRIVILEGE_BANK_DEPOSIT) then
@@ -1991,10 +2003,7 @@ local function ValidWithdrawContainer(inventorySlot, amount)
 		elseif not (DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_DEPOSIT) and DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_BANK_WITHDRAW)) then
 			return false
 		end
-	end
-	if (slotType == SLOT_TYPE_BANK_ITEM or slotType == SLOT_TYPE_CRAFT_BAG_ITEM or slotType == SLOT_TYPE_FURNITURE_VAULT) and not CheckInventorySpaceSilently(1) then 
-	    return false
-	elseif slotType == SLOT_TYPE_GUILD_BANK_ITEM and not CheckInventorySpaceSilently(2) then
+	elseif (slotType == SLOT_TYPE_BANK_ITEM or slotType == SLOT_TYPE_CRAFT_BAG_ITEM or slotType == SLOT_TYPE_FURNITURE_VAULT) and not CheckInventorySpaceSilently(1) then
 	    return false
 	end
 	return true
@@ -2015,8 +2024,10 @@ function RidinDirty.WithdrawOneToggle(toggle)
 		RidinDirty.savedVariables.withdrawOne = toggle
 		local primary = LibCustomMenu.CATEGORY_PRIMARY
 		LibCustomMenu:RegisterContextMenu(WithdrawMenu, primary)
+		--EVENT_MANAGER:RegisterForEvent("RidinDirtyWithdrawOne", EVENT_OPEN_GUILD_BANK, OpenGuildBank)
 	else
 		RidinDirty.savedVariables.withdrawOne = toggle
+		--EVENT_MANAGER:UnregisterForEvent("RidinDirtyWithdrawOne", EVENT_OPEN_GUILD_BANK)
 		ReloadUI()
 	end
 end
@@ -3153,6 +3164,20 @@ if InAlphaList(GetUnitDisplayName("player")) then
 	end
 end
 
+if InAlphaList(GetUnitDisplayName("player")) then
+	SLASH_COMMANDS["/rdtest"] = function (option)--<< ADMIN TEST FUNCTION
+		--ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
+		--ZO_PlayerAttributeMagicka:SetAnchor(TOPRIGHT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
+		--ZO_PlayerAttributeStamina:SetAnchor(TOPLEFT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
+		local hisValid, hpoint, hrelativeTo, hrelativePoint, hoffsetX, hoffsetY = ZO_PlayerAttributeHealth:GetAnchor()
+		local misValid, mpoint, mrelativeTo, mrelativePoint, moffsetX, moffsetY = ZO_PlayerAttributeMagicka:GetAnchor()
+		local sisValid, spoint, srelativeTo, srelativePoint, soffsetX, soffsetY = ZO_PlayerAttributeStamina:GetAnchor()
+		df("H: " .. tostring(hpoint) .. " - " .. tostring(hrelativeTo) .. " - " .. tostring(hrelativePoint) .. " - " .. tostring(hoffsetX) .. " - " .. tostring(hoffsetY))
+		df("M: " .. tostring(mpoint) .. " - " .. tostring(mrelativeTo) .. " - " .. tostring(mrelativePoint) .. " - " .. tostring(moffsetX) .. " - " .. tostring(moffsetY))
+		df("S: " .. tostring(spoint) .. " - " .. tostring(srelativeTo) .. " - " .. tostring(srelativePoint) .. " - " .. tostring(soffsetX) .. " - " .. tostring(soffsetY))
+	end
+end
+
 local function RDInitializeSettings()
 	--- BASE FEATURES --
 	local late = LibCustomMenu.CATEGORY_LATE
@@ -3177,14 +3202,6 @@ local function RDInitializeSettings()
 	if RidinDirty.savedVariables.lockArmory then
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
-	end
-	if RidinDirty.savedVariables.stackAttributes then
-		ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
-		ZO_PlayerAttributeMagicka:SetAnchor(TOPRIGHT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
-		ZO_PlayerAttributeStamina:SetAnchor(TOPLEFT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
-		--ZO_PlayerAttributeHealth:SetDimensions(360, 20)--:SetAnchorFill(ZO_PlayerAttributeHealth)
-		--ZO_PlayerAttributeMagicka:SetDimensions(360, 20)--:SetAnchorFill(ZO_PlayerAttributeMagicka)
-		--ZO_PlayerAttributeStamina:SetDimensions(360, 20)--:SetAnchorFill(ZO_PlayerAttributeStamina)
 	end
 	if RidinDirty.savedVariables.chatNotify then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHAT_MESSAGE_CHANNEL, ChatNotify)
@@ -3211,6 +3228,7 @@ local function RDInitializeSettings()
 	if RidinDirty.savedVariables.withdrawOne then
 		local primary = LibCustomMenu.CATEGORY_PRIMARY
 		LibCustomMenu:RegisterContextMenu(WithdrawMenu, primary)
+		--EVENT_MANAGER:RegisterForEvent("RidinDirtyWithdrawOne", EVENT_OPEN_GUILD_BANK, OpenGuildBank)
 	end
 	if RidinDirty.savedVariables.avtLog then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_ALLIANCE_POINT_UPDATE, ApLog)

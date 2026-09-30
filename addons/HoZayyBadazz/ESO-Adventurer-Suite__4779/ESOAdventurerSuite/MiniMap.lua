@@ -2399,7 +2399,15 @@ function M:RenderPvPTransitLines()
     for i = used + 1, #pool do pool[i]:SetHidden(true) end
 end
 
-function M:RenderPvPPins()
+local RenderPvPPinsImplArch
+
+function M:RenderPvPPins(...)
+
+    return RenderPvPPinsImplArch(self, ...)
+
+end
+
+RenderPvPPinsImplArch = function(self)
     local data = self.pvpKeepData or {}
     if safe(IsPlayerInAvAWorld, false) ~= true or #data == 0 then self:HidePvPPins(); return end
     self:EnsurePvPPins(#data)
@@ -3847,7 +3855,15 @@ function M:RefreshStaticPins()
     self.poiRefreshDirty029313 = false
 end
 
-function M:RefreshPvPKeepData()
+local RefreshPvPKeepDataImplArch
+
+function M:RefreshPvPKeepData(...)
+
+    return RefreshPvPKeepDataImplArch(self, ...)
+
+end
+
+RefreshPvPKeepDataImplArch = function(self)
     self.pvpKeepData = {}
     self.pvpTravelLinks = {}
     if safe(IsPlayerInAvAWorld, false) ~= true then return end
@@ -5492,7 +5508,15 @@ function M:RegisterEvents()
     end)
 end
 
-function M:Initialize()
+local InitializeImplArch
+
+function M:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.layoutMode = false
     self.mapBackend = (LMD and GPS and LMP) and "LibMapData + LibGPS + LibMapPins" or "fallback"
     self.esoCompassHidden = nil
@@ -5614,7 +5638,15 @@ function M:IsElderScrollObjective(keepId, objectiveId, objectiveName)
     return name:find("elder scroll", 1, true) ~= nil
 end
 
-function M:RefreshPvPScrollData()
+local RefreshPvPScrollDataImplArch
+
+function M:RefreshPvPScrollData(...)
+
+    return RefreshPvPScrollDataImplArch(self, ...)
+
+end
+
+RefreshPvPScrollDataImplArch = function(self)
     self.pvpScrollData = {}
     if safe(IsPlayerInAvAWorld, false) ~= true then return end
     if type(GetNumObjectives) ~= "function" or type(GetObjectiveIdsForIndex) ~= "function" or type(GetObjectivePinInfo) ~= "function" then return end
@@ -5673,7 +5705,15 @@ function M:RefreshPvPScrollData()
     end
 end
 
-function M:RenderPvPScrollPins()
+local RenderPvPScrollPinsImplArch
+
+function M:RenderPvPScrollPins(...)
+
+    return RenderPvPScrollPinsImplArch(self, ...)
+
+end
+
+RenderPvPScrollPinsImplArch = function(self)
     if not self:IsPvPIconOnlyMode() then self:HidePvPScrollPins(); return end
 
     local now = type(GetFrameTimeMilliseconds) == "function" and tonumber(GetFrameTimeMilliseconds()) or 0
@@ -5698,14 +5738,14 @@ function M:RenderPvPScrollPins()
     end
 end
 
-local easLegacyRenderPvPPins_2484 = M.RenderPvPPins
-function M:RenderPvPPins()
+local easLegacyRenderPvPPins_2484 = RenderPvPPinsImplArch
+RenderPvPPinsImplArch = function(self)
     if easLegacyRenderPvPPins_2484 then easLegacyRenderPvPPins_2484(self) end
     self:RenderPvPScrollPins()
 end
 
-local easLegacyRefreshPvPKeepData_2484 = M.RefreshPvPKeepData
-function M:RefreshPvPKeepData()
+local easLegacyRefreshPvPKeepData_2484 = RefreshPvPKeepDataImplArch
+RefreshPvPKeepDataImplArch = function(self)
     easLegacyRefreshPvPKeepData_2484(self)
     self:RefreshPvPScrollData()
 end
@@ -5757,8 +5797,8 @@ function M:GetNativeObjectivePinTexture(pinType, keepId, objectiveId, context, o
     return self:GetPvPPinTexture(pinType)
 end
 
-local easLegacyRefreshPvPScrollData_2486 = M.RefreshPvPScrollData
-function M:RefreshPvPScrollData()
+local easLegacyRefreshPvPScrollData_2486 = RefreshPvPScrollDataImplArch
+RefreshPvPScrollDataImplArch = function(self)
     easLegacyRefreshPvPScrollData_2486(self)
     for i = 1, #(self.pvpScrollData or {}) do
         local scroll = self.pvpScrollData[i]
@@ -5769,8 +5809,8 @@ function M:RefreshPvPScrollData()
     end
 end
 
-local easLegacyRenderPvPScrollPins_2486 = M.RenderPvPScrollPins
-function M:RenderPvPScrollPins()
+local easLegacyRenderPvPScrollPins_2486 = RenderPvPScrollPinsImplArch
+RenderPvPScrollPinsImplArch = function(self)
     if not self:IsPvPIconOnlyMode() then self:HidePvPScrollPins(); return end
 
     local now = type(GetFrameTimeMilliseconds) == "function" and tonumber(GetFrameTimeMilliseconds()) or 0
@@ -5809,8 +5849,8 @@ end
 -- native mismatch samples mark the existing deferred sync path dirty; the normal
 -- minimap pulse performs the actual rebuild using its movement/performance gates.
 -- ============================================================================
-local EAS_MiniMapInitializeBase029376 = M.Initialize
-function M:Initialize()
+local EAS_MiniMapInitializeBase029376 = InitializeImplArch
+InitializeImplArch = function(self)
     local result=EAS_MiniMapInitializeBase029376(self)
     if EVENT_MANAGER then
         local name=(EPC.name or "ESOAdventurerSuite").."_MiniMapMismatch029376"
@@ -5838,8 +5878,8 @@ end
 -- A confirmed mismatch gets one debounced hidden-map sync after ESO has settled.
 -- This is not tied to every POI event, so it preserves the POI freeze fix.
 -- ============================================================================
-local EAS_MiniMapInitializeBase029381 = M.Initialize
-function M:Initialize()
+local EAS_MiniMapInitializeBase029381 = InitializeImplArch
+InitializeImplArch = function(self)
     local result = EAS_MiniMapInitializeBase029381(self)
     if EVENT_MANAGER then
         local name = (EPC.name or "ESOAdventurerSuite") .. "_MiniMapRenderRecover029381"

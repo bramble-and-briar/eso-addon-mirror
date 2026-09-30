@@ -285,12 +285,12 @@ function R:Initialize()
 
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_CustomReticle"
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("Reticle","Activated",EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
     end
     if EVENT_PLAYER_COMBAT_STATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Combat", EVENT_PLAYER_COMBAT_STATE, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("Reticle","Combat",EVENT_PLAYER_COMBAT_STATE, function() self:Refresh() end)
     end
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Tick", 650, function()
+    EPC.Runtime:RegisterUpdate("Reticle","Tick",650, function()
         if not EPC.saved or EPC.saved.customReticleEnabled ~= true then return end
         self:Refresh()
     end)

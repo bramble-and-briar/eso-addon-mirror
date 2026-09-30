@@ -12,7 +12,6 @@ if not Market then return end
 if S._easMarketSettings029683 then return end
 S._easMarketSettings029683 = true
 
-local baseInitialize = S.Initialize
 
 local function buildMarketControls()
     return {
@@ -125,40 +124,22 @@ local function insertAfterSubmenu(options, afterName, submenu)
     return true
 end
 
-function S:Initialize(...)
-    local LAM = LibAddonMenu2
-    if not LAM or type(LAM.RegisterOptionControls) ~= "function" then
-        return baseInitialize(self, ...)
-    end
-
-    local previousRegister = LAM.RegisterOptionControls
-    LAM.RegisterOptionControls = function(lam, panelName, options, ...)
-        if panelName == "ESOProgressionCoachSettings" and type(options) == "table" and not hasSubmenu(options, "Market & Trading") then
-            local controls = {
-                {
-                    type = "description",
-                    text = "Current-market pricing, live/seen Guild Trader locations, deal freshness, and travel-to-trader controls. Global aggregate prices never claim an exact trader unless the Suite has real listing-location evidence.",
-                    width = "full",
-                },
-            }
-            for _, control in ipairs(buildMarketControls()) do controls[#controls + 1] = control end
-            insertAfterSubmenu(options, "Gear & Maintenance", {
-                type = "submenu",
-                name = "Market & Trading",
-                tooltip = "ESO-Hub/TTC pricing, located listings, freshness, deal checks, and travel to known Guild Trader locations.",
-                controls = controls,
-            })
-        end
-        return previousRegister(lam, panelName, options, ...)
-    end
-
-    local ok, result = pcall(baseInitialize, self, ...)
-    LAM.RegisterOptionControls = previousRegister
-    if not ok then
-        if EPC and type(EPC.Print) == "function" then EPC:Print("Market settings integration failed: " .. tostring(result)) end
-        return nil
-    end
-    return result
-end
+S:RegisterOptionsExtension("MarketPrice", function(options)
+    if hasSubmenu(options, "Market & Trading") then return end
+    local controls = {
+        {
+            type = "description",
+            text = "Current-market pricing, live/seen Guild Trader locations, deal freshness, and travel-to-trader controls. Global aggregate prices never claim an exact trader unless the Suite has real listing-location evidence.",
+            width = "full",
+        },
+    }
+    for _, control in ipairs(buildMarketControls()) do controls[#controls + 1] = control end
+    insertAfterSubmenu(options, "Gear & Maintenance", {
+        type = "submenu",
+        name = "Market & Trading",
+        tooltip = "ESO-Hub/TTC pricing, located listings, freshness, deal checks, and travel to known Guild Trader locations.",
+        controls = controls,
+    })
+end, 300)
 
 EPC.marketPriceSettings029683 = true

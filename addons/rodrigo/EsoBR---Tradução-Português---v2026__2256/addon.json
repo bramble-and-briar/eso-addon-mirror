@@ -1,25 +1,26 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/rodrigo/EsoBR---Tradu\u00e7\u00e3o-Portugu\u00eas---v2026__2256",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "rodrigo",
   "canonical_id": "esoui:2256",
   "category_id": "159",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2256",
   "deleted": false,
   "directories": [
-    "EsoBR_Reforged",
     "EsoUI",
-    "gamedata"
+    "gamedata",
+    "EsoBR_Reforged"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2256/",
-  "fingerprint": "3dad91ebac14d16d04e9b5042acf0f566298ef5d6ecfec5d9c82a2a447549e79",
+  "fingerprint": "3fa0d86f4416de7685ef64b8c7a922d8d3628601346653c3a38e3fcf2cbdc7b0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13495.png",
     "https://cdn-eso.mmoui.com/preview/pvw13496.png",
@@ -31,11 +32,11 @@
   "source_id": "2256",
   "source_url": "https://www.esoui.com/downloads/info2256-EsoBR-TraduoPortugus-v2026.html",
   "stats": {
-    "downloads": 475606,
+    "downloads": 481379,
     "favorites": 48,
-    "monthly_downloads": 5624
+    "monthly_downloads": 1991
   },
   "title": "EsoBR - Tradu\u00e7\u00e3o Portugu\u00eas - v2026",
-  "updated_at": 1784691561000,
-  "version": "1.2.3"
+  "updated_at": 1790724815000,
+  "version": "1.3.0"
 }

@@ -25,7 +25,7 @@ local OBM = ArdysOBTracker
 
 OBM.name    = "ArdysOBTracker"
 OBM.title   = "|c9B30FFArdy's OB Tracker|r"
-OBM.version = "1.3.1"
+OBM.version = "1.4.0"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -69,6 +69,7 @@ local defaults = {
     removeFromFriendlies = true,
     holdMs           = 300,
     trackImmunity    = true,
+    fontSize         = 16,
     trackerEnabled   = true,
     trackerLocked    = false,
     trackerHideEmpty = true,
@@ -458,10 +459,48 @@ local function ApplyTrackerLock()
     tracker.tlw:SetMouseEnabled(not OBM.sv.trackerLocked)
 end
 
+local MIN_FONT, MAX_FONT = 12, 36
+
+-- Sizes everything in the window from the chosen text size.
+local function ApplyTrackerLayout()
+    if not tracker.tlw then return end
+    local size   = zo_clamp(OBM.sv.fontSize or 16, MIN_FONT, MAX_FONT)
+    local rowH   = size + 6
+    local titleH = size + 10
+    local pad    = math.floor(size / 2)
+    local timeW  = size * 4
+    local width  = math.max(200, size * 16)
+
+    local rowFont   = string.format("$(MEDIUM_FONT)|%d|soft-shadow-thin", size)
+    local titleFont = string.format("$(BOLD_FONT)|%d|soft-shadow-thick", size + 2)
+
+    tracker.tlw:SetDimensions(width, titleH + rowH * MAX_ROWS + pad)
+
+    tracker.title:SetFont(titleFont)
+    tracker.title:ClearAnchors()
+    tracker.title:SetAnchor(TOPLEFT, tracker.root, TOPLEFT, pad, 4)
+
+    for i, row in ipairs(tracker.rows) do
+        local y = titleH + (i - 1) * rowH
+        row.name:SetFont(rowFont)
+        row.name:ClearAnchors()
+        row.name:SetAnchor(TOPLEFT, tracker.root, TOPLEFT, pad, y)
+        row.name:SetDimensions(width - timeW - pad * 3, rowH)
+
+        row.time:SetFont(rowFont)
+        row.time:ClearAnchors()
+        row.time:SetAnchor(TOPRIGHT, tracker.root, TOPRIGHT, -pad, y)
+        row.time:SetDimensions(timeW, rowH)
+    end
+end
+
+local function SetFontSize(size)
+    OBM.sv.fontSize = zo_clamp(math.floor(size), MIN_FONT, MAX_FONT)
+    ApplyTrackerLayout()
+end
+
 local function CreateTracker()
-    local ROW_H, WIDTH, PAD = 22, 250, 8
     local tlw = WM:CreateTopLevelWindow("ArdysOBTrackerWindow")
-    tlw:SetDimensions(WIDTH, 28 + ROW_H * MAX_ROWS + PAD)
     tlw:SetClampedToScreen(true)
     tlw:ClearAnchors()
     if OBM.sv.trackerX and OBM.sv.trackerY then
@@ -479,25 +518,16 @@ local function CreateTracker()
     bg:SetAlpha(0.7)
 
     local title = WM:CreateControl("$(parent)Title", root, CT_LABEL)
-    title:SetFont("ZoFontGameBold")
     title:SetColor(0.61, 0.19, 1, 1)
-    title:SetAnchor(TOPLEFT, root, TOPLEFT, PAD, 4)
     title:SetText("Ardy's OB Tracker")
 
     tracker.rows = {}
     for i = 1, MAX_ROWS do
-        local y = 28 + (i - 1) * ROW_H
         local nameLabel = WM:CreateControl("$(parent)Name" .. i, root, CT_LABEL)
-        nameLabel:SetFont("ZoFontGameSmall")
-        nameLabel:SetAnchor(TOPLEFT, root, TOPLEFT, PAD, y)
-        nameLabel:SetDimensions(WIDTH - 70, ROW_H)
         nameLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
         local timeLabel = WM:CreateControl("$(parent)Time" .. i, root, CT_LABEL)
-        timeLabel:SetFont("ZoFontGameSmall")
-        timeLabel:SetAnchor(TOPRIGHT, root, TOPRIGHT, -PAD, y)
         timeLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        timeLabel:SetDimensions(60, ROW_H)
 
         tracker.rows[i] = { name = nameLabel, time = timeLabel }
     end
@@ -507,7 +537,8 @@ local function CreateTracker()
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
 
-    tracker.tlw, tracker.root = tlw, root
+    tracker.tlw, tracker.root, tracker.title = tlw, root, title
+    ApplyTrackerLayout()
     ApplyTrackerLock()
 end
 
@@ -704,6 +735,7 @@ local function PrintHelp()
     Print("/obt markers on | off    - crosshair auto-marker")
     Print("/obt tracker on | off    - timer window")
     Print("/obt lock | unlock       - lock/move the timer window")
+    Print("/obt size <12-36>        - timer window text size (default 16)")
     Print("/obt range <meters>      - marking range (default 8)")
     Print("/obt max <1-8>           - how many markers to use")
     Print("/obt hold <ms>           - crosshair hold time before marking (default 300)")
@@ -730,6 +762,8 @@ local function OnSlash(text)
         sv.trackerEnabled = (arg == "on"); Print("Tracker %s.", arg)
     elseif cmd == "lock" or cmd == "unlock" then
         sv.trackerLocked = (cmd == "lock"); ApplyTrackerLock(); Print("Tracker %sed.", cmd)
+    elseif cmd == "size" and tonumber(arg) then
+        SetFontSize(tonumber(arg)); Print("Text size set to %d.", sv.fontSize)
     elseif cmd == "range" and tonumber(arg) then
         sv.rangeMeters = zo_clamp(tonumber(arg), 1, 50); Print("Range set to %d m.", sv.rangeMeters)
     elseif cmd == "max" and tonumber(arg) then
@@ -799,6 +833,9 @@ local function BuildSettingsMenu()
           getFunc = function() return sv.trackerEnabled end, setFunc = function(v) sv.trackerEnabled = v end, default = defaults.trackerEnabled },
         { type = "checkbox", name = "Lock position",
           getFunc = function() return sv.trackerLocked end, setFunc = function(v) sv.trackerLocked = v; ApplyTrackerLock() end, default = defaults.trackerLocked },
+        { type = "slider", name = "Text size", min = MIN_FONT, max = MAX_FONT, step = 1,
+          tooltip = "Size of the text in the tracker window. The window grows or shrinks to fit.",
+          getFunc = function() return sv.fontSize end, setFunc = function(v) SetFontSize(v) end, default = defaults.fontSize },
         { type = "checkbox", name = "Show Off Balance Immunity",
           tooltip = "After Off Balance ends, the row stays (grey) for the 15 s the target can't be set Off Balance again.",
           getFunc = function() return sv.trackImmunity end, setFunc = function(v) sv.trackImmunity = v end, default = defaults.trackImmunity },

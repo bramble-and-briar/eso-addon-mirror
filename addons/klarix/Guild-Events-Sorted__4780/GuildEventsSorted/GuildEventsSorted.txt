@@ -1,8 +1,8 @@
 ## Title: Guild Events Sorted
 ## Author: Meai, SiSaSyco, Othric, Juhuman123, G0dPain, klarix
-## APIVersion: 101050
-## Description: Allows guild members to create and sign up for events. Now with chronological sorting. Version 1.1.5
-## Version: 1.1.5
+## APIVersion: 101050 101051
+## Description: Allows guild members to create and sign up for events. Now with chronological sorting. Version 1.1.6
+## Version: 1.1.6
 
 GuildEvents.lua
 locales/en.lua

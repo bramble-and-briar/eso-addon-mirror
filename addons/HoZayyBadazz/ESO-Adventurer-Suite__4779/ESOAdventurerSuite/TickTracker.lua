@@ -417,7 +417,20 @@ function T:GetRecovery(powerType)
         stat = combat and STAT_STAMINA_REGEN_COMBAT or (STAT_STAMINA_REGEN_IDLE or STAT_STAMINA_REGEN_COMBAT)
     end
     if stat == nil then return 0 end
-    return tonumber((safe(GetPlayerStat, 0, stat, STAT_BONUS_OPTION_APPLY_BONUS))) or 0
+    local value = tonumber((safe(GetPlayerStat, 0, stat, STAT_BONUS_OPTION_APPLY_BONUS))) or 0
+
+    -- Sprinting/blocking can temporarily report zero Stamina/Magicka recovery.
+    -- Preserve the last positive amount for cadence prediction until ESO reports
+    -- a real positive value again.
+    self.lastPositiveRecovery029426 = self.lastPositiveRecovery029426 or {}
+    if value > 0 then
+        self.lastPositiveRecovery029426[powerType] = value
+        return value
+    end
+    if powerType == POWERTYPE_MAGICKA or powerType == POWERTYPE_STAMINA then
+        return tonumber(self.lastPositiveRecovery029426[powerType]) or 0
+    end
+    return value
 end
 
 function T:SeedSamples()
@@ -438,14 +451,14 @@ function T:Refresh()
     self:Create()
     local enabled = EPC.saved and EPC.saved.enabled ~= false and EPC.saved.showTickTracker029382 == true
     if self.eventName and enabled ~= self.tracking then
-        EVENT_MANAGER:UnregisterForEvent(self.eventName, EVENT_POWER_UPDATE)
+        EPC.Runtime:UnregisterEvent("TickTracker", "Power")
         self.tracking = enabled
         self:SeedSamples()
         if enabled then
-            EVENT_MANAGER:RegisterForEvent(self.eventName, EVENT_POWER_UPDATE, function(_, unit, _, power, value, maximum, effective)
+            local filters = REGISTER_FILTER_UNIT_TAG and {{REGISTER_FILTER_UNIT_TAG, "player"}} or nil
+            EPC.Runtime:RegisterEvent("TickTracker", "Power", EVENT_POWER_UPDATE, function(_, unit, _, power, value, maximum, effective)
                 if unit == "player" then T:OnPowerUpdate(power, value, effective or maximum) end
-            end)
-            EVENT_MANAGER:AddFilterForEvent(self.eventName, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+            end, filters)
         end
     end
     if not self.frame then return end
@@ -951,11 +964,11 @@ function T:Initialize()
     self:Create()
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_TickTracker029382"
     self.eventName = prefix .. "_Power"
-    EVENT_MANAGER:RegisterForEvent(prefix .. "_Combat", EVENT_PLAYER_COMBAT_STATE, function()
+    EPC.Runtime:RegisterEvent("TickTracker", "Combat", EVENT_PLAYER_COMBAT_STATE, function()
         T.lastStatsAt = nil
         T:Refresh()
     end)
-    EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+    EPC.Runtime:RegisterEvent("TickTracker", "Activated", EVENT_PLAYER_ACTIVATED, function()
         T:SeedSamples()
         T.lastStatsAt = nil
         T:Refresh()
@@ -986,23 +999,4 @@ function T:Initialize()
     self.initialized = true
 end
 
--- ============================================================================
--- v0.29.426 - sprint/block cadence persistence.
--- ESO may temporarily report zero effective Stamina Recovery while sprinting or
--- blocking. That is suppression, not the loss of the learned 2-second cadence.
--- Retain the last positive recovery amount for drawing/prediction until a real
--- positive stat replaces it; the next actual tick still re-synchronizes phase.
--- ============================================================================
-local EAS_Tick_GetRecoveryBase029426 = T.GetRecovery
-function T:GetRecovery(powerType)
-    local value = tonumber(EAS_Tick_GetRecoveryBase029426(self, powerType)) or 0
-    self.lastPositiveRecovery029426 = self.lastPositiveRecovery029426 or {}
-    if value > 0 then
-        self.lastPositiveRecovery029426[powerType] = value
-        return value
-    end
-    if powerType == POWERTYPE_MAGICKA or powerType == POWERTYPE_STAMINA then
-        return tonumber(self.lastPositiveRecovery029426[powerType]) or 0
-    end
-    return value
-end
+-- Sprint/block recovery persistence is owned directly by GetRecovery.\n

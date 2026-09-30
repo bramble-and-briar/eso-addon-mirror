@@ -146,6 +146,27 @@ end
 
 function R:Refresh()
     if not self.repairFrame or not self.potionFrame or not EPC.saved then return end
+
+    if self.nativeEditHudPreview029780 == true then
+        if self.repairLabel then
+            self.repairLabel:SetHidden(false)
+            self.repairLabel:SetAlpha(1)
+            self.repairLabel:SetText("ARMOR NEEDS REPAIR")
+        end
+        if self.potionLabel then
+            self.potionLabel:SetHidden(false)
+            self.potionLabel:SetAlpha(1)
+            self.potionLabel:SetText("DRINK POTION BEFORE NEXT ENCOUNTER")
+        end
+        self.repairFrame:SetHidden(false)
+        self.potionFrame:SetHidden(false)
+        self.repairFrame:SetAlpha(1)
+        self.potionFrame:SetAlpha(1)
+        self.repairFrame:SetScale(tonumber(EPC.saved.encounterRepairScale) or 1.0)
+        self.potionFrame:SetScale(tonumber(EPC.saved.encounterPotionScale) or 1.0)
+        return
+    end
+
     local enabled = EPC.saved.showEncounterReminders ~= false
     local inCombat = safe(IsUnitInCombat, false, "player") == true
     local context = self.layoutMode == true or self:IsEncounterContext()
@@ -168,7 +189,56 @@ function R:SetLayoutMode(active)
             frame:SetMovable(self.layoutMode)
         end
     end
-    self:Refresh()
+
+    if self.layoutMode then
+        if self.repairLabel then self.repairLabel:SetText("ARMOR NEEDS REPAIR") end
+        if self.potionLabel then self.potionLabel:SetText("DRINK POTION BEFORE NEXT ENCOUNTER") end
+        if self.repairFrame then self.repairFrame:SetHidden(false) end
+        if self.potionFrame then self.potionFrame:SetHidden(false) end
+        if self.repairFrame and EPC.saved then self.repairFrame:SetScale(tonumber(EPC.saved.encounterRepairScale) or 1.0) end
+        if self.potionFrame and EPC.saved then self.potionFrame:SetScale(tonumber(EPC.saved.encounterPotionScale) or 1.0) end
+    else
+        self:Refresh()
+    end
+end
+
+function R:SetNativeEditHudPreview(active)
+    active = active == true
+    self.nativeEditHudPreview029780 = active
+
+    if active then
+        if self.repairLabel then
+            self.repairLabel:SetHidden(false)
+            self.repairLabel:SetAlpha(1)
+            self.repairLabel:SetText("ARMOR NEEDS REPAIR")
+            if self.repairLabel.SetDrawLayer and DL_OVERLAY then self.repairLabel:SetDrawLayer(DL_OVERLAY) end
+            if self.repairLabel.SetDrawLevel then self.repairLabel:SetDrawLevel(410) end
+        end
+        if self.potionLabel then
+            self.potionLabel:SetHidden(false)
+            self.potionLabel:SetAlpha(1)
+            self.potionLabel:SetText("DRINK POTION BEFORE NEXT ENCOUNTER")
+            if self.potionLabel.SetDrawLayer and DL_OVERLAY then self.potionLabel:SetDrawLayer(DL_OVERLAY) end
+            if self.potionLabel.SetDrawLevel then self.potionLabel:SetDrawLevel(410) end
+        end
+
+        for _, frame in ipairs({ self.repairFrame, self.potionFrame }) do
+            if frame then
+                frame:SetHidden(false)
+                frame:SetAlpha(1)
+                frame:SetMouseEnabled(false)
+                frame:SetMovable(false)
+                if frame.SetTopLevel then frame:SetTopLevel(true) end
+                if frame.SetDrawTier and DT_HIGH then frame:SetDrawTier(DT_HIGH) end
+                if frame.SetDrawLayer and DL_OVERLAY then frame:SetDrawLayer(DL_OVERLAY) end
+                if frame.SetDrawLevel then frame:SetDrawLevel(400) end
+            end
+        end
+        if self.repairFrame and EPC.saved then self.repairFrame:SetScale(tonumber(EPC.saved.encounterRepairScale) or 1.0) end
+        if self.potionFrame and EPC.saved then self.potionFrame:SetScale(tonumber(EPC.saved.encounterPotionScale) or 1.0) end
+    else
+        self:Refresh()
+    end
 end
 
 function R:SetRepairPreset(preset)
@@ -213,7 +283,7 @@ function R:Initialize()
     local prefix = EPC.name .. "_EncounterReminders"
 
     if EVENT_PLAYER_COMBAT_STATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Combat", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
+        EPC.Runtime:RegisterEvent("EncounterReminders","Combat",EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
             if inCombat == true then
                 self.attackableTarget = false
                 self.preEncounterGrace = false
@@ -223,17 +293,15 @@ function R:Initialize()
         end)
     end
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("EncounterReminders","Activated",EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
     end
     if EVENT_RETICLE_TARGET_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED, function() self:OnReticleTargetChanged() end)
+        EPC.Runtime:RegisterEvent("EncounterReminders","Reticle",EVENT_RETICLE_TARGET_CHANGED, function() self:OnReticleTargetChanged() end)
     end
     if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then
-        local reg = prefix .. "_Worn"
-        EVENT_MANAGER:RegisterForEvent(reg, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function() self:Refresh() end)
-        if REGISTER_FILTER_BAG_ID and BAG_WORN then
-            EVENT_MANAGER:AddFilterForEvent(reg, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
-        end
+        local filters = nil
+        if REGISTER_FILTER_BAG_ID and BAG_WORN then filters = { { REGISTER_FILTER_BAG_ID, BAG_WORN } } end
+        EPC.Runtime:RegisterEvent("EncounterReminders", "Worn", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function() self:Refresh() end, filters)
     end
     self:Refresh()
 end

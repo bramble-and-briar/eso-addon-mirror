@@ -22,7 +22,7 @@
     "ESOAdventurerSuite"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4779/",
-  "fingerprint": "77909a8e6c2ace95a0e18acdf4dfd0bf2106d3a9a39bf35f86ec89f01c0198c1",
+  "fingerprint": "56d04a202f4f3d4fb8444f9a7f68e72dcb4b54add9b8baa6e3da5617cbfd763d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17196.png",
     "https://cdn-eso.mmoui.com/preview/pvw17195.png",
@@ -41,11 +41,11 @@
   "source_id": "4779",
   "source_url": "https://www.esoui.com/downloads/info4779-ESOAdventurerSuite.html",
   "stats": {
-    "downloads": 464,
+    "downloads": 562,
     "favorites": 6,
-    "monthly_downloads": 460
+    "monthly_downloads": 316
   },
   "title": "ESO Adventurer Suite",
-  "updated_at": 1789526419000,
-  "version": "0.29.696"
+  "updated_at": 1790718402000,
+  "version": "0.29.790"
 }

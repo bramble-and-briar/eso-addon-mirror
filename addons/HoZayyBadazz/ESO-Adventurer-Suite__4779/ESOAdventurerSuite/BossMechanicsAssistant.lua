@@ -1333,12 +1333,12 @@ function M:RegisterCombatEvents()
     local function register(suffix, result, targetPlayer)
         if result == nil or REGISTER_FILTER_COMBAT_RESULT == nil then return end
         local name = prefix .. suffix
-        EVENT_MANAGER:RegisterForEvent(name, EVENT_COMBAT_EVENT, callback)
-        EVENT_MANAGER:AddFilterForEvent(name, EVENT_COMBAT_EVENT, REGISTER_FILTER_COMBAT_RESULT, result)
-        if REGISTER_FILTER_IS_ERROR then EVENT_MANAGER:AddFilterForEvent(name, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false) end
+        local filters = { { REGISTER_FILTER_COMBAT_RESULT, result } }
+        if REGISTER_FILTER_IS_ERROR then filters[#filters + 1] = { REGISTER_FILTER_IS_ERROR, false } end
         if targetPlayer and REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE and COMBAT_UNIT_TYPE_PLAYER ~= nil then
-            EVENT_MANAGER:AddFilterForEvent(name, EVENT_COMBAT_EVENT, REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
+            filters[#filters + 1] = { REGISTER_FILTER_TARGET_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER }
         end
+        EPC.Runtime:RegisterEvent("BossMechanicsAssistant", suffix, EVENT_COMBAT_EVENT, callback, filters)
     end
 
     register("Begin", ACTION_RESULT_BEGIN, false)
@@ -1370,17 +1370,17 @@ function M:Initialize()
 
     local prefix = EPC.name .. "_BossMechanics029198"
     if EVENT_BOSSES_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Bosses", EVENT_BOSSES_CHANGED, function() self:ScanBosses() end)
+        EPC.Runtime:RegisterEvent("BossMechanicsAssistant", "Bosses", EVENT_BOSSES_CHANGED, function() self:ScanBosses() end)
     end
     if EVENT_RETICLE_TARGET_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Reticle", EVENT_RETICLE_TARGET_CHANGED, function()
+        EPC.Runtime:RegisterEvent("BossMechanicsAssistant", "Reticle", EVENT_RETICLE_TARGET_CHANGED, function()
             if not self.currentBoss or #(self.activeBosses or {}) == 0 then self:ScanBosses() end
         end)
     end
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:ScanBosses() end)
+        EPC.Runtime:RegisterEvent("BossMechanicsAssistant", "Activated", EVENT_PLAYER_ACTIVATED, function() self:ScanBosses() end)
     end
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Tick", 250, function()
+    EPC.Runtime:RegisterUpdate("BossMechanicsAssistant", "Tick", 250, function()
         -- v0.29.341: keep the combat cadence, but make the callback effectively
         -- dormant during ordinary roaming. Boss/reticle events wake the feature
         -- immediately; there is no reason to run pending-mechanic work at 4 Hz

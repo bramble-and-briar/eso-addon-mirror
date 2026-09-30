@@ -183,7 +183,7 @@ function AutoCategory:MatchCategoryRules( bagId, slotIndex, specialType )
 						local catname = adjustName(self, rule.name,
 												AutoCategory.AdditionCategoryName)
 						setCategoryCollapsed(bag_type_id, catname,
-						isCategoryCollapsed(bag_type_id, catname))
+								isCategoryCollapsed(bag_type_id, catname))
 						if res == true then
 							return true, 
 								catname, 

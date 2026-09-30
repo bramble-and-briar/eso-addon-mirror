@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 Meterskull = {
     name     = "Meterskull",
-    version  = "1.5.7",
+    version  = "1.5.9",
     modules  = {},
     db       = {},
     defaults = {},
@@ -391,6 +391,7 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         eventNamespace = namespace or name,
         currentData    = {},
         fragment       = nil,
+        renderPaused   = false,
     }
 
     function mod:Initialize()
@@ -411,7 +412,40 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         return true
     end
 
-    function mod:Render(initial, skipAnimation) if renderFunc then renderFunc(self, initial, skipAnimation) end end
+    function mod:StopAnimations()
+        local cfg = _G.MeterskullModuleUIConfig[self.name]
+        if not cfg or not self.uiRefs then return end
+        for _, field in ipairs(cfg.fields) do
+            local control = self.uiRefs[field.name]
+            if control then
+                EVENT_MANAGER:UnregisterForUpdate(control:GetName() .. "Animation")
+            end
+        end
+    end
+
+    function mod:Render(initial, skipAnimation)
+        if skipAnimation then
+            self:StopAnimations()
+            -- Refresh unchanged fields too, since their animations may be incomplete.
+            initial = true
+        end
+        if renderFunc then renderFunc(self, initial, skipAnimation) end
+    end
+
+    function mod:UpdateRenderTick()
+        local updateName = self.eventNamespace .. "Render"
+        EVENT_MANAGER:UnregisterForUpdate(updateName)
+        local showKey = "show"..string.gsub(self.name,"^%l",string.upper)
+        if not self.uiRefs or not self.uiRefs.main or self.renderPaused
+            or not MS.db.sharedSettings[showKey] or IsUnitDead("player") then
+            return
+        end
+        EVENT_MANAGER:RegisterForUpdate(
+            updateName,
+            MS.db.sharedSettings.renderTick,
+            function() self:Render() end
+        )
+    end
     function mod:CustomScale(v)   if scaleFunc  then scaleFunc(self,v)       end end
     function mod:ToggleVisibility(show)
         local showKey = "show"..string.gsub(self.name,"^%l",string.upper)
@@ -421,8 +455,6 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         local playerIsDead = IsUnitDead("player")
         local shouldShow = show and not playerIsDead
 
-        EVENT_MANAGER:UnregisterForUpdate(self.eventNamespace.."Render")
-
         if shouldShow then
             if not self.fragment then
                 self.fragment = ZO_HUDFadeSceneFragment:New(self.uiRefs.main,nil,0)
@@ -430,12 +462,8 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
             SCENE_MANAGER:GetScene("hud"):AddFragment(self.fragment)
             SCENE_MANAGER:GetScene("hudui"):AddFragment(self.fragment)
             self:Render(true, true)
-            EVENT_MANAGER:RegisterForUpdate(
-                self.eventNamespace.."Render",
-                MS.db.sharedSettings.renderTick,
-                function() self:Render() end
-            )
         else
+            self:StopAnimations()
             self.uiRefs.main:SetHidden(true)
             if self.fragment then
                 SCENE_MANAGER:GetScene("hud"):RemoveFragment(self.fragment)
@@ -443,6 +471,7 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
                 self.fragment = nil
             end
         end
+        self:UpdateRenderTick()
     end
     function mod:SaveLocation()
         local left,top = self.uiRefs.main:GetLeft(), self.uiRefs.main:GetTop()

@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/aausten/RoleplayPostSupport__4889",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "aausten",
+  "canonical_id": "esoui:4889",
+  "category_id": "114",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4889",
+  "deleted": false,
+  "directories": [
+    "",
+    "docs",
+    "lang",
+    "tests",
+    "tools",
+    "types"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4889/",
+  "fingerprint": "f314221635a267d3bb687b3278f10fbf28bdf63a0dd65c0aff2048a1995d8509",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4889",
+  "source_url": "https://www.esoui.com/downloads/info4889-RoleplayPostSupport.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "RoleplayPostSupport",
+  "updated_at": 1790712754000,
+  "version": "1.2.2"
+}

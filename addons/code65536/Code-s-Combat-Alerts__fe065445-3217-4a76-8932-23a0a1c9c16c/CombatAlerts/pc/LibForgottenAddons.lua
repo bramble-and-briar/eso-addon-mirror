@@ -1,28 +1,28 @@
 local NAME = "AntiClankerAddonConsortiumUpdateChecker"
-local VERSION = 17
+local VERSION = 21
 
 if type(_G[NAME]) == "number" and _G[NAME] >= VERSION then return end
 _G[NAME] = VERSION
 
 local KNOWN_VERSIONS = {
     -- Kyzeragon
-    ["CrutchAlerts"]          = 22600,
-    ["KyzderpsDerps"]         = 1530,
+    ["CrutchAlerts"]          = 22700,
+    ["KyzderpsDerps"]         = 1540,
 
     -- code65536
-    ["CharacterKnowledge"]    = 301020,
-    ["CollectiblesTracker"]   = 306000,
-    ["CombatAlerts"]          = 206060,
+    ["CharacterKnowledge"]    = 301030,
+    ["CollectiblesTracker"]   = 306010,
+    ["CombatAlerts"]          = 206070,
     ["GroupBuffPanels"]       = 203030,
     ["ItemBrowser"]           = 407010,
-    ["LootLog"]               = 409060,
+    ["LootLog"]               = 410000,
     ["Raidificator"]          = 407030,
 
     -- M0R_Gaming
     ["M0RMarkers"]            = 223,
 
     -- DakJaniels
-    ["LuiExtended"]           = 7263,
+    ["LuiExtended"]           = 7264,
 
     -- m00nyONE
     ["LibGroupCombatStats"]   = 20260726,
@@ -128,7 +128,7 @@ local function CreateSettingsMenu()
         },
         {
             type = "description",
-            text = "\n\nAddons that bundle this library include Character Knowledge, Collectibles Tracker, Code's Combat Alerts, CrutchAlerts, Group Buff Panels, Item Set Browser, Kyzderp's Derps, Loot Log, More Markers, and Raidificator.",
+            text = "\n\nAddons that bundle this library include Character Knowledge, Collectibles Tracker, Code's Combat Alerts, CrutchAlerts, Group Buff Panels, Item Set Browser, Kyzderp's Derps, Loot Log, Lui Extended, More Markers, and Raidificator.",
         },
     }
 

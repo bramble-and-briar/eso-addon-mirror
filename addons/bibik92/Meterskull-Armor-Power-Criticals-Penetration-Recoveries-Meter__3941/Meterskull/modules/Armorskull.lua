@@ -7,8 +7,8 @@ local MS = Meterskull
 local function ArmorskullRender(self, initial, skipAnimation)
     if not self.uiRefs then return end
 
-    local physicalResist = GetPlayerStat(STAT_DAMAGE_RESIST_PHYSICAL)
-    local spellResist    = GetPlayerStat(STAT_DAMAGE_RESIST_MAGIC)
+    local physicalResist = GetPlayerStat(STAT_DAMAGE_RESIST_PHYSICAL, STAT_BONUS_OPTION_APPLY_BONUS)
+    local spellResist    = GetPlayerStat(STAT_DAMAGE_RESIST_MAGIC, STAT_BONUS_OPTION_APPLY_BONUS)
 
     if initial or physicalResist ~= (self.currentData.physicalResist or 0) then
         if skipAnimation then

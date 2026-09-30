@@ -37,6 +37,12 @@
             <Action name="ESO_ADVENTURER_SUITE_PREBUFF_SIEGE_SHIELD">
                 <Down>return ESOAdventurerSuite_LoadoutPrebuffSiegeShield()</Down>
             </Action>
+            <Action name="ESO_ADVENTURER_SUITE_MASTER_ACHIEVEMENT_TRACKER">
+                <Down>ESOAdventurerSuite_ToggleMasterAchievementTracker()</Down>
+            </Action>
+            <Action name="ESO_ADVENTURER_SUITE_SKILL_POINT_FINDER">
+                <Down>ESOAdventurerSuite_ToggleSkillPointFinder()</Down>
+            </Action>
             <Action name="ESO_ADVENTURER_SUITE_GF_OVERLAY">
                 <Down>ESOAdventurerSuite_GroupFinderPlusToggleOverlay()</Down>
             </Action>

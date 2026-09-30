@@ -55,12 +55,14 @@ local decons = {
 		L(SL_DECON_SHOWNAME_ADE),
 		L(SL_DECON_SHOWNAME_SIL),
 		L(SL_DECON_SHOWNAME_POR),
+		L(SL_DECON_SHOWNAME_TZO),
 	},
 	choicesValues = {
 		10184, 
 		10617,
 		13063,
 		14018,
+		11877,
 	},
 }
 

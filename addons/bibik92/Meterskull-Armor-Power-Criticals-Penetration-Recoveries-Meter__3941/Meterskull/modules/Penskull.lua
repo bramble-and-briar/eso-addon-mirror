@@ -84,8 +84,8 @@ local function PenskullRender(self, initial, skipAnimation)
     UpdateTargetPenDebuffs()
 
     local totalPen    = CalculateTotalPenetration()
-    local physicalPen = GetPlayerStat(STAT_PHYSICAL_PENETRATION) + totalPen
-    local spellPen    = GetPlayerStat(STAT_SPELL_PENETRATION)    + totalPen
+    local physicalPen = GetPlayerStat(STAT_PHYSICAL_PENETRATION, STAT_BONUS_OPTION_APPLY_BONUS) + totalPen
+    local spellPen    = GetPlayerStat(STAT_SPELL_PENETRATION, STAT_BONUS_OPTION_APPLY_BONUS)    + totalPen
     local maxPen      = math.max(physicalPen, spellPen)
 
     local oldVal = self.currentData.penetrationLevel or 0

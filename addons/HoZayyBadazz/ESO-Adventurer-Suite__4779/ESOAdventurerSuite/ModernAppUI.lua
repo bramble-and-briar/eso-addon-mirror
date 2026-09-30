@@ -1164,7 +1164,7 @@ local function paginateSingle(text, page, linesPerPage)
     return table.concat(out,"\n"),page,pages,#lines
 end
 
-function M:CreateShell()
+local function EAS_CreateShellCore(self)
     if self.window then return end
     local allianceId, allianceName = updateAlliancePalette()
     self.allianceId, self.allianceName = allianceId, allianceName
@@ -1536,7 +1536,7 @@ end
 -- Native Finder handoff helpers removed in v0.29.35.
 -- Every Finder category now remains inside the Suite.
 
-function M:UpdateTopNavigation()
+local function EAS_UpdateTopNavigationCore(self)
     local group = groupForTab(self.activeTab or "INDEX")
     for key,b in pairs(self.groupButtons or {}) do
         b._selected = key == group
@@ -1777,7 +1777,7 @@ function M:RefreshHome(p)
     for i,v in ipairs(values) do if p.quickCards[i] then p.quickCards[i].value:SetText("• "..clean(v)) end end
 end
 
-function M:CreateCardGallery(tab,cards,titleText,subText)
+local function EAS_CreateCardGalleryCore(self,tab,cards,titleText,subText)
     local p=self:PageRoot(tab); pageHeader(p,tab,titleText,subText); p.cardEntries={}
     local cardW,cardH,gapX,gapY=174,236,14,16
     for i,entry in ipairs(cards) do
@@ -1868,7 +1868,7 @@ function M:CreateCardGallery(tab,cards,titleText,subText)
     return p
 end
 
-function M:RefreshGallery(tab,p)
+local function EAS_RefreshGalleryCore(self,tab,p)
     local current = tab=="CHARACTER" and clean(safe(GetUnitClass,"Unknown class","player")) or (safe(DoesUnitExist,false,"companion") and clean(safe(GetUnitName,"Companion","companion")) or "No active companion")
     local key=lowerKey(current)
     for _,entry in ipairs(p.cardEntries or {}) do
@@ -2541,8 +2541,9 @@ function M:CreateTextPage(tab)
 end
 
 function M:TextActions(tab)
+    if tab=="ACHIEVEMENTS" then return {"MASTER TRACKER","REFRESH"} end
     if tab=="COMBAT" then return {"FULL COMBAT REPORT","REFRESH"} end
-    if tab=="SKILLS" then return {"MAX POWER BUILD","MAX POWER CP","MAX POWER ATTRIBUTES","REFRESH"} end
+    if tab=="SKILLS" then return {"MAX POWER BUILD","MAX POWER CP","MAX POWER ATTRIBUTES","SKILL POINT FINDER","REFRESH"} end
     if tab=="TOOLS" then
         local mode=EPC.UtilitySuite and EPC.UtilitySuite:GetMode() or "OVERVIEW"
         if mode=="RETICLE" then return {"MODE","ON / OFF","STYLE","COLOR","SIZE -","SIZE +","OPACITY -","OPACITY +"} end
@@ -2553,7 +2554,25 @@ function M:TextActions(tab)
 end
 
 function M:RunTextAction(tab,index)
-    if tab=="COMBAT" and index==1 then
+    if tab=="ACHIEVEMENTS" and index==1 then
+        if EPC.MasterAchievementTracker and type(EPC.MasterAchievementTracker.Show)=="function" then
+            self:Hide()
+            EPC.MasterAchievementTracker:Show()
+            return
+        end
+    elseif tab=="ACHIEVEMENTS" and index==2 then
+        if EPC.MasterAchievementTracker and type(EPC.MasterAchievementTracker.Refresh)=="function" then
+            EPC.MasterAchievementTracker:Refresh()
+        end
+    elseif tab=="SKILLS" and index==4 then
+        if EPC.SkillPointFinder and type(EPC.SkillPointFinder.Show)=="function" then
+            self:Hide()
+            EPC.SkillPointFinder:Show()
+            return
+        end
+    elseif tab=="SKILLS" and index==5 then
+        if EPC.RefreshNow then EPC:RefreshNow("modern-skills") end
+    elseif tab=="COMBAT" and index==1 then
         if EPC.GameModeReport and type(EPC.GameModeReport.Show) == "function" then
             self:Hide()
             EPC.GameModeReport:Show()
@@ -3281,7 +3300,7 @@ function M:EnsurePage(tab)
     return self:CreateTextPage(tab)
 end
 
-function M:RefreshCurrent()
+local function EAS_RefreshCurrentCore(self)
     if not self.window or self.window:IsHidden() then return end
     local tab=self.activeTab or "INDEX"; local p=self:EnsurePage(tab)
     if tab=="INDEX" then self:RefreshHome(p)
@@ -3297,7 +3316,13 @@ function M:RefreshCurrent()
     self:UpdateTopNavigation()
 end
 
-function M:SetTab(tab)
+local SetTabImplArch
+
+function M:SetTab(...)
+    return SetTabImplArch(self, ...)
+end
+
+SetTabImplArch = function(self, tab)
     tab=tostring(tab or "INDEX"); if not TAB_LABELS[tab] then tab="INDEX" end
     local previousTab=self.activeTab
     if tab~="TRAVEL" and J.HideGuildLeaderHomeDropdown then J:HideGuildLeaderHomeDropdown() end
@@ -3386,7 +3411,7 @@ end
 -- v0.29.363: Settings.lua historically targeted EPC.UI.root, which is the
 -- retired legacy shell. Keep modern window appearance in one live method so
 -- Window Scale/Opacity affect the UI the player actually sees.
-function M:ApplyWindowAppearance029363()
+local function EAS_ApplyWindowAppearanceCore029363(self)
     if not self.window then return end
     local alpha = tonumber(EPC.saved and EPC.saved.alpha) or 0.96
     local scale = tonumber(EPC.saved and EPC.saved.scale) or 1.0
@@ -3405,7 +3430,7 @@ function M:ApplyCodexTextSize029363()
     self:RefreshCodex()
 end
 
-function M:Show()
+local function EAS_ShowCore(self)
     if not self.window then self:CreateShell() end
     if self.fullSettingsBridge02943 or self.settingsHotkeyLayer02943 then
         self:DeactivateSettingsHotkeyBridge02943()
@@ -3428,7 +3453,7 @@ function M:Show()
     self:SetTab(self.activeTab or J:EnsureSaved().activeTab or "INDEX")
 end
 
-function M:Hide()
+local function EAS_HideCore(self)
     if not self.window then return end
     if J.HideGuildLeaderHomeDropdown then J:HideGuildLeaderHomeDropdown() end
     if self.activeTab=="NOTES" then J:SaveCurrentEntry() end
@@ -3502,9 +3527,8 @@ end
 -- the scale onto page controls. All pages stay anchored to the same unscaled
 -- body, so changing CODEX/other tabs cannot inherit stale scaled anchors.
 -- ============================================================================
-local EAS_ApplyWindowAppearanceBase029376 = M.ApplyWindowAppearance029363
-function M:ApplyWindowAppearance029363()
-    EAS_ApplyWindowAppearanceBase029376(self)
+local function EAS_ApplyWindowAppearanceScale029376(self)
+    EAS_ApplyWindowAppearanceCore029363(self)
     if self.window and self.window.SetClampedToScreen then self.window:SetClampedToScreen(true) end
     if self.Reflow then self:Reflow() end
 end
@@ -3515,8 +3539,8 @@ end
 -- Page controls always remain at logical scale 1. The saved Window Scale is
 -- applied only to the top-level window after each tab has been laid out.
 -- ============================================================================
-local EAS_ModernSetTabBase029381 = M.SetTab
-function M:SetTab(tab)
+local EAS_ModernSetTabBase029381 = SetTabImplArch
+SetTabImplArch = function(self, tab)
     if self.window then self.window:SetScale(1) end
     if self.body then self.body:SetScale(1) end
     for _, page in pairs(self.pages or {}) do
@@ -3541,7 +3565,7 @@ end
 -- make child anchors/layout calculations jump and accumulate bad geometry.
 -- ============================================================================
 local EAS_ModernSetTabLogicalBase029384 = EAS_ModernSetTabBase029381 or M.SetTab
-function M:SetTab(tab)
+SetTabImplArch = function(self, tab)
     local scale = tonumber(EPC.saved and EPC.saved.scale) or 1.0
     scale = math.max(0.70, math.min(1.40, scale))
     if self.window and self.window.SetScale then self.window:SetScale(scale) end
@@ -3558,3 +3582,318 @@ function M:SetTab(tab)
     if self.window and self.window.SetScale then self.window:SetScale(scale) end
     return result
 end
+
+
+-- BEGIN ABSORBED: ModernAppUIRoundedFix.lua
+-- ESO Adventurer Suite
+-- Modern UI rounded shell + rounded controls visibility fix.
+-- Keeps the shell/window hit area intact for dragging and resizing while
+-- suppressing rectangular native backdrop art behind rounded DDS surfaces.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.ModernAppUI then return end
+
+local M = EPC.ModernAppUI
+local FALLBACK_NAME = "EAS_ModernShell02890_NativeFallback029116"
+
+local function HideSquareShellFallback029476()
+    local fallback = nil
+
+    if M.shell and M.shell.nativeFallback029116 then
+        fallback = M.shell.nativeFallback029116
+    end
+
+    if not fallback and _G then
+        fallback = _G[FALLBACK_NAME]
+    end
+
+    if fallback then
+        if fallback.SetHidden then fallback:SetHidden(true) end
+        if fallback.SetAlpha then fallback:SetAlpha(0) end
+        if fallback.SetCenterColor then fallback:SetCenterColor(0, 0, 0, 0) end
+        if fallback.SetEdgeColor then fallback:SetEdgeColor(0, 0, 0, 0) end
+        return true
+    end
+
+    return false
+end
+
+local function ClearRoundedBackdrop029478(bg)
+    if not bg or not bg.roundTex02890 then return end
+
+    -- Mark this surface like the shell so ModernAppUI's normal painter does not
+    -- restore a rectangular native center behind the rounded DDS.
+    bg._shellSurface02890 = true
+    if bg.SetCenterColor then bg:SetCenterColor(0, 0, 0, 0) end
+    if bg.SetEdgeColor then bg:SetEdgeColor(0, 0, 0, 0) end
+end
+
+local function MakeButtonRoundedOnly029478(button)
+    if not button or not button.bg then return end
+    ClearRoundedBackdrop029478(button.bg)
+
+    if button._roundedHandlers029478 then return end
+    button._roundedHandlers029478 = true
+
+    -- The normal hover/exit handlers still choose the correct selected, hover,
+    -- alliance-accent and disabled colors on the rounded texture. Clear only the
+    -- rectangular CT_BACKDROP after those handlers run.
+    if button.GetHandler and button.SetHandler then
+        local oldEnter = button:GetHandler("OnMouseEnter")
+        local oldExit = button:GetHandler("OnMouseExit")
+
+        button:SetHandler("OnMouseEnter", function(control, ...)
+            if oldEnter then oldEnter(control, ...) end
+            if control then ClearRoundedBackdrop029478(control.bg) end
+        end)
+
+        button:SetHandler("OnMouseExit", function(control, ...)
+            if oldExit then oldExit(control, ...) end
+            if control then ClearRoundedBackdrop029478(control.bg) end
+        end)
+    end
+end
+
+local function WalkRoundedButtons029478(control)
+    if not control then return end
+
+    -- Every ModernAppUI button() creates a child background named *_BG and
+    -- attaches it back to the CT_BUTTON as button.bg. This catches top tabs,
+    -- side/rail tabs, page-mode tabs, PREV/NEXT controls and all action buttons
+    -- without changing flat content cards or edit-box hosts.
+    if control.bg and control.bg.roundTex02890 then
+        MakeButtonRoundedOnly029478(control)
+    end
+
+    if control.GetNumChildren and control.GetChild then
+        local okCount, count = pcall(control.GetNumChildren, control)
+        count = okCount and tonumber(count) or 0
+        for i = 1, count do
+            local okChild, child = pcall(control.GetChild, control, i)
+            if okChild and child then WalkRoundedButtons029478(child) end
+        end
+    end
+end
+
+local function ForceRoundedModernControls029478()
+    for _, button in pairs(M.groupButtons or {}) do
+        MakeButtonRoundedOnly029478(button)
+    end
+    if M.window then WalkRoundedButtons029478(M.window) end
+end
+
+local function EAS_CreateShellRounded029476(self, ...)
+    local result = EAS_CreateShellCore(self, ...)
+    HideSquareShellFallback029476()
+    ForceRoundedModernControls029478()
+    return result
+end
+M._roundedShellFix029476 = true
+
+HideSquareShellFallback029476()
+ForceRoundedModernControls029478()
+
+function M:ApplyWindowAppearance029363(...)
+    local result = EAS_ApplyWindowAppearanceScale029376(self, ...)
+    HideSquareShellFallback029476()
+    ForceRoundedModernControls029478()
+    return result
+end
+M._roundedAppearanceFix029476 = true
+
+function M:UpdateTopNavigation(...)
+    local result = EAS_UpdateTopNavigationCore(self, ...)
+    ForceRoundedModernControls029478()
+    return result
+end
+M._roundedTopTabsFix029477 = true
+
+-- SetTab is important because many inner page buttons/tabs are created lazily
+-- or repainted when switching pages. Re-sweep after the page is active.
+if type(M.SetTab) == "function" and not M._roundedInnerControlsFix029478 then
+    local SetTabBase029478 = SetTabImplArch
+    SetTabImplArch = function(self, ...)
+        local result = SetTabBase029478(self, ...)
+        ForceRoundedModernControls029478()
+        return result
+    end
+    M._roundedInnerControlsFix029478 = true
+end
+
+local function EAS_RefreshCurrentRounded029478(self, ...)
+    local result = EAS_RefreshCurrentCore(self, ...)
+    ForceRoundedModernControls029478()
+    return result
+end
+M._roundedRefreshFix029478 = true
+
+local function EAS_ShowRounded029476(self, ...)
+    local result = EAS_ShowCore(self, ...)
+    HideSquareShellFallback029476()
+    ForceRoundedModernControls029478()
+    return result
+end
+M._roundedShowFix029476 = true
+
+-- END ABSORBED: ModernAppUIRoundedFix.lua
+
+
+-- BEGIN ABSORBED: ModernAppUIGalleryImageFix.lua
+-- ESO Adventurer Suite
+-- v0.29.548 - Modern UI Character/Companion gallery image visibility repair.
+-- Rebind packaged DDS portraits with an explicit addon-root path after gallery
+-- creation/refresh so class and companion artwork cannot remain transparent.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.ModernAppUI then return end
+local M = EPC.ModernAppUI
+
+local function normalizePath029548(path)
+    path = tostring(path or "")
+    if path == "" then return "" end
+    path = path:gsub("\\", "/")
+    if string.sub(path, 1, 1) ~= "/" then path = "/" .. path end
+    return path
+end
+
+local function forceArt029548(page)
+    if type(page) ~= "table" then return end
+    for _, entry in ipairs(page.cardEntries or {}) do
+        local art = entry.art
+        if art then
+            local path = normalizePath029548(entry.path)
+            if path ~= "" then
+                if type(PreloadTexture) == "function" then pcall(PreloadTexture, path) end
+                if type(art.SetTexture) == "function" then pcall(art.SetTexture, art, path) end
+            end
+            if type(art.SetHidden) == "function" then pcall(art.SetHidden, art, false) end
+            if type(art.SetAlpha) == "function" then pcall(art.SetAlpha, art, 1) end
+            if type(art.SetColor) == "function" then pcall(art.SetColor, art, 1, 1, 1, 1) end
+            if type(art.SetDrawTier) == "function" and rawget(_G, "DT_HIGH") ~= nil then
+                pcall(art.SetDrawTier, art, DT_HIGH)
+            end
+            if type(art.SetDrawLayer) == "function" and rawget(_G, "DL_CONTROLS") ~= nil then
+                pcall(art.SetDrawLayer, art, DL_CONTROLS)
+            end
+            if type(art.SetDrawLevel) == "function" then pcall(art.SetDrawLevel, art, 24) end
+        end
+
+        -- Some older gallery builds created a fallback texture above the portrait.
+        -- Once the packaged portrait is rebound, keep that fallback from covering it.
+        local fallback = entry.fallback
+        if fallback and fallback ~= art then
+            if type(fallback.SetHidden) == "function" then pcall(fallback.SetHidden, fallback, true) end
+            if type(fallback.SetAlpha) == "function" then pcall(fallback.SetAlpha, fallback, 0) end
+        end
+    end
+end
+
+function M:CreateCardGallery(tab, cards, titleText, subText)
+    local page = EAS_CreateCardGalleryCore(self, tab, cards, titleText, subText)
+    if tab == "CHARACTER" or tab == "COMPANIONS" then forceArt029548(page) end
+    return page
+end
+M._galleryImageCreateFix029548 = true
+
+function M:RefreshGallery(tab, page, ...)
+    local result = EAS_RefreshGalleryCore(self, tab, page, ...)
+    if tab == "CHARACTER" or tab == "COMPANIONS" then forceArt029548(page) end
+    return result
+end
+M._galleryImageRefreshFix029548 = true
+
+-- Repair already-created pages immediately when this patch loads.
+if type(M.pages) == "table" then
+    forceArt029548(M.pages.CHARACTER)
+    forceArt029548(M.pages.COMPANIONS)
+end
+
+-- END ABSORBED: ModernAppUIGalleryImageFix.lua
+
+
+-- BEGIN ABSORBED: ModernAppUIForegroundFix.lua
+-- ESO Adventurer Suite
+-- v0.29.551 - Modern UI foreground ownership.
+-- The Modern application is a menu-level surface, so persistent gameplay HUD
+-- overlays must never draw over it. Keep the app at the highest Suite draw
+-- level and suppress gameplay overlays only while the app is open.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.ModernAppUI then return end
+
+local M = EPC.ModernAppUI
+
+local function ForceModernForeground029551()
+    local window = M.window
+    if not window then return end
+
+    if type(window.SetDrawTier) == "function" and rawget(_G, "DT_HIGH") ~= nil then
+        pcall(window.SetDrawTier, window, DT_HIGH)
+    end
+    if type(window.SetDrawLayer) == "function" and rawget(_G, "DL_OVERLAY") ~= nil then
+        pcall(window.SetDrawLayer, window, DL_OVERLAY)
+    end
+    if type(window.SetDrawLevel) == "function" then
+        pcall(window.SetDrawLevel, window, 100000)
+    end
+end
+
+-- Treat the Suite application like a real menu for persistent HUD visibility.
+-- This keeps player/target/group frames, minimap, combat cards, timers, quest
+-- trackers and similar HUD readouts behind/hidden while Modern UI is open.
+if type(EPC.IsGameplayHudSuppressed) == "function" and not EPC._modernAppHudSuppression029551 then
+    local baseSuppressed = EPC.IsGameplayHudSuppressed
+    function EPC:IsGameplayHudSuppressed(...)
+        if self.modernAppUiOpen029551 == true then return true end
+        return baseSuppressed(self, ...)
+    end
+    EPC._modernAppHudSuppression029551 = true
+end
+
+function M:CreateShell(...)
+    local result = EAS_CreateShellRounded029476(self, ...)
+    ForceModernForeground029551()
+    return result
+end
+M._foregroundCreate029551 = true
+
+function M:Show(...)
+    EPC.modernAppUiOpen029551 = true
+    local result = EAS_ShowRounded029476(self, ...)
+    ForceModernForeground029551()
+    if type(EPC.RefreshGameplayOverlays) == "function" then pcall(EPC.RefreshGameplayOverlays, EPC) end
+    return result
+end
+M._foregroundShow029551 = true
+
+function M:Hide(...)
+    local result = EAS_HideCore(self, ...)
+    EPC.modernAppUiOpen029551 = false
+    if type(EPC.RefreshGameplayOverlays) == "function" then pcall(EPC.RefreshGameplayOverlays, EPC) end
+    return result
+end
+M._foregroundHide029551 = true
+
+-- SetTab/RefreshCurrent can repaint or lazily create content. Reassert the
+-- top-level foreground level after those operations without changing child
+-- ordering inside the Modern UI itself.
+if type(M.SetTab) == "function" and not M._foregroundTab029551 then
+    local baseSetTab = SetTabImplArch
+    SetTabImplArch = function(self, ...)
+        local result = baseSetTab(self, ...)
+        ForceModernForeground029551()
+        return result
+    end
+    M._foregroundTab029551 = true
+end
+
+function M:RefreshCurrent(...)
+    local result = EAS_RefreshCurrentRounded029478(self, ...)
+    ForceModernForeground029551()
+    return result
+end
+M._foregroundRefresh029551 = true
+
+ForceModernForeground029551()
+
+-- END ABSORBED: ModernAppUIForegroundFix.lua

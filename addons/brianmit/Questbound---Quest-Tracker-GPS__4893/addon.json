@@ -1,0 +1,51 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/brianmit/Questbound---Quest-Tracker-GPS__4893",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "brianmit",
+  "canonical_id": "esoui:4893",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4893",
+  "deleted": false,
+  "directories": [
+    "Questbound"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4893/",
+  "fingerprint": "c56d0814fa2d4224474d712206078843478fd0c0484c0a7c334426193d2b78be",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17640.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17641.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17643.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17642.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17634.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17635.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17636.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17637.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17638.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17639.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4893",
+  "source_url": "https://www.esoui.com/downloads/info4893-Questbound-QuestTrackerGPS.html",
+  "stats": {
+    "downloads": 25,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Questbound - Quest Tracker & GPS",
+  "updated_at": 1790739914000,
+  "version": "1.0.1"
+}

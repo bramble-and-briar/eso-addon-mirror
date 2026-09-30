@@ -853,6 +853,61 @@ function A:CreateLayoutDragShield(parent, kind)
     return shield
 end
 
+function A:SetNativeEditHudPreview(active)
+    active = active == true
+    self.nativeEditHudPreview029780 = active
+
+    self:CreateExcavationGuide()
+    self:CreateTilePicker()
+
+    if active then
+        if self.guide then
+            if self.SetGuideMessage then
+                pcall(self.SetGuideMessage, self,
+                    "EXCAVATION GUIDE",
+                    "Use Augur, then follow the Suite recommendation.",
+                    "GREEN = dig. Other colors guide the next scan.",
+                    0)
+            end
+            if self.SetAugurButtonsVisible then pcall(self.SetAugurButtonsVisible, self, true) end
+        end
+        if self.tilePicker then
+            if self.tilePicker.title then self.tilePicker.title:SetText("SELECT AUGUR TILE") end
+            if self.tilePicker.detail then self.tilePicker.detail:SetText("Select the scanned tile so the Suite can continue the route.") end
+        end
+        for _, control in ipairs({ self.guide, self.tilePicker }) do
+            if control then
+                control:SetHidden(false)
+                control:SetAlpha(1)
+                control:SetMouseEnabled(false)
+                control:SetMovable(false)
+                if control.SetClampedToScreen then control:SetClampedToScreen(true) end
+                if control.SetTopLevel then control:SetTopLevel(true) end
+                if control.SetDrawTier and DT_HIGH then control:SetDrawTier(DT_HIGH) end
+                if control.SetDrawLayer and DL_OVERLAY then control:SetDrawLayer(DL_OVERLAY) end
+                -- Keep the real preview below ESO's transparent editor hitbox.
+                if control.SetDrawLevel then control:SetDrawLevel(100) end
+            end
+        end
+        if self.guide and self.guide.layoutDragShield then
+            self.guide.layoutDragShield:SetHidden(true)
+            self.guide.layoutDragShield:SetMouseEnabled(false)
+        end
+        if self.tilePicker and self.tilePicker.layoutDragShield then
+            self.tilePicker.layoutDragShield:SetHidden(true)
+            self.tilePicker.layoutDragShield:SetMouseEnabled(false)
+        end
+    else
+        -- Return to the normal Antiquity runtime visibility rules.
+        local enabled = EPC.saved and EPC.saved.antiquityAssistantEnabled ~= false and EPC.saved.antiquityExcavationGuide ~= false
+        local digging = type(IsDiggingGameActive) == "function" and safe(IsDiggingGameActive, false) == true
+        if self.nativeEditHudPreview029780 ~= true then
+            if self.guide then self.guide:SetHidden(not (enabled and digging)) end
+            if self.tilePicker then self.tilePicker:SetHidden(not (enabled and digging and self.pendingManualColor ~= nil)) end
+        end
+    end
+end
+
 function A:SetLayoutMode(active)
     self.layoutMode = active == true
     self:CreateExcavationGuide()
@@ -883,8 +938,10 @@ function A:SetLayoutMode(active)
     else
         local enabled = EPC.saved and EPC.saved.antiquityAssistantEnabled ~= false and EPC.saved.antiquityExcavationGuide ~= false
         local digging = type(IsDiggingGameActive) == "function" and safe(IsDiggingGameActive, false) == true
-        if self.guide then self.guide:SetHidden(not (enabled and digging)) end
-        if self.tilePicker then self.tilePicker:SetHidden(not (enabled and digging and self.pendingManualColor ~= nil)) end
+        if self.nativeEditHudPreview029780 ~= true then
+            if self.guide then self.guide:SetHidden(not (enabled and digging)) end
+            if self.tilePicker then self.tilePicker:SetHidden(not (enabled and digging and self.pendingManualColor ~= nil)) end
+        end
     end
 end
 
@@ -1178,7 +1235,7 @@ function A:ResetBonusSearch(keepFound)
     self.pendingProbe = nil
     self.expectedProbe = nil
     self.pendingManualColor = nil
-    if self.tilePicker then self.tilePicker:SetHidden(true) end
+    if self.nativeEditHudPreview029780 ~= true and self.tilePicker then self.tilePicker:SetHidden(true) end
 
     -- Preserve the confirmed Green scan as a strong indication of the area
     -- already consumed by the primary Antiquity. This is only a coverage
@@ -1371,7 +1428,7 @@ function A:ResetExcavationSolver()
     self.bonusFoundCells = {}
     self.bonusCurrentTarget = nil
     self.bonusLastAction = nil
-    if self.tilePicker then self.tilePicker:SetHidden(true) end
+    if self.nativeEditHudPreview029780 ~= true and self.tilePicker then self.tilePicker:SetHidden(true) end
     self:SetAugurButtonsVisible(true)
 end
 
@@ -1587,7 +1644,7 @@ function A:RecordAugurColor(color)
         if color == "GREEN" then
             self:SetGuideMessage("DIG THE GREEN TILE", "Green is exact: excavate the same tile you just Augured.", "No coordinate is needed when ESO itself showed Green.", 0)
             self.pendingManualColor = nil
-            if self.tilePicker then self.tilePicker:SetHidden(true) end
+            if self.nativeEditHudPreview029780 ~= true and self.tilePicker then self.tilePicker:SetHidden(true) end
             return
         end
         self:SetGuideMessage("SELECT THIS SCAN TILE ONCE", "ESO did not expose the clicked tile coordinate.", "Pick the tile you just scanned. It will be saved with " .. color .. "; after this, follow the move instruction and press only the next color.", 0)
@@ -1665,7 +1722,11 @@ function A:OnDiggingReady()
     self.bonusFound = 0
     self:SetAugurButtonsVisible(true)
     local enabled = EPC.saved and EPC.saved.antiquityExcavationGuide ~= false and EPC.saved.antiquityAssistantEnabled ~= false
-    self.guide:SetHidden(not enabled)
+    if self.nativeEditHudPreview029780 == true then
+        self.guide:SetHidden(false)
+    else
+        self.guide:SetHidden(not enabled)
+    end
     if enabled then
         local first = self:ChooseNextProbe()
         if first then
@@ -1841,8 +1902,10 @@ function A:RefreshSettings()
         self.bonusMode = false
         self:SetAugurButtonsVisible(true)
     end
-    if self.guide and (not EPC.saved or EPC.saved.antiquityAssistantEnabled == false or EPC.saved.antiquityExcavationGuide == false) then self.guide:SetHidden(true) end
-    if self.tilePicker and (not EPC.saved or EPC.saved.antiquityAssistantEnabled == false or EPC.saved.antiquityExcavationGuide == false) then self.tilePicker:SetHidden(true) end
+    if self.nativeEditHudPreview029780 ~= true then
+        if self.guide and (not EPC.saved or EPC.saved.antiquityAssistantEnabled == false or EPC.saved.antiquityExcavationGuide == false) then self.guide:SetHidden(true) end
+        if self.tilePicker and (not EPC.saved or EPC.saved.antiquityAssistantEnabled == false or EPC.saved.antiquityExcavationGuide == false) then self.tilePicker:SetHidden(true) end
+    end
     if not EPC.saved or EPC.saved.antiquityAssistantEnabled == false or EPC.saved.antiquityShow3D == false then
         self:HideWorldMarkers("disabled")
         if self.exactSpotMarker then self.exactSpotMarker:SetHidden(true) end
@@ -1861,8 +1924,10 @@ function A:RegisterEvents()
     register("_MainLoot", EVENT_ANTIQUITY_DIGGING_ANTIQUITY_UNEARTHED, function() self:OnMainAntiquityUnearthed() end)
     register("_BonusLoot", EVENT_ANTIQUITY_DIGGING_BONUS_LOOT_UNEARTHED, function() self:OnBonusLootUnearthed() end)
     register("_DigOver", EVENT_ANTIQUITY_DIGGING_GAME_OVER, function()
-        if self.guide and not self.layoutMode then self.guide:SetHidden(true) end
-        if self.tilePicker and not self.layoutMode then self.tilePicker:SetHidden(true) end
+        if self.nativeEditHudPreview029780 ~= true then
+            if self.guide and not self.layoutMode then self.guide:SetHidden(true) end
+            if self.tilePicker and not self.layoutMode then self.tilePicker:SetHidden(true) end
+        end
         self.pendingManualColor = nil
         self.bonusMode = false
         self.mainUnearthed = false
@@ -1926,7 +1991,7 @@ function A:RegisterEvents()
                 self:SetGuideMessage("BONUS LOOT SEARCH", string.format("BEST SEARCH: %s — ROW %d, COLUMN %d.", moveText, self.bonusCurrentTarget.row, self.bonusCurrentTarget.column), self:GetBonusDigStatusText() .. "  •  Coverage prediction — not guaranteed.", rotation)
             end
         end
-        if not self.layoutMode and self.guide and not self.guide:IsHidden() and type(IsDiggingGameActive) == "function" and safe(IsDiggingGameActive, false) ~= true then self.guide:SetHidden(true) end
+        if self.nativeEditHudPreview029780 ~= true and not self.layoutMode and self.guide and not self.guide:IsHidden() and type(IsDiggingGameActive) == "function" and safe(IsDiggingGameActive, false) ~= true then self.guide:SetHidden(true) end
     end)
     EVENT_MANAGER:RegisterForUpdate(UPDATE_NAME .. "_DigCell", 150, function()
         if type(IsDiggingGameActive) == "function" and safe(IsDiggingGameActive, false) ~= true then return end

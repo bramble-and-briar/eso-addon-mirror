@@ -35,6 +35,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [One Key Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ArMy-RiPPeR/One-Key-Assistant__2481) | \[ArMy\]RiPPeR | PC / Mac | 1.2 |
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__38f0df90-e793-4c9c-af2b-44a958ed38cf) | M0R | Console | — |
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__3985) | M0R | PC / Mac | 1.3.0 |
+| [OneDungeon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneDungeon__4886) | oneDOK | PC / Mac | 1.1 |
+| [OneFrame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/oneDOK/OneFrame__4890) | oneDOK | PC / Mac | 1.0 |
 | [OneKey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ancillae_Secretorum/OneKey__4188) | Ancillae_Secretorum | PC / Mac | 0.1 |
 | [Onix - MenuHUD - Easy Navigation Bar (Full Costum)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/natosz/Onix---MenuHUD---Easy-Navigation-Bar-Full-Costum__4790) | natosz | PC / Mac | 1.1.1 |
 | [Onix - Worldmap - Easy Navigation ( More Zoom & Radar)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/natosz/Onix---Worldmap---Easy-Navigation-More-Zoom-Radar__4789) | natosz | PC / Mac | 1.1 |

@@ -528,7 +528,7 @@ function W:Initialize()
     self:RegisterPromoSlashCommand()
 
     if EVENT_MANAGER and rawget(_G, "EVENT_POI_DISCOVERED") ~= nil then
-        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_POI_DISCOVERED, function(...)
+        EPC.Runtime:RegisterEvent("WayshrineAutoMessage", "PoiDiscovered", EVENT_POI_DISCOVERED, function(...)
             W:OnPOIDiscovered(...)
         end)
         self.discoveryEventRegistered = true
@@ -537,7 +537,7 @@ function W:Initialize()
     end
 
     if EVENT_MANAGER and rawget(_G, "EVENT_PLAYER_ACTIVATED") ~= nil then
-        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_PLAYER_ACTIVATED, function(...)
+        EPC.Runtime:RegisterEvent("WayshrineAutoMessage", "PlayerActivated", EVENT_PLAYER_ACTIVATED, function(...)
             W:OnPlayerActivated(...)
         end)
         self.playerActivatedRegistered = true

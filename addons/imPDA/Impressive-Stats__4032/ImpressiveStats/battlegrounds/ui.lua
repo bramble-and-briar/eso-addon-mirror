@@ -18,6 +18,10 @@ local TEAM_TYPE_4_GROUP = 3
 local TEAM_TYPE_8_GROUP = 4
 local TEAM_TYPE_4_3_SOLO = 5
 local TEAM_TYPE_4_3_GROUP = 6
+local TEAM_TYPE_6_3_SOLO = 7
+local TEAM_TYPE_6_3_GROUP = 8
+local TEAM_TYPE_9_SOLO = 9
+local TEAM_TYPE_9_GROUP = 10
 
 local TEAM_TYPES = {
     [TEAM_TYPE_4_SOLO] = '4x4 - Solo',
@@ -26,6 +30,10 @@ local TEAM_TYPES = {
     [TEAM_TYPE_8_GROUP] = '8x8 - Group',
     [TEAM_TYPE_4_3_SOLO] = '4x4x4 - Solo',
     [TEAM_TYPE_4_3_GROUP] = '4x4x4 - Group',
+    [TEAM_TYPE_6_3_SOLO] = '6x6x6 - Solo',
+    [TEAM_TYPE_6_3_GROUP] = '6x6x6 - Group',
+    [TEAM_TYPE_9_SOLO] = '9x9 - Solo',
+    [TEAM_TYPE_9_GROUP] = '9x9 - Group',
 }
 
 addon.filters = {}

@@ -516,9 +516,11 @@ function SEC.battle(m, animate)
     else
         BGMeter.Match.sort(m, key, Prefs.get("sort_desc"))
     end
+    local grouped = Prefs.get("group_by_team") and true or false
+    if grouped then BGMeter.Match.group_by_team(m) end
 
     for ckey, lbl in pairs(b.headers) do
-        local base = (ckey == "name") and "PLAYER" or ckey
+        local base = (ckey == "name") and (grouped and "PLAYER  ·  by team" or "PLAYER") or ckey
         for _, col in ipairs(COLS) do if col.key == ckey then base = col.label end end
         if ckey == "caps" then base = flabel end
         if (ckey == "caps" and key == fkey) or ckey == key then

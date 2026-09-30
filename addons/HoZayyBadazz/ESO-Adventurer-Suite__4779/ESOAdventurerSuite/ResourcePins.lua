@@ -73,6 +73,7 @@ local COLORS = {
     FLOWER = { 0.48, 1.00, 0.58 },
     WATERPLANT = { 0.32, 0.92, 0.68 },
     RUNE = { 0.78, 0.48, 1.00 },
+    PROVISIONING = { 1.00, 0.74, 0.26 },
     WATER = { 0.32, 0.84, 1.00 },
     FISHING = { 0.25, 0.94, 0.87 },
     CHEST = { 0.30, 0.92, 0.92 },
@@ -94,6 +95,7 @@ local TYPE_LABELS = {
     FLOWER = "Flower / Herb",
     WATERPLANT = "Water Plant",
     RUNE = "Runestone",
+    PROVISIONING = "Provisioning Source",
     WATER = "Water / Solvent",
     FISHING = "Fishing Hole",
     CHEST = "Chest",
@@ -186,7 +188,7 @@ local NATIVE_ICON_SCALE = {
 local AUTO_ICON = {
     ORE = "MINING", WOOD = "WOOD", CLOTH = "CLOTHING", ALCHEMY = "ALCHEMY",
     MUSHROOM = "MUSHROOM", FLOWER = "FLOWER", WATERPLANT = "WATERPLANT",
-    RUNE = "ENCHANTING", WATER = "SOLVENT", FISHING = "FISH", CHEST = "CHEST",
+    RUNE = "ENCHANTING", PROVISIONING = "HEAVYSACK", WATER = "SOLVENT", FISHING = "FISH", CHEST = "CHEST",
     HEAVYSACK = "HEAVYSACK", CLAM = "CLAM", TROVE = "TROVE", JUSTICE = "JUSTICE",
     STASH = "STASH", RESOURCE = "WORLD", SKYSHARD = "SKYSHARD",
 }
@@ -194,7 +196,7 @@ local AUTO_ICON = {
 local CUSTOM_ICON_SETTING = {
     ORE = "resourcePinsIconOre", WOOD = "resourcePinsIconWood", CLOTH = "resourcePinsIconCloth",
     ALCHEMY = "resourcePinsIconAlchemy", MUSHROOM = "resourcePinsIconAlchemy", FLOWER = "resourcePinsIconAlchemy",
-    WATERPLANT = "resourcePinsIconAlchemy", RUNE = "resourcePinsIconRunes", WATER = "resourcePinsIconWater",
+    WATERPLANT = "resourcePinsIconAlchemy", RUNE = "resourcePinsIconRunes", PROVISIONING = "resourcePinsIconSpecial", WATER = "resourcePinsIconWater",
     FISHING = "resourcePinsIconFishing", CHEST = "resourcePinsIconSpecial", HEAVYSACK = "resourcePinsIconSpecial",
     CLAM = "resourcePinsIconSpecial", TROVE = "resourcePinsIconSpecial", JUSTICE = "resourcePinsIconSpecial",
     STASH = "resourcePinsIconSpecial", RESOURCE = "resourcePinsIconOther", SKYSHARD = "resourcePinsIconOther",
@@ -303,6 +305,10 @@ addType(ITEM_KIND, "ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL", "ORE")
 addType(ITEM_KIND, "ITEMTYPE_WOODWORKING_RAW_MATERIAL", "WOOD")
 addType(ITEM_KIND, "ITEMTYPE_CLOTHIER_RAW_MATERIAL", "CLOTH")
 addType(ITEM_KIND, "ITEMTYPE_REAGENT", "ALCHEMY")
+addType(ITEM_KIND, "ITEMTYPE_INGREDIENT", "PROVISIONING")
+addType(ITEM_KIND, "ITEMTYPE_ADDITIVE", "PROVISIONING")
+addType(ITEM_KIND, "ITEMTYPE_SPICE", "PROVISIONING")
+addType(ITEM_KIND, "ITEMTYPE_FLAVORING", "PROVISIONING")
 addType(ITEM_KIND, "ITEMTYPE_ENCHANTING_RUNE_ASPECT", "RUNE")
 addType(ITEM_KIND, "ITEMTYPE_ENCHANTING_RUNE_ESSENCE", "RUNE")
 addType(ITEM_KIND, "ITEMTYPE_ENCHANTING_RUNE_POTENCY", "RUNE")
@@ -336,11 +342,19 @@ function R:GetGlowTierForKind(kind)
     if kind == "CHEST" or kind == "TROVE" then return "EPIC" end
     if kind == "HEAVYSACK" or kind == "CLAM" or kind == "JUSTICE" or kind == "STASH" then return "RARE" end
     if kind == "SKYSHARD" then return "EPIC" end
-    if kind == "RUNE" or kind == "ALCHEMY" or kind == "MUSHROOM" or kind == "FLOWER" or kind == "WATERPLANT" or kind == "FISHING" then return "UNCOMMON" end
+    if kind == "RUNE" or kind == "PROVISIONING" or kind == "ALCHEMY" or kind == "MUSHROOM" or kind == "FLOWER" or kind == "WATERPLANT" or kind == "FISHING" then return "UNCOMMON" end
     return "COMMON"
 end
 
-function R:GetGlowVisualForEntry(entry, alphaBase)
+local GetGlowVisualForEntryImplArch
+
+function R:GetGlowVisualForEntry(...)
+
+    return GetGlowVisualForEntryImplArch(self, ...)
+
+end
+
+GetGlowVisualForEntryImplArch = function(self, entry, alphaBase)
     local saved = EPC.saved or {}
     local strength = clamp01((tonumber(saved.resourcePinsGlowStrength) or 78) / 100)
     local tierName = (saved.resourcePinsValueGlow == false) and "COMMON" or self:GetGlowTierForKind(entry and entry.kind)
@@ -754,7 +768,15 @@ function R:RecoverWorldRenderer(reason)
     return true
 end
 
-function R:RecoverSuite3DWorldPins(reason)
+local RecoverSuite3DWorldPinsImplArch
+
+function R:RecoverSuite3DWorldPins(...)
+
+    return RecoverSuite3DWorldPinsImplArch(self, ...)
+
+end
+
+RecoverSuite3DWorldPinsImplArch = function(self, reason)
     local tag = tostring(reason or "3D recovery")
     self:RecoverWorldRenderer(tag)
 
@@ -888,7 +910,15 @@ function R:CompactLearnedLocationData()
     return removed
 end
 
-function R:DeduplicateVisibleCandidates(visible)
+local DeduplicateVisibleCandidatesImplArch
+
+function R:DeduplicateVisibleCandidates(...)
+
+    return DeduplicateVisibleCandidatesImplArch(self, ...)
+
+end
+
+DeduplicateVisibleCandidatesImplArch = function(self, visible)
     if type(visible) ~= "table" or #visible < 2 then return visible, 0 end
     table.sort(visible, function(a, b)
         if a.debug ~= b.debug then return a.debug == true end
@@ -1034,7 +1064,15 @@ function R:DecodeCommunityPacked(cache, dedupe, kind, packed)
     return added
 end
 
-function R:BuildCommunityZoneCache(zoneId, forceForExplicitHunt)
+local BuildCommunityZoneCacheImplArch
+
+function R:BuildCommunityZoneCache(...)
+
+    return BuildCommunityZoneCacheImplArch(self, ...)
+
+end
+
+BuildCommunityZoneCacheImplArch = function(self, zoneId, forceForExplicitHunt)
     -- v0.29.238: an explicit Potion Maker hunt is allowed to use the bundled
     -- resource database even when the user's normal community-pin display is
     -- disabled. Clicking MAP + 3D MISSING is an explicit one-off request.
@@ -1095,7 +1133,15 @@ function R:BuildLearnedShadowGrid(bucket)
     return shadow
 end
 
-function R:IsCommunityShadowed(entry, shadow)
+local IsCommunityShadowedImplArch
+
+function R:IsCommunityShadowed(...)
+
+    return IsCommunityShadowedImplArch(self, ...)
+
+end
+
+IsCommunityShadowedImplArch = function(self, entry, shadow)
     if type(entry) ~= "table" or type(shadow) ~= "table" then return false end
     local _, gx, gz = gridKey(entry.x, entry.z, DEDUPE_DISTANCE_CM)
     for dx = -1, 1 do
@@ -1191,6 +1237,13 @@ function R:GetMissingAlchemyKinds(material)
     if kind == "" then return {} end
     if kind == "FLOWER" or kind == "MUSHROOM" or kind == "WATERPLANT" then
         return { [kind] = true, ALCHEMY = true }
+    elseif kind == "PROVISIONING" then
+        -- Provisioning ingredients commonly come from containers rather than
+        -- deterministic harvest nodes. Learned provisioning containers are the
+        -- strongest source, while Heavy Sacks are a known possible source.
+        return { PROVISIONING = true, HEAVYSACK = true }
+    elseif kind == "ENCHANTING" then
+        return { RUNE = true }
     end
     return { [kind] = true }
 end
@@ -1216,7 +1269,8 @@ function R:EnsureMissingAlchemyMapPins()
                 local focus = self.missingAlchemyFocus
                 local title = focus and focus.summary or "Missing Alchemy Material"
                 if tooltip and tooltip.AddLine then
-                    tooltip:AddLine("ALCHEMY MATERIAL HUNT", "ZoFontWinH4", 1, 0.82, 0.24)
+                    local huntName = focus and focus.craftLabel and (tostring(focus.craftLabel):upper() .. " MATERIAL HUNT") or "CRAFTING MATERIAL HUNT"
+                    tooltip:AddLine(huntName, "ZoFontWinH4", 1, 0.82, 0.24)
                     tooltip:AddLine(tostring(title), "ZoFontGame", 1, 1, 1)
                     tooltip:AddLine("Approach this area to see the bright 3D hunt pin.", "ZoFontGameSmall", 0.72, 0.84, 0.95)
                 end
@@ -1300,6 +1354,9 @@ function R:BuildMissingAlchemyFocusForCurrentZone()
             if self:IsPositionDepleted(zoneId, ex, ez, entry.kind) then return end
             local entryKey = normalizeMissingMaterialName(entry.name or "")
             local exact = targetKey ~= "" and entryKey ~= "" and entryKey == targetKey
+            if not exact and targetKey ~= "" and type(entry.provisionLoot) == "table" then
+                exact = entry.provisionLoot[targetKey] == true
+            end
             local kindMatch = kinds[tostring(entry.kind or "")] == true
             if not exact and not kindMatch then return end
             candidates[#candidates + 1] = {
@@ -1750,7 +1807,10 @@ function R:GetItemId(itemLink, fallbackItemId)
 end
 
 function R:ClassifyLoot(itemLink, pendingName, fallbackItemId, pendingKind)
-    if pendingKind and pendingKind ~= "RESOURCE" then return pendingKind end
+    -- Generic loot containers must be classified by what they actually yielded.
+    -- Preserve special resource interactions, but let CONTAINER resolve from the
+    -- item type so provisioning containers can be learned accurately.
+    if pendingKind and pendingKind ~= "RESOURCE" and pendingKind ~= "CONTAINER" then return pendingKind end
     local itemId = self:GetItemId(itemLink, fallbackItemId)
     if itemId and ITEM_ID_KIND[itemId] then return ITEM_ID_KIND[itemId] end
     if type(itemLink) == "string" and itemLink ~= "" and type(GetItemLinkItemType) == "function" then
@@ -1783,7 +1843,7 @@ function R:IsKindEnabled(kind)
     local key = {
         ORE = "resourcePinsShowOre", WOOD = "resourcePinsShowWood", CLOTH = "resourcePinsShowCloth",
         ALCHEMY = "resourcePinsShowAlchemy", MUSHROOM = "resourcePinsShowAlchemy", FLOWER = "resourcePinsShowAlchemy",
-        WATERPLANT = "resourcePinsShowAlchemy", RUNE = "resourcePinsShowRunes", WATER = "resourcePinsShowWater",
+        WATERPLANT = "resourcePinsShowAlchemy", RUNE = "resourcePinsShowRunes", PROVISIONING = "resourcePinsShowSpecial", WATER = "resourcePinsShowWater",
         FISHING = "resourcePinsShowFishing", CHEST = "resourcePinsShowSpecial", HEAVYSACK = "resourcePinsShowSpecial",
         CLAM = "resourcePinsShowSpecial", TROVE = "resourcePinsShowSpecial", JUSTICE = "resourcePinsShowSpecial",
         STASH = "resourcePinsShowSpecial", RESOURCE = "resourcePinsShowOther", SKYSHARD = "resourcePinsShowSkyshards",
@@ -1916,6 +1976,19 @@ function R:CaptureResourceInteraction()
         self.lastResourceInteractionAt = now
         self.lastInteractableName = targetName ~= "" and targetName or self.lastInteractableName
 
+    elseif INTERACTION_LOOT ~= nil and interactionType == INTERACTION_LOOT and targetName ~= "" then
+        -- Learn ordinary barrels/crates/sacks/cupboards only when the eventual
+        -- loot proves useful. HandleLootReceived classifies the item type.
+        local pending = self.pendingResource
+        local stale = not pending or tostring(pending.kind or "") ~= "CONTAINER"
+            or (now - (tonumber(pending.capturedAt) or 0)) > RESOURCE_WINDOW_MS
+            or targetName ~= tostring(pending.name or "")
+        if stale then
+            self:CapturePendingSpecialTarget(targetName, "CONTAINER", now, false)
+        else
+            self.lastResourceInteractionAt = now
+        end
+
     elseif INTERACTION_FISH ~= nil and interactionType == INTERACTION_FISH then
         -- Fishing can take far longer than a normal harvest animation. Keep the
         -- fishing-hole position alive until the eventual catch/loot event.
@@ -2013,6 +2086,24 @@ function R:HandleLootReceived(receivedBy, itemLink, quantity, itemSound, lootTyp
     local index = nil
     if EPC.saved.resourcePinsLearn ~= false then
         index = self:SaveNode(kind, pending.name, pending.zoneId, pending.x, pending.y, pending.z, "player")
+        if kind == "PROVISIONING" and index then
+            local bucket = self:GetZoneBucket(pending.zoneId, false)
+            local entry = type(bucket) == "table" and bucket[index] or nil
+            if type(entry) == "table" then
+                local lootName = ""
+                if type(GetItemLinkName) == "function" then
+                    local okName, value = pcall(GetItemLinkName, itemLink)
+                    if okName then lootName = tostring(value or "") end
+                end
+                if lootName == "" then lootName = tostring(itemLink or "") end
+                local lootKey = normalizeMissingMaterialName(lootName)
+                if lootKey ~= "" then
+                    entry.provisionLoot = type(entry.provisionLoot) == "table" and entry.provisionLoot or {}
+                    entry.provisionLoot[lootKey] = true
+                    entry.lastProvisionLoot = lootName
+                end
+            end
+        end
     end
     self.lastLearnedKind = kind
     self.lastLearnedName = tostring(pending.name or TYPE_LABELS[kind] or "Resource")
@@ -2781,7 +2872,15 @@ function R:MovementAwareRefreshMarkers029312()
     end
 end
 
-function R:Initialize()
+local InitializeImplArch
+
+function R:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.markers = {}
     self.pendingResource = nil
     self.depletionProbeKey = nil
@@ -2980,8 +3079,8 @@ function R:HardResetResource3DRenderSpaces029144(reason)
     return true
 end
 
-local EAS_RecoverSuite3DWorldPinsBase029144 = R.RecoverSuite3DWorldPins
-function R:RecoverSuite3DWorldPins(reason)
+local EAS_RecoverSuite3DWorldPinsBase029144 = RecoverSuite3DWorldPinsImplArch
+RecoverSuite3DWorldPinsImplArch = function(self, reason)
     local tag = tostring(reason or "3D camera recovery")
     self:HardResetResource3DRenderSpaces029144(tag)
     local result = EAS_RecoverSuite3DWorldPinsBase029144(self, tag)
@@ -3034,9 +3133,490 @@ function R:RegisterCameraRecovery029144()
     end
 end
 
-local EAS_ResourcePinsInitializeBase029144 = R.Initialize
-function R:Initialize(...)
+local EAS_ResourcePinsInitializeBase029144 = InitializeImplArch
+InitializeImplArch = function(self, ...)
     local result = EAS_ResourcePinsInitializeBase029144(self, ...)
     self:RegisterCameraRecovery029144()
     return result
 end
+
+
+-- BEGIN ABSORBED: ResourcePins3DLocationFix.lua
+-- ESO Adventurer Suite
+-- v0.29.497 - 3D resource pin map-layer and duplicate-location hotfix.
+-- Keep community records scoped to the player's active map when ESO exposes a
+-- trustworthy current-map identity, and merge stale learned/community doubles.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.ResourcePins then return end
+local R = EPC.ResourcePins
+
+local ORIGINAL_BUILD_COMMUNITY_CACHE = BuildCommunityZoneCacheImplArch
+local ORIGINAL_INITIALIZE = InitializeImplArch
+
+local COMMUNITY_MODULES_029497 = { "AD", "DC", "DLC", "EP", "NF" }
+local COMMUNITY_KIND_BY_PIN_029497 = {
+    [1] = "ORE", [17] = "ORE",
+    [2] = "CLOTH",
+    [3] = "RUNE", [16] = "RUNE",
+    [4] = "MUSHROOM",
+    [5] = "WOOD",
+    [6] = "CHEST",
+    [7] = "WATER",
+    [8] = "FISHING",
+    [9] = "HEAVYSACK",
+    [10] = "TROVE",
+    [11] = "JUSTICE",
+    [12] = "STASH",
+    [13] = "FLOWER",
+    [14] = "WATERPLANT",
+    [15] = "CLAM",
+    [18] = "RESOURCE",
+    [19] = "FLOWER",
+    [20] = "ALCHEMY",
+}
+
+local NORMAL_DEDUPE_CM_029497 = 500
+local FISHING_DEDUPE_CM_029497 = 1400
+local VERTICAL_DEDUPE_CM_029497 = 2500
+
+local function SafeCall029497(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, a, b, c, d = pcall(fn, ...)
+    if not ok then return nil end
+    return a, b, c, d
+end
+
+local function Distance2D029497(ax, az, bx, bz)
+    local dx = (tonumber(ax) or 0) - (tonumber(bx) or 0)
+    local dz = (tonumber(az) or 0) - (tonumber(bz) or 0)
+    return math.sqrt((dx * dx) + (dz * dz))
+end
+
+local function DedupeRadius029497(kind)
+    return tostring(kind or "") == "FISHING" and FISHING_DEDUPE_CM_029497 or NORMAL_DEDUPE_CM_029497
+end
+
+local function CompatibleKinds029497(a, b)
+    a, b = tostring(a or "RESOURCE"), tostring(b or "RESOURCE")
+    return a == b or a == "RESOURCE" or b == "RESOURCE"
+end
+
+local function NormalizeMapKey029497(value)
+    local s = string.lower(tostring(value or ""))
+    s = s:gsub("\\", "/")
+    s = s:gsub("^/?esoui/art/maps/", "")
+    s = s:gsub("^/?art/maps/", "")
+    s = s:gsub("%.dds$", "")
+    s = s:gsub("_[0-9]+$", "")
+    s = s:gsub("^/+", ""):gsub("/+$", "")
+    return s
+end
+
+local function CurrentTrustedMapKey029497()
+    -- Do not force/set the map here. Only trust ESO's existing current map when
+    -- its zone index agrees with the player's actual zone index.
+    local playerZoneIndex = tonumber(SafeCall029497(GetUnitZoneIndex, "player"))
+    local mapZoneIndex = type(GetCurrentMapZoneIndex) == "function" and tonumber(SafeCall029497(GetCurrentMapZoneIndex)) or nil
+    if playerZoneIndex and mapZoneIndex and playerZoneIndex ~= mapZoneIndex then
+        return nil
+    end
+
+    if type(GetCurrentMapId) ~= "function" or type(GetMapTileTextureForMapId) ~= "function" then
+        return nil
+    end
+    local mapId = tonumber(SafeCall029497(GetCurrentMapId))
+    if not mapId or mapId <= 0 then return nil end
+
+    local texture = SafeCall029497(GetMapTileTextureForMapId, mapId, 1)
+    if type(texture) ~= "string" or texture == "" then
+        texture = SafeCall029497(GetMapTileTextureForMapId, mapId, 0)
+    end
+    local key = NormalizeMapKey029497(texture)
+    return key ~= "" and key or nil
+end
+
+BuildCommunityZoneCacheImplArch = function(self, zoneId, forceForExplicitHunt)
+    if not EPC.saved then return nil end
+    if EPC.saved.resourcePinsCommunityEnabled == false and forceForExplicitHunt ~= true then return nil end
+    zoneId = tonumber(zoneId)
+    if not zoneId then return nil end
+
+    local mapKey = CurrentTrustedMapKey029497()
+    if self.communityZoneId == zoneId
+        and self.communityZoneMapKey029497 == mapKey
+        and type(self.communityZoneCache) == "table" then
+        return self.communityZoneCache
+    end
+
+    local root = EPC.CommunityResourceData
+    if type(root) ~= "table" then
+        self.lastCommunityError = "Suite Community Resource Data is not loaded"
+        return nil
+    end
+
+    -- If ESO cannot prove which map the player is on, retain the original safe
+    -- behavior rather than guessing from a stale world-map state.
+    if not mapKey then
+        self.communityZoneMapKey029497 = nil
+        self.communityZoneId = nil
+        self.communityZoneCache = nil
+        return ORIGINAL_BUILD_COMMUNITY_CACHE and ORIGINAL_BUILD_COMMUNITY_CACHE(self, zoneId, forceForExplicitHunt) or nil
+    end
+
+    local matchingMapData = {}
+    for m = 1, #COMMUNITY_MODULES_029497 do
+        local module = root[COMMUNITY_MODULES_029497[m]]
+        local zoneData = type(module) == "table" and module[zoneId] or nil
+        if type(zoneData) == "table" then
+            for storedMapKey, mapData in pairs(zoneData) do
+                if type(mapData) == "table" and NormalizeMapKey029497(storedMapKey) == mapKey then
+                    matchingMapData[#matchingMapData + 1] = mapData
+                end
+            end
+        end
+    end
+
+    -- A missing exact map key is safer as a fallback to the original decoder;
+    -- do not silently make all community pins disappear on unusual maps.
+    if #matchingMapData == 0 then
+        self.communityZoneMapKey029497 = nil
+        self.communityZoneId = nil
+        self.communityZoneCache = nil
+        return ORIGINAL_BUILD_COMMUNITY_CACHE and ORIGINAL_BUILD_COMMUNITY_CACHE(self, zoneId, forceForExplicitHunt) or nil
+    end
+
+    local cache = {
+        zoneId = zoneId,
+        mapKey = mapKey,
+        cells = {}, count = 0, rawCount = 0, byKind = {}, corruptRecords = 0,
+    }
+    local dedupe = {}
+    for i = 1, #matchingMapData do
+        local mapData = matchingMapData[i]
+        for pinTypeId, packed in pairs(mapData) do
+            local kind = COMMUNITY_KIND_BY_PIN_029497[tonumber(pinTypeId)]
+            if kind and type(packed) == "string" then
+                self:DecodeCommunityPacked(cache, dedupe, kind, packed)
+            end
+        end
+    end
+
+    self.communityZoneId = zoneId
+    self.communityZoneMapKey029497 = mapKey
+    self.communityZoneCache = cache
+    self.lastCommunityZoneCount = cache.count
+    self.lastCommunityRawZoneCount = cache.rawCount
+    self.lastCommunityMapKey029497 = mapKey
+    self.lastCommunityError = nil
+    return cache
+end
+
+IsCommunityShadowedImplArch = function(self, entry, shadow)
+    if type(entry) ~= "table" or type(shadow) ~= "table" then return false end
+    local x, y, z = tonumber(entry.x), tonumber(entry.y), tonumber(entry.z)
+    if not x or not y or not z then return false end
+
+    local radius = DedupeRadius029497(entry.kind)
+    local gx = math.floor(x / radius)
+    local gz = math.floor(z / radius)
+    -- BuildLearnedShadowGrid uses the older 3.75m cells, so direct scan the
+    -- nearby shadow buckets and apply the wider final distance check.
+    for _, nearby in pairs(shadow) do
+        if type(nearby) == "table" then
+            for i = 1, #nearby do
+                local learned = nearby[i]
+                if type(learned) == "table"
+                    and CompatibleKinds029497(learned.kind, entry.kind)
+                    and math.abs((tonumber(learned.y) or y) - y) <= VERTICAL_DEDUPE_CM_029497
+                    and Distance2D029497(learned.x, learned.z, x, z) <= math.max(radius, DedupeRadius029497(learned.kind)) then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+DeduplicateVisibleCandidatesImplArch = function(self, visible)
+    if type(visible) ~= "table" or #visible < 2 then return visible, 0 end
+
+    table.sort(visible, function(a, b)
+        if a.debug ~= b.debug then return a.debug == true end
+        if a.focusedMissing ~= b.focusedMissing then return a.focusedMissing == true end
+        if a.skyshard ~= b.skyshard then return a.skyshard == true end
+        if a.learned ~= b.learned then return a.learned == true end
+        return (tonumber(a.distanceM) or 999999) < (tonumber(b.distanceM) or 999999)
+    end)
+
+    local out, removed = {}, 0
+    for i = 1, #visible do
+        local candidate = visible[i]
+        local entry = candidate and candidate.entry
+        local duplicate = false
+        if candidate.debug ~= true and candidate.skyshard ~= true and type(entry) == "table" then
+            local x, y, z = tonumber(entry.x), tonumber(entry.y), tonumber(entry.z)
+            if x and y and z then
+                for j = 1, #out do
+                    local prior = out[j]
+                    local other = prior and prior.entry
+                    if prior.debug ~= true and prior.skyshard ~= true and type(other) == "table"
+                        and CompatibleKinds029497(other.kind, entry.kind)
+                        and math.abs((tonumber(other.y) or y) - y) <= VERTICAL_DEDUPE_CM_029497
+                        and Distance2D029497(other.x, other.z, x, z) <= math.max(DedupeRadius029497(entry.kind), DedupeRadius029497(other.kind)) then
+                        duplicate = true
+                        break
+                    end
+                end
+            end
+        end
+        if duplicate then
+            removed = removed + 1
+        else
+            out[#out + 1] = candidate
+        end
+    end
+    self.lastVisibleDuplicatesRemoved = removed
+    return out, removed
+end
+
+function R:CompactLearnedLocationData029497()
+    if not EPC.saved or type(EPC.saved.resourcePinLocations) ~= "table" then return 0 end
+    local removed = 0
+    for zoneKey, bucket in pairs(EPC.saved.resourcePinLocations) do
+        if type(bucket) == "table" then
+            local compact = {}
+            for i = 1, #bucket do
+                local entry = bucket[i]
+                local duplicate = nil
+                if type(entry) == "table" and tonumber(entry.x) and tonumber(entry.y) and tonumber(entry.z) then
+                    for j = 1, #compact do
+                        local other = compact[j]
+                        if CompatibleKinds029497(other.kind, entry.kind)
+                            and math.abs((tonumber(other.y) or 0) - (tonumber(entry.y) or 0)) <= VERTICAL_DEDUPE_CM_029497
+                            and Distance2D029497(other.x, other.z, entry.x, entry.z) <= math.max(DedupeRadius029497(other.kind), DedupeRadius029497(entry.kind)) then
+                            duplicate = other
+                            break
+                        end
+                    end
+                    if duplicate then
+                        if tostring(duplicate.kind or "RESOURCE") == "RESOURCE" and tostring(entry.kind or "RESOURCE") ~= "RESOURCE" then
+                            duplicate.kind = entry.kind
+                        end
+                        duplicate.lastSeenAt = math.max(tonumber(duplicate.lastSeenAt) or 0, tonumber(entry.lastSeenAt) or 0)
+                        removed = removed + 1
+                    else
+                        compact[#compact + 1] = entry
+                    end
+                else
+                    removed = removed + 1
+                end
+            end
+            EPC.saved.resourcePinLocations[zoneKey] = compact
+        end
+    end
+    self.lastLearnedCompactionRemoved029497 = removed
+    return removed
+end
+
+if type(ORIGINAL_INITIALIZE) == "function" then
+    InitializeImplArch = function(self, ...)
+        ORIGINAL_INITIALIZE(self, ...)
+        if EPC.saved and (tonumber(EPC.saved.resourcePinsDataCompactionVersion) or 0) < 3 then
+            local removed = self:CompactLearnedLocationData029497()
+            EPC.saved.resourcePinsDataCompactionVersion = 3
+            self.lastLearnedCompactionRemoved029497 = removed
+            self:RefreshMarkers()
+        end
+    end
+end
+
+-- END ABSORBED: ResourcePins3DLocationFix.lua
+
+
+-- BEGIN ABSORBED: ResourcePinsFarmFocusAccuracyFix.lua
+-- ESO Adventurer Suite
+-- v0.29.666 - Farm Focus live-target validation and chest rarity glow.
+-- Community/learned locations remain useful as navigation hints at range, but
+-- close-range Farm Focus markers must agree with ESO's actual interactable.
+
+local EPC = ESOProgressionCoach
+local R = EPC and EPC.ResourcePins
+if type(R) ~= "table" then return end
+if R._easFarmFocusAccuracy029666 then return end
+R._easFarmFocusAccuracy029666 = true
+
+local CLOSE_VALIDATE_M = 3.25
+
+local function lower(value)
+    value = tostring(value or "")
+    if type(zo_strlower) == "function" then
+        local ok, text = pcall(zo_strlower, value)
+        if ok and type(text) == "string" then return text end
+    end
+    return string.lower(value)
+end
+
+local function getLiveInteractable()
+    if type(GetGameCameraInteractableActionInfo) ~= "function" then return nil end
+    local ok, action, name, blocked, owned, additionalInfo, context, contextLink, criminal = pcall(GetGameCameraInteractableActionInfo)
+    if not ok then return nil end
+
+    name = tostring(name or "")
+    local interactionType = nil
+    if type(GetInteractionType) == "function" then
+        local okType, value = pcall(GetInteractionType)
+        if okType then interactionType = value end
+    end
+
+    local kind = type(R.ClassifyByName) == "function" and R:ClassifyByName(name) or nil
+    local supported = type(R.IsSupportedResourceInteraction) == "function"
+        and R:IsSupportedResourceInteraction(interactionType, name) == true
+
+    return {
+        name = name,
+        kind = kind,
+        supported = supported,
+        interactionType = interactionType,
+        additionalInfo = additionalInfo,
+        context = context,
+        contextLink = contextLink,
+    }
+end
+
+local function sameFarmKind(candidateKind, liveKind)
+    candidateKind = tostring(candidateKind or "RESOURCE")
+    liveKind = tostring(liveKind or "RESOURCE")
+    if candidateKind == liveKind then return true end
+    if candidateKind == "RESOURCE" or liveKind == "RESOURCE" then return true end
+
+    -- Alchemy subtypes are deliberately compatible with one another because a
+    -- community point can be a generic reagent spawn while ESO exposes the
+    -- specific plant/mushroom name currently occupying that spawn.
+    local alchemy = {
+        ALCHEMY = true, MUSHROOM = true, FLOWER = true, WATERPLANT = true,
+    }
+    if alchemy[candidateKind] and alchemy[liveKind] then return true end
+    return false
+end
+
+local function chestTierFromContext(live)
+    if type(live) ~= "table" or tostring(live.kind or "") ~= "CHEST" then return nil end
+    if rawget(_G, "ADDITIONAL_INTERACT_INFO_LOCKED") ~= nil
+        and live.additionalInfo ~= rawget(_G, "ADDITIONAL_INTERACT_INFO_LOCKED") then
+        return nil
+    end
+
+    local context = live.context
+    local comparisons = {
+        { "LOCK_QUALITY_MASTER", "EPIC" },
+        { "LOCK_QUALITY_ADVANCED", "RARE" },
+        { "LOCK_QUALITY_INTERMEDIATE", "UNCOMMON" },
+        { "LOCK_QUALITY_SIMPLE", "COMMON" },
+        { "LOCK_QUALITY_PRACTICE", "COMMON" },
+    }
+    for i = 1, #comparisons do
+        local value = rawget(_G, comparisons[i][1])
+        if value ~= nil and context == value then return comparisons[i][2] end
+    end
+
+    -- ESO exposes the lock-quality text from the same context value used by the
+    -- reticle. Keep a localized-string fallback for API builds where only part
+    -- of the LockQuality enum is exported to insecure addon code.
+    if context ~= nil and type(GetString) == "function" then
+        local ok, text = pcall(GetString, "SI_LOCKQUALITY", context)
+        text = ok and lower(text) or ""
+        if string.find(text, "master", 1, true) then return "EPIC" end
+        if string.find(text, "advanced", 1, true) then return "RARE" end
+        if string.find(text, "intermediate", 1, true) then return "UNCOMMON" end
+        if string.find(text, "simple", 1, true) or string.find(text, "practice", 1, true) then return "COMMON" end
+    end
+    return nil
+end
+
+local TIER_VISUALS = {
+    COMMON = { color = { 0.95, 0.95, 0.95 }, alpha = 0.34 },
+    UNCOMMON = { color = { 0.28, 0.86, 1.00 }, alpha = 0.50 },
+    RARE = { color = { 0.82, 0.40, 1.00 }, alpha = 0.66 },
+    EPIC = { color = { 1.00, 0.78, 0.22 }, alpha = 0.82 },
+}
+
+local baseGlow = GetGlowVisualForEntryImplArch
+GetGlowVisualForEntryImplArch = function(self, entry, alphaBase)
+    local forcedTier = type(entry) == "table" and tostring(entry.easFarmLiveTier029666 or "") or ""
+    local visual = TIER_VISUALS[forcedTier]
+    if visual then
+        local saved = EPC.saved or {}
+        local strength = math.max(0, math.min(1, (tonumber(saved.resourcePinsGlowStrength) or 78) / 100))
+        local alpha = math.max(0.22, math.min(1.0, (tonumber(alphaBase) or 0.72) * visual.alpha * (0.70 + strength * 0.65)))
+        local size = 0.98 + (0.08 * strength)
+        return visual.color, alpha, size, forcedTier
+    end
+    if type(baseGlow) == "function" then return baseGlow(self, entry, alphaBase) end
+    return { 1, 1, 1 }, tonumber(alphaBase) or 0.72, 1.0, "COMMON"
+end
+
+local baseDeduplicate = DeduplicateVisibleCandidatesImplArch
+DeduplicateVisibleCandidatesImplArch = function(self, visible)
+    if not EPC.saved or EPC.saved.resourcePinsFarmFocusEnabled ~= true or type(visible) ~= "table" then
+        return type(baseDeduplicate) == "function" and baseDeduplicate(self, visible) or visible
+    end
+
+    local live = getLiveInteractable()
+    local liveKind = live and live.supported and live.kind or nil
+    local liveTier = chestTierFromContext(live)
+    local filtered = {}
+
+    for i = 1, #visible do
+        local candidate = visible[i]
+        local keep = type(candidate) == "table"
+        if keep and candidate.debug ~= true and candidate.focusedMissing ~= true and candidate.skyshard ~= true then
+            local distanceM = tonumber(candidate.horizontalDistanceM) or tonumber(candidate.distanceM) or 999999
+            if distanceM <= CLOSE_VALIDATE_M then
+                local entryKind = candidate.entry and tostring(candidate.entry.kind or "RESOURCE") or "RESOURCE"
+                -- At interaction range, a database point is only trustworthy when
+                -- ESO currently exposes a compatible live resource. Otherwise it
+                -- is a stale/depleted/misaligned navigation hint and must vanish.
+                keep = liveKind ~= nil and sameFarmKind(entryKind, liveKind)
+                if keep and liveTier and type(candidate.entry) == "table" then
+                    candidate.entry.easFarmLiveTier029666 = liveTier
+                end
+            end
+        end
+        if keep then filtered[#filtered + 1] = candidate end
+    end
+
+    -- Always add one marker for the resource ESO actually exposes under the
+    -- reticle. This corrects stale community classifications (for example an
+    -- Alchemy point occupying the same area as a live Heavy Sack) and gives a
+    -- locked chest its real Simple/Intermediate/Advanced/Master glow.
+    if liveKind and type(self.IsKindEnabled) == "function" and self:IsKindEnabled(liveKind)
+        and type(self.GetApproximateInteractablePosition) == "function" then
+        local zoneId, x, y, z = self:GetApproximateInteractablePosition()
+        if zoneId and x and y and z then
+            local entry = {
+                kind = liveKind,
+                name = live.name ~= "" and live.name or liveKind,
+                x = x, y = y, z = z,
+                source = "live",
+                liveConfirmed029666 = true,
+                easFarmLiveTier029666 = liveTier,
+            }
+            filtered[#filtered + 1] = {
+                entry = entry,
+                distanceM = 1.45,
+                horizontalDistanceM = 1.45,
+                learned = true,
+                liveConfirmed029666 = true,
+                noDepletionProbe = true,
+            }
+        end
+    end
+
+    if type(baseDeduplicate) == "function" then return baseDeduplicate(self, filtered) end
+    return filtered
+end
+
+EPC.resourcePinsFarmFocusAccuracy029666 = true
+
+-- END ABSORBED: ResourcePinsFarmFocusAccuracyFix.lua

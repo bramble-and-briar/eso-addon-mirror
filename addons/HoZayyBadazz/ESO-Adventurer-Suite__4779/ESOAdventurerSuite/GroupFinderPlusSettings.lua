@@ -12,7 +12,6 @@ if not GF then return end
 if S._easUnifiedGroupSettings029678 then return end
 S._easUnifiedGroupSettings029678 = true
 
-local baseInitialize = S.Initialize
 local selectedBlacklist = ""
 
 local function refreshGF()
@@ -189,41 +188,52 @@ local function appendControlsToSubmenu(options, submenuName, controls)
     return false
 end
 
-function S:Initialize(...)
-    local LAM = LibAddonMenu2
-    if not LAM or type(LAM.RegisterOptionControls) ~= "function" then
-        return baseInitialize(self, ...)
+local function appendControlsToNestedSubmenu(options, categoryName, featureName, controls)
+    if type(options) ~= "table" or type(controls) ~= "table" or #controls == 0 then return false end
+    for _, category in ipairs(options) do
+        if category and category.type == "submenu" and category.name == categoryName and type(category.controls) == "table" then
+            for _, feature in ipairs(category.controls) do
+                if feature and feature.type == "submenu" and feature.name == featureName and type(feature.controls) == "table" then
+                    for _, control in ipairs(controls) do
+                        if control.type == "description" then control.width = "full" end
+                        feature.controls[#feature.controls + 1] = control
+                    end
+                    return true
+                end
+            end
+        end
     end
+    return false
+end
 
-    -- Group Loot previously wrapped RegisterOptionControls globally. Mark its old
-    -- injection as satisfied and add those controls ourselves inside the proper
-    -- Suite category instead of as raw top-level controls.
+S:RegisterOptionsExtension("GroupFinderPlus", function(options)
     local loot = EPC.GroupLootNotifier
     if loot then loot.settingsInjected = true end
 
-    local previousRegister = LAM.RegisterOptionControls
-    LAM.RegisterOptionControls = function(lam, panelName, options, ...)
-        if panelName == "ESOProgressionCoachSettings" and type(options) == "table" then
-            appendControlsToSubmenu(options, "Activities & Group Finder", buildGroupFinderControls())
+    appendControlsToNestedSubmenu(options, "Activities & Group Finder", "Dungeon / Group Finder", buildGroupFinderControls())
 
-            if loot and type(loot.GetSettingsOptions) == "function" then
-                local lootControls = loot:GetSettingsOptions() or {}
-                -- GetSettingsOptions starts with its own header; keep it, because
-                -- inside the Group category it visually separates the feature.
-                appendControlsToSubmenu(options, "Group, Team & Companion Visibility", lootControls)
+    if loot and type(loot.GetSettingsOptions) == "function" then
+        local lootControls = loot:GetSettingsOptions() or {}
+        -- GetSettingsOptions historically returned its own header because the
+        -- feature was appended directly into a flat category. The feature tree
+        -- now owns the section title, so drop that legacy header and place every
+        -- Group Loot control inside one dedicated submenu.
+        if lootControls[1] and lootControls[1].type == "header" and lootControls[1].name == "Group Loot Notifier" then
+            table.remove(lootControls, 1)
+        end
+        for _, option in ipairs(options) do
+            if option and option.type == "submenu" and option.name == "Group, Team & Loot" and type(option.controls) == "table" then
+                option.controls[#option.controls + 1] = {
+                    type = "submenu",
+                    name = "Group Loot Notifier",
+                    tooltip = "Group loot chat alerts, notable-item filters, display formatting, and session loot history.",
+                    reference = "EAS_SettingsFeature029788_GroupLootNotifier",
+                    controls = lootControls,
+                }
+                break
             end
         end
-        return previousRegister(lam, panelName, options, ...)
     end
-
-    local ok, result = pcall(baseInitialize, self, ...)
-    LAM.RegisterOptionControls = previousRegister
-
-    if not ok then
-        if EPC and type(EPC.Print) == "function" then EPC:Print("Settings initialization failed: " .. tostring(result)) end
-        return nil
-    end
-    return result
-end
+end, 100)
 
 EPC.unifiedSettingsIntegration029678 = true

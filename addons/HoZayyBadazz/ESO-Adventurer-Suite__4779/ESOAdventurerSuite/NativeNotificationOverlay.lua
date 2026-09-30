@@ -251,6 +251,16 @@ function N:ApplySaved()
     local buffer = self.buffer or self:GetNativeBuffer()
     if not target or type(buffer) ~= "table" or not GuiRoot then return false end
     local x, y, scale = self:GetSaved()
+
+    -- Update 51: ESO's native Edit HUD owns the Alert Text position. Keep the
+    -- Suite's centered-text/scale presentation without writing a competing anchor.
+    if EPC.NativeHUDEditor and EPC.NativeHUDEditor.IsESOPositionOwner
+        and EPC.NativeHUDEditor:IsESOPositionOwner(target) then
+        if type(target.SetScale) == "function" then pcall(target.SetScale, target, scale or 1) end
+        self:InstallCenteredText(buffer)
+        return true
+    end
+
     if x == nil or y == nil then return false end
 
     -- Keep ESO's outer top-level control at its native anchor.  Move the one
@@ -369,10 +379,10 @@ function N:CreateProxy()
             startTop = tonumber(safeMethod(control, "GetTop", 0)) or 0,
         }
         if control.BringWindowToTop then control:BringWindowToTop() end
-        EVENT_MANAGER:UnregisterForUpdate(N.name .. "Drag")
-        EVENT_MANAGER:RegisterForUpdate(N.name .. "Drag", 16, function()
+        EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Drag")
+        EPC.Runtime:RegisterUpdate("NativeNotificationOverlay", "Drag", 16, function()
             local state = N.dragState
-            if not state then EVENT_MANAGER:UnregisterForUpdate(N.name .. "Drag") return end
+            if not state then EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Drag") return end
             local x, y = GetUIMousePosition()
             control:ClearAnchors()
             control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, state.startLeft + (x-state.startMouseX), state.startTop + (y-state.startMouseY))
@@ -380,7 +390,7 @@ function N:CreateProxy()
     end)
     proxy:SetHandler("OnMouseUp", function(_, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT or not N.dragState then return end
-        EVENT_MANAGER:UnregisterForUpdate(N.name .. "Drag")
+        EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Drag")
         N.dragState = nil
         N:SaveFromProxy()
     end)
@@ -389,10 +399,10 @@ function N:CreateProxy()
         if button ~= MOUSE_BUTTON_INDEX_LEFT or type(GetUIMousePosition) ~= "function" then return end
         local mx, my = GetUIMousePosition()
         N.resizeState = { startX=mx, startY=my, startScale=proxy.easScale or 1 }
-        EVENT_MANAGER:UnregisterForUpdate(N.name .. "Resize")
-        EVENT_MANAGER:RegisterForUpdate(N.name .. "Resize", 16, function()
+        EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Resize")
+        EPC.Runtime:RegisterUpdate("NativeNotificationOverlay", "Resize", 16, function()
             local state = N.resizeState
-            if not state then EVENT_MANAGER:UnregisterForUpdate(N.name .. "Resize") return end
+            if not state then EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Resize") return end
             local x, y = GetUIMousePosition()
             local dx, dy = x - state.startX, y - state.startY
             local factorX = (BASE_WIDTH * state.startScale + dx) / math.max(1, BASE_WIDTH * state.startScale)
@@ -406,7 +416,7 @@ function N:CreateProxy()
     end)
     grip:SetHandler("OnMouseUp", function(_, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
-        EVENT_MANAGER:UnregisterForUpdate(N.name .. "Resize")
+        EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Resize")
         N.resizeState = nil
         N:SaveFromProxy()
     end)
@@ -429,8 +439,8 @@ end
 function N:SetLayoutMode(active)
     active = active == true
     self.layoutMode = active
-    EVENT_MANAGER:UnregisterForUpdate(self.name .. "Resize")
-    EVENT_MANAGER:UnregisterForUpdate(self.name .. "Drag")
+    EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Resize")
+    EPC.Runtime:UnregisterUpdate("NativeNotificationOverlay", "Drag")
     self.resizeState = nil
     self.dragState = nil
     if active then
@@ -476,11 +486,11 @@ function N:Initialize()
     self:InstallNativeAlertHooks()
     zo_callLater(function() N:GetTarget() N:ApplySaved() end, 350)
     zo_callLater(function() N:GetTarget() N:ApplySaved() end, 1300)
-    EVENT_MANAGER:RegisterForEvent(self.name .. "Activated", EVENT_PLAYER_ACTIVATED, function()
+    EPC.Runtime:RegisterEvent("NativeNotificationOverlay", "Activated", EVENT_PLAYER_ACTIVATED, function()
         zo_callLater(function() N:GetTarget() N:ApplySaved() end, 200)
     end)
     if rawget(_G, "EVENT_SCREEN_RESIZED") then
-        EVENT_MANAGER:RegisterForEvent(self.name .. "Screen", EVENT_SCREEN_RESIZED, function()
+        EPC.Runtime:RegisterEvent("NativeNotificationOverlay", "Screen", EVENT_SCREEN_RESIZED, function()
             zo_callLater(function()
                 N:ApplySaved()
                 if N.layoutMode then N:SyncProxy() end
@@ -489,8 +499,6 @@ function N:Initialize()
     end
 end
 
-EVENT_MANAGER:RegisterForEvent(N.name .. "Load", EVENT_ADD_ON_LOADED, function(_, addonName)
-    if addonName ~= "ESOAdventurerSuite" then return end
-    EVENT_MANAGER:UnregisterForEvent(N.name .. "Load", EVENT_ADD_ON_LOADED)
-    N:Initialize()
-end)
+
+-- Loaded after Core.lua; Core owns EVENT_ADD_ON_LOADED and EPC.saved is already established.
+N:Initialize()

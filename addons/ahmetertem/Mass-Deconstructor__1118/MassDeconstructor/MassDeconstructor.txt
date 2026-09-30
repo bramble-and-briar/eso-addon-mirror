@@ -1,8 +1,8 @@
 ## Title: Mass Deconstructor
 ## Description: This addon mass deconstructs all items determined by your configured conditions
-## APIVersion: 101050
+## APIVersion: 101051
 ## Author: ahmetertem, sinnereso
-## Version: 7.2
+## Version: 7.3
 ## SavedVariables: MassDeconstructorSavedVars
 ## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: TamrielTradeCentre

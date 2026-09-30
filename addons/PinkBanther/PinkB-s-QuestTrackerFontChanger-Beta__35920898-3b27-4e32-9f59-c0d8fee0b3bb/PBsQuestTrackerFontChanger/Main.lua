@@ -9,7 +9,9 @@
 --   * the house information tracker -- the house name, owner and visitor count shown while
 --     you are in a house, including on a home tour
 --
--- On screen they run quest tracker -> zone story -> Golden Pursuits -> house information.
+-- Since the HUD tracker rewrite (API 101051) they all live in one scrolling column,
+-- ZO_HUDTrackers, which HUD_TRACKER_MANAGER stacks in priority order: dynamic events, quest,
+-- zone story, Golden Pursuits, house information and a few more.
 --
 -- They are kept as separate sections everywhere -- settings, saved variables, chat commands --
 -- because they are different pieces of UI that happen to sit on top of each other, and
@@ -19,39 +21,44 @@
 -- (full evidence in FINDINGS.md):
 --
 -- The overhead nametag is drawn by the engine, so that add-on can only hand the client a font
--- descriptor through a client setting. Both trackers here are the opposite: ordinary Lua UI
+-- descriptor through a client setting. The trackers here are the opposite: ordinary Lua UI
 -- built out of LabelControls, and a LabelControl takes SetFont(descriptor) directly. So there
 -- is no client setting to write, nothing that outlives the session, and -- unlike the
 -- nameplate font -- no UI reload when the face changes.
 --
 -- Each tracker gives its text more than one font, and those are what the sliders map onto:
 --
---   section  role           control                     gamepad              keyboard
---   quest    questName      ZO_TrackedHeader            ZoFontGamepadBold27  ZoFontGameShadow
---   quest    questStep      ZO_QuestStepDescription     ZoFontGamepadBold22  ZoFontGameShadow
---   quest    questGoal      ZO_QuestCondition           ZoFontGamepad34      ZoFontGameShadow
---   pursuit  pursuitName    ...ContainerHeader          ZoFontGamepadBold27  ZoFontGameShadow
---   pursuit  pursuitDetail  ...SubLabel/ProgressLabel   ZoFontGamepad34      ZoFontGameShadow
---   house    houseName      ...ContainerHeader          ZoFontGamepadBold27  ZoFontGameShadow
---   house    houseDetail    ...SubLabel/Population/Tags ZoFontGamepad34      ZoFontGameShadow
+--   section  role             control                       gamepad              keyboard
+--   quest    questName        ZO_TrackedHeader              ZoFontGamepadBold27  ZoFontGameShadow
+--   quest    questStep        ZO_QuestStepDescription       ZoFontGamepadBold22  ZoFontGameShadow
+--   quest    questGoal        ZO_QuestCondition             ZoFontGamepad34      ZoFontGameShadow
+--   pursuit  pursuitName      ...ContainerHeader            ZoFontGamepadBold27  ZoFontGameShadow
+--   pursuit  pursuitDetail    ...ContainerSubLabel          ZoFontGamepad34      ZoFontGameShadow
+--   pursuit  pursuitProgress  ...ProgressBarProgress        ZoFontGamepadBold27  ZoFontWinH4
+--   house    houseName        ...ContainerHeader            ZoFontGamepadBold27  ZoFontGameShadow
+--   house    houseDetail      ...SubLabel/Population/Tags   ZoFontGamepad34      ZoFontGameShadow
 --
 -- One slider per font the game actually uses, no more and no fewer. Those named fonts resolve
 -- to "face|size|style" descriptors in esoui/fontdefs/, which is the form written back here.
 --
--- Two kinds of hook, because the trackers are built two ways:
+-- Nothing of the client's is run under an add-on frame except where it can build nothing.
+-- Anything the client creates while an add-on frame is on the stack is untrusted for good, so:
 --
---   pool       The quest tracker. Pooled labels, rebuilt whenever a step advances.
---              ApplyPlatformStyleToHeader and friends are file-local and cannot be hooked --
---              but they are installed on the pools with SetCustomAcquireBehavior, and
---              pool.customAcquireBehavior is a plain field. Wrapping it styles every label the
---              moment it is acquired, for the whole session.
---   hudTracker Golden Pursuits and the house panel. Both are ZO_HUDTracker_Base subclasses: a
---              handful of fixed labels on a singleton, whose fonts are only ever set by the
---              public ApplyPlatformStyle. Wrapping that method on the instance is enough --
---              and calling it is also how the game's own font is put back.
+--   quest      Pooled labels, rebuilt whenever a step advances. ApplyPlatformStyleToHeader and
+--              friends are file-local -- but they are installed on the pools with
+--              SetCustomAcquireBehavior, and pool.customAcquireBehavior is a plain field. The
+--              wrapper around it runs only SetFont / SetDimensions / anchor calls, and styles
+--              every label the moment it is acquired, for the whole session. UpdateTreeView is
+--              wrapped the same way, for the spacing; it only lays out anchors.
+--   HUD panels Golden Pursuits and the house panel. Their fonts are only ever set by their own
+--              ApplyPlatformStyle, which also re-applies keybind button templates -- not safe to
+--              run under an add-on frame. So nothing is wrapped: the labels are written directly,
+--              at the two moments the client restyles them (both of which fire an event this
+--              add-on already listens for) and whenever the settings change.
 --
--- Both wrappers run after the game's own styling, which is what makes the label underneath
--- pristine and safe to measure. control:GetFontSize() there is the client's real size for
+-- The game's own font is always put back by writing it directly, read from the tracker's own
+-- style table, rather than by asking the tracker to restyle itself. The labels are measured
+-- only while they carry that font: control:GetFontSize() there is the client's real size for
 -- that role -- including the resolution scaling $(GP_27) and friends carry, which an add-on
 -- cannot compute. That measurement becomes the default the sliders start from, so "untouched
 -- settings" really is pixel-identical to the stock UI.
@@ -144,9 +151,10 @@ addon.sections = {
 	{
 		key = "quest",
 		kind = "pool",
-		-- Only this section can be moved and scaled. The other two panels anchor to the quest
-		-- tracker, so they come along with it -- see ApplyPanelLayout.
+		-- Only this section carries the position and scale settings. The position moves the
+		-- whole tracker column, so the other two panels come along -- see ApplyPanelLayout.
 		hasLayout = true,
+		trackerGlobal = "FOCUSED_QUEST_TRACKER",
 		headingId = "SI_PBSQTFC_SECTION_QUEST",
 		noteId = "SI_PBSQTFC_SECTION_QUEST_NOTE",
 		enabledId = "SI_PBSQTFC_QUEST_ENABLED",
@@ -155,16 +163,23 @@ addon.sections = {
 		faceTooltipId = "SI_PBSQTFC_QUEST_FACE_TOOLTIP",
 		styleId = "SI_PBSQTFC_QUEST_STYLE",
 		styleTooltipId = "SI_PBSQTFC_QUEST_STYLE_TOOLTIP",
+		-- fontKey is the name of the tracker's own style field for this text. The game's font
+		-- is read back from it when a label has to be handed back, so restoring never depends
+		-- on calling the tracker's ApplyPlatformStyle -- whose signature changed underneath
+		-- this add-on once already.
 		roles = {
-			{ key = "questName", poolName = "headerPool", command = "name", stringId = "SI_PBSQTFC_SIZE_QUEST_NAME", tooltipId = "SI_PBSQTFC_SIZE_QUEST_NAME_TOOLTIP" },
-			{ key = "questStep", poolName = "stepDescriptionPool", command = "step", stringId = "SI_PBSQTFC_SIZE_QUEST_STEP", tooltipId = "SI_PBSQTFC_SIZE_QUEST_STEP_TOOLTIP" },
-			{ key = "questGoal", poolName = "conditionPool", command = "goal", stringId = "SI_PBSQTFC_SIZE_QUEST_GOAL", tooltipId = "SI_PBSQTFC_SIZE_QUEST_GOAL_TOOLTIP" },
+			{ key = "questName", poolName = "headerPool", fontKey = "FONT_HEADER", command = "name", stringId = "SI_PBSQTFC_SIZE_QUEST_NAME", tooltipId = "SI_PBSQTFC_SIZE_QUEST_NAME_TOOLTIP" },
+			{ key = "questStep", poolName = "stepDescriptionPool", fontKey = "FONT_SUBCATEGORY", command = "step", stringId = "SI_PBSQTFC_SIZE_QUEST_STEP", tooltipId = "SI_PBSQTFC_SIZE_QUEST_STEP_TOOLTIP" },
+			{ key = "questGoal", poolName = "conditionPool", fontKey = "FONT_GENERAL", command = "goal", stringId = "SI_PBSQTFC_SIZE_QUEST_GOAL", tooltipId = "SI_PBSQTFC_SIZE_QUEST_GOAL_TOOLTIP" },
 		},
 	},
 	{
 		key = "pursuit",
 		kind = "hudTracker",
-		trackerGlobal = "PROMOTIONAL_EVENT_TRACKER",
+		trackerGlobal = "TIMED_ACTIVITY_TRACKER",
+		-- The panel's old name. The client still aliases it (addoncompatibilityaliases), and it
+		-- is the one any client before the HUD tracker rewrite has.
+		legacyTrackerGlobal = "PROMOTIONAL_EVENT_TRACKER",
 		headingId = "SI_PBSQTFC_SECTION_PURSUIT",
 		noteId = "SI_PBSQTFC_SECTION_PURSUIT_NOTE",
 		enabledId = "SI_PBSQTFC_PURSUIT_ENABLED",
@@ -173,14 +188,20 @@ addon.sections = {
 		faceTooltipId = "SI_PBSQTFC_PURSUIT_FACE_TOOLTIP",
 		styleId = "SI_PBSQTFC_PURSUIT_STYLE",
 		styleTooltipId = "SI_PBSQTFC_PURSUIT_STYLE_TOOLTIP",
+		-- The progress line used to be a label beside the pursuit name, sharing its font. It is
+		-- now the text inside a progress bar, with a different font that comes from the bar's
+		-- platform template rather than the style table -- so it is its own role, and its
+		-- game font is named here because there is no style field to read it from.
 		roles = {
-			{ key = "pursuitName", labels = { "headerLabel" }, command = "name", stringId = "SI_PBSQTFC_SIZE_PURSUIT_NAME", tooltipId = "SI_PBSQTFC_SIZE_PURSUIT_NAME_TOOLTIP" },
-			{ key = "pursuitDetail", labels = { "subLabel", "progressLabel" }, command = "detail", stringId = "SI_PBSQTFC_SIZE_PURSUIT_DETAIL", tooltipId = "SI_PBSQTFC_SIZE_PURSUIT_DETAIL_TOOLTIP" },
+			{ key = "pursuitName", labels = { { field = "headerLabel", fontKey = "FONT_HEADER" } }, command = "name", stringId = "SI_PBSQTFC_SIZE_PURSUIT_NAME", tooltipId = "SI_PBSQTFC_SIZE_PURSUIT_NAME_TOOLTIP" },
+			{ key = "pursuitDetail", labels = { { field = "subLabel", fontKey = "FONT_SUBLABEL" } }, command = "detail", stringId = "SI_PBSQTFC_SIZE_PURSUIT_DETAIL", tooltipId = "SI_PBSQTFC_SIZE_PURSUIT_DETAIL_TOOLTIP" },
+			{ key = "pursuitProgress", labels = { { field = "progressBar", child = "Progress", templateFont = { Gamepad = "ZoFontGamepadBold27", Keyboard = "ZoFontWinH4" } } }, command = "progress", stringId = "SI_PBSQTFC_SIZE_PURSUIT_PROGRESS", tooltipId = "SI_PBSQTFC_SIZE_PURSUIT_PROGRESS_TOOLTIP" },
 		},
-		spacingRole = "pursuitDetail",
+		-- Each gap follows the row it places.
 		spacingAnchors = {
-			"SUBLABEL_PRIMARY_ANCHOR", "SUBLABEL_SECONDARY_ANCHOR",
-			"PROGRESS_LABEL_PRIMARY_ANCHOR", "PROGRESS_LABEL_SECONDARY_ANCHOR",
+			{ key = "SUBLABEL_PRIMARY_ANCHOR", role = "pursuitDetail" },
+			{ key = "SUBLABEL_SECONDARY_ANCHOR", role = "pursuitDetail" },
+			{ key = "PROGRESS_BAR_PRIMARY_ANCHOR", role = "pursuitProgress" },
 		},
 	},
 	{
@@ -196,19 +217,25 @@ addon.sections = {
 		styleId = "SI_PBSQTFC_HOUSE_STYLE",
 		styleTooltipId = "SI_PBSQTFC_HOUSE_STYLE_TOOLTIP",
 		roles = {
-			{ key = "houseName", labels = { "headerLabel" }, command = "name", stringId = "SI_PBSQTFC_SIZE_HOUSE_NAME", tooltipId = "SI_PBSQTFC_SIZE_HOUSE_NAME_TOOLTIP" },
-			{ key = "houseDetail", labels = { "subLabel", "populationLabel", "tagsLabel" }, command = "detail", stringId = "SI_PBSQTFC_SIZE_HOUSE_DETAIL", tooltipId = "SI_PBSQTFC_SIZE_HOUSE_DETAIL_TOOLTIP" },
+			{ key = "houseName", labels = { { field = "headerLabel", fontKey = "FONT_HEADER" } }, command = "name", stringId = "SI_PBSQTFC_SIZE_HOUSE_NAME", tooltipId = "SI_PBSQTFC_SIZE_HOUSE_NAME_TOOLTIP" },
+			{ key = "houseDetail", labels = {
+				{ field = "subLabel", fontKey = "FONT_SUBLABEL" },
+				{ field = "populationLabel", fontKey = "FONT_POPULATION" },
+				{ field = "tagsLabel", fontKey = "FONT_TAGS" },
+			}, command = "detail", stringId = "SI_PBSQTFC_SIZE_HOUSE_DETAIL", tooltipId = "SI_PBSQTFC_SIZE_HOUSE_DETAIL_TOOLTIP" },
 		},
-		-- Every gap in this panel sits above a "detail" label, so they all follow that role's
-		-- size. The gap above the header is the panel's own TOP_LEVEL anchor, which places the
-		-- whole thing on screen and is deliberately left alone -- as are CONTAINER_* and
-		-- HEADER_*, for the same reason.
-		spacingRole = "houseDetail",
+		-- Every gap in this panel sits above a "detail" label. The gap above the header is the
+		-- panel's own anchor in the tracker column, which the tracker manager owns and is
+		-- deliberately left alone -- as are CONTAINER_* and HEADER_*, for the same reason.
 		spacingAnchors = {
-			"SUBLABEL_PRIMARY_ANCHOR", "SUBLABEL_SECONDARY_ANCHOR",
-			"POPULATION_HEADERLABEL_PRIMARY_ANCHOR", "POPULATION_HEADERLABEL_SECONDARY_ANCHOR",
-			"POPULATION_SUBLABEL_PRIMARY_ANCHOR", "POPULATION_SUBLABEL_SECONDARY_ANCHOR",
-			"TAGS_LABEL_PRIMARY_ANCHOR", "TAGS_LABEL_SECONDARY_ANCHOR",
+			{ key = "SUBLABEL_PRIMARY_ANCHOR", role = "houseDetail" },
+			{ key = "SUBLABEL_SECONDARY_ANCHOR", role = "houseDetail" },
+			{ key = "POPULATION_HEADERLABEL_PRIMARY_ANCHOR", role = "houseDetail" },
+			{ key = "POPULATION_HEADERLABEL_SECONDARY_ANCHOR", role = "houseDetail" },
+			{ key = "POPULATION_SUBLABEL_PRIMARY_ANCHOR", role = "houseDetail" },
+			{ key = "POPULATION_SUBLABEL_SECONDARY_ANCHOR", role = "houseDetail" },
+			{ key = "TAGS_LABEL_PRIMARY_ANCHOR", role = "houseDetail" },
+			{ key = "TAGS_LABEL_SECONDARY_ANCHOR", role = "houseDetail" },
 		},
 	},
 }
@@ -251,6 +278,8 @@ addon.platformDefaults = {
 		questGoal = { face = "$(GAMEPAD_MEDIUM_FONT)", size = 34, style = "soft-shadow-thick" },
 		pursuitName = { face = "$(GAMEPAD_BOLD_FONT)", size = 27, style = "soft-shadow-thick" },
 		pursuitDetail = { face = "$(GAMEPAD_MEDIUM_FONT)", size = 34, style = "soft-shadow-thick" },
+		-- ZO_HUDTracker_Base_ProgressBar_Gamepad_Template's Progress label: ZoFontGamepadBold27.
+		pursuitProgress = { face = "$(GAMEPAD_BOLD_FONT)", size = 27, style = "soft-shadow-thick" },
 		houseName = { face = "$(GAMEPAD_BOLD_FONT)", size = 27, style = "soft-shadow-thick" },
 		houseDetail = { face = "$(GAMEPAD_MEDIUM_FONT)", size = 34, style = "soft-shadow-thick" },
 	},
@@ -260,6 +289,9 @@ addon.platformDefaults = {
 		questGoal = { face = "$(BOLD_FONT)", size = 18, style = "soft-shadow-thin" },
 		pursuitName = { face = "$(BOLD_FONT)", size = 18, style = "soft-shadow-thin" },
 		pursuitDetail = { face = "$(BOLD_FONT)", size = 18, style = "soft-shadow-thin" },
+		-- ZO_HUDTracker_Base_ProgressBar_Keyboard_Template's Progress label: ZoFontWinH4,
+		-- which is $(BOLD_FONT)|$(KB_18)|soft-shadow-thick.
+		pursuitProgress = { face = "$(BOLD_FONT)", size = 18, style = "soft-shadow-thick" },
 		houseName = { face = "$(BOLD_FONT)", size = 18, style = "soft-shadow-thin" },
 		houseDetail = { face = "$(BOLD_FONT)", size = 18, style = "soft-shadow-thin" },
 	},
@@ -710,10 +742,10 @@ function addon:ScaleHudTrackerSpacing(section, tracker)
 	end
 
 	local store = self:SpacingStore("anchor")
-	local ratio = self:SizeRatio(section.spacingRole)
 
-	for _, styleKey in ipairs(section.spacingAnchors) do
-		local anchor = style[styleKey]
+	for _, entry in ipairs(section.spacingAnchors) do
+		local ratio = self:SizeRatio(entry.role)
+		local anchor = style[entry.key]
 		if type(anchor) == "table" and type(anchor.GetOffsetY) == "function" and type(anchor.SetOffsets) == "function" then
 			local okY, currentY = pcall(anchor.GetOffsetY, anchor)
 			local okX, currentX = pcall(anchor.GetOffsetX, anchor)
@@ -758,7 +790,9 @@ function addon:StretchHeader(control, roleKey)
 		return
 	end
 
-	pcall(control.SetHeight, control, math.ceil(baseHeight * size / defaultSize))
+	if pcall(control.SetHeight, control, math.ceil(baseHeight * size / defaultSize)) then
+		control.pbqtStretched = true
+	end
 end
 
 -- Puts our font on one label, if there is anything to put.
@@ -770,6 +804,10 @@ function addon:StyleLabel(control, roleKey)
 		return false
 	end
 	if not self:RoleDiffers(roleKey) then
+		-- "written" in status means what is on the label now, not what was once put there.
+		if self.lastDescriptor then
+			self.lastDescriptor[roleKey] = nil
+		end
 		return false
 	end
 	local descriptor = self:BuildDescriptor(roleKey)
@@ -851,111 +889,345 @@ function addon:HookQuestTracker()
 end
 
 -- ---------------------------------------------------------------------------------------
--- Where the quest tracker sits, and how big it is drawn
+-- Handing a label back to the game
 --
--- ZO_FocusedQuestTrackerPanel is the top-level control the whole tracker hangs off, and it is
--- anchored **only in XML** -- TOPRIGHT to ZO_DynamicEventsTracker_TL. Nothing in
--- questtracker.lua re-anchors it: CreatePlatformAnchors and ApplyPlatformStyle only ever place
--- the timer, the quest container and the tree, all relative to the panel. Nothing sets its
--- scale either; SetScale appears nowhere in the file. So both are ours to own, and nothing
--- fights us for them once written.
+-- Restoring used to mean calling the tracker's ApplyPlatformStyle, which puts every platform
+-- font back at once. That broke when the HUD tracker rewrite gave the quest tracker's method a
+-- required style argument, and it was never a good idea for the other two panels: the rewritten
+-- Golden Pursuits panel re-applies its keybind button's platform template inside that method,
+-- and anything the client builds while an add-on frame is on the stack is untrusted for good.
 --
--- This is the one part of the add-on that writes to a control the game did not just hand us,
--- and it does not hook anything to do it -- writing to a control directly is the safe half of
--- the line that "never wrap client UI code" draws. ClearAnchors / SetAnchor / SetScale are all
--- marked *protected-attributes* in the documentation, but so are SetHidden, SetDimensions and
--- SetAlpha, which every add-on calls on ordinary controls; the marker gates controls whose
--- attributes the client has protected, not the function itself. Unverified on a PS5 all the
--- same, which is why every call here goes through RequestLayout: a deferred, isolated tick, so
--- if the client does refuse one of them it takes the position with it and leaves the fonts,
--- the settings panel and everything else standing.
---
--- The panels below inherit the move. ZO_ZoneStoryTracker anchors to
--- ZO_FocusedQuestTrackerPanelContainerQuestContainer, Golden Pursuits to the zone story, and
--- the house panel to Golden Pursuits, so the column keeps its shape and follows the tracker.
+-- So a label is handed back by writing the game's own font to it directly. The font comes from
+-- the tracker's own style table -- tracker.styles.gamepad.FONT_GENERAL and friends, the same
+-- tables the tracker reads -- so it is always the one the game would have used, and it survives
+-- ZOS changing a font without this add-on noticing.
 -- ---------------------------------------------------------------------------------------
 
-function addon:QuestPanel()
-	local tracker = self:QuestTracker()
-	return tracker and tracker.trackerPanel or nil
+local function PlatformStyleKey(platform)
+	return platform == "Gamepad" and "gamepad" or "keyboard"
 end
 
--- The anchor the game gave the panel, captured once per session before anything is written.
+-- The game's own font for one label, or nil if it cannot be known yet.
+function addon:StockFontFor(tracker, fontKey, templateFont, platform)
+	platform = platform or self:Platform()
+	if templateFont then
+		return templateFont[platform]
+	end
+	local styles = tracker and tracker.styles
+	local style = type(styles) == "table" and styles[PlatformStyleKey(platform)]
+	local font = type(style) == "table" and style[fontKey]
+	if type(font) == "string" and font ~= "" then
+		return font
+	end
+	return nil
+end
+
+-- Puts the game's font back on a label that is carrying one of ours.
 --
--- Offsets are stored as a nudge from this rather than as an absolute position, so 0/0 really is
--- the game's own layout and a ZOS change to the default is inherited rather than overwritten.
-function addon:CapturePanelAnchor(panel)
-	if self.panelAnchor then
-		return true
-	end
-	if type(panel.GetAnchor) ~= "function" then
+-- A label still on the game's font is left alone, so this is free when nothing has been
+-- changed and cannot fight the game over a label it restyled for its own reasons.
+function addon:RestoreStock(control, roleKey, stockFont, tracker)
+	if not control or type(control.SetFont) ~= "function" or not stockFont then
 		return false
 	end
-
-	local ok, isValid, point, relativeTo, relativePoint, offsetX, offsetY, constrains = pcall(panel.GetAnchor, panel, 0)
-	if not ok or not isValid then
-		return false
+	if type(control.GetFont) == "function" then
+		local ok, current = pcall(control.GetFont, control)
+		if ok and current == stockFont then
+			return false
+		end
 	end
 
-	self.panelAnchor = {
-		point = point,
-		relativeTo = relativeTo,
-		relativePoint = relativePoint,
-		offsetX = offsetX or 0,
-		offsetY = offsetY or 0,
-		constrains = constrains,
-	}
+	pcall(control.SetFont, control, stockFont)
+
+	-- The quest header's box is the one thing StretchHeader grows; put it back to the height
+	-- the game gives it, which lives in the same style table.
+	if control.pbqtStretched then
+		control.pbqtStretched = nil
+		local styles = tracker and tracker.styles
+		local style = type(styles) == "table" and styles[PlatformStyleKey(self:Platform())]
+		local height = type(style) == "table" and style.QUEST_HEADER_BASE_HEIGHT
+		if type(height) == "number" and type(control.SetHeight) == "function" then
+			pcall(control.SetHeight, control, height)
+		end
+	end
 	return true
 end
 
--- True when the panel would sit anywhere other than where the game puts it.
-function addon:LayoutDiffers()
+-- Re-draws the quest tracker with the current settings.
+--
+-- Every active label is handed back and then styled again, so a smaller setting shrinks and
+-- "off" restores. The tracker's own UpdateTreeView then lays the rows out again, going through
+-- the spacing wrapper on the way.
+function addon:RefreshQuest()
+	local tracker = self:QuestTracker()
+	if not tracker then
+		return false
+	end
+
+	for _, role in ipairs(self.sectionByKey.quest.roles) do
+		local pool = tracker[role.poolName]
+		local stockFont = self:StockFontFor(tracker, role.fontKey)
+		if pool and type(pool.GetActiveObjects) == "function" then
+			for _, control in pairs(pool:GetActiveObjects()) do
+				self:RestoreStock(control, role.key, stockFont, tracker)
+				self:StyleLabel(control, role.key)
+			end
+		end
+	end
+
+	if type(tracker.UpdateTreeView) == "function" then
+		pcall(tracker.UpdateTreeView, tracker)
+	end
+	return true
+end
+
+-- ---------------------------------------------------------------------------------------
+-- The ZO_HUDTracker_Base panels: Golden Pursuits and the house information
+--
+-- Golden Pursuits is the panel carrying the pursuit you are tracking and its progress bar; it is
+-- also where Tamriel Tomes and a pinned achievement go. The house panel appears while you are in
+-- a house -- yours or someone else's on a home tour -- and carries the house name, the owner, the
+-- visitor count and the House Tours tags.
+--
+-- Their fonts are only ever set by the panel's own ApplyPlatformStyle, which the client runs at
+-- EVENT_ADD_ONS_LOADED and on a keyboard/gamepad switch -- nothing else touches them. Earlier
+-- builds wrapped that method to re-style on top of it. They no longer do: the method is not ours
+-- to run under an add-on frame (see "Handing a label back"), and both moments it runs are ones
+-- this add-on already hears about -- EVENT_PLAYER_ACTIVATED comes after the first, and
+-- EVENT_GAMEPAD_PREFERRED_MODE_CHANGED is the second. So the labels are written directly, from
+-- those events and from the settings, and nothing of the client's is wrapped at all.
+-- ---------------------------------------------------------------------------------------
+
+function addon:TrackerFor(section)
+	if section.trackerGlobal and _G[section.trackerGlobal] then
+		return _G[section.trackerGlobal]
+	end
+	if section.legacyTrackerGlobal then
+		return _G[section.legacyTrackerGlobal]
+	end
+	return nil
+end
+
+-- One label of a HUD panel, following a child name where the text sits inside another control
+-- (the progress bar's Progress label).
+local function ResolveLabel(tracker, spec)
+	local control = tracker[spec.field]
+	if control and spec.child then
+		if type(control.GetNamedChild) ~= "function" then
+			return nil
+		end
+		local ok, child = pcall(control.GetNamedChild, control, spec.child)
+		control = ok and child or nil
+	end
+	return control
+end
+
+function addon:HookHudTracker(section)
+	self.hooked = self.hooked or {}
+	if self.hooked[section.key] then
+		return true
+	end
+	-- Nothing is installed any more; "hooked" now only means "found".
+	if not self:TrackerFor(section) then
+		return false
+	end
+	self.hooked[section.key] = true
+	return true
+end
+
+-- Hands back, measures and styles the panel's labels, then lets the panel re-seat them.
+--
+-- Nothing happens until the panel has been styled once by the client (currentStyle is set by the
+-- base class's ApplyPlatformStyle); before that the labels have no font to hand back or measure.
+function addon:StyleHudTrackerLabels(section, tracker)
+	tracker = tracker or self:TrackerFor(section)
+	if not tracker or not tracker.currentStyle then
+		return false
+	end
+
+	for _, role in ipairs(section.roles) do
+		for _, spec in ipairs(role.labels) do
+			local control = ResolveLabel(tracker, spec)
+			if control then
+				local stockFont = self:StockFontFor(tracker, spec.fontKey, spec.templateFont)
+				self:RestoreStock(control, role.key, stockFont, tracker)
+				-- Handed back first, so the label is on the game's own font when it is read.
+				self:MeasureDefault(control, role.key)
+				self:StyleLabel(control, role.key)
+			end
+		end
+	end
+
+	-- The gaps between those labels live on the style table's anchors, so they are scaled
+	-- before RefreshAnchors puts the anchors back on the controls.
+	self:ScaleHudTrackerSpacing(section, tracker)
+
+	-- The labels are anchored to each other's bottoms, so a size change moves everything under
+	-- them. RefreshAnchors only clears and re-adds the panel's own anchors -- no templates, no
+	-- scenes -- and it is also what re-places the lower lines when one above them is hidden.
+	if type(tracker.RefreshAnchors) == "function" then
+		pcall(tracker.RefreshAnchors, tracker)
+	end
+	return true
+end
+
+function addon:RefreshHudTracker(section)
+	return self:StyleHudTrackerLabels(section)
+end
+
+-- ---------------------------------------------------------------------------------------
+-- Where the tracker column sits, and how big the quest tracker is drawn
+--
+-- Since the HUD tracker rewrite the trackers no longer sit in a chain of top-level controls.
+-- ZO_HUDTrackers is one top-level control holding a scroll container, and
+-- HUD_TRACKER_MANAGER:RefreshLayout() re-parents and re-anchors every tracker inside it --
+-- ClearAnchors, SetParent, SetAnchor -- on every fragment show and hide, every activation and
+-- every HUD setting change. An anchor written on a tracker does not survive a second.
+--
+-- The column itself is a different matter. ZO_HUDTrackers is registered with HUD_MANAGER as a
+-- HUD element, and the only thing that ever places it is ZO_HUDManager_Element's
+-- RevertOffsetModifications(), which runs GetSavedAnchor():Set(control) -- from
+-- HUD_MANAGER:PropagateSettings() on EVENT_ADD_ONS_LOADED, on a keyboard/gamepad switch and on a
+-- screen resize. On console GetSavedAnchor() does not even look at saved offsets:
+--
+--     --TODO Custom HUD: Remove this check once we build the gamepad editor
+--     if ZO_IsConsoleOrGameCoreUI() then
+--         return self.defaultAnchor
+--     end
+--
+-- So on a PS5 the column is placed by exactly one object, element.defaultAnchor, every time.
+-- Moving the column is therefore a matter of changing that ZO_Anchor's offsets in place: the
+-- game's own placement then puts the column where we asked, whenever it runs. Nothing is
+-- wrapped, nothing is written to the game's saved variables -- the HUD editor's saved offsets
+-- are the one thing deliberately left alone -- and removing the add-on is a complete undo at
+-- the next load. It is changed in place rather than replaced because the tracker manager asks
+-- IsUsingDefaultAnchor(), which compares the object, to decide how far the column may reach
+-- down the screen.
+--
+-- On PC the keyboard "Edit HUD (Beta)" screen writes saved offsets, and GetSavedAnchor() prefers
+-- those when they exist. That is the right precedence: the game's own editor wins, and this
+-- setting is what applies when it has not been used.
+--
+-- The scale is the quest tracker's alone. RefreshLayout never calls SetScale on a tracker, so a
+-- scale written on FOCUSED_QUEST_TRACKER.control stays written.
+--
+-- Every call that places or scales goes through RequestLayout: a deferred, isolated tick, so if
+-- the client ever refuses one of them it takes the position with it and leaves the fonts, the
+-- spacing and the settings panel standing.
+-- ---------------------------------------------------------------------------------------
+
+-- The column's HUD element for each platform, or nil if this client has no tracker manager.
+function addon:ColumnElements()
+	local manager = HUD_TRACKER_MANAGER
+	if type(manager) ~= "table" then
+		return nil
+	end
+	return {
+		Gamepad = manager.gamepadHUDElement,
+		Keyboard = manager.keyboardHUDElement,
+	}
+end
+
+function addon:QuestPanel()
+	local tracker = self:QuestTracker()
+	return tracker and (tracker.control or tracker.primaryControl) or nil
+end
+
+-- True when the column would sit anywhere other than where the game puts it, or the quest
+-- tracker would be drawn at anything other than its own size.
+function addon:LayoutDiffers(platform)
 	local section = self.sectionByKey.quest
 	if not section.hasLayout or not self:Settings("quest").enabled then
 		return false
 	end
-	local layout = self:Layout("quest")
+	local layout = self:Layout("quest", platform)
 	return layout.offsetX ~= self.layoutDefaults.offsetX
 		or layout.offsetY ~= self.layoutDefaults.offsetY
 		or layout.scale ~= self.layoutDefaults.scale
 end
 
--- Moves and scales the panel, or puts it back.
+-- Writes this platform's nudge onto the column element's default anchor.
 --
--- Written unconditionally against the captured anchor rather than only when something differs,
--- because that is also the restore path: with the section off, or the sliders at their
--- defaults, the numbers computed here are exactly the game's own and the panel goes home.
--- Nothing is actually called unless the target differs from what the control already has.
-function addon:ApplyPanelLayout()
-	local panel = self:QuestPanel()
-	if not panel then
-		return false
-	end
-	if not self:CapturePanelAnchor(panel) then
+-- The game's value is captured the first time and remembered with the same "is it still what we
+-- wrote?" test the spacing uses, so re-applying cannot accumulate and a value the game writes
+-- itself is taken as the new base.
+function addon:ApplyColumnAnchor(element, platform)
+	local anchor = element and element.defaultAnchor
+	if type(anchor) ~= "table" or type(anchor.GetOffsets) ~= "function" or type(anchor.SetOffsets) ~= "function" then
 		return false
 	end
 
-	local base = self.panelAnchor
-	local applying = self:LayoutDiffers()
-	local layout = applying and self:Layout("quest") or self.layoutDefaults
-
-	local targetX = base.offsetX + layout.offsetX
-	local targetY = base.offsetY + layout.offsetY
-
-	local okAnchor, isValid, _, _, _, currentX, currentY = pcall(panel.GetAnchor, panel, 0)
-	if not okAnchor or not isValid or currentX ~= targetX or currentY ~= targetY then
-		panel:ClearAnchors()
-		panel:SetAnchor(base.point, base.relativeTo, base.relativePoint, targetX, targetY, base.constrains)
+	local okGet, currentX, currentY = pcall(anchor.GetOffsets, anchor)
+	if not okGet or type(currentX) ~= "number" or type(currentY) ~= "number" then
+		return false
 	end
 
-	local targetScale = layout.scale / 100
-	local okScale, currentScale = pcall(panel.GetScale, panel)
-	if not okScale or math.abs((currentScale or 1) - targetScale) > 0.0001 then
-		panel:SetScale(targetScale)
+	self.columnBase = self.columnBase or setmetatable({}, { __mode = "k" })
+	local record = self.columnBase[anchor]
+	if not record or record.writtenX ~= currentX or record.writtenY ~= currentY then
+		record = { baseX = currentX, baseY = currentY }
+		self.columnBase[anchor] = record
 	end
 
-	self.layoutApplied = { x = targetX, y = targetY, scale = targetScale }
+	local nudge = self:LayoutDiffers(platform) and self:Layout("quest", platform) or self.layoutDefaults
+	local targetX = record.baseX + nudge.offsetX
+	local targetY = record.baseY + nudge.offsetY
+	if targetX ~= currentX or targetY ~= currentY then
+		pcall(anchor.SetOffsets, anchor, targetX, targetY)
+	end
+	record.writtenX, record.writtenY = targetX, targetY
 	return true
+end
+
+-- Sets up both platforms' column anchors without moving anything on screen.
+--
+-- Called at EVENT_ADD_ON_LOADED, which is before EVENT_ADD_ONS_LOADED, which is where
+-- HUD_MANAGER first places every element. So at start-up the game places the column itself,
+-- already at our position, and this add-on never has to move it.
+function addon:PrepareColumnAnchors()
+	local elements = self:ColumnElements()
+	if not elements then
+		return false
+	end
+	local any = false
+	for platform, element in pairs(elements) do
+		if self:ApplyColumnAnchor(element, platform) then
+			any = true
+		end
+	end
+	return any
+end
+
+-- Moves the column and scales the quest tracker now.
+function addon:ApplyPanelLayout()
+	local applied = {}
+
+	if self:PrepareColumnAnchors() then
+		local elements = self:ColumnElements()
+		local active = elements[self:Platform()]
+		if active and type(active.RevertOffsetModifications) == "function" then
+			-- The game's own placement: GetSavedAnchor():Set(control). No closures, no screens.
+			active:RevertOffsetModifications()
+			local anchor = active.defaultAnchor
+			if anchor and type(anchor.GetOffsets) == "function" then
+				applied.x, applied.y = anchor:GetOffsets()
+			end
+		end
+	end
+
+	local panel = self:QuestPanel()
+	if panel and type(panel.SetScale) == "function" then
+		local layout = self:LayoutDiffers() and self:Layout("quest") or self.layoutDefaults
+		local targetScale = layout.scale / 100
+		local okScale, currentScale = pcall(panel.GetScale, panel)
+		if not okScale or math.abs((currentScale or 1) - targetScale) > 0.0001 then
+			panel:SetScale(targetScale)
+		end
+		applied.scale = targetScale
+	end
+
+	self.layoutApplied = applied
+	return applied.x ~= nil or applied.scale ~= nil
 end
 
 -- Every route to ApplyPanelLayout goes through here.
@@ -972,139 +1244,6 @@ function addon:RequestLayout()
 	else
 		self:ApplyPanelLayout()
 	end
-end
-
--- Re-draws the quest tracker with the current settings.
---
--- ApplyPlatformStyle first, always. It is the tracker's own public method for putting the
--- platform's named fonts back on every active label, so it is both how "off" restores the
--- game's font and how a *smaller* setting gets applied -- without it, a label would keep the
--- larger font we gave it a moment ago and nothing would shrink.
---
--- It ends with its own UpdateTreeView, so the second one here is for our fonts: the labels
--- have new text heights and the tree stacks them by height.
-function addon:RefreshQuest()
-	local tracker = self:QuestTracker()
-	if not tracker then
-		return false
-	end
-
-	if type(tracker.ApplyPlatformStyle) == "function" then
-		pcall(tracker.ApplyPlatformStyle, tracker)
-	end
-
-	for _, role in ipairs(self.sectionByKey.quest.roles) do
-		local pool = tracker[role.poolName]
-		if pool and type(pool.GetActiveObjects) == "function" then
-			for _, control in pairs(pool:GetActiveObjects()) do
-				self:StyleLabel(control, role.key)
-			end
-		end
-	end
-
-	if type(tracker.UpdateTreeView) == "function" then
-		pcall(tracker.UpdateTreeView, tracker)
-	end
-	return true
-end
-
--- ---------------------------------------------------------------------------------------
--- The ZO_HUDTracker_Base panels: Golden Pursuits and the house information
---
--- Golden Pursuits is the panel carrying the pursuit you are tracking and its progress; the
--- same controls are reused for Tamriel Tomes, so one setting covers both. The house panel
--- appears below it while you are in a house -- yours or someone else's on a home tour -- and
--- carries the house name, the owner, the visitor count and the House Tours tags.
---
--- Nothing in either is pooled: each is a singleton with a handful of fixed labels, and
--- ApplyPlatformStyle is the only thing that ever sets their fonts (Update and Refresh call
--- SetText, never SetFont). It is a public method on the instance, so it can be wrapped
--- directly -- and because it is the only writer, our font stays put until the next time it is
--- called, which is a platform change or one of our own refreshes.
---
--- Unlike the quest tracker's header, every label here is unconstrained and the containers are
--- resizeToFitDescendents, so a larger font grows the panel instead of being clipped.
--- ---------------------------------------------------------------------------------------
-
-function addon:TrackerFor(section)
-	return section.trackerGlobal and _G[section.trackerGlobal] or nil
-end
-
-function addon:HookHudTracker(section)
-	self.hooked = self.hooked or {}
-	if self.hooked[section.key] then
-		return true
-	end
-
-	local tracker = self:TrackerFor(section)
-	if not tracker or type(tracker.ApplyPlatformStyle) ~= "function" then
-		return false
-	end
-
-	local previous = tracker.ApplyPlatformStyle
-	-- Assigned on the instance, so the class method is left alone for the other panels that
-	-- inherit from ZO_HUDTracker_Base. ZO_PlatformStyle calls this through self:, so the
-	-- instance field is what it finds.
-	tracker.ApplyPlatformStyle = function(trackerSelf, style)
-		previous(trackerSelf, style)
-		addon:StyleHudTrackerLabels(section, trackerSelf)
-	end
-
-	self.hooked[section.key] = true
-	-- Its fonts were set when the client built the UI, before this hook existed, so the labels
-	-- on screen are still the game's own -- pristine, and the one moment to measure them.
-	self:StyleHudTrackerLabels(section, tracker)
-	return true
-end
-
--- Measures then styles the panel's labels. Called from inside the wrapper, so the game's own
--- ApplyPlatformStyle has just run and every label is pristine.
-function addon:StyleHudTrackerLabels(section, tracker)
-	tracker = tracker or self:TrackerFor(section)
-	if not tracker then
-		return false
-	end
-
-	for _, role in ipairs(section.roles) do
-		for _, labelField in ipairs(role.labels) do
-			local control = tracker[labelField]
-			if control then
-				self:MeasureDefault(control, role.key)
-				self:StyleLabel(control, role.key)
-			end
-		end
-	end
-
-	-- The gaps between those labels live on the style table's anchors, so they are scaled
-	-- before RefreshAnchors puts the anchors back on the controls.
-	self:ScaleHudTrackerSpacing(section, tracker)
-
-	-- The labels are anchored to each other's bottoms, so a size change moves everything under
-	-- them. RefreshAnchors is the tracker's own way of settling that, and it is also what
-	-- re-places the lower lines when one above them is hidden.
-	if type(tracker.RefreshAnchors) == "function" then
-		pcall(tracker.RefreshAnchors, tracker)
-	end
-	return true
-end
-
--- Re-draws one of these panels with the current settings.
---
--- Going back through ApplyPlatformStyle is what restores the game's own fonts, exactly as with
--- the quest tracker -- and since our wrapper is on that method, one call does both halves.
--- currentStyle is the platform table the base class stored the last time it ran; without it
--- the tracker has not been initialised yet and there is nothing to refresh.
-function addon:RefreshHudTracker(section)
-	local tracker = self:TrackerFor(section)
-	if not tracker or type(tracker.ApplyPlatformStyle) ~= "function" then
-		return false
-	end
-	local style = tracker.currentStyle
-	if not style then
-		return false
-	end
-	pcall(tracker.ApplyPlatformStyle, tracker, style)
-	return true
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -1179,7 +1318,13 @@ function addon:SampleControl(roleKey)
 	if not tracker then
 		return nil
 	end
-	return tracker[role.labels[1]]
+	local spec = role.labels[1]
+	local control = tracker[spec.field]
+	if control and spec.child and type(control.GetNamedChild) == "function" then
+		local ok, child = pcall(control.GetNamedChild, control, spec.child)
+		control = ok and child or nil
+	end
+	return control
 end
 
 function addon:PrintStatus()
@@ -1200,9 +1345,25 @@ function addon:PrintStatus()
 			local layout = self:Layout(section.key)
 			Line("    layout: x=%s y=%s scale=%s%% differs=%s", tostring(layout.offsetX),
 				tostring(layout.offsetY), tostring(layout.scale), tostring(self:LayoutDiffers()))
+
+			-- Where the column element's anchor is now, and what the game started it at. If the
+			-- column has not moved on screen but "anchor" shows the nudge, the anchor was
+			-- written and something else is placing the column.
+			local elements = self:ColumnElements()
+			local element = elements and elements[platform]
+			local anchor = element and element.defaultAnchor
+			local record = anchor and self.columnBase and self.columnBase[anchor]
+			local anchorText = "no column element"
+			if anchor and type(anchor.GetOffsets) == "function" then
+				local ok, x, y = pcall(anchor.GetOffsets, anchor)
+				anchorText = ok and string.format("%s/%s", tostring(x), tostring(y)) or "unreadable"
+			end
+			Line("      column anchor=%s base=%s", anchorText,
+				record and string.format("%s/%s", tostring(record.baseX), tostring(record.baseY)) or "not captured")
+
 			local applied = self.layoutApplied
-			Line("      applied=%s base=%s", applied and string.format("%s/%s @%.2f", tostring(applied.x), tostring(applied.y), applied.scale) or "never",
-				self.panelAnchor and string.format("%s/%s", tostring(self.panelAnchor.offsetX), tostring(self.panelAnchor.offsetY)) or "not captured")
+			Line("      applied=%s", applied and string.format("%s/%s @%s", tostring(applied.x), tostring(applied.y),
+				applied.scale and string.format("%.2f", applied.scale) or "-") or "never")
 		end
 		for _, role in ipairs(section.roles) do
 			Line("    %s: size=%s default=%s ratio=%.2f differs=%s", role.key,
@@ -1249,12 +1410,12 @@ local function Usage()
 	Line("  %s status                 -- settings, and the font actually on screen", SLASH)
 	Line("  %s quest <n>              -- all three quest tracker sizes", SLASH)
 	Line("  %s quest <part> <n>       -- one part: name | step | goal", SLASH)
-	Line("  %s pursuit <n>            -- both Golden Pursuits sizes", SLASH)
-	Line("  %s pursuit <part> <n>     -- one part: name | detail", SLASH)
+	Line("  %s pursuit <n>            -- every Golden Pursuits size", SLASH)
+	Line("  %s pursuit <part> <n>     -- one part: name | detail | progress", SLASH)
 	Line("  %s house <n>              -- both house tracker sizes", SLASH)
 	Line("  %s house <part> <n>       -- one part: name | detail", SLASH)
 	Line("  %s size <n>               -- every size in every tracker", SLASH)
-	Line("  %s pos <x> <y>            -- nudge the quest tracker from where the game puts it", SLASH)
+	Line("  %s pos <x> <y>            -- nudge the tracker column from where the game puts it", SLASH)
 	Line("  %s pos reset              -- put it back", SLASH)
 	Line("  %s scale <%d-%d>         -- draw the whole quest tracker bigger or smaller", SLASH, addon.MIN_SCALE, addon.MAX_SCALE)
 	Line("  %s on | off               -- every section", SLASH)
@@ -1351,7 +1512,7 @@ local function OnSlash(argumentString)
 			addon:SetLayoutValue("quest", "offsetX", nil)
 			addon:SetLayoutValue("quest", "offsetY", nil)
 			addon:RequestLayout()
-			Line("quest tracker position: back to the game's own")
+			Line("tracker column position: back to the game's own")
 			return
 		end
 
@@ -1367,7 +1528,7 @@ local function OnSlash(argumentString)
 		addon:SetLayoutValue("quest", "offsetY", y)
 		addon:Settings("quest").enabled = true
 		addon:RequestLayout()
-		Line("quest tracker position: %d / %d from the game's own", x, y)
+		Line("tracker column position: %d / %d from the game's own", x, y)
 	elseif command == "scale" then
 		local scale = tonumber(args[2])
 		if not scale then
@@ -1445,15 +1606,17 @@ end
 -- after a loading screen is the worst time to ask for one: every add-on is initialising at
 -- once against the 100 MB pool console add-ons share. That is what was killing PB's
 -- NamePlateChanger, and a second's delay costs nothing here -- there is no per-zone re-apply
--- to lag behind, because the hooks keep every tracker styled by themselves.
+-- to lag behind: the quest tracker keeps itself styled through its pools, and the HUD panels'
+-- fonts are only ever replaced at the two moments this add-on already listens for.
 local FIRST_APPLY_DELAY_MS = 1000
 
 local function OnPlayerActivated()
 	HookAll()
 
 	-- Only the first activation needs this. The quest labels for a quest that was already
-	-- being tracked were acquired before the hook existed; every acquire after this one goes
-	-- through the hook, and the HUD panels are styled by HookHudTracker as it attaches.
+	-- being tracked were acquired before the hook existed, and the HUD panels were first
+	-- styled by the client at EVENT_ADD_ONS_LOADED -- after this add-on loaded -- so this is
+	-- the first moment both are ready to be styled and measured.
 	if addon.firstApplyDone then
 		return
 	end
@@ -1482,6 +1645,12 @@ local function OnAddOnLoaded(_, loadedName)
 
 	HookAll()
 
+	-- Before EVENT_ADD_ONS_LOADED, which is where HUD_MANAGER first places every HUD element.
+	-- With the column's anchor already carrying our nudge, the game's own first placement puts
+	-- the column where the player asked, and nothing has to be moved on screen at start-up.
+	-- Only table fields are written here, so there is nothing to isolate.
+	pcall(addon.PrepareColumnAnchors, addon)
+
 	if addon.InitSettings then
 		addon:InitSettings()
 	end
@@ -1489,9 +1658,10 @@ local function OnAddOnLoaded(_, loadedName)
 	EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 
 	-- Switching between keyboard and gamepad mode makes every tracker re-apply its own
-	-- platform fonts, which wipes ours. Their handlers and this one are all on the same event
-	-- with no guaranteed order, so ours is deferred by a frame rather than racing them. On
-	-- console this never fires.
+	-- platform fonts, which wipes ours, and makes HUD_MANAGER place the column from the other
+	-- platform's element. Their handlers and this one are all on the same event with no
+	-- guaranteed order, so ours is deferred rather than racing them. On console this never
+	-- fires.
 	if EVENT_GAMEPAD_PREFERRED_MODE_CHANGED then
 		EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
 			if zo_callLater then

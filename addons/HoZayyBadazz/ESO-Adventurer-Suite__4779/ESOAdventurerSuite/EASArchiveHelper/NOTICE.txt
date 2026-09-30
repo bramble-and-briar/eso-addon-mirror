@@ -1,0 +1,3 @@
+Integrated feature behavior derived from ArchiveHelper v1.4.2 supplied by the user.
+ESO Adventurer Suite integration is namespaced as EASArchiveHelper and stores configuration under ESOProgressionCoachSavedVars.
+Original addon attribution retained in project records.

@@ -59,7 +59,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Martial Knowledge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Skvysh/Martial-Knowledge-Tracker__2680) | Skvysh | PC / Mac | 1.7.1 |
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Waboku/Masquerade__1679) | Waboku | PC / Mac | 001-100018 |
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Masquerade__1514) | Werewolf Finds Dragon | PC / Mac | 010-100022 |
-| [Mass Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ahmetertem/Mass-Deconstructor__1118) | ahmetertem | PC / Mac | 7.2 |
+| [Mass Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ahmetertem/Mass-Deconstructor__1118) | ahmetertem | PC / Mac | 7.3 |
 | [Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Master-Merchant-3.0__2753) | Sharlikran | PC / Mac | 3.8.33 |
 | [Master Merchant RU Patch (for v1.9.2)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/Master-Merchant-RU-Patch-for-v1.9.2__1450) | ForgottenLight | PC / Mac | 1.9.2.1 |
 | [Master Writ Inventory Marker (WritWorthy Extension)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Master-Writ-Inventory-Marker-WritWorthy-Extension__2887) | code65536 | PC / Mac | 4.0.4 |
@@ -94,7 +94,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MetaCheck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ulrich/MetaCheck__2725) | Ulrich | PC / Mac | 1.0.2 |
 | [Meterskull Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Meterskull-Console__90fcc3e4-279e-4654-834d-5ed6e5dc9a32) | j.hhh | Console | — |
 | [METERSKULL Port](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/METERSKULL-Port__36532469-e4dc-4cc3-b312-16b8a4bebc5b) | mYoda01 | Console | — |
-| [Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941) | bibik92 | PC / Mac | 1.5.7 |
+| [Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941) | bibik92 | PC / Mac | 1.5.9 |
 | [Metu's SpareIdler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MetuLiber_Ger/Metu-s-SpareIdler__227876bb-e9b1-439f-81fe-8f458ae351a8) | MetuLiber_Ger | Console | — |
 | [Miat's Battlegrounds Queue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Miat-s-Battlegrounds-Queue__1701) | dorrino | PC / Mac | 0.01 |
 | [Miat's CastIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Miat-s-CastIcon__1807) | dorrino | PC / Mac | 1.11 |
@@ -158,7 +158,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Mudballed - Memento Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Mudballed---Memento-Counter__3218) | Kyzeragon | PC / Mac | 1.0.2 |
 | [Mudcrab Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Mudcrab-Counter__4383) | TwinLamps | PC / Mac | 1.1 |
 | [Mudcrab Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/snay/Mudcrab-Tracker__4312) | snay | PC / Mac | 0.1.4 |
-| [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.1 |
+| [Muffin's Utility Tree](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Utility-Tree__4797) | Muffins714 | PC / Mac | 1.2 |
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |

@@ -193,7 +193,15 @@ function G:HideCompanionNativeChildren()
     end
 end
 
-function G:BuildAdaptiveLayout(isCompanion)
+local BuildAdaptiveLayoutImpl
+
+function G:BuildAdaptiveLayout(...)
+
+    return BuildAdaptiveLayoutImpl(self, ...)
+
+end
+
+BuildAdaptiveLayoutImpl = function(self, isCompanion)
     local w, h = RootDimensions()
     local scale = LayoutScale()
     local adaptive = EPC.saved.characterGearAdaptiveLayout029207 ~= false
@@ -497,7 +505,15 @@ function G:EnsureGearStatsCard()
     return panel
 end
 
-function G:RefreshGearStatsCard(isCompanion)
+local RefreshGearStatsCardImpl
+
+function G:RefreshGearStatsCard(...)
+
+    return RefreshGearStatsCardImpl(self, ...)
+
+end
+
+RefreshGearStatsCardImpl = function(self, isCompanion)
     local panel=self:EnsureGearStatsCard()
     local _,h=RootDimensions()
     local cardH=math.min(540,math.max(500,h-170))
@@ -1025,7 +1041,7 @@ function G:IsCompanionSceneShowing()
     return scene and scene.IsShowing and scene:IsShowing() or false
 end
 
-function G:RefreshSlot(slotData, isCompanion)
+local function RefreshSlotBase029500(self, slotData, isCompanion)
     local control = rawget(_G, slotData.control)
     if not control then return end
     EnsureDecor(control)
@@ -1222,6 +1238,14 @@ function G:RefreshSlot(slotData, isCompanion)
     end
 end
 
+-- Architecture ownership: one stable public RefreshSlot entry point. Later
+-- presentation layers replace only the internal implementation chain.
+local RefreshSlotImpl = RefreshSlotBase029500
+
+function G:RefreshSlot(...)
+    return RefreshSlotImpl(self, ...)
+end
+
 local function PlayerWeaponGridMetrics(layout, slotSize, scale)
     local slotPx = slotSize * scale
     local colGap = slotPx + math.max(34, 54 * scale)
@@ -1237,7 +1261,15 @@ local function PlayerWeaponGridMetrics(layout, slotSize, scale)
     return slotPx, colGap, rowGap, centerY
 end
 
-function G:ApplySlotLayout(slotData, slotSize, scale, isCompanion)
+local ApplySlotLayoutImpl
+
+function G:ApplySlotLayout(...)
+
+    return ApplySlotLayoutImpl(self, ...)
+
+end
+
+ApplySlotLayoutImpl = function(self, slotData, slotSize, scale, isCompanion)
     local c = rawget(_G, slotData.control)
     if not c then return end
     local layout = self.currentLayout or self:BuildAdaptiveLayout(isCompanion)
@@ -1370,39 +1402,9 @@ function G:RestorePlayerState()
     if ZO_CharacterPaperDoll then ZO_CharacterPaperDoll:SetColor(1,1,1,1) end
 end
 
-function G:CleanupPlayerScene()
-    self:HideGearStatsCard()
-    self:HideWeaponUtilityCells()
-    -- v0.29.219: never leave Character-screen controls visible after the scene
-    -- closes. Restore anchors/dimensions first, then hide scene-owned controls.
-    -- ESO will show its native controls again when the Character scene opens.
-    self:RestorePlayerState()
-    self:HideWorkspaceBackdrop()
+-- Player cleanup is owned by the final lifecycle-safe implementation below.
 
-    local controls = {
-        rawget(_G, "ZO_Character"),
-        rawget(_G, "ZO_CharacterAccessoriesSection"),
-        rawget(_G, "ZO_CharacterWeaponsSection"),
-        rawget(_G, "ZO_CharacterHeaderSection"),
-        rawget(_G, "ZO_CharacterHeaderSectionTitle"),
-        rawget(_G, "ZO_CharacterHeaderSectionDivider"),
-        rawget(_G, "ZO_CharacterApparelSectionText"),
-        rawget(_G, "ZO_CharacterPaperDoll"),
-        rawget(_G, "ZO_CharacterWeaponSwap"),
-        rawget(_G, "ZO_CharacterWindowStats"),
-        rawget(_G, "ZO_SharedWideLeftPanelBackground"),
-    }
-    for _, control in ipairs(controls) do
-        if control and control.SetHidden then pcall(control.SetHidden, control, true) end
-    end
-    for _, d in ipairs(PLAYER_SLOTS) do
-        local c = rawget(_G, d.control)
-        HideSlotPresentation(c)
-        if c and c.SetHidden then pcall(c.SetHidden, c, true) end
-    end
-end
-
-function G:CleanupCompanionScene()
+local function CleanupCompanionSceneBase029365(self)
     self:HideGearStatsCard()
     self:RestoreCompanionInfoPanel()
     -- v0.29.220: companion scene gets the same hard cleanup as the player
@@ -1482,14 +1484,30 @@ local function EnsureWeaponUtilityCell(self, key, iconTexture)
     return cell
 end
 
-function G:HideWeaponUtilityCells()
+local HideWeaponUtilityCellsImpl
+
+function G:HideWeaponUtilityCells(...)
+
+    return HideWeaponUtilityCellsImpl(self, ...)
+
+end
+
+HideWeaponUtilityCellsImpl = function(self)
     if not self.weaponUtilityCells then return end
     for _, cell in pairs(self.weaponUtilityCells) do
         if cell and cell.SetHidden then cell:SetHidden(true) end
     end
 end
 
-function G:LayoutWeaponUtilityCells(layout, slotSize, scale)
+local LayoutWeaponUtilityCellsImpl
+
+function G:LayoutWeaponUtilityCells(...)
+
+    return LayoutWeaponUtilityCellsImpl(self, ...)
+
+end
+
+LayoutWeaponUtilityCellsImpl = function(self, layout, slotSize, scale)
     if not layout then return end
     local slotPx, colGap, rowGap, centerY = PlayerWeaponGridMetrics(layout, slotSize, scale)
     -- v0.29.459: the detached utility column created an awkward empty gap to the
@@ -1647,7 +1665,15 @@ function G:ApplyPlayerLayout()
     self:ApplyCamera(layout)
 end
 
-function G:ApplyCompanionLayout()
+local ApplyCompanionLayoutImpl
+
+function G:ApplyCompanionLayout(...)
+
+    return ApplyCompanionLayoutImpl(self, ...)
+
+end
+
+ApplyCompanionLayoutImpl = function(self)
     if not self:IsEnabled() then return end
     if EPC.saved.characterGearCompanion029206 == false then self:RestoreCompanionState(); return end
     if not rawget(_G, "COMPANION_CHARACTER_KEYBOARD_SCENE") then return end
@@ -1813,7 +1839,15 @@ function G:RegisterEvents()
     reg(rawget(_G,"EVENT_COMPANION_DEACTIVATED"), "CompanionOff")
 end
 
-function G:ResetDefaults()
+local ResetDefaultsImpl
+
+function G:ResetDefaults(...)
+
+    return ResetDefaultsImpl(self, ...)
+
+end
+
+ResetDefaultsImpl = function(self)
     local d = EPC.defaults
     local s = EPC.saved
     local keys = {
@@ -1867,17 +1901,14 @@ end
 
 
 
--- v0.29.365 follow-up: scene cleanup must never hide native controls after the
--- feature was turned off during the same session.
-local EAS_CleanupPlayerSceneBase029365 = G.CleanupPlayerScene
-function G:CleanupPlayerScene()
-    if not self:IsEnabled() then self:RestoreAll(); return end
-    return EAS_CleanupPlayerSceneBase029365(self)
+-- v0.29.365 follow-up: companion cleanup restores native state when disabled.
+local CleanupCompanionSceneImpl
+function G:CleanupCompanionScene(...)
+    return CleanupCompanionSceneImpl(self, ...)
 end
-local EAS_CleanupCompanionSceneBase029365 = G.CleanupCompanionScene
-function G:CleanupCompanionScene()
+CleanupCompanionSceneImpl = function(self)
     if not self:IsEnabled() then self:RestoreAll(); return end
-    return EAS_CleanupCompanionSceneBase029365(self)
+    return CleanupCompanionSceneBase029365(self)
 end
 
 -- ============================================================================
@@ -1934,18 +1965,13 @@ function G:CleanupPlayerScene029372(sourceScene)
     end
 end
 
--- Replace the earlier cleanup implementation with the scene-safe version.
-function G:CleanupPlayerScene()
-    return self:CleanupPlayerScene029372(nil)
-end
-
 -- Re-registering scene callbacks is unnecessary because the existing callback
 -- closures resolve G:CleanupPlayerScene dynamically.  Keep a small UI-mode
 -- reconciliation hook so Alt/UI-mode changes during an active Character scene
 -- immediately re-apply the layout instead of leaving a transition frame stale.
 if EVENT_MANAGER and rawget(_G, "EVENT_GAME_CAMERA_UI_MODE_CHANGED") then
-    EVENT_MANAGER:UnregisterForEvent(NS .. "UIModeSafe029372", EVENT_GAME_CAMERA_UI_MODE_CHANGED)
-    EVENT_MANAGER:RegisterForEvent(NS .. "UIModeSafe029372", EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
+    EPC.Runtime:UnregisterEvent("CharacterGearScreen","UIModeSafe029372")
+    EPC.Runtime:RegisterEvent("CharacterGearScreen","UIModeSafe029372",EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
         if G:IsEnabled() and G:IsPlayerSceneShowing() then
             G:RequestRefresh(0)
         end
@@ -2040,8 +2066,8 @@ end
 -- the Character scene remains open. Reassert Suite ownership after that event;
 -- when no player scene is active, run the final gameplay cleanup instead.
 if EVENT_MANAGER and rawget(_G, "EVENT_GAME_CAMERA_UI_MODE_CHANGED") then
-    EVENT_MANAGER:UnregisterForEvent(NS .. "CharacterLifecycle029374", EVENT_GAME_CAMERA_UI_MODE_CHANGED)
-    EVENT_MANAGER:RegisterForEvent(NS .. "CharacterLifecycle029374", EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
+    EPC.Runtime:UnregisterEvent("CharacterGearScreen","CharacterLifecycle029374")
+    EPC.Runtime:RegisterEvent("CharacterGearScreen","CharacterLifecycle029374",EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
         if not G then return end
         if G:IsEnabled() and G:IsPlayerSceneShowing() then
             G:RequestRefresh(0)
@@ -2055,3 +2081,1209 @@ if EVENT_MANAGER and rawget(_G, "EVENT_GAME_CAMERA_UI_MODE_CHANGED") then
         end
     end)
 end
+
+
+-- Character/Companion Gear absorbed correction layers
+
+-- BEGIN ABSORBED: CharacterGearWeaponTextFix.lua
+-- ESO Adventurer Suite
+-- v0.29.555 - Character Gear weapon text hard column clamp.
+-- Measures the actual weapon/poison cell spacing at runtime and prevents item/set
+-- labels from drawing into neighboring columns at any supported UI scale.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.CharacterGearScreen then return end
+
+local G = EPC.CharacterGearScreen
+
+local WEAPON_SLOT_029555 = {
+    [EQUIP_SLOT_MAIN_HAND] = true,
+    [EQUIP_SLOT_OFF_HAND] = true,
+    [EQUIP_SLOT_BACKUP_MAIN] = true,
+    [EQUIP_SLOT_BACKUP_OFF] = true,
+}
+
+local PLAYER_WEAPON_CONTROLS_029555 = {
+    "ZO_CharacterEquipmentSlotsMainHand",
+    "ZO_CharacterEquipmentSlotsOffHand",
+    "ZO_CharacterEquipmentSlotsPoison",
+    "ZO_CharacterEquipmentSlotsBackupMain",
+    "ZO_CharacterEquipmentSlotsBackupOff",
+    "ZO_CharacterEquipmentSlotsBackupPoison",
+}
+
+local function Safe029555(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a, b, c, d, e, f, g = pcall(fn, ...)
+    if not ok or a == nil then return fallback end
+    return a, b, c, d, e, f, g
+end
+
+local function Center029555(control)
+    if not control or type(control.GetCenter) ~= "function" then return nil, nil end
+    local ok, x, y = pcall(control.GetCenter, control)
+    if not ok then return nil, nil end
+    return tonumber(x), tonumber(y)
+end
+
+local function Width029555(control)
+    if not control or type(control.GetWidth) ~= "function" then return 0 end
+    local ok, value = pcall(control.GetWidth, control)
+    return ok and (tonumber(value) or 0) or 0
+end
+
+local function MeasuredColumnWidth029555(control, fallback)
+    local x, y = Center029555(control)
+    if not x or not y then return fallback end
+
+    local ownW = Width029555(control)
+    local rowTolerance = math.max(18, ownW * 0.75)
+    local nearest = nil
+
+    for _, controlName in ipairs(PLAYER_WEAPON_CONTROLS_029555) do
+        local other = rawget(_G, controlName)
+        if other and other ~= control then
+            local ox, oy = Center029555(other)
+            if ox and oy and math.abs(oy - y) <= rowTolerance then
+                local distance = math.abs(ox - x)
+                if distance > 1 and (not nearest or distance < nearest) then
+                    nearest = distance
+                end
+            end
+        end
+    end
+
+    if nearest then
+        -- Six pixels of breathing room on each side guarantees adjacent centered
+        -- labels never touch, even with soft-shadow glyphs.
+        return math.max(58, math.min(fallback, math.floor(nearest - 12)))
+    end
+    return fallback
+end
+
+local function ConfigureSingleLine029555(label, width, fontSize)
+    if not label then return end
+    if type(label.SetDimensions) == "function" then
+        pcall(label.SetDimensions, label, width, fontSize + 6)
+    end
+    if type(label.SetHorizontalAlignment) == "function" then
+        pcall(label.SetHorizontalAlignment, label, TEXT_ALIGN_CENTER)
+    end
+    if type(label.SetVerticalAlignment) == "function" then
+        pcall(label.SetVerticalAlignment, label, TEXT_ALIGN_CENTER)
+    end
+    if type(label.SetMaxLineCount) == "function" then
+        pcall(label.SetMaxLineCount, label, 1)
+    end
+    if type(label.SetWrapMode) == "function" then
+        local mode = rawget(_G, "TEXT_WRAP_MODE_ELLIPSIS") or rawget(_G, "TEXT_WRAP_MODE_TRUNCATE")
+        if mode ~= nil then pcall(label.SetWrapMode, label, mode) end
+    end
+end
+
+local function RefreshWeaponText029555(self, slotData, isCompanion)
+    if isCompanion or type(slotData) ~= "table" or not WEAPON_SLOT_029555[slotData.slot] then return end
+
+    local control = rawget(_G, slotData.control or "")
+    if not control or not control.EASGearName or not control.EASGearSet then return end
+
+    local saved = EPC.saved or {}
+    local layout = self.currentLayout
+    local scale = type(layout) == "table" and tonumber(layout.scale) or 1
+    scale = math.max(0.68, math.min(1.0, scale or 1))
+
+    local slotWidth = Width029555(control)
+    if slotWidth <= 0 then
+        slotWidth = (tonumber(saved.characterGearSlotSize029206) or 68) * scale
+    end
+
+    -- Start near one icon-width, then cap against the real neighboring centers.
+    -- This is intentionally much tighter than the old 104-154px block that was
+    -- visibly overlapping Main Hand / Off Hand text in the live EQ screen.
+    local desiredWidth = math.floor(math.max(66, math.min(112, slotWidth + 18)) + 0.5)
+    local width = MeasuredColumnWidth029555(control, desiredWidth)
+
+    local nameFontSize = math.floor(math.max(13, math.min(17, 17 * scale)) + 0.5)
+    local setFontSize = math.floor(math.max(12, math.min(15, 15 * scale)) + 0.5)
+
+    control.EASGearName:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thick", nameFontSize))
+    control.EASGearSet:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thick", setFontSize))
+    ConfigureSingleLine029555(control.EASGearName, width, nameFontSize)
+    ConfigureSingleLine029555(control.EASGearSet, width, setFontSize)
+
+    -- Each weapon owns a self-contained two-line block directly below its icon.
+    control.EASGearName:ClearAnchors()
+    control.EASGearName:SetAnchor(TOP, control, BOTTOM, 0, 4)
+    control.EASGearSet:ClearAnchors()
+    control.EASGearSet:SetAnchor(TOP, control.EASGearName, BOTTOM, 0, 0)
+
+    -- Put set progress first so the useful N/N information remains visible even
+    -- when a long localized set name must be ellipsized inside the narrow column.
+    local link = Safe029555(GetItemLink, "", BAG_WORN, slotData.slot, LINK_STYLE_DEFAULT or 0) or ""
+    if link ~= "" and type(GetItemLinkSetInfo) == "function" then
+        local hasSet, setName, _, normalEquipped, maxEquipped, _, perfectedEquipped = Safe029555(GetItemLinkSetInfo, false, link)
+        maxEquipped = tonumber(maxEquipped) or 0
+        if hasSet and maxEquipped > 0 then
+            local count = math.min((tonumber(normalEquipped) or 0) + (tonumber(perfectedEquipped) or 0), maxEquipped)
+            local setText = tostring(setName or "Set")
+            control.EASGearSet:SetText(string.format("%d/%d • %s", count, maxEquipped, setText))
+            control.EASGearSet:SetColor(0.98, 0.99, 1, 1)
+            control.EASGearSet:SetHidden(saved.characterGearShowDetails029206 == false or saved.characterGearShowSetCount029206 == false)
+        end
+    end
+end
+
+if type(G.RefreshSlot) == "function" and not G._weaponTextFix029555 then
+    G._weaponTextFix029555 = true
+    local BaseRefreshSlot029555 = RefreshSlotImpl
+    RefreshSlotImpl = function(self, slotData, isCompanion)
+        BaseRefreshSlot029555(self, slotData, isCompanion)
+        RefreshWeaponText029555(self, slotData, isCompanion)
+    end
+end
+
+-- END ABSORBED: CharacterGearWeaponTextFix.lua
+
+-- BEGIN ABSORBED: CharacterGearArmorTextSpacingFix.lua
+-- ESO Adventurer Suite
+-- v0.29.500 - tighten armor/jewelry item-name to set-name spacing.
+-- Keeps long names readable while removing the empty reserved second line from
+-- ordinary one-line gear names. Weapon-grid spacing is intentionally untouched.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.CharacterGearScreen then return end
+local G = EPC.CharacterGearScreen
+
+if G._easArmorTextSpacing029500 then return end
+G._easArmorTextSpacing029500 = true
+
+if type(BaseRefreshSlot029500) ~= "function" then return end
+
+local function TightenArmorText029500(slotData)
+    if type(slotData) ~= "table" or slotData.weaponCol ~= nil then return end
+    local controlName = slotData.control
+    local control = controlName and rawget(_G, controlName) or nil
+    if not control then return end
+
+    local nameLabel = control.EASGearName
+    local setLabel = control.EASGearSet
+    if not nameLabel or not setLabel then return end
+    if nameLabel.IsHidden and nameLabel:IsHidden() then return end
+
+    local width = tonumber(nameLabel.GetWidth and nameLabel:GetWidth()) or 0
+    local currentHeight = tonumber(nameLabel.GetHeight and nameLabel:GetHeight()) or 0
+    if width <= 0 or currentHeight <= 0 then return end
+
+    local textHeight = nil
+    if type(nameLabel.GetTextHeight) == "function" then
+        local ok, measured = pcall(nameLabel.GetTextHeight, nameLabel)
+        if ok then textHeight = tonumber(measured) end
+    end
+
+    -- ESO labels may report a zero/empty text height for a frame immediately
+    -- after SetText. Fall back to a conservative one-line height derived from
+    -- the existing two-line reservation instead of guessing a font metric.
+    if not textHeight or textHeight <= 0 then
+        textHeight = math.max(18, math.floor(currentHeight * 0.52 + 0.5))
+    end
+
+    -- Preserve genuine two-line item names, but eliminate unused vertical space
+    -- for the common one-line case. The small padding keeps glyph descenders and
+    -- soft shadows from being clipped.
+    local desiredHeight = math.max(20, math.min(currentHeight, math.ceil(textHeight + 3)))
+    if math.abs(desiredHeight - currentHeight) >= 2 and type(nameLabel.SetHeight) == "function" then
+        pcall(nameLabel.SetHeight, nameLabel, desiredHeight)
+    end
+end
+
+do
+    local BaseRefreshSlotArmor029500 = RefreshSlotImpl
+    RefreshSlotImpl = function(self, slotData, isCompanion)
+        BaseRefreshSlotArmor029500(self, slotData, isCompanion)
+        TightenArmorText029500(slotData)
+    end
+end
+
+-- END ABSORBED: CharacterGearArmorTextSpacingFix.lua
+
+-- BEGIN ABSORBED: CompanionGearLayoutFix.lua
+-- ESO Adventurer Suite
+-- v0.29.481 - companion gear ring geometry correction
+-- Keeps the companion on a dedicated left-side canvas and places every gear
+-- slot around that canvas instead of allowing the right column to cross the
+-- companion model or ESO's native right-side information panel.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.CharacterGearScreen then return end
+
+local G = EPC.CharacterGearScreen
+
+local function Clamp029481(v, lo, hi)
+    v = tonumber(v) or lo
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+-- Dedicated companion canvas. Player Character geometry is left untouched.
+if type(G.BuildAdaptiveLayout) == "function" and not G._companionLeftCanvas029481 then
+    local BuildAdaptiveLayoutBase029481 = BuildAdaptiveLayoutImpl
+    BuildAdaptiveLayoutImpl = function(self, isCompanion)
+        local layout = BuildAdaptiveLayoutBase029481(self, isCompanion)
+        if not isCompanion or type(layout) ~= "table" then return layout end
+
+        local w = tonumber(layout.w) or 1920
+        local h = tonumber(layout.h) or 1080
+        local scale = tonumber(layout.scale) or 1
+
+        -- The model + gear ring owns the left half only. The visual center is
+        -- deliberately left of screen center because ESO's Companion details,
+        -- Equipment and Rapport content occupy the right half.
+        layout.centerX = w * 0.25
+        layout.centerY = h * 0.50
+        layout.safeLeft = math.max(18, w * 0.025)
+        layout.safeRight = math.min(w * 0.515, w - 24)
+        layout.available = math.max(680 * scale, layout.safeRight - layout.safeLeft)
+
+        -- The old ~200px spread put Necklace/Cuirass/Girdle directly over the
+        -- companion. Use a true outer ring at normal 16:9 resolutions.
+        layout.spread = Clamp029481(w * 0.155, 225 * scale, 285 * scale)
+        layout.labelWidth = Clamp029481(190 * math.max(scale, 0.90), 165, 205)
+
+        -- Five armor/jewelry rows stay vertically wrapped around the model.
+        layout.rowStep = Clamp029481(132 * scale, 104, 145)
+        layout.topY = -(2 * layout.rowStep) - (92 * scale)
+
+        -- Main/off hand form a compact row below the companion, not inside the
+        -- native right-side panel.
+        layout.weaponY = Clamp029481(h * 0.315, 292, 352)
+        return layout
+    end
+    G._companionLeftCanvas029481 = true
+end
+
+-- Explicitly re-anchor Companion slots after the legacy renderer runs. This is
+-- intentional: CharacterGearScreen.lua still contains an older companion-only
+-- right-column -34px correction that was correct for the previous layout but
+-- now pulls the gear back onto the model. These final anchors are canonical.
+if type(G.ApplySlotLayout) == "function" and not G._companionSlotRing029481 then
+    local ApplySlotLayoutBase029481 = ApplySlotLayoutImpl
+    ApplySlotLayoutImpl = function(self, slotData, slotSize, scale, isCompanion)
+        if not isCompanion or type(slotData) ~= "table" then
+            return ApplySlotLayoutBase029481(self, slotData, slotSize, scale, isCompanion)
+        end
+
+        local result = ApplySlotLayoutBase029481(self, slotData, slotSize, scale, true)
+        local control = slotData.control and rawget(_G, slotData.control) or nil
+        local layout = self.currentLayout or (self.BuildAdaptiveLayout and self:BuildAdaptiveLayout(true))
+        if not control or not layout then return result end
+
+        local x, y
+        if slotData.weaponCol ~= nil then
+            local slotPx = (tonumber(slotSize) or 68) * (tonumber(scale) or 1)
+            local gap = slotPx + math.max(36, 48 * (tonumber(scale) or 1))
+            x = layout.centerX + (tonumber(slotData.weaponCol) or 0) * gap * 0.70
+            y = layout.centerY + layout.weaponY
+        else
+            local rowBySlot = {
+                [EQUIP_SLOT_HEAD]=0, [EQUIP_SLOT_NECK]=0,
+                [EQUIP_SLOT_SHOULDERS]=1, [EQUIP_SLOT_CHEST]=1,
+                [EQUIP_SLOT_HAND]=2, [EQUIP_SLOT_WAIST]=2,
+                [EQUIP_SLOT_RING1]=3, [EQUIP_SLOT_RING2]=3,
+                [EQUIP_SLOT_LEGS]=4, [EQUIP_SLOT_FEET]=4,
+            }
+            local row = rowBySlot[slotData.slot] or 2
+            local sideSign = (tonumber(slotData.x) or 0) < 0 and -1 or 1
+            x = layout.centerX + sideSign * layout.spread
+            y = layout.centerY + layout.topY + row * layout.rowStep
+        end
+
+        if control.SetScale then control:SetScale(1) end
+        if control.ClearAnchors then control:ClearAnchors() end
+        if control.SetAnchor then control:SetAnchor(CENTER, GuiRoot, TOPLEFT, x, y) end
+        if control.SetDimensions then
+            local px = (tonumber(slotSize) or 68) * (tonumber(scale) or 1)
+            control:SetDimensions(px, px)
+        end
+        if control.SetHidden then control:SetHidden(false) end
+
+        -- Refresh labels after the final anchor so all external text follows the
+        -- corrected slot position without stale coordinates from the old ring.
+        if self.RefreshSlot then self:RefreshSlot(slotData, true) end
+        return result
+    end
+    G._companionSlotRing029481 = true
+end
+
+if G.IsCompanionSceneShowing and G:IsCompanionSceneShowing() and G.RequestRefresh then
+    G:RequestRefresh(0)
+end
+
+-- END ABSORBED: CompanionGearLayoutFix.lua
+
+-- BEGIN ABSORBED: CharacterGearScreenCompanionFix.lua
+-- ESO Adventurer Suite
+-- v0.29.481 - independent Character/Companion stats positions plus corrected
+-- companion interaction-camera framing for the dedicated left-side gear ring.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.CharacterGearScreen then return end
+
+local G = EPC.CharacterGearScreen
+
+local function RootDimensions029481()
+    local w, h = 1920, 1080
+    if GuiRoot and GuiRoot.GetDimensions then
+        local ok, rw, rh = pcall(GuiRoot.GetDimensions, GuiRoot)
+        if ok and tonumber(rw) and tonumber(rh) and rw > 0 and rh > 0 then
+            w, h = rw, rh
+        end
+    end
+    return w, h
+end
+
+local function SaveStatsCardPosition029481(panel)
+    if not panel or not EPC.saved then return end
+    local left = panel.GetLeft and tonumber(panel:GetLeft()) or nil
+    local top = panel.GetTop and tonumber(panel:GetTop()) or nil
+    if not left or not top then return end
+
+    if panel.easIsCompanion029480 == true then
+        EPC.saved.characterGearCompanionStatsX029480 = left
+        EPC.saved.characterGearCompanionStatsY029480 = top
+        EPC.saved.characterGearCompanionStatsMoved029480 = true
+    else
+        EPC.saved.characterGearStatsX029355 = left
+        EPC.saved.characterGearStatsY029355 = top
+        EPC.saved.characterGearStatsMoved029355 = true
+    end
+end
+
+local function InstallIndependentStatsDrag029481(panel)
+    if not panel or panel._easIndependentStatsDrag029481 then return end
+    panel._easIndependentStatsDrag029481 = true
+
+    panel:SetHandler("OnMouseDown", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT and control.StartMoving then control:StartMoving() end
+    end)
+    panel:SetHandler("OnMouseUp", function(control, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        if control.StopMovingOrResizing then control:StopMovingOrResizing() end
+        SaveStatsCardPosition029481(control)
+    end)
+end
+
+local function ReanchorStatsCard029481(panel, isCompanion)
+    if not panel or not EPC.saved then return end
+    panel.easIsCompanion029480 = isCompanion == true
+    InstallIndependentStatsDrag029481(panel)
+
+    local w, h = RootDimensions029481()
+    local cardH = panel.GetHeight and tonumber(panel:GetHeight()) or 540
+    local moved, x, y
+    if isCompanion then
+        moved = EPC.saved.characterGearCompanionStatsMoved029480 == true
+        x = moved and tonumber(EPC.saved.characterGearCompanionStatsX029480) or nil
+        y = moved and tonumber(EPC.saved.characterGearCompanionStatsY029480) or nil
+    else
+        moved = EPC.saved.characterGearStatsMoved029355 == true
+        x = moved and tonumber(EPC.saved.characterGearStatsX029355) or nil
+        y = moved and tonumber(EPC.saved.characterGearStatsY029355) or nil
+    end
+
+    panel:ClearAnchors()
+    if x and y then
+        panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+    else
+        -- Character keeps the historic far-left default. Companion gets its own
+        -- safe default near the center divider but outside the gear/model ring.
+        local defaultX = isCompanion and math.floor(w * 0.505) or 22
+        local defaultY = isCompanion and math.max(150, h * 0.36) or math.max(56, (h-cardH)*0.46 - 22)
+        panel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, defaultX, defaultY)
+    end
+end
+
+if type(G.RefreshGearStatsCard) == "function" and not G._independentStatsPosition029481 then
+    local RefreshGearStatsCardBase029481 = RefreshGearStatsCardImpl
+    RefreshGearStatsCardImpl = function(self, isCompanion, ...)
+        local result = RefreshGearStatsCardBase029481(self, isCompanion, ...)
+        if self.gearStatsCard then ReanchorStatsCard029481(self.gearStatsCard, isCompanion == true) end
+        return result
+    end
+    G._independentStatsPosition029481 = true
+end
+
+local function ApplyCompanionInteractionFraming029481(layout)
+    if type(SetFrameInteractionTarget) ~= "function" or type(NormalizeUICanvasPoint) ~= "function" then return false end
+
+    local w, h = RootDimensions029481()
+    layout = layout or G.currentLayout or (G.BuildAdaptiveLayout and G:BuildAdaptiveLayout(true))
+    if not layout then return false end
+
+    local targetX = tonumber(layout.centerX) or (w * 0.25)
+    local targetY = tonumber(layout.centerY) or (h * 0.50)
+    targetY = targetY + math.max(4, h * 0.012)
+
+    local okDesired, desiredX, desiredY = pcall(NormalizeUICanvasPoint, targetX, targetY)
+    if not okDesired or desiredX == nil or desiredY == nil then return false end
+
+    -- IMPORTANT: ESO's Companion Character scene uses
+    -- FRAME_INTERACTION_STANDARD_RIGHT_PANEL_MEDIUM_LEFT_PANEL_FRAGMENT.
+    -- The previous patch incorrectly used the plain standard-right-panel
+    -- baseline, leaving the companion model offset even though the gear moved.
+    local baseX, baseY = 0.5, 0.5
+    local mediumLeft = rawget(_G, "ZO_SharedMediumLeftPanelBackground")
+    local rightBg = rawget(_G, "ZO_SharedRightBackground")
+    local topBg = rawget(_G, "ZO_TopBarBackground")
+    local keybindBg = rawget(_G, "ZO_KeybindStripMungeBackgroundTexture")
+
+    if mediumLeft and rightBg and topBg and keybindBg
+        and mediumLeft.GetRight and rightBg.GetLeft and topBg.GetBottom and keybindBg.GetTop then
+        local okBase, normalizedBaseX, normalizedBaseY = pcall(function()
+            local bx = zo_lerp(mediumLeft:GetRight(), rightBg:GetLeft(), 0.45)
+            local by = zo_lerp(topBg:GetBottom(), keybindBg:GetTop(), 0.55)
+            return NormalizeUICanvasPoint(bx, by)
+        end)
+        if okBase and normalizedBaseX ~= nil and normalizedBaseY ~= nil then
+            baseX, baseY = normalizedBaseX, normalizedBaseY
+        end
+    end
+
+    -- Same conversion used by ESO's ZO_InteractionFramingFragment, now against
+    -- the correct Companion scene baseline.
+    local frameX = 0.5 - baseX + desiredX
+    local frameY = 0.5 - baseY + desiredY
+    pcall(SetFrameInteractionTarget, frameX, frameY)
+    return true
+end
+
+function G:ApplyCompanionCamera029481(layout)
+    local applied = ApplyCompanionInteractionFraming029481(layout)
+    if applied and type(zo_callLater) == "function" then
+        local expectedLayout = layout
+        for _, delay in ipairs({0, 35, 90}) do
+            zo_callLater(function()
+                if G and G.IsCompanionSceneShowing and G:IsCompanionSceneShowing() then
+                    ApplyCompanionInteractionFraming029481(expectedLayout or G.currentLayout)
+                end
+            end, delay)
+        end
+    end
+end
+
+if type(G.ApplyCompanionLayout) == "function" and not G._companionCameraCenter029481 then
+    local ApplyCompanionLayoutBase029481 = ApplyCompanionLayoutImpl
+    ApplyCompanionLayoutImpl = function(self, ...)
+        local result = ApplyCompanionLayoutBase029481(self, ...)
+        self:ApplyCompanionCamera029481(self.currentLayout)
+        return result
+    end
+    G._companionCameraCenter029481 = true
+end
+
+if type(G.CleanupCompanionScene) == "function" and not G._companionCameraCleanup029481 then
+    local CleanupCompanionSceneBase029481 = CleanupCompanionSceneImpl
+    CleanupCompanionSceneImpl = function(self, ...)
+        local result = CleanupCompanionSceneBase029481(self, ...)
+        if type(SetFrameInteractionTarget) == "function" then pcall(SetFrameInteractionTarget, 0.5, 0.5) end
+        return result
+    end
+    G._companionCameraCleanup029481 = true
+end
+
+if type(G.ResetDefaults) == "function" and not G._companionStatsReset029481 then
+    local ResetDefaultsBase029481 = ResetDefaultsImpl
+    ResetDefaultsImpl = function(self, ...)
+        local result = ResetDefaultsBase029481(self, ...)
+        if EPC.saved then
+            EPC.saved.characterGearCompanionStatsX029480 = nil
+            EPC.saved.characterGearCompanionStatsY029480 = nil
+            EPC.saved.characterGearCompanionStatsMoved029480 = nil
+        end
+        return result
+    end
+    G._companionStatsReset029481 = true
+end
+
+-- END ABSORBED: CharacterGearScreenCompanionFix.lua
+
+-- BEGIN ABSORBED: CharacterWeaponSwapVisibilityFix.lua
+-- ESO Adventurer Suite
+-- v0.29.549 - Character weapon-swap transparent-center visibility fix.
+-- Keep a Suite border around the Primary/Backup switch, but remove the opaque
+-- center fill so ESO's native toggle, number, arrow and description can never
+-- be visually buried behind the decorative cell.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.CharacterGearScreen then return end
+
+local G = EPC.CharacterGearScreen
+
+local function RaiseControl029549(control, level)
+    if not control then return end
+    if control.SetDrawTier and rawget(_G, "DT_HIGH") then
+        pcall(control.SetDrawTier, control, DT_HIGH)
+    end
+    if control.SetDrawLayer and rawget(_G, "DL_OVERLAY") then
+        pcall(control.SetDrawLayer, control, DL_OVERLAY)
+    elseif control.SetDrawLayer and rawget(_G, "DL_CONTROLS") then
+        pcall(control.SetDrawLayer, control, DL_CONTROLS)
+    end
+    if control.SetDrawLevel then
+        pcall(control.SetDrawLevel, control, tonumber(level) or 900)
+    end
+end
+
+local function LowerBackdrop029549(control)
+    if not control then return end
+    if control.SetDrawTier and rawget(_G, "DT_HIGH") then
+        pcall(control.SetDrawTier, control, DT_HIGH)
+    end
+    if control.SetDrawLayer then
+        if rawget(_G, "DL_BACKGROUND") ~= nil then
+            pcall(control.SetDrawLayer, control, DL_BACKGROUND)
+        elseif rawget(_G, "DL_CONTROLS") ~= nil then
+            pcall(control.SetDrawLayer, control, DL_CONTROLS)
+        end
+    end
+    if control.SetDrawLevel then pcall(control.SetDrawLevel, control, 1) end
+end
+
+local function ForceWhite029549(control)
+    if not control then return end
+    if control.SetColor then pcall(control.SetColor, control, 1, 1, 1, 1) end
+    if control.SetAlpha then pcall(control.SetAlpha, control, 1) end
+end
+
+local function StyleSwapChildren029549(control, swap, depth)
+    if not control or not swap or (tonumber(depth) or 0) > 6 then return end
+    depth = (tonumber(depth) or 0) + 1
+
+    if control ~= swap then
+        RaiseControl029549(control, 940 + depth)
+        ForceWhite029549(control)
+
+        local isLabel = control.SetHorizontalAlignment and control.SetVerticalAlignment and control.SetText
+        if isLabel then
+            if control.ClearAnchors and control.SetAnchor then
+                pcall(control.ClearAnchors, control)
+                pcall(control.SetAnchor, control, CENTER, swap, CENTER, 0, 0)
+            end
+            pcall(control.SetHorizontalAlignment, control, TEXT_ALIGN_CENTER)
+            pcall(control.SetVerticalAlignment, control, TEXT_ALIGN_CENTER)
+            if swap.GetWidth and swap.GetHeight and control.SetDimensions then
+                local okW, w = pcall(swap.GetWidth, swap)
+                local okH, h = pcall(swap.GetHeight, swap)
+                if okW and okH and tonumber(w) and tonumber(h) then
+                    pcall(control.SetDimensions, control, w, h)
+                end
+            end
+        end
+    end
+
+    if control.GetNumChildren and control.GetChild then
+        local okCount, count = pcall(control.GetNumChildren, control)
+        count = okCount and tonumber(count) or 0
+        for i = 1, count do
+            local okChild, child = pcall(control.GetChild, control, i)
+            if okChild and child and child ~= control and child ~= swap then
+                StyleSwapChildren029549(child, swap, depth)
+            end
+        end
+    end
+end
+
+local function RaiseUtilityText029549(cell)
+    if not cell then return end
+    local candidates = {
+        cell.label, cell.text, cell.nameLabel, cell.description,
+        cell.descriptionLabel, cell.title, cell.value,
+    }
+    for _, control in ipairs(candidates) do
+        if control then
+            RaiseControl029549(control, 970)
+            ForceWhite029549(control)
+        end
+    end
+end
+
+local function FixWeaponSwap029549()
+    local swap = rawget(_G, "ZO_CharacterWeaponSwap")
+    if not swap then return false end
+
+    if G.weaponUtilityCells and G.weaponUtilityCells.Swap then
+        local cell = G.weaponUtilityCells.Swap
+        RaiseControl029549(cell, 200)
+
+        if cell.bg then
+            if cell.bg.SetHidden then pcall(cell.bg.SetHidden, cell.bg, false) end
+            if cell.bg.SetAlpha then pcall(cell.bg.SetAlpha, cell.bg, 1) end
+            -- No opaque center: the native ESO control and any description text
+            -- remain visible regardless of sibling/scene composition order.
+            if cell.bg.SetCenterColor then pcall(cell.bg.SetCenterColor, cell.bg, 0, 0, 0, 0) end
+            if cell.bg.SetEdgeColor then pcall(cell.bg.SetEdgeColor, cell.bg, 0.82, 0.76, 0.58, 0.96) end
+            LowerBackdrop029549(cell.bg)
+        end
+
+        if cell.icon and cell.icon.SetHidden then pcall(cell.icon.SetHidden, cell.icon, true) end
+        RaiseUtilityText029549(cell)
+    end
+
+    RaiseControl029549(swap, 930)
+    ForceWhite029549(swap)
+    StyleSwapChildren029549(swap, swap, 0)
+    if swap.SetHidden then pcall(swap.SetHidden, swap, false) end
+    return true
+end
+
+if type(G.LayoutWeaponUtilityCells) == "function" and not G._weaponSwapVisibility029549 then
+    local base = LayoutWeaponUtilityCellsImpl
+    LayoutWeaponUtilityCellsImpl = function(self, ...)
+        local result = base(self, ...)
+        FixWeaponSwap029549()
+        return result
+    end
+    G._weaponSwapVisibility029549 = true
+end
+
+FixWeaponSwap029549()
+
+if G.IsPlayerSceneShowing and G:IsPlayerSceneShowing() and G.RequestRefresh then
+    G:RequestRefresh(0)
+end
+
+-- END ABSORBED: CharacterWeaponSwapVisibilityFix.lua
+
+-- BEGIN ABSORBED: CharacterAppearanceSlotFix.lua
+-- ESO Adventurer Suite
+-- v0.29.682 - Restore ESO's native Appearance / Disguise equipment slot.
+-- The customized Character Gear layout previously hid ZO_CharacterEquipmentSlotsCostume
+-- and replaced it with a Collections-only button.  That removed ESO's native path
+-- for interacting with an equipped disguise.  Keep the Suite layout, but mount the
+-- real native slot inside the Suite Appearance utility cell so normal ESO click,
+-- tooltip and unequip/context behavior remain authoritative.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.CharacterGearScreen or not WINDOW_MANAGER then return end
+local G = EPC.CharacterGearScreen
+local wm = WINDOW_MANAGER
+local NS = (EPC.name or "ESOAdventurerSuite") .. "_CharacterAppearanceSlot029682"
+
+local function safeCall(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, a, b, c, d = pcall(fn, ...)
+    if not ok then return nil end
+    return a, b, c, d
+end
+
+local function raise(control, level)
+    if not control then return end
+    if type(control.SetDrawTier) == "function" and rawget(_G, "DT_HIGH") ~= nil then
+        pcall(control.SetDrawTier, control, DT_HIGH)
+    end
+    if type(control.SetDrawLayer) == "function" then
+        local layer = rawget(_G, "DL_OVERLAY") or rawget(_G, "DL_CONTROLS")
+        if layer ~= nil then pcall(control.SetDrawLayer, control, layer) end
+    end
+    if type(control.SetDrawLevel) == "function" then
+        pcall(control.SetDrawLevel, control, tonumber(level) or 850)
+    end
+end
+
+local function ensureLabel(cell)
+    if not cell then return nil end
+    if cell.easNativeAppearanceLabel029682 then return cell.easNativeAppearanceLabel029682 end
+
+    local label = wm:CreateControl(NS .. "Label", cell, CT_LABEL)
+    label:SetAnchor(TOP, cell, BOTTOM, 0, 2)
+    label:SetDimensions(150, 20)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    label:SetFont("ZoFontGameSmall")
+    label:SetColor(1, 0.82, 0.26, 1)
+    label:SetText("Appearance")
+    label:SetMouseEnabled(false)
+    raise(label, 860)
+    cell.easNativeAppearanceLabel029682 = label
+    return label
+end
+
+local function restoreNativeAppearanceSlot()
+    local cell = G.weaponUtilityCells and G.weaponUtilityCells.Appearance
+    local slot = rawget(_G, "ZO_CharacterEquipmentSlotsCostume")
+    if not cell or not slot then return false end
+
+    -- The Suite shell becomes presentation-only.  The native ESO slot owns all
+    -- mouse interaction so disguises can be removed exactly as they can with the
+    -- addon disabled.  Never synthesize an unequip action here.
+    if type(cell.SetMouseEnabled) == "function" then pcall(cell.SetMouseEnabled, cell, false) end
+    if cell.icon and type(cell.icon.SetHidden) == "function" then pcall(cell.icon.SetHidden, cell.icon, true) end
+    if cell.bg then
+        if type(cell.bg.SetCenterColor) == "function" then pcall(cell.bg.SetCenterColor, cell.bg, 0.025, 0.030, 0.040, 0.90) end
+        if type(cell.bg.SetEdgeColor) == "function" then pcall(cell.bg.SetEdgeColor, cell.bg, 0.72, 0.64, 0.40, 0.88) end
+    end
+
+    local width = tonumber(safeCall(cell.GetWidth, cell)) or 68
+    local height = tonumber(safeCall(cell.GetHeight, cell)) or width
+    local size = math.max(48, math.min(128, math.min(width, height)))
+
+    if type(slot.SetScale) == "function" then pcall(slot.SetScale, slot, 1) end
+    if type(slot.ClearAnchors) == "function" then pcall(slot.ClearAnchors, slot) end
+    if type(slot.SetAnchor) == "function" then pcall(slot.SetAnchor, slot, CENTER, cell, CENTER, 0, 0) end
+    if type(slot.SetDimensions) == "function" then pcall(slot.SetDimensions, slot, size, size) end
+    if type(slot.SetMouseEnabled) == "function" then pcall(slot.SetMouseEnabled, slot, true) end
+    if type(slot.SetHidden) == "function" then pcall(slot.SetHidden, slot, false) end
+    raise(slot, 855)
+
+    -- Keep the old "Equipped Apparel Hidden" status text suppressed as requested
+    -- by the custom Character Gear design.  A small Suite label identifies the
+    -- restored native slot without resurrecting that unwanted native message.
+    local apparelText = rawget(_G, "ZO_CharacterApparelSectionText")
+    if apparelText and type(apparelText.SetHidden) == "function" then pcall(apparelText.SetHidden, apparelText, true) end
+    local label = ensureLabel(cell)
+    if label then
+        label:SetHidden(false)
+        raise(label, 860)
+    end
+
+    G.nativeAppearanceSlot029682 = slot
+    return true
+end
+
+if type(G.LayoutWeaponUtilityCells) == "function" and not G._nativeAppearanceSlotFix029682 then
+    local baseLayoutWeaponUtilityCells = LayoutWeaponUtilityCellsImpl
+    LayoutWeaponUtilityCellsImpl = function(self, ...)
+        local result = baseLayoutWeaponUtilityCells(self, ...)
+        restoreNativeAppearanceSlot()
+        return result
+    end
+    G._nativeAppearanceSlotFix029682 = true
+end
+
+-- Hide the detached native slot whenever the Suite utility cells are hidden.
+-- RestorePlayerState() immediately restores ESO's original geometry/state when
+-- the Character scene closes or the feature is disabled.
+if type(G.HideWeaponUtilityCells) == "function" and not G._nativeAppearanceHideFix029682 then
+    local baseHideWeaponUtilityCells = HideWeaponUtilityCellsImpl
+    HideWeaponUtilityCellsImpl = function(self, ...)
+        local result = baseHideWeaponUtilityCells(self, ...)
+        local slot = rawget(_G, "ZO_CharacterEquipmentSlotsCostume")
+        if slot and type(slot.SetHidden) == "function" then pcall(slot.SetHidden, slot, true) end
+        local cell = self.weaponUtilityCells and self.weaponUtilityCells.Appearance
+        local label = cell and cell.easNativeAppearanceLabel029682
+        if label and type(label.SetHidden) == "function" then pcall(label.SetHidden, label, true) end
+        return result
+    end
+    G._nativeAppearanceHideFix029682 = true
+end
+
+-- Apply immediately if the Character/Inventory equipment scene is already open.
+restoreNativeAppearanceSlot()
+if G.IsPlayerSceneShowing and G:IsPlayerSceneShowing() and G.RequestRefresh then
+    G:RequestRefresh(0)
+end
+
+EPC.characterAppearanceSlotFix029682 = true
+
+-- END ABSORBED: CharacterAppearanceSlotFix.lua
+
+
+-- Character Gear collectible slot corrections
+
+-- BEGIN ABSORBED: CharacterGearSkinSlotFix.lua
+-- ESO Adventurer Suite
+-- v0.29.648 - Character Gear Skin / Costume collectible slot.
+-- Display-only bridge into ESO's native Collections UI. The Suite never calls
+-- UseCollectible or protected collectible actions, preserving Outfit/Collections
+-- secure preview paths.
+
+local EPC = ESOProgressionCoach
+if not EPC or not WINDOW_MANAGER then return end
+local G = EPC.CharacterGearScreen
+if not G then return end
+
+local NAME = (EPC.name or "ESOAdventurerSuite") .. "_CharacterGearSkinSlot029627"
+local wm = WINDOW_MANAGER
+local PLAYER = rawget(_G, "GAMEPLAY_ACTOR_CATEGORY_PLAYER")
+local SKIN_TYPE = rawget(_G, "COLLECTIBLE_CATEGORY_TYPE_SKIN")
+local COSTUME_TYPE = rawget(_G, "COLLECTIBLE_CATEGORY_TYPE_COSTUME")
+local DEFAULT_APPEARANCE_ICON = "EsoUI/Art/Collections/collections_tabIcon_appearance_up.dds"
+local DEFAULT_COSTUME_ICON = "EsoUI/Art/Dye/dyes_tabicon_costumedye_down.dds"
+
+local function first(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, value = pcall(fn, ...)
+    if not ok or value == nil then return fallback end
+    return value
+end
+
+local function high(control, level)
+    if not control then return end
+    if type(control.SetDrawTier) == "function" and rawget(_G, "DT_HIGH") ~= nil then
+        pcall(control.SetDrawTier, control, DT_HIGH)
+    end
+    if type(control.SetDrawLayer) == "function" and rawget(_G, "DL_OVERLAY") ~= nil then
+        pcall(control.SetDrawLayer, control, DL_OVERLAY)
+    end
+    if type(control.SetDrawLevel) == "function" then pcall(control.SetDrawLevel, control, level or 650) end
+end
+
+local function activeCollectibleId(categoryType)
+    if categoryType == nil or PLAYER == nil or type(GetActiveCollectibleByType) ~= "function" then return 0 end
+    return tonumber(first(GetActiveCollectibleByType, 0, categoryType, PLAYER)) or 0
+end
+
+local function activeAppearance()
+    local costumeId = activeCollectibleId(COSTUME_TYPE)
+    if costumeId > 0 then return costumeId, "COSTUME", "Costume" end
+    local skinId = activeCollectibleId(SKIN_TYPE)
+    if skinId > 0 then return skinId, "SKIN", "Skin" end
+    return 0, "NONE", "Skin"
+end
+
+local function collectibleIcon(id, kind)
+    if id and id > 0 and type(GetCollectibleIcon) == "function" then
+        local icon = first(GetCollectibleIcon, "", id)
+        if icon and icon ~= "" then return icon end
+    end
+    if kind == "COSTUME" then return DEFAULT_COSTUME_ICON end
+    return DEFAULT_APPEARANCE_ICON
+end
+
+local function collectibleName(id, fallback)
+    if id and id > 0 and type(GetCollectibleName) == "function" then
+        local name = first(GetCollectibleName, "", id)
+        if name and name ~= "" then return name end
+    end
+    return fallback or "Appearance"
+end
+
+local function openCollections()
+    if not SCENE_MANAGER then return end
+    local scene = SCENE_MANAGER:GetScene("collectionsBook")
+    if scene then pcall(SCENE_MANAGER.Show, SCENE_MANAGER, "collectionsBook") end
+end
+
+local function ensureCell()
+    if G.skinUtilityCell029544 then return G.skinUtilityCell029544 end
+
+    local cell = wm:CreateTopLevelWindow(NAME .. "Cell")
+    cell:SetDimensions(68, 68)
+    cell:SetMouseEnabled(true)
+    cell:SetClampedToScreen(true)
+    high(cell, 650)
+
+    local bg = wm:CreateControl(nil, cell, CT_BACKDROP)
+    bg:SetAnchorFill(cell)
+    bg:SetCenterColor(0.025, 0.03, 0.04, 0.92)
+    bg:SetEdgeColor(0.60, 0.48, 0.25, 0.92)
+    bg:SetEdgeTexture("EsoUI/Art/Tooltips/UI-TooltipBorder.dds", 16, 4, 4)
+    bg:SetMouseEnabled(false)
+    high(bg, 651)
+
+    local icon = wm:CreateControl(nil, cell, CT_TEXTURE)
+    icon:SetAnchor(CENTER, cell, CENTER, 0, -4)
+    icon:SetDimensions(42, 42)
+    icon:SetTextureCoords(0.04, 0.96, 0.04, 0.96)
+    icon:SetMouseEnabled(false)
+    high(icon, 652)
+
+    local label = wm:CreateControl(nil, cell, CT_LABEL)
+    label:SetAnchor(TOP, cell, BOTTOM, 0, 2)
+    label:SetDimensions(140, 20)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetFont("ZoFontGameSmall")
+    label:SetColor(1, 0.82, 0.26, 1)
+    label:SetText("Skin")
+    label:SetMouseEnabled(false)
+    high(label, 653)
+
+    cell.bg = bg
+    cell.icon = icon
+    cell.label = label
+
+    cell:SetHandler("OnMouseEnter", function(ctrl)
+        local id, kind, labelText = activeAppearance()
+        if not InformationTooltip or type(InitializeTooltip) ~= "function" then return end
+        InitializeTooltip(InformationTooltip, ctrl, LEFT, -8, 0, RIGHT)
+        local text
+        if id > 0 then
+            text = collectibleName(id, labelText) .. "\nClick to open ESO Collections"
+        else
+            text = "Skin / Costume\nNo skin or costume equipped\nClick to open ESO Collections"
+        end
+        if type(SetTooltipText) == "function" then SetTooltipText(InformationTooltip, text) end
+    end)
+
+    cell:SetHandler("OnMouseExit", function()
+        if InformationTooltip and type(ClearTooltip) == "function" then pcall(ClearTooltip, InformationTooltip) end
+    end)
+
+    cell:SetHandler("OnMouseUp", function(_, button, upInside)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or upInside == false then return end
+        openCollections()
+    end)
+
+    G.skinUtilityCell029544 = cell
+    return cell
+end
+
+local function refresh()
+    if SKIN_TYPE == nil and COSTUME_TYPE == nil then
+        if G.skinUtilityCell029544 then G.skinUtilityCell029544:SetHidden(true) end
+        return
+    end
+
+    local appearance = G.weaponUtilityCells and G.weaponUtilityCells.Appearance
+    if not appearance or (type(appearance.IsHidden) == "function" and appearance:IsHidden()) then
+        if G.skinUtilityCell029544 then G.skinUtilityCell029544:SetHidden(true) end
+        return
+    end
+
+    local cell = ensureCell()
+    local size = tonumber(first(appearance.GetWidth, 68, appearance)) or 68
+    if size < 48 then size = 48 elseif size > 128 then size = 128 end
+    cell:SetDimensions(size, size)
+    cell.icon:SetDimensions(size * 0.62, size * 0.62)
+    cell:ClearAnchors()
+    cell:SetAnchor(LEFT, appearance, RIGHT, 12, 0)
+
+    local id, kind, labelText = activeAppearance()
+    cell.activeSkinId029544 = kind == "SKIN" and id or 0
+    cell.activeCostumeId029627 = kind == "COSTUME" and id or 0
+    cell.activeAppearanceId029627 = id
+    cell.activeAppearanceKind029627 = kind
+    cell.icon:SetTexture(collectibleIcon(id, kind))
+    cell.label:SetText(labelText)
+
+    if id > 0 then
+        cell.bg:SetEdgeColor(0.92, 0.72, 0.26, 1)
+        cell.icon:SetColor(1, 1, 1, 1)
+    else
+        cell.bg:SetEdgeColor(0.42, 0.42, 0.46, 0.84)
+        cell.icon:SetColor(0.65, 0.65, 0.68, 0.82)
+    end
+
+    cell:SetHidden(false)
+    high(cell, 650); high(cell.bg, 651); high(cell.icon, 652); high(cell.label, 653)
+end
+
+local function delayedRefresh()
+    refresh()
+    if type(zo_callLater) == "function" then
+        zo_callLater(refresh, 80)
+        zo_callLater(refresh, 250)
+    end
+end
+
+if EVENT_MANAGER then
+    -- Remove the old 200 ms polling loop. Appearance state changes are event-driven.
+    EVENT_MANAGER:UnregisterForUpdate(NAME)
+
+    local collectibleEvent = rawget(_G, "EVENT_COLLECTIBLE_UPDATED")
+    if collectibleEvent then
+        EPC.Runtime:RegisterEvent("CharacterGearSkin", "Collectible", collectibleEvent, delayedRefresh)
+    end
+
+    local activeCollectibleEvent = rawget(_G, "EVENT_ACTIVE_COLLECTIBLE_UPDATED")
+    if activeCollectibleEvent then
+        EPC.Runtime:RegisterEvent("CharacterGearSkin", "ActiveCollectible", activeCollectibleEvent, delayedRefresh)
+    end
+
+    local activatedEvent = rawget(_G, "EVENT_PLAYER_ACTIVATED")
+    if activatedEvent then
+        EPC.Runtime:RegisterEvent("CharacterGearSkin", "PlayerActivated", activatedEvent, delayedRefresh)
+    end
+end
+
+delayedRefresh()
+
+-- END ABSORBED: CharacterGearSkinSlotFix.lua
+
+-- BEGIN ABSORBED: CharacterGearPolymorphSlotFix.lua
+-- ESO Adventurer Suite
+-- v0.29.648 - Character Gear Polymorph collectible slot.
+-- Display-only bridge into ESO's native Collections UI. The Suite never calls
+-- UseCollectible or protected collectible actions, preserving Outfit/Collections
+-- secure preview paths.
+
+local EPC = ESOProgressionCoach
+if not EPC or not WINDOW_MANAGER then return end
+local G = EPC.CharacterGearScreen
+if not G then return end
+
+local NAME = (EPC.name or "ESOAdventurerSuite") .. "_CharacterGearPolymorphSlot029546"
+local wm = WINDOW_MANAGER
+local PLAYER = rawget(_G, "GAMEPLAY_ACTOR_CATEGORY_PLAYER")
+local POLYMORPH_TYPE = rawget(_G, "COLLECTIBLE_CATEGORY_TYPE_POLYMORPH")
+
+local function first(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, value = pcall(fn, ...)
+    if not ok or value == nil then return fallback end
+    return value
+end
+
+local function high(control, level)
+    if not control then return end
+    if type(control.SetDrawTier) == "function" and rawget(_G, "DT_HIGH") ~= nil then
+        pcall(control.SetDrawTier, control, DT_HIGH)
+    end
+    if type(control.SetDrawLayer) == "function" and rawget(_G, "DL_OVERLAY") ~= nil then
+        pcall(control.SetDrawLayer, control, DL_OVERLAY)
+    end
+    if type(control.SetDrawLevel) == "function" then pcall(control.SetDrawLevel, control, level or 660) end
+end
+
+local function activePolymorphId()
+    if POLYMORPH_TYPE == nil or PLAYER == nil or type(GetActiveCollectibleByType) ~= "function" then return 0 end
+    return tonumber(first(GetActiveCollectibleByType, 0, POLYMORPH_TYPE, PLAYER)) or 0
+end
+
+local function collectibleIcon(id)
+    if id and id > 0 and type(GetCollectibleIcon) == "function" then
+        local icon = first(GetCollectibleIcon, "", id)
+        if icon and icon ~= "" then return icon end
+    end
+    return "EsoUI/Art/Collections/collections_tabIcon_appearance_up.dds"
+end
+
+local function collectibleName(id)
+    if id and id > 0 and type(GetCollectibleName) == "function" then
+        local name = first(GetCollectibleName, "", id)
+        if name and name ~= "" then return name end
+    end
+    return "Polymorph"
+end
+
+local function openCollections()
+    if not SCENE_MANAGER then return end
+    local scene = SCENE_MANAGER:GetScene("collectionsBook")
+    if scene then pcall(SCENE_MANAGER.Show, SCENE_MANAGER, "collectionsBook") end
+end
+
+local function ensureCell()
+    if G.polymorphUtilityCell029546 then return G.polymorphUtilityCell029546 end
+
+    local cell = wm:CreateTopLevelWindow(NAME .. "Cell")
+    cell:SetDimensions(68, 68)
+    cell:SetMouseEnabled(true)
+    cell:SetClampedToScreen(true)
+    high(cell, 660)
+
+    local bg = wm:CreateControl(nil, cell, CT_BACKDROP)
+    bg:SetAnchorFill(cell)
+    bg:SetCenterColor(0.025, 0.03, 0.04, 0.92)
+    bg:SetEdgeColor(0.60, 0.48, 0.25, 0.92)
+    bg:SetEdgeTexture("EsoUI/Art/Tooltips/UI-TooltipBorder.dds", 16, 4, 4)
+    bg:SetMouseEnabled(false)
+    high(bg, 661)
+
+    local icon = wm:CreateControl(nil, cell, CT_TEXTURE)
+    icon:SetAnchor(CENTER, cell, CENTER, 0, -4)
+    icon:SetDimensions(42, 42)
+    icon:SetTextureCoords(0.04, 0.96, 0.04, 0.96)
+    icon:SetMouseEnabled(false)
+    high(icon, 662)
+
+    local label = wm:CreateControl(nil, cell, CT_LABEL)
+    label:SetAnchor(TOP, cell, BOTTOM, 0, 2)
+    label:SetDimensions(140, 20)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetFont("ZoFontGameSmall")
+    label:SetColor(1, 0.82, 0.26, 1)
+    label:SetText("Polymorph")
+    label:SetMouseEnabled(false)
+    high(label, 663)
+
+    cell.bg = bg
+    cell.icon = icon
+    cell.label = label
+
+    cell:SetHandler("OnMouseEnter", function(ctrl)
+        local id = activePolymorphId()
+        if not InformationTooltip or type(InitializeTooltip) ~= "function" then return end
+        InitializeTooltip(InformationTooltip, ctrl, LEFT, -8, 0, RIGHT)
+        local text = id > 0 and (collectibleName(id) .. "\nClick to open ESO Collections") or "Polymorph\nNo polymorph equipped\nClick to open ESO Collections"
+        if type(SetTooltipText) == "function" then SetTooltipText(InformationTooltip, text) end
+    end)
+
+    cell:SetHandler("OnMouseExit", function()
+        if InformationTooltip and type(ClearTooltip) == "function" then pcall(ClearTooltip, InformationTooltip) end
+    end)
+
+    cell:SetHandler("OnMouseUp", function(_, button, upInside)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or upInside == false then return end
+        openCollections()
+    end)
+
+    G.polymorphUtilityCell029546 = cell
+    return cell
+end
+
+local function refresh()
+    if POLYMORPH_TYPE == nil then
+        if G.polymorphUtilityCell029546 then G.polymorphUtilityCell029546:SetHidden(true) end
+        return
+    end
+
+    local skin = G.skinUtilityCell029544
+    local appearance = G.weaponUtilityCells and G.weaponUtilityCells.Appearance
+    local anchor = skin or appearance
+    if not anchor or (type(anchor.IsHidden) == "function" and anchor:IsHidden()) then
+        if G.polymorphUtilityCell029546 then G.polymorphUtilityCell029546:SetHidden(true) end
+        return
+    end
+
+    local cell = ensureCell()
+    local size = tonumber(first(anchor.GetWidth, 68, anchor)) or 68
+    if size < 48 then size = 48 elseif size > 128 then size = 128 end
+    cell:SetDimensions(size, size)
+    cell.icon:SetDimensions(size * 0.62, size * 0.62)
+    cell:ClearAnchors()
+    cell:SetAnchor(LEFT, anchor, RIGHT, 12, 0)
+
+    local id = activePolymorphId()
+    cell.activePolymorphId029546 = id
+    cell.icon:SetTexture(collectibleIcon(id))
+    if id > 0 then
+        cell.bg:SetEdgeColor(0.92, 0.72, 0.26, 1)
+        cell.icon:SetColor(1, 1, 1, 1)
+    else
+        cell.bg:SetEdgeColor(0.42, 0.42, 0.46, 0.84)
+        cell.icon:SetColor(0.65, 0.65, 0.68, 0.82)
+    end
+    cell:SetHidden(false)
+    high(cell, 660); high(cell.bg, 661); high(cell.icon, 662); high(cell.label, 663)
+end
+
+local function delayedRefresh()
+    refresh()
+    if type(zo_callLater) == "function" then
+        zo_callLater(refresh, 80)
+        zo_callLater(refresh, 250)
+    end
+end
+
+if EVENT_MANAGER then
+    EVENT_MANAGER:UnregisterForUpdate(NAME)
+
+    local collectibleEvent = rawget(_G, "EVENT_COLLECTIBLE_UPDATED")
+    if collectibleEvent then
+        EPC.Runtime:RegisterEvent("CharacterGearPolymorph", "Collectible", collectibleEvent, delayedRefresh)
+    end
+
+    local activeCollectibleEvent = rawget(_G, "EVENT_ACTIVE_COLLECTIBLE_UPDATED")
+    if activeCollectibleEvent then
+        EPC.Runtime:RegisterEvent("CharacterGearPolymorph", "ActiveCollectible", activeCollectibleEvent, delayedRefresh)
+    end
+
+    local activatedEvent = rawget(_G, "EVENT_PLAYER_ACTIVATED")
+    if activatedEvent then
+        EPC.Runtime:RegisterEvent("CharacterGearPolymorph", "PlayerActivated", activatedEvent, delayedRefresh)
+    end
+end
+
+delayedRefresh()
+
+-- END ABSORBED: CharacterGearPolymorphSlotFix.lua

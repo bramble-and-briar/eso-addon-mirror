@@ -18,7 +18,11 @@ end
 
 function Q:GetUseBinding029199()
     if self.bindingText029199 == nil then
-        self.bindingText029199 = EPC.GetActionBindingMarkup029199 and EPC:GetActionBindingMarkup029199("ACTION_BUTTON_9", 19) or ""
+        if EPC.ControllerSupport and type(EPC.ControllerSupport.GetActionBindingMarkup029761) == "function" then
+            self.bindingText029199 = EPC.ControllerSupport:GetActionBindingMarkup029761("ACTION_BUTTON_9", 125)
+        else
+            self.bindingText029199 = EPC.GetActionBindingMarkup029199 and EPC:GetActionBindingMarkup029199("ACTION_BUTTON_9", 19) or ""
+        end
     end
     return self.bindingText029199 or ""
 end
@@ -40,7 +44,15 @@ function Q:Anchor()
     end
 end
 
-function Q:Create()
+local CreateImplArch
+
+function Q:Create(...)
+
+    return CreateImplArch(self, ...)
+
+end
+
+CreateImplArch = function(self)
     if self.frame then return self.frame end
     local frame = wm:CreateTopLevelWindow("EAS_QuickslotOverlay")
     frame:SetDimensions(76, 112)
@@ -81,8 +93,9 @@ function Q:Create()
     binding:SetAnchor(TOPLEFT, frame, TOPLEFT, 3, 91)
     binding:SetAnchor(TOPRIGHT, frame, TOPRIGHT, -3, 91)
     binding:SetDimensions(70,18)
-    binding:SetFont("ZoFontGameSmall")
+    binding:SetFont("$(BOLD_FONT)|15|soft-shadow-thick")
     binding:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    binding:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     binding:SetColor(0.90,0.92,0.97,1)
 
     local hint = wm:CreateControl("EAS_QuickslotOverlayHint", frame, CT_LABEL)
@@ -202,7 +215,15 @@ function Q:VisibilityAllows()
     return false
 end
 
-function Q:Refresh()
+local RefreshImplArch
+
+function Q:Refresh(...)
+
+    return RefreshImplArch(self, ...)
+
+end
+
+RefreshImplArch = function(self)
     self:Create()
     local show = EPC.saved and EPC.saved.showQuickslotOverlay ~= false
     if not self.layoutMode then
@@ -221,7 +242,12 @@ function Q:Refresh()
     self.name:SetText(itemName ~= "" and itemName or ("Quickslot " .. tostring(slot)))
     self.count:SetText(count > 0 and tostring(count) or "")
     if self.binding then
-        self.binding:SetText(self:GetUseBinding029199())
+        local bindingText = self:GetUseBinding029199()
+        self.binding:SetText(bindingText)
+        local usesMarkup = bindingText:find("|k", 1, true) ~= nil
+            or bindingText:find("|u", 1, true) ~= nil
+            or bindingText:find("|t", 1, true) ~= nil
+        self.binding:SetFont(usesMarkup and "$(BOLD_FONT)|15|soft-shadow-thick" or "ZoFontGameSmall")
     end
 end
 
@@ -249,17 +275,25 @@ function Q:ResetPosition()
     self:Anchor()
 end
 
-function Q:Initialize()
+local InitializeImplArch
+
+function Q:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.layoutMode = false
     self.lastCombatState = safe(IsUnitInCombat, false, "player") == true
     self.postCombatNeedsTargetClear = false
     self:Create()
     local prefix = EPC.name .. "_QuickslotOverlay"
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_Activated", EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","Activated",EVENT_PLAYER_ACTIVATED, function() self:Refresh() end)
     end
     if EVENT_PLAYER_COMBAT_STATE then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_Combat", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","Combat",EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
             if inCombat == false and self.lastCombatState == true then
                 self.postCombatNeedsTargetClear = true
             end
@@ -268,27 +302,27 @@ function Q:Initialize()
         end)
     end
     if EVENT_RETICLE_TARGET_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_ReticleTarget", EVENT_RETICLE_TARGET_CHANGED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","ReticleTarget",EVENT_RETICLE_TARGET_CHANGED, function() self:Refresh() end)
     end
     if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_Inventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","Inventory",EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function() self:Refresh() end)
     end
     if EVENT_ACTIVE_QUICKSLOT_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_ActiveQuickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","ActiveQuickslot",EVENT_ACTIVE_QUICKSLOT_CHANGED, function() self:Refresh() end)
     end
     if EVENT_KEYBINDINGS_LOADED then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_BindingsLoaded", EVENT_KEYBINDINGS_LOADED, function() self:InvalidateBinding029199() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","BindingsLoaded",EVENT_KEYBINDINGS_LOADED, function() self:InvalidateBinding029199() self:Refresh() end)
     end
     if EVENT_KEYBINDING_SET then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_BindingSet", EVENT_KEYBINDING_SET, function() self:InvalidateBinding029199() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","BindingSet",EVENT_KEYBINDING_SET, function() self:InvalidateBinding029199() self:Refresh() end)
     end
     if EVENT_KEYBINDING_CLEARED then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_BindingCleared", EVENT_KEYBINDING_CLEARED, function() self:InvalidateBinding029199() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","BindingCleared",EVENT_KEYBINDING_CLEARED, function() self:InvalidateBinding029199() self:Refresh() end)
     end
     if EVENT_HOTBAR_SLOT_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix.."_HotbarSlot", EVENT_HOTBAR_SLOT_UPDATED, function() self:Refresh() end)
+        EPC.Runtime:RegisterEvent("QuickslotOverlay","HotbarSlot",EVENT_HOTBAR_SLOT_UPDATED, function() self:Refresh() end)
     end
-    EVENT_MANAGER:RegisterForUpdate(prefix.."_Tick", 650, function()
+    EPC.Runtime:RegisterUpdate("QuickslotOverlay","Tick",650, function()
         if self.layoutMode == true or (self.frame and not self.frame:IsHidden()) then self:Refresh() end
     end)
     self:Refresh()
@@ -296,7 +330,7 @@ end
 
 -- v0.29.380 - hide Quickslot overlay on the scene transition frame rather than
 -- waiting for its 650ms polling refresh.
-local EAS_Q_InitializeBase029380 = Q.Initialize
+local EAS_Q_InitializeBase029380 = InitializeImplArch
 local function EAS_Q_RegisterSceneCallbacks029380(self)
     if self.sceneVisibilityHooks029380 or not SCENE_MANAGER or type(SCENE_MANAGER.GetScene) ~= "function" then return end
     self.sceneVisibilityHooks029380 = true
@@ -322,8 +356,374 @@ local function EAS_Q_RegisterSceneCallbacks029380(self)
         end
     end
 end
-function Q:Initialize()
+InitializeImplArch = function(self)
     local result = EAS_Q_InitializeBase029380(self)
     EAS_Q_RegisterSceneCallbacks029380(self)
     return result
 end
+
+
+-- BEGIN ABSORBED: QuickslotCooldownFix.lua
+-- ESO Adventurer Suite
+-- v0.29.667 - Quickslot potion cooldown presentation.
+-- Uses ESO's native GetSlotCooldownInfo() and the existing Quickslot refresh pulse.
+
+local EPC = ESOProgressionCoach
+local Q = EPC and EPC.QuickslotOverlay
+local wm = WINDOW_MANAGER
+if not EPC or not Q or not wm then return end
+if Q._easCooldownFix029667 then return end
+Q._easCooldownFix029667 = true
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a, b, c, d = pcall(fn, ...)
+    if not ok then return fallback end
+    return a, b, c, d
+end
+
+local function formatCooldown(ms)
+    ms = tonumber(ms) or 0
+    if ms <= 0 then return "" end
+    local seconds = ms / 1000
+    if seconds >= 10 then return tostring(math.ceil(seconds)) end
+    return string.format("%.1f", seconds)
+end
+
+local baseCreate = CreateImplArch
+CreateImplArch = function(self, ...)
+    local frame = baseCreate(self, ...)
+    if not frame then return frame end
+    if not self.cooldownShade029667 then
+        local shade = wm:CreateControl("EAS_QuickslotCooldownShade029667", frame, CT_BACKDROP)
+        shade:SetAnchor(TOPLEFT, self.icon, TOPLEFT, 0, 0)
+        shade:SetAnchor(BOTTOMRIGHT, self.icon, BOTTOMRIGHT, 0, 0)
+        shade:SetCenterColor(0, 0, 0, 0.48)
+        shade:SetEdgeColor(0, 0, 0, 0)
+        shade:SetHidden(true)
+
+        local label = wm:CreateControl("EAS_QuickslotCooldownLabel029667", frame, CT_LABEL)
+        label:SetAnchor(TOPLEFT, self.icon, TOPLEFT, 0, 0)
+        label:SetAnchor(BOTTOMRIGHT, self.icon, BOTTOMRIGHT, 0, 0)
+        label:SetFont("$(BOLD_FONT)|25|soft-shadow-thick")
+        label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        label:SetColor(1.00, 0.82, 0.24, 1.00)
+        label:SetText("")
+        label:SetHidden(true)
+
+        self.cooldownShade029667 = shade
+        self.cooldownLabel029667 = label
+    end
+    return frame
+end
+
+local RefreshCooldownPresentation029667ImplArch
+
+function Q:RefreshCooldownPresentation029667(...)
+
+    return RefreshCooldownPresentation029667ImplArch(self, ...)
+
+end
+
+RefreshCooldownPresentation029667ImplArch = function(self, slot)
+    self:Create()
+    if not self.icon then return end
+
+    local category = rawget(_G, "HOTBAR_CATEGORY_QUICKSLOT_WHEEL")
+    local remaining, duration = 0, 0
+    if type(GetSlotCooldownInfo) == "function" then
+        remaining, duration = safe(GetSlotCooldownInfo, 0, slot, category)
+        remaining = tonumber(remaining) or 0
+        duration = tonumber(duration) or 0
+    end
+
+    local cooling = remaining > 0 and duration > 0
+    if type(self.icon.SetDesaturation) == "function" then
+        self.icon:SetDesaturation(cooling and 1 or 0)
+    end
+    if type(self.icon.SetColor) == "function" then
+        if cooling then self.icon:SetColor(0.62, 0.62, 0.62, 1)
+        else self.icon:SetColor(1, 1, 1, 1) end
+    end
+
+    if self.cooldownShade029667 then self.cooldownShade029667:SetHidden(not cooling) end
+    if self.cooldownLabel029667 then
+        self.cooldownLabel029667:SetText(cooling and formatCooldown(remaining) or "")
+        self.cooldownLabel029667:SetHidden(not cooling)
+    end
+    self.quickslotCooldownActive029667 = cooling
+    self.quickslotCooldownRemaining029667 = remaining
+end
+
+local baseRefresh = RefreshImplArch
+RefreshImplArch = function(self, ...)
+    local result = baseRefresh(self, ...)
+    local slot = tonumber(safe(GetCurrentQuickslot, 1)) or 1
+    if self.frame and not self.frame:IsHidden() then
+        self:RefreshCooldownPresentation029667(slot)
+    else
+        if self.icon and type(self.icon.SetDesaturation) == "function" then self.icon:SetDesaturation(0) end
+        if self.icon and type(self.icon.SetColor) == "function" then self.icon:SetColor(1, 1, 1, 1) end
+        if self.cooldownShade029667 then self.cooldownShade029667:SetHidden(true) end
+        if self.cooldownLabel029667 then self.cooldownLabel029667:SetHidden(true) end
+    end
+    return result
+end
+
+-- Refresh immediately when ESO reports quickslot state/cooldown changes. The
+-- existing 650ms visible-overlay pulse remains the fallback countdown owner.
+local prefix = (EPC.name or "ESOAdventurerSuite") .. "_QuickslotCooldown029667"
+for _, eventName in ipairs({ "EVENT_ACTION_SLOT_STATE_UPDATED", "EVENT_ACTION_SLOT_UPDATED", "EVENT_HOTBAR_SLOT_UPDATED" }) do
+    local eventId = rawget(_G, eventName)
+    if eventId and EVENT_MANAGER then
+        EPC.Runtime:RegisterEvent("QuickslotCooldown",eventName,eventId, function()
+            if EPC and EPC.QuickslotOverlay then EPC.QuickslotOverlay:Refresh() end
+        end)
+    end
+end
+
+-- END ABSORBED: QuickslotCooldownFix.lua
+
+
+-- BEGIN ABSORBED: QuickslotOverlayPolishFix.lua
+-- ESO Adventurer Suite
+-- v0.29.697 development: resizable quickslot overlay + responsive cooldown presentation.
+-- Keeps normal gameplay event-driven. A short 100ms pulse exists only while a visible
+-- quickslot is actively cooling down, then unregisters itself immediately.
+
+local EPC = ESOProgressionCoach
+local Q = EPC and EPC.QuickslotOverlay
+local WM = WINDOW_MANAGER
+if not EPC or not Q or not WM or not EVENT_MANAGER then return end
+if Q._easQuickslotPolish029697 then return end
+Q._easQuickslotPolish029697 = true
+
+local EM = EVENT_MANAGER
+local NAME = (EPC.name or "ESOAdventurerSuite") .. "_QuickslotPolish029697"
+local OLD_TICK = (EPC.name or "ESOAdventurerSuite") .. "_QuickslotOverlay_Tick"
+
+local function clamp(v, lo, hi)
+    v = tonumber(v) or lo
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a, b, c = pcall(fn, ...)
+    if not ok then return fallback end
+    return a, b, c
+end
+
+function Q:GetScale029697()
+    local saved = EPC.saved and tonumber(EPC.saved.quickslotOverlayScale029697)
+    if not saved then saved = 1.0 end
+    return clamp(saved, 0.60, 1.80)
+end
+
+function Q:SetScale029697(value)
+    value = clamp(value, 0.60, 1.80)
+    if EPC.saved then EPC.saved.quickslotOverlayScale029697 = value end
+    self:Create()
+    if self.frame and type(self.frame.SetScale) == "function" then
+        self.frame:SetScale(value)
+    end
+    self:Anchor()
+    self:Refresh()
+end
+
+local baseCreate = CreateImplArch
+CreateImplArch = function(self, ...)
+    local frame = baseCreate(self, ...)
+    if not frame then return frame end
+
+    if type(frame.SetScale) == "function" then
+        frame:SetScale(self:GetScale029697())
+    end
+
+    if not self.cooldownProgressBG029697 and self.icon then
+        local bg = WM:CreateControl("EAS_QuickslotCooldownProgressBG029697", frame, CT_BACKDROP)
+        bg:SetAnchor(BOTTOMLEFT, self.icon, BOTTOMLEFT, 2, -1)
+        bg:SetDimensions(56, 5)
+        bg:SetCenterColor(0.02, 0.02, 0.02, 0.88)
+        bg:SetEdgeColor(0, 0, 0, 0)
+        bg:SetHidden(true)
+
+        local fill = WM:CreateControl("EAS_QuickslotCooldownProgressFill029697", bg, CT_BACKDROP)
+        fill:SetAnchor(LEFT, bg, LEFT, 0, 0)
+        fill:SetDimensions(1, 5)
+        fill:SetCenterColor(1.00, 0.72, 0.12, 0.96)
+        fill:SetEdgeColor(0, 0, 0, 0)
+        fill:SetHidden(true)
+
+        self.cooldownProgressBG029697 = bg
+        self.cooldownProgressFill029697 = fill
+    end
+
+    return frame
+end
+
+function Q:StopCooldownPulse029697()
+    EM:UnregisterForUpdate(NAME .. "_CooldownPulse")
+    self.cooldownPulse029697 = false
+end
+
+function Q:StartCooldownPulse029697()
+    if self.cooldownPulse029697 then return end
+    self.cooldownPulse029697 = true
+    EM:RegisterForUpdate(NAME .. "_CooldownPulse", 100, function()
+        if not Q or not Q.frame or Q.frame:IsHidden() then
+            Q:StopCooldownPulse029697()
+            return
+        end
+        local slot = tonumber(safe(GetCurrentQuickslot, 1)) or 1
+        Q:RefreshCooldownPresentation029667(slot)
+        if not Q.quickslotCooldownActive029667 then
+            Q:StopCooldownPulse029697()
+        end
+    end)
+end
+
+local baseCooldown = RefreshCooldownPresentation029667ImplArch
+if type(baseCooldown) == "function" then
+    RefreshCooldownPresentation029667ImplArch = function(self, slot, ...)
+        local result = baseCooldown(self, slot, ...)
+        local category = rawget(_G, "HOTBAR_CATEGORY_QUICKSLOT_WHEEL")
+        local remaining, duration = 0, 0
+        if type(GetSlotCooldownInfo) == "function" then
+            remaining, duration = safe(GetSlotCooldownInfo, 0, slot, category)
+            remaining = tonumber(remaining) or 0
+            duration = tonumber(duration) or 0
+        end
+
+        local cooling = remaining > 0 and duration > 0
+        if self.cooldownProgressBG029697 then
+            self.cooldownProgressBG029697:SetHidden(not cooling)
+        end
+        if self.cooldownProgressFill029697 then
+            if cooling then
+                local elapsed = 1 - clamp(remaining / math.max(duration, 1), 0, 1)
+                self.cooldownProgressFill029697:SetDimensions(math.max(1, math.floor(56 * elapsed + 0.5)), 5)
+                self.cooldownProgressFill029697:SetHidden(false)
+            else
+                self.cooldownProgressFill029697:SetHidden(true)
+            end
+        end
+
+        if cooling and self.frame and not self.frame:IsHidden() then
+            self:StartCooldownPulse029697()
+        elseif not cooling then
+            self:StopCooldownPulse029697()
+        end
+        return result
+    end
+end
+
+local baseRefresh = RefreshImplArch
+RefreshImplArch = function(self, ...)
+    local result = baseRefresh(self, ...)
+    if self.frame and type(self.frame.SetScale) == "function" then
+        self.frame:SetScale(self:GetScale029697())
+    end
+    if self.frame and self.frame:IsHidden() then
+        self:StopCooldownPulse029697()
+        if self.cooldownProgressBG029697 then self.cooldownProgressBG029697:SetHidden(true) end
+        if self.cooldownProgressFill029697 then self.cooldownProgressFill029697:SetHidden(true) end
+    end
+    return result
+end
+
+-- The original overlay used a permanent 650ms refresh pulse whenever visible.
+-- Replace it after initialization. All non-cooldown state is already covered by
+-- ESO events; cooldown countdown gets the short-lived 100ms pulse above.
+local baseInitialize = InitializeImplArch
+InitializeImplArch = function(self, ...)
+    local result = baseInitialize(self, ...)
+    EM:UnregisterForUpdate(OLD_TICK)
+    EM:UnregisterForUpdate((EPC.name or "ESOAdventurerSuite") .. "_QuickslotOverlay_Tick")
+    self:Refresh()
+    return result
+end
+
+EPC.quickslotOverlayPolish029697 = true
+
+-- END ABSORBED: QuickslotOverlayPolishFix.lua
+
+
+-- BEGIN ABSORBED: QuickslotOverlaySettingsFix.lua
+-- ESO Adventurer Suite
+-- v0.29.697 development: inject Quickslot Overlay size control into existing Suite settings.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.Settings then return end
+local S = EPC.Settings
+if S._quickslotSettings029697 then return end
+S._quickslotSettings029697 = true
+
+local baseInitialize = S.Initialize
+
+local function injectIntoControls(options)
+    if type(options) ~= "table" then return false end
+    for i = 1, #options do
+        local option = options[i]
+        if type(option) == "table" then
+            if option.type == "header" and option.name == "Quickslot Overlay" then
+                -- Do not duplicate if another wrapper or future core version already added it.
+                local nextOption = options[i + 1]
+                if type(nextOption) == "table" and nextOption.reference == "EAS_QUICKSLOT_SCALE_029697" then return true end
+                table.insert(options, i + 1, {
+                    type = "slider",
+                    name = "Quickslot overlay size",
+                    tooltip = "Resizes the entire Quickslot Overlay, including icon, item name, binding, cooldown timer, and cooldown progress indicator.",
+                    min = 60,
+                    max = 180,
+                    step = 5,
+                    getFunc = function()
+                        return math.floor(((tonumber(EPC.saved and EPC.saved.quickslotOverlayScale029697) or 1.0) * 100) + 0.5)
+                    end,
+                    setFunc = function(v)
+                        local scale = math.max(0.60, math.min(1.80, (tonumber(v) or 100) / 100))
+                        if EPC.saved then EPC.saved.quickslotOverlayScale029697 = scale end
+                        if EPC.QuickslotOverlay and EPC.QuickslotOverlay.SetScale029697 then
+                            EPC.QuickslotOverlay:SetScale029697(scale)
+                        end
+                    end,
+                    default = 100,
+                    reference = "EAS_QUICKSLOT_SCALE_029697",
+                })
+                return true
+            end
+            if type(option.controls) == "table" and injectIntoControls(option.controls) then return true end
+        end
+    end
+    return false
+end
+
+function S:Initialize(...)
+    local LAM = LibAddonMenu2
+    if not LAM or type(LAM.RegisterOptionControls) ~= "function" then
+        return baseInitialize(self, ...)
+    end
+
+    local previous = LAM.RegisterOptionControls
+    LAM.RegisterOptionControls = function(lam, panelName, options, ...)
+        if panelName == "ESOProgressionCoachSettings" and type(options) == "table" then
+            injectIntoControls(options)
+        end
+        return previous(lam, panelName, options, ...)
+    end
+
+    local ok, result = pcall(baseInitialize, self, ...)
+    LAM.RegisterOptionControls = previous
+    if not ok then
+        if EPC and type(EPC.Print) == "function" then EPC:Print("Quickslot settings integration failed: " .. tostring(result)) end
+        return nil
+    end
+    return result
+end
+
+EPC.quickslotOverlaySettings029697 = true
+
+-- END ABSORBED: QuickslotOverlaySettingsFix.lua

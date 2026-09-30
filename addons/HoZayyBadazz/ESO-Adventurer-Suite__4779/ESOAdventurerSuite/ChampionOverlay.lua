@@ -148,23 +148,11 @@ function C:ShowForChampionGain2518()
     self:Refresh()
 end
 
-function C:SetVisibilityMode2518(mode)
+local function setVisibilityModeCore2518(self, mode)
     if not EPC.saved then return end
     EPC.saved.championOverlayVisibility = (mode == "GAIN") and "GAIN" or "ALWAYS"
     self.gainVisibleUntilMs2518 = 0
     self:Refresh()
-end
-
-function C:HandleChampionPointEvent2518(forceGain)
-    local earned = getEarnedChampionPoints2515()
-    local previous = tonumber(self.lastEarnedChampionPoints2518)
-    local gained = forceGain == true or (previous ~= nil and earned > previous)
-    self.lastEarnedChampionPoints2518 = earned
-    if gained then
-        self:ShowForChampionGain2518()
-    else
-        self:Refresh()
-    end
 end
 
 function C:Anchor()
@@ -245,7 +233,7 @@ function C:Create()
     self:Anchor()
 end
 
-function C:Refresh()
+local function refreshCore(self)
     if not self.frame or not EPC.saved then return end
 
     local level = tonumber(safe(GetUnitLevel, 0, "player")) or 0
@@ -320,7 +308,7 @@ function C:ResetPosition()
     self:Anchor()
 end
 
-function C:Initialize()
+local function initializeCore(self)
     self.layoutMode = false
     self.gainVisibleUntilMs2518 = 0
     self.lastEarnedChampionPoints2518 = getEarnedChampionPoints2515()
@@ -387,26 +375,6 @@ function C:SuppressNativeChampionProgress()
     end
 end
 
-local easLegacyRefreshChampion_2484 = C.Refresh
-function C:Refresh()
-    self:SuppressNativeChampionProgress()
-    easLegacyRefreshChampion_2484(self)
-end
-
-local easLegacyInitializeChampion_2484 = C.Initialize
-function C:Initialize()
-    easLegacyInitializeChampion_2484(self)
-    self:SuppressNativeChampionProgress()
-    local prefix = EPC.name .. "_ChampionNativeSuppress"
-    if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:SuppressNativeChampionProgress() end)
-    end
-    if EVENT_CHAMPION_POINT_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_CP", EVENT_CHAMPION_POINT_UPDATE, function() self:SuppressNativeChampionProgress() end)
-    end
-end
-
-
 -- ============================================================================
 -- v0.24.85 - Champion overlay gameplay-only scene visibility
 -- Refresh immediately when ESO scenes/UI mode change so the custom Champion
@@ -423,42 +391,31 @@ function C:IsSuiteMenuOpen()
     return false
 end
 
-local easLegacyRefreshChampion_2485 = C.Refresh
 function C:Refresh()
+    self:SuppressNativeChampionProgress()
     if self.frame and self:IsSuiteMenuOpen() and not self.layoutMode then
-        self:SuppressNativeChampionProgress()
         self.frame:SetHidden(true)
         return
     end
-    easLegacyRefreshChampion_2485(self)
+    return refreshCore(self)
 end
 
-local easLegacyInitializeChampion_2485 = C.Initialize
-function C:Initialize()
-    easLegacyInitializeChampion_2485(self)
+local function initializeGameplayVisibility2485(self)
     local prefix = EPC.name .. "_ChampionGameplayOnly"
 
-    -- ESO scene transitions cover Map, Inventory, Character, Skills, Champion,
-    -- Journal, Settings, stores, mail, etc. Refresh on every transition rather
-    -- than waiting for a Champion/level event.
     if SCENE_MANAGER and type(SCENE_MANAGER.RegisterCallback) == "function" then
         SCENE_MANAGER:RegisterCallback("SceneStateChanged", function()
             self:Refresh()
         end)
     end
 
-    -- Camera UI mode changes catch additional menus/dialog states and custom UI.
     if EVENT_GAME_CAMERA_UI_MODE_CHANGED then
         EVENT_MANAGER:RegisterForEvent(prefix .. "_UIMode", EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
             self:Refresh()
         end)
     end
 
-    -- Lightweight safety refresh catches Suite Codex open/close and any scene
-    -- that does not publish the standard callbacks on a particular client.
     EVENT_MANAGER:RegisterForUpdate(prefix .. "_Visibility", 1000, function()
-        -- Scene/camera callbacks handle immediate visibility changes; this is only
-        -- a low-frequency fallback for custom UI states.
         self:Refresh()
     end)
 end
@@ -513,17 +470,26 @@ function C:HandleChampionPointEvent2518(forceGain)
     end
 end
 
-local easLegacySetVisibilityModeChampion_2865 = C.SetVisibilityMode2518
 function C:SetVisibilityMode2518(mode)
     -- Start GAIN mode from the current value so an old/stale baseline can never
     -- create a fake popup as soon as the setting is changed.
     self.lastEarnedChampionPoints2518 = getEarnedChampionPoints2515()
-    easLegacySetVisibilityModeChampion_2865(self, mode)
+    return setVisibilityModeCore2518(self, mode)
 end
 
-local easLegacyInitializeChampion_2865 = C.Initialize
 function C:Initialize()
-    easLegacyInitializeChampion_2865(self)
+    initializeCore(self)
+    self:SuppressNativeChampionProgress()
+
+    local nativePrefix = EPC.name .. "_ChampionNativeSuppress"
+    if EVENT_PLAYER_ACTIVATED then
+        EVENT_MANAGER:RegisterForEvent(nativePrefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function() self:SuppressNativeChampionProgress() end)
+    end
+    if EVENT_CHAMPION_POINT_UPDATE then
+        EVENT_MANAGER:RegisterForEvent(nativePrefix .. "_CP", EVENT_CHAMPION_POINT_UPDATE, function() self:SuppressNativeChampionProgress() end)
+    end
+
+    initializeGameplayVisibility2485(self)
 
     local prefix = EPC.name .. "_ChampionGainWatch2865"
 

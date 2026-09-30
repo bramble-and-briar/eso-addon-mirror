@@ -1,3 +1,7 @@
+Version 2.6.7 (2026/09/30)
+* Added alert for Lure of the Sea in Dreadsail Reef
+  - This alert is disabled by default and can be enabled in the settings panel
+
 Version 2.6.6 (2026/09/21)
 * Improved the reliability of the Cutthroat's Focus protection by adjusting the
   exclusion window to account for the player's current latency

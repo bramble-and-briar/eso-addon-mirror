@@ -1,5 +1,5 @@
 -- ESO Adventurer Suite
--- Hard-coded Suite Exclusive Teleporter destinations.
+-- v0.29.720 - clean Suite Exclusive destinations; no amenity/public tooltip metadata.
 -- These destinations are intentionally not exposed through SavedVariables or settings.
 
 local EPC = ESOProgressionCoach
@@ -19,10 +19,9 @@ local DESTINATIONS = {
     {
         key = "master_crafting_area",
         name = "Master Crafting Area",
-        owner = "@ValoAven",
-        houseName = "Coldharbour Surreal Estate",
-        houseId = 47,
-        houseLink = "|H1:housing:47:@ValoAven|h|h",
+        owner = "@karthrag_inak",
+        houseName = "Pariah's Pinnacle",
+        houseId = 54,
     },
 }
 
@@ -66,7 +65,7 @@ function T:GetSuiteExclusiveTeleporterEntries029672()
             zoneName = destination.houseName,
             sourceText = "SUITE EXCLUSIVE",
             sourceDetail = destination.name .. "  |  " .. destination.houseName,
-            statusText = "VISIT",
+            statusText = destination.accessOk029720 and "ACCESS OK" or "VISIT",
             canTravel = true,
             suiteExclusive = destination,
         }
@@ -104,6 +103,30 @@ function T:TravelSuiteExclusive029672(entry)
 
     printMessage("Traveling to " .. tostring(destination.name) .. " — " .. tostring(destination.houseName) .. ".")
 
+    self.pendingSuiteExclusiveArrival029720 = {
+        key = destination.key,
+        houseId = houseId,
+        name = destination.name,
+        startedAt = type(GetFrameTimeMilliseconds) == "function" and GetFrameTimeMilliseconds() or 0,
+    }
+
+    if type(zo_callLater) == "function" then
+        local pendingKey = destination.key
+        zo_callLater(function()
+            local pending = T.pendingSuiteExclusiveArrival029720
+            if not pending or pending.key ~= pendingKey then return end
+            local currentHouseId = 0
+            if type(GetCurrentZoneHouseId) == "function" then
+                local okHouse, value = pcall(GetCurrentZoneHouseId)
+                if okHouse then currentHouseId = tonumber(value) or 0 end
+            end
+            if currentHouseId ~= houseId then
+                printMessage("Master Crafting Area travel was not confirmed. ESO may have rejected remote visitor access.")
+                T.pendingSuiteExclusiveArrival029720 = nil
+            end
+        end, 30000)
+    end
+
     local ok
     if type(IsProtectedFunction) == "function" and type(CallSecureProtected) == "function" then
         local protectedOk, isProtected = pcall(IsProtectedFunction, "JumpToSpecificHouse")
@@ -116,6 +139,7 @@ function T:TravelSuiteExclusive029672(entry)
     end
 
     if not ok then
+        self.pendingSuiteExclusiveArrival029720 = nil
         printMessage("ESO rejected the Suite Exclusive travel request. The owner may need to allow visitor access to that home.")
         return false
     end
@@ -260,4 +284,30 @@ function T:RefreshMapTeleporter(...)
     return result
 end
 
+if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED ~= nil then
+    EPC.Runtime:RegisterEvent("TeleporterSuiteExclusives", "Arrival", EVENT_PLAYER_ACTIVATED, function()
+        local pending = T.pendingSuiteExclusiveArrival029720
+        if not pending then return end
+
+        local currentHouseId = 0
+        if type(GetCurrentZoneHouseId) == "function" then
+            local okHouse, value = pcall(GetCurrentZoneHouseId)
+            if okHouse then currentHouseId = tonumber(value) or 0 end
+        end
+
+        if currentHouseId == (tonumber(pending.houseId) or -1) then
+            for _, destination in ipairs(DESTINATIONS) do
+                if destination.key == pending.key then
+                    destination.accessOk029720 = true
+                    break
+                end
+            end
+            printMessage("Access confirmed: " .. tostring(pending.name or "Suite Exclusive") .. ".")
+            T.pendingSuiteExclusiveArrival029720 = nil
+            if type(T.RefreshMapTeleporter) == "function" then pcall(T.RefreshMapTeleporter, T) end
+        end
+    end)
+end
+
 EPC.teleporterSuiteExclusives029676 = true
+EPC.teleporterSuiteExclusiveClean029720 = true

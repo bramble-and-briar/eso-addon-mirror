@@ -215,7 +215,7 @@ end
 function U:CreateCombatHUD()
     local saved = EPC.saved
     local hud = wm:CreateTopLevelWindow("EPC_CombatHUD")
-    hud:SetDimensions(600, 116)
+    hud:SetDimensions(640, 116)
     local savedHudLeft = tonumber(saved.combatHudLeft)
     local savedHudTop = tonumber(saved.combatHudTop)
     if savedHudLeft and savedHudLeft >= 0 and savedHudTop and savedHudTop >= 0 then
@@ -257,7 +257,7 @@ function U:CreateCombatHUD()
     divider:SetCenterColor(unpack(C.edgeSoft))
     divider:SetEdgeColor(0, 0, 0, 0)
 
-    local columns = { 12, 158, 304, 450 }
+    local columns = { 12, 166, 320, 474 }
     local rows = { 34, 60, 86 }
     local metricNames = {
         { "DPS", "DMG", "CRIT", "HITS" },
@@ -270,7 +270,7 @@ function U:CreateCombatHUD()
             local key = metricNames[row][col]
             local label = makeLabel(hud, "EPC_CombatHUD_" .. key, "ZoFontGameSmall", C.muted)
             label:SetAnchor(TOPLEFT, hud, TOPLEFT, columns[col], rows[row])
-            label:SetDimensions(140, 22)
+            label:SetDimensions(col == 4 and 152 or 146, 22)
             metrics[key] = label
         end
     end
@@ -335,9 +335,18 @@ function U:ResetCombatHUDPosition()
     EPC.saved.combatHudTop = -1
 end
 
+local function setTextIfChanged029769(control, value)
+    if not control then return end
+    value = tostring(value or "")
+    if control.easLastText029769 ~= value then
+        control.easLastText029769 = value
+        control:SetText(value)
+    end
+end
+
 function U:UpdateCombatHUD(summary)
     if not self.combatHud or not EPC.saved then return end
-    local movePreview = self.combatHudMoveMode == true or EPC.combatHudMoveMode == true
+    local movePreview = self.combatHudMoveMode == true or EPC.combatHudMoveMode == true or EPC.unitFramesMoveMode == true
     local hudSuppressed = not movePreview and EPC.IsGameplayHudSuppressed and EPC:IsGameplayHudSuppressed() == true
     local modeAllowed = not EPC.OverlayModeAllows or EPC:OverlayModeAllows("combatHudVisibility")
     local alwaysMode = EPC.saved and string.upper(tostring(EPC.saved.combatHudVisibility or "COMBAT")) == "ALWAYS"
@@ -355,38 +364,38 @@ function U:UpdateCombatHUD(summary)
 
     local role = summary.role or (EPC.Role and EPC.Role:GetRole()) or "DAMAGE"
     self:ApplyCombatHUDRoleTheme(role)
-    self.combatHudTitle:SetText(string.format("COMBAT  •  %s", role))
+    setTextIfChanged029769(self.combatHudTitle, string.format("COMBAT  •  %s", role))
     if movePreview then
-        self.combatHudStatus:SetText("DRAG TO MOVE  •  /esosuite hud lock")
+        setTextIfChanged029769(self.combatHudStatus, "DRAG TO MOVE  •  /esosuite hud lock")
     elseif summary.active then
         if (summary.petDamage or 0) > 0 or (summary.companionDamage or 0) > 0 then
-            self.combatHudStatus:SetText(string.format("LIVE  %.1fs  •  ALL %s DPS", summary.duration or 0, formatNumber(summary.combinedDps or summary.dps or 0)))
+            setTextIfChanged029769(self.combatHudStatus, string.format("LIVE  %.1fs  •  ALL %s DPS", summary.duration or 0, formatNumber(summary.combinedDps or summary.dps or 0)))
         else
-            self.combatHudStatus:SetText(string.format("LIVE  %.1fs", summary.duration or 0))
+            setTextIfChanged029769(self.combatHudStatus, string.format("LIVE  %.1fs", summary.duration or 0))
         end
     else
         if (summary.petDamage or 0) > 0 or (summary.companionDamage or 0) > 0 then
-            self.combatHudStatus:SetText(string.format("LAST %.1fs  •  ALL %s DPS", summary.duration or 0, formatNumber(summary.combinedDps or summary.dps or 0)))
+            setTextIfChanged029769(self.combatHudStatus, string.format("LAST %.1fs  •  ALL %s DPS", summary.duration or 0, formatNumber(summary.combinedDps or summary.dps or 0)))
         else
-            self.combatHudStatus:SetText(string.format("LAST FIGHT  %.1fs", summary.duration or 0))
+            setTextIfChanged029769(self.combatHudStatus, string.format("LAST FIGHT  %.1fs", summary.duration or 0))
         end
     end
 
     local m = self.combatHudMetrics
-    m.DPS:SetText(string.format("DPS  %s", formatNumber(summary.dps or 0)))
-    m.DMG:SetText(string.format("DMG  %s", formatNumber(summary.totalDamage or 0)))
-    m.CRIT:SetText(string.format("CRIT  %.1f%%", summary.criticalEventPercent or 0))
-    m.HITS:SetText(string.format("CRITS  %s/%s", formatNumber(summary.criticalHits or 0), formatNumber(summary.hits or 0)))
+    setTextIfChanged029769(m.DPS, string.format("DPS  %s", formatNumber(summary.dps or 0)))
+    setTextIfChanged029769(m.DMG, string.format("DMG  %s", formatNumber(summary.totalDamage or 0)))
+    setTextIfChanged029769(m.CRIT, string.format("CRIT  %.1f%%", summary.criticalEventPercent or 0))
+    setTextIfChanged029769(m.HITS, string.format("CRITS  %s/%s", formatNumber(summary.criticalHits or 0), formatNumber(summary.hits or 0)))
 
-    m.HPS:SetText(string.format("HPS  %s", formatNumber(summary.hps or 0)))
-    m.HEAL:SetText(string.format("HEAL  %s", formatNumber(summary.totalHealing or 0)))
-    m.CRIT_HEAL:SetText(string.format("CRIT HEAL  %.1f%%", summary.criticalHealPercent or 0))
-    m.HEALS:SetText(string.format("C-HEALS  %s/%s", formatNumber(summary.criticalHeals or 0), formatNumber(summary.healEvents or 0)))
+    setTextIfChanged029769(m.HPS, string.format("HPS  %s", formatNumber(summary.hps or 0)))
+    setTextIfChanged029769(m.HEAL, string.format("HEAL  %s", formatNumber(summary.totalHealing or 0)))
+    setTextIfChanged029769(m.CRIT_HEAL, string.format("CRIT HEAL  %.1f%%", summary.criticalHealPercent or 0))
+    setTextIfChanged029769(m.HEALS, string.format("C-HEALS  %s/%s", formatNumber(summary.criticalHeals or 0), formatNumber(summary.healEvents or 0)))
 
-    m.DTPS:SetText(string.format("DTPS  %s", formatNumber(summary.dtps or 0)))
-    m.TAKEN:SetText(string.format("TAKEN  %s", formatNumber(summary.incomingDamage or 0)))
-    m.BLOCK:SetText(string.format("BLOCK  %.1f%%", summary.blockPercent or 0))
-    m.IN_HITS:SetText(string.format("BLOCKS  %s/%s", formatNumber(summary.blockedHits or 0), formatNumber(summary.incomingHits or 0)))
+    setTextIfChanged029769(m.DTPS, string.format("DTPS  %s", formatNumber(summary.dtps or 0)))
+    setTextIfChanged029769(m.TAKEN, string.format("TAKEN  %s", formatNumber(summary.incomingDamage or 0)))
+    setTextIfChanged029769(m.BLOCK, string.format("BLOCK  %.1f%%", summary.blockPercent or 0))
+    setTextIfChanged029769(m.IN_HITS, string.format("BLOCKS  %s/%s", formatNumber(summary.blockedHits or 0), formatNumber(summary.incomingHits or 0)))
 end
 
 function U:Create()

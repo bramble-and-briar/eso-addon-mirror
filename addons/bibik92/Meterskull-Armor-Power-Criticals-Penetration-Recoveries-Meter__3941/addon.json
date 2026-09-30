@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "bibik92",
   "canonical_id": "esoui:3941",
   "category_id": "22",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -65,7 +74,7 @@
     "Meterskull"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3941/",
-  "fingerprint": "13c74210cffdebe27a94cc97be40bdd29dbe40125c4310685038bcbf42b8a2a8",
+  "fingerprint": "26d1fecbd2e9864c1b2d247dd0c48a49fc7bbca8141013094514d14c2d652eec",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14369.png",
     "https://cdn-eso.mmoui.com/preview/pvw14370.png"
@@ -76,11 +85,11 @@
   "source_id": "3941",
   "source_url": "https://www.esoui.com/downloads/info3941-MeterskullArmorPowerCriticalsPenetrationRecoveriesMeter.html",
   "stats": {
-    "downloads": 21161,
-    "favorites": 20,
-    "monthly_downloads": 369
+    "downloads": 22251,
+    "favorites": 21,
+    "monthly_downloads": 646
   },
   "title": "Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter",
-  "updated_at": 1775324782000,
-  "version": "1.5.7"
+  "updated_at": 1790696434000,
+  "version": "1.5.9"
 }

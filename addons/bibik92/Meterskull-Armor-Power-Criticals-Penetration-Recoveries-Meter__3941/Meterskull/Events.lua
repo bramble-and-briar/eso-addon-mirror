@@ -15,27 +15,28 @@ local function RenderAllModules(initial)
 end
 
 -- Render tick disable state tracking for penetration module
-local renderTickDisabledPen = false
 local targetCooldownDuration = 1000
 local penDisableTimestamp = 0
 
+local function ResumeRenderTickForPen()
+    penDisableTimestamp = penDisableTimestamp + 1
+    local mod = MS.modules.penskull
+    if not mod then return end
+    mod.renderPaused = false
+    mod:UpdateRenderTick()
+end
+
 local function DisableRenderTickForPen()
-    if not MS.modules.penskull or not MS.db.sharedSettings.showPenskull then return end
-    renderTickDisabledPen = true
+    local mod = MS.modules.penskull
+    if not mod or not MS.db.sharedSettings.showPenskull or IsUnitDead("player") then return end
+    mod.renderPaused = true
     penDisableTimestamp = penDisableTimestamp + 1
     local myTimestamp = penDisableTimestamp
-    EVENT_MANAGER:UnregisterForUpdate(MS.modules.penskull.eventNamespace .. "Render")
+    mod:UpdateRenderTick()
     zo_callLater(function()
         -- Only re-enable if no newer disable was issued
         if myTimestamp ~= penDisableTimestamp then return end
-        renderTickDisabledPen = false
-        if MS.db.sharedSettings.showPenskull then
-            EVENT_MANAGER:RegisterForUpdate(
-                MS.modules.penskull.eventNamespace .. "Render",
-                MS.db.sharedSettings.renderTick,
-                function() MS.modules.penskull:Render() end
-            )
-        end
+        ResumeRenderTickForPen()
     end, targetCooldownDuration)
 end
 
@@ -45,6 +46,11 @@ end
 local function RegisterDeathCheckEvents()
     local function CheckPlayerDeathStatus()
         local playerIsDead = IsUnitDead("player")
+        if playerIsDead then
+            -- Invalidate pending target cooldowns before updating visibility.
+            penDisableTimestamp = penDisableTimestamp + 1
+            if MS.modules.penskull then MS.modules.penskull.renderPaused = false end
+        end
         for _, mod in pairs(MS.modules) do
             local showKey = "show"..string.gsub(mod.name,"^%l",string.upper)
             local shouldShow = MS.db.sharedSettings[showKey]
@@ -74,15 +80,8 @@ local function RegisterTargetChangeEvent()
         if (not DoesUnitExist('reticleover') or IsUnitPlayer('reticleover')) and IsUnitInCombat('player') then
             DisableRenderTickForPen()
         else
-            if renderTickDisabledPen and IsUnitInCombat('player') then
-                renderTickDisabledPen = false
-                if MS.modules.penskull and MS.db.sharedSettings.showPenskull then
-                    EVENT_MANAGER:RegisterForUpdate(
-                        MS.modules.penskull.eventNamespace .. "Render",
-                        MS.db.sharedSettings.renderTick,
-                        function() MS.modules.penskull:Render() end
-                    )
-                end
+            if MS.modules.penskull and MS.modules.penskull.renderPaused then
+                ResumeRenderTickForPen()
             end
             if MS.modules.penskull then MS.modules.penskull:Render() end
         end
@@ -152,10 +151,10 @@ end
 -- SPRINT EVENT
 --------------------------------------------------------------------------------
 local function RegisterSprintEvent()
-    local lastStaminaRecovery = GetPlayerStat(STAT_STAMINA_REGEN_COMBAT)
+    local lastStaminaRecovery = GetPlayerStat(STAT_STAMINA_REGEN_COMBAT, STAT_BONUS_OPTION_APPLY_BONUS)
     
     EVENT_MANAGER:RegisterForUpdate(MS.name .. "SprintCheck", 50, function()
-        local currentStaminaRecovery = GetPlayerStat(STAT_STAMINA_REGEN_COMBAT)
+        local currentStaminaRecovery = GetPlayerStat(STAT_STAMINA_REGEN_COMBAT, STAT_BONUS_OPTION_APPLY_BONUS)
         
         if currentStaminaRecovery ~= lastStaminaRecovery then
             if MS.modules.stamskull then MS.modules.stamskull:Render() end

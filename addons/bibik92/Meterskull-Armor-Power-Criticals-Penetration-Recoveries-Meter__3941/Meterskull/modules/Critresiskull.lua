@@ -7,7 +7,7 @@ local MS = Meterskull
 local function CritresiskullRender(self, initial, skipAnimation)
     if not self.uiRefs then return end
 
-    local critResist = GetPlayerStat(STAT_CRITICAL_RESISTANCE)
+    local critResist = GetPlayerStat(STAT_CRITICAL_RESISTANCE, STAT_BONUS_OPTION_APPLY_BONUS)
     local oldVal     = self.currentData.critResistLevel or 0
     local percent    = math.floor(-critResist / 66)
 

@@ -1,8 +1,8 @@
 ## Title: |cB8860BESO |cFFD700Adventurer Suite|r
-## Description: |cFFD700All-in-one quests, travel, minimap, combat, builds, antiquities, inventory, market, and HUD tools.|r
+## Description: |cFFD700All-in-one quests, travel, minimap, PvP, combat, builds, antiquities, inventory, market, and HUD tools.|r
 ## Author: |c00FFFFHoZayyBadazz|r
-## Version: 0.29.696
-## AddOnVersion: 3631
+## Version: 0.29.790
+## AddOnVersion: 3725
 ## APIVersion: 101050 101051
 ## SavedVariables: ESOProgressionCoachSavedVars EASLoreLibrarySavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730 LibMainMenu-2.0>=450 LibChatMessage>=118
@@ -10,14 +10,22 @@
 ## DependsOn: LibMapPins-1.0>=10047 CustomCompassPins>=138 LibTreasure>=24
 
 Core.lua
+Architecture/Lifecycle.lua
+Architecture/Runtime.lua
+Architecture/CharacterProfile.lua
+Architecture/HudVisibility.lua
+Architecture/HudEditor.lua
+Architecture/Diagnostics.lua
+Architecture/Inventory.lua
+Architecture/Validation.lua
+ControllerSupport.lua
 ReleaseMetadata.lua
-AccountWideSettingsFix.lua
 Localization.lua
 PlayerRequestOverlay.lua
 NativeNotificationOverlay.lua
+NativeLootChatLayout.lua
 CompassFocusedInfoOverlay.lua
 Compatibility.lua
-ChatPriorityFix.lua
 BugCatcher.lua
 SelfTest.lua
 
@@ -43,15 +51,16 @@ Data.lua
 Engine.lua
 Role.lua
 Travel.lua
-TeleporterArenaDelveFix.lua
 TeleporterSuiteExclusives.lua
 Activities.lua
 BattlegroundFinder.lua
 DungeonFinder.lua
-DungeonQueueHudStateFix.lua
 DungeonHistory.lua
+MasterAchievementTracker.lua
 ActivityRunHistory.lua
 QuestFinder.lua
+SkillPointFinderData.lua
+SkillPointFinder.lua
 SetJournal.lua
 Endgame.lua
 TargetBuild.lua
@@ -61,14 +70,6 @@ GearOptimizer.lua
 CompanionOptimizer.lua
 GearLoadoutOverlay.lua
 CharacterGearScreen.lua
-CharacterGearWeaponTextFix.lua
-CharacterGearArmorTextSpacingFix.lua
-CompanionGearLayoutFix.lua
-CharacterGearScreenCompanionFix.lua
-CharacterWeaponSwapVisibilityFix.lua
-CharacterGearSkinSlotFix.lua
-CharacterGearPolymorphSlotFix.lua
-CharacterAppearanceSlotFix.lua
 LoadoutManager.lua
 RecipeStyleLearner.lua
 AlchemyPotionMaker.lua
@@ -76,18 +77,16 @@ WayshrineAutoMessage.lua
 Advisor.lua
 CombatPresentation.lua
 Combat.lua
-HighDensityCombatPerformanceFix.lua
-CombatEndPerformanceFix.lua
 BossMechanicsData.lua
 BossMechanicsAssistant.lua
 GameModeReport.lua
-TrialCombatRecorderPerformanceFix.lua
 RotationAssistant.lua
+PvP.lua
+PvPCombatRuntime.lua
+PvPWorldRuntime.lua
+PvPCompassRuntime.lua
 Maintenance.lua
 UnitFrames.lua
-UnitFrameDesignPolishFix.lua
-GroupShieldVisibilityFix.lua
-RaidCompanionVisibilityFix.lua
 TeamVisibility.lua
 DungeonChestFinder.lua
 CommunityData/SuiteCommunityAD.lua
@@ -97,8 +96,7 @@ CommunityData/SuiteCommunityEP.lua
 CommunityData/SuiteCommunityNF.lua
 ResourcePinsWorld.xml
 ResourcePins.lua
-ResourcePins3DLocationFix.lua
-ResourcePinsFarmFocusAccuracyFix.lua
+CraftingMaterialHunt.lua
 TreasureLocator.lua
 AntiquityKnownDigSpawns.lua
 AntiquityLeadData.lua
@@ -110,27 +108,28 @@ ChampionOptimizer.lua
 AttributeOptimizer.lua
 AbilityOverlays.lua
 DualActionBar.lua
-DualActionBarActiveIndicatorFix.lua
-DualActionBarTransformationFix.lua
-DualActionBarCastPerformanceFix.lua
-GlobalWeaponSwapPerformanceFix.lua
-AbilityAvailabilityFix.lua
-AbilityCastPerformanceFix.lua
-LiveAbilityStateFix.lua
-WorldAbilityReadinessFix.lua
-UltimatePercentFix.lua
 TickTracker.lua
 QuickslotOverlay.lua
-QuickslotCooldownFix.lua
+EASArchiveHelper/languages/en.lua
+EASArchiveHelper/bootstrap.lua
+EASArchiveHelper/data/defaults.lua
+EASArchiveHelper/data/abilities.lua
+EASArchiveHelper/misc/achievements.lua
+EASArchiveHelper/misc/alarms.lua
+EASArchiveHelper/misc/utility.lua
+EASArchiveHelper/misc/markers.lua
+EASArchiveHelper/ui/icons.lua
+EASArchiveHelper/ui/ui.lua
+EASArchiveHelper/ui/buffSelector.lua
+EASArchiveHelper/misc/events.lua
+EASArchiveHelper/init.lua
 InfiniteArchiveOverlay.lua
 SynergyOverlay.lua
-SynergyTextVisibilityFix.lua
 Reticle.lua
 RepairCostOverlay.lua
 InventoryRepairTab.lua
-RepairButtonPresentationFix.lua
-InventoryHeaderAlignmentFix.lua
 PerformanceOverlay.lua
+EdgeInfoBar.lua
 EncounterReminders.lua
 OverlandDifficulty.lua
 ChallengeDifficultyOverlay.lua
@@ -140,68 +139,27 @@ ActiveQuest.lua
 GoldenPursuits.lua
 FinderSuite.lua
 GroupFinderPlusIntegration.lua
-GroupFinderPlusSafetyFix.lua
-GroupFinderPlusSwatchFix.lua
-GroupFinderTooltipPositionFix.lua
-GroupFinderTooltipWrapFix.lua
-GroupFinderRoleRequirementFix.lua
 MailColorPicker.lua
-GuildMailColorPickerFix.lua
 MarketPriceChecker.lua
-MarketPriceCheckerPolishFix.lua
-MarketPriceMultiTraderFix.lua
-MarketPriceLiveTraderCaptureFix.lua
-MarketPriceContextMenuFix.lua
-MarketPriceAnchorSafetyFix.lua
-MarketPriceLiveEngineFix.lua
-MarketPriceLiveEngineSafetyFix.lua
-MarketPriceNativeTraderScanFix.lua
-MarketPriceLiveAnalyticsFix.lua
-MarketPriceLiveControlPanelFix.lua
 Journal.lua
 ModernAppUI.lua
-ModernAppUIRoundedFix.lua
-ModernAppUIGalleryImageFix.lua
-ModernAppUIForegroundFix.lua
 MiniMap.lua
 UtilitySuite.lua
 InventoryGrid.lua
-InventoryGridPrimaryKeybindSafetyFix.lua
-InventoryCategoryRefreshFix.lua
+MerchantFenceCategoryBar.lua
 BankGridUnifiedV2.lua
-BankGridModeSwitchFix.lua
-BankGridScrollClampFix.lua
-BankGridCategoryFix.lua
-BankGridFilterAndSwitchFix.lua
-BankArmorSortFix.lua
-BankItemClassificationFix.lua
-GuildBankNativeSafetyFix.lua
-FurnishingVaultPureNativeFix.lua
-HouseStoragePureNativeFix.lua
-HouseStorageDepositHeaderInteractionFix.lua
-HouseStorageWithdrawViewportFix.lua
-HouseStorageTransferSafetyFix.lua
+FurnishingVault.lua
+HouseStorage.lua
 EnchantPlus.lua
 CraftingInventoryGrid.lua
-InventoryTooltipPlacementFix.lua
-InventoryHoverTooltipRefreshFix.lua
-BankContextMenuAndCompanionFix.lua
-BankMenuRefreshGuardFix.lua
-BankPresentationCleanupFix.lua
-BankContextMenuSecureTransferFix.lua
-BankLockIndicatorFix.lua
 SkillMorphCompare.xml
 SkillMorphCompare.lua
 UI.lua
 LocalizationRuntime.lua
-LocalizationLiveSwitchFix.lua
-LocalizationSettingsRegistrationFix.lua
-PlayerDeathOverlayVisibilityFix.lua
 RuntimePerformanceController.lua
-RuntimePerformanceCoreOwnership.lua
 GroupLootNotifier.lua
 Settings.lua
 GroupFinderPlusSettings.lua
+PvPSettings.lua
 MarketPriceSettings.lua
-MarketPriceLiveSettingsFix.lua
 Bindings.xml

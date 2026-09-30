@@ -346,7 +346,13 @@ function J:GetTheme()
     return THEMES[s.theme] or THEMES.PARCHMENT
 end
 
-function J:ApplyTheme()
+local ApplyThemeImplArch
+
+function J:ApplyTheme(...)
+    return ApplyThemeImplArch(self, ...)
+end
+
+ApplyThemeImplArch = function(self)
     if not self.window then return end
     local t = self:GetTheme()
     local themeName = self:EnsureSaved().theme or "PARCHMENT"
@@ -398,7 +404,13 @@ function J:ApplyTheme()
     if self.diceResultValue then self.diceResultValue:SetColor(t.accent[1], t.accent[2], t.accent[3], 1) end
 end
 
-function J:CycleTheme()
+local CycleThemeImplArch
+
+function J:CycleTheme(...)
+    return CycleThemeImplArch(self, ...)
+end
+
+CycleThemeImplArch = function(self)
     local s = self:EnsureSaved()
     local current = 1
     for i=1,#THEME_ORDER do if THEME_ORDER[i] == s.theme then current = i break end end
@@ -409,7 +421,13 @@ function J:CycleTheme()
     if self.themeButton then self.themeButton:SetText("THEME") end
 end
 
-function J:CreateEditBox(name, parent, x, y, w, h, multiLine)
+local CreateEditBoxImplArch
+
+function J:CreateEditBox(...)
+    return CreateEditBoxImplArch(self, ...)
+end
+
+CreateEditBoxImplArch = function(self, name, parent, x, y, w, h, multiLine)
     local e = wm:CreateControl(name, parent, CT_EDITBOX)
     e:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     e:SetDimensions(w, h)
@@ -1200,12 +1218,24 @@ function J:GetCodexText()
     return CODEX[self.codexMode or "ALCHEMY"] or ""
 end
 
-function J:RefreshCodex()
+local RefreshCodexImplArch
+
+function J:RefreshCodex(...)
+    return RefreshCodexImplArch(self, ...)
+end
+
+RefreshCodexImplArch = function(self)
     if self.codexBody then setBookText(self.codexBody, CODEX[self.codexMode or "ALCHEMY"] or "", self.codexBody:GetWidth()) end
     for mode,b in pairs(self.codexButtons or {}) do setButtonStyle(b, mode == (self.codexMode or "ALCHEMY"), self:GetTheme()) end
 end
 
-function J:RefreshDocumentPage()
+local RefreshDocumentPageImplArch
+
+function J:RefreshDocumentPage(...)
+    return RefreshDocumentPageImplArch(self, ...)
+end
+
+RefreshDocumentPageImplArch = function(self)
     local page = self.pages and self.pages[self.activeTab]
     local body = page and page.body
     if not body then return end
@@ -1520,7 +1550,13 @@ function J:BuildSuiteText(tab)
     return table.concat(lines, "\n")
 end
 
-function J:RefreshSuitePage(tab)
+local RefreshSuitePageImplArch
+
+function J:RefreshSuitePage(...)
+    return RefreshSuitePageImplArch(self, ...)
+end
+
+RefreshSuitePageImplArch = function(self, tab)
     tab = tab or self.activeTab
     if not SUITE_TABS[tab] then return end
     local page = self.pages and self.pages[tab]
@@ -1543,7 +1579,13 @@ function J:RefreshSuitePage(tab)
     else self:SetSuiteButtons(tab, {"REFRESH"}) end
 end
 
-function J:PlayPageTurn()
+local PlayPageTurnImplArch
+
+function J:PlayPageTurn(...)
+    return PlayPageTurnImplArch(self, ...)
+end
+
+PlayPageTurnImplArch = function(self)
     if not self.flipPage then return end
     local t = self:GetTheme()
     self.flipPage:SetCenterColor(unpack(t.page2 or t.page or t.panel))
@@ -1595,7 +1637,13 @@ function J:TurnPage(delta)
     self:SetTab(TABS[nextIndex])
 end
 
-function J:SetTab(tab)
+local SetTabImplArch
+
+function J:SetTab(...)
+    return SetTabImplArch(self, ...)
+end
+
+SetTabImplArch = function(self, tab)
     self:SaveCurrentEntry()
     local changed = self.activeTab ~= nil and self.activeTab ~= tab
     self.activeTab = tab
@@ -1827,7 +1875,13 @@ function J:RawKeyMatchesAction(actionName, key, ctrl, alt, shift, command)
     return false
 end
 
-function J:Create()
+local CreateImplArch
+
+function J:Create(...)
+    return CreateImplArch(self, ...)
+end
+
+CreateImplArch = function(self)
     local window = wm:CreateTopLevelWindow("EAS_CustomJournal")
     self.window = window
     window:SetDimensions(1024, 1024)
@@ -2074,7 +2128,13 @@ function J:ActivateCodexActionLayer()
     end
 end
 
-function J:Show()
+local ShowImplArch
+
+function J:Show(...)
+    return ShowImplArch(self, ...)
+end
+
+ShowImplArch = function(self)
     if not self.window then return end
 
     local already = safe(IsGameCameraUIModeActive, false) == true
@@ -2094,7 +2154,13 @@ function J:Show()
     end
 end
 
-function J:Hide()
+local HideImplArch
+
+function J:Hide(...)
+    return HideImplArch(self, ...)
+end
+
+HideImplArch = function(self)
     if not self.window then return end
     self:SaveCurrentEntry()
     self.window:SetHidden(true)
@@ -2225,7 +2291,13 @@ local function easMakeRule(name, parent, y, width)
     return rule
 end
 
-function J:CreateSpreadShell(name)
+local CreateSpreadShellImplArch
+
+function J:CreateSpreadShell(...)
+    return CreateSpreadShellImplArch(self, ...)
+end
+
+CreateSpreadShellImplArch = function(self, name)
     local spread = wm:CreateControl("EAS_CodexSpread_"..name, self.window, CT_CONTROL)
     spread:SetAnchorFill(self.window)
 
@@ -2242,7 +2314,13 @@ function J:CreateSpreadShell(name)
     return spread
 end
 
-function J:AddSpreadHeader(spread, leftTitle, rightTitle)
+local AddSpreadHeaderImplArch
+
+function J:AddSpreadHeader(...)
+    return AddSpreadHeaderImplArch(self, ...)
+end
+
+AddSpreadHeaderImplArch = function(self, spread, leftTitle, rightTitle)
     local key = tostring(spread.key or leftTitle or "Spread"):gsub("%W", "")
     local lt = makeLabel("EAS_Codex_"..key.."_LeftTitle", spread.left, leftTitle or "", 8, 4, self.pageW-16, 34, "ZoFontWinH2")
     lt:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
@@ -2289,7 +2367,13 @@ function J:CreateIndexSpread()
     return spread
 end
 
-function J:CreateNotesSpread()
+local CreateNotesSpreadImplArch
+
+function J:CreateNotesSpread(...)
+    return CreateNotesSpreadImplArch(self, ...)
+end
+
+CreateNotesSpreadImplArch = function(self)
     local spread = self:CreateSpreadShell("NOTES")
     self:AddSpreadHeader(spread, "NOTES & RECORDS", "CURRENT ENTRY")
     self.notePage = spread
@@ -2345,7 +2429,13 @@ function J:CreateNotesSpread()
     return spread
 end
 
-function J:CreatePinsSpread()
+local CreatePinsSpreadImplArch
+
+function J:CreatePinsSpread(...)
+    return CreatePinsSpreadImplArch(self, ...)
+end
+
+CreatePinsSpreadImplArch = function(self)
     local spread = self:CreateSpreadShell("PINS")
     self:AddSpreadHeader(spread, "CHECKPOINTS", "CHECKPOINT DETAILS")
 
@@ -2385,7 +2475,13 @@ function J:CreatePinsSpread()
     return spread
 end
 
-function J:CreateSuiteSpread(name)
+local CreateSuiteSpreadImplArch
+
+function J:CreateSuiteSpread(...)
+    return CreateSuiteSpreadImplArch(self, ...)
+end
+
+CreateSuiteSpreadImplArch = function(self, name)
     local spread = self:CreateSpreadShell(name)
     self:AddSpreadHeader(spread, TAB_TITLES[name] or name, "CONTINUED")
     local bodyH = self.pageH - 122
@@ -2464,7 +2560,13 @@ function J:CreateCodexSpread()
     return spread
 end
 
-function J:CreateDiceSpread()
+local CreateDiceSpreadImplArch
+
+function J:CreateDiceSpread(...)
+    return CreateDiceSpreadImplArch(self, ...)
+end
+
+CreateDiceSpreadImplArch = function(self)
     local spread = self:CreateSpreadShell("DICE")
     self:AddSpreadHeader(spread, "ROLEPLAY DICE", "FORTUNE & HISTORY")
 
@@ -2538,7 +2640,7 @@ function J:CreateDiceSpread()
     return spread
 end
 
-function J:RefreshCodex()
+RefreshCodexImplArch = function(self)
     local text = CODEX[self.codexMode or "ALCHEMY"] or ""
     local left, right = easSplitSpreadText(text)
     if self.codexLeftBody then setBookText(self.codexLeftBody, left, self.codexLeftBody:GetWidth()) end
@@ -2546,7 +2648,7 @@ function J:RefreshCodex()
     for mode,b in pairs(self.codexButtons or {}) do setButtonStyle(b, mode == (self.codexMode or "ALCHEMY"), self:GetTheme()) end
 end
 
-function J:RefreshDocumentPage()
+RefreshDocumentPageImplArch = function(self)
     local page = self.pages and self.pages[self.activeTab]
     if not page or not page.leftBody then return end
     local text = ""
@@ -2564,7 +2666,7 @@ function J:RefreshDocumentPage()
     end
 end
 
-function J:RefreshSuitePage(tab)
+RefreshSuitePageImplArch = function(self, tab)
     tab = tab or self.activeTab
     if not SUITE_TABS[tab] then return end
     local page = self.pages and self.pages[tab]
@@ -2589,7 +2691,7 @@ function J:RefreshSuitePage(tab)
     else self:SetSuiteButtons(tab, {"REFRESH"}) end
 end
 
-function J:SetTab(tab)
+SetTabImplArch = function(self, tab)
     if not tab or not TAB_TITLES[tab] then tab = "INDEX" end
     self:SaveCurrentEntry()
     local changed = self.activeTab ~= nil and self.activeTab ~= tab
@@ -2622,7 +2724,7 @@ function J:SetTab(tab)
     if changed and self.window and not self.window:IsHidden() then self:PlayPageTurn() end
 end
 
-function J:Create()
+CreateImplArch = function(self)
     local window = wm:CreateTopLevelWindow("EAS_CustomJournal")
     self.window = window
     window:SetDimensions(1024, 1024)
@@ -2805,7 +2907,13 @@ local function easSetInk(label, selected, muted)
     end
 end
 
-function J:RefreshInteractiveDungeons(page)
+local RefreshInteractiveDungeonsImplArch
+
+function J:RefreshInteractiveDungeons(...)
+    return RefreshInteractiveDungeonsImplArch(self, ...)
+end
+
+RefreshInteractiveDungeonsImplArch = function(self, page)
     local D = EPC.DungeonFinder
     local liveMode = false -- v0.25.29 Group Finder moved to its own Codex tab
     local v = liveMode and D:BuildLiveView() or (D and D:BuildView() or {rows={},total=0,page=1,pageCount=1})
@@ -2967,7 +3075,13 @@ function J:RefreshInteractiveDungeons(page)
     easSetEnabled(page.action3, selected ~= nil and v.queued)
 end
 
-function J:CreateBookRow(parent, name, index, y, onClick)
+local CreateBookRowImplArch
+
+function J:CreateBookRow(...)
+    return CreateBookRowImplArch(self, ...)
+end
+
+CreateBookRowImplArch = function(self, parent, name, index, y, onClick)
     local row = wm:CreateControl("EAS_CodexInteractive_"..name.."_"..index, parent, CT_BUTTON)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, 14, y)
     row:SetDimensions(self.pageW-28, 44)
@@ -3206,13 +3320,19 @@ function J:CreateInteractiveSuiteSpread(name)
 end
 
 -- Override the generic spread creator for sections that need row-by-row interaction.
-local easOldCreateSuiteSpread_v191 = J.CreateSuiteSpread
-function J:CreateSuiteSpread(name)
+local easOldCreateSuiteSpread_v191 = CreateSuiteSpreadImplArch
+CreateSuiteSpreadImplArch = function(self, name)
     if EAS_INTERACTIVE_TABS[name] then return self:CreateInteractiveSuiteSpread(name) end
     return easOldCreateSuiteSpread_v191(self, name)
 end
 
-function J:RunInteractiveControl(tab, index)
+local RunInteractiveControlImplArch
+
+function J:RunInteractiveControl(...)
+    return RunInteractiveControlImplArch(self, ...)
+end
+
+RunInteractiveControlImplArch = function(self, tab, index)
     if tab == "GEAR" and EPC.SetJournal then
         local filters = {"ALL","OVERLAND","DUNGEON","TRIAL"}
         EPC.SetJournal:SetFilter(filters[index] or "ALL")
@@ -3245,7 +3365,13 @@ function J:RunInteractiveControl(tab, index)
     self:RefreshSuitePage(tab)
 end
 
-function J:RunInteractiveSecondary(tab, index)
+local RunInteractiveSecondaryImplArch
+
+function J:RunInteractiveSecondary(...)
+    return RunInteractiveSecondaryImplArch(self, ...)
+end
+
+RunInteractiveSecondaryImplArch = function(self, tab, index)
     if tab == "GEAR" and EPC.SetJournal then
         if index == 1 then EPC.SetJournal:PromptSearch()
         elseif index == 2 then EPC.SetJournal:ClearSearch()
@@ -3277,7 +3403,13 @@ function J:RunInteractiveSecondary(tab, index)
     self:RefreshSuitePage(tab)
 end
 
-function J:SelectInteractiveRow(tab, index)
+local SelectInteractiveRowImplArch
+
+function J:SelectInteractiveRow(...)
+    return SelectInteractiveRowImplArch(self, ...)
+end
+
+SelectInteractiveRowImplArch = function(self, tab, index)
     if tab == "GEAR" and EPC.SetJournal then EPC.SetJournal:SelectRow(index)
     elseif tab == "QUESTS" and EPC.QuestFinder then EPC.QuestFinder:SelectRow(index)
     elseif tab == "TRAVEL" and EPC.Travel then EPC.Travel:SelectVisibleRow(index, EPC.Travel.BOOK_PAGE_SIZE or 8)
@@ -3288,7 +3420,13 @@ function J:SelectInteractiveRow(tab, index)
     self:RefreshSuitePage(tab)
 end
 
-function J:RunInteractiveGearOptimizer(tab)
+local RunInteractiveGearOptimizerImplArch
+
+function J:RunInteractiveGearOptimizer(...)
+    return RunInteractiveGearOptimizerImplArch(self, ...)
+end
+
+RunInteractiveGearOptimizerImplArch = function(self, tab)
     if tab == "GEAR" and EPC.GearOptimizer and EPC.GearOptimizer.EquipBestRecommended then
         EPC.GearOptimizer:EquipBestRecommended()
     elseif tab == "DUNGEONS" and EPC.DungeonFinder then EPC.DungeonFinder:QueueSelected()
@@ -3297,7 +3435,13 @@ function J:RunInteractiveGearOptimizer(tab)
     self:RefreshSuitePage(tab)
 end
 
-function J:RunInteractivePrimary(tab)
+local RunInteractivePrimaryImplArch
+
+function J:RunInteractivePrimary(...)
+    return RunInteractivePrimaryImplArch(self, ...)
+end
+
+RunInteractivePrimaryImplArch = function(self, tab)
     if tab == "GEAR" and EPC.SetJournal then EPC.SetJournal:FastTravelSelected()
     elseif tab == "QUESTS" and EPC.QuestFinder then EPC.QuestFinder:RouteSelected()
     elseif tab == "TRAVEL" and EPC.Travel then EPC.Travel:TravelSelected()
@@ -3307,7 +3451,13 @@ function J:RunInteractivePrimary(tab)
     self:RefreshSuitePage(tab)
 end
 
-function J:RunInteractiveSecondaryAction(tab)
+local RunInteractiveSecondaryActionImplArch
+
+function J:RunInteractiveSecondaryAction(...)
+    return RunInteractiveSecondaryActionImplArch(self, ...)
+end
+
+RunInteractiveSecondaryActionImplArch = function(self, tab)
     if tab == "GEAR" and EPC.SetJournal and EPC.SetJournal.RouteSelected then
         EPC.SetJournal:RouteSelected()
     elseif tab == "QUESTS" and EPC.QuestFinder and EPC.QuestFinder.TravelNearestWayshrineSelected then
@@ -3320,7 +3470,13 @@ function J:RunInteractiveSecondaryAction(tab)
     self:RefreshSuitePage(tab)
 end
 
-function J:RunInteractiveTertiaryAction(tab)
+local RunInteractiveTertiaryActionImplArch
+
+function J:RunInteractiveTertiaryAction(...)
+    return RunInteractiveTertiaryActionImplArch(self, ...)
+end
+
+RunInteractiveTertiaryActionImplArch = function(self, tab)
     if tab == "GEAR" and EPC.SetJournal and EPC.SetJournal.OpenSourceQuests then
         EPC.SetJournal:OpenSourceQuests()
     elseif tab == "TRAVEL" and EPC.Travel and EPC.Travel.TravelToNearestService then
@@ -3331,7 +3487,13 @@ function J:RunInteractiveTertiaryAction(tab)
     self:RefreshSuitePage(tab)
 end
 
-function J:RefreshInteractiveGroupFinder(page)
+local RefreshInteractiveGroupFinderImplArch
+
+function J:RefreshInteractiveGroupFinder(...)
+    return RefreshInteractiveGroupFinderImplArch(self, ...)
+end
+
+RefreshInteractiveGroupFinderImplArch = function(self, page)
     local D = EPC.DungeonFinder
     if not D then return end
     D.viewMode = "LIVE"
@@ -3411,7 +3573,13 @@ function J:RefreshInteractiveGroupFinder(page)
     easSetEnabled(page.action2, true); easSetEnabled(page.action3, true)
 end
 
-function J:RefreshInteractiveGear(page)
+local RefreshInteractiveGearImplArch
+
+function J:RefreshInteractiveGear(...)
+    return RefreshInteractiveGearImplArch(self, ...)
+end
+
+RefreshInteractiveGearImplArch = function(self, page)
     local v = EPC.SetJournal and EPC.SetJournal:BuildView() or {rows={}}
     if page.optimizerModes and EPC.GearOptimizer then
         local active = select(1, EPC.GearOptimizer:GetPreset())
@@ -3777,7 +3945,13 @@ function J:HideGuildLeaderHomeDropdown()
     end
 end
 
-function J:ShowGuildLeaderHomeDropdown(page)
+local ShowGuildLeaderHomeDropdownImplArch
+
+function J:ShowGuildLeaderHomeDropdown(...)
+    return ShowGuildLeaderHomeDropdownImplArch(self, ...)
+end
+
+ShowGuildLeaderHomeDropdownImplArch = function(self, page)
     if not EPC.Travel or not EPC.Travel.GetGuildLeaderHomeOptions then return end
     local options = EPC.Travel:GetGuildLeaderHomeOptions()
     if #options == 0 then
@@ -3914,7 +4088,13 @@ function J:ShowGuildLeaderHomeDropdown(page)
     popup:SetHidden(false)
 end
 
-function J:RefreshInteractiveActivity(page)
+local RefreshInteractiveActivityImplArch
+
+function J:RefreshInteractiveActivity(...)
+    return RefreshInteractiveActivityImplArch(self, ...)
+end
+
+RefreshInteractiveActivityImplArch = function(self, page)
     if page.action0 then page.action0:SetHidden(true) end
     local v = EPC.Activities and EPC.Activities:BuildView(EPC.lastSnapshot or {}) or {rows={}}
     local goals = {{"BALANCED","BALANCED"},{"XP","XP"},{"GOLD","GOLD"}}
@@ -3962,8 +4142,8 @@ function J:RefreshInteractiveActivity(page)
 end
 
 -- Override the v0.19 plain-text renderer for interactive sections.
-local easOldRefreshSuitePage_v191 = J.RefreshSuitePage
-function J:RefreshSuitePage(tab)
+local easOldRefreshSuitePage_v191 = RefreshSuitePageImplArch
+RefreshSuitePageImplArch = function(self, tab)
     tab = tab or self.activeTab
     local page = self.pages and self.pages[tab]
     if page and page.interactive then
@@ -4006,7 +4186,7 @@ setBookText = function(label, text, width)
     label:SetText(wrapped)
 end
 
-function J:CreateNotesSpread()
+CreateNotesSpreadImplArch = function(self)
     local spread = self:CreateSpreadShell("NOTES")
     self:AddSpreadHeader(spread, "NOTES", "WRITE / READ NOTE")
     self.notePage = spread
@@ -4072,7 +4252,7 @@ function J:CreateNotesSpread()
     return spread
 end
 
-function J:CreatePinsSpread()
+CreatePinsSpreadImplArch = function(self)
     local spread = self:CreateSpreadShell("PINS")
     self:AddSpreadHeader(spread, "CHECKPOINTS", "CHECKPOINT DETAILS")
 
@@ -4129,7 +4309,7 @@ function J:CreatePinsSpread()
 end
 
 -- Interactive rows should never use ellipsis. Use a compact second line and explicit wrapping.
-function J:CreateBookRow(parent, name, index, y, onClick)
+CreateBookRowImplArch = function(self, parent, name, index, y, onClick)
     local row = wm:CreateControl("EAS_CodexInteractive_v193_"..name.."_"..index, parent, CT_BUTTON)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, 14, y)
     row:SetDimensions(self.pageW-28, 37)
@@ -4152,8 +4332,8 @@ function J:CreateBookRow(parent, name, index, y, onClick)
 end
 
 -- Let the latest book creation build all pages, then move every global control onto parchment.
-local easCreate_v193_base = J.Create
-function J:Create()
+local easCreate_v193_base = CreateImplArch
+CreateImplArch = function(self)
     easCreate_v193_base(self)
 
     -- The native book controls must be anchored to page hosts, not absolute window pixels.
@@ -4239,8 +4419,8 @@ local function easConfigureEditable(control, multiLine)
     end)
 end
 
-local easCreateEditBox_v194_base = J.CreateEditBox
-function J:CreateEditBox(name, parent, x, y, w, h, multiLine)
+local easCreateEditBox_v194_base = CreateEditBoxImplArch
+CreateEditBoxImplArch = function(self, name, parent, x, y, w, h, multiLine)
     local edit = easCreateEditBox_v194_base(self, name, parent, x, y, w, h, multiLine)
     easConfigureEditable(edit, multiLine == true)
     return edit
@@ -4272,8 +4452,8 @@ end
 setBookText = easSetBookTextFit
 
 -- Utilities gets a deliberate two-page layout instead of a blind midpoint split.
-local easRefreshSuitePage_v194_base = J.RefreshSuitePage
-function J:RefreshSuitePage(tab)
+local easRefreshSuitePage_v194_base = RefreshSuitePageImplArch
+RefreshSuitePageImplArch = function(self, tab)
     tab = tab or self.activeTab
     if tab == "SKILLS" then
         local page = self.pages and self.pages.SKILLS
@@ -4330,8 +4510,8 @@ function J:RefreshSuitePage(tab)
     return easRefreshSuitePage_v194_base(self, tab)
 end
 
-local easCreate_v194_base = J.Create
-function J:Create()
+local easCreate_v194_base = CreateImplArch
+CreateImplArch = function(self)
     easCreate_v194_base(self)
 
     -- v6: Install raw keyboard capture for the single toggle key on the FINAL active Codex window.
@@ -4405,8 +4585,8 @@ function J:UpdateGlassScale()
     self.glassCanvas:SetAnchor(CENTER, self.window, CENTER, 0, 0)
 end
 
-local easLegacyApplyTheme_2478 = J.ApplyTheme
-function J:ApplyTheme()
+local easLegacyApplyTheme_2478 = ApplyThemeImplArch
+ApplyThemeImplArch = function(self)
     if not self.glassMode then
         return easLegacyApplyTheme_2478(self)
     end
@@ -4488,8 +4668,8 @@ function J:ApplyTheme()
     if self.diceResultValue then self.diceResultValue:SetColor(accent[1],accent[2],accent[3],1) end
 end
 
-local easLegacyCreateSpreadShell_2478 = J.CreateSpreadShell
-function J:CreateSpreadShell(name)
+local easLegacyCreateSpreadShell_2478 = CreateSpreadShellImplArch
+CreateSpreadShellImplArch = function(self, name)
     if not self.glassMode then return easLegacyCreateSpreadShell_2478(self, name) end
     local parent = self.glassWorkspace or self.window
     local spread = wm:CreateControl("EAS_CodexSpread_"..name, parent, CT_CONTROL)
@@ -4508,7 +4688,7 @@ function J:CreateSpreadShell(name)
     return spread
 end
 
-function J:Create()
+CreateImplArch = function(self)
     self.glassMode = true
     local s = self:EnsureSaved()
     if s.glassGlassUpgrade ~= true then
@@ -4933,8 +5113,8 @@ function J:EnhanceGlassPremiumVisuals()
     self:ApplyTheme()
 end
 
-local easLegacyApplyTheme_2479 = J.ApplyTheme
-function J:ApplyTheme()
+local easLegacyApplyTheme_2479 = ApplyThemeImplArch
+ApplyThemeImplArch = function(self)
     easLegacyApplyTheme_2479(self)
     if not self.glassMode then return end
     local t = self:GetTheme()
@@ -4988,8 +5168,8 @@ function J:ApplyTheme()
     end
 end
 
-local easLegacyCreate_2479 = J.Create
-function J:Create()
+local easLegacyCreate_2479 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2479(self)
     self:EnhanceGlassPremiumVisuals()
 end
@@ -5086,8 +5266,8 @@ function J:ApplyGlassCleanLayout2482()
     end
 end
 
-local easLegacyCreate_2482 = J.Create
-function J:Create()
+local easLegacyCreate_2482 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2482(self)
     self:ApplyGlassCleanLayout2482()
     self:ApplyTheme()
@@ -5111,8 +5291,8 @@ function J:ApplyGlassHeaderCollisionFix2483()
     end
 end
 
-local easLegacyCreate_2483 = J.Create
-function J:Create()
+local easLegacyCreate_2483 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2483(self)
     self:ApplyGlassHeaderCollisionFix2483()
 end
@@ -5159,8 +5339,8 @@ function J:ApplyGlassToolbarAndNavCleanup2484()
     end
 end
 
-local easLegacyCreate_2484 = J.Create
-function J:Create()
+local easLegacyCreate_2484 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2484(self)
     self:ApplyGlassToolbarAndNavCleanup2484()
     self:ApplyTheme()
@@ -5175,16 +5355,16 @@ end
 
 
 -- v0.24.89 - live Gear & Sets equipment overlay bridge
-local easSetTab_2489 = J.SetTab
-function J:SetTab(tab)
+local easSetTab_2489 = SetTabImplArch
+SetTabImplArch = function(self, tab)
     easSetTab_2489(self, tab)
     if EPC.GearLoadoutOverlay and EPC.GearLoadoutOverlay.OnGearTabChanged then
         EPC.GearLoadoutOverlay:OnGearTabChanged(self.activeTab == "GEAR")
     end
 end
 
-local easShow_2489 = J.Show
-function J:Show()
+local easShow_2489 = ShowImplArch
+ShowImplArch = function(self)
     easShow_2489(self)
     if EPC.GearLoadoutOverlay then
         if EPC.GearLoadoutOverlay.OnGearTabChanged then EPC.GearLoadoutOverlay:OnGearTabChanged(self.activeTab == "GEAR") end
@@ -5192,8 +5372,8 @@ function J:Show()
     end
 end
 
-local easHide_2489 = J.Hide
-function J:Hide()
+local easHide_2489 = HideImplArch
+HideImplArch = function(self)
     if EPC.GearLoadoutOverlay and EPC.GearLoadoutOverlay.SetJournalVisible then
         EPC.GearLoadoutOverlay:SetJournalVisible(false)
     end
@@ -5206,7 +5386,7 @@ end
 -- selectable list itself. Full metadata remains in the selected-detail panel.
 -- Shorter single-line rows leave a clearer gap between each selection.
 -- ============================================================================
-function J:CreateBookRow(parent, name, index, y, onClick)
+CreateBookRowImplArch = function(self, parent, name, index, y, onClick)
     local row = wm:CreateControl("EAS_CodexInteractive_v2492_"..name.."_"..index, parent, CT_BUTTON)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, 14, y)
     row:SetDimensions(self.pageW-28, 32)
@@ -5287,7 +5467,13 @@ local function easFormatPursuitTime2494(seconds)
     return string.format("%dh %dm", hours, minutes)
 end
 
-function J:BuildGoldenPursuitsView2494()
+local BuildGoldenPursuitsView2494ImplArch
+
+function J:BuildGoldenPursuitsView2494(...)
+    return BuildGoldenPursuitsView2494ImplArch(self, ...)
+end
+
+BuildGoldenPursuitsView2494ImplArch = function(self)
     local view = { rows = {}, campaigns = {}, total = 0 }
     local manager = PROMOTIONAL_EVENT_MANAGER
     if not manager or type(manager.GetNumActiveCampaigns) ~= "function" or type(manager.GetCampaignDataByIndex) ~= "function" then
@@ -5363,7 +5549,13 @@ function J:BuildGoldenPursuitsView2494()
     return view
 end
 
-function J:CreateGoldenPursuitsSpread2494()
+local CreateGoldenPursuitsSpread2494ImplArch
+
+function J:CreateGoldenPursuitsSpread2494(...)
+    return CreateGoldenPursuitsSpread2494ImplArch(self, ...)
+end
+
+CreateGoldenPursuitsSpread2494ImplArch = function(self)
     local spread = self:CreateSpreadShell("PURSUITS")
     self:AddSpreadHeader(spread, "GOLDEN PURSUITS", "SELECTED PURSUIT")
     spread.pageSize = 10
@@ -5428,7 +5620,13 @@ function J:CreateGoldenPursuitsSpread2494()
     return spread
 end
 
-function J:RefreshGoldenPursuitsPage2494()
+local RefreshGoldenPursuitsPage2494ImplArch
+
+function J:RefreshGoldenPursuitsPage2494(...)
+    return RefreshGoldenPursuitsPage2494ImplArch(self, ...)
+end
+
+RefreshGoldenPursuitsPage2494ImplArch = function(self)
     local page = self.pages and self.pages.PURSUITS
     if not page then return end
     local view = self:BuildGoldenPursuitsView2494()
@@ -5528,8 +5726,8 @@ function J:FixGearLoadoutBorders2494(page)
     end
 end
 
-local easLegacyRefreshInteractiveGear_2494 = J.RefreshInteractiveGear
-function J:RefreshInteractiveGroupFinder(page)
+local easLegacyRefreshInteractiveGear_2494 = RefreshInteractiveGearImplArch
+RefreshInteractiveGroupFinderImplArch = function(self, page)
     local D = EPC.DungeonFinder
     if not D then return end
     D.viewMode = "LIVE"
@@ -5609,19 +5807,19 @@ function J:RefreshInteractiveGroupFinder(page)
     easSetEnabled(page.action2, true); easSetEnabled(page.action3, true)
 end
 
-function J:RefreshInteractiveGear(page)
+RefreshInteractiveGearImplArch = function(self, page)
     easLegacyRefreshInteractiveGear_2494(self, page)
     self:FixGearLoadoutBorders2494(page)
 end
 
-local easLegacySetTab_2494 = J.SetTab
-function J:SetTab(tab)
+local easLegacySetTab_2494 = SetTabImplArch
+SetTabImplArch = function(self, tab)
     easLegacySetTab_2494(self, tab)
     if self.activeTab == "PURSUITS" then self:RefreshGoldenPursuitsPage2494() end
 end
 
-local easLegacyCreate_2494 = J.Create
-function J:Create()
+local easLegacyCreate_2494 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2494(self)
     if not self.pages.PURSUITS then
         self.pages.PURSUITS = self:CreateGoldenPursuitsSpread2494()
@@ -5683,7 +5881,7 @@ function J:UpdateAllianceThemeButton2495()
     if self.themeButton.SetFont then self.themeButton:SetFont("ZoFontGameSmall") end
 end
 
-function J:CycleTheme()
+CycleThemeImplArch = function(self)
     local s = self:EnsureSaved()
     local current = 0
     for i, key in ipairs(EAS_ALLIANCE_THEME_ORDER_2495) do
@@ -5695,14 +5893,14 @@ function J:CycleTheme()
     self:ApplyTheme()
 end
 
-local easLegacyApplyTheme_2495 = J.ApplyTheme
-function J:ApplyTheme()
+local easLegacyApplyTheme_2495 = ApplyThemeImplArch
+ApplyThemeImplArch = function(self)
     easLegacyApplyTheme_2495(self)
     self:UpdateAllianceThemeButton2495()
 end
 
-local easLegacyRefreshInteractiveDungeons_2495 = J.RefreshInteractiveDungeons
-function J:RefreshInteractiveDungeons(page)
+local easLegacyRefreshInteractiveDungeons_2495 = RefreshInteractiveDungeonsImplArch
+RefreshInteractiveDungeonsImplArch = function(self, page)
     easLegacyRefreshInteractiveDungeons_2495(self, page)
 
     local v = EPC.DungeonFinder and EPC.DungeonFinder:BuildView() or nil
@@ -5724,8 +5922,8 @@ function J:RefreshInteractiveDungeons(page)
     setBookText(page.detailBody, text, page.detailBody:GetWidth())
 end
 
-local easLegacyCreate_2495 = J.Create
-function J:Create()
+local easLegacyCreate_2495 = CreateImplArch
+CreateImplArch = function(self)
     -- Old Frost was a fourth non-alliance accent. Migrate it into the three-
     -- alliance selector before the final theme pass.
     local sv = self:EnsureSaved()
@@ -5799,8 +5997,8 @@ function J:ApplyIndexAllianceTheme2496()
     end
 end
 
-local easLegacyApplyTheme_2496 = J.ApplyTheme
-function J:ApplyTheme()
+local easLegacyApplyTheme_2496 = ApplyThemeImplArch
+ApplyThemeImplArch = function(self)
     easLegacyApplyTheme_2496(self)
     self:ApplyIndexAllianceTheme2496()
 end
@@ -5845,8 +6043,8 @@ function J:SetupDungeonTwoColumn2496(page)
     end
 end
 
-local easLegacyRefreshInteractiveDungeons_2496 = J.RefreshInteractiveDungeons
-function J:RefreshInteractiveDungeons(page)
+local easLegacyRefreshInteractiveDungeons_2496 = RefreshInteractiveDungeonsImplArch
+RefreshInteractiveDungeonsImplArch = function(self, page)
     easLegacyRefreshInteractiveDungeons_2496(self, page)
     if not page then return end
     self:SetupDungeonTwoColumn2496(page)
@@ -5887,8 +6085,8 @@ function J:RefreshInteractiveDungeons(page)
     if right then setBookText(right, rightText, colW) end
 end
 
-local easLegacyCreate_2496 = J.Create
-function J:Create()
+local easLegacyCreate_2496 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2496(self)
     if self.pages and self.pages.DUNGEONS then
         self:SetupDungeonTwoColumn2496(self.pages.DUNGEONS)
@@ -5931,8 +6129,8 @@ local function easPursuitCampaignKey2497(row)
     return nil
 end
 
-local easLegacyBuildGoldenPursuitsView_2497 = J.BuildGoldenPursuitsView2494
-function J:BuildGoldenPursuitsView2494()
+local easLegacyBuildGoldenPursuitsView_2497 = BuildGoldenPursuitsView2494ImplArch
+BuildGoldenPursuitsView2494ImplArch = function(self)
     local view = easLegacyBuildGoldenPursuitsView_2497(self)
     for _, row in ipairs(view.rows or {}) do
         row.campaignKey = easPursuitCampaignKey2497(row)
@@ -6043,7 +6241,13 @@ function J:TravelTrackedPursuitQuest2497(row, questIndex, questName, attempt)
     return false
 end
 
-function J:ActivateGoldenPursuit2497(globalIndex)
+local ActivateGoldenPursuit2497ImplArch
+
+function J:ActivateGoldenPursuit2497(...)
+    return ActivateGoldenPursuit2497ImplArch(self, ...)
+end
+
+ActivateGoldenPursuit2497ImplArch = function(self, globalIndex)
     local page = self.pages and self.pages.PURSUITS
     if not page then return end
     local view = self:BuildGoldenPursuitsView2494()
@@ -6094,7 +6298,13 @@ function J:ActivateGoldenPursuit2497(globalIndex)
     self:RefreshGoldenPursuitsPage2494()
 end
 
-function J:WireGoldenPursuitRows2497(page)
+local WireGoldenPursuitRows2497ImplArch
+
+function J:WireGoldenPursuitRows2497(...)
+    return WireGoldenPursuitRows2497ImplArch(self, ...)
+end
+
+WireGoldenPursuitRows2497ImplArch = function(self, page)
     if not page or page.goldenPursuitRows2497 then return end
     page.goldenPursuitRows2497 = true
     for rowIndex, rowControl in ipairs(page.rows or {}) do
@@ -6105,8 +6315,8 @@ function J:WireGoldenPursuitRows2497(page)
     end
 end
 
-local easLegacyRefreshGoldenPursuitsPage_2497 = J.RefreshGoldenPursuitsPage2494
-function J:RefreshGoldenPursuitsPage2494()
+local easLegacyRefreshGoldenPursuitsPage_2497 = RefreshGoldenPursuitsPage2494ImplArch
+RefreshGoldenPursuitsPage2494ImplArch = function(self)
     easLegacyRefreshGoldenPursuitsPage_2497(self)
     local page = self.pages and self.pages.PURSUITS
     if not page then return end
@@ -6139,8 +6349,8 @@ function J:RefreshGoldenPursuitsPage2494()
     end
 end
 
-local easLegacyCreate_2497 = J.Create
-function J:Create()
+local easLegacyCreate_2497 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2497(self)
     if self.pages and self.pages.PURSUITS then
         self:WireGoldenPursuitRows2497(self.pages.PURSUITS)
@@ -6152,8 +6362,8 @@ end
 -- v0.24.99: keep completed Golden Pursuits separate from active tasks.
 -- The default list contains only unfinished tasks. A dedicated toggle shows
 -- completed tasks in their own view, so completed and active rows never mix.
-local easLegacyBuildGoldenPursuitsView_2499 = J.BuildGoldenPursuitsView2494
-function J:BuildGoldenPursuitsView2494()
+local easLegacyBuildGoldenPursuitsView_2499 = BuildGoldenPursuitsView2494ImplArch
+BuildGoldenPursuitsView2494ImplArch = function(self)
     local view = easLegacyBuildGoldenPursuitsView_2499(self)
     local allRows = view.rows or {}
     local activeRows, completedRows = {}, {}
@@ -6189,8 +6399,8 @@ function J:BuildGoldenPursuitsView2494()
     return view
 end
 
-local easLegacyCreateGoldenPursuitsSpread_2499 = J.CreateGoldenPursuitsSpread2494
-function J:CreateGoldenPursuitsSpread2494()
+local easLegacyCreateGoldenPursuitsSpread_2499 = CreateGoldenPursuitsSpread2494ImplArch
+CreateGoldenPursuitsSpread2494ImplArch = function(self)
     local spread = easLegacyCreateGoldenPursuitsSpread_2499(self)
     spread.showCompleted2499 = false
 
@@ -6217,8 +6427,8 @@ function J:CreateGoldenPursuitsSpread2494()
     return spread
 end
 
-local easLegacyActivateGoldenPursuit_2499 = J.ActivateGoldenPursuit2497
-function J:ActivateGoldenPursuit2497(globalIndex)
+local easLegacyActivateGoldenPursuit_2499 = ActivateGoldenPursuit2497ImplArch
+ActivateGoldenPursuit2497ImplArch = function(self, globalIndex)
     local page = self.pages and self.pages.PURSUITS
     if page then
         local view = page.view or self:BuildGoldenPursuitsView2494()
@@ -6233,7 +6443,7 @@ function J:ActivateGoldenPursuit2497(globalIndex)
     return easLegacyActivateGoldenPursuit_2499(self, globalIndex)
 end
 
-function J:WireGoldenPursuitRows2497(page)
+WireGoldenPursuitRows2497ImplArch = function(self, page)
     if not page or page.goldenPursuitRows2499 then return end
     page.goldenPursuitRows2499 = true
     page.goldenPursuitRows2497 = true
@@ -6254,8 +6464,8 @@ function J:WireGoldenPursuitRows2497(page)
     end
 end
 
-local easLegacyRefreshGoldenPursuitsPage_2499 = J.RefreshGoldenPursuitsPage2494
-function J:RefreshGoldenPursuitsPage2494()
+local easLegacyRefreshGoldenPursuitsPage_2499 = RefreshGoldenPursuitsPage2494ImplArch
+RefreshGoldenPursuitsPage2494ImplArch = function(self)
     easLegacyRefreshGoldenPursuitsPage_2499(self)
     local page = self.pages and self.pages.PURSUITS
     if not page then return end
@@ -6303,8 +6513,8 @@ end
 -- Mirror the active Codex pursuit (and matched journal quest, when available)
 -- into the gameplay Golden Pursuits overlay after the user selects it.
 -- ============================================================================
-local easLegacyActivateGoldenPursuit_2504 = J.ActivateGoldenPursuit2497
-function J:ActivateGoldenPursuit2497(globalIndex)
+local easLegacyActivateGoldenPursuit_2504 = ActivateGoldenPursuit2497ImplArch
+ActivateGoldenPursuit2497ImplArch = function(self, globalIndex)
     local page = self.pages and self.pages.PURSUITS
     local view = page and (page.view or self:BuildGoldenPursuitsView2494()) or nil
     local row = view and view.rows and view.rows[globalIndex] or nil
@@ -6320,8 +6530,8 @@ end
 -- v0.25.12: a Golden Pursuit-linked journal quest can drive the same Active
 -- Quest HUD / native assisted-quest sync. Whichever menu selection the player makes
 -- most recently becomes the Suite's displayed/navigation quest.
-local easLegacyActivateGoldenPursuit_2512 = J.ActivateGoldenPursuit2497
-function J:ActivateGoldenPursuit2497(globalIndex)
+local easLegacyActivateGoldenPursuit_2512 = ActivateGoldenPursuit2497ImplArch
+ActivateGoldenPursuit2497ImplArch = function(self, globalIndex)
     local page = self.pages and self.pages.PURSUITS
     local view = page and (page.view or self:BuildGoldenPursuitsView2494()) or nil
     local row = view and view.rows and view.rows[globalIndex] or nil
@@ -6342,8 +6552,8 @@ end
 
 -- v0.25.16: whichever source is chosen in Quest Tracking Settings is
 -- authoritative even after Golden Pursuits runs its legacy routing logic.
-local easLegacyActivateGoldenPursuit_2516 = J.ActivateGoldenPursuit2497
-function J:ActivateGoldenPursuit2497(globalIndex)
+local easLegacyActivateGoldenPursuit_2516 = ActivateGoldenPursuit2497ImplArch
+ActivateGoldenPursuit2497ImplArch = function(self, globalIndex)
     local result = easLegacyActivateGoldenPursuit_2516(self, globalIndex)
     if EPC.ActiveQuest and EPC.ActiveQuest.ApplySelectedSourceToESO2516 then
         EPC.ActiveQuest:ApplySelectedSourceToESO2516()
@@ -6353,8 +6563,14 @@ end
 
 
 -- v0.25.29: Group Finder is its own Codex chapter.
-local easSelectTab02529 = J.SelectTab
-function J:SelectTab(tab, ...)
+local easSelectTab02529 = SelectTabImplArch
+local SelectTabImplArch
+
+function J:SelectTab(...)
+    return SelectTabImplArch(self, ...)
+end
+
+SelectTabImplArch = function(self, tab, ...)
     local result = easSelectTab02529(self, tab, ...)
     if tab == "GROUPFINDER" and EPC.DungeonFinder then
         EPC.DungeonFinder:SetViewMode("LIVE")
@@ -6366,8 +6582,8 @@ function J:SelectTab(tab, ...)
 end
 
 -- v0.25.41: Group Finder social modes share the Codex chapter with public listings.
-local easRefreshInteractiveGroupFinder02541 = J.RefreshInteractiveGroupFinder
-function J:RefreshInteractiveGroupFinder(page)
+local easRefreshInteractiveGroupFinder02541 = RefreshInteractiveGroupFinderImplArch
+RefreshInteractiveGroupFinderImplArch = function(self, page)
     local D = EPC.DungeonFinder
     if not D then return end
     local mode = tostring(D.socialMode or "PUBLIC")
@@ -6457,8 +6673,8 @@ function J:RefreshInteractiveGroupFinder(page)
     easSetEnabled(page.action2, true); easSetEnabled(page.action3, true)
 end
 
-local easRunInteractiveControl02541 = J.RunInteractiveControl
-function J:RunInteractiveControl(tab, index)
+local easRunInteractiveControl02541 = RunInteractiveControlImplArch
+RunInteractiveControlImplArch = function(self, tab, index)
     if tab == "GROUPFINDER" and EPC.DungeonFinder then
         local D = EPC.DungeonFinder
         if index == 1 then D:SetSocialMode("PUBLIC")
@@ -6472,8 +6688,8 @@ function J:RunInteractiveControl(tab, index)
     return easRunInteractiveControl02541(self, tab, index)
 end
 
-local easRunInteractiveSecondary02541 = J.RunInteractiveSecondary
-function J:RunInteractiveSecondary(tab, index)
+local easRunInteractiveSecondary02541 = RunInteractiveSecondaryImplArch
+RunInteractiveSecondaryImplArch = function(self, tab, index)
     if tab == "GROUPFINDER" and EPC.DungeonFinder then
         local D = EPC.DungeonFinder
         if D.socialMode == "PUBLIC" then
@@ -6495,8 +6711,8 @@ function J:RunInteractiveSecondary(tab, index)
     return easRunInteractiveSecondary02541(self, tab, index)
 end
 
-local easSelectInteractiveRow02541 = J.SelectInteractiveRow
-function J:SelectInteractiveRow(tab, index)
+local easSelectInteractiveRow02541 = SelectInteractiveRowImplArch
+SelectInteractiveRowImplArch = function(self, tab, index)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and EPC.DungeonFinder.socialMode ~= "PUBLIC" then
         EPC.DungeonFinder:SelectSocialRow(index)
         self:RefreshSuitePage(tab)
@@ -6505,40 +6721,40 @@ function J:SelectInteractiveRow(tab, index)
     return easSelectInteractiveRow02541(self, tab, index)
 end
 
-local easRunInteractiveGearOptimizer02541 = J.RunInteractiveGearOptimizer
-function J:RunInteractiveGearOptimizer(tab)
+local easRunInteractiveGearOptimizer02541 = RunInteractiveGearOptimizerImplArch
+RunInteractiveGearOptimizerImplArch = function(self, tab)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and EPC.DungeonFinder.socialMode ~= "PUBLIC" then
         EPC.DungeonFinder:InviteSelectedSocial(); self:RefreshSuitePage(tab); return
     end
     return easRunInteractiveGearOptimizer02541(self, tab)
 end
 
-local easRunInteractivePrimary02541 = J.RunInteractivePrimary
-function J:RunInteractivePrimary(tab)
+local easRunInteractivePrimary02541 = RunInteractivePrimaryImplArch
+RunInteractivePrimaryImplArch = function(self, tab)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and EPC.DungeonFinder.socialMode ~= "PUBLIC" then
         EPC.DungeonFinder:WhisperSelectedSocial(); self:RefreshSuitePage(tab); return
     end
     return easRunInteractivePrimary02541(self, tab)
 end
 
-local easRunInteractiveSecondaryAction02541 = J.RunInteractiveSecondaryAction
-function J:RunInteractiveSecondaryAction(tab)
+local easRunInteractiveSecondaryAction02541 = RunInteractiveSecondaryActionImplArch
+RunInteractiveSecondaryActionImplArch = function(self, tab)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and EPC.DungeonFinder.socialMode ~= "PUBLIC" then
         self:RefreshSuitePage(tab); return
     end
     return easRunInteractiveSecondaryAction02541(self, tab)
 end
 
-local easRunInteractiveTertiaryAction02541 = J.RunInteractiveTertiaryAction
-function J:RunInteractiveTertiaryAction(tab)
+local easRunInteractiveTertiaryAction02541 = RunInteractiveTertiaryActionImplArch
+RunInteractiveTertiaryActionImplArch = function(self, tab)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and EPC.DungeonFinder.socialMode ~= "PUBLIC" then
         EPC.DungeonFinder:SetSocialMode("PUBLIC"); self:RefreshSuitePage(tab); return
     end
     return easRunInteractiveTertiaryAction02541(self, tab)
 end
 
-local easSelectTab02541 = J.SelectTab
-function J:SelectTab(tab, ...)
+local easSelectTab02541 = SelectTabImplArch
+SelectTabImplArch = function(self, tab, ...)
     local result = easSelectTab02541(self, tab, ...)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and EPC.DungeonFinder.socialMode == nil then EPC.DungeonFinder.socialMode = "PUBLIC" end
     return result
@@ -6546,8 +6762,8 @@ end
 
 
 -- v0.25.42: Public Group Finder live-status/short-code presentation.
-local easRefreshInteractiveGroupFinder02542 = J.RefreshInteractiveGroupFinder
-function J:RefreshInteractiveGroupFinder(page)
+local easRefreshInteractiveGroupFinder02542 = RefreshInteractiveGroupFinderImplArch
+RefreshInteractiveGroupFinderImplArch = function(self, page)
     easRefreshInteractiveGroupFinder02542(self, page)
     local D = EPC.DungeonFinder
     if not D or tostring(D.socialMode or "PUBLIC") ~= "PUBLIC" then return end
@@ -6659,8 +6875,8 @@ local function easStyleGroupFinderButton02543(button, selected)
     end
 end
 
-local easRefreshInteractiveGroupFinder02543 = J.RefreshInteractiveGroupFinder
-function J:RefreshInteractiveGroupFinder(page)
+local easRefreshInteractiveGroupFinder02543 = RefreshInteractiveGroupFinderImplArch
+RefreshInteractiveGroupFinderImplArch = function(self, page)
     easRefreshInteractiveGroupFinder02543(self, page)
     local D = EPC.DungeonFinder
     if not D then return end
@@ -6744,8 +6960,8 @@ function J:RefreshInteractiveGroupFinder(page)
     end
 end
 
-local easRunInteractiveSecondary02542 = J.RunInteractiveSecondary
-function J:RunInteractiveSecondary(tab, index)
+local easRunInteractiveSecondary02542 = RunInteractiveSecondaryImplArch
+RunInteractiveSecondaryImplArch = function(self, tab, index)
     if tab == "GROUPFINDER" and EPC.DungeonFinder and tostring(EPC.DungeonFinder.socialMode or "PUBLIC") == "PUBLIC" then
         local D = EPC.DungeonFinder
         -- v0.29.67: Group Finder no longer exposes PREV/NEXT paging controls.
@@ -6790,8 +7006,8 @@ function J:SetupDungeonRandomQueue2567(page)
     if page.randomVeteran2567.SetFont then page.randomVeteran2567:SetFont("ZoFontGameBold") end
 end
 
-local easLegacyRefreshInteractiveDungeons_2567 = J.RefreshInteractiveDungeons
-function J:RefreshInteractiveDungeons(page)
+local easLegacyRefreshInteractiveDungeons_2567 = RefreshInteractiveDungeonsImplArch
+RefreshInteractiveDungeonsImplArch = function(self, page)
     easLegacyRefreshInteractiveDungeons_2567(self, page)
     if not page then return end
     self:SetupDungeonRandomQueue2567(page)
@@ -6830,8 +7046,8 @@ function J:RefreshInteractiveDungeons(page)
     end
 end
 
-local easLegacyCreate_2567 = J.Create
-function J:Create()
+local easLegacyCreate_2567 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2567(self)
     if self.pages and self.pages.DUNGEONS then
         self:SetupDungeonRandomQueue2567(self.pages.DUNGEONS)
@@ -7013,8 +7229,8 @@ function J:BuildDungeonHistoryText2583(requestedPage)
     return table.concat(lines, "\n"), pageNumber, totalPages
 end
 
-local easLegacyRefreshInteractiveDungeons_2583 = J.RefreshInteractiveDungeons
-function J:RefreshInteractiveDungeons(page)
+local easLegacyRefreshInteractiveDungeons_2583 = RefreshInteractiveDungeonsImplArch
+RefreshInteractiveDungeonsImplArch = function(self, page)
     easLegacyRefreshInteractiveDungeons_2583(self, page)
     if not page then return end
     self:SetupDungeonHistory2583(page)
@@ -7076,8 +7292,8 @@ function J:RefreshInteractiveDungeons(page)
     if page.randomVeteran2567 then page.randomVeteran2567:SetHidden(true) end
 end
 
-local easLegacyCreate_2583 = J.Create
-function J:Create()
+local easLegacyCreate_2583 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate_2583(self)
     if self.pages and self.pages.DUNGEONS then
         self:SetupDungeonHistory2583(self.pages.DUNGEONS)
@@ -7227,8 +7443,8 @@ function J:BuildActivityHistoryText2595(requestedPage)
     return table.concat(lines, "\n"), pageNumber, totalPages
 end
 
-local easLegacyRefreshInteractiveActivity2595 = J.RefreshInteractiveActivity
-function J:RefreshInteractiveActivity(page)
+local easLegacyRefreshInteractiveActivity2595 = RefreshInteractiveActivityImplArch
+RefreshInteractiveActivityImplArch = function(self, page)
     easLegacyRefreshInteractiveActivity2595(self, page)
     if not page then return end
     self:SetupActivityHistory2595(page)
@@ -7277,8 +7493,8 @@ function J:RefreshInteractiveActivity(page)
     for _, b in ipairs({page.action0, page.action1, page.action2, page.action3}) do if b then b:SetHidden(true) end end
 end
 
-local easLegacyCreate2595 = J.Create
-function J:Create()
+local easLegacyCreate2595 = CreateImplArch
+CreateImplArch = function(self)
     easLegacyCreate2595(self)
     if self.pages and self.pages.ACTIVITY then self:SetupActivityHistory2595(self.pages.ACTIVITY) end
 end
@@ -7286,24 +7502,24 @@ end
 -- v0.25.99 guild leader dropdown lifecycle cleanup ------------------------------
 -- Treat the popup as part of the Travel page: never let it survive Codex close
 -- or a chapter/page change.
-local easGuildDropdownSetTab02599 = J.SetTab
-function J:SetTab(tab)
+local easGuildDropdownSetTab02599 = SetTabImplArch
+SetTabImplArch = function(self, tab)
     if tab ~= "TRAVEL" and self.HideGuildLeaderHomeDropdown then
         self:HideGuildLeaderHomeDropdown()
     end
     return easGuildDropdownSetTab02599(self, tab)
 end
 
-local easGuildDropdownHide02599 = J.Hide
-function J:Hide()
+local easGuildDropdownHide02599 = HideImplArch
+HideImplArch = function(self)
     if self.HideGuildLeaderHomeDropdown then
         self:HideGuildLeaderHomeDropdown()
     end
     return easGuildDropdownHide02599(self)
 end
 
-local easGuildDropdownShow02599 = J.ShowGuildLeaderHomeDropdown
-function J:ShowGuildLeaderHomeDropdown(page)
+local easGuildDropdownShow02599 = ShowGuildLeaderHomeDropdownImplArch
+ShowGuildLeaderHomeDropdownImplArch = function(self, page)
     -- Opening the selector always closes any stale popup first, then lets the
     -- existing toggle logic rebuild it for the current Travel page.
     if self.guildLeaderHomeDropdown and not self.guildLeaderHomeDropdown:IsHidden() then
@@ -7316,8 +7532,8 @@ end
 -- v0.27.14 - Saved Builds / Tamriel Codex workspace exclusivity
 -- Opening the Codex closes the detached Saved Builds workspace first.
 -- Hide it without dropping UI mode so the Codex can immediately take over.
-local easLoadoutWorkspaceShow02714 = J.Show
-function J:Show()
+local easLoadoutWorkspaceShow02714 = ShowImplArch
+ShowImplArch = function(self)
     local transferredUIMode = false
     if EPC.LoadoutManager and EPC.LoadoutManager.window and not EPC.LoadoutManager.window:IsHidden() then
         if type(EPC.LoadoutManager.TransferUIModeToCodex) == "function" then
@@ -7596,8 +7812,8 @@ function J:OrganizeDensePages02716()
     end
 end
 
-local easCreateOrganized02716 = J.Create
-function J:Create()
+local easCreateOrganized02716 = CreateImplArch
+CreateImplArch = function(self)
     local result = easCreateOrganized02716(self)
     self:OrganizeDensePages02716()
     return result
@@ -7911,8 +8127,8 @@ function J:RefreshStatsReadable02836(page)
     setBookText(page.rightBody, easSpaceStatsText02836(right), page.rightBody:GetWidth())
 end
 
-local easRefreshDocumentOrganized02716 = J.RefreshDocumentPage
-function J:RefreshDocumentPage()
+local easRefreshDocumentOrganized02716 = RefreshDocumentPageImplArch
+RefreshDocumentPageImplArch = function(self)
     if self.activeTab == "ACHIEVEMENTS" then
         local page = self.pages and self.pages.ACHIEVEMENTS
         if page then self:RefreshAchievementsOrganized02716(page); return end
@@ -7928,8 +8144,8 @@ end
 -- Selected rows stay visibly checked while paging so a player can build a
 -- specific queue containing one, three, or any desired set of dungeons.
 -- ============================================================================
-local easLegacyRefreshInteractiveDungeons2767 = J.RefreshInteractiveDungeons
-function J:RefreshInteractiveDungeons(page)
+local easLegacyRefreshInteractiveDungeons2767 = RefreshInteractiveDungeonsImplArch
+RefreshInteractiveDungeonsImplArch = function(self, page)
     easLegacyRefreshInteractiveDungeons2767(self, page)
     if not page or self.dungeonHistoryMode2583 == true then return end
     local D = EPC.DungeonFinder
@@ -8058,8 +8274,8 @@ function J:RefreshInteractiveBattlegrounds02876(page)
     easSetEnabled(page.action2, true)
 end
 
-local easRefreshSuitePage02876 = J.RefreshSuitePage
-function J:RefreshSuitePage(tab)
+local easRefreshSuitePage02876 = RefreshSuitePageImplArch
+RefreshSuitePageImplArch = function(self, tab)
     tab = tab or self.activeTab
     if tab == "BATTLEGROUNDS" then
         local page = self.pages and self.pages.BATTLEGROUNDS
@@ -8069,8 +8285,8 @@ function J:RefreshSuitePage(tab)
     return easRefreshSuitePage02876(self, tab)
 end
 
-local easRunInteractiveControl02876 = J.RunInteractiveControl
-function J:RunInteractiveControl(tab, index)
+local easRunInteractiveControl02876 = RunInteractiveControlImplArch
+RunInteractiveControlImplArch = function(self, tab, index)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         if index == 1 then EPC.BattlegroundFinder:SetShowLocked(false)
         elseif index == 2 then EPC.BattlegroundFinder:SetShowLocked(true)
@@ -8081,8 +8297,8 @@ function J:RunInteractiveControl(tab, index)
     return easRunInteractiveControl02876(self, tab, index)
 end
 
-local easRunInteractiveSecondary02876 = J.RunInteractiveSecondary
-function J:RunInteractiveSecondary(tab, index)
+local easRunInteractiveSecondary02876 = RunInteractiveSecondaryImplArch
+RunInteractiveSecondaryImplArch = function(self, tab, index)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         if index == 1 then EPC.BattlegroundFinder:ChangePage(-1)
         elseif index == 2 then EPC.BattlegroundFinder:ChangePage(1) end
@@ -8092,8 +8308,8 @@ function J:RunInteractiveSecondary(tab, index)
     return easRunInteractiveSecondary02876(self, tab, index)
 end
 
-local easSelectInteractiveRow02876 = J.SelectInteractiveRow
-function J:SelectInteractiveRow(tab, index)
+local easSelectInteractiveRow02876 = SelectInteractiveRowImplArch
+SelectInteractiveRowImplArch = function(self, tab, index)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         EPC.BattlegroundFinder:SelectRow(index)
         self:RefreshSuitePage(tab)
@@ -8102,8 +8318,8 @@ function J:SelectInteractiveRow(tab, index)
     return easSelectInteractiveRow02876(self, tab, index)
 end
 
-local easRunInteractiveGearOptimizer02876 = J.RunInteractiveGearOptimizer
-function J:RunInteractiveGearOptimizer(tab)
+local easRunInteractiveGearOptimizer02876 = RunInteractiveGearOptimizerImplArch
+RunInteractiveGearOptimizerImplArch = function(self, tab)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         EPC.BattlegroundFinder:QueueSelected()
         self:RefreshSuitePage(tab)
@@ -8112,8 +8328,8 @@ function J:RunInteractiveGearOptimizer(tab)
     return easRunInteractiveGearOptimizer02876(self, tab)
 end
 
-local easRunInteractivePrimary02876 = J.RunInteractivePrimary
-function J:RunInteractivePrimary(tab)
+local easRunInteractivePrimary02876 = RunInteractivePrimaryImplArch
+RunInteractivePrimaryImplArch = function(self, tab)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         EPC.BattlegroundFinder:CancelQueue()
         self:RefreshSuitePage(tab)
@@ -8122,8 +8338,8 @@ function J:RunInteractivePrimary(tab)
     return easRunInteractivePrimary02876(self, tab)
 end
 
-local easRunInteractiveSecondaryAction02876 = J.RunInteractiveSecondaryAction
-function J:RunInteractiveSecondaryAction(tab)
+local easRunInteractiveSecondaryAction02876 = RunInteractiveSecondaryActionImplArch
+RunInteractiveSecondaryActionImplArch = function(self, tab)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         EPC.BattlegroundFinder:BuildLocations(true)
         self:RefreshSuitePage(tab)
@@ -8132,8 +8348,8 @@ function J:RunInteractiveSecondaryAction(tab)
     return easRunInteractiveSecondaryAction02876(self, tab)
 end
 
-local easSelectTab02876 = J.SelectTab
-function J:SelectTab(tab, ...)
+local easSelectTab02876 = SelectTabImplArch
+SelectTabImplArch = function(self, tab, ...)
     local result = easSelectTab02876(self, tab, ...)
     if tab == "BATTLEGROUNDS" and EPC.BattlegroundFinder then
         EPC.BattlegroundFinder:BuildLocations(true)
@@ -8319,8 +8535,8 @@ styleIconButton = function(button, theme)
     end
 end
 
-local easCreateEditBoxPre02877 = J.CreateEditBox
-function J:CreateEditBox(name, parent, x, y, w, h, multiLine)
+local easCreateEditBoxPre02877 = CreateEditBoxImplArch
+CreateEditBoxImplArch = function(self, name, parent, x, y, w, h, multiLine)
     local e = easCreateEditBoxPre02877(self, name, parent, x, y, w, h, multiLine)
     if e then
         e:SetColor(EAS_2027.text[1], EAS_2027.text[2], EAS_2027.text[3], 1)
@@ -8338,8 +8554,8 @@ function J:CreateEditBox(name, parent, x, y, w, h, multiLine)
     return e
 end
 
--- Interactive enabled/selected states also use the modern palette instead of\n-- restoring the legacy all-cyan frame on every refresh.\neasSetEnabled = function(control, enabled)\n    if not control then return end\n    local active = enabled == true\n    if control.SetEnabled then control:SetEnabled(active) end\n    if control.SetAlpha then control:SetAlpha(active and 1 or 0.42) end\n    if active then\n        easPaintButton02877(control, control._easSelected02877 == true, J:GetTheme(), false)\n    else\n        easEnsureButtonChrome02877(control)\n        if control._easBorder and control._easBorder.SetCenterColor then\n            control._easBorder:SetCenterColor(0.020,0.026,0.036,0.58)\n        end\n        if control._easBorderLines then\n            for _,line in ipairs(control._easBorderLines) do\n                if line and line.SetCenterColor then line:SetCenterColor(0.14,0.19,0.26,0.38) end\n            end\n        end\n    end\nend\n\neasSetInk = function(label, selected, muted)\n    if not label or not label.SetColor then return end\n    local ar,ag,ab = easAccent02877(J:GetTheme())\n    if selected then label:SetColor(ar,ag,ab,1)\n    elseif muted then label:SetColor(EAS_2027.muted[1],EAS_2027.muted[2],EAS_2027.muted[3],0.90)\n    else label:SetColor(EAS_2027.text[1],EAS_2027.text[2],EAS_2027.text[3],0.96) end\nend\n\n-- Every chapter receives the same master/detail surface system.\nlocal easCreateSpreadShellPre02877 = J.CreateSpreadShell
-function J:CreateSpreadShell(name)
+-- Interactive enabled/selected states also use the modern palette instead of\n-- restoring the legacy all-cyan frame on every refresh.\neasSetEnabled = function(control, enabled)\n    if not control then return end\n    local active = enabled == true\n    if control.SetEnabled then control:SetEnabled(active) end\n    if control.SetAlpha then control:SetAlpha(active and 1 or 0.42) end\n    if active then\n        easPaintButton02877(control, control._easSelected02877 == true, J:GetTheme(), false)\n    else\n        easEnsureButtonChrome02877(control)\n        if control._easBorder and control._easBorder.SetCenterColor then\n            control._easBorder:SetCenterColor(0.020,0.026,0.036,0.58)\n        end\n        if control._easBorderLines then\n            for _,line in ipairs(control._easBorderLines) do\n                if line and line.SetCenterColor then line:SetCenterColor(0.14,0.19,0.26,0.38) end\n            end\n        end\n    end\nend\n\neasSetInk = function(label, selected, muted)\n    if not label or not label.SetColor then return end\n    local ar,ag,ab = easAccent02877(J:GetTheme())\n    if selected then label:SetColor(ar,ag,ab,1)\n    elseif muted then label:SetColor(EAS_2027.muted[1],EAS_2027.muted[2],EAS_2027.muted[3],0.90)\n    else label:SetColor(EAS_2027.text[1],EAS_2027.text[2],EAS_2027.text[3],0.96) end\nend\n\n-- Every chapter receives the same master/detail surface system.\nlocal easCreateSpreadShellPre02877 = CreateSpreadShellImplArch
+CreateSpreadShellImplArch = function(self, name)
     local spread = easCreateSpreadShellPre02877(self, name)
     if spread and self.glassMode then
         local function surface(control, suffix)
@@ -8360,7 +8576,7 @@ function J:CreateSpreadShell(name)
 end
 
 -- Modern chapter heading treatment shared by every page.
-function J:AddSpreadHeader(spread, leftTitle, rightTitle)
+AddSpreadHeaderImplArch = function(self, spread, leftTitle, rightTitle)
     local key = tostring(spread.key or leftTitle or "Spread"):gsub("%W", "")
     local lt = makeLabel("EAS_Codex_"..key.."_LeftTitle", spread.left, leftTitle or "", 16, 9, self.pageW-32, 28, "ZoFontWinH2")
     lt:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
@@ -8384,7 +8600,7 @@ end
 
 -- Dice & Coin is rebuilt as a compact 4x2 launcher so it cannot run outside
 -- the page at any supported Codex size/scale.
-function J:CreateDiceSpread()
+CreateDiceSpreadImplArch = function(self)
     local spread = self:CreateSpreadShell("DICE")
     self:AddSpreadHeader(spread, "DICE & COIN", "RESULT & HISTORY")
 
@@ -8604,8 +8820,8 @@ function J:ApplySuite2027Layout02877()
     end
 end
 
-local easApplyThemePre02877 = J.ApplyTheme
-function J:ApplyTheme()
+local easApplyThemePre02877 = ApplyThemeImplArch
+ApplyThemeImplArch = function(self)
     local result = easApplyThemePre02877(self)
     if not self.glassMode or not self.window then return result end
     local ar,ag,ab = easAccent02877(self:GetTheme())
@@ -8654,8 +8870,8 @@ function J:ApplyTheme()
     return result
 end
 
-local easSetTabPre02877 = J.SetTab
-function J:SetTab(tab, ...)
+local easSetTabPre02877 = SetTabImplArch
+SetTabImplArch = function(self, tab, ...)
     local result = easSetTabPre02877(self, tab, ...)
     if self.suiteChapter02877 then
         self.suiteChapter02877:SetText(string.upper(tostring(tab == "INDEX" and "DASHBOARD" or (TAB_LABELS[tab] or tab or "WORKSPACE"))))
@@ -8664,8 +8880,8 @@ function J:SetTab(tab, ...)
     return result
 end
 
-local easCreatePre02877 = J.Create
-function J:Create()
+local easCreatePre02877 = CreateImplArch
+CreateImplArch = function(self)
     local result = easCreatePre02877(self)
     self:ApplySuite2027Layout02877()
     if self.activeTab then self:SetTab(self.activeTab) end
@@ -8975,18 +9191,18 @@ function J:ApplyHardAppShell02879()
     self.openSound=nil; self.closeSound=nil; self.turnSound=nil
 end
 
-local easPlayPageTurnPre02879=J.PlayPageTurn
-function J:PlayPageTurn() if self.hardAppShell02879 then return end; return easPlayPageTurnPre02879(self) end
+local easPlayPageTurnPre02879=PlayPageTurnImplArch
+PlayPageTurnImplArch = function(self) if self.hardAppShell02879 then return end; return easPlayPageTurnPre02879(self) end
 
-local easSetTabPre02879=J.SetTab
-function J:SetTab(tab,...)
+local easSetTabPre02879=SetTabImplArch
+SetTabImplArch = function(self, tab,...)
     local result=easSetTabPre02879(self,tab,...)
     if self.appShell02879 then self:RefreshAppPages02879(); self:UpdateAppNavigation02879() end
     return result
 end
 
-local easApplyThemePre02879=J.ApplyTheme
-function J:ApplyTheme(...)
+local easApplyThemePre02879=ApplyThemeImplArch
+ApplyThemeImplArch = function(self, ...)
     local result=easApplyThemePre02879(self,...)
     if self.appShell02879 then
         self.appShell02879:SetCenterColor(0.018,0.018,0.026,1)
@@ -8997,8 +9213,8 @@ function J:ApplyTheme(...)
     return result
 end
 
-local easCreatePre02879=J.Create
-function J:Create()
+local easCreatePre02879=CreateImplArch
+CreateImplArch = function(self)
     local result=easCreatePre02879(self)
     self:ApplyHardAppShell02879()
     local wanted=self.activeTab or self:EnsureSaved().activeTab or "INDEX"

@@ -1983,8 +1983,17 @@ function R:Initialize()
     self:EnsureWindow()
     self.viewIndex = 1
     self.currentPage = self.currentPage or "OVERVIEW"
-    EVENT_MANAGER:RegisterForUpdate(PREFIX .. "_Refresh", 500, function()
-        if self.window and not self.window:IsHidden() then self:Refresh() end
+    EPC.Runtime:RegisterUpdate("GameModeReport", "Refresh", 500, function()
+        if not self.window or self.window:IsHidden() then return end
+        -- HUD Layout is a frozen preview. Do not repaint live numbers while the
+        -- user is positioning the report; this prevents visible value flashing.
+        if EPC and EPC.unitFramesMoveMode then return end
+        -- v0.29.763: completed Combat Reports are immutable snapshots.
+        -- Repainting them twice per second caused right-edge values to visibly
+        -- flicker even though the report itself was not changing.
+        if self.currentReport and self.currentReport.live == true then
+            self:Refresh()
+        end
     end)
 end
 

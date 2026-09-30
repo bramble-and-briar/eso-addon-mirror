@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/oneDOK/OneDungeon__4886",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "oneDOK",
+  "canonical_id": "esoui:4886",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4886",
+  "deleted": false,
+  "directories": [
+    "OneDungeon"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4886/",
+  "fingerprint": "1a0065b2b4478b39d159b473af6c868a3a5396e11eeba56d98ba69a0e38d9cab",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17617.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4886",
+  "source_url": "https://www.esoui.com/downloads/info4886-OneDungeon.html",
+  "stats": {
+    "downloads": 15,
+    "favorites": 0,
+    "monthly_downloads": 11
+  },
+  "title": "OneDungeon",
+  "updated_at": 1790700961000,
+  "version": "1.1"
+}

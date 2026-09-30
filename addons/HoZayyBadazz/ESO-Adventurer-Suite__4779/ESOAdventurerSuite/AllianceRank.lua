@@ -510,12 +510,12 @@ function A:Initialize()
     self:Create()
     local prefix = EPC.name .. "_AllianceRank"
     if EVENT_RANK_POINT_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Rank", EVENT_RANK_POINT_UPDATE, function(_, unitTag)
+        EPC.Runtime:RegisterEvent("AllianceRank","Rank",EVENT_RANK_POINT_UPDATE, function(_, unitTag)
             if not unitTag or unitTag == "player" then self:HandleAllianceProgress2960(false) end
         end)
     end
     if EVENT_ALLIANCE_POINT_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_AP", EVENT_ALLIANCE_POINT_UPDATE, function(_, alliancePoints, playSound, difference, reason, locationId)
+        EPC.Runtime:RegisterEvent("AllianceRank","AP",EVENT_ALLIANCE_POINT_UPDATE, function(_, alliancePoints, playSound, difference, reason, locationId)
             self:HandleAlliancePointEvent2961(alliancePoints, difference)
             -- Refresh once more after ESO has propagated the new rank progress.
             if type(zo_callLater) == "function" then
@@ -524,19 +524,19 @@ function A:Initialize()
         end)
     end
     if EVENT_PENDING_CURRENCY_REWARD_CACHED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_PendingAP", EVENT_PENDING_CURRENCY_REWARD_CACHED, function(_, currencyType, amount, ...)
+        EPC.Runtime:RegisterEvent("AllianceRank","PendingAP",EVENT_PENDING_CURRENCY_REWARD_CACHED, function(_, currencyType, amount, ...)
             self:HandlePendingCurrencyReward2961(currencyType, amount)
         end)
     end
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+        EPC.Runtime:RegisterEvent("AllianceRank","Activated",EVENT_PLAYER_ACTIVATED, function()
             self.lastAllianceRankPoints2960 = safeNumber(GetUnitAvARankPoints, 0, "player")
             self.gainVisibleUntilMs2960 = 0
             self:Refresh()
         end)
     end
-    if EVENT_PLAYER_COMBAT_STATE then EVENT_MANAGER:RegisterForEvent(prefix .. "_Combat", EVENT_PLAYER_COMBAT_STATE, function() self:Refresh() end) end
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Visibility", 1000, function()
+    if EVENT_PLAYER_COMBAT_STATE then EPC.Runtime:RegisterEvent("AllianceRank","Combat",EVENT_PLAYER_COMBAT_STATE, function() self:Refresh() end) end
+    EPC.Runtime:RegisterUpdate("AllianceRank","Visibility",1000, function()
         if not self.frame or not EPC.saved then return end
         local show = self:ShouldShow2960()
         if self.frame:IsHidden() == show then self:Refresh() end

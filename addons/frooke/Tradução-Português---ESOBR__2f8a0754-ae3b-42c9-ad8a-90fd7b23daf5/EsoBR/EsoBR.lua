@@ -1,6 +1,6 @@
 local ADDON_NAME = "EsoBR"
 EsoBR = {}
-EsoBR.Version = "3.2.0"
+EsoBR.Version = "1.3.0"
 
 local defaultSettings = {
     persistLanguage = false,

@@ -1,6 +1,6 @@
 -- Create a local shortcut for global
 local MUT = MuffinsUtilityTree
-
+--TODO Add a timer to prevent booted from server
 ---------------------------------------------------------------------------------------------
 -- Multi Split
 ---------------------------------------------------------------------------------------------
@@ -123,7 +123,7 @@ local function ExecuteAllStacksMultiSplit(bagId, slotIndex, splitSize)
     end
 end
 
-function MUT_MultiSplitDialog_Gamepad_OnInitialized(self)
+function MUT.MultiSplitDialog_Gamepad_OnInitialized(self)
     ZO_GenericGamepadDialog_OnInitialized(self)
 
     local selectorControl = self:GetNamedChild("Selector")
@@ -154,12 +154,10 @@ function MUT_MultiSplitDialog_Gamepad_OnInitialized(self)
         {
             customControl = self,
             canQueue = true,
-
             gamepadInfo =
             {
                 dialogType = GAMEPAD_DIALOGS.CUSTOM,
             },
-
             setup = function(dialog, data)
                 -- Fixed max keeps the selector at 3 digits for every item because we only get 200 stack size
                 multiSplitSelector:SetMaxValue(199)
@@ -168,21 +166,17 @@ function MUT_MultiSplitDialog_Gamepad_OnInitialized(self)
                 multiSplitSelector:Activate()
                 dialog:setupFunc()
             end,
-
             finishedCallback = function(dialog)
                 multiSplitSelector:Deactivate()
             end,
-
             title =
             {
                 text = MUT_MULTI_SPLITTER_TITLE,
             },
-
             mainText =
             {
                 text = MUT_MULTI_SPLITTER_PROMPT,
             },
-
             buttons =
             {
                 {
@@ -261,6 +255,6 @@ end
 ---------------------------------------------------------------------------------------------
 -- Initialization
 ---------------------------------------------------------------------------------------------
-function MUT_Initialize_MultiSplitter()
+function MUT.Initialize_MultiSplitter()
     SecurePostHook("ZO_InventorySlot_DiscoverSlotActionsFromActionList", OnDiscoverSlotActions)
 end

@@ -158,7 +158,7 @@ end
 
 PriorityRecast:RegisterCallback("AddonLoaded", function()
 
-	-- Run initial mapping.
+	-- Run initial slot mapping.
 	UpdateSlots()
 
 	-- Update mapping when the priorities change.

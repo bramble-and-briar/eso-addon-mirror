@@ -13,7 +13,7 @@ local set_text = U.set_text
 local hexc = F.hexc
 
 local AUTHOR = "Federico Vergelli"
-local CREDITS = { "unit220", "TattoozNbooZ" }
+local CREDITS = { "unit220", "TattoozNbooZ", "ruskiii" }
 local BAR_H = 7
 local LINE_H = 30
 local CAP_ROW = 16

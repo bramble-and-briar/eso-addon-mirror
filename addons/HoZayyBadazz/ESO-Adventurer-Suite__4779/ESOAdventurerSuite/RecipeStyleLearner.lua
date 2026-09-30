@@ -9,6 +9,8 @@ local wm = WINDOW_MANAGER
 local PREFIX = "ESOAdventurerSuite_RecipeStyleLearner"
 local BOOK_ICON = "EsoUI/Art/MainMenu/menubar_journal_up.dds"
 
+-- v0.29.750: detect bound outfit-style pages by collectible category
+-- v0.29.749: add Bound Style Page / collectible style-page support
 -- v0.29.153: the learner stays at its normal 64x64 size in HUD Layout
 -- Mode. A dedicated invisible drag handle covers the book only while layout
 -- mode is active, so the very first left-click-and-hold starts moving it.
@@ -112,10 +114,38 @@ end
 function R:ClassifyLink(link)
     if not link or link == "" then return nil end
     local itemType = num(safe(GetItemLinkItemType, -1, link), -1)
+    local specializedType = num(safe(GetItemLinkSpecializedItemType, -1, link), -1)
+
     local recipeType = rawget(_G, "ITEMTYPE_RECIPE")
     local motifType = rawget(_G, "ITEMTYPE_RACIAL_STYLE_MOTIF")
     if recipeType ~= nil and itemType == recipeType then return "RECIPE" end
     if motifType ~= nil and itemType == motifType then return "STYLE" end
+
+    -- Modern ESO style pages are no longer always racial-style-motif items.
+    -- Bound/event style pages can be ITEMTYPE_COLLECTIBLE, while some older
+    -- ones are style-page containers. Detect the specialized style-page types
+    -- directly so bound pages are included without pulling in unrelated
+    -- collectibles/runeboxes.
+    local collectibleStyle = rawget(_G, "SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE")
+    local containerStyle = rawget(_G, "SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE")
+    if collectibleStyle ~= nil and specializedType == collectibleStyle then return "STYLE_PAGE" end
+    if containerStyle ~= nil and specializedType == containerStyle then return "STYLE_PAGE" end
+
+    -- Some Bound Style Pages (including newer event/Archive pages) do not
+    -- expose either specialized style-page constant on every API build. ESO
+    -- still links them to the Outfit Style collectible they unlock. Use that
+    -- relationship as the authoritative fallback instead of relying on the
+    -- English item name or broad ITEMTYPE_COLLECTIBLE matching.
+    if type(GetItemLinkContainerCollectibleId) == "function"
+        and type(GetCollectibleCategoryType) == "function" then
+        local collectibleId = num(safe(GetItemLinkContainerCollectibleId, 0, link), 0)
+        local outfitCategory = rawget(_G, "COLLECTIBLE_CATEGORY_TYPE_OUTFIT_STYLE")
+        if collectibleId > 0 and outfitCategory ~= nil then
+            local categoryType = safe(GetCollectibleCategoryType, nil, collectibleId)
+            if categoryType == outfitCategory then return "STYLE_PAGE" end
+        end
+    end
+
     return nil
 end
 
@@ -124,10 +154,28 @@ function R:IsKnown(link, class)
         local value = safe(IsItemLinkRecipeKnown, nil, link)
         if value ~= nil then return value == true end
     end
-    if class == "STYLE" and type(IsItemLinkBookKnown) == "function" then
+
+    if (class == "STYLE" or class == "STYLE_PAGE") and type(IsItemLinkBookKnown) == "function" then
         local value = safe(IsItemLinkBookKnown, nil, link)
-        if value ~= nil then return value == true end
+        if value == true then return true end
     end
+
+    -- Collectible / Bound Style Pages unlock a collectible rather than a motif
+    -- book entry. This is the authoritative known check for those pages.
+    if class == "STYLE_PAGE" and type(GetItemLinkContainerCollectibleId) == "function" then
+        local collectibleId = num(safe(GetItemLinkContainerCollectibleId, 0, link), 0)
+        if collectibleId > 0 then
+            if type(IsCollectibleUnlocked) == "function" then
+                local unlocked = safe(IsCollectibleUnlocked, nil, collectibleId)
+                if unlocked ~= nil then return unlocked == true end
+            end
+            if type(IsCollectibleOwnedByDefId) == "function" then
+                local owned = safe(IsCollectibleOwnedByDefId, nil, collectibleId)
+                if owned ~= nil then return owned == true end
+            end
+        end
+    end
+
     -- Fallback across both knowledge APIs. If either says known, do not consume it.
     if type(IsItemLinkRecipeKnown) == "function" and safe(IsItemLinkRecipeKnown, false, link) == true then return true end
     if type(IsItemLinkBookKnown) == "function" and safe(IsItemLinkBookKnown, false, link) == true then return true end
@@ -364,7 +412,7 @@ function R:StartTurbo()
     end
     local queue = self:BuildQueue()
     if #queue == 0 then
-        notify("TURBO LEARNER: no unknown recipes, furnishing plans, motifs, or style pages found here.", true)
+        notify("TURBO LEARNER: no unknown recipes, furnishing plans, motifs, bound style pages, or style pages found here.", true)
         self:RefreshStatus()
         return
     end
@@ -659,7 +707,14 @@ function R:RefreshWindow(force)
             row.icon:SetTexture(icon ~= "" and icon or "EsoUI/Art/Icons/icon_missing.dds")
             row.nameLabel:SetText(zo_strformat("<<C:1>>", entry.name or "Unknown"))
             local bagText = entry.bagId == BAG_BACKPACK and "Backpack" or ((entry.bagId == BAG_BANK or entry.bagId == BAG_SUBSCRIBER_BANK) and "Bank" or "Inventory")
-            local typeText = entry.class == "STYLE" and "Motif / Style" or "Recipe / Plan"
+            local typeText
+            if entry.class == "STYLE_PAGE" then
+                typeText = "Bound / Collectible Style Page"
+            elseif entry.class == "STYLE" then
+                typeText = "Motif / Style"
+            else
+                typeText = "Recipe / Plan"
+            end
             row.detailLabel:SetText(typeText .. "  •  " .. bagText)
             local r, g, b, a = getLinkQualityColor(entry.link)
             row.iconFrame:SetEdgeColor(r, g, b, a or 1)
@@ -944,20 +999,20 @@ function R:RegisterEvents()
     self.eventsRegistered = true
 
     if rawget(_G, "EVENT_INVENTORY_SINGLE_SLOT_UPDATE") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_PreviewInventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
+        EPC.Runtime:RegisterEvent("RecipeStyleLearner", "PreviewInventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
             if not self.window or self.window:IsHidden() then return end
-            EVENT_MANAGER:UnregisterForUpdate(PREFIX .. "_PreviewDebounce")
-            EVENT_MANAGER:RegisterForUpdate(PREFIX .. "_PreviewDebounce", 180, function()
-                EVENT_MANAGER:UnregisterForUpdate(PREFIX .. "_PreviewDebounce")
+            EPC.Runtime:UnregisterUpdate("RecipeStyleLearner", "PreviewDebounce")
+            EPC.Runtime:RegisterUpdate("RecipeStyleLearner", "PreviewDebounce", 180, function()
+                EPC.Runtime:UnregisterUpdate("RecipeStyleLearner", "PreviewDebounce")
                 self:RefreshWindow(true)
             end)
         end)
     end
     if rawget(_G, "EVENT_OPEN_BANK") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_PreviewBankOpen", EVENT_OPEN_BANK, function() if self.window and not self.window:IsHidden() then self:RefreshWindow(true) end end)
+        EPC.Runtime:RegisterEvent("RecipeStyleLearner", "PreviewBankOpen", EVENT_OPEN_BANK, function() if self.window and not self.window:IsHidden() then self:RefreshWindow(true) end end)
     end
     if rawget(_G, "EVENT_CLOSE_BANK") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_PreviewBankClose", EVENT_CLOSE_BANK, function() if self.window and not self.window:IsHidden() then self:RefreshWindow(true) end end)
+        EPC.Runtime:RegisterEvent("RecipeStyleLearner", "PreviewBankClose", EVENT_CLOSE_BANK, function() if self.window and not self.window:IsHidden() then self:RefreshWindow(true) end end)
     end
 end
 

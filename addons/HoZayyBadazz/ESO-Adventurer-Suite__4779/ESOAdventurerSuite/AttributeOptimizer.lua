@@ -52,44 +52,7 @@ local function split(total, healthPct, magPct, stamPct)
     return h,m,s
 end
 
-function A:BuildPlan()
-    local current=self:GetCurrent()
-    local c=self:GetContext()
-    local total=current.total
-    local h,m,s
-
-    if c.role=="TANK" then
-        -- Tank baseline: majority Health, remainder Stamina for blocking/dodging.
-        h,m,s=split(total,0.625,0,0.375)
-    elseif c.role=="HEALER" then
-        if c.magicka then h,m,s=0,total,0 else h,m,s=0,0,total end
-    elseif c.role=="SOLO" then
-        local hp=math.floor(total*0.15+0.5)
-        if c.magicka then h,m,s=hp,total-hp,0 else h,m,s=hp,0,total-hp end
-    else
-        if c.magicka then h,m,s=0,total,0 else h,m,s=0,0,total end
-    end
-
-    return {
-        context=c,
-        current=current,
-        target={health=h,magicka=m,stamina=s,total=total},
-        delta={health=h-current.health,magicka=m-current.magicka,stamina=s-current.stamina},
-        cost=num(GetAttributeRespecGoldCost,0),
-    }
-end
-
-function A:BuildView()
-    local p=self:BuildPlan()
-    return {
-        cost=p.cost,
-        role=p.context.role,
-        build=p.context.profile and p.context.profile.label or (p.context.magicka and "Magicka" or "Stamina"),
-        current=p.current,
-        target=p.target,
-        changed=(p.delta.health~=0 or p.delta.magicka~=0 or p.delta.stamina~=0),
-    }
-end
+-- BuildPlan/BuildView are defined once below by the MAX POWER content-aware policy.
 
 function A:ApplyBestAttributes()
     if type(IsUnitInCombat)=="function" and safe(IsUnitInCombat,false,"player") then
@@ -214,7 +177,6 @@ function A:BuildPlan()
     }
 end
 
-local EAS_AttributeBuildViewBase029174=A.BuildView
 function A:BuildView()
     local p=self:BuildPlan()
     return {

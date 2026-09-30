@@ -112,6 +112,7 @@ function U.New(app)
         end)
         self.rows[i]={box=row,text=text}
     end
+    self.hubView=PBTrade.HubUI.New(p,panel,box,label,texture)
     self.battle=panel(p,40,158,1160,500)
     self.battle:SetDrawTier(DT_MEDIUM)
     local function battleLayer(control,layer,level)
@@ -203,6 +204,17 @@ function U.New(app)
     openingLayer(box(self.openingPanel,0,485,1240,295,{.01,.012,.01,.88},{0,0,0,0}),4)
     openingLayer(box(self.openingPanel,60,493,1120,2,T.gold,{0,0,0,0}),5)
     self.openingText=openingLayer(label(self.openingPanel,80,504,1080,216,"",C.opening.fontSize,{1,.93,.78,1}),6)
+    -- Speaker card for pages that name a portrait (the true ending's farewell): a framed
+    -- portrait above the band on the left, with a name plate touching the band.
+    self.openingCard={
+        openingLayer(box(self.openingPanel,60,158,300,300,{.02,.025,.022,1},T.gold),4),
+        openingLayer(texture(self.openingPanel,66,164,288,288,"ember"),5),
+        openingLayer(box(self.openingPanel,60,448,300,34,{.01,.012,.01,.94},T.gold),4),
+    }
+    self.openingPortrait=self.openingCard[2]
+    self.openingSpeaker=openingLayer(label(self.openingPanel,60,451,300,30,"",27,T.gold),6)
+    self.openingSpeaker:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    self.openingCard[#self.openingCard+1]=self.openingSpeaker
     self.openingNext=openingLayer(label(self.openingPanel,1150,678,40,36,"▼",27,T.gold),6)
     self.openingHint=openingLayer(label(self.openingPanel,80,730,760,30,"×：次へ　　○：スキップ",18,T.gold),6)
     self.openingPage=openingLayer(label(self.openingPanel,1040,730,140,30,"",18,T.gold),6)
@@ -292,7 +304,7 @@ function U.New(app)
             -- Ordinary ledger pages reopen at the title.  Story playback and other
             -- pending flows resume exactly where they were when the scene was hidden.
             local screen=self.app.screen
-            local resume={battle=true,result=true,rankings=true,admin=true,admin_pick=true,
+            local resume={hub=true,battle=true,result=true,rankings=true,admin=true,admin_pick=true,
                 opening=true,naming=true,strategy=true,delegate_pick=true}
             if not resume[screen] then self.app:ShowTitle() end
             self:Resize()
@@ -511,13 +523,16 @@ end
 function U:DirectionKey(direction,down)
     if not self.active then return end
     if down then self.keyDirection=direction; self:MoveDirection(direction)
-    elseif self.keyDirection==direction then self.keyDirection=nil end
+    elseif self.keyDirection==direction then self.keyDirection=nil; self.heldDirection=nil end
 end
 function U:MoveDirection(direction)
     if not direction then self.heldDirection=nil; return end
     local now=GetFrameTimeSeconds()
     if direction~=self.heldDirection or now>=self.nextMove then
-        if direction=="up" then self.app:Move(-1)
+        if self.app.screen=="hub" then
+            local d={up={0,-1},down={0,1},left={-1,0},right={1,0}}
+            self.app:HubMove(d[direction][1],d[direction][2])
+        elseif direction=="up" then self.app:Move(-1)
         elseif direction=="down" then self.app:Move(1)
         else self.app:MovePage(direction=="right" and 1 or -1) end
         self:Refresh()
@@ -696,7 +711,7 @@ function U:Refresh()
     local opening=a.screen=="opening"
     self.gameplay:SetHidden(titleScreen or opening)
     self.titlePanel:SetHidden(not titleScreen); self.notice:SetHidden(titleScreen or opening)
-    self.openingPanel:SetHidden(not opening); self.helpLine:SetHidden(opening or titleScreen)
+    self.openingPanel:SetHidden(not opening); self.helpLine:SetHidden(opening or titleScreen or a.screen=="hub")
     if opening then self:RenderOpening() end
     if titleScreen then
         if a.keyboardRequested then a.keyboardRequested=false; self:OpenKeyboard() end
@@ -717,6 +732,7 @@ function U:Refresh()
         end
         self.titleNotice:SetText(a.notice or "")
     end
+    PBTrade.HubUI.Refresh(self.hubView,a,function() self:Refresh() end)
     self.map:SetHidden(a.screen~="map")
     self.ledger:SetHidden(a.screen~="properties" and a.screen~="owned" and a.screen~="groups" and a.screen~="tactics" and a.screen~="management" and a.screen~="rankings" and a.screen~="admin" and a.screen~="admin_pick" and a.screen~="strategy" and a.screen~="delegate_pick")
     self.battle:SetHidden(a.screen~="battle" and a.screen~="result")
@@ -975,6 +991,11 @@ function U:RenderOpening()
         self.openingPage:SetText(o.page.." / "..#o.pages)
         self.openingText:SetAlpha(1)
         self.openingText:SetHidden(false)
+        for _,control in ipairs(self.openingCard) do control:SetHidden(page.portrait==nil) end
+        if page.portrait then
+            PBTrade.Assets.Apply(self.openingPortrait,page.portrait)
+            self.openingSpeaker:SetText(page.speaker or "")
+        end
     end
     local drift=math.min(1,o.pageTime/O.driftSeconds)
     self.openingArt:SetTextureCoords(stageCoords(page.bg,O.driftZoom*drift))

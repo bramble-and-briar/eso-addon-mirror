@@ -125,7 +125,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.27 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.29 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
@@ -147,6 +147,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RolePlayNeeds - Immersive Pets!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---Immersive-Pets__4148) | matheusbk2 | PC / Mac | 0.3.1 BETA |
 | [RolePlayNeeds - Tamriel Books](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---Tamriel-Books__4167) | matheusbk2 | PC / Mac | 0.1 BETA |
 | [RolePlayNeeds - Tamriel Survival!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---Tamriel-Survival__4147) | matheusbk2 | PC / Mac | 0.7.1 |
+| [RoleplayPostSupport](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/RoleplayPostSupport__4889) | aausten | PC / Mac | 1.2.2 |
 | [Roll Call](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Roll-Call__1099) | Phinix | PC / Mac | 1.07 |
 | [Rolodex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Rolodex__fba4016e-4c55-48b5-9f38-f169d2190581) | dicen9 | Console | — |
 | [Roomba](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Roomba__80e548e3-0d72-47fa-9ef8-f6966b42ee75) | Masteroshi430 | Console | — |
@@ -168,7 +169,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RU Patch for Asylum Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/qulilalti/RU-Patch-for-Asylum-Tracker__2636) | qulilalti | PC / Mac | 1.0 |
 | [RU Patch for Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/StrangerFull/RU-Patch-for-Dolgubon-s-Lazy-Writ-Crafter__1587) | StrangerFull | PC / Mac | 2.9.1ru31 |
 | [RU Patch for Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torvard/RU-Patch-for-Dolgubon-s-Lazy-Writ-Crafter__4157) | Torvard | PC / Mac | 4.0.4.3.ru.48 |
-| [RuESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TERAB1T/RuESO__1347) | TERAB1T | PC / Mac | 47.0 |
+| [RuESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TERAB1T/RuESO__1347) | TERAB1T | PC / Mac | 48.0 |
 | [Rulebased Inventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TaxTalis/Rulebased-Inventory__2136) | TaxTalis | PC / Mac | 2.32 |
 | [RunesVoice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/RunesVoice__2173) | Nols1000 | PC / Mac | 0.1.0 |
 | [Rush of Agony Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rush-of-Agony-Tracker__03e3b721-0ccb-4e27-9f1c-ae0e6bf96be5) | codeWarrior82 | Console | — |

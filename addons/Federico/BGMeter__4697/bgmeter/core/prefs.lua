@@ -12,7 +12,7 @@ local FALLBACK = {
     map_heat_mode = "presence", map_heat_last = "presence", map_path = true, map_team = false, map_deaths = true, map_pins = true,
     cursor_on_open = false,
     opacity = 0.97,
-    sort_key = "damage", sort_desc = true,
+    sort_key = "damage", sort_desc = true, group_by_team = false,
 }
 
 local function migrate(p)

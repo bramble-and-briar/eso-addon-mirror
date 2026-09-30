@@ -758,7 +758,6 @@ function DataGen.ec() return {
 	},
 
 	----------------------------------------------------------------------------
-	--[[
 	{
 		GetString(SI_EVENTCOLLECTIBLES_SOURCE_HIGH_SEAS),
 		{
@@ -766,7 +765,6 @@ function DataGen.ec() return {
 			{ 14727, 15065, -15067 }, -- Suncleft Grotto Ornaug
 		},
 	},
-	--]]
 } end
 
 LCCC.SetupOnDemandDataTable(Data, DataGen)

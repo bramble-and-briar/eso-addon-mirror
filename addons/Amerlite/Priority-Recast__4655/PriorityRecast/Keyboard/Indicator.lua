@@ -18,6 +18,13 @@ function Window.Initialize()
 	-- Add to the the window to the HUD.
 	HUD_SCENE:AddFragment(ZO_HUDFadeSceneFragment:New(Window))
 
+	-- Make HUD position editable.
+	local label = GetString(PRIORITYRECAST_TOOLTIP)
+	HUD_MANAGER:RegisterKeyboardElement(Window, label, {
+		defaultAnchor = ZO_Anchor:New(RIGHT, nil, CENTER, -50, 0),
+		tooltipText   = label
+	}, COMPASS_OPTIONS)
+
 	-- Update with initial combat state.
 	inCombat = IsUnitInCombat("player")
 	Window.Update()

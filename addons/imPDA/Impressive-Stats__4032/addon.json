@@ -18,7 +18,7 @@
     "ImpressiveStats"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4032/",
-  "fingerprint": "419db0e25b63ea7f8a93e6077f4a709772306fe4f95aff3f546f7621c123427f",
+  "fingerprint": "7103587942b25ef6189db9c850c4e1dd506028622c02532377a23f7da05849ee",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13929.png",
     "https://cdn-eso.mmoui.com/preview/pvw13778.png",
@@ -30,11 +30,11 @@
   "source_id": "4032",
   "source_url": "https://www.esoui.com/downloads/info4032-ImpressiveStats.html",
   "stats": {
-    "downloads": 4742,
-    "favorites": 11,
-    "monthly_downloads": 163
+    "downloads": 5170,
+    "favorites": 13,
+    "monthly_downloads": 162
   },
   "title": "Impressive Stats",
-  "updated_at": 1786180251000,
-  "version": "1.5.6"
+  "updated_at": 1790713430000,
+  "version": "1.5.7"
 }

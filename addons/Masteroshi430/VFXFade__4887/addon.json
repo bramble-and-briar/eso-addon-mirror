@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Masteroshi430/VFXFade__4887",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Masteroshi430",
+  "canonical_id": "esoui:4887",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4887",
+  "deleted": false,
+  "directories": [
+    "VFXFade"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4887/",
+  "fingerprint": "8d37420c16284f1560bcdca63ac5540b29a20ea1cf415e3bffa7a737185e4a47",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4887",
+  "source_url": "https://www.esoui.com/downloads/info4887-VFXFade.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "VFXFade",
+  "updated_at": 1790701290000,
+  "version": "2026.09.29"
+}

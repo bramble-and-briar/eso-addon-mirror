@@ -16,26 +16,28 @@ local strings = {
 	SI_PBSQTFC_SIZE_QUEST_GOAL_TOOLTIP = "Size of the objective lines -- what you actually have to do, and any counters. In gamepad mode the game draws these larger than the quest name; that is the game's own choice, and moving this slider is how to change it.",
 
 	SI_PBSQTFC_POS_X = "Horizontal position",
-	SI_PBSQTFC_POS_X_TOOLTIP = "Moves the quest tracker left or right from wherever the game puts it. 0 leaves it alone. Positive is right. The Golden Pursuits and house panels are anchored to the quest tracker by the game, so they follow it and the column keeps its shape.",
+	SI_PBSQTFC_POS_X_TOOLTIP = "Moves the tracker column left or right from wherever the game puts it. 0 leaves it alone. Positive is right. The game keeps every tracker -- quest, Golden Pursuits, house information and the rest -- in one column, so they all move together and keep their order. On PC, a position set in the game's own Edit HUD screen takes priority over this one.",
 	SI_PBSQTFC_POS_Y = "Vertical position",
-	SI_PBSQTFC_POS_Y_TOOLTIP = "Moves the quest tracker up or down from wherever the game puts it. 0 leaves it alone. Positive is down.",
+	SI_PBSQTFC_POS_Y_TOOLTIP = "Moves the tracker column up or down from wherever the game puts it. 0 leaves it alone. Positive is down. The column scrolls when it runs out of room, so moving it down leaves less of it on screen at once.",
 	SI_PBSQTFC_SCALE = "Panel scale",
-	SI_PBSQTFC_SCALE_TOOLTIP = "Draws the whole quest tracker bigger or smaller -- text, icons and the keybind button together, in proportion. 100% is the game's own. This is free: scaling does not make the client build a font, so it costs nothing on console. The panel scales towards its top right corner, which is where it is anchored.",
+	SI_PBSQTFC_SCALE_TOOLTIP = "Draws the whole quest tracker bigger or smaller -- text, icons and the keybind button together, in proportion. Only the quest tracker; the panels under it keep their size and follow its new height. 100% is the game's own. This is free: scaling does not make the client build a font, so it costs nothing on console. The panel scales towards its top right corner, which is where it is anchored.",
 
 	SI_PBSQTFC_QUEST_FACE = "Quest tracker typeface",
 	SI_PBSQTFC_QUEST_STYLE = "Quest tracker outline",
 
 	-- ---- Golden Pursuits --------------------------------------------------------------
 	SI_PBSQTFC_SECTION_PURSUIT = "Golden Pursuits",
-	SI_PBSQTFC_SECTION_PURSUIT_NOTE = "The panel between the quest tracker and the house information, showing the pursuit you are tracking and how far along it is. The same panel is reused for Tamriel Tomes, so these settings cover both.",
+	SI_PBSQTFC_SECTION_PURSUIT_NOTE = "The panel between the quest tracker and the house information, showing the pursuit you are tracking and a bar for how far along it is. The same panel is reused for Tamriel Tomes and a pinned achievement, so these settings cover all of them.",
 
 	SI_PBSQTFC_PURSUIT_ENABLED = "Custom Golden Pursuits font",
 	SI_PBSQTFC_PURSUIT_ENABLED_TOOLTIP = "Apply the settings below to the Golden Pursuits panel. Turn this off to hand the game's own font straight back. While every setting here still matches the game's own, nothing is written at all.",
 
 	SI_PBSQTFC_SIZE_PURSUIT_NAME = "Heading size",
 	SI_PBSQTFC_SIZE_PURSUIT_NAME_TOOLTIP = "Size of the heading line next to the icon -- \"Golden Pursuits\", or \"Tamriel Tomes\" when that is what is being tracked.",
-	SI_PBSQTFC_SIZE_PURSUIT_DETAIL = "Pursuit and progress size",
-	SI_PBSQTFC_SIZE_PURSUIT_DETAIL_TOOLTIP = "Size of the two lines under the heading: what you are tracking, and how far along it is. The game draws both with one font, so they share one slider rather than being given two ways to disagree.",
+	SI_PBSQTFC_SIZE_PURSUIT_DETAIL = "Pursuit name size",
+	SI_PBSQTFC_SIZE_PURSUIT_DETAIL_TOOLTIP = "Size of the line under the heading: what you are tracking.",
+	SI_PBSQTFC_SIZE_PURSUIT_PROGRESS = "Progress size",
+	SI_PBSQTFC_SIZE_PURSUIT_PROGRESS_TOOLTIP = "Size of the numbers inside the progress bar. The bar itself keeps its size, so a much larger setting can spill over its edges.",
 
 	SI_PBSQTFC_PURSUIT_FACE = "Golden Pursuits typeface",
 	SI_PBSQTFC_PURSUIT_STYLE = "Golden Pursuits outline",

@@ -682,7 +682,7 @@ function EchoESOADatastore.saveCurrentPlayerDataAVA( playerKey, sectionElem )
 	local assignedCampaignId = GetAssignedCampaignId()
 	local isInCampaign       = currentCampaignId ~= 0
 	if(not isInCampaign) then
-	isInCampaign       = assignedCampaignId ~= 0
+		isInCampaign       = assignedCampaignId ~= 0
 	end
 	--GetPreferredCampaign()  ??
  
@@ -1092,16 +1092,19 @@ function EchoESOADatastore:SaveDataSkillData(skillType,baseElem,outputUndiscover
 	  EchoESOADatastore.outputMsg("SaveDataSkillData: WARNING: skillType is NIL")
 	  return
 	end
-	--
+	--	
 	local numSkillLines = GetNumSkillLines(skillType)
 	for ii = 1, numSkillLines do
 		local name, rank, discovered, skillLineId, advised, unlockText = GetSkillLineInfo(skillType,ii)
-		
 		--name, number rank, boolean discovered, number skillLineId, boolean advised, unlockText
 		if name == nil then
 			name = ii;
 		end
-		if discovered or outputUndiscovered then
+		local skip = false
+		if name:find("Vengeance ", 1, true) == 1 and skillType == SKILL_TYPE_CLASS then
+			skip = true
+		end
+		if not skip and ( discovered or outputUndiscovered) then
 			--EchoESOADatastore.outputMsg("loadPlayerDataPart: name=",name," rank=",rank, " discovered=",discovered)			
 			--EchoESOADatastore.debugMsg("loadPlayerDataPart: unlockText="..unlockText..".")
 			baseElem[name]	= {}
@@ -1150,8 +1153,6 @@ function EchoESOADatastore:SaveDataSkillData(skillType,baseElem,outputUndiscover
 				baseAbilityElem[ABname].rankIndex   = ABrankIndex
 			end
 			--
-		else --if discovered or outputUndiscovered then
-			--debugMsg("loadPlayerDataPart: skillType="..skillType..". name=" ..name)
 		end      
 	end
 end

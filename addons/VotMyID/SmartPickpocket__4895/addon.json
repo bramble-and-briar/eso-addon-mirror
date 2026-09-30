@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/VotMyID/SmartPickpocket__4895",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "VotMyID",
+  "canonical_id": "esoui:4895",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4895",
+  "deleted": false,
+  "directories": [
+    "SmartPickpocket"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4895/",
+  "fingerprint": "289bb76d90802c9e45a60edb9a9169beaafeb9377d7d8d5ee37d5181a5173a26",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4895",
+  "source_url": "https://www.esoui.com/downloads/info4895-SmartPickpocket.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "SmartPickpocket",
+  "updated_at": 1790751328000,
+  "version": "0.2.0"
+}

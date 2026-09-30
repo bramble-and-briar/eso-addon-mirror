@@ -1,0 +1,19 @@
+## Title: PacketByte Exporter
+## Description: Captures an ESO character snapshot and sends it in user-approved URL chunks.
+## Author: PacketByte
+## Version: 0.1.5
+## AddOnVersion: 105
+## APIVersion: 101050 101051
+## SavedVariables: PacketByteExporterSavedVariables
+## OptionalDependsOn: LibAddonMenu-2.0
+## IsLibrary: false
+
+lang/en.lua
+Core.lua
+Codec.lua
+Schema.lua
+Collectors.lua
+Transport.lua
+Commands.lua
+Panel.lua
+Bindings.xml

@@ -318,17 +318,17 @@ function AutoCat.IsCategoryCollapsed(bagTypeId, categoryName)
 end
 
 function AutoCat.SetCategoryCollapsed(bagTypeId, categoryName, collapsed)
-    if bagTypeId == nil or categoryName == nil then
+	if bagTypeId == nil or categoryName == nil then
         return
     end
-    if collapsed == false then collapsed = nil end
-    local saved = AutoCat.saved
+	--if collapsed == false then collapsed = nil end -- breaks Collapse All if used
+	local saved = AutoCat.saved
 
     saved.collapses[bagTypeId] = SF.safeTable(saved.collapses[bagTypeId])
     local collapsetbl = saved.collapses[bagTypeId]
-
     collapsetbl[categoryName] = collapsed
 end
+
 -- create local alias for references in this function
 local setCategoryCollapsed = AutoCat.SetCategoryCollapsed
 
@@ -1165,10 +1165,11 @@ function AC_ItemRowHeader_OnShowContextMenu(header)
     AddMenuItem(
         L(SI_CONTEXT_MENU_COLLAPSE_ALL),
         function()
-            for k, _ in pairs(AutoCat.saved.collapses[bagTypeId]) do
-				setCategoryCollapsed(bagTypeId,k,true)
+			local collapseTbl = AutoCat.saved.collapses[bagTypeId]
+            for k, v in pairs(collapseTbl) do
+				setCategoryCollapsed(bagTypeId, k, true)
             end
-			setCategoryCollapsed(bagTypeId,AutoCat.saved.appearance["CATEGORY_OTHER_TEXT"],true)
+			setCategoryCollapsed(bagTypeId, AutoCat.saved.appearance["CATEGORY_OTHER_TEXT"], true)
             AutoCat.RefreshCurrentList()
         end
     )

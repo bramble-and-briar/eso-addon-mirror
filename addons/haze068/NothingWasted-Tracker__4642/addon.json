@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/haze068/NothingWasted-Tracker__4642",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "haze068",
   "canonical_id": "esoui:4642",
   "category_id": "165",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4642",
@@ -17,11 +18,16 @@
     "NothingWastedTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4642/",
-  "fingerprint": "34a3a2f14bf423dc215d40ff454a96409f8b80ac2842be3068203ebd8b0c49b9",
+  "fingerprint": "ea85a2a67058756a120bcc066f1a2e2484f850753baf7dc660df59d6b8f73682",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw16329.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16331.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16332.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17622.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17623.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17626.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17625.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17619.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17621.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16332.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17624.png"
   ],
   "platform": "pc",
   "published": true,
@@ -29,11 +35,11 @@
   "source_id": "4642",
   "source_url": "https://www.esoui.com/downloads/info4642-NothingWastedTracker.html",
   "stats": {
-    "downloads": 167,
-    "favorites": 0,
-    "monthly_downloads": 104
+    "downloads": 374,
+    "favorites": 2,
+    "monthly_downloads": 147
   },
   "title": "NothingWasted Tracker",
-  "updated_at": 1781454581000,
-  "version": "1.0"
+  "updated_at": 1790714093000,
+  "version": "2.0"
 }

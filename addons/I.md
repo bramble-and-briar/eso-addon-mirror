@@ -37,7 +37,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Impified UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impified-UI__4141) | imPDA | PC / Mac | 2 |
 | [ImpitoyableStack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/ImpitoyableStack__4168) | Tenshiraito | PC / Mac | 1.1 |
 | [Importers for Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Importers-for-Master-Merchant-3.0__3334) | Sharlikran | PC / Mac | 1.03 |
-| [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.6 |
+| [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.7 |
 | [Improved Achievement Categories](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Achievement-Categories__3114) | MrPikPik | PC / Mac | 1.0.4 |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__11036cca-172c-4428-83fe-301cb496b33e) | code65536 | Console | — |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.0.0 |

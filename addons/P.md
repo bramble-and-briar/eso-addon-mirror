@@ -7,6 +7,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
 | [P11's Slash Hotkeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/P11-s-Slash-Hotkeys__4747) | Phobus11 | PC / Mac | 102 |
+| [PacketByte Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/packetloss404/PacketByte-Exporter__96620ecb-ccf7-4298-9215-636f4075695b) | packetloss404 | Console | — |
 | [PadMerchant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mcdonnelldean/PadMerchant__1616) | mcdonnelldean | PC / Mac | 2.0 |
 | [PadUI Reload](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ckau/PadUI-Reload__1596) | Ckau | PC / Mac | 2.3.3 |
 | [PairsWellWithCheese](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saranicole1980/PairsWellWithCheese__b57202fe-9b3a-4021-ad86-f2db8dfe0c5e) | saranicole1980 | Console | — |
@@ -40,7 +41,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pawksickles Updated and jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Pawksickles-Updated-and-jpFix__1401) | 2ch | PC / Mac | 1.5.2 |
 | [Pawksickles updated for High Isle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/trollusk/Pawksickles-updated-for-High-Isle__3422) | trollusk | PC / Mac | 1.6.1 |
 | [PB](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alexdragian/PB__2499) | alexdragian | PC / Mac | 0.0.23 |
-| [pChat (Chat customization & help: look/notification/sound/automation/history)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Puddy/pChat-Chat-customization-help-look-notification-sound-automation-history__93) | Puddy | PC / Mac | 10.0.7.4 |
+| [pChat (Chat customization & help: look/notification/sound/automation/history)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Puddy/pChat-Chat-customization-help-look-notification-sound-automation-history__93) | Puddy | PC / Mac | 10.0.7.5 |
 | [pChat - jp Nickname Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/pChat---jp-Nickname-Patch__2697) | Marify | PC / Mac | 1.3.12 |
 | [pChatZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/pChatZHPatch__3908) | FusRoDah | PC / Mac | 10.0.5.3 |
 | [PeacefulCombat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zetheras/PeacefulCombat__3071) | zetheras | PC / Mac | 1.01 |
@@ -194,8 +195,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Priority Bunny](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jokergrrrrl/Priority-Bunny__49741053-9987-45a6-af58-7e96635ea689) | Jokergrrrrl | Console | — |
 | [Priority Bunny](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jokergrrrrl/Priority-Bunny__fa4ee6fb-c601-4163-998f-801078e1eac0) | Jokergrrrrl | Console | — |
 | [Priority Mail](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectura/Priority-Mail__2516) | Architectura | PC / Mac | 6 |
-| [Priority Recast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Priority-Recast__4655) | Amerlite | PC / Mac | 1.3 |
+| [Priority Recast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Priority-Recast__4655) | Amerlite | PC / Mac | 1.4 |
 | [Prismatic Warning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pretz333/Prismatic-Warning__2985) | Pretz333 | PC / Mac | 4.5.4 |
+| [ProblemSolved](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aeric_ESO/ProblemSolved__4885) | Aeric_ESO | PC / Mac | 1.0.1 |
 | [Proc Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Proc-Reminder__541ab871-9386-4990-a3c7-32563ded9243) | Vixen_Hunny | Console | — |
 | [Procseason](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaveeMafiaa/Procseason__79d34de4-5c42-452f-9ce7-b03858b6b1e1) | DaveeMafiaa | Console | — |
 | [Profanity+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/Profanity__e5945fc9-cef6-468d-9335-b4657a89f1f1) | Scribe_Rob | Console | — |

@@ -1,8 +1,8 @@
 ## Title: Semi's Debug Playground
 ## Author: Semigroup1329
 ## APIVersion: 101050 101051
-## AddOnVersion: 532
-## Version: 0.0.532
+## AddOnVersion: 540
+## Version: 0.0.540
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings

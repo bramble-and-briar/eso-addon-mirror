@@ -840,7 +840,13 @@ function L:GetMissingItems(index, includeOpenBank)
         local dest = tonumber(slotText)
         local bag = self:FindSavedItem(entry, dest)
         if not bag and includeOpenBank == true then bag = self:FindSavedItemInBank(entry) end
-        if not bag then missing[#missing+1] = entry.link or ("Gear slot " .. tostring(slotText)) end
+        if not bag then
+            local label = entry.link
+            if type(entry.esohubSpec) == "table" and (tonumber(entry.esohubSpec.setId) or 0) > 0 then
+                label = string.format("ESO-Hub slot %s — set %d / trait %d", tostring(slotText), tonumber(entry.esohubSpec.setId) or 0, tonumber(entry.esohubSpec.traitType) or 0)
+            end
+            missing[#missing+1] = label or ("Gear slot " .. tostring(slotText))
+        end
     end
     if type(setup.food) == "table" and (tonumber(setup.food.itemId) or 0) > 0 then
         local foodBag = self:FindBackpackItemByItemId(setup.food.itemId)
@@ -941,7 +947,7 @@ function L:MoveItemsSequential(items, destinationResolver, callback)
 
     local function stopPolling()
         if EVENT_MANAGER and type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-            pcall(EVENT_MANAGER.UnregisterForUpdate, EVENT_MANAGER, updateName)
+            EPC.Runtime:UnregisterUpdate("LoadoutManager", "BankMove")
         end
     end
 
@@ -1034,7 +1040,7 @@ function L:MoveItemsSequential(items, destinationResolver, callback)
 
         if EVENT_MANAGER and type(EVENT_MANAGER.RegisterForUpdate) == "function" then
             stopPolling()
-            EVENT_MANAGER:RegisterForUpdate(updateName, 100, checkArrival)
+            EPC.Runtime:RegisterUpdate("LoadoutManager", "BankMove", 100, checkArrival)
         elseif type(zo_callLater) == "function" then
             local function pollLater()
                 checkArrival()
@@ -1325,9 +1331,8 @@ function L:Verify(index)
         if slot then
             gearExpected = gearExpected + 1
             local uid = uniqueIdString(BAG_WORN, slot)
-            local link = itemLink(BAG_WORN, slot)
             if (entry.uniqueId and entry.uniqueId ~= "" and uid == entry.uniqueId)
-                or ((not entry.uniqueId or entry.uniqueId == "") and tonumber(entry.itemId) == num(safe(GetItemLinkItemId,0,link))) then
+                or ((not entry.uniqueId or entry.uniqueId == "") and self:EntryMatches(BAG_WORN, slot, entry)) then
                 gearMatched = gearMatched + 1
             end
         end
@@ -1679,11 +1684,289 @@ function L:ExportSetup(index)
     return table.concat(fields, ";")
 end
 
+local function decodeUrlComponent(text)
+    text = tostring(text or "")
+    text = string.gsub(text, "%%(%x%x)", function(hex)
+        return string.char(tonumber(hex, 16) or 0)
+    end)
+    return text
+end
+
+function L:NormalizeESOHubImportText(text)
+    text = tostring(text or "")
+
+    -- ESO's edit controls can preserve CR/LF/TAB from browser clipboard data,
+    -- and some browsers prepend UTF-8 BOM / zero-width characters. addondata is
+    -- numeric/delimiter-only, so all of these are safe to remove before parsing.
+    text = string.gsub(text, "\239\187\191", "") -- UTF-8 BOM
+    text = string.gsub(text, "\226\128\139", "") -- U+200B zero-width space
+    text = string.gsub(text, "\226\128\140", "") -- U+200C zero-width non-joiner
+    text = string.gsub(text, "\226\128\141", "") -- U+200D zero-width joiner
+    text = string.gsub(text, "\194\160", "")      -- non-breaking space
+
+    local addonStart = string.find(string.lower(text), "addondata=", 1, true)
+    if addonStart then
+        text = string.sub(text, addonStart + 10)
+        local amp = string.find(text, "&", 1, true)
+        if amp then text = string.sub(text, 1, amp - 1) end
+        text = decodeUrlComponent(text)
+    end
+
+    -- Raw addondata copied from a browser can wrap visually or actually contain
+    -- clipboard whitespace. No valid field uses whitespace.
+    text = string.gsub(text, "%s+", "")
+
+    -- If the clipboard included a label/prefix, recover from the first canonical
+    -- class;race;role;attributes sequence instead of rejecting the whole paste.
+    local payloadStart = string.find(text, "%d+;%d+;%d+;%-?%d+:%-?%d+:%-?%d+;")
+    if payloadStart and payloadStart > 1 then text = string.sub(text, payloadStart) end
+
+    text = string.gsub(text, ";+$", "")
+    return text
+end
+
+function L:ParseESOHubBuildString(text)
+    text = self:NormalizeESOHubImportText(text)
+    if text == "" then return nil, "empty clipboard text" end
+
+    local p = splitPlain(text, ";")
+    if #p ~= 15 then
+        return nil, string.format("expected 15 sections, found %d", #p)
+    end
+    if not tonumber(p[1]) then return nil, "section 1 class is not numeric" end
+    if not tonumber((splitPlain(p[2] or "", ","))[1]) then return nil, "section 2 race is not numeric" end
+    if not tonumber(p[3]) then return nil, "section 3 role is not numeric" end
+
+    local ah,am,as = string.match(p[4] or "", "^(%-?%d+):(%-?%d+):(%-?%d+)$")
+    if not ah or not am or not as then return nil, "section 4 attributes are invalid" end
+
+    return p, nil
+end
+
+function L:IsESOHubBuildString(text)
+    local parts = self:ParseESOHubBuildString(text)
+    return parts ~= nil
+end
+
+local function firstNumericToken(text)
+    return tonumber(string.match(tostring(text or ""), "^(%-?%d+)")) or 0
+end
+
+function L:BuildImportedSkillProfileESOHub(primary, backup, passives, subclasses)
+    local profile = {
+        purchased = {}, purchasedCount = 0, unresolved = {},
+        importedFrom = "ESOHUB", subclasses = {},
+    }
+    for _,v in ipairs(splitPlain(subclasses or "", ",")) do
+        local id = tonumber(v)
+        if id and id > 0 then profile.subclasses[#profile.subclasses+1] = id end
+    end
+
+    local seen = {}
+    local function addToken(token)
+        token = tostring(token or "")
+        local abilityId = firstNumericToken(token)
+        if abilityId <= 0 or seen[abilityId] then return end
+        seen[abilityId] = true
+
+        local skillType, skillLine, abilityIndex, morphSlot = 0,0,0,0
+        if type(GetSpecificSkillAbilityKeysByAbilityId) == "function" then
+            skillType, skillLine, abilityIndex, morphSlot = safe(GetSpecificSkillAbilityKeysByAbilityId, 0, abilityId)
+            skillType, skillLine, abilityIndex, morphSlot =
+                tonumber(skillType) or 0, tonumber(skillLine) or 0, tonumber(abilityIndex) or 0, tonumber(morphSlot) or 0
+        end
+        if skillType <= 0 or skillLine <= 0 or abilityIndex <= 0 then
+            profile.unresolved[#profile.unresolved+1] = token
+            return
+        end
+
+        local _,_,_,passive,ultimate,purchased,progressionIndex,rank =
+            safe(GetSkillAbilityInfo, nil, skillType, skillLine, abilityIndex)
+        local key = string.format("%d:%d:%d", skillType, skillLine, abilityIndex)
+        profile.purchased[key] = {
+            abilityId = abilityId,
+            passive = passive == true,
+            ultimate = ultimate == true,
+            progressionIndex = tonumber(progressionIndex) or 0,
+            rank = tonumber(rank) or 0,
+            targetMorph = morphSlot,
+            importedToken = token,
+            alreadyPurchased = purchased == true,
+        }
+        profile.purchasedCount = profile.purchasedCount + 1
+    end
+
+    for _,field in ipairs({primary, backup, passives}) do
+        for _,token in ipairs(splitPlain(field or "", ",")) do addToken(token) end
+    end
+    return profile
+end
+
+function L:BuildImportedGearESOHub(gearText)
+    local gear = {}
+    local weaponSlots = {
+        [tonumber(rawget(_G,"EQUIP_SLOT_MAIN_HAND")) or -1001]=true,
+        [tonumber(rawget(_G,"EQUIP_SLOT_OFF_HAND")) or -1002]=true,
+        [tonumber(rawget(_G,"EQUIP_SLOT_BACKUP_MAIN")) or -1003]=true,
+        [tonumber(rawget(_G,"EQUIP_SLOT_BACKUP_OFF")) or -1004]=true,
+    }
+    local poisonSlots = {
+        [tonumber(rawget(_G,"EQUIP_SLOT_POISON")) or -1101]=true,
+        [tonumber(rawget(_G,"EQUIP_SLOT_BACKUP_POISON")) or -1102]=true,
+    }
+    local jewelrySlots = {
+        [tonumber(rawget(_G,"EQUIP_SLOT_NECK")) or -1201]=true,
+        [tonumber(rawget(_G,"EQUIP_SLOT_RING1")) or -1202]=true,
+        [tonumber(rawget(_G,"EQUIP_SLOT_RING2")) or -1203]=true,
+    }
+
+    for _,rawEntry in ipairs(splitPlain(gearText or "", ",")) do
+        local parts = splitPlain(rawEntry, ":")
+        local equipSlot = tonumber(parts[1])
+        if equipSlot ~= nil then
+            if poisonSlots[equipSlot] then
+                local itemId, secondId = tonumber(parts[2]) or 0, tonumber(parts[3]) or 0
+                if itemId > 0 then
+                    gear[tostring(equipSlot)] = {
+                        uniqueId = "", itemId = itemId,
+                        link = string.format("ESO-Hub poison %d", itemId),
+                        signature = {itemId=itemId,equipType=0,traitType=0,weaponType=0,armorType=0,setId=0},
+                        esohubSpec = {slot=equipSlot,itemId=itemId,secondId=secondId},
+                    }
+                end
+            else
+                local itemType = tonumber(parts[2]) or 0
+                local setId = tonumber(parts[3]) or 0
+                local trait = tonumber(parts[4]) or 0
+                local enchant = tonumber(parts[5]) or 0
+                local sig = {itemId=0,equipType=0,traitType=trait,weaponType=0,armorType=0,setId=setId}
+                if weaponSlots[equipSlot] then sig.weaponType = itemType
+                elseif not jewelrySlots[equipSlot] then sig.armorType = itemType end
+                gear[tostring(equipSlot)] = {
+                    uniqueId = "", itemId = 0,
+                    link = string.format("ESO-Hub gear: set %d / trait %d", setId, trait),
+                    signature = sig,
+                    esohubSpec = {slot=equipSlot,itemType=itemType,setId=setId,traitType=trait,enchantId=enchant},
+                }
+            end
+        end
+    end
+    return gear
+end
+
+function L:ImportESOHubSetup(index, text)
+    index = tonumber(index)
+    if not index or index < 1 or index > SLOT_COUNT then return false end
+    local raw = self:NormalizeESOHubImportText(text)
+    local p, parseError = self:ParseESOHubBuildString(raw)
+    if not p then
+        self.lastESOHubImportError029781 = tostring(parseError or "unrecognized format")
+        return false
+    end
+    self.lastESOHubImportError029781 = nil
+    local classId = tonumber(p[1]) or 0
+    local raceId = firstNumericToken(p[2])
+    local role = tonumber(p[3]) or 0
+    local ah,am,as = string.match(p[4] or "", "^(%-?%d+):(%-?%d+):(%-?%d+)$")
+    ah,am,as = tonumber(ah) or 0, tonumber(am) or 0, tonumber(as) or 0
+
+    local bars = {primary={},backup={}}
+    for i,v in ipairs(splitPlain(p[8] or "", ",")) do if i <= 6 then bars.primary[i] = firstNumericToken(v) end end
+    for i,v in ipairs(splitPlain(p[9] or "", ",")) do if i <= 6 then bars.backup[i] = firstNumericToken(v) end end
+    for i=1,6 do bars.primary[i]=tonumber(bars.primary[i]) or 0; bars.backup[i]=tonumber(bars.backup[i]) or 0 end
+
+    local champion = {
+        slots = {}, allocations = {}, slottedCount = 0,
+        allocationCount = 0, allocatedPoints = 0, importedFrom = "ESOHUB",
+    }
+    local firstSlot,lastSlot = self:GetChampionSlots()
+    local slotValues = splitPlain(p[11] or "", ",")
+    for i=1,math.min(#slotValues, math.max(0,lastSlot-firstSlot+1)) do
+        local id = tonumber(slotValues[i]) or 0
+        local slot = firstSlot + i - 1
+        champion.slots[tostring(slot)] = id
+        if id > 0 then champion.slottedCount = champion.slottedCount + 1 end
+    end
+    champion.firstSlot, champion.lastSlot = firstSlot,lastSlot
+    for _,pair in ipairs(splitPlain(p[12] or "", ",")) do
+        local id,points = string.match(pair, "^(%d+):(%d+)$")
+        id,points = tonumber(id),tonumber(points)
+        if id and points and id > 0 and points > 0 then
+            champion.allocations[tostring(id)] = points
+            champion.allocationCount = champion.allocationCount + 1
+            champion.allocatedPoints = champion.allocatedPoints + points
+        end
+    end
+
+    local skills = self:BuildImportedSkillProfileESOHub(p[8], p[9], p[10], p[7])
+    local gear = self:BuildImportedGearESOHub(p[13])
+    local foodId = firstNumericToken(p[14])
+    local potionId = firstNumericToken(p[15])
+    local potionSecondId = tonumber(string.match(tostring(p[15] or ""), "^%d+:(%d+)")) or 0
+
+    local className = ""
+    if classId > 0 and type(GetClassName) == "function" then
+        className = tostring(safe(GetClassName, "", rawget(_G,"GENDER_MALE") or 2, classId) or "")
+    end
+    local setupName = className ~= "" and ("ESO-Hub "..className) or "ESO-Hub Build"
+
+    local setup = {
+        name = setupName,
+        gear = gear,
+        bars = bars,
+        build = {
+            version = 3,
+            attributes = {health=ah,magicka=am,stamina=as,total=ah+am+as},
+            champion = champion,
+            skills = skills,
+        },
+        food = foodId > 0 and {itemId=foodId,link="",icon=""} or nil,
+        potion = potionId > 0 and {itemId=potionId,secondId=potionSecondId} or nil,
+        savedAt = safe(GetTimeStamp, 0) or 0,
+        imported = {
+            source = "ESOHUB", raw = raw, classId = classId, raceId = raceId,
+            role = role, curseId = tonumber(p[5]) or 0, mundusId = tonumber(p[6]) or 0,
+            subclasses = p[7] or "",
+        },
+    }
+
+    self:EnsureSaved()[index] = setup
+    self:RebuildGearIndex()
+    self:RefreshUI()
+
+    local unresolved = type(skills.unresolved) == "table" and #skills.unresolved or 0
+    local gearCount = 0
+    for _ in pairs(gear) do gearCount = gearCount + 1 end
+
+    local mismatch = {}
+    local currentClass = num(safe(GetUnitClassId, 0, "player")) or 0
+    local currentRace = num(safe(GetUnitRaceId, 0, "player")) or 0
+    if currentClass > 0 and classId > 0 and currentClass ~= classId then
+        mismatch[#mismatch+1] = string.format("class %d required (you are %d)", classId, currentClass)
+    end
+    if currentRace > 0 and raceId > 0 and currentRace ~= raceId then
+        mismatch[#mismatch+1] = string.format("race %d required (you are %d)", raceId, currentRace)
+    end
+
+    local suffix = ""
+    if unresolved > 0 then suffix = suffix .. string.format(" | %d skill IDs unresolved", unresolved) end
+    if #mismatch > 0 then suffix = suffix .. " | WARNING: " .. table.concat(mismatch, "; ") end
+    notify(string.format(
+        "BUILD %d imported from ESO-Hub: %d skills, %d gear slots, %d CP stars%s.",
+        index, tonumber(skills.purchasedCount) or 0, gearCount, tonumber(champion.allocationCount) or 0, suffix
+    ), unresolved == 0 and #mismatch == 0)
+    return true
+end
+
 function L:ImportSetup(index, text)
     index = tonumber(index)
     text = tostring(text or "")
+    if index and index >= 1 and index <= SLOT_COUNT and string.sub(text,1,11) ~= "EASLOADOUT1" then
+        if self:ImportESOHubSetup(index, text) then return true end
+    end
     if not index or index < 1 or index > SLOT_COUNT or string.sub(text,1,11) ~= "EASLOADOUT1" then
-        notify("LOADOUTS: invalid ESO Adventurer Suite setup code.", false)
+        local why = tostring(self.lastESOHubImportError029781 or "")
+        notify("LOADOUTS: invalid setup code." .. (why ~= "" and (" ESO-Hub parser: " .. why .. ".") or "") .. " Paste an EASLOADOUT1 code or ESO-Hub addondata.", false)
         return false
     end
     local data = {}
@@ -1757,7 +2040,7 @@ end
 
 function L:ShowImport(index)
     self:HideSetupPopup()
-    self:CreateTransferDialog(); self.transferIndex=index; self.transferTitle:SetText("IMPORT SETUP — PASTE CODE"); self.transferEdit:SetText(""); self.transferApply:SetHidden(false); self.transferWindow:SetHidden(false); self:RaiseModal(self.transferWindow, 12500); self.transferEdit:TakeFocus()
+    self:CreateTransferDialog(); self.transferIndex=index; self.transferTitle:SetText("IMPORT — EAS OR ESO-HUB CODE / URL"); self.transferEdit:SetText(""); self.transferApply:SetHidden(false); self.transferWindow:SetHidden(false); self:RaiseModal(self.transferWindow, 12500); self.transferEdit:TakeFocus()
 end
 
 function L:FindPrebuffAbility(preset)
@@ -2067,16 +2350,16 @@ function L:EnsureWindowSaved()
     EPC.saved = EPC.saved or {}
     EPC.saved.savedLoadoutWindow = EPC.saved.savedLoadoutWindow or {}
     local s = EPC.saved.savedLoadoutWindow
-    -- Layout v3 is intentionally compact. Keep all 16 setup slots, but page
-    -- four cards at a time so the workspace no longer dominates the screen.
-    -- Preserve the user's saved position while migrating the old v2 size.
-    if (tonumber(s.layoutVersion) or 0) < 3 then
-        s.width = 940
-        s.height = 660
-        s.layoutVersion = 3
+    -- Layout v4 is a compact ESO-style workspace. Four build cards remain
+    -- visible at once, but every internal region now reflows from the live
+    -- window/card dimensions so text and controls cannot overlap.
+    if (tonumber(s.layoutVersion) or 0) < 4 then
+        s.width = 900
+        s.height = 590
+        s.layoutVersion = 4
     end
-    s.width = tonumber(s.width) or 940
-    s.height = tonumber(s.height) or 660
+    s.width = tonumber(s.width) or 900
+    s.height = tonumber(s.height) or 590
     return s
 end
 
@@ -2129,7 +2412,7 @@ function L:GetDefaultWindowAnchor()
     local guiW, guiH = GuiRoot:GetDimensions()
     guiW = tonumber(guiW) or 1920
     guiH = tonumber(guiH) or 1080
-    local width, height = 940, 660
+    local width, height = 900, 590
     local x = math.floor((guiW - width) * 0.5 + 150)
     local y = math.floor((guiH - height) * 0.5)
 
@@ -2161,8 +2444,8 @@ end
 function L:RestoreWindowPlacement(forceReposition)
     if not self.window then return end
     local s = self:EnsureWindowSaved()
-    local w = math.max(880, math.min(1180, tonumber(s.width) or 940))
-    local h = math.max(640, math.min(820, tonumber(s.height) or 660))
+    local w = math.max(860, math.min(1120, tonumber(s.width) or 900))
+    local h = math.max(560, math.min(760, tonumber(s.height) or 590))
     self.window:SetDimensions(w, h)
     self.window:ClearAnchors()
     if forceReposition == true or not tonumber(s.left) or not tonumber(s.top) then
@@ -2242,33 +2525,200 @@ local function makeButton(name, parent, text, handler)
     return b
 end
 
+local function makeEsoTab(name, parent, text, handler)
+    local b = wm:CreateControl(name, parent, CT_BUTTON)
+    b:SetFont("ZoFontGameBold")
+    b:SetText(text)
+    if b.SetHorizontalAlignment then b:SetHorizontalAlignment(TEXT_ALIGN_CENTER) end
+    if b.SetVerticalAlignment then b:SetVerticalAlignment(TEXT_ALIGN_CENTER) end
+    local hitBG = wm:CreateControl(name .. "BG", b, CT_BACKDROP)
+    hitBG:SetAnchorFill(b)
+    hitBG:SetCenterColor(0.018,0.026,0.038,0.18)
+    hitBG:SetEdgeColor(0,0,0,0)
+    hitBG:SetEdgeTexture(nil,1,1,1)
+    if hitBG.SetDrawLevel then hitBG:SetDrawLevel(0) end
+    local line = wm:CreateControl(name .. "Selected", b, CT_BACKDROP)
+    line:SetAnchor(BOTTOMLEFT,b,BOTTOMLEFT,6,0)
+    line:SetAnchor(BOTTOMRIGHT,b,BOTTOMRIGHT,-6,0)
+    line:SetHeight(2)
+    line:SetCenterColor(0.86,0.68,0.30,0.98)
+    line:SetEdgeColor(0,0,0,0)
+    line:SetEdgeTexture(nil,1,1,1)
+    line:SetHidden(true)
+    b.easTabBG = hitBG
+    b.easTabLine = line
+    if handler then b:SetHandler("OnClicked", handler) end
+    return b
+end
+
+local function setEsoTabSelected(tab, selected)
+    if not tab then return end
+    selected = selected == true
+    if tab.easTabLine then tab.easTabLine:SetHidden(not selected) end
+    if tab.easTabBG then
+        tab.easTabBG:SetCenterColor(selected and 0.080 or 0.018, selected and 0.064 or 0.026, selected and 0.040 or 0.038, selected and 0.70 or 0.18)
+    end
+    if type(tab.SetNormalFontColor) == "function" then
+        if selected then tab:SetNormalFontColor(0.96,0.80,0.46,1)
+        else tab:SetNormalFontColor(0.66,0.72,0.80,1) end
+    end
+end
+
 function L:LayoutUI()
     if not self.window or not self.cards then return end
     local w, h = self.window:GetDimensions()
-    w = tonumber(w) or 940
-    h = tonumber(h) or 660
-    local gapX, gapY = 10, 10
-    local side = 16
-    local startY = 216
-    local cardW = math.floor((w - side * 2 - gapX) / 2)
-    local cardH = math.max(170, math.min(190, math.floor((h - startY - 34 - gapY) / 2)))
+    w = tonumber(w) or 900
+    h = tonumber(h) or 590
 
-    for i=1,SLOT_COUNT do
-        local c = self.cards[i]
-        if c and c.card then
-            local visual = (i - 1) % 4
-            local row = math.floor(visual / 2)
-            local col = visual % 2
-            c.card:ClearAnchors()
-            c.card:SetAnchor(TOPLEFT, self.window, TOPLEFT, side + col * (cardW + gapX), startY + row * (cardH + gapY))
-            c.card:SetDimensions(cardW, cardH)
-            if c.status then c.status:SetDimensions(cardW - 18, 18) end
+    local side, gapX, gapY = 14, 10, 10
+    local startY = 170
+    local footerReserve = 30
+    local cardW = math.floor((w - side * 2 - gapX) / 2)
+    local cardH = math.floor((h - startY - footerReserve - gapY) / 2)
+    cardH = math.max(168, math.min(188, cardH))
+
+    -- Header controls resize with the window instead of relying on a 940px canvas.
+    if self.loadoutSub then self.loadoutSub:SetDimensions(math.max(300,w-96),18) end
+
+    -- One compact toolbar row. Widths are budgeted from the live window width so
+    -- no action can escape the right edge at the minimum supported size.
+    local toolbar = self.pageToolbar
+    if toolbar then
+        local gap = 4
+        local x = 18
+        local fixed = {
+            {toolbar.prev,28},{toolbar.next,28},
+        }
+        for _,spec in ipairs(fixed) do
+            local control,width = spec[1],spec[2]
+            if control then
+                control:ClearAnchors()
+                control:SetAnchor(TOPLEFT,self.window,TOPLEFT,x,68)
+                control:SetDimensions(width,26)
+            end
+            x = x + width + gap
+        end
+
+        local remainingFixed = 58+58+76+100+82+70+70 + gap*7
+        local nameW = math.max(150, math.min(196, w - x - remainingFixed - 18))
+        if self.pageNameBG then
+            self.pageNameBG:ClearAnchors()
+            self.pageNameBG:SetAnchor(TOPLEFT,self.window,TOPLEFT,x,68)
+            self.pageNameBG:SetDimensions(nameW,26)
+            if self.pageNameEdit then self.pageNameEdit:SetDimensions(nameW-14,18) end
+        end
+        x = x + nameW + gap
+
+        local actions = {
+            {toolbar.newPage,58},{toolbar.deletePage,58},{toolbar.bindZone,76},
+            {toolbar.raidAuto,100},{toolbar.checkPage,82},{toolbar.withdraw,70},{toolbar.deposit,70},
+        }
+        for _,spec in ipairs(actions) do
+            local control,width = spec[1],spec[2]
+            if control then
+                control:ClearAnchors()
+                control:SetAnchor(TOPLEFT,self.window,TOPLEFT,x,68)
+                control:SetDimensions(width,26)
+            end
+            x = x + width + gap
+        end
+    elseif self.pageNameBG then
+        self.pageNameBG:SetDimensions(math.max(150,math.min(196,math.floor(w*0.22))),26)
+        if self.pageNameEdit then self.pageNameEdit:SetDimensions(self.pageNameBG:GetWidth()-14,18) end
+    end
+    if self.pageStatus then
+        self.pageStatus:SetDimensions(w - 28, 28)
+        if type(self.pageStatus.SetMaxLineCount)=="function" then self.pageStatus:SetMaxLineCount(2) end
+    end
+    if self.headerDivider then
+        self.headerDivider:ClearAnchors()
+        self.headerDivider:SetAnchor(TOPLEFT,self.window,TOPLEFT,14,126)
+        self.headerDivider:SetAnchor(TOPRIGHT,self.window,TOPRIGHT,-14,126)
+    end
+    if self.tabStripBG then self.tabStripBG:SetDimensions(w-28,36) end
+    if self.slotTabs then
+        local usable = w - 36
+        local tabW = math.floor(usable / 4)
+        for n,tab in ipairs(self.slotTabs) do
+            tab:ClearAnchors()
+            tab:SetAnchor(TOPLEFT,self.window,TOPLEFT,18+(n-1)*tabW,132)
+            tab:SetDimensions(tabW,32)
         end
     end
-    if self.pageStatus then self.pageStatus:SetDimensions(w - 32, 20) end
-    if self.footer then self.footer:SetDimensions(w - 32, 18) end
-end
 
+    for i=1,SLOT_COUNT do
+        local card = self.cards[i]
+        if card and card.card then
+            local visual = (i - 1) % 4
+            local row, col = math.floor(visual / 2), visual % 2
+            card.card:ClearAnchors()
+            card.card:SetAnchor(TOPLEFT,self.window,TOPLEFT,side + col*(cardW+gapX),startY + row*(cardH+gapY))
+            card.card:SetDimensions(cardW,cardH)
+
+            local tagW = math.max(108, math.min(150, math.floor(cardW*0.34)))
+            local nameW = math.max(118, cardW - 44 - tagW - 22)
+            if card.nameBG then
+                card.nameBG:ClearAnchors()
+                card.nameBG:SetAnchor(TOPLEFT,card.card,TOPLEFT,44,8)
+                card.nameBG:SetDimensions(nameW,24)
+            end
+            if card.edit then card.edit:SetDimensions(math.max(90,nameW-12),18) end
+            if card.tag then
+                card.tag:ClearAnchors()
+                card.tag:SetAnchor(TOPRIGHT,card.card,TOPRIGHT,-8,9)
+                card.tag:SetDimensions(tagW,19)
+            end
+            if card.status then
+                card.status:SetDimensions(cardW-16,30)
+                if type(card.status.SetMaxLineCount)=="function" then card.status:SetMaxLineCount(2) end
+            end
+
+            local iconSize = cardW < 410 and 22 or 24
+            local iconGap = 3
+            local iconStartX = 42
+            for _,rowData in ipairs({{card.frontLabel,card.frontIcons},{card.backLabel,card.backIcons}}) do
+                local label, icons = rowData[1],rowData[2]
+                if label then label:SetDimensions(28,18) end
+                for n,holder in ipairs(icons or {}) do
+                    holder.frame:ClearAnchors()
+                    local y = icons == card.frontIcons and 66 or 95
+                    holder.frame:SetAnchor(TOPLEFT,card.card,TOPLEFT,iconStartX+(n-1)*(iconSize+iconGap),y)
+                    holder.frame:SetDimensions(iconSize,iconSize)
+                end
+            end
+
+            local rightGap = 5
+            local rightW = math.max(132,math.min(172,cardW - (iconStartX + 6*(iconSize+iconGap)) - 14))
+            local half = math.floor((rightW-rightGap)/2)
+            local rightX = cardW - rightW - 8
+            local function placeRight(control, xOff, y, width)
+                if not control then return end
+                control:ClearAnchors()
+                control:SetAnchor(TOPLEFT,card.card,TOPLEFT,rightX+xOff,y)
+                control:SetDimensions(width,25)
+            end
+            placeRight(card.gearDrop,0,66,half)
+            placeRight(card.foodDrop,half+rightGap,66,half)
+            if card.cpBadge then
+                card.cpBadge:ClearAnchors()
+                card.cpBadge:SetAnchor(TOPLEFT,card.card,TOPLEFT,rightX,95)
+                card.cpBadge:SetDimensions(half,25)
+            end
+            placeRight(card.readyButton,half+rightGap,95,half)
+
+            local actionGap = 6
+            local actionW = math.floor((cardW - 16 - actionGap*2)/3)
+            for n,control in ipairs({card.loadButton,card.saveButton,card.moreButton}) do
+                if control then
+                    control:ClearAnchors()
+                    control:SetAnchor(BOTTOMLEFT,card.card,BOTTOMLEFT,8+(n-1)*(actionW+actionGap),-8)
+                    control:SetDimensions(actionW,27)
+                end
+            end
+        end
+    end
+    if self.footer then self.footer:SetDimensions(w - 28, 18) end
+end
 -- v0.29.279: raw-key fallback for the Loadout Saver toggle. ESO can suppress
 -- inherited custom action-layer bindings while a mouse-driven top-level window
 -- owns UI mode. Compare the actual key-down against the user's saved binding so
@@ -2347,8 +2797,8 @@ function L:CreateUI()
     if self.window then return end
 
     local win = wm:CreateTopLevelWindow("EAS_LoadoutManager")
-    win:SetDimensions(940, 660)
-    if win.SetDimensionConstraints then win:SetDimensionConstraints(880, 640, 1180, 820) end
+    win:SetDimensions(900, 590)
+    if win.SetDimensionConstraints then win:SetDimensionConstraints(860, 560, 1120, 760) end
     if win.SetResizeHandleSize then win:SetResizeHandleSize(24) end
     win:SetClampedToScreen(false)
     win:SetMovable(true)
@@ -2374,9 +2824,10 @@ function L:CreateUI()
 
     local sub = wm:CreateControl("EAS_LoadoutManagerSub", win, CT_LABEL)
     sub:SetFont("ZoFontGameSmall")
-    sub:SetText("Gear  •  Skills  •  CP  •  Food  •  Raid Auto    |    Food: click ADD FOOD or drag from inventory")
-    sub:SetAnchor(TOPLEFT,win,TOPLEFT,21,45)
-    sub:SetDimensions(760,20)
+    sub:SetText("Gear  •  Skills  •  Champion  •  Food  •  Raid presets")
+    sub:SetAnchor(TOPLEFT,win,TOPLEFT,21,43)
+    sub:SetDimensions(780,18)
+    self.loadoutSub=sub
     sub:SetColor(0.57,0.69,0.82,1)
 
     local close = makeButton("EAS_LoadoutManagerClose",win,"X",function() self:Hide() end)
@@ -2387,20 +2838,24 @@ function L:CreateUI()
 
     -- Page selector row.
     local prev = makeButton("EAS_LoadoutPagePrev",win,"<",function() self:CyclePage(-1) end)
-    prev:SetAnchor(TOPLEFT,win,TOPLEFT,18,72); prev:SetDimensions(34,28)
+    prev:SetAnchor(TOPLEFT,win,TOPLEFT,18,68); prev:SetDimensions(30,26)
     attachTooltip(prev,"Previous loadout page")
     local nextb = makeButton("EAS_LoadoutPageNext",win,">",function() self:CyclePage(1) end)
-    nextb:SetAnchor(TOPLEFT,win,TOPLEFT,57,72); nextb:SetDimensions(34,28)
+    nextb:SetAnchor(TOPLEFT,win,TOPLEFT,52,68); nextb:SetDimensions(30,26)
     attachTooltip(nextb,"Next loadout page")
+    self.pageToolbar=self.pageToolbar or {}
+    self.pageToolbar.prev=prev
+    self.pageToolbar.next=nextb
 
     local pageNameBG=makeBackdrop("EAS_LoadoutPageNameBG",win)
-    pageNameBG:SetAnchor(TOPLEFT,win,TOPLEFT,98,72)
-    pageNameBG:SetDimensions(190,28)
+    pageNameBG:SetAnchor(TOPLEFT,win,TOPLEFT,88,68)
+    pageNameBG:SetDimensions(190,26)
+    self.pageNameBG=pageNameBG
     pageNameBG:SetCenterColor(0.018,0.030,0.046,0.98)
     pageNameBG:SetEdgeColor(0.25,0.43,0.62,0.88)
     local pageEdit=wm:CreateControl("EAS_LoadoutPageName",pageNameBG,CT_EDITBOX)
-    pageEdit:SetAnchor(TOPLEFT,pageNameBG,TOPLEFT,8,4)
-    pageEdit:SetDimensions(174,20)
+    pageEdit:SetAnchor(TOPLEFT,pageNameBG,TOPLEFT,7,4)
+    pageEdit:SetDimensions(176,18)
     pageEdit:SetFont("ZoFontGameBold")
     pageEdit:SetMaxInputChars(32)
     pageEdit:SetMouseEnabled(true)
@@ -2410,73 +2865,74 @@ function L:CreateUI()
     self.pageNameEdit=pageEdit
 
     local newPage=makeButton("EAS_LoadoutNewPage",win,"+ PAGE",function() self:AddPage() end)
-    newPage:SetAnchor(TOPLEFT,win,TOPLEFT,295,72); newPage:SetDimensions(72,28)
+    newPage:SetAnchor(TOPLEFT,win,TOPLEFT,286,68); newPage:SetDimensions(66,26)
     attachTooltip(newPage,"Create a new setup page")
+    self.pageToolbar.newPage=newPage
     local delPage=makeButton("EAS_LoadoutDeletePage",win,"DELETE",function() self:DeleteCurrentPage() end)
-    delPage:SetAnchor(TOPLEFT,win,TOPLEFT,373,72); delPage:SetDimensions(72,28)
+    delPage:SetAnchor(TOPLEFT,win,TOPLEFT,356,68); delPage:SetDimensions(66,26)
     attachTooltip(delPage,"Delete the current page")
+    self.pageToolbar.deletePage=delPage
     local bindZone=makeButton("EAS_LoadoutBindZone",win,"BIND ZONE",function()
         local p=self:GetCurrentPage()
         if tonumber(p.zoneId or 0)>0 then self:UnbindCurrentPageZone() else self:BindCurrentPageToZone() end
     end)
-    bindZone:SetAnchor(TOPLEFT,win,TOPLEFT,451,72); bindZone:SetDimensions(94,28); self.bindZoneButton=bindZone
+    bindZone:SetAnchor(TOPLEFT,win,TOPLEFT,426,68); bindZone:SetDimensions(86,26); self.bindZoneButton=bindZone
     attachTooltip(bindZone,"Bind this page to the current trial/zone")
+    self.pageToolbar.bindZone=bindZone
 
     local raidAuto=makeButton("EAS_LoadoutRaidAuto",win,"RAID AUTO",function()
         EPC.saved.loadoutAutoEquipRaids029272 = EPC.saved.loadoutAutoEquipRaids029272 ~= true
         self:RefreshUI()
     end)
-    raidAuto:SetAnchor(TOPLEFT,win,TOPLEFT,18,108); raidAuto:SetDimensions(116,28); self.raidAutoButton=raidAuto
+    raidAuto:SetAnchor(TOPLEFT,win,TOPLEFT,520,68); raidAuto:SetDimensions(112,26); self.raidAutoButton=raidAuto
     attachTooltip(raidAuto,"Automatically equip your bound setup when entering raids or boss encounters")
+    self.pageToolbar.raidAuto=raidAuto
 
     local checkPage=makeButton("EAS_LoadoutCheckPage",win,"CHECK PAGE",function() self:CheckCurrentPageMissing() end)
-    checkPage:SetAnchor(TOPLEFT,win,TOPLEFT,140,108); checkPage:SetDimensions(104,28)
+    checkPage:SetAnchor(TOPLEFT,win,TOPLEFT,638,68); checkPage:SetDimensions(92,26)
     attachTooltip(checkPage,"Check every saved setup on this page for missing gear")
+    self.pageToolbar.checkPage=checkPage
 
     local withdraw=makeButton("EAS_LoadoutWithdrawPage",win,"WITHDRAW",function() self:TransferCurrentPage("withdraw") end)
-    withdraw:SetAnchor(TOPLEFT,win,TOPLEFT,250,108); withdraw:SetDimensions(98,28); self.withdrawPageButton=withdraw
+    withdraw:SetAnchor(TOPLEFT,win,TOPLEFT,736,68); withdraw:SetDimensions(72,26); self.withdrawPageButton=withdraw
     attachTooltip(withdraw,"With a bank open, withdraw gear used by this page")
+    self.pageToolbar.withdraw=withdraw
     local deposit=makeButton("EAS_LoadoutDepositPage",win,"DEPOSIT",function() self:TransferCurrentPage("deposit") end)
-    deposit:SetAnchor(TOPLEFT,win,TOPLEFT,354,108); deposit:SetDimensions(98,28); self.depositPageButton=deposit
+    deposit:SetAnchor(TOPLEFT,win,TOPLEFT,812,68); deposit:SetDimensions(72,26); self.depositPageButton=deposit
     attachTooltip(deposit,"With a bank open, deposit gear used by this page")
+    self.pageToolbar.deposit=deposit
 
     local pageStatus=wm:CreateControl("EAS_LoadoutPageStatus",win,CT_LABEL)
     pageStatus:SetFont("ZoFontGameSmall")
-    pageStatus:SetAnchor(TOPLEFT,win,TOPLEFT,18,143)
-    pageStatus:SetDimensions(904,20)
+    pageStatus:SetAnchor(TOPLEFT,win,TOPLEFT,18,101)
+    pageStatus:SetDimensions(864,28)
     pageStatus:SetColor(0.58,0.70,0.83,1)
     self.pageStatus=pageStatus
 
     local divider=makeBackdrop("EAS_LoadoutHeaderDivider",win)
-    divider:SetAnchor(TOPLEFT,win,TOPLEFT,16,168)
-    divider:SetAnchor(TOPRIGHT,win,TOPRIGHT,-16,168)
+    divider:SetAnchor(TOPLEFT,win,TOPLEFT,14,126)
+    divider:SetAnchor(TOPRIGHT,win,TOPRIGHT,-14,126)
+    self.headerDivider=divider
     divider:SetHeight(1)
     divider:SetCenterColor(0.16,0.28,0.42,0.88)
     divider:SetEdgeColor(0,0,0,0)
 
-    local groupLabel=wm:CreateControl("EAS_LoadoutSetupGroupLabel",win,CT_LABEL)
-    groupLabel:SetFont("ZoFontGameBold")
-    groupLabel:SetText("SETUPS")
-    groupLabel:SetAnchor(TOPLEFT,win,TOPLEFT,18,180)
-    groupLabel:SetDimensions(66,24)
-    groupLabel:SetColor(0.72,0.80,0.90,1)
+    local tabStripBG=makeBackdrop("EAS_LoadoutTabStripBG",win)
+    tabStripBG:SetAnchor(TOPLEFT,win,TOPLEFT,14,130)
+    tabStripBG:SetDimensions(872,36)
+    tabStripBG:SetCenterColor(0.008,0.013,0.021,0.74)
+    tabStripBG:SetEdgeColor(0.10,0.18,0.28,0.72)
+    self.tabStripBG=tabStripBG
 
-    local bank1=makeButton("EAS_LoadoutSlotBank1",win,"1 - 4",function() self:SetSlotBank(1) end)
-    bank1:SetAnchor(TOPLEFT,win,TOPLEFT,82,176); bank1:SetDimensions(76,28); self.slotBank1Button=bank1
-    local bank2=makeButton("EAS_LoadoutSlotBank2",win,"5 - 8",function() self:SetSlotBank(2) end)
-    bank2:SetAnchor(TOPLEFT,win,TOPLEFT,164,176); bank2:SetDimensions(76,28); self.slotBank2Button=bank2
-    local bank3=makeButton("EAS_LoadoutSlotBank3",win,"9 - 12",function() self:SetSlotBank(3) end)
-    bank3:SetAnchor(TOPLEFT,win,TOPLEFT,246,176); bank3:SetDimensions(82,28); self.slotBank3Button=bank3
-    local bank4=makeButton("EAS_LoadoutSlotBank4",win,"13 - 16",function() self:SetSlotBank(4) end)
-    bank4:SetAnchor(TOPLEFT,win,TOPLEFT,334,176); bank4:SetDimensions(82,28); self.slotBank4Button=bank4
-
-    local guide=wm:CreateControl("EAS_LoadoutGuide",win,CT_LABEL)
-    guide:SetFont("ZoFontGameSmall")
-    guide:SetText("Drag to edit  •  Right-click / MANAGE for more")
-    guide:SetAnchor(TOPRIGHT,win,TOPRIGHT,-18,183)
-    guide:SetDimensions(470,20)
-    guide:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    guide:SetColor(0.43,0.55,0.69,1)
+    self.slotTabs={}
+    local tabDefs={{"BUILDS 1–4",1},{"BUILDS 5–8",2},{"BUILDS 9–12",3},{"BUILDS 13–16",4}}
+    for n,def in ipairs(tabDefs) do
+        local tab=makeEsoTab("EAS_LoadoutSlotBank"..n,win,def[1],function() self:SetSlotBank(def[2]) end)
+        tab:SetAnchor(TOPLEFT,win,TOPLEFT,18+(n-1)*216,132)
+        tab:SetDimensions(216,32)
+        self["slotBank"..n.."Button"]=tab
+        self.slotTabs[n]=tab
+    end
 
     self.cards={}
     self.slotBank = self.slotBank or 1
@@ -2545,7 +3001,7 @@ function L:CreateUI()
         local status=wm:CreateControl("EAS_LoadoutStatus"..i,card,CT_LABEL)
         status:SetFont("ZoFontGameSmall")
         status:SetAnchor(TOPLEFT,card,TOPLEFT,8,36)
-        status:SetDimensions(424,18)
+        status:SetDimensions(424,30)
         status:SetColor(0.57,0.68,0.80,1)
 
         local function createIconRow(prefix,y,barKey,labelText)
@@ -2578,14 +3034,16 @@ function L:CreateUI()
             end
             return icons
         end
-        local frontIcons=createIconRow("EAS_Loadout"..i.."Front",58,"primary","F")
-        local backIcons=createIconRow("EAS_Loadout"..i.."Back",88,"backup","B")
+        local frontIcons=createIconRow("EAS_Loadout"..i.."Front",66,"primary","F")
+        local backIcons=createIconRow("EAS_Loadout"..i.."Back",95,"backup","B")
+        local frontLabel=_G["EAS_Loadout"..i.."FrontLabel"]
+        local backLabel=_G["EAS_Loadout"..i.."BackLabel"]
 
         -- Large, explicit drop/status targets replace the old GEA/FOO abbreviations.
         local gearDrop=makeButton("EAS_LoadoutGearDrop"..i,card,"GEAR",function()
             if num(safe(GetCursorContentType,0))~=(rawget(_G,"MOUSE_CONTENT_EMPTY") or 0) then self:DropGearOnSetup(i) else self:CheckMissing(i) end
         end)
-        gearDrop:SetAnchor(TOPRIGHT,card,TOPRIGHT,-96,58)
+        gearDrop:SetAnchor(TOPRIGHT,card,TOPRIGHT,-96,66)
         gearDrop:SetDimensions(88,26)
         gearDrop:SetMouseEnabled(true)
         gearDrop:SetHandler("OnReceiveDrag",function() self:DropGearOnSetup(i) end)
@@ -2599,14 +3057,14 @@ function L:CreateUI()
                 self:ShowFoodPicker(i,foodDrop)
             end
         end)
-        foodDrop:SetAnchor(TOPRIGHT,card,TOPRIGHT,-6,58)
+        foodDrop:SetAnchor(TOPRIGHT,card,TOPRIGHT,-6,66)
         foodDrop:SetDimensions(84,26)
         foodDrop:SetMouseEnabled(true)
         foodDrop:SetHandler("OnReceiveDrag",function() self:DropFoodOnSetup(i) end)
         attachTooltip(foodDrop,"Click to choose food/drink from your backpack, or drag food here. Loading the setup uses the saved food when Loadout Food is enabled.")
 
         local cpBadge=makeBackdrop("EAS_LoadoutCPBadge"..i,card)
-        cpBadge:SetAnchor(TOPRIGHT,card,TOPRIGHT,-96,88)
+        cpBadge:SetAnchor(TOPRIGHT,card,TOPRIGHT,-96,95)
         cpBadge:SetDimensions(88,26)
         cpBadge:SetCenterColor(0.018,0.028,0.042,0.95)
         cpBadge:SetEdgeColor(0.17,0.28,0.42,0.78)
@@ -2618,7 +3076,7 @@ function L:CreateUI()
         cpLabel:SetColor(0.66,0.77,0.90,1)
 
         local ready=makeButton("EAS_LoadoutReady"..i,card,"EMPTY",function() self:CheckMissing(i) end)
-        ready:SetAnchor(TOPRIGHT,card,TOPRIGHT,-6,88)
+        ready:SetAnchor(TOPRIGHT,card,TOPRIGHT,-6,95)
         ready:SetDimensions(84,26)
         attachTooltip(ready,"Check whether all saved gear is available in your inventory or open bank")
 
@@ -2631,15 +3089,16 @@ function L:CreateUI()
         attachTooltip(more,"Boss rules, bank actions, import/export, rename, and clear")
 
         self.cards[i]={
-            card=card,nameBG=nameBG,edit=edit,status=status,tag=tag,
-            frontIcons=frontIcons,backIcons=backIcons,loadButton=equip,saveButton=save,moreButton=more,
-            gearDrop=gearDrop,foodDrop=foodDrop,cpLabel=cpLabel,readyButton=ready,renaming=false
+            card=card,slotBadge=slotBadge,nameBG=nameBG,edit=edit,status=status,tag=tag,
+            frontLabel=frontLabel,backLabel=backLabel,frontIcons=frontIcons,backIcons=backIcons,
+            loadButton=equip,saveButton=save,moreButton=more,
+            gearDrop=gearDrop,foodDrop=foodDrop,cpBadge=cpBadge,cpLabel=cpLabel,readyButton=ready,renaming=false
         }
     end
 
     local footer=wm:CreateControl("EAS_LoadoutFooter",win,CT_LABEL)
     footer:SetFont("ZoFontGameSmall")
-    footer:SetText("Hotkey: Controls  >  Keybindings  >  General  >  ESO Adventurer Suite  >  Open / Close Loadout Saver")
+    footer:SetText("Left-click name: equip  •  Right-click card: manage  •  Drag gear/food/skills to edit  •  Hotkey closes")
     footer:SetAnchor(BOTTOMLEFT,win,BOTTOMLEFT,18,-9)
     footer:SetDimensions(908,18)
     footer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
@@ -2673,7 +3132,7 @@ function L:RefreshUI()
     if self.pageStatus then
         local bound = zoneName~="" and ("Bound to "..zoneName) or "Not zone-bound"
         local entry = tonumber(page.zoneAutoSlot or 0)>0 and ("Raid entry Setup "..tostring(page.zoneAutoSlot)) or "No raid-entry setup"
-        self.pageStatus:SetText(string.format("Page %d of %d  •  %s  •  %s  •  %d boss rule%s%s",pagePos,#ids,bound,entry,bossCount,bossCount==1 and "" or "s",bankOpen and "  •  BANK OPEN" or "  •  BANK CLOSED"))
+        self.pageStatus:SetText(string.format("Page %d of %d  •  %s  •  %s\n%d boss rule%s  •  %s",pagePos,#ids,bound,entry,bossCount,bossCount==1 and "" or "s",bankOpen and "BANK OPEN" or "BANK CLOSED"))
     end
     if self.bindZoneButton then self.bindZoneButton:SetText(tonumber(page.zoneId or 0)>0 and "UNBIND" or "BIND ZONE") end
     if self.raidAutoButton then
@@ -2695,12 +3154,12 @@ function L:RefreshUI()
             filled[group]=(filled[group] or 0)+1
         end
     end
-    local labels={"1 - 4","5 - 8","9 - 12","13 - 16"}
+    local labels={"BUILDS 1–4","BUILDS 5–8","BUILDS 9–12","BUILDS 13–16"}
     for group=1,4 do
         local button=self["slotBank"..group.."Button"]
         if button then
-            button:SetText(string.format("%s (%d)",labels[group],filled[group] or 0))
-            setBorderColor(button,self.slotBank==group and 0.72 or 0.24,self.slotBank==group and 0.56 or 0.36,self.slotBank==group and 0.20 or 0.54,0.96)
+            button:SetText(string.format("%s   %d/4",labels[group],filled[group] or 0))
+            setEsoTabSelected(button,self.slotBank==group)
         end
     end
 
@@ -2730,9 +3189,9 @@ function L:RefreshUI()
 
                 if filled then
                     local state = missing>0 and ("Missing "..missing.." item"..(missing==1 and "" or "s")) or "All saved gear available"
-                    c.status:SetText(string.format("%d gear  •  %d/12 skills  •  %d CP slots  •  %s",gearCount,barCount,cpSlots,state))
+                    c.status:SetText(string.format("Gear %d  •  Skills %d/12  •  CP %d\n%s",gearCount,barCount,cpSlots,state))
                 else
-                    c.status:SetText("Empty setup — SAVE or drag gear / food / skills here")
+                    c.status:SetText("Empty setup\nSAVE current build or drag gear / food / skills")
                 end
 
                 self:UpdateSkillIcons(c.frontIcons,d.bars and d.bars.primary)
@@ -2740,10 +3199,10 @@ function L:RefreshUI()
 
                 c.loadButton:SetText(active and "ACTIVE" or "EQUIP")
                 if not (self.pendingOverwrite and self.pendingOverwrite[i]) then c.saveButton:SetText("SAVE") end
-                c.gearDrop:SetText(gearCount>0 and ("GEAR  "..gearCount) or "ADD GEAR")
-                c.foodDrop:SetText(d.food and "FOOD  SET" or "ADD FOOD")
-                c.cpLabel:SetText(cpSlots>0 and ("CP  "..cpSlots) or "CP  NONE")
-                c.readyButton:SetText(not filled and "EMPTY" or (missing>0 and ("MISSING  "..missing) or "READY"))
+                c.gearDrop:SetText(gearCount>0 and ("GEAR "..gearCount) or "GEAR")
+                c.foodDrop:SetText(d.food and "FOOD ✓" or "FOOD")
+                c.cpLabel:SetText(cpSlots>0 and ("CP "..cpSlots) or "CP —")
+                c.readyButton:SetText(not filled and "EMPTY" or (missing>0 and ("MISS "..missing) or "READY"))
 
                 if active then
                     c.card:SetEdgeColor(0.88,0.68,0.24,0.99)
@@ -2980,13 +3439,13 @@ function L:Initialize()
     self:RebuildGearIndex()
     self:CreateUI()
     local eventName = "EAS_LoadoutManager029272"
-    if EVENT_PLAYER_ACTIVATED then EVENT_MANAGER:RegisterForEvent(eventName.."Activated", EVENT_PLAYER_ACTIVATED, function() self:OnPlayerActivated() end) end
-    if EVENT_BOSSES_CHANGED then EVENT_MANAGER:RegisterForEvent(eventName.."Boss", EVENT_BOSSES_CHANGED, function() self:OnBossesChanged() end) end
-    if EVENT_PLAYER_COMBAT_STATE then EVENT_MANAGER:RegisterForEvent(eventName.."Combat", EVENT_PLAYER_COMBAT_STATE, function(...) self:OnCombatState(...) end) end
-    if EVENT_ACTION_SLOT_ABILITY_USED then EVENT_MANAGER:RegisterForEvent(eventName.."Prebuff", EVENT_ACTION_SLOT_ABILITY_USED, function(...) self:OnPrebuffAbilityUsed(...) end) end
-    if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then EVENT_MANAGER:RegisterForEvent(eventName.."Worn", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(...) self:OnWornInventoryUpdate(...) end) end
-    if EVENT_OPEN_BANK then EVENT_MANAGER:RegisterForEvent(eventName.."BankOpen", EVENT_OPEN_BANK, function() if self.window and self.window:IsHidden() == false then self:RefreshUI() end end) end
-    if EVENT_CLOSE_BANK then EVENT_MANAGER:RegisterForEvent(eventName.."BankClose", EVENT_CLOSE_BANK, function() if self.window and self.window:IsHidden() == false then self:RefreshUI() end end) end
+    if EVENT_PLAYER_ACTIVATED then EPC.Runtime:RegisterEvent("LoadoutManager", "Activated", EVENT_PLAYER_ACTIVATED, function() self:OnPlayerActivated() end) end
+    if EVENT_BOSSES_CHANGED then EPC.Runtime:RegisterEvent("LoadoutManager", "Boss", EVENT_BOSSES_CHANGED, function() self:OnBossesChanged() end) end
+    if EVENT_PLAYER_COMBAT_STATE then EPC.Runtime:RegisterEvent("LoadoutManager", "Combat", EVENT_PLAYER_COMBAT_STATE, function(...) self:OnCombatState(...) end) end
+    if EVENT_ACTION_SLOT_ABILITY_USED then EPC.Runtime:RegisterEvent("LoadoutManager", "Prebuff", EVENT_ACTION_SLOT_ABILITY_USED, function(...) self:OnPrebuffAbilityUsed(...) end) end
+    if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then EPC.Runtime:RegisterEvent("LoadoutManager", "Worn", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(...) self:OnWornInventoryUpdate(...) end) end
+    if EVENT_OPEN_BANK then EPC.Runtime:RegisterEvent("LoadoutManager", "BankOpen", EVENT_OPEN_BANK, function() if self.window and self.window:IsHidden() == false then self:RefreshUI() end end) end
+    if EVENT_CLOSE_BANK then EPC.Runtime:RegisterEvent("LoadoutManager", "BankClose", EVENT_CLOSE_BANK, function() if self.window and self.window:IsHidden() == false then self:RefreshUI() end end) end
     SLASH_COMMANDS["/easloadouts"] = function() self:Toggle() end
     SLASH_COMMANDS["/easbuilds"] = function() self:Toggle() end
 end

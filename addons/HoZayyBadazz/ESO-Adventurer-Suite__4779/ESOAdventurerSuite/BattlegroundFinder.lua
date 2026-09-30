@@ -369,7 +369,7 @@ function B:Initialize()
     if self.initialized02876 then return end
     self.initialized02876 = true
     if EVENT_MANAGER and rawget(_G, "EVENT_ACTIVITY_FINDER_STATUS_UPDATE") ~= nil then
-        EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_BattlegroundFinderStatus02876", EVENT_ACTIVITY_FINDER_STATUS_UPDATE,
+        EPC.Runtime:RegisterEvent("BattlegroundFinder", "Status", EVENT_ACTIVITY_FINDER_STATUS_UPDATE,
             function(_, status)
                 if rawget(_G, "ACTIVITY_FINDER_STATUS_NONE") ~= nil and status == ACTIVITY_FINDER_STATUS_NONE then
                     self.lastQueueKind = nil
@@ -380,10 +380,5 @@ function B:Initialize()
     end
 end
 
-if EVENT_MANAGER and rawget(_G, "EVENT_ADD_ON_LOADED") ~= nil then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_BattlegroundFinderLoad02876", EVENT_ADD_ON_LOADED, function(_, addonName)
-        if addonName ~= EPC.name and addonName ~= EPC.legacyName then return end
-        EVENT_MANAGER:UnregisterForEvent("ESOAdventurerSuite_BattlegroundFinderLoad02876", EVENT_ADD_ON_LOADED)
-        if zo_callLater then zo_callLater(function() B:Initialize() end, 600) else B:Initialize() end
-    end)
-end
+-- Core owns add-on bootstrap; this module is loaded after Core.
+if zo_callLater then zo_callLater(function() B:Initialize() end, 600) else B:Initialize() end

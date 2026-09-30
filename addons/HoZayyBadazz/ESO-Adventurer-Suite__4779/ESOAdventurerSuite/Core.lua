@@ -10,8 +10,8 @@ local EPC = ESOProgressionCoach
 EPC.name = "ESOAdventurerSuite"
 EPC.legacyName = "ESOProgressionCoach"
 EPC.displayName = "ESO Adventurer Suite"
-EPC.version = "0.29.471"
-EPC.addOnVersion = 3456
+EPC.version = "0.29.779"
+EPC.addOnVersion = 3714
 EPC.author = "HoZayyBadazz"
 EPC.savedVersion = 1
 EPC.interactionMode = false
@@ -22,6 +22,79 @@ EPC.unitFramesMoveMode = false
 EPC.unitFramesMoveOwned = false
 EPC.miniMapMoveMode = false
 EPC.miniMapMoveOwned = false
+
+-- v0.29.733 - Shared cursor ownership for standalone Suite windows.
+-- Windows such as Master Achievement Tracker and Skill Point Finder can be
+-- opened directly from gameplay, where ESO normally keeps the mouse captured
+-- by the camera. Keep one shared reference-counted UI-mode lease so multiple
+-- Suite windows can remain interactive without fighting each other.
+EPC._suiteCursorLeases029733 = EPC._suiteCursorLeases029733 or {}
+
+function EPC:HasSuiteCursorLease029733()
+    for _, active in pairs(self._suiteCursorLeases029733 or {}) do
+        if active == true then return true end
+    end
+    return false
+end
+
+function EPC:AcquireSuiteCursor029733(owner)
+    owner = tostring(owner or "SuiteWindow")
+    self._suiteCursorLeases029733 = self._suiteCursorLeases029733 or {}
+
+    if self._suiteCursorLeases029733[owner] == true then
+        if type(SetGameCameraUIMode) == "function" then
+            pcall(SetGameCameraUIMode, true)
+        end
+        return
+    end
+
+    if not self:HasSuiteCursorLease029733() then
+        local wasActive = false
+        if type(IsGameCameraUIModeActive) == "function" then
+            local ok, active = pcall(IsGameCameraUIModeActive)
+            wasActive = ok and active == true
+        end
+        self._suiteCursorWasActive029733 = wasActive
+    end
+
+    self._suiteCursorLeases029733[owner] = true
+
+    local function apply()
+        if EPC and EPC:HasSuiteCursorLease029733() and type(SetGameCameraUIMode) == "function" then
+            pcall(SetGameCameraUIMode, true)
+        end
+    end
+
+    apply()
+    -- ESO can overwrite cursor mode at the end of the same input/frame that
+    -- opened a window. Reassert once on the next UI tick.
+    if type(zo_callLater) == "function" then zo_callLater(apply, 20) end
+end
+
+function EPC:ReleaseSuiteCursor029733(owner)
+    owner = tostring(owner or "SuiteWindow")
+    self._suiteCursorLeases029733 = self._suiteCursorLeases029733 or {}
+    self._suiteCursorLeases029733[owner] = nil
+
+    if self:HasSuiteCursorLease029733() then return end
+
+    local restoreCapturedCamera = self._suiteCursorWasActive029733 ~= true
+    self._suiteCursorWasActive029733 = nil
+    if not restoreCapturedCamera then return end
+
+    local function release()
+        if not EPC or EPC:HasSuiteCursorLease029733() then return end
+        -- Do not force camera capture while an ESO menu scene owns the screen.
+        if type(EPC.IsGameplayHudSuppressed) == "function" and EPC:IsGameplayHudSuppressed() then return end
+        if type(SetGameCameraUIMode) == "function" then
+            pcall(SetGameCameraUIMode, false)
+        end
+    end
+
+    -- Delayed release avoids the ESO edge case where camera mode is changed
+    -- inside the same mouse-click that closes a control.
+    if type(zo_callLater) == "function" then zo_callLater(release, 35) else release() end
+end
 
 -- v0.29.208 - Character Gear framing pass: real 3D player only, outward labels, full names, left-space rebalance.
 -- v0.29.207 - Character Gear readability pass: adaptive safe-area layout, compact labels, auto stats visibility.
@@ -89,7 +162,7 @@ if type(ZO_CreateStringId) == "function" then
     ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_ANTIQUITIES_CATEGORY", "ESO Adventurer Suite - Antiquities")
     ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_ANTIQUITY_LEAD_FINDER", "Open / Close Antiquity Lead Finder")
     ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_MAP_TELEPORTER_TOGGLE", "Open / Close Map Teleporter")
-    ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_POTION_MAKER", "Open / Close Potion Maker")
+    ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_POTION_MAKER", "Open / Close Crafting Assistant")
     ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_TURBO_LEARNER", "Open / Close Turbo Learner")
     ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_LOADOUT_SAVER", "Open / Close Loadout Saver")
     ZO_CreateStringId("SI_BINDING_NAME_ESO_ADVENTURER_SUITE_PREBUFF_ACCELERATION", "Prebuff: Acceleration")
@@ -251,6 +324,18 @@ EPC.defaults = {
     performanceOverlayTop = -1,
     performanceOverlayScale = 1.0,
 
+    -- Optional screen-edge information strip (v0.29.763).
+    showEdgeInfoBar029763 = false,
+    edgeInfoBarEdge029763 = "TOP",
+    edgeInfoBarScale029763 = 1.0,
+    edgeInfoBarAlpha029763 = 0.94,
+    edgeInfoBarClock029763 = true,
+    edgeInfoBarClockFormat029770 = "12H",
+    edgeInfoBarBag029763 = true,
+    edgeInfoBarStable029770 = true,
+    edgeInfoBarPerformance029770 = true,
+    edgeInfoBarShowZero029763 = false,
+
     gameModeReportEnabled = true,
     gameModeReportAlpha = 0.96,
     gameModeReportLeft = -1,
@@ -270,6 +355,19 @@ EPC.defaults = {
     nativeAlertTextX029328 = nil,
     nativeAlertTextY029328 = nil,
     nativeAlertTextScale029328 = 1.0,
+
+    -- ESO native Loot History + keyboard Chat layout controls (v0.29.708).
+    -- Loot History keeps ESO's own item/XP/companion feed; Suite only moves/scales it.
+    nativeLootHistoryOffsetX029708 = nil,
+    nativeLootHistoryOffsetY029708 = nil,
+    nativeLootHistoryScale029708 = 1.0,
+    -- NATIVE preserves ESO's stock chat layout until the user chooses a Suite dock/move/resize.
+    nativeChatDock029708 = "NATIVE",
+    nativeChatLeft029708 = nil,
+    nativeChatTop029708 = nil,
+    nativeChatWidth029708 = 0,
+    nativeChatHeight029708 = 0,
+
     combatRoleMode = "AUTO",
     rotationAssistantEnabled = true,
     rotationAssistantLeft = -1,
@@ -382,6 +480,8 @@ EPC.defaults = {
     resourcePinsDepleted = {},
     resourcePinsIconSize = 100,
     resourcePinsIconTintStrength = 85,
+    craftingMaterialHuntType029763 = "PROVISIONING",
+    craftingMaterialHuntBarEnabled029765 = true,
     resourcePinsShowOre = true,
     resourcePinsShowWood = true,
     resourcePinsShowCloth = true,
@@ -554,6 +654,13 @@ EPC.defaults = {
     abilityOverlayVisibility = "ALWAYS",
     abilityOverlayScale = 1.0,
     abilityOverlaySize = 56,
+
+    -- Controller / hybrid UI presentation (v0.29.761).
+    -- ESO keeps gameplay input native. The Suite only controls whether a
+    -- gamepad-mode toggle is allowed to replace the keyboard UI and which
+    -- binding glyphs the Suite action bars render.
+    controllerUIBehavior029761 = "AUTOMATIC",
+    controllerPromptMode029761 = "AUTO",
     -- Dual Action Bar HUD (v0.29.189): both weapon bars, active marker,
     -- Skill Style icons, timers/stacks, and Smart Combat Advisor integration.
     showDualActionBar029189 = false,
@@ -823,6 +930,7 @@ end
 -- action-bar alpha: that proved unreliable across UI modes. Readouts that must
 -- follow ESO's automatic HUD fade attach a ZO_HUDFadeSceneFragment instead.
 function EPC:IsPersistentGameplayHudVisible()
+    if self.NativeHUDEditor and self.NativeHUDEditor.IsPreviewActive and self.NativeHUDEditor:IsPreviewActive() then return true end
     if self.unitFramesMoveMode or self.miniMapMoveMode or self.combatHudMoveMode then return true end
     if self.IsGameplayHudSuppressed and self:IsGameplayHudSuppressed() == true then return false end
     return true
@@ -849,8 +957,9 @@ function EPC:CreateHudFadeFragment(control)
 end
 
 function EPC:OverlayModeAllows(modeKey)
-    -- Layout modes always preview HUD elements so users can position them even
-    -- when a Combat Only overlay would normally be hidden.
+    -- Layout/edit modes always preview HUD elements so users can position them
+    -- even when a Combat Only overlay would normally be hidden.
+    if self.NativeHUDEditor and self.NativeHUDEditor.IsPreviewActive and self.NativeHUDEditor:IsPreviewActive() then return true end
     if self.unitFramesMoveMode or self.miniMapMoveMode or self.combatHudMoveMode then return true end
     local mode = self.saved and self.saved[modeKey] or "ALWAYS"
     if mode == "COMBAT" then
@@ -887,6 +996,12 @@ function EPC:RefreshGameplayOverlays()
     if self.ChallengeDifficultyOverlay and self.ChallengeDifficultyOverlay.Refresh then self.ChallengeDifficultyOverlay:Refresh() end
     if self.Travel and self.Travel.RefreshMapTeleporterVisibility then self.Travel:RefreshMapTeleporterVisibility() end
     if self.UI and self.UI.UpdateCombatHUD and self.Combat then self.UI:UpdateCombatHUD(self.Combat:GetHUDSummary()) end
+
+    local bar = self.DualActionBar
+    if bar and type(bar.IsVisibleNow029311) == "function" and bar:IsVisibleNow029311()
+        and type(bar.RefreshDynamic029311) == "function" then
+        bar:RefreshDynamic029311(true)
+    end
 end
 
 function EPC:RequestRefresh(reason)
@@ -976,8 +1091,14 @@ function EPC:ToggleInteractionMode()
 end
 
 function EPC:SetCombatHUDMoveMode(active)
-    if not self.saved or not self.UI or not self.UI.SetCombatHUDMoveMode then return end
     active = active == true
+    if active and self.NativeHUDEditor and self.NativeHUDEditor.IsAvailable and self.NativeHUDEditor:IsAvailable() then
+        self.NativeHUDEditor:Open()
+        self:Print("ESO Edit HUD opened. Move the ESO Adventurer Suite combat HUD there; scale and appearance remain in Suite Settings.")
+        return true
+    end
+    if not active and not self.combatHudMoveMode then return true end
+    if not self.saved or not self.UI or not self.UI.SetCombatHUDMoveMode then return end
 
     if active then
         local alreadyInUIMode = self:Safe(IsGameCameraUIModeActive, false) == true
@@ -1049,8 +1170,54 @@ function EPC:ScheduleResponsiveOverlayRefresh029343(delay)
     end)
 end
 
+EPC._singleClickLayoutDrag029763 = EPC._singleClickLayoutDrag029763 or setmetatable({}, { __mode = "k" })
+
+function EPC:EnsureSingleClickLayoutDrag029763(control)
+    if not control or self._singleClickLayoutDrag029763[control] then return end
+    if type(control.SetHandler) ~= "function" or type(control.StartMoving) ~= "function" then return end
+
+    local oldDown = nil
+    local oldUp = nil
+    if type(control.GetHandler) == "function" then
+        local okDown, valueDown = pcall(control.GetHandler, control, "OnMouseDown")
+        if okDown and type(valueDown) == "function" then oldDown = valueDown end
+        local okUp, valueUp = pcall(control.GetHandler, control, "OnMouseUp")
+        if okUp and type(valueUp) == "function" then oldUp = valueUp end
+    end
+
+    self._singleClickLayoutDrag029763[control] = true
+
+    control:SetHandler("OnMouseDown", function(c, button, ...)
+        if EPC and EPC.unitFramesMoveMode and button == MOUSE_BUTTON_INDEX_LEFT then
+            -- HUD Layout owns the click. Start moving immediately on the first
+            -- press instead of letting an overlay-specific focus/click handler
+            -- consume the first click and require a second one.
+            if c.SetMouseEnabled then c:SetMouseEnabled(true) end
+            if c.SetMovable then c:SetMovable(true) end
+            if c.SetMouseButtonEnabled then pcall(c.SetMouseButtonEnabled, c, MOUSE_BUTTON_INDEX_LEFT, true) end
+            if c.BringWindowToTop then pcall(c.BringWindowToTop, c) end
+            c:StartMoving()
+            return
+        end
+        if oldDown then pcall(oldDown, c, button, ...) end
+    end)
+
+    control:SetHandler("OnMouseUp", function(c, button, ...)
+        if EPC and EPC.unitFramesMoveMode and button == MOUSE_BUTTON_INDEX_LEFT then
+            if type(c.StopMovingOrResizing) == "function" then
+                c:StopMovingOrResizing()
+            elseif type(c.StopMoving) == "function" then
+                c:StopMoving()
+            end
+            return
+        end
+        if oldUp then pcall(oldUp, c, button, ...) end
+    end)
+end
+
 function EPC:RaiseLayoutOverlays()
     if not self.unitFramesMoveMode then return end
+    self._layoutRaisedControls029768 = self._layoutRaisedControls029768 or setmetatable({}, { __mode = "k" })
 
     local function raiseLayoutControls(root, seen, depth)
         if type(root) ~= "table" or depth > 2 or seen[root] then return end
@@ -1069,11 +1236,21 @@ function EPC:RaiseLayoutOverlays()
                     local parent = value.GetParent and value:GetParent() or nil
                     local isRootWindow = (parent == nil or parent == GuiRoot)
                     if isRootWindow and value ~= GuiRoot then
-                        if value.SetTopLevel then value:SetTopLevel(true) end
-                        if value.SetDrawLayer and DL_OVERLAY then value:SetDrawLayer(DL_OVERLAY) end
-                        if value.SetDrawTier and DT_HIGH then value:SetDrawTier(DT_HIGH) end
-                        if value.SetDrawLevel then value:SetDrawLevel(900) end
-                        if value.BringWindowToTop then value:BringWindowToTop() end
+                        if EPC and EPC.EnsureSingleClickLayoutDrag029763 then
+                            EPC:EnsureSingleClickLayoutDrag029763(value)
+                        end
+                        -- Raising/re-stacking the same top-level window every
+                        -- 250ms can visibly blink it. Do the expensive z-order
+                        -- work once per HUD Layout session; later guard passes
+                        -- only preserve the drag handler.
+                        if not EPC._layoutRaisedControls029768[value] then
+                            EPC._layoutRaisedControls029768[value] = true
+                            if value.SetTopLevel then value:SetTopLevel(true) end
+                            if value.SetDrawLayer and DL_OVERLAY then value:SetDrawLayer(DL_OVERLAY) end
+                            if value.SetDrawTier and DT_HIGH then value:SetDrawTier(DT_HIGH) end
+                            if value.SetDrawLevel then value:SetDrawLevel(900) end
+                            if value.BringWindowToTop then value:BringWindowToTop() end
+                        end
                     end
                 end)
             elseif type(value) == "table" then
@@ -1089,9 +1266,10 @@ function EPC:RaiseLayoutOverlays()
         self.ChampionOverlay, self.AbilityOverlays, self.DualActionBar, self.QuickslotOverlay,
         self.InfiniteArchiveOverlay, self.RepairCostOverlay, self.PerformanceOverlay, self.TickTracker, self.EncounterReminders,
         self.ChallengeDifficultyOverlay, self.DungeonFinder,
-        self.PlayerRequestOverlay, self.NativeNotificationOverlay, self.CompassFocusedInfoOverlay,
+        self.PlayerRequestOverlay, self.NativeNotificationOverlay, self.NativeHUDLayout, self.CompassFocusedInfoOverlay,
         self.SynergyOverlay, self.RotationAssistant, self.AntiquityAssistant,
-        self.RecipeStyleLearner, self.AlchemyPotionMaker
+        self.RecipeStyleLearner, self.AlchemyPotionMaker,
+        self.PvP, self.GameModeReport, self.UI, self.EdgeInfoBar
     }) do
         if module then raiseLayoutControls(module, seen, 0) end
     end
@@ -1280,6 +1458,13 @@ function EPC:CloseSettingsSceneForHUDLayout()
 end
 
 function EPC:SetUnitFramesMoveMode(active, exitReason)
+    active = active == true
+    if active and self.NativeHUDEditor and self.NativeHUDEditor.IsAvailable and self.NativeHUDEditor:IsAvailable() then
+        self.NativeHUDEditor:Open()
+        self:Print("ESO Edit HUD opened. ESO now owns Suite HUD positioning; Suite Settings still control size, scale, visibility, and appearance.")
+        return true
+    end
+    if not active and not self.unitFramesMoveMode then return true end
     if not self.saved then return end
     local canFrames = self.UnitFrames and self.UnitFrames.SetLayoutMode
     local canMiniMap = self.MiniMap and self.MiniMap.SetLayoutMode
@@ -1308,8 +1493,10 @@ function EPC:SetUnitFramesMoveMode(active, exitReason)
     local canAlchemyPotionMaker = self.AlchemyPotionMaker and self.AlchemyPotionMaker.SetLayoutMode
     local canPlayerRequest = self.PlayerRequestOverlay and self.PlayerRequestOverlay.SetLayoutMode
     local canNativeNotification = self.NativeNotificationOverlay and self.NativeNotificationOverlay.SetLayoutMode
+    local canNativeHUDLayout = self.NativeHUDLayout and self.NativeHUDLayout.SetLayoutMode
     local canCompassFocusedInfo = self.CompassFocusedInfoOverlay and self.CompassFocusedInfoOverlay.SetLayoutMode
-    if not canFrames and not canMiniMap and not canStableTimer and not canClock and not canActiveQuest and not canGoldenPursuits and not canAllianceRank and not canChampionOverlay and not canAbilities and not canDualActionBar and not canQuickslot and not canInfiniteArchive and not canRepairCosts and not canPerformanceOverlay and not canTickTracker and not canEncounterReminders and not canBossMechanics and not canChallengeOverlay and not canDungeonQueue and not canSynergy and not canRotationAssistant and not canAntiquityAssistant and not canMapTeleporter and not canRecipeStyleLearner and not canAlchemyPotionMaker and not canPlayerRequest and not canNativeNotification and not canCompassFocusedInfo then return end
+    local canEdgeInfoBar = self.EdgeInfoBar and self.EdgeInfoBar.SetLayoutMode
+    if not canFrames and not canMiniMap and not canStableTimer and not canClock and not canActiveQuest and not canGoldenPursuits and not canAllianceRank and not canChampionOverlay and not canAbilities and not canDualActionBar and not canQuickslot and not canInfiniteArchive and not canRepairCosts and not canPerformanceOverlay and not canTickTracker and not canEncounterReminders and not canBossMechanics and not canChallengeOverlay and not canDungeonQueue and not canSynergy and not canRotationAssistant and not canAntiquityAssistant and not canMapTeleporter and not canRecipeStyleLearner and not canAlchemyPotionMaker and not canPlayerRequest and not canNativeNotification and not canNativeHUDLayout and not canCompassFocusedInfo and not canEdgeInfoBar then return end
     active = active == true
 
     -- Once full HUD Layout Mode is active, only its SAVE & EXIT button is
@@ -1348,6 +1535,9 @@ function EPC:SetUnitFramesMoveMode(active, exitReason)
     if not active then self.hudLayoutCloseAttempts02959 = 0 end
 
     if active then
+        self._combatHudLayoutPreviewRendered029769 = false
+        -- Start each HUD Layout session with a fresh one-time raise set.
+        self._layoutRaisedControls029768 = setmetatable({}, { __mode = "k" })
         -- If the Suite's modern settings/page shell is open, hide it as well.
         -- HUD Layout Mode should leave only the movable overlays plus its own
         -- compact Save/Reset control strip on screen.
@@ -1388,7 +1578,9 @@ function EPC:SetUnitFramesMoveMode(active, exitReason)
         if canAlchemyPotionMaker then self.AlchemyPotionMaker:SetLayoutMode(true) end
         if canPlayerRequest then self.PlayerRequestOverlay:SetLayoutMode(true) end
         if canNativeNotification then self.NativeNotificationOverlay:SetLayoutMode(true) end
+        if canNativeHUDLayout then self.NativeHUDLayout:SetLayoutMode(true) end
         if canCompassFocusedInfo then self.CompassFocusedInfoOverlay:SetLayoutMode(true) end
+        if canEdgeInfoBar then self.EdgeInfoBar:SetLayoutMode(true) end
 
         self:SetHUDLayoutControlBarVisible(true)
 
@@ -1411,6 +1603,7 @@ function EPC:SetUnitFramesMoveMode(active, exitReason)
 
         self:Print("HUD layout mode enabled. Settings are hidden. Move/resize your overlays, then press SAVE & EXIT at the top of the screen. RESET LAYOUT restores the default HUD positions without leaving layout mode.")
     else
+        self._combatHudLayoutPreviewRendered029769 = false
         self.unitFramesMoveMode = false
         self.hudLayoutStartPending02959 = false
         self:SetHUDLayoutControlBarVisible(false)
@@ -1441,7 +1634,9 @@ function EPC:SetUnitFramesMoveMode(active, exitReason)
         if canAlchemyPotionMaker then self.AlchemyPotionMaker:SetLayoutMode(false) end
         if canPlayerRequest then self.PlayerRequestOverlay:SetLayoutMode(false) end
         if canNativeNotification then self.NativeNotificationOverlay:SetLayoutMode(false) end
+        if canNativeHUDLayout then self.NativeHUDLayout:SetLayoutMode(false) end
         if canCompassFocusedInfo then self.CompassFocusedInfoOverlay:SetLayoutMode(false) end
+        if canEdgeInfoBar then self.EdgeInfoBar:SetLayoutMode(false) end
         if self.unitFramesMoveOwned and not self.interactionMode and not self.combatHudMoveMode and not self.miniMapMoveMode then setCameraUIMode(false) end
         if canSynergy then self.SynergyOverlay:SetLayoutMode(false) end
         -- Apply normal compass/menu visibility immediately after leaving layout
@@ -1455,8 +1650,14 @@ function EPC:SetUnitFramesMoveMode(active, exitReason)
 end
 
 function EPC:SetMiniMapMoveMode(active)
-    if not self.saved or not self.MiniMap or not self.MiniMap.SetLayoutMode then return end
     active = active == true
+    if active and self.NativeHUDEditor and self.NativeHUDEditor.IsAvailable and self.NativeHUDEditor:IsAvailable() then
+        self.NativeHUDEditor:Open()
+        self:Print("ESO Edit HUD opened. Move the ESO Adventurer Suite Mini Map there.")
+        return true
+    end
+    if not active and not self.miniMapMoveMode then return true end
+    if not self.saved or not self.MiniMap or not self.MiniMap.SetLayoutMode then return end
 
     if active then
         -- Dedicated Mini Map layout mode is unnecessary while the full HUD
@@ -1562,7 +1763,9 @@ function EPC:ResetUnitFramePositions()
     if self.ChallengeDifficultyOverlay and self.ChallengeDifficultyOverlay.ResetPosition then
         self.ChallengeDifficultyOverlay:ResetPosition()
     end
-    if self.SynergyOverlay and self.SynergyOverlay.ResetPosition then
+    local nativeEditHudOwnsPosition = self.NativeHUDEditor and self.NativeHUDEditor.IsAvailable
+        and self.NativeHUDEditor:IsAvailable()
+    if not nativeEditHudOwnsPosition and self.SynergyOverlay and self.SynergyOverlay.ResetPosition then
         self.SynergyOverlay:ResetPosition()
     end
     if self.RotationAssistant and self.RotationAssistant.ResetPosition then
@@ -1584,13 +1787,22 @@ function EPC:ResetUnitFramePositions()
     if self.PlayerRequestOverlay and self.PlayerRequestOverlay.ResetPosition then
         self.PlayerRequestOverlay:ResetPosition()
     end
-    if self.NativeNotificationOverlay and self.NativeNotificationOverlay.ResetPosition then
+    if not nativeEditHudOwnsPosition and self.NativeNotificationOverlay and self.NativeNotificationOverlay.ResetPosition then
         self.NativeNotificationOverlay:ResetPosition()
+    end
+    if not nativeEditHudOwnsPosition and self.NativeHUDLayout and self.NativeHUDLayout.ResetPositions then
+        self.NativeHUDLayout:ResetPositions()
     end
     if self.CompassFocusedInfoOverlay and self.CompassFocusedInfoOverlay.ResetPosition then
         self.CompassFocusedInfoOverlay:ResetPosition()
     end
-    self:Print("HUD layout reset: Player, Target, Group, Raid, Stats, Mini Map, Stable, Clock, Active Quest, Golden Pursuits, Alliance Rank, Champion, Infinite Archive, Repair Estimate, FPS/Latency, Encounter Reminders, Boss Mechanics Coach, Challenge Difficulty, Use Synergy, Rotation Assistant, Weapon Swap Cue, Augur Guide, Tile Selector, Map Teleporter, Recipe Learner, Alchemy Maker, ESO Request / Invite Prompt, ESO Top-Right Notifications, ESO Compass Focused Info, Dual Action Bar, and Ability positions restored.")
+    if nativeEditHudOwnsPosition and self.NativeHUDEditor.AdoptCurrentSuitePositionsAsDefaults then
+        self.NativeHUDEditor:RefreshRegistrations()
+        self.NativeHUDEditor:AdoptCurrentSuitePositionsAsDefaults()
+    end
+    self:Print(nativeEditHudOwnsPosition
+        and "Suite HUD positions reset. ESO-owned HUD positions remain under ESO Edit HUD."
+        or "HUD layout positions restored.")
 end
 
 function ESOProgressionCoach_Toggle()
@@ -2184,8 +2396,21 @@ function EPC:RegisterEvents()
 
     EVENT_MANAGER:RegisterForUpdate(self.name .. "_CombatHUDPulse", 250, function()
         if not self.Combat or not self.UI or not self.UI.UpdateCombatHUD or not self.saved then return end
-        local preview = self.combatHudMoveMode == true or self.unitFramesMoveMode == true
+        local layoutPreview = self.unitFramesMoveMode == true
+        local preview = self.combatHudMoveMode == true or layoutPreview
         if self.saved.showCombatHud == false and not preview then return end
+
+        -- Full HUD Layout is a frozen positioning preview. Render it once when
+        -- layout opens, then leave every metric untouched until layout exits.
+        if layoutPreview then
+            if self._combatHudLayoutPreviewRendered029769 then return end
+            self._combatHudLayoutPreviewRendered029769 = true
+            self.UI:UpdateCombatHUD(self.Combat:GetHUDSummary())
+            return
+        else
+            self._combatHudLayoutPreviewRendered029769 = false
+        end
+
         local nowMs = type(GetFrameTimeMilliseconds) == "function" and (tonumber(GetFrameTimeMilliseconds()) or 0) or 0
         local gap = self.Combat.inCombat and 250 or 1000
         if not preview and self.lastCombatHudPulse029341 and (nowMs - self.lastCombatHudPulse029341) < gap then return end
@@ -2309,6 +2534,13 @@ function EPC:Initialize()
         self.saved.repairCostVisibility = "INVENTORY"
     end
 
+    -- Character configuration must be restored after the authoritative
+    -- world-specific SavedVariables table is selected, but before any feature
+    -- module creates HUD controls. This makes the active character's settings
+    -- and positions the first values every module sees during initialization.
+    if self.CharacterProfile and type(self.CharacterProfile.Apply) == "function" then
+        pcall(self.CharacterProfile.Apply, self.CharacterProfile)
+    end
 
     if self.Compatibility then self.Compatibility:Initialize() end
     local function initModule(name, object)
@@ -2327,8 +2559,10 @@ function EPC:Initialize()
     initModule("ACTIVITIES", self.Activities)
     initModule("DUNGEON_FINDER", self.DungeonFinder)
     initModule("DUNGEON_HISTORY", self.DungeonHistory)
+    initModule("MASTER_ACHIEVEMENT_TRACKER", self.MasterAchievementTracker)
     initModule("ACTIVITY_RUN_HISTORY", self.ActivityRunHistory)
     initModule("QUEST_FINDER", self.QuestFinder)
+    initModule("SKILL_POINT_FINDER", self.SkillPointFinder)
     initModule("SET_JOURNAL", self.SetJournal)
     initModule("ENDGAME", self.Endgame)
     initModule("TARGET_BUILD", self.TargetBuild)
@@ -2730,22 +2964,83 @@ end
 
 EVENT_MANAGER:RegisterForEvent(EPC.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
 
--- ============================================================================
--- v0.29.376 - immediate Dual Action Bar scene visibility reconciliation.
--- The bar previously relied on its 125/1000 ms dynamic tick, so out-of-combat
--- menu changes could leave it visible for almost a second after Quickslot/HUD
--- had already hidden. Reconcile it on the same gameplay<->menu edge as the rest
--- of the Suite overlays.
--- ============================================================================
-local EAS_RefreshGameplayOverlaysBase029376 = EPC.RefreshGameplayOverlays
-function EPC:RefreshGameplayOverlays()
-    local result = EAS_RefreshGameplayOverlaysBase029376(self)
-    local bar = self.DualActionBar
-    if bar and type(bar.IsVisibleNow029311) == "function" then
-        local visible = bar:IsVisibleNow029311()
-        if visible and type(bar.RefreshDynamic029311) == "function" then
-            bar:RefreshDynamic029311(true)
+-- Dual Action Bar scene reconciliation is owned directly by RefreshGameplayOverlays.\n\n-- BEGIN ABSORBED: AccountWideSettingsFix.lua
+-- ESO Adventurer Suite
+-- v0.29.550 - account-wide settings load-order / HUD layout persistence fix.
+-- The account-wide SavedVariables profile must become EPC.saved before any
+-- EVENT_ADD_ON_LOADED initializer creates HUD controls. Otherwise a /reloadui
+-- can build overlays from the old character/default profile and visually reset
+-- their positions before this module swaps the saved-table pointer.
+
+local EPC = ESOProgressionCoach
+if not EPC then return end
+
+local EVENT_NAME = (EPC.name or "ESOAdventurerSuite") .. "_AccountWideSettings029514"
+local SAVED_NAME = "ESOProgressionCoachSavedVars"
+local MIGRATION_KEY = "accountWideMigration029514"
+
+local function deepCopyInto(source, destination, seen)
+    if type(source) ~= "table" or type(destination) ~= "table" then return end
+    seen = seen or {}
+    if seen[source] then return end
+    seen[source] = true
+
+    for key, value in pairs(source) do
+        if key ~= MIGRATION_KEY then
+            if type(value) == "table" then
+                if type(destination[key]) ~= "table" then destination[key] = {} end
+                deepCopyInto(value, destination[key], seen)
+            else
+                destination[key] = value
+            end
         end
     end
-    return result
 end
+
+local function migrateToAccountWide()
+    if type(ZO_SavedVars) ~= "table" or type(ZO_SavedVars.NewAccountWide) ~= "function" then return false end
+
+    local characterSettings = EPC.saved
+    local version = tonumber(EPC.savedVersion) or 1
+    local defaults = type(EPC.defaults) == "table" and EPC.defaults or {}
+
+    local ok, accountSettings = pcall(ZO_SavedVars.NewAccountWide, ZO_SavedVars, SAVED_NAME, version, nil, defaults)
+    if not ok or type(accountSettings) ~= "table" then return false end
+
+    -- First login after the original migration update: seed the shared profile
+    -- from the currently loaded character exactly once. Never copy defaults back
+    -- over an already-migrated account-wide profile on later reloads.
+    if accountSettings[MIGRATION_KEY] ~= true then
+        if type(characterSettings) == "table" and characterSettings ~= accountSettings then
+            deepCopyInto(characterSettings, accountSettings)
+        end
+        accountSettings[MIGRATION_KEY] = true
+    end
+
+    -- This assignment is the important v0.29.550 change: it happens while addon
+    -- files are still loading, before Core's EVENT_ADD_ON_LOADED callback can
+    -- create any HUD controls. Every module therefore reads the same persisted
+    -- account-wide coordinates from its very first SetAnchor call.
+    EPC.saved = accountSettings
+    EPC.accountWideSettings029514 = true
+    return true
+end
+
+-- v0.29.550: perform the handoff immediately. Waiting for EVENT_ADD_ON_LOADED
+-- allowed earlier-registered Core initialization to create HUD elements from the
+-- obsolete character/default table, which made /reloadui look like Reset Layout.
+local migratedEarly = migrateToAccountWide()
+
+-- Keep one addon-loaded retry only for unusual clients where ZO_SavedVars was not
+-- available during file execution. The normal path above is already complete.
+local function onAddonLoaded(_, addonName)
+    if addonName ~= (EPC.name or "ESOAdventurerSuite") then return end
+    EVENT_MANAGER:UnregisterForEvent(EVENT_NAME, EVENT_ADD_ON_LOADED)
+    if not migratedEarly then migrateToAccountWide() end
+end
+
+if not migratedEarly and EVENT_ADD_ON_LOADED and EVENT_MANAGER then
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAME, EVENT_ADD_ON_LOADED, onAddonLoaded)
+end
+
+-- END ABSORBED: AccountWideSettingsFix.lua

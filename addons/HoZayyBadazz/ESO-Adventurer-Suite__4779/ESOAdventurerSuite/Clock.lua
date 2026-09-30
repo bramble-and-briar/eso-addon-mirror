@@ -138,7 +138,7 @@ function C:Initialize()
     self.layoutMode = false
     self:Create()
     self:Refresh()
-    EVENT_MANAGER:RegisterForUpdate(EPC.name .. "_Clock", 1000, function()
+    EPC.Runtime:RegisterUpdate("Clock","Pulse",1000,function()
         self:Refresh()
     end)
 end

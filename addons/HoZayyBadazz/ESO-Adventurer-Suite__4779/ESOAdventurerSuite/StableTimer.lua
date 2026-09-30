@@ -233,7 +233,7 @@ function S:Initialize()
     self.layoutMode = false
     self:Create()
     self:Refresh()
-    EVENT_MANAGER:RegisterForUpdate(EPC.name .. "_StableTrainingTimer", 1000, function()
+    EPC.Runtime:RegisterUpdate("StableTimer","Pulse",1000,function()
         if not EPC.saved then return end
         if EPC.saved.showStableTimer == false and self.layoutMode ~= true then return end
         self:Refresh()

@@ -22,7 +22,7 @@
     "MuffinsUtilityTree"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4797/",
-  "fingerprint": "715421eb3a977ce29ba52ccdf3d6cc4fa75aff5e44ce5f96dcbf3fcfcba24f02",
+  "fingerprint": "071940b9862afe867ac1c08307f09c69b4f3beb72bc193909d83e3aa279ed0e3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17149.png",
     "https://cdn-eso.mmoui.com/preview/pvw17396.png",
@@ -34,11 +34,11 @@
   "source_id": "4797",
   "source_url": "https://www.esoui.com/downloads/info4797-MuffinsUtilityTree.html",
   "stats": {
-    "downloads": 97,
+    "downloads": 126,
     "favorites": 0,
-    "monthly_downloads": 92
+    "monthly_downloads": 66
   },
   "title": "Muffin's Utility Tree",
-  "updated_at": 1789601110000,
-  "version": "1.1"
+  "updated_at": 1790737034000,
+  "version": "1.2"
 }

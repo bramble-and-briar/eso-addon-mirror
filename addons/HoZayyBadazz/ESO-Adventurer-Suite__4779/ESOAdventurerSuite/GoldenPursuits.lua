@@ -641,24 +641,22 @@ function G:Initialize()
     self:RefreshSelectedQuestPanel2504()
 
     local prefix = EPC.name .. "_GoldenPursuits2505"
-    if SCENE_MANAGER and type(SCENE_MANAGER.RegisterCallback) == "function" then
-        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function()
-            self:RefreshVisibility2496()
-        end)
+    if EPC.HudVisibility then
+        EPC.HudVisibility:Register("GoldenPursuits", function() self:RefreshVisibility2496() end)
     end
     if EVENT_GAME_CAMERA_UI_MODE_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_UIMode", EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
+        EPC.Runtime:RegisterEvent("GoldenPursuits","UIMode",EVENT_GAME_CAMERA_UI_MODE_CHANGED, function()
             self:RefreshVisibility2496()
         end)
     end
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+        EPC.Runtime:RegisterEvent("GoldenPursuits","Activated",EVENT_PLAYER_ACTIVATED, function()
             self:SuppressNativeTracker2505()
             self:RefreshVisibility2496()
         end)
     end
     if EVENT_PROMOTIONAL_EVENTS_ACTIVITY_TRACKING_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Tracking", EVENT_PROMOTIONAL_EVENTS_ACTIVITY_TRACKING_UPDATED, function()
+        EPC.Runtime:RegisterEvent("GoldenPursuits","Tracking",EVENT_PROMOTIONAL_EVENTS_ACTIVITY_TRACKING_UPDATED, function()
             self:RefreshSelectedQuestPanel2504()
         end)
     end
@@ -674,7 +672,7 @@ function G:Initialize()
     -- Promotional-event callbacks still refresh progress immediately.
     EVENT_MANAGER:UnregisterForUpdate(prefix .. "_Visibility")
     EVENT_MANAGER:UnregisterForUpdate(prefix .. "_Progress2871")
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Safety029341", 1200, function()
+    EPC.Runtime:RegisterUpdate("GoldenPursuits","Safety",1200, function()
         self:SuppressNativeTracker2505()
         self:RefreshVisibility2496()
         if self.selectedPursuitName2504 ~= "" and self.frame and not self.frame:IsHidden() then
@@ -683,16 +681,7 @@ function G:Initialize()
     end)
 end
 
--- v0.28.72: the Golden Pursuits HUD is independently toggleable. The
--- authoritative quest-tracking source still controls ESO assisted tracking and
--- compass behavior, but no longer suppresses this dedicated overlay.
-local easLegacyRefreshVisibility_2513 = G.RefreshVisibility2496
-function G:RefreshVisibility2496()
-    return easLegacyRefreshVisibility_2513(self)
-end
-
-
--- v0.28.74: Golden Pursuits progress/campaign text uses white and the status
+-- Golden Pursuits visibility is owned by the primary RefreshVisibility2496 implementation.\n\n-- v0.28.74: Golden Pursuits progress/campaign text uses white and the status
 -- row collapses upward whenever there is no separate pursuit-task line.
 
 -- v0.28.74: Golden Pursuits progress and campaign values render as separate

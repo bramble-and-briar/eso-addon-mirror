@@ -1,0 +1,7 @@
+## APIVersion: 101051
+## Title: Smart Pickpocket
+## Description: Blocks unsafe pickpocketing and accidental criminal stealing while standing. Crouching/sneaking and sitting are allowed.
+## Author: KSD
+## Version: 0.2.0
+
+SmartPickpocket.lua

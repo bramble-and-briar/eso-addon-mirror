@@ -1,10 +1,10 @@
 ## Title: |c0d0d0dNothingWasted|r |ce90101Tracker|r
 ## Author: |c09e8ech|r|c4509eca|r|c094decz|r|c09e8ece|r|cec09e5068|r
-## Version: 3.5.0
-## AddOnVersion: 350
-## APIVersion: 101050
+## Version: 2.0
+## AddOnVersion: 6
+## APIVersion: 101051
 ## SavedVariables: NothingWastedTrackerSV
-## DependsOn: LibAddonMenu-2.0>=41
+## DependsOn: LibAddonMenu-2.0>=43
 ## Description: Shows the Necro Passive Stacks of "Nothing Wasted"
 
 lang/strings.lua

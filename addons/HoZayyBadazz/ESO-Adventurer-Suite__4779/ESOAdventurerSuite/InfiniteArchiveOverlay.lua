@@ -82,7 +82,15 @@ function A:GetScale()
     return math.max(0.65, math.min(1.80, scale))
 end
 
-function A:ApplyPosition()
+local ApplyPositionImplArch
+
+function A:ApplyPosition(...)
+
+    return ApplyPositionImplArch(self, ...)
+
+end
+
+ApplyPositionImplArch = function(self)
     local _, control = self:GetNativeTracker()
     if not control then return end
 
@@ -119,7 +127,15 @@ function A:GetPreviewProgress()
     return "Arc 1   Cycle 1   Stage 1"
 end
 
-function A:GetKeybindText()
+local GetKeybindTextImplArch
+
+function A:GetKeybindText(...)
+
+    return GetKeybindTextImplArch(self, ...)
+
+end
+
+GetKeybindTextImplArch = function(self)
     if type(GetActionBindingInfo) == "function" then
         local keyCode = safe(GetActionBindingInfo, nil, "TOGGLE_ACTIVITY_HUD_TRACKER", 1)
         if keyCode and keyCode ~= KEY_INVALID and type(GetKeyName) == "function" then
@@ -255,7 +271,15 @@ function A:RestoreNativeProgress()
     end
 end
 
-function A:Refresh()
+local RefreshImplArch
+
+function A:Refresh(...)
+
+    return RefreshImplArch(self, ...)
+
+end
+
+RefreshImplArch = function(self)
     local tracker, control = self:GetNativeTracker()
 
     self:CreateLayoutPreview()
@@ -321,7 +345,15 @@ function A:SetLayoutMode(active)
     self:Refresh()
 end
 
-function A:ResetPosition()
+local ResetPositionImplArch
+
+function A:ResetPosition(...)
+
+    return ResetPositionImplArch(self, ...)
+
+end
+
+ResetPositionImplArch = function(self)
     if EPC.saved then
         EPC.saved.infiniteArchiveOverlayLeft = -1
         EPC.saved.infiniteArchiveOverlayTop = -1
@@ -335,7 +367,15 @@ function A:ResetPosition()
     self:Refresh()
 end
 
-function A:Initialize()
+local InitializeImplArch
+
+function A:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.layoutMode = false
     self:CreateLayoutPreview()
 
@@ -387,7 +427,7 @@ function A:IsPlayerInArchive02972()
     return self:IsArchiveStarted() == true
 end
 
-function A:GetKeybindText()
+GetKeybindTextImplArch = function(self)
     if type(GetHighestPriorityActionBindingInfoFromName) == "function" then
         local keyCode = safe(GetHighestPriorityActionBindingInfoFromName, nil, "TOGGLE_ACTIVITY_HUD_TRACKER", false)
         if keyCode and keyCode ~= KEY_INVALID and type(GetKeyName) == "function" then
@@ -398,8 +438,8 @@ function A:GetKeybindText()
     return "F5"
 end
 
-local EAS_InfiniteRefreshBase02972 = A.Refresh
-function A:Refresh()
+local EAS_InfiniteRefreshBase02972 = RefreshImplArch
+RefreshImplArch = function(self)
     EAS_InfiniteRefreshBase02972(self)
 
     self:CreateLayoutPreview()
@@ -442,7 +482,7 @@ end
 -- ============================================================================
 local REASON_NATIVE_ISOLATION_02974 = "EAS_InfiniteArchiveNativeIsolation02974"
 
-function A:ApplyPosition()
+ApplyPositionImplArch = function(self)
     -- Compatibility no-op for the native tracker. Older callers still invoke
     -- ApplyPosition(), but only the Suite-owned frame is allowed to move now.
     if self.previewFrame and not self.previewDragging then
@@ -450,7 +490,7 @@ function A:ApplyPosition()
     end
 end
 
-function A:ResetPosition()
+ResetPositionImplArch = function(self)
     if EPC.saved then
         EPC.saved.infiniteArchiveOverlayLeft = -1
         EPC.saved.infiniteArchiveOverlayTop = -1
@@ -460,7 +500,7 @@ function A:ResetPosition()
     self:Refresh()
 end
 
-function A:Refresh()
+RefreshImplArch = function(self)
     self:CreateLayoutPreview()
 
     if self.layoutMode then
@@ -528,7 +568,7 @@ function A:IsArchiveHudVisible02975()
     return true
 end
 
-function A:Refresh()
+RefreshImplArch = function(self)
     self:CreateLayoutPreview()
 
     if self.layoutMode then
@@ -600,8 +640,8 @@ function A:SuppressNativeTracker02978()
     end
 end
 
-local EAS_InfiniteRefreshBase02978 = A.Refresh
-function A:Refresh()
+local EAS_InfiniteRefreshBase02978 = RefreshImplArch
+RefreshImplArch = function(self)
     -- Suppress the native tracker before doing any Suite visibility work. This
     -- remains true even if the Suite frame hides because the game loses focus,
     -- a menu opens, or the user disables the Suite Archive overlay.
@@ -1099,8 +1139,8 @@ function A:RegisterArchiveChoiceAdvisor029171()
     end
 end
 
-local EAS_IA_InitializeBase029171 = A.Initialize
-function A:Initialize()
+local EAS_IA_InitializeBase029171 = InitializeImplArch
+InitializeImplArch = function(self)
     EAS_IA_InitializeBase029171(self)
     self:RegisterArchiveChoiceAdvisor029171()
 end

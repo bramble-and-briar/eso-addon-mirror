@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Aeric_ESO/ProblemSolved__4885",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Aeric_ESO",
+  "canonical_id": "esoui:4885",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4885",
+  "deleted": false,
+  "directories": [
+    "ProblemSolved"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4885/",
+  "fingerprint": "4c60a8f520c4e341d8c19644a4d249c95759cd359b8308107242d8e8d36b9c2f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17616.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4885",
+  "source_url": "https://www.esoui.com/downloads/info4885-ProblemSolved.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "ProblemSolved",
+  "updated_at": 1790702386000,
+  "version": "1.0.1"
+}

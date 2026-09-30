@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Puddy/pChat-Chat-customization-help-look-notification-sound-automation-history__93",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Puddy",
   "canonical_id": "esoui:93",
   "category_id": "55",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "pChat"
   ],
   "download_url": "https://www.esoui.com/downloads/dl93/",
-  "fingerprint": "4c1a90e0fd27f50f3f00a5e8e937321f3899f1bdd6b96d2fc5ca74df5405089d",
+  "fingerprint": "6051b64aa38eca2b0e761bd6949bf85942da9bcc5968430ee23ecfa53d6d384e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14795.png",
     "https://cdn-eso.mmoui.com/preview/pvw2872.jpg",
@@ -89,11 +94,11 @@
   "source_id": "93",
   "source_url": "https://www.esoui.com/downloads/info93-pChatChatcustomizationhelplooknotificationsoundautomationhistory.html",
   "stats": {
-    "downloads": 1842477,
-    "favorites": 1196,
-    "monthly_downloads": 4272
+    "downloads": 1852145,
+    "favorites": 1197,
+    "monthly_downloads": 5034
   },
   "title": "pChat (Chat customization & help: look/notification/sound/automation/history)",
-  "updated_at": 1780938233000,
-  "version": "10.0.7.4"
+  "updated_at": 1790699903000,
+  "version": "10.0.7.5"
 }

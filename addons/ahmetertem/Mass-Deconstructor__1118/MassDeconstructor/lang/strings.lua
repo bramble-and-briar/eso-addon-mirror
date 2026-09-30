@@ -8,7 +8,7 @@ local strings = {
 	SI_MASSDECON_REFINE_STACK_DESC =		"Refine entire stacks (ON - for faster refinement) or refine stacks of 10 at a time (OFF - to keep original behaviour, this is also much slower).",
 
 	SI_MASSDECON_DECON_SETTINGS	=			"Deconstruction Settings",
-	SI_MASSDECON_DECON_PROTECTION =			"TTC average value price protection ( 0 = OFF )",--<<@sinnereso
+	SI_MASSDECON_DECON_PROTECTION =			"TTC average listing price protection ( 0 = OFF )",--<<@sinnereso
 	SI_MASSDECON_DECON_BANKED =				"Deconstruct banked items",--<<@sinnereso
 	SI_MASSDECON_DECON_BOP_TRADEABLE =		"Deconstruct BOP tradeable items",--<<@sinnereso
 	SI_MASSDECON_DECON_TRAITLESS = 			"Deconstruct items with no trait",

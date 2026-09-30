@@ -3,7 +3,7 @@ local SF = LibSFUtils
 Slasher = {
 	name = "Slasher",
 	author = "Shadowfen",
-	version = "2.50",
+	version = "2.51",
 	savedVarVersion = "1",
 }
 local SL=Slasher

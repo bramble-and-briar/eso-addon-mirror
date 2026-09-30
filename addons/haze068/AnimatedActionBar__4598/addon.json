@@ -8,12 +8,12 @@
   "category_id": "19",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     },
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:4598",
@@ -22,7 +22,7 @@
     "AnimatedActionBarPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4598/",
-  "fingerprint": "79c5c36f20ec543fde0362cebe7b59c4c295f7ab610464f220ee43859ba98e27",
+  "fingerprint": "79464dab16a147b0933df622abb463536db7e9c12207ad8534d93b20739c894d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16133.png",
     "https://cdn-eso.mmoui.com/preview/pvw16132.png"
@@ -33,11 +33,11 @@
   "source_id": "4598",
   "source_url": "https://www.esoui.com/downloads/info4598-AnimatedActionBar.html",
   "stats": {
-    "downloads": 1694,
-    "favorites": 8,
-    "monthly_downloads": 460
+    "downloads": 2183,
+    "favorites": 9,
+    "monthly_downloads": 258
   },
   "title": "AnimatedActionBar+",
-  "updated_at": 1786539421000,
+  "updated_at": 1790665924000,
   "version": "2.0"
 }

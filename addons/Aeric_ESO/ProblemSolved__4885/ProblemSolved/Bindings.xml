@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="ProblemSolved">
+            <Action name="PROBLEMSOLVED_DESTROY">
+                <Down>ProblemSolved_OnKeybindPressed()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

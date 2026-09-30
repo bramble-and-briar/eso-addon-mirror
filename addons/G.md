@@ -156,7 +156,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Events Improved - Kith's Build](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kitherel/Guild-Events-Improved---Kith-s-Build__2029) | kitherel | PC / Mac | 1 |
 | [Guild Events Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Othric/Guild-Events-Revised__2052) | Othric | PC / Mac | 1.3.2 |
 | [Guild Events Revised (hotfix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/turbo112/Guild-Events-Revised-hotfix__3152) | turbo112 | PC / Mac | 1.3.3 b |
-| [Guild Events Sorted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/klarix/Guild-Events-Sorted__4780) | klarix | PC / Mac | 1.1.5 |
+| [Guild Events Sorted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/klarix/Guild-Events-Sorted__4780) | klarix | PC / Mac | 1.1.6 |
 | [Guild Hall Button](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoarGules/Guild-Hall-Button__1970) | BoarGules | PC / Mac | 2.3.22 |
 | [Guild Hall List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/Guild-Hall-List__1720) | sirinsidiator | PC / Mac | 1.2 |
 | [Guild History Exact Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Guild-History-Exact-Time__4631) | DakJaniels | PC / Mac | 1 |
@@ -179,7 +179,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Tickets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Guild-Tickets__3205) | attriel | PC / Mac | 1.0.12 |
 | [Guild Tools \[En/Fr\] Classic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pills/Guild-Tools-En-Fr-Classic__884) | pills | PC / Mac | 0.4.0 |
 | [Guild Tools By Fen](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fenweldryn/Guild-Tools-By-Fen__2939) | Fenweldryn | PC / Mac | 0.9.1 |
-| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.09.24 |
+| [Guild Trader Activity (GTA)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/Guild-Trader-Activity-GTA__4590) | sinnereso | PC / Mac | 2026.09.29 |
 | [Guild Trader Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Guild-Trader-Tracker__f2495833-84b0-4142-8a25-f2063d0f0a23) | ReliktKoala | Console | — |
 | [GuildActivity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/GuildActivity__2190) | Coorbin | PC / Mac | 1.1.1 |
 | [GuildBankLedger - 3.x - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/myristican/GuildBankLedger---3.x---Updated__2858) | myristican | PC / Mac | 3.55 |
@@ -197,3 +197,4 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [GuildSalesTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/GuildSalesTracker__4559) | NPViral | PC / Mac | 1.2 |
 | [GuildShrines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/GuildShrines__1649) | Valve | PC / Mac | 1.7.1 |
 | [GuildSummary (trading summary)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rednas/GuildSummary-trading-summary__3660) | Rednas | PC / Mac | 1.0 |
+| [GuildTraderCaption](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/GuildTraderCaption__4894) | VotMyID | PC / Mac | 0.1 |

@@ -1,8 +1,8 @@
 ## Title: |c7c42f2Imp|ceeeeee-ressive Stats|r
-## AddOnVersion: 1156000
-## APIVersion: 101050
+## AddOnVersion: 1157000
+## APIVersion: 101051
 ## Author: |c7c42f2@impda|r [EU]
-## DependsOn: LibMainMenu-2.0>=40500 LibCombat>=88 LibAsync>=30104 LibAddonMenu-2.0>=43 LibCustomMenu>=730 LibDataPacker>=1005000 LibScrollList>=3
+## DependsOn: LibMainMenu-2.0>=40500 LibCombat>=89 LibAsync>=30104 LibAddonMenu-2.0>=43 LibCustomMenu>=730 LibDataPacker>=1005000 LibScrollList>=4
 ## OptionalDependsOn: LibDebugLogger PerfectPixel ImpPvPMeter
 ## SavedVariables: ImpPvPMeterSV ImpPvPMeterCSV PvPMeterBattlegroundsData ImpPvPMeterMatchBackup PvPMeterDuelsData PvPMeterDuelsSV PvPMeter
 

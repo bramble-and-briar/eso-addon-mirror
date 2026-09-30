@@ -76,6 +76,7 @@ Slasher_localization_strings["en"] = {
 	SL_DECON_SHOWNAME_ADE = "Aderene",
 	SL_DECON_SHOWNAME_SIL = "Siluruz, Realm Craftsman",
 	SL_DECON_SHOWNAME_POR = "Portius Remus, Lupine Scavenger",
+	SL_DECON_SHOWNAME_TZO = "Tzozabrar, Dwarven Deconstructor",
 
 	SL_ARMORER_DROPDOWN_NAME = "Default armorer (/arm):",
 	SL_ARMORER_SHOWNAME_GHR = "Ghrasharog",

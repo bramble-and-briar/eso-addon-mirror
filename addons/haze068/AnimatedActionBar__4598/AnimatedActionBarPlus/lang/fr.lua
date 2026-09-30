@@ -25,7 +25,7 @@ local strings =
     SI_AAB_BOUNCE_ENABLE_TT    = "Interrupteur principal pour l'animation de rebond. Désactivé, aucune icône ne s'animera.",
     SI_AAB_BOUNCE_ON_PROC      = "Rebond sur proc",
     SI_AAB_BOUNCE_ON_PROC_TT   = "Joue aussi l'animation quand une compétence proce (Fragments de Cristal, " ..
-                                        "Volonté de l'Assassin, Concentration Sinistre…), pas seulement à la pression.",
+                                        "Volonté de l'Assassin, Concentration Sinistre...), pas seulement à la pression.",
 
     SI_AAB_BOUNCE_GROW         = "Échelle d'agrandissement",
     SI_AAB_BOUNCE_GROW_TT      = "À quel point l'icône grandit au sommet du rebond. 1,10 = 10% plus grand que la normale. " ..
@@ -107,8 +107,42 @@ local strings =
     SI_AAB_ULT_HEADER_READY    = "Bordure d'ultime prête",
     SI_AAB_ULT_VANILLA_SHIMMER = "Scintillement ESO original",
     SI_AAB_ULT_VANILLA_SHIMMER_TT = "Affiche le scintillement/halo doré original d'ESO sur l'emplacement d'ultime dès qu'elle est prête. " ..
-                                        "Fonctionne en parallèle de la bordure personnalisée ci-dessous — l'un ou l'autre, ou les deux. " ..
+                                        "Fonctionne en parallèle de la bordure personnalisée ci-dessous - l'un ou l'autre, ou les deux. " ..
                                         "Désactiver ensuite nécessite un /reloadui pour effacer complètement les textures.",
+    SI_AAB_ULT_BORDER_STYLE       = "Style de bordure prête",
+    SI_AAB_ULT_BORDER_STYLE_TT    = "Choisit quelle bordure marque l'emplacement d'ultime. \"Personnalisée\" utilise la bordure lumineuse colorée de cet add-on avec toutes les options de pulsation/clignotement/arc-en-ciel ci-dessous. \"Manette\" affiche une bordure de progression qui se remplit du bas vers le haut à mesure que l'ultime se charge. Passer en mode Manette désactive les options personnalisées ci-dessous.",
+    SI_AAB_ULT_BORDER_CUSTOM      = "Personnalisée (bordure lumineuse)",
+    SI_AAB_ULT_BORDER_CONTROLLER  = "Manette (bordure de progression)",
+    SI_AAB_ULTCTRL_STYLE          = "Texture de bordure",
+    SI_AAB_ULTCTRL_STYLE_TT       = "Quelle texture de cadre utilise la bordure de progression manette.",
+    SI_AAB_ULTCTRL_STYLE_BEVEL    = "Biseau (3D métallique)",
+    SI_AAB_ULTCTRL_STYLE_FLAT     = "Plat (ligne nette)",
+    SI_AAB_ULTCTRL_STYLE_SLEEK    = "Fin (double ligne)",
+    SI_AAB_ULTCTRL_STYLE_CHAMFER  = "Chanfrein (anguleux)",
+    SI_AAB_ULTCTRL_STYLE_DOUBLE   = "Double (anneau jumeau)",
+    SI_AAB_ULTCTRL_GLOWSTYLE      = "Style de lueur",
+    SI_AAB_ULTCTRL_GLOWSTYLE_TT   = "Forme de la lueur affichée quand l'ultime est prêt.",
+    SI_AAB_ULTCTRL_GLOWSTYLE_SOFT = "Douce (halo large)",
+    SI_AAB_ULTCTRL_GLOWSTYLE_SHARP = "Nette (bord serré)",
+    SI_AAB_ULTCTRL_GLOWSTYLE_RING = "Anneau (aura externe)",
+    SI_AAB_ULTCTRL_THICKNESS      = "Épaisseur de bordure",
+    SI_AAB_ULTCTRL_THICKNESS_TT   = "Épaisseur du trait de la bordure, en pixels. Faible pour un contour fin, élevé pour un cadre épais.",
+    SI_AAB_ULTCTRL_CORNER         = "Longueur des coins",
+    SI_AAB_ULTCTRL_CORNER_TT      = "Jusqu'où les coins haut et bas s'étendent vers l'intérieur, en pourcentage de la largeur. Plus bas = crochet plus ouvert, plus haut = cadre plus fermé.",
+    SI_AAB_ULTCTRL_PADDING        = "Espacement de bordure",
+    SI_AAB_ULTCTRL_PADDING_TT     = "Écart entre l'emplacement et la bordure, en pixels.",
+    SI_AAB_ULTCTRL_TRACK          = "Afficher le fond",
+    SI_AAB_ULTCTRL_TRACK_TT       = "Affiche le cadre sombre non rempli derrière la progression, pour toujours voir le contour complet.",
+    SI_AAB_ULTCTRL_COLORSHIFT     = "Dégradé de charge",
+    SI_AAB_ULTCTRL_COLORSHIFT_TT  = "Fait passer la couleur de la bordure de la couleur de charge à la couleur prête au fur et à mesure du remplissage.",
+    SI_AAB_ULTCTRL_CHARGECOLOR    = "Couleur de charge",
+    SI_AAB_ULTCTRL_CHARGECOLOR_TT = "Couleur de la bordure à 0% quand le dégradé est activé. La couleur prête est la couleur de bordure ci-dessus.",
+    SI_AAB_ULTCTRL_GLOWFULL       = "Lueur quand plein",
+    SI_AAB_ULTCTRL_GLOWFULL_TT    = "Ajoute une lueur additive vive et une brève pulsation dès que l'ultime est pleinement chargé.",
+    SI_AAB_ULTCTRL_GLOWINT        = "Intensité de la lueur",
+    SI_AAB_ULTCTRL_GLOWINT_TT     = "Luminosité de la lueur affichée quand l'ultime est prêt.",
+    SI_AAB_ULTCTRL_RAINBOW        = "Arc-en-ciel quand plein",
+    SI_AAB_ULTCTRL_RAINBOW_TT     = "Fait défiler la bordure de progression à travers l'arc-en-ciel une fois l'ultime entièrement chargé. Utilise les curseurs de saturation et de luminosité de la section de la bordure personnalisée.",
     SI_AAB_ULT_ENABLE          = "Activer la bordure d'ultime prête",
     SI_AAB_ULT_ENABLE_TT       = "Affiche une bordure colorée autour de votre emplacement d'ultime dès que vous avez " ..
                                         "assez d'énergie ultime pour utiliser la compétence équipée.",
@@ -212,6 +246,27 @@ local strings =
     SI_AAB_ULT_RAINBOW_LIGHT_TT= "Luminosité des couleurs arc-en-ciel. 0 = noir, 0.5 = pleine luminosité, 1 = blanc.",
     SI_AAB_DBG_RAINBOW_SAT     = "rainbow sat",
     SI_AAB_DBG_RAINBOW_LIGHT   = "rainbow lum",
+    SI_AAB_CONF_HEAD           = "Vérification des conflits",
+    SI_AAB_CONF_FOUND          = "Autres addons de barre d'action actifs :",
+    SI_AAB_CONF_HINT           = "En cas de bordures/lueurs en double, désactive l'un d'eux pour tester.",
+    SI_AAB_CONF_NONE           = "Aucun addon de barre d'action concurrent connu détecté.",
+    SI_AAB_CONF_HOOKS          = "Hooks propres",
+    SI_AAB_CONF_OK             = "ok",
+    SI_AAB_CONF_MISSING        = "manquant",
+    SI_AAB_CONF_OVERRIDDEN     = "manquant (écrasé ?)",
+    SI_AAB_CONF_ULTFRAME       = "Cadre ultime d'origine",
+    SI_AAB_CONF_VISIBLE        = "visible (autre addon ?)",
+    SI_AAB_CONF_SUPPRESSED     = "masqué",
+    SI_AAB_DBG_PROGRESS        = "progression",
+    SI_AAB_DBG_BORDER          = "bordure",
+    SI_AAB_DBG_VISIBLE         = "visible",
+    SI_AAB_DBG_TEXTURE         = "texture",
+    SI_AAB_DBG_THICKNESS       = "épaisseur",
+    SI_AAB_DBG_PADDING         = "marge",
+    SI_AAB_DBG_COLORSHIFT      = "dégradé",
+    SI_AAB_DBG_FULLGLOW        = "lueur pleine",
+    SI_AAB_DBG_GLOWSTYLE       = "style de lueur",
+    SI_AAB_DBG_RAINBOW         = "arc-en-ciel",
 
     -- animation de fin liée à la durée
     SI_AAB_EXPIRE_SCALE_DESC       = "Lie la longueur de l'animation d'expiration à la durée de la capacité. Les buffs courts clignotent vite, les longs s'étirent un peu plus.",
@@ -291,6 +346,7 @@ local strings =
                                         "Si les deux addons dessinent des cadres fins en même temps, les cadres se doublent ou se décalent.",
     SI_AAB_INFO_GAMEPAD           = "Vous jouez à la manette ?\n\n" ..
                                         "Si vos compétences sont décalées, mal alignées ou affichées incorrectement, désactivez le \"Gamepad Mode\" dans FancyActionBar+.\n\n" ..
+                                        "Les joueurs à la manette devraient également désactiver \"Use Thin Frame\" dans FancyActionBar+ et dans AnimatedActionBar+ pour un résultat optimal.\n\n" ..
                                         "Si le problème persiste, contactez-moi sur Discord (haze.3169) afin que nous puissions le résoudre ensemble.",
 
     SI_AAB_DLG_TITLE              = "AnimatedActionBar+",

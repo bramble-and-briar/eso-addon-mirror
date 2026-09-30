@@ -213,15 +213,15 @@ function H:Initialize()
     local prefix = EPC.name .. "_DungeonHistory"
 
     if EVENT_ACTIVITY_FINDER_STATUS_UPDATE ~= nil then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Status", EVENT_ACTIVITY_FINDER_STATUS_UPDATE,
+        EPC.Runtime:RegisterEvent("DungeonHistory", "Status", EVENT_ACTIVITY_FINDER_STATUS_UPDATE,
             function(_, status) self:OnActivityFinderStatus(status) end)
     end
     if EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE ~= nil then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Complete", EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE,
+        EPC.Runtime:RegisterEvent("DungeonHistory", "Complete", EVENT_ACTIVITY_FINDER_ACTIVITY_COMPLETE,
             function() self:RecordRun("ACTIVITY_FINDER") end)
     end
     if EVENT_PLAYER_ACTIVATED ~= nil then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+        EPC.Runtime:RegisterEvent("DungeonHistory", "Activated", EVENT_PLAYER_ACTIVATED, function()
             if safe(IsUnitInDungeon, false, "player") == true and type(s.activeRun) ~= "table" then
                 self:StartRun("AUTO_DETECTED")
             end

@@ -1,8 +1,8 @@
 ## Title: RuESO
 ## Author: TERAB1T
 ## Description: Дополнительные функции для русской локализации.
-## Version: 47.0
-## APIVersion: 101050 101051
+## Version: 48.0
+## APIVersion: 101051 101052
 ## SavedVariables: RuEsoVariables
 ## DependsOn: LibAddonMenu-2.0>=40
 ## OptionalDependsOn: TamrielTradeCentre ItemBrowser WishList IIfA AwesomeGuildStore EasyTravel Unboxer LibCombat

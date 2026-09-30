@@ -1,0 +1,10 @@
+## Title: ProblemSolved
+## Author: Chatgpt
+## Version: 1.0.1
+## AddOnVersion: 1
+## APIVersion: 101050 101051
+## IsLibrary: false
+## Description: Press a keybind to automatically destroy all Nowhere Keys from your backpack.
+
+Bindings.xml
+ProblemSolved.lua

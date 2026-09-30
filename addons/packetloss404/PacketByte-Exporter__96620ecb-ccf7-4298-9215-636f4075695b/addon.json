@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/packetloss404/PacketByte-Exporter__96620ecb-ccf7-4298-9215-636f4075695b",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "packetloss404",
+  "canonical_id": "bethesda:96620ecb-ccf7-4298-9215-636f4075695b",
+  "content_id": "96620ecb-ccf7-4298-9215-636f4075695b",
+  "deleted": false,
+  "fingerprint": "716e877fac6b16ed543e36137fc1eb352617ec656b16e2bb0d223493e9f66df3",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "96620ecb-ccf7-4298-9215-636f4075695b",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/96620ecb-ccf7-4298-9215-636f4075695b",
+  "title": "PacketByte Exporter"
+}

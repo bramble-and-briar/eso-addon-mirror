@@ -18,7 +18,7 @@
     "GuildEventsSorted"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4780/",
-  "fingerprint": "8bb4f01417b1b16484ba545ffdd298545674517853423d5c1948e3cef7845a03",
+  "fingerprint": "0d67ab416a963ce0769d99a1f8309d479d2ec208ac5d7ccb987d8ba08c898504",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17043.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4780",
   "source_url": "https://www.esoui.com/downloads/info4780-GuildEventsSorted.html",
   "stats": {
-    "downloads": 8,
+    "downloads": 76,
     "favorites": 0,
-    "monthly_downloads": 6
+    "monthly_downloads": 34
   },
   "title": "Guild Events Sorted",
-  "updated_at": 1787127224000,
-  "version": "1.1.5"
+  "updated_at": 1790698038000,
+  "version": "1.1.6"
 }

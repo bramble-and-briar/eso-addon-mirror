@@ -8,7 +8,9 @@ local deferredHooks = setmetatable({}, {__mode="k"})
 local fields = {"Button", "ButtonIcon", "ButtonStackCount", "Name", "SellPrice", "SellPriceText",
     "Status", "TraitInfo", "SellInformation", "Bg", "Highlight", "ItemCondition", "ActiveIcon"}
 local function Capture(c)
-    local s = { width=c:GetWidth(), height=c:GetHeight(), hidden=c:IsControlHidden(), alpha=c:GetAlpha(), layer=c:GetDrawLayer(), level=c:GetDrawLevel(), anchors={} }
+    -- GetAlpha includes the scene's current fade. Saving it would bake a
+    -- partially opened inventory's opacity into every subsequent restoration.
+    local s = { width=c:GetWidth(), height=c:GetHeight(), hidden=c:IsControlHidden(), alpha=c:GetControlAlpha(), layer=c:GetDrawLayer(), level=c:GetDrawLevel(), anchors={} }
     for i=0,c:GetNumAnchors()-1 do
         local valid, point, relative, relativePoint, x, y, constraints = c:GetAnchor(i)
         if valid then s.anchors[#s.anchors+1]={point,relative,relativePoint,x,y,constraints} end
@@ -49,6 +51,42 @@ end
 -- Native ESO intentionally hides TraitInfo while shopping. Grids have room for
 -- separate trait/sale badges; retain the native controls and their tooltips.
 AlabuzyaUI.InventoryGrid = {}
+-- Render the grid image directly on its cell, independently of the native
+-- list button's nested texture geometry. Keep the native button for actions,
+-- tooltips and cooldowns; native setup remains responsible for item tint.
+function AlabuzyaUI.InventoryGrid.UpdateIcon(row,data,grid)
+    local image=row.diaGridIcon
+    if not grid then
+        if image then image:SetHidden(true) end
+        return
+    end
+    local button=row:GetNamedChild("Button")
+    local native=button and button:GetNamedChild("Icon")
+    if not native then return end
+    if not image then
+        image=WINDOW_MANAGER:CreateControl(nil,row,CT_TEXTURE)
+        row.diaGridIcon=image
+        image:SetMouseEnabled(false)
+        Place(image,CENTER,row,CENTER,0,0,44,44)
+    end
+    image:SetDrawTier(row:GetDrawTier())
+    image:SetDrawLayer(DL_CONTROLS)
+    image:SetDrawLevel(2)
+    local texture=data.iconFile
+    if (not texture or texture=="") and data.bagId and data.slotIndex then
+        texture=GetItemInfo(data.bagId,data.slotIndex)
+    end
+    if not texture or texture=="" then texture=native:GetTextureFileName() end
+    local valid=texture and texture~=""
+    -- Do not restart a pending texture request on every visible-row refresh.
+    if image:GetTextureFileName()~=(texture or "") then image:SetTexture(texture or "") end
+    image:SetColor(native:GetColor())
+    -- The row already inherits the scene fade; copy only the icon's own alpha
+    -- (including the native locked-item dimming), never the effective alpha.
+    image:SetAlpha(native:GetControlAlpha())
+    image:SetHidden(not valid)
+    native:SetHidden(true)
+end
 function AlabuzyaUI.InventoryGrid.UpdateBadges(row, data)
     local trait = row:GetNamedChild("TraitInfo")
     local sell = row:GetNamedChild("SellInformation")
@@ -69,7 +107,10 @@ end
 local function Style(row,data,grid)
     local bg=row.diaGridBackground
     bg:SetHidden(not grid)
-    if not grid then return end
+    if not grid then
+        AlabuzyaUI.InventoryGrid.UpdateIcon(row,data,false)
+        return
+    end
     row:SetDimensions(SIZE,SIZE)
     for _,name in ipairs({"Name","SellPrice","SellPriceText","Bg","Highlight","ItemCondition"}) do
         local c=row:GetNamedChild(name)
@@ -77,20 +118,7 @@ local function Style(row,data,grid)
     end
     local button=row:GetNamedChild("Button")
     Place(button,CENTER,row,CENTER,0,0,44,44)
-    if button then
-        local icon=button:GetNamedChild("Icon")
-        if icon then
-            -- Newly allocated and recycled rows need identical icon geometry.
-            -- Do not let stale anchors or backdrop layers obscure the item.
-            Place(icon,CENTER,button,CENTER,0,0,44,44)
-            icon:SetDrawLayer(DL_CONTROLS) icon:SetDrawLevel(2)
-            local texture=data.iconFile
-            if (not texture or texture=="") and data.bagId and data.slotIndex then
-                texture=GetItemInfo(data.bagId,data.slotIndex)
-            end
-            if texture and texture~="" then icon:SetTexture(texture) icon:SetHidden(false) end
-        end
-    end
+    AlabuzyaUI.InventoryGrid.UpdateIcon(row,data,grid)
     Place(row:GetNamedChild("ButtonStackCount"),BOTTOMRIGHT,row,BOTTOMRIGHT,-3,-3)
     Place(row:GetNamedChild("Status"),TOPLEFT,row,TOPLEFT,2,2,18,18)
     AlabuzyaUI.InventoryGrid.UpdateBadges(row,data)
@@ -122,6 +150,21 @@ local function Apply(state)
     ZO_ScrollList_ResetToTop(list)
     ZO_ScrollList_Commit(list)
     ZO_ScrollList_RefreshVisible(list)
+end
+-- OnEffectivelyShown is also used by ESO to populate and reset the list.
+-- Rebuild only after those handlers finish, not from a pre-hook inside them.
+local function QueueRefresh(state, rebuild)
+    state.rebuildPending=state.rebuildPending or rebuild
+    if state.refreshPending then return end
+    state.refreshPending=true
+    zo_callLater(function()
+        state.refreshPending=false
+        if state.list:IsHidden() then return end
+        local rebuildNow=state.rebuildPending
+        state.rebuildPending=false
+        if rebuildNow then Apply(state)
+        else ZO_ScrollList_RefreshVisible(state.list) end
+    end,0)
 end
 local function Install(list,key)
     if not list or not list.dataTypes or not list.contents or states[list] then return end
@@ -173,7 +216,7 @@ local function Install(list,key)
         Apply(state)
     end)
     state.button=button
-    ZO_PreHookHandler(list,"OnEffectivelyShown",function() Apply(state) end)
+    ZO_PostHookHandler(list,"OnEffectivelyShown",function() QueueRefresh(state,true) end)
     Apply(state)
 end
 local Discover
@@ -222,6 +265,18 @@ function AlabuzyaUI.InventoryGrid.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.Enabled("grid") then return end
     saved=AlabuzyaUI.SavedVariables.Account("inventoryGrid",{})
+    -- Native bag data is updated before these callbacks. Coalesce a burst of
+    -- loot/stack changes into one refresh after ESO updates the visible rows.
+    if SHARED_INVENTORY then
+        local function RefreshItems()
+            for _,state in pairs(states) do
+                if state.grid and not state.list:IsHidden() then QueueRefresh(state,false) end
+            end
+        end
+        for _,event in ipairs({"SingleSlotInventoryUpdate","FullInventoryUpdate"}) do
+            SHARED_INVENTORY:RegisterCallback(event,RefreshItems)
+        end
+    end
     EVENT_MANAGER:RegisterForEvent("AlabuzyaUIInventoryGrid",EVENT_PLAYER_ACTIVATED,Discover)
     EVENT_MANAGER:RegisterForEvent("AlabuzyaUIInventoryGrid",EVENT_OPEN_STORE,Discover)
     EVENT_MANAGER:RegisterForEvent("AlabuzyaUIInventoryGrid",EVENT_OPEN_BANK,Discover)

@@ -8,8 +8,8 @@
   "category_id": "19",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1643",
@@ -18,7 +18,7 @@
     "BanditsUserInterface"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1643/",
-  "fingerprint": "9376e5ec26284a58dc3f564d6002d5c08f174fceb5fa0e891310ca270a4a9810",
+  "fingerprint": "1fcde3ba2b1412fec3789d8b062501fd2fc310e6bb566df86bb158f2b49b93a4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9686.png",
     "https://cdn-eso.mmoui.com/preview/pvw7992.png",
@@ -41,11 +41,11 @@
   "source_id": "1643",
   "source_url": "https://www.esoui.com/downloads/info1643-BanditsUserInterface.html",
   "stats": {
-    "downloads": 6178317,
-    "favorites": 1354,
-    "monthly_downloads": 15975
+    "downloads": 6215967,
+    "favorites": 1359,
+    "monthly_downloads": 11808
   },
   "title": "Bandits User Interface",
-  "updated_at": 1786040967000,
-  "version": "4.437"
+  "updated_at": 1790719773000,
+  "version": "4.438"
 }

@@ -74,7 +74,7 @@ function MD.MakeMenu()
 			type = "slider",--<<@sinnereso
 			name = GetString(SI_MASSDECON_DECON_PROTECTION),
 			min = 0,
-			max = 10000,
+			max = 20000,
 			step = 1000,
 			getFunc = function()
 				return MD.settings.DeconstructPrice

@@ -1,7 +1,7 @@
 local addon = {}
 addon.name = 'ImpressiveStats'
 addon.displayName = '|c7c42f2Imp|ceeeeee-ressive Stats|r'
-addon.version = '1.5.6'
+addon.version = '1.5.7'
 
 local Log = IMP_STATS_Logger('IMP_STATS_MAIN')
 

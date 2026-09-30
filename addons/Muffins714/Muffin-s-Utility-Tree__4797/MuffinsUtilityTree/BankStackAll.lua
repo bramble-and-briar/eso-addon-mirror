@@ -77,7 +77,7 @@ local function EnsureInjected(attempt)
     AddBankStackKeybind()
 end
 
-function MUT_Initialize_BankStackAll()
+function MUT.Initialize_BankStackAll()
     local settings = MUT.GetSettings()
     if settings.bankStackAllEnabled then
         EnsureInjected()

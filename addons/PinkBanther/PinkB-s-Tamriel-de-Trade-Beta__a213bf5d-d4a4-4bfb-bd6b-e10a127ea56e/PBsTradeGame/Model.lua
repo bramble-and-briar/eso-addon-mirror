@@ -16,6 +16,7 @@ function M.New()
         s.properties[p.id] = M.Copy(p)
         s.properties[p.id].reserve = p.expectedProfit * C.battle.reserveProfitFactor
     end
+    s.hub=PBTrade.Hub.New(s.cycles)
     M.Unlock(s); return s
 end
 -- A real place discovered after the campaign has run for a while enters at the current
@@ -74,13 +75,26 @@ end
 function M.IsPropertyVisited(s,p)
     return not p.canonical or p.requiresVisit==false or s.visitedProperties[p.id]==true
 end
-function M.Assets(s)
+-- Cash plus owned property values (no hub). This is the scale hub prices are set against, so a
+-- facility costs the same share of a company's wealth whenever it is ordered.
+function M.CoreAssets(s)
     -- Force a floating-point accumulator.  Long campaigns can legitimately exceed the
     -- signed 64-bit integer range in desktop Lua even though ESO's Lua number is a double.
     local total = 0.0+s.cash
     for _, p in ipairs(M.Owned(s)) do total = total + p.marketValue end
     return total
 end
+-- What the player has sunk into the trade hub (built, under construction and legacy annex),
+-- counted at the amount paid. Ordering a facility therefore moves wealth from cash into the
+-- hub instead of making the company look poorer; demolishing returns only the refund.
+function M.HubValue(s)
+    local total=0.0
+    if s.hub then for _,b in ipairs(PBTrade.Hub.All(s.hub)) do total=total+(b.paidCost or 0) end end
+    return total*PBTrade.HubData.assetShare
+end
+function M.Assets(s) return M.CoreAssets(s)+M.HubValue(s) end
+-- Reference wealth for hub prices (the field is still called `average` in Hub contexts).
+function M.HubCostBase(s) return M.CoreAssets(s) end
 function M.FormatNumber(value)
     value=math.floor(value or 0); local sign=value<0 and "-" or ""
     local reversed=string.format("%.0f",math.abs(value)):reverse():gsub("(%d%d%d)","%1,")
@@ -105,7 +119,40 @@ function M.FormatMoney(value)
     end
 end
 M.FormatCompact=M.FormatMoney
+function M.HubSupply(s)
+    local supply={}; local blueprints=PBTrade.HubData.blueprints
+    for _,p in pairs(s.properties) do if p.owner==C.playerId then
+        for id,b in pairs(blueprints) do if b.categories[p.category] then supply[id]=(supply[id] or 0)+1 end end
+    end end
+    return supply
+end
+function M.RefreshHub(s)
+    if not s.hub then return end
+    PBTrade.Hub.Expand(s.hub,s.chapter)
+    if s.chapter>=3 then PBTrade.Hub.LearnBlueprints(s.hub,M.HubSupply(s)) end
+end
+function M.HubProfile(s,p,attacker)
+    local company=s.companies[attacker or p.owner]
+    return PBTrade.Hub.BattleProfile(s.hub,s.chapter,M.HubSupply(s),company and company.personality,
+        M.IsCriticalProperty(s,p) or p.isHeadquarters==true,attacker~=nil)
+end
+-- How much the hub eases one stance right now (0..stanceReliefMax), and the ability behind it.
+function M.HubStanceRelief(s,stanceId)
+    local K=PBTrade.HubData; local ability=K.stanceAbility[stanceId]
+    if not ability or s.chapter<K.minChapter then return 0,ability,0 end
+    local have=PBTrade.Hub.Effects(s.hub,s.chapter,M.HubSupply(s)).abilities[ability] or 0
+    local threshold=K.battle.threshold[math.min(5,s.chapter)]
+    return K.stanceReliefMax*have/(have+threshold),ability,have
+end
+function M.HubSummary(s,p,attacker)
+    local r=M.HubProfile(s,p,attacker); if not r.enabled then return nil end
+    local specialty=""; for _,a in ipairs(PBTrade.HubData.abilities) do if a.id==r.specialty then specialty=a.name end end
+    return (r.barrier and ("重点障壁："..specialty) or "拠点支援")
+        ..string.format("：資金効力 %.2f倍 / 交渉基準 %.2f倍",r.pressure,r.value)
+        ..string.format("\n待機 %.2f倍 / 敵待機 %.2f倍 / 疲弊 %.2f倍",r.playerWait,r.enemyWait,r.idle)
+end
 function M.Unlock(s)
+    M.RefreshHub(s)
     local tier = math.floor(math.max(0, #M.Owned(s)-2) / C.campaign.unlockOwnedStep)
     for _, z in ipairs(D.zones) do
         if (z.minChapter or 1)<=s.chapter and z.unlockTier<=tier then s.unlocked[z.id]=true end
@@ -559,6 +606,9 @@ function M.SettleCycle(s)
     if (s.guardPeriods or 0)>0 then s.guardPeriods=s.guardPeriods-1 end
     for id,a in pairs(s.alliances) do if type(a)=="table" then a.trust=math.min(C.alliance.maxTrust,a.trust+C.alliance.trustRecovery) end end
     if (s.scandalPeriods or 0)>0 then s.scandalPeriods=s.scandalPeriods-1 end
+    M.RefreshHub(s)
+    local hubReport=PBTrade.Hub.Settle(s.hub,s.cycles+1,s.chapter)
+    gross=gross+hubReport.net
     local debtPayment=math.min(s.debt,math.floor(gross*C.economy.debtPaymentShare))
     s.debt=s.debt-debtPayment; s.cash=s.cash+gross-debtPayment
     local marketGrowth,highestValue=0,0
@@ -574,7 +624,7 @@ function M.SettleCycle(s)
         marketGrowth=marketGrowth+(p.marketValue-before); highestValue=math.max(highestValue,p.marketValue)
     end
     s.cycles=s.cycles+1
-    return {gross=gross,debtPayment=debtPayment,net=gross-debtPayment,reserveRecovered=recovered,
+    return {hub=hubReport,gross=gross,debtPayment=debtPayment,net=gross-debtPayment,reserveRecovered=recovered,
         marketGrowth=marketGrowth,highestValue=highestValue,cycle=s.cycles}
 end
 -- One period (期) = acquisition, the counterattack/defense check and the settlement.
@@ -815,6 +865,7 @@ function M.Export(s)
     local out={schemaVersion=C.schemaVersion,properties={},companies={},visited=M.Copy(s.visited),
         visitedProperties=M.Copy(s.visitedProperties),unlocked=M.Copy(s.unlocked),
         learnedTactics=M.Copy(s.learnedTactics),learnedGroups=M.Copy(s.learnedGroups),alliances=M.Copy(s.alliances),canonicalProperties={}}
+    out.hub=M.Copy(s.hub)
     for _,key in ipairs(stateFields) do out[key]=s[key] end
     for id,p in pairs(s.properties) do
         -- Untouched real places (neutral, never visited, never invested) are re-imported and
@@ -924,6 +975,7 @@ function M.Load(saved)
         end
     end
     s.canonicalValuation=C.canonical.version
+    s.hub=PBTrade.Hub.Load(saved.hub,s.cycles,s.chapter)
     s.learnedTactics.smile=true; s.schemaVersion=C.schemaVersion; M.Unlock(s)
     if companyMigration then M.CheckTakeovers(s) end
     return s

@@ -4,5 +4,5 @@
 local EPC = ESOProgressionCoach
 if not EPC then return end
 
-EPC.version = "0.29.696"
-EPC.addOnVersion = 3631
+EPC.version = "0.29.790"
+EPC.addOnVersion = 3725

@@ -1,6 +1,13 @@
 Ardy's OB Tracker - Release Notes
 =================================
 
+v1.4.0  (2026-09-29)
+  - Tracker window text is now resizable (12-36, default 16) with the "Text
+    size" slider in settings or /obt size <number>. The window resizes to fit.
+  - Add-on description in the Add-Ons menu is now a single line.
+  - LibAddonMenu-2.0 is now required, so every player gets the settings page
+    (Settings > Add-Ons > Ardy's OB Tracker) without needing chat commands.
+
 v1.3.1  (2026-09-28)
   - Updated for Update 51 (API 101051).
 

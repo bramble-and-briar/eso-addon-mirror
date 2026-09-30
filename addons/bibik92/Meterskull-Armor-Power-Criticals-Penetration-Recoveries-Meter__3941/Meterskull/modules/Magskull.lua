@@ -11,7 +11,7 @@ local function MagskullRender(self, initial, skipAnimation)
         self.uiRefs.RecoveryLabel:SetColor(0.12, 0.49, 1, 0.75)
     end
 
-    local magRecovery = GetPlayerStat(STAT_MAGICKA_REGEN_COMBAT)
+    local magRecovery = GetPlayerStat(STAT_MAGICKA_REGEN_COMBAT, STAT_BONUS_OPTION_APPLY_BONUS)
     local oldVal      = self.currentData.recoveryLevel or 0
 
     if initial or magRecovery ~= oldVal then

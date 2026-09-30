@@ -7,8 +7,8 @@
 ## Title: Smart Looter
 ## Description: Automatically loot any items that will not consume additional inventory space
 ## Author: @code65536
-## Version: 1.1.1
-## AddOnVersion: 101010
-## APIVersion: 101050 101051
+## Version: 1.1.2
+## AddOnVersion: 101020
+## APIVersion: 101051
 
 SmartLooter.lua

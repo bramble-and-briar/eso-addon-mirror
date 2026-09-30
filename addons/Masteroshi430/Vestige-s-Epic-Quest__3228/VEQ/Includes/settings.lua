@@ -9,7 +9,7 @@ function VEQ.CreateSettings()
     local LMP = LibMediaProvider 
 	
 	local VEQAuthor = "|c3CB371@Masteroshi430|r"
-	local VEQVersion = "2026.09.28"
+	local VEQVersion = "2026.09.29"
 	local fontList = LMP:List('font')
 	local fontStyles = {"normal", "outline", "shadow", "soft-shadow-thick", "soft-shadow-thin", "thick-outline"}
 	local iconList = {"Arrow ESO (Default)", "Icon Dragonknight", "Icon Nightblade", "Icon Sorcerer", "Icon Templar"}

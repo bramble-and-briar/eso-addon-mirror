@@ -1,0 +1,7 @@
+2026.09.29
+- U51 API UPDATE.
+- Fix for U51 causing atribute bars to ocasionally not position correctly. Have it now positioning them on activate(using doors, wayshrines etc) rather than once on addon load.
+- Fix for teleport to saved player location stating "inzone" instead of the zonename in chat.
+** POSSIBLE FUTURE OPTIONS **
+- Auto com res?
+

@@ -162,13 +162,21 @@ local function HideNativeCompassFrame()
     -- Never force visibility of the frame or compass: their scene owns that state.
     for _,name in ipairs({'ZO_CompassFrameLeft','ZO_CompassFrameCenter','ZO_CompassFrameRight'}) do
         local texture=_G[name]
-        if texture then texture:SetAlpha(0) end
+        if texture then
+            texture:SetAlpha(0)
+            texture:SetHidden(true)
+        end
     end
 end
 local function SkinCompass()
     if not ZO_Compass or not ZO_CompassFrame then return end
     HideNativeCompassFrame()
     if compassFrame then return end
+    -- ESO reapplies the platform template on boss-bar and input-mode changes.
+    -- Hide only the decorative leaves after that operation; pins stay intact.
+    if COMPASS_FRAME and COMPASS_FRAME.ApplyStyle then
+        SecurePostHook(COMPASS_FRAME,'ApplyStyle',HideNativeCompassFrame)
+    end
     -- Preserve ESO's frame/compass hierarchy and scene fragments.
     local frame=ZO_CompassFrame
     frame:ClearAnchors()

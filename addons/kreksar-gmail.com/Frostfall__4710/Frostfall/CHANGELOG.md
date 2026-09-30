@@ -4,6 +4,22 @@ Full version history for Frostfall. See README.md for current features, installa
 
 ---
 
+### v3.4.34
+- **Fixed the settings panel overwriting the global `Frostfall` table.**
+  The LibAddonMenu panel was registered under the name `"Frostfall"`.
+  LAM names the panel's control after it, and ESO exposes every named
+  control as a global, so once the settings panel initialized, the
+  global `Frostfall` was the panel control instead of the addon table.
+  Frostfall itself was unaffected (it uses its local `FV` reference), but
+  any other addon reading the global - notably Realistic Needs and
+  Diseases' `Frostfall:GetEffectiveTemp()` and `Frostfall.State.isSwimming`
+  - silently fell back to LibZoneTemp's raw ambient temperature, ignoring
+  insulation, indoor shelter, and the spell-resist reagent buff. This is
+  why RND could roll Frostbite in a sheltered, well-insulated spot.
+- Panel renamed to `"FrostfallPanel"`, matching the `...Panel` naming the
+  other addons in the suite already use. The panel's displayed title is
+  unchanged. No other changes. **Not yet tested in-game.**
+
 ### v3.4.33
 - **Fixed the rest-detection reticle hook reading the wrong argument.**
   `ZO_PreHook` passes the hooked method's `self` (`RETICLE`) first -

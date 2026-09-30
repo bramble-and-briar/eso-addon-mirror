@@ -2,10 +2,10 @@
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
 ## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
-## Title: |cFF69B4PB’s QuestTrackerFontChanger|r 1.2.0
+## Title: |cFF69B4PB’s QuestTrackerFontChanger|r 1.3.0
 ## Author: |cFF69B4PinkBanther|r
-## Description: Adjusts the fonts of the HUD trackers in the top right -- the quest tracker (quest name, step description, objectives), the Golden Pursuits panel (also used for Tamriel Tomes) and the house information panel shown on a home tour (house name, owner, visitor count, tags). Size, typeface and outline, configured separately for each; the spacing between the lines follows the text size automatically, and the quest tracker can be moved and scaled.
-## Version: 1.2.0
+## Description: Adjusts the fonts of the HUD trackers in the top right -- the quest tracker (quest name, step description, objectives), the Golden Pursuits panel (also used for Tamriel Tomes) and the house information panel shown on a home tour (house name, owner, visitor count, tags). Size, typeface and outline, configured separately for each; the spacing between the lines follows the text size automatically, the tracker column can be moved and the quest tracker scaled.
+## Version: 1.3.0
 ## APIVersion: 101050 101051
 ## DependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsQuestTrackerFontChanger_Data

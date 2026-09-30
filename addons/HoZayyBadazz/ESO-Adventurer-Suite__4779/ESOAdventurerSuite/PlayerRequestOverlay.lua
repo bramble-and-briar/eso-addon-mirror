@@ -358,10 +358,10 @@ function P:CreateProxy()
             startTop = tonumber(safeMethod(control, "GetTop", 0)) or 0,
         }
         if control.BringWindowToTop then control:BringWindowToTop() end
-        EVENT_MANAGER:UnregisterForUpdate(P.name .. "Drag")
-        EVENT_MANAGER:RegisterForUpdate(P.name .. "Drag", 16, function()
+        EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Drag")
+        EPC.Runtime:RegisterUpdate("PlayerRequestOverlay", "Drag", 16, function()
             local state = P.dragState
-            if not state then EVENT_MANAGER:UnregisterForUpdate(P.name .. "Drag") return end
+            if not state then EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Drag") return end
             local x, y = GetUIMousePosition()
             control:ClearAnchors()
             control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, state.startLeft + (x-state.startMouseX), state.startTop + (y-state.startMouseY))
@@ -369,7 +369,7 @@ function P:CreateProxy()
     end)
     proxy:SetHandler("OnMouseUp", function(_, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT or not P.dragState then return end
-        EVENT_MANAGER:UnregisterForUpdate(P.name .. "Drag")
+        EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Drag")
         P.dragState = nil
         P:SaveFromProxy()
     end)
@@ -382,11 +382,11 @@ function P:CreateProxy()
             startY = my,
             startScale = proxy.easScale or 1,
         }
-        EVENT_MANAGER:UnregisterForUpdate(P.name .. "Resize")
-        EVENT_MANAGER:RegisterForUpdate(P.name .. "Resize", 16, function()
+        EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Resize")
+        EPC.Runtime:RegisterUpdate("PlayerRequestOverlay", "Resize", 16, function()
             local state = P.resizeState
             if not state then
-                EVENT_MANAGER:UnregisterForUpdate(P.name .. "Resize")
+                EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Resize")
                 return
             end
             local x, y = GetUIMousePosition()
@@ -403,7 +403,7 @@ function P:CreateProxy()
     end)
     grip:SetHandler("OnMouseUp", function(_, button)
         if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
-        EVENT_MANAGER:UnregisterForUpdate(P.name .. "Resize")
+        EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Resize")
         P.resizeState = nil
         P:SaveFromProxy()
     end)
@@ -426,8 +426,8 @@ end
 function P:SetLayoutMode(active)
     active = active == true
     self.layoutMode = active
-    EVENT_MANAGER:UnregisterForUpdate(self.name .. "Resize")
-    EVENT_MANAGER:UnregisterForUpdate(self.name .. "Drag")
+    EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Resize")
+    EPC.Runtime:UnregisterUpdate("PlayerRequestOverlay", "Drag")
     self.resizeState = nil
     self.dragState = nil
     if active then
@@ -461,11 +461,11 @@ function P:Initialize()
     -- No gameplay polling. The saved anchor is applied at UI lifecycle points.
     zo_callLater(function() P:GetTarget() P:ApplySaved() end, 300)
     zo_callLater(function() P:GetTarget() P:ApplySaved() end, 1200)
-    EVENT_MANAGER:RegisterForEvent(self.name .. "Activated", EVENT_PLAYER_ACTIVATED, function()
+    EPC.Runtime:RegisterEvent("PlayerRequestOverlay", "Activated", EVENT_PLAYER_ACTIVATED, function()
         zo_callLater(function() P:GetTarget() P:ApplySaved() end, 200)
     end)
     if rawget(_G, "EVENT_SCREEN_RESIZED") then
-        EVENT_MANAGER:RegisterForEvent(self.name .. "Screen", EVENT_SCREEN_RESIZED, function()
+        EPC.Runtime:RegisterEvent("PlayerRequestOverlay", "Screen", EVENT_SCREEN_RESIZED, function()
             zo_callLater(function()
                 P:ApplySaved()
                 if P.layoutMode then P:SyncProxy() end
@@ -474,8 +474,6 @@ function P:Initialize()
     end
 end
 
-EVENT_MANAGER:RegisterForEvent(P.name .. "Load", EVENT_ADD_ON_LOADED, function(_, addonName)
-    if addonName ~= "ESOAdventurerSuite" then return end
-    EVENT_MANAGER:UnregisterForEvent(P.name .. "Load", EVENT_ADD_ON_LOADED)
-    P:Initialize()
-end)
+
+-- Loaded after Core.lua; Core owns EVENT_ADD_ON_LOADED and EPC.saved is already established.
+P:Initialize()

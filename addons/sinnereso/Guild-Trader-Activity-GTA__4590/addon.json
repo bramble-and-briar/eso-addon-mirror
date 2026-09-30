@@ -15,10 +15,10 @@
   "content_id": "esoui:4590",
   "deleted": false,
   "directories": [
-    "GTA"
+    "RidinDirty"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4590/",
-  "fingerprint": "f4b02f2ce3be1f52ea343759c94a989c8921f9af993f5013fd2c23d37b2769aa",
+  "fingerprint": "ee6564802077b8d3e047bc968b2b700eed52bc2361fe35477a7b2ce3621a2f98",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16309.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw16319.jpg",
@@ -30,11 +30,11 @@
   "source_id": "4590",
   "source_url": "https://www.esoui.com/downloads/info4590-GuildTraderActivityGTA.html",
   "stats": {
-    "downloads": 1067,
+    "downloads": 1117,
     "favorites": 1,
-    "monthly_downloads": 167
+    "monthly_downloads": 202
   },
   "title": "Guild Trader Activity (GTA)",
-  "updated_at": 1790274547000,
-  "version": "2026.09.24"
+  "updated_at": 1790694220000,
+  "version": "2026.09.29"
 }

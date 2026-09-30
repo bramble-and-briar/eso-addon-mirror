@@ -5,7 +5,7 @@ if MD == nil then
 end
 
 MD.name = "MassDeconstructor"
-MD.version = "7.2"
+MD.version = "7.3"
 
 MD.settings			=	{}
 -- MD.settingsAccount	= 	{}

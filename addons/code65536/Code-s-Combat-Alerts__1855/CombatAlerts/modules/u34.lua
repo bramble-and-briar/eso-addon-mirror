@@ -45,6 +45,7 @@ Module.STRINGS = {
 	clockLabels = { default = "Show clock numbers for Veteran Taleria" },
 	bridgeExitMarkers = { default = "Mark exit points for active bridges" },
 	showWaveAlert = { default = "Show timer for Crashing Wave targeting others" },
+	showLure = { default = "Show timer for Lure of the Sea" },
 	delugeBlame = { default = "List non-swimming players with Rapid Deluge" },
 }
 
@@ -55,6 +56,7 @@ Module.DEFAULT_SETTINGS = {
 	clockLabels = true,
 	bridgeExitMarkers = true,
 	showWaveAlert = true,
+	showLure = false,
 	delugeBlame = false,
 }
 
@@ -200,6 +202,7 @@ Module.DATA = {
 		target = 174943,
 		damage = 174948,
 	},
+	lure = 163952,
 }
 local DATA = Module.DATA
 local Vars
@@ -747,6 +750,11 @@ function Module:ProcessCombatEvents( result, isError, abilityName, abilityGraphi
 		end, 300)
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.wave.target and targetType == COMBAT_UNIT_TYPE_PLAYER) then
 		Vars.wave.targeted = true
+	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.lure and targetType == COMBAT_UNIT_TYPE_PLAYER and self:GetSetting("showLure")) then
+		local id = CA1.AlertCast(abilityId, sourceName, hitValue, { 0, 0, true, { 1, 0, 1, 0.4 } })
+		if (LCA.IsUnitIdValid(sourceUnitId)) then
+			self.castSources[sourceUnitId] = id
+		end
 	elseif (result == ACTION_RESULT_BEGIN and abilityId == DATA.deluge.start) then
 		Vars.deluge.type = SI_LCA_TARGET_OTHERS
 		ZO_ClearTable(Vars.deluge.units)
@@ -902,6 +910,13 @@ function Module:GetSettingsControls( )
 			name = self:GetString("showWaveAlert"),
 			getFunc = function() return self:GetSetting("showWaveAlert") end,
 			setFunc = function(enabled) self:SetSetting("showWaveAlert", enabled) end,
+		},
+		--------------------
+		{
+			type = "checkbox",
+			name = self:GetString("showLure"),
+			getFunc = function() return self:GetSetting("showLure") end,
+			setFunc = function(enabled) self:SetSetting("showLure", enabled) end,
 		},
 		--------------------
 		{

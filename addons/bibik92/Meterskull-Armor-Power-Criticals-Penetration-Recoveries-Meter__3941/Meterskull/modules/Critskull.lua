@@ -56,8 +56,8 @@ local function CritskullRender(self, initial, skipAnimation)
     UpdateCPMod()
 
     local critChance = math.max(
-        GetPlayerStat(STAT_SPELL_CRITICAL),
-        GetPlayerStat(STAT_CRITICAL_STRIKE)
+        GetPlayerStat(STAT_SPELL_CRITICAL, STAT_BONUS_OPTION_APPLY_BONUS),
+        GetPlayerStat(STAT_CRITICAL_STRIKE, STAT_BONUS_OPTION_APPLY_BONUS)
     ) / 219.12
     local critDamage = CalculateTotalCritDamage()
 

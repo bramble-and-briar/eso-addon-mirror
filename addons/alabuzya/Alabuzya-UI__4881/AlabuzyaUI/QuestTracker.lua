@@ -50,6 +50,14 @@ local function Entries()
 end
 local Render
 Render=function()
+    viewport:SetHidden(settings.listCollapsed == true)
+    if settings.listCollapsed then
+        -- Keep only the header and shrink the shared sidebar frame with it.
+        -- Individual zone states and scroll position survive this toggle.
+        root:SetHeight(44)
+        AlabuzyaUI.Theme.SidebarHeight(44)
+        return
+    end
     local entries=Entries()
     local y=0
     for i,entry in ipairs(entries) do
@@ -94,7 +102,7 @@ end
 function AlabuzyaUI.QuestTracker.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     ru=GetCVar('language.2')=='ru'
-    settings=AlabuzyaUI.SavedVariables.Account('questTracker',{collapsed={}})
+    settings=AlabuzyaUI.SavedVariables.Account('questTracker',{collapsed={},listCollapsed=false})
     local sidebar=AlabuzyaUI.Theme.Sidebar()
     root=WINDOW_MANAGER:CreateControl('AlabuzyaUIQuestTracker',sidebar,CT_CONTROL)
     root:SetDimensions(WIDTH+16,HEIGHT+44)
@@ -103,6 +111,13 @@ function AlabuzyaUI.QuestTracker.Initialize()
     local title=Text(root)
     AlabuzyaUI.Theme.Text(title,22)
     title:SetAnchor(TOPLEFT,root,TOPLEFT,14,7)
+    title:SetDimensions(WIDTH-28,30)
+    title:SetMouseEnabled(true)
+    title:SetHandler('OnMouseUp',function(_,button,inside)
+        if button~=MOUSE_BUTTON_INDEX_LEFT or not inside then return end
+        settings.listCollapsed=not settings.listCollapsed
+        Render()
+    end)
     title:SetText(ru and 'Задания' or 'Quests')
     viewport=WINDOW_MANAGER:CreateControl(nil,root,CT_SCROLL)
     viewport:SetDimensions(WIDTH-12,HEIGHT) viewport:SetAnchor(TOPLEFT,root,TOPLEFT,14,38)

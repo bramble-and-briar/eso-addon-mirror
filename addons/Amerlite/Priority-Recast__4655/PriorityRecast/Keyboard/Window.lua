@@ -107,7 +107,7 @@ function Window.TryCursorInsert(row)
 	local index   = row and ListGetData(row).index or nil
 	local skillId = CursorAbilityId()
 
-	-- Insert the sill into the priority list.
+	-- Insert the skill into the priority list.
 	Priorities.Insert(skillId, index)
 
 	-- Play slotted sound and clear the cursor.

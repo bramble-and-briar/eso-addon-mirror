@@ -177,7 +177,7 @@ end
 ---------------------------------------------------------------------------------------------
 -- Initialization
 ---------------------------------------------------------------------------------------------
-function MUT_Initialize_QualitySorter()
+function MUT.Initialize_QualitySorter()
     -- Always hook this so reset on leave works even if enabled mid session
     EnsureHooked()
 

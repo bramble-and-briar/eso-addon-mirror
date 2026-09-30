@@ -1,12 +1,16 @@
 ## Title: BackBarTimer
-## APIVersion: 101049 101050
+## APIVersion: 101049 101050 101051
 ## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
-## Version: 1.4
-## Description: Tracks timed skills on the back bar (API-based, no libs).
+## Version: 2.0-rc2
+## Description: Lightweight dual-bar skill timers and optional combat cadence prompts for console.
 ## OptionalDependsOn: LibHarvensAddonSettings
 ## SavedVariables: BackBarTimer_Saved
 
 ## Disclaimer: This addon is fan-made using ZOS-provided APIs. It is not created, endorsed, or supported by ZeniMax Online Studios or Bethesda Softworks.
 
-BackBarTimer.lua
+BBT_Config.lua
+BBT_State.lua
+BBT_HUD.lua
+BBT_Tracker.lua
 BBTMenu.lua
+BackBarTimer.lua

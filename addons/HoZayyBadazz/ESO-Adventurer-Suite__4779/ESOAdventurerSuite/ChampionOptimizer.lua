@@ -26,11 +26,17 @@ local function disciplineLabel(t)
     return "CHAMPION"
 end
 
+local EnrichChampionContext029174
+local ApplyMaxPowerScore029174
+local NotifyMaxPowerChampion029174
+
 function C:GetContext()
     local profile=EPC.GearOptimizer and EPC.GearOptimizer.GetProfile and EPC.GearOptimizer:GetProfile() or {}
     local plan=EPC.GearOptimizer and EPC.GearOptimizer.BuildFullSkillPlan and EPC.GearOptimizer:BuildFullSkillPlan() or nil
     local role=plan and plan.context and plan.context.role or "DAMAGE"
-    return { profile=profile or {}, role=tostring(role or "DAMAGE") }
+    local context={ profile=profile or {}, role=tostring(role or "DAMAGE") }
+    if EnrichChampionContext029174 then return EnrichChampionContext029174(self, context) end
+    return context
 end
 
 function C:ScoreSkill(node, context)
@@ -69,6 +75,7 @@ function C:ScoreSkill(node, context)
         if has(text,{"craft","inspiration","research","deconstruct","refine","repair"}) then score=score+145 end
         if has(text,{"fall damage","stealth","pickpocket"}) then score=score+55 end
     end
+    if ApplyMaxPowerScore029174 then score=ApplyMaxPowerScore029174(self,node,context,score) end
     return score
 end
 
@@ -125,54 +132,7 @@ local function pathToRoot(target, byId)
     return {target}
 end
 
-function C:BuildPlan()
-    local context=self:GetContext(); local nodes,byId=self:CollectNodes(); local plan={context=context,nodes=nodes,byId=byId,pools={},targets={},slotted={}}
-    for _,node in ipairs(nodes) do
-        local p=plan.pools[node.disciplineId]
-        if not p then
-            p={disciplineId=node.disciplineId,disciplineType=node.disciplineType,label=disciplineLabel(node.disciplineType),budget=num(GetNumSpentChampionPoints,0,node.disciplineId)+num(GetNumUnspentChampionPoints,0,node.disciplineId),spent=0,alloc={},ranked={}}
-            plan.pools[node.disciplineId]=p
-        end
-        node.score=self:ScoreSkill(node,context); p.ranked[#p.ranked+1]=node
-    end
-    for _,p in pairs(plan.pools) do
-        table.sort(p.ranked,function(a,b) if a.score==b.score then return a.name<b.name end return a.score>b.score end)
-        for _,target in ipairs(p.ranked) do
-            if p.spent>=p.budget then break end
-            if target.score>0 then
-                local path=pathToRoot(target,byId)
-                local needed=0
-                for _,n in ipairs(path) do local want=math.max(0,n.minUnlock or 0); needed=needed+math.max(0,want-(p.alloc[n.id] or 0)) end
-                if p.spent+needed<=p.budget then
-                    for _,n in ipairs(path) do local want=math.max(0,n.minUnlock or 0); local old=p.alloc[n.id] or 0; if want>old then p.alloc[n.id]=want; p.spent=p.spent+(want-old) end end
-                    local room=p.budget-p.spent
-                    local cur=p.alloc[target.id] or 0; local add=math.min(room,math.max(0,target.maxPoints-cur))
-                    if add>0 then p.alloc[target.id]=cur+add; p.spent=p.spent+add end
-                end
-            end
-        end
-        -- If points remain, fill highest-scoring already connected nodes to cap.
-        for _,n in ipairs(p.ranked) do
-            if p.spent>=p.budget then break end
-            if (p.alloc[n.id] or 0)>0 then local add=math.min(p.budget-p.spent,math.max(0,n.maxPoints-(p.alloc[n.id] or 0))); p.alloc[n.id]=(p.alloc[n.id] or 0)+add; p.spent=p.spent+add end
-        end
-        local slots={}
-        for _,n in ipairs(p.ranked) do if n.slottable and (p.alloc[n.id] or 0)>0 then slots[#slots+1]=n end end
-        p.slots=slots
-    end
-    return plan
-end
-
-function C:BuildView()
-    local plan=self:BuildPlan(); local view={cost=num(GetChampionRespecCost,0),pools={},context=plan.context}
-    for _,p in pairs(plan.pools) do
-        local row={label=p.label,budget=p.budget,spent=p.spent,top={}}
-        for _,n in ipairs(p.ranked) do if (p.alloc[n.id] or 0)>0 and #row.top<6 then row.top[#row.top+1]={name=n.name,points=p.alloc[n.id],slottable=n.slottable} end end
-        view.pools[#view.pools+1]=row
-    end
-    table.sort(view.pools,function(a,b) local o={CRAFT=1,WARFARE=2,FITNESS=3}; return (o[a.label] or 9)<(o[b.label] or 9) end)
-    return view
-end
+-- BuildPlan/BuildView are defined once below by the MAX POWER optimizer.
 
 function C:Notify(msg,good)
     if EPC.GearOptimizer and EPC.GearOptimizer.NotifyResult then EPC.GearOptimizer:NotifyResult(msg,good) elseif d then d("[ESO Adventurer Suite] "..msg) end
@@ -260,6 +220,7 @@ end
 
 
 function C:ApplyBestChampionBuild()
+    if NotifyMaxPowerChampion029174 then NotifyMaxPowerChampion029174(self) end
     if safe(IsUnitInCombat,false,"player")==true then self:Notify("CHAMPION: leave combat before redistributing points.",false) return false end
     if EPC and EPC.RefreshNow then EPC:RefreshNow("pre-champion-redistribute") end
     if EPC and EPC.Journal and EPC.Journal.window and not EPC.Journal.window:IsHidden() and type(EPC.Journal.Hide)=="function" then
@@ -312,9 +273,8 @@ end
 -- Scores CP against the skill build RESPEC + BUILD actually plans, current role,
 -- current content, and personal penetration need. Allocation is incremental with
 -- diminishing returns instead of filling one high-keyword node to cap first.
-local EAS_ChampionGetContextBase029174=C.GetContext
-function C:GetContext()
-    local base=EAS_ChampionGetContextBase029174(self) or {}
+EnrichChampionContext029174 = function(self,base)
+    base=base or {}
     local g=EPC.GearOptimizer
     local buildContext=g and type(g.GetWornBuildContext)=="function" and g:GetWornBuildContext() or {}
     local skillPlan=g and type(g.BuildFullSkillPlan)=="function" and g:BuildFullSkillPlan() or nil
@@ -332,10 +292,9 @@ function C:GetContext()
     return base
 end
 
-local EAS_ChampionScoreSkillBase029174=C.ScoreSkill
-function C:ScoreSkill(node,context)
+ApplyMaxPowerScore029174 = function(self,node,context,score)
     context=context or self:GetContext()
-    local score=EAS_ChampionScoreSkillBase029174(self,node,context)
+    score=tonumber(score) or 0
     local text=lower(node.name).." "..lower(node.desc)
     local label=disciplineLabel(node.disciplineType)
     local role=lower(context.role)
@@ -557,10 +516,8 @@ function C:BuildView()
     return view
 end
 
-local EAS_ApplyBestChampionBuildBase029174=C.ApplyBestChampionBuild
-function C:ApplyBestChampionBuild()
+NotifyMaxPowerChampion029174 = function(self)
     local ctx=self:GetContext()
     local sp=ctx.skillProfile or {}
     self:Notify(string.format("MAX POWER CP: %s | %s | Direct %.0f%% / DoT %.0f%% | AoE %.0f%% / Single %.0f%% | Pen %d/%d",tostring(ctx.archetype or ctx.role or "BUILD"),tostring(ctx.modeLabel or ctx.mode or "AUTO"),(tonumber(sp.directShare) or 0)*100,(tonumber(sp.dotShare) or 0)*100,(tonumber(sp.aoeShare) or 0)*100,(tonumber(sp.singleShare) or 0)*100,tonumber(ctx.personalPen) or 0,tonumber(ctx.penTarget) or 0),true)
-    return EAS_ApplyBestChampionBuildBase029174(self)
 end

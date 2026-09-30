@@ -273,6 +273,98 @@ function T:Run(showCopyWindow)
     add(EPC.ResourcePins and "PASS" or "FAIL", "3D Resource Pins", EPC.ResourcePins and "module loaded" or "missing")
     add(EPC.CharacterGearScreen and "PASS" or "FAIL", "Character Gear Screen", EPC.CharacterGearScreen and "module loaded" or "missing")
 
+    local loadoutUI = EPC.LoadoutManager
+    if loadoutUI and type(loadoutUI.LayoutUI) == "function" and type(loadoutUI.EnsureWindowSaved) == "function" then
+        local ok, savedWindow = pcall(loadoutUI.EnsureWindowSaved, loadoutUI)
+        local layoutVersion = ok and type(savedWindow)=="table" and tonumber(savedWindow.layoutVersion) or 0
+        add(layoutVersion >= 4 and "PASS" or "WARN", "Loadout compact UI",
+            string.format("responsive layout v%d; ESO-style setup tabs expected", layoutVersion))
+    else
+        add("FAIL", "Loadout compact UI", "responsive layout surface unavailable")
+    end
+
+    local loadoutImporter = EPC.LoadoutManager
+    if loadoutImporter and type(loadoutImporter.IsESOHubBuildString) == "function" then
+        local sample = "1;3;1;51:13:0;0;13940;35,36,43;20805,23236,20944,20251,32853,32719;23231,61507,20668,32722,38312,83272;45011,45012,45023,45029,44922,44933,44951,44953,45188,45190,45192,45482,45471,45472,45473,45557,45549,45559,45561,45562,45564,45565,45567,45572,45574,45533,45526,45546,45528,45529,45590,45580,29062,35804,29061,55386,45614,45621,45619,45625,33293,45309,84672,45312,45573,44610,44615;92,66,82,0,265,13,25,264,270,34,275,57;6:20,10:20,11:20,14:20,15:20,16:20,17:40,18:40,20:20,21:30,22:30,37:30,38:20,39:20,40:30,42:16,43:30,44:6,45:30,50:20,53:50,58:50,99:20,108:20,113:20,128:20;0:3:163:13:68343,2:3:281:13:68343,3:2:163:12:68343,6:1:610:12:68343,16:2:695:12:68343,8:3:695:13:68343,9:3:695:13:68343,1:0:610:32:45885,11:0:610:33:45883,12:0:813:31:45884,4:11:695:26:26587,5:11:695:7:26848,20:3:610:1:26591,21:14:610:13:68343;153629;54339:8454917;"
+        local ok, recognized = pcall(loadoutImporter.IsESOHubBuildString, loadoutImporter, sample)
+        add(ok and recognized == true and "PASS" or "FAIL", "ESO-Hub build importer",
+            ok and recognized == true and "Mattiverse 15-part addondata recognized" or "parser did not recognize Mattiverse addondata")
+    else
+        add("FAIL", "ESO-Hub build importer", "LoadoutManager parser unavailable")
+    end
+
+    local settings = EPC.Settings
+    if settings and tonumber(settings.organizationVersion029786) >= 4 then
+        add("PASS", "Settings feature organization", "nested feature ownership v3 active")
+    else
+        add("FAIL", "Settings feature organization", "feature ownership tree unavailable")
+    end
+    if settings and tonumber(settings.searchVersion029787) == 1
+        and type(settings.RefreshSettingsSearch029787) == "function"
+        and type(settings.JumpToSetting029787) == "function" then
+        local count = type(settings.settingsSearchIndex029787) == "table" and #settings.settingsSearchIndex029787 or 0
+        add(count > 0 and "PASS" or "WARN", "Settings search", string.format("search index entries=%d; direct jump available", count))
+    else
+        add("FAIL", "Settings search", "search index/direct jump surface unavailable")
+    end
+    do
+        local found = false
+        if settings and type(settings.settingsSearchIndex029787) == "table" then
+            for _, entry in ipairs(settings.settingsSearchIndex029787) do
+                if type(entry) == "table" and string.find(tostring(entry.path or ""), "Group Loot Notifier", 1, true) then
+                    found = true
+                    break
+                end
+            end
+        end
+        add(found and "PASS" or "FAIL", "Group Loot settings section",
+            found and "dedicated searchable Group Loot Notifier section active" or "Group Loot Notifier settings missing from final feature tree")
+    end
+
+    local activeQuest = EPC.ActiveQuest
+    if activeQuest and type(activeQuest.InstallQuestCycleHook029790) == "function" then
+        local installed = activeQuest.questCycleHookInstalled029790 == true
+        add(installed and "PASS" or "WARN", "Update 51 quest cycle compatibility",
+            installed and "native HUD tracker key path hooked; no custom binding required"
+                or "hook surface available but HUD tracker was not ready yet")
+    else
+        add("FAIL", "Update 51 quest cycle compatibility", "native HUD tracker hook unavailable")
+    end
+
+    local dungeonFinder = EPC.DungeonFinder
+    if dungeonFinder and type(dungeonFinder.GetLiveQueueInfo029785) == "function"
+        and type(dungeonFinder.GetQueuedDungeonText029785) == "function" then
+        add("PASS", "Dungeon queue HUD live data", "live queue difficulty + queued dungeon resolver available")
+    else
+        add("FAIL", "Dungeon queue HUD live data", "live queue resolver unavailable")
+    end
+
+    local characterProfile = EPC.CharacterProfile
+    if characterProfile and type(characterProfile.GetDiagnostics) == "function" then
+        local ok, diag = pcall(characterProfile.GetDiagnostics, characterProfile)
+        local healthy = ok and type(diag) == "table" and diag.activeCharacter ~= nil and diag.activeProfile == true
+        add(healthy and "PASS" or "WARN", "Character settings profile",
+            healthy and string.format("active=%s; profiles=%d; applied=%s", tostring(diag.activeCharacter), tonumber(diag.profileCount) or 0, tostring(diag.applied == true))
+                or "character-scoped settings profile not fully initialized")
+    else
+        add("FAIL", "Character settings profile", "Architecture/CharacterProfile.lua unavailable")
+    end
+
+    local nativeHud = EPC.NativeHUDEditor
+    if nativeHud and nativeHud.GetDiagnostics then
+        local hudDiag = nativeHud:GetDiagnostics()
+        local hudReady = hudDiag.available == true and (tonumber(hudDiag.registered) or 0) > 0
+        add(hudReady and "PASS" or "WARN", "ESO Edit HUD integration",
+            string.format("available=%s; registered=%d/%d; suiteOnly=%s; livePreview=%s",
+                tostring(hudDiag.available == true),
+                tonumber(hudDiag.registered) or 0, tonumber(hudDiag.configured) or 0,
+                tostring(hudDiag.suiteOnlyEditor == true),
+                tostring(hudDiag.livePreview == true))
+            .. "; realPreview=" .. tostring(hudDiag.realControlPreview == true))
+    else
+        add("WARN", "ESO Edit HUD integration", "native HUD bridge unavailable")
+    end
+
     -- Context-dependent systems: report SKIP rather than pretending they were executed.
     local bankOpen = sceneShowing("bank") or sceneShowing("guildBank") or sceneShowing("houseBank")
     add(bankOpen and "PASS" or "SKIP", "Bank live-context test", bankOpen and "bank scene is open; native category hooks can be exercised" or "open a bank and rerun to exercise live bank UI")

@@ -1,11 +1,12 @@
-Ardy's OB Tracker  v1.3.1
+Ardy's OB Tracker  v1.4.0
 =========================
 
 INSTALL
   Copy the whole "ArdysOBTracker" folder into:
     Documents\Elder Scrolls Online\live\AddOns\
   Then enable "Ardy's OB Tracker" in the in-game Add-Ons menu (or /reloadui).
-  Optional: install LibAddonMenu-2.0 for a settings panel (/obtsettings).
+  Requires LibAddonMenu-2.0 (Minion installs it automatically). Settings are in
+  Settings > Add-Ons > Ardy's OB Tracker.
 
 WHAT IT DOES
   Markers  - When the enemy under your crosshair is Off Balance from YOU and within
@@ -19,3 +20,4 @@ WHAT IT DOES
   Tracker  - A small window lists every enemy you have put Off Balance with a
              countdown. When Off Balance ends, the row turns grey and counts down
              their 15 s Off Balance Immunity. Drag it where you want, then /obt lock.
+             Change the text size with /obt size <12-36> or the settings slider.

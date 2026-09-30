@@ -11,7 +11,7 @@ local function StamskullRender(self, initial, skipAnimation)
         self.uiRefs.RecoveryLabel:SetColor(0, 0.7, 0, 0.75)
     end
 
-    local stamRecovery = GetPlayerStat(STAT_STAMINA_REGEN_COMBAT)
+    local stamRecovery = GetPlayerStat(STAT_STAMINA_REGEN_COMBAT, STAT_BONUS_OPTION_APPLY_BONUS)
     local oldVal       = self.currentData.recoveryLevel or 0
 
     if initial or stamRecovery ~= oldVal then

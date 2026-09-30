@@ -436,12 +436,51 @@ local function SafeName(unitTag, fallback)
     return n
 end
 
+-- Update 51 separates ESO UserID from platform Online ID. Display follows
+-- ESO's preference; target identity must never depend on that preference.
+local function ReadUnitName(getter, unitTag)
+    if type(getter) ~= "function" then return nil end
+    local name = getter(unitTag)
+    if type(name) == "string" and name ~= "" then return name end
+    return nil
+end
+
+local function SafePlayerName(unitTag)
+    local preferred = ReadUnitName(function(tag)
+        if type(ZO_GetPrimaryPlayerNameFromUnitTag) == "function" then
+            return ZO_GetPrimaryPlayerNameFromUnitTag(tag, true)
+        end
+    end, unitTag)
+    return preferred
+        or ReadUnitName(GetUnitPlatformDisplayName, unitTag)
+        or ReadUnitName(GetUnitDisplayName, unitTag)
+        or SafeName(unitTag, "Player")
+end
+
 local function SafeUniqueId(unitTag)
+    -- Retain optional legacy support, but GetUnitUniqueId is not documented
+    -- in API 101051. Never use an Online ID as if it were an ESO UserID.
     if type(GetUnitUniqueId) == "function" then
         local id = GetUnitUniqueId(unitTag)
-        if id and id ~= 0 then return tostring(id) end
+        if id and id ~= 0 then return "unit:" .. tostring(id) end
     end
-    return SafeName(unitTag, "Unknown")
+    local characterName = ReadUnitName(GetUnitName, unitTag)
+    if IsUnitPlayer and IsUnitPlayer(unitTag) then
+        local account = ReadUnitName(GetUnitDisplayName, unitTag)
+        local kind = "eso:"
+        if not account then
+            account = ReadUnitName(GetUnitPlatformDisplayName, unitTag)
+            kind = "platform:"
+        end
+        if account then
+            -- Length prefix prevents ambiguous concatenations; retain the
+            -- complete UserID, including any numeric discriminator.
+            return kind .. #account .. ":" .. account .. ":" .. (characterName or "")
+        end
+        if characterName then return "character:" .. characterName end
+        return nil
+    end
+    return characterName or "Unknown"
 end
 
 local function IsHostileAttackable(unitTag)
@@ -551,7 +590,7 @@ local function PvPPlayerTick()
         end
     end
 
-    local name = SafeName(tag, "Player")
+    local name = SafePlayerName(tag)
     local className = (GetUnitClass and GetUnitClass(tag)) or ""
     if className == "" then className = "Class" end
 

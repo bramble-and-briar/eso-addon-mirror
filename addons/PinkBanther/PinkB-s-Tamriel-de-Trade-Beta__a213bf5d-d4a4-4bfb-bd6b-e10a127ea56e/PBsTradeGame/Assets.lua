@@ -1,9 +1,10 @@
 -- Match the working PBsWarTable loader: verify texture dimensions, then retry
 -- using the install root reported by ESO. Never change visibility owned by the UI.
 local A={legacyRoot="PBsTradeGame/",fallbackSeconds=4,controls=setmetatable({},{__mode="k"})}
-A.sizes={coin={128,64},coin_plinth={512,128},treasury={2048,1024},title_hall={1024,512},crest={256,256},
+A.sizes={coin={128,64},coin_plinth={512,128},treasury={2048,1024},title_hall={1024,512},ember={512,512},crest={256,256},
     atlas={1024,1024},wood_frame={512,256},band_glow={128,32},band_tip_left={128,32},band_tip_right={128,32},
     chapter_1={1024,512},chapter_2={1024,512},chapter_3={1024,512},chapter_4={1024,512},chapter_5={1024,512}}
+for _,name in ipairs({"bank","market","warehouse","tavern","guildhall","ground","tree","cypress","walkway","bureau","gate"}) do A.sizes["hub_"..name]={512,512} end
 PBTrade.Assets=A
 function A.Initialize(preferredRoot)
     A.roots={A.legacyRoot}; A.controls=setmetatable({},{__mode="k"})

@@ -12,6 +12,7 @@ SmartLooter = {
 		CURT_ARCHIVAL_FORTUNES,
 		CURT_IMPERIAL_FRAGMENTS,
 		CURT_TRADE_BARS,
+		CURT_UNDAUNTED_CRESTS,
 	},
 
 	cappedCurrencies = {

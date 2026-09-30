@@ -255,7 +255,15 @@ function F:CreateShell(name, kind, width, height)
     return frame
 end
 
-function F:CreateUnitFrame(name, kind, width, height, includeAuras)
+local CreateUnitFrameImplArch
+
+function F:CreateUnitFrame(...)
+
+    return CreateUnitFrameImplArch(self, ...)
+
+end
+
+CreateUnitFrameImplArch = function(self, name, kind, width, height, includeAuras)
     local frame = self:CreateShell(name, kind, width, height)
 
     local title = makeLabel(frame, name .. "_Name", "ZoFontGameBold", C.white)
@@ -439,7 +447,15 @@ function F:CreatePlayerEffectsFrame()
     return frame
 end
 
-function F:CreateMemberRow(parent, name, width, height, x, y, showCompanion)
+local CreateMemberRowImplArch
+
+function F:CreateMemberRow(...)
+
+    return CreateMemberRowImplArch(self, ...)
+
+end
+
+CreateMemberRowImplArch = function(self, parent, name, width, height, x, y, showCompanion)
     local row = makeBackdrop(parent, name, C.panel, C.edgeSoft)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     row:SetDimensions(width, height)
@@ -490,7 +506,15 @@ function F:CreateMemberRow(parent, name, width, height, x, y, showCompanion)
     return row
 end
 
-function F:CreateGroupFrame()
+local CreateGroupFrameImplArch
+
+function F:CreateGroupFrame(...)
+
+    return CreateGroupFrameImplArch(self, ...)
+
+end
+
+CreateGroupFrameImplArch = function(self)
     local frame = self:CreateShell("EPC_GroupFrame", "group", 334, 308)
     local title = makeLabel(frame, "EPC_GroupFrame_Title", "ZoFontGameBold", C.gold)
     title:SetAnchor(TOPLEFT, frame, TOPLEFT, 12, 6)
@@ -510,7 +534,15 @@ function F:CreateGroupFrame()
     return frame
 end
 
-function F:CreateRaidFrame()
+local CreateRaidFrameImplArch
+
+function F:CreateRaidFrame(...)
+
+    return CreateRaidFrameImplArch(self, ...)
+
+end
+
+CreateRaidFrameImplArch = function(self)
     local maxSize = 12
     if type(GetGroupMaxSize) == "function" then
         local ok, value = pcall(GetGroupMaxSize)
@@ -621,7 +653,15 @@ function F:GetActiveCompanionSummary()
     return "COMPANION  " .. name
 end
 
-function F:UpdateUnitFrame(frame, unitTag, preview)
+local UpdateUnitFrameImplArch
+
+function F:UpdateUnitFrame(...)
+
+    return UpdateUnitFrameImplArch(self, ...)
+
+end
+
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     if not frame then return end
     local exists = preview == true or safe(DoesUnitExist, false, unitTag) == true
     if not exists then return false end
@@ -829,7 +869,15 @@ function F:RenderAuraSlots(slots, data, maxVisible, edgeColor)
     end
 end
 
-function F:RefreshTargetAuras(preview)
+local RefreshTargetAurasImplArch
+
+function F:RefreshTargetAuras(...)
+
+    return RefreshTargetAurasImplArch(self, ...)
+
+end
+
+RefreshTargetAurasImplArch = function(self, preview)
     local frame = self.targetFrame
     if not frame or not frame.epcBuffSlots then return end
     local maxVisible = math.max(3, math.min(6, tonumber(EPC.saved.targetAuraCount) or 5))
@@ -865,7 +913,15 @@ function F:RefreshTargetAuras(preview)
     setHeaders(#buffs, #debuffs)
 end
 
-function F:RefreshPlayerAuras(preview)
+local RefreshPlayerAurasImplArch
+
+function F:RefreshPlayerAuras(...)
+
+    return RefreshPlayerAurasImplArch(self, ...)
+
+end
+
+RefreshPlayerAurasImplArch = function(self, preview)
     local frame = self.playerEffectsFrame
     if not frame or not frame.epcBuffSlots then return end
 
@@ -947,7 +1003,15 @@ function F:GetLevelText(unitTag)
     return ""
 end
 
-function F:GetCompanionForMember(unitTag)
+local GetCompanionForMemberImplArch
+
+function F:GetCompanionForMember(...)
+
+    return GetCompanionForMemberImplArch(self, ...)
+
+end
+
+GetCompanionForMemberImplArch = function(self, unitTag)
     local companionTag = nil
     if unitTag == "player" then
         if safe(DoesUnitExist, false, "companion") == true then companionTag = "companion" end
@@ -985,7 +1049,15 @@ function F:GetCompanionForMember(unitTag)
     return companionTag, companionName, levelText
 end
 
-function F:UpdateMemberRow(row, unitTag, previewIndex)
+local UpdateMemberRowImplArch
+
+function F:UpdateMemberRow(...)
+
+    return UpdateMemberRowImplArch(self, ...)
+
+end
+
+UpdateMemberRowImplArch = function(self, row, unitTag, previewIndex)
     if not row then return end
     local preview = previewIndex ~= nil
     local exists = preview or (unitTag and safe(DoesUnitExist, false, unitTag) == true)
@@ -1061,7 +1133,15 @@ function F:GetGroupIdentityKey(unitTag)
     return "tag:" .. string.lower(tostring(unitTag))
 end
 
-function F:GetGroupUnitTags()
+local GetGroupUnitTagsImplArch
+
+function F:GetGroupUnitTags(...)
+
+    return GetGroupUnitTagsImplArch(self, ...)
+
+end
+
+GetGroupUnitTagsImplArch = function(self)
     local tags = {}
     local seenKeys = {}
     local size = safeNumber(GetGroupSize, 0)
@@ -1091,7 +1171,15 @@ function F:GetGroupUnitTags()
     return tags, false
 end
 
-function F:ResizeGroupContainers(size, layout)
+local ResizeGroupContainersImplArch
+
+function F:ResizeGroupContainers(...)
+
+    return ResizeGroupContainersImplArch(self, ...)
+
+end
+
+ResizeGroupContainersImplArch = function(self, size, layout)
     if self.groupFrame then
         local visibleRows = layout and 4 or math.max(1, math.min(4, tonumber(size) or 0))
         local top = 32
@@ -1123,7 +1211,15 @@ function F:ResizeGroupContainers(size, layout)
     end
 end
 
-function F:RefreshGroupFrames()
+local RefreshGroupFramesImplArch
+
+function F:RefreshGroupFrames(...)
+
+    return RefreshGroupFramesImplArch(self, ...)
+
+end
+
+RefreshGroupFramesImplArch = function(self)
     if not self.groupFrame or not self.raidFrame then return end
     local tags, soloCompanion = self:GetGroupUnitTags()
     local size = #tags
@@ -1312,7 +1408,15 @@ function F:IsHudSuppressed()
     return EPC.IsGameplayHudSuppressed and EPC:IsGameplayHudSuppressed() == true
 end
 
-function F:ApplyDefaultFrameReplacement()
+local ApplyDefaultFrameReplacementImplArch
+
+function F:ApplyDefaultFrameReplacement(...)
+
+    return ApplyDefaultFrameReplacementImplArch(self, ...)
+
+end
+
+ApplyDefaultFrameReplacementImplArch = function(self)
     if not EPC.saved then return end
     local replace = EPC.saved.replaceDefaultUnitFrames ~= false
     local reason = "ESOProgressionCoach"
@@ -1356,7 +1460,15 @@ function F:ApplyDefaultFrameReplacement()
     end
 end
 
-function F:HideAllCustomFrames()
+local HideAllCustomFramesImplArch
+
+function F:HideAllCustomFrames(...)
+
+    return HideAllCustomFramesImplArch(self, ...)
+
+end
+
+HideAllCustomFramesImplArch = function(self)
     if self.playerFrame then self.playerFrame:SetHidden(true) end
     if self.playerEffectsFrame then self.playerEffectsFrame:SetHidden(true) end
     if self.targetFrame then self.targetFrame:SetHidden(true) end
@@ -1395,13 +1507,29 @@ function F:IsPlayerFrameContextActive()
     return false
 end
 
-function F:IsCombatStatsContextActive()
+local IsCombatStatsContextActiveImplArch
+
+function F:IsCombatStatsContextActive(...)
+
+    return IsCombatStatsContextActiveImplArch(self, ...)
+
+end
+
+IsCombatStatsContextActiveImplArch = function(self)
     if self.layoutMode == true then return true end
     if EPC.saved and EPC.saved.combatStatsCombatOnly == false then return true end
     return self:IsPlayerInCombat()
 end
 
-function F:RefreshContextVisibility()
+local RefreshContextVisibilityImplArch
+
+function F:RefreshContextVisibility(...)
+
+    return RefreshContextVisibilityImplArch(self, ...)
+
+end
+
+RefreshContextVisibilityImplArch = function(self)
     if not EPC.saved or self:IsHudSuppressed() then return end
 
     if self.playerFrame then
@@ -1452,7 +1580,15 @@ function F:RefreshStats()
     end
 end
 
-function F:RefreshPlayer()
+local RefreshPlayerImplArch
+
+function F:RefreshPlayer(...)
+
+    return RefreshPlayerImplArch(self, ...)
+
+end
+
+RefreshPlayerImplArch = function(self)
     if not self.playerFrame or not EPC.saved then return end
     local show = (EPC.saved.showPlayerFrame ~= false or self.layoutMode == true or self:IsRecoveryTickPreview())
         and self:IsPlayerFrameContextActive()
@@ -1465,7 +1601,15 @@ function F:RefreshPlayer()
     end
 end
 
-function F:RefreshTarget(refreshAuras)
+local RefreshTargetImplArch
+
+function F:RefreshTarget(...)
+
+    return RefreshTargetImplArch(self, ...)
+
+end
+
+RefreshTargetImplArch = function(self, refreshAuras)
     if not self.targetFrame or not EPC.saved then return end
     local exists = safe(DoesUnitExist, false, "reticleover") == true
     local show = EPC.saved.showTargetFrame ~= false and exists and not self:IsHudSuppressed()
@@ -1477,7 +1621,15 @@ function F:RefreshTarget(refreshAuras)
     end
 end
 
-function F:ApplyScalesAndAlpha()
+local ApplyScalesAndAlphaImplArch
+
+function F:ApplyScalesAndAlpha(...)
+
+    return ApplyScalesAndAlphaImplArch(self, ...)
+
+end
+
+ApplyScalesAndAlphaImplArch = function(self)
     if not EPC.saved then return end
     local unitScale = tonumber(EPC.saved.unitFrameScale) or 1.0
     local groupScale = tonumber(EPC.saved.groupFrameScale) or 1.0
@@ -1494,7 +1646,11 @@ end
 
 -- v0.9.3 compact dark HUD style. Panels are intentionally readable/opaque enough
 -- that the game world does not wash through text, bars, or aura icons.
-function F:ApplyVisualStyle()
+local ApplyVisualStyleImplArch
+function F:ApplyVisualStyle(...)
+    return ApplyVisualStyleImplArch(self, ...)
+end
+ApplyVisualStyleImplArch = function(self)
     if not EPC.saved then return end
     local backgrounds = EPC.saved.unitFrameBackgrounds == true
     local softBackground = EPC.saved.unitFrameSoftBackground ~= false
@@ -1614,7 +1770,15 @@ function F:ApplyLayoutState(frame)
     if frame.epcMoveHint then frame.epcMoveHint:SetHidden(not active) end
 end
 
-function F:SetLayoutMode(active)
+local SetLayoutModeImplArch
+
+function F:SetLayoutMode(...)
+
+    return SetLayoutModeImplArch(self, ...)
+
+end
+
+SetLayoutModeImplArch = function(self, active)
     self.layoutMode = active == true
     self:ApplyLayoutState(self.playerFrame)
     self:ApplyLayoutState(self.playerEffectsFrame)
@@ -1637,7 +1801,15 @@ function F:ResetPositions()
     end
 end
 
-function F:RefreshAll(refreshAuras)
+local RefreshAllImplArch
+
+function F:RefreshAll(...)
+
+    return RefreshAllImplArch(self, ...)
+
+end
+
+RefreshAllImplArch = function(self, refreshAuras)
     self:ApplyDefaultFrameReplacement()
     self:ApplyScalesAndAlpha()
     self:RefreshPlayer()
@@ -1665,7 +1837,11 @@ end
 -- Update group health directly from EVENT_POWER_UPDATE's fresh values.
 -- Re-reading GetUnitPower() inside the event can lag one state behind for
 -- remote group units, making the custom group bar visibly trail the player.
-function F:UpdateGroupHealthFromEvent(unitTag, powerValue, powerMax)
+local UpdateGroupHealthFromEventImplArch
+function F:UpdateGroupHealthFromEvent(...)
+    return UpdateGroupHealthFromEventImplArch(self, ...)
+end
+UpdateGroupHealthFromEventImplArch = function(self, unitTag, powerValue, powerMax)
     if not unitTag or unitTag == "" then return false end
     local current = tonumber(powerValue)
     local maximum = tonumber(powerMax)
@@ -1718,7 +1894,11 @@ end
 -- Apply the event payload directly to the local Player health bar. This avoids
 -- re-reading GetUnitPower() inside EVENT_POWER_UPDATE, which can be one update
 -- behind on some clients and makes damage/healing appear to stick or jump.
-function F:UpdatePlayerHealthFromEvent(unitTag, powerValue, powerMax)
+local UpdatePlayerHealthFromEventImplArch
+function F:UpdatePlayerHealthFromEvent(...)
+    return UpdatePlayerHealthFromEventImplArch(self, ...)
+end
+UpdatePlayerHealthFromEventImplArch = function(self, unitTag, powerValue, powerMax)
     if unitTag ~= "player" or not self.playerFrame or not self.playerFrame.epcBars then return false end
     local current = tonumber(powerValue)
     local maximum = tonumber(powerMax)
@@ -1732,7 +1912,11 @@ end
 -- v0.29.341: target Health can change many times per second in combat. Apply
 -- EVENT_POWER_UPDATE's payload directly to the target bar rather than running
 -- the full target-frame refresh/aura/layout chain on every damage tick.
-function F:UpdateTargetHealthFromEvent029341(unitTag, powerValue, powerMax)
+local UpdateTargetHealthFromEvent029341ImplArch
+function F:UpdateTargetHealthFromEvent029341(...)
+    return UpdateTargetHealthFromEvent029341ImplArch(self, ...)
+end
+UpdateTargetHealthFromEvent029341ImplArch = function(self, unitTag, powerValue, powerMax)
     if unitTag ~= "reticleover" or not self.targetFrame or not self.targetFrame.epcBars then return false end
     local current = tonumber(powerValue)
     local maximum = tonumber(powerMax)
@@ -1747,7 +1931,11 @@ end
 -- Magicka power events. Update only the affected Player bar from the event
 -- payload instead of rebuilding the entire Player frame and its visual-policy
 -- wrapper chain on every resource tick.
-function F:UpdatePlayerResourceFromEvent029341(unitTag, powerType, powerValue, powerMax)
+local UpdatePlayerResourceFromEvent029341ImplArch
+function F:UpdatePlayerResourceFromEvent029341(...)
+    return UpdatePlayerResourceFromEvent029341ImplArch(self, ...)
+end
+UpdatePlayerResourceFromEvent029341ImplArch = function(self, unitTag, powerType, powerValue, powerMax)
     if unitTag ~= "player" or not self.playerFrame or not self.playerFrame.epcBars then return false end
     local current = tonumber(powerValue)
     local maximum = tonumber(powerMax)
@@ -1767,7 +1955,11 @@ end
 -- unit tag against the companion attached to each visible Group row and push the
 -- fresh values straight into that companion bar. This works for the local
 -- "companion" tag and for group-member companion tags returned by ESO.
-function F:UpdateCompanionHealthFromEvent(unitTag, powerValue, powerMax)
+local UpdateCompanionHealthFromEventImplArch
+function F:UpdateCompanionHealthFromEvent(...)
+    return UpdateCompanionHealthFromEventImplArch(self, ...)
+end
+UpdateCompanionHealthFromEventImplArch = function(self, unitTag, powerValue, powerMax)
     if not unitTag or unitTag == "" then return false end
     local current = tonumber(powerValue)
     local maximum = tonumber(powerMax)
@@ -1804,12 +1996,22 @@ function F:UpdateCompanionHealthFromEvent(unitTag, powerValue, powerMax)
     return groupUpdated or raidUpdated
 end
 
-function F:RegisterEvents()
+local RegisterEventsImplArch
+
+function F:RegisterEvents(...)
+
+    return RegisterEventsImplArch(self, ...)
+
+end
+
+RegisterEventsImplArch = function(self)
     local prefix = EPC.name .. "_UnitFrames"
     if EVENT_POWER_UPDATE then
         local function registerPower(suffix, unitFilterType, unitFilterValue, powerType, syncLiveHealth, combatResourceKey)
-            local registration = prefix .. "_Power_" .. suffix
-            EVENT_MANAGER:RegisterForEvent(registration, EVENT_POWER_UPDATE, function(_, unitTag, powerIndex, eventPowerType, powerValue, powerMax)
+            local filters = {}
+            if unitFilterType and unitFilterValue ~= nil then filters[#filters+1] = {unitFilterType, unitFilterValue} end
+            if REGISTER_FILTER_POWER_TYPE and powerType ~= nil then filters[#filters+1] = {REGISTER_FILTER_POWER_TYPE, powerType} end
+            EPC.Runtime:RegisterEvent("UnitFrames","Power_"..suffix,EVENT_POWER_UPDATE,function(_, unitTag, powerIndex, eventPowerType, powerValue, powerMax)
                 local handled = false
 
                 if combatResourceKey and unitTag == "player" and EPC.Combat and type(EPC.Combat.OnPowerUpdate) == "function" then
@@ -1841,13 +2043,7 @@ function F:RegisterEvents()
                 if not handled then
                     self:RefreshUnitTag(unitTag)
                 end
-            end)
-            if unitFilterType and unitFilterValue ~= nil then
-                EVENT_MANAGER:AddFilterForEvent(registration, EVENT_POWER_UPDATE, unitFilterType, unitFilterValue)
-            end
-            if REGISTER_FILTER_POWER_TYPE and powerType ~= nil then
-                EVENT_MANAGER:AddFilterForEvent(registration, EVENT_POWER_UPDATE, REGISTER_FILTER_POWER_TYPE, powerType)
-            end
+            end, filters)
         end
 
         if REGISTER_FILTER_UNIT_TAG then
@@ -1881,61 +2077,55 @@ function F:RegisterEvents()
         end
     end
     if EVENT_PLAYER_COMBAT_STATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, function()
+        EPC.Runtime:RegisterEvent("UnitFrames","CombatState",EVENT_PLAYER_COMBAT_STATE, function()
             self:RefreshPlayer()
             self:RefreshStats()
         end)
     end
     if EVENT_RETICLE_TARGET_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Target", EVENT_RETICLE_TARGET_CHANGED, function()
+        EPC.Runtime:RegisterEvent("UnitFrames","Target",EVENT_RETICLE_TARGET_CHANGED, function()
             self:RefreshTarget(true)
         end)
     end
     if EVENT_EFFECT_CHANGED then
-        local playerEffectsRegistration = prefix .. "_Effects_Player"
-        EVENT_MANAGER:RegisterForEvent(playerEffectsRegistration, EVENT_EFFECT_CHANGED, function()
+        local playerFilters = REGISTER_FILTER_UNIT_TAG and {{REGISTER_FILTER_UNIT_TAG, "player"}} or nil
+        EPC.Runtime:RegisterEvent("UnitFrames", "Effects_Player", EVENT_EFFECT_CHANGED, function()
             self:RefreshPlayerAuras(false)
-        end)
-        if REGISTER_FILTER_UNIT_TAG then
-            EVENT_MANAGER:AddFilterForEvent(playerEffectsRegistration, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "player")
-        end
+        end, playerFilters)
 
-        local targetEffectsRegistration = prefix .. "_Effects_Target"
-        EVENT_MANAGER:RegisterForEvent(targetEffectsRegistration, EVENT_EFFECT_CHANGED, function()
+        local targetFilters = REGISTER_FILTER_UNIT_TAG and {{REGISTER_FILTER_UNIT_TAG, "reticleover"}} or nil
+        EPC.Runtime:RegisterEvent("UnitFrames", "Effects_Target", EVENT_EFFECT_CHANGED, function()
             self:RefreshTargetAuras(false)
-        end)
-        if REGISTER_FILTER_UNIT_TAG then
-            EVENT_MANAGER:AddFilterForEvent(targetEffectsRegistration, EVENT_EFFECT_CHANGED, REGISTER_FILTER_UNIT_TAG, "reticleover")
-        end
+        end, targetFilters)
     end
     if EVENT_EFFECTS_FULL_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_EffectsFull", EVENT_EFFECTS_FULL_UPDATE, function()
+        EPC.Runtime:RegisterEvent("UnitFrames","EffectsFull",EVENT_EFFECTS_FULL_UPDATE, function()
             self:RefreshPlayerAuras(false)
             self:RefreshTargetAuras(false)
         end)
     end
     if EVENT_ARTIFICIAL_EFFECT_ADDED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_ArtificialAdded", EVENT_ARTIFICIAL_EFFECT_ADDED, function()
+        EPC.Runtime:RegisterEvent("UnitFrames","ArtificialAdded",EVENT_ARTIFICIAL_EFFECT_ADDED, function()
             self:RefreshPlayerAuras(false)
         end)
     end
     if EVENT_ARTIFICIAL_EFFECT_REMOVED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_ArtificialRemoved", EVENT_ARTIFICIAL_EFFECT_REMOVED, function()
+        EPC.Runtime:RegisterEvent("UnitFrames","ArtificialRemoved",EVENT_ARTIFICIAL_EFFECT_REMOVED, function()
             self:RefreshPlayerAuras(false)
         end)
     end
     if EVENT_STATS_UPDATED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Stats", EVENT_STATS_UPDATED, function(_, unitTag)
+        EPC.Runtime:RegisterEvent("UnitFrames","Stats",EVENT_STATS_UPDATED, function(_, unitTag)
             if unitTag == "player" then self:RefreshStats() self:RefreshPlayer() end
         end)
     end
     if EVENT_LEVEL_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Level", EVENT_LEVEL_UPDATE, function(_, unitTag)
+        EPC.Runtime:RegisterEvent("UnitFrames","Level",EVENT_LEVEL_UPDATE, function(_, unitTag)
             self:RefreshUnitTag(unitTag)
         end)
     end
     if EVENT_CHAMPION_POINT_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_CP", EVENT_CHAMPION_POINT_UPDATE, function(_, unitTag)
+        EPC.Runtime:RegisterEvent("UnitFrames","CP",EVENT_CHAMPION_POINT_UPDATE, function(_, unitTag)
             self:RefreshUnitTag(unitTag)
         end)
     end
@@ -1945,7 +2135,7 @@ function F:RegisterEvents()
         local eventId = companionEvents[i]
         if eventId and not companionSeen[eventId] then
             companionSeen[eventId] = true
-            EVENT_MANAGER:RegisterForEvent(prefix .. "_Companion_" .. tostring(eventId), eventId, function()
+            EPC.Runtime:RegisterEvent("UnitFrames", "Companion_" .. tostring(eventId), eventId, function()
                 self:RefreshPlayer()
                 self:RefreshGroupFrames()
                 self:ApplyDefaultFrameReplacement()
@@ -1953,7 +2143,7 @@ function F:RegisterEvents()
         end
     end
     if EVENT_UNIT_DEATH_STATE_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_Death", EVENT_UNIT_DEATH_STATE_CHANGED, function(_, unitTag)
+        EPC.Runtime:RegisterEvent("UnitFrames","Death",EVENT_UNIT_DEATH_STATE_CHANGED, function(_, unitTag)
             self:RefreshUnitTag(unitTag)
         end)
     end
@@ -1975,7 +2165,7 @@ function F:RegisterEvents()
         local eventId = groupEvents[i]
         if not seen[eventId] then
             seen[eventId] = true
-            EVENT_MANAGER:RegisterForEvent(prefix .. "_Group_" .. tostring(eventId), eventId, function()
+            EPC.Runtime:RegisterEvent("UnitFrames", "Group_" .. tostring(eventId), eventId, function()
                 self:RefreshGroupFrames()
                 self:RefreshPlayer()
                 self:ApplyDefaultFrameReplacement()
@@ -1983,7 +2173,7 @@ function F:RegisterEvents()
         end
     end
 
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Visibility", 650, function()
+    EPC.Runtime:RegisterUpdate("UnitFrames","Visibility",650, function()
         local suppressed = self:IsHudSuppressed()
         if suppressed ~= self.lastHudSuppressed then
             self.lastHudSuppressed = suppressed
@@ -2004,12 +2194,20 @@ function F:RegisterEvents()
             self:RefreshContextVisibility()
         end
     end)
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_StatsTick", 1000, function()
+    EPC.Runtime:RegisterUpdate("UnitFrames","StatsTick",1000, function()
         if self.statsFrame and not self.statsFrame:IsHidden() then self:RefreshStats() end
     end)
 end
 
-function F:Initialize()
+local InitializeImplArch
+
+function F:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.layoutMode = false
     self.lastHudSuppressed = nil
     self.playerFrame = self:CreateUnitFrame("EPC_PlayerFrame", "player", 288, 88, false)
@@ -2130,7 +2328,7 @@ local function createIntegratedAuraSlot(frame, name, prefix, index, edgeColor)
     return slot
 end
 
-function F:CreateUnitFrame(name, kind, width, height, includeAuras)
+CreateUnitFrameImplArch = function(self, name, kind, width, height, includeAuras)
     local frame = self:CreateShell(name, kind, width, height)
     frame.epcNoPanel = true
     if frame.epcShadow then frame.epcShadow:SetHidden(true) end
@@ -2176,7 +2374,15 @@ function F:EnsureIntegratedAuraSlots(frame, buffCount, debuffCount)
     end
 end
 
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local LayoutIntegratedUnitFrameImplArch
+
+function F:LayoutIntegratedUnitFrame(...)
+
+    return LayoutIntegratedUnitFrameImplArch(self, ...)
+
+end
+
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     if not frame then return end
     local width = frame:GetWidth()
     local step = tonumber(frame.epcAuraSlotStep) or 31
@@ -2216,7 +2422,7 @@ function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
     frame:SetHeight(magY + 52)
 end
 
-function F:UpdateUnitFrame(frame, unitTag, preview)
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     if not frame then return false end
     local exists = preview == true or safe(DoesUnitExist,false,unitTag) == true
     if not exists then return false end
@@ -2253,20 +2459,20 @@ function F:RefreshIntegratedAuras(frame, unitTag, preview)
     self:RenderAuraSlots(frame.epcDebuffSlots,debuffs,#debuffs,C.red)
 end
 
-function F:RefreshPlayerAuras(preview)
+RefreshPlayerAurasImplArch = function(self, preview)
     self:RefreshIntegratedAuras(self.playerFrame,"player",preview==true)
 end
 
-function F:RefreshTargetAuras(preview)
+RefreshTargetAurasImplArch = function(self, preview)
     self:RefreshIntegratedAuras(self.targetFrame,"reticleover",preview==true)
 end
 
-function F:IsCombatStatsContextActive()
+IsCombatStatsContextActiveImplArch = function(self)
     if self.layoutMode == true then return true end
     return not EPC.OverlayModeAllows or EPC:OverlayModeAllows("combatStatsVisibility")
 end
 
-function F:RefreshPlayer()
+RefreshPlayerImplArch = function(self)
     if not self.playerFrame or not EPC.saved then return end
     local show=(EPC.saved.showPlayerFrame ~= false or self.layoutMode == true or self:IsRecoveryTickPreview()) and not self:IsHudSuppressed()
     if not self.layoutMode and EPC.OverlayModeAllows then show=show and EPC:OverlayModeAllows("playerFrameVisibility") end
@@ -2276,7 +2482,7 @@ function F:RefreshPlayer()
     self:RefreshPlayerAuras(self.layoutMode)
 end
 
-function F:RefreshTarget(refreshAuras)
+RefreshTargetImplArch = function(self, refreshAuras)
     if not self.targetFrame or not EPC.saved then return end
     local exists=safe(DoesUnitExist,false,"reticleover") == true
     local show=(EPC.saved.showTargetFrame ~= false and exists and not self:IsHudSuppressed())
@@ -2288,8 +2494,8 @@ function F:RefreshTarget(refreshAuras)
     if refreshAuras ~= false then self:RefreshTargetAuras(self.layoutMode) end
 end
 
-local EPC_v020_RefreshGroupFrames = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EPC_v020_RefreshGroupFrames = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EPC_v020_RefreshGroupFrames(self)
     if not self.layoutMode and EPC.OverlayModeAllows then
         if self.groupFrame and not EPC:OverlayModeAllows("groupFrameVisibility") then self.groupFrame:SetHidden(true) end
@@ -2297,13 +2503,13 @@ function F:RefreshGroupFrames()
     end
 end
 
-function F:RefreshContextVisibility()
+RefreshContextVisibilityImplArch = function(self)
     -- Combat-mode visibility is event-driven in v0.20.0. Resource, target, group,
     -- and stats updates already have their own ESO events/timers, so the legacy
     -- 100 ms visibility poll intentionally does no expensive frame rebuilding.
 end
 
-function F:ApplyScalesAndAlpha()
+ApplyScalesAndAlphaImplArch = function(self)
     if not EPC.saved then return end
     local legacy=tonumber(EPC.saved.unitFrameScale) or 1.0
     local playerScale=tonumber(EPC.saved.playerFrameScale) or legacy
@@ -2319,7 +2525,7 @@ function F:ApplyScalesAndAlpha()
     self:ApplyVisualStyle()
 end
 
-function F:SetLayoutMode(active)
+SetLayoutModeImplArch = function(self, active)
     self.layoutMode=active==true
     self:ApplyLayoutState(self.playerFrame)
     self:ApplyLayoutState(self.targetFrame)
@@ -2330,20 +2536,20 @@ function F:SetLayoutMode(active)
     self:RefreshAll(true)
 end
 
-local EPC_v020_RegisterEvents = F.RegisterEvents
-function F:RegisterEvents()
+local EPC_v020_RegisterEvents = RegisterEventsImplArch
+RegisterEventsImplArch = function(self)
     EPC_v020_RegisterEvents(self)
     local prefix=EPC.name .. "_IntegratedFrames"
     if EVENT_PLAYER_COMBAT_STATE then
-        EVENT_MANAGER:RegisterForEvent(prefix .. "_CombatVisibility",EVENT_PLAYER_COMBAT_STATE,function() self:RefreshAll(true) end)
+        EPC.Runtime:RegisterEvent("UnitFrames","CombatVisibility",EVENT_PLAYER_COMBAT_STATE,function() self:RefreshAll(true) end)
     end
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_AuraTick",900,function()
+    EPC.Runtime:RegisterUpdate("UnitFrames","AuraTick",900,function()
         if self.playerFrame and not self.playerFrame:IsHidden() then self:RefreshPlayerAuras(self.layoutMode) end
         if self.targetFrame and not self.targetFrame:IsHidden() then self:RefreshTargetAuras(self.layoutMode) end
     end)
 end
 
-function F:Initialize()
+InitializeImplArch = function(self)
     self.layoutMode=false
     self.lastHudSuppressed=nil
     self.playerEffectsFrame=nil -- effects are integrated into the Player frame in v0.20.0
@@ -2366,7 +2572,7 @@ end
 -- Group companions render as a second mini player-style line with Level + Health.
 -- ============================================================================
 
-function F:CreateUnitFrame(name, kind, width, height, includeAuras)
+CreateUnitFrameImplArch = function(self, name, kind, width, height, includeAuras)
     local frame = self:CreateShell(name, kind, width, height)
     frame.epcNoPanel = true
     if frame.epcShadow then frame.epcShadow:SetHidden(true) end
@@ -2408,7 +2614,7 @@ function F:CreateUnitFrame(name, kind, width, height, includeAuras)
     return frame
 end
 
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     if not frame then return end
     local width = frame:GetWidth()
     local step = tonumber(frame.epcAuraSlotStep) or 31
@@ -2473,7 +2679,7 @@ function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
     frame:SetHeight(magY + 49)
 end
 
-function F:UpdateUnitFrame(frame, unitTag, preview)
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     if not frame then return false end
     local exists = preview == true or safe(DoesUnitExist, false, unitTag) == true
     if not exists then return false end
@@ -2515,7 +2721,7 @@ end
 
 -- Compact group rows: player and companion information stay readable without
 -- turning each member into a large rectangular card.
-function F:CreateMemberRow(parent, name, width, height, x, y, showCompanion)
+CreateMemberRowImplArch = function(self, parent, name, width, height, x, y, showCompanion)
     local row = makeBackdrop(parent, name, C.panel, C.edgeSoft)
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     row:SetDimensions(width, height)
@@ -2575,7 +2781,7 @@ function F:CreateMemberRow(parent, name, width, height, x, y, showCompanion)
     return row
 end
 
-function F:CreateGroupFrame()
+CreateGroupFrameImplArch = function(self)
     local frame = self:CreateShell("EPC_GroupFrame", "group", 306, 320)
     local title = makeLabel(frame, "EPC_GroupFrame_Title", "ZoFontGameBold", C.gold)
     title:SetAnchor(TOPLEFT, frame, TOPLEFT, 10, 5)
@@ -2591,8 +2797,8 @@ function F:CreateGroupFrame()
     return frame
 end
 
-local EPC_v021_ResizeGroupContainers = F.ResizeGroupContainers
-function F:ResizeGroupContainers(size, layout)
+local EPC_v021_ResizeGroupContainers = ResizeGroupContainersImplArch
+ResizeGroupContainersImplArch = function(self, size, layout)
     if self.groupFrame then
         local visibleRows = layout and 4 or math.max(1, math.min(4, tonumber(size) or 0))
         local top, rowHeight, step, bottomPad = 29, 67, 71, 8
@@ -2619,7 +2825,7 @@ function F:ResizeGroupContainers(size, layout)
     end
 end
 
-function F:UpdateMemberRow(row, unitTag, previewIndex)
+UpdateMemberRowImplArch = function(self, row, unitTag, previewIndex)
     if not row then return end
     local preview = previewIndex ~= nil
     local exists = preview or (unitTag and safe(DoesUnitExist, false, unitTag) == true)
@@ -2687,8 +2893,8 @@ end
 -- When no companion unit exists, the companion controls are hidden AND the
 -- member row collapses back to player-only height so no empty companion area
 -- is reserved. Layout preview follows the same rule.
-local EPC_v0211_UpdateMemberRow = F.UpdateMemberRow
-function F:UpdateMemberRow(row, unitTag, previewIndex)
+local EPC_v0211_UpdateMemberRow = UpdateMemberRowImplArch
+UpdateMemberRowImplArch = function(self, row, unitTag, previewIndex)
     EPC_v0211_UpdateMemberRow(self, row, unitTag, previewIndex)
     if not row or row:IsHidden() then return end
 
@@ -2714,8 +2920,8 @@ function F:UpdateMemberRow(row, unitTag, previewIndex)
     row:SetHeight(hasCompanion and 67 or 34)
 end
 
-local EPC_v0211_RefreshGroupFrames = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EPC_v0211_RefreshGroupFrames = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EPC_v0211_RefreshGroupFrames(self)
     if not self.groupFrame then return end
 
@@ -2742,8 +2948,8 @@ end
 
 -- v0.22.0: make companion detection reliable for the local player's group tag,
 -- and show the Group frame for a solo player with an active companion.
-local EPC_v0220_GetCompanionForMember = F.GetCompanionForMember
-function F:GetCompanionForMember(unitTag)
+local EPC_v0220_GetCompanionForMember = GetCompanionForMemberImplArch
+GetCompanionForMemberImplArch = function(self, unitTag)
     local isLocalPlayer = unitTag == "player"
     if unitTag and not isLocalPlayer and type(AreUnitsEqual) == "function" then
         isLocalPlayer = safe(AreUnitsEqual, false, unitTag, "player") == true
@@ -2773,8 +2979,8 @@ function F:GetCompanionForMember(unitTag)
     return EPC_v0220_GetCompanionForMember(self, unitTag)
 end
 
-local EPC_v0220_GetGroupUnitTags = F.GetGroupUnitTags
-function F:GetGroupUnitTags()
+local EPC_v0220_GetGroupUnitTags = GetGroupUnitTagsImplArch
+GetGroupUnitTagsImplArch = function(self)
     local tags = EPC_v0220_GetGroupUnitTags(self)
     local hasActiveCompanion = safe(DoesUnitExist, false, "companion") == true
     if #tags == 0 and hasActiveCompanion then
@@ -2783,8 +2989,8 @@ function F:GetGroupUnitTags()
     return tags, false
 end
 
-local EPC_v0220_RefreshGroupFrames = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EPC_v0220_RefreshGroupFrames = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EPC_v0220_RefreshGroupFrames(self)
     if not self.groupFrame or not EPC.saved then return end
 
@@ -3014,7 +3220,7 @@ updateFillBar = function(bar, current, maximum, prefix)
     EPC_v0221_UpdateFillBarLegacy(bar, current, maximum, prefix)
 end
 
-function F:CreateMemberRow(parent, name, width, height, x, y, showCompanion)
+CreateMemberRowImplArch = function(self, parent, name, width, height, x, y, showCompanion)
     local row = makeBackdrop(parent, name, {0.012, 0.014, 0.018, 0.48}, {0.52, 0.41, 0.20, 0.28})
     row:SetAnchor(TOPLEFT, parent, TOPLEFT, x, y)
     row:SetDimensions(width, height)
@@ -3079,7 +3285,7 @@ function F:CreateMemberRow(parent, name, width, height, x, y, showCompanion)
     return row
 end
 
-function F:CreateGroupFrame()
+CreateGroupFrameImplArch = function(self)
     -- v0.22.3: the Group frame intentionally has no GROUP/header row. Keep
     -- hidden compatibility controls because older refresh code writes to
     -- epcTitle/epcStatus, but do not reserve any visual space for them.
@@ -3103,7 +3309,7 @@ function F:CreateGroupFrame()
     return frame
 end
 
-function F:CreateRaidFrame()
+CreateRaidFrameImplArch = function(self)
     local maxSize = 12
     if type(GetGroupMaxSize) == "function" then
         local ok, value = pcall(GetGroupMaxSize)
@@ -3146,8 +3352,8 @@ function F:CreateRaidFrame()
     return frame
 end
 
-local EPC_v0221_UpdateMemberRow = F.UpdateMemberRow
-function F:UpdateMemberRow(row, unitTag, previewIndex)
+local EPC_v0221_UpdateMemberRow = UpdateMemberRowImplArch
+UpdateMemberRowImplArch = function(self, row, unitTag, previewIndex)
     EPC_v0221_UpdateMemberRow(self, row, unitTag, previewIndex)
     if not row or row:IsHidden() or not row.epcESOStyledMember then return end
     local hasCompanion = row.epcHasCompanion == true
@@ -3156,7 +3362,7 @@ end
 
 -- Use the compact native-bar measurements whenever the original roster refresh
 -- asks the containers to resize/reflow.
-function F:ResizeGroupContainers(size, layout)
+ResizeGroupContainersImplArch = function(self, size, layout)
     if self.groupFrame then
         local visibleRows = layout and 4 or math.max(1, math.min(4, tonumber(size) or 0))
         local top = 6
@@ -3189,8 +3395,8 @@ end
 
 -- The v0.21.2 group reflow used the older 29px header offset. Keep all member
 -- rows tucked directly beneath the new ESO-style header/rule.
-local EPC_v0221_RefreshGroupFrames = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EPC_v0221_RefreshGroupFrames = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EPC_v0221_RefreshGroupFrames(self)
     if not self.groupFrame or self.groupFrame:IsHidden() then return end
 
@@ -3208,8 +3414,8 @@ function F:RefreshGroupFrames()
     if visibleRows > 0 then self.groupFrame:SetHeight(y + 4) end
 end
 
-local EPC_v0221_ApplyVisualStyle = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EPC_v0221_ApplyVisualStyle = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EPC_v0221_ApplyVisualStyle(self)
     local function apply(frame)
         if not frame or not frame.epcESOGroupStyle then return end
@@ -3473,26 +3679,26 @@ function F:ApplyAllNativeFrameReplacement02972()
 
 end
 
-local EAS_ApplyDefaultFrameReplacementBase02972 = F.ApplyDefaultFrameReplacement
-function F:ApplyDefaultFrameReplacement()
+local EAS_ApplyDefaultFrameReplacementBase02972 = ApplyDefaultFrameReplacementImplArch
+ApplyDefaultFrameReplacementImplArch = function(self)
     if EAS_ApplyDefaultFrameReplacementBase02972 then EAS_ApplyDefaultFrameReplacementBase02972(self) end
     self:ApplyAllNativeFrameReplacement02972()
 end
 
-local EAS_RefreshAllBase02972 = F.RefreshAll
-function F:RefreshAll(refreshAuras)
+local EAS_RefreshAllBase02972 = RefreshAllImplArch
+RefreshAllImplArch = function(self, refreshAuras)
     local result = EAS_RefreshAllBase02972(self, refreshAuras)
     self:ApplyAllNativeFrameReplacement02972()
     return result
 end
 
-local EAS_SetLayoutModeBase02972 = F.SetLayoutMode
-function F:SetLayoutMode(active)
+local EAS_SetLayoutModeBase02972 = SetLayoutModeImplArch
+SetLayoutModeImplArch = function(self, active)
     EAS_SetLayoutModeBase02972(self, active)
 end
 
-local EAS_InitializeUnitFramesBase02972 = F.Initialize
-function F:Initialize()
+local EAS_InitializeUnitFramesBase02972 = InitializeImplArch
+InitializeImplArch = function(self)
     if EPC.saved and EPC.saved.unitFrameReplacementMigrated02972 ~= true then
         EPC.saved.replaceDefaultUnitFrames = true
         EPC.saved.unitFrameReplacementMigrated02972 = true
@@ -3503,7 +3709,7 @@ function F:Initialize()
     -- Keep ownership of the non-boss native frames only. Boss health remains
     -- entirely under ESO control and has no Suite event/update loop.
     local prefix = (EPC.name or "ESOAdventurerSuite") .. "_NativeUnitFrameOwner02972"
-    EVENT_MANAGER:RegisterForUpdate(prefix .. "_Guard", 4000, function()
+    EPC.Runtime:RegisterUpdate("UnitFrames","NativeGuard",4000, function()
         if EPC.UnitFrames and EPC.saved and EPC.saved.replaceDefaultUnitFrames ~= false then
             EPC.UnitFrames:ApplyAllNativeFrameReplacement02972()
         end
@@ -3511,14 +3717,14 @@ function F:Initialize()
 end
 
 -- Keep the new boss replacement consistent with the existing HUD lifecycle.
-local EAS_HideAllCustomFramesBase02972 = F.HideAllCustomFrames
-function F:HideAllCustomFrames()
+local EAS_HideAllCustomFramesBase02972 = HideAllCustomFramesImplArch
+HideAllCustomFramesImplArch = function(self)
     EAS_HideAllCustomFramesBase02972(self)
     if self.bossFrame then self.bossFrame:SetHidden(true) end
 end
 
-local EAS_ApplyScalesAndAlphaBase02972 = F.ApplyScalesAndAlpha
-function F:ApplyScalesAndAlpha()
+local EAS_ApplyScalesAndAlphaBase02972 = ApplyScalesAndAlphaImplArch
+ApplyScalesAndAlphaImplArch = function(self)
     EAS_ApplyScalesAndAlphaBase02972(self)
     if self.bossFrame and EPC.saved then
         local scale = tonumber(EPC.saved.targetFrameScale) or tonumber(EPC.saved.unitFrameScale) or 1.0
@@ -3725,8 +3931,8 @@ function F:ApplyUnitFrameVisualTheme02990()
     styleRoster(self.raidFrame)
 end
 
-local EAS_ApplyVisualStyleBase02990 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase02990 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase02990(self)
     self:ApplyUnitFrameVisualTheme02990()
 end
@@ -3818,8 +4024,8 @@ local function EAS_SizeAuraSlots02991(frame, size, step)
     resize(frame.epcDebuffSlots)
 end
 
-local EAS_LayoutIntegratedUnitFrameBase02991 = F.LayoutIntegratedUnitFrame
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local EAS_LayoutIntegratedUnitFrameBase02991 = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     if not frame then return end
     local design = EAS_GetUnitFrameDesign02991()
     local isPlayer = frame.epcKind == "player"
@@ -3966,8 +4172,8 @@ function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
     end
 end
 
-local EAS_UpdateUnitFrameBase02991 = F.UpdateUnitFrame
-function F:UpdateUnitFrame(frame, unitTag, preview)
+local EAS_UpdateUnitFrameBase02991 = UpdateUnitFrameImplArch
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     local ok = EAS_UpdateUnitFrameBase02991(self, frame, unitTag, preview)
     if not ok or not frame then return ok end
     local design = EAS_GetUnitFrameDesign02991()
@@ -4063,8 +4269,8 @@ local function EAS_LayoutRosterRow02991(row, width, compactH, expandedH, design)
     end
 end
 
-local EAS_RefreshGroupFramesBase02991 = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EAS_RefreshGroupFramesBase02991 = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     local design = EAS_GetUnitFrameDesign02991()
     -- Restore the exact legacy roster geometry before the mature refresh code
     -- runs, so switching back from a custom design never keeps custom widths.
@@ -4145,8 +4351,8 @@ function F:RefreshGroupFrames()
 end
 
 -- Re-apply the layout-safe visual treatment after every design refresh.
-local EAS_ApplyVisualStyleBase02991 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase02991 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase02991(self)
     local design = EAS_GetUnitFrameDesign02991()
     -- Old saved theme keys from 0.29.90 transparently migrate to the new designs.
@@ -4465,8 +4671,8 @@ end
 -- Intercept the five new designs before the 0.29.91 layout fallback can treat
 -- them as Tactical Grid. Existing five retain their geometry, but all ten get
 -- the new square resource-bar treatment and background-free shell.
-local EAS_LayoutIntegratedUnitFrameBase02993 = F.LayoutIntegratedUnitFrame
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local EAS_LayoutIntegratedUnitFrameBase02993 = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     local design = EAS_GetUnitFrameDesign02991()
     if EAS_RECT_DESIGNS_02993[design] then
         EAS_LayoutRectUnit02993(frame, buffCount, debuffCount, preview, design)
@@ -4520,8 +4726,8 @@ local function EAS_LayoutNewRoster02993(self, frame, design, raid)
     frame:SetDimensions(16 + columns * rowW + (columns - 1) * gap, top + rows * stepH + (rows - 1) * gap + 7)
 end
 
-local EAS_RefreshGroupFramesBase02993 = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EAS_RefreshGroupFramesBase02993 = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EAS_RefreshGroupFramesBase02993(self)
     local design = EAS_GetUnitFrameDesign02991()
     if EAS_RECT_DESIGNS_02993[design] then
@@ -4531,8 +4737,8 @@ function F:RefreshGroupFrames()
     EAS_RemoveFrameBackdrops02993(self)
 end
 
-local EAS_ApplyVisualStyleBase02993 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase02993 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase02993(self)
     EAS_RemoveFrameBackdrops02993(self)
 end
@@ -4642,8 +4848,8 @@ end
 
 -- Restore original artwork after the v0.29.93 compatibility layer has run for
 -- Styles 1-5. Styles 6-10 intentionally retain the rectangle renderer.
-local EAS_LayoutIntegratedUnitFrameBase02995 = F.LayoutIntegratedUnitFrame
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local EAS_LayoutIntegratedUnitFrameBase02995 = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     EAS_LayoutIntegratedUnitFrameBase02995(self, frame, buffCount, debuffCount, preview)
     local design = EAS_GetUnitFrameDesign02991()
     if not EAS_IsRectDesign02995(design) then
@@ -4665,8 +4871,8 @@ function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
     end
 end
 
-local EAS_RefreshGroupFramesBase02995 = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EAS_RefreshGroupFramesBase02995 = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EAS_RefreshGroupFramesBase02995(self)
     local design = EAS_GetUnitFrameDesign02991()
     if not EAS_IsRectDesign02995(design) then
@@ -4674,8 +4880,8 @@ function F:RefreshGroupFrames()
     end
 end
 
-local EAS_ApplyVisualStyleBase02995 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase02995 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase02995(self)
     local design = EAS_GetUnitFrameDesign02991()
     if EAS_IsRectDesign02995(design) then
@@ -4687,8 +4893,8 @@ end
 
 -- Player frame never needs character name, level, or CP. Keep only resources
 -- and effects no matter which of the ten visual designs is selected.
-local EAS_UpdateUnitFrameBase02995 = F.UpdateUnitFrame
-function F:UpdateUnitFrame(frame, unitTag, preview)
+local EAS_UpdateUnitFrameBase02995 = UpdateUnitFrameImplArch
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     local ok = EAS_UpdateUnitFrameBase02995(self, frame, unitTag, preview)
     if ok and frame and frame.epcKind == "player" then
         if frame.epcTitle then frame.epcTitle:SetHidden(true) frame.epcTitle:SetText("") end
@@ -4700,7 +4906,11 @@ end
 -- Lightweight live sync makes the visible rectangle itself move with power,
 -- independently of ESO's original hidden bar artwork. This also covers cases
 -- where resource events are coalesced while the HUD is transitioning.
-function F:RefreshRectResourceFills02995()
+local RefreshRectResourceFills02995ImplArch
+function F:RefreshRectResourceFills02995(...)
+    return RefreshRectResourceFills02995ImplArch(self, ...)
+end
+RefreshRectResourceFills02995ImplArch = function(self)
     local design = EAS_GetUnitFrameDesign02991()
     if not EAS_IsRectDesign02995(design) then return end
 
@@ -4744,12 +4954,12 @@ function F:RefreshRectResourceFills02995()
     syncRoster(self.raidFrame)
 end
 
-local EAS_InitializeBase02995 = F.Initialize
-function F:Initialize()
+local EAS_InitializeBase02995 = InitializeImplArch
+InitializeImplArch = function(self)
     EAS_InitializeBase02995(self)
     local key = (EPC.name or "ESOAdventurerSuite") .. "_RectResourceLive02995"
-    EVENT_MANAGER:UnregisterForUpdate(key)
-    EVENT_MANAGER:RegisterForUpdate(key, 4000, function()
+    EPC.Runtime:UnregisterUpdate("UnitFrames","RectResourceLive")
+    EPC.Runtime:RegisterUpdate("UnitFrames","RectResourceLive",4000, function()
         local frames = EPC.UnitFrames
         if not frames or not EPC.saved or not EAS_IsRectDesign02995(EAS_GetUnitFrameDesign02991()) then return end
         local visible = frames.layoutMode == true
@@ -4956,26 +5166,26 @@ local function EAS_ApplyDesignPolicy02996(self, force)
     end
 end
 
-local EAS_LayoutIntegratedUnitFrameBase02996 = F.LayoutIntegratedUnitFrame
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local EAS_LayoutIntegratedUnitFrameBase02996 = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     EAS_LayoutIntegratedUnitFrameBase02996(self, frame, buffCount, debuffCount, preview)
     EAS_ApplyDesignPolicy02996(self, false)
 end
 
-local EAS_RefreshGroupFramesBase02996 = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EAS_RefreshGroupFramesBase02996 = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EAS_RefreshGroupFramesBase02996(self)
     EAS_ApplyDesignPolicy02996(self, true)
 end
 
-local EAS_ApplyVisualStyleBase02996 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase02996 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase02996(self)
     EAS_ApplyDesignPolicy02996(self, true)
 end
 
-local EAS_UpdateUnitFrameBase02996 = F.UpdateUnitFrame
-function F:UpdateUnitFrame(frame, unitTag, preview)
+local EAS_UpdateUnitFrameBase02996 = UpdateUnitFrameImplArch
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     -- v0.29.341: value changes do not require a full all-frame design pass.
     -- Styling is applied on layout/style/roster changes, while the bar update
     -- helpers below repaint only the resource that actually changed.
@@ -4985,8 +5195,8 @@ end
 -- The 0.29.95 live tick already reads real Player/Target/Group/Raid power.
 -- Add a final visual pass so Styles 6-10 always repaint the currently-visible
 -- colored width/text after those values are refreshed.
-local EAS_RefreshRectResourceFillsBase02996 = F.RefreshRectResourceFills02995
-function F:RefreshRectResourceFills02995()
+local EAS_RefreshRectResourceFillsBase02996 = RefreshRectResourceFills02995ImplArch
+RefreshRectResourceFills02995ImplArch = function(self)
     -- v0.29.341: the final 0.29.97 renderer below owns the single repaint pass.
     return EAS_RefreshRectResourceFillsBase02996(self)
 end
@@ -5271,16 +5481,16 @@ end
 
 -- Final wrappers sit after every older compatibility layer so no earlier theme
 -- pass can re-enable the stray card/accent lines or cover the rectangle fill.
-local EAS_LayoutIntegratedUnitFrameBase02997 = F.LayoutIntegratedUnitFrame
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local EAS_LayoutIntegratedUnitFrameBase02997 = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     EAS_LayoutIntegratedUnitFrameBase02997(self, frame, buffCount, debuffCount, preview)
     -- Geometry is allowed only while laying out the Player frame itself.
     local allowPlayerSpacing = frame ~= nil and frame.epcKind == "player"
     EAS_FinalUnitFramePolicy02997(self, allowPlayerSpacing, false)
 end
 
-local EAS_RefreshGroupFramesBase02997 = F.RefreshGroupFrames
-function F:RefreshGroupFrames()
+local EAS_RefreshGroupFramesBase02997 = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self)
     EAS_RefreshGroupFramesBase02997(self)
     EAS_FinalUnitFramePolicy02997(self, false, true)
     -- v0.29.342: roster rows are parent BackdropControls. Several historical
@@ -5301,15 +5511,15 @@ function F:RefreshGroupFrames()
     stabilize(self.raidFrame)
 end
 
-local EAS_ApplyVisualStyleBase02997 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase02997 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase02997(self)
     -- Explicit style/layout work may intentionally establish Player spacing.
     EAS_FinalUnitFramePolicy02997(self, true, true)
 end
 
-local EAS_UpdateUnitFrameBase02997 = F.UpdateUnitFrame
-function F:UpdateUnitFrame(frame, unitTag, preview)
+local EAS_UpdateUnitFrameBase02997 = UpdateUnitFrameImplArch
+UpdateUnitFrameImplArch = function(self, frame, unitTag, preview)
     -- v0.29.341: the previous wrapper traversed Player, Target, Group and Raid
     -- bars after every single unit-value update. updateFillBar/updateESOResourceBar
     -- already maintain the live rectangle fill, so no global policy pass belongs
@@ -5329,8 +5539,8 @@ updateFillBar = function(bar, current, maximum, prefix)
     if bar then EAS_ForceRectFill02997(bar, current, maximum) end
 end
 
-local EAS_RefreshRectResourceFillsBase02997 = F.RefreshRectResourceFills02995
-function F:RefreshRectResourceFills02995()
+local EAS_RefreshRectResourceFillsBase02997 = RefreshRectResourceFills02995ImplArch
+RefreshRectResourceFills02995ImplArch = function(self)
     EAS_RefreshRectResourceFillsBase02997(self)
     if not EAS_IsRectDesign02995(EAS_GetUnitFrameDesign02991()) then return end
     EAS_TagFrameBars02997(self)
@@ -5812,8 +6022,8 @@ EAS_ForceRectFill02997 = function(bar, current, maximum)
     end
 end
 
-local EAS_RefreshRectResourceFillsBase029429 = F.RefreshRectResourceFills02995
-function F:RefreshRectResourceFills02995()
+local EAS_RefreshRectResourceFillsBase029429 = RefreshRectResourceFills02995ImplArch
+RefreshRectResourceFills02995ImplArch = function(self)
     if EAS_RefreshRectResourceFillsBase029429 then
         EAS_RefreshRectResourceFillsBase029429(self)
     end
@@ -6143,8 +6353,8 @@ updateESOResourceBar = function(bar, current, maximum)
 end
 
 -- Repaint immediately after rectangle layout/style changes as well.
-local EAS_RefreshRectResourceFillsBase029431 = F.RefreshRectResourceFills02995
-function F:RefreshRectResourceFills02995()
+local EAS_RefreshRectResourceFillsBase029431 = RefreshRectResourceFills02995ImplArch
+RefreshRectResourceFills02995ImplArch = function(self)
     if EAS_RefreshRectResourceFillsBase029431 then
         EAS_RefreshRectResourceFillsBase029431(self)
     end
@@ -6319,16 +6529,16 @@ local function EAS_RestoreNativeOnly029435(self)
     restoreRoster(self.raidFrame)
 end
 
-local EAS_ApplyVisualStyleBase029435 = F.ApplyVisualStyle
-function F:ApplyVisualStyle()
+local EAS_ApplyVisualStyleBase029435 = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self)
     EAS_ApplyVisualStyleBase029435(self)
     if not EAS_IsRectDesign02995(EAS_GetUnitFrameDesign02991()) then
         EAS_RestoreNativeOnly029435(self)
     end
 end
 
-local EAS_LayoutIntegratedUnitFrameBase029435 = F.LayoutIntegratedUnitFrame
-function F:LayoutIntegratedUnitFrame(frame, buffCount, debuffCount, preview)
+local EAS_LayoutIntegratedUnitFrameBase029435 = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, buffCount, debuffCount, preview)
     EAS_LayoutIntegratedUnitFrameBase029435(self, frame, buffCount, debuffCount, preview)
     if not EAS_IsRectDesign02995(EAS_GetUnitFrameDesign02991()) then
         EAS_RestoreNativeOnly029435(self)
@@ -6340,5 +6550,1104 @@ updateESOResourceBar = function(bar, current, maximum)
     EAS_UpdateESOResourceBarBase029435(bar, current, maximum)
     if bar and not EAS_IsRectDesign02995(EAS_GetUnitFrameDesign02991()) then
         EAS_HideAllRectOnlyControls029435(bar)
+    end
+end
+
+
+-- BEGIN ABSORBED: UnitFrameDesignPolishFix.lua
+-- ESO Adventurer Suite
+-- Unit Frame Designs 3-7 final renderer correction.
+-- The mature rectangle renderer in UnitFrames.lua paints epcRectBackdropFill029431
+-- and owns epcRectLayoutW/H029434. Finish every rectangle update against those
+-- actual controls instead of tinting retired experimental renderers.
+
+local EPC = ESOProgressionCoach
+local F = EPC and EPC.UnitFrames
+if not EPC or not F then return end
+
+local RECT = {
+    RECT_STACK = true,
+    TRIPLE_BLOCKS = true,
+    SIDE_METERS = true,
+    CENTER_CORE = true,
+    SLIM_LINES = true,
+}
+
+local DARK = {
+    health  = {0.20, 0.012, 0.020},
+    magicka = {0.012, 0.060, 0.175},
+    stamina = {0.012, 0.120, 0.038},
+}
+
+local LIVE_ALPHA = 0.74
+
+local function currentDesign()
+    return EPC.saved and tostring(EPC.saved.unitFrameVisualStyle or "ESO_CLASSIC") or "ESO_CLASSIC"
+end
+
+local function isRectDesign()
+    return RECT[currentDesign()] == true
+end
+
+local function kindFor(bar)
+    if not bar then return "health" end
+    if bar.epcResourceKind02997 then return bar.epcResourceKind02997 end
+    local name = type(bar.GetName) == "function" and string.lower(tostring(bar:GetName() or "")) or ""
+    if string.find(name, "magicka", 1, true) then return "magicka" end
+    if string.find(name, "stamina", 1, true) then return "stamina" end
+    return "health"
+end
+
+local function compactNumber(value)
+    local n = tonumber(value) or 0
+    local sign = n < 0 and "-" or ""
+    n = math.abs(n)
+    if n >= 1000000 then return sign .. string.format("%.2fm", n / 1000000) end
+    if n >= 100000 then return sign .. string.format("%.0fk", n / 1000) end
+    if n >= 10000 then return sign .. string.format("%.1fk", n / 1000) end
+    return sign .. tostring(math.floor(n + 0.5))
+end
+
+local function percentText(current, maximum)
+    current, maximum = tonumber(current) or 0, tonumber(maximum) or 0
+    if maximum <= 0 then return "--" end
+    return tostring(math.floor((current / maximum) * 100 + 0.5)) .. "%"
+end
+
+local function tintControl(control, c, alpha)
+    if not control then return end
+    if type(control.SetCenterColor) == "function" then
+        control:SetCenterColor(c[1], c[2], c[3], alpha)
+    elseif type(control.SetColor) == "function" then
+        control:SetColor(c[1], c[2], c[3], alpha)
+    end
+    if type(control.SetAlpha) == "function" then control:SetAlpha(alpha) end
+end
+
+local function intendedHeight(bar)
+    if not bar then return 0 end
+    return tonumber(bar.epcRectLayoutH029434) or tonumber(bar:GetHeight()) or 0
+end
+
+-- Only the Player/Target rectangle composition owns these explicit layout
+-- heights. Raising every roster bar would crowd group/raid rows.
+local function correctLayoutHeight(bar)
+    if not bar or type(bar.GetParent) ~= "function" then return end
+    local parent = bar:GetParent()
+    if not parent or (parent.epcKind ~= "player" and parent.epcKind ~= "target") then return end
+
+    local kind = kindFor(bar)
+    if kind == "health" then return end
+
+    local design = currentDesign()
+    local desired = nil
+    if design == "RECT_STACK" then
+        desired = 18
+    elseif design == "SIDE_METERS" then
+        desired = 14
+    elseif design == "CENTER_CORE" then
+        desired = 16
+    elseif design == "SLIM_LINES" then
+        desired = 18
+    end
+
+    if desired then
+        local h = intendedHeight(bar)
+        if h < desired then
+            bar.epcRectLayoutH029434 = desired
+            if type(bar.SetHeight) == "function" then bar:SetHeight(desired) end
+            if bar.epcRectPanel02994 and type(bar.epcRectPanel02994.SetHeight) == "function" then
+                bar.epcRectPanel02994:SetHeight(desired)
+            end
+            if bar.epcRectBackdropFill029431 and type(bar.epcRectBackdropFill029431.SetHeight) == "function" then
+                bar.epcRectBackdropFill029431:SetHeight(math.max(1, desired - 4))
+            end
+        end
+    end
+end
+
+local function formatStableLabel(bar, current, maximum)
+    if not bar or not bar.epcLabel then return end
+    local label = bar.epcLabel
+    local h = math.max(1, intendedHeight(bar))
+    local w = math.max(1, tonumber(bar.epcRectLayoutW029434) or tonumber(bar:GetWidth()) or 1)
+
+    if label.SetHorizontalAlignment then label:SetHorizontalAlignment(TEXT_ALIGN_CENTER) end
+    if label.SetVerticalAlignment then label:SetVerticalAlignment(TEXT_ALIGN_CENTER) end
+    if label.SetMaxLineCount then label:SetMaxLineCount(1) end
+    if label.SetWrapMode and TEXT_WRAP_MODE_ELLIPSIS then label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS) end
+
+    -- Keep the glyph box comfortably inside the short rectangle cavity. Do not
+    -- re-anchor here: UnitFrames.lua already owns label geometry.
+    if h <= 12 then
+        label:SetFont("$(BOLD_FONT)|9|soft-shadow-thin")
+    elseif h <= 14 then
+        label:SetFont("$(BOLD_FONT)|10|soft-shadow-thin")
+    elseif h <= 16 then
+        label:SetFont("$(BOLD_FONT)|11|soft-shadow-thin")
+    elseif h <= 19 then
+        label:SetFont("$(BOLD_FONT)|11|soft-shadow-thin")
+    elseif h <= 23 then
+        label:SetFont("$(BOLD_FONT)|12|soft-shadow-thin")
+    else
+        label:SetFont("$(BOLD_FONT)|13|soft-shadow-thin")
+    end
+
+    current = tonumber(current)
+    maximum = tonumber(maximum)
+    if current == nil then current = tonumber(bar.epcRectCurrent) or 0 end
+    if maximum == nil then maximum = tonumber(bar.epcRectMaximum) or 0 end
+
+    local text
+    if maximum <= 0 then
+        text = "--"
+    elseif currentDesign() == "SLIM_LINES" or w < 170 or h <= 18 then
+        text = percentText(current, maximum)
+    elseif w < 250 then
+        text = compactNumber(current) .. "  " .. percentText(current, maximum)
+    else
+        text = compactNumber(current) .. " / " .. compactNumber(maximum) .. "  " .. percentText(current, maximum)
+    end
+
+    -- Only write text when its displayed value actually changes.
+    if label.epcEASStableText029681 ~= text or (type(label.GetText) == "function" and label:GetText() ~= text) then
+        label:SetText(text)
+        label.epcEASStableText029681 = text
+    end
+end
+
+local function finalizeBar(bar, current, maximum, layoutPass)
+    if not bar or not isRectDesign() then return end
+    if layoutPass then correctLayoutHeight(bar) end
+
+    current = tonumber(current)
+    maximum = tonumber(maximum)
+    if current == nil then current = tonumber(bar.epcRectCurrent) or 0 end
+    if maximum == nil then maximum = tonumber(bar.epcRectMaximum) or 0 end
+
+    local c = DARK[kindFor(bar)] or DARK.health
+
+    -- v0.29.434's actual visible live interior.
+    tintControl(bar.epcRectBackdropFill029431, c, LIVE_ALPHA)
+
+    -- Keep compatibility controls subdued too in case a client/layout momentarily
+    -- exposes one while switching designs.
+    tintControl(bar.epcRectStatusFill029429, c, LIVE_ALPHA)
+    tintControl(bar.epcRectColorFill029427, c, LIVE_ALPHA)
+    tintControl(bar.epcRectColorFill029426, c, LIVE_ALPHA)
+    tintControl(bar.epcRectWidthFill029425, c, LIVE_ALPHA)
+    tintControl(bar.epcRectLiveFill029424, c, LIVE_ALPHA)
+    tintControl(bar.epcRectFill, c, LIVE_ALPHA)
+
+    if bar.epcRectTrack029427 then tintControl(bar.epcRectTrack029427, {c[1] * 0.16, c[2] * 0.16, c[3] * 0.16}, 0.92) end
+    if bar.epcRectTrack029429 then tintControl(bar.epcRectTrack029429, {c[1] * 0.16, c[2] * 0.16, c[3] * 0.16}, 0.92) end
+
+    if bar.epcRectPanel02994 then
+        bar.epcRectPanel02994:SetCenterColor(c[1] * 0.045, c[2] * 0.045, c[3] * 0.045, 0.98)
+        bar.epcRectPanel02994:SetEdgeColor(
+            math.min(1, c[1] * 0.58 + 0.045),
+            math.min(1, c[2] * 0.58 + 0.045),
+            math.min(1, c[3] * 0.58 + 0.045),
+            0.72
+        )
+    end
+
+    formatStableLabel(bar, current, maximum)
+    bar.epcEASLastCurrent029681 = current
+    bar.epcEASLastMaximum029681 = maximum
+end
+
+local function finalizeUnit(frame, layoutPass)
+    if not frame or not frame.epcBars then return end
+    for _, bar in pairs(frame.epcBars) do
+        finalizeBar(bar, bar and bar.epcRectCurrent, bar and bar.epcRectMaximum, layoutPass)
+    end
+end
+
+local function finalizeRoster(frame, layoutPass)
+    if not frame then return end
+    for _, row in ipairs(frame.epcRows or {}) do
+        if row and row.epcBars and row.epcBars.health then
+            local bar = row.epcBars.health
+            finalizeBar(bar, bar.epcRectCurrent, bar.epcRectMaximum, layoutPass)
+        end
+        if row and row.epcCompanionHealth and row.epcCompanionHealth ~= false then
+            local bar = row.epcCompanionHealth
+            finalizeBar(bar, bar.epcRectCurrent, bar.epcRectMaximum, layoutPass)
+        end
+    end
+end
+
+local function rebuildRosterCache()
+    F._easRectRosterCache029681 = {}
+    local cache = F._easRectRosterCache029681
+    local frames = {F.groupFrame, F.raidFrame}
+    for i = 1, 2 do
+        local frame = frames[i]
+        if frame then
+            for _, row in ipairs(frame.epcRows or {}) do
+                if row and row.epcUnitTag and row.epcBars and row.epcBars.health then
+                    cache[row.epcUnitTag] = row.epcBars.health
+                end
+            end
+        end
+    end
+end
+
+local function sameValues(bar, current, maximum)
+    if not bar then return false end
+    current, maximum = tonumber(current), tonumber(maximum)
+    if current == nil or maximum == nil then return false end
+    return tonumber(bar.epcEASLastCurrent029681) == current and tonumber(bar.epcEASLastMaximum029681) == maximum
+end
+
+-- Layout/style wrappers: correct stored v0.29.434 geometry once and establish the
+-- final subdued palette/font. Designs 1-2 remain entirely on the base path.
+local baseLayout = LayoutIntegratedUnitFrameImplArch
+LayoutIntegratedUnitFrameImplArch = function(self, frame, ...)
+    local result = baseLayout(self, frame, ...)
+    if isRectDesign() then finalizeUnit(frame, true) end
+    return result
+end
+
+-- Full Player/Target refreshes can repaint resources without going through the
+-- lightweight direct EVENT_POWER_UPDATE methods. Finish those refreshes too.
+local baseUpdate = UpdateUnitFrameImplArch
+UpdateUnitFrameImplArch = function(self, frame, ...)
+    local result = baseUpdate(self, frame, ...)
+    if isRectDesign() then finalizeUnit(frame, false) end
+    return result
+end
+
+local baseGroup = RefreshGroupFramesImplArch
+RefreshGroupFramesImplArch = function(self, ...)
+    local result = baseGroup(self, ...)
+    if isRectDesign() then
+        finalizeRoster(self.groupFrame, false)
+        finalizeRoster(self.raidFrame, false)
+        rebuildRosterCache()
+    end
+    return result
+end
+
+local baseVisual = ApplyVisualStyleImplArch
+ApplyVisualStyleImplArch = function(self, ...)
+    local result = baseVisual(self, ...)
+    if isRectDesign() then
+        finalizeUnit(self.playerFrame, true)
+        finalizeUnit(self.targetFrame, true)
+        finalizeRoster(self.groupFrame, false)
+        finalizeRoster(self.raidFrame, false)
+        rebuildRosterCache()
+    end
+    return result
+end
+
+-- Direct EVENT_POWER_UPDATE paths. These are the hot paths that bypass
+-- UpdateUnitFrame(), so finalize the exact bar after the mature renderer paints
+-- it. Equal-value player/target events are suppressed to avoid needless text
+-- and geometry churn.
+if type(F.UpdatePlayerHealthFromEvent) == "function" then
+    local base = UpdatePlayerHealthFromEventImplArch
+    UpdatePlayerHealthFromEventImplArch = function(self, unitTag, powerValue, powerMax)
+        local bar = self.playerFrame and self.playerFrame.epcBars and self.playerFrame.epcBars.health
+        if isRectDesign() and sameValues(bar, powerValue, powerMax) then
+            finalizeBar(bar, powerValue, powerMax, false)
+            return true
+        end
+        local result = base(self, unitTag, powerValue, powerMax)
+        if isRectDesign() then finalizeBar(bar, powerValue, powerMax, false) end
+        return result
+    end
+end
+
+if type(F.UpdateTargetHealthFromEvent029341) == "function" then
+    local base = UpdateTargetHealthFromEvent029341ImplArch
+    UpdateTargetHealthFromEvent029341ImplArch = function(self, unitTag, powerValue, powerMax)
+        local bar = self.targetFrame and self.targetFrame.epcBars and self.targetFrame.epcBars.health
+        if isRectDesign() and sameValues(bar, powerValue, powerMax) then
+            finalizeBar(bar, powerValue, powerMax, false)
+            return true
+        end
+        local result = base(self, unitTag, powerValue, powerMax)
+        if isRectDesign() then finalizeBar(bar, powerValue, powerMax, false) end
+        return result
+    end
+end
+
+if type(F.UpdatePlayerResourceFromEvent029341) == "function" then
+    local base = UpdatePlayerResourceFromEvent029341ImplArch
+    UpdatePlayerResourceFromEvent029341ImplArch = function(self, unitTag, powerType, powerValue, powerMax)
+        local bars = self.playerFrame and self.playerFrame.epcBars
+        local bar = nil
+        if bars then
+            if powerType == POWERTYPE_MAGICKA then bar = bars.magicka
+            elseif powerType == POWERTYPE_STAMINA then bar = bars.stamina end
+        end
+        if isRectDesign() and sameValues(bar, powerValue, powerMax) then
+            finalizeBar(bar, powerValue, powerMax, false)
+            return true
+        end
+        local result = base(self, unitTag, powerType, powerValue, powerMax)
+        if isRectDesign() then finalizeBar(bar, powerValue, powerMax, false) end
+        return result
+    end
+end
+
+if type(F.UpdateGroupHealthFromEvent) == "function" then
+    local base = UpdateGroupHealthFromEventImplArch
+    UpdateGroupHealthFromEventImplArch = function(self, unitTag, powerValue, powerMax)
+        local result = base(self, unitTag, powerValue, powerMax)
+        if isRectDesign() then
+            local cache = self._easRectRosterCache029681
+            if not cache then rebuildRosterCache() cache = self._easRectRosterCache029681 end
+            local bar = cache and cache[unitTag]
+            if unitTag == "player" and type(GetLocalPlayerGroupUnitTag) == "function" then
+                local localTag = GetLocalPlayerGroupUnitTag()
+                if localTag and localTag ~= "" and cache and cache[localTag] then bar = cache[localTag] end
+            end
+            finalizeBar(bar, powerValue, powerMax, false)
+        end
+        return result
+    end
+end
+
+if type(F.UpdateCompanionHealthFromEvent) == "function" then
+    local base = UpdateCompanionHealthFromEventImplArch
+    UpdateCompanionHealthFromEventImplArch = function(self, unitTag, powerValue, powerMax)
+        local result = base(self, unitTag, powerValue, powerMax)
+        if isRectDesign() then
+            -- Companion power events are comparatively infrequent; finalize only
+            -- matching-value companion bars without adding another polling owner.
+            local frames = {self.groupFrame, self.raidFrame}
+            for i = 1, 2 do
+                local frame = frames[i]
+                if frame then
+                    for _, row in ipairs(frame.epcRows or {}) do
+                        if row and row.epcCompanionHealth and row.epcCompanionHealth ~= false then
+                            local bar = row.epcCompanionHealth
+                            if tonumber(bar.epcRectCurrent) == tonumber(powerValue) and tonumber(bar.epcRectMaximum) == tonumber(powerMax) then
+                                finalizeBar(bar, powerValue, powerMax, false)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return result
+    end
+end
+
+-- The mature rectangle sync runs every few seconds while visible. Let it update
+-- values first, then make the actual final backdrop fill/font authoritative.
+if type(F.RefreshRectResourceFills02995) == "function" then
+    local baseRectRefresh = RefreshRectResourceFills02995ImplArch
+    RefreshRectResourceFills02995ImplArch = function(self, ...)
+        local result = baseRectRefresh(self, ...)
+        if isRectDesign() then
+            finalizeUnit(self.playerFrame, false)
+            finalizeUnit(self.targetFrame, false)
+            finalizeRoster(self.groupFrame, false)
+            finalizeRoster(self.raidFrame, false)
+        end
+        return result
+    end
+end
+
+EPC.unitFrameDesignPolishFix029679 = nil
+EPC.unitFrameDesignPolishFix029680 = nil
+EPC.unitFrameDesignPolishFix029681 = true
+
+-- END ABSORBED: UnitFrameDesignPolishFix.lua
+
+
+-- BEGIN ABSORBED: GroupShieldVisibilityFix.lua
+-- ESO Adventurer Suite
+-- v0.29.637 - organized Unit Frame shield + mount-stamina visualization.
+-- Group/Raid shields keep their existing thin health-bar strip. The Player frame
+-- uses the same visual language: SHIELD xx% inside Health and MOUNT xx% inside
+-- Stamina. Strip width follows the live rendered bar in every current design.
+-- Everything is event-driven; no polling/OnUpdate loop is added.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.UnitFrames then return end
+local F = EPC.UnitFrames
+local WM = WINDOW_MANAGER
+local EM = EVENT_MANAGER
+
+local WHITE_TEXTURE = "EsoUI/Art/Miscellaneous/white_1x1.dds"
+local SHIELD_COLOR = { 0.52, 0.72, 1.00, 0.92 }
+local SHIELD_TEXT = { 0.78, 0.88, 1.00, 1.00 }
+local MOUNT_COLOR = { 0.96, 0.72, 0.24, 0.94 }
+local MOUNT_TEXT = { 1.00, 0.86, 0.48, 1.00 }
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a, b, c, d = pcall(fn, ...)
+    if not ok then return fallback end
+    return a, b, c, d
+end
+
+local function healthVisualizerPowerType()
+    return rawget(_G, "COMBAT_MECHANIC_FLAGS_HEALTH") or rawget(_G, "POWERTYPE_HEALTH")
+end
+
+local function getShield(unitTag)
+    if type(GetUnitAttributeVisualizerEffectInfo) ~= "function" then return 0 end
+    local shieldVisual = rawget(_G, "ATTRIBUTE_VISUAL_POWER_SHIELDING")
+    local mitigation = rawget(_G, "STAT_MITIGATION")
+    local healthAttribute = rawget(_G, "ATTRIBUTE_HEALTH")
+    local healthPower = healthVisualizerPowerType()
+    if shieldVisual == nil or mitigation == nil or healthAttribute == nil or healthPower == nil then
+        return 0
+    end
+    local value = safe(GetUnitAttributeVisualizerEffectInfo, 0,
+        unitTag, shieldVisual, mitigation, healthAttribute, healthPower)
+    return math.max(0, tonumber(value) or 0)
+end
+
+local function getMaxHealth(unitTag)
+    local healthPower = rawget(_G, "POWERTYPE_HEALTH")
+    if healthPower == nil then return 0 end
+    local _, maximum = safe(GetUnitPower, 0, unitTag, healthPower)
+    return math.max(0, tonumber(maximum) or 0)
+end
+
+local function formatShield(value)
+    value = math.max(0, tonumber(value) or 0)
+    if value >= 1000000 then
+        local text = string.format("%.1fm", value / 1000000)
+        return text:gsub("%.0m$", "m")
+    elseif value >= 1000 then
+        local text = string.format("%.1fk", value / 1000)
+        return text:gsub("%.0k$", "k")
+    end
+    return tostring(math.floor(value + 0.5))
+end
+
+local function percent(value, maximum)
+    value, maximum = tonumber(value) or 0, tonumber(maximum) or 0
+    if maximum <= 0 then return 0 end
+    return math.max(0, math.floor((value / maximum) * 100 + 0.5))
+end
+
+local function setHiddenIfChanged(control, hidden)
+    if not control or type(control.IsHidden) ~= "function" or type(control.SetHidden) ~= "function" then return end
+    local ok, current = pcall(control.IsHidden, control)
+    if not ok or current ~= hidden then pcall(control.SetHidden, control, hidden) end
+end
+
+local function currentBarWidth(bar)
+    if not bar then return 1 end
+    -- Designs reshape the same bar after construction, so the live control width
+    -- is authoritative. epcWidth is only a fallback for controls not yet laid out.
+    local liveWidth = tonumber(safe(bar.GetWidth, nil, bar))
+    if liveWidth and liveWidth > 2 then return math.max(1, liveWidth - 2) end
+    local width = tonumber(bar.epcWidth)
+    if width and width > 0 then return width end
+    return 1
+end
+
+local function setStripWidth(bar, strip, ratio, cacheKey)
+    if not bar or not strip then return end
+    ratio = math.max(0, math.min(1, tonumber(ratio) or 0))
+    local visibleWidth = math.max(2, currentBarWidth(bar) * ratio)
+    if bar[cacheKey] == nil or math.abs((tonumber(bar[cacheKey]) or 0) - visibleWidth) > 0.5 then
+        bar[cacheKey] = visibleWidth
+        strip:SetWidth(visibleWidth)
+    end
+end
+
+-- Existing Group/Raid shield presentation ------------------------------------
+local function ensureShieldUI(bar)
+    if not bar then return nil, nil end
+
+    local overlay = bar.epcShieldOverlay029519
+    if not overlay then
+        overlay = WM:CreateControl(nil, bar, CT_TEXTURE)
+        overlay:SetTexture(WHITE_TEXTURE)
+        overlay:SetColor(unpack(SHIELD_COLOR))
+        overlay:SetAnchor(BOTTOMLEFT, bar, BOTTOMLEFT, 1, -1)
+        overlay:SetHeight(3)
+        if overlay.SetDrawLayer and DL_OVERLAY then overlay:SetDrawLayer(DL_OVERLAY) end
+        if overlay.SetDrawLevel then overlay:SetDrawLevel(42) end
+        overlay:SetHidden(true)
+        bar.epcShieldOverlay029519 = overlay
+    else
+        if type(overlay.ClearAnchors) == "function" then overlay:ClearAnchors() end
+        if type(overlay.SetAnchor) == "function" then overlay:SetAnchor(BOTTOMLEFT, bar, BOTTOMLEFT, 1, -1) end
+        if type(overlay.SetHeight) == "function" then overlay:SetHeight(3) end
+        if type(overlay.SetColor) == "function" then overlay:SetColor(unpack(SHIELD_COLOR)) end
+        if type(overlay.SetCenterColor) == "function" then overlay:SetCenterColor(0.52, 0.72, 1.00, 0.74) end
+        if type(overlay.SetEdgeColor) == "function" then overlay:SetEdgeColor(0, 0, 0, 0) end
+    end
+
+    local valueLabel = bar.epcShieldValue029574
+    if not valueLabel then
+        valueLabel = WM:CreateControl(nil, bar, CT_LABEL)
+        valueLabel:SetFont("ZoFontGameSmall")
+        valueLabel:SetColor(unpack(SHIELD_TEXT))
+        valueLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        valueLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        valueLabel:SetAnchor(TOPRIGHT, bar, TOPRIGHT, -3, 0)
+        valueLabel:SetAnchor(BOTTOMRIGHT, bar, BOTTOMRIGHT, -3, 0)
+        valueLabel:SetWidth(42)
+        if valueLabel.SetDrawLayer and DL_OVERLAY then valueLabel:SetDrawLayer(DL_OVERLAY) end
+        if valueLabel.SetDrawLevel then valueLabel:SetDrawLevel(62) end
+        valueLabel:SetHidden(true)
+        bar.epcShieldValue029574 = valueLabel
+    end
+
+    return overlay, valueLabel
+end
+
+local function updateRow(row)
+    if not row or row:IsHidden() or not row.epcUnitTag or not row.epcBars then return end
+    local bar = row.epcBars.health
+    if not bar then return end
+
+    local overlay, valueLabel = ensureShieldUI(bar)
+    if not overlay or not valueLabel then return end
+
+    local shield = getShield(row.epcUnitTag)
+    local maxHealth = getMaxHealth(row.epcUnitTag)
+    if shield <= 0 or maxHealth <= 0 then
+        setHiddenIfChanged(overlay, true)
+        setHiddenIfChanged(valueLabel, true)
+        bar._easShieldText029574 = nil
+        bar._easShieldWidth029574 = nil
+        return
+    end
+
+    setStripWidth(bar, overlay, shield / maxHealth, "_easShieldWidth029574")
+    setHiddenIfChanged(overlay, false)
+
+    local text = formatShield(shield)
+    if bar._easShieldText029574 ~= text then
+        bar._easShieldText029574 = text
+        valueLabel:SetText(text)
+    end
+    setHiddenIfChanged(valueLabel, false)
+    if bar.epcLabel and bar.epcLabel.SetDrawLevel then bar.epcLabel:SetDrawLevel(70) end
+end
+
+function F:RefreshRosterShields029519()
+    local function updateFrame(frame)
+        if not frame or frame:IsHidden() then return end
+        for _, row in ipairs(frame.epcRows or {}) do updateRow(row) end
+    end
+    updateFrame(self.groupFrame)
+    updateFrame(self.raidFrame)
+end
+
+-- Player Health shield --------------------------------------------------------
+local function ensurePlayerShieldUI(bar)
+    if not bar then return nil, nil end
+    local overlay = bar.epcPlayerShieldStrip029636
+    if not overlay then
+        overlay = WM:CreateControl(nil, bar, CT_TEXTURE)
+        overlay:SetTexture(WHITE_TEXTURE)
+        overlay:SetColor(unpack(SHIELD_COLOR))
+        overlay:SetAnchor(BOTTOMLEFT, bar, BOTTOMLEFT, 1, -1)
+        overlay:SetHeight(4)
+        overlay:SetMouseEnabled(false)
+        if overlay.SetDrawLayer and DL_OVERLAY then overlay:SetDrawLayer(DL_OVERLAY) end
+        if overlay.SetDrawLevel then overlay:SetDrawLevel(52) end
+        overlay:SetHidden(true)
+        bar.epcPlayerShieldStrip029636 = overlay
+    end
+
+    local label = bar.epcPlayerShieldLabel029636
+    if not label then
+        label = WM:CreateControl(nil, bar, CT_LABEL)
+        label:SetFont("$(BOLD_FONT)|12|soft-shadow-thick")
+        label:SetColor(unpack(SHIELD_TEXT))
+        label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        label:SetAnchor(TOPRIGHT, bar, TOPRIGHT, -8, 0)
+        label:SetAnchor(BOTTOMRIGHT, bar, BOTTOMRIGHT, -8, 0)
+        label:SetWidth(92)
+        label:SetMouseEnabled(false)
+        if label.SetDrawLayer and DL_OVERLAY then label:SetDrawLayer(DL_OVERLAY) end
+        if label.SetDrawLevel then label:SetDrawLevel(82) end
+        label:SetHidden(true)
+        bar.epcPlayerShieldLabel029636 = label
+    end
+    return overlay, label
+end
+
+function F:RefreshPlayerShield029636()
+    local frame = self.playerFrame
+    local bar = frame and frame.epcBars and frame.epcBars.health
+    if not bar then return end
+    local overlay, label = ensurePlayerShieldUI(bar)
+    if not overlay or not label then return end
+
+    local shield = getShield("player")
+    local maxHealth = getMaxHealth("player")
+    if shield <= 0 or maxHealth <= 0 then
+        setHiddenIfChanged(overlay, true)
+        setHiddenIfChanged(label, true)
+        bar._easPlayerShieldWidth029636 = nil
+        bar._easPlayerShieldText029636 = nil
+        return
+    end
+
+    local shieldPercent = percent(shield, maxHealth)
+    setStripWidth(bar, overlay, shield / maxHealth, "_easPlayerShieldWidth029636")
+    setHiddenIfChanged(overlay, false)
+
+    local text = "SHIELD " .. tostring(shieldPercent) .. "%"
+    if bar._easPlayerShieldText029636 ~= text then
+        bar._easPlayerShieldText029636 = text
+        label:SetText(text)
+    end
+    setHiddenIfChanged(label, false)
+    if bar.epcLabel and bar.epcLabel.SetDrawLevel then bar.epcLabel:SetDrawLevel(90) end
+end
+
+-- Player Mount Stamina --------------------------------------------------------
+local function ensureMountUI(bar)
+    if not bar then return nil, nil end
+    local overlay = bar.epcMountStaminaStrip029636
+    if not overlay then
+        overlay = WM:CreateControl(nil, bar, CT_TEXTURE)
+        overlay:SetTexture(WHITE_TEXTURE)
+        overlay:SetColor(unpack(MOUNT_COLOR))
+        overlay:SetAnchor(BOTTOMLEFT, bar, BOTTOMLEFT, 1, -1)
+        overlay:SetHeight(4)
+        overlay:SetMouseEnabled(false)
+        if overlay.SetDrawLayer and DL_OVERLAY then overlay:SetDrawLayer(DL_OVERLAY) end
+        if overlay.SetDrawLevel then overlay:SetDrawLevel(52) end
+        overlay:SetHidden(true)
+        bar.epcMountStaminaStrip029636 = overlay
+    end
+
+    local label = bar.epcMountStaminaLabel029636
+    if not label then
+        label = WM:CreateControl(nil, bar, CT_LABEL)
+        label:SetFont("$(BOLD_FONT)|12|soft-shadow-thick")
+        label:SetColor(unpack(MOUNT_TEXT))
+        label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        label:SetAnchor(TOPRIGHT, bar, TOPRIGHT, -8, 0)
+        label:SetAnchor(BOTTOMRIGHT, bar, BOTTOMRIGHT, -8, 0)
+        label:SetWidth(92)
+        label:SetMouseEnabled(false)
+        if label.SetDrawLayer and DL_OVERLAY then label:SetDrawLayer(DL_OVERLAY) end
+        if label.SetDrawLevel then label:SetDrawLevel(82) end
+        label:SetHidden(true)
+        bar.epcMountStaminaLabel029636 = label
+    end
+    return overlay, label
+end
+
+local function isMounted()
+    if type(IsMounted) ~= "function" then return false end
+    return safe(IsMounted, false) == true
+end
+
+function F:RefreshMountStamina029636(currentOverride, maxOverride)
+    local frame = self.playerFrame
+    local bar = frame and frame.epcBars and frame.epcBars.stamina
+    if not bar then return end
+    local overlay, label = ensureMountUI(bar)
+    if not overlay or not label then return end
+
+    if not isMounted() or rawget(_G, "POWERTYPE_MOUNT_STAMINA") == nil then
+        setHiddenIfChanged(overlay, true)
+        setHiddenIfChanged(label, true)
+        bar._easMountWidth029636 = nil
+        bar._easMountText029636 = nil
+        return
+    end
+
+    local current, maximum = tonumber(currentOverride), tonumber(maxOverride)
+    if current == nil or maximum == nil then
+        current, maximum = safe(GetUnitPower, 0, "player", POWERTYPE_MOUNT_STAMINA)
+        current, maximum = tonumber(current) or 0, tonumber(maximum) or 0
+    end
+    if maximum <= 0 then
+        setHiddenIfChanged(overlay, true)
+        setHiddenIfChanged(label, true)
+        return
+    end
+
+    local mountPercent = percent(current, maximum)
+    setStripWidth(bar, overlay, current / maximum, "_easMountWidth029636")
+    setHiddenIfChanged(overlay, false)
+
+    local text = "MOUNT " .. tostring(mountPercent) .. "%"
+    if bar._easMountText029636 ~= text then
+        bar._easMountText029636 = text
+        label:SetText(text)
+    end
+    setHiddenIfChanged(label, false)
+    if bar.epcLabel and bar.epcLabel.SetDrawLevel then bar.epcLabel:SetDrawLevel(90) end
+end
+
+function F:RefreshPlayerStatusIndicators029636()
+    self:RefreshPlayerShield029636()
+    self:RefreshMountStamina029636()
+end
+
+local baseRefresh = RefreshGroupFramesImplArch
+if type(baseRefresh) == "function" and not F._easShieldRefreshWrapped029519 then
+    F._easShieldRefreshWrapped029519 = true
+    RefreshGroupFramesImplArch = function(self, ...)
+        local result = baseRefresh(self, ...)
+        self:RefreshRosterShields029519()
+        return result
+    end
+end
+
+local baseInitialize = InitializeImplArch
+if type(baseInitialize) == "function" and not F._easPlayerStatusInitWrapped029636 then
+    F._easPlayerStatusInitWrapped029636 = true
+    InitializeImplArch = function(self, ...)
+        local result = baseInitialize(self, ...)
+        self:RefreshPlayerStatusIndicators029636()
+
+        if type(ZO_PostHookHandler) == "function" and self.playerFrame and self.playerFrame.epcBars then
+            local health = self.playerFrame.epcBars.health
+            local stamina = self.playerFrame.epcBars.stamina
+            if health and not health._easPlayerStatusRectHook029636 then
+                health._easPlayerStatusRectHook029636 = true
+                ZO_PostHookHandler(health, "OnRectChanged", function()
+                    if F and F.RefreshPlayerShield029636 then F:RefreshPlayerShield029636() end
+                end)
+            end
+            if stamina and not stamina._easPlayerStatusRectHook029636 then
+                stamina._easPlayerStatusRectHook029636 = true
+                ZO_PostHookHandler(stamina, "OnRectChanged", function()
+                    if F and F.RefreshMountStamina029636 then F:RefreshMountStamina029636() end
+                end)
+            end
+        end
+        return result
+    end
+end
+
+-- Event-driven refresh --------------------------------------------------------
+local rosterPending = false
+local function requestRosterRefresh()
+    if rosterPending then return end
+    rosterPending = true
+    local function finish()
+        rosterPending = false
+        if F and F.RefreshRosterShields029519 then F:RefreshRosterShields029519() end
+    end
+    if type(zo_callLater) == "function" then zo_callLater(finish, 45) else finish() end
+end
+
+local playerShieldPending = false
+local function requestPlayerShieldRefresh()
+    if playerShieldPending then return end
+    playerShieldPending = true
+    local function finish()
+        playerShieldPending = false
+        if F and F.RefreshPlayerShield029636 then F:RefreshPlayerShield029636() end
+    end
+    if type(zo_callLater) == "function" then zo_callLater(finish, 20) else finish() end
+end
+
+local function onShieldVisual(_, unitTag, unitAttributeVisual, statType, attributeType)
+    if unitAttributeVisual ~= rawget(_G, "ATTRIBUTE_VISUAL_POWER_SHIELDING") then return end
+    if rawget(_G, "ATTRIBUTE_HEALTH") ~= nil and attributeType ~= ATTRIBUTE_HEALTH then return end
+    unitTag = tostring(unitTag or "")
+    if unitTag == "player" then
+        requestPlayerShieldRefresh()
+    elseif string.sub(unitTag, 1, 5) == "group" then
+        requestRosterRefresh()
+    end
+end
+
+if EM then
+    local prefix = (EPC.name or "ESOAdventurerSuite") .. "_UnitFrameStatus029636"
+    for index, eventId in ipairs({
+        rawget(_G, "EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED"),
+        rawget(_G, "EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED"),
+        rawget(_G, "EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED"),
+    }) do
+        if eventId then EM:RegisterForEvent(prefix .. "_Shield_" .. tostring(index), eventId, onShieldVisual) end
+    end
+
+    if rawget(_G, "EVENT_POWER_UPDATE") and rawget(_G, "POWERTYPE_MOUNT_STAMINA") ~= nil then
+        local mountPowerName = prefix .. "_MountPower"
+        EM:RegisterForEvent(mountPowerName, EVENT_POWER_UPDATE,
+            function(_, unitTag, powerIndex, powerType, powerValue, powerMax)
+                if unitTag == "player" and powerType == POWERTYPE_MOUNT_STAMINA
+                    and F and F.RefreshMountStamina029636 then
+                    F:RefreshMountStamina029636(powerValue, powerMax)
+                end
+            end)
+        if rawget(_G, "REGISTER_FILTER_UNIT_TAG") ~= nil then
+            pcall(EM.AddFilterForEvent, EM, mountPowerName, EVENT_POWER_UPDATE,
+                REGISTER_FILTER_UNIT_TAG, "player")
+        end
+        if rawget(_G, "REGISTER_FILTER_POWER_TYPE") ~= nil then
+            pcall(EM.AddFilterForEvent, EM, mountPowerName, EVENT_POWER_UPDATE,
+                REGISTER_FILTER_POWER_TYPE, POWERTYPE_MOUNT_STAMINA)
+        end
+    end
+
+    local mountedEvent = rawget(_G, "EVENT_MOUNTED_STATE_CHANGED")
+    if mountedEvent then
+        EM:RegisterForEvent(prefix .. "_Mounted", mountedEvent, function()
+            if F and F.RefreshMountStamina029636 then F:RefreshMountStamina029636() end
+        end)
+    end
+
+    if rawget(_G, "EVENT_PLAYER_ACTIVATED") then
+        EM:RegisterForEvent(prefix .. "_Activated", EVENT_PLAYER_ACTIVATED, function()
+            requestPlayerShieldRefresh()
+            requestRosterRefresh()
+            if F and F.RefreshMountStamina029636 then F:RefreshMountStamina029636() end
+        end)
+    end
+end
+
+SLASH_COMMANDS = SLASH_COMMANDS or {}
+SLASH_COMMANDS["/easplayerstatus"] = function()
+    local shield = getShield("player")
+    local maxHealth = getMaxHealth("player")
+    local mountCurrent, mountMax = 0, 0
+    if rawget(_G, "POWERTYPE_MOUNT_STAMINA") ~= nil and type(GetUnitPower) == "function" then
+        mountCurrent, mountMax = safe(GetUnitPower, 0, "player", POWERTYPE_MOUNT_STAMINA)
+    end
+    local text = string.format("EAS Player Status | Shield %d%% (%s) | Mounted=%s | Mount %d%%",
+        percent(shield, maxHealth), formatShield(shield), isMounted() and "yes" or "no",
+        percent(mountCurrent, mountMax))
+    if type(d) == "function" then d(text) end
+end
+
+if F.playerFrame then
+    F:RefreshPlayerStatusIndicators029636()
+elseif type(zo_callLater) == "function" then
+    zo_callLater(function()
+        if F and F.playerFrame and F.RefreshPlayerStatusIndicators029636 then
+            F:RefreshPlayerStatusIndicators029636()
+        end
+    end, 800)
+end
+
+-- END ABSORBED: GroupShieldVisibilityFix.lua
+
+
+-- BEGIN ABSORBED: RaidCompanionVisibilityFix.lua
+-- ESO Adventurer Suite
+-- v0.29.569 - Raid companion visibility + layout stability.
+-- Raid rows support companions, but the expensive row reflow only runs when the
+-- visible roster/companion-height layout actually changes.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.UnitFrames then return end
+
+local F = EPC.UnitFrames
+
+if type(F.CreateMemberRow) == "function" and not F._easRaidCompanionCreateWrapped029566 then
+    F._easRaidCompanionCreateWrapped029566 = true
+    local baseCreateMemberRow = CreateMemberRowImplArch
+
+    CreateMemberRowImplArch = function(self, parent, name, width, height, x, y, showCompanion)
+        local rowName = tostring(name or "")
+        if string.find(rowName, "^EPC_RaidMember") then
+            showCompanion = true
+        end
+        return baseCreateMemberRow(self, parent, name, width, height, x, y, showCompanion)
+    end
+end
+
+local function buildLayoutSignature(frame)
+    local parts = {}
+    for index, row in ipairs(frame.epcRows or {}) do
+        if row and type(row.IsHidden) == "function" and not row:IsHidden() then
+            local height = type(row.GetHeight) == "function" and tonumber(row:GetHeight()) or tonumber(row.epcCompactHeight) or 0
+            parts[#parts + 1] = table.concat({
+                tostring(index),
+                tostring(row.epcUnitTag or ""),
+                row.epcHasCompanion == true and "1" or "0",
+                tostring(math.floor((height or 0) + 0.5)),
+            }, ":")
+        end
+    end
+    return table.concat(parts, "|")
+end
+
+local function reflowRaid(self, force)
+    local frame = self and self.raidFrame
+    if not frame or type(frame.IsHidden) ~= "function" or frame:IsHidden() then return end
+    if type(frame.epcRows) ~= "table" then return end
+
+    local signature = buildLayoutSignature(frame)
+    if force ~= true and frame._easRaidLayoutSignature029569 == signature then return end
+    frame._easRaidLayoutSignature029569 = signature
+
+    local visible = {}
+    for _, row in ipairs(frame.epcRows) do
+        if row and type(row.IsHidden) == "function" and not row:IsHidden() then
+            visible[#visible + 1] = row
+        end
+    end
+    if #visible == 0 then return end
+
+    local columns = #visible > 12 and 3 or 2
+    if #visible <= 4 then columns = 2 end
+    local rowsPerColumn = math.max(1, math.ceil(#visible / columns))
+    local columnGap = 7
+    local rowGap = 3
+    local leftPad = 10
+    local topPad = 27
+
+    local firstRow = visible[1]
+    local rowWidth = 270
+    if firstRow and type(firstRow.GetWidth) == "function" then
+        rowWidth = math.max(1, tonumber(firstRow:GetWidth()) or rowWidth)
+    end
+
+    local columnY = {}
+    for column = 1, columns do columnY[column] = topPad end
+
+    for index, row in ipairs(visible) do
+        local column = math.floor((index - 1) / rowsPerColumn) + 1
+        local y = columnY[column] or topPad
+        if type(row.ClearAnchors) == "function" then row:ClearAnchors() end
+        if type(row.SetAnchor) == "function" then
+            row:SetAnchor(TOPLEFT, frame, TOPLEFT,
+                leftPad + ((column - 1) * (rowWidth + columnGap)), y)
+        end
+        local rowHeight = type(row.GetHeight) == "function" and tonumber(row:GetHeight()) or nil
+        rowHeight = math.max(1, rowHeight or tonumber(row.epcCompactHeight) or 32)
+        columnY[column] = y + rowHeight + rowGap
+    end
+
+    local maxBottom = topPad
+    for column = 1, columns do
+        maxBottom = math.max(maxBottom, (columnY[column] or topPad) - rowGap)
+    end
+    local wantedHeight = maxBottom + 5
+    if type(frame.GetHeight) == "function" and type(frame.SetHeight) == "function" then
+        local current = tonumber(frame:GetHeight()) or 0
+        if math.abs(current - wantedHeight) > 0.5 then frame:SetHeight(wantedHeight) end
+    elseif type(frame.SetHeight) == "function" then
+        frame:SetHeight(wantedHeight)
+    end
+end
+
+if type(F.RefreshGroupFrames) == "function" and not F._easRaidCompanionRefreshWrapped029566 then
+    F._easRaidCompanionRefreshWrapped029566 = true
+    local baseRefreshGroupFrames = RefreshGroupFramesImplArch
+
+    RefreshGroupFramesImplArch = function(self, ...)
+        local result = baseRefreshGroupFrames(self, ...)
+        reflowRaid(self, false)
+        return result
+    end
+end
+
+-- END ABSORBED: RaidCompanionVisibilityFix.lua
+
+
+-- ============================================================================
+-- Update 51 native Edit HUD preview.
+-- This is presentation-only. Normal group/raid geometry is restored immediately
+-- when ESO's Edit HUD closes.
+-- ============================================================================
+function F:SetNativeEditHudPreview(active, force)
+    active = active == true
+    if self.nativeEditHudPreview029780 == active and force ~= true then return end
+
+    if active and self.nativeEditHudPreview029780 ~= true then
+        self.nativeEditHudPreviousLayoutMode029780 = self.layoutMode == true
+    end
+
+    self.nativeEditHudPreview029780 = active
+    self.layoutMode = active or self.nativeEditHudPreviousLayoutMode029780 == true
+
+    -- Reuse the existing UnitFrames preview renderer for every frame so Target,
+    -- Group and Combat Stats contain their real preview content in ESO Edit HUD.
+    self:ApplyLayoutState(self.playerFrame)
+    self:ApplyLayoutState(self.playerEffectsFrame)
+    self:ApplyLayoutState(self.targetFrame)
+    self:ApplyLayoutState(self.groupFrame)
+    self:ApplyLayoutState(self.raidFrame)
+    self:ApplyLayoutState(self.statsFrame)
+
+    if active then
+        if self.RefreshPlayer then pcall(self.RefreshPlayer, self) end
+        if self.RefreshTarget then pcall(self.RefreshTarget, self, true) end
+        if self.RefreshGroupFrames then pcall(self.RefreshGroupFrames, self) end
+        if self.RefreshStats then pcall(self.RefreshStats, self) end
+        if self.playerFrame then self.playerFrame:SetHidden(false) end
+        if self.playerEffectsFrame then self.playerEffectsFrame:SetHidden(false) end
+        if self.targetFrame then self.targetFrame:SetHidden(false) end
+        if self.groupFrame then self.groupFrame:SetHidden(false) end
+        if self.statsFrame then self.statsFrame:SetHidden(false) end
+    end
+
+    local raid = self.raidFrame
+    if not raid or type(raid.epcRows) ~= "table" then return end
+
+    if active then
+        local previewCount = math.min(12, #raid.epcRows)
+        local rowWidth = 270
+        local rowHeight = 32
+        local gap = 3
+        local top = 29
+
+        for i, row in ipairs(raid.epcRows) do
+            if row then
+                row:ClearAnchors()
+                if i <= previewCount then
+                    row:SetHidden(false)
+                    row:SetDimensions(rowWidth, rowHeight)
+                    row:SetAnchor(TOPLEFT, raid, TOPLEFT, 10, top + ((i - 1) * (rowHeight + gap)))
+                    if self.UpdateMemberRow then
+                        pcall(self.UpdateMemberRow, self, row, nil, i)
+                    end
+                else
+                    row:SetHidden(true)
+                end
+            end
+        end
+
+        raid:SetDimensions(
+            rowWidth + 20,
+            top + (previewCount * rowHeight) + (math.max(0, previewCount - 1) * gap) + 7
+        )
+        raid:SetHidden(false)
+        if raid.epcStatus then raid.epcStatus:SetText("RAID PREVIEW") end
+    else
+        self.layoutMode = self.nativeEditHudPreviousLayoutMode029780 == true
+        self.nativeEditHudPreviousLayoutMode029780 = nil
+
+        self:ApplyLayoutState(self.playerFrame)
+        self:ApplyLayoutState(self.playerEffectsFrame)
+        self:ApplyLayoutState(self.targetFrame)
+        self:ApplyLayoutState(self.groupFrame)
+        self:ApplyLayoutState(self.raidFrame)
+        self:ApplyLayoutState(self.statsFrame)
+
+        -- Rebuild all UnitFrames from the live state and selected visual style.
+        if self.RefreshPlayer then pcall(self.RefreshPlayer, self) end
+        if self.RefreshTarget then pcall(self.RefreshTarget, self, true) end
+        if self.RefreshGroupFrames then pcall(self.RefreshGroupFrames, self) end
+        if self.RefreshStats then pcall(self.RefreshStats, self) end
+        if self.ApplyVisualStyle then pcall(self.ApplyVisualStyle, self) end
+    end
+end
+
+
+-- Native Edit HUD geometry guard: if any normal UnitFrames refresh is triggered
+-- while the editor is open, reapply the presentation-only raid preview once.
+if not F._nativeEditHudRefreshGuard029780 then
+    F._nativeEditHudRefreshGuard029780 = true
+    local EAS_NativeEditBaseRefreshAll029780 = F.RefreshAll
+    function F:RefreshAll(...)
+        local results = { EAS_NativeEditBaseRefreshAll029780(self, ...) }
+        if self.nativeEditHudPreview029780 == true then
+            self:SetNativeEditHudPreview(true, true)
+        end
+        return unpack(results)
     end
 end

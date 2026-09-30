@@ -196,6 +196,15 @@ function EP.AddMenu(bag, index)
     if #entries == 0 then
         entries[1] = { label = "No compatible backpack glyphs", disabled = true, callback = function() end }
     end
+    entries[#entries + 1] = {
+        label = "Find Runestones (Map + 3D)",
+        callback = function()
+            if ESOProgressionCoach and ESOProgressionCoach.CraftingMaterialHunt
+                and ESOProgressionCoach.CraftingMaterialHunt.StartEnchanting029763 then
+                ESOProgressionCoach.CraftingMaterialHunt:StartEnchanting029763(true)
+            end
+        end,
+    }
     EP.ClearInventoryTooltips()
     AddCustomSubMenuItem("Enchant+", entries)
     return true

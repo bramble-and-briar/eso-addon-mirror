@@ -1,37 +1,51 @@
 <GuiXml>
     <Controls>
-        <TopLevelControl name="NWT_Panel" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="false">
-            <Dimensions x="64" y="64" />
-            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="200" />
+        <!-- groessen und anker werden komplett in ApplyLayout gesetzt,
+             hier steht nur der aufbau und die zeichenreihenfolge -->
+        <TopLevelControl name="NWT_Panel" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true">
+            <Dimensions x="72" y="100" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="0" offsetY="200" />
 
             <OnMoveStop>
                 NothingWastedTracker.OnMoveStop()
             </OnMoveStop>
 
             <Controls>
-                <!-- rahmen im stil von OffBalanceTracker: vollflaechiger backdrop
-                     hinter dem icon. die farbige center-flaeche bildet den rand,
-                     das icon liegt mit border-inset darueber. zustand = center-color. -->
-                <Backdrop name="$(parent)Border" centerColor="7F7F7FFF" edgeColor="000000FF" tier="LOW">
-                    <AnchorFill />
-                    <Edge edgeSize="1" />
-                </Backdrop>
+                <Control name="$(parent)Tile">
+                    <Dimensions x="72" y="72" />
+                    <Anchor point="TOP" />
+                    <Controls>
+                        <Texture name="$(parent)Shadow" textureFile="NothingWastedTracker/media/shadow.dds" level="1">
+                            <Anchor point="CENTER" />
+                        </Texture>
+                        <Texture name="$(parent)Glow" textureFile="NothingWastedTracker/media/glow.dds" level="2" alpha="0">
+                            <Anchor point="CENTER" />
+                        </Texture>
+                        <Texture name="$(parent)Plate" textureFile="NothingWastedTracker/media/plate.dds" level="3">
+                            <AnchorFill />
+                        </Texture>
+                        <Texture name="$(parent)Icon" textureFile="EsoUI/Art/Icons/icon_missing.dds" level="4" />
+                        <Texture name="$(parent)Shine" textureFile="NothingWastedTracker/media/shine.dds" level="5" alpha="0" />
+                        <Texture name="$(parent)Flash" textureFile="NothingWastedTracker/media/plate.dds" level="6" alpha="0">
+                            <AnchorFill />
+                        </Texture>
+                        <Texture name="$(parent)Frame" textureFile="NothingWastedTracker/media/frame.dds" level="7">
+                            <AnchorFill />
+                        </Texture>
+                        <Texture name="$(parent)Burst" textureFile="NothingWastedTracker/media/burst.dds" level="8" alpha="0">
+                            <Anchor point="CENTER" />
+                        </Texture>
+                        <Label name="$(parent)Stacks" font="ZoFontWinH1" level="9" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" text="0" />
+                        <Label name="$(parent)TimerIn" font="ZoFontGameBold" level="9" horizontalAlignment="CENTER" verticalAlignment="CENTER" text="" />
+                    </Controls>
+                </Control>
 
-                <!-- buff-icon: zwei anker (TOPLEFT/BOTTOMRIGHT) = echte groesse.
-                     der inset wird in ApplyAppearance an borderThickness angepasst.
-                     tier HIGH, damit es ueber dem backdrop liegt. -->
-                <Texture name="$(parent)Icon" textureFile="EsoUI/Art/Icons/icon_missing.dds" tier="HIGH">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="5" offsetY="5" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-5" offsetY="-5" />
-                </Texture>
+                <Control name="$(parent)Pips" />
 
-                <Label name="$(parent)Stacks" font="ZoFontWinH1" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" text="0" tier="HIGH">
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="BOTTOMRIGHT" offsetX="-3" offsetY="-1" />
-                </Label>
+                <Texture name="$(parent)BarBg" textureFile="NothingWastedTracker/media/bar.dds" level="1" />
+                <Texture name="$(parent)BarFill" textureFile="NothingWastedTracker/media/bar.dds" level="2" />
 
-                <Label name="$(parent)Timer" font="ZoFontGameSmall" color="FFFFFFFF" horizontalAlignment="CENTER" verticalAlignment="TOP" text="" tier="HIGH">
-                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0" offsetY="2" />
-                </Label>
+                <Label name="$(parent)Timer" font="ZoFontGameBold" horizontalAlignment="CENTER" verticalAlignment="TOP" text="" />
             </Controls>
         </TopLevelControl>
     </Controls>

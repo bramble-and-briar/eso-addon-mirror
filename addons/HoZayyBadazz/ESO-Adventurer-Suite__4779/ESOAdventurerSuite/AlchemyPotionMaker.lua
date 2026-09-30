@@ -10,7 +10,7 @@ local wm = WINDOW_MANAGER
 local PREFIX = "ESOAdventurerSuite_AlchemyPotionMaker"
 local ICON_TEXTURE = "/esoui/art/crafting/alchemy_tabicon_reagent_up.dds"
 local NORMAL_W, NORMAL_H = 64, 64
-local PANEL_W, PANEL_H = 900, 810
+local PANEL_W, PANEL_H = 900, 900
 local ROW_COUNT = 7
 local EFFECT_POPUP_W, EFFECT_POPUP_H = 590, 620
 local EFFECT_POPUP_ROWS = 17
@@ -1561,7 +1561,7 @@ function A:CreateEffectPopup()
     note:SetDimensions(EFFECT_POPUP_W - 36, 24)
     note:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     note:SetColor(0.68, 0.76, 0.84, 1)
-    note:SetText("This selector is a separate top-level overlay so it always stays above the Potion Maker.")
+    note:SetText("This selector is a separate top-level overlay so it always stays above the Crafting Assistant.")
 end
 
 function A:ShowEffectMenu(owner, slot)
@@ -1771,7 +1771,7 @@ function A:CreateIcon()
     b:SetHandler("OnMouseEnter", function(control)
         if InformationTooltip and type(InitializeTooltip) == "function" then
             InitializeTooltip(InformationTooltip, control, TOPRIGHT, 0, 0, TOPLEFT)
-            InformationTooltip:AddLine("ALCHEMY POTION & POISON MAKER", "ZoFontWinH4")
+            InformationTooltip:AddLine("CRAFTING ASSISTANT", "ZoFontWinH4")
             InformationTooltip:AddLine("At an Alchemy Station, click to see mixtures you can make now or choose exact effects and see the reagents/solvent you need.", "ZoFontGame")
             InformationTooltip:AddLine("Click a READY recipe to auto-slot the solvent and reagents. You still press ESO's Craft button.", "ZoFontGameSmall")
         end
@@ -1876,14 +1876,14 @@ function A:CreateWindow()
     title:SetAnchor(TOPLEFT, titleBar, TOPLEFT, 14, 4)
     title:SetDimensions(PANEL_W - 120, 28)
     title:SetColor(0.96, 0.84, 0.36, 1)
-    title:SetText("POTION MAKER")
+    title:SetText("CRAFTING ASSISTANT")
 
     local subtitle = wm:CreateControl(nil, titleBar, CT_LABEL)
     subtitle:SetFont("ZoFontGameSmall")
     subtitle:SetAnchor(TOPLEFT, title, BOTTOMLEFT, 2, -2)
     subtitle:SetDimensions(PANEL_W - 140, 20)
     subtitle:SetColor(0.68, 0.77, 0.86, 1)
-    subtitle:SetText("Choose what you want to make, then click a recipe to load it at an Alchemy Station.")
+    subtitle:SetText("Alchemy recipe planning plus shared material hunting for every supported craft.")
 
     local close = makeButton(w, 38, 38, "ZoFontWinH3")
     close:SetAnchor(TOPRIGHT, w, TOPRIGHT, -10, 8)
@@ -1896,7 +1896,7 @@ function A:CreateWindow()
     step1:SetAnchor(TOPLEFT, w, TOPLEFT, 22, 62)
     step1:SetDimensions(110, 28)
     step1:SetColor(0.72, 0.82, 0.92, 1)
-    step1:SetText("1. TYPE")
+    step1:SetText("1. ALCHEMY")
 
     local potionMode = makeButton(w, 150, 38)
     potionMode:SetAnchor(LEFT, step1, RIGHT, 8, 0)
@@ -1989,10 +1989,17 @@ function A:CreateWindow()
     autoCraft:SetHandler("OnMouseExit", function() if InformationTooltip and type(ClearTooltip) == "function" then ClearTooltip(InformationTooltip) end end)
     self.autoCraftButton = autoCraft
 
+    -- Shared crafting-source hunt bar. This is the same control surface used
+    -- at Provisioning, Enchanting, Jewelry, Woodworking, Blacksmithing, and Clothing stations.
+    if EPC.CraftingMaterialHunt and EPC.CraftingMaterialHunt.AttachPotionMaker029765
+        and (not EPC.saved or EPC.saved.craftingMaterialHuntBarEnabled029765 ~= false) then
+        EPC.CraftingMaterialHunt:AttachPotionMaker029765(w)
+    end
+
     -- Exact-effect selector card. Hidden in the easy 'What can I make?' view.
     local exactBar = wm:CreateControl(nil, w, CT_BACKDROP)
     exactBar:SetDimensions(PANEL_W - 44, 74)
-    exactBar:SetAnchor(TOPLEFT, statusCard, BOTTOMLEFT, 0, 10)
+    exactBar:SetAnchor(TOPLEFT, w, TOPLEFT, 22, 314)
     exactBar:SetCenterColor(0.020, 0.030, 0.045, 0.96)
     exactBar:SetEdgeColor(0.22, 0.34, 0.44, 0.9)
     exactBar:SetEdgeTexture(nil, 1, 1, 1)
@@ -2027,7 +2034,7 @@ function A:CreateWindow()
 
     local recipesTitle = wm:CreateControl(nil, w, CT_LABEL)
     recipesTitle:SetFont("ZoFontWinH3")
-    recipesTitle:SetAnchor(TOPLEFT, w, TOPLEFT, 22, 312)
+    recipesTitle:SetAnchor(TOPLEFT, w, TOPLEFT, 22, 402)
     recipesTitle:SetDimensions(300, 30)
     recipesTitle:SetColor(0.94, 0.84, 0.38, 1)
     recipesTitle:SetText("RECIPES")
@@ -2042,7 +2049,7 @@ function A:CreateWindow()
     self.recipesHint = recipesHint
 
     self.rows = {}
-    local firstY = 346
+    local firstY = 436
     for i = 1, ROW_COUNT do
         local row = wm:CreateControl(nil, w, CT_BUTTON)
         row:SetDimensions(PANEL_W - 44, 46)
@@ -2386,7 +2393,7 @@ end
 function A:OpenWindow()
     self:EnsureSaved()
     if EPC.saved.alchemyPotionMakerEnabled == false then
-        notify("Alchemy Potion & Poison Maker is disabled in Suite Settings.", false)
+        notify("Crafting Assistant is disabled in Suite Settings.", false)
         return
     end
 
@@ -2414,9 +2421,9 @@ end
 
 function A:ScheduleRefresh(delay)
     if not EVENT_MANAGER then return end
-    EVENT_MANAGER:UnregisterForUpdate(PREFIX .. "_Refresh")
-    EVENT_MANAGER:RegisterForUpdate(PREFIX .. "_Refresh", math.max(80, num(delay, 250)), function()
-        EVENT_MANAGER:UnregisterForUpdate(PREFIX .. "_Refresh")
+    EPC.Runtime:UnregisterUpdate("AlchemyPotionMaker", "Refresh")
+    EPC.Runtime:RegisterUpdate("AlchemyPotionMaker", "Refresh", math.max(80, num(delay, 250)), function()
+        EPC.Runtime:UnregisterUpdate("AlchemyPotionMaker", "Refresh")
         self.reagentList, self.reagentsByName, self.solvents = nil, nil, nil
         self.resultCache, self.cachedReadyResults = nil, nil
         self:RefreshVisibility()
@@ -2428,20 +2435,20 @@ function A:RegisterEvents()
     if self.eventsRegistered or not EVENT_MANAGER then return end
     self.eventsRegistered = true
     if rawget(_G, "EVENT_CRAFTING_STATION_INTERACT") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_StationOpen", EVENT_CRAFTING_STATION_INTERACT, function(_, craftingType)
+        EPC.Runtime:RegisterEvent("AlchemyPotionMaker", "StationOpen", EVENT_CRAFTING_STATION_INTERACT, function(_, craftingType)
             if craftingType == rawget(_G, "CRAFTING_TYPE_ALCHEMY") then
                 if type(zo_callLater)=="function" then zo_callLater(function() self:RefreshVisibility() end, 120) else self:RefreshVisibility() end
             end
         end)
     end
     if rawget(_G, "EVENT_END_CRAFTING_STATION_INTERACT") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_StationClose", EVENT_END_CRAFTING_STATION_INTERACT, function()
+        EPC.Runtime:RegisterEvent("AlchemyPotionMaker", "StationClose", EVENT_END_CRAFTING_STATION_INTERACT, function()
             self:CloseWindow(false)
             if type(zo_callLater)=="function" then zo_callLater(function() self:RefreshVisibility() end, 80) else self:RefreshVisibility() end
         end)
     end
     if rawget(_G, "EVENT_INVENTORY_SINGLE_SLOT_UPDATE") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_Inventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bagId)
+        EPC.Runtime:RegisterEvent("AlchemyPotionMaker", "Inventory", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bagId)
             local backpack = rawget(_G, "BAG_BACKPACK")
             local bank = rawget(_G, "BAG_BANK")
             local subBank = rawget(_G, "BAG_SUBSCRIBER_BANK")
@@ -2459,7 +2466,7 @@ function A:RegisterEvents()
         end)
     end
     if rawget(_G, "EVENT_CRAFT_COMPLETED") then
-        EVENT_MANAGER:RegisterForEvent(PREFIX .. "_CraftComplete", EVENT_CRAFT_COMPLETED, function(_, craftingType)
+        EPC.Runtime:RegisterEvent("AlchemyPotionMaker", "CraftComplete", EVENT_CRAFT_COMPLETED, function(_, craftingType)
             if craftingType == rawget(_G, "CRAFTING_TYPE_ALCHEMY") then self:ScheduleRefresh(250) end
         end)
     end
@@ -2501,11 +2508,11 @@ function A:ToggleMainMenuPage()
     self.lastHotkeyToggleMs = now
 
     if EPC.saved.alchemyPotionMakerEnabled == false then
-        notify("Alchemy Potion & Poison Maker is disabled in Suite Settings.", false)
+        notify("Crafting Assistant is disabled in Suite Settings.", false)
         return false
     end
     if not self:RegisterMainMenuIcon() or not SCENE_MANAGER then
-        notify("Potion Maker top-menu page requires LibMainMenu-2.0.", false)
+        notify("Crafting Assistant top-menu page requires LibMainMenu-2.0.", false)
         return false
     end
     local sceneName = "ESOAdventurerSuitePotionMaker"
@@ -2532,7 +2539,7 @@ end
 function A:OpenFromHotkey()
     self:EnsureSaved()
     if EPC.saved.alchemyPotionMakerEnabled == false then
-        notify("Alchemy Potion & Poison Maker is disabled in Suite Settings.", false)
+        notify("Crafting Assistant is disabled in Suite Settings.", false)
         return true
     end
 
@@ -2617,11 +2624,11 @@ function A:RegisterMainMenuIcon()
     local sceneName = "ESOAdventurerSuitePotionMaker"
 
     if type(ZO_CreateStringId) == "function" and rawget(_G, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU") == nil then
-        pcall(ZO_CreateStringId, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU", "Potion Maker")
+        pcall(ZO_CreateStringId, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU", "Crafting Assistant")
     end
     local categoryName = rawget(_G, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU") or rawget(_G, "SI_BINDING_NAME_POTIONMAKER")
     if categoryName == nil and type(ZO_CreateStringId) == "function" then
-        pcall(ZO_CreateStringId, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU_FALLBACK", "Potion Maker")
+        pcall(ZO_CreateStringId, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU_FALLBACK", "Crafting Assistant")
         categoryName = rawget(_G, "SI_EAS_ALCHEMY_POTION_MAKER_MAIN_MENU_FALLBACK")
     end
 

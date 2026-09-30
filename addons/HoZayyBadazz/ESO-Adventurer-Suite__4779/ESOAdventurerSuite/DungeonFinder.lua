@@ -100,7 +100,15 @@ function D:IsQueued()
     return false
 end
 
-function D:QueueSelected()
+local QueueSelectedImplArch
+
+function D:QueueSelected(...)
+
+    return QueueSelectedImplArch(self, ...)
+
+end
+
+QueueSelectedImplArch = function(self)
     local activityId = self:GetSelectedActivityId()
     local selected = self:GetSelected()
     if not selected or not activityId then message("Select a dungeon first."); return false end
@@ -124,6 +132,12 @@ function D:QueueSelected()
         if EPC.DungeonHistory and EPC.DungeonHistory.RememberQueuedDifficulty then
             EPC.DungeonHistory:RememberQueuedDifficulty(self.difficulty)
         end
+        self.queueSubmission029785 = {
+            difficulty = self.difficulty,
+            role = self.role,
+            names = { tostring(selected.name or "Dungeon") },
+            activityIds = { activityId },
+        }
         message(string.format("Queue requested: %s [%s / %s]", selected.name or "Dungeon", self.difficulty, self.role))
         return true, result
     end
@@ -134,7 +148,10 @@ end
 function D:CancelQueue()
     if type(CancelGroupSearches) ~= "function" then message("Cancel queue API is unavailable."); return false end
     local ok = pcall(CancelGroupSearches)
-    if ok then message("Activity Finder queue canceled.") end
+    if ok then
+        self.queueSubmission029785 = nil
+        message("Activity Finder queue canceled.")
+    end
     return ok
 end
 
@@ -189,14 +206,14 @@ local PUBLIC_DUNGEON_MAP_IDS = {
 -- Cache it through activation so public dungeons added in future updates can
 -- still be recognized even before their map IDs are added to the table.
 if EVENT_MANAGER and EVENT_PREPARE_FOR_JUMP then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_PublicDungeonJump02856", EVENT_PREPARE_FOR_JUMP,
+    EPC.Runtime:RegisterEvent("DungeonFinder", "PublicDungeonJump", EVENT_PREPARE_FOR_JUMP,
         function(_, zoneName, zoneDescription, loadingTexture, zoneDisplayType)
             D._pendingZoneDisplayType02856 = zoneDisplayType
             D._pendingZoneName02856 = cleanName(zoneName)
         end)
 end
 if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_PublicDungeonActivated02856", EVENT_PLAYER_ACTIVATED,
+    EPC.Runtime:RegisterEvent("DungeonFinder", "PublicDungeonActivated", EVENT_PLAYER_ACTIVATED,
         function()
             if D._pendingZoneDisplayType02856 ~= nil then
                 D._currentZoneDisplayType02856 = D._pendingZoneDisplayType02856
@@ -916,7 +933,15 @@ function D:ChangePage(delta)
     self.page = math.max(1, math.min(pages, (tonumber(self.page) or 1) + (tonumber(delta) or 0)))
 end
 
-function D:SelectRow(row)
+local SelectRowImplArch
+
+function D:SelectRow(...)
+
+    return SelectRowImplArch(self, ...)
+
+end
+
+SelectRowImplArch = function(self, row)
     local idx = ((tonumber(self.page) or 1)-1) * self.PAGE_SIZE + (tonumber(row) or 1)
     if self.entries and self.entries[idx] then self.selectedIndex = idx end
 end
@@ -937,7 +962,15 @@ function D:BuildView()
     return {rows=rows,total=count,page=self.page,pageCount=pages,selected=self:GetSelected(),scanning=self.scanning,ready=self.ready,difficulty=self.difficulty,role=self.role,autoAccept=self.autoAccept,enforceRoles=self.enforceRoles,queued=self:IsQueued()}
 end
 
-function D:Initialize()
+local InitializeImplArch
+
+function D:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.entries = self.entries or {}
     self.page = 1
     self:StartScan(false)
@@ -1003,7 +1036,15 @@ local function liveRoleSummary(data)
     return table.concat(parts, "  ")
 end
 
-function D:SetViewMode(mode)
+local SetViewModeImplArch
+
+function D:SetViewMode(...)
+
+    return SetViewModeImplArch(self, ...)
+
+end
+
+SetViewModeImplArch = function(self, mode)
     mode = tostring(mode or "DUNGEONS"):upper()
     if mode == "LIVE" then
         self.viewMode = "LIVE"
@@ -1025,7 +1066,15 @@ function D:GetLiveCategory()
     return self.liveCategory
 end
 
-function D:CycleLiveCategory()
+local CycleLiveCategoryImplArch
+
+function D:CycleLiveCategory(...)
+
+    return CycleLiveCategoryImplArch(self, ...)
+
+end
+
+CycleLiveCategoryImplArch = function(self)
     local order = liveCategoryOrder()
     if #order == 0 then return nil end
     local current = self:GetLiveCategory()
@@ -1040,7 +1089,15 @@ function D:CycleLiveCategory()
     return self.liveCategory
 end
 
-function D:SetLiveDifficulty(value)
+local SetLiveDifficultyImplArch
+
+function D:SetLiveDifficulty(...)
+
+    return SetLiveDifficultyImplArch(self, ...)
+
+end
+
+SetLiveDifficultyImplArch = function(self, value)
     value = tostring(value or "ALL"):upper()
     if value ~= "NORMAL" and value ~= "VETERAN" then value = "ALL" end
     self.liveDifficulty = value
@@ -1090,7 +1147,15 @@ function D:ConfigureLiveFilters()
     return true
 end
 
-function D:RefreshLiveListings(force)
+local RefreshLiveListingsImplArch
+
+function D:RefreshLiveListings(...)
+
+    return RefreshLiveListingsImplArch(self, ...)
+
+end
+
+RefreshLiveListingsImplArch = function(self, force)
     if self.viewMode ~= "LIVE" and not force then return false end
     if type(RequestGroupFinderSearch) ~= "function" then
         message("ESO Group Finder live search is unavailable on this client.")
@@ -1213,7 +1278,15 @@ end
 
 function D:IsLastBossListing(data) return isLastBossListing(data) end
 
-function D:BuildLiveView()
+local BuildLiveViewImplArch
+
+function D:BuildLiveView(...)
+
+    return BuildLiveViewImplArch(self, ...)
+
+end
+
+BuildLiveViewImplArch = function(self)
     local raw = self:GetLiveResults()
     local results = {}
     local hideWTS = EPC.saved and EPC.saved.groupFinderWidgetHideWTS ~= false
@@ -1308,8 +1381,8 @@ function D:RescindLiveApplication()
     return ok
 end
 
-local easOldDungeonInitialize02528 = D.Initialize
-function D:Initialize()
+local easOldDungeonInitialize02528 = InitializeImplArch
+InitializeImplArch = function(self)
     if easOldDungeonInitialize02528 then easOldDungeonInitialize02528(self) end
     if self._liveCallbacksRegistered then return end
     if type(GROUP_FINDER_SEARCH_MANAGER) == "table" and type(GROUP_FINDER_SEARCH_MANAGER.RegisterCallback) == "function" then
@@ -1329,7 +1402,7 @@ end
 
 -- v0.25.29: Direct completion/update listeners keep the standalone Group Finder tab in sync.
 if EVENT_MANAGER and EVENT_GROUP_FINDER_SEARCH_COMPLETE then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_GroupFinder_SearchComplete", EVENT_GROUP_FINDER_SEARCH_COMPLETE, function(_, result, searchId)
+    EPC.Runtime:RegisterEvent("DungeonFinder", "GroupFinderSearchComplete", EVENT_GROUP_FINDER_SEARCH_COMPLETE, function(_, result, searchId)
         if D.viewMode ~= "LIVE" then return end
         if D.liveSearchId ~= nil and searchId ~= D.liveSearchId then return end
         D.liveSearchPending = false
@@ -1340,7 +1413,7 @@ if EVENT_MANAGER and EVENT_GROUP_FINDER_SEARCH_COMPLETE then
     end)
 end
 if EVENT_MANAGER and EVENT_GROUP_FINDER_SEARCH_UPDATED then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_GroupFinder_SearchUpdated", EVENT_GROUP_FINDER_SEARCH_UPDATED, function(_, searchId)
+    EPC.Runtime:RegisterEvent("DungeonFinder", "GroupFinderSearchUpdated", EVENT_GROUP_FINDER_SEARCH_UPDATED, function(_, searchId)
         if D.viewMode ~= "LIVE" then return end
         if D.liveSearchId ~= nil and searchId ~= D.liveSearchId then return end
         if type(GROUP_FINDER_SEARCH_MANAGER) == "table" and type(GROUP_FINDER_SEARCH_MANAGER.RefreshSearchResults) == "function" then
@@ -1529,10 +1602,10 @@ end
 -- v0.25.42: live Group Finder tracking parity improvements.
 -- Original implementation for ESO Adventurer Suite; follows ESO's native
 -- Group Finder search/result APIs without copying third-party addon code.
-local easOldSetViewMode02542 = D.SetViewMode
-local easOldSetLiveDifficulty02542 = D.SetLiveDifficulty
-local easOldCycleLiveCategory02542 = D.CycleLiveCategory
-local easOldBuildLiveView02542 = D.BuildLiveView
+local easOldSetViewMode02542 = SetViewModeImplArch
+local easOldSetLiveDifficulty02542 = SetLiveDifficultyImplArch
+local easOldCycleLiveCategory02542 = CycleLiveCategoryImplArch
+local easOldBuildLiveView02542 = BuildLiveViewImplArch
 
 local function easGfSupportsDifficulty(category)
     return category == GROUP_FINDER_CATEGORY_DUNGEON
@@ -1544,7 +1617,7 @@ function D:LiveCategorySupportsDifficulty(category)
     return easGfSupportsDifficulty(category or self:GetLiveCategory())
 end
 
-function D:SetViewMode(mode)
+SetViewModeImplArch = function(self, mode)
     mode = tostring(mode or "DUNGEONS"):upper()
     if mode == "LIVE" and not self._easDifficultyInitialized02542 then
         local saved = EPC.saved and EPC.saved.groupFinderWidgetDifficulty or nil
@@ -1566,7 +1639,7 @@ function D:SetViewMode(mode)
     return easOldSetViewMode02542(self, mode)
 end
 
-function D:SetLiveDifficulty(value)
+SetLiveDifficultyImplArch = function(self, value)
     if not self:LiveCategorySupportsDifficulty() then return false end
     value = tostring(value or "ALL"):upper()
     if value ~= "NORMAL" and value ~= "VETERAN" then value = "ALL" end
@@ -1582,7 +1655,7 @@ function D:ToggleLiveDifficulty()
     return self:SetLiveDifficulty(current == "VETERAN" and "NORMAL" or "VETERAN")
 end
 
-function D:CycleLiveCategory()
+CycleLiveCategoryImplArch = function(self)
     self._filteredLiveResults = {}
     self.liveSearchPending = true
     local result = easOldCycleLiveCategory02542(self)
@@ -1730,7 +1803,7 @@ function D:GetActualRoleSummary(data)
     return "ROLES: " .. table.concat(parts, "  ")
 end
 
-function D:BuildLiveView()
+BuildLiveViewImplArch = function(self)
     local view = easOldBuildLiveView02542(self)
     if self.liveSearchPending then
         view.searching = true
@@ -1766,11 +1839,11 @@ end
 
 -- v0.25.42 hotfix: keep first-search loading state independent from ESO's
 -- generic search-state callback, which can fire before results are ready.
-local easOldRefreshLiveListings02542 = D.RefreshLiveListings
-local easOldBuildLiveView02542b = D.BuildLiveView
-local easOldInitialize02542b = D.Initialize
+local easOldRefreshLiveListings02542 = RefreshLiveListingsImplArch
+local easOldBuildLiveView02542b = BuildLiveViewImplArch
+local easOldInitialize02542b = InitializeImplArch
 
-function D:RefreshLiveListings(force)
+RefreshLiveListingsImplArch = function(self, force)
     self.liveAwaitingResults02542 = true
     self._filteredLiveResults = {}
     local ok = easOldRefreshLiveListings02542(self, force)
@@ -1778,7 +1851,7 @@ function D:RefreshLiveListings(force)
     return ok
 end
 
-function D:BuildLiveView()
+BuildLiveViewImplArch = function(self)
     local view = easOldBuildLiveView02542b(self)
     if self.liveAwaitingResults02542 then
         view.searching = true
@@ -1800,7 +1873,7 @@ function D:BuildLiveView()
     return view
 end
 
-function D:Initialize()
+InitializeImplArch = function(self)
     if easOldInitialize02542b then easOldInitialize02542b(self) end
     if self._easLiveReadyCallbacks02542 then return end
     local function markReady()
@@ -1814,7 +1887,7 @@ function D:Initialize()
         GROUP_FINDER_SEARCH_MANAGER:RegisterCallback("OnGroupFinderSearchResultsUpdated", markReady)
     end
     if EVENT_MANAGER and EVENT_GROUP_FINDER_SEARCH_COMPLETE then
-        EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_GroupFinderReady02542", EVENT_GROUP_FINDER_SEARCH_COMPLETE, function()
+        EPC.Runtime:RegisterEvent("DungeonFinder", "GroupFinderReady", EVENT_GROUP_FINDER_SEARCH_COMPLETE, function()
             markReady()
         end)
     end
@@ -1839,7 +1912,7 @@ function D:MarkLiveSearchReady02963()
 end
 
 if EVENT_MANAGER and EVENT_GROUP_FINDER_SEARCH_UPDATED then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_GroupFinderReady02963", EVENT_GROUP_FINDER_SEARCH_UPDATED, function(_, searchId)
+    EPC.Runtime:RegisterEvent("DungeonFinder", "GroupFinderReadyUpdated", EVENT_GROUP_FINDER_SEARCH_UPDATED, function(_, searchId)
         if D.viewMode ~= "LIVE" then return end
         local manager = GROUP_FINDER_SEARCH_MANAGER
         if type(manager) == "table" and manager.currentSearchId ~= nil and searchId ~= nil and searchId ~= manager.currentSearchId then return end
@@ -2011,7 +2084,7 @@ function D:ClearMultiSelection()
     self.multiSelected = {}
 end
 
-function D:SelectRow(row)
+SelectRowImplArch = function(self, row)
     local idx = ((tonumber(self.page) or 1)-1) * self.PAGE_SIZE + (tonumber(row) or 1)
     local entry = self.entries and self.entries[idx]
     if not entry then return end
@@ -2021,7 +2094,7 @@ function D:SelectRow(row)
     if key then self.multiSelected[key] = not (self.multiSelected[key] == true) end
 end
 
-function D:QueueSelected()
+QueueSelectedImplArch = function(self)
     local selectedEntries = self:GetMultiSelectedEntries()
     local focused = self:GetSelected()
 
@@ -2076,6 +2149,20 @@ function D:QueueSelected()
         if EPC.DungeonHistory and EPC.DungeonHistory.RememberQueuedDifficulty then
             EPC.DungeonHistory:RememberQueuedDifficulty(self.difficulty)
         end
+        self.queueSubmission029785 = {
+            difficulty = self.difficulty,
+            role = self.role,
+            names = {},
+            activityIds = {},
+        }
+        for _, entry in ipairs(selectedEntries) do
+            local activityId = self.difficulty == "VETERAN" and entry.veteranActivityId or entry.normalActivityId
+            if not activityId and not entry.normalActivityId and not entry.veteranActivityId then activityId = entry.activityId end
+            if activityId then
+                self.queueSubmission029785.activityIds[#self.queueSubmission029785.activityIds + 1] = activityId
+                self.queueSubmission029785.names[#self.queueSubmission029785.names + 1] = tostring(entry.name or ("Activity " .. tostring(activityId)))
+            end
+        end
         local suffix = skipped > 0 and string.format(" (%d unavailable skipped)", skipped) or ""
         message(string.format("Queue requested: %d selected dungeon%s [%s / %s]%s", added, added == 1 and "" or "s", self.difficulty, self.role, suffix))
         return true, result
@@ -2091,9 +2178,9 @@ end
 local QUEUE_HUD_DEFAULT_LEFT = 1480
 local QUEUE_HUD_DEFAULT_TOP = 250
 local QUEUE_HUD_DEFAULT_WIDTH = 360
-local QUEUE_HUD_DEFAULT_HEIGHT = 128
+local QUEUE_HUD_DEFAULT_HEIGHT = 176
 local QUEUE_HUD_MIN_WIDTH = 300
-local QUEUE_HUD_MIN_HEIGHT = 118
+local QUEUE_HUD_MIN_HEIGHT = 150
 local QUEUE_HUD_MAX_WIDTH = 720
 local QUEUE_HUD_MAX_HEIGHT = 300
 
@@ -2201,7 +2288,15 @@ function D:SuppressNativeQueueHud2768()
     end
 end
 
-function D:CreateQueueHud2768()
+local CreateQueueHud2768ImplArch
+
+function D:CreateQueueHud2768(...)
+
+    return CreateQueueHud2768ImplArch(self, ...)
+
+end
+
+CreateQueueHud2768ImplArch = function(self)
     if self.queueHud2768 or not WINDOW_MANAGER then return self.queueHud2768 end
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("EAS_DungeonQueueHUD2768")
     local savedWidth = EPC.saved and tonumber(EPC.saved.dungeonQueueHudWidth) or nil
@@ -2255,10 +2350,11 @@ function D:CreateQueueHud2768()
 
     local selected = WINDOW_MANAGER:CreateControl("EAS_DungeonQueueHUDSelected2768", frame, CT_LABEL)
     selected:SetAnchor(TOPLEFT, frame, TOPLEFT, 12, 84)
-    selected:SetAnchor(TOPRIGHT, frame, TOPRIGHT, -12, 84)
-    selected:SetHeight(20)
+    selected:SetAnchor(BOTTOMRIGHT, frame, BOTTOMRIGHT, -12, -28)
     selected:SetFont("ZoFontGameSmall")
     selected:SetColor(0.72, 0.78, 0.84, 1)
+    if type(selected.SetVerticalAlignment) == "function" then selected:SetVerticalAlignment(TEXT_ALIGN_TOP) end
+    if type(selected.SetMaxLineCount) == "function" then selected:SetMaxLineCount(9) end
 
     local hint = WINDOW_MANAGER:CreateControl("EAS_DungeonQueueHUDHint2768", frame, CT_LABEL)
     hint:SetAnchor(BOTTOMLEFT, frame, BOTTOMLEFT, 12, -8)
@@ -2287,6 +2383,155 @@ function D:CreateQueueHud2768()
     self.queueHudDetails2768 = details
     self.queueHudSelected2768 = selected
     return frame
+end
+
+-- v0.29.785 - Read the queue that ESO is actually searching.
+-- Never trust the Suite's local difficulty toggle once a search is active:
+-- players can queue through ESO's native finder, and ESO exposes the authoritative
+-- queued request list through GetNumActivityRequests / GetActivityRequestIds.
+local function easActivityType029785(activityId)
+    activityId = tonumber(activityId) or 0
+    if activityId <= 0 then return nil end
+    if type(GetActivityType) == "function" then
+        local ok, value = pcall(GetActivityType, activityId)
+        if ok then return value end
+    end
+    if type(GetActivityTypeAndIndex) == "function" then
+        local ok, value = pcall(GetActivityTypeAndIndex, activityId)
+        if ok then return value end
+    end
+    return nil
+end
+
+local function easActivityName029785(activityId)
+    activityId = tonumber(activityId) or 0
+    if activityId <= 0 or type(GetActivityInfo) ~= "function" then return nil end
+    local ok, name = pcall(GetActivityInfo, activityId)
+    name = ok and tostring(name or "") or ""
+    return name ~= "" and name or nil
+end
+
+local function easAppendUnique029785(list, seen, value)
+    value = tostring(value or "")
+    if value == "" or seen[value] then return end
+    seen[value] = true
+    list[#list + 1] = value
+end
+
+function D:GetLiveQueueInfo029785()
+    local info = {
+        difficulty = nil,
+        names = {},
+        activityIds = {},
+        source = "NONE",
+    }
+    local seenNames = {}
+
+    if type(GetNumActivityRequests) == "function" and type(GetActivityRequestIds) == "function" then
+        local okCount, count = pcall(GetNumActivityRequests)
+        count = okCount and (tonumber(count) or 0) or 0
+        for requestIndex = 1, count do
+            local okIds, activityId, activitySetId = pcall(GetActivityRequestIds, requestIndex)
+            if okIds then
+                activityId = tonumber(activityId) or 0
+                activitySetId = tonumber(activitySetId) or 0
+
+                if activityId > 0 then
+                    info.activityIds[#info.activityIds + 1] = activityId
+                    easAppendUnique029785(info.names, seenNames, easActivityName029785(activityId) or ("Activity " .. tostring(activityId)))
+                    local activityType = easActivityType029785(activityId)
+                    if LFG_ACTIVITY_MASTER_DUNGEON ~= nil and activityType == LFG_ACTIVITY_MASTER_DUNGEON then
+                        info.difficulty = "VETERAN"
+                    elseif not info.difficulty and LFG_ACTIVITY_DUNGEON ~= nil and activityType == LFG_ACTIVITY_DUNGEON then
+                        info.difficulty = "NORMAL"
+                    end
+                end
+
+                if activitySetId > 0 then
+                    local setName = nil
+                    if type(GetActivitySetInfo) == "function" then
+                        local okSet, name = pcall(GetActivitySetInfo, activitySetId)
+                        name = okSet and tostring(name or "") or ""
+                        if name ~= "" then setName = name end
+                    end
+                    if setName then easAppendUnique029785(info.names, seenNames, setName) end
+
+                    -- Random/set queues can carry no direct activity id. Inspect
+                    -- the set's activities to determine whether ESO queued a
+                    -- Normal or Veteran dungeon set.
+                    if type(GetNumActivitySetActivities) == "function" and type(GetActivitySetActivityIdByIndex) == "function" then
+                        local okNum, numActivities = pcall(GetNumActivitySetActivities, activitySetId)
+                        numActivities = okNum and (tonumber(numActivities) or 0) or 0
+                        for i = 1, numActivities do
+                            local okActivity, setActivityId = pcall(GetActivitySetActivityIdByIndex, activitySetId, i)
+                            setActivityId = okActivity and (tonumber(setActivityId) or 0) or 0
+                            if setActivityId > 0 then
+                                local activityType = easActivityType029785(setActivityId)
+                                if LFG_ACTIVITY_MASTER_DUNGEON ~= nil and activityType == LFG_ACTIVITY_MASTER_DUNGEON then
+                                    info.difficulty = "VETERAN"
+                                    break
+                                elseif not info.difficulty and LFG_ACTIVITY_DUNGEON ~= nil and activityType == LFG_ACTIVITY_DUNGEON then
+                                    info.difficulty = "NORMAL"
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if count > 0 then info.source = "ESO" end
+    end
+
+    -- Fallback for clients/builds where ESO does not expose requests until the
+    -- queue handshake settles. This snapshot is created at StartActivityFinderSearch.
+    if #info.names == 0 and type(self.queueSubmission029785) == "table" then
+        for _, name in ipairs(self.queueSubmission029785.names or {}) do
+            easAppendUnique029785(info.names, seenNames, name)
+        end
+        for _, activityId in ipairs(self.queueSubmission029785.activityIds or {}) do
+            info.activityIds[#info.activityIds + 1] = activityId
+        end
+        info.difficulty = info.difficulty or self.queueSubmission029785.difficulty
+        info.source = "SUITE"
+    end
+
+    -- Last-resort live difficulty check for native queues where request IDs are
+    -- unavailable. This still beats the stale local Suite toggle.
+    if not info.difficulty then
+        local isVeteran = nil
+        if type(IsUnitGrouped) == "function" then
+            local okGrouped, grouped = pcall(IsUnitGrouped, "player")
+            if okGrouped and grouped and type(IsGroupUsingVeteranDifficulty) == "function" then
+                local okVeteran, value = pcall(IsGroupUsingVeteranDifficulty)
+                if okVeteran then isVeteran = value == true end
+            end
+        end
+        if isVeteran == nil and type(IsUnitUsingVeteranDifficulty) == "function" then
+            local okVeteran, value = pcall(IsUnitUsingVeteranDifficulty, "player")
+            if okVeteran then isVeteran = value == true end
+        end
+        if isVeteran ~= nil then info.difficulty = isVeteran and "VETERAN" or "NORMAL" end
+    end
+
+    info.difficulty = info.difficulty or tostring(self.difficulty or "NORMAL")
+    return info
+end
+
+function D:GetQueuedDungeonText029785(queueInfo)
+    queueInfo = queueInfo or self:GetLiveQueueInfo029785()
+    local names = queueInfo and queueInfo.names or {}
+    if #names == 0 then return self:GetQueueSelectionSummary2768() end
+    if #names == 1 then return "QUEUED: " .. tostring(names[1]) end
+
+    local lines = { string.format("QUEUED DUNGEONS (%d)", #names) }
+    local maxVisible = 8
+    for i = 1, math.min(#names, maxVisible) do
+        lines[#lines + 1] = "- " .. tostring(names[i])
+    end
+    if #names > maxVisible then
+        lines[#lines + 1] = string.format("+ %d more", #names - maxVisible)
+    end
+    return table.concat(lines, "\n")
 end
 
 -- v0.27.71 - Resolve the actual Activity Finder match during the ready check.
@@ -2343,7 +2588,15 @@ function D:IsQueueHudTemporarilySuppressed2772()
     return false
 end
 
-function D:SetLayoutMode(active)
+local SetLayoutModeImplArch
+
+function D:SetLayoutMode(...)
+
+    return SetLayoutModeImplArch(self, ...)
+
+end
+
+SetLayoutModeImplArch = function(self, active)
     active = active == true
     self.queueHudLayoutMode2768 = active
     local frame = self:CreateQueueHud2768()
@@ -2363,7 +2616,15 @@ function D:SetLayoutMode(active)
     end
 end
 
-function D:RefreshQueueHud2768(status)
+local RefreshQueueHud2768ImplArch
+
+function D:RefreshQueueHud2768(...)
+
+    return RefreshQueueHud2768ImplArch(self, ...)
+
+end
+
+RefreshQueueHud2768ImplArch = function(self, status)
     local frame = self:CreateQueueHud2768()
     if not frame then return end
     if self.queueHudLayoutMode2768 == true then
@@ -2381,7 +2642,10 @@ function D:RefreshQueueHud2768(status)
     local active = easQueueIsActive2768(status)
     local temporarilySuppressed = active and self:IsQueueHudTemporarilySuppressed2772()
     frame:SetHidden((not active) or temporarilySuppressed)
-    if not active then return end
+    if not active then
+        self.queueSubmission029785 = nil
+        return
+    end
 
     -- Keep ESO's passive queue HUD suppressed even while the Suite HUD is
     -- temporarily hidden by a menu, so the native overlay does not leak through.
@@ -2411,11 +2675,12 @@ function D:RefreshQueueHud2768(status)
             self.queueHudSelected2768:SetText(queueInfo and tostring(queueInfo.name or "Activity Finder queue") or "Activity Finder queue")
         end
     else
-        self.queueHudDetails2768:SetText(string.format("%s  |  %s", tostring(self.difficulty or "NORMAL"), tostring(self.role or "DPS")))
+        local liveQueue = self:GetLiveQueueInfo029785()
+        self.queueHudDetails2768:SetText(string.format("%s  |  %s", tostring(liveQueue.difficulty or "NORMAL"), tostring((self.queueSubmission029785 and self.queueSubmission029785.role) or self.role or "DPS")))
         if ACTIVITY_FINDER_STATUS_READY_CHECK ~= nil and status == ACTIVITY_FINDER_STATUS_READY_CHECK then
             self.queueHudSelected2768:SetText(self:GetMatchedDungeonName2771())
         else
-            self.queueHudSelected2768:SetText(self:GetQueueSelectionSummary2768())
+            self.queueHudSelected2768:SetText(self:GetQueuedDungeonText029785(liveQueue))
         end
     end
 end
@@ -2425,21 +2690,105 @@ function D:InitializeQueueHud2768()
     self.queueHudInitialized2768 = true
     self:CreateQueueHud2768()
     if EVENT_ACTIVITY_FINDER_STATUS_UPDATE ~= nil and EVENT_MANAGER then
-        EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_DungeonQueueHUD2768", EVENT_ACTIVITY_FINDER_STATUS_UPDATE,
+        EPC.Runtime:RegisterEvent("DungeonFinder", "QueueHud", EVENT_ACTIVITY_FINDER_STATUS_UPDATE,
             function(_, status) self:RefreshQueueHud2768(status) end)
     end
     if EVENT_MANAGER then
-        EVENT_MANAGER:RegisterForUpdate("ESOAdventurerSuite_DungeonQueueHUDPoll2768", 1500, function()
+        EPC.Runtime:RegisterUpdate("DungeonFinder", "QueueHudPoll", 1500, function()
             self:RefreshQueueHud2768()
         end)
     end
     self:RefreshQueueHud2768()
 end
 
-if EVENT_MANAGER and EVENT_ADD_ON_LOADED then
-    EVENT_MANAGER:RegisterForEvent("ESOAdventurerSuite_DungeonQueueHUDLoad2768", EVENT_ADD_ON_LOADED, function(_, addonName)
-        if addonName ~= EPC.name and addonName ~= EPC.legacyName then return end
-        EVENT_MANAGER:UnregisterForEvent("ESOAdventurerSuite_DungeonQueueHUDLoad2768", EVENT_ADD_ON_LOADED)
-        if zo_callLater then zo_callLater(function() D:InitializeQueueHud2768() end, 500) else D:InitializeQueueHud2768() end
+-- Core owns add-on bootstrap; initialize after this module loads.
+if zo_callLater then zo_callLater(function() D:InitializeQueueHud2768() end, 500) else D:InitializeQueueHud2768() end
+
+
+-- BEGIN ABSORBED: DungeonQueueHudStateFix.lua
+-- ESO Adventurer Suite
+-- v0.29.520 - Dungeon Finder HUD state/layout fix.
+-- Hide the move/resize helper during normal gameplay and hide the queue HUD
+-- completely once the player has entered a dungeon.
+
+local EPC = ESOProgressionCoach
+if not EPC or not EPC.DungeonFinder then return end
+local D = EPC.DungeonFinder
+
+local function safe(fn, fallback, ...)
+    if type(fn) ~= "function" then return fallback end
+    local ok, a, b, c, d = pcall(fn, ...)
+    if not ok then return fallback end
+    return a, b, c, d
+end
+
+local function getHint()
+    return rawget(_G, "EAS_DungeonQueueHUDHint2768")
+end
+
+function D:ApplyQueueHudHintVisibility029519()
+    local hint = getHint()
+    if hint and type(hint.SetHidden) == "function" then
+        hint:SetHidden(self.queueHudLayoutMode2768 ~= true)
+    end
+end
+
+local baseCreate = CreateQueueHud2768ImplArch
+if type(baseCreate) == "function" and not D._easQueueCreateWrapped029519 then
+    D._easQueueCreateWrapped029519 = true
+    CreateQueueHud2768ImplArch = function(self, ...)
+        local frame = baseCreate(self, ...)
+        self:ApplyQueueHudHintVisibility029519()
+        return frame
+    end
+end
+
+local baseLayout = SetLayoutModeImplArch
+if type(baseLayout) == "function" and not D._easQueueLayoutWrapped029519 then
+    D._easQueueLayoutWrapped029519 = true
+    SetLayoutModeImplArch = function(self, active, ...)
+        local result = baseLayout(self, active, ...)
+        self:ApplyQueueHudHintVisibility029519()
+        return result
+    end
+end
+
+local baseRefresh = RefreshQueueHud2768ImplArch
+if type(baseRefresh) == "function" and not D._easQueueRefreshWrapped029519 then
+    D._easQueueRefreshWrapped029519 = true
+    RefreshQueueHud2768ImplArch = function(self, status, ...)
+        local inDungeon = safe(IsUnitInDungeon, false, "player") == true
+
+        -- Once the player is physically inside a dungeon, the queue/search HUD
+        -- has served its purpose. Hide it completely even if ESO still reports
+        -- a stale QUEUED or IN_PROGRESS Activity Finder status.
+        if inDungeon and self.queueHudLayoutMode2768 ~= true then
+            local frame = self:CreateQueueHud2768()
+            if frame and type(frame.SetHidden) == "function" then frame:SetHidden(true) end
+            self:ApplyQueueHudHintVisibility029519()
+            return
+        end
+
+        local result = baseRefresh(self, status, ...)
+        self:ApplyQueueHudHintVisibility029519()
+        return result
+    end
+end
+
+-- Correct the display immediately after loading into/out of a dungeon.
+if EVENT_PLAYER_ACTIVATED and EVENT_MANAGER then
+    EPC.Runtime:RegisterEvent("DungeonFinder", "QueueHudState", EVENT_PLAYER_ACTIVATED, function()
+        if D and type(D.RefreshQueueHud2768) == "function" then D:RefreshQueueHud2768() end
     end)
 end
+
+if type(zo_callLater) == "function" then
+    zo_callLater(function()
+        if D then
+            D:ApplyQueueHudHintVisibility029519()
+            if type(D.RefreshQueueHud2768) == "function" then D:RefreshQueueHud2768() end
+        end
+    end, 700)
+end
+
+-- END ABSORBED: DungeonQueueHudStateFix.lua

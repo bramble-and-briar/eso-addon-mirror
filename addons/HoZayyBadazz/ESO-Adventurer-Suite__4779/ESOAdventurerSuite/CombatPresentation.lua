@@ -100,7 +100,7 @@ end
 function P:Initialize()
     self:Apply()
     if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(EPC.name .. "_CombatPresentation", EVENT_PLAYER_ACTIVATED, function()
+        EPC.Runtime:RegisterEvent("CombatPresentation", "PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
             P:Apply()
         end)
     end

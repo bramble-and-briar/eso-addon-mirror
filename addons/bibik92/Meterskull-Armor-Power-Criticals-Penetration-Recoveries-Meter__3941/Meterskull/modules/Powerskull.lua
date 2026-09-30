@@ -8,8 +8,8 @@ local function PowerskullRender(self, initial, skipAnimation)
     if not self.uiRefs then return end
 
     local power  = math.max(
-        GetPlayerStat(STAT_POWER),
-        GetPlayerStat(STAT_SPELL_POWER)
+        GetPlayerStat(STAT_POWER, STAT_BONUS_OPTION_APPLY_BONUS),
+        GetPlayerStat(STAT_SPELL_POWER, STAT_BONUS_OPTION_APPLY_BONUS)
     )
 
     local oldVal = self.currentData.powerLevel or 0

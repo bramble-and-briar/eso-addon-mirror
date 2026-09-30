@@ -1,156 +1,239 @@
---------------------------------------------------------------
--- BBTMenu.lua
--- Console Settings for BackBarTimer (Harven’s Addon Settings)
--- Version: 1.5-harven
--- Author: SugaComa (Rik Sprint)
---------------------------------------------------------------
+BackBarTimer = BackBarTimer or {}
+local Addon = BackBarTimer
 
-local BBTMenu = {}
-BBTMenu.name    = "BBTMenu"
-BBTMenu.version = "1.5-harven"
+Addon.Menu = Addon.Menu or {}
+local Menu = Addon.Menu
 
-local LHA = LibHarvensAddonSettings
-if not LHA then
-    CHAT_ROUTER:AddSystemMessage("[BBTMenu] LibHarvensAddonSettings not found. Please install or enable it.")
-    return
+local MODE_ITEMS = {
+    { name = "PvE (Per-Skill)", data = "pve" },
+    { name = "PvP (Grouped)", data = "pvp" },
+    { name = "Dual-Bar HUD", data = "hud" },
+}
+
+local function GetModeName()
+    for _, item in ipairs(MODE_ITEMS) do
+        if item.data == Addon.sv.mode then return item.name end
+    end
+    return "Dual-Bar HUD"
 end
 
--- ensure saved vars exist
-local function coalesce(addon)
-    addon.saved             = addon.saved or {}
-    addon.saved.mode        = addon.saved.mode        or addon.mode        or "pvp"
-    addon.saved.leadSeconds = addon.saved.leadSeconds or addon.leadSeconds or 2
-    addon.saved.debug       = addon.saved.debug       or addon.debug       or false
-    addon.saved.suppressZeroDuration = addon.saved.suppressZeroDuration or addon.suppressZeroDuration or false
-    addon.mode              = addon.saved.mode
-    addon.leadSeconds       = addon.saved.leadSeconds
-    addon.debug             = addon.saved.debug
-    addon.suppressZeroDuration = addon.saved.suppressZeroDuration
+local function ResolveMode(name, item)
+    if type(item) == "table" and item.data then return item.data end
+    for _, candidate in ipairs(MODE_ITEMS) do
+        if candidate.name == name then return candidate.data end
+    end
+    return "hud"
 end
 
---------------------------------------------------------------
--- Setup menu
---------------------------------------------------------------
-function BBTMenu.Setup(addon)
-    coalesce(addon)
-
-    local options = {
-        allowDefaults = true,
-        allowRefresh  = true,
-        defaultsFunction = function()
-            addon.mode               = "pvp"
-            addon.leadSeconds        = 2
-            addon.debug              = false
-            addon.suppressZeroDuration = false
-            addon.saved.mode         = addon.mode
-            addon.saved.leadSeconds  = addon.leadSeconds
-            addon.saved.debug        = addon.debug
-            addon.saved.suppressZeroDuration = addon.suppressZeroDuration
-            CHAT_ROUTER:AddSystemMessage("[BBT] Defaults restored (pvp, 2s, debug off).")
-        end,
-    }
-
-    local settings = LHA:AddAddon("BackBarTimer", options)
-    if not settings then return end
-
-    ----------------------------------------------------------
-    -- Section Header
-    ----------------------------------------------------------
+local function AddSlotToggle(settings, lib, hotbar, slot)
+    local settingsKey = hotbar == HOTBAR_CATEGORY_PRIMARY and "frontSlots" or "backSlots"
+    local barName = hotbar == HOTBAR_CATEGORY_PRIMARY and "Front" or "Back"
+    local positionName = string.format("Skill %d", slot - 2)
     settings:AddSetting({
-        type  = LHA.ST_SECTION,
-        label = "BackBarTimer Settings",
-    })
-
-    ----------------------------------------------------------
-    -- Dropdown: Mode
-    ----------------------------------------------------------
-    settings:AddSetting({
-        type        = LHA.ST_DROPDOWN,
-        label       = "Mode",
-        tooltip     = "Select PvP (average buff time) or PvE (per-skill timers).",
-        items       = {
-            { name = "PvE (Per-Skill)", data = "pve" },
-            { name = "PvP (Average)",  data = "pvp" },
-        },
-        default     = "PvP (Average)",
-        getFunction = function()
-            return (addon.mode == "pvp") and "PvP (Average)" or "PvE (Per-Skill)"
-        end,
-        setFunction = function(_, name, item)
-            local val = item.data or (name == "PvE (Per-Skill)" and "pve" or "pvp")
-            addon.mode       = val
-            addon.saved.mode = val
-            CHAT_ROUTER:AddSystemMessage(string.format("[BBT] Mode set to %s", val))
-        end,
-    })
-
-    ----------------------------------------------------------
-    -- Slider: Lead Seconds
-    ----------------------------------------------------------
-    settings:AddSetting({
-        type        = LHA.ST_SLIDER,
-        label       = "Lead Time (seconds)",
-        tooltip     = "Seconds before expiry to alert.",
-        min         = 1,
-        max         = 10,
-        step        = 1,
-        unit        = "s",
-        format      = "%d",
-        default     = 2,
-        getFunction = function() return tonumber(addon.leadSeconds) or 2 end,
+        type = lib.ST_CHECKBOX,
+        label = string.format("%s %s", barName, positionName),
+        tooltip = string.format("Track %s on the %s bar in Dual-Bar HUD mode.",
+            string.lower(positionName), string.lower(barName)),
+        default = true,
+        getFunction = function() return Addon.sv[settingsKey][slot] ~= false end,
         setFunction = function(value)
-            addon.leadSeconds        = value
-            addon.saved.leadSeconds  = value
-            CHAT_ROUTER:AddSystemMessage(string.format("[BBT] Lead time set to %d s", value))
+            Addon.sv[settingsKey][slot] = value == true
+            Addon.HUD:Refresh()
+            Addon.Tracker:RefreshScheduler()
         end,
     })
-
-    ----------------------------------------------------------
-    -- Checkbox: Debug Mode
-    ----------------------------------------------------------
-    settings:AddSetting({
-        type        = LHA.ST_CHECKBOX,
-        label       = "Debug Mode",
-        tooltip     = "Show detailed event logs in chat.",
-        default     = false,
-        getFunction = function() return addon.debug or false end,
-        setFunction = function(state)
-            addon.debug       = state
-            addon.saved.debug = state
-            CHAT_ROUTER:AddSystemMessage(string.format("[BBT] Debug mode %s", state and "ON" or "OFF"))
-        end,
-    })
-
-    settings:AddSetting({
-        type        = LHA.ST_CHECKBOX,
-        label       = "Hide Zero-Duration Warnings",
-        tooltip     = "Suppresses chat warnings for abilities with no duration.",
-        default     = false,
-        getFunction = function() return addon.suppressZeroDuration or false end,
-        setFunction = function(state)
-            addon.suppressZeroDuration = state
-            addon.saved.suppressZeroDuration = state
-            CHAT_ROUTER:AddSystemMessage(string.format("[BBT] Zero-duration warnings %s", state and "OFF" or "ON"))
-        end,
-    })
-
-    ----------------------------------------------------------
-    -- Button: Manual Cache Rebuild
-    ----------------------------------------------------------
-    settings:AddSetting({
-        type        = LHA.ST_BUTTON,
-        label       = "Rebuild Cache",
-        tooltip     = "Manually rebuilds tracked skill cache.",
-        buttonText  = "Rebuild",
-        clickHandler = function()
-            if addon.BuildCache then
-                addon:BuildCache()
-            end
-            CHAT_ROUTER:AddSystemMessage("[BBT] Cache rebuild triggered manually.")
-        end,
-    })
-
-    CHAT_ROUTER:AddSystemMessage("[BBTMenu] Settings menu registered.")
 end
 
-_G["BBTMenu"] = BBTMenu
+function Menu:Initialize()
+    local lib = LibHarvensAddonSettings
+    if not lib or type(lib.AddAddon) ~= "function" then
+        Addon:Log("LibHarvensAddonSettings unavailable; settings menu not registered", true)
+        return
+    end
+    if not lib.ST_DROPDOWN or not lib.ST_SLIDER
+        or not lib.ST_CHECKBOX or not lib.ST_BUTTON then
+        Addon:Log("Required console settings controls are unavailable", true)
+        return
+    end
+
+    local settings = lib:AddAddon("BackBarTimer", {
+        allowDefaults = true,
+        allowRefresh = false,
+    })
+    if not settings or type(settings.AddSetting) ~= "function" then return end
+
+    settings:AddSetting({
+        type = lib.ST_DROPDOWN,
+        label = "Mode",
+        tooltip = "Choose a legacy BackBarTimer alert mode or the Dual-Bar HUD.",
+        items = MODE_ITEMS,
+        default = "Dual-Bar HUD",
+        getFunction = GetModeName,
+        setFunction = function(_, name, item)
+            Addon.sv.mode = ResolveMode(name, item)
+            Addon.State.clusterAlerted = {}
+            Addon.Tracker:OnCadenceSettingsChanged()
+            Addon.HUD:Refresh()
+        end,
+    })
+
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "Legacy alert lead time",
+        tooltip = "Seconds before expiry for PvE and PvP alerts. Dual-Bar HUD always changes at 2 seconds.",
+        min = 1, max = 10, step = 1,
+        default = 2,
+        getFunction = function() return tonumber(Addon.sv.leadSeconds) or 2 end,
+        setFunction = function(value) Addon.sv.leadSeconds = value end,
+        unit = "s",
+        format = "%d",
+    })
+
+    if lib.ST_SECTION then
+        settings:AddSetting({ type = lib.ST_SECTION, label = "Dual-Bar Skill Tracking" })
+    end
+    for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
+        AddSlotToggle(settings, lib, HOTBAR_CATEGORY_BACKUP, slot)
+    end
+    for slot = Addon.Config.firstSlot, Addon.Config.lastSlot do
+        AddSlotToggle(settings, lib, HOTBAR_CATEGORY_PRIMARY, slot)
+    end
+
+    if lib.ST_SECTION then
+        settings:AddSetting({ type = lib.ST_SECTION, label = "Dual-Bar Countdown" })
+    end
+    settings:AddSetting({
+        type = lib.ST_CHECKBOX,
+        label = "Show full skill countdown",
+        tooltip = "Show each qualifying skill prompt for its full tracked duration. When off, the custom countdown start time is used.",
+        default = true,
+        getFunction = function() return Addon.sv.hudFullCountdown == true end,
+        setFunction = function(value)
+            Addon.sv.hudFullCountdown = value == true
+            Addon.HUD:Refresh()
+        end,
+    })
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "Custom countdown start",
+        tooltip = "When full countdown is off, choose how many seconds before expiry the button prompt appears.",
+        min = 3, max = 60, step = 1,
+        default = 10,
+        getFunction = function() return tonumber(Addon.sv.hudCountdownSeconds) or 10 end,
+        setFunction = function(value)
+            Addon.sv.hudCountdownSeconds = value
+            Addon.HUD:Refresh()
+        end,
+        unit = "s",
+        format = "%d",
+    })
+
+    if lib.ST_SECTION then
+        settings:AddSetting({ type = lib.ST_SECTION, label = "Cadence Prompts" })
+    end
+    settings:AddSetting({
+        type = lib.ST_CHECKBOX,
+        label = "Block cadence",
+        tooltip = "Show a 1-second count-in followed by the faction shield once per second. The first detected block can start the cadence.",
+        default = false,
+        getFunction = function() return Addon.sv.blockCadence == true end,
+        setFunction = function(value)
+            Addon.sv.blockCadence = value == true
+            Addon.Tracker:OnCadenceSettingsChanged()
+        end,
+    })
+    settings:AddSetting({
+        type = lib.ST_CHECKBOX,
+        label = "Light-attack cadence",
+        tooltip = "Show a 1-second count-in followed by the front-hand weapon once per second. The first detected light attack starts the cadence.",
+        default = true,
+        getFunction = function() return Addon.sv.lightCadence == true end,
+        setFunction = function(value)
+            Addon.sv.lightCadence = value == true
+            Addon.Tracker:OnCadenceSettingsChanged()
+        end,
+    })
+
+    if lib.ST_SECTION then
+        settings:AddSetting({ type = lib.ST_SECTION, label = "HUD Layout" })
+    end
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "HUD scale",
+        min = 50, max = 300, step = 5,
+        default = 100,
+        getFunction = function() return math.floor((tonumber(Addon.sv.hudScale) or 1.0) * 100) end,
+        setFunction = function(value)
+            Addon.sv.hudScale = value / 100
+            Addon.HUD:ApplySettings()
+        end,
+        unit = "%",
+        format = "%d",
+    })
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "Left inset",
+        min = 0, max = 1000, step = 10,
+        default = 500,
+        getFunction = function() return tonumber(Addon.sv.leftInset) or 500 end,
+        setFunction = function(value) Addon.sv.leftInset = value; Addon.HUD:ApplySettings() end,
+        unit = "px",
+        format = "%d",
+    })
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "Left vertical offset",
+        min = -500, max = 500, step = 10,
+        default = -50,
+        getFunction = function() return tonumber(Addon.sv.leftY) or -50 end,
+        setFunction = function(value) Addon.sv.leftY = value; Addon.HUD:ApplySettings() end,
+        unit = "px",
+        format = "%d",
+    })
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "Right inset",
+        min = 0, max = 1000, step = 10,
+        default = 700,
+        getFunction = function() return tonumber(Addon.sv.rightInset) or 700 end,
+        setFunction = function(value) Addon.sv.rightInset = value; Addon.HUD:ApplySettings() end,
+        unit = "px",
+        format = "%d",
+    })
+    settings:AddSetting({
+        type = lib.ST_SLIDER,
+        label = "Right vertical offset",
+        min = -500, max = 500, step = 10,
+        default = -50,
+        getFunction = function() return tonumber(Addon.sv.rightY) or -50 end,
+        setFunction = function(value) Addon.sv.rightY = value; Addon.HUD:ApplySettings() end,
+        unit = "px",
+        format = "%d",
+    })
+
+    if lib.ST_SECTION then
+        settings:AddSetting({ type = lib.ST_SECTION, label = "Diagnostics" })
+    end
+    settings:AddSetting({
+        type = lib.ST_CHECKBOX,
+        label = "Debug mode",
+        default = false,
+        getFunction = function() return Addon.sv.debug == true end,
+        setFunction = function(value) Addon.sv.debug = value == true end,
+    })
+    settings:AddSetting({
+        type = lib.ST_BUTTON,
+        label = "Rebuild slot cache",
+        buttonText = "Rebuild",
+        clickHandler = function() Addon.Tracker:OnLayoutChanged() end,
+    })
+
+    if lib.ST_LABEL then
+        settings:AddSetting({
+            type = lib.ST_LABEL,
+            label = "|cFFD700Built on tea, toast and ADHD – tested live on PS5.|r\n"
+                .. "|cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r",
+        })
+    end
+end
+

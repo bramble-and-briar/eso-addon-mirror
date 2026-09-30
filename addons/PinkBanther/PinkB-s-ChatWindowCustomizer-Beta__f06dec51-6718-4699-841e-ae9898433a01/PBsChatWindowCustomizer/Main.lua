@@ -23,6 +23,12 @@
 --   message text     the font on each chat tab's TextBuffer, in the same "face|size|style"
 --                    form the game builds in GetChatFontFormatString, with the size as a
 --                    number instead of one of the three $(GP_n) steps.
+--   the HUD element  Update 51 registers the chat with the new HUD manager, which puts every
+--                    element back to its own anchor whenever the screen is resized or the mode
+--                    changes -- on console always the game's placement, because the gamepad HUD
+--                    editor does not exist yet. That element's anchor is a plain data object, so
+--                    the player's placement is written into it and the client's own re-applies
+--                    agree with the window instead of undoing it.
 --   draw order       the tier and level of the same control. The game draws the chat at
 --                    MEDIUM / 30: over the HUD, under keybind strips and tooltips.
 --   where it shows   the client draws the chat on the HUD and nowhere else (IsHidden), so the
@@ -108,6 +114,15 @@ local function Line(text, ...)
 end
 
 addon.Line = Line
+
+-- zo_callLater where there is one; straight through in a test harness that has none.
+local function Later(fn, delay)
+	if zo_callLater then
+		zo_callLater(fn, delay)
+	else
+		fn()
+	end
+end
 
 -- Whole numbers everywhere a position, a size or a font size is stored or written. Also turns
 -- -0 into 0, which a distance measured off a right-hand anchor otherwise comes back as.
@@ -473,6 +488,90 @@ function addon:ChatReady()
 end
 
 -- ---------------------------------------------------------------------------------------
+-- The customizable HUD element (Update 51)
+--
+-- U51 registers the chat window with the new HUD manager:
+--
+--   self.hudElement = HUD_MANAGER:RegisterGamepadElement(self.control, DISPLAY_NAME, CONFIG)
+--
+-- with CONFIG.defaultAnchor a ZO_Anchor built from the chat's own ANCHOR_SETTINGS. From then on
+-- the client puts the window back by itself: ZO_HUDManager:PropagateSettings walks every element
+-- and calls ZO_HUDManager_Element:RevertOffsetModifications, which is
+-- savedAnchor:Set(self.control) -- a ClearAnchors and a SetAnchor. On console GetSavedAnchor
+-- returns the *default* anchor, because the gamepad HUD editor does not exist yet
+-- ("TODO Custom HUD: Remove this check once we build the gamepad editor"), so what comes back is
+-- always the game's own bottom-right 490 x 280 placement. PropagateSettings runs on
+-- EVENT_SCREEN_RESIZED, on a gamepad-mode change, and once when add-ons have loaded.
+--
+-- So the anchor is not ours to write once. The fix is to make the element's own default *be*
+-- ours: ZO_Anchor is a plain data object with setters, and writing our point and offsets into it
+-- means every one of the client's own re-applications puts the window where the player asked.
+-- That is the same move as the U51 HUD tracker column, which is told where to sit through its
+-- element rather than by writing the control.
+--
+-- element.currentAnchor is left pointing at that same object, because
+-- ZO_HUDManager_Element:IsUsingDefaultAnchor is identity ("currentAnchor == defaultAnchor") and
+-- ZO_HUDTracker_Manager:OnAnchorStateChanged reads it to decide whether to stack the trackers
+-- above the chat window. Keeping it true is what makes the tracker column follow the window.
+--
+-- Dimensions are not part of an anchor, so the size is still written on the control -- which is
+-- why the re-applies below exist as well.
+-- ---------------------------------------------------------------------------------------
+
+function addon:HudElement()
+	local chat = self:Chat()
+	local element = chat and chat.hudElement
+	if type(element) ~= "table" or type(element.defaultAnchor) ~= "table" then
+		return nil
+	end
+	if type(element.defaultAnchor.SetOffsets) ~= "function" or type(element.defaultAnchor.Get) ~= "function" then
+		return nil
+	end
+	return element
+end
+
+-- Puts our corner and distances into the element's default anchor, so the client's own
+-- re-application is ours. Returns false where there is no element -- a pre-U51 client.
+function addon:WriteElementAnchor(point, offsetX, offsetY)
+	local element = self:HudElement()
+	if not element then
+		return false
+	end
+	local anchor = element.defaultAnchor
+	local ok = self:Write("hud element", function()
+		anchor:SetMyPoint(point)
+		anchor:SetRelativePoint(point)
+		anchor:SetOffsets(offsetX, offsetY)
+		-- nil target is the control's parent, GuiRoot, exactly as the chat's own ANCHOR_SETTINGS
+		-- has it.
+		anchor:SetTarget(nil)
+		element.currentAnchor = anchor
+	end)
+	self.elementWritten = ok
+	return ok
+end
+
+function addon:RestoreElementAnchor()
+	local element = self:HudElement()
+	local original = self.original and self.original.element
+	if not element or not original then
+		return false
+	end
+	local anchor = element.defaultAnchor
+	self:Write("hud element", function()
+		anchor:SetMyPoint(original.point)
+		anchor:SetRelativePoint(original.relPoint)
+		anchor:SetOffsets(original.offsetX, original.offsetY)
+		anchor:SetTarget(original.target)
+		if original.usingDefault then
+			element.currentAnchor = anchor
+		end
+	end)
+	self.elementWritten = false
+	return true
+end
+
+-- ---------------------------------------------------------------------------------------
 -- Reading the game's layout
 --
 -- Once per session, and only before this add-on has written anything: after that the control
@@ -528,6 +627,20 @@ function addon:CaptureGameLayout(chat)
 			original.constraints = { minWidth, minHeight, maxWidth, maxHeight }
 		end
 	end
+	local element = self:HudElement()
+	if element then
+		local point, target, relPoint, offsetX, offsetY, constraints = element.defaultAnchor:Get()
+		original.element = {
+			point = point,
+			target = target,
+			relPoint = relPoint,
+			offsetX = offsetX,
+			offsetY = offsetY,
+			constraints = constraints,
+			usingDefault = element.currentAnchor == element.defaultAnchor,
+		}
+	end
+
 	if type(control.GetDrawTier) == "function" then
 		local okTier, tierValue = pcall(control.GetDrawTier, control)
 		local okLevel, levelValue = pcall(control.GetDrawLevel, control)
@@ -602,9 +715,23 @@ function addon:LayoutInPlace(control, layout)
 		return false
 	end
 	local okDims, width, height = pcall(control.GetDimensions, control)
-	return okDims and anchor.point == point and anchor.relativePoint == point
+	if not (okDims and anchor.point == point and anchor.relativePoint == point
 		and Round(anchor.offsetX) == Round(corner.sx * layout.x) and Round(anchor.offsetY) == Round(corner.sy * layout.y)
-		and Round(width) == layout.width and Round(height) == layout.height
+		and Round(width) == layout.width and Round(height) == layout.height) then
+		return false
+	end
+
+	-- The element's default anchor counts as part of the layout: while it still says the game's
+	-- own placement, the next PropagateSettings undoes everything above.
+	local element = self:HudElement()
+	if element then
+		local elementPoint, _, _, elementX, elementY = element.defaultAnchor:Get()
+		if elementPoint ~= point or Round(elementX or 0) ~= Round(corner.sx * layout.x)
+			or Round(elementY or 0) ~= Round(corner.sy * layout.y) then
+			return false
+		end
+	end
+	return true
 end
 
 function addon:RestoreLayout(chat)
@@ -628,6 +755,7 @@ function addon:RestoreLayout(chat)
 		end
 	end
 	self:Write("dimensions", control.SetDimensions, control, original.width, original.height)
+	self:RestoreElementAnchor()
 	self.layoutWritten = false
 	self.lastLayout = nil
 	return true
@@ -676,6 +804,10 @@ function addon:ApplyLayout()
 	self:Write("anchor", control.ClearAnchors, control)
 	self:Write("anchor", control.SetAnchor, control, point, nil, point, corner.sx * layout.x, corner.sy * layout.y)
 	self:Write("dimensions", control.SetDimensions, control, layout.width, layout.height)
+
+	-- And the same anchor into the U51 HUD element, so the client's own re-applications agree
+	-- with the control instead of putting the window back.
+	self:WriteElementAnchor(point, corner.sx * layout.x, corner.sy * layout.y)
 
 	self.layoutWritten = true
 	self.lastLayout = layout
@@ -798,6 +930,9 @@ local VISIBILITY_PUSH_MS = 10000
 
 -- Long enough for the rest of a scene transition to have run, short enough not to be seen.
 local MENU_REASSERT_MS = 50
+
+-- The same idea for a screen resize: after the client's own handlers on that event.
+local RESIZE_SETTLE_MS = 50
 
 function addon:AlwaysVisible()
 	local account = self:Account()
@@ -1192,6 +1327,84 @@ function addon:OnHudShowing()
 end
 
 -- ---------------------------------------------------------------------------------------
+-- After a zone load
+--
+-- Reported on a PS5 after Update 51: arriving at a wayshrine or in a dungeon leaves the window
+-- the wrong size, and opening a menu or the map puts it back -- that is this add-on's own
+-- re-apply on the HUD's next show. So something between the loading screen and the first frame on
+-- the HUD writes over the window, after this add-on's EVENT_PLAYER_ACTIVATED has run.
+--
+-- The client does not say when it has finished, so the window is checked a few times over the
+-- seconds after a zone load rather than once, and re-written whenever it no longer matches. Each
+-- time that happens the drift is recorded: what the control had, and how long after the zone load
+-- it was found. "/pbchatwin status" prints the last of those, which is what turns the next PS5
+-- round into a measurement instead of another guess.
+-- ---------------------------------------------------------------------------------------
+
+-- When to look after a zone load. The first is the frame after the client settles, the last is
+-- late enough to catch a slow dungeon load.
+addon.SETTLE_DELAYS_MS = { 250, 1000, 3000, 6000, 10000 }
+addon.MAX_DRIFT_LOG = 6
+
+function addon:RecordDrift(what)
+	local control = self:Chat() and self:Chat().control
+	if not control then
+		return
+	end
+	local okDims, width, height = pcall(control.GetDimensions, control)
+	local anchor = ReadAnchor(control, 0)
+	local elapsed = self.lastActivatedAt and (GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0) - self.lastActivatedAt
+	local elementPoint, elementX, elementY
+	local element = self:HudElement()
+	if element then
+		elementPoint, _, _, elementX, elementY = element.defaultAnchor:Get()
+	end
+
+	self.driftLog = self.driftLog or {}
+	table.insert(self.driftLog, 1, {
+		what = what,
+		elapsed = elapsed,
+		width = okDims and Round(width) or nil,
+		height = okDims and Round(height) or nil,
+		point = anchor and anchor.point,
+		offsetX = anchor and Round(anchor.offsetX),
+		offsetY = anchor and Round(anchor.offsetY),
+		elementPoint = elementPoint,
+		elementX = elementX and Round(elementX),
+		elementY = elementY and Round(elementY),
+	})
+	while #self.driftLog > self.MAX_DRIFT_LOG do
+		table.remove(self.driftLog)
+	end
+end
+
+-- One look: puts the window right if it has drifted, and says so.
+function addon:Settle(what)
+	local ready, chat = self:ChatReady()
+	if not ready then
+		return
+	end
+	if self:LayoutDiffers() and self.layoutWritten and not self:LayoutInPlace(chat.control, self:Clamped(self:Layout())) then
+		self:RecordDrift(what)
+	end
+	self:ApplyLayout()
+	self:ApplyDraw()
+	if self:AlwaysVisible() or self.visibilityWritten then
+		self:ApplyVisibility()
+	end
+end
+
+-- Every delay in SETTLE_DELAYS_MS after a zone load. Each is a single check, so nothing is
+-- polling while the player plays.
+function addon:ScheduleSettle()
+	for _, delay in ipairs(self.SETTLE_DELAYS_MS) do
+		Later(function()
+			addon:Settle(string.format("%dms after a zone load", delay))
+		end, delay)
+	end
+end
+
+-- ---------------------------------------------------------------------------------------
 -- Status
 -- ---------------------------------------------------------------------------------------
 
@@ -1293,6 +1506,26 @@ function addon:PrintStatus()
 	Line("  text: size=%d default=%d setting=%s differs=%s written=%s", self:FontSize(), self:DefaultFontSize(),
 		tostring(self:GameFontSetting()), tostring(self:FontDiffers()), tostring(self.fontWritten == true))
 	Line("  text descriptor: %s", tostring(self.lastDescriptor or self:EffectiveDescriptor()))
+
+	local element = self:HudElement()
+	if element then
+		local elementPoint, elementTarget, _, elementX, elementY = element.defaultAnchor:Get()
+		Line("  hud element: anchor=%s %s (%s, %s) ours=%s usingDefault=%s", PointName(elementPoint),
+			ControlName(elementTarget), tostring(elementX and Round(elementX)), tostring(elementY and Round(elementY)),
+			tostring(self.elementWritten == true), tostring(element.currentAnchor == element.defaultAnchor))
+	else
+		Line("  hud element: none (a client from before Update 51)")
+	end
+
+	if self.driftLog and #self.driftLog > 0 then
+		Line("  put right after something else wrote to the window:")
+		for _, drift in ipairs(self.driftLog) do
+			Line("    %s (%sms in): was %sx%s at %s (%s, %s), element %s (%s, %s)", drift.what,
+				tostring(drift.elapsed), tostring(drift.width), tostring(drift.height), PointName(drift.point),
+				tostring(drift.offsetX), tostring(drift.offsetY), PointName(drift.elementPoint),
+				tostring(drift.elementX), tostring(drift.elementY))
+		end
+	end
 
 	if self.writeErrors then
 		for what, err in pairs(self.writeErrors) do
@@ -1482,14 +1715,6 @@ local FIRST_APPLY_DELAY_MS = 1000
 local RETRY_DELAY_MS = 1000
 local MAX_ATTEMPTS = 10
 
-local function Later(fn, delay)
-	if zo_callLater then
-		zo_callLater(fn, delay)
-	else
-		fn()
-	end
-end
-
 function addon:TryFirstApply(attempt)
 	local ready, chat = self:ChatReady()
 	if ready then
@@ -1509,10 +1734,13 @@ function addon:TryFirstApply(attempt)
 end
 
 local function OnPlayerActivated()
+	addon.lastActivatedAt = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
 	if addon.firstApplyDone then
 		-- Later zone loads do not rebuild the chat, but nothing is lost by checking: the checks
-		-- write only what no longer matches.
+		-- write only what no longer matches. The scheduled looks afterwards are for what the
+		-- client writes once the loading screen is gone.
 		addon:OnHudShowing()
+		addon:ScheduleSettle()
 		return
 	end
 	if addon.firstApplyScheduled then
@@ -1584,6 +1812,24 @@ local function OnAddOnLoaded(_, loadedName)
 	end
 
 	EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+
+	-- ZO_HUDManager:PropagateSettings runs on this event and on a gamepad-mode change, and puts
+	-- every HUD element back to its saved -- on console, its default -- anchor. Ours is deferred
+	-- by a moment because both handlers are on the same event with no guaranteed order.
+	local function OnScreenResized()
+		Later(function()
+			addon:Settle("after a screen resize")
+		end, RESIZE_SETTLE_MS)
+	end
+	if EVENT_SCREEN_RESIZED then
+		EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_SCREEN_RESIZED, OnScreenResized)
+	end
+	if EVENT_ALL_GUI_SCREENS_RESIZED then
+		EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_ALL_GUI_SCREENS_RESIZED, OnScreenResized)
+	end
+	if EVENT_GAMEPAD_PREFERRED_MODE_CHANGED then
+		EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, OnScreenResized)
+	end
 end
 
 PBS_CHAT_WINDOW_CUSTOMIZER = addon

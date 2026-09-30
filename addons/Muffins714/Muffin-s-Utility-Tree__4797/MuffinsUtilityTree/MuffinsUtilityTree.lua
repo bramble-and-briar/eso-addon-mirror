@@ -9,7 +9,7 @@ local MUT = MuffinsUtilityTree
 -- AddOn information
 MUT.name = "MuffinsUtilityTree"
 MUT.prefix = "MUT"
-MUT.version = "1.1"
+MUT.version = "1.2"
 MUT.author = "|c7851a9Muffins714|r"
 MUT.website = ""
 
@@ -145,9 +145,9 @@ function MUT.OnAddOnLoaded(event, addonName)
     -- EVENT_MANAGER:RegisterForEvent(MUT.name, EVENT_PLAYER_ACTIVATED, MUT.OnPlayerActivated)
 
     zo_callLater(function()
-        MUT_Initialize_QualitySorter() -- Quality Sorter
-        MUT_Initialize_MultiSplitter() -- Stack Splitter
-        MUT_Initialize_BankStackAll()  -- Bank Stack All
+        MUT.Initialize_QualitySorter() -- Quality Sorter
+        MUT.Initialize_MultiSplitter() -- Stack Splitter
+        MUT.Initialize_BankStackAll()  -- Bank Stack All
     end, 100)
 end
 

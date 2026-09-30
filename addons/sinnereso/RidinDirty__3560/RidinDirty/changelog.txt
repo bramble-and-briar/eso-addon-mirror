@@ -1,6 +1,5 @@
-2026.09.27
-- Minor ttc/sell price control improvements in various inventory views for performance and consistancy.
-- long awaited fix for merchant bind on purchase item list refresh.
+2026.09.29
+- Minor withdraw improvement.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

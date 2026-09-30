@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/oneDOK/OneFrame__4890",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "oneDOK",
+  "canonical_id": "esoui:4890",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4890",
+  "deleted": false,
+  "directories": [
+    "OneFrame"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4890/",
+  "fingerprint": "ef76eb93a267d141735cb71f0d26745c9decf2754145daeb54c27d65f4ff9818",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4890",
+  "source_url": "https://www.esoui.com/downloads/info4890-OneFrame.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "OneFrame",
+  "updated_at": 1790718261000,
+  "version": "1.0"
+}

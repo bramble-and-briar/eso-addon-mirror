@@ -73,23 +73,22 @@ local function ApplyThinFrameTemplate()
             SetSlotEdge(self.slot)
 
             if self.slot.slotNum == ULT_SLOT_INDEX then
-                -- Den dicken Vanilla-Ulti-Rahmen plus die Fill-Animationen plattmachen,             
+                -- den dicken vanilla-ulti-rahmen plus die fill-animationen immer plattmachen.
+                -- im controller-modus zeichnen wir stattdessen unsere eigene fortschritts-border.
                 for _, name in ipairs(ULT_FRAME_CHILDREN) do
                     local c = self.slot:GetNamedChild(name)
                     if c then
-                        if c.SetTexture then c:SetTexture("") end
                         c:SetAlpha(0)
                         if c.SetHidden then c:SetHidden(true) end
                     end
                 end
-                -- Glow/Burst/ReadyLoop sind das originale Ulti-Schimmern von ESO.
-                -- Nur ausblenden, wenn der Spieler es explizit abgeschaltet hat
-                -- sonst macht Vanilla das Schimmern wie gewohnt.
+                -- Glow/Burst/ReadyLoop sind das originale ulti-schimmern von ESO.
+                -- nur ausblenden, wenn der spieler es explizit abgeschaltet hat
+                -- sonst macht vanilla das schimmern wie gewohnt.
                 if sv and not sv.vanillaUltShimmer then
                     for _, name in ipairs(ULT_SHIMMER_CHILDREN) do
                         local c = self.slot:GetNamedChild(name)
                         if c then
-                            if c.SetTexture then c:SetTexture("") end
                             c:SetAlpha(0)
                             if c.SetHidden then c:SetHidden(true) end
                         end
@@ -117,17 +116,16 @@ SuppressVanillaUltGlow = function()
     for _, name in ipairs(ULT_FRAME_CHILDREN) do
         local c = btn.slot:GetNamedChild(name)
         if c then
-            if c.SetTexture then c:SetTexture("") end
+            -- nur ausblenden, nicht die textur löschen (SetTexture("") wäre irreversibel).
             c:SetAlpha(0)
             if c.SetHidden then c:SetHidden(true) end
         end
     end
-    -- Schimmern nur wegnehmen, wenn der Spieler es will
+    -- schimmern nur wegnehmen, wenn der spieler es will
     if sv and not sv.vanillaUltShimmer then
         for _, name in ipairs(ULT_SHIMMER_CHILDREN) do
             local c = btn.slot:GetNamedChild(name)
             if c then
-                if c.SetTexture then c:SetTexture("") end
                 c:SetAlpha(0)
                 if c.SetHidden then c:SetHidden(true) end
             end
@@ -135,7 +133,7 @@ SuppressVanillaUltGlow = function()
     end
 end
 
--- Holt das Vanilla-Ulti-Schimmern zurück, falls es vorher unterdrückt wurde
+-- holt das vanilla-ulti-schimmern zurück, falls es vorher unterdrückt wurde
 local function RestoreVanillaUltShimmer()
     local btn = ZO_ActionBar_GetButton(ULT_SLOT_INDEX)
     if not btn or not btn.slot then return end
@@ -150,7 +148,7 @@ local defaults = {
 
     bounceEnabled        = true,
     bounceOnProc         = true,
-    animationStyle       = "bounce",  
+    animationStyle       = "bounce",
 
     -- animation wenn ein effekt/buff eines geslotteten skills ausläuft
     expireAnimEnabled    = true,
@@ -187,24 +185,41 @@ local defaults = {
     ultBounceEnabled     = true,
     vanillaUltShimmer    = true,
 
-    -- Press-Glow speziell für den Ulti-Slot (unabhängig vom normalen Glow)
+    -- "custom" = eigener glow-rahmen (standard), "controller" = eigene fortschritts-border (füllt sich von unten)
+    ultBorderStyle       = "custom",
+    ultCtrlStyle         = "flat",   -- kanten-optik: "flat" | "bevel" | "sleek" | "chamfer" | "double"
+    ultCtrlPadding       = 2,        -- abstand der border nach außen vom slot
+    ultCtrlThickness     = 3,        -- dicke der rahmenlinie (dünn bis dick)
+    ultCtrlCornerFrac    = 0.30,     -- länge der ecken-stege (anteil der slotbreite)
+    ultCtrlPollMS        = 120,      -- wie oft der füllstand nachgeführt wird
+    ultCtrlShowTrack     = true,     -- dunkle hintergrundschiene zeigen
+    ultCtrlColorShift    = true,     -- farbverlauf lädt->bereit
+    ultCtrlChargingColor = { 0.55, 0.55, 0.6, 1 },  -- farbe bei 0% (wenn farbverlauf an)
+    ultCtrlGlowOnFull    = true,     -- leuchtrand + puls bei voller ulti
+    ultCtrlGlowStyle     = "sharp",  -- leucht-optik: "soft" | "sharp" | "ring"
+    ultCtrlGlowSpread    = 3,        -- wie weit der voll-glow über die kante hinausragt
+    ultCtrlGlowIntensity = 0.7,
+    ultCtrlPulseMS       = 450,
+    ultCtrlRainbow       = false,    -- regenbogen-farbverlauf für die border bei voller ulti
+
+    -- press-glow speziell für den ulti-slot (unabhängig vom normalen glow)
     ultGlowEnabled       = true,
-    ultGlowColor         = { 1.0, 0.55, 0.1, 1.0 },  -- warmes Orange
-    ultGlowDurationMS    = 900,                       -- länger als bei normalen Skills
+    ultGlowColor         = { 1.0, 0.55, 0.1, 1.0 },  -- warmes orange
+    ultGlowDurationMS    = 900,                       -- länger als bei normalen skills
     ultGlowPadding       = 16,                        -- größer
     ultGlowIntensity     = 1.2,
 
     ultReadyEnabled      = true,
     ultReadyColor        = { 1.0, 0.2, 0.0, 1.0 },
     ultReadyPulse        = true,
-    ultReadyMode         = "smooth", -- "smooth" = sanfter Pulse, "blink" = hartes An/Aus
-    ultReadyBlinkIntMS   = 250,      -- Blink-Intervall (An/Aus-Wechsel)
+    ultReadyMode         = "smooth", -- "smooth" = sanfter pulse, "blink" = hartes an/aus
+    ultReadyBlinkIntMS   = 250,      -- blink-intervall (an/aus-wechsel)
     ultReadyPadding      = 8,
-    ultReadyPulseDurMS   = 900,   -- Pulsier-Dauer (niedrig = schnell)
-    ultReadyMinAlpha     = 0.35,  -- Min-Alpha im Pulse
-    ultReadyIntensity    = 1.0,   -- Helligkeits-Multiplikator Max (1.0-2.0)
+    ultReadyPulseDurMS   = 900,   -- pulsier-dauer (niedrig = schnell)
+    ultReadyMinAlpha     = 0.35,  -- min-alpha im pulse
+    ultReadyIntensity    = 1.0,   -- helligkeits-multiplikator max (1.0-2.0)
 
-    -- Sekundärfarbe für den Ulti-Rahmen im Blink-Modus
+    -- sekundärfarbe für den ulti-rahmen im blink-modus
     ultColorCycleEnabled   = false,
     ultColorCycleSecondary = { 1.0, 0.85, 0.2, 1.0 },
 
@@ -212,8 +227,8 @@ local defaults = {
     ultRainbowSaturation   = 1.0,  -- 0.0-1.0: wie gesättigt die farben sind
     ultRainbowLightness    = 0.5,  -- 0.0-1.0: wie hell/dunkel die farben sind
 
-    -- Den engine-seitigen Proc-Glow von ESO abschalten,
-    -- analog zum vanillaUltShimmer beim Ulti.
+    -- den engine-seitigen proc-glow von ESO abschalten,
+    -- analog zum vanillaUltShimmer beim ulti.
     vanillaProcGlow      = true,
 
     thinFrameEnabled     = true,
@@ -239,11 +254,11 @@ local defaults = {
     perfLimitTimelineCache = false,
 
     -- einmaliger hinweis-dialog nach der installation. bleibt true sobald der
-    -- nutzer bestaetigt hat, dann poppt er nie wieder von selbst auf
+    -- nutzer bestätigt hat, dann poppt er nie wieder von selbst auf
     infoDialogShown      = false,
 }
 
--- true = animationen erlaubt. nur bei perfCombatOnly ausserhalb kampf false
+-- true = animationen erlaubt. nur bei perfCombatOnly außerhalb kampf false
 local inCombat = true
 
 local function GetActionSlotControl(slotNum, hotbarCategory)
@@ -273,7 +288,7 @@ local function BounceEnabledFor(slotNum)
     return sv.bounceEnabled
 end
 
--- ausserhalb kampf keine animation wenn perfCombatOnly an ist
+-- außerhalb kampf keine animation wenn perfCombatOnly an ist
 local function AnimAllowed()
     if sv.perfCombatOnly and not inCombat then return false end
     return true
@@ -320,7 +335,7 @@ local function InstallBounceHook()
         return button.slot:GetNamedChild("Backdrop")
     end
 
-    -- Damit sauber von der Mitte aus skaliert/gedreht wird statt aus der Ecke
+    -- damit sauber von der mitte aus skaliert/gedreht wird statt aus der ecke
     local function SetCenterOrigin(c)
         if c and c.SetTransformNormalizedOriginPoint then
             c:SetTransformNormalizedOriginPoint(0.5, 0.5, 0)
@@ -388,7 +403,7 @@ local function InstallBounceHook()
         a4:SetTranslateOffsets(-off, 0, 0, 0); a4:SetDuration(step)
         a4:SetEasingFunction(ZO_EaseInQuadratic)
 
-        -- Rahmen wackeln
+        -- rahmen wackeln
         local backdrop = GetBackdrop(button)
         if backdrop then
             local b1 = tl:InsertAnimation(ANIMATION_TRANSLATE, backdrop)
@@ -422,7 +437,7 @@ local function InstallBounceHook()
             if flip.SetTransformRotationZ then
                 flip:SetTransformRotationZ(angle)
             end
-            -- Rahmen drehen
+            -- rahmen drehen
             if backdrop and backdrop.SetTransformRotationZ then
                 backdrop:SetTransformRotationZ(angle)
             end
@@ -451,7 +466,7 @@ local function InstallBounceHook()
         return { grow = grow, shrink = shrink, minAlpha = 0.25 }
     end
 
-    -- scale streckt/staucht ALLE einzelanimationen der timeline im gleichen
+    -- scale streckt/staucht alle einzelanimationen der timeline im gleichen
     -- verhältnis. wird nur für die expire-variante genutzt (dauer-koppelung).
     local function BuildTimeline(button, style, variant, scale)
         local flip = GetFlipCard(button)
@@ -460,7 +475,7 @@ local function InstallBounceHook()
         local tl = ANIMATION_MANAGER:CreateTimeline()
         builder(flip, tl, button, BuildParams(variant))
         if scale and scale ~= 1.0 then
-            -- offset UND dauer jeder animation skalieren, sonst verrutscht das timing
+            -- offset und dauer jeder animation skalieren, sonst verrutscht das timing
             local i = 1
             local a = tl:GetAnimation(i)
             while a do
@@ -477,14 +492,14 @@ local function InstallBounceHook()
         return tl
     end
 
-    -- Faktor in grobe Stufen runden, damit nicht für jede Millisekunde eine
-    -- eigene Timeline im Cache landet (0.05er-Raster reicht optisch dicke).
+    -- faktor in grobe stufen runden, damit nicht für jede millisekunde eine
+    -- eigene timeline im cache landet (0.05er-raster reicht optisch dicke).
     local function BucketScale(scale)
         return math.floor((scale or 1.0) * 20 + 0.5) / 20
     end
 
     -- pro button + style + variante (+ dauer-bucket) cachen, weil press- und
-    -- expire-animation unterschiedliche styles, stärken UND längen haben können
+    -- expire-animation unterschiedliche styles, stärken und längen haben können
     local function GetOrBuildTimeline(button, style, variant, scale)
         style   = style or sv.animationStyle or "bounce"
         variant = variant or "press"
@@ -553,7 +568,7 @@ local function InstallBounceHook()
     end
 
     -- spielt eine animation auf einem slot ab, style ist frei wählbar.
-    -- hotbarCategory optional: zeigt sie auf die INAKTIVE bar, wird der
+    -- hotbarCategory optional: zeigt sie auf die inaktive bar, wird der
     PlaySlotAnimation = function(slotNum, style, hotbarCategory, variant, scale)
         if not slotNum then return end
         if not AnimAllowed() then return end
@@ -782,8 +797,8 @@ local function ApplyProcGlowSuppression(slotNum)
     if not engineGlow then return end
 
     if sv.vanillaProcGlow then
-        -- Vollständig wiederherstellen geht ohne Reload nicht, weil die
-        -- Originaltextur weg ist. State trotzdem freigeben.
+        -- vollständig wiederherstellen geht ohne reload nicht, weil die
+        -- originaltextur weg ist. state trotzdem freigeben.
         suppressedProcGlows[slotNum] = nil
     else
         if engineGlow.SetTexture then engineGlow:SetTexture("") end
@@ -841,11 +856,11 @@ end
 local function OnActivationHighlightChanged(_, slotNum, isShown)
     if not slotNum then return end
 
-    -- Engine-Glow sofort unterdrücken bzw. wiederherstellen, sobald sich der
-    -- Proc-Status ändert – nicht erst beim nächsten Bar-Wechsel.
+    -- engine-glow sofort unterdrücken bzw. wiederherstellen, sobald sich der
+    -- proc-status ändert - nicht erst beim nächsten bar-wechsel.
     ApplyProcGlowSuppression(slotNum)
 
-    -- Auf das von ESO gemeldete Flag NICHT blind vertrauen
+    -- auf das von ESO gemeldete flag nicht blind vertrauen
     local procd = isShown
     if procd == nil then procd = IsSlotProcd(slotNum) end
 
@@ -860,8 +875,8 @@ local function OnActivationHighlightChanged(_, slotNum, isShown)
     end
 end
 
--- Direktes Slot-Update: update sobald ein Proc aktiv/inaktiv wird,
--- ohne dass ein Bar-Wechsel nötig ist.
+-- direktes slot-update: update sobald ein proc aktiv/inaktiv wird,
+-- ohne dass ein bar-wechsel nötig ist.
 local function OnSingleSlotUpdated(_, slotNum)
     if not slotNum then return end
     if slotNum < ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1 or slotNum > ACTION_BAR_ULTIMATE_SLOT_INDEX then
@@ -882,7 +897,7 @@ local function OnSingleSlotUpdated(_, slotNum)
     end
 end
 
--- Der zuverlässigste Punkt um auf Proc-Änderungen zu reagieren ist die
+-- der zuverlässigste punkt um auf proc-änderungen zu reagieren ist die
 local activationHighlightHookInstalled = false
 local function InstallActivationHighlightHook()
     if activationHighlightHookInstalled then return end
@@ -894,7 +909,7 @@ local function InstallActivationHighlightHook()
         local slotNum = self.slot.slotNum
         if not slotNum then return end
         if slotNum < ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1 or slotNum > ACTION_BAR_ULTIMATE_SLOT_INDEX then return end
-        if slotNum == ULT_SLOT_INDEX then return end -- Ulti hat eigene Logik
+        if slotNum == ULT_SLOT_INDEX then return end -- ulti hat eigene logik
 
         -- vanilla-glow killen direkt nachdem ESO ihn gesetzt hat
         if not sv.vanillaProcGlow then
@@ -948,6 +963,30 @@ local ultBorderBlinkId  = nil
 local ultBorderRainbowId = nil
 local ultIsReady        = false
 
+-- eigene controller-fortschritts-border als 4-kanten-rahmen (viereckig, einstellbare dicke).
+-- hintergrund-kanten (track) + fortschritts-kanten (fill, wachsen von unten) + voll-glow.
+local ultCtrl        = nil   -- container-tabelle mit allen kanten-controls
+local ultCtrlUpdate  = nil   -- EM-update-handle fürs live-nachführen
+local ultCtrlWasFull = false -- kantenerkennung für den voll-puls
+local ultCtrlGlowTL       = nil  -- wiederverwendete puls-timeline
+local ultCtrlGlowPulseAnim = nil
+local ultCtrlRainbowId    = nil  -- EM-update-handle für den regenbogen bei voller ulti
+
+-- querschnitts-kacheln pro rahmen-stil (viereckig, werden zu kanten gestreckt).
+local ULT_EDGE_TEX = {
+    bevel   = "AnimatedActionBarPlus/UltEdgeBevel.dds",
+    flat    = "AnimatedActionBarPlus/UltEdgeFlat.dds",
+    sleek   = "AnimatedActionBarPlus/UltEdgeSleek.dds",
+    chamfer = "AnimatedActionBarPlus/UltEdgeChamfer.dds",
+    double  = "AnimatedActionBarPlus/UltEdgeDouble.dds",
+}
+-- leucht-kacheln für den voll-zustand.
+local ULT_GLOW_TEX = {
+    soft  = "AnimatedActionBarPlus/UltGlowSoft.dds",
+    sharp = "AnimatedActionBarPlus/UltGlowSharp.dds",
+    ring  = "AnimatedActionBarPlus/UltGlowRing.dds",
+}
+
 -- wandelt hsl in rgb um, brauchts für den rainbow modus
 local function HSLToRGB(h, s, l)
     local r, g, b
@@ -1000,8 +1039,288 @@ HideUltBorder = function()
     if ultBorderGlow then ultBorderGlow:SetAlpha(0) end
 end
 
+-- eigene controller-fortschritts-border (4-kanten-rahmen)
+local function EdgeTexFor(style)
+    return ULT_EDGE_TEX[style or "flat"] or ULT_EDGE_TEX.flat
+end
+
+-- stabiler parent: der slot-container selbst, nicht die FlipCard. die FlipCard
+-- wird beim bar-wechsel gedreht/skaliert - daran verankert würde die border mitwandern.
+local function CtrlParent()
+    local btn = ZO_ActionBar_GetButton(ULT_SLOT_INDEX)
+    if not btn or not btn.slot then return nil end
+    return btn.slot
+end
+
+-- legt ein kanten-control an (eine textur, wird später gestreckt/eingefärbt).
+local function MakeEdge(name, parent, level)
+    local t = WM:CreateControl(name, parent, CT_TEXTURE)
+    t:SetDrawTier(DT_HIGH)
+    t:SetDrawLevel(level)
+    t:SetBlendMode(TEX_BLEND_MODE_ALPHA)
+    t:SetHidden(true)
+    return t
+end
+
+-- baut alle kanten einmalig auf: 4 track-kanten (hintergrund), 4 fill-kanten
+-- (fortschritt), 4 glow-kanten (voll-zustand).
+local function CreateCtrlBorder()
+    if ultCtrl then return true end
+    local parent = CtrlParent()
+    if not parent then return false end
+
+    -- segmente: L/R = senkrechte seitenbalken, corner TL/TR/BL/BR = kurze ecken-stege.
+    -- zusammen ergeben sie die klammer-/bracket-form aus dem gamepad-UI.
+    local SEGS = { "L", "R", "TL", "TR", "BL", "BR" }
+    ultCtrl = { track = {}, fill = {}, glow = {}, segs = SEGS }
+    for _, seg in ipairs(SEGS) do
+        ultCtrl.track[seg] = MakeEdge("AABPlus_UltTrack" .. seg, parent, 3)
+        ultCtrl.fill[seg]  = MakeEdge("AABPlus_UltFill"  .. seg, parent, 4)
+        ultCtrl.glow[seg]  = MakeEdge("AABPlus_UltGlow"  .. seg, parent, 5)
+        ultCtrl.glow[seg]:SetBlendMode(TEX_BLEND_MODE_ADD)
+    end
+    return true
+end
+
+-- setzt textur + farbe für einen segment-satz.
+local function StyleEdges(set, tex, r, g, b, a)
+    for _, c in pairs(set) do
+        if type(c) ~= "table" then  -- segs-liste überspringen
+            c:SetTexture(tex)
+            c:SetColor(r, g, b, a)
+        end
+    end
+end
+
+-- länge der ecken-stege (horizontaler teil der klammer). auf ganze pixel gerundet,
+-- damit die kanten gestochen scharf sind und nicht subpixel-verwaschen.
+local function CornerLen(w)
+    local frac = sv.ultCtrlCornerFrac or 0.30
+    return zo_round(math.max(6, w * frac))
+end
+
+-- verankert einen kompletten klammer-satz (voll sichtbar). für track/glow genutzt.
+-- ecken-stege starten nach der balkenbreite (offset th), damit sie sich nicht mit den
+-- seitenbalken überlappen -> keine doppelt gedeckten, helleren ecken.
+local function LayoutBracket(set, parent, pad, th, extra)
+    extra = extra or 0
+    local p = zo_round(pad + extra)
+    local t = zo_round(th + extra * 2)
+    local w = parent:GetWidth() + p * 2
+    local cl = CornerLen(w)
+
+    -- senkrechte seitenbalken (volle höhe)
+    set.L:ClearAnchors()
+    set.L:SetAnchor(TOPLEFT,    parent, TOPLEFT,    -p, -p)
+    set.L:SetAnchor(BOTTOMLEFT, parent, BOTTOMLEFT, -p,  p)
+    set.L:SetWidth(t)
+    set.R:ClearAnchors()
+    set.R:SetAnchor(TOPRIGHT,    parent, TOPRIGHT,    p, -p)
+    set.R:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, p,  p)
+    set.R:SetWidth(t)
+
+    -- ecken-stege oben (starten neben dem balken, damit keine überlappung)
+    set.TL:ClearAnchors()
+    set.TL:SetAnchor(TOPLEFT, parent, TOPLEFT, -p + t, -p)
+    set.TL:SetDimensions(cl, t)
+    set.TR:ClearAnchors()
+    set.TR:SetAnchor(TOPRIGHT, parent, TOPRIGHT, p - t, -p)
+    set.TR:SetDimensions(cl, t)
+    -- ecken-stege unten
+    set.BL:ClearAnchors()
+    set.BL:SetAnchor(BOTTOMLEFT, parent, BOTTOMLEFT, -p + t, p)
+    set.BL:SetDimensions(cl, t)
+    set.BR:ClearAnchors()
+    set.BR:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT, p - t, p)
+    set.BR:SetDimensions(cl, t)
+end
+
+-- verankert track + glow als volle klammer. fill kommt separat nach fortschritt.
+local function AnchorCtrlBorder()
+    local parent = CtrlParent()
+    if not parent or not ultCtrl then return end
+    local pad = sv.ultCtrlPadding or 3
+    local th  = sv.ultCtrlThickness or 3
+
+    for _, seg in ipairs(ultCtrl.segs) do
+        for _, setname in ipairs({ "track", "fill", "glow" }) do
+            local c = ultCtrl[setname][seg]
+            if c:GetParent() ~= parent then c:SetParent(parent) end
+        end
+    end
+    LayoutBracket(ultCtrl.track, parent, pad, th, 0)
+    LayoutBracket(ultCtrl.glow,  parent, pad, th, (sv.ultCtrlGlowSpread or 4) * 0.5)
+end
+
+-- fortschritt 0..1: klammer füllt sich von unten nach oben.
+-- reihenfolge: untere ecken-stege -> seitenbalken steigen hoch -> obere ecken-stege.
+local function SetCtrlBorderProgress(pct)
+    if not ultCtrl then return end
+    pct = pct or 0
+    if pct < 0 then pct = 0 elseif pct > 1 then pct = 1 end
+
+    local parent = CtrlParent()
+    if not parent then return end
+    local w = parent:GetWidth(); local h = parent:GetHeight()
+    if w <= 0 or h <= 0 then return end
+
+    local pad = sv.ultCtrlPadding or 3
+    local th  = sv.ultCtrlThickness or 3
+    local p   = zo_round(pad)
+    local t   = zo_round(th)
+    local fullH = h + p * 2
+    local cl  = CornerLen(w + p * 2)
+
+    -- farbe (mit optionalem ladeverlauf)
+    local c         = sv.ultReadyColor or { 1, 0.2, 0, 1 }
+    local intensity = sv.ultReadyIntensity or 1.0
+    local a         = math.min(1.0, (c[4] or 1) * intensity)
+    local r, g, b   = c[1], c[2], c[3]
+    if sv.ultCtrlColorShift then
+        local cl2 = sv.ultCtrlChargingColor or { 0.55, 0.55, 0.6, 1 }
+        r = cl2[1] + (c[1]-cl2[1])*pct
+        g = cl2[2] + (c[2]-cl2[2])*pct
+        b = cl2[3] + (c[3]-cl2[3])*pct
+    end
+
+    local tex = EdgeTexFor(sv.ultCtrlStyle)
+    local F = ultCtrl.fill
+    StyleEdges(F, tex, r, g, b, a)
+
+    -- untere ecken-stege: ab pct > 0 (starten neben dem balken, keine überlappung)
+    local bottomShown = pct > 0.02
+    F.BL:ClearAnchors(); F.BL:SetAnchor(BOTTOMLEFT,  parent, BOTTOMLEFT,  -p + t, p)
+    F.BL:SetDimensions(cl, t); F.BL:SetHidden(not bottomShown)
+    F.BR:ClearAnchors(); F.BR:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT,  p - t, p)
+    F.BR:SetDimensions(cl, t); F.BR:SetHidden(not bottomShown)
+
+    -- seitenbalken: von unten hochwachsen (höhe auf ganze pixel gerundet)
+    local sideFill = zo_round(math.min(fullH, fullH * pct))
+    F.L:ClearAnchors(); F.L:SetAnchor(BOTTOMLEFT,  parent, BOTTOMLEFT,  -p, p)
+    F.L:SetWidth(t); F.L:SetHeight(sideFill); F.L:SetHidden(sideFill <= 1)
+    F.R:ClearAnchors(); F.R:SetAnchor(BOTTOMRIGHT, parent, BOTTOMRIGHT,  p, p)
+    F.R:SetWidth(t); F.R:SetHeight(sideFill); F.R:SetHidden(sideFill <= 1)
+
+    -- obere ecken-stege: erst wenn fast voll (letzte ~10%)
+    local topShown = pct >= 0.90
+    F.TL:ClearAnchors(); F.TL:SetAnchor(TOPLEFT,  parent, TOPLEFT,  -p + t, -p)
+    F.TL:SetDimensions(cl, t); F.TL:SetHidden(not topShown)
+    F.TR:ClearAnchors(); F.TR:SetAnchor(TOPRIGHT, parent, TOPRIGHT,  p - t, -p)
+    F.TR:SetDimensions(cl, t); F.TR:SetHidden(not topShown)
+
+    -- voll-glow über die ganze klammer
+    local isFull = pct >= 1.0
+    local showGlow = isFull and sv.ultCtrlGlowOnFull
+    local gtex = ULT_GLOW_TEX[sv.ultCtrlGlowStyle or "soft"] or ULT_GLOW_TEX.soft
+    local gi   = math.min(1.0, sv.ultCtrlGlowIntensity or 0.8)
+    for _, seg in ipairs(ultCtrl.segs) do
+        local gc = ultCtrl.glow[seg]
+        gc:SetTexture(gtex)
+        gc:SetColor(r, g, b, gi)
+        gc:SetHidden(not showGlow)
+    end
+    if isFull and not ultCtrlWasFull and showGlow then
+        if not ultCtrlGlowTL then
+            ultCtrlGlowTL = ANIMATION_MANAGER:CreateTimeline()
+            for _, seg in ipairs(ultCtrl.segs) do
+                local pa = ultCtrlGlowTL:InsertAnimation(ANIMATION_ALPHA, ultCtrl.glow[seg])
+                pa:SetEasingFunction(ZO_EaseOutQuadratic)
+                pa:SetAlphaValues(1.0, gi)
+                pa:SetDuration(sv.ultCtrlPulseMS or 450)
+            end
+        end
+        ultCtrlGlowTL:PlayFromStart()
+    end
+
+    -- regenbogen bei voller ulti: eigener hue-cycler übernimmt die einfärbung der
+    -- fill- (und ggf. glow-)klammer. läuft nur im voll-zustand, sonst aus.
+    if isFull and sv.ultCtrlRainbow then
+        if not ultCtrlRainbowId and ultCtrl then
+            local id  = "AABPlusUltCtrlRainbow"
+            local hue = 0
+            local sat = sv.ultRainbowSaturation or 1.0
+            local lit = sv.ultRainbowLightness or 0.5
+            local intervalMS = sv.perfSlowRainbow and 33 or 5
+            local hueStep    = 0.002 * (intervalMS / 5)
+            EM:RegisterForUpdate(id, intervalMS, function()
+                if not ultCtrl then return end
+                hue = (hue + hueStep) % 1.0
+                local rr, gg, bb = HSLToRGB(hue, sat, lit)
+                local ftex = EdgeTexFor(sv.ultCtrlStyle)
+                StyleEdges(ultCtrl.fill, ftex, rr, gg, bb, a)
+                if sv.ultCtrlGlowOnFull then
+                    for _, seg in ipairs(ultCtrl.segs) do
+                        ultCtrl.glow[seg]:SetColor(rr, gg, bb, gi)
+                    end
+                end
+            end)
+            ultCtrlRainbowId = id
+        end
+    elseif ultCtrlRainbowId then
+        EM:UnregisterForUpdate(ultCtrlRainbowId)
+        ultCtrlRainbowId = nil
+    end
+
+    ultCtrlWasFull = isFull
+end
+
+
+local function GetUltPct()
+    local cost = GetSlotAbilityCost(ULT_SLOT_INDEX) or 0
+    if cost <= 0 then return 0 end
+    return GetUnitPower("player", POWERTYPE_ULTIMATE) / cost
+end
+
+local function HideCtrlBorder()
+    if ultCtrlUpdate then
+        EM:UnregisterForUpdate(ultCtrlUpdate)
+        ultCtrlUpdate = nil
+    end
+    if ultCtrlRainbowId then
+        EM:UnregisterForUpdate(ultCtrlRainbowId)
+        ultCtrlRainbowId = nil
+    end
+    if ultCtrl then
+        for _, setname in ipairs({ "track", "fill", "glow" }) do
+            for _, seg in ipairs(ultCtrl.segs) do
+                ultCtrl[setname][seg]:SetHidden(true)
+            end
+        end
+    end
+    ultCtrlWasFull = false
+end
+
+local function ShowCtrlBorder()
+    if sv.ultBorderStyle ~= "controller" then return end
+    if not sv.ultReadyEnabled then HideCtrlBorder(); return end
+    if not CreateCtrlBorder() then return end
+
+    AnchorCtrlBorder()
+
+    -- track-segmente (hintergrund-klammer) - dunkel, optional
+    local tex = EdgeTexFor(sv.ultCtrlStyle)
+    StyleEdges(ultCtrl.track, tex, 0.09, 0.09, 0.11, 0.9)
+    for _, seg in ipairs(ultCtrl.segs) do
+        ultCtrl.track[seg]:SetHidden(not sv.ultCtrlShowTrack)
+    end
+
+    SetCtrlBorderProgress(GetUltPct())
+
+    if not ultCtrlUpdate then
+        ultCtrlUpdate = "AABPlusUltCtrlFill"
+        EM:RegisterForUpdate(ultCtrlUpdate, sv.ultCtrlPollMS or 120, function()
+            if sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled then
+                HideCtrlBorder(); return
+            end
+            SetCtrlBorderProgress(GetUltPct())
+        end)
+    end
+end
+
 local function ShowUltBorder()
     if not sv.ultReadyEnabled then return end
+    -- im controller-modus zeigt der native rahmen den fortschritt, eigener glow bleibt aus
+    if sv.ultBorderStyle == "controller" then return end
     local glow = CreateUltBorder()
     if not glow then return end
 
@@ -1035,7 +1354,7 @@ local function ShowUltBorder()
         local mode = sv.ultReadyMode or "smooth"
 
         if mode == "blink" then
-            -- Hartes An/Aus statt sanftem Fade.
+            -- hartes an/aus statt sanftem fade.
             local interval = sv.ultReadyBlinkIntMS or 250
             local id       = "AABPlusUltBlink"
             local state    = true
@@ -1046,7 +1365,7 @@ local function ShowUltBorder()
             EM:RegisterForUpdate(id, interval, function()
                 state = not state
                 if cycleColor then
-                    -- Statt An/Aus zwischen Primär- und Sekundärfarbe wechseln (beide voll sichtbar).
+                    -- statt an/aus zwischen primär- und sekundärfarbe wechseln (beide voll sichtbar).
                     glow:SetAlpha(maxA)
                     if state then
                         glow:SetColor(c[1], c[2], c[3], maxA)
@@ -1146,13 +1465,44 @@ end
 local function OnPowerUpdate(_, unitTag, powerIndex, powerType)
     if unitTag ~= "player" or powerType ~= POWERTYPE_ULTIMATE then return end
     SuppressVanillaUltGlow()
+    if sv.ultBorderStyle == "controller" then
+        -- läuft die border schon, nur den fortschritt setzen (billig, kein re-setup).
+        if ultCtrl and ultCtrlUpdate then
+            SetCtrlBorderProgress(GetUltPct())
+        else
+            ShowCtrlBorder()
+        end
+        return
+    end
     CheckUltimateReady()
 end
 
 local function OnSlotsUpdated()
     HideUltBorder()
-    CheckUltimateReady()
     SuppressVanillaUltGlow()
+    if sv.ultBorderStyle == "controller" then
+        -- border nicht verstecken/neu erstellen (das zuckt beim bounce/bar-wechsel).
+        -- nur neu verankern + einmal den fortschritt setzen, der poll-timer läuft weiter.
+        if ultCtrl then
+            AnchorCtrlBorder()
+            SetCtrlBorderProgress(GetUltPct())
+        else
+            ShowCtrlBorder()  -- erstes mal: aufbauen
+        end
+        -- nachzieher, falls ZOS den slot verzögert neu vermisst (nur reanchoring, kein flackern)
+        zo_callLater(function()
+            if sv.ultBorderStyle == "controller" and ultCtrl then
+                AnchorCtrlBorder()
+                SetCtrlBorderProgress(GetUltPct())
+            end
+        end, 60)
+        if sv.perfSlotLookupMap and RebuildSlotLookup then RebuildSlotLookup() end
+        if sv.perfEffectIdFilter and RefreshEffectRegistration then RefreshEffectRegistration() end
+        StopAllPulses()
+        zo_callLater(function() RefreshAllProcs() end, 50)
+        return
+    end
+    CheckUltimateReady()
 
     -- lookup-map und id-filter an die neuen slots anpassen (falls aktiv)
     if sv.perfSlotLookupMap and RebuildSlotLookup then RebuildSlotLookup() end
@@ -1196,7 +1546,7 @@ local expireTrack = {}
 local expireGen   = 0
 
 -- /aab track: zeigt im chat schedule/resync/fire. pcall damit ein
--- format-fehler nie den event-handler mitreisst
+-- format-fehler nie den event-handler mitreißt
 local expireTrace = false
 local function ETrace(fmt, ...)
     if not expireTrace then return end
@@ -1230,7 +1580,7 @@ local function OtherHotbar(cat)
     return (cat == HOTBAR_CATEGORY_PRIMARY) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
 end
 
--- sucht auf EINER bar den slot dessen skill zum effekt passt.
+-- sucht auf einer bar den slot dessen skill zum effekt passt.
 -- erst per ability-id, dann per name als fallback
 -- (buff-id und skill-id sind bei eso oft nicht identisch)
 
@@ -1336,7 +1686,7 @@ local function PlayExpireGlow(slotNum, hotbar)
     fade:PlayFromStart()
 end
 
--- faktor für die LÄNGE der end-anim (nicht den zeitpunkt). kurze buffs blitzen
+-- faktor für die länge der end-anim (nicht den zeitpunkt). kurze buffs blitzen
 -- knapp, lange laufen gedehnter. nur aktiv bei globaler dauer-koppelung
 local function ResolveExpireScale(abilityId, durMS)
     if not sv.expireScaleByDuration then return 1.0 end
@@ -1353,7 +1703,7 @@ local function FireExpireAnim(key, gen)
     local rec = expireTrack[key]
     -- inzwischen neu gecastet/resynct? dann ist der alte timer wertlos
     if not rec or rec.gen ~= gen then
-        ETrace("fire ignoriert (stale) key=%d", key)
+        ETrace("fire ignored (stale) key=%d", key)
         return
     end
     expireTrack[key] = nil
@@ -1480,7 +1830,7 @@ local function OnEffectChanged(_, changeType, _, effectName, unitTag, beginTime,
                 rec.durMS  = remainMS
                 rec.fireAt = newFireAt
                 zo_callLater(function() FireExpireAnim(key, gen) end, remainMS)
-                ETrace("resync id=%d slot=%d -> echte Restdauer %dms", abilityId, slotNum, math.floor(remainMS))
+                ETrace("resync id=%d slot=%d -> remaining %dms", abilityId, slotNum, math.floor(remainMS))
             end
         end
     elseif changeType == EFFECT_RESULT_FADED then
@@ -1565,6 +1915,13 @@ local function RegisterEvents()
     EM:RegisterForEvent(ADDON_NAME, EVENT_ACTION_SLOTS_FULL_UPDATE,  OnSlotsUpdated)
     EM:RegisterForEvent(ADDON_NAME, EVENT_ACTIVE_HOTBAR_UPDATED,     OnSlotsUpdated)
 
+    -- nach jedem laden/zonenwechsel baut ZOS die bar neu, dann die eigene border neu aufsetzen
+    EM:RegisterForEvent(ADDON_NAME .. "UltFrame", EVENT_PLAYER_ACTIVATED, function()
+        if sv.ultBorderStyle == "controller" then
+            zo_callLater(ShowCtrlBorder, 200)
+        end
+    end)
+
     EM:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_COMBAT_STATE,       OnCombatState)
 
     RefreshEffectRegistration()
@@ -1617,8 +1974,8 @@ local function OpenDonationMail()
     end
 end
 
--- einmaliger hinweis-dialog nach der installation. verweist auf den Info-tab.
--- bewusst ein eigenes WM-fenster statt ZO_Dialogs: so koennen wir die
+-- einmaliger hinweis-dialog nach der installation. verweist auf den info-tab.
+-- bewusst ein eigenes WM-fenster statt ZO_Dialogs: so können wir die
 -- addon-farben und das logo genauso setzen wie im rest des addons
 local INFO_DIALOG_NAME = ADDON_NAME .. "_InfoDialog"
 local infoDialog
@@ -1636,10 +1993,10 @@ local function BuildInfoDialog()
     if infoDialog then return infoDialog end
 
     local ar, ag, ab = HexToRGB(AAB_COLORS.accent)   -- purpur, titel/rahmen
-    local vr, vg, vb = HexToRGB(AAB_COLORS.value)     -- lavendel, fliesstext
+    local vr, vg, vb = HexToRGB(AAB_COLORS.value)     -- lavendel, fließtext
 
-    -- feste breite, hoehe rechnen wir unten aus der tatsaechlichen texthoehe.
-    -- so passt der dialog fuer jede sprache ohne dass text hinter den button laeuft
+    -- feste breite, höhe rechnen wir unten aus der tatsächlichen texthöhe.
+    -- so passt der dialog für jede sprache ohne dass text hinter den button läuft
     local W = 460
     local PAD        = 20   -- rand links/rechts
     local BODY_TOP   = 96   -- start des haupttexts unter der trennlinie
@@ -1647,7 +2004,7 @@ local function BuildInfoDialog()
     local BTN_H      = 32
     local BTN_BOTTOM = 18   -- luft zwischen button und unterkante
 
-    -- oberste ebene, damit der dialog ueber der restlichen UI liegt
+    -- oberste ebene, damit der dialog über der restlichen UI liegt
     local win = WM:CreateTopLevelWindow(INFO_DIALOG_NAME)
     win:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     win:SetDrawTier(DT_HIGH)
@@ -1685,7 +2042,7 @@ local function BuildInfoDialog()
     sep:SetAnchor(TOPLEFT, win, TOPLEFT, PAD, 78)
 
     -- haupttext, links unter der trennlinie. feste breite, damit der umbruch
-    -- und die gemessene hoehe stimmen, nach der wir das fenster dimensionieren
+    -- und die gemessene höhe stimmen, nach der wir das fenster dimensionieren
     local body = WM:CreateControl(INFO_DIALOG_NAME .. "_Body", win, CT_LABEL)
     body:SetFont("ZoFontWinH4")
     body:SetColor(vr, vg, vb, 1)
@@ -1697,14 +2054,14 @@ local function BuildInfoDialog()
     body:SetText(GetString(SI_AAB_DLG_BODY))
 
     -- jetzt steht der umbrochene text fest -> fenster + button danach ausrichten.
-    -- manche clients liefern die texthoehe erst nach einem layout-frame, daher
+    -- manche clients liefern die texthöhe erst nach einem layout-frame, daher
     -- ein sinnvoller mindestwert als notnagel
     local textH = body:GetTextHeight()
     if not textH or textH < 40 then textH = 220 end
     local H = BODY_TOP + textH + BTN_GAP + BTN_H + BTN_BOTTOM
     win:SetDimensions(W, H)
 
-    -- bestaetigen-button unter dem text (nicht am fensterrand), schliesst
+    -- bestätigen-button unter dem text (nicht am fensterrand), schließt
     -- den dialog und merkt sich das flag
     local btn = WM:CreateControlFromVirtual(INFO_DIALOG_NAME .. "_OK", win, "ZO_DefaultButton")
     btn:SetDimensions(160, BTN_H)
@@ -1719,7 +2076,7 @@ local function BuildInfoDialog()
     return win
 end
 
--- macht den dialog auf. force=true umgeht das gesehen-flag (fuer /aab dialog),
+-- macht den dialog auf. force=true umgeht das gesehen-flag (für /aab dialog),
 -- ohne force poppt er nur beim allerersten mal
 local function ShowInfoDialog(force)
     if not force and sv.infoDialogShown then return end
@@ -1729,7 +2086,7 @@ local function ShowInfoDialog(force)
 end
 
 -- listet die aktuell geslotteten ability-ids beider bars im chat auf,
--- inklusive erkannter dauer und gesetztem End-Anim-Override.
+-- inklusive erkannter dauer und gesetztem end-anim-override.
 local function PrintSlottedIds()
     d("|ca970ff=== " .. ADDON_NAME .. " " .. GetString(SI_AAB_DBG_EXPIRE_HEAD) .. " ===|r")
     local active = GetActiveHotbarCategory()
@@ -1755,9 +2112,9 @@ local function PrintSlottedIds()
     d("|c8a7fa6" .. GetString(SI_AAB_ID_HINT) .. "|r")
 end
 
--- setzt/löscht den Feuer-Zeitpunkt-Override für eine ability.
--- <id> auto   -> zurück auf die vom Spiel erkannte Dauer
--- <id> 25000  -> End-Animation feuert 25000ms (25s) nach dem Cast
+-- setzt/löscht den feuer-zeitpunkt-override für eine ability.
+-- <id> auto   -> zurück auf die vom spiel erkannte dauer
+-- <id> 25000  -> end-animation feuert 25000ms (25s) nach dem cast
 local function SetExpireOverride(idStr, valStr)
     local id = tonumber(idStr)
     if not id or id <= 0 then
@@ -1807,7 +2164,7 @@ local function PrintConflicts()
     local val  = "|cc8a8ff"
     local e    = "|r"
 
-    d(head .. "=== AnimatedActionBar+ Konflikt-Check ===" .. e)
+    d(head .. "=== AnimatedActionBar+ " .. GetString(SI_AAB_CONF_HEAD) .. " ===" .. e)
 
     -- 1) bekannte action-bar/ulti-addons die geladen sind auflisten. namen sind
     --    die ordner-namen wie sie im AddOnManager stehen (tolerant, teilstring)
@@ -1841,33 +2198,33 @@ local function PrintConflicts()
     end
 
     if #found > 0 then
-        d(warn .. "Andere Action-Bar-Addons aktiv:" .. e)
+        d(warn .. GetString(SI_AAB_CONF_FOUND) .. e)
         for _, label in ipairs(found) do
             d("  " .. val .. label .. e)
         end
-        d(key .. "Bei doppelten Rahmen/Glows eines davon testweise deaktivieren." .. e)
+        d(key .. GetString(SI_AAB_CONF_HINT) .. e)
     else
-        d(good .. "Keine bekannten konkurrierenden Action-Bar-Addons gefunden." .. e)
+        d(good .. GetString(SI_AAB_CONF_NONE) .. e)
     end
 
     -- 2) prüfen ob unsere eigenen hooks/methoden noch da sind. wenn ein anderes
     --    addon ActionButton komplett ersetzt, fehlt unsere bounce-methode
-    d(key .. "Eigene Hooks:" .. e)
+    d(key .. GetString(SI_AAB_CONF_HOOKS) .. ":" .. e)
     local haveBounce = (ActionButton and ActionButton.PlayAbilityUsedBounce) ~= nil
     d("  " .. key .. "PlayAbilityUsedBounce: " .. e
-        .. (haveBounce and (good .. "ok" .. e) or (warn .. "fehlt (überschrieben?)" .. e)))
+        .. (haveBounce and (good .. GetString(SI_AAB_CONF_OK) .. e) or (warn .. GetString(SI_AAB_CONF_OVERRIDDEN) .. e)))
 
     local haveGlowTpl = _G["AABPlus_GlowTemplate"] ~= nil
     d("  " .. key .. "Glow-Template: " .. e
-        .. (haveGlowTpl and (good .. "ok" .. e) or (warn .. "fehlt" .. e)))
+        .. (haveGlowTpl and (good .. GetString(SI_AAB_CONF_OK) .. e) or (warn .. GetString(SI_AAB_CONF_MISSING) .. e)))
 
     -- 3) ulti-slot: hat jemand anderes den ulti-frame wiederhergestellt?
     local ultBtn = ZO_ActionBar_GetButton and ZO_ActionBar_GetButton(ULT_SLOT_INDEX, GetActiveHotbarCategory())
     if ultBtn and ultBtn.slot then
         local frame = ultBtn.slot:GetNamedChild("Frame")
         local frameVisible = frame and frame.GetAlpha and frame:GetAlpha() > 0
-        d("  " .. key .. "Ulti-Vanilla-Rahmen: " .. e
-            .. (frameVisible and (warn .. "sichtbar (Fremd-Addon?)" .. e) or (good .. "unterdrückt" .. e)))
+        d("  " .. key .. GetString(SI_AAB_CONF_ULTFRAME) .. ": " .. e
+            .. (frameVisible and (warn .. GetString(SI_AAB_CONF_VISIBLE) .. e) or (good .. GetString(SI_AAB_CONF_SUPPRESSED) .. e)))
     end
 
     d(head .. "=============================" .. e)
@@ -1895,7 +2252,7 @@ local function BuildMenu()
     end
 
     -- presets setzen mehrere sichtbare effekt-schalter auf einmal. sie fassen
-    -- NUR an, was den look ausmacht - perf-toggles und farben bleiben unberührt.
+    -- nur an, was den look ausmacht - perf-toggles und farben bleiben unberührt.
     local function ApplyPreset(name)
         if name == "minimal" then
             sv.bounceEnabled     = true
@@ -2429,13 +2786,167 @@ local function BuildMenu()
                     warning = GetString(SI_AAB_RELOAD_NOTE),
                 },
                 {
+                    type    = "dropdown",
+                    name    = GetString(SI_AAB_ULT_BORDER_STYLE),
+                    tooltip = GetString(SI_AAB_ULT_BORDER_STYLE_TT),
+                    choices = {
+                        GetString(SI_AAB_ULT_BORDER_CUSTOM),
+                        GetString(SI_AAB_ULT_BORDER_CONTROLLER),
+                    },
+                    choicesValues = { "custom", "controller" },
+                    getFunc = function() return sv.ultBorderStyle end,
+                    setFunc = function(v)
+                        sv.ultBorderStyle = v
+                        if v == "controller" then
+                            HideUltBorder()   -- eigenen glow-rahmen abräumen
+                            SuppressVanillaUltGlow()
+                            ShowCtrlBorder()  -- eigene fortschritts-border zeigen
+                        else
+                            HideCtrlBorder()  -- controller-border abräumen
+                            SuppressVanillaUltGlow()
+                            CheckUltimateReady()  -- eigenen glow-rahmen ggf. neu aufbauen
+                        end
+                    end,
+                    default = defaults.ultBorderStyle,
+                    warning = GetString(SI_AAB_RELOAD_NOTE),
+                },
+                {
+                    type    = "dropdown",
+                    name    = GetString(SI_AAB_ULTCTRL_STYLE),
+                    tooltip = GetString(SI_AAB_ULTCTRL_STYLE_TT),
+                    choices = {
+                        GetString(SI_AAB_ULTCTRL_STYLE_FLAT),
+                        GetString(SI_AAB_ULTCTRL_STYLE_BEVEL),
+                        GetString(SI_AAB_ULTCTRL_STYLE_SLEEK),
+                        GetString(SI_AAB_ULTCTRL_STYLE_CHAMFER),
+                        GetString(SI_AAB_ULTCTRL_STYLE_DOUBLE),
+                    },
+                    choicesValues = { "flat", "bevel", "sleek", "chamfer", "double" },
+                    getFunc = function() return sv.ultCtrlStyle end,
+                    setFunc = function(v) sv.ultCtrlStyle = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlStyle,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_ULTCTRL_THICKNESS),
+                    tooltip = GetString(SI_AAB_ULTCTRL_THICKNESS_TT),
+                    min     = 1, max = 10, step = 1,
+                    getFunc = function() return sv.ultCtrlThickness end,
+                    setFunc = function(v) sv.ultCtrlThickness = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlThickness,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_ULTCTRL_CORNER),
+                    tooltip = GetString(SI_AAB_ULTCTRL_CORNER_TT),
+                    min     = 10, max = 50, step = 5,
+                    getFunc = function() return math.floor((sv.ultCtrlCornerFrac or 0.30) * 100 + 0.5) end,
+                    setFunc = function(v) sv.ultCtrlCornerFrac = v / 100; ShowCtrlBorder() end,
+                    default = 30,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_ULTCTRL_PADDING),
+                    tooltip = GetString(SI_AAB_ULTCTRL_PADDING_TT),
+                    min     = 0, max = 12, step = 1,
+                    getFunc = function() return sv.ultCtrlPadding end,
+                    setFunc = function(v) sv.ultCtrlPadding = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlPadding,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTCTRL_TRACK),
+                    tooltip = GetString(SI_AAB_ULTCTRL_TRACK_TT),
+                    getFunc = function() return sv.ultCtrlShowTrack end,
+                    setFunc = function(v) sv.ultCtrlShowTrack = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlShowTrack,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTCTRL_COLORSHIFT),
+                    tooltip = GetString(SI_AAB_ULTCTRL_COLORSHIFT_TT),
+                    getFunc = function() return sv.ultCtrlColorShift end,
+                    setFunc = function(v) sv.ultCtrlColorShift = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlColorShift,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "colorpicker",
+                    name    = GetString(SI_AAB_ULTCTRL_CHARGECOLOR),
+                    tooltip = GetString(SI_AAB_ULTCTRL_CHARGECOLOR_TT),
+                    getFunc = function() local c = sv.ultCtrlChargingColor; return c[1], c[2], c[3], c[4] end,
+                    setFunc = function(r, g, b, a)
+                        sv.ultCtrlChargingColor = { r, g, b, a or 1 }
+                        ShowCtrlBorder()
+                    end,
+                    default = {
+                        r = defaults.ultCtrlChargingColor[1], g = defaults.ultCtrlChargingColor[2],
+                        b = defaults.ultCtrlChargingColor[3], a = defaults.ultCtrlChargingColor[4],
+                    },
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled or not sv.ultCtrlColorShift end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTCTRL_GLOWFULL),
+                    tooltip = GetString(SI_AAB_ULTCTRL_GLOWFULL_TT),
+                    getFunc = function() return sv.ultCtrlGlowOnFull end,
+                    setFunc = function(v) sv.ultCtrlGlowOnFull = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlGlowOnFull,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
+                    type    = "dropdown",
+                    name    = GetString(SI_AAB_ULTCTRL_GLOWSTYLE),
+                    tooltip = GetString(SI_AAB_ULTCTRL_GLOWSTYLE_TT),
+                    choices = {
+                        GetString(SI_AAB_ULTCTRL_GLOWSTYLE_SOFT),
+                        GetString(SI_AAB_ULTCTRL_GLOWSTYLE_SHARP),
+                        GetString(SI_AAB_ULTCTRL_GLOWSTYLE_RING),
+                    },
+                    choicesValues = { "soft", "sharp", "ring" },
+                    getFunc = function() return sv.ultCtrlGlowStyle end,
+                    setFunc = function(v) sv.ultCtrlGlowStyle = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlGlowStyle,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled or not sv.ultCtrlGlowOnFull end,
+                },
+                {
+                    type    = "slider",
+                    name    = GetString(SI_AAB_ULTCTRL_GLOWINT),
+                    tooltip = GetString(SI_AAB_ULTCTRL_GLOWINT_TT),
+                    min     = 0.1, max = 1.0, step = 0.05,
+                    getFunc = function() return sv.ultCtrlGlowIntensity end,
+                    setFunc = function(v) sv.ultCtrlGlowIntensity = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlGlowIntensity,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled or not sv.ultCtrlGlowOnFull end,
+                },
+                {
+                    type    = "checkbox",
+                    name    = GetString(SI_AAB_ULTCTRL_RAINBOW),
+                    tooltip = GetString(SI_AAB_ULTCTRL_RAINBOW_TT),
+                    getFunc = function() return sv.ultCtrlRainbow end,
+                    setFunc = function(v) sv.ultCtrlRainbow = v; ShowCtrlBorder() end,
+                    default = defaults.ultCtrlRainbow,
+                    disabled = function() return sv.ultBorderStyle ~= "controller" or not sv.ultReadyEnabled end,
+                },
+                {
                     type    = "checkbox",
                     name    = GetString(SI_AAB_ULT_ENABLE),
                     tooltip = GetString(SI_AAB_ULT_ENABLE_TT),
                     getFunc = function() return sv.ultReadyEnabled end,
                     setFunc = function(v)
                         sv.ultReadyEnabled = v
-                        if not v then HideUltBorder() else CheckUltimateReady() end
+                        if not v then
+                            HideUltBorder(); HideCtrlBorder()
+                        elseif sv.ultBorderStyle == "controller" then
+                            ShowCtrlBorder()
+                        else
+                            CheckUltimateReady()
+                        end
                     end,
                     default = defaults.ultReadyEnabled,
                 },
@@ -2446,7 +2957,11 @@ local function BuildMenu()
                     getFunc = function() local c = sv.ultReadyColor; return c[1], c[2], c[3], c[4] end,
                     setFunc = function(r, g, b, a)
                         sv.ultReadyColor = { r, g, b, a or 1 }
-                        if ultIsReady then ShowUltBorder() end
+                        if sv.ultBorderStyle == "controller" then
+                            ShowCtrlBorder()       -- klammer neu einfärben
+                        elseif ultIsReady then
+                            ShowUltBorder()
+                        end
                     end,
                     default = {
                         r = defaults.ultReadyColor[1], g = defaults.ultReadyColor[2],
@@ -2464,7 +2979,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyPulse,
-                    disabled = function() return not sv.ultReadyEnabled end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled end,
                 },
                 {
                     type    = "dropdown",
@@ -2478,7 +2993,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyMode,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse end,
                 },
                 {
                     type    = "slider",
@@ -2492,7 +3007,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyBlinkIntMS,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "blink" end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "blink" end,
                 },
                 {
                     type    = "checkbox",
@@ -2504,7 +3019,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultColorCycleEnabled,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "blink" end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "blink" end,
                 },
                 {
                     type    = "colorpicker",
@@ -2519,7 +3034,7 @@ local function BuildMenu()
                         r = defaults.ultColorCycleSecondary[1], g = defaults.ultColorCycleSecondary[2],
                         b = defaults.ultColorCycleSecondary[3], a = defaults.ultColorCycleSecondary[4],
                     },
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "blink" or not sv.ultColorCycleEnabled end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "blink" or not sv.ultColorCycleEnabled end,
                 },
                 {
                     type    = "slider",
@@ -2533,7 +3048,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultRainbowSaturation,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "smooth-rainbow" end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "smooth-rainbow" end,
                 },
                 {
                     type    = "slider",
@@ -2547,7 +3062,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultRainbowLightness,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "smooth-rainbow" end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "smooth-rainbow" end,
                 },
                 {
                     type    = "slider",
@@ -2561,7 +3076,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyPulseDurMS,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "smooth" end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse or sv.ultReadyMode ~= "smooth" end,
                 },
                 {
                     type    = "slider",
@@ -2575,7 +3090,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyMinAlpha,
-                    disabled = function() return not sv.ultReadyEnabled or not sv.ultReadyPulse end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled or not sv.ultReadyPulse end,
                 },
                 {
                     type    = "slider",
@@ -2589,7 +3104,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyIntensity,
-                    disabled = function() return not sv.ultReadyEnabled end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled end,
                 },
                 {
                     type    = "slider",
@@ -2603,7 +3118,7 @@ local function BuildMenu()
                         if ultIsReady then ShowUltBorder() end
                     end,
                     default = defaults.ultReadyPadding,
-                    disabled = function() return not sv.ultReadyEnabled end,
+                    disabled = function() return sv.ultBorderStyle == "controller" or not sv.ultReadyEnabled end,
                 },
             },
         },
@@ -2709,7 +3224,7 @@ local function BuildMenu()
                     getFunc = function() return sv.perfSlowRainbow end,
                     setFunc = function(v)
                         sv.perfSlowRainbow = v
-                        -- Rainbow neu starten, damit das neue Intervall greift
+                        -- rainbow neu starten, damit das neue intervall greift
                         if CheckUltimateReady then CheckUltimateReady() end
                     end,
                     default = defaults.perfSlowRainbow,
@@ -2774,16 +3289,16 @@ local function OnAddOnLoaded(_, addonName)
     if addonName ~= ADDON_NAME then return end
     EM:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
-    -- Neuer, server-abhaengiger Scope (EU/NA/PTS getrennt) via GetWorldName()
+    -- server-abhängiger scope (EU/NA/PTS getrennt) via GetWorldName()
     local worldName = GetWorldName()
     sv = ZO_SavedVars:NewAccountWide("AnimatedActionBarPlusSV", 1, worldName, defaults)
 
-    -- One-Time-Migration der alten, server-unabhaengigen Einstellungen in den neuen Scope
+    -- one-time-migration der alten, server-unabhängigen einstellungen in den neuen scope
     if not sv.__serverMigrated then
         local old = ZO_SavedVars:NewAccountWide("AnimatedActionBarPlusSV", 1, nil, {})
         if old then
             for k, v in pairs(old) do
-                -- interne ZO_SavedVars-Felder und schon vorhandene Werte nicht ueberschreiben
+                -- interne ZO_SavedVars-felder und schon vorhandene werte nicht überschreiben
                 if k ~= "version" and k ~= "_internal" and k ~= "__serverMigrated" and sv[k] == nil then
                     sv[k] = v
                 end
@@ -2791,7 +3306,7 @@ local function OnAddOnLoaded(_, addonName)
         end
         sv.__serverMigrated = true
 
-        -- Alte Strukturen leeren, damit die SV-Datei nicht unnoetig waechst
+        -- alte strukturen leeren, damit die SV-datei nicht unnötig wächst
         if old then
             for k in pairs(old) do
                 if k ~= "version" and k ~= "_internal" then
@@ -2811,11 +3326,11 @@ local function OnAddOnLoaded(_, addonName)
     if not skipSecondHook then
         SecurePostHook(ActionButton, "ApplyStyle", function(self)
             if self and self.slot and self.slot.slotNum == ULT_SLOT_INDEX then
-                -- vanilla-rahmen und fill-anims weg
+                -- vanilla-rahmen und fill-anims immer weg; im controller-modus zeichnen
+                -- wir stattdessen unsere eigene fortschritts-border.
                 for _, name in ipairs(ULT_FRAME_CHILDREN) do
                     local c = self.slot:GetNamedChild(name)
                     if c then
-                        if c.SetTexture then c:SetTexture("") end
                         c:SetAlpha(0)
                         if c.SetHidden then c:SetHidden(true) end
                     end
@@ -2825,7 +3340,6 @@ local function OnAddOnLoaded(_, addonName)
                     for _, name in ipairs(ULT_SHIMMER_CHILDREN) do
                         local c = self.slot:GetNamedChild(name)
                         if c then
-                            if c.SetTexture then c:SetTexture("") end
                             c:SetAlpha(0)
                             if c.SetHidden then c:SetHidden(true) end
                         end
@@ -2840,7 +3354,7 @@ local function OnAddOnLoaded(_, addonName)
     BuildMenu()
     RegisterEvents()
 
-    -- kompletter Status-Dump im Chat (früher /aabdebug)
+    -- kompletter status-dump im chat
     local function PrintDebugDump()
         local head = "|ca970ff"
         local key  = "|c8a7fa6"
@@ -2874,6 +3388,22 @@ local function OnAddOnLoaded(_, addonName)
         d("  " .. lbl(SI_AAB_DBG_VANILLAPROC) .. yn(sv.vanillaProcGlow))
 
         d(key .. GetString(SI_AAB_DBG_ULTFRAME) .. e)
+        d("  " .. lbl(SI_AAB_DBG_STYLE) .. v(sv.ultBorderStyle))
+        if sv.ultBorderStyle == "controller" then
+            local pct = 0
+            local cost = GetSlotAbilityCost(ULT_SLOT_INDEX) or 0
+            if cost > 0 then pct = (GetUnitPower("player", POWERTYPE_ULTIMATE) / cost) end
+            local shown = (ultCtrl and ultCtrl.fill.BL and not ultCtrl.fill.BL:IsHidden()) and true or false
+            d("  " .. lbl(SI_AAB_DBG_PROGRESS) .. v(string.format("%.0f%%", pct * 100))
+                .. "  " .. lbl(SI_AAB_DBG_BORDER) .. (shown and (on .. GetString(SI_AAB_DBG_VISIBLE) .. e) or (off .. GetString(SI_AAB_DBG_OFF) .. e)))
+            d("  " .. lbl(SI_AAB_DBG_TEXTURE) .. v(sv.ultCtrlStyle)
+                .. "  " .. lbl(SI_AAB_DBG_THICKNESS) .. v(tostring(sv.ultCtrlThickness))
+                .. "  " .. lbl(SI_AAB_DBG_PADDING) .. v(tostring(sv.ultCtrlPadding)))
+            d("  " .. lbl(SI_AAB_DBG_COLORSHIFT) .. yn(sv.ultCtrlColorShift)
+                .. "  " .. lbl(SI_AAB_DBG_FULLGLOW) .. yn(sv.ultCtrlGlowOnFull)
+                .. "  " .. lbl(SI_AAB_DBG_GLOWSTYLE) .. v(sv.ultCtrlGlowStyle))
+            d("  " .. lbl(SI_AAB_DBG_RAINBOW) .. yn(sv.ultCtrlRainbow))
+        end
         d("  " .. lbl(SI_AAB_DBG_READY) .. yn(sv.ultReadyEnabled) .. "  " .. lbl(SI_AAB_DBG_PULSE) .. yn(sv.ultReadyPulse))
         d("  " .. lbl(SI_AAB_DBG_MODE) .. v(sv.ultReadyMode) .. "  " .. lbl(SI_AAB_DBG_COLORCYCLE) .. yn(sv.ultColorCycleEnabled))
         if sv.ultReadyMode == "smooth-rainbow" then
@@ -2899,14 +3429,14 @@ local function OnAddOnLoaded(_, addonName)
         end
     end
 
-    -- oeffnet das panel und klappt direkt das Info-submenu auf. LAM baut die
-    -- controls erst beim ersten oeffnen, daher kurz warten und dann aufklappen
+    -- öffnet das panel und klappt direkt das info-submenu auf. LAM baut die
+    -- controls erst beim ersten öffnen, daher kurz warten und dann aufklappen
     local function OpenInfo()
         OpenPanel()
         zo_callLater(function()
             local sub = _G[ADDON_NAME .. "InfoSubmenu"]
-            -- .open ist der aufklapp-status des submenus. nur oeffnen wenn zu,
-            -- ein zweiter aufruf wuerde es sonst wieder zuklappen
+            -- .open ist der aufklapp-status des submenus. nur öffnen wenn zu,
+            -- ein zweiter aufruf würde es sonst wieder zuklappen
             if sub and sub.open == false and sub.OnClicked then
                 sub:OnClicked()
             end
@@ -2933,7 +3463,7 @@ local function OnAddOnLoaded(_, addonName)
             ToggleExpireTrace()
         elseif cmd == "dialog" then
             -- versteckter test-befehl: hinweis-dialog erzwingen, auch wenn
-            -- er schon bestaetigt wurde. bewusst nicht in der hilfe gelistet
+            -- er schon bestätigt wurde. bewusst nicht in der hilfe gelistet
             ShowInfoDialog(true)
         elseif cmd == "cmd" or cmd == "commands" or cmd == "?" then
             PrintCommandHelp()
@@ -2955,7 +3485,7 @@ local function OnAddOnLoaded(_, addonName)
     AnimatedActionBarPlus.PrintDebug       = PrintDebugDump
     AnimatedActionBarPlus.PrintCommands    = PrintCommandHelp
     AnimatedActionBarPlus.RunCommand       = Dispatch           -- roher "id", "setend", ...
-    AnimatedActionBarPlus.version          = "1.8.1"
+    AnimatedActionBarPlus.version          = "1.8.2"
 
     -- kurze aliase fürs chat-tab-complete
     SLASH_COMMANDS["/aabids"]   = function() PrintSlottedIds() end
@@ -2968,12 +3498,15 @@ local function OnAddOnLoaded(_, addonName)
         ApplyEdgeTexture()
         CheckUltimateReady()
         SuppressVanillaUltGlow()
+        if sv.ultBorderStyle == "controller" then
+            ShowCtrlBorder()  -- beim login die eigene fortschritts-border aufsetzen
+        end
         -- lookup-map einmal bauen falls schon beim laden aktiv
         if sv.perfSlotLookupMap and RebuildSlotLookup then RebuildSlotLookup() end
         lastQuickslotCooldownRemain =
             GetSlotCooldownInfo(QUICKSLOT_INDEX, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or 0
 
-        -- einmaliger hinweis-dialog. etwas spaeter, damit er nicht in den
+        -- einmaliger hinweis-dialog. etwas später, damit er nicht in den
         -- lade-screen platzt sondern erst wenn der spieler wirklich im spiel ist
         zo_callLater(function() ShowInfoDialog(false) end, 2000)
     end, 500)

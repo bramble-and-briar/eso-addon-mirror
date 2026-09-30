@@ -182,7 +182,15 @@ local function normalizeProgressCounters(value)
     return table.concat(out, "\n")
 end
 
-function Q:GetActiveQuestIndex()
+local GetActiveQuestIndexImplArch
+
+function Q:GetActiveQuestIndex(...)
+
+    return GetActiveQuestIndexImplArch(self, ...)
+
+end
+
+GetActiveQuestIndexImplArch = function(self)
     local fallbackTracked = nil
     local max = tonumber(MAX_JOURNAL_QUESTS) or 25
     for i = 1, max do
@@ -766,7 +774,15 @@ function Q:AutoFitHeight()
     end
 end
 
-function Q:Refresh()
+local RefreshImplArch
+
+function Q:Refresh(...)
+
+    return RefreshImplArch(self, ...)
+
+end
+
+RefreshImplArch = function(self)
     if not self.frame or not EPC.saved then return end
     local show = EPC.saved.showActiveQuestOverlay ~= false
     if self.layoutMode then show = true
@@ -823,7 +839,15 @@ function Q:Refresh()
     self:AutoFitHeight()
 end
 
-function Q:SetLayoutMode(active)
+local SetLayoutModeImplArch
+
+function Q:SetLayoutMode(...)
+
+    return SetLayoutModeImplArch(self, ...)
+
+end
+
+SetLayoutModeImplArch = function(self, active)
     self.layoutMode = active == true
     if not self.frame then return end
     self.frame:SetMouseEnabled(self.layoutMode)
@@ -854,7 +878,15 @@ function Q:ResetSize()
     self:Refresh()
 end
 
-function Q:ResetPosition()
+local ResetPositionImplArch
+
+function Q:ResetPosition(...)
+
+    return ResetPositionImplArch(self, ...)
+
+end
+
+ResetPositionImplArch = function(self)
     if not self.frame or not EPC.saved then return end
     EPC.saved.activeQuestLeft, EPC.saved.activeQuestTop = -1, -1
     EPC.saved.activeQuestPositionWidth338 = nil
@@ -865,7 +897,15 @@ function Q:ResetPosition()
     self.frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 34, 180)
 end
 
-function Q:Initialize()
+local InitializeImplArch
+
+function Q:Initialize(...)
+
+    return InitializeImplArch(self, ...)
+
+end
+
+InitializeImplArch = function(self)
     self.layoutMode = false
     self:Create()
     self:Refresh()
@@ -914,7 +954,15 @@ local function easQuestId2512(index)
     return ok and (tonumber(questId) or 0) or 0
 end
 
-function Q:ResolveSelectedQuest2512()
+local ResolveSelectedQuest2512ImplArch
+
+function Q:ResolveSelectedQuest2512(...)
+
+    return ResolveSelectedQuest2512ImplArch(self, ...)
+
+end
+
+ResolveSelectedQuest2512ImplArch = function(self)
     if not EPC.saved then return nil end
     local wantedId = tonumber(EPC.saved.selectedHudQuestId) or 0
     local wantedName = trim(EPC.saved.selectedHudQuestName)
@@ -957,7 +1005,15 @@ function Q:ResolveSelectedQuest2512()
     return nil
 end
 
-function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
+local SetSelectedQuest2512ImplArch
+
+function Q:SetSelectedQuest2512(...)
+
+    return SetSelectedQuest2512ImplArch(self, ...)
+
+end
+
+SetSelectedQuest2512ImplArch = function(self, questIndex, questId, questName, source)
     if not EPC.saved then return false end
     questIndex = tonumber(questIndex)
     if not questIndex or questIndex <= 0 then return false end
@@ -980,7 +1036,15 @@ function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
     return true
 end
 
-function Q:ClearSelectedQuest2512()
+local ClearSelectedQuest2512ImplArch
+
+function Q:ClearSelectedQuest2512(...)
+
+    return ClearSelectedQuest2512ImplArch(self, ...)
+
+end
+
+ClearSelectedQuest2512ImplArch = function(self)
     if not EPC.saved then return end
     EPC.saved.selectedHudQuestIndex = nil
     EPC.saved.selectedHudQuestId = 0
@@ -992,8 +1056,8 @@ function Q:ClearSelectedQuest2512()
     self:Refresh()
 end
 
-local easLegacyGetActiveQuestIndex_2512 = Q.GetActiveQuestIndex
-function Q:GetActiveQuestIndex()
+local easLegacyGetActiveQuestIndex_2512 = GetActiveQuestIndexImplArch
+GetActiveQuestIndexImplArch = function(self)
     local selected = self:ResolveSelectedQuest2512()
     if selected then return selected end
     return easLegacyGetActiveQuestIndex_2512(self)
@@ -1066,7 +1130,15 @@ local function easQuestTargetText2517(questIndex, stepIndex, conditionIndex)
     return "Current quest objective"
 end
 
-function Q:CreateDirectionArrow2512()
+local CreateDirectionArrow2512ImplArch
+
+function Q:CreateDirectionArrow2512(...)
+
+    return CreateDirectionArrow2512ImplArch(self, ...)
+
+end
+
+CreateDirectionArrow2512ImplArch = function(self)
     if self.directionFrame2512 or not wm then return self.directionFrame2512 end
 
     local size = tonumber(EPC.saved and EPC.saved.questDirectionArrowSize) or EAS_QUEST_ARROW_DEFAULT_2512
@@ -1158,7 +1230,15 @@ function Q:CreateDirectionArrow2512()
     return frame
 end
 
-function Q:GetQuestDirectionPosition2512(questIndex)
+local GetQuestDirectionPosition2512ImplArch
+
+function Q:GetQuestDirectionPosition2512(...)
+
+    return GetQuestDirectionPosition2512ImplArch(self, ...)
+
+end
+
+GetQuestDirectionPosition2512ImplArch = function(self, questIndex)
     if not questIndex or not EPC.Travel or not EPC.Travel.RequestFocusedQuestPosition then return nil end
     easEnsurePlayerMap2512()
 
@@ -1233,7 +1313,15 @@ function Q:GetQuestDirectionPosition2512(questIndex)
     return best, px, py, pending, fallbackTarget
 end
 
-function Q:UpdateDirectionArrow2512(force)
+local UpdateDirectionArrow2512ImplArch
+
+function Q:UpdateDirectionArrow2512(...)
+
+    return UpdateDirectionArrow2512ImplArch(self, ...)
+
+end
+
+UpdateDirectionArrow2512ImplArch = function(self, force)
     local frame = self:CreateDirectionArrow2512()
     if not frame or not EPC.saved then return end
 
@@ -1332,8 +1420,8 @@ function Q:UpdateDirectionArrow2512(force)
     end
 end
 
-local easLegacySetLayoutMode_2512 = Q.SetLayoutMode
-function Q:SetLayoutMode(active)
+local easLegacySetLayoutMode_2512 = SetLayoutModeImplArch
+SetLayoutModeImplArch = function(self, active)
     easLegacySetLayoutMode_2512(self, active)
     local frame = self:CreateDirectionArrow2512()
     if frame then
@@ -1344,8 +1432,8 @@ function Q:SetLayoutMode(active)
     self:UpdateDirectionArrow2512(true)
 end
 
-local easLegacyResetPosition_2512 = Q.ResetPosition
-function Q:ResetPosition()
+local easLegacyResetPosition_2512 = ResetPositionImplArch
+ResetPositionImplArch = function(self)
     easLegacyResetPosition_2512(self)
     local frame = self:CreateDirectionArrow2512()
     if frame and EPC.saved then
@@ -1356,8 +1444,8 @@ function Q:ResetPosition()
     end
 end
 
-local easLegacyInitialize_2512 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2512 = InitializeImplArch
+InitializeImplArch = function(self)
     easLegacyInitialize_2512(self)
     self:CreateDirectionArrow2512()
     local prefix = EPC.name .. "_QuestDirection2512"
@@ -1375,7 +1463,15 @@ local function easQuestTrackingSource2513()
     return source
 end
 
-function Q:GetQuestTrackingSource2513()
+local GetQuestTrackingSource2513ImplArch
+
+function Q:GetQuestTrackingSource2513(...)
+
+    return GetQuestTrackingSource2513ImplArch(self, ...)
+
+end
+
+GetQuestTrackingSource2513ImplArch = function(self)
     return easQuestTrackingSource2513()
 end
 
@@ -1433,7 +1529,15 @@ function Q:ResolveTrackedSourceQuest2513(source)
     return nil
 end
 
-function Q:SyncQuestTrackingCompatibility2513()
+local SyncQuestTrackingCompatibility2513ImplArch
+
+function Q:SyncQuestTrackingCompatibility2513(...)
+
+    return SyncQuestTrackingCompatibility2513ImplArch(self, ...)
+
+end
+
+SyncQuestTrackingCompatibility2513ImplArch = function(self)
     if not EPC.saved then return end
     local source = self:GetQuestTrackingSource2513()
     local indexKey, idKey, nameKey = easQuestKeys2513(source)
@@ -1443,7 +1547,15 @@ function Q:SyncQuestTrackingCompatibility2513()
     EPC.saved.selectedHudQuestSource = source == "GOLDEN_PURSUITS" and "GOLDEN_PURSUIT" or "QUEST_FINDER"
 end
 
-function Q:SetQuestTrackingSource2513(source)
+local SetQuestTrackingSource2513ImplArch
+
+function Q:SetQuestTrackingSource2513(...)
+
+    return SetQuestTrackingSource2513ImplArch(self, ...)
+
+end
+
+SetQuestTrackingSource2513ImplArch = function(self, source)
     if not EPC.saved then return end
     source = source == "GOLDEN_PURSUITS" and "GOLDEN_PURSUITS" or "ACTIVE_QUEST"
     EPC.saved.questTrackingSource = source
@@ -1458,7 +1570,7 @@ function Q:SetQuestTrackingSource2513(source)
     end
 end
 
-function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
+SetSelectedQuest2512ImplArch = function(self, questIndex, questId, questName, source)
     if not EPC.saved then return false end
     questIndex = tonumber(questIndex)
     if not questIndex or questIndex <= 0 then return false end
@@ -1485,7 +1597,7 @@ function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
     return true
 end
 
-function Q:ClearSelectedQuest2512()
+ClearSelectedQuest2512ImplArch = function(self)
     if not EPC.saved then return end
     local source = self:GetQuestTrackingSource2513()
     local indexKey, idKey, nameKey = easQuestKeys2513(source)
@@ -1500,11 +1612,11 @@ function Q:ClearSelectedQuest2512()
     self:UpdateDirectionArrow2512(true)
 end
 
-function Q:ResolveSelectedQuest2512()
+ResolveSelectedQuest2512ImplArch = function(self)
     return self:ResolveTrackedSourceQuest2513(self:GetQuestTrackingSource2513())
 end
 
-function Q:GetActiveQuestIndex()
+GetActiveQuestIndexImplArch = function(self)
     local source = self:GetQuestTrackingSource2513()
     local selected = self:ResolveTrackedSourceQuest2513(source)
     if selected then return selected end
@@ -1512,7 +1624,15 @@ function Q:GetActiveQuestIndex()
     return easLegacyGetActiveQuestIndex_2512(self)
 end
 
-function Q:SetDirectionArrowSize2513(size)
+local SetDirectionArrowSize2513ImplArch
+
+function Q:SetDirectionArrowSize2513(...)
+
+    return SetDirectionArrowSize2513ImplArch(self, ...)
+
+end
+
+SetDirectionArrowSize2513ImplArch = function(self, size)
     if not EPC.saved then return end
     size = math.max(EAS_QUEST_ARROW_MIN_2512, math.min(EAS_QUEST_ARROW_MAX_2512, tonumber(size) or EAS_QUEST_ARROW_DEFAULT_2512))
     EPC.saved.questDirectionArrowSize = math.floor(size + 0.5)
@@ -1521,15 +1641,15 @@ function Q:SetDirectionArrowSize2513(size)
     self:UpdateDirectionArrow2512(true)
 end
 
-local easLegacyRefresh_2513 = Q.Refresh
-function Q:Refresh()
+local easLegacyRefresh_2513 = RefreshImplArch
+RefreshImplArch = function(self)
     -- v0.28.72: do not hide the Active Quest overlay just because Golden
     -- Pursuits owns the assisted quest/compass. Its own show setting decides.
     return easLegacyRefresh_2513(self)
 end
 
-local easLegacyInitialize_2513 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2513 = InitializeImplArch
+InitializeImplArch = function(self)
     if EPC.saved then
         local source = tostring(EPC.saved.questTrackingSource or "ACTIVE_QUEST")
         if source ~= "GOLDEN_PURSUITS" then source = "ACTIVE_QUEST" end
@@ -1644,14 +1764,14 @@ function Q:ResolveActiveNonMainQuest2514()
     return fallbackTracked
 end
 
-function Q:GetQuestTrackingSource2513()
+GetQuestTrackingSource2513ImplArch = function(self)
     local source = tostring(EPC.saved and EPC.saved.questTrackingSource or "ACTIVE_QUEST")
     if source ~= "GOLDEN_PURSUITS" and source ~= "MAIN_QUEST" then source = "ACTIVE_QUEST" end
     return source
 end
 
-local easLegacySyncQuestTrackingCompatibility_2514 = Q.SyncQuestTrackingCompatibility2513
-function Q:SyncQuestTrackingCompatibility2513()
+local easLegacySyncQuestTrackingCompatibility_2514 = SyncQuestTrackingCompatibility2513ImplArch
+SyncQuestTrackingCompatibility2513ImplArch = function(self)
     if not EPC.saved then return end
     local source = self:GetQuestTrackingSource2513()
     if source ~= "MAIN_QUEST" then
@@ -1665,7 +1785,7 @@ function Q:SyncQuestTrackingCompatibility2513()
     EPC.saved.selectedHudQuestSource = "MAIN_QUEST"
 end
 
-function Q:SetQuestTrackingSource2513(source)
+SetQuestTrackingSource2513ImplArch = function(self, source)
     if not EPC.saved then return end
     source = tostring(source or "ACTIVE_QUEST")
     if source ~= "GOLDEN_PURSUITS" and source ~= "MAIN_QUEST" then source = "ACTIVE_QUEST" end
@@ -1681,8 +1801,8 @@ function Q:SetQuestTrackingSource2513(source)
     end
 end
 
-local easLegacySetSelectedQuest_2514 = Q.SetSelectedQuest2512
-function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
+local easLegacySetSelectedQuest_2514 = SetSelectedQuest2512ImplArch
+SetSelectedQuest2512ImplArch = function(self, questIndex, questId, questName, source)
     local sourceName = tostring(source or "")
     if sourceName ~= "GOLDEN_PURSUIT" and easIsMainQuest2514(tonumber(questIndex)) then
         -- Main Story selection must not overwrite the separately remembered
@@ -1700,8 +1820,8 @@ function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
     return easLegacySetSelectedQuest_2514(self, questIndex, questId, questName, source)
 end
 
-local easLegacyClearSelectedQuest_2514 = Q.ClearSelectedQuest2512
-function Q:ClearSelectedQuest2512()
+local easLegacyClearSelectedQuest_2514 = ClearSelectedQuest2512ImplArch
+ClearSelectedQuest2512ImplArch = function(self)
     if self:GetQuestTrackingSource2513() == "MAIN_QUEST" then
         -- MAIN_QUEST has no independent saved selection to clear and must never
         -- clear the stored Active Quest selection.
@@ -1713,13 +1833,13 @@ function Q:ClearSelectedQuest2512()
     return easLegacyClearSelectedQuest_2514(self)
 end
 
-function Q:ResolveSelectedQuest2512()
+ResolveSelectedQuest2512ImplArch = function(self)
     local source = self:GetQuestTrackingSource2513()
     if source == "MAIN_QUEST" then return self:ResolveMainQuest2514() end
     return self:ResolveTrackedSourceQuest2513(source)
 end
 
-function Q:GetActiveQuestIndex()
+GetActiveQuestIndexImplArch = function(self)
     local source = self:GetQuestTrackingSource2513()
     if source == "GOLDEN_PURSUITS" then
         return self:ResolveTrackedSourceQuest2513("GOLDEN_PURSUITS")
@@ -1733,8 +1853,8 @@ function Q:GetActiveQuestIndex()
     return self:ResolveActiveNonMainQuest2514()
 end
 
-local easLegacyInitialize_2514 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2514 = InitializeImplArch
+InitializeImplArch = function(self)
     local requestedSource = tostring(EPC.saved and EPC.saved.questTrackingSource or "ACTIVE_QUEST")
     easLegacyInitialize_2514(self)
     if not EPC.saved then return end
@@ -1809,7 +1929,15 @@ local function easResolveRememberedQuest2516(source)
     return nil
 end
 
-function Q:ResolveQuestSource2516(source)
+local ResolveQuestSource2516ImplArch
+
+function Q:ResolveQuestSource2516(...)
+
+    return ResolveQuestSource2516ImplArch(self, ...)
+
+end
+
+ResolveQuestSource2516ImplArch = function(self, source)
     source = tostring(source or self:GetQuestTrackingSource2513())
     if source ~= "GOLDEN_PURSUITS" and source ~= "MAIN_QUEST" then source = "ACTIVE_QUEST" end
 
@@ -1851,7 +1979,15 @@ function Q:ResolveQuestSource2516(source)
     return fallback
 end
 
-function Q:ApplySelectedSourceToESO2516()
+local ApplySelectedSourceToESO2516ImplArch
+
+function Q:ApplySelectedSourceToESO2516(...)
+
+    return ApplySelectedSourceToESO2516ImplArch(self, ...)
+
+end
+
+ApplySelectedSourceToESO2516ImplArch = function(self)
     if not EPC.saved then return nil end
     local source = self:GetQuestTrackingSource2513()
     local questIndex = self:ResolveQuestSource2516(source)
@@ -1879,7 +2015,7 @@ function Q:ApplySelectedSourceToESO2516()
     return questIndex
 end
 
-function Q:SetQuestTrackingSource2513(source)
+SetQuestTrackingSource2513ImplArch = function(self, source)
     if not EPC.saved then return end
     source = tostring(source or "ACTIVE_QUEST")
     if source ~= "GOLDEN_PURSUITS" and source ~= "MAIN_QUEST" then source = "ACTIVE_QUEST" end
@@ -1887,7 +2023,7 @@ function Q:SetQuestTrackingSource2513(source)
     self:ApplySelectedSourceToESO2516()
 end
 
-function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
+SetSelectedQuest2512ImplArch = function(self, questIndex, questId, questName, source)
     if not EPC.saved then return false end
     questIndex = tonumber(questIndex)
     if not questIndex or questIndex <= 0 then return false end
@@ -1919,7 +2055,7 @@ function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
     return true
 end
 
-function Q:ClearSelectedQuest2512()
+ClearSelectedQuest2512ImplArch = function(self)
     if not EPC.saved then return end
     local source = self:GetQuestTrackingSource2513()
     local indexKey, idKey, nameKey = easSourceKeys2516(source)
@@ -1929,16 +2065,16 @@ function Q:ClearSelectedQuest2512()
     self:ApplySelectedSourceToESO2516()
 end
 
-function Q:ResolveSelectedQuest2512()
+ResolveSelectedQuest2512ImplArch = function(self)
     return self:ResolveQuestSource2516(self:GetQuestTrackingSource2513())
 end
 
-function Q:GetActiveQuestIndex()
+GetActiveQuestIndexImplArch = function(self)
     return self:ResolveQuestSource2516(self:GetQuestTrackingSource2513())
 end
 
-local easLegacyInitialize_2516 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2516 = InitializeImplArch
+InitializeImplArch = function(self)
     easLegacyInitialize_2516(self)
     if not EPC.saved then return end
     if EPC.saved.mainHudQuestIndex == nil then EPC.saved.mainHudQuestIndex = nil end
@@ -2049,7 +2185,7 @@ local function easCandidateBetter2519(candidate, best)
     return candidate.distanceSq < best.distanceSq
 end
 
-function Q:GetQuestDirectionPosition2512(questIndex)
+GetQuestDirectionPosition2512ImplArch = function(self, questIndex)
     if not questIndex then return nil end
 
     local px, py, heading, shown, symbolic = easPlayerMapState2519()
@@ -2127,7 +2263,7 @@ function Q:GetQuestDirectionPosition2512(questIndex)
     return best, px, py, pending, fallbackTarget
 end
 
-function Q:UpdateDirectionArrow2512(force)
+UpdateDirectionArrow2512ImplArch = function(self, force)
     local frame = self:CreateDirectionArrow2512()
     if not frame or not EPC.saved then return end
 
@@ -2236,7 +2372,7 @@ local function easNormalizeQuestSource2520(source)
     return "ACTIVE_QUEST"
 end
 
-function Q:GetQuestTrackingSource2513()
+GetQuestTrackingSource2513ImplArch = function(self)
     local source = easNormalizeQuestSource2520(EPC.saved and EPC.saved.questTrackingSource or "ACTIVE_QUEST")
     if EPC.saved then EPC.saved.questTrackingSource = source end
     return source
@@ -2308,15 +2444,15 @@ function Q:ResolveQuestSource2520(source)
 end
 
 -- Keep every compatibility caller on the strict resolver.
-function Q:ResolveQuestSource2516(source)
+ResolveQuestSource2516ImplArch = function(self, source)
     return self:ResolveQuestSource2520(source)
 end
 
-function Q:ResolveSelectedQuest2512()
+ResolveSelectedQuest2512ImplArch = function(self)
     return self:ResolveQuestSource2520(self:GetQuestTrackingSource2513())
 end
 
-function Q:GetActiveQuestIndex()
+GetActiveQuestIndexImplArch = function(self)
     return self:ResolveQuestSource2520(self:GetQuestTrackingSource2513())
 end
 
@@ -2331,7 +2467,15 @@ local function easClearOldAssistedQuest2520(questIndex)
     end
 end
 
-function Q:ApplySelectedSourceToESO2520()
+local ApplySelectedSourceToESO2520ImplArch
+
+function Q:ApplySelectedSourceToESO2520(...)
+
+    return ApplySelectedSourceToESO2520ImplArch(self, ...)
+
+end
+
+ApplySelectedSourceToESO2520ImplArch = function(self)
     if not EPC.saved then return nil end
 
     local source = self:GetQuestTrackingSource2513()
@@ -2383,18 +2527,18 @@ function Q:ApplySelectedSourceToESO2520()
     return questIndex
 end
 
-function Q:ApplySelectedSourceToESO2516()
+ApplySelectedSourceToESO2516ImplArch = function(self)
     return self:ApplySelectedSourceToESO2520()
 end
 
-function Q:SetQuestTrackingSource2513(source)
+SetQuestTrackingSource2513ImplArch = function(self, source)
     if not EPC.saved then return end
     source = easNormalizeQuestSource2520(source)
     EPC.saved.questTrackingSource = source
     self:ApplySelectedSourceToESO2520()
 end
 
-function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
+SetSelectedQuest2512ImplArch = function(self, questIndex, questId, questName, source)
     if not EPC.saved then return false end
     questIndex = tonumber(questIndex)
     if not questIndex or questIndex <= 0 then return false end
@@ -2428,7 +2572,7 @@ function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
     return true
 end
 
-function Q:UpdateDirectionArrow2512(force)
+UpdateDirectionArrow2512ImplArch = function(self, force)
     local frame = self:CreateDirectionArrow2512()
     if not frame or not EPC.saved then return end
 
@@ -2537,8 +2681,8 @@ function Q:UpdateDirectionArrow2512(force)
     end
 end
 
-local easLegacyInitialize_2520 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2520 = InitializeImplArch
+InitializeImplArch = function(self)
     easLegacyInitialize_2520(self)
     if not EPC.saved then return end
     EPC.saved.questTrackingSource = easNormalizeQuestSource2520(EPC.saved.questTrackingSource)
@@ -2571,7 +2715,15 @@ local function easSetQuestAssisted2521(questIndex, assisted)
     end
 end
 
-function Q:LockNativeCompassToQuest2521(questIndex, force)
+local LockNativeCompassToQuest2521ImplArch
+
+function Q:LockNativeCompassToQuest2521(...)
+
+    return LockNativeCompassToQuest2521ImplArch(self, ...)
+
+end
+
+LockNativeCompassToQuest2521ImplArch = function(self, questIndex, force)
     questIndex = tonumber(questIndex)
     local now = easDirectionNow2519()
     local last = tonumber(self.nativeCompassSyncTime2521) or -100000
@@ -2652,21 +2804,21 @@ function Q:ApplySelectedSourceToESO2521()
 end
 
 -- Compatibility callers now use the v0.25.21 synchronized implementation.
-function Q:ApplySelectedSourceToESO2520()
+ApplySelectedSourceToESO2520ImplArch = function(self)
     return self:ApplySelectedSourceToESO2521()
 end
-function Q:ApplySelectedSourceToESO2516()
+ApplySelectedSourceToESO2516ImplArch = function(self)
     return self:ApplySelectedSourceToESO2521()
 end
 
-function Q:SetQuestTrackingSource2513(source)
+SetQuestTrackingSource2513ImplArch = function(self, source)
     if not EPC.saved then return end
     source = easNormalizeQuestSource2520(source)
     EPC.saved.questTrackingSource = source
     self:ApplySelectedSourceToESO2521()
 end
 
-function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
+SetSelectedQuest2512ImplArch = function(self, questIndex, questId, questName, source)
     if not EPC.saved then return false end
     questIndex = tonumber(questIndex)
     if not questIndex or questIndex <= 0 then return false end
@@ -2699,7 +2851,7 @@ function Q:SetSelectedQuest2512(questIndex, questId, questName, source)
     return true
 end
 
-function Q:UpdateDirectionArrow2512(force)
+UpdateDirectionArrow2512ImplArch = function(self, force)
     local frame = self:CreateDirectionArrow2512()
     if not frame or not EPC.saved then return end
 
@@ -2811,8 +2963,8 @@ function Q:UpdateDirectionArrow2512(force)
     end
 end
 
-local easLegacyInitialize_2521 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2521 = InitializeImplArch
+InitializeImplArch = function(self)
     easLegacyInitialize_2521(self)
     if not EPC.saved then return end
     EPC.saved.questTrackingSource = easNormalizeQuestSource2520(EPC.saved.questTrackingSource)
@@ -2838,20 +2990,28 @@ local function easHideRemovedQuestArrow2522(self)
     end
 end
 
-function Q:CreateDirectionArrow2512()
+CreateDirectionArrow2512ImplArch = function(self)
     easHideRemovedQuestArrow2522(self)
     return nil
 end
 
-function Q:UpdateDirectionArrow2512(force)
+UpdateDirectionArrow2512ImplArch = function(self, force)
     easHideRemovedQuestArrow2522(self)
 end
 
-function Q:SetDirectionArrowSize2513(size)
+SetDirectionArrowSize2513ImplArch = function(self, size)
     easHideRemovedQuestArrow2522(self)
 end
 
-function Q:RefreshNativeQuestTracking2522(force)
+local RefreshNativeQuestTracking2522ImplArch
+
+function Q:RefreshNativeQuestTracking2522(...)
+
+    return RefreshNativeQuestTracking2522ImplArch(self, ...)
+
+end
+
+RefreshNativeQuestTracking2522ImplArch = function(self, force)
     if not EPC.saved then return end
     local source = self:GetQuestTrackingSource2513()
     local questIndex = self.ResolveQuestSource2520 and self:ResolveQuestSource2520(source) or nil
@@ -2860,8 +3020,8 @@ function Q:RefreshNativeQuestTracking2522(force)
     end
 end
 
-local easLegacyInitialize_2522 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize_2522 = InitializeImplArch
+InitializeImplArch = function(self)
     easLegacyInitialize_2522(self)
 
     -- Earlier versions registered a 100 ms arrow updater. Remove that updater
@@ -3022,8 +3182,8 @@ local function easResolvePendingMainQuest2739()
     return nil
 end
 
-local easLegacyRefresh_2581 = Q.Refresh
-function Q:Refresh()
+local easLegacyRefresh_2581 = RefreshImplArch
+RefreshImplArch = function(self)
     if EPC.saved and self.GetQuestTrackingSource2513 and self:GetQuestTrackingSource2513() == "MAIN_QUEST" then
         local previousIndex = tonumber(EPC.saved.selectedHudQuestIndex) or 0
         local previousId = tonumber(EPC.saved.selectedHudQuestId) or 0
@@ -3169,8 +3329,8 @@ function Q:AdoptESOFocusedQuest2974(force)
     return true
 end
 
-local easLegacyLockNativeCompass2974 = Q.LockNativeCompassToQuest2521
-function Q:LockNativeCompassToQuest2521(questIndex, force)
+local easLegacyLockNativeCompass2974 = LockNativeCompassToQuest2521ImplArch
+LockNativeCompassToQuest2521ImplArch = function(self, questIndex, force)
     self.nativeTrackingWriteDepth2974 = (tonumber(self.nativeTrackingWriteDepth2974) or 0) + 1
     local result
     if easLegacyLockNativeCompass2974 then
@@ -3182,8 +3342,8 @@ function Q:LockNativeCompassToQuest2521(questIndex, force)
     return result
 end
 
-local easLegacyRefreshNativeQuestTracking2974 = Q.RefreshNativeQuestTracking2522
-function Q:RefreshNativeQuestTracking2522(force)
+local easLegacyRefreshNativeQuestTracking2974 = RefreshNativeQuestTracking2522ImplArch
+RefreshNativeQuestTracking2522ImplArch = function(self, force)
     if not EPC.saved then return end
     -- v0.29.79: both ACTIVE QUEST and MAIN QUEST are native-led after ESO's
     -- Change Quest keybind is used. Keeping MAIN_QUEST on the legacy path caused
@@ -3210,8 +3370,8 @@ function Q:RefreshNativeQuestTracking2522(force)
     end
 end
 
-local easLegacyInitialize2974 = Q.Initialize
-function Q:Initialize()
+local easLegacyInitialize2974 = InitializeImplArch
+InitializeImplArch = function(self)
     easLegacyInitialize2974(self)
 
     if EVENT_MANAGER and EVENT_TRACKING_UPDATE then
@@ -3240,8 +3400,8 @@ end
 
 
 -- v0.29.337 - migrate old fixed-height quest viewports to adaptive content fit.
-local easInitializeBefore337 = Q.Initialize
-function Q:Initialize()
+local easInitializeBefore337 = InitializeImplArch
+InitializeImplArch = function(self)
     if EPC.saved and EPC.saved.activeQuestAutoFitVersion337 ~= 337 then
         EPC.saved.activeQuestManualSize2875 = false
         EPC.saved.activeQuestAutoMaxHeight337 = tonumber(EPC.saved.activeQuestAutoMaxHeight337) or MAX_HEIGHT
@@ -3257,8 +3417,8 @@ end
 -- Keep one low-frequency safety tick instead so the two jobs cannot align and
 -- burst on the same frame while the player is moving through a busy area.
 -- ==========================================================================
-local EAS_ActiveQuestInitializeBase029341 = Q.Initialize
-function Q:Initialize()
+local EAS_ActiveQuestInitializeBase029341 = InitializeImplArch
+InitializeImplArch = function(self)
     EAS_ActiveQuestInitializeBase029341(self)
     if not EVENT_MANAGER then return end
     EVENT_MANAGER:UnregisterForUpdate(EPC.name .. "_ActiveQuest_Tick")
@@ -3295,5 +3455,180 @@ function Q:Initialize()
                 zo_callLater(refreshQuest, 900)
             end
         end)
+    end
+end
+
+
+-- ============================================================================
+-- v0.29.789 - Update 51 focused-quest cycle compatibility
+--
+-- Update 51 changed FOCUSED_QUEST_TRACKER:AssistNext() so the native
+-- ASSIST_NEXT_TRACKED_QUEST keybind only advances while ESO's stock quest
+-- tracker is displayed. The Suite uses its own Active Quest overlay and may
+-- keep the stock tracker hidden, so the native T key can become a no-op.
+--
+-- Bindings.xml adds a hidden action inheriting ASSIST_NEXT_TRACKED_QUEST. This
+-- function advances the accepted journal quest list directly while preserving
+-- ESO's assisted quest/compass state and the Suite's current source metadata.
+-- ============================================================================
+function Q:GetCycleableJournalQuests029789()
+    local quests = {}
+    local max = tonumber(MAX_JOURNAL_QUESTS) or 25
+    for index = 1, max do
+        local valid = type(IsValidQuestIndex) ~= "function" or safe(IsValidQuestIndex, false, index) == true
+        if valid and easQuestName2512(index) ~= "" then
+            quests[#quests + 1] = index
+        end
+    end
+    return quests
+end
+
+function Q:CycleTrackedQuestFallback029789(expectedQuestIndex)
+    local current = type(self.GetESOAssistedQuestIndex2974) == "function" and self:GetESOAssistedQuestIndex2974() or nil
+    if expectedQuestIndex and current and current ~= expectedQuestIndex then
+        -- ESO's own Update 51 interaction already advanced successfully.
+        self:AdoptESOFocusedQuest2974(true)
+        return true
+    end
+
+    -- Prefer ESO's own tracker method. It preserves journal sort order,
+    -- wraparound, zone-story behavior, focus audio, and tracker callbacks.
+    local tracker = rawget(_G, "FOCUSED_QUEST_TRACKER")
+    if tracker and type(tracker.AssistNext) == "function" then
+        local ok = pcall(tracker.AssistNext, tracker, true)
+        if ok then
+            local function adopt()
+                if Q and type(Q.AdoptESOFocusedQuest2974) == "function" then
+                    Q:AdoptESOFocusedQuest2974(true)
+                end
+            end
+            if type(zo_callLater) == "function" then
+                zo_callLater(adopt, 30)
+                zo_callLater(adopt, 120)
+            else
+                adopt()
+            end
+            return true
+        end
+    end
+
+    -- Conservative fallback for unusual UI states where the native tracker
+    -- object is unavailable. Advance accepted journal quests directly.
+    local quests = self:GetCycleableJournalQuests029789()
+    if #quests == 0 then return false end
+    current = current or tonumber(EPC.saved.selectedHudQuestIndex)
+
+    local currentPos = 0
+    for i, questIndex in ipairs(quests) do
+        if questIndex == current then currentPos = i break end
+    end
+    local nextQuest = quests[currentPos > 0 and ((currentPos % #quests) + 1) or 1]
+    if not nextQuest then return false end
+
+    self.nativeTrackingWriteDepth2974 = (tonumber(self.nativeTrackingWriteDepth2974) or 0) + 1
+    if TRACK_TYPE_QUEST ~= nil and type(SetTrackedIsAssisted) == "function" then
+        for _, questIndex in ipairs(quests) do
+            pcall(SetTrackedIsAssisted, TRACK_TYPE_QUEST, questIndex == nextQuest, questIndex, 0)
+        end
+    end
+    if TRACK_TYPE_QUEST ~= nil and type(SetTracked) == "function" then
+        pcall(SetTracked, TRACK_TYPE_QUEST, true, nextQuest, 0)
+    end
+    self.nativeTrackingWriteDepth2974 = math.max(0, (tonumber(self.nativeTrackingWriteDepth2974) or 1) - 1)
+    self:AdoptESOFocusedQuest2974(true)
+    return true
+end
+
+function Q:CycleTrackedQuestU51029789()
+    local before = type(self.GetESOAssistedQuestIndex2974) == "function" and self:GetESOAssistedQuestIndex2974() or nil
+
+    -- Our hidden action inherits ESO's ASSIST_NEXT_TRACKED_QUEST bind. Depending
+    -- on the active Update 51 HUD path, ESO may also process the native action.
+    -- Wait one frame: if ESO changed focus, merely adopt it; otherwise perform
+    -- the fallback. This makes the compatibility layer safe with the stock
+    -- tracker both enabled and disabled and prevents skipping two quests.
+    if type(zo_callLater) == "function" then
+        zo_callLater(function()
+            local q = ESOProgressionCoach and ESOProgressionCoach.ActiveQuest
+            if not q then return end
+            q:CycleTrackedQuestFallback029789(before)
+        end, 25)
+        return true
+    end
+    return self:CycleTrackedQuestFallback029789(before)
+end
+
+function Q:InstallQuestCycleHook029790()
+    if self.questCycleHookInstalled029790 == true then return true end
+    local manager = rawget(_G, "HUD_TRACKER_MANAGER")
+    if not manager or type(manager.EndAssistInteract) ~= "function" or type(ZO_PreHook) ~= "function" then
+        return false
+    end
+
+    self.questCycleHookInstalled029790 = true
+
+    ZO_PreHook(manager, "EndAssistInteract", function(hudTrackerManager)
+        -- A held Cycle Tracked Activity key cycles tracked aspirations. Preserve
+        -- ESO's long-press behavior and only supply the missing short-tap quest
+        -- advance when Update 51 suppresses it because the stock quest tracker
+        -- setting is hidden.
+        if hudTrackerManager and hudTrackerManager.cycledAssistedAsipration then
+            return false
+        end
+
+        local trackerVisible = true
+        if type(GetSetting_Bool) == "function"
+            and SETTING_TYPE_UI ~= nil
+            and UI_SETTING_SHOW_QUEST_TRACKER ~= nil then
+            local ok, value = pcall(GetSetting_Bool, SETTING_TYPE_UI, UI_SETTING_SHOW_QUEST_TRACKER)
+            if ok then trackerVisible = value == true end
+        end
+        if trackerVisible then
+            -- ESO will call FOCUSED_QUEST_TRACKER:AssistNext() itself.
+            return false
+        end
+
+        local q = ESOProgressionCoach and ESOProgressionCoach.ActiveQuest
+        local tracker = rawget(_G, "FOCUSED_QUEST_TRACKER")
+        if not q or not tracker or type(tracker.AssistNext) ~= "function" then
+            return false
+        end
+
+        -- The vanilla EndAssistInteract path skips this exact call when the
+        -- quest-tracker setting is hidden. Run ESO's own implementation here so
+        -- journal order, wraparound, zone-story behavior, audio, and callbacks
+        -- remain native.
+        local ok = pcall(tracker.AssistNext, tracker, true)
+        if ok then
+            local function adopt()
+                local activeQuest = ESOProgressionCoach and ESOProgressionCoach.ActiveQuest
+                if activeQuest and type(activeQuest.AdoptESOFocusedQuest2974) == "function" then
+                    activeQuest:AdoptESOFocusedQuest2974(true)
+                end
+            end
+            if type(zo_callLater) == "function" then
+                zo_callLater(adopt, 30)
+                zo_callLater(adopt, 120)
+            else
+                adopt()
+            end
+        end
+
+        -- Do not suppress ESO's EndAssistInteract cleanup. Its own quest-cycle
+        -- branch still no-ops because trackerVisible is false.
+        return false
+    end)
+
+    return true
+end
+
+local EAS_ActiveQuestInitializeBefore029790 = InitializeImplArch
+InitializeImplArch = function(self)
+    EAS_ActiveQuestInitializeBefore029790(self)
+    if not self:InstallQuestCycleHook029790() and type(zo_callLater) == "function" then
+        zo_callLater(function()
+            local q = ESOProgressionCoach and ESOProgressionCoach.ActiveQuest
+            if q then q:InstallQuestCycleHook029790() end
+        end, 500)
     end
 end

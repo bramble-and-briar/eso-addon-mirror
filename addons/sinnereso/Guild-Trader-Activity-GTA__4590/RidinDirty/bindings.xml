@@ -1,0 +1,22 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+		<Category name="|c6666FFRidinDirty|r">
+			<Action name="MOUNT_PLAYER">
+				<Down>RidinDirty.MountPlayer()</Down> 
+			</Action>
+			<Action name="TRAVEL_TO_PLAYER">
+				<Down>RidinDirty.TravelToPlayer()</Down>
+			</Action>
+			<Action name="LEAVE_GROUP">
+				<Down>RidinDirty.GroupLeave()</Down>
+			</Action>
+		</Category>
+	</Layer>
+	<Layer name="SI_KEYBINDINGS_LAYER_SIEGE">
+		<Category name="|c6666FFRidinDirty|r">
+			<Action name="SIEGE_CAMERA_TOGGLE">
+				<Down>RidinDirty.SiegeCameraToggle()</Down>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

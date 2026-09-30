@@ -1,0 +1,19 @@
+## Title: OneDungeon
+## Author: oneDOK
+## Version: 1.0
+## APIVersion: 101051
+## SavedVariables: OneDungeonSavedVariables
+
+lang/en.lua
+lang/$(language).lua
+
+Core.lua
+QuestMappings.lua
+Catalog.lua
+PledgeSchedule.lua
+DungeonData.lua
+QuestData.lua
+AchievementData.lua
+SpecificDungeonsUI.xml
+SpecificDungeonsUI.lua
+Integration.lua

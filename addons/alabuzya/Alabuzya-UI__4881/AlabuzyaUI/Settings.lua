@@ -43,7 +43,7 @@ local function RegisterPanel()
     local ru = GetCVar('language.2') == 'ru'
     local function L(a,b) return ru and a or b end
     local panel = LAM:RegisterAddonPanel('AlabuzyaUIOptions', {
-        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.39',
+        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.44',
         registerForRefresh=true, registerForDefaults=true,
     })
     SLASH_COMMANDS['/alabuzyaui'] = function() LAM:OpenToPanel(panel) end

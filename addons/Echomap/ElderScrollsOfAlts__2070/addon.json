@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Echomap/ElderScrollsOfAlts__2070",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Echomap",
   "canonical_id": "esoui:2070",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "ElderScrollsOfAlts"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2070/",
-  "fingerprint": "3e27f667a269fdd9b7e542f97387306e121f26458235c643da8740703e6dbc28",
+  "fingerprint": "f636e735a6456008161aece5d6f903b2f3dc9015c35283d723965a08243a9afb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14431.png",
     "https://cdn-eso.mmoui.com/preview/pvw9863.png",
@@ -85,11 +90,11 @@
   "source_id": "2070",
   "source_url": "https://www.esoui.com/downloads/info2070-ElderScrollsOfAlts.html",
   "stats": {
-    "downloads": 40682,
+    "downloads": 40801,
     "favorites": 62,
-    "monthly_downloads": 71
+    "monthly_downloads": 48
   },
   "title": "ElderScrollsOfAlts",
-  "updated_at": 1781031274000,
-  "version": "2.00.09"
+  "updated_at": 1790723474000,
+  "version": "2.00.10"
 }

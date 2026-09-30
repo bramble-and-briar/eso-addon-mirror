@@ -1,0 +1,33 @@
+## Title: |c7851a9Muffin's|r Utility Tree
+## APIVersion: 101050 101051
+## Author: |c7851a9Muffins714|r
+## Description: QoL tools for Gamepad like craft bag quality sorter, custom multi stack splitter, personal bank stacker and ReloadUI button. Unused branches can be completely turn off.
+## SavedVariables: MUTGlobalSavedVars
+## Version: 1.2
+## DependsOn: LibAddonMenu-2.0>=43
+
+; Localization
+l10n\en.lua
+
+; Core 
+MuffinsUtilityTree.lua
+
+; Quality Sorter
+QualitySorter.lua
+
+; Multi Stack Splitter
+StackSplitter.lua
+StackSplitterDialog.xml
+
+; Bank Stack All
+BankStackAll.lua
+
+; Settings
+MUTMenu.lua
+
+; ZeniMax legal
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms

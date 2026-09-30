@@ -2,8 +2,8 @@
 ## APIVersion: 101050
 ## Title: Alabuzya UI
 ## Author: alabuzya
-## Version: 0.1.39
-## AddOnVersion: 139
+## Version: 0.1.44
+## AddOnVersion: 144
 ## SavedVariables: AlabuzyaUISavedVariables
 ## Description: AI-assisted UI with newly generated artwork and gameplay helpers. Settings: LibAddonMenu-2.0. / Интерфейс и помощники, созданные с помощью ИИ; новые текстуры. Для настроек: LibAddonMenu-2.0.
 ## OptionalDependsOn: FancyActionBar QuestArrow pChat LibAddonMenu-2.0 ArkadiusTradeTools

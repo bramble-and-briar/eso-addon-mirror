@@ -1,6 +1,5 @@
 -- Haze Charswap
--- Author: haze068
--- Version: 1.0.0
+-- by haze068
 
 HazeCharswap = {}
 local HCS = HazeCharswap
@@ -19,6 +18,12 @@ HCS.defaults = {
     showChatMessages = true,
     includeStolen    = false,
     showIcons        = true,
+
+    -- farben (rgb 0-1), in den einstellungen änderbar
+    accentColor      = { 1.0, 0.843, 0.0 },   -- gold, titel/labels
+    bagColor         = { 0.6, 1.0, 0.6 },     -- grün, tasche
+    bankColor        = { 0.6, 0.8, 1.0 },     -- blau, bank
+
     uiLeft           = 400,
     uiTop            = 200,
     uiHidden         = true,
@@ -26,15 +31,18 @@ HCS.defaults = {
 
 HCS.atBank = false
 
--- UI stubs (overwritten when the UI module loads)
+-- platzhalter, HazeCharswap_UI.lua überschreibt die
 function HCS.UI_Refresh()  end
 function HCS.UI_RefreshProfileDropdown()  end
 function HCS.UI_UpdateBankButtons()  end
 
+local function chatMsg(msg)
+    if HCS.sv and HCS.sv.showChatMessages then
+        CHAT_SYSTEM:AddMessage(msg)
+    end
+end
 
--- =============================================================================
--- Profile helpers
--- =============================================================================
+-- profile
 
 local function GetActiveProfile()
     if not HCS.sv.profiles then HCS.sv.profiles = { ["Default"] = { items = {} } } end
@@ -76,9 +84,7 @@ end
 function HCS.SwitchProfile(name)
     if not HCS.sv.profiles[name] then return end
     HCS.sv.activeProfile = name
-    if HCS.sv.showChatMessages then
-        CHAT_SYSTEM:AddMessage(zo_strformat(GetString(HAZECS_MSG_PROFILE_SWITCHED), name))
-    end
+    chatMsg(zo_strformat(GetString(HAZECS_MSG_PROFILE_SWITCHED), name))
     HCS.UI_RefreshProfileDropdown()
     HCS.UI_Refresh()
 end
@@ -95,7 +101,7 @@ function HCS.CreateProfile(name)
     end
     HCS.sv.profiles[name] = { items = {} }
     HCS.sv.activeProfile = name
-    CHAT_SYSTEM:AddMessage(zo_strformat(GetString(HAZECS_MSG_PROFILE_CREATED), name))
+    chatMsg(zo_strformat(GetString(HAZECS_MSG_PROFILE_CREATED), name))
     HCS.UI_RefreshProfileDropdown()
     HCS.UI_Refresh()
     return true
@@ -115,7 +121,7 @@ function HCS.DeleteProfile(name)
     if HCS.sv.activeProfile == name then
         HCS.sv.activeProfile = next(HCS.sv.profiles)
     end
-    CHAT_SYSTEM:AddMessage(zo_strformat(GetString(HAZECS_MSG_PROFILE_DELETED), name))
+    chatMsg(zo_strformat(GetString(HAZECS_MSG_PROFILE_DELETED), name))
     HCS.UI_RefreshProfileDropdown()
     HCS.UI_Refresh()
 end
@@ -138,7 +144,7 @@ function HCS.RenameProfile(oldName, newName)
     if HCS.sv.activeProfile == oldName then
         HCS.sv.activeProfile = newName
     end
-    CHAT_SYSTEM:AddMessage(zo_strformat(GetString(HAZECS_MSG_PROFILE_RENAMED), newName))
+    chatMsg(zo_strformat(GetString(HAZECS_MSG_PROFILE_RENAMED), newName))
     HCS.UI_RefreshProfileDropdown()
     HCS.UI_Refresh()
     return true
@@ -158,16 +164,7 @@ function HCS.CycleProfile(direction)
     HCS.SwitchProfile(names[idx])
 end
 
-
--- =============================================================================
--- Item helpers
--- =============================================================================
-
-local function chatMsg(msg)
-    if HCS.sv and HCS.sv.showChatMessages then
-        CHAT_SYSTEM:AddMessage(msg)
-    end
-end
+-- items
 
 local function GetItemUniqueIdString(bagId, slotIndex)
     local uniqueId = GetItemUniqueId(bagId, slotIndex)
@@ -219,6 +216,46 @@ function HCS.UnmarkByUniqueId(idStr)
     end
 end
 
+-- markiert alle teile eines sets aus tasche, bank und angelegt,
+-- anhand des set-namens vom angeklickten item
+function HCS.MarkItemSet(refBagId, refSlotIndex)
+    local refLink = GetItemLink(refBagId, refSlotIndex, LINK_STYLE_DEFAULT)
+    local hasSet, setName = GetItemLinkSetInfo(refLink)
+    if not hasSet or setName == "" then
+        chatMsg(GetString(HAZECS_MSG_NO_SET))
+        return
+    end
+
+    local items = GetActiveItems()
+    local added = 0
+
+    for _, bagId in ipairs({ BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK, BAG_WORN }) do
+        local size = GetBagSize(bagId) or 0
+        for slot = 0, size - 1 do
+            if GetItemType(bagId, slot) ~= ITEMTYPE_NONE then
+                local link = GetItemLink(bagId, slot, LINK_STYLE_DEFAULT)
+                local hs, sn = GetItemLinkSetInfo(link)
+                if hs and sn == setName then
+                    local uid = GetItemUniqueId(bagId, slot)
+                    local idStr = uid and Id64ToString(uid)
+                    if idStr and not items[idStr] then
+                        items[idStr] = {
+                            itemLink = link,
+                            name     = GetItemName(bagId, slot),
+                            icon     = GetItemInfo(bagId, slot),
+                            markedAt = GetTimeStamp(),
+                        }
+                        added = added + 1
+                    end
+                end
+            end
+        end
+    end
+
+    chatMsg(zo_strformat(GetString(HAZECS_MSG_SET_ADDED), setName, added))
+    HCS.UI_Refresh()
+end
+
 function HCS.ClearList()
     GetActiveProfile().items = {}
     chatMsg(GetString(HAZECS_MSG_LIST_CLEARED))
@@ -265,22 +302,42 @@ function HCS.GetMarkedItemsByLocation()
     return invItems, bankItems
 end
 
+-- bank-transfer, ein item nach dem anderen
 
--- =============================================================================
--- Bank transfer (sequential, async-safe)
--- =============================================================================
-
+-- der server braucht etwas bis ein move durch ist. tried/reserved verhindern,
+-- dass im nächsten tick dasselbe item nochmal oder in denselben slot geht
 HCS.transfer = {
     active    = false,
     direction = nil,
     moved     = 0,
     failed    = 0,
+    tried     = {},
+    reserved  = {},
 }
 
+local function ResetTransfer(direction)
+    HCS.transfer.active    = direction ~= nil
+    HCS.transfer.direction = direction
+    HCS.transfer.moved     = 0
+    HCS.transfer.failed    = 0
+    HCS.transfer.tried     = {}
+    HCS.transfer.reserved  = {}
+end
+
+local function IsReserved(bagId, slot)
+    local r = HCS.transfer.reserved[bagId]
+    return r and r[slot]
+end
+
+local function Reserve(bagId, slot)
+    HCS.transfer.reserved[bagId] = HCS.transfer.reserved[bagId] or {}
+    HCS.transfer.reserved[bagId][slot] = true
+end
+
 local function FindFreeSlot(bagId)
-    local size = GetBagSize(bagId)
+    local size = GetBagSize(bagId) or 0
     for slot = 0, size - 1 do
-        if GetItemType(bagId, slot) == ITEMTYPE_NONE then
+        if GetItemType(bagId, slot) == ITEMTYPE_NONE and not IsReserved(bagId, slot) then
             return slot
         end
     end
@@ -313,6 +370,21 @@ local function CollectBankItemsForWithdraw()
     return bankItems
 end
 
+local function NextQueuedItem()
+    local queue
+    if HCS.transfer.direction == "deposit" then
+        queue = CollectBagItemsForDeposit()
+    else
+        queue = CollectBankItemsForWithdraw()
+    end
+    for _, item in ipairs(queue) do
+        if not HCS.transfer.tried[item.idStr] then
+            return item, queue
+        end
+    end
+    return nil, queue
+end
+
 local ProcessNextTransfer
 
 local function FinishTransfer()
@@ -332,10 +404,7 @@ local function FinishTransfer()
         end
     end
 
-    HCS.transfer.active    = false
-    HCS.transfer.direction = nil
-    HCS.transfer.moved     = 0
-    HCS.transfer.failed    = 0
+    ResetTransfer(nil)
 
     HCS.UI_Refresh()
     HCS.UI_UpdateBankButtons()
@@ -348,13 +417,7 @@ ProcessNextTransfer = function()
         return
     end
 
-    local nextItem
-    if HCS.transfer.direction == "deposit" then
-        nextItem = CollectBagItemsForDeposit()[1]
-    else
-        nextItem = CollectBankItemsForWithdraw()[1]
-    end
-
+    local nextItem, queue = NextQueuedItem()
     if not nextItem then
         FinishTransfer()
         return
@@ -370,16 +433,18 @@ ProcessNextTransfer = function()
     end
 
     if not destBag or not destSlot then
-        local queue
-        if HCS.transfer.direction == "deposit" then
-            queue = CollectBagItemsForDeposit()
-        else
-            queue = CollectBankItemsForWithdraw()
+        -- kein platz mehr, alles was übrig ist zählt als fehlgeschlagen
+        for _, item in ipairs(queue) do
+            if not HCS.transfer.tried[item.idStr] then
+                HCS.transfer.failed = HCS.transfer.failed + 1
+            end
         end
-        HCS.transfer.failed = HCS.transfer.failed + #queue
         FinishTransfer()
         return
     end
+
+    HCS.transfer.tried[nextItem.idStr] = true
+    Reserve(destBag, destSlot)
 
     local ok = CallSecureProtected("RequestMoveItem",
         nextItem.bagId, nextItem.slotIndex,
@@ -409,10 +474,7 @@ function HCS.DepositAll()
         chatMsg(GetString(HAZECS_MSG_NOTHING_TO_MOVE))
         return
     end
-    HCS.transfer.active    = true
-    HCS.transfer.direction = "deposit"
-    HCS.transfer.moved     = 0
-    HCS.transfer.failed    = 0
+    ResetTransfer("deposit")
     ProcessNextTransfer()
 end
 
@@ -426,43 +488,16 @@ function HCS.WithdrawAll()
         chatMsg(GetString(HAZECS_MSG_NOTHING_TO_MOVE))
         return
     end
-    HCS.transfer.active    = true
-    HCS.transfer.direction = "withdraw"
-    HCS.transfer.moved     = 0
-    HCS.transfer.failed    = 0
+    ResetTransfer("withdraw")
     ProcessNextTransfer()
 end
 
+-- rechtsklick-menü, läuft über LibCustomMenu
 
--- =============================================================================
--- Right-click context menu
--- =============================================================================
-
-local function GetSlotBagAndIndex(inventorySlot)
-    if not inventorySlot then return nil, nil end
-
+local function AddInventoryMenuEntries(inventorySlot)
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if bagId and slotIndex then return bagId, slotIndex end
+    if not bagId or not slotIndex then return end
 
-    if inventorySlot.bagId and inventorySlot.slotIndex then
-        return inventorySlot.bagId, inventorySlot.slotIndex
-    end
-
-    if inventorySlot.dataEntry and inventorySlot.dataEntry.data then
-        local data = inventorySlot.dataEntry.data
-        if data.bagId and data.slotIndex then
-            return data.bagId, data.slotIndex
-        end
-    end
-
-    if inventorySlot.slotControl then
-        return GetSlotBagAndIndex(inventorySlot.slotControl)
-    end
-
-    return nil, nil
-end
-
-local function AddCharswapMenuEntry(bagId, slotIndex)
     if bagId ~= BAG_BACKPACK
        and bagId ~= BAG_BANK
        and bagId ~= BAG_SUBSCRIBER_BANK then
@@ -475,36 +510,26 @@ local function AddCharswapMenuEntry(bagId, slotIndex)
         return
     end
 
-    local isMarked = HCS.IsItemMarked(bagId, slotIndex)
-
-    if isMarked then
-        AddMenuItem(GetString(HAZECS_MENU_UNMARK), function()
+    if HCS.IsItemMarked(bagId, slotIndex) then
+        AddCustomMenuItem(GetString(HAZECS_MENU_UNMARK), function()
             HCS.UnmarkItem(bagId, slotIndex)
-        end)
+        end, MENU_ADD_OPTION_LABEL)
     else
-        AddMenuItem(GetString(HAZECS_MENU_MARK), function()
+        AddCustomMenuItem(GetString(HAZECS_MENU_MARK), function()
             HCS.MarkItem(bagId, slotIndex)
-        end)
+        end, MENU_ADD_OPTION_LABEL)
+    end
+
+    -- ganzes set markieren, nur bei set-teilen
+    local hasSet = GetItemLinkSetInfo(GetItemLink(bagId, slotIndex, LINK_STYLE_DEFAULT))
+    if hasSet then
+        AddCustomMenuItem(GetString(HAZECS_MENU_MARK_SET), function()
+            HCS.MarkItemSet(bagId, slotIndex)
+        end, MENU_ADD_OPTION_LABEL)
     end
 end
 
-local function HookInventoryContextMenu()
-    local postHook = SecurePostHook or ZO_PostHook
-    if not postHook then return end
-
-    postHook("ZO_InventorySlot_DiscoverSlotActionsFromActionList",
-        function(inventorySlot, slotActions)
-            local bagId, slotIndex = GetSlotBagAndIndex(inventorySlot)
-            if bagId and slotIndex then
-                AddCharswapMenuEntry(bagId, slotIndex)
-            end
-        end)
-end
-
-
--- =============================================================================
--- Events
--- =============================================================================
+-- events
 
 local function OnBankOpened()
     HCS.atBank = true
@@ -517,39 +542,84 @@ end
 
 local function OnBankClosed()
     HCS.atBank = false
+    HCS.UI_Hide()
     HCS.UI_UpdateBankButtons()
 end
 
-local function OnInventorySingleSlotUpdate(_, bagId)
-    if bagId == BAG_BACKPACK or bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK then
-        HCS.UI_Refresh()
+-- bei einem transfer feuern viele slot-updates hintereinander,
+-- darum nur einmal kurz danach neu zeichnen
+local REFRESH_NAME = HCS.name .. "_Refresh"
+
+local function RunQueuedRefresh()
+    EVENT_MANAGER:UnregisterForUpdate(REFRESH_NAME)
+    HCS.UI_Refresh()
+end
+
+local function OnInventorySingleSlotUpdate()
+    EVENT_MANAGER:UnregisterForUpdate(REFRESH_NAME)
+    EVENT_MANAGER:RegisterForUpdate(REFRESH_NAME, 100, RunQueuedRefresh)
+end
+
+-- filter pro tasche, deshalb je tasche ein eigener namespace
+local function RegisterSlotUpdates()
+    for _, bagId in ipairs({ BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }) do
+        local ns = HCS.name .. "_Slot" .. bagId
+        EVENT_MANAGER:RegisterForEvent(ns, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySingleSlotUpdate)
+        EVENT_MANAGER:AddFilterForEvent(ns, EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+            REGISTER_FILTER_BAG_ID, bagId,
+            REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
     end
 end
 
+-- saved variables
 
--- =============================================================================
--- Init
--- =============================================================================
+-- bis 1.2.0 lagen die daten ohne server-trennung unter ["Default"].
+-- uniqueIds gelten nur pro megaserver, deshalb wird ab jetzt pro server
+-- gespeichert. die alten daten übernimmt jeder server genau einmal
+local function MigrateLegacySV(sv)
+    local legacy = HazeCharswapSavedVars and HazeCharswapSavedVars["Default"]
+    local account = legacy and legacy[GetDisplayName()]
+    local old = account and account["$AccountWide"]
+    if not old then return end
 
-local function OnAddonLoaded(event, addonName)
+    local world = GetWorldName()
+    old.svMigrated = old.svMigrated or {}
+    if old.svMigrated[world] then return end
+
+    for k, v in pairs(old) do
+        if k ~= "version" and k ~= "svMigrated" then
+            if type(v) == "table" then
+                sv[k] = ZO_DeepTableCopy(v)
+            else
+                sv[k] = v
+            end
+        end
+    end
+    old.svMigrated[world] = true
+end
+
+-- init
+
+local function OnAddonLoaded(_, addonName)
     if addonName ~= HCS.name then return end
     EVENT_MANAGER:UnregisterForEvent(HCS.name, EVENT_ADD_ON_LOADED)
 
-    HCS.sv = ZO_SavedVars:NewAccountWide("HazeCharswapSavedVars", 1, nil, HCS.defaults)
+    HCS.sv = ZO_SavedVars:NewAccountWide("HazeCharswapSavedVars", 1, nil, HCS.defaults, GetWorldName())
+    MigrateLegacySV(HCS.sv)
 
     if not HCS.sv.profiles or not next(HCS.sv.profiles) then
         HCS.sv.profiles = { ["Default"] = { items = {} } }
         HCS.sv.activeProfile = "Default"
     end
 
-    HookInventoryContextMenu()
+    LibCustomMenu:RegisterContextMenu(AddInventoryMenuEntries, LibCustomMenu.CATEGORY_LATE)
 
     if HCS.UI_Initialize then HCS.UI_Initialize() end
     if HCS.Settings_Initialize then HCS.Settings_Initialize() end
 
     EVENT_MANAGER:RegisterForEvent(HCS.name, EVENT_OPEN_BANK,  OnBankOpened)
     EVENT_MANAGER:RegisterForEvent(HCS.name, EVENT_CLOSE_BANK, OnBankClosed)
-    EVENT_MANAGER:RegisterForEvent(HCS.name, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySingleSlotUpdate)
+    RegisterSlotUpdates()
 end
 
 EVENT_MANAGER:RegisterForEvent(HCS.name, EVENT_ADD_ON_LOADED, OnAddonLoaded)

@@ -1,7 +1,7 @@
 ElderScrollsOfAlts = {
     name            = "ElderScrollsOfAlts",	-- Matches folder and Manifest file names.
     displayName     = "Elder Scrolls of Alts",
-    version         = "2.00.09",			-- A nuisance to match to the Manifest.
+    version         = "2.00.10",			-- A nuisance to match to the Manifest.
     author          = "Echomap",
     color           = "DDFFEE",			 -- Used in menu titles and so on.
     menuName        = "ElderScrollsOfAlts_Options", -- Unique identifier for menu object.

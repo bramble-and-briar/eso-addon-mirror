@@ -7,6 +7,217 @@
 local EPC = ESOProgressionCoach
 EPC.Settings = EPC.Settings or {}
 local S = EPC.Settings
+S.organizationVersion029786 = 4
+S.searchVersion029787 = 1
+
+-- Architecture hardening: Settings.lua is the only owner of LibAddonMenu
+-- registration. Feature modules contribute controls through this registry
+-- instead of wrapping S:Initialize or monkey-patching RegisterOptionControls.
+S.optionExtensions = S.optionExtensions or {}
+
+function S:RegisterOptionsExtension(name, callback, priority)
+    if type(callback) ~= "function" then return false end
+    name = tostring(name or "")
+    if name == "" then return false end
+    self.optionExtensions[name] = {
+        callback = callback,
+        priority = tonumber(priority) or 100,
+    }
+    return true
+end
+
+function S:ApplyOptionsExtensions(options)
+    if type(options) ~= "table" then return end
+    local ordered = {}
+    for name, entry in pairs(self.optionExtensions or {}) do
+        if type(entry) == "table" and type(entry.callback) == "function" then
+            ordered[#ordered + 1] = { name = name, callback = entry.callback, priority = tonumber(entry.priority) or 100 }
+        end
+    end
+    table.sort(ordered, function(a, b)
+        if a.priority == b.priority then return a.name < b.name end
+        return a.priority < b.priority
+    end)
+    for _, entry in ipairs(ordered) do
+        local ok, err = pcall(entry.callback, options)
+        if not ok and EPC and type(EPC.Print) == "function" then
+            EPC:Print("Settings extension failed (" .. entry.name .. "): " .. tostring(err))
+        end
+    end
+end
+
+
+-- v0.29.787: searchable Settings index. Search never changes a SavedVariable;
+-- it only opens the owning submenus and scrolls the requested LAM control into view.
+local function normalizeSettingsSearch029787(value)
+    value = string.lower(tostring(value or ""))
+    value = string.gsub(value, "|c%x%x%x%x%x%x", "")
+    value = string.gsub(value, "|r", "")
+    value = string.gsub(value, "[^%w%s/_%-]", " ")
+    value = string.gsub(value, "%s+", " ")
+    value = string.gsub(value, "^%s+", "")
+    value = string.gsub(value, "%s+$", "")
+    return value
+end
+
+local function settingsSearchScore029787(entry, query)
+    if query == "" then return nil end
+    local name = entry.searchName or ""
+    local path = entry.searchPath or ""
+    local text = entry.searchText or path
+    if name == query then return 0 end
+    if string.sub(name, 1, #query) == query then return 10 end
+    local namePos = string.find(name, query, 1, true)
+    if namePos then return 20 + namePos end
+    local pathPos = string.find(path, query, 1, true)
+    if pathPos then return 100 + pathPos end
+
+    local allWords = true
+    local wordPenalty = 0
+    for word in string.gmatch(query, "%S+") do
+        local pos = string.find(text, word, 1, true)
+        if not pos then allWords = false break end
+        wordPenalty = wordPenalty + pos
+    end
+    if allWords then return 200 + wordPenalty end
+    return nil
+end
+
+function S:RefreshSettingsSearch029787(query)
+    query = normalizeSettingsSearch029787(query)
+    self.searchQuery029787 = query
+    local ranked = {}
+    for _, entry in ipairs(self.settingsSearchIndex029787 or {}) do
+        local score = settingsSearchScore029787(entry, query)
+        if score then
+            ranked[#ranked + 1] = { score = score, entry = entry }
+        end
+    end
+    table.sort(ranked, function(a, b)
+        if a.score == b.score then return a.entry.path < b.entry.path end
+        return a.score < b.score
+    end)
+
+    local choices, values = {}, {}
+    self.settingsSearchResults029787 = {}
+    local limit = math.min(#ranked, 30)
+    for i = 1, limit do
+        local entry = ranked[i].entry
+        self.settingsSearchResults029787[#self.settingsSearchResults029787 + 1] = entry
+        choices[#choices + 1] = entry.path
+        values[#values + 1] = entry.id
+    end
+    if #choices == 0 then
+        choices[1] = query == "" and "Type a setting name above" or "No matching settings"
+        values[1] = 0
+    end
+
+    self.searchSelected029787 = values[1] or 0
+    local control = rawget(_G, "EAS_SettingsSearchResults029787")
+    if control and type(control.UpdateChoices) == "function" then
+        pcall(control.UpdateChoices, control, choices, values)
+        if control.dropdown and type(control.dropdown.SetSelectedItem) == "function" then
+            pcall(control.dropdown.SetSelectedItem, control.dropdown, choices[1])
+        end
+    end
+    return self.settingsSearchResults029787
+end
+
+local function openSettingsSubmenu029787(control)
+    if not control or control.open == true then return end
+    control.open = true
+    if control.animation and type(control.animation.PlayFromStart) == "function" then
+        pcall(control.animation.PlayFromStart, control.animation)
+    elseif control.scroll then
+        if type(control.scroll.SetResizeToFitDescendents) == "function" then
+            pcall(control.scroll.SetResizeToFitDescendents, control.scroll, true)
+        end
+    end
+end
+
+function S:PerformSettingsJump029787(entry)
+    if type(entry) ~= "table" then return false end
+    local category = entry.categoryRef and rawget(_G, entry.categoryRef) or nil
+    local feature = entry.featureRef and rawget(_G, entry.featureRef) or nil
+    local target = entry.controlRef and rawget(_G, entry.controlRef) or nil
+    if not target then return false end
+
+    openSettingsSubmenu029787(category)
+    openSettingsSubmenu029787(feature)
+
+    local function scrollToTarget()
+        local panel = S.panelObject
+        local container = panel and panel.container
+        if container and type(ZO_Scroll_ScrollControlIntoCentralView) == "function" then
+            pcall(ZO_Scroll_ScrollControlIntoCentralView, container, target, true)
+        elseif container and type(ZO_Scroll_ScrollControlIntoView) == "function" then
+            pcall(ZO_Scroll_ScrollControlIntoView, container, target)
+        elseif container and type(ZO_Scroll_ScrollToControl) == "function" then
+            pcall(ZO_Scroll_ScrollToControl, container, target)
+        end
+
+        -- Brief gold emphasis makes the destination obvious without changing
+        -- the actual setting control or its value.
+        local label = target.label
+        if label and type(label.SetColor) == "function" then
+            local oldR, oldG, oldB, oldA
+            if type(label.GetColor) == "function" then
+                local okColor, r, g, b, a = pcall(label.GetColor, label)
+                if okColor then oldR, oldG, oldB, oldA = r, g, b, a end
+            end
+            pcall(label.SetColor, label, 0.96, 0.80, 0.36, 1)
+            if zo_callLater then
+                zo_callLater(function()
+                    if label and type(label.SetColor) == "function" then
+                        if oldR ~= nil then
+                            pcall(label.SetColor, label, oldR, oldG, oldB, oldA or 1)
+                        elseif ZO_DEFAULT_ENABLED_COLOR then
+                            pcall(label.SetColor, label, ZO_DEFAULT_ENABLED_COLOR:UnpackRGBA())
+                        end
+                    end
+                end, 1200)
+            end
+        end
+    end
+
+    if zo_callLater then zo_callLater(scrollToTarget, 120) else scrollToTarget() end
+    return true
+end
+
+function S:JumpToSetting029787(id)
+    id = tonumber(id) or tonumber(self.searchSelected029787) or 0
+    if id <= 0 then return false end
+    local entry = self.settingsSearchById029787 and self.settingsSearchById029787[id] or nil
+    if not entry then return false end
+
+    self.pendingSettingsJump029787 = entry
+    if LibAddonMenu2 and self.panelObject and type(LibAddonMenu2.OpenToPanel) == "function" then
+        pcall(LibAddonMenu2.OpenToPanel, LibAddonMenu2, self.panelObject)
+    end
+
+    if self:PerformSettingsJump029787(entry) then
+        self.pendingSettingsJump029787 = nil
+        return true
+    end
+    return false
+end
+
+function S:HookSettingsSearchControls029787()
+    local search = rawget(_G, "EAS_SettingsSearchBox029787")
+    if search and search.editbox and not search.easLiveSearchHook029787 then
+        search.easLiveSearchHook029787 = true
+        search.editbox:SetHandler("OnTextChanged", function(edit)
+            S:RefreshSettingsSearch029787(edit:GetText())
+        end)
+        search.editbox:SetHandler("OnEnter", function(edit)
+            S:RefreshSettingsSearch029787(edit:GetText())
+            edit:LoseFocus()
+            local first = S.settingsSearchResults029787 and S.settingsSearchResults029787[1]
+            if first then S:JumpToSetting029787(first.id) end
+        end)
+    end
+    self:RefreshSettingsSearch029787(self.searchQuery029787 or "")
+end
 
 function S:Initialize()
     local LAM = LibAddonMenu2
@@ -229,7 +440,7 @@ function S:Initialize()
         },
         {
             type = "slider", name = "Boss Coach width", min = 420, max = 1000, step = 20,
-            tooltip = "Sets the Boss Mechanics / Combat Reaction panel width. You can also drag its edges/corners directly in HUD Layout Mode.",
+            tooltip = "Sets the Boss Mechanics / Combat Reaction panel width. Move the panel in ESO Edit HUD; resize it with the Suite size controls.",
             getFunc = function() return math.floor(tonumber(EPC.saved.bossMechanicsWidth029203) or 640) end,
             setFunc = function(v)
                 EPC.saved.bossMechanicsWidth029203 = v
@@ -249,7 +460,7 @@ function S:Initialize()
         },
         {
             type = "slider", name = "Boss Coach overall scale", min = 70, max = 140, step = 5,
-            tooltip = "Scales the entire panel after its width/height are applied. For normal sizing, use HUD Layout drag-resize or the width/height controls above.",
+            tooltip = "Scales the entire panel after its width/height are applied. Position it in ESO Edit HUD and use the width/height controls above for precise sizing.",
             getFunc = function() return math.floor((tonumber(EPC.saved.bossMechanicsScale029198) or 1.0) * 100) end,
             setFunc = function(v) EPC.saved.bossMechanicsScale029198 = v / 100 if EPC.BossMechanicsAssistant then EPC.BossMechanicsAssistant:ApplyScale() end end,
             default = math.floor((EPC.defaults.bossMechanicsScale029198 or 1.0) * 100),
@@ -333,7 +544,7 @@ function S:Initialize()
         },
         {
             type = "checkbox", name = "Show Challenge Difficulty symbol overlay",
-            tooltip = "Displays the currently active Challenge Difficulty symbol as a movable HUD overlay. Move it with the Suite's HUD layout mode and scale it below.",
+            tooltip = "Displays the currently active Challenge Difficulty symbol as a movable HUD overlay. Move it in ESO Edit HUD and scale it below.",
             getFunc = function() return EPC.saved.overlandDifficultyShowOverlay == true end,
             setFunc = function(v) EPC.saved.overlandDifficultyShowOverlay = v == true if EPC.ChallengeDifficultyOverlay then EPC.ChallengeDifficultyOverlay:Refresh() end end,
             default = EPC.defaults.overlandDifficultyShowOverlay,
@@ -354,7 +565,7 @@ function S:Initialize()
         },
         {
             type = "description",
-            text = "To move the Challenge Difficulty symbol, use the Suite's HUD layout mode and drag the icon where you want it.",
+            text = "To move the Challenge Difficulty symbol, open ESO Edit HUD and place the ESO Adventurer Suite entry where you want it.",
             width = "full",
         },
         {
@@ -853,7 +1064,7 @@ function S:Initialize()
             default = EPC.defaults.repairCostVisibility,
         },
         {
-            type = "slider", name = "Repair estimate scale", tooltip = "Scales the Repair / Recharge overlay. You can also resize the selected Repair overlay directly from its edges in HUD Layout Mode.", min = 65, max = 180, step = 5,
+            type = "slider", name = "Repair estimate scale", tooltip = "Scales the Repair / Recharge overlay. Move it in ESO Edit HUD; sizing remains controlled here in Suite Settings.", min = 65, max = 180, step = 5,
             getFunc = function() return math.floor((tonumber(EPC.saved.repairCostScale) or 1.0) * 100) end,
             setFunc = function(v) EPC.saved.repairCostScale = v / 100 if EPC.RepairCostOverlay then EPC.RepairCostOverlay:Refresh() end end,
             default = math.floor((EPC.defaults.repairCostScale or 1.0) * 100),
@@ -892,6 +1103,92 @@ function S:Initialize()
         {
             type = "button", name = "Reset FPS / latency position", buttonText = "Reset Performance Overlay",
             func = function() if EPC.PerformanceOverlay then EPC.PerformanceOverlay:ResetPosition() EPC.PerformanceOverlay:Refresh(true) end end,
+        },
+        {
+            type = "header", name = "Screen Edge Info Bar",
+        },
+        {
+            type = "description",
+            title = "Optional compact screen-edge information strip",
+            text = "Shows time, Stable training, bag space, ESO currencies, FPS, and Ping in a compact screen-edge strip. Dock it to a screen edge here; ESO Edit HUD is used for movable Suite HUD elements.",
+            width = "full",
+        },
+        {
+            type = "checkbox", name = "Show Screen Edge Info Bar",
+            getFunc = function() return EPC.saved.showEdgeInfoBar029763 == true end,
+            setFunc = function(v) EPC.saved.showEdgeInfoBar029763 = v == true if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.showEdgeInfoBar029763,
+        },
+        {
+            type = "dropdown", name = "Info bar screen edge",
+            choices = { "Top", "Bottom" },
+            choicesValues = { "TOP", "BOTTOM" },
+            getFunc = function()
+                local v = EPC.saved.edgeInfoBarEdge029763 or "TOP"
+                if v ~= "BOTTOM" then v = "TOP" end
+                return v
+            end,
+            setFunc = function(v)
+                EPC.saved.edgeInfoBarEdge029763 = v == "BOTTOM" and "BOTTOM" or "TOP"
+                if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end
+            end,
+            default = EPC.defaults.edgeInfoBarEdge029763 or "TOP",
+        },
+        {
+            type = "slider", name = "Info bar scale", min = 65, max = 160, step = 5,
+            tooltip = "Changes the size of the bar and text while keeping left, center, and right information anchored across the full screen width.",
+            getFunc = function() return math.floor((tonumber(EPC.saved.edgeInfoBarScale029763) or 1.0) * 100) end,
+            setFunc = function(v) EPC.saved.edgeInfoBarScale029763 = (tonumber(v) or 100) / 100 if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = math.floor((EPC.defaults.edgeInfoBarScale029763 or 1.0) * 100),
+        },
+        {
+            type = "slider", name = "Info bar opacity", min = 20, max = 100, step = 5,
+            getFunc = function() return math.floor((tonumber(EPC.saved.edgeInfoBarAlpha029763) or 0.94) * 100) end,
+            setFunc = function(v) EPC.saved.edgeInfoBarAlpha029763 = (tonumber(v) or 94) / 100 if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = math.floor((EPC.defaults.edgeInfoBarAlpha029763 or 0.94) * 100),
+        },
+        {
+            type = "checkbox", name = "Show clock on info bar",
+            getFunc = function() return EPC.saved.edgeInfoBarClock029763 ~= false end,
+            setFunc = function(v) EPC.saved.edgeInfoBarClock029763 = v == true if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.edgeInfoBarClock029763,
+        },
+        {
+            type = "dropdown", name = "Info bar clock format",
+            tooltip = "Regular uses 12-hour time with AM/PM. Military uses 24-hour time.",
+            choices = { "Regular (12-hour)", "Military (24-hour)" },
+            choicesValues = { "12H", "24H" },
+            getFunc = function() return EPC.saved.edgeInfoBarClockFormat029770 or "12H" end,
+            setFunc = function(v) EPC.saved.edgeInfoBarClockFormat029770 = v or "12H" if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.edgeInfoBarClockFormat029770 or "12H",
+            width = "full",
+        },
+        {
+            type = "checkbox", name = "Show Stable timer on info bar",
+            tooltip = "Shows the riding-training timer, READY, or MAX directly on the Screen Edge Info Bar.",
+            getFunc = function() return EPC.saved.edgeInfoBarStable029770 ~= false end,
+            setFunc = function(v) EPC.saved.edgeInfoBarStable029770 = v == true if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.edgeInfoBarStable029770 ~= false,
+        },
+        {
+            type = "checkbox", name = "Show FPS and Ping on info bar",
+            tooltip = "Adds FPS and network latency to the end of the Screen Edge Info Bar.",
+            getFunc = function() return EPC.saved.edgeInfoBarPerformance029770 ~= false end,
+            setFunc = function(v) EPC.saved.edgeInfoBarPerformance029770 = v == true if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.edgeInfoBarPerformance029770 ~= false,
+        },
+        {
+            type = "checkbox", name = "Show backpack space on info bar",
+            getFunc = function() return EPC.saved.edgeInfoBarBag029763 ~= false end,
+            setFunc = function(v) EPC.saved.edgeInfoBarBag029763 = v == true if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.edgeInfoBarBag029763,
+        },
+        {
+            type = "checkbox", name = "Show zero-balance currencies",
+            tooltip = "Off by default so the bar only shows currencies you currently have.",
+            getFunc = function() return EPC.saved.edgeInfoBarShowZero029763 == true end,
+            setFunc = function(v) EPC.saved.edgeInfoBarShowZero029763 = v == true if EPC.EdgeInfoBar then EPC.EdgeInfoBar:Refresh() end end,
+            default = EPC.defaults.edgeInfoBarShowZero029763,
         },
         {
             type = "header", name = "Pre-Encounter Reminders",
@@ -937,7 +1234,7 @@ function S:Initialize()
         },
         {
             type = "dropdown", name = "Armor reminder position",
-            tooltip = "Choose a screen corner, or Custom to place it anywhere with HUD layout mode.",
+            tooltip = "Choose a screen corner, or Custom to place it anywhere with ESO Edit HUD.",
             choices = { "Custom", "Top Left", "Top Right", "Bottom Left", "Bottom Right" },
             choicesValues = { "CUSTOM", "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" },
             getFunc = function() return EPC.saved.encounterRepairPreset or "CUSTOM" end,
@@ -947,7 +1244,7 @@ function S:Initialize()
         },
         {
             type = "dropdown", name = "Potion reminder position",
-            tooltip = "Choose a screen corner, or Custom to place it anywhere with HUD layout mode.",
+            tooltip = "Choose a screen corner, or Custom to place it anywhere with ESO Edit HUD.",
             choices = { "Custom", "Top Left", "Top Right", "Bottom Left", "Bottom Right" },
             choicesValues = { "CUSTOM", "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" },
             getFunc = function() return EPC.saved.encounterPotionPreset or "CUSTOM" end,
@@ -1247,7 +1544,7 @@ function S:Initialize()
         },
         {
             type = "checkbox", name = "Excavation Augur direction overlay",
-            tooltip = "After each successful Augur use, tap Green, Yellow, Orange, or Red. The Suite caches the clicked board cell using multiple ESO UI fallbacks and recommends the strongest next scan. It never labels a non-green prediction as a guaranteed dig. Both Antiquity overlays can be moved in HUD Layout Mode.",
+            tooltip = "After each successful Augur use, tap Green, Yellow, Orange, or Red. The Suite caches the clicked board cell using multiple ESO UI fallbacks and recommends the strongest next scan. It never labels a non-green prediction as a guaranteed dig. Both Antiquity overlays can be moved in ESO Edit HUD.",
             getFunc = function() return EPC.saved.antiquityExcavationGuide ~= false end,
             setFunc = function(v) EPC.saved.antiquityExcavationGuide = v == true if EPC.AntiquityAssistant then EPC.AntiquityAssistant:RefreshSettings() end end,
             default = EPC.defaults.antiquityExcavationGuide,
@@ -1264,7 +1561,7 @@ function S:Initialize()
         {
             type = "description",
             title = "Movable Excavation overlays",
-            text = "Use HUD Layout Mode > Move Frames to drag both the Augur Guide and the 10x10 Augur Tile Selector away from the excavation board. Their positions are saved independently.",
+            text = "Use ESO Edit HUD to drag both the Augur Guide and the 10x10 Augur Tile Selector away from the excavation board. Their positions are saved independently.",
         },
         {
             type = "button", name = "Reset Antiquity overlay positions", buttonText = "Reset Antiquity Overlays",
@@ -1933,7 +2230,7 @@ function S:Initialize()
         },
         {
             type = "checkbox", name = "Show clock",
-            tooltip = "Shows a simple 12-hour local clock such as 3:50 PM. Use HUD layout mode to drag it anywhere.",
+            tooltip = "Shows a simple 12-hour local clock such as 3:50 PM. Move it anywhere in ESO Edit HUD.",
             getFunc = function() return EPC.saved.showClock ~= false end,
             setFunc = function(v) EPC.saved.showClock = v == true if EPC.Clock then EPC.Clock:Refresh() end end,
             default = EPC.defaults.showClock,
@@ -2055,7 +2352,7 @@ function S:Initialize()
         },
         {
             type = "checkbox", name = "Show Alliance Rank overlay",
-            tooltip = "ESO-style PvP rank icon and Alliance Rank progress. It is movable in HUD Layout Mode and independently scalable.",
+            tooltip = "ESO-style PvP rank icon and Alliance Rank progress. It is movable in ESO Edit HUD and independently scalable.",
             getFunc = function() return EPC.saved.showAllianceRank ~= false end,
             setFunc = function(v) EPC.saved.showAllianceRank = v == true if EPC.AllianceRank then EPC.AllianceRank:Refresh() end end,
             default = EPC.defaults.showAllianceRank,
@@ -2127,6 +2424,63 @@ function S:Initialize()
             type = "button", name = "Reset progression overlay position", buttonText = "Reset Progress Overlay",
             func = function() if EPC.ChampionOverlay then EPC.ChampionOverlay:ResetPosition() EPC.ChampionOverlay:Refresh() end end,
         },
+        {
+            type = "header", name = "Controller / Gamepad",
+        },
+        {
+            type = "description",
+            text = "Controller input remains ESO-native and event-driven. If disabling Steam Input fixed controller movement lag, keep Steam Input disabled. These options only control the UI presentation and the button prompts shown by Suite action bars; they do not poll the analog sticks or replace ESO controller input.",
+            width = "full",
+        },
+        {
+            type = "dropdown", name = "Controller UI mode",
+            tooltip = "ESO Automatic uses ESO's native automatic switching. ESO Gamepad UI forces the normal gamepad interface. Keyboard UI + Controller Controls keeps ESO's keyboard/desktop UI while leaving native controller gameplay bindings available.",
+            choices = { "ESO Automatic", "ESO Gamepad UI", "Keyboard UI + Controller Controls" },
+            choicesValues = { "AUTOMATIC", "GAMEPAD", "KEYBOARD_CONTROLLER" },
+            getFunc = function()
+                local v = EPC.saved.controllerUIBehavior029761 or "AUTOMATIC"
+                if v == "ESO" then v = "AUTOMATIC" end
+                return v
+            end,
+            setFunc = function(v)
+                if EPC.ControllerSupport and EPC.ControllerSupport.SetUIBehavior029761 then
+                    EPC.ControllerSupport:SetUIBehavior029761(v)
+                else
+                    EPC.saved.controllerUIBehavior029761 = v or "AUTOMATIC"
+                end
+            end,
+            default = EPC.defaults.controllerUIBehavior029761 or "AUTOMATIC",
+            width = "full",
+        },
+        {
+            type = "dropdown", name = "Suite action-bar button prompts",
+            tooltip = "Automatic follows ESO's current input UI, except Keyboard UI + Controller Controls intentionally uses controller symbols. Controller Symbols always shows ESO's native gamepad glyphs. Keyboard Keys always shows keyboard bindings. Applies to both the single ability bar and Dual Action Bar.",
+            choices = { "Automatic", "Controller Symbols", "Keyboard Keys" },
+            choicesValues = { "AUTO", "CONTROLLER", "KEYBOARD" },
+            getFunc = function()
+                return EPC.saved.controllerPromptMode029761 or "AUTO"
+            end,
+            setFunc = function(v)
+                if EPC.ControllerSupport and EPC.ControllerSupport.SetPromptMode029761 then
+                    EPC.ControllerSupport:SetPromptMode029761(v)
+                else
+                    EPC.saved.controllerPromptMode029761 = v or "AUTO"
+                    if EPC.AbilityOverlays and EPC.AbilityOverlays.InvalidateBindingText then
+                        EPC.AbilityOverlays:InvalidateBindingText()
+                    end
+                    if EPC.AbilityOverlays then EPC.AbilityOverlays:Refresh() end
+                    if EPC.DualActionBar then EPC.DualActionBar:Refresh() end
+                end
+            end,
+            default = EPC.defaults.controllerPromptMode029761 or "AUTO",
+            width = "full",
+        },
+        {
+            type = "description",
+            text = "The Suite uses ESO's own current gamepad binding data and native key-markup renderer, so PlayStation/Xbox-style symbols follow the controller binding ESO reports instead of using hard-coded 1-5 labels.",
+            width = "full",
+        },
+
         {
             type = "header", name = "Dual Action Bar HUD",
         },
@@ -2314,7 +2668,7 @@ function S:Initialize()
         },
         {
             type = "checkbox", name = "Show ability overlays",
-            tooltip = "Shows your five normal slotted skills (positions 1-5) plus Ultimate as separate icon overlays. Passive/non-normal slots remain excluded. Each icon can be dragged independently in HUD Layout Mode.",
+            tooltip = "Shows your five normal slotted skills (positions 1-5) plus Ultimate. Position the Suite ability HUD from ESO Edit HUD; passive/non-normal slots remain excluded.",
             getFunc = function() return EPC.saved.showAbilityOverlays ~= false end,
             setFunc = function(v) EPC.saved.showAbilityOverlays = v == true if EPC.AbilityOverlays then EPC.AbilityOverlays:Refresh() end end,
             default = EPC.defaults.showAbilityOverlays,
@@ -2381,7 +2735,7 @@ function S:Initialize()
         },
         {
             type = "description",
-            text = "Tip: use HUD Layout Mode to move the quickslot overlay. Its normal visibility rule is ignored while you are positioning it.",
+            text = "Tip: use ESO Edit HUD to move the quickslot overlay. Visibility and presentation remain controlled by Suite Settings.",
         },
         {
             type = "button", name = "Reset quickslot overlay position", buttonText = "Reset Quickslot",
@@ -2433,11 +2787,11 @@ function S:Initialize()
         },
         {
             type = "description",
-            text = "Use HUD Layout Mode to drag the Suite Infinite Archive tracker anywhere. ESO's built-in Infinite Archive tracker stays hidden at all times, including menus and focus changes.",
+            text = "Use ESO Edit HUD to drag the Suite Infinite Archive tracker anywhere. ESO's built-in Infinite Archive tracker stays hidden at all times, including menus and focus changes.",
         },
         {
             type = "button", name = "Move Infinite Archive overlay", buttonText = "Move Infinite Archive",
-            tooltip = "Starts HUD Layout Mode and immediately shows the Suite-owned Infinite Archive preview above Settings so you can drag it.",
+            tooltip = "Opens ESO Edit HUD, where the Suite-owned Infinite Archive tracker is available as a movable HUD element.",
             func = function()
                 if EPC.SetUnitFramesMoveMode then EPC:SetUnitFramesMoveMode(true)
                 elseif EPC.InfiniteArchiveOverlay then EPC.InfiniteArchiveOverlay:SetLayoutMode(true) end
@@ -2624,7 +2978,7 @@ function S:Initialize()
         },
         {
             type = "description",
-            text = "The Suite Teleporter can stay attached to the World Map window or be available by hotkey while you are running around. Hotkey / Outside Map has no permanent gameplay drawer: assign Open / Close Map Teleporter under Controls > Keybindings > General > ESO Adventurer Suite. The key opens the full Teleporter in UI mode so you can interact with it; press the same key again, press Escape from a Teleporter search box, or click anywhere outside the Teleporter to close it and return to gameplay. HUD Layout Mode still lets you position it.",
+            text = "The Suite Teleporter can stay attached to the World Map window or be available by hotkey while you are running around. Hotkey / Outside Map has no permanent gameplay drawer: assign Open / Close Map Teleporter under Controls > Keybindings > General > ESO Adventurer Suite. The key opens the full Teleporter in UI mode so you can interact with it; press the same key again, press Escape from a Teleporter search box, or click anywhere outside the Teleporter to close it and return to gameplay. ESO Edit HUD controls its saved screen position.",
         },
         {
             type = "checkbox", name = "Enable Map Teleporter",
@@ -2644,7 +2998,7 @@ function S:Initialize()
         },
         {
             type = "description",
-            text = "Positioning: use HUD Layout Mode to drag the Teleporter. In layout mode it expands temporarily so the top drag strip is easy to grab; SAVE & EXIT keeps the position.",
+            text = "Positioning: open ESO Edit HUD and move the ESO Adventurer Suite - Map Teleporter element. ESO owns the saved HUD position.",
         },
         {
             type = "checkbox", name = "Include owned houses",
@@ -3098,8 +3452,124 @@ function S:Initialize()
             end,
         },
         {
+            type = "header", name = "ESO Native Loot History & Chat",
+        },
+        {
             type = "description",
-            text = "HUD Layout Mode includes two ESO-native communication overlays: the high-visibility Request / Invite Prompt used for group invites, trade requests and shared quests, plus ESO's native fading alert notification stack used for group invite results, wayshrine/location notices, duel/group/system messages. Both keep ESO's actual behavior while Suite controls position and scale.",
+            title = "Move and resize ESO's own Loot History and Chat",
+            text = "These are ESO's real native controls. Update 51 gives ESO position ownership for Loot / XP History and the native Chat min-bar through Edit HUD. Suite Settings still provide Loot scale and expanded Chat size/docking controls without competing with ESO's saved HUD anchors.",
+        },
+        {
+            type = "button", name = "Move Loot / XP History", buttonText = "Move Native Loot History",
+            tooltip = "Closes Settings and exposes ESO's actual native Loot / XP History. Drag the native history entry itself to move it; use the mouse wheel over it to change size.",
+            func = function()
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.FocusNativeLayout029710 then
+                    EPC.NativeHUDLayout:FocusNativeLayout029710("LOOT")
+                elseif EPC.SetUnitFramesMoveMode then
+                    EPC:SetUnitFramesMoveMode(true)
+                end
+            end,
+            width = "half",
+        },
+        {
+            type = "button", name = "Move Chat", buttonText = "Move Native Chat",
+            tooltip = "Closes Settings and exposes ESO's actual keyboard Chat control. Drag its first native tab to move it and use the native window edges to resize it.",
+            func = function()
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.FocusNativeLayout029710 then
+                    EPC.NativeHUDLayout:FocusNativeLayout029710("CHAT")
+                elseif EPC.SetUnitFramesMoveMode then
+                    EPC:SetUnitFramesMoveMode(true)
+                end
+            end,
+            width = "half",
+        },
+        {
+            type = "slider", name = "Loot / XP History size", min = 65, max = 180, step = 5,
+            tooltip = "Scales ESO's native Loot History feed. Position the native Loot History element in ESO Edit HUD.",
+            getFunc = function() return math.floor((tonumber(EPC.saved.nativeLootHistoryScale029708) or 1.0) * 100) end,
+            setFunc = function(v)
+                EPC.saved.nativeLootHistoryScale029708 = (tonumber(v) or 100) / 100
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.SetLootScale then EPC.NativeHUDLayout:SetLootScale(EPC.saved.nativeLootHistoryScale029708) end
+            end,
+            default = 100,
+        },
+        {
+            type = "dropdown", name = "Chat dock",
+            tooltip = "ESO Default leaves the stock chat placement alone. Free keeps the expanded Chat window at its custom Suite position. Left/Right/Top/Bottom dock the expanded Chat window; ESO Edit HUD owns the native minimized Chat bar.",
+            choices = { "ESO Default", "Free", "Left", "Right", "Top", "Bottom" },
+            choicesValues = { "NATIVE", "FREE", "LEFT", "RIGHT", "TOP", "BOTTOM" },
+            getFunc = function() return EPC.saved.nativeChatDock029708 or "NATIVE" end,
+            setFunc = function(v)
+                EPC.saved.nativeChatDock029708 = v or "NATIVE"
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.SetChatDock then EPC.NativeHUDLayout:SetChatDock(EPC.saved.nativeChatDock029708) end
+            end,
+            default = "NATIVE",
+        },
+        {
+            type = "slider", name = "Chat width", min = 320, max = 1100, step = 20,
+            tooltip = "Changes the expanded native keyboard Chat width. Position controls exposed by ESO remain in Edit HUD.",
+            getFunc = function()
+                local value = tonumber(EPC.saved.nativeChatWidth029708) or 0
+                if value > 0 then return math.floor(value) end
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.GetChatRect then
+                    local _, _, width = EPC.NativeHUDLayout:GetChatRect()
+                    return math.floor(tonumber(width) or 500)
+                end
+                return 500
+            end,
+            setFunc = function(v)
+                local height = tonumber(EPC.saved.nativeChatHeight029708) or 0
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.GetChatRect and height <= 0 then
+                    local _, _, _, currentHeight = EPC.NativeHUDLayout:GetChatRect()
+                    height = tonumber(currentHeight) or 300
+                end
+                EPC.saved.nativeChatWidth029708 = tonumber(v) or 500
+                EPC.saved.nativeChatHeight029708 = height > 0 and height or 300
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.SetChatSize then EPC.NativeHUDLayout:SetChatSize(EPC.saved.nativeChatWidth029708, EPC.saved.nativeChatHeight029708) end
+            end,
+            default = 500,
+            width = "half",
+        },
+        {
+            type = "slider", name = "Chat height", min = 180, max = 760, step = 20,
+            tooltip = "Changes the expanded native keyboard Chat height. Position controls exposed by ESO remain in Edit HUD.",
+            getFunc = function()
+                local value = tonumber(EPC.saved.nativeChatHeight029708) or 0
+                if value > 0 then return math.floor(value) end
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.GetChatRect then
+                    local _, _, _, height = EPC.NativeHUDLayout:GetChatRect()
+                    return math.floor(tonumber(height) or 300)
+                end
+                return 300
+            end,
+            setFunc = function(v)
+                local width = tonumber(EPC.saved.nativeChatWidth029708) or 0
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.GetChatRect and width <= 0 then
+                    local _, _, currentWidth = EPC.NativeHUDLayout:GetChatRect()
+                    width = tonumber(currentWidth) or 500
+                end
+                EPC.saved.nativeChatHeight029708 = tonumber(v) or 300
+                EPC.saved.nativeChatWidth029708 = width > 0 and width or 500
+                if EPC.NativeHUDLayout and EPC.NativeHUDLayout.SetChatSize then EPC.NativeHUDLayout:SetChatSize(EPC.saved.nativeChatWidth029708, EPC.saved.nativeChatHeight029708) end
+            end,
+            default = 300,
+            width = "half",
+        },
+        {
+            type = "button", name = "Reset Loot / XP History layout", buttonText = "Reset Loot History",
+            tooltip = "Restores ESO's stock Loot History anchor and 100% size.",
+            func = function() if EPC.NativeHUDLayout and EPC.NativeHUDLayout.ResetLootHistory then EPC.NativeHUDLayout:ResetLootHistory() end end,
+            width = "half",
+        },
+        {
+            type = "button", name = "Reset Chat layout", buttonText = "Reset Chat",
+            tooltip = "Returns chat to ESO's original position and size and restores ESO Default docking.",
+            func = function() if EPC.NativeHUDLayout and EPC.NativeHUDLayout.ResetChat then EPC.NativeHUDLayout:ResetChat() end end,
+            width = "half",
+        },
+        {
+            type = "description",
+            text = "ESO Edit HUD now owns native Alert Text positioning. The Suite also registers its Request / Invite Prompt and Compass Focused Info helpers as Edit HUD elements while preserving ESO's real behavior.",
         },
         {
             type = "button", name = "Test request / invite prompt", buttonText = "Test Prompt",
@@ -3114,26 +3584,25 @@ function S:Initialize()
             width = "half",
         },
         {
-            type = "button", name = "HUD layout mode", buttonText = "Move Frames",
-            tooltip = "Closes Suite Settings, releases the mouse, and shows every movable HUD overlay. A small HUD Layout bar appears with Save & Exit and Reset Layout, so Settings never blocks the overlays while you position them.",
-            func = function() if EPC.SetUnitFramesMoveMode then EPC:SetUnitFramesMoveMode(true) end end,
-            width = "half",
-        },
-        {
-            type = "button", name = "HUD layout exit", buttonText = "Use Save & Exit",
-            tooltip = "HUD Layout Mode can only be exited with the SAVE & EXIT button on the movable HUD Layout control bar. This prevents ESC, keybinds, or menu changes from accidentally closing layout mode.",
+            type = "button", name = "ESO Edit HUD", buttonText = "Open Edit HUD",
+            tooltip = "Opens ESO's native Edit HUD. ESO now owns the saved position of Suite HUD elements. Size, scale, visibility, colors, and other presentation options remain in ESO Adventurer Suite Settings.",
             func = function()
-                if EPC.unitFramesMoveMode then
-                    if EPC.SetHUDLayoutControlBarVisible then EPC:SetHUDLayoutControlBarVisible(true) end
-                    if EPC.RaiseLayoutOverlays then EPC:RaiseLayoutOverlays() end
-                    EPC:Print("Use SAVE & EXIT on the HUD Layout bar to return to gameplay.")
+                if EPC.NativeHUDEditor and EPC.NativeHUDEditor.Open and EPC.NativeHUDEditor:Open() then
+                    return
                 end
+                if EPC.SetUnitFramesMoveMode then EPC:SetUnitFramesMoveMode(true) end
             end,
             width = "half",
         },
         {
+            type = "description",
+            title = "Native HUD positioning",
+            text = "Update 51 integration: movable ESO Adventurer Suite HUD elements are registered directly with ESO's Edit HUD. Move/reset positions there; use Suite Settings for sizing, scaling, visibility, and appearance.",
+            width = "half",
+        },
+        {
             type = "button", name = "Reset HUD frame positions", buttonText = "Reset Frames",
-            tooltip = "Restores default positions for Player, Target, Group, Raid, Live Combat Stats, Mini Map, Stable, Clock, Active Quest, Alliance Rank, Repair Estimate, Use Synergy, Rotation Assistant, Antiquity Augur Guide, Antiquity Tile Selector, every Ability icon, and the ESO Request / Invite Prompt plus ESO Top-Right Notifications.",
+            tooltip = "Restores default positions for Player, Target, Group, Raid, Live Combat Stats, Mini Map, Stable, Clock, Active Quest, Alliance Rank, Repair Estimate, Use Synergy, Rotation Assistant, Antiquity Augur Guide, Antiquity Tile Selector, every Ability icon, ESO Loot / XP History, ESO Chat, the ESO Request / Invite Prompt, and ESO Top-Right Notifications.",
             func = function() if EPC.ResetUnitFramePositions then EPC:ResetUnitFramePositions() end end,
         },
         {
@@ -3403,7 +3872,54 @@ function S:Initialize()
         {
             type = "description",
             title = "Top-menu icons + hotkeys",
-            text = "Potion Maker and Turbo Learner both have their own ESO top-menu icon and their own Open / Close hotkey. Assign them under Controls > Keybindings > General > ESO Adventurer Suite. The same assigned key closes the tool and returns you to gameplay while that tool has UI focus.",
+            text = "Crafting Assistant and Turbo Learner both have their own ESO top-menu icon and their own Open / Close hotkey. Assign them under Controls > Keybindings > General > ESO Adventurer Suite. The same assigned key closes the tool and returns you to gameplay while that tool has UI focus.",
+        },
+        {
+            type = "header", name = "Crafting Material Hunt",
+        },
+        {
+            type = "description",
+            text = "One combined Map + 3D source finder for Alchemy, Provisioning, and Enchanting. Provisioning pins mark possible sources, not guaranteed unopened-container contents. The Suite learns containers that actually yielded provisioning ingredients and reuses those locations later.",
+            width = "full",
+        },
+        {
+            type = "checkbox", name = "Show Material Hunt bar in crafting windows",
+            tooltip = "Shows the shared Material Hunt controls inside Crafting Assistant and while interacting with Alchemy, Provisioning, Enchanting, Jewelry, Woodworking, Blacksmithing, and Clothing stations.",
+            getFunc = function() return EPC.saved.craftingMaterialHuntBarEnabled029765 ~= false end,
+            setFunc = function(v)
+                EPC.saved.craftingMaterialHuntBarEnabled029765 = v == true
+                if EPC.CraftingMaterialHunt and EPC.CraftingMaterialHunt.SetBarsEnabled029765 then
+                    EPC.CraftingMaterialHunt:SetBarsEnabled029765(v == true)
+                end
+            end,
+            default = EPC.defaults.craftingMaterialHuntBarEnabled029765 ~= false,
+            width = "full",
+        },
+        {
+            type = "dropdown", name = "Material hunt type",
+            choices = { "Alchemy", "Provisioning", "Enchanting", "Jewelry", "Woodworking", "Blacksmithing", "Clothing" },
+            choicesValues = { "ALCHEMY", "PROVISIONING", "ENCHANTING", "JEWELRY", "WOODWORKING", "BLACKSMITHING", "CLOTHING" },
+            getFunc = function() return EPC.saved.craftingMaterialHuntType029763 or "PROVISIONING" end,
+            setFunc = function(v) EPC.saved.craftingMaterialHuntType029763 = v or "PROVISIONING" end,
+            default = EPC.defaults.craftingMaterialHuntType029763 or "PROVISIONING",
+            width = "full",
+        },
+        {
+            type = "button", name = "Start Map + 3D material hunt", buttonText = "Start Hunt",
+            tooltip = "Marks possible sources on the world map and with 3D hunt pins. Alchemy uses reagent/solvent nodes, Provisioning uses learned food containers plus known possible sources, Enchanting uses runestones, Jewelry/Blacksmithing use ore and seam sources, Woodworking uses wood nodes, and Clothing uses cloth/fiber nodes.",
+            func = function()
+                if EPC.CraftingMaterialHunt and EPC.CraftingMaterialHunt.Start029763 then
+                    EPC.CraftingMaterialHunt:Start029763(EPC.saved.craftingMaterialHuntType029763, true)
+                end
+            end,
+            width = "half",
+        },
+        {
+            type = "button", name = "Stop material hunt", buttonText = "Stop Hunt",
+            func = function()
+                if EPC.CraftingMaterialHunt and EPC.CraftingMaterialHunt.Stop029763 then EPC.CraftingMaterialHunt:Stop029763() end
+            end,
+            width = "half",
         },
         {
             type = "header", name = "Turbo Learner",
@@ -3444,16 +3960,16 @@ function S:Initialize()
             width = "full",
         },
         {
-            type = "header", name = "Potion & Poison Maker",
+            type = "header", name = "Crafting Assistant",
         },
         {
             type = "description",
-            title = "Potion Maker access",
-            text = "Open Potion Maker from its top-menu icon, the button below, or the Open / Close Potion Maker hotkey. It can be used anywhere as a recipe planner; loading or crafting ingredients still requires an active Alchemy Station. The optional station potion icon remains available while crafting and can be positioned through Suite HUD Layout Mode.",
+            title = "Crafting Assistant access",
+            text = "Open Crafting Assistant from its top-menu icon, the button below, or the Open / Close Crafting Assistant hotkey. It can be used anywhere as a recipe planner; loading or crafting ingredients still requires an active Alchemy Station. The optional station potion icon remains available while crafting and can be positioned through ESO Edit HUD.",
         },
         {
-            type = "checkbox", name = "Enable Potion Maker",
-            tooltip = "Enables the Potion Maker top-menu icon, hotkey, recipe planner, and the optional station icon shown while using an Alchemy Station.",
+            type = "checkbox", name = "Enable Crafting Assistant",
+            tooltip = "Enables the Crafting Assistant top-menu icon, hotkey, recipe planner, and the optional station icon shown while using an Alchemy Station.",
             getFunc = function() return EPC.saved.alchemyPotionMakerEnabled ~= false end,
             setFunc = function(v) EPC.saved.alchemyPotionMakerEnabled = v == true if EPC.AlchemyPotionMaker then EPC.AlchemyPotionMaker:RefreshVisibility() end end,
             default = EPC.defaults.alchemyPotionMakerEnabled,
@@ -3526,8 +4042,8 @@ function S:Initialize()
             width = "half",
         },
         {
-            type = "button", name = "Open Potion Maker", buttonText = "Open Potion Maker",
-            tooltip = "Opens the same Potion Maker page as the top-menu icon and hotkey. Planning works anywhere; loading/crafting requires an Alchemy Station.",
+            type = "button", name = "Open Crafting Assistant", buttonText = "Open Crafting Assistant",
+            tooltip = "Opens the same Crafting Assistant page as the top-menu icon and hotkey. Planning works anywhere; loading/crafting requires an Alchemy Station.",
             func = function() if EPC.AlchemyPotionMaker and EPC.AlchemyPotionMaker.ToggleMainMenuPage then EPC.AlchemyPotionMaker:ToggleMainMenuPage() end end,
             disabled = function() return not EPC.AlchemyPotionMaker or EPC.saved.alchemyPotionMakerEnabled == false end,
             width = "half",
@@ -3674,6 +4190,7 @@ function S:Initialize()
         "ACTIVITIES",
         "HUD",
         "QUESTS",
+        "CONTROLLER",
         "ACTIONBARS",
         "FRAMES",
         "MAP",
@@ -3698,9 +4215,9 @@ function S:Initialize()
             intro = "Controls for opening and using the Tamriel Codex, plus the main Suite window's interaction, opacity, scale, and position behavior.",
         },
         COMBAT = {
-            name = "Combat Advisor & Boss Mechanics",
-            tooltip = "Smart Combat Advisor, role awareness, combat HUD, boss mechanics, reactions, reports, and combat visibility.",
-            intro = "Combat guidance lives here: next-skill recommendations, role awareness, block reactions, the combat HUD, boss-mechanic coaching, pre-encounter reminders, combat reports, and world combat feedback.",
+            name = "Combat",
+            tooltip = "Combat Advisor, Combat Stats, Combat HUD, Boss Mechanics, reports, reminders, and combat visibility.",
+            intro = "Combat features are separated below by exact owner so Combat Stats, Combat HUD, Boss Mechanics, Advisor, and reminders no longer share one long mixed list.",
         },
         BUILDS = {
             name = "Builds & Loadouts",
@@ -3727,15 +4244,20 @@ function S:Initialize()
             tooltip = "Quest tracking, active quest, Golden Pursuits, Alliance Rank, and Level/Champion progress overlays.",
             intro = "Everything related to quest and progression information on the HUD is grouped here, with visibility, sizing, and reset controls kept beside each overlay.",
         },
+        CONTROLLER = {
+            name = "Controller / Gamepad",
+            tooltip = "ESO Automatic, Gamepad UI, hybrid keyboard UI + controller controls, and Suite controller button symbols.",
+            intro = "Choose how ESO presents its interface when using a controller and which native controller glyphs the Suite should show. This section does not poll the controller or replace ESO input.",
+        },
         ACTIONBARS = {
             name = "Action Bars, Abilities & Quickslots",
             tooltip = "Dual Action Bar, ability overlays, and quickslot display.",
-            intro = "Controls for combat buttons and keyboard/mouse hotkey presentation: Dual Action Bar, ability overlays, and quickslots.",
+            intro = "Controls for combat buttons and input prompts: controller/keyboard UI behavior, native controller glyphs, Dual Action Bar, ability overlays, and quickslots.",
         },
         FRAMES = {
-            name = "Unit Frames & HUD Layout",
-            tooltip = "Player, target, group, raid, live-stat frames, HUD Layout Mode, sizing, backgrounds, and reset controls.",
-            intro = "Player, target, group, raid, and live-stat frame settings are kept together here, along with HUD Layout Mode and shared frame sizing/background controls.",
+            name = "Unit Frames",
+            tooltip = "Player, target, group, raid, recovery ticks, and frame appearance.",
+            intro = "Only Player, Target, Group/Raid, and recovery-tick settings live here. Combat Stats and ESO-native HUD tools are kept in their own feature sections.",
         },
         MAP = {
             name = "Mini Map",
@@ -3753,9 +4275,9 @@ function S:Initialize()
             intro = "Travel-specific controls, including the World Map Teleporter and optional wayshrine messages, are grouped here instead of being mixed into Mini Map or marker settings.",
         },
         GROUP = {
-            name = "Group, Team & Companion Visibility",
-            tooltip = "Team Visibility, companion glow, group glow defaults, and per-player group glow overrides.",
-            intro = "Controls that help you visually identify companions and group members, including default role colors and per-player glow overrides.",
+            name = "Group, Team & Loot",
+            tooltip = "Team Visibility, companion/group glow, per-player overrides, and Group Loot Notifier.",
+            intro = "Group-facing features live here: teammate/companion visibility controls and the Group Loot Notifier with its loot filters, chat formatting, and session history.",
         },
         GEAR = {
             name = "Gear & Maintenance",
@@ -3769,14 +4291,164 @@ function S:Initialize()
         },
         CRAFTING = {
             name = "Crafting & Learning",
-            tooltip = "Turbo Learner, Potion & Poison Maker, crafting access, material sources, and learning options.",
-            intro = "Crafting and knowledge tools live here, including Turbo Learner and the Potion & Poison Maker with their material and safety options.",
+            tooltip = "Turbo Learner, Crafting Assistant, crafting access, material sources, and learning options.",
+            intro = "Crafting and knowledge tools live here, including Turbo Learner and the Crafting Assistant with their material and safety options.",
         },
         UTILITIES = {
             name = "Utilities & Diagnostics",
             tooltip = "Bug Catcher, inventory snapshots, loot/research alerts, search tools, and the Utility Command Center.",
             intro = "Maintenance and diagnostic tools that do not belong to a gameplay feature are grouped here, including Bug Catcher, inventory snapshots, alerts, and inventory search.",
         },
+    }
+
+    -- v0.29.786: Exact feature ownership inside each broad category.
+    -- The old category pass flattened many unrelated features together. These
+    -- nested submenus keep every setting beside the feature that owns it.
+    local featureInfo = {
+        GENERAL_CORE = { category="GENERAL", name="Suite Core" },
+        CODEX_MAIN = { category="CODEX", name="Tamriel Codex / Main Window" },
+
+        COMBAT_ADVISOR = { category="COMBAT", name="Smart Combat Advisor" },
+        COMBAT_BOSS = { category="COMBAT", name="Boss Mechanics Coach" },
+        COMBAT_HUD = { category="COMBAT", name="Combat HUD" },
+        COMBAT_STATS = { category="COMBAT", name="Combat Stats & Reports" },
+        COMBAT_REMINDERS = { category="COMBAT", name="Pre-Encounter Reminders" },
+        COMBAT_VISIBILITY = { category="COMBAT", name="World Combat Visibility" },
+
+        BUILDS_MAXPOWER = { category="BUILDS", name="MAX POWER / Endgame" },
+        BUILDS_TARGET = { category="BUILDS", name="Target Build" },
+        BUILDS_LOADOUTS = { category="BUILDS", name="Loadout Saver" },
+
+        DIFFICULTY_MAIN = { category="DIFFICULTY", name="Challenge Difficulty" },
+
+        ACTIVITIES_GROUPFINDER = { category="ACTIVITIES", name="Dungeon / Group Finder" },
+        ACTIVITIES_ARCHIVE = { category="ACTIVITIES", name="Infinite Archive" },
+        ACTIVITIES_PLANNER = { category="ACTIVITIES", name="Activity / Session Planner" },
+
+        HUD_PERFORMANCE = { category="HUD", name="FPS / Latency Overlay" },
+        HUD_EDGE = { category="HUD", name="Screen Edge Info Bar" },
+        HUD_STABLE = { category="HUD", name="Stable Training Timer" },
+        HUD_CLOCK = { category="HUD", name="Clock" },
+        HUD_RETICLE = { category="HUD", name="Custom Reticle" },
+        HUD_NATIVE = { category="HUD", name="ESO Native HUD & Edit HUD" },
+
+        QUEST_SOURCE = { category="QUESTS", name="Quest Tracking" },
+        QUEST_ACTIVE = { category="QUESTS", name="Active Quest Overlay" },
+        QUEST_PURSUITS = { category="QUESTS", name="Golden Pursuits Overlay" },
+        QUEST_ALLIANCE = { category="QUESTS", name="Alliance Rank Overlay" },
+        QUEST_LEVEL = { category="QUESTS", name="Level / Champion Overlay" },
+
+        CONTROLLER_MAIN = { category="CONTROLLER", name="Controller / Gamepad" },
+
+        ACTION_DUAL = { category="ACTIONBARS", name="Dual Action Bar" },
+        ACTION_ABILITIES = { category="ACTIONBARS", name="Ability Overlays" },
+        ACTION_QUICKSLOT = { category="ACTIONBARS", name="Quickslot Overlay" },
+
+        FRAMES_MAIN = { category="FRAMES", name="Player / Target / Group / Raid Frames" },
+        FRAMES_TICKS = { category="FRAMES", name="Player Recovery Tick Tracker" },
+        
+        MAP_MINIMAP = { category="MAP", name="Mini Map" },
+
+        PINS_LORE = { category="PINS", name="Lore Books" },
+        PINS_CHESTS = { category="PINS", name="Dungeon / Trial Chest Finder" },
+        PINS_RESOURCES = { category="PINS", name="Resource Pins" },
+        PINS_ICONS = { category="PINS", name="Resource Pin Icons" },
+        PINS_FARM = { category="PINS", name="Farm Focus" },
+        PINS_FILTERS = { category="PINS", name="Normal Resource Filters" },
+        PINS_TREASURE = { category="PINS", name="Treasure & Survey Locator" },
+
+        TRAVEL_TELEPORTER = { category="TRAVEL", name="World Map Teleporter" },
+        TRAVEL_MESSAGE = { category="TRAVEL", name="Wayshrine Auto Message" },
+
+        GROUP_TEAM = { category="GROUP", name="Team Visibility" },
+        GROUP_COMPANION = { category="GROUP", name="Companion Glow" },
+        GROUP_DEFAULT = { category="GROUP", name="Group Default Glow" },
+        GROUP_PLAYER = { category="GROUP", name="Per-Player Group Glow" },
+
+        GEAR_INVENTORY = { category="GEAR", name="Inventory Grid Categories" },
+        GEAR_CHARACTER = { category="GEAR", name="Character / Companion Gear Screen" },
+        GEAR_MAINTENANCE = { category="GEAR", name="Automatic Equipment Maintenance" },
+        GEAR_REPAIR = { category="GEAR", name="Repair / Recharge Overlay" },
+
+        ANTIQUITY_ASSIST = { category="ANTIQUITIES", name="Antiquity Assistant" },
+        ANTIQUITY_LEADS = { category="ANTIQUITIES", name="Lead Finder / Excavation" },
+
+        CRAFTING_MAIN = { category="CRAFTING", name="Crafting & Learning" },
+        CRAFTING_HUNT = { category="CRAFTING", name="Crafting Material Hunt" },
+        CRAFTING_LEARNER = { category="CRAFTING", name="Turbo Learner" },
+        CRAFTING_ASSIST = { category="CRAFTING", name="Crafting Assistant" },
+
+        UTIL_BUGS = { category="UTILITIES", name="Built-in Bug Catcher" },
+        UTIL_COMMAND = { category="UTILITIES", name="Utility Command Center" },
+    }
+
+    local defaultFeatureByCategory = {
+        GENERAL="GENERAL_CORE", CODEX="CODEX_MAIN", COMBAT="COMBAT_ADVISOR",
+        BUILDS="BUILDS_MAXPOWER", DIFFICULTY="DIFFICULTY_MAIN",
+        ACTIVITIES="ACTIVITIES_GROUPFINDER", HUD="HUD_PERFORMANCE",
+        QUESTS="QUEST_SOURCE", CONTROLLER="CONTROLLER_MAIN",
+        ACTIONBARS="ACTION_DUAL", FRAMES="FRAMES_MAIN", MAP="MAP_MINIMAP",
+        PINS="PINS_RESOURCES", TRAVEL="TRAVEL_TELEPORTER", GROUP="GROUP_TEAM",
+        GEAR="GEAR_CHARACTER", ANTIQUITIES="ANTIQUITY_ASSIST",
+        CRAFTING="CRAFTING_MAIN", UTILITIES="UTIL_COMMAND",
+    }
+
+    local headerFeature = {
+        ["Boss Mechanics Coach"]="COMBAT_BOSS",
+        ["Gameplay & Challenge Difficulty"]="DIFFICULTY_MAIN",
+        ["Live Group Finder"]="ACTIVITIES_GROUPFINDER",
+        ["Game Mode Combat Report"]="COMBAT_STATS",
+        ["Inventory Grid Categories"]="GEAR_INVENTORY",
+        ["Character Gear Screen"]="GEAR_CHARACTER",
+        ["Automatic Equipment Maintenance"]="GEAR_MAINTENANCE",
+        ["Repair / Recharge Estimate Overlay"]="GEAR_REPAIR",
+        ["Suite FPS / Latency Overlay"]="HUD_PERFORMANCE",
+        ["Screen Edge Info Bar"]="HUD_EDGE",
+        ["Pre-Encounter Reminders"]="COMBAT_REMINDERS",
+        ["Lore Book Locations"]="PINS_LORE",
+        ["Dungeon / Trial Chest Finder"]="PINS_CHESTS",
+        ["Antiquity Assistant"]="ANTIQUITY_ASSIST",
+        ["Antiquity Lead Finder"]="ANTIQUITY_LEADS",
+        ["Suite Resource Pins"]="PINS_RESOURCES",
+        ["Resource Pin Icon Replacer"]="PINS_ICONS",
+        ["Farm Focus"]="PINS_FARM",
+        ["Normal Resource Pin Filters"]="PINS_FILTERS",
+        ["Team Visibility"]="GROUP_TEAM",
+        ["Companion Glow"]="GROUP_COMPANION",
+        ["Group Default Glow"]="GROUP_DEFAULT",
+        ["Per-Player Group Glow"]="GROUP_PLAYER",
+        ["World Combat Visibility"]="COMBAT_VISIBILITY",
+        ["Persistent HUD & Unit Frames"]="FRAMES_MAIN",
+        ["Stable Training Timer"]="HUD_STABLE",
+        ["Clock"]="HUD_CLOCK",
+        ["Quest Tracking"]="QUEST_SOURCE",
+        ["Active Quest Overlay"]="QUEST_ACTIVE",
+        ["Golden Pursuits Overlay"]="QUEST_PURSUITS",
+        ["Alliance Rank Overlay"]="QUEST_ALLIANCE",
+        ["Character Level / Champion Progress Overlay"]="QUEST_LEVEL",
+        ["Controller / Gamepad"]="CONTROLLER_MAIN",
+        ["Dual Action Bar HUD"]="ACTION_DUAL",
+        ["Player Frame Recovery Ticks"]="FRAMES_TICKS",
+        ["Ability Overlays"]="ACTION_ABILITIES",
+        ["Quickslot Overlay"]="ACTION_QUICKSLOT",
+        ["Infinite Archive Overlay"]="ACTIVITIES_ARCHIVE",
+        ["Custom ESO Reticle"]="HUD_RETICLE",
+        ["Tamriel Codex"]="CODEX_MAIN",
+        ["Unit Frame Designs"]="FRAMES_MAIN",
+        ["World Map Teleporter"]="TRAVEL_TELEPORTER",
+        ["Wayshrine Auto Message"]="TRAVEL_MESSAGE",
+        ["Treasure & Survey Locator"]="PINS_TREASURE",
+        ["Mini Map"]="MAP_MINIMAP",
+        ["ESO Native Loot History & Chat"]="HUD_NATIVE",
+        ["MAX POWER Build / Champion Points"]="BUILDS_MAXPOWER",
+        ["Target Build"]="BUILDS_TARGET",
+        ["Built-in Bug Catcher"]="UTIL_BUGS",
+        ["Loadout Saver"]="BUILDS_LOADOUTS",
+        ["Crafting & Learning Tools"]="CRAFTING_MAIN",
+        ["Crafting Material Hunt"]="CRAFTING_HUNT",
+        ["Turbo Learner"]="CRAFTING_LEARNER",
+        ["Crafting Assistant"]="CRAFTING_ASSIST",
+        ["Utility Command Center"]="UTIL_COMMAND",
     }
 
     -- Every feature header is assigned explicitly. This avoids the old behavior
@@ -3792,6 +4464,7 @@ function S:Initialize()
         ["Automatic Equipment Maintenance"] = "GEAR",
         ["Repair / Recharge Estimate Overlay"] = "GEAR",
         ["Suite FPS / Latency Overlay"] = "HUD",
+        ["Screen Edge Info Bar"] = "HUD",
         ["Pre-Encounter Reminders"] = "COMBAT",
         ["Lore Book Locations"] = "PINS",
         ["Dungeon / Trial Chest Finder"] = "PINS",
@@ -3807,6 +4480,7 @@ function S:Initialize()
         ["Per-Player Group Glow"] = "GROUP",
         ["World Combat Visibility"] = "COMBAT",
         ["Persistent HUD & Unit Frames"] = "FRAMES",
+        ["ESO Native Loot History & Chat"] = "HUD",
         ["Stable Training Timer"] = "HUD",
         ["Clock"] = "HUD",
         ["Quest Tracking"] = "QUESTS",
@@ -3814,6 +4488,7 @@ function S:Initialize()
         ["Golden Pursuits Overlay"] = "QUESTS",
         ["Alliance Rank Overlay"] = "QUESTS",
         ["Character Level / Champion Progress Overlay"] = "QUESTS",
+        ["Controller / Gamepad"] = "CONTROLLER",
         ["Dual Action Bar HUD"] = "ACTIONBARS",
         ["Ability Overlays"] = "ACTIONBARS",
         ["Quickslot Overlay"] = "ACTIONBARS",
@@ -3830,8 +4505,9 @@ function S:Initialize()
         ["Built-in Bug Catcher"] = "UTILITIES",
         ["Loadout Saver"] = "BUILDS",
         ["Crafting & Learning Tools"] = "CRAFTING",
+        ["Crafting Material Hunt"] = "CRAFTING",
         ["Turbo Learner"] = "CRAFTING",
-        ["Potion & Poison Maker"] = "CRAFTING",
+        ["Crafting Assistant"] = "CRAFTING",
         ["Utility Command Center"] = "UTILITIES",
     }
 
@@ -3855,14 +4531,15 @@ function S:Initialize()
         ["Combat HUD scale"] = "COMBAT",
         ["Combat HUD opacity"] = "COMBAT",
 
-        ["HUD layout mode"] = "FRAMES",
-        ["HUD layout exit"] = "FRAMES",
-        ["Lock HUD frames"] = "FRAMES",
-        ["Reset HUD frame positions"] = "FRAMES",
+        ["ESO Edit HUD"] = "HUD",
+        ["Lock HUD frames"] = "HUD",
+        ["Reset HUD frame positions"] = "HUD",
         ["Player frame size"] = "FRAMES",
         ["Target frame size"] = "FRAMES",
         ["Group / Raid frame scale"] = "FRAMES",
-        ["Live stats panel scale"] = "FRAMES",
+        ["Live stats panel scale"] = "COMBAT",
+        ["Show live combat stat panel"] = "COMBAT",
+        ["Live Combat Stats visibility"] = "COMBAT",
         ["Use stronger HUD panel backgrounds"] = "FRAMES",
         ["Dark HUD backgrounds"] = "FRAMES",
         ["HUD background opacity"] = "FRAMES",
@@ -3889,72 +4566,303 @@ function S:Initialize()
         ["Clear last combat sample"] = "COMBAT",
     }
 
+    -- Controls that historically lived under another raw header are routed to
+    -- their exact owner here. This is presentation-only; getters/setters and
+    -- SavedVariable keys are unchanged.
+    local nameFeature = {
+        ["Smart Combat Advisor"]="COMBAT_ADVISOR",
+        ["Smart Advisor specialization"]="COMBAT_ADVISOR",
+        ["Smart Advisor display"]="COMBAT_ADVISOR",
+        ["Test Action-Bar Highlight"]="COMBAT_ADVISOR",
+        ["Show BLOCK reactions"]="COMBAT_ADVISOR",
+        ["Block warning sensitivity"]="COMBAT_ADVISOR",
+        ["Learn dangerous attacks"]="COMBAT_ADVISOR",
+        ["Combat role awareness"]="COMBAT_ADVISOR",
+
+        ["Show combat HUD"]="COMBAT_HUD",
+        ["Combat HUD visibility"]="COMBAT_HUD",
+        ["Move compact combat HUD"]="COMBAT_HUD",
+        ["Lock combat HUD"]="COMBAT_HUD",
+        ["Reset combat HUD position"]="COMBAT_HUD",
+        ["Combat HUD scale"]="COMBAT_HUD",
+        ["Combat HUD opacity"]="COMBAT_HUD",
+
+        ["Show live combat stat panel"]="COMBAT_STATS",
+        ["Live Combat Stats visibility"]="COMBAT_STATS",
+        ["Live stats panel scale"]="COMBAT_STATS",
+        ["Clear last combat sample"]="COMBAT_STATS",
+
+        ["Show ability hotkeys"]="ACTION_DUAL",
+        ["Active bar marker"]="ACTION_DUAL",
+        ["Put Front Bar (Bar 1) on top"]="ACTION_DUAL",
+        ["Dual bar icon size"]="ACTION_DUAL",
+        ["Dual bar scale"]="ACTION_DUAL",
+        ["Button spacing"]="ACTION_DUAL",
+        ["Bar row spacing"]="ACTION_DUAL",
+        ["Inactive bar opacity"]="ACTION_DUAL",
+        ["Inactive bar desaturation"]="ACTION_DUAL",
+        ["Reset dual action bar position"]="ACTION_DUAL",
+
+        ["ESO Edit HUD"]="HUD_NATIVE",
+        ["Lock HUD frames"]="HUD_NATIVE",
+        ["Reset HUD frame positions"]="HUD_NATIVE",
+
+        ["Player frame size"]="FRAMES_MAIN",
+        ["Target frame size"]="FRAMES_MAIN",
+        ["Group / Raid frame scale"]="FRAMES_MAIN",
+        ["Use stronger HUD panel backgrounds"]="FRAMES_MAIN",
+        ["Dark HUD backgrounds"]="FRAMES_MAIN",
+        ["HUD background opacity"]="FRAMES_MAIN",
+        ["Floating HUD opacity"]="FRAMES_MAIN",
+        ["Target aura icons per type"]="FRAMES_MAIN",
+
+        ["Auto-expand in interaction mode"]="CODEX_MAIN",
+        ["Lock window"]="CODEX_MAIN",
+        ["Show recommendation reasons"]="CODEX_MAIN",
+        ["Window opacity"]="CODEX_MAIN",
+        ["Window scale"]="CODEX_MAIN",
+        ["Codex text size"]="CODEX_MAIN",
+        ["Reset overlay position"]="CODEX_MAIN",
+
+        ["Endgame suite focus"]="BUILDS_MAXPOWER",
+        ["Endgame gear preset"]="BUILDS_MAXPOWER",
+        ["MAX POWER content target"]="BUILDS_MAXPOWER",
+        ["Intelligent Next Best Move"]="BUILDS_MAXPOWER",
+
+        ["Session planner mode"]="ACTIVITIES_PLANNER",
+        ["Custom session length"]="ACTIVITIES_PLANNER",
+        ["Activity planner goal"]="ACTIVITIES_PLANNER",
+    }
+
     local descriptionCategory = {
         ["Gameplay hotkeys"] = "CODEX",
         ["Compatibility status"] = "GENERAL",
     }
 
     local grouped = {}
+    local featureOrder = {}
     for _, key in ipairs(categoryOrder) do
         grouped[key] = {}
+        featureOrder[key] = {}
+    end
+
+    local function ensureFeatureBucket(category, feature)
+        local info = featureInfo[feature]
+        if not info or info.category ~= category then
+            feature = defaultFeatureByCategory[category]
+            info = featureInfo[feature]
+        end
+        if not grouped[category][feature] then
+            grouped[category][feature] = {}
+            featureOrder[category][#featureOrder[category] + 1] = feature
+        end
+        return grouped[category][feature], feature
     end
 
     local currentCategory = "GENERAL"
+    local currentFeature = defaultFeatureByCategory.GENERAL
     for _, control in ipairs(rawOptions) do
         -- Information/description controls should always use the full settings
-        -- width so LibAddonMenu can wrap the label instead of squeezing it into
-        -- a half-width column. This also fixes the Potion Maker safety note.
-        if control.type == "description" then
-            control.width = "full"
-        end
+        -- width so LibAddonMenu can wrap them instead of squeezing text.
+        if control.type == "description" then control.width = "full" end
 
-        local category = currentCategory
         if control.type == "header" then
-            category = headerCategory[control.name] or currentCategory
-            currentCategory = category
-        elseif control.name and nameCategory[control.name] then
-            category = nameCategory[control.name]
-        elseif control.type == "description" and control.title and descriptionCategory[control.title] then
-            category = descriptionCategory[control.title]
-        end
+            currentCategory = headerCategory[control.name] or currentCategory
+            currentFeature = headerFeature[control.name] or defaultFeatureByCategory[currentCategory]
+        else
+            local category = currentCategory
+            if control.name and nameCategory[control.name] then
+                category = nameCategory[control.name]
+            elseif control.type == "description" and control.title and descriptionCategory[control.title] then
+                category = descriptionCategory[control.title]
+            end
+            if not grouped[category] then category = "GENERAL" end
 
-        if not grouped[category] then
-            category = "GENERAL"
+            local feature = control.name and nameFeature[control.name] or currentFeature
+            local info = featureInfo[feature]
+            if not info or info.category ~= category then
+                feature = defaultFeatureByCategory[category]
+            end
+
+            local bucket = ensureFeatureBucket(category, feature)
+            bucket[#bucket + 1] = control
         end
-        grouped[category][#grouped[category] + 1] = control
     end
+
+    self.settingsSearchIndex029787 = {}
+    self.settingsSearchById029787 = {}
+    local searchId029787 = 0
 
     local organizedOptions = {
         {
             type = "description",
             title = "ESO Adventurer Suite Settings",
-            text = "Open the section for the feature you want to change. Configuration controls stay editable even when their feature is currently turned off, so you can prepare settings first and enable the feature later. Only actions that truly require a live module or selected target are disabled.",
+            text = "Settings are organized by feature owner. Use Search Settings to jump directly to any option, or browse the feature sections below.",
+            width = "full",
+        },
+        {
+            type = "editbox",
+            name = "Search Settings",
+            tooltip = "Type any setting or feature name. Matches update as you type. Press Enter to jump to the best match.",
+            isExtraWide = true,
+            maxChars = 80,
+            reference = "EAS_SettingsSearchBox029787",
+            getFunc = function() return S.searchQuery029787 or "" end,
+            setFunc = function(v) S:RefreshSettingsSearch029787(v) end,
+            default = "",
+            width = "full",
+        },
+        {
+            type = "dropdown",
+            name = "Search Results",
+            tooltip = "Choose a matching setting to open its category/feature and scroll directly to it.",
+            choices = { "Type a setting name above" },
+            choicesValues = { 0 },
+            scrollable = 12,
+            reference = "EAS_SettingsSearchResults029787",
+            getFunc = function() return tonumber(S.searchSelected029787) or 0 end,
+            setFunc = function(v)
+                S.searchSelected029787 = tonumber(v) or 0
+                if S.searchSelected029787 > 0 then S:JumpToSetting029787(S.searchSelected029787) end
+            end,
+            default = 0,
+            width = "full",
+        },
+        {
+            type = "button",
+            name = "Jump to selected setting",
+            buttonText = "Go to Setting",
+            tooltip = "Opens the matching feature and centers the selected setting in the Settings panel.",
+            func = function() S:JumpToSetting029787(S.searchSelected029787) end,
             width = "full",
         },
     }
 
-    for _, key in ipairs(categoryOrder) do
-        local controls = grouped[key]
-        if controls and #controls > 0 then
-            local info = categoryInfo[key]
-            local submenuControls = {
+    for _, category in ipairs(categoryOrder) do
+        local categoryFeatures = featureOrder[category]
+        if categoryFeatures and #categoryFeatures > 0 then
+            local categoryMeta = categoryInfo[category]
+            local categoryControls = {
                 {
                     type = "description",
-                    text = info.intro,
+                    text = categoryMeta.intro,
                     width = "full",
                 },
             }
-            for _, control in ipairs(controls) do
-                submenuControls[#submenuControls + 1] = control
+
+            local categoryRef = "EAS_SettingsCategory029787_" .. tostring(category)
+            for _, feature in ipairs(categoryFeatures) do
+                local controls = grouped[category][feature]
+                if controls and #controls > 0 then
+                    local featureMeta = featureInfo[feature]
+                    local featureRef = "EAS_SettingsFeature029787_" .. tostring(feature)
+
+                    for _, control in ipairs(controls) do
+                        if control.type ~= "description" and control.name then
+                            searchId029787 = searchId029787 + 1
+                            local controlRef = control.reference or ("EAS_SettingsOption029787_" .. tostring(searchId029787))
+                            control.reference = controlRef
+
+                            local settingName = tostring(control.name or "")
+                            local tooltip = type(control.tooltip) == "string" and control.tooltip or ""
+                            local path = string.format("%s > %s > %s", categoryMeta.name, featureMeta.name, settingName)
+                            local entry = {
+                                id = searchId029787,
+                                name = settingName,
+                                path = path,
+                                category = category,
+                                feature = feature,
+                                categoryRef = categoryRef,
+                                featureRef = featureRef,
+                                controlRef = controlRef,
+                            }
+                            entry.searchName = normalizeSettingsSearch029787(settingName)
+                            entry.searchPath = normalizeSettingsSearch029787(path)
+                            entry.searchText = normalizeSettingsSearch029787(path .. " " .. tooltip)
+                            S.settingsSearchIndex029787[#S.settingsSearchIndex029787 + 1] = entry
+                            S.settingsSearchById029787[entry.id] = entry
+                        end
+                    end
+
+                    categoryControls[#categoryControls + 1] = {
+                        type = "submenu",
+                        name = featureMeta.name,
+                        reference = featureRef,
+                        controls = controls,
+                    }
+                end
             end
+
             organizedOptions[#organizedOptions + 1] = {
                 type = "submenu",
-                name = info.name,
-                tooltip = info.tooltip,
-                controls = submenuControls,
+                name = categoryMeta.name,
+                tooltip = categoryMeta.tooltip,
+                reference = categoryRef,
+                controls = categoryControls,
             }
         end
     end
+
+    -- Feature modules extend the organized tree here. Settings.lua remains the
+    -- sole owner of the final LibAddonMenu registration.
+    S:ApplyOptionsExtensions(organizedOptions)
+
+    -- v0.29.788: build the search index from the FINAL settings tree after all
+    -- extensions are applied. This makes late-added feature modules (such as
+    -- Group Loot Notifier) first-class searchable settings instead of invisible
+    -- post-processing additions.
+    self.settingsSearchIndex029787 = {}
+    self.settingsSearchById029787 = {}
+    searchId029787 = 0
+
+    local function indexFinalSettingsTree029788(list)
+        for _, categoryOption in ipairs(list or {}) do
+            if categoryOption and categoryOption.type == "submenu" and type(categoryOption.controls) == "table" then
+                local categoryName = tostring(categoryOption.name or "")
+                local categoryRef = categoryOption.reference
+                if not categoryRef or categoryRef == "" then
+                    categoryRef = "EAS_SettingsCategory029788_" .. tostring(#self.settingsSearchIndex029787 + 1)
+                    categoryOption.reference = categoryRef
+                end
+
+                for _, featureOption in ipairs(categoryOption.controls) do
+                    if featureOption and featureOption.type == "submenu" and type(featureOption.controls) == "table" then
+                        local featureName = tostring(featureOption.name or "")
+                        local featureRef = featureOption.reference
+                        if not featureRef or featureRef == "" then
+                            featureRef = "EAS_SettingsFeature029788_" .. tostring(#self.settingsSearchIndex029787 + 1)
+                            featureOption.reference = featureRef
+                        end
+
+                        for _, control in ipairs(featureOption.controls) do
+                            if control and control.type ~= "description" and control.type ~= "header" and control.name then
+                                searchId029787 = searchId029787 + 1
+                                local controlRef = control.reference or ("EAS_SettingsOption029788_" .. tostring(searchId029787))
+                                control.reference = controlRef
+                                local settingName = tostring(control.name or "")
+                                local tooltip = type(control.tooltip) == "string" and control.tooltip or ""
+                                local path = string.format("%s > %s > %s", categoryName, featureName, settingName)
+                                local entry = {
+                                    id = searchId029787,
+                                    name = settingName,
+                                    path = path,
+                                    categoryRef = categoryRef,
+                                    featureRef = featureRef,
+                                    controlRef = controlRef,
+                                }
+                                entry.searchName = normalizeSettingsSearch029787(settingName)
+                                entry.searchPath = normalizeSettingsSearch029787(path)
+                                entry.searchText = normalizeSettingsSearch029787(path .. " " .. tooltip)
+                                self.settingsSearchIndex029787[#self.settingsSearchIndex029787 + 1] = entry
+                                self.settingsSearchById029787[entry.id] = entry
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    indexFinalSettingsTree029788(organizedOptions)
 
     -- With global LAM refresh disabled, keep dependent disabled/enabled states
     -- responsive without paying the cost on every panel open. Only boolean/mode
@@ -3981,9 +4889,26 @@ function S:Initialize()
     -- refresh remains disabled for performance, but this one-shot pass prevents
     -- the small number of genuine runtime/context guards from becoming stale.
     if CALLBACK_MANAGER and type(CALLBACK_MANAGER.RegisterCallback) == "function" then
+        CALLBACK_MANAGER:RegisterCallback("LAM-PanelControlsCreated", function(panel)
+            if panel == S.panelObject then
+                S:HookSettingsSearchControls029787()
+                if S.pendingSettingsJump029787 then
+                    local pending = S.pendingSettingsJump029787
+                    S.pendingSettingsJump029787 = nil
+                    if zo_callLater then
+                        zo_callLater(function() S:PerformSettingsJump029787(pending) end, 80)
+                    else
+                        S:PerformSettingsJump029787(pending)
+                    end
+                end
+            end
+        end)
         CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
-            if panel == S.panelObject and S.panelObject and type(S.panelObject.RefreshPanel) == "function" then
-                pcall(S.panelObject.RefreshPanel, S.panelObject)
+            if panel == S.panelObject then
+                S:HookSettingsSearchControls029787()
+                if S.panelObject and type(S.panelObject.RefreshPanel) == "function" then
+                    pcall(S.panelObject.RefreshPanel, S.panelObject)
+                end
             end
         end)
     end

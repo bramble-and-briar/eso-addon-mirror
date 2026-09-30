@@ -1040,7 +1040,7 @@ end
 function G:RegisterEvents()
     if EVENT_INVENTORY_SINGLE_SLOT_UPDATE then
         local wornName = EPC.name .. "_GearPreviewPlayerWorn"
-        EVENT_MANAGER:RegisterForEvent(wornName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
+        EPC.Runtime:RegisterEvent("GearLoadoutOverlay", "Worn", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
             if self.actor == "PLAYER" then self:ScheduleRefresh(30) end
         end)
         if REGISTER_FILTER_BAG_ID and BAG_WORN ~= nil then
@@ -1049,7 +1049,7 @@ function G:RegisterEvents()
 
         if BAG_COMPANION_WORN ~= nil then
             local companionName = EPC.name .. "_GearPreviewCompanionWorn"
-            EVENT_MANAGER:RegisterForEvent(companionName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
+            EPC.Runtime:RegisterEvent("GearLoadoutOverlay", "Companion", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
                 if self.actor == "COMPANION" then self:ScheduleRefresh(30) end
             end)
             if REGISTER_FILTER_BAG_ID then
@@ -1059,18 +1059,18 @@ function G:RegisterEvents()
     end
 
     if EVENT_INVENTORY_FULL_UPDATE then
-        EVENT_MANAGER:RegisterForEvent(EPC.name .. "_GearPreviewFullInventory", EVENT_INVENTORY_FULL_UPDATE, function() self:ScheduleRefresh(50) end)
+        EPC.Runtime:RegisterEvent("GearLoadoutOverlay", "FullInventory", EVENT_INVENTORY_FULL_UPDATE, function() self:ScheduleRefresh(50) end)
     end
     if EVENT_ACTIVE_WEAPON_PAIR_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(EPC.name .. "_GearPreviewWeaponPair", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() self:ScheduleRefresh(20) end)
+        EPC.Runtime:RegisterEvent("GearLoadoutOverlay", "WeaponPair", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() self:ScheduleRefresh(20) end)
     end
     if EVENT_ACTIVE_COMPANION_STATE_CHANGED then
-        EVENT_MANAGER:RegisterForEvent(EPC.name .. "_GearPreviewCompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
+        EPC.Runtime:RegisterEvent("GearLoadoutOverlay", "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
             self:ScheduleRefresh(40)
         end)
     end
     if EVENT_PLAYER_ACTIVATED then
-        EVENT_MANAGER:RegisterForEvent(EPC.name .. "_GearPreviewActivated", EVENT_PLAYER_ACTIVATED, function() self:ScheduleRefresh(80) end)
+        EPC.Runtime:RegisterEvent("GearLoadoutOverlay", "Activated", EVENT_PLAYER_ACTIVATED, function() self:ScheduleRefresh(80) end)
     end
 end
 

@@ -8,7 +8,12 @@ local FV = Frostfall
 
 local PANEL_DATA = {
     type             = "panel",
-    name             = "Frostfall",
+    -- Must NOT be the bare addon name: LibAddonMenu creates the panel
+    -- control under this name, and ESO exposes every named control as a
+    -- global - "Frostfall" here replaced the global Frostfall addon table
+    -- with the panel control, silently breaking other addons (e.g. RND)
+    -- that read Frostfall:GetEffectiveTemp(). See v3.4.34.
+    name             = "FrostfallPanel",
     displayName      = "Frostfall — Temperature System",
     author           = "@Kreksar5 and Claude.ai",
     version          = FV.VERSION,

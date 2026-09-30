@@ -176,6 +176,7 @@ function ElderScrollsOfAlts:ResetUIViews(self)
     for viewIdx, guiLine in pairs(guiTCopy) do
       table.insert( ElderScrollsOfAlts.savedVariables.gui, guiLine )
     end--]]
+	table.clear(guiview)
     table.insert( guiview, ElderScrollsOfAlts:deepcopy(ElderScrollsOfAlts.view.guiTemplates["Home"])     )
     table.insert( guiview, ElderScrollsOfAlts:deepcopy(ElderScrollsOfAlts.view.guiTemplates["Pvp"])    )
     table.insert( guiview, ElderScrollsOfAlts:deepcopy(ElderScrollsOfAlts.view.guiTemplates["Skills"])   )

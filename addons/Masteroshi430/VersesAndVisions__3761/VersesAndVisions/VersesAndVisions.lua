@@ -105,8 +105,8 @@ function VersesAndVisions.updateBuffStacks(buffType, abilityId, stackCount)
 	end
 	
 	local topLeft = TOPLEFT
-    local bottomLeft = BOTTOMLEFT
-	local gamepadXoffset = 0
+  local bottomLeft = BOTTOMLEFT
+	local gamepadXoffset = 240
 	local gamepadYoffset = 0
 	local fontSize = 18
 	local font = "$(BOLD_FONT)"
@@ -120,7 +120,7 @@ function VersesAndVisions.updateBuffStacks(buffType, abilityId, stackCount)
 	if isGamepad then
 	    topLeft = TOPRIGHT
         bottomLeft = BOTTOMRIGHT
-		gamepadXoffset = -20
+		gamepadXoffset = 220
 		gamepadYoffset = -40
 		fontSize = "$(GP_34)"
 		font = "$(GAMEPAD_MEDIUM_FONT)" 

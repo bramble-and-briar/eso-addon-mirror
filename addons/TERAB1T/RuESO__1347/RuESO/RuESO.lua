@@ -1,7 +1,7 @@
 local RuESO = {}
 RuESO.Flags = { "en", "ru", "de", "fr", "es" }
-RuESO.Version = "v47.0"
-RuESO.API = 101050
+RuESO.Version = "v48.0"
+RuESO.API = 101051
 RuESO.Name = "RuESO"
 RuESO.DropdownParameters = {
 	["ru"] = "Только русский",

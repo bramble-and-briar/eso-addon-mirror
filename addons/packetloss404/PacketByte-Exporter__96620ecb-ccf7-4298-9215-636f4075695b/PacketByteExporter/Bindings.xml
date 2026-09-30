@@ -1,0 +1,21 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="PacketByte Exporter">
+            <Action name="PBE_CAPTURE_QUICK">
+                <Down>PacketByteExporter_CaptureQuick()</Down>
+            </Action>
+            <Action name="PBE_CAPTURE_BUILD">
+                <Down>PacketByteExporter_CaptureBuild()</Down>
+            </Action>
+            <Action name="PBE_CAPTURE_ALL">
+                <Down>PacketByteExporter_CaptureAll()</Down>
+            </Action>
+            <Action name="PBE_SUBMIT_NEXT">
+                <Down>PacketByteExporter_SubmitNext()</Down>
+            </Action>
+            <Action name="PBE_RETRY_LAST">
+                <Down>PacketByteExporter_RetryLast()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

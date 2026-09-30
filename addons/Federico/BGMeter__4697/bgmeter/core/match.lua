@@ -78,6 +78,27 @@ function Match.sort(m, key, desc)
     end)
 end
 
+function Match.group_by_team(m)
+    local rows = m.battle
+    if not rows or #rows < 2 then return end
+    local order, seen = {}, {}
+    if m.localTeam and m.localTeam ~= 0 then order[1] = m.localTeam; seen[m.localTeam] = true end
+    local rest = {}
+    for _, r in ipairs(rows) do
+        local t = r.team or 0
+        if not seen[t] then seen[t] = true; rest[#rest + 1] = t end
+    end
+    table.sort(rest)
+    for _, t in ipairs(rest) do order[#order + 1] = t end
+    local out, n = {}, 0
+    for _, t in ipairs(order) do
+        for _, r in ipairs(rows) do
+            if (r.team or 0) == t then n = n + 1; out[n] = r end
+        end
+    end
+    for i = 1, n do rows[i] = out[i] end
+end
+
 function Match.column_max(m, key)
     local max = 0
     for _, row in ipairs(m.battle) do

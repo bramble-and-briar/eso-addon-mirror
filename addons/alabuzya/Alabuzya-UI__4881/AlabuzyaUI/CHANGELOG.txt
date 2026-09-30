@@ -1,3 +1,124 @@
+Alabuzya UI 0.1.44 — 2026-09-29
+
+ENGLISH
+- Diablo interface: left-click the "Quests" heading to collapse the entire quest
+  list. Only the heading remains, and the sidebar frame shrinks to fit.
+- Click again to restore the list. The collapsed state is saved between sessions;
+  individual zone collapse preferences are preserved.
+
+РУССКИЙ
+- Интерфейс Diablo: клик левой кнопкой по заголовку «Задания» сворачивает весь
+  список. Остаётся только заголовок, рамка боковой панели уменьшается вместе со списком.
+- Повторный клик разворачивает список. Состояние сохраняется между входами в игру;
+  настройки сворачивания отдельных зон сохраняются независимо.
+
+Alabuzya UI 0.1.43 — 2026-09-29
+
+ENGLISH
+
+New in 0.1.43
+- Improved minimap panning: map tiles and icons now support fractional pixel
+  movement instead of snapping to whole pixels. This targets the uneven,
+  wave-like movement reported while walking, running and riding.
+- The player arrow remains centered; no movement delay has been added.
+
+Recent fixes included in this release (0.1.40–0.1.42)
+- Fixed inventory grid icons remaining nearly invisible after opening the
+  inventory. Switching between List and Grid is no longer needed to restore brightness.
+- Updated grid refresh handling when opening the inventory and receiving items.
+- Minimap icons now refresh without first opening the world map, including
+  after loading screens and map or floor changes.
+- Stale location icons from the previous map are excluded from the minimap.
+- Removed movement- and mount-dependent zoom changes and reduced dungeon zoom.
+- The standard compass border is hidden again after the game reapplies its style.
+
+The inventory brightness fix and minimap icon loading have been confirmed in
+game. The latest panning adjustment and remaining map scenarios still need
+in-game confirmation. Lua syntax, regression checks and archive validation passed.
+
+РУССКИЙ
+
+Новое в 0.1.43
+- Улучшено перемещение миникарты: тайлы и значки поддерживают дробное смещение
+  без округления до целых пикселей. Изменение направлено на устранение движения
+  «волнами» при ходьбе, беге и езде верхом.
+- Стрелка игрока остаётся в центре; дополнительная задержка движения не добавлена.
+
+Недавние исправления, включённые в релиз (0.1.40–0.1.42)
+- Исправлено сильное затемнение иконок сетки после открытия инвентаря.
+  Для восстановления яркости больше не нужно переключать «Список → Сетка».
+- Обновлена обработка отрисовки сетки при открытии инвентаря и получении предметов.
+- Значки миникарты обновляются без предварительного открытия большой карты,
+  в том числе после загрузки локации и при смене карты или этажа.
+- Исключены устаревшие значки мест с предыдущей карты.
+- Убрано изменение масштаба из-за движения и езды верхом; уменьшено приближение
+  в подземельях.
+- Штатная рамка компаса повторно скрывается после применения игрой своего стиля.
+
+Исправление яркости иконок инвентаря и загрузка значков миникарты подтверждены
+в игре. Последнее изменение плавности и остальные сценарии карты ещё требуют
+проверки в игре. Проверки синтаксиса Lua, регрессий и архива пройдены.
+
+Alabuzya UI 0.1.42 — 2026-09-29
+
+ENGLISH
+- Inventory grid: use control-local opacity when copying item icons and saving
+  original row settings. The inventory opening fade is no longer captured as
+  permanent icon dimming. Native locked-item dimming remains intact.
+- Includes the minimap and compass changes from 0.1.41, without further changes.
+- Regression checks cover a hidden/fading scene, full opacity after opening,
+  locked items, and original control opacity restoration. In-game confirmation required.
+
+РУССКИЙ
+- Сетка инвентаря: при копировании иконок и сохранении исходных настроек ячеек
+  используется собственная прозрачность элемента. Затемнение во время появления
+  окна больше не сохраняется в иконке. Штатное затемнение заблокированных вещей сохранено.
+- Включены изменения миникарты и компаса из 0.1.41 без дополнительных правок.
+- Проверены скрытое и появляющееся окно, яркость после открытия, заблокированные
+  предметы и восстановление прозрачности. Требуется подтверждение в игре.
+
+Alabuzya UI 0.1.41 — 2026-09-29
+
+ENGLISH
+- Inventory grid: defer the first-show rebuild until ESO has completed its show
+  handlers. Coalesce inventory updates into a visible-row refresh without resetting scrolling.
+- Minimap: refresh map pins on first display, activation, map/floor changes and
+  return from world-map browsing. Read location icons from the current map,
+  excluding stale location pins from the hidden world map.
+- Minimap: remove movement/mount-dependent zoom animation; use a constant scale,
+  a lower dungeon zoom, and the map's custom zoom limit where provided.
+- Compass: hide the native border again after ESO reapplies its platform style,
+  including boss-bar transitions. Compass pins and distances are preserved.
+- Validation: Lua 5.1 syntax and mocked lifecycle/regression checks. Visual
+  rendering and real travel/inventory scenarios still need in-game confirmation.
+
+РУССКИЙ
+- Сетка инвентаря: первая повторная отрисовка выполняется после штатных обработчиков
+  показа. Обновления предметов объединяются без сброса прокрутки.
+- Миникарта: обновление значков при первом показе, активации персонажа, смене карты
+  или этажа и возврате из большой карты. Значки мест берутся из текущей карты,
+  устаревшие значки мест из скрытой большой карты исключены.
+- Миникарта: убрано плавное изменение масштаба при движении и езде верхом.
+  Масштаб постоянный; приближение в подземельях уменьшено, учитывается ограничение карты.
+- Компас: штатная рамка скрывается повторно после применения игрой стиля,
+  в том числе при переключении полосы босса. Значки и расстояния сохранены.
+- Проверка: синтаксис Lua 5.1 и модельные проверки событий и регрессий. Отрисовку,
+  перемещения и работу инвентаря необходимо дополнительно подтвердить в игре.
+
+Alabuzya UI 0.1.40 — 2026-09-28
+
+ENGLISH
+- Changed inventory grid icons to render directly inside their cells instead of
+  resizing the native list icon. Native item actions, tint and cooldowns remain.
+- Reused cells update their texture and restore the standard icon in list mode.
+- Includes the bundled QuestArrow startup fix from 0.1.39.
+
+РУССКИЙ
+- Иконки сетки теперь отрисовываются непосредственно внутри ячеек вместо
+  изменения размеров штатной иконки списка. Действия, окраска и перезарядки сохранены.
+- Повторно используемые ячейки обновляют текстуру; в списке возвращается штатная иконка.
+- Включено исправление запуска встроенного QuestArrow из 0.1.39.
+
 Alabuzya UI 0.1.39 — 2026-09-28
 
 ENGLISH

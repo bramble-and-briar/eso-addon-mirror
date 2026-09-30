@@ -10,6 +10,56 @@ PS5 either. The distinction matters: on console a wrong guess costs a whole test
 
 ---
 
+## 0. The HUD tracker rewrite (API 101051, live 2026-09-28)
+
+**Measured**, in the sense that matters: after this update the player reported that the tracker
+could no longer be moved. Everything below is **from source**, read out of the `live` branch
+merged on 2026-09-28, and it accounts for that report and for two more breakages nobody had
+noticed yet.
+
+Every tracker in the top right was rebuilt on one base class and moved into one container:
+
+- `ZO_HUDTrackers` (`hud/hudtracker_manager.xml`) is a single top-level control with a scroll
+  container. `HUD_TRACKER_MANAGER:RegisterTracker(template, name)` creates each tracker in it
+  with `CreateControlFromVirtual`, at file load, in priority order
+  (`ZO_HUD_TRACKER_PRIORITY`: dynamic events 400, quest 500, zone story 510, timed activity 600,
+  achievement 610, house information 700, …).
+- `ZO_FocusedQuestTrackerPanel` is no longer a `TopLevelControl` but the name of a tracker
+  created from `ZO_FocusedQuestTrackerPanel_Template`, which inherits
+  `ZO_HUDTracker_Base_Template`. `ZO_Tracker` is now `ZO_HUDTracker_Base:Subclass()`; its panel
+  field `trackerPanel` is gone (it is `primaryControl` / `control`).
+- `HUD_TRACKER_MANAGER:RefreshLayout()` re-parents and re-anchors **every** tracker —
+  `ClearAnchors`, `SetParent`, `SetAnchor(TOPRIGHT, previousControl, BOTTOMRIGHT)` — from every
+  tracker's `OnShowing` / `OnHidden`, on `EVENT_PLAYER_ACTIVATED`, and on `HUD_MANAGER`'s
+  `PropagateSettings` / `OffsetsChanged`. It never touches a tracker's scale.
+- The Golden Pursuits panel is now `ZO_TimedActivityTracker` (`TIMED_ACTIVITY_TRACKER`), shared
+  with Tamriel Tomes and a pinned achievement. `PROMOTIONAL_EVENT_TRACKER` survives only as an
+  alias in `addoncompatibilityaliases_shared.lua`. Its progress is a `StatusBar` (`progressBar`)
+  with a `Progress` label inside, whose font comes from
+  `ZO_HUDTracker_Base_ProgressBar_{Keyboard,Gamepad}_Template`, not from the style table.
+- The HUD panels' styles are now applied at `EVENT_ADD_ONS_LOADED` (plural, after every add-on)
+  rather than at `ZO_Ingame`'s own load — so an add-on's `EVENT_ADD_ON_LOADED` now sees them
+  **unstyled**.
+- There is a customisable HUD: every tracker, and the column itself, is registered with
+  `HUD_MANAGER` as a keyboard and a gamepad HUD element. But the editor is
+  `hud_editor_keyboard` only, opened from the keyboard game menu ("Edit HUD (Beta)" /
+  「HUD編集(Beta)」). There is no gamepad editor, and on console the saved offsets are not
+  even read (section 6c).
+
+What that did to 1.2.0:
+
+| | cause |
+| --- | --- |
+| Position did nothing | `QuestPanel()` returned `tracker.trackerPanel`, now `nil`. And even with the right field, any anchor on a tracker is wiped by the next `RefreshLayout`. |
+| Smaller and "off" did nothing | `ZO_Tracker:ApplyPlatformStyle(style)` now passes `style` to `ZO_HUDTracker_Base.ApplyPlatformStyle`, which reads `style.TEXT_HORIZONTAL_ALIGNMENT` unconditionally. 1.2.0 called it with no argument; the error was swallowed by `pcall`. Bigger still worked, because the pool hook styles each newly acquired label. |
+| Golden Pursuits progress stopped changing | 1.2.0 styled `tracker.progressLabel`, which no longer exists, and scaled `PROGRESS_LABEL_PRIMARY_ANCHOR`, now `PROGRESS_BAR_PRIMARY_ANCHOR`. Both were skipped silently. |
+| (latent) | 1.2.0 wrapped the HUD panels' `ApplyPlatformStyle` on the instance. The rewritten Golden Pursuits method re-applies its keybind button's platform template, so under that wrapper the client was building keybind controls with an add-on frame on the stack. |
+
+Unchanged: the quest tracker's three pools and their `SetCustomAcquireBehavior`, the tree-node
+spacing, `QUEST_HEADER_BASE_HEIGHT = 28`, and the house panel's labels and style keys.
+
+---
+
 ## 1. All three trackers are Lua UI, not engine-drawn
 
 **From source.** `esoui/ingame/zo_quest/questtracker.lua` builds the focused quest tracker out
@@ -29,8 +79,8 @@ Two more panels sit under it in the same column, and both are `ZO_HUDTracker_Bas
 whose labels are `<Label>`s in their own XML plus `hudtracker_base.xml`:
 
 ```lua
--- promotionaleventtracker.lua   (Golden Pursuits, and Tamriel Tomes)
-self.progressLabel   = self.container:GetNamedChild("ProgressLabel")
+-- timedactivitytracker.lua      (Golden Pursuits, Tamriel Tomes, a pinned achievement)
+self.progressBar     = self.container:GetNamedChild("ProgressBar")   -- text in its "Progress" child
 -- houseinformationtracker.lua
 self.populationLabel = control:GetNamedChild("ContainerPopulation")
 self.tagsLabel       = control:GetNamedChild("ContainerTags")
@@ -39,14 +89,11 @@ self.headerLabel     = self.container:GetNamedChild("Header")
 self.subLabel        = self.container:GetNamedChild("SubLabel")
 ```
 
-The order down the screen comes from their anchors: the quest tracker panel is the top of the
-chain, `ZO_ZoneStoryTracker` anchors to `ZO_FocusedQuestTrackerPanelContainerQuestContainer`,
-`ZO_PromotionalEventTracker_TL` to `ZO_ZoneStoryTracker`, and
-`ZO_HouseInformationTrackerTopLevel` to `ZO_PromotionalEventTracker_TL`.
+The order down the screen comes from `ZO_HUD_TRACKER_PRIORITY`: `HUD_TRACKER_MANAGER` stacks
+every active tracker in its column in that order, each anchored to the bottom of the one before
+(section 0). Before the rewrite the same order came from a chain of top-level anchors.
 
-Same conclusion for all three, and it is the whole difference from PB's NamePlateChanger.
-
-This is the whole difference from PB's NamePlateChanger. There the nameplate is drawn by the
+Same conclusion for all three, and it is the whole difference from PB's NamePlateChanger. There the nameplate is drawn by the
 engine and the only surface is `SetNameplateGamepadFont`, a *client setting* — it outlives the
 session, it is re-read after every loading screen, and changing the face reloads the UI. Here
 there is no setting at all: the font lives on a control, for as long as that control is alive.
@@ -58,7 +105,7 @@ Consequences, all of them things the nameplate add-on needed and this one does n
 - no write budget or reload-loop defence,
 - uninstalling is a complete undo.
 
-## 2. There are seven fonts across the three, not one
+## 2. There are eight fonts across the three, not one
 
 **From source.** Each file keeps a constants table per platform:
 
@@ -68,25 +115,30 @@ Consequences, all of them things the nameplate add-on needed and this one does n
 | quest | `questStep` | `ZO_QuestStepDescription` | `ZoFontGamepadBold22` | `ZoFontGameShadow` |
 | quest | `questGoal` | `ZO_QuestCondition` | `ZoFontGamepad34` | `ZoFontGameShadow` |
 | pursuit | `pursuitName` | `...ContainerHeader` | `ZoFontGamepadBold27` | `ZoFontGameShadow` |
-| pursuit | `pursuitDetail` | `...SubLabel` / `...ProgressLabel` | `ZoFontGamepad34` | `ZoFontGameShadow` |
+| pursuit | `pursuitDetail` | `...SubLabel` | `ZoFontGamepad34` | `ZoFontGameShadow` |
+| pursuit | `pursuitProgress` | `...ProgressBarProgress` | `ZoFontGamepadBold27` | `ZoFontWinH4` |
 | house | `houseName` | `...ContainerHeader` | `ZoFontGamepadBold27` | `ZoFontGameShadow` |
 | house | `houseDetail` | `...SubLabel` / `...Population` / `...Tags` | `ZoFontGamepad34` | `ZoFontGameShadow` |
 
 Note the gamepad objective lines are **34**, larger than the 27 quest name. That is
 deliberate, and it is why the quest size is three settings rather than one.
 
-The two `...Detail` roles are one setting for several labels because the game gives those
-labels the same font: `FONT_SUBLABEL` and `FONT_PROGRESS_LABEL` are both `ZoFontGamepad34` in
-`ZO_PromotionalEventTracker:InitializeStyles`, and `FONT_SUBLABEL`, `FONT_POPULATION` and
-`FONT_TAGS` are all `ZoFontGamepad34` in `ZO_HouseInformationTracker:InitializeStyles`. One
-slider per font the game actually uses, no more and no fewer.
+`houseDetail` is one setting for three labels because the game gives all three the same font:
+`FONT_SUBLABEL`, `FONT_POPULATION` and `FONT_TAGS` are all `ZoFontGamepad34` in
+`ZO_HouseInformationTracker:InitializeStyles`. One slider per font the game actually uses, no
+more and no fewer.
 
-**Golden Pursuits is also Tamriel Tomes.** `ZO_PromotionalEventTracker:Update` fills the same
-three controls from whichever system has something tracked, and the file opens with
+That rule is also why the Golden Pursuits progress has its own slider. Before the rewrite it was
+a label sharing `ZoFontGamepad34` with the pursuit name. Since the rewrite it is the text inside
+a `StatusBar`, and its font comes from `ZO_HUDTracker_Base_ProgressBar_Gamepad_Template` /
+`..._Keyboard_Template` (`ZoFontGamepadBold27` / `ZoFontWinH4`), not from the style table — a
+different font, so a different slider, and its game font is named in the add-on because there
+is no style field to read it from.
 
-> `-- TODO Tamriel Tomes: Rename file to TimedActivityTracker.lua`
-
-so one section covers both, and there is no second panel to configure.
+**Golden Pursuits is also Tamriel Tomes, and a pinned achievement.** The file used to open with
+`-- TODO Tamriel Tomes: Rename file to TimedActivityTracker.lua`; the rewrite did exactly that,
+and `ZO_TimedActivityTracker` fills the same controls from whichever system is being tracked, so
+one section covers all of them.
 
 Resolved in `esoui/fontdefs/`:
 
@@ -134,46 +186,33 @@ putting the platform's named fonts back on every active label. "Off" is that cal
 the first half of every settings change — without it, a label would keep the larger font it was
 just given and nothing would ever shrink.
 
-## 3b. The two HUD panels: one public method, and it is the only writer
+## 3b. The two HUD panels: written directly, never hooked
 
-**From source.** Nothing in `promotionaleventtracker.lua` or `houseinformationtracker.lua` is
-pooled. Their labels are created once with the control and live for the session, and exactly
-one thing ever sets their fonts:
+**From source.** Nothing in `timedactivitytracker.lua` or `houseinformationtracker.lua` is
+pooled. Their labels are created once with the control and live for the session, and exactly one
+thing ever sets their fonts: the panel's own `ApplyPlatformStyle(style)`. `Update()`,
+`Refresh()` and `RefreshListingTags()` call `SetText`, never `SetFont`.
 
-```lua
-function ZO_HouseInformationTracker:ApplyPlatformStyle(style)
-    ZO_HUDTracker_Base.ApplyPlatformStyle(self, style)   -- headerLabel, subLabel
-    self.populationLabel:SetFont(style.FONT_POPULATION)
-    self.tagsLabel:SetFont(style.FONT_TAGS)
-    ...
-end
-```
+Up to 1.2.0 that method was wrapped on the instance. Since the rewrite it is not safe to run
+under an add-on frame: `ZO_TimedActivityTracker:ApplyPlatformStyle` ends with
+`ZO_ApplyPlatformTemplateToControl(self.assistedKeybindButton, "ZO_KeybindButton")`, and anything
+the client builds while an add-on frame is on the stack is untrusted for good — measured on PS5
+in PB's MailerExtension, where it cost a working Send button.
 
-`ZO_PromotionalEventTracker:ApplyPlatformStyle` is the same shape, with `FONT_PROGRESS_LABEL`
-in place of the population and tags lines. In both classes `Update()`, `Refresh()` and
-`RefreshListingTags()` call `SetText`, never `SetFont`. So a font written here stays written
-until `ApplyPlatformStyle` runs again, which happens on a platform change and whenever we ask
-for it — nothing like the quest tracker's constant rebuilding.
+It does not need to be wrapped. `ZO_PlatformStyle` runs it at exactly two moments:
 
-Because they are the same shape, one piece of code hooks both: a section carries the name of
-the global holding its singleton and the fields holding its labels, and nothing else differs.
+1. **`EVENT_ADD_ONS_LOADED`**, from each panel's `DeferredInitialize` — followed by
+   `EVENT_PLAYER_ACTIVATED`, where this add-on applies for the first time;
+2. **a keyboard/gamepad switch** — which fires `EVENT_GAMEPAD_PREFERRED_MODE_CHANGED`, where
+   this add-on applies again, deferred so the client's own handler has run.
 
-That makes the hook a straight wrapper on the instance's method. It is public, so unlike the
-quest tracker's file-locals there is no trick to it; assigning on the instance rather than the
-class leaves anything else deriving from `ZO_HUDTracker_Base` alone, and `ZO_PlatformStyle`
-calls it through `self:` so the instance field is what it finds.
+So the labels are written directly at those two moments and whenever a setting changes. Each
+label is handed back to the game's font first (read from `tracker.styles[platform][FONT_*]`, the
+same table the panel reads, or for the progress text the bar's template font), then measured,
+then styled. `RefreshAnchors` is still called afterwards: it only clears and re-adds the panel's
+own anchors from the style table.
 
-The same call is the restore path, for the same reason as the quest tracker: going back
-through `ApplyPlatformStyle` re-applies the game's named fonts first, and since our wrapper is
-on that method, one call does both halves.
-
-**Timing.** `ZO_HUDTracker_Base:Initialize` defers the rest to `ZO_Ingame`'s
-`EVENT_ADD_ON_LOADED`, and `InitializeStyles` ends by constructing a `ZO_PlatformStyle`, which
-applies immediately. `ZO_Ingame` is the game's own add-on and loads before ours, so by the time
-this add-on is loaded the labels of both panels are already styled — present, pristine, and
-ready to measure as the hook attaches. If a client ever ordered it the other way round, the labels would have no
-font yet, `GetFontSize()` would report nothing, and the measurement is simply not taken (and
-not marked as taken) until the platform style runs through our wrapper.
+---
 
 ## 4. `$(GP_27)` is not 27
 
@@ -246,9 +285,9 @@ be meaningless. Only grown, never shrunk: 28 is already generous for the game's 
 shrinking it would pull the whole tracker up into it.
 
 Neither HUD panel needs any of this. `ZO_HUDTracker_Base_Template` and its `Container` are both
-`resizeToFitDescendents="true"`, no label in `promotionaleventtracker.xml`,
-`houseinformationtracker.xml` or `hudtracker_base.xml` carries a `<Dimensions>`, and every one
-is anchored to the bottom of the one above it. A larger font grows the panel. `RefreshAnchors()` is called after a restyle
+`resizeToFitDescendents="true"`, no label in `timedactivitytracker.xml`,
+`houseinformationtracker.xml` or `hudtracker_base.xml` is given a height (only a width,
+`ZO_HUD_TRACKER_MAX_WIDTH`), and every one is anchored to the bottom of the one above it. A larger font grows the panel. `RefreshAnchors()` is called after a restyle
 anyway, because it is also what the tracker uses to re-place the population line when the owner
 line is hidden.
 
@@ -299,49 +338,69 @@ Only the anchors that place one row against another are touched. `TOP_LEVEL_*`, 
 and `HEADER_*` place the panel itself on the screen, and scaling those would move the panel
 rather than tighten it.
 
-## 6c. The panel can be moved and scaled, and nothing fights back
+## 6c. The column can be moved through its HUD element's default anchor
 
-**From source.** `ZO_FocusedQuestTrackerPanel` is the top-level control for the whole tracker
-and `questtracker.xml` is the only place it is ever anchored:
+**From source.** Up to 1.2.0 the quest tracker was a top-level control anchored once in XML,
+and moving it was a matter of anchoring it. Since the rewrite every tracker is re-anchored by
+`HUD_TRACKER_MANAGER:RefreshLayout()` whenever anything shows, hides or changes (section 0), so
+an anchor on a tracker cannot stick.
 
-```xml
-<TopLevelControl name="ZO_FocusedQuestTrackerPanel">
-    <Dimensions x="275"/>
-    <Anchor point="TOPRIGHT" relativeTo="ZO_DynamicEventsTracker_TL" relativePoint="BOTTOMRIGHT"/>
+The column cannot be re-anchored by `RefreshLayout` — it is the thing the trackers are anchored
+*in*. `ZO_HUDTrackers` is anchored in XML (`TOPRIGHT`, −15, 90) and registered as a HUD element,
+and the only code that places it afterwards is:
+
+```lua
+-- ZO_HUDManager:PropagateSettings(), on EVENT_ADD_ONS_LOADED, a platform switch, a resize
+for _, element in self:GamepadElementIterator() do
+    element:RevertOffsetModifications()   -- GetSavedAnchor():Set(self.control)
+end
+
+function ZO_HUDManager_Element:GetSavedAnchor()
+    --TODO Custom HUD: Remove this check once we build the gamepad editor
+    if ZO_IsConsoleOrGameCoreUI() then
+        return self.defaultAnchor
+    end
+    ...saved offsets from the keyboard editor, if any, else defaultAnchor
+end
 ```
 
-Grepping `trackerPanel` through `questtracker.lua` turns up event registrations, the fragment
-and one `ZO_Anchor:New(..., self.trackerPanel, ...)` for the quest timer — the panel is the
-*target* of that anchor, never re-anchored itself. `CreatePlatformAnchors` and
-`ApplyPlatformStyle` place the timer, the quest container and the tree, all relative to the
-panel. `SetScale` appears nowhere in the file at all.
+`defaultAnchor` is a `ZO_Anchor` built from the XML anchor when the element is created, one per
+platform. `ZO_Anchor:SetOffsets` only writes its `data` table (`libraries/utility/zo_anchor.lua`).
+So:
 
-So position and scale are unclaimed: written once, they stay written, and no rebuild, zone
-change or platform switch puts them back. That also means there is no pristine value to
-re-read later, so the game's anchor is captured once per session before anything is written and
-the setting is stored as a nudge from it. 0/0 is then genuinely "leave it alone", re-applying
-cannot accumulate, and a ZOS change to the default position is inherited rather than
-overwritten.
+- **On a PS5 the column is placed by `element.defaultAnchor` and nothing else.** Changing that
+  object's offsets means every placement the game makes, for any reason, puts the column where
+  the player asked. This add-on writes them at `EVENT_ADD_ON_LOADED` — before
+  `EVENT_ADD_ONS_LOADED`, where `HUD_MANAGER` first places anything — so the game does the moving
+  at start-up, and on a settings change calls `RevertOffsetModifications()` itself (an anchor
+  `Set`, nothing that builds).
+- **The object is changed in place**, never replaced: `ZO_HUDTracker_Manager:OnAnchorStateChanged`
+  asks `IsUsingDefaultAnchor()`, which compares `currentAnchor == defaultAnchor`, to decide
+  whether the scroll area stops short of the screen bottom and the gamepad chat.
+- **Nothing is written to `HUD_MANAGER`'s saved variables.** `HUD_MANAGER:SaveAnchorOffsets` would
+  have been the obvious API, and on console it does nothing useful — the check above means saved
+  offsets are never read. It would also have left the game's own settings changed after the
+  add-on was removed.
+- **On PC, the editor wins.** When the keyboard editor has saved offsets, `GetSavedAnchor()`
+  returns them instead of `defaultAnchor`, and this setting has no effect. That is the right way
+  round.
 
-**The column follows.** `ZO_ZoneStoryTracker` anchors to
-`ZO_FocusedQuestTrackerPanelContainerQuestContainer`, `ZO_PromotionalEventTracker_TL` to the
-zone story and `ZO_HouseInformationTrackerTopLevel` to Golden Pursuits, so moving the quest
-tracker moves all of them and the column keeps its shape. That is why the position is one
-setting rather than three.
+**The scale** is written on `FOCUSED_QUEST_TRACKER.control`. `RefreshLayout` never calls
+`SetScale`, and nothing else in the tracker code does, so it stays written.
 
 ### On `protected-attributes`
 
-`ClearAnchors`, `SetAnchor` and `SetScale` all carry that marker in `ESOUIDocumentation.txt`.
-So do `SetHidden`, `SetDimensions`, `SetAlpha`, `SetWidth`, `SetHeight` and `SetParent` — 33
-entries in total, and they are the functions every add-on calls on ordinary controls all day.
-The marker gates controls whose *attributes* the client has protected, not the function itself;
-it is not the `private` case that kills the running chunk.
+`ClearAnchors`, `SetAnchor` and `SetScale` carry that marker in `ESOUIDocumentation.txt`. So do
+`SetHidden`, `SetDimensions`, `SetAlpha`, `SetWidth`, `SetHeight` and `SetParent` — 33 entries in
+total, and they are the functions every add-on calls on ordinary controls all day. The marker
+gates controls whose *attributes* the client has protected, not the function itself; it is not
+the `private` case that kills the running chunk.
 
 That reasoning is not a measurement, though, and the documentation's markers are not an
-authority on what may be called. So every one of these calls is made from `RequestLayout`, on
-its own deferred tick rather than inside a settings handler, a slash command or start-up. If
-the client does refuse one, the refusal takes the position and scale with it and leaves the
-fonts, the spacing and the settings panel standing.
+authority on what may be called. So every call that places or scales is made from
+`RequestLayout`, on its own deferred tick rather than inside a settings handler, a slash command
+or start-up. If the client does refuse one, the refusal takes the position and scale with it and
+leaves the fonts, the spacing and the settings panel standing.
 
 ## 7. Cost on console
 
@@ -403,25 +462,28 @@ visible bug rather than a subtle one, so they are the things to look at first on
 4. **Is `thick-outline` survivable on the Japanese client?** This is the one setting with a
    measured precedent for crashing on console, from the nameplate work.
 5. **Do the two HUD panels measure at all?** `status` reports their defaults from anywhere, not
-   just while the panels are on screen. If they are still the fallback 27 and 34 after a login,
-   the hook attached before the client styled the labels and the measurement is waiting for the
-   platform style to run — go somewhere that shows them and check again.
+   just while the panels are on screen. After a login they should be the scaled 27 and 34 —
+   the panels are first styled at `EVENT_ADD_ONS_LOADED` and measured at the first activation.
 6. **Do they grow cleanly?** Set the house details to 45 on a home tour and check the visitor
-   count and the tags are not overlapping the owner line; set the pursuit detail to 45 and
-   check the progress line is not overlapping the pursuit name, or the house panel below it.
-7. **Do the gaps look right at the extremes?** Set the objectives to 12 and check the lines are
+   count and the tags are not overlapping the owner line; set the pursuit name to 45 and check
+   the progress bar is not overlapping it.
+7. **Does the progress text sit acceptably in its bar?** The bar keeps its template size, so a
+   large progress setting spills over it. Worth seeing where "acceptable" ends.
+8. **Do the gaps look right at the extremes?** Set the objectives to 12 and check the lines are
    not touching; set them to 60 and check the gaps have not become a chasm. The scaling is
    linear in the size ratio, which is the obvious rule but not necessarily the prettiest one at
    the ends of the range.
-8. **Do `SetAnchor` and `SetScale` work on the panel at all?** This is the first thing to look
-   at, and `/pbquest status` answers it: the `layout:` line says what was asked for and the
-   `applied=` line says what was written. If the panel has not moved and `applied=never`, the
-   calls were refused and section 6c's reasoning about *protected-attributes* is wrong.
-9. **Does scaling the panel move the ones anchored to it?** The panels below are anchored to a
-   control *inside* the scaled panel, so they should follow its scaled rectangle -- but whether
-   the client resolves an anchor against the scaled or unscaled rect is not something the
-   source answers. Set the scale to 150% and look at where Golden Pursuits lands.
-10. **Does the Golden Pursuits heading keep its icon aligned?** `ApplyPlatformStyle` anchors the
-   icon to the left of the header label with a fixed `HEADER_ICON_SIZE` / `HEADER_ICON_OFFSET`.
-   The icon is not resized here, so a much larger heading may sit taller than its 48-point
-   icon. That is cosmetic, but worth a look before deciding it is fine.
+9. **Does the column move?** This is the one to look at first. `/pbquest pos -200 100`, then
+   `/pbquest status`: `column anchor=` should show the game's −15/90 plus the nudge, and
+   `applied=` the same. If the anchor shows the nudge but the column has not moved, something
+   other than `RevertOffsetModifications` is placing it — look for it before changing anything.
+10. **Does it stay moved?** Zone, open and close the map, track and untrack a quest, enter a
+    house. The column should not jump back at any of them.
+11. **Does scaling the quest tracker leave the column tidy?** It sits in a scroll child that
+    resizes to fit its children, and the trackers below anchor to its bottom. Set the scale to
+    150% and check Golden Pursuits lands just under the quest tracker, not overlapping it and
+    not far below it.
+12. **Does the Golden Pursuits heading keep its icon aligned?** `ApplyPlatformStyle` anchors the
+    icon to the left of the header label with a fixed `HEADER_ICON_SIZE` / `HEADER_ICON_OFFSET`.
+    The icon is not resized here, so a much larger heading may sit taller than its 48-point
+    icon. That is cosmetic, but worth a look before deciding it is fine.

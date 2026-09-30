@@ -1,20 +1,25 @@
 <GuiXml>
     <Controls>
-        <TopLevelControl name="MUT_MultiSplitDialog_Gamepad" inherits="ZO_GenericGamepadDialogBase" hidden="true">
+        <TopLevelControl name="MultiSplitDialog_Gamepad"
+            inherits="ZO_GenericGamepadDialogBase"
+            hidden="true">
             <OnInitialized>
-                MUT_MultiSplitDialog_Gamepad_OnInitialized(self)
+                MuffinsUtilityTree.MultiSplitDialog_Gamepad_OnInitialized(self)
             </OnInitialized>
             <Controls>
                 <!-- Backdrop box around the selector -->
                 <Backdrop name="$(parent)Highlight" inherits="ZO_WhiteBackdrop_Gamepad">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderContainer" relativePoint="BOTTOM" offsetX="-30" offsetY="-650"/>
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)HeaderContainer" relativePoint="BOTTOM" offsetX="100" offsetY="-500"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderContainer"
+                        relativePoint="BOTTOM" offsetX="-30" offsetY="-650" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)HeaderContainer"
+                        relativePoint="BOTTOM" offsetX="100" offsetY="-500" />
                 </Backdrop>
 
                 <!-- Digit selector -->
                 <Control name="$(parent)Selector" inherits="ZO_GamepadCurrencySelectorTemplate">
-                    <Anchor point="TOP" relativeTo="$(parent)HeaderContainer" relativePoint="BOTTOM" offsetY="-600"/>
-                    <Dimensions x="150" y="50"/>
+                    <Anchor point="TOP" relativeTo="$(parent)HeaderContainer" relativePoint="BOTTOM"
+                        offsetY="-600" />
+                    <Dimensions x="150" y="50" />
                 </Control>
             </Controls>
         </TopLevelControl>

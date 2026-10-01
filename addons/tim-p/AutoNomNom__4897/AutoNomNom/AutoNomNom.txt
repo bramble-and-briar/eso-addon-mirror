@@ -1,0 +1,18 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+## Title: AutoNomNom
+## Description: This addon automatically eats or drinks for you.
+## Version: 1.01
+## SavedVariables: AutoNomNom_SavedVariables
+## DependsOn: LibFoodDrinkBuff LibAddonMenu-2.0
+## Author: Tim-P
+## APIVersion: 101050 101051
+
+bindings.xml
+AutoNomNom.lua
+AutoNomNom_UnitTests.lua
+Utils.lua

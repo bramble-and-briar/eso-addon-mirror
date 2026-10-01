@@ -1,0 +1,25 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Quest Cycle Hotkeys">
+
+            <Action name="QuestCycleHotKeys_NextQuest">
+                <Down>
+                    QuestCycleHotKeys.NextQuest()
+                </Down>
+            </Action>
+
+            <Action name="QuestCycleHotKeys_PreviousQuest">
+                <Down>
+                    QuestCycleHotKeys.PreviousQuest()
+                </Down>
+            </Action>           
+
+            <Action name="QuestCycleHotKeys_Debug">
+                <Down>
+                    QuestCycleHotKeys.Debug()
+                </Down>
+            </Action>
+
+        </Category>
+    </Layer>
+</Bindings>

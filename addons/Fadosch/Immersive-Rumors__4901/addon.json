@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Fadosch/Immersive-Rumors__4901",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Fadosch",
+  "canonical_id": "esoui:4901",
+  "category_id": "114",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4901",
+  "deleted": false,
+  "directories": [
+    "ImmersiveRumors"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4901/",
+  "fingerprint": "4a661701077e5b0a9ca7dca5a08f35f73e20b1fa8ce2572d8571d656c6b1c261",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4901",
+  "source_url": "https://www.esoui.com/downloads/info4901-ImmersiveRumors.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Immersive Rumors",
+  "updated_at": 1790850102000,
+  "version": "1.0.0"
+}

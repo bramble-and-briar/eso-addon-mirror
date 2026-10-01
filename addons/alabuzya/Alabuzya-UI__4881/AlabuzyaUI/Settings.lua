@@ -6,14 +6,16 @@ S.defaults = {
     style = 'diablo',
     charge = { enabled = true, threshold = 10, crown = true },
     repair = { enabled = true, threshold = 10, crown = true },
-    junk = true, chat = true, grid = true, questArrow = true,
+    assistantPanel = true, junk = true, chat = true, grid = true, questArrow = true,
     guildBackground = true,
 }
 local saved, loadedStyle
 function S.Get()
     if not saved then
         saved = AlabuzyaUI.SavedVariables.Account('features', S.defaults)
-        if saved.style ~= 'diablo' and saved.style ~= 'none' then saved.style = 'diablo' end
+        -- Migrate the previous theme ID without changing saved layout keys.
+        if saved.style == 'classic' then saved.style = 'wow' end
+        if saved.style ~= 'diablo' and saved.style ~= 'wow' and saved.style ~= 'none' then saved.style = 'diablo' end
         for _, kind in ipairs({'charge', 'repair'}) do
             saved[kind].threshold = math.max(1, math.min(90, tonumber(saved[kind].threshold) or 10))
         end
@@ -23,8 +25,9 @@ function S.Get()
 end
 function S.StyleEnabled()
     S.Get()
-    return loadedStyle == 'diablo'
+    return loadedStyle ~= 'none'
 end
+function S.Style() S.Get() return loadedStyle end
 function S.Enabled(key) return S.Get()[key] ~= false end
 function S.Maintenance(kind) return S.Get()[kind] end
 
@@ -43,7 +46,7 @@ local function RegisterPanel()
     local ru = GetCVar('language.2') == 'ru'
     local function L(a,b) return ru and a or b end
     local panel = LAM:RegisterAddonPanel('AlabuzyaUIOptions', {
-        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.44',
+        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.49',
         registerForRefresh=true, registerForDefaults=true,
     })
     SLASH_COMMANDS['/alabuzyaui'] = function() LAM:OpenToPanel(panel) end
@@ -74,12 +77,15 @@ local function RegisterPanel()
     LAM:RegisterOptionControls('AlabuzyaUIOptions', {
         {type='description', text=L('Настройки общие для персонажей одного аккаунта на текущем сервере. Зарядка, ремонт, мусор и функции чата работают независимо от оформления. Связь: aabuziarov@gmail.com', 'Account-wide settings, separate for each server. Recharge, repair, junk selling and chat helpers work independently of the skin. Contact: aabuziarov@gmail.com')},
         {type='submenu', name=L('Интерфейсы', 'Interfaces'), controls={
-            {type='dropdown', name=L('Оформление', 'Style'), choices={L('Отключено — стандартный ESO', 'Disabled — standard ESO'),'Diablo'},
-                choicesValues={'none','diablo'}, getFunc=function() return db.style end,
+            {type='dropdown', name=L('Оформление', 'Style'), choices={L('Отключено — стандартный ESO', 'Disabled — standard ESO'),'Diablo','WoW'},
+                choicesValues={'none','diablo','wow'}, getFunc=function() return db.style end,
                 setFunc=function(v) db.style=v end, default='diablo', needsReload=true,
-                tooltip=L('После перезагрузки отключает оформление AlabuzyaUI, его панели, сетку и встроенную стрелку. Другие установленные аддоны не отключаются.', 'After reload, disables the AlabuzyaUI skin, panels, grid and bundled arrow. Other installed addons remain enabled.')},
-            Toggle('grid', L('Сетка предметов', 'Item grid'), L('Сетка инвентаря, торговца, банка и ремесла. Требуется стиль Diablo и перезагрузка.', 'Inventory, merchant, bank and crafting grids. Requires Diablo style and reload.'), true),
-            Toggle('questArrow', L('Встроенная стрелка заданий', 'Bundled quest arrow'), L('Не управляет отдельно установленным QuestArrow. Требуется стиль Diablo и перезагрузка.', 'Does not control a separately installed QuestArrow. Requires Diablo style and reload.'), true),
+                tooltip=L('Выбор меняет только оформление после перезагрузки. Сетка, стрелка и остальные помощники работают независимо от темы и управляются своими настройками.', 'Changes presentation after reload. Grid, quest arrow and other helpers work independently of the theme, controlled by their own settings.')},
+            Toggle('grid', L('Сетка предметов', 'Item grid'), L('Сетка инвентаря, торговца, банка и ремесла. Применяется после перезагрузки при любом оформлении.', 'Inventory, merchant, bank and crafting grids. Works with every style; requires reload.'), true),
+            Toggle('questArrow', L('Встроенная стрелка заданий', 'Bundled quest arrow'), L('Не управляет отдельно установленным QuestArrow. Применяется после перезагрузки при любом оформлении.', 'Does not control a separately installed QuestArrow. Works with every style; requires reload.'), true),
+        {type='button', name=L('Перезагрузить интерфейс','Reload UI'),
+            tooltip=L('Применить изменения настроек без ввода /reloadui.','Apply pending settings without typing /reloadui.'),
+            func=function() ReloadUI() end, width='full'},
         }},
         Maintenance('charge', L('Зарядка оружия', 'Weapon recharge')),
         Maintenance('repair', L('Ремонт снаряжения', 'Equipment repair')),

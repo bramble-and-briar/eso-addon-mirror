@@ -67,7 +67,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Gold Balance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mumohan/Gold-Balance__2436) | Mumohan | PC / Mac | 1.01 |
 | [Gold House Finder - Maisons en or ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Metakraos/Gold-House-Finder---Maisons-en-or-ESO__4751) | Metakraos | PC / Mac | 1.9.1 |
 | [Gold Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Gold-Ledger__53c19565-2bb9-4872-a40f-90825e736a2f) | Eldibabalo | Console | — |
-| [Gold Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/Gold-Ledger__3566) | P5ych3 | PC / Mac | 2.3.0 |
+| [Gold Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/Gold-Ledger__3566) | P5ych3 | PC / Mac | 2.3.1 |
 | [Gold Per Hour](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/satchmo1991/Gold-Per-Hour__2604) | satchmo1991 | PC / Mac | 1.2 |
 | [Gold Rush — Sales & Pricing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Gold-Rush-Sales-Pricing__4685) | atharti | PC / Mac | 2.4 |
 | [Gold!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheSpyridon/Gold__1551) | TheSpyridon | PC / Mac | Alpha 0.6.3 |
@@ -148,7 +148,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Auto Note](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VisioTempus/Guild-Auto-Note__3992) | VisioTempus | PC / Mac | 2.0.0 |
 | [Guild Bank Twiddler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kendaron/Guild-Bank-Twiddler__1207) | kendaron | PC / Mac | 1.0.5 |
 | [Guild Bookkeeper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hilarityensues/Guild-Bookkeeper__3433) | hilarityensues | PC / Mac | 0.0.7 |
-| [Guild Chat Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OlegS/Guild-Chat-Colors__3110) | OlegS | PC / Mac | 1.50.0 |
+| [Guild Chat Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OlegS/Guild-Chat-Colors__3110) | OlegS | PC / Mac | 1.51.0 |
 | [Guild Chat Thingy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mtechnik/Guild-Chat-Thingy__1565) | Mtechnik | PC / Mac | 1.21 |
 | [Guild Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Guild-Colors__2856) | attriel | PC / Mac | 1.0.12 |
 | [Guild Data Dump](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Guild-Data-Dump__1684) | Rhyono | PC / Mac | 1.23 |

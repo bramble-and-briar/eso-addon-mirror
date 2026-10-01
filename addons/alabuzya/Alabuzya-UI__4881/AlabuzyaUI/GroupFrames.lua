@@ -3,6 +3,7 @@ AlabuzyaUI.GroupFrames = {}
 -- Independent compact group frames, GPL-3.0-or-later.
 local root,settings,ru,fragment
 local rows={}
+local function Classic() return AlabuzyaUI.Theme and AlabuzyaUI.Theme.classic==true end
 local hoveredRow
 local function Font(size)
     return AlabuzyaUI.Theme and AlabuzyaUI.Theme.Font(size)
@@ -70,6 +71,14 @@ local function Row(index)
     local role=Icon(bg,4)
     local crown=Icon(bg,24,"EsoUI/Art/UnitFrames/groupIcon_leader.dds")
     local row={bg=bg,fill=fill,name=name,hp=hp,role=role,crown=crown}
+    if Classic() then
+        row.crest=AlabuzyaUI.ClassicTheme.Crest(bg,44)
+        row.crest:SetAnchor(LEFT,bg,LEFT,0,0)
+        row.mana=WINDOW_MANAGER:CreateControl(nil,bg,CT_STATUSBAR)
+        row.mana:SetAnchor(TOPLEFT,bg,TOPLEFT,51,50)
+        row.mana:SetDimensions(228,5) row.mana:SetColor(.10,.32,.75,1)
+        AlabuzyaUI.Theme.Panel(bg)
+    end
     -- Dedicated input surface above the visual children. The movable root must
     -- not compete with rows for mouse input.
     local hit=WINDOW_MANAGER:CreateControl(nil,bg,CT_CONTROL)
@@ -125,7 +134,7 @@ local function Update()
             if not raid and companion and DoesUnitExist(companion) then units[#units+1]={tag=companion,companion=true} end
         end
     end
-    local width=raid and 161 or 286
+    local width=raid and (Classic() and 170 or 161) or 286
     local perColumn=raid and 6 or 12
     local heights={0,0,0,0}
     local totalHeight=1
@@ -134,11 +143,16 @@ local function Update()
         row.unitTag=tag row.companion=unit.companion
         local column=math.floor((i-1)/perColumn)+1
         heights[column]=heights[column] or 0
-        local height=raid and 38 or (unit.companion and 20 or 30)
+        local thin=Classic() and unit.companion and not raid
+        local rowWidth=thin and width-49 or width
+        local height=thin and 22 or (raid and 38 or (Classic() and 62 or (unit.companion and 20 or 30)))
         row.bg:ClearAnchors()
-        row.bg:SetAnchor(TOPLEFT,root,TOPLEFT,(column-1)*(width+8),heights[column])
-        row.bg:SetDimensions(width,height)
-        heights[column]=heights[column]+height+4
+        row.bg:SetAnchor(TOPLEFT,root,TOPLEFT,(column-1)*(width+8)+(thin and 49 or 0),heights[column])
+        row.bg:SetDimensions(rowWidth,height)
+        local nextCompanion=units[i+1] and units[i+1].companion
+        local gap=Classic() and (thin and 8 or (nextCompanion and 2 or 4)) or 4
+        heights[column]=heights[column]+height+gap
+        row.hp:SetHidden(thin)
         totalHeight=math.max(totalHeight,heights[column])
         row.fill:SetHeight(height-2)
         row.name:SetFont(Font(unit.companion and 14 or 16))
@@ -162,6 +176,38 @@ local function Update()
         else
             row.hp:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
         end
+        if thin then
+            row.name:ClearAnchors() row.name:SetAnchor(TOPLEFT,row.bg,TOPLEFT,6,0)
+            row.name:SetDimensions(rowWidth-12,height)
+            row.fill:ClearAnchors() row.fill:SetAnchor(TOPLEFT,row.bg,TOPLEFT,1,1)
+            row.fill:SetHeight(height-2)
+        elseif Classic() and not raid then
+            row.name:ClearAnchors() row.name:SetAnchor(TOPLEFT,row.bg,TOPLEFT,51,3)
+            row.name:SetDimensions(width-56,23)
+            row.hp:ClearAnchors() row.hp:SetAnchor(TOPRIGHT,row.bg,TOPRIGHT,-7,28)
+            row.hp:SetDimensions(width-56,22)
+            row.fill:ClearAnchors() row.fill:SetAnchor(TOPLEFT,row.bg,TOPLEFT,49,29)
+            row.fill:SetHeight(18)
+        elseif Classic() then
+            row.fill:ClearAnchors() row.fill:SetAnchor(TOPLEFT,row.bg,TOPLEFT,1,1)
+        end
+        row.crown:ClearAnchors()
+        row.crown:SetAnchor(LEFT,row.bg,LEFT,24,0)
+        if Classic() and raid then
+            row.name:ClearAnchors() row.name:SetAnchor(TOPLEFT,row.bg,TOPLEFT,26,1)
+            row.name:SetDimensions(width-48,19)
+            row.hp:ClearAnchors() row.hp:SetAnchor(TOPLEFT,row.bg,TOPLEFT,26,20)
+            row.hp:SetDimensions(width-32,16)
+            row.crown:ClearAnchors() row.crown:SetAnchor(TOPRIGHT,row.bg,TOPRIGHT,-4,1)
+        end
+        if row.crest then
+            row.crest:SetHidden(raid or thin) AlabuzyaUI.ClassicTheme.UpdateRole(row.crest,tag)
+            local mana,maxMana=GetUnitPower(tag,POWERTYPE_MAGICKA)
+            row.mana:SetMinMax(0,math.max(1,maxMana)) row.mana:SetValue(mana)
+            row.mana:SetHidden(raid or thin or maxMana<=0)
+            row.role:ClearAnchors()
+            row.role:SetAnchor(raid and LEFT or BOTTOMRIGHT,raid and row.bg or row.crest,raid and LEFT or BOTTOMRIGHT,raid and 4 or 0,0)
+        end
         row.bg:SetHidden(false)
         local online=unit.companion or IsUnitOnline(tag)
         local remote=not unit.companion and online and IsRemote(tag)
@@ -172,14 +218,18 @@ local function Update()
         local current,maximum=GetUnitPower(tag,POWERTYPE_HEALTH)
         local fraction=maximum>0 and math.max(0,math.min(1,current/maximum)) or 0
         local dead=online and IsUnitDeadOrReincarnating(tag)
-        row.fill:SetWidth(math.max(1,(width-2)*fraction))
+        row.fill:SetWidth(math.max(1,(rowWidth-(Classic() and not raid and not thin and 55 or 2))*fraction))
         row.fill:SetHidden(not online or dead)
         row.fill:SetCenterColor(unit.companion and 0.23 or 0.45,unit.companion and 0.34 or 0.14,0.15,0.95)
+        if Classic() then
+            if thin then row.fill:SetCenterColor(.13,.35,.32,.9)
+            else row.fill:SetCenterColor(.12,.43,.12,.9) end
+        end
         local leader=not unit.companion and IsUnitGroupLeader(tag)
         row.crown:SetHidden(not leader)
         local role=not unit.companion and GetGroupMemberSelectedRole(tag) or LFG_ROLE_INVALID
         local texture=role~=LFG_ROLE_INVALID and ZO_GetRoleIcon(role) or nil
-        row.role:SetHidden(not texture)
+        row.role:SetHidden(not texture or (Classic() and not raid))
         if texture then row.role:SetTexture(texture) end
         -- ESO's formatter follows the current keyboard/gamepad name preference
         -- and preserves the @ prefix of account names.
@@ -191,7 +241,7 @@ local function Update()
         elseif dead then row.hp:SetText(ru and "Мёртв" or "Dead")
         else
             local health=string.format("%.1fk %d%%",current/1000,math.floor(fraction*100+0.5))
-            row.hp:SetText(raid and level and (level..' · '..health) or health)
+            row.hp:SetText(raid and not Classic() and level and (level..' · '..health) or health)
         end
     end
     for i=#units+1,#rows do
@@ -203,15 +253,15 @@ local function Update()
     end
     if hoveredRow then ShowLocation(hoveredRow) end
     fragment:SetHiddenForReason("AlabuzyaUIEmptyGroup", #units==0)
-    if not root.alabuzyauiFrame then AlabuzyaUI.Theme.Panel(root,7) end
+    if not Classic() and not root.alabuzyauiFrame then AlabuzyaUI.Theme.Panel(root,7) end
     root:SetDimensions(math.max(1,math.ceil(#units/perColumn))*(width+8)-8,totalHeight)
 end
 function AlabuzyaUI.GroupFrames.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     ru=GetCVar("language.2")=="ru"
-    settings=AlabuzyaUI.SavedVariables.Account("groupFrames",{})
+    settings=AlabuzyaUI.SavedVariables.Account(Classic() and "groupFramesClassic" or "groupFrames",{})
     root=WINDOW_MANAGER:CreateTopLevelWindow("AlabuzyaUIGroupFrames")
-    root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or 28,settings.y or 100)
+    root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or 28,settings.y or (Classic() and 154 or 100))
     root:SetMouseEnabled(false) root:SetMovable(false) root:SetClampedToScreen(true)
     root:SetHandler("OnMoveStop",function() settings.x=root:GetLeft() settings.y=root:GetTop() end)
     root:SetHidden(true)

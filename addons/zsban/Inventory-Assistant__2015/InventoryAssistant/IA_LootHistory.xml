@@ -1,0 +1,160 @@
+<GuiXml>
+  <Animations>
+    <AnimationTimeline name="IA_LootHistory_Fade">
+      <Animations>
+        <AlphaAnimation duration="200" startAlpha="0" endAlpha="1" />
+        <AlphaAnimation duration="200" startAlpha="0" endAlpha="1" />
+      </Animations>
+    </AnimationTimeline>
+    <AnimationTimeline name="IA_LootHistory_IconEntrance">
+      <Animations>
+        <AlphaAnimation duration="170" startAlpha="0" endAlpha="1">
+          <EasingFunction>return ZO_EaseOutQuadratic(progress)</EasingFunction>
+        </AlphaAnimation>
+        <ScaleAnimation duration="170" startScale="2" endScale="1" />
+      </Animations>
+    </AnimationTimeline>
+    <AnimationTimeline name="IA_LootHistory_ContainerFade">
+      <Animations>
+        <AlphaAnimation duration="200" startAlpha="1" endAlpha="0" />
+      </Animations>
+    </AnimationTimeline>
+  </Animations>
+  <Controls>
+    <Control name="IA_LootHistorySharedEntry" virtual="true">
+      <Dimensions x="282" y="50" />
+      <OnInitialized>IA_LootHistory_Shared_OnInitialized(self)</OnInitialized>
+      <Controls>
+        <Texture name="$(parent)Icon" tier="MEDIUM" pixelRoundingEnabled="false" excludeFromResizeToFitExtents="true">
+          <Dimensions x="40" y="40" />
+          <Anchor point="LEFT" offsetX="-5" />
+          <Controls>
+            <Label name="$(parent)OverlayText" horizontalAlignment="RIGHT" verticalAlignment="BOTTOM" inheritScale="false">
+              <Anchor point="BOTTOMRIGHT" offsetX="-4" offsetY="1" />
+            </Label>
+            <Texture name="$(parent)StatusIcon" hidden="true">
+              <Dimensions x="40" y="40" />
+            </Texture>
+          </Controls>
+        </Texture>
+        <Texture name="$(parent)Bg">
+          <AnchorFill />
+          <Controls>
+            <Texture name="$(parent)Highlight" hidden="true" />
+          </Controls>
+        </Texture>
+      </Controls>
+    </Control>
+    <Control name="IA_LootHistoryShared" virtual="true">
+      <Controls>
+        <Control name="$(parent)PersistentContainer" resizeToFitDescendents="true">
+          <Anchor point="BOTTOMRIGHT" />
+        </Control>
+        <Control name="$(parent)Container" resizeToFitDescendents="true">
+          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)PersistentContainer" relativePoint="TOPRIGHT" />
+        </Control>
+      </Controls>
+    </Control>
+    <Control name="IA_LootHistoryEntryLeft" inherits="IA_LootHistorySharedEntry" virtual="true">
+      <Anchor point="BOTTOMRIGHT" />
+      <Controls>
+        <Texture name="$(parent)Icon" override="true">
+          <Controls>
+            <Label name="$(parent)OverlayText" override="true" font="ZoFontGameOutline" />
+            <Texture name="$(parent)StatusIcon" override="true" hidden="true">
+              <Dimensions x="40" y="40" />
+              <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-5" />
+            </Texture>
+          </Controls>
+        </Texture>
+        <Label name="$(parent)Label" font="ZoFontGameShadow" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+          <Dimensions x="230" />
+          <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="10" />
+        </Label>
+        <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" override="true">
+          <TextureCoords left="0" right="1" top="0" bottom=".78125" />
+          <Anchor point="TOPLEFT" offsetX="-50" />
+          <Anchor point="BOTTOMRIGHT" offsetX="50" />
+          <Controls>
+            <Texture name="$(parent)Highlight" override="true">
+              <TextureCoords left="0" right="1" top="0" bottom=".75" />
+              <Dimensions x="128" y="50" />
+              <Anchor point="TOPLEFT" offsetX="-20" />
+            </Texture>
+          </Controls>
+        </Texture>
+      </Controls>
+    </Control>
+    <Control name="IA_LootHistoryEntryRight" inherits="IA_LootHistorySharedEntry" virtual="true">
+      <Anchor point="BOTTOMRIGHT" />
+      <Controls>
+        <Texture name="$(parent)Icon" override="true">
+          <Anchor point="RIGHT" offsetX="-50" />
+          <Controls>
+            <Label name="$(parent)OverlayText" override="true" font="ZoFontGameOutline" />
+            <Texture name="$(parent)StatusIcon" override="true" hidden="true">
+              <Dimensions x="40" y="40" />
+              <Anchor point="RIGHT" relativePoint="RIGHT" offsetX="45" />
+            </Texture>
+          </Controls>
+        </Texture>
+        <Label name="$(parent)Label" font="ZoFontGameShadow" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS" maxLineCount="2">
+          <Dimensions x="230" />
+          <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="-10" />
+        </Label>
+        <Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds" override="true">
+          <TextureCoords left="1" right="0" top="0" bottom=".78125" />
+          <Anchor point="TOPLEFT" offsetX="-50" />
+          <Anchor point="BOTTOMRIGHT" offsetX="50" />
+          <Controls>
+            <Texture name="$(parent)Highlight" override="true">
+              <TextureCoords left="1" right="0" top="0" bottom=".75" />
+              <Dimensions x="128" y="50" />
+              <Anchor point="TOPRIGHT" offsetX="-40" />
+            </Texture>
+          </Controls>
+        </Texture>
+      </Controls>
+    </Control>
+    <TopLevelControl name="IA_LootHistoryControl" inherits="IA_LootHistoryShared" hidden="true" movable="true" mouseEnabled="true">
+      <Dimensions x="382" y="100" />
+      <OnInitialized>IA_LootHistory_OnInitialized(self)</OnInitialized>
+      <OnMoveStop>IA_INVENTORY_ASSISTANT.lootHistory:OnMoveStop()</OnMoveStop>
+      <Controls>
+        <Control name="$(parent)Container" override="true">
+          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)PersistentContainer" relativePoint="TOPRIGHT" offsetY="-1" />
+        </Control>
+        <Control name="$(parent)Frame" mouseEnabled="false">
+          <Anchor point="TOPLEFT" offsetX="-8" offsetY="-8" />
+          <Anchor point="BOTTOMRIGHT" offsetX="8" offsetY="8" />
+          <Controls>
+            <Label name="$(parent)Title" text="IA Loot History" font="ZoFontGameBold" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+              <Anchor point="CENTER" />
+              <Dimensions x="180" y="30" />
+            </Label>
+            <Texture name="$(parent)Top">
+              <Anchor point="TOPLEFT" />
+              <Anchor point="TOPRIGHT" />
+              <Dimensions y="2" />
+            </Texture>
+            <Texture name="$(parent)Bottom">
+              <Anchor point="BOTTOMLEFT" />
+              <Anchor point="BOTTOMRIGHT" />
+              <Dimensions y="2" />
+            </Texture>
+            <Texture name="$(parent)Left">
+              <Anchor point="TOPLEFT" />
+              <Anchor point="BOTTOMLEFT" />
+              <Dimensions x="2" />
+            </Texture>
+            <Texture name="$(parent)Right">
+              <Anchor point="TOPRIGHT" />
+              <Anchor point="BOTTOMRIGHT" />
+              <Dimensions x="2" />
+            </Texture>
+          </Controls>
+        </Control>
+      </Controls>
+    </TopLevelControl>
+  </Controls>
+</GuiXml>

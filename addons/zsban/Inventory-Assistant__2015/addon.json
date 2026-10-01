@@ -10,20 +10,15 @@
     {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:2015",
   "deleted": false,
   "directories": [
-    "locales",
-    "ui"
+    "InventoryAssistant"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2015/",
-  "fingerprint": "627cfe74304e17860237ec974ec4a687203255d6846b2ea708e98fcd3fcaaa5d",
+  "fingerprint": "bb9d930c8fda2d79ca084e04ee5329ed1355275cd290dce9783e0ee69d15cd0c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17442.png",
     "https://cdn-eso.mmoui.com/preview/pvw17443.png"
@@ -34,11 +29,11 @@
   "source_id": "2015",
   "source_url": "https://www.esoui.com/downloads/info2015-InventoryAssistant.html",
   "stats": {
-    "downloads": 14844,
-    "favorites": 41,
-    "monthly_downloads": 74
+    "downloads": 14924,
+    "favorites": 42,
+    "monthly_downloads": 151
   },
   "title": "Inventory Assistant",
-  "updated_at": 1789853929000,
+  "updated_at": 1790844277000,
   "version": "1.20.260919-beta"
 }

@@ -541,29 +541,31 @@ local function ActivateDynamicEncounterData(WEInstanceId, isEventCalled)
   --============= notify Dynamic Encounter ================
   local showNotify = WPamA.SV_Main.DynEncounterNotifyMode
   if showNotify > 0 then
-    local messageText = ""
+    local MSG = WPamA.i18n.DynamicEncounter
+    local stageText = ""
     if (showNotify == 2) or ( (showNotify == 1) and (not CE.isPart) ) then
       local isOnInitStage = (stage > 0) and (zoneWE.DynEvent[WEInstanceId] == 0)
-      local MSG = WPamA.i18n.DynamicEncounter
       if stage == 0 then
-        messageText = MSG.Start
+        stageText = MSG.Start
       elseif isOnInitStage and (not isEventCalled) then
-        messageText = MSG.Activ
+        stageText = MSG.Activ
         stage = 0
       elseif stage > 0 then
         local WEType = GetWorldEventType( GetWorldEventId(WEInstanceId) )
         local progress = zoneWE.DynProgr[WEInstanceId]
         if progress and (WEType == zoneWE.EventType) then
-          messageText = zo_strformat(MSG.Progr, progress)
+          stageText = zo_strformat(MSG.Progr, progress)
         end
       end
     end
     ---
-    if messageText ~= "" then
+    if stageText ~= "" then
+      local messageText = zo_strformat("<<1>><<2>>: <<3>>", MSG.Icon, MSG.Title, stageText)
       local color = string.format("%02x%02x%02x", 238, 238, 200)
       messageText = zo_strformat("|c<<1>><<2>>|r", color, messageText)
       WPamA:PostChatMessage(messageText)
       if stage == 0 then
+        messageText = zo_strformat("|c<<1>><<2>>:\n<<3>>|r", color, MSG.Title, stageText)
         WPamA:PostScreenAnnounceMessage(messageText, CSA_CATEGORY_MAJOR_TEXT, nil,
                                         ----CENTER_SCREEN_ANNOUNCE_TYPE_SYSTEM_BROADCAST,
                                         WPamA.Textures.GetTexture(73))
@@ -581,17 +583,20 @@ local function DeactivateDynamicEncounterData(WEInstanceId)
   --============= notify Dynamic Encounter ================
   local showNotify = WPamA.SV_Main.DynEncounterNotifyMode
   if showNotify > 0 then
-    local messageText = ""
+    local MSG = WPamA.i18n.DynamicEncounter
+    local stageText = ""
     if (showNotify == 2) or ( (showNotify == 1) and (not WE.CurrentActiveENC.isPart) ) then
-      messageText = WPamA.i18n.DynamicEncounter.Stop
+      stageText = MSG.Stop
     end
     ---
-    if messageText ~= "" then
+    if stageText ~= "" then
+      local messageText = zo_strformat("<<1>><<2>>: <<3>>", MSG.Icon, MSG.Title, stageText)
       local color = string.format("%02x%02x%02x", 238, 238, 200)
       messageText = zo_strformat("|c<<1>><<2>>|r", color, messageText)
       WPamA:PostChatMessage(messageText)
       ----d("Ending Time: " .. WPamA:TimestampToStr(WE.CurrentActiveENC.EndTS) )
       ----d("Next Time: " .. WPamA:TimestampToStr(30 * 60 + WE.CurrentActiveENC.EndTS) )
+      messageText = zo_strformat("|c<<1>><<2>>:\n<<3>>|r", color, MSG.Title, stageText)
       WPamA:PostScreenAnnounceMessage(messageText, CSA_CATEGORY_MAJOR_TEXT, nil,
                                       ----CENTER_SCREEN_ANNOUNCE_TYPE_SYSTEM_BROADCAST,
                                       WPamA.Textures.GetTexture(73))

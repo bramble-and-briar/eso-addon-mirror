@@ -499,9 +499,13 @@ end
 
 function WPamA:SetMode(Mode, CanTogle)
   WPamA_SelWind:SetHidden(true)
+  local SV = self.SV_Main
+  --
   self.ClearItemToolTip()
-  if self.SV_Main.ShowMode ~= Mode then
-    self.SV_Main.ShowMode = Mode
+  if SV.ShowMode == 52 then self.SetAbilityToolTip() end -- clear skill/ability tooltip
+  --
+  if SV.ShowMode ~= Mode then
+    SV.ShowMode = Mode
     self:UpdWindowInfo()
     self.ShowUI()
   elseif CanTogle then
@@ -1655,7 +1659,7 @@ function WPamA:UpdRowModeFavors(v, r)
       txt = self.i18n.DungStNA
     else
       local color = (Favors.Unlock >= Favors.Total) and clrGreen or clrLabel
-      color = (Favors.Unlock == 0) and clrGray or clrLabel
+      color = (Favors.Unlock == 0) and clrGray or color
       r.B[i]:SetColor(self:GetColor(color)) -- white color by default or green
       txt = zo_strformat(progrFormat, Favors.Unlock, Favors.Total)
     end
@@ -1876,6 +1880,8 @@ function WPamA:UpdWindowInfo(isRedraw)
     self:UpdWindowModeCompArmorEquips()
   elseif m == 40 then
     self:UpdWindowModeCompWeaponEquips()
+  elseif m == 52 then
+    self:UpdWindowModeCompActiveSkills()
   else
     self:UpdWindowModeChar()
   end
@@ -2693,13 +2699,13 @@ function WPamA:InitSavedVars()
   end
   if SV.Endeavor == nil then
     SV.Endeavor = {
-      [1] = {NumCompl = 0, EndTS = 0}, -- Reward = "", }, -- Daily
-      [2] = {NumCompl = 0, EndTS = 0}, -- Reward = "", }, -- Weekly
-      [3] = {NumCompl = 0, EndTS = 0}  -- Reward = "", }, -- Seasonal
+      [1] = {NumCompl = 0, NumTotal = 0, EndTS = 0}, -- Reward = "", }, -- Daily
+      [2] = {NumCompl = 0, NumTotal = 0, EndTS = 0}, -- Reward = "", }, -- Weekly
+      [3] = {NumCompl = 0, NumTotal = 0, EndTS = 0}  -- Reward = "", }, -- Seasonal
      }
   else
     for ind = 1, 3 do
-      if type(SV.Endeavor[ind]) ~= "table" then SV.Endeavor[ind] = {NumCompl = 0, EndTS = 0} end
+      if type(SV.Endeavor[ind]) ~= "table" then SV.Endeavor[ind] = {NumCompl = 0, NumTotal = 0, EndTS = 0} end
     end
   end
 -- Initialization of the account's Companions
@@ -2779,6 +2785,7 @@ function WPamA:InitSavedVars()
                                   Color = string.format("%02x%02x%02x", 238, 238, 200) }
   end
   if SV.AutoClaimEndeavorReward == nil then SV.AutoClaimEndeavorReward = false end
+  if SV.EndeavorHideCompleted == nil then SV.EndeavorHideCompleted = false end
   if SV.CustomModeKeybinds == nil then SV.CustomModeKeybinds = {} end
   if SV.AutoTakeDBSupplies == nil then SV.AutoTakeDBSupplies = 1 end
   if SV.PursuitProgressInChat == nil then
@@ -4042,6 +4049,12 @@ end
 
 function WPamA.SetVal_EndeavorRewardMode(value)
   WPamA.SV_Main.EndeavorRewardMode = value
+  WPamA:EndeavorDataUpdate()
+  WPamA:UpdWindowInfo(true)
+end
+
+function WPamA.SetVal_EndeavorHideCompleted(value)
+  WPamA.SV_Main.EndeavorHideCompleted = value
   WPamA:EndeavorDataUpdate()
   WPamA:UpdWindowInfo(true)
 end

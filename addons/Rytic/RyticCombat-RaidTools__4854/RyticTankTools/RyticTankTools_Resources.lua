@@ -26,12 +26,7 @@ local string_sub = string.sub
 local TEX = "RyticTankTools/textures/"
 
 local THEME_TEXTURES = {
-    FEMALE = {
-        TEX.."wifey/floral_tl.dds",
-        TEX.."wifey/floral_bl.dds",
-        TEX.."wifey/floral_tr.dds",
-        TEX.."wifey/floral_br.dds",
-    },
+    FEMALE = {},
     MALE = {
         TEX.."male/male_tl.dds",
         TEX.."male/male_bl.dds",
@@ -291,8 +286,8 @@ function Resources.CreateHUD()
     end)
 
     -- Cosmetic HUD themes.
-    -- FEMALE uses Ash's exact four-file floral setup proven in-game.
-    -- MALE uses the same proven placement with one corner texture mirrored.
+    -- FEMALE uses Rytic's intact floral frame.
+    -- MALE keeps the existing four-corner setup.
     local corners={}
     local anchors={
         {CENTER, healthBack, TOP,    -28,  18, false,false},
@@ -302,7 +297,7 @@ function Resources.CreateHUD()
     }
 
     for i,a in ipairs(anchors) do
-        local t=MakeTexture(hud,TEX.."wifey/floral_tl.dds")
+        local t=MakeTexture(hud,TEX.."male/male_tl.dds")
         t:SetDimensions(165,175)
         t:SetAnchor(a[1],a[2],a[3],a[4],a[5])
         t:SetDrawLayer(DL_OVERLAY)
@@ -313,16 +308,16 @@ function Resources.CreateHUD()
     end
     Resources.themeCorners=corners
 
-    -- Wifey local hot-fix: one intact floral border texture.
-    local wifeyBorder=MakeTexture(hud,TEX.."wifey/wifey_full_border.dds")
-    wifeyBorder:SetDimensions(687,580)
-    wifeyBorder:SetTextureCoords(0,0.670898438,0,0.566406250)
-    wifeyBorder:SetAnchor(CENTER,hud,CENTER,0,0)
-    wifeyBorder:SetDrawLayer(DL_OVERLAY)
-    wifeyBorder:SetDrawTier(DT_HIGH)
-    wifeyBorder:SetMouseEnabled(false)
-    wifeyBorder:SetHidden(true)
-    Resources.wifeyFullBorder=wifeyBorder
+    -- Rytic public floral frame: one intact texture on a 1024x1024 canvas.
+    local ryticFloralBorder=MakeTexture(hud,TEX.."rytic/rytic_floral_border.dds")
+    ryticFloralBorder:SetDimensions(669,611)
+    ryticFloralBorder:SetTextureCoords(0,0.6533203125,0,0.5966796875)
+    ryticFloralBorder:SetAnchor(CENTER,hud,CENTER,0,0)
+    ryticFloralBorder:SetDrawLayer(DL_OVERLAY)
+    ryticFloralBorder:SetDrawTier(DT_HIGH)
+    ryticFloralBorder:SetMouseEnabled(false)
+    ryticFloralBorder:SetHidden(true)
+    Resources.ryticFloralBorder=ryticFloralBorder
 
     Resources.ApplyLock()
     Resources.ApplyTheme()
@@ -421,10 +416,10 @@ function Resources.ApplyTheme()
     local theme=NormalizeTheme(RyticTank.saved.resources.theme)
     RyticTank.saved.resources.theme=theme
     local textures=THEME_TEXTURES[theme]
-    local fullBorder=Resources.wifeyFullBorder
+    local fullBorder=Resources.ryticFloralBorder
 
-    -- Wifey local hot-fix: FEMALE uses one intact border instead of the four
-    -- original corner decorations. MALE and REGULAR behavior stay unchanged.
+    -- FEMALE uses Rytic's intact floral border.
+    -- MALE and REGULAR behavior stay unchanged.
     if fullBorder then
         fullBorder:SetHidden(theme ~= "FEMALE")
     end

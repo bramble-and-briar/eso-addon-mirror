@@ -15,7 +15,7 @@ local goldledger={} --P5YCH3
 local GOLD_LEDGER_ADDON_WEBSITE = "https://www.esoui.com/downloads/info3566-GoldLedger.html#info"
 local GOLD_LEDGER_FEEDBACK_WEBSITE = "https://www.esoui.com/forums/member.php?u=47541"
 goldledger.name="gold ledger"
-goldledger.version="2.3.0"
+goldledger.version="2.3.1"
 goldledger.loaded=false
 
 GOLD_LEDGER = "GoldLedger"

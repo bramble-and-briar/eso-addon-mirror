@@ -26,6 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Immersive Mount Camera](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dimedius/Immersive-Mount-Camera__1071) | Dimedius | PC / Mac | 1.0.1 |
 | [Immersive Overlays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anumaril/Immersive-Overlays__3838) | Anumaril | PC / Mac | 1.1 |
 | [Immersive Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OneSkyGod/Immersive-Quests__3538) | OneSkyGod | PC / Mac | 0.0058 |
+| [Immersive Rumors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fadosch/Immersive-Rumors__4901) | Fadosch | PC / Mac | 1.0.0 |
 | [Immersives Reiten](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Immersives-Reiten__4843) | Torfason | PC / Mac | 1.2.3 |
 | [Imperial City Boss Timers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Imperial-City-Boss-Timers__6684c311-afc5-48de-8ced-f86edbe863f1) | ParanoidGaming | Console | — |
 | [Imperial City Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Imperial-City-Helper__3306) | kawamonkey | PC / Mac | 1.1.1 |
@@ -40,7 +41,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Impressive Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/Impressive-Stats__4032) | imPDA | PC / Mac | 1.5.7 |
 | [Improved Achievement Categories](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Achievement-Categories__3114) | MrPikPik | PC / Mac | 1.0.4 |
 | [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__11036cca-172c-4428-83fe-301cb496b33e) | code65536 | Console | — |
-| [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.0.0 |
+| [Improved Attribute Bars and Target Frame](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884) | code65536 | PC / Mac | 1.1.1.1 |
 | [Improved Companion Rapport Information](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Improved-Companion-Rapport-Information__3103) | code65536 | PC / Mac | 1.0.0 |
 | [Improved Death Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Improved-Death-Recap__1319) | Solinur | PC / Mac | 1.0.2 |
 | [Improved Golden Pursuit Filters](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Improved-Golden-Pursuit-Filters__4005) | MrPikPik | PC / Mac | 1.5.1 |

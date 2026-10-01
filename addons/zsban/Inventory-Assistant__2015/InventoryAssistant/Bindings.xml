@@ -1,0 +1,12 @@
+<Bindings>
+  <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+    <Category name="Inventory Assistant">
+      <Action name="TOGGLE_INVENTORY_ASSISTANT">
+        <Down>IA_INVENTORY_ASSISTANT:ToggleWindow ( --[[grabFocus]] true )</Down>
+      </Action>
+      <Action name="TOGGLE_INVENTORY_ASSISTANT_NOFOCUS">
+        <Down>IA_INVENTORY_ASSISTANT:ToggleWindow ( --[[grabFocus]] false )</Down>
+      </Action>
+    </Category>
+  </Layer>
+</Bindings>

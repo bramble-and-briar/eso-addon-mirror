@@ -161,6 +161,7 @@ local function IsEnabled()
 end
 
 local function IsUnlocked()
+    if Nirnsteel_UI.HUDEditor and Nirnsteel_UI.HUDEditor:IsAvailable() then return false end
     return IsEnabled() and GetSetting("unlocked") == true
 end
 
@@ -982,6 +983,21 @@ function GroupFrames:ApplyPosition()
     root:SetScale(scale)
     root:ClearAnchors()
     root:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+    if Nirnsteel_UI.HUDEditor then
+        Nirnsteel_UI.HUDEditor:Apply("groupFrames",root,{
+            name="Nirnsteel Group Frames", position=position, enabled=IsEnabled,
+            defaultAnchor=function(platform)
+                local defaults = PLAYER_DEFAULT_POSITION[platform]
+                return ZO_Anchor:New(TOPLEFT,GuiRoot,TOPLEFT,defaults.x,defaults.y)
+            end,
+            replaces=function(control)
+                local name=control:GetName()
+                return name == "ZO_SmallGroupAnchorFrame" or name:find("^ZO_LargeGroupAnchorFrame") ~= nil
+            end,
+            preview=function(active) self:SetSettingsPreviewActive(active) end,
+            isPreviewActive=function() return self.settingsPreviewActive end,
+        })
+    end
     mover:SetScale(scale)
     mover:ClearAnchors()
     mover:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)

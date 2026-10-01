@@ -761,8 +761,11 @@ function DataGen.ec() return {
 	{
 		GetString(SI_EVENTCOLLECTIBLES_SOURCE_HIGH_SEAS),
 		{
-			14594, -14603, -- Abecean Sea Privateer
+			14594, -14603, -- Abecean Sea Privateer (weapons)
+			14984, -14990, -- Abecean Sea Privateer (body)
 			{ 14727, 15065, -15067 }, -- Suncleft Grotto Ornaug
+			14743, -- Lilmoth Turtle
+			15071, -- Ostentatious Pirate Wig and Hat
 		},
 	},
 } end

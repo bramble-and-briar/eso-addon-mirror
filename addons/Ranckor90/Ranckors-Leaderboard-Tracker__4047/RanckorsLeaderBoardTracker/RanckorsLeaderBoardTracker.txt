@@ -1,5 +1,5 @@
 ## Title: RanckorsLeaderBoardTracker
-## APIVersion: 101050
+## APIVersion: 101051
 ## Description: Displays home campaign and point differences.
 ## Author: |c4B8BFERanckor90|r
 ## Version: 1.0.3

@@ -1,13 +1,14 @@
 ## Title: |c60798DNir|c8196A7nS|cB9C5CDte|c91A8B7el|c6889A1 UI|r
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=41
 ## SavedVariables: NirnsteelUI_Account NirnsteelUI_Servers NirnsteelUI_Character
 ## Author: |cFFFF00Wrynch|r
-## Version: 3.0.1
+## Version: 3.0.2
 ## Description: UI feedback and polish for ESO.
 
 ui/loot_history.xml
 modules/no_mouse_wheel_slider.lua
+modules/hud_editor.lua
 modules/settings.lua
 modules/bar_visuals.lua
 modules/level_visuals.lua

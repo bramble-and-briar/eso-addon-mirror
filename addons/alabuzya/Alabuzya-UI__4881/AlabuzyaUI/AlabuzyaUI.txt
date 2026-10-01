@@ -2,8 +2,8 @@
 ## APIVersion: 101050
 ## Title: Alabuzya UI
 ## Author: alabuzya
-## Version: 0.1.44
-## AddOnVersion: 144
+## Version: 0.1.49
+## AddOnVersion: 149
 ## SavedVariables: AlabuzyaUISavedVariables
 ## Description: AI-assisted UI with newly generated artwork and gameplay helpers. Settings: LibAddonMenu-2.0. / Интерфейс и помощники, созданные с помощью ИИ; новые текстуры. Для настроек: LibAddonMenu-2.0.
 ## OptionalDependsOn: FancyActionBar QuestArrow pChat LibAddonMenu-2.0 ArkadiusTradeTools
@@ -12,6 +12,7 @@ Bootstrap.lua
 SavedVariables.lua
 Settings.lua
 Theme.lua
+ClassicTheme.lua
 Compatibility.lua
 Chat.lua
 Junk.lua
@@ -34,4 +35,5 @@ QuestArrow/Planner.lua
 QuestArrow/CrossTravel.lua
 QuestArrow/UI.lua
 QuestArrow/QuestArrow.lua
+AssistantPanel.lua
 Initialize.lua

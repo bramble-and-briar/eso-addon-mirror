@@ -1,6 +1,6 @@
 WPamA = {
   Name = "WPamA",
-  Version = "2.6.7",
+  Version = "2.6.8",
   RGLA_Mode = 0,
   RGLA_Started = false,
   RGLA_QuestJI = 0,
@@ -152,6 +152,8 @@ WPamA.Textures = {
   [ 71] = "icons/servicemappins/u49_poi_adventurezone_calamitousboss_1", -- Calamitous boss in Adventure Zone
   [ 72] = "icons/poi/u49_poi_adventurezone_skirmish", -- Skirmish area in Adventure Zone
   [ 73] = "icons/mapkey/mapkey_dynamic_world_event", -- Dynamic Encounter
+  [ 74] = "inventory/inventory_icon_hiddenby", -- hidden icon
+  [ 75] = "companion/keyboard/companion_skills_up", -- companion skill icon
   --- [esoui/art/] lfg/lfg_veterandungeon_up [.dds] ---
   Named = {
     ["accept"] = 1,
@@ -267,6 +269,7 @@ WPamA.Consts = {
     Vet    = GetIcon(10, 18),
     Minus  = GetIcon(41, 14),
     Roult  = GetIcon(67, 18), -- Pledge norm/vet roulette
+    Hidden = GetIcon(74, 16, true),
     LfgpKeys = {
       [1] = "4" .. GetIcon(62, 18),
       [2] = "4" .. GetIcon(62, 18),
@@ -419,6 +422,9 @@ WPamA.Inventory = { -- Character Inventory
     [50] = {t = 57, TT =277, ids =171262, link = "171262:124:10", HdT="|t24:24:esoui/art/icons/store_alliancewarscroll_basic.dds|t"}, -- Alliance War Skill Line Scroll (Basic)
     [51] = {t = 57, TT =278, ids =170148, link = "170148:124:10", HdT="|t24:24:esoui/art/icons/store_alliancewarscroll_major.dds|t"}, -- Alliance War Skill Line Scroll (Major)
     [52] = {t = 57, TT =279, ids =171263, link = "171263:124:10", HdT="|t24:24:esoui/art/icons/store_alliancewarscroll_grand.dds|t"}, -- Alliance War Skill Line Scroll (Grand)
+    ---
+    [53] = {t =  5, TT =280, ids =224302, link ="224302:1:1", HdT="|t24:24:esoui/art/icons/housing_uni_inc_nowherekey001.dds|t",
+            i = "/esoui/art/icons/housing_uni_inc_nowherekey001.dds"}, -- Unformed Planar Key / Wondrous Nowhere Key
     -- GetItemLinkInfo("|H1:item:217922:123:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
     -- GetItemLinkItemType("|H1:item:217922:123:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
     -- TT reserved for Item name : 61...70, 160...190, 273...280
@@ -836,7 +842,7 @@ WPamA.Companions = {
     [RAPPORT_LEVEL_SLIGHT_AFFINITY]  = "|cCFDCBD<<1>>|r", [RAPPORT_LEVEL_SLIGHT_DISLIKE]     = "|cCFCF90<<1>>|r",
     [RAPPORT_LEVEL_HIGH_DISLIKE]     = "|cCF9500<<1>>|r", [RAPPORT_LEVEL_MAXIMUM_DISLIKE]    = "|cCF4D47<<1>>|r",
   },
-  MaxSkillBarSlot = 0, --!!
+  MaxSkillBarSlot = 0,
   MinSkillBarSlot = 0,
   ActiveCompanionId = 0, -- CCID of current active companion or 0
   -- Structure: { IID = IngameCompanionId, DLC = CollectibleId, Name = "CompanionName", QID = IntroQuestId,

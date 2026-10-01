@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/code65536/Hide-Antiquarian-s-Eye-Prompt__4902",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "code65536",
+  "canonical_id": "esoui:4902",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4902",
+  "deleted": false,
+  "directories": [
+    "HideAntiquariansEyePrompt"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4902/",
+  "fingerprint": "2a179933f63e7e72dcb6686f2a475d35bbdad98e5247f1b262898bfb65e4a3b2",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4902",
+  "source_url": "https://www.esoui.com/downloads/info4902-HideAntiquariansEyePrompt.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Hide Antiquarian's Eye Prompt",
+  "updated_at": 1790852140000,
+  "version": "1.0.0"
+}

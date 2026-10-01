@@ -50,6 +50,8 @@ function LootLog.AddAntiquityTooltipExtension( tooltip, antiquityId )
 	end
 
 	extension:Finalize(tooltip, true)
+
+	return true
 end
 
 
@@ -58,17 +60,8 @@ end
 --------------------------------------------------------------------------------
 
 function LootLog.AddTreasureMapTooltipExtension( tooltip, itemLink )
-	----------------------------------------------------------------------------
-	-- Punt this over to AddAntiquityTooltipExtension for tradeable leads and
-	-- return early if the item is not a treasure map (to avoid unnecessarily
-	-- instantiating the treasure map data).
-	local _, specializedItemType = GetItemLinkItemType(itemLink)
-	if (specializedItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STACKABLE) then
-		return LootLog.AddAntiquityTooltipExtension(tooltip, LootLog.GetAntiquityIdFromItem(itemLink))
-	elseif (specializedItemType ~= SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP) then
-		return
-	end
-	----------------------------------------------------------------------------
+	-- Punt this over to AddAntiquityTooltipExtension for tradeable leads
+	if (LootLog.AddAntiquityTooltipExtension(tooltip, LootLog.GetAntiquityIdFromItem(itemLink))) then return end
 
 	local antiquityIds = LootLog.GetAntiquityIdsForTreasureMap(itemLink)
 	if (#antiquityIds == 0) then return end

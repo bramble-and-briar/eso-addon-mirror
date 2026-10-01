@@ -73,6 +73,9 @@ local function ChatTab(tab,isPlus)
     bg:SetAnchor(BOTTOMRIGHT,tab,BOTTOMRIGHT,3,0)
     bg:SetEdgeColor(0,0,0,0)
     -- Open-bottom borders share the main window's upper edge.
+    if T.classic then
+        AlabuzyaUI.ClassicTheme.Panel(tab,nil,true)
+    end
     local top=T.Texture(tab,0.62,0.88,0.068,0.096,DL_BACKGROUND)
     top:SetHeight(5)
     top:SetAnchor(TOPLEFT,tab,TOPLEFT,-3,-2)
@@ -81,6 +84,7 @@ local function ChatTab(tab,isPlus)
     right:SetWidth(5)
     right:SetAnchor(TOPRIGHT,tab,TOPRIGHT,3,0)
     right:SetAnchor(BOTTOMRIGHT,tab,BOTTOMRIGHT,3,0)
+    if T.classic then top:SetHidden(true) right:SetHidden(true) end
     if isPlus then
         -- SimpleIconHighlight owns the native icon and interaction handlers.
         -- Hide only its artwork, keeping the real add-tab control clickable.
@@ -92,6 +96,7 @@ local function ChatTab(tab,isPlus)
         art:SetTexture('AlabuzyaUI/Textures/ChatPlus.dds')
         art:SetAnchorFill() art:SetDrawLayer(DL_OVERLAY)
         art:SetMouseEnabled(false)
+        art:SetHidden(T.classic==true)
         local sign=WINDOW_MANAGER:CreateControl(nil,tab,CT_LABEL)
         sign:SetFont(T.Font(26,'thick-outline'))
         sign:SetText('+') sign:SetColor(1,0.76,0.40,1)
@@ -195,6 +200,15 @@ local function SkinCompass()
     bg:SetEdgeColor(0,0,0,0) bg:SetEdgeTexture(nil,1,1,1)
     bg:SetDrawLayer(DL_BACKGROUND) bg:SetDrawLevel(0)
     bg:SetMouseEnabled(false)
+    if T.classic then
+        -- Native UpdateWidth runs again after activation/resolution changes.
+        -- Both corners must follow the same parent as the decorative frame.
+        bg:ClearAnchors() bg:SetDimensions(0,0)
+        bg:SetAnchor(TOPLEFT,compassFrame,TOPLEFT,4,4)
+        bg:SetAnchor(BOTTOMRIGHT,compassFrame,BOTTOMRIGHT,-4,-4)
+        T.Panel(compassFrame)
+        return
+    end
     local art=WINDOW_MANAGER:CreateControl('AlabuzyaUICompassArtwork',compassFrame,CT_TEXTURE)
     art:SetTexture('AlabuzyaUI/Textures/CompassFrame.dds')
     art:SetDimensions(840,200) art:SetAnchor(CENTER,compassFrame,CENTER,0,0)
@@ -235,6 +249,18 @@ local function HideNativeSwapDecor()
 end
 function AlabuzyaUI.Core.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
+    if T.classic then
+        AlabuzyaUI.ClassicTheme.AfterLayout=HideNativeSwapDecor
+        AlabuzyaUI.ClassicTheme.InitializeHUD()
+        if PLAYER_ATTRIBUTE_BARS_FRAGMENT then PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('AlabuzyaUI',true) end
+        if ZO_ActionBar1KeybindBG then ZO_ActionBar1KeybindBG:SetHidden(true) end
+        HideNativeSwapDecor() SkinCompass() SkinChat() T.ApplyHUDFonts()
+        EVENT_MANAGER:RegisterForEvent('AlabuzyaUICore',EVENT_PLAYER_ACTIVATED,function()
+            SkinChat() SkinCompass() T.ApplyHUDFonts() HideNativeSwapDecor()
+            zo_callLater(HideNativeCompassFrame,150)
+        end)
+        return
+    end
     root=WINDOW_MANAGER:CreateTopLevelWindow('AlabuzyaUIFrameTLC')
     root:SetDimensions(1020,350) root:SetAnchor(BOTTOM,GuiRoot,BOTTOM,0,55)
     root:SetMouseEnabled(false)

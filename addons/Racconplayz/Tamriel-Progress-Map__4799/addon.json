@@ -18,7 +18,7 @@
     "TamrielProgressMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4799/",
-  "fingerprint": "47c2a0b3e3dff73ac3a88055093e262a691ad66f0b64ea1e5565899d25a523b7",
+  "fingerprint": "8500fccb1f5552ed4d49e843929b8c5cbee3a7384e72646cd5e083e8edc755b2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17290.png",
     "https://cdn-eso.mmoui.com/preview/pvw17291.png",
@@ -36,11 +36,11 @@
   "source_id": "4799",
   "source_url": "https://www.esoui.com/downloads/info4799-TamrielProgressMap.html",
   "stats": {
-    "downloads": 543,
-    "favorites": 4,
-    "monthly_downloads": 533
+    "downloads": 807,
+    "favorites": 7,
+    "monthly_downloads": 605
   },
   "title": "Tamriel Progress Map",
-  "updated_at": 1788861097000,
-  "version": "2.7.4 Hotfix"
+  "updated_at": 1790773739000,
+  "version": "2.7.5"
 }

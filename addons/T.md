@@ -15,14 +15,14 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tagarn's Hard Mode Reminders (In Development)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Hard-Mode-Reminders-In-Development__4310) | Tagarn | PC / Mac | 0.51 |
 | [Tagarn's Skill Point Alerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tagarn/Tagarn-s-Skill-Point-Alerts__3989) | Tagarn | PC / Mac | 1.29 |
 | [Taichou's Icon Highlight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VitorTaichou/Taichou-s-Icon-Highlight__4599) | VitorTaichou | PC / Mac | 1.1.0 |
-| [Take One](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mightyjo/Take-One__3076) | mightyjo | PC / Mac | 1.2.0 |
+| [Take One](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mightyjo/Take-One__3076) | mightyjo | PC / Mac | 1.3.0 |
 | [Talk Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Talk-Toggle__cda29292-5e10-4045-9219-10ff1a9444fe) | dicen9 | Console | — |
 | [Tamriel Ambulance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheInfiniti352/Tamriel-Ambulance__3124) | TheInfiniti352 | PC / Mac | 1.2.11 |
 | [Tamriel Calendar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/Tamriel-Calendar__4357) | Soul_Hagans | PC / Mac | 2.4.0 |
 | [Tamriel Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gandalf/Tamriel-Chronos---Clock__3348) | Gandalf | PC / Mac | 20101 |
 | [Tamriel Master Ledger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger__1e746db5-8418-4a6f-9f17-4449e0d7e3f0) | xPricee | Console | — |
 | [Tamriel Master Ledger - DEV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Tamriel-Master-Ledger---DEV__89ecfc27-e76b-48ae-8d40-e76bbf0c5c13) | xPricee | Console | — |
-| [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.7.4 Hotfix |
+| [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.7.5 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
 | [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.1 |
@@ -144,7 +144,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |
 | [ToggleQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleQuestTracker__3809) | Saint-Ange | PC / Mac | 1.2.2 |
 | [ToggleStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/ToggleStatus__2954) | Wheels | PC / Mac | 2.1 |
-| [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.1 |
+| [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.2 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
 | [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.0 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |

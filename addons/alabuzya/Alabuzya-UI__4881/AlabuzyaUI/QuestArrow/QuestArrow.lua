@@ -355,7 +355,7 @@ function A:Command(input)
 end
 
 function A:Initialize()
-    if not AlabuzyaUI.Settings.StyleEnabled() or not AlabuzyaUI.Settings.Enabled("questArrow") then return end
+    if not AlabuzyaUI.Settings.Enabled("questArrow") then return end
     self.saved = AlabuzyaUI.SavedVariables.Character("questArrow", self.defaults)
     U:Create()
     U:Journal()

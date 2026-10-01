@@ -8,6 +8,10 @@
   "category_id": "27",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -22,7 +26,7 @@
     "VestigeMirror"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4564/",
-  "fingerprint": "96b49b57bc8321b07de50c0bf501162fa4e9188b229faacef05b9f8d7bd3bc18",
+  "fingerprint": "9166842ea4637df33aeef9fce5c9b238b8e4566a8c942f667b3a3ad40785d6eb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15993.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17235.png",
@@ -37,11 +41,11 @@
   "source_id": "4564",
   "source_url": "https://www.esoui.com/downloads/info4564-VestigeMirror.html",
   "stats": {
-    "downloads": 2654,
-    "favorites": 8,
-    "monthly_downloads": 672
+    "downloads": 6774,
+    "favorites": 11,
+    "monthly_downloads": 4146
   },
   "title": "Vestige Mirror",
-  "updated_at": 1788221351000,
-  "version": "1.4.0"
+  "updated_at": 1790850302000,
+  "version": "1.4.1"
 }

@@ -18,7 +18,7 @@
     "BanditsUserInterface"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1643/",
-  "fingerprint": "1fcde3ba2b1412fec3789d8b062501fd2fc310e6bb566df86bb158f2b49b93a4",
+  "fingerprint": "17f8423e907c0ade9c10292f547d82848d783fdb4630eaacbfa4b75ff2601d89",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9686.png",
     "https://cdn-eso.mmoui.com/preview/pvw7992.png",
@@ -41,11 +41,11 @@
   "source_id": "1643",
   "source_url": "https://www.esoui.com/downloads/info1643-BanditsUserInterface.html",
   "stats": {
-    "downloads": 6215967,
+    "downloads": 6225892,
     "favorites": 1359,
-    "monthly_downloads": 11808
+    "monthly_downloads": 21826
   },
   "title": "Bandits User Interface",
-  "updated_at": 1790719773000,
-  "version": "4.438"
+  "updated_at": 1790789718000,
+  "version": "4.439"
 }

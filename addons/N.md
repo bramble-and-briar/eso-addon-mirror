@@ -49,7 +49,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Nirn Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KingBloodWings/Nirn-Icons__3621) | KingBloodWings | PC / Mac | 1.0.5 |
 | [Nirn Traveler Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Armodeniz/Nirn-Traveler-Guild-Hall__3019) | Armodeniz | PC / Mac | 0.4 |
 | [Nirncrux Miner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Nirncrux-Miner__4764) | atharti | PC / Mac | 1.3 |
-| [NirnSteelUI · Better UI Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/NirnSteelUI-Better-UI-Feedback__4574) | Wrynch | PC / Mac | 3.0.1 |
+| [NirnSteelUI · Better UI Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/NirnSteelUI-Better-UI-Feedback__4574) | Wrynch | PC / Mac | 3.0.2.1 |
 | [No Accidental Learning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/No-Accidental-Learning__4017) | kawamonkey | PC / Mac | 1.0 |
 | [No Auto Pinned Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/No-Auto-Pinned-Golden-Pursuits__4033) | kawamonkey | PC / Mac | 1.0 |
 | [No compass](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hatsune681/No-compass__1187) | hatsune681 | PC / Mac | 11.101034 |

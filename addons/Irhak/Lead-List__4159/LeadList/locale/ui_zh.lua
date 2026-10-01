@@ -139,5 +139,5 @@ ILL.TOOLTIP_INKLING = {
 
 ILL.TOOLTIP_MAPPINS = "已包含在Hoft的MapPins插件中"
 
-ILL.FREERUNNER_INFO = "!!! Any older lead have a chance to drop from curated chests from Frerunners favor's quest on top of the regular drop spot listed below !!!"
+ILL.FREERUNNER_INFO = "!!! Any older lead have a chance to drop from Frerunners favor, Nowhere Vault's chests or High Seas event bosses on top of the regular drop spot listed below !!!"
 

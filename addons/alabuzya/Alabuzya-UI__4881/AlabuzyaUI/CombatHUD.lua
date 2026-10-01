@@ -60,10 +60,10 @@ local function Paint()
     end
 end
 local function SavePosition(root,key)
-    settings[key]={x=root:GetLeft()/GuiRoot:GetWidth(),y=root:GetTop()/GuiRoot:GetHeight()}
+    settings[(AlabuzyaUI.Theme.classic and 'classic:' or '')..key]={x=root:GetLeft()/GuiRoot:GetWidth(),y=root:GetTop()/GuiRoot:GetHeight()}
 end
 local function Position(root,key,x,y)
-    local p=settings[key]
+    local p=settings[(AlabuzyaUI.Theme.classic and 'classic:' or '')..key]
     root:ClearAnchors()
     root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,p and p.x*GuiRoot:GetWidth() or x,p and p.y*GuiRoot:GetHeight() or y)
 end
@@ -73,6 +73,22 @@ local function Movable(root,key)
 end
 local function Gauge(name,title,x)
     local root=WINDOW_MANAGER:CreateTopLevelWindow(name)
+    if AlabuzyaUI.Theme.classic then
+        root:SetDimensions(142,58)
+        Position(root,name,GuiRoot:GetWidth()/2+(x<0 and -330 or 188),104)
+        Movable(root,name)
+        local caption=Text(root) caption:SetText(title)
+        caption:SetAnchor(TOPLEFT,root,TOPLEFT,8,5) caption:SetDimensions(126,19)
+        caption:SetHorizontalAlignment(TEXT_ALIGN_CENTER) caption:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        local value=Text(root,AlabuzyaUI.Theme.Font(20))
+        value:SetAnchor(TOPLEFT,root,TOPLEFT,8,24) value:SetDimensions(126,23)
+        value:SetHorizontalAlignment(TEXT_ALIGN_CENTER) value:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        local bar=WINDOW_MANAGER:CreateControl(nil,root,CT_STATUSBAR)
+        bar:SetDimensions(126,4) bar:SetAnchor(BOTTOM,root,BOTTOM,0,-6)
+        bar:SetMinMax(0,1) bar:SetColor(.63,.49,.18,1)
+        AlabuzyaUI.Theme.Backdrop(root) AlabuzyaUI.Theme.Panel(root) HUD(root)
+        return {root=root,value=value,bar=bar,ticks={}}
+    end
     root:SetDimensions(164,90)
     root:SetAnchor(TOP,GuiRoot,TOP,x,114)
     Movable(root,name)
@@ -101,6 +117,7 @@ local function Gauge(name,title,x)
 end
 local function SetGauge(g,value,fraction)
     g.value:SetText(value)
+    if g.bar then g.bar:SetValue(math.max(0,math.min(1,fraction or 0))) return end
     local active=math.floor(math.max(0,math.min(1,fraction or 0))*#g.ticks+0.5)
     for i,tick in ipairs(g.ticks) do
         if i<=active then tick:SetColor(1,0.33,0.035,1)
@@ -152,7 +169,7 @@ function AlabuzyaUI.CombatHUD.Initialize()
     ru=GetCVar("language.2")=="ru"
     settings=AlabuzyaUI.SavedVariables.Account("combatHUD",{compact=true})
     meter=WINDOW_MANAGER:CreateTopLevelWindow("AlabuzyaUICombatMeter")
-    Position(meter,"meter",8,6)
+    Position(meter,'meter',AlabuzyaUI.Theme.classic and GuiRoot:GetWidth()-364 or 8,AlabuzyaUI.Theme.classic and GuiRoot:GetHeight()-52 or 6)
     Movable(meter,"meter")
     meter:SetDimensions(300,30) AlabuzyaUI.Theme.Panel(meter,7)
     local bg=WINDOW_MANAGER:CreateControl(nil,meter,CT_BACKDROP)

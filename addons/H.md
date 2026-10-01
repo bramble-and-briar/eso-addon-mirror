@@ -76,6 +76,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Heroism Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saenic/Heroism-Potions__3568) | Saenic | PC / Mac | 1.0.1 |
 | [Hidden Rolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Akardra/Hidden-Rolls__3197) | Akardra | PC / Mac | 1.00 |
 | [Hide Action Bar Labels (Lost Depths)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CodeStripper/Hide-Action-Bar-Labels-Lost-Depths__3475) | CodeStripper | PC / Mac | 1.0.1 |
+| [Hide Antiquarian's Eye Prompt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Hide-Antiquarian-s-Eye-Prompt__9d18decc-c49a-447c-afad-03a243ddfc6a) | code65536 | Console | — |
+| [Hide Antiquarian's Eye Prompt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Hide-Antiquarian-s-Eye-Prompt__4902) | code65536 | PC / Mac | 1.0.0 |
 | [Hide Completed Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Hide-Completed-Tome-Challenges__4811) | Infinite_1st | PC / Mac | 1.0 |
 | [Hide Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/init3/Hide-Group-Frames__2159) | init3 | PC / Mac | 1.0 |
 | [Hide Performance Meter Background](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zinival/Hide-Performance-Meter-Background__1567) | Zinival | PC / Mac | 1.1 |

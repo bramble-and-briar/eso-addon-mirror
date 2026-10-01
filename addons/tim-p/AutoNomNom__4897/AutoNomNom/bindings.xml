@@ -1,0 +1,23 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="AutoNomNom">
+
+            <Action name="AUTONOMNOM_DEBUG">
+                <Down>AutoNomNom.DebugHotkey()</Down>
+            </Action>
+
+            <Action name="AUTONOMNOM_AUTOEAT_ON">
+                <Down>AutoNomNom.Hotkey_AutoEatOn()</Down>
+            </Action>
+
+            <Action name="AUTONOMNOM_AUTOEAT_OFF">
+                <Down>AutoNomNom.Hotkey_AutoEatOff()</Down>
+            </Action>
+
+            <Action name="AUTONOMNOM_AUTOEAT_TOGGLE">
+                <Down>AutoNomNom.Hotkey_AutoEatToggle()</Down>
+            </Action>
+
+        </Category>
+    </Layer>
+</Bindings>

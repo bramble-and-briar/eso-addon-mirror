@@ -274,6 +274,23 @@ So an anchor written once is no longer the whole story. Two changes:
   after the zone load each was seen. That log is the measurement for the next round: it says
   whether the size, the position, or the element's anchor is what moves, and when.
 
+**1.3.1: from 1.3.0's timed looks to an event.** On a PS5 the window came right "about a second"
+after a wayshrine or dungeon -- the 1 s look -- which is long enough to watch it snap back. A
+look is only as fast as its interval, so the control now reports its own changes: the docs list
+`OnRectChanged` (`self, newLeft, newTop, newRight, newBottom, oldLeft, ...`) and
+`OnEffectivelyShown`, and `SetHandler(eventName, fn, handlerName, order)` with a **name** adds a
+separate handler beside the control's own (the client does it with `"ZO_CustomAnimationSceneFragment"`
+and `"ZO_Menu"`; `nil` removes it). Nothing the client installed is replaced, and the chat control
+has no handler of either name in its XML. The check is `LayoutInPlace` -- anchor and dimensions
+against what was asked, not the rectangle, so a clamp to the screen never looks like a difference
+-- and a correction that does not stick is cut off after four in one frame and counted as
+`gaveUp`, so a writer that fights back cannot loop the engine.
+
+Not measured: whether the engine raises `OnRectChanged` for a control that is hidden when it is
+resized (hence `OnEffectivelyShown`, the `SHOWING` look, and the 50 ms / 150 ms / 400 ms backstops)
+-- `status` prints `rect watch: events=... corrected=...`, which says whether the handler is being
+called at all.
+
 Also new in U51, and left alone: `GamepadChatSystemStateChanged` (a callback fired on every
 minimise and maximise, which would be a tidier signal than the ten-second push if it turns out to
 be needed), and `GamepadChatContainer:StartDraggingTab` / `StopDraggingTab`, now no-ops
@@ -317,12 +334,18 @@ be needed), and `GamepadChatContainer:StartDraggingTab` / `StopDraggingTab`, now
    client.
 11. **Is it readable over a menu?** This is why the draw order is there; if a gamepad panel
    covers it, "in front of the interface" is the answer.
-12. **Is the window still right after a wayshrine and after a dungeon?** This is the U51 report
+12. **Is the window right the instant it appears after a wayshrine and after a dungeon?** (1.3.1:
+   it was right after about a second in 1.3.0.) If anything is still visible, `status` prints
+   `rect watch: installed=... events=... corrected=...` -- `events=0` means the engine did not
+   raise the event at all and the timed looks are doing the work; `corrected>0` with the window
+   still visibly wrong for a moment means the write lands after the layout and the next step is
+   hiding the window until it has been put right. Also the lines from the next item.
+13. **(1.3.0)** Is the window still right after a wayshrine and after a dungeon? This is the U51 report
    (§10). If it is wrong again, run `/pbchatwin status` **without** opening any other menu first
    and send the "put right after something else wrote to the window" lines: they say what the
    window had and how long after the load it was seen, which is what decides whether the looks
    need to run later than 10 s or something else entirely is writing.
-13. **Do the trackers still sit above the chat window?** The quest tracker column follows the chat
+14. **Do the trackers still sit above the chat window?** The quest tracker column follows the chat
    through the element, so moving the window should move the column with it.
-14. **Do the tiers do what they say?** With "in front of the interface", whatever was covering
+15. **Do the tiers do what they say?** With "in front of the interface", whatever was covering
    the chat must be behind it. `status` prints the tier and level the control really has.

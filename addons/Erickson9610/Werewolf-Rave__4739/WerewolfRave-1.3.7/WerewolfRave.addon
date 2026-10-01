@@ -1,0 +1,17 @@
+## Title: Werewolf Rave
+## Version: 1.3.7
+## Author: @Erickson9610
+## APIVersion: 101051
+## IsLibrary: false
+## OptionalDependsOn: LibAddonMenu-2.0
+## Description: Automatically swap between your Werewolf Form Skill Styles! Use the /wwr command to get started.
+## SavedVariables: WerewolfRaveVars
+
+WerewolfRave.lua
+WerewolfRaveMenu.lua
+
+# This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+# The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+# All rights reserved.
+
+# No AI has been used in the development of this addon.

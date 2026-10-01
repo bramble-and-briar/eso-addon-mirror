@@ -1,0 +1,19 @@
+2.7.5 - 2026-09-30
+- Replaced nonexistent Skyshard, Zone Story and Collections event names with documented events.
+- Fixed the economy tracking tooltip calling an undefined date-formatting function.
+- Fixed server migration incorrectly treating modern server namespaces as legacy settings.
+- Snapshot legacy data before creating the destination; keep existing namespaces out of the copy.
+- Preserve separate same-name NPC death rows and pair DIED/DIED_XP counterparts one-to-one.
+- Avoid duplicate activity rows when XP finalized a death before its other callback arrived.
+- Prefer known target IDs when matching combat targets and pending kill XP.
+- Keep unique known targets in the combat cache during repeated hits.
+- Hide optional tooltips even when another optional tooltip was never created.
+- Hide theme/color windows and focus menus when the journal leaves permitted scenes.
+- Preserve a fullscreen scene's cursor when the journal releases UI-mode ownership.
+- Keep incomplete Collections and Achievements below 100 percent.
+- Query zone completion once per category and clean legacy activity logs once per store.
+- Report the correct active language in /tpm debugreport; translate the Spanish map title.
+- Add English AI disclosure, dependency, installation and validation notes.
+- Increase AddOnVersion from 20705 to 20706; keep SavedVariables wrapper version 1.
+
+Validation: 46 Lua 5.1 regression tests passed offline. In-game testing pending.

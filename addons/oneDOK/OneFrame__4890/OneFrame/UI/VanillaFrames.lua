@@ -97,11 +97,11 @@ function F:UpdateTotal()
         self.total = WINDOW_MANAGER:CreateControl(A.name .. "GroupDPS", ZO_UnitFramesGroups, CT_LABEL)
         self.total:SetMouseEnabled(false)
         self.total:SetFont("$(BOLD_FONT)|16|soft-shadow-thin")
-        self.total:SetColor(1, 1, 1, 1)
+        self.total:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_HIGHLIGHT))
         self.total:SetDrawLayer(DL_TEXT)
     end
     if not self.total then return end
-    self.total:SetHidden(not A.active or not bottomControl or sum == nil)
+    self.total:SetHidden(not A.active or not A.sv.groupDps or not bottomControl or sum == nil)
     if bottomControl and sum ~= nil then
         self.total:ClearAnchors()
         self.total:SetAnchor(TOPLEFT, bottomControl, BOTTOMLEFT, left - bottomControl:GetLeft(), 4)

@@ -1,23 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/mesota/AlphaGear-2-Builds-Gear-Skills-Banking__1812",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "mesota",
   "canonical_id": "esoui:1812",
   "category_id": "19",
-  "compatibility": [
-    {
-      "name": "High Isle",
-      "version": "8.0.0"
-    }
-  ],
+  "compatibility": [],
   "content_id": "esoui:1812",
   "deleted": false,
   "directories": [
     "AlphaGear"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1812/",
-  "fingerprint": "e635af3f6d0b7f9ccf4a90de9c1d9db9cca6d9a80922f9d6cce71aa41f49480f",
+  "fingerprint": "2f5b4f2da7b78f70b6fcc3967a7f72c48a3abd6a15d45f3f90f58c382fcdc622",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8625.png",
     "https://cdn-eso.mmoui.com/preview/pvw8626.png",
@@ -36,9 +32,9 @@
   "source_id": "1812",
   "source_url": "https://www.esoui.com/downloads/info1812-AlphaGear2BuildsGearSkillsBanking.html",
   "stats": {
-    "downloads": 850730,
+    "downloads": 852860,
     "favorites": 667,
-    "monthly_downloads": 1193
+    "monthly_downloads": 851
   },
   "title": "AlphaGear 2 (Builds, Gear, Skills, Banking)",
   "updated_at": 1655501998000,

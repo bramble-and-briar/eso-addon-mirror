@@ -24,7 +24,7 @@ WPamA.WindSettings = {
     Mds = {[1]=16,[2]=18,[3]=22,[4]=23,[5]=50},
   },
   [6] = {
-    Mds = {[1]=29,[2]=46,[3]=32,[4]=36,[5]=39,[6]=40},
+    Mds = {[1]=29,[2]=46,[3]=32,[4]=36,[5]=39,[6]=40,[7]=52},
   },
   [7] = {
     Mds = {[1]=10,[2]=34,[3]=49,[4]=51},
@@ -45,7 +45,6 @@ WPamA.WindCount = #WPamA.WindSettings + 1
 --    FavRadMenuIcon = "esoui/art/progression/progression_indexicon_class_up. dds",
 --    FavRadMenuIcon = "esoui/art/chatwindow/chat_friendsonline_up. dds",
 -- esoui/art/treeicons/reconstruction_tabicon_arenasolo_up. dds -- Arena
--- esoui/art/tutorial/menubar_skills_up. dds
 -- esoui/art/treeicons/collection_indexicon_equipment_up. dds -- companion equipment
 -- esoui/art/help/help_tabicon_trial_up. dds
 -- esoui/art/crafting/blueprints_tabicon_up. dds
@@ -480,7 +479,7 @@ WPamA.ModeSettings = {
     isVisibleDef = true,
     Col = {[1]=63,[2]=63,[3]=63,[4]=63,[5]=63,[6]=63,[7]=63,[8]=63},
     BTT = {},
-    Map = {[1]= 5,[2]= 6,[3]=10,[4]= 4,[5]=12,[6]=11,[7]=44,[8]=43},
+    Map = {[1]= 5,[2]= 6,[3]=10,[4]= 4,[5]=12,[6]=11,[7]=44,[8]=53},
     HdT = {},
   },
   [20] = {
@@ -748,7 +747,7 @@ WPamA.ModeSettings = {
     --UpdV_LFGRndAvl = nil,
     UpdV_ShowMonsterSet = false,
     --UpdV_FreqRedrawMode = nil,
-    FavRadMenuIcon = "esoui/art/companion/keyboard/companion_skills_up.dds",
+    FavRadMenuIcon = GetIcon(75),
     isVisibleDef = true,
     Col = {[1]=85,[2]=85,[3]=85,[4]=85,[5]=85,[6]=85,[7]=85},
     --Hdr = {[1]=14,[2]=40,},
@@ -1163,6 +1162,32 @@ WPamA.ModeSettings = {
     BTTA = {[1] = GetMailListName(1), [2] = GetMailListName(2), [3] = GetMailListName(3)},
     HdT = {},
   }, -- mode 51
+  [52] = {
+    WinX = 820,
+    TT = -1,
+    UpdV_ShowLoc = false,
+    UpdV_ENDung = false,
+    UpdV_DontShowNone = false,
+    UpdV_TitleToolTip = true,
+    --UpdV_CharVisible = nil,
+    --UpdV_DateTime = false,
+    --UpdV_TrialAvl = nil,
+    --UpdV_LFGRndAvl = nil,
+    UpdV_ShowMonsterSet = false,
+    --UpdV_FreqRedrawMode = nil,
+    FavRadMenuIcon = GetIcon(75),
+    isVisibleDef = true,
+    Col = {[1]=95,[2]=95,[3]=95,[4]=95,[5]=95,[6]=95},
+    BTT = {},
+    HdT = {
+      [1] = zo_strformat(SI_UTILITY_WHEEL_SLOT_FORMATTER, 1),
+      [2] = zo_strformat(SI_UTILITY_WHEEL_SLOT_FORMATTER, 2),
+      [3] = zo_strformat(SI_UTILITY_WHEEL_SLOT_FORMATTER, 3),
+      [4] = zo_strformat(SI_UTILITY_WHEEL_SLOT_FORMATTER, 4),
+      [5] = zo_strformat(SI_UTILITY_WHEEL_SLOT_FORMATTER, 5),
+      [6] = zo_strformat(SI_UTILITY_WHEEL_SLOT_FORMATTER, 6)
+    },
+  }, -- mode 52
 -----
 } -- ModeSettings end
 --================================================================

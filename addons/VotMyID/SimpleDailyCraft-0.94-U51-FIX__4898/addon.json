@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/VotMyID/SimpleDailyCraft-0.94-U51-FIX__4898",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "VotMyID",
+  "canonical_id": "esoui:4898",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4898",
+  "deleted": false,
+  "directories": [
+    "SimpleDailyCraft"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4898/",
+  "fingerprint": "e855e4ca216e8b3ff7178bf3f6043a9b12362a2cee330db474bc8ec6f9ddc0c5",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4898",
+  "source_url": "https://www.esoui.com/downloads/info4898-SimpleDailyCraft0.94U51FIX.html",
+  "stats": {
+    "downloads": 15,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "SimpleDailyCraft 0.94 \u2014 U51 FIX",
+  "updated_at": 1790789965000,
+  "version": "0.94"
+}

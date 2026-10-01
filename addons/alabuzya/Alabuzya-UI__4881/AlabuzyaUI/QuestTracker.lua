@@ -103,10 +103,11 @@ function AlabuzyaUI.QuestTracker.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     ru=GetCVar('language.2')=='ru'
     settings=AlabuzyaUI.SavedVariables.Account('questTracker',{collapsed={},listCollapsed=false})
-    local sidebar=AlabuzyaUI.Theme.Sidebar()
+    local theme=AlabuzyaUI.Theme
+    local sidebar=theme.QuestHost and theme.QuestHost() or theme.Sidebar()
     root=WINDOW_MANAGER:CreateControl('AlabuzyaUIQuestTracker',sidebar,CT_CONTROL)
     root:SetDimensions(WIDTH+16,HEIGHT+44)
-    root:SetAnchor(TOPLEFT,sidebar,TOPLEFT,0,AlabuzyaUI.Theme.mapHeight or 406)
+    root:SetAnchor(TOPLEFT,sidebar,TOPLEFT,0,theme.classic and 0 or (theme.mapHeight or 406))
     root:SetMouseEnabled(false)
     local title=Text(root)
     AlabuzyaUI.Theme.Text(title,22)

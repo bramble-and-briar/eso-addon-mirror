@@ -5,7 +5,7 @@ screen instead of fading away, and decides what it is drawn over, in The Elder S
 console.
 
 - **Author:** PinkBanther
-- **Version:** 1.3.0
+- **Version:** 1.3.1
 - **Optional:** `LibHarvensAddonSettings` >= 20106 (for the settings panel; the chat commands
   work without it)
 
@@ -172,11 +172,17 @@ this add-on re-applied. From 1.3.0:
 - the player's corner and distances are written into the HUD element's own default anchor, so the
   client's re-applies put the window where the player asked. The element still counts as "using
   its default anchor", which is what makes the U51 tracker column keep stacking above the chat;
-- the window is checked again a few times over the ten seconds after a zone load, and after a
-  screen resize or a mode change, because dimensions are not part of an anchor and the client
-  does not say when it has finished;
+- the window is **corrected the moment it changes**, not on a timer: a named `OnRectChanged`
+  handler on the chat control (the engine's own notice that its rectangle changed, raised when the
+  layout is resolved, ahead of the frame being drawn) and a named `OnEffectivelyShown` handler (the
+  moment it actually appears) check the window against what was asked and put it right. Named
+  handlers sit beside the control's own rather than replacing them, the way the client itself
+  registers them. They are added only once something has been written and taken off on reset;
+- the same check runs as the HUD comes in (`SHOWING`, before its first frame), and as a backstop
+  on a timer after a zone load, screen resize or mode change (50 ms to 10 s);
 - anything found out of place is recorded, and `/pbchatwin status` prints the last few — what the
-  window had, and how long after the zone load it was found.
+  window had, which of the checks found it, and how long after the zone load — along with how
+  many times the window reported a change and how many were corrected.
 
 Reset puts the element's own anchor back exactly as the client had it.
 

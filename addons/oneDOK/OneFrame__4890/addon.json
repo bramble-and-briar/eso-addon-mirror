@@ -18,19 +18,21 @@
     "OneFrame"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4890/",
-  "fingerprint": "ef76eb93a267d141735cb71f0d26745c9decf2754145daeb54c27d65f4ff9818",
-  "images": [],
+  "fingerprint": "68f9a4b43cd3effd6c5d1e8aed773b496ffd1b2f3c252159822daffc4a2b1b00",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17650.png"
+  ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "4890",
   "source_url": "https://www.esoui.com/downloads/info4890-OneFrame.html",
   "stats": {
-    "downloads": 5,
-    "favorites": 0,
-    "monthly_downloads": 2
+    "downloads": 35,
+    "favorites": 1,
+    "monthly_downloads": 11
   },
   "title": "OneFrame",
-  "updated_at": 1790718261000,
-  "version": "1.0"
+  "updated_at": 1790798710000,
+  "version": "1.1"
 }

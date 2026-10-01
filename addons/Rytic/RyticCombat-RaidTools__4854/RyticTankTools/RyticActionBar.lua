@@ -997,7 +997,11 @@ function A.Update()
                 A.ult.readyGlow2:SetEdgeColor(1,.08 + (.75*p),.02,.25 + (.70*p))
             end
         end
-        A.ult.key:SetText("R")
+        -- Show the player's actual ESO Ultimate keybind (Action Button 8)
+        -- instead of assuming the default "R" key.
+        local ultKeyCode = GetHighestPriorityActionBindingInfoFromName("ACTION_BUTTON_8", false)
+        local ultKeyName = ultKeyCode and GetKeyName(ultKeyCode) or ""
+        A.ult.key:SetText((ultKeyName and ultKeyName ~= "") and ultKeyName or "?")
     end
 
     -- Current ESO quickslot wheel is hotbar category QUICKslot, slot 1.

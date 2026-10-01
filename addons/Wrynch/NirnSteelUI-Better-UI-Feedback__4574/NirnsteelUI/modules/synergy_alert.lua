@@ -19,6 +19,14 @@ local function Settings()
     return Nirnsteel_UI.Settings:GetSynergyAlert()
 end
 
+local function UsesHUDEditor()
+    return Nirnsteel_UI.HUDEditor and Nirnsteel_UI.HUDEditor:IsAvailable()
+end
+
+local function IsUnlocked()
+    return not UsesHUDEditor() and Settings().unlocked == true
+end
+
 local function Clamp(value, low, high)
     return math.max(low, math.min(high, tonumber(value) or low))
 end
@@ -167,6 +175,27 @@ function SynergyAlert:LayoutView(view)
     local rowHeight = math.max(view.key:GetHeight(), view.label:GetTextHeight())
     view.details:SetDimensions(rowWidth, rowHeight)
     view:SetDimensions(math.max(EMBLEM_SIZE, rowWidth), DETAILS_Y + rowHeight + 4)
+    if UsesHUDEditor() then
+        if view == self.live then
+            Nirnsteel_UI.HUDEditor:Apply("synergyAlert",view,{
+                name="Nirnsteel Synergy", position=position,
+                enabled=function() return Settings().enabled end,
+                defaultAnchor=function(platform)
+                    local y = platform == "gamepad" and ZO_COMMON_INFO_DEFAULT_GAMEPAD_BOTTOM_OFFSET_Y
+                        or ZO_COMMON_INFO_DEFAULT_KEYBOARD_BOTTOM_OFFSET_Y
+                    return ZO_Anchor:New(BOTTOM,GuiRoot,BOTTOM,0,y)
+                end,
+                replaces=function(control) return control == self.native.container end,
+                preview=function(active)
+                    self.hudEditorActive = active
+                    if active then self:Preview() else self:StopPreview() end
+                end,
+            })
+        else
+            view:ClearAnchors()
+            view:SetAnchor(BOTTOM,self.live,BOTTOM,0,0)
+        end
+    end
     view.bindingWidth, view.bindingHeight = view.key:GetWidth(), view.key:GetHeight()
     view.layingOut = false
 end
@@ -227,14 +256,14 @@ end
 function SynergyAlert:Preview()
     if not self.initialized or not Settings().enabled then return end
     self.previewActive = true
-    self.previewPositioning = Settings().unlocked and self.settingsPanelVisible == true
+    self.previewPositioning = self.hudEditorActive or (IsUnlocked() and self.settingsPanelVisible == true)
     -- A separate view means previews cannot overwrite native/live synergy state.
     self.preview.icon:SetTexture("EsoUI/Art/Icons/ability_healer_011.dds")
     self.preview.label:SetText("Nirnsteel Synergy")
     self:LayoutView(self.preview)
     self.live:SetHidden(true)
     self.preview:SetHidden(false)
-    self.preview:SetMouseEnabled(Settings().unlocked == true)
+    self.preview:SetMouseEnabled(IsUnlocked())
     self:StartAnimation(self.preview, true)
     EVENT_MANAGER:UnregisterForUpdate(EVENT_NAMESPACE .. "_Preview")
     if not self.previewPositioning then
@@ -245,9 +274,9 @@ end
 function SynergyAlert:SetSettingsPanelVisible(visible)
     self.settingsPanelVisible = visible == true
     if not self.initialized then return end
-    if self.settingsPanelVisible and Settings().enabled and Settings().unlocked then
+    if self.settingsPanelVisible and Settings().enabled and IsUnlocked() then
         self:Preview()
-    elseif not self.settingsPanelVisible then
+    elseif not self.settingsPanelVisible and not self.hudEditorActive then
         self:StopPreview()
     end
 end
@@ -274,7 +303,7 @@ function SynergyAlert:Initialize()
     end
 
     self.preview:SetHandler("OnMouseDown", function(control, button)
-        if button == MOUSE_BUTTON_INDEX_LEFT and Settings().unlocked then
+        if button == MOUSE_BUTTON_INDEX_LEFT and IsUnlocked() then
             control.moving = true
             control:SetMovable(true)
             control:StartMoving()
@@ -301,7 +330,9 @@ function SynergyAlert:RefreshSettings()
     self:SetNativeHidden(Settings().enabled == true)
     if not Settings().enabled then
         self:StopPreview()
-    elseif Settings().unlocked and self.settingsPanelVisible then
+    elseif self.hudEditorActive then
+        self:Preview()
+    elseif IsUnlocked() and self.settingsPanelVisible then
         if not self.previewActive or not self.previewPositioning then
             self:Preview()
         else

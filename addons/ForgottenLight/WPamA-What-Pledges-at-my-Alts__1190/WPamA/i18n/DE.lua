@@ -1,7 +1,7 @@
 local Icon = WPamA.Consts.IconsW
 local GetIcon = WPamA.Textures.GetTexture
 local OpenWindowText = GetString(SI_ENTER_CODE_CONFIRM_BUTTON)
-local DynamicEncounterText = GetAchievementSubCategoryInfo(1,4)
+local DynamicEncounterText = GetString(SI_HUD_EDITOR_DYNAMIC_EVENT_TRACKER)
 WPamA.i18n = {
   Lng = "DE",
 -- DateTime settings
@@ -132,12 +132,16 @@ WPamA.i18n = {
         [5] = {N=zo_strformat("<<1>><<2>><<3>>", GetIcon(38, 24), GetIcon(39, 24), GetIcon(37, 24)),
                NC=zo_strformat("<<1>><<2>><<3>>", GetIcon(38, 24, true), GetIcon(39, 24, true), GetIcon(37, 24, true)),
                W=70, S=true,
-               A=GetString(SI_ARMORY_EQUIPMENT_LABEL) .. ": " .. GetString(SI_EQUIPSLOTVISUALCATEGORY2)},
+               A=zo_strformat("<<1>>: <<2>>", GetString(SI_ARMORY_EQUIPMENT_LABEL), GetString(SI_EQUIPSLOTVISUALCATEGORY2))},
         [6] = {N=zo_strformat("<<1>><<2>><<3>>", GetIcon(54, 24), GetIcon(48, 24), GetIcon(55, 24)),
                NC=zo_strformat("<<1>><<2>><<3>>", GetIcon(54, 24, true), GetIcon(48, 24, true), GetIcon(55, 24, true)),
                W=70, S=true,
                A=zo_strformat("<<1>>: <<2>>, <<3>>", GetString(SI_ARMORY_EQUIPMENT_LABEL),
                               GetString(SI_EQUIPSLOTVISUALCATEGORY1), GetString(SI_EQUIPSLOTVISUALCATEGORY3))},
+        [7] = {N=zo_strformat("<<1>><<2>>", GetIcon(75, 28), GetIcon(24, 24)),
+               NC=zo_strformat("<<1>><<2>>", GetIcon(75, 28, true), GetIcon(24, 24, true)),
+               W=70, S=true,
+               A=zo_strformat("<<1>>: <<2>>", GetString(SI_COMPANION_OVERVIEW_SKILLS), GetString(SI_SKILLS_ACTIVE_ABILITIES))},
       },
     },
     [7] = {
@@ -345,6 +349,7 @@ WPamA.i18n = {
   OptEndeavorChatColor = "Farbe der Fortschrittsbenachrichtigung",
   OptEndeavorChatColorF = "Passt die Farbe der Fortschrittsbenachrichtigungen an",
   OptEndeavorAutoClaim = "Auto-Einfordern der Herausforderung Belohnungen",
+  OptEndeavorHideCompl = "Abgeschlossene Herausforderungen ausblenden",
   OptPursuitChatMsg  = "Zeigen Sie den Vorhaben im Chat an",
   OptPursuitChatMsgF = "Zeigen Sie Informationen im Chat-Fenster an, wenn sich der Goldene Vorhaben ändert",
   OptPursuitChatCamp  = "Bis eine Kampagnenbelohnung verdient wird",
@@ -458,11 +463,12 @@ WPamA.i18n = {
   Login1DayAgo = "Gestern",
 -- Dynamic Encounter Status
   DynamicEncounter = {
-    Start = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n Die Veranstaltung begann" }),
-    Stop  = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n Die Veranstaltung ist abgeschlossen" }),
-    Activ = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n Die Veranstaltung ist aktiv" }),
-    Progr = table.concat({ GetIcon(73,20), DynamicEncounterText, ": ",
-            GetString(SI_ENDLESS_DUNGEON_SUMMARY_PROGRESS_HEADER),
+    Icon  = GetIcon(73, 20),
+    Title = DynamicEncounterText,
+    Start = "Die Veranstaltung begann",
+    Stop  = "Die Veranstaltung ist abgeschlossen",
+    Activ = "Die Veranstaltung ist aktiv",
+    Progr = table.concat({ GetString(SI_ENDLESS_DUNGEON_SUMMARY_PROGRESS_HEADER),
             " ", GetString(SI_SPECTACLE_EVENTS_PROGRESS_PERCENT) })
   },
 --

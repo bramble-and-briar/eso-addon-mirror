@@ -1,11 +1,7 @@
-Alabuzya UI 0.1.44
+Alabuzya UI 0.1.49
 
 Developed with AI assistance, including code generation and new UI textures.
 Разработано с помощью ИИ, включая написание кода и создание новых текстур интерфейса.
-
-MORE INTERFACE STYLES ARE PLANNED / ПЛАНИРУЮТСЯ НОВЫЕ СТИЛИ ИНТЕРФЕЙСА
-Diablo is the first available style for Alabuzya UI. Additional interface styles are planned for future releases; they are not available yet.
-Diablo — первый доступный стиль Alabuzya UI. В будущих версиях планируется добавить новые варианты оформления; сейчас они ещё недоступны.
 
 INSTALL ALONGSIDE / УСТАНОВИТЕ ВМЕСТЕ С АДДОНОМ
 LibAddonMenu-2.0 — https://www.esoui.com/downloads/info7-LibAddonMenu-2.0.html — required for the settings menu / нужна для меню настроек.
@@ -14,16 +10,29 @@ Find “LibAddonMenu-2.0” in Minion and install it separately.
 No other libraries are required. Without this library, the addon loads and uses its saved settings/defaults, but its settings menu is unavailable.
 Другие библиотеки не нужны. Без этой библиотеки аддон загружается и использует сохранённые настройки или значения по умолчанию, но меню настроек недоступно.
 
+AVAILABLE STYLES / Существующие стили
+
+English
+- Diablo — resource orbs, ornate frames, and a combined minimap/quest sidebar.
+- WoW — compact dual action bars, horizontal resource bars, role icons, a round minimap and a separate quest tracker. In groups and trials, your resources appear above the action bars.
+
+Русский
+- Diablo — сферы ресурсов, декоративные рамки и общая боковая панель миникарты и заданий.
+- WoW — компактные панели навыков в два ряда, полосы ресурсов, значки ролей, круглая миникарта и отдельный список заданий. В группе и триале личные ресурсы отображаются над навыками.
+
+Choose a style under Settings → Addons → Alabuzya UI → Interfaces. You can also disable the skin to use the standard ESO interface. All styles share the same functional modules and their settings. Diablo was the first style; more styles are planned.
+Выбор: Настройки → Дополнения → Alabuzya UI → Интерфейсы. Оформление также можно отключить и использовать стандартный интерфейс ESO. Функциональные модули и их настройки общие для всех тем. Diablo — первый стиль; в дальнейшем планируются новые.
+
 Alabuzya UI — English
-A configurable interface and everyday helpers for The Elder Scrolls Online on PC. The current Diablo style combines resource orbs, ornamental frames and a coordinated HUD. You can also select the standard ESO interface while keeping the independent utility features enabled.
+A configurable interface and everyday helpers for The Elder Scrolls Online on PC. Choose between the Diablo and WoW styles described above. You can also select the standard ESO interface while keeping the independent utility features enabled.
 
 The custom UI textures were newly generated with OpenAI image generation and prepared for use in ESO. The resource display and theme system were written anew, and the functional modules have been reworked and integrated into the Alabuzya UI codebase. Game-provided icons, maps and fonts remain supplied by ESO.
 
 Features
-- Health, magicka and stamina orbs, skill panel, styled compass and chat window.
+- Diablo resource orbs or WoW horizontal bars/role icons, dual skill panels, styled compass and chat window.
 - Combat statistics, critical chance and power displays, effects and target health information.
 - Compact group and trial frames with level/Champion Points, roles and context menus.
-- Minimap with clocks and a quest tracker.
+- Minimap with clocks and a collapsible quest tracker. WoW keeps them in separate windows. Click Quests to collapse/expand the list in either theme.
 - Item list/grid switching, including inventory, merchant, bank and supported crafting lists.
 - Automatic weapon recharge and equipment repair with separate enable switches, thresholds from 1–90% and permission to use Crown materials.
 - Automatic sale of items already marked as junk to ordinary merchants; locked and stolen items are skipped.
@@ -32,12 +41,12 @@ Features
 
 Settings and use
 Open Settings → Addons → Alabuzya UI, or enter /alabuzya. The aliases /alabuzyaui and /diaui are also supported. LibAddonMenu-2.0 is needed to open this panel.
-Choose Diablo or Disabled — standard ESO under Interfaces. Style changes require a UI reload. Recharge, repair, junk selling and chat helpers can be switched independently of the visual style. The grid, bundled quest arrow and guild roster background adjustment also have their own switches.
+Choose Diablo, WoW or Disabled — standard ESO under Interfaces. Use the Reload UI button in that section to apply a style change. Recharge, repair, junk selling and chat helpers can be switched independently of the visual style. The grid, bundled quest arrow and guild roster background adjustment also have their own switches.
 Repair/recharge default to enabled at 10%, with Crown materials allowed. Regular suitable materials are preferred; the addon does not purchase materials.
 Account-wide settings are separate for EU, NA and PTS. Navigation settings are also stored per character. Previous settings migrate automatically when updating from the preceding Alabuzya UI version.
 
 Compatibility and limitations
-Designed primarily for keyboard/mouse UI. Standalone pChat and QuestArrow take priority over the corresponding bundled helpers; they are optional, not required dependencies. FancyActionBar and Arkadius' Trade Tools are optional integrations, not required installations.
+Designed primarily for keyboard/mouse UI. WoW uses ESO role icons in round frames rather than live character portraits. The first WoW release needs in-game visual feedback. Standalone pChat and QuestArrow take priority over the corresponding bundled helpers; they are optional, not required dependencies. FancyActionBar and Arkadius' Trade Tools are optional integrations, not required installations.
 Disable the old DiaUI, DIAhelp and overlapping full UI replacements when using Alabuzya UI. Avoid enabling two addons that control the same panels or automatic item handling at once.
 Combat damage share is an estimate from observed target health loss, not a synchronized group combat log. Quest navigation depends on game-provided data and shows direction rather than a path around obstacles.
 
@@ -50,15 +59,15 @@ Contact: aabuziarov@gmail.com. For bug reports, include the addon version, a des
 An independent community addon; not affiliated with or sponsored by ZeniMax Media Inc.
 
 Alabuzya UI — Русский
-Настраиваемый интерфейс и повседневные помощники для The Elder Scrolls Online на ПК. Текущее оформление Diablo объединяет сферы ресурсов, декоративные рамки и игровые панели в едином стиле. Можно выбрать стандартный интерфейс ESO и продолжить пользоваться независимыми вспомогательными функциями.
+Настраиваемый интерфейс и повседневные помощники для The Elder Scrolls Online на ПК. Доступны описанные выше стили Diablo и WoW. Можно выбрать стандартный интерфейс ESO и продолжить пользоваться независимыми вспомогательными функциями.
 
 Собственные текстуры интерфейса заново сгенерированы с помощью OpenAI и подготовлены для использования в ESO. Панель ресурсов и система оформления написаны заново; функциональные модули переработаны и объединены в кодовой базе Alabuzya UI. Штатные значки, карты и шрифты предоставляет сама игра.
 
 Возможности
-- Сферы здоровья, магии и запаса сил, панель умений, оформление компаса и чата.
+- Сферы ресурсов Diablo или полосы ресурсов и значки ролей WoW, две панели умений, оформление компаса и чата.
 - Боевая статистика, показатели критического шанса и силы, эффекты и здоровье цели.
 - Компактные панели группы и испытания с уровнем/ОГ, ролями и контекстным меню.
-- Миникарта с часами и список заданий.
+- Миникарта с часами и сворачиваемый список заданий. В WoW они находятся в отдельных окнах. Клик по «Задания» сворачивает/разворачивает список в обеих темах.
 - Переключение списка и сетки предметов в инвентаре, у торговца, в банке и поддерживаемых ремесленных списках.
 - Автоматическая зарядка оружия и ремонт снаряжения: отдельные переключатели, пороги от 1 до 90%, разрешение на использование кронных материалов.
 - Продажа обычному торговцу предметов, уже отмеченных как мусор. Заблокированные и краденые вещи пропускаются.
@@ -67,12 +76,12 @@ Alabuzya UI — Русский
 
 Настройки и использование
 Откройте Настройки → Дополнения → Alabuzya UI или введите /alabuzya. Также работают /alabuzyaui и /diaui. Для этого меню нужна LibAddonMenu-2.0.
-В разделе «Интерфейсы» доступны Diablo и «Отключено — стандартный ESO». После смены оформления требуется перезагрузка интерфейса. Зарядка, ремонт, продажа мусора и функции чата включаются независимо от оформления. Дополнительно предусмотрены переключатели сетки, встроенной стрелки заданий и подгонки фона списка гильдии.
+В разделе «Интерфейсы» доступны Diablo, WoW и «Отключено — стандартный ESO». Для применения смены темы нажмите там же «Перезагрузить интерфейс». Зарядка, ремонт, продажа мусора и функции чата включаются независимо от оформления. Дополнительно предусмотрены переключатели сетки, встроенной стрелки заданий и подгонки фона списка гильдии.
 По умолчанию ремонт и зарядка включены, порог — 10%, кронные материалы разрешены. Подходящие обычные материалы используются первыми; аддон ничего не покупает.
 Общие настройки аккаунта разделены между EU, NA и PTS. Настройки навигации дополнительно привязаны к персонажу. При обновлении с предыдущей версии Alabuzya UI прежние настройки переносятся автоматически.
 
 Совместимость и ограничения
-Основной режим — клавиатура и мышь. Если установлены отдельные pChat или QuestArrow, соответствующие встроенные помощники уступают им управление. Эти аддоны необязательны. FancyActionBar и Arkadius' Trade Tools также относятся к необязательным интеграциям.
+Основной режим — клавиатура и мышь. WoW использует значки ролей ESO в круглых рамках вместо живых портретов. Первая версия WoW нуждается в проверке внешнего вида в игре. Если установлены отдельные pChat или QuestArrow, соответствующие встроенные помощники уступают им управление. Эти аддоны необязательны. FancyActionBar и Arkadius' Trade Tools также относятся к необязательным интеграциям.
 При использовании Alabuzya UI отключите старый DiaUI, DIAhelp и другие полные замены интерфейса с пересекающимися функциями. Не включайте одновременно два аддона, управляющих одними панелями или автоматической обработкой предметов.
 Доля урона оценивается по наблюдаемой потере здоровья цели и не является синхронизированным журналом боя группы. Навигация зависит от данных игры и показывает направление, а не маршрут в обход препятствий.
 
@@ -98,3 +107,7 @@ RU: Shift + перетаскивание левой кнопкой переме�
 /qa stop выключает отслеживание. Расстояния стрелки — доля высоты карты, не метры.
 Для перехода со старого названия DiaUI сначала прочитайте RENAME-0.1.37.txt.
 Изменения: CHANGELOG.txt. Авторство: CREDITS.txt. Лицензия: LICENSE.
+
+Assistant toolbar / Панель помощников (0.1.49)
+EN: Settings > Chat > Assistant toolbar beside chat. Independent of the visual theme and chat formatting toggle. A vertical column of native collectible icons follows chat visibility. Click to summon a random available unlocked assistant in that category; an already active collectible is dismissed. Locked/unusable categories are dimmed. The assistant ID registry is maintained in AssistantPanel.lua as new assistants are added to ESO.
+RU: Настройки > Чат > Панель помощников рядом с чатом. Не зависит от темы и переключателя обработки сообщений чата. Вертикальный столбец игровых иконок следует за видимостью чата. Клик вызывает случайного доступного помощника категории; уже активный убирается. Недоступные категории затемнены. Список идентификаторов в AssistantPanel.lua обновляется по мере добавления помощников в ESO.

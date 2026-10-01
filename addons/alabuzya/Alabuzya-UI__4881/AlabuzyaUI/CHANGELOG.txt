@@ -1,3 +1,58 @@
+0.1.49 — WoW group/trial resources / Ресурсы в группе и триале WoW
+EN: In a group or trial, your health, magicka and stamina are displayed above the two action bars: full-width health, magicka/stamina side by side. The solo top-left resource window returns on leaving the group, preserving its saved position. Short buffs move up to leave space. Trial frames use two compact columns of six for 12 players, with role, name and health; no large portraits, companion rows or redundant CP text in these compact cards.
+RU: В группе и триале здоровье, магия и запас сил показаны над двумя панелями навыков: здоровье во всю ширину, магия и запас сил рядом ниже. После выхода из группы возвращается верхний блок на сохранённое место. Короткие бафы сдвигаются выше. Для 12 игроков — две компактные колонки по шесть с ролью, именем и здоровьем, без больших портретов, строк спутников и лишних ОГ в компактных карточках.
+
+0.1.48 — Role crests and assistant visibility / Роли в кругах и видимость помощников
+EN: WoW player/group circles now display the selected group role instead of the previous image. Role changes refresh automatically; an unset role has no misleading icon. The assistant toolbar retries initialization if chat is not ready yet, avoids chat clipping, and is visible while text entry is open even with a transparent chat background. Toggle: Settings > Chat > Assistant toolbar beside chat (enabled by default).
+RU: В кругах игрока и группы WoW теперь отображается выбранная роль. Смена роли обновляется автоматически; при отсутствии роли значок скрыт. Панель помощников ожидает готовности чата, не обрезается его границами и видна при открытом вводе даже с прозрачным фоном чата. Переключатель: Настройки > Чат > Панель помощников рядом с чатом (по умолчанию включён).
+
+0.1.47 — WoW theme name / Название темы WoW
+EN: Renamed the theme to WoW in settings and documentation. Existing Classic selections migrate automatically; saved layout positions are preserved. No visual or gameplay changes.
+RU: Тема переименована в WoW в настройках и документации. Прежний выбор темы переносится автоматически, сохранённое расположение элементов остаётся. Оформление и игровые функции не изменены.
+
+0.1.46 — WoW layout fixes and assistant toolbar / Исправления WoW и панель помощников
+
+EN
+- WoW compass background follows the native compass dimensions, including subsequent width changes.
+- Crit and Power use matching padded cards with centered titles, values and a slim live indicator.
+- WoW group companions use an indented thin health strip below their owner, with name only.
+- Long player buffs return to the right-hand vertical column. Short effects remain above the action bars.
+- Added a shared assistant toolbar beside chat: banker, merchant, deconstruction, armory and smuggler. Clicking selects a random unlocked, currently usable assistant of that category; selecting the already active one dismisses it. No automatic summons or purchases.
+- Settings > Chat > Assistant toolbar: separate live toggle, available with WoW, Diablo and the native interface. Follows chat fading/minimization; hovering keeps chat open. Uses the left side of chat when there is room, otherwise its right side to avoid clipping at the screen edge.
+- Verified with Lua 5.1 automated checks; in-game visual verification is pending.
+
+RU
+- Подложка компаса WoW следует за его размерами, в том числе после изменения ширины самой игрой.
+- Крит и Сила оформлены одинаковыми блоками: центрированные название и значение, аккуратные отступы, тонкий динамический индикатор.
+- Спутники в группе WoW показаны тонкой полосой здоровья с отступом под хозяином; на полосе только имя.
+- Длинные бафы игрока возвращены в вертикальный столбец справа. Короткие эффекты остаются над навыками.
+- Добавлена общая панель помощников рядом с чатом: банкир, торговец, разборщик, оружейная и контрабандист. По клику выбирается случайный разблокированный помощник выбранной категории, доступный для вызова сейчас; выбор уже активного убирает его. Автоматических вызовов и покупок нет.
+- Настройки > Чат > Панель помощников: отдельный переключатель без перезагрузки, работает с WoW, Diablo и стандартным интерфейсом. Панель затухает и сворачивается вместе с чатом; наведение удерживает чат открытым. Размещается слева от чата при наличии места, иначе справа, чтобы не уйти за край экрана.
+- Автоматические проверки Lua 5.1 выполнены; визуальная проверка в игре предстоит.
+
+0.1.45 — WoW dual-bar theme / Тема WoW с двумя панелями
+
+EN
+- Added the selectable WoW theme based on Classic-WoW-DualBar-v2: an original generated gryphon action-bar chassis, bronze frames, horizontal player resources and class crests.
+- Both weapon bars are visible together: five active skills, potion and ultimate below; five alternate skills and their ultimate above at reduced opacity. The upper row follows weapon swaps and hides for special non-weapon hotbars. Native back-bar duration indicators are retained when enabled in ESO.
+- WoW uses a circular minimap with zoom buttons and a separate movable quest panel. Clicking Quests collapses/expands the entire list in either theme, keeping the saved state and individual zone preferences.
+- Restyled WoW chat tabs, compass, group/trial frames, effects and combat statistics. Existing Diablo artwork and layout are retained.
+- Added Interfaces → Reload UI in settings.
+- Decoupled item grids, bundled quest navigation and guild background compatibility from the selected skin. Nonvisual helpers retain their own settings, including when the standard ESO interface is selected.
+- Theme positions are stored separately where their layouts differ; shared functional settings remain shared. Existing users keep Diablo selected until they choose WoW.
+- Lua 5.1, module regression tests, WoW layout tests and archive checks passed. This is the first WoW build for in-game visual testing; no in-game verification is claimed.
+
+RU
+- Добавлена выбираемая тема WoW по Classic-WoW-DualBar-v2: новая сгенерированная панель с грифонами, бронзовые рамки, полосы ресурсов игрока и значки классов в круглых рамках.
+- Обе панели оружия видны одновременно: снизу пять активных умений, зелье и ульта, сверху пять умений второй панели и её ульта с уменьшенной непрозрачностью. Ряд обновляется при смене оружия и скрывается для специальных панелей. Сохранены индикаторы длительности второй панели, если они включены в ESO.
+- В WoW миникарта круглая, с кнопками масштаба; задания — отдельное перемещаемое окно. Клик по «Задания» сворачивает/разворачивает весь список в обеих темах с сохранением состояния и настроек разделов.
+- Оформлены чат и вкладки, компас, группа/испытание, эффекты и боевая статистика WoW. Графика и расположение Diablo сохранены.
+- В настройках добавлена кнопка «Интерфейсы → Перезагрузить интерфейс».
+- Сетка предметов, встроенная стрелка и совместимость фона гильдии больше не зависят от выбранного оформления. Вспомогательные функции управляются своими настройками, в том числе со стандартным интерфейсом ESO.
+- Для различающихся компоновок позиции хранятся отдельно; функциональные настройки остаются общими. У существующих пользователей тема не переключается автоматически.
+- Пройдены проверки Lua 5.1, регрессионные тесты модулей, компоновки WoW и архива. Это первая сборка WoW для проверки внешнего вида в игре; игровая проверка ещё не выполнена.
+
+
 Alabuzya UI 0.1.44 — 2026-09-29
 
 ENGLISH

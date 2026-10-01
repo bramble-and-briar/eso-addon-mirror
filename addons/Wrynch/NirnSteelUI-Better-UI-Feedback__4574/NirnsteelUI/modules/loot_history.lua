@@ -45,6 +45,7 @@ local QUALITY_STYLE =
 local lastLootSoundMS = -LOOT_SOUND_THROTTLE_MS
 local debugItemId = 900000
 local originalAddXpEntry
+local entryControls = setmetatable({}, { __mode = "k" })
 
 local HISTORY_DESCRIPTORS =
 {
@@ -219,6 +220,65 @@ local function IsLegacyStyleEnabled()
         and Nirnsteel_UI.Settings:GetLootHistory().legacyStyle == true
 end
 
+local function IsMirroredLayoutEnabled()
+    return Nirnsteel_UI.Settings and Nirnsteel_UI.Settings.GetLootHistory
+        and Nirnsteel_UI.Settings:GetLootHistory().mirrorLayout == true
+end
+
+local MIRRORED_ANCHOR_POINTS =
+{
+    [LEFT] = RIGHT, [RIGHT] = LEFT,
+    [TOPLEFT] = TOPRIGHT, [TOPRIGHT] = TOPLEFT,
+    [BOTTOMLEFT] = BOTTOMRIGHT, [BOTTOMRIGHT] = BOTTOMLEFT,
+}
+
+local function MirrorControlAnchors(control)
+    if not control then return end
+    local anchors = {}
+    for index = 0, control:GetNumAnchors() - 1 do
+        local valid, point, relativeTo, relativePoint, x, y = control:GetAnchor(index)
+        if valid then
+            table.insert(anchors, {
+                MIRRORED_ANCHOR_POINTS[point] or point, relativeTo,
+                MIRRORED_ANCHOR_POINTS[relativePoint] or relativePoint, -(x or 0), y or 0,
+            })
+        end
+    end
+    control:ClearAnchors()
+    for _, anchor in ipairs(anchors) do
+        control:SetAnchor(unpack(anchor, 1, 5))
+    end
+end
+
+local function SetEntryMirrored(control, mirrored)
+    mirrored = mirrored == true
+    if (control.nirnsteelMirrored == true) == mirrored then return end
+
+    -- Mirror the row geometry while keeping text, item art, and stack counts
+    -- readable. Flipping twice restores the original anchors and textures.
+    for _, name in ipairs({ "Bg", "Icon", "Label", "IconFrame", "Glass",
+        "RarityGlow", "RarityBurst", "RarityAccent", "TopEdge" }) do
+        MirrorControlAnchors(control:GetNamedChild(name))
+    end
+    MirrorControlAnchors(control.statusIcon)
+    local background = control:GetNamedChild("Bg")
+    local highlight = background and background:GetNamedChild("Highlight")
+    MirrorControlAnchors(highlight)
+    for _, name in ipairs({ "Bg", "Glass", "RarityGlow", "RarityBurst", "RarityAccent", "TopEdge" }) do
+        local texture = control:GetNamedChild(name)
+        if texture then
+            local left, right, top, bottom = texture:GetTextureCoords()
+            texture:SetTextureCoords(right, left, top, bottom)
+        end
+    end
+    if highlight then
+        local left, right, top, bottom = highlight:GetTextureCoords()
+        highlight:SetTextureCoords(right, left, top, bottom)
+    end
+    control:GetNamedChild("Label"):SetHorizontalAlignment(mirrored and TEXT_ALIGN_RIGHT or TEXT_ALIGN_LEFT)
+    control.nirnsteelMirrored = mirrored
+end
+
 local function GetLegacyTemplateName(descriptor)
     return (descriptor.templateName:gsub("Nirnsteel_LootHistory_", "Nirnsteel_LootHistory_Legacy_"))
 end
@@ -326,9 +386,8 @@ local function PositionStatusIcon(control)
     local statusIcon = control.statusIcon
     statusIcon:SetParent(control)
     statusIcon:ClearAnchors()
-    -- The left wing reaches 38px from center; a 20px marker needs its
-    -- center another 14px left to leave a visible 4px gap.
-    statusIcon:SetAnchor(CENTER, control.iconFrame, CENTER, -52, -2)
+    -- Keep a 4px gap outside the shield's wing on either side of the row.
+    statusIcon:SetAnchor(CENTER, control.iconFrame, CENTER, control.nirnsteelMirrored and 52 or -52, -2)
     statusIcon:SetDimensions(20, 20)
     statusIcon:SetDrawTier(DT_MEDIUM)
     statusIcon:SetDrawLayer(DL_OVERLAY)
@@ -403,12 +462,25 @@ local function CopyTemplateBehavior(stream, templateName, stockTemplateName)
     }
 
     wrappedTemplate.setup = function(control, data)
+        -- Stock setup always runs in its original layout before mirroring.
+        SetEntryMirrored(control, false)
         stockTemplate.setup(control, data)
         ApplyVisualStyle(control, data)
+        entryControls[control] = true
+        SetEntryMirrored(control, IsMirroredLayoutEnabled())
     end
 
     stream:AddTemplate(templateName, wrappedTemplate)
     return true
+end
+
+local function UsesHUDEditor()
+    return Nirnsteel_UI.HUDEditor and Nirnsteel_UI.HUDEditor:IsAvailable()
+end
+
+local function RestoreHUDAnchor(control)
+    local element = HUD_MANAGER:GetKeyboardElementForControl(control) or HUD_MANAGER:GetGamepadElementForControl(control)
+    if element and HUD_MANAGER.savedVars then element:RevertOffsetModifications() end
 end
 
 local function ApplyLootHistoryAnchor(lootHistory)
@@ -421,6 +493,12 @@ local function ApplyLootHistoryAnchor(lootHistory)
     control:SetScale(GetBaseLootHistoryScale(lootHistory) * GetLootHistoryScaleMultiplier())
     control:ClearAnchors()
     control:SetAnchor(BOTTOMRIGHT, GuiRoot, CENTER, position.x, position.y)
+    if UsesHUDEditor() then
+        local platform = lootHistory == LOOT_HISTORY_GAMEPAD and "gamepad" or "keyboard"
+        Nirnsteel_UI.HUDEditor:Apply("lootHistory_" .. platform,control,{
+            native=true, platform=platform, position=position, enabled=IsLootHistoryModuleEnabled,
+        })
+    end
 end
 
 local function ScheduleNextReveal(stream)
@@ -551,6 +629,10 @@ local function GetMover()
 end
 
 local function ApplyMoverState()
+    if UsesHUDEditor() then
+        if LootHistory.mover then LootHistory.mover:SetHidden(true) end
+        return
+    end
     local mover = GetMover()
     local unlocked = IsLootHistoryModuleEnabled() and Nirnsteel_UI.Settings and Nirnsteel_UI.Settings:IsLootHistoryUnlocked()
     local position = GetLootHistoryPosition()
@@ -569,20 +651,26 @@ local function RestoreStockHistory(lootHistory, descriptor)
     lootHistory.entryTemplate = descriptor.stockTemplateName
     if lootHistory.control then
         lootHistory.control:SetScale(GetBaseLootHistoryScale(lootHistory))
-        lootHistory.control:ClearAnchors()
-        lootHistory.control:SetAnchor(descriptor.stockPoint, GuiRoot, descriptor.stockPoint, 0, descriptor.stockControlOffsetY)
+        if UsesHUDEditor() then
+            RestoreHUDAnchor(lootHistory.control)
+        else
+            lootHistory.control:ClearAnchors()
+            lootHistory.control:SetAnchor(descriptor.stockPoint, GuiRoot, descriptor.stockPoint, 0, descriptor.stockControlOffsetY)
+        end
     end
 
     if lootHistory.lootStream then
         RestoreSequentialReveal(lootHistory.lootStream)
-        lootHistory.lootStream.anchor = ZO_Anchor:New(descriptor.stockPoint, GuiRoot, descriptor.stockPoint, descriptor.stockAnchorOffsetX, descriptor.stockAnchorOffsetY)
+        lootHistory.lootStream.anchor = (UsesHUDEditor() and lootHistory.lootStream.nirnsteelNativeAnchor)
+            or ZO_Anchor:New(descriptor.stockPoint, GuiRoot, descriptor.stockPoint, descriptor.stockAnchorOffsetX, descriptor.stockAnchorOffsetY)
         lootHistory.lootStream:SetAdditionalEntrySpacingY(STOCK_LOOT_ENTRY_SPACING_Y)
         lootHistory.lootStream:SetContainerShowTime(STOCK_CONTAINER_SHOW_TIME_MS)
     end
 
     if lootHistory.lootStreamPersistent then
         RestoreSequentialReveal(lootHistory.lootStreamPersistent)
-        lootHistory.lootStreamPersistent.anchor = ZO_Anchor:New(descriptor.stockPoint, GuiRoot, descriptor.stockPoint, descriptor.stockAnchorOffsetX, descriptor.stockAnchorOffsetY)
+        lootHistory.lootStreamPersistent.anchor = (UsesHUDEditor() and lootHistory.lootStreamPersistent.nirnsteelNativeAnchor)
+            or ZO_Anchor:New(descriptor.stockPoint, GuiRoot, descriptor.stockPoint, descriptor.stockAnchorOffsetX, descriptor.stockAnchorOffsetY)
         lootHistory.lootStreamPersistent:SetAdditionalEntrySpacingY(STOCK_LOOT_ENTRY_SPACING_Y)
         lootHistory.lootStreamPersistent:SetContainerShowTime(STOCK_PERSISTENT_CONTAINER_SHOW_TIME_MS)
     end
@@ -606,14 +694,16 @@ function LootHistory:ApplySettingsToHistory(lootHistory, descriptor)
     local position = GetLootHistoryPosition()
     if lootHistory.lootStream then
         InstallSequentialReveal(lootHistory.lootStream)
-        lootHistory.lootStream.anchor = ZO_Anchor:New(BOTTOMRIGHT, GuiRoot, CENTER, position.x, position.y)
+        lootHistory.lootStream.anchor = (UsesHUDEditor() and lootHistory.lootStream.nirnsteelNativeAnchor)
+            or ZO_Anchor:New(BOTTOMRIGHT, GuiRoot, CENTER, position.x, position.y)
         lootHistory.lootStream:SetContainerShowTime(3100)
         lootHistory.lootStream:SetAdditionalEntrySpacingY(GetEntrySpacing())
     end
 
     if lootHistory.lootStreamPersistent then
         InstallSequentialReveal(lootHistory.lootStreamPersistent)
-        lootHistory.lootStreamPersistent.anchor = ZO_Anchor:New(BOTTOMRIGHT, GuiRoot, CENTER, position.x, position.y)
+        lootHistory.lootStreamPersistent.anchor = (UsesHUDEditor() and lootHistory.lootStreamPersistent.nirnsteelNativeAnchor)
+            or ZO_Anchor:New(BOTTOMRIGHT, GuiRoot, CENTER, position.x, position.y)
         lootHistory.lootStreamPersistent:SetContainerShowTime(5600)
         lootHistory.lootStreamPersistent:SetAdditionalEntrySpacingY(GetEntrySpacing())
     end
@@ -630,6 +720,9 @@ function LootHistory:ApplySettings()
 
     if applied then
         ApplyMoverState()
+    end
+    for control in pairs(entryControls) do
+        SetEntryMirrored(control, IsLootHistoryModuleEnabled() and IsMirroredLayoutEnabled())
     end
 end
 
@@ -660,6 +753,10 @@ function LootHistory:PatchHistory(lootHistory, descriptor)
         return lootHistory and lootHistory.nirnsteelPatched
     end
 
+    -- U51 streams are anchored to their movable native HUD control.
+    for _,stream in ipairs({lootHistory.lootStream,lootHistory.lootStreamPersistent}) do
+        stream.nirnsteelNativeAnchor = stream.nirnsteelNativeAnchor or stream.anchor
+    end
     local normalPatched = CopyTemplateBehavior(lootHistory.lootStream, descriptor.templateName, descriptor.stockTemplateName)
     local persistentPatched = CopyTemplateBehavior(lootHistory.lootStreamPersistent, descriptor.templateName, descriptor.stockTemplateName)
     local legacyNormalPatched = CopyTemplateBehavior(lootHistory.lootStream, GetLegacyTemplateName(descriptor), descriptor.stockTemplateName)

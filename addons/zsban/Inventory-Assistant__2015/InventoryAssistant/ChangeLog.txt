@@ -1,0 +1,205 @@
+[u][b]1.20.260919-beta:[/b][/u]
+[list]
+ [*] bugfix: resizing the window now refreshes newly visible list rows automatically
+ [*] beta: added a loot history that is similar to the game's built-in version but more cusomizable
+[/list]
+
+[u][b]1.19.260917-beta:[/b][/u]
+[list]
+ [*] performance improvements: current-character inventory updates now process only changed worn/backpack slots using a runtime bag and slot index
+ [*] bugfix: deferred lock and unlock actions now verify the requested state before being removed from the queue
+ [*] bugfix: character snapshots are no longer rescanned during deactivation when inventory data may be unavailable
+ [*] bugfix: row actions now require releasing the mouse button inside the row
+ [*] bugfix: leaving the selected guild now clears its guild-bank snapshot and disables guild-bank scanning
+ [*] bugfix: search terms now match independently regardless of their order in the item or set name
+[/list]
+
+[u][b]1.18.260916-beta:[/b][/u]
+[list]
+ [*] API update for Update 50 and Update 51
+ [*] bugfix: stopped scanning one invalid slot past the end of each bag
+ [*] bugfix: Reset filters now also resets the uncollected item filter
+ [*] bugfix: Lock and Unlock actions are no longer shown for items that cannot be player-locked
+ [*] bugfix: guild bank snapshots now update automatically without being erased while guild bank data is unavailable
+ [*] added option to select which guild bank to scan or disable guild bank scanning
+ [*] event-based updates now preserve the item list scroll position
+ [*] bugfix: CP160 and non-CP160 item filters are now mutually exclusive
+ [*] removed unused icons from item group headers
+ [*] removed obsolete Itemization Browser integration
+[/list]
+
+[u][b]1.17.260803-beta:[/b][/u]
+[list]
+ [*] bugfix: fixed enchant lookup errors
+ [*] bugfix: fixed leaked globals when adding list rows and resolving enchants
+ [*] minor UI tweaks to the search box and item list
+ [*] improved compatibility with FCOIS when unique item IDs are enabled
+ [*] added set collection overview tooltip to set headers, showing collection pieces, progress and reconstruction cost
+ [*] added real-time updates when inventory, bank, guild bank, house storage or set collection changes
+ [*] bugfix: duplicate filtering now distinguishes item levels and handles rings consistently across different languages
+ [*] changed the uncollected set item marker to the standard set collection icon
+ [*] changed item tooltips to use standard game tooltip handling and removed direct Master Merchant and Tamriel Trade Centre integration
+ [*] temporarily disabled Itemization Browser integration pending compatibility updates
+[/list]
+
+[u][b]1.16.210525-beta:[/b][/u]
+[quote]
+  Resurrected.
+[/quote]
+[list]
+ [*] removed embedded libraries and libstub dependency
+ [*] API update for Flames of Ambition and Blackwood
+ [*] bugfix: some monster sets were not categorized properly and were displayed as bound sets and not as monster sets (thanks Sandstone)
+ [*] performance improvements
+ [*] added marker for uncollected set items
+[/list]
+
+[u][b]1.15.180704-beta:[/b][/u]
+[list]
+ [*] bugfix: some more fix for the occasional random errors that were introduced recently
+[/list]
+
+[u][b]1.14.180702-beta:[/b][/u]
+[list]
+ [*] bugfix: hopefully fixing the occasional random errors that were introduced recently
+ [*] added feature to show item enchants, can be toggled on/off in settings
+[/list]
+
+[u][b]1.13.180701-beta:[/b][/u]
+[list]
+ [*] bugfix: clicking on a linked item without SHIFT will not open Inventory Assistant anymore
+ [*] added FCOIS mark for improvement option
+ [*] added FCOIS gear set marker menu options
+ [*] added FCOIS dynamic marker menu options
+[/list]
+
+[u][b]1.12.180630-beta:[/b][/u]
+[list]
+ [*] added addon settings menu for Inventory Assistant
+ [*] extended SHIFT + mouseover show set holdings feature to non set items as well
+ [*] added feature to auto open Inventory Assistant and show set/item holdings when SHIFT clicking on a linked item in chat
+ [*] added feature to show item level if below CP160, can be toggled on/off in settings
+     (this is still a bit experimental, I'm not happy with how it looks currently but a lot of people asked for it)
+ [*] added option to show only CP160 items
+ [*] added option to show only non CP160 items
+ [*] added option to reset all filters to defaults
+ [*] tweaked the sort order of the set item pieces (should now be consisent across different languages)
+ [*] tweaked the search filter logic to give more accurate matches for non set items
+ [*] tweaked the search filter logic to find set items based on item name too
+     (some sets like Berserking Warrior or Infallible Mage have items with different names: Advancing Yokeda / Infallible Aether for example)
+ [*] minor tweak to UI visuals
+ [*] updated libAsync to version 1.7
+[/list]
+
+[u][b]1.11.180628-beta:[/b][/u]
+[list]
+ [*] added feature to update item markers in real time in both Inventory Assistant window and original in-game inventory windows
+ [*] added support for stolen items
+ [*] Lock/Unlock option is now hidden when "Enable ingame item lock" is turned off in FCOIS settings
+ [*] added keyboard shortcut to open inventory assistant without grabbing keyboard focus
+ [*] changed auto show set holdings toggle to SHIFT key
+     if you mouseover in ingame inventory and guild stores (and possibly other locations as well) while pressing SHIFT key
+     and inventory assistant window is also open the search text will be replaced with the set name of the item the mouse is over
+ [*] bugfix: removed ^F/^M from set names and bag names that were displayed in some non-english languages
+[/list]
+
+[u][b]1.10.180626-beta:[/b][/u]
+[list]
+ [*] added support for non-set items (this is not fully finished, expect bugs)
+ [*] added option to show/hide non-set items
+ [*] added support for showing all FCOIS marker icons on an item
+ [*] added option to show/hide FCOIS gear set marker icons
+ [*] added option to show/hide FCOIS dynamic marker icons
+ [*] added FCOIS mark for research and FCOIS lock options (thanks Okumba)
+ [*] improved compatibility with FCOIS when "Use unique item IDs" is turned off in FCOIS settings
+[/list]
+
+[u][b]1.9.180619-beta:[/b][/u]
+[list]
+ [*] bugfix: fixed the error when right clicking on a group loot
+[/list]
+
+[u][b]1.9.180616-beta:[/b][/u]
+[list]
+ [*] added support for locked items - you need to log in to every character once to refresh to add the lock state to the stored data
+    ZOS API only allows locking/unlocking items in your bank or current character's bag or storage chests (only when you're in your house)
+    items on other characters will be queued for locking/unlocking and it will happen the next time you log on to that character
+    (this is still experimental, please report any bugs related to this in forum)
+[/list]
+
+[u][b]1.8.180613-beta:[/b][/u]
+[list]
+ [*] added feature to show set holdings on mouseover in ingame inventory and guild stores (and possibly other locations as well) if inventory assistant window is also open
+    this feature works by replacing the search text with the set name of the item the mouse is over; it can be turned on/off in settings
+ [*] Itemization Browser integration: when inventory assistant window is open it will show set holdings of the set currently selected in Itemization Browser window
+[/list]
+
+[u][b]1.7.180611-beta:[/b][/u]
+[list]
+ [*] bugfix: fixed "operator .. is not supported for string .. nil" error when people are leaving the group
+[/list]
+  
+[u][b]1.7.180610-beta:[/b][/u]
+[list]
+ [*] bugfix: after the performance improvement sometimes item location was not updated after moving between bags
+ [*] Tamriel Trade Centre integration - shows TTC price information in item tooltips
+ [*] group loots now show @accountname too and whisper uses account name instead of character name
+[/list]
+
+[u][b]1.6.180609-beta:[/b][/u]
+[list]
+ [*] performance improvements: after initial loading of inventories the assistant window will open faster 
+ [*] group loot bugfix: if group loots are not shown and a set only has group loots, don't highlight and move it to the top of the list
+ [*] FCOIS markers now use icons and colors from FCOIS settings
+ [*] added filter option to show only FCOIS marked items
+ [*] added option to mark item as sell to merchant in FCOIS
+ [*] minor cosmetic change in set overview tooltip - missing equip slots are now red
+[/list]
+
+[u][b]1.5.180605-beta:[/b][/u]
+[list]
+ [*] group loots are now tracked - left clicking a group loot row starts a whisper to the group member
+[/list]  
+
+[u][b]1.4.180604-beta:[/b][/u]
+[list]
+ [*] bugfix: fixed same set showing up multiple times in the list in some cases
+[/list]
+
+[u][b]1.4.180603-beta:[/b][/u]
+[list]
+ [*] ui improvements - search box gets autofocused when opening window
+ [*] bind on pickup sets with tradeable items are moved at the top of the list
+ [*] bind on pickup tradeable items show the blue arrows icon in the list
+[/list]
+
+[u][b]1.3.180602-beta:[/b][/u]
+[list]
+ [*] added trait and bag name filter options 
+      in search bar use t:traitname to match only specific traits
+      in search bar use b:bagname to match only specific bags
+      in search bar use nt:traitname to exclude specific traits
+ [*] set and item counts are accurate now when filtered results shown
+ [*] fixed chat message formatting when marking item in FCOIS
+[/list]
+
+[u][b]1.2.180530-beta:[/b][/u]
+[list]
+ [*] added filter option to show/hide monster sets
+ [*] ui cosmetic changes
+ [*] minor performance improvements (more to come)
+[/list]
+
+[u][b]1.1.180l528-beta:[/b][/u]
+[list]
+ [*] added set name search box
+ [*] added filter option to show only duplicates
+ [*] added filter options to show/hide crafted, tradeable (bind on equip) and bound (bind on pickup) sets
+ [*] house chest names now show accurately instead of the generic "Chest" label
+ [*] added Link in Chat option to item context menu
+[/list]
+
+[u][b]1.0.180527-beta:[/b][/u]
+[list]
+  [*] initial beta version
+[/list]

@@ -1,0 +1,26 @@
+﻿## Title: Inventory Assistant
+## Author: zsban
+## Version: 1.20.260919-beta
+## AddonVersion: 260919
+## APIVersion: 101050 101051
+## SavedVariables: InventoryAssistantSettings
+## DependsOn: LibEventHandler>=1313 LibAsync>=30104 LibCustomMenu>=730 LibAddonMenu-2.0>=43
+## OptionalDependsOn: FCOItemSaver>=283
+
+locales/en.lua
+
+IA_MultiIcon.lua
+IA_MultiIcon.xml
+IA_LootHistory.lua
+IA_LootHistory.xml
+InventoryAssistant.lua
+InventoryAssistantList.lua
+InventoryAssistant.xml
+
+Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. 
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. 
+; All rights reserved
+
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms

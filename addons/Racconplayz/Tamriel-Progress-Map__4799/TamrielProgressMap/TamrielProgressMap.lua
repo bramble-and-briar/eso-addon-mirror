@@ -1,6 +1,6 @@
 local ADDON_NAME = "TamrielProgressMap"
 local DISPLAY_NAME = "Tamriel Progress Map"
-local VERSION = "2.7.4_Hotfix"
+local VERSION = "2.7.5"
 local AUTHOR = "Raccoonplayz"
 local PIN_TYPE_STRING = "TamrielProgressMap_ZoneProgressPin"
 local SUPPORTED_LANGUAGES = { de = true, en = true, ru = true, fr = true, es = true }
@@ -388,6 +388,16 @@ local function Clamp(value, minimum, maximum)
     if value < minimum then return minimum end
     if value > maximum then return maximum end
     return value
+end
+
+-- Rounded percentages must never claim completion while an objective is missing.
+local function CompletionPercent(completed, total)
+    completed = math.max(0, tonumber(completed) or 0)
+    total = math.max(0, tonumber(total) or 0)
+    if total <= 0 then return 0 end
+    local percent = Clamp(Round(completed / total * 100), 0, 100)
+    if completed < total and percent >= 100 then return 99 end
+    return percent
 end
 
 -- Detach legacy SavedVariables from ZO_SavedVars metatables before migration.
@@ -1389,7 +1399,8 @@ function TPM:GetHistoryStore(characterKey)
     -- 2.4.50: Purge all legacy dynamic encounter rows. World-event history now
     -- comes exclusively from the participation-based tracker, so the old
     -- dynamicEncounter category must never survive an update or affect counts.
-    do
+    self.historyActivityCleanupStores = self.historyActivityCleanupStores or setmetatable({}, { __mode = "k" })
+    if not self.historyActivityCleanupStores[store] then
         local cleanedActivities = {}
         for _, item in ipairs(store.activities) do
             if TPM_IsMeaningfulDynamicEncounter(item) then
@@ -1397,6 +1408,7 @@ function TPM:GetHistoryStore(characterKey)
             end
         end
         store.activities = cleanedActivities
+        self.historyActivityCleanupStores[store] = true
     end
     while #store.activities > 100 do table.remove(store.activities, 1) end
     while #store.combatActivities > 100 do table.remove(store.combatActivities, 1) end
@@ -2235,13 +2247,16 @@ function TPM:RememberPlayerPveCombatTarget(targetName, targetUnitId, targetType)
         livestock = snapshot and snapshot.livestock or false,
         critter = snapshot and snapshot.critter or false,
     }
-    table.insert(self.recentPlayerPveCombatTargets, 1, entry)
     for i = #self.recentPlayerPveCombatTargets, 1, -1 do
         local item = self.recentPlayerPveCombatTargets[i]
-        if i > 64 or type(item) ~= "table" or (nowMs - (tonumber(item.atMs) or 0)) > 15000 then
+        local sameUnit = type(item) == "table" and numericTargetId > 0 and tonumber(item.targetUnitId) == numericTargetId
+        if sameUnit or i > 63 or type(item) ~= "table" or (nowMs - (tonumber(item.atMs) or 0)) > 15000 then
             table.remove(self.recentPlayerPveCombatTargets, i)
         end
     end
+    -- Repeated hits refresh one target entry instead of evicting every other
+    -- NPC from the bounded cache during rapid attacks against a single enemy.
+    table.insert(self.recentPlayerPveCombatTargets, 1, entry)
 end
 
 function TPM:GetRecentPlayerPveCombatTarget(targetUnitId, targetName)
@@ -2254,6 +2269,7 @@ function TPM:GetRecentPlayerPveCombatTarget(targetUnitId, targetName)
             if age >= 0 and age <= 15000 then
                 local sameUnit = numericTargetId > 0 and tonumber(entry.targetUnitId) == numericTargetId
                 local sameName = normalizedName ~= "" and entry.normalizedName == normalizedName
+                    and (numericTargetId <= 0 or (tonumber(entry.targetUnitId) or 0) <= 0)
                 if sameUnit or sameName then return entry end
             end
         end
@@ -2334,7 +2350,7 @@ function TPM:FinalizePendingPveKillActivity(pending, xpEarned)
     })
 end
 
-function TPM:QueuePveKillActivity(targetName, kind, expectsXp, targetUnitId, difficulty, sawXpDeathResult)
+function TPM:QueuePveKillActivity(targetName, kind, expectsXp, targetUnitId, difficulty, sawXpDeathResult, matchedPending)
     targetName = select(1, self:NormalizeCombatUnitName(targetName))
     if targetName == "" then return nil end
     self.pendingPveKillActivities = self.pendingPveKillActivities or {}
@@ -2347,11 +2363,21 @@ function TPM:QueuePveKillActivity(targetName, kind, expectsXp, targetUnitId, dif
     -- steal the next EVENT_EXPERIENCE_GAIN from an actual XP-granting kill.
     for i = #self.pendingPveKillActivities, 1, -1 do
         local existing = self.pendingPveKillActivities[i]
-        if type(existing) == "table" and not existing.finalized then
+        if type(existing) == "table" then
+            local age = nowMs - (tonumber(existing.atMs) or 0)
             local sameUnit = numericTargetId > 0 and tonumber(existing.targetUnitId) == numericTargetId
-            local sameFallback = numericTargetId <= 0 and (tonumber(existing.targetUnitId) or 0) <= 0
-                and existing.name == targetName and (nowMs - (tonumber(existing.atMs) or 0)) <= 450
-            if sameUnit or sameFallback then
+                and age >= 0 and age <= (existing.finalized and 1800 or 4500)
+            local oppositeSignal = (sawXpDeathResult == true and not existing.sawXpDeathResult)
+                or (sawXpDeathResult == false and not existing.sawPlainDeathResult)
+            local sameFallback = (numericTargetId <= 0 or (tonumber(existing.targetUnitId) or 0) <= 0)
+                and existing.name == targetName and age >= 0 and age <= 900 and oppositeSignal
+            if (matchedPending and existing == matchedPending)
+                or (not matchedPending and (sameUnit or sameFallback)) then
+                -- A late counterpart can follow XP finalization. Reuse that row
+                -- instead of emitting another activity for the same NPC death.
+                if sawXpDeathResult == false then existing.sawPlainDeathResult = true end
+                if numericTargetId > 0 then existing.targetUnitId = numericTargetId end
+                if existing.finalized then return existing end
                 if kind == "killBoss" then existing.kind = "killBoss" end
                 if expectsXp == true then existing.expectsXp = true end
                 if sawXpDeathResult == true then
@@ -2371,6 +2397,7 @@ function TPM:QueuePveKillActivity(targetName, kind, expectsXp, targetUnitId, dif
         kind = kind or "killNpc",
         expectsXp = expectsXp == true,
         sawXpDeathResult = sawXpDeathResult == true,
+        sawPlainDeathResult = sawXpDeathResult == false,
         targetUnitId = numericTargetId,
         difficulty = difficulty,
         atMs = nowMs,
@@ -2396,20 +2423,24 @@ end
 
 function TPM:MarkPendingPveKillXpResult(targetName, targetUnitId)
     if type(self.pendingPveKillActivities) ~= "table" then return nil end
-    targetName = tostring(targetName or "")
+    targetName = select(1, self:NormalizeCombatUnitName(targetName))
     local numericTargetId = tonumber(targetUnitId) or 0
     local nowMs = TPM_KillLogNowMs()
 
     -- DIED_XP can arrive with an empty targetName in some combat situations.
     -- Pair it by targetUnitId first; only use a very recent name-less fallback
     -- when ESO did not expose a usable id.
-    for i = #self.pendingPveKillActivities, 1, -1 do
+    for i = 1, #self.pendingPveKillActivities do
         local pending = self.pendingPveKillActivities[i]
-        if type(pending) == "table" and not pending.finalized then
+        if type(pending) == "table" then
             local age = nowMs - (tonumber(pending.atMs) or 0)
             local sameUnit = numericTargetId > 0 and tonumber(pending.targetUnitId) == numericTargetId
-            local sameName = targetName ~= "" and pending.name == targetName and age >= 0 and age <= 1200
+                and age >= 0 and age <= (pending.finalized and 1800 or 4500)
+            local sameName = targetName ~= "" and pending.name == targetName and age >= 0 and age <= 900
+                and (numericTargetId <= 0 or (tonumber(pending.targetUnitId) or 0) <= 0)
+                and not pending.sawXpDeathResult
             if sameUnit or sameName then
+                if pending.finalized then return pending end
                 pending.sawXpDeathResult = true
                 pending.expectsXp = true
                 pending.xpResultAtMs = nowMs
@@ -2420,16 +2451,24 @@ function TPM:MarkPendingPveKillXpResult(targetName, targetUnitId)
     end
 
     if numericTargetId <= 0 and targetName == "" then
-        for i = #self.pendingPveKillActivities, 1, -1 do
+        local candidate
+        for i = 1, #self.pendingPveKillActivities do
             local pending = self.pendingPveKillActivities[i]
             local age = type(pending) == "table" and (nowMs - (tonumber(pending.atMs) or 0)) or -1
-            if type(pending) == "table" and not pending.finalized and age >= 0 and age <= 350 then
-                pending.sawXpDeathResult = true
-                pending.expectsXp = true
-                pending.xpResultAtMs = nowMs
-                self:ConsumeRecentExperienceForPendingKill(pending)
-                return pending
+            if type(pending) == "table" and not pending.finalized and not pending.sawXpDeathResult
+                and age >= 0 and age <= 350 then
+                -- An unnamed, ID-less signal cannot identify one of several
+                -- simultaneous deaths. Keep an explicit unknown row in that case.
+                if candidate then return nil end
+                candidate = pending
             end
+        end
+        if candidate then
+            candidate.sawXpDeathResult = true
+            candidate.expectsXp = true
+            candidate.xpResultAtMs = nowMs
+            self:ConsumeRecentExperienceForPendingKill(candidate)
+            return candidate
         end
     end
     return nil
@@ -2465,7 +2504,7 @@ function TPM:PromoteOrQueueBossKillActivity(name)
 
     -- Boss identity alone does not prove that ESO granted XP. DIED_XP will
     -- promote the row when XP is actually awarded.
-    return self:QueuePveKillActivity(name, "killBoss", false, 0, _G.MONSTER_DIFFICULTY_DEADLY, false)
+    return self:QueuePveKillActivity(name, "killBoss", false, 0, _G.MONSTER_DIFFICULTY_DEADLY, nil)
 end
 
 function TPM:PruneRecentExperienceGains(nowMs)
@@ -4459,7 +4498,7 @@ end
 
 function TPM:BuildDebugReport()
     local api = type(GetAPIVersion) == "function" and GetAPIVersion() or 0
-    local lang = self.currentLanguage or "?"
+    local lang = self.langCode or self:GetGameLanguage()
     local key = self:GetCurrentCharacterStatsKey()
     local page = self.saved and self.saved.statisticsPage or "?"
     local mode = self.saved and self.saved.calculationMode or "?"
@@ -4898,14 +4937,10 @@ function TPM:GetCompletionBreakdown(zoneId)
     end
 
     for _, completionType in ipairs(COMPLETION_TYPES) do
-        local total = self:GetZoneCompletionActivityTotal(zoneId, completionType)
+        local completed, total = self:GetZoneCompletionActivityProgress(zoneId, completionType)
         if total > 0 then
-            local completed = self:GetZoneCompletionActivityCompleted(zoneId, completionType)
             completed = Clamp(completed, 0, total)
-            local categoryPercent = Clamp(Round((completed / total) * 100), 0, 100)
-            if completed < total and categoryPercent >= 100 then
-                categoryPercent = 99
-            end
+            local categoryPercent = CompletionPercent(completed, total)
 
             completedTotal = completedTotal + completed
             availableTotal = availableTotal + total
@@ -5017,8 +5052,13 @@ function TPM:RefreshStandaloneStatisticsSceneVisibility()
         end
     elseif not window:IsHidden() then
         self.statisticsTemporarilyHiddenForScene = true
+        -- These are sibling top-level windows, so hiding the journal alone
+        -- does not hide them during inventory, Crown Store or other scenes.
+        self:SetStatisticsThemeWindowVisible(false)
+        if self.statisticsThemeColorWindow then self.statisticsThemeColorWindow:SetHidden(true) end
         self:HideStatisticsHoverTooltips()
         self:HideStatisticsFocusDropdown()
+        self:HideEconomyFocusDropdown()
         -- 2.6.34: HideStatisticsHoverTooltips already hides the achievement tooltip.
         -- Do not call the later local TPM_HideAchievementTooltip here; it is nil at this point in Lua load order.
         if self.economyDetailWindow and not self.economyDetailWindow:IsHidden() then
@@ -8300,7 +8340,7 @@ function TPM:GetCollectionStatisticData(definition)
 
     data.total = total
     data.owned = owned
-    data.percent = total > 0 and Round((owned / total) * 100) or 0
+    data.percent = CompletionPercent(owned, total)
     data.available = true
     return data
 end
@@ -8457,7 +8497,7 @@ function TPM:GetZoneAchievementSummary(zoneId)
         end
     end
 
-    local percent = totalPoints > 0 and Clamp(Round((earnedPoints / totalPoints) * 100), 0, 100) or 0
+    local percent = CompletionPercent(earnedPoints, totalPoints)
     local result =
     {
         name = self:L("STAT_ZONE_ACHIEVEMENTS"),
@@ -8501,7 +8541,7 @@ function TPM:GetAchievementStatisticsData()
                 name = self:GetLocalizedAchievementCategoryName(name),
                 earned = math.min(earnedPoints, totalPoints),
                 total = totalPoints,
-                percent = Clamp(Round((earnedPoints / totalPoints) * 100), 0, 100),
+                percent = CompletionPercent(earnedPoints, totalPoints),
                 icon = icon,
             }
             summedEarned = summedEarned + math.min(earnedPoints, totalPoints)
@@ -8520,7 +8560,7 @@ function TPM:GetAchievementStatisticsData()
         name = self:L("STAT_ACHIEVEMENT_TOTAL"),
         earned = totalEarned,
         total = totalPoints,
-        percent = totalPoints > 0 and Clamp(Round((totalEarned / totalPoints) * 100), 0, 100) or 0,
+        percent = CompletionPercent(totalEarned, totalPoints),
         icon = "TamrielProgressMap/art/stat_complete.dds",
         isTotal = true,
     }
@@ -8545,7 +8585,7 @@ function TPM:GetAchievementStatisticsData()
             name = self:L("STAT_ACHIEVEMENT_OTHER"),
             earned = otherEarned,
             total = otherTotal,
-            percent = otherTotal > 0 and Clamp(Round((otherEarned / otherTotal) * 100), 0, 100) or 0,
+            percent = CompletionPercent(otherEarned, otherTotal),
             icon = "TamrielProgressMap/art/stat_objectives.dds",
         }
     end
@@ -8696,7 +8736,9 @@ function TPM:HideStatisticsHoverTooltips()
         self.statisticsAchievementTooltip,
         self.statisticsLogHelpTooltip,
     }
-    for _, tip in ipairs(tooltips) do
+    -- Optional tooltip controls leave holes in this table. pairs still closes
+    -- later controls when the first tooltip has never been created.
+    for _, tip in pairs(tooltips) do
         if tip then
             tip.TPMSourceControl = nil
             tip:SetHidden(true)
@@ -10066,10 +10108,8 @@ function TPM:GetEconomyTrackingTooltip()
     local stamp=tonumber(self.saved and self.saved.economyZoneTrackingStartedAt) or 0
     local dateText=self:L("ECON_DETAIL_UNKNOWN_DATE")
     if stamp>0 then
-        local res=FormatShortDate(stamp)
+        local res=TPM_GetLocalizedCharacterDateText(stamp, self.langCode or self:GetGameLanguage())
         if res and res~="" then dateText=res end
-    elseif stamp>0 and type(os)=="table" and type(os.date)=="function" then
-        dateText=os.date("%d.%m.%Y",stamp)
     end
     return self:L("ECON_DETAIL_TRACKING_TT",dateText)
 end
@@ -16666,7 +16706,11 @@ function TPM:SetStandaloneStatisticsUIMode(enabled)
             end
         end, 80)
     else
-        if self.statisticsOwnsUIMode then SetGameCameraUIMode(false) end
+        local currentScene = SCENE_MANAGER and SCENE_MANAGER:GetCurrentScene()
+        local isHudScene = not currentScene or currentScene == _G.HUD_SCENE or currentScene == _G.HUD_UI_SCENE
+        -- A zone click can hand control to the world map before the closing
+        -- fade ends. Leave that scene's cursor enabled when releasing ownership.
+        if self.statisticsOwnsUIMode and isHudScene then SetGameCameraUIMode(false) end
         self.statisticsOwnsUIMode = false
         self.statisticsUIModeWasAlreadyActive = false
         self.statisticsUIModeActiveForStandalone = false
@@ -18360,16 +18404,30 @@ function TPM:Initialize()
         end
     end
 
+    local legacyCopy
+    local isPts = string.find(string.lower(worldName), "pts", 1, true) ~= nil
+    -- NewAccountWide's namespace is stored BELOW $AccountWide. A modern
+    -- namespace-only container has no root version and is not legacy data.
+    -- Snapshot before creating the destination, or that new server namespace
+    -- would also be recursively copied into itself during a real migration.
+    if not isPts and type(legacySaved) == "table"
+        and tonumber(rawget(legacySaved, "version")) == 1
+        and legacySaved.serverScopeMigrationCompleted ~= true then
+        local legacyValues = {}
+        for key, value in pairs(legacySaved) do
+            -- Preserve legacy settings and ledgers, excluding any already
+            -- existing server namespaces beside the old root settings.
+            if DEFAULTS[key] ~= nil or type(value) ~= "table" or rawget(value, "version") == nil then
+                legacyValues[key] = value
+            end
+        end
+        legacyCopy = TPM_DeepCopyPlain(legacyValues)
+    end
+
     self.saved = ZO_SavedVars:NewAccountWide("TamrielProgressMap_SavedVariables", 1, worldName, DEFAULTS)
     local migratedLegacyThisLoad = false
     if not self.saved.serverScopeMigrated then
-        local isPts = string.find(string.lower(worldName), "pts", 1, true) ~= nil
-        local canMigrateLegacy = not isPts
-            and type(legacySaved) == "table"
-            and legacySaved.serverScopeMigrationCompleted ~= true
-
-        if canMigrateLegacy then
-            local legacyCopy = TPM_DeepCopyPlain(legacySaved)
+        if legacyCopy then
             for key, value in pairs(legacyCopy) do
                 if key ~= "serverScopeMigrated"
                     and key ~= "serverScopeMigrationWorld"
@@ -18790,7 +18848,7 @@ function TPM:Initialize()
         if TPM.saved and TPM.saved.historyEnabled ~= false then TPM:CheckpointHistory("zone_changed", false) end
         zo_callLater(function() TPM:RefreshSkyshardGoalWidget() end, 100)
     end)
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "SkyshardGoalGained", EVENT_SKYSHARD_GAINED, function()
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "SkyshardGoalGained", EVENT_SKYSHARDS_UPDATED, function()
         TPM:InvalidateStatisticsData(false)
         zo_callLater(function() TPM:RefreshSkyshardGoalWidget() end, 100)
     end)
@@ -18845,7 +18903,7 @@ function TPM:Initialize()
     end
     RegisterCollectionRefreshEvent("Collection", EVENT_COLLECTION_UPDATED)
     RegisterCollectionRefreshEvent("Collectible", EVENT_COLLECTIBLE_UPDATED)
-    RegisterCollectionRefreshEvent("Collectibles", EVENT_COLLECTIBLES_UPDATED)
+    RegisterCollectionRefreshEvent("Collectibles", EVENT_COLLECTIBLES_UNLOCK_STATE_CHANGED)
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "ActivityQuestRewardCacheDialog", EVENT_QUEST_COMPLETE_DIALOG,
         function(_, journalIndex)
@@ -18865,8 +18923,8 @@ function TPM:Initialize()
     RegisterCompletionRefreshEvent("PoiUpdated", EVENT_POI_UPDATED)
     RegisterCompletionRefreshEvent("LoreBook", EVENT_LORE_BOOK_LEARNED)
     RegisterCompletionRefreshEvent("Achievement", EVENT_ACHIEVEMENT_UPDATED)
-    RegisterCompletionRefreshEvent("ZoneStory", EVENT_ZONE_STORY_ACTIVITY_COMPLETED)
-    RegisterCompletionRefreshEvent("Skyshard", EVENT_SKYSHARD_GAINED)
+    RegisterCompletionRefreshEvent("ZoneStory", EVENT_TRACKED_ZONE_STORY_ACTIVITY_COMPLETED)
+    RegisterCompletionRefreshEvent("Skyshard", EVENT_SKYSHARDS_UPDATED)
 
     local function RegisterPlayerProgressEvent(suffix, eventCode, filterPlayer)
         local namespace = ADDON_NAME .. "PlayerProgress" .. suffix
@@ -18955,17 +19013,21 @@ function TPM:Initialize()
             local isXpDeathResult = result == ACTION_RESULT_DIED_XP
             local numericTargetId = tonumber(targetUnitId) or 0
             local recentTarget = TPM:GetRecentPlayerPveCombatTarget(numericTargetId, targetName)
+            local matchedPending
 
             if isXpDeathResult then
                 -- ESO commonly blanks targetName on DIED_XP when somebody else
                 -- lands the final hit. targetUnitId is often still available,
                 -- so promote an already pending row before resolving the name.
-                TPM:MarkPendingPveKillXpResult(targetName, numericTargetId)
+                matchedPending = TPM:MarkPendingPveKillXpResult(targetName, numericTargetId)
             end
 
             local cleanTargetName = select(1, TPM:NormalizeCombatUnitName(targetName))
             if cleanTargetName == "" and type(recentTarget) == "table" then
                 cleanTargetName = tostring(recentTarget.name or "")
+            end
+            if cleanTargetName == "" and type(matchedPending) == "table" then
+                cleanTargetName = tostring(matchedPending.name or "")
             end
 
             -- If ESO still withholds the name, do not silently drop a confirmed
@@ -18997,7 +19059,7 @@ function TPM:Initialize()
                 if recentTarget.difficulty == MONSTER_DIFFICULTY_DEADLY then kind = "killBoss" end
             end
             local difficulty = (type(recentTarget) == "table" and recentTarget.difficulty) or TPM:GetPveKillDifficulty(cleanTargetName, kind)
-            TPM:QueuePveKillActivity(cleanTargetName, kind, isXpDeathResult, numericTargetId, difficulty, isXpDeathResult)
+            TPM:QueuePveKillActivity(cleanTargetName, kind, isXpDeathResult, numericTargetId, difficulty, isXpDeathResult, matchedPending)
 
             if numericTargetId > 0 then
                 local deathKey = "pve_npc_death|" .. tostring(numericTargetId)

@@ -39,6 +39,8 @@ Many thanks to the authors whose examples I followed:
 - Ayantir
 - silvereyes
 
+Thanks to wolfstar07 for adding support for the Furnishing Vault.
+
 # License
 
 [![CC-BY-NC-SA-4.0Creative Commons License BY-NC-SA-4.0](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png "Creative Commons License BY-NC-SA-4.0")](http://creativecommons.org/licenses/by-nc-sa/4.0/)  

@@ -8,8 +8,8 @@
   "category_id": "109",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1190",
@@ -18,7 +18,7 @@
     "WPamA"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1190/",
-  "fingerprint": "9de505cd3c822287c3bbc2b3d5aa27cd3659e85414aa4c3ac4e783b6311cba4e",
+  "fingerprint": "4d4b9a9cff600dc22448add0dd665ef6fe10ab29f9b395758949b5096c8bed30",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw6041.png",
     "https://cdn-eso.mmoui.com/preview/pvw6042.png",
@@ -37,11 +37,11 @@
   "source_id": "1190",
   "source_url": "https://www.esoui.com/downloads/info1190-WPamAWhatPledgesatmyAlts.html",
   "stats": {
-    "downloads": 741306,
+    "downloads": 744625,
     "favorites": 235,
-    "monthly_downloads": 1938
+    "monthly_downloads": 2542
   },
   "title": "WPamA (What Pledges at my Alts)",
-  "updated_at": 1788109804000,
-  "version": "2.6.7"
+  "updated_at": 1790788705000,
+  "version": "2.6.8"
 }

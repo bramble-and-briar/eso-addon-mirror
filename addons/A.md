@@ -32,7 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AchievementInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asto/AchievementInfo__350) | Asto | PC / Mac | 4.17 |
 | [Action Bar Labels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CMDRMitchcraft/Action-Bar-Labels__4348) | CMDRMitchcraft | PC / Mac | 1.0 |
 | [Action Bar Skill Styles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Action-Bar-Skill-Styles__3928) | Anthonysc | PC / Mac | 0.0.4 |
-| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.161 |
+| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.163 |
 | [Action Duration Reminder ES by Kroon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KKroon/Action-Duration-Reminder-ES-by-Kroon__3706) | KKroon | PC / Mac | 3.96 |
 | [Activity Finder Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Activity-Finder-Plus__4676) | FirewoodDoge | PC / Mac | 1.0.2 |
 | [Acuity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Acuity__1950) | Wheels | PC / Mac | 2.4 |
@@ -153,7 +153,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 0.1.44 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 0.1.49 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |
@@ -169,7 +169,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alik'r Dolmen Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haipahaipa/Alik-r-Dolmen-Helper__2399) | haipahaipa | PC / Mac | v0.1.0 |
 | [Alkosh Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Alkosh-Timer__e1b107d5-082e-4ed1-9cfc-81b9a42e0528) | Eldibabalo | Console | — |
 | [alkoshtracker by jh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/alkoshtracker-by-jh__bbcaa320-b3ca-4c85-ba00-3d61f3f60360) | j.hhh | Console | — |
-| [All The Collectibles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/All-The-Collectibles__4638) | DakJaniels | PC / Mac | 2.1 |
+| [All The Collectibles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/All-The-Collectibles__4638) | DakJaniels | PC / Mac | 2.2 |
 | [AllAP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace-r/AllAP__2086) | Ace'r | PC / Mac | 1.3.3 |
 | [AllAP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace.r/AllAP__c0c82f16-9b5b-4707-bf96-be0f3c78a77a) | Ace.r | Console | — |
 | [AllCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MethosFrost/AllCraft__2488) | MethosFrost | PC / Mac | 0.935Alpha |
@@ -361,6 +361,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Automate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Automate__2852) | peniku8 | PC / Mac | 1.2.22 |
 | [Automatic Overland Difficulty (AOD)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/Automatic-Overland-Difficulty-AOD__4622) | Wrynch | PC / Mac | 1.5.1 |
 | [Automatically Accept Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/marlonbrando/Automatically-Accept-Quests__1994) | marlonbrando | PC / Mac | 1.28 |
+| [AutoNomNom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/AutoNomNom__4897) | tim-p | PC / Mac | 2026-09-30 |
 | [AutoReadyCheck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/L_cky/AutoReadyCheck__be99bdeb-a9e3-4b63-abe8-9aa886190e8e) | L_cky | Console | — |
 | [AutoReadyCheck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirWoach/AutoReadyCheck__3688) | SirWoach | PC / Mac | 2.4.1 |
 | [AutoRefine](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ihause/AutoRefine__2175) | ihause | PC / Mac | 0.9.1 |

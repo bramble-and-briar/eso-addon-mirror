@@ -21,6 +21,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Quality Sort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Quality-Sort__677) | silvereyes | PC / Mac | 2.6.1 |
 | [Quality Sort - Arrows Version](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Quality-Sort---Arrows-Version__1808) | silvereyes | PC / Mac | 2.6.0 |
 | [QualityColorBlind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jellyalex978/QualityColorBlind__1680) | jellyalex978 | PC / Mac | 1.3.0 |
+| [Quest Cycle Hotkeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Quest-Cycle-Hotkeys__4896) | tim-p | PC / Mac | 2026-09-30 |
 | [Quest Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Quest-Map__1022) | CaptainBlagbird | PC / Mac | 3.29 |
 | [Quest Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/Quest-Mover__9a439c8a-322c-472e-99f9-e05a6f76532b) | Gamer_sa22 | Console | — |
 | [Quest Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Quest-Test__752b2e95-d14a-48f3-894f-3831aea7ce25) | ParanoidGaming | Console | — |

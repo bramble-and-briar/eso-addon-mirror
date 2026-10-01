@@ -262,7 +262,6 @@ Discover = function()
     end
 end
 function AlabuzyaUI.InventoryGrid.Initialize()
-    if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.Enabled("grid") then return end
     saved=AlabuzyaUI.SavedVariables.Account("inventoryGrid",{})
     -- Native bag data is updated before these callbacks. Coalesce a burst of

@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/code65536/Improved-Attribute-Bars-and-Target-Frame__4884",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "code65536",
   "canonical_id": "esoui:4884",
   "category_id": "109",
@@ -19,7 +18,7 @@
     "ImprovedAttributeBars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4884/",
-  "fingerprint": "799e29c140866f8db86a049393277bd08f590cecaf1268906a02907c5c607ca3",
+  "fingerprint": "d672b06f4485af65d73fdb5a3c5da7e62d8c8cc64b80184d2dac77ac01b594b7",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17605.png",
     "https://cdn-eso.mmoui.com/preview/pvw17604.png"
@@ -30,11 +29,11 @@
   "source_id": "4884",
   "source_url": "https://www.esoui.com/downloads/info4884-ImprovedAttributeBarsandTargetFrame.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 100,
+    "favorites": 6,
+    "monthly_downloads": 70
   },
   "title": "Improved Attribute Bars and Target Frame",
-  "updated_at": 1790666377000,
-  "version": "1.0.0"
+  "updated_at": 1790817817000,
+  "version": "1.1.1.1"
 }

@@ -1,10 +1,10 @@
 ## Title: All The Collectibles
 ## Description: Purchasable leftovers, Crown Store, and Crown Crate collectibles for Collectibles Tracker. Collectibles already sorted onto the store or crate tabs are omitted from All The Unsorted Collectibles.
 ## Author: @dack_janiels[PC]
-## APIVersion: 101050 101051
-## Version: 2.1
+## APIVersion: 101051 101052
+## Version: 2.2
 ## AddOnVersion: 2
-## DependsOn: CollectiblesTracker>=305000 LibScrollableMenu>=20405
+## DependsOn: CollectiblesTracker>=306020 LibScrollableMenu>=20405
 
 l10n/$(language).lua
 

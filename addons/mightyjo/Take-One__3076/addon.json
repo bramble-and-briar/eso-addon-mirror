@@ -1,11 +1,44 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/mightyjo/Take-One__3076",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "mightyjo",
   "canonical_id": "esoui:3076",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
+    {
+      "name": "Season Zero",
+      "version": "11.3.0"
+    },
+    {
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
+    },
+    {
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
+    },
+    {
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
     {
       "name": "Update 43",
       "version": "10.1.0"
@@ -41,7 +74,7 @@
     "TakeOne"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3076/",
-  "fingerprint": "9996f4ed4efb13fa9309b3c9dce5128b790a76cddef12fa76e2185bee1e652db",
+  "fingerprint": "b125edb9aff0de22cd712c7c3541bb2628cd3a9a9b0e209b171b99719f7c0def",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10290.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw10291.jpg"
@@ -52,11 +85,11 @@
   "source_id": "3076",
   "source_url": "https://www.esoui.com/downloads/info3076-TakeOne.html",
   "stats": {
-    "downloads": 18629,
-    "favorites": 37,
-    "monthly_downloads": 62
+    "downloads": 18952,
+    "favorites": 36,
+    "monthly_downloads": 76
   },
   "title": "Take One",
-  "updated_at": 1720807689000,
-  "version": "1.2.0"
+  "updated_at": 1790812317000,
+  "version": "1.3.0"
 }

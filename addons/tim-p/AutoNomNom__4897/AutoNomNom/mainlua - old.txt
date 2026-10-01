@@ -1,0 +1,682 @@
+-- AutoNomNom add-on for Elder Scrolls Online
+-- Author: Tim-P
+
+-- Uses LibFoodDrinkBuff library by Scootworks, Baertram
+
+--to move to AutoNomNom_Variables.lua
+AutoNomNom = {
+    Name = "AutoNomNom",
+    Author = "@Tim-P",
+    Version = 1.00,
+    SettingsVersion = 1.0,
+    SettingsName = "AutoNomNom_SavedVariables"
+}
+
+AutoNomNom.defaults = {
+    isAutoEatFood = false,
+    targetAbilityId = nil,
+    foodBufferSeconds = 300,
+    buffFoods =  {
+                    [61325] = 
+                    {
+                        ["|H0:item:33654:3:5:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h"] = "Bitter Tea",
+                        ["|H0:item:28445:3:5:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h"] = "Lotus Tea",
+                    },
+                    [61259] = 
+                    {
+                        ["|H0:item:33526:3:1:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h"] = "Fishy Stick",
+                        ["|H0:item:42804:3:5:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h"] = "Flank Steak",
+                    },
+                },
+}
+
+
+
+AutoNomNom.savedVariables = {}
+AutoNomNom.lastStackSnapshot = {}
+
+-- LibFoodDrinkBuff library
+local LFDB = LIB_FOOD_DRINK_BUFF
+
+-- local constants
+local context_menu_label_on = "Consume Automatically"
+local context_menu_label_off = "Stop Consuming Automatically"
+local slash_command_turn_on = "/autonomnomon"
+local slash_command_turn_off = "/autonomnomoff"
+local slash_command_show_settings = "/autonomnomshowsettings"
+local slash_command_change_buffer = "/autonomnombufferseconds"
+local update_timer_period = 10000 -- milliseconds
+local low_inventory_warning_threshold = 5 -- items
+local player_unit_tag = "player"
+local context_menu_delay = 50 -- milliseconds
+local consumed_message_delay = 2000 -- milliseconds
+local food_buffer_seconds_min = 0 -- seconds
+local food_buffer_seconds_max = 600 -- seconds
+local out_of_inventory_warning_frequency = 60 -- seconds
+local update_sound = SOUNDS.DIALOG_ACCEPT
+
+-- flags
+local isEatOnNextUpdate = false
+local lastOutOfInventoryWarningTime = GetFrameTimeSeconds()
+--end of move
+
+
+local function UpdateFoodVariable()
+	local isBuffActive, timeLeft, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft("player")
+
+	-- If no buff, nothing to detect
+	if not isBuffActive then
+		return
+	end
+
+	-- If buff hasn't changed, do nothing
+	if abilityId == AutoNomNom.lastAbilityId then
+		return
+	end
+
+	-- Buff *has* changed → update lastAbilityId
+	AutoNomNom.lastAbilityId = abilityId
+
+	-- Now detect the new food item
+	local newFoodLink = AutoNomNom.FindFoodItemLinkByAbilityId(abilityId)
+	if newFoodLink then
+		AutoNomNom.savedVariables.foodLink = newFoodLink
+		d("Detected new food: " .. newFoodLink)
+	end
+end
+
+local function GetBackpackInventory(itemLink)
+    local inventoryCount = 0
+    if itemLink == "" then return inventoryCount end
+
+    local numSlots = GetBagSize(BAG_BACKPACK)
+    for slotIndex = 0, numSlots do
+        local slotItemLink = GetItemLink(BAG_BACKPACK, slotIndex)
+        if slotItemLink == itemLink then
+            local itemCount = GetItemTotalCount(BAG_BACKPACK, slotIndex)
+            inventoryCount = inventoryCount + itemCount
+        end
+    end
+    return inventoryCount
+end
+
+local function ShowSettingsInChat()
+    local foodBufferMinutes = math.floor(AutoNomNom.savedVariables.foodBufferSeconds / 60)
+
+    if AutoNomNom.savedVariables.foodLink == "" then
+        d("No food has been selected yet. Open inventory, right click on the food or drink you want, and choose the " .. context_menu_label_on .. " option.")
+        return
+    end
+
+    if not AutoNomNom.savedVariables.isAutoEatFood then
+        d("Automatic eating is turned off. But you have selected " .. AutoNomNom.savedVariables.foodLink .. " as your preferred food.")
+        d("To enable automatic eating for this character use " .. slash_command_turn_on .. ", or open inventory, right click on the food or drink you want, and choose the " .. context_menu_label_on .. " option.")
+    else
+        d("Looks like " .. AutoNomNom.savedVariables.foodLink .. " is on the menu.")
+
+        if AutoNomNom.savedVariables.foodBufferSeconds > 60 then
+            d(zo_strformat("This will be consumed  <<1[when/$d minute before/$d minutes before]>> your current food expires.", foodBufferMinutes))
+        else
+            d(zo_strformat("This will be consumed  <<1[when/$d second before/$d seconds before]>> your current food expires.", AutoNomNom.savedVariables.foodBufferSeconds))
+        end
+
+        local remainingInventory = GetBackpackInventory(AutoNomNom.savedVariables.foodLink)
+        if remainingInventory <= low_inventory_warning_threshold and remainingInventory ~= 0 then
+            d("You have only " .. remainingInventory .. " left in your bag.")
+        else
+            d("You have " .. remainingInventory .. " left in your bag.")
+        end
+
+        d("If you wish to stop automatic eating for this character, use " .. slash_command_turn_off .. " in the chat window.")
+    end
+end
+
+local function SetFoodBufferSeconds(foodBufferSeconds)
+    local oldBuffer = AutoNomNom.savedVariables.foodBufferSeconds
+    local newBuffer = tonumber(foodBufferSeconds)
+
+    if type(newBuffer) == "number" then
+        newBuffer = math.floor(newBuffer)
+        if newBuffer >= food_buffer_seconds_min and newBuffer <= food_buffer_seconds_max then
+            if newBuffer ~= oldBuffer then
+                AutoNomNom.savedVariables.foodBufferSeconds = newBuffer
+                PlaySound(update_sound)
+            end
+        end
+    end
+
+    d("Food will be consumed " .. AutoNomNom.savedVariables.foodBufferSeconds .. " seconds before current food expires.")
+
+    if oldBuffer == AutoNomNom.savedVariables.foodBufferSeconds then
+        d("Use a number between " .. food_buffer_seconds_min .. " and " .. food_buffer_seconds_max .. " with " .. slash_command_change_buffer .. " to change buffer time.")
+    end
+end
+
+local function SetIsAutoEating(isAutoEating)
+    if AutoNomNom.savedVariables.isAutoEatFood ~= isAutoEating then
+        if isAutoEating then
+            if AutoNomNom.savedVariables.foodLink == "" then
+                AutoNomNom.savedVariables.isAutoEatFood = false
+            else
+                AutoNomNom.savedVariables.isAutoEatFood = true
+            end
+        else
+            AutoNomNom.savedVariables.isAutoEatFood = false
+        end
+    end
+
+    PlaySound(update_sound)
+    ShowSettingsInChat()
+end
+
+local function IsExperienceDrink(bagId, slotIndex)
+    local itemId = GetItemId(bagId, slotIndex)
+    if itemId == 64221 then return true
+    elseif itemId == 120076 then return true
+    elseif itemId == 115027 then return true
+    else return false end
+end
+
+local function IsValidFoodOrDrink(bagId, slotIndex)
+    local itemType = GetItemType(bagId, slotIndex)
+    if not (itemType == ITEMTYPE_DRINK or itemType == ITEMTYPE_FOOD) then 
+        return false
+    end
+    if IsExperienceDrink(bagId, slotIndex) then return false end
+    return true
+end
+
+local function AddContextMenuItem(rowControl)
+    if IsValidFoodOrDrink(rowControl.bagId, rowControl.slotIndex) then
+        local itemLink = GetItemLink(rowControl.bagId, rowControl.slotIndex)
+
+        if (itemLink == AutoNomNom.savedVariables.foodLink) and (AutoNomNom.savedVariables.isAutoEatFood) then
+            AddCustomMenuItem(context_menu_label_off,
+                function()
+                    SetIsAutoEating(false)
+                end,
+                MENU_ADD_OPTION_LABEL)
+        else
+            AddCustomMenuItem(context_menu_label_on,
+                function()
+                    AutoNomNom.savedVariables.foodLink = itemLink
+                    SetIsAutoEating(true)
+                end,
+                MENU_ADD_OPTION_LABEL)
+        end
+    end
+
+    ShowMenu(self)
+end
+
+local function AddContextMenuItemWithDelay(rowControl)
+    zo_callLater(function() AddContextMenuItem(rowControl) end, context_menu_delay)
+end
+
+local function CanUseItem(bagId, slotIndex)
+    local usable, usableOnlyFromActionSlot = IsItemUsable(bagId, slotIndex)
+    local canInteract = CanInteractWithItem(bagId, slotIndex)
+    return usable and not usableOnlyFromActionSlot and canInteract
+end
+
+local function TryUseFoodItem(bagId, slotIndex)
+    if IsValidFoodOrDrink(bagId, slotIndex) then
+        if CanUseItem(bagId, slotIndex) then
+            local success = CallSecureProtected("UseItem", bagId, slotIndex)
+            return success
+        end
+    end
+end
+
+local function ShowLowInventoryWarning(itemLink)
+    local remainingInventory = GetBackpackInventory(itemLink)
+    if remainingInventory <= low_inventory_warning_threshold then
+        d(zo_strformat("You have <<1[$d/only $d/only $d]>> left in your bag.", remainingInventory))
+    end
+end
+
+local function VerifyConsumed()
+    local isBuffActive, timeLeftInSeconds, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft(player_unit_tag)
+    return isBuffActive and timeLeftInSeconds > food_buffer_seconds_max
+end
+
+local function ShowConsumedMessage(itemLink)
+    if VerifyConsumed() then
+        d(itemLink .. " has been automatically consumed.")
+        ShowLowInventoryWarning(itemLink)
+    end
+end
+
+local function EatFood()
+    local numSlots = GetBagSize(BAG_BACKPACK)
+
+    for slotIndex = 0, numSlots do
+        local slotItemLink = GetItemLink(BAG_BACKPACK, slotIndex)
+        if slotItemLink == AutoNomNom.savedVariables.foodLink then
+            local success = TryUseFoodItem(BAG_BACKPACK, slotIndex)
+            if success then
+                zo_callLater(function() ShowConsumedMessage(slotItemLink) end, consumed_message_delay)
+                return true
+            else
+                return false
+            end
+        end
+    end
+
+    local currentFrameTimeSecs = GetFrameTimeSeconds()
+    if currentFrameTimeSecs - lastOutOfInventoryWarningTime > 60 then
+        lastOutOfInventoryWarningTime = currentFrameTimeSecs
+
+        local isBuffActive, timeLeftInSeconds, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft(player_unit_tag)
+        local timeLeftInMinutes = math.floor(timeLeftInSeconds / 60)
+
+        d("You have set " .. AutoNomNom.savedVariables.foodLink .. " to " .. context_menu_label_on .. " but have 0 in your bag.")
+
+        if isBuffActive then
+            if timeLeftInSeconds < 60 then
+                d(zo_strformat("Your current food will expire in <<1[$d seconds./$d second./$d seconds.]>>", timeLeftInSeconds))
+            else
+                d(zo_strformat("Your current food will expire in <<1[$d minutes./$d minute./$d minutes.]>>", timeLeftInMinutes))
+            end
+        end
+    end
+end
+
+local function IsUnitAbleToUseFood(unitTag)
+    if IsUnitInCombat(unitTag) then return
+    elseif IsUnitDeadOrReincarnating(unitTag) then return
+    elseif IsUnitSwimming(unitTag) then return
+    elseif IsPlayerInteractingWithObject() then return
+    elseif IsScryingInProgress() then return
+    elseif IsDiggingGameActive() then return
+    else return true end
+end
+
+
+local function DetectConsumedFood(oldSnap, newSnap)
+    local consumedItemLink = nil
+    local changes = 0
+
+    -- Check items that existed before
+    for itemLink, oldCount in pairs(oldSnap) do
+        local newCount = newSnap[itemLink] or 0
+        local delta = newCount - oldCount
+
+        if delta ~= 0 then
+            if delta == -1 then
+                consumedItemLink = itemLink
+                changes = changes + 1
+            else
+                return nil   -- invalid change
+            end
+        end
+    end
+
+    -- Abort if any new food type appears
+    for itemLink, _ in pairs(newSnap) do
+        if oldSnap[itemLink] == nil then
+            return nil
+        end
+    end
+
+    return (changes == 1) and consumedItemLink or nil
+end
+
+local function BuildFoodStackSnapshot()
+	d("DEBUG: BuildFoodStackSnapshot is running")
+    local snapshot = {}
+    local numSlots = GetBagSize(BAG_BACKPACK)
+
+    for slotIndex = 0, numSlots do
+        local itemLink = GetItemLink(BAG_BACKPACK, slotIndex)
+        if itemLink ~= "" then
+            local itemType = GetItemLinkItemType(itemLink)
+            if itemType == ITEMTYPE_FOOD or itemType == ITEMTYPE_DRINK then
+                local count = GetItemTotalCount(BAG_BACKPACK, slotIndex)
+                snapshot[itemLink] = (snapshot[itemLink] or 0) + count
+            end
+        end
+    end
+
+    return snapshot
+end
+
+function AutoNomNom.OnFoodBuffChanged(abilityId)
+    d("---- AutoNomNom: Food Buff Changed ----")
+    d("New AbilityId: " .. tostring(abilityId))
+
+    -- Build new snapshot
+    local newSnap = BuildFoodStackSnapshot()
+    local oldSnap = AutoNomNom.lastStackSnapshot or {}
+
+    -- Try to detect consumed food
+    local consumedItemLink = DetectConsumedFood(oldSnap, newSnap)
+
+    if consumedItemLink then
+        d("Detected consumed food: " .. consumedItemLink)
+
+        -- Learn it
+        AutoNomNom.savedVariables.buffFoods[abilityId] =
+            AutoNomNom.savedVariables.buffFoods[abilityId] or {}
+
+        if not AutoNomNom.savedVariables.buffFoods[abilityId][consumedItemLink] then
+			AutoNomNom.savedVariables.buffFoods[abilityId][consumedItemLink] = GetItemLinkName(consumedItemLink)
+            d("Learned new food for buff " .. abilityId .. ": " .. consumedItemLink)
+        end
+
+        -- Set as auto-consume food
+        AutoNomNom.savedVariables.foodLink = consumedItemLink
+		AutoNomNom.savedVariables.targetAbilityId = abilityId
+        d("Auto-consume food set to: " .. consumedItemLink)
+
+    else
+        d("Diff failed — could not detect consumed food.")
+
+        -- Fallback: use known foods for this buff
+        local knownFoods = AutoNomNom.savedVariables.buffFoods[abilityId]
+
+        if knownFoods then
+            for itemLink, _ in pairs(knownFoods) do
+                -- Check if player has this food
+                if GetBackpackInventory(itemLink) > 0 then
+                    AutoNomNom.savedVariables.foodLink = itemLink
+                    d("Fallback: auto-consume food set to known food: " .. itemLink)
+                    break
+                end
+            end
+        else
+            d("No known foods for this buff — cannot fallback.")
+        end
+    end
+
+    -- Update snapshot
+    AutoNomNom.lastStackSnapshot = newSnap
+end
+
+local function AutoEat()
+    if not AutoNomNom.savedVariables.isAutoEatFood then return end
+    if not IsUnitAbleToUseFood(player_unit_tag) then return end
+    if AutoNomNom.savedVariables.foodLink == "" then return end
+
+    local isBuffActive, timeLeftInSeconds, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft(player_unit_tag)
+
+    if not isBuffActive then
+        if not isEatOnNextUpdate then
+            isEatOnNextUpdate = true
+        else
+            isEatOnNextUpdate = false
+            EatFood()
+        end
+        return
+    end
+
+    isEatOnNextUpdate = false
+
+    local foodBuffer = AutoNomNom.savedVariables.foodBufferSeconds
+    if foodBuffer >= food_buffer_seconds_min and foodBuffer <= food_buffer_seconds_max then
+        if timeLeftInSeconds <= foodBuffer then
+            EatFood()
+        end
+    else
+        AutoNomNom.savedVariables.foodBufferSeconds = AutoNomNom.defaults.foodBufferSeconds
+    end
+end
+
+local function PollBuffChange()
+    -- Read current buff
+    local isBuffActive, _, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft(player_unit_tag)
+
+    -- If no buff active → reset lastAbilityId so the next buff counts as "new"
+    if not isBuffActive then
+        AutoNomNom.lastAbilityId = nil
+        return
+    end
+
+    -- First buff after lapse → initialise and notify
+    if AutoNomNom.lastAbilityId == nil then
+        AutoNomNom.lastAbilityId = abilityId
+        AutoNomNom.OnFoodBuffChanged(abilityId)
+        return
+    end
+
+    -- Buff unchanged → nothing to detect
+    if abilityId == AutoNomNom.lastAbilityId then
+		d("DEBUG: (PollBuffChange) abilityId == lastAbilityId - no change")
+        return
+    end
+
+    -- Buff changed → update and notify
+	d("DEBUG: (PollBuffChange) abilityId != lastAbilityId - calling OnFoodBuffChanged")
+    AutoNomNom.lastAbilityId = abilityId
+    AutoNomNom.OnFoodBuffChanged(abilityId)
+end
+
+local function UpdateFoodStackSnapshot()
+    d("Call: UpdateFoodStackSnapshot")
+
+    AutoNomNom.lastStackSnapshot = BuildFoodStackSnapshot()	
+end
+
+local function OnUpdateTimer()
+	d("Tick")
+    PollBuffChange()
+    UpdateFoodStackSnapshot()
+    AutoEat()
+end
+
+
+local function Initialize()
+    AutoNomNom.savedVariables = ZO_SavedVars:NewCharacterNameSettings(AutoNomNom.SettingsName, AutoNomNom.SettingsVersion, nil, AutoNomNom.defaults)
+
+    SLASH_COMMANDS[slash_command_turn_on] = function() SetIsAutoEating(true) end
+    SLASH_COMMANDS[slash_command_turn_off] = function() SetIsAutoEating(false) end
+    SLASH_COMMANDS[slash_command_show_settings] = ShowSettingsInChat
+    SLASH_COMMANDS[slash_command_change_buffer] = SetFoodBufferSeconds
+	ZO_CreateStringId("SI_BINDING_NAME_AUTONOMNOM_DEBUG", "AutoNomNom Debug Hotkey")
+	
+	--initialize currentbuffabilityid
+	local isBuffActive, _, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft(player_unit_tag)
+	if isBuffActive then
+		AutoNomNom.lastAbilityId = abilityId
+	else
+		AutoNomNom.lastAbilityId = nil
+	end
+	
+    EVENT_MANAGER:RegisterForUpdate(AutoNomNom.name, update_timer_period, OnUpdateTimer)
+end
+
+local function OnAddOnLoaded(eventCode, name)
+    if (name == AutoNomNom.Name) then
+        EVENT_MANAGER:UnregisterForEvent(AutoNomNom.Name, eventCode)
+        Initialize()
+    end
+end
+
+EVENT_MANAGER:RegisterForEvent(AutoNomNom.Name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
+
+ZO_PreHook("ZO_InventorySlot_ShowContextMenu", AddContextMenuItemWithDelay)
+--------------------------------- NEW CODE ----------------------------------------------
+
+
+--------------------------------------------- DEBUG --------------------------------------------------------------------
+
+function AutoNomNom.GetFoodItemLinkFromAbilityId(abilityId)
+    local lib = LIB_FOOD_DRINK_BUFF
+
+    -- Food buffs
+    local foodItemIds = lib.FOOD_BUFF_ABILITY_IDS[abilityId]
+    if foodItemIds then
+        return BuildItemLink(foodItemIds[1])
+    end
+
+    -- Drink buffs
+    local drinkItemIds = lib.DRINK_BUFF_ABILITY_IDS[abilityId]
+    if drinkItemIds then
+        return BuildItemLink(drinkItemIds[1])
+    end
+
+    return nil
+end
+
+function AutoNomNom.DumpFoodBuffs()
+    d("---- AutoNomNom FoodBuffs Dump ----")
+
+    local foodBuffs = AutoNomNom.savedVariables.FoodBuffs
+    if not foodBuffs then
+        d("FoodBuffs table is missing or empty.")
+        return
+    end
+
+    for abilityId, itemId in pairs(foodBuffs) do
+        d(string.format("AbilityId: %d  ->  ItemId: %d", abilityId, itemId))
+    end
+
+    d("---- End of FoodBuffs Dump ----")
+end
+
+local function GoThroughBag(abilityId)
+    for slot = 0, GetBagSize(BAG_BACKPACK) do
+        local itemLink = GetItemLink(BAG_BACKPACK, slot)
+        if itemLink ~= "" then
+            local itemType = GetItemLinkItemType(itemLink)
+			local itemId = GetItemLinkItemId(itemLink)
+
+            if itemType == ITEMTYPE_FOOD or itemType == ITEMTYPE_DRINK then
+                -- Debug: show itemLink and type
+                d("ItemId: " .. itemId .. "ItemLink: " .. itemLink .. ", ItemType: " .. tostring(itemType))
+
+            end
+        end
+    end
+
+    return nil
+end
+
+local function GetItemNameFromAbilityId(abilityId)
+    local itemLink = AutoNomNom.savedVariables.FoodBuffs[abilityId]
+    if not itemLink then
+        return nil
+    end
+	
+	return itemLink  
+end
+
+function AutoNomNom.Debug1()
+    d("AutoNomNom Debug Hotkey Pressed")
+
+    -- 1. Get the active food/drink buff
+    local isBuffActive, timeLeft, abilityId = LFDB:IsFoodBuffActiveAndGetTimeLeft("player")
+    d(string.format("Buff Active: %s | Time Left: %s | AbilityId: %s",
+        tostring(isBuffActive), tostring(timeLeft), tostring(abilityId)))
+
+    if not isBuffActive then
+        d("No food buff active.")
+        return
+    end
+	
+	local foodName = GetItemNameFromAbilityId(abilityId)
+	d("I think you are currently enjoying a portion of " .. foodName)
+end
+
+function AutoNomNom.Debug2()
+    local currentSnapshot = BuildFoodStackSnapshot()
+
+    d("---- Current Food/Drink Stack Snapshot ----")
+
+    local count = 0
+    for itemLink, stackCount in pairs(currentSnapshot) do
+        d(string.format("%s  →  %d", itemLink, stackCount))
+        count = count + 1
+    end
+
+    if count == 0 then
+        d("No food or drink items found in backpack.")
+    end
+
+    d("---- End Snapshot ----")
+
+    -- Optionally update the stored snapshot
+    -- AutoNomNom.lastStackSnapshot = currentSnapshot
+end
+
+function AutoNomNom.Debug3()
+    d("---- AutoNomNom DEBUG: Snapshot Diff ----")
+
+    local oldSnap = AutoNomNom.lastStackSnapshot or {}
+    local newSnap = BuildFoodStackSnapshot()
+
+    local changesFound = false
+
+    -- Check items that existed before
+    for itemLink, oldCount in pairs(oldSnap) do
+        local newCount = newSnap[itemLink] or 0
+        local delta = newCount - oldCount
+
+        if delta ~= 0 then
+            changesFound = true
+            d(string.format("%s  →  delta %d (old %d → new %d)", itemLink, delta, oldCount, newCount))
+        end
+    end
+
+    -- Check items that are new in the snapshot
+    for itemLink, newCount in pairs(newSnap) do
+        if oldSnap[itemLink] == nil then
+            changesFound = true
+            d(string.format("%s  →  NEW ITEM (count %d)", itemLink, newCount))
+        end
+    end
+
+    if not changesFound then
+        d("No changes detected between snapshots.")
+    end
+
+    d("---- End Snapshot Diff ----")
+end
+function AutoNomNom.Debug4()
+	PollBuffChange()
+end
+
+function AutoNomNom.DebugRawVsFull()
+    d("---- AutoNomNom DEBUG: Raw vs Full ItemLink (Literal Text) ----")
+
+    local numSlots = GetBagSize(BAG_BACKPACK)
+
+    for slotIndex = 0, numSlots do
+        local rawLink = GetItemLink(BAG_BACKPACK, slotIndex)
+
+        if rawLink ~= "" then
+            local itemType = GetItemLinkItemType(rawLink)
+
+            if itemType == ITEMTYPE_FOOD or itemType == ITEMTYPE_DRINK then
+
+                -- Full link (with name)
+                local fullLink = GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT)
+
+                -- Strip first 3 characters so chat prints literal text
+                local rawLiteral  = rawLink:sub(4)
+                local fullLiteral = fullLink:sub(4)
+
+                d("Slot: " .. tostring(slotIndex))
+
+                d("RAW LINK (literal):  " .. rawLiteral)
+                d("FULL LINK (literal): " .. fullLiteral)
+
+                d("---- End Raw vs Full ----")
+                return
+            end
+        end
+    end
+
+    d("No food or drink items found in backpack.")
+end
+
+
+
+function AutoNomNom.Debug5()
+   AutoNomNom.DebugRawVsFull()
+end
+
+function AutoNomNom.DebugHotkey()
+	AutoNomNom.Debug5()
+    
+end

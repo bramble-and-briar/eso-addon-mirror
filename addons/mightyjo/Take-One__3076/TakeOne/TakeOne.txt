@@ -1,12 +1,12 @@
 ## Title: TakeOne
-## APIVersion: 101042 101043
-## Version: 1.2.0
-## AddonVersion: 10
+## APIVersion: 101051 101052
+## Version: 1.3.0
+## AddonVersion: 12
 ## SavedVariables: TakeOneVariables
 ## Author: mightyjo
 ## DependsOn: LibAddonMenu-2.0>=32 LibCustomMenu>=635 LibDebugLogger>=180
 
-## Thanks! @Marify / |c66ffff|Valandil|r / @Architectura / @Magnum1997 / Baertram
+## Thanks! @Marify / |c66ffff|Valandil|r / @Architectura / @Magnum1997 / Baertram / wolfstar07
 
 
 TakeOne.lua

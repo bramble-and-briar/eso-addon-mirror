@@ -17,7 +17,7 @@ local TOM_REBORN_ADDON_WEBSITE = "https://www.esoui.com/downloads/info3428-TOM-T
 local TOM_REBORN_FEEDBACK_WEBSITE = "https://www.esoui.com/forums/member.php?u=47541"
 
 tom.name="tom"
-tom.version="6.4.1"
+tom.version="6.4.2"
 tom.isDebug=false
 tom.loaded=false
 tom.PlayerReady=false

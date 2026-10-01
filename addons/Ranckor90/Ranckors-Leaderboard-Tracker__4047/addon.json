@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Ranckor90/Ranckors-Leaderboard-Tracker__4047",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Ranckor90",
   "canonical_id": "esoui:4047",
   "category_id": "96",
@@ -29,7 +30,7 @@
     "RanckorsLeaderBoardTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4047/",
-  "fingerprint": "115a81d6ec47380438670f6ad31e5c007270ed50cbd99ddbe8219f36702ff554",
+  "fingerprint": "feed845a355702a8a6d90c92d13f8eb7d60cdbf9ff491d9a9535d704e6466b63",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13779.jpg"
   ],
@@ -39,11 +40,11 @@
   "source_id": "4047",
   "source_url": "https://www.esoui.com/downloads/info4047-RanckorsLeaderboardTracker.html",
   "stats": {
-    "downloads": 632,
+    "downloads": 669,
     "favorites": 0,
-    "monthly_downloads": 19
+    "monthly_downloads": 25
   },
   "title": "Ranckors Leaderboard Tracker",
-  "updated_at": 1783900099000,
+  "updated_at": 1790797655000,
   "version": "v1.0.3"
 }

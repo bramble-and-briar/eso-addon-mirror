@@ -39,6 +39,5 @@ function M.GuildSceneState(_, state)
     end
 end
 function AlabuzyaUI.Compatibility.Initialize()
-    if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     if GUILD_ROSTER_SCENE then GUILD_ROSTER_SCENE:RegisterCallback('StateChange',M.GuildSceneState) end
 end

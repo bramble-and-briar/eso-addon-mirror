@@ -7,8 +7,8 @@
 ## Title: Loot Log
 ## Description: Searchable log of the items that you and your group members have looted
 ## Author: @code65536
-## Version: 4.10.0
-## AddOnVersion: 410000
+## Version: 4.10.1
+## AddOnVersion: 410010
 ## APIVersion: 101051
 ## SavedVariables: LootLogSavedVariables LootLogHistory ACACUC_LootLog
 ## DependsOn: LibExtendedJournal>=205031

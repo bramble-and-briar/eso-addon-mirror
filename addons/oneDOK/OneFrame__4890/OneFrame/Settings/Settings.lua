@@ -8,7 +8,7 @@ function A.Settings:Initialize()
         version = A.version, registerForRefresh = true, registerForDefaults = true,
     })
     local labels = { general=ONEFRAME_GENERAL, display=ONEFRAME_DISPLAY, sort=ONEFRAME_SORT,
-        contextMenu=ONEFRAME_CONTEXT_MENU, class=ONEFRAME_CLASS, levelCP=ONEFRAME_LEVEL_CP }
+        groupDps=ONEFRAME_GROUP_DPS, contextMenu=ONEFRAME_CONTEXT_MENU, class=ONEFRAME_CLASS, levelCP=ONEFRAME_LEVEL_CP }
     local options = {}
     local function header(key) options[#options + 1] = { type = "header", name = GetString(labels[key]) } end
     local function checkbox(key, get, set, default)
@@ -24,6 +24,7 @@ function A.Settings:Initialize()
     checkbox("sort")
     checkbox("contextMenu", function() return A.sv.interaction and A.sv.contextMenu end,
         function(value) A.sv.interaction = value; A.sv.contextMenu = value end, true)
+    checkbox("groupDps")
     header("display")
 
     for _, entry in ipairs({ { ONEFRAME_TANK_ROLE, LFG_ROLE_TANK }, { ONEFRAME_HEALER_ROLE, LFG_ROLE_HEAL }, { ONEFRAME_DAMAGE_ROLE, LFG_ROLE_DPS } }) do

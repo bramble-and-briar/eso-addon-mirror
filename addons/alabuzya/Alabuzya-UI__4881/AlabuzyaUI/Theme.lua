@@ -6,6 +6,11 @@ T.atlas='AlabuzyaUI/Textures/EmberAtlas.dds'
 -- ESO's antique face matches the engraved fantasy lettering of the AlabuzyaUI frame
 -- and is supplied by the client with localized glyph coverage.
 T.font='$(ANTIQUE_FONT)'
+function T.Configure()
+    if AlabuzyaUI.Settings.Style()=='wow' then AlabuzyaUI.ClassicTheme.Configure() end
+end
+function T.MapHost() return T.Sidebar() end
+function T.QuestHost() return T.Sidebar() end
 function T.Font(size,outline)
     return T.font..'|'..(size or 18)..'|'..(outline or 'soft-shadow-thick')
 end
@@ -36,7 +41,7 @@ function T.ApplyHUDFonts()
     end
     if ZO_ActionBar_GetButton then
         local last=ACTION_BAR_ULTIMATE_SLOT_INDEX or (ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+5)
-        for index=ACTION_BAR_FIRST_NORMAL_SLOT_INDEX,last do
+        for index=ACTION_BAR_FIRST_NORMAL_SLOT_INDEX+1,last+1 do
             local button=ZO_ActionBar_GetButton(index)
             if button then
                 SetFont(button.buttonText,15,'thick-outline')

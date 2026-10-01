@@ -144,3 +144,7 @@ Ultimate доступен всем ролям: настоящая иконка �
 Если Hodor передаёт две разные способности, отображаются обе: активную панель протокол
 не сообщает. Без достоверных данных элемент скрывается; полученный ноль отображается.
 ДПС показывается бойцам, ХПС — целителям; у танков остаётся Ultimate без счётчика урона.
+
+## Built-in group DPS
+
+General → Group DPS enables the aggregate footer (on by default). The calculation is embedded in OneFrame and does not require LibCombat or Combat Metrics. Disabling it stops aggregate collection and clears its result; individual DPS/HPS are unaffected. Re-enabling begins a fresh aggregate sample. The module adapts the target-based collection from LibCombat v89 by Solinur; attribution, license and differences are in licenses/. ESO can omit distant events or include other players attacking the same target, so this is an estimate, not a complete server-side total.

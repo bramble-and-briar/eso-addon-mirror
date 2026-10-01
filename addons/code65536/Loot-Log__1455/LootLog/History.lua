@@ -313,16 +313,21 @@ local function AddTooltipExtension( module, ... )
 	end
 end
 
+local function DisplayAntiquity( antiquityId, itemLink )
+	PrimaryTooltip = LEJ.ItemTooltip(itemLink or { antiquityId = antiquityId })
+	LootLog.AddAntiquityTooltipExtension(PrimaryTooltip, antiquityId)
+	InitializeTooltip(SecondaryTooltip, PrimaryTooltip, TOPRIGHT, 0, 0, TOPLEFT)
+	SecondaryTooltip:SetLink(LootLog.GetAntiquityRewardLink(antiquityId))
+end
+
 function LootLogListRow_OnMouseEnter( control )
 	local data = ZO_ScrollList_GetData(control)
 	LootLog.list:Row_OnMouseEnter(control)
 
 	local itemLink = data.itemLink
 	if (type(itemLink) == "number") then
-		PrimaryTooltip = LEJ.ItemTooltip({ antiquityId = itemLink })
-		LootLog.AddAntiquityTooltipExtension(PrimaryTooltip, itemLink)
-		InitializeTooltip(SecondaryTooltip, PrimaryTooltip, TOPRIGHT, 0, 0, TOPLEFT)
-		SecondaryTooltip:SetLink(LootLog.GetAntiquityRewardLink(itemLink))
+		-- itemLink is actually antiquityId
+		DisplayAntiquity(itemLink)
 	elseif (IsItemLinkSetCollectionPiece(itemLink)) then
 		PrimaryTooltip = LEJ.ItemTooltip(itemLink)
 		AddTooltipExtension(ItemBrowser, itemLink, nil, 0x0F)
@@ -330,6 +335,7 @@ function LootLogListRow_OnMouseEnter( control )
 	else
 		local itemType = GetItemLinkItemType(itemLink)
 		local collectibleId = GetItemLinkContainerCollectibleId(itemLink)
+		local antiquityId = LootLog.GetAntiquityIdFromItem(itemLink)
 		if (itemType == ITEMTYPE_RECIPE or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF) then
 			PrimaryTooltip = LEJ.ItemTooltip(itemLink)
 			AddTooltipExtension(CharacterKnowledge, itemLink)
@@ -342,6 +348,8 @@ function LootLogListRow_OnMouseEnter( control )
 			InitializeTooltip(SecondaryTooltip, PrimaryTooltip, TOPRIGHT, 0, 0, TOPLEFT)
 			SecondaryTooltip:SetCollectible(collectibleId)
 			AddTooltipExtension(LMAC, collectibleId)
+		elseif (antiquityId > 0) then
+			DisplayAntiquity(antiquityId, itemLink)
 		else
 			PrimaryTooltip = LEJ.ItemTooltip(itemLink, ItemTooltip)
 		end

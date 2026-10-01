@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/tim-p/AutoNomNom__4897",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "tim-p",
+  "canonical_id": "esoui:4897",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4897",
+  "deleted": false,
+  "directories": [
+    "AutoNomNom"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4897/",
+  "fingerprint": "99c69f72dcc7b28cc5dec6b73f0eeeb8214a23545413c151c7db5cf56b4b03a1",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17645.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17646.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17647.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4897",
+  "source_url": "https://www.esoui.com/downloads/info4897-AutoNomNom.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 1,
+    "monthly_downloads": 2
+  },
+  "title": "AutoNomNom",
+  "updated_at": 1790780105000,
+  "version": "2026-09-30"
+}

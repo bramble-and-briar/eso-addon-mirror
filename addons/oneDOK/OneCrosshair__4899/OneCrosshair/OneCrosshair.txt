@@ -1,0 +1,40 @@
+## Title: OneCrosshair
+## Description: Animated crosshair presets with contextual resource and weaving indicators.
+## Author: oneDOK
+## Version: 1.0
+## APIVersion: 101051
+## SavedVariables: OneCrosshairSavedVariables
+## DependsOn: LibAddonMenu-2.0
+
+Localization/en.lua
+Localization/$(language).lua
+Core/Namespace.lua
+Core/Config.lua
+Core/Animator.lua
+Core/StateController.lua
+Core/VisibilityController.lua
+Core/ReticleReplacement.lua
+Core/NativeReticleColor.lua
+Crosshair/PresetRegistry.lua
+Crosshair/Presets/Dot.lua
+Crosshair/Presets/LargeDot.lua
+Crosshair/Presets/Rays.lua
+Crosshair/Presets/Diamonds.lua
+Crosshair/Presets/ESO.lua
+Crosshair/CrosshairController.lua
+HUD/ResourceRing.lua
+HUD/Resource.lua
+HUD/Health.lua
+HUD/Magicka.lua
+HUD/Stamina.lua
+HUD/Shield.lua
+HUD/GCD.lua
+Effects/LowResource.lua
+Effects/HeavyChannelData.lua
+HUD/AbilityTimings.lua
+Effects/HeavyChannel.lua
+Effects/CombatFeedback.lua
+Preview/Preview.lua
+Settings/Settings.lua
+Core/Runtime.lua
+OneCrosshair.lua

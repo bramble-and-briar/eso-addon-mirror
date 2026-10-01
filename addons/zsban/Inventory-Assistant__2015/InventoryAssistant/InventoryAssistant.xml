@@ -1,0 +1,551 @@
+<GuiXml>	
+	<Controls>
+    <!--------------------------------------------------
+    --- Control Templates                            ---
+    --------------------------------------------------->
+    <Backdrop name="IA_WindowDecoration" virtual="true">
+        <Anchor point="TOPLEFT" offsetX="-ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" offsetY="-ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" />
+        <Anchor point="BOTTOMRIGHT" offsetX="ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" offsetY="ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" />
+        <Edge file="InventoryAssistant/ui/window_border.dds" edgeFileWidth="128" edgeFileHeight="16" />
+     	<Center file="InventoryAssistant/ui/window_center.dds" tiled="true" />
+        <Insets left="16" top="16" right="-16" bottom="-16" />
+    </Backdrop>
+    <!------------------------------------------------->
+		<Control name="IA_GenericRow" mouseEnabled="true" virtual="true">
+			<Dimensions y="30" />
+			<OnMouseEnter>
+				IA_InventoryAssistantList_OnMouseEnter ( self )
+			</OnMouseEnter>
+			<OnMouseExit>
+				IA_InventoryAssistantList_OnMouseExit ( self )
+			</OnMouseExit>
+			<Controls>
+				<Texture name="$(parent)BG" inherits="ZO_ThinListBgStrip" />
+				<Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+					<Anchor point="TOPLEFT" offsetX="8" />
+					<Anchor point="BOTTOMRIGHT" />
+        </Label>
+			</Controls>
+		</Control>
+    <!------------------------------------------------->
+		<Control name="IA_HeaderRow" mouseEnabled="true" virtual="true">
+			<Dimensions y="40" />
+			<OnMouseEnter>
+				IA_InventoryAssistantList_OnMouseEnter ( self )
+			</OnMouseEnter>
+			<OnMouseExit>
+				IA_InventoryAssistantList_OnMouseExit ( self )
+			</OnMouseExit>
+			<Controls>
+				<Texture name="$(parent)BG" inherits="ZO_ThinListBgStrip" />
+				<Label name="$(parent)Name" font="ZoFontWinH2" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="7" />
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" />
+				</Label>
+			</Controls>
+		</Control>
+    <!------------------------------------------------->
+		<Control name="IA_ItemRow" mouseEnabled="true" virtual="true">
+			<Dimensions y="30" />
+			<OnMouseEnter>
+				IA_InventoryAssistantList_OnMouseEnter ( self )
+        self:GetNamedChild ( "Name" ):SetColor ( 1, 1, 1 )
+        self:GetNamedChild ( "Bag" ):SetColor ( 1, 1, 1 )
+			</OnMouseEnter>
+			<OnMouseExit>
+				IA_InventoryAssistantList_OnMouseExit ( self )
+        self:GetNamedChild ( "Name" ):SetColor ( 0.4, 0.4, 0.4 )
+        self:GetNamedChild ( "Bag" ):SetColor ( 0.4, 0.4, 0.4 )
+			</OnMouseExit>
+      <OnMouseUp>
+        ClearMenu ( )
+        if not upInside then return end
+        if button == MOUSE_BUTTON_INDEX_RIGHT then
+          local currentCharId = zo_strformat( "&lt;&lt;1&gt;&gt;", GetCurrentCharacterId ( ) )
+          local canLockNow = self.data.item.charId and self.data.item.charId == currentCharId
+                             or ( type ( self.data.item.bagId ) == "number" and self.data.item.bagId &gt;= BAG_HOUSE_BANK_ONE and self.data.item.bagId &lt;= BAG_HOUSE_BANK_TEN and IsOwnerOfCurrentHouse ( ) )
+                             or self.data.item.bagId == BAG_BANK
+                             or self.data.item.bagId == BAG_SUBSCRIBER_BANK
+          local lockable = not self.data.item.groupLoot and self.data.item.bagId ~= BAG_GUILDBANK
+          if lockable and canLockNow then 
+            lockable = CanItemBePlayerLocked ( self.data.item.bagId, self.data.item.slotIndex )
+          end
+          local usePlayerLock = true
+          if FCOIS and FCOIS.settingsVars and FCOIS.settingsVars.settings then 
+            usePlayerLock = FCOIS.settingsVars.settings.useZOsLockFunctions
+          end
+          if usePlayerLock then 
+            if lockable and canLockNow then 
+              if not self.data.item.locked then
+                AddCustomMenuItem ( "Lock", function () 
+                  SetItemIsPlayerLocked ( self.data.item.bagId, self.data.item.slotIndex, not self.data.item.locked )
+                  IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] = nil
+                  IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] = nil
+                  d ( string.format( "%s  |c666666(%s)|r  locked", self.data.item.link, self.data.item.traitTypeName ) )
+                  self.data.item.locked = not self.data.item.locked
+                  self.list:RefreshVisible ( )
+                end )
+              else
+                AddCustomMenuItem ( "Unlock", function () 
+                  SetItemIsPlayerLocked ( self.data.item.bagId, self.data.item.slotIndex, not self.data.item.locked )
+                  IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] = nil
+                  IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] = nil
+                  d ( string.format( "%s  |c666666(%s)|r  unlocked", self.data.item.link, self.data.item.traitTypeName ) )
+                  self.data.item.locked = not self.data.item.locked
+                  self.list:RefreshVisible ( )
+                end )
+              end
+            elseif lockable and not canLockNow then 
+              if not self.data.item.locked then
+                if not IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] then
+                  AddCustomMenuItem ( "Lock (queued)", function () 
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] = 1
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] = nil
+                    d ( string.format( "%s  |c666666(%s)|r  queued for locking", self.data.item.link, self.data.item.traitTypeName ) )
+                    self.list:RefreshVisible ( )
+                  end )
+                else
+                  AddCustomMenuItem ( "Cancel lock (queued)", function () 
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] = nil
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] = nil
+                    d ( string.format( "%s  |c666666(%s)|r  removed from queue for locking", self.data.item.link, self.data.item.traitTypeName ) )
+                    self.list:RefreshVisible ( )
+                  end )
+                end
+              else
+                if not IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] then
+                  AddCustomMenuItem ( "Unlock (queued)", function () 
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] = nil
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] = 1
+                    d ( string.format( "%s  |c666666(%s)|r  queued for unlocking", self.data.item.link, self.data.item.traitTypeName ) )
+                    self.list:RefreshVisible ( )
+                  end )
+                else
+                  AddCustomMenuItem ( "Cancel unlock (queued)", function () 
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ self.data.item.uniqueId ] = nil
+                    IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ self.data.item.uniqueId ] = nil
+                    d ( string.format( "%s  |c666666(%s)|r  removed from queue for unlocking", self.data.item.link, self.data.item.traitTypeName ) )
+                    self.list:RefreshVisible ( )
+                  end )
+                end
+              end
+            end
+          end
+          AddCustomMenuItem ( "Link in Chat", function () 
+            if IsChatSystemAvailableForCurrentPlatform ( ) then
+              local itemLink = "|H1:" .. self.data.itemLink:sub ( 5 )
+              ZO_LinkHandler_InsertLink ( zo_strformat ( SI_TOOLTIP_ITEM_NAME, itemLink ) )
+            end
+          end )
+          if self.data.item.groupLoot and IsChatSystemAvailableForCurrentPlatform ( ) and CHAT_SYSTEM then
+          AddCustomMenuItem ( "Whisper player", function () 
+            if self.data.item.groupLoot and IsChatSystemAvailableForCurrentPlatform ( ) and CHAT_SYSTEM then
+              local bagId = self.data.item.bagId
+              local characterName, displayName = string.match ( bagId, "(.+)(@.+)" )
+              CHAT_SYSTEM:StartTextEntry( "", CHAT_CHANNEL_WHISPER, displayName or self.data.item.bagId )
+            end
+          end )
+          end
+          if FCOIS and self.data.uniqueId then
+            local fcoisItemId
+            local useUniqueIds = FCOIS.settingsVars.settings.useUniqueIds 
+            if useUniqueIds then
+              fcoisItemId = self.data.item.uniqueId
+            else
+              fcoisItemId = self.data.item.itemId
+            end
+            
+            local createFCOISMenuItem = function ( item, fcoisItemId, marker, menuText1, menuText2, actionText1, actionText2 )
+              local isMarked = FCOIS.markedItems[ marker ][ item.itemId ] or FCOIS.markedItems[ marker ][ item.uniqueId ] or false
+              if not isMarked then
+                if FCOIS.settingsVars.settings.isIconEnabled[ marker ] then
+                  AddCustomMenuItem ( string.format ( "FCOIS: %s", menuText1 ), function () 
+                    FCOIS.markedItems[ marker ][ fcoisItemId ] = 1
+                    FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                    d ( string.format ( "%s  |c666666(%s)|r  %s", item.link, item.traitTypeName, actionText1 ) )
+                  end )
+                end
+              else
+                AddCustomMenuItem ( string.format ( "FCOIS: %s", menuText2 ), function () 
+                  FCOIS.markedItems[ marker ][ item.itemId ] = nil
+                  FCOIS.markedItems[ marker ][ item.uniqueId ] = nil
+                  FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                  d ( string.format ( "%s  |c666666(%s)|r  %s", item.link, item.traitTypeName, actionText2 ) ) 
+                end )
+              end
+            end
+
+            local createFCOISSubMenuItem = function ( item, fcoisItemId, marker, menuText1, menuText2, actionText1, actionText2 )
+              local submenuitem = { }
+              local isMarked = FCOIS.markedItems[ marker ][ item.itemId ] or FCOIS.markedItems[ marker ][ item.uniqueId ] or false
+              if not isMarked then
+                if FCOIS.settingsVars.settings.isIconEnabled[ marker ] then
+                  submenuitem.label = menuText1
+                  submenuitem.callback = function ( ) 
+                    FCOIS.markedItems[ marker ][ fcoisItemId ] = 1
+                    FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                    d ( string.format ( "%s  |c666666(%s)|r  %s", item.link, item.traitTypeName, actionText1 ) )
+                  end
+                end
+              else
+                submenuitem.label = menuText2
+                submenuitem.callback = function ( ) 
+                  FCOIS.markedItems[ marker ][ item.itemId ] = nil
+                  FCOIS.markedItems[ marker ][ item.uniqueId ] = nil
+                  FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                  d ( string.format ( "%s  |c666666(%s)|r  %s", item.link, item.traitTypeName, actionText2 ) ) 
+                end
+              end
+              return submenuitem
+            end
+
+            local createFCOISGearSetsMenu = function ( item, fcoisItemId )
+              local submenu = { }
+              local name
+              name = FCOIS.settingsVars.settings.icon [ FCOIS_CON_ICON_GEAR_1 ].name or ""
+              table.insert ( submenu, createFCOISSubMenuItem ( item, fcoisItemId, FCOIS_CON_ICON_GEAR_1, "Add to " .. name, "Remove from " .. name, "added to " .. name, "removed from " .. name ) )
+              name = FCOIS.settingsVars.settings.icon [ FCOIS_CON_ICON_GEAR_2 ].name or ""
+              table.insert ( submenu, createFCOISSubMenuItem ( item, fcoisItemId, FCOIS_CON_ICON_GEAR_2, "Add to " .. name, "Remove from " .. name, "added to " .. name, "removed from " .. name ) )
+              name = FCOIS.settingsVars.settings.icon [ FCOIS_CON_ICON_GEAR_3 ].name or ""
+              table.insert ( submenu, createFCOISSubMenuItem ( item, fcoisItemId, FCOIS_CON_ICON_GEAR_3, "Add to " .. name, "Remove from " .. name, "added to " .. name, "removed from " .. name ) )
+              name = FCOIS.settingsVars.settings.icon [ FCOIS_CON_ICON_GEAR_4 ].name or ""
+              table.insert ( submenu, createFCOISSubMenuItem ( item, fcoisItemId, FCOIS_CON_ICON_GEAR_4, "Add to " .. name, "Remove from " .. name, "added to " .. name, "removed from " .. name ) )
+              name = FCOIS.settingsVars.settings.icon [ FCOIS_CON_ICON_GEAR_5 ].name or ""
+              table.insert ( submenu, createFCOISSubMenuItem ( item, fcoisItemId, FCOIS_CON_ICON_GEAR_5, "Add to " .. name, "Remove from " .. name, "added to " .. name, "removed from " .. name ) )
+              return submenu
+            end
+
+            local createFCOISDynamicMarkersMenu = function ( item, fcoisItemId )
+              local submenu = { }
+              local name
+              for i = FCOIS_CON_ICON_DYNAMIC_1, FCOIS_CON_ICON_DYNAMIC_30 do
+                name = FCOIS.settingsVars.settings.icon [ i ].name or ""
+                table.insert ( submenu, createFCOISSubMenuItem ( item, fcoisItemId, i, "Mark as " .. name, "Unmark as " .. name, "marked as " .. name, "unmarked as " .. name ) )
+              end
+              return submenu
+            end
+
+            AddCustomMenuItem( "-" )
+            createFCOISMenuItem ( self.data.item, fcoisItemId, FCOIS_CON_ICON_LOCK, "Lock", "Unlock", "locked in FCOIS", "unlocked in FCOIS" )
+            createFCOISMenuItem ( self.data.item, fcoisItemId, FCOIS_CON_ICON_RESEARCH, "Mark for Research", "Unmark for Research", "marked for research", "unmarked for research" )
+            createFCOISMenuItem ( self.data.item, fcoisItemId, FCOIS_CON_ICON_IMPROVEMENT, "Mark for Improvement", "Unmark for Improvement", "marked for improvement", "unmarked for improvement" )
+
+            if not ( FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ self.data.item.itemId ] or FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ self.data.item.uniqueId ] or false ) then
+              if FCOIS.settingsVars.settings.isIconEnabled[ FCOIS_CON_ICON_DECONSTRUCTION ] then
+                AddCustomMenuItem ( "FCOIS: Mark for Deconstruction", function () 
+                  FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ fcoisItemId ] = 1
+                  FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ fcoisItemId ] = nil
+                  FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ fcoisItemId ] = nil
+                  FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                  d ( string.format( "%s  |c666666(%s)|r  marked for deconstruction", self.data.item.link, self.data.item.traitTypeName ) )
+                end )
+              end
+            else
+              AddCustomMenuItem ( "FCOIS: Unmark for Deconstruction", function () 
+                FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ self.data.item.itemId ] = nil
+                FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ self.data.item.uniqueId ] = nil
+                FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                d ( string.format( "%s  |c666666(%s)|r  unmarked for deconstruction", self.data.item.link, self.data.item.traitTypeName ) ) 
+              end )
+            end
+            if not ( FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ self.data.item.itemId ] or FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ self.data.item.uniqueId ] or false ) then
+              if FCOIS.settingsVars.settings.isIconEnabled[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ] then
+                AddCustomMenuItem ( "FCOIS: Mark for Sell at Guild Store", function () 
+                  FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ fcoisItemId ] = nil
+                  FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ fcoisItemId ] = nil
+                  FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ fcoisItemId ] = 1
+                  FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                  d ( string.format( "%s  |c666666(%s)|r  marked for selling at guild store", self.data.item.link, self.data.item.traitTypeName ) )
+                end )
+              end
+            else
+              AddCustomMenuItem ( "FCOIS: Unmark for Sell at Guild Store", function () 
+                FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ self.data.item.itemId ] = nil
+                FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ self.data.item.uniqueId ] = nil
+                FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                d ( string.format( "%s  |c666666(%s)|r  unmarked for selling at guild store", self.data.item.link, self.data.item.traitTypeName ) )
+              end )
+            end
+            if not ( FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ self.data.item.itemId ] or FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ self.data.item.uniqueId ] or false ) then
+              if FCOIS.settingsVars.settings.isIconEnabled[ FCOIS_CON_ICON_SELL ] then
+                AddCustomMenuItem ( "FCOIS: Mark for Sell to Merchant", function () 
+                  FCOIS.markedItems[ FCOIS_CON_ICON_DECONSTRUCTION ][ fcoisItemId ] = nil
+                  FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ fcoisItemId ] = 1
+                  FCOIS.markedItems[ FCOIS_CON_ICON_SELL_AT_GUILDSTORE ][ fcoisItemId ] = nil
+                  FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                  d ( string.format( "%s  |c666666(%s)|r  marked for selling to merchant", self.data.item.link, self.data.item.traitTypeName ) )
+                end )
+              end
+            else
+              AddCustomMenuItem ( "FCOIS: Unmark for Sell to Merchant", function () 
+                FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ self.data.item.itemId ] = nil
+                FCOIS.markedItems[ FCOIS_CON_ICON_SELL ][ self.data.item.uniqueId ] = nil
+                FCOIS.FilterBasics ( --[[onlyPlayer]] false )
+                d ( string.format( "%s  |c666666(%s)|r  unmarked for selling to merchant", self.data.item.link, self.data.item.traitTypeName ) )
+              end )
+            end
+            AddCustomSubMenuItem ( "FCOIS: Gear Sets", createFCOISGearSetsMenu (  self.data.item, fcoisItemId ) )
+            AddCustomSubMenuItem ( "FCOIS: Dynamic Markers", createFCOISDynamicMarkersMenu (  self.data.item, fcoisItemId ) )
+          end
+          ShowMenu ( self )
+        elseif button == MOUSE_BUTTON_INDEX_LEFT then 
+          if self.data.item.groupLoot and IsChatSystemAvailableForCurrentPlatform ( ) and CHAT_SYSTEM then
+              local bagId = self.data.item.bagId
+              local characterName, displayName = string.match ( bagId, "(.+)(@.+)" )
+              CHAT_SYSTEM:StartTextEntry( "", CHAT_CHANNEL_WHISPER, displayName or self.data.item.bagId )
+          end
+        end
+      </OnMouseUp>
+			<Controls>
+				<Texture name="$(parent)BG" inherits="ZO_ThinListBgStrip" />
+        <Texture name="$(parent)Tradeable" textureFile="esoui/art/inventory/inventory_tradable_icon.dds" layer="1">
+          <Dimensions x="24" y="24" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="3" offsetY="3" />
+        </Texture>
+        <Texture name="$(parent)Marker" inherits="IA_MultiIcon" layer="2">
+          <Dimensions x="24" y="24" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="3" offsetY="3" />
+        </Texture>
+        <Texture name="$(parent)Icon">
+          <Dimensions x="24" y="24" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Marker" relativePoint="TOPRIGHT" />
+        </Texture>
+				<Label name="$(parent)Bag" font="ZoFontGame" wrapMode="ELLIPSIS" horizontalAlignment="RIGHT" verticalAlignment="CENTER" color="666666">
+          <DimensionConstraints minX="0" maxX="250" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" />
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" />
+				</Label>
+				<Label name="$(parent)Level" font="ZoFontGame" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER" color="666666">
+					<Dimensions x="0" />
+          <DimensionConstraints minX="0" maxX="50" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)Bag" relativePoint="TOPLEFT" />
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Bag" relativePoint="BOTTOMLEFT" offsetX="0" />
+        </Label>
+				<Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" horizontalAlignment="LEFT" verticalAlignment="CENTER" color="666666">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" offsetX="3" offsetY="-3" />
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Level" relativePoint="BOTTOMLEFT" offsetX="-8" />
+        </Label>
+			</Controls>
+		</Control>
+    <!--------------------------------------------------
+    --- Inventory Assistant Main Window              ---
+    --------------------------------------------------->
+    <TopLevelControl name="IA_Main" resizeHandleSize="ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" tier="HIGH" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+      <Anchor point="TOPLEFT" relativePoint="TOPLEFT" />
+      <DimensionConstraints minX="220" minY="150" />
+      <OnInitialized>
+        IA_InventoryAssistant_OnInitialize ( self )
+      </OnInitialized>
+      <Controls>
+        <Control name="$(parent)Window">
+          <Anchor point="TOPLEFT" offsetX="ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" offsetY="ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" />
+          <Anchor point="BOTTOMRIGHT" offsetX="-ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" offsetY="-ZO_DEFAULT_BACKDROP_ANCHOR_OFFSET" />
+          <Controls>
+            <Backdrop name="$(parent)Decoration" inherits="IA_WindowDecoration" />
+            <Control name="$(parent)TitleBar">
+              <Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="-5" offsetY="-5" />
+              <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetX="3" offsetY="27" />
+              <Controls>
+                  <Texture name="$(parent)Background" color="808080" alpha="0.2">
+                  <AnchorFill />
+                </Texture>
+                <Label name="$(parent)Text" font="ZoFontWinH4" text="Inventory Assistant" color="FFFFFF" verticalAlignment="CENTER" multiLine="false" wrapMode="ELLIPSIS">
+                  <Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="5" />
+                  <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" offsetX="-32" />
+                </Label>
+                <Button name="$(parent)SettingsButton">
+                  <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" offsetX="-32" offsetY="0" />
+                  <Dimensions x="32" y="32" />
+                  <Textures normal="esoui/art/chatwindow/chat_options_up.dds" pressed="esoui/art/chatwindow/chat_options_down.dds" mouseOver="esoui/art/chatwindow/chat_options_over.dds" />
+                  <OnMouseUp>
+                    ClearMenu ( )
+                    if button == MOUSE_BUTTON_INDEX_LEFT then 
+                      local checkbox = IA_INVENTORY_ASSISTANT.onlyUncollected and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show only uncollected set items", function () 
+                        IA_INVENTORY_ASSISTANT.onlyUncollected = not IA_INVENTORY_ASSISTANT.onlyUncollected
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.onlyDuplicates and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show only duplicates", function () 
+                        IA_INVENTORY_ASSISTANT.onlyDuplicates = not IA_INVENTORY_ASSISTANT.onlyDuplicates
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      if FCOIS then
+                        local checkbox = IA_INVENTORY_ASSISTANT.onlyMarkedItems and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                        AddCustomMenuItem ( checkbox .. " Show only marked items", function () 
+                          IA_INVENTORY_ASSISTANT.onlyMarkedItems = not IA_INVENTORY_ASSISTANT.onlyMarkedItems
+                          IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                        end )
+                        local checkbox = IA_INVENTORY_ASSISTANT.showFCOISGearSetMarkers and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                        AddCustomMenuItem ( checkbox .. " Show FCOIS gear set marker icons", function () 
+                          IA_INVENTORY_ASSISTANT.showFCOISGearSetMarkers = not IA_INVENTORY_ASSISTANT.showFCOISGearSetMarkers
+                          IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                        end )
+                        local checkbox = IA_INVENTORY_ASSISTANT.showFCOISDynamicMarkers and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                        AddCustomMenuItem ( checkbox .. " Show FCOIS dynamic marker icons", function () 
+                          IA_INVENTORY_ASSISTANT.showFCOISDynamicMarkers = not IA_INVENTORY_ASSISTANT.showFCOISDynamicMarkers
+                          IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                        end )
+                      end
+                      AddCustomMenuItem( "-" )
+                      local checkbox = IA_INVENTORY_ASSISTANT.onlyCP160 and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show only CP160 items", function () 
+                        IA_INVENTORY_ASSISTANT.onlyCP160 = not IA_INVENTORY_ASSISTANT.onlyCP160
+                        if IA_INVENTORY_ASSISTANT.onlyCP160 then
+                          IA_INVENTORY_ASSISTANT.onlyNonCP160 = false
+                        end
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.onlyNonCP160 and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show only non CP160 items", function () 
+                        IA_INVENTORY_ASSISTANT.onlyNonCP160 = not IA_INVENTORY_ASSISTANT.onlyNonCP160
+                        if IA_INVENTORY_ASSISTANT.onlyNonCP160 then
+                          IA_INVENTORY_ASSISTANT.onlyCP160 = false
+                        end
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      AddCustomMenuItem( "-" )
+                      local checkbox = IA_INVENTORY_ASSISTANT.onlyLoots and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show only loots", function () 
+                        IA_INVENTORY_ASSISTANT.onlyLoots = not IA_INVENTORY_ASSISTANT.onlyLoots
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.groupLoots and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show group loots", function () 
+                        IA_INVENTORY_ASSISTANT.groupLoots = not IA_INVENTORY_ASSISTANT.groupLoots
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] true, --[[preserveScrollPosition]] false )
+                      end )
+                      AddCustomMenuItem( "-" )
+                      local checkbox = IA_INVENTORY_ASSISTANT.showCrafted and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show crafted sets", function () 
+                        IA_INVENTORY_ASSISTANT.showCrafted = not IA_INVENTORY_ASSISTANT.showCrafted
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.showBuyable and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show tradeable sets", function () 
+                        IA_INVENTORY_ASSISTANT.showBuyable = not IA_INVENTORY_ASSISTANT.showBuyable
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.showBound and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show bound sets", function () 
+                        IA_INVENTORY_ASSISTANT.showBound = not IA_INVENTORY_ASSISTANT.showBound
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.showMonsterSets and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show monster sets", function () 
+                        IA_INVENTORY_ASSISTANT.showMonsterSets = not IA_INVENTORY_ASSISTANT.showMonsterSets
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      local checkbox = IA_INVENTORY_ASSISTANT.showNonSetItems and "|t16:16:esoui/art/buttons/checkbox_checked.dds|t" or "|t16:16:esoui/art/buttons/checkbox_unchecked.dds|t"
+                      AddCustomMenuItem ( checkbox .. " Show other items", function () 
+                        IA_INVENTORY_ASSISTANT.showNonSetItems = not IA_INVENTORY_ASSISTANT.showNonSetItems
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
+                      end )
+                      AddCustomMenuItem ( "-" )
+                      AddCustomMenuItem ( "|u16:0:: Clear group loots|u", function () 
+                        IA_INVENTORY_ASSISTANT.settings.inventories [ "grouploot" ] = { }
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] true, --[[preserveScrollPosition]] false )
+                      end )
+                      AddCustomMenuItem ( "|u16:0:: Reset filters|u", function () 
+                        IA_INVENTORY_ASSISTANT.onlyDuplicates = IA_INVENTORY_ASSISTANT.settings.onlyDuplicates
+                        IA_INVENTORY_ASSISTANT.onlyUncollected = IA_INVENTORY_ASSISTANT.settings.onlyUncollected
+                        IA_INVENTORY_ASSISTANT.onlyMarkedItems = IA_INVENTORY_ASSISTANT.settings.onlyMarkedItems
+                        IA_INVENTORY_ASSISTANT.onlyLoots = IA_INVENTORY_ASSISTANT.settings.onlyLoots
+                        IA_INVENTORY_ASSISTANT.groupLoots = IA_INVENTORY_ASSISTANT.settings.groupLoots
+                        IA_INVENTORY_ASSISTANT.showCrafted = IA_INVENTORY_ASSISTANT.settings.showCrafted
+                        IA_INVENTORY_ASSISTANT.showBuyable = IA_INVENTORY_ASSISTANT.settings.showBuyable
+                        IA_INVENTORY_ASSISTANT.showBound = IA_INVENTORY_ASSISTANT.settings.showBound
+                        IA_INVENTORY_ASSISTANT.showMonsterSets = IA_INVENTORY_ASSISTANT.settings.showMonsterSets
+                        IA_INVENTORY_ASSISTANT.showFCOISGearSetMarkers = IA_INVENTORY_ASSISTANT.settings.showFCOISGearSetMarkers
+                        IA_INVENTORY_ASSISTANT.showFCOISDynamicMarkers = IA_INVENTORY_ASSISTANT.settings.showFCOISDynamicMarkers
+                        IA_INVENTORY_ASSISTANT.showNonSetItems = IA_INVENTORY_ASSISTANT.settings.showNonSetItems
+                        IA_INVENTORY_ASSISTANT.showItemLevels = IA_INVENTORY_ASSISTANT.settings.showItemLevels
+                        IA_INVENTORY_ASSISTANT.showEnchants = IA_INVENTORY_ASSISTANT.settings.showEnchants
+                        IA_INVENTORY_ASSISTANT.onlyCP160 = false
+                        IA_INVENTORY_ASSISTANT.onlyNonCP160 = false
+                        IA_INVENTORY_ASSISTANT.searchbox:SetText ( "" )
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] true, --[[preserveScrollPosition]] false )
+                      end )
+                      AddCustomMenuItem ( "|u16:0:: Settings|u", function () 
+                        LibAddonMenu2:OpenToPanel(IA_INVENTORY_ASSISTANT.settingsPanel)
+                      end )
+                      AddCustomMenuItem ( "|u16:0:: Rescan|u", function () 
+                        IA_INVENTORY_ASSISTANT:Refresh ( --[[reload]] true, --[[preserveScrollPosition]] false )
+                      end )
+                      ShowMenu ( self )
+                    end
+                  </OnMouseUp>
+                </Button>
+                <Button name="$(parent)CloseButton">
+                  <Anchor point="TOPRIGHT" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
+                  <Dimensions x="32" y="32" />
+                  <Textures normal="esoui/art/hud/radialicon_cancel_up.dds" pressed="esoui/art/hud/radialicon_cancel_down.dds" mouseOver="esoui/art/hud/radialicon_cancel_over.dds" />
+                  <OnMouseUp>
+                    if button == MOUSE_BUTTON_INDEX_LEFT then 
+                      IA_INVENTORY_ASSISTANT:ToggleWindow ( )
+                    end
+                  </OnMouseUp>
+                </Button>
+                <Texture name="$(parent)Divider" textureFile="InventoryAssistant/ui/window_topdivider.dds">
+                    <Dimensions y="4"/>
+                    <Anchor point="TOPLEFT" offsetY="33" offsetX="0" />
+                    <Anchor point="TOPRIGHT" offsetY="33" offsetX="0"/>
+                    <TextureCoords top="0" bottom="1" left="0.081640625" right="0.918359375"/>
+                </Texture>
+              </Controls>
+            </Control>
+            <Control name="$(parent)Canvas">
+              <Anchor point="TOPLEFT" relativeTo="$(parent)TitleBar" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+              <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" offsetX="3" offsetY="3" />
+              <Controls>
+                <!-- Search box  -->
+          				<Backdrop name="$(parent)Search" inherits="ZO_DefaultBackdrop">
+                  <Anchor point="TOPLEFT" />
+                  <Anchor point="TOPRIGHT" offsetX="2" />
+                  <OnInitialized>
+                      ZO_SingleLineEditContainerSize_Keyboard_OnInitialized(self)
+                  </OnInitialized>
+                  <Controls>
+                    <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop ZO_EditDefaultText" />
+                  </Controls>
+                </Backdrop>
+                <!-- Item Lists  -->
+         				<Control name="$(parent)List" inherits="ZO_ScrollList">
+                  <Anchor point="TOPRIGHT" relativeTo="$(parent)Search" relativePoint="BOTTOMRIGHT"  />
+                  <Anchor point="BOTTOMLEFT" />
+                </Control>
+              </Controls>
+            </Control>
+          </Controls>
+        </Control>
+      </Controls>
+    </TopLevelControl>
+
+		<TopLevelControl name="IA_CharacterTooltipTopLevel" inherits="TooltipTopLevel">
+			<Controls>
+        <Tooltip name="IA_CharacterTooltip" inherits="ZO_BaseTooltip">
+          <Dimensions x="300" y="220" />
+          <Controls>
+            <Label name="$(parent)Title" font="ZoFontWinH4" color="FFFFFF" horizontalAlignment="LEFT" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
+              <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+              <Anchor point="TOPRIGHT" offsetX="-16" offsetY="12" />
+            </Label>
+            <Label name="$(parent)Progress" font="ZoFontGame" color="A0A0A0" horizontalAlignment="LEFT" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
+              <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+              <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="4" />
+            </Label>
+            <Label name="$(parent)Cost" font="ZoFontGame" color="A0A0A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER">
+              <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+              <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="4" />
+            </Label>
+            <Control name="$(parent)Pieces">
+              <Dimensions x="1" y="1" />
+              <Anchor point="TOPLEFT" relativeTo="$(parent)Progress" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="4" />
+              <Anchor point="TOPRIGHT" relativeTo="$(parent)Progress" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="4" />
+            </Control>
+          </Controls>
+        </Tooltip>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

@@ -756,6 +756,7 @@ function addon:RestoreLayout(chat)
 	end
 	self:Write("dimensions", control.SetDimensions, control, original.width, original.height)
 	self:RestoreElementAnchor()
+	self:RemoveRectWatch(chat)
 	self.layoutWritten = false
 	self.lastLayout = nil
 	return true
@@ -808,6 +809,10 @@ function addon:ApplyLayout()
 	-- And the same anchor into the U51 HUD element, so the client's own re-applications agree
 	-- with the control instead of putting the window back.
 	self:WriteElementAnchor(point, corner.sx * layout.x, corner.sy * layout.y)
+
+	-- From here on the window reports a change to its own rectangle, so a write by anyone else is
+	-- undone when it happens rather than at the next timed look.
+	self:InstallRectWatch(chat)
 
 	self.layoutWritten = true
 	self.lastLayout = layout
@@ -1341,9 +1346,100 @@ end
 -- round into a measurement instead of another guess.
 -- ---------------------------------------------------------------------------------------
 
+-- ---------------------------------------------------------------------------------------
+-- Correcting it as it happens
+--
+-- The timed looks below reached the window about a second after a zone load on a PS5, which is
+-- long enough to watch it snap back. A look is only as fast as its interval, so the window
+-- reports its own changes instead:
+--
+--   OnRectChanged       the engine's own notice that the control's rectangle changed, run when
+--                       the layout is resolved -- ahead of the frame being drawn
+--   OnEffectivelyShown  the moment the window is actually on screen, which is the first chance to
+--                       see a size it was given while it was hidden
+--
+-- Both are added with SetHandler(name, fn, handlerName): the third argument registers a separate
+-- named handler beside whatever the control already has, and the client does the same with
+-- "ZO_CustomAnimationSceneFragment" and "ZO_Menu". Nothing the client installed is replaced or
+-- wrapped, and our function is the only frame on the stack when it runs -- the same shape as a
+-- RegisterForUpdate callback.
+--
+-- Installed only once something has been written, and taken off again on reset: an untouched
+-- install adds no handler to the chat at all.
+--
+-- What could go wrong is a loop: a correction changes the rectangle, which raises the event
+-- again. A correction only happens when the window differs from what was asked, so one that lands
+-- is silent the second time, and a writer that keeps fighting back is cut off after a few rounds
+-- in the same frame -- counted in status rather than looped on.
+-- ---------------------------------------------------------------------------------------
+
+addon.RECT_HANDLERS = { "OnRectChanged", "OnEffectivelyShown" }
+addon.MAX_CORRECTIONS_PER_FRAME = 4
+
+function addon:InstallRectWatch(chat)
+	if self.rectWatchInstalled then
+		return true
+	end
+	local control = chat.control
+	if type(control.SetHandler) ~= "function" then
+		return false
+	end
+	local allOk = true
+	for _, handlerName in ipairs(self.RECT_HANDLERS) do
+		local ok = self:Write("rect handler " .. handlerName, control.SetHandler, control, handlerName, function()
+			addon:OnChatRectEvent(handlerName)
+		end, self.name, CONTROL_HANDLER_ORDER_AFTER)
+		allOk = allOk and ok
+	end
+	self.rectWatchInstalled = allOk
+	return allOk
+end
+
+function addon:RemoveRectWatch(chat)
+	if not self.rectWatchInstalled then
+		return
+	end
+	local control = chat.control
+	for _, handlerName in ipairs(self.RECT_HANDLERS) do
+		self:Write("rect handler " .. handlerName, control.SetHandler, control, handlerName, nil, self.name, CONTROL_HANDLER_ORDER_AFTER)
+	end
+	self.rectWatchInstalled = false
+end
+
+function addon:OnChatRectEvent(handlerName)
+	self.rectEvents = (self.rectEvents or 0) + 1
+	if self.inRectCorrection or not self.layoutWritten or not self.lastLayout then
+		return
+	end
+	local ready, chat = self:ChatReady()
+	if not ready or self:LayoutInPlace(chat.control, self.lastLayout) then
+		return
+	end
+
+	-- A writer that answers every correction with its own would otherwise run for ever.
+	local now = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+	if now ~= self.rectFrame then
+		self.rectFrame = now
+		self.rectFrameCount = 0
+	end
+	self.rectFrameCount = self.rectFrameCount + 1
+	if self.rectFrameCount > self.MAX_CORRECTIONS_PER_FRAME then
+		self.rectGaveUp = (self.rectGaveUp or 0) + 1
+		return
+	end
+
+	self.inRectCorrection = true
+	self:RecordDrift(handlerName)
+	local ok = pcall(self.ApplyLayout, self)
+	self.inRectCorrection = false
+	if ok then
+		self.rectCorrections = (self.rectCorrections or 0) + 1
+	end
+end
+
 -- When to look after a zone load. The first is the frame after the client settles, the last is
 -- late enough to catch a slow dungeon load.
-addon.SETTLE_DELAYS_MS = { 250, 1000, 3000, 6000, 10000 }
+addon.SETTLE_DELAYS_MS = { 50, 150, 400, 1000, 3000, 6000, 10000 }
 addon.MAX_DRIFT_LOG = 6
 
 function addon:RecordDrift(what)
@@ -1506,6 +1602,9 @@ function addon:PrintStatus()
 	Line("  text: size=%d default=%d setting=%s differs=%s written=%s", self:FontSize(), self:DefaultFontSize(),
 		tostring(self:GameFontSetting()), tostring(self:FontDiffers()), tostring(self.fontWritten == true))
 	Line("  text descriptor: %s", tostring(self.lastDescriptor or self:EffectiveDescriptor()))
+
+	Line("  rect watch: installed=%s events=%d corrected=%d gaveUp=%d", tostring(self.rectWatchInstalled == true),
+		self.rectEvents or 0, self.rectCorrections or 0, self.rectGaveUp or 0)
 
 	local element = self:HudElement()
 	if element then
@@ -1761,6 +1860,10 @@ local function RegisterHud()
 		return false
 	end
 	fragment:RegisterCallback("StateChange", function(_, newState)
+		if newState == SCENE_FRAGMENT_SHOWING then
+			-- The HUD is on its way in: the last chance to be right before its first frame.
+			addon:Settle("HUD showing")
+		end
 		if newState == SCENE_FRAGMENT_SHOWN then
 			addon:OnHudShowing()
 		elseif addon:ShowInMenus() then

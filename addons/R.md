@@ -50,7 +50,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RandoMote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/RandoMote__17d96254-a61a-4bb4-9409-d369f44e867f) | Springpeace2575 | Console | — |
 | [RandoMote (Dev)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/RandoMote-Dev__b1a7539b-4888-4ad6-b04c-28000d99976d) | Springpeace2575 | Console | — |
 | [Randomote - Automatic/Manual Random Emotes \| New & Extended Personalities!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scorpius2k1/Randomote---Automatic-Manual-Random-Emotes-New-Extended-Personalities__3461) | scorpius2k1 | PC / Mac | 1.3 |
-| [Randwache](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Randwache__4842) | Torfason | PC / Mac | 1.0.3 |
+| [Randwache](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Randwache__4842) | Torfason | PC / Mac | 2.0.0 |
 | [RankIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ragingpix3l/RankIcons__2744) | ragingpix3l | PC / Mac | 0.05 |
 | [Rare Fish Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/katkat42/Rare-Fish-Tracker__665) | katkat42 | PC / Mac | 1.43.0 |
 | [Rare Fish Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Treuce/Rare-Fish-Tracker__4303) | Treuce | PC / Mac | 1.42.8 |
@@ -125,7 +125,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.29 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.30 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |
@@ -141,6 +141,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RoleCrowns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheWizardLizard/RoleCrowns__2539) | TheWizardLizard | PC / Mac | 1.0.1 |
 | [Roleplay Marker 2020](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Roleplay-Marker-2020__2878) | Phuein | PC / Mac | 1.11 |
 | [Roleplay Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Roleplay-Plus__351) | Smaxx | PC / Mac | 0.3b |
+| [Roleplay Post support](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/aausten/Roleplay-Post-support__4888) | aausten | PC / Mac | 1.2.2 |
 | [Roleplay Suite - Character Skill & Needs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Christopherv1995/Roleplay-Suite---Character-Skill-Needs__1935) | Christopherv1995 | PC / Mac | 2.3 |
 | [RolePlayNeeds - I Heard a Rumor...](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---I-Heard-a-Rumor__4149) | matheusbk2 | PC / Mac | 0.3.2 |
 | [RolePlayNeeds - Immersive Hair!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/matheusbk2/RolePlayNeeds---Immersive-Hair__4173) | matheusbk2 | PC / Mac | 0.1 FIX |
@@ -173,5 +174,5 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rulebased Inventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TaxTalis/Rulebased-Inventory__2136) | TaxTalis | PC / Mac | 2.32 |
 | [RunesVoice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/RunesVoice__2173) | Nols1000 | PC / Mac | 0.1.0 |
 | [Rush of Agony Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rush-of-Agony-Tracker__03e3b721-0ccb-4e27-9f1c-ae0e6bf96be5) | codeWarrior82 | Console | — |
-| [RyticCombat&RaidTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticCombat-RaidTools__4854) | Rytic | PC / Mac | 3.0.1 |
+| [RyticCombat&RaidTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticCombat-RaidTools__4854) | Rytic | PC / Mac | 3.0.2 |
 | [RyticRaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticRaidManager__4858) | Rytic | PC / Mac | 3.1 |

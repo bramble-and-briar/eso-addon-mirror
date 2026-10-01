@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/OlegS/Guild-Chat-Colors__3110",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "OlegS",
   "canonical_id": "esoui:3110",
   "category_id": "55",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3110",
@@ -17,7 +18,7 @@
     "GuildChatColors"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3110/",
-  "fingerprint": "16fcaa696bc55aa03ab37927eaed0a1a099c503e711dc7f31c81d492f46de783",
+  "fingerprint": "b222d67797b23ae1fb66287275864619286f05aeb8ba7076c209eab8fb41aafe",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10470.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw10471.jpg",
@@ -29,11 +30,11 @@
   "source_id": "3110",
   "source_url": "https://www.esoui.com/downloads/info3110-GuildChatColors.html",
   "stats": {
-    "downloads": 12561,
-    "favorites": 14,
-    "monthly_downloads": 65
+    "downloads": 12719,
+    "favorites": 15,
+    "monthly_downloads": 69
   },
   "title": "Guild Chat Colors",
-  "updated_at": 1781109411000,
-  "version": "1.50.0"
+  "updated_at": 1790781337000,
+  "version": "1.51.0"
 }

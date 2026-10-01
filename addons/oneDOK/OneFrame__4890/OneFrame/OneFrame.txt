@@ -1,7 +1,7 @@
 ## Title: OneFrame
 ## Description: Optional enhancements for the vanilla group frames.
 ## Author: oneDOK
-## Version: 1.0
+## Version: 1.1
 ## APIVersion: 101050 101051
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: HodorReflexes LibGroupCombatStats
@@ -13,6 +13,7 @@ Lang/$(language).lua
 Defaults.lua
 Data/GroupData.lua
 Integrations/HodorReflexes.lua
+Data/GroupCombat.lua
 Data/CombatStats.lua
 Data/RoleSorting.lua
 UI/PlayerInfo.lua

@@ -1,66 +1,57 @@
-Tamriel Progress Map 2.7.0
-
-2.7.0 release
--------------
-- Reorganized the Statistics journal around TPM's core purpose: progression.
-- Main navigation now contains Progress, Economy and PvE / PvP.
-- Progress now uses two pages:
-  1 / 2 = Tamriel completion dashboard
-  2 / 2 = Alliance progress / Alliance Planner
-- PvE / PvP now uses two pages:
-  1 / 2 = PvE / PvP combat dashboard
-  2 / 2 = Character statistics
-- Character and Alliance are no longer separate main tabs.
-- Character page contains Level / Champion Point progress, active Companion progress, playtime, daily activity and session information.
-- Economy remains focused on currencies, balances, received / spent totals and zone economy.
-- Alliance Planner uses the stable Tamriel map implementation with zoom and left-drag behavior.
-- Completion-category HUD gear keeps the established editor behavior for category HUDs such as Wayshrines and Skyshards.
-- Clear Mode was rebuilt as a strict monochrome theme: white text / accents, black translucent surfaces and no warm or semantic UI tinting inside the journal.
-- Clear Mode now also keeps hover states, page navigation and focus selectors monochrome.
-- Improved Clear Mode restoration when returning to TPM Standard or Transparent TPM.
-- Safer PvE death-event de-duplication when ESO does not provide a targetUnitId.
-- Improved Character live refresh behavior and reduced unnecessary hidden-page refresh work.
-- Fixed Alliance zone links so they return to Progress page 1 and open the requested zone progress.
-- DE / EN / RU / FR / ES localization remains synchronized.
-- Numerous UI, stability and refresh fixes.
+Tamriel Progress Map 2.7.5
+Developed with AI assistance. The author is responsible for design, maintenance and final in-game validation.
+Required dependency: LibAddonMenu-2.0 r43 or newer (install separately).
+https://www.esoui.com/downloads/info7-LibAddonMenu.html
 
 Author: Raccoonplayz
+PC addon for The Elder Scrolls Online; manifest API versions: 101050 and 101051.
+Supported translations: English, German, French, Spanish and Russian.
+The active translation follows the ESO client language. English is the fallback.
 
-Tamriel Progress Map is a completion and statistics addon for The Elder Scrolls Online.
-Its main goal is to answer: what have I completed, and what is still missing?
+INSTALLATION / UPDATE
+1. Exit ESO or log out before replacing addon files.
+2. Extract the TamrielProgressMap folder directly into your ESO live/AddOns folder.
+   On Windows this is normally Documents/Elder Scrolls Online/live/AddOns.
+   The manifest must be at AddOns/TamrielProgressMap/TamrielProgressMap.txt.
+3. Install or update LibAddonMenu-2.0 separately, for example with Minion.
+4. Enable Tamriel Progress Map in ESO's Add-Ons menu.
+5. NumPad 5 opens/closes statistics. You can remap it in Controls > Keybindings.
+   /tpm stats also opens statistics; /tpm shows available commands.
 
-Current structure
------------------
-Progress
-  Page 1: Tamriel / zone completion, categories, collections and achievements
-  Page 2: Alliance completion and Alliance Planner
+Keep the existing SavedVariables file when updating. Back it up before testing.
+Account data is separated by ESO server and combat/economy ledgers by character.
+The SavedVariables wrapper version remains 1 to preserve existing data.
+A genuine pre-server legacy migration can cause one automatic ReloadUI.
+Opening a different server with modern settings does not import another server's data.
 
-Economy
-  Currency balances, received / spent totals and zone economy
+WHAT IT TRACKS
+- Zone Guide completion and additional informational progress categories.
+- Alliance progress views and an optional goal HUD.
+- Currency balances, recorded income/spending and separate personal bank transfers.
+- Recorded PvE/PvP counters, activity logs and character playtime history.
+ESO cannot reconstruct unrecorded historical transactions or combat events.
+Kills without a usable name/ID may be displayed as Unknown Enemy.
 
-PvE / PvP
-  Page 1: PvE / PvP combat statistics and recent activity
-  Page 2: Character profile, Level / CP, Companion progression, playtime and daily history
+VALIDATION FOR THIS BUILD
+Lua 5.1 syntax and 46 automated regression tests passed in an offline test harness.
+Event identifiers were checked against documented APIs 101050 and 101051.
+Actual ESO UI rendering, live event timing and addon combinations require an in-game test.
+Do not describe this build as independently tested in-game until that test has been completed.
 
-Other highlights
-----------------
-- Completion-category in-game HUDs, including categories such as Wayshrines and Skyshards, with per-HUD position and size editing.
-- Statistics themes: TPM Standard, Transparent TPM and Clear Mode.
-- DE / EN / RU / FR / ES localization.
+CREDITS / ASSETS
+- Original addon and maintenance: Raccoonplayz.
+- LibAddonMenu-2.0: sirinsidiator and Seerah. This dependency is not bundled.
+- ESO API documentation and UI references: ZeniMax Online Studios; reference mirror:
+  https://github.com/esoui/esoui
+- Included DDS artwork is unchanged from the author-supplied 2.7.4_Hotfix package.
+  The archive did not supply asset provenance or third-party licensing information.
+  The author must add any required artwork credits/permissions to the ESOUI description.
+This is an unofficial community addon. ESO names and referenced game artwork belong
+ to their respective owners. No license change to the original package is asserted.
 
-Notes
------
-Zone-specific Economy data is not retroactive and begins when a supporting TPM version records it.
-Neutral DLC / Chapter maps do not change DC / AD / EP completion percentages.
-The Alliance Progress / Planner area remains an Alpha-Test feature.
-
-Dependencies
-------------
-- LibAddonMenu-2.0 r43 or newer
-- LibZone 8.99 or newer
-
-AI disclosure
--------------
-Tamriel Progress Map was developed with AI assistance (OpenAI ChatGPT) for programming support,
-debugging and code review. All feature decisions, testing, design direction and addon maintenance
-are handled by the author.
+ESOUI UPLOAD
+Use an English description beginning with the AI-assistance disclosure and dependency.
+Put update notes in the Changelog tab and supply actual in-game screenshots when required.
+Review the current ESOUI rules before publishing:
+https://www.esoui.com/forums/showthread.php?t=10790
+https://www.esoui.com/forums/showthread.php?t=9

@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/oneDOK/OneCrosshair__4899",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "oneDOK",
+  "canonical_id": "esoui:4899",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4899",
+  "deleted": false,
+  "directories": [
+    "OneCrosshair"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4899/",
+  "fingerprint": "ce28221d24129331d1cab5948855bd529e43eac162e4b2288d22b295618e28ca",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17651.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4899",
+  "source_url": "https://www.esoui.com/downloads/info4899-OneCrosshair.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "OneCrosshair",
+  "updated_at": 1790798657000,
+  "version": "1.0"
+}

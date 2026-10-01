@@ -5,6 +5,7 @@ function AlabuzyaUI.Initialize()
     if initialized then return end
     initialized = true
     AlabuzyaUI.Settings.Initialize()
+    AlabuzyaUI.Theme.Configure()
     AlabuzyaUI.Compatibility.Initialize()
     AlabuzyaUI.Chat.Initialize()
     AlabuzyaUI.Junk.Initialize()
@@ -17,6 +18,7 @@ function AlabuzyaUI.Initialize()
     AlabuzyaUI.QuestTracker.Initialize()
     AlabuzyaUI.InventoryGrid.Initialize()
     AlabuzyaUI.Core.Initialize()
+    AlabuzyaUI.AssistantPanel.Initialize()
     if AlabuzyaUI.UseBundledQuestArrow then AlabuzyaUI.QuestArrow:Initialize() end
 end
 EVENT_MANAGER:RegisterForEvent('AlabuzyaUI', EVENT_ADD_ON_LOADED, function(_, addonName)

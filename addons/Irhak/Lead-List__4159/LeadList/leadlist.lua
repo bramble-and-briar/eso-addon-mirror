@@ -2,7 +2,7 @@ local Addon = {}
 Addon.Name = "LeadList"
 Addon.DisplayName = "Lead List"
 Addon.Author = "Irhak"
-Addon.Version = "51.0.0"
+Addon.Version = "51.0.1"
 
 ILeadList = ILeadList or {}
 local ILL = ILeadList
@@ -383,13 +383,13 @@ function ILL.AlertsMouseEnter(control)
 --	InformationTooltip:AddLine("ZoneId: "..GetZoneId(GetUnitZoneIndex("player"))) --current player zone
 --	InformationTooltip:AddLine("MarketId: "..GetZoneId(i))
 	
---	InformationTooltip:AddLine("MarketId: "..ILL.debug_get_zone_by_name("night market"))
+--	InformationTooltip:AddLine("MarketId: "..ILL.debug_get_zone_by_name("abecean sea"))
 
 end
 
 function ILL.debug_get_zone_by_name(search_name)
 	temp_i = 0;
-	for zoneId = 1, 3000 do
+	for zoneId = 1, 5000 do
         local name = GetZoneNameById(zoneId)
 
         if name ~= "" then

@@ -12,7 +12,7 @@ local healResults = {
 }
 function C:Reset()
     self.retained = {}
-    self.groupDamage, self.groupMeasured = 0, false
+    A.GroupCombat:Reset()
     self.damage, self.healing, self.started, self.finished = 0, 0, nil, nil
 end
 function C:State(inCombat)
@@ -39,7 +39,8 @@ function C:Timer(active)
     end
     if A.Frames then A.Frames:UpdateStats() end
 end
-function C:Event(_, result, isError, _, _, _, _, sourceType, _, _, hitValue)
+function C:Event(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceId, targetId, ...)
+    A.GroupCombat:Event(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceId, targetId, ...)
     -- Never map sourceName/sourceUnitId to a remote group member: that stream is incomplete.
     if isError or (sourceType ~= COMBAT_UNIT_TYPE_PLAYER and sourceType ~= COMBAT_UNIT_TYPE_GROUP)
         or not hitValue or hitValue <= 0 then return end
@@ -50,10 +51,6 @@ function C:Event(_, result, isError, _, _, _, _, sourceType, _, _, hitValue)
         self:State(true)
     end
     if self.started and not self.finished then
-        if kind == "damage" then
-            self.groupDamage = (self.groupDamage or 0) + hitValue
-            self.groupMeasured = true
-        end
         if sourceType == COMBAT_UNIT_TYPE_PLAYER then self[kind] = self[kind] + hitValue end
     end
 end
@@ -79,6 +76,7 @@ function C:Values(tag)
 end
 function C:Configure()
     A.SharedStats:Configure()
+    A.GroupCombat:Configure(A.active and A.sv.groupDps and GetGroupSize() > 0)
     local wanted = A.active and (GetGroupSize() > 0 or A.sv.dps or A.sv.hps)
     if wanted == self.listening then return end
     self.listening = wanted
@@ -103,7 +101,5 @@ function C:Ultimate(tag)
 end
 
 function C:GroupDPS()
-    if not self.started or not self.groupMeasured then return nil end
-    local seconds = math.max(1, ((self.finished or GetFrameTimeMilliseconds()) - self.started) / 1000)
-    return self.groupDamage / seconds
+    return A.GroupCombat:Value()
 end

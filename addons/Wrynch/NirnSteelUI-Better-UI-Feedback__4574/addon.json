@@ -8,6 +8,10 @@
   "category_id": "17",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -22,7 +26,7 @@
     "NirnsteelUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4574/",
-  "fingerprint": "c8ec87c4e1f66e604a7a619fd55168a3fad60905a79c85318689f3763d31c750",
+  "fingerprint": "cf5e851165061e874d1124ca450d2639d472417fea41cbd2b337a0ed3b418422",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16032.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw16034.png",
@@ -36,11 +40,11 @@
   "source_id": "4574",
   "source_url": "https://www.esoui.com/downloads/info4574-NirnSteelUIBetterUIFeedback.html",
   "stats": {
-    "downloads": 6717,
-    "favorites": 6,
-    "monthly_downloads": 4302
+    "downloads": 6924,
+    "favorites": 7,
+    "monthly_downloads": 4491
   },
   "title": "NirnSteelUI \u00b7 Better UI Feedback",
-  "updated_at": 1789588560000,
-  "version": "3.0.1"
+  "updated_at": 1790772347000,
+  "version": "3.0.2.1"
 }

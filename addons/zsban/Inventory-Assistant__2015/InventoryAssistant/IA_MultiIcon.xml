@@ -1,0 +1,34 @@
+<GuiXml>
+    <Animations>
+        <AnimationTimeline name="IA_MultiIconAnimation">
+            <Animations>
+                <CustomAnimation duration="500">
+                    <UpdateFunction>
+                        IA_MultiIconAnimation_SetAlpha ( self, progress )
+                    </UpdateFunction>
+                </CustomAnimation>
+                <CustomAnimation duration="500" delay="1500">
+                    <UpdateFunction>
+                        IA_MultiIconAnimation_SetAlpha ( self, 1 - progress )
+                    </UpdateFunction>
+                </CustomAnimation>
+            </Animations>
+            <OnStop>
+                IA_MultiIconAnimation_OnStop ( self )
+            </OnStop>
+        </AnimationTimeline>        
+    </Animations>
+    <Controls>
+        <Texture name="IA_MultiIcon" hidden="true" virtual="true">
+            <OnInitialized>
+                IA_MultiIcon_Initialize ( self )
+            </OnInitialized>
+            <OnShow>
+                IA_MultiIcon_OnShow ( self )
+            </OnShow>
+            <OnHide>
+                IA_MultiIcon_OnHide ( self )
+            </OnHide>
+        </Texture>
+    </Controls>
+</GuiXml>

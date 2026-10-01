@@ -29,7 +29,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LBE Test](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/LBE-Test__2314) | Rhyono | PC / Mac | 1.16 |
 | [LCM Demo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluazinam/LCM-Demo__e27e2f85-110a-4725-ab46-5f878649b8a3) | Fluazinam | Console | — |
 | [Le Guide de L' Antiquaire ( Antiquarian's Guide )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Takadol/Le-Guide-de-L-Antiquaire-Antiquarian-s-Guide__4420) | Takadol | PC / Mac | 2.6 |
-| [Lead List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irhak/Lead-List__4159) | Irhak | PC / Mac | U51.0.0 |
+| [Lead List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irhak/Lead-List__4159) | Irhak | PC / Mac | U51.0.1 |
 | [Lead Overview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Lead-Overview__2662) | ownedbynico | PC / Mac | 1.1.1 |
 | [Leaderboard 2 Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZaiZah/Leaderboard-2-Chat__4153) | ZaiZah | PC / Mac | 20.08.2025 |
 | [Leaderboard Highlights](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Leaderboard-Highlights__1620) | Dolgubon | PC / Mac | 1.9 |
@@ -324,7 +324,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LongPressCtrlToInteract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LongPressCtrlToInteract__3273) | Masteroshi430 | PC / Mac | 2026.07.19 |
 | [Looping Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YayRP/Looping-Emotes__973) | YayRP | PC / Mac | 1.0.1 |
 | [Loot Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thyreos/Loot-Alert__2059) | Thyreos | PC / Mac | 1.0.2 |
-| [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Loot-Log__1455) | code65536 | PC / Mac | 4.10.0 |
+| [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Loot-Log__1455) | code65536 | PC / Mac | 4.10.1 |
 | [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Loot-Log__d527acdc-07b2-453a-9519-d34261e02e5c) | ReliktKoala | Console | — |
 | [Loot Reader](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Loot-Reader__4327) | Saleand | PC / Mac | 0.3 |
 | [Loot Sanitizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/grin3671/Loot-Sanitizer__4189) | grin3671 | PC / Mac | 0.20.0 |
@@ -354,7 +354,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.6.6 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.6.8 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.2.8 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |

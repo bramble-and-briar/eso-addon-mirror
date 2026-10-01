@@ -1,6 +1,6 @@
 ## Title: Rytic Combat & Raid Tools
 ## Author: Rytic
-## Version: 3.0.2-test
+## Version: 3.0.2
 ## APIVersion: 101050 101051
 ## Description: Combat and raid HUD, combat analytics, support-set/proc tracking, group frames, death recap, and raid utility tools. AI-assisted test candidate; requires in-game validation.
 ## SavedVariables: RyticTankSavedVariables

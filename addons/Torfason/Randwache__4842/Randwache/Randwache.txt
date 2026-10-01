@@ -1,0 +1,12 @@
+## Title: |c7FC7FFRandwache|r
+## Description: Immersive screen warnings for Health, Magicka, Stamina and Death. Developed with OpenAI ChatGPT (Atlas).
+## Author: Atlas
+## Version: 2.0.0
+## AddOnVersion: 200
+## APIVersion: 101051 101050
+## SavedVariables: RandwacheSavedVariables
+
+lang/en.lua
+lang/de.lua
+Randwache.lua
+RandwacheSettings.lua

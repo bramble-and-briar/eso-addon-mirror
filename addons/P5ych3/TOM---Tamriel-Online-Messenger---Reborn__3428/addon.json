@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "P5ych3",
   "canonical_id": "esoui:3428",
   "category_id": "55",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "Tom"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3428/",
-  "fingerprint": "320c3fb042a719566e892353d50ccb8584419eae28c836dc28d6ba9fc57d1e6c",
+  "fingerprint": "7d45b8dd2eff8e63f10833b618476ee5372d356d903d5ae23e02f1eac18ae379",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11790.png",
     "https://cdn-eso.mmoui.com/preview/pvw11791.png",
@@ -88,11 +93,11 @@
   "source_id": "3428",
   "source_url": "https://www.esoui.com/downloads/info3428-TOM-TamrielOnlineMessenger-Reborn.html",
   "stats": {
-    "downloads": 33079,
-    "favorites": 41,
-    "monthly_downloads": 160
+    "downloads": 33293,
+    "favorites": 42,
+    "monthly_downloads": 103
   },
   "title": "TOM - Tamriel Online Messenger - Reborn",
-  "updated_at": 1781066536000,
-  "version": "6.4.1"
+  "updated_at": 1790841147000,
+  "version": "6.4.2"
 }

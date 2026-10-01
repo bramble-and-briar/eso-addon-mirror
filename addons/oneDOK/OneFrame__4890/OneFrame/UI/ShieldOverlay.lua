@@ -21,11 +21,34 @@ function S:Apply(module, barInfo)
     local health = A.active and A:RoleGradient(tag)
         or module.layoutData.fakeHealthGradientOverride
         or ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+    local bar = frame.healthBar and frame.healthBar.barControls[1]
+    local shieldInfo = barInfo.visualInfo and barInfo.visualInfo[ATTRIBUTE_VISUAL_POWER_SHIELDING]
+    -- Keep the native trauma/no-healing children, replacing only the shield fill.
+    local custom = bar and A.active and A.sv.shield and #barInfo.overlayControls == 1 and shieldInfo
+    if custom and not barInfo.oneFrameFill then
+        local fill = WINDOW_MANAGER:CreateControl(nil, barInfo.overlayControls[1], CT_TEXTURE)
+        fill:SetMouseEnabled(false)
+        fill:SetDrawLayer(DL_OVERLAY)
+        barInfo.oneFrameFill = fill
+    end
+    local fill = barInfo.oneFrameFill
+    if fill then
+        fill:SetHidden(not custom or shieldInfo.value <= 0)
+        if custom then
+            local fraction = math.max(0, math.min(1, shieldInfo.value / math.max(1, barInfo.attributeMax or 1)))
+            fill:ClearAnchors()
+            fill:SetAnchor(TOPLEFT, bar, TOPLEFT)
+            fill:SetDimensions(bar:GetWidth() * fraction, bar:GetHeight())
+            fill:SetColor(A.sv.shieldColor[1], A.sv.shieldColor[2], A.sv.shieldColor[3], A.sv.shieldOpacity)
+            local transparent = ZO_ColorDef:New(0, 0, 0, 0)
+            gradient = { transparent, transparent }
+        end
+    end
     for _, overlay in ipairs(barInfo.overlayControls) do
         ZO_StatusBar_SetGradientColor(overlay, gradient)
         if overlay.fakeHealthBar then ZO_StatusBar_SetGradientColor(overlay.fakeHealthBar, health) end
     end
-    -- All geometry, event deltas, death/offline visibility, overflow and trauma remain native.
+    -- Native event deltas, visibility and trauma controls remain intact.
     -- Do not hide the parent overlay: its children implement trauma and no-healing indicators.
 end
 function S:Refresh()

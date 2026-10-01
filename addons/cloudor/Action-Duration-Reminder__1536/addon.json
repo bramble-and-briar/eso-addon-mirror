@@ -8,8 +8,8 @@
   "category_id": "19",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1536",
@@ -18,7 +18,7 @@
     "ActionDurationReminder"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1536/",
-  "fingerprint": "eeeff51ccf743b65b8c29a81613c72be466c306ac875a8e67833051f83354759",
+  "fingerprint": "7b02ab0f3f26a3c225eb46788e9e32b44c7a94d8819fdd8cbc48b70c42baa29c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5001.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5004.jpg",
@@ -35,11 +35,11 @@
   "source_id": "1536",
   "source_url": "https://www.esoui.com/downloads/info1536-ActionDurationReminder.html",
   "stats": {
-    "downloads": 6571255,
-    "favorites": 1557,
-    "monthly_downloads": 13835
+    "downloads": 6593691,
+    "favorites": 1556,
+    "monthly_downloads": 22272
   },
   "title": "Action Duration Reminder",
-  "updated_at": 1788217066000,
-  "version": "3.161"
+  "updated_at": 1790848469000,
+  "version": "3.163"
 }

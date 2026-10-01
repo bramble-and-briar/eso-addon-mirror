@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Ranckor90/Skill-Lines__4041",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Ranckor90",
   "canonical_id": "esoui:4041",
   "category_id": "26",
@@ -29,7 +30,7 @@
     "SkillLines"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4041/",
-  "fingerprint": "121a8ea3b5968bfd8c2f9dc4db4201d944296b4ed511a4934b6048d6e761c3fb",
+  "fingerprint": "68d1f588a92e8af173208140d05ea5b022484cda7eca0b9f4ce9a86946435b88",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14044.jpg"
   ],
@@ -39,11 +40,11 @@
   "source_id": "4041",
   "source_url": "https://www.esoui.com/downloads/info4041-SkillLines.html",
   "stats": {
-    "downloads": 2010,
+    "downloads": 2155,
     "favorites": 2,
-    "monthly_downloads": 103
+    "monthly_downloads": 73
   },
   "title": "Skill Lines",
-  "updated_at": 1783900441000,
+  "updated_at": 1790797627000,
   "version": "v2.1.2"
 }

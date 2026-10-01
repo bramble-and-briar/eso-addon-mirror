@@ -43,7 +43,7 @@ local TICK_IMPACT_MS = 230
 local LEVEL_REVEAL_POINT = 0.24
 local FADE_IN_MS = 130
 local FADE_OUT_MS = 360
-local MIN_GAIN_INTERVAL_MS = 80
+local GAIN_DEDUPLICATION_MS = 1000
 local STOCK_HOOK_RETRY_MS = 500
 local MAX_STOCK_HOOK_ATTEMPTS = 30
 local MIN_CHUNKS = 3
@@ -1656,15 +1656,9 @@ function ExperienceTracker:OnUpdate()
 end
 
 function ExperienceTracker:ShowExperienceGain(mode, level, previousXP, currentXP, championPoints, forceShow)
-    if not IsModuleEnabled() or (not forceShow and not IsHudSceneShowing()) then
+    if not IsModuleEnabled() then
         return
     end
-
-    local nowMS = GetFrameTimeMilliseconds()
-    if self.lastGainMS and nowMS - self.lastGainMS < MIN_GAIN_INTERVAL_MS then
-        return
-    end
-    self.lastGainMS = nowMS
 
     local maxValue
     if mode == "cp" then
@@ -1679,7 +1673,39 @@ function ExperienceTracker:ShowExperienceGain(mode, level, previousXP, currentXP
         return
     end
 
+    if not forceShow then
+        -- Some rewards report the same XP interval through multiple events.
+        -- Compare the interval instead of throttling distinct rapid gains.
+        local nowMS = GetFrameTimeMilliseconds()
+        local recentGains = self.recentGains or {}
+        self.recentGains = recentGains
+        for index = #recentGains, 1, -1 do
+            local gain = recentGains[index]
+            if nowMS - gain.timeMS >= GAIN_DEDUPLICATION_MS then
+                table.remove(recentGains, index)
+            elseif gain.mode == mode and gain.level == level
+                and gain.previousXP == previousXP and gain.currentXP == currentXP then
+                return
+            end
+        end
+        table.insert(recentGains, {
+            timeMS = nowMS, mode = mode, level = level,
+            previousXP = previousXP, currentXP = currentXP,
+        })
+    end
+
     local segments = self:BuildSegments(mode, level, previousXP, currentXP, maxValue)
+    if not forceShow and not IsHudSceneShowing() then
+        -- Quest turn-ins can award XP before the interaction closes. Keep the
+        -- full animation until the HUD returns, including level-up segments.
+        self.pendingSegments = self.pendingSegments or {}
+        for _, segment in ipairs(segments) do
+            table.insert(self.pendingSegments, segment)
+        end
+        self.pendingGainAmount = (self.pendingGainAmount or 0) + currentXP - previousXP
+        self.pendingGainMode = mode
+        return
+    end
     self:QueueSegments(segments, currentXP - previousXP, mode)
 end
 
@@ -1692,6 +1718,14 @@ function ExperienceTracker:OnExperienceGain(reason, level, previousExperience, c
 end
 
 function ExperienceTracker:OnDiscoveryExperience(_areaName, level, previousExperience, currentExperience, championPoints)
+    self:OnExperienceGain(nil, level, previousExperience, currentExperience, championPoints)
+end
+
+function ExperienceTracker:OnQuestComplete(_questName, level, previousExperience, currentExperience, championPoints)
+    self:OnExperienceGain(nil, level, previousExperience, currentExperience, championPoints)
+end
+
+function ExperienceTracker:OnObjectiveCompleted(_zoneIndex, _poiIndex, level, previousExperience, currentExperience, championPoints)
     self:OnExperienceGain(nil, level, previousExperience, currentExperience, championPoints)
 end
 
@@ -1818,12 +1852,23 @@ end
 
 function ExperienceTracker:UpdateVisibility()
     if not IsModuleEnabled() then
+        self.pendingSegments = nil
+        self.pendingGainAmount = nil
+        self.pendingGainMode = nil
         self:HideRoot()
         self:GetMover():SetHidden(true)
         return
     end
 
     self:ApplyLayout()
+    if IsHudSceneShowing() and self.pendingSegments then
+        local segments, gainAmount, mode = self.pendingSegments, self.pendingGainAmount, self.pendingGainMode
+        self.pendingSegments = nil
+        self.pendingGainAmount = nil
+        self.pendingGainMode = nil
+        self:QueueSegments(segments, gainAmount, mode)
+        return
+    end
     if IsModuleUnlocked() or (IsAlwaysVisible() and IsHudSceneShowing()) then
         local mode, level, current, maxValue = self:GetCurrentSnapshot()
         self:SetVisualMode(mode, level)
@@ -1914,6 +1959,12 @@ function ExperienceTracker:RegisterEvents()
     end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_Discovery", EVENT_DISCOVERY_EXPERIENCE, function(_, ...)
         self:OnDiscoveryExperience(...)
+    end)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_Quest", EVENT_QUEST_COMPLETE, function(_, ...)
+        self:OnQuestComplete(...)
+    end)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_Objective", EVENT_OBJECTIVE_COMPLETED, function(_, ...)
+        self:OnObjectiveCompleted(...)
     end)
     EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE .. "_Update", EVENT_EXPERIENCE_UPDATE, function(_, ...)
         self:OnExperienceUpdate(...)

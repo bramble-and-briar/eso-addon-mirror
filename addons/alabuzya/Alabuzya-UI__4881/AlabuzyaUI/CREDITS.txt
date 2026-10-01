@@ -57,3 +57,12 @@ Not affiliated with or sponsored by ZeniMax Media Inc.
 Сгенерированные собственные текстуры предоставляются на тех же условиях
 в пределах прав автора. Права на игровые материалы и товарные знаки не заявляются.
 Аддон не связан с ZeniMax Media Inc. и не спонсируется ею.
+
+CLASSIC THEME / ТЕМА CLASSIC
+WoW artwork (gryphons, ring and reusable frame) was generated with OpenAI image generation in September 2026 from the maintainer-approved Classic-WoW-DualBar-v2 concept. No Blizzard texture files are included. Original source images and preparation notes are retained in art/classic in the working project.
+Графика WoW (грифоны, круглая и разрезаемая рамки) создана с помощью OpenAI в сентябре 2026 по утверждённому концепту Classic-WoW-DualBar-v2. Текстуры Blizzard в аддон не включены. Исходники и сведения о подготовке сохранены в art/classic рабочего проекта.
+
+Assistant collectible ID reference / Справочник ID помощников:
+https://github.com/tralce/tralceCollectibles
+EN: Public collectible ID/name data cross-checked against this reference. No implementation or artwork copied. Assistant icons are referenced from ESO's installed game assets, not bundled. Toolbar implementation created with AI assistance and reviewed for this project.
+RU: По этому справочнику сверены публичные ID и имена коллекций. Код и изображения не копировались. Иконки помощников берутся из установленных ресурсов ESO и не включены в архив. Код панели создан с помощью ИИ и проверен в рамках проекта.

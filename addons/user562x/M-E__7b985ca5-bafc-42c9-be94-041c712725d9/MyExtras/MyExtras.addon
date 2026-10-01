@@ -1,0 +1,12 @@
+## Title: MyExtras
+## Author: user562
+## Version: 1
+## APIVersion: 101048 101049 101050 101051
+## SavedVariables: MyExtras_SavedVars MyExtras_CharVars
+## DependsOn: LibConsoleMenu LibCombatAlerts AAAConsoleUIShim
+
+MyExtras.xml
+MyExtras.lua
+MyExtras_Trackers.lua
+MyExtras_GuildLoop.lua
+MyExtras_ChatTravel.lua

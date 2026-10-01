@@ -2,8 +2,8 @@
 ## Author: Semigroup1329
 ## Description: Combat metrics tracking on consoles with native gamepad UI.
 ## APIVersion: 101050 101051
-## AddOnVersion: 29
-## Version: 6.0.0
+## AddOnVersion: 30
+## Version: 6.0.1
 ## IsLibrary: False
 ## DependsOn: LibGroupBroadcast>=95 LibAsync>=30100
 ## OptionalDependsOn: LibHarvensAddonSettings
@@ -57,7 +57,9 @@ combat/setup_analysis.lua
 storage/bitcodec.lua
 storage/binary.lua
 storage/sizemodel.lua
+storage/ownsetups.lua
 storage/storage.lua
+storage/servermerge.lua
 storage/migration.lua
 
 ; Network domain

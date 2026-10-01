@@ -9,6 +9,10 @@ ZO_CreateStringId("SI_BINDING_CATEGORY_NIRNSTEEL_UI", "Nirnsteel UI")
 local PI, TAU = math.pi, math.pi * 2
 local UPDATE_MS, MAP_CHECK_MS = 33, 1000
 local INSET, HEADER, FOOTER = 14, 30, 28
+-- Clamp the visible outer frame, allowing the title/footer padding off screen.
+local FRAME_EXTENT = 5
+local CLAMP_SIDE = INSET - FRAME_EXTENT
+local CLAMP_TOP, CLAMP_BOTTOM = HEADER + CLAMP_SIDE, FOOTER + CLAMP_SIDE
 local ICONS = {
     player = "EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds",
     group = "EsoUI/Art/MapPins/UI-WorldMapGroupPip.dds",
@@ -158,6 +162,9 @@ function Minimap:CreateView()
     self.root = root
     root:SetHidden(true)
     root:SetClampedToScreen(true)
+    -- ESO adds these offsets to the control's edges: positive left/top and
+    -- negative right/bottom exclude the surrounding padding from the clamp.
+    root:SetClampedToScreenInsets(CLAMP_SIDE, CLAMP_TOP, -CLAMP_SIDE, -CLAMP_BOTTOM)
     root:SetDrawTier(DT_MEDIUM)
     root:SetMovable(false)
     root:SetMouseEnabled(false)
@@ -305,8 +312,19 @@ end
 
 function Minimap:ApplyQuestTrackerOffset()
     local tracker = Nirnsteel_UI.QuestTracker
-    if tracker and tracker:HasCustomPosition() then return end
     local panel = ZO_FocusedQuestTrackerPanel
+    if HUD_TRACKER_MANAGER and HUD_TRACKER_MANAGER.GetPlatformHUDElement then
+        local editor = Nirnsteel_UI.HUDEditor
+        if editor and editor:IsAvailable() then
+            local settings = Settings()
+            local offset = settings.enabled and settings.questTrackerOffset or 0
+            if tracker and tracker:HasCustomPosition() then offset = 0 end
+            editor:ImportTrackerOffset(HUD_TRACKER_MANAGER.control,settings,offset)
+        end
+        return -- Edit HUD owns the stack after the one-time import.
+    elseif tracker and tracker:HasCustomPosition() then
+        return
+    end
     if not panel then return end
     local offset = Settings().enabled and Settings().questTrackerOffset or 0
     local current = ReadAnchors(panel)
@@ -337,7 +355,8 @@ function Minimap:Layout()
     local p = Nirnsteel_UI.Settings:GetMinimapPosition()
     local maxX = math.max(0, GuiRoot:GetWidth() - self.root:GetWidth())
     local maxY = math.max(0, GuiRoot:GetHeight() - self.root:GetHeight())
-    p.x, p.y = Clamp(p.x, -maxX, 0, -32), Clamp(p.y, -maxY, 0, -48)
+    p.x = Clamp(p.x, -maxX - CLAMP_SIDE, CLAMP_SIDE, -32)
+    p.y = Clamp(p.y, -maxY - CLAMP_TOP, CLAMP_BOTTOM, -48)
     self.root:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, p.x, p.y)
     self.viewport:ClearAnchors()
     self.viewport:SetDimensions(w, h)

@@ -11,7 +11,7 @@ function M.Timer(remaining)
     if remaining>=60 then return string.format('%d:%02d',math.floor(remaining/60),math.floor(remaining)%60) end
     return string.format('%.0f',math.ceil(remaining))
 end
-local longRoot,shortRoot
+local longRoot,shortRoot,groupedLayout
 local longIcons,shortIcons={},{}
 local function Root(name,width,height,point,relative,x,y)
     local c=WINDOW_MANAGER:CreateTopLevelWindow(name)
@@ -68,6 +68,14 @@ local function Draw(list,pool,root,long,now)
     for i=#list+1,#pool do pool[i].control:SetHidden(true) end
 end
 local function Update()
+    if AlabuzyaUI.Theme.classic then
+        local grouped=AlabuzyaUI.ClassicTheme.IsGrouped()
+        if groupedLayout~=grouped then
+            groupedLayout=grouped
+            shortRoot:ClearAnchors()
+            shortRoot:SetAnchor(BOTTOM,GuiRoot,BOTTOM,0,grouped and -211 or -151)
+        end
+    end
     local now=GetFrameTimeSeconds() local longs,shorts={},{}
     local function Add(name,icon,started,ending,stacks,effectType,key)
         if not icon or icon=='' or (ending>started and ending<=now) then return end
@@ -90,6 +98,9 @@ function AlabuzyaUI.Buffs.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     longRoot=Root('AlabuzyaUILongBuffs',32,32,BOTTOMRIGHT,BOTTOMRIGHT,-5,-8)
     shortRoot=Root('AlabuzyaUIShortBuffs',450,40,BOTTOM,BOTTOM,0,-230)
+    if AlabuzyaUI.Theme.classic then
+        shortRoot:ClearAnchors() shortRoot:SetAnchor(BOTTOM,GuiRoot,BOTTOM,0,-151)
+    end
     -- Replace only the player's native panel, preserving target effects.
     local native=BUFF_DEBUFF and BUFF_DEBUFF.containerObjectsByUnitTag['player']
     if native then

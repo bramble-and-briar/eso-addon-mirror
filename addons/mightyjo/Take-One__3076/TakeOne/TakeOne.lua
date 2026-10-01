@@ -2,7 +2,7 @@ TakeOne = {
     displayName = "Take One",
     shortName = "TO",
     name = "TakeOne",
-    version = "1.2.0",
+    version = "1.3.0",
     logger = nil,
 	variablesVersion = 2,
 	Default = {
@@ -164,7 +164,7 @@ function TakeOne:DoTake(inventorySlot, _itemId, greedy)
 	local quantity = GetSlotStackSize(bagId, slotIndex)
 	self:Debug(GetString(TAKE_ONE_DO_TAKE_ACTION), quantity)
 	
-	if slotType == SLOT_TYPE_BANK_ITEM then
+	if slotType == SLOT_TYPE_BANK_ITEM or slotType == SLOT_TYPE_FURNITURE_VAULT then
 	    if greedy == true then
 		    CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, targetSlot, quantity-1)
 		else
@@ -240,11 +240,11 @@ function TakeOne:isValid(inventorySlot)
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
 	
     -- Check that this is a BANK or GUILD_BANK slot
-	if not( slotType == SLOT_TYPE_BANK_ITEM or slotType == SLOT_TYPE_GUILD_BANK_ITEM ) then
+	if not( slotType == SLOT_TYPE_BANK_ITEM or slotType == SLOT_TYPE_GUILD_BANK_ITEM  or slotType == SLOT_TYPE_FURNITURE_VAULT) then
         return false
     end
 	
-	-- Check that guild has a 
+	-- Check that guild has a bank the user can access
 	if slotType == SLOT_TYPE_GUILD_BANK_ITEM then
 	  local guildId = GetSelectedGuildBankId()
 	  
@@ -259,7 +259,7 @@ function TakeOne:isValid(inventorySlot)
 	end
 	
 	-- Check that the BACKPACK has enough room to operate
-	if slotType == SLOT_TYPE_BANK_ITEM and not CheckInventorySpaceSilently(1) then 
+	if ( slotType == SLOT_TYPE_BANK_ITEM  or slotType == SLOT_TYPE_FURNITURE_VAULT ) and not CheckInventorySpaceSilently(1) then
 	    return false
 	elseif slotType == SLOT_TYPE_GUILD_BANK_ITEM and not CheckInventorySpaceSilently(2) then
 	    return false

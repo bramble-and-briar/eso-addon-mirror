@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/P5ych3/Gold-Ledger__3566",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "P5ych3",
   "canonical_id": "esoui:3566",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "GoldLedger"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3566/",
-  "fingerprint": "44bf1bf22064a4a75258290be747ae4e2d832bd9680a8b62e574f5719ec82376",
+  "fingerprint": "3d2a797971d3cc1fd075599dbcccb5b610c9c9ce72943c4a2e96668c07862b99",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12188.png",
     "https://cdn-eso.mmoui.com/preview/pvw12189.png",
@@ -84,11 +89,11 @@
   "source_id": "3566",
   "source_url": "https://www.esoui.com/downloads/info3566-GoldLedger.html",
   "stats": {
-    "downloads": 11972,
+    "downloads": 12130,
     "favorites": 22,
-    "monthly_downloads": 84
+    "monthly_downloads": 64
   },
   "title": "Gold Ledger",
-  "updated_at": 1781066654000,
-  "version": "2.3.0"
+  "updated_at": 1790841267000,
+  "version": "2.3.1"
 }

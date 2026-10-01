@@ -144,6 +144,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleClock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sunoo/SimpleClock__1017) | Sunoo | PC / Mac | 1.2 |
 | [Simpleclock Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Simpleclock-Console__765c8914-fa3a-4662-8b55-9edead0f309a) | j.hhh | Console | — |
 | [SimpleDailyCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/SimpleDailyCraft__3844) | MelanAster | PC / Mac | 0.93 |
+| [SimpleDailyCraft 0.94 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.94-U51-FIX__4898) | VotMyID | PC / Mac | 0.94 |
 | [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101042 |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
 | [SimplePlayTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrumpyEthilin/SimplePlayTime__4452) | GrumpyEthilin | PC / Mac | 1.1.3 |

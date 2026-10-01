@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/KarimAG/Decon-Select-All__4873",
+  "archive_path": "addons/KarimAG/DeconSelectAll__4873",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "KarimAG",
@@ -22,7 +22,7 @@
     "DeconSelectAll"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4873/",
-  "fingerprint": "9bff9fb04f7a74e41c633cd6f65d2faa0c45850522afce66fdaaf3cd745a03b5",
+  "fingerprint": "defeaab3b00dc25b63f1af4e9761bb36c5368ceddc37654e9cac4f3420996924",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17552.png",
     "https://cdn-eso.mmoui.com/preview/pvw17553.png",
@@ -34,11 +34,11 @@
   "source_id": "4873",
   "source_url": "https://www.esoui.com/downloads/info4873-DeconSelectAll.html",
   "stats": {
-    "downloads": 5,
+    "downloads": 26,
     "favorites": 1,
-    "monthly_downloads": 0
+    "monthly_downloads": 25
   },
-  "title": "Decon Select All",
-  "updated_at": 1790377974000,
-  "version": "1.0.0"
+  "title": "DeconSelectAll",
+  "updated_at": 1790800506000,
+  "version": "1.0.1"
 }

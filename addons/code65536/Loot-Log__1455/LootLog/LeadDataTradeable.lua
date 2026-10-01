@@ -111,7 +111,11 @@ local function Initialize() LEAD_ITEMS = {
 
 function LootLog.GetAntiquityIdFromItem( item )
 	if (type(item) == "string") then
-		item = GetItemLinkItemId(item)
+		if (select(2, GetItemLinkItemType(item)) == SPECIALIZED_ITEMTYPE_CONTAINER_STACKABLE) then
+			item = GetItemLinkItemId(item)
+		else
+			return 0
+		end
 	end
 
 	if (type(item) == "number" and item > 0) then

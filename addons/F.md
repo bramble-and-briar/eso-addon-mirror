@@ -10,7 +10,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FadePins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JGeurrie-Llivas/FadePins__4537) | JGeurrie(@Llivas) | PC / Mac | 1.0 |
 | [Fancy Action Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Fancy-Action-Bar__2462) | andy.s | PC / Mac | 2.8 |
 | [Fancy Action Bar+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/acastanza/Fancy-Action-Bar__922792c1-1d90-4415-ada5-c356757e857f) | acastanza | Console | — |
-| [Fancy Action Bar+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Fancy-Action-Bar__3938) | Anthonysc | PC / Mac | 2.19.7 |
+| [Fancy Action Bar+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Fancy-Action-Bar__3938) | Anthonysc | PC / Mac | 2.19.8 |
 | [Fang Lair Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GioBozza/Fang-Lair-Helper__2447) | GioBozza | PC / Mac | 1.0.1 |
 | [Farm Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dirtdart/Farm-Manager__2496) | dirtdart | PC / Mac | 0.8.0.0 |
 | [Farmers ToolKit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vilkasmanga/Farmers-ToolKit__3789) | Vilkasmanga | PC / Mac | 260302-V2 |

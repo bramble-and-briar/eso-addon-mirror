@@ -1,8 +1,7 @@
 local Icon = WPamA.Consts.IconsW
 local GetIcon = WPamA.Textures.GetTexture
 local OpenWindowText = GetString(SI_ENTER_CODE_CONFIRM_BUTTON) -- "Открыть окно"
-local DynamicEncounterText = GetAchievementSubCategoryInfo(1,4) -- "Случайные события"
---SI_HUD_EDITOR_DYNAMIC_EVENT_TRACKER = "Случайное событие" at U51
+local DynamicEncounterText = GetString(SI_HUD_EDITOR_DYNAMIC_EVENT_TRACKER) -- "Случайное событие" GetAchievementSubCategoryInfo(1,1)
 WPamA.i18n = {
   Lng = "RU",
 -- DateTime settings
@@ -129,18 +128,6 @@ WPamA.i18n = {
     },
     [6] = {
       Capt = GetString(SI_MAPFILTER14), -- "Спутники"
---[[
-SI_MAIN_MENU_SKILLS | SI_COMPANION_OVERVIEW_SKILLS = "Навыки"
-SI_SKILLS_ACTIVE_ABILITIES = "Активные способности"
-SI_UTILITY_WHEEL_SLOT_FORMATTER = "Ячейка <<1>>"
-
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_3 "Способность 1"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_4 "Способность 2"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_5 "Способность 3"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_6 "Способность 4"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_7 "Способность 5"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_8 "Суперспособность"
---]]
       Tab = {
         [1] = {N=GetIcon(45, 24) .. "1", NC=GetIcon(45, 24, true) .. "1", W=70, S=true, A="Отношения"}, -- GetString(SI_COMPANION_OVERVIEW_RAPPORT)
         [2] = {N=GetIcon(45, 24) .. "2", NC=GetIcon(45, 24, true) .. "2", W=70, S=true, A="Отношения"}, -- GetString(SI_COMPANION_OVERVIEW_RAPPORT)
@@ -154,13 +141,18 @@ SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_8 "Суперспособность"
                NC=zo_strformat("<<1>><<2>><<3>>", GetIcon(38, 24, true), GetIcon(39, 24, true), GetIcon(37, 24, true)),
                W=70, S=true,
                -- "Снаряжение: Доспехи"
-               A=GetString(SI_ARMORY_EQUIPMENT_LABEL) .. ": " .. GetString(SI_EQUIPSLOTVISUALCATEGORY2)},
+               A=zo_strformat("<<1>>: <<2>>", GetString(SI_ARMORY_EQUIPMENT_LABEL), GetString(SI_EQUIPSLOTVISUALCATEGORY2))},
         [6] = {N=zo_strformat("<<1>><<2>><<3>>", GetIcon(54, 24), GetIcon(48, 24), GetIcon(55, 24)),
                NC=zo_strformat("<<1>><<2>><<3>>", GetIcon(54, 24, true), GetIcon(48, 24, true), GetIcon(55, 24, true)),
                W=70, S=true,
                -- "Снаряжение: Оружие, Аксессуары"
                A=zo_strformat("<<1>>: <<2>>, <<3>>", GetString(SI_ARMORY_EQUIPMENT_LABEL),
                               GetString(SI_EQUIPSLOTVISUALCATEGORY1), GetString(SI_EQUIPSLOTVISUALCATEGORY3))},
+        [7] = {N=zo_strformat("<<1>><<2>>", GetIcon(75, 28), GetIcon(24, 24)),
+               NC=zo_strformat("<<1>><<2>>", GetIcon(75, 28, true), GetIcon(24, 24, true)),
+               W=70, S=true,
+               -- "Навыки: Активные способности"
+               A=zo_strformat("<<1>>: <<2>>", GetString(SI_COMPANION_OVERVIEW_SKILLS), GetString(SI_SKILLS_ACTIVE_ABILITIES))},
       },
     },
     [7] = {
@@ -377,6 +369,7 @@ SI_TIMED_ACTIVITIES_REWARD_HEADER, "Награда"
   OptEndeavorChatColor = "Цвет сообщений о прогрессе",
   OptEndeavorChatColorF = "Настройка цвета сообщений о прогрессе",
   OptEndeavorAutoClaim = "Автоматически получать награды деяний",
+  OptEndeavorHideCompl = "Скрывать завершенные деяния",
   OptPursuitChatMsg  = "Показывать прогресс стремлений в чате",
   OptPursuitChatMsgF = "Показывать в окне чата информацию при изменении прогресса Золотых Стремлений",
   OptPursuitChatCamp  = "Пока не получена награда кампании",
@@ -490,11 +483,12 @@ SI_TIMED_ACTIVITIES_REWARD_HEADER, "Награда"
   Login1DayAgo = "Вчера",
 -- Dynamic Encounter Status
   DynamicEncounter = {
-    Start = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n началось событие" }),
-    Stop  = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n событие завершено" }),
-    Activ = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n событие активно" }),
-    Progr = table.concat({ GetIcon(73,20), DynamicEncounterText, ": ",
-            GetString(SI_ENDLESS_DUNGEON_SUMMARY_PROGRESS_HEADER), -- "Прогресс"
+    Icon  = GetIcon(73, 20),
+    Title = DynamicEncounterText,
+    Start = "началось событие",
+    Stop  = "событие завершено",
+    Activ = "событие активно",
+    Progr = table.concat({ GetString(SI_ENDLESS_DUNGEON_SUMMARY_PROGRESS_HEADER), -- "Прогресс"
             " ", GetString(SI_SPECTACLE_EVENTS_PROGRESS_PERCENT) }) -- "<<1>>%"
   },
 --

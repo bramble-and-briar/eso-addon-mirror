@@ -184,28 +184,34 @@ end
 function AlabuzyaUI.Minimap.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     settings=AlabuzyaUI.SavedVariables.Account('minimap',{zoomBias=1})
-    local sidebar=AlabuzyaUI.Theme.Sidebar()
+    local theme=AlabuzyaUI.Theme
+    if theme.classic then SIZE=248 end
+    local sidebar=theme.MapHost and theme.MapHost() or theme.Sidebar()
     root=WINDOW_MANAGER:CreateControl('AlabuzyaUIMinimap',sidebar,CT_CONTROL)
     root:SetDimensions(SIZE+16,SIZE+80)
     root:SetAnchor(TOPLEFT,sidebar,TOPLEFT,0,0)
     root:SetMouseEnabled(false)
     AlabuzyaUI.Theme.mapHeight=SIZE+80
+    if not theme.classic then
     AlabuzyaUI.Theme.Separator(root,34)
     AlabuzyaUI.Theme.Separator(root,SIZE+39)
     AlabuzyaUI.Theme.Separator(root,SIZE+77)
+    end
     title=Label(root,24) title:SetDimensions(SIZE,32) title:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     title:SetAnchor(TOPLEFT,root,TOPLEFT,8,0)
     view=WINDOW_MANAGER:CreateControl(nil,root,CT_SCROLL)
     view:SetDimensions(SIZE,SIZE) view:SetAnchor(TOPLEFT,root,TOPLEFT,8,39)
     view:SetScrollBounding(SCROLL_BOUNDING_UNBOUND) view:SetMouseEnabled(true)
-    view:SetHandler('OnMouseWheel',function(_,delta)
+    local function Zoom(delta)
         settings.zoomBias=math.max(0.25,math.min(3,settings.zoomBias+delta*0.1)) Update()
-    end)
+    end
+    view:SetHandler('OnMouseWheel',function(_,delta) Zoom(delta) end)
     player=Texture(view) player:SetDimensions(18,18)
     player:SetAnchor(CENTER,view,CENTER,0,0)
     player:SetTexture('EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds')
     player:SetDrawLayer(DL_OVERLAY) player:SetDrawLevel(10)
     clock=Label(root,24) clock:SetAnchor(TOPLEFT,root,TOPLEFT,12,SIZE+44)
+    if theme.classic then AlabuzyaUI.ClassicTheme.SkinMap(root,view,title,clock,Zoom) end
     CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged',function() mapDirty=true end)
     EVENT_MANAGER:RegisterForEvent('AlabuzyaUIMinimap',EVENT_PLAYER_ACTIVATED,function() mapDirty=true end)
     root:SetHandler('OnUpdate',Update)

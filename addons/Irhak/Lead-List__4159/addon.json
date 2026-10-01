@@ -18,7 +18,7 @@
     "LeadList"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4159/",
-  "fingerprint": "4731dfa1f44b6da595e2ca47fae1681cd7d3e41ddcc2730316a866990573b6bc",
+  "fingerprint": "9f3fc6e98b3005a897d6b795743d3320a1bc5e27ba1cab4a10ca4abe03352c03",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14304.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw14303.jpg"
@@ -29,11 +29,11 @@
   "source_id": "4159",
   "source_url": "https://www.esoui.com/downloads/info4159-LeadList.html",
   "stats": {
-    "downloads": 31688,
+    "downloads": 33124,
     "favorites": 39,
-    "monthly_downloads": 1572
+    "monthly_downloads": 2778
   },
   "title": "Lead List",
-  "updated_at": 1790696692000,
-  "version": "U51.0.0"
+  "updated_at": 1790798571000,
+  "version": "U51.0.1"
 }

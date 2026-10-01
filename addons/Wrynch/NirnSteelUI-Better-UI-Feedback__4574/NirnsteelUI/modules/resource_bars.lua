@@ -194,6 +194,7 @@ local function ShouldShowResourceBarKey(key)
 end
 
 local function IsModuleUnlocked()
+    if Nirnsteel_UI.HUDEditor and Nirnsteel_UI.HUDEditor:IsAvailable() then return false end
     return IsModuleEnabled()
         and Nirnsteel_UI.Settings
         and Nirnsteel_UI.Settings:IsResourceBarsUnlocked()
@@ -785,6 +786,15 @@ function ResourceBars:ApplyLayout()
     root:SetScale(scale)
     root:ClearAnchors()
     root:SetAnchor(CENTER, GuiRoot, CENTER, position.x, position.y)
+    if Nirnsteel_UI.HUDEditor then
+        Nirnsteel_UI.HUDEditor:Apply("resourceBars",root,{
+            name="Nirnsteel Resource Bars", position=position, enabled=IsModuleEnabled,
+            defaultAnchor=function() return ZO_Anchor:New(CENTER,GuiRoot,CENTER,DEFAULT_POSITION.x,DEFAULT_POSITION.y) end,
+            replaces=function(control) return control:GetName():find("^ZO_PlayerAttribute") ~= nil end,
+            preview=function(active) self:SetSettingsPreviewActive(active) end,
+            isPreviewActive=function() return self.settingsPreviewActive end,
+        })
+    end
 
     local health = self.state and self.state.health
     if health then

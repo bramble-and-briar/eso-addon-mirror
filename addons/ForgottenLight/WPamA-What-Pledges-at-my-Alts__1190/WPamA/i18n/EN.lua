@@ -1,8 +1,7 @@
 local Icon = WPamA.Consts.IconsW
 local GetIcon = WPamA.Textures.GetTexture
 local OpenWindowText = GetString(SI_ENTER_CODE_CONFIRM_BUTTON) -- "Open Window"
-local DynamicEncounterText = GetAchievementSubCategoryInfo(1,4) -- "Dynamic Encounters"
---SI_HUD_EDITOR_DYNAMIC_EVENT_TRACKER = "Dynamic Event" at U51
+local DynamicEncounterText = GetString(SI_HUD_EDITOR_DYNAMIC_EVENT_TRACKER) -- "Dynamic Encounter" GetAchievementSubCategoryInfo(1,1)
 WPamA.i18n = {
   Lng = "EN",
 -- DateTime settings
@@ -122,18 +121,6 @@ WPamA.i18n = {
     },
     [6] = {
       Capt = GetString(SI_MAPFILTER14), -- "Companions"
---[[
-SI_MAIN_MENU_SKILLS | SI_COMPANION_OVERVIEW_SKILLS = "Skills"
-SI_SKILLS_ACTIVE_ABILITIES = "Active Abilities"
-SI_UTILITY_WHEEL_SLOT_FORMATTER = "Slot <<1>>"
-
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_3 "Ability 1"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_4 "Ability 2"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_5 "Ability 3"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_6 "Ability 4"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_7 "Ability 5"
-SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_8 "Ultimate"
---]]
       Tab = {
         [1] = {N=GetIcon(45, 24) .. "1", NC=GetIcon(45, 24, true) .. "1", W=70, S=true, A=GetString(SI_COMPANION_OVERVIEW_RAPPORT)},
         [2] = {N=GetIcon(45, 24) .. "2", NC=GetIcon(45, 24, true) .. "1", W=70, S=true, A=GetString(SI_COMPANION_OVERVIEW_RAPPORT)},
@@ -146,12 +133,16 @@ SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_8 "Ultimate"
         [5] = {N=zo_strformat("<<1>><<2>><<3>>", GetIcon(38, 24), GetIcon(39, 24), GetIcon(37, 24)),
                NC=zo_strformat("<<1>><<2>><<3>>", GetIcon(38, 24, true), GetIcon(39, 24, true), GetIcon(37, 24, true)),
                W=70, S=true,
-               A=GetString(SI_ARMORY_EQUIPMENT_LABEL) .. ": " .. GetString(SI_EQUIPSLOTVISUALCATEGORY2)},
+               A=zo_strformat("<<1>>: <<2>>", GetString(SI_ARMORY_EQUIPMENT_LABEL), GetString(SI_EQUIPSLOTVISUALCATEGORY2))},
         [6] = {N=zo_strformat("<<1>><<2>><<3>>", GetIcon(54, 24), GetIcon(48, 24), GetIcon(55, 24)),
                NC=zo_strformat("<<1>><<2>><<3>>", GetIcon(54, 24, true), GetIcon(48, 24, true), GetIcon(55, 24, true)),
                W=70, S=true,
                A=zo_strformat("<<1>>: <<2>>, <<3>>", GetString(SI_ARMORY_EQUIPMENT_LABEL),
                               GetString(SI_EQUIPSLOTVISUALCATEGORY1), GetString(SI_EQUIPSLOTVISUALCATEGORY3))},
+        [7] = {N=zo_strformat("<<1>><<2>>", GetIcon(75, 28), GetIcon(24, 24)),
+               NC=zo_strformat("<<1>><<2>>", GetIcon(75, 28, true), GetIcon(24, 24, true)),
+               W=70, S=true,
+               A=zo_strformat("<<1>>: <<2>>", GetString(SI_COMPANION_OVERVIEW_SKILLS), GetString(SI_SKILLS_ACTIVE_ABILITIES))},
       },
     },
     [7] = {
@@ -351,6 +342,7 @@ SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_8 "Ultimate"
   OptEndeavorChatColor = "Progress notification color",
   OptEndeavorChatColorF = "Adjusts the color of progress notifications",
   OptEndeavorAutoClaim = "Auto-claim the Challenges rewards",
+  OptEndeavorHideCompl = "Hide completed challenges",
   OptPursuitChatMsg  = "Show pursuit progress in chat",
   OptPursuitChatMsgF = "Show information in the chat window when the Golden Pursuits progress changes",
   OptPursuitChatCamp  = "Until a campaign reward is earned",
@@ -464,11 +456,12 @@ SI_BINDING_NAME_GAMEPAD_ACTION_BUTTON_8 "Ultimate"
   Login1DayAgo = "Yesterday",
 -- Dynamic Encounter Status
   DynamicEncounter = {
-    Start = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n The event started" }),
-    Stop  = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n The event completed" }),
-    Activ = table.concat({ GetIcon(73,20), DynamicEncounterText, ":\n The event is active" }),
-    Progr = table.concat({ GetIcon(73,20), DynamicEncounterText, ": ",
-            GetString(SI_ENDLESS_DUNGEON_SUMMARY_PROGRESS_HEADER), -- "Progress"
+    Icon  = GetIcon(73, 20),
+    Title = DynamicEncounterText,
+    Start = "The event started",
+    Stop  = "The event completed",
+    Activ = "The event is active",
+    Progr = table.concat({ GetString(SI_ENDLESS_DUNGEON_SUMMARY_PROGRESS_HEADER), -- "Progress"
             " ", GetString(SI_SPECTACLE_EVENTS_PROGRESS_PERCENT) }) -- "<<1>>%"
   },
 --

@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Torfason/Randwache__4842",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Torfason",
   "canonical_id": "esoui:4842",
   "category_id": "17",
@@ -23,8 +22,9 @@
     "Randwache"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4842/",
-  "fingerprint": "fffaf2df6326d30efdc69a72c4e25e45d13367514f506b377df80a6c050a0d1b",
+  "fingerprint": "a03c818965a21fa8f95abb4e6623e1d59bebd748b1635f909d3b37e86ed953f3",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17512.png",
     "https://cdn-eso.mmoui.com/preview/pvw17402.png",
     "https://cdn-eso.mmoui.com/preview/pvw17403.png",
     "https://cdn-eso.mmoui.com/preview/pvw17404.png",
@@ -36,11 +36,11 @@
   "source_id": "4842",
   "source_url": "https://www.esoui.com/downloads/info4842-Randwache.html",
   "stats": {
-    "downloads": 15,
-    "favorites": 0,
-    "monthly_downloads": 13
+    "downloads": 61,
+    "favorites": 1,
+    "monthly_downloads": 57
   },
   "title": "Randwache",
-  "updated_at": 1789709965000,
-  "version": "1.0.3"
+  "updated_at": 1790792194000,
+  "version": "2.0.0"
 }

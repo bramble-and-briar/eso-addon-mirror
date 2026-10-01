@@ -472,7 +472,7 @@ end
 function WPamA.ClearItemToolTip()
   if WPamA.ITT_IsShowed == true then
     WPamA.ITT_IsShowed = nil
-    ClearTooltip(WPamA_ITT) 
+    ClearTooltip(WPamA_ITT)
   end
 end
 
@@ -493,3 +493,28 @@ function WPamA.SetAchvToolTip(ctrl, aId, aProgress, aTS, alwaysME)
     ctrl:SetHandler("OnMouseExit", function(self) ACHIEVEMENTS.tooltip:Hide() end )
   end
 end
+
+function WPamA.SetAbilityToolTip(ctrl, abilityId)
+  if (abilityId == nil) or (abilityId < 1) then
+    ClearTooltip(SkillTooltip)
+    --ClearTooltip(AbilityTooltip)
+  else
+    ctrl:SetMouseEnabled(true)
+    ctrl:SetHandler("OnMouseEnter", 
+      function(self)
+        --- extended ability tooltip (an ability as a skill) ---
+        InitializeTooltip(SkillTooltip, ctrl, TOPRIGHT, -5, 0, TOPLEFT)
+        SkillTooltip:SetAbilityId(abilityId)
+        --- standard ability tooltip ---
+        --InitializeTooltip(AbilityTooltip, ctrl, RIGHT, -5, 0, LEFT)
+        --AbilityTooltip:SetAbilityId(abilityId)
+      end
+    )
+    ctrl:SetHandler("OnMouseExit",
+      function(self)
+        ClearTooltip(SkillTooltip)
+        --ClearTooltip(AbilityTooltip)
+      end
+    )
+  end
+end -- SetAbilityToolTip end

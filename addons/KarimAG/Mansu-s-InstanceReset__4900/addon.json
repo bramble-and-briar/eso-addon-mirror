@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/KarimAG/Mansu-s-InstanceReset__4900",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "KarimAG",
+  "canonical_id": "esoui:4900",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4900",
+  "deleted": false,
+  "directories": [
+    "MansusInstanceReset"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4900/",
+  "fingerprint": "76f919ce112d024c1817201049db32cf6051beb13f4552dd7655ee3d296db462",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4900",
+  "source_url": "https://www.esoui.com/downloads/info4900-MansusInstanceReset.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Mansu's InstanceReset",
+  "updated_at": 1790805917000,
+  "version": "1.0.0"
+}

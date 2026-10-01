@@ -52,7 +52,7 @@ function P:Create(frame)
         local label = WINDOW_MANAGER:CreateControl(parent:GetName() .. "OneFrame" .. key, parent, CT_LABEL)
         label:SetMouseEnabled(false)
         label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-        label:SetColor(1, 1, 1, 1)
+        label:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_HIGHLIGHT))
         label:SetDrawLayer(DL_TEXT)
         data[key] = label
     end
@@ -72,13 +72,20 @@ function P:Layout(frame, data)
         label:SetAlpha(self:Alpha(frame))
     end
     if raid then
-        data.info:SetAnchor(TOPRIGHT, bar, TOPRIGHT, -3, 3)
+        data.info:SetAnchor(RIGHT, frame.nameLabel, RIGHT, 0, 0)
         data.stats:SetAnchor(BOTTOMLEFT, bar, BOTTOMLEFT, 3, 0)
     else
         -- The native small-group control is much wider than its visible health bar.
         -- Keep metadata inside the bar's right edge and immediately above it.
-        data.info:SetAnchor(BOTTOMRIGHT, bar, TOPRIGHT, 0, -4)
+        data.info:SetAnchor(RIGHT, frame.nameLabel, RIGHT, 0, 0)
         data.stats:SetAnchor(TOPLEFT, bar, BOTTOMLEFT, 0, 4)
+    end
+    -- Use the name's vertical center but keep the level at the health bar's right edge.
+    if frame.nameLabel and frame.nameLabel.GetCenter then
+        local _, nameY = frame.nameLabel:GetCenter()
+        local _, barY = bar:GetCenter()
+        data.info:ClearAnchors()
+        data.info:SetAnchor(RIGHT, bar, RIGHT, raid and -3 or 0, nameY - barY)
     end
     data.info:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     data.stats:SetFont("$(BOLD_FONT)|16|soft-shadow-thin")
@@ -88,10 +95,10 @@ function P:Layout(frame, data)
         caption:ClearAnchors()
         caption:SetFont(raid and "$(MEDIUM_FONT)|9|soft-shadow-thin" or "$(MEDIUM_FONT)|10|soft-shadow-thin")
         caption:SetDimensions(raid and 21 or 27, caption:GetFontHeight() + 2)
-        caption:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 3 or 0, raid and -2 or 5)
+        caption:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 3 or 0, raid and -1 or 6)
         caption:SetAlpha(self:Alpha(frame))
         data.stats:ClearAnchors()
-        data.stats:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 26 or 30, raid and 0 or 1)
+        data.stats:SetAnchor(raid and BOTTOMLEFT or TOPLEFT, bar, BOTTOMLEFT, raid and 26 or 30, raid and 1 or 2)
     end
     if data.health then
         local health = data.health
@@ -99,7 +106,7 @@ function P:Layout(frame, data)
         health:SetFont("$(BOLD_FONT)|14|soft-shadow-thin")
         health:SetDimensions(48, health:GetFontHeight() + 2)
         health:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        health:SetAnchor(raid and BOTTOMRIGHT or TOPRIGHT, bar, BOTTOMRIGHT, -7, raid and 0 or 1)
+        health:SetAnchor(raid and BOTTOMRIGHT or TOPRIGHT, bar, BOTTOMRIGHT, -7, raid and 1 or 2)
     end
 end
 function P:CanShow(frame)
@@ -116,8 +123,7 @@ function P:Update(frame, data)
     end
     -- Class/account belong to the native name line; this row contains level only.
     data.info:SetText(table.concat(pieces, "  "))
-    if IsUnitChampion(tag) then data.info:SetColor(1, 1, 1, 1)
-    else data.info:SetColor(0.3, 1, 0.3, 1) end
+    data.info:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_HIGHLIGHT))
     data.info:SetWidth(data.info:GetTextWidth() + 2)
     self:Name(frame, data)
     data.info:SetHidden(not self:CanShow(frame) or #pieces == 0)

@@ -1,5 +1,4 @@
 local LCCC = LibCodesCommonCode
-local LootLog = LootLog
 
 local MAP_IDS = { }
 local ZONE_LEADS = { }
@@ -102,7 +101,11 @@ end
 
 function LootLog.GetAntiquityIdsForTreasureMap( item )
 	if (type(item) == "string") then
-		item = GetItemLinkItemId(item)
+		if (select(2, GetItemLinkItemType(item)) == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP) then
+			item = GetItemLinkItemId(item)
+		else
+			return { }
+		end
 	end
 
 	local results

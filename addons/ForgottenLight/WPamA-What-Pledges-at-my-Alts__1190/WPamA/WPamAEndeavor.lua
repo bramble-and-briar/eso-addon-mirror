@@ -117,7 +117,7 @@ end -- GetEndeavorRewardString end
 --]]
 
 function WPamA:UpdWindowModeEndeavor()
---  SV structure Endeavor : [1] | [2] | [3] = {NumCompl = 0, EndTS = 0} -- Daily, Weekly, Seasonal
+--  SV structure Endeavor : [1] | [2] | [3] = {NumCompl = 0, NumTotal = 0, EndTS = 0} -- Daily, Weekly, Seasonal
 --  if not EndeavorDailyConditions[1] then self:EndeavorDataUpdate() end -- no data -> update data
   if not EndeavorDataReady then return end
 --
@@ -125,9 +125,10 @@ function WPamA:UpdWindowModeEndeavor()
   local Icon = self.Consts.IconsW
   local Colors = self.Colors
   local Endvr = self.SV_Main.Endeavor
+  local isHideCompleted = self.SV_Main.EndeavorHideCompleted
   local isDailyComplete  = Endvr[1].NumCompl > 2
-  local isWeeklyComplete = Endvr[2].NumCompl == #EndeavorWeeklyConditions -- > 0
-  local isSeasonComplete = Endvr[3].NumCompl == #EndeavorSeasonConditions -- > 0
+  local isWeeklyComplete = Endvr[2].NumCompl == Endvr[2].NumTotal
+  local isSeasonComplete = Endvr[3].NumCompl == Endvr[3].NumTotal
   local RowIndex = {0, 0, 0, 99} -- Daily / Weekly / Seasonal / Promo rows
   RowIndex[1] = (#EndeavorDailyConditions > 0) and 1 or 0
   local RowCnt = (#EndeavorDailyConditions > 0) and (1 + #EndeavorDailyConditions) or 0
@@ -170,7 +171,11 @@ function WPamA:UpdWindowModeEndeavor()
       txtLvl = " "
       r.Char:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
       txtChar = self.i18n.EndeavorTypeNames[2] -- TIMED_ACTIVITY_TYPE_WEEKLY
-      txtB1 = zo_strformat("<<1>> / <<2>>", Endvr[2].NumCompl, #EndeavorWeeklyConditions)
+      if isHideCompleted and (Endvr[2].NumTotal ~= #EndeavorWeeklyConditions) then
+        txtB1 = zo_strformat("0 / <<1>> |c999999(<<2>><<3>>)|r", #EndeavorWeeklyConditions, Endvr[2].NumCompl, Icon.Hidden)
+      else
+        txtB1 = zo_strformat("<<1>> / <<2>>", Endvr[2].NumCompl, Endvr[2].NumTotal)
+      end
       txtB2 = " "
       txtB3 = zo_strformat(RewardTimeFormatter, self:DifTSToStr(Endvr[2].EndTS - TS, true, 0))
     ---
@@ -180,7 +185,11 @@ function WPamA:UpdWindowModeEndeavor()
       txtLvl = " "
       r.Char:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
       txtChar = self.i18n.EndeavorTypeNames[3] -- TIMED_ACTIVITY_TYPE_SEASONAL
-      txtB1 = zo_strformat("<<1>> / <<2>>", Endvr[3].NumCompl, #EndeavorSeasonConditions)
+      if isHideCompleted and (Endvr[3].NumTotal ~= #EndeavorSeasonConditions) then
+        txtB1 = zo_strformat("0 / <<1>> |c999999(<<2>><<3>>)|r", #EndeavorSeasonConditions, Endvr[3].NumCompl, Icon.Hidden)
+      else
+        txtB1 = zo_strformat("<<1>> / <<2>>", Endvr[3].NumCompl, Endvr[3].NumTotal)
+      end
       txtB2 = " "
       txtB3 = zo_strformat(RewardTimeFormatter, self:DifTSToStr(Endvr[3].EndTS - TS, true, 0))
     ---
@@ -369,8 +378,10 @@ end -- UpdWindowModeEndeavor end
 function WPamA:EndeavorDataPrepare()
   if #EndeavorDataOnServer ~= GetNumTimedActivities() then return end
   EndeavorDailyConditions, EndeavorWeeklyConditions, EndeavorSeasonConditions = {}, {}, {}
+  local isHideCompleted = self.SV_Main.EndeavorHideCompleted
   local tinsert = table.insert
   local taDailyCompl, taWeeklyCompl, taSeasonCompl = 0, 0, 0
+  local taDailyTotal, taWeeklyTotal, taSeasonTotal = 0, 0, 0
   for i = 1, #EndeavorDataOnServer do
     --- Get Endeavor's progress and reward data ---
     local endvData = EndeavorDataOnServer[i]
@@ -379,6 +390,7 @@ function WPamA:EndeavorDataPrepare()
     local _, taValue = GetTimedActivityRewardInfo(i, 1)
     local isValueReward = (taValue > 15) or (GetNumTimedActivityRewards(i) > 1) or false
     local percProgr = zo_floor(100 * endvData.Progress / endvData.MaxProgress)
+    local taSaveCond = (not isHideCompleted) or ( isHideCompleted and (not taClaim) )
     --- Save Endeavor's data to array ---
     local cond = { Ind = i, Name = endvData.Name, isComplete = taCompl, isClaim = taClaim,
                    -- Value = percProgr + taValue * (isValueReward and 20 or 1),
@@ -388,17 +400,17 @@ function WPamA:EndeavorDataPrepare()
                    Reward = endvData.Reward }
                    -- Reward = GetEndeavorRewardString(i, 1) }
     if endvData.Type == TIMED_ACTIVITY_TYPE_DAILY then -- Daily
-      tinsert(EndeavorDailyConditions, cond)
-      --if cond.isComplete then taDailyCompl = taDailyCompl + 1 end
-      if cond.isClaim then taDailyCompl = taDailyCompl + 1 end
+      taDailyTotal = taDailyTotal + 1
+      if taClaim then taDailyCompl = taDailyCompl + 1 end
+      if taSaveCond then tinsert(EndeavorDailyConditions, cond) end
     elseif endvData.Type == TIMED_ACTIVITY_TYPE_WEEKLY then
-      tinsert(EndeavorWeeklyConditions, cond)
-      --if cond.isComplete then taWeeklyCompl = taWeeklyCompl + 1 end
-      if cond.isClaim then taWeeklyCompl = taWeeklyCompl + 1 end
+      taWeeklyTotal = taWeeklyTotal + 1
+      if taClaim then taWeeklyCompl = taWeeklyCompl + 1 end
+      if taSaveCond then tinsert(EndeavorWeeklyConditions, cond) end
     else -- Season = TIMED_ACTIVITY_TYPE_SEASONAL
-      tinsert(EndeavorSeasonConditions, cond)
-      --if cond.isComplete then taSeasonCompl = taSeasonCompl + 1 end
-      if cond.isClaim then taSeasonCompl = taSeasonCompl + 1 end
+      taSeasonTotal = taSeasonTotal + 1
+      if taClaim then taSeasonCompl = taSeasonCompl + 1 end
+      if taSaveCond then tinsert(EndeavorSeasonConditions, cond) end
     end
   end -- for TA Loop
   --- Patch for U49
@@ -429,16 +441,12 @@ function WPamA:EndeavorDataPrepare()
                                           return valV2 < valV1
                                         end )
   table.sort( EndeavorWeeklyConditions, function(v1, v2)
-                                          --local valV1 = v1.isComplete and 1 or v1.Value
-                                          --local valV2 = v2.isComplete and 1 or v2.Value
                                           local valV1 = v1.isClaim and 1 or v1.Value
                                           local valV2 = v2.isClaim and 1 or v2.Value
                                           if valV1 == valV2 then return v1.Name < v2.Name end
                                           return valV2 < valV1
                                         end )
   table.sort( EndeavorSeasonConditions, function(v1, v2)
-                                          --local valV1 = v1.isComplete and 1 or v1.Value
-                                          --local valV2 = v2.isComplete and 1 or v2.Value
                                           local valV1 = v1.isClaim and 1 or v1.Value
                                           local valV2 = v2.isClaim and 1 or v2.Value
                                           if valV1 == valV2 then return v1.Name < v2.Name end
@@ -446,10 +454,13 @@ function WPamA:EndeavorDataPrepare()
                                         end )
   --- Save Endeavor's end time ---
   local taSV = self.SV_Main.Endeavor
-  -- SV structure Endeavor : [1] | [2] | [3] = {NumCompl = 0, EndTS = 0} -- Daily, Weekly, Seasonal
+  -- SV structure Endeavor : [1] | [2] | [3] = {NumCompl = 0, NumTotal = 0, EndTS = 0} -- Daily, Weekly, Seasonal
   taSV[1].NumCompl = taDailyCompl
   taSV[2].NumCompl = taWeeklyCompl
   taSV[3].NumCompl = taSeasonCompl
+  taSV[1].NumTotal = taDailyTotal
+  taSV[2].NumTotal = taWeeklyTotal
+  taSV[3].NumTotal = taSeasonTotal
   local to = self.Today
   if to.DayEnd then
     if taSV[1].EndTS ~= to.DayEnd    then taSV[1].EndTS = to.DayEnd    end
@@ -478,6 +489,7 @@ function WPamA:EndeavorDataUpdate( taIndex )
     local taProgress = GetTimedActivityProgress(i)
     local taMaxProgress = GetTimedActivityMaxProgress(i)
     local taName = GetTimedActivityName(i)
+    taName = taName:gsub("|t%d%d:%d%d:","|t18:18:")
     local taReward = GetEndeavorRewardString(i, 1)
     local taClaim = GetTimedActivityNumTimesClaimed(i)
     local taMaxClaim = GetTimedActivityTotalNumTimesClaimable(i)
@@ -725,6 +737,48 @@ function WPamA:UpdWindowModeCompWeaponSkills()
     r.Row:SetHidden(false)
   end
 end -- UpdWindowModeCompWeaponSkills end
+
+function WPamA:UpdWindowModeCompActiveSkills()
+  local WCP = self.Companions.Persons
+  local WCID = self.Companions.ActiveCompanionId
+--WCP: { IID = IngameCompanionId, CID = CollectibleId, Name = "CompanionName", QID = QuestId, isLocked = lockedStatus }
+  local ACC = self.SV_Main.Companions
+--ACC = { Lvl = 99, LvlPrc = 0, Skills = {}, Equips = {}, SkillBar = {} }
+  local deltaSlotInd = self.Companions.MinSkillBarSlot - 1
+  local RowCnt = #WCP
+  for i = RowCnt + 1, self.Consts.RowCnt do
+    self.ctrlRows[i].Row:SetHidden(true)
+  end
+  self:UI_UpdMainWindowSize(52, RowCnt)
+--
+  for i = 1, RowCnt do
+    local r = self.ctrlRows[i]
+    r.BG:SetHidden( WCID ~= i )
+    r.Lvl:SetColor(self:GetColor(self.Colors.LabelLvl))
+    if ACC[i].Lvl < 50 then r.Lvl:SetText(ACC[i].Lvl)
+    else r.Lvl:SetText(0)
+    end
+    r.Char:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    r.Char:SetColor(self:GetColor(self.Colors.LabelLvl))
+    self:SetScaledText(r.Char, WCP[i].Name)
+    --
+    for j = 1, 6 do
+      local txt = ""
+      local slotAbilityId = ACC[i].SkillBar[ j + deltaSlotInd ]
+      r.B[j]:SetColor(self:GetColor(self.Colors.LabelLvl))
+      if slotAbilityId and (slotAbilityId > 0) then
+        txt = zo_strformat("|t<<1>>:<<1>>:<<2>>|t", 20, GetAbilityIcon(slotAbilityId))
+      else -- data not exist
+        r.B[j]:SetColor(self:GetColor(self.Colors.DungStNA)) -- gray
+        txt = "---"
+      end
+      self:SetScaledText(r.B[j], txt)
+      self.SetAbilityToolTip(r.B[j], slotAbilityId)
+    end
+    --
+    r.Row:SetHidden(false)
+  end
+end -- UpdWindowModeCompActiveSkills end
 
 local function GetItemLinkByItemData(ItemDataString)
   if type(ItemDataString) == "string" then
@@ -1234,14 +1288,14 @@ end -- UpdActiveCompanionData end
 function WPamA.OnCompanionActivated(event, companionId)
   WPamA:UpdActiveCompanionData(companionId)
   local m = WPamA.SV_Main.ShowMode
-  local Modes = { [29] = true, [32] = true, [36] = true, [39] = true, [40] = true, [46] = true }
+  local Modes = { [29] = true, [32] = true, [36] = true, [39] = true, [40] = true, [46] = true, [52] = true }
   if Modes[m] then WPamA:UpdWindowInfo() end
 end -- OnCompanionActivated end
 
 function WPamA.OnCompanionDeactivated(event)
   WPamA.Companions.ActiveCompanionId = 0
   local m = WPamA.SV_Main.ShowMode
-  local Modes = { [32] = true, [36] = true, [39] = true, [40] = true }
+  local Modes = { [32] = true, [36] = true, [39] = true, [40] = true, [52] = true }
   if Modes[m] then WPamA:UpdWindowInfo() end
 end -- OnCompanionDeactivated end
 
@@ -1276,7 +1330,7 @@ function WPamA.OnCompanionExpGain(event, companionId, level, previousExperience,
   if (m == 32) or ( Modes[m] and (oldLvl ~= ACC[ccid].Lvl) ) then WPamA:UpdWindowInfo() end
 end -- OnCompanionExpGain end
 
-function WPamA.OnCompanionSkillBarUpdate(event, actionSlotIndex, hotbarCategory) --!!
+function WPamA.OnCompanionSkillBarUpdate(event, actionSlotIndex, hotbarCategory)
 --EVENT_HOTBAR_SLOT_STATE_UPDATED (luaindex actionSlotIndex, HotBarCategory hotbarCategory)
   if hotbarCategory ~= HOTBAR_CATEGORY_COMPANION then return end
   if not HasActiveCompanion() then return end
@@ -1300,8 +1354,8 @@ function WPamA.OnCompanionSkillBarUpdate(event, actionSlotIndex, hotbarCategory)
      d(zo_strformat("Slot:<<1>> AbId:<<2>> [<<3>>]", actionSlotIndex, aid, abilityName))
      --]]
 --
-  --local m = WPamA.SV_Main.ShowMode
-  --if m == ?? then WPamA:UpdWindowInfo() end
+  local m = WPamA.SV_Main.ShowMode
+  if m == 52 then WPamA:UpdWindowInfo() end
 end -- OnCompanionSkillBarUpdate end
 
 function WPamA.OnCompanionSkillLineUpdate(event, skillLineId, ...)
@@ -1403,6 +1457,7 @@ function WPamA:PromoActivityDataUpdate( paKey, paIndex )
   for i = startLoop, endLoop do
     local paProgress = GetPromotionalEventCampaignActivityProgress(paKey, i) -- , rewardFlags
     local paID, paName, _, paMaxProgress, paRewardID, paValue = GetPromotionalEventCampaignActivityInfo(paKey, i)
+    paName = paName:gsub("|t%d%d:%d%d:","|t18:18:")
     --[[
     d("Act [" .. i .. "] [" .. paName .. "]")
     d("Progress : " .. paProgress .. " / " .. paMaxProgress)

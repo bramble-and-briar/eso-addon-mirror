@@ -1,7 +1,7 @@
 --GuildChatColors = GuildChatColors or {}
 local GCC = GuildChatColors
 GCC.Name = "GuildChatColors"
-GCC.Version = "1.50.0"
+GCC.Version = "1.51.0"
 GCC.Author = "OlegS (aka @TwilightOwl [EU])"
 ------------------
 local SVG, SVA = {}, {}

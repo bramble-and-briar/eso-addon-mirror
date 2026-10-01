@@ -429,6 +429,7 @@ local ACCOUNT_DEFAULTS =
         {
             enabled = true,
             legacyStyle = false,
+            mirrorLayout = false,
             unlocked = false,
             scale = 100,
             soundsEnabled = true,
@@ -1282,7 +1283,7 @@ function Settings:SetLootHistoryValue(key, value)
     end
 
     self:GetLootHistory()[key] = value
-    if (key == "scale" or key == "legacyStyle") and Nirnsteel_UI.LootHistory then
+    if (key == "scale" or key == "legacyStyle" or key == "mirrorLayout") and Nirnsteel_UI.LootHistory then
         Nirnsteel_UI.LootHistory:RefreshSettings()
     end
 end
@@ -3247,6 +3248,15 @@ function Settings:RegisterAddonMenu()
                     setFunc = function(value) self:SetLootHistoryValue("legacyStyle", value) end,
                     disabled = function() return not self:IsLootHistoryEnabled() end,
                     default = ACCOUNT_DEFAULTS.modules.lootHistory.legacyStyle,
+                },
+                {
+                    type = "checkbox",
+                    name = "Mirror Layout",
+                    tooltip = "Place item icons on the right and item names on the left. Use this layout when moving Loot History to the left side of the screen with Edit HUD.",
+                    getFunc = function() return self:GetLootHistory().mirrorLayout == true end,
+                    setFunc = function(value) self:SetLootHistoryValue("mirrorLayout", value) end,
+                    disabled = function() return not self:IsLootHistoryEnabled() end,
+                    default = ACCOUNT_DEFAULTS.modules.lootHistory.mirrorLayout,
                 },
                 {
                     type = "checkbox",
@@ -5371,6 +5381,7 @@ function Settings:RegisterAddonMenu()
         },
     }
     options[#options + 1] = { type = "submenu", name = "Minimap", controls = self:BuildMinimapControls() }
+    if Nirnsteel_UI.HUDEditor then Nirnsteel_UI.HUDEditor:ConfigureSettings(options) end
     options = ConfigureModuleMenuOptions(options)
 
     local noMouseWheelSlider = Nirnsteel_UI.NoMouseWheelSlider

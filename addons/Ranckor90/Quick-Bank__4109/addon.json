@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Ranckor90/Quick-Bank__4109",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Ranckor90",
   "canonical_id": "esoui:4109",
   "category_id": "20",
@@ -25,7 +26,7 @@
     "QuickBank"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4109/",
-  "fingerprint": "371076823930ecfa53128263a1b680f6619837ad0911a585441c135dc52b2d49",
+  "fingerprint": "24802545dcd48fb1220a59d2737f08b89e2f07a0474fdc1cf0f221708de2d31b",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -33,11 +34,11 @@
   "source_id": "4109",
   "source_url": "https://www.esoui.com/downloads/info4109-QuickBank.html",
   "stats": {
-    "downloads": 675,
+    "downloads": 701,
     "favorites": 0,
-    "monthly_downloads": 26
+    "monthly_downloads": 14
   },
   "title": "Quick Bank",
-  "updated_at": 1783899568000,
+  "updated_at": 1790797667000,
   "version": "v1.0.2"
 }

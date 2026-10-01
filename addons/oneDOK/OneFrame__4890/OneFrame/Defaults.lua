@@ -15,7 +15,7 @@ function A:MakeDefaults()
         enabled = true, sort = false, account = false, class = true, level = true, cp = true,
         roleStats = {}, colors = colors, customColors = {}, dps = false, hps = false, hodor = true, ultimate = true,
         shield = true, shieldColor = { 0.5, 0.5, 1 }, shieldOpacity = 0.45,
-        interaction = true, contextMenu = true,
+        interaction = true, contextMenu = true, groupDps = true,
     }
 end
 function A:RoleGradient(tag)

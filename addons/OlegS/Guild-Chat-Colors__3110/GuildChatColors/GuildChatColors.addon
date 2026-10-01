@@ -1,8 +1,8 @@
 ## DisableSavedVariablesAutoSaving 0
 ## Title: Guild Chat Colors
-## APIVersion: 101050
-## Version: 1.50.0
-## AddOnVersion: 015000
+## APIVersion: 101051
+## Version: 1.51.0
+## AddOnVersion: 015100
 ## Author: OlegS (aka @TwilightOwl [EU])
 ## SavedVariables: GCCGlobal GCCAccount
 ## OptionalDependsOn: LibAddonMenu-2.0>=43

@@ -7,7 +7,7 @@ if not ONEFRAME_COLOR then ZO_CreateStringId("ONEFRAME_COLOR", "Color") end
 if not ONEFRAME_SHOW_STATISTIC then ZO_CreateStringId("ONEFRAME_SHOW_STATISTIC", "Show statistic") end
 if not ONEFRAME_NOTHING then ZO_CreateStringId("ONEFRAME_NOTHING", "Nothing") end
 if not ONEFRAME_LEVEL_CP then ZO_CreateStringId("ONEFRAME_LEVEL_CP", "Level / Champion Points") end
-if not ONEFRAME_GROUP_DPS then ZO_CreateStringId("ONEFRAME_GROUP_DPS", "Group DPS (partial)") end
+if not ONEFRAME_GROUP_DPS then ZO_CreateStringId("ONEFRAME_GROUP_DPS", "Group DPS") end
 if not ONEFRAME_HEALTH_THOUSANDS then ZO_CreateStringId("ONEFRAME_HEALTH_THOUSANDS", "%.1fk") end
 if not ONEFRAME_GENERAL then ZO_CreateStringId("ONEFRAME_GENERAL", "General") end
 if not ONEFRAME_ENABLED then ZO_CreateStringId("ONEFRAME_ENABLED", "Enable addon") end

@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.09.29",
+	version = "2026.09.30",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -600,6 +600,8 @@ local function GetHouseID(value)
 	["Rogue's Refuge"] = 128,
 	["Dancing Waters Wellspring"] = 129,
 	["Star-Gazer's Vigil"] = 130,
+	["Grotto of Desires"] = 131,
+	["Sheogorad Chateau"] = 132,
 	}
 	for houseName, houseId in pairs(playerHouses) do
 		if string.find(string.lower(houseName), string.lower(value), 1, true) ~= nil then return houseId end
@@ -620,7 +622,12 @@ local function InLootWhitelist(value)
 	56863,--potent nirncrux
 	68342,--hakeijo
 	166045,--indeko
-	204881,--luminous ink
+	--204881,--luminous ink
+	--114889,--regulas
+	--114890,--bast
+	--114891,--clean pelt
+	--114893,--alchemical resin
+	--135161,--ochre
 	178470,--Hidden Treasure Bag
 	197790,--Research Portfolio
 	188144,--Fallen Knight's Pack
@@ -631,29 +638,16 @@ local function InLootWhitelist(value)
 	126012,--Waterlogged Strong Box
 	197853,--Abyss-Drenched Folio Volume
 	217654,--Algae-Laden Sunport Pack
+	224302,--Wondrous Nowhere Keys
+	------
+	--187909,--Tribute Roister Purse
+	--134583,--Trans Geode 1
+	--171531,--Trans Geode 3
+	--134622,--Uncracked Trans Geode 1-3
+	------
 	}
-	local greened = {
-	187909,--Tribute Roister Purse
-	134583,--Trans Geode 1
-	171531,--Trans Geode 3
-	134622,--Uncracked Trans Geode 1-3
-	114889,--regulas
-	114890,--bast
-	114891,--clean pelt
-	114893,--alchemical resin
-	135161,--ochre
-	}
-	if RidinDirty.savedVariables.lootQuality == ITEM_DISPLAY_QUALITY_MAGIC then
-		for _, itemId in ipairs(greened) do
-			if itemId == value then return true end
-		end
-		for _, itemId in ipairs(items) do
-			if itemId == value then return true end
-		end
-	else
-		for _, itemId in ipairs(items) do
-			if itemId == value then return true end
-		end
+	for _, itemId in ipairs(items) do
+		if itemId == value then return true end
 	end
 	return false
 end
@@ -1320,14 +1314,6 @@ end
 -------- PLAYER ACTIVATED --
 ---------------------------------------------
 local function OnPlayerActivated()
-	if RidinDirty.savedVariables.lockArmory then
-		if ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled ~= false then ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Armory save build auto locked.") end
-		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
-		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
-		RidinDirty.ArmoryLock:SetText("|t32:32:ESOUI/art/miscellaneous/locked_up.dds|t")
-		RidinDirty.ArmoryLock:SetMouseEnabled(true)
-		RidinDirty.ArmoryLock:SetAlpha(1)
-	end
 	if RidinDirty.savedVariables.lootManager and not chatMods then
 		chatMods = true
 		local origFormatter = CHAT_ROUTER:GetRegisteredMessageFormatters()[EVENT_CHAT_MESSAGE_CHANNEL]
@@ -1343,7 +1329,7 @@ local function OnPlayerActivated()
 						if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then 
 							local newLink = (IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. itemLink) or itemLink
 							newFormatted = string.gsub(newFormatted, itemLink, newLink)
-							break--<< TESTING
+							break
 						end
 					end
 					return newFormatted, saveTarget, fromDisplayName, originalText
@@ -1351,6 +1337,14 @@ local function OnPlayerActivated()
 					return formattedText, saveTarget, fromDisplayName, originalText
 				end
 			end)
+	end
+	if RidinDirty.savedVariables.lockArmory and ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled then
+		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Armory save build auto locked.")
+		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
+		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
+		RidinDirty.ArmoryLock:SetText("|t32:32:ESOUI/art/miscellaneous/locked_up.dds|t")
+		RidinDirty.ArmoryLock:SetMouseEnabled(true)
+		RidinDirty.ArmoryLock:SetAlpha(1)
 	end
 	if RidinDirty.savedVariables.stackAttributes then
 		ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
@@ -1872,20 +1866,21 @@ local function BankManager(eventCode, bagId)
 						and (bankSlotData.itemType == ITEMTYPE_FOOD or bankSlotData.itemType == ITEMTYPE_DRINK or bankSlotData.itemType == ITEMTYPE_POTION
 						or bankSlotData.itemType == ITEMTYPE_POISON or bankSlotData.itemType == ITEMTYPE_SOUL_GEM or bankSlotData.itemType == ITEMTYPE_TOOL
 						or bankSlotData.itemType == ITEMTYPE_AVA_REPAIR or bankSlotData.itemType == ITEMTYPE_RECALL_STONE or bankSlotData.itemType == ITEMTYPE_SIEGE) then break end
-					if bankSlotData.rawName == bagSlotData.rawName and not bagSlotData.stolen and not (bagSlotData.itemType == ITEMTYPE_SIEGE and select(23, ZO_LinkHandler_ParseLink(GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT))) ~= "0") then
-						local bagStack, bagMaxStack = GetSlotStackSize(BAG_BACKPACK, bagSlot)
-						local bagItemLink = GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT)
-						local quantity = zo_min(bagStack, bankMaxStack - bankStack)
-						if IsProtectedFunction("RequestMoveItem") then
-							CallSecureProtected("RequestMoveItem", BAG_BACKPACK, bagSlot, bagId, bankSlot, quantity)
-						else
-							RequestMoveItem(BAG_BACKPACK, bagSlot, bagId, bankSlot, quantity)
-						end
-						df(zo_strformat(rdLogo .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
-						local bankStack = bankStack + quantity
-						if bankStack == bankMaxStack then
-							break
-						end
+					if bankSlotData.rawName == bagSlotData.rawName and IsItemBound(BAG_BACKPACK, bagSlot) == IsItemBound(BAG_BANK, bankSlot) and not bagSlotData.stolen
+						and not (bagSlotData.itemType == ITEMTYPE_SIEGE and select(23, ZO_LinkHandler_ParseLink(GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT))) ~= "0") then
+							local bagStack, bagMaxStack = GetSlotStackSize(BAG_BACKPACK, bagSlot)
+							local bagItemLink = GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT)
+							local quantity = zo_min(bagStack, bankMaxStack - bankStack)
+							if IsProtectedFunction("RequestMoveItem") then
+								CallSecureProtected("RequestMoveItem", BAG_BACKPACK, bagSlot, bagId, bankSlot, quantity)
+							else
+								RequestMoveItem(BAG_BACKPACK, bagSlot, bagId, bankSlot, quantity)
+							end
+							df(zo_strformat(rdLogo .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
+							local bankStack = bankStack + quantity
+							if bankStack == bankMaxStack then
+								break
+							end
 					end
 				end
 			end
@@ -1903,20 +1898,21 @@ local function BankManager(eventCode, bagId)
 							and (bankSlotData.itemType == ITEMTYPE_FOOD or bankSlotData.itemType == ITEMTYPE_DRINK or bankSlotData.itemType == ITEMTYPE_POTION
 							or bankSlotData.itemType == ITEMTYPE_POISON or bankSlotData.itemType == ITEMTYPE_SOUL_GEM or bankSlotData.itemType == ITEMTYPE_TOOL
 							or bankSlotData.itemType == ITEMTYPE_AVA_REPAIR or bankSlotData.itemType == ITEMTYPE_RECALL_STONE or bankSlotData.itemType == ITEMTYPE_SIEGE) then break end
-						if bankSlotData.rawName == bagSlotData.rawName and not bagSlotData.stolen and not (bagSlotData.itemType == ITEMTYPE_SIEGE and select(23, ZO_LinkHandler_ParseLink(GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT))) ~= "0") then
-							local bagStack, bagMaxStack = GetSlotStackSize(BAG_BACKPACK, bagSlot)
-							local bagItemLink = GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT)
-							local quantity = zo_min(bagStack, bankMaxStack - bankStack)
-							if IsProtectedFunction("RequestMoveItem") then
-								CallSecureProtected("RequestMoveItem", BAG_BACKPACK, bagSlot, BAG_SUBSCRIBER_BANK, bankSlot, quantity)
-							else
-								RequestMoveItem(BAG_BACKPACK, bagSlot, BAG_SUBSCRIBER_BANK, bankSlot, quantity)
-							end
-							df(zo_strformat(rdLogo .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
-							local bankStack = bankStack + quantity
-							if bankStack == bankMaxStack then
-								break
-							end
+						if bankSlotData.rawName == bagSlotData.rawName and IsItemBound(BAG_BACKPACK, bagSlot) == IsItemBound(BAG_BANK, bankSlot) and not bagSlotData.stolen
+							and not (bagSlotData.itemType == ITEMTYPE_SIEGE and select(23, ZO_LinkHandler_ParseLink(GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT))) ~= "0") then
+								local bagStack, bagMaxStack = GetSlotStackSize(BAG_BACKPACK, bagSlot)
+								local bagItemLink = GetItemLink(BAG_BACKPACK, bagSlot, LINK_STYLE_DEFAULT)
+								local quantity = zo_min(bagStack, bankMaxStack - bankStack)
+								if IsProtectedFunction("RequestMoveItem") then
+									CallSecureProtected("RequestMoveItem", BAG_BACKPACK, bagSlot, BAG_SUBSCRIBER_BANK, bankSlot, quantity)
+								else
+									RequestMoveItem(BAG_BACKPACK, bagSlot, BAG_SUBSCRIBER_BANK, bankSlot, quantity)
+								end
+								df(zo_strformat(rdLogo .. "Deposited: [<<1>>/<<2>>] <<t:3>>", quantity, bagStack, bagItemLink))
+								local bankStack = bankStack + quantity
+								if bankStack == bankMaxStack then
+									break
+								end
 						end
 					end
 				end
@@ -3202,6 +3198,9 @@ local function RDInitializeSettings()
 	if RidinDirty.savedVariables.lockArmory then
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].enabled = false
 		ARMORY_KEYBOARD.keybindStripDescriptor[2].name = ("Save Locked")
+		RidinDirty.ArmoryLock:SetText("|t32:32:ESOUI/art/miscellaneous/locked_up.dds|t")
+		RidinDirty.ArmoryLock:SetMouseEnabled(true)
+		RidinDirty.ArmoryLock:SetAlpha(1)
 	end
 	if RidinDirty.savedVariables.chatNotify then
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_CHAT_MESSAGE_CHANNEL, ChatNotify)

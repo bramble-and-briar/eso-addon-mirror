@@ -2,10 +2,10 @@
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
 ## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
-## Title: |cFF69B4PB’s ChatWindowCustomizer|r 1.3.0
+## Title: |cFF69B4PB’s ChatWindowCustomizer|r 1.3.1
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Moves and resizes the chat window on the HUD, changes the size of the text in it, and can keep it on screen instead of fading out after 20 seconds -- in menus as well as on the HUD. Position is measured from whichever corner of the screen you choose, so the window grows away from that corner; width, height and message text size each have their own slider; the draw order decides whether the window sits under or over the rest of the interface. The settings panel shows a live preview of the window while you adjust it.
-## Version: 1.3.0
+## Version: 1.3.1
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsChatWindowCustomizer_Data

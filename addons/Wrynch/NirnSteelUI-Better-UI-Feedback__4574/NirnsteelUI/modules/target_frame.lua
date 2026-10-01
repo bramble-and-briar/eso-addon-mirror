@@ -209,6 +209,7 @@ local function IsEnabled()
 end
 
 local function IsUnlocked()
+    if Nirnsteel_UI.HUDEditor and Nirnsteel_UI.HUDEditor:IsAvailable() then return false end
     return IsEnabled() and GetSetting("unlocked") == true
 end
 
@@ -866,6 +867,15 @@ function TargetFrame:ApplyPosition()
     local root = self:GetRoot()
     root:ClearAnchors()
     root:SetAnchor(TOP, GuiRoot, TOP, tonumber(position.x) or 0, tonumber(position.y) or DEFAULT_POSITION.y)
+    if Nirnsteel_UI.HUDEditor then
+        Nirnsteel_UI.HUDEditor:Apply("targetFrame",root,{
+            name="Nirnsteel Target Frame", position=position, enabled=IsEnabled,
+            defaultAnchor=function() return ZO_Anchor:New(TOP,GuiRoot,TOP,DEFAULT_POSITION.x,DEFAULT_POSITION.y) end,
+            replaces=function(control) return control:GetName():find("^ZO_TargetUnitFrame") ~= nil end,
+            preview=function(active) self:SetSettingsPreviewActive(active) end,
+            isPreviewActive=function() return self.settingsPreviewActive end,
+        })
+    end
     local mover = self:GetMover()
     mover:ClearAnchors()
     mover:SetAnchor(TOP, GuiRoot, TOP, tonumber(position.x) or 0, tonumber(position.y) or DEFAULT_POSITION.y)
@@ -1255,6 +1265,10 @@ function TargetFrame:ApplyTargetData(data, instant)
 end
 
 function TargetFrame:RefreshTarget(instant, retainOnMissing)
+    if not IsEnabled() then
+        self:SetStockFrameHidden(false)
+        return false
+    end
     local data
     if self.settingsPreviewActive or self.debugPreviewMode then
         data = GetPreviewData(self.debugPreviewMode ~= "npc")
@@ -1360,6 +1374,7 @@ function TargetFrame:SetReconciliationEnabled(enabled)
         end
         local recovering = self.runtimeRecoveryActive == true
         self:RunGuarded("reconciliation", function()
+            self:SetStockFrameHidden(IsEnabled() and self.initialized == true)
             self:ReconcileTarget()
             if recovering and self.currentData then
                 self.runtimeRecoveryActive = nil
@@ -1371,43 +1386,210 @@ function TargetFrame:SetReconciliationEnabled(enabled)
     end)
 end
 
-function TargetFrame:SetStockFrameHidden(hidden)
-    hidden = hidden == true and self.runtimeRecoveryActive ~= true
-    if UNIT_FRAMES and UNIT_FRAMES.SetFrameHiddenForReason then
-        if hidden and UNIT_FRAMES.GetFrame and not UNIT_FRAMES:GetFrame(UNIT_TAG) then
-            self.stockFrameHidden = false
-            self.stockHideRetryCount = (self.stockHideRetryCount or 0) + 1
-            if self.stockHideRetryCount <= 20 and not self.stockHideRetryPending then
-                self.stockHideRetryPending = true
-                local retryToken = (self.stockHideRetryToken or 0) + 1
-                self.stockHideRetryToken = retryToken
-                zo_callLater(function()
-                    if self.stockHideRetryToken ~= retryToken then
-                        return
-                    end
-                    self.stockHideRetryPending = false
-                    if IsEnabled() and self.initialized == true then
-                        self:SetStockFrameHidden(true)
-                    end
-                end, 250)
-            end
-            return
+local function IsTargetEffectExpired(control, now)
+    local data = control.data
+    return data and not data.permanent and type(data.duration) == "number" and data.duration > 0
+        and type(data.timeEnding) == "number" and data.timeEnding <= now
+end
+
+local function HasExpiredTargetEffects(container, now)
+    if not container.GetPools then return false end
+    local buffs, debuffs = container:GetPools()
+    for _, pool in ipairs({ buffs, debuffs }) do
+        for _, control in pairs(pool.activeObjects) do
+            if IsTargetEffectExpired(control, now) then return true end
         end
-        local ok = pcall(function()
-            UNIT_FRAMES:SetFrameHiddenForReason(UNIT_TAG, STOCK_HIDE_REASON, hidden)
-        end)
-        self.stockFrameHidden = ok and hidden or false
-        if ok and hidden then
-            self.stockHideRetryCount = 0
-            self.stockHideRetryPending = false
-        elseif not hidden then
-            self.stockHideRetryToken = (self.stockHideRetryToken or 0) + 1
-            self.stockHideRetryCount = 0
-            self.stockHideRetryPending = false
-        end
-    elseif not hidden then
-        self.stockFrameHidden = false
     end
+    return false
+end
+
+function TargetFrame:RemoveExpiredTargetEffects(container)
+    if not container.GetPools or not GetFrameTimeSeconds then return end
+    local now = GetFrameTimeSeconds()
+    if not HasExpiredTargetEffects(container, now) then return end
+    local buffs, debuffs = container:GetPools()
+    for _, pool in ipairs({ buffs, debuffs }) do
+        -- Preserve the native icon order and spacing while closing expired gaps.
+        local entries, following = {}, {}
+        for key, control in pairs(pool.activeObjects) do
+            local valid, point, relativeTo, relativePoint, x, y = control:GetAnchor(0)
+            entries[control] = { key = key, anchor = valid and { point, relativeTo, relativePoint, x, y } }
+            if valid then following[relativeTo] = control end
+        end
+        local control, ordered = pool.firstControl, {}
+        while control and entries[control] do
+            ordered[#ordered + 1] = { control = control, entry = entries[control] }
+            entries[control] = nil
+            control = following[control]
+        end
+        local firstAnchor = ordered[1] and ordered[1].entry.anchor
+        local first, previous
+        for _, item in ipairs(ordered) do
+            control = item.control
+            if IsTargetEffectExpired(control, now) then
+                pool:ReleaseObject(item.entry.key)
+            else
+                local anchor = previous and item.entry.anchor or firstAnchor
+                if anchor then
+                    control:ClearAnchors()
+                    control:SetAnchor(anchor[1], previous or anchor[2], anchor[3], anchor[4], anchor[5])
+                end
+                first = first or control
+                previous = control
+            end
+        end
+        pool.firstControl, pool.lastControl = first, previous
+    end
+    container:RefreshContainerVisibility()
+end
+
+function TargetFrame:RestoreTargetEffects(frame)
+    local binding = self.targetEffectsBinding
+    if not binding then return end
+    if binding.updateWrapper and binding.container.Update == binding.updateWrapper then
+        binding.container.Update = binding.updateOverride
+    end
+    if binding.container then binding.container.isDirty = true end
+    local parent = binding.parent
+    local nativeAnchor
+    if frame and frame ~= binding.frame and frame.GetPrimaryControl then
+        parent = frame:GetPrimaryControl()
+        local caption = parent and parent:GetNamedChild("Caption")
+        if caption then nativeAnchor = ZO_Anchor:New(CENTER, caption, BOTTOM, 0, 40) end
+    end
+    binding.control:SetParent(parent)
+    binding.control:ClearAnchors()
+    if nativeAnchor then
+        nativeAnchor:Set(binding.control)
+    else
+        for _, anchor in ipairs(binding.anchors) do
+            binding.control:SetAnchor(unpack(anchor, 1, 5))
+        end
+    end
+    for element, anchor in pairs(binding.hudAnchors) do
+        element.defaultAnchor = nativeAnchor or anchor
+    end
+    local element = binding.hudElements[GetModeKey()]
+    if element and HUD_MANAGER.savedVars then element:RevertOffsetModifications() end
+    if binding.tracker then binding.frame:SetBuffTracker(binding.tracker) end
+    self.targetEffectsBinding = nil
+end
+
+function TargetFrame:AttachTargetEffects(frame)
+    local container = BUFF_DEBUFF and BUFF_DEBUFF.containerObjectsByUnitTag
+        and BUFF_DEBUFF.containerObjectsByUnitTag[UNIT_TAG]
+    local control = container and container:GetControl()
+    if not control or not self.root then return end
+    local binding = self.targetEffectsBinding
+    if binding and (binding.control ~= control or binding.frame ~= frame) then
+        self:RestoreTargetEffects(frame)
+        binding = nil
+    end
+    local reanchor = not binding or binding.mode ~= GetModeKey() or control:GetParent() ~= self.root
+    if not binding then
+        binding = { control = control, frame = frame, container = container, parent = control:GetParent(),
+            anchors = {}, hudAnchors = {}, hudElements = {} }
+        for index = 0, control:GetNumAnchors() - 1 do
+            local valid, point, relativeTo, relativePoint, x, y = control:GetAnchor(index)
+            if valid then table.insert(binding.anchors, { point, relativeTo, relativePoint, x, y }) end
+        end
+        -- Older unit-frame integrations also disable their attached tracker.
+        local tracker = frame.GetBuffTracker and frame:GetBuffTracker()
+        if tracker and tracker.GetControl and tracker:GetControl() == control and frame.SetBuffTracker then
+            binding.tracker = tracker
+            frame:SetBuffTracker(nil)
+            if tracker.SetDisabled then tracker:SetDisabled(false) end
+        end
+        self.targetEffectsBinding = binding
+        if container.Update and container.GetPools and GetFrameTimeSeconds then
+            local originalUpdate = container.Update
+            binding.updateOverride = rawget(container, "Update")
+            binding.updateWrapper = function(effectContainer, ...)
+                originalUpdate(effectContainer, ...)
+                if self.targetEffectsBinding == binding then self:RemoveExpiredTargetEffects(effectContainer) end
+            end
+            container.Update = binding.updateWrapper
+            container.isDirty = true
+        end
+    end
+    -- Re-read live data at expiry: the effect may have been refreshed without
+    -- an event. ESO otherwise only clamps its timer to zero indefinitely.
+    if binding.updateWrapper and HasExpiredTargetEffects(container, GetFrameTimeSeconds()) then
+        container:Update()
+    end
+    control:SetParent(self.root)
+    if HUD_MANAGER then
+        for _, mode in ipairs({ "keyboard", "gamepad" }) do
+            local getter = mode == "keyboard" and HUD_MANAGER.GetKeyboardElementForControl
+                or HUD_MANAGER.GetGamepadElementForControl
+            local element = getter and getter(HUD_MANAGER, control)
+            if element and not binding.hudAnchors[element] then
+                binding.hudAnchors[element] = element.defaultAnchor
+                binding.hudElements[mode] = element
+                element.defaultAnchor = ZO_Anchor:New(CENTER, self.root, BOTTOM, 0, 40)
+                reanchor = true
+            end
+        end
+    end
+    if reanchor then
+        local element = binding.hudElements[GetModeKey()]
+        if element and HUD_MANAGER.savedVars then
+            element:RevertOffsetModifications()
+        else
+            control:ClearAnchors()
+            control:SetAnchor(CENTER, self.root, BOTTOM, 0, 40)
+        end
+        binding.mode = GetModeKey()
+    end
+end
+
+function TargetFrame:QueueStockVisibilityRefresh()
+    if self.stockHideRetryPending or (self.stockHideRetryCount or 0) >= 20 then return end
+    self.stockHideRetryPending = true
+    self.stockHideRetryCount = (self.stockHideRetryCount or 0) + 1
+    self.stockHideRetryToken = self.stockHideRetryToken or 0
+    local retryToken = self.stockHideRetryToken
+    zo_callLater(function()
+        if self.stockHideRetryToken ~= retryToken then return end
+        self.stockHideRetryPending = false
+        self:RunGuarded("stock target readiness", function()
+            self:SetStockFrameHidden(IsEnabled() and self.initialized == true, self.stockRefreshPending)
+        end)
+    end, 250)
+end
+
+function TargetFrame:SetStockFrameHidden(hidden, refreshStock)
+    hidden = hidden == true and IsEnabled() and self.runtimeRecoveryActive ~= true
+    local frame = UNIT_FRAMES and UNIT_FRAMES.GetFrame and UNIT_FRAMES:GetFrame(UNIT_TAG)
+    if not hidden then self:RestoreTargetEffects(frame) end
+    self.stockRefreshPending = self.stockRefreshPending or refreshStock
+    if not UNIT_FRAMES or not UNIT_FRAMES.SetFrameHiddenForReason or (UNIT_FRAMES.GetFrame and not frame) then
+        self:QueueStockVisibilityRefresh()
+        return
+    end
+    local wasHidden = self.stockFrameHidden
+    if hidden and frame then self:AttachTargetEffects(frame) end
+    local ok = pcall(function()
+        UNIT_FRAMES:SetFrameHiddenForReason(UNIT_TAG, STOCK_HIDE_REASON, hidden)
+        if not hidden and frame and (wasHidden or self.stockRefreshPending) then
+            -- An instant show stops ESO's fade but does not restore its alpha.
+            -- Reconcile its target/reasons before making the restored frame opaque.
+            if frame.RefreshUnit then frame:RefreshUnit(true) end
+            if frame.showHideTimeline then frame.showHideTimeline:Stop() end
+            if frame.RefreshVisible then frame:RefreshVisible(true) end
+            local control = frame.GetPrimaryControl and frame:GetPrimaryControl()
+            if control and frame.IsHidden then
+                control:SetHidden(frame:IsHidden())
+                control:SetAlpha(1)
+            end
+        end
+    end)
+    if not ok then self:QueueStockVisibilityRefresh(); return end
+    self.stockFrameHidden = hidden
+    self.stockRefreshPending = nil
+    self.stockHideRetryToken = (self.stockHideRetryToken or 0) + 1
+    self.stockHideRetryCount = 0
+    self.stockHideRetryPending = false
 end
 
 function TargetFrame:UpdateScheduler()
@@ -1526,6 +1708,8 @@ end
 function TargetFrame:RefreshChangedTarget(resetState)
     self.targetRefreshToken = (self.targetRefreshToken or 0) + 1
     local refreshToken = self.targetRefreshToken
+    self:SetStockFrameHidden(IsEnabled() and self.initialized == true, not IsEnabled())
+    if not IsEnabled() then return end
     if resetState ~= false then
         self:ResetTargetState()
     end
@@ -1547,9 +1731,10 @@ function TargetFrame:QueueTargetReadinessRefresh()
     self.readinessRefreshPending = true
     zo_callLater(function()
         self.readinessRefreshPending = nil
-        if IsEnabled() then
-            self:RunGuarded("player target readiness", function() self:RefreshTarget(true, true) end)
-        end
+        self:RunGuarded("player target readiness", function()
+            self:SetStockFrameHidden(IsEnabled() and self.initialized == true, not IsEnabled())
+            if IsEnabled() then self:RefreshTarget(true, true) end
+        end)
     end, 25)
 end
 
@@ -1655,7 +1840,7 @@ function TargetFrame:RefreshSettings()
             self.root:SetHandler("OnUpdate", nil)
         end
         if self.mover then self.mover:SetHidden(true) end
-        self:SetStockFrameHidden(false)
+        self:SetStockFrameHidden(false, true)
         return
     end
     local ok, errorMessage = pcall(function()

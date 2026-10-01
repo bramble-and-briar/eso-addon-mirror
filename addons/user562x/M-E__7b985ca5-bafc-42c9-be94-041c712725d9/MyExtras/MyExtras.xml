@@ -1,0 +1,39 @@
+<GuiXml>
+    <Controls>
+
+        <Control name="MyExtras_TrackerBox" virtual="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="78" y="78"/>
+            <Controls>
+
+                <Backdrop name="$(parent)Frame" centerColor="FF000000" edgeColor="FF000000" tier="LOW" level="1">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                    <Dimensions x="78" y="78"/>
+                    <Edge edgeSize="0"/>
+                </Backdrop>
+
+                <Cooldown name="$(parent)Radial" radialCooldownClockwise="true" fillColor="33ff33" tier="LOW" level="2">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                    <Dimensions x="74" y="74"/>
+                </Cooldown>
+
+                <Backdrop name="$(parent)Inner" centerColor="FF111111" edgeColor="FF111111" tier="MEDIUM" level="1">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                    <Dimensions x="64" y="64"/>
+                    <Edge edgeSize="0"/>
+                </Backdrop>
+
+                <Texture name="$(parent)Icon" tier="MEDIUM" level="2">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                    <Dimensions x="64" y="64"/>
+                </Texture>
+
+                <Label name="$(parent)Number" font="EsoUI/Common/Fonts/univers67.otf|32|outline" verticalAlignment="BOTTOM" horizontalAlignment="CENTER" tier="MEDIUM" level="3">
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"/>
+                    <Dimensions x="64" y="64"/>
+                </Label>
+
+            </Controls>
+        </Control>
+
+    </Controls>
+</GuiXml>

@@ -142,7 +142,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Collect Them All](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Springpeace2575/Collect-Them-All__75167780-fb8c-479c-86be-c0a208443b97) | Springpeace2575 | Console | — |
 | [CollectablesTesting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brossin13/CollectablesTesting__9cb042d4-e427-4f0c-9c9c-48e1a355c970) | brossin13 | Console | — |
 | [Collectible Toggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Collectible-Toggler__2699) | MrPikPik | PC / Mac | 1.2 |
-| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.1 |
+| [Collectibles Tracker (formerly Event Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Collectibles-Tracker-formerly-Event-Collectibles__2588) | code65536 | PC / Mac | 3.6.2.1 |
 | [Collection bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarth/Collection-bars__2339) | Jarth | PC / Mac | 1.1.14 |
 | [Color Blind Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/attriel/Color-Blind-Mode__2981) | attriel | PC / Mac | 1.0.12 |
 | [Colorful Map Areas - Quests, Forward Camps, Dig Sites!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Valve/Colorful-Map-Areas---Quests-Forward-Camps-Dig-Sites__3393) | Valve | PC / Mac | 1.2.0 |

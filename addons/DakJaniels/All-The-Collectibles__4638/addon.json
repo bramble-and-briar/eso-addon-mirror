@@ -8,6 +8,10 @@
   "category_id": "26",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "CollectiblesTrackerAllTheThings"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4638/",
-  "fingerprint": "b1f37ee586f2113df62177d15d5bcedcebe9dcccd8c40378c63dc4845b4aa0fe",
+  "fingerprint": "a52458e964d6688ee284828a3f647c8edfe4a03a26a3cb119795545fb24477f3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17078.png",
     "https://cdn-eso.mmoui.com/preview/pvw17079.png",
@@ -30,11 +34,11 @@
   "source_id": "4638",
   "source_url": "https://www.esoui.com/downloads/info4638-AllTheCollectibles.html",
   "stats": {
-    "downloads": 308,
+    "downloads": 392,
     "favorites": 5,
-    "monthly_downloads": 95
+    "monthly_downloads": 49
   },
   "title": "All The Collectibles",
-  "updated_at": 1787716184000,
-  "version": "2.1"
+  "updated_at": 1790812226000,
+  "version": "2.2"
 }

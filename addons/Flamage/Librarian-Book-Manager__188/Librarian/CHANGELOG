@@ -1,6 +1,10 @@
 -------------------------------------------------------------------------------
 Librarian v3.0 2022-07-25
 -------------------------------------------------------------------------------
+3.18 2026-10-01
+- Fix crash on load. LoreReader scenes have been modified
+- Update APIVersion to 101051
+
 3.17 2026-06-13
 - Fix crash when opening the lore library. hirelingtype has been renamed to mailListIndex
 - Update APIVersion to 101050

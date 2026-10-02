@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/XANTOS/T\u00fcrk\u00e7e-\u00e7eviri---ESOTR__4417",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "XANTOS",
   "canonical_id": "esoui:4417",
   "category_id": "163",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -23,7 +28,7 @@
     "gamedata"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4417/",
-  "fingerprint": "e92ded08fb805f13d7a6b266b1177487f5cf5e683025d5fb4e55c564fd32e119",
+  "fingerprint": "6a4ca818a95d08d1312f8c62eecad8beb454cdbd4cd4606b08a21c243d0bb8ed",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15310.png",
     "https://cdn-eso.mmoui.com/preview/pvw15314.png",
@@ -37,11 +42,11 @@
   "source_id": "4417",
   "source_url": "https://www.esoui.com/downloads/info4417-Trkeeviri-ESOTR.html",
   "stats": {
-    "downloads": 1160,
-    "favorites": 1,
-    "monthly_downloads": 253
+    "downloads": 1800,
+    "favorites": 2,
+    "monthly_downloads": 239
   },
   "title": "T\u00fcrk\u00e7e \u00e7eviri - ESOTR",
-  "updated_at": 1785019900000,
-  "version": "1.0.6"
+  "updated_at": 1790884654000,
+  "version": "1.0.6a"
 }

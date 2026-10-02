@@ -226,6 +226,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__853b60aa-f47b-4f79-bd43-88c1f37e8a9a) | tmbrinks | Console | — |
 | [TurningTide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/TurningTide__3330) | tmbrinks | PC / Mac | 1.1.0 |
 | [TxtOutput](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jellyalex978/TxtOutput__1686) | jellyalex978 | PC / Mac | 1.4.5 |
-| [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOS/Türkçe-çeviri---ESOTR__4417) | XANTOS | PC / Mac | 1.0.6 |
+| [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOS/Türkçe-çeviri---ESOTR__4417) | XANTOS | PC / Mac | 1.0.6a |
 | [Türkçe çeviri - ESOTR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/Türkçe-çeviri---ESOTR__56b19964-a32d-4e97-b922-6d446ff6b6fc) | XANTOSTR | Console | — |
 | [Türkçe çeviri - ESOTR_Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/XANTOSTR/Türkçe-çeviri---ESOTR_Lite__b7f56e79-7bdd-41c5-89d4-a0b61b7719af) | XANTOSTR | Console | — |

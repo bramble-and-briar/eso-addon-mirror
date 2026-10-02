@@ -51,6 +51,22 @@ local strings = {
 	SPT_QUEST_NONE		= "There are no skill point quests in this zone.",
 
 	SPT_GUI_NOT_SCANNED	= "Not yet scanned - play this character once",
+	SPT_GUI_TAB_SKILLS = "Skills",
+	SPT_GUI_TAB_SCRIBING = "Scribing",
+	SPT_GUI_LIVE = "Live",
+	SPT_GUI_LAST_SCANNED = "Last scanned",
+	SPT_GUI_DATA_UNAVAILABLE = "Progression data is not ready",
+	SPT_GUI_SKILLS_LEGEND = "Groups: maxed/total | -- undiscovered | * inactive | ? unknown",
+	SPT_GUI_SKILLS_RANK_LEGEND = "Rank | -- undiscovered | * inactive | ? unknown",
+	SPT_GUI_SCRIBING_HELP = "Groups: known/total | Yes known | -- missing | ? not scanned",
+	SPT_GUI_SKILL_LINE = "Skill line",
+	SPT_GUI_SCRIPT = "Script",
+	SPT_GUI_KNOWN = "Yes",
+	SPT_GUI_CHARACTER_RANGE = "Characters %d-%d of %d",
+	SPT_GUI_SCROLL_LEFT = "Scroll left",
+	SPT_GUI_SCROLL_RIGHT = "Scroll right",
+	SPT_GUI_EXPAND = "Expand",
+	SPT_GUI_COLLAPSE = "Collapse",
 }
 
 for stringId, stringValue in pairs(strings) do

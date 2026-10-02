@@ -4,7 +4,7 @@ Librarian.defaults = {}
 Librarian.menuSettings = {
     name = "LibrarianOptions",
     authors = "Orionik, |c4EFFF6Calia1120|r, Flamage",
-    version = "3.17",
+    version = "3.18",
     optionSlashCommandText = "/librarianOptions"
 }
 Librarian.slashCommandText = "/librarian"

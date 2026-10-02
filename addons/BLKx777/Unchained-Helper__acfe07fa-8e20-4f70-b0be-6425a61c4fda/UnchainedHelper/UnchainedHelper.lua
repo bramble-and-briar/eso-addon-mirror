@@ -2,7 +2,7 @@ UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
 UnchainedHelper.name		= "UnchainedHelper"
-UnchainedHelper.version = "1.0.9"
+UnchainedHelper.version = "1.0.10"
 UnchainedHelper.varVersion 	= "9"
 
 UnchainedHelper.defaults	= {
@@ -23,6 +23,7 @@ UnchainedHelper.defaults	= {
     ["netchDangerSound"] = true,
     ["netchDangerDuration"] = 2,
 	["showRaisedMarkers"] = true,
+    ["showCardinalMarkers"] = false,
 	["markerSize"] = 175,
 	["markerHeight"] = 280,
 	["showMarkerLegend"] = false,
@@ -96,6 +97,8 @@ UnchainedHelper.totemAlertHideAt = 0
 UnchainedHelper.lastNetchDangerAlert = 0
 UnchainedHelper.netchDangerHideAt = 0
 UnchainedHelper.netchDetectorRegistered = false
+UnchainedHelper.cardinalMarkers = {}
+UnchainedHelper.cardinalStage = 0
 
 
 UnchainedHelper.drawNextFightIconTime = 0
@@ -2549,6 +2552,112 @@ end
 
 
 
+
+-- Optional permanent cardinal navigation markers.
+-- These are independent of wave marker semantics and never appear in the marker legend.
+local UH_CARDINAL_DATA = {
+    [1] = { x = 104277, y = 60952, z = 68420, radius = 2200 },
+    [2] = { x = 90602,  y = 57151, z = 62761, radius = 2200 },
+    [3] = { x = 97649,  y = 53908, z = 49332, radius = 2200 },
+    [4] = { x = 108463, y = 50685, z = 37213, radius = 2200 },
+    [5] = { x = 96052,  y = 48116, z = 30811, radius = 2200 },
+}
+
+local UH_CARDINAL_TEXTURES = {
+    N = "UnchainedHelper/icons/cardinal_n.dds",
+    E = "UnchainedHelper/icons/cardinal_e.dds",
+    S = "UnchainedHelper/icons/cardinal_s.dds",
+    W = "UnchainedHelper/icons/cardinal_w.dds",
+}
+
+function UnchainedHelper.ClearCardinalMarkerRefs()
+    UnchainedHelper.cardinalMarkers = {}
+    UnchainedHelper.cardinalStage = 0
+end
+
+function UnchainedHelper.DestroyCardinalMarkers()
+    local cardinalSet = {}
+    for _, marker in ipairs(UnchainedHelper.cardinalMarkers or {}) do
+        cardinalSet[marker] = true
+        if marker and marker.control then
+            marker.control:SetHidden(true)
+            marker.control:SetHandler("OnUpdate", nil)
+            if marker.control.Destroy3DRenderSpace then marker.control:Destroy3DRenderSpace() end
+            if WINDOW_MANAGER and WINDOW_MANAGER.DestroyControl then
+                WINDOW_MANAGER:DestroyControl(marker.control)
+            end
+            marker.control = nil
+        end
+    end
+
+    if UnchainedHelper.SpaceMarkers and UnchainedHelper.SpaceMarkers.active then
+        local kept = {}
+        for _, marker in ipairs(UnchainedHelper.SpaceMarkers.active) do
+            if not cardinalSet[marker] then
+                table.insert(kept, marker)
+            end
+        end
+        UnchainedHelper.SpaceMarkers.active = kept
+    end
+
+    UnchainedHelper.ClearCardinalMarkerRefs()
+end
+
+function UnchainedHelper.RefreshCardinalMarkers(force)
+    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.enabled or not UnchainedHelper.savedVars.showCardinalMarkers then
+        UnchainedHelper.DestroyCardinalMarkers()
+        return
+    end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.DestroyCardinalMarkers()
+        return
+    end
+    if not UnchainedHelper.HasMarkerRuntime or not UnchainedHelper.HasMarkerRuntime() then return end
+
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    local data = UH_CARDINAL_DATA[stage]
+    if not data then
+        UnchainedHelper.DestroyCardinalMarkers()
+        return
+    end
+
+    if not force and UnchainedHelper.cardinalStage == stage and #UnchainedHelper.cardinalMarkers == 4 then
+        local allLive = true
+        for _, marker in ipairs(UnchainedHelper.cardinalMarkers) do
+            if not marker or not marker.control then
+                allLive = false
+                break
+            end
+        end
+        if allLive then return end
+    end
+
+    UnchainedHelper.DestroyCardinalMarkers()
+
+    local r = data.radius or 2200
+    local height = UnchainedHelper.savedVars.markerHeight or 280
+    local sizeMeters = ((UnchainedHelper.savedVars.markerSize or 175) / 100) * 1.15
+    local facing = true
+    local positions = {
+        -- ESO map coordinates increase downward; in BRP world coordinates lower Z tracks north.
+        N = { data.x,     data.y + height, data.z - r },
+        E = { data.x + r, data.y + height, data.z     },
+        S = { data.x,     data.y + height, data.z + r },
+        W = { data.x - r, data.y + height, data.z     },
+    }
+
+    for _, key in ipairs({ "N", "E", "S", "W" }) do
+        local p = positions[key]
+        local marker = UnchainedHelper.SpaceMarkers.Create(p[1], p[2], p[3], UH_CARDINAL_TEXTURES[key], sizeMeters, nil, "", facing)
+        if marker then
+            marker.isCardinal = true
+            marker.cardinalKey = key
+            table.insert(UnchainedHelper.cardinalMarkers, marker)
+        end
+    end
+    UnchainedHelper.cardinalStage = stage
+end
+
 function UnchainedHelper.GetCurrentStage()
 
 	local x, y = GetMapPlayerPosition('player');
@@ -2626,13 +2735,14 @@ function UnchainedHelper.PortalSpawn(eventCode, result, isError, abilityName, ab
 end
 
 
-function UnchainedHelper.ClearIcons(keepRequests)
+function UnchainedHelper.ClearIcons(keepRequests, skipCardinals)
     UnchainedHelper.eraseIconTime = 0
     UnchainedHelper.iconsUp = false
 
     if UnchainedHelper.SpaceMarkers and UnchainedHelper.SpaceMarkers.Clear then
         UnchainedHelper.SpaceMarkers.Clear()
     end
+    UnchainedHelper.ClearCardinalMarkerRefs()
 
     UnchainedHelper.activeIcons = {}
     if not keepRequests then
@@ -2653,6 +2763,9 @@ function UnchainedHelper.ClearIcons(keepRequests)
         UnchainedHelper.RefreshLegend()
     else
         UnchainedHelper.HideLegend()
+    end
+    if not skipCardinals and UnchainedHelper.RefreshCardinalMarkers then
+        UnchainedHelper.RefreshCardinalMarkers(true)
     end
 end
 
@@ -2740,6 +2853,10 @@ function UnchainedHelper.UpdateTimer()
     else
        UnchainedHelper.NotifyNewWave(1)
     end
+
+    if UnchainedHelper.RefreshCardinalMarkers then
+        UnchainedHelper.RefreshCardinalMarkers(false)
+    end
 end
 
 
@@ -2756,7 +2873,7 @@ function UnchainedHelper.UnregisterZoneEvents()
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
     UnchainedHelper.netchDetectorRegistered = false
             UnchainedHelper.HideTotemAlert()
-    UnchainedHelper.ClearIcons()
+    UnchainedHelper.ClearIcons(false, true)
 end
 
 function UnchainedHelper.PlayerActivated()
@@ -2800,6 +2917,10 @@ function UnchainedHelper.PlayerActivated()
             UnchainedHelper.nextRound = 1
             UnchainedHelper.nextWave = 1
             UnchainedHelper.NotifyNewWave(1)
+        end
+
+        if UnchainedHelper.RefreshCardinalMarkers then
+            UnchainedHelper.RefreshCardinalMarkers(true)
         end
 
     else

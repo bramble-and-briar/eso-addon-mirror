@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Torfason/Lagerblick__4844",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Torfason",
   "canonical_id": "esoui:4844",
   "category_id": "20",
@@ -23,8 +22,9 @@
     "Lagerblick"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4844/",
-  "fingerprint": "583212c21c5e4d9caf3597262efbfcc2f2760f4968ec3493c06450bca3bb82a7",
+  "fingerprint": "6a9d76498aff41a63592f72abcd7e3a72ecf106c27c76176be6048fb101442dc",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17654.png",
     "https://cdn-eso.mmoui.com/preview/pvw17407.png",
     "https://cdn-eso.mmoui.com/preview/pvw17420.png"
   ],
@@ -34,11 +34,11 @@
   "source_id": "4844",
   "source_url": "https://www.esoui.com/downloads/info4844-Lagerblick.html",
   "stats": {
-    "downloads": 9,
-    "favorites": 0,
-    "monthly_downloads": 5
+    "downloads": 49,
+    "favorites": 1,
+    "monthly_downloads": 44
   },
   "title": "Lagerblick",
-  "updated_at": 1789712916000,
-  "version": "0.1.10"
+  "updated_at": 1790876833000,
+  "version": "2.0.0"
 }

@@ -64,12 +64,10 @@ function Librarian:AddLoreReaderUnreadToggle()
     end
 
     -- This list of scene should be the same as the list in esoui/ingame/lorereader/lorereader.lua in its Initialize function
-    LORE_READER_INVENTORY_SCENE:RegisterCallback("StateChange", OnSceneStateChange)
-    LORE_READER_LORE_LIBRARY_SCENE:RegisterCallback("StateChange", OnSceneStateChange)
     LORE_READER_DEFAULT_SCENE:RegisterCallback("StateChange", OnSceneStateChange)
-    GAMEPAD_LORE_READER_INVENTORY_SCENE:RegisterCallback("StateChange", OnSceneStateChange)
-    GAMEPAD_LORE_READER_LORE_LIBRARY_SCENE:RegisterCallback("StateChange", OnSceneStateChange)
+    LORE_READER_CUSTOM_SCENE_KEYBOARD:RegisterCallback("StateChange", OnSceneStateChange)
     GAMEPAD_LORE_READER_DEFAULT_SCENE:RegisterCallback("StateChange", OnSceneStateChange)
+    LORE_READER_CUSTOM_SCENE_GAMEPAD:RegisterCallback("StateChange", OnSceneStateChange)
 
     self.loreReaderUnreadIndicator = WINDOW_MANAGER:CreateControl("LibrarianLoreReaderUnreadIndicator", ZO_LoreReaderBookContainer, CT_TEXTURE)
     self.loreReaderUnreadIndicator:SetAnchor(TOPLEFT, ZO_LoreReaderBookContainerFirstPage, TOPLEFT, -32, 3)

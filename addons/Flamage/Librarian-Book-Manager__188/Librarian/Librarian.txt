@@ -1,7 +1,7 @@
 ## Title: Librarian
 ## Author: Orionik, |c4EFFF6Calia1120|r, Flamage
-## Version: 3.17
-## APIVersion: 101050
+## Version: 3.18
+## APIVersion: 101051
 ## SavedVariables: Librarian_SavedVariables Librarian_SavedVariables_Backup
 ## DependsOn: LibAddonMenu-2.0 LibrarianDeprecation
 

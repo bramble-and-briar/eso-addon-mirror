@@ -275,6 +275,39 @@
 		</Control>
 
 
+		<!-- Shared tracker row: fixed skill/script label plus four visible characters. -->
+		<Control name="SPT_ProgressionTemplate" virtual="true" inherits="SPT_TooltipTarget">
+			<Dimensions x="796" y="36" />
+			<Controls>
+				<Texture name="$(parent)Bg" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop.dds" alpha="0.2">
+					<AnchorFill />
+				</Texture>
+				<Backdrop name="$(parent)Highlight" centerColor="FF538CA6" edgeColor="FF538CA6" hidden="true">
+					<AnchorFill />
+				</Backdrop>
+				<Label name="$(parent)_Source" font="ZoFontGamepad27" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER">
+					<Dimensions x="250" y="36" />
+					<Anchor point="TOPLEFT" offsetX="6" />
+				</Label>
+				<Label name="$(parent)_Cell1" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+					<Dimensions x="135" y="36" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Source" relativePoint="TOPRIGHT" />
+				</Label>
+				<Label name="$(parent)_Cell2" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+					<Dimensions x="135" y="36" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Cell1" relativePoint="TOPRIGHT" />
+				</Label>
+				<Label name="$(parent)_Cell3" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+					<Dimensions x="135" y="36" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Cell2" relativePoint="TOPRIGHT" />
+				</Label>
+				<Label name="$(parent)_Cell4" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+					<Dimensions x="135" y="36" />
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Cell3" relativePoint="TOPRIGHT" />
+				</Label>
+			</Controls>
+		</Control>
+
 		<!-- ── Main window ───────────────────────────────────────────────── -->
 		<TopLevelControl name="SPT_GUI"
 							  hidden="true"
@@ -315,7 +348,7 @@
 							  offsetY="16" />
 				</Label>
 
-				<!-- Tab bar: 4 equally-spaced tab labels (200 px each) -->
+				<!-- Six equally-spaced tabs; shoulder buttons wrap through them. -->
 				<Control name="$(parent)_Tabs">
 					<Dimensions y="42" />
 					<Anchor point="TOPLEFT"
@@ -330,48 +363,56 @@
 							  offsetY="2" />
 					<Controls>
 						<Label name="$(parent)_Tab1"
-								 font="ZoFontGamepadBold34"
+								 font="ZoFontGamepadBold27"
 								 text="SPT_GUI_TAB_GSP"
 								 horizontalAlignment="CENTER"
 								 verticalAlignment="CENTER">
-							<Dimensions x="200"
+							<Dimensions x="133"
 											y="42" />
 							<Anchor point="TOPLEFT"
 									  relativeTo="$(parent)"
 									  relativePoint="TOPLEFT" />
 						</Label>
 						<Label name="$(parent)_Tab2"
-								 font="ZoFontGamepadBold34"
+								 font="ZoFontGamepadBold27"
 								 text="SPT_GUI_TAB_SQS"
 								 horizontalAlignment="CENTER"
 								 verticalAlignment="CENTER">
-							<Dimensions x="200"
+							<Dimensions x="133"
 											y="42" />
 							<Anchor point="TOPLEFT"
 									  relativeTo="$(parent)_Tab1"
 									  relativePoint="TOPRIGHT" />
 						</Label>
 						<Label name="$(parent)_Tab3"
-								 font="ZoFontGamepadBold34"
+								 font="ZoFontGamepadBold27"
 								 text="SPT_GUI_TAB_GDQ"
 								 horizontalAlignment="CENTER"
 								 verticalAlignment="CENTER">
-							<Dimensions x="200"
+							<Dimensions x="133"
 											y="42" />
 							<Anchor point="TOPLEFT"
 									  relativeTo="$(parent)_Tab2"
 									  relativePoint="TOPRIGHT" />
 						</Label>
 						<Label name="$(parent)_Tab4"
-								 font="ZoFontGamepadBold34"
+								 font="ZoFontGamepadBold27"
 								 text="SPT_GUI_TAB_PD"
 								 horizontalAlignment="CENTER"
 								 verticalAlignment="CENTER">
-							<Dimensions x="200"
+							<Dimensions x="133"
 											y="42" />
 							<Anchor point="TOPLEFT"
 									  relativeTo="$(parent)_Tab3"
 									  relativePoint="TOPRIGHT" />
+						</Label>
+						<Label name="$(parent)_Tab5" font="ZoFontGamepadBold27" text="SPT_GUI_TAB_SKILLS" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+							<Dimensions x="133" y="42" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)_Tab4" relativePoint="TOPRIGHT" />
+						</Label>
+						<Label name="$(parent)_Tab6" font="ZoFontGamepadBold27" text="SPT_GUI_TAB_SCRIBING" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+							<Dimensions x="135" y="42" />
+							<Anchor point="TOPLEFT" relativeTo="$(parent)_Tab5" relativePoint="TOPRIGHT" />
 						</Label>
 						<Line name="$(parent)_Sep"
 								color="FFE8DFB2"
@@ -434,6 +475,42 @@
 							  offsetX="-2"
 							  offsetY="-4" />
 				</Label>
+
+				<!-- Tracker list objects/catalogs are created only when a tracker opens. -->
+				<Control name="$(parent)_Body_Progression" hidden="true">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)_Tabs" relativePoint="BOTTOMLEFT" offsetX="2" offsetY="4" />
+					<Anchor point="BOTTOMRIGHT" relativeTo="$(parent)_Footer" relativePoint="TOPRIGHT" offsetX="-2" offsetY="-4" />
+					<Controls>
+						<Label name="$(parent)_Title" font="ZoFontGamepad27" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER">
+							<Dimensions y="36" />
+							<Anchor point="TOPLEFT" offsetX="6" />
+							<Anchor point="TOPRIGHT" offsetX="-6" />
+						</Label>
+						<Control name="$(parent)_Columns" inherits="SPT_ProgressionTemplate" mouseEnabled="true">
+							<Anchor point="TOPLEFT" relativeTo="$(parent)_Title" relativePoint="BOTTOMLEFT" offsetX="-6" />
+						</Control>
+						<Line name="$(parent)_Sep" color="FFE8DFB2" thickness="2">
+							<Anchor point="TOPLEFT" offsetY="73" />
+							<Anchor point="TOPRIGHT" offsetY="73" />
+						</Line>
+						<Control name="$(parent)_ListHolder" inherits="ZO_VerticalParametricScrollListTemplate">
+							<Anchor point="TOPLEFT" offsetY="76" />
+							<Anchor point="BOTTOMRIGHT" offsetY="-16" />
+						</Control>
+						<Control name="$(parent)_HorizontalScroll" hidden="true">
+							<Dimensions y="6" />
+							<Anchor point="BOTTOMLEFT" offsetX="256" offsetY="-4" />
+							<Anchor point="BOTTOMRIGHT" offsetY="-4" />
+							<Controls>
+								<Texture name="$(parent)Track" color="FFFFFFFF" alpha="0.2"><AnchorFill /></Texture>
+								<Texture name="$(parent)Thumb" color="FFE8DFB2">
+									<Dimensions y="6" />
+									<Anchor point="LEFT" />
+								</Texture>
+							</Controls>
+						</Control>
+					</Controls>
+				</Control>
 
 				<!-- ── Body: GSP (visible by default) ──────────────────────── -->
 				<Control name="$(parent)_Body_GSP"

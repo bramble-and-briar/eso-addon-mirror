@@ -36,7 +36,7 @@
 
 local ADDON_NAME = "EsoTR_Lite"
 EsoTR_Lite = {}
-EsoTR_Lite.Version = "1.0.4"
+EsoTR_Lite.Version = "1.0.4a"
 
 -- Session bazlı mesaj kontrol bayrakları
 local sessionLanguageMessageShown = false

@@ -10,6 +10,10 @@ local BuffsDebuffsEffectIds = {}
 -- https://esoitem.uesp.net/viewlog.php?record=minedSkills
 -- https://esoitem.uesp.net/viewSkills.php
 -- https://eso-hub.com/en/buffs-debuffs
+-- Update 51 Minor Vexation:
+-- https://esoitem.uesp.net/viewlog.php?action=view&record=minedSkills51pts&id=263403
+-- Sorcery and Prophecy are retired in Update 51; their leftover mined records
+-- must not create tracker rows or be treated as aliases for the merged buffs.
 --
 -- Additional effect variants were cross-checked against local addon source
 -- tables from LuiData, Group Buff Panels, Fancy Action Bar, and BuffTracker.
@@ -23,10 +27,6 @@ local EFFECTS_BY_ABILITY_ID = {
     [61665] = { tier = "Major", baseName = "Brutality" },
     [61666] = { tier = "Minor", baseName = "Savagery" },
     [61667] = { tier = "Major", baseName = "Savagery" },
-    [61685] = { tier = "Minor", baseName = "Sorcery" },
-    [61687] = { tier = "Major", baseName = "Sorcery" },
-    [61689] = { tier = "Major", baseName = "Prophecy" },
-    [61691] = { tier = "Minor", baseName = "Prophecy" },
     [61693] = { tier = "Minor", baseName = "Resolve" },
     [61694] = { tier = "Major", baseName = "Resolve" },
     [61697] = { tier = "Minor", baseName = "Fortitude" },
@@ -71,7 +71,6 @@ local EFFECTS_BY_ABILITY_ID = {
     [88401] = { tier = "Minor", baseName = "Magickasteal" },
     [88490] = { tier = "Minor", baseName = "Toughness" },
     [88758] = { tier = "Major", baseName = "Resolve" },
-    [92503] = { tier = "Major", baseName = "Sorcery" },
     [93109] = { tier = "Major", baseName = "Slayer" },
     [93120] = { tier = "Major", baseName = "Slayer" },
     [93123] = { tier = "Major", baseName = "Aegis" },
@@ -101,6 +100,7 @@ local EFFECTS_BY_ABILITY_ID = {
     [193731] = { tier = "Major", baseName = "Aegis" },
     [194171] = { tier = "Major", baseName = "Aegis" },
     [214407] = { tier = "Major", baseName = "Slayer" },
+    [263403] = { tier = "Minor", baseName = "Vexation" },
 }
 
 local EFFECT_NAMES = {}

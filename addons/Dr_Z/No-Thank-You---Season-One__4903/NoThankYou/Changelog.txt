@@ -1,0 +1,359 @@
+
+Changelog for "No Thank You"
+----------------------------
+
+v12.1.0	(Dr_Z)
+- Fixed a Major BUG where You're coming out of the Settings Menu, Game Camera would be stuck.
+  Issue was: No,ThankYou's NO SPIN was preventing the game camera from coming out of close-up view
+  when the main menu closed. The Fix: Added "gameMenuInGame" scene to the blacklistedScenes list.
+  Thanks to Dolgubon.
+- Updated the "Friends Status Message" anonyance. Added a PreHook to the HookFriendsMessages() function.
+  Now we do Not have to RELOADUI when we turn this On and Off.
+- Fixed the "Remove large group dialog and messages".
+- Fixed "Remove Delete Mail dialog" for the New Guild Mail inbox.
+  I looked into "wolfstar's" patch suggestion but I wanted to keep the safty feature of keeping the Dialog confirmation window.
+  So, The fix was to use ESO's "confirmationCallback()" function.
+  This fix retains the safe functionaltiy of the Mail Dialog window for confirmation of deletion of mail for;
+  Regular Mail, System Mail, And now, System Guild Mail.
+- Added a few menus to the "blacklistedScenes" Table so people can Preview Items while NTY's NO CAMERA SPIN is enabled.
+	VeterancySceneKeyboard
+	TamrielTomesSceneKeyboard
+	TamrielTomesPurchaseSceneKeyboard
+	endeavorSealStoreSceneKeyboard
+	gildbarStoreSceneKeyboard
+- Removed MAP pin Settings Menu from the addon.  
+  Reason:  It's part or the basic game now under the Filters Tab of Tamriels Main Map.
+- Version build number change for Season One
+
+v11.4.2 (FusRoDah) Gold Road
+-Modified and updated several text descriptions.
+
+v11.4.1 (FusRoDah)
+-fix:
+  About “Block friends status alerts ”,this feature has returned to normal operation.(屏蔽好友状态变化的聊天消息功能恢复正常)
+  notice:(will be applied after the reload UI)
+
+v11.4 (FusRoDah)
+ feat:
+    1. Add Chinese Language Files.(添加了汉化文件)
+    2. When you select "Show only Capitals", the Westweald Skingrad City Capital Wayshrine has been added to the world map.(添加了新地图主城神龛的显示)
+fix:
+    1.about "Remove confirmation dialog when deleting empty mail.".The bug that prevented emails from being correctly deleted when this option was turned on has been fixed.(修复了屏蔽删除邮件确认对话框功能导致的无法删除邮件的问题)
+
+11.3a - (ZaiZah)
+- Added check for ingame leaderboard settings. (No, Thank You should no longer send rogue leaderboard messages if you have it turned off from the ingame settings)
+- Added option to show/hide Endless Archive leaderboard notifications
+- Added option to disable/enable notification sound (This applies to all notifications and disabled by default)
+- Added some space to the bottom of the settings menu to fix the clipping dropdown menu for LUA Errors section
+
+11.3 - (ZaiZah)
+- Api bump to Endless Archive (u40)
+- Fixed the Leaderboard Score functionality no more errors \o/ (Thank you Complicative for your help)
+- Your saved vars will reset, this should avoid any potential issues with settings
+
+11.2 - (ZaiZah)
+- Added the option to hide guild application notifications (Useful if you're in a large guild that gets frequent applications) - thank you @schrodingerscatgirls
+
+11.1 - (ZaiZah)
+- Fixed the "Jump to Leader" functionality, it should now hide or show the jump dialog depending on your selection
+
+11 - (ZaiZah)
+- Compatible with update 38 (Necrom)
+- Fixed an issue that caused books to flash open/closed when read
+- Added all city wayshrines to date for the "Hide Wayshrine" Option
+- Disabled the "Hide Crown Store" option as its currently not working as intended
+
+v10.9 (Uta)
+- compatible with update30 (Blackwood)
+- added Leyawiin Outskirts Wayshrine to Capital Wayshrines on world map
+- added "Don't rotate game camera while showing status" setting option
+- added "Don't rotate game camera while showing inventory" setting option
+
+v10.8 (Uta)
+- compatible with update29 (Flames of Ambition)
+
+v10.7a (Uta)
+- added Vateshran Hollows to Dungeons on world map
+
+v10.7 (Uta)
+- compatible with update28 (Markarth)
+- added Markarth Wayshrine to Capital Wayshrines on world map
+
+v10.6a (Uta)
+- fixed raid notification messages (contributed by mychaelo)
+- excluded status window from NoSpin for allowing to change an outfit (contributed by Baertram)
+- updated DE translation (contributed by Baertram)
+
+v10.6 (Uta)
+- compatible with update27 (Stonethorn)
+- fixed remaining dependency of LibStub
+- added Eyevea Wayshrine to Capital Wayshrines on world map not to interrupt GuildShrines addon
+- added The Earth Forge Wayshrine to Capital Wayshrines on world map not to interrupt GuildShrines addon
+
+v10.5 (Uta)
+- compatible with update26 (Greymoor)
+- added Solitude Wayshrine to Capital Wayshrines on world map
+
+v10.4b (Uta)
+- removed dependency of LibStub
+
+v10.4a (Uta)
+- fixed "Don't warn when trying to equip a bindable item" option didn't work by D&D
+- fixed "Disable Chat autocompletion" option didn't work
+- added Dragonguard Sanctum Wayshrine to Capital Wayshrines on world map
+
+v10.4 (Uta)
+- compatible with update25 (Harrowstorm)
+- moved the LibAnnyoingUpdateNotificationInGame library from DependsOn to OptionalDependsOn
+- fixed an error occurred when D&D a BoE gear into equipment area while "Don't warn when trying to equip a bindable item" on
+> it will show the warning by D&D, means this option doesn't work because of unable to ignore the warn on this situation.
+> still this warning is ignorable when double clicking a BoE gear for equipping.
+- "Disable Chat autocompletion" option is temporarily disabled on update25 environment because of this feature occuring errors on pts
+> it will be developped in another way when new API document will be released.
+
+v10.3b (Uta)
+- fixed "chat message" option for blocking AVA messages didn't work
+- fixed "chat message" option for blocking message "Lorebook Discovered" didn't work
+- fixed "chat message" option for blocking message "Ability progressed to Rank X" didn't work
+
+v10.3a (Uta)
+- fixed "Hide" option for Unowned Houses didn't work
+
+v10.3 (Uta)
+- compatible with update24 (Dragonhold)
+- removed all libraries
+- added recent Capital Wayshrines (Lilmoth, Rimmen and Senchal) on world map
+- fixed some arenas (DragonStar and Maelstrom) were not hidden on world map as dungeons
+
+v10.2 (SlippyCheeze)
+- Russian translation, courtesy alexesprit
+
+v10.1 (SlippyCheeze)
+- Added Summerset capital wayshrine.
+
+v10.0.0 (SlippyCheeze)
+- Updated to WolfHunter.
+- All KNOWN bugs are fixed.
+- Bullet-proof hooks for future releases.
+- Group Zone Event crash fixed.
+- Message display hooks fixed.
+
+v9.1 (Ayantir)
+- Fixed a little bug which was causing UI being broken without any interaction possible when a market announcement was ready
+
+v9 (Ayantir)
+- API Bump
+- Added an option to remove interaction for empty crates
+- Added an option to redirect Lua errors to chat
+- Fixed few things relative to ZOS updates
+
+v8 (Ayantir)
+- API & Lib Bump
+- Gamepad users can now use the "Delete empty mails" option
+- One little Clockwork City insect has been added to the list of insects
+
+v7.4 (Ayantir)
+- Added an option to disable the dialog to port on group leader
+- Added an option to disable the confirmation dialog when trying to equip Bind on Equip items
+- Changed way how the confirmation dialog for deleting mails works
+
+v7.3 (Ayantir)
+- Fixed Chat autocompletion which wasn't working. Please note, if you have a coloured autocompletion, this behavior comes from an addon and is not blocked.
+- Added another bug to the list of insects to do not interact with
+
+v7.2 (Ayantir)
+- Reverted fix on insects & added 2 new insects of Vvardenfell.
+- Option disabling Item improvment dialog also disable th item improvment dialog on locked items.
+- Added an option to disable the minimize of chat at trading house.
+- Libs Update
+
+v7.1 (Ayantir)
+- Tiny fix on insects
+
+v7 (Ayantir)
+- Updated API and Libs
+- Added an option to disable chat autocompletion
+- Fixed some bosses & craft messages
+- Updated pin filtering for Vvardenfell content
+- https://github.com/Ayantir/NoThankYou
+
+v6.1 (Ayantir)
+- Little fix with libs
+
+v6 (Ayantir)
+- API Bump
+- Removed Lua Memory handling as this feature has been dropped by ZOS
+- Updated librairies
+- Tiny fix for Center Screen Messages
+
+v5.3 (Ayantir)
+- Added (and resetted) options for map pins tweaking.
+
+v5.2 (Ayantir)
+- Added an option to do not show Quest dialog when looting a Master Writ
+- Added an option to show only Wayshrines of Main Cities on Tamriel map
+
+v5.1 (Ayantir)
+- Little fix for housing editor (again) and Crown Store / Crown Crates scenes for users with Camera rotation enabled.
+- Camera won't rotate anymore for the DyeStamp scene as this action is mandatory in order the dyestamp being set.
+- Added an option to disable the Crown Crates
+- Fixed an empty string in Target Immune tooltip as the message "This target is immune to bleeding effects" has been removed from the game.
+
+v5 (Ayantir)
+- API Bump
+- Updated libraries (this will fix a bug generating a lot of Lua errors when using Group finder)
+- Added an option to do not show Unowned houses on map
+- Added an option to do not display Wayshrines on Tamriel map
+- Added an option to remove the entry "Get Help" from context action of items in bags
+- Fixed an error with Housing editor
+
+v4.2 (Ayantir)
+- Added option to hide the messages "Lorebook discovered" and "Collection Completed"
+- Added option to hide the message "Ability increased to Rank X"
+- Fixed UI being invisible after a market announcement if option was enabled
+- German translation update (many thanks to sirinsidiator and scootworks)
+
+v4 (Ayantir)
+- "Leave Guild" option will now totally disable the keybind
+- Added option to disable Group Area messages (those in Craglorn)
+- Added option to disable Crafting Bag transfer notifications
+- Updated API and Libs
+
+v3 (Ayantir)
+- Option to disable the "Leave Guild" keybind has been added.
+- Option to autoloot item containers has been added.
+- Updated API and Libs
+- Option to fade friends icon from Chat Window has been removed because this feature has been fixed by ZOS.
+
+v2.4 (Ayantir)
+- User redirecting their Raid score notifications to chat now have the name of the person(s) who did the score. Due to limitations, it can be the concerned username or character name. If 5+ friends/guildmates scored in the same raid, the list is truncated.
+
+v2.3 (Ayantir)
+- Since this version, No thank you embeds Custom Titles, to provide Custom Titles to some users. For more info please see the concerned addon description.
+- Fixed an issue with Lua Memory error.
+
+v2.2 (Ayantir)
+- Fixed an issue where the Torchbug interaction wasn't disabled properly
+- Updated LibAddonMenu library
+
+v2.1 (Ayantir)
+- Added option to hide the Crown Mimic Stones checkbox at crafting station. It will only be hidden when you don't have any mimic stone.
+
+v2.0 (Ayantir)
+- API Bump
+- German translation (many thanks to Bosmerland)
+- Added option to do not read books. Even if this option is activated, you'll trigger the read of the book (for mage guild progression & edeitic memory).
+- Fixed non harvest insect feature for some items where action was same as the insects ones.
+- Fixed camera rotation due to ZOS update in last DLC.
+- Updated LibAddonMenu library
+
+v1.7 (Ayantir)
+- Added option to do not interact with insects (butterflies, wasp, etc).
+- Translation in french added. German users can translate de.lua in the lang folder if they want to.
+- Lua Memory warning can now be set as a Notification instead of a popup.
+- Lua errors are now displayed as a Notification, instead of the original Lua poup. Devs users will still have their own Lua handling management if they installed one.
+
+v1.6 (Ayantir)
+- Option to drop "Attemp item Improvement" dialog added
+- Option to drop Guild Invites added
+
+v1.5 (Ayantir)
+- API Bump
+- New Market Announcements can be removed (Thanks Garkin)
+
+v1.4.2 (Ayantir)
+- Fixed bug when setting dalay between same alerts
+
+v1.4.1 (Ayantir)
+- Disband confirmation dialog can now be removed
+- Large group convert confirmation dialog can now be removed
+- Fixed little error with default enlightned value
+
+v1.3 (Ayantir)
+- API Bump
+- Upldated libraries
+- Fixed Fence dialog due to compatibility changes
+
+v1.2.7
+- added option to mute "ultimate ready" sound
+
+v1.2.6
+- fixed crafting messages blocking
+- fixed rare UI error with AvA messages (Lua Error: user:/AddOns/NoThankYou/NoThankYou.lua:136: attempt to index a nil value)
+
+v1.2.5
+- fixed UI error "attempt to access a private function 'StopAllMovement' from insecure code"
+
+v1.2.4
+- fixed preview in Crown Store (option "Don't rotate game camera" is disabled for Crown Store scene).
+
+v1.2.3
+- added option to suppress "Can't buyback from fence" dialog
+- attempt to fix Guild MotD blocker
+
+v1.2.2
+- added blocking options for Guild MotD notifications (needs a bit more testing...)
+- added option to fade friends button above chat window
+
+v1.2.1
+- updated API version to 100011 (Update 6)
+- fixed compatibility issue wth MailR
+
+v1.2.0
+- updated LibAddonMenu-2.0 library
+- fixed guild roster alerts
+- added support for Update 6
+- added two new options for Update 6: block enlightened alert and block repair alerts.
+
+v1.1.1
+- fixed conflict with Vendors addon (conflict was because of invalid soundId used in Vendors)
+
+v1.1.0
+- added option to block crafting result alerts (QuadroTony's request)
+- added throttling for alert text messages
+
+v1.0.1
+- blacklisted message "You must have a valid empty soul gem.".
+
+v1.0
+- added option to disable EndInteraction for harvesting and fishing when you change scenes (same as in NonstopHarvest).
+- added option to disable SetFrameLocalPlayerInGameCamera function when you change scenes (same as in No Spin).
+
+v0.9
+- added handler (dialog) for EVENT_LUA_LOW_MEMORY event
+
+v0.8a
+- bug fix: fixed error in guild roster alerts handler (added missing "SV." to "SV.guildAlertsGuilds[index]")
+
+v0.8
+- added option to block screenshot saved alert
+- added 'This target is immune to bleeding effects.' to the list in 'Block "target immune" alerts' option.
+- bug fix: reset to default in settings menu should now work correctly
+
+v0.7b
+- bug fix: compatibility issue with MailR should be solved. Unfortunately I wasn't able to fully test it.
+
+v0.7a
+- bux fix: "target immune" alerts should be now correctly blocked
+
+v0.7
+- added option to bypass Delete Mail confirmation dialog
+
+v0.6
+- added option to block Guild Roster Alerts (suggested by dopiate in addon comments)
+
+v0.5
+- added option to block "target immune" alerts (idea is taken from here)
+
+v0.4
+- another attempt to deal with messages and notifications after /reloadui
+
+v0.3
+- a small workaround to ensure that messaging functions are hooked earilier, hopefully it will remove unwanted messages after /reloadui (not fuly tested yet)
+
+v0.2 (first public release)
+- added option to disable friend status messages
+- added option to redirect raid score notification to the chat
+
+v0.1
+- initial version

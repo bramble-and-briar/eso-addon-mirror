@@ -4185,7 +4185,9 @@ local debugAuras =
     [263410] = true, -- Arc Unbound Potential
     [263412] = true, -- Arc Erudite's Rigor
     [263416] = true, -- Arc Ink-Scribe's Verve
-    [263448] = true, -- Nec Nothing Wasted
+    [263448] = true, -- Nec Nothing Wasted (skill sheet)
+    [263461] = true, -- Nec Nothing Wasted (player buff aura)
+    [263462] = true, -- Nec Nothing Wasted (combat pair)
     [263465] = true, -- Nec Malevolent Promise
     [263509] = true, -- Nec Cycle Unending
     [263549] = true, -- Nec Pound of Flesh
@@ -9884,8 +9886,8 @@ local debugAuras =
     -------------------------------------
 
     [47717] = true, -- Quick Strike (Guard T1)
-    [46220] = true, -- Puncture (Guard T1 + T2)
-    [46221] = true, -- Puncture (Guard T1 + T2)
+    [46220] = true, -- Perforate (Guard T1 + T2)
+    [46221] = true, -- Perforate (Guard T1 + T2)
     [46830] = true, -- Bleeding Strike (Guard T2)
     [46832] = true, -- Bleeding (Guard T2)
     [46831] = true, -- Bleeding (Guard T2)

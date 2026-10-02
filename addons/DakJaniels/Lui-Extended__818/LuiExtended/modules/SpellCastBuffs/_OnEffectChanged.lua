@@ -158,7 +158,7 @@ function SpellCastBuffs.OnEffectChanged(changeType, effectSlot, effectName, unit
     end
 
     -- If this effect isn't a prominent buff or debuff and we have certain buffs set to hidden - then hide those.
-    if not (SpellCastBuffs.WantsProminentDebuff(abilityId, effectName) or SpellCastBuffs.SV.PromBuffTable[abilityId] or SpellCastBuffs.SV.PromBuffTable[effectName]) then
+    if not (SpellCastBuffs.WantsProminentDebuff(abilityId, effectName) or SpellCastBuffs.IsProminentBuff(abilityId, effectName)) then
         if SpellCastBuffs.SV.HidePlayerBuffs and effectType == BUFF_EFFECT_TYPE_BUFF and unitTag == "player" then
             return
         end
@@ -282,6 +282,7 @@ function SpellCastBuffs.OnEffectChanged(changeType, effectSlot, effectName, unit
     end
 
     if changeType == EFFECT_RESULT_FADED then
+        SpellCastBuffs.ClearChargeStacks(abilityId)
         -- delete Effect
         local nativeUid = SpellCastBuffs.GetEffectUidNative(effectSlot)
         SpellCastBuffs.EffectsList[context][nativeUid] = nil
@@ -310,6 +311,30 @@ function SpellCastBuffs.OnEffectChanged(changeType, effectSlot, effectName, unit
                 duration = duration - Effects.EffectOverride[abilityId].duration
             end
             endTime = endTime - Effects.EffectOverride[abilityId].duration
+        end
+
+        -- Infinite live end (endTime 0 or duration <= 0): countdown from GetAbilityDuration, anchored to now.
+        -- Opt-in only. Do not combine with EffectOverride.duration (that path shifts the event times first).
+        local effectOverride = Effects.EffectOverride[abilityId]
+        if effectOverride and effectOverride.durationFromAbility then
+            local liveDurationMissing = (endTime == 0) or (duration <= 0)
+            if liveDurationMissing and not IsAbilityPermanent(abilityId) and not IsAbilityDurationToggled(abilityId, unitTag) then
+                local abilityDurationMs = GetAbilityDuration(abilityId, nil, unitTag)
+                if abilityDurationMs and abilityDurationMs > 0 then
+                    beginTime = GetGameTimeSeconds()
+                    duration = abilityDurationMs / 1000
+                    endTime = beginTime + duration
+                end
+            end
+        end
+
+        -- Stack falloff window. The effect reports begin/end 0. Each update (gain, cap refresh, or lost stack) restarts the countdown.
+        if effectOverride and effectOverride.falloffDuration and effectOverride.falloffDuration > 0 then
+            if endTime == 0 or duration <= 0 then
+                beginTime = GetGameTimeSeconds()
+                duration = effectOverride.falloffDuration / 1000
+                endTime = beginTime + duration
+            end
         end
 
         if Effects.EffectPullDuration[abilityId] then
@@ -394,6 +419,9 @@ function SpellCastBuffs.OnEffectChanged(changeType, effectSlot, effectName, unit
                 stackCount = Effects.EffectOverride[abilityId].stackMax
             end
         end
+
+        -- Hit-counted charges (Crystal Weapon): the effect event reports stack 0. Keep the counted remainder.
+        stackCount = SpellCastBuffs.ResolveChargeStacks(abilityId, changeType, stackCount)
 
         -- Buffs are created based on their effectSlot, this allows multiple buffs/debuffs of the same type to appear.
         local nativeUid = SpellCastBuffs.GetEffectUidNative(effectSlot)

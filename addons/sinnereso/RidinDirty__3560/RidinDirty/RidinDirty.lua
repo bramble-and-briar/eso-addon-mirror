@@ -1,13 +1,18 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.09.30",
+	version = "2026.10.01",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
 }
 local RD = RidinDirty
 local rdLogo = "|c6666FF[RD]|r "
+local goldIcon = " |t18:18:/esoui/art/currency/currency_gold.dds|t"
+local apIcon = " |t18:18:/esoui/art/currency/alliancepoints.dds|t"
+local telvarIcon = " |t18:18:/esoui/art/currency/currency_telvar.dds|t"
+local voucherIcon = " |t18:18:/esoui/art/currency/currency_writvoucher.dds|t"
+local veterancyIcon = " |t18:18:/esoui/art/notifications/notificationicon_veterancyrankrewards.dds|t"
 local hasPassenger = false
 local passengerName = ""
 local chatMods = false
@@ -17,11 +22,6 @@ local oldGuildLabel = ""
 local playerSearch = nil
 local houseSearch = nil
 local chatStamp = nil
-local goldIcon = "|t18:18:/esoui/art/currency/currency_gold.dds|t"
-local apIcon = "|t18:18:/esoui/art/currency/alliancepoints.dds|t"
-local telvarIcon = "|t18:18:/esoui/art/currency/currency_telvar.dds|t"
-local voucherIcon = "|t18:18:/esoui/art/currency/currency_writvoucher.dds|t"
-local veterancyIcon = "|t18:18:/esoui/art/notifications/notificationicon_veterancyrankrewards.dds|t"
 local avpData = {
 	allianceGained = 0,
 	telvarDifference = 0,
@@ -100,64 +100,6 @@ local function GetLastDailyReset()
 	if lastReset > time then lastReset = lastReset - 86400 end
 	--df("Last Reset: " .. tostring(os.date("%Y-%m-%d %H:%M:%S", lastReset)) .. ", Stamp: " .. tostring(lastReset) .. ", Timezone: (" .. tostring(offset) .. ")")
 	return lastReset
-end
-
-local function SettingsPanelCharacterList()
-	local charList = {}
-	local disabled = "|ccc0000*DISABLED*|r"
-	local count = 1
-	for i = 1, GetNumCharacters() do
-		local charName = GetCharacterInfo(i)
-		charName = charName:sub(1, charName:find("%^") - 1)
-		if count == 1 then table.insert(charList, disabled) end
-		if (nil == charList[charName]) then
-			table.insert(charList, charName)
-		end
-		count = (count + 1)
-	end
-	return charList
-end
-
-local function GetHomeCampLeadScore()
-	for index = 1, GetNumCampaignAllianceLeaderboardEntries(GetAssignedCampaignId(), GetUnitAlliance("player")) do
-		local isPlayer, rank, name, points, class, displayName = GetCampaignAllianceLeaderboardEntryInfo(GetAssignedCampaignId(), GetUnitAlliance("player"), index)
-		if isPlayer then
-			return rank, ZO_LocalizeDecimalNumber(points)
-		end
-	end
-	return false
-end
---/script SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState) d(scene:GetName() .. " " .. newState) end)
-local function GetLowPopCyroCampaignId()
-	QueryCampaignSelectionData()
-	for index = 1, GetNumSelectionCampaigns() do
-		local campaignId = GetSelectionCampaignId(index)
-		local campaignPopEstimate = GetSelectionCampaignPopulationData(index, GetUnitAlliance("player"))
-		if not IsImperialCityCampaign(campaignId) and not CanCampaignBeAllianceLocked(campaignId) and campaignPopEstimate <= 2 then return campaignId end
-	end
-	return false
-end
-
-local function GetLastBGModeItem(modeName)
-    for i, item in ipairs(BATTLEGROUND_FINDER_KEYBOARD.filterComboBox.m_sortedItems) do
-        if item.name == modeName then return item end
-    end
-end
-
-local function GetVeterancyTier()
-	local trackType = REWARD_TRACK_TYPE_AVA_VETERANCY
-	local _, currTierIndex, currProgress = GetInfoForRewardTrack(trackType, GetActiveReferenceTrackIdsForRewardTrackType(trackType))
-	CURRENT_TIER_INDEX = currTierIndex
-end
-
-local function GetUnlockedAssistant()
-	for index = 1, GetTotalCollectiblesByCategoryType(8) do
-		local collectibleID = GetCollectibleIdFromType(8, index)
-		if IsCollectibleUnlocked(collectibleID) then
-			return collectibleID
-		end
-	end
-	return false
 end
 
 local function GetPassengerName()
@@ -240,138 +182,6 @@ local function PvPAddonSave()
 		if (isEnabled and addonState == 2) or (addonName == "RidinDirty") then RidinDirty.addonMemory[addonIndex] = addonName end
 	end
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Performance mode addons saved."))
-end	
---local statusControl = control:GetNamedChild("StatusTexture")--("StatusIcon")--("Status")
---if not statusControl then return end
---df(nameText .. " - " .. tostring(statusControl:IsHidden()))--statusControl:SetHidden(true)
---local RDPrice = ((ttcPriceData.Avg + (ttcPriceData.SaleAvg or ttcPriceData.Avg)) / 2)--<< UNUSED
-local function NeedsAndPrice(control, slot)
-	local itemData = control.dataEntry and control.dataEntry.data
-	local bagId = itemData.bagId
-	local slotIndex = itemData.slotIndex
-	local itemLink = GetItemLink(bagId, slotIndex)
-	if not bagId then itemLink = itemData.itemLink or GetStoreItemLink(slot.slotIndex) end
-	if slot.lootId then
-		local lootID = slot.lootId
-		itemLink = GetLootItemLink(lootID)
-	end
-	if not itemLink then return end
-	local itemId = GetItemLinkItemId(itemLink)
-	local itemType, specialType = GetItemLinkItemType(itemLink)
-	local nameControl = control:GetNamedChild("Name")
-	if not nameControl then return end
-	--local nameText = nameControl:GetText()
-	local nameText = string.gsub(nameControl:GetText(), "%(%+%)", "")
-	if RidinDirty.savedVariables.lootManager then
-		if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then
-			nameControl:SetText(IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. nameText)
-		end
-	end
-	if slot.lootId or STORE_FRAGMENT:IsShowing() then return end
-	if bagId and (IsItemBound(bagId, slotIndex) or IsItemBoPAndTradeable(bagId, slotIndex)) then return end
-	if not TamrielTradeCentre or not (RidinDirty.savedVariables.lootManager and RidinDirty.savedVariables.ttcPricing) then return end
-	local SellPriceControl = control:GetNamedChild("SellPriceText") or control:GetNamedChild("SellPrice")
-	if not SellPriceControl then return end
-	--local originalPrice = SellPriceControl:GetText()--purchasePrice
-	local ttcPriceData = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
-	if not ttcPriceData then return end
-	local TTCPrice = ttcPriceData[RidinDirty.savedVariables.ttcPricing] or ttcPriceData.Avg
-	local TTCStackPrice = (TTCPrice * itemData.stackCount)
-	if itemData.purchasePrice and RidinDirty.savedVariables.traderEnhance then
-		if itemData.stackCount > 1 and TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
-			if itemData.purchasePrice > (TTCStackPrice * 1.2) then
-				SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t|r\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
-			else
-				SellPriceControl:SetText(ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
-			end
-		elseif itemData.purchasePrice > (TTCStackPrice * 1.2) then
-			SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t|r")
-		elseif itemData.purchasePrice < (TTCStackPrice * 0.95) and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
-			SellPriceControl:SetText("|c7BF1A8" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t|r")
-		end
-	elseif TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_BROWSE and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
-		if itemData.stackCount > 1 then
-			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t\n@ " .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCPrice, 1))))
-		else
-			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. " |t18:18:/esoui/art/currency/currency_gold.dds|t" .. "|r")
-		end
-	end
-end
---local zone = GetAntiquityZoneId(antiquityId)
-local function TooltipLeadInfo(control, slot)
-	local lootId = GetLootItemInfo(slot)--slot.lootId?
-	local antiquityId = GetStoreEntryAntiquityId(slot)
-	if lootId ~= 0 then
-		antiquityId = GetLootAntiquityLeadId(lootId)
-	end
-	if not antiquityId or antiquityId == 0 then return end
-	local r, g, b = ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB()
-	local numAcquired, numEntries = GetNumAntiquityLoreEntriesAcquired(antiquityId), GetNumAntiquityLoreEntries(antiquityId)
-	if numAcquired > 0 or DoesAntiquityHaveLead(antiquityId) then
-		control:AddLine("")
-		ZO_Tooltip_AddDivider(control)
-		control:AddLine(("Collected: " .. tostring(numAcquired) .. " / " .. tostring(numEntries)), "ZoFontWinH4", r, g, b)
-	else
-		control:AddLine("")
-		control:AddLine("|c00FF00Use to add to your codex library.|r")
-		ZO_Tooltip_AddDivider(control)
-		control:AddLine(("Collected: " .. tostring(numAcquired) .. " / " .. tostring(numEntries)), "ZoFontWinH4", r, g, b)
-	end
-end
---STORE_WINDOW:RefreshCurrency()
---STORE_WINDOW:GetStoreItems()
---STORE_WINDOW:UpdateList()
---STORE_WINDOW:InitializeStore()
---zo_callLater(function() ZO_ScrollList_Commit(STORE_WINDOW.list) end, 500)
-local function RefreshStore()
-	if not STORE_FRAGMENT:IsHidden() then
-		ZO_ScrollList_Commit(STORE_WINDOW.list)
-		return
-	end
-end
-
-local function GetSoulGemSlot()
-	for slotId = 0, GetBagSize(BAG_BACKPACK) do
-		if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slotId) then
-			return slotId
-		end
-	end
-end
---IsItemNonCrownRepairKit(BAG_BACKPACK, slotId)
-local function GetRepairKitSlot()
-	for slotId = 0, GetBagSize(BAG_BACKPACK) do
-		if IsItemRepairKit(BAG_BACKPACK, slotId) and IsItemNonGroupRepairKit(BAG_BACKPACK, slotId) then
-			return slotId
-		end
-	end
-end
-
---if IsItemChargeable(BAG_WORN, slotIndex) or DoesItemHaveDurability(BAG_WORN, slotIndex) then df(tostring(GetItemName(BAG_WORN, slotIndex))) end
-local function AutoRepCharge(_, bagId, slotIndex, _, _, updateReason)
-	if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then
-		local minCharge = 50--500 max
-		local charge, maxCharge = GetChargeInfoForItem(bagId, slotIndex)
-		if IsItemChargeable(bagId, slotIndex) and charge <= minCharge and not IsUnitDeadOrReincarnating("player") then
-			local gemSlot = GetSoulGemSlot()
-			if gemSlot ~= nil then
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "InventoryItem_ApplyCharge", (GetItemName(bagId, slotIndex) .. " recharged."))
-				ChargeItemWithSoulGem(bagId, slotIndex, BAG_BACKPACK, gemSlot)
-			else
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No soul gems to recharge " .. GetItemName(bagId, slotIndex) .. "."))
-			end
-		end
-	elseif updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then
-		local minDura = 10--100 max
-		if DoesItemHaveDurability(bagId, slotIndex) and GetItemCondition(bagId, slotIndex) <= minDura and not IsUnitDeadOrReincarnating("player") then
-			local kitSlot = GetRepairKitSlot()
-			if kitSlot ~= nil then
-				PlaySound("InventoryItem_ApplyCharge")
-				RepairItemWithRepairKit(bagId, slotIndex, BAG_BACKPACK, kitSlot)
-			else
-				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No repair kits to repair " .. GetItemName(bagId, slotIndex) .. "."))
-			end
-		end
-	end
 end
 --if RidinDirty.savedVariables.autoRecharge then zo_callLater(function() BrokenGearCheck() end, 2000) end--<< RUN AUTO RECHARGE IF ENABLED
 local function BrokenGearCheck()
@@ -416,6 +226,37 @@ local function BrokenGearCheck()
 	end
 end
 --StackBag(BAG_BACKPACK)
+local function GetHomeCampLeadScore()
+	for index = 1, GetNumCampaignAllianceLeaderboardEntries(GetAssignedCampaignId(), GetUnitAlliance("player")) do
+		local isPlayer, rank, name, points, class, displayName = GetCampaignAllianceLeaderboardEntryInfo(GetAssignedCampaignId(), GetUnitAlliance("player"), index)
+		if isPlayer then
+			return rank, ZO_LocalizeDecimalNumber(points)
+		end
+	end
+	return false
+end
+--/script SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState) d(scene:GetName() .. " " .. newState) end)
+local function GetLowPopCyroCampaignId()
+	QueryCampaignSelectionData()
+	for index = 1, GetNumSelectionCampaigns() do
+		local campaignId = GetSelectionCampaignId(index)
+		local campaignPopEstimate = GetSelectionCampaignPopulationData(index, GetUnitAlliance("player"))
+		if not IsImperialCityCampaign(campaignId) and not CanCampaignBeAllianceLocked(campaignId) and campaignPopEstimate <= 2 then return campaignId end
+	end
+	return false
+end
+
+local function GetLastBGModeItem(modeName)
+    for i, item in ipairs(BATTLEGROUND_FINDER_KEYBOARD.filterComboBox.m_sortedItems) do
+        if item.name == modeName then return item end
+    end
+end
+
+local function GetVeterancyTier()
+	local trackType = REWARD_TRACK_TYPE_AVA_VETERANCY
+	local _, currTierIndex, currProgress = GetInfoForRewardTrack(trackType, GetActiveReferenceTrackIdsForRewardTrackType(trackType))
+	CURRENT_TIER_INDEX = currTierIndex
+end
 -- /script df(tostring(GetPlayerActiveZoneName()))
 local function InZoneWhitelist(value)
 	local zones = {
@@ -654,6 +495,22 @@ end
 ---------------------------------------------
 ------ SETTINGS PANEL --
 ---------------------------------------------
+local function SettingsPanelCharacterList()
+	local charList = {}
+	local disabled = "|ccc0000*DISABLED*|r"
+	local count = 1
+	for i = 1, GetNumCharacters() do
+		local charName = GetCharacterInfo(i)
+		charName = charName:sub(1, charName:find("%^") - 1)
+		if count == 1 then table.insert(charList, disabled) end
+		if (nil == charList[charName]) then
+			table.insert(charList, charName)
+		end
+		count = (count + 1)
+	end
+	return charList
+end
+
 local function RDInitializeControls()
 	local panelName = "RidinDirtySettingsPanel"
 	local panelData = {
@@ -1251,21 +1108,39 @@ local function RDInitializeControls()
 	RidinDirty.TauntCounter:SetHidden(true)
 	
 	-- Trader Listing Count Indicator --
-	--RidinDirty.ListingCounter = WINDOW_MANAGER:CreateTopLevelWindow("ListingCounter")
-	RidinDirty.ListingCounter = WINDOW_MANAGER:CreateControl("ListingCounter", ZO_TradingHouse, CT_CONTROL)
-	RidinDirty.ListingCounter:SetAnchor(BOTTOM, ZO_TradingHouse, TOP, 0, 10)-- -22 for ags
-	RidinDirty.ListingCounter:SetParent(ZO_TradingHouse)
-	RidinDirty.ListingCounter:SetDimensions(64,64)
-	RidinDirty.ListingCounter.label = WINDOW_MANAGER:CreateControl("ListingCounterLabel", RidinDirty.ListingCounter, CT_LABEL)
-	RidinDirty.ListingCounter.label:SetAnchor(CENTER, RidinDirty.ListingCounter, CENTER, 0, 0)
-	RidinDirty.ListingCounter.label:SetColor(128,128,128,1)
-	RidinDirty.ListingCounter.label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-	RidinDirty.ListingCounter.label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-	RidinDirty.ListingCounter.label:SetFont("ZoFontWinH2")
-	RidinDirty.ListingCounter.label:SetText ("")
-	--RidinDirty.ListingCounter:SetTopmost()
-	local listingFrag = ZO_SimpleSceneFragment:New(RidinDirty.ListingCounter)
-	RidinDirty.ListingCounter:SetHidden(true)
+	--RidinDirty.TraderListingCounter = WINDOW_MANAGER:CreateTopLevelWindow("TraderListingCounter")
+	RidinDirty.TraderListingCounter = WINDOW_MANAGER:CreateControl("TraderListingCounter", ZO_TradingHouse, CT_CONTROL)
+	RidinDirty.TraderListingCounter:SetAnchor(BOTTOM, ZO_TradingHouse, TOP, 0, 10)
+	RidinDirty.TraderListingCounter:SetParent(ZO_TradingHouse)
+	RidinDirty.TraderListingCounter:SetDimensions(64,64)
+	RidinDirty.TraderListingCounter.label = WINDOW_MANAGER:CreateControl("TraderListingCounterLabel", RidinDirty.TraderListingCounter, CT_LABEL)
+	RidinDirty.TraderListingCounter.label:SetAnchor(CENTER, RidinDirty.TraderListingCounter, CENTER, 0, 0)
+	RidinDirty.TraderListingCounter.label:SetColor(128,128,128,1)
+	RidinDirty.TraderListingCounter.label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	RidinDirty.TraderListingCounter.label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	RidinDirty.TraderListingCounter.label:SetFont("ZoFontWinH2")
+	RidinDirty.TraderListingCounter.label:SetText ("")
+	--RidinDirty.TraderListingCounter:SetTopmost()
+	local traderListingFrag = ZO_SimpleSceneFragment:New(RidinDirty.TraderListingCounter)
+	RidinDirty.TraderListingCounter:SetHidden(true)
+	
+	-- Trader Sales Total Indicator --
+	--RidinDirty.TraderSalesTotal = WINDOW_MANAGER:CreateTopLevelWindow("TraderSalesTotal")
+	RidinDirty.TraderSalesTotal = WINDOW_MANAGER:CreateControl("TraderSalesTotal", ZO_TradingHouse, CT_CONTROL)
+	RidinDirty.TraderSalesTotal:SetAnchor(TOP, RidinDirty.TraderListingCounter, BOTTOM, 0, -20)
+	RidinDirty.TraderSalesTotal:SetParent(ZO_TradingHouse)
+	RidinDirty.TraderSalesTotal:SetDimensions(64,64)
+	RidinDirty.TraderSalesTotal.label = WINDOW_MANAGER:CreateControl("TraderSalesTotalLabel", RidinDirty.TraderSalesTotal, CT_LABEL)
+	RidinDirty.TraderSalesTotal.label:SetAnchor(CENTER, RidinDirty.TraderSalesTotal, CENTER, 0, 0)
+	RidinDirty.TraderSalesTotal.label:SetColor(128,128,128,1)
+	RidinDirty.TraderSalesTotal.label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	RidinDirty.TraderSalesTotal.label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	RidinDirty.TraderSalesTotal.label:SetFont("ZoFontWinH2")
+	RidinDirty.TraderSalesTotal.label:SetText ("")
+	--RidinDirty.TraderSalesTotal:SetTopmost()
+	local traderSalesFrag = ZO_SimpleSceneFragment:New(RidinDirty.TraderSalesTotal)
+	RidinDirty.TraderSalesTotal:SetHidden(true)
+	RidinDirty.TraderSalesTotal:SetAlpha(0)
 	
 	-- ArmoryUnlock Button --
 	--RidinDirty.ArmoryLock = WINDOW_MANAGER:CreateTopLevelWindow("ArmoryLock")
@@ -1300,11 +1175,11 @@ local function RDInitializeControls()
 	local traderscene = SCENE_MANAGER:GetScene("tradinghouse")
 	local armoryscene = SCENE_MANAGER:GetScene("armoryKeyboard")
 	local fragmentGroup1 = { hourglassFrag, combatFrag, tauntFrag }
-	local fragmentGroup2 = { listingFrag }
-	local fragmentGroup4 = { armoryFrag }
+	local fragmentGroup2 = { traderListingFrag, traderSalesFrag }
+	local fragmentGroup3 = { armoryFrag }
 	hudscene:AddFragmentGroup(fragmentGroup1)
 	traderscene:AddFragmentGroup(fragmentGroup2)
-	armoryscene:AddFragmentGroup(fragmentGroup4)
+	armoryscene:AddFragmentGroup(fragmentGroup3)
 	
 	RidinDirty.HourGlass:SetAlpha(0)
 	RidinDirty.TauntCounter:SetAlpha(0)
@@ -1766,16 +1641,16 @@ local function BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTel
 	if moveTelvar then curbankTelvar = (carriedTelvar + GetBankedCurrencyAmount(CURT_TELVAR_STONES)) moveTelvar = false end
 	if moveVoucher then curbankVouchers = (carriedVoucher + GetBankedCurrencyAmount(CURT_WRIT_VOUCHERS)) moveVoucher = false end
 	if curbankGold > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(curbankGold))
+		bankedCurrencies = (bankedCurrencies .. goldIcon .. ZO_LocalizeDecimalNumber(curbankGold))
 	end
 	if curbankAP > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(curbankAP) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(curbankAP) .. "|r")
 	end
 	if curbankTelvar > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(curbankTelvar) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(curbankTelvar) .. "|r")
 	end
 	if curbankVouchers > 0 then
-		bankedCurrencies = (bankedCurrencies .. " " .. "|t18:18:/esoui/art/currency/currency_writvoucher.dds|t" .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(curbankVouchers) .. "|r")
+		bankedCurrencies = (bankedCurrencies .. voucherIcon .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(curbankVouchers) .. "|r")
 	end
 	if bankedCurrencies ~= (rdLogo .. "Balances:") then df(bankedCurrencies) end
 end
@@ -1801,12 +1676,12 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawGold = (goldReserve - carriedGold)
 			carriedGold = (withdrawGold - (withdrawGold*2))
 			WithdrawCurrencyFromBank(CURT_MONEY, withdrawGold)
-			df(rdLogo .. "Withdrew: " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(carriedGold))
+			df(rdLogo .. "Withdrew:" .. goldIcon .. ZO_LocalizeDecimalNumber(carriedGold))
 		elseif (carriedGold > goldReserve) then
 			moveGold = true
 			carriedGold = (carriedGold - goldReserve)
 			DepositCurrencyIntoBank(CURT_MONEY, carriedGold)
-			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(carriedGold))
+			df(rdLogo .. "Deposited:" .. goldIcon .. ZO_LocalizeDecimalNumber(carriedGold))
 		end
 	end
 	if RidinDirty.savedVariables.apDeposit then
@@ -1815,12 +1690,12 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawAP = (apReserve - carriedAP)
 			carriedAP = (withdrawAP - (withdrawAP*2))
 			WithdrawCurrencyFromBank(CURT_ALLIANCE_POINTS, withdrawAP)
-			df(rdLogo .. "Withdrew: " .. "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
+			df(rdLogo .. "Withdrew:" .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		elseif (carriedAP > apReserve) then
 			moveAP = true
 			carriedAP = (carriedAP - apReserve)
 			DepositCurrencyIntoBank(CURT_ALLIANCE_POINTS, carriedAP)
-			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/alliancepoints.dds|t" .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
+			df(rdLogo .. "Deposited:" .. apIcon .. "|c339933" .. ZO_LocalizeDecimalNumber(carriedAP) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.telvarDeposit then
@@ -1829,19 +1704,19 @@ local function DepositCurrency(eventCode, bagId)
 			withdrawTelvar = (telvarReserve - carriedTelvar)
 			carriedTelvar = (withdrawTelvar - (withdrawTelvar*2))
 			WithdrawCurrencyFromBank(CURT_TELVAR_STONES, withdrawTelvar)
-			df(rdLogo .. "Withdrew: " .. "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
+			df(rdLogo .. "Withdrew:" .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		elseif (carriedTelvar > telvarReserve) then
 			moveTelvar = true
 			carriedTelvar = (carriedTelvar - telvarReserve)
 			DepositCurrencyIntoBank(CURT_TELVAR_STONES, carriedTelvar)
-			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/currency_telvar.dds|t" .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
+			df(rdLogo .. "Deposited:" .. telvarIcon .. "|c33CCCC" .. ZO_LocalizeDecimalNumber(carriedTelvar) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.voucherDeposit then
 		if (carriedVoucher > 0) then
 			moveVoucher = true
 			DepositCurrencyIntoBank(CURT_WRIT_VOUCHERS, carriedVoucher)
-			df(rdLogo .. "Deposited: " .. "|t18:18:/esoui/art/currency/currency_writvoucher.dds|t" .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
+			df(rdLogo .. "Deposited:" .. voucherIcon .. "|cFFEECC" .. ZO_LocalizeDecimalNumber(carriedVoucher) .. "|r")
 		end
 	end
 	if RidinDirty.savedVariables.balanceDisplay then
@@ -2030,6 +1905,49 @@ end
 ---------------------------------------------
 -------- JUNK MANAGER --
 ---------------------------------------------
+local function GetSoulGemSlot()
+	for slotId = 0, GetBagSize(BAG_BACKPACK) do
+		if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slotId) then
+			return slotId
+		end
+	end
+end
+--IsItemNonCrownRepairKit(BAG_BACKPACK, slotId)
+local function GetRepairKitSlot()
+	for slotId = 0, GetBagSize(BAG_BACKPACK) do
+		if IsItemRepairKit(BAG_BACKPACK, slotId) and IsItemNonGroupRepairKit(BAG_BACKPACK, slotId) then
+			return slotId
+		end
+	end
+end
+
+--if IsItemChargeable(BAG_WORN, slotIndex) or DoesItemHaveDurability(BAG_WORN, slotIndex) then df(tostring(GetItemName(BAG_WORN, slotIndex))) end
+local function AutoRepCharge(_, bagId, slotIndex, _, _, updateReason)
+	if updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE then
+		local minCharge = 50--500 max
+		local charge, maxCharge = GetChargeInfoForItem(bagId, slotIndex)
+		if IsItemChargeable(bagId, slotIndex) and charge <= minCharge and not IsUnitDeadOrReincarnating("player") then
+			local gemSlot = GetSoulGemSlot()
+			if gemSlot ~= nil then
+				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "InventoryItem_ApplyCharge", (GetItemName(bagId, slotIndex) .. " recharged."))
+				ChargeItemWithSoulGem(bagId, slotIndex, BAG_BACKPACK, gemSlot)
+			else
+				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No soul gems to recharge " .. GetItemName(bagId, slotIndex) .. "."))
+			end
+		end
+	elseif updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE then
+		local minDura = 10--100 max
+		if DoesItemHaveDurability(bagId, slotIndex) and GetItemCondition(bagId, slotIndex) <= minDura and not IsUnitDeadOrReincarnating("player") then
+			local kitSlot = GetRepairKitSlot()
+			if kitSlot ~= nil then
+				PlaySound("InventoryItem_ApplyCharge")
+				RepairItemWithRepairKit(bagId, slotIndex, BAG_BACKPACK, kitSlot)
+			else
+				ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("No repair kits to repair " .. GetItemName(bagId, slotIndex) .. "."))
+			end
+		end
+	end
+end
 --INVENTORY_UPDATE_REASON_DURABILITY_CHANGE--INVENTORY_UPDATE_REASON_ITEM_CHARGE--ZO_SharedInventoryManager:ClearNewStatus(bagId, slotIndex)
 local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory, updateReason, stackChange, byCharacterName, byDisplayName, isLastUpdate, bonusDropSource)
 	if bagId == BAG_WORN and (updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE or updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE) then
@@ -2062,7 +1980,7 @@ local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory
 			end
 		end
 		if stolenValue > 0 then
-			df(rdLogo .. "|cFFA2A2*PREMIUM EXPORTS*|r --> " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(stolenValue)
+			df(rdLogo .. "|cFFA2A2*PREMIUM EXPORTS*|r -->" .. goldIcon .. ZO_LocalizeDecimalNumber(stolenValue)
 				.. " (+" .. (GetItemSellValueWithBonuses(bagId, slotIndex) * ((GetTotalFenceHagglingBonus() + 100) / 100)) .. ")")
 		end
 	end
@@ -2226,14 +2144,14 @@ local function AutoSellRepair()
 			end
 		end
 		if junkValue > 0 then
-			df(rdLogo .. "All junk sold for " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(junkValue))
+			df(rdLogo .. "All junk sold for" .. goldIcon .. ZO_LocalizeDecimalNumber(junkValue))
 		end
 		SellAllJunk()
 	end
 	local repairCost = GetRepairAllCost()
 	if not CanStoreRepair() then return end
 	if repairCost > 0 and repairCost < GetCurrentMoney() then
-		df(rdLogo .. "All items repaired for " .. "|t18:18:/esoui/art/currency/currency_gold.dds|t" .. ZO_LocalizeDecimalNumber(repairCost))
+		df(rdLogo .. "All items repaired for" .. goldIcon .. ZO_LocalizeDecimalNumber(repairCost))
 		RepairAll()
 	elseif repairCost > 0 and repairCost > GetCurrentMoney() then
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Insufficient gold for repairs.")
@@ -2276,6 +2194,94 @@ local function LootManager(eventCode, receivedBy, itemLink, quantity, _, lootTyp
 		if quantity > 1 then quantity = (" x" .. quantity) else quantity = "" end
 		if isSelf then receivedBy = "" else receivedBy = (" --> " .. ZO_LinkHandler_CreatePlayerLink(zo_strformat("<<1>>", receivedBy))) end
 		df(zo_strformat(rdLogo .. leadHeader .. needHeader .. itemLink .. traitName .. quantity .. receivedBy))
+	end
+end
+--local zone = GetAntiquityZoneId(antiquityId)
+local function TooltipLeadInfo(control, slot)
+	local lootId = GetLootItemInfo(slot)--slot.lootId?
+	local antiquityId = GetStoreEntryAntiquityId(slot)
+	if lootId ~= 0 then
+		antiquityId = GetLootAntiquityLeadId(lootId)
+	end
+	if not antiquityId or antiquityId == 0 then return end
+	local r, g, b = ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB()
+	local numAcquired, numEntries = GetNumAntiquityLoreEntriesAcquired(antiquityId), GetNumAntiquityLoreEntries(antiquityId)
+	if numAcquired > 0 or DoesAntiquityHaveLead(antiquityId) then
+		control:AddLine("")
+		ZO_Tooltip_AddDivider(control)
+		control:AddLine(("Collected: " .. tostring(numAcquired) .. " / " .. tostring(numEntries)), "ZoFontWinH4", r, g, b)
+	else
+		control:AddLine("")
+		control:AddLine("|c00FF00Use to add to your codex library.|r")
+		ZO_Tooltip_AddDivider(control)
+		control:AddLine(("Collected: " .. tostring(numAcquired) .. " / " .. tostring(numEntries)), "ZoFontWinH4", r, g, b)
+	end
+end
+--STORE_WINDOW:RefreshCurrency()
+--STORE_WINDOW:GetStoreItems()
+--STORE_WINDOW:UpdateList()
+--STORE_WINDOW:InitializeStore()
+--zo_callLater(function() ZO_ScrollList_Commit(STORE_WINDOW.list) end, 500)
+local function RefreshStore()
+	if not STORE_FRAGMENT:IsHidden() then
+		ZO_ScrollList_Commit(STORE_WINDOW.list)
+		return
+	end
+end
+--local statusControl = control:GetNamedChild("StatusTexture")--("StatusIcon")--("Status")
+--if not statusControl then return end
+--df(nameText .. " - " .. tostring(statusControl:IsHidden()))--statusControl:SetHidden(true)
+--local RDPrice = ((ttcPriceData.Avg + (ttcPriceData.SaleAvg or ttcPriceData.Avg)) / 2)--<< UNUSED
+local function NeedsAndPrice(control, slot)
+	local itemData = control.dataEntry and control.dataEntry.data
+	local bagId = itemData.bagId
+	local slotIndex = itemData.slotIndex
+	local itemLink = GetItemLink(bagId, slotIndex)
+	if not bagId then itemLink = itemData.itemLink or GetStoreItemLink(slot.slotIndex) end
+	if slot.lootId then
+		local lootID = slot.lootId
+		itemLink = GetLootItemLink(lootID)
+	end
+	if not itemLink then return end
+	local itemId = GetItemLinkItemId(itemLink)
+	local itemType, specialType = GetItemLinkItemType(itemLink)
+	local nameControl = control:GetNamedChild("Name")
+	if not nameControl then return end
+	--local nameText = nameControl:GetText()
+	local nameText = string.gsub(nameControl:GetText(), "%(%+%)", "")
+	if RidinDirty.savedVariables.lootManager then
+		if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then
+			nameControl:SetText(IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. nameText)
+		end
+	end
+	if slot.lootId or STORE_FRAGMENT:IsShowing() then return end
+	if bagId and (IsItemBound(bagId, slotIndex) or IsItemBoPAndTradeable(bagId, slotIndex)) then return end
+	if not TamrielTradeCentre or not (RidinDirty.savedVariables.lootManager and RidinDirty.savedVariables.ttcPricing) then return end
+	local SellPriceControl = control:GetNamedChild("SellPriceText") or control:GetNamedChild("SellPrice")
+	if not SellPriceControl then return end
+	--local originalPrice = SellPriceControl:GetText()--purchasePrice
+	local ttcPriceData = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+	if not ttcPriceData then return end
+	local TTCPrice = ttcPriceData[RidinDirty.savedVariables.ttcPricing] or ttcPriceData.Avg
+	local TTCStackPrice = (TTCPrice * itemData.stackCount)
+	if itemData.purchasePrice and RidinDirty.savedVariables.traderEnhance then
+		if itemData.stackCount > 1 and TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+			if itemData.purchasePrice > (TTCStackPrice * 1.2) then
+				SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. goldIcon .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
+			else
+				SellPriceControl:SetText(ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. goldIcon .. "\n@ " .. ZO_LocalizeDecimalNumber(zo_roundToNearest((tonumber(itemData.purchasePrice) / tonumber(itemData.stackCount)), 1)))
+			end
+		elseif itemData.purchasePrice > (TTCStackPrice * 1.2) then
+			SellPriceControl:SetText("|cFFA2A2" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. goldIcon)
+		elseif itemData.purchasePrice < (TTCStackPrice * 0.95) and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
+			SellPriceControl:SetText("|c7BF1A8" .. ZO_LocalizeDecimalNumber(itemData.purchasePrice) .. "|r" .. goldIcon)
+		end
+	elseif TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_BROWSE and TRADING_HOUSE:GetCurrentMode() ~= ZO_TRADING_HOUSE_MODE_LISTINGS then
+		if itemData.stackCount > 1 then
+			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. goldIcon .. "\n@ " .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCPrice, 1))))
+		else
+			SellPriceControl:SetText("|cC99912" .. tostring(ZO_LocalizeDecimalNumber(zo_roundToNearest(TTCStackPrice, 1))) .. "|r" .. goldIcon)
+		end
 	end
 end
 
@@ -2323,6 +2329,7 @@ function RidinDirty.lootManagerToggle(toggle)
 		SecurePostHook(ZO_LootAlphaContainerList.dataTypes[1], "setupCallback", function(control, slot)
 			NeedsAndPrice(control, slot)
 		end)
+		--Store window
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyLoot", EVENT_COLLECTION_UPDATED, RefreshStore)
 		SecurePostHook(ZO_StoreManager, "SetUpBuySlot", function(self, control, slot)
 			NeedsAndPrice(control, slot)
@@ -2354,6 +2361,7 @@ end
 --ZO_MenuBar_SelectDescriptor(TRADING_HOUSE.menuBar, ZO_TRADING_HOUSE_MODE_BROWSE, true, true)
 --CanSellOnTradingHouse(guildId)--HasTradingHouseListings()--ZO_TRADING_HOUSE_MODE_BROWSE--ZO_TRADING_HOUSE_MODE_SELL--ZO_TRADING_HOUSE_MODE_LISTINGS
 --GetChatterOptionCount() do
+--RidinDirty.TraderSalesTotal
 local function TraderChatter(eventCode, optionCount, debugSource)
 	for i = 1, optionCount do
 		local _, choice = GetChatterOption(i)
@@ -2361,6 +2369,15 @@ local function TraderChatter(eventCode, optionCount, debugSource)
 			SelectChatterOption(i)
 		end
 	end
+end
+
+local function GetTotalListingsValue()
+	local total = 0
+	for i = 1, GetTradingHouseListingCounts() do
+		local icon, itemName, displayQuality, stackCount, sellerName, timeRemaining, salePrice, currencyType, itemUniqueId, salePricePerUnit = GetTradingHouseListingItemInfo(i)
+		total = total + salePrice
+	end
+	return total
 end
 
 function RidinDirty.CycleTradingGuilds()
@@ -2402,14 +2419,36 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 		ZO_TradingHouseTitleLabel:SetHandler("OnMouseExit", function(self)
 			ClearTooltip(InformationTooltip)
 		end)
+		SecurePostHook(TRADING_HOUSE, "SetCurrentMode", function(self, mode)
+			if mode == ZO_TRADING_HOUSE_MODE_LISTINGS then
+				zo_callLater(function()
+					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+					RidinDirty.TraderSalesTotal:SetAlpha(1)
+				end, searchDelay)
+			else
+				RidinDirty.TraderSalesTotal:SetAlpha(0)
+			end
+		end)
 		SecurePostHook(TRADING_HOUSE, "UpdateForGuildChange", function()
 			local count, countmax = GetTradingHouseListingCounts()
-			RidinDirty.ListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+			RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+			if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+				RidinDirty.TraderSalesTotal:SetAlpha(1)
+			else
+				RidinDirty.TraderSalesTotal:SetAlpha(0)
+			end
 		end)
 		SecurePostHook(TRADING_HOUSE, "OnResponseReceived", function(responseType, result)
 			if result == TRADING_HOUSE_RESULT_POST_PENDING or result == TRADING_HOUSE_RESULT_CANCEL_SALE_PENDING then
 				local count, countmax = GetTradingHouseListingCounts()
-				RidinDirty.ListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+				RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+				if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+					RidinDirty.TraderSalesTotal:SetAlpha(1)
+				else
+					RidinDirty.TraderSalesTotal:SetAlpha(0)
+				end
 			end
 		end)
 		if not RidinDirty.savedVariables.lootManager then
@@ -2795,6 +2834,15 @@ local function CompanionRapport(eventCode, companionId, prevRapport, currRapport
 	df(rdLogo .. companionName .. " Rapport: " .. tostring(currRapport - prevRapport) .. " ( " .. currRapport .. " / " .. GetMaximumRapport() .. " )")
 end
 
+local function GetUnlockedAssistant()
+	for index = 1, GetTotalCollectiblesByCategoryType(8) do
+		local collectibleID = GetCollectibleIdFromType(8, index)
+		if IsCollectibleUnlocked(collectibleID) then
+			return collectibleID
+		end
+	end
+	return false
+end
 --and IsUnitInCombat("player") and not IsUnitDeadOrReincarnating("player") then
 local function CompanionReSummon()
 	local collectibleID = GetUnlockedAssistant()
@@ -3290,6 +3338,7 @@ local function RDInitializeSettings()
 		SecurePostHook(ZO_LootAlphaContainerList.dataTypes[1], "setupCallback", function(control, slot)
 			NeedsAndPrice(control, slot)
 		end)
+		--Store window
 		EVENT_MANAGER:RegisterForEvent("RidinDirtyLoot", EVENT_COLLECTION_UPDATED, RefreshStore)
 		SecurePostHook(ZO_StoreManager, "SetUpBuySlot", function(self, control, slot)
 			NeedsAndPrice(control, slot)
@@ -3325,14 +3374,36 @@ local function RDInitializeSettings()
 		ZO_TradingHouseTitleLabel:SetHandler("OnMouseExit", function(self)
 			ClearTooltip(InformationTooltip)
 		end)
+		SecurePostHook(TRADING_HOUSE, "SetCurrentMode", function(self, mode)
+			if mode == ZO_TRADING_HOUSE_MODE_LISTINGS then
+				zo_callLater(function()
+					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+					RidinDirty.TraderSalesTotal:SetAlpha(1)
+				end, searchDelay)
+			else
+				RidinDirty.TraderSalesTotal:SetAlpha(0)
+			end
+		end)
 		SecurePostHook(TRADING_HOUSE, "UpdateForGuildChange", function()
 			local count, countmax = GetTradingHouseListingCounts()
-			RidinDirty.ListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+			RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+			if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+				RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+				RidinDirty.TraderSalesTotal:SetAlpha(1)
+			else
+				RidinDirty.TraderSalesTotal:SetAlpha(0)
+			end
 		end)
 		SecurePostHook(TRADING_HOUSE, "OnResponseReceived", function(responseType, result)
 			if result == TRADING_HOUSE_RESULT_POST_PENDING or result == TRADING_HOUSE_RESULT_CANCEL_SALE_PENDING then
 				local count, countmax = GetTradingHouseListingCounts()
-				RidinDirty.ListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+				RidinDirty.TraderListingCounter.label:SetText ("Listings " .. tostring(count) .. " of " .. tostring(countmax))
+				if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+					RidinDirty.TraderSalesTotal:SetAlpha(1)
+				else
+					RidinDirty.TraderSalesTotal:SetAlpha(0)
+				end
 			end
 		end)
 		if not RidinDirty.savedVariables.lootManager then

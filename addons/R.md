@@ -57,7 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rare Fish Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Rare-Fish-Tracker__8dc100fb-6c43-4ea7-ba01-1a23d306e216) | votan73 | Console | — |
 | [Rare Fish Tracker jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/Rare-Fish-Tracker-jpFix__1402) | 2ch | PC / Mac | 1.23.1 |
 | [ratpins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ratfinx/ratpins__2696) | ratfinx | PC / Mac | 1 |
-| [Ravalox' Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Ravalox-Quest-Tracker__13) | calia1120 | PC / Mac | 3.8.3.3 |
+| [Ravalox' Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calia1120/Ravalox-Quest-Tracker__13) | calia1120 | PC / Mac | 3.8.3.4 |
 | [ravSpeed (updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/shira/ravSpeed-updated__2840) | shira | PC / Mac | 1.3.1 |
 | [RAWR Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheYcUtS/RAWR-Guild-Hall__2930) | TheYcUtS | PC / Mac | 1.2 |
 | [RawrGuildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/RawrGuildhall__3362) | sityDJVEN25 | PC / Mac | 1.0 |
@@ -73,6 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Recount (Renovated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lwndow/Recount-Renovated__2739) | lwndow | PC / Mac | 0.7.6 |
 | [Recount (Update)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ferather/Recount-Update__2754) | Ferather | PC / Mac | 0.6.5 |
 | [Recount (Wolfhunter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadow-Fighter/Recount-Wolfhunter__875) | Shadow-Fighter | PC / Mac | 0.6.3 |
+| [recov tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/recov-tracker__eff02a68-b788-4269-be3d-78283a26f306) | j.hhh | Console | — |
 | [RecoveryTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/RecoveryTracker__c8397663-7bee-4e0b-89de-16dcf5c029d7) | Vixen_Hunny | Console | — |
 | [Red's Countess Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redeven/Red-s-Countess-Travel__2623) | redeven | PC / Mac | 1.1.0 |
 | [Refinement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Refinement-Tracker__2130) | Kyzeragon | PC / Mac | 0.9.6 |
@@ -125,7 +126,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.09.30 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.01 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |

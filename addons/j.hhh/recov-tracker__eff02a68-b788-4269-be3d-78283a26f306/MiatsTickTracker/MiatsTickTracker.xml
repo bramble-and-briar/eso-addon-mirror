@@ -1,0 +1,66 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="MiatsTickTrackerFrame" mouseEnabled="true" movable="true" clampedToScreen="false" hidden="true" tier="1" layer="0" alpha="1" >
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="300" />
+			<Dimensions x="100" y="18" />
+			<OnMoveStop>
+				Miats_TickTracker_SavePosition(self)
+			</OnMoveStop>
+			<OnMouseWheel>
+                Miats_TickTracker_OnMouseWheel(self, delta)
+            </OnMouseWheel>
+			<Controls>
+				<Backdrop name="$(parent)Container" edgeColor="444444" centerColor="333333" alpha="1">
+					<Edge edgeSize="1" />
+					<Dimensions x="100" y="18" />
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+					<Controls>
+						<Label name="$(parent)Amount" font="$(BOLD_FONT)|$(GP_22)|thick-outline" text="amount" verticalAlignment="CENTER" horizontalAlignment="CENTER" hidden="true">
+							 <Dimensions x="100" y="18" />
+							 <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="-2" offsetY="-20" />
+						</Label>
+						<Backdrop name="$(parent)Bar" edgeColor="aaaaaa" centerColor="000000" alpha="1">
+								<Dimensions x="100" y="18" />
+							  <Anchor point="LEFT" offsetX="2" offsetY="0" />
+							  <Edge edgeSize="1" />
+						</Backdrop>
+						<Texture name="$(parent)Edge" textureFile="esoui/art/miscellaneous/progressbar_genericfill_leadingedge_blunt.dds" hidden="false" level="2" layer="0" tier="1">
+							 <Anchor point="CENTER" relativeTo="$(parent)Bar" relativePoint="RIGHT" offsetX="0" offsetY="0" />
+							<Dimensions x="3" y="20" />
+						</Texture>								
+						<Label name="$(parent)Percentage" font="$(BOLD_FONT)|$(GP_18)|thick-outline" text="no data" verticalAlignment="CENTER" horizontalAlignment="CENTER" level="1" layer="0" tier="1">
+							 <Dimensions x="100" y="18" />
+							 <Anchor point="CENTER" offsetX="6" offsetY="0" />
+						</Label>
+					</Controls>
+				</Backdrop>
+			</Controls>
+		</TopLevelControl>
+		
+	
+		<Label name="MiatAmount" font="$(BOLD_FONT)|$(GP_27)|thick-outline" text="amount" verticalAlignment="CENTER" horizontalAlignment="CENTER" hidden="true">
+			 <Dimensions x="100" y="18" />
+			 <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="-25" />
+		</Label>
+		
+		<Control name="MiatEdgeContainer" level="0" layer="4" tier="3" hidden="true">
+			<Dimensions x="20" y="20" />
+			 <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+			<Controls>
+				<Texture name="$(parent)MiatEdge1" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_arrow.dds" color="FFFFFF" hidden="false" level="0" layer="4" tier="3">
+					<Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+					<Dimensions x="18" y="20" />
+				</Texture>
+				<!-- <Texture name="$(parent)MiatEdge2" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_arrow.dds" hidden="false" level="0" layer="4" tier="3"> -->
+					<!-- <Anchor point="LEFT" relativeTo="$(parent)MiatEdge1" relativePoint="RIGHT" offsetX="-2" offsetY="0" /> -->
+					<!-- <Dimensions x="6" y="22" /> -->
+				<!-- </Texture> -->
+				<!-- <Texture name="$(parent)MiatEdge3" textureFile="EsoUI/Art/UnitAttributeVisualizer/attributeBar_arrow.dds" hidden="false" level="0" layer="4" tier="3"> -->
+					<!-- <Anchor point="LEFT" relativeTo="$(parent)MiatEdge2" relativePoint="RIGHT" offsetX="-2" offsetY="0" /> -->
+					<!-- <Dimensions x="6" y="22" /> -->
+				<!-- </Texture> -->
+			</Controls>
+		</Control>
+	</Controls>
+		
+</GuiXml>

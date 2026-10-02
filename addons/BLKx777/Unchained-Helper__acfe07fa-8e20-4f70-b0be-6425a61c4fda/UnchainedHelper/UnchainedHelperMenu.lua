@@ -242,6 +242,21 @@ function UnchainedHelper.setupMenu()
         },
         {
             type = "checkbox",
+            name = "Show cardinal markers (N/E/S/W)",
+            tooltip = "Shows persistent N, E, S and W world markers while inside a Blackrose arena.",
+            getFunc = function() return UnchainedHelper.savedVars.showCardinalMarkers == true end,
+            setFunc = function(value)
+                UnchainedHelper.savedVars.showCardinalMarkers = value
+                if UnchainedHelper.RedrawActiveMarkers then
+                    UnchainedHelper.RedrawActiveMarkers()
+                elseif UnchainedHelper.RefreshCardinalMarkers then
+                    UnchainedHelper.RefreshCardinalMarkers(true)
+                end
+            end,
+            default = UnchainedHelper.defaults.showCardinalMarkers,
+        },
+        {
+            type = "checkbox",
             name = "Show priority kill markers",
             getFunc = function() return UnchainedHelper.savedVars.showPriorityMarkers end,
             setFunc = function(value) UnchainedHelper.savedVars.showPriorityMarkers = value if UnchainedHelper.RedrawActiveMarkers then UnchainedHelper.RedrawActiveMarkers() end end,

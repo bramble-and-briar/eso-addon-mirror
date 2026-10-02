@@ -102,6 +102,16 @@ local MAP_ART = {
     ["ularra"]            = "esoui/art/loadingscreens/loadscreen_battleground_ularra_01.dds",
 }
 local MAP_ART_FALLBACK = "esoui/art/battlegrounds/gamepad/gp_battlegrounds_scoretracker.dds"
+local MAP_ART_BY_ID = {
+    [821]  = "esoui/art/loadingscreens/loadscreen_battleground_foyadaquarry_01.dds",
+    [1285] = "esoui/art/loadingscreens/loadscreen_battleground_ald_carac_01.dds",
+    [1427] = "esoui/art/loadingscreens/loadscreen_battleground_morkhazgur_01.dds",
+    [2553] = "esoui/art/loadingscreens/loadscreen_battleground_temple_01.dds",
+    [2559] = "esoui/art/loadingscreens/loadscreen_battleground_alikr_desert_01.dds",
+    [2620] = "esoui/art/loadingscreens/loadscreen_battleground_city_streets_01.dds",
+    [2664] = "esoui/art/loadingscreens/loadscreen_battleground_arena_coliseum_01.dds",
+    [2665] = "esoui/art/loadingscreens/loadscreen_battleground_castle_courtyard_01.dds",
+}
 
 local function set_text(label, text) if label then label:SetText(text or "") end end
 
@@ -326,25 +336,58 @@ end
 
 local function map_art_candidates(m, name)
     local out, seen = {}, {}
-    local function add(path)
-        if path and path ~= "" and not seen[path] then seen[path] = true; out[#out + 1] = path end
+    local source = nil
+    local function add(path, how)
+        if path and path ~= "" and not seen[path] then
+            seen[path] = true
+            out[#out + 1] = path
+            source = source or how
+        end
     end
-    local lower = name:lower():gsub("%^.*$", "")
-    for key, path in pairs(MAP_ART) do
-        if lower:find(key, 1, true) then add(path) end
+    local function by_keyword(text, how)
+        if not text or text == "" then return end
+        local lower = text:lower():gsub("%^.*$", "")
+        for key, path in pairs(MAP_ART) do
+            if lower:find(key, 1, true) then add(path, how) end
+        end
     end
+    local map = m and m.map
+    if map and map.id then add(MAP_ART_BY_ID[map.id], "id") end
+    by_keyword(map and map.name, "zone")
+    by_keyword(name, "name")
+    local lower = (name or ""):lower():gsub("%^.*$", "")
     local words = {}
     for w in lower:gmatch("[a-z]+") do words[#words + 1] = w end
     local function guess(slug)
-        add(string.format("esoui/art/loadingscreens/loadscreen_battleground_%s_01.dds", slug))
+        add(string.format("esoui/art/loadingscreens/loadscreen_battleground_%s_01.dds", slug), "guess")
     end
     for k = #words, 1, -1 do
         guess(table.concat(words, "_", 1, k))
         guess(table.concat(words, "", 1, k))
         guess(table.concat(words, "_", 1, k) .. "s")
     end
-    add(MAP_ART_FALLBACK)
-    return out
+    add(MAP_ART_FALLBACK, "FALLBACK")
+    return out, source
+end
+
+local function map_art_report()
+    local History = BGMeter.History
+    local lines = { "map art  (id = by map id, zone = by zone name, name = by battleground name, guess = unverified slug)" }
+    local n = History.count()
+    for i = 1, n do
+        local m = History.get(i)
+        if m then
+            local map = m.map or {}
+            local cands, source = map_art_candidates(m, m.name or "")
+            local first = cands[1] or ""
+            local slug = first:match("loadscreen_battleground_(.-)_01") or first:match("([^/]+)%.dds$") or first
+            lines[#lines + 1] = string.format("#%d  %-32s  map %-5s %-24s  %-8s %s",
+                i, m.name or "?", tostring(map.id or "?"), map.name or "?", source or "?", slug)
+        end
+    end
+    if W.map_art_path then lines[#lines + 1] = "shown now: " .. W.map_art_path end
+    if n == 0 then lines[#lines + 1] = "no matches recorded" end
+    return lines
 end
 
 local MAP_ART_CHECKS = 3
@@ -354,7 +397,7 @@ local function apply_map_art(m)
     local art = W.bgMap
     if not art then return end
     local name = (m and m.name) or ""
-    if name == "" then art:SetHidden(true); return end
+    if name == "" and not (m and m.map and m.map.id) then art:SetHidden(true); return end
     local cands = map_art_candidates(m, name)
     if #cands == 0 then art:SetHidden(true); return end
 
@@ -423,6 +466,9 @@ U.hexc = hexc
 U.neutral_color = neutral_color
 U.flag_pin = flag_pin
 U.apply_map_art = apply_map_art
+U.map_art_candidates = map_art_candidates
+U.map_art_report = map_art_report
+U.MAP_ART_FALLBACK = MAP_ART_FALLBACK
 U.mode_tag = mode_tag
 U.result_color = result_color
 

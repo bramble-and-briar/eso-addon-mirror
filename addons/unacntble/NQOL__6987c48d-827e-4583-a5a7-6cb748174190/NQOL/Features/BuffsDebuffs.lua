@@ -128,6 +128,21 @@ local function GetSortedEffectNames()
     return EFFECT_NAMES
 end
 
+local function GetEffectDisplayName(baseName)
+    if baseName == "Vexation" then
+        -- Prefer ESO's localized effect name; the lexicon provides a short
+        -- family-label fallback if the ability has no name available.
+        local abilityName = GetAbilityName and GetAbilityName(263403)
+        if type(abilityName) == "string" and abilityName ~= "" then
+            return zo_strformat(SI_ABILITY_NAME, abilityName)
+        end
+
+        return NQOL.L("features.buffs_debuffs.vexation")
+    end
+
+    return baseName
+end
+
 local function GetEffectDefinition(abilityId)
     return NQOL.Features.BuffsDebuffsEffectIds.GetEffectDefinition(abilityId)
 end
@@ -532,7 +547,7 @@ local function Render()
 
     local labelWidth = LABEL_MIN_WIDTH
     for _, baseName in ipairs(visibleNames) do
-        labelWidth = math.max(labelWidth, GetTextWidth(baseName))
+        labelWidth = math.max(labelWidth, GetTextWidth(GetEffectDisplayName(baseName)))
     end
 
     local contentWidth = labelWidth + LABEL_GAP + (INDICATOR_COLUMN_WIDTH * indicatorColumnCount)
@@ -595,7 +610,7 @@ local function Render()
         row.label:SetDimensions(labelWidth, rowHeight)
         row.label:SetAnchor(LEFT, row, LEFT, (INDICATOR_COLUMN_WIDTH * indicatorColumnCount) + LABEL_GAP, 0)
         row.label:SetFont(ResolveFont())
-        row.label:SetText(baseName)
+        row.label:SetText(GetEffectDisplayName(baseName))
 
         UpdateRowIcons(baseName)
     end
@@ -938,6 +953,10 @@ function BuffsDebuffs.InitializeSavedVariables()
     local settings = GetSettings()
     settings.selectedBuffs = NQOL.Settings.EnsureTable(settings, "selectedBuffs")
     settings.selectedDebuffs = NQOL.Settings.EnsureTable(settings, "selectedDebuffs")
+    settings.selectedBuffs.Sorcery = nil
+    settings.selectedBuffs.Prophecy = nil
+    settings.selectedDebuffs.Sorcery = nil
+    settings.selectedDebuffs.Prophecy = nil
     NQOL.Settings.Boolean(settings, defaults.buffsDebuffs, "enabled")
     NQOL.Settings.Boolean(settings, defaults.buffsDebuffs, "monitorMajor")
     NQOL.Settings.Boolean(settings, defaults.buffsDebuffs, "monitorMinor")
@@ -1309,11 +1328,13 @@ function BuffsDebuffs.GetTrackerModeTooltip()
 end
 
 function BuffsDebuffs.GetSelectedBuffTooltip(baseName)
-    return NQOL.L("features.buffs_debuffs.selected_buff", baseName)
+    return NQOL.L("features.buffs_debuffs.selected_buff", GetEffectDisplayName(baseName))
 end
 
 function BuffsDebuffs.GetSelectedDebuffTooltip(baseName)
-    return NQOL.L("features.buffs_debuffs.selected_debuff", baseName)
+    return NQOL.L("features.buffs_debuffs.selected_debuff", GetEffectDisplayName(baseName))
 end
+
+BuffsDebuffs.GetEffectDisplayName = GetEffectDisplayName
 
 NQOL.Features.BuffsDebuffs = BuffsDebuffs

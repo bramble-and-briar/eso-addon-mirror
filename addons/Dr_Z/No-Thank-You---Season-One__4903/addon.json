@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Dr_Z/No-Thank-You---Season-One__4903",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Dr_Z",
+  "canonical_id": "esoui:4903",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4903",
+  "deleted": false,
+  "directories": [
+    "NoThankYou"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4903/",
+  "fingerprint": "46f7b12527ebd511cb96ae548276d3ef0ca66acfb62921e9d31231af8510e4a6",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17655.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4903",
+  "source_url": "https://www.esoui.com/downloads/info4903-NoThankYou-SeasonOne.html",
+  "stats": {
+    "downloads": 40,
+    "favorites": 1,
+    "monthly_downloads": 13
+  },
+  "title": "No, Thank You! - Season One",
+  "updated_at": 1790881076000,
+  "version": "12.1.0"
+}

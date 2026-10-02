@@ -22,7 +22,7 @@
     "Srendarr"
   ],
   "download_url": "https://www.esoui.com/downloads/dl655/",
-  "fingerprint": "4dd4a1d01f989fdf100fd78ee8831c48dacb3a86bee071e60d0ad67eb5e26daa",
+  "fingerprint": "a33fa400683d86274dae9629ebb0861b780b7aab2c637649e42aef96db9793bc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5321.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5306.jpg",
@@ -40,11 +40,11 @@
   "source_id": "655",
   "source_url": "https://www.esoui.com/downloads/info655-Srendarr-AuraBuffDebuffTracker.html",
   "stats": {
-    "downloads": 5113723,
-    "favorites": 1504,
-    "monthly_downloads": 10995
+    "downloads": 5120930,
+    "favorites": 1506,
+    "monthly_downloads": 18279
   },
   "title": "Srendarr - Aura, Buff & Debuff Tracker",
-  "updated_at": 1790625026000,
-  "version": "2.5.51"
+  "updated_at": 1790874686000,
+  "version": "2.5.52"
 }

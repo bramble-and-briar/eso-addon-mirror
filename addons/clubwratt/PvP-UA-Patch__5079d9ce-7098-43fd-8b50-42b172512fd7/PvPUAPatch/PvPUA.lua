@@ -93,7 +93,22 @@ PvPUA.constants.userIcons = {
     ["@bella nekro"]     = { texture = "PvPUAPatch/Textures/icon_bellamask.dds" },
 }
 
-PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, listSize = "Default", uiScale = 1.0, barMode = "AP", iconShowSelf = true, iconShowOthers = true, iconShowGroupFrames = true, showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0 }
+PvPUA.constants.ICON_NONE    = 1
+PvPUA.constants.ICON_DEFAULT = 2
+
+PvPUA.constants.iconChoices = {
+    { name = "None",       texture = "EsoUI/Art/Buttons/decline_up.dds", none = true },
+    { name = "Default",    isDefault = true },
+    { name = "Kiss",       texture = "PvPUAPatch/Textures/icon_kiss.dds" },
+    { name = "Troll Blob", texture = "PvPUAPatch/Textures/icon_trollblob.dds" },
+    { name = "Trollface",  texture = "PvPUAPatch/Textures/icon_trollface.dds" },
+    { name = "Butterfly",  texture = "PvPUAPatch/Textures/icon_butterfly.dds" },
+    { name = "Hi",         texture = "PvPUAPatch/Textures/icon_hi.dds" },
+    { name = "Crown",      texture = "PvPUAPatch/Textures/icon_crown.dds" },
+    { name = "Arrow",      texture = "PvPUAPatch/Textures/icon_arrow.dds" },
+}
+
+PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, listSize = "Default", uiScale = 1.0, barMode = "AP", iconShowSelf = true, iconShowOthers = true, iconShowSmallGroupFrames = true, iconShowLargeGroupFrames = true, showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0 }
 
 PvPUA.capChoices = {
     { name = "All", value = 0  },
@@ -170,8 +185,16 @@ local PI = PvPUA.playerIcon
 
 PI.toplevel = nil
 PI.markers  = {}
+PI.remote   = {}
 PI.running  = false
 PI.updateInterval = 10
+
+PI.SIZE_MIN    = 50
+PI.SIZE_MAX    = 200
+PI.SIZE_STEP   = 5
+PI.HEIGHT_MIN  = -1.0
+PI.HEIGHT_MAX  = 3.0
+PI.HEIGHT_STEP = 0.1
 
 local ICON_MARKER_DATA = {
     scaleX = 2,
@@ -270,81 +293,229 @@ local function PICreate3D(toplevel, data)
         self:updateSize()
     end
 
+    function marker:applyStyle(texture, alpha, sizePct, height)
+        if self.styleTexture ~= texture then
+            self.styleTexture = texture
+            self.texture = texture
+            if self.enabled then self:SetTexture(self.texture) end
+        end
+        if self.styleAlpha ~= alpha then
+            self.styleAlpha = alpha
+            self:setColour(1, 1, 1, alpha)
+        end
+        local scale = (sizePct or 100) / 100
+        if self.scale ~= scale then
+            self:setScale(scale)
+        end
+        self:setUserOffset(height or 0)
+    end
+
     return marker
+end
+
+local function PIListEntry(nameLower)
+    local info = PvPUA.constants.userIcons[nameLower]
+    if type(info) == "string" then info = { texture = info } end
+    return info
+end
+
+local function PIListStyle(nameLower)
+    local info = PIListEntry(nameLower)
+    if not info or not info.texture then return nil end
+    return PvPUA.constants.ICON_DEFAULT, math.floor((info.scale or 1) * 100 + 0.5), info.heightOffset or 0
+end
+
+local function PIIconTexture(iconIndex, nameLower)
+    local icon = iconIndex and PvPUA.constants.iconChoices[iconIndex]
+    if not icon or icon.none then return nil end
+    if icon.isDefault then
+        local info = nameLower and PIListEntry(nameLower)
+        if not info or not info.texture then return nil end
+        return info.texture, info.alpha or 1.0
+    end
+    return icon.texture, icon.alpha or 1.0
+end
+
+local function PIMyNameLower()
+    local name = GetDisplayName()
+    if not name or name == "" then return nil end
+    return string.lower(name)
+end
+
+local function PIRoundHeight(v)
+    v = zo_clamp(tonumber(v) or 0, PI.HEIGHT_MIN, PI.HEIGHT_MAX)
+    return math.floor(v * 10 + 0.5) / 10
+end
+
+local function PIRoundSize(v)
+    v = zo_clamp(tonumber(v) or 100, PI.SIZE_MIN, PI.SIZE_MAX)
+    return math.floor(v / PI.SIZE_STEP + 0.5) * PI.SIZE_STEP
+end
+
+local function PIIsChoiceAllowedForMe(index)
+    local icon = index and PvPUA.constants.iconChoices[index]
+    if not icon then return false end
+    if icon.isDefault then
+        local me = PIMyNameLower()
+        local info = me and PIListEntry(me)
+        return info ~= nil and info.texture ~= nil
+    end
+    return true
+end
+
+function PI.BuildPickerChoices()
+    PI.pickerToIndex = {}
+    PI.indexToPicker = {}
+    local textures = {}
+    local me = PIMyNameLower()
+    for i, icon in ipairs(PvPUA.constants.iconChoices) do
+        if PIIsChoiceAllowedForMe(i) then
+            local texture = icon.texture
+            if icon.isDefault then texture = PIIconTexture(i, me) end
+            textures[#textures + 1] = texture
+            PI.pickerToIndex[#textures] = i
+            PI.indexToPicker[i] = #textures
+        end
+    end
+    return textures
+end
+
+function PI.GetMyPickerIndex()
+    if not PI.indexToPicker then PI.BuildPickerChoices() end
+    return PI.indexToPicker[PI.GetMyIcon()] or 1
+end
+
+function PI.SetMyPickerIndex(pickerIndex)
+    if not PI.pickerToIndex then PI.BuildPickerChoices() end
+    local index = PI.pickerToIndex[tonumber(pickerIndex) or 1]
+    if index then PI.SetMyIcon(index) end
+end
+
+function PI.GetMyDefaults()
+    local me = PIMyNameLower()
+    local iconIndex, sizePct, height
+    if me then
+        iconIndex, sizePct, height = PIListStyle(me)
+    end
+    return iconIndex or PvPUA.constants.ICON_NONE, PIRoundSize(sizePct or 100), PIRoundHeight(height or 0)
+end
+
+function PI.GetMyIcon()
+    local sv = PvPUA.savedVariables
+    local index = sv and tonumber(sv.iconChoice)
+    if index and PIIsChoiceAllowedForMe(index) then return index end
+    local defaultIndex = PI.GetMyDefaults()
+    return defaultIndex
+end
+
+function PI.GetMySize()
+    local cv = PvPUA.charVariables
+    if cv and cv.iconSize ~= nil then return PIRoundSize(cv.iconSize) end
+    local _, defaultSize = PI.GetMyDefaults()
+    return defaultSize
+end
+
+function PI.GetMyHeight()
+    local cv = PvPUA.charVariables
+    if cv and cv.iconHeight ~= nil then return PIRoundHeight(cv.iconHeight) end
+    local _, _, defaultHeight = PI.GetMyDefaults()
+    return defaultHeight
+end
+
+function PI.OnMyStyleChanged(delay)
+    PI.ScheduleGroupRefresh()
+    PI.ScheduleBroadcast(delay or 500)
+end
+
+function PI.SetMyIcon(index)
+    index = tonumber(index)
+    if not index or not PIIsChoiceAllowedForMe(index) then return end
+    PvPUA.savedVariables.iconChoice = index
+    PI.OnMyStyleChanged()
+end
+
+function PI.SetMySize(v)
+    PvPUA.charVariables.iconSize = PIRoundSize(v)
+    PI.OnMyStyleChanged(750)
+end
+
+function PI.SetMyHeight(v)
+    PvPUA.charVariables.iconHeight = PIRoundHeight(v)
+    PI.OnMyStyleChanged(750)
+end
+
+local function PIResolve(unit, nameLower)
+    if unit == "player" then
+        return PI.GetMyIcon(), PI.GetMySize(), PI.GetMyHeight()
+    end
+    local r = PI.remote[nameLower]
+    if r then
+        return r.icon, r.size, r.height
+    end
+    return PIListStyle(nameLower)
 end
 
 function PI.Init()
     PI.toplevel = wm:CreateTopLevelWindow("PvPUA_PIWin")
     PI.toplevel:SetDrawLayer(0)
-
-    for nameLower, info in pairs(PvPUA.constants.userIcons) do
-        if type(info) == "string" then info = { texture = info } end
-
-        local scale  = info.scale or 1.0
-        local hOff   = info.heightOffset or 0
-        local alpha  = info.alpha or 1.0
-
-        local data = {
-            texture    = info.texture,
-            scaleX     = ICON_MARKER_DATA.scaleX * scale,
-            scaleY     = ICON_MARKER_DATA.scaleY * scale,
-            X          = ICON_MARKER_DATA.X,
-            Y          = ICON_MARKER_DATA.Y + hOff,
-            Z          = ICON_MARKER_DATA.Z,
-            depthBuffer = ICON_MARKER_DATA.depthBuffer,
-        }
-        local marker = PICreate3D(PI.toplevel, data)
-        marker:setColour(1, 1, 1, alpha)
-        PI.markers[nameLower] = marker
-    end
 end
 
-local function PIFindUnitForName(nameLower)
-    local selfName = GetDisplayName()
-    if selfName and string.lower(selfName) == nameLower then
-        return "player"
+local function PIGetMarker(nameLower)
+    local marker = PI.markers[nameLower]
+    if not marker then
+        marker = PICreate3D(PI.toplevel, ICON_MARKER_DATA)
+        PI.markers[nameLower] = marker
     end
-    if IsUnitGrouped("player") then
-        for i = 1, 12 do
-            local unit = "group" .. i
-            local dn = GetUnitDisplayName(unit)
-            if dn and dn ~= "" and string.lower(dn) == nameLower then
-                if DoesUnitExist(unit) and IsUnitOnline(unit) then
-                    return unit
-                end
-                return nil
-            end
-        end
+    return marker
+end
+
+local PI_SEEN = {}
+
+local function PIShowUnit(unit, nameLower)
+    local iconIndex, sizePct, height = PIResolve(unit, nameLower)
+    local texture, alpha = PIIconTexture(iconIndex, nameLower)
+    if not texture then return end
+
+    local marker = PIGetMarker(nameLower)
+    marker:applyStyle(texture, alpha, sizePct, height)
+    if not marker.enabled then
+        marker:enable()
+        marker:show()
     end
-    return nil
+    local _, Xw, Yw, Zw = GetUnitRawWorldPosition(unit)
+    local X, Y, Z = WorldPositionToGuiRender3DPosition(Xw, Yw, Zw)
+    marker:setPos(X, Y, Z)
+    PI_SEEN[nameLower] = true
 end
 
 function PI.updateMarker()
-    local showSelf   = PvPUA.savedVariables and PvPUA.savedVariables.iconShowSelf
-    local showOthers = PvPUA.savedVariables and PvPUA.savedVariables.iconShowOthers
+    local sv = PvPUA.savedVariables
+    if not sv or not PI.toplevel then return end
+
+    for k in pairs(PI_SEEN) do PI_SEEN[k] = nil end
+
+    if sv.iconShowSelf then
+        local selfName = GetDisplayName()
+        if selfName and selfName ~= "" then
+            PIShowUnit("player", string.lower(selfName))
+        end
+    end
+
+    if sv.iconShowOthers and IsUnitGrouped("player") then
+        for i = 1, 12 do
+            local unit = "group" .. i
+            if DoesUnitExist(unit) and IsUnitOnline(unit) and not AreUnitsEqual(unit, "player") then
+                local dn = GetUnitDisplayName(unit)
+                if dn and dn ~= "" then
+                    PIShowUnit(unit, string.lower(dn))
+                end
+            end
+        end
+    end
 
     for nameLower, marker in pairs(PI.markers) do
-        local unit = PIFindUnitForName(nameLower)
-
-        local allowed = false
-        if unit == "player" then
-            allowed = showSelf
-        elseif unit then
-            allowed = showOthers
-        end
-
-        if unit and allowed then
-            if not marker.enabled then
-                marker:enable()
-                marker:show()
-            end
-            local _, Xw, Yw, Zw = GetUnitRawWorldPosition(unit)
-            local X, Y, Z = WorldPositionToGuiRender3DPosition(Xw, Yw, Zw)
-            marker:setPos(X, Y, Z)
-        else
-            if marker.enabled then
-                marker:disable()
-            end
+        if marker.enabled and not PI_SEEN[nameLower] then
+            marker:disable()
         end
     end
 end
@@ -371,46 +542,178 @@ function PI.StopPolling()
 end
 
 --------------------------------------------------
+-- Icon Sharing
+--------------------------------------------------
+local ICON_PROTOCOL_ID   = 271
+local ICON_PROTOCOL_NAME = "PvPUAIconStyle"
+
+local function PIEncodeSize(v)
+    return zo_clamp(math.floor((PIRoundSize(v) - PI.SIZE_MIN) / PI.SIZE_STEP + 0.5), 0, 63)
+end
+
+local function PIDecodeSize(steps)
+    return PIRoundSize(PI.SIZE_MIN + (tonumber(steps) or 10) * PI.SIZE_STEP)
+end
+
+local function PIEncodeHeight(v)
+    return zo_clamp(math.floor((PIRoundHeight(v) - PI.HEIGHT_MIN) / PI.HEIGHT_STEP + 0.5), 0, 63)
+end
+
+local function PIDecodeHeight(steps)
+    return PIRoundHeight(PI.HEIGHT_MIN + (tonumber(steps) or 10) * PI.HEIGHT_STEP)
+end
+
+function PI.Broadcast(request)
+    if not PI.protocol or not IsUnitGrouped("player") then return end
+    if not PvPUA.savedVariables or not PvPUA.charVariables then return end
+    PI.protocol:Send({
+        icon    = PI.GetMyIcon(),
+        size    = PIEncodeSize(PI.GetMySize()),
+        height  = PIEncodeHeight(PI.GetMyHeight()),
+        request = request == true,
+    })
+end
+
+function PI.ScheduleBroadcast(delay, request)
+    if not PI.protocol then return end
+    if request then PI.pendingRequest = true end
+    EVENT_MANAGER:UnregisterForUpdate("PvPUA_IconBroadcast")
+    EVENT_MANAGER:RegisterForUpdate("PvPUA_IconBroadcast", delay or 1000, function()
+        EVENT_MANAGER:UnregisterForUpdate("PvPUA_IconBroadcast")
+        local wantReply = PI.pendingRequest == true
+        PI.pendingRequest = false
+        pcall(PI.Broadcast, wantReply)
+    end)
+end
+
+function PI.PruneRemote()
+    if not IsUnitGrouped("player") then
+        for k in pairs(PI.remote) do PI.remote[k] = nil end
+        return
+    end
+    local present = {}
+    for i = 1, 12 do
+        local unit = "group" .. i
+        if DoesUnitExist(unit) then
+            local dn = GetUnitDisplayName(unit)
+            if dn and dn ~= "" then present[string.lower(dn)] = true end
+        end
+    end
+    for nameLower in pairs(PI.remote) do
+        if not present[nameLower] then PI.remote[nameLower] = nil end
+    end
+end
+
+local function PIOnIconData(unitTag, data)
+    if type(unitTag) ~= "string" or type(data) ~= "table" then return end
+    if not DoesUnitExist(unitTag) or AreUnitsEqual(unitTag, "player") then return end
+
+    local dn = GetUnitDisplayName(unitTag)
+    if not dn or dn == "" then return end
+
+    if data.request then
+        PI.ScheduleBroadcast(500)
+    end
+
+    local iconIndex = tonumber(data.icon)
+    if not iconIndex or not PvPUA.constants.iconChoices[iconIndex] then return end
+
+    PI.remote[string.lower(dn)] = {
+        icon   = iconIndex,
+        size   = PIDecodeSize(data.size),
+        height = PIDecodeHeight(data.height),
+    }
+    PI.ScheduleGroupRefresh()
+end
+
+local function PIOnGroupChanged()
+    PI.PruneRemote()
+    PI.ScheduleGroupRefresh()
+    PI.ScheduleBroadcast(500)
+end
+
+function PI.InitNetwork()
+    local LGB = rawget(_G, "LibGroupBroadcast")
+    if type(LGB) ~= "table" or type(LGB.RegisterHandler) ~= "function" then return end
+
+    local handler = LGB:RegisterHandler("PvPUA", "PvPUAIcon") -- keep upstream identity so patched/unpatched clients share icons
+    if not handler then return end
+    handler:SetDisplayName("PvP UA!")
+    handler:SetDescription("Shares your PvPUA icon, size and height with group members.")
+
+    local protocol = handler:DeclareProtocol(ICON_PROTOCOL_ID, ICON_PROTOCOL_NAME)
+    protocol:AddField(LGB.CreateNumericField("icon",   { minValue = 0, maxValue = 63, trimValues = true }))
+    protocol:AddField(LGB.CreateNumericField("size",   { minValue = 0, maxValue = 63, trimValues = true }))
+    protocol:AddField(LGB.CreateNumericField("height", { minValue = 0, maxValue = 63, trimValues = true }))
+    protocol:AddField(LGB.CreateFlagField("request", { defaultValue = false }))
+    protocol:OnData(PIOnIconData)
+    protocol:Finalize({ isRelevantInCombat = true, replaceQueuedMessages = true })
+    PI.protocol = protocol
+
+    local ns = PvPUA.name .. "_IconNet"
+    EVENT_MANAGER:RegisterForEvent(ns, EVENT_PLAYER_ACTIVATED, function()
+        PI.PruneRemote()
+        PI.ScheduleBroadcast(1000, true)
+    end)
+    EVENT_MANAGER:RegisterForEvent(ns, EVENT_GROUP_MEMBER_JOINED, PIOnGroupChanged)
+    EVENT_MANAGER:RegisterForEvent(ns, EVENT_GROUP_MEMBER_LEFT, PIOnGroupChanged)
+    EVENT_MANAGER:RegisterForEvent(ns, EVENT_GROUP_MEMBER_CONNECTED_STATUS, PIOnGroupChanged)
+end
+
+--------------------------------------------------
 -- Group Frame Icons
 --------------------------------------------------
-PI.groupFrameIconSize = "200%"
-
-local function PIGetGroupFrameIcon(unitTag)
+local function PIGetGroupFrameIconInfo(unitTag, frameStyle)
     local sv = PvPUA.savedVariables
     if not sv or type(unitTag) ~= "string" then return nil end
-    if not sv.iconShowGroupFrames then return nil end
+    if frameStyle == "ZO_RaidUnitFrame" then
+        if not sv.iconShowLargeGroupFrames then return nil end
+    elseif not sv.iconShowSmallGroupFrames then
+        return nil
+    end
     if not string.match(unitTag, "^group%d+$") then return nil end
 
     local displayName = GetUnitDisplayName(unitTag)
     if not displayName or displayName == "" then return nil end
 
-    local info = PvPUA.constants.userIcons[string.lower(displayName)]
-    if type(info) == "string" then info = { texture = info } end
-    if not info or not info.texture then return nil end
-
+    local unit = unitTag
     if AreUnitsEqual(unitTag, "player") then
         if not sv.iconShowSelf then return nil end
+        unit = "player"
     elseif not sv.iconShowOthers then
         return nil
     end
 
-    return zo_iconFormat(info.texture, PI.groupFrameIconSize, PI.groupFrameIconSize)
+    local nameLower = string.lower(displayName)
+    local iconIndex = PIResolve(unit, nameLower)
+    return PIIconTexture(iconIndex, nameLower)
 end
 
-local function PIWidenRaidName(frame)
-    if frame.style ~= "ZO_RaidUnitFrame" or not frame.frame then return end
-    local label = frame.nameLabel
-    if not label or not PIGetGroupFrameIcon(frame.unitTag) then return end
+local function PIUpdateGroupFrameIcon(frame)
+    local electionIcon = frame.electionIcon
+    if not electionIcon then return end
 
-    for index = 0, 1 do
-        local valid, point, relativeTo, relativePoint, offsetX, offsetY = label:GetAnchor(index)
-        if valid and point ~= RIGHT then
-            label:ClearAnchors()
-            label:SetAnchor(point, relativeTo, relativePoint, offsetX, offsetY)
-            label:SetAnchor(RIGHT, frame.frame, RIGHT, -2, 0, ANCHOR_CONSTRAINS_X)
-            return
+    local texture, alpha = PIGetGroupFrameIconInfo(frame.unitTag, frame.style)
+    if not texture or not electionIcon:IsHidden() then
+        if frame.piIcon then
+            frame.piIcon:SetHidden(true)
         end
+        return
     end
+
+    if not frame.piIcon then
+        frame.piIcon = wm:CreateControl(nil, frame.frame, CT_TEXTURE)
+        frame.piIcon:SetDrawLayer(DL_OVERLAY)
+    end
+
+    local icon = frame.piIcon
+    local width, height = electionIcon:GetDimensions()
+    icon:ClearAnchors()
+    icon:SetAnchor(CENTER, electionIcon, CENTER, 0, 0)
+    icon:SetDimensions(width * 2, height * 2)
+    icon:SetTexture(texture)
+    icon:SetAlpha(alpha or 1.0)
+    icon:SetHidden(false)
 end
 
 function PI.RefreshGroupFrameIcons()
@@ -421,7 +724,7 @@ end
 
 function PI.ScheduleGroupRefresh()
     EVENT_MANAGER:UnregisterForUpdate("PvPUA_GroupIconRefresh")
-    EVENT_MANAGER:RegisterForUpdate("PvPUA_GroupIconRefresh", 250, function()
+    EVENT_MANAGER:RegisterForUpdate("PvPUA_GroupIconRefresh", 100, function()
         EVENT_MANAGER:UnregisterForUpdate("PvPUA_GroupIconRefresh")
         PI.RefreshGroupFrameIcons()
     end)
@@ -432,18 +735,10 @@ function PI.InitGroupFrameIcons()
     if not (ZO_PostHook and ZO_UnitFrameObject and ZO_UnitFrameObject.UpdateName) then return end
 
     ZO_PostHook(ZO_UnitFrameObject, "UpdateName", function(frame)
-        pcall(function()
-            local label = frame.nameLabel
-            if not label then return end
-            local icon = PIGetGroupFrameIcon(frame.unitTag)
-            if icon then
-                label:SetText(label:GetText() .. " " .. icon)
-                PIWidenRaidName(frame)
-            end
-        end)
+        pcall(PIUpdateGroupFrameIcon, frame)
     end)
-    ZO_PostHook(ZO_UnitFrameObject, "SetTextIndented", function(frame)
-        pcall(PIWidenRaidName, frame)
+    ZO_PostHook(ZO_UnitFrameObject, "RefreshElectionIcon", function(frame)
+        pcall(PIUpdateGroupFrameIcon, frame)
     end)
     PI.groupFrameHooked = true
 
@@ -5360,6 +5655,7 @@ function PvPUA:ResetAllSettings()
         self:EARefresh(EA_DEFS[i].key)
     end
     self:EAApplyCombatListener()
+    pcall(PI.OnMyStyleChanged)
 end
 
 function PvPUA:AIChannelChoices()
@@ -5472,6 +5768,9 @@ function PvPUA:CreateSettings()
     self:AIRefreshGuildChoices()
 
     local screenW, screenH = ScreenBounds()
+    local myIconDefault, mySizeDefault, myHeightDefault = PI.GetMyDefaults()
+    local myPickerChoices = PI.BuildPickerChoices()
+    local myPickerDefault = PI.indexToPicker[myIconDefault] or 1
 
     local addonCategory = MOD_BROWSER_CATEGORY_TYPE_PVP
     if type(LibConsoleMenu.ResolveAddonMenuIcon) == "function" then
@@ -5491,7 +5790,7 @@ function PvPUA:CreateSettings()
     local menu = LibConsoleMenu:CreateAddonMenu("PvPUA", {
         title          = "PvP UA!",
         author         = "user562",
-        version        = "4.9",
+        version        = "5",
         category       = addonCategory,
         enableDefaults = true,
         enableReset    = true,
@@ -5799,21 +6098,37 @@ function PvPUA:CreateSettings()
           name = "|c" .. DC_HEX .. "Icon|r",
           icon = "EsoUI/Art/Options/Gamepad/gp_options_nameplates.dds",
           options = {
+        { type = "iconpicker",
+          name = "Icon",
+          choices = myPickerChoices,
+          default = myPickerDefault,
+          getFunc = function() return PI.GetMyPickerIndex() end,
+          setFunc = function(index) PI.SetMyPickerIndex(index) end },
+        { type = "slider", name = "Size", min = PI.SIZE_MIN, max = PI.SIZE_MAX, step = PI.SIZE_STEP,
+          default = mySizeDefault,
+          getFunc = function() return PI.GetMySize() end,
+          setFunc = function(v) PI.SetMySize(v) end },
+        { type = "slider", name = "Height", min = PI.HEIGHT_MIN, max = PI.HEIGHT_MAX, step = PI.HEIGHT_STEP,
+          default = myHeightDefault,
+          getFunc = function() return PI.GetMyHeight() end,
+          setFunc = function(v) PI.SetMyHeight(v) end },
         { type = "checklist",
           name = "Show",
           noSelectionText = "None",
           choices = {
-              { name = "Self",   value = "self", tooltip = "Exclusive to certain players." },
+              { name = "Self",   value = "self" },
               { name = "Others", value = "others" },
-              { name = "Group Frames", value = "groupFrames" },
+              { name = "Small Group Frames", value = "smallGroupFrames" },
+              { name = "Large Group Frames", value = "largeGroupFrames" },
           },
-          default = { "self", "others", "groupFrames" },
+          default = { "self", "others", "smallGroupFrames", "largeGroupFrames" },
           getFunc = function()
               local sv = PvPUA.savedVariables
               local sel = {}
               if sv.iconShowSelf then sel[#sel + 1] = "self" end
               if sv.iconShowOthers then sel[#sel + 1] = "others" end
-              if sv.iconShowGroupFrames then sel[#sel + 1] = "groupFrames" end
+              if sv.iconShowSmallGroupFrames then sel[#sel + 1] = "smallGroupFrames" end
+              if sv.iconShowLargeGroupFrames then sel[#sel + 1] = "largeGroupFrames" end
               return sel
           end,
           setFunc = function(values)
@@ -5823,7 +6138,8 @@ function PvPUA:CreateSettings()
               end
               PvPUA.savedVariables.iconShowSelf = on.self == true
               PvPUA.savedVariables.iconShowOthers = on.others == true
-              PvPUA.savedVariables.iconShowGroupFrames = on.groupFrames == true
+              PvPUA.savedVariables.iconShowSmallGroupFrames = on.smallGroupFrames == true
+              PvPUA.savedVariables.iconShowLargeGroupFrames = on.largeGroupFrames == true
               PI.RefreshGroupFrameIcons()
           end },
           } },
@@ -5906,18 +6222,26 @@ end
 local WHATS_NEW_DIALOG = "PVPUA_WHATS_NEW"
 local whatsNewRegistered = false
 
+local function WhatsNewPublicIconCount()
+    local count = 0
+    for _, icon in ipairs(PvPUA.constants.iconChoices) do
+        if not icon.none and not icon.isDefault then count = count + 1 end
+    end
+    return count
+end
+
 PvPUA.whatsNew = {
-    version = "1.6",
+    version = "1.8",
     title = "PvP UA!",
     message = table.concat({
-        "Updated to version 4.9.",
+        "Updated to version 5.",
         "",
-        "- Show List Now is now a Show List checklist under Appearance.",
-        "- In Menus shows the list while you are in menus.",
-        "- While Sieging shows the list while you are on a siege weapon.",
-        "- While Dead shows the list while you are dead, on by default.",
-        "",
-        "- Cap List At limits how many rows the list shows, All by default.",
+        "- Icons are now available to everyone. There are just " .. WhatsNewPublicIconCount() .. " for now.",
+        "- You can change your icon's size and height.",
+        "- LibGroupBroadcast is only needed for you and your group to see each other's icons.",
+        "- Show now includes Small Group Frames and Large Group Frames.",
+        "- If you can't see your group members' icons, first make sure you have LibGroupBroadcast. If you do, try quitting and restarting your game.",
+        "- If your own icon isn't showing, try quitting and restarting your game as well.",
         "",
         "Any bugs, message me:",
         "Xbox: user562",
@@ -6021,6 +6345,12 @@ local function OnAddonLoaded(event, addonName)
 
     PvPUA.savedVariables.listSize = "Default"
 
+    if PvPUA.savedVariables.iconShowGroupFrames ~= nil then
+        PvPUA.savedVariables.iconShowSmallGroupFrames = PvPUA.savedVariables.iconShowGroupFrames
+        PvPUA.savedVariables.iconShowLargeGroupFrames = PvPUA.savedVariables.iconShowGroupFrames
+        PvPUA.savedVariables.iconShowGroupFrames = nil
+    end
+
     if PvPUA.Potion then
         pcall(function() PvPUA.Potion:Initialize() end)
     end
@@ -6048,6 +6378,7 @@ local function OnAddonLoaded(event, addonName)
     end
 
     pcall(PI.Init)
+    pcall(PI.InitNetwork)
     pcall(PI.InitGroupFrameIcons)
 
     EVENT_MANAGER:RegisterForEvent(PvPUA.name, EVENT_PLAYER_ACTIVATED,

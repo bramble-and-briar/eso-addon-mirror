@@ -1,0 +1,13 @@
+## APIVersion: 101051
+## Title: Miat's Tick Tracker - Console Port
+## Author: Dorrino; Console port
+## Version: 1.13-console.2
+## AddOnVersion: 11302
+## SavedVariables: MiatTickTrackerSettings
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibGamepad
+## Description: Resource recovery tick tracker. Update 51 console port with LAM settings and gamepad mover.
+
+Bindings.xml
+MiatsTickTracker.lua
+MiatsTickTracker.xml

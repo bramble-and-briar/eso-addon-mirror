@@ -19,6 +19,7 @@ end
 local ACTIONS = {
     { label = "Diagnostic report", cmd = "report", tip = "Everything I need to look at a problem, in the copybox.\nSelect All, Ctrl+C, paste it to me." },
     { label = "Veterancy dump", cmd = "vet", tip = "Every raw veterancy value the game reports, in the copybox." },
+    { label = "Map art", cmd = "art", tip = "For every recorded match: battleground name, map id, zone and the background it resolves to, in the copybox.\nA guess or FALLBACK line is an arena that needs an entry." },
     { label = "Live scoreboard dump", cmd = "dump", tip = "Reads the scoreboard right now and prints it (chat)." },
     { label = "Perf counters", cmd = "perf", tip = "Frame times, heap and per-probe cost since the last reset." },
     { label = "Perf reset", cmd = "perf reset" },

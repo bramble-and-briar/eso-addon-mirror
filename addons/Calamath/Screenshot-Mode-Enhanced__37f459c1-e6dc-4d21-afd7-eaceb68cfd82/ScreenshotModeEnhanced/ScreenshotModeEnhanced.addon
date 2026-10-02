@@ -1,10 +1,10 @@
 ## Title: ScreenshotModeEnhanced
 ## Description: Provides emote and memento wheels in screenshot mode.
-## Version: 1.1.3
-## AddOnVersion: 10103
+## Version: 1.1.4
+## AddOnVersion: 10104
 ## Author: Calamath
 ## License: Artistic License 2.0
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibCInteraction>=10400
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax 

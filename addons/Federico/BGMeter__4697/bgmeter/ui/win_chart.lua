@@ -421,35 +421,82 @@ function SEC.momentum(b, m, tl, n, tspan, w, mom_h, mom_off, lead, tdm_line, cmo
     b.momStats:SetText(table.concat(sp, "    "))
 end
 
-function SEC.race(b, race, smooth, tl, n, tspan, w, race_h, race_off)
+local function seg_line(b, parent, x0, y0, x1, y1, color, thick, alpha)
+    if b.lines_ok and b.race_line_pool then
+        local ln = b.race_line_pool:acquire()
+        ln:ClearAnchors()
+        ln:SetAnchor(TOPLEFT, parent, TOPLEFT, x0, y0)
+        ln:SetAnchor(TOPRIGHT, parent, TOPLEFT, x1, y1)
+        ln:SetColor(color[1], color[2], color[3], alpha)
+        if ln.SetThickness then ln:SetThickness(thick) end
+        ln:SetHidden(false)
+    else
+        local dot = b.race_pool:acquire()
+        dot:ClearAnchors()
+        dot:SetAnchor(TOPLEFT, parent, TOPLEFT, x1, y1)
+        dot:SetDimensions(thick + 1, thick + 1)
+        P.set_rect_color(dot, { color[1], color[2], color[3], alpha })
+        dot:SetHidden(false)
+    end
+end
+
+function SEC.race(b, race, dlead, m, tl, n, tspan, w, race_h, race_off)
     b.race:ClearAnchors()
     b.race:SetAnchor(BOTTOMLEFT, b.container, BOTTOMLEFT, 0, -race_off)
     b.race:SetAnchor(BOTTOMRIGHT, b.container, BOTTOMRIGHT, 0, -race_off)
     b.race:SetHeight(race_h)
     b.race:SetHidden(false)
-    W.tips[b.raceTitle] = "Damage dealt over the match, one line per team.\nYour own damage runs in gold.\nLines are lightly smoothed; the floor fill follows each team."
+    W.tips[b.raceTitle] = "Who was out-damaging whom, and by how much.\nBand height = gap between the leading team's damage and the runner-up's\nColour = team ahead  ·  a tick marks each change of hands"
     local plot_h = race_h - 20
     local floor_y = 16 + plot_h
-    local count = math.min(n, race.n)
+    local count = math.min(n, dlead.n)
     local function px(i) return math.floor((math.min(tl.t[i] or 0, tspan) / tspan) * (w - 6) + 0.5) end
-    local function py_of(arr)
-        return function(i) return 16 + math.floor((1 - (arr[i] or 0) / race.max) * plot_h + 0.5) end
-    end
-    for _, team in ipairs(race.teams) do
-        local tc = S.team_color(team)
-        local py = py_of(smooth[team])
-        for i = 2, count do
-            local x0, x1 = px(i - 1), px(i)
-            local top = math.min(py(i - 1), py(i))
-            vgrad_rect(b.race_pool, b.race, x0, top, floor_y, x1 - x0, tc, K.ALPHA.race_fill, 0)
+    local function py(i) return 16 + math.floor((1 - (dlead.lead[i] or 0) / dlead.max) * plot_h + 0.5) end
+    local edge = K.COLOR.text_dim
+    local run0, runTeam, runPeak = 1, dlead.team[1] or nil, dlead.lead[1] or 0
+    local function close_run(last)
+        if not runTeam then return end
+        local x0, x1 = px(run0), px(last)
+        if x1 > x0 then
+            hit_rect(b, b.race, x0, 16, x1 - x0, plot_h, string.format("%s ahead  %s to %s\nup to +%s damage",
+                team_name(runTeam), F.duration(tl.t[run0] or 0), F.duration(tl.t[last] or 0), F.abbrev(runPeak)))
         end
     end
-    for _, team in ipairs(race.teams) do
-        polyline(b, b.race_line_pool, b.race_pool, b.race, px, py_of(smooth[team]), count, S.team_color(team), 2, 0.9)
+    for i = 2, count do
+        local x0, x1 = px(i - 1), px(i)
+        local team = dlead.team[i] or dlead.team[i - 1]
+        if team then
+            local tc = S.team_color(team)
+            local y0, y1 = py(i - 1), py(i)
+            vgrad_rect(b.race_pool, b.race, x0, math.min(y0, y1), floor_y, x1 - x0, tc, K.ALPHA.lead_top, K.ALPHA.lead_floor)
+            seg_line(b, b.race, x0, y0, x1, y1, tc, 2, 0.9)
+        end
+        local t = dlead.team[i] or nil
+        if t and runTeam and t ~= runTeam then
+            close_run(i - 1)
+            flat_rect(b.race_pool, b.race, x0, 16, 1, plot_h, { edge[1], edge[2], edge[3], 0.55 })
+            run0, runTeam, runPeak = i, t, dlead.lead[i] or 0
+        elseif t and not runTeam then
+            run0, runTeam, runPeak = i, t, dlead.lead[i] or 0
+        elseif t then
+            if (dlead.lead[i] or 0) > runPeak then runPeak = dlead.lead[i] end
+        end
     end
-    if race.mine and smooth.mine then
-        polyline(b, b.race_line_pool, b.race_pool, b.race, px, py_of(smooth.mine), count, K.COLOR.you, 1, 0.95)
+    close_run(count)
+    local parts = {}
+    if dlead.maxTeam then
+        local tc = S.team_color(dlead.maxTeam)
+        parts[#parts + 1] = string.format("|c%smax lead %s +%s|r", hexc(tc), team_name(dlead.maxTeam), F.abbrev(dlead.max))
     end
+    parts[#parts + 1] = string.format("%d change%s of hands", dlead.changes, (dlead.changes == 1) and "" or "s")
+    local myTeam = m and m.localTeam
+    if race.mine and myTeam and race.series[myTeam] then
+        local own, teamTotal = race.mine[count] or 0, race.series[myTeam][count] or 0
+        if own > 0 and teamTotal > 0 then
+            parts[#parts + 1] = string.format("|c%syou %s, %d%% of your team|r", hexc(K.COLOR.you), F.abbrev(own), math.floor(own / teamTotal * 100 + 0.5))
+        end
+    end
+    b.raceLegend:SetText(table.concat(parts, "  ·  "))
 end
 
 function SEC.kills(b, kp, tspan, w, kills_h, kills_off)
@@ -657,8 +704,8 @@ function SEC.balance(b, bal, sur, bal_h, bal_off, ex)
     local dim = hexc(K.COLOR.text_dim)
     local lines = {
         string.format("|c%sBALANCE %d|r", hexc(bc), bal.score),
-        string.format("kill ratio |c%s%.2f|r  ·  contested |c%s%d%%|r  ·  margin |c%s%d%%|r",
-            hexc(K.COLOR.gold), bal.killRatio, hexc(K.COLOR.gold), math.floor(bal.contested * 100 + 0.5), hexc(K.COLOR.gold), math.floor(bal.margin * 100 + 0.5)),
+        string.format("= ( kill ratio |c%s%.2f|r + closeness |c%s%.2f|r + contested |c%s%.2f|r ) / 3",
+            hexc(K.COLOR.gold), bal.killRatio, hexc(K.COLOR.gold), 1 - bal.margin, hexc(K.COLOR.gold), bal.contested),
         bal.leaderChanged and string.format("decided |c%s%s|r%s", hexc(K.COLOR.gold), F.duration(bal.decidedMs),
             bal.leanTeam and string.format("  ·  |c%s%s|r ahead", hexc(S.team_color(bal.leanTeam)), team_name(bal.leanTeam)) or "")
             or string.format("|c%slead never changed|r%s", dim,
@@ -714,7 +761,7 @@ local function derive(m, tl, tspan, gt)
         for _, team in ipairs(dc.race.teams) do
             dc.raceSmooth[team] = Match.smooth3(dc.race.series[team], dc.race.n)
         end
-        if dc.race.mine then dc.raceSmooth.mine = Match.smooth3(dc.race.mine, dc.race.n) end
+        dc.dlead = Match.damage_lead(dc.race, dc.raceSmooth, tl)
     end
     dc.kp = Match.kill_pressure(m.killfeed, tspan)
     dc.rounds = Match.round_marks(tl)
@@ -762,10 +809,10 @@ function SEC.timeline(m)
     local tdm_line = (not lanes) and lead ~= nil
     local mom_h = (dc.cmom or lead) and (tdm_line and 46 or 28) or 0
 
-    local race_h = (dc.race and Prefs.get("show_race")) and L.race_h or 0
+    local race_h = (dc.dlead and Prefs.get("show_race")) and L.race_h or 0
     local kills_h = (dc.kp and Prefs.get("show_kills")) and L.kills_h or 0
     local bal_h = (dc.bal and Prefs.get("show_balance")) and L.balance_h or 0
-    local rows_h = 24 + #m.battle * L.row_h
+    local rows_h = 30 + #m.battle * L.row_h
     local cont_h = b.container:GetHeight()
     local function fits(extra) return cont_h - rows_h >= L.chart_h + extra + 8 end
     if kills_h > 0 and not fits(race_h + mom_h + ribbon_h + occ_h + kills_h + bal_h) then kills_h = 0 end
@@ -914,7 +961,7 @@ function SEC.timeline(m)
     end
 
     if race_h > 0 then
-        SEC.race(b, dc.race, dc.raceSmooth, tl, n, tspan, w, race_h, race_off)
+        SEC.race(b, dc.race, dc.dlead, m, tl, n, tspan, w, race_h, race_off)
     end
     if kills_h > 0 then
         SEC.kills(b, dc.kp, tspan, w, kills_h, kills_off)

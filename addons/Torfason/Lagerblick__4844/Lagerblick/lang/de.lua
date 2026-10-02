@@ -1,0 +1,25 @@
+if string.lower(tostring(GetCVar("language.2") or "en")) ~= "de" then
+    return
+end
+
+SafeAddString(SI_LAGERBLICK_TITLE, "LAGERBLICK", 1)
+SafeAddString(SI_LAGERBLICK_CURRENT_CHARACTER, "Aktueller Charakter", 1)
+SafeAddString(SI_LAGERBLICK_HOUSE_STORAGE, "Hauslager", 1)
+SafeAddString(SI_LAGERBLICK_EQUIPPED, "ausgerüstet", 1)
+SafeAddString(SI_LAGERBLICK_COMPANION, "Begleiter", 1)
+SafeAddString(SI_LAGERBLICK_BANK, "Bank", 1)
+SafeAddString(SI_LAGERBLICK_CRAFT_BAG, "Handwerksbeutel", 1)
+SafeAddString(SI_LAGERBLICK_FURNITURE_VAULT, "Möbeltresor", 1)
+SafeAddString(SI_LAGERBLICK_NOT_OWNED, "Noch nirgends vorhanden", 1)
+SafeAddString(SI_LAGERBLICK_TOTAL, "Gesamt", 1)
+SafeAddString(SI_LAGERBLICK_STORED_CHARACTERS, "Gespeicherte Charaktere", 1)
+SafeAddString(SI_LAGERBLICK_STORED_COMPANIONS, "Gespeicherte Begleiter", 1)
+SafeAddString(SI_LAGERBLICK_RESCANNED, "Aktueller Charakter und aktiver Begleiter wurden neu eingelesen.", 1)
+SafeAddString(SI_LAGERBLICK_COMMANDS, "Befehle:", 1)
+SafeAddString(SI_LAGERBLICK_CMD_SCAN, "aktuellen Charakter und aktiven Begleiter neu einlesen", 1)
+SafeAddString(SI_LAGERBLICK_CMD_CHARS, "bekannte Charaktere und Begleiter anzeigen", 1)
+SafeAddString(SI_LAGERBLICK_CMD_HELP, "diese Hilfe anzeigen", 1)
+SafeAddString(SI_LAGERBLICK_READY, "ist bereit.", 1)
+SafeAddString(SI_LAGERBLICK_LOGIN_ALL, "Für vollständige Charakter-Bestände bitte jeden Charakter einmal einloggen.", 1)
+SafeAddString(SI_LAGERBLICK_SUMMON_COMPANIONS, "Für Begleiter-Ausrüstung bitte jeden Begleiter einmal beschwören.", 1)
+SafeAddString(SI_LAGERBLICK_MORE_LOCATIONS, "+<<1>> weitere Orte", 1)

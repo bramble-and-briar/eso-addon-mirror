@@ -1,9 +1,9 @@
 ## Title: What's Missing - Skill Point Tracker
-## Description: What's missing? - Skill Point Tracker.
-## Version: 1.50.01
-## AddOnVersion: 15001
+## Description: Skill points, skill line ranks, and Scribing Scripts across characters.
+## Version: 1.50.03
+## AddOnVersion: 15003
 ## Author: xbutch
-## APIVersion: 101050
+## APIVersion: 101051
 ## IsLibrary: false
 ## OptionalDependsOn: LibRadialMenu
 ## SavedVariables: WhatsMissing_CharCache
@@ -13,4 +13,6 @@ lang\$(language).lua
 WhatsMissing.xml
 bindings.xml
 WhatsMissing_ChainData.lua
+WhatsMissing_Skills.lua
+WhatsMissing_Scribing.lua
 WhatsMissing.lua

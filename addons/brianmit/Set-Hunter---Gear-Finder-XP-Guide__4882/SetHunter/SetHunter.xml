@@ -1,0 +1,215 @@
+<GuiXml>
+    <Controls>
+        <!-- Section title in the tree (SETS, MY ITEMS, XP FARMING). -->
+        <Control name="SetHunter_TreeHeader" virtual="true">
+            <Dimensions x="250" y="30" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="BOTTOM" maxLineCount="1">
+                    <Anchor point="TOPLEFT" offsetX="4" />
+                    <Anchor point="BOTTOMRIGHT" offsetY="-4" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Category in the tree: arrow (expandable ones), icon, name, count on the right.
+             Selected: soft gold highlight with a gold bar on the left. -->
+        <Control name="SetHunter_Category" virtual="true" mouseEnabled="true">
+            <Dimensions x="250" y="30" />
+            <OnMouseEnter>SetHunter.Category_OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>SetHunter.Category_OnMouseExit(self)</OnMouseExit>
+            <OnMouseUp>SetHunter.Category_OnMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)SelBG" color="C08A4E" alpha="0.14" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)SelBar" color="C08A4E" hidden="true">
+                    <Dimensions x="2" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="BOTTOMLEFT" />
+                </Texture>
+                <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/tree_closed_up.dds">
+                    <Dimensions x="16" y="16" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="LEFT" offsetX="20" />
+                </Texture>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" horizontalAlignment="RIGHT" maxLineCount="1">
+                    <Dimensions x="50" y="30" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+                <Label name="$(parent)Text" font="ZoFontHeader" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Count" relativePoint="LEFT" offsetX="-4" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- One location under a category (a dungeon, a trial, a zone), with its progress. -->
+        <Control name="SetHunter_SubCategory" virtual="true" mouseEnabled="true">
+            <Dimensions x="250" y="26" />
+            <OnMouseEnter>SetHunter.Category_OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>SetHunter.Category_OnMouseExit(self)</OnMouseExit>
+            <OnMouseUp>SetHunter.Category_OnMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)SelBG" color="C08A4E" alpha="0.14" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)SelBar" color="C08A4E" hidden="true">
+                    <Dimensions x="2" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="BOTTOMLEFT" />
+                </Texture>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" horizontalAlignment="RIGHT" maxLineCount="1">
+                    <Dimensions x="34" y="26" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+                <Label name="$(parent)Text" font="ZoFontGame" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" offsetX="38" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Count" relativePoint="LEFT" offsetX="-2" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- One set: star, name, type (item icon + weight, or where it drops), owned,
+             collection count with a small progress bar under it. -->
+        <Control name="SetHunter_SetRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="510" y="30" />
+            <OnMouseEnter>SetHunter.Row_OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>SetHunter.Row_OnMouseExit(self)</OnMouseExit>
+            <OnMouseUp>SetHunter.Row_OnMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMouseDoubleClick>SetHunter.Row_OnMouseDoubleClick(self, button)</OnMouseDoubleClick>
+            <Controls>
+                <Texture name="$(parent)Stripe" color="FFFFFF" alpha="0.035" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <!-- Shortcut at the end of the row: queue (dungeons) or travel (other places). -->
+                <Texture name="$(parent)Action" hidden="true">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Texture>
+                <Texture name="$(parent)Star" textureFile="EsoUI/Art/Collections/Favorite_StarOnly.dds">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="LEFT" offsetX="6" />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGame" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Dimensions x="186" y="28" />
+                    <Anchor point="LEFT" offsetX="32" />
+                </Label>
+                <Label name="$(parent)Type" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Dimensions x="122" y="28" />
+                    <Anchor point="LEFT" offsetX="224" />
+                </Label>
+                <!-- Owned: bag icon + count (click: show my pieces). -->
+                <Texture name="$(parent)OwnedIcon" textureFile="EsoUI/Art/MainMenu/menuBar_inventory_up.dds" hidden="true">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="LEFT" offsetX="350" />
+                </Texture>
+                <Label name="$(parent)Owned" font="ZoFontGameSmall" color="7FB2E5" verticalAlignment="CENTER" maxLineCount="1">
+                    <Dimensions x="26" y="28" />
+                    <Anchor point="LEFT" offsetX="372" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" horizontalAlignment="RIGHT" maxLineCount="1">
+                    <Dimensions x="80" y="20" />
+                    <Anchor point="TOPRIGHT" offsetX="-34" offsetY="2" />
+                </Label>
+                <Texture name="$(parent)BarBG" color="FFFFFF" alpha="0.12">
+                    <Dimensions x="80" y="3" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-34" offsetY="-5" />
+                </Texture>
+                <Texture name="$(parent)BarFill" color="C08A4E">
+                    <Dimensions x="0" y="3" />
+                    <Anchor point="LEFT" relativeTo="$(parent)BarBG" relativePoint="LEFT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- One item you own: icon, name in its quality color, trait, where it is. -->
+        <Control name="SetHunter_ItemRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="510" y="30" />
+            <OnMouseEnter>SetHunter.Row_OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>SetHunter.Row_OnMouseExit(self)</OnMouseExit>
+            <OnMouseUp>SetHunter.Row_OnMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMouseDoubleClick>SetHunter.Row_OnMouseDoubleClick(self, button)</OnMouseDoubleClick>
+            <Controls>
+                <Texture name="$(parent)Stripe" color="FFFFFF" alpha="0.035" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <!-- Shortcut at the end of the row: queue (dungeons) or travel (other places). -->
+                <Texture name="$(parent)Action" hidden="true">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGame" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Dimensions x="186" y="28" />
+                    <Anchor point="LEFT" offsetX="32" />
+                </Label>
+                <Label name="$(parent)Trait" font="ZoFontGameSmall" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Dimensions x="122" y="28" />
+                    <Anchor point="LEFT" offsetX="224" />
+                </Label>
+                <Label name="$(parent)Where" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" horizontalAlignment="RIGHT" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" offsetX="352" />
+                    <Anchor point="RIGHT" offsetX="-34" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- One line of guide info (grind spot, XP boost, skill...): name left, value right. -->
+        <Control name="SetHunter_InfoRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="510" y="30" />
+            <OnMouseEnter>SetHunter.Row_OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>SetHunter.Row_OnMouseExit(self)</OnMouseExit>
+            <OnMouseUp>SetHunter.Row_OnMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMouseDoubleClick>SetHunter.Row_OnMouseDoubleClick(self, button)</OnMouseDoubleClick>
+            <Controls>
+                <Texture name="$(parent)Stripe" color="FFFFFF" alpha="0.035" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <!-- Shortcut at the end of the row: queue (dungeons) or travel (other places). -->
+                <Texture name="$(parent)Action" hidden="true">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Texture>
+                <!-- Optional icon in front of the name (XP boosts). -->
+                <Texture name="$(parent)Icon" hidden="true">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="LEFT" offsetX="6" />
+                </Texture>
+                <Label name="$(parent)Name" font="ZoFontGame" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Dimensions x="250" y="28" />
+                    <Anchor point="LEFT" offsetX="10" />
+                </Label>
+                <!-- Owned (XP boost rows): bag icon + how many you have (click: show them). -->
+                <Texture name="$(parent)OwnedIcon" textureFile="EsoUI/Art/MainMenu/menuBar_inventory_up.dds" hidden="true">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="LEFT" offsetX="266" />
+                </Texture>
+                <Label name="$(parent)Owned" font="ZoFontGameSmall" color="7FB2E5" verticalAlignment="CENTER" maxLineCount="1">
+                    <Dimensions x="40" y="28" />
+                    <Anchor point="LEFT" offsetX="288" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" horizontalAlignment="RIGHT" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" offsetX="268" />
+                    <Anchor point="RIGHT" offsetX="-34" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Heading above a group of rows. -->
+        <Control name="SetHunter_Header" virtual="true">
+            <Dimensions x="510" y="34" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH4" color="E8DFAF" verticalAlignment="BOTTOM" maxLineCount="1" wrapMode="ELLIPSIS">
+                    <Anchor point="TOPLEFT" offsetX="6" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" offsetY="-4" />
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

@@ -9,11 +9,18 @@ local GS, zf, strF = GetString, zo_strformat, string.format
 
 local LIST_ROW_HEIGHT = 36
 
--- Tab state: 1=GSP, 2=SQS, 3=GDQ, 4=PD
+-- Tab state: 1=GSP, 2=SQS, 3=GDQ, 4=PD, 5=Skills, 6=Scribing
+local TAB_COUNT = 6
 local currentTab = 1
 local tabGamepadLists = {}
 local tabSelectedData = {}
 local scan
+local progressionList
+local progressionModules = { SPT.Skills, SPT.Scribing }
+
+local function SPT_GetProgressionModule()
+	return progressionModules[currentTab - 4]
+end
 
 local function SPT_CopyArrayTable(origTable)
 	if type(origTable) ~= "table" then return origTable end
@@ -71,7 +78,7 @@ local function SPT_DeactivateCurrentList()
 end
 
 local function SPT_ActivateCurrentList()
-	if not SPT.active or scan.running then return end
+	if not SPT.active or (scan.running and currentTab <= 4) then return end
 	local list = SPT_GetCurrentList()
 	if list then
 		list:Activate()
@@ -179,6 +186,109 @@ function CharCache:GetSortedIds()
 		return (self.roster[a].name or "") < (self.roster[b].name or "")
 	end)
 	return ids
+end
+
+-- These fields belong to the same per-server roster as the skill-point cache.
+function CharCache:WriteProgressionSnapshot(field, snapshot)
+	local id = self:GetCharId()
+	local entry = self.roster[id]
+	if not entry then return end
+	entry[field] = snapshot
+	entry[field .. "ScannedAt"] = GetTimeStamp()
+end
+
+function CharCache:GetClassId(charId)
+	for index = 1, GetNumCharacters() do
+		local _, _, _, classId, _, _, id = GetCharacterInfo(index)
+		if id == charId then return classId end
+	end
+end
+
+-- Strict independent schema versions; a damaged/unknown snapshot is unscanned.
+-- Decode only for the visible view, one character at a time.
+function SPT:DecodeProgressionSnapshot(snapshot, paired)
+	if type(snapshot) ~= "string" or snapshot:sub(1, 2) ~= "1;" then return end
+	local values, offset = {}, 3
+	local pattern = paired and "(%d+):(%d+)," or "(%d+),"
+	while offset <= #snapshot do
+		local first, last, id, value = snapshot:find(pattern, offset)
+		if first ~= offset then return end
+		id, value = tonumber(id), paired and tonumber(value) or true
+		if not id or id < 1 or id > 2147483647 or values[id] ~= nil then return end
+		if paired and (not value or value > 2147483647) then return end
+		values[id] = value
+		offset = last + 1
+	end
+	return values
+end
+
+function SPT:GetProgressionStatus(charId, field, hasData)
+	if hasData == false then return GS(SPT_GUI_NOT_SCANNED) end
+	if charId == CharCache:GetCharId() then return GS(SPT_GUI_LIVE) end
+	local entry = CharCache.roster[charId]
+	local timestamp = entry and entry[field .. "ScannedAt"]
+	if type(timestamp) ~= "number" then return GS(SPT_GUI_NOT_SCANNED) end
+	return GS(SPT_GUI_LAST_SCANNED) .. ": " .. GetDateStringFromTimestamp(timestamp)
+end
+
+function SPT:IsProgressionGroupExpanded(module, groupId)
+	return not (module.collapsed and module.collapsed[groupId])
+end
+
+function SPT:CreateProgressionTableView(module, sourceHeader, footer)
+	local ids = CharCache:GetSortedIds()
+	module.firstCharacter = math.max(1, math.min(module.firstCharacter or 1, math.max(1, #ids - 3)))
+	local last = math.min(module.firstCharacter + 3, #ids)
+	local view = { columns = {}, characters = {}, rows = {}, sourceHeader = sourceHeader,
+		firstCharacter = module.firstCharacter, characterCount = #ids, footer = footer,
+		title = strF(GS(SPT_GUI_CHARACTER_RANGE), #ids > 0 and module.firstCharacter or 0, last, #ids) }
+	for index = module.firstCharacter, last do
+		local id = ids[index]
+		view.characters[#view.characters + 1] = id
+		view.columns[#view.columns + 1] = CharCache.roster[id].name
+	end
+	return view
+end
+
+function SPT:AddProgressionTableCell(row, column, name, value, status)
+	row.cells[column] = value
+	row.info = row.info or { row.source }
+	row.info[#row.info + 1] = strF("%s: %s  |  %s", name, value, status)
+end
+
+function SPT:FinishProgressionTableView(view)
+	for _, row in ipairs(view.rows) do
+		row.tooltipText = row.info and table.concat(row.info, "\n") or row.source
+		row.info = nil
+	end
+	return view
+end
+
+function SPT:QueueProgressionSnapshot(module)
+	if not self.progressionReady or module.pending then return end
+	module.pending = true
+	-- One-shot event coalescing, not a recurring update loop.
+	zo_callLater(function()
+		module.pending = false
+		if not SPT.progressionReady then return end
+		module:Capture()
+		module:ReleaseDisplay()
+		if SPT.active and SPT_GetProgressionModule() == module then SPT:RenderCurrentTab() end
+	end, 0)
+end
+
+local function SPT_ReleaseProgressionDisplay()
+	for _, module in ipairs(progressionModules) do module:ReleaseDisplay() end
+	if progressionList then
+		progressionList:Clear()
+		progressionList:Commit()
+	end
+	tabSelectedData[5], tabSelectedData[6] = nil, nil
+	SPT_GUI_Body_Progression_Title:SetText("")
+	SPT_GUI_Body_Progression_Columns_Source:SetText("")
+	for index = 1, 4 do GetControl("SPT_GUI_Body_Progression_Columns_Cell" .. index):SetText("") end
+	SPT_GUI_Body_Progression_HorizontalScroll:SetHidden(true)
+	SPT_UpdateInfoPanel("")
 end
 
 
@@ -893,6 +1003,77 @@ end
 local tabRenderers = { SPT_RenderGSP, SPT_RenderSQS, SPT_RenderGDQ, SPT_RenderPD }
 local tabBodyControls = {}  -- populated in SetupValues
 
+local function SPT_EnsureProgressionList()
+	if progressionList then return end
+	progressionList = ZO_GamepadVerticalParametricScrollList:New(SPT_GUI_Body_Progression_ListHolder)
+	progressionList:SetUniversalPostPadding(0)
+	progressionList:SetSelectedItemOffsets(0, 0)
+	SPT_DisableListFadeGradient(progressionList)
+	progressionList:AddDataTemplate("SPT_ProgressionTemplate", function(control, data, selected)
+		control.data = data
+		local source = control:GetNamedChild("_Source")
+		source:SetText(data.source or "")
+		source:SetColor(data.groupId and 0.91 or 1, data.groupId and 0.87 or 1, data.groupId and 0.70 or 1, 1)
+		for index = 1, 4 do control:GetNamedChild("_Cell" .. index):SetText(data.cells[index] or "") end
+		local highlight = control:GetNamedChild("Highlight")
+		highlight:SetHidden(not (selected or tabSelectedData[currentTab] == data))
+	end, nil, nil, nil, function(control)
+		control.data = nil
+		control:GetNamedChild("_Source"):SetText("")
+		for index = 1, 4 do control:GetNamedChild("_Cell" .. index):SetText("") end
+	end)
+	progressionList:SetOnTargetDataChangedCallback(function(list, data, _, _, index)
+		SPT_UpdateListSelectedOffset(list, index)
+		tabSelectedData[currentTab] = data
+		SPT_UpdateInfoPanel(data and data.tooltipText or "")
+		SPT_RefreshListVisuals(list)
+		KEYBIND_STRIP:UpdateKeybindButtonGroup(SPT.keybindDescriptors)
+	end)
+	progressionList.control:SetHandler("OnRectChanged", function()
+		SPT_UpdateListSelectedOffset(progressionList)
+		SPT_DisableListFadeGradient(progressionList)
+	end)
+	SPT_GUI_Body_Progression_Columns:SetHandler("OnMouseWheel", function(_, delta)
+		SPT:ScrollProgressionCharacters(-delta)
+	end)
+	tabGamepadLists[5], tabGamepadLists[6] = progressionList, progressionList
+end
+
+local function SPT_RenderProgression()
+	SPT_EnsureProgressionList()
+	local selected = progressionList:GetTargetData()
+	local selectedKey = selected and selected.rowKey
+	local view = SPT_GetProgressionModule():BuildView()
+	SPT_GUI_Header:SetText(currentTab == 5 and GS(SPT_GUI_TAB_SKILLS) or GS(SPT_GUI_TAB_SCRIBING))
+	SPT_InfoPanel_Header:SetText(view.infoTitle)
+	SPT_GUI_Body_Progression_Title:SetText(view.title)
+	SPT_GUI_Body_Progression_Columns_Source:SetText(view.sourceHeader)
+	for index = 1, 4 do
+		GetControl("SPT_GUI_Body_Progression_Columns_Cell" .. index):SetText(view.columns[index] or "")
+	end
+	progressionList:Clear()
+	for _, row in ipairs(view.rows) do progressionList:AddEntry("SPT_ProgressionTemplate", row) end
+	SPT_CommitList(progressionList)
+	if selectedKey then
+		for index, row in ipairs(view.rows) do
+			if row.rowKey == selectedKey then
+				progressionList:SetSelectedIndexWithoutAnimation(index)
+				break
+			end
+		end
+	end
+	local scroll = SPT_GUI_Body_Progression_HorizontalScroll
+	scroll:SetHidden(view.characterCount <= 4)
+	if view.characterCount > 4 then
+		local thumb = scroll:GetNamedChild("Thumb")
+		local width = scroll:GetWidth()
+		thumb:SetWidth(width * #view.columns / view.characterCount)
+		thumb:ClearAnchors()
+		thumb:SetAnchor(LEFT, scroll, LEFT, width * (view.firstCharacter - 1) / view.characterCount, 0)
+	end
+	SPT_GUI_Footer_CharacterTotal:SetText(view.footer)
+end
+
 local function SPT_ShowTabBody(show)
 	if not show then
 		SPT_DeactivateCurrentList()
@@ -901,11 +1082,12 @@ local function SPT_ShowTabBody(show)
 	SPT_GUI_Body_SQS:SetHidden(not show or currentTab ~= 2)
 	SPT_GUI_Body_GDQ:SetHidden(not show or currentTab ~= 3)
 	SPT_GUI_Body_PD:SetHidden(not show or currentTab ~= 4)
-	SPT_GUI_Scanning:SetHidden(show)
+	SPT_GUI_Body_Progression:SetHidden(currentTab <= 4)
+	SPT_GUI_Scanning:SetHidden(show or currentTab > 4)
 end
 
 local function SPT_UpdateTabHighlights()
-	for i = 1, 4 do
+	for i = 1, TAB_COUNT do
 		local tab = GetControl("SPT_GUI_Tabs_Tab"..i)
 		if tab then
 			if i == currentTab then
@@ -918,22 +1100,34 @@ local function SPT_UpdateTabHighlights()
 end
 
 function SPT:RenderCurrentTab()
-	if scan.running then return end
+	if scan.running and currentTab <= 4 then return end
 	SPT_DeactivateCurrentList()
-	tabRenderers[currentTab]()
-	SPT_GUI_Footer_CharacterTotal:SetText(SPT.GUI.CharacterTot)
+	if currentTab > 4 then
+		SPT_GUI_Footer_CharacterTotal:SetFont("ZoFontGamepad22")
+		SPT_RenderProgression()
+	else
+		SPT_GUI_Footer_CharacterTotal:SetFont("ZoFontGamepadBold27")
+		SPT_InfoPanel_Header:SetText(GS(SPT_GUI_INFO_HEADER))
+		tabRenderers[currentTab]()
+		SPT_GUI_Footer_CharacterTotal:SetText(SPT.GUI.CharacterTot)
+	end
 	SPT_ActivateCurrentList()
 end
 
 function SPT:SwitchTab(n)
-	if scan.running then return end
 	SPT_DeactivateCurrentList()
-	currentTab = ((n - 1) % 4) + 1
+	if currentTab > 4 then SPT_ReleaseProgressionDisplay() end
+	currentTab = ((n - 1) % TAB_COUNT) + 1
 	SPT_UpdateTabHighlights()
-	if not scan.running then
+	if currentTab > 4 then
 		SPT_ShowTabBody(true)
-		tabRenderers[currentTab]()
-		SPT_ActivateCurrentList()
+		SPT:RenderCurrentTab()
+	elseif scan.running or scan.dirty then
+		SPT_ShowTabBody(false)
+		SPT:RefreshSkillPoints()
+	else
+		SPT_ShowTabBody(true)
+		SPT:RefreshViewingDisplay()
 	end
 	KEYBIND_STRIP:UpdateKeybindButtonGroup(SPT.keybindDescriptors)
 end
@@ -978,6 +1172,32 @@ local function SPT_ResetViewing()
 	viewingIndex = nil
 end
 
+function SPT:ToggleProgressionGroup()
+	local module = SPT_GetProgressionModule()
+	local data = progressionList and progressionList:GetTargetData()
+	if not module or not data or not data.groupId then return end
+	module.collapsed = module.collapsed or {}
+	module.collapsed[data.groupId] = self:IsProgressionGroupExpanded(module, data.groupId) or nil
+	self:RenderCurrentTab()
+	KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptors)
+end
+
+function SPT:CanScrollProgressionCharacters(delta)
+	local module = SPT_GetProgressionModule()
+	if not module then return false end
+	local lastStart = math.max(1, #CharCache:GetSortedIds() - 3)
+	local first = module.firstCharacter or 1
+	return delta < 0 and first > 1 or delta > 0 and first < lastStart
+end
+
+function SPT:ScrollProgressionCharacters(delta)
+	if not SPT.active or not self:CanScrollProgressionCharacters(delta) then return end
+	local module = SPT_GetProgressionModule()
+	module.firstCharacter = math.max(1, math.min((module.firstCharacter or 1) + delta, math.max(1, #CharCache:GetSortedIds() - 3)))
+	self:RenderCurrentTab()
+	KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptors)
+end
+
 -- A usable cached snapshot must have the full pd shape (ZQ in particular) -
 -- guards against entries written by an older version of this addon that
 -- only cached totals, which would otherwise crash SPT_UpdateGUITable.
@@ -993,6 +1213,7 @@ local function SPT_GetEmptyPtsData()
 end
 
 local function SPT_RefreshViewingDisplay()
+	if currentTab > 4 then SPT:RenderCurrentTab(); return end
 	local ids = SPT.CharCache:GetSortedIds()
 	if #ids == 0 then return end
 
@@ -1040,13 +1261,19 @@ local function SPT_RefreshViewingDisplay()
 	end
 end
 
+function SPT:RefreshViewingDisplay()
+	SPT_RefreshViewingDisplay()
+end
+
 function SPT:SwitchCharacter(delta)
-	if not SPT.active or scan.running then return end
+	if not SPT.active or (scan.running and currentTab <= 4) then return end
+	if currentTab > 4 then SPT:ScrollProgressionCharacters(delta); return end
 	local ids = SPT.CharCache:GetSortedIds()
 	if #ids == 0 then return end
 
 	if not viewingIndex then
-		SPT_RefreshViewingDisplay() -- positions viewingIndex on self first
+		for index, id in ipairs(ids) do if id == CharCache:GetCharId() then viewingIndex = index; break end end
+		viewingIndex = viewingIndex or 1
 	end
 	viewingIndex = ((viewingIndex - 1 + delta) % #ids) + 1
 	SPT_RefreshViewingDisplay()
@@ -1214,9 +1441,13 @@ local function SPT_StartScan()
 	zo_callLater(ProcessScanSlice, 0)
 end
 
+function SPT:RefreshSkillPoints()
+	SPT_StartScan()
+end
+
 local function SPT_MarkDirty()
 	scan.dirty = true
-	if SPT.active then
+	if SPT.active and currentTab <= 4 then
 		SPT_ShowTabBody(false)
 		SPT_StartScan()
 	end
@@ -1347,7 +1578,7 @@ function SPT:AddToGamepadSkillsMenu()
 	if self.skillsMenuHooked or not ZO_GamepadSkills then return end
 
 	local entryName = "What's Missing?"
-	local entryDescription = "Review missing skill points by source."
+	local entryDescription = "Review missing skill points, skill line ranks, and Scribing Scripts across characters."
 
 	ZO_PostHook(ZO_GamepadSkills, "RefreshCategoryList", function(gamepadSkills)
 		local categoryList = gamepadSkills and gamepadSkills.categoryList
@@ -1541,14 +1772,14 @@ function SPT:SetupValues()
 			keybind  = "UI_SHORTCUT_LEFT_SHOULDER",
 			name     = function() return GS(SI_BINDING_NAME_SPT_TAB_PREV) end,
 			callback = function() SPT:SwitchTab(currentTab - 1) end,
-			enabled  = function() return not scan.running end,
+			enabled  = function() return true end,
 			visible  = function() return true end,
 		},
 		{
 			keybind  = "UI_SHORTCUT_RIGHT_SHOULDER",
 			name     = function() return GS(SI_BINDING_NAME_SPT_TAB_NEXT) end,
 			callback = function() SPT:SwitchTab(currentTab + 1) end,
-			enabled  = function() return not scan.running end,
+			enabled  = function() return true end,
 			visible  = function() return true end,
 		},
 		{
@@ -1568,13 +1799,28 @@ function SPT:SetupValues()
 		},
 		{
 			keybind  = "UI_SHORTCUT_INPUT_LEFT",
-			name     = "Prev Char",
+			name     = function() return currentTab > 4 and GS(SPT_GUI_SCROLL_LEFT) or "Prev Char" end,
 			callback = function() SPT:SwitchCharacter(-1) end,
+			visible  = function() return currentTab <= 4 or #CharCache:GetSortedIds() > 4 end,
+			enabled  = function() return currentTab <= 4 or SPT:CanScrollProgressionCharacters(-1) end,
 		},
 		{
 			keybind  = "UI_SHORTCUT_INPUT_RIGHT",
-			name     = "Next Char",
+			name     = function() return currentTab > 4 and GS(SPT_GUI_SCROLL_RIGHT) or "Next Char" end,
 			callback = function() SPT:SwitchCharacter(1) end,
+			visible  = function() return currentTab <= 4 or #CharCache:GetSortedIds() > 4 end,
+			enabled  = function() return currentTab <= 4 or SPT:CanScrollProgressionCharacters(1) end,
+		},
+		{
+			keybind = "UI_SHORTCUT_PRIMARY",
+			name = function()
+				local module = SPT_GetProgressionModule()
+				local data = progressionList and progressionList:GetTargetData()
+				return GS(module and data and data.groupId and SPT:IsProgressionGroupExpanded(module, data.groupId) and SPT_GUI_COLLAPSE or SPT_GUI_EXPAND)
+			end,
+			callback = function() SPT:ToggleProgressionGroup() end,
+			visible = function() return currentTab > 4 end,
+			enabled = function() local data = progressionList and progressionList:GetTargetData(); return data and data.groupId ~= nil end,
 		},
 	}
 
@@ -1600,7 +1846,7 @@ function SPT:SetupValues()
 		if newState == SCENE_SHOWING then
 			SPT.active = true
 			KEYBIND_STRIP:AddKeybindButtonGroup(SPT.keybindDescriptors)
-			if scan.dirty then
+			if scan.dirty and currentTab <= 4 then
 				SPT_ShowTabBody(false)
 				SPT_StartScan()
 			else
@@ -1610,6 +1856,8 @@ function SPT:SetupValues()
 		elseif newState == SCENE_HIDDEN then
 			SPT.active = false
 			SPT_DeactivateCurrentList()
+			SPT_ReleaseProgressionDisplay()
+			for _, module in ipairs(progressionModules) do module.collapsed = nil end
 			KEYBIND_STRIP:RemoveKeybindButtonGroup(SPT.keybindDescriptors)
 			SPT_ResetViewing()
 		end
@@ -1633,6 +1881,18 @@ local function SPT_Initialized(eventCode, addonName)
 
 	SPT:SetupValues()
 	SPT:AddToGamepadSkillsMenu()
+	for _, module in ipairs(progressionModules) do module:Init() end
+	EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Progression", EVENT_PLAYER_ACTIVATED, function()
+		SPT.progressionReady = true
+		for _, module in ipairs(progressionModules) do SPT:QueueProgressionSnapshot(module) end
+	end)
+	EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Progression", EVENT_PLAYER_DEACTIVATED, function()
+		-- Persist a last-frame learn/rank event before its deferred callback can be lost.
+		for _, module in ipairs(progressionModules) do
+			if module.pending then module:Capture() end
+		end
+		SPT.progressionReady = false
+	end)
 
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_SKILL_POINTS_CHANGED,  function() SPT_MarkDirty() end)
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_QUEST_REMOVED,         function(_, isCompleted) if isCompleted then SPT_MarkDirty() end end)

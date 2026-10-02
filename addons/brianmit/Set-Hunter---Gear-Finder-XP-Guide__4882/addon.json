@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/brianmit/Set-Hunter__4882",
+  "archive_path": "addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "brianmit",
@@ -22,7 +22,7 @@
     "SetHunter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4882/",
-  "fingerprint": "681397504621e00fcfe78df22480d09a8b7a3edab5c7e9f4fb945d8f6bd8f1d3",
+  "fingerprint": "ad9da1e72088eeb77fe5c4c9fcae43816f84b0df70f02e0ffacd754361a46f37",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17592.png",
     "https://cdn-eso.mmoui.com/preview/pvw17593.png",
@@ -39,13 +39,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4882",
-  "source_url": "https://www.esoui.com/downloads/info4882-SetHunter.html",
+  "source_url": "https://www.esoui.com/downloads/info4882-SetHunter-GearFinderXPGuide.html",
   "stats": {
-    "downloads": 35,
+    "downloads": 56,
     "favorites": 0,
-    "monthly_downloads": 11
+    "monthly_downloads": 49
   },
-  "title": "Set Hunter",
+  "title": "Set Hunter - Gear Finder & XP Guide",
   "updated_at": 1790626864000,
   "version": "1.0.1"
 }

@@ -96,7 +96,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [GrimSuite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrimGrin/GrimSuite__4848) | GrimGrin | PC / Mac | 1.3.0 |
 | [GrimUi](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrimGrin/GrimUi__4841) | GrimGrin | PC / Mac | 2.1 |
 | [Grind Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tirilance/Grind-Timer__1651) | Tirilance | PC / Mac | 1.13.8 |
-| [GroundPaint](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/GroundPaint__4632) | HeiKyoma | PC / Mac | 1.2 |
+| [GroundPaint](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/GroundPaint__4632) | HeiKyoma | PC / Mac | 1.3 |
 | [Group & Activity Finder Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Panicida/Group-Activity-Finder-Extensions__2800) | Panicida | PC / Mac | 6.2.0 |
 | [Group Buff Panels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Group-Buff-Panels__da882875-d281-47d4-b525-aa19f4f40875) | code65536 | Console | — |
 | [Group Buff Panels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Group-Buff-Panels__4226) | code65536 | PC / Mac | 2.3.3.1 |

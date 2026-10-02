@@ -71,6 +71,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [No Worldmap Wayshrines](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Biki/No-Worldmap-Wayshrines__1283) | Biki | PC / Mac | 1.1 |
 | [No Worldmap Wayshrines (One Tamriel fix)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YudaiNao/No-Worldmap-Wayshrines-One-Tamriel-fix__1553) | YudaiNao | PC / Mac | API v.100017 |
 | [No Written Dialogue Continued](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shaen/No-Written-Dialogue-Continued__1485) | Shaen | PC / Mac | 1.5 |
+| [No, Thank You! - Season One](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dr_Z/No-Thank-You---Season-One__4903) | Dr_Z | PC / Mac | 12.1.0 |
 | [No, thank you!-Gold Road](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/No-thank-you--Gold-Road__3921) | FusRoDah | PC / Mac | 11.4.2 |
 | [NoAccidentalStealing (+no accidental casting)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/NoAccidentalStealing-no-accidental-casting__943) | Shinni | PC / Mac | 1.13 |
 | [noBUGS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zand3rs/noBUGS__3164) | Zand3rs | PC / Mac | 1.0 |

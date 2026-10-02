@@ -1,0 +1,21 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+
+## Title: Antiquarian Codex
+## Description: This ancient compendium guides the antiquarian with leads, hints, and locations.
+## Version: 1.51.01
+## AddOnVersion: 15101
+## Author: xbutch
+## APIVersion: 101051
+
+constants.lua
+StartUp.lua
+locale/strings_en.lua
+locale/strings_$(language).lua
+locale/locationsdata_en.lua
+locale/locationsdata_$(language).lua
+; Optional overrides generated from CSV/Excel (if present)
+locale/locations_override.lua
+AntiquarianCodex.lua

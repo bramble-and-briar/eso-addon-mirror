@@ -1,8 +1,5 @@
-2026.09.30
-- Added bound item comparison to bank auto stacking. The bank and inventory items must match before it will attempt to auto stack.
-- Added Wondrous Nowhere Keys to lootlog whitelist.
-- Added "Grotto of Desires" & "Sheogorad Chateau" to housing whitelist.
-- Minor performance optimizations.
+2026.10.01
+- Added listings total value to listings tab of trading house for trader enhancements.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

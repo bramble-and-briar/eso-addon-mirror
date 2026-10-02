@@ -61,7 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Session Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Session-Timer__2259) | Rhyono | PC / Mac | 1.11 |
 | [Set Collection Marker (Sticker Book)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Set-Collection-Marker-Sticker-Book__2804) | Kyzeragon | PC / Mac | 3.0.0 |
 | [Set Container Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Set-Container-Collector__4652) | FirewoodDoge | PC / Mac | 1.0.1 |
-| [Set Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter__4882) | brianmit | PC / Mac | 1.0.1 |
+| [Set Hunter - Gear Finder & XP Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882) | brianmit | PC / Mac | 1.0.1 |
 | [Set Junker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HerrPulaRau/Set-Junker__2572) | HerrPulaRau | PC / Mac | 1.3.1 |
 | [Set Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoltActionBalrog/Set-Master__3192) | BoltActionBalrog | PC / Mac | 1.3.1 |
 | [Set Tracker updated 2025 01](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Set-Tracker-updated-2025-01__4019) | Shinntarou | PC / Mac | 3.2.0 |
@@ -263,7 +263,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Squirrel Slayer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xhiantitu/Squirrel-Slayer__4213) | xhiantitu | PC / Mac | 1.1.1 |
 | [SquishyFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Divnyi/SquishyFinder__2914) | Divnyi | PC / Mac | 1.6 |
 | [SquishyFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/laurj787/SquishyFinder__3640) | laurj787 | PC / Mac | 1.7 |
-| [Srendarr - Aura, Buff & Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655) | Phinix | PC / Mac | 2.5.51 |
+| [Srendarr - Aura, Buff & Debuff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Srendarr---Aura-Buff-Debuff-Tracker__655) | Phinix | PC / Mac | 2.5.52 |
 | [SRS Events](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skyrimredshirts/SRS-Events__4457) | skyrimredshirts | PC / Mac | 5.52 |
 | [SRS Guild Hall Icon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skyrimredshirts/SRS-Guild-Hall-Icon__4456) | skyrimredshirts | PC / Mac | 1.21 |
 | [Stack Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectura/Stack-Master__2508) | Architectura | PC / Mac | 10 |

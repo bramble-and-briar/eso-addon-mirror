@@ -543,7 +543,7 @@ end
 
 function GamepadOptions.BuildBuffsDebuffsSelectedBuffOption(baseName)
     local buffsDebuffs = NQOL.Features.BuffsDebuffs
-    return GamepadOptions.BuildCheckboxOption(BUFFS_DEBUFFS_TRACKERS_PANEL_ID, 0, baseName, buffsDebuffs.GetSelectedBuffTooltip(baseName), function()
+    return GamepadOptions.BuildCheckboxOption(BUFFS_DEBUFFS_TRACKERS_PANEL_ID, 0, buffsDebuffs.GetEffectDisplayName(baseName), buffsDebuffs.GetSelectedBuffTooltip(baseName), function()
         return buffsDebuffs.GetSelectedBuff(baseName)
     end, function(value)
         buffsDebuffs.SetSelectedBuff(baseName, value)
@@ -552,7 +552,7 @@ end
 
 function GamepadOptions.BuildBuffsDebuffsSelectedDebuffOption(baseName)
     local buffsDebuffs = NQOL.Features.BuffsDebuffs
-    return GamepadOptions.BuildCheckboxOption(BUFFS_DEBUFFS_TRACKERS_PANEL_ID, 0, baseName, buffsDebuffs.GetSelectedDebuffTooltip(baseName), function()
+    return GamepadOptions.BuildCheckboxOption(BUFFS_DEBUFFS_TRACKERS_PANEL_ID, 0, buffsDebuffs.GetEffectDisplayName(baseName), buffsDebuffs.GetSelectedDebuffTooltip(baseName), function()
         return buffsDebuffs.GetSelectedDebuff(baseName)
     end, function(value)
         buffsDebuffs.SetSelectedDebuff(baseName, value)

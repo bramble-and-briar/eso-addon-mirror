@@ -1,0 +1,27 @@
+local function CreateString(stringId, text)
+    if _G[stringId] == nil then
+        ZO_CreateStringId(stringId, text)
+    end
+end
+
+CreateString("SI_LAGERBLICK_TITLE", "LAGERBLICK")
+CreateString("SI_LAGERBLICK_CURRENT_CHARACTER", "Current character")
+CreateString("SI_LAGERBLICK_HOUSE_STORAGE", "House storage")
+CreateString("SI_LAGERBLICK_EQUIPPED", "equipped")
+CreateString("SI_LAGERBLICK_COMPANION", "companion")
+CreateString("SI_LAGERBLICK_BANK", "Bank")
+CreateString("SI_LAGERBLICK_CRAFT_BAG", "Craft Bag")
+CreateString("SI_LAGERBLICK_FURNITURE_VAULT", "Furniture Vault")
+CreateString("SI_LAGERBLICK_NOT_OWNED", "Not stored anywhere yet")
+CreateString("SI_LAGERBLICK_TOTAL", "Total")
+CreateString("SI_LAGERBLICK_STORED_CHARACTERS", "Stored characters")
+CreateString("SI_LAGERBLICK_STORED_COMPANIONS", "Stored companions")
+CreateString("SI_LAGERBLICK_RESCANNED", "Current character and active companion were rescanned.")
+CreateString("SI_LAGERBLICK_COMMANDS", "Commands:")
+CreateString("SI_LAGERBLICK_CMD_SCAN", "rescan current character and active companion")
+CreateString("SI_LAGERBLICK_CMD_CHARS", "show known characters and companions")
+CreateString("SI_LAGERBLICK_CMD_HELP", "show this help")
+CreateString("SI_LAGERBLICK_READY", "is ready.")
+CreateString("SI_LAGERBLICK_LOGIN_ALL", "For complete character totals, please log in to each character once.")
+CreateString("SI_LAGERBLICK_SUMMON_COMPANIONS", "For companion equipment totals, summon each companion once.")
+CreateString("SI_LAGERBLICK_MORE_LOCATIONS", "+<<1>> more locations")

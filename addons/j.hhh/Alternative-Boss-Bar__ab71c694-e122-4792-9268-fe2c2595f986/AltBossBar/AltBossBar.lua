@@ -94,6 +94,8 @@ function ABB_BossBar:Initialize(bossTag, topLevelCtrl, previousBar, skipUnitEven
     self.mechanicText:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     self.mechanicText:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     self.mechanicText:SetAnchor(CENTER, healthControl, CENTER, 0, -1)
+    self.mechanicText:SetDimensions(healthControl:GetWidth(), 32)
+    self.mechanicText:SetDrawLayer(DL_OVERLAY)
     self.mechanicText:SetText("")
 
 
@@ -227,7 +229,8 @@ function ABB_BossBar:UpdateMechanicText(health, maxHealth)
     end
 
     if nextThreshold and nextMechanic and nextMechanic ~= "" then
-        self.mechanicText:SetText(string.format("%s%% - %s", tostring(nextThreshold), tostring(nextMechanic)))
+        self.mechanicText:SetText(string.format("next at %s%%: %s", tostring(nextThreshold), tostring(nextMechanic)))
+        self.mechanicText:SetHidden(false)
     else
         self.mechanicText:SetText("")
     end
@@ -428,12 +431,16 @@ function ABB_BossBar:UpdateWidth()
     if self.mechanicText then
         self.mechanicText:ClearAnchors()
         self.mechanicText:SetAnchor(CENTER, self.healthControl, CENTER, 0, -1)
+        self.mechanicText:SetDimensions(self.healthControl:GetWidth(), 32)
     end
 end
 
 function ABB_BossBar:Show()
     self.control:SetHidden(false)
     self.control:SetAlpha(1)
+    if self.mechanicText and self.mechanicText:GetText() ~= "" then
+        self.mechanicText:SetHidden(false)
+    end
 end
 
 function ABB_BossBar:Hide()

@@ -80,7 +80,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BetterSynergy - Synergy Text Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/BetterSynergy---Synergy-Text-Hider__4029) | SkullElf | PC / Mac | 1.4 |
 | [BetterUI :: Gamepad Interface Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goobsnake/BetterUI-Gamepad-Interface-Improvements__2013) | goobsnake | PC / Mac | 3.06 |
 | [BGHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/BGHelper__4527) | NPViral | PC / Mac | 3.0 |
-| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.6.1 |
+| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.7.0 |
 | [Bigger Chat Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Bigger-Chat-Window__657) | Crabby654 | PC / Mac | 1.6.3 |
 | [Bind As Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Bind-As-Junk__4608) | Fluffiels | PC / Mac | 1.03 |
 | [BindAll (Sticker Book Collector)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/BindAll-Sticker-Book-Collector__2825) | ownedbynico | PC / Mac | 1.5 |

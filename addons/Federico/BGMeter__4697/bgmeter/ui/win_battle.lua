@@ -20,15 +20,22 @@ local Prefs = BGMeter.Prefs
 local Faces = BGMeter.Faces
 
 local COLS = {
-    { key = "damage",  right = 230, w = 56, label = "DMG", shift = true },
-    { key = "healing", right = 170, w = 50, label = "HEAL", shift = true },
-    { key = "kills",   right = 122, w = 22, label = "K", shift = true },
-    { key = "deaths",  right = 94,  w = 22, label = "D", shift = true },
-    { key = "assists", right = 66,  w = 22, label = "A", shift = true },
-    { key = "caps",    right = 66,  w = 34, label = "CAP", flag = true },
-    { key = "score",   right = 10,  w = 50, label = "PTS"  },
+    { key = "damage",  label = "DMG",  w = 56, priority = 100, words = "Damage dealt", icon = "esoui/art/icons/progression_tabicon_2handed" },
+    { key = "healing", label = "HEAL", w = 50, priority = 90,  words = "Healing done", icon = "esoui/art/icons/progression_tabicon_healinglight" },
+    { key = "taken",   label = "TKN",  w = 56, priority = 82,  words = "Damage taken", icon = "esoui/art/icons/progression_tabicon_avadefender" },
+    { key = "kills",   label = "K",    w = 36, priority = 95,  words = "Kills",        icon = "esoui/art/treeicons/tutorial_idexicon_combat" },
+    { key = "deaths",  label = "D",    w = 36, priority = 95,  words = "Deaths",       icon = "esoui/art/treeicons/tutorial_idexicon_death" },
+    { key = "assists", label = "A",    w = 36, priority = 80,  words = "Assists",      icon = "esoui/art/icons/progression_tabicon_avaleadership" },
+    { key = "caps",    label = "CAP",  w = 40, priority = 85,  flag = true },
+    { key = "score",   label = "PTS",  w = 50, priority = 100, words = "Medal score",  icon = "esoui/art/journal/journal_tabicon_leaderboard" },
 }
-local CAPS_SHIFT = 40
+local FLAG_ICONS = {
+    caps    = "EsoUI/Art/MapPins/battlegrounds_capturePoint_pin_neutral.dds",
+    carried = "esoui/art/icons/mapkey/mapkey_bg_murderball.dds",
+}
+local HEADER_ICON = 24
+local ROWS_TOP = 30
+local Grid = BGMeter.UI.Grid
 local caps_shown = false
 local FACE_ICON = "EsoUI/Art/Help/help_tabIcon_overview_up.dds"
 
@@ -48,17 +55,56 @@ local function face_badge(e)
 end
 
 
-local function col_right(col)
-    if not col.flag and caps_shown and col.shift then return col.right + CAPS_SHIFT end
-    return col.right
+local INDEX_X, ICON_X, NAME_X = 6, 24, 50
+local BAR_X, BAR_RIGHT = 50, 6
+local GRID_TOP = 26
+
+local function tint(icon, color)
+    icon:SetColor(color[1], color[2], color[3], 1)
 end
 
-local function col_hidden(col)
-    return (col.flag and not caps_shown) and true or false
+local function header_art(h, up, over, down)
+    h.up, h.over, h.down = up, over or up, down or up
+    h.icon:SetTexture(up)
 end
-local INDEX_X, ICON_X, NAME_X = 6, 24, 50
-local NAME_RIGHT = 296
-local BAR_X, BAR_RIGHT = 50, 6
+
+local function make_header(b, col)
+    local h = BGMeter.zenimax.ui.create_control(nil, b.container, CT_CONTROL)
+    h:SetDimensions(col.w, HEADER_ICON)
+    h:SetMouseEnabled(true)
+    h.col = col
+    h.label = P.label(h, S.FONT.small, K.COLOR.text_dim)
+    h.label:SetText(col.label)
+    h.label:SetAnchor(TOPRIGHT, h, TOPRIGHT, 0, 0)
+    h.label:SetDimensions(col.w, 16)
+    h.label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    h.icon = P.icon(h)
+    h.icon:SetDimensions(HEADER_ICON, HEADER_ICON)
+    h.icon:SetAnchor(TOPRIGHT, h, TOPRIGHT, 0, 0)
+    h.icon:SetHidden(true)
+    h.arrow = P.icon(h)
+    h.arrow:SetDimensions(10, 10)
+    h.arrow:SetAnchor(RIGHT, h.icon, LEFT, -1, 0)
+    h.arrow:SetHidden(true)
+    h.tint = K.COLOR.text_dim
+    h:SetHandler("OnMouseEnter", function()
+        if h.over and not h.icon:IsHidden() then h.icon:SetTexture(h.over); tint(h.icon, K.COLOR.text) end
+        local t = W.tips[h]
+        if t and t ~= "" and U.card_show then U.card_show(h, BOTTOM, t) end
+    end)
+    h:SetHandler("OnMouseExit", function()
+        if h.up then h.icon:SetTexture(h.up); tint(h.icon, h.tint) end
+        if U.card_hide then U.card_hide() end
+    end)
+    h:SetHandler("OnMouseDown", function()
+        if h.down and not h.icon:IsHidden() then h.icon:SetTexture(h.down) end
+    end)
+    h:SetHandler("OnMouseUp", function(_, _, upInside)
+        if h.up then h.icon:SetTexture(h.up) end
+        if upInside then W.sort_by(col.key == "caps" and (W.flagcol_key or "caps") or col.key) end
+    end)
+    return h
+end
 
 local function one_line(lbl)
     lbl:SetHeight(14)
@@ -80,26 +126,36 @@ local function build_battle(win)
     make_clickable(nameH, function() W.sort_by("name") end)
     b.headers.name = nameH
 
+    b.grid = Grid.new({ columns = COLS, left = NAME_X, right = 10, name_min = 96 })
+    b.grid:set_enabled("caps", false)
     for _, col in ipairs(COLS) do
-        local lbl = P.label(b.container, S.FONT.small, K.COLOR.text_dim)
-        lbl:SetText(col.label)
-        lbl:SetAnchor(TOPRIGHT, b.container, TOPRIGHT, -col_right(col), 0)
-        lbl:SetDimensions(col.w, 16)
-        lbl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        lbl:SetHidden(col_hidden(col))
-        if col.key == "caps" then
-            make_clickable(lbl, function() W.sort_by(W.flagcol_key or "caps") end)
-            W.tip_dynamic(lbl)
-        else
-            make_clickable(lbl, function() W.sort_by(col.key) end)
+        local h = make_header(b, col)
+        h:SetHidden(true)
+        if col.icon then header_art(h, col.icon .. "_up.dds", col.icon .. "_over.dds", col.icon .. "_down.dds") end
+        if col.words then
+            W.tips[h] = col.words .. "  ·  " .. col.label
+            if col.key == "taken" then W.tips[h] = W.tips[h] .. "\nHover a value for the damage taken per death." end
         end
-        b.headers[col.key] = lbl
+        b.headers[col.key] = h
     end
 
-    b.rule = P.rect(b.container, { 1, 1, 1, 0.10 })
-    b.rule:SetAnchor(TOPLEFT, b.container, TOPLEFT, 0, 18)
-    b.rule:SetAnchor(TOPRIGHT, b.container, TOPRIGHT, 0, 18)
-    b.rule:SetHeight(1)
+    b.gridFrame = BGMeter.zenimax.ui.create_control(nil, b.container, CT_CONTROL)
+    b.gridFrame:SetAnchor(TOPLEFT, b.container, TOPLEFT, 0, GRID_TOP)
+    b.gridFrame:SetAnchor(TOPRIGHT, b.container, TOPRIGHT, 0, GRID_TOP)
+    b.gridFrame:SetHeight(1)
+    local gedge = K.COLOR.text_dim
+    b.gridBox = P.hairline_box(b.gridFrame, { gedge[1], gedge[2], gedge[3], K.ALPHA.chart_edge })
+    b.gridFrame:SetHidden(true)
+    b.teamBoxes, b.runs = {}, {}
+    for i = 1, 3 do
+        local c = BGMeter.zenimax.ui.create_control(nil, b.container, CT_CONTROL)
+        c:SetHeight(1)
+        c:SetHidden(true)
+        local fill = P.rect(c, { 0, 0, 0, 0 })
+        fill:SetAnchorFill(c)
+        b.teamBoxes[i] = { container = c, fill = fill, box = P.hairline_box(c, { 0, 0, 0, 0 }) }
+        b.runs[i] = { team = 0, y0 = 0, n = 0 }
+    end
 
     b.row_pool = BGMeter.Plot.pool.new(function() return W._make_row(b.container) end,
         function(row) row.container:SetHidden(true) end)
@@ -297,8 +353,12 @@ local function build_battle(win)
     b.balVet = exp_block(6 + EXP_W + 8, 22)
     W.tip_dynamic(b.bal)
 
-    strip("race", "DAMAGE RACE", nil)
+    strip("race", "DAMAGE LEAD", nil)
     b.race_pool = rect_pool(b.race)
+    b.raceLegend = P.label(b.race, S.FONT.small, K.COLOR.text_dim)
+    b.raceLegend:SetAnchor(TOPRIGHT, b.race, TOPRIGHT, -4, 2)
+    b.raceLegend:SetHeight(14)
+    b.raceLegend:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     b.race_line_pool = b.lines_ok and BGMeter.Plot.pool.new(
         function() return P.line(b.race, { 1, 1, 1, 1 }, 2) end,
         function(ln) ln:SetHidden(true); ln:ClearAnchors() end) or nil
@@ -332,6 +392,22 @@ local function build_battle(win)
     return b
 end
 
+local function cell_hover(row, cell)
+    cell:SetMouseEnabled(true)
+    cell:SetHandler("OnMouseEnter", function()
+        P.set_rect_color(row.highlight, { 1, 1, 1, K.ALPHA.row_hover })
+        local t = W.tips[cell]
+        if t and U.card_show then U.card_show(cell, BOTTOM, t) end
+    end)
+    cell:SetHandler("OnMouseExit", function()
+        P.set_rect_color(row.highlight, row.baseHL or { 0, 0, 0, 0 })
+        if U.card_hide then U.card_hide() end
+    end)
+    cell:SetHandler("OnMouseUp", function(_, _, upInside)
+        if upInside and row.prow then W.select(row.prow) end
+    end)
+end
+
 function W._make_row(parent)
     local row = { cells = {} }
     row.container = BGMeter.zenimax.ui.create_control(nil, parent, CT_CONTROL)
@@ -359,7 +435,6 @@ function W._make_row(parent)
 
     row.name = P.label(row.container, S.FONT.row, K.COLOR.text)
     row.name:SetAnchor(LEFT, row.container, LEFT, NAME_X, 0)
-    row.name:SetAnchor(RIGHT, row.container, RIGHT, -NAME_RIGHT, 0)
     row.name:SetHeight(L.row_h)
     row.name:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     if row.name.SetMaxLineCount then row.name:SetMaxLineCount(1) end
@@ -369,13 +444,14 @@ function W._make_row(parent)
 
     for _, col in ipairs(COLS) do
         local lbl = P.label(row.container, S.FONT.row, K.COLOR.text)
-        lbl:SetAnchor(RIGHT, row.container, RIGHT, -col_right(col), 0)
         lbl:SetDimensions(col.w, L.row_h)
         lbl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        lbl:SetHidden(col_hidden(col))
+        lbl:SetHidden(true)
         row.cells[col.key] = lbl
     end
-    row.capsLayout = false
+    row.layoutKey = nil
+    cell_hover(row, row.cells.taken)
+    cell_hover(row, row.cells.caps)
 
     row.container:SetHandler("OnMouseEnter", function()
         if W._last_row_log ~= row then
@@ -403,7 +479,7 @@ local function apply_dynamic_min_width(m)
         if tw > maxw then maxw = tw end
     end
     if maxw <= 0 then return end
-    local needed = math.ceil(maxw) + 26 + NAME_X + NAME_RIGHT + (caps_shown and CAPS_SHIFT or 0) + 2 * L.margin + L.haul_w + L.gap
+    local needed = math.ceil(maxw) + 26 + NAME_X + W.battle.grid:fixed_width() + 2 * L.margin + L.haul_w + L.gap
     local dyn = math.max(L.min_w, math.min(needed, L.dyn_min_cap))
 
     local extra
@@ -416,7 +492,7 @@ local function apply_dynamic_min_width(m)
         extra = 46 + 2
     end
     if BGMeter.Prefs.get("show_balance") then extra = extra + L.balance_h + 2 end
-    local needed_h = L.header_h + 24 + #m.battle * L.row_h + L.chart_h + extra + 8 + L.footer_h + 12
+    local needed_h = L.header_h + ROWS_TOP + #m.battle * L.row_h + L.chart_h + extra + 8 + L.footer_h + 12
     local dyn_h = math.max(L.min_h, math.min(needed_h, L.max_h))
 
     if dyn ~= W.dyn_min or dyn_h ~= W.dyn_min_h then
@@ -461,49 +537,25 @@ local function caps_count(m, v)
     return v
 end
 
-local function name_right()
-    return NAME_RIGHT + (caps_shown and CAPS_SHIFT or 0)
-end
-
-local function layout_headers(b)
-    for _, col in ipairs(COLS) do
-        local lbl = b.headers[col.key]
-        if lbl then
-            lbl:ClearAnchors()
-            lbl:SetAnchor(TOPRIGHT, b.container, TOPRIGHT, -col_right(col), 0)
-            lbl:SetHidden(col_hidden(col))
-        end
-    end
-end
-
-local function layout_row_cells(row)
-    for _, col in ipairs(COLS) do
-        local cell = row.cells[col.key]
-        cell:ClearAnchors()
-        cell:SetAnchor(RIGHT, row.container, RIGHT, -col_right(col), 0)
-        cell:SetHidden(col_hidden(col))
-    end
-    row.name:ClearAnchors()
-    row.name:SetAnchor(LEFT, row.container, LEFT, NAME_X, 0)
-    row.name:SetAnchor(RIGHT, row.container, RIGHT, -name_right(), 0)
-    row.capsLayout = caps_shown
-end
-
 function SEC.battle(m, animate)
     local b = W.battle
     b.row_pool:release_all()
     local want_caps = caps_relevant(m)
-    if want_caps ~= caps_shown then
-        caps_shown = want_caps
-        layout_headers(b)
-    end
+    caps_shown = want_caps
+    b.grid:set_enabled("caps", want_caps)
+    b.grid:set_enabled("taken", Prefs.get("show_taken") ~= false)
     local fkey, flabel, ftip = flag_col_spec(m)
     W.flagcol_key = fkey
-    if b.headers.caps then W.tips[b.headers.caps] = ftip end
+    if b.headers.caps then
+        W.tips[b.headers.caps] = ftip
+        header_art(b.headers.caps, FLAG_ICONS[fkey] or FLAG_ICONS.caps)
+    end
     apply_dynamic_min_width(m)
+    if b.grid:layout(list_width()) then b.grid:apply_header(b.headers, b.container) end
 
     local key = Prefs.get("sort_key") or "damage"
     if (key == "caps" or key == "carried") and not caps_shown then key = "damage" end
+    if key ~= "name" and key ~= "caps" and key ~= "carried" and not b.grid:is_shown(key) then key = "damage" end
     if key == "caps" or key == "carried" then key = fkey end
     if key == "name" then
         local desc = Prefs.get("sort_desc")
@@ -519,15 +571,35 @@ function SEC.battle(m, animate)
     local grouped = Prefs.get("group_by_team") and true or false
     if grouped then BGMeter.Match.group_by_team(m) end
 
-    for ckey, lbl in pairs(b.headers) do
-        local base = (ckey == "name") and (grouped and "PLAYER  ·  by team" or "PLAYER") or ckey
-        for _, col in ipairs(COLS) do if col.key == ckey then base = col.label end end
+    local icons = Prefs.get("icon_headers") ~= false
+    local arrow = Prefs.get("sort_desc") and ICON_SORTDN or ICON_SORTUP
+    for ckey, h in pairs(b.headers) do
+        local col = h.col
+        local base = (ckey == "name") and (grouped and "PLAYER  ·  by team" or "PLAYER") or (col and col.label or ckey)
         if ckey == "caps" then base = flabel end
-        if (ckey == "caps" and key == fkey) or ckey == key then
-            S.color(lbl, K.COLOR.text)
-            set_text(lbl, base .. " " .. F.icon(Prefs.get("sort_desc") and ICON_SORTDN or ICON_SORTUP, 16))
+        local active = (ckey == "caps" and key == fkey) or ckey == key
+        if col and icons and h.up then
+            h.label:SetHidden(true)
+            h.icon:SetHidden(false)
+            h.tint = active and K.COLOR.text or K.COLOR.text_dim
+            h.icon:SetTexture(h.up)
+            tint(h.icon, h.tint)
+            h.arrow:SetTexture(arrow)
+            h.arrow:SetHidden(not active)
         else
-            S.color(lbl, K.COLOR.text_dim); set_text(lbl, base)
+            local lbl = h
+            if col then
+                h.icon:SetHidden(true)
+                h.arrow:SetHidden(true)
+                h.label:SetHidden(false)
+                lbl = h.label
+            end
+            if active then
+                S.color(lbl, K.COLOR.text)
+                set_text(lbl, base .. " " .. F.icon(arrow, 16))
+            else
+                S.color(lbl, K.COLOR.text_dim); set_text(lbl, base)
+            end
         end
     end
 
@@ -537,12 +609,26 @@ function SEC.battle(m, animate)
     local maxVal = BGMeter.Match.column_max(m, barKey)
     local barBase = (barKey == "healing") and K.COLOR.heal or K.COLOR.accent
     local listW = list_width()
-    local y = 24
+    local y = ROWS_TOP
+    local nruns, run = 0, nil
 
     for i, prow in ipairs(m.battle) do
         local row = b.row_pool:acquire()
         row.prow = prow
-        if row.capsLayout ~= caps_shown then layout_row_cells(row) end
+        if grouped then
+            local t = prow.team or 0
+            if not run or run.team ~= t then
+                if nruns < 3 then
+                    nruns = nruns + 1
+                    run = b.runs[nruns]
+                    run.team, run.y0, run.n = t, y, 0
+                else
+                    run = nil
+                end
+            end
+            if run then run.n = run.n + 1 end
+        end
+        if row.layoutKey ~= b.grid.key then b.grid:apply_row(row) end
         row.container:SetHidden(false)
         row.container:ClearAnchors()
         row.container:SetAnchor(TOPLEFT, b.container, TOPLEFT, 0, y)
@@ -575,12 +661,25 @@ function SEC.battle(m, animate)
             local ck = (col.key == "caps") and fkey or col.key
             local cell, v = row.cells[col.key], (prow[ck] or 0) + 0
             local txt
-            if col.key == "damage" or col.key == "healing" or col.key == "score" then
+            if col.key == "damage" or col.key == "healing" or col.key == "score" or col.key == "taken" then
                 txt = F.abbrev(v)
+                if col.key == "taken" then
+                    local deaths = prow.deaths or 0
+                    if v <= 0 then W.tips[cell] = nil
+                    elseif deaths > 0 then W.tips[cell] = string.format("%s damage taken\n%s per death", F.abbrev(v), F.abbrev(v / deaths))
+                    else W.tips[cell] = string.format("%s damage taken\nnever died", F.abbrev(v)) end
+                end
             elseif ck == "carried" then
                 txt = (v > 0) and F.duration(v * 1000) or "0"
+                local def = prow.defPts or 0
+                if v <= 0 and def <= 0 then W.tips[cell] = nil
+                else W.tips[cell] = string.format("held the ball %s\n%d defense points", F.duration(v * 1000), def) end
             elseif ck == "caps" then
-                txt = tostring(caps_count(m, v))
+                local n = caps_count(m, v)
+                txt = tostring(n)
+                local def = prow.defPts or 0
+                if n <= 0 and def <= 0 then W.tips[cell] = nil
+                else W.tips[cell] = string.format("%d capture%s\n%d defense points", n, (n == 1) and "" or "s", def) end
             else
                 txt = tostring(v)
             end
@@ -625,6 +724,28 @@ function SEC.battle(m, animate)
         end)
 
         y = y + L.row_h
+    end
+    b.gridFrame:SetHeight(#m.battle * L.row_h + 8)
+    b.gridFrame:SetHidden(#m.battle == 0)
+    for i = 1, 3 do
+        local tb = b.teamBoxes[i]
+        local r = b.runs[i]
+        if grouped and i <= nruns and r.n > 0 then
+            local tc = S.team_color(r.team)
+            tb.container:ClearAnchors()
+            tb.container:SetAnchor(TOPLEFT, b.container, TOPLEFT, 2, r.y0 + 1)
+            tb.container:SetAnchor(TOPRIGHT, b.container, TOPRIGHT, -2, r.y0 + 1)
+            tb.container:SetHeight(r.n * L.row_h - 2)
+            P.set_rect_color(tb.fill, { tc[1], tc[2], tc[3], K.ALPHA.team_box })
+            local edge = { tc[1], tc[2], tc[3], K.ALPHA.team_box_edge }
+            P.set_rect_color(tb.box.top, edge)
+            P.set_rect_color(tb.box.bottom, edge)
+            P.set_rect_color(tb.box.left, edge)
+            P.set_rect_color(tb.box.right, edge)
+            tb.container:SetHidden(false)
+        else
+            tb.container:SetHidden(true)
+        end
     end
 end
 

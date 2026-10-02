@@ -7,7 +7,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
 | [Labyrinthe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/D-Lord/Labyrinthe__3841) | D Lord | PC / Mac | 0.8.2 |
-| [Lagerblick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Lagerblick__4844) | Torfason | PC / Mac | 0.1.10 |
+| [Lagerblick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Lagerblick__4844) | Torfason | PC / Mac | 2.0.0 |
 | [Landslide Tracker - Earthen Heart Passive](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Landslide-Tracker---Earthen-Heart-Passive__4470) | Duesentrieb | PC / Mac | 20260320-0002 |
 | [LanguageChanger for 1.5.5](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hiiko/LanguageChanger-for-1.5.5__827) | Hiiko | PC / Mac | 0.1 |
 | [LarvalTear - Change Skill lines, Skills, Attributes, and more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thory/LarvalTear---Change-Skill-lines-Skills-Attributes-and-more__4485) | Thory | PC / Mac | 1.5.0.2 |
@@ -166,7 +166,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibId64](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibId64__3585) | sirinsidiator | PC / Mac | 1.0.1 |
 | [LibImplex](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibImplex__4108) | imPDA | PC / Mac | 24 |
 | [LibInteractionHook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/LibInteractionHook__3644) | IsJustaGhost | PC / Mac | 3.2 |
-| [LibInteriorDetection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibInteriorDetection__4816) | kreksar@gmail.com | PC / Mac | 1.3.3 |
+| [LibInteriorDetection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibInteriorDetection__4816) | kreksar@gmail.com | PC / Mac | 1.3.6 |
 | [LibItemLink](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibItemLink__3855) | Sharlikran | PC / Mac | 9.4.0 |
 | [LibItemLinkDecoder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Delte/LibItemLinkDecoder__03b27b8e-253d-4288-ba88-4340d56faeac) | Delte | Console | — |
 | [LibItemLinkDecoder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/olegbl/LibItemLinkDecoder__3265) | olegbl | PC / Mac | 1.03 |
@@ -234,7 +234,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibQuestStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibQuestStatus__4573) | code65536 | PC / Mac | 1.0.3 |
 | [LibRadialMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/LibRadialMenu__f3dd1d3e-85df-448d-8d84-fdf6545dbebb) | M0R | Console | — |
 | [LibRadialMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/LibRadialMenu__4297) | M0R | PC / Mac | 9 |
-| [Librarian Book Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Flamage/Librarian-Book-Manager__188) | Flamage | PC / Mac | 3.17 |
+| [Librarian Book Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Flamage/Librarian-Book-Manager__188) | Flamage | PC / Mac | 3.18 |
 | [LibRecipe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibRecipe__17071a4b-f373-41fa-8874-778672bae73c) | Sharlikran | Console | — |
 | [LibRecipe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibRecipe__3927) | Sharlikran | PC / Mac | 1.12 |
 | [LibResearch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibResearch__517) | Baertram | PC / Mac | 4.0r3 |
@@ -324,7 +324,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LongPressCtrlToInteract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LongPressCtrlToInteract__3273) | Masteroshi430 | PC / Mac | 2026.07.19 |
 | [Looping Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YayRP/Looping-Emotes__973) | YayRP | PC / Mac | 1.0.1 |
 | [Loot Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thyreos/Loot-Alert__2059) | Thyreos | PC / Mac | 1.0.2 |
-| [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Loot-Log__1455) | code65536 | PC / Mac | 4.10.1 |
+| [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Loot-Log__1455) | code65536 | PC / Mac | 4.10.2 |
 | [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Loot-Log__d527acdc-07b2-453a-9519-d34261e02e5c) | ReliktKoala | Console | — |
 | [Loot Reader](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Loot-Reader__4327) | Saleand | PC / Mac | 0.3 |
 | [Loot Sanitizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/grin3671/Loot-Sanitizer__4189) | grin3671 | PC / Mac | 0.20.0 |
@@ -354,9 +354,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.6.8 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.6.9 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
-| [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.2.8 |
+| [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.2.9 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |
 | [LuiExtended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExtended__198814e6-46ba-4bb3-b368-ba1a2af67c52) | Dack.Janiels | Console | — |
 | [LuiginoMP's Adventurer Toolkit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiginomp/LuiginoMP-s-Adventurer-Toolkit__3417) | luiginomp | PC / Mac | 1.5 |

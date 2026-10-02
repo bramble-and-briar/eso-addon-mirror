@@ -262,7 +262,7 @@ end
 
 local ScreenshotModeEnhanced = CT_MinimalAddonFramework:New("ScreenshotModeEnhanced", {
 	name = "ScreenshotModeEnhanced", 
-	version = "1.1.3", 
+	version = "1.1.4", 
 	author = "Calamath", 
 	authority = {2973583419,210970542}, 
 })

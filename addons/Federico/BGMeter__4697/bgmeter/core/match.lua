@@ -734,6 +734,37 @@ function Match.damage_race(m)
     return { n = n, teams = teams, series = series, mine = own, max = maxv }
 end
 
+function Match.damage_lead(race, smooth, tl)
+    if not race or (race.n or 0) < 2 then return nil end
+    local n = race.n
+    local lead, who = {}, {}
+    local maxLead, maxTeam, maxI, changes, leader = 0, nil, 1, 0, nil
+    for i = 1, n do
+        local best, second, bestTeam = 0, 0, nil
+        for _, team in ipairs(race.teams) do
+            local s = (smooth and smooth[team]) or race.series[team]
+            local v = s[i] or 0
+            if v > best then
+                second = best
+                best, bestTeam = v, team
+            elseif v > second then
+                second = v
+            end
+        end
+        local d = best - second
+        lead[i] = d
+        who[i] = (d > 0) and bestTeam or false
+        if d > 0 then
+            if leader and bestTeam ~= leader then changes = changes + 1 end
+            leader = bestTeam
+            if d > maxLead then maxLead, maxTeam, maxI = d, bestTeam, i end
+        end
+    end
+    if maxLead <= 0 then return nil end
+    return { n = n, lead = lead, team = who, max = maxLead, maxTeam = maxTeam,
+             maxT = (tl and tl.t and tl.t[maxI]) or 0, changes = changes }
+end
+
 function Match.combat_momentum(killfeed, tspan, windowMs, stepMs)
     if not killfeed or #killfeed < 4 or not tspan or tspan <= 0 then return nil end
     windowMs = windowMs or 60000

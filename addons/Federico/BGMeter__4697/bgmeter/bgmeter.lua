@@ -450,6 +450,8 @@ local function on_slash(args)
         else BGMeter.UI.window.show_match(1) end
     elseif args == "layers" then
         BGMeter.UI.window.toggle_layers_debug()
+    elseif args == "art" then
+        BGMeter.UI.export.show_text(table.concat(BGMeter.UI._win.map_art_report(), "\n"))
     elseif args == "clear" then
         BGMeter.UI.window.confirm_clear()
     elseif args == "debug" then

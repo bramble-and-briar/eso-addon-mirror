@@ -8,7 +8,7 @@ local FALLBACK = {
     max_history = 50, auto_open_mode = "exit", sounds = true, animate = true,
     show_haul = true, show_veterancy = true, show_standing = true,
     show_awards = true, show_timeline = true, show_launcher = true,
-    show_race = true, show_kills = true, show_balance = true,
+    show_race = true, show_kills = true, show_balance = true, show_taken = true, icon_headers = true,
     map_heat_mode = "presence", map_heat_last = "presence", map_path = true, map_team = false, map_deaths = true, map_pins = true,
     cursor_on_open = false,
     opacity = 0.97,

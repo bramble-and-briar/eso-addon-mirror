@@ -1,0 +1,226 @@
+-------------------------------------
+-- Chinese localization for No, Thank You --
+-------------------------------------
+
+SafeAddString(NOTY_INTERACTION_TAKE,			"拿", 1)
+SafeAddString(NOTY_INSECT_BUTTERFLY,			"蝴蝶", 1)
+SafeAddString(NOTY_INSECT_TORCHBUG,			"萤火虫", 1)
+SafeAddString(NOTY_INSECT_WASP,				"黄蜂", 1)
+SafeAddString(NOTY_INSECT_FLESHFLIES,			"肉蝇", 1)
+SafeAddString(NOTY_INSECT_DRAGONFLY,			"蜻蜓", 1)
+SafeAddString(NOTY_INSECT_NETCHCALF,			"网虫幼体", 1)
+SafeAddString(NOTY_INSECT_FETCHERFLY,			"收藏家飞", 1)
+SafeAddString(NOTY_INSECT_DOVAH,			"赛斯的多瓦飞", 1)
+
+SafeAddString(NOTY_ENTERING_GROUP_AREA,			"您正在进入组队区域.", 1)
+SafeAddString(NOTY_LEAVING_GROUP_AREA,			"您即将离开组队区域.", 1)
+
+SafeAddString(NOTY_RAID_COMPLETE,			" 完全的", 1)
+SafeAddString(NOTY_RAID_OTHERS,				"和 <<1>> 其他", 1)
+
+SafeAddString(NOTY_GUILD_INV_OPTION_0,			"不要阻止", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_1,			"总是", 1)
+SafeAddString(NOTY_GUILD_INV_OPTION_2,			"充满公会的时候", 1)
+
+SafeAddString(NOTY_AVA_MODE_OPTION_0,			"不要禁用", 1)
+SafeAddString(NOTY_AVA_MODE_OPTION_1,			"聊天消息", 1)
+SafeAddString(NOTY_AVA_MODE_OPTION_2,			"禁用", 1)
+
+SafeAddString(NOTY_SOUND_MODE_OPTION_0,			"绝不", 1)
+SafeAddString(NOTY_SOUND_MODE_OPTION_1,			"脱离战斗", 1)
+SafeAddString(NOTY_SOUND_MODE_OPTION_2,			"在战斗中", 1)
+SafeAddString(NOTY_SOUND_MODE_OPTION_3,			"总是", 1)
+
+SafeAddString(NOTY_GALERTS_OPTION_0,			"不要禁用", 1)
+SafeAddString(NOTY_GALERTS_OPTION_1,			"聊天消息", 1)
+SafeAddString(NOTY_GALERTS_OPTION_2,			"禁用", 1)
+
+SafeAddString(NOTY_RAID_OPTION_0,			"总是", 1)
+SafeAddString(NOTY_RAID_OPTION_1,			"从不", 1)
+
+SafeAddString(NOTY_MOTD_OPTION_0,			"无", 1)
+SafeAddString(NOTY_MOTD_OPTION_1,			"聊天", 1)
+SafeAddString(NOTY_MOTD_OPTION_2,			"静音", 1)
+
+SafeAddString(NOTY_GUILDLEAVE_OPTION_0,			"没有人", 1)
+SafeAddString(NOTY_GUILDLEAVE_OPTION_1,			"所有公会", 1)
+SafeAddString(NOTY_GUILDLEAVE_OPTION_2,			"指定公会", 1)
+
+SafeAddString(NOTY_MOTD_OPTION_0,			"不要禁用", 1)
+SafeAddString(NOTY_MOTD_OPTION_1,			"聊天消息", 1)
+SafeAddString(NOTY_MOTD_OPTION_2,			"禁用", 1)
+
+SafeAddString(NOTY_LUAERR_OPTION_0,			"不要禁用", 1)
+SafeAddString(NOTY_LUAERR_OPTION_1,			"通知", 1)
+SafeAddString(NOTY_LUAERR_OPTION_2,			"聊天消息", 1)
+
+SafeAddString(NOTYOU_LUAERR_MESSAGE,			"发生 Lua 错误", 1)
+SafeAddString(NOTYOU_LUAERR_HEADING,			"Lua 错误", 1)
+SafeAddString(NOTYOU_LUAERR_SHORT,			"Lua 错误", 1)
+
+SafeAddString(NOTYOU_LUAMEM_MESSAGE,			"附加组件已耗尽所有可用内存", 1)
+SafeAddString(NOTYOU_LUAMEM_HEADING,			"Lua内存错误", 1)
+SafeAddString(NOTYOU_LUAMEM_SHORT,			"Lua内存错误", 1)
+
+SafeAddString(NOTYOU_LUADIALOG_TITLE,			"Lua达到内存限制", 1)
+SafeAddString(NOTYOU_LUADIALOG_TEXT,			"是否将分配的内存限制从|cFFFFFF<<1>>|r增加到|cFFFFFF<<2>>|r MB？（这将重新加载你的用户界面）", 1)
+
+SafeAddString(NOTYOU_AVA_HEADER,			"联盟对抗", 1)
+SafeAddString(NOTYOU_AVA,				"通知设置", 1)
+SafeAddString(NOTYOU_AVA_TOOLTIP,			"选择你想如何处理联盟战争地点之外的联盟战争消息：\n|cFFFFFF不要禁用|r - 没有变化\n|cFFFFFF消息到聊天|r - 将消息重定向到聊天\n|cFFFFFF禁用|r - 禁用消息", 1)
+
+SafeAddString(NOTYOU_GROUPZONE_HEADER,			"组区", 1)
+SafeAddString(NOTYOU_GROUPZONE,				"通知设置", 1)
+SafeAddString(NOTYOU_GROUPZONE_TOOLTIP,			"选择您希望如何处理有关进入或离开群组区域的消息：\n|cFFFFFF不要禁用|r - 没有更改\n|cFFFFFF消息到聊天|r - 将消息重定向到聊天\n|cFFFFFF禁用|r - 禁用消息", 1)
+
+SafeAddString(NOTYOU_FRIENDS_HEADER,			"朋友状态消息", 1)
+SafeAddString(NOTYOU_FRIENDS_ACTIVITY,			"禁用朋友状态消息，需要reloadui后生效", 1)
+SafeAddString(NOTYOU_FRIENDS_ACTIVITY_TOOLTIP,		"好友加入或离开游戏时禁用聊天消息：\n- |cFFFFFF[@username] 以 [name]|r 登录\n- |cFFFFFF[@username] 以 [name]|r 登录", 1)
+
+SafeAddString(NOTYOU_TEXT_ALERTS_HEADER,		"文字通知", 1)
+SafeAddString(NOTYOU_MOB_IMMUNE,			"禁用通知 \"目标免疫\"", 1)
+SafeAddString(NOTYOU_MOB_IMMUNE_TOOLTIP,		"禁用在 Boss 战中经常出现的通知：\n- |cFFFFFF".. GetErrorString(162) .."|r\n- |cFFFFFF".. GetErrorString(177) .."|r\n- |cFFFFFF" .. GetString("和行动结果", ACTION_RESULT_MISSING_EMPTY_SOUL_GEM) .. "|r\n- |cFFFFFF" .. GetString("和行动结果", ACTION_RESULT_IMMUNE) .. "|r", 1)
+SafeAddString(NOTYOU_SCREENSHOT,			"禁用通知“已保存截图”", 1)
+SafeAddString(NOTYOU_SCREENSHOT_TOOLTIP,		"截屏时禁用通知：\n- |cFFFFFFScreenshot 保存在文件夹中：<路径>|r", 1)
+SafeAddString(NOTYOU_ENLIGHTENED,			"禁用发现新地点通知", 1)
+SafeAddString(NOTYOU_ENLIGHTENED_TOOLTIP,		"禁用启蒙通知\n- |cFFFFFF您已发现|r", 1)
+SafeAddString(NOTYOU_CRAFTRESULT,			"禁用物品制作通知", 1)
+SafeAddString(NOTYOU_CRAFTRESULT_TOOLTIP,		"禁用项目创建通知:\n- |cFFFFFF" .. GetString(SI_TRADESKILLRESULT119) .."|r\n- |cFFFFFF" .. GetString(SI_SMITHING_IMPROVEMENT_FAILED) .."|r\n- |cFFFFFF" .. GetString(SI_SMITHING_BLACKSMITH_EXTRACTION_FAILED) .."|r\n- |cFFFFFF" .. GetString(SI_SMITHING_DECONSTRUCTION_LEVEL_PENALTY) .. "|r\n- |cFFFFFF" .. GetString(SI_ALCHEMY_NO_YIELD) .. "|r\n- |cFFFFFF" .. GetString(SI_ENCHANT_NO_YIELD) .. "|r", 1)
+SafeAddString(NOTYOU_REPAIR,				"禁用修复通知", 1)
+SafeAddString(NOTYOU_REPAIR_TOOLTIP,			"禁用修复通知：\n- |cFFFFFF<Item> 修复|r", 1)
+SafeAddString(NOTYOU_ALERT_THROTTLING,			"相同通知之间的延迟。", 1)
+SafeAddString(NOTYOU_ALERT_THROTTLING_TOOLTIP,		"仅在选定的秒数后显示相同的通知.", 1)
+
+SafeAddString(NOTYOU_SOUND_HEADER,			"声音通知", 1)
+SafeAddString(NOTYOU_ULTISOUND,				"静音终极技能准备声音", 1)
+SafeAddString(NOTYOU_ULTISOUND_TOOLTIP,			"选择何时关闭终极就绪声音.", 1)
+
+SafeAddString(NOTYOU_MARKET_HEADER,			"商城广告", 1)
+SafeAddString(NOTYOU_MARKET_ADS,			"禁用皇冠商店优惠", 1)
+SafeAddString(NOTYOU_MARKET_ADS_TOOLTIP,		"禁用登录时出现的皇冠商店优惠.", 1)
+
+SafeAddString(NOTYOU_MAIL_HEADER,			"删除消息对话框", 1)
+SafeAddString(NOTYOU_MAIL,				"禁用“删除邮件”对话框", 1)
+SafeAddString(NOTYOU_MAIL_TOOLTIP,			"删除电子邮件时禁用确认。", 1)
+
+SafeAddString(NOTYOU_FENCE_HEADER,			"赃物买主", 1)
+SafeAddString(NOTYOU_FENCE,				"删除对话框“无法从围栏回购”", 1)
+SafeAddString(NOTYOU_FENCE_TOOLTIP,			"向赃物买家出售稀有物品时禁用确认.", 1)
+
+SafeAddString(NOTYOU_GROUPS_HEADER,			"小组对话", 1)
+SafeAddString(NOTYOU_GROUPS_DISBAND,			"禁用对话框 \"离开群组\"", 1)
+SafeAddString(NOTYOU_GROUPS_DISBAND_TOOLTIP,		"离开群组时禁用确认.", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE,			"禁用大型组对话框和消息", 1)
+SafeAddString(NOTYOU_GROUPS_LARGE_TOOLTIP,		"禁用大型组确认对话框，以及队伍变为或不再是大型组时显示的消息。", 1)
+
+SafeAddString(NOTYOU_CRAFT_HEADER,			"工艺对话", 1)
+SafeAddString(NOTYOU_CRAFT,				"禁用对话框“尝试改进项目\"", 1)
+SafeAddString(NOTYOU_CRAFT_TOOLTIP,			"尝试升级设备时禁用确认.", 1)
+
+SafeAddString(NOTYOU_CHAMELEON_HEADER,			"皇冠风格石", 1)
+SafeAddString(NOTYOU_CHAMELEON,				"取消选中皇冠风格是", 1)
+SafeAddString(NOTYOU_CHAMELEON_TOOLTIP,			"如果您没有，请取消选中装备制作窗口中的皇冠风格石。.", 1)
+
+SafeAddString(NOTYOU_CHAT_HEADER,			"聊天图标", 1)
+SafeAddString(NOTYOU_CHAT,				"隐藏在线好友图标", 1)
+SafeAddString(NOTYOU_CHAT_TOOLTIP,			"启用隐藏聊天窗口顶部的在线好友图标。", 1)
+
+SafeAddString(NOTYOU_RETICLE_HEADER,			"目标", 1)
+SafeAddString(NOTYOU_RETICLE_TAKE,			"禁用与昆虫互动", 1)
+SafeAddString(NOTYOU_RETICLE_TAKE_TOOLTIP,		"禁用与蝴蝶、苍蝇等的交互。", 1)
+SafeAddString(NOTYOU_EMPTY_INTERACT,			"禁用空容器互动", 1)
+SafeAddString(NOTYOU_EMPTY_INTERACT_TOOLTIP,		"容器为空时禁止互动.", 1)
+
+SafeAddString(NOTYOU_NOWRITQUESTS,			"禁用自动显示大师命令任务", 1)
+SafeAddString(NOTYOU_NOWRITQUESTS_TOOLTIP,		"不要在战利品大师命令时自动显示大师命令任务", 1)
+
+SafeAddString(NOTYOU_NOREPORTONITEMS,			"除去项目 \"得到帮助\" 从主题的上下文菜单中", 1)
+SafeAddString(NOTYOU_NOREPORTONITEMS_TOOLTIP,		"除去项目 \"得到帮助\" 从主题的上下文菜单中.", 1)
+
+SafeAddString(NOTYOU_NOBINDALERT,			"装备可绑定物品时不通知", 1)
+SafeAddString(NOTYOU_NOBINDALERT_TOOLTIP,		"装备绑定在装备上的物品时禁用确认.", 1)
+
+SafeAddString(NOTYOU_NOPORTONLEADER,			"禁用移动到组长对话框", 1)
+SafeAddString(NOTYOU_NOPORTONLEADER_TOOLTIP,		"禁用提示您移动到组长的对话.", 1)
+
+SafeAddString(NOTY_NOPORTONLEADER_0,			"绝不", 1)
+SafeAddString(NOTY_NOPORTONLEADER_1,			"当目的地不可用时", 1)
+SafeAddString(NOTY_NOPORTONLEADER_2,			"总是", 1)
+
+SafeAddString(NOTYOU_TAMRIEL,				"使用泰姆瑞尔地图过滤器显示/隐藏图标标记",1)
+SafeAddString(NOTYOU_TAMRIEL_BUTTON,			"打开地图筛选条件",1)
+SafeAddString(NOTYOU_TAMRIEL_TOOLTIP,			"打开地图筛选条件",1)
+
+SafeAddString(NOTYOU_NOUNOWNEDHOUSES,			"不显示未拥有的房屋", 1)
+SafeAddString(NOTYOU_NOUNOWNEDHOUSES_TOOLTIP,		"在地图上不显示未拥有的房屋。只有拥有的房屋将被显示。", 1)
+
+SafeAddString(NOTYOU_NOSHRINESTAMRIEL,			"塔姆瑞尔地图上没有神龛", 1)
+SafeAddString(NOTYOU_NOSHRINESTAMRIEL_TOOLTIP,		"在塔姆瑞尔地图上不显示神龛。它们将显示在区域地图上。", 1)
+
+SafeAddString(NOTYOU_ONLY_CAPITAL_PINS,			"仅在塔姆瑞尔地图上显示主要神龛", 1)
+SafeAddString(NOTYOU_ONLY_CAPITAL_PINS_TOOLTIP,		"仅在塔姆瑞尔地图上显示主要神龛。其他神龛将显示在区域地图上。", 1)
+
+SafeAddString(NOTYOU_GUILDS_HEADER,			"公会邀请函", 1)
+SafeAddString(NOTYOU_GUILDS,				"阻止公会邀请", 1)
+SafeAddString(NOTYOU_GUILDS_TOOLTIP,			"阻止公会邀请消息和通知.", 1)
+SafeAddString(NOTYOU_GUILDSAPP,				"隐藏公会申请通知", 1)
+SafeAddString(NOTYOU_GUILDSAPP_TOOLTIP,			"隐藏公会申请通知。", 1)
+
+SafeAddString(NOTYOU_GROSTER_HEADER,			"公会通告", 1)
+SafeAddString(NOTYOU_GROSTER_HEADER_TOOLTIP,		"选择如何处理公会通知.", 1)
+SafeAddString(NOTYOU_GROSTER,				"关机设置", 1)
+SafeAddString(NOTYOU_GROSTER_TOOLTIP,			"选择, 如何处理公会通知:\n|cFFFFFFне 关掉|r - 没有变化\n|cFFFFFF聊天消息|r - 将通知重定向到聊天\n|cFFFFFF禁用|r - 禁用通知", 1)
+
+SafeAddString(NOTYOU_RAIDSCORE_HEADER,			"突袭结果通知", 1)
+SafeAddString(NOTYOU_RAIDSCORE_HEADER_TOOLTIP,		"选择您希望如何处理突袭结果通知.", 1)
+SafeAddString(NOTYOU_RAIDSCORE_ONLYFOR,			"显示结果:", 1)
+SafeAddString(NOTYOU_RAIDSCORE_ONLYFOR_TOOLTIP,		"选择您希望何时查看 劫掠（突袭） 分数通知：\n|cFFFFFF总是|r - 通知不变\n|cFFFFFFfriends|r - 仅当好友完成 劫掠（突袭） 时\n|cFFFFFF公会成员|r - 仅当 劫掠（突袭） 完成时 由公会成员（下面有其他过滤器）\n|cFFFFFF从不|r - 阻止所有 劫掠（突袭） 分数通知", 1)
+SafeAddString(NOTYOU_RAIDSCORE_REDIRECT,		"将通知重定向到聊天", 1)
+
+SafeAddString(NOTYOU_MOTD_HEADER,			"\"当天的消息\" 公会", 1)
+SafeAddString(NOTYOU_MOTD_HEADER_TOOLTIP,		"选择您希望如何处理公会日消息.", 1)
+SafeAddString(NOTYOU_MOTD_BLOCK,			"关机设置", 1)
+SafeAddString(NOTYOU_MOTD_BLOCK_TOOLTIP,		"选择您希望如何处理公会日消息:\n|cFFFFFFне отключать|r - 没有变化\n|cFFFFFF聊天消息|r - 将消息重定向到聊天\n|cFFFFFFотключить|r - 禁用消息", 1)
+
+SafeAddString(NOTYOU_GUILDLEAVE_HEADER,			"公会退出键", 1)
+SafeAddString(NOTYOU_GUILDLEAVE_HEADER_TOOLTIP,		"选择您希望如何自定义退出公会热键的显示方式", 1)
+SafeAddString(NOTYOU_GUILDLEAVE_BLOCK,			"禁用", 1)
+SafeAddString(NOTYOU_GUILDLEAVE_BLOCK_TOOLTIP,		"选择您希望如何自定义退出公会热键的显示方式:\n|cFFFFFF没有人|r - 没有变化\n|cFFFFFF所有公会|r - 禁用所有公会\n|cFFFFFF指定公会|r - 选择要禁用密钥的公会", 1)
+
+SafeAddString(NOTYOU_CAMERA_HEADER,			"相机和互动", 1)
+SafeAddString(NOTYOU_CAMERA_INTERRUPT,			"不要打断互动", 1)
+SafeAddString(NOTYOU_CAMERA_INTERRUPT_TOOLTIP,		"不要打断互动 (采集资源、钓鱼等.), 当您打开地图、库存或其他窗口时.", 1)
+SafeAddString(NOTYOU_CAMERA_ROTATE,			"不要旋转相机", 1)
+SafeAddString(NOTYOU_CAMERA_ROTATE_TOOLTIP,		"打开地图、库存或其他窗口时不要旋转相机.", 1)
+SafeAddString(NOTYOU_CAMERA_ROTATE_STATS,		"显示状态时不要旋转游戏镜头", 1)
+SafeAddString(NOTYOU_CAMERA_ROTATE_STATS_TOOLTIP,	"显示状态时不要旋转游戏镜头. 如果您打开此功能，您将无法通过 ESO 功能更改状态窗口中的服装.", 1)
+SafeAddString(NOTYOU_CAMERA_ROTATE_INV,			"显示库存时不要旋转游戏镜头", 1)
+SafeAddString(NOTYOU_CAMERA_ROTATE_INV_TOOLTIP,		"显示库存时不要旋转游戏摄像机。 如果您打开此功能，您将无法通过 ESO 功能预览任何项目.", 1)
+
+SafeAddString(NOTYOU_AUTOLOOTITEMS_HEADER,		"自动拾取", 1)
+SafeAddString(NOTYOU_AUTOLOOTITEMS,			"自动从容器中拾取", 1)
+SafeAddString(NOTYOU_AUTOLOOTITEMS_TOOLTIP,		"如果启用了自动拾取，则自动从容器中拾取物品。 如果启用了适当的设置，被盗物品会自动从容器中拾取.", 1)
+
+SafeAddString(NOTYOU_NOLOREREADER,			"不要阅读找到的书籍", 1)
+SafeAddString(NOTYOU_NOLOREREADER_TOOLTIP,		"如果您不在图书馆，请勿展示您刚刚找到的书籍.", 1)
+
+SafeAddString(NOTYOU_NOLOREDISCOVERIES,			"禁用消息“找到知识书\"", 1)
+SafeAddString(NOTYOU_NOLOREDISCOVERIES_TOOLTIP,		"选择您希望如何处理有关已找到的知识书籍的消息:\n|cFFFFFF不要禁用|r - 没有变化\n|cFFFFFF聊天消息|r - 将消息重定向到聊天\n|cFFFFFF禁用|r - 禁用消息", 1)
+
+SafeAddString(NOTYOU_NOSKILLSPROGRESS,			"禁用消息“技能升级到等级 X”", 1)
+SafeAddString(NOTYOU_NOSKILLSPROGRESS_TOOLTIP,		"选择您希望如何处理技能提升消息:\n|cFFFFFF不要禁用|r - 没有变化\n|cFFFFFF聊天消息|r - 将消息重定向到聊天\n|cFFFFFFотключить|r - отключить сообщения", 1)
+
+SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF,			"禁用移动到生产背包的通知", 1)
+SafeAddString(NOTYOU_NOCRAFTBAG_NOTIF_TOOLTIP,		"不要通知您的物品已移至生产背包.", 1)
+
+SafeAddString(NOTYOU_NOCHATAUTOCOMPLETE,		"在聊天中禁用自动完成", 1)
+SafeAddString(NOTYOU_NOCHATAUTOCOMPLETE_TOOLTIP,	"禁用聊天命令的自动完成，例如启用表情和切换频道.", 1)
+
+SafeAddString(NOTYOU_NOCHATDISABLE,			"在交易中心禁用聊天最小化", 1)
+SafeAddString(NOTYOU_NOCHATDISABLE_TOOLTIP,		"将禁用交易场所场景中的聊天最小化", 1)
+
+SafeAddString(NOTYOU_LUA_HEADER,			"Lua 错误", 1)
+SafeAddString(NOTYOU_LUA_MEMORY,			"重定向 Lua 错误", 1)
+SafeAddString(NOTYOU_LUA_MEMORY_TOOLTIP,		"将 Lua 错误显示为通知而不是弹出对话框.", 1)
+SafeAddString(NOTYOU_LUA_ERROR,				"重定向 Lua 错误", 1)
+SafeAddString(NOTYOU_LUA_ERROR_TOOLTIP,			"将 Lua 错误显示为通知而不是弹出对话框.", 1)

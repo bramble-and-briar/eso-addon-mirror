@@ -6,6 +6,8 @@ local isUnboxingCraftReward = false
 local pendingUnboxingQueue 	= {}
 local unboxingInterrupted 	= false
 local isUnboxing 			= false
+local lastLootUpdatedTimetag = 0
+local isAllCurtLooted = true
 
 --***********************--
 -- Sell & Launder Stolen
@@ -24,6 +26,7 @@ local function SellAllStolenJunk()
             end
         end
     end
+	SCENE_MANAGER:ShowBaseScene()
 end
 
 local function LaunderAllStolen()
@@ -41,6 +44,7 @@ local function LaunderAllStolen()
             end
         end
     end
+	SCENE_MANAGER:ShowBaseScene()
 end
 
 local function OpenStore()
@@ -57,6 +61,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_STORE_CHTLINE))
 		SellAllJunk()
 		MSI.Print("c", zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 		MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
+
 	end
 end
 
@@ -161,8 +166,36 @@ local function IsCraftingContainer(str)
     end
     return false
 end
+local function OnLootUpdatedThrottled()
+    lootActivityTimestamp = GetGameTimeMilliseconds()
+    local currentTime = GetGameTimeMilliseconds()
+	local currencyInfo = LOOT_SHARED:GetLootCurrencyInformation()
+	
+	for curt, info in pairs(currencyInfo) do
+		if curt == CURT_MONEY then
+		isAllCurtLooted = false
+			if info.currencyAmount > 0 then
+				LootMoney()
+			end
+		end
+		isAllCurtLooted = true
+	end
+	
+    if (currentTime - lastLootUpdatedTimetag) > (GetLatency() + 200) then
+		for i = 1, GetNumLootItems(), 1 do
+			local lootId, name, _, _, _, _, _, _, _ = GetLootItemInfo(i)
+            LootItemById(lootId)
+		end
+		lastLootUpdatedTimetag = currentTime
+	end
+    EndLooting()
+	--MSI.ApplyRightScene(SCENE_MANAGER:GetCurrentScene():GetName())
+	SCENE_MANAGER:ShowBaseScene()
+end
 local function LootClosed()
+    isAllCurtLooted = true
 	isUnboxingCraftReward = false
+    lootActivityTimestamp = GetGameTimeMilliseconds()
 end
 
 local function GetItemDataIfUnknown(bagId, slotIndex)
@@ -342,6 +375,11 @@ local function unboxQueuedContainer()
 						elseif item.isRecipePage then
 							MSI.Print("d", zo_strformat(GetString(MSI_MOD_LEARNED_ITEM_CHTLINE), item.getLink))
 						elseif (item.isContainer or item.isUnopened) then
+							--OnLootUpdatedThrottled()
+							EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
+							zo_callLater(function()
+							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
+							end, GetLatency() + 200)
 							MSI.Print("d", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
 						else
 							MSI.Print("d", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
@@ -669,6 +707,7 @@ end
 -- Bind Learn Open Sell Lounder
 function MSI.InitModTraderThing()
 	local function UnRegModuleEvents()
+        EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
 		EVENT_MANAGER:UnregisterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 		EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootClosed", EVENT_LOOT_CLOSED)
 		EVENT_MANAGER:UnregisterForEvent(MSI.Name.."OpenStore", EVENT_OPEN_STORE)
@@ -677,6 +716,7 @@ function MSI.InitModTraderThing()
 	end
 	local function RegModuleEvents()
 		UnRegModuleEvents()
+		--EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", LOOT, EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
 		EVENT_MANAGER:RegisterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, InventoryUpdate)
 		EVENT_MANAGER:AddFilterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, true)
 		EVENT_MANAGER:AddFilterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)

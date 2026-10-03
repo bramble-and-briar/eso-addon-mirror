@@ -38,19 +38,21 @@ local function Reposition()
     -- Combat Tips
     ZO_ActiveCombatTipsTip:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -300)
 end
+UIE.Reposition = Reposition -- /script KyzderpsDerps.UIElements.Reposition()
 
 local function ToggleQuestPanel()
     local isInTrial = KyzderpsDerps.TRIAL_ZONEIDS[tostring(GetZoneId(GetUnitZoneIndex("player")))] ~= nil
 
-    ZO_FocusedQuestTrackerPanel:SetHidden(isInTrial)
+    SetSetting(SETTING_TYPE_UI, UI_SETTING_SHOW_QUEST_TRACKER, isInTrial and "false" or "true", SETTINGS_SET_OPTION_DO_NOT_SAVE_TO_PERSISTED_DATA)
+    -- ZO_FocusedQuestTrackerPanel:SetHidden(isInTrial)
 end
 
 function UIE.Initialize()
     -- Personal UI elements repositioning
-    if (KyzderpsDerps.savedOptions.ui.reposition) then
-        Reposition()
-        ZO_PlatformStyle:New(Reposition)
-    end
+    -- if (KyzderpsDerps.savedOptions.ui.reposition) then
+    --     Reposition()
+    --     ZO_PlatformStyle:New(Reposition)
+    -- end
 
     -- Hiding quest tracker while in a trial
     if (KyzderpsDerps.savedOptions.ui.hideQuestInTrial) then
@@ -78,19 +80,19 @@ function UIE.GetSettings()
             end,
             width = "full",
         },
-        {
-            type = "checkbox",
-            name = "Reposition UI elements KyzerStyle™",
-            tooltip = "Repositions UI elements to my personal preference. This moves the attribute bars into a pyramid, some elements up a bit to accommodate the pyramid, and loot log up to be above where my minimap is. These positions are hardcoded and likely won't work for everyone, they're intended to be a lightweight way of repositioning elements. If you want to make minor adjustments, you can edit KyzderpsDerps/modules/uielements/Reposition.lua, but you would have to restore the changes every time the addon is updated. If you want to adjust your UI more, I would recommend an addon like Azurah instead",
-            default = false,
-            getFunc = function() return KyzderpsDerps.savedOptions.ui.reposition end,
-            setFunc = function(value)
-                KyzderpsDerps.savedOptions.ui.reposition = value
-                UIE.Initialize()
-            end,
-            width = "full",
-            requiresReload = true,
-        },
+        -- {
+        --     type = "checkbox",
+        --     name = "Reposition UI elements KyzerStyle™",
+        --     tooltip = "Repositions UI elements to my personal preference. This moves the attribute bars into a pyramid, some elements up a bit to accommodate the pyramid, and loot log up to be above where my minimap is. These positions are hardcoded and likely won't work for everyone, they're intended to be a lightweight way of repositioning elements. If you want to make minor adjustments, you can edit KyzderpsDerps/modules/uielements/Reposition.lua, but you would have to restore the changes every time the addon is updated. If you want to adjust your UI more, I would recommend an addon like Azurah instead",
+        --     default = false,
+        --     getFunc = function() return KyzderpsDerps.savedOptions.ui.reposition end,
+        --     setFunc = function(value)
+        --         KyzderpsDerps.savedOptions.ui.reposition = value
+        --         UIE.Initialize()
+        --     end,
+        --     width = "full",
+        --     requiresReload = true,
+        -- },
         {
             type = "checkbox",
             name = "Set specific AOE colors",

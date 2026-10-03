@@ -69,6 +69,7 @@ Register("SI_LOOTLOG_SETTING_TRADEBE"   , "Include bind-on-equip items when usin
 Register("SI_LOOTLOG_SETTING_TRADEBETT" , "The |c00CCFF/linktrade|r (or |c00CCFF/lt|r) chat command will link in chat the tradeable bind-on-pickup items that have already been collected, and if this option is enabled, it will include bind-on-equip items as well.")
 Register("SI_LOOTLOG_SETTING_ANTIQUITY" , "Enable antiquities-related features")
 Register("SI_LOOTLOG_SETTING_ONLYMOTIF" , "Only flag treasure maps with motif leads")
+Register("SI_LOOTLOG_SETTING_TRADELEAD" , "Also flag tradeable leads with incomplete codex")
 Register("SI_LOOTLOG_SETTING_ACLRFULL"  , "Completed codex")
 Register("SI_LOOTLOG_SETTING_ACLRINC"   , "Incomplete codex")
 Register("SI_LOOTLOG_SETTING_ACLRNEVER" , "Never found")

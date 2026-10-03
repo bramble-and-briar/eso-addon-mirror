@@ -15,7 +15,7 @@ function S.Get()
         saved = AlabuzyaUI.SavedVariables.Account('features', S.defaults)
         -- Migrate the previous theme ID without changing saved layout keys.
         if saved.style == 'classic' then saved.style = 'wow' end
-        if saved.style ~= 'diablo' and saved.style ~= 'wow' and saved.style ~= 'none' then saved.style = 'diablo' end
+        if saved.style ~= 'diablo' and saved.style ~= 'wow' and saved.style ~= 'ds3' and saved.style ~= 'none' then saved.style = 'diablo' end
         for _, kind in ipairs({'charge', 'repair'}) do
             saved[kind].threshold = math.max(1, math.min(90, tonumber(saved[kind].threshold) or 10))
         end
@@ -46,7 +46,7 @@ local function RegisterPanel()
     local ru = GetCVar('language.2') == 'ru'
     local function L(a,b) return ru and a or b end
     local panel = LAM:RegisterAddonPanel('AlabuzyaUIOptions', {
-        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.49',
+        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.54',
         registerForRefresh=true, registerForDefaults=true,
     })
     SLASH_COMMANDS['/alabuzyaui'] = function() LAM:OpenToPanel(panel) end
@@ -77,8 +77,8 @@ local function RegisterPanel()
     LAM:RegisterOptionControls('AlabuzyaUIOptions', {
         {type='description', text=L('Настройки общие для персонажей одного аккаунта на текущем сервере. Зарядка, ремонт, мусор и функции чата работают независимо от оформления. Связь: aabuziarov@gmail.com', 'Account-wide settings, separate for each server. Recharge, repair, junk selling and chat helpers work independently of the skin. Contact: aabuziarov@gmail.com')},
         {type='submenu', name=L('Интерфейсы', 'Interfaces'), controls={
-            {type='dropdown', name=L('Оформление', 'Style'), choices={L('Отключено — стандартный ESO', 'Disabled — standard ESO'),'Diablo','WoW'},
-                choicesValues={'none','diablo','wow'}, getFunc=function() return db.style end,
+            {type='dropdown', name=L('Оформление', 'Style'), choices={L('Отключено — стандартный ESO', 'Disabled — standard ESO'),'Diablo','WoW','DS_3'},
+                choicesValues={'none','diablo','wow','ds3'}, getFunc=function() return db.style end,
                 setFunc=function(v) db.style=v end, default='diablo', needsReload=true,
                 tooltip=L('Выбор меняет только оформление после перезагрузки. Сетка, стрелка и остальные помощники работают независимо от темы и управляются своими настройками.', 'Changes presentation after reload. Grid, quest arrow and other helpers work independently of the theme, controlled by their own settings.')},
             Toggle('grid', L('Сетка предметов', 'Item grid'), L('Сетка инвентаря, торговца, банка и ремесла. Применяется после перезагрузки при любом оформлении.', 'Inventory, merchant, bank and crafting grids. Works with every style; requires reload.'), true),

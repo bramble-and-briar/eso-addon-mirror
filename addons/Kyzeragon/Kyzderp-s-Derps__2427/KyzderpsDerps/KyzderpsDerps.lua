@@ -4,7 +4,7 @@
 -----------------------------------------------------------
 KyzderpsDerps = {
     name = "KyzderpsDerps",
-    version = "1.54.0",
+    version = "1.55.0",
 }
 local KD = KyzderpsDerps
 
@@ -274,12 +274,7 @@ local defaultValues = {
         x = GuiRoot:GetWidth() / 3 * 2,
         y = GuiRoot:GetHeight() / 3,
     },
-    playedChart = {
-        characters = {},
-    },
-    charInfo = {
-        characters = {},
-    },
+    charIdInfo = {},
     chestsLooted = {
         x = GuiRoot:GetWidth() - 300,
         y = 0,

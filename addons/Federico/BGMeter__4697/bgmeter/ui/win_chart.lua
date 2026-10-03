@@ -13,6 +13,7 @@ local F = BGMeter.Format
 local P = BGMeter.Plot.primitives
 local S = BGMeter.Plot.style
 local Prefs = BGMeter.Prefs
+local Prof = BGMeter.Prof
 
 local function timeline_ok(m)
     local tl = m.timeline
@@ -778,6 +779,46 @@ local function minute_step(tspan)
     return 300000
 end
 
+local DERIVED = { n = 0, tick = 0 }
+local DERIVED_MAX = 3
+
+local function derived_for(m, tl, tspan, gt)
+    local cur = W._derived
+    if cur and cur.m == m and cur.tspan == tspan then return cur end
+    if not cur then DERIVED.n = 0 end
+    DERIVED.tick = DERIVED.tick + 1
+    for i = 1, DERIVED.n do
+        local e = DERIVED[i]
+        if e.m == m and e.tspan == tspan then
+            e.tick = DERIVED.tick
+            return e
+        end
+    end
+    Prof.enter("tl:derive")
+    local dc = derive(m, tl, tspan, gt)
+    Prof.exit("tl:derive")
+    dc.tick = DERIVED.tick
+    if DERIVED.n < DERIVED_MAX then
+        DERIVED.n = DERIVED.n + 1
+        DERIVED[DERIVED.n] = dc
+    else
+        local oldest = 1
+        for i = 2, DERIVED.n do if DERIVED[i].tick < DERIVED[oldest].tick then oldest = i end end
+        DERIVED[oldest] = dc
+    end
+    return dc
+end
+W.derived_cache = DERIVED
+
+function W.prepare(m)
+    if not m or not timeline_ok(m) then return end
+    local tl = m.timeline
+    local n = #tl.t
+    local tspan = math.max(1, tl.t[n] or 1)
+    local gt = C.GAME_TYPE_LABEL and C.GAME_TYPE_LABEL[m.gameType] or nil
+    W._derived = derived_for(m, tl, tspan, gt)
+end
+
 function SEC.timeline(m)
     local b = W.battle
     SEC.clear_chart(b)
@@ -788,11 +829,8 @@ function SEC.timeline(m)
     local tspan = math.max(1, tl.t[n] or 1)
     local gt = C.GAME_TYPE_LABEL and C.GAME_TYPE_LABEL[m.gameType] or nil
 
-    local dc = W._derived
-    if not dc or dc.m ~= m or dc.tspan ~= tspan then
-        dc = derive(m, tl, tspan, gt)
-        W._derived = dc
-    end
+    local dc = derived_for(m, tl, tspan, gt)
+    W._derived = dc
     local lanes, relicMode = dc.lanes, dc.relicMode
     local occ, neutralPct, fstats = dc.occ, dc.neutralPct, dc.fstats
     local lead = dc.lead
@@ -840,7 +878,12 @@ function SEC.timeline(m)
     local race_off = kills_off + ((kills_h > 0) and (kills_h + 2) or 0)
     local bal_off = race_off + ((race_h > 0) and (race_h + 2) or 0)
     local chart_off = bal_off + ((bal_h > 0) and (bal_h + 2) or 0)
-    if bal_h > 0 then SEC.balance(b, dc.bal, dc.sur, bal_h, bal_off, dc.exp) end
+    if bal_h > 0 then
+        Prof.enter("tl:balance")
+        SEC.balance(b, dc.bal, dc.sur, bal_h, bal_off, dc.exp)
+        Prof.exit("tl:balance")
+    end
+    Prof.enter("tl:score")
     b.chart:SetHidden(false)
     b.chart:ClearAnchors()
     b.chart:SetAnchor(BOTTOMLEFT, b.container, BOTTOMLEFT, 0, -chart_off)
@@ -960,20 +1003,31 @@ function SEC.timeline(m)
         end
     end
 
+    Prof.exit("tl:score")
     if race_h > 0 then
+        Prof.enter("tl:lead")
         SEC.race(b, dc.race, dc.dlead, m, tl, n, tspan, w, race_h, race_off)
+        Prof.exit("tl:lead")
     end
     if kills_h > 0 then
+        Prof.enter("tl:kills")
         SEC.kills(b, dc.kp, tspan, w, kills_h, kills_off)
+        Prof.exit("tl:kills")
     end
     if lanes then
+        Prof.enter("tl:ribbon")
         SEC.ribbon(b, lanes, ribbon_h, tspan, w, rib_off, gt, dc.mine)
+        Prof.exit("tl:ribbon")
     end
     if occ then
+        Prof.enter("tl:occupation")
         SEC.occupation(b, occ, neutralPct, fstats, w)
+        Prof.exit("tl:occupation")
     end
     if mom_h > 0 then
+        Prof.enter("tl:momentum")
         SEC.momentum(b, m, tl, n, tspan, w, mom_h, mom_off, lead, tdm_line, dc.cmom, dc.cmomMax)
+        Prof.exit("tl:momentum")
     end
 
     W.chart_state = { tl = tl, n = n, w = w, smax = smax, lanes = lanes, kf = m.killfeed, mine = dc.mine }
@@ -1064,6 +1118,17 @@ local function chart_hover_poll()
         U.card_show(b.chart, TOP, table.concat(parts, "\n"))
     end
     if BGMeter.UI.map and BGMeter.UI.map.is_open() then BGMeter.UI.map.set_time(want_t, true) end
+end
+
+function W.chart_cursor_at(t)
+    local b, st = W.battle, W.chart_state
+    if not st or not b or not b.cursor or b.chart:IsHidden() then return end
+    local tl, n = st.tl, st.n
+    local tspan = math.max(1, tl.t[n] or 1)
+    local x = math.floor((math.max(0, math.min(t or 0, tspan)) / tspan) * (st.w - 6) + 0.5)
+    b.cursor:ClearAnchors()
+    b.cursor:SetAnchor(TOPLEFT, b.chart, TOPLEFT, x, 2)
+    b.cursor:SetHidden(false)
 end
 
 function W._chart_hover_start()

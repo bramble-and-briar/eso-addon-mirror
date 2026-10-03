@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/its_wifey/Mid-Trial-Mechs__4907",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "its_wifey",
+  "canonical_id": "esoui:4907",
+  "category_id": "45",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4907",
+  "deleted": false,
+  "directories": [
+    "MidTrialMechs"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4907/",
+  "fingerprint": "cde36f9baeb43dfd226dd598b2fc600c1f30b0da05edf8ad5f4ae175e238d71f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17661.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17660.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4907",
+  "source_url": "https://www.esoui.com/downloads/info4907-MidTrialMechs.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Mid Trial Mechs",
+  "updated_at": 1790976162000,
+  "version": "1.0.1"
+}

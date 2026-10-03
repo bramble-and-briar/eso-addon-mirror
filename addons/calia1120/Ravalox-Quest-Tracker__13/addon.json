@@ -19,7 +19,7 @@
     "RavaloxsQuestTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl13/",
-  "fingerprint": "0d32860f4f9e2a1afdf95efd8efaba15d067ce34f1411849c212c3154c1f941c",
+  "fingerprint": "ee3eb843c51e76791b03a6cb293fac93decb2a55e62bbcbb37e77286328c4e62",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw4095.png",
     "https://cdn-eso.mmoui.com/preview/pvw4094.png",
@@ -31,11 +31,11 @@
   "source_id": "13",
   "source_url": "https://www.esoui.com/downloads/info13-RavaloxQuestTracker.html",
   "stats": {
-    "downloads": 1476923,
-    "favorites": 1339,
-    "monthly_downloads": 3504
+    "downloads": 1479711,
+    "favorites": 1338,
+    "monthly_downloads": 6054
   },
   "title": "Ravalox' Quest Tracker",
-  "updated_at": 1790583607000,
-  "version": "3.8.3.3"
+  "updated_at": 1790928941000,
+  "version": "3.8.3.4"
 }

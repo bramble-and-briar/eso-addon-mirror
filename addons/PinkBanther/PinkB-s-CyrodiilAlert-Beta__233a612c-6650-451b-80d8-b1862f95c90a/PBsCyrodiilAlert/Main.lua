@@ -482,6 +482,22 @@ local DEFAULTS = {
 		-- other two are for when the corner you want is one something else is already using.
 		draw = "FRONT",
 	},
+	-- The overview map. Off until asked for, like every other thing drawn over the game.
+	-- (Its limits live here rather than in Map.lua so the settings panel can be built from
+	-- this file alone: a panel row that reads a limit from a file that failed to load takes
+	-- the whole panel down with it.)
+	map = {
+		enabled = false,
+		size = 300,
+		pinSize = 18,
+		opacity = 90,
+		position = "TOPRIGHT",
+		offsetX = -24,
+		offsetY = 220,
+		draw = "FRONT",
+		-- The transitus network, as the world map shows it.
+		links = true,
+	},
 	-- The campaign summary. Its own switch, its own size and its own corner; the typeface and
 	-- outline come from the alert display, because two on-screen texts from one add-on in two
 	-- different faces looks like a mistake rather than a choice.
@@ -514,6 +530,34 @@ for _, kind in ipairs(KINDS) do
 end
 
 addon.DEFAULTS = DEFAULTS
+addon.MIN_MAP_SIZE, addon.MAX_MAP_SIZE = 120, 700
+
+-- How far any surface may be moved from its anchor: the whole screen, in either direction.
+--
+-- These used to be a fixed 900 by 500, which reached only part of the screen -- anchored top
+-- right, a window could not be moved more than 900 units left, and on a 1920-wide interface
+-- the left half was out of reach. The real size is GuiRoot's, and it depends on the player's
+-- UI scale, so it is read rather than assumed: the full width and height either way means
+-- every point on the screen can be reached from any of the anchors.
+local FALLBACK_WIDTH, FALLBACK_HEIGHT = 1920, 1080
+
+function addon:ScreenSize()
+	if GuiRoot and GuiRoot.GetDimensions then
+		local ok, width, height = pcall(GuiRoot.GetDimensions, GuiRoot)
+		if ok and width and height and width > 0 and height > 0 then
+			return width, height
+		end
+	end
+	return FALLBACK_WIDTH, FALLBACK_HEIGHT
+end
+
+function addon:UpdateScreenLimits()
+	local width, height = self:ScreenSize()
+	self.MAX_OFFSET_X, self.MAX_OFFSET_Y = math.ceil(width), math.ceil(height)
+end
+
+addon:UpdateScreenLimits()
+addon.MIN_MAP_PIN, addon.MAX_MAP_PIN = 8, 48
 addon.MIN_INTERVAL, addon.MAX_INTERVAL = MIN_INTERVAL, MAX_INTERVAL
 addon.MIN_REPEAT, addon.MAX_REPEAT = MIN_REPEAT, MAX_REPEAT
 
@@ -539,6 +583,14 @@ addon.hud = {
 addon.board = {
 	Refresh = function() end,
 	Available = function() return false end,
+}
+
+-- Filled in by Map.lua.
+addon.map = {
+	Refresh = function() end,
+	RefreshKeeps = function() end,
+	Available = function() return false end,
+	Probe = function() return {} end,
 }
 
 -- Also filled in by Hud.lua. Push returning false is what sends a line to chat instead, so the
@@ -724,15 +776,26 @@ end
 -- QueryCampaignSelectionData, which is a request to the server -- the campaign browser fires
 -- one each time it opens.
 --
--- So it is asked for only when it is missing, and then at most once every few minutes. A
--- summary refreshed every five seconds must not become five seconds of server requests, and
--- an estimate in four buckets does not move fast enough to be worth one.
+-- So it is asked for every few minutes, and no more often. A summary refreshed every five
+-- seconds must not become five seconds of server requests, and an estimate in four buckets
+-- does not move fast enough to be worth one.
+--
+-- It used to be asked for only when it was MISSING. That left a hole: once the first answer
+-- was in, nothing asked again, and unless the server volunteered updates on its own -- which
+-- nothing says it does -- the summary went on showing the population from the moment the
+-- player rode in. Now it is refreshed on the same five-minute cadence whether it is there or
+-- not, but only while the summary is on screen: nothing is asked for on behalf of a display
+-- nobody is looking at. (Outside Cyrodiil the watch's timer is stopped, so nothing asks there
+-- either.) Printing the summary with /pbalert board is a direct question and may ask too.
 -- ---------------------------------------------------------------------------------------
 
 local POPULATION_QUERY_SECONDS = 300
 
-function addon:PopulationQuery()
+function addon:PopulationQuery(asked)
 	if not QueryCampaignSelectionData then
+		return
+	end
+	if not asked and not (self.sv and self.sv.board and self.sv.board.enabled) then
 		return
 	end
 	local now = Now()
@@ -756,6 +819,8 @@ function addon:Population()
 
 	for index = 1, (GetNumSelectionCampaigns() or 0) do
 		if GetSelectionCampaignId(index) == campaignId then
+			-- Present, but maybe old. Keep it fresh on the same cadence.
+			self:PopulationQuery()
 			local population = {}
 			for alliance = 1, (NUM_ALLIANCES or 3) do
 				population[alliance] = GetSelectionCampaignPopulationData(index, alliance)
@@ -969,6 +1034,8 @@ local function IsThisCampaign(bgContext)
 	return true
 end
 
+addon.IsThisCampaign = IsThisCampaign
+
 -- ---------------------------------------------------------------------------------------
 -- The Daedric artifact (Volendrung)
 --
@@ -1110,6 +1177,33 @@ local function ArtifactEnergyText()
 	return ""
 end
 
+-- Whether an objective is in play at all. Every place the artifact CAN spawn is an objective
+-- of its own -- twenty-three of them across Cyrodiil -- and each answers GetObjectivePinInfo
+-- with a perfectly good pin, whether or not anything is there. The client's own map only
+-- draws the ones that are enabled (mappin_manager.lua:677); without the same test the add-on
+-- drew every spawn point as an artifact.
+local function IsObjectiveInPlay(keepId, objectiveId, bgContext)
+	if IsObjectiveEnabled and not IsObjectiveEnabled(keepId, objectiveId, bgContext) then
+		return false
+	end
+	return true
+end
+
+-- And whether the thing itself is there to be drawn: the client's second test before it puts a
+-- current-location pin down (mappin_manager.lua:680, 706).
+local function IsObjectiveObjectShown(keepId, objectiveId, bgContext)
+	if not IsObjectiveInPlay(keepId, objectiveId, bgContext) then
+		return false
+	end
+	if IsObjectiveObjectVisible and not IsObjectiveObjectVisible(keepId, objectiveId, bgContext) then
+		return false
+	end
+	return true
+end
+
+addon.IsObjectiveInPlay = IsObjectiveInPlay
+addon.IsObjectiveObjectShown = IsObjectiveObjectShown
+
 -- Every Daedric artifact currently revealed in this campaign, or nil. An artifact that has not
 -- spawned reports OBJECTIVE_CONTROL_STATE_UNKNOWN and is left out: "not out yet" is not a state
 -- worth a line on a summary.
@@ -1123,7 +1217,8 @@ function addon:Artifacts()
 	for index = 1, (GetNumObjectives() or 0) do
 		local keepId, objectiveId, bgContext = GetObjectiveIdsForIndex(index)
 		if keepId and IsThisCampaign(bgContext)
-			and GetObjectiveType(keepId, objectiveId, bgContext) == OBJECTIVE_DAEDRIC_WEAPON then
+			and GetObjectiveType(keepId, objectiveId, bgContext) == OBJECTIVE_DAEDRIC_WEAPON
+			and IsObjectiveInPlay(keepId, objectiveId, bgContext) then
 			local name, _, state = GetObjectiveInfo(keepId, objectiveId, bgContext)
 			if state ~= OBJECTIVE_CONTROL_STATE_UNKNOWN then
 				local pinType = GetObjectivePinInfo(keepId, objectiveId, bgContext)
@@ -1213,6 +1308,8 @@ function addon:SituationLines()
 end
 
 function addon:PrintSituation()
+	-- A direct question: allowed to ask the server even with the summary off screen.
+	self:PopulationQuery(true)
 	local lines = self:SituationLines()
 	if not lines then
 		Print(GetString(SI_PBSCA_BOARD_NO_DATA))
@@ -1693,6 +1790,7 @@ function addon:Scan()
 
 	self.tally = tally
 	self.board:Refresh()
+	self.map:RefreshKeeps()
 
 	-- A holding that has dropped out of the list -- campaign changed under us, or the client
 	-- stopped reporting it -- is forgotten without an ending. We do not know how its fight
@@ -1742,8 +1840,10 @@ function addon:ApplyTimer()
 		self:Forget()
 		self.tally = nil
 		self.board:Refresh()
+		self.map:Refresh()
 		return
 	end
+	self.map:Refresh()
 
 	em:RegisterForUpdate(self.name, self:IntervalSeconds() * 1000, function()
 		self:Scan()
@@ -1800,6 +1900,11 @@ function addon:ResetSettings()
 	end
 	self.log:Clear()
 	self.log:Refresh()
+	self.sv.map = {}
+	for field, value in pairs(DEFAULTS.map) do
+		self.sv.map[field] = value
+	end
+	self.map:Refresh()
 	self.sv.board = {}
 	for field, value in pairs(DEFAULTS.board) do
 		self.sv.board[field] = value
@@ -1904,6 +2009,19 @@ function addon:PrintStatus()
 	end
 
 	Print(GetString(SI_PBSCA_STATUS_BOARD), OnOff(self.sv.board.enabled))
+	-- The measurement for "is the population actually being refreshed": how long since the
+	-- client last received it, whoever asked.
+	if self.sv.board.enabled then
+		if self.lastPopulationUpdate then
+			Print(GetString(SI_PBSCA_STATUS_POPULATION_AGE), FormatElapsed(Now() - self.lastPopulationUpdate))
+		else
+			Print(GetString(SI_PBSCA_STATUS_POPULATION_UNKNOWN))
+		end
+	end
+	Print(GetString(SI_PBSCA_STATUS_MAP), OnOff(self.sv.map.enabled))
+	if self.sv.map.enabled and self.map.failed then
+		Print(GetString(SI_PBSCA_STATUS_MAP_FAILED))
+	end
 	if self.sv.board.enabled and self.board.drawOrderRefused then
 		Print(GetString(SI_PBSCA_BOARD_DRAW_REFUSED))
 	end
@@ -1982,6 +2100,9 @@ function addon:PrintHelp()
 	Line(GetString(SI_PBSCA_HELP_LOG))
 	Line(GetString(SI_PBSCA_HELP_LOG_DRAW))
 	Line(GetString(SI_PBSCA_HELP_LOG_CLEAR))
+	Line(GetString(SI_PBSCA_HELP_MAP))
+	Line(GetString(SI_PBSCA_HELP_MAP_LINKS))
+	Line(GetString(SI_PBSCA_HELP_MAP_PROBE))
 	Line(GetString(SI_PBSCA_HELP_BOARD))
 	Line(GetString(SI_PBSCA_HELP_BOARD_DRAW))
 	Line(GetString(SI_PBSCA_HELP_BOARD_POP))
@@ -2122,6 +2243,43 @@ function addon:HandleCommand(argumentString)
 				or SI_PBSCA_LOG_TO_WINDOW))
 		if where ~= "chat" and not self.log:Available() then
 			Print(GetString(SI_PBSCA_STATUS_LOG_FAILED))
+		end
+		return
+	end
+
+	-- "map on|off", and "map probe" for what the map is working with.
+	if command == "map" then
+		local second = words[2] or ""
+		if second == "probe" then
+			for _, line in ipairs(self.map:Probe()) do
+				Print("%s", line)
+			end
+			return
+		end
+		-- "map links on|off" -- the transitus network.
+		if second == "links" or second == "transitus" then
+			local value = ParseSwitch(words[3] or "")
+			if value == nil then
+				Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+				return
+			end
+			self.sv.map.links = value
+			self.map:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_MAP_LINKS) .. ": " .. OnOff(value))
+			return
+		end
+		local value = ParseSwitch(second)
+		if value == nil then
+			Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+			return
+		end
+		self.sv.map.enabled = value
+		self.map:Refresh()
+		self:RefreshPanel()
+		Print(GetString(SI_PBSCA_STATUS_MAP), OnOff(value))
+		if value and self.map.failed then
+			Print(GetString(SI_PBSCA_STATUS_MAP_FAILED))
 		end
 		return
 	end
@@ -2382,6 +2540,8 @@ end
 -- ---------------------------------------------------------------------------------------
 
 local function OnPlayerActivated()
+	-- Before the panel is built: its sliders take their range from the screen.
+	addon:UpdateScreenLimits()
 	if not addon.panelBuilt then
 		addon.panelBuilt = true
 		if addon.InitSettings then
@@ -2432,6 +2592,9 @@ local function OnAddOnLoaded(_, name)
 	-- browser makes when the player opens it.
 	if EVENT_CAMPAIGN_SELECTION_DATA_CHANGED then
 		em:RegisterForEvent(addon.name, EVENT_CAMPAIGN_SELECTION_DATA_CHANGED, function()
+			-- When the data actually arrived -- ours, or the campaign browser's -- which is what
+			-- "last updated" in the status means.
+			addon.lastPopulationUpdate = Now()
 			addon.board:Refresh()
 		end)
 	end

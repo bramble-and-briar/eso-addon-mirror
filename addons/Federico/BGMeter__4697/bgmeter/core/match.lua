@@ -765,6 +765,143 @@ function Match.damage_lead(race, smooth, tl)
              maxT = (tl and tl.t and tl.t[maxI]) or 0, changes = changes }
 end
 
+function Match.geo_cohesion(geo, m)
+    if not geo or (geo.n or 0) < 2 or not m then return nil end
+    if geo.cohesion ~= nil then return geo.cohesion or nil end
+    local names = {}
+    for nm in pairs(geo.pos) do
+        if geo.team[nm] == m.localTeam or nm == geo.mine then names[#names + 1] = nm end
+    end
+    if #names < 2 then geo.cohesion = false return nil end
+    local v, maxv, any = {}, 0, false
+    for i = 1, geo.n do
+        local sx, sy, k = 0, 0, 0
+        for _, nm in ipairs(names) do
+            local s = geo.pos[nm]
+            local x, y = s.x[i], s.y[i]
+            if x and y and (x > 0 or y > 0) then sx, sy, k = sx + x, sy + y, k + 1 end
+        end
+        if k >= 2 then
+            local cx, cy, d = sx / k, sy / k, 0
+            for _, nm in ipairs(names) do
+                local s = geo.pos[nm]
+                local x, y = s.x[i], s.y[i]
+                if x and y and (x > 0 or y > 0) then
+                    local dx, dy = x - cx, y - cy
+                    d = d + math.sqrt(dx * dx + dy * dy)
+                end
+            end
+            v[i] = d / k
+            any = true
+            if v[i] > maxv then maxv = v[i] end
+        else
+            v[i] = 0
+        end
+    end
+    if not any or maxv <= 0 then geo.cohesion = false return nil end
+    v = Match.smooth3(v, geo.n)
+    maxv = 0
+    for i = 1, geo.n do if v[i] > maxv then maxv = v[i] end end
+    geo.cohesion = { n = geo.n, t = geo.t, values = v, max = maxv, members = #names }
+    return geo.cohesion
+end
+
+function Match.geo_solo(geo, m)
+    if not geo or (geo.n or 0) < 2 or not m or not geo.mine then return nil end
+    if geo.solo ~= nil then return geo.solo or nil end
+    local me = geo.pos[geo.mine]
+    if not me then geo.solo = false return nil end
+    local names = {}
+    for nm in pairs(geo.pos) do
+        if nm ~= geo.mine and geo.team[nm] == m.localTeam then names[#names + 1] = nm end
+    end
+    if #names < 1 then geo.solo = false return nil end
+    local v, maxv, any = {}, 0, false
+    for i = 1, geo.n do
+        local mx, my = me.x[i], me.y[i]
+        local sx, sy, k = 0, 0, 0
+        for _, nm in ipairs(names) do
+            local s = geo.pos[nm]
+            local x, y = s.x[i], s.y[i]
+            if x and y and (x > 0 or y > 0) then sx, sy, k = sx + x, sy + y, k + 1 end
+        end
+        if k >= 1 and mx and my and (mx > 0 or my > 0) then
+            local dx, dy = mx - sx / k, my - sy / k
+            v[i] = math.sqrt(dx * dx + dy * dy)
+            any = true
+        else
+            v[i] = 0
+        end
+    end
+    if not any then geo.solo = false return nil end
+    v = Match.smooth3(v, geo.n)
+    for i = 1, geo.n do if v[i] > maxv then maxv = v[i] end end
+    if maxv <= 0 then geo.solo = false return nil end
+    geo.solo = { n = geo.n, t = geo.t, values = v, max = maxv, teammates = #names }
+    return geo.solo
+end
+
+local PIN_TEAMS = nil
+local PIN_SUFFIX = { "FIRE_DRAKES", "PIT_DAEMONS", "STORM_LORDS" }
+local PIN_BASES = { "BGPIN_CAPTURE_AREA", "BGPIN_CAPTURE_AREA_A", "BGPIN_CAPTURE_AREA_B", "BGPIN_CAPTURE_AREA_C", "BGPIN_CAPTURE_AREA_D",
+                    "BGPIN_MOBILE_CAPTURE_AREA", "BGPIN_MOBILE_CAPTURE_AREA_A", "BGPIN_MOBILE_CAPTURE_AREA_B", "BGPIN_MOBILE_CAPTURE_AREA_C", "BGPIN_MOBILE_CAPTURE_AREA_D",
+                    "BGPIN_MURDERBALL" }
+
+function Match.pin_teams()
+    if PIN_TEAMS then return PIN_TEAMS end
+    local C = BGMeter.zenimax.constants
+    local teams = { C.BATTLEGROUND_TEAM_FIRE_DRAKES, C.BATTLEGROUND_TEAM_PIT_DAEMONS, C.BATTLEGROUND_TEAM_STORM_LORDS }
+    PIN_TEAMS = { owned = {}, contested = {} }
+    for k, suffix in ipairs(PIN_SUFFIX) do
+        for _, base in ipairs(PIN_BASES) do
+            local ty = _G["MAP_PIN_TYPE_" .. base .. "_" .. suffix]
+            if type(ty) == "number" and teams[k] then PIN_TEAMS.owned[ty] = teams[k] end
+        end
+    end
+    for _, base in ipairs(PIN_BASES) do
+        local ty = _G["MAP_PIN_TYPE_" .. base .. "_NEUTRAL"]
+        if type(ty) == "number" then PIN_TEAMS.contested[ty] = true end
+    end
+    return PIN_TEAMS
+end
+
+function Match.pin_teams_reset() PIN_TEAMS = nil end
+
+function Match.geo_control(geo, m)
+    if not geo or (geo.n or 0) < 2 or not m or not geo.pins or #geo.pins == 0 then return nil end
+    if geo.control ~= nil then return geo.control or nil end
+    local pt = Match.pin_teams()
+    local v, any = {}, false
+    for i = 1, geo.n do
+        local total, ours = 0, 0
+        for _, pin in ipairs(geo.pins) do
+            local ty = pin.ty[i]
+            if ty and (pt.owned[ty] or pt.contested[ty]) then
+                total = total + 1
+                if pt.owned[ty] == m.localTeam then ours = ours + 1 end
+            end
+        end
+        if total > 0 then v[i] = ours / total; any = true else v[i] = 0 end
+    end
+    if not any then geo.control = false return nil end
+    geo.control = { n = geo.n, t = geo.t, values = v, max = 1 }
+    return geo.control
+end
+
+function Match.kill_pressure_series(kp)
+    if not kp or not kp.bins or kp.bins < 1 then return nil end
+    local t = { 0 }
+    for b = 1, kp.bins do t[b + 1] = b * kp.binMs end
+    local series = {}
+    for s, team in ipairs(kp.teams) do
+        if s > 3 then break end
+        local vals = { 0 }
+        for b = 1, kp.bins do vals[b + 1] = kp.counts[team][b] or 0 end
+        series[s] = { values = vals, team = team }
+    end
+    return { n = kp.bins + 1, t = t, series = series, max = kp.max }
+end
+
 function Match.combat_momentum(killfeed, tspan, windowMs, stepMs)
     if not killfeed or #killfeed < 4 or not tspan or tspan <= 0 then return nil end
     windowMs = windowMs or 60000
@@ -1108,6 +1245,37 @@ function Match.spawn_point(m, geo)
     local x, y = median_of(xs), median_of(ys)
     if not x then return nil end
     return { x = x, y = y, samples = #xs }
+end
+
+function Match.geo_at_base(geo, m)
+    if not geo or (geo.n or 0) < 2 or not m then return nil end
+    if geo.atBase ~= nil then return geo.atBase or nil end
+    local spawn = Match.spawn_point(m, geo)
+    if not spawn then geo.atBase = false return nil end
+    local names = {}
+    for nm in pairs(geo.pos) do
+        if geo.team[nm] == m.localTeam or nm == geo.mine then names[#names + 1] = nm end
+    end
+    if #names < 1 then geo.atBase = false return nil end
+    local r2 = BASE_RADIUS * BASE_RADIUS
+    local v, any = {}, false
+    for i = 1, geo.n do
+        local present, near = 0, 0
+        for _, nm in ipairs(names) do
+            local s = geo.pos[nm]
+            local x, y = s.x[i], s.y[i]
+            if x and y and (x > 0 or y > 0) then
+                present = present + 1
+                local dx, dy = x - spawn.x, y - spawn.y
+                if dx * dx + dy * dy <= r2 then near = near + 1 end
+            end
+        end
+        if present > 0 then v[i] = near / present; any = true else v[i] = 0 end
+    end
+    if not any then geo.atBase = false return nil end
+    v = Match.smooth3(v, geo.n)
+    geo.atBase = { n = geo.n, t = geo.t, values = v, max = 1, members = #names, spawn = spawn }
+    return geo.atBase
 end
 
 function Match.in_play(m, t)

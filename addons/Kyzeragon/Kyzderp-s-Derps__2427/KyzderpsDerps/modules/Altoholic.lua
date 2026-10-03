@@ -1,6 +1,6 @@
-KyzderpsDerps = KyzderpsDerps or {}
-KyzderpsDerps.Altoholic = KyzderpsDerps.Altoholic or {}
-local Altoholic = KyzderpsDerps.Altoholic
+KD = KyzderpsDerps
+KD.Altoholic = KD.Altoholic or {}
+local Altoholic = KD.Altoholic
 
 
 ---------------------------------------------------------------------
@@ -28,8 +28,8 @@ characters = {
 -- Update the character's data
 ---------------------------------------------------------------------
 local function UpdateSkillPoints()
-    local currentChar = GetUnitName("player")
-    KyzderpsDerps.savedValues.charInfo.characters[currentChar].availPoints = GetAvailableSkillPoints()
+    local currCharInfo = KD.savedValues.charIdInfo[GetCurrentCharacterId()]
+    currCharInfo.availPoints = GetAvailableSkillPoints()
 
     -- Collect total skill points using skills data manager, since respecs are now free
     local totalUsed = 0
@@ -45,13 +45,12 @@ local function UpdateSkillPoints()
             end
         end
     end
-    KyzderpsDerps.savedValues.charInfo.characters[currentChar].totalPoints = totalUsed + GetAvailableSkillPoints()
+    currCharInfo.totalPoints = totalUsed + GetAvailableSkillPoints()
 end
 
 local function UpdatePlayedTime()
-    local currentChar = GetUnitName("player")
-    KyzderpsDerps.savedValues.playedChart.characters[currentChar] = GetSecondsPlayed()
-    KyzderpsDerps.savedValues.charInfo.characters[currentChar].playedTime = GetSecondsPlayed() -- Start migrating
+    local currCharInfo = KD.savedValues.charIdInfo[GetCurrentCharacterId()]
+    currCharInfo.playedTime = GetSecondsPlayed()
 end
 
 local function UpdateArmoryBuilds()
@@ -66,8 +65,8 @@ local function UpdateArmoryBuilds()
         table.insert(builds, {name = name, iconIndex = GetArmoryBuildIconIndex(i)})
     end
 
-    local currentChar = GetUnitName("player")
-    KyzderpsDerps.savedValues.charInfo.characters[currentChar].armoryBuilds = builds
+    local currCharInfo = KD.savedValues.charIdInfo[GetCurrentCharacterId()]
+    currCharInfo.armoryBuilds = builds
 end
 
 local function UpdateAll()
@@ -108,14 +107,29 @@ end
 ---------------------------------------------------------------------
 -- Build the entire string for all played
 ---------------------------------------------------------------------
-function Altoholic.BuildPlayed()
-    UpdatePlayedTime()
+function Altoholic.BuildPlayed(accName)
+    accName = accName or GetUnitDisplayName("player")
+    if (accName == GetUnitDisplayName("player")) then
+        UpdatePlayedTime()
+    end
+
+    -- Get SV
+    local tab = KyzderpsDerpsSavedVariables.Default[accName]
+    if (not tab) then
+        return "|cFF0000Unknown account name: " .. accName, 0
+    end
+    tab = tab["$AccountWide"].Values.charIdInfo
+    if (not tab) then
+        return "|cFF0000Account " .. accName .. " hasn't been migrated to character IDs yet!", 0
+    end
 
     local result = "=== Time Played ==="
     local totalTime = 0
 
     -- sort by descending amount played
-    for name, seconds in spairs(KyzderpsDerps.savedValues.playedChart.characters, function(t, a, b) return t[b] < t[a] end) do
+    for charId, info in spairs(tab, function(t, a, b) return t[b].playedTime < t[a].playedTime end) do
+        local seconds = info.playedTime
+        local name = info.lastKnownName
         totalTime = totalTime + seconds
         result = result .. "\n|cFFFFFF" .. name .. " -|r "
         result = result .. ZO_FormatTime(seconds, TIME_FORMAT_STYLE_DESCRIPTIVE_MINIMAL, TIME_FORMAT_PRECISION_SECONDS)
@@ -127,7 +141,18 @@ function Altoholic.BuildPlayed()
     result = result .. ZO_FormatTime(totalTime, TIME_FORMAT_STYLE_DESCRIPTIVE_MINIMAL, TIME_FORMAT_PRECISION_SECONDS)
     result = result .. "|cFFFFFF" .. string.format(" (%.2f hours)", totalTime / 3600) .. "|r"
 
-    return result
+    return result, totalTime
+end
+
+function Altoholic.BuildPlayedAll()
+    local totalTime = 0
+    for accName, _ in pairs(KyzderpsDerpsSavedVariables.Default) do
+        local str, time = Altoholic.BuildPlayed(accName)
+        CHAT_ROUTER:AddSystemMessage(zo_strformat("vvv <<1>> vvv\n<<2>>\n^^^ <<1>> ^^^", accName, str))
+        totalTime = totalTime + time
+    end
+
+    CHAT_ROUTER:AddSystemMessage(string.format("|c00FF00Total TOTAL time -|r %s |c00FF00(%.2f hours)|r", ZO_FormatTime(totalTime, TIME_FORMAT_STYLE_DESCRIPTIVE_MINIMAL, TIME_FORMAT_PRECISION_SECONDS), totalTime / 3600))
 end
 
 
@@ -140,7 +165,8 @@ function Altoholic.BuildPoints()
     local result = "=== Unspent / Approx.Total Skill Points ==="
 
     -- sort by descending unspent skill points
-    for name, info in spairs(KyzderpsDerps.savedValues.charInfo.characters, function(t, a, b) return t[b].availPoints < t[a].availPoints end) do
+    for charId, info in spairs(KD.savedValues.charIdInfo, function(t, a, b) return t[b].availPoints < t[a].availPoints end) do
+        local name = info.lastKnownName
         result = result .. "\n|cFFFFFF" .. name .. " -|r "
         result = result .. tostring(info.availPoints)
         if (info.totalPoints) then
@@ -161,7 +187,8 @@ function Altoholic.BuildTotalPoints()
     local result = "=== Unspent / Approx.Total Skill Points ==="
 
     -- sort by descending total skill points
-    for name, info in spairs(KyzderpsDerps.savedValues.charInfo.characters, function(t, a, b) return (t[b].totalPoints or 0) < (t[a].totalPoints or 0) end) do
+    for charId, info in spairs(KD.savedValues.charIdInfo, function(t, a, b) return (t[b].totalPoints or 0) < (t[a].totalPoints or 0) end) do
+        local name = info.lastKnownName
         result = result .. "\n|cFFFFFF" .. name .. " - |cAAAAAA"
         result = result .. tostring(info.availPoints) .. "|r"
         if (info.totalPoints) then
@@ -183,8 +210,8 @@ function Altoholic.BuildArmory()
 
     -- Sort by character index
     for index = 1, GetNumCharacters() do
-        local name = zo_strformat("<<1>>", GetCharacterInfo(index))
-        local info = KyzderpsDerps.savedValues.charInfo.characters[name]
+        local name, _, _, _, _, _, charId = GetCharacterInfo(index)
+        local info = KD.savedValues.charIdInfo[charId]
         if (info and info.armoryBuilds) then
             local buildNames = {}
             for _, build in ipairs(info.armoryBuilds) do
@@ -210,18 +237,38 @@ end
 -- Hooks
 ---------------------------------------------------------------------
 function Altoholic.Initialize()
-    KyzderpsDerps:dbg("    Initializing Altoholic module...")
+    KD:dbg("    Initializing Altoholic module...")
 
-    local currentChar = GetUnitName("player")
-    if (not KyzderpsDerps.savedValues.charInfo.characters[currentChar]) then
-        KyzderpsDerps.savedValues.charInfo.characters[currentChar] = {}
+    -- 1-time migration, or initialize
+    if (ZO_IsTableEmpty(KD.savedValues.charIdInfo)) then
+        for index = 1, GetNumCharacters() do
+            local name, _, _, _, _, _, charId = GetCharacterInfo(index)
+            local formattedName = zo_strformat("<<1>>", name)
+
+            local oldInfo = KD.savedValues.charInfo and (KD.savedValues.charInfo.characters[name] or KD.savedValues.charInfo.characters[formattedName])
+            if (oldInfo) then
+                KD.savedValues.charIdInfo[charId] = ZO_DeepTableCopy(oldInfo)
+                KD.savedValues.charIdInfo[charId].lastKnownName = formattedName
+            end
+        end
     end
 
-    -- Get rid of this weird bug that happened at some point, maybe not initialized?
-    KyzderpsDerps.savedValues.charInfo.characters["LocalPlayer"] = nil
-    KyzderpsDerps.savedValues.playedChart.characters["LocalPlayer"] = nil
+    -- Could be new char (or the other megaserver that wasn't migrated)
+    if (not KD.savedValues.charIdInfo[GetCurrentCharacterId()]) then
+        KD.savedValues.charIdInfo[GetCurrentCharacterId()] = {}
+    end
 
-    -- TODO: prune the data to get rid of old or renamed characters that no longer exist
+    -- yeah it's probably nicer to loop through GetCharacterInfo to display most updated char names,
+    -- but this way the SVs also have a name for readability for people (me) who like to dig around
+    -- in there, and also lets me be lazy and not have to update as much code
+    KD.savedValues.charIdInfo[GetCurrentCharacterId()].lastKnownName = zo_strformat("<<1>>", GetUnitName("player"))
+
+    -- Get rid of this weird bug that happened at some point, maybe not initialized?
+    if (KD.savedValues.charInfo) then
+        KD.savedValues.charInfo.characters["LocalPlayer"] = nil
+        -- TODO: yeet charInfo at some point
+    end
+    KD.savedValues.playedChart = nil -- yeet the old af thing
 
     UpdateAll()
 
@@ -230,5 +277,5 @@ function Altoholic.Initialize()
     ZO_PreHook("SetCVar", UpdateAll)
     ZO_PreHook("Quit", UpdateAll)
 
-    EVENT_MANAGER:RegisterForEvent(KyzderpsDerps.name .. "SkillPoint", EVENT_SKILL_POINTS_CHANGED, UpdateSkillPoints)
+    EVENT_MANAGER:RegisterForEvent(KD.name .. "SkillPoint", EVENT_SKILL_POINTS_CHANGED, UpdateSkillPoints)
 end

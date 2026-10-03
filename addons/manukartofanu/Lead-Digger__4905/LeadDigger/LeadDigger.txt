@@ -1,0 +1,16 @@
+## Title: Lead Digger
+## Description: Shows where your expiring antiquity leads are piling up.
+## Author: manukartofanu
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051
+## SavedVariables: LeadDiggerSavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+
+lang/en.lua
+lang/ru.lua
+LeadDigger.lua

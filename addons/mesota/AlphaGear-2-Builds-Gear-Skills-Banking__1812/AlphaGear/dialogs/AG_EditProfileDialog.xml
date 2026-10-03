@@ -1,7 +1,7 @@
 <GuiXml>
 	<Controls>
 		<TopLevelControl name="AGEditProfileDialog" inherits="ZO_CustomDialogBase">
-			<Dimensions x="800" y="225" />
+			<!--<Dimensions x="800" y="225" />-->
 			<Anchor point="CENTER" offsetY="-45" />
 			<Controls>
 				<Control name="$(parent)Content" inherits="ZO_DialogContentAnchors">

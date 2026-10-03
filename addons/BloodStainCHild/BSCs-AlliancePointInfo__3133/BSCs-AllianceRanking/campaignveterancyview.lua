@@ -2,6 +2,7 @@ BSCAllianceRanking = BSCAllianceRanking or {}
 local BSCARI = BSCAllianceRanking
 
 local MAX_VETERANCY_ROWS = 100
+local MAX_VETERANCY_PROGRESS_RANK = MAX_VETERANCY_ROWS - 1
 local VETERANCY_TRACK_TYPE = REWARD_TRACK_TYPE_AVA_VETERANCY
 
 AllianceVeterancyView_Keyboard = ZO_InitializingObject:Subclass()
@@ -115,21 +116,30 @@ local function BuildList()
     local totalPlayerNeeds = 0
     local previousRow = nil
 
+    local maxProgressRank = zo_min(MAX_VETERANCY_PROGRESS_RANK, rankCount - 1)
+    local playerIsAtCap = currentRank >= rankCount
+
     for rank = 1, rankCount do
         local row = list[rank]
-        local pointsForRank = SafeNumber(GetTotalProgressAtRewardTrackTier(rewardTrackId, rank), 0)
-        cumulativePoints = cumulativePoints + pointsForRank
+        local isCapRank = rank >= rankCount
+        local pointsForRank = 0
+        if rank <= maxProgressRank then
+            pointsForRank = SafeNumber(GetTotalProgressAtRewardTrackTier(rewardTrackId, rank), 0)
+            cumulativePoints = cumulativePoints + pointsForRank
+        end
 
         local playerNeedsForRank = 0
-        if rank == currentRank then
-            playerNeedsForRank = zo_max(pointsForRank - currentProgress, 0)
-        elseif rank > currentRank then
-            playerNeedsForRank = pointsForRank
+        if not playerIsAtCap and rank <= maxProgressRank then
+            if rank == currentRank then
+                playerNeedsForRank = zo_max(pointsForRank - currentProgress, 0)
+            elseif rank > currentRank then
+                playerNeedsForRank = pointsForRank
+            end
         end
         totalPlayerNeeds = totalPlayerNeeds + playerNeedsForRank
 
         local txtcolor = "|cE9C62A"
-        if rank <= currentRank then
+        if rank <= currentRank or playerIsAtCap then
             txtcolor = "|c219129"
         end
 
@@ -142,7 +152,7 @@ local function BuildList()
         row:SetHidden(false)
         row:GetNamedChild("Rank"):SetText(txtcolor .. rank)
         row:GetNamedChild("Name"):SetText(rankName)
-        row:GetNamedChild("PointsNeed"):SetText(txtcolor .. FormatNumber(pointsForRank))
+        row:GetNamedChild("PointsNeed"):SetText(isCapRank and (txtcolor .. "-") or (txtcolor .. FormatNumber(pointsForRank)))
         row:GetNamedChild("PointsNeedTotal"):SetText(txtcolor .. FormatNumber(cumulativePoints))
         row:GetNamedChild("PointsNeedYou"):SetText(txtcolor .. FormatNumber(totalPlayerNeeds))
         row:ClearAnchors()

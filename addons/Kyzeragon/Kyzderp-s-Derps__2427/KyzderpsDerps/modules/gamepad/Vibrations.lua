@@ -43,3 +43,4 @@ function KD.InitializeVibrations()
         ZO_PreHook("SetGamepadVibration", MySetGamepadVibration)
     end
 end
+-- /script SetGamepadVibration(1000, 1, 1, 0, 0)

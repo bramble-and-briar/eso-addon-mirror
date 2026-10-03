@@ -1,0 +1,16 @@
+## Title: Feliks' Companion Gear Hunter
+## Author: Feliks Blackwood
+## Version: 0.9.0
+## APIVersion: 101050 101051
+## SavedVariables: CompanionGearHunter_SavedVariables
+## DependsOn: LibSlashCommander>=45 LibAddonMenu-2.0>=43
+## OptionalDependsOn: CompanionRoster
+## Description: Tracks the companion gear (weight/type, trait, and a minimum quality) you're hunting for, slot by slot per companion, alongside what's currently equipped - so you can tell at a glance which slots still need an upgrade.
+
+CompanionGearHunter_Data.lua
+CompanionGearHunter_Window.xml
+Bindings.xml
+CompanionGearHunter_UI.lua
+CompanionGearHunter_Settings.lua
+CompanionGearHunter_Inventory.lua
+CompanionGearHunter_Chat.lua

@@ -1,6 +1,5 @@
-2026.09.24
-- Clears send mail to field when closing mail if mail and was cancelled and originally opened by GTA.
-- Misc other ui tweaks.
+2026.10.03
+- Increased sig font size 2pts.
 
 ** POSSIBLE FUTURE OPTIONS **
 

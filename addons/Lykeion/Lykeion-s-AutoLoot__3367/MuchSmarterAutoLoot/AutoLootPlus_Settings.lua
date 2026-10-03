@@ -26,6 +26,12 @@ local WLIST_TOKEN
 local WLIST_JUNK_TOKEN
 local MSAL_AUTOLOOT_DISABLE
 
+local function ScheduleContextSettingReload()
+    zo_callLater(function()
+        ReloadUI("ingame")
+    end, GetLatency() + 300)
+end
+
 function Settings.SetDB(value)
     db = value
     setDB(value)
@@ -104,6 +110,175 @@ local function AddDynamicThirdPartyOption(choice, value)
         table.insert(resultValue, "per third")
     end
     return resultChoice, resultValue
+end
+
+local SV_NAME = 'MSAL_VARS'
+local SV_VER = 1
+
+local defaults = {
+    latestMajorUpdateVersion = "",
+    latestMinorUpdateVersion = nil,
+    lastStartup = "",
+    never3rdPartyWarning = false,
+    enabled = true,
+    useAccountWide = true,
+    debugMode = false,
+    printLootThreshold = 0,
+    useIconsInLog = false,
+    closeLootWindow = false,
+    unwantedItemsDisposer = "none",
+    gearDisposer = "none",
+    deconThreshold = 0,
+    junkThreshold = 0,
+    autoSellJunk = false,
+    autoLaunder = false,
+    skipDialog = false,
+    printDisposeThreshold = 0,
+    alwaysLootStackable = false,
+    autoUnboxContainer = "none",
+    autoUnboxUnopened = false,
+    autoUnboxFish = false,
+    autoUnboxGeode = false,
+    loginReminder = true,
+    deconLogEnabled = true,
+    sellJunkLogEnabled = true,
+    stolenRule = "never loot",
+    stolenTreasureThreshold = 0,
+    autoBind = false,
+    autoDisposeAfterBind = false,
+    blacklist = {},
+    whitelist = {},
+    wlistJunk = {},
+    hostNativeLootAll = true,
+    addDestroyButton = false,
+    contextMenuEnabled = true,
+    contextJunkingEnabled = false,
+    neverAutolootWarning = false,
+    aprilFoolsTest = false,
+    addJunkingButton = true,
+    legacyMode = false,
+
+    filters = {
+        set = "always loot",
+        unresearched = "always loot",
+        rareTrait = "always loot",
+        ornate = "loot and junk",
+        intricate = "always loot",
+        clothingIntricate = "always loot",
+        blacksmithingIntricate = "always loot",
+        woodworkingIntricate = "always loot",
+        jewelryIntricate = "always loot",
+        intricateAutoDecon = false,
+        companionGears = "always loot",
+        craftedGears = "always loot",
+        weapons = "never loot",
+        armors = "never loot",
+        jewelry = "never loot",
+
+        blacksmithingMaterials = "always loot",
+        clothingMaterials = "always loot",
+        woodworkingMaterials = "always loot",
+        jewelryCraftingMaterials = "always loot",
+        refineMaterials = "always loot",
+        traitMaterials = "always loot",
+        styleMaterials = "always loot",
+        runes = "always loot",
+        alchemy = "always loot",
+        ingredients = "always loot",
+        furnishingMaterials = "always loot",
+        ink = "always loot",
+
+        lootCurrencies = true,
+
+        thirdParty = nil,
+        thirdPartyMinValue = 5000,
+        recipesAlwaysLootUnknown = true,
+        recipesAlwaysLootAnyCharUnknown = true,
+
+        questItems = "always loot",
+        crownItems = "always loot",
+        containers = "always loot",
+        unopened = "always loot",
+        writs = "always loot",
+        survey = "always loot",
+        treasureMaps = "always loot",
+        leads = "always loot",
+        skillScrolls = "always loot",
+        soulGems = "always loot",
+        recipes = "always loot",
+        glyphs = "always loot",
+        treasures = "loot and junk",
+        potions = "always loot",
+        foodAndDrink = "always loot",
+        poisons = "always loot",
+        costumes = "always loot",
+        fishingBaits = "always loot",
+        lockpicks = "always loot",
+        repairKits = "always loot",
+        tools = "always loot",
+        allianceWarConsumables = "always loot",
+        furniture = "always loot",
+        trophy = "always loot",
+        trash = "loot and junk",
+        scribing = "always loot",
+        scribingAutoMark = false,
+        styleMaterials3rd = "use default",
+        styleMaterials3rdPriceThreshold = 500,
+        styleMaterials3rdGearLooting = false,
+        styleMaterials3rdGearAutoDecon = false
+    }
+}
+
+function Settings.InitializeSavedVariables()
+    local legacySV = nil
+    local hasLegacySV = false
+    local worldName = GetWorldName()
+    if MSAL_VARS and MSAL_VARS.converted530 == nil then
+        if LibSavedVars ~= nil then
+            if MSAL_VARS and MSAL_VARS[worldName] and MSAL_VARS[worldName][GetDisplayName()] and
+                MSAL_VARS[worldName][GetDisplayName()]["$AccountWide"] then
+                legacySV = MSAL_VARS[worldName][GetDisplayName()]["$AccountWide"]["Account"]
+            end
+        else
+            if MSAL_VARS and MSAL_VARS["Default"] and MSAL_VARS["Default"][GetDisplayName()] and
+                MSAL_VARS["Default"][GetDisplayName()]["$AccountWide"] then
+                legacySV = MSAL_VARS["Default"][GetDisplayName()]["$AccountWide"]
+            end
+        end
+
+        if legacySV then
+            hasLegacySV = true
+        end
+    end
+
+    if hasLegacySV then
+        legacySV.useAccountWide = true
+        dbAccount = ZO_SavedVars:NewAccountWide(SV_NAME, 1, nil, legacySV, worldName)
+        dbChar = ZO_SavedVars:NewCharacterIdSettings(SV_NAME, 1, nil, legacySV, worldName)
+    else
+        dbAccount = ZO_SavedVars:NewAccountWide(SV_NAME, 1, nil, defaults, worldName)
+        dbChar = ZO_SavedVars:NewCharacterIdSettings(SV_NAME, 1, nil, defaults, worldName)
+    end
+    MSAL_VARS.converted530 = true
+    -- make sure the account-wide blacklist won't be tainted by char blacklist on load
+    dbChar.blacklist = dbAccount.blacklist
+    -- ensure new SV fields exist on legacy save data
+    dbAccount.wlistJunk = dbAccount.wlistJunk or {}
+    dbChar.wlistJunk = dbChar.wlistJunk or {}
+    dbAccount.contextJunkingEnabled = dbAccount.contextJunkingEnabled == true
+    dbChar.contextJunkingEnabled = dbChar.contextJunkingEnabled == true
+    -- carried over from the per-character save so the major update notice does not show again
+    if (dbAccount.latestMajorUpdateVersion or "") == "" then
+        dbAccount.latestMajorUpdateVersion = dbChar.latestMajorUpdateVersion or ""
+    end
+
+    if dbChar.useAccountWide then
+        db = dbAccount
+    else
+        db = dbChar
+    end
+
+    return dbAccount, dbChar, db
 end
 
 function Settings.Initialize(args)
@@ -794,7 +969,7 @@ function Settings.Initialize(args)
                     -- EVENT_MANAGER:UnregisterForEvent("MSAL_INTERACT_CANCEL", EVENT_PENDING_INTERACTION_CANCELLED)
                 end
             end,
-            default = true
+            default = defaults.enabled
         },
         {
             type = "submenu",
@@ -810,7 +985,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.lootCurrencies = value
                     end,
-                    default = true
+                    default = defaults.filters.lootCurrencies
                 },
                 {
                     type = "checkbox",
@@ -822,7 +997,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.alwaysLootStackable = value
                     end,
-                    default = false
+                    default = defaults.alwaysLootStackable
                 },
                 {
                     type = "checkbox",
@@ -834,7 +1009,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.closeLootWindow = value
                     end,
-                    default = false
+                    default = defaults.closeLootWindow
                 },
                 {
                     type = "checkbox",
@@ -846,7 +1021,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.legacyMode = value
                     end,
-                    default = false
+                    default = defaults.legacyMode
                 },
                 {
                     type = "header",
@@ -863,7 +1038,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.loginReminder = value
                     end,
-                    default = true
+                    default = defaults.loginReminder
                 },
                 {
                     type = "dropdown",
@@ -876,7 +1051,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.printLootThreshold = value
                     end,
-                    default = 0
+                    default = defaults.printLootThreshold
                 },
                 {
                     type = "dropdown",
@@ -890,7 +1065,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.printDisposeThreshold = value
                     end,
-                    default = 0
+                    default = defaults.printDisposeThreshold
                 },
                 {
                     type = "checkbox",
@@ -901,7 +1076,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.deconLogEnabled = value
                     end,
-                    default = true
+                    default = defaults.deconLogEnabled
                 },
                 {
                     type = "checkbox",
@@ -912,7 +1087,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.sellJunkLogEnabled = value
                     end,
-                    default = false
+                    default = defaults.sellJunkLogEnabled
                 },
                 {
                     type = "checkbox",
@@ -926,7 +1101,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.useIconsInLog = value
                     end,
-                    default = false
+                    default = defaults.useIconsInLog
                 },
                 {
                     type = "header",
@@ -945,7 +1120,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.stolenRule = value
                     end,
-                    default = "never loot"
+                    default = defaults.stolenRule
                 },
                 {
                     type = "checkbox",
@@ -957,7 +1132,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoLaunder = value
                     end,
-                    default = false
+                    default = defaults.autoLaunder
                 },
                 {
                     type = "dropdown",
@@ -971,7 +1146,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.stolenTreasureThreshold = value
                     end,
-                    default = 0
+                    default = defaults.stolenTreasureThreshold
                 },
                 {
                     type = "header",
@@ -994,7 +1169,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoUnboxContainer = value
                     end,
-                    default = "none"
+                    default = defaults.autoUnboxContainer
                 },
                 {
                     type = "button",
@@ -1015,7 +1190,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoUnboxGeode = value
                     end,
-                    default = false
+                    default = defaults.autoUnboxGeode
                 },
                 {
                     type = "button",
@@ -1037,7 +1212,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoUnboxUnopened = value
                     end,
-                    default = false
+                    default = defaults.autoUnboxUnopened
                 },
                 {
                     type = "button",
@@ -1056,7 +1231,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoUnboxFish = value
                     end,
-                    default = false
+                    default = defaults.autoUnboxFish
                 },
                 {
                     type = "button",
@@ -1089,7 +1264,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.unwantedItemsDisposer = value
                     end,
-                    default = "none"
+                    default = defaults.unwantedItemsDisposer
                 },
                 -- {
                 --     type = "slider",
@@ -1121,7 +1296,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.gearDisposer = value
                     end,
-                    default = "none"
+                    default = defaults.gearDisposer
                 },
                 {
                     type = "dropdown",
@@ -1137,7 +1312,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.deconThreshold = value
                     end,
-                    default = 0,
+                    default = defaults.deconThreshold,
                     disabled = function()
                         return db.gearDisposer ~= "decon and junk"
                     end
@@ -1164,7 +1339,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.set = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.set
                 },
                 {
                     type = "checkbox",
@@ -1176,7 +1351,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoBind = value
                     end,
-                    default = false
+                    default = defaults.autoBind
                 },
                 {
                     type = "checkbox",
@@ -1188,7 +1363,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.autoDisposeAfterBind = value
                     end,
-                    default = false,
+                    default = defaults.autoDisposeAfterBind,
                     disabled = function()
                         return not db.autoBind
                     end
@@ -1210,7 +1385,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.rareTrait = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.rareTrait
                 },
                 {
                     type = "dropdown",
@@ -1223,7 +1398,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.unresearched = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.unresearched
                 },
                 {
                     type = "dropdown",
@@ -1236,7 +1411,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.ornate = value
                     end,
-                    default = "loot and junk"
+                    default = defaults.filters.ornate
                 },
                 {
                     type = "dropdown",
@@ -1250,7 +1425,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.intricate = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.intricate
                 },
                 {
                     type = "dropdown",
@@ -1264,7 +1439,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.blacksmithingIntricate = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.blacksmithingIntricate,
                     disabled = function()
                         return not (db.filters.intricate == "type based")
                     end
@@ -1281,7 +1456,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.clothingIntricate = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.clothingIntricate,
                     disabled = function()
                         return not (db.filters.intricate == "type based")
                     end
@@ -1298,7 +1473,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.woodworkingIntricate = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.woodworkingIntricate,
                     disabled = function()
                         return not (db.filters.intricate == "type based")
                     end
@@ -1315,7 +1490,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.jewelryIntricate = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.jewelryIntricate,
                     disabled = function()
                         return not (db.filters.intricate == "type based")
                     end
@@ -1336,7 +1511,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.craftedGears = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.craftedGears
                 },
                 {
                     type = "dropdown",
@@ -1349,7 +1524,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.companionGears = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.companionGears
                 },
                 {
                     type = "dropdown",
@@ -1362,7 +1537,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.weapons = value
                     end,
-                    default = "never loot"
+                    default = defaults.filters.weapons
                 },
                 {
                     type = "dropdown",
@@ -1375,7 +1550,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.armors = value
                     end,
-                    default = "never loot"
+                    default = defaults.filters.armors
                 },
                 {
                     type = "dropdown",
@@ -1388,7 +1563,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.jewelry = value
                     end,
-                    default = "never loot"
+                    default = defaults.filters.jewelry
                 }
             }
         },
@@ -1412,7 +1587,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.blacksmithingMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.blacksmithingMaterials
                 },
                 {
                     type = "dropdown",
@@ -1425,7 +1600,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.clothingMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.clothingMaterials
                 },
                 {
                     type = "dropdown",
@@ -1438,7 +1613,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.woodworkingMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.woodworkingMaterials
                 },
                 {
                     type = "dropdown",
@@ -1451,7 +1626,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.jewelryCraftingMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.jewelryCraftingMaterials
                 },
                 {
                     type = "dropdown",
@@ -1464,7 +1639,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.refineMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.refineMaterials
                 },
                 {
                     type = "header",
@@ -1482,7 +1657,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.styleMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.styleMaterials
                 },
                 {
                     type = "dropdown",
@@ -1495,7 +1670,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.traitMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.traitMaterials
                 },
                 {
                     type = "dropdown",
@@ -1508,7 +1683,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.alchemy = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.alchemy
                 },
                 {
                     type = "dropdown",
@@ -1521,7 +1696,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.ingredients = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.ingredients
                 },
                 {
                     type = "dropdown",
@@ -1534,7 +1709,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.runes = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.runes
                 },
                 {
                     type = "dropdown",
@@ -1547,7 +1722,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.furnishingMaterials = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.furnishingMaterials
                 },
                 {
                     type = "dropdown",
@@ -1560,7 +1735,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.ink = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.ink
                 }
             }
         },
@@ -1584,7 +1759,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.furniture = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.furniture
                 },
                 {
                     type = "dropdown",
@@ -1599,7 +1774,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.trophy = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.trophy
                 },
                 {
                     type = "dropdown",
@@ -1616,7 +1791,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.recipes = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.recipes
                 },
                 {
                     type = "checkbox",
@@ -1628,7 +1803,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.recipesAlwaysLootUnknown = value
                     end,
-                    default = true
+                    default = defaults.filters.recipesAlwaysLootUnknown
                 },
                 {
                     type = "checkbox",
@@ -1640,7 +1815,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.recipesAlwaysLootAnyCharUnknown = value
                     end,
-                    default = true,
+                    default = defaults.filters.recipesAlwaysLootAnyCharUnknown,
                     disabled = function()
                         return not LCK
                     end
@@ -1656,7 +1831,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.scribing = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.scribing
                 },
                 {
                     type = "checkbox",
@@ -1669,7 +1844,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.scribingAutoMark = value
                     end,
-                    default = false,
+                    default = defaults.filters.scribingAutoMark,
                     disabled = function()
                         return db.filters.scribing == "never loot"
                     end
@@ -1677,6 +1852,7 @@ function Settings.Initialize(args)
                 {
                     type = "dropdown",
                     name = GetString(SI_ITEMTYPEDISPLAYCATEGORY30),
+                    tooltip = GetString(MSAL_GLYPH_FILTER_TOOLTIP),
                     choices = deconChoices,
                     choicesValues = deconChoicesValues,
                     getFunc = function()
@@ -1685,7 +1861,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.glyphs = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.glyphs
                 },
                 {
                     type = "dropdown",
@@ -1698,7 +1874,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.containers = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.containers
                 },
                 {
                     type = "dropdown",
@@ -1716,7 +1892,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.unopened = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.unopened
                 },
                 {
                     type = "dropdown",
@@ -1729,7 +1905,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.writs = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.writs,
                     disabled = function()
                         return not (db.filters.unopened == "type based")
                     end
@@ -1746,7 +1922,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.survey = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.survey,
                     disabled = function()
                         return not (db.filters.unopened == "type based")
                     end
@@ -1763,7 +1939,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.treasureMaps = value
                     end,
-                    default = "always loot",
+                    default = defaults.filters.treasureMaps,
                     disabled = function()
                         return not (db.filters.unopened == "type based")
                     end
@@ -1779,7 +1955,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.questItems = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.questItems
                 },
                 {
                     type = "dropdown",
@@ -1792,7 +1968,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.crownItems = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.crownItems
                 },
                 {
                     type = "dropdown",
@@ -1805,7 +1981,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.soulGems = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.soulGems
                 },
                 {
                     type = "dropdown",
@@ -1818,7 +1994,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.skillScrolls = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.skillScrolls
                 },
                 {
                     type = "dropdown",
@@ -1831,7 +2007,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.leads = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.leads
                 },
                 {
                     type = "dropdown",
@@ -1844,7 +2020,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.foodAndDrink = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.foodAndDrink
                 },
                 {
                     type = "dropdown",
@@ -1857,7 +2033,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.poisons = value
                     end,
-                    default = "never loot"
+                    default = defaults.filters.poisons
                 },
                 {
                     type = "dropdown",
@@ -1870,7 +2046,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.potions = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.potions
                 },
                 {
                     type = "dropdown",
@@ -1883,7 +2059,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.allianceWarConsumables = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.allianceWarConsumables
                 },
                 {
                     type = "dropdown",
@@ -1899,7 +2075,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.repairKits = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.repairKits
                 },
                 {
                     type = "dropdown",
@@ -1912,7 +2088,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.lockpicks = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.lockpicks
                 },
                 {
                     type = "dropdown",
@@ -1925,7 +2101,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.tools = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.tools
                 },
                 {
                     type = "dropdown",
@@ -1938,7 +2114,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.costumes = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.costumes
                 },
                 {
                     type = "dropdown",
@@ -1951,7 +2127,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.fishingBaits = value
                     end,
-                    default = "always loot"
+                    default = defaults.filters.fishingBaits
                 },
                 {
                     type = "dropdown",
@@ -1964,7 +2140,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.treasures = value
                     end,
-                    default = "loot and junk"
+                    default = defaults.filters.treasures
                 },
                 {
                     type = "dropdown",
@@ -1977,7 +2153,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.filters.trash = value
                     end,
-                    default = "loot and junk"
+                    default = defaults.filters.trash
                 }
             }
         }
@@ -2022,7 +2198,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.filters.thirdPartyMinValue = value
             end,
-            default = 5000
+            default = defaults.filters.thirdPartyMinValue
         }
         local dynamicDropdown = {
             type = "dropdown",
@@ -2035,7 +2211,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.filters.thirdParty = value
             end,
-            default = nil
+            default = defaults.filters.thirdParty
         }
         local scriptIndex = findControlIndex(miscSettingsIndex, GetString(SI_ITEMTYPE73))
         table.insert(optionsData[miscSettingsIndex].controls, scriptIndex, {
@@ -2061,7 +2237,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.filters.styleMaterials3rd = value
             end,
-            default = "use default"
+            default = defaults.filters.styleMaterials3rd
         }
         local styleMat3rdSlider = {
             type = "slider",
@@ -2075,7 +2251,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.filters.styleMaterials3rdPriceThreshold = value
             end,
-            default = 500,
+            default = defaults.filters.styleMaterials3rdPriceThreshold,
             disabled = function()
                 return db.filters.styleMaterials3rd == "use default"
             end
@@ -2091,7 +2267,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.filters.styleMaterials3rdGearLooting = value
             end,
-            default = false,
+            default = defaults.filters.styleMaterials3rdGearLooting,
             disabled = function()
                 return db.filters.styleMaterials3rd == "use default"
             end
@@ -2106,7 +2282,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.filters.styleMaterials3rdGearAutoDecon = value
             end,
-            default = false,
+            default = defaults.filters.styleMaterials3rdGearAutoDecon,
             disabled = function()
                 return db.filters.styleMaterials3rd == "use default" or not db.filters.styleMaterials3rdGearLooting
             end
@@ -2149,7 +2325,7 @@ function Settings.Initialize(args)
                 db.addJunkingButton = value
                 ReorganizeLootWindowButtons()
             end,
-            default = true
+            default = defaults.addJunkingButton
         }
         local addLootWindowDestroyButtonsSettings = {
             type = "checkbox",
@@ -2161,7 +2337,7 @@ function Settings.Initialize(args)
                 db.addDestroyButton = value
                 ReorganizeLootWindowButtons()
             end,
-            default = false
+            default = defaults.addDestroyButton
         }
         local hostLootWindowLootAllButtonsSettings = {
             type = "checkbox",
@@ -2181,7 +2357,7 @@ function Settings.Initialize(args)
                         ZO_LootActionButtonCallback_LootAll, GetString(SI_LOOT_TAKE_ALL))
                 end
             end,
-            default = true
+            default = defaults.hostNativeLootAll
         }
         local generalUnboxFishSettingsIndex = findControlIndex(generalSettingsIndex, zo_strformat(
             GetString(MSAL_LRM_UNBOX), GetString(SI_ITEMTYPE54)))
@@ -2213,7 +2389,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.skipDialog = value
             end,
-            default = false
+            default = defaults.skipDialog
         }
         local closeLootWindowSettingsIndex = findControlIndex(generalSettingsIndex, GetString(MSAL_CLOSE_LOOT_WINDOW))
         -- when insert multiple controls in a row always insert them in reverted order, to the same index
@@ -2248,7 +2424,7 @@ function Settings.Initialize(args)
                     setFunc = function(value)
                         db.contextMenuEnabled = value
                     end,
-                    default = true,
+                    default = defaults.contextMenuEnabled,
                     disabled = function()
                         return not LibCustomMenu
                     end
@@ -2366,14 +2542,18 @@ function Settings.Initialize(args)
                 {
                     type = "checkbox",
                     name = GetString(MSAL_CONTEXT_MENU),
-                    tooltip = GetString(MSAL_CONTEXT_MENU_TOOLTIP_CONSOLE) .. GetString(MSAL_RELOAD_REQUIRED),
+                    tooltip = GetString(MSAL_CONTEXT_MENU_TOOLTIP_CONSOLE) .. GetString(MSAL_AUTO_RELOAD),
                     getFunc = function()
                         return db.contextMenuEnabled
                     end,
                     setFunc = function(value)
+                        if db.contextMenuEnabled == value then
+                            return
+                        end
                         db.contextMenuEnabled = value
+                        ScheduleContextSettingReload()
                     end,
-                    default = true
+                    default = defaults.contextMenuEnabled
                 },
                 {
                     type = "header",
@@ -2480,18 +2660,22 @@ function Settings.Initialize(args)
         local contextJunkingCheckbox = {
             type = "checkbox",
             name = GetString(MSAL_CONTEXT_MENU_JUNKING),
-            tooltip = GetString(MSAL_CONTEXT_MENU_JUNKING_TOOLTIP) .. GetString(MSAL_RELOAD_REQUIRED),
+            tooltip = GetString(MSAL_CONTEXT_MENU_JUNKING_TOOLTIP) .. GetString(MSAL_AUTO_RELOAD),
             getFunc = function()
                 return db.contextJunkingEnabled
             end,
             setFunc = function(value)
+                if db.contextJunkingEnabled == value then
+                    return
+                end
                 db.contextJunkingEnabled = value
                 GAMEPAD_INVENTORY:MarkDirty()
                 if GAMEPAD_INVENTORY.scene:IsShowing() then
                     GAMEPAD_INVENTORY:RefreshActiveCategoryList()
                 end
+                ScheduleContextSettingReload()
             end,
-            default = false
+            default = defaults.contextJunkingEnabled
         }
         table.insert(optionsData[unwantedSettingsIndex].controls, contextJunkingCheckbox)
     end
@@ -2507,7 +2691,7 @@ function Settings.Initialize(args)
         setFunc = function(value)
             db.autoSellJunk = value
         end,
-        default = true
+        default = defaults.autoSellJunk
     }
     table.insert(optionsData[unwantedSettingsIndex].controls, autoSellJunkCheckbox)
 
@@ -2523,7 +2707,7 @@ function Settings.Initialize(args)
             setFunc = function(value)
                 db.debugMode = value
             end,
-            default = false
+            default = defaults.debugMode
         })
         local debugHeader = {
             type = "header",

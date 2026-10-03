@@ -1,12 +1,19 @@
-## Title: |cFFAA33AlphaGear 2|r v6.17.0
-## APIVersion: 101033 101034
-## Version: 6.17.0
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: |cFFAA33AlphaGear 2|r v7.0.0
+## APIVersion: 101051
+## Version: 7.0.0
+## AddOnVersion: 7000
 ## SavedVariables: AGX2_Account
 ## SavedVariables: AGX2_Character
-## Author: mesota
+## Author: mesota, Kyzeragon
 ## Description: Anything you need to manage your builds. Configurable profiles, builds, skill and gear sets, auto repair and auto weapon charge, deposit and withdraw function. Originally by AlphaLemming.
-## DependsOn: LibAddonMenu-2.0
-## OptionalDependsOn: LibZone FCOItemSaver ChampionPointsSlots CSPS
+## DependsOn: LibAddonMenu-2.0>=43
+## OptionalDependsOn: LibZone FCOItemSaver ChampionPointsSlots CSPS AutoCategory DynamicCP LibRadialMenu
 ## IsLibrary: false
 
 lang/en.lua
@@ -24,11 +31,15 @@ plugins/CPSlots/ag_cpslots.lua
 
 plugins/CSPS/ag_csps.lua
 
+plugins/DynamicCP/ag_dynamiccp.lua
+
 AlphaGearSettings.lua
 
 dialogs/AG_EditProfileDialog.xml
 dialogs/AG_IntegrationsDialog.xml
 dialogs/AG_IntegrationsDialog.lua
+dialogs/AG_ImportDialog.xml
+dialogs/AG_ImportDialog.lua
 
 
 AlphaGear.xml

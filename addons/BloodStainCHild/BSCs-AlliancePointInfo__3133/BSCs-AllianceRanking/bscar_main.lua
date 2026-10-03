@@ -7,9 +7,11 @@ BSCARI.Author = "@BloodStainChild666"
 BSCARI.Version = 1
 BSCARI.SavedVar = "BSCAllianceRankingSaved"
 BSCARI.NameMenu = "BSCs-AllianceRanking"
-BSCARI.VersionDisplay = "2.3.23-u50"
+BSCARI.VersionDisplay = "2.3.35-u51"
 
 BSCARI.CurrentCharID = -1
+
+local HUD_BAR_SOLID_TEXTURE = "EsoUI/Art/Miscellaneous/white.dds"
 
 -- Saved Vars
 local defaultSavedVarsAccount = { 
@@ -45,7 +47,33 @@ BSCARI.DefaultCharacterSettings =
     VRO_Y = 0,
     VCO_X = 0,
     VCO_Y = 0,
+    HUD_BAR_EDGE_SIZE = 2,
+    AP_HUD_BAR_COLOR = { r = 0.20, g = 0.85, b = 0.20, a = 1 },
+    _HUD_BAR_COLOR_DEFAULT_MIGRATED = false,
+    VETERANCY_HUD_BAR_COLOR = { r = 0, g = 0.85, b = 0.85, a = 1 },
+    HUD_BAR_CENTER_COLOR = { r = 0, g = 0, b = 0, a = 0.40 },
+    HUD_BAR_EDGE_COLOR = { r = 0, g = 0, b = 0, a = 1 },
 }
+
+local function CopyDefaultSetting(value)
+    if type(value) == "table" then
+        local copy = {}
+        for k, v in pairs(value) do
+            copy[k] = v
+        end
+        return copy
+    end
+    return value
+end
+
+local function IsSameColorSetting(color, r, g, b, a)
+    if type(color) ~= "table" then return false end
+    local tolerance = 0.001
+    return math.abs((tonumber(color.r) or -1) - r) <= tolerance
+        and math.abs((tonumber(color.g) or -1) - g) <= tolerance
+        and math.abs((tonumber(color.b) or -1) - b) <= tolerance
+        and math.abs((tonumber(color.a) or -1) - a) <= tolerance
+end
 
 function BSCARI:GetCurrentCharacterSettings()
     if not self.SVA then return nil end
@@ -59,8 +87,15 @@ function BSCARI:GetCurrentCharacterSettings()
 
     for key, value in pairs(self.DefaultCharacterSettings) do
         if settings[key] == nil then
-            settings[key] = value
+            settings[key] = CopyDefaultSetting(value)
         end
+    end
+
+    if settings._HUD_BAR_COLOR_DEFAULT_MIGRATED ~= true then
+        if IsSameColorSetting(settings.AP_HUD_BAR_COLOR, 0.92, 0.68, 0.16, 1) then
+            settings.AP_HUD_BAR_COLOR = CopyDefaultSetting(self.DefaultCharacterSettings.AP_HUD_BAR_COLOR)
+        end
+        settings._HUD_BAR_COLOR_DEFAULT_MIGRATED = true
     end
 
     return settings
@@ -265,10 +300,17 @@ local BSCARI_SETTINGS_ROWS =
     { key = "ARO_H", text = "Show Total AP Bar UI" },
     { key = "CRO_H", text = "Show Next Level AP Bar UI" },
     { key = "TRO_H", text = "Show Tier AP Bar UI" },
+    { type = "color", key = "AP_HUD_BAR_COLOR", text = "AP HUD Bar Color" },
 
     { type = "header", text = "Veterancy HUD Bars" },
     { key = "VRO_H", text = "Show Total Veterancy Bar UI" },
     { key = "VCO_H", text = "Show Current Veterancy Level Bar UI" },
+    { type = "color", key = "VETERANCY_HUD_BAR_COLOR", text = "Veterancy HUD Bar Color" },
+
+    { type = "header", text = "HUD Bar Appearance" },
+    { type = "stepper", key = "HUD_BAR_EDGE_SIZE", text = "HUD Bar Edge Size", min = 0, max = 8, step = 1 },
+    { type = "color", key = "HUD_BAR_CENTER_COLOR", text = "HUD Bar Center Color" },
+    { type = "color", key = "HUD_BAR_EDGE_COLOR", text = "HUD Bar Edge Color" },
 }
 
 local function SetSettingsCheckboxVisual(rowControl, value)
@@ -282,6 +324,60 @@ local function SetSettingsCheckboxVisual(rowControl, value)
         local color = value and ZO_SELECTED_TEXT or ZO_DISABLED_TEXT
         rowControl.nameLabel:SetColor(color:UnpackRGBA())
     end
+end
+
+local function ClampNumber(value, minValue, maxValue, defaultValue)
+    value = tonumber(value) or defaultValue
+    if value < minValue then return minValue end
+    if value > maxValue then return maxValue end
+    return value
+end
+
+local function GetColorTableValue(settings, key, defaultColor)
+    local color = settings and settings[key]
+    if type(color) ~= "table" then
+        color = CopyDefaultSetting(defaultColor)
+        if settings then
+            settings[key] = color
+        end
+    end
+
+    color.r = tonumber(color.r) or defaultColor.r or 1
+    color.g = tonumber(color.g) or defaultColor.g or 1
+    color.b = tonumber(color.b) or defaultColor.b or 1
+    color.a = tonumber(color.a) or defaultColor.a or 1
+    return color
+end
+
+local function SetSettingsSliderVisual(rowControl, settings)
+    if not rowControl or not rowControl.slider then return end
+
+    local rowData = rowControl.rowData
+    local value = settings and settings[rowData.key] or rowData.min
+    value = ClampNumber(value, rowData.min, rowData.max, rowData.min)
+
+    rowControl.slider:SetValue(value)
+    if rowControl.valueLabel then
+        rowControl.valueLabel:SetText(tostring(value) .. (rowData.suffix or ""))
+    end
+end
+
+local function SetSettingsStepperVisual(rowControl, settings)
+    if not rowControl or not rowControl.valueLabel then return end
+
+    local rowData = rowControl.rowData
+    local value = settings and settings[rowData.key] or rowData.min
+    value = ClampNumber(value, rowData.min, rowData.max, rowData.min)
+    rowControl.valueLabel:SetText(tostring(value) .. (rowData.suffix or ""))
+end
+
+local function SetSettingsColorVisual(rowControl, settings)
+    if not rowControl or not rowControl.swatch then return end
+
+    local defaultColor = BSCARI.DefaultCharacterSettings[rowControl.settingKey] or { r = 1, g = 1, b = 1, a = 1 }
+    local color = GetColorTableValue(settings, rowControl.settingKey, defaultColor)
+    rowControl.swatch:SetCenterColor(color.r, color.g, color.b, color.a or 1)
+    rowControl.swatch:SetEdgeColor(1, 1, 1, 0.75)
 end
 
 local function GetCurrentCharacterDisplayName()
@@ -683,6 +779,130 @@ function BSCARI:CreateAllianceRankingSettingsButton(parent, text, x, y, width, c
     return button
 end
 
+function BSCARI:CreateAllianceRankingSettingsSlider(parent, rowData, y)
+    local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+    label:SetAnchor(TOPLEFT, parent, TOPLEFT, 10, y)
+    label:SetDimensions(260, 28)
+    label:SetFont("ZoFontWinH4")
+    label:SetText(rowData.text)
+
+    local slider = WINDOW_MANAGER:CreateControl(nil, parent, CT_SLIDER)
+    slider:SetAnchor(TOPLEFT, parent, TOPLEFT, 275, y + 4)
+    slider:SetDimensions(210, 20)
+    slider:SetOrientation(ORIENTATION_HORIZONTAL)
+    slider:SetMinMax(rowData.min, rowData.max)
+    slider:SetValueStep(rowData.step or 1)
+
+    local valueLabel = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+    valueLabel:SetAnchor(LEFT, slider, RIGHT, 10, 0)
+    valueLabel:SetDimensions(80, 24)
+    valueLabel:SetFont("ZoFontWinH4")
+
+    local control = { slider = slider, label = label, valueLabel = valueLabel, rowData = rowData, settingKey = rowData.key }
+    slider:SetHandler("OnValueChanged", function(_, value)
+        local settings = self:GetCurrentCharacterSettings()
+        if not settings then return end
+
+        local step = rowData.step or 1
+        local roundedValue = zo_round(value / step) * step
+        roundedValue = ClampNumber(roundedValue, rowData.min, rowData.max, rowData.min)
+        settings[rowData.key] = roundedValue
+
+        if valueLabel then
+            valueLabel:SetText(tostring(roundedValue) .. (rowData.suffix or ""))
+        end
+
+        self:ApplyHudBarAppearance()
+    end)
+
+    return control
+end
+
+function BSCARI:CreateAllianceRankingSettingsColor(parent, rowData, y)
+    local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+    label:SetAnchor(TOPLEFT, parent, TOPLEFT, 10, y)
+    label:SetDimensions(260, 28)
+    label:SetFont("ZoFontWinH4")
+    label:SetText(rowData.text)
+
+    local swatch = WINDOW_MANAGER:CreateControl(nil, parent, CT_BACKDROP)
+    swatch:SetAnchor(TOPLEFT, parent, TOPLEFT, 275, y + 2)
+    swatch:SetDimensions(48, 24)
+    swatch:SetCenterColor(1, 1, 1, 1)
+    swatch:SetEdgeColor(1, 1, 1, 0.75)
+    swatch:SetMouseEnabled(true)
+
+    local button = WINDOW_MANAGER:CreateControlFromVirtual(nil, parent, "ZO_DefaultButton")
+    button:SetAnchor(LEFT, swatch, RIGHT, 10, 0)
+    button:SetDimensions(120, 28)
+    button:SetText("Change")
+
+    local control = { label = label, swatch = swatch, button = button, settingKey = rowData.key, rowData = rowData }
+    local function OpenColorPicker()
+        local settings = self:GetCurrentCharacterSettings()
+        if not settings then return end
+
+        local defaultColor = self.DefaultCharacterSettings[rowData.key] or { r = 1, g = 1, b = 1, a = 1 }
+        local color = GetColorTableValue(settings, rowData.key, defaultColor)
+
+        if COLOR_PICKER then
+            COLOR_PICKER:Show(function(r, g, b, a)
+                settings[rowData.key] = { r = r, g = g, b = b, a = a or 1 }
+                self:RefreshAllianceRankingSettings()
+                self:ApplyHudBarAppearance()
+            end, color.r, color.g, color.b, color.a or 1)
+        end
+    end
+
+    swatch:SetHandler("OnMouseUp", OpenColorPicker)
+    button:SetHandler("OnClicked", OpenColorPicker)
+
+    return control
+end
+
+function BSCARI:CreateAllianceRankingSettingsStepper(parent, rowData, y)
+    local label = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+    label:SetAnchor(TOPLEFT, parent, TOPLEFT, 10, y)
+    label:SetDimensions(260, 28)
+    label:SetFont("ZoFontWinH4")
+    label:SetText(rowData.text)
+
+    local minusButton = WINDOW_MANAGER:CreateControlFromVirtual(nil, parent, "ZO_DefaultButton")
+    minusButton:SetAnchor(TOPLEFT, parent, TOPLEFT, 275, y)
+    minusButton:SetDimensions(46, 28)
+    minusButton:SetText("-")
+
+    local valueLabel = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
+    valueLabel:SetAnchor(LEFT, minusButton, RIGHT, 8, 0)
+    valueLabel:SetDimensions(62, 28)
+    valueLabel:SetFont("ZoFontWinH4")
+    valueLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    local plusButton = WINDOW_MANAGER:CreateControlFromVirtual(nil, parent, "ZO_DefaultButton")
+    plusButton:SetAnchor(LEFT, valueLabel, RIGHT, 8, 0)
+    plusButton:SetDimensions(46, 28)
+    plusButton:SetText("+")
+
+    local control = { stepper = true, label = label, minusButton = minusButton, plusButton = plusButton, valueLabel = valueLabel, rowData = rowData, settingKey = rowData.key }
+
+    local function ChangeValue(delta)
+        local settings = self:GetCurrentCharacterSettings()
+        if not settings then return end
+
+        local step = rowData.step or 1
+        local currentValue = ClampNumber(settings[rowData.key], rowData.min, rowData.max, rowData.min)
+        local newValue = ClampNumber(currentValue + (delta * step), rowData.min, rowData.max, rowData.min)
+        settings[rowData.key] = newValue
+        SetSettingsStepperVisual(control, settings)
+        self:ApplyHudBarAppearance()
+    end
+
+    minusButton:SetHandler("OnClicked", function() ChangeValue(-1) end)
+    plusButton:SetHandler("OnClicked", function() ChangeValue(1) end)
+
+    return control
+end
+
 function BSCARI:ResetAllianceRankingHudPositions()
     local settings = self:GetCurrentCharacterSettings()
     if not settings then return end
@@ -716,6 +936,22 @@ function BSCARI:ResetAllianceRankingHudPositions()
     end
 end
 
+function BSCARI:RefreshAllianceRankingSettingsScroll()
+    local content = self._settingsContent
+    if not content then return end
+
+    local contentHeight = self._settingsContentHeight or 0
+    content:SetDimensions(760, contentHeight)
+
+    if self._settingsScrollChild then
+        self._settingsScrollChild:SetDimensions(760, contentHeight)
+    end
+end
+
+function BSCARI:ScrollAllianceRankingSettings(delta)
+    -- Scrolling is handled by the native ZO_ScrollContainerBase in the settings XML.
+end
+
 function BSCARI:InitializeAllianceRankingSettings()
     local parent = self.ALLIANCE_RANKINGVIEW_SETTINGS
     if not parent or self._settingsInitialized then return end
@@ -723,57 +959,95 @@ function BSCARI:InitializeAllianceRankingSettings()
     parent:SetMouseEnabled(true)
     self._settingsRows = {}
 
-    local title = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
-    title:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 0)
-    title:SetDimensions(760, 32)
-    title:SetFont("ZoFontWinH1")
-    title:SetText("BSCs-AllianceRanking Settings")
+    local title = parent:GetNamedChild("Title")
+    if title then
+        title:SetText("BSCs-AllianceRanking Settings")
+    end
 
-    local character = WINDOW_MANAGER:CreateControl(nil, parent, CT_LABEL)
-    character:SetAnchor(TOPLEFT, title, BOTTOMLEFT, 0, 2)
-    character:SetDimensions(760, 26)
-    character:SetFont("ZoFontWinH4")
+    local character = parent:GetNamedChild("Character")
     self._settingsCharacterLabel = character
 
-    local y = 70
+    local panel = parent:GetNamedChild("Panel")
+    self._settingsPanel = panel
+    if panel then
+        panel:SetCenterColor(0, 0, 0, 0)
+        panel:SetEdgeColor(0, 0, 0, 0)
+    end
+
+    local parentName = parent:GetName()
+    self._settingsScrollChild = GetControl(parentName .. "PanelScrollChild")
+    local content = GetControl(parentName .. "PanelScrollChildContent")
+    if not content then
+        content = WINDOW_MANAGER:CreateControl(nil, parent, CT_CONTROL)
+        content:SetAnchor(TOPLEFT, parent, TOPLEFT, 0, 68)
+    end
+    self._settingsContent = content
+
+    local y = 0
     for _, row in ipairs(BSCARI_SETTINGS_ROWS) do
         if row.type == "header" then
-            self:CreateAllianceRankingSettingsHeader(parent, row.text, y)
+            self:CreateAllianceRankingSettingsHeader(content, row.text, y)
+            y = y + 34
+        elseif row.type == "slider" then
+            local slider = self:CreateAllianceRankingSettingsSlider(content, row, y)
+            self._settingsRows[row.key] = slider
+            y = y + 34
+        elseif row.type == "stepper" then
+            local stepper = self:CreateAllianceRankingSettingsStepper(content, row, y)
+            self._settingsRows[row.key] = stepper
+            y = y + 34
+        elseif row.type == "color" then
+            local color = self:CreateAllianceRankingSettingsColor(content, row, y)
+            self._settingsRows[row.key] = color
             y = y + 34
         else
-            local checkbox = self:CreateAllianceRankingSettingsCheckbox(parent, row.key, row.text, y)
+            local checkbox = self:CreateAllianceRankingSettingsCheckbox(content, row.key, row.text, y)
             self._settingsRows[row.key] = checkbox
             y = y + 30
         end
     end
 
     y = y + 8
-    self:CreateAllianceRankingSettingsButton(parent, "Preview Buff UI", 10, y, 180, function()
-        self._settingsPreviewActive = true
-        if self.RefreshBuffInfoNow then
-            self:RefreshBuffInfoNow()
-        end
-        self:RefreshBuffInfoVisibility()
-    end)
+    self._settingsContentHeight = y
 
-    self:CreateAllianceRankingSettingsButton(parent, "Reset HUD Positions", 205, y, 200, function()
-        self:ResetAllianceRankingHudPositions()
-        self:RefreshAllianceRankingSettings()
-    end)
+    local previewButton = parent:GetNamedChild("PreviewBuffUI")
+    if previewButton then
+        previewButton:SetText("Preview Buff UI")
+        previewButton:SetHandler("OnClicked", function()
+            self._settingsPreviewActive = true
+            if self.RefreshBuffInfoNow then
+                self:RefreshBuffInfoNow()
+            end
+            self:RefreshBuffInfoVisibility()
+        end)
+    end
 
-    self:CreateAllianceRankingSettingsButton(parent, "Donate", 420, y, 140, function()
-        local function PrefillMail()
-            ZO_MailSendToField:SetText(self.Author)
-            ZO_MailSendSubjectField:SetText(self.NameSpaced)
-            ZO_MailSendBodyField:TakeFocus()
-        end
-        SCENE_MANAGER:Show("mailSend")
-        zo_callLater(PrefillMail, 250)
-    end)
+    local resetButton = parent:GetNamedChild("ResetHUDPositions")
+    if resetButton then
+        resetButton:SetText("Reset HUD Positions")
+        resetButton:SetHandler("OnClicked", function()
+            self:ResetAllianceRankingHudPositions()
+            self:RefreshAllianceRankingSettings()
+        end)
+    end
 
+    local donateButton = parent:GetNamedChild("Donate")
+    if donateButton then
+        donateButton:SetText("Donate")
+        donateButton:SetHandler("OnClicked", function()
+            local function PrefillMail()
+                ZO_MailSendToField:SetText(self.Author)
+                ZO_MailSendSubjectField:SetText(self.NameSpaced)
+                ZO_MailSendBodyField:TakeFocus()
+            end
+            SCENE_MANAGER:Show("mailSend")
+            zo_callLater(PrefillMail, 250)
+        end)
+    end
 
     self._settingsInitialized = true
     self:RefreshAllianceRankingSettings()
+    self:RefreshAllianceRankingSettingsScroll()
 end
 
 function BSCARI:RefreshAllianceRankingSettings()
@@ -787,8 +1061,18 @@ function BSCARI:RefreshAllianceRankingSettings()
     end
 
     for key, control in pairs(self._settingsRows or {}) do
-        SetSettingsCheckboxVisual(control, settings[key] == true)
+        if control.slider then
+            SetSettingsSliderVisual(control, settings)
+        elseif control.stepper then
+            SetSettingsStepperVisual(control, settings)
+        elseif control.swatch then
+            SetSettingsColorVisual(control, settings)
+        else
+            SetSettingsCheckboxVisual(control, settings[key] == true)
+        end
     end
+
+    self:RefreshAllianceRankingSettingsScroll()
 end
 
 function BSCARI:InitializeAllianceRankingView(control)
@@ -1293,6 +1577,9 @@ local function SetMeterValue(bar, currentValue, maxValue)
     bar:SetValue(zo_min(currentValue, maxValue))
 end
 
+local MAX_DISPLAY_VETERANCY_RANK = 100
+local MAX_VETERANCY_PROGRESS_RANK = MAX_DISPLAY_VETERANCY_RANK - 1
+
 local function GetVeterancyTotalProgressInfo()
     if not IsVeterancySeasonActive or not IsVeterancySeasonActive() then
         return nil
@@ -1320,14 +1607,22 @@ local function GetVeterancyTotalProgressInfo()
 
     local numBaseRanks = GetNumBaseTiersForRewardTrack(rewardTrackId)
     numBaseRanks = type(numBaseRanks) == "number" and numBaseRanks or 0
-    if numBaseRanks <= 0 then
+    local maxRank = zo_min(numBaseRanks, MAX_DISPLAY_VETERANCY_RANK)
+    if maxRank <= 0 then
         return nil
     end
 
+    local displayRank = zo_min(currentRank, maxRank)
+    if displayRank < 0 then displayRank = 0 end
+
+    local maxProgressRank = zo_min(MAX_VETERANCY_PROGRESS_RANK, maxRank - 1)
     local maxProgress = 0
     local currentTotal = 0
     local currentRankTotal = 0
-    for rank = 1, numBaseRanks do
+
+    -- Rank 100 is the cap. Do not include rank 100 itself as another required tier,
+    -- otherwise a player already at 100/100 still appears to need one more rank.
+    for rank = 1, maxProgressRank do
         local tierProgress = GetTotalProgressAtRewardTrackTier(rewardTrackId, rank)
         tierProgress = type(tierProgress) == "number" and tierProgress or 0
         maxProgress = maxProgress + tierProgress
@@ -1340,15 +1635,19 @@ local function GetVeterancyTotalProgressInfo()
         end
     end
 
-    if currentRank > numBaseRanks then
+    if currentRank >= maxRank then
         currentTotal = maxProgress
-        currentRankTotal = GetTotalProgressAtRewardTrackTier(rewardTrackId, numBaseRanks) or 0
-        currentProgress = currentRankTotal
+        currentRankTotal = 1
+        currentProgress = 1
+        displayRank = maxRank
+    elseif maxProgress <= 0 then
+        maxProgress = 1
+        currentRankTotal = 1
+        currentProgress = 0
     end
 
-    return currentTotal, maxProgress, currentRank, numBaseRanks, currentProgress, currentRankTotal
+    return currentTotal, maxProgress, displayRank, maxRank, currentProgress, currentRankTotal
 end
-
 
 function BSCARI:RefreshVeterancyHudBars()
     if not self.BARframes then return end
@@ -1731,6 +2030,141 @@ local UIELEments = {
 	[4] = { name = "TotalVeterancy", info = "Veterancy Total", settingKey = "VRO_H", xKey = "VRO_X", yKey = "VRO_Y", veterancy = true },
 	[5] = { name = "VeterancyRank", info = "Veterancy to Next Rank", settingKey = "VCO_H", xKey = "VCO_X", yKey = "VCO_Y", veterancy = true },
 }
+
+function BSCARI:GetHudBarEdgeSize()
+    local settings = self:GetCurrentCharacterSettings()
+    return ClampNumber(settings and settings.HUD_BAR_EDGE_SIZE, 0, 8, 2)
+end
+
+function BSCARI:GetHudColor(key, fallback)
+    local settings = self:GetCurrentCharacterSettings()
+    local defaultColor = self.DefaultCharacterSettings[key] or fallback or { r = 1, g = 1, b = 1, a = 1 }
+    local color = GetColorTableValue(settings, key, defaultColor)
+    return color.r, color.g, color.b, color.a or 1
+end
+
+function BSCARI:GetHudBarColor(isVeterancy)
+    local key = isVeterancy and "VETERANCY_HUD_BAR_COLOR" or "AP_HUD_BAR_COLOR"
+    return self:GetHudColor(key, { r = 1, g = 1, b = 1, a = 1 })
+end
+
+function BSCARI:GetHudBackdropCenterColor()
+    return self:GetHudColor("HUD_BAR_CENTER_COLOR", { r = 0, g = 0, b = 0, a = 0.40 })
+end
+
+function BSCARI:GetHudBackdropEdgeColor()
+    return self:GetHudColor("HUD_BAR_EDGE_COLOR", { r = 0, g = 0, b = 0, a = 1 })
+end
+
+local function GetOrCreateHudBarSolidEdgeControls(frame)
+    if frame._bscariHudBarEdges then
+        return frame._bscariHudBarEdges
+    end
+
+    local WM = GetWindowManager()
+    local prefix = frame:GetName() .. "HudSolidEdge"
+    local edges =
+    {
+        top = WM:CreateControl(prefix .. "Top", frame, CT_BACKDROP),
+        bottom = WM:CreateControl(prefix .. "Bottom", frame, CT_BACKDROP),
+        left = WM:CreateControl(prefix .. "Left", frame, CT_BACKDROP),
+        right = WM:CreateControl(prefix .. "Right", frame, CT_BACKDROP),
+    }
+
+    for _, edge in pairs(edges) do
+        edge:SetMouseEnabled(false)
+        edge:SetCenterColor(1, 1, 1, 1)
+        edge:SetEdgeColor(0, 0, 0, 0)
+        if edge.SetEdgeTexture then
+            edge:SetEdgeTexture(nil, 1, 1, 0, 0)
+        end
+        if edge.SetDrawLayer then
+            edge:SetDrawLayer(DL_CONTROLS)
+        end
+        if edge.SetDrawLevel then
+            edge:SetDrawLevel(4)
+        end
+        edge:SetHidden(true)
+    end
+
+    frame._bscariHudBarEdges = edges
+    return edges
+end
+
+local function ApplyHudBarSolidEdge(frame, backdrop, edgeSize, r, g, b, a)
+    local edges = GetOrCreateHudBarSolidEdgeControls(frame)
+
+    if edgeSize <= 0 then
+        for _, edge in pairs(edges) do
+            edge:SetHidden(true)
+        end
+        return
+    end
+
+    edgeSize = zo_round(edgeSize)
+
+    edges.top:ClearAnchors()
+    edges.top:SetAnchor(TOPLEFT, backdrop, TOPLEFT, 0, 0)
+    edges.top:SetAnchor(TOPRIGHT, backdrop, TOPRIGHT, 0, 0)
+    edges.top:SetHeight(edgeSize)
+
+    edges.bottom:ClearAnchors()
+    edges.bottom:SetAnchor(BOTTOMLEFT, backdrop, BOTTOMLEFT, 0, 0)
+    edges.bottom:SetAnchor(BOTTOMRIGHT, backdrop, BOTTOMRIGHT, 0, 0)
+    edges.bottom:SetHeight(edgeSize)
+
+    edges.left:ClearAnchors()
+    edges.left:SetAnchor(TOPLEFT, backdrop, TOPLEFT, 0, 0)
+    edges.left:SetAnchor(BOTTOMLEFT, backdrop, BOTTOMLEFT, 0, 0)
+    edges.left:SetWidth(edgeSize)
+
+    edges.right:ClearAnchors()
+    edges.right:SetAnchor(TOPRIGHT, backdrop, TOPRIGHT, 0, 0)
+    edges.right:SetAnchor(BOTTOMRIGHT, backdrop, BOTTOMRIGHT, 0, 0)
+    edges.right:SetWidth(edgeSize)
+
+    for _, edge in pairs(edges) do
+        edge:SetCenterColor(r, g, b, a)
+        edge:SetEdgeColor(0, 0, 0, 0)
+        edge:SetHidden(false)
+    end
+end
+
+function BSCARI:ApplyHudBarAppearanceToFrame(index)
+    if not self.BARframes then return end
+
+    local frame = self.BARframes[index]
+    local data = UIELEments[index]
+    if not frame or not data then return end
+
+    local backdrop = frame:GetNamedChild("Frame")
+    if backdrop then
+        local centerR, centerG, centerB, centerA = self:GetHudBackdropCenterColor()
+        local edgeR, edgeG, edgeB, edgeA = self:GetHudBackdropEdgeColor()
+        local edgeSize = self:GetHudBarEdgeSize()
+
+        backdrop:SetCenterColor(centerR, centerG, centerB, centerA)
+        -- The native Backdrop edge uses a sliced decorative texture. With larger edge sizes
+        -- only parts of that texture are visibly tinted, so we keep the native edge transparent
+        -- and draw a solid four-sided texture border ourselves.
+        backdrop:SetEdgeColor(edgeR, edgeG, edgeB, 0)
+        ApplyHudBarSolidEdge(frame, backdrop, edgeSize, edgeR, edgeG, edgeB, edgeA)
+    end
+
+    local bar = frame:GetNamedChild("Bar")
+    if bar then
+        local r, g, b, a = self:GetHudBarColor(data.veterancy == true)
+        bar:SetColor(r, g, b, a)
+    end
+end
+
+function BSCARI:ApplyHudBarAppearance()
+    if not self.BARframes then return end
+
+    for index in ipairs(UIELEments) do
+        self:ApplyHudBarAppearanceToFrame(index)
+    end
+end
 function BSCARI:UIBARSetHidden(hidden) -- /script BSCAllianceRanking:UIBARSetHidden(false)
 	for IDX in ipairs(UIELEments) do	
 		if BSCARI.BARframes and BSCARI.BARframes[IDX] then
@@ -1746,6 +2180,8 @@ end
 function BSCARI:UpdateUISettingsBAR() -- /script BSCAllianceRanking:UpdateUISettingsBAR()
 	local settings = BSCARI:GetCurrentCharacterSettings()
 	if not settings or not BSCARI.BARframes or not BSCARI.BARfragments then return end
+
+	BSCARI:ApplyHudBarAppearance()
 
 	if not IsInAvAZone() then 
 		BSCARI:UIBARSetHidden(true)		
@@ -1789,14 +2225,14 @@ local function CreateBARUI()
 		frame:GetNamedChild("lbl"):SetText(data.info)		
 
 		local bar = frame:GetNamedChild("Bar")
-		if data.veterancy then
-			bar:SetColor(0, 0.85, 0.85, 1)
-		else
-			ZO_StatusBar_SetGradientColor(bar, ZO_AVA_RANK_GRADIENT_COLORS)	
+		if bar then
+			local r, g, b, a = BSCARI:GetHudBarColor(data.veterancy == true)
+			bar:SetColor(r, g, b, a)
 		end
 		
 		BSCARI.BARfragments[IDX] = ZO_HUDFadeSceneFragment:New(frame)		
 		BSCARI.BARframes[IDX] = frame
+		BSCARI:ApplyHudBarAppearanceToFrame(IDX)
 		
 		local settings = BSCARI:GetCurrentCharacterSettings()
 		local L = settings and settings[data.xKey] or 0

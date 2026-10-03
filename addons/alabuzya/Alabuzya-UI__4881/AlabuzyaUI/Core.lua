@@ -74,7 +74,7 @@ local function ChatTab(tab,isPlus)
     bg:SetEdgeColor(0,0,0,0)
     -- Open-bottom borders share the main window's upper edge.
     if T.classic then
-        AlabuzyaUI.ClassicTheme.Panel(tab,nil,true)
+        T.Panel(tab,nil,true)
     end
     local top=T.Texture(tab,0.62,0.88,0.068,0.096,DL_BACKGROUND)
     top:SetHeight(5)
@@ -200,6 +200,16 @@ local function SkinCompass()
     bg:SetEdgeColor(0,0,0,0) bg:SetEdgeTexture(nil,1,1,1)
     bg:SetDrawLayer(DL_BACKGROUND) bg:SetDrawLevel(0)
     bg:SetMouseEnabled(false)
+    if T.ds3 then
+        bg:SetHidden(true)
+        local line=WINDOW_MANAGER:CreateControl('AlabuzyaUIDS3CompassLine',compassFrame,CT_TEXTURE)
+        line:SetTexture('AlabuzyaUI/Textures/DS3Compass.dds')
+        line:SetAnchor(TOPLEFT,compassFrame,TOPLEFT,-12,-3)
+        line:SetAnchor(BOTTOMRIGHT,compassFrame,BOTTOMRIGHT,12,3)
+        line:SetDrawLayer(DL_BACKGROUND) line:SetDrawLevel(1)
+        line:SetMouseEnabled(false)
+        return
+    end
     if T.classic then
         -- Native UpdateWidth runs again after activation/resolution changes.
         -- Both corners must follow the same parent as the decorative frame.
@@ -250,8 +260,10 @@ end
 function AlabuzyaUI.Core.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     if T.classic then
-        AlabuzyaUI.ClassicTheme.AfterLayout=HideNativeSwapDecor
-        AlabuzyaUI.ClassicTheme.InitializeHUD()
+        local presentation=T.ds3 and AlabuzyaUI.DS3Theme or AlabuzyaUI.ClassicTheme
+        presentation.AfterLayout=HideNativeSwapDecor
+        if T.ds3 then SkinChat() end
+        presentation.InitializeHUD()
         if PLAYER_ATTRIBUTE_BARS_FRAGMENT then PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('AlabuzyaUI',true) end
         if ZO_ActionBar1KeybindBG then ZO_ActionBar1KeybindBG:SetHidden(true) end
         HideNativeSwapDecor() SkinCompass() SkinChat() T.ApplyHUDFonts()

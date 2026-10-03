@@ -74,7 +74,7 @@
     "tim99sColoredLists"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3373/",
-  "fingerprint": "49d8e69246072a1754985fd2d058490201335829b489827aec4327cb73b62d49",
+  "fingerprint": "b3e6f625c72452787876d746162248faa97e25420e5c84de04fb43656be227c0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16529.png",
     "https://cdn-eso.mmoui.com/preview/pvw16528.png",
@@ -96,11 +96,11 @@
   "source_id": "3373",
   "source_url": "https://www.esoui.com/downloads/info3373-tim99sColoredLists.html",
   "stats": {
-    "downloads": 17764,
+    "downloads": 18194,
     "favorites": 46,
-    "monthly_downloads": 418
+    "monthly_downloads": 861
   },
   "title": "tim99s ColoredLists",
-  "updated_at": 1790609787000,
-  "version": "10.1"
+  "updated_at": 1790950765000,
+  "version": "10.2"
 }

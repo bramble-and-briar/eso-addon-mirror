@@ -1,0 +1,27 @@
+## Title: Snipers Friend
+## Author: clubwratt
+## Version: 0.7.0
+## APIVersion: 101049 101050
+## Description: Reticle dot, a 3D aim line capped at your ground ability's range (e.g. Elemental Explosion 28m, keep/siege buffs included) that is cut off by walls so you can see where your aim lands, range/LOS tinting, and unlocked camera sensitivity, height and distance. Settings via the Add-Ons menu (LibHarvensAddonSettings) or /sf.
+## SavedVariables: SnipersFriendSavedVars
+## OptionalDependsOn: LibHarvensAddonSettings
+## DevId: 18d399f0-14ef-40a3-8f08-1aaa8cd0a5de
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+SnipersFriend.lua
+SnipersFriendTypes.lua
+SnipersFriendState.lua
+SnipersFriendSlashUtils.lua
+SnipersFriendReticleUtils.lua
+SnipersFriendReticleActions.lua
+SnipersFriendCameraUtils.lua
+SnipersFriendCameraActions.lua
+SnipersFriendGroundTargetUtils.lua
+SnipersFriendGroundTargetActions.lua
+SnipersFriendAimLineUtils.lua
+SnipersFriendAimLineActions.lua
+SnipersFriendSettingsUtils.lua
+SnipersFriendSettingsActions.lua
+SnipersFriendSlashActions.lua
+Main.lua

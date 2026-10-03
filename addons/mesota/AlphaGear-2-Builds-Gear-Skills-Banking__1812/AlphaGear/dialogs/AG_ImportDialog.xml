@@ -1,0 +1,53 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="AGImportDialog" inherits="ZO_CustomDialogBase">
+            <!-- <Dimensions x="800"/> -->
+            <Anchor point="CENTER" offsetY="-45" />
+            <Controls>
+                <Control name="$(parent)Content" inherits="ZO_DialogContentAnchors">
+                    <Controls>
+                        <Label name="$(parent)ImportLabel" font="ZoFontGameBold" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="CENTER" text="Select a profile">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT"/>
+                        </Label>
+
+                        <!-- Import -->
+                        <Label name="$(parent)AccountLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT" text="Account">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ImportLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Dimensions x="100"/>
+                        </Label>
+                        <Control name="$(parent)AccountDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)AccountLabel" relativePoint="TOPRIGHT"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)ImportLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        </Control>
+
+                        <Control name="$(parent)CharacterDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)AccountDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)AccountDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        </Control>
+                        <Label name="$(parent)CharacterLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT" text="Character">
+                            <Anchor point="RIGHT" relativeTo="$(parent)CharacterDropdown" relativePoint="LEFT"/>
+                            <Dimensions x="100"/>
+                        </Label>
+
+                        <Control name="$(parent)ProfileDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)CharacterDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)CharacterDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        </Control>
+                        <Label name="$(parent)ProfileLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT" text="Profile">
+                            <Anchor point="RIGHT" relativeTo="$(parent)ProfileDropdown" relativePoint="LEFT"/>
+                            <Dimensions x="100"/>
+                        </Label>
+
+                        <Label name="$(parent)Warning" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT" text="Warning: this will overwrite your current profile! Extensions / integrations and advanced settings will not be imported.">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)ProfileLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)ProfileDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        </Label>
+                    </Controls>
+                </Control>
+                <Control name="$(parent)Cancel" inherits="ZO_CustomDialogButton" />
+                <Control name="$(parent)Accept" inherits="ZO_CustomDialogButton" />
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

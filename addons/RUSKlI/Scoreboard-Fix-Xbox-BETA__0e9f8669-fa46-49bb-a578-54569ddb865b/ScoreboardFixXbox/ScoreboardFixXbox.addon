@@ -1,0 +1,9 @@
+## Title: Scoreboard Fix Xbox
+## Author: ruskiii
+## Version: 0.1.2
+## AddOnVersion: 102
+## APIVersion: 101051
+## Description: Xbox scoreboard visuals based on PC 1.0.22, using native scoreboard controls.
+Core.lua
+ScoreboardFixXbox.lua
+Controls.lua

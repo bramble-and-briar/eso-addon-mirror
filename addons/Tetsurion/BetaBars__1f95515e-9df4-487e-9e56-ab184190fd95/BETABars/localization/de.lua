@@ -1,0 +1,27 @@
+BETABars = BETABars or {}
+local T = BETABars
+T.L = {
+    TITLE = "BETA Bars",
+    INFO = "Info",
+    INFO_TT = "Nur Leben, Magicka und Ausdauer. Kein Ult. Stile sind Skins. Kugeln sind eine Füllung von unten, keine Flüssigkeit.",
+    ENABLED = "Aktiv",
+    STYLE = "Stil",
+    STYLE_THIN = "Dünn",
+    STYLE_SEG = "Segmente",
+    STYLE_CLASSIC = "Klassisch",
+    STYLE_ORB = "Kugeln",
+    HIDE_STOCK = "Standardleisten ausblenden",
+    HIDE_FULL = "Verstecken wenn voll, außer Kampf",
+    NUMBERS = "Zahlen",
+    TAIL = "Schadensschweif",
+    SHIELD = "Schildrand",
+    NOTCH = "Kostenmarken",
+    SCALE = "Skalierung",
+    OFFX = "Horizontal",
+    OFFY = "Vertikal",
+    COLOR_H = "Lebensfarbe",
+    COLOR_M = "Magickafarbe",
+    COLOR_S = "Ausdauerfarbe",
+    PREVIEW = "Vorschau",
+    LOADED = "BETA Bars: Einstellungen, Add-ons.",
+}

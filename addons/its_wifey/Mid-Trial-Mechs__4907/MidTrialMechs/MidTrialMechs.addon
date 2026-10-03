@@ -1,0 +1,12 @@
+## Title: Mid Trial Mechs
+## APIVersion: 101050 101051
+## Version: 1.0.0
+## AddOnVersion: 1
+## Author: WifeyRytic
+## SavedVariables: MidTrialMechs_SavedVars
+## Description: Quick trial boss mechanic explanations for group chat.
+
+data/Bindings.xml
+data/MidTrialMechs_Data.lua
+data/MidTrialMechs_UI.lua
+MidTrialMechs.lua

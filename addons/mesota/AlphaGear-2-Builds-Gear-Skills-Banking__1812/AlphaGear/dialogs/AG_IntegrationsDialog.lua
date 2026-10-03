@@ -312,7 +312,7 @@ end
 
 
 
-function AGIntDlg.SetupChampionPointIntegration(control)
+local function SetupCPSlotsIntegration(control)
     local ctrlContent = GetControl(control, "Content")
 
     -- updates the CPS host and slotname combobox, if the settings are enabled to show it
@@ -346,9 +346,93 @@ function AGIntDlg.SetupChampionPointIntegration(control)
 end
 
 
+local function SetUpDCPDropdown(combo, tree)
+    local AGplugDCP = AG.plugins.DynamicCP
+    local currentSlotSetId = AGIntDlg.currentBuildData["DCPSlotSet" .. tree] or -1
+
+    local function OnSlottableSetSelected(_, _, entry)
+        AGIntDlg.selection["newDCPSlotSet" .. tree] = entry.slotSetId
+    end
+
+    combo:ClearItems()
+
+    local nothingEntry = ZO_ComboBox:CreateItemEntry("--", OnSlottableSetSelected)
+    nothingEntry.slotSetId = -1
+    combo:AddItem(nothingEntry, ZO_COMBOBOX_SUPRESS_UPDATE)
+
+    local defaultEntry = nothingEntry
+
+    for slotSetId, slotSet in pairs(AGplugDCP.GetDCPSlottableSet(tree)) do
+        local entry = ZO_ComboBox:CreateItemEntry(slotSet.name, OnSlottableSetSelected)
+        entry.slotSetId = slotSetId
+        combo:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
+        if (currentSlotSetId == slotSetId) then
+            defaultEntry = entry
+        end
+    end
+    combo:UpdateItems()
+    combo:SelectItem(defaultEntry)
+end
+
+
+local function SetUpDynamicCPIntegration(control)
+    local ctrlContent = GetControl(control, "Content")
+
+    local AGplugDCP = AG.plugins.DynamicCP
+    local enabled = AGplugDCP.useAddon()
+    local TREES = {"Green", "Blue", "Red"}
+    for _, tree in ipairs(TREES) do
+        local comboParent = ctrlContent:GetNamedChild("DCP" .. tree .. "Dropdown")
+        local combo = ZO_ComboBox_ObjectFromContainer(comboParent)
+        local label = ctrlContent:GetNamedChild("DCP" .. tree .. "Label")
+
+        combo:SetEnabled(enabled)
+        comboParent:SetHidden(not enabled)
+        label:SetHidden(not enabled)
+
+        if (enabled) then
+            SetUpDCPDropdown(combo, tree)
+        end
+    end
+end
+
+local COLORS = {
+    Green = "a5d752",
+    Blue = "59bae7",
+    Red = "e46b2e",
+}
+
+function AGIntDlg.ShowDCPPreview(control)
+    local result = "Preview:"
+    local TREES = {"Green", "Blue", "Red"}
+    for _, tree in ipairs(TREES) do
+        local slotSetId = AGIntDlg.selection["newDCPSlotSet" .. tree]
+        if (slotSetId) then
+            local stars = AG.plugins.DynamicCP.GetDCPSlottableSetStars(tree, slotSetId)
+            if (stars) then
+                for _, skillId in ipairs(stars) do
+                    result = zo_strformat("<<1>>\n|c<<2>><<C:3>>|r", result, COLORS[tree], GetChampionSkillName(skillId))
+                end
+            end
+        end
+    end
+    ZO_Tooltips_ShowTextTooltip(control, RIGHT, result)
+end
+
+
+function AGIntDlg.SetupChampionPointIntegration(control)
+    SetupCPSlotsIntegration(control)
+    SetUpDynamicCPIntegration(control)
+end
+
+
 function AGIntDlg.CommitChampionPointIntegration()
     AGIntDlg.currentBuildData.CPSHostName = AGIntDlg.selection.newCPSHostName
     AGIntDlg.currentBuildData.CPSProfileName = AGIntDlg.selection.newCPSProfileName
+
+    AGIntDlg.currentBuildData.DCPSlotSetGreen = AGIntDlg.selection.newDCPSlotSetGreen
+    AGIntDlg.currentBuildData.DCPSlotSetBlue = AGIntDlg.selection.newDCPSlotSetBlue
+    AGIntDlg.currentBuildData.DCPSlotSetRed = AGIntDlg.selection.newDCPSlotSetRed
 end
 
 

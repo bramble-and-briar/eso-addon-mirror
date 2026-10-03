@@ -461,6 +461,33 @@ function AG:CreateSettingsPage()
 					default = intDefaults.Champion.UseCPSlots,
 					disabled = function() return not plugins.CPSlots.isAddonReady() end
 				},
+				{
+					type = "checkbox",
+					name = "Use Dynamic CP",
+					tooltip = "Allows Dynamic CP slottable sets to be equipped alongside builds, via the Advanced Options dialog. Requires Dynamic CP 3.4.0+",
+					getFunc = function() return intOptions.Champion.UseDynamicCP end,
+					setFunc = function(value) intOptions.Champion.UseDynamicCP = value end,
+					default = intDefaults.Champion.UseDynamicCP,
+					disabled = function() return not plugins.DynamicCP.isAddonReady() end
+				},
+				{
+					type = "checkbox",
+					name = "    Print slottable sets names",
+					tooltip = "When equipping slottable sets, prints to chat what sets are being slotted. If the slottable set does not exist, an error message will be printed regardless.",
+					getFunc = function() return intOptions.Champion.DCPPrintNames end,
+					setFunc = function(value) intOptions.Champion.DCPPrintNames = value end,
+					default = intDefaults.Champion.DCPPrintNames,
+					disabled = function() return not plugins.DynamicCP.isAddonReady() or not intOptions.Champion.UseDynamicCP end
+				},
+				{
+					type = "checkbox",
+					name = "    Print individual star names",
+					tooltip = "When equipping slottable sets, prints to chat what slottable stars are being slotted and which ones are already slotted. If there aren't enough points allocated to a star, an error message will be printed regardless.",
+					getFunc = function() return intOptions.Champion.DCPPrintSlottables end,
+					setFunc = function(value) intOptions.Champion.DCPPrintSlottables = value end,
+					default = intDefaults.Champion.DCPPrintSlottables,
+					disabled = function() return not plugins.DynamicCP.isAddonReady() or not intOptions.Champion.UseDynamicCP end
+				},
 			},
 		},
 

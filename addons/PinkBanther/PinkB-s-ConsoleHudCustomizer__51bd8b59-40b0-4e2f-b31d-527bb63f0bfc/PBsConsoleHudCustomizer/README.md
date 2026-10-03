@@ -71,7 +71,8 @@ gives it the same size so the pair still lines up.
   follow the same point at the fill's moving end, without crossing either. Everything is untextured
   rectangles with per-corner colours -- no art -- cut into rows where a slope has to be followed,
   from a pool per bar section that is built once and reused, updated every 50ms while the style is
-  active and the HUD is shown. `/pbhud plain` prints each bar's band, moving end and piece count, and where the game's own fill and
+  active and the HUD is shown. Coming back from a menu the bars fade in as the game does it, and the
+  effect appears as the fade ends. `/pbhud plain` prints each bar's band, moving end and piece count, and where the game's own fill and
   frame pieces sit inside their container; `/pbhud plain margin <left> <right>` pulls the effect in
   from each end by a pixel or two, for a fill whose art ends before its control does.
   `lua test/preview_liquid.lua out.html [liquidflow|crystal]` renders five seconds of either from

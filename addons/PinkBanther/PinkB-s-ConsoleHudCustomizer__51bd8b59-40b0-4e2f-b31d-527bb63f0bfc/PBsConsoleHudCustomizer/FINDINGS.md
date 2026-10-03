@@ -1473,9 +1473,203 @@ margin the art carries; once known it can stop being a setting.
 The harness places its bars and frame pieces at those measurements now (it had every fill 7 in from
 the left and no size on the frame pieces).
 
+**How it ended.** The measurement came back from a PS5 -- magicka's container 249 wide (the
+visualiser sizes a bar by its maximum, so wider than the 237 of the templates), its fill 7.4 in from
+the left and 235 wide, so ending at 242.4, and its flat frame piece starting at 242.5 -- which says
+the effect was stopping exactly where the fill's control does, as intended. On that build the spill
+was gone: what had caused it was the corner-and-size placement of §62, and the margins were never
+needed. They stay at 0, unset, as the instrument for the next time an end looks wrong.
+
 **Tests**: each margin pulls its end in by its own number of pixels and neither pulls by default;
 the command sets, mirrors one number onto both ends, and clamps; the report carries the fill and
 frame placements and the margins in use. Ignoring the margins fails them.
+
+## 64. The skill bar had the same flaw, and the bars' flicker is measured (1.27.8)
+
+Still a slight flicker coming back to the HUD from a menu.
+
+**The skill bar, found in the source.** It had exactly the flaw §59 took out of the attribute bars:
+on the HUD's `HIDDEN`, `timers:Stop()` hid the countdowns, the other set's row and the shades, and
+put the game's own countdown back to full; and it started again only on the HUD's `SHOWN`. So every
+time a menu closed, the skill bar faded in without this add-on's row and with the game's countdown
+showing, then changed. The skill bar is shown by its own `ACTION_BAR_FRAGMENT`, a
+`ZO_HUDFadeSceneFragment` like the bars', and nothing in `actionbar.lua` re-lays it out on a show
+(`ApplyStyle` runs on a platform change only).
+
+So, as for the bars: hiding **pauses** (`timers:Pause`) and leaves everything on the hidden bar; the
+timers follow `ACTION_BAR_FRAGMENT` and resume on its `SHOWING`. A setting changed in a menu keeps
+them paused and brings the hidden bar up to date -- `Refresh` used to `Stop` there, because
+`Wanted()` is false with the HUD down -- and only switching the skill bar's features off stops them.
+`Enabled()` is the settings half of `Wanted()`.
+
+**The attribute bars, measured.** The user's flicker is on the attribute bars, and nothing more can
+be read out of the source: the client sets the bars' colours once, at start-up (`RefreshColor`), and
+writes neither their anchors nor their hidden state on a show; the add-on's `Apply` on the HUD's
+`SHOWN` compares anchors and writes nothing when they match. Two fixes reasoned from the source
+(§59, §60) have not been enough, so `ReturnTrace.lua` records what really happens: from the bars'
+fragment's `SHOWING`, every frame for 700 ms, whether the group, each bar, its frame, background,
+effect or rectangle are shown, how solid the group, each bar and its fill are, whether the bars are
+held back and drawn, how much of each effect is drawn, and every kind of write this add-on makes --
+keeping only what changes, with the time. `/pbhud plain trace` prints it. A flicker is something
+that goes and comes back, or changes after the bars are showing, and will be a line or two in it.
+
+The trace runs only in that window and stops if the bars hide again; its lines reuse their tables.
+
+## 65. What the first trace showed: the add-on was reading the drawn state (1.27.9)
+
+The PS5's first `/pbhud plain trace` (Liquid, How solid 70%), and: **no flicker in Standard**. So
+it is this add-on's.
+
+The trace itself ran out of lines at +210 ms, before anything flickered, but it showed two things
+the harness never had:
+
+1. `at start: ... held back off` with every bar hidden. The hold of §60 **never engaged on a
+   PS5**: by the time the fragment reports `HIDDEN` it has already hidden the group above the bars,
+   and `IsHidden()` answers as drawn, parents included -- so each bar read as hidden, and `HoldBars`
+   skipped it.
+2. Every bar's alpha moving in step with the group's (0.00, 0.29, 0.56, 0.84), and `wrote effect
+   alpha` on every update of the fade. `GetAlpha()` too answers as drawn. `EffectAlpha` compared that
+   with the slider, found it different all through any fade -- the menu's, or the contextual fade of
+   bars full out of combat -- and rewrote it each time; and the alpha it noted to put back on leaving
+   the style could be a fade's rather than the bar's own.
+
+The client's own code says which is which: it reads `IsControlHidden()` and `GetControlAlpha()`
+where it means the control alone (`ZO_HUDFadeSceneFragment:Show` checks `IsControlHidden`). The
+harness's stand-ins answered for the control alone through both pairs, which is why neither showed.
+
+**1.27.9** reads a control's own state through `addon.OwnHidden` and `addon.OwnAlpha` -- in the hold,
+in `EffectAlpha`, in the game countdown's dimming on the skill bar, and for the companion's ultimate
+(which, with the whole bar hidden behind a menu, read as absent). The harness now answers
+`IsHidden`/`GetAlpha` as drawn and `IsControlHidden`/`GetControlAlpha` for the control alone, as the
+client does; two older tests that meant "this add-on did not hide its own effect" now say so.
+
+The trace records each control's own state too -- as drawn, every bar just retold the group's fade,
+which is what used up the lines -- for 1200 ms and 64 lines, enough for the fade, the fragment's
+`SHOWN` and the HUD's.
+
+**Tests** reproduce the PS5's order -- the group hidden before `HIDDEN`, shown at alpha 0 before
+`SHOWING` -- and check the bars are held, released after the second draw, have no alpha rewritten
+through the fade, and get their own alpha back on leaving a style chosen mid-fade. Reading the drawn
+state in either place fails them.
+
+Whether these were the flicker is for the PS5 to say: they are what the trace showed to be wrong.
+
+## 66. The effect ran ahead of the fill (1.27.10)
+
+The second PS5 trace (1.27.9) showed the fixes of §65 working -- `held back on` at the start,
+released at +57 ms, and no alpha rewritten through the fade -- and still a flicker. Nothing the trace
+watched changed after the bars appeared: no control went or came back, no alpha moved but the
+group's fade. So what flickered was *what is drawn*, not whether it is.
+
+The one thing that moves on its own on the way back is the game's fill. The client never jumps a
+status bar to a new amount: `ZO_PlayerAttributeBar:UpdateStatusBar` calls
+`ZO_StatusBar_SmoothTransition`, which plays an animation that walks the bar there with `SetValue`.
+Liquid and Crystal drew their effect from `GetUnitPower` -- the amount itself -- so after any change
+the effect stood out past the fill until the fill caught up: after a hit or a regeneration tick, a
+few pixels for a moment; coming back from a menu, by everything regained there. Standard has no
+effect over the fill, which is why it never showed there.
+
+The effect styles now take how full the bar is from the fill itself (`plain:DrawnFraction`: the
+first status bar's `GetValue` over `GetMinMax`; health's halves each hold half of both, so either
+gives the same fraction), falling back to the amount where those cannot be read. Square and
+MURA-HIGE are unchanged: they blank the game's fill and draw their own, so there is nothing to lag.
+
+The harness's status bars now carry a value and a range, set from the amount as the client does,
+and `SetBarValue` lets a test hold the fill behind the amount. The trace records each bar's drawn
+fill and its amount, so if this was not the flicker, the next trace says so.
+
+**Tests**: with the amount regained to full and the fill shown at 40% and then 60%, nothing of either
+style's liquid stands past the fill, and once the fill catches up it reaches the end. Drawing from
+the amount fails all four.
+
+## 67. Taking Liquid apart to find the flicker (1.27.11)
+
+The third PS5 trace (1.27.10): the bars were full when they came back -- `fill drawn 1.00`,
+`amount 1.00` -- so §66's lag was not this flicker (it is still a real mismatch, and stays fixed).
+And again nothing the trace watches changed once the bars were showing: no control went or came
+back, no alpha moved but the group's fade, the fill did not move. Liquid flickers; Standard does
+not.
+
+So it is in what is drawn -- the colours written into the fill, the effect's pieces, the numbers'
+tier -- which no trace can see, and three fixes reasoned from the source have not found it. Rather
+than a fourth, 1.27.11 can take Liquid and Crystal apart on the PS5, one part at a time, for the
+session only:
+
+| part | what goes |
+| --- | --- |
+| `hold` | holding the bars back until drawn (§60) |
+| `colour` | the colours written into the game's fill |
+| `alpha` | the How solid alpha on the bar's pieces |
+| `numbers` | lifting the resource numbers over the effect |
+| `effect` | every piece drawn over the fill |
+| `shade`, `current`, `bubble`, `glow`, `drain`, `glass` | one kind of Liquid's pieces |
+| `facet`, `pavilion`, `girdle`, `sparkle` | one kind of Crystal's |
+
+`/pbhud plain test <part> off`, `... on`, `... reset`. A change starts the style over, so whatever
+the part had written is put back before it runs without it. The trace's heading names the parts that
+were off. The part whose absence takes the flicker away is the answer; if `effect off` does it, the
+piece kinds then narrow it further.
+
+## 68. Stable slots and no re-anchoring: tried in 1.27.12, withdrawn in 1.27.13
+
+The switches of §67 on a PS5: the flicker stopped only with `current`, `glass` and `shade` all off --
+each of the wide piece kinds flickers on its own -- and `bubble` made no difference. The flicker is
+on, off, on in quick succession. It is not the pool running out: at a PS5's bar sizes the most any
+bar section used was 69 of 110, none dropped.
+
+1.27.12 took the one thing the three share as the cause -- every update each piece was cleared and
+re-anchored and recoloured, and handed out from the pool in order -- and gave each kind slots of its
+own, anchored each piece once and then moved it with `SetAnchorOffsets` (a luaindex in
+`ESOUIDocumentation.txt`), and wrote colours, levels and visibility only when they changed.
+
+On the PS5 it **still flickered**, and **the look changed**, though the offline preview drew the same.
+So two things are now measured, not reasoned:
+
+- the flicker does not come from rewriting the pieces: with the shade and glass written once and left
+  alone, they still flickered;
+- something in that painter behaves differently on a console from the documentation and the harness
+  -- `SetAnchorOffsets`, or vertex colours set once and assumed to stay. Which, is not known.
+
+1.27.13 is 1.27.11's code again, byte for byte (`Plain.lua` and every other add-on file), under a new
+version number. What remains true: the wide pieces of Liquid flicker on the way back from a menu, the
+narrow ones do not, and it is not the add-on writing to them.
+
+## 69. Not drawing the style while the bars fade in: two ways to compare (1.27.14)
+
+What §67 and §68 leave: Liquid's wide pieces flicker on the way back from a menu, the narrow ones do
+not, and it is not the add-on writing to them. What is left that is particular to the way back is
+the fade itself -- 250 ms of the group above the bars at partial alpha, with wide translucent
+textures at another draw tier inside it.
+
+So the style can be kept from being seen during the fade, in either of two ways, switched on for the
+session with `/pbhud plain test <mode> on` to be compared on a PS5 before one is made the default:
+
+- **wait** -- the bars stay held (§60) through the whole fade, and are shown, already drawn, when the
+  bars' fragment reports `SHOWN`. They appear at full strength rather than fading in. The 600 ms
+  failsafe still stands.
+- **late** -- the bars fade in as they do now, and the effect over the fill is drawn but kept hidden
+  until the fade ends. The fill and frame fade in; the liquid appears when the fade is done.
+
+`plain.fadeDone` is false from the bars' fragment's `SHOWING` until its `SHOWN` (or `HIDDEN`), set
+before anything is drawn for that state. With neither mode on, drawing is 1.27.11's. The trace's
+heading names the modes on.
+
+**Tests**: without a mode, the bars show part-way into the fade; with `wait` they are held through it,
+shown with the effect drawn the moment it ends, and the failsafe still works; with `late` the bars
+show during the fade but the effect does not until it ends, and then stays. Ignoring either mode
+fails them.
+
+## 70. Late it is (1.27.15)
+
+On the PS5 both modes of §69 stopped the flicker. **late** looked more natural -- the bars fade in as
+the game does it, and the liquid appears as the fade ends -- and is how it is done from 1.27.15:
+through the fade the effect over the fill is drawn, so it is ready, and kept out of sight
+(`not plain.fadeDone`); at the bars' fragment's `SHOWN` the next draw shows it. **wait** and the two
+mode switches are gone. The per-part switches of §67 stay, as the means to find the next thing.
+
+So, of the flicker, what is measured: Liquid's and Crystal's wide pieces flicker on a PS5 while the
+group above them is fading in, and not once it has finished; nothing the add-on wrote caused it; and
+not showing them during the fade stops it. Why the console draws them so during a fade is not known.
 
 ---
 
@@ -1589,3 +1783,8 @@ frame placements and the margins in use. Ignoring the margins fails them.
     ~50 ms into the fade, after 2 draw(s)`. If it still flickers, send that line: "by the failsafe", or
     a time far from 50, says the loop did not run as expected; a normal line says the flicker comes
     after the bars are shown, and that is the next thing to look at.
+30. **Is the flicker gone, and if not, what do the bars do coming back from a menu?** Open and close the main menu once, then run
+    `/pbhud plain trace` and send the whole of it. Then set the style to Standard, do the same, and
+    say whether the flicker is there in Standard too: if it is, it is the game's, not this add-on's.
+31. **Do the bars come back cleanly?** With Liquid or Crystal, open and close the menu a few times:
+    the bars fade in, and the liquid or crystal appears as the fade ends, with no flicker.

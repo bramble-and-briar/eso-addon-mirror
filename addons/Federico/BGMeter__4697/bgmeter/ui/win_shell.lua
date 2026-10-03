@@ -283,8 +283,14 @@ local function build()
     W.detail = P.label(win, S.FONT.small, K.COLOR.text_dim)
     U.clamp_line(W.detail)
     W.detail:SetAnchor(BOTTOMLEFT, win, BOTTOMLEFT, L.margin, -10)
-    W.detail:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -L.margin, -10)
+    W.detail:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -(L.margin + 48), -10)
     W.detail:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    W.version = P.label(win, S.FONT.small, K.COLOR.text_dim)
+    W.version:SetText("v" .. K.VERSION)
+    W.version:SetAnchor(BOTTOMRIGHT, win, BOTTOMRIGHT, -12, -11)
+    W.version:SetDimensions(48, 12)
+    W.version:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    if W.version.SetAlpha then W.version:SetAlpha(0.55) end
 
     W.win      = win
     W.header   = build_header(win)
@@ -482,6 +488,7 @@ function W.step(dir)
     if want == W.current_index then return end
     W.current_index = want
     W.selected_row = nil
+    if W.prepare then W.prepare(BGMeter.History.get(want)) end
     Sound.play("match"); W.render(true)
 end
 
@@ -561,6 +568,7 @@ function W.show_match(index)
     user_visible = true
     apply_visibility()
     if W.win:IsHidden() then return end
+    if W.prepare then W.prepare(BGMeter.History.get(W.current_index)) end
     W.render(true)
     if Prefs.get("animate") then
         W.win:SetAlpha(0)
@@ -592,7 +600,10 @@ function W.on_history_changed(removedIndex)
     local count = BGMeter.History.count()
     if W.current_index > count then W.current_index = math.max(count, 1) end
     W.selected_row = nil
-    if W.built and not W.win:IsHidden() then W.render(false) end
+    if W.built and not W.win:IsHidden() then
+        if W.prepare then W.prepare(BGMeter.History.get(W.current_index)) end
+        W.render(false)
+    end
 end
 
 local function after_hide(was_visible)

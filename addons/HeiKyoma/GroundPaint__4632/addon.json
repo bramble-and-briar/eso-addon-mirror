@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/HeiKyoma/GroundPaint__4632",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "HeiKyoma",
   "canonical_id": "esoui:4632",
   "category_id": "22",
@@ -17,7 +18,7 @@
     "GroundPaint"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4632/",
-  "fingerprint": "648ccd655516d9180856d2b24b668073bcae4b7b17f65b5b9183d336e2029691",
+  "fingerprint": "56ab062fa301f3a6029b0e577f9ec1f78c1561910a61fc06e1ad54a5e8219b2f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16291.png",
     "https://cdn-eso.mmoui.com/preview/pvw16292.png",
@@ -32,11 +33,11 @@
   "source_id": "4632",
   "source_url": "https://www.esoui.com/downloads/info4632-GroundPaint.html",
   "stats": {
-    "downloads": 89,
+    "downloads": 142,
     "favorites": 1,
-    "monthly_downloads": 17
+    "monthly_downloads": 33
   },
   "title": "GroundPaint",
-  "updated_at": 1781546661000,
-  "version": "1.2"
+  "updated_at": 1790928862000,
+  "version": "1.3"
 }

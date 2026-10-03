@@ -20,7 +20,7 @@ local PROFILE_DEFAULTS = {
     customized = {
         enabled = true,
         fillEnabled = true,
-        trigger = "always", -- "always", "synergy"
+        trigger = "always", -- "always"; "synergy" (doesn't work, Ima stupid)
         shape = "square", -- "square", "cone", "cone2", "ellipse"
         alignment = "forward", -- "forward", "center"
         width = 10.0,
@@ -175,6 +175,8 @@ local function CreateWorldWindow()
 
     return win
 end
+
+local UpdateTransform
 
 local function RecreateAfterTeleport()
     if not GP.saved then return end
@@ -730,7 +732,7 @@ local function UpdateLabel(label, wx, wy, wz, rightX, rightZ, forwardX, forwardZ
     label:SetHidden(false)
 end
 
-local function UpdateTransform()
+UpdateTransform = function()
     if not (GP.saved and GP.saved.enabled) then
         HideAll()
         return
@@ -872,7 +874,7 @@ local function InitSettings()
         name = "GroundPaint",
         displayName = "GroundPaint",
         author = "|c200000H|r|c400000e|r|c600000i|r|c800000K|r|c9f0000y|r|cbf0000o|r|cdf0000m|r|cff0000a|r",
-        version = "1.0",
+        -- version = "1.2",
         slashCommand = "/groundpaint",
         registerForRefresh = true,
         registerForDefaults = true,

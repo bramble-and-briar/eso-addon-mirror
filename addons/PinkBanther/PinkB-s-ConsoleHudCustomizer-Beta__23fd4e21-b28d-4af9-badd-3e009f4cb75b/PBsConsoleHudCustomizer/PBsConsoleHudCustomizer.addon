@@ -2,10 +2,10 @@
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
 ## The settings panel takes its version from ## Title; the name itself is fixed in Main.lua.
-## Title: |cFF69B4PB’s ConsoleHudCustomizer|r 1.27.7
+## Title: |cFF69B4PB’s ConsoleHudCustomizer|r 1.27.15
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Moves and resizes the health, magicka and stamina bars and the skill bar on the HUD. Each one is placed on its own -- sideways from the middle of the screen and up from the bottom edge -- and scaled from half size to double, frame, numbers and all. The skill bar also gets a row for the weapon set you are not on, and both sets can show how long is left on each ability's effect and how many targets are under it, at a text size of your choosing.
-## Version: 1.27.7
+## Version: 1.27.15
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsConsoleHudCustomizer_Data
@@ -20,6 +20,7 @@ SkillBar.lua
 Timers.lua
 Trace.lua
 Plain.lua
+ReturnTrace.lua
 Preview.lua
 Settings.lua
 

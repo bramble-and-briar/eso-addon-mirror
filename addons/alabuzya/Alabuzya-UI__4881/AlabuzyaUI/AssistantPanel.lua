@@ -12,6 +12,10 @@ M.categories={
     {key='fence',en='Smuggler',ru='Контрабандист',ids={300}},
 }
 local panel,container,buttons,ru,hoverReference
+-- Read-only layout boundary for themes that move their action bars beside chat.
+function M.RightEdge()
+    if panel and not panel:IsHidden() then return panel:GetRight() end
+end
 local function L(a,b) return ru and a or b end
 function M.Owned(category,usableOnly)
     local found={}

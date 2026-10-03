@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/AFeliks/Feliks-Companion-Gear-Hunter__4908",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "AFeliks",
+  "canonical_id": "esoui:4908",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4908",
+  "deleted": false,
+  "directories": [
+    "CompanionGearHunter"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4908/",
+  "fingerprint": "a39ad7111cec803c93c57835ff432e476800ccbec01e4c6d912ada37a69367ec",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17662.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17663.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17666.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17667.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17664.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17665.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4908",
+  "source_url": "https://www.esoui.com/downloads/info4908-FeliksCompanionGearHunter.html",
+  "stats": {
+    "downloads": 2,
+    "favorites": 2,
+    "monthly_downloads": 0
+  },
+  "title": "Feliks' Companion Gear Hunter",
+  "updated_at": 1791010131000,
+  "version": "0.9.0"
+}

@@ -1366,7 +1366,9 @@ function timers:DimGameTimer(slot, dim)
 	-- what is in a slot. A cache of "already faded" is wrong within a minute of play, and the
 	-- game's number comes back from behind ours.
 	local wanted = dim and 0 or 1
-	local okRead, current = pcall(label.GetAlpha, label)
+	-- Its own alpha: as drawn it also carries every fade of the bar above it.
+	local current = addon.OwnAlpha(label)
+	local okRead = current ~= nil
 	local faded = self.dimmed[slot]
 	if okRead and type(current) == "number" and math.abs(current - wanted) < 0.01 then
 		self.dimmed[slot] = dim and label or nil
@@ -1704,6 +1706,15 @@ end
 -- The loop only runs while the HUD is up and there is something to draw: a hundred-millisecond
 -- update behind a menu would be work for nothing, and on console every frame of it is billed to
 -- the pool every add-on shares.
+-- Whether the settings want anything drawn on the skill bar at all, HUD or no HUD.
+function timers:Enabled()
+	if not addon:SkillBarAllowed() then
+		return false
+	end
+	return addon:ShowsTimerOn(false) or addon:ShowsTimerOn(true) or addon:ShowsCount()
+		or addon:BackBarEnabled() or addon:ShadeEnabled()
+end
+
 function timers:Wanted()
 	if not addon:SkillBarAllowed() then
 		return false
@@ -1723,6 +1734,7 @@ function timers:Start()
 	if self.running or not self:Wanted() then
 		return false
 	end
+	self.paused = false
 	if not EVENT_MANAGER or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
 		return false
 	end
@@ -1734,12 +1746,29 @@ function timers:Start()
 	return true
 end
 
-function timers:Stop()
+-- The bar is hidden: stop updating, and leave everything on it as it is -- the countdowns, the other
+-- set's row, the shades, and the game's own countdown kept faded. The bar is hidden anyway, and
+-- putting the game's look back here is what showed for a moment every time it faded back in
+-- (1.27.8, FINDINGS 64). Only switching these off takes the look away (Stop).
+function timers:Pause()
 	if not self.running then
 		return false
 	end
 	EVENT_MANAGER:UnregisterForUpdate(addon.name .. "Timers")
 	self.running = false
+	self.paused = true
+	return true
+end
+
+function timers:Stop()
+	if not self.running and not self.paused then
+		return false
+	end
+	if self.running then
+		EVENT_MANAGER:UnregisterForUpdate(addon.name .. "Timers")
+	end
+	self.running = false
+	self.paused = false
 	self:HideAll()
 	self:HideShades()
 	self:UndimAll()
@@ -1755,6 +1784,14 @@ function timers:Refresh()
 		else
 			self:Start()
 		end
+	elseif self.hudShown == false and self:Enabled() then
+		-- A setting changed in a menu, with the bar hidden: kept paused, and the hidden bar brought
+		-- up to date so it comes back showing the change. Stopping here put the game's own
+		-- countdown back, which then showed for a moment as the bar faded in (FINDINGS 64).
+		self:Pause()
+		if self.paused then
+			self:Update()
+		end
 	else
 		self:Stop()
 	end
@@ -1765,7 +1802,7 @@ function timers:OnHudStateChange(shown)
 	if shown then
 		self:Refresh()
 	else
-		self:Stop()
+		self:Pause()
 	end
 end
 

@@ -2,8 +2,8 @@ AG = {}
 
 AG.name = 'AlphaGear'
 AG.displayname = 'AlphaGear 2'
-AG.version = 'v6.17.0'
-AG.author = 'mesota'
+AG.version = 'v7.0.0'
+AG.author = 'mesota, Kyzeragon'
 AG.init = false
 AG.pendingSet = -1
 AG.previousSet = nil
@@ -40,11 +40,11 @@ AG.account_defaults = {
         ,false
     },
 
-	-- default positions of UIElements
-	positions = {
-		["AG_UI_ButtonBg"] = {10, 10, TOPLEFT, TOPLEFT},
-		["AG_SetButtonBg"] = {-260, -100, LEFT, RIGHT},
-		["AG_SwapMessageBg"] = {-260, 0, LEFT, RIGHT},
+    -- default positions of UIElements
+    positions = {
+        ["AG_UI_ButtonBg"] = {10, 10, TOPLEFT, TOPLEFT},
+        ["AG_SetButtonBg"] = {-260, -100, LEFT, RIGHT},
+        ["AG_SwapMessageBg"] = {-260, 0, LEFT, RIGHT},
         ["AG_Panel"] = {0, 0, CENTER, CENTER}
     },
 
@@ -59,6 +59,9 @@ AG.account_defaults = {
 
         Champion = {
             UseCPSlots = false,
+            UseDynamicCP = false,
+            DCPPrintNames = true,
+            DCPPrintSlottables = false,
         },
 
         QuickSlot = {
@@ -183,8 +186,8 @@ local TWINSLOTS = {
 --- Writes trace messages to the console
 -- fmt with %d, %s,
 local function trace(fmt, ...)
-	if AG.isDebug then
-		d(string.format(fmt, ...))
+    if AG.isDebug then
+        d(string.format(fmt, ...))
     end
 end
 
@@ -225,16 +228,16 @@ local function Zero(val) if val == 0 then return nil else return val end end
 -- Used for charge and repair icons
 -- @param c control to hide
 local function Hide(c)
-	c:SetHidden(true); 
-	c:SetWidth(0) 
+    c:SetHidden(true); 
+    c:SetWidth(0) 
 end
 
 --- Shows a control
 -- Used for charge and repair icons
 -- @param c control to show
 local function Show(c)
-	c:SetHidden(false); 
-	c:SetWidth(50) 
+    c:SetHidden(false); 
+    c:SetWidth(50) 
 end
 
 --- Shows or hides a control
@@ -242,12 +245,12 @@ end
 -- @param c control to show
 -- @param visible show or hide
 function AG.layoutControl(c, visible)
-	c:SetHidden (not visible)
-	if visible then
-		c:SetWidth (50)
-	else 
-		c:SetWidth (0)
-	end
+    c:SetHidden (not visible)
+    if visible then
+        c:SetWidth (50)
+    else 
+        c:SetWidth (0)
+    end
 end
 
 --- called before a gear set with id setId is changed
@@ -363,31 +366,31 @@ function AG.DrawInventory()
 
     for _,c in pairs(SLOTS) do
         local p = WM:GetControlByName('ZO_CharacterEquipmentSlots'..c[3])
-		
-		-- Quality Control
+        
+        -- Quality Control
         local s = WM:CreateControl('AG_InvBg'..c[1], p, CT_TEXTURE)
         s:SetHidden(true)
         s:SetDrawLevel(1)
         s:SetTexture('AlphaGear/asset/hole.dds')
         s:SetAnchorFill()
-		
-		-- Condition Control
+        
+        -- Condition Control
         s = WM:CreateControl('AG_InvBg'..c[1]..'Condition', p, CT_LABEL)
         s:SetFont('ZoFontGameSmall')
         s:SetAnchor(TOPRIGHT,p,TOPRIGHT,7,-8)
         s:SetDimensions(50,10)
         s:SetHidden(true)
         s:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-		
-		-- Level Control
+        
+        -- Level Control
         s = WM:CreateControl('AG_InvBg'..c[1]..'Level', p, CT_TEXTURE)
         -- s:SetFont('ZoFontGameLarge')
         s:SetAnchor(TOPLEFT,p,TOPLEFT,0,-3)
         s:SetDimensions(10,10)
         s:SetHidden(true)
-		s:SetDrawLayer(p:GetDrawLayer() + 1)
-	    -- s:SetAnchorFill()
-		-- s:SetDrawLevel(1)
+        s:SetDrawLayer(p:GetDrawLayer() + 1)
+        -- s:SetAnchorFill()
+        -- s:SetDrawLevel(1)
 
         -- s:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     end
@@ -556,8 +559,15 @@ function AG.DrawButton(p, name, btn, nr, x, xpos, ypos, show)
                             local abilityId = GetSlotBoundId(x+2)
                             local baseAbilityId = 0
                     
+                            -- Updated for scribing
                             if abilityId ~= 0 then
-                                baseAbilityId = AG.GetBaseAbilityId(abilityId)
+                                if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(abilityId)) then
+                                    -- Crafted skill, the abilityId returned is the "CraftedAbilityID" which is like the base ID
+                                    baseAbilityId = abilityId
+                                else
+                                    -- Normal skill, 
+                                    baseAbilityId = AG.GetBaseAbilityId(abilityId)
+                                end
                             end
                     
                             AG.setdata[nr].Skill[x] = baseAbilityId
@@ -713,11 +723,11 @@ function AG.SetupMainPanel()
     ZO_CreateStringId('SI_BINDING_NAME_AG_PREVIOUS_PROFILE', L.BindLoadPreviousProfile)
     ZO_CreateStringId('SI_BINDING_NAME_AG_TOGGLE_PROFILE', L.BindToggleProfile)
 
-	
+    
     for pindex = 1, MAX_PROFILES do
         -- Create Key Binding Label
         ZO_CreateStringId('SI_BINDING_NAME_AG_PROFILE_'..pindex, L.BindLoadProfile..pindex)
-	end
+    end
 
     
     -- create MAXSLOT skill-sets, gear-sets and sets
@@ -782,8 +792,8 @@ function AG.SetupMainPanel()
     ZO_PreHookHandler(ZO_PlayerInventory,'OnHide', AG.OnHideInventory)
     ZO_PreHookHandler(ZO_ChampionPerks,'OnShow', function() SM:HideTopLevel(AG_Panel) end)
     ZO_PreHookHandler(AG_Panel,'OnHide', 
-	    function() 
-		    AG_PanelIcons:SetHidden(true)
+        function() 
+            AG_PanelIcons:SetHidden(true)
         end
     )
 
@@ -795,27 +805,29 @@ function AG.SetupMainPanel()
     AG_UI_Button.data = { tip = AG.name }
     AG_PanelUndressArmor.data = { info = L.Unequip }
     AG_PanelUndressAll.data = { info = L.UnequipAll }
+    AG_PanelProfilePanelEditProfileButton.data = { info = "Edit profile properties" }
+    AG_PanelProfilePanelImportProfileButton.data = { info = "Import another profile" }
     AG_PanelSetPanelScrollChildEditPanelSetGearPanelGearLock.data = { info = L.Lock }
-	
-	AG.SetupProfileCombo()
+    
+    AG.SetupProfileCombo()
 end
 
 
 
 function AG.HideEditPanel()
-	local ctrlEP = AG_PanelSetPanelScrollChildEditPanel
-	
-	local anchor = {ctrlEP:GetAnchor()}
+    local ctrlEP = AG_PanelSetPanelScrollChildEditPanel
+    
+    local anchor = {ctrlEP:GetAnchor()}
 
-	-- close editpanel
-	if not ctrlEP:IsHidden() and anchor[3] then
-		anchor[3]:SetHeight(76)
-		ctrlEP:SetHidden(true)
-		anchor[3]:GetNamedChild('Box'):SetHidden(false)
+    -- close editpanel
+    if not ctrlEP:IsHidden() and anchor[3] then
+        anchor[3]:SetHeight(76)
+        ctrlEP:SetHidden(true)
+        anchor[3]:GetNamedChild('Box'):SetHidden(false)
         anchor[3]:GetNamedChild('Edit'):SetHidden(true)
         anchor[3]:GetNamedChild('BoxBg'):SetHidden(true)
         anchor[3]:GetNamedChild('AdvBtn'):SetHidden(true)
-	end
+    end
 end
 
 
@@ -857,30 +869,30 @@ function AG.DrawBuild(nr)
     s:SetHandler('OnMouseDown',
         function(self,button)
             if button == 2 then
-				local k = AG_PanelSetPanelScrollChildEditPanel
-				local anchor = {k:GetAnchor()}
+                local k = AG_PanelSetPanelScrollChildEditPanel
+                local anchor = {k:GetAnchor()}
 
-				-- close editpanel if open on other build
-				if anchor[3] and anchor[3] ~= self then
-					anchor[3]:SetHeight(76)
-					k:SetHidden(true)
-					anchor[3]:GetNamedChild('Box'):SetHidden(false)
-					anchor[3]:GetNamedChild('Edit'):SetHidden(true)
-					anchor[3]:GetNamedChild('BoxBg'):SetHidden(true)
-					anchor[3]:GetNamedChild('AdvBtn'):SetHidden(true)
-				end
-				
-				-- open editpanel on this build
-				k:ClearAnchors()
-				k:SetAnchor(6,self,6,2,-2)
-				Slide(self,k,k:IsHidden())
-				WM:GetControlByName('AG_SetSelector_'..nr..'Box'):ToggleHidden()
-				WM:GetControlByName('AG_SetSelector_'..nr..'Edit'):ToggleHidden()
-				WM:GetControlByName('AG_SetSelector_'..nr..'BoxBg'):ToggleHidden()
-				WM:GetControlByName('AG_SetSelector_'..nr..'AdvBtn'):ToggleHidden()
-				AG.UpdateEditPanel(self.setnr)
-				AG_PanelIcons:SetHidden(true)
-				SELECT = nr
+                -- close editpanel if open on other build
+                if anchor[3] and anchor[3] ~= self then
+                    anchor[3]:SetHeight(76)
+                    k:SetHidden(true)
+                    anchor[3]:GetNamedChild('Box'):SetHidden(false)
+                    anchor[3]:GetNamedChild('Edit'):SetHidden(true)
+                    anchor[3]:GetNamedChild('BoxBg'):SetHidden(true)
+                    anchor[3]:GetNamedChild('AdvBtn'):SetHidden(true)
+                end
+                
+                -- open editpanel on this build
+                k:ClearAnchors()
+                k:SetAnchor(6,self,6,2,-2)
+                Slide(self,k,k:IsHidden())
+                WM:GetControlByName('AG_SetSelector_'..nr..'Box'):ToggleHidden()
+                WM:GetControlByName('AG_SetSelector_'..nr..'Edit'):ToggleHidden()
+                WM:GetControlByName('AG_SetSelector_'..nr..'BoxBg'):ToggleHidden()
+                WM:GetControlByName('AG_SetSelector_'..nr..'AdvBtn'):ToggleHidden()
+                AG.UpdateEditPanel(self.setnr)
+                AG_PanelIcons:SetHidden(true)
+                SELECT = nr
             elseif button == 1 then 
                 AG.LoadSet(nr) 
             end
@@ -1009,21 +1021,21 @@ end
 
 function AG.GetSoulgem()
     trace ('GetSoulGem started')
-	
-	local result, tier = false, 0
+    
+    local result, tier = false, 0
     local bag = SHARED_INVENTORY:GenerateFullSlotData(nil,BAG_BACKPACK)
     
-	for _,data in pairs(bag) do
+    for _,data in pairs(bag) do
         if IsItemSoulGem(SOUL_GEM_TYPE_FILLED,BAG_BACKPACK,data.slotIndex) then
             local geminfo = GetSoulGemItemInfo(BAG_BACKPACK,data.slotIndex)
             if geminfo > tier then
-				tier = geminfo;
-				result = data.slotIndex 
-			end
+                tier = geminfo;
+                result = data.slotIndex 
+            end
         end
     end
     
-	return result
+    return result
 end
 
 
@@ -1063,8 +1075,15 @@ function AG.GetSkillFromBar(nr)
         local abilityId = GetSlotBoundId(x+2)
         local baseAbilityId = 0
 
+        -- Updated for scribing
         if abilityId ~= 0 then
-            baseAbilityId = AG.GetBaseAbilityId(abilityId)
+            if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(abilityId)) then
+                -- Crafted skill, the abilityId returned is the "CraftedAbilityID" which is like the base ID
+                baseAbilityId = abilityId
+            else
+                -- Normal skill, 
+                baseAbilityId = AG.GetBaseAbilityId(abilityId)
+            end
         end
 
         AG.setdata[nr].Skill[x] = baseAbilityId
@@ -1282,9 +1301,9 @@ function AG.LoadGear(nr, set)
     local newMythicSlot = nil
 
     for slotIndex = 1, #SLOTS do
-	    -- slotName = SLOTS[slotIndex][3]
+        -- slotName = SLOTS[slotIndex][3]
         local newLink = newGear[slotIndex].link
-	    local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(newLink)
+        local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(newLink)
 
         if not newGearHasMystic and AG.IsItemLinkMythic(newLink) then
             newGearHasMystic = true 
@@ -1292,12 +1311,12 @@ function AG.LoadGear(nr, set)
         end
         
         if hasSet and setId == TBSSetId then
-	        -- trace("Adding set item at front of equip list: slot "..slotName.." set "..setName.." id "..setId)
-	        table.insert( slotOrder, 1, slotIndex )
-	    else
-	        -- trace ("Adding "..slotName.." at end of equip list")
-	        table.insert(slotOrder,slotIndex)
-	    end
+            -- trace("Adding set item at front of equip list: slot "..slotName.." set "..setName.." id "..setId)
+            table.insert( slotOrder, 1, slotIndex )
+        else
+            -- trace ("Adding "..slotName.." at end of equip list")
+            table.insert(slotOrder,slotIndex)
+        end
     end
 
     -- unequipp mythic item prior equipping another 
@@ -1317,8 +1336,8 @@ function AG.LoadGear(nr, set)
     end
 
     for j = 1, #SLOTS do
-	    local slotIndex = slotOrder[j]
-	    AG.LoadItem(nr, slotIndex, set) 
+        local slotIndex = slotOrder[j]
+        AG.LoadItem(nr, slotIndex, set) 
     end
 
     table.insert(AG.Jobs, {AG.JOB_TYPE_STOP_BULK_MODE, 0, 0})
@@ -1426,35 +1445,51 @@ function AG.GetAbility(abilityId)
     end
 end
 
-
-function AG.LoadSkill(nr, slot)
-    if not nr or not slot then return end
+-- Updated to avoid the need to swap bars
+function AG.LoadSkill(nr, slot, pair)
+    if not nr or not slot or nr <= 0 or slot <= 0 then return end
+    if pair == nil then pair = GetActiveWeaponPairInfo() end -- slot on active hotbar if not specified
+    if pair ~= 1 and pair ~= 2 then return end -- invalid pair number
 
     local skillID = AG.setdata[nr].Skill[slot]
-    
-    -- TODO remove skill from bar, if set is locked and skillID == 0
-    if skillID == 0 then return end
-
-    local currentSkillID = GetSlotBoundId(slot+2)
-
-    if skillID ~= currentSkillID then
-        trace('SkillId in slot %d changed. Current: %d new: %d', slot, currentSkillID, skillID)
+    local currentSkillID = GetSlotBoundId(slot + 2, pair - 1)
+    if skillID == 0 or skillID == currentSkillID then return end    
+    trace('SkillId in slot %d changed. Current: %d new: %d', slot, currentSkillID, skillID)
+        
+    -- Updated for scribing
+    if(IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(skillID))) then
+        -- Crafted skill, incoming ability ID is the base ID
+        skillID = GetAbilityIdForCraftedAbilityId(skillID)
+        trace('Crafted skill to slot: %d', skillID)
+    else
+        -- Normal skill
         local newAbilityIndex = AG.GetAbility(skillID)
         local currentAbilityIndex = AG.GetAbility(currentSkillID)
+        if newAbilityIndex == 0 or newAbilityIndex == currentAbilityIndex then return end
+        trace('AbilityIndex has changed, replacing. Current AI: %d, New AI: %d', currentAbilityIndex, newAbilityIndex)    
+    end
 
-        if newAbilityIndex ~= 0 and currentAbilityIndex ~= newAbilityIndex then 
-            trace('AbilityIndex has changed, replacing. Current AI: %d, New AI: %d', currentAbilityIndex, newAbilityIndex)
-            local res, msg = CallSecureProtected('SelectSlotAbility', newAbilityIndex, slot+2) 
-
-            if not res then 
-                -- d("|cFF0000Failed to set new skill. Message:|r "..(msg or "<none>"))
-                d("|cFF0000Failed to set new skill due to a bug in ESO.|r Kill a mob and try again!")
-            end
-        end
+    local res = ACTION_BAR_ASSIGNMENT_MANAGER:GetHotbar(pair - 1):AssignSkillToSlotByAbilityId(slot + 2, skillID)
+    if not res then
+       d("|cFF0000Failed to set new skill.|r You are probably in combat, kill a mob and try again!")
     end
 end
 
+-- Added to support not needing to swap bars
+function AG.LoadSetBars(nr)
+    if not nr then return end
+    for pair = 1, 2 do
+        local skillLineNr = AG.setdata[nr].Set.skill[pair]
+        if skillLineNr and skillLineNr > 0 then
+            for slot = 1, 6 do AG.LoadSkill(skillLineNr, slot, pair) end
+        end
+    end
+    if AG.isShowWeaponIcon() then AG.ForceUpdateWeaponStats() end
+end
+
 function AG.LoadBar(nr)
+    -- Updated to skip the delayed call after loading set, both bars are already set
+    if SWAP then return end 
     if not nr then return end
     for slot = 1, 6 do AG.LoadSkill(nr,slot) end
 end
@@ -1574,65 +1609,65 @@ function AG.ComputeItemUsageMap()
             end
         end
     end
-	
-	return usageMap
+    
+    return usageMap
 end
 
 
 function AG.SetupProfileCombo()
 
-	trace ("Current Profile ID: %d, Name: %s", AG.setdata.currentProfileId, AG.setdata.profiles[AG.setdata.currentProfileId].name)
+    trace ("Current Profile ID: %d, Name: %s", AG.setdata.currentProfileId, AG.setdata.profiles[AG.setdata.currentProfileId].name)
 
     local dropdown = ZO_ComboBox_ObjectFromContainer(AG_PanelProfilePanel:GetNamedChild("ProfileSelect"))
 
     dropdown:ClearItems()
-	dropdown:SetSortsItems(false)
-	
-	
+    dropdown:SetSortsItems(false)
+    
+    
 
     local function OnProfileSelected(_, _, entry)
-		AG.LoadProfile(entry.profileId)
+        AG.LoadProfile(entry.profileId)
     end
 
-	--- sorts the profiles according to their sortKey
-	-- a profile w/o sortKey will be sorted to the end of the list
-	local function ProfileSortHelper(item1, item2)
-		local sortKey1 = item1.sortKey
-		if not sortKey1 or sortKey1 == "" then
-			sortKey1 = 'zzzzzzzzzzzzzzzzzzzzzzzz'..item1.name
-		end
-		
-		local sortKey2 = item2.sortKey
-		if not sortKey2 or sortKey2 == "" then
-			sortKey2 = 'zzzzzzzzzzzzzzzzzzzzzzzz'..item2.name
-		end
+    --- sorts the profiles according to their sortKey
+    -- a profile w/o sortKey will be sorted to the end of the list
+    local function ProfileSortHelper(item1, item2)
+        local sortKey1 = item1.sortKey
+        if not sortKey1 or sortKey1 == "" then
+            sortKey1 = 'zzzzzzzzzzzzzzzzzzzzzzzz'..item1.name
+        end
+        
+        local sortKey2 = item2.sortKey
+        if not sortKey2 or sortKey2 == "" then
+            sortKey2 = 'zzzzzzzzzzzzzzzzzzzzzzzz'..item2.name
+        end
 
         return (sortKey1 < sortKey2)
     end
 
-	
-	-- store the current profile
-	local currentProfile = AG.setdata.profiles[AG.setdata.currentProfileId]
-	
+    
+    -- store the current profile
+    local currentProfile = AG.setdata.profiles[AG.setdata.currentProfileId]
+    
     -- Sort the entries according to profile sort index
-	-- will invalidate currentProfileId
-    table.sort(AG.setdata.profiles, function(item1, item2) return ProfileSortHelper(item1, item2) end)	
-	
-	-- reset cached IDs
-	AG.previousSet = nil
-	-- AG.previousProfile = nil
-	
+    -- will invalidate currentProfileId
+    table.sort(AG.setdata.profiles, function(item1, item2) return ProfileSortHelper(item1, item2) end)  
+    
+    -- reset cached IDs
+    AG.previousSet = nil
+    -- AG.previousProfile = nil
+    
     local defaultEntry
 
     -- Add available Profiles
     for profileId = 1, MAX_PROFILES do
-		local profile = AG.setdata.profiles[profileId]
+        local profile = AG.setdata.profiles[profileId]
         local entry = ZO_ComboBox:CreateItemEntry(profile.name, OnProfileSelected)
         entry.profileId = profileId
         dropdown:AddItem(entry, ZO_COMBOBOX_SUPRESS_UPDATE)
         if currentProfile == profile then
             defaultEntry = entry
-			AG.setdata.currentProfileId = profileId
+            AG.setdata.currentProfileId = profileId
         end
     end
 
@@ -1667,6 +1702,15 @@ function AG.LoadChampionPoints(buildID)
     local AGplugCPS = AG.plugins.CPSlots
     if AGplugCPS.useAddon() then
         AGplugCPS.LoadCPSProfile(AG.setdata[buildID].Set.CPSHostName, AG.setdata[buildID].Set.CPSProfileName)
+    end
+
+    local AGplugDCP = AG.plugins.DynamicCP
+    if (AGplugDCP.useAddon()) then
+        AGplugDCP.LoadSlottableSets({
+            Green = AG.setdata[buildID].Set.DCPSlotSetGreen,
+            Blue = AG.setdata[buildID].Set.DCPSlotSetBlue,
+            Red = AG.setdata[buildID].Set.DCPSlotSetRed,
+        })
     end
 end
 
@@ -1741,17 +1785,17 @@ function AG.LoadSetInternal(nr)
     trace("LoadSetInternal: %d", nr)
 
     if ZO_ActionBar_AreActionBarsLocked() then
-        d("Action bars are locked. Can't load set. You might have to relaod the UI!")
+        d("Action bars are locked. Can't load set. You might have to reload the UI!")
         return
     end
     
     -- seems to be unnecessary
 
     --[[
-	-- sheathe weapons
-	if not ArePlayerWeaponsSheathed() then
+    -- sheathe weapons
+    if not ArePlayerWeaponsSheathed() then
         TogglePlayerWield()
-		trace("Weapons sheathed")
+        trace("Weapons sheathed")
     end
     --]]
 
@@ -1769,18 +1813,22 @@ function AG.LoadSetInternal(nr)
     -- load gear
     if AG.setdata[nr].Set.gear ~= 0 then AG.LoadGear(AG.setdata[nr].Set.gear, nr) end
 
-    -- load skills, wait until gear has loaded
-    if AG.setdata[nr].Set.skill[pair] ~= 0 then
-        table.insert(AG.Jobs, {AG.JOB_TYPE_LOAD_SKILL_BAR, AG.setdata[nr].Set.skill[pair], nil}) 
-        --- AG.LoadBar(AG.setdata[nr].Set.skill[pair]) 
-    end
+    -- load skills
+    -- Updated to avoid waiting until gear is loaded
+    table.insert(AG.Jobs, {AG.JOB_TYPE_LOAD_SKILL_BAR, nr, nil})
+    --if AG.setdata[nr].Set.skill[pair] ~= 0 then
+    --    table.insert(AG.Jobs, {AG.JOB_TYPE_LOAD_SKILL_BAR, AG.setdata[nr].Set.skill[pair], nil})
+    --    --- AG.LoadBar(AG.setdata[nr].Set.skill[pair])
+    --end
 
     -- Load Champion Points
     AG.LoadChampionPoints(nr)
 
     -- queue in swap message
     SWAP = true
-    table.insert(AG.Jobs, {AG.JOB_TYPE_SHOW_SWAP_MSG, nil, nil}) 
+    table.insert(AG.Jobs, {AG.JOB_TYPE_SHOW_SWAP_MSG, nil, nil})
+
+    d("Loading Set " .. tostring(AG.setdata[nr].Set.text[1]))
 end
 
 function AG.Undress(mode)
@@ -1908,30 +1956,30 @@ end
 
 function AG.EquipItem(gear, targetSlot)
 
-	-- return true, if we must wait
-	local result = false
-	
+    -- return true, if we must wait
+    local result = false
+    
     -- anything to change?
     local itemId = AG.GetIdTypeAndLink(BAG_WORN, targetSlot)
     if itemId ~= gear.id then
 
-		-- find item in one of the bags
-		local sourceBag, sourceBagSlot = AG.GetItemFromBag(gear.id)
+        -- find item in one of the bags
+        local sourceBag, sourceBagSlot = AG.GetItemFromBag(gear.id)
 
-		if sourceBagSlot then 
-			-- equip the found item
-			EquipItem(sourceBag, sourceBagSlot, targetSlot)
+        if sourceBagSlot then 
+            -- equip the found item
+            EquipItem(sourceBag, sourceBagSlot, targetSlot)
 
-			-- the equipped item has changed place with the item, that was in the targetSlot. Update cache accordingly
-			AG.SwapItemInCache (targetSlot, sourceBag, sourceBagSlot)
-			
-			result = true
-		else
-			d(ZOSF(L.NotFound, gear.link)) 
-		end	
-	end
-	
-	return result
+            -- the equipped item has changed place with the item, that was in the targetSlot. Update cache accordingly
+            AG.SwapItemInCache (targetSlot, sourceBag, sourceBagSlot)
+            
+            result = true
+        else
+            d(ZOSF(L.NotFound, gear.link)) 
+        end 
+    end
+    
+    return result
 end
 
 
@@ -2018,9 +2066,10 @@ end
 
 
 function AG.HandleOnUpdate()
-    local ITEM_MOVE_DELAY = 100
-    local SKILL_CHANGE_DELAY = 100
-    local PREPRARE_TOON_DELAY = 1000
+    -- Updated with shorter delays for faster loading
+    local ITEM_MOVE_DELAY = 1
+    local SKILL_CHANGE_DELAY = 1
+    local PREPRARE_TOON_DELAY = 100
 
     if AG.init and #AG.Jobs > 0 then
         local CurrentTime = GetGameTimeMilliseconds()
@@ -2057,14 +2106,21 @@ function AG.HandleOnUpdate()
                     AG.UpdateUI() 
                 end
             elseif (jobType == AG.JOB_TYPE_LOAD_SKILL_BAR) then
-                AG.LoadBar(param1) 
+                -- Updated to load both bars without swapping
+                AG.LoadSetBars(param1)
                 delay = SKILL_CHANGE_DELAY
             elseif (jobType == AG.JOB_TYPE_START_BULK_MODE) then
                 AG.InBulkMode = true
+                -- d("bulk mode START")
+                -- AG.bulkStartTime = GetGameTimeMilliseconds()
                 trace("EVT: bulkmode on")
             elseif (jobType == AG.JOB_TYPE_STOP_BULK_MODE) then
                 AG.InBulkMode = false
+                -- d("bulk mode STOP")
+                -- d(string.format("bulk transfer took %d ms", GetGameTimeMilliseconds() - AG.bulkStartTime))
                 trace("EVT: bulkmode off")
+                -- Kyzer 11/25/21: apply the sort after bulk mode finishes
+                PLAYER_INVENTORY:UpdateList(AG.recentInventoryType)
             elseif (jobType == AG.JOB_TYPE_SHOW_SWAP_MSG) then
                 AG_SwapMessage:SetHidden(true)
                 AG_SwapMessageBg:SetHidden(true)
@@ -2075,8 +2131,8 @@ function AG.HandleOnUpdate()
 
             table.remove(AG.Jobs, 1) 
             
-			-- next event in <delay> ms from now
-			AG.NextEventTime = GetGameTimeMilliseconds() + delay
+            -- next event in <delay> ms from now
+            AG.NextEventTime = GetGameTimeMilliseconds() + delay
         end
     end
 end
@@ -2125,15 +2181,15 @@ function AG.UpdateRepair(_,bag)
             count = count + 1
         end
     end
-	
-	if count == 0 then
-		minval = ''
-		condition = 0
-	else
-		if minval < 100 then minval = ' ('..minval..'%)' else minval = '' end
-		condition = math.floor(condition/count) or 0
-	end
-	
+    
+    if count == 0 then
+        minval = ''
+        condition = 0
+    else
+        if minval < 100 then minval = ' ('..minval..'%)' else minval = '' end
+        condition = math.floor(condition/count) or 0
+    end
+    
     AG_RepairTex:SetColor(GetColor(condition,1))
     AG_RepairValue:SetText(condition..'%'..minval)
     AG_RepairValue:SetColor(GetColor(condition,1))
@@ -2146,52 +2202,52 @@ function AG.showItemLevel(lblLevel, itemLink, silChoice)
 
     local requiredLevel = GetItemLinkRequiredLevel(itemLink)
     local requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemLink)
-	local dRelLevel
+    local dRelLevel
 
     local playerCP = GetPlayerChampionPointsEarned()
 
-	-- current max for CP is 160
-	if playerCP > 160 then playerCP = 160 end
+    -- current max for CP is 160
+    if playerCP > 160 then playerCP = 160 end
 
-	
+    
     if requiredChampionPoints > 0 then
-		-- the Item has CP, thus the player has at least as many CP
-		dRelLevel = math.floor(requiredChampionPoints^2 / playerCP^2 * 100)
-		
+        -- the Item has CP, thus the player has at least as many CP
+        dRelLevel = math.floor(requiredChampionPoints^2 / playerCP^2 * 100)
+        
         -- local pointsString = failed and ZO_ERROR_COLOR:Colorize(requiredChampionPoints) or ZO_DEFAULT_ENABLED_COLOR:Colorize(requiredChampionPoints)
         -- self:AddSubLabel(zo_iconFormat(GetChampionPointsIcon(), "40", "40"))
         -- self:AddSubLabel(pointsString)
-		-- strLabel = zo_iconFormat(GetChampionPointsIcon(), "10", "10")..requiredChampionPoints
+        -- strLabel = zo_iconFormat(GetChampionPointsIcon(), "10", "10")..requiredChampionPoints
     elseif requiredLevel > 0 then
-		-- item doesn't have CP, but maybe the player
+        -- item doesn't have CP, but maybe the player
 
         local playerLevel = GetUnitLevel("player")
-		local virtLevel = playerLevel + playerCP / 10
+        local virtLevel = playerLevel + playerCP / 10
 
-		dRelLevel = math.floor(requiredLevel^2 / virtLevel^2 * 100)
-		
+        dRelLevel = math.floor(requiredLevel^2 / virtLevel^2 * 100)
+        
         -- local levelString = failed and ZO_ERROR_COLOR:Colorize(requiredLevel) or ZO_DEFAULT_ENABLED_COLOR:Colorize(requiredLevel)
         -- self:AddSubLabel(GetString(SI_ITEM_FORMAT_STR_LEVEL))
         -- self:AddSubLabel(levelString)
-		-- strLabel = requiredLevel
+        -- strLabel = requiredLevel
     else
-		-- item has level 0
-		dRelLevel = 0.0
+        -- item has level 0
+        dRelLevel = 0.0
     end
-	
-	if dRelLevel == 100 and silChoice == AG.CHOICE_SHOW_ITEM_LEVEL_LOW then
-		lblLevel:SetHidden(true)
-	else
-		if dRelLevel == 100 then
-			lblLevel:SetTexture('AlphaGear/asset/lvlcirc.dds')
-		else
-			lblLevel:SetTexture('AlphaGear/asset/lvldown.dds')
-		end
-		-- self:AddSubLabel(GetItemLinkFlavorText(itemLink))
-		-- lblLevel:SetText(strLabel)
-		lblLevel:SetHidden(false)
-		lblLevel:SetColor(GetColor(dRelLevel, 0.9))
-	end
+    
+    if dRelLevel == 100 and silChoice == AG.CHOICE_SHOW_ITEM_LEVEL_LOW then
+        lblLevel:SetHidden(true)
+    else
+        if dRelLevel == 100 then
+            lblLevel:SetTexture('AlphaGear/asset/lvlcirc.dds')
+        else
+            lblLevel:SetTexture('AlphaGear/asset/lvldown.dds')
+        end
+        -- self:AddSubLabel(GetItemLinkFlavorText(itemLink))
+        -- lblLevel:SetText(strLabel)
+        lblLevel:SetHidden(false)
+        lblLevel:SetColor(GetColor(dRelLevel, 0.9))
+    end
 
 end
 
@@ -2201,63 +2257,63 @@ end
 -- Only for items currently equipped.
 function AG.UpdateCondition(_,bag,slot)
     if bag ~= BAG_WORN or slot == EQUIP_SLOT_COSTUME then
-		return
-	end
-	
+        return
+    end
+    
     local t = WM:GetControlByName('AG_InvBg'..slot)
-	local l = WM:GetControlByName('AG_InvBg'..slot..'Condition')
-	local lblLevel = WM:GetControlByName('AG_InvBg'..slot..'Level')
-	
+    local l = WM:GetControlByName('AG_InvBg'..slot..'Condition')
+    local lblLevel = WM:GetControlByName('AG_InvBg'..slot..'Level')
+    
     local p = t:GetParent()
     local s
 
     p:SetMouseOverTexture(not ZO_Character_IsReadOnly() and 'AlphaGear/asset/mo.dds' or nil)
     p:SetPressedMouseOverTexture(not ZO_Character_IsReadOnly() and 'AlphaGear/asset/mo.dds' or nil)
     
-	s = p:GetNamedChild('DropCallout')
+    s = p:GetNamedChild('DropCallout')
     s:ClearAnchors()
     s:SetAnchor(1,p,1,0,2)
     s:SetDimensions(52,52)
     s:SetTexture('AlphaGear/asset/spot.dds')
     s:SetDrawLayer(0)
-	
+    
     s = p:GetNamedChild('Highlight')
-	if s then
+    if s then
         s:ClearAnchors()
         s:SetAnchor(1,p,1,0,2)
         s:SetDimensions(52,52)
         s:SetTexture('AlphaGear/asset/spot.dds')
     end
-	
+    
     if GetItemInstanceId(BAG_WORN, slot) then
-		local itemLink = GetItemLink(BAG_WORN,slot)
-		
-	    if AG.isShowItemCondition() then
+        local itemLink = GetItemLink(BAG_WORN,slot)
+        
+        if AG.isShowItemCondition() then
             t:SetHidden(false)
             t:SetColor(Quality(itemLink, 1))
         else 
-			t:SetHidden(true) 
-		end
-		
+            t:SetHidden(true) 
+        end
+        
         if AG.isShowItemCondition() and DoesItemHaveDurability(BAG_WORN,slot) then
             local con = GetItemLinkCondition(itemLink)
             l:SetText(con..'%')
             l:SetColor(GetColor(con,0.9))
             l:SetHidden(false)
         else 
-			l:SetHidden(true) 
-		end
-		
-		local silChoice = AG.getShowItemLevel()
-		if silChoice ~= AG.CHOICE_SHOW_ITEM_LEVEL_NEVER then
-			AG.showItemLevel(lblLevel, itemLink, silChoice)
-		else
-			lblLevel:SetHidden(true)
-		end
+            l:SetHidden(true) 
+        end
+        
+        local silChoice = AG.getShowItemLevel()
+        if silChoice ~= AG.CHOICE_SHOW_ITEM_LEVEL_NEVER then
+            AG.showItemLevel(lblLevel, itemLink, silChoice)
+        else
+            lblLevel:SetHidden(true)
+        end
     else
         t:SetHidden(true)
         l:SetHidden(true)
-		lblLevel:SetHidden(true)
+        lblLevel:SetHidden(true)
     end
 end
 
@@ -2342,7 +2398,7 @@ function AG.UpdateUI(from,to)
         c:SetText('  '..text)
         AG.UpdateGearBorder(x)
     end
-	
+    
     AG.SetupProfileCombo()  
 end
 
@@ -2354,7 +2410,18 @@ function AG.UpdateEditPanel(nr)
     for x = 1,2 do
         for slot = 1,6 do
             if set.skill[x] ~= 0 and AG.setdata[set.skill[x]].Skill[slot] ~= 0 then
-                _, val = GetAbilityInfoByIndex(AG.GetAbility(AG.setdata[set.skill[x]].Skill[slot]))
+            
+                -- Updated for scribing
+                if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(AG.setdata[set.skill[x]].Skill[slot])) then
+                    -- Crafted skill, get the specific version slotted
+                    local slottedId = GetAbilityIdForCraftedAbilityId(AG.setdata[set.skill[x]].Skill[slot])
+                    val = GetAbilityIcon(slottedId)
+                else
+                    -- Normal skill
+                    local abilityIndex = AG.GetAbility(AG.setdata[set.skill[x]].Skill[slot])
+                    _, val = GetAbilityInfoByIndex(abilityIndex)
+                end
+                
             else 
                 val = nil 
             end
@@ -2437,19 +2504,19 @@ function AG:CommitEditProfileDialog(control)
     local editProfileName = GetControl(ctrlContent, "ProfileName")
     local editProfileSortKey = GetControl(ctrlContent, "ProfileSortKey")
 
-	local oldName = AG.setdata.profiles[AG.setdata.currentProfileId].name
-	
-	AG.setdata.profiles[AG.setdata.currentProfileId].name = editProfileName:GetText()
-	AG.setdata.profiles[AG.setdata.currentProfileId].sortKey = editProfileSortKey:GetText()
-	
-	if oldName ~= AG.setdata.profiles[AG.setdata.currentProfileId].name then
-		d("Profile '"..oldName.."' renamed to '"..AG.setdata.profiles[AG.setdata.currentProfileId].name.."'")
-	end
-	
-	AG.UpdateSwapMessage()
-	AG.SetupProfileCombo()
-	
-	
+    local oldName = AG.setdata.profiles[AG.setdata.currentProfileId].name
+    
+    AG.setdata.profiles[AG.setdata.currentProfileId].name = editProfileName:GetText()
+    AG.setdata.profiles[AG.setdata.currentProfileId].sortKey = editProfileSortKey:GetText()
+    
+    if oldName ~= AG.setdata.profiles[AG.setdata.currentProfileId].name then
+        d("Profile '"..oldName.."' renamed to '"..AG.setdata.profiles[AG.setdata.currentProfileId].name.."'")
+    end
+    
+    AG.UpdateSwapMessage()
+    AG.SetupProfileCombo()
+    
+    
 end
 
 function AG:InitializeEditProfileDialog(control)
@@ -2457,20 +2524,20 @@ function AG:InitializeEditProfileDialog(control)
     local editProfileName = GetControl(ctrlContent, "ProfileName")
     local editProfileSortKey = GetControl(ctrlContent, "ProfileSortKey")
 
-	
-	editProfileName:SetText(AG.setdata.profiles[AG.setdata.currentProfileId].name)
-	editProfileSortKey:SetText(AG.setdata.profiles[AG.setdata.currentProfileId].sortKey or '')
+    
+    editProfileName:SetText(AG.setdata.profiles[AG.setdata.currentProfileId].name)
+    editProfileSortKey:SetText(AG.setdata.profiles[AG.setdata.currentProfileId].sortKey or '')
 end
 
 
 -- Initialize EditProfileDialog
 function AG.InitEditProfileDialog()
-	local control = AGEditProfileDialog
+    local control = AGEditProfileDialog
 
     ZO_Dialogs_RegisterCustomDialog("AG_EDIT_PROFILE_DIALOG", {
         customControl = control,
         title = { text = "Profile Properties" },
-		setup = function(self) AG:InitializeEditProfileDialog(control) end,
+        setup = function(self) AG:InitializeEditProfileDialog(control) end,
         buttons =
         {
             {
@@ -2488,74 +2555,78 @@ function AG.InitEditProfileDialog()
                 callback =  function(dialog)
                             end,
             },
-		
+        
         },
     })
 end
  
 function AG.ShowEditProfileDialog()
-	ZO_Dialogs_ShowDialog("AG_EDIT_PROFILE_DIALOG", {})
+    ZO_Dialogs_ShowDialog("AG_EDIT_PROFILE_DIALOG", {})
 end
 
 function AG.ShowAdvancedOptionsDialog()
-	ZO_Dialogs_ShowDialog("AG_ADVANCED_BUILD_DIALOG", {buildNr = SELECT, buildName = Zero(AG.setdata[SELECT].Set.text[1]) or 'Build '..SELECT})
+    ZO_Dialogs_ShowDialog("AG_ADVANCED_BUILD_DIALOG", {buildNr = SELECT, buildName = Zero(AG.setdata[SELECT].Set.text[1]) or 'Build '..SELECT})
+end
+
+function AG.ShowImportDialog()
+    ZO_Dialogs_ShowDialog("AG_IMPORT_DIALOG", {})
 end
 
 
 --- initializes the callback for drawing AG or FCOIS marks on gear items
 function AG.SetupInventoryCallback()
-	--> BAERTRAM - FCOIS
+    --> BAERTRAM - FCOIS
     local inv = AG.markerInventories
     --< BAERTRAM - FCOIS
-	
-	-- hide AG marker if present
-	local function HideAGMarker(c)
+    
+    -- hide AG marker if present
+    local function HideAGMarker(c)
         if not c then return end
-		local name = c:GetName()
-		
+        local name = c:GetName()
+        
         if MARK[name] then
-			-- hide marker
+            -- hide marker
             MARK[name]:SetHidden(true)
-		end
-	end
-	
-	-- set AG marker for item
+        end
+    end
+    
+    -- set AG marker for item
     local function ShowAGMarker(c)
         if not c then return end
         
         local name = c:GetName()
-			
-        if not MARK[name] then
-			MARK[name] = WM:CreateControl(name..'AG_ItemMark',c,CT_TEXTURE) 
-		end
             
-		MARK[name]:SetDrawLayer(3)
-		MARK[name]:SetDimensions(12,12)
-		MARK[name]:ClearAnchors()
-		MARK[name]:SetAnchor(6,c:GetNamedChild('Bg'),6,2,0)
-		MARK[name]:SetTexture('AlphaGear/asset/mark.dds')
-		MARK[name]:SetHidden(false)
+        if not MARK[name] then
+            MARK[name] = WM:CreateControl(name..'AG_ItemMark',c,CT_TEXTURE) 
+        end
+            
+        MARK[name]:SetDrawLayer(3)
+        MARK[name]:SetDimensions(12,12)
+        MARK[name]:ClearAnchors()
+        MARK[name]:SetAnchor(6,c:GetNamedChild('Bg'),6,2,0)
+        MARK[name]:SetTexture('AlphaGear/asset/mark.dds')
+        MARK[name]:SetHidden(false)
     end
 
-	
-	-- called for each visible item in bag
-	-- called from callback function as defined below
-	local function UpdateItemMarker(c, slot)
-		local markGearWithAG = AG.isMarkSetItemsInBag()
-		
-		-- always hide AG marker 
-		HideAGMarker(c)
+    
+    -- called for each visible item in bag
+    -- called from callback function as defined below
+    local function UpdateItemMarker(c, slot)
+        local markGearWithAG = AG.isMarkSetItemsInBag()
+        
+        -- always hide AG marker 
+        HideAGMarker(c)
 
-		-- set new AG marker, uppdate FCOIS marker
-		if markGearWithAG then
+        -- set new AG marker, uppdate FCOIS marker
+        if markGearWithAG then
 
-	        local slotInfo = c.dataEntry.data or nil
-	        if not slotInfo then return end
+            local slotInfo = c.dataEntry.data or nil
+            if not slotInfo then return end
 
             local uid = AG.GetIdTypeAndLink(slotInfo.bagId, slotInfo.slotIndex)
-			if not uid then return end
+            if not uid then return end
 
-			-- find all the builds, that use this item
+            -- find all the builds, that use this item
            
             local setData
             for profileId = 1, MAX_PROFILES do
@@ -2578,18 +2649,18 @@ function AG.SetupInventoryCallback()
                     end
                 end
             end
-		end
-	end
-	
-	
+        end
+    end
     
-	-- register callback to all bags in AG.markerInventories
-	for x = 1, #inv do
+    
+    
+    -- register callback to all bags in AG.markerInventories
+    for x = 1, #inv do
         local prevCallback = inv[x].dataTypes[1].setupCallback
-		
+        
         inv[x].dataTypes[1].setupCallback = function(c, slot)
             prevCallback(c, slot)
-			UpdateItemMarker(c, slot)
+            UpdateItemMarker(c, slot)
         end
     end
 end
@@ -2695,48 +2766,48 @@ end
 function AG.SetConnect(mode, colorId)
     local color = {'green','grey'}
     local connectorcolor = {'green','grey1'}
-	
+    
     for nr = 1, MAXSLOT do
         WM:GetControlByName('AG_Selector_'..mode..'_'..nr):SetNormalTexture('AlphaGear/asset/'..color[colorId]..'.dds')
     end
 
-	local c
-	if mode == AG.MODE_SKILL then
-		if SELECTBAR == 1 then
-			c = AG_PanelSetPanelScrollChildEditPanelSetBar1PanelBar1Connector
-		else 
-			c = AG_PanelSetPanelScrollChildEditPanelSetBar2PanelBar2Connector
-		end
-	else 
-		c = AG_PanelSetPanelScrollChildEditPanelSetGearPanelGearConnector
+    local c
+    if mode == AG.MODE_SKILL then
+        if SELECTBAR == 1 then
+            c = AG_PanelSetPanelScrollChildEditPanelSetBar1PanelBar1Connector
+        else 
+            c = AG_PanelSetPanelScrollChildEditPanelSetBar2PanelBar2Connector
+        end
+    else 
+        c = AG_PanelSetPanelScrollChildEditPanelSetGearPanelGearConnector
     end
     
     -- grey1.dds
-	
-	c:SetNormalTexture('AlphaGear/asset/'..connectorcolor[colorId]..'.dds')
+    
+    c:SetNormalTexture('AlphaGear/asset/'..connectorcolor[colorId]..'.dds')
 end
 
 
 function AG.SetGearConnection(c, button)
-	if SELECTBAR == 1 or SELECTBAR == 2 then
-		-- stop skill selection
-		AG.SetConnect(AG.MODE_SKILL, 2)
-		SELECTBAR = false
-	end
+    if SELECTBAR == 1 or SELECTBAR == 2 then
+        -- stop skill selection
+        AG.SetConnect(AG.MODE_SKILL, 2)
+        SELECTBAR = false
+    end
 
-	if button == 1 then
-		-- toggle connection mode
+    if button == 1 then
+        -- toggle connection mode
         if SELECTBAR then
             -- stop gear selection
-			AG.SetConnect(AG.MODE_GEAR, 2)
-			SELECTBAR = false
-		else 
-			-- start gear selection
-			SELECTBAR = 3
-			AG.SetConnect(AG.MODE_GEAR, 1)
-		end
+            AG.SetConnect(AG.MODE_GEAR, 2)
+            SELECTBAR = false
+        else 
+            -- start gear selection
+            SELECTBAR = 3
+            AG.SetConnect(AG.MODE_GEAR, 1)
+        end
     elseif button == 2 then
-		if SELECTBAR then 
+        if SELECTBAR then 
             -- clear ger set
             local removedGearId = AG.setdata[SELECT].Set.gear
 
@@ -2744,43 +2815,43 @@ function AG.SetGearConnection(c, button)
                 AG.handleRemoveGearSetFromBuild(SELECT)
                 AG.setdata[SELECT].Set.gear = 0
             end
-		end
+        end
     end
-	
+    
     AG.UpdateEditPanel(SELECT)
 end
 
 
 -- Called from UI, barId is one of 1,2 for skill bars
 function AG.SetSkillConnection(c, button, barId)
-	if SELECTBAR == 3 then
-		-- stop gear selection
-		AG.SetConnect(AG.MODE_GEAR, 2)
-		SELECTBAR = false
-	end
-
-	if SELECTBAR and SELECTBAR ~= barId then
-		-- stop other skill bar selection
-		AG.SetConnect(AG.MODE_SKILL, 2)
-		SELECTBAR = false
-	end
-	
-	if button == 1 then
-		-- toggle connection mode
-		if SELECTBAR then
-			AG.SetConnect(AG.MODE_SKILL, 2)
-			SELECTBAR = false
-		else 
-			SELECTBAR = barId
-			AG.SetConnect(AG.MODE_SKILL, 1)
-		end
-    elseif button == 2 then
-		if SELECTBAR then 
-			-- clear skill set
-			AG.setdata[SELECT].Set.skill[SELECTBAR] = 0
-		end
+    if SELECTBAR == 3 then
+        -- stop gear selection
+        AG.SetConnect(AG.MODE_GEAR, 2)
+        SELECTBAR = false
     end
-	
+
+    if SELECTBAR and SELECTBAR ~= barId then
+        -- stop other skill bar selection
+        AG.SetConnect(AG.MODE_SKILL, 2)
+        SELECTBAR = false
+    end
+    
+    if button == 1 then
+        -- toggle connection mode
+        if SELECTBAR then
+            AG.SetConnect(AG.MODE_SKILL, 2)
+            SELECTBAR = false
+        else 
+            SELECTBAR = barId
+            AG.SetConnect(AG.MODE_SKILL, 1)
+        end
+    elseif button == 2 then
+        if SELECTBAR then 
+            -- clear skill set
+            AG.setdata[SELECT].Set.skill[SELECTBAR] = 0
+        end
+    end
+    
     AG.UpdateEditPanel(SELECT)
 end
 
@@ -2806,109 +2877,109 @@ end
 
 
 function AG.RepairItemInStore(bagId, slotId)
-	local cost = GetItemRepairCost(bagId, slotId)
-	if cost > GetCurrentMoney() then
+    local cost = GetItemRepairCost(bagId, slotId)
+    if cost > GetCurrentMoney() then
         -- d("Not enough money to repair gear!")
         d(L.NotEnoughMoneyForRepairMsg)
-		return -1
-	else
-		RepairItem(bagId, slotId)
-		return cost
-	end
+        return -1
+    else
+        RepairItem(bagId, slotId)
+        return cost
+    end
 end
 
 
 function AG.RepairInStore()
-	if not CanStoreRepair() then return end
-	
-	local totalCost = 0
-	local repairedItems = 0
-	local unrepairedItems = 0
-	
-	local bagId = BAG_WORN
-	for slotId = 0, GetBagSize(bagId) do
-		if DoesItemHaveDurability(bagId, slotId) then
-			local itemName = GetItemName(bagId, slotId)
-			if itemName ~= "" then
-				local cost = AG.RepairItemInStore(bagId, slotId)
-				if cost == -1 then 
-					unrepairedItems = unrepairedItems + 1
-				else
-					repairedItems = repairedItems + 1
-					totalCost = totalCost + cost
-				end
-			end
-		end
-	end
+    if not CanStoreRepair() then return end
+    
+    local totalCost = 0
+    local repairedItems = 0
+    local unrepairedItems = 0
+    
+    local bagId = BAG_WORN
+    for slotId = 0, GetBagSize(bagId) do
+        if DoesItemHaveDurability(bagId, slotId) then
+            local itemName = GetItemName(bagId, slotId)
+            if itemName ~= "" then
+                local cost = AG.RepairItemInStore(bagId, slotId)
+                if cost == -1 then 
+                    unrepairedItems = unrepairedItems + 1
+                else
+                    repairedItems = repairedItems + 1
+                    totalCost = totalCost + cost
+                end
+            end
+        end
+    end
 
-	if totalCost ~= 0 then
+    if totalCost ~= 0 then
         --d(repairedItems.." Items repaired. Total repair cost: "..totalCost.."g")
         d(ZOSF(L.ItemsRepairedMsg, repairedItems, totalCost))
-	end
-	
-	if unrepairedItems ~= 0 then
+    end
+    
+    if unrepairedItems ~= 0 then
         -- d("Not enough gold for "..unrepairedItems.." Items")
         d(ZOSF(L.ItemsNotRepairedMsg, unrepairedItems))
-	end
+    end
 end
 
 
 function AG.UpdateAndChargeItem (slot, agControl, texControl, valControl)
-	trace('AG.UpdateAndChargeItem')
-	
-	if not IsItemChargeable(BAG_WORN, slot) then
-		trace('Slot is not chargeable: %d', slot)
-		Hide(agControl) 
-		return
-	end
+    trace('AG.UpdateAndChargeItem')
+    
+    if not IsItemChargeable(BAG_WORN, slot) then
+        trace('Slot is not chargeable: %d', slot)
+        Hide(agControl) 
+        return
+    end
 
-	trace('Slot is chargeable: %d', slot)
-		
+    trace('Slot is chargeable: %d', slot)
+        
     local chargeInfo = {GetChargeInfoForItem(BAG_WORN, slot)}
     local itemInfo = GetItemInfo(BAG_WORN, slot)
-		
-	if itemInfo then
-	
-		trace ('Slot is equipped; current charges: %d, max charges: %d', chargeInfo[1], chargeInfo[2])
-		
-		-- recharge if necessary
-		-- test for charges < 5 to have some savety margin. 
+        
+    if itemInfo then
+    
+        trace ('Slot is equipped; current charges: %d, max charges: %d', chargeInfo[1], chargeInfo[2])
+        
+        -- recharge if necessary
+        -- test for charges < 5 to have some savety margin. 
         if chargeInfo[1] < 5 and AG.isAutoChargeWeapons() then
-			trace('Slot is about to charge...')
+            trace('Slot is about to charge...')
             local gem = AG.GetSoulgem()
             if gem then
-				trace('Slot: got soul gem, charging...')
-			
+                trace('Slot: got soul gem, charging...')
+            
                 ChargeItemWithSoulGem(BAG_WORN, slot, BAG_BACKPACK, gem)
                 d(ZOSF(L.SoulgemUsed, GetItemLink(BAG_WORN, slot)))
 
-				if AG.isShowWeaponIcon() then
-					-- get current chargeinfo for display
-					chargeInfo = {GetChargeInfoForItem(BAG_WORN, slot)}
-				end
-			else
-				trace('Slot: did not find a soul gem!')
+                if AG.isShowWeaponIcon() then
+                    -- get current chargeinfo for display
+                    chargeInfo = {GetChargeInfoForItem(BAG_WORN, slot)}
+                end
+            else
+                trace('Slot: did not find a soul gem!')
             end
         end
 
-		if AG.isShowWeaponIcon() then
-			-- update control
-			Show(agControl)
-			local charge = math.ceil(chargeInfo[1]/chargeInfo[2]*100)
-			texControl:SetTexture(itemInfo)
-			valControl:SetText(charge.."%")
-			valControl:SetColor(GetColor(charge,1))
-			agControl:SetHidden(false)
-		end
-	else 
-		trace ('Slot is not equipped')
-		Hide(agControl) 
-	end		
+        if AG.isShowWeaponIcon() then
+            -- update control
+            Show(agControl)
+            local charge = math.ceil(chargeInfo[1]/chargeInfo[2]*100)
+            texControl:SetTexture(itemInfo)
+            valControl:SetText(charge.."%")
+            valControl:SetColor(GetColor(charge,1))
+            agControl:SetHidden(false)
+        end
+    else 
+        trace ('Slot is not equipped')
+        Hide(agControl) 
+    end     
 end
 
 
 function AG.UpdatePoisonedWeapons(isBackPair)
-	trace('AG.UpdatePoisonedWeapons called')
+    trace('AG.UpdatePoisonedWeapons called')
 
     -- hide icons for charged weapons
     Hide(AG_Charge2) 
@@ -2929,8 +3000,8 @@ function AG.UpdatePoisonedWeapons(isBackPair)
     end
     
     local itemInfo = GetItemInfo(BAG_WORN, poisonSlot)
-		
-	if itemInfo and AG.isShowWeaponIcon() then
+        
+    if itemInfo and AG.isShowWeaponIcon() then
         -- update control
         Show(AG_Charge1)
         AG_Charge1Tex:SetTexture(itemInfo)
@@ -2949,14 +3020,14 @@ function AG.UpdateChargedWeapons(isBackPair)
     trace('AG.UpdateChargedWeapons()')
     
     if isBackPair then
-		trace('Back weapons equiped')
-		AG.UpdateAndChargeItem (EQUIP_SLOT_BACKUP_MAIN, AG_Charge1, AG_Charge1Tex, AG_Charge1Value)
-		AG.UpdateAndChargeItem (EQUIP_SLOT_BACKUP_OFF, AG_Charge2, AG_Charge2Tex, AG_Charge2Value)
+        trace('Back weapons equiped')
+        AG.UpdateAndChargeItem (EQUIP_SLOT_BACKUP_MAIN, AG_Charge1, AG_Charge1Tex, AG_Charge1Value)
+        AG.UpdateAndChargeItem (EQUIP_SLOT_BACKUP_OFF, AG_Charge2, AG_Charge2Tex, AG_Charge2Value)
     else
-		trace('Front weapons equiped')
-		AG.UpdateAndChargeItem (EQUIP_SLOT_MAIN_HAND, AG_Charge1, AG_Charge1Tex, AG_Charge1Value)
-		AG.UpdateAndChargeItem (EQUIP_SLOT_OFF_HAND, AG_Charge2, AG_Charge2Tex, AG_Charge2Value)
-	end
+        trace('Front weapons equiped')
+        AG.UpdateAndChargeItem (EQUIP_SLOT_MAIN_HAND, AG_Charge1, AG_Charge1Tex, AG_Charge1Value)
+        AG.UpdateAndChargeItem (EQUIP_SLOT_OFF_HAND, AG_Charge2, AG_Charge2Tex, AG_Charge2Value)
+    end
 end
 
 
@@ -2967,9 +3038,9 @@ function AG.UpdateWeaponStats(eventCode, bagId, slotId, isNewItem, itemSoundCate
     
     -- safety net, shouldn't happen 
     if bagId ~= BAG_WORN then
-		trace('Wrong bag for weapon stats. Exiting...')
-		return 
-	end
+        trace('Wrong bag for weapon stats. Exiting...')
+        return 
+    end
 
     -- ignore non-weapon/poison slots
     if slotId ~= EQUIP_SLOT_POISON and slotId ~= EQUIP_SLOT_BACKUP_POISON and slotId ~= EQUIP_SLOT_MAIN_HAND and 
@@ -3010,15 +3081,15 @@ end
 
 -- Setup UI by settings
 function AG.setupMainButton()
-	local showMainButton = AG.isShowMainButton()
-	
+    local showMainButton = AG.isShowMainButton()
+    
     AG_UI_Button:SetHidden(not showMainButton)
     AG_UI_ButtonBg:SetHidden(not showMainButton)
 end
 
 
 function AG.setupSetButtons()
-	local showSetButtons = AG.isShowSetButtons()
+    local showSetButtons = AG.isShowSetButtons()
 
     AG_SetButtonFrame:SetHidden(not showSetButtons)
     AG_SetButtonBg:SetHidden(not showSetButtons)
@@ -3026,18 +3097,18 @@ function AG.setupSetButtons()
 end
 
 function AG.setupGearIcon()
-	local showIcon = AG.isShowGearIcon()
+    local showIcon = AG.isShowGearIcon()
 
     AG.layoutControl(AG_Repair, showIcon)
     AG_RepairValue:SetHidden(not showIcon)
     AG_RepairMainBg:SetHidden(not showIcon)
     AG_RepairCost:SetHidden(not AG.isShowRepairCost())
 
-	if showIcon then
+    if showIcon then
         EM:RegisterForEvent('AG_Event_Repair', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AG.UpdateRepair)
         EM:RegisterForEvent('AG_Event_Repair_Armory',  EVENT_ARMORY_BUILD_RESTORE_RESPONSE, AG.UpdateRepair)
-		-- only worn items need to be repaired
-		EM:AddFilterForEvent('AG_Event_Repair', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN) 
+        -- only worn items need to be repaired
+        EM:AddFilterForEvent('AG_Event_Repair', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN) 
         AG.UpdateRepair(nil, BAG_WORN)
     else
         EM:UnregisterForEvent('AG_Event_Repair_Armory', EVENT_ARMORY_BUILD_RESTORE_RESPONSE)
@@ -3046,35 +3117,35 @@ function AG.setupGearIcon()
 end
 
 function AG.setupWeaponIconsAndCharge()
-	local showIcon = AG.isShowWeaponIcon()
-	local autoChargeEnabled = AG.isAutoChargeWeapons()
+    local showIcon = AG.isShowWeaponIcon()
+    local autoChargeEnabled = AG.isAutoChargeWeapons()
 
     AG_Charge1:SetHidden(not showIcon)
     AG_Charge2:SetHidden(not showIcon)
-	AG_ChargeMainBg:SetHidden(not showIcon)
-	
-	if autoChargeEnabled or showIcon then
-	    EM:RegisterForEvent('AG_Event_Update_Weapon_Stats', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AG.UpdateWeaponStats)
-		-- only worn items need to be recharged
-		EM:AddFilterForEvent('AG_Event_Update_Weapon_Stats', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN) 
+    AG_ChargeMainBg:SetHidden(not showIcon)
+    
+    if autoChargeEnabled or showIcon then
+        EM:RegisterForEvent('AG_Event_Update_Weapon_Stats', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AG.UpdateWeaponStats)
+        -- only worn items need to be recharged
+        EM:AddFilterForEvent('AG_Event_Update_Weapon_Stats', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN) 
         AG.ForceUpdateWeaponStats()
-	else
-		EM:UnregisterForEvent('AG_Event_Update_Weapon_Stats', EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-	end
+    else
+        EM:UnregisterForEvent('AG_Event_Update_Weapon_Stats', EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    end
 end
 
 function AG.setupMarkSetItems()
     -- TODO: handle
-	local markItems = AG.isMarkSetItemsInBag()
+    local markItems = AG.isMarkSetItemsInBag()
 end
 
 function AG.setupItemCondition()
-	local enabled = AG.isShowItemCondition()
-	
+    local enabled = AG.isShowItemCondition()
+    
     if enabled then
         EM:RegisterForEvent('AG_Event_Update_Condition', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, AG.UpdateCondition)
-		-- only worn items need to be repaired
-		EM:AddFilterForEvent('AG_Event_Update_Condition', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN) 
+        -- only worn items need to be repaired
+        EM:AddFilterForEvent('AG_Event_Update_Condition', EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN) 
     else
         EM:UnregisterForEvent('AG_Event_Update_Condition', EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     end
@@ -3087,24 +3158,24 @@ function AG.setupItemQuality()
 end
 
 function AG.setupAutoClose()
-	local enabled = AG.isCloseWindowOnMove()
-	
+    local enabled = AG.isCloseWindowOnMove()
+    
     if enabled then
-		EM:RegisterForEvent('AG_Event_Movement', EVENT_NEW_MOVEMENT_IN_UI_MODE, function() SM:HideTopLevel(AG_Panel) end)
+        EM:RegisterForEvent('AG_Event_Movement', EVENT_NEW_MOVEMENT_IN_UI_MODE, function() SM:HideTopLevel(AG_Panel) end)
     else
-		EM:UnregisterForEvent('AG_Event_Movement', EVENT_NEW_MOVEMENT_IN_UI_MODE) 
-	end
+        EM:UnregisterForEvent('AG_Event_Movement', EVENT_NEW_MOVEMENT_IN_UI_MODE) 
+    end
 end
 
 function AG.setupLockUI()
-	local locked = AG.isLockUI()
+    local locked = AG.isLockUI()
 
-	for i = 1, table.getn(UIElements) do
-		if UIElements[i]:GetName() ~= "AG_Panel" then
-			UIElements[i]:SetMouseEnabled(not locked)
-			UIElements[i]:SetMovable(not locked)
-		end
-	end
+    for i = 1, table.getn(UIElements) do
+        if UIElements[i]:GetName() ~= "AG_Panel" then
+            UIElements[i]:SetMouseEnabled(not locked)
+            UIElements[i]:SetMovable(not locked)
+        end
+    end
 
 end
 
@@ -3112,24 +3183,24 @@ end
 function AG.setupActiveSet()
     trace('setupActiveSet')
 
-	local visible = AG.isShowActiveSet() and AG.setdata.lastset
+    local visible = AG.isShowActiveSet() and AG.setdata.lastset
 
     if visible then
         AG.UpdateSwapMessage()
     end
 
-	AG_SwapMessage:SetHidden(not visible)
-	AG_SwapMessageBg:SetHidden(not visible)
+    AG_SwapMessage:SetHidden(not visible)
+    AG_SwapMessageBg:SetHidden(not visible)
 end
 
 function AG.setupAutoRepairAtStores()
-	local enabled = AG.isAutoRepairAtStores()
-	
+    local enabled = AG.isAutoRepairAtStores()
+    
     if enabled then
-		EM:RegisterForEvent('AG_Event_OpenStore', EVENT_OPEN_STORE, AG.RepairInStore)
+        EM:RegisterForEvent('AG_Event_OpenStore', EVENT_OPEN_STORE, AG.RepairInStore)
     else
-		EM:UnregisterForEvent('AG_Event_OpenStore', EVENT_OPEN_STORE) 
-	end
+        EM:UnregisterForEvent('AG_Event_OpenStore', EVENT_OPEN_STORE) 
+    end
 end
 
 function AG.setupShowItemLevel()
@@ -3139,20 +3210,20 @@ end
 
 
 function AG:SetOptions()
-	AG.setupMainButton()
-	AG.setupSetButtons()
-	AG.setupGearIcon()
-	AG.setupWeaponIconsAndCharge()
-	AG.setupMarkSetItems()
-	AG.setupItemCondition()
-	AG.setupAutoClose()
-	AG.setupLockUI()
-	AG.setupActiveSet()
-	AG.setupAutoRepairAtStores()
-	
-	AG.InitPositions()
+    AG.setupMainButton()
+    AG.setupSetButtons()
+    AG.setupGearIcon()
+    AG.setupWeaponIconsAndCharge()
+    AG.setupMarkSetItems()
+    AG.setupItemCondition()
+    AG.setupAutoClose()
+    AG.setupLockUI()
+    AG.setupActiveSet()
+    AG.setupAutoRepairAtStores()
+    
+    AG.InitPositions()
 
-	-- repaint of SetButtons
+    -- repaint of SetButtons
     AG.DrawSetButtonsUI()
 end
 
@@ -3171,7 +3242,7 @@ end
 
 function AG.HideSwapMessage()
     AG_SwapMessage:SetHidden(true)
-	AG_SwapMessageBg:SetHidden(true)
+    AG_SwapMessageBg:SetHidden(true)
 end
 
 function AG.OnShowSkills()
@@ -3200,7 +3271,7 @@ end
 function AG.SetElementAnchor(element)
     local elementName = element:GetName()
     local pos = AG.account.positions[elementName]
-		
+        
     if pos then
         local xOffset = pos[1]
         local yOffset = pos[2]
@@ -3234,7 +3305,7 @@ function AG.InitPositions()
     trace ("init positions")
     for i = 1, table.getn(UIElements) do
         AG.SetElementAnchor(UIElements[i])
-	end
+    end
 end
 
 function AG.StorePosition(control)
@@ -3271,30 +3342,30 @@ function AG.StorePosition(control)
 
     trace("stored rel %f/%f", relX, relY)
 
-	AG.account.positions[name] = {control:GetLeft(), control:GetTop(), relX, relY, relPoint}
+    AG.account.positions[name] = {control:GetLeft(), control:GetTop(), relX, relY, relPoint}
 end
 
 
 
 function AG.ResetPositions()
-	for i = 1, table.getn(UIElements) do
-		local name = UIElements[i]:GetName()
+    for i = 1, table.getn(UIElements) do
+        local name = UIElements[i]:GetName()
 
-		UIElements[i]:ClearAnchors()
-		
-		if name == "AG_RepairMainBg" then
-			-- special treatment for repair button
-			UIElements[i]:SetAnchor(TOPLEFT, ActionButton8, TOPRIGHT, -5, -10)
-		elseif name == "AG_ChargeMainBg" then
-			-- special treatment for weapon button
-			UIElements[i]:SetAnchor(TOPLEFT, ActionButton8, TOPRIGHT, 50, -10)
-		else
-			local pos = AG.account_defaults.positions[name]
-			UIElements[i]:SetAnchor(pos[3], GuiRoot, pos[4], pos[1], pos[2])
-		end
-		
-		AG.StorePosition(UIElements[i])
-	end
+        UIElements[i]:ClearAnchors()
+        
+        if name == "AG_RepairMainBg" then
+            -- special treatment for repair button
+            UIElements[i]:SetAnchor(TOPLEFT, ActionButton8, TOPRIGHT, -5, -10)
+        elseif name == "AG_ChargeMainBg" then
+            -- special treatment for weapon button
+            UIElements[i]:SetAnchor(TOPLEFT, ActionButton8, TOPRIGHT, 50, -10)
+        else
+            local pos = AG.account_defaults.positions[name]
+            UIElements[i]:SetAnchor(pos[3], GuiRoot, pos[4], pos[1], pos[2])
+        end
+        
+        AG.StorePosition(UIElements[i])
+    end
 end
 
 
@@ -3347,12 +3418,26 @@ function AG.ShowButton(c)
     local skill, gear = AG.setdata[nr].Skill, AG.setdata[nr].Gear
     if type == AG.MODE_SKILL then
         if skill[slot] ~= 0 then
-            local abilityIndex = AG.GetAbility(skill[slot])
-            if abilityIndex ~= 0 then
-                local _, icon = GetAbilityInfoByIndex(abilityIndex)
-                c:SetNormalTexture(icon)
-                c.data = { hint = L.Button[type] }
+            
+            -- Updated for scribing
+            if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(skill[slot])) then
+                -- Crafted skill, get the specific version slotted
+                local slottedId = GetAbilityIdForCraftedAbilityId(skill[slot])
+                if slottedId ~= 0 then
+                    local icon = GetAbilityIcon(slottedId)
+                    c:SetNormalTexture(icon)
+                    c.data = { hint = L.Button[type] }
+                end
+            else
+                -- Normal skill
+                local abilityIndex = AG.GetAbility(skill[slot])
+                if abilityIndex ~= 0 then
+                    local _, icon = GetAbilityInfoByIndex(abilityIndex)
+                    c:SetNormalTexture(icon)
+                    c.data = { hint = L.Button[type] }
+                end
             end
+            
         else
             c:SetNormalTexture()
             c.data = nil
@@ -3426,29 +3511,61 @@ function AG.HandleCursorPickup(eventCode, cursorType, param1, param2, param3, pa
     elseif cursorType == MOUSE_CONTENT_ACTION then
         local sourceSlot = param2
         local abilityIndex = param3
-        local abilityId = GetAbilityIdByIndex(abilityIndex)
-        local baseAbilityId = AG.GetBaseAbilityId(abilityId)
-
-        trace ('Slot %d, AbilityIndex: %d, AbilityId: %d, BaseAbilityId: %d', sourceSlot, abilityIndex, abilityId, baseAbilityId)
-
-        local baseSkillType, baseSkillindex, baseAbilityIndex, morphChoice = GetSpecificSkillAbilityKeysByAbilityId(baseAbilityId)
-        trace ('BaseSkilltype %d, BaseSkillIndex: %d, BaseAbilityIndex: %d', baseSkillType, baseSkillindex, baseAbilityIndex)
-
-        if baseSkillType and baseSkillindex and baseAbilityIndex then
-            local _,_,_,_, ultimate, purchased = GetSkillAbilityInfo(baseSkillType, baseSkillindex, baseAbilityIndex)
-            trace ('Ultimate %s, purchased: %s', tostring(ultimate), tostring(purchased))
-
-            if purchased then
-                DRAGINFO.id = baseAbilityId
-                DRAGINFO.ultimate = ultimate
-                DRAGINFO.panel = AG.MODE_SKILL
-                if ultimate then 
-                    DRAGINFO.slot = {6} 
-                else
-                    DRAGINFO.slot = {1,2,3,4,5}
+        
+        -- Updated for scribing
+        local baseAbilityId
+        if abilityIndex ~= 0 then
+            if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(abilityIndex)) then
+                -- Crafted skill, the abilityIndex here is the "CraftedAbilityID" which is like the base ID
+                baseAbilityId = abilityIndex
+                
+                trace ('Slot %d, Crafted base: %d', sourceSlot, baseAbilityId)
+                
+                local craftedSkillType, craftedSkillLineIndex, craftedSkillIndex = GetSkillAbilityIndicesFromCraftedAbilityId(baseAbilityId)
+                trace ('CraftedSkillType %d, CraftedSkillLineIndex: %d, CraftedSkillIndex: %d', craftedSkillType, craftedSkillLineIndex, craftedSkillIndex)
+                
+                if craftedSkillType and craftedSkillLineIndex and craftedSkillIndex then
+                    local isUnlocked = IsCraftedAbilityUnlocked(baseAbilityId)
+                    local isScribed = IsCraftedAbilityScribed(baseAbilityId)
+                    trace ('Unlocked: %s, Scribed: %s', tostring(isUnlocked), tostring(isScribed))
+                    
+                    if isUnlocked and isScribed then
+                        DRAGINFO.id = baseAbilityId
+                        DRAGINFO.ultimate = false
+                        DRAGINFO.panel = AG.MODE_SKILL
+                        DRAGINFO.slot = {1,2,3,4,5}
+                        AG.SetCallout(1)
+                    end
                 end
-
-                AG.SetCallout(1)
+                
+            else
+                -- Normal skill
+                local abilityId = GetAbilityIdByIndex(abilityIndex)
+                baseAbilityId = AG.GetBaseAbilityId(abilityId)
+                
+                trace ('Slot %d, AbilityIndex: %d, AbilityId: %d, BaseAbilityId: %d', sourceSlot, abilityIndex, abilityId, baseAbilityId)
+                
+                local baseSkillType, baseSkillindex, baseAbilityIndex, morphChoice = GetSpecificSkillAbilityKeysByAbilityId(baseAbilityId)
+                trace ('BaseSkilltype %d, BaseSkillIndex: %d, BaseAbilityIndex: %d', baseSkillType, baseSkillindex, baseAbilityIndex)
+                
+                if baseSkillType and baseSkillindex and baseAbilityIndex then
+                    local _,_,_,_, ultimate, purchased = GetSkillAbilityInfo(baseSkillType, baseSkillindex, baseAbilityIndex)
+                    trace ('Ultimate %s, purchased: %s', tostring(ultimate), tostring(purchased))
+                
+                    if purchased then
+                        DRAGINFO.id = baseAbilityId
+                        DRAGINFO.ultimate = ultimate
+                        DRAGINFO.panel = AG.MODE_SKILL
+                        if ultimate then 
+                            DRAGINFO.slot = {6} 
+                        else
+                            DRAGINFO.slot = {1,2,3,4,5}
+                        end
+                
+                        AG.SetCallout(1)
+                    end
+                end
+                
             end
         end
     end
@@ -3490,26 +3607,26 @@ end
 function AG.UpdateSwapMessage()
     if AG.setdata.lastset then
         local pair = GetActiveWeaponPairInfo()
-		local tex
-		local barLabel
-		local set = AG.setdata[AG.setdata.lastset].Set
-		
-		if pair == ACTIVE_WEAPON_PAIR_NONE then
-			tex = 'AlphaGear/asset/nothing.dds'
-			barLabel = 'None'
-		else
-			local pslot = {1,3}
+        local tex
+        local barLabel
+        local set = AG.setdata[AG.setdata.lastset].Set
         
-			if set.gear ~= 0 and AG.setdata[set.gear].Gear[pslot[pair]].id ~= 0 then 
-				tex = Zero(set.icon[pair]) or AG.GetSetIcon(set.gear,pair)
-			else 
-				tex = Zero(set.icon[pair]) or 'AlphaGear/asset/nothing.dds'
-			end
-			barLabel = Zero(set.text[pair + 1]) or ZOSF(L.ActionBarNText, pair)
-		end
+        if pair == ACTIVE_WEAPON_PAIR_NONE then
+            tex = 'AlphaGear/asset/nothing.dds'
+            barLabel = 'None'
+        else
+            local pslot = {1,3}
         
-		local profileLabel = AG.setdata.profiles[AG.setdata.currentProfileId].name
-		
+            if set.gear ~= 0 and AG.setdata[set.gear].Gear[pslot[pair]].id ~= 0 then 
+                tex = Zero(set.icon[pair]) or AG.GetSetIcon(set.gear,pair)
+            else 
+                tex = Zero(set.icon[pair]) or 'AlphaGear/asset/nothing.dds'
+            end
+            barLabel = Zero(set.text[pair + 1]) or ZOSF(L.ActionBarNText, pair)
+        end
+        
+        local profileLabel = AG.setdata.profiles[AG.setdata.currentProfileId].name
+        
         AG_SwapMessageIcon:SetTexture(tex)
         AG_SwapMessageNumber:SetText(AG.setdata.lastset)
         AG_SwapMessageName:SetText(profileLabel..'\n'..(Zero(set.text[1]) or 'Build '..AG.setdata.lastset)..'\n|cFFFFFF'..barLabel)
@@ -3541,11 +3658,11 @@ function AG.SwapMessage()
     if AG.isShowChangeNotification() and AG.setdata.lastset then
         PlaySound('Market_PurchaseSelected')
         if not AG.isShowActiveSet() then 
-			AG.Animate(true,false,2500) 
-		    AG_SwapMessageBg:SetHidden(true)
-		else 
-			AG.Animate(true,false,false) 
-			AG_SwapMessageBg:SetHidden(false)
+            AG.Animate(true,false,2500) 
+            AG_SwapMessageBg:SetHidden(true)
+        else 
+            AG.Animate(true,false,false) 
+            AG_SwapMessageBg:SetHidden(false)
         end
     end
 end
@@ -3579,22 +3696,22 @@ function AG.MenuAction(nr)
     if nr == 1 then
         -- Store copy source
         MENU.copySourceSetId = MENU.nr
-		MENU.copySourceProfileId = AG.setdata.currentProfileId
+        MENU.copySourceProfileId = AG.setdata.currentProfileId
     elseif nr == 2 and MENU.copySourceSetId then
         -- Paste 
-		local sourceSet 
-		if MENU.copySourceProfileId == AG.setdata.currentProfileId then
-			sourceSet = AG.setdata[MENU.copySourceSetId]
-		else
-			sourceSet = AG.setdata.profiles[MENU.copySourceProfileId].setdata[MENU.copySourceSetId]
-		end
-		
+        local sourceSet 
+        if MENU.copySourceProfileId == AG.setdata.currentProfileId then
+            sourceSet = AG.setdata[MENU.copySourceSetId]
+        else
+            sourceSet = AG.setdata.profiles[MENU.copySourceProfileId].setdata[MENU.copySourceSetId]
+        end
+        
         if MENU.type == AG.MENU_TYPE_GEAR then
             AG.handlePreChangeGearSetItems(MENU.nr)
             for z = 1, #SLOTS do
                 AG.setdata[MENU.nr].Gear[z] = sourceSet.Gear[z]
                 AG.ShowButton(WM:GetControlByName('AG_Button_Gear_'..MENU.nr..'_'..z))
-            end	
+            end 
             AG.handlePostChangeGearSetItems(MENU.nr)
 
         else 
@@ -3628,7 +3745,7 @@ function AG.MenuAction(nr)
             for z = 1, #SLOTS do
                 AG.setdata[MENU.nr].Gear[z] = { id = 0, link = 0 }
                 AG.ShowButton(WM:GetControlByName('AG_Button_Gear_'..MENU.nr..'_'..z))
-            end	
+            end 
             AG.handlePostChangeGearSetItems(MENU.nr)
         elseif MENU.type == AG.MENU_TYPE_SKILLS then 
             for z = 1,6 do
@@ -3662,6 +3779,151 @@ function AG.MenuAction(nr)
     end
 end
 
+-----------------------------
+-- start Kyzer's additions
+-- this file is too damn long
+-----------------------------
+function AG.ClearProfile(argString)
+    if (argString ~= "all" and argString ~= "gear" and argString ~= "skills" and argString ~= "sets") then
+        d("Really clear this entire profile? Type /agclear all||gear||skills||sets")
+        return
+    end
+
+    for index = 1, MAXSLOT do
+        -- Gear
+        if (argString == "all" or argString == "gear") then
+            AG.handlePreChangeGearSetItems(index)
+            for z = 1, #SLOTS do
+                AG.setdata[index].Gear[z] = { id = 0, link = 0 }
+                AG.ShowButton(WM:GetControlByName('AG_Button_Gear_'..index..'_'..z))
+            end
+            AG.handlePostChangeGearSetItems(index)
+        end
+
+        -- Skills
+        if (argString == "all" or argString == "skills") then
+            for z = 1,6 do
+                AG.setdata[index].Skill[z] = 0
+                AG.ShowButton(WM:GetControlByName('AG_Button_Skill_'..index..'_'..z))
+            end
+        end
+
+        -- Sets
+        if (argString == "all" or argString == "sets") then
+            AG.setdata[index].Set = { text = {0,0,0}, gear = 0, skill = {0,0}, icon = {0,0}, lock = 0, outfit = -1 }
+            AG.UpdateUI(index, index)
+            AG.UpdateSetButtons()
+            AG.HideEditPanel()
+        end
+    end
+end
+
+local function GetCharNames()
+    local charNames = {}
+    for index = 1, GetNumCharacters() do
+        local name, _, _, _, _, _, id, _ = GetCharacterInfo(index)
+        charNames[zo_strformat("<<1>>", name)] = true
+    end
+    return charNames
+end
+
+local otherCharVars = {}
+function AG.ImportProfile(accountName, charName, profileNum)
+    -- Clear profile first
+    AG.ClearProfile("all")
+
+    -- Import profile
+    local otherProfile = AGX2_Character.Default[accountName][charName].profiles[profileNum]
+    if (not otherProfile.setdata) then
+        d(zo_strformat("Profile <<1>> (<<2>>) from character <<3>> is empty!", otherProfile.name, profileNum, charName))
+        return
+    end
+
+    d(zo_strformat("Importing gear from profile <<1>> (<<2>>) from character <<3>>...", otherProfile.name, profileNum, charName))
+    for index = 1, MAXSLOT do
+        AG.handlePreChangeGearSetItems(index)
+        for z = 1, #SLOTS do
+            AG.setdata[index].Gear[z] = { id = otherProfile.setdata[index].Gear[z].id, link = otherProfile.setdata[index].Gear[z].link }
+            AG.ShowButton(WM:GetControlByName('AG_Button_Gear_' .. index .. '_' .. z))
+        end
+        AG.handlePostChangeGearSetItems(index)
+    end
+
+    d(zo_strformat("Importing skills from profile <<1>> (<<2>>) from character <<3>>...", otherProfile.name, profileNum, charName))
+    for index = 1, MAXSLOT do
+        for z = 1,6 do
+            AG.setdata[index].Skill[z] = otherProfile.setdata[index].Skill[z]
+            AG.ShowButton(WM:GetControlByName('AG_Button_Skill_'..index..'_'..z))
+        end
+    end
+
+    d(zo_strformat("Importing sets from profile <<1>> (<<2>>) from character <<3>>...", otherProfile.name, profileNum, charName))
+    for index = 1, MAXSLOT do
+        local otherSet = otherProfile.setdata[index].Set
+        AG.setdata[index].Set = {
+            text = {otherSet.text[1], otherSet.text[2], otherSet.text[3]},
+            gear = otherSet.gear,
+            skill = {otherSet.skill[1], otherSet.skill[2]},
+            icon = {otherSet.icon[1], otherSet.icon[2]},
+            lock = otherSet.lock,
+            outfit = otherSet.outfit
+        }
+        AG.UpdateUI(index, index)
+    end
+    d("Done")
+end
+
+local function ImportProfileCommand(argString)
+    if (argString == "") then
+        d("Usage: /agimport <character name> [profile id]\nNote: this does not import extensions / advanced settings")
+        local names = {}
+        for name, _ in pairs(GetCharNames()) do
+            table.insert(names, name)
+        end
+        d("Available Characters: " .. table.concat(names, ", "))
+        return
+    end
+
+    local lastSpaceIndex = string.find(argString, " [^ ]*$")
+    if (not lastSpaceIndex) then lastSpaceIndex = 0 end
+    local lastWord = string.sub(argString, lastSpaceIndex + 1)
+    local lastNum = tonumber(lastWord)
+    local charName = ""
+    if (lastNum == nil or lastSpaceIndex == 0) then
+        charName = argString
+    else
+        charName = string.sub(argString, 1, lastSpaceIndex - 1)
+    end
+
+    if (not GetCharNames()[charName]) then
+        d("No such character \"" .. charName .. "\"")
+        return
+    end
+    local otherData = otherCharVars[charName]
+    if (not otherData) then
+        d("Loading saved vars for \"" .. charName .. "\"")
+        otherData = ZO_SavedVars:New('AGX2_Character', AG.characterVariableVersion, nil, init_data, nil, nil, charName)
+        otherCharVars[charName] = otherData
+    end
+
+    -- List the available profiles
+    if (not lastNum) then
+        d("Available Profiles:")
+        for profileId = 1, MAX_PROFILES do
+            local profileName = otherData.profiles[profileId].name
+            d(zo_strformat("<<1>> - <<2>>", profileId, profileName))
+        end
+        d("To import a profile, type again: /agimport " .. charName .. " number")
+        return
+    end
+
+    AG.ImportProfile(GetUnitDisplayName("player"), charName, lastNum)
+end
+
+------------------------
+-- end Kyzer's additions
+------------------------
+
 function AG.Tooltip(c, visible, edit)
     -- trace('Tooltip')
     local function FadeIn(control)
@@ -3693,16 +3955,29 @@ function AG.Tooltip(c, visible, edit)
             if nr > 0 then
 
                 if AG.setdata[nr].Skill[slot] == 0 then return end
-                local s1,s2,s3 = AG.GetSkill(AG.setdata[nr].Skill[slot])
-                if s1 and s2 and s3 then
-                    c.text = SkillTooltip
-                    InitializeTooltip(c.text,AG_Panel,3,0,0,9)
-                    c.text:SetSkillAbility(s1,s2,s3)
-                else
-                    c.text = InformationTooltip
-                    InitializeTooltip(c.text,AG_Panel,3,0,0,9)
-                    c.text:AddLine(L.ReassignHint)
-                end
+
+                    -- Updated for scribing
+                    if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(AG.setdata[nr].Skill[slot])) then
+                        -- Crafted skill
+                        local abilityId = GetAbilityIdForCraftedAbilityId(AG.setdata[nr].Skill[slot])
+                        trace('Crafted skill: %d - %d', AG.setdata[nr].Skill[slot], abilityId)
+                        c.text = SkillTooltip
+                        InitializeTooltip(c.text,AG_Panel,3,0,0,9)
+                        c.text:SetAbilityId(abilityId)
+                    else
+                        -- Normal skill
+                        local s1,s2,s3 = AG.GetSkill(AG.setdata[nr].Skill[slot])
+                        if s1 and s2 and s3 then
+                            c.text = SkillTooltip
+                            InitializeTooltip(c.text,AG_Panel,3,0,0,9)
+                            c.text:SetSkillAbility(s1,s2,s3)
+                        else
+                            c.text = InformationTooltip
+                            InitializeTooltip(c.text,AG_Panel,3,0,0,9)
+                            c.text:AddLine(L.ReassignHint)
+                        end
+                    end
+                
             else return end
         elseif c.data and c.data.tip then
             c.text = InformationTooltip
@@ -3738,7 +4013,18 @@ function AG.TooltipSet(nr,visible)
             local ico = ''
             for x = 1,6 do
                 if set.skill[z] > 0 and AG.setdata[set.skill[z]].Skill[x] ~= 0 then
-                    _, val = GetAbilityInfoByIndex(AG.GetAbility(AG.setdata[set.skill[z]].Skill[x]))
+                
+                    -- Updated for scribing
+                    if IsCraftedAbilitySkill(GetSkillAbilityIndicesFromCraftedAbilityId(AG.setdata[set.skill[z]].Skill[x])) then
+                        -- Crafted skill, get the specific slotted version
+                        local slottedId = GetAbilityIdForCraftedAbilityId(AG.setdata[set.skill[z]].Skill[x])
+                        val = GetAbilityIcon(slottedId)
+                    else
+                        -- Normal skill
+                        local abilityIndex = AG.GetAbility(AG.setdata[set.skill[z]].Skill[x])
+                        _, val = GetAbilityInfoByIndex(abilityIndex)
+                    end
+                    
                 else 
                     val = 'AlphaGear/asset/grey1.dds'
                 end
@@ -3779,11 +4065,11 @@ end
 
 
 function KEYBINDING_MANAGER:IsChordingAlwaysEnabled()
-	return true
+    return true
 end
 
 function AlphaGear_RegisterIcon(icon)
-	table.insert(ICON,icon or 'AlphaGear/asset/nothing.dds')
+    table.insert(ICON,icon or 'AlphaGear/asset/nothing.dds')
 end
 
 function AG.CheckSkillId (nr, skillnr) 
@@ -3826,16 +4112,16 @@ end
 
 --- stores the current set-list as profile with Id profileId
 function AG.storeProfile(profileId)
-	-- always clear
-	AG.setdata.profiles[profileId].setdata = {}
+    -- always clear
+    AG.setdata.profiles[profileId].setdata = {}
     
-	-- copy slots
-	for i = 1, MAXSLOT do
-		AG.setdata.profiles[profileId].setdata[i] = AG.setdata[i]		
-	end
-	
-	-- copy current slotId
-	AG.setdata.profiles[profileId].setdata.lastset = AG.setdata.lastset
+    -- copy slots
+    for i = 1, MAXSLOT do
+        AG.setdata.profiles[profileId].setdata[i] = AG.setdata[i]       
+    end
+    
+    -- copy current slotId
+    AG.setdata.profiles[profileId].setdata.lastset = AG.setdata.lastset
 end
 
 
@@ -3843,60 +4129,60 @@ end
 -- stores the current set-list under its profileId
 function AG.LoadProfile(profileId)
 
-	trace("AG.LoadProfile %d", profileId)
-	if profileId == AG.setdata.currentProfileId then 
-		-- nothing to do
-		return
-	end
+    trace("AG.LoadProfile %d", profileId)
+    if profileId == AG.setdata.currentProfileId then 
+        -- nothing to do
+        return
+    end
 
-	-- store current profile Id
+    -- store current profile Id
     AG.previousProfile = AG.setdata.currentProfileId
-	
-	-- store current set-list
-	AG.storeProfile(AG.setdata.currentProfileId)
-	
-	-- lazy create new profile
-	if not AG.setdata.profiles[profileId].setdata then
-		AG.setdata.profiles[profileId].setdata = {}
-		AG.setdata.profiles[profileId].setdata.lastset = false
-		AG.initSetData(AG.setdata.profiles[profileId].setdata)
-	end
-	
-	-- load new profile
+    
+    -- store current set-list
+    AG.storeProfile(AG.setdata.currentProfileId)
+    
+    -- lazy create new profile
+    if not AG.setdata.profiles[profileId].setdata then
+        AG.setdata.profiles[profileId].setdata = {}
+        AG.setdata.profiles[profileId].setdata.lastset = false
+        AG.initSetData(AG.setdata.profiles[profileId].setdata)
+    end
+    
+    -- load new profile
     for i = 1, MAXSLOT do
-		AG.setdata[i] = AG.setdata.profiles[profileId].setdata[i]
-	end
+        AG.setdata[i] = AG.setdata.profiles[profileId].setdata[i]
+    end
 
 
-	AG.setdata.currentProfileId = profileId
-	
-	-- update UI and equip set
+    AG.setdata.currentProfileId = profileId
+    
+    -- update UI and equip set
     -- skills & gear
     
     AG.UpdateItemLinks()
 
-	for setIndex = 1, MAXSLOT do
-		for slotId = 1, 6 do
-			AG.ShowButton(WM:GetControlByName('AG_Button_Skill_'..setIndex..'_'..slotId))
-		end
+    for setIndex = 1, MAXSLOT do
+        for slotId = 1, 6 do
+            AG.ShowButton(WM:GetControlByName('AG_Button_Skill_'..setIndex..'_'..slotId))
+        end
 
-		for slotId = 1, #SLOTS do
-			AG.ShowButton(WM:GetControlByName('AG_Button_Gear_'..setIndex..'_'..slotId))
-		end
-	end
+        for slotId = 1, #SLOTS do
+            AG.ShowButton(WM:GetControlByName('AG_Button_Gear_'..setIndex..'_'..slotId))
+        end
+    end
 
-	d("Loaded profile '"..AG.setdata.profiles[profileId].name.."'")
-	
-	AG.HideEditPanel()
+    d("Loaded profile '"..AG.setdata.profiles[profileId].name.."'")
     
-	AG.UpdateUI()
-	AG.previousSet = nil
-	
-	if AG.isLoadLastBuildOfProfile() then
-		AG.setdata.lastset = AG.setdata.profiles[profileId].setdata.lastset
-		AG.LoadSet(AG.setdata.lastset)
-	else 
-		AG.setdata.lastset = false
+    AG.HideEditPanel()
+    
+    AG.UpdateUI()
+    AG.previousSet = nil
+    
+    if AG.isLoadLastBuildOfProfile() then
+        AG.setdata.lastset = AG.setdata.profiles[profileId].setdata.lastset
+        AG.LoadSet(AG.setdata.lastset)
+    else 
+        AG.setdata.lastset = false
     end
     
     AG.UpdateSetButtons()
@@ -3933,7 +4219,7 @@ end
 
 --- load the next profile according to sort-order
 function AG.LoadNextProfile()
-	trace("AG.LoadNextProfile()")
+    trace("AG.LoadNextProfile()")
  
     -- init profileId after reload
     if not AG.setdata.currentProfileId or AG.setdata.currentProfileId == 0 then
@@ -3941,7 +4227,7 @@ function AG.LoadNextProfile()
     end
 
     local newProfileId = AG.setdata.currentProfileId
-	local oldProfileId = AG.setdata.currentProfileId
+    local oldProfileId = AG.setdata.currentProfileId
 
     -- cycle through profiles until the next filled
     repeat
@@ -3958,15 +4244,15 @@ end
 
 --- load the previous profile according to sort-order
 function AG.LoadPreviousProfile()
-	trace("AG.LoadPreviousProfile()")
+    trace("AG.LoadPreviousProfile()")
 
     -- init profileId after reload
     if not AG.setdata.currentProfileId or AG.setdata.currentProfileId == 0 then
         AG.setdata.currentProfileId = 1
     end
 
-	local newProfileId = AG.setdata.currentProfileId
-	local oldProfileId = AG.setdata.currentProfileId
+    local newProfileId = AG.setdata.currentProfileId
+    local oldProfileId = AG.setdata.currentProfileId
 
     -- cycle through profiles until the next filled
     repeat
@@ -4034,27 +4320,29 @@ function AG:Initialize()
     -- EM:RegisterForEvent("AG4", EVENT_OUTFIT_CHANGE_RESPONSE, AG.ShowOutfits)
 
 
-	UIElements = {AG_Panel, AG_UI_ButtonBg, AG_SetButtonBg, AG_SwapMessageBg, AG_RepairMainBg, AG_ChargeMainBg}
-	
-	SLASH_COMMANDS["/alphagear"] = AG.ShowMain
-	SLASH_COMMANDS["/agdbg"] = AG.ToggleDebug
-	
-	-- initialize account wide settings
+    UIElements = {AG_Panel, AG_UI_ButtonBg, AG_SetButtonBg, AG_SwapMessageBg, AG_RepairMainBg, AG_ChargeMainBg}
+    
+    SLASH_COMMANDS["/alphagear"] = AG.ShowMain
+    SLASH_COMMANDS["/agdbg"] = AG.ToggleDebug
+    SLASH_COMMANDS["/agclear"] = AG.ClearProfile
+    SLASH_COMMANDS["/agimport"] = ImportProfileCommand
+    
+    -- initialize account wide settings
     AG.account = ZO_SavedVars:NewAccountWide('AGX2_Account', AG.accountVariableVersion, nil, AG.account_defaults)
-	
+    
    
     -- Post-Load Check for missing account members
     if AG.account.Integrations == nil then
         AG.account.Integrations = {table.unpack(AG.account_defaults.Integrations)}
     end
-	
+    
 
-	-- initialize character wide settings
-	
-	local init_data =  AG.setdata_defaults
-	AG.initSetData(init_data)
-	
-	--[[
+    -- initialize character wide settings
+    
+    local init_data =  AG.setdata_defaults
+    AG.initSetData(init_data)
+    
+    --[[
     for x = 1, MAXSLOT do
         init_data[x] = {
             Gear = {}, 
@@ -4064,8 +4352,8 @@ function AG:Initialize()
         for z = 1, #SLOTS do init_data[x].Gear[z] = { id = 0, link = 0 } end
         for z = 1, 6 do init_data[x].Skill[z] = 0 end
     end 
-	]]--
-	
+    ]]--
+    
     AG.setdata = ZO_SavedVars:New('AGX2_Character', AG.characterVariableVersion, nil, init_data)
     
     -- Post-Load Check for missing members
@@ -4092,26 +4380,26 @@ function AG:Initialize()
         end
         -- end new since 6.3.0
     end
-	
-	-- Initialize profile structure
+    
+    -- Initialize profile structure
     if AG.setdata.profiles == nil then
-		AG.setdata.currentProfileId = 1
-		AG.setdata.profiles = {}
-		
-		for i = 1, MAX_PROFILES do
-			AG.setdata.profiles[i] = {}
-			AG.setdata.profiles[i].name = 'Profile '..i
-			AG.setdata.profiles[i].currentBuild = 1
-		end
-		
-		-- store main set-list as profile 1
-		AG.storeProfile(1)
-	end
+        AG.setdata.currentProfileId = 1
+        AG.setdata.profiles = {}
+        
+        for i = 1, MAX_PROFILES do
+            AG.setdata.profiles[i] = {}
+            AG.setdata.profiles[i].name = 'Profile '..i
+            AG.setdata.profiles[i].currentBuild = 1
+        end
+        
+        -- store main set-list as profile 1
+        AG.storeProfile(1)
+    end
 
-	
-	
-	-- initialize settings page
-	self:CreateSettingsPage()
+    
+    
+    -- initialize settings page
+    self:CreateSettingsPage()
 
 
     -- for x = 1, MAXSLOT do
@@ -4129,11 +4417,12 @@ function AG:Initialize()
     AG.DrawInventory()
     AG.SetupInventoryCallback()
     
-	AG:SetOptions()
-	
-	AG.InitEditProfileDialog()
+    AG:SetOptions()
     
-	zo_callLater(AG.SwapMessage,900)
+    AG.InitEditProfileDialog()
+    AGImportDlg.Initialize()
+    
+    zo_callLater(AG.SwapMessage,900)
     -- AG_PanelOptionPanelPlus:SetAnchor(8,AG_Option_2,8,0,0)
 
     AlphaGear_RegisterIcon('AlphaGear/asset/onehand.dds')
@@ -4159,6 +4448,56 @@ function AG:Initialize()
     AlphaGear_RegisterIcon('AlphaGear/asset/horse.dds')
 
     SELECT = AG.setdata.lastset
+
+    -- Kyzer 12/5/21: fix /agimport because I pull that from the inactive set data
+    ZO_PreHook("ReloadUI", function() AG.storeProfile(AG.setdata.currentProfileId) end)
+    ZO_PreHook("Logout", function() AG.storeProfile(AG.setdata.currentProfileId) end)
+    ZO_PreHook("SetCVar", function() AG.storeProfile(AG.setdata.currentProfileId) end)
+    ZO_PreHook("Quit", function() AG.storeProfile(AG.setdata.currentProfileId) end)
+
+    -- Kyzer 11/25/21: prehook to skip sorting (due to AutoCategory lag) when performing bulk mode
+    -- Updated 12/5/21: hook after playeractivated due to AutoCategory change
+    AG.recentInventoryType = INVENTORY_BACKPACK
+    local prehookRetries = 0
+    if (AutoCategory) then
+        EVENT_MANAGER:RegisterForEvent(AG.name .. "PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
+            EVENT_MANAGER:UnregisterForEvent(AG.name .. "PlayerActivated", EVENT_PLAYER_ACTIVATED)
+            EVENT_MANAGER:RegisterForUpdate(AG.name .. "ApplySortPrehook", 5000, function()
+                if (AutoCategory.Inited == true) then
+                    ZO_PreHook(PLAYER_INVENTORY, "ApplySort", function(self, inventoryType) AG.recentInventoryType = inventoryType return AG.InBulkMode end)
+                    -- d("Successfully prehooked ApplySort after AutoCategory init.")
+                    EVENT_MANAGER:UnregisterForUpdate(AG.name .. "ApplySortPrehook")
+                elseif (prehookRetries > 5) then
+                    d("Gave up trying to hook AutoCategory. Is something wrong? Yell at Kyzer, probably.")
+                    EVENT_MANAGER:UnregisterForUpdate(AG.name .. "ApplySortPrehook")
+                else
+                    prehookRetries = prehookRetries + 1
+                end
+            end)
+        end)
+    end
+
+    -- Kyzer 9/7/26: Add LibRadialMenu entries
+    if (LibRadialMenu) then
+        local LRM = LibRadialMenu
+        LRM:RegisterAddon("AlphaGear 2", "AlphaGear 2")
+        for i = 1, MAXSLOT do
+            local texture
+            if (i <= 8 and CrutchAlerts) then
+                texture = string.format("CrutchAlerts/assets/shape/diamond_red_%d.dds", i)
+            else
+                texture = string.format("/esoui/art/icons/ability_weapon_0%02d.dds", i)
+            end
+
+            LRM:RegisterEntry(
+                "AlphaGear 2",
+                "Equip set " .. i,
+                "Set" .. i,
+                texture,
+                function() AG.LoadSet(i) end,
+                "Equips set (build) " .. i .. " of your current profile.")
+        end
+    end
 
     AG.init = true
 end

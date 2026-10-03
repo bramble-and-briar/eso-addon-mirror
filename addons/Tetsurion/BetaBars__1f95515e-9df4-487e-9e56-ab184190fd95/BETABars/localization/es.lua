@@ -1,0 +1,27 @@
+BETABars = BETABars or {}
+local T = BETABars
+T.L = {
+    TITLE = "BETA Bars",
+    INFO = "Info",
+    INFO_TT = "Solo salud, magia y aguante. Sin ultimate. Los orbes son un relleno, no líquido.",
+    ENABLED = "Activado",
+    STYLE = "Estilo",
+    STYLE_THIN = "Finas",
+    STYLE_SEG = "Segmentos",
+    STYLE_CLASSIC = "Clásicas",
+    STYLE_ORB = "Orbes",
+    HIDE_STOCK = "Ocultar barras oficiales",
+    HIDE_FULL = "Ocultar si están llenas fuera de combate",
+    NUMBERS = "Números",
+    TAIL = "Rastro de daño",
+    SHIELD = "Borde de escudo",
+    NOTCH = "Marcas de coste",
+    SCALE = "Escala",
+    OFFX = "Horizontal",
+    OFFY = "Vertical",
+    COLOR_H = "Color de salud",
+    COLOR_M = "Color de magia",
+    COLOR_S = "Color de aguante",
+    PREVIEW = "Muestra",
+    LOADED = "BETA Bars: Ajustes, Complementos.",
+}

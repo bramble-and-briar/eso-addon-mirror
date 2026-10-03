@@ -211,7 +211,8 @@ function AlabuzyaUI.Minimap.Initialize()
     player:SetTexture('EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds')
     player:SetDrawLayer(DL_OVERLAY) player:SetDrawLevel(10)
     clock=Label(root,24) clock:SetAnchor(TOPLEFT,root,TOPLEFT,12,SIZE+44)
-    if theme.classic then AlabuzyaUI.ClassicTheme.SkinMap(root,view,title,clock,Zoom) end
+    if theme.ds3 then AlabuzyaUI.DS3Theme.SkinMap(root,view,title,clock,Zoom)
+    elseif theme.classic then AlabuzyaUI.ClassicTheme.SkinMap(root,view,title,clock,Zoom) end
     CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged',function() mapDirty=true end)
     EVENT_MANAGER:RegisterForEvent('AlabuzyaUIMinimap',EVENT_PLAYER_ACTIVATED,function() mapDirty=true end)
     root:SetHandler('OnUpdate',Update)

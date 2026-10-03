@@ -32,11 +32,13 @@ local function IsSelf(name)
 
     -- char name
     for _, accountData in pairs(GetSVTable()) do
-        if (accountData.Values
-            and accountData.Values.charInfo
-            and accountData.Values.charInfo.characters
-            and accountData.Values.charInfo.characters[name]) then
-            return true
+        if (accountData.Values and accountData.Values.charIdInfo) then
+            -- No longer keyed by char name, so have to iterate
+            for _, info in pairs(accountData.Values.charIdInfo) do
+                if (info.lastKnownName == name) then
+                    return true
+                end
+            end
         end
     end
 

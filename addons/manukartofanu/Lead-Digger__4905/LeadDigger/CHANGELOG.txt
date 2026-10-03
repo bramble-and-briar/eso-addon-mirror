@@ -1,0 +1,7 @@
+Lead Digger Changelog
+
+1.0.0
+- Initial public release.
+- Added English and Russian localization.
+- Added a configurable, movable HUD showing expiring antiquity leads grouped by zone.
+- Released under the MIT License.

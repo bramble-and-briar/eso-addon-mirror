@@ -1,15 +1,14 @@
 ## Title: |c7FC7FFWegesruhe|r
-## Description: Immersive control of quest and navigation markers. / Immersive Steuerung von Quest- und Navigationsmarkern.
 ## Author: Atlas
-## Version: 1.0.0
-## AddOnVersion: 10000
+## Version: 2.0.0
+## AddOnVersion: 200
 ## APIVersion: 101050 101051
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Reduces navigation guidance with configurable map, compass and 3D marker filters.
 ## SavedVariables: WegesruheSavedVariables
-## DependsOn: LibAddonMenu-2.0>=43
 
-Lang/en.lua
-Lang/de.lua
-Lang/Language.lua
+lang/en.lua
+lang/$(language).lua
+lang/Language.lua
 
 Wegesruhe.lua
 MarkerCatalog.lua
@@ -17,5 +16,6 @@ QuestFilters.lua
 Compass.lua
 FloatingMarkers.lua
 Map.lua
-Settings.lua
+WegesruheSettings.lua
+AddonListGear.lua
 bindings.xml

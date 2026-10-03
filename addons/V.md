@@ -48,7 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Void's Execute Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Void-Commander/Void-s-Execute-Blocker__4117) | Void Commander | PC / Mac | 1.0 |
 | [Volcano's Stat Colours](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Volcano_Beetle/Volcano-s-Stat-Colours__f53af274-25ac-4c9f-8785-ad598d053a11) | Volcano_Beetle | Console | — |
 | [Volette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FeynmanRules/Volette__3940) | FeynmanRules | PC / Mac | 0.1.5 |
-| [Votan's Achievements Overview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Achievements-Overview__1001) | votan | PC / Mac | 1.6.6 |
+| [Votan's Achievements Overview](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Achievements-Overview__1001) | votan | PC / Mac | 1.6.7 |
 | [Votan's Adaptive (Video-)Settings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Adaptive-Video--Settings__1239) | votan | PC / Mac | 1.5.9 |
 | [Votan's Addon List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Votan-s-Addon-List__2094) | votan | PC / Mac | 1.10.0 |
 | [Votan's Addon List](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/Votan-s-Addon-List__e0ba98a7-7f17-4c46-8ef2-b2dfc1a2f1e1) | votan73 | Console | — |

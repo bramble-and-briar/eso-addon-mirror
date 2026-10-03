@@ -64,6 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Beltalowda - testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kickimanjaro/Beltalowda---testing__4395) | Kickimanjaro | PC / Mac | 0.5.4 |
 | [Berserk Tracker (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Berserk-Tracker-PC-Console__4801) | Duesentrieb | PC / Mac | 20260829-0001 |
 | [BestFriends 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/BestFriends-2018__1975) | Phuein | PC / Mac | 2.16 |
+| [BetaBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/BetaBars__1f95515e-9df4-487e-9e56-ab184190fd95) | Tetsurion | Console | — |
 | [BetaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Latetide/BetaScry__3783) | Latetide | PC / Mac | 1.0.0 |
 | [Better Antiquities Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DH8Wolf/Better-Antiquities-Journal__2701) | DH8Wolf | PC / Mac | 0.3 |
 | [Better Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Better-Bars__784b8f46-2797-426a-ab85-f1e5b4776b01) | BMGxSancho | Console | — |
@@ -80,7 +81,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BetterSynergy - Synergy Text Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/BetterSynergy---Synergy-Text-Hider__4029) | SkullElf | PC / Mac | 1.4 |
 | [BetterUI :: Gamepad Interface Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goobsnake/BetterUI-Gamepad-Interface-Improvements__2013) | goobsnake | PC / Mac | 3.06 |
 | [BGHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/BGHelper__4527) | NPViral | PC / Mac | 3.0 |
-| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.7.0 |
+| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.8.3 |
 | [Bigger Chat Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Bigger-Chat-Window__657) | Crabby654 | PC / Mac | 1.6.3 |
 | [Bind As Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Bind-As-Junk__4608) | Fluffiels | PC / Mac | 1.03 |
 | [BindAll (Sticker Book Collector)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/BindAll-Sticker-Book-Collector__2825) | ownedbynico | PC / Mac | 1.5 |
@@ -149,7 +150,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BSCs-AdvancedPotions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AdvancedPotions__3716) | BloodStainCHild | PC / Mac | 1.0.1 |
 | [BSCs-AdvancedSynergy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AdvancedSynergy__2403) | BloodStainCHild | PC / Mac | 2.3.8 |
 | [BSCs-AdvancedSynergyZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BSCs-AdvancedSynergyZHPatch__3902) | FusRoDah | PC / Mac | 2.1.1.b |
-| [BSCs-AlliancePointInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AlliancePointInfo__3133) | BloodStainCHild | PC / Mac | 2.3.23 |
+| [BSCs-AlliancePointInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AlliancePointInfo__3133) | BloodStainCHild | PC / Mac | 2.3.35 |
 | [BSCs-AntiCombatInteract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-AntiCombatInteract__2404) | BloodStainCHild | PC / Mac | 1.2 |
 | [BSCs-CloudrestFlareHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-CloudrestFlareHelper__3108) | BloodStainCHild | PC / Mac | 1.1.0 |
 | [BSCs-CompanionInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BloodStainCHild/BSCs-CompanionInfo__3112) | BloodStainCHild | PC / Mac | 1.0.2 |

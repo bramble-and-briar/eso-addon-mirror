@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------
 -- LibInteriorDetection
--- Version: 1.3.3
+-- Version: 1.3.6
 --
 -- A library that reports whether the player is currently indoors, by
 -- combining a per-zone "interior" default with live door-transition and
@@ -154,8 +154,9 @@
 --   another character's saved state). On the next EVENT_PLAYER_ACTIVATED,
 --   the saved flag is restored if the saved raw zoneId matches the
 --   current one AND EITHER the event's own `initial` parameter is true
---   (a genuine login - position is not also checked here, since ESO
---   does not reliably restore exact coordinates across a real relogin),
+--   (a genuine login - position is not checked, since ESO does not
+--   reliably restore exact coordinates across a real relogin; a loose
+--   50m gate exists but is LOG-ONLY as of 1.3.5, see below),
 --   OR the current position is within RELOAD_POSITION_MATCH_TOLERANCE of
 --   the saved one (a /reloadui, which reports initial=false despite
 --   being a legitimate resume, but never actually moves the player).
@@ -165,6 +166,58 @@
 --   raw values, never to LibZone:GetCurrentZoneIds()'s zoneId (used
 --   elsewhere in this file for ZONE_INTERIOR lookups) - those are two
 --   different numbering schemes.
+--   LOGIN POSITION GATE (added 1.3.4, LOG-ONLY since 1.3.5 - see
+--   LOGIN_POSITION_GATE_ENABLED): the saved
+--   record only reaches disk when ESO writes SavedVariables (logout,
+--   menu Quit, /reloadui). A session that ends without that write (crash,
+--   disconnect - and, unverified, possibly an idle kick or a force-close)
+--   leaves the record from an EARLIER clean exit on disk. Before 1.3.4 a
+--   login restored that record with no age or position check, as long as
+--   the raw zone matched - which an interior pocket of an exterior zone
+--   always does. A 50m gate would reject such a record when it comes
+--   from elsewhere in the zone, but it can also reject a CORRECT record
+--   if login drift ever exceeds 50m, and drift for a login inside an
+--   interior pocket has never been measured. So 1.3.5 only traces the
+--   distance and what the gate would have done; restore behavior is the
+--   same as 1.3.3.
+--
+-- SAVE DIAGNOSTICS (1.3.4 - diagnostic only, no effect on behavior):
+--   Unexplained login failures after a "proper" logout have four
+--   candidate causes the code could not previously tell apart: the save
+--   silently not happening (the deactivation position read returning
+--   nil, seen once in 0.6.5 and never resolved), the save storing a wrong
+--   raw zoneId (the read happens while the world is being torn down - an
+--   x/y/z-vs-zoneId split was seen in 0.6.4), a later event overwriting
+--   a correct restore, or the live flag already being wrong at logout.
+--   So OnPlayerDeactivated now records, BEFORE anything that can bail
+--   out: a GetTimeStamp() (confirmed in the ESOUI client source,
+--   timedactivities_manager.lua - seconds), the raw zoneId it read (nil
+--   if the read failed), the raw zoneId captured at the last activation
+--   (lib.state.rawZoneId - read while the world was stable, so it is a
+--   cross-check on the teardown-time read), the live state, and whether
+--   the save completed. A trace line covers the silent early return,
+--   though chat at logout can't be read afterwards - the persisted
+--   record is what /lid debug saved and the login trace report.
+--
+-- LIVE SAVES (1.3.6): in-game testing showed quitting the game client
+--   writes SavedVariables (an account-wide setting changed that session
+--   survived the quit) but NOT our deactivation update: twice, a quit
+--   left the record from the previous load screen or idle kick on disk,
+--   while an idle kick to the login screen saved correctly. Whether
+--   EVENT_PLAYER_DEACTIVATED doesn't fire on quit or fires after the
+--   write is unknown, and doesn't matter for the fix: the saved record is
+--   now kept current while playing, so whatever ESO writes at quit is
+--   already right. SetIsInterior writes lastIsInterior on every change,
+--   and every handled activation writes the zone, position and
+--   temporary flag. No Quit() hook (see 0.6.6) and no polling - a
+--   periodic position save was evaluated and judged cheap but not yet
+--   needed (see CHANGELOG 1.3.6). Consequence: after a quit, the saved
+--   position is where the current zone was loaded, not where the player
+--   quit, so the login trace's distance and age are not meaningful for
+--   quit exits (the zone and state still are). OnPlayerDeactivated
+--   still runs a full update for exits where it fires (reload, logout,
+--   idle kick, load screens), which keeps the /reloadui position check
+--   exact.
 --
 -- SETTINGS MENU (LibAddonMenu-2.0): door watch window (5-20s, default 10),
 -- door-transition distance threshold (1000-8000 raw units, default
@@ -205,7 +258,7 @@
 
 local LIB_NAME  = "LibInteriorDetection"
 local ADDON_ID  = "LibInteriorDetection"  -- LAM panel name / slash command namespace
-local LIB_VERSION = 40
+local LIB_VERSION = 43
 
 -- Cached once rather than calling GetEventManager() repeatedly throughout
 -- the file - same singleton either way, avoids the repeated lookup.
@@ -260,6 +313,29 @@ local RECENT_TOGGLE_MS = 3000         -- "just toggled" window for OnPlayerActiv
 -- measured - the trace logs the actual distance.
 local RETURN_POINT_TOLERANCE = 5000
 
+-- 1.3.4: how close (any axis, raw units) the login position must be to the
+-- saved logout position for a genuine login (initial=true) to restore the
+-- saved flag. Exact matching across a relogin was abandoned in 0.6.7
+-- (drift of tens of meters, confirmed in testing); this is deliberately
+-- loose - it exists to reject a STALE record from elsewhere in the same
+-- raw zone (a session whose logout never reached disk), not to prove the
+-- player is on the same spot. 50m is a judgment call, NOT measured: the
+-- trace and /lid debug saved both report the actual distance so it can be
+-- tuned from data. If real login drift ever exceeds it, the result is a
+-- fallback to the zone default (traced), not an error.
+local LOGIN_POSITION_TOLERANCE = 5000
+
+-- 1.3.5: the gate above is LOG-ONLY until real data justifies it. When
+-- false, a login restores exactly as 1.3.3 did (raw zone match only) and
+-- the trace reports what the gate WOULD have done. Why: the gate can only
+-- make restores rarer, it targets a cause (an exit that never wrote
+-- SavedVariables) the reported case makes less likely, and login drift
+-- has never been measured for a login INSIDE an interior pocket - which
+-- is spatially far from its door, so drift there may differ. Turn on
+-- only once traces show real drift and at least one confirmed stale
+-- record.
+local LOGIN_POSITION_GATE_ENABLED = false
+
 -- Account-wide saved variables: preferences and zone overrides that
 -- should be the same across every character.
 local ACCOUNT_DEFAULTS = {
@@ -280,6 +356,14 @@ local CHARACTER_DEFAULTS = {
     lastIsInterior = nil,    -- boolean
     lastZoneTemporary = nil, -- 1.3.1: was the logout zone a temporary one?
     returnPoint = nil,       -- 1.3.1: { zoneId, x, y, z, isInterior } - see RETURN POINTS
+    -- 1.3.4 diagnostics (never read by any restore logic): what the last
+    -- OnPlayerDeactivated call saw, written before anything that can bail
+    -- out. See "SAVE DIAGNOSTICS" in the header.
+    lastDeactivate = nil,    -- { timestamp, rawZoneRead, activationRawZoneId, state, saved }
+    -- 1.3.6 diagnostics: when the saved record was last updated live (see
+    -- LIVE SAVES in the header) and by what. Never read by restore logic.
+    lastLiveUpdateTime = nil,   -- GetTimeStamp() seconds
+    lastLiveUpdateSource = nil, -- the SetIsInterior source string, or "activation"
 }
 
 -------------------------------------------------------------------------------
@@ -1593,6 +1677,16 @@ end
 local function SetIsInterior(value, source, detail)
     local old = lib.state.isInterior
     lib.state.isInterior = value
+    -- 1.3.6 LIVE SAVES (see header): keep the saved state current so a
+    -- quit, which skips our deactivation update, still writes it. Plain
+    -- field writes into the existing SavedVariables table - no new
+    -- tables, nothing written to disk until ESO's own save.
+    local sv = lib.charSavedVars
+    if sv and value ~= nil then
+        sv.lastIsInterior = value
+        sv.lastLiveUpdateTime = GetTimeStamp()
+        sv.lastLiveUpdateSource = source
+    end
     UpdateHud()
     Trace("%s: %s -> %s%s", source, DescribeIsInterior(old), DescribeIsInterior(value),
         detail and (" | " .. detail) or "")
@@ -1655,11 +1749,14 @@ local function IsTemporaryZone()
         string.format("house=%s groupInstance=%s battleground=%s", tostring(inHouse), tostring(inGroupInstance), tostring(inBattleground))
 end
 
-local function OnPlayerActivated(eventCode, initial)
+-- Returns true when the activation was handled (the live state belongs
+-- to the zone just loaded), false when it was ignored. 1.3.6: the
+-- wrapper below uses this to decide whether to save the live record.
+local function HandlePlayerActivated(eventCode, initial)
     local zoneId = LibZone:GetCurrentZoneIds()
     if not zoneId then
         Trace("Activated: initial=%s but LibZone returned no zoneId - ignored", tostring(initial))
-        return
+        return false
     end
 
     local zoneDefaultInterior = lib.IsZoneInterior(zoneId)
@@ -1713,14 +1810,15 @@ local function OnPlayerActivated(eventCode, initial)
             Trace("Activated: same raw zone during a door crossing - zone-default reset SKIPPED, door watch owns it (watching=%s, recentToggle=%s); state stays %s",
                 tostring(lib.state.doorWatch ~= nil), tostring(recentToggle), DescribeIsInterior(lib.state.isInterior))
             UpdateHud()
-            return
+            return true
         end
     end
 
     -- Restore the saved flag if the saved raw zoneId matches AND EITHER:
     --   (a) initial is true - a genuine login, where position may have
-    --       drifted unreliably (proven in testing) but the saved flag
-    --       itself is still trustworthy, or
+    --       drifted unreliably (proven in testing). The 50m login gate is
+    --       evaluated and traced but only enforced if
+    --       LOGIN_POSITION_GATE_ENABLED (off since 1.3.5), or
     --   (b) the current raw position is a near-exact match to the saved
     --       one - proving nothing moved (a /reloadui, which reports
     --       initial=false despite being a legitimate resume - confirmed
@@ -1729,15 +1827,49 @@ local function OnPlayerActivated(eventCode, initial)
     -- once - it isn't a login, and the position is genuinely far away -
     -- so it still correctly falls through to the zone default rather
     -- than carrying over a stale flag from before the teleport.
+    -- 1.3.4 diagnostics: report the saved record at login, whatever the
+    -- outcome, so a failed restore shows WHY in the trace.
+    if initial and lib.charSavedVars then
+        local saved = lib.charSavedVars.lastPosition
+        local d = lib.charSavedVars.lastDeactivate
+        Trace("Activated (login): saved rawZone=%s state=%s age=%s | last deactivation: %s",
+            saved and tostring(saved.zoneId) or "none",
+            DescribeIsInterior(lib.charSavedVars.lastIsInterior),
+            (saved and saved.timestamp) and (tostring(GetTimeStamp() - saved.timestamp) .. "s") or "unknown (pre-1.3.4 record)",
+            d and string.format("%ss ago, read rawZone=%s, activation rawZone=%s, state=%s, saved=%s",
+                tostring(d.timestamp and (GetTimeStamp() - d.timestamp) or "?"), tostring(d.rawZoneRead),
+                tostring(d.activationRawZoneId), DescribeIsInterior(d.state), tostring(d.saved))
+              or "no record (none since 1.3.4, or it never reached disk)")
+        Trace("Activated (login): last live update %s (%s)",
+            lib.charSavedVars.lastLiveUpdateTime and (tostring(GetTimeStamp() - lib.charSavedVars.lastLiveUpdateTime) .. "s ago") or "never (none since 1.3.6)",
+            tostring(lib.charSavedVars.lastLiveUpdateSource))
+    end
+
     local shouldRestore = false
     if lib.charSavedVars and lib.charSavedVars.lastPosition
         and lib.charSavedVars.lastPosition.zoneId == curZone
         and lib.charSavedVars.lastIsInterior ~= nil
     then
+        local saved = lib.charSavedVars.lastPosition
         if initial then
-            shouldRestore = true
+            if curX and saved.x then
+                local distance = MaxAxisDelta(saved.x, saved.y, saved.z, curX, curY, curZ)
+                local withinGate = distance <= LOGIN_POSITION_TOLERANCE
+                if LOGIN_POSITION_GATE_ENABLED then
+                    shouldRestore = withinGate
+                    Trace("Activated (login): %.0f from the saved logout position (tolerance %d) - %s",
+                        distance, LOGIN_POSITION_TOLERANCE,
+                        withinGate and "restoring" or "treated as a STALE record, not restored")
+                else
+                    shouldRestore = true
+                    Trace("Activated (login): %.0f from the saved logout position (tolerance %d, gate LOG-ONLY) - restoring; gate would have %s",
+                        distance, LOGIN_POSITION_TOLERANCE,
+                        withinGate and "restored too" or "REJECTED it as stale")
+                end
+            else
+                shouldRestore = true -- no position to compare: pre-1.3.4 behavior
+            end
         elseif curX then
-            local saved = lib.charSavedVars.lastPosition
             if zo_abs(curX - saved.x) <= RELOAD_POSITION_MATCH_TOLERANCE
                 and zo_abs(curY - saved.y) <= RELOAD_POSITION_MATCH_TOLERANCE
                 and zo_abs(curZ - saved.z) <= RELOAD_POSITION_MATCH_TOLERANCE
@@ -1750,7 +1882,7 @@ local function OnPlayerActivated(eventCode, initial)
     if shouldRestore then
         StopDoorWatch("activation restore")
         SetIsInterior(lib.charSavedVars.lastIsInterior, "Activated (restore saved state)")
-        return
+        return true
     end
 
     -- 1.3.1: back from a temporary zone at the saved return point?
@@ -1761,7 +1893,7 @@ local function OnPlayerActivated(eventCode, initial)
             StopDoorWatch("return point restore")
             SetIsInterior(rp.isInterior, "Activated (return point)",
                 string.format("back from a temporary zone, %.0f from the saved return point (tolerance %d)", distance, RETURN_POINT_TOLERANCE))
-            return
+            return true
         end
         Trace("Activated: return point in this zone but %.0f away (tolerance %d) - not used", distance, RETURN_POINT_TOLERANCE)
     elseif cameFromTemporary then
@@ -1770,6 +1902,35 @@ local function OnPlayerActivated(eventCode, initial)
 
     StopDoorWatch("activation reset")
     SetIsInterior(zoneDefaultInterior, "Activated (zone default)")
+    return true
+end
+
+-- 1.3.6 LIVE SAVES (see header): after a handled activation, record the
+-- zone just loaded, so a quit later this session still leaves the right
+-- zone on disk. Runs AFTER the handler, which has already read the
+-- previous record for its restore decision. Once per load screen.
+local function SaveLiveRecord()
+    local sv = lib.charSavedVars
+    if not sv or lib.state.isInterior == nil then
+        return
+    end
+    local zoneId, x, y, z = GetUnitRawWorldPosition("player")
+    if not zoneId then
+        Trace("Activated: live save skipped - raw position read returned nil")
+        return
+    end
+    local now = GetTimeStamp()
+    sv.lastPosition = { zoneId = zoneId, x = x, y = y, z = z, timestamp = now }
+    sv.lastIsInterior = lib.state.isInterior
+    sv.lastZoneTemporary = lib.state.zoneIsTemporary == true
+    sv.lastLiveUpdateTime = now
+    sv.lastLiveUpdateSource = "activation"
+end
+
+local function OnPlayerActivated(eventCode, initial)
+    if HandlePlayerActivated(eventCode, initial) then
+        SaveLiveRecord()
+    end
 end
 
 local function OnPlayerDeactivated()
@@ -1778,15 +1939,34 @@ local function OnPlayerDeactivated()
     end
 
     local zoneId, x, y, z = GetUnitRawWorldPosition("player")
+    local now = GetTimeStamp()
+
+    -- 1.3.4: diagnostic record first, before anything that can bail out
+    -- (see SAVE DIAGNOSTICS in the header). Never read by restore logic.
+    local record = {
+        timestamp = now,
+        rawZoneRead = zoneId,                    -- nil = the read failed
+        activationRawZoneId = lib.state.rawZoneId,
+        state = lib.state.isInterior,
+        saved = false,
+    }
+    lib.charSavedVars.lastDeactivate = record
+
     if not zoneId then
+        Trace("Deactivated: raw position read returned nil - NOTHING saved; the previous logout record stays in place")
         return
     end
+    if lib.state.rawZoneId ~= nil and zoneId ~= lib.state.rawZoneId then
+        Trace("Deactivated: teardown read rawZone=%s differs from activation rawZone=%s (saving the teardown read, as before)",
+            tostring(zoneId), tostring(lib.state.rawZoneId))
+    end
 
-    lib.charSavedVars.lastPosition = { zoneId = zoneId, x = x, y = y, z = z }
+    lib.charSavedVars.lastPosition = { zoneId = zoneId, x = x, y = y, z = z, timestamp = now }
     lib.charSavedVars.lastIsInterior = lib.state.isInterior
     lib.charSavedVars.lastZoneTemporary = lib.state.zoneIsTemporary == true
     Trace("Deactivated: saved rawZone=%s state=%s temporary=%s", tostring(zoneId),
         DescribeIsInterior(lib.state.isInterior), tostring(lib.state.zoneIsTemporary == true))
+    record.saved = true
 
     -- 1.3.1: leaving a normal zone also records the return point;
     -- temporary zones never overwrite it (see RETURN POINTS).
@@ -2317,6 +2497,21 @@ local function SlashLid(argString)
                 tostring(curLibZoneId), tostring(curX), tostring(curY), tostring(curZ))
         )
 
+        -- 1.3.4: the last deactivation's diagnostic record, printed even
+        -- when no position was ever saved (that is one of the cases it
+        -- exists to expose). See SAVE DIAGNOSTICS in the header.
+        local d = lib.charSavedVars and lib.charSavedVars.lastDeactivate
+        CHAT_ROUTER:AddSystemMessage(d and string.format(
+            "[LibInteriorDetection] Last deactivation: %ss ago | read rawZone=%s, activation rawZone=%s, state=%s, saved=%s",
+            tostring(d.timestamp and (GetTimeStamp() - d.timestamp) or "?"), tostring(d.rawZoneRead),
+            tostring(d.activationRawZoneId), DescribeIsInterior(d.state), tostring(d.saved))
+            or "[LibInteriorDetection] Last deactivation: no record (none since 1.3.4, or it never reached disk)")
+        local lu = lib.charSavedVars and lib.charSavedVars.lastLiveUpdateTime
+        CHAT_ROUTER:AddSystemMessage(lu and string.format(
+            "[LibInteriorDetection] Last live update: %ss ago (%s)",
+            tostring(GetTimeStamp() - lu), tostring(lib.charSavedVars.lastLiveUpdateSource))
+            or "[LibInteriorDetection] Last live update: none (none since 1.3.6)")
+
         if not lib.charSavedVars or not lib.charSavedVars.lastPosition then
             CHAT_ROUTER:AddSystemMessage("[LibInteriorDetection] No saved position on record for this character.")
             return
@@ -2331,9 +2526,14 @@ local function SlashLid(argString)
         )
 
         local zoneMatches = curZone ~= nil and saved.zoneId == curZone
+        local distance = (curX and saved.x) and MaxAxisDelta(saved.x, saved.y, saved.z, curX, curY, curZ) or nil
         CHAT_ROUTER:AddSystemMessage(
-            string.format("[LibInteriorDetection] rawZone match: %s (this is the ONLY gate checked when initial==true - see the OnPlayerActivated restore logic)",
-                tostring(zoneMatches))
+            string.format("[LibInteriorDetection] rawZone match: %s | distance from saved: %s (login tolerance %d, gate %s) | saved record age: %s",
+                tostring(zoneMatches),
+                distance and string.format("%.0f", distance) or "?",
+                LOGIN_POSITION_TOLERANCE,
+                LOGIN_POSITION_GATE_ENABLED and "ON" or "log-only",
+                saved.timestamp and (tostring(GetTimeStamp() - saved.timestamp) .. "s") or "unknown (pre-1.3.4 record)")
         )
         local rp = lib.charSavedVars.returnPoint
         CHAT_ROUTER:AddSystemMessage(rp and string.format(

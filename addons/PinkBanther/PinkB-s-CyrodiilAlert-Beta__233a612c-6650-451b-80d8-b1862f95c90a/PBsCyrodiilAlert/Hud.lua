@@ -96,6 +96,19 @@ local function ApplyDrawOrder(window, token)
 	end))
 end
 
+addon.ApplyDrawOrder = ApplyDrawOrder
+
+-- For the overview map, which lives in its own file and positions itself with the same
+-- anchors and draw orders as everything else.
+function addon.AnchorFor(token)
+	local anchor = ANCHORS[token]
+	return anchor and anchor.point
+end
+
+function addon.IsDrawOrder(token)
+	return DRAW_ORDERS[token] ~= nil
+end
+
 -- The panel's list, in the order the positions read down the screen.
 addon.POSITIONS = {
 	{ token = "TOP", label = "SI_PBSCA_POS_TOP" },
@@ -136,7 +149,7 @@ addon.STYLES = {
 
 addon.MIN_FONT_SIZE, addon.MAX_FONT_SIZE = 14, 64
 addon.MIN_HUD_SECONDS, addon.MAX_HUD_SECONDS = 2, 30
-addon.MAX_OFFSET_X, addon.MAX_OFFSET_Y = 900, 500
+-- addon.MAX_OFFSET_X / MAX_OFFSET_Y are the screen's own size, set in Main.lua.
 
 -- ---------------------------------------------------------------------------------------
 -- Settings, read defensively

@@ -57,6 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FCO Ultimate Sound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Ultimate-Sound__979) | Baertram | PC / Mac | 0.1.8 |
 | [Featured pledges in the Dungeon Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stefanoo/Featured-pledges-in-the-Dungeon-Finder__4555) | Stefanoo | PC / Mac | 130 |
 | [Feeding Frenzy Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Feeding-Frenzy-Tracker__9526cff9-d7f1-4c3c-a96b-aecfb0daa347) | codeWarrior82 | Console | — |
+| [Feliks' Companion Gear Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Gear-Hunter__4908) | AFeliks | PC / Mac | 0.9.0 |
 | [Feliks' Companion Roster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Roster__4862) | AFeliks | PC / Mac | 2.1.0 |
 | [Fighting Display - Shows Fighting! when in combat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Fighting-Display---Shows-Fighting-when-in-combat__4246) | Duesentrieb | PC / Mac | 20250909-1138 |
 | [Filtered Loot Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MycroftJr/Filtered-Loot-Tracker__3932) | MycroftJr | PC / Mac | 1.0.0 |
@@ -75,6 +76,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FishingSound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FloIstImGame/FishingSound__4649) | FloIstImGame | PC / Mac | 1.1 |
 | [FishingStateMachine](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sem/FishingStateMachine__3693) | Sem | PC / Mac | 1.2 |
 | [FishingVibration](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/FishingVibration__1802) | 2ch | PC / Mac | 1.0 |
+| [Fix Addon List Apostrophe Bug](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Fix-Addon-List-Apostrophe-Bug__4904) | M0R | PC / Mac | 1 |
 | [Fix for Light Attack Helper (Blackwood Patch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DoonerSeraph/Fix-for-Light-Attack-Helper-Blackwood-Patch__3159) | DoonerSeraph | PC / Mac | 1.0.0 |
 | [Fix for Scootworks's Ultimate Percent - Companions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DoonerSeraph/Fix-for-Scootworks-s-Ultimate-Percent---Companions__3285) | DoonerSeraph | PC / Mac | 1.0.0 |
 | [Fix My ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Fix-My-ESO__1788) | Smaxx | PC / Mac | 2017.08.30 |

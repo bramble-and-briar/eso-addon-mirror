@@ -1,71 +1,119 @@
 <GuiXml>
-	<Controls>
-		<TopLevelControl name="AGAdvancedBuildDialog" inherits="ZO_CustomDialogBase">
-			<Dimensions x="800" y="225" />
-			<Anchor point="CENTER" offsetY="-45" />
-			<Controls>
-				<Control name="$(parent)Content" inherits="ZO_DialogContentAnchors">
-					<Controls>
+    <Controls>
+        <TopLevelControl name="AGAdvancedBuildDialog" inherits="ZO_CustomDialogBase">
+            <!-- <Dimensions x="800"/> -->
+            <Anchor point="CENTER" offsetY="-45" />
+            <Controls>
+                <Control name="$(parent)Content" inherits="ZO_DialogContentAnchors">
+                    <Controls>
                         <Label name="$(parent)BuildLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="CENTER">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT"/>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT"/>
                         </Label>
 
-						<!-- Outfit and AlphaStyle -->
+                        <!-- Outfit and AlphaStyle -->
                         <Label name="$(parent)OutfitLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)BuildLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)BuildLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
-	                        <OnInitialized>self:SetText(AGLang.msg.OutfitLabel)</OnInitialized>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)BuildLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)BuildLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnInitialized>self:SetText(AGLang.msg.OutfitLabel)</OnInitialized>
                         </Label>
 
-	                    <Control name="$(parent)OutfitDropdown" inherits="ZO_ComboBox">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)OutfitLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)OutfitLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        <Control name="$(parent)OutfitDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)OutfitLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)OutfitLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
                         </Control>
 
 
-						<!-- FCOIS -->
+                        <!-- FCOIS -->
                         <Label name="$(parent)FCOISLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)OutfitDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)OutfitDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
-	                        <OnInitialized>self:SetText(AGLang.msg.Integrations.Inventory.FCOIS.GearMarkerIconLabel)</OnInitialized>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)OutfitDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)OutfitDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnInitialized>self:SetText(AGLang.msg.Integrations.Inventory.FCOIS.GearMarkerIconLabel)</OnInitialized>
                         </Label>
 
-	                    <Control name="$(parent)FCOISSetMarkerIconDropdown" inherits="ZO_ComboBox">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)FCOISLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)FCOISLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        <Control name="$(parent)FCOISSetMarkerIconDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)FCOISLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)FCOISLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
                         </Control>
 
-						<!-- Champion Point Slot -->
+                        <!-- Champion Point Slot -->
                         <Label name="$(parent)CPSHostLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)FCOISSetMarkerIconDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)FCOISSetMarkerIconDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
-	                        <OnInitialized>self:SetText("CP Group")</OnInitialized>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)FCOISSetMarkerIconDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)FCOISSetMarkerIconDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnInitialized>self:SetText("CP Group")</OnInitialized>
                         </Label>
 
-	                    <Control name="$(parent)CPSHostDropdown" inherits="ZO_ComboBox">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)CPSHostLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)CPSHostLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        <Control name="$(parent)CPSHostDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)CPSHostLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)CPSHostLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
                         </Control>
 
                         <Label name="$(parent)CPSProfileLabel" font="ZoFontGame" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" horizontalAlignment="LEFT">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)CPSHostDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)CPSHostDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
-	                        <OnInitialized>self:SetText("CP Profile")</OnInitialized>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)CPSHostDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)CPSHostDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnInitialized>self:SetText("CP Profile")</OnInitialized>
                         </Label>
 
-	                    <Control name="$(parent)CPSProfileDropdown" inherits="ZO_ComboBox">
-							<Anchor point="TOPLEFT" relativeTo="$(parent)CPSProfileLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
-							<Anchor point="TOPRIGHT" relativeTo="$(parent)CPSProfileLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                        <Control name="$(parent)CPSProfileDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)CPSProfileLabel" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)CPSProfileLabel" relativePoint="BOTTOMRIGHT" offsetY="5"/>
                         </Control>
 
+                        <!-- Dynamic CP -->
+                        <Label name="$(parent)DCPGreenLabel" font="ZoFontGame" color="a5d752" horizontalAlignment="LEFT" text="Craft">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)CPSProfileDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Dimensions x="100"/>
+                            <OnInitialized>self:SetText(GetChampionDisciplineName(3))</OnInitialized>
+                        </Label>
+                        <Control name="$(parent)DCPGreenDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)DCPGreenLabel" relativePoint="TOPRIGHT"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)CPSProfileDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnMouseEnter>
+                                AGIntDlg.ShowDCPPreview(self)
+                            </OnMouseEnter>
+                            <OnMouseExit>
+                                ZO_Tooltips_HideTextTooltip()
+                            </OnMouseExit>
+                        </Control>
+
+                        <Control name="$(parent)DCPBlueDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)DCPGreenDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)DCPGreenDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnMouseEnter>
+                                AGIntDlg.ShowDCPPreview(self)
+                            </OnMouseEnter>
+                            <OnMouseExit>
+                                ZO_Tooltips_HideTextTooltip()
+                            </OnMouseExit>
+                        </Control>
+                        <Label name="$(parent)DCPBlueLabel" font="ZoFontGame" color="59bae7" horizontalAlignment="LEFT" text="Warfare">
+                            <Anchor point="RIGHT" relativeTo="$(parent)DCPBlueDropdown" relativePoint="LEFT"/>
+                            <Dimensions x="100"/>
+                            <OnInitialized>self:SetText(GetChampionDisciplineName(1))</OnInitialized>
+                        </Label>
+
+                        <Control name="$(parent)DCPRedDropdown" inherits="ZO_ComboBox">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)DCPBlueDropdown" relativePoint="BOTTOMLEFT" offsetY="5"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)DCPBlueDropdown" relativePoint="BOTTOMRIGHT" offsetY="5"/>
+                            <OnMouseEnter>
+                                AGIntDlg.ShowDCPPreview(self)
+                            </OnMouseEnter>
+                            <OnMouseExit>
+                                ZO_Tooltips_HideTextTooltip()
+                            </OnMouseExit>
+                        </Control>
+                        <Label name="$(parent)DCPRedLabel" font="ZoFontGame" color="e46b2e" horizontalAlignment="LEFT" text="Fitness">
+                            <Anchor point="RIGHT" relativeTo="$(parent)DCPRedDropdown" relativePoint="LEFT"/>
+                            <Dimensions x="100"/>
+                            <OnInitialized>self:SetText(GetChampionDisciplineName(2))</OnInitialized>
+                        </Label>
 
 
-					</Controls>
-				</Control>
-				<Control name="$(parent)Cancel" inherits="ZO_CustomDialogButton" />
-				<Control name="$(parent)Accept" inherits="ZO_CustomDialogButton" />
-			</Controls>
-		</TopLevelControl>
-	</Controls>
+                    </Controls>
+                </Control>
+                <Control name="$(parent)Cancel" inherits="ZO_CustomDialogButton" />
+                <Control name="$(parent)Accept" inherits="ZO_CustomDialogButton" />
+            </Controls>
+        </TopLevelControl>
+    </Controls>
 </GuiXml>

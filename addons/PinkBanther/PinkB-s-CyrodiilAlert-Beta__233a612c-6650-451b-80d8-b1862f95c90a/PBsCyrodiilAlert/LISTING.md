@@ -143,7 +143,8 @@ in a corner.
 人口は、シロディール入場時のキャンペーン選択画面に出るものと同じ推定値です（低・中・高・満杯の
 4段階で、**人数ではありません**。ゲームは実数を公開していません）。表示にはゲーム自身の
 キャンペーンブラウザのアイコンをそのまま使います（設定で文字表示にも切り替えられます）。サーバーへの問い合わせで
-得られるデータなので、不明なときだけ、最短5分間隔で取得します。それまでは「-」と表示します。
+得られるデータなので、戦況表示がオンの間、5分に1回だけ取得し直します。取得できるまでは
+「-」と表示します。
 
 ヴォレルドルングは出現している間だけ、所持している陣営を表示します（誰も持っていなければ
 「未所持」、自分が持っていればその旨）。**所持プレイヤーの名前は表示できません。**
@@ -172,6 +173,22 @@ in a corner.
 
 シロディールの外や監視オフのときは表示を消します。得点だけ正しくて「攻撃中」が
 止まったまま残るのが一番良くない状態だからです。
+
+■ 全体マップ（任意・初期はオフ）
+
+シロディール全体の地図を画面の隅に表示できます。
+
+・砦・前哨・村・巻物神殿・国境砦を、ゲーム自身のピンの絵で所有陣営の色に表示します。
+　持ち主が替われば色も替わります。
+・攻撃を受けている拠点には、ワールドマップと同じ攻撃マークを背後に表示します。
+・巻物とヴォレルドルングを今ある場所に、自分の位置をカメラの向きの矢印で表示します。
+・トランシスタスの経路を、ワールドマップと同じく所有陣営の色で、戦闘で寸断されている間は破線で
+　表示します（設定で非表示にもできます）。
+・大きさ・ピンの大きさ・不透明度・表示位置・重なり順を設定できます。
+
+ゲームのワールドマップは借りず、地図のタイルとピンから自前で組み立てています。そのため
+ミニマップ系のアドオンと同時に使っても、互いの表示を奪い合いません。表示はシロディールに
+いるときだけで、メニューを開いている間は隠れます。
 
 ■ 色
 
@@ -230,6 +247,9 @@ in a corner.
 　/pbalert hud <通知> on | off      その通知を画面に出すか
 　/pbalert colour <通知> chat | hud <色名または RRGGBB>       色の変更
 　/pbalert colour follow on | off   画面表示にチャット欄の色を使うか
+　/pbalert map on | off             全体マップ
+　/pbalert map links on | off       全体マップのトランシスタス経路
+　/pbalert map probe                全体マップが使っている値を表示
 　/pbalert board                    戦況をチャット欄に表示
 　/pbalert board on | off           戦況を画面に表示
 　/pbalert board front|normal|back  戦況表示の重なり順
@@ -363,7 +383,7 @@ want is one something else is already using. The typeface is shared with the ale
 The population is the campaign selection screen's own estimate -- Low, Medium, High, Full, not a
 headcount; the game publishes no player numbers. It is drawn as the game's own campaign-browser
 icon, with a setting to show the word instead. It arrives from a server request, so it is
-asked for only when missing and at most every five minutes, and reads "-" until then.
+refreshed every five minutes while the summary is up, and reads "-" until the first answer.
 
 Volendrung is listed while it is out, with the alliance holding it -- unclaimed if nobody does,
 and said plainly if it is you. **The player carrying it cannot be named:** the game does not
@@ -387,6 +407,18 @@ alliance and how busy it is are what remain.
 
 Outside Cyrodiil, or with the watch switched off, it takes itself down: correct scores beside a
 frozen under-attack column is the worst of the three possible states.
+
+■ The whole of Cyrodiil (optional, off by default)
+
+An overview map in a corner: every keep, outpost, town, scroll temple and border keep in the
+game's own pin art for its owner, the attack burst behind any keep under attack, the scrolls and
+Volendrung where they are, the transitus network in its owners' colours (dashed while fighting
+has cut a link), and you, facing where the camera faces. Size, pin size, opacity,
+position and draw order are settings.
+
+It does not borrow the game's world map -- it is drawn from the map's own tiles and pins -- so it
+runs alongside a minimap add-on instead of taking the world map away from it. Cyrodiil only,
+and hidden whenever a menu is up.
 
 ■ Colours
 
@@ -441,6 +473,9 @@ Chat commands:
   /pbalert hud <alert> on | off     whether that alert appears on screen
   /pbalert colour <alert> chat | hud <name or RRGGBB>
   /pbalert colour follow on | off   whether the screen uses the chat colours
+  /pbalert map on | off             the overview map
+  /pbalert map links on | off       the transitus network on the map
+  /pbalert map probe                what the map is working with
   /pbalert board                    print the campaign summary in chat
   /pbalert board on | off           keep it on screen
   /pbalert board front|normal|back  where it sits in the stack

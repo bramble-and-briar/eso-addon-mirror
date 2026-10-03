@@ -1,7 +1,7 @@
 ## Title: |c7FC7FFLagerblick|r
 ## APIVersion: 101050 101051
-## Version: 2.0.0
-## AddOnVersion: 200
+## Version: 2.0.1
+## AddOnVersion: 201
 ## Author: Atlas
 ## Description: Compact item stock overview with storage locations and totals. / Kompakte Bestandsübersicht mit Lagerorten und Gesamtbestand.
 ## SavedVariables: LagerblickSavedVariables

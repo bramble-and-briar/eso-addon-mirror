@@ -1,0 +1,14 @@
+## Title: |cFFD700BETA|r Bars
+## Author: Tetsurion
+## Description: Beta resource bars for health, magicka and stamina. Four styles, one frame. Console-first.
+## Version: 0.1.1
+## AddOnVersion: 1001
+## APIVersion: 101050 101051
+## SavedVariables: BETABarsSavedVars
+## DependsOn: LibHarvensAddonSettings
+
+localization/en.lua
+localization/$(language).lua
+UI.lua
+Settings.lua
+Main.lua

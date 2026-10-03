@@ -1,0 +1,262 @@
+---@meta SnipersFriendTypes
+-- SnipersFriendTypes.lua: Centralized type definitions for SnipersFriend
+
+---@class SnipersFriend
+---@field name string
+---@field displayName string
+---@field version string
+---@field savedVarsName string
+---@field savedVarsVersion number
+---@field state SnipersFriendState|nil
+---@field State? SnipersFriendStateModule
+---@field ReticleUtils? SnipersFriendReticleUtils
+---@field ReticleActions? SnipersFriendReticleActions
+---@field CameraUtils? SnipersFriendCameraUtils
+---@field CameraActions? SnipersFriendCameraActions
+---@field SettingsUtils? SnipersFriendSettingsUtils
+---@field SettingsActions? SnipersFriendSettingsActions
+---@field SlashUtils? SnipersFriendSlashUtils
+---@field SlashActions? SnipersFriendSlashActions
+---@field GroundTargetUtils? SnipersFriendGroundTargetUtils
+---@field GroundTargetActions? SnipersFriendGroundTargetActions
+---@field AimLineUtils? SnipersFriendAimLineUtils
+---@field AimLineActions? SnipersFriendAimLineActions
+
+---@class SnipersFriendGroundTargetUtils
+---@field Classify fun(err: integer|nil): SnipersFriendGtState
+---@field AbilitySlots fun(): integer[]
+---@field FindGroundAbilities fun(groundLabel: string): {slot: integer, abilityId: integer, name: string, maxRangeM: number|nil}[]
+---@field Lerp fun(a: SnipersFriendRGBA, b: SnipersFriendRGBA, t: number): number, number, number, number
+
+---@class SnipersFriendGroundTargetActions
+---@field Initialize fun(): boolean
+---@field OnUpdate fun()
+---@field Refresh fun()
+---@field RefreshAbilities fun()
+---@field OnAbilityUsed fun(slot: integer)
+---@field CurrentAbility fun(): {slot: integer, abilityId: integer, name: string, maxRangeM: number|nil}|nil
+---@field StatusLines fun(): string[]
+
+---@class SnipersFriendAimLineSettings
+---@field enabled boolean
+---@field depthTest boolean            World geometry occludes the line (shows where the aim hits)
+---@field lineWidthM number
+---@field lineColor SnipersFriendRGBA
+---@field showTicks boolean            Tick marks at fixed horizontal distances along the line
+---@field tickIntervalM number
+---@field majorTickEvery integer       Every Nth tick is wider (0 = none)
+---@field tickWidthM number
+---@field tickThicknessM number
+---@field tickColor SnipersFriendRGBA
+---@field showCap boolean
+---@field capSizeM number
+---@field capColor SnipersFriendRGBA
+---@field showWithoutGroundAbility boolean  Draw even with no ground ability slotted, using fallbackRangeM
+---@field fallbackRangeM number
+---@field rangeOverrideM number        0 = use ability range
+---@field orientMode "basis"|"euler"   euler = CrutchAlerts convention (default); basis = explicit camera-facing vectors
+---@field showGround boolean            Ring where the view ray meets the player's floor plane (flat ground only)
+---@field groundSizeM number
+---@field groundColor SnipersFriendRGBA  in range
+---@field groundFarColor SnipersFriendRGBA  beyond range
+---@field debugDump boolean            Keep last frame's geometry for /sf line
+
+---@class SnipersFriendAimLineUtils
+---@field RangeEndPoint fun(camX: number, camY: number, camZ: number, fwdX: number, fwdY: number, fwdZ: number, playerX: number, playerZ: number, rangeM: number, maxRayM: number): number, number, number, number, boolean
+---@field LineOrientation fun(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): number, number, number
+---@field GroundPoint fun(camX: number, camY: number, camZ: number, fwdX: number, fwdY: number, fwdZ: number, floorY: number, minPitch: number): number|nil, number, number, number
+---@field Normalize fun(x: number, y: number, z: number): number, number, number
+---@field Cross fun(ax: number, ay: number, az: number, bx: number, by: number, bz: number): number, number, number
+---@field StripBasis fun(dx: number, dy: number, dz: number, toCamX: number, toCamY: number, toCamZ: number): number, number, number, number, number, number, number, number, number
+---@field BillboardBasis fun(toCamX: number, toCamY: number, toCamZ: number): number, number, number, number, number, number, number, number, number
+---@field Lerp fun(a: number, b: number, t: number): number
+
+---@class SnipersFriendAimLineActions
+---@field Initialize fun(): boolean
+---@field OnUpdate fun()
+---@field Refresh fun()
+---@field StatusLines fun(): string[]
+
+---@class SnipersFriendRGBA
+---@field r number
+---@field g number
+---@field b number
+---@field a number
+
+---@class SnipersFriendReticleSettings
+---@field enabled boolean           Replace the native crosshair with the dot
+---@field style string              Key into SnipersFriendReticleUtils.STYLES
+---@field size number               Dot control size in UI units (px at 1x scale)
+---@field color SnipersFriendRGBA   Base tint
+---@field hostileColor SnipersFriendRGBA Tint while aiming at an attackable target
+---@field hostileTint boolean       Recolor on hostile target
+---@field hitFlash boolean          Flash red on impactful hit (mirrors native behaviour)
+---@field offsetY number            Vertical nudge of the dot (px)
+
+---@class SnipersFriendCameraSettings
+---@field applyOnLoad boolean       Push the stored camera values to the game on every load
+---@field synced boolean            False until the first snapshot of the engine's values has been taken
+---@field heightLimitsMigrated boolean|nil
+---@field sensitivityX number       Gamepad look sensitivity X (native slider 0.65..1.05)
+---@field sensitivityY number       Gamepad look sensitivity Y
+---@field sensitivityFirstPersonX number
+---@field sensitivityFirstPersonY number
+---@field syncFirstPerson boolean   Use third person values for first person as well
+---@field distance number           Third person camera zoom distance (weapons out)
+---@field distanceSheathed number   Third person camera zoom distance (weapons sheathed)
+---@field distanceSiege number      Siege camera zoom distance
+---@field syncDistances boolean     Keep both weapon states on one distance
+---@field lockDistance boolean      Periodically re-push the zoom distance so stick zoom can't drift it
+---@field height number             Third person vertical offset (native -0.3..0.5)
+---@field horizontalOffset number   Third person horizontal offset (native -1..1)
+---@field fov number                Third person field of view (native 35..65)
+---@field unlockNativeSliders boolean Widen the ranges of the game's own camera sliders
+---@field limits SnipersFriendCameraLimits
+
+---@class SnipersFriendCameraLimits  Bounds applied to the native Settings > Camera sliders
+---@field sensitivityMax number
+---@field distanceMax number
+---@field heightMin number
+---@field heightMax number
+---@field offsetMax number
+---@field fovMin number
+---@field fovMax number
+
+---@class SnipersFriendGroundTargetSettings
+---@field enabled boolean
+---@field okColor SnipersFriendRGBA
+---@field rangeColor SnipersFriendRGBA
+---@field losColor SnipersFriendRGBA
+---@field invalidColor SnipersFriendRGBA
+---@field dwellFade boolean            Fade ok->range colour over dwellMs while out of range
+---@field dwellMs number
+---@field showLabel boolean            Range + reason text under the dot
+---@field labelOffsetY number
+---@field rangeText string
+---@field losText string
+---@field invalidText string
+---@field debugLog boolean             Record every (state, error) change for /sf gt log
+
+---@class SnipersFriendSavedVars
+---@field reticle SnipersFriendReticleSettings
+---@field camera SnipersFriendCameraSettings
+---@field groundTarget SnipersFriendGroundTargetSettings
+---@field aimLine SnipersFriendAimLineSettings
+---@field debug boolean
+
+---@class SnipersFriendState
+---@field savedVars SnipersFriendSavedVars
+---@field dotControl TextureControl|nil
+---@field nativeReticle TextureControl|nil
+---@field nativeReticleAlpha number|nil
+---@field hitTimeline AnimationTimeline|nil
+---@field hitAnimation AnimationObjectColor|nil
+---@field hooksInstalled boolean
+---@field isHostile boolean
+---@field lockTimerRegistered boolean
+---@field settingsPanel any|nil
+---@field nativeRanges table<string, {min: number, max: number}>
+---@field canQueryHostile boolean
+---@field distanceInjected boolean
+---@field gtReady boolean
+---@field gtState SnipersFriendGtState
+---@field gtLastError integer|nil
+---@field gtStateSince number
+---@field gtOverriding boolean
+---@field gtLabel LabelControl|nil
+---@field gtAbilities {slot: integer, abilityId: integer, name: string, maxRangeM: number|nil}[]
+---@field gtLastUsedSlot integer|nil
+---@field gtLog string[]
+---@field aimLineReady boolean
+---@field aimLineVisible boolean
+---@field aimLineRangeM number|nil
+---@field aimLineTL any|nil
+---@field cameraProbe any|nil
+---@field aimLine TextureControl|nil
+---@field aimLineCap TextureControl|nil
+---@field aimLineDebug string|nil
+---@field aimTicks TextureControl[]
+---@field aimTickCount integer
+---@field aimGround TextureControl|nil
+---@field aimGroundDistM number|nil
+
+---@class SnipersFriendStateModule
+---@field Create fun(): SnipersFriendState
+---@field Defaults fun(): SnipersFriendSavedVars
+
+---@class SnipersFriendReticleStyle
+---@field label string
+---@field texture string
+
+---@class SnipersFriendReticleUtils
+---@field STYLES table<string, SnipersFriendReticleStyle>
+---@field STYLE_ORDER string[]
+---@field GetStyle fun(key: string): SnipersFriendReticleStyle
+---@field StyleItems fun(): {name: string, data: string}[]
+---@field StyleKeyFromLabel fun(label: string): string|nil
+---@field Clamp fun(v: number, lo: number, hi: number): number
+---@field UnpackColor fun(c: SnipersFriendRGBA): number, number, number, number
+
+---@class SnipersFriendReticleActions
+---@field Initialize fun(): boolean
+---@field Apply fun()
+---@field SetEnabled fun(enabled: boolean)
+---@field RefreshStyle fun()
+---@field RefreshColor fun()
+---@field OnNativeHiddenUpdate fun()
+---@field OnImpactfulHit fun()
+---@field OnReticleUpdate fun()
+
+---@class SnipersFriendCameraUtils
+---@field CVARS table<string, string>
+---@field NATIVE table<string, {min: number, max: number}>
+---@field LIMIT_RANGES table<string, {min: number, max: number, step: number}>
+---@field RANGES table<string, {min: number, max: number, step: number, default: number}>
+---@field API_NAMES string[]
+---@field FormatCVar fun(v: number): string
+---@field ReadCVarNumber fun(name: string): number|nil
+---@field Clamp fun(v: number, lo: number, hi: number): number
+---@field CanSetSetting fun(): boolean
+---@field CanSetCVar fun(): boolean
+---@field SetSettingIsProtected fun(): boolean
+---@field IsCallable fun(name: string): boolean
+---@field IsProtected fun(name: string): boolean
+---@field NativeSliderKey fun(system: number, settingId: number): string
+---@field BuildSliderOverrides fun(limits: SnipersFriendCameraLimits): {system: number, settingId: number, min: number, max: number}[]
+---@field BuildInjectedCameraEntries fun(limits: SnipersFriendCameraLimits): table<number, table>
+---@field BuildInjectedGamepadRows fun(): {panel: number, system: number, settingId: number}[]
+---@field ProbeApi fun(): string[]
+
+---@class SnipersFriendCameraActions
+---@field ApplyAll fun()
+---@field ApplySensitivity fun(): boolean
+---@field ApplyDistance fun(): boolean
+---@field ApplyHeight fun(): boolean
+---@field ApplyHorizontalOffset fun(): boolean
+---@field ApplyFov fun(): boolean
+---@field SnapshotFromEngine fun(): boolean
+---@field PushValues fun()
+---@field OnPlayerActivated fun()
+---@field OnPlayerDeactivated fun()
+---@field OnOptionsClosed fun()
+---@field InjectDistanceSettings fun(): number
+---@field ApplySliderLimits fun()
+---@field UnlockNativeSliders fun()
+---@field RestoreNativeSliders fun()
+---@field UpdateDistanceLock fun()
+---@field ReadBackStatus fun(): string[]
+
+---@class SnipersFriendSettingsUtils
+---@field SliderParams fun(label: string, tooltip: string|nil, range: {min: number, max: number, step: number}, fmt: string, getFn: fun(): number, setFn: fun(v: number)): table
+
+---@class SnipersFriendSettingsActions
+---@field Initialize fun(): boolean
+
+---@class SnipersFriendSlashUtils
+---@field ParseCommand fun(args: string|nil): string, string
+---@field SplitWords fun(s: string): string[]
+---@field Log fun(fmt: string, ...: any)
+---@field Debug fun(fmt: string, ...: any)
+
+---@class SnipersFriendSlashActions
+---@field HandleCommand fun(args: string)

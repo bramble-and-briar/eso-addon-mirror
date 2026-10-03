@@ -17,7 +17,7 @@ local function HandleKDDCommand(argString)
         length = length + 1
     end
 
-    local usage = "Usage: /kdd <settings || grievous || bosstimer || played || points || totalpoints || armory || junkstyle || hidelogout || normlogout || questtracker || openall || writhing || resetcraft || pocket || multi || flex>"
+    local usage = "Usage: /kdd <settings || grievous || bosstimer || played || playedall || points || totalpoints || armory || junkstyle || hidelogout || normlogout || questtracker || openall || writhing || resetcraft || pocket || multi || flex>"
 
     if (length == 0) then
         CHAT_ROUTER:AddSystemMessage(usage)
@@ -43,7 +43,12 @@ local function HandleKDDCommand(argString)
 
     -- played
     elseif (args[1] == "played") then
-        CHAT_ROUTER:AddSystemMessage(KD.Altoholic.BuildPlayed())
+        local played = KD.Altoholic.BuildPlayed()
+        CHAT_ROUTER:AddSystemMessage(played)
+
+    -- playedall
+    elseif (args[1] == "playedall") then
+        CHAT_ROUTER:AddSystemMessage(KD.Altoholic.BuildPlayedAll())
 
     -- points
     elseif (args[1] == "points") then

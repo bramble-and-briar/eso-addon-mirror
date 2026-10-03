@@ -1,0 +1,18 @@
+## Title: |c7FC7FFAtlas|r
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Reveals the world map as your character explores Tamriel.
+## Author: Atlas
+## Version: 2.0.0
+## AddOnVersion: 200
+## APIVersion: 101050 101051
+## SavedVariables: Atlas_SavedVars
+
+Lang/Language.lua
+Lang/en.lua
+Lang/de.lua
+
+AtlasCoordinates.lua
+Atlas.lua
+Archiv.lua
+Import.lua
+AtlasSettings.lua
+AtlasAddonList.lua

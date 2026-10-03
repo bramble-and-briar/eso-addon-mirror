@@ -1,0 +1,27 @@
+BETABars = BETABars or {}
+local T = BETABars
+T.L = {
+    TITLE = "BETA Bars",
+    INFO = "情報",
+    INFO_TT = "体力、マジカ、スタミナのみ。アルティメットは対象外。オーブは下からの塗りで、液体ではありません。",
+    ENABLED = "有効",
+    STYLE = "スタイル",
+    STYLE_THIN = "細い",
+    STYLE_SEG = "セグメント",
+    STYLE_CLASSIC = "クラシック",
+    STYLE_ORB = "オーブ",
+    HIDE_STOCK = "標準バーを隠す",
+    HIDE_FULL = "満タンかつ非戦闘時は隠す",
+    NUMBERS = "数値",
+    TAIL = "ダメージの残像",
+    SHIELD = "シールドの縁",
+    NOTCH = "コストの目盛り",
+    SCALE = "スケール",
+    OFFX = "左右",
+    OFFY = "上下",
+    COLOR_H = "体力の色",
+    COLOR_M = "マジカの色",
+    COLOR_S = "スタミナの色",
+    PREVIEW = "プレビュー",
+    LOADED = "BETA Bars: 設定、アドオン。",
+}

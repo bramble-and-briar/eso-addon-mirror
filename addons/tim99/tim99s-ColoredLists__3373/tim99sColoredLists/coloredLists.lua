@@ -31,6 +31,8 @@ tcl.svCharDef = {
 	showSetsSums=true,
 	--
 	collapseSetDone=true,
+	hideCompletedAntiquityLeads=false,
+	missingLoreBooksOnly=false,
 }
 --/script d(ZO_NORMAL_TEXT:UnpackRGB())
 --/script d(SCENE_MANAGER:GetCurrentScene():GetName())
@@ -56,6 +58,18 @@ function tcl.doMotifs()
 		end
 		library.totalCollectedLabel:SetText(zo_strformat(SI_LORE_LIBRARY_TOTAL_COLLECTED, currentlyCollected, possibleCollected))
 	end
+end
+------------------------------------------------------------------------------------------
+function tcl.doMissingLoreBooks()
+	local checkbox = WINDOW_MANAGER:CreateControlFromVirtual("$(parent)TCL_MissingBooks", LORE_LIBRARY.totalCollectedLabel, "ZO_CheckButton")
+	checkbox:SetAnchor(LEFT, LORE_LIBRARY.totalCollectedLabel, RIGHT, 85, 22)
+	ZO_CheckButton_SetLabelText(checkbox, "Missing books")
+	ZO_CheckButton_SetCheckState(checkbox, tcl.svChar.missingLoreBooksOnly)
+	ZO_CheckButton_SetToggleFunction(checkbox, function(button)
+		tcl.svChar.missingLoreBooksOnly = ZO_CheckButton_IsChecked(button)
+		LORE_LIBRARY:BuildBookList()
+	end)
+	tcl.missingLoreBooksCheckbox = checkbox
 end
 ------------------------------------------------------------------------------------------
 function tcl.AchievementSetupFunction(node, control, data, open, userRequested, enabled)
@@ -153,6 +167,16 @@ function tcl.ColorAntiquityHeader(control, data)
 	end
 end
 ------------------------------------------------------------------------------------------
+function tcl.AntiquityLeadFilter(antiquityData)
+	if not tcl.svChar.hideCompletedAntiquityLeads then return true end
+	if not antiquityData:HasLead() then return true end
+
+	local total = antiquityData:GetNumLoreEntries()
+	if total == 0 then return true end
+
+	return antiquityData:GetNumUnlockedLoreEntries() < total
+end
+------------------------------------------------------------------------------------------
 function tcl.CollapseCompletedSets()
 	local keyboardBook = ITEM_SET_COLLECTIONS_BOOK_KEYBOARD
 	if not keyboardBook or not keyboardBook.collapsedSetIds then return end
@@ -213,6 +237,25 @@ local function OnPlayerActivated()
 			tcl.totalPossibleCollected   = 0
 			tcl.motifsCurrentlyCollected = 0
 			tcl.motifsPossibleCollected  = 0
+		end)
+
+		-- Optional: only show unread books in the selected collection.
+		SecurePostHook(LORE_LIBRARY.list, "FilterScrollList", function(list)
+			if not tcl.svChar.missingLoreBooksOnly then return end
+
+			local categoryData = LORE_LIBRARY.navigationTree:GetSelectedData()
+			if not categoryData or categoryData.mailListIndex ~= nil then return end
+
+			local scrollData = ZO_ScrollList_GetDataList(list.list)
+			for index = #scrollData, 1, -1 do
+				local data = scrollData[index].data
+				if data and data.bookIndex then
+					local _, _, known = GetLoreBookInfo(data.categoryIndex, data.collectionIndex, data.bookIndex)
+					if known then
+						table.remove(scrollData, index)
+					end
+				end
+			end
 		end)
 	end
 	
@@ -283,6 +326,51 @@ local function OnPlayerActivated()
 	--Antiquities
 	if tcl.svChar.doAntiquities or tcl.svChar.doAntiquHeader then
 		SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD, "OnDeferredInitialize", function()
+			--Spuren mit bereits vollständigem Codex optional ausblenden
+			if not tcl.antiquityLeadFilterInstalled then
+				local antiquitySections = ANTIQUITY_MANAGER:GetOrCreateAntiquitySectionList()
+				for _, section in ipairs(antiquitySections) do
+					table.insert(section.filterFunctions, tcl.AntiquityLeadFilter)
+				end
+				tcl.antiquityLeadFilterInstalled = true
+			end
+
+			local checkbox = WINDOW_MANAGER:CreateControlFromVirtual("TCL_AntiquityMissingCodex", ANTIQUITY_JOURNAL_KEYBOARD.categoryInset, "ZO_CheckButton")
+			-- categoryProgress/filter have controls spanning this area; keep our checkbox above them
+			-- so the actual box receives the mouse click, not only its label.
+			checkbox:SetMouseEnabled(true)
+			checkbox:SetDrawTier(DT_HIGH)
+			checkbox:SetDrawLevel(100)
+			ZO_CheckButton_SetLabelText(checkbox, "Missing Codex")
+			ZO_CheckButton_SetCheckState(checkbox, tcl.svChar.hideCompletedAntiquityLeads)
+			ZO_CheckButton_SetToggleFunction(checkbox, function(button)
+				tcl.svChar.hideCompletedAntiquityLeads = ZO_CheckButton_IsChecked(button)
+				ANTIQUITY_JOURNAL_KEYBOARD:RefreshVisibleCategoryFilter()
+			end)
+			checkbox:SetHidden(true)
+			tcl.antiquityMissingCodexCheckbox = checkbox
+
+			SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD, "UpdateCategoryLabels", function(self, categoryData)
+				local showMissingCodex = false
+				if ZO_IsAntiquityScryableSubcategory(categoryData) then
+					local categoryId = categoryData.GetId and categoryData:GetId()
+					showMissingCodex = (categoryId == ZO_SCRYABLE_ANTIQUITY_ALL_LEADS_SUBCATEGORY_ID)
+				end
+				checkbox:SetHidden(not showMissingCodex)
+
+				-- Bei den offenen Spuren sitzt die Checkbox links neben dem ZOS-Filter (z.B. "Begonnen").
+				-- In allen anderen Kategorien bekommt der Filter wieder seine originale Breite.
+				self.filter:ClearAnchors()
+				if showMissingCodex then
+					checkbox:ClearAnchors()
+					checkbox:SetAnchor(LEFT, self.categoryProgress, RIGHT, 15, 5)
+					self.filter:SetAnchor(LEFT, self.categoryProgress, RIGHT, 145, 0)
+				else
+					self.filter:SetAnchor(LEFT, self.categoryProgress, RIGHT, 15, 0)
+				end
+				self.filter:SetAnchor(RIGHT, self.categoryInset, RIGHT, 0, 0)
+			end)
+
 			--Unterbäume
 			if tcl.svChar.doAntiquities then
 				SecurePostHook(ANTIQUITY_JOURNAL_KEYBOARD.categoryTree.templateInfo.ZO_AntiquityJournal_SubCategory, "setupFunction", function(node,control,data,open,userRequested,enabled)
@@ -372,9 +460,13 @@ function tcl.addonLoaded(event, addonName)
 		end)
 	end
 
-	if GetDisplayName()=="@tïm'99" and not LoreBooks then
+	if GetDisplayName()=="@tïm'999" and not LoreBooks then
 		--copied parts of RefreshCollectedInfo/XML from LoreBooks, ask for permission before publishing
 		tcl.doMotifs()
+	end
+
+	if tcl.svChar.doLorebooks then
+		tcl.doMissingLoreBooks()
 	end
 
 end

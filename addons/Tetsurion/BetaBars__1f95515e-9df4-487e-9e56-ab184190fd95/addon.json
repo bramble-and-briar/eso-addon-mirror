@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Tetsurion/BetaBars__1f95515e-9df4-487e-9e56-ab184190fd95",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Tetsurion",
+  "canonical_id": "bethesda:1f95515e-9df4-487e-9e56-ab184190fd95",
+  "content_id": "1f95515e-9df4-487e-9e56-ab184190fd95",
+  "deleted": false,
+  "fingerprint": "d454fe8ce05ecf4794e32c00f0eb75511b57567dafdd8c221ba72f8dda10d8ee",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "1f95515e-9df4-487e-9e56-ab184190fd95",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/1f95515e-9df4-487e-9e56-ab184190fd95",
+  "title": "BetaBars"
+}

@@ -22,7 +22,7 @@
     "Lagerblick"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4844/",
-  "fingerprint": "6a9d76498aff41a63592f72abcd7e3a72ecf106c27c76176be6048fb101442dc",
+  "fingerprint": "c80fd3fdf207d995f39ee1933ac71a4f052e03ce2ebd849cae1655a924513889",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17654.png",
     "https://cdn-eso.mmoui.com/preview/pvw17407.png",
@@ -34,11 +34,11 @@
   "source_id": "4844",
   "source_url": "https://www.esoui.com/downloads/info4844-Lagerblick.html",
   "stats": {
-    "downloads": 49,
+    "downloads": 62,
     "favorites": 1,
-    "monthly_downloads": 44
+    "monthly_downloads": 52
   },
   "title": "Lagerblick",
-  "updated_at": 1790876833000,
-  "version": "2.0.0"
+  "updated_at": 1790967236000,
+  "version": "2.0.1"
 }

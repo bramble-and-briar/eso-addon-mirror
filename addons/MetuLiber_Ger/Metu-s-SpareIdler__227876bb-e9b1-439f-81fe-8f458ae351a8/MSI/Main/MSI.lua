@@ -4,7 +4,7 @@ local MSI = _G['MSI']
 MSI.Name	= "MSI"
 MSI.Author 	= "Metu Liber"
 MSI.Version = "2.7dev"
-MSI.DevAcc 	= "Metu_Liber__Ger" --Metu_Líber__Ger
+MSI.DevAcc 	= "Metu-_-Liber"
 MSI.panel 	= nil
 MSI.playerActivated = false
 

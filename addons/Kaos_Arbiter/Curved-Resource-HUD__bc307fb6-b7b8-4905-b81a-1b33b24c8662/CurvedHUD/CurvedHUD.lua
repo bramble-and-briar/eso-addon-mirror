@@ -1,6 +1,6 @@
 CurvedHUD = CurvedHUD or {}
 local CH = CurvedHUD
-CH.name, CH.version, CH.updateName, CH.dataVersion = "CurvedHUD", "1.1.2", "CurvedHUD_Update", 1
+CH.name, CH.version, CH.updateName, CH.dataVersion = "CurvedHUD", "1.1.3", "CurvedHUD_Update", 2
 CH.defaults = {enabled=true,preview=false,showDefaultResources=true,buffVerticalOffset=0,useOutOfCombatOpacity=false,outOfCombatOpacity=.45,scale=1.0,spacing=235,verticalOffset=35,resourceGap=7,barWidth=48,leftTimerOffset=-6,leftTimerSpacing=15,rightTimerOffset=3,rightTimerSpacing=3,fillAlpha=.85,frameAlpha=.48,backgroundAlpha=.24,shieldAlpha=.68,textAlpha=.95,timerFontSize=24,expirationAlerts=false,resourceValueFontSize=27,resourcePercentFontSize=20,majorBuffTracked="None",insideTimerStyle="Thin",outsideTimerStyle="Thick",majorBuffColor="Purple",balanceEnabled=false,balanceSlot="bottomLeftInside",balanceColor="Orange",aegisEnabled=false,aegisSlot="topLeftOutside",aegisColor="Pale Blue",armamentsEnabled=false,armamentsSlot="topRightInside",armamentsColor="Pale Blue",fragmentsEnabled=false,fragmentsPosition="Top",fragmentsScale=.75,surgeEnabled=false,surgeSlot="topRightOutside",surgeColor="Gold",shroudEnabled=false,shroudSlot="bottomRightOutside",shroudColor="Cyan",soulBurstEnabled=false,soulBurstSlot="topRightInside",soulBurstColor="Purple",soulBurstDuration=20,contingencyEnabled=false,contingencySlot="bottomRightInside",contingencyColor="Cyan",contingencyDuration=20,showRaw=true,showPercent=true,showMaximum=false,debug=false,layout="Parallel",staminaInside=true,iconCache={},abilityIdCache={}}
 CH.characterKeys = {majorBuffTracked=true,majorBuffColor=true,balanceEnabled=true,balanceSlot=true,balanceColor=true,aegisEnabled=true,aegisSlot=true,aegisColor=true,armamentsEnabled=true,armamentsSlot=true,armamentsColor=true,fragmentsEnabled=true,fragmentsPosition=true,surgeEnabled=true,surgeSlot=true,surgeColor=true,shroudEnabled=true,shroudSlot=true,shroudColor=true,soulBurstEnabled=true,soulBurstSlot=true,soulBurstColor=true,soulBurstDuration=true,contingencyEnabled=true,contingencySlot=true,contingencyColor=true,contingencyDuration=true}
 CH.characterDefaults = {majorBuffTracked="None",majorBuffColor="Purple",balanceEnabled=false,balanceSlot="bottomLeftInside",balanceColor="Orange",aegisEnabled=false,aegisSlot="topLeftOutside",aegisColor="Pale Blue",armamentsEnabled=false,armamentsSlot="topRightInside",armamentsColor="Pale Blue",fragmentsEnabled=false,fragmentsPosition="Top",surgeEnabled=false,surgeSlot="topRightOutside",surgeColor="Gold",shroudEnabled=false,shroudSlot="bottomRightOutside",shroudColor="Cyan",soulBurstEnabled=false,soulBurstSlot="topRightInside",soulBurstColor="Purple",soulBurstDuration=20,contingencyEnabled=false,contingencySlot="bottomRightInside",contingencyColor="Cyan",contingencyDuration=20,initialized=false}
@@ -11,8 +11,8 @@ CH.defaults.reduceQuestTrackersInInstances=false
 CH.defaults.reducedQuestTrackerOpacity=0
 CH.characterKeys.martialKnowledgeStaminaCue=true
 CH.characterDefaults.martialKnowledgeStaminaCue=false
-CH.majorBuffChoices = {"None","Major Resolve","Major Brutality","Major Sorcery","Major Savagery","Major Prophecy","Major Expedition","Major Protection","Major Evasion","Major Berserk","Major Force","Major Courage","Major Heroism","Major Vitality","Major Endurance","Major Intellect","Major Fortitude","Major Gallop"}
-CH.minorBuffChoices = {"None","Minor Resolve","Minor Brutality","Minor Sorcery","Minor Savagery","Minor Prophecy","Minor Expedition","Minor Protection","Minor Evasion","Minor Berserk","Minor Force","Minor Courage","Minor Heroism","Minor Vitality","Minor Endurance","Minor Intellect","Minor Fortitude","Minor Mending","Minor Toughness","Minor Lifesteal","Minor Magickasteal","Empower"}
+CH.majorBuffChoices = {"None","Major Resolve","Major Brutality","Major Savagery","Major Expedition","Major Protection","Major Evasion","Major Berserk","Major Force","Major Courage","Major Heroism","Major Vitality","Major Endurance","Major Intellect","Major Fortitude","Major Gallop"}
+CH.minorBuffChoices = {"None","Minor Resolve","Minor Brutality","Minor Savagery","Minor Expedition","Minor Protection","Minor Evasion","Minor Berserk","Minor Force","Minor Courage","Minor Heroism","Minor Vitality","Minor Endurance","Minor Intellect","Minor Fortitude","Minor Mending","Minor Toughness","Minor Lifesteal","Minor Magickasteal","Empower"}
 CH.colorChoices = {"Purple","Orange","Pale Blue","Blue","Green","Red","Gold","White","Cyan","Pink"}
 CH.colors = {Purple={.58,.24,.92},Orange={.88,.35,.18},["Pale Blue"]={.48,.82,1},Blue={.18,.48,1},Green={.18,.82,.30},Red={.92,.18,.18},Gold={1,.72,.15},White={1,1,1},Cyan={.15,.9,.9},Pink={1,.35,.68}}
 CH.trackerSlots = {
@@ -180,7 +180,7 @@ CH.templarTrackerDefinitions = {
     {key="tpRuneFocus",label="Rune Focus",slot="topRightOutside",color="Pale Blue",duration=20,needles={"rune focus","channeled focus","restoring focus"},durations={["channeled focus"]=25}},
     {key="tpCleansingRitual",label="Cleansing Ritual",slot="bottomRightOutside",color="White",duration=20,needles={"cleansing ritual","extended ritual","ritual of retribution"},durations={["extended ritual"]=24}},
     {key="tpRestoringAura",label="Restoring Aura",slot="topLeftOutside",color="Green",duration=20,needles={"restoring aura","radiant aura","repentance"}},
-    {key="tpIlluminate",label="Illuminate / Minor Sorcery",slot="topRightOutside",color="Gold",duration=20,needles={"illuminate","minor sorcery"}},
+    {key="tpIlluminate",label="Illuminate / Armor",slot="topRightOutside",color="Gold",duration=20,needles={"illuminate"}},
 }
 CH.necromancerTrackerDefinitions = {
     {key="necroSacrificialBones",label="Sacrificial Bones",slot="topLeftInside",color="Purple",duration=10,needles={"sacrificial bones","grave lord's sacrifice","grave lords sacrifice"},durations={["grave lord's sacrifice"]=20,["grave lords sacrifice"]=20}},
@@ -192,7 +192,7 @@ CH.necromancerTrackerDefinitions = {
     {key="necroSpiritMender",label="Spirit Mender",slot="topRightOutside",color="Green",duration=16,needles={"spirit mender","intensive mender","spirit guardian"},durations={["intensive mender"]=8}},
     {key="necroRestoringTether",label="Restoring Tether",slot="bottomRightOutside",color="Green",duration=12,needles={"restoring tether","braided tether","mortal coil"}},
     {key="necroLifeAmidDeath",label="Life amid Death",slot="topLeftInside",color="Green",duration=5,needles={"life amid death","renewing undeath","enduring undeath"}},
-    {key="necroNothingWasted",label="Nothing Wasted",slot="bottomRightOutside",color="Gold",duration=15,stackMaximum=10,needles={"nothing wasted"}},
+    {key="necroNothingWasted",label="Nothing Wasted",slot="bottomRightOutside",color="Gold",duration=12,stackMaximum=10,needles={"nothing wasted"}},
 }
 CH.remainingClassDefinitionGroups = {
     {name="Dragonknight",definitions=CH.dragonknightTrackerDefinitions,cache="dragonknightAbilityIds"},
@@ -247,7 +247,7 @@ CH.nonClassTrackerDefinitions = {
     {line="Undaunted",key="necroticOrb",label="Necrotic Orb",slot="topRightOutside",color="Cyan",duration=10,needles={"necrotic orb","mystic orb","energy orb"}},
     -- Psijic Order
     {line="Psijic Order",key="timeStop",label="Time Stop",slot="topLeftInside",color="Purple",duration=4,needles={"time stop","borrowed time","time freeze"}},
-    {line="Psijic Order",key="imbueWeapon",label="Imbue Weapon",slot="bottomLeftInside",color="Gold",duration=2,needles={"imbue weapon","crushing weapon","elemental weapon"}},
+    {line="Psijic Order",key="imbueWeapon",label="Imbue Weapon",slot="bottomLeftInside",color="Gold",duration=6,needles={"imbue weapon","crushing weapon","elemental weapon"}},
     {line="Psijic Order",key="accelerate",label="Accelerate",slot="topLeftOutside",color="Pale Blue",duration=20,needles={"accelerate","channeled acceleration","race against time"},durations={ ["accelerate"]=20,["channeled acceleration"]=36,["race against time"]=20}},
     {line="Psijic Order",key="spellOrb",label="Spell Orb Charges",slot="bottomLeftOutside",color="Purple",duration=10,needles={"spell orb","spell charge"}},
     -- Alliance War
@@ -352,7 +352,7 @@ end
 -- These IDs cover ESO's standardized base effects where confirmed. Name matching
 -- remains the fallback because some sources expose their own ability ID while
 -- retaining the localized standardized buff name.
-local MAJOR_BUFF_IDS = {["Major Resolve"]=61694,["Major Brutality"]=61665,["Major Sorcery"]=61687,["Major Savagery"]=64568,["Major Prophecy"]=64570}
+local MAJOR_BUFF_IDS = {["Major Resolve"]=61694,["Major Brutality"]=61665,["Major Savagery"]=64568}
 local BOUND_ARMAMENTS_SKILL_ID,BOUND_ARMAMENTS_STACK_ID=24165,203447
 local CRYSTAL_FRAGMENTS_PROC_EFFECT_ID,CRYSTAL_FRAGMENTS_PROC_SLOT_ID=46327,114716
 local CRITICAL_SURGE_EFFECT_ID=23678
@@ -2359,6 +2359,7 @@ end
 function CH:MigrateSavedVariables()
     local global,character=self.globalSV,self.characterSV
     local globalVersion=tonumber(global.schemaVersion) or 0
+    local characterVersion=tonumber(character.schemaVersion) or 0
     if globalVersion<1 then
         -- Pre-1.0 calibration builds exposed several temporary geometry keys.
         -- Current shared controls and baked/fixed radii supersede them.
@@ -2374,6 +2375,18 @@ function CH:MigrateSavedVariables()
         -- Earlier builds enabled diagnostic chat by default. Release profiles
         -- start quiet; users can still opt in with /curvedhud debug.
         global.debug=false
+    end
+    if characterVersion<2 then
+        -- Update 51 consolidated the power and critical buffs. Preserve each
+        -- character's existing tracker intent by moving retired selections to
+        -- their live replacements instead of silently disabling the tracker.
+        local replacements={
+            ["Major Sorcery"]="Major Brutality", ["Minor Sorcery"]="Minor Brutality",
+            ["Major Prophecy"]="Major Savagery", ["Minor Prophecy"]="Minor Savagery",
+        }
+        for _,key in ipairs({"majorBuffTracked","majorBuff2Tracked","minorBuff1Tracked","minorBuff2Tracked"}) do
+            character[key]=replacements[character[key]] or character[key]
+        end
     end
     if type(global.iconCache)~="table" then global.iconCache={} end
     if type(global.setEffectIconCache)~="table" then global.setEffectIconCache={} end

@@ -7,7 +7,7 @@ local LootLog = LootLog
 -- LootLog.AddAntiquityTooltipExtension
 --------------------------------------------------------------------------------
 
-function LootLog.AddAntiquityTooltipExtension( tooltip, antiquityId )
+function LootLog.AddAntiquityTooltipExtension( tooltip, antiquityId, showLocation )
 	if (type(antiquityId) ~= "number" or antiquityId == 0) then return end
 
 	local extension = LEJ.TooltipExtensionInitialize(
@@ -17,7 +17,14 @@ function LootLog.AddAntiquityTooltipExtension( tooltip, antiquityId )
 		"Antiquity"
 	)
 
-	extension:AddSection(nil, LootLog.GetAntiquityRewardLink(antiquityId))
+	local itemLink = LootLog.GetAntiquityRewardLink(antiquityId)
+	local itemType = GetCollectibleIdFromLink(itemLink) and ITEMTYPE_COLLECTIBLE or GetItemLinkItemType(itemLink)
+	local displayQuality = GetItemLinkDisplayQuality(itemLink)
+	extension:AddSection(nil, itemType == ITEMTYPE_NONE and itemLink or string.format("%s\n(%s)", itemLink, displayQuality == ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE and GetString("SI_ITEMDISPLAYQUALITY", displayQuality) or GetString("SI_ITEMTYPE", itemType)))
+
+	if (showLocation) then
+		extension:AddSection(nil, zo_strformat(SI_ANTIQUITY_TOOLTIP_ZONE, string.format("|cFFFFFF%s|r", LCCC.GetZoneName(GetAntiquityZoneId(antiquityId)))))
+	end
 
 	local setId = GetAntiquitySetId(antiquityId)
 	if (setId and setId ~= 0) then
@@ -61,7 +68,7 @@ end
 
 function LootLog.AddTreasureMapTooltipExtension( tooltip, itemLink )
 	-- Punt this over to AddAntiquityTooltipExtension for tradeable leads
-	if (LootLog.AddAntiquityTooltipExtension(tooltip, LootLog.GetAntiquityIdFromItem(itemLink))) then return end
+	if (LootLog.AddAntiquityTooltipExtension(tooltip, LootLog.GetAntiquityIdFromItem(itemLink), true)) then return end
 
 	local antiquityIds = LootLog.GetAntiquityIdsForTreasureMap(itemLink)
 	if (#antiquityIds == 0) then return end

@@ -159,22 +159,23 @@ function C.SkinMap(map,view,title,clock,zoom)
         end
     end
 end
-local function SizeButton(button,anchor)
+local function SizeButton(button,anchor,size)
+    size=size or 46
     if not button or not button.slot then return end
     local slot=button.slot
-    slot:ClearAnchors() slot:SetDimensions(46,46)
+    slot:ClearAnchors() slot:SetDimensions(size,size)
     slot:SetAnchor(CENTER,anchor,CENTER,0,0)
-    if button.flipCard then button.flipCard:SetDimensions(46,46) end
+    if button.flipCard then button.flipCard:SetDimensions(size,size) end
     if button.icon then
         button.icon:ClearAnchors()
         if button.flipCard then
             button.icon:SetAnchor(TOPLEFT,button.flipCard,TOPLEFT,0,0)
             button.icon:SetAnchor(BOTTOMRIGHT,button.flipCard,BOTTOMRIGHT,0,0)
         else button.icon:SetAnchor(CENTER,slot,CENTER,0,0) end
-        button.icon:SetDimensions(46,46)
+        button.icon:SetDimensions(size,size)
     end
-    if button.button then button.button:SetDimensions(46,46) end
-    if button.status then button.status:SetDimensions(46,46) end
+    if button.button then button.button:SetDimensions(size,size) end
+    if button.status then button.status:SetDimensions(size,size) end
     if button.buttonText then
         button.buttonText:ClearAnchors()
         button.buttonText:SetAnchor(TOPRIGHT,slot,TOPRIGHT,-1,0)
@@ -186,6 +187,7 @@ local function SizeButton(button,anchor)
     if decoration then decoration:SetHidden(true) end
     if button.ApplySwapAnimationStyle then button:ApplySwapAnimationStyle() end
 end
+C.SizeButton=SizeButton
 function C.LayoutBar()
     if not container or IsInGamepadPreferredMode() then return end
     local active=GetActiveHotbarCategory()

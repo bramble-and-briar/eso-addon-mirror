@@ -1,0 +1,9 @@
+Copyright © 2026 WifeyRytic. All Rights Reserved.
+
+This addon and its contents are provided for personal use only.
+
+No permission is granted to copy, modify, redistribute, repackage, publish, upload, incorporate into another addon, or create derivative works from any portion of this addon without the express written permission of WifeyRytic.
+
+Redistribution of modified or unmodified versions is not permitted. Please link to the official ESOUI download page rather than redistributing the addon or its files.
+
+The Elder Scrolls Online and all related trademarks and game assets are property of their respective owners.

@@ -3,7 +3,7 @@
 -----------------------------------------------------------------------------------------------------------------------------------
 IA_InventoryAssistant = ZO_Object:Subclass ( )
 IA_InventoryAssistant.name = "InventoryAssistant"
-IA_InventoryAssistant.version = "1.20.260919-beta"
+IA_InventoryAssistant.version = "1.21.261002-beta"
 -----------------------------------------------------------------------------------------------------------------------------------
 -- DEFAULT SETTINGS
 -----------------------------------------------------------------------------------------------------------------------------------
@@ -25,13 +25,51 @@ IA_InventoryAssistant.defaults = {
   onlyMarkedItems = false,
   onlyLoots = false,
   groupLoots = true,
-  lootHistoryEnabled = false,
   lootHistoryLocked = false,
-  lootHistoryX = 1200.0,
-  lootHistoryY = 500.0,
-  lootHistoryMaxEntries = 6,
-  lootHistoryNewestOnTop = true,
-  lootHistoryRightAligned = false,
+  lootHistory = {
+    [ 1 ] = {
+      enabled = false,
+      x = 1200.0,
+      y = 500.0,
+      persistentMaxEntries = 6,
+      persistentShowTime = 7.0,
+      maxEntries = 6,
+      showTime = 3.6,
+      newestOnTop = true,
+      rightAligned = false,
+      showLooter = false,
+      includeGroupLoot = false,
+      includeNonSetItems = true,
+      includeSetItems = true,
+      includeProgression = true,
+      includeCollectibles = true,
+      includeLeads = true,
+      includeCrownCrates = true,
+      treatUncollectedSetItemsAsPersistent = false,
+      includeDefaultPersistentEntries = true,
+    },
+    [ 2 ] = {
+      enabled = false,
+      x = 1200.0,
+      y = 700.0,
+      persistentMaxEntries = 6,
+      persistentShowTime = 7.0,
+      maxEntries = 6,
+      showTime = 3.6,
+      newestOnTop = true,
+      rightAligned = false,
+      showLooter = false,
+      includeGroupLoot = false,
+      includeNonSetItems = true,
+      includeSetItems = true,
+      includeProgression = true,
+      includeCollectibles = true,
+      includeLeads = true,
+      includeCrownCrates = true,
+      treatUncollectedSetItemsAsPersistent = false,
+      includeDefaultPersistentEntries = true,
+    },
+  },
   showCrafted = true,
   showBuyable = true,
   showBound = true,
@@ -48,7 +86,6 @@ IA_InventoryAssistant.defaults = {
 -- LOCAL FUNCTIONS
 -----------------------------------------------------------------------------------------------------------------------------------
 local EH = LibEventHandler
-local menu = LibCustomMenu
 local LAM = LibAddonMenu2
 -----------------------------------------------------------------------------------------------------------------------------------
 local METRICS_ENABLED = false
@@ -56,7 +93,10 @@ local METRICS_ENABLED = false
 local m_strformat = string.format
 local zo_strformat = zo_strformat
 local zo_getSafeId64Key = zo_getSafeId64Key
+local zo_floor = zo_floor
+local ZO_TableOrderingFunction = ZO_TableOrderingFunction
 local GetString = GetString
+local GetTimeStamp = GetTimeStamp
 local GetInterfaceColor = GetInterfaceColor
 local GetItemInstanceId = GetItemInstanceId
 local GetItemUniqueId = GetItemUniqueId
@@ -72,6 +112,7 @@ local GetItemLinkQuality = GetItemLinkQuality
 local GetItemLinkName = GetItemLinkName
 local GetItemLinkEquipType = GetItemLinkEquipType
 local GetItemLinkTraitInfo = GetItemLinkTraitInfo
+local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
 local GetItemLinkArmorType = GetItemLinkArmorType
 local GetItemLinkWeaponType = GetItemLinkWeaponType
 local GetItemLinkRequiredLevel = GetItemLinkRequiredLevel
@@ -125,7 +166,7 @@ local function ScanBagSlot ( bagId, slotIndex, epoch, charId )
   local _, stackCount = GetItemInfo ( bagId, slotIndex )
 
   local link = GetItemLink ( bagId, slotIndex )
-  local isSetItem = GetItemLinkSetInfo ( link )
+--  local isSetItem = GetItemLinkSetInfo ( link )
     
   if itemType ~= ITEMTYPE_NONE then 
     local item = {
@@ -609,175 +650,239 @@ local sortFunction2 = function( entry1, entry2 )
   return ZO_TableOrderingFunction ( entry1, entry2, "setName", sortKeys2, ZO_SORT_ORDER_UP )
 end
 -----------------------------------------------------------------------------------------------------------------------------------
-local function AddOrderedUniqueValue ( bucket, seen, key, order, value )
-  if not value or value == "" then return end
-  if seen [ key ] then return end
+-- local function AddOrderedUniqueValue ( bucket, seen, key, order, value )
+--   if not value or value == "" then return end
+--   if seen [ key ] then return end
 
-  seen [ key ] = true
-  table.insert ( bucket, { order = order, value = value } )
-end
+--   seen [ key ] = true
+--   table.insert ( bucket, { order = order, value = value } )
+-- end
 
-local function GetSetReconstructionTransmuteCost ( setId )
-  if not setId or setId == 0 then return nil end
+-- local function GetSetReconstructionTransmuteCost ( setId )
+--   if not setId or setId == 0 then return nil end
 
-  local cost = GetItemReconstructionCurrencyOptionCost ( setId, CURT_CHAOTIC_CREATIA )
-  return cost > 0 and cost or nil
-end
+--   local cost = GetItemReconstructionCurrencyOptionCost ( setId, CURT_CHAOTIC_CREATIA )
+--   return cost > 0 and cost or nil
+-- end
 
-local function BuildSetCollectionTooltipData ( itemLink )
-  local isSetItem, _, _, _, _, setId = GetItemLinkSetInfo ( itemLink, false )
-  if not isSetItem or not setId or setId == 0 then return nil end
+-- local function BuildSetCollectionTooltipData ( itemLink )
+--   local isSetItem, _, _, _, _, setId = GetItemLinkSetInfo ( itemLink, false )
+--   if not isSetItem or not setId or setId == 0 then return nil end
 
-  local numPieces = GetNumItemSetCollectionPieces ( setId )
-  if not numPieces or numPieces == 0 then return nil end
+--   local numPieces = GetNumItemSetCollectionPieces ( setId )
+--   if not numPieces or numPieces == 0 then return nil end
 
-  local groups = {
-    { title = "Light Armor", items = { }, missing = { }, seen = { } },
-    { title = "Medium Armor", items = { }, missing = { }, seen = { } },
-    { title = "Heavy Armor", items = { }, missing = { }, seen = { } },
-    { title = "Jewelry", items = { }, missing = { }, seen = { } },
-    { title = "Weapons", items = { }, missing = { }, seen = { } },
+--   local groups = {
+--     { title = "Light Armor", items = { }, missing = { }, seen = { } },
+--     { title = "Medium Armor", items = { }, missing = { }, seen = { } },
+--     { title = "Heavy Armor", items = { }, missing = { }, seen = { } },
+--     { title = "Jewelry", items = { }, missing = { }, seen = { } },
+--     { title = "Weapons", items = { }, missing = { }, seen = { } },
+--   }
+
+--   local armorOrder = {
+--     [ EQUIP_TYPE_HEAD ] = 10,
+--     [ EQUIP_TYPE_SHOULDERS ] = 20,
+--     [ EQUIP_TYPE_CHEST ] = 30,
+--     [ EQUIP_TYPE_HAND ] = 40,
+--     [ EQUIP_TYPE_WAIST ] = 50,
+--     [ EQUIP_TYPE_LEGS ] = 60,
+--     [ EQUIP_TYPE_FEET ] = 70,
+--   }
+--   local jewelryOrder = {
+--     [ EQUIP_TYPE_NECK ] = 10,
+--     [ EQUIP_TYPE_RING ] = 20,
+--   }
+--   local weaponOrder = {
+--     [ WEAPONTYPE_DAGGER ] = 10,
+--     [ WEAPONTYPE_AXE ] = 20,
+--     [ WEAPONTYPE_HAMMER ] = 30,
+--     [ WEAPONTYPE_SWORD ] = 40,
+--     [ WEAPONTYPE_TWO_HANDED_AXE ] = 50,
+--     [ WEAPONTYPE_TWO_HANDED_HAMMER ] = 60,
+--     [ WEAPONTYPE_TWO_HANDED_SWORD ] = 70,
+--     [ WEAPONTYPE_BOW ] = 80,
+--     [ WEAPONTYPE_HEALING_STAFF ] = 90,
+--     [ WEAPONTYPE_FIRE_STAFF ] = 100,
+--     [ WEAPONTYPE_FROST_STAFF ] = 110,
+--     [ WEAPONTYPE_LIGHTNING_STAFF ] = 120,
+--     [ WEAPONTYPE_SHIELD ] = 130,
+--   }
+
+--   local function GetWeaponLabel ( equipType, weaponType )
+--     local baseLabel = GetString ( "SI_WEAPONTYPE", weaponType ) or ""
+--     if weaponType == WEAPONTYPE_AXE
+--        or weaponType == WEAPONTYPE_HAMMER
+--        or weaponType == WEAPONTYPE_SWORD
+--        or weaponType == WEAPONTYPE_TWO_HANDED_AXE
+--        or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER
+--        or weaponType == WEAPONTYPE_TWO_HANDED_SWORD then
+--       if equipType == EQUIP_TYPE_TWO_HAND then
+--         return "2H " .. baseLabel
+--       else
+--         return "1H " .. baseLabel
+--       end
+--     end
+--     return baseLabel
+--   end
+
+--   local function AddGroupItem ( groupIndex, key, order, value, unlocked )
+--     local group = groups [ groupIndex ]
+--     if not group then return end
+--     local target = unlocked and group.items or group.missing
+--     AddOrderedUniqueValue ( target, group.seen, key, order, value )
+--   end
+
+--   for i = 1, numPieces do
+--     local pieceId, slot = GetItemSetCollectionPieceInfo ( setId, i )
+--     if pieceId and slot then
+--       local pieceLink = GetItemSetCollectionPieceItemLink ( pieceId, LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE )
+--       local equipType = GetItemLinkEquipType ( pieceLink )
+--       local pieceItemType = GetItemLinkItemType ( pieceLink )
+--       local armorType = GetItemLinkArmorType ( pieceLink )
+--       local weaponType = GetItemLinkWeaponType ( pieceLink )
+--       local unlocked = IsItemSetCollectionSlotUnlocked ( setId, slot )
+
+--       if pieceItemType == ITEMTYPE_ARMOR and armorOrder [ equipType ] then
+--         local armorGroupIndex = armorType == ARMORTYPE_LIGHT and 1 or armorType == ARMORTYPE_MEDIUM and 2 or armorType == ARMORTYPE_HEAVY and 3 or nil
+--         if armorGroupIndex then
+--           local label = GetString ( "SI_EQUIPTYPE", equipType ) or ""
+--           AddGroupItem ( armorGroupIndex, m_strformat ( "A:%d:%d", armorType, equipType ), armorOrder [ equipType ], label, unlocked )
+--         end
+--       elseif pieceItemType == ITEMTYPE_ARMOR and jewelryOrder [ equipType ] then
+--         local label = GetString ( "SI_EQUIPTYPE", equipType ) or ""
+--         AddGroupItem ( 4, m_strformat ( "J:%d", equipType ), jewelryOrder [ equipType ], label, unlocked )
+--       elseif pieceItemType == ITEMTYPE_WEAPON and weaponType ~= WEAPONTYPE_NONE then
+--         local label = GetWeaponLabel ( equipType, weaponType )
+--         AddGroupItem ( 5, m_strformat ( "W:%d", weaponType ), weaponOrder [ weaponType ] or weaponType + 1000, label, unlocked )
+--       end
+--     end
+--   end
+
+--   local hasAnyData = false
+--   for _, group in ipairs ( groups ) do
+--     table.sort ( group.items, function ( a, b ) return a.order < b.order end )
+--     table.sort ( group.missing, function ( a, b ) return a.order < b.order end )
+--     if #group.items > 0 or #group.missing > 0 then
+--       hasAnyData = true
+--     end
+--   end
+
+--   if not hasAnyData then return nil end
+
+--   return {
+--     setId = setId,
+--     numUnlocked = GetNumItemSetCollectionSlotsUnlocked ( setId ) or 0,
+--     numPieces = numPieces,
+--     groups = groups,
+--   }
+-- end
+
+-- local function ToValueList ( orderedList )
+--   local values = { }
+--   for _, entry in ipairs ( orderedList ) do
+--     table.insert ( values, entry.value )
+--   end
+--   return values
+-- end
+
+-- local function AddSetCollectionTooltipSummary ( tooltip, itemLink )
+--   if not tooltip or not itemLink then return end
+
+--   local data = BuildSetCollectionTooltipData ( itemLink )
+--   if not data then return end
+
+--   local percent = zo_floor ( ( data.numUnlocked / data.numPieces ) * 100 + 0.5 )
+--   local transmuteCost = GetSetReconstructionTransmuteCost ( data.setId )
+
+--   local transmuteText = ""
+--   if transmuteCost then
+--     transmuteText = m_strformat ( "|c66CCFF%d |t20:20:EsoUI/Art/Currency/gamepad/gp_currencyicon_chaoticcreatia.dds|t|r", transmuteCost )
+--   end
+
+--   ZO_Tooltip_AddDivider ( tooltip )
+--   if transmuteText ~= "" then
+--     tooltip:AddLine ( m_strformat ( "|cA0A0A0%d/%d (%d%%)|r\t%s", data.numUnlocked, data.numPieces, percent, transmuteText ), "", 1, 1, 1 )
+--   else
+--     tooltip:AddLine ( m_strformat ( "|cA0A0A0%d/%d (%d%%)|r", data.numUnlocked, data.numPieces, percent ), "", 1, 1, 1 )
+--   end
+
+--   for _, group in ipairs ( data.groups ) do
+--     local collected = table.concat ( ToValueList ( group.items ), ", " )
+--     local missing = table.concat ( ToValueList ( group.missing ), ", " )
+--     if collected ~= "" or missing ~= "" then
+--       tooltip:AddLine ( m_strformat ( "|cFFFFFF%s|r", string.upper ( group.title ) ), "", 1, 1, 1 )
+--       if collected ~= "" then
+--         tooltip:AddLine ( m_strformat ( "|c00FF00%s|r", collected ), "", 1, 1, 1 )
+--       end
+--       if missing ~= "" then
+--         tooltip:AddLine ( m_strformat ( "|cFF4C4C%s|r", missing ), "", 1, 1, 1 )
+--       end
+--     end
+--   end
+-- end
+-----------------------------------------------------------------------------------------------------------------------------------
+local function HousekeepSavedVariables ( )
+  -- Work on the raw account-wide record before ZO_SavedVars applies defaults.
+  -- Only this record and the lootHistory entries are inspected; other nested settings remain untouched.
+  local savedVariables = InventoryAssistantSettings
+  if type ( savedVariables ) ~= "table" then return end
+
+  local profile = savedVariables.Default
+  if type ( profile ) ~= "table" then return end
+
+  local displayName = GetDisplayName ( )
+  if not displayName then return end
+  local settings = profile [ displayName ]
+  if type ( settings ) ~= "table" then return end
+
+  savedVariables = settings [ "$AccountWide" ]
+  if type ( savedVariables ) ~= "table" then return end
+
+  local lootHistory = rawget ( savedVariables, "lootHistory" )
+  if type ( lootHistory ) ~= "table" then
+    lootHistory = { }
+    rawset ( savedVariables, "lootHistory", lootHistory )
+  end
+
+  local firstWindow = rawget ( lootHistory, 1 )
+  if type ( firstWindow ) ~= "table" then
+    firstWindow = { }
+    rawset ( lootHistory, 1, firstWindow )
+  end
+
+  local legacyMigrations = {
+    { "lootHistoryEnabled", "enabled" },
+    { "lootHistoryX", "x" },
+    { "lootHistoryY", "y" },
+    { "lootHistoryNewestOnTop", "newestOnTop" },
+    { "lootHistoryRightAligned", "rightAligned" },
+    { "lootHistoryShowTime", "showTime" },
+    { "lootHistoryMaxEntries", "maxEntries" },
+    { "lootHistoryMaxEntries", "persistentMaxEntries" },
   }
+  for _, migration in ipairs ( legacyMigrations ) do
+    local oldKey = migration [ 1 ]
+    local newKey = migration [ 2 ]
+    if rawget ( firstWindow, newKey ) == nil then
+      local oldValue = rawget ( savedVariables, oldKey )
+      if oldValue ~= nil then rawset ( firstWindow, newKey, oldValue ) end
+    end
+  end
 
-  local armorOrder = {
-    [ EQUIP_TYPE_HEAD ] = 10,
-    [ EQUIP_TYPE_SHOULDERS ] = 20,
-    [ EQUIP_TYPE_CHEST ] = 30,
-    [ EQUIP_TYPE_HAND ] = 40,
-    [ EQUIP_TYPE_WAIST ] = 50,
-    [ EQUIP_TYPE_LEGS ] = 60,
-    [ EQUIP_TYPE_FEET ] = 70,
-  }
-  local jewelryOrder = {
-    [ EQUIP_TYPE_NECK ] = 10,
-    [ EQUIP_TYPE_RING ] = 20,
-  }
-  local weaponOrder = {
-    [ WEAPONTYPE_DAGGER ] = 10,
-    [ WEAPONTYPE_AXE ] = 20,
-    [ WEAPONTYPE_HAMMER ] = 30,
-    [ WEAPONTYPE_SWORD ] = 40,
-    [ WEAPONTYPE_TWO_HANDED_AXE ] = 50,
-    [ WEAPONTYPE_TWO_HANDED_HAMMER ] = 60,
-    [ WEAPONTYPE_TWO_HANDED_SWORD ] = 70,
-    [ WEAPONTYPE_BOW ] = 80,
-    [ WEAPONTYPE_HEALING_STAFF ] = 90,
-    [ WEAPONTYPE_FIRE_STAFF ] = 100,
-    [ WEAPONTYPE_FROST_STAFF ] = 110,
-    [ WEAPONTYPE_LIGHTNING_STAFF ] = 120,
-    [ WEAPONTYPE_SHIELD ] = 130,
-  }
-
-  local function GetWeaponLabel ( equipType, weaponType )
-    local baseLabel = GetString ( "SI_WEAPONTYPE", weaponType ) or ""
-    if weaponType == WEAPONTYPE_AXE
-       or weaponType == WEAPONTYPE_HAMMER
-       or weaponType == WEAPONTYPE_SWORD
-       or weaponType == WEAPONTYPE_TWO_HANDED_AXE
-       or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER
-       or weaponType == WEAPONTYPE_TWO_HANDED_SWORD then
-      if equipType == EQUIP_TYPE_TWO_HAND then
-        return "2H " .. baseLabel
-      else
-        return "1H " .. baseLabel
+  local windowDefaults = IA_InventoryAssistant.defaults.lootHistory [ 1 ]
+  for _, windowSettings in pairs ( lootHistory ) do
+    if type ( windowSettings ) == "table" then
+      for key in pairs ( windowSettings ) do
+        if rawget ( windowDefaults, key ) == nil then rawset ( windowSettings, key, nil ) end
       end
     end
-    return baseLabel
   end
 
-  local function AddGroupItem ( groupIndex, key, order, value, unlocked )
-    local group = groups [ groupIndex ]
-    if not group then return end
-    local target = unlocked and group.items or group.missing
-    AddOrderedUniqueValue ( target, group.seen, key, order, value )
-  end
-
-  for i = 1, numPieces do
-    local pieceId, slot = GetItemSetCollectionPieceInfo ( setId, i )
-    if pieceId and slot then
-      local pieceLink = GetItemSetCollectionPieceItemLink ( pieceId, LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE )
-      local equipType = GetItemLinkEquipType ( pieceLink )
-      local pieceItemType = GetItemLinkItemType ( pieceLink )
-      local armorType = GetItemLinkArmorType ( pieceLink )
-      local weaponType = GetItemLinkWeaponType ( pieceLink )
-      local unlocked = IsItemSetCollectionSlotUnlocked ( setId, slot )
-
-      if pieceItemType == ITEMTYPE_ARMOR and armorOrder [ equipType ] then
-        local armorGroupIndex = armorType == ARMORTYPE_LIGHT and 1 or armorType == ARMORTYPE_MEDIUM and 2 or armorType == ARMORTYPE_HEAVY and 3 or nil
-        if armorGroupIndex then
-          local label = GetString ( "SI_EQUIPTYPE", equipType ) or ""
-          AddGroupItem ( armorGroupIndex, m_strformat ( "A:%d:%d", armorType, equipType ), armorOrder [ equipType ], label, unlocked )
-        end
-      elseif pieceItemType == ITEMTYPE_ARMOR and jewelryOrder [ equipType ] then
-        local label = GetString ( "SI_EQUIPTYPE", equipType ) or ""
-        AddGroupItem ( 4, m_strformat ( "J:%d", equipType ), jewelryOrder [ equipType ], label, unlocked )
-      elseif pieceItemType == ITEMTYPE_WEAPON and weaponType ~= WEAPONTYPE_NONE then
-        local label = GetWeaponLabel ( equipType, weaponType )
-        AddGroupItem ( 5, m_strformat ( "W:%d", weaponType ), weaponOrder [ weaponType ] or weaponType + 1000, label, unlocked )
-      end
-    end
-  end
-
-  local hasAnyData = false
-  for _, group in ipairs ( groups ) do
-    table.sort ( group.items, function ( a, b ) return a.order < b.order end )
-    table.sort ( group.missing, function ( a, b ) return a.order < b.order end )
-    if #group.items > 0 or #group.missing > 0 then
-      hasAnyData = true
-    end
-  end
-
-  if not hasAnyData then return nil end
-
-  return {
-    setId = setId,
-    numUnlocked = GetNumItemSetCollectionSlotsUnlocked ( setId ) or 0,
-    numPieces = numPieces,
-    groups = groups,
-  }
-end
-
-local function ToValueList ( orderedList )
-  local values = { }
-  for _, entry in ipairs ( orderedList ) do
-    table.insert ( values, entry.value )
-  end
-  return values
-end
-
-local function AddSetCollectionTooltipSummary ( tooltip, itemLink )
-  if not tooltip or not itemLink then return end
-
-  local data = BuildSetCollectionTooltipData ( itemLink )
-  if not data then return end
-
-  local percent = zo_floor ( ( data.numUnlocked / data.numPieces ) * 100 + 0.5 )
-  local transmuteCost = GetSetReconstructionTransmuteCost ( data.setId )
-
-  local transmuteText = ""
-  if transmuteCost then
-    transmuteText = m_strformat ( "|c66CCFF%d |t20:20:EsoUI/Art/Currency/gamepad/gp_currencyicon_chaoticcreatia.dds|t|r", transmuteCost )
-  end
-
-  ZO_Tooltip_AddDivider ( tooltip )
-  if transmuteText ~= "" then
-    tooltip:AddLine ( m_strformat ( "|cA0A0A0%d/%d (%d%%)|r\t%s", data.numUnlocked, data.numPieces, percent, transmuteText ), "", 1, 1, 1 )
-  else
-    tooltip:AddLine ( m_strformat ( "|cA0A0A0%d/%d (%d%%)|r", data.numUnlocked, data.numPieces, percent ), "", 1, 1, 1 )
-  end
-
-  for _, group in ipairs ( data.groups ) do
-    local collected = table.concat ( ToValueList ( group.items ), ", " )
-    local missing = table.concat ( ToValueList ( group.missing ), ", " )
-    if collected ~= "" or missing ~= "" then
-      tooltip:AddLine ( m_strformat ( "|cFFFFFF%s|r", string.upper ( group.title ) ), "", 1, 1, 1 )
-      if collected ~= "" then
-        tooltip:AddLine ( m_strformat ( "|c00FF00%s|r", collected ), "", 1, 1, 1 )
-      end
-      if missing ~= "" then
-        tooltip:AddLine ( m_strformat ( "|cFF4C4C%s|r", missing ), "", 1, 1, 1 )
-      end
-    end
+  local knownKeys = { version = true }
+  for key in pairs ( IA_InventoryAssistant.defaults ) do knownKeys [ key ] = true end
+  for key in pairs ( savedVariables ) do
+    if not knownKeys [ key ] then rawset ( savedVariables, key, nil ) end
   end
 end
 -----------------------------------------------------------------------------------------------------------------------------------
@@ -794,6 +899,8 @@ function IA_InventoryAssistant:Initialize ( control )
       if addonName ~= self.name then return end
       EH:UnregisterForEvent ( self.name, EVENT_ADD_ON_LOADED )
 
+      -- Migrate and prune before ZO_SavedVars fills missing keys from defaults.
+      HousekeepSavedVariables ( )
       self.settings = ZO_SavedVars:NewAccountWide ( "InventoryAssistantSettings", 1, nil, self.defaults )
       self.async = LibAsync:Create ( self.name ) 
       
@@ -829,10 +936,13 @@ function IA_InventoryAssistant:Initialize ( control )
     
       self:InitializeSettingsMenu ( )
       self:InitializeWindow ( control )
-      if self.settings.lootHistoryEnabled then
-        self.lootHistory = IA_LootHistory:New ( IA_LOOT_HISTORY_CONTROL )
-        self.lootHistory:OnInitialized ( self.settings )
-        IA_LOOT_HISTORY_CONTROL:SetHidden ( false )
+      if self.settings.lootHistory[1].enabled then
+        self.lootHistory1 = IA_LootHistory:New ( IA_LOOT_HISTORY1_CONTROL, { windowNumber = 1, settings = self.settings } )
+        IA_LOOT_HISTORY1_CONTROL:SetHidden ( false )
+      end
+      if self.settings.lootHistory[2].enabled then
+        self.lootHistory2 = IA_LootHistory:New ( IA_LOOT_HISTORY2_CONTROL, { windowNumber = 2, settings = self.settings } )
+        IA_LOOT_HISTORY2_CONTROL:SetHidden ( false )
       end
       self:InitializeHooks ( control )
       
@@ -1198,71 +1308,6 @@ function IA_InventoryAssistant:InitializeSettingsMenu ( )
   } )
   table.insert ( options, {
     type = "header",
-    name = "Loot History (beta)",
-    width = "full",
-  } )
-  table.insert ( options, {
-    type = "checkbox",
-    name = "Enable loot history",
-    requiresReload = true,
-    default = true,
-    getFunc = function ( ) return self.settings.lootHistoryEnabled end,
-    setFunc = function ( value ) self.settings.lootHistoryEnabled = value end,
-    width = "full",
-  } )
-  table.insert ( options, {
-    type = "checkbox",
-    name = "Lock loot history window",
-    default = true,
-    getFunc = function ( ) return self.settings.lootHistoryLocked end,
-    setFunc = function ( value )
-      self.settings.lootHistoryLocked = value
-      self.lootHistory:SetLocked ( value )
-    end,
-    width = "full",
-  } )
-  table.insert ( options, {
-    type = "slider",
-    name = "Maximum loot history entries",
-    min = 1,
-    max = 10,
-    step = 1,
-    default = 6,
-    getFunc = function ( ) return self.settings.lootHistoryMaxEntries end,
-    setFunc = function ( value )
-      self.settings.lootHistoryMaxEntries = value
-      self.lootHistory:RebuildBuffers ( )
-    end,
-    width = "full",
-  } )
-  table.insert ( options, {
-    type = "dropdown",
-    name = "Loot history direction",
-    choices = { "Up", "Down" },
-    choicesValues = { true, false },
-    default = true,
-    getFunc = function ( ) return self.settings.lootHistoryNewestOnTop end,
-    setFunc = function ( value )
-      self.settings.lootHistoryNewestOnTop = value
-      self.lootHistory:SetDirection ( value )
-    end,
-    width = "full",
-  } )
-  table.insert ( options, {
-    type = "dropdown",
-    name = "Loot history alignment",
-    choices = { "Left", "Right" },
-    choicesValues = { false, true },
-    default = false,
-    getFunc = function ( ) return self.settings.lootHistoryRightAligned end,
-    setFunc = function ( value )
-      self.settings.lootHistoryRightAligned = value
-      self.lootHistory:SetAlignment ( value )
-    end,
-    width = "full",
-  } )
-  table.insert ( options, {
-    type = "header",
     name = "Window Settings",
     width = "full",
   } )
@@ -1271,7 +1316,7 @@ function IA_InventoryAssistant:InitializeSettingsMenu ( )
     name = "Show non CP160 item levels",
     default = true,
     getFunc = function ( ) return self.settings.showItemLevels end,
-    setFunc = function ( value ) 
+    setFunc = function ( value )
       self.settings.showItemLevels, self.showItemLevels = value, value
       if not self.window:IsControlHidden ( ) then
         self:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
@@ -1284,7 +1329,7 @@ function IA_InventoryAssistant:InitializeSettingsMenu ( )
     name = "Show item enchantments",
     default = true,
     getFunc = function ( ) return self.settings.showEnchants end,
-    setFunc = function ( value ) 
+    setFunc = function ( value )
       self.settings.showEnchants, self.showEnchants = value, value
       if not self.window:IsControlHidden ( ) then
         self:Refresh ( --[[reload]] false, --[[preserveScrollPosition]] false )
@@ -1300,11 +1345,416 @@ function IA_InventoryAssistant:InitializeSettingsMenu ( )
     max = 450,
     step = 10,
     getFunc = function ( ) return self.settings.bagNameWidth end,
-    setFunc = function ( value ) 
-      self.settings.bagNameWidth = value 
+    setFunc = function ( value )
+      self.settings.bagNameWidth = value
       if not self.window:IsControlHidden ( ) then
         self.list:RefreshVisible ( )
       end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "header",
+    name = "Loot History (beta)",
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Lock loot history windows",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistoryLocked end,
+    setFunc = function ( value )
+      self.settings.lootHistoryLocked = value
+      if self.lootHistory1 then self.lootHistory1:SetLocked ( value ) end
+      if self.lootHistory2 then self.lootHistory2:SetLocked ( value ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "header",
+    name = "IA Loot History 1",
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Enable loot history 1",
+    requiresReload = true,
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].enabled end,
+    setFunc = function ( value ) self.settings.lootHistory[1].enabled = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Show looter @username in loot history 1",
+    tooltip = "When enabled, loot history 1 uses the two-line entry template and displays the looting account below the loot text.",
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[1].showLooter end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].showLooter = value
+      if self.lootHistory1 then self.lootHistory1:SetShowLooter ( value ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include tradeable group set loot in loot history 1",
+    tooltip = "When enabled, loot history 1 includes tradeable set items looted by another group member.",
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeGroupLoot end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeGroupLoot = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include non-set item loot in loot history 1",
+    tooltip = "When enabled, loot history 1 includes item loot that is not part of a set.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeNonSetItems end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeNonSetItems = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include set item loot in loot history 1",
+    tooltip = "When enabled, loot history 1 includes item loot that belongs to a set.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeSetItems end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeSetItems = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include progression entries in loot history 1",
+    tooltip = "When enabled, loot history 1 includes medals, keep rewards, and Tales of Tribute card upgrades.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeProgression end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeProgression = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include collectibles in loot history 1",
+    tooltip = "When enabled, loot history 1 includes collectible entries.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeCollectibles end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeCollectibles = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include antiquity leads in loot history 1",
+    tooltip = "When enabled, loot history 1 includes antiquity lead entries.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeLeads end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeLeads = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include crown crates in loot history 1",
+    tooltip = "When enabled, loot history 1 includes crown crate entries.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeCrownCrates end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeCrownCrates = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Treat uncollected set items as priority in loot history 1",
+    tooltip = "When enabled, uncollected set items are shown with the priority entries in loot history 1.",
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[1].treatUncollectedSetItemsAsPersistent end,
+    setFunc = function ( value ) self.settings.lootHistory[1].treatUncollectedSetItemsAsPersistent = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include default game priority entries in loot history 1",
+    tooltip = "When enabled, loot history 1 includes the priority reward entries used by the default game loot history.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].includeDefaultPersistentEntries end,
+    setFunc = function ( value ) self.settings.lootHistory[1].includeDefaultPersistentEntries = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Maximum loot history 1 priority entries",
+    tooltip = "Controls the priority entries shown in loot history 1.",
+    min = 1,
+    max = 10,
+    step = 1,
+    default = 6,
+    getFunc = function ( ) return self.settings.lootHistory[1].persistentMaxEntries end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].persistentMaxEntries = value
+      if self.lootHistory1 then self.lootHistory1:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Loot history 1 priority visibility time",
+    min = 3,
+    max = 10,
+    step = 0.1,
+    decimals = 1,
+    default = 7.0,
+    getFunc = function ( ) return self.settings.lootHistory[1].persistentShowTime end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].persistentShowTime = value
+      if self.lootHistory1 then self.lootHistory1:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Maximum loot history 1 entries",
+    tooltip = "Controls the regular entries shown in loot history 1.",
+    min = 1,
+    max = 10,
+    step = 1,
+    default = 6,
+    getFunc = function ( ) return self.settings.lootHistory[1].maxEntries end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].maxEntries = value
+      if self.lootHistory1 then self.lootHistory1:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Loot history 1 visibility time",
+    min = 3,
+    max = 10,
+    step = 0.1,
+    decimals = 1,
+    default = 3.6,
+    getFunc = function ( ) return self.settings.lootHistory[1].showTime end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].showTime = value
+      if self.lootHistory1 then self.lootHistory1:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "dropdown",
+    name = "Loot history 1 direction",
+    choices = { "Up", "Down" },
+    choicesValues = { true, false },
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[1].newestOnTop end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].newestOnTop = value
+      if self.lootHistory1 then self.lootHistory1:SetDirection ( value ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "dropdown",
+    name = "Loot history 1 alignment",
+    choices = { "Left", "Right" },
+    choicesValues = { false, true },
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[1].rightAligned end,
+    setFunc = function ( value )
+      self.settings.lootHistory[1].rightAligned = value
+      if self.lootHistory1 then self.lootHistory1:SetAlignment ( value ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "header",
+    name = "IA Loot History 2",
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Enable loot history 2",
+    tooltip = "Shows the loot entries selected by the loot history 2 settings.",
+    requiresReload = true,
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[2].enabled end,
+    setFunc = function ( value ) self.settings.lootHistory[2].enabled = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Show looter @username in loot history 2",
+    tooltip = "When enabled, loot history 2 uses the two-line entry template and displays the looting account below the loot text.",
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[2].showLooter end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].showLooter = value
+      if self.lootHistory2 then self.lootHistory2:SetShowLooter ( value ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include tradeable group set loot in loot history 2",
+    tooltip = "When enabled, loot history 2 includes tradeable set items looted by another group member.",
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeGroupLoot end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeGroupLoot = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include non-set item loot in loot history 2",
+    tooltip = "When enabled, loot history 2 includes item loot that is not part of a set.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeNonSetItems end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeNonSetItems = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include set item loot in loot history 2",
+    tooltip = "When enabled, loot history 2 includes item loot that belongs to a set.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeSetItems end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeSetItems = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include progression entries in loot history 2",
+    tooltip = "When enabled, loot history 2 includes medals, keep rewards, and Tales of Tribute card upgrades.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeProgression end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeProgression = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include collectibles in loot history 2",
+    tooltip = "When enabled, loot history 2 includes collectible entries.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeCollectibles end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeCollectibles = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include antiquity leads in loot history 2",
+    tooltip = "When enabled, loot history 2 includes antiquity lead entries.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeLeads end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeLeads = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include crown crates in loot history 2",
+    tooltip = "When enabled, loot history 2 includes crown crate entries.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeCrownCrates end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeCrownCrates = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Treat uncollected set items as priority in loot history 2",
+    tooltip = "When enabled, uncollected set items are shown with the priority entries in loot history 2.",
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[2].treatUncollectedSetItemsAsPersistent end,
+    setFunc = function ( value ) self.settings.lootHistory[2].treatUncollectedSetItemsAsPersistent = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "checkbox",
+    name = "Include default game priority entries in loot history 2",
+    tooltip = "When enabled, loot history 2 includes the priority reward entries used by the default game loot history.",
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].includeDefaultPersistentEntries end,
+    setFunc = function ( value ) self.settings.lootHistory[2].includeDefaultPersistentEntries = value end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Maximum loot history 2 priority entries",
+    tooltip = "Controls the priority entries shown in loot history 2.",
+    min = 1,
+    max = 10,
+    step = 1,
+    default = 6,
+    getFunc = function ( ) return self.settings.lootHistory[2].persistentMaxEntries end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].persistentMaxEntries = value
+      if self.lootHistory2 then self.lootHistory2:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Loot history 2 priority visibility time",
+    min = 3,
+    max = 10,
+    step = 0.1,
+    decimals = 1,
+    default = 7.0,
+    getFunc = function ( ) return self.settings.lootHistory[2].persistentShowTime end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].persistentShowTime = value
+      if self.lootHistory2 then self.lootHistory2:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Maximum loot history 2 entries",
+    tooltip = "Controls the regular entries shown in loot history 2.",
+    min = 1,
+    max = 10,
+    step = 1,
+    default = 6,
+    getFunc = function ( ) return self.settings.lootHistory[2].maxEntries end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].maxEntries = value
+      if self.lootHistory2 then self.lootHistory2:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "slider",
+    name = "Loot history 2 visibility time",
+    tooltip = "Controls how long regular entries remain visible in loot history 2.",
+    min = 3,
+    max = 10,
+    step = 0.1,
+    decimals = 1,
+    default = 3.6,
+    getFunc = function ( ) return self.settings.lootHistory[2].showTime end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].showTime = value
+      if self.lootHistory2 then self.lootHistory2:RebuildBuffers ( ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "dropdown",
+    name = "Loot history 2 direction",
+    choices = { "Up", "Down" },
+    choicesValues = { true, false },
+    default = true,
+    getFunc = function ( ) return self.settings.lootHistory[2].newestOnTop end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].newestOnTop = value
+      if self.lootHistory2 then self.lootHistory2:SetDirection ( value ) end
+    end,
+    width = "full",
+  } )
+  table.insert ( options, {
+    type = "dropdown",
+    name = "Loot history 2 alignment",
+    choices = { "Left", "Right" },
+    choicesValues = { false, true },
+    default = false,
+    getFunc = function ( ) return self.settings.lootHistory[2].rightAligned end,
+    setFunc = function ( value )
+      self.settings.lootHistory[2].rightAligned = value
+      if self.lootHistory2 then self.lootHistory2:SetAlignment ( value ) end
     end,
     width = "full",
   } )
@@ -1527,6 +1977,7 @@ function IA_InventoryAssistant:OnLootReceived ( eventCode, lootedBy, itemLink, q
 --  d ( lootedBy .. " looted " .. itemLink .. "  ( " .. quantity .." )" )
   
   if selfLoot then return end
+  if lootType ~= LOOT_TYPE_ITEM then return end
   local isSetItem = GetItemLinkSetInfo ( itemLink )
   if not isSetItem then return end
   
@@ -1535,7 +1986,9 @@ function IA_InventoryAssistant:OnLootReceived ( eventCode, lootedBy, itemLink, q
   end
   
   local characterName = zo_strformat ( "<<1>>", lootedBy )
-  local bagName = self.groupMembers [ characterName ] and self.groupMembers [ characterName ].bagName or characterName
+  local groupMember = self.groupMembers [ characterName ]
+  local bagName = groupMember and groupMember.bagName or characterName
+  local looterDisplayName = groupMember and groupMember.displayName or ""
   
   local epoch = GetTimeStamp ( )
   local bopTimeRemaining = 2 * 60 * 60 -- 2 hours
@@ -1545,6 +1998,13 @@ function IA_InventoryAssistant:OnLootReceived ( eventCode, lootedBy, itemLink, q
     bopTimeEnds = epoch + bopTimeRemaining,
   }
   table.insert ( self.settings.inventories [ "grouploot" ], item )
+
+  if self.lootHistory1 then
+    self.lootHistory1:AddExternalLootEntry ( itemLink, quantity, looterDisplayName )
+  end
+  if self.lootHistory2 then
+    self.lootHistory2:AddExternalLootEntry ( itemLink, quantity, looterDisplayName )
+  end
 
 end
 -----------------------------------------------------------------------------------------------------------------------------------
@@ -2199,9 +2659,9 @@ end
 -----------------------------------------------------------------------------------------------------------------------------------
 -- GLOBAL FUNCTIONS
 -----------------------------------------------------------------------------------------------------------------------------------
-function IA_InventoryAssistant_AddSetCollectionTooltipSummary ( tooltip, itemLink )
-  AddSetCollectionTooltipSummary ( tooltip, itemLink )
-end
+-- function IA_InventoryAssistant_AddSetCollectionTooltipSummary ( tooltip, itemLink )
+--   AddSetCollectionTooltipSummary ( tooltip, itemLink )
+-- end
 -----------------------------------------------------------------------------------------------------------------------------------
 function IA_InventoryAssistant_OnInitialize ( control )
   IA_INVENTORY_ASSISTANT = IA_InventoryAssistant:New ( control )

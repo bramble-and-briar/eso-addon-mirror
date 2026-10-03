@@ -6,14 +6,19 @@
   "author": "mesota",
   "canonical_id": "esoui:1812",
   "category_id": "19",
-  "compatibility": [],
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
   "content_id": "esoui:1812",
   "deleted": false,
   "directories": [
     "AlphaGear"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1812/",
-  "fingerprint": "2f5b4f2da7b78f70b6fcc3967a7f72c48a3abd6a15d45f3f90f58c382fcdc622",
+  "fingerprint": "c2c1a9ac79cc1b768c1f33ab48daf2b80b29c29c7b54582d9dea7da0111701ae",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8625.png",
     "https://cdn-eso.mmoui.com/preview/pvw8626.png",
@@ -32,11 +37,11 @@
   "source_id": "1812",
   "source_url": "https://www.esoui.com/downloads/info1812-AlphaGear2BuildsGearSkillsBanking.html",
   "stats": {
-    "downloads": 852860,
+    "downloads": 853987,
     "favorites": 667,
-    "monthly_downloads": 851
+    "monthly_downloads": 858
   },
   "title": "AlphaGear 2 (Builds, Gear, Skills, Banking)",
-  "updated_at": 1655501998000,
-  "version": "6.17.0"
+  "updated_at": 1790988556000,
+  "version": "7.0.0"
 }

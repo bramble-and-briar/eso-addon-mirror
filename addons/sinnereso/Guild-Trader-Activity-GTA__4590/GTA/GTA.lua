@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.09.24",
+	version = "2026.10.03",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -213,7 +213,7 @@ local GTASig = WINDOW_MANAGER:CreateControl("GTASig", GTAMain, CT_LABEL)
 GTASig:SetAnchor(BOTTOMLEFT, GTALogo, BOTTOMRIGHT, 6, -6)
 GTASig:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
 GTASig:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
-GTASig:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 12), FONT_STYLE_SOFT_SHADOW_THIN)
+GTASig:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 14), FONT_STYLE_SOFT_SHADOW_THIN)
 GTASig:SetColor(0.1, 0.1, 0.1, 0.9)
 GTASig:SetText ("By: sinnereso")
 local GTADisclaimer = WINDOW_MANAGER:CreateControl("GTADisclaimer", GTAMain, CT_LABEL)

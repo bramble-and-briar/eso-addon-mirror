@@ -1,4 +1,8 @@
 -----------------------------------------------------------------------------------------------------------------------------------
+-- INVENTORY ASSISTANT SCROLLING ITEM LIST
+-----------------------------------------------------------------------------------------------------------------------------------
+IA_InventoryAssistantList = ZO_SortFilterList:Subclass ( )
+-----------------------------------------------------------------------------------------------------------------------------------
 -- CONSTANTS
 -----------------------------------------------------------------------------------------------------------------------------------
 local IA_GENERIC_ROW = 1
@@ -7,21 +11,29 @@ local IA_ITEM_ROW    = 3
 
 local IA_UNCOLLECTED_SET_ICON = "esoui/art/inventory/inventory_locked_set_piece_icon.dds"
 
-local IA_SET_COLLECTION_TILE_TEMPLATE = "ZO_ItemSetCollectionPieceTile_Keyboard_Control"
-local IA_SET_COLLECTION_TILE_SIZE = ZO_ITEM_SET_COLLECTION_PIECE_TILE_KEYBOARD_DIMENSIONS
-local IA_SET_COLLECTION_TILE_PADDING = 4
-local IA_SET_COLLECTION_TILES_PER_ROW = 4
-local IA_SET_COLLECTION_TOOLTIP_MIN_WIDTH = 300
-local IA_SET_COLLECTION_TOOLTIP_SIDE_PADDING = 16
+local IA_SET_COLLECTION_TILE_TEMPLATE          = "ZO_ItemSetCollectionPieceTile_Keyboard_Control"
+local IA_SET_COLLECTION_TILE_SIZE              = ZO_ITEM_SET_COLLECTION_PIECE_TILE_KEYBOARD_DIMENSIONS
+local IA_SET_COLLECTION_TILE_PADDING           = 4
+local IA_SET_COLLECTION_TILES_PER_ROW          = 4
+local IA_SET_COLLECTION_TOOLTIP_MIN_WIDTH      = 300
+local IA_SET_COLLECTION_TOOLTIP_SIDE_PADDING   = 16
 local IA_SET_COLLECTION_TOOLTIP_BOTTOM_PADDING = 16
-local IA_SET_COLLECTION_TOOLTIP_HEADER_HEIGHT = 56
-
-local function IA_InventoryAssistantList_SetTooltipDimensions ( width, height )
+local IA_SET_COLLECTION_TOOLTIP_HEADER_HEIGHT  = 56
+-----------------------------------------------------------------------------------------------------------------------------------
+local m_strformat = string.format
+local GetTimeStamp = GetTimeStamp
+local GetItemLinkItemId = GetItemLinkItemId
+local IsItemLinkSetCollectionPiece = IsItemLinkSetCollectionPiece
+local IsItemSetCollectionPieceUnlocked = IsItemSetCollectionPieceUnlocked
+-----------------------------------------------------------------------------------------------------------------------------------
+-- LOCAL FUNCTIONS
+-----------------------------------------------------------------------------------------------------------------------------------
+local function SetTooltipDimensions ( width, height )
   IA_CharacterTooltip:SetDimensions ( width, height )
   IA_CharacterTooltipTopLevel:SetDimensions ( width, height )
 end
-
-local function IA_InventoryAssistantList_AutoFitSetCollectionTooltip ( tilePool, fallbackHeight )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function AutoFitSetCollectionTooltip ( tilePool, fallbackHeight )
   local tooltipTop = IA_CharacterTooltip:GetTop ( )
   local maxBottom = IA_CharacterTooltipProgress:GetBottom ( )
 
@@ -41,17 +53,17 @@ local function IA_InventoryAssistantList_AutoFitSetCollectionTooltip ( tilePool,
     IA_CharacterTooltipTopLevel:SetHeight ( fallbackHeight )
   end
 end
-
-local function IA_InventoryAssistantList_QueueSetCollectionTooltipAutoFit ( tilePool, fallbackHeight )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function QueueSetCollectionTooltipAutoFit ( tilePool, fallbackHeight )
   -- First render pass can report stale bounds for newly created pooled controls.
   zo_callLater ( function ( )
     if not IA_CharacterTooltip:IsHidden ( ) then
-      IA_InventoryAssistantList_AutoFitSetCollectionTooltip ( tilePool, fallbackHeight )
+      AutoFitSetCollectionTooltip ( tilePool, fallbackHeight )
     end
   end, 0 )
 end
-
-local function IA_InventoryAssistantList_GetSetCollectionTilePool ( )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function GetSetCollectionTilePool ( )
   if not IA_CharacterTooltip.pieceTilePool then
     local tilePool = ZO_ControlPool:New ( IA_SET_COLLECTION_TILE_TEMPLATE, IA_CharacterTooltipPieces, "PieceTile" )
     tilePool:SetCustomResetBehavior ( ZO_DefaultGridTileEntryReset )
@@ -59,8 +71,8 @@ local function IA_InventoryAssistantList_GetSetCollectionTilePool ( )
   end
   return IA_CharacterTooltip.pieceTilePool
 end
-
-local function IA_InventoryAssistantList_GetSetCollectionPieceData ( setId )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function GetSetCollectionPieceData ( setId )
   local pieceDataList = { }
   if not setId or setId == 0 then
     return pieceDataList
@@ -79,8 +91,8 @@ local function IA_InventoryAssistantList_GetSetCollectionPieceData ( setId )
 
   return pieceDataList
 end
-
-local function IA_InventoryAssistantList_HasSetCollectionData ( equipSlots )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function HasSetCollectionData ( equipSlots )
   local setId = equipSlots and equipSlots.setId
   if not setId or setId == 0 then
     return false
@@ -89,8 +101,8 @@ local function IA_InventoryAssistantList_HasSetCollectionData ( equipSlots )
   local numPieces = GetNumItemSetCollectionPieces ( setId ) or 0
   return numPieces > 0
 end
-
-local function IA_InventoryAssistantList_GetSetReconstructionTransmuteCost ( setId )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function GetSetReconstructionTransmuteCost ( setId )
   if not setId or setId == 0 then
     return nil
   end
@@ -98,14 +110,14 @@ local function IA_InventoryAssistantList_GetSetReconstructionTransmuteCost ( set
   local cost = GetItemReconstructionCurrencyOptionCost ( setId, CURT_CHAOTIC_CREATIA )
   return cost and cost > 0 and cost or nil
 end
-
-local function IA_InventoryAssistantList_LayoutSetCollectionTooltip ( equipSlots )
+-----------------------------------------------------------------------------------------------------------------------------------
+local function LayoutSetCollectionTooltip ( equipSlots )
   local setId = equipSlots and equipSlots.setId
   local setName = equipSlots and equipSlots.setName
-  local tilePool = IA_InventoryAssistantList_GetSetCollectionTilePool ( )
+  local tilePool = GetSetCollectionTilePool ( )
   tilePool:ReleaseAllObjects ( )
 
-  local pieceDataList = IA_InventoryAssistantList_GetSetCollectionPieceData ( setId )
+  local pieceDataList = GetSetCollectionPieceData ( setId )
   local tileCount = #pieceDataList
   local columns = tileCount > 0 and zo_min ( IA_SET_COLLECTION_TILES_PER_ROW, tileCount ) or 1
   local rows = tileCount > 0 and zo_ceil ( tileCount / IA_SET_COLLECTION_TILES_PER_ROW ) or 1
@@ -125,31 +137,27 @@ local function IA_InventoryAssistantList_LayoutSetCollectionTooltip ( equipSlots
 
   local tooltipWidth = zo_max ( IA_SET_COLLECTION_TOOLTIP_MIN_WIDTH, width + IA_SET_COLLECTION_TOOLTIP_SIDE_PADDING * 2 )
   local tooltipHeight = IA_SET_COLLECTION_TOOLTIP_HEADER_HEIGHT + height + IA_SET_COLLECTION_TOOLTIP_BOTTOM_PADDING
-  IA_InventoryAssistantList_SetTooltipDimensions ( tooltipWidth, tooltipHeight )
-  IA_InventoryAssistantList_AutoFitSetCollectionTooltip ( tilePool, tooltipHeight )
-  IA_InventoryAssistantList_QueueSetCollectionTooltipAutoFit ( tilePool, tooltipHeight )
+  SetTooltipDimensions ( tooltipWidth, tooltipHeight )
+  AutoFitSetCollectionTooltip ( tilePool, tooltipHeight )
+  QueueSetCollectionTooltipAutoFit ( tilePool, tooltipHeight )
 
   IA_CharacterTooltipTitle:SetText ( setName )
 
   local numPieces = GetNumItemSetCollectionPieces ( setId ) or 0
   local numUnlocked = ( setId and setId ~= 0 ) and ( GetNumItemSetCollectionSlotsUnlocked ( setId ) or 0 ) or 0
   if numPieces > 0 then
-    local transmuteCost = IA_InventoryAssistantList_GetSetReconstructionTransmuteCost ( setId )
+    local transmuteCost = GetSetReconstructionTransmuteCost ( setId )
     if transmuteCost then
-      IA_CharacterTooltipProgress:SetText ( string.format ( "%d/%d collected", numUnlocked, numPieces ) )
-      IA_CharacterTooltipCost:SetText ( string.format ( "|c66CCFF%d |t20:20:esoui/art/currency/currency_seedcrystal_32.dds|t|r", transmuteCost ) )
+      IA_CharacterTooltipProgress:SetText ( m_strformat ( "%d/%d collected", numUnlocked, numPieces ) )
+      IA_CharacterTooltipCost:SetText ( m_strformat ( "|c66CCFF%d |t20:20:esoui/art/currency/currency_seedcrystal_32.dds|t|r", transmuteCost ) )
     else
-      IA_CharacterTooltipProgress:SetText ( string.format ( "%d/%d collected", numUnlocked, numPieces ) )
+      IA_CharacterTooltipProgress:SetText ( m_strformat ( "%d/%d collected", numUnlocked, numPieces ) )
       IA_CharacterTooltipCost:SetText ( "" )
     end
   else
     IA_CharacterTooltipProgress:SetText ( "No set collection data" )
   end
 end
------------------------------------------------------------------------------------------------------------------------------------
--- INVENTORY ASSISTANT SCROLLING ITEM LIST
------------------------------------------------------------------------------------------------------------------------------------
-IA_InventoryAssistantList = ZO_SortFilterList:Subclass ( )
 -----------------------------------------------------------------------------------------------------------------------------------
 -- INITIALIZATION
 -----------------------------------------------------------------------------------------------------------------------------------
@@ -171,38 +179,44 @@ function IA_InventoryAssistantList:Setup ( frame, control )
 end
 -----------------------------------------------------------------------------------------------------------------------------------
 function IA_InventoryAssistantList:SetupGenericRow ( control, data )
+	local nameControl = control:GetNamedChild ( "Name" )
   control.list = self
 	control.data = data
-	control:GetNamedChild ( "Name" ).normalColor = ZO_DEFAULT_TEXT
-  control:GetNamedChild ( "Name" ):SetText ( data.text )
+  nameControl.normalColor = ZO_DEFAULT_TEXT
+  nameControl:SetText ( data.text )
 	ZO_SortFilterList.SetupRow ( self, control, data )
 end
 -----------------------------------------------------------------------------------------------------------------------------------
 function IA_InventoryAssistantList:SetupHeaderRow ( control, data )
+	local nameControl = control:GetNamedChild ( "Name" )
   control.list = self
 	control.data = data
-	control:GetNamedChild ( "Name" ).normalColor = data.header.color 
+	nameControl.normalColor = data.header.color
   if data.header.itemCount == data.header.showCount then 
-    control:GetNamedChild ( "Name" ):SetText ( string.format ( data.header.text1, data.header.name, data.header.itemCount ) )
+	    nameControl:SetText ( m_strformat ( data.header.text1, data.header.name, data.header.itemCount ) )
   else
-    control:GetNamedChild ( "Name" ):SetText ( string.format ( data.header.text2, data.header.name, data.header.showCount, data.header.itemCount ) )
+	    nameControl:SetText ( m_strformat ( data.header.text2, data.header.name, data.header.showCount, data.header.itemCount ) )
   end
 	ZO_SortFilterList.SetupRow ( self, control, data )
 end
 -----------------------------------------------------------------------------------------------------------------------------------
 function IA_InventoryAssistantList:SetupItemRow ( control, data )
+	local iconControl = control:GetNamedChild ( "Icon" )
+	local markerControl = control:GetNamedChild ( "Marker" )
+	local tradeableControl = control:GetNamedChild ( "Tradeable" )
+  local nameControl = control:GetNamedChild ( "Name" )
+	local bagControl = control:GetNamedChild ( "Bag" )
+
   control.list = self
 	control.data = data
-	control:GetNamedChild ( "Name" ).nonRecolorable = true
-	control:GetNamedChild ( "Name" ):SetText ( data.name )
 
-  control:GetNamedChild ( "Bag" ).nonRecolorable = true
-	control:GetNamedChild ( "Bag" ):SetText( data.bagName )
-  control:GetNamedChild ( "Bag" ):SetDimensionConstraints ( 0, 0, IA_INVENTORY_ASSISTANT.settings.bagNameWidth, 0 )
+	nameControl.nonRecolorable = true
+	nameControl:SetText ( data.name )
+
+	bagControl.nonRecolorable = true
+	bagControl:SetText( data.bagName )
+	bagControl:SetDimensionConstraints ( 0, 0, IA_INVENTORY_ASSISTANT.settings.bagNameWidth, 0 )
     
-  control:GetNamedChild ( "Level" ).nonRecolorable = true
---	control:GetNamedChild ( "Level" ):SetText ( data.level )
-
 --[[
   if data.item.groupLoot then
     control:GetNamedChild ( "Icon" ):SetAlpha ( 0.5 )
@@ -217,45 +231,45 @@ function IA_InventoryAssistantList:SetupItemRow ( control, data )
   end
 ]]--
 
-  control:GetNamedChild ( "Marker" ).nonRecolorable = true
-  control:GetNamedChild ( "Marker" ):SetHidden ( true )
-  control:GetNamedChild ( "Marker" ):ClearIcons ( ) 
+  markerControl.nonRecolorable = true
+  markerControl:SetHidden ( true )
+  markerControl:ClearIcons ( )
   data.item.markers = IA_INVENTORY_ASSISTANT:GetItemMarkers ( data.item.itemId, data.item.uniqueId, data.item.bagId, data.item.stolen )
   if IsItemLinkSetCollectionPiece ( data.item.link ) and not IsItemSetCollectionPieceUnlocked ( GetItemLinkItemId ( data.item.link ) ) then
     table.insert ( data.item.markers, { icon = IA_UNCOLLECTED_SET_ICON, color = { r=1, g=1, b=1, a=1 } } )
   end
   if data.item.markers and #data.item.markers > 0 then
     for _, v in ipairs ( data.item.markers ) do
-      control:GetNamedChild ( "Marker" ):AddIcon ( v )
+      markerControl:AddIcon ( v )
     end
-    control:GetNamedChild ( "Marker" ):SetHidden ( false )
+    markerControl:SetHidden ( false )
   end
   if data.icon then
-    control:GetNamedChild ( "Icon" ):SetTexture ( data.icon )
-    control:GetNamedChild ( "Icon" ):SetHidden ( false )
+    iconControl:SetTexture ( data.icon )
+    iconControl:SetHidden ( false )
   else
-    control:GetNamedChild ( "Icon" ):SetHidden ( true )
-    control:GetNamedChild ( "Icon" ):SetTexture ( nil )
+    iconControl:SetHidden ( true )
+    iconControl:SetTexture ( nil )
   end
   if data.item.bopTimeEnds and data.item.bopTimeEnds > GetTimeStamp ( ) then
-    control:GetNamedChild ( "Tradeable" ):SetHidden ( false )
+    tradeableControl:SetHidden ( false )
   else
-    control:GetNamedChild ( "Tradeable" ):SetHidden ( true )
+    tradeableControl:SetHidden ( true )
   end
   if data.item.locked then
-    control:GetNamedChild ( "Marker" ):SetHidden ( true )
+    markerControl:SetHidden ( true )
     if IA_INVENTORY_ASSISTANT.settings.actionQueue.unlock [ data.item.uniqueId ] then
-      control:GetNamedChild ( "Marker" ):AddIcon ( { icon = ZO_KEYBOARD_LOCKED_ICON, color = { r=0.33, g=0.33, b=0.33, a=1 } } )
+      markerControl:AddIcon ( { icon = ZO_KEYBOARD_LOCKED_ICON, color = { r=0.33, g=0.33, b=0.33, a=1 } } )
     else
-      control:GetNamedChild ( "Marker" ):AddIcon ( { icon = ZO_KEYBOARD_LOCKED_ICON, color = { r=1, g=1, b=1, a=1 } } )
+      markerControl:AddIcon ( { icon = ZO_KEYBOARD_LOCKED_ICON, color = { r=1, g=1, b=1, a=1 } } )
     end
-    control:GetNamedChild ( "Marker" ):SetHidden ( false )
+    markerControl:SetHidden ( false )
   elseif IA_INVENTORY_ASSISTANT.settings.actionQueue.lock [ data.item.uniqueId ] then 
-    control:GetNamedChild ( "Marker" ):SetHidden ( true )
-    control:GetNamedChild ( "Marker" ):AddIcon ( { icon = ZO_KEYBOARD_LOCKED_ICON, color = { r=0.33, g=0.33, b=0.33, a=1 } } )
-    control:GetNamedChild ( "Marker" ):SetHidden ( false )
+    markerControl:SetHidden ( true )
+    markerControl:AddIcon ( { icon = ZO_KEYBOARD_LOCKED_ICON, color = { r=0.33, g=0.33, b=0.33, a=1 } } )
+    markerControl:SetHidden ( false )
   end
-	ZO_SortFilterList.SetupRow ( self, control, data )
+  ZO_SortFilterList.SetupRow ( self, control, data )
 end
 -----------------------------------------------------------------------------------------------------------------------------------
 -- LIST MANIPULATION
@@ -319,9 +333,9 @@ function IA_InventoryAssistantList_OnMouseEnter ( control )
     end
 --    IA_InventoryAssistant_AddSetCollectionTooltipSummary ( ItemTooltip, control.data.itemLink )
 
-  elseif control.data.equipSlots and IA_InventoryAssistantList_HasSetCollectionData ( control.data.equipSlots ) then
+  elseif control.data.equipSlots and HasSetCollectionData ( control.data.equipSlots ) then
     InitializeTooltip ( IA_CharacterTooltip, control.list.frame, TOPLEFT, 0, 0, TOPRIGHT )
-    IA_InventoryAssistantList_LayoutSetCollectionTooltip ( control.data.equipSlots )
+    LayoutSetCollectionTooltip ( control.data.equipSlots )
   end
 end
 -----------------------------------------------------------------------------------------------------------------------------------

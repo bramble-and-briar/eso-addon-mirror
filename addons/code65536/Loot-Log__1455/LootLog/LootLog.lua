@@ -39,6 +39,7 @@ LootLog = {
 
 		antiquityEnabled = true,
 		antiquityOnlyMotifs = false,
+		antiquityFlagTradeable = true,
 		antiquityMapColors = {
 			fullCodex = 0x00FF66,
 			incompleteCodex = 0xCCCC00,
@@ -279,7 +280,7 @@ function LootLog.IsItemNotable( itemLink, itemId )
 		if (GetItemLinkSetInfo(itemLink)) then
 			return true
 		end
-	elseif (specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH) then
+	elseif (specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_RARE_FISH or specializedItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STACKABLE) then
 		return true
 	else
 		local quality = GetItemLinkFunctionalQuality(itemLink)
@@ -503,7 +504,7 @@ function LootLog.GetAntiquityRewardLink( antiquityId )
 	if (link == "") then
 		local id = GetCollectibleRewardCollectibleId(rewardId)
 		if (id > 0) then
-			link = string.format("|H0:collectible:%d|h|h", id)
+			link = GetCollectibleLink(id, LINK_STYLE_DEFAULT)
 		end
 	end
 
@@ -903,6 +904,14 @@ function LootLog.RegisterSettingsPanel( )
 				name = SI_LOOTLOG_SETTING_ONLYMOTIF,
 				getFunc = function() return LootLog.vars.antiquityOnlyMotifs end,
 				setFunc = function(enabled) LootLog.vars.antiquityOnlyMotifs = enabled end,
+				disabled = function() return not LootLog.vars.antiquityEnabled end,
+			},
+			--------------------
+			{
+				type = "checkbox",
+				name = SI_LOOTLOG_SETTING_TRADELEAD,
+				getFunc = function() return LootLog.vars.antiquityFlagTradeable end,
+				setFunc = function(enabled) LootLog.vars.antiquityFlagTradeable = enabled end,
 				disabled = function() return not LootLog.vars.antiquityEnabled end,
 			},
 			--------------------

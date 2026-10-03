@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Torfason/Atlas__4845",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Torfason",
   "canonical_id": "esoui:4845",
   "category_id": "24",
@@ -23,8 +22,9 @@
     "Atlas"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4845/",
-  "fingerprint": "681d4c17484499cd5acd6a412b2bd2a94c98592fa4c4518ece7c89df3a8c3f7e",
+  "fingerprint": "5db9a2412b4a7e2f3dcd76dd0cdd7b89e94726370adaac2c7a4d6b35433e08d7",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17659.png",
     "https://cdn-eso.mmoui.com/preview/pvw17409.png",
     "https://cdn-eso.mmoui.com/preview/pvw17408.png"
   ],
@@ -34,11 +34,11 @@
   "source_id": "4845",
   "source_url": "https://www.esoui.com/downloads/info4845-Atlas.html",
   "stats": {
-    "downloads": 13,
-    "favorites": 1,
-    "monthly_downloads": 7
+    "downloads": 129,
+    "favorites": 2,
+    "monthly_downloads": 100
   },
   "title": "Atlas",
-  "updated_at": 1789721846000,
-  "version": "0.7.3"
+  "updated_at": 1790972996000,
+  "version": "2.0.0"
 }

@@ -1,4 +1,4 @@
-CURVED RESOURCE HUD 1.1.2 RELEASE CHECKLIST
+CURVED RESOURCE HUD 1.1.3 RELEASE CHECKLIST
 
 1. In Bethesda.net, set required dependencies to:
    - LibAddonMenu-2.0
@@ -8,7 +8,17 @@ CURVED RESOURCE HUD 1.1.2 RELEASE CHECKLIST
 2. Install/update, enable CurvedHUD, then reload the UI or relog.
 
 3. Confirm chat prints:
-   [CurvedHUD] Loaded 1.1.2; HUD, shield, and trackers created
+   [CurvedHUD] Loaded 1.1.3; HUD, shield, and trackers created
+
+1.1.3 Update 51 compatibility checklist:
+- Generate Nothing Wasted stacks, stop creating corpses, and confirm its decay
+  window is 12 seconds and removes two stacks at each decay.
+- Cast Imbue Weapon, Crushing Weapon, and Elemental Weapon and confirm each
+  tracker shows the new six-second activation window.
+- On a character that previously selected Major/Minor Sorcery or Prophecy,
+  confirm the selection migrates to Brutality or Savagery respectively.
+- Confirm retired Sorcery and Prophecy choices no longer appear in the standard
+  buff menus and Illuminate still tracks its new unique Armor effect.
 
 1.1.2 Soul Burst checklist:
 - Enable Soul Burst, equip Anchorite's Potency, and cast it while in combat.
@@ -534,7 +544,7 @@ Final right outer timer geometry:
     border appears at four stacks, then disappears when the stacks are consumed.
 
 47. Enable and cast Critical Surge. Its unique timer should begin near 33 seconds
-    and must not refresh from unrelated Major Brutality or Major Sorcery effects.
+    and must not refresh from unrelated Major Brutality effects.
 
 48. Enable Vibrant Shroud / Encase and test every available morph. Each cast
     should start a 10-second timer in the selected per-character position/color.

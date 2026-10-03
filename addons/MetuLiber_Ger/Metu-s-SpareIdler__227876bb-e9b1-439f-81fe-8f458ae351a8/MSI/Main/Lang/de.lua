@@ -33,7 +33,7 @@ local localization_strings = {
 -- Essentielle Komponenten
 	MSI_MENU_PRCTCL_FNCTNL_TITLE	= "|al|t72:72:EsoUI/Art/MenuBar/menubar_mainmenu_over.dds|t|r|c483D8BEssentielle Komponenten|r",
 	MSI_MENU_PRCTCL_FNCTNL_TOOLTIP	= "|c8B7355Bequem erreichbare Must-Haves\nEmpfehlenswerte Funktionen die wirkungsvoll und praktisch sind|r",
-	MSI_TGL_BOOK_INHIBITER_TITLE	= "|t64:64:EsoUI/Art/MainMenu/menubar_journal_up.dds|tBuch Hemmer",
+	MSI_TGL_BOOK_INHIBITER_TITLE	= "|t64:64:EsoUI/Art/MainMenu/menubar_journal_up.dds|Bücher unterdr\195\188ckt lesen",
 	MSI_TGL_BOOK_INHIBITER_TOOLTIP	= "B\195\188cher, einzelne Foliant-Seiten oder ganze Regale werden ganz einfach unge\195\182ffnet gelesen\n\nSchlie\195\159en ist nun nicht l\195\164nger\neine Notwendigkeit\nWeniger hektisches |cFFB90FO|r Geklicke beim st\195\182bern durch so seltene und magische Schinken",
 	MSI_TGL_LAWFUL_BEHAVE_TITLE 	= "|t48:48:EsoUI/Art/Repair/inventory_tabicon_repair_up.dds|tRechtm\195\164\195\159iges Verhalten",
 	MSI_TGL_LAWFUL_BEHAVE_TOOLTIP 	= "F\195\164higkeiten die in Justitz Zonen wie St\195\164dten und Gemeinden\nals |cFF0000Straftat|r gelten werden unterbunden bzw. geblockt",
@@ -42,10 +42,10 @@ local localization_strings = {
 	MSI_MENU_CMFRT_ASSIST_STITLE	= "|al|t72:72:EsoUI/Art/Progression/progression_indexicon_guilds_up.dds|t|r\n|c556B2FKomfortable\nAssistenz|r",
 	MSI_MENU_CMFRT_ASSIST_TITLE		= "|al|t72:72:EsoUI/Art/Progression/progression_indexicon_guilds_up.dds|t|r|c556B2FKomfortable Assistenz|r",
 	MSI_MENU_CMFRT_ASSIST_TOOLTIP	= "|c8B7355Kleine n\195\188tzliche Funktionen\nf\195\188r den rastlosen Abenteurer|r",
-	MSI_TGL_LYCAN_STATE_TITLE		= "|t48:48:EsoUI/Art/Cadwell/cadwell_indexicon_silver_up.dds|tLycaner Status",
+	MSI_TGL_LYCAN_STATE_TITLE		= "|t48:48:EsoUI/Art/Cadwell/cadwell_indexicon_silver_up.dds|tWerwolf ’|c8B5A00Lykanthropie|r’ Status",
 	MSI_TGL_LYCAN_STATE_TOOLTIP		= "W\195\164hrend des aktiven Lycanthropie\nZustands ’|c8B5A00Werwolf|r’ erscheint eine Anzeige\n\nHilfreich \195\188ber den Stand des Hungers zu wissen um die R\195\188ckverwandlung l\195\164nger\nunterdr\195\188cken zu k\195\182nnen",
-	MSI_TGL_RED_HINT_RETICLE_TITLE 	= "|t64:64:EsoUI/Art/Guild/guild_indexicon_leader_up.dds|tDisput Visier",
-	MSI_TGL_RED_HINT_RETICLE_TOOLTIP = "In einen Kampf verwickelt, wird das Fadenkreuz |cFF0000ROT|r eingef\195\164rbt\n\nKleiner Indikator ohne ein Ziel im Fadenkreuz zu haben",
+	MSI_TGL_RED_HINT_RETICLE_TITLE 	= "|t64:64:EsoUI/Art/Guild/guild_indexicon_leader_up.dds|tKampf Info Fadenkreuz",
+	MSI_TGL_RED_HINT_RETICLE_TOOLTIP = "In einen Kampf verwickelt, wird das Fadenkreuz |cFF0000ROT|r eingef\195\164rbt\n\nKleiner Hinweis ohne ein Ziel im Fadenkreuz zu haben",
 	MSI_TGL_BOLT_UNLOCK_TITLE 		= "|t72:72:EsoUI/Art/Progression/progression_crafting_locked_up.dds|tEntriegel Signal",
 	MSI_TGL_BOLT_UNLOCK_TOOLTIP 	= "Entriegle Truhen, Haus-Eing\195\164nge sowie Schl\195\182sser mit Hilfe eines optischen Signals\nUm dieses doch sehr nervige Brechen der Dietriche zu verhindern",
 --***************************--
@@ -57,8 +57,11 @@ local localization_strings = {
 	MSI_TGL_CLAIM_TOME_TOOLTIP 		= "Bereits verdiente Punkte f\195\188r\nden ’Tamriel Folianten’ werden\nbeil\195\164ufig eingefordert",
 	MSI_TGL_CLAIM_GPRSTS_TITLE 		= "|t40:40:EsoUI/Art/Buttons/accept_up.dds|tGoldene Vorhaben ",
 	MSI_TGL_CLAIM_GPRSTS_TOOLTIP 	= "Punkte f\195\188r ’Goldene Vorhaben’\ndie bereits verdient wurden\nwerden selbstst\195\164ndig beansrucht",
-	MSI_TGL_HIRELING_MAILS_TITLE 	= "|t48:48:EsoUI/Art/Mail/mail_tabicon_inbox_up.dds|tMietling Mail Abholer",
-	MSI_TGL_HIRELING_MAILS_TOOLTIP 	= "Einstellungen f\195\188r die Verwaltung der t\195\164glichen Mietling Mail\n\nEinfach Postfach \195\182ffnen und Anh\195\164nge abgreifen lassen",
+	MSI_TGL_HIRELING_MAILS_TITLE 	= "|t48:48:EsoUI/Art/Mail/mail_tabicon_inbox_up.dds|tMietlingMail Abholer",
+	MSI_TGL_HIRELING_MAILS_TOOLTIP 	= "Einstellungen f\195\188r die Verwaltung der t\195\164glichen MietlingMail\n\nEinfach Postfach \195\182ffnen und Anh\195\164nge abgreifen lassen",
+--
+	MSI_TGL_HORSE_INSTRUCT_TITLE 	= "|t48:48:EsoUI/Art/Mail/mail_tabicon_inbox_up.dds|tAllt\195\164glich Pferd b\195\164ndigen",
+	MSI_TGL_HORSE_INSTRUCT_TOOLTIP 	= "Hilfreich täglich die Reitattribute zu trainieren\nTragekapazität: Inventar erweitern\nAusdauer: Sprinten verlängern\nGeschwindigkeit: Rennen & Reittempo erhöhen",
 --***********************--
 -- Bequemes | Unbequemes
 	MSI_MENU_CNVNT_UNCNVNT_STITLE 	= "|al|t72:72:EsoUI/Art/Campaign/campaignbrowser_indexicon_specialevents_up.dds|t|r\n|c6B8E23Bequemes|r\n|c458B74Unbequemes|r",

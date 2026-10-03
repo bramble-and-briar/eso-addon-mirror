@@ -86,6 +86,46 @@
                 <Control name="$(parent)Settings" hidden="true" mouseEnabled="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Content" relativePoint="TOPLEFT"/>
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Content" relativePoint="BOTTOMRIGHT"/>
+                    <Controls>
+                        <Label name="$(parent)Title" font="ZoFontWinH1" text="BSCs-AllianceRanking Settings">
+                            <Anchor point="TOPLEFT" offsetX="0" offsetY="0"/>
+                            <Anchor point="TOPRIGHT" offsetX="0" offsetY="0"/>
+                            <Dimensions y="32"/>
+                        </Label>
+                        <Label name="$(parent)Character" font="ZoFontWinH4">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="2"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="2"/>
+                            <Dimensions y="26"/>
+                        </Label>
+                        <Backdrop name="$(parent)Panel" tier="1" centerColor="00000000" edgeColor="00000000" inherits="ZO_ScrollContainerBase" mouseEnabled="true">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Character" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="8"/>
+                            <Anchor point="BOTTOMRIGHT" offsetX="-9" offsetY="-44"/>
+                            <Edge edgeSize="1"/>
+                            <OnInitialized>ZO_Scroll_Initialize(self)</OnInitialized>
+                            <Controls>
+                                <Control name="$(parent)ScrollChild" resizeToFitDescendents="true">
+                                    <OnInitialized>self:SetParent(self:GetParent():GetNamedChild("Scroll"));self:SetAnchor(TOPLEFT,nil,TOPLEFT,0,0)</OnInitialized>
+                                    <Controls>
+                                        <Control name="$(parent)Content" resizeToFitDescendents="true">
+                                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"/>
+                                        </Control>
+                                    </Controls>
+                                </Control>
+                            </Controls>
+                        </Backdrop>
+                        <Button name="$(parent)PreviewBuffUI" inherits="ZO_DefaultButton">
+                            <Anchor point="BOTTOMLEFT" offsetX="0" offsetY="0"/>
+                            <Dimensions x="180" y="32"/>
+                        </Button>
+                        <Button name="$(parent)ResetHUDPositions" inherits="ZO_DefaultButton">
+                            <Anchor point="LEFT" relativeTo="$(parent)PreviewBuffUI" relativePoint="RIGHT" offsetX="15" offsetY="0"/>
+                            <Dimensions x="200" y="32"/>
+                        </Button>
+                        <Button name="$(parent)Donate" inherits="ZO_DefaultButton">
+                            <Anchor point="LEFT" relativeTo="$(parent)ResetHUDPositions" relativePoint="RIGHT" offsetX="15" offsetY="0"/>
+                            <Dimensions x="140" y="32"/>
+                        </Button>
+                    </Controls>
                 </Control>
             </Controls>
         </TopLevelControl>

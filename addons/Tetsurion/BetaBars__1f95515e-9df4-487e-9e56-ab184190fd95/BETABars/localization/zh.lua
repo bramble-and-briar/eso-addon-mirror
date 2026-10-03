@@ -1,0 +1,27 @@
+BETABars = BETABars or {}
+local T = BETABars
+T.L = {
+    TITLE = "BETA Bars",
+    INFO = "信息",
+    INFO_TT = "只有生命、魔力和耐力。不含终极。球体是自下而上的填充，不是液体。",
+    ENABLED = "启用",
+    STYLE = "样式",
+    STYLE_THIN = "细条",
+    STYLE_SEG = "分段",
+    STYLE_CLASSIC = "经典",
+    STYLE_ORB = "球体",
+    HIDE_STOCK = "隐藏官方条",
+    HIDE_FULL = "非战斗且全满时隐藏",
+    NUMBERS = "数字",
+    TAIL = "伤害残影",
+    SHIELD = "护盾边",
+    NOTCH = "消耗刻度",
+    SCALE = "缩放",
+    OFFX = "水平",
+    OFFY = "垂直",
+    COLOR_H = "生命颜色",
+    COLOR_M = "魔力颜色",
+    COLOR_S = "耐力颜色",
+    PREVIEW = "预览",
+    LOADED = "BETA Bars：设置，插件。",
+}

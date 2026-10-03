@@ -1,9 +1,9 @@
 ## Title: |c215895Lykeion's |cCC922FAutoLoot+|r
 ## Author: |c215895L|c3E6284y|c5A6B73k|c777562e|c937F51i|cB08840o|cCC922Fn|r
-## Description: An AutoLoot manager makes your looting more comfortable. Inspired by Agathorn's Smarter AutoLoot.
+## Description: An AutoLoot manager makes your looting more comfortable. Inspired by Agathorn's Smarter AutoLoot, this addon's former name is MuchSmarterAutoLoot
 ## APIVersion: 101051
-## Version: 8.3.4
-## AddOnVersion: 80304
+## Version: 8.3.5
+## AddOnVersion: 80305
 ## SavedVariables: MSAL_VARS
 ## PCDependsOn: LibAddonMenu-2.0>=41
 ## ConsoleDependsOn: LibAddonMenu-2.0>=41 LibHarvensAddonSettings>=20002

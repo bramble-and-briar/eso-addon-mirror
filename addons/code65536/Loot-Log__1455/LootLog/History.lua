@@ -313,9 +313,9 @@ local function AddTooltipExtension( module, ... )
 	end
 end
 
-local function DisplayAntiquity( antiquityId, itemLink )
+local function DisplayAntiquity( antiquityId, itemLink, showLocation )
 	PrimaryTooltip = LEJ.ItemTooltip(itemLink or { antiquityId = antiquityId })
-	LootLog.AddAntiquityTooltipExtension(PrimaryTooltip, antiquityId)
+	LootLog.AddAntiquityTooltipExtension(PrimaryTooltip, antiquityId, showLocation)
 	InitializeTooltip(SecondaryTooltip, PrimaryTooltip, TOPRIGHT, 0, 0, TOPLEFT)
 	SecondaryTooltip:SetLink(LootLog.GetAntiquityRewardLink(antiquityId))
 end
@@ -349,7 +349,7 @@ function LootLogListRow_OnMouseEnter( control )
 			SecondaryTooltip:SetCollectible(collectibleId)
 			AddTooltipExtension(LMAC, collectibleId)
 		elseif (antiquityId > 0) then
-			DisplayAntiquity(antiquityId, itemLink)
+			DisplayAntiquity(antiquityId, itemLink, true)
 		else
 			PrimaryTooltip = LEJ.ItemTooltip(itemLink, ItemTooltip)
 		end

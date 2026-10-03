@@ -147,22 +147,34 @@
           <Edge edgeSize="1"/>
           <Controls>
             <Label name="$(parent)Name" font="AGFont" color="FFFFFF">
-				<Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)" offsetX="0"/>
+                <Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)" offsetX="0"/>
                 <OnInitialized>self:SetText("Profile:")</OnInitialized>
             </Label>
 
-			<Button name="$(parent)EditProfileButton" clickSound="Click">
-				<Anchor point="RIGHT" relativePoint="RIGHT" relativeTo="$(parent)" offsetX="0" />
-				<Dimensions y="35" x="35"/>
+            <Button name="$(parent)EditProfileButton" clickSound="Click">
+                <Anchor point="RIGHT" relativePoint="RIGHT" relativeTo="$(parent)" offsetX="0" />
+                <Dimensions y="35" x="35"/>
                 <Textures normal="esoui/art/buttons/edit_up.dds" pressed="esoui/art/buttons/edit_down.dds" mouseOver="esoui/art/buttons/edit_over.dds"/>
-				<OnClicked>AG.ShowEditProfileDialog()</OnClicked>
-			</Button>			
-			
-			<Control name="$(parent)ProfileSelect" inherits="ZO_ComboBox">
-				<Anchor point="LEFT" relativePoint="RIGHT" offsetX="10" relativeTo="$(parent)Name" />
-				<Anchor point="RIGHT" relativePoint="LEFT" offsetX="-10" relativeTo="$(parent)EditProfileButton" />
-			</Control>
-			
+                <OnClicked>AG.ShowEditProfileDialog()</OnClicked>
+                <OnMouseEnter>AG.Tooltip(self,true)</OnMouseEnter>
+                <OnMouseExit>AG.Tooltip(self,false)</OnMouseExit>
+            </Button>           
+
+            <Button name="$(parent)ImportProfileButton" clickSound="Click">
+                <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="$(parent)EditProfileButton" offsetX="2" />
+                <Dimensions y="35" x="35"/>
+                <Textures normal="esoui/art/buttons/edit_save_up.dds" pressed="esoui/art/buttons/edit_save_down.dds" mouseOver="esoui/art/buttons/edit_save_over.dds"/>
+                <OnClicked>AG.ShowImportDialog()</OnClicked>
+                <OnMouseEnter>AG.Tooltip(self,true)</OnMouseEnter>
+                <OnMouseExit>AG.Tooltip(self,false)</OnMouseExit>
+            </Button>           
+            
+            
+            <Control name="$(parent)ProfileSelect" inherits="ZO_ComboBox">
+                <Anchor point="LEFT" relativePoint="RIGHT" offsetX="10" relativeTo="$(parent)Name" />
+                <Anchor point="RIGHT" relativePoint="LEFT" offsetX="-10" relativeTo="$(parent)ImportProfileButton" />
+            </Control>
+            
           </Controls>
         </Backdrop>
 
@@ -215,14 +227,14 @@
                           <Dimensions y="35" x="35"/>
                           <Textures normal="esoui\art\collections\collections_tabicon_outfitstyles_up.dds" pressed="esoui\art\collections\collections_tabicon_outfitstyles_down.dds" mouseOver="esoui\art\collections\collections_tabicon_outfitstyles_over.dds"/>
                           <OnClicked>AG.ShowAlphaStyleDialog()</OnClicked>
-                        </Button>		
+                        </Button>       
 
                         <Button name="$(parent)ShowInventoryManagerButton" clickSound="Click">
                           <Anchor point="LEFT" relativePoint="LEFT" relativeTo="$(parent)" offsetX="40" offsetY="30" />
                           <Dimensions y="35" x="35"/>
                           <Textures normal="esoui\art\mainmenu\menubar_champion_up.dds" pressed="esoui\art\mainmenu\menubar_champion_down.dds" mouseOver="esoui\art\mainmenu\menubar_champion_over.dds"/>
                           <OnClicked>AG.ShowIntegrationsDialog()</OnClicked>
-                        </Button>		
+                        </Button>       
 
                         - ->
 

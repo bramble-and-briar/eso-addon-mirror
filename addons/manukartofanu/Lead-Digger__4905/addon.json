@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/manukartofanu/Lead-Digger__4905",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "manukartofanu",
+  "canonical_id": "esoui:4905",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4905",
+  "deleted": false,
+  "directories": [
+    "LeadDigger"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4905/",
+  "fingerprint": "d8adf3ddec7f8f931dbf6f5c75a997d2fddefd559bde0794a41b55b9e3fa43c2",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4905",
+  "source_url": "https://www.esoui.com/downloads/info4905-LeadDigger.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "Lead Digger",
+  "updated_at": 1790949847000,
+  "version": "1.0.0"
+}

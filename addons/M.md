@@ -108,6 +108,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Miat's Tick Tracker +](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asquart/Miat-s-Tick-Tracker__4240) | Asquart | PC / Mac | 1.15 |
 | [Miat's Tick Tracker - Fixed and Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Miat-s-Tick-Tracker---Fixed-and-Updated__3886) | Anthonysc | PC / Mac | 1.13 |
 | [MiatsTickTracker Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OwnLight88/MiatsTickTracker-Updated__3646) | OwnLight88 | PC / Mac | U38 |
+| [Mid Trial Mechs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Mid-Trial-Mechs__4907) | its_wifey | PC / Mac | 1.0.1 |
 | [Midnight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kerb9729/Midnight__1167) | kerb9729 | PC / Mac | 1.228 |
 | [Mighty Experience Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MightyWrath/Mighty-Experience-Bar__3126) | MightyWrath | PC / Mac | 1.1.0 |
 | [Mighty Thagmar's Crystal Fragments Proc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MightyThagmar/Mighty-Thagmar-s-Crystal-Fragments-Proc__4070) | MightyThagmar | PC / Mac | 1.0.2 |

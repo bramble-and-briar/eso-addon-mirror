@@ -1,7 +1,7 @@
 ## Title: TraduzioneItalianaESO
-## Version: 1.1.8
+## Version: 2.0.1
 ## APIVersion: 101042
-## AddOnVersion: 117
+## AddOnVersion: 201
 ## SavedVariables: TraduzioneItaESO_Vars
 ## DependsOn: LibAddonMenu-2.0>=41
 ## OptionalDependsOn: LibGPS DolgubonsLazyWritCreator TamrielTradeCentre Destinations ResourceRadar

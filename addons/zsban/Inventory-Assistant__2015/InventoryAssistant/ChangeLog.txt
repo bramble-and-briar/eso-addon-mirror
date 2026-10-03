@@ -1,3 +1,18 @@
+[u][b]1.21.261002-beta:[/b][/u]
+[list]
+ [*] added configurable visibility times for normal and notable loot history entries
+ [*] added separate maximum-entry settings for notable and normal loot history, with notable entries grouped by experience, skill-line experience, companion experience, currency, then alphabetically
+ [*] normal loot history entries are now grouped into gear and non-gear groups and sorted alphabetically within each group
+ [*] repeatedly looted craft bag items now update the existing loot history entry's count in place
+ [*] added a second independently configurable loot history window
+ [*] added optional @username lines for loot history entries
+ [*] added option to include group loot entries in loot history windows
+ [*] added loot history window filters for set items, non-set items, progression, collectibles, antiquity leads, crown crates and default priority entries
+ [*] added an option to show uncollected set items (including qualifying group loot if enabled) as priority entries in loot history windows
+ [*] migrated legacy flat loot history window settings into nested per-window tables
+ [*] improved loot history buffer cleanup and batch anchoring during rebuilds and large loot bursts
+[/list]
+
 [u][b]1.20.260919-beta:[/b][/u]
 [list]
  [*] bugfix: resizing the window now refreshes newly visible list rows automatically

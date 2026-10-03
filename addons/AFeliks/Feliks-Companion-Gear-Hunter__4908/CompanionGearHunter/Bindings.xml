@@ -1,0 +1,11 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_CATEGORY_GENERAL">
+        <Category name="Feliks' Companion Gear Hunter">
+            <Action name="COMPANIONGEARHUNTER_TOGGLE">
+                <Down>
+                    CompanionGearHunter.ToggleWindow()
+                </Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/BloodStainCHild/BSCs-AlliancePointInfo__3133",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "BloodStainCHild",
   "canonical_id": "esoui:3133",
   "category_id": "96",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -21,7 +26,7 @@
     "BSCs-AllianceRanking"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3133/",
-  "fingerprint": "3b74e03ce7d25c9ab299493eb0bb42f0c666c7a4f1262e35fbaf5a31b10f6701",
+  "fingerprint": "74568c8b7a5a8dedf1021bd271c7c02657b0d3549cbde2101134fa71dd843663",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16336.png",
     "https://cdn-eso.mmoui.com/preview/pvw16334.png",
@@ -36,11 +41,11 @@
   "source_id": "3133",
   "source_url": "https://www.esoui.com/downloads/info3133-BSCs-AlliancePointInfo.html",
   "stats": {
-    "downloads": 7992,
-    "favorites": 13,
-    "monthly_downloads": 77
+    "downloads": 8131,
+    "favorites": 14,
+    "monthly_downloads": 78
   },
   "title": "BSCs-AlliancePointInfo",
-  "updated_at": 1782377922000,
-  "version": "2.3.23"
+  "updated_at": 1790954810000,
+  "version": "2.3.35"
 }

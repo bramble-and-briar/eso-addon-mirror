@@ -1,0 +1,38 @@
+if GetCVar("language.2") ~= "ru" then
+    return
+end
+
+SafeAddString(SI_LEADDIGGER_UNKNOWN_ZONE, "Зона <<1>>", 1)
+SafeAddString(SI_LEADDIGGER_HEADER, "Зацепки:", 1)
+SafeAddString(SI_LEADDIGGER_MORE_ZONES_ONE, "+ ещё <<1>> зона", 1)
+SafeAddString(SI_LEADDIGGER_MORE_ZONES_FEW, "+ ещё <<1>> зоны", 1)
+SafeAddString(SI_LEADDIGGER_MORE_ZONES_MANY, "+ ещё <<1>> зон", 1)
+SafeAddString(SI_LEADDIGGER_PREVIEW_ZONE, "Зона <<1>>", 1)
+
+SafeAddString(SI_LEADDIGGER_CHAT_HIDDEN, "Скрыто.", 1)
+SafeAddString(SI_LEADDIGGER_CHAT_SHOWN, "Показано.", 1)
+SafeAddString(SI_LEADDIGGER_CHAT_LOCKED, "Положение закреплено.", 1)
+SafeAddString(SI_LEADDIGGER_CHAT_UNLOCKED, "Положение разблокировано; перетащите список мышью.", 1)
+SafeAddString(SI_LEADDIGGER_CHAT_RESET, "Положение сброшено.", 1)
+SafeAddString(SI_LEADDIGGER_CHAT_COMMANDS, "Команды: /ld, /ld lock, /ld unlock, /ld reset, /ld show, /ld hide", 1)
+
+SafeAddString(SI_LEADDIGGER_SETTING_SHOW, "Показывать", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_SHOW_TOOLTIP, "Показывать Lead Digger на игровом интерфейсе, когда у вас есть временные зацепки.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_LOCK, "Закрепить", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_LOCK_TOOLTIP, "Закрепить список на месте. Снимите закрепление, чтобы перетаскивать его мышью.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_PREVIEW, "Режим предпросмотра", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_PREVIEW_TOOLTIP, "Показать тестовые зоны, чтобы настроить расположение и внешний вид списка. Режим предпросмотра сбрасывается при перезагрузке интерфейса.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_ZONES_SHOWN, "Зон показывать", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_ZONES_SHOWN_TOOLTIP, "Максимальное количество зон, отображаемых в списке.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_ZONE_WIDTH, "Ширина колонки зон", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_ZONE_WIDTH_TOOLTIP, "Ширина колонки с названиями зон в пикселях. Колонка количества занимает ещё 20 пикселей.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_ZONE_COLOR, "Цвет названий зон", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_ZONE_COLOR_TOOLTIP, "Цвет названий зон в списке.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_SHOW_HEADER, "Показывать заголовок", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_SHOW_HEADER_TOOLTIP, "Показывать заголовок «Зацепки:» над списком зон.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_HEADER_COLOR, "Цвет заголовка", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_HEADER_COLOR_TOOLTIP, "Цвет заголовка «Зацепки:».", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_SHOW_FOOTER, "Показывать нижний колонтитул", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_SHOW_FOOTER_TOOLTIP, "Показывать нижний колонтитул с количеством дополнительных зон, скрытых под видимой частью списка.", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_FOOTER_COLOR, "Цвет нижнего колонтитула", 1)
+SafeAddString(SI_LEADDIGGER_SETTING_FOOTER_COLOR_TOOLTIP, "Цвет нижнего колонтитула с количеством дополнительных зон.", 1)

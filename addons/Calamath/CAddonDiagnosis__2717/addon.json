@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Calamath/CAddonDiagnosis__2717",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Calamath",
   "canonical_id": "esoui:2717",
   "category_id": "159",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2717",
@@ -17,7 +18,7 @@
     "CAddonDiagnosis"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2717/",
-  "fingerprint": "d37ee994d2f65213010ee985c7d248e4d2105cd76bb18b6f47a35f7054e1b23d",
+  "fingerprint": "67f10c84aabc2c636131f18306c191c7289f9969fe1fd3c7fa3e2554db49d943",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10048.png",
     "https://cdn-eso.mmoui.com/preview/pvw10049.png"
@@ -28,11 +29,11 @@
   "source_id": "2717",
   "source_url": "https://www.esoui.com/downloads/info2717-CAddonDiagnosis.html",
   "stats": {
-    "downloads": 10871,
+    "downloads": 10958,
     "favorites": 16,
-    "monthly_downloads": 33
+    "monthly_downloads": 50
   },
   "title": "CAddonDiagnosis",
-  "updated_at": 1781399611000,
-  "version": "5.0.4"
+  "updated_at": 1790928847000,
+  "version": "5.0.5"
 }

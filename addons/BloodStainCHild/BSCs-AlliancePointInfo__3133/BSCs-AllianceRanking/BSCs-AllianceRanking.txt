@@ -1,10 +1,10 @@
 ## Title: |c00FF2BBSC's Alliance Points Ranking|r
 ## Description: Display on the Alliance Menu More informations
 ## Author: |cFF0000BloodStainChild666
-## Version: 2.3.23-u50
-## APIVersion: 101050
+## Version: 2.3.35-u51
+## APIVersion: 101051
 ## SavedVariables: BSCAllianceRankingSaved
-## AddOnVersion: 2323
+## AddOnVersion: 2335
 
 
 campaignapview.lua

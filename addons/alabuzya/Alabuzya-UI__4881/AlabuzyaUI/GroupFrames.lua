@@ -4,6 +4,7 @@ AlabuzyaUI.GroupFrames = {}
 local root,settings,ru,fragment
 local rows={}
 local function Classic() return AlabuzyaUI.Theme and AlabuzyaUI.Theme.classic==true end
+local function DS3() return AlabuzyaUI.Theme and AlabuzyaUI.Theme.ds3==true end
 local hoveredRow
 local function Font(size)
     return AlabuzyaUI.Theme and AlabuzyaUI.Theme.Font(size)
@@ -71,7 +72,20 @@ local function Row(index)
     local role=Icon(bg,4)
     local crown=Icon(bg,24,"EsoUI/Art/UnitFrames/groupIcon_leader.dds")
     local row={bg=bg,fill=fill,name=name,hp=hp,role=role,crown=crown}
-    if Classic() then
+    if DS3() then
+        row.healthRim=WINDOW_MANAGER:CreateControl(nil,bg,CT_TEXTURE)
+        row.healthRim:SetTexture('AlabuzyaUI/Textures/DS3ResourceV2.dds')
+        row.healthRim:SetDrawLayer(DL_OVERLAY) row.healthRim:SetDrawLevel(10)
+        row.roleDisc=WINDOW_MANAGER:CreateControl(nil,bg,CT_TEXTURE)
+        row.roleDisc:SetTexture('AlabuzyaUI/Textures/ClassicCircleMask.dds')
+        row.roleDisc:SetColor(.025,.025,.025,.95)
+        row.roleDisc:SetMaskMode(CONTROL_MASK_MODE_BASIC)
+        row.roleDisc:SetMaskTexture('AlabuzyaUI/Textures/ClassicCircleMask.dds')
+        row.roleRing=WINDOW_MANAGER:CreateControl(nil,bg,CT_TEXTURE)
+        row.roleRing:SetTexture('AlabuzyaUI/Textures/DS3Ring.dds')
+        row.roleRing:SetDrawLayer(DL_OVERLAY) row.roleRing:SetDrawLevel(10)
+    end
+    if Classic() and not DS3() then
         row.crest=AlabuzyaUI.ClassicTheme.Crest(bg,44)
         row.crest:SetAnchor(LEFT,bg,LEFT,0,0)
         row.mana=WINDOW_MANAGER:CreateControl(nil,bg,CT_STATUSBAR)
@@ -145,7 +159,7 @@ local function Update()
         heights[column]=heights[column] or 0
         local thin=Classic() and unit.companion and not raid
         local rowWidth=thin and width-49 or width
-        local height=thin and 22 or (raid and 38 or (Classic() and 62 or (unit.companion and 20 or 30)))
+        local height=DS3() and (thin and 24 or 38) or thin and 22 or (raid and 38 or (Classic() and 62 or (unit.companion and 20 or 30)))
         row.bg:ClearAnchors()
         row.bg:SetAnchor(TOPLEFT,root,TOPLEFT,(column-1)*(width+8)+(thin and 49 or 0),heights[column])
         row.bg:SetDimensions(rowWidth,height)
@@ -208,6 +222,26 @@ local function Update()
             row.role:ClearAnchors()
             row.role:SetAnchor(raid and LEFT or BOTTOMRIGHT,raid and row.bg or row.crest,raid and LEFT or BOTTOMRIGHT,raid and 4 or 0,0)
         end
+        if DS3() then
+            row.bg:SetCenterColor(0,0,0,0) row.bg:SetEdgeColor(0,0,0,0)
+            row.fill:ClearAnchors() row.fill:SetAnchor(TOPLEFT,row.bg,TOPLEFT,thin and 2 or 28,thin and 14 or 24)
+            row.fill:SetHeight(8)
+            row.name:ClearAnchors() row.name:SetAnchor(TOPLEFT,row.bg,TOPLEFT,thin and 2 or 28,0)
+            row.name:SetDimensions(rowWidth-32,thin and 14 or 22)
+            row.name:SetFont(Font(thin and 12 or 16))
+            row.hp:SetHidden(true)
+            row.role:ClearAnchors() row.role:SetAnchor(LEFT,row.bg,LEFT,2,0)
+            row.role:SetDimensions(22,22)
+            for _,disc in ipairs({row.roleDisc,row.roleRing}) do
+                disc:ClearAnchors() disc:SetAnchor(LEFT,row.bg,LEFT,-4,0)
+                disc:SetDimensions(34,34) disc:SetHidden(thin)
+            end
+            row.healthRim:ClearAnchors()
+            row.healthRim:SetAnchor(TOPLEFT,row.bg,TOPLEFT,thin and 0 or 26,thin and 12 or 22)
+            row.healthRim:SetDimensions(rowWidth-(thin and 0 or 28),12)
+            row.fill:SetEdgeColor(0,0,0,0)
+            row.crown:ClearAnchors() row.crown:SetAnchor(TOPRIGHT,row.bg,TOPRIGHT,-3,1)
+        end
         row.bg:SetHidden(false)
         local online=unit.companion or IsUnitOnline(tag)
         local remote=not unit.companion and online and IsRemote(tag)
@@ -218,10 +252,11 @@ local function Update()
         local current,maximum=GetUnitPower(tag,POWERTYPE_HEALTH)
         local fraction=maximum>0 and math.max(0,math.min(1,current/maximum)) or 0
         local dead=online and IsUnitDeadOrReincarnating(tag)
-        row.fill:SetWidth(math.max(1,(rowWidth-(Classic() and not raid and not thin and 55 or 2))*fraction))
+        row.fill:SetWidth(math.max(1,(rowWidth-(DS3() and not thin and 32 or Classic() and not raid and not thin and 55 or 2))*fraction))
         row.fill:SetHidden(not online or dead)
         row.fill:SetCenterColor(unit.companion and 0.23 or 0.45,unit.companion and 0.34 or 0.14,0.15,0.95)
-        if Classic() then
+        if DS3() and unit.companion then row.fill:SetCenterColor(.12,.48,.16,1) end
+        if Classic() and not DS3() then
             if thin then row.fill:SetCenterColor(.13,.35,.32,.9)
             else row.fill:SetCenterColor(.12,.43,.12,.9) end
         end
@@ -229,7 +264,7 @@ local function Update()
         row.crown:SetHidden(not leader)
         local role=not unit.companion and GetGroupMemberSelectedRole(tag) or LFG_ROLE_INVALID
         local texture=role~=LFG_ROLE_INVALID and ZO_GetRoleIcon(role) or nil
-        row.role:SetHidden(not texture or (Classic() and not raid))
+        row.role:SetHidden(not texture or (Classic() and not DS3() and not raid))
         if texture then row.role:SetTexture(texture) end
         -- ESO's formatter follows the current keyboard/gamepad name preference
         -- and preserves the @ prefix of account names.
@@ -259,9 +294,9 @@ end
 function AlabuzyaUI.GroupFrames.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     ru=GetCVar("language.2")=="ru"
-    settings=AlabuzyaUI.SavedVariables.Account(Classic() and "groupFramesClassic" or "groupFrames",{})
+    settings=AlabuzyaUI.SavedVariables.Account(DS3() and 'groupFramesDS3' or Classic() and "groupFramesClassic" or "groupFrames",{})
     root=WINDOW_MANAGER:CreateTopLevelWindow("AlabuzyaUIGroupFrames")
-    root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or 28,settings.y or (Classic() and 154 or 100))
+    root:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,settings.x or 28,settings.y or (DS3() and 156 or Classic() and 154 or 100))
     root:SetMouseEnabled(false) root:SetMovable(false) root:SetClampedToScreen(true)
     root:SetHandler("OnMoveStop",function() settings.x=root:GetLeft() settings.y=root:GetTop() end)
     root:SetHidden(true)

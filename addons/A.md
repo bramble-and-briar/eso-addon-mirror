@@ -178,7 +178,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alliance Rank Progress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty-Warehouse/Alliance-Rank-Progress__8e880053-fe2b-4934-9745-a0670e1e12d6) | Dusty-Warehouse | Console | — |
 | [Alliance Rank Progress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DustyWarehouse/Alliance-Rank-Progress__2772) | DustyWarehouse | PC / Mac | 1.18 |
 | [AllianceBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Minceraft/AllianceBuddy__872) | Minceraft | PC / Mac | 3.2 |
-| [AlphaGear 2 (Builds, Gear, Skills, Banking)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Builds-Gear-Skills-Banking__1812) | mesota | PC / Mac | 6.17.0 |
+| [AlphaGear 2 (Builds, Gear, Skills, Banking)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Builds-Gear-Skills-Banking__1812) | mesota | PC / Mac | 7.0.0 |
 | [AlphaGear 2 Preview Channel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaGear-2-Preview-Channel__2170) | mesota | PC / Mac | 6.4.1 beta 3 |
 | [AlphaScry (Leads, Antiquities, Filter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaScry-Leads-Antiquities-Filter__2689) | mesota | PC / Mac | 1.0.0 |
 | [AlphaStyle (Outfit, Mount, Pet, Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaStyle-Outfit-Mount-Pet-Collectibles__2411) | mesota | PC / Mac | 1.0.0 |
@@ -287,7 +287,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AsylumTracker.LangPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maxim_ZG/AsylumTracker.LangPatch__2847) | Maxim_ZG | PC / Mac | 2.1.6 |
 | [AT Finisher (Finish Him !!!) - Ascending Tide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/AT-Finisher-Finish-Him---Ascending-Tide__1979) | Rhyono | PC / Mac | 1.1.8 |
 | [ATHGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cptnn3m0/ATHGuild__2738) | cptnn3m0 | PC / Mac | 0.0.19 |
-| [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Atlas__4845) | Torfason | PC / Mac | 0.7.3 |
+| [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Atlas__4845) | Torfason | PC / Mac | 2.0.0 |
 | [Atlas - Mounts (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitsarugi/Atlas---Mounts-WIP__1502) | Mitsarugi | PC / Mac | 0.1a |
 | [Atronach refresh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Risers/Atronach-refresh__2607) | Risers | PC / Mac | 1.0.0 |
 | [Auction Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jhessin/Auction-Looter__3588) | jhessin | PC / Mac | 1.0 |

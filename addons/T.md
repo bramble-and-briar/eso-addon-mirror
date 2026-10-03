@@ -124,7 +124,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tic Tac Toe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Colligation/Tic-Tac-Toe__4757) | Colligation | PC / Mac | 1.0 |
 | [TiEmote Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Khrill/TiEmote-Extended__763) | Khrill | PC / Mac | 1.83 |
 | [Tim's Collectibles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Tim-s-Collectibles__4822) | tim-p | PC / Mac | 1.0 |
-| [tim99s ColoredLists](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-ColoredLists__3373) | tim99 | PC / Mac | 10.1 |
+| [tim99s ColoredLists](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-ColoredLists__3373) | tim99 | PC / Mac | 10.2 |
 | [tim99s FTSIO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-FTSIO__3423) | tim99 | PC / Mac | 3 |
 | [tim99s Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/tim99s-Toolbar__3187) | tim99 | PC / Mac | 19.6 |
 | [Time To Heal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PlaceHolder/Time-To-Heal__2712) | PlaceHolder | PC / Mac | 1.0.8 |
@@ -165,7 +165,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Trade Skills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thurderan/Trade-Skills__4232) | Thurderan | PC / Mac | 8.1 |
 | [TraderFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wh0c4r35ab0utth15/TraderFilter__44df98e8-01a5-48d2-903d-41d3516f3289) | wh0c4r35ab0utth15 | Console | — |
 | [TradesMan](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Argusus/TradesMan__842) | Argusus | PC / Mac | 2.1b |
-| [Traduzione Italiana ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muflonebarbuto/Traduzione-Italiana-ESO__4271) | Muflonebarbuto | PC / Mac | 2.0.0 |
+| [Traduzione Italiana ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muflonebarbuto/Traduzione-Italiana-ESO__4271) | Muflonebarbuto | PC / Mac | 2.0.1 |
 | [Tradução Português - ESOBR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/frooke/Tradução-Português---ESOBR__2f8a0754-ae3b-42c9-ad8a-90fd7b23daf5) | frooke | Console | — |
 | [Trait Rename](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Trait-Rename__1634) | silvereyes | PC / Mac | 1.5.11 |
 | [TraitBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weolo/TraitBuddy__1058) | Weolo | PC / Mac | 9.11.3 |

@@ -338,7 +338,7 @@ local function ShouldFlagAsUncollectedCollectible( itemLink, context, checkInven
 	return ShouldFlagAsUncollectedSetItem(itemLink, context, checkInventory)
 end
 
-local function ShouldFlagAsTreasureMapWithLeads( itemLink, context )
+local function ShouldFlagAsTreasureMapWithLeadsOrTradeableLead( itemLink, context )
 	if (context == LootLogMulti.CONTEXT_HISTORY_FILTER or context == LootLogMulti.CONTEXT_INCOMING_CHAT) then
 		return false
 	end
@@ -348,7 +348,10 @@ local function ShouldFlagAsTreasureMapWithLeads( itemLink, context )
 	local neverFound = false
 	local hasMotif = false
 
-	for _, antiquityId in ipairs(LootLog.GetAntiquityIdsForTreasureMap(itemLink)) do
+	local tradeableLeadId = LootLog.GetAntiquityIdFromItem(itemLink)
+	local isTreasureMap = tradeableLeadId == 0
+
+	for _, antiquityId in ipairs(isTreasureMap and LootLog.GetAntiquityIdsForTreasureMap(itemLink) or { tradeableLeadId }) do
 		local loreAcquired = GetNumAntiquityLoreEntriesAcquired(antiquityId)
 		local lore = GetNumAntiquityLoreEntries(antiquityId)
 
@@ -368,7 +371,7 @@ local function ShouldFlagAsTreasureMapWithLeads( itemLink, context )
 		end
 	end
 
-	if (totalLore > 0 and (hasMotif or not LootLog.vars.antiquityOnlyMotifs)) then
+	if (totalLore > 0 and ((isTreasureMap and (hasMotif or not LootLog.vars.antiquityOnlyMotifs)) or (not isTreasureMap and LootLog.vars.antiquityFlagTradeable and totalLoreAcquired < totalLore))) then
 		local color
 		if (totalLoreAcquired >= totalLore) then
 			color = "fullCodex"
@@ -398,8 +401,8 @@ function LootLogMulti.ShouldFlagAsUncollected( ... )
 		results = { ShouldFlagAsUncollectedRecipeOrMotif(...) }
 	elseif (MultiEnabled(FLAG_SUPPORTED_LMAC) and GetItemLinkContainerCollectibleId(itemLink) > 0) then
 		results = { ShouldFlagAsUncollectedCollectible(...) }
-	elseif (LootLog.vars.antiquityEnabled and select(2, GetItemLinkItemType(itemLink)) == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP) then
-		results = { ShouldFlagAsTreasureMapWithLeads(...) }
+	elseif (LootLog.vars.antiquityEnabled and (select(2, GetItemLinkItemType(itemLink)) == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP or LootLog.GetAntiquityIdFromItem(itemLink) > 0)) then
+		results = { ShouldFlagAsTreasureMapWithLeadsOrTradeableLead(...) }
 	else
 		results = { ShouldFlagAsUncollectedSetItem(...) }
 	end

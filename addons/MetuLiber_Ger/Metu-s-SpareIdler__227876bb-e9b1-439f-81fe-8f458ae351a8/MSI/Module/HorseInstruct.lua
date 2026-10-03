@@ -1,24 +1,24 @@
-LazyHorseFeed = {}
+-- MessageMgr.lua
+if MSI == nil then MSI = MSI or {} end
+local MSI = _G['MSI']
 
-LazyHorseFeed.name = "LazyHorseFeed"
-LazyHorseFeed.version = 1
 local trainPriorities ={
-	RIDING_TRAIN_SPEED,
 	RIDING_TRAIN_CARRYING_CAPACITY,
 	RIDING_TRAIN_STAMINA,
+	RIDING_TRAIN_SPEED,
 }
 local trainNames = {
-	[RIDING_TRAIN_SPEED] = "Speed",
-	[RIDING_TRAIN_STAMINA] = "Stamina",
 	[RIDING_TRAIN_CARRYING_CAPACITY] = "Capacity"
+	[RIDING_TRAIN_STAMINA] = "Stamina",
+	[RIDING_TRAIN_SPEED] = "Speed",
 }
 
 LazyHorseFeed.defaultCharacter = 
 {
 	["TrainOrder"] = {
-		RIDING_TRAIN_SPEED,
 		RIDING_TRAIN_CARRYING_CAPACITY,
 		RIDING_TRAIN_STAMINA,
+		RIDING_TRAIN_SPEED,
 	},
 	["trainEvenly"] = false,
 	["useCharacterSettings"] = false,

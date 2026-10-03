@@ -1,23 +1,19 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/votan/Votan-s-Achievements-Overview__1001",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "votan",
   "canonical_id": "esoui:1001",
   "category_id": "18",
-  "compatibility": [
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    }
-  ],
+  "compatibility": [],
   "content_id": "esoui:1001",
   "deleted": false,
   "directories": [
     "VotansAchievementsOvw"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1001/",
-  "fingerprint": "5c178cc8bb397ba474767a7e67c47063987843994dd9125895332d98934cfc36",
+  "fingerprint": "d470aeb1a00419f2c67e4b38dcf673d56dc27acc67601040d6f185806aeff14e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw3052.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw3053.jpg",
@@ -30,11 +26,11 @@
   "source_id": "1001",
   "source_url": "https://www.esoui.com/downloads/info1001-VotansAchievementsOverview.html",
   "stats": {
-    "downloads": 335394,
-    "favorites": 450,
-    "monthly_downloads": 1603
+    "downloads": 338765,
+    "favorites": 449,
+    "monthly_downloads": 1924
   },
   "title": "Votan's Achievements Overview",
-  "updated_at": 1782056474000,
-  "version": "1.6.6"
+  "updated_at": 1790945242000,
+  "version": "1.6.7"
 }

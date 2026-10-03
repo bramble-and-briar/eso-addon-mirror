@@ -135,8 +135,9 @@ function skillbar:CompanionUltimate()
 	if not control or type(control.IsHidden) ~= "function" then
 		return nil
 	end
-	local ok, hidden = pcall(control.IsHidden, control)
-	if not ok or hidden then
+	-- Its own flag: with the whole bar hidden behind a menu, the drawn state says "hidden" for a
+	-- companion that is out, and the bar would be laid out as if it were not.
+	if addon.OwnHidden(control) then
 		return nil
 	end
 	return control

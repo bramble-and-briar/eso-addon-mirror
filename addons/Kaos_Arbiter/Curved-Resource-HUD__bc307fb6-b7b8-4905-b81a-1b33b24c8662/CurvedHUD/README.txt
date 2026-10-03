@@ -1,4 +1,4 @@
-Curved Resource HUD 1.1.2
+Curved Resource HUD 1.1.3
 
 Upload CurvedHUD as one folder with CurvedHUD.addon at its root.
 The package contains exactly one .addon manifest, as required by the console uploader.
@@ -18,7 +18,12 @@ If neither library loads, the HUD still renders. Chat commands:
 frame; while hidden, ESO's self-buff row moves down into the available space.
 
 Expected startup chat line:
-  [CurvedHUD] Loaded 1.1.2; HUD, shield, and trackers created
+  [CurvedHUD] Loaded 1.1.3; HUD, shield, and trackers created
+
+1.1.3 updates CurvedHUD for ESO Update 51. Nothing Wasted now uses its new
+12-second decay window, and Imbue Weapon and its morphs use their new six-second
+activation window. Retired Sorcery and Prophecy tracker selections are migrated
+to Brutality and Savagery, and Illuminate reflects its new unique Armor bonus.
 
 1.1.2 makes Soul Burst tracking script-aware. When Anchorite's Potency is
 equipped, the tracker follows its separate five-second Soul Gem/Ultimate

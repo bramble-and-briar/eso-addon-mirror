@@ -1,3 +1,23 @@
+0.1.54 — Standard ESO font in DS_3 / Стандартный шрифт ESO в DS_3
+EN: DS_3 now uses ESO's localized standard interface font instead of the antique face throughout custom labels and styled HUD/chat text: quests, player names/CP, clocks, damage, resources, effects and action keys. Existing sizes and layout are retained. Other themes retain their current fonts.
+RU: В DS_3 вместо старинного шрифта используется стандартный локализованный шрифт интерфейса ESO: задания, имена и ОГ, время, урон, ресурсы, эффекты, клавиши и оформленный текст чата/HUD. Размеры и расположение сохранены. Шрифты остальных тем не изменены.
+
+0.1.53 — Generated DS_3 compass line / Сгенерированная линия компаса DS_3
+EN: Replaced the rectangular compass strip with an original AI-generated thin aged-metal line, central diamond and small symmetric ticks based on the approved reference crop. Native directions, markers and distances remain dynamic; decorative line width follows the native compass frame.
+RU: Прямоугольная полоса заменена оригинальной тонкой металлической линией с центральным ромбом и небольшими симметричными делениями, сгенерированной по утверждённой вырезке. Направления, значки и расстояния остаются игровыми; ширина линии следует рамке компаса.
+
+0.1.52 — DS_3 compass and group frames / Компас и группа DS_3
+EN: Compass background is now a thin inset strip, preserving native markers and distances. Group health bars use the generated resource bezel; role icons have dark circular backings and rings. Companion health is a thicker green strip with a matching bezel. Compact 12-player layout retained.
+RU: Фон компаса заменён тонкой полосой с сохранением игровых значков и расстояний. У полос здоровья группы добавлена обводка, у ролей — тёмный круг и кольцо. Полоса здоровья спутника сделана толще и зелёной, с обводкой. Компактная раскладка для 12 игроков сохранена.
+
+0.1.51 — DS_3 action layout refinements / Доработка панелей DS_3
+EN: Four large cells now form a cross before the two five-skill rows: alternate weapon/Oakensoul on the left, primary ultimate above, backup ultimate below and quickslot on the right. Both skill rows remain visible with Oakensoul; the disabled backup ultimate displays the ring. Large-cell binding labels are placed below their frames. Opening chat reserves space for the assistant toolbar and an additional gap. Newly generated thin equipment and resource frames more closely follow the approved concept.
+RU: Четыре большие ячейки собраны крестом перед двумя рядами по пять навыков: запасное оружие/кольцо слева, основная ульта сверху, запасная снизу, быстрый доступ справа. С кольцом души дуба видны оба ряда навыков, а вместо отключённой запасной ульты показано кольцо. Подписи клавиш больших ячеек вынесены под рамки. При открытии чата учтены панель помощников и дополнительный зазор. Сгенерированы более тонкие рамки ячеек и ресурсов, ближе к утверждённому концепту.
+
+0.1.50 — DS_3 theme / Тема DS_3
+EN: Added DS_3 based on the Ash III concept, with original AI-generated ash/brass textures. Slim personal resource bars include DPS and estimated damage share; no separate combat meter. Fixed primary/backup skill rows, large ultimates with R on the active row, potion on the right and the alternate weapon (or equipped Oakensoul Ring) on the left. Special hotbars do not display stale reserve skills. Chat truly minimizes to its icon, blinks for incoming whispers/group/guild/officer/system messages and mentions, and moves the skill cluster aside while open. Round minimap and unframed active quest use separate saved positions; the Quests header retains whole-list collapse. Compact unframed party/trial health strips and companion names, short effects above skills and long buffs on the right. Shared helpers and feature settings remain independent of the selected theme.
+RU: Добавлена тема DS_3 по концепту Ash III с оригинальными текстурами, созданными с помощью ИИ. Тонкие полосы личных ресурсов, DPS и оценка доли урона без отдельного счётчика. Два фиксированных ряда навыков, большие ульты с R у активной, зелье справа и оружие запасной панели (либо надетое кольцо души дуба) слева. Специальные панели не показывают устаревшие запасные навыки. Чат действительно сворачивается в значок, мигающий при входящих личных, групповых, гильдейских, офицерских и системных сообщениях и упоминаниях; раскрытый чат сдвигает навыки вправо. Круглая миникарта и активное задание без рамки имеют отдельные сохранённые позиции; заголовок заданий сохраняет сворачивание списка. Компактные полосы группы/триала без фона, имена спутников, короткие эффекты над навыками и длинные справа. Общие помощники и их настройки работают независимо от оформления.
+
 0.1.49 — WoW group/trial resources / Ресурсы в группе и триале WoW
 EN: In a group or trial, your health, magicka and stamina are displayed above the two action bars: full-width health, magicka/stamina side by side. The solo top-left resource window returns on leaving the group, preserving its saved position. Short buffs move up to leave space. Trial frames use two compact columns of six for 12 players, with role, name and health; no large portraits, companion rows or redundant CP text in these compact cards.
 RU: В группе и триале здоровье, магия и запас сил показаны над двумя панелями навыков: здоровье во всю ширину, магия и запас сил рядом ниже. После выхода из группы возвращается верхний блок на сохранённое место. Короткие бафы сдвигаются выше. Для 12 игроков — две компактные колонки по шесть с ролью, именем и здоровьем, без больших портретов, строк спутников и лишних ОГ в компактных карточках.
@@ -51,175 +71,3 @@ RU
 - Сетка предметов, встроенная стрелка и совместимость фона гильдии больше не зависят от выбранного оформления. Вспомогательные функции управляются своими настройками, в том числе со стандартным интерфейсом ESO.
 - Для различающихся компоновок позиции хранятся отдельно; функциональные настройки остаются общими. У существующих пользователей тема не переключается автоматически.
 - Пройдены проверки Lua 5.1, регрессионные тесты модулей, компоновки WoW и архива. Это первая сборка WoW для проверки внешнего вида в игре; игровая проверка ещё не выполнена.
-
-
-Alabuzya UI 0.1.44 — 2026-09-29
-
-ENGLISH
-- Diablo interface: left-click the "Quests" heading to collapse the entire quest
-  list. Only the heading remains, and the sidebar frame shrinks to fit.
-- Click again to restore the list. The collapsed state is saved between sessions;
-  individual zone collapse preferences are preserved.
-
-РУССКИЙ
-- Интерфейс Diablo: клик левой кнопкой по заголовку «Задания» сворачивает весь
-  список. Остаётся только заголовок, рамка боковой панели уменьшается вместе со списком.
-- Повторный клик разворачивает список. Состояние сохраняется между входами в игру;
-  настройки сворачивания отдельных зон сохраняются независимо.
-
-Alabuzya UI 0.1.43 — 2026-09-29
-
-ENGLISH
-
-New in 0.1.43
-- Improved minimap panning: map tiles and icons now support fractional pixel
-  movement instead of snapping to whole pixels. This targets the uneven,
-  wave-like movement reported while walking, running and riding.
-- The player arrow remains centered; no movement delay has been added.
-
-Recent fixes included in this release (0.1.40–0.1.42)
-- Fixed inventory grid icons remaining nearly invisible after opening the
-  inventory. Switching between List and Grid is no longer needed to restore brightness.
-- Updated grid refresh handling when opening the inventory and receiving items.
-- Minimap icons now refresh without first opening the world map, including
-  after loading screens and map or floor changes.
-- Stale location icons from the previous map are excluded from the minimap.
-- Removed movement- and mount-dependent zoom changes and reduced dungeon zoom.
-- The standard compass border is hidden again after the game reapplies its style.
-
-The inventory brightness fix and minimap icon loading have been confirmed in
-game. The latest panning adjustment and remaining map scenarios still need
-in-game confirmation. Lua syntax, regression checks and archive validation passed.
-
-РУССКИЙ
-
-Новое в 0.1.43
-- Улучшено перемещение миникарты: тайлы и значки поддерживают дробное смещение
-  без округления до целых пикселей. Изменение направлено на устранение движения
-  «волнами» при ходьбе, беге и езде верхом.
-- Стрелка игрока остаётся в центре; дополнительная задержка движения не добавлена.
-
-Недавние исправления, включённые в релиз (0.1.40–0.1.42)
-- Исправлено сильное затемнение иконок сетки после открытия инвентаря.
-  Для восстановления яркости больше не нужно переключать «Список → Сетка».
-- Обновлена обработка отрисовки сетки при открытии инвентаря и получении предметов.
-- Значки миникарты обновляются без предварительного открытия большой карты,
-  в том числе после загрузки локации и при смене карты или этажа.
-- Исключены устаревшие значки мест с предыдущей карты.
-- Убрано изменение масштаба из-за движения и езды верхом; уменьшено приближение
-  в подземельях.
-- Штатная рамка компаса повторно скрывается после применения игрой своего стиля.
-
-Исправление яркости иконок инвентаря и загрузка значков миникарты подтверждены
-в игре. Последнее изменение плавности и остальные сценарии карты ещё требуют
-проверки в игре. Проверки синтаксиса Lua, регрессий и архива пройдены.
-
-Alabuzya UI 0.1.42 — 2026-09-29
-
-ENGLISH
-- Inventory grid: use control-local opacity when copying item icons and saving
-  original row settings. The inventory opening fade is no longer captured as
-  permanent icon dimming. Native locked-item dimming remains intact.
-- Includes the minimap and compass changes from 0.1.41, without further changes.
-- Regression checks cover a hidden/fading scene, full opacity after opening,
-  locked items, and original control opacity restoration. In-game confirmation required.
-
-РУССКИЙ
-- Сетка инвентаря: при копировании иконок и сохранении исходных настроек ячеек
-  используется собственная прозрачность элемента. Затемнение во время появления
-  окна больше не сохраняется в иконке. Штатное затемнение заблокированных вещей сохранено.
-- Включены изменения миникарты и компаса из 0.1.41 без дополнительных правок.
-- Проверены скрытое и появляющееся окно, яркость после открытия, заблокированные
-  предметы и восстановление прозрачности. Требуется подтверждение в игре.
-
-Alabuzya UI 0.1.41 — 2026-09-29
-
-ENGLISH
-- Inventory grid: defer the first-show rebuild until ESO has completed its show
-  handlers. Coalesce inventory updates into a visible-row refresh without resetting scrolling.
-- Minimap: refresh map pins on first display, activation, map/floor changes and
-  return from world-map browsing. Read location icons from the current map,
-  excluding stale location pins from the hidden world map.
-- Minimap: remove movement/mount-dependent zoom animation; use a constant scale,
-  a lower dungeon zoom, and the map's custom zoom limit where provided.
-- Compass: hide the native border again after ESO reapplies its platform style,
-  including boss-bar transitions. Compass pins and distances are preserved.
-- Validation: Lua 5.1 syntax and mocked lifecycle/regression checks. Visual
-  rendering and real travel/inventory scenarios still need in-game confirmation.
-
-РУССКИЙ
-- Сетка инвентаря: первая повторная отрисовка выполняется после штатных обработчиков
-  показа. Обновления предметов объединяются без сброса прокрутки.
-- Миникарта: обновление значков при первом показе, активации персонажа, смене карты
-  или этажа и возврате из большой карты. Значки мест берутся из текущей карты,
-  устаревшие значки мест из скрытой большой карты исключены.
-- Миникарта: убрано плавное изменение масштаба при движении и езде верхом.
-  Масштаб постоянный; приближение в подземельях уменьшено, учитывается ограничение карты.
-- Компас: штатная рамка скрывается повторно после применения игрой стиля,
-  в том числе при переключении полосы босса. Значки и расстояния сохранены.
-- Проверка: синтаксис Lua 5.1 и модельные проверки событий и регрессий. Отрисовку,
-  перемещения и работу инвентаря необходимо дополнительно подтвердить в игре.
-
-Alabuzya UI 0.1.40 — 2026-09-28
-
-ENGLISH
-- Changed inventory grid icons to render directly inside their cells instead of
-  resizing the native list icon. Native item actions, tint and cooldowns remain.
-- Reused cells update their texture and restore the standard icon in list mode.
-- Includes the bundled QuestArrow startup fix from 0.1.39.
-
-РУССКИЙ
-- Иконки сетки теперь отрисовываются непосредственно внутри ячеек вместо
-  изменения размеров штатной иконки списка. Действия, окраска и перезарядки сохранены.
-- Повторно используемые ячейки обновляют текстуру; в списке возвращается штатная иконка.
-- Включено исправление запуска встроенного QuestArrow из 0.1.39.
-
-Alabuzya UI 0.1.39 — 2026-09-28
-
-ENGLISH
-- Fixed a login Lua error in the bundled QuestArrow module caused by four
-  references to the old theme variable. Font lookups now use AlabuzyaUI.Theme.
-- Interface layout, textures, saved settings and declared API version are unchanged.
-- Further Update 51 compatibility work is deferred pending in-game testing.
-
-РУССКИЙ
-- Исправлена ошибка Lua при входе в игру во встроенном QuestArrow: четыре
-  обращения к старой переменной темы заменены на AlabuzyaUI.Theme.
-- Расположение интерфейса, текстуры, настройки и заявленная версия API сохранены.
-- Остальные изменения для Update 51 отложены до проверки в игре.
-
-Alabuzya UI 0.1.38 — 2026-09-28
-
-ENGLISH
-Documentation revision (same code version)
-- Rewritten English/Russian description, README and credits for Alabuzya UI.
-- AI disclosure and LibAddonMenu-2.0 installation instructions moved to the top.
-- Clarified the new generated custom textures, newly written resource/theme
-  system and reworked functional modules.
-- Historical development notes moved out of the user-facing addon package.
-- Gameplay code, artwork, settings defaults and UI layout are unchanged.
-
-Technical changes in 0.1.38
-- One public addon namespace and one addon-load callback.
-- Modules and bundled QuestArrow initialize through the main addon.
-- EU, NA and PTS use separate saved profiles; character IDs remain separate.
-- Old settings migrate automatically to missing server entries, retaining
-  the legacy data for rollback. Existing server settings are not overwritten.
-- Standalone QuestArrow takes priority over the bundled module.
-
-РУССКИЙ
-Обновление документации (версия кода сохранена)
-- Переписаны описание, README и сведения об авторстве на английском и русском.
-- В начало вынесены уведомление об ИИ и установка LibAddonMenu-2.0.
-- Уточнено происхождение новых сгенерированных текстур, заново написанной
-  системы оформления и ресурсов, переработанных функциональных модулей.
-- Исторические заметки разработки убраны из пользовательского архива.
-- Игровой код, графика, настройки по умолчанию и расположение элементов сохранены.
-
-Технические изменения версии 0.1.38
-- Единое пространство имён и один обработчик загрузки аддона.
-- Общий запуск модулей и встроенного QuestArrow.
-- Раздельные профили EU, NA и PTS; настройки персонажей остаются привязаны к ID.
-- Старые настройки автоматически копируются в отсутствующие серверные записи.
-  Исходные данные остаются для отката, существующие серверные записи сохраняются.
-- Отдельно установленный QuestArrow имеет приоритет над встроенным модулем.

@@ -698,6 +698,12 @@ local function IsBossByUnitTag(unitTag)
         return false
     end
 
+    -- Skip bosses in High Seas of Tamriel event
+    if (GetZoneId(GetUnitZoneIndex("player")) == 1570) then
+        KyzderpsDerps:dbg("Skipping " .. bossName .. " because it is in Voyage of the Abecean Sea.")
+        return false
+    end
+
     -- Check the data
     local groupName = BOSS_GROUPS[bossName] or bossName
     if (groupName == "GetPlayerLocationName") then

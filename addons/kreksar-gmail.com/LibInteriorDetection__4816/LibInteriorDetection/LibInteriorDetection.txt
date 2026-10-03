@@ -1,8 +1,8 @@
 ## Title: LibInteriorDetection
 ## Description: A library that reports whether the player is currently indoors, combining a per-zone interior/exterior default (overridable via settings menu) with door-transition and map-teleport toggles, plus per-character logout/reload persistence. AI-ASSISTED, written with Claude.ai, reviewed and tested in-game by the author — see README.
 ## Author: @Kreksar5 and Claude.ai
-## Version: 1.3.3
-## AddOnVersion: 40
+## Version: 1.3.6
+## AddOnVersion: 43
 ## APIVersion: 101050 101051
 ## IsLibrary: true
 ## SavedVariables: LibInteriorDetectionSavedVars LibInteriorDetectionCharSavedVars

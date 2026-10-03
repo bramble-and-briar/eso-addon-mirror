@@ -34,6 +34,7 @@ local zoneDisplayTypeIconTexture = {
 	[ZONE_DISPLAY_TYPE_COMPANION]		= "EsoUI/Art/Journal/Gamepad/gp_questTypeIcon_companion.dds", 
 	[ZONE_DISPLAY_TYPE_ENDLESS_DUNGEON]	= "EsoUI/Art/Journal/Gamepad/gp_questTypeIcon_endlessDungeon.dds", 
 	[ZONE_DISPLAY_TYPE_ADVENTURE_ZONE]	= "EsoUI/Art/Journal/Gamepad/gp_questTypeIcon_adventureZone.dds", 
+	[ZONE_DISPLAY_TYPE_SOLO_DUNGEON]	= "EsoUI/Art/Journal/Gamepad/gp_questTypeIcon_solo_dungeon.dds", 
 }
 local function GetZoneDisplayTypeIcon(zoneDisplayType)
 	return zoneDisplayTypeIconTexture[zoneDisplayType]
@@ -59,7 +60,7 @@ local questTypeIconTexture = {
 	[QUEST_TYPE_COMPANION]			= "EsoUI/Art/Journal/Gamepad/gp_questTypeIcon_companion.dds", 
 	[QUEST_TYPE_TRIBUTE]			= "EsoUI/Art/Tribute/Gamepad/gp_tribute_tabicon_tribute.dds", 
 	[QUEST_TYPE_SCRIBING]			= "EsoUI/Art/TreeIcons/Gamepad/gp_tutorial_indexicon_scribing.dds", 
-	[QUEST_TYPE_FAVOR]				= nil, 
+	[QUEST_TYPE_FAVOR]				= "EsoUI/Art/Journal/Gamepad/gp_questTypeIcon_repeatable_favor.dds", 
 	[QUEST_TYPE_TAMRIEL_TALE]		= nil, 
 }
 local function GetQuestTypeIcon(questType)
@@ -83,6 +84,8 @@ local questBackgroundTexture = {
 	[7061]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_endlessarchive_mastermalkhest_1x1.dds", 	-- The Margins of Ire
 	[7104]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_scribing_adeptirnardrirnil_1x1.dds", 		-- The Second Era of Scribing.
 	[7325]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_subclassing_bahtraathunding_1x1.dds", 		-- A Study in Discipline
+	[7494]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_rumorsabound_tillithegossip_1x1.dds", 		-- Rumors Abound
+	[7526]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_sagesvault_urli_1x1.dds", 					-- Invitation to Treasures
 
 -- Prologue Quest
 	[5935]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_vv_divineconundrum_1x1.dds", 				-- The Missing Prophecy
@@ -134,6 +137,12 @@ local questBackgroundTexture = {
 	[7029]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_gatesofoblivion_plokun_1x1.dds", 			-- Burdensome Beasts
 	[7060]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_secretsofthetelvanni_masterfaras_1x1.dds", 	-- The Telvanni Secret
 	[7191]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_apprenticemogh_1x1.dds",  					-- For Cake's Sake
+	[7470]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_highseas_baroncaptainolsien_1x1.dds", 		-- Raising the Riotous Redress
+	[7475]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_highseas_baroncaptainolsien_1x1.dds", 		-- Bounty of the Abecean Sea
+
+-- Solo Dungeon Quest
+	[7509]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_solomos_hanu_1x1.dds", 						-- The Great Hunt
+	[7514]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_solomhk_adonatusvarian_1x1.dds", 			-- Moonlight Ascent
 
 -- Event Zone Quest
 	[7363]	= "EsoUI/Art/Store/Gamepad/gp_crwn_queststarter_nightmarket_thecurator_1x1.dds", 			-- Those Who Would Rule
@@ -186,6 +195,10 @@ local questLinkedCollectibleId = {
 	[6843]	= 10660, 
 	[6967]	= 10475, 
 	[7079]	= 11871, 
+	[7290]	= 13439, 
+	[7310]	= 13439, 
+	[7168]	= 14772, 
+	[7418]	= 14776, 
 }
 local function GetQuestLinkedCollectibleId(questId)
 	return questLinkedCollectibleId[questId]

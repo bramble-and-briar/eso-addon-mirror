@@ -44,6 +44,7 @@ local BUDGET = {
     ["cap:finalize"]          = { ms = 250 },
     ["pub:publish"]           = { ms = 250 },
     ["ui:render"]             = { ms = 60, kb = 96 },
+    ["tl:derive"]             = { ms = 40, kb = 800 },
     ["ui:show_match"]         = { ms = 80 },
     ["map:render"]            = { ms = 40, kb = 48 },
     ["map:scrub"]             = { ms = 8, kb = 8 },

@@ -28,6 +28,10 @@ local function Number(v)
     return tostring(math.floor(v+0.5))
 end
 local function Paint()
+    if AlabuzyaUI.Theme.ds3 then
+        local _,dps=M.Values(session,GetFrameTimeSeconds())
+        AlabuzyaUI.DS3Theme.SetCombatValues(dps,M.Share(session)) return
+    end
     if not meter then return end
     local duration,dps,hps,dtps,crit=M.Values(session,GetFrameTimeSeconds())
     local time=string.format("%d:%02d",math.floor(duration/60),math.floor(duration%60))
@@ -126,6 +130,7 @@ local function SetGauge(g,value,fraction)
 end
 
 local function Stats()
+    if AlabuzyaUI.Theme.ds3 then return end
     local spell=GetPlayerStat(STAT_SPELL_POWER,STAT_BONUS_OPTION_APPLY_BONUS)
     local weapon=GetPlayerStat(STAT_POWER,STAT_BONUS_OPTION_APPLY_BONUS)
     local power=math.max(spell,weapon)
@@ -168,6 +173,7 @@ function AlabuzyaUI.CombatHUD.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     ru=GetCVar("language.2")=="ru"
     settings=AlabuzyaUI.SavedVariables.Account("combatHUD",{compact=true})
+    if not AlabuzyaUI.Theme.ds3 then
     meter=WINDOW_MANAGER:CreateTopLevelWindow("AlabuzyaUICombatMeter")
     Position(meter,'meter',AlabuzyaUI.Theme.classic and GuiRoot:GetWidth()-364 or 8,AlabuzyaUI.Theme.classic and GuiRoot:GetHeight()-52 or 6)
     Movable(meter,"meter")
@@ -199,6 +205,7 @@ function AlabuzyaUI.CombatHUD.Initialize()
     HUD(meter)
     gauges={crit=Gauge("AlabuzyaUICritGauge",ru and "Крит" or "Crit",-270),
         power=Gauge("AlabuzyaUIPowerGauge",ru and "Сила" or "Power",270)}
+    end
     EVENT_MANAGER:RegisterForEvent("AlabuzyaUICombatHUD",EVENT_PLAYER_COMBAT_STATE,function(_,active)
         if active then M.Start(session,GetFrameTimeSeconds()) ObserveTargets() else ObserveTargets() M.Stop(session,GetFrameTimeSeconds()) end
         Paint()
@@ -220,7 +227,7 @@ function AlabuzyaUI.CombatHUD.Initialize()
     end)
     EVENT_MANAGER:RegisterForUpdate("AlabuzyaUICombatHUD",250,function()
         ObserveTargets()
-        if not meter:IsHidden() then Paint() Stats() end
+        if AlabuzyaUI.Theme.ds3 or not meter:IsHidden() then Paint() Stats() end
     end)
     Paint() Stats()
 end

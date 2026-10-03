@@ -5,7 +5,7 @@ local DEBUG_MODE 			= true
 QUESTTRACKER_DEBUG_TABLE 	= {}
 
 local ADDON_NAME	= "RavaloxsQuestTracker"
-local VERSION_CODE	= "3.8.3.3"
+local VERSION_CODE	= "3.8.3.4"
 
 local CONSTRAINT_WIDTH = 100
 local CONSTRAINT_HEIGHT = 60
@@ -472,6 +472,31 @@ function QuestTracker:Initialize()
 	
 	HookUpdateCurrentChildrenHeightsToRoot(self) -- do before population so it auto-fires resize
 	
+	-- V3.8.3.4 Calamath NOTE :
+	-- In Update 51, the behavior of the focused quest cycling was changed so that it no longer cycles unless the vanilla quest tracker is displayed.
+	-- Here, we'll register hooks and a callback to replicate the pre-update cycling behavior when the vanilla quest tracker is hidden.
+	SecurePostHook(ZO_HUDTracker_Manager, "BeginAssistInteract", function()
+		self.assistedAspirationOnBeginInteract = HUD_TRACKER_MANAGER:GetAssistedAspiration()
+	end)
+	HUD_TRACKER_MANAGER:RegisterCallback("AssistedAspirationChanged", function()
+		self.assistedAspirationOnBeginInteract = nil	-- Prevent switching focused quest
+	end)
+	SecurePostHook(ZO_HUDTracker_Manager, "EndAssistInteract", function()
+		local isVanillaQuestTrackerVisible = GetSetting_Bool(SETTING_TYPE_UI, UI_SETTING_SHOW_QUEST_TRACKER)
+		if not isVanillaQuestTrackerVisible and HUD_TRACKER_MANAGER:GetAssistedAspiration() == self.assistedAspirationOnBeginInteract then
+			-- validity check: whether the interaction was triggered by ASSIST_NEXT_TRACKED_QUEST.
+			local keyCode = GetHighestPriorityActionBindingInfoFromName("ASSIST_NEXT_TRACKED_QUEST", false)
+			local isValid = true
+			for activeLayerIndex = 1, GetNumActiveActionLayers() do
+				local actionName = GetActionNameFromKey(GetActionLayerInfo(GetActiveActionLayerIndex(activeLayerIndex)), keyCode)
+				isValid = isValid and (actionName == "" or actionName == "ASSIST_NEXT_TRACKED_QUEST")
+			end
+			if isValid then
+				FOCUSED_QUEST_TRACKER:AssistNext()
+			end
+		end
+	end)
+
 	self:RepopulateQuestTree()	-- populates the tree with categories/quests/conditions
 	
 	QuestTracker_CreateSettingsMenu(self)

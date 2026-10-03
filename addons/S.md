@@ -32,6 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ScapegoatIconPack - icon pack for OdySupport Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JimBoSS/ScapegoatIconPack---icon-pack-for-OdySupport-Icons__3800) | JimBoSS | PC / Mac | 0.25 |
 | [Schlosswerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Schlosswerk__4863) | Torfason | PC / Mac | 0.1.1 |
 | [Scholar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Scholar__1670) | WidgetInteractive | PC / Mac | 1.7.0 |
+| [Scoreboard Fix Xbox BETA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RUSKlI/Scoreboard-Fix-Xbox-BETA__0e9f8669-fa46-49bb-a578-54569ddb865b) | RUSKlI | Console | — |
 | [SCQ - Share contributable quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/SCQ---Share-contributable-quests__2453) | Ek1 | PC / Mac | 1.3.200324 |
 | [Screen anti dimmer (energy safe disabler)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marvellous-Chester/Screen-anti-dimmer-energy-safe-disabler__3894) | Marvellous Chester | PC / Mac | 1.0 |
 | [Screen Shake](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/napalmskull/Screen-Shake__3764) | napalmskull | PC / Mac | 1.0.0 |
@@ -219,6 +220,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SnapShot \[ DEPRECATED\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaffeinatedMayhem/SnapShot-DEPRECATED__4218) | CaffeinatedMayhem | PC / Mac | 3.33 |
 | [SnapShot Export in UTC](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheNickm2/SnapShot-Export-in-UTC__3302) | TheNickm2 | PC / Mac | 3.4.0-UTC |
 | [Sneak Thief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Sneak-Thief__2998) | kawamonkey | PC / Mac | 1.0 |
+| [Snipers Friend](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Snipers-Friend__18d399f0-14ef-40a3-8f08-1aaa8cd0a5de) | clubwratt | Console | — |
 | [Snoop](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Snoop__1954) | Werewolf Finds Dragon | PC / Mac | 002-100022 |
 | [Social Indicators](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/Social-Indicators__276) | sirinsidiator | PC / Mac | 1.11 |
 | [Social Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Binary-Heart/Social-Status__1164) | Binary Heart | PC / Mac | 1.20.3 |

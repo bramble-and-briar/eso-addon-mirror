@@ -69,4 +69,4 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kyoma's Repair 'n Recharge - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tarkasion/Kyoma-s-Repair-n-Recharge---Updated__3275) | Tarkasion | PC / Mac | 1.3 |
 | [Kyoma's Runebox Tooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Kyoma-s-Runebox-Tooltip__2318) | Kyoma | PC / Mac | 2.0 |
 | [Kyoma's Titleizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Kyoma-s-Titleizer__1252) | Kyoma | PC / Mac | 2.0 |
-| [Kyzderp's Derps](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Kyzderp-s-Derps__2427) | Kyzeragon | PC / Mac | 1.54.0 |
+| [Kyzderp's Derps](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Kyzderp-s-Derps__2427) | Kyzeragon | PC / Mac | 1.55.0 |

@@ -7,7 +7,8 @@ T.atlas='AlabuzyaUI/Textures/EmberAtlas.dds'
 -- and is supplied by the client with localized glyph coverage.
 T.font='$(ANTIQUE_FONT)'
 function T.Configure()
-    if AlabuzyaUI.Settings.Style()=='wow' then AlabuzyaUI.ClassicTheme.Configure() end
+    if AlabuzyaUI.Settings.Style()=='wow' then AlabuzyaUI.ClassicTheme.Configure()
+    elseif AlabuzyaUI.Settings.Style()=='ds3' then AlabuzyaUI.DS3Theme.Configure() end
 end
 function T.MapHost() return T.Sidebar() end
 function T.QuestHost() return T.Sidebar() end

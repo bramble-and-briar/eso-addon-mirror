@@ -66,3 +66,12 @@ Assistant collectible ID reference / Справочник ID помощнико�
 https://github.com/tralce/tralceCollectibles
 EN: Public collectible ID/name data cross-checked against this reference. No implementation or artwork copied. Assistant icons are referenced from ESO's installed game assets, not bundled. Toolbar implementation created with AI assistance and reviewed for this project.
 RU: По этому справочнику сверены публичные ID и имена коллекций. Код и изображения не копировались. Иконки помощников берутся из установленных ресурсов ESO и не включены в архив. Код панели создан с помощью ИИ и проверен в рамках проекта.
+
+DS_3 (0.1.50): original AI-generated ash/brass atlas; concept DS3-Ash-III-Minimal-Map-v1.png. No FromSoftware textures/code are redistributed. Source and export details: art/ds3/PROVENANCE.txt in the development project.
+DS_3: оригинальный атлас создан с помощью ИИ; текстуры и код FromSoftware не копировались. Детали происхождения — art/ds3/PROVENANCE.txt в рабочем проекте.
+
+0.1.51: Thin equipment/resource frames generated with OpenAI from the approved concept crops. Original source: art/ds3/DS3FramesV2-source.png; prompt: art/ds3/frames-v2-prompt.txt. Cropped/resampled RGBA DDS exports: DS3SlotV2 and DS3ResourceV2. No game texture files copied.
+0.1.51: Тонкие рамки ячеек и ресурсов сгенерированы с помощью OpenAI по фрагментам утверждённого концепта. Исходник и запрос сохранены в art/ds3; экспорт — обрезка и масштабирование в RGBA DDS. Текстуры из игр не копировались.
+
+0.1.53: Original transparent compass line generated with built-in OpenAI image generation using the approved concept crop as a style reference. Source art/ds3/DS3Compass-source.png; prompt compass-prompt.txt; alpha-preserving DDS export DS3Compass. No game assets copied.
+0.1.53: Линия компаса сгенерирована с помощью OpenAI по утверждённому референсу; исходник и запрос сохранены в art/ds3. Экспорт сохраняет прозрачность. Ресурсы игры не копировались.

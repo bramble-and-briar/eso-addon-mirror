@@ -18,7 +18,7 @@
     "InventoryAssistant"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2015/",
-  "fingerprint": "bb9d930c8fda2d79ca084e04ee5329ed1355275cd290dce9783e0ee69d15cd0c",
+  "fingerprint": "4c3853b36a1c24c337dad90d2d00391a5748b5e1466d10cad46259a5c26cf68e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17442.png",
     "https://cdn-eso.mmoui.com/preview/pvw17443.png"
@@ -29,11 +29,11 @@
   "source_id": "2015",
   "source_url": "https://www.esoui.com/downloads/info2015-InventoryAssistant.html",
   "stats": {
-    "downloads": 14924,
+    "downloads": 15009,
     "favorites": 42,
-    "monthly_downloads": 151
+    "monthly_downloads": 237
   },
   "title": "Inventory Assistant",
-  "updated_at": 1790844277000,
-  "version": "1.20.260919-beta"
+  "updated_at": 1790940719000,
+  "version": "1.21.261002-beta"
 }

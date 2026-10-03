@@ -26,7 +26,7 @@ local function Entries()
     for _,zone in ipairs(order) do
         local quests=zones[zone]
         entries[#entries+1]={zone=zone,text=(settings.collapsed[zone] and '> ' or 'v ')..'['..#quests..'] '..zone,kind='zone'}
-        if not settings.collapsed[zone] then
+        if AlabuzyaUI.Theme.ds3 or not settings.collapsed[zone] then
             for _,q in ipairs(quests) do
                 local assisted=GetTrackedIsAssisted(TRACK_TYPE_QUEST,q.index)
                 entries[#entries+1]={quest=q.index,text='['..q.level..'] '..q.name,kind='quest',assisted=assisted}
@@ -45,6 +45,15 @@ local function Entries()
                 if added==0 and q.active and q.active~='' then entries[#entries+1]={text=q.active,kind='condition'} end
             end
         end
+    end
+    if AlabuzyaUI.Theme.ds3 then
+        local focused={} local selected=false
+        for _,entry in ipairs(entries) do
+            if entry.kind=='quest' then selected=entry.assisted end
+            if entry.kind=='zone' then selected=false end
+            if selected then focused[#focused+1]=entry end
+        end
+        return focused
     end
     return entries
 end

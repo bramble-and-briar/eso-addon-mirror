@@ -1,8 +1,8 @@
 ﻿## Title: Inventory Assistant
 ## Author: zsban
-## Version: 1.20.260919-beta
-## AddonVersion: 260919
-## APIVersion: 101050 101051
+## Version: 1.21.261002-beta
+## AddonVersion: 261002
+## APIVersion: 101051
 ## SavedVariables: InventoryAssistantSettings
 ## DependsOn: LibEventHandler>=1313 LibAsync>=30104 LibCustomMenu>=730 LibAddonMenu-2.0>=43
 ## OptionalDependsOn: FCOItemSaver>=283

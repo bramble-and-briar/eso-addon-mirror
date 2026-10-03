@@ -68,7 +68,9 @@ local function Draw(list,pool,root,long,now)
     for i=#list+1,#pool do pool[i].control:SetHidden(true) end
 end
 local function Update()
-    if AlabuzyaUI.Theme.classic then
+    if AlabuzyaUI.Theme.ds3 then
+        AlabuzyaUI.DS3Theme.ShortBuffAnchor(shortRoot)
+    elseif AlabuzyaUI.Theme.classic then
         local grouped=AlabuzyaUI.ClassicTheme.IsGrouped()
         if groupedLayout~=grouped then
             groupedLayout=grouped
@@ -98,7 +100,9 @@ function AlabuzyaUI.Buffs.Initialize()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     longRoot=Root('AlabuzyaUILongBuffs',32,32,BOTTOMRIGHT,BOTTOMRIGHT,-5,-8)
     shortRoot=Root('AlabuzyaUIShortBuffs',450,40,BOTTOM,BOTTOM,0,-230)
-    if AlabuzyaUI.Theme.classic then
+    if AlabuzyaUI.Theme.ds3 then
+        AlabuzyaUI.DS3Theme.ShortBuffAnchor(shortRoot)
+    elseif AlabuzyaUI.Theme.classic then
         shortRoot:ClearAnchors() shortRoot:SetAnchor(BOTTOM,GuiRoot,BOTTOM,0,-151)
     end
     -- Replace only the player's native panel, preserving target effects.

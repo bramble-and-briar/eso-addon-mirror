@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/M0R/Fix-Addon-List-Apostrophe-Bug__4904",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "M0R",
+  "canonical_id": "esoui:4904",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4904",
+  "deleted": false,
+  "directories": [
+    "FixAddonListApostropheBug"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4904/",
+  "fingerprint": "ed6412b8b6125608371f4fd03cd0d5bc60f884dc54c937039dae9c0eeaf5ad77",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4904",
+  "source_url": "https://www.esoui.com/downloads/info4904-FixAddonListApostropheBug.html",
+  "stats": {
+    "downloads": 29,
+    "favorites": 0,
+    "monthly_downloads": 18
+  },
+  "title": "Fix Addon List Apostrophe Bug",
+  "updated_at": 1790945547000,
+  "version": "1"
+}

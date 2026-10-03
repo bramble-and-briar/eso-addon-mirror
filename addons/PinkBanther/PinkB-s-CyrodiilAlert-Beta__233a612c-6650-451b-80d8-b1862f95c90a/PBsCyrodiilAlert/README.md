@@ -87,7 +87,7 @@ kind of alert has its own switch for whether it appears there. Out of the box th
 | Typeface | five faces, all of them ones the console UI already has loaded |
 | Size | 14–64 |
 | Outline | thick outline, soft shadow (thin or thick), plain shadow, or none |
-| Position | top centre, middle, bottom centre, top left, top right — plus a sideways and an up/down offset |
+| Position | top centre, middle, bottom centre, top left, top right, bottom left, bottom right — plus a sideways and an up/down offset that reaches the whole screen |
 | How long each line stays | 2–30 s; up to three lines at once, a fourth pushes the oldest off |
 | Which alerts appear | one switch per alert |
 
@@ -143,10 +143,12 @@ cannot produce the icon falls back to on its own, so the column is never blank.
 
 It comes from the campaign *selection* data, which is filled by a request to the server
 (`QueryCampaignSelectionData`, the same one the campaign browser makes each time it opens). So
-it is asked for only when it is missing, and then at most once every five minutes: a summary
-that refreshes every five seconds must not become five seconds of server requests, and a
-four-bucket estimate does not move fast enough to be worth one. Until an answer arrives the
-column reads `-`.
+it is asked for **every five minutes, and no more often**: a summary that refreshes every five
+seconds must not become five seconds of server requests, and a four-bucket estimate does not
+move fast enough to be worth one. It is asked for only while the summary is on screen (and, with
+the watch's timer stopped, never outside Cyrodiil); printing it with `/pbalert board` is a direct
+question and may ask too. Until an answer arrives the column reads `-`, and `/pbalert` says how
+long ago the last one came in.
 
 **Volendrung gets an alliance and no name.** Unlike the scrolls, the client is never told who
 carries the Daedric artifact: `EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_STATE_CHANGED` carries a
@@ -206,6 +208,64 @@ what an overlay uses, `DL_BACKGROUND`/`DT_LOW` is where the housing editor puts 
 and `DL_CONTROLS`/`DT_MEDIUM` is an ordinary interface control. If a client refuses the call the
 summary keeps drawing where it was and `/pbalert` says so, rather than letting the setting look
 as though it did something.
+
+## The whole of Cyrodiil, in a corner
+
+An overview map, on its own switch, sized and placed like everything else:
+
+- every keep, outpost, town, scroll temple and border keep, in the game's own pin art for its
+  owner — so a keep that changes hands changes colour;
+- the game's attack burst behind any keep under attack, drawn under the keep as the world map
+  draws it;
+- the Elder Scrolls and Volendrung where they are — only the ones actually in play, by the same
+  three tests the game's own map makes (every place Volendrung *can* spawn is an objective of its
+  own, twenty-three of them, each with a valid-looking pin);
+- the transitus network, drawn as the world map draws it away from a shrine — each link in its
+  owner's colour, faint when nobody holds it, dashed while fighting has cut it (`/pbalert map
+  links off` to hide it);
+- you, as the world map's arrow, turned the way the camera faces.
+
+Resources are left off: at this scale there are three crowded against every keep.
+
+**It does not borrow the game's world map.** A minimap add-on — PB's MiniMap, Votan's — works by
+parking the world map on the HUD, and the world map is one control showing one map at one
+zoom: a second add-on borrowing it takes it from the first. So this one draws its own map from
+the same parts, by map id, without changing what the world map shows:
+
+| | |
+| --- | --- |
+| `GetCyrodiilMapIndex` → `GetMapIdByIndex` | which map Cyrodiil is |
+| `GetMapNumTilesForMapId` / `GetMapTileTextureForMapId` | its tiles, laid out row-major as the world map lays them out |
+| `GetUniversallyNormalizedMapInfo` | where any map sits in one shared space |
+
+The last one is what puts the pins in the right place. The pin functions answer in the
+coordinates of whatever map the world map has set — Cyrodiil, a city inside it, wherever a
+minimap has zoomed to — and the two maps' places in the shared space convert one into the
+other. A keep's position, once known, is kept; one that cannot be converted leaves the last good
+position standing rather than inventing one, and the arrow is hidden rather than guessed.
+
+It shows in Cyrodiil only — the Imperial City is a different map — and only over the game: the
+current scene is *read*, never added to, and the map hides whenever a menu is up. Off, or
+anywhere else, nothing about it runs.
+
+```
+/pbalert map on | off
+/pbalert map links on | off
+/pbalert map probe
+```
+
+`map probe` prints what the map is working with — Cyrodiil's map id, the current one, both maps'
+places in the shared space, and the player's position in each. If the pins on a console sit
+somewhere other than the keeps, that is the measurement that says why.
+
+## Position
+
+Every surface — the alerts, the summary, the output window, the map — is placed the same way: an
+anchor (a corner, an edge's centre, or the middle) and a sideways and an up/down offset from it.
+The offsets run the **full width and height of the screen in either direction**, read from
+`GuiRoot` because the interface's size depends on the player's UI scale. From any anchor, any
+point on the screen can be reached. (They were a fixed ±900 by ±500 before, which left most of a
+wide screen out of reach.)
 
 ## Colours
 
@@ -418,6 +478,7 @@ besieged is simply a new attack of yours: red again, correctly.
 | | |
 | --- | --- |
 | `Main.lua` | the watch, the state machine, and everything that decides what to say |
+| `Map.lua` | the overview map of Cyrodiil. Optional at runtime like `Hud.lua` |
 | `Hud.lua` | all three on-screen surfaces — the alerts, the campaign summary and the output window. Optional at runtime: without it, or on a client where the window cannot be created, every alert still goes to chat and `/pbalert` says so |
 | `Settings.lua` | the panel |
 
@@ -438,4 +499,4 @@ cannot be arranged on demand in a real campaign (a siege lasting past the repeat
 that flips while it is being hit) are played out in milliseconds. It also stubs the window
 manager, so what reaches the screen — which lines, in what colours, in what font, anchored
 where, and when they expire — and the campaign APIs, so the summary's numbers, ordering,
-colours and every way it degrades are checked too. 348 checks.
+colours and every way it degrades are checked too. 434 checks.

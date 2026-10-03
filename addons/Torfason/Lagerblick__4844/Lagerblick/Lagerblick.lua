@@ -1,7 +1,7 @@
 local LB = {}
 
 LB.name = "Lagerblick"
-LB.version = "2.0.0"
+LB.version = "2.0.1"
 LB.savedVariablesName = "LagerblickSavedVariables"
 LB.savedVariablesVersion = 1
 LB.dataVersion = 2
@@ -640,7 +640,7 @@ function LB:PostHookTooltipMethod(tooltip, methodName, linkGetter)
         return
     end
 
-    SecurePostHook(tooltip, methodName, function(control, ...)
+    ZO_PostHook(tooltip, methodName, function(control, ...)
         local ok, itemLink = pcall(linkGetter, ...)
         if ok and itemLink and itemLink ~= "" then
             LB:AddTooltipInfo(control, itemLink)
@@ -654,10 +654,10 @@ function LB:InstallTooltipHooks()
     end
 
     if ItemTooltip and type(ItemTooltip.ClearLines) == "function" then
-        SecurePostHook(ItemTooltip, "ClearLines", ResetTooltipMarker)
+        ZO_PostHook(ItemTooltip, "ClearLines", ResetTooltipMarker)
     end
     if PopupTooltip and type(PopupTooltip.ClearLines) == "function" then
-        SecurePostHook(PopupTooltip, "ClearLines", ResetTooltipMarker)
+        ZO_PostHook(PopupTooltip, "ClearLines", ResetTooltipMarker)
     end
 
     self:PostHookTooltipMethod(ItemTooltip, "SetBagItem", function(bagId, slotIndex)

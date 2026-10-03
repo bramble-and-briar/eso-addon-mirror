@@ -1,19 +1,18 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.4"
-MSAL.addonVersion = 80304
+MSAL.version = "8.3.5"
+MSAL.addonVersion = 80305
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
 local MSAL_AUTOLOOT_CONFLICT = "msal_autoloot_conflict"
 local MSAL_AUTOLOOT_DISABLE = "msal_autoloot_disable"
 local MSAL_AUTOLOOT_DISMISS = "msal_autoloot_dismiss"
-local chatboxPrefix =
+local chatboxPrefix = ZO_IsConsoleOrGameCoreUI() and
+    "|c345e88[|r|c44637fA|r|c81785bL|r|cbf8c37+|r|cce912e] " or
     "|c345e88[|r|c44637fA|r|c536876u|r|c626d6dt|r|c727264o|r|c81785bL|r|c917d52o|r|ca08249o|r|caf8740t|r|cbf8c37+|r|cce912e] "
 local chatboxLogColor = "|cce912e"
 local WM = GetWindowManager()
-local SV_NAME = 'MSAL_VARS'
-local SV_VER = 1
 local LAM2 = LibAddonMenu2
 local LCK = LibCharacterKnowledge
 
@@ -39,6 +38,9 @@ local isUsingVanillaAutoLoot = false
 local isLALwaitingForUnboxingCraftReward = false
 local isWritsRewardContainerLooting = false
 local isProcessingLoot = false
+local lootWindowClosed = false
+local lootWindowSoundPlayed = false
+local lootWindowUpdateOriginals = {}
 local lootActivityTimestamp = 0
 local chatlogSuffix = nil
 local styleMatHadValidPrice = false
@@ -58,120 +60,6 @@ local nonLootReceivedBuffer = {}
 local nonLootFlushEpoch = 0
 local lootWindowShortcutButton
 local TSCApi = nil
-
-local defaults = {
-    latestMajorUpdateVersion = "",
-    latestMinorUpdateVersion = nil,
-    lastStartup = "",
-    never3rdPartyWarning = false,
-    enabled = true,
-    useAccountWide = true,
-    debugMode = false,
-    printLootThreshold = 0,
-    useIconsInLog = false,
-    closeLootWindow = false,
-    unwantedItemsDisposer = "none",
-    gearDisposer = "none",
-    deconThreshold = 0,
-    junkThreshold = 0,
-    autoSellJunk = true,
-    autoLaunder = false,
-    skipDialog = false,
-    printDisposeThreshold = 0,
-    alwaysLootStackable = false,
-    autoUnboxContainer = "none",
-    autoUnboxUnopened = false,
-    autoUnboxFish = false,
-    autoUnboxGeode = false,
-    loginReminder = true,
-    deconLogEnabled = true,
-    sellJunkLogEnabled = false,
-    stolenRule = "never loot",
-    stolenTreasureThreshold = 0,
-    autoBind = false,
-    autoDisposeAfterBind = false,
-    blacklist = {},
-    whitelist = {},
-    wlistJunk = {},
-    hostNativeLootAll = true,
-    addDestroyButton = false,
-    contextMenuEnabled = true,
-    contextJunkingEnabled = false,
-    neverAutolootWarning = false,
-    aprilFoolsTest = false,
-    addJunkingButton = true,
-    legacyMode = false,
-
-    filters = {
-        set = "always loot",
-        unresearched = "always loot",
-        rareTrait = "always loot",
-        ornate = "loot and junk",
-        intricate = "always loot",
-        clothingIntricate = "always loot",
-        blacksmithingIntricate = "always loot",
-        woodworkingIntricate = "always loot",
-        jewelryIntricate = "always loot",
-        intricateAutoDecon = false,
-        companionGears = "always loot",
-        craftedGears = "always loot",
-        weapons = "never loot",
-        armors = "never loot",
-        jewelry = "never loot",
-
-        blacksmithingMaterials = "always loot",
-        clothingMaterials = "always loot",
-        woodworkingMaterials = "always loot",
-        jewelryCraftingMaterials = "always loot",
-        refineMaterials = "always loot",
-        traitMaterials = "always loot",
-        styleMaterials = "always loot",
-        runes = "always loot",
-        alchemy = "always loot",
-        ingredients = "always loot",
-        furnishingMaterials = "always loot",
-        ink = "always loot",
-
-        lootCurrencies = true,
-
-        thirdParty = nil,
-        thirdPartyMinValue = 5000,
-        recipesAlwaysLootUnknown = true,
-        recipesAlwaysLootAnyCharUnknown = true,
-
-        questItems = "always loot",
-        crownItems = "always loot",
-        containers = "always loot",
-        unopened = "always loot",
-        writs = "always loot",
-        survey = "always loot",
-        treasureMaps = "always loot",
-        leads = "always loot",
-        skillScrolls = "always loot",
-        soulGems = "always loot",
-        recipes = "always loot",
-        glyphs = "always loot",
-        treasures = "loot and junk",
-        potions = "always loot",
-        foodAndDrink = "always loot",
-        poisons = "always loot",
-        costumes = "always loot",
-        fishingBaits = "always loot",
-        lockpicks = "always loot",
-        repairKits = "always loot",
-        tools = "always loot",
-        allianceWarConsumables = "always loot",
-        furniture = "always loot",
-        trophy = "always loot",
-        trash = "loot and junk",
-        scribing = "always loot",
-        scribingAutoMark = false,
-        styleMaterials3rd = "use default",
-        styleMaterials3rdPriceThreshold = 500,
-        styleMaterials3rdGearLooting = false,
-        styleMaterials3rdGearAutoDecon = false
-    }
-}
 
 -- local basezoneTreasureMapID = {
 --     -- khenarthisroost
@@ -1527,6 +1415,13 @@ local function ShouldLootMisc(filterType, link)
     return false
 end
 
+local function ShouldLootGlyph(filterType, link)
+    if IsItemLinkCrafted(link) then
+        return true
+    end
+    return ShouldLootMisc(filterType, link)
+end
+
 local function ShouldLootIntricate(filterType, link, quality, isJewelry)
     if (filterType == "always loot" or filterType == "loot and decon") then
         return true
@@ -2128,7 +2023,7 @@ function MSAL.FilterItem(link, isQuest, lootType)
             return "ink", "scribing material"
         end
     elseif itemType == ITEMTYPE_GLYPH_ARMOR or itemType == ITEMTYPE_GLYPH_JEWELRY or itemType == ITEMTYPE_GLYPH_WEAPON then
-        if ShouldLootMisc(db.filters.glyphs, link) then
+        if ShouldLootGlyph(db.filters.glyphs, link) then
             return "glyphs", "glyph"
         end
     elseif itemType == ITEMTYPE_CONTAINER or itemType == ITEMTYPE_CONTAINER_CURRENCY or itemType == ITEMTYPE_FISH then
@@ -2297,6 +2192,7 @@ local function OnLootUpdated()
         return
     end
     isProcessingLoot = true
+    lootWindowClosed = false
     DebugLog("[AL+ Debug Log]")
 
     -- if the loot start within 3 sec after lockpick successfully, then regard it's a locked chest loot
@@ -2612,6 +2508,7 @@ local function OnLootUpdated()
         end
 
         local bListedSetGearList = {}
+        local leftInWindow = false
         for i = 1, #unwantedLootIdList, 1 do
             local lootId = unwantedLootIdList[i]
             local link = GetLootItemLink(lootId)
@@ -2619,14 +2516,22 @@ local function OnLootUpdated()
             local name = LocalizeString("<<1>>", GetItemLinkName(link))
             if itemOnList(link, BLIST_TOKEN) and isSetItem then
                 table.insert(bListedSetGearList, link)
+                leftInWindow = true
             elseif IsItemLinkStolen(link) and (db.stolenRule == "never loot" or db.stolenRule == "never loot strict") then
-                -- do nothing
+                leftInWindow = true
             else
                 LootItemById(lootId)
             end
         end
         if #bListedSetGearList > 0 then
             ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
+        end
+        -- the disposer took everything it was handed, so the window has nothing left to show
+        if not leftInWindow and isAllCurtLooted then
+            DebugLog("closing loot window after disposer")
+            lootWindowClosed = true
+            EndLooting()
+            SCENE_MANAGER:Hide("loot")
         end
     else
         if db.closeLootWindow then
@@ -2639,12 +2544,14 @@ local function OnLootUpdated()
                 if isBagContainer then
                     if #currentNotLootedNameList == 0 and isAllCurtLooted then -- if it is a bag container and everything is looted then close it, otherwise do nothing
                         DebugLog("closing bag container loot window")
+                        lootWindowClosed = true
                         EndLooting()
                         SCENE_MANAGER:Show(currentScene)
                     end
                 else
                     if isAllCurtLooted then
                         DebugLog("closing loot window")
+                        lootWindowClosed = true
                         EndLooting()
                         SCENE_MANAGER:HideCurrentScene()
                         -- SCENE_MANAGER:ShowBaseScene()
@@ -2657,6 +2564,7 @@ local function OnLootUpdated()
 
     if #currentNotLootedNameList == 0 and isAllCurtLooted then
         DebugLog("secured closing loot window, showing: " .. currentScene)
+        lootWindowClosed = true
         if not IsInGamepadPreferredMode() then
             EndLooting()
             SCENE_MANAGER:Show(currentScene)
@@ -2679,9 +2587,113 @@ function MSAL.OnLootUpdatedThrottled()
     end
 end
 
+local function HasLootableContent()
+    if GetNumLootItems() > 0 then
+        return true
+    end
+    for _, info in pairs(LOOT_SHARED:GetLootCurrencyInformation()) do
+        if info.currencyAmount > 0 or info.stolenCurrencyAmount > 0 then
+            return true
+        end
+    end
+    return false
+end
+
+local function PlaySkippedLootSound()
+    if lootWindowSoundPlayed or SCENE_MANAGER:IsShowing("loot") then
+        return
+    end
+    lootWindowSoundPlayed = true
+    ZO_PlayLootWindowSound(false)
+end
+
+local function ScheduleLootWindowRecheck(lootSystem, ...)
+    local args = { ... }
+    local targetName = GetLootTargetInfo()
+    zo_callLater(function()
+        if not (db.enabled and db.closeLootWindow) or not IsLooting() then
+            return
+        end
+        if GetLootTargetInfo() ~= targetName then
+            return
+        end
+        MSAL.OnLootUpdatedThrottled()
+        if lootWindowClosed then
+            PlaySkippedLootSound()
+            return
+        end
+        local original = lootWindowUpdateOriginals[lootSystem]
+        if original then
+            original(lootSystem, unpack(args))
+        end
+    end, GetLatency() * 2 + 300)
+end
+
+-- PC: loot inside the window refresh so the window is never drawn
+local function OnLootWindowUpdate(lootSystem, ...)
+    if not (db.enabled and db.closeLootWindow) or IsInGamepadPreferredMode() then
+        return false
+    end
+    if isProcessingLoot then
+        return true
+    end
+    if not HasLootableContent() then
+        return false
+    end
+    local lastProcessed = lastLootUpdatedTimetag
+    MSAL.OnLootUpdatedThrottled()
+    DebugLog("loot window hook: target=" .. GetLootTargetInfo() .. ", items=" .. GetNumLootItems() ..
+                 ", throttled=" .. tostring(lastLootUpdatedTimetag == lastProcessed) .. ", closed=" ..
+                 tostring(lootWindowClosed))
+    if lastLootUpdatedTimetag == lastProcessed then
+        ScheduleLootWindowRecheck(lootSystem, ...)
+        return true
+    end
+    if lootWindowClosed then
+        PlaySkippedLootSound()
+    end
+    return lootWindowClosed
+end
+
+-- Console: the loot scene is already on its way in, hide it instead
+local function OnLootSceneShow(sceneName, newState)
+    if newState ~= SCENE_SHOWING or not (db.enabled and db.closeLootWindow) then
+        return
+    end
+    MSAL.OnLootUpdatedThrottled()
+    if not lootWindowClosed then
+        return
+    end
+    EndLooting()
+    SCENE_MANAGER:Hide(sceneName)
+    SCENE_MANAGER:Hide("gamepad_inventory_root")
+    ZO_GamepadTooltipTopLevelRightTooltip:SetParent(ZO_Gamepad_LootPickup)
+    ZO_GamepadTooltipTopLevelRightTooltipBg:SetParent(ZO_Gamepad_LootPickup)
+end
+
+local function RegisterLootWindowHooks()
+    local keyboardLoot = SYSTEMS:GetKeyboardObject("loot")
+    if keyboardLoot then
+        lootWindowUpdateOriginals[keyboardLoot] = ZO_PreHook(keyboardLoot, "UpdateLootWindow", OnLootWindowUpdate)
+    end
+    local gamepadLoot = SYSTEMS:GetGamepadObject("loot")
+    if gamepadLoot then
+        lootWindowUpdateOriginals[gamepadLoot] = ZO_PreHook(gamepadLoot, "UpdateLootWindow", OnLootWindowUpdate)
+    end
+    for _, sceneName in ipairs({ "lootGamepad", "lootInventoryGamepad" }) do
+        local scene = SCENE_MANAGER:GetScene(sceneName)
+        if scene then
+            scene:RegisterCallback("StateChange", function(_, newState)
+                OnLootSceneShow(sceneName, newState)
+            end)
+        end
+    end
+end
+
 local function OnLootClosed()
     isAllCurtLooted = true
     isBagContainer = false
+    lootWindowSoundPlayed = false
     isLALwaitingForUnboxingCraftReward = false
     if isWritsRewardContainerLooting then
         scheduleWritsRewardLootEnd(GetLatency() * 2 + 1000)
@@ -3054,9 +3066,6 @@ if ZO_IsConsoleOrGameCoreUI() then
             if link == nil or link == "" then
                 return
             end
-            slotActions:AddSlotAction(MSAL_CONTEXT_ADD_BLACKLIST, function()
-                MSAL.ContextAddToList(link, BLIST_TOKEN)
-            end, "secondary")
             slotActions:AddSlotAction(MSAL_CONTEXT_ADD_WHITELIST, function()
                 MSAL.ContextAddToList(link, WLIST_TOKEN)
             end, "secondary")
@@ -3066,15 +3075,16 @@ if ZO_IsConsoleOrGameCoreUI() then
         end)
     end
 
-    -- a plain ZO_PreHook landing after this secure hook makes the TryUseItem insecure, and the protected UseItem is then nil on console
-    -- this is a temporary workaround until some solid solution like LibCustomMenu on PC is created for console
     EVENT_MANAGER:RegisterForEvent("MSAL_CONSOLE_LIST_ACTIONS", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent("MSAL_CONSOLE_LIST_ACTIONS", EVENT_PLAYER_ACTIVATED)
-        zo_callLater(function()
-            if db.contextMenuEnabled or db.contextJunkingEnabled then
+        -- zo_callLater(RegisterConsoleListActions, 1000)
+        local scene = SCENE_MANAGER:GetScene("gamepad_inventory_root")
+        scene:RegisterCallback("StateChange", function(_, newState)
+            if (newState == SCENE_SHOWING or newState == SCENE_SHOWN) and
+                (db.contextMenuEnabled or db.contextJunkingEnabled) then
                 RegisterConsoleListActions()
             end
-        end, 1000)
+        end)
     end)
 
     local JUNK_CATEGORY_ICON = "EsoUI/Art/Inventory/inventory_tabicon_junk_down.dds"
@@ -3168,11 +3178,13 @@ if ZO_IsConsoleOrGameCoreUI() then
                 -- Already blacklisted pieces keep the entry, shown greyed out as "Blacklisted Already"
                 text = GetString(MSAL_CONTEXT_ADD_BLACKLIST),
                 setup = function(control, data, selected, reselected, ...)
-                    local pieceData = dialog.data and dialog.data.selectedItemSetCollectionPieceData
+                    -- the runtime dialog carries .data; the registered info table captured above does not
+                    local pieceData = data.dialog and data.dialog.data and
+                        data.dialog.data.selectedItemSetCollectionPieceData
                     local link = pieceData and pieceData:GetItemLink()
                     local blacklisted = link ~= nil and link ~= "" and itemOnList(link, BLIST_TOKEN)
-                    data.text = blacklisted and GetString(MSAL_CONTEXT_ALREADY_BLACKLISTED)
-                        or GetString(MSAL_CONTEXT_ADD_BLACKLIST)
+                    data.text = blacklisted and GetString(MSAL_CONTEXT_ALREADY_BLACKLISTED) or
+                        GetString(MSAL_CONTEXT_ADD_BLACKLIST)
                     data.enabled = not blacklisted
                     ZO_SharedGamepadEntry_OnSetup(control, data, selected, reselected, ...)
                 end,
@@ -3306,6 +3318,7 @@ local function OnPlayerActivated()
     end
 
     GearDeconRegisterHooks()
+    RegisterLootWindowHooks()
 
     EVENT_MANAGER:UnregisterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
     EVENT_MANAGER:UnregisterForEvent("MSAL_DESTROY_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
@@ -3378,54 +3391,7 @@ local function OnLoaded(_, addon)
     -- EVENT_MANAGER:RegisterForEvent("MSAL_INTERACT_CHECK", EVENT_CLIENT_INTERACT_RESULT, OnInteractResult)
     -- EVENT_MANAGER:RegisterForEvent("MSAL_INTERACT_CANCEL", EVENT_PENDING_INTERACTION_CANCELLED, OnInteractCancelled)
 
-    local legacySV = nil
-    local hasLegacySV = false
-    local worldName = GetWorldName()
-    if MSAL_VARS and MSAL_VARS.converted530 == nil then
-        if LibSavedVars ~= nil then
-            if MSAL_VARS and MSAL_VARS[worldName] and MSAL_VARS[worldName][GetDisplayName()] and
-                MSAL_VARS[worldName][GetDisplayName()]["$AccountWide"] then
-                legacySV = MSAL_VARS[worldName][GetDisplayName()]["$AccountWide"]["Account"]
-            end
-        else
-            if MSAL_VARS and MSAL_VARS["Default"] and MSAL_VARS["Default"][GetDisplayName()] and
-                MSAL_VARS["Default"][GetDisplayName()]["$AccountWide"] then
-                legacySV = MSAL_VARS["Default"][GetDisplayName()]["$AccountWide"]
-            end
-        end
-
-        if legacySV then
-            hasLegacySV = true
-        end
-    end
-
-    if hasLegacySV then
-        legacySV.useAccountWide = true
-        dbAccount = ZO_SavedVars:NewAccountWide(SV_NAME, 1, nil, legacySV, worldName)
-        dbChar = ZO_SavedVars:NewCharacterIdSettings(SV_NAME, 1, nil, legacySV, worldName)
-    else
-        dbAccount = ZO_SavedVars:NewAccountWide(SV_NAME, 1, nil, defaults, worldName)
-        dbChar = ZO_SavedVars:NewCharacterIdSettings(SV_NAME, 1, nil, defaults, worldName)
-    end
-    MSAL_VARS.converted530 = true
-    -- make sure the account-wide blacklist won't be tainted by char blacklist on load
-    dbChar.blacklist = dbAccount.blacklist
-    -- ensure new SV fields exist on legacy save data
-    dbAccount.wlistJunk = dbAccount.wlistJunk or {}
-    dbChar.wlistJunk = dbChar.wlistJunk or {}
-    dbAccount.contextJunkingEnabled = dbAccount.contextJunkingEnabled == true
-    dbChar.contextJunkingEnabled = dbChar.contextJunkingEnabled == true
-    -- The major update notice used to be remembered per character; carry that value over
-    -- so it does not show up once more for people who already dismissed it.
-    if (dbAccount.latestMajorUpdateVersion or "") == "" then
-        dbAccount.latestMajorUpdateVersion = dbChar.latestMajorUpdateVersion or ""
-    end
-
-    if dbChar.useAccountWide then
-        db = dbAccount
-    else
-        db = dbChar
-    end
+    dbAccount, dbChar, db = MSAL.Settings.InitializeSavedVariables()
 
     if not ZO_IsConsoleOrGameCoreUI() then
         ReorganizeLootWindowButtons()

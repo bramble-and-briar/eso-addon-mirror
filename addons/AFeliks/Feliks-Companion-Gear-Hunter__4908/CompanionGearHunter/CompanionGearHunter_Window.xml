@@ -1,0 +1,274 @@
+<GuiXml>
+    <Controls>
+        <!-- One gear slot row: Slot name, then the 3 "equipped" read-only
+             columns (Type/Trait/Quality - live from the game, last-known),
+             then the "Find" checkbox and its 3 wanted-value dropdowns.
+             Instantiated 12 times below as fixed, permanent controls - no
+             scroll list, no pooling, matching CompanionRoster's own
+             fixed-grid design.
+
+             Every control here is anchored with an absolute, independently
+             computed offsetX from the row's own left edge (not chained off
+             the previous sibling) so its position can't drift from the
+             matching header label below - each header label uses the exact
+             same offset, just measured from ColumnSlot instead of the row
+             itself (see the -10/+10 note by Row1/Slot below). -->
+        <Control name="CompanionGearHunter_SlotRow" virtual="true">
+            <Dimensions x="797" y="30" />
+
+            <Controls>
+                <Backdrop name="$(parent)Stripe" centerColor="00000000" edgeColor="00000000">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Slot" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="80" />
+                    <Anchor point="LEFT" offsetX="10" />
+                </Label>
+
+                <Label name="$(parent)EqType" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="70" />
+                    <Anchor point="LEFT" offsetX="98" />
+                </Label>
+
+                <Label name="$(parent)EqTrait" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="100" />
+                    <Anchor point="LEFT" offsetX="176" />
+                </Label>
+
+                <Label name="$(parent)EqQuality" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="65" />
+                    <Anchor point="LEFT" offsetX="284" />
+                </Label>
+
+                <!-- Master "hunt this slot" toggle, centered under the
+                     50px-wide "Find" header column (373 to 423) - a 16px
+                     checkbox centered in that span sits at offsetX 390.
+                     Unchecked (the default for every slot) is the row's
+                     blank/inactive state - the 3 dropdowns to its right are
+                     disabled and blanked, not just sitting on "Any", so an
+                     untouched row doesn't read as if it's already actively
+                     wanting something. -->
+                <Button name="$(parent)WantEnabled" inherits="ZO_CheckButton">
+                    <Anchor point="LEFT" offsetX="390" />
+                </Button>
+
+                <Control name="$(parent)WantType" inherits="ZO_ComboBox" mouseEnabled="true">
+                    <Dimensions x="100" y="24" />
+                    <Anchor point="LEFT" offsetX="431" />
+                </Control>
+
+                <Control name="$(parent)WantTrait" inherits="ZO_ComboBox" mouseEnabled="true">
+                    <Dimensions x="130" y="24" />
+                    <Anchor point="LEFT" offsetX="539" />
+                </Control>
+
+                <Control name="$(parent)WantQuality" inherits="ZO_ComboBox" mouseEnabled="true">
+                    <Dimensions x="110" y="24" />
+                    <Anchor point="LEFT" offsetX="677" />
+                </Control>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="CompanionGearHunterWindow" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true">
+            <Dimensions x="837" y="520" />
+            <Anchor point="CENTER" />
+
+            <OnMoveStop>
+                CompanionGearHunter.OnWindowMoveStop(self)
+            </OnMoveStop>
+
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Control name="$(parent)Header" mouseEnabled="true">
+                    <Dimensions y="32" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+
+                    <OnMouseDown>
+                        if button == MOUSE_BUTTON_INDEX_LEFT then
+                            CompanionGearHunterWindow:StartMoving()
+                        end
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        CompanionGearHunterWindow:StopMovingOrResizing()
+                    </OnMouseUp>
+
+                    <Controls>
+                        <Label name="$(parent)Title" font="ZoFontWinH3" text="Feliks' Companion Gear Hunter" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                            <AnchorFill />
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <Button name="$(parent)CloseButton" inherits="ZO_CloseButton">
+                    <OnClicked>
+                        CompanionGearHunter.ToggleWindow()
+                    </OnClicked>
+                </Button>
+
+                <Control name="$(parent)CompanionDropdown" inherits="ZO_ComboBox" mouseEnabled="true">
+                    <Dimensions x="280" y="30" />
+                    <!-- offsetX=40 here, not just a margin-looking number:
+                         ColumnSlot subtracts 10 from this, and Row1 (the
+                         grid's own left edge, including its highlight-stripe
+                         bleed) subtracts another 10 from that - so the grid's
+                         actual visible left edge lands at 40-10-10=20px from
+                         the window's edge, matching the ~20px left over on
+                         the right (837 window width - 20 - 797 row width).
+                         Previously this was 20, which put the grid's left
+                         edge flush at 0 - the highlighted-row stripe was
+                         sitting right on the window border. -->
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="40" offsetY="10" />
+                </Control>
+
+                <!-- Shows the selected companion's Role (Tank/Healer/DPS) as
+                     recorded in CompanionRoster, if that addon is installed
+                     and a role has been set there - hidden otherwise (both
+                     "CompanionRoster absent" and "no role set" look the
+                     same: no icon). Read-only here; roles are only ever
+                     assigned from CompanionRoster's own window. Wrapped in a
+                     mouse-enabled Control around a plain Texture rather than
+                     a bare mouse-enabled Texture - CompanionRoster's own
+                     CLAUDE.md documents that a bare mouse-enabled Texture
+                     didn't receive mouse events in this exact engine
+                     version, and this is the pattern that fixed it there. -->
+                <Control name="$(parent)CompanionRole" mouseEnabled="true" hidden="true">
+                    <Dimensions x="24" y="24" />
+                    <Anchor point="LEFT" relativeTo="$(parent)CompanionDropdown" relativePoint="RIGHT" offsetX="10" />
+                    <OnMouseEnter>
+                        CompanionGearHunter.OnCompanionRoleMouseEnter(self)
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ZO_Tooltips_HideTextTooltip()
+                    </OnMouseExit>
+                    <Controls>
+                        <Texture name="$(parent)Icon">
+                            <AnchorFill />
+                        </Texture>
+                    </Controls>
+                </Control>
+
+                <!-- Opens this addon's settings panel (Settings > Add-Ons).
+                     Replaces the two checkboxes that used to sit here; those
+                     options now live in the panel. -->
+                <Button name="$(parent)SettingsButton" inherits="ZO_DefaultButton" text="Settings">
+                    <Dimensions x="110" y="28" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetX="-20" offsetY="12" />
+                    <OnClicked>
+                        CompanionGearHunter.OpenSettings()
+                    </OnClicked>
+                </Button>
+
+                <!-- ColumnSlot anchors the whole header row; every other
+                     column label below is anchored relative to ITS left
+                     edge (not chained sibling-to-sibling) using offsetX =
+                     (the matching row control's own absolute offsetX) - 10,
+                     since Row1 itself sits 10px left of ColumnSlot (see the
+                     Row1 anchor below) - that -10 is what "un-shifts" back
+                     to the same absolute screen position as the row
+                     content, so header and dropdown/label line up exactly. -->
+                <Label name="$(parent)ColumnSlot" font="ZoFontWinH5" text="Slot" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="80" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)CompanionDropdown" relativePoint="BOTTOMLEFT" offsetX="-10" offsetY="14" />
+                </Label>
+                <Label name="$(parent)ColumnEqType" font="ZoFontWinH5" text="Type" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="70" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="88" />
+                </Label>
+                <Label name="$(parent)ColumnEqTrait" font="ZoFontWinH5" text="Trait" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="100" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="166" />
+                </Label>
+                <Label name="$(parent)ColumnEqQuality" font="ZoFontWinH5" text="Quality" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="65" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="274" />
+                </Label>
+                <Label name="$(parent)ColumnFind" font="ZoFontWinH5" text="Find" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Dimensions x="50" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="363" />
+                </Label>
+                <Label name="$(parent)ColumnWantType" font="ZoFontWinH5" text="Type" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="100" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="421" />
+                </Label>
+                <Label name="$(parent)ColumnWantTrait" font="ZoFontWinH5" text="Trait" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="130" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="529" />
+                </Label>
+                <Label name="$(parent)ColumnWantQuality" font="ZoFontWinH5" text="Quality Floor" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
+                    <Dimensions x="110" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="667" />
+                    <OnMouseEnter>
+                        ZO_Tooltips_ShowTextTooltip(self, TOP, "Matches the selected quality or better - e.g. \"Superior\" also matches Epic and Legendary drops.")
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ZO_Tooltips_HideTextTooltip()
+                    </OnMouseExit>
+                </Label>
+
+                <Backdrop name="$(parent)HeaderDivider" centerColor="FFFFFF40" edgeColor="00000000">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ColumnSlot" relativePoint="BOTTOMLEFT" offsetX="-10" offsetY="6" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)ColumnWantQuality" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="6" />
+                </Backdrop>
+
+                <!-- Row1 sits 10px left of ColumnSlot, matching Slot's own
+                     +10 offsetX inside the row template - the two cancel
+                     out so the visible Slot text lands exactly under
+                     ColumnSlot, while the row's own bounds (and its Stripe
+                     highlight backdrop) extend that same 10px further left
+                     for a symmetric bleed on both sides of the grid. -->
+                <Control name="$(parent)Row1" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ColumnSlot" relativePoint="BOTTOMLEFT" offsetX="-10" offsetY="10" />
+                </Control>
+                <Control name="$(parent)Row2" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row3" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row4" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row5" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row6" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row5" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row7" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row6" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row8" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row7" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row9" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row8" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row10" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row9" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row11" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row10" relativePoint="BOTTOMLEFT" />
+                </Control>
+                <Control name="$(parent)Row12" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Row11" relativePoint="BOTTOMLEFT" />
+                </Control>
+
+                <!-- Anchored below Row12, flush with its own right-bleed
+                     edge, rather than to the window's fixed bottom/right -
+                     Row12 keeps its layout position even when hidden
+                     (Off-Hand, for a two-handed weapon), and this way the
+                     footer can't end up positioned past the window's own
+                     edge no matter how the row width changes later. -->
+                <Label name="$(parent)Footer" font="ZoFontGameSmall" horizontalAlignment="RIGHT" verticalAlignment="CENTER">
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Row12" relativePoint="BOTTOMRIGHT" offsetY="14" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

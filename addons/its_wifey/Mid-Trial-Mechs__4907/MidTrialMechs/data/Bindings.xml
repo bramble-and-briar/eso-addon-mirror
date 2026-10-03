@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Mid Trial Mechs">
+            <Action name="MIDTRIALMECHS_PANEL_KEYBIND">
+                <Down>MidTrialMechs_TogglePanel()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

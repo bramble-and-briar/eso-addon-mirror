@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Muflonebarbuto/Traduzione-Italiana-ESO__4271",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Muflonebarbuto",
   "canonical_id": "esoui:4271",
   "category_id": "155",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -71,7 +76,7 @@
     "traduzioneitaeso"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4271/",
-  "fingerprint": "fd5bf0f4cb437c65606f8066910027e532e5a6b8e48a29b55dc6c80360a4be70",
+  "fingerprint": "e1ffcbd5fc82c7f467f677c6cf75ba5d75aec3e85f50c7c2c429987cd6be91b0",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14671.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw14672.jpg"
@@ -82,11 +87,11 @@
   "source_id": "4271",
   "source_url": "https://www.esoui.com/downloads/info4271-TraduzioneItalianaESO.html",
   "stats": {
-    "downloads": 3509,
+    "downloads": 4281,
     "favorites": 0,
-    "monthly_downloads": 347
+    "monthly_downloads": 312
   },
   "title": "Traduzione Italiana ESO",
-  "updated_at": 1783788100000,
-  "version": "2.0.0"
+  "updated_at": 1790948694000,
+  "version": "2.0.1"
 }

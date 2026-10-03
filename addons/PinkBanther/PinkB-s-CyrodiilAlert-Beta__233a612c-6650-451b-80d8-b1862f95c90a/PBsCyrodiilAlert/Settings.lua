@@ -627,6 +627,128 @@ function addon:InitSettings()
 		}
 	)
 
+	-- ---- the overview map -----------------------------------------------------------
+	AddHeading(settings, LibHarvensAddonSettings, GetString(SI_PBSCA_SECTION_MAP))
+
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_LABEL,
+			label = GetString(SI_PBSCA_SECTION_MAP_NOTE)
+		}
+	)
+
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCA_MAP_ENABLED),
+			tooltip = GetString(SI_PBSCA_MAP_ENABLED_TOOLTIP),
+			default = self.DEFAULTS.map.enabled,
+			getFunction = function()
+				return self.sv.map.enabled
+			end,
+			setFunction = function(value)
+				self.sv.map.enabled = value
+				self.map:Refresh()
+			end
+		}
+	)
+
+	-- Same shape as the output window's sliders: the stored value, the shipped one as the floor,
+	-- and nothing derived from the field's name.
+	local function AddMapSlider(label, tooltip, field, minimum, maximum, step, unit)
+		settings:AddSetting(
+			{
+				type = LibHarvensAddonSettings.ST_SLIDER,
+				label = GetString(_G[label]),
+				tooltip = GetString(_G[tooltip]),
+				min = minimum,
+				max = maximum,
+				step = step,
+				default = self.DEFAULTS.map[field],
+				format = "%d",
+				unit = unit,
+				getFunction = function()
+					local value = self.sv.map[field]
+					if value == nil then
+						return self.DEFAULTS.map[field]
+					end
+					return value
+				end,
+				setFunction = function(value)
+					self.sv.map[field] = value
+					self.map:Refresh()
+				end
+			}
+		)
+	end
+
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCA_MAP_LINKS),
+			tooltip = GetString(SI_PBSCA_MAP_LINKS_TOOLTIP),
+			default = self.DEFAULTS.map.links,
+			getFunction = function()
+				return self.sv.map.links ~= false
+			end,
+			setFunction = function(value)
+				self.sv.map.links = value
+				self.map:Refresh()
+			end
+		}
+	)
+
+	AddMapSlider("SI_PBSCA_MAP_SIZE", "SI_PBSCA_MAP_SIZE_TOOLTIP", "size",
+		self.MIN_MAP_SIZE, self.MAX_MAP_SIZE, 10, GetString(SI_PBSCA_UNIT_PIXELS))
+	AddMapSlider("SI_PBSCA_MAP_PIN", "SI_PBSCA_MAP_PIN_TOOLTIP", "pinSize",
+		self.MIN_MAP_PIN, self.MAX_MAP_PIN, 1, GetString(SI_PBSCA_UNIT_PIXELS))
+	AddMapSlider("SI_PBSCA_MAP_OPACITY", "SI_PBSCA_MAP_OPACITY_TOOLTIP", "opacity", 10, 100, 5, "%")
+
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_DROPDOWN,
+			label = GetString(SI_PBSCA_MAP_POSITION),
+			tooltip = GetString(SI_PBSCA_MAP_POSITION_TOOLTIP),
+			items = lists.positions,
+			default = (lists.positionByToken[self.DEFAULTS.map.position] or {}).name,
+			getFunction = function()
+				-- The stored value, not the map's reader: the panel must not depend on
+				-- Map.lua having loaded.
+				local entry = lists.positionByToken[self.sv.map.position]
+					or lists.positionByToken[self.DEFAULTS.map.position]
+				return entry and entry.name
+			end,
+			setFunction = function(combobox, name, item)
+				self.sv.map.position = item.data
+				self.map:Refresh()
+			end
+		}
+	)
+
+	AddMapSlider("SI_PBSCA_MAP_OFFSET_X", "SI_PBSCA_MAP_OFFSET_X_TOOLTIP", "offsetX",
+		-self.MAX_OFFSET_X, self.MAX_OFFSET_X, 5, GetString(SI_PBSCA_UNIT_PIXELS))
+	AddMapSlider("SI_PBSCA_MAP_OFFSET_Y", "SI_PBSCA_MAP_OFFSET_Y_TOOLTIP", "offsetY",
+		-self.MAX_OFFSET_Y, self.MAX_OFFSET_Y, 5, GetString(SI_PBSCA_UNIT_PIXELS))
+
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_DROPDOWN,
+			label = GetString(SI_PBSCA_MAP_DRAW),
+			tooltip = GetString(SI_PBSCA_MAP_DRAW_TOOLTIP),
+			items = lists.draws,
+			default = (lists.drawByToken[self.DEFAULTS.map.draw] or {}).name,
+			getFunction = function()
+				local entry = lists.drawByToken[self.sv.map.draw]
+					or lists.drawByToken[self.DEFAULTS.map.draw]
+				return entry and entry.name
+			end,
+			setFunction = function(combobox, name, item)
+				self.sv.map.draw = item.data
+				self.map:Refresh()
+			end
+		}
+	)
+
 	-- ---- the campaign summary --------------------------------------------------------
 	AddHeading(settings, LibHarvensAddonSettings, GetString(SI_PBSCA_SECTION_BOARD))
 

@@ -1,7 +1,7 @@
 ## Title: CurvedHUD
 ## Description: Curved player resource HUD for gamepad and console UI.
 ## Author: CurvedHUD Project
-## Version: 1.1.2
+## Version: 1.1.3
 ## APIVersion: 101050 101051 101052
 ## SavedVariables: CurvedHUD_SavedVariables CurvedHUD_CharacterSavedVariables
 ## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings

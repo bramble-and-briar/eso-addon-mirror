@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/tim99/NowhereKeys__4906",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "tim99",
+  "canonical_id": "esoui:4906",
+  "category_id": "147",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4906",
+  "deleted": false,
+  "directories": [
+    "NowhereKeys"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4906/",
+  "fingerprint": "57931bcd938aca1aad340605936bff90efdc8c209e9bd34626550eb2a7675418",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17658.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4906",
+  "source_url": "https://www.esoui.com/downloads/info4906-NowhereKeys.html",
+  "stats": {
+    "downloads": 19,
+    "favorites": 0,
+    "monthly_downloads": 16
+  },
+  "title": "NowhereKeys",
+  "updated_at": 1790950262000,
+  "version": "1.0"
+}

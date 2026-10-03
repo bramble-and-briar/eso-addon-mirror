@@ -4,6 +4,184 @@ Full version history for LibInteriorDetection (renamed from LibIndoorDetection a
 
 ---
 
+## What's New in 1.3.6
+
+- **Fixed: quitting the game could restore the wrong indoor/outdoor
+  state at the next login.** The saved state is now kept current while
+  playing, instead of being written only by `OnPlayerDeactivated`:
+  - `SetIsInterior` writes `lastIsInterior` on every change (door,
+    teleport check, restore, zone default, `/lid debug flip`).
+  - Every handled zone activation writes the zone, position and
+    temporary flag (`SaveLiveRecord`), after the restore decision has
+    already read the previous record. An activation that's ignored
+    (LibZone returned no zoneId) writes nothing.
+  - `OnPlayerDeactivated` is unchanged and still does a full update for
+    the exits where it runs.
+- **Why - found from in-game traces:**
+  - An idle kick to the login screen saved correctly: the record age
+    matched the kick to the second.
+  - Quitting the client did not, twice. The next login restored the
+    record from the previous load screen (the Daggerfall Outlaws Refuge
+    exit, the night before) or the previous idle kick. Each time the
+    trace counter reset, which only happens on a client restart, and
+    there was no deactivation record for the quit.
+  - An account-wide setting changed during a session survived a quit, so
+    the game does write SavedVariables then. It just doesn't include our
+    logout update.
+  - Whether `EVENT_PLAYER_DEACTIVATED` doesn't fire on quit or fires
+    after the write is **unknown**. The fix doesn't depend on it.
+- **No `Quit()` hook** (the pattern removed in 0.6.6) and **no polling.**
+  A periodic position save was evaluated first, at the author's request,
+  for its cost on low-end systems: one native position read and four
+  field writes every few seconds, with no disk I/O. That would be
+  negligible next to the existing 0.25s door and teleport watches, as
+  long as it reuses one table and does no string work per tick. It isn't
+  needed yet, because the login restore uses only the zone and state.
+  It's an estimate from what the calls do, not a benchmark.
+- **Trade-off:** after a quit, the saved position is where the zone was
+  loaded, not where the player quit. So the login trace's distance and
+  age aren't meaningful for quit exits, and the log-only login position
+  check would need the periodic save before it could be enabled for
+  them.
+- **Diagnostics:** new `lastLiveUpdateTime` / `lastLiveUpdateSource`
+  fields, shown in the login trace and `/lid debug saved` as "Last live
+  update". After a quit, expect a recent live update alongside an older
+  deactivation record.
+- Offline-tested with stubbed ESO functions:
+  - A flip followed by a simulated quit restores Interior.
+  - The night-before sequence (refuge, refuge exit, building, quit)
+    restores Interior.
+  - An ignored activation leaves the record alone.
+  - The reload and same-zone-teleport paths still behave correctly.
+  - The `/lid debug flip` message is unchanged.
+  - The 1.3.4/1.3.5 suites still pass, with the gate both off and on.
+- **In-game results** (same evening, in Pathierry House, Daggerfall):
+  - **Confirmed: state survives a quit.** `/lid debug flip` to Interior,
+    quit, relaunch: the login restored Interior. The trace's "last live
+    update" pointed to the flip to the second, while "Last deactivation"
+    was still an idle kick from an hour earlier - the logout handler
+    again didn't run on quit, and the live save covered for it.
+  - **Confirmed: the zone-load live save survives a quit.** A quit with
+    no state change in between restored the record written at the
+    previous login's activation.
+  - **Confirmed: a door crossing triggers the live save** (`/lid debug
+    saved` showed "Last live update ... (Door)"), and both directions of
+    Pathierry House's door are detected (~2.8k-unit jumps).
+  - **Not yet confirmed end to end: a door crossing followed by a quit.**
+    The save is the same `SetIsInterior` path as the flip, so this is
+    low risk, but no login after a door-then-quit has been traced yet.
+  - **Confirmed: an idle kick to the login screen saves normally**
+    (record age matched the kick to the second) - this resolves the
+    open question listed in 1.3.4.
+  - **Login drift inside a building: 0-1 units** across three logins.
+    This is the first indoor drift data for the log-only login gate,
+    which still can't be used for quit exits without a periodic
+    position save.
+  - The 1.3.4 logout diagnostics and the 1.3.5 log-only login check were
+    exercised in the same sessions and behaved as documented.
+- **Observed limitation, not new:** a wrong state at login (here, the
+  record left by the pre-1.3.6 quit) carries through door crossings
+  inverted - leaving the building flipped it to Interior and re-entering
+  flipped it back to Exterior - since the door toggle can only invert.
+  `/lid debug flip` corrects it. Door interaction text appears to name
+  the destination ("Daggerfall" leading out, "Pathierry House" leading
+  in), which might let a future version correct the state rather than
+  only invert it; **untested**, and doors that don't name a destination
+  (basements, district gates) would need a fallback.
+
+---
+
+## What's New in 1.3.5
+
+- **The 1.3.4 login position check is now log-only** (new
+  `LOGIN_POSITION_GATE_ENABLED = false`). A login restores exactly as
+  1.3.3 did - raw zone match only - and the trace reports the distance
+  and whether the check *would* have rejected the record.
+  `/lid debug saved` shows whether the check is on or log-only.
+- **Why:** on review, enforcing it was premature.
+  - It can only make restores rarer. It can't fix a restore that never
+    happened, and the reported failure (logging in inside, getting the
+    exterior zone default) is exactly that.
+  - It targets an exit that never wrote SavedVariables, which the
+    author's report of a proper logout makes less likely.
+  - Its 50m tolerance is applied to the case that already works, and
+    login drift has never been measured for a login *inside* an interior
+    pocket. Those are spatially far from their doors (why a door reads as
+    a >20m jump), so drift there may differ from the earlier tests. If it
+    exceeded 50m, a clean logout inside would have newly fallen back to
+    exterior.
+  - In 1.3.4 the check was also shipped in the same release as the
+    diagnostics meant to decide whether it was needed.
+- **When to turn it on:** once traces give real drift numbers (including
+  logins inside interior pockets) and at least one `lastDeactivate`
+  record confirms a stale save. Then it's this one constant.
+- The 1.3.4 logout diagnostics (`lastDeactivate`, record timestamps,
+  login trace, `/lid debug saved` additions) are unchanged.
+- Offline-tested with stubbed ESO functions: with the gate off, a record
+  200m away now restores (the trace marks it "REJECTED it as stale"),
+  one at 30m restores; the same 1.3.4 scenarios with the gate switched
+  on still behave as before; reload, teleport, nil-read and debug-saved
+  checks unchanged. **Not yet tested in-game.**
+
+---
+
+## What's New in 1.3.4
+
+Response to a report that logging out inside an interior pocket of an
+exterior zone sometimes logs back in with the wrong state the next day,
+even without the character moving and after what the author believes
+was a proper logout.
+
+- **A login now only restores the saved state if the player is within
+  50m (any axis) of the saved logout position** (new
+  `LOGIN_POSITION_TOLERANCE`). Why: the saved record only reaches disk
+  when ESO writes SavedVariables (logout, menu Quit, `/reloadui`). A
+  session that ends without that write leaves the record from an earlier
+  clean exit, and the login branch restored it with no age or position
+  check as long as the raw zone matched - which an interior pocket of an
+  exterior zone always does. This partly reverses 0.6.7's "no position
+  on login": that dropped *exact* matching, which drift makes
+  impossible; this check is loose and only rejects records from
+  elsewhere in the zone. **Unverified:** that 50m always exceeds real
+  login drift (the "tens of meters" measured earlier); if it doesn't,
+  the result is the zone default, and the trace logs the distance. A
+  stale record from the same building still passes.
+- **Logout diagnostics** (no effect on behavior): `OnPlayerDeactivated`
+  now writes a `lastDeactivate` record before anything that can bail
+  out - a timestamp, the raw zoneId it read (nil if the read failed),
+  the raw zoneId captured at the last load screen
+  (`lib.state.rawZoneId`, read while the world was stable), the live
+  state, and whether the save completed. Why: four causes of a failed
+  restore after a proper logout couldn't be told apart - the save
+  silently not happening (the nil-position early return had no trace
+  line; seen once in 0.6.5, never resolved, and 0.6.5's
+  `lastDeactivateRan` diagnostics are no longer in the code), a wrong
+  teardown-time zoneId (cf. the 0.6.4 x/y/z-vs-zoneId split), a
+  correct restore overwritten moments after login, or the state already
+  wrong at logout. The early return and a teardown-vs-activation zoneId
+  mismatch are now traced too, though chat at logout can't be read
+  afterwards - the persisted record is what matters.
+- `lastPosition` now carries a timestamp, so a record's age is visible.
+  Records from earlier versions show as "unknown (pre-1.3.4 record)"
+  and are still subject to the position check.
+- **Login trace** now reports the saved record (zone, state, age) and the
+  last deactivation record, plus the distance and whether it was
+  restored or treated as stale.
+- **`/lid debug saved`** now also prints the last deactivation record
+  (even when no position was ever saved), the distance from the saved
+  position against the login tolerance, and the record's age.
+- `GetTimeStamp()` confirmed in the ESOUI client source
+  (`timedactivities_manager.lua`, seconds). Still **unverified**: whether
+  an inactivity logout or force-closing the client writes SavedVariables.
+- Offline-tested with stubbed ESO functions (19 checks): restore at 30m
+  login drift; a stale record 200m away falling back to the zone
+  default; a nil position read leaving the old record in place with
+  `saved=false`; pre-1.3.4 records; the reload and same-zone-teleport
+  paths unchanged; the zone-mismatch trace; and `/lid debug saved` with
+  and without a saved position. **Not yet tested in-game.**
+
+---
+
 ## What's New in 1.3.3
 
 - **Built-in exceptions to the Weather Control house rule** (new

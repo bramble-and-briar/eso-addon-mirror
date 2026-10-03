@@ -1,11 +1,11 @@
 ## Title: Calamath's Addon Diagnosis
 ## Description: ESOUI Add-on Diagnosis
-## Version: 5.0.4
+## Version: 5.0.5
 ## Author: Calamath
 ## License: Artistic License 2.0
 ## IsLibrary: false
-## APIVersion: 101050 101051
-## AddOnVersion: 50004
+## APIVersion: 101051 101052
+## AddOnVersion: 50005
 ## OptionalDependsOn: LibDebugLogger>=307
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax 

@@ -1,0 +1,8 @@
+## Title: Fix Addon List Apostrophe Bug
+## Description: Fixes the backslash ' bug for u51 in the addon list
+## Author: |c0DC1CF@M0R_Gaming|r
+## APIVersion: 101051
+## Version: 1
+## AddOnVersion: 1
+
+main.lua

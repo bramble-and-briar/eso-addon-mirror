@@ -633,6 +633,25 @@ end
 -- How full the bar is
 -- ---------------------------------------------------------------------------------------
 
+-- How full the game's own fill is drawn right now. The client does not jump a status bar to a new
+-- value: ZO_StatusBar_SmoothTransition plays an animation that moves it there with SetValue, so the
+-- fill lags the real amount for a moment after every change -- and after a stay in a menu, by all
+-- that was regained there. An effect drawn over the fill has to follow the fill, not the amount, or
+-- it stands out past the fill until the fill catches up, which is the flash Liquid and Crystal
+-- showed coming back from a menu and Standard did not (1.27.10, FINDINGS 66).
+function plain:DrawnFraction(bar)
+	local control = Control(bar.controls[1].name)
+	if control and type(control.GetValue) == "function" and type(control.GetMinMax) == "function" then
+		local okValue, value = pcall(control.GetValue, control)
+		local okRange, low, high = pcall(control.GetMinMax, control)
+		if okValue and okRange and type(value) == "number" and type(low) == "number" and type(high) == "number"
+			and high > low then
+			return Clamp((value - low) / (high - low), 0, 1)
+		end
+	end
+	return self:Fraction(bar)
+end
+
 function plain:Fraction(bar)
 	local powerType = _G["COMBAT_MECHANIC_FLAGS_" .. bar.power:upper()]
 	if not powerType or type(GetUnitPower) ~= "function" then
@@ -861,6 +880,73 @@ local function Lighten(r, g, b, k)
 	return r + (1 - r) * k, g + (1 - g) * k, b + (1 - b) * k
 end
 
+-- ---- Switches for finding a flicker --------------------------------------------------------
+-- The return trace (ReturnTrace.lua) showed nothing that goes or comes back, or changes alpha, once
+-- the bars are showing -- and Liquid still flickered coming back from a menu where Standard did not
+-- (FINDINGS 67). So whatever it is lies in what is drawn, which no trace sees. These take one part
+-- of the style away at a time, for this session only, so the PS5 can say which part it is:
+-- "/pbhud plain test <part> off".
+plain.TEST_PARTS = {
+	"hold", "colour", "alpha", "numbers", "effect",
+	"shade", "current", "bubble", "glow", "drain", "glass", "facet", "pavilion", "girdle", "sparkle",
+}
+plain.testOff = {}
+
+function plain:TestOn(part)
+	return not self.testOff[part]
+end
+
+-- Whether the bars' own fade has finished: true until their fragment starts to show, false from
+-- then until it reports SHOWN. The effect over the fill is drawn through the fade but kept out of
+-- sight until it ends: Liquid's wide pieces flickered while the group above them faded in, and on a
+-- PS5 this was the way back that both stopped it and looked natural (1.27.15, FINDINGS 69).
+plain.fadeDone = true
+
+function plain:OnFade(state)
+	if state == SCENE_FRAGMENT_SHOWING then
+		self.fadeDone = false
+	elseif state == SCENE_FRAGMENT_SHOWN or state == SCENE_FRAGMENT_HIDDEN then
+		self.fadeDone = true
+	end
+end
+
+-- "/pbhud plain test", "... test <part> on|off", "... test reset". Changing one starts the style
+-- over, so what it had written is put back before it runs without that part.
+function plain:TestCommand(part, value)
+	local Line = addon.Line
+	part = part and part:lower() or nil
+	if part == "reset" then
+		for key in pairs(self.testOff) do
+			self.testOff[key] = nil
+		end
+	elseif part then
+		local known = false
+		for _, name in ipairs(self.TEST_PARTS) do
+			if name == part then
+				known = true
+			end
+		end
+		if not known then
+			Line("unknown part %s -- one of: %s", part, table.concat(self.TEST_PARTS, " "))
+			return false
+		end
+		self.testOff[part] = (tostring(value):lower() == "off") or nil
+	end
+	if part then
+		self:Stop()
+		self:Refresh()
+	end
+	local off = {}
+	for _, name in ipairs(self.TEST_PARTS) do
+		if self.testOff[name] then
+			off[#off + 1] = name
+		end
+	end
+	Line("|cFF69B4%s|r test parts off: %s  (%s plain test <part> on|off, %s plain test reset)", addon.title,
+		#off > 0 and table.concat(off, ", ") or "none", addon.slash, addon.slash)
+	return true
+end
+
 -- ---- The painter ----------------------------------------------------------------------------
 -- A pool of EFFECT_MAX_PIECES textures per bar section, built with the group, handed out in order
 -- each frame and the rest hidden.
@@ -935,6 +1021,9 @@ end
 
 function Painter:Put(x0, y0, x1, y1, r, g, b, level, role, tag)
 	if x1 - x0 < 0.5 or y1 - y0 < 0.25 then
+		return
+	end
+	if tag and plain.testOff[tag] then
 		return
 	end
 	local tl, tr, bl, br = self:At(x0, y0), self:At(x1, y0), self:At(x0, y1), self:At(x1, y1)
@@ -1318,7 +1407,8 @@ function plain:EffectAlpha(bar, alpha)
 	for _, name in ipairs(controls) do
 		local control = Control(name)
 		if control and type(control.SetAlpha) == "function" and type(control.GetAlpha) == "function" then
-			local current = control:GetAlpha()
+			-- Its own alpha: the drawn one moves with every fade of the group above it.
+			local current = addon.OwnAlpha(control) or 1
 			if self.effectAlphas[control] == nil then
 				self.effectAlphas[control] = current
 			end
@@ -1356,13 +1446,17 @@ function plain:UpdateLiquid(style)
 	local wave = (math.sin(now / 1300) + 1) / 2
 	local opacity = Opacity()
 	for _, bar in ipairs(self.bars) do
-		local fraction = self:Fraction(bar)
-		self:RaiseNumbers(bar, true)
+		local fraction = self:DrawnFraction(bar)
+		if self:TestOn("numbers") then
+			self:RaiseNumbers(bar, true)
+		end
 		if bar.powerType == nil then
 			bar.powerType = _G["COMBAT_MECHANIC_FLAGS_" .. bar.power:upper()] or false
 		end
 		local powerType = bar.powerType
-		self:EffectAlpha(bar, opacity)
+		if self:TestOn("alpha") then
+			self:EffectAlpha(bar, opacity)
+		end
 		local gradient = powerType and ZO_POWER_BAR_GRADIENT_COLORS and ZO_POWER_BAR_GRADIENT_COLORS[powerType]
 		if gradient and gradient[1] and gradient[2] then
 			local r, g, b, a = gradient[1]:UnpackRGBA()
@@ -1371,19 +1465,40 @@ function plain:UpdateLiquid(style)
 				local control = Control(entry.name)
 				if control and type(control.SetGradientColors) == "function" then
 					self.effectColours[control] = self.effectColours[control] or { r, g, b, a, r2, g2, b2, a2 }
+					local drawEffect, writeColour = self:TestOn("effect"), self:TestOn("colour")
+					local holdEffect = not self.fadeDone
+					if drawEffect and holdEffect then
+						-- Drawn, so it is ready, and kept out of sight until the fade ends.
+						if style == "crystal" then
+							self:CrystalFacets(bar, entry, control, fraction, now)
+						else
+							self:LiquidRibbons(bar, entry, control, fraction, now)
+						end
+						drawEffect = false
+					end
+					if not drawEffect then
+						local group = self.effectGroups and self.effectGroups[entry.name]
+						if group then
+							group.control:SetHidden(true)
+						end
+					end
 					if style == "crystal" then
-						self:CrystalFacets(bar, entry, control, fraction, now)
+						if drawEffect then
+							self:CrystalFacets(bar, entry, control, fraction, now)
+						end
 						-- Clear and cool: the power's colour lifted towards white.
 						local k1, k2 = 0.22 + wave * 0.06, 0.45
-						addon:Write("effect colour", control.SetGradientColors, control,
+						if writeColour then addon:Write("effect colour", control.SetGradientColors, control,
 							r + (1 - r) * k1, g + (1 - g) * k1, b + (1 - b) * k1, a,
-							r2 + (1 - r2) * k2, g2 + (1 - g2) * k2, b2 + (1 - b2) * k2, a2)
+							r2 + (1 - r2) * k2, g2 + (1 - g2) * k2, b2 + (1 - b2) * k2, a2) end
 					else
-						self:LiquidRibbons(bar, entry, control, fraction, now)
+						if drawEffect then
+							self:LiquidRibbons(bar, entry, control, fraction, now)
+						end
 						local dark, light = 0.60 + wave * 0.18, 0.12 + (1 - wave) * 0.18
-						addon:Write("effect colour", control.SetGradientColors, control,
+						if writeColour then addon:Write("effect colour", control.SetGradientColors, control,
 							r * dark, g * dark, b * dark, a,
-							r2 + (1 - r2) * light, g2 + (1 - g2) * light, b2 + (1 - b2) * light, a2)
+							r2 + (1 - r2) * light, g2 + (1 - g2) * light, b2 + (1 - b2) * light, a2) end
 					end
 				end
 			end
@@ -1513,9 +1628,9 @@ function plain:PrintStatus()
 							group and group.painter.used or 0, tostring(group ~= nil and not group.control:IsHidden()))
 						local background = Control(bar.container .. "BgContainer")
 						local frame = Control(bar.container .. "FrameCenter")
-						Line("      alpha: bar %.2f, background %s, frame %s (slider %d%%)", barControl:GetAlpha(),
-							background and string.format("%.2f", background:GetAlpha()) or "?",
-							frame and string.format("%.2f", frame:GetAlpha()) or "?", addon:PlainOpacity())
+						Line("      own alpha: bar %.2f, background %s, frame %s (slider %d%%)", addon.OwnAlpha(barControl) or -1,
+							background and string.format("%.2f", addon.OwnAlpha(background) or -1) or "?",
+							frame and string.format("%.2f", addon.OwnAlpha(frame) or -1) or "?", addon:PlainOpacity())
 					end
 				end
 				if overlay then
@@ -1598,8 +1713,10 @@ function plain:HoldBars()
 	self.heldBars = self.heldBars or {}
 	for _, bar in ipairs(self.bars) do
 		local container = Control(bar.container)
+		-- Its own flag: the group above it is already hidden when this runs, so the drawn state
+		-- always said "hidden" and nothing was ever held back (FINDINGS 65).
 		if container and type(container.SetHidden) == "function" and type(container.IsHidden) == "function"
-			and not container:IsHidden() then
+			and not addon.OwnHidden(container) then
 			addon:Write("hold bars", container.SetHidden, container, true)
 			self.heldBars[bar.container] = container
 		end
@@ -1610,6 +1727,9 @@ function plain:HoldBars()
 end
 
 function plain:RevealBars()
+	if self.holding and addon.returnTrace then
+		addon.returnTrace:Event("revealed")
+	end
 	-- What the last return from a menu looked like, for /pbhud plain: the one measurement to ask for
 	-- if the bars still flicker.
 	if self.holding and self.holdSince then
@@ -1636,8 +1756,8 @@ function plain:CheckReveal(now)
 	if not self.holding then
 		return false
 	end
-	if (self.resumeUpdates or 0) >= REVEAL_AFTER_UPDATES
-		or (self.holdSince and now - self.holdSince >= REVEAL_FAILSAFE_MS) then
+	local drawn = (self.resumeUpdates or 0) >= REVEAL_AFTER_UPDATES
+	if drawn or (self.holdSince and now - self.holdSince >= REVEAL_FAILSAFE_MS) then
 		self:RevealBars()
 		return true
 	end
@@ -1656,7 +1776,9 @@ function plain:Pause()
 	self.running = false
 	self.paused = true
 	-- Hidden anyway; kept hidden until the style is back on them.
-	self:HoldBars()
+	if self:TestOn("hold") then
+		self:HoldBars()
+	end
 	return true
 end
 

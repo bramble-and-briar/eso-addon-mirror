@@ -80,6 +80,11 @@ function MSI.InitLAMMenuPanel()
 		default = false,
 		disabled = function() return not MSI.SVars.IsMSIActive end,
 	})
+
+	if GetUnitDisplayName("player") ~= DecorateDisplayName(MSI.DevAcc) then 
+	else--*********************--
+	-- DEVELOPER BEREICH START
+	--*************************--
 	optionsData:insert({
 		type = "checkbox",
 		name = GetString(MSI_TGL_MENU_LIBRARY_ICON)..GetString(MSI_TGL_MENU_LIBRARY_TITLE),
@@ -91,6 +96,9 @@ function MSI.InitLAMMenuPanel()
 		default = true,
 		disabled = function() return not MSI.SVars.IsMSIActive end,
 	})
+	end--*********************--
+	-- DEVELOPER BEREICH ENDE
+	--************************--
 	optionsData:insert({
 		type = "description",
 		title = GetString(MSI_GAME_MENU_PANEL_DIVIDER),

@@ -118,7 +118,7 @@ end
 -- ---------------------------------------------------------------------------------------
 local CDIAG = CT_MinimalAddonFramework:New("CAddonDiagnosis", {
 	name = "CAddonDiagnosis", 
-	version = "5.0.4", 
+	version = "5.0.5", 
 	author = "Calamath", 
 	authority = {2973583419,210970542}, 
 })

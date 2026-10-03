@@ -2,7 +2,7 @@ Wegesruhe = Wegesruhe or {}
 local WR = Wegesruhe
 
 WR.name = "Wegesruhe"
-WR.version = "1.0.0"
+WR.version = "2.0.0"
 WR.savedVarsVersion = 1
 WR.helpHeld = false
 WR.initialized = false
@@ -295,18 +295,20 @@ end
 
 function WR:HandleSlashCommand(text)
     text = zo_strlower(zo_strtrim(text or ""))
-    if text == "on" then
+    if text == "" or text == "settings" then
+        if self.OpenSettings then
+            self:OpenSettings("slash")
+        end
+        return
+    elseif text == "on" then
         self:SetEnabled(true, true)
         return
     elseif text == "off" then
         self:SetEnabled(false, true)
         return
-    elseif text == "status" or text == "" then
+    elseif text == "status" then
         local pvp = self.settings.pvpOverride and self.L.ON or self.L.OFF
         d(zo_strformat(self.L.CHAT_STATUS, self.settings.enabled and self.L.ON or self.L.OFF, self:GetPresetDisplayName(self.settings.preset), pvp))
-        if text == "" then
-            d(self.L.CHAT_HELP)
-        end
         return
     end
 
@@ -476,6 +478,9 @@ function WR:Initialize()
     self:InitializeFloatingMarkers()
     self:InitializeMap()
     self:InitializeSettings()
+    if self.InitializeAddonListGear then
+        self:InitializeAddonListGear()
+    end
 
     SLASH_COMMANDS["/wr"] = function(text) self:HandleSlashCommand(text) end
     SLASH_COMMANDS["/wegesruhe"] = function(text) self:HandleSlashCommand(text) end

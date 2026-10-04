@@ -168,10 +168,20 @@ function A:Capture()
                         kills=Score(SCORE_TRACKER_TYPE_KILL),deaths=Score(SCORE_TRACKER_TYPE_DEATH),
                         assists=Score(SCORE_TRACKER_TYPE_ASSISTS),damage=Score(SCORE_TRACKER_TYPE_DAMAGE_DONE),
                         healing=Score(SCORE_TRACKER_TYPE_HEALING_DONE),medals=Score(SCORE_TRACKER_TYPE_SCORE),
-                        objective=Score(stat)}
+                        objective=Score(stat),medalDetails={}}
                     if DoesBattlegroundHaveLimitedPlayerLives(id) then
                         p.lives=GetScoreboardEntryNumLivesRemaining(i,round)
                     end
+                    local medalId=GetNextScoreboardEntryMedalId(i,round,nil)
+                    local seen={}
+                    while medalId and medalId~=0 and not seen[medalId] do
+                        seen[medalId]=true
+                        local name,icon,_,reward=GetMedalInfo(medalId)
+                        local quantity=GetScoreboardEntryNumEarnedMedalsById(i,medalId,round)
+                        table.insert(p.medalDetails,{id=medalId,name=name,icon=icon,count=quantity,points=quantity*reward})
+                        medalId=GetNextScoreboardEntryMedalId(i,round,medalId)
+                    end
+                    table.sort(p.medalDetails,function(a,b) return a.points>b.points end)
                     table.insert(snapshot.teams[team].players,p)
                 end
             end
@@ -251,6 +261,27 @@ function A:Build()
         t.icon=WM:CreateControl(nil,win,CT_TEXTURE); t.icon:SetTexture(ZO_GetLargeBattlegroundTeamSymbolIcon(team))
         t.score=Label(win,FONT_SCORE); t.score:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     end
+    self.detail=WM:CreateControl(nil,win,CT_CONTROL)
+    self.detail:SetMouseEnabled(false)
+    self.detail:SetHidden(true)
+    Back(self.detail,0.015,0.018,0.017,0.96)
+    self.detailUserID=Label(self.detail,FONT_ROW); Place(self.detailUserID,15,12,280,42)
+    self.detailCharacter=Label(self.detail,FONT_ROW); Place(self.detailCharacter,15,50,280,42)
+    self.detailCharacter:SetColor(0.66,0.65,0.56,1)
+    self.detailStats=Label(self.detail,FONT_HEADER); Place(self.detailStats,15,98,280,66)
+    self.detailTitle=Label(self.detail,FONT_HEADER,'TOP MEDALS'); Place(self.detailTitle,15,175,200,36)
+    self.detailPoints=Label(self.detail,FONT_HEADER,'POINTS'); Place(self.detailPoints,224,175,71,36)
+    self.detailPoints:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    self.medalLabels={}
+    for i=1,12 do
+        local icon=WM:CreateControl(nil,self.detail,CT_TEXTURE); Place(icon,15,222+(i-1)*48,30,30)
+        local name=Label(self.detail,FONT_HEADER); Place(name,52,216+(i-1)*48,175,43)
+        local points=Label(self.detail,FONT_HEADER); Place(points,235,216+(i-1)*48,60,43); points:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        self.medalLabels[i]={icon=icon,name=name,points=points}
+    end
+    self.detailFooter=Label(self.detail,FONT_HEADER)
+    self.detailEmpty=Label(self.detail,FONT_HEADER,'No medals earned')
+    Place(self.detailEmpty,15,216,280,44)
     win:SetDrawTier(DT_HIGH)
     win:SetHandler('OnUpdate',function(_,now) if self.visible then self:UpdateTimer() end end)
 end
@@ -283,14 +314,31 @@ function A:Render()
     local x=rowX+livesWidth+36
     for _,col in ipairs(cols) do col.x=x;x=x+col.w+(col.gapAfter or 6) end
     local boardWidth=x+left-6
-    -- Reserve native keybind prompts below the board. The native Xbox match-info
-    -- panel remains game-owned; first hardware/console-flow testing will show whether
-    -- any additional horizontal allowance is actually needed.
-    local heightFit=(GuiRoot:GetHeight()-150)/height
-    local widthFit=GuiRoot:GetWidth()*0.94/boardWidth
-    local scale=math.min(1,heightFit,widthFit)
-    self.window:SetDimensions(boardWidth,height);self.window:SetScale(scale)
+    -- The main board owns the centred parent; the panel extends to its right.
+    -- All board-local coordinates remain identical to 0.1.2.
+    local panel=C.PanelLayout(boardWidth,height,GuiRoot:GetWidth(),GuiRoot:GetHeight())
+    self.panelLayout=panel
+    self.window:SetDimensions(boardWidth,height);self.window:SetScale(panel.scale)
     self.window:ClearAnchors();self.window:SetAnchor(CENTER,GuiRoot,CENTER,0,-30)
+    self.detail:ClearAnchors()
+    self.detail:SetAnchor(TOPLEFT,self.board,TOPRIGHT,panel.gap,0)
+    self.detail:SetDimensions(panel.width,height)
+    local inner=panel.width-30
+    Place(self.detailUserID,15,12,inner,42)
+    Place(self.detailCharacter,15,50,inner,42)
+    Place(self.detailStats,15,98,inner,66)
+    Place(self.detailTitle,15,175,panel.compact and inner or inner-80,36)
+    Place(self.detailPoints,panel.width-86,175,71,36)
+    self.detailPoints:SetHidden(panel.compact)
+    Place(self.detailEmpty,15,216,inner,44)
+    for i,v in ipairs(self.medalLabels) do
+        local y=216+(i-1)*panel.rowHeight
+        Place(v.icon,15,y+7,30,30)
+        Place(v.name,52,y,panel.compact and panel.width-67 or panel.width-135,panel.compact and 30 or 44)
+        Place(v.points,panel.compact and 52 or panel.width-75,panel.compact and y+28 or y,
+            panel.compact and panel.width-67 or 60,panel.compact and 28 or 44)
+    end
+    Place(self.detailFooter,15,height-42,inner,32)
     Place(self.board,0,0,boardWidth,height)
     local hasRounds=self.match and (self.match.numRounds or 1)>1
     Place(self.title,left,8,hasRounds and (boardWidth/2-180-left) or (boardWidth-390),52)
@@ -311,7 +359,7 @@ function A:Render()
     if self.match then
         self.roundButton.label:SetText(self.viewRound=='total' and 'RESULT' or ('ROUND '..(self.viewRound or self.match.currentRound)))
     end
-    if not snapshot then return end
+    if not snapshot then self.detail:SetHidden(true);return end
     if self.damageHeader then
         self.damageHeader.icon:SetTexture(HEADER_ICON_DAMAGE)
         for _,outline in ipairs(self.damageHeader.outlines or {}) do
@@ -404,6 +452,41 @@ function A:UpdateSelection()
             r.name:SetColor(active and 1 or 0.82,active and 1 or 0.80,active and 0.94 or 0.65,1)
         end
     end
+    self:UpdateDetailPanel()
+end
+function A:UpdateDetailPanel()
+    -- Native selection is authoritative, including during a round transition.
+    local selected=BATTLEGROUND_SCOREBOARD_FRAGMENT.selectedPlayerData
+    local snapshot=self:Snapshot()
+    local player
+    if selected and snapshot then
+        local key=C.Key({displayName=selected.displayName,characterName=CleanName(selected.characterName)})
+        for _,team in ipairs(self.match.teamIds) do
+            for _,p in ipairs(snapshot.teams[team].players) do
+                if C.Key(p)==key then player=p;break end
+            end
+            if player then break end
+        end
+    end
+    self.detail:SetHidden(not player)
+    if not player then return end
+    self.detailUserID:SetText(player.displayName)
+    self.detailCharacter:SetText(CleanName(player.characterName))
+    self.detailStats:SetText('DAMAGE   '..C.Number(player.damage)..'\nHEALING   '..C.Number(player.healing))
+    local medals=player.medalDetails
+    local maximum=self.panelLayout and self.panelLayout.rows or 0
+    for i,labels in ipairs(self.medalLabels) do
+        local medal=i<=maximum and medals[i]
+        labels.icon:SetHidden(not medal);labels.name:SetHidden(not medal);labels.points:SetHidden(not medal)
+        if medal then
+            labels.icon:SetTexture(medal.icon)
+            labels.name:SetText(medal.count..'  '..medal.name)
+            labels.points:SetText(C.Number(medal.points)..(self.panelLayout.compact and ' pts' or ''))
+        end
+    end
+    self.detailEmpty:SetHidden(#medals>0)
+    local remaining=math.max(0,#medals-maximum)
+    self.detailFooter:SetText(remaining>0 and ('+'..remaining..' more') or '')
 end
 function A:UpdateTimer()
     if not self.inMatch or not IsActiveWorldBattleground() then self.timer:SetText(self.match and 'Match ended' or '');return end

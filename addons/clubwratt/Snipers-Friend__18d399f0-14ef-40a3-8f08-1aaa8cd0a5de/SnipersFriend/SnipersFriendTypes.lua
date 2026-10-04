@@ -42,11 +42,13 @@
 ---@field depthTest boolean            World geometry occludes the line (shows where the aim hits)
 ---@field lineWidthM number
 ---@field lineColor SnipersFriendRGBA
----@field showTicks boolean            Tick marks at fixed horizontal distances along the line
----@field tickIntervalM number
----@field majorTickEvery integer       Every Nth tick is wider (0 = none)
----@field tickWidthM number
----@field tickThicknessM number
+---@field showLine boolean             Flat strip from the character to the aim point (stretches with pitch; off by default)
+---@field showTicks boolean            Billboard icons at fixed horizontal distances
+---@field tickIntervalM number         Metres between icons
+---@field majorTickEvery integer       Every Nth icon is larger with a centre dot (0 = none)
+---@field iconSizeM number             Icon size in world metres (or size at 10 m when constant on screen)
+---@field iconConstantScreenSize boolean  Scale with distance so every icon looks the same size
+---@field iconPath "line"|"ray"        line = along character->aim segment; ray = on the camera ray (stack at the crosshair, occlusion range finder)
 ---@field tickColor SnipersFriendRGBA
 ---@field showCap boolean
 ---@field capSizeM number

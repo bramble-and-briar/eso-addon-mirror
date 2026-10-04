@@ -15,9 +15,9 @@ local localization_strings = {
 	MSI_MENU_ADDON_DESCR_TOOLTIP 	= "|cFF0000Einige Module des|r |c8B7355AddOns|r |cFF0000sind durch fortlaufende Anpassungen weiterhin eine ’Baustelle’\nBitte verzeiht Sch\195\182nheits- und Fl\195\188chtigkeits-Fehler sowie folgliche Ausf\195\164lle|r",
 	MSI_MENU_ADDON_DESCR_CHATCMD 	= "|cD0D172[|r|c8B0000M|r|cB8860BS|r|c778899I|r|cD0D172]|r Chat-Befehle:\nBuchBlocker Ein'Aus: /msibook\nGesetzesTreue Ein'Aus: /msilawful",
 	MSI_MENU_ADDON_DESCR_SUMMARY	= "|c8B6969Winzige Umbauten f\195\188r’n Komfort|r",	
---************************-- 
+--************************--
 -- Allgemeine Einstellung
-	MSI_MENU_MAIN_OPTIONS_ICON 		= "|al|t72:72:EsoUI\Art\Guild/tabicon_home_up.dds|t|r",
+	MSI_MENU_MAIN_OPTIONS_ICON 		= "|al|t72:72:EsoUI/Art/Guild/tabicon_home_up.dds|t|r",
 	MSI_MENU_MAIN_OPTIONS_TITLE 	= "|c1874CDAllgemeine Einstellung|r",
 	MSI_MENU_MAIN_OPTIONS_TOOLTIP 	= "|c8B7355Allgemeine AddOn Einstellungen\nUm das Addon per Haupt-Schalter zu kontrollieren\nSowie die Speicherweise des Kontos zu \195\164ndern finden sich hier|r",
 	MSI_TGL_ADDON_STATE_ICON 		= "|t56:56:EsoUI/Art/Crafting/smithing_tabicon_improve_up.dds|t",
@@ -33,7 +33,7 @@ local localization_strings = {
 -- Essentielle Komponenten
 	MSI_MENU_PRCTCL_FNCTNL_TITLE	= "|al|t72:72:EsoUI/Art/MenuBar/menubar_mainmenu_over.dds|t|r|c483D8BEssentielle Komponenten|r",
 	MSI_MENU_PRCTCL_FNCTNL_TOOLTIP	= "|c8B7355Bequem erreichbare Must-Haves\nEmpfehlenswerte Funktionen die wirkungsvoll und praktisch sind|r",
-	MSI_TGL_BOOK_INHIBITER_TITLE	= "|t64:64:EsoUI/Art/MainMenu/menubar_journal_up.dds|Bücher unterdr\195\188ckt lesen",
+	MSI_TGL_BOOK_INHIBITER_TITLE	= "|t64:64:EsoUI/Art/MainMenu/menubar_journal_up.dds|tBücher unterdr\195\188ckt lesen",
 	MSI_TGL_BOOK_INHIBITER_TOOLTIP	= "B\195\188cher, einzelne Foliant-Seiten oder ganze Regale werden ganz einfach unge\195\182ffnet gelesen\n\nSchlie\195\159en ist nun nicht l\195\164nger\neine Notwendigkeit\nWeniger hektisches |cFFB90FO|r Geklicke beim st\195\182bern durch so seltene und magische Schinken",
 	MSI_TGL_LAWFUL_BEHAVE_TITLE 	= "|t48:48:EsoUI/Art/Repair/inventory_tabicon_repair_up.dds|tRechtm\195\164\195\159iges Verhalten",
 	MSI_TGL_LAWFUL_BEHAVE_TOOLTIP 	= "F\195\164higkeiten die in Justitz Zonen wie St\195\164dten und Gemeinden\nals |cFF0000Straftat|r gelten werden unterbunden bzw. geblockt",
@@ -161,7 +161,7 @@ local localization_strings = {
 	MSI_MOD_SLD_JUNK_CHTLINE 		= "Tr\195\182del f\195\188r <<1>> <<2>> verkauft",
 	MSI_MOD_SLD_STLN_JUNK_CHTLINE 	= "Diebesgut f\195\188r <<1>> <<2>> verkauft",
 	MSI_MOD_LAUNDRD_STLN_CHTLINE 	= "Diebesgut f\195\188r <<1>> <<2>> geschoben",
-	MSI_MOD_MISSING_ITEM_CHTLINE 	= "Gegenstand nicht vorhanden!! Von Nutzer o anderem AddOn verarb.!!",
+	MSI_MOD_MISSING_ITEM_CHTLINE 	= "Gegenstand nicht vorhanden!!",
 	MSI_MOD_FISH_FILLET_CHTLINE 	= "Geangelter <<1>> filetiert",
 	MSI_MOD_COLLECTED_CHTLINE 		= "<<1>> gesammelt",
 	MSI_MOD_OPENED_STCKBL_CHTLINE 	= "<<1>> ge\195\182ffnet (Stapelbar)",

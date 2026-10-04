@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO__1542",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Baertram",
   "canonical_id": "esoui:1542",
   "category_id": "27",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -65,7 +74,7 @@
     "FCOChangeStuff"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1542/",
-  "fingerprint": "7d555e54902bbc3aa6551455f8dd74dc3906754c96456ad222e1d5cc5e813acd",
+  "fingerprint": "35d299eb3af59cf1d0dd9e9b7ca72c5db3b6465df58530ca55aea041afaae1a5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5019.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw12339.png",
@@ -80,11 +89,11 @@
   "source_id": "1542",
   "source_url": "https://www.esoui.com/downloads/info1542-FCOChangeStuff-QOLchangesforESO.html",
   "stats": {
-    "downloads": 40399,
+    "downloads": 40762,
     "favorites": 71,
-    "monthly_downloads": 99
+    "monthly_downloads": 191
   },
   "title": "FCO ChangeStuff - QOL changes for ESO",
-  "updated_at": 1769289528000,
-  "version": "0.5.95"
+  "updated_at": 1791040786000,
+  "version": "0.5.96"
 }

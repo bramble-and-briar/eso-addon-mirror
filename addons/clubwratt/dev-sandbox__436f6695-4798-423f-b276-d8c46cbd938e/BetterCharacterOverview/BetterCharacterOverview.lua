@@ -1,6 +1,6 @@
 --[[
 Better Character Overview
-Version 1.9.0
+Version 1.10.0
 PS5 / Update 50 native-list architecture test.
 
 This version registers two dedicated lists through GAMEPAD_INVENTORY:AddList:
@@ -19,7 +19,7 @@ BetterCharacterOverview = {}
 local BCO = BetterCharacterOverview
 
 BCO.name = "BetterCharacterOverview"
-BCO.version = "1.9.0"
+BCO.version = "1.10.0"
 BCO.savedVarVersion = 2
 
 BCO.CATEGORY_DESCRIPTOR = "bcoCategoryList"
@@ -161,6 +161,10 @@ BCO.inventoryFilters = {
     },
 }
 BCO.inventoryFilterIndex = 1
+
+-- ZO_SharedGamepadEntry_OnSetup only ipairs() this, so every BCO row can
+-- share one empty table instead of allocating its own per list refresh.
+local EMPTY_STATUS_INDICATOR_ICONS = {}
 
 local function Msg(text)
     if d then
@@ -938,19 +942,33 @@ function BCO:ScanOpenBankLocation()
 
     if bagId == BAG_BANK then
         self:ScanBank()
-        return true
+        return "bank"
     elseif IsHousingStorageBag(bagId) then
-        return self:ScanStorageBag(bagId)
+        if self:ScanStorageBag(bagId) then
+            return "storage:" .. tostring(bagId)
+        end
     end
 
-    return false
+    return nil
 end
 
 -- Snapshot data changed. While All Inventories is on screen the aggregate
 -- is rebuilt shortly afterwards so the open list stays current; otherwise
 -- the rebuild waits until the next time All Inventories is opened.
-function BCO:ScheduleIndexRebuild(delayMs)
-    self:MarkIndexDirty()
+function BCO:ScheduleIndexRebuild(delayMs, ...)
+    local keyCount = select("#", ...)
+
+    if keyCount == 0 then
+        self:MarkIndexDirty()
+    else
+        for index = 1, keyCount do
+            local key = select(index, ...)
+
+            if key then
+                self:MarkSourceDirty(key)
+            end
+        end
+    end
 
     if not self.active then
         return
@@ -968,7 +986,14 @@ function BCO:ScheduleIndexRebuild(delayMs)
             return
         end
 
-        BCO:EnsureIndex()
+        -- EnsureIndex either patches the resident aggregate in place
+        -- (incremental) and returns true, or starts a chunked rebuild whose
+        -- completion callback refreshes the list. Only the former needs the
+        -- explicit refresh here.
+        if BCO:EnsureIndex() then
+            local KEEP_SELECTION = false
+            BCO:RefreshActiveBCOList(KEEP_SELECTION)
+        end
     end, delayMs or 0)
 end
 
@@ -1146,7 +1171,10 @@ function BCO:ScanCurrentHouse()
             updated = Now(),
         }
 
-        BCO:ScheduleIndexRebuild(50)
+        BCO:ScheduleIndexRebuild(
+            50,
+            "house:" .. tostring(houseId)
+        )
     end
 
     ProcessChunk()
@@ -1333,7 +1361,10 @@ function BCO:ScanTradingHouseListings()
         end
     end
 
-    self:ScheduleIndexRebuild(50)
+    self:ScheduleIndexRebuild(
+        50,
+        "guild:" .. tostring(guildId)
+    )
     return true
 end
 
@@ -1448,18 +1479,25 @@ function BCO:ScanCurrentCharacter(rebuildIndex)
 
     self:ScanSharedCurrencies()
 
+    local bankSourceKey = nil
+
     if self.bankOpen then
-        self:ScanOpenBankLocation()
+        bankSourceKey = self:ScanOpenBankLocation()
     end
 
     if rebuildIndex ~= false then
-        self:ScheduleIndexRebuild(50)
+        self:ScheduleIndexRebuild(
+            50,
+            "char:" .. id .. ":backpack",
+            "char:" .. id .. ":worn",
+            bankSourceKey
+        )
     end
 
     return true
 end
 
-function BCO:ScheduleScan()
+function BCO:ScheduleScan(delayMs)
     if self.scanPending then
         return
     end
@@ -1469,7 +1507,7 @@ function BCO:ScheduleScan()
     zo_callLater(function()
         BCO.scanPending = false
         BCO:ScanCurrentCharacter()
-    end, 350)
+    end, delayMs or 350)
 end
 
 local MATERIAL_TYPES = {}
@@ -1651,12 +1689,16 @@ function BCO:CollectSources()
     local sources = {}
     local usedNames = {}
 
+    -- sourceKey is a stable identifier ("char:<id>:backpack", "bank", ...)
+    -- that the incremental index update uses to find the display name a
+    -- source was aggregated under (see BCO:ApplySourceUpdate).
     local function AddSource(
         items,
         preferredName,
         kind,
         updated,
-        uniqueSuffix
+        uniqueSuffix,
+        sourceKey
     )
         preferredName = Trim(preferredName)
 
@@ -1698,10 +1740,11 @@ function BCO:CollectSources()
             name = name,
             kind = kind,
             updated = updated or 0,
+            key = sourceKey,
         }
     end
 
-    for _, character in pairs(
+    for characterId, character in pairs(
         self.savedVars.characters
     ) do
         local characterName = character.name
@@ -1711,14 +1754,18 @@ function BCO:CollectSources()
             character.backpack,
             characterName,
             "backpack",
-            character.updated
+            character.updated,
+            nil,
+            "char:" .. tostring(characterId) .. ":backpack"
         )
 
         AddSource(
             character.worn,
             characterName .. " (Equipped)",
             "equipped",
-            character.updated
+            character.updated,
+            nil,
+            "char:" .. tostring(characterId) .. ":worn"
         )
     end
 
@@ -1728,7 +1775,9 @@ function BCO:CollectSources()
         bank.items,
         "Bank",
         "bank",
-        bank.updated
+        bank.updated,
+        nil,
+        "bank"
     )
 
     local storageRows = {}
@@ -1817,7 +1866,8 @@ function BCO:CollectSources()
             storage.name,
             "storage",
             storage.updated,
-            suffix
+            suffix,
+            "storage:" .. tostring(storage.bagId or index)
         )
     end
 
@@ -1864,7 +1914,8 @@ function BCO:CollectSources()
             house.name,
             "house",
             house.updated,
-            string.format("House %d", house.houseId)
+            string.format("House %d", house.houseId),
+            "house:" .. tostring(house.houseId)
         )
     end
 
@@ -1910,7 +1961,8 @@ function BCO:CollectSources()
             string.format(
                 "Guild %d",
                 listing.guildId
-            )
+            ),
+            "guild:" .. tostring(listing.guildId)
         )
     end
 
@@ -1970,17 +2022,184 @@ function BCO:MarkIndexDirty()
     self.indexDirty = true
 end
 
+-- Records that one snapshot source (a character bag, the bank, a storage
+-- chest, a house, a guild's listings) changed. While the aggregate is
+-- resident, the next EnsureIndex applies just that source's delta instead
+-- of re-walking the whole account (see ApplySourceUpdate). With no resident
+-- aggregate this degrades to MarkIndexDirty.
+function BCO:MarkSourceDirty(sourceKey)
+    -- No resident aggregate: the next open rebuilds everything anyway.
+    if not self.indexReady and not self.indexBuilding then
+        self.indexDirty = true
+        return
+    end
+
+    -- Resident, or being built from the source tables captured when the
+    -- build started: either way the delta can be applied afterwards.
+    self.dirtySourceKeys = self.dirtySourceKeys or {}
+    self.dirtySourceKeys[sourceKey] = true
+    self.indexDirty = true
+end
+
 -- Drops the resident aggregate so its memory returns to the shared console
--- Lua pool. Called when Inventory closes with stale data; the next visit to
--- All Inventories rebuilds it in chunks.
+-- Lua pool. Called when Inventory closes; the next visit to All Inventories
+-- rebuilds it in chunks. A warmed aggregate is roughly 2 KB per unique item
+-- (views, search text and section caches included), so a multi-thousand
+-- item account holds 10+ MB that is useless while Inventory is closed and
+-- that every other load screen then has to fit beside.
+function BCO:ReleaseIndex()
+    self.indexToken = self.indexToken + 1
+    self.indexBuilding = false
+    self.indexReady = false
+    self.indexDirty = true
+    self.dirtySourceKeys = nil
+    self.aggregatedItems = {}
+    self.filteredItems = {}
+    self.sourceNamesByKey = nil
+end
+
+-- Kept for callers that only want to release stale data.
 function BCO:ReleaseIndexIfDirty()
     if self.indexDirty then
-        self.indexToken = self.indexToken + 1
-        self.indexBuilding = false
-        self.indexReady = false
-        self.aggregatedItems = {}
-        self.filteredItems = {}
+        self:ReleaseIndex()
     end
+end
+
+-- Clears every derived per-item cache that depends on the item's location
+-- set. Called after a source delta changed the item's locations.
+local function InvalidateItemLocationCaches(item)
+    item.bcoViews = nil
+    item.bcoSearchText = nil
+    item.bcoPreviewSlotMiss = nil
+    -- The row keeps bcoPreviewBagId/SlotIndex from the last preview; those
+    -- may no longer be valid once the item moved.
+    local data = item.bcoEntryData
+    if data then
+        data.bcoPreviewBagId = nil
+        data.bcoPreviewSlotIndex = nil
+    end
+end
+
+-- Adds one source's snapshot list into the aggregate under the given
+-- display name. Shared by the full build and the incremental update.
+local function AggregateSourceItems(aggregate, source)
+    local items = source.items
+    local name = source.name
+    local kind = source.kind or "backpack"
+
+    for index = 1, #items do
+        local snapshot = items[index]
+        local itemLink = snapshot and snapshot.itemLink
+
+        if type(itemLink) == "string" and itemLink ~= "" then
+            local item = aggregate[itemLink]
+
+            if not item then
+                item = BuildAggregateItem(itemLink, itemLink)
+                aggregate[itemLink] = item
+            end
+
+            local count = snapshot.count or 1
+            item.totalCount = item.totalCount + count
+            item.locations[name] =
+                (item.locations[name] or 0) + count
+            item.locationKinds[name] = kind
+            InvalidateItemLocationCaches(item)
+        end
+    end
+end
+
+-- Removes every contribution made under one location name. Items are left
+-- in place even when this empties them, so a re-add of the same source
+-- keeps their derived data and row objects; SweepEmptyAggregateItems drops
+-- whatever is still empty afterwards.
+local function RemoveLocationFromAggregate(aggregate, name)
+    for _, item in pairs(aggregate) do
+        local count = item.locations[name]
+
+        if count then
+            item.totalCount = item.totalCount - count
+            item.locations[name] = nil
+            item.locationKinds[name] = nil
+            InvalidateItemLocationCaches(item)
+        end
+    end
+end
+
+local function SweepEmptyAggregateItems(aggregate)
+    for itemLink, item in pairs(aggregate) do
+        if item.totalCount <= 0
+            or next(item.locations) == nil
+        then
+            aggregate[itemLink] = nil
+        end
+    end
+end
+
+-- Applies the pending per-source deltas to the resident aggregate. Returns
+-- true when the incremental path handled everything, false when a full
+-- rebuild is still required (a source was renamed, added or removed, or no
+-- source keys were recorded).
+function BCO:ApplySourceUpdate()
+    local dirtyKeys = self.dirtySourceKeys
+    local previousNames = self.sourceNamesByKey
+
+    if not dirtyKeys or not previousNames then
+        return false
+    end
+
+    local sources = self:CollectSources()
+    local sourcesByKey = {}
+    local currentNames = {}
+
+    for index = 1, #sources do
+        local source = sources[index]
+
+        if source.key then
+            sourcesByKey[source.key] = source
+            currentNames[source.key] = source.name
+        end
+    end
+
+    -- A source appearing or disappearing (first scan of a new character,
+    -- /bcoclear, a guild left) changes the duplicate-name suffixes, so the
+    -- display names no longer line up; take the full rebuild in that case.
+    for key, name in pairs(previousNames) do
+        if currentNames[key] ~= name then
+            return false
+        end
+    end
+
+    for key in pairs(currentNames) do
+        if previousNames[key] == nil then
+            return false
+        end
+    end
+
+    local aggregate = self.aggregatedItems
+
+    for key in pairs(dirtyKeys) do
+        local source = sourcesByKey[key]
+
+        if source then
+            RemoveLocationFromAggregate(aggregate, source.name)
+        end
+    end
+
+    for key in pairs(dirtyKeys) do
+        local source = sourcesByKey[key]
+
+        if source then
+            AggregateSourceItems(aggregate, source)
+        end
+    end
+
+    SweepEmptyAggregateItems(aggregate)
+
+    self.dirtySourceKeys = nil
+    self.indexDirty = false
+    self.filteredItems = {}
+    return true
 end
 
 function BCO:StartIndexBuild(onComplete)
@@ -1991,7 +2210,24 @@ function BCO:StartIndexBuild(onComplete)
     local sourceIndex = 1
     local itemIndex = 1
     local aggregate = {}
+    local sourceNames = {}
 
+    for index = 1, #sources do
+        local source = sources[index]
+
+        if source.key then
+            sourceNames[source.key] = source.name
+        end
+    end
+
+    -- Release the previous aggregate up front rather than holding two full
+    -- copies while the new one builds. Snapshot changes that arrive while
+    -- All Inventories is open are now applied incrementally, so a full
+    -- rebuild only happens on the first open after Inventory was closed,
+    -- when there is nothing on screen to keep serving.
+    self.aggregatedItems = {}
+    self.filteredItems = {}
+    self.dirtySourceKeys = nil
     self.indexDirty = false
     self.indexReady = false
     self.indexBuilding = true
@@ -2050,16 +2286,21 @@ function BCO:StartIndexBuild(onComplete)
             return
         end
 
-        -- Swap in the finished aggregate only now, so the previous one keeps
-        -- serving the open list during the build instead of leaving an
-        -- empty catalog on screen.
         BCO.aggregatedItems = aggregate
         BCO.filteredItems = {}
+        BCO.sourceNamesByKey = sourceNames
         BCO.indexReady = true
         BCO.indexBuilding = false
 
         if onComplete then
             onComplete()
+        end
+
+        -- A snapshot changed while the chunks were running; fold it in now
+        -- (incrementally, if the source keys were recorded) rather than
+        -- waiting for the next inventory event.
+        if BCO.indexDirty and BCO.active then
+            BCO:ScheduleIndexRebuild(0)
         end
     end
 
@@ -2076,6 +2317,11 @@ function BCO:EnsureIndex()
     -- A build is already walking the sources; let it finish.
     if self.indexBuilding then
         return self.indexReady
+    end
+
+    -- Resident aggregate with known per-source changes: patch it in place.
+    if self.indexReady and self:ApplySourceUpdate() then
+        return true
     end
 
     self:StartIndexBuild(function()
@@ -4751,7 +4997,11 @@ function BCO:HandleItemSelectionChanged(selectedData)
     self:ScheduleActiveFurnishingPreview(
         settledData
     )
-    self:RefreshItemKeybinds()
+    -- The keybind strip is already refreshed by the native
+    -- SelectedDataChanged/TargetDataChanged closures that
+    -- ZO_Gamepad_ParametricList_Screen attached when the list was created
+    -- (they call self:RefreshKeybinds on the active descriptor, which is
+    -- BCO's while a BCO list is current), so no extra pass is needed here.
     self:ScheduleItemTooltip(settledData)
 end
 
@@ -4778,7 +5028,9 @@ function BCO:ScheduleItemKeybindRefresh()
 
     local generation =
         self.itemKeybindRefreshGeneration
-    local delays = { 0, 200 }
+    -- SetActiveKeybinds already evaluated the group once synchronously;
+    -- only the late settling pass remains.
+    local delays = { 200 }
 
     for index = 1, #delays do
         zo_callLater(function()
@@ -5078,6 +5330,16 @@ function BCO:UpdateItemTooltip(selectedData)
     return rendered
 end
 
+-- One short settle timer per selection change. While the stick is held the
+-- list reports a new target every frame; each call bumps the generation and
+-- cancels the previous timer, so only the row the player stops on is laid
+-- out (a full item tooltip layout is one of the more expensive UI
+-- operations available). A single late confirmation pass covers the first
+-- row's target data arriving late on PS5; it re-lays only if the target
+-- row differs from what was drawn.
+BCO.tooltipSettleMS = 60
+BCO.tooltipConfirmMS = 200
+
 function BCO:ScheduleItemTooltip(selectedData)
     self.tooltipRefreshGeneration =
         self.tooltipRefreshGeneration + 1
@@ -5085,36 +5347,44 @@ function BCO:ScheduleItemTooltip(selectedData)
     local generation = self.tooltipRefreshGeneration
     local pendingData = selectedData
     local renderedData = nil
-    -- The later pass only exists because the first row's target data can
-    -- arrive late on PS5. It re-lays the tooltip only when the target row
-    -- actually differs from what the first pass drew; a full item tooltip
-    -- layout is one of the more expensive UI operations available.
-    local delays = { 0, 200 }
 
-    for index = 1, #delays do
-        zo_callLater(function()
-            if generation ~= BCO.tooltipRefreshGeneration
-                or not BCO.active
-                or not GAMEPAD_INVENTORY
-                or GAMEPAD_INVENTORY:GetCurrentList()
-                    ~= BCO.itemList
-            then
-                return
-            end
-
-            local currentData =
-                BCO.itemList:GetTargetData()
-                or pendingData
-
-            if currentData == renderedData then
-                return
-            end
-
-            if BCO:UpdateItemTooltip(currentData) then
-                renderedData = currentData
-            end
-        end, delays[index])
+    local function IsStale()
+        return generation ~= BCO.tooltipRefreshGeneration
+            or not BCO.active
+            or not GAMEPAD_INVENTORY
+            or GAMEPAD_INVENTORY:GetCurrentList()
+                ~= BCO.itemList
     end
+
+    local function Render()
+        local currentData =
+            BCO.itemList:GetTargetData()
+            or pendingData
+
+        if currentData == renderedData then
+            return
+        end
+
+        if BCO:UpdateItemTooltip(currentData) then
+            renderedData = currentData
+        end
+    end
+
+    zo_callLater(function()
+        if IsStale() then
+            return
+        end
+
+        Render()
+
+        zo_callLater(function()
+            if IsStale() then
+                return
+            end
+
+            Render()
+        end, BCO.tooltipConfirmMS)
+    end, BCO.tooltipSettleMS)
 end
 
 function BCO:RefreshCategoryList(
@@ -5212,7 +5482,8 @@ function BCO:RefreshCategoryList(
         data.bcoCategoryIndex =
             entry.originalIndex
         data.bcoOfflineEntry = true
-        data.overrideStatusIndicatorIcons = {}
+        data.overrideStatusIndicatorIcons =
+            EMPTY_STATUS_INDICATOR_ICONS
 
         if data.SetIconTintOnSelection then
             data:SetIconTintOnSelection(true)
@@ -5314,43 +5585,57 @@ function BCO:RefreshItemList(
         local row = sectionedRows[index]
         local item = row.item
 
-        local data = ZO_GamepadEntryData:New(
-            item.name,
-            item.icon
-        )
+        -- Reuse the row object across refreshes. A ZO_GamepadEntryData is
+        -- ~1.3 KB; rebuilding every row for a few thousand items on each
+        -- inventory event was several MB of garbage per refresh. Rows are
+        -- cached on the item (or its filtered view) and released with the
+        -- aggregate when Inventory closes. Only the fields that can change
+        -- between refreshes are rewritten below.
+        local data = rawget(item, "bcoEntryData")
 
-        data.displayQuality =
-            item.quality
-            or ITEM_DISPLAY_QUALITY_NORMAL
-
-        if data.SetNameColors
-            and data.GetColorsBasedOnQuality
-        then
-            data:SetNameColors(
-                data:GetColorsBasedOnQuality(
-                    data.displayQuality
-                )
+        if not data then
+            data = ZO_GamepadEntryData:New(
+                item.name,
+                item.icon
             )
-        elseif data.SetNameColors
-            and GetItemQualityColor
-        then
-            local qualityColor =
-                GetItemQualityColor(
-                    data.displayQuality
-                )
 
-            data:SetNameColors(
-                qualityColor,
-                qualityColor
-            )
+            data.displayQuality =
+                item.quality
+                or ITEM_DISPLAY_QUALITY_NORMAL
+
+            if data.SetNameColors
+                and data.GetColorsBasedOnQuality
+            then
+                data:SetNameColors(
+                    data:GetColorsBasedOnQuality(
+                        data.displayQuality
+                    )
+                )
+            elseif data.SetNameColors
+                and GetItemQualityColor
+            then
+                local qualityColor =
+                    GetItemQualityColor(
+                        data.displayQuality
+                    )
+
+                data:SetNameColors(
+                    qualityColor,
+                    qualityColor
+                )
+            end
+
+            data.bcoKey = item.key
+            data.bcoItem = item
+            data.bcoOfflineEntry = true
+            data.itemLink = item.itemLink
+            data.overrideStatusIndicatorIcons =
+                EMPTY_STATUS_INDICATOR_ICONS
+
+            item.bcoEntryData = data
         end
 
-        data.bcoKey = item.key
-        data.bcoItem = item
-        data.bcoOfflineEntry = true
-        data.itemLink = item.itemLink
         data.stackCount = item.totalCount
-        data.overrideStatusIndicatorIcons = {}
         data.bestItemCategoryName =
             row.sectionName
 
@@ -5371,6 +5656,8 @@ function BCO:RefreshItemList(
                 data
             )
         else
+            data.header = nil
+
             list:AddEntry(
                 "ZO_GamepadItemSubEntryTemplate",
                 data
@@ -5456,7 +5743,7 @@ function BCO:RefreshActiveBCOList(selectDefault)
     end
 end
 
-function BCO:RefreshBCOHeader(blockCallback)
+function BCO:RefreshBCOHeader(blockCallback, onlyIfStale)
     if not GAMEPAD_INVENTORY or not GAMEPAD_INVENTORY.header then
         return
     end
@@ -5473,6 +5760,15 @@ function BCO:RefreshBCOHeader(blockCallback)
     end
 
     GAMEPAD_INVENTORY.headerData = data
+
+    -- The native RefreshHeader that triggered this was skipped by the
+    -- header pre-hook (InstallHeaderTabInjection), so the controls still
+    -- show BCO's last draw; only the headerData field needed restoring.
+    if onlyIfStale and self.lastDrawnHeaderData == data then
+        return
+    end
+
+    self.lastDrawnHeaderData = data
 
     ZO_GamepadGenericHeader_Refresh(
         GAMEPAD_INVENTORY.header,
@@ -5732,6 +6028,23 @@ function BCO:PrepareForInventorySceneHide(inventory)
     end
 
     return true
+end
+
+-- Frees everything All Inventories keeps only for display: the aggregate
+-- and the ZO_GamepadEntryData rows held by the two BCO parametric lists
+-- (roughly 1.3 KB per row, and the item list can hold every unique item
+-- on the account). Run when the Inventory scene has fully hidden.
+function BCO:ReleaseSceneResources()
+    self:ReleaseIndex()
+
+    for _, list in ipairs({ self.categoryList, self.itemList }) do
+        if list and type(list.Clear) == "function" then
+            pcall(list.Clear, list)
+        end
+    end
+
+    self.firstItemEntryData = nil
+    self.lastSelectedItemData = nil
 end
 
 function BCO:ScheduleBCOSceneResume()
@@ -6462,6 +6775,7 @@ function BCO:RedrawCurrentHeader()
     GAMEPAD_INVENTORY.headerData = headerData
 
     self.refreshingHeader = true
+    self.lastDrawnHeaderData = headerData
 
     local succeeded = pcall(
         ZO_GamepadGenericHeader_Refresh,
@@ -6481,24 +6795,143 @@ function BCO:RedrawCurrentHeader()
     return succeeded
 end
 
+-- True only when the header on screen is actually wrong for BCO: the live
+-- tab bar lacks the All Inventories tab, or a BCO list is current but the
+-- header was last drawn from native header data. With the tab injected
+-- ahead of every native refresh (see InstallHeaderTabInjection) this is
+-- normally false, which turns the redraw timers below into no-ops instead
+-- of two full tab-bar rebuilds after every native RefreshHeader.
+function BCO:NeedsHeaderRedraw()
+    local inventory = GAMEPAD_INVENTORY
+
+    if not self.installed
+        or not inventory
+        or not inventory.header
+    then
+        return false
+    end
+
+    local scene = inventory.scene
+
+    if not scene or not scene:IsShowing() then
+        return false
+    end
+
+    if self:IsBCOListCurrent(inventory) then
+        local current = inventory:GetCurrentList()
+        local wanted = current == self.categoryList
+            and self.categoryHeaderData
+            or self.itemHeaderData
+
+        if inventory.headerData ~= wanted then
+            return true
+        end
+
+        -- The item view has no tab bar entries to check.
+        if current == self.itemList then
+            return false
+        end
+    end
+
+    local tabBar = inventory.header.tabBar
+    local dataList = tabBar and tabBar.dataList
+
+    if type(dataList) ~= "table" then
+        return true
+    end
+
+    for index = 1, #dataList do
+        local entry = dataList[index]
+
+        if entry and entry.bcoAllInventories then
+            return false
+        end
+    end
+
+    return true
+end
+
 function BCO:ScheduleHeaderRedraw()
     self.headerRefreshGeneration =
         self.headerRefreshGeneration + 1
 
     local generation = self.headerRefreshGeneration
     -- Two passes: immediately, and once more after ESO's own deferred
-    -- header work has settled. Each pass rebuilds the native tab bar.
+    -- header work has settled. Each pass rebuilds the native tab bar, so
+    -- each first checks whether the header is actually missing anything.
     local delays = { 0, 250 }
 
     for index = 1, #delays do
         zo_callLater(function()
-            if generation ~= BCO.headerRefreshGeneration then
+            if generation ~= BCO.headerRefreshGeneration
+                or not BCO:NeedsHeaderRedraw()
+            then
                 return
             end
 
             BCO:RedrawCurrentHeader()
         end, delays[index])
     end
+end
+
+-- Native RefreshHeader rebuilds categoryHeaderData.tabBarEntries from
+-- GetTabBarEntries() (native tabs only) and hands it straight to
+-- ZO_GamepadGenericHeader_Refresh. Appending BCO's tab afterwards meant
+-- every native header refresh (each inventory slot update, each currency
+-- change) was followed by two more full tab-bar rebuilds from BCO. This
+-- pre-hook adds the tab to the header data before the native refresh draws
+-- it, so the native pass already shows the right tabs. It touches only the
+-- header data table; nothing on the protected item-action path runs here.
+--
+-- It also skips a native refresh that would draw native header data over a
+-- BCO list (RefreshHeader falls through to itemListHeaderData for unknown
+-- lists); the RefreshHeader post-hook draws BCO's header right after.
+function BCO:InstallHeaderTabInjection()
+    if self.headerInjectionInstalled
+        or type(ZO_PreHook) ~= "function"
+        or type(ZO_GamepadGenericHeader_Refresh) ~= "function"
+    then
+        return self.headerInjectionInstalled == true
+    end
+
+    ZO_PreHook(
+        "ZO_GamepadGenericHeader_Refresh",
+        function(control, data)
+            local inventory = GAMEPAD_INVENTORY
+
+            if not BCO.installed
+                or not inventory
+                or control ~= inventory.header
+                or type(data) ~= "table"
+            then
+                return false
+            end
+
+            if BCO:IsBCOListCurrent(inventory)
+                and data ~= BCO.categoryHeaderData
+                and data ~= BCO.itemHeaderData
+            then
+                -- Skip the native draw; BCO's post-hook redraws immediately.
+                return true
+            end
+
+            if type(data.tabBarEntries) == "table" then
+                EnsureThirdTab(data)
+            end
+
+            -- A native draw is about to replace whatever BCO drew last.
+            if data ~= BCO.categoryHeaderData
+                and data ~= BCO.itemHeaderData
+            then
+                BCO.lastDrawnHeaderData = nil
+            end
+
+            return false
+        end
+    )
+
+    self.headerInjectionInstalled = true
+    return true
 end
 
 
@@ -6553,8 +6986,10 @@ function BCO:InstallSecureInventoryHooks()
                 BCO:EnsureNativeTabs()
 
                 if BCO:IsBCOListCurrent(inv) then
+                    local ONLY_IF_STALE = true
                     BCO:RefreshBCOHeader(
-                        blockCallback
+                        blockCallback,
+                        ONLY_IF_STALE
                     )
                 else
                     BCO:ScheduleHeaderRedraw()
@@ -6675,6 +7110,25 @@ function BCO:InstallSecureInventoryHooks()
     end
 
     return headerHooked and switchHooked
+end
+
+-- Native ZO_GamepadInventory:MarkDirty arms a 10 ms OnUpdate tick after
+-- every inventory event. In the read-only (category) action mode BCO keeps
+-- while its lists are current, that tick does nothing but lay out the
+-- native category target's equipped-slot tooltip and the right comparison
+-- tooltip, which BCO's post-hooks then clear and replace with its own item
+-- tooltip. Disarming the tick while a BCO list is current removes three
+-- tooltip layouts per inventory event; leaving BCO goes through the native
+-- SwitchActiveList, which refreshes everything itself.
+function BCO:InstallDirtyTickSuppression()
+    return self:SecureHookInventoryMethod(
+        "MarkDirty",
+        function(inv)
+            if BCO:IsBCOListCurrent(inv) then
+                inv.nextUpdateTimeSeconds = nil
+            end
+        end
+    )
 end
 
 function BCO:GetInstallReadiness()
@@ -6818,6 +7272,9 @@ function BCO:Install()
     -- execution context owns all Use/Equip/Move action construction; BCO is
     -- synchronized exclusively through the secure post-hooks installed above.
 
+    self:InstallHeaderTabInjection()
+    self:InstallDirtyTickSuppression()
+
     self.installed = true
 
     if inventory.scene and inventory.scene:IsShowing() then
@@ -6917,9 +7374,12 @@ function BCO:InstallSceneWatcher()
                 BCO:PrepareForInventorySceneHide()
                 BCO.sceneInstallGeneration =
                     BCO.sceneInstallGeneration + 1
-                -- Give a stale aggregate back to the shared Lua pool; the
-                -- next All Inventories visit rebuilds it.
-                BCO:ReleaseIndexIfDirty()
+                -- Give the aggregate and the BCO list rows back to the
+                -- shared Lua pool; the next All Inventories visit rebuilds
+                -- them in chunks. Holding them while Inventory is closed
+                -- bought nothing and left 10+ MB resident through every
+                -- load screen on large accounts.
+                BCO:ReleaseSceneResources()
             end
         end
     )
@@ -6986,12 +7446,7 @@ local function RegisterCommands()
                 updated = 0,
             },
         }
-        BCO.indexToken = BCO.indexToken + 1
-        BCO.indexBuilding = false
-        BCO.indexReady = false
-        BCO.indexDirty = true
-        BCO.aggregatedItems = {}
-        BCO.filteredItems = {}
+        BCO:ReleaseIndex()
         Msg("Saved inventory snapshots cleared.")
     end
 
@@ -7359,9 +7814,9 @@ local function OnPlayerActivated()
     -- EVENT_PLAYER_ACTIVATED also fires on every zone change, and the
     -- snapshot only needs two API calls per slot, so a single pass is
     -- enough; any later change is caught by the inventory update events.
-    zo_callLater(function()
-        BCO:ScanCurrentCharacter()
-    end, 1000)
+    -- Goes through ScheduleScan so the EVENT_INVENTORY_FULL_UPDATE that
+    -- accompanies every load screen does not add a second full bag walk.
+    BCO:ScheduleScan(1000)
 
     -- No-op outside an owned house. Delayed so placed furniture has loaded
     -- and the character scans above have already run.

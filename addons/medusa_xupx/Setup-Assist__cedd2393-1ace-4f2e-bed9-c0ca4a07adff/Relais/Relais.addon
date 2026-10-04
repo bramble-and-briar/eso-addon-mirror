@@ -1,0 +1,21 @@
+## Title: Setup Assist
+## Description: Parcours de raids et setups personnalisables à la manette : étapes Trash/Boss, donjons communs, équipement, compétences et étoiles Champion.
+## Author: Setup Assist
+## Version: 0.4.0-beta
+## AddOnVersion: 400
+## APIVersion: 101051
+## SavedVariables: RelaisSavedVariables
+## OptionalDependsOn: LibRadialMenu>=9
+
+Core.lua
+Catalog.lua
+RaidRoutes.lua
+ContentModel.lua
+RaidProgression.lua
+Engine.lua
+ESOAdapter.lua
+Automation.lua
+UI.xml
+UI.lua
+Extras.lua
+Bootstrap.lua

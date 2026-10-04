@@ -1,0 +1,9 @@
+## Title: TrueRessourceBars
+## Description: |cff5900Description|r                          In Progress
+## Author: |cff5900To|cb16754ud|c6374a8id|c1581fcef|r
+## Version: 1.0
+## APIVersion: 101051
+## SavedVariables: TrueRessourceBarsSV
+## DependsOn: LibAddonMenu-2.0
+
+TrueRessourceBars.lua

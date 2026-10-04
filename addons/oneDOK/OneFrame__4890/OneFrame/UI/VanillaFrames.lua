@@ -12,7 +12,7 @@ function F:Leader(frame, data)
             local edge = WINDOW_MANAGER:CreateControl(frame.frame:GetName() .. "OneFrameLeader" .. i, frame.frame, CT_TEXTURE)
             edge:SetMouseEnabled(false)
             edge:SetDrawLayer(DL_OVERLAY)
-            edge:SetColor(1, 0.76, 0.18, 1)
+            edge:SetColor(1, 0.84, 0.28, 1)
             data.leaderBorder[i] = edge
         end
     end
@@ -24,10 +24,10 @@ function F:Leader(frame, data)
         local bar = frame.healthBar.barControls[1]
         local raid = frame.style == "ZO_RaidUnitFrame"
         local target = raid and frame.frame or bar
-        local top, bottom = raid and 0 or -28, raid and 0 or 27
+        local top, bottom = 1, -1
         -- Include the native role icon, but not the oversized root/background texture.
-        local left = raid and 0 or (IsInGamepadPreferredMode() and -58 or -38)
-        local right = raid and 0 or 4
+        local left = 1
+        local right = -1
         local anchors = {
             {TOPLEFT, TOPRIGHT, left, top, right, top},
             {BOTTOMLEFT, BOTTOMRIGHT, left, bottom, right, bottom},
@@ -39,7 +39,7 @@ function F:Leader(frame, data)
             edge:ClearAnchors()
             edge:SetAnchor(a[1], target, a[1], a[3], a[4])
             edge:SetAnchor(a[2], target, a[2], a[5], a[6])
-            if i <= 2 then edge:SetHeight(2) else edge:SetWidth(2) end
+            if i <= 2 then edge:SetHeight(1) else edge:SetWidth(1) end
         end
     end
     if frame.SetTextIndented and (leader ~= (data.leaderAdjusted or false)) then
@@ -138,12 +138,18 @@ function F:UpdateStats()
     self:UpdateTotal()
 end
 function F:Initialize()
-    local function refresh(frame)
+    local function refresh(frame, updateName)
         if A.GroupData:IsPlayerFrame(frame) then
             -- Clear/replace a reused frame's statistics in the native refresh itself,
             -- before waiting for the coalesced layout pass.
             local data = self.cache[frame]
-            if data then self:Leader(frame, data); A.PlayerInfo:Name(frame, data); A.PlayerInfo:Stats(frame, data) end
+            local identity = DoesUnitExist(frame.unitTag)
+                and (GetUnitDisplayName(frame.unitTag) .. ":" .. GetUnitName(frame.unitTag)) or nil
+            if data and (updateName or data.statsIdentity ~= identity or not IsUnitOnline(frame.unitTag)) then
+                self:Leader(frame, data)
+                A.PlayerInfo:Name(frame, data)
+                A.PlayerInfo:Stats(frame, data)
+            end
             A:QueueRefresh(false)
         end
     end
@@ -154,7 +160,8 @@ function F:Initialize()
         end
     end)
     for _, method in ipairs({ "ApplyVisualStyle", "UpdateName", "UpdateLevel", "UpdateStatus", "UpdateAssignment", "DoAlphaUpdate" }) do
-        ZO_PostHook(ZO_UnitFrameObject, method, refresh)
+        local updateName = method == "UpdateName"
+        ZO_PostHook(ZO_UnitFrameObject, method, function(frame) refresh(frame, updateName) end)
     end
     ZO_PostHook("ZO_UnitFrames_UpdateWindow", function(tag)
         if tag and tag:match("^group%d+$") then refresh(UNIT_FRAMES:GetFrame(tag)) end

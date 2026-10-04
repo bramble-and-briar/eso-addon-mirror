@@ -18,9 +18,6 @@ function A:InitializeRow(control)
             if control.data then self:Select(control.data[difficulty], checked) end
         end)
     end
-    local quest = control:GetNamedChild("Quest")
-    quest:SetHandler("OnMouseEnter", function(c) self:Tooltip(c, GetString(ONEDUNGEON_QUEST_LEGEND)) end)
-    quest:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
     for _, category in ipairs(categories) do
         local cell = control:GetNamedChild(category[1])
         cell:SetHandler("OnMouseEnter", function(c)
@@ -45,6 +42,10 @@ function A:SetupQuestIcons(control, data)
     story:SetColor(1, 1, 1, 1)
     story:SetHidden(data.story ~= "unfinished" and data.story ~= "active")
     pledge:SetColor(0.35, 0.7, 1, 1)
+    -- Keep accepted status visible even when the additive halo is faded/clipped.
+    -- Reset the texture on every bind because scroll-list rows are pooled.
+    pledge:SetTexture(data.active == true and "EsoUI/Art/Compass/repeatableQuest_icon_assisted.dds"
+        or "EsoUI/Art/Compass/repeatableQuest_icon.dds")
     pledge:SetHidden(data.today ~= true and data.active ~= true)
     glow:SetColor(0.35, 0.7, 1, 0.65)
     glow:SetHidden(data.active ~= true)
@@ -110,14 +111,25 @@ function A:CreateUI()
     ZO_ScrollList_AddDataType(self.list, 1, "OneDungeonRow", 32, function(c, row)
         self:Guard(function() self:SetupRow(c, row) end)
     end, function() self:ClearTooltips() end)
-    local headers = { { GetString(ONEDUNGEON_NORMAL_SHORT), 2 }, { GetString(ONEDUNGEON_VETERAN_SHORT), 34 }, { GetString(ONEDUNGEON_DUNGEON), 68 },
-        { GetString(ONEDUNGEON_QUEST), -270 }, { GetString(ONEDUNGEON_CLEAR), -144 }, { GetString(ONEDUNGEON_HARD_MODE), -96 }, { GetString(ONEDUNGEON_TRI_HEADER), -48 } }
+    local questLegend = zo_strformat(GetString(ONEDUNGEON_QUEST_LEGEND),
+        "|cFFFFFF" .. zo_iconFormatInheritColor("EsoUI/Art/Compass/quest_icon.dds", 24, 24) .. "|r",
+        "|c59B3FF" .. zo_iconFormatInheritColor("EsoUI/Art/Compass/repeatableQuest_icon.dds", 24, 24) .. "|r",
+        "|c59B3FF" .. zo_iconFormatInheritColor("EsoUI/Art/Compass/repeatableQuest_icon_assisted.dds", 32, 32) .. "|r")
+    local headers = { { GetString(ONEDUNGEON_NORMAL_SHORT), 2, GetString(ONEDUNGEON_NORMAL) }, { GetString(ONEDUNGEON_VETERAN_SHORT), 34, GetString(ONEDUNGEON_VETERAN) }, { GetString(ONEDUNGEON_DUNGEON), 68 },
+        { GetString(ONEDUNGEON_QUEST), -270, questLegend }, { GetString(ONEDUNGEON_CLEAR), -144 }, { GetString(ONEDUNGEON_HARD_MODE), -96 }, { GetString(ONEDUNGEON_TRI_HEADER), -48 } }
     for index, entry in ipairs(headers) do
         local label = wm:CreateControl("OneDungeonHeader" .. index, self.panel, CT_LABEL)
         label:SetFont("ZoFontGame")
         label:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
         label:SetAnchor(TOPLEFT, self.panel, entry[2] < 0 and TOPRIGHT or TOPLEFT, entry[2] < 0 and entry[2] - ZO_SCROLL_BAR_WIDTH or entry[2], 4)
         label:SetText(entry[1])
+        local tooltip = entry[3]
+        if tooltip then
+            label:SetMouseEnabled(true)
+            label:SetHandler("OnMouseEnter", function(c) self:Tooltip(c, tooltip) end)
+            label:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+            label:SetHandler("OnEffectivelyHidden", function() ClearTooltip(InformationTooltip) end)
+        end
     end
 end
 

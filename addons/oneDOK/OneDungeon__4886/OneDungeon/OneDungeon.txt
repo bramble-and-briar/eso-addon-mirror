@@ -1,6 +1,6 @@
 ## Title: OneDungeon
 ## Author: oneDOK
-## Version: 1.0
+## Version: 26.1
 ## APIVersion: 101051
 ## SavedVariables: OneDungeonSavedVariables
 

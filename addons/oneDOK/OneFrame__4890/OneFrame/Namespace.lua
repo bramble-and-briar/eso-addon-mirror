@@ -1,1 +1,1 @@
-OneFrame = { name = "OneFrame", displayName = "OneFrame", version = "1.0" }
+OneFrame = { name = "OneFrame", displayName = "OneFrame", version = "26.1" }

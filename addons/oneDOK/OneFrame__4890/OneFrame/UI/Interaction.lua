@@ -15,6 +15,10 @@ function I:CanRemove(tag)
     return not AreUnitsEqual(tag, "player") and IsUnitGroupLeader("player")
         and IsGroupModificationAvailable() and not DoesGroupModificationRequireVote()
 end
+function I:CanPromote(tag)
+    -- Matches the native group list: promotion is independent of kick/vote rules.
+    return IsUnitGroupLeader("player") and not AreUnitsEqual(tag, "player") and IsUnitOnline(tag)
+end
 function I:Open(control)
     local tag, identity = self:Resolve(control)
     if not tag then return end
@@ -29,6 +33,20 @@ function I:Open(control)
         -- names are accepted by the native API and do not contain name grammar suffixes.
         if self:Resolve(control, identity) then JumpToGroupMember(identity.account) end
     end)
+    if AreUnitsEqual(tag, "player") then
+        AddMenuItem(GetString(SI_GROUP_LIST_MENU_LEAVE_GROUP), function()
+            local currentTag = self:Resolve(control, identity)
+            if currentTag and AreUnitsEqual(currentTag, "player") and GetGroupSize() > 0 then
+                ZO_Dialogs_ShowDialog("GROUP_LEAVE_DIALOG")
+            end
+        end)
+    end
+    if self:CanPromote(tag) then
+        AddMenuItem(GetString(SI_GROUP_LIST_MENU_PROMOTE_TO_LEADER), function()
+            local currentTag = self:Resolve(control, identity)
+            if currentTag and self:CanPromote(currentTag) then GroupPromote(currentTag) end
+        end)
+    end
     if self:CanRemove(tag) then
         AddMenuItem(GetString(ONEFRAME_REMOVE), function()
             local currentTag = self:Resolve(control, identity)

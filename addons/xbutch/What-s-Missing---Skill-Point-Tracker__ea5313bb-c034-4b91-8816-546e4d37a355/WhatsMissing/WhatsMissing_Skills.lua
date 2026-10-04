@@ -1,5 +1,5 @@
 if SPT == nil then SPT = {} end
-local Skills = { firstCharacter = 1 }
+local Skills = { firstCharacter = 1, stateKey = "Skills" }
 SPT.Skills = Skills
 
 local categories = {
@@ -17,6 +17,27 @@ local function UnpackState(state)
     return math.floor(state / 4), state % 2 == 1, math.floor(state / 2) % 2 == 1
 end
 
+local function CanGainRankXP(skillType, index, rank)
+    local startXP, nextXP = GetSkillLineRankXPExtents(skillType, index, rank)
+    return startXP ~= nil and nextXP ~= nil and nextXP > startXP
+end
+
+local function GetMaximumRank(skillType, index)
+    if not CanGainRankXP(skillType, index, 1) then return end
+    -- The cap is the first rank without an advancing XP interval. The engine may
+    -- return nil extents there, rather than a terminal 0/equal XP pair.
+    local low, high = 1, 2
+    while CanGainRankXP(skillType, index, high) do
+        low, high = high, high * 2
+        if high > 2147483647 then return end
+    end
+    while high - low > 1 do
+        local middle = math.floor((low + high) / 2)
+        if CanGainRankXP(skillType, index, middle) then low = middle else high = middle end
+    end
+    return high
+end
+
 function Skills:IsReady()
     return SKILLS_DATA_MANAGER and SKILLS_DATA_MANAGER:IsDataReady()
 end
@@ -26,8 +47,8 @@ function Skills:Capture()
     local parts = {}
     for _, skillTypeData in SKILLS_DATA_MANAGER:SkillTypeIterator() do
         for _, line in skillTypeData:SkillLineIterator() do
-            if not line:IsClassMastery() then
-                local skillType, index = line:GetIndices()
+            local skillType, index = line:GetIndices()
+            if not line:IsClassMastery() and CanGainRankXP(skillType, index, 1) then
                 parts[#parts + 1] = string.format("%d:%d,", line:GetId(), ReadState(skillType, index))
             end
         end
@@ -43,6 +64,7 @@ function Skills:Init()
         local entry = SPT.CharCache.roster[SPT.CharCache:GetCharId()]
         local snapshot = entry and entry.skillLines
         local skillType, index = line:GetIndices()
+        if not CanGainRankXP(skillType, index, 1) then return end
         local previous = type(snapshot) == "string" and snapshot:match("[;,]" .. line:GetId() .. ":(%d+),")
         -- SkillLineUpdated includes XP events. Ignore those that leave our state unchanged.
         if tonumber(previous) ~= ReadState(skillType, index) then
@@ -69,11 +91,14 @@ function Skills:GetCatalog()
         for _, line in skillTypeData:SkillLineIterator() do
             if not line:IsClassMastery() then
                 local _, index = line:GetIndices()
-                catalog[#catalog + 1] = {
-                    id = line:GetId(), skillType = skillType, index = index,
-                    classId = GetSkillLineClassId(skillType, index),
-                    name = zo_strformat("<<C:1>>", GetSkillLineNameById(line:GetId())),
-                }
+                local maxRank = GetMaximumRank(skillType, index)
+                if maxRank then
+                    catalog[#catalog + 1] = {
+                        id = line:GetId(), skillType = skillType, index = index, maxRank = maxRank,
+                        classId = GetSkillLineClassId(skillType, index),
+                        name = zo_strformat("<<C:1>>", GetSkillLineNameById(line:GetId())),
+                    }
+                end
             end
         end
     end
@@ -99,15 +124,12 @@ end
 local function IsComplete(line, state)
     if state == nil then return false end
     local rank, discovered = UnpackState(state)
-    if not discovered or rank < 1 then return false end
-    -- Rank extents are static native data, including for an offline character's rank.
-    local startXP, nextXP = GetSkillLineRankXPExtents(line.skillType, line.index, rank)
-    return startXP ~= nil and (nextXP == nil or nextXP == 0 or nextXP == startXP)
+    return discovered and rank >= line.maxRank
 end
 
 local function FormatRank(line, state, classId)
     if state == nil then return "?" end
-    if not IsApplicable(line, state, classId) then return "n/a" end
+    if not IsApplicable(line, state, classId) then return "-" end
     local rank, discovered, active = UnpackState(state)
     local text = discovered and tostring(rank) or "--"
     if not active then text = text .. "*" end
@@ -128,10 +150,17 @@ end
 local function GetCounts(catalog, states, skillType, classId)
     local done, total, unknown = 0, 0, 0
     for _, line in ipairs(catalog) do
-        if line.skillType == skillType and IsApplicable(line, states[line.id], classId) then
-            total = total + 1
-            if states[line.id] == nil then unknown = unknown + 1 end
-            if IsComplete(line, states[line.id]) then done = done + 1 end
+        if line.skillType == skillType then
+            local state = states[line.id]
+            if state == nil then
+                unknown = unknown + 1
+            elseif IsApplicable(line, state, classId) then
+                local _, discovered, active = UnpackState(state)
+                if discovered and active then
+                    total = total + 1
+                    if IsComplete(line, state) then done = done + 1 end
+                end
+            end
         end
     end
     return string.format("%d/%d%s", done, total, unknown > 0 and " ?" or "")

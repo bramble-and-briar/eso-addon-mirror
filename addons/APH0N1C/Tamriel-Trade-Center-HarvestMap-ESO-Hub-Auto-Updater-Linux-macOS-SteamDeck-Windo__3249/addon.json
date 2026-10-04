@@ -1,0 +1,61 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/Tamriel-Trade-Center-HarvestMap-ESO-Hub-Auto-Updater-Linux-macOS-SteamDeck-Windo__3249",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:3249",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:3249",
+  "deleted": false,
+  "directories": [
+    "Tamriel Trade Center",
+    " HarvestMap",
+    " ESO-Hub",
+    " ESOUI Auto-Updater"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl3249/",
+  "fingerprint": "cab86039f5c6507ab639b2f405b032b590847da70218bdcd88999fce242a6f27",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw15289.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17670.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17671.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17672.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17675.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17676.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17677.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17678.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17679.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17680.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17681.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15290.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15291.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15292.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15293.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15294.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15295.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15296.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15297.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15298.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15299.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "3249",
+  "source_url": "https://www.esoui.com/downloads/info3249-TamrielTradeCenterHarvestMapESO-HubAuto-UpdaterLinuxmacOSSteamDeckWindows.html",
+  "stats": {
+    "downloads": 37094,
+    "favorites": 44,
+    "monthly_downloads": 777
+  },
+  "title": "Tamriel Trade Center, HarvestMap & ESO-Hub Auto-Updater (Linux, macOS, SteamDeck, & Windows)",
+  "updated_at": 1791029241000,
+  "version": "2026.09.30.16.04"
+}

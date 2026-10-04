@@ -40,7 +40,7 @@ Zone lookups are keyed entirely by real, language-independent [b]zoneId[/b] — 
 Please install the newest available version of each:
 
 [list]
-[*][url=https://www.esoui.com/downloads/info1496-LibZone.html][b]LibZone[/b][/url] — reports the player's current zoneId/parentZoneId
+[*][url=https://www.esoui.com/downloads/info2171-LibZone.html][b]LibZone[/b][/url] — reports the player's current zoneId/parentZoneId
 [*][url=https://www.esoui.com/downloads/info7-LibAddonMenu.html][b]LibAddonMenu-2.0[/b][/url] — settings panel UI
 [/list]
 

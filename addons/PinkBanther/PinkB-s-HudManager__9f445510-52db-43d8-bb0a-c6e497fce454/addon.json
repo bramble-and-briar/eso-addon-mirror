@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/PinkBanther/PinkB-s-HudManager__9f445510-52db-43d8-bb0a-c6e497fce454",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PinkBanther",
+  "canonical_id": "bethesda:9f445510-52db-43d8-bb0a-c6e497fce454",
+  "content_id": "9f445510-52db-43d8-bb0a-c6e497fce454",
+  "deleted": false,
+  "fingerprint": "7349033ced651b7669e2faab30380ebca8e71e9829e93582d57fba5815ec9596",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "9f445510-52db-43d8-bb0a-c6e497fce454",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/9f445510-52db-43d8-bb0a-c6e497fce454",
+  "title": "PinkB's HudManager"
+}

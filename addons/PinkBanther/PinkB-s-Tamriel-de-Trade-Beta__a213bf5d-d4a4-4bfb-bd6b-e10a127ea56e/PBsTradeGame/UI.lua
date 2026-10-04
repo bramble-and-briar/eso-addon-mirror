@@ -236,7 +236,7 @@ function U.New(app)
     titleLayer(centered(label(self.titlePanel,270,72,220,28,"第二紀",18,T.gold)),7)
     titleLayer(centered(label(self.titlePanel,750,72,220,28,"交易年代記",18,T.gold)),7)
     self.titleName=titleLayer(centered(label(self.titlePanel,0,151,1240,64,C.displayTitle,54,{1,.86,.55,1})),7)
-    titleLayer(centered(label(self.titlePanel,0,214,1240,30,"PinkB's Tamriel Trade Game",22,T.gold)),7)
+    titleLayer(centered(label(self.titlePanel,0,214,1240,30,"PB's Tamriel de Trade",22,T.gold)),7)
     self.titleCompany=titleLayer(centered(label(self.titlePanel,0,258,1240,44,"",34,{1,.90,.68,1})),7)
     self.titleStatus=titleLayer(centered(label(self.titlePanel,270,303,700,30,"",22)),7)
     self.titleRows={}

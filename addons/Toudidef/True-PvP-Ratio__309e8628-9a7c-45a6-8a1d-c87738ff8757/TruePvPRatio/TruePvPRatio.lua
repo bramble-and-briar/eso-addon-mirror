@@ -305,10 +305,10 @@ function TruePvPRatio:UpdateUI()
         table.insert(sortedChars, {name = name, data = data, ratio = GetRatio(data.kills, data.deaths)})
     end
 
-    -- Tri des personnages : Veterans (>= 2000 kills) en premier, puis par meilleur ratio
+    -- Tri des personnages : Veterans (>= 1500 kills) en premier, puis par meilleur ratio
     table.sort(sortedChars, function(a, b) 
-        local isAVeteran = (a.data.kills >= 2000)
-        local isBVeteran = (b.data.kills >= 2000)
+        local isAVeteran = (a.data.kills >= 1500)
+        local isBVeteran = (b.data.kills >= 1500)
         if isAVeteran ~= isBVeteran then
             return isAVeteran
         end

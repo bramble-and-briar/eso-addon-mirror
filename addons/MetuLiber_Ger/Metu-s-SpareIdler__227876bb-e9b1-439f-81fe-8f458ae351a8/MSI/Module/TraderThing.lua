@@ -18,7 +18,7 @@ local function SellAllStolenJunk()
         if data.stolen == true and data.isJunk == true then
             if totalSells == sellsUsed then
                 MSI.Print("c", GetString(SI_STOREFAILURE23)) -- Limit erreicht
-				MSI.ShowCenterMsg(2000, [[icon_warn.dds]], GetString(SI_STOREFAILURE23))
+				MSI.ShowCenterMsg(2468, [[icon_warn.dds]], GetString(SI_STOREFAILURE23))
 				break
             else
 				SellInventoryItem(BAG_BACKPACK, data.slotIndex, data.stackCount)
@@ -36,7 +36,7 @@ local function LaunderAllStolen()
         if data.stolen == true and data.isJunk == false and GetItemLaunderPrice(BAG_BACKPACK, data.slotIndex) > 0 then
             if totalLaunders == laundersUsed then
 				MSI.Print("c", GetString(SI_ITEMLAUNDERRESULT7)) -- Limit erreicht
-				MSI.ShowCenterMsg(2000, [[icon_warn.dds]], GetString(SI_ITEMLAUNDERRESULT7))
+				MSI.ShowCenterMsg(2468, [[icon_warn.dds]], GetString(SI_ITEMLAUNDERRESULT7))
                 break
             else
 				LaunderItem(BAG_BACKPACK, data.slotIndex, math.min(math.min(data.stackCount, 100), (totalLaunders - laundersUsed)))
@@ -60,7 +60,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_STORE_CHTLINE))
 	if total > 0 then		
 		SellAllJunk()
 		MSI.Print("c", zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
-		MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
+		MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 
 	end
 end
@@ -79,7 +79,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_FENCE_CHTLINE))
 		if total > 0 then
 			SellAllStolenJunk()
 			MSI.Print("c", zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
-			MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
+			MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 		end
 	end
 end
@@ -98,7 +98,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_LAUNDER_CHTLINE))
 		if total > 0 then
 			LaunderAllStolen()
 			MSI.Print("c", zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
-			MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
+			MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 		end
 	end
 end
@@ -354,6 +354,7 @@ local function unboxQueuedContainer()
 	for i, slotIndex in ipairs(cachedUnboxingQueue) do
 		if GetItemName(BAG_BACKPACK, slotIndex) == "" then
             MSI.Print("c", GetString(MSI_MOD_MISSING_ITEM_CHTLINE))
+			--MSI.ShowCenterMsg(2468, [[icon_warn.dds]], zo_strformat(GetString(MSI_MOD_MISSING_ITEM_CHTLINE)))
 		else
 			zo_callLater(function() 
 
@@ -365,38 +366,31 @@ local function unboxQueuedContainer()
 				if item ~= nil then
 					if UseThatItem(BAG_BACKPACK, item.getSlotIndex) then
 						if item.isFish then
-							MSI.Print("d", zo_strformat(GetString(MSI_MOD_FISH_FILLET_CHTLINE), item.getLink))
+							MSI.Print("c", zo_strformat(GetString(MSI_MOD_FISH_FILLET_CHTLINE), item.getLink))
 						elseif (item.isTreasureMap and item.isUnopened) then
 							MSI.Print("i", zo_strformat(GetString(MSI_MOD_OPENED_SCROLL_CHTLINE), item.getLink))
-							MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_OPENED_SCROLL_CHTLINE), item.getLink))
+							MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_OPENED_SCROLL_CHTLINE), item.getLink))
 						elseif item.isTreasureMap then
 							MSI.Print("i", zo_strformat(GetString(MSI_MOD_VIEWED_NOTE_CHTLINE), item.getLink))
-							MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_VIEWED_NOTE_CHTLINE), item.getLink))
+							MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_VIEWED_NOTE_CHTLINE), item.getLink))
 						elseif item.isRecipePage then
-							MSI.Print("d", zo_strformat(GetString(MSI_MOD_LEARNED_ITEM_CHTLINE), item.getLink))
+							MSI.Print("c", zo_strformat(GetString(MSI_MOD_LEARNED_ITEM_CHTLINE), item.getLink))
 						elseif (item.isContainer or item.isUnopened) then
+							-- if (item.isContainer and item.isCraftingContainer) then
+								-- isUnboxingCraftReward = false
+							-- end
+							MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
 							--OnLootUpdatedThrottled()
 							EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
 							zo_callLater(function()
 							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
 							end, GetLatency() + 200)
-							MSI.Print("d", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
 						else
-							MSI.Print("d", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
+							MSI.Print("c", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
 						end
 					end
+					--UseThatItem(BAG_BACKPACK, item.getSlotIndex)
 				end
-
-				-- if IsConsoleUI() then
-				--     SCENE_MANAGER:Hide("lootGamepad")
-				--     SCENE_MANAGER:Show("hud")
-				-- else
-				--     SCENE_MANAGER:Hide("loot")
-				--     SCENE_MANAGER:Show("hudui")
-				-- end
-				-- SCENE_MANAGER:ShowBaseScene()
-				if (item.isContainer and item.isCraftingContainer) then
-					isUnboxingCraftReward = false end
 			end, (i - 1) * (1000 + GetLatency()))
 		end
 	end
@@ -681,7 +675,7 @@ if not MSI.SVars.IsMSIActive then return end
 		or (item.isRecipePage and not item.isRecipeKnown and MSI.SVars.IsLearnCllctbl and item.isUnknown)
 		or ((item.isTreasureMap or (item.getLinkId == 224681)) and MSI.SVars.IsUnrollTrsrMap) then 
 			table.insert(pendingUnboxingQueue, item.getSlotIndex)
-			MSI.Print("c", zo_strformat(GetString(MSI_MOD_QUEUED_CONTI_CHTLINE), item.getLink))
+			MSI.Print("d", zo_strformat(GetString(MSI_MOD_QUEUED_CONTI_CHTLINE), item.getLink))
 			startInterruptionListener(item.getSlotIndex)
 		end
 

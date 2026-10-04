@@ -7,8 +7,32 @@ function A:QueueRefresh(sort)
     EVENT_MANAGER:RegisterForUpdate(self.name .. "Refresh", 50, function()
         EVENT_MANAGER:UnregisterForUpdate(self.name .. "Refresh")
         self.pending = false
+        -- One configuration pass for the complete native roster event burst.
+        if self.rosterDirty then
+            self.rosterDirty = false
+            self.CombatStats:Configure()
+        end
+        EVENT_MANAGER:UnregisterForUpdate(self.name .. "StatsRefresh")
+        self.statsPending = false
         self.Frames:Refresh()
     end)
+end
+function A:QueueStatsRefresh()
+    if self.pending or self.statsPending then return end
+    self.statsPending = true
+    EVENT_MANAGER:RegisterForUpdate(self.name .. "StatsRefresh", 50, function()
+        EVENT_MANAGER:UnregisterForUpdate(self.name .. "StatsRefresh")
+        self.statsPending = false
+        if not self.pending then self.Frames:UpdateStats() end
+    end)
+end
+function A:QueueRosterRefresh()
+    if not self.rosterDirty then
+        -- Invalidate immediately, but do not reinstall observers for every unit event.
+        self.rosterDirty = true
+        self.CombatStats:ResetShared()
+    end
+    self:QueueRefresh(true)
 end
 function A:ApplySettings()
     self:PrepareRoleStatistics()
@@ -58,7 +82,7 @@ function A:InitializeFrames()
     self.ShieldOverlay:Initialize()
     EVENT_MANAGER:RegisterForEvent(self.name .. "Health", EVENT_POWER_UPDATE, function(_, tag, _, powerType)
         if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and type(tag) == "string" and tag:match("^group%d+$") then
-            self.Frames:UpdateStats()
+            self:QueueStatsRefresh()
         end
     end)
     for _, event in ipairs({ EVENT_GROUP_MEMBER_JOINED, EVENT_GROUP_MEMBER_LEFT,
@@ -66,9 +90,7 @@ function A:InitializeFrames()
         EVENT_MANAGER:RegisterForEvent(self.name .. "SharedLifecycle", event, function(_, tag)
             if (event == EVENT_UNIT_CREATED or event == EVENT_UNIT_DESTROYED)
                 and (type(tag) ~= "string" or not tag:match("^group%d+$")) then return end
-            self.CombatStats:ResetShared()
-            self.CombatStats:Configure()
-            self:QueueRefresh(false)
+            self:QueueRosterRefresh()
         end)
     end
     EVENT_MANAGER:RegisterForEvent(self.name .. "SharedLoad", EVENT_ADD_ON_LOADED, function()

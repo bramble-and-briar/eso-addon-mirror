@@ -22,7 +22,7 @@ local function Help()
     Log("/sf style <name>           " .. table.concat(ReticleUtils.STYLE_ORDER, ", "))
     Log("/sf size <px>              dot size (8-128)")
     Log("/sf gt [on|off|log|debug|scan]  ground-target range / line-of-sight indicator")
-    Log("/sf line [on|off|depth|range <m>|always|width <m>]  3D aim line to max range")
+    Log("/sf line [on|off|depth|range <m>|always|icons [m]|size <m>|path|screen|strip]  3D distance icons / aim guide")
     Log("-- limits for the game's Settings > Camera sliders (the only path on console) --")
     Log("/sf sensmax <n>            look sensitivity slider max (%.2f-%.2f)", LIMITS.sensitivityMax.min, LIMITS.sensitivityMax.max)
     Log("/sf distmax <n>            camera distance slider max (%.2f-%.2f)", LIMITS.distanceMax.min, LIMITS.distanceMax.max)
@@ -236,10 +236,23 @@ handlers.line = function(words)
         local v = tonumber(words[2])
         if v then s.lineWidthM = CameraUtils.Clamp(v, 0.02, 0.5) end
         Log("aim line width = %.2f m", s.lineWidthM)
-    elseif sub == "ticks" then
+    elseif sub == "ticks" or sub == "icons" then
         local v = tonumber(words[2])
         if v then s.tickIntervalM = CameraUtils.Clamp(v, 0, 10); s.showTicks = v > 0 else s.showTicks = not s.showTicks end
-        Log("aim line ticks %s, every %.0f m", s.showTicks and "on" or "off", s.tickIntervalM)
+        Log("distance icons %s, every %.1f m", s.showTicks and "on" or "off", s.tickIntervalM)
+    elseif sub == "size" then
+        local v = tonumber(words[2])
+        if v then s.iconSizeM = CameraUtils.Clamp(v, 0.1, 3) end
+        Log("icon size = %.1f m", s.iconSizeM)
+    elseif sub == "path" then
+        s.iconPath = s.iconPath == "ray" and "line" or "ray"
+        Log("icons on the %s", s.iconPath == "ray" and "camera ray (stacked at the crosshair)" or "aim line (character -> aim point)")
+    elseif sub == "screen" then
+        s.iconConstantScreenSize = not s.iconConstantScreenSize
+        Log("icons constant on-screen size %s", s.iconConstantScreenSize and "on" or "off")
+    elseif sub == "strip" then
+        s.showLine = not s.showLine
+        Log("line strip %s", s.showLine and "on" or "off")
     elseif sub == "ground" then
         s.showGround = not s.showGround; Log("ground marker %s", s.showGround and "on" or "off")
     elseif sub == "mode" then
@@ -250,7 +263,7 @@ handlers.line = function(words)
         Log("aim line geometry dump %s (shows in /sf line)", s.debugDump and "on" or "off")
     else
         for _, line in ipairs(AL.StatusLines()) do Log(line) end
-        Log("/sf line on|off | depth | range <m> | always | width <m> | ticks [m] | ground | mode | dump")
+        Log("/sf line on|off | depth | range <m> | always | icons [m] | size <m> | path | screen | strip | width <m> | ground | mode | dump")
     end
 end
 

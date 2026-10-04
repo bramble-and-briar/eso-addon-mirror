@@ -8,6 +8,10 @@
   "category_id": "109",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -70,7 +74,7 @@
     "InfoPanel"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1831/",
-  "fingerprint": "6c47878ddc969bd44c526b2643b999ac444bd2c82e6409f64c99ec10a8679935",
+  "fingerprint": "523640546713b4a8933dbf552af1f523eae2a6f5c83ce940a797b741da6e8cf3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14232.png"
   ],
@@ -80,11 +84,11 @@
   "source_id": "1831",
   "source_url": "https://www.esoui.com/downloads/info1831-InfoPanel.html",
   "stats": {
-    "downloads": 378196,
-    "favorites": 347,
-    "monthly_downloads": 8000
+    "downloads": 386960,
+    "favorites": 349,
+    "monthly_downloads": 2602
   },
   "title": "Info Panel",
-  "updated_at": 1785579269000,
-  "version": "1.64"
+  "updated_at": 1791049488000,
+  "version": "1.65"
 }

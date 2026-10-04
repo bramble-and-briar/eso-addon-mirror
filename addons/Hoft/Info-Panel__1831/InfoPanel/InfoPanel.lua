@@ -1,5 +1,5 @@
 InfoPanel={}
-local version=1.63
+local version=1.65
 local lang=GetCVar("language.2")
 local fs=7.2
 local info_font="ZoFontWinT2"
@@ -165,43 +165,44 @@ Settings={
 	[21]={name="Vouchers",value=false,icon=GetCurrencyKeyboardIcon(CURT_WRIT_VOUCHERS)},
 	[22]={name="Transmutation",value=false,icon=GetCurrencyKeyboardIcon(CURT_CHAOTIC_CREATIA)},
 	[23]={name="UndauntedKeys",value=false,icon=GetCurrencyKeyboardIcon(CURT_UNDAUNTED_KEYS)},
-	[24]={name="TradeBars",value=false,icon=GetCurrencyKeyboardIcon(CURT_TRADE_BARS)},
-	[25]={name="TomePoints",value=false,icon=GetCurrencyKeyboardIcon(CURT_TOME_POINTS)},
-	[26]={name="Seals",value=false,icon=GetCurrencyKeyboardIcon(CURT_SEALS)},
-	[27]={name="ArchivalFortunes",value=false,icon=GetCurrencyKeyboardIcon(CURT_ARCHIVAL_FORTUNES)}, 
+	[24]={name=224302,value=false,icon="/esoui/art/icons/housing_uni_inc_nowherekey001.dds"}, -- Unformed Planar Key
+	[25]={name="TradeBars",value=false,icon=GetCurrencyKeyboardIcon(CURT_TRADE_BARS)},
+	[26]={name="TomePoints",value=false,icon=GetCurrencyKeyboardIcon(CURT_TOME_POINTS)},
+	[27]={name="Seals",value=false,icon=GetCurrencyKeyboardIcon(CURT_SEALS)},
+	[28]={name="ArchivalFortunes",value=false,icon=GetCurrencyKeyboardIcon(CURT_ARCHIVAL_FORTUNES)}, 
 --	[27]={name="ESOPlus",value=0,icon="/esoui/art/inventory/inventory_quest_tabicon_active.dds",slider=true,maxvalue=120,setfunc=function(days) if days==0 then GlobalSettings.ESOPlus=0 else ESOPlusSubscriber=IsESOPlusSubscriber() local h,m,s=string.match(GetTimeString(),"(%d+):(%d+):(%d+)") GlobalSettings.ESOPlus=GetTimeStamp()-(h*60*60+m*60+s)+(days*24*60*60)+(18*60*60) end end,getfunc=function() return GlobalSettings.ESOPlus==0 and 0 or math.floor((GlobalSettings.ESOPlus-GetTimeStamp())/60/60/24) end},
-	[28]={name="Fence",value=false,icon="/esoui/art/inventory/gamepad/gp_inventory_icon_stolenitem.dds"},
-	[29]={name="Apparel",value=true,icon="/esoui/art/inventory/gamepad/gp_inventory_icon_apparel.dds"},	   --esoui/art/progression/icon_armorsmith.dds
-	[30]={name="Weapons",value=true,icon="/esoui/art/progression/icon_weaponsmith.dds"},
-	[31]={name="Achievements",value=3,icon="/esoui/art/tutorial/gamepad/gp_playermenu_icon_achievements.dds",dropdown=true},
-	[32]={name="Skyshards",value=false,icon="/esoui/art/tutorial/gamepad/achievement_categoryicon_skyshards.dds"},
-	[33]={name="ExpPS",value=3,icon="/esoui/art/icons/icon_experience.dds",dropdown=true,choices={"Exp/sec","AP/sec","disabled","Telvar/sec"}},
-	[34]={name="ReelAlert",value=false,icon="/esoui/art/icons/achievements_indexicon_fishing_up.dds"},
-	[35]={name="FishingAchivement",value=false,character=true,icon="/esoui/art/icons/crafting_fishing_merringar.dds"},
-	[36]={name="TrialInfo",value=false,icon="/esoui/art/tutorial/gamepad/gp_lfg_trial.dds"},
-	[37]={name="DungeonInfo",value=false,icon="/esoui/art/icons/mapkey/mapkey_solotrial.dds"},
-	[38]={name="DungeonChests",value=true,icon="/InfoPanel/Chest.dds"},
-	[39]={name="Hirelings",value=false,icon="/esoui/art/mail/gamepad/gp_mailmenu_attachitem.dds"},
-	[40]={name="Companions",value=true,header=true},
-	[41]={name="ActiveCompanion",value=false,icon="/esoui/art/companion/gamepad/gp_category_u30_companions.dds"},
-	[42]={name="CompanionLevel",value=false,icon="/esoui/art/tutorial/gamepad/achievement_categoryicon_champion.dds"},
-	[43]={name="CompanionRapport",value=false,icon="/esoui/art/hud/loothistory_icon_rapportincrease_generic.dds"},
-	[44]={name="Settings",value=true,header=true},
-	[45]={name="Achievement_up",value=false,icon="/esoui/art/tutorial/gamepad/gp_playermenu_icon_achievements.dds"},
-	[46]={name="APgain",value=true,icon=GetCurrencyKeyboardIcon(CURT_ALLIANCE_POINTS)},
-	[47]={name="TelvarGain",value=true,icon=GetCurrencyKeyboardIcon(CURT_TELVAR_STONES)},
-	[48]={name="ExPgain",value=true,icon="/esoui/art/icons/icon_experience.dds"},
-	[49]={name="Settings",value=true,header=true},
-	[50]={name="InfoPanel",value=true,icon="/esoui/art/cadwell/check.dds"},
-	[51]={name="Background",value=10,icon="/esoui/art/crafting/universalstyle_rowbackground.dds",slider=true},
-	[52]={name="Scale",value=0,icon="/esoui/art/miscellaneous/gamepad/gp_scrollarrow_up.dds",slider=true},
-	[53]={name="Update",value=5,icon="/esoui/art/help/help_tabicon_feedback_up.dds",slider=true},
-	[54]={name="Center",button=true,func=function() CenterInfoPanel() end},
-	[55]={name="Reset",button=true,func=function() ResetToDefault() end,split=true},
-	[56]={name="AutoRepair",value=true,header=true},
-	[57]={name="AutoRepairStore",value=false,icon="/esoui/art/treeicons/achievements_indexicon_crafting_up.dds"},
-	[58]={name="AutoRepairKit",value=false,icon="/esoui/art/treeicons/achievements_indexicon_crafting_up.dds"},
-	[59]={name="AutoRecharge",value=false,icon="/esoui/art/inventory/inventory_tabicon_craftbag_enchanting_up.dds"},
+	[29]={name="Fence",value=false,icon="/esoui/art/inventory/gamepad/gp_inventory_icon_stolenitem.dds"},
+	[30]={name="Apparel",value=true,icon="/esoui/art/inventory/gamepad/gp_inventory_icon_apparel.dds"},	   --esoui/art/progression/icon_armorsmith.dds
+	[31]={name="Weapons",value=true,icon="/esoui/art/progression/icon_weaponsmith.dds"},
+	[32]={name="Achievements",value=3,icon="/esoui/art/tutorial/gamepad/gp_playermenu_icon_achievements.dds",dropdown=true},
+	[33]={name="Skyshards",value=false,icon="/esoui/art/tutorial/gamepad/achievement_categoryicon_skyshards.dds"},
+	[34]={name="ExpPS",value=3,icon="/esoui/art/icons/icon_experience.dds",dropdown=true,choices={"Exp/sec","AP/sec","disabled","Telvar/sec"}},
+	[35]={name="ReelAlert",value=false,icon="/esoui/art/icons/achievements_indexicon_fishing_up.dds"},
+	[36]={name="FishingAchivement",value=false,character=true,icon="/esoui/art/icons/crafting_fishing_merringar.dds"},
+	[37]={name="TrialInfo",value=false,icon="/esoui/art/tutorial/gamepad/gp_lfg_trial.dds"},
+	[38]={name="DungeonInfo",value=false,icon="/esoui/art/icons/mapkey/mapkey_solotrial.dds"},
+	[39]={name="DungeonChests",value=true,icon="/InfoPanel/Chest.dds"},
+	[40]={name="Hirelings",value=false,icon="/esoui/art/mail/gamepad/gp_mailmenu_attachitem.dds"},
+	[41]={name="Companions",value=true,header=true},
+	[42]={name="ActiveCompanion",value=false,icon="/esoui/art/companion/gamepad/gp_category_u30_companions.dds"},
+	[43]={name="CompanionLevel",value=false,icon="/esoui/art/tutorial/gamepad/achievement_categoryicon_champion.dds"},
+	[44]={name="CompanionRapport",value=false,icon="/esoui/art/hud/loothistory_icon_rapportincrease_generic.dds"},
+	[45]={name="Settings",value=true,header=true},
+	[46]={name="Achievement_up",value=false,icon="/esoui/art/tutorial/gamepad/gp_playermenu_icon_achievements.dds"},
+	[47]={name="APgain",value=true,icon=GetCurrencyKeyboardIcon(CURT_ALLIANCE_POINTS)},
+	[48]={name="TelvarGain",value=true,icon=GetCurrencyKeyboardIcon(CURT_TELVAR_STONES)},
+	[49]={name="ExPgain",value=true,icon="/esoui/art/icons/icon_experience.dds"},
+	[50]={name="Settings",value=true,header=true},
+	[51]={name="InfoPanel",value=true,icon="/esoui/art/cadwell/check.dds"},
+	[52]={name="Background",value=10,icon="/esoui/art/crafting/universalstyle_rowbackground.dds",slider=true},
+	[53]={name="Scale",value=0,icon="/esoui/art/miscellaneous/gamepad/gp_scrollarrow_up.dds",slider=true},
+	[54]={name="Update",value=5,icon="/esoui/art/help/help_tabicon_feedback_up.dds",slider=true},
+	[55]={name="Center",button=true,func=function() CenterInfoPanel() end},
+	[56]={name="Reset",button=true,func=function() ResetToDefault() end,split=true},
+	[57]={name="AutoRepair",value=true,header=true},
+	[58]={name="AutoRepairStore",value=false,icon="/esoui/art/treeicons/achievements_indexicon_crafting_up.dds"},
+	[59]={name="AutoRepairKit",value=false,icon="/esoui/art/treeicons/achievements_indexicon_crafting_up.dds"},
+	[60]={name="AutoRecharge",value=false,icon="/esoui/art/inventory/inventory_tabicon_craftbag_enchanting_up.dds"},
 	}
 local Localization={
 	en={
@@ -228,6 +229,7 @@ local Localization={
 	"Writ vouchers",			"",
 	"Transmutation stones",		   "",
 	"Undaunted keys",			 "",
+	"Unformed Planar Keys",		"Displays the number of Unformed Planar Keys in the inventory.",
 	"Trade Bars",			"Displays current Trade Bars balance",
 	"Tome Points",			"",
 	"Seals",		"Displays current Seals balance",
@@ -303,6 +305,7 @@ local Localization={
 	"Ваучеры",				  "",
 	"Камни трансмутации",		 "",
 	"Ключи неустрашимых",		 "",
+	"Неоформившиеся планарные ключи",		"Показывает количество неоформившихся планарных ключей в инвентаре.",
 	"Торговые слитки",		"Показывает текущий баланс торговых слитков",
 	"Очки фолиантов",			 "",
 	"Печати ",		   "Показывает текущий баланс печатей",
@@ -378,6 +381,7 @@ local Localization={
 	"Wertgutscheine",			 "",
 	"Transmutationskristalle",	  "",
 	"Undaunted keys",			 "",
+	"Wundersamer Nirgends-Schlüssel",		"Zeigt die Anzahl der Wundersamer Nirgends-Schlüssel im Inventar an.",
 	"Trade Bars",			"Displays current Trade Bars balance",
 	"Tome Points",			"",
 	"Siegel",	  "Zeigt das aktuelle Siegel Guthaben an",
@@ -454,6 +458,7 @@ local Localization={
 	"Commandes d'artisanat",	"Indique le nombre de commandes d'artisanat en attentes de livraison.",
 	"Pierre de Transmutation",	  "Indique le nombre de Pierres de transmutation en possession du personnage",
 	"Undaunted keys",			 "",
+	"Clé de Nulle-part merveilleuse",		"Indique le nombre de clé de Nulle-part merveilleuse non formées dans l’inventaire.",
 	"Trade Bars",			"Displays current Trade Bars balance",
 	"Tome Points",			"",
 	"Sceaux",		  "Affiche le solde actuel des Sceaux",
@@ -529,6 +534,7 @@ local Localization={
 	"制作凭证",			"",
 	"变形水晶",		   "",
 	"无畏者钥匙",			 "",
+	"未成形的位面钥匙",		"显示背包中未成形的位面钥匙数量。",
 	"交易条",			"显示当前的交易条数量",
 	"古籍点数",			"",
 	"封印",		"显示当前的封印数量",
@@ -586,6 +592,7 @@ local Items={
 	[33265]={icon="/esoui/art/icons/soulgem_006_empty.dds"},	--Soul gemm (empty)
 	[33271]={icon="/esoui/art/icons/soulgem_006_filled.dds"},	 --Soul gemm
 	[44879]={icon="/esoui/art/lfg/lfg_bonus_crate.dds"},		--Repairkit
+	[224302]={icon="/esoui/art/icons/housing_uni_inc_nowherekey001.dds"}, --Unformed Planar Key
 	}
 local ResearchIcons={
 	[CRAFTING_TYPE_WOODWORKING]="/esoui/art/icons/mapkey/mapkey_woodworker.dds",
@@ -941,8 +948,8 @@ end
 local function GetAchievementPoints()
 	local total,available=GetEarnedAchievementPoints(),GetTotalAchievementPoints()
 	local pct=math.floor(total/available*100)
-	achievements1=zo_iconFormat(Settings[31].icon,icon_p_size1,icon_p_size1).." |cCCCCAA"..format_number(total).."("..pct.."%)|r"
-	achievements2=zo_iconFormat(Settings[31].icon,icon_p_size1,icon_p_size1).." |cCCCCAA"..format_number(total).."("..pct.."%)/"..format_number(available).."|r"
+	achievements1=zo_iconFormat(Settings[32].icon,icon_p_size1,icon_p_size1).." |cCCCCAA"..format_number(total).."("..pct.."%)|r"
+	achievements2=zo_iconFormat(Settings[32].icon,icon_p_size1,icon_p_size1).." |cCCCCAA"..format_number(total).."("..pct.."%)/"..format_number(available).."|r"
 end
 
 local function OnBagpackAdded(bagId, slotIndex, slotData)
@@ -1328,14 +1335,14 @@ function InfoPanel.Update()
 		local text=StolenItems
 		panel_w=panel_w+icon_p_size1+(string.len(text)+1)*fs
 		if FenceSells~=FenceLaunders then text=text.." |cCCCCAA/"..FenceSells..","..FenceLaunders.."|r" panel_w=panel_w+(string.len(FenceSells..FenceLaunders)+1)*fs end
-		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[28].icon,icon_p_size1,icon_p_size1)..text
+		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[29].icon,icon_p_size1,icon_p_size1)..text
 	end
 	if GlobalSettings.Apparel then
-		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[29].icon,icon_p_size1,icon_p_size1).." "..((WornCondition<=10) and "|cCC2222" or "|cCCCCAA")..WornCondition.."%|r"
+		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[30].icon,icon_p_size1,icon_p_size1).." "..((WornCondition<=10) and "|cCC2222" or "|cCCCCAA")..WornCondition.."%|r"
 		panel_w=panel_w+icon_p_size1+(WornCondition<100 and 4.5 or 5)*fs
 	end
 	if GlobalSettings.Weapons then
-		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[30].icon,icon_p_size1,icon_p_size1).." "..((MinCharge<=10) and "|cCC2222" or "|cCCCCAA")..MinCharge.."%|r"
+		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[31].icon,icon_p_size1,icon_p_size1).." "..((MinCharge<=10) and "|cCC2222" or "|cCCCCAA")..MinCharge.."%|r"
 		panel_w=panel_w+icon_p_size1+(MinCharge<100 and 4.5 or 5)*fs
 	end
 	if GlobalSettings.Achievements==1 then
@@ -1346,7 +1353,7 @@ function InfoPanel.Update()
 		panel_w=panel_w+icon_p_size1+17*fs
 	end
 	if GlobalSettings.Skyshards then
-		info=info..(info=="" and "" or "  ")..(zo_iconFormat(Settings[32].icon,icon_p_size2,icon_p_size2).." ".."|cCCCCAA"..GetNumSkyShards().."|r")
+		info=info..(info=="" and "" or "  ")..(zo_iconFormat(Settings[33].icon,icon_p_size2,icon_p_size2).." ".."|cCCCCAA"..GetNumSkyShards().."|r")
 		panel_w=panel_w+icon_p_size2+3*fs
 	end
 --[[
@@ -1364,17 +1371,17 @@ function InfoPanel.Update()
 --		  local t2=format_timer(RaidTargetTime)
 		local score=GetCurrentRaidScore()/1000
 		local t3=score>0 and ": "..score.."K" or ""
-		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[36].icon,icon_p_size2,icon_p_size2).." "..t1..t3	 --"|cCCCCAA/"..t2.."|r"
+		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[37].icon,icon_p_size2,icon_p_size2).." "..t1..t3	 --"|cCCCCAA/"..t2.."|r"
 		panel_w=panel_w+icon_p_size2+(string.len(t1..t3)+4)*fs
 	end
 	if GlobalSettings.DungeonInfo and DungeonStartTime>0 then
 		local duration=(GetGameTimeMilliseconds()-DungeonStartTime)/1000
 		local t1=duration>60 and format_timer(duration) or "0m"
-		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[37].icon,icon_p_size2,icon_p_size2).." "..t1
+		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[38].icon,icon_p_size2,icon_p_size2).." "..t1
 		panel_w=panel_w+icon_p_size2+(string.len(t1)+1)*fs
 	end
 	if GlobalSettings.DungeonChests and DungeonStartTime>0 then
-		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[38].icon,icon_p_size2,icon_p_size2).." "..ChestsLooted.."|cCCCCAA/2"
+		info=info..(info=="" and "" or "  ")..zo_iconFormat(Settings[39].icon,icon_p_size2,icon_p_size2).." "..ChestsLooted.."|cCCCCAA/2"
 		panel_w=panel_w+icon_p_size2+5*fs
 	end
 	if CharacterSettings.FishingAchivement and FishingWidth>0 then
@@ -1384,7 +1391,7 @@ function InfoPanel.Update()
 	if GlobalSettings.Hirelings and CharacterSettings.Hireling then
 		local delay=CharacterSettings.Hireling-GetTimeStamp()
 		if delay>0 then
-			info=info..(info=="" and "" or "  ")..(zo_iconFormat(Settings[39].icon,icon_p_size2,icon_p_size2).." ".."|cCCCCAA"..format_timer(delay).."|r")
+			info=info..(info=="" and "" or "  ")..(zo_iconFormat(Settings[40].icon,icon_p_size2,icon_p_size2).." ".."|cCCCCAA"..format_timer(delay).."|r")
 			panel_w=panel_w+icon_p_size2+5*fs
 		end
 	end
@@ -1594,7 +1601,7 @@ local function OnExpUpdate(_,unitTag,currentExp,maxExp,reason)
 		if GlobalSettings.ExPgain then
 			local experience=currentExp-LastExp
 			if experience>=5000 then
-				d(string.format('|c22CC22Experience gain:|r %s%s',format_number(experience),zo_iconFormat(Settings[48].icon,icon_p_size2,icon_p_size2),reason))
+				d(string.format('|c22CC22Experience gain:|r %s%s',format_number(experience),zo_iconFormat(Settings[49].icon,icon_p_size2,icon_p_size2),reason))
 			end
 		end
 	end
@@ -1610,7 +1617,7 @@ local function OnApUpdate(_,alliancePoints,playSound,difference,reason)
 	end
 
 	if GlobalSettings.APgain and playSound and difference>=1000 then
-		d("|c22CC22AP gain:|r "..format_number(difference)..zo_iconFormat(Settings[46].icon,icon_p_size2,icon_p_size2))	   --.."("..tostring(reason)..")")
+		d("|c22CC22AP gain:|r "..format_number(difference)..zo_iconFormat(Settings[47].icon,icon_p_size2,icon_p_size2))	   --.."("..tostring(reason)..")")
 	end
 end
 
@@ -1626,7 +1633,7 @@ local function OnTelvarGain(_,newTelvarStones,oldTelvarStones,reason)
 	if GlobalSettings.TelvarGain then
 		local stones=newTelvarStones-oldTelvarStones
 		if stones>=500 then
-			d(string.format('|cAA22AATelvar gain:|r %s%s',format_number(stones),zo_iconFormat(Settings[47].icon,icon_p_size2,icon_p_size2),reason))
+			d(string.format('|cAA22AATelvar gain:|r %s%s',format_number(stones),zo_iconFormat(Settings[48].icon,icon_p_size2,icon_p_size2),reason))
 		end
 	end
 end

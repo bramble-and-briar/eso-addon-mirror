@@ -8,7 +8,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | --- | --- | --- | --- |
 | [Racing Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Undyne/Racing-Panel__2358) | Undyne | PC / Mac | 1 |
 | [Radiant Duration](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aaxc/Radiant-Duration__2323) | Aaxc | PC / Mac | 1.2.1 |
-| [Radiant Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Radiant-Range__4868) | its_wifey | PC / Mac | 1.0.3 |
+| [Radiant Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Radiant-Range__4868) | its_wifey | PC / Mac | 1.0.5 |
 | [Radiant Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fortan/Radiant-Time__1589) | Fortan | PC / Mac | 1.2 |
 | [Radiating Regen Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Radiating-Regen-Tracker__3678) | branddi | PC / Mac | 1.0.1 |
 | [RAETIA InfoHub](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kraeius/RAETIA-InfoHub__417) | Kraeius | PC / Mac | 1.2.4 |
@@ -66,7 +66,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RdK Group Tool Patcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/RdK-Group-Tool-Patcher__2512) | Phuein | PC / Mac | 1.02 |
 | [Ready Check Randomiser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calexus1986/Ready-Check-Randomiser__2477) | calexus1986 | PC / Mac | 1.4 |
 | [Real Bound Armor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ArtOfShred/Real-Bound-Armor__1974) | ArtOfShred | PC / Mac | 2.3 |
-| [Realistic Needs and Diseases](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Realistic-Needs-and-Diseases__4711) | kreksar@gmail.com | PC / Mac | 0.19.31 |
+| [Realistic Needs and Diseases](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Realistic-Needs-and-Diseases__4711) | kreksar@gmail.com | PC / Mac | 0.19.32b |
 | [Rebar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Rebar__1e6ecfd4-9947-49dc-9392-c5fab2256ab2) | Vixen_Hunny | Console | — |
 | [Recall Rotator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ookimus/Recall-Rotator__4765) | Ookimus | PC / Mac | 1.0 |
 | [Recipe and Motif Price For Writ Worthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alezhu/Recipe-and-Motif-Price-For-Writ-Worthy__3625) | alezhu | PC / Mac | 1.1.1 |
@@ -173,6 +173,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [RU Patch for Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torvard/RU-Patch-for-Dolgubon-s-Lazy-Writ-Crafter__4157) | Torvard | PC / Mac | 4.0.4.3.ru.48 |
 | [RuESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TERAB1T/RuESO__1347) | TERAB1T | PC / Mac | 48.0 |
 | [Rulebased Inventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TaxTalis/Rulebased-Inventory__2136) | TaxTalis | PC / Mac | 2.32 |
+| [Runenwerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Runenwerk__4910) | Torfason | PC / Mac | 1.0.0 |
 | [RunesVoice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/RunesVoice__2173) | Nols1000 | PC / Mac | 0.1.0 |
 | [Rush of Agony Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Rush-of-Agony-Tracker__03e3b721-0ccb-4e27-9f1c-ae0e6bf96be5) | codeWarrior82 | Console | — |
 | [RyticCombat&RaidTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rytic/RyticCombat-RaidTools__4854) | Rytic | PC / Mac | 3.0.2 |

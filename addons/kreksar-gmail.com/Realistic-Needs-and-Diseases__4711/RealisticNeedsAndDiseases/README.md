@@ -17,9 +17,9 @@ Please install the newest available version of each:
 
 [list]
 [*][url=https://www.esoui.com/downloads/info7-LibAddonMenu.html][b]LibAddonMenu-2.0[/b][/url] — [b]Required.[/b] Settings panel.
-[*][b]LibFoodDrinkBuff[/b] — [b]Required.[/b] Confirms food/drink consumption via its IsAbilityAFoodOrDrinkBuff(abilityId) method, used as a consumption-confirmation gate.
-[*][b]Frostfall[/b] — Optional. Preferred source for effective temperature (Frostfall:GetEffectiveTemp()).
-[*][b]LibZoneTemp[/b] — Optional. Fallback temperature source if Frostfall isn't installed.
+[*][url=https://www.esoui.com/downloads/info1902-LibFoodDrinkBuff.html][b]LibFoodDrinkBuff[/b][/url] — [b]Required.[/b] Confirms food/drink consumption via its IsAbilityAFoodOrDrinkBuff(abilityId) method, used as a consumption-confirmation gate.
+[*][url=https://www.esoui.com/downloads/info4710-Frostfall.html][b]Frostfall[/b][/url] — Optional. Preferred source for effective temperature (Frostfall:GetEffectiveTemp()).
+[*][url=https://www.esoui.com/downloads/info4708-LibZoneTemp.html][b]LibZoneTemp[/b][/url] — Optional. Fallback temperature source if Frostfall isn't installed.
 [/list]
 
 [size=5][b]Credits[/b][/size]

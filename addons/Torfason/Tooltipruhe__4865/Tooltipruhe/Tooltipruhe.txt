@@ -1,11 +1,13 @@
 ## Title: |c7FC7FFTooltipruhe|r
-## Description: Verschiebt Item-Tooltips, speichert ihre Positionen und blendet sie dauerhaft oder per Tastendruck ein oder aus.
 ## Author: Atlas
-## Version: 1.0.0
-## AddOnVersion: 1000000
+## Version: 2.0.0
+## AddOnVersion: 200
 ## APIVersion: 101050 101051
-## DependsOn: LibAddonMenu-2.0>=43
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Controls the position and visibility of keyboard item tooltips.
 ## SavedVariables: TooltipruheSavedVariables
 
+lang/en.lua
+lang/de.lua
 Tooltipruhe.lua
+TooltipruheSettings.lua
 Bindings.xml

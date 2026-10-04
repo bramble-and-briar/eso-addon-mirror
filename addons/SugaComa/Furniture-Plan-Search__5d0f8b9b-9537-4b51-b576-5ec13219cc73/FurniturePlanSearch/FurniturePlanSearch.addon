@@ -1,0 +1,13 @@
+## Title: Furniture Plan Search
+## Description: Search known recipes and furnishing plans in gamepad crafting station menus.
+## APIVersion: 101051
+## Author: |cB427D3Su|c546D6Aga|c889764Co|cDA34CDma|r
+## Version: 0.2.3
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+FurniturePlanSearch.lua

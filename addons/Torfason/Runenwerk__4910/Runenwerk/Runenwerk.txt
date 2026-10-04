@@ -1,0 +1,11 @@
+## Title: |c7FC7FFRunenwerk|r
+## Author: Atlas
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101051 101050
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Learns enchanting combinations and inserts known rune sets into ESO's enchanting interface.
+## SavedVariables: RunenwerkSavedVariables
+
+Runenwerk_Localization.lua
+Runenwerk.lua
+RunenwerkSettings.lua

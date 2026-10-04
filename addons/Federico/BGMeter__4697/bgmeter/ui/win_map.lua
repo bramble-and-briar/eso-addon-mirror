@@ -912,6 +912,48 @@ local function draw_pins(geo, idx)
     end
 end
 
+local function draw_spawn(geo, m)
+    local sp = BGMeter.Match.spawn_point(m, geo)
+    state.spawnShown = false
+    if not sp then return end
+    local tc = S.team_color(m.localTeam)
+    local r = mx(BGMeter.Match.base_radius())
+    local cx, cy = mx(sp.x), mx(sp.y)
+    local edge = { tc[1], tc[2], tc[3], 0.35 }
+    local function side_rect(x, y, w, h)
+        local rc = c.dot_pool:acquire()
+        rc:ClearAnchors()
+        rc:SetAnchor(TOPLEFT, c.map, TOPLEFT, x, y)
+        rc:SetDimensions(w, h)
+        P.set_rect_color(rc, edge)
+        rc:SetHidden(false)
+    end
+    side_rect(cx - r, cy - r, 2 * r, 1)
+    side_rect(cx - r, cy + r, 2 * r, 1)
+    side_rect(cx - r, cy - r, 1, 2 * r)
+    side_rect(cx + r, cy - r, 1, 2 * r)
+    local ic = c.icon_pool:acquire()
+    ic:SetTexture(BGMeter.Icons.CAMP)
+    ic:SetColor(tc[1], tc[2], tc[3], 0.95)
+    ic:SetDimensions(sz(22), sz(22))
+    ic:ClearAnchors()
+    ic:SetAnchor(CENTER, c.map, TOPLEFT, cx, cy)
+    ic:SetHidden(false)
+    local hit = c.hit_pool:acquire()
+    hit:ClearAnchors()
+    hit:SetAnchorFill(ic)
+    hit:SetHidden(false)
+    W.tips[hit] = (sp.how == "gates")
+        and string.format("Your team's spawn\nwhere the team stood before the gates opened (%d samples)", sp.samples)
+        or string.format("Your team's spawn\nwhere you landed after respawning (%d respawn%s)", sp.samples, (sp.samples == 1) and "" or "s")
+    state.spawnShown = true
+end
+
+function M.spawn_state()
+    local sp = state.geo and state.m and BGMeter.Match.spawn_point(state.m, state.geo) or nil
+    return { shown = state.spawnShown == true, x = sp and sp.x, y = sp and sp.y, how = sp and sp.how }
+end
+
 local function draw_positions(geo, m, idx, t)
     local mine = geo.mine
     for name, s in pairs(geo.pos) do
@@ -1112,6 +1154,7 @@ function M.render()
     Prof.enter("map:marks")
     if Prefs.get("map_deaths") then draw_deaths(geo, m, state.t) end
     if Prefs.get("map_pins") then draw_pins(geo, idx) end
+    draw_spawn(geo, m)
     draw_positions(geo, m, idx, state.t)
     Prof.exit("map:marks")
     set_text(c.timeLabel, "t " .. F.duration(state.t))

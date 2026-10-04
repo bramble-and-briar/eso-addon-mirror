@@ -1,9 +1,9 @@
 --[[
 Immersives Reiten
-Version 1.2.3
+Version 2.0.0
 
-ESOUI-Veröffentlichungsfassung auf Basis der im Spiel getesteten Version 1.2.0.
-Die Kameralogik ist gegenüber 1.2.0 unverändert.
+Torfason × Atlas Releasefassung nach ESOUI Standard 2.1.
+Die bewährte Kameralogik aus Version 1.2.3 bleibt unverändert.
 
 Funktionen:
   * übernimmt die Perspektive beim Aufsteigen
@@ -19,8 +19,8 @@ Bewusst nicht enthalten:
 --]]
 
 local ADDON_NAME = "ImmersivesReiten"
-local DISPLAY_NAME = "Immersives Reiten"
-local VERSION = "1.2.3"
+local DISPLAY_NAME = GetString(SI_IMMERSIVES_REITEN_NAME)
+local VERSION = "2.0.0"
 
 local SAVED_VARIABLES_NAME = "ImmersivesReitenSavedVariables"
 local SAVED_VARIABLES_VERSION = 1
@@ -44,7 +44,11 @@ local state = {
 }
 
 local function Print(message)
-    d(string.format("|c88CCFF%s|r: %s", DISPLAY_NAME, tostring(message)))
+    d(string.format("|c7FC7FF%s|r: %s", DISPLAY_NAME, tostring(message)))
+end
+
+local function YesNo(value)
+    return GetString(value and SI_IMMERSIVES_REITEN_YES or SI_IMMERSIVES_REITEN_NO)
 end
 
 local function GetCameraDistance()
@@ -219,7 +223,7 @@ local function OnMountedStateChanged(eventCode, mounted)
         SavePersistentCameraState()
 
         if state.footWantsFirstPerson then
-            -- Stelle wieder her only the stored TP distance. We intentionally do NOT
+            -- Restore only the stored TP distance. We intentionally do NOT
             -- toggle the visible camera mode. This preserves visible FP after
             -- dismount while giving ESO a positive TP distance to return to.
             zo_callLater(RestoreThirdPersonDistance, RESTORE_DELAY_MS)
@@ -281,15 +285,15 @@ local function HandleSlashCommand(text)
 
     if text == "toggle" or text == "umschalten" then
         if not state.mounted then
-            Print("Umschalt-Test bitte auf einem Reittier verwenden.")
+            Print(GetString(SI_IMMERSIVES_REITEN_MSG_TOGGLE_MOUNTED_ONLY))
             return
         end
 
         ToggleMountedPerspective()
         zo_callLater(function()
             Print(string.format(
-                "Umschalt-Test: Reit-Ego %s | Kamera %s | gespeicherte TP-Distanz %s",
-                state.mountedFirstPerson and "ja" or "nein",
+                GetString(SI_IMMERSIVES_REITEN_MSG_TOGGLE_RESULT),
+                YesNo(state.mountedFirstPerson),
                 tostring(GetCameraDistance()),
                 tostring(state.thirdPersonDistance)
             ))
@@ -299,7 +303,7 @@ local function HandleSlashCommand(text)
 
     if text == "force" or text == "erzwingen" then
         if not state.mounted then
-            Print("Erzwing-Test: Du bist nicht auf einem Reittier.")
+            Print(GetString(SI_IMMERSIVES_REITEN_MSG_FORCE_MOUNTED_ONLY))
             return
         end
 
@@ -313,7 +317,7 @@ local function HandleSlashCommand(text)
 
         zo_callLater(function()
             Print(string.format(
-                "Erzwing-Test: vorher %s, nachher %s",
+                GetString(SI_IMMERSIVES_REITEN_MSG_FORCE_RESULT),
                 tostring(before),
                 tostring(GetCameraDistance())
             ))
@@ -323,7 +327,7 @@ local function HandleSlashCommand(text)
 
     if text == "restore" or text == "wiederherstellen" then
         if state.mounted then
-            Print("Wiederherstellungs-Test bitte nur zu Fuß verwenden.")
+            Print(GetString(SI_IMMERSIVES_REITEN_MSG_RESTORE_FOOT_ONLY))
             return
         end
 
@@ -332,7 +336,7 @@ local function HandleSlashCommand(text)
 
         zo_callLater(function()
             Print(string.format(
-                "Wiederherstellungs-Test: vorher %s, gespeichert %s, nachher %s",
+                GetString(SI_IMMERSIVES_REITEN_MSG_RESTORE_RESULT),
                 tostring(before),
                 tostring(state.thirdPersonDistance),
                 tostring(GetCameraDistance())
@@ -347,13 +351,13 @@ local function HandleSlashCommand(text)
             state.footWantsFirstPerson = false
             SavePersistentCameraState()
             ApplyMountedThirdPerson()
-            Print("Reit-Perspektive intern auf Third-Person-Perspektive gesetzt.")
+            Print(GetString(SI_IMMERSIVES_REITEN_MSG_MOUNT_THIRD))
             return
         end
 
         SetFootFirstPersonIntent(false)
         RememberThirdPersonDistance()
-        Print("Zu-Fuß-Perspektive intern auf Third-Person-Perspektive synchronisiert.")
+        Print(GetString(SI_IMMERSIVES_REITEN_MSG_FOOT_THIRD))
         return
     end
 
@@ -364,27 +368,27 @@ local function HandleSlashCommand(text)
             state.footWantsFirstPerson = true
             SavePersistentCameraState()
             ApplyMountedFirstPerson()
-            Print("Reit-Perspektive intern auf Ego gesetzt.")
+            Print(GetString(SI_IMMERSIVES_REITEN_MSG_MOUNT_FIRST))
             return
         end
 
         RememberThirdPersonDistance()
         SetFootFirstPersonIntent(true)
-        Print("Zu-Fuß-Perspektive intern auf Ego synchronisiert.")
+        Print(GetString(SI_IMMERSIVES_REITEN_MSG_FOOT_FIRST))
         return
     end
 
     Print(string.format(
-        "v%s | aufgesessen: %s | Kamera-Einstellung: %s | gespeicherte Third-Person-Distanz: %s | Ego-Wunsch: %s | Reit-Ego: %s | dauerhaft gespeichert: %s",
+        GetString(SI_IMMERSIVES_REITEN_MSG_STATUS),
         VERSION,
-        state.mounted and "ja" or "nein",
+        YesNo(state.mounted),
         tostring(GetCameraDistance()),
         tostring(state.thirdPersonDistance),
-        state.footWantsFirstPerson and "ja" or "nein",
-        state.mountedFirstPerson and "ja" or "nein",
-        savedVariables and (savedVariables.footWantsFirstPerson and "Ego" or "Third Person") or "nicht geladen"
+        YesNo(state.footWantsFirstPerson),
+        YesNo(state.mountedFirstPerson),
+        savedVariables and GetString(savedVariables.footWantsFirstPerson and SI_IMMERSIVES_REITEN_PERSPECTIVE_FIRST or SI_IMMERSIVES_REITEN_PERSPECTIVE_THIRD) or GetString(SI_IMMERSIVES_REITEN_NOT_LOADED)
     ))
-    Print("Diagnose: /reiten | Reit-Umschalter: /reiten umschalten | Erzwingen: /reiten erzwingen | Wiederherstellen: /reiten wiederherstellen")
+    Print(GetString(SI_IMMERSIVES_REITEN_MSG_HELP))
 end
 
 local function OnAddonLoaded(eventCode, addonName)

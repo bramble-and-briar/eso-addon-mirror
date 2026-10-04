@@ -30,7 +30,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SBMI (Solstheim Bards Member Information)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ned_Washington/SBMI-Solstheim-Bards-Member-Information__2644) | Ned_Washington | PC / Mac | 0.1.2 |
 | [Scaffold](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Scaffold__1919) | Cardinal05 | PC / Mac | 1.32 |
 | [ScapegoatIconPack - icon pack for OdySupport Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/JimBoSS/ScapegoatIconPack---icon-pack-for-OdySupport-Icons__3800) | JimBoSS | PC / Mac | 0.25 |
-| [Schlosswerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Schlosswerk__4863) | Torfason | PC / Mac | 0.1.1 |
+| [Schlosswerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Schlosswerk__4863) | Torfason | PC / Mac | 2.0.0 |
 | [Scholar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/WidgetInteractive/Scholar__1670) | WidgetInteractive | PC / Mac | 1.7.0 |
 | [Scoreboard Fix Xbox BETA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RUSKlI/Scoreboard-Fix-Xbox-BETA__0e9f8669-fa46-49bb-a578-54569ddb865b) | RUSKlI | Console | — |
 | [SCQ - Share contributable quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/SCQ---Share-contributable-quests__2453) | Ek1 | PC / Mac | 1.3.200324 |
@@ -71,6 +71,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SetMeUp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/SetMeUp__1520) | Werewolf Finds Dragon | PC / Mac | 006-100022 |
 | [SetRangeTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/SetRangeTracker__3502) | Floliroy | PC / Mac | 1 |
 | [Settings Profiler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Settings-Profiler__2044) | SDPhantom | PC / Mac | 2.5 |
+| [Setup Assist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/medusa_xupx/Setup-Assist__cedd2393-1ace-4f2e-bed9-c0ca4a07adff) | medusa_xupx | Console | — |
 | [Shadow Image Range](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Shadow-Image-Range__2458) | andy.s | PC / Mac | 1.4 |
 | [Shadow Image Range - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Light100/Shadow-Image-Range---Updated__3704) | Light100 | PC / Mac | 1.4.1 |
 | [Shadowfen's Default Guild Bank](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Shadowfen-s-Default-Guild-Bank__2929) | Shadowfen | PC / Mac | 1.23 |
@@ -166,6 +167,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Ranks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Ranks__3745) | notnear | PC / Mac | 1.4.0 |
 | [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |
 | [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 1.9 |
+| [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.0 |
 | [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.0 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
 | [Skylike Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptTatsu/Skylike-Dialog__1852) | CaptTatsu | PC / Mac | 1.5 |

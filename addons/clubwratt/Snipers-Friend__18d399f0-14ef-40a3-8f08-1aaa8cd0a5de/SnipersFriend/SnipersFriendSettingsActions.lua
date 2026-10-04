@@ -114,40 +114,53 @@ end
 local function AddAimLineSection(panel, LAS)
     local function AL() return SnipersFriend.state.savedVars.aimLine end
     local function Actions() return SnipersFriend.AimLineActions end
-    panel:AddSetting({ type = LAS.ST_SECTION, label = "Aim line (max range)" })
+    panel:AddSetting({ type = LAS.ST_SECTION, label = "Aim guide (distance icons / max range)" })
     panel:AddSetting({
         type = LAS.ST_LABEL,
-        label = "Draws a line along your aim from the camera to the point where horizontal distance from you equals your ground ability's range (passives, keep and siege-shield buffs included), with a marker at the end. Walls cut the line off, so where it stops is where your aim actually lands. Looking up or down makes the line longer, matching how range is measured horizontally.",
+        label = "Icons along your aim at fixed horizontal distances from you (e.g. every 3.5 m) up to your ground ability's range (passives, keep and siege-shield buffs included), with a marker at max range. Icons always face you and never stretch. Walls hide the icons behind them, so the last visible icon tells you how far your aim reaches.",
     })
-    panel:AddSetting(SU.CheckboxParams("Show aim line", nil,
+    panel:AddSetting(SU.CheckboxParams("Show aim guide", nil,
         function() return AL().enabled end,
         function(v) AL().enabled = v; Actions().Refresh() end))
-    panel:AddSetting(SU.CheckboxParams("Walls hide the line (depth test)",
-        "Off = the line is drawn through everything (pure range reference).",
+    panel:AddSetting(SU.CheckboxParams("Walls hide icons (depth test)",
+        "Off = everything is drawn through walls (pure range reference).",
         function() return AL().depthTest end,
         function(v) AL().depthTest = v; Actions().Refresh() end))
+    panel:AddSetting(SU.CheckboxParams("Distance icons",
+        "Camera-facing icons at fixed horizontal distances from you.",
+        function() return AL().showTicks end,
+        function(v) AL().showTicks = v end))
+    panel:AddSetting(SU.SliderParams("Icon every (m)", nil, { min = 0.5, max = 10, step = 0.5 }, "%.1f",
+        function() return AL().tickIntervalM end,
+        function(v) AL().tickIntervalM = v end))
+    panel:AddSetting(SU.SliderParams("Larger icon every N icons (0 = off)", nil, { min = 0, max = 5, step = 1 }, "%d",
+        function() return AL().majorTickEvery end,
+        function(v) AL().majorTickEvery = v end))
+    panel:AddSetting(SU.SliderParams("Icon size (m)", "World size of each icon. With 'same size on screen' this is the size at 10 m.",
+        { min = 0.1, max = 3, step = 0.1 }, "%.1f",
+        function() return AL().iconSizeM end,
+        function(v) AL().iconSizeM = v end))
+    panel:AddSetting(SU.CheckboxParams("Icons same size on screen",
+        "Scale icons with distance so far ones don't shrink.",
+        function() return AL().iconConstantScreenSize end,
+        function(v) AL().iconConstantScreenSize = v end))
+    panel:AddSetting(SU.CheckboxParams("Icons on the camera ray (occlusion range finder)",
+        "Off = icons run from your character to the aim point, spread across the screen. On = icons sit exactly on your line of sight: they stack at the crosshair (nearer = bigger) and every icon behind a wall vanishes, so the smallest ring you can see is how far your aim reaches.",
+        function() return AL().iconPath == "ray" end,
+        function(v) AL().iconPath = v and "ray" or "line" end))
+    panel:AddSetting(SU.ColorParams("Icon color", nil,
+        function() return ReticleUtils.UnpackColor(AL().tickColor) end,
+        function(r, g, b, a) AL().tickColor = { r = r, g = g, b = b, a = a }; Actions().Refresh() end))
+    panel:AddSetting(SU.CheckboxParams("Line strip character -> aim point",
+        "Flat strip along the aim. Its texture visibly stretches as you look up or down; off by default.",
+        function() return AL().showLine end,
+        function(v) AL().showLine = v end))
     panel:AddSetting(SU.SliderParams("Line width (m)", nil, { min = 0.02, max = 0.5, step = 0.02 }, "%.2f",
         function() return AL().lineWidthM end,
         function(v) AL().lineWidthM = v end))
     panel:AddSetting(SU.ColorParams("Line color", nil,
         function() return ReticleUtils.UnpackColor(AL().lineColor) end,
         function(r, g, b, a) AL().lineColor = { r = r, g = g, b = b, a = a }; Actions().Refresh() end))
-    panel:AddSetting(SU.CheckboxParams("Distance tick marks",
-        "Cross-bars on the line at fixed horizontal distances (spread out when aiming level, compressed when aiming at the ground).",
-        function() return AL().showTicks end,
-        function(v) AL().showTicks = v end))
-    panel:AddSetting(SU.SliderParams("Tick every (m)", nil, { min = 1, max = 10, step = 1 }, "%d",
-        function() return AL().tickIntervalM end,
-        function(v) AL().tickIntervalM = v end))
-    panel:AddSetting(SU.SliderParams("Wider tick every N ticks (0 = off)", nil, { min = 0, max = 5, step = 1 }, "%d",
-        function() return AL().majorTickEvery end,
-        function(v) AL().majorTickEvery = v end))
-    panel:AddSetting(SU.SliderParams("Tick width (m)", nil, { min = 0.2, max = 2, step = 0.1 }, "%.1f",
-        function() return AL().tickWidthM end,
-        function(v) AL().tickWidthM = v end))
-    panel:AddSetting(SU.ColorParams("Tick color", nil,
-        function() return ReticleUtils.UnpackColor(AL().tickColor) end,
-        function(r, g, b, a) AL().tickColor = { r = r, g = g, b = b, a = a }; Actions().Refresh() end))
     panel:AddSetting(SU.CheckboxParams("Ground marker (flat ground only)",
         "Ring on the floor where your view line meets your own floor level: green inside range, red beyond. Assumes flat ground - wrong on slopes and platforms.",
         function() return AL().showGround end,

@@ -229,9 +229,41 @@ function WR:CreateSettingsWindow()
         label:SetFont("ZoFontGame")
         label:SetText(text)
 
-        local button = WM:CreateControlFromVirtual(NextName("DropdownButton"), row, "ZO_DefaultButton")
+        local button = WM:CreateControl(NextName("DropdownButton"), row, CT_BUTTON)
         button:SetDimensions(240, 28)
         button:SetAnchor(RIGHT, row, RIGHT, 0, 0)
+        button:SetMouseEnabled(true)
+
+        local backdrop = WM:CreateControl(nil, button, CT_BACKDROP)
+        backdrop:SetAnchorFill(button)
+        backdrop:SetCenterColor(0.02, 0.02, 0.02, 0.92)
+        backdrop:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 64, 8)
+        backdrop:SetEdgeColor(0.72, 0.66, 0.45, 0.95)
+        backdrop:SetInsets(2, 2, -2, -2)
+        backdrop:SetMouseEnabled(false)
+
+        local divider = WM:CreateControl(nil, button, CT_TEXTURE)
+        divider:SetDimensions(1, 20)
+        divider:SetAnchor(RIGHT, button, RIGHT, -26, 0)
+        divider:SetColor(0.72, 0.66, 0.45, 0.65)
+        divider:SetTexture("EsoUI/Art/Inventory/inventory_sortdivider.dds")
+        divider:SetMouseEnabled(false)
+
+        local valueLabel = WM:CreateControl(nil, button, CT_LABEL)
+        valueLabel:SetAnchor(LEFT, button, LEFT, 10, 0)
+        valueLabel:SetAnchor(RIGHT, button, RIGHT, -34, 0)
+        valueLabel:SetHeight(28)
+        valueLabel:SetFont("ZoFontGame")
+        valueLabel:SetColor(0.95, 0.92, 0.82, 1)
+        valueLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+        valueLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+        valueLabel:SetMouseEnabled(false)
+
+        local arrow = WM:CreateControl(nil, button, CT_TEXTURE)
+        arrow:SetDimensions(16, 16)
+        arrow:SetAnchor(RIGHT, button, RIGHT, -8, 0)
+        arrow:SetTexture("EsoUI/Art/Buttons/dropbox_arrow_normal.dds")
+        arrow:SetMouseEnabled(false)
 
         local function DisplayForValue(value)
             for _, choice in ipairs(choices) do
@@ -245,19 +277,25 @@ function WR:CreateSettingsWindow()
         end
 
         local function Refresh()
-            button:SetText(DisplayForValue(getter()))
+            valueLabel:SetText(DisplayForValue(getter()))
             local enabled = not IsDisabled()
             SetControlEnabled(button, enabled)
             label:SetAlpha(enabled and 1 or 0.45)
+            backdrop:SetEdgeColor(0.72, 0.66, 0.45, enabled and 0.95 or 0.45)
+            valueLabel:SetAlpha(enabled and 1 or 0.55)
+            arrow:SetAlpha(enabled and 1 or 0.45)
         end
         self:RegisterSettingsRefresher(Refresh)
         Refresh()
 
-        button:SetHandler("OnClicked", function()
+        local function ShowChoices()
             if IsDisabled() then return end
 
             if type(ClearMenu) == "function" and type(AddMenuItem) == "function" and type(ShowMenu) == "function" then
                 ClearMenu()
+                if type(SetMenuMinimumWidth) == "function" then
+                    SetMenuMinimumWidth(button:GetWidth())
+                end
                 for _, choice in ipairs(choices) do
                     local selectedChoice = choice
                     AddMenuItem(selectedChoice.label, function()
@@ -266,6 +304,9 @@ function WR:CreateSettingsWindow()
                     end)
                 end
                 ShowMenu(button)
+                if type(AnchorMenu) == "function" then
+                    AnchorMenu(button, 0)
+                end
             else
                 local current = getter()
                 local nextIndex = 1
@@ -278,13 +319,61 @@ function WR:CreateSettingsWindow()
                 setter(choices[nextIndex].value)
                 self:RefreshSettingsControls()
             end
-        end)
+        end
+
+        button:SetHandler("OnClicked", ShowChoices)
 
         AddTooltip(label, tooltip, true)
         AddTooltip(button, tooltip)
 
         y = y + 42
         return row
+    end
+
+    local function AddCheckboxColumns(definitions, valueGetter, valueSetter, tooltip, columns)
+        columns = columns or 2
+        local columnGap = 18
+        local availableWidth = CONTENT_WIDTH - 16
+        local columnWidth = math.floor((availableWidth - ((columns - 1) * columnGap)) / columns)
+        local startX = 8
+        local startY = y
+        local index = 0
+
+        for _, definition in ipairs(definitions or {}) do
+            local key = definition.key
+            local column = index % columns
+            local rowIndex = math.floor(index / columns)
+
+            local row = WM:CreateControl(NextName("CheckboxGridRow"), scroll, CT_CONTROL)
+            row:SetAnchor(TOPLEFT, scroll, TOPLEFT, startX + (column * (columnWidth + columnGap)), startY + (rowIndex * 34))
+            row:SetDimensions(columnWidth, 32)
+
+            local checkbox = WM:CreateControlFromVirtual(NextName("CheckboxGrid"), row, "ZO_CheckButton")
+            checkbox:SetAnchor(LEFT, row, LEFT, 0, 0)
+            checkbox:SetMouseEnabled(true)
+            ZO_CheckButton_SetLabelText(checkbox, L[definition.label] or definition.constant)
+            ZO_CheckButton_SetToggleFunction(checkbox, function(_, checked)
+                valueSetter(key, checked)
+                self:RefreshSettingsControls()
+            end)
+
+            local checkboxLabel = GetControl(checkbox, "Label")
+            if checkboxLabel then
+                checkboxLabel:SetWidth(columnWidth - 34)
+            end
+            AddTooltip(checkboxLabel or checkbox, tooltip, checkboxLabel ~= nil)
+
+            local function Refresh()
+                ZO_CheckButton_SetCheckState(checkbox, not not valueGetter(key))
+            end
+            self:RegisterSettingsRefresher(Refresh)
+            Refresh()
+
+            index = index + 1
+        end
+
+        local rows = zo_max(1, math.ceil(index / columns))
+        y = startY + (rows * 34)
     end
 
     local function AddSmallButton(text, callback, tooltip, x, width)
@@ -392,17 +481,17 @@ function WR:CreateSettingsWindow()
     end, L.ALL_DISABLE_QUEST_TYPES_TOOLTIP, 200, 190)
     y = y + 34
 
-    for _, definition in ipairs(self.questTypeDefinitions or {}) do
-        local key = definition.key
-        AddCheckbox(L[definition.label] or definition.constant,
-            function() return self.settings.questTypes[key] ~= false end,
-            function(value)
-                self.settings.questTypes[key] = value
-                self:MarkCustom()
-                self:RefreshAll(true)
-            end,
-            L.QUEST_FILTER_TOOLTIP)
-    end
+    AddCheckboxColumns(self.questTypeDefinitions,
+        function(key)
+            return self.settings.questTypes[key] ~= false
+        end,
+        function(key, value)
+            self.settings.questTypes[key] = value
+            self:MarkCustom()
+            self:RefreshAll(true)
+        end,
+        L.QUEST_FILTER_TOOLTIP,
+        2)
 
     AddHeader(L.REPEAT_TYPES_HEADER)
     AddDescription(L.REPEAT_TYPES_DESCRIPTION, true)
@@ -414,17 +503,17 @@ function WR:CreateSettingsWindow()
     end, L.ALL_DISABLE_REPEAT_TYPES_TOOLTIP, 200, 190)
     y = y + 34
 
-    for _, definition in ipairs(self.repeatTypeDefinitions or {}) do
-        local key = definition.key
-        AddCheckbox(L[definition.label] or definition.constant,
-            function() return self.settings.repeatTypes[key] ~= false end,
-            function(value)
-                self.settings.repeatTypes[key] = value
-                self:MarkCustom()
-                self:RefreshAll(true)
-            end,
-            L.QUEST_FILTER_TOOLTIP)
-    end
+    AddCheckboxColumns(self.repeatTypeDefinitions,
+        function(key)
+            return self.settings.repeatTypes[key] ~= false
+        end,
+        function(key, value)
+            self.settings.repeatTypes[key] = value
+            self:MarkCustom()
+            self:RefreshAll(true)
+        end,
+        L.QUEST_FILTER_TOOLTIP,
+        2)
 
     AddHeader(L.COMPASS_HEADER)
     local compassRows = {

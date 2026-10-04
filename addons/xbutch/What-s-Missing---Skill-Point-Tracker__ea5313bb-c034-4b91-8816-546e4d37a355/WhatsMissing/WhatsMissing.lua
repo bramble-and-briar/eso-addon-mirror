@@ -232,7 +232,16 @@ function SPT:GetProgressionStatus(charId, field, hasData)
 end
 
 function SPT:IsProgressionGroupExpanded(module, groupId)
-	return not (module.collapsed and module.collapsed[groupId])
+	local groups = self.savedVars.progressionGroups
+	local expanded = type(groups) == "table" and groups[module.stateKey]
+	return type(expanded) == "table" and expanded[groupId] == true
+end
+
+function SPT:SetProgressionGroupExpanded(module, groupId, expanded)
+	if type(self.savedVars.progressionGroups) ~= "table" then self.savedVars.progressionGroups = {} end
+	local groups = self.savedVars.progressionGroups
+	if type(groups[module.stateKey]) ~= "table" then groups[module.stateKey] = {} end
+	groups[module.stateKey][groupId] = expanded == true or nil
 end
 
 function SPT:CreateProgressionTableView(module, sourceHeader, footer)
@@ -273,7 +282,9 @@ function SPT:QueueProgressionSnapshot(module)
 		if not SPT.progressionReady then return end
 		module:Capture()
 		module:ReleaseDisplay()
-		if SPT.active and SPT_GetProgressionModule() == module then SPT:RenderCurrentTab() end
+		if SPT.active and (SPT_GetProgressionModule() == module or (module == SPT.Scribing and currentTab == 1)) then
+			SPT:RenderCurrentTab()
+		end
 	end, 0)
 end
 
@@ -929,17 +940,30 @@ local function SPT_UpdateListData(list, templateName, data)
 end
 
 local function SPT_RenderGSP()
+	local list = tabGamepadLists[1]
+	local selected = list:GetTargetData()
+	local selectedKey = selected and selected.rowKey
 	local GSP_Color = { need = SPT_rgbToHex(SPT.settings.GSP.needColor), progress = SPT_rgbToHex(SPT.settings.GSP.progColor), done = SPT_rgbToHex(SPT.settings.GSP.doneColor) }
 	local dataLines = { { header = true, source = GS(SPT_GUI_SOURCE), progress = GS(SPT_GUI_PROGRESS) } }
 	for i = 1, #SPT.GUI.GSP do
 		local d = {
+			rowKey = "general:" .. i,
 			source = SPT.GUI.GSP[i][2],
 			progress = SPT_FormatProgress(SPT.GUI.GSP[i][3], SPT.GUI.GSP[i][4], GSP_Color),
 			tooltipText = SPT.GUI.GSP[i][5],
 		}
 		table.insert(dataLines, d)
 	end
-	SPT_UpdateListData(tabGamepadLists[1], "SPT_GeneralTemplate", dataLines)
+	local charId = SPT:GetViewingCharacterId()
+	dataLines[#dataLines + 1] = { rowKey = "scribing:header", source = GS(SPT_GUI_TAB_SCRIBING),
+		progress = CharCache.roster[charId] and CharCache.roster[charId].name or "", canSelect = false }
+	for _, row in ipairs(SPT.Scribing:BuildSummary(charId)) do dataLines[#dataLines + 1] = row end
+	SPT_UpdateListData(list, "SPT_GeneralTemplate", dataLines)
+	if selectedKey then
+		for index, row in ipairs(list.dataList) do
+			if row.rowKey == selectedKey then list:SetSelectedIndexWithoutAnimation(index); break end
+		end
+	end
 	SPT_GUI_Body_GSP_T:SetText(SPT.GUI.GSP_T)
 end
 
@@ -1168,6 +1192,11 @@ end
 
 local viewingIndex = nil -- index into CharCache:GetSortedIds(); nil = not yet positioned
 
+function SPT:GetViewingCharacterId()
+	local ids = CharCache:GetSortedIds()
+	return (viewingIndex and ids[viewingIndex]) or CharCache:GetCharId()
+end
+
 local function SPT_ResetViewing()
 	viewingIndex = nil
 end
@@ -1176,10 +1205,19 @@ function SPT:ToggleProgressionGroup()
 	local module = SPT_GetProgressionModule()
 	local data = progressionList and progressionList:GetTargetData()
 	if not module or not data or not data.groupId then return end
-	module.collapsed = module.collapsed or {}
-	module.collapsed[data.groupId] = self:IsProgressionGroupExpanded(module, data.groupId) or nil
+	self:SetProgressionGroupExpanded(module, data.groupId, not self:IsProgressionGroupExpanded(module, data.groupId))
 	self:RenderCurrentTab()
 	KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keybindDescriptors)
+end
+
+function SPT:CanSetScriptWaypoint()
+	local data = progressionList and progressionList:GetTargetData()
+	return self.active and currentTab == 6 and SPT.Scribing:CanSetPickupWaypoint(data and data.script)
+end
+
+function SPT:SetScriptWaypoint()
+	if not self:CanSetScriptWaypoint() then return false end
+	return SPT.Scribing:SetPickupWaypoint(progressionList:GetTargetData().script)
 end
 
 function SPT:CanScrollProgressionCharacters(delta)
@@ -1822,6 +1860,15 @@ function SPT:SetupValues()
 			visible = function() return currentTab > 4 end,
 			enabled = function() local data = progressionList and progressionList:GetTargetData(); return data and data.groupId ~= nil end,
 		},
+		{
+			keybind = "UI_SHORTCUT_QUATERNARY",
+			name = function() return GS(SPT_GUI_SET_SCRIPT_WAYPOINT) end,
+			ethHold = true,
+			holdDuration = 1000,
+			visible = function() return SPT:CanSetScriptWaypoint() end,
+			enabled = function() return SPT:CanSetScriptWaypoint() end,
+			callback = function() SPT:SetScriptWaypoint() end,
+		},
 	}
 
 	-- Frame the player on the right side of the screen (panel sits on the left).
@@ -1857,7 +1904,6 @@ function SPT:SetupValues()
 			SPT.active = false
 			SPT_DeactivateCurrentList()
 			SPT_ReleaseProgressionDisplay()
-			for _, module in ipairs(progressionModules) do module.collapsed = nil end
 			KEYBIND_STRIP:RemoveKeybindButtonGroup(SPT.keybindDescriptors)
 			SPT_ResetViewing()
 		end

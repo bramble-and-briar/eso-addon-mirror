@@ -1,8 +1,8 @@
 ## Title: Realistic Needs and Diseases
 ## Author: @Kreksar5 and Claude.ai
-## Version: 0.19.31
-## AddOnVersion: 26
-## APIVersion: 101050 101051
+## Version: 0.19.32
+## AddOnVersion: 27
+## APIVersion: 101051 101052
 ## SavedVariables: RealisticNeedsAndDiseasesSavedVars
 ## DependsOn: LibAddonMenu-2.0>=43 LibFoodDrinkBuff>=19
 ## OptionalDependsOn: Frostfall LibZoneTemp

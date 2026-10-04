@@ -1,7 +1,7 @@
 ## Title: OneFrame
 ## Description: Optional enhancements for the vanilla group frames.
 ## Author: oneDOK
-## Version: 1.1
+## Version: 26.1
 ## APIVersion: 101050 101051
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: HodorReflexes LibGroupCombatStats

@@ -34,10 +34,11 @@ local AVAILABLE_STYLES = {
 
 -- Apply settings natively to ZOS SCT engine
 local function ApplyFontSettings()
+    if not TCT.savedVars then return end
+
     local path = TCT.savedVars.fontPath
     local style = TCT.savedVars.fontStyle
 
-    -- Safety check: fallback to default if style was stored as a string
     if type(style) ~= "number" then
         style = defaults.fontStyle
         TCT.savedVars.fontStyle = style
@@ -51,20 +52,18 @@ local function ApplyFontSettings()
     end
 end
 
--- Settings menu builder (Compatible with LibConsoleMenu and LibAddonMenu-2.0)
+-- Settings menu builder
 local function BuildSettingsMenu()
     local menuHandler = LibConsoleMenu or LibAddonMenu2
     if not menuHandler then return end
 
-    local fontChoices = {}
-    local fontValues = {}
+    local fontChoices, fontValues = {}, {}
     for _, item in ipairs(AVAILABLE_FONTS) do
         table.insert(fontChoices, item.name)
         table.insert(fontValues, item.path)
     end
 
-    local styleChoices = {}
-    local styleValues = {}
+    local styleChoices, styleValues = {}, {}
     for _, item in ipairs(AVAILABLE_STYLES) do
         table.insert(styleChoices, item.name)
         table.insert(styleValues, item.value)
@@ -113,12 +112,17 @@ end
 
 -- Backup Chat Commands (/tct)
 local function RegisterSlashCommands()
-    SLASH_COMMANDS["/tct"] = function(extra)
+    SLASH_COMMANDS["/tct"] = function()
         d("|cff5900[True Combat Text]|r Current Settings:")
         d("Font : " .. tostring(TCT.savedVars.fontPath))
         d("Style: " .. tostring(TCT.savedVars.fontStyle))
         d("To change settings, open: Options -> Settings -> Addons.")
     end
+end
+
+-- Re-apply on zoning / character load to prevent engine overrides
+local function OnPlayerActivated(eventCode)
+    ApplyFontSettings()
 end
 
 -- Addon Initialization
@@ -130,17 +134,19 @@ local function OnAddOnLoaded(eventCode, addonName)
     -- Account-wide SavedVariables
     TCT.savedVars = ZO_SavedVars:NewAccountWide(TCT.savedVarsName, TCT.variableVersion, nil, defaults)
 
-    -- Safety check against legacy string values in saved variables
     if type(TCT.savedVars.fontStyle) ~= "number" then
         TCT.savedVars.fontStyle = defaults.fontStyle
     end
 
-    -- Apply font immediately
+    -- Initial apply
     ApplyFontSettings()
 
     -- Register menu and commands
     BuildSettingsMenu()
     RegisterSlashCommands()
+
+    -- Ensure font is applied after the world and engine have completely loaded
+    EVENT_MANAGER:RegisterForEvent(TCT.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 end
 
 EVENT_MANAGER:RegisterForEvent(TCT.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

@@ -5,7 +5,7 @@ if not ONEDUNGEON_CLEAR then ZO_CreateStringId("ONEDUNGEON_CLEAR", "Vet") end
 if not ONEDUNGEON_HARD_MODE then ZO_CreateStringId("ONEDUNGEON_HARD_MODE", "HM") end
 if not ONEDUNGEON_TRIFECTA then ZO_CreateStringId("ONEDUNGEON_TRIFECTA", "Trifecta") end
 if not ONEDUNGEON_TRI_HEADER then ZO_CreateStringId("ONEDUNGEON_TRI_HEADER", "Tri") end
-if not ONEDUNGEON_QUEST_LEGEND then ZO_CreateStringId("ONEDUNGEON_QUEST_LEGEND", "White quest icon — story quest not completed.\nBlue quest icon — today's Undaunted Pledge.\nGlowing blue quest icon — accepted Undaunted Pledge.") end
+if not ONEDUNGEON_QUEST_LEGEND then ZO_CreateStringId("ONEDUNGEON_QUEST_LEGEND", "<<1>> — story quest not completed.\n<<2>> — today's Undaunted Pledge.\n<<3>> — accepted Undaunted Pledge.") end
 if not ONEDUNGEON_VETERAN_CLEAR then ZO_CreateStringId("ONEDUNGEON_VETERAN_CLEAR", "Veteran Clear") end
 if not ONEDUNGEON_HARD_MODE_TITLE then ZO_CreateStringId("ONEDUNGEON_HARD_MODE_TITLE", "Hard Mode") end
 if not ONEDUNGEON_NORMAL then ZO_CreateStringId("ONEDUNGEON_NORMAL", "Normal") end

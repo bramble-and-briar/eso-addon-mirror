@@ -43,17 +43,48 @@ function C.Total(match)
                         local entry=lookup[team][key]
                         if not entry then
                             entry={displayName=p.displayName,characterName=p.characterName,
-                                team=team,classId=p.classId,isLocalPlayer=p.isLocalPlayer}
+                                team=team,classId=p.classId,isLocalPlayer=p.isLocalPlayer,
+                                medalDetails={},medalLookup={}}
                             for _,field in ipairs(fields) do entry[field]=0 end
                             lookup[team][key]=entry;table.insert(target.players,entry)
                         end
                         entry.entryIndex=p.entryIndex;entry.roundIndex=p.roundIndex
                         for _,field in ipairs(fields) do entry[field]=entry[field]+(p[field] or 0) end
+                        for _,medal in ipairs(p.medalDetails or {}) do
+                            local medalKey=medal.id or ((medal.icon or '')..'\031'..medal.name)
+                            local item=entry.medalLookup[medalKey]
+                            if not item then
+                                item={id=medal.id,name=medal.name,icon=medal.icon,count=0,points=0}
+                                entry.medalLookup[medalKey]=item;table.insert(entry.medalDetails,item)
+                            end
+                            item.count=item.count+medal.count;item.points=item.points+medal.points
+                        end
 
                     end
                 end
             end
         end
     end
+    for _,team in ipairs(match.teamIds) do
+        for _,p in ipairs(total.teams[team].players) do
+            p.medalLookup=nil
+            table.sort(p.medalDetails,function(a,b) return a.points>b.points end)
+        end
+    end
     return total
+end
+
+-- Keep the main board centred. Spend available right-side space on the panel
+-- before reducing the shared scale; never centre the combined assembly.
+function C.PanelLayout(boardWidth, height, screenWidth, screenHeight)
+    local gap=12
+    local baseScale=math.min(1,(screenHeight-150)/height,screenWidth*0.94/boardWidth)
+    local available=(screenWidth*0.47/baseScale)-boardWidth/2-gap
+    local width=math.max(240,math.min(310,available))
+    local compact=width<280
+    local rowHeight=compact and 60 or 44
+    local scale=math.min(baseScale,screenWidth*0.47/(boardWidth/2+gap+width))
+    return {width=width,gap=gap,compact=compact,rowHeight=rowHeight,
+        rows=math.max(0,math.min(12,math.floor((height-216-48)/rowHeight))),
+        scale=scale}
 end

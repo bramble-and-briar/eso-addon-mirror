@@ -3,8 +3,8 @@ local SW = Schlosswerk
 
 SW.name = "Schlosswerk"
 SW.displayName = "|c7FC7FFSchlosswerk|r"
-SW.version = "0.1.1"
-SW.addOnVersion = 1001
+SW.version = "2.0.0"
+SW.addOnVersion = 200
 SW.savedVariablesName = "SchlosswerkSavedVariables"
 SW.savedVariablesVersion = 1
 SW.textureRoot = "Schlosswerk/Textures/"

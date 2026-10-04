@@ -1,8 +1,9 @@
 Tooltipruhe = Tooltipruhe or {}
 local TR = Tooltipruhe
+local L = TR.L or {}
 
 TR.name = "Tooltipruhe"
-TR.version = "1.0.0"
+TR.version = "2.0.0"
 TR.savedVariableName = "TooltipruheSavedVariables"
 TR.savedVariableVersion = 1
 TR.tooltipsEnabled = false
@@ -22,6 +23,7 @@ local defaults =
 {
     permanentEnabled = false,
     chatMessages = true,
+    usePositioning = true,
     positions =
     {
         item = { x = nil, y = nil, anchor = "TOPLEFT" },
@@ -35,20 +37,20 @@ local markerData =
     item =
     {
         name = "TooltipruhePositionItem",
-        title = "Item-Tooltip",
-        hint = "Mit linker Maustaste verschieben",
+        titleKey = "MARKER_ITEM",
+        hintKey = "MARKER_HINT",
     },
     compare1 =
     {
         name = "TooltipruhePositionCompare1",
-        title = "Vergleich 1",
-        hint = "Mit linker Maustaste verschieben",
+        titleKey = "MARKER_COMPARE1",
+        hintKey = "MARKER_HINT",
     },
     compare2 =
     {
         name = "TooltipruhePositionCompare2",
-        title = "Vergleich 2",
-        hint = "Mit linker Maustaste verschieben",
+        titleKey = "MARKER_COMPARE2",
+        hintKey = "MARKER_HINT",
     },
 }
 
@@ -221,6 +223,10 @@ function TR:ClampPosition(key)
 end
 
 function TR:ApplyPosition(control)
+    if not self.savedVariables or self.savedVariables.usePositioning == false then
+        return
+    end
+
     local key = self.tooltipKeys[control]
     if not key or not self.savedVariables then
         return
@@ -341,12 +347,12 @@ function TR:SetTooltipsEnabled(enabled, announce, restoreCurrent)
             ZO_ClearTable(self.suppressed)
         end
         if announce then
-            self:Message("Item-Tooltips eingeblendet.")
+            self:Message(L.MSG_SHOWN)
         end
     else
         self:HideTrackedTooltips()
         if announce then
-            self:Message("Item-Tooltips ausgeblendet.")
+            self:Message(L.MSG_HIDDEN)
         end
     end
 end
@@ -360,6 +366,28 @@ function TR:SetPermanentEnabled(enabled)
     -- 'An' bedeutet normales ESO-Verhalten: Tooltip nur anzeigen, solange ESO ihn anzeigen will.
     self.savedVariables.permanentEnabled = enabled == true
     self:SetTooltipsEnabled(self.savedVariables.permanentEnabled, false, false)
+end
+
+function TR:SetUsePositioning(enabled)
+    enabled = enabled == true
+    if self.savedVariables.usePositioning == enabled then
+        return
+    end
+
+    if not enabled and self.editMode then
+        self:SetEditMode(false, true)
+    end
+
+    self.savedVariables.usePositioning = enabled
+    if enabled then
+        self:ApplyAllPositions()
+        self:QueueAllTooltipPositions()
+        self:Message(L.MSG_POSITIONING_ON)
+    else
+        -- Existing anchors are no longer enforced. ESO may rebuild its normal anchors
+        -- the next time a tooltip is shown. Visibility control remains active.
+        self:Message(L.MSG_POSITIONING_OFF)
+    end
 end
 
 function TR:SaveMarkerPosition(key, marker)
@@ -469,7 +497,7 @@ function TR:CreateMarker(key)
     title:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     title:SetAnchor(TOPLEFT, marker, TOPLEFT, 10, 28)
     title:SetAnchor(TOPRIGHT, marker, TOPRIGHT, -10, 28)
-    title:SetText(data.title)
+    title:SetText(L[data.titleKey] or data.titleKey)
 
     local hint = WINDOW_MANAGER:CreateControl(data.name .. "Hint", marker, CT_LABEL)
     hint:SetFont("ZoFontGame")
@@ -477,7 +505,7 @@ function TR:CreateMarker(key)
     hint:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     hint:SetAnchor(TOPLEFT, title, BOTTOMLEFT, 0, 16)
     hint:SetAnchor(TOPRIGHT, title, BOTTOMRIGHT, 0, 16)
-    hint:SetText(data.hint)
+    hint:SetText(L[data.hintKey] or data.hintKey)
 
     local coordinates = WINDOW_MANAGER:CreateControl(data.name .. "Coordinates", marker, CT_LABEL)
     coordinates:SetFont("ZoFontGameSmall")
@@ -524,6 +552,13 @@ end
 function TR:SetEditMode(enabled, silent)
     enabled = enabled == true
 
+    if enabled and self.savedVariables and self.savedVariables.usePositioning == false then
+        if not silent then
+            self:Message(L.MSG_POSITIONING_DISABLED)
+        end
+        return
+    end
+
     if self.editMode == enabled then
         return
     end
@@ -539,7 +574,7 @@ function TR:SetEditMode(enabled, silent)
         end
         self:UpdateMarkerCoordinates()
         if not silent then
-            self:Message("Positionsmodus aktiv. Alle drei Platzhalter können mit der linken Maustaste verschoben werden.")
+            self:Message(L.MSG_EDIT_ON)
         end
     else
         -- Einen laufenden Links-Drag zuerst sauber abschließen.
@@ -557,7 +592,7 @@ function TR:SetEditMode(enabled, silent)
             ZO_ClearTable(self.suppressed)
         end
         if not silent then
-            self:Message("Positionsmodus beendet. Positionen gespeichert.")
+            self:Message(L.MSG_EDIT_OFF)
         end
     end
 end
@@ -567,6 +602,11 @@ function TR:ToggleEditMode()
 end
 
 function TR:ResetPositions()
+    if self.savedVariables.usePositioning == false then
+        self:Message(L.MSG_POSITIONING_DISABLED)
+        return
+    end
+
     for key in pairs(self.savedVariables.positions) do
         local x, y, anchor = self:GetDefaultPosition(key)
         self.savedVariables.positions[key].x = x
@@ -577,7 +617,7 @@ function TR:ResetPositions()
 
     self:ApplyAllPositions()
     self:UpdateMarkerCoordinates()
-    self:Message("Tooltip-Positionen wurden zurückgesetzt.")
+    self:Message(L.MSG_RESET_POSITIONS)
 end
 
 function TR:GetPresetGap()
@@ -596,6 +636,11 @@ function TR:GetPresetGap()
 end
 
 function TR:ApplyCornerPreset(horizontal, vertical)
+    if self.savedVariables.usePositioning == false then
+        self:Message(L.MSG_POSITIONING_DISABLED)
+        return
+    end
+
     self:RefreshMarkerDimensions()
     local gap = self:GetPresetGap()
     local anchor
@@ -639,12 +684,11 @@ function TR:ApplyCornerPreset(horizontal, vertical)
     self:QueueAllTooltipPositions()
     self:UpdateMarkerCoordinates()
 
-    local names =
-    {
-        left = { top = "oben links", bottom = "unten links" },
-        right = { top = "oben rechts", bottom = "unten rechts" },
+    local names = {
+        left = { top = L.PRESET_TOP_LEFT, bottom = L.PRESET_BOTTOM_LEFT },
+        right = { top = L.PRESET_TOP_RIGHT, bottom = L.PRESET_BOTTOM_RIGHT },
     }
-    self:Message(string.format("Positionsvorlage '%s' angewendet.", names[horizontal][vertical]))
+    self:Message(string.format(L.MSG_PRESET_APPLIED, names[horizontal][vertical]))
 end
 
 function TR:RegisterTrackedTooltips()
@@ -698,152 +742,15 @@ function TR:InstallHooks()
     end)
 end
 
-function TR:CreateSettingsMenu()
-    local LAM = LibAddonMenu2
-    local panelName = "TooltipruheSettingsPanel"
-
-    local panelData =
-    {
-        type = "panel",
-        name = "Tooltipruhe",
-        displayName = "|c7FC7FFTooltipruhe|r",
-        author = "Atlas",
-        version = self.version,
-        registerForRefresh = true,
-        registerForDefaults = false,
-    }
-
-    self.settingsPanel = LAM:RegisterAddonPanel(panelName, panelData)
-
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
-        if panel == self.settingsPanel and self.editMode then
-            -- Egal ob Esc, Menüwechsel oder anderes Schließen: Bearbeitungsmodus sauber beenden.
-            self:SetEditMode(false, true)
-        end
-    end)
-
-    local optionsData =
-    {
-        {
-            type = "description",
-            text = "Positioniert Item-Tooltips frei, speichert ihre Positionen und kann sie vollständig ausblenden.",
-            width = "full",
-        },
-        {
-            type = "header",
-            name = "Anzeige",
-        },
-        {
-            type = "checkbox",
-            name = "Normales ESO-Tooltipverhalten",
-            tooltip = "An: Item-Tooltips verhalten sich normal und erscheinen nur, wenn ESO sie beim Überfahren eines Gegenstands anzeigen würde. Aus: Item-Tooltips sind standardmäßig verborgen und können vorübergehend per Tastenbelegung eingeblendet werden.",
-            getFunc = function()
-                return self.savedVariables.permanentEnabled
-            end,
-            setFunc = function(value)
-                self:SetPermanentEnabled(value)
-            end,
-            default = false,
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = "Chatmeldungen anzeigen",
-            tooltip = "Zeigt Meldungen von Tooltipruhe im Chat an, zum Beispiel beim Ein-/Ausblenden, Bearbeiten, Zurücksetzen oder Anwenden einer Vorlage.",
-            getFunc = function()
-                return self.savedVariables.chatMessages
-            end,
-            setFunc = function(value)
-                self.savedVariables.chatMessages = value == true
-            end,
-            default = true,
-            width = "full",
-        },
-        {
-            type = "header",
-            name = "Positionen",
-        },
-        {
-            type = "checkbox",
-            name = "Positionen bearbeiten",
-            tooltip = "Ein: Alle drei Tooltip-Platzhalter werden angezeigt und mit der linken Maustaste verschoben. Aus: Platzhalter verschwinden und die Positionen werden gespeichert. Beim Verlassen dieses Einstellungsfensters wird der Bearbeitungsmodus automatisch beendet.",
-            getFunc = function()
-                return self.editMode
-            end,
-            setFunc = function(value)
-                self:SetEditMode(value)
-            end,
-            width = "full",
-        },
-        {
-            type = "button",
-            name = "Positionen zurücksetzen",
-            tooltip = "Stellt die ursprünglichen Tooltipruhe-Positionen wieder her.",
-            func = function()
-                self:ResetPositions()
-            end,
-            width = "full",
-        },
-        {
-            type = "header",
-            name = "Positionsvorlagen",
-        },
-        {
-            type = "description",
-            text = "Die Vorlagen ordnen die drei Tooltip-Fenster nebeneinander an und führen sie von der gewählten Ecke zur Bildschirmmitte. Links: 1 2 3. Rechts: 3 2 1. Oben wachsen die Tooltips nach unten, unten nach oben.",
-            width = "full",
-        },
-        {
-            type = "button",
-            name = "Oben links",
-            func = function()
-                self:ApplyCornerPreset("left", "top")
-            end,
-            width = "half",
-        },
-        {
-            type = "button",
-            name = "Oben rechts",
-            func = function()
-                self:ApplyCornerPreset("right", "top")
-            end,
-            width = "half",
-        },
-        {
-            type = "button",
-            name = "Unten links",
-            func = function()
-                self:ApplyCornerPreset("left", "bottom")
-            end,
-            width = "half",
-        },
-        {
-            type = "button",
-            name = "Unten rechts",
-            func = function()
-                self:ApplyCornerPreset("right", "bottom")
-            end,
-            width = "half",
-        },
-        {
-            type = "header",
-            name = "Tastenbelegung",
-        },
-        {
-            type = "description",
-            text = "Unter Steuerung → Tastenbelegung → Tooltipruhe kannst Du die Anzeige vorübergehend ein-/ausblenden und den Positionsmodus ebenfalls per Taste umschalten.",
-            width = "full",
-        },
-    }
-
-    LAM:RegisterOptionControls(panelName, optionsData)
-end
-
 function TR:RegisterSlashCommand()
     SLASH_COMMANDS["/tooltipruhe"] = function(arguments)
         local command = zo_strlower(zo_strtrim(arguments or ""))
 
-        if command == "" or command == "toggle" then
+        if command == "" or command == "settings" or command == "config" then
+            if self.OpenSettings then
+                self:OpenSettings()
+            end
+        elseif command == "toggle" then
             self:ToggleVisibility()
         elseif command == "edit" or command == "position" then
             self:ToggleEditMode()
@@ -854,7 +761,7 @@ function TR:RegisterSlashCommand()
         elseif command == "off" then
             self:SetTooltipsEnabled(false, true, false)
         else
-            self:Message("Befehle: /tooltipruhe, /tooltipruhe edit, /tooltipruhe reset, /tooltipruhe on, /tooltipruhe off")
+            self:Message(L.MSG_COMMANDS)
         end
     end
 end
@@ -887,7 +794,12 @@ function TR:Initialize()
     end)
 
     self:InstallHooks()
-    self:CreateSettingsMenu()
+    if self.InstallAddonManagerGear then
+        self:InstallAddonManagerGear()
+    end
+    if self.InstallSettingsCloseBehavior then
+        self:InstallSettingsCloseBehavior()
+    end
     self:RegisterSlashCommand()
 
     if self.tooltipsEnabled then
@@ -908,8 +820,8 @@ end
 
 EVENT_MANAGER:RegisterForEvent(TR.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
 
-ZO_CreateStringId("SI_BINDING_NAME_TOOLTIPRUHE_TOGGLE_VISIBILITY", "Item-Tooltips vorübergehend ein-/ausblenden")
-ZO_CreateStringId("SI_BINDING_NAME_TOOLTIPRUHE_TOGGLE_EDIT", "Tooltip-Positionen bearbeiten")
+ZO_CreateStringId("SI_BINDING_NAME_TOOLTIPRUHE_TOGGLE_VISIBILITY", L.BIND_TOGGLE_VISIBILITY)
+ZO_CreateStringId("SI_BINDING_NAME_TOOLTIPRUHE_TOGGLE_EDIT", L.BIND_TOGGLE_EDIT)
 
 function Tooltipruhe_ToggleVisibility()
     TR:ToggleVisibility()

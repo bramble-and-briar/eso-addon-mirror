@@ -3,6 +3,13 @@ Schlosswerk.LocalizationData = Schlosswerk.LocalizationData or {}
 
 Schlosswerk.LocalizationData.en = {
     ADDON_NAME = "Schlosswerk",
+    ADDON_DESCRIPTION = "A Torfason × Atlas addon for The Elder Scrolls Online. Adds selectable lock designs while preserving ESO's original lockpicking mechanics.",
+    SETTINGS_TITLE = "Schlosswerk - Settings",
+    SETTINGS_GEAR_TT = "Open Schlosswerk settings",
+    SETTINGS_CLOSE = "Close",
+    SETTINGS_DEFAULTS = "Defaults",
+    SETTINGS_DEFAULTS_TT = "Restore all Schlosswerk settings to their default values.",
+    SETTINGS_DEFAULTS_DONE = "Schlosswerk settings restored to defaults.",
     PANEL_DESCRIPTION = "Choose the appearance of ESO's lockpicking lock. Schlosswerk changes only the lock body and front overlay; the original ESO lockpicking mechanics, tools, pins, springs, sounds and timing remain untouched.",
 
     HEADER_GENERAL = "General",

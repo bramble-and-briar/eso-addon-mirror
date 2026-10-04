@@ -1,0 +1,16 @@
+## Title: |cFFD700Mansu's HouseBookmarks|r
+## Description: Bookmark players' houses and travel to them: clickable housing links in chat (/mhb) and five bindable keys. One small Lua file, no window, no library. AI-assisted code, see the README.
+## Author: Karim
+## Version: 1.0.0
+## AddOnVersion: 100
+## APIVersion: 101051
+## SavedVariables: MansusHouseBookmarksSV
+## IsLibrary: false
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+MansusHouseBookmarks.lua
+Bindings.xml

@@ -1,0 +1,126 @@
+Setup Assist - attribution et licence des données du catalogue
+
+Les données descriptives de CONTENT_TEMPLATES dans Catalog.lua et les données
+de parcours et de rencontres de RaidRoutes.lua sont une adaptation des pages
+UESP répertoriées ci-dessous. Attribution : contributeurs
+de l'Unofficial Elder Scrolls Pages (UESP). Consultation : 3 octobre 2026.
+Les sources individuelles et leur révision sont également indiquées dans
+chaque entrée (sources et sourceRevision).
+
+Licence de ces données adaptées : Creative Commons Attribution-ShareAlike 2.5
+(CC BY-SA 2.5). Ces données ne sont pas couvertes par la licence MIT du code.
+Vous pouvez les partager et les adapter, en conservant cette attribution,
+un lien vers la licence et l'indication des modifications. Une redistribution
+d'une adaptation des données doit conserver la même licence ou une licence
+compatible conformément à CC BY-SA 2.5.
+
+Licence : https://creativecommons.org/licenses/by-sa/2.5/
+Texte juridique : https://creativecommons.org/licenses/by-sa/2.5/legalcode
+Politique UESP : https://en.uesp.net/wiki/UESPWiki:Copyright_and_Ownership
+
+Modifications : noms et listes de rencontres convertis en tables Lua ;
+identifiants stables ajoutés ; groupes explicités ; faux liens vers espèces
+ou personnages narratifs retirés ; variantes et limites de détection signalées.
+Dans la version 0.4.0, les parcours sont découpés en portions de trash et
+rencontres ; les branches, retours, rencontres facultatives et modes +n
+documentés disposent de variantes explicites. Les étapes de préparation
+reçoivent des identifiants distincts, sans reproduire des coordonnées tierces.
+Les alias français non vérifiés restent vides. Aucune position n'a été copiée.
+Les IDs et noms actifs sont complétés en jeu par les API natives ESO.
+Les fonctions Lua écrites pour Setup Assist restent du code original MIT,
+conformément à LICENSE.txt. Aucune fonction, interface, icône ou table de
+Wizard's Wardrobe, LibSets ou LibZone n'est copiée ou intégrée ici.
+Les marques et les contenus du jeu restent la propriété de leurs titulaires.
+
+Les constats de parcours complémentaires ont été vérifiés auprès des guides
+d'Alcast, Qcell, SGTsanttu, SteiNet, Xynode, ESOAZ et Oridancake / Enter the
+Dominion. Ils sont reformulés ; aucun texte, illustration, carte ou fichier
+de ces guides n'est reproduit. Leurs liens de vérification figurent dans
+les champs sources et provenance de RaidRoutes.lua.
+
+Sources des données adaptées :
+- https://en.uesp.net/wiki/Online:Vaults_of_Madness
+- https://en.uesp.net/wiki/Online:Group_Dungeons
+- https://en.uesp.net/wiki/Online:Volenfell
+- https://en.uesp.net/wiki/Online:Selene%27s_Web
+- https://en.uesp.net/wiki/Online:Blackheart_Haven
+- https://en.uesp.net/wiki/Online:Darkshade_Caverns_I
+- https://en.uesp.net/wiki/Online:Blessed_Crucible
+- https://en.uesp.net/wiki/Online:Elden_Hollow_I
+- https://en.uesp.net/wiki/Online:Crypt_of_Hearts_I
+- https://en.uesp.net/wiki/Online:Tempest_Island
+- https://en.uesp.net/wiki/Online:Spindleclutch_I
+- https://en.uesp.net/wiki/Online:Wayrest_Sewers_I
+- https://en.uesp.net/wiki/Online:Arx_Corinium
+- https://en.uesp.net/wiki/Online:City_of_Ash_I
+- https://en.uesp.net/wiki/Online:Fungal_Grotto_I
+- https://en.uesp.net/wiki/Online:The_Banished_Cells_I
+- https://en.uesp.net/wiki/Online:Direfrost_Keep
+- https://en.uesp.net/wiki/Online:Imperial_City_Prison
+- https://en.uesp.net/wiki/Online:Lord-Warden%27s_Council
+- https://en.uesp.net/wiki/Online:City_of_Ash_II
+- https://en.uesp.net/wiki/Online:White-Gold_Tower
+- https://en.uesp.net/wiki/Online:Ruins_of_Mazzatun
+- https://en.uesp.net/wiki/Online:Cradle_of_Shadows
+- https://en.uesp.net/wiki/Online:Darkshade_Caverns_II
+- https://en.uesp.net/wiki/Online:Engine_Garrison
+- https://en.uesp.net/wiki/Online:Transmuted_Alit
+- https://en.uesp.net/wiki/Online:Elden_Hollow_II
+- https://en.uesp.net/wiki/Online:Crypt_of_Hearts_II
+- https://en.uesp.net/wiki/Online:Wayrest_Sewers_II
+- https://en.uesp.net/wiki/Online:Fungal_Grotto_II
+- https://en.uesp.net/wiki/Online:The_Banished_Cells_II
+- https://en.uesp.net/wiki/Online:Spindleclutch_II
+- https://en.uesp.net/wiki/Online:Flesh_Atronach_Trio
+- https://en.uesp.net/wiki/Online:Bloodroot_Forge
+- https://en.uesp.net/wiki/Online:Falkreath_Hold
+- https://en.uesp.net/wiki/Online:Cernunnon
+- https://en.uesp.net/wiki/Online:Fang_Lair
+- https://en.uesp.net/wiki/Online:Scalecaller_Peak
+- https://en.uesp.net/wiki/Online:Moon_Hunter_Keep
+- https://en.uesp.net/wiki/Online:March_of_Sacrifices
+- https://en.uesp.net/wiki/Online:Frostvault
+- https://en.uesp.net/wiki/Online:Depths_of_Malatar
+- https://en.uesp.net/wiki/Online:Moongrave_Fane
+- https://en.uesp.net/wiki/Online:Lair_of_Maarselok
+- https://en.uesp.net/wiki/Online:Icereach
+- https://en.uesp.net/wiki/Online:Icereach_Coven_(Boss)
+- https://en.uesp.net/wiki/Online:Unhallowed_Grave
+- https://en.uesp.net/wiki/Online:Stone_Garden
+- https://en.uesp.net/wiki/Online:Castle_Thorn
+- https://en.uesp.net/wiki/Online:Black_Drake_Villa
+- https://en.uesp.net/wiki/Online:The_Cauldron
+- https://en.uesp.net/wiki/Online:Red_Petal_Bastion
+- https://en.uesp.net/wiki/Online:The_Dread_Cellar
+- https://en.uesp.net/wiki/Online:Coral_Aerie
+- https://en.uesp.net/wiki/Online:Shipwright%27s_Regret
+- https://en.uesp.net/wiki/Online:Earthen_Root_Enclave
+- https://en.uesp.net/wiki/Online:Graven_Deep
+- https://en.uesp.net/wiki/Online:Bal_Sunnar
+- https://en.uesp.net/wiki/Online:Scrivener%27s_Hall
+- https://en.uesp.net/wiki/Online:Oathsworn_Pit
+- https://en.uesp.net/wiki/Online:Bedlam_Veil
+- https://en.uesp.net/wiki/Online:Exiled_Redoubt
+- https://en.uesp.net/wiki/Online:Lep_Seclusa
+- https://en.uesp.net/wiki/Online:Naj-Caldeesh
+- https://en.uesp.net/wiki/Online:Black_Gem_Foundry
+- https://en.uesp.net/wiki/Online:Gossamer_Crypt
+- https://en.uesp.net/wiki/Online:Mournful_Catacomb
+- https://en.uesp.net/wiki/Online:Timeless_Wallow
+- https://en.uesp.net/wiki/Online:Hel_Ra_Citadel
+- https://en.uesp.net/wiki/Online:Trials
+- https://en.uesp.net/wiki/Online:Aetherian_Archive
+- https://en.uesp.net/wiki/Online:Sanctum_Ophidia
+- https://en.uesp.net/wiki/Online:Maw_of_Lorkhaj
+- https://en.uesp.net/wiki/Online:Halls_of_Fabrication
+- https://en.uesp.net/wiki/Online:Asylum_Sanctorium
+- https://en.uesp.net/wiki/Online:Cloudrest
+- https://en.uesp.net/wiki/Online:Sunspire
+- https://en.uesp.net/wiki/Online:Kyne%27s_Aegis
+- https://en.uesp.net/wiki/Online:Rockgrove
+- https://en.uesp.net/wiki/Online:Dreadsail_Reef
+- https://en.uesp.net/wiki/Online:Sanity%27s_Edge
+- https://en.uesp.net/wiki/Online:Lucent_Citadel
+- https://en.uesp.net/wiki/Online:Ossein_Cage
+- https://en.uesp.net/wiki/Online:Shaper_of_Flesh
+- https://en.uesp.net/wiki/Online:Opulent_Ordeal

@@ -185,7 +185,7 @@ local FV = Frostfall
 -- CONSTANTS
 -- ============================================================
 FV.NAME            = "Frostfall"
-FV.VERSION         = "3.4.34"
+FV.VERSION         = "3.4.35"
 FV.DISPLAY_NAME    = "Frostfall Temperature System"
 FV.SAVED_VARS_VER  = 8   -- unchanged: spellResistRemainingSeconds (v3.4.21, replacing v3.4.19's spellResistEndTimestamp) is additive and needs no data migration
 

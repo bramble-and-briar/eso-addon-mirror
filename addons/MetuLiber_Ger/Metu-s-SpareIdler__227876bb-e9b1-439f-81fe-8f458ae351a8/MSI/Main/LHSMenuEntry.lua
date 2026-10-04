@@ -5,9 +5,9 @@ local MSI = _G['MSI']
 function MSI.InitLHSLibrary()
 	MSI.LHS = LibHarvensAddonSettings
 	if not MSI.LHS then
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LHS_FAILURE)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LHS_FAILURE)))
 	else
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LHS_SUCCESS)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LHS_SUCCESS)))
 	end
 end
 

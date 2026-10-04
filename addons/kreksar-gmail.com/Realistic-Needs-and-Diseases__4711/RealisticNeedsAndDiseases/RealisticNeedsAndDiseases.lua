@@ -6,7 +6,7 @@ RealisticNeeds = RealisticNeeds or {}
 local RN = RealisticNeeds
 
 RN.NAME    = "RealisticNeedsAndDiseases"
-RN.VERSION = "0.19.31"
+RN.VERSION = "0.19.32"
 
 -- Keybind display name. Must run at file-parse time (not inside
 -- OnAddOnLoaded) — see bindings.xml for the matching Action definition and
@@ -282,7 +282,19 @@ end
 
 local function OnFoodDrinkInventoryChange(eventCode, bagId, slotId, isNewItem, itemSoundCategory, updateReason, stackCountChange)
     if bagId ~= BAG_BACKPACK then return end
-    if RN.IsTradeWindowOpen() then return end
+
+    -- Trade-window gating suppresses CREDITING only — it must NOT skip the
+    -- _lastSlotState refresh further down. Before 0.19.32 this was an early
+    -- `return`, so any stack change made while a merchant, crafting station,
+    -- or bank was open (buying food, CRAFTING food/drink at a provisioning
+    -- station, withdrawing from the bank) never reached the cache. The cache
+    -- was left stale (old, smaller size) or empty (new slot), so the first
+    -- food/drink eaten from that stack afterward compared against bad data —
+    -- newSize was not < the stale size, or prevState was nil — and was
+    -- silently dropped; the second one worked because the first event had
+    -- refreshed the cache. Disease.OnRemedyInventoryChange already updates
+    -- its own cache before its trade-window check; this now matches it.
+    local suppressCrediting = RN.IsTradeWindowOpen()
 
     local sv = RN.SavedVars
     local key = bagId .. ":" .. slotId
@@ -290,6 +302,7 @@ local function OnFoodDrinkInventoryChange(eventCode, bagId, slotId, isNewItem, i
     local prevState = _lastSlotState[key]
 
     local function MaybeHandleConsumption(itemType, specializedItemType, itemName)
+        if suppressCrediting then return end
         local isFoodOrDrink = (itemType == ITEMTYPE_FOOD) or (itemType == ITEMTYPE_DRINK)
         if not isFoodOrDrink then return end
         -- Only trust the inventory-shrink signal if a real food/drink buff was JUST

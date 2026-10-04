@@ -1,0 +1,24 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Mansu's HouseBookmarks">
+            <Action name="MANSUSHOUSEBOOKMARKS_GO_1">
+                <Down>MansusHouseBookmarks.Go(1)</Down>
+            </Action>
+            <Action name="MANSUSHOUSEBOOKMARKS_GO_2">
+                <Down>MansusHouseBookmarks.Go(2)</Down>
+            </Action>
+            <Action name="MANSUSHOUSEBOOKMARKS_GO_3">
+                <Down>MansusHouseBookmarks.Go(3)</Down>
+            </Action>
+            <Action name="MANSUSHOUSEBOOKMARKS_GO_4">
+                <Down>MansusHouseBookmarks.Go(4)</Down>
+            </Action>
+            <Action name="MANSUSHOUSEBOOKMARKS_GO_5">
+                <Down>MansusHouseBookmarks.Go(5)</Down>
+            </Action>
+            <Action name="MANSUSHOUSEBOOKMARKS_LIST">
+                <Down>MansusHouseBookmarks.List()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

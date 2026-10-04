@@ -11,7 +11,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [UESP Patreon Character Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Uesp/UESP-Patreon-Character-Saver__3190) | Uesp | PC / Mac | 0.11 |
 | [uespLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Uesp/uespLog__1257) | Uesp | PC / Mac | 3.30 |
 | [Uhryel's Ring of the Pale Order Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Uhryel-s-Ring-of-the-Pale-Order-Reminder__3255) | Irniben | PC / Mac | 1.1.0 |
-| [UI Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/UI-Tweaks__4524) | atharti | PC / Mac | 2.2 |
+| [UI Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/UI-Tweaks__4524) | atharti | PC / Mac | 2.3 |
 | [UL LootLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ulceratio/UL-LootLog__2606) | Ulceratio | PC / Mac | 0.1.1 |
 | [Ultibomb](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Ultibomb__2163) | ghostbane | PC / Mac | 0.7.5 |
 | [Ultimate Buff Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Agade/Ultimate-Buff-Tracker__971) | Agade | PC / Mac | 1.0 |

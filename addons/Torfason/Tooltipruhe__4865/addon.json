@@ -22,11 +22,11 @@
     "Tooltipruhe"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4865/",
-  "fingerprint": "da14d3c04020328b6729cd6b1bc3571c3a5cceaf4792d7037a5cf5b30205c760",
+  "fingerprint": "0bae5bf5b0e0783f80a3273c5e9e76c729aa92860c03286b172d2bf857584e56",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17517.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17674.png",
     "https://cdn-eso.mmoui.com/preview/pvw17508.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17509.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17673.png"
   ],
   "platform": "pc",
   "published": true,
@@ -34,11 +34,11 @@
   "source_id": "4865",
   "source_url": "https://www.esoui.com/downloads/info4865-Tooltipruhe.html",
   "stats": {
-    "downloads": 5,
+    "downloads": 34,
     "favorites": 1,
-    "monthly_downloads": 3
+    "monthly_downloads": 34
   },
   "title": "Tooltipruhe",
-  "updated_at": 1790164487000,
-  "version": "1.0.0"
+  "updated_at": 1791030963000,
+  "version": "2.0.0"
 }

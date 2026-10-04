@@ -22,9 +22,9 @@
     "Wegesruhe"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4849/",
-  "fingerprint": "af71e9c5513fa585ca81d858ee6936f29bcdec7b377807dc7eb5107c1e0e2692",
+  "fingerprint": "8270d62799e5bfd7eeeabc612f9430cca4ca70532fd312125ea1403e04460136",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17668.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17683.png",
     "https://cdn-eso.mmoui.com/preview/pvw17422.png",
     "https://cdn-eso.mmoui.com/preview/pvw17425.png",
     "https://cdn-eso.mmoui.com/preview/pvw17426.png"
@@ -35,11 +35,11 @@
   "source_id": "4849",
   "source_url": "https://www.esoui.com/downloads/info4849-Wegesruhe.html",
   "stats": {
-    "downloads": 62,
+    "downloads": 70,
     "favorites": 1,
-    "monthly_downloads": 58
+    "monthly_downloads": 68
   },
   "title": "Wegesruhe",
-  "updated_at": 1791015525000,
-  "version": "2.0.0"
+  "updated_at": 1791060379000,
+  "version": "2.0.1"
 }

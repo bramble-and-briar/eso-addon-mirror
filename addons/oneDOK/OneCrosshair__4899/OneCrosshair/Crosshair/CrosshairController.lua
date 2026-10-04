@@ -19,7 +19,9 @@ function O.CrosshairController.SetPreset(self, id, state)
         pool[i] = c
         c:SetHidden(false)
         if line then
-            c:SetThickness(definition.thickness or 1.2)
+            c:SetTexture("OneCrosshair/Assets/Stroke.dds")
+            c:SetTextureCoords(0, 1, 0, 1)
+            c:SetThickness((definition.thickness or 1.2) / .9)
             c:SetPixelRoundingEnabled(false)
         else
             c:SetTexture(definition.texture or "OneCrosshair/Assets/Disc.dds")

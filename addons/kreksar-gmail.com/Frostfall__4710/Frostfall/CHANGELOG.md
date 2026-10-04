@@ -4,6 +4,25 @@ Full version history for Frostfall. See README.md for current features, installa
 
 ---
 
+### v3.4.35
+- **Manifest APIVersion bumped to `101051 101052`** (Update 51 /
+  Season One is live). The README's Compatibility section, which still
+  said 101050, now matches.
+- **README Dependencies section now lists and links every required
+  library.** The manifest's `## DependsOn` has five (LibClockTST,
+  LibAddonMenu-2.0, LibZone, LibZoneTemp, LibArmorInsulation), but the
+  README only listed three, and only LibAddonMenu-2.0 had a link.
+  LibClockTST and LibZone were missing entirely. All five now link to
+  their ESOUI pages, and the optional LibInteriorDetection does too:
+  - LibAddonMenu-2.0: https://www.esoui.com/downloads/info7-LibAddonMenu.html (unchanged)
+  - LibClockTST: https://www.esoui.com/downloads/info2533-LibClockTST.html
+  - LibZone: https://www.esoui.com/downloads/info2171-LibZone.html
+  - LibZoneTemp: https://www.esoui.com/downloads/info4708-LibZoneTemp.html
+  - LibArmorInsulation: https://www.esoui.com/downloads/info4709-LibArmorInsulation.html
+  - LibInteriorDetection (optional): https://www.esoui.com/downloads/info4816-LibInteriorDetection.html
+  All confirmed against the live ESOUI listings.
+- No code changes beyond the version string.
+
 ### v3.4.34
 - **Fixed the settings panel overwriting the global `Frostfall` table.**
   The LibAddonMenu panel was registered under the name `"Frostfall"`.

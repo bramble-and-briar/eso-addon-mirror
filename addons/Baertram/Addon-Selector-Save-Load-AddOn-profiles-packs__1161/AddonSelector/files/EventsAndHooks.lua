@@ -18,6 +18,8 @@ local currentCharId = constants.currentCharId
 local currentCharName = constants.currentCharName
 --local isExcludedFromChangeEnabledState = constants.isExcludedFromChangeEnabledState
 
+local string_gsub = string.gsub
+
 local booleanToOnOff = stringConstants.booleanToOnOff
 
 --Flags
@@ -702,7 +704,7 @@ function AS.LoadHooks()
     end
 
     --PreHook the Addonmanagers OnShow function
-    ZO_PreHook(ADDON_MANAGER_OBJECT, "OnShow", function(ctrl)
+    ZO_PreHook(ADDON_MANAGER_OBJECT, "OnShow", function(addonManagerObject)
         --d("ADD_ON_MANAGER:OnShow")
         --Hide other controls/keybinds
         AS.OnShow_HideStuff()
@@ -756,6 +758,16 @@ function AS.LoadHooks()
             enableZO_AddOnsUI_controlNarration()
 
         end, 500) -- Attention: Delay needs to be 500 as AddonSelector_HookForMultiSelectByShiftKey was enabled!!!
+    end)
+
+    --20261003 PostHook the Addonmanagers' OnCharacterChanged function (selection of the dropdown entry of any character -> At the addon manager)
+    -- to fix the Update 51 introduced character name with apostrophe bug --> ESO vanilla code adds an escape \ in front of the apostrophe.
+    --> Remove the backslashes here and update the entry
+    SecurePostHook(ZO_AddOnManager, "OnCharacterChanged", function(selfVar, name, entry)
+        if entry == nil or entry.allCharacters == true or entry.name == nil then return end
+        entry.name = string_gsub(entry.name, "\\", "") --remove any leading backslash from the character name & update the name to the currently selected entry again
+        selfVar.selectedCharacterEntry = entry
+        selfVar:RefreshData()
     end)
 
     --PreHook the Addonmanagers OnEffectivelyHidden function

@@ -35,7 +35,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FCM Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/d2allgr/FCM-Quest-Tracker__2810) | d2allgr | PC / Mac | 1.5.5.26 |
 | [FCM Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertDwellers/FCM-Quest-Tracker__1717) | DesertDwellers | PC / Mac | 1.5.5.25 |
 | [FCO Accessibility](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Accessibility__3586) | Baertram | PC / Mac | 2.3 |
-| [FCO ChangeStuff - QOL changes for ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO__1542) | Baertram | PC / Mac | 0.5.95 |
+| [FCO ChangeStuff - QOL changes for ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO__1542) | Baertram | PC / Mac | 0.5.96 |
 | [FCO ChatTabBrain (Automatic chat tab&message channel switch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ChatTabBrain-Automatic-chat-tab-message-channel-switch__696) | Baertram | PC / Mac | 0.4.8 |
 | [FCO Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Companion__3044) | Baertram | PC / Mac | 0.18 |
 | [FCO CraftFilter (Filter bank/inventory/craftbag items at crafting tables & Favorites)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-CraftFilter-Filter-bank-inventory-craftbag-items-at-crafting-tables-Favorite__1104) | Baertram | PC / Mac | 0.6.9 |
@@ -123,7 +123,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Friend Auto Trade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Quazzert/Friend-Auto-Trade__1168) | Quazzert | PC / Mac | 0.1 |
 | [Friend Removed Notification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Friend-Removed-Notification__1225) | CaptainBlagbird | PC / Mac | 2.01 |
 | [Friendly Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crunatus/Friendly-Reminder__2882) | Crunatus | PC / Mac | 1.3 |
-| [Frostfall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Frostfall__4710) | kreksar@gmail.com | PC / Mac | 3.4.34 |
+| [Frostfall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Frostfall__4710) | kreksar@gmail.com | PC / Mac | 3.4.35 |
 | [FsBountyDecay](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FelipeS11/FsBountyDecay__2486) | FelipeS11 | PC / Mac | 3.0 |
 | [Full Moon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Full-Moon__2107) | g4rr3t | PC / Mac | 1.2.4 |
 | [Fun Kill Feed - (tested on console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Fun-Kill-Feed---tested-on-console__4286) | SugaComa | PC / Mac | 1.3.5 |
@@ -135,6 +135,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Furniture Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/Furniture-Finder__2b591c30-b518-46da-978a-c1a788963735) | killerkev77 | Console | — |
 | [Furniture Grouper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/datael/Furniture-Grouper__1799) | datael | PC / Mac | 1.0.6a |
 | [Furniture Placer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/killerkev77/Furniture-Placer__33acf830-6318-4dc0-8458-4a061eca1ad3) | killerkev77 | Console | — |
+| [Furniture Plan Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Furniture-Plan-Search__5d0f8b9b-9537-4b51-b576-5ec13219cc73) | SugaComa | Console | — |
 | [Furniture Preview modified by Teva](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Teva/Furniture-Preview-modified-by-Teva__2970) | Teva | PC / Mac | 2.60 |
 | [Furniture Shopping List (FurC 2.0 patch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Furniture-Shopping-List-FurC-2.0-patch__1865) | manavortex | PC / Mac | 1.4.11 |
 | [Furniture Snap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Furniture-Snap__1944) | Cardinal05 | PC / Mac | 1.3 |

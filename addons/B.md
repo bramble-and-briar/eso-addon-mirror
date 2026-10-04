@@ -27,7 +27,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bandits Gear Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Bandits-Gear-Manager__2218) | Hoft | PC / Mac | 2.35 |
 | [Bandits Guildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Bandits-Guildhall__3176) | Hoft | PC / Mac | 1.7 |
 | [Bandits Loot Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Bandits-Loot-Manager__2279) | Hoft | PC / Mac | 1.21 |
-| [Bandits User Interface](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Bandits-User-Interface__1643) | Hoft | PC / Mac | 4.439 |
+| [Bandits User Interface](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Bandits-User-Interface__1643) | Hoft | PC / Mac | 4.440 |
 | [BanditsUserInterfaceZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BanditsUserInterfaceZHPatch__3909) | FusRoDah | PC / Mac | 4.413 |
 | [Bank balancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Bank-balancer__2066) | Ek1 | PC / Mac | 4.0-180709 |
 | [Bank Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jreid01/Bank-Data-Exporter__3825) | jreid01 | PC / Mac | 1.0.3.1 |
@@ -81,7 +81,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BetterSynergy - Synergy Text Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SkullElf/BetterSynergy---Synergy-Text-Hider__4029) | SkullElf | PC / Mac | 1.4 |
 | [BetterUI :: Gamepad Interface Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goobsnake/BetterUI-Gamepad-Interface-Improvements__2013) | goobsnake | PC / Mac | 3.06 |
 | [BGHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/BGHelper__4527) | NPViral | PC / Mac | 3.0 |
-| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.8.3 |
+| [BGMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Federico/BGMeter__4697) | Federico | PC / Mac | 0.8.4 |
 | [Bigger Chat Window](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Crabby654/Bigger-Chat-Window__657) | Crabby654 | PC / Mac | 1.6.3 |
 | [Bind As Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Bind-As-Junk__4608) | Fluffiels | PC / Mac | 1.03 |
 | [BindAll (Sticker Book Collector)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/BindAll-Sticker-Book-Collector__2825) | ownedbynico | PC / Mac | 1.5 |

@@ -36,7 +36,7 @@
 -------------------------------------------------------------------------------
 
 local LIB_NAME    = "LibZoneTemp"
-local LIB_VERSION = 21
+local LIB_VERSION = 22
 
 -- Guard against loading an older version over a newer one.
 if LibZoneTemp and LibZoneTemp.version >= LIB_VERSION then
@@ -1158,6 +1158,63 @@ local ZONE_BASE_TEMPS = {
     [1556] = 28, -- The Sleepy Sloth
     [1557] = 15, -- Hero's Return
     [1584] = 14, -- Glenumbra
+    -- 2.3.19: zones present in LibZone 9.01 (Sept 2026) but missing here.
+    -- 6 are new since July (Update 51 / Season One: 1533, 1570, 1592,
+    -- 1593, 1609, 1610); the rest were already in LibZone by April 2026
+    -- but never made it into these tables. Values copy the existing entry
+    -- named in each comment, as approved by the author; none are
+    -- independently measured. Dev placeholders (174, 279, 917, 1107, 1171,
+    -- 1175, 1204, 1346) are intentionally omitted.
+    -- The Nowhere Vault (1533, 1583): a realm "suspended between realms".
+    -- Deliberately neutral rather than modeled on any real climate - the
+    -- magic of the Vault protects the player from the elements. Air is 25
+    -- so that, with INTERIOR_MODIFIER (-3) applied, it lands on 22C
+    -- (Frostfall's neutral point, inside RND's 10-25C comfort band). The
+    -- reduced indoor time-of-day swing still moves it about -1.5/+0.9C.
+    -- Both zoneIds share these values; UESP lists ~17 Vault rooms, but
+    -- per-room values would need a map-based lookup, not a zoneId one.
+    [1522] = 30, -- Xor-Hist | basis: Solstice (1502)
+    [1523] = 22, -- A Battle at Sea | basis: Abecean Sea (555) - assumed on the Abecean Sea, per author
+    [1524] = 29, -- Fissure Ruins | basis: Carapace Cavern (1512) - Daedric ruin in a bismuth cave
+    [1526] = 30, -- Mor Naril | basis: Solstice (1502)
+    [1527] = 29, -- Xul-Katama | basis: Carapace Cavern (1512) - delve
+    [1528] = 28, -- Lair of the Black Worm | basis: Tainted Leel (1513) - outdoor Solstice delve
+    [1529] = 29, -- Sea and Sword Lodge | basis: Carapace Cavern (1512) - delve
+    [1530] = 28, -- Calindvale Gardens | basis: Tainted Leel (1513) - public dungeon
+    [1531] = 29, -- Ashbound Hall | basis: Carapace Cavern (1512) - entered through a cave
+    [1532] = 30, -- Xul-Haj | basis: Vakka-Bok Xanmeer (1079) - necropolis
+    [1533] = 25, -- The Nowhere Vault | basis: neutral - see Nowhere Vault note
+    [1536] = 12, -- Dwynnarth Crypts | basis: Bad Man's Hallows (284) - Glenumbra crypt
+    [1537] = 30, -- Gristmung Hold | basis: Solstice (1502)
+    [1538] = 10, -- Shivering Isles | basis: Chateau of the Ravenous Rodent (219)
+    [1551] = 30, -- Naj-Caldeesh | basis: Vakka-Bok Xanmeer (1079) - dungeon
+    [1552] = -4, -- Black Gem Foundry | basis: Vaults of Madness (11) - Coldharbour dungeon
+    [1553] = -8, -- Writhing Fortress | basis: Coldharbour (347)
+    [1559] = 38, -- Night Market | basis: Fargrave (1282)
+    [1560] = 22, -- Hiddenspring Cottage | basis: Gold Coast (823) - house
+    [1561] = 19, -- Wildgrown Chapel of Julianos | basis: West Weald (1443) - house
+    [1562] = 42, -- Gossamer Crypt | basis: Fargrave Outlaws Refuge (1293) - Night Market dungeon
+    [1563] = 42, -- Mournful Catacomb | basis: Fargrave Outlaws Refuge (1293) - Night Market dungeon
+    [1564] = 42, -- Timeless Wallow | basis: Fargrave Outlaws Refuge (1293) - Night Market dungeon
+    [1565] = 38, -- Opulent Ordeal | basis: Fargrave (1282) - Night Market trial
+    [1566] = 30, -- Cradle of the Worm Colossus | basis: Solstice (1502) - house
+    [1567] = 18, -- Druidspring Conservatory | basis: High Isle (1318) - house
+    [1568] = 42, -- Night's Den | basis: Fargrave Outlaws Refuge (1293) - house
+    [1569] = 22, -- Buccaneer Bay | basis: Abecean Sea (555) - island house, per author
+    [1570] = 22, -- Voyage on the Abecean Sea | basis: Abecean Sea (555)
+    [1574] = 14, -- Birien Manor | basis: Glenumbra (3)
+    [1575] = 14, -- Hidden Library | basis: Glenumbra (3)
+    [1577] = 14, -- Rols Boron's Warehouse | basis: Glenumbra (3)
+    [1578] = 14, -- Daggerfall | basis: Glenumbra (3)
+    [1579] = 10, -- Sage's Isle | basis: Glenumbra (3) minus 4C - fog-bound isle far to the north
+    [1583] = 25, -- The Nowhere Vault | basis: neutral - see Nowhere Vault note
+    [1592] = -2, -- March of Sacrifices | basis: March of Sacrifices (1055) - second instance
+    [1593] = 28, -- Moon Hunter Keep | basis: Moon Hunter Keep (1052) - second instance
+    [1594] = 14, -- Rogue's Refuge | basis: Glenumbra (3) - house, exterior entry over a crypt, per author
+    [1595] = 18, -- Dancing Waters Wellspring | basis: Summerset (1011) - house, exterior per author
+    [1597] = -3, -- Star-Gazer's Vigil | basis: The Reach (1207) - house
+    [1609] = 25, -- Sheogorad Chateau | basis: Amaya Lake Lodge (995), per author
+    [1610] = 18, -- Grotto of Desires | basis: Pantherfang Chapel (1277), per author
 }
 
 -- Pending zoneId verification (not found in LibZone's data as of API101050) -- currently inert, falls back to default:
@@ -1243,6 +1300,10 @@ local ZONE_WEATHER = {
     [1443] = { rainChance = 0.25, snowChance = 0.05 }, -- West Weald
     [1502] = { rainChance = 0.45, snowChance = 0.0 }, -- Solstice
     [1584] = { rainChance = 0.35, snowChance = 0.05 }, -- Glenumbra
+    -- 2.3.19: see the matching note in ZONE_BASE_TEMPS.
+    [1559] = { rainChance = 0.0, snowChance = 0.0 }, -- Night Market | basis: Fargrave (1282)
+    [1578] = { rainChance = 0.35, snowChance = 0.05 }, -- Daggerfall | basis: Glenumbra (3)
+    [1592] = { rainChance = 0.2, snowChance = 0.2 }, -- March of Sacrifices | basis: March of Sacrifices (1055)
 }
 
 -- Pending zoneId verification:
@@ -2100,6 +2161,55 @@ local ZONE_WATER_TEMPS = {
     [1556] = 24, -- The Sleepy Sloth
     [1557] = 15, -- Hero's Return
     [1584] = 13, -- Glenumbra
+    -- 2.3.19: zones present in LibZone 9.01 (Sept 2026) but missing here.
+    -- 6 are new since July (Update 51 / Season One: 1533, 1570, 1592,
+    -- 1593, 1609, 1610); the rest were already in LibZone by April 2026
+    -- but never made it into these tables. Values copy the existing entry
+    -- named in each comment, as approved by the author; none are
+    -- independently measured. Dev placeholders (174, 279, 917, 1107, 1171,
+    -- 1175, 1204, 1346) are intentionally omitted.
+    [1522] = 28, -- Xor-Hist | basis: Solstice (1502)
+    [1523] = 22, -- A Battle at Sea | basis: Abecean Sea (555) - assumed on the Abecean Sea, per author
+    [1524] = 26, -- Fissure Ruins | basis: Carapace Cavern (1512) - Daedric ruin in a bismuth cave
+    [1526] = 28, -- Mor Naril | basis: Solstice (1502)
+    [1527] = 26, -- Xul-Katama | basis: Carapace Cavern (1512) - delve
+    [1528] = 26, -- Lair of the Black Worm | basis: Tainted Leel (1513) - outdoor Solstice delve
+    [1529] = 26, -- Sea and Sword Lodge | basis: Carapace Cavern (1512) - delve
+    [1530] = 26, -- Calindvale Gardens | basis: Tainted Leel (1513) - public dungeon
+    [1531] = 26, -- Ashbound Hall | basis: Carapace Cavern (1512) - entered through a cave
+    [1532] = 26, -- Xul-Haj | basis: Vakka-Bok Xanmeer (1079) - necropolis
+    [1533] = 22, -- The Nowhere Vault | basis: neutral - see Nowhere Vault note
+    [1536] = 13, -- Dwynnarth Crypts | basis: Bad Man's Hallows (284) - Glenumbra crypt
+    [1537] = 28, -- Gristmung Hold | basis: Solstice (1502)
+    [1538] = 10, -- Shivering Isles | basis: Chateau of the Ravenous Rodent (219)
+    [1551] = 26, -- Naj-Caldeesh | basis: Vakka-Bok Xanmeer (1079) - dungeon
+    [1552] = -1, -- Black Gem Foundry | basis: Vaults of Madness (11) - Coldharbour dungeon
+    [1553] = -2, -- Writhing Fortress | basis: Coldharbour (347)
+    [1559] = 35, -- Night Market | basis: Fargrave (1282)
+    [1560] = 18, -- Hiddenspring Cottage | basis: Gold Coast (823) - house
+    [1561] = 14, -- Wildgrown Chapel of Julianos | basis: West Weald (1443) - house
+    [1562] = 40, -- Gossamer Crypt | basis: Fargrave Outlaws Refuge (1293) - Night Market dungeon
+    [1563] = 40, -- Mournful Catacomb | basis: Fargrave Outlaws Refuge (1293) - Night Market dungeon
+    [1564] = 40, -- Timeless Wallow | basis: Fargrave Outlaws Refuge (1293) - Night Market dungeon
+    [1565] = 35, -- Opulent Ordeal | basis: Fargrave (1282) - Night Market trial
+    [1566] = 28, -- Cradle of the Worm Colossus | basis: Solstice (1502) - house
+    [1567] = 16, -- Druidspring Conservatory | basis: High Isle (1318) - house
+    [1568] = 40, -- Night's Den | basis: Fargrave Outlaws Refuge (1293) - house
+    [1569] = 22, -- Buccaneer Bay | basis: Abecean Sea (555) - island house, per author
+    [1570] = 22, -- Voyage on the Abecean Sea | basis: Abecean Sea (555)
+    [1574] = 13, -- Birien Manor | basis: Glenumbra (3)
+    [1575] = 13, -- Hidden Library | basis: Glenumbra (3)
+    [1577] = 13, -- Rols Boron's Warehouse | basis: Glenumbra (3)
+    [1578] = 13, -- Daggerfall | basis: Glenumbra (3)
+    [1579] = 10, -- Sage's Isle | basis: Glenumbra (3) minus 4C - fog-bound isle far to the north
+    [1583] = 22, -- The Nowhere Vault | basis: neutral - see Nowhere Vault note
+    [1592] = 4, -- March of Sacrifices | basis: March of Sacrifices (1055) - second instance
+    [1593] = 24, -- Moon Hunter Keep | basis: Moon Hunter Keep (1052) - second instance
+    [1594] = 13, -- Rogue's Refuge | basis: Glenumbra (3) - house, exterior entry over a crypt, per author
+    [1595] = 18, -- Dancing Waters Wellspring | basis: Summerset (1011) - house, exterior per author
+    [1597] = 3, -- Star-Gazer's Vigil | basis: The Reach (1207) - house
+    [1609] = 22, -- Sheogorad Chateau | basis: Amaya Lake Lodge (995), per author
+    [1610] = 16, -- Grotto of Desires | basis: Pantherfang Chapel (1277), per author
 }
 
 -- Pending zoneId verification (not found in LibZone's data as of API101050) -- currently inert, falls back to default:

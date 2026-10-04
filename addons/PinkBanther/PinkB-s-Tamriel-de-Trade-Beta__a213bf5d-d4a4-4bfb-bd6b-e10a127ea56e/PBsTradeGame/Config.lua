@@ -1,7 +1,7 @@
 PBTrade = {}
 PBTrade.Config = {
-    addonId = "PBsTradeGame", title = "PinkB's Tamriel Trade Game",
-    displayTitle = "タムリエル交易戦", version = "0.25.0", scene = "pbTradeGame",
+    addonId = "PBsTradeGame", title = "PB's Tamriel de Trade",
+    displayTitle = "タムリエル交易戦", version = "0.25.2", scene = "pbTradeGame",
     playerId = "player", neutralId = "neutral", schemaVersion = 11,
     savedVariables="PBsTradeGameSavedVariables",
     -- Seconds, not frames. A fixed simulation step keeps 30/60/120fps equivalent.

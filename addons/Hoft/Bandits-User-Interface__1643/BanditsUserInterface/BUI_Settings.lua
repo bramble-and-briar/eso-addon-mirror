@@ -2174,11 +2174,7 @@ function BUI.Menu.Reset(context)
 			for _,frame in pairs(frames) do BUI.Vars[frame]=BUI.Defaults[frame] end
 		end
 		if MoveMode_2 then
-			for frame in pairs(BUI.DefaultFrames) do
-				BUI.Vars[frame]=nil
-				local element=BUI.Menu.GetHUDElement(_G[frame])
-				if element and not IsInGamepadPreferredMode() then element:ResetToDefaultAnchor(true) end
-			end
+			for frame in pairs(BUI.DefaultFrames) do BUI.Vars[frame]=nil end
 		end
 		if MoveMode_1 or MoveMode_2 then
 			SCENE_MANAGER:SetInUIMode(false) BUI.OnScreen.Notification(8,"Reloading UI") BUI.CallLater("ReloadUI",1000,ReloadUI)
@@ -2548,103 +2544,13 @@ function BUI.Menu.ManageWidgets(move)
 end
 
 --Move frames
---Native HUD elements own their saved anchors; BUI only supplies the drag UI.
-function BUI.Menu.GetHUDElement(frame)
-	if not (frame and HUD_MANAGER and HUD_MANAGER.GetKeyboardElementForControl) then return end
-	-- Endless Archive keeps its legacy BUI mover path until its native tracker
-	-- lifecycle is supported independently.
-	if frame==ZO_EndDunHUDTrackerContainer then return end
-	-- U51 registered several elements on a top-level owner while BUI's list
-	-- names their child container.
-	local candidate=frame
-	for _=1,4 do
-		local element=HUD_MANAGER:GetKeyboardElementForControl(candidate)
-		if element then return element end
-		-- Only traverse to a registered tracker owner, not arbitrary containers
-		-- (moving a child must not silently move all resource bars).
-		if not candidate.GetParent then break end
-		candidate=candidate:GetParent()
-		if not candidate then break end
-		if not (candidate.owner and candidate.owner.GetHUDElementOptionKeys) then break end
-	end
-	-- Some HUD elements expose their reference rectangle on the child itself.
-	if HUD_MANAGER.KeyboardElementIterator then
-		for _,element in HUD_MANAGER:KeyboardElementIterator() do
-			local ref=element.GetHUDRefElement and element:GetHUDRefElement()
-			if ref==frame then return element end
-		end
-	end
-end
-
-local function SyncHUDMover(control,frame)
-	local element=BUI.Menu.GetHUDElement(frame)
-	control:SetHidden(IsInGamepadPreferredMode())
-	if IsInGamepadPreferredMode() then return end
-	local ref=element and element:GetHUDRefElement() or frame
-	if not ref then return end
-	if element then
-		-- Keep the drag proxy identical to ESO's HUD editor proxy. Centering it
-		-- independently introduces a fixed edge offset for tracker elements
-		-- whose reference rectangle is a child of the registered control.
-		local primaryAnchorPoint,refOffsetX,refOffsetY,refWidth,refHeight=element:GetConvertedRefControlAnchorInfo()
-		control:SetDimensions(refWidth>0 and refWidth or 100,refHeight>0 and refHeight or 24)
-		control:ClearAnchors()
-		control:SetAnchor(primaryAnchorPoint,nil,nil,refOffsetX,refOffsetY)
-		return
-	end
-	local x,y=ref:GetCenter()
-	local rootX,rootY=GuiRoot:GetCenter()
-	--Inactive prompts/subtitles may have a zero-sized reference rectangle.
-	--Keep their independent mover visible and usable while the prompt is hidden.
-	control:SetDimensions(math.max(100,ref:GetWidth()),math.max(24,ref:GetHeight()))
-	control:ClearAnchors()
-	control:SetAnchor(CENTER,GuiRoot,CENTER,x-rootX,y-rootY)
-end
-
-function BUI.Menu.SaveHUDMover(control,frame)
-	local element=BUI.Menu.GetHUDElement(frame)
-	if not element or IsInGamepadPreferredMode() then return end
-	local ref=element.GetHUDRefElement and element:GetHUDRefElement() or frame
-	if not ref then return end
-	if frame==ZO_PlayerAttributeHealth or frame==ZO_PlayerAttributeMagicka or frame==ZO_PlayerAttributeStamina then
-		local combined=HUD_MANAGER:GetKeyboardElementForControl(ZO_PlayerAttribute)
-		if combined then combined:SetCustomOptionValue("Combine",nil,false) end
-	end
-	-- The registered tracker control and its HUDElementRef are different
-	-- rectangles. Preserve the reference rectangle's current native offset and
-	-- apply only the drag delta; passing the proxy's absolute offset would make
-	-- the internal control/ref offset get applied a second time.
-	local _,offsetX,offsetY=element:GetConvertedRefControlAnchorInfo()
-	local refX,refY=ref:GetCenter()
-	local x,y=control:GetCenter()
-	element:ApplyOffset(offsetX+x-refX,offsetY+y-refY,true)
-	SyncHUDMover(control,frame)
-end
-
-function BUI.Menu.SaveLegacyMover(control,frame,name)
-	local x,y=control:GetCenter()
-	local rootX,rootY=GuiRoot:GetCenter()
-	-- Read the actual screen rectangle; GetAnchor offsets can be relative to
-	-- the moved frame or BUI_Move rather than GuiRoot.
-	BUI.Vars[name]={CENTER,CENTER,x-rootX,y-rootY}
-	frame:ClearAnchors()
-	frame:SetAnchor(CENTER,GuiRoot,CENTER,x-rootX,y-rootY)
-	SyncHUDMover(control,frame)
-end
-
 local function MoveDefaultFrames(move)
 	if BUI.init.DefaultFrames then
 		BUI_Move:SetHidden(not move)
-		if move then
-			for name in pairs(BUI.DefaultFrames) do
-				local mover=_G[name.."_BUI_BG"]
-				if mover and name~="ZO_EndDunHUDTrackerContainer" then SyncHUDMover(mover,_G[name]) end
-			end
-		end
 	elseif move then
 		BUI.UI.TopLevelWindow("BUI_Move",GuiRoot,{GuiRoot:GetWidth(),GuiRoot:GetHeight()},{CENTER,CENTER,0,0},false)
 		for name,desc in pairs(BUI.DefaultFrames) do
-			local frame=_G[name]			
+			local frame=_G[name]
 			local lX,lY,anchorPoint=0,0,CENTER
 			if frame and not (name=="ZO_LootHistoryControl_Keyboard" and BUI.GamepadMode) and not (name=="ZO_LootHistoryControl_Gamepad" and not BUI.GamepadMode) then
 			if name=="ZO_LootHistoryControl_Keyboard" then
@@ -2674,18 +2580,19 @@ local function MoveDefaultFrames(move)
 			BUI.UI.Label(name.."_BUI_Label",	bg,	{string.len(desc)*14,14},	{CENTER,CENTER,0,0},	BUI.UI.Font("trajan",14,true), nil, {1,1}, desc, false)
 			BUI.UI.Line(name.."_Line_hor",	bg,	{w+200,0},	{TOPLEFT,LEFT,-100,0},	{.8,.8,.8,.4},1.8, false)
 			BUI.UI.Line(name.."_Line_vert",	bg,	{0,h+200},	{TOPLEFT,TOP,0,-100},	{.8,.8,.8,.4},1.8, false)
+			
+			--RESET THE CENTER POINT FOR MOVING
+			local x,y=frame:GetCenter()
+			local rootX,rootY=GuiRoot:GetCenter()
+			bg:SetDimensions(math.max(100,frame:GetWidth()),math.max(24,frame:GetHeight()))
+			bg:ClearAnchors()
+			bg:SetAnchor(CENTER,GuiRoot,CENTER,x-rootX,y-rootY)	
+			
 			bg:SetMovable(true)
 			bg:SetMouseEnabled(true)
-			if name~="ZO_EndDunHUDTrackerContainer" then SyncHUDMover(bg,frame) end
 			bg:SetHandler("OnMouseUp", function(self)
-					if frame==ZO_EndDunHUDTrackerContainer then
-						BUI.Menu:SaveAnchor(self,nil,name,anchorPoint)
-						BUI.Frames.ZO_Frame_reposition()
-					elseif BUI.Menu.GetHUDElement(frame) then
-						BUI.Menu.SaveHUDMover(self,frame)
-					else
-						BUI.Menu.SaveLegacyMover(self,frame,name)
-					end
+				BUI.Menu:SaveAnchor(self,nil,name,anchorPoint)
+				BUI.Frames.ZO_Frame_reposition()
 				end)
 			end
 		end
@@ -2803,7 +2710,7 @@ function BUI.Menu:SaveAnchor(control,anchor,name,anchorPoint,widget_side,widget_
 	local w,h=control:GetWidth(),control:GetHeight()
 	anchorPoint=anchorPoint or CENTER
 	if anchor and anchor~=BanditsUI then
-		local _, point, _, _, offsetX, offsetY=anchor:GetAnchor()		
+		local _, point, _, _, offsetX, offsetY=anchor:GetAnchor()
 		offsetX=point==128 and offsetX or((point==3 or point==6) and offsetX-GuiRoot:GetWidth()/2+w/2 or GuiRoot:GetWidth()/2+offsetX-w/2)
 --		offsetY=point==128 and offsetY or((point==3 or point==9) and offsetY-GuiRoot:GetHeight()/2+h/2 or GuiRoot:GetHeight()/2+offsetY-h/2)
 		anchorX=math.floor(offsetX*10)/10 --offsetY=math.floor(offsetY*10)/10
@@ -2811,22 +2718,18 @@ function BUI.Menu:SaveAnchor(control,anchor,name,anchorPoint,widget_side,widget_
 	--Get the new position
 	local isValidAnchor, point, relativeTo, relativePoint, offsetX, offsetY=control:GetAnchor()
 	if not isValidAnchor then return end
-	
 	--Save the anchors
 	offsetX=math.floor(offsetX*10)/10 offsetY=math.floor(offsetY*10)/10
 	frame=control:GetName() if BUI.Vars.FrameHorisontal and frame=="BUI_PlayerFrame" then frame="BUI_HPlayerFrame" end
-	name=name or frame		
-	if frame=="BUI_RaidFrame" then		
-		if relativeTo==BanditsUI then
-			BUI.Vars[frame]={TOPLEFT,CENTER,offsetX,offsetY}
-		end
-		--offsetX=point==128 and offsetX or((point==3 or point==6) and offsetX-GuiRoot:GetWidth()/2 or GuiRoot:GetWidth()/2+offsetX-w)
-		--offsetY=point==128 and offsetY or((point==3 or point==9) and offsetY-GuiRoot:GetHeight()/2 or GuiRoot:GetHeight()/2+offsetY-h)
-		--offsetX=math.floor(offsetX*10)/10 offsetY=math.floor(offsetY*10)/10
-		--BUI.Vars[frame]={TOPLEFT,CENTER,offsetX,offsetY}
-	else		
-		--local anchor_name={[BOTTOM]="BOTTOM",[BOTTOMLEFT]="BOTTOMLEFT",[BOTTOMRIGHT]="BOTTOMRIGHT",[CENTER]="CENTER",[LEFT]="LEFT",[NONE]="NONE",[RIGHT]="RIGHT",[TOP]="TOP",[TOPLEFT]="TOPLEFT",[TOPRIGHT]="TOPRIGHT"}
-		--d(frame..": "..anchor_name[point]..", "..anchor_name[relativePoint]..", "..offsetX.. ", "..offsetY)
+	name=name or frame
+	if frame=="BUI_RaidFrame" then
+		offsetX=point==128 and offsetX or((point==3 or point==6) and offsetX-GuiRoot:GetWidth()/2 or GuiRoot:GetWidth()/2+offsetX-w)
+		offsetY=point==128 and offsetY or((point==3 or point==9) and offsetY-GuiRoot:GetHeight()/2 or GuiRoot:GetHeight()/2+offsetY-h)
+		offsetX=math.floor(offsetX*10)/10 offsetY=math.floor(offsetY*10)/10
+		BUI.Vars[frame]={TOPLEFT,CENTER,offsetX,offsetY}
+	else
+--		local anchor_name={[BOTTOM]="BOTTOM",[BOTTOMLEFT]="BOTTOMLEFT",[BOTTOMRIGHT]="BOTTOMRIGHT",[CENTER]="CENTER",[LEFT]="LEFT",[NONE]="NONE",[RIGHT]="RIGHT",[TOP]="TOP",[TOPLEFT]="TOPLEFT",[TOPRIGHT]="TOPRIGHT"}
+--		d(frame..": "..anchor_name[point]..", "..anchor_name[relativePoint]..", "..offsetX.. ", "..offsetY)
 		offsetX=point==128 and offsetX or((point==3 or point==6) and offsetX-GuiRoot:GetWidth()/2+w/2 or GuiRoot:GetWidth()/2+offsetX-w/2)
 		offsetY=point==128 and offsetY or((point==3 or point==9) and offsetY-GuiRoot:GetHeight()/2+h/2 or GuiRoot:GetHeight()/2+offsetY-h/2)
 		offsetX=math.floor(offsetX*10)/10 offsetY=math.floor(offsetY*10)/10
@@ -2837,6 +2740,6 @@ function BUI.Menu:SaveAnchor(control,anchor,name,anchorPoint,widget_side,widget_
 		elseif anchorPoint==TOP or anchorPoint==TOPRIGHT or anchorPoint==TOPLEFT then offsetY=offsetY-h/2
 		end
 		BUI.Vars[name]={[1]=anchorPoint,[2]=CENTER,[3]=(anchor and anchorX or offsetX),[4]=offsetY,[6]=widget_side,[7]=widget_cd,[8]=widget_progress,[9]=multi_target,[10]=self_effects,[11]=combine,[12]=allwaysshow,[13]=sound}
-		--d("New: "..anchor_name[anchorPoint]..", "..anchor_name[CENTER]..", "..(anchor and anchorX or offsetX)..", "..offsetY)
+--		d("New: "..anchor_name[anchorPoint]..", "..anchor_name[CENTER]..", "..(anchor and anchorX or offsetX)..", "..offsetY)
 	end
 end

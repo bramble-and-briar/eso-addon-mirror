@@ -1,8 +1,8 @@
-## Title: PinkB's Tamriel Trade Game
-## Author: PinkBanther
+## Title: |cFF69B4PB's Tamriel de Trade|r 0.25.2
+## Author: |cFF69B4PinkBanther|r
 ## Description: タムリエル交易戦 — campaign trade and acquisition game. Phase 5.
-## Version: 0.25.0
-## AddOnVersion: 2500
+## Version: 0.25.2
+## AddOnVersion: 2502
 ## SavedVariables: PBsTradeGameSavedVariables
 ## APIVersion: 101050 101051
 

@@ -1,9 +1,9 @@
 ## Title: LibZoneTemp
 ## Description: A library that calculates ambient temperatures for ESO zones based on lore climate data, time of day (via LibClockTST), and weather conditions. AI-ASSISTED, written with Claude.ai, reviewed and tested in-game by the author — see README.
 ## Author: @Kreksar5 and Claude.ai
-## Version: 2.3.18
-## AddOnVersion: 22
-## APIVersion: 101050 101051
+## Version: 2.3.19
+## AddOnVersion: 23
+## APIVersion: 101051 101052
 ## IsLibrary: true
 ## SavedVariables: LibZoneTempSavedVars
 ## DependsOn: LibZone>=077 LibAddonMenu-2.0>=43 LibClockTST>=1

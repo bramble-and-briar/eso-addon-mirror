@@ -2,6 +2,7 @@ if FCOCS == nil then FCOCS = {} end
 local FCOChangeStuff = FCOCS
 
 local EM = EVENT_MANAGER
+local strlow = string.lower
 
 ------------------------------------------------------------------------------------------------------------------------
 -- Sounds --
@@ -14,6 +15,25 @@ local sfxSoundMuted = false
 local soundVolumesBefore = {}
 
 FCOChangeStuff.LSB = LibShifterBox
+
+local function searchKeyAndValue(shifterBox, entry, searchStr)
+    --Search for key OR value: entry.value entry.key
+    local found = false
+    local searchTermLower = strlow(searchStr)
+    if entry.name then
+        found = entry.name:find(searchStr) ~= nil
+        if not found then
+            found = strlow(entry.name):find(searchTermLower) ~= nil
+        end
+    end
+    if not found and entry.value then
+        found = entry.value:find(searchStr) ~= nil
+        if not found then
+            found = strlow(entry.value):find(searchTermLower) ~= nil
+        end
+    end
+    return found
+end
 
 ---Disable sunds LibShifterBox settings and style
 local disableSoundsLibShifterBoxCustomSettings = {
@@ -96,7 +116,7 @@ local disableSoundsLibShifterBoxCustomSettings = {
     },
     search = {
             enabled = true,
-            --searchFunc = function(shifterBox, entry, searchStr) return findMe(entry, searchStr)  end
+            searchFunc = searchKeyAndValue
     },
 }
 local disableSoundsLibShifterBoxStyle = {

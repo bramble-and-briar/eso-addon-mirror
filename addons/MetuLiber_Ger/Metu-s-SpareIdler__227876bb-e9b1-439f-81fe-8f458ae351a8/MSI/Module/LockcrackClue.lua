@@ -206,7 +206,7 @@ end
 
 local function LockcrackClue_OnLockpickBroke(...)
     MSI.IsLockcrackActive = true
-    MSI.Print("d", GetString(MSI_MOD_UNBOLT_LOCKPICK_BROKE))
+    MSI.Print("c", GetString(MSI_MOD_UNBOLT_LOCKPICK_BROKE))
 
 	LockcrackClue_UpdateLockcracksLeftText(lockPicksLeftCtrl)
 end

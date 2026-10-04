@@ -41,9 +41,8 @@ local TICK_NAME = "PBsCyrodiilAlertMapTick"
 local TICK_MS = 200
 
 -- What appears on it. Keeps, outposts, towns, scroll temples and the border keeps -- the
--- holdings the campaign is fought over, and the three home gates for bearings. Resources are
--- left off: at this scale there are three of them crowded against every keep, and they would
--- turn each keep into a smudge.
+-- holdings the campaign is fought over, and the three home gates for bearings -- and, on their
+-- own switch, the farms, mines and lumbermills around each keep.
 local SHOWN_TYPE = {}
 local function DeclareShownType(keepType)
 	if keepType ~= nil then
@@ -55,6 +54,16 @@ DeclareShownType(KEEPTYPE_OUTPOST)
 DeclareShownType(KEEPTYPE_TOWN)
 DeclareShownType(KEEPTYPE_ARTIFACT_KEEP)
 DeclareShownType(KEEPTYPE_BORDER_KEEP)
+
+-- Resources are drawn at the world map's own proportion to a keep (KEEP_RESOURCE_PIN_SIZE 27
+-- against KEEP_PIN_SIZE 53, mappin.lua), and UNDER the keeps rather than over them as the
+-- world map has it: at this scale the three of them sit almost on top of their keep, and on
+-- top they would hide it.
+local RESOURCE_SCALE = 27 / 53
+
+local function IsResource(keepType)
+	return KEEPTYPE_RESOURCE ~= nil and keepType == KEEPTYPE_RESOURCE
+end
 
 -- Carried things that matter to the whole campaign: the scrolls and the Daedric artifact. The
 -- same three the world map itself shows in AvA (worldmap.lua, IS_OBJECTIVE_TYPE_SHOWN_IN_AVA).
@@ -68,7 +77,28 @@ DeclareShownObjective(OBJECTIVE_ARTIFACT_OFFENSIVE)
 DeclareShownObjective(OBJECTIVE_ARTIFACT_DEFENSIVE)
 DeclareShownObjective(OBJECTIVE_DAEDRIC_WEAPON)
 
+-- The transitus network, drawn the way the world map draws it when you are not standing at a
+-- shrine (worldmap.lua:520-580): each link in its owner's colour, faint when nobody owns it,
+-- and dashed while it is cut by fighting. Same two textures.
+local LINK_TEXTURE = "EsoUI/Art/AvA/AvA_transitLine.dds"
+local LINK_TEXTURE_IN_COMBAT = "EsoUI/Art/AvA/AvA_transitLine_dashed.dds"
+local LINK_ALPHA_OWNED, LINK_ALPHA_UNOWNED = 0.8, 0.2
+
+-- At a shrine the world map colours your own alliance's links by whether you can travel them:
+-- green when the link is active, a faint white when it is not (ZO_KeepNetwork.LINK_READY_COLOR
+-- and LINK_NOT_READY_COLOR, worldmap.lua). Every other link keeps its owner's colour. The
+-- overview map can do the same all the time, which is the point of having it on the HUD: the
+-- routes you could take are visible before you reach a shrine.
+local LINK_READY = { 0, 1, 0, 0.4 }
+local LINK_NOT_READY = { 1, 1, 1, 0.2 }
+
 local PLAYER_TEXTURE = "EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds"
+
+-- The group's pins. The world map picks these through a file-local table (mappin.lua:2408), so
+-- they are written out here; the leader gets the compass's leader crown, everyone else the
+-- map's group pip.
+local GROUP_TEXTURE = "EsoUI/Art/MapPins/UI-WorldMapGroupPip.dds"
+local GROUP_LEADER_TEXTURE = "EsoUI/Art/Compass/groupLeader.dds"
 local ATTACK_TEXTURE = "EsoUI/Art/MapPins/AvA_attackBurst_64.dds"
 
 -- The game's own pin art, read out of its pin table. Only a plain string is used: some entries
@@ -109,6 +139,17 @@ end
 
 function map:PinSize()
 	return Clamp(Settings().pinSize, addon.MIN_MAP_PIN, addon.MAX_MAP_PIN) or addon.DEFAULTS.map.pinSize
+end
+
+-- The player's arrow has its own size. It used to be drawn at the pin size, as big as a keep,
+-- which is far bigger than the world map has it (PLAYER_PIN_SIZE 16 against KEEP_PIN_SIZE 53,
+-- mappin.lua) and covered the keep you were standing at.
+function map:PlayerSize()
+	return Clamp(Settings().playerSize, addon.MIN_MAP_PLAYER, addon.MAX_MAP_PLAYER) or addon.DEFAULTS.map.playerSize
+end
+
+function map:GroupSize()
+	return Clamp(Settings().groupSize, addon.MIN_MAP_PLAYER, addon.MAX_MAP_PLAYER) or addon.DEFAULTS.map.groupSize
 end
 
 function map:Opacity()
@@ -216,6 +257,68 @@ function map:ShouldShow()
 	return not addon:InImperialCityCampaign()
 end
 
+-- ---------------------------------------------------------------------------------------
+-- When the map may ask the client anything about the current map
+--
+-- GetKeepPinInfo, GetObjectivePinInfo, GetKeepTravelNetworkLinkInfo and GetMapPlayerPosition
+-- all answer in terms of whatever map the world map has set. On a console, whatever the client
+-- allocates while an add-on's function is on the stack is billed to the 100MB pool every
+-- add-on shares -- and with the world map zoomed out to all of Tamriel, a single frame of that
+-- is enough to fill it (PB's MiniMap measured exactly this; it stands down for the same
+-- reason). Opening a shrine or the map and pulling back to Tamriel with the overview map up
+-- took the add-ons down.
+--
+-- So none of those four is called unless all three hold:
+--
+--   * the HUD is what is showing -- not the map, not a shrine, not a menu -- asked directly,
+--     not inferred from whether our window happens to be hidden yet;
+--   * it has been showing for a few ticks, so the client has had time to put the world map
+--     back on the player before we look at it;
+--   * the current map is Cyrodiil or a map inside it. Tamriel, or any other zone, is never
+--     read from at all.
+--
+-- When they do not hold, the map keeps what it last drew. A keep does not move, so that costs
+-- nothing; the attack bursts go on updating, because GetKeepUnderAttack does not depend on any
+-- map. The player's arrow is hidden rather than left somewhere it no longer is.
+-- ---------------------------------------------------------------------------------------
+
+local HUD_SETTLE_TICKS = 3
+map.hudSteady = 0
+map.insideCache = {}
+
+-- Whether a map lies within Cyrodiil, from its place in the shared space. Asked at most once
+-- per map id, and only from inside the gate's first two conditions.
+function map:IsInsideCyrodiil(mapId)
+	if not mapId or mapId == 0 then
+		return false
+	end
+	local cyrodiil = self:CyrodiilMapId()
+	if mapId == cyrodiil then
+		return true
+	end
+	local known = self.insideCache[mapId]
+	if known ~= nil then
+		return known
+	end
+	local x, y, width, height = Universal(mapId)
+	local cx, cy, cWidth, cHeight = Universal(cyrodiil)
+	local slack = 1e-6
+	local inside = (x and cx and x >= cx - slack and y >= cy - slack
+		and x + width <= cx + cWidth + slack and y + height <= cy + cHeight + slack) and true or false
+	self.insideCache[mapId] = inside
+	return inside
+end
+
+function map:MapReadsAllowed()
+	if not self:IsHudShowing() then
+		return false
+	end
+	if (self.hudSteady or 0) < HUD_SETTLE_TICKS then
+		return false
+	end
+	return self:IsInsideCyrodiil(GetCurrentMapId and GetCurrentMapId() or nil)
+end
+
 -- Only over the game, never over a menu. The scene is read, not touched: nothing is added to
 -- or taken from the client's scenes, so nothing here can leave one of them in a state it did
 -- not expect.
@@ -236,6 +339,9 @@ end
 -- ---------------------------------------------------------------------------------------
 
 map.keepPins = {}
+map.groupPins = {}
+map.links = {}
+map.linkPositions = {}
 map.objectivePins = {}
 map.keepPositions = {}
 
@@ -317,11 +423,22 @@ function map:Apply()
 			((index - 1) % self.across) * tileWidth, math.floor((index - 1) / self.across) * tileHeight)
 	end
 
+	for _, link in pairs(self.links) do
+		if link.SetThickness then
+			link:SetThickness(self:LinkThickness())
+		end
+	end
+
 	local pin = self:PinSize()
-	self.player:SetDimensions(pin, pin)
+	local playerSize = self:PlayerSize()
+	self.player:SetDimensions(playerSize, playerSize)
+	local groupSize = self:GroupSize()
+	for _, member in ipairs(self.groupPins) do
+		member:SetDimensions(groupSize, groupSize)
+	end
 	for _, keep in pairs(self.keepPins) do
-		keep.icon:SetDimensions(pin, pin)
-		keep.burst:SetDimensions(pin * 1.6, pin * 1.6)
+		keep.icon:SetDimensions(pin * keep.scale, pin * keep.scale)
+		keep.burst:SetDimensions(pin * keep.scale * 1.6, pin * keep.scale * 1.6)
 	end
 	for _, objective in pairs(self.objectivePins) do
 		objective:SetDimensions(pin, pin)
@@ -351,20 +468,23 @@ end
 -- The pins
 -- ---------------------------------------------------------------------------------------
 
-function map:KeepPin(keepId)
+function map:KeepPin(keepId, keepType)
 	local keep = self.keepPins[keepId]
 	if keep then
 		return keep
 	end
+	local resource = IsResource(keepType)
 	local name = WINDOW_NAME .. "Keep" .. tostring(keepId)
 	-- The burst sits under the keep, as the world map draws it (attack pins at level 30, keeps
 	-- at 50, mappin.lua).
 	keep = {
 		burst = NewTexture(name .. "Attack", self.window, 3),
-		icon = NewTexture(name, self.window, 5),
+		-- Resources one level under the keeps, so a keep is never hidden by its own farm.
+		icon = NewTexture(name, self.window, resource and 4 or 5),
+		scale = resource and RESOURCE_SCALE or 1,
 	}
 	keep.burst:SetTexture(PinTexture(MAP_PIN_TYPE_KEEP_ATTACKED_LARGE, ATTACK_TEXTURE))
-	local pin = self:PinSize()
+	local pin = self:PinSize() * keep.scale
 	keep.icon:SetDimensions(pin, pin)
 	keep.burst:SetDimensions(pin * 1.6, pin * 1.6)
 	self.keepPins[keepId] = keep
@@ -379,10 +499,18 @@ function map:RefreshKeeps()
 	if not (GetNumKeeps and GetKeepKeysByIndex and GetKeepPinInfo and GetKeepType) then
 		return
 	end
+	if not self:MapReadsAllowed() then
+		-- Nothing that depends on the current map. The bursts do not, so they stay live.
+		self:RefreshBursts()
+		return
+	end
 	local seen = {}
+	local resources = Settings().resources ~= false
 	for index = 1, (GetNumKeeps() or 0) do
 		local keepId, bgContext = GetKeepKeysByIndex(index)
-		if keepId and addon.IsThisCampaign(bgContext) and SHOWN_TYPE[GetKeepType(keepId)] then
+		local keepType = keepId and GetKeepType(keepId)
+		if keepId and addon.IsThisCampaign(bgContext)
+			and (SHOWN_TYPE[keepType] or (resources and IsResource(keepType))) then
 			local pinType, x, y = GetKeepPinInfo(keepId, bgContext)
 			if pinType and pinType ~= MAP_PIN_TYPE_INVALID then
 				local cx, cy = self:ToCyrodiil(x, y)
@@ -395,7 +523,7 @@ function map:RefreshKeeps()
 				local position = self.keepPositions[keepId]
 				if position then
 					seen[keepId] = true
-					local keep = self:KeepPin(keepId)
+					local keep = self:KeepPin(keepId, keepType)
 					-- No usable art for this pin type: no icon, rather than some other icon
 					-- standing in for it. An attack burst still shows if it is under attack.
 					local texture = PinTexture(pinType, nil)
@@ -418,6 +546,108 @@ function map:RefreshKeeps()
 		end
 	end
 	self:RefreshObjectives()
+	self:RefreshLinks()
+end
+
+-- ---------------------------------------------------------------------------------------
+-- The transitus network
+-- ---------------------------------------------------------------------------------------
+
+-- The world map draws its links 8 thick on a map thousands of units across; at a few hundred
+-- that would be a ribbon. Scaled to the map instead, with a floor so a small map keeps a line.
+function map:LinkThickness()
+	return math.max(1.5, self:Size() * 0.008)
+end
+
+local function HexToRgb(hex)
+	hex = hex or "FFFFFF"
+	return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
+end
+
+function map:LinkControl(index)
+	local link = self.links[index]
+	if link then
+		return link
+	end
+	-- A Line control, as the world map's ZO_MapKeepLink is (worldmap.xml:19). Under the keeps,
+	-- over the tiles.
+	link = WINDOW_MANAGER:CreateControl(WINDOW_NAME .. "Link" .. index, self.window, CT_LINE)
+	link:SetMouseEnabled(false)
+	if link.SetDrawLevel then
+		link:SetDrawLevel(2)
+	end
+	if link.SetThickness then
+		link:SetThickness(self:LinkThickness())
+	end
+	self.links[index] = link
+	return link
+end
+
+function map:RefreshLinks()
+	local shown = Settings().links ~= false
+	if not (shown and CT_LINE and GetNumKeepTravelNetworkLinks and GetKeepTravelNetworkLinkInfo) then
+		for _, link in pairs(self.links) do
+			link:SetHidden(true)
+		end
+		return
+	end
+
+	-- The campaign in front of us: the same bgContext the keep watch uses.
+	local bgContext = BGQUERY_LOCAL
+	local count = GetNumKeepTravelNetworkLinks(bgContext) or 0
+	local highlight = Settings().linksReady ~= false
+	local playerAlliance = GetUnitAlliance and GetUnitAlliance("player")
+	local size = self:Size()
+	for index = 1, count do
+		local linkType, owner, _, startX, startY, endX, endY = GetKeepTravelNetworkLinkInfo(index, bgContext)
+		local ax, ay = self:ToCyrodiil(startX, startY)
+		local bx, by = self:ToCyrodiil(endX, endY)
+		-- Links do not move either: a position that converts is kept, and one that does not
+		-- leaves the last good one standing.
+		if OnMap(ax, ay) and OnMap(bx, by) then
+			self.linkPositions[index] = { ax = ax, ay = ay, bx = bx, by = by }
+		end
+		local position = self.linkPositions[index]
+		local link = self:LinkControl(index)
+		if position then
+			-- A line is laid from its TOPLEFT anchor to its BOTTOMRIGHT one, whichever way that
+			-- runs -- the world map's own ZO_Anchor_LineInContainer, written out here rather
+			-- than called.
+			link:ClearAnchors()
+			link:SetAnchor(TOPLEFT, self.window, TOPLEFT, position.ax * size, position.ay * size)
+			link:SetAnchor(BOTTOMRIGHT, self.window, TOPLEFT, position.bx * size, position.by * size)
+			local inCombat = FAST_TRAVEL_LINK_IN_COMBAT ~= nil and linkType == FAST_TRAVEL_LINK_IN_COMBAT
+			link:SetTexture(inCombat and LINK_TEXTURE_IN_COMBAT or LINK_TEXTURE)
+			if highlight and owner == playerAlliance and owner ~= ALLIANCE_NONE then
+				local ready = FAST_TRAVEL_LINK_ACTIVE ~= nil and linkType == FAST_TRAVEL_LINK_ACTIVE
+				local colour = ready and LINK_READY or LINK_NOT_READY
+				link:SetColor(colour[1], colour[2], colour[3], colour[4])
+			else
+				local r, g, b = HexToRgb(addon.AllianceHex(owner))
+				local owned = owner ~= nil and owner ~= ALLIANCE_NONE
+				link:SetColor(r, g, b, owned and LINK_ALPHA_OWNED or LINK_ALPHA_UNOWNED)
+			end
+			link:SetHidden(false)
+		else
+			link:SetHidden(true)
+		end
+	end
+	for index = count + 1, #self.links do
+		self.links[index]:SetHidden(true)
+	end
+end
+
+function map:RefreshBursts()
+	if not (GetKeepUnderAttack and GetNumKeeps and GetKeepKeysByIndex) then
+		return
+	end
+	for index = 1, (GetNumKeeps() or 0) do
+		local keepId, bgContext = GetKeepKeysByIndex(index)
+		local keep = keepId and addon.IsThisCampaign(bgContext) and self.keepPins[keepId]
+		if keep and not keep.icon:IsHidden() then
+			keep.burst:SetHidden(not GetKeepUnderAttack(keepId, bgContext))
+		end
+	end
 end
 
 function map:RefreshObjectives()
@@ -430,10 +660,15 @@ function map:RefreshObjectives()
 	local count = 0
 	for index = 1, (GetNumObjectives() or 0) do
 		local keepId, objectiveId, bgContext = GetObjectiveIdsForIndex(index)
+		-- The client's own three tests, in its order (mappin_manager.lua:677-706): the objective
+		-- is enabled, the object is there to see, and the pin type is a real one. Every spawn
+		-- point of the artifact is an objective with a valid-looking pin, so leaving any of these
+		-- out draws two dozen hammers where there is one, or none.
 		if keepId and addon.IsThisCampaign(bgContext)
-			and SHOWN_OBJECTIVE[GetObjectiveType(keepId, objectiveId, bgContext)] then
+			and SHOWN_OBJECTIVE[GetObjectiveType(keepId, objectiveId, bgContext)]
+			and addon.IsObjectiveObjectShown(keepId, objectiveId, bgContext) then
 			local pinType, x, y = GetObjectivePinInfo(keepId, objectiveId, bgContext)
-			local texture = PinTexture(pinType, nil)
+			local texture = pinType ~= MAP_PIN_TYPE_INVALID and PinTexture(pinType, nil) or nil
 			local cx, cy = self:ToCyrodiil(x, y)
 			if texture and OnMap(cx, cy) then
 				count = count + 1
@@ -456,6 +691,11 @@ function map:RefreshPlayer()
 	if not (self.player and GetMapPlayerPosition) then
 		return
 	end
+	-- Switched off: hidden, and nothing asked of the client to place it.
+	if Settings().player == false or not self:MapReadsAllowed() then
+		self.player:SetHidden(true)
+		return
+	end
 	local x, y = GetMapPlayerPosition("player")
 	local cx, cy = self:ToCyrodiil(x, y)
 	if not OnMap(cx, cy) then
@@ -467,6 +707,45 @@ function map:RefreshPlayer()
 		self.player:SetTextureRotation(GetPlayerCameraHeading())
 	end
 	self.player:SetHidden(false)
+end
+
+-- The rest of the group, by the same tests the world map makes before it pins a member
+-- (mappin_manager.lua:737): the unit exists, is not us, is online, and GetMapPlayerPosition
+-- says it is on the current map. Behind the same gate as everything else that reads the
+-- current map, and only while there is a group at all.
+function map:RefreshGroup()
+	local shown = Settings().group ~= false
+	local size = (shown and GetGroupSize and GetGroupUnitTagByIndex) and (GetGroupSize() or 0) or 0
+	local count = 0
+	if size > 0 and self:MapReadsAllowed() then
+		for index = 1, size do
+			local tag = GetGroupUnitTagByIndex(index)
+			if tag and (not DoesUnitExist or DoesUnitExist(tag))
+				and not (AreUnitsEqual and AreUnitsEqual("player", tag))
+				and (not IsUnitOnline or IsUnitOnline(tag)) then
+				local x, y, _, isInCurrentMap = GetMapPlayerPosition(tag)
+				local cx, cy = self:ToCyrodiil(x, y)
+				if isInCurrentMap ~= false and OnMap(cx, cy) then
+					count = count + 1
+					local pin = self.groupPins[count]
+					if not pin then
+						-- Under our own arrow, over everything else.
+						pin = NewTexture(WINDOW_NAME .. "Group" .. count, self.window, 8)
+						local groupSize = self:GroupSize()
+						pin:SetDimensions(groupSize, groupSize)
+						self.groupPins[count] = pin
+					end
+					local leader = IsUnitGroupLeader and IsUnitGroupLeader(tag)
+					pin:SetTexture(leader and GROUP_LEADER_TEXTURE or GROUP_TEXTURE)
+					Place(pin, self.window, self:Size(), cx, cy)
+					pin:SetHidden(false)
+				end
+			end
+		end
+	end
+	for index = count + 1, #self.groupPins do
+		self.groupPins[index]:SetHidden(true)
+	end
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -497,18 +776,28 @@ function map:Tick()
 	if not self.window then
 		return
 	end
-	local wasHidden = self.window:IsHidden()
 	local show = self:IsHudShowing()
 	self.window:SetHidden(not show)
-	if show then
-		if wasHidden then
-			self:RefreshKeeps()
-		end
-		self:RefreshPlayer()
+	if not show then
+		-- Away from the HUD the count starts again: coming back has to settle first.
+		self.hudSteady = 0
+		return
 	end
+	self.hudSteady = (self.hudSteady or 0) + 1
+	-- The first tick the gate opens on gets a full refresh; after that the keeps follow the
+	-- watch's own pass, and only the arrow is moved here.
+	if self.hudSteady == HUD_SETTLE_TICKS then
+		self:RefreshKeeps()
+	end
+	self:RefreshPlayer()
+	self:RefreshGroup()
 end
 
-function map:Refresh()
+function map:Refresh(zoned)
+	if zoned then
+		-- A new zone is a new map under the world map; nothing is read until it has settled.
+		self.hudSteady = 0
+	end
 	if not self:ShouldShow() then
 		self:StopTick()
 		if self.window then
@@ -523,6 +812,7 @@ function map:Refresh()
 	self.window:SetHidden(not self:IsHudShowing())
 	self:RefreshKeeps()
 	self:RefreshPlayer()
+	self:RefreshGroup()
 	self:StartTick()
 end
 
@@ -538,7 +828,7 @@ function map:Probe()
 	lines[#lines + 1] = string.format("universal cyrodiil=%s current=%s",
 		table.concat({ tostring(select(1, Universal(cyrodiil))), tostring(select(3, Universal(cyrodiil))) }, "/"),
 		table.concat({ tostring(select(1, Universal(current))), tostring(select(3, Universal(current))) }, "/"))
-	if GetMapPlayerPosition then
+	if GetMapPlayerPosition and self:MapReadsAllowed() then
 		local x, y = GetMapPlayerPosition("player")
 		local cx, cy = self:ToCyrodiil(x, y)
 		lines[#lines + 1] = string.format("player: current=%.3f,%.3f cyrodiil=%s,%s",
@@ -549,5 +839,13 @@ function map:Probe()
 		known = known + 1
 	end
 	lines[#lines + 1] = string.format("keeps placed: %d", known)
+	lines[#lines + 1] = string.format("map reads allowed: %s (hud steady %d, current inside Cyrodiil %s)",
+		tostring(self:MapReadsAllowed()), self.hudSteady or 0,
+		tostring(self:IsInsideCyrodiil(current)))
+	-- The console's shared add-on memory pool: the number that ran out.
+	if GetTotalUserAddOnMemoryPoolUsageMB and GetTotalUserAddOnMemoryPoolCapacityMB then
+		lines[#lines + 1] = string.format("add-on memory pool: %.1f / %.1f MB",
+			GetTotalUserAddOnMemoryPoolUsageMB() or 0, GetTotalUserAddOnMemoryPoolCapacityMB() or 0)
+	end
 	return lines
 end

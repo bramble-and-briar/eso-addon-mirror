@@ -1111,7 +1111,7 @@ end
 
 local BALANCE_CONTESTED = 0.10
 local BASE_RADIUS = 60
-local RESPAWN_MS = 12000
+local SPAWN_JUMP = 120
 local STOP_MS = 90000
 
 function Match.balance(m)
@@ -1227,24 +1227,76 @@ local function median_of(vals)
     return vals[math.ceil(n / 2)]
 end
 
-function Match.spawn_point(m, geo)
-    local me = geo and geo.me
-    if not me or me.n < 1 then return nil end
-    local xs, ys = {}, {}
-    if (me.x[1] or 0) > 0 or (me.y[1] or 0) > 0 then xs[1], ys[1] = me.x[1], me.y[1] end
-    for _, k in ipairs(m and m.killfeed or {}) do
-        if k.kind == "death" then
-            local target = k.t + RESPAWN_MS
-            local idx = Match.geo_index_of(me.t, me.n, target)
-            if (me.t[idx] or 0) < target then idx = idx + 1 end
-            if idx <= me.n and ((me.x[idx] or 0) > 0 or (me.y[idx] or 0) > 0) then
-                xs[#xs + 1], ys[#ys + 1] = me.x[idx], me.y[idx]
+local function near_any_pin(geo, x, y, r)
+    local r2 = r * r
+    for _, pin in ipairs(geo.pins or {}) do
+        for i = 1, geo.n do
+            local px, py = pin.x[i], pin.y[i]
+            if px and py and (px > 0 or py > 0) then
+                local dx, dy = x - px, y - py
+                if dx * dx + dy * dy <= r2 then return true end
+                break
             end
         end
     end
+    return false
+end
+
+function Match.base_radius() return BASE_RADIUS end
+
+function Match.spawn_point(m, geo)
+    local me = geo and geo.me
+    if not geo or not geo.pos then return nil end
+    if geo.spawnPt ~= nil then return geo.spawnPt or nil end
+    local xs, ys, how = {}, {}, nil
+    if me and me.n >= 2 then
+        for _, k in ipairs(m and m.killfeed or {}) do
+            if k.kind == "death" then
+                local i0 = math.max(2, Match.geo_index_of(me.t, me.n, k.t or 0))
+                for i = i0, math.min(me.n, i0 + 60) do
+                    local x0, y0, x1, y1 = me.x[i - 1] or 0, me.y[i - 1] or 0, me.x[i] or 0, me.y[i] or 0
+                    if (x0 > 0 or y0 > 0) and (x1 > 0 or y1 > 0) then
+                        local dt = ((me.t[i] or 0) - (me.t[i - 1] or 0)) / 1000
+                        local dx, dy = x1 - x0, y1 - y0
+                        if dt > 0 and math.sqrt(dx * dx + dy * dy) / dt > SPAWN_JUMP then
+                            xs[#xs + 1], ys[#ys + 1] = x1, y1
+                            break
+                        end
+                    end
+                end
+            end
+        end
+        if #xs > 0 then how = "respawn" end
+    end
+    if #xs == 0 then
+        local startT = geo.startT or 0
+        if startT > 0 then
+            for nm, s in pairs(geo.pos) do
+                if geo.team[nm] == m.localTeam or nm == geo.mine then
+                    for i = 1, geo.n do
+                        if (geo.t[i] or 0) >= startT then break end
+                        local x, y = s.x[i], s.y[i]
+                        if x and y and (x > 0 or y > 0) then xs[#xs + 1], ys[#ys + 1] = x, y end
+                    end
+                end
+            end
+            if me then
+                for i = 1, me.n do
+                    if (me.t[i] or 0) >= startT then break end
+                    local x, y = me.x[i] or 0, me.y[i] or 0
+                    if x > 0 or y > 0 then xs[#xs + 1], ys[#ys + 1] = x, y end
+                end
+            end
+            if #xs > 0 then how = "gates" end
+        end
+    end
     local x, y = median_of(xs), median_of(ys)
-    if not x then return nil end
-    return { x = x, y = y, samples = #xs }
+    if not x or near_any_pin(geo, x, y, BASE_RADIUS) then
+        geo.spawnPt = false
+        return nil
+    end
+    geo.spawnPt = { x = x, y = y, samples = #xs, how = how }
+    return geo.spawnPt
 end
 
 function Match.geo_at_base(geo, m)

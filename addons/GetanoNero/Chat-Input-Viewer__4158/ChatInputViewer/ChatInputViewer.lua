@@ -1,7 +1,8 @@
 --- ChatInput viewer
---- Version 1.3.0
+--- Version 1.3.1
 
 --- Changelog
+--- V. 1.3.1 - Update for ESO Version 12.1.5, API version 101051.
 --- V. 1.3.0 - Update for ESO Version 12.0.5, API version 101050.
 ---          - New view mode 'minimized'
 ---          - Key binding for tuggling the view state

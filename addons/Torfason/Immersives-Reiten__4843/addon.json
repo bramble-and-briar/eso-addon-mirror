@@ -22,8 +22,9 @@
     "ImmersivesReiten"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4843/",
-  "fingerprint": "0850d4b4a76eb39d8d5c6b3b28c5e1164f286c77b5f705e7d76c083cc0941d76",
+  "fingerprint": "a269b3b051042055dab8248f21656cb45dd92cfe740923a9f4fa8b28d8a05a31",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17669.png",
     "https://cdn-eso.mmoui.com/preview/pvw17406.png"
   ],
   "platform": "pc",
@@ -32,11 +33,11 @@
   "source_id": "4843",
   "source_url": "https://www.esoui.com/downloads/info4843-ImmersivesReiten.html",
   "stats": {
-    "downloads": 17,
+    "downloads": 69,
     "favorites": 0,
-    "monthly_downloads": 16
+    "monthly_downloads": 65
   },
   "title": "Immersives Reiten",
-  "updated_at": 1789810749000,
-  "version": "1.2.3"
+  "updated_at": 1791025975000,
+  "version": "2.0.0"
 }

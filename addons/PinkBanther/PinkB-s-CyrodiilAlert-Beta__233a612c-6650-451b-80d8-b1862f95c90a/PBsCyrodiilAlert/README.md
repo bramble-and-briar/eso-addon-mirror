@@ -220,12 +220,19 @@ An overview map, on its own switch, sized and placed like everything else:
 - the Elder Scrolls and Volendrung where they are — only the ones actually in play, by the same
   three tests the game's own map makes (every place Volendrung *can* spawn is an objective of its
   own, twenty-three of them, each with a valid-looking pin);
-- the transitus network, drawn as the world map draws it away from a shrine — each link in its
-  owner's colour, faint when nobody holds it, dashed while fighting has cut it (`/pbalert map
-  links off` to hide it);
-- you, as the world map's arrow, turned the way the camera faces.
+- the transitus network: your own alliance's links in the colours the world map uses *at a
+  shrine* — green where you can travel now, faint white where you cannot — and everyone else's in
+  their owner's colour, faint when nobody holds them, dashed while fighting has cut them
+  (`/pbalert map ready off` for owner colours throughout, `/pbalert map links off` to hide them);
+- the rest of your group where they are, the leader with the crown — the members the world map
+  itself would pin: online and on the current map (`/pbalert map group off`);
+- you, as the world map's arrow, turned the way the camera faces — on its own switch and its own
+  size, smaller than a keep as on the world map (`/pbalert map player off`).
 
-Resources are left off: at this scale there are three crowded against every keep.
+The farm, mine and lumbermill around each keep are drawn too, on their own switch (`/pbalert
+map resources off`): at the world map's own proportion to a keep (27 against 53), and *under* the
+keeps rather than over them as the world map has it — at this scale the three sit almost on top
+of their keep, and drawn over it they would hide it.
 
 **It does not borrow the game's world map.** A minimap add-on — PB's MiniMap, Votan's — works by
 parking the world map on the HUD, and the world map is one control showing one map at one
@@ -244,6 +251,13 @@ minimap has zoomed to — and the two maps' places in the shared space convert o
 other. A keep's position, once known, is kept; one that cannot be converted leaves the last good
 position standing rather than inventing one, and the arrow is hidden rather than guessed.
 
+**It never reads Tamriel.** Those pin functions answer in terms of the current map, and on a
+console whatever the client allocates while an add-on's function is on the stack is billed to the
+shared add-on pool — with the world map pulled back to all of Tamriel, one frame of that is
+enough to fill it. So they are called only while the HUD is up and has settled, and only while
+the current map is Cyrodiil or a map inside it. Otherwise the map keeps what it last drew (keeps
+do not move); attack bursts, which depend on no map, stay live; the arrow is hidden.
+
 It shows in Cyrodiil only — the Imperial City is a different map — and only over the game: the
 current scene is *read*, never added to, and the map hides whenever a menu is up. Off, or
 anywhere else, nothing about it runs.
@@ -251,6 +265,7 @@ anywhere else, nothing about it runs.
 ```
 /pbalert map on | off
 /pbalert map links on | off
+/pbalert map resources on | off
 /pbalert map probe
 ```
 
@@ -499,4 +514,4 @@ cannot be arranged on demand in a real campaign (a siege lasting past the repeat
 that flips while it is being hit) are played out in milliseconds. It also stubs the window
 manager, so what reaches the screen — which lines, in what colours, in what font, anchored
 where, and when they expire — and the campaign APIs, so the summary's numbers, ordering,
-colours and every way it degrades are checked too. 434 checks.
+colours and every way it degrades are checked too. 481 checks.

@@ -1,7 +1,7 @@
 ## Title: |c7FC7FFWegesruhe|r
 ## Author: Atlas
-## Version: 2.0.0
-## AddOnVersion: 200
+## Version: 2.0.1
+## AddOnVersion: 201
 ## APIVersion: 101050 101051
 ## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Reduces navigation guidance with configurable map, compass and 3D marker filters.
 ## SavedVariables: WegesruheSavedVariables

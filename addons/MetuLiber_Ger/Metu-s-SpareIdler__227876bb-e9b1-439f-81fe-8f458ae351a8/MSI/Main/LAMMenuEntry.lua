@@ -5,9 +5,9 @@ local MSI = _G['MSI']
 function MSI.InitLAMLibrary()
 	MSI.LAM = LibAddonMenu2
 	if not MSI.LAM then
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LAM_FAILURE)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LAM_FAILURE)))
 	else
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LAM_SUCCESS)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LAM_SUCCESS)))
 	end
 end
 
@@ -81,24 +81,25 @@ function MSI.InitLAMMenuPanel()
 		disabled = function() return not MSI.SVars.IsMSIActive end,
 	})
 
-	if GetUnitDisplayName("player") ~= DecorateDisplayName(MSI.DevAcc) then 
-	else--*********************--
-	-- DEVELOPER BEREICH START
-	--*************************--
-	optionsData:insert({
-		type = "checkbox",
-		name = GetString(MSI_TGL_MENU_LIBRARY_ICON)..GetString(MSI_TGL_MENU_LIBRARY_TITLE),
-		tooltip = GetString(MSI_TGL_LAM_LIBRARY_TOOLTIP),
-		reference = "MSIUseLAMLibraryRef",
-		getFunc = function() return MSI.SVars.IsMSIUseLAM end,
-		setFunc = function(value) MSI.SVars.IsMSIUseLAM = value 
-			ReloadUI("ingame") end,
-		default = true,
-		disabled = function() return not MSI.SVars.IsMSIActive end,
-	})
-	end--*********************--
-	-- DEVELOPER BEREICH ENDE
-	--************************--
+	-- if GetUnitDisplayName("player") ~= DecorateDisplayName(MSI.DevAcc) then 
+	-- else--*********************--
+	-- -- DEVELOPER BEREICH START
+	-- --*************************--
+	-- optionsData:insert({
+		-- type = "checkbox",
+		-- name = GetString(MSI_TGL_MENU_LIBRARY_ICON)..GetString(MSI_TGL_MENU_LIBRARY_TITLE),
+		-- tooltip = GetString(MSI_TGL_LAM_LIBRARY_TOOLTIP),
+		-- reference = "MSIUseLAMLibraryRef",
+		-- getFunc = function() return MSI.SVars.IsMSIUseLAM end,
+		-- setFunc = function(value) MSI.SVars.IsMSIUseLAM = value 
+			-- ReloadUI("ingame") end,
+		-- default = true,
+		-- disabled = function() return not MSI.SVars.IsMSIActive end,
+	-- })
+	-- end--*********************--
+	-- -- DEVELOPER BEREICH ENDE
+	-- --************************--
+
 	optionsData:insert({
 		type = "description",
 		title = GetString(MSI_GAME_MENU_PANEL_DIVIDER),

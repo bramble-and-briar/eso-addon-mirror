@@ -7,6 +7,9 @@
             <Action name="MANSUSINSTANCERESET_TOGGLE">
                 <Down>MansusInstanceReset.Toggle()</Down>
             </Action>
+            <Action name="MANSUSINSTANCERESET_LEAVE">
+                <Down>MansusInstanceReset.Leave()</Down>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

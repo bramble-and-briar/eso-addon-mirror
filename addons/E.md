@@ -82,7 +82,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |
 | [EsoAR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/EsoAR__6aa72f53-f802-446b-9be4-55671bec2726) | Lofand | Console | — |
-| [EsoBR - Tradução Português - v2026](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rodrigo/EsoBR---Tradução-Português---v2026__2256) | rodrigo | PC / Mac | 1.3.0 |
+| [EsoBR - Tradução Português - v2026](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rodrigo/EsoBR---Tradução-Português---v2026__2256) | rodrigo | PC / Mac | 1.3.1 |
 | [ESOBR Reforged \[OBSOLETE\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/erickhwk/ESOBR-Reforged-OBSOLETE__4541) | erickhwk | PC / Mac | 1.0.14 |
 | [ESOFacts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/chris1984/ESOFacts__4376) | chris1984 | PC / Mac | 1.0.3 |
 | [EsoKR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/EsoKR__b15376ba-5e02-4e7a-b5f8-249f644ad1ac) | Sharlikran | Console | — |

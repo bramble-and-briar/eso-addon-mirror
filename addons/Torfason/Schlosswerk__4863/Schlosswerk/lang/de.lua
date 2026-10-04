@@ -3,6 +3,13 @@ Schlosswerk.LocalizationData = Schlosswerk.LocalizationData or {}
 
 Schlosswerk.LocalizationData.de = {
     ADDON_NAME = "Schlosswerk",
+    ADDON_DESCRIPTION = "Ein Torfason × Atlas Addon für The Elder Scrolls Online. Fügt auswählbare Schlossdesigns hinzu und lässt ESOs originale Schlossknackmechanik unverändert.",
+    SETTINGS_TITLE = "Schlosswerk - Einstellungen",
+    SETTINGS_GEAR_TT = "Schlosswerk-Einstellungen öffnen",
+    SETTINGS_CLOSE = "Schließen",
+    SETTINGS_DEFAULTS = "Standardwerte",
+    SETTINGS_DEFAULTS_TT = "Alle Schlosswerk-Einstellungen auf ihre Standardwerte zurücksetzen.",
+    SETTINGS_DEFAULTS_DONE = "Schlosswerk-Einstellungen auf Standardwerte zurückgesetzt.",
     PANEL_DESCRIPTION = "Wähle das Aussehen des Schlosses beim Schlossknacken in ESO. Schlosswerk verändert nur Schlosskörper und vordere Überdeckung; die originale ESO-Mechanik, Werkzeuge, Pins, Federn, Geräusche und Zeitabläufe bleiben unangetastet.",
 
     HEADER_GENERAL = "Allgemein",

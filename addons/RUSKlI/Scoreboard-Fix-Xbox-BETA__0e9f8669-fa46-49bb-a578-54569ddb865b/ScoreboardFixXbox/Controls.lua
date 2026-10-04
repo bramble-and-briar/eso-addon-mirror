@@ -46,6 +46,17 @@ function A:HideNativeVisuals()
 end
 
 
+function A:RemoveNativeMedalPanels()
+    -- Remove only scoreboard match-info fragments, never their action layers.
+    -- Also remove fragments already attached when loading/reloading this addon.
+    for _,scene in ipairs({BATTLEGROUND_SCOREBOARD_IN_GAME_SCENE,
+        BATTLEGROUND_SCOREBOARD_IN_GAME_UI_SCENE,BATTLEGROUND_SCOREBOARD_END_OF_GAME_SCENE}) do
+        scene:RemoveFragmentGroup(FRAGMENT_GROUP.BATTLEGROUND_MATCH_INFO_GAMEPAD_GROUP)
+        scene:RemoveFragmentGroup(FRAGMENT_GROUP.BATTLEGROUND_MATCH_INFO_KEYBOARD_GROUP)
+    end
+end
+
+
 function A:RefreshFromNative()
     if not IsActiveWorldBattleground() then
         self.visible=false;self.inMatch=false;self.match=nil
@@ -102,8 +113,12 @@ function A:InstallNativeIntegration()
     for _,descriptor in ipairs(live.keybindStripDescriptor) do
         if descriptor.keybind=='LEAVE_BATTLEGROUND' then descriptor.name='RAGE QUIT' end
     end
-    -- Native scenes continue to own action layers, prompts and the Xbox
-    -- match-info / medal panel. Do not suppress RefreshMatchInfoFragments.
+    -- Stop native attachment before the next scene show or platform refresh.
+    -- There is no native-panel fallback if the custom panel fails.
+    ZO_PreHook(live,'RefreshMatchInfoFragments',function() self:RemoveNativeMedalPanels();return true end)
+    ZO_PreHook(final,'RefreshMatchInfoFragments',function() self:RemoveNativeMedalPanels();return true end)
+    self:RemoveNativeMedalPanels()
+    -- All native navigation, interaction and leave handlers remain unchanged.
     ZO_PostHook(final,'OnShowing',function() self:LayoutNativePrompts() end)
     ZO_PostHook(final,'ApplyPlatformStyle',function() self:LayoutNativePrompts() end)
     ZO_PostHook(n,'UpdateAll',function() self:RefreshFromNative() end)

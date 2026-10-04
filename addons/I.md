@@ -27,7 +27,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Immersive Overlays](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anumaril/Immersive-Overlays__3838) | Anumaril | PC / Mac | 1.1 |
 | [Immersive Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OneSkyGod/Immersive-Quests__3538) | OneSkyGod | PC / Mac | 0.0058 |
 | [Immersive Rumors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fadosch/Immersive-Rumors__4901) | Fadosch | PC / Mac | 1.0.0 |
-| [Immersives Reiten](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Immersives-Reiten__4843) | Torfason | PC / Mac | 1.2.3 |
+| [Immersives Reiten](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Immersives-Reiten__4843) | Torfason | PC / Mac | 2.0.0 |
 | [Imperial City Boss Timers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ParanoidGaming/Imperial-City-Boss-Timers__6684c311-afc5-48de-8ced-f86edbe863f1) | ParanoidGaming | Console | — |
 | [Imperial City Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Imperial-City-Helper__3306) | kawamonkey | PC / Mac | 1.1.1 |
 | [Imperial City Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/Imperial-City-Hunter__2320) | Drako-Ei | PC / Mac | 1.4 |
@@ -60,7 +60,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Increase Keybinds for Setups to 50](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wambo/Increase-Keybinds-for-Setups-to-50__3768) | wambo | PC / Mac | 1.4.1 |
 | [Infinite Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Infinite-Archive-Helper__3867) | andy.s | PC / Mac | 0.4.2 |
 | [Infinite Archive Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/Infinite-Archive-Helper__fd1c014a-ca0d-42e8-91b7-3ce3c64be6b8) | Gamer_sa22 | Console | — |
-| [Info Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Info-Panel__1831) | Hoft | PC / Mac | 1.64 |
+| [Info Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Info-Panel__1831) | Hoft | PC / Mac | 1.65 |
 | [InfoDisplay](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels387/InfoDisplay__3245) | Wheels387 | PC / Mac | 1.03 |
 | [InfoPanel Layout Fix - Discontinued](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dylanethan/InfoPanel-Layout-Fix---Discontinued__4725) | dylanethan | PC / Mac | 1.0.2 |
 | [IngredientHunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Илья-Нос/IngredientHunter__4513) | &#1048;&#1083;&#1100;&#1103; &#1053;&#1086;&#1089; | PC / Mac | 1.0.0 |

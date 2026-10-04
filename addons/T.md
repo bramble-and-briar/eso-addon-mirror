@@ -26,6 +26,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
 | [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.1 |
+| [Tamriel Trade Center, HarvestMap & ESO-Hub Auto-Updater (Linux, macOS, SteamDeck, & Windows)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Tamriel-Trade-Center-HarvestMap-ESO-Hub-Auto-Updater-Linux-macOS-SteamDeck-Windo__3249) | APH0N1C | PC / Mac | 2026.09.30.16.04 |
 | [Tamriel Trade Centre](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cyxui/Tamriel-Trade-Centre__1245) | cyxui | PC / Mac | 4.27.281.39281 |
 | [Tamriel Trade Centre - Patch Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/Tamriel-Trade-Centre---Patch-Italiana__3033) | Dusty82 | PC / Mac | 4.10.146.18293 |
 | [Tamriel Trade Centre Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Tamriel-Trade-Centre-Companion__3509) | Sharlikran | PC / Mac | 1.11 |
@@ -148,7 +149,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
 | [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.0 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |
-| [Tooltipruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Tooltipruhe__4865) | Torfason | PC / Mac | 1.0.0 |
+| [Tooltipruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Tooltipruhe__4865) | Torfason | PC / Mac | 2.0.0 |
 | [ToonCurrencies](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/ToonCurrencies__1282) | Noobanidus | PC / Mac | 3.0.0 |
 | [Top level potency runes filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maggi/Top-level-potency-runes-filter__2501) | Maggi | PC / Mac | 1.1.7a |
 | [Top Tier Crafting Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Top-Tier-Crafting-Bar__2217) | Jodynn | PC / Mac | 0.5 |
@@ -203,6 +204,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [True Flag Capture Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Flag-Capture-Mover__4c1cca0d-7e48-40ed-bd8f-1c87ac158341) | Toudidef | Console | — |
 | [True Options Pannel Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Options-Pannel-Mover__e432e963-6c1d-4e4c-b9b9-491f51ff8d07) | Toudidef | Console | — |
 | [True PvP Ratio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-PvP-Ratio__309e8628-9a7c-45a6-8a1d-c87738ff8757) | Toudidef | Console | — |
+| [True Ressource Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Ressource-Bars__047a332e-1f48-4610-ac9c-72fc6b0fabc7) | Toudidef | Console | — |
 | [True Reticle 2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Reticle-2.0__2e985373-cd04-4a3e-855f-4f8a4ada4d76) | Toudidef | Console | — |
 | [True Synergies Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Toudidef/True-Synergies-Mover__d16fe7aa-9938-433f-bac9-3a808f810ae7) | Toudidef | Console | — |
 | [TrueExploration](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/TrueExploration__500) | Shinni | PC / Mac | 1.10 |

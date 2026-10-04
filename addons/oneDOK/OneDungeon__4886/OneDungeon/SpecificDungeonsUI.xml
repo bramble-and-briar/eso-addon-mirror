@@ -15,7 +15,7 @@
                     <Anchor point="TOPLEFT" offsetX="68" />
                     <Anchor point="TOPRIGHT" offsetX="-278" />
                 </Label>
-                <Control name="$(parent)Quest" mouseEnabled="true">
+                <Control name="$(parent)Quest" mouseEnabled="false">
                     <Dimensions x="114" y="32" />
                     <Anchor point="RIGHT" offsetX="-156" />
                     <Controls>
@@ -23,11 +23,11 @@
                             <Dimensions x="24" y="24" />
                             <Anchor point="LEFT" offsetX="4" />
                         </Texture>
-                        <Texture name="$(parent)PledgeGlow" textureFile="EsoUI/Art/Compass/repeatableQuest_icon_assisted.dds" blendMode="ADD" layer="BACKGROUND" hidden="true">
+                        <Texture name="$(parent)PledgeGlow" textureFile="EsoUI/Art/Compass/repeatableQuest_icon_assisted.dds" blendMode="ADD" layer="ARTWORK" level="0" hidden="true">
                             <Dimensions x="36" y="32" />
                             <Anchor point="LEFT" offsetX="32" />
                         </Texture>
-                        <Texture name="$(parent)Pledge" textureFile="EsoUI/Art/Compass/repeatableQuest_icon.dds" hidden="true">
+                        <Texture name="$(parent)Pledge" textureFile="EsoUI/Art/Compass/repeatableQuest_icon.dds" layer="ARTWORK" level="1" hidden="true">
                             <Dimensions x="24" y="24" />
                             <Anchor point="LEFT" offsetX="38" />
                         </Texture>

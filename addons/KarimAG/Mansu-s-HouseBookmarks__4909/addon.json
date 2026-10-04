@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/KarimAG/Mansu-s-HouseBookmarks__4909",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "KarimAG",
+  "canonical_id": "esoui:4909",
+  "category_id": "160",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4909",
+  "deleted": false,
+  "directories": [
+    "MansusHouseBookmarks"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4909/",
+  "fingerprint": "5b2c3b22b5122225633497e0e710f7a3ff2414289f63171df4d0ec84b01cfcbc",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4909",
+  "source_url": "https://www.esoui.com/downloads/info4909-MansusHouseBookmarks.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 1,
+    "monthly_downloads": 6
+  },
+  "title": "Mansu's HouseBookmarks",
+  "updated_at": 1791036243000,
+  "version": "1.0.0"
+}

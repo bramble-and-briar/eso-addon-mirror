@@ -1,11 +1,11 @@
 ## Title: |c7FC7FFLagerblick|r
-## APIVersion: 101050 101051
-## Version: 2.0.1
-## AddOnVersion: 201
 ## Author: Atlas
-## Description: Compact item stock overview with storage locations and totals. / Kompakte Bestandsübersicht mit Lagerorten und Gesamtbestand.
+## Version: 2.0.2
+## AddOnVersion: 202
+## APIVersion: 101050 101051
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Shows personal item stocks and storage locations directly in item tooltips.
 ## SavedVariables: LagerblickSavedVariables
 
 lang/en.lua
-lang/de.lua
+lang/$(language).lua
 Lagerblick.lua

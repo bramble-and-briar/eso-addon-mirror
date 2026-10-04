@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/PinkBanther/PinkB-s-ConsoleHudCustomizer-Beta__23fd4e21-b28d-4af9-badd-3e009f4cb75b",
+  "archive_path": "addons/PinkBanther/PinkB-s-ResourceAndSkillBarCustomizer-Beta__23fd4e21-b28d-4af9-badd-3e009f4cb75b",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "PinkBanther",
   "canonical_id": "bethesda:23fd4e21-b28d-4af9-badd-3e009f4cb75b",
   "content_id": "23fd4e21-b28d-4af9-badd-3e009f4cb75b",
   "deleted": false,
-  "fingerprint": "c7712742f94aa4d813e0dc182b6c47a7ffa7717c01bf123ddb6a0f234ac366e8",
+  "fingerprint": "6fa0fb6be36a838b3c842a613f0b30bc54e34903644872f19c25654f1822fd17",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "23fd4e21-b28d-4af9-badd-3e009f4cb75b",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/23fd4e21-b28d-4af9-badd-3e009f4cb75b",
-  "title": "PinkB's ConsoleHudCustomizer(Beta)"
+  "title": "PinkB's ResourceAndSkillBarCustomizer(Beta)"
 }

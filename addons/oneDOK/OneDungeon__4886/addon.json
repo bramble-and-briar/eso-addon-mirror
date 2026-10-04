@@ -18,7 +18,7 @@
     "OneDungeon"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4886/",
-  "fingerprint": "1a0065b2b4478b39d159b473af6c868a3a5396e11eeba56d98ba69a0e38d9cab",
+  "fingerprint": "b1d7e24ac0b1966d6ca0109288a3e3991a79c575789b9017c54c33502b6b4ace",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17617.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4886",
   "source_url": "https://www.esoui.com/downloads/info4886-OneDungeon.html",
   "stats": {
-    "downloads": 15,
+    "downloads": 57,
     "favorites": 0,
-    "monthly_downloads": 11
+    "monthly_downloads": 39
   },
   "title": "OneDungeon",
-  "updated_at": 1790700961000,
-  "version": "1.1"
+  "updated_at": 1791060601000,
+  "version": "26.1"
 }

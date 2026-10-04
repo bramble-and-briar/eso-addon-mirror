@@ -1,0 +1,153 @@
+<GuiXml>
+    <!--
+        The controls this add-on draws on the skill bar.
+
+        Laid out here rather than in Lua on purpose: a row of controls assembled with SetAnchor
+        from an add-on ran into anchor limits and zero-height rows on the console gamepad UI once
+        already (PB's MailerExtension). These are plain textures and labels of our own, with no
+        client template inherited, and only the parent is chosen at runtime, because the controls
+        they hang on (ActionButton3..8) do not exist until the UI has loaded.
+
+        PBsConsoleHudCustomizerBackBarSlot is one slot of the back bar: the other weapon set's
+        ability, drawn in the game's own back row frame (52 x 68, icon 44 x 44, the sizes and
+        texture coordinates of ZO_ActionBarTimer_BackBarSlot_Gamepad).
+
+        PBsConsoleHudCustomizerSlotLabels is the countdown and target count for a slot of the
+        game's own bar: nothing but two labels, filling the button it is parented to.
+
+        Both fonts are replaced from Lua at the size the player chose. The ones here are only so
+        that a control is legible if that ever fails.
+    -->
+    <Controls>
+        <!--
+            The countdown, in the client's own shape: ZoFontGamepad27 at DCD822, 25 high, width 0
+            so it sizes itself to the text, centred. ActionButton<n>TimerText is the same, and
+            this one takes its place on the icon, so a number does not jump when the game's own
+            action bar timers are switched on or off.
+        -->
+        <Label name="PBsConsoleHudCustomizerTimerLabel" font="ZoFontGamepad27" color="DCD822"
+               horizontalAlignment="CENTER" verticalAlignment="CENTER" virtual="true">
+            <!--
+                Width 0 sizes the label to its text, as the client's own does. The height is set
+                from the font at runtime rather than fixed at the client's 25: the size here goes
+                up to 48, and text centred in a box shorter than itself does not sit where the
+                middle of the box is.
+            -->
+            <Dimensions x="0" y="0"/>
+        </Label>
+        <Label name="PBsConsoleHudCustomizerCountLabel" font="ZoFontGamepad27" color="FFFFFF"
+               horizontalAlignment="CENTER" verticalAlignment="TOP" virtual="true">
+            <Dimensions x="0" y="0"/>
+        </Label>
+
+        <Control name="PBsConsoleHudCustomizerBackBarSlot" virtual="true" tier="MEDIUM">
+            <Dimensions x="52" y="68"/>
+            <Controls>
+                <Texture name="$(parent)BG" textureFile="EsoUI/Art/ActionBar/Gamepad/gp_backrow_abilityFrame_BLANK.dds" level="0">
+                    <Dimensions x="52" y="68"/>
+                    <Anchor point="CENTER"/>
+                    <TextureCoords left="0" right="0.8125" top="0" bottom="1.0625"/>
+                </Texture>
+                <Texture name="$(parent)Icon" level="1">
+                    <Dimensions x="44" y="44"/>
+                    <Anchor point="CENTER"/>
+                </Texture>
+                <Texture name="$(parent)Overlay" textureFile="EsoUI/Art/ActionBar/Gamepad/gp_backrow_abilityFrame_overlay.dds" level="2">
+                    <Dimensions x="52" y="68"/>
+                    <Anchor point="CENTER"/>
+                    <TextureCoords left="0" right="0.8125" top="0" bottom="1.0625"/>
+                </Texture>
+                <Cooldown name="$(parent)Shade" inherits="PBsConsoleHudCustomizerShade" level="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPLEFT"/>
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="BOTTOMRIGHT"/>
+                </Cooldown>
+                <Label name="$(parent)Timer" inherits="PBsConsoleHudCustomizerTimerLabel" level="3">
+                    <Anchor point="CENTER" relativeTo="$(parent)Icon" relativePoint="CENTER"/>
+                </Label>
+                <Label name="$(parent)Count" inherits="PBsConsoleHudCustomizerCountLabel" level="3">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPLEFT" offsetX="-2" offsetY="-4"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="PBsConsoleHudCustomizerSlotLabels" virtual="true" tier="HIGH">
+            <Controls>
+                <Label name="$(parent)Timer" inherits="PBsConsoleHudCustomizerTimerLabel">
+                    <Anchor point="CENTER" relativePoint="CENTER"/>
+                </Label>
+                <!--
+                    Top left, because the client's own stack count sits at CENTER +23, -20, which
+                    is the top right of the icon. Two different numbers in one corner would be
+                    unreadable.
+                -->
+                <Label name="$(parent)Count" inherits="PBsConsoleHudCustomizerCountLabel">
+                    <Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="-2" offsetY="-4"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <!--
+            The shade over a skill icon while its effect runs. A Cooldown control, the same kind
+            the client uses for ability cooldowns: given the ability's own icon and started with
+            CD_TYPE_VERTICAL_REVEAL, the engine darkens the icon and wipes that darkness away
+            down the icon as the time runs out, on its own, with no work per frame from here.
+        -->
+        <Cooldown name="PBsConsoleHudCustomizerShade" virtual="true"
+                  leadingEdgeTexture="EsoUI/Art/ActionBar/coolDown_leadingEdge.dds"
+                  fillColor="000000" alpha="0.6" hidden="true" level="5">
+            <AnchorFill/>
+        </Cooldown>
+
+        <!--
+            The plain look for one attribute bar: a flat rectangle for the track and another for
+            what is in it. Backdrops rather than textures, because a backdrop is a centre colour
+            and needs no art at all, and a child of the container rather than of the status bar,
+            because the container is what the client's own frame, background and numbers hang on.
+
+            Both are coloured from Lua: the track dark, the fill the game's own colour for that
+            power (GetInterfaceColor with INTERFACE_COLOR_TYPE_POWER_START). The fill's width is
+            set every update and its anchor picks the edge the bar fills from.
+        -->
+        <Control name="PBsConsoleHudCustomizerPlainBar" virtual="true" tier="HIGH" level="1">
+            <Controls>
+                <!--
+                    One pair for both of this add-on's styles: Square scales the game's bar and
+                    MURA-HIGE Style draws it at a size of its own, but the shape is the same flat
+                    rectangle either way.
+                -->
+                <Backdrop name="$(parent)Track" centerColor="0F0F0FFF" edgeColor="00000000" level="1">
+                    <AnchorFill/>
+                </Backdrop>
+                <Texture name="$(parent)Fill" color="FFFFFFFF" level="2">
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="BOTTOMLEFT"/>
+                </Texture>
+                <!--
+                    An outline, drawn as four thin rectangles rather than a backdrop's own edge:
+                    an edge needs an edge texture, and this add-on ships no art. Shown or hidden
+                    together, and coloured from Lua.
+                -->
+                <Backdrop name="$(parent)BorderTop" centerColor="000000D0" edgeColor="00000000" level="3" hidden="true">
+                    <Dimensions y="1"/>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Backdrop>
+                <Backdrop name="$(parent)BorderBottom" centerColor="000000D0" edgeColor="00000000" level="3" hidden="true">
+                    <Dimensions y="1"/>
+                    <Anchor point="BOTTOMLEFT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Backdrop>
+                <Backdrop name="$(parent)BorderLeft" centerColor="000000D0" edgeColor="00000000" level="3" hidden="true">
+                    <Dimensions x="1"/>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="BOTTOMLEFT"/>
+                </Backdrop>
+                <Backdrop name="$(parent)BorderRight" centerColor="000000D0" edgeColor="00000000" level="3" hidden="true">
+                    <Dimensions x="1"/>
+                    <Anchor point="TOPRIGHT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Backdrop>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

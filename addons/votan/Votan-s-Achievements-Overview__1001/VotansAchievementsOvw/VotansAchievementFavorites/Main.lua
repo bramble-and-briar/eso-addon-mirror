@@ -112,6 +112,7 @@ function addon:CreateFavorites()
 			achievementId = GetNextAchievementInLine(achievementId)
 		end
 	end
+	local refreshDelayIndentifier = "VotansAchievementFavoritesRefresh"
 	function addon:AddToContextMenu(achievement)
 		local id = ACHIEVEMENTS:GetBaseAchievementId(achievement:GetId())
 		local isFav = self.favorites[id] or self.favorites[achievement:GetId()]
@@ -121,6 +122,14 @@ function addon:CreateFavorites()
 				GetString(SI_VOTANS_ACHIEVEMENT_FAVORITE_REMOVE),
 				function()
 					RemoveAllOfThem(self.favorites, id)
+					local selectedCategoryData = ACHIEVEMENTS.categoryTree:GetSelectedData()
+					if selectedCategoryData and selectedCategoryData.categoryIndex == VotansFavorites then
+						em:UnregisterForUpdate(refreshDelayIndentifier)
+						em:RegisterForUpdate(refreshDelayIndentifier, 3000, function()
+							em:UnregisterForUpdate(refreshDelayIndentifier)
+							ACHIEVEMENTS:UpdateCategoryLabels(selectedCategoryData, true, false)
+						end)
+					end
 				end
 			)
 		else

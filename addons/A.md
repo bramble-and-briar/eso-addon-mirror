@@ -52,7 +52,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Additional Reminders](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Additional-Reminders__301799ca-d139-4097-8799-022ef07985ad) | M0R | Console | — |
 | [Addon Load Time Monitor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Addon-Load-Time-Monitor__a89e4472-1774-4182-bc32-05d04d19ca06) | code65536 | Console | — |
 | [Addon Loadouts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/Addon-Loadouts__1ff1b2cd-ba65-4264-a11d-2c55b57eb158) | Dack.Janiels | Console | — |
-| [Addon Selector (Save & Load AddOn profiles/packs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Addon-Selector-Save-Load-AddOn-profiles-packs__1161) | Baertram | PC / Mac | 3.22 |
+| [Addon Selector (Save & Load AddOn profiles/packs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Addon-Selector-Save-Load-AddOn-profiles-packs__1161) | Baertram | PC / Mac | 3.23 |
 | [AddonAnalyzer (ANDY) - Checks for malicious, stolen, and other flagged content in addons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lent/AddonAnalyzer-ANDY---Checks-for-malicious-stolen-and-other-flagged-content-in-ad__4293) | Lent | PC / Mac | 1.1.1 |
 | [AddonAnalyzer (ANDY) - Checks for malicious, stolen, or other flagged content in addons!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CallMeLent/AddonAnalyzer-ANDY---Checks-for-malicious-stolen-or-other-flagged-content-in-add__0495e6ed-49a8-4a03-b529-048fbc4b758a) | CallMeLent | Console | — |
 | [AddonCategory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floliroy/AddonCategory__3427) | Floliroy | PC / Mac | 1.5.3 |
@@ -153,7 +153,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 0.1.54 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 0.1.57 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |

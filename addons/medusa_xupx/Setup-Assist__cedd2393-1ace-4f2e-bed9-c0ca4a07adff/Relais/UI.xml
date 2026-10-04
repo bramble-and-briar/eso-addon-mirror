@@ -1,0 +1,47 @@
+<GuiXml>
+    <Controls>
+        <Control name="RelaisPreviewGearRow" virtual="true">
+            <Dimensions x="374" y="42"/>
+            <Controls>
+                <Texture name="$(parent)Icon"><Dimensions x="34" y="34"/><Anchor point="LEFT"/></Texture>
+                <Label name="$(parent)Name" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1"><Anchor point="TOPLEFT" offsetX="42"/><Dimensions x="330"/></Label>
+                <Label name="$(parent)State" font="ZoFontGamepad18" wrapMode="ELLIPSIS" maxLineCount="1"><Anchor point="TOPLEFT" offsetX="42" offsetY="22"/><Dimensions x="330"/></Label>
+            </Controls>
+        </Control>
+        <Control name="RelaisPreviewAbility" virtual="true">
+            <Dimensions x="61" y="88"/>
+            <Controls>
+                <Texture name="$(parent)Icon"><Dimensions x="40" y="40"/><Anchor point="TOP"/></Texture>
+                <Label name="$(parent)Name" font="ZoFontGamepad18" wrapMode="ELLIPSIS" maxLineCount="2" horizontalAlignment="CENTER"><Anchor point="TOPLEFT" offsetY="42"/><Dimensions x="61" y="44"/></Label>
+                <Label name="$(parent)State" font="ZoFontGamepad18" horizontalAlignment="RIGHT"><Anchor point="TOPRIGHT"/><Dimensions x="24"/></Label>
+            </Controls>
+        </Control>
+        <TopLevelControl name="RelaisGamepadControl" inherits="ZO_Gamepad_ParametricList_Screen" hidden="true">
+            <Controls>
+                <Control name="$(parent)Preview" inherits="ZO_GamepadGrid_NavQuadrant_2_3_Anchors">
+                    <Controls>
+                        <Control name="$(parent)Content">
+                            <Anchor point="TOPLEFT" offsetX="40" offsetY="18"/>
+                            <Anchor point="BOTTOMRIGHT" offsetX="-40"/>
+                            <Controls>
+                                <Label name="$(parent)Title" font="ZoFontGamepad34" wrapMode="ELLIPSIS" maxLineCount="1"><Anchor point="TOPLEFT"/><Dimensions x="768" y="42"/></Label>
+                                <Label name="$(parent)Comparison" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="2"><Anchor point="TOPLEFT" offsetY="44"/><Dimensions x="768" y="52"/></Label>
+                                <Label name="$(parent)SetsPrimary" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="2"><Anchor point="TOPLEFT" offsetY="98"/><Dimensions x="374" y="50"/></Label>
+                                <Label name="$(parent)SetsBackup" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="2"><Anchor point="TOPLEFT" offsetX="394" offsetY="98"/><Dimensions x="374" y="50"/></Label>
+                                <Control name="$(parent)Equipment"><Anchor point="TOPLEFT" offsetY="150"/><Dimensions x="768" y="294"/></Control>
+                                <Label name="$(parent)PrimaryLabel" font="ZoFontGamepad22" text="Barre principale"><Anchor point="TOPLEFT" offsetY="450"/><Dimensions x="374"/></Label>
+                                <Label name="$(parent)BackupLabel" font="ZoFontGamepad22" text="Barre de secours"><Anchor point="TOPLEFT" offsetX="394" offsetY="450"/><Dimensions x="374"/></Label>
+                                <Control name="$(parent)Primary"><Anchor point="TOPLEFT" offsetY="479"/><Dimensions x="374" y="88"/></Control>
+                                <Control name="$(parent)Backup"><Anchor point="TOPLEFT" offsetX="394" offsetY="479"/><Dimensions x="374" y="88"/></Control>
+                                <Label name="$(parent)ChampionLabel" font="ZoFontGamepad22" text="Étoiles Champion équipées"><Anchor point="TOPLEFT" offsetY="574"/><Dimensions x="768"/></Label>
+                                <Control name="$(parent)Champion"><Anchor point="TOPLEFT" offsetY="603"/><Dimensions x="768" y="88"/></Control>
+                                <Label name="$(parent)Help" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="3"><Anchor point="TOPLEFT" offsetY="700"/><Dimensions x="768" y="75"/></Label>
+                                <Label name="$(parent)Status" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="2"><Anchor point="TOPLEFT" offsetY="782"/><Dimensions x="768" y="54"/></Label>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

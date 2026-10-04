@@ -1,8 +1,8 @@
 ## Title: |cFFD700Mansu's InstanceReset|r
-## Description: Two bindable keys for the dungeon mode (Normal / Veteran): Reset switches it and straight back to get a fresh instance, Toggle just switches it. No need to open the group window. AI-assisted code, see the README.
+## Description: Three bindable keys: Reset switches the dungeon mode (Normal / Veteran) and straight back to get a fresh instance, Toggle just switches it, Leave leaves the instance. No need to open the group window. AI-assisted code, see the README.
 ## Author: Karim
-## Version: 1.0.0
-## AddOnVersion: 100
+## Version: 1.0.1
+## AddOnVersion: 101
 ## APIVersion: 101051
 ## IsLibrary: false
 
@@ -10,6 +10,10 @@
 ; The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
 ; All rights reserved.
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+; English texts first, then the client's language if a file exists for it
+lang/en.lua
+lang/$(language).lua
 
 MansusInstanceReset.lua
 Bindings.xml

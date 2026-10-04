@@ -698,10 +698,76 @@ function addon:InitSettings()
 		}
 	)
 
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCA_MAP_LINKS_READY),
+			tooltip = GetString(SI_PBSCA_MAP_LINKS_READY_TOOLTIP),
+			default = self.DEFAULTS.map.linksReady,
+			getFunction = function()
+				return self.sv.map.linksReady ~= false
+			end,
+			setFunction = function(value)
+				self.sv.map.linksReady = value
+				self.map:Refresh()
+			end
+		}
+	)
+
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCA_MAP_RESOURCES),
+			tooltip = GetString(SI_PBSCA_MAP_RESOURCES_TOOLTIP),
+			default = self.DEFAULTS.map.resources,
+			getFunction = function()
+				return self.sv.map.resources ~= false
+			end,
+			setFunction = function(value)
+				self.sv.map.resources = value
+				self.map:Refresh()
+			end
+		}
+	)
+
 	AddMapSlider("SI_PBSCA_MAP_SIZE", "SI_PBSCA_MAP_SIZE_TOOLTIP", "size",
 		self.MIN_MAP_SIZE, self.MAX_MAP_SIZE, 10, GetString(SI_PBSCA_UNIT_PIXELS))
 	AddMapSlider("SI_PBSCA_MAP_PIN", "SI_PBSCA_MAP_PIN_TOOLTIP", "pinSize",
 		self.MIN_MAP_PIN, self.MAX_MAP_PIN, 1, GetString(SI_PBSCA_UNIT_PIXELS))
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCA_MAP_PLAYER),
+			tooltip = GetString(SI_PBSCA_MAP_PLAYER_TOOLTIP),
+			default = self.DEFAULTS.map.player,
+			getFunction = function()
+				return self.sv.map.player ~= false
+			end,
+			setFunction = function(value)
+				self.sv.map.player = value
+				self.map:Refresh()
+			end
+		}
+	)
+	AddMapSlider("SI_PBSCA_MAP_PLAYER_SIZE", "SI_PBSCA_MAP_PLAYER_SIZE_TOOLTIP", "playerSize",
+		self.MIN_MAP_PLAYER, self.MAX_MAP_PLAYER, 1, GetString(SI_PBSCA_UNIT_PIXELS))
+	settings:AddSetting(
+		{
+			type = LibHarvensAddonSettings.ST_CHECKBOX,
+			label = GetString(SI_PBSCA_MAP_GROUP),
+			tooltip = GetString(SI_PBSCA_MAP_GROUP_TOOLTIP),
+			default = self.DEFAULTS.map.group,
+			getFunction = function()
+				return self.sv.map.group ~= false
+			end,
+			setFunction = function(value)
+				self.sv.map.group = value
+				self.map:Refresh()
+			end
+		}
+	)
+	AddMapSlider("SI_PBSCA_MAP_GROUP_SIZE", "SI_PBSCA_MAP_GROUP_SIZE_TOOLTIP", "groupSize",
+		self.MIN_MAP_PLAYER, self.MAX_MAP_PLAYER, 1, GetString(SI_PBSCA_UNIT_PIXELS))
 	AddMapSlider("SI_PBSCA_MAP_OPACITY", "SI_PBSCA_MAP_OPACITY_TOOLTIP", "opacity", 10, 100, 5, "%")
 
 	settings:AddSetting(

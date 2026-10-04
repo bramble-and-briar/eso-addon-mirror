@@ -18,7 +18,7 @@
     "MansusInstanceReset"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4900/",
-  "fingerprint": "76f919ce112d024c1817201049db32cf6051beb13f4552dd7655ee3d296db462",
+  "fingerprint": "9dcdb1374090b11f45028852ca99aa79db96207e3727dcf044011cc2c19a23a5",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4900",
   "source_url": "https://www.esoui.com/downloads/info4900-MansusInstanceReset.html",
   "stats": {
-    "downloads": 4,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 20,
+    "favorites": 1,
+    "monthly_downloads": 17
   },
   "title": "Mansu's InstanceReset",
-  "updated_at": 1790805917000,
-  "version": "1.0.0"
+  "updated_at": 1791039742000,
+  "version": "1.0.1"
 }

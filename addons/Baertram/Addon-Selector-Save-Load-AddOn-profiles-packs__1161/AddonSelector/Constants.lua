@@ -1,5 +1,5 @@
 local AS                            = AddonSelectorGlobal
-AS.version                          = "3.22"
+AS.version                          = "3.23"
 local ADDON_NAME	= AS.name
 local addonNamePrefix = AS.addonNamePrefix
 
@@ -9,6 +9,7 @@ local AddonSelector_GetLocalizedText = AddonSelector_GetLocalizedText
 local tos = tostring
 local strfor = string.format
 local strsub = string.sub
+local string_gsub = string.gsub
 local strlow = string.lower
 
 --Counters / numbers
@@ -32,7 +33,7 @@ local flags = {
     skipOnAddonPackSelected = false,
     enableAllAddonsCheckboxHooked = false,
 }
---Other AddOsns
+--Other AddOns
 local otherAddonsData = {
     --AddonCategory
     addonCategoryIndices = {},
@@ -73,7 +74,7 @@ constants.currentAccount = GetDisplayName()
 --Currently loggedIn character info
 local currentCharIdNum = GetCurrentCharacterId()
 local currentCharId = tos(currentCharIdNum)
-local currentCharName = ZO_CachedStrFormat(SI_UNIT_NAME, GetUnitName("player"))
+local currentCharName = ZO_CachedStrFormat(SI_UNIT_NAME, string_gsub(GetUnitName("player"), "\\", "")) --Remove any added \ from the character name
 constants.currentCharIdNum = currentCharIdNum
 constants.currentCharId = currentCharId
 constants.currentCharName = currentCharName

@@ -1,0 +1,48 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Torfason/Runenwerk__4910",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Torfason",
+  "canonical_id": "esoui:4910",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4910",
+  "deleted": false,
+  "directories": [
+    "Runenwerk"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4910/",
+  "fingerprint": "b52874a1aa3bb0fc6f9429df8c8caec1caed980ef84acf18782212a6876c4e74",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17684.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17685.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17686.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17687.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17688.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17689.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17690.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4910",
+  "source_url": "https://www.esoui.com/downloads/info4910-Runenwerk.html",
+  "stats": {
+    "downloads": 13,
+    "favorites": 0,
+    "monthly_downloads": 2
+  },
+  "title": "Runenwerk",
+  "updated_at": 1791061210000,
+  "version": "1.0.0"
+}

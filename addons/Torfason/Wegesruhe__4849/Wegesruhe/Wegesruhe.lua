@@ -2,7 +2,7 @@ Wegesruhe = Wegesruhe or {}
 local WR = Wegesruhe
 
 WR.name = "Wegesruhe"
-WR.version = "2.0.0"
+WR.version = "2.0.1"
 WR.savedVarsVersion = 1
 WR.helpHeld = false
 WR.initialized = false

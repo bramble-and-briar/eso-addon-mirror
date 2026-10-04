@@ -258,7 +258,7 @@
 
 local LIB_NAME  = "LibInteriorDetection"
 local ADDON_ID  = "LibInteriorDetection"  -- LAM panel name / slash command namespace
-local LIB_VERSION = 43
+local LIB_VERSION = 44
 
 -- Cached once rather than calling GetEventManager() repeatedly throughout
 -- the file - same singleton either way, avoids the repeated lookup.
@@ -1426,6 +1426,54 @@ local ZONE_INTERIOR = {
     [1556] = true, -- The Sleepy Sloth | verified:user:indoor
     [1557] = false, -- Hero's Return | verified:user:outdoor
     [1584] = false, -- Glenumbra | no-notes|prior:exterior:known-zone
+    -- 1.3.7: zones present in LibZone 9.01 (Sept 2026) but missing here,
+    -- classified by the author (see CHANGELOG). Player houses among them
+    -- are normally decided at runtime by Weather Control support; these
+    -- entries are only the fallback, and HOUSE_EXCEPTIONS carries the
+    -- author's overrides. The Nowhere Vault (1533, 1583) is interior: the
+    -- magic of the Vault protects the player from the elements.
+    [1522] = false, -- Xor-Hist | verified:user:exterior
+    [1523] = false, -- A Battle at Sea | verified:user:exterior
+    [1524] = true, -- Fissure Ruins | verified:user:interior
+    [1526] = false, -- Mor Naril | verified:user:exterior
+    [1527] = true, -- Xul-Katama | verified:user:interior
+    [1528] = false, -- Lair of the Black Worm | verified:user:exterior
+    [1529] = true, -- Sea and Sword Lodge | verified:user:interior
+    [1530] = false, -- Calindvale Gardens | verified:user:exterior
+    [1531] = true, -- Ashbound Hall | verified:user:interior
+    [1532] = true, -- Xul-Haj | verified:user:interior
+    [1533] = true, -- The Nowhere Vault | verified:user:interior
+    [1536] = true, -- Dwynnarth Crypts | verified:user:interior
+    [1537] = false, -- Gristmung Hold | verified:user:exterior
+    [1538] = false, -- Shivering Isles | verified:user:exterior
+    [1551] = true, -- Naj-Caldeesh | verified:user:interior
+    [1552] = true, -- Black Gem Foundry | verified:user:interior
+    [1553] = false, -- Writhing Fortress | verified:user:exterior
+    [1559] = false, -- Night Market | verified:user:exterior
+    [1560] = false, -- Hiddenspring Cottage | verified:user:exterior
+    [1561] = false, -- Wildgrown Chapel of Julianos | verified:user:exterior
+    [1562] = true, -- Gossamer Crypt | verified:user:interior
+    [1563] = true, -- Mournful Catacomb | verified:user:interior
+    [1564] = true, -- Timeless Wallow | verified:user:interior
+    [1565] = false, -- Opulent Ordeal | verified:user:exterior
+    [1566] = false, -- Cradle of the Worm Colossus | verified:user:exterior
+    [1567] = false, -- Druidspring Conservatory | verified:user:exterior
+    [1568] = true, -- Night's Den | verified:user:interior
+    [1569] = false, -- Buccaneer Bay | verified:user:exterior
+    [1570] = false, -- Voyage on the Abecean Sea | verified:user:exterior
+    [1574] = true, -- Birien Manor | verified:user:interior
+    [1575] = true, -- Hidden Library | verified:user:interior
+    [1577] = true, -- Rols Boron's Warehouse | verified:user:interior
+    [1578] = false, -- Daggerfall | verified:user:exterior
+    [1579] = false, -- Sage's Isle | verified:user:exterior
+    [1583] = true, -- The Nowhere Vault | verified:user:interior
+    [1592] = false, -- March of Sacrifices | verified:user:exterior
+    [1593] = true, -- Moon Hunter Keep | verified:user:interior
+    [1594] = false, -- Rogue's Refuge | verified:user:exterior
+    [1595] = false, -- Dancing Waters Wellspring | verified:user:exterior
+    [1597] = false, -- Star-Gazer's Vigil | verified:user:exterior
+    [1609] = false, -- Sheogorad Chateau | verified:user:exterior
+    [1610] = true, -- Grotto of Desires | verified:user:interior
 }
 
 --- Returns whether a given zoneId defaults to interior, checking a
@@ -1446,6 +1494,11 @@ local HOUSE_EXCEPTIONS = {
     [860]  = true,  -- Snugpod - weather control, but the whole zone is interior
     [1435] = false, -- The Fair Winds - no weather control, but entry area and most of the zone are exterior
     [1276] = true,  -- Water's Edge - weather control, but entry area and most of the zone are interior
+    -- 1.3.7 additions (author-verified):
+    [1609] = false, -- Sheogorad Chateau - no weather control, but starts in an exterior space (matches Amaya Lake Lodge)
+    [1569] = false, -- Buccaneer Bay - sprawling exterior island home; Weather Control support unconfirmed, so pinned
+    [1594] = false, -- Rogue's Refuge - exterior home over a hidden underground crypt; Weather Control support unconfirmed, so pinned
+    [1595] = false, -- Dancing Waters Wellspring - no weather control, but an open-sky pocket realm
 }
 
 -- 1.3.2: see PLAYER HOUSES in the header. The scan bound is a guess with

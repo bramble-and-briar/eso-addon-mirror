@@ -13,13 +13,15 @@ All are [b]required[/b] unless noted. Please install the newest available versio
 
 [list]
 [*][url=https://www.esoui.com/downloads/info7-LibAddonMenu.html][b]LibAddonMenu-2.0[/b][/url] — Settings panel UI
-[*][b]LibZoneTemp[/b] (ESOUI) — Zone ambient temperature data
-[*][b]LibArmorInsulation[/b] (ESOUI) — Armor insulation breakdown
+[*][url=https://www.esoui.com/downloads/info2533-LibClockTST.html][b]LibClockTST[/b][/url] — In-game lore time
+[*][url=https://www.esoui.com/downloads/info2171-LibZone.html][b]LibZone[/b][/url] — Current zone information
+[*][url=https://www.esoui.com/downloads/info4708-LibZoneTemp.html][b]LibZoneTemp[/b][/url] — Zone ambient temperature data
+[*][url=https://www.esoui.com/downloads/info4709-LibArmorInsulation.html][b]LibArmorInsulation[/b][/url] — Armor insulation breakdown
 [/list]
 
 [b]Optional:[/b]
 [list]
-[*][b]LibInteriorDetection[/b] (ESOUI) — powers the indoor shelter steadying effect described below. Frostfall works fine without it; that one effect just won't apply.
+[*][url=https://www.esoui.com/downloads/info4816-LibInteriorDetection.html][b]LibInteriorDetection[/b][/url] — powers the indoor shelter steadying effect described below. Frostfall works fine without it; that one effect just won't apply.
 [/list]
 
 [size=5][b]Credits[/b][/size]
@@ -196,7 +198,7 @@ Accessible via [b]/ff config[/b] or the ESO addon settings panel (LibAddonMenu-2
 [size=5][b]Compatibility[/b][/size]
 
 [list]
-[*]ESO API Version: 101050
+[*]ESO API Version: 101051 / 101052
 [*]Works with all ESO chapters and DLC
 [*]Compatible with outfit system, costume system, and Crown Store collectibles
 [/list]

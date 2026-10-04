@@ -10,7 +10,7 @@ local MSIMediaList = {
 }
 
 function MSI.ShowInitCenterMsg()
-	MSI.ShowCenterMsg(3210, [[icon_metu_liber.dds]], GetString(MSI_MENU_ADDON_DESCR_TITLE))
+	MSI.ShowCenterMsg(4321, [[icon_metu_liber.dds]], GetString(MSI_MENU_ADDON_DESCR_TITLE))
 end
 --*****************--
 --  Show CenterMsg
@@ -24,7 +24,7 @@ function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
 
 	CenterMsgDisplay:SetHidden(false)
 	animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 1)
-	animation0:SetDuration(987 + GetLatency())
+	animation0:SetDuration(789 + GetLatency())
 
 	-- Fade-out after Fade-in
 	timeline0:SetHandler('OnStop', function()
@@ -37,7 +37,7 @@ function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
 			local animation0, timeline0 = CreateSimpleAnimation(ANIMATION_ALPHA, CenterMsgDisplay)
 
 			animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 0)
-			animation0:SetDuration(987 + GetLatency())
+			animation0:SetDuration(789 + GetLatency())
 
 			timeline0:SetHandler('OnStop', function()
 				CenterMsgDisplay:SetHidden(true)

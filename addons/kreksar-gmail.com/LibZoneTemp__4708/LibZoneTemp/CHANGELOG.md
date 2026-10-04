@@ -4,6 +4,57 @@ Full version history for LibZoneTemp. See README.md for current features, instal
 
 ---
 
+## What's New in 2.3.19
+
+- **Added the 42 real zones LibZone 9.01 has that this library didn't.**
+  Neither table had any entry above zoneId 1584. LibZone's GitHub history
+  shows 6 of them are genuinely new since July (Update 51 / Season One:
+  The Nowhere Vault 1533, Voyage on the Abecean Sea 1570, the second
+  instances of March of Sacrifices 1592 and Moon Hunter Keep 1593,
+  Sheogorad Chateau 1609, Grotto of Desires 1610). The other 36 were
+  already in LibZone by April 2026 (Solstice/Worm Cult zones, the Night
+  Market, Shivering Isles, Daggerfall, the Thieves Guild storyline
+  locations, several houses) but had never been added here.
+- **Every value copies an existing entry**, named in each line's comment
+  ("basis: ..."), as reviewed and approved by the author - e.g. Solstice
+  sub-zones copy Solstice or its delves, Night Market dungeons copy
+  Fargrave's, Sheogorad Chateau copies Amaya Lake Lodge, Grotto of
+  Desires copies Pantherfang Chapel. Weather profiles were added only
+  for Night Market (copies Fargrave), Daggerfall (copies Glenumbra) and
+  the second March of Sacrifices (copies 1055); everything else
+  inherits as before.
+- **The Nowhere Vault (1533 and 1583) is deliberately neutral**: the
+  magic of the Vault protects the player from the elements. Air is 25°C
+  so that, after `INTERIOR_MODIFIER` (-3), it settles on 22°C -
+  Frostfall's neutral point, inside RND's 10-25°C comfort band. Water is
+  22°C. The reduced indoor time-of-day swing still moves it by roughly
+  -1.5/+0.9°C, so it's neutral on average, not to the decimal. It is
+  also only 22°C when the player is treated as indoors (LibInteriorDetection
+  1.3.7+ marks it interior); without LibInteriorDetection, the fallback
+  delve/dungeon check may not flag it and it would read 25°C.
+- **Manifest APIVersion bumped to `101051 101052`** (Update 51 /
+  Season One is live; LibZone 9.01 also lists 101052).
+- **Fixed two wrong dependency links in the README.** LibZone pointed at
+  `info1496` and LibClockTST at `info2360`; neither is those libraries'
+  ESOUI page. They now point to
+  https://www.esoui.com/downloads/info2171-LibZone.html and
+  https://www.esoui.com/downloads/info2533-LibClockTST.html, both
+  confirmed against the live ESOUI listings. The LibAddonMenu-2.0 link
+  (`info7`) was already correct.
+- **Linked the optional LibInteriorDetection dependency** too:
+  https://www.esoui.com/downloads/info4816-LibInteriorDetection.html.
+- **Dev placeholder zoneIds** (EngVerify, Pregame, ZTestBarbershop,
+  ZWicksTest, the two "Not Used/REUSE?" slots, RTeaser1, U44 Monster VO)
+  remain intentionally omitted.
+- **What wasn't verified**: none of the new values were measured in-game.
+  Several locations' exact parent zone is unconfirmed (Birien Manor,
+  Hidden Library, Rols Boron's Warehouse assumed near Daggerfall; A
+  Battle at Sea assumed on the Abecean Sea, per author). UESP lists ~17
+  rooms inside the Nowhere Vault; if they share a zoneId, per-room values
+  would need a map-based lookup, which this library doesn't have.
+
+---
+
 ## What's New in 2.3.18
 
 - **Reverted the version floor added to `## OptionalDependsOn: LibInteriorDetection`

@@ -6,14 +6,23 @@
   "author": "votan",
   "canonical_id": "esoui:1001",
   "category_id": "18",
-  "compatibility": [],
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
   "content_id": "esoui:1001",
   "deleted": false,
   "directories": [
     "VotansAchievementsOvw"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1001/",
-  "fingerprint": "d470aeb1a00419f2c67e4b38dcf673d56dc27acc67601040d6f185806aeff14e",
+  "fingerprint": "b6c7c4452d42e200e5d8db7568f4922101f17b7c5a486ad90dac0f21d9d095af",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw3052.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw3053.jpg",
@@ -26,11 +35,11 @@
   "source_id": "1001",
   "source_url": "https://www.esoui.com/downloads/info1001-VotansAchievementsOverview.html",
   "stats": {
-    "downloads": 338765,
+    "downloads": 340373,
     "favorites": 449,
-    "monthly_downloads": 1924
+    "monthly_downloads": 3512
   },
   "title": "Votan's Achievements Overview",
-  "updated_at": 1790945242000,
-  "version": "1.6.7"
+  "updated_at": 1791025702000,
+  "version": "1.6.8"
 }

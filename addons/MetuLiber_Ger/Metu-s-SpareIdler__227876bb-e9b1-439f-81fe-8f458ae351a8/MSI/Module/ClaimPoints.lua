@@ -28,7 +28,7 @@ if not MSI.SVars.IsClaimTomePoints then return end
 		for i, msTP in pairs(PendingClaimsTP) do
 			if (GetGameTimeMilliseconds() - msTP <= RESPONSE_TIME_LIMIT_TP) then
 				MSI.Print("c", string.format("%s %s", MSI.Colorize(zo_strformat(SI_TIMED_ACTIVITY_CLAIMED_PROGRESS, GetTimedActivityNumTimesClaimed(i), GetTimedActivityTotalNumTimesClaimable(i))), MSI.Colorize(GetTimedActivityName(i))))
-				MSI.ShowCenterMsg(2000, [[icon_info.dds]], string.format("%s %s", MSI.Colorize(zo_strformat(SI_TIMED_ACTIVITY_CLAIMED_PROGRESS, GetTimedActivityNumTimesClaimed(i), GetTimedActivityTotalNumTimesClaimable(i))), MSI.Colorize(GetTimedActivityName(i))))
+				MSI.ShowCenterMsg(2468, [[icon_info.dds]], string.format("%s %s", MSI.Colorize(zo_strformat(SI_TIMED_ACTIVITY_CLAIMED_PROGRESS, GetTimedActivityNumTimesClaimed(i), GetTimedActivityTotalNumTimesClaimable(i))), MSI.Colorize(GetTimedActivityName(i))))
 			end
 		end
 		PendingClaimsTP = {}
@@ -62,7 +62,7 @@ if not MSI.SVars.IsCaimPursuitPts then return end
 	local key = Id64ToString(campaignKey)
 	if (GetGameTimeMilliseconds() - (PendingClaimsGP[key] or 0) <= RESPONSE_TIME_LIMIT_GP) then
 		MSI.Print("c", MSI.Colorize(GetString(SI_PROMOTIONAL_EVENT_REWARD_CLAIMED_ANNOUNCEMENT)))
-		MSI.ShowCenterMsg(2000, [[icon_info.dds]], MSI.Colorize(GetString(SI_PROMOTIONAL_EVENT_REWARD_CLAIMED_ANNOUNCEMENT)))
+		MSI.ShowCenterMsg(2468, [[icon_info.dds]], MSI.Colorize(GetString(SI_PROMOTIONAL_EVENT_REWARD_CLAIMED_ANNOUNCEMENT)))
 		PendingClaimsGP[key] = nil
 	end
 end

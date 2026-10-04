@@ -1,8 +1,8 @@
 ## Title: Better Character Overview
 ## Author: Copper
-## Version: 1.9.0
+## Version: 1.10.0
 ## APIVersion: 101050
-## AddOnVersion: 1900
+## AddOnVersion: 11000
 ## Description: Adds a native All Inventories page to the PS5 gamepad Inventory with compact item-location details, cross-character currencies, furnishing preview, furnishings grouped by furniture category and cataloged from bank, housing storage, and owned houses, guild store listings per guild, and All/Banked/Characters/Storage/Listed source filters, excluding the Craft Bag.
 ## SavedVariables: BetterCharacterOverviewSavedVariables
 ## ProdId: 23989a49-5901-4ccb-9b71-6e848d4bceee

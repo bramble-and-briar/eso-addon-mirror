@@ -18,7 +18,7 @@
     "CyrHUD"
   ],
   "download_url": "https://www.esoui.com/downloads/dl559/",
-  "fingerprint": "4f3cd363c05f10ba131192c8c2df998c64df23745922951d958359e0e5e4bfbc",
+  "fingerprint": "3e9844eeebf067b517044a92188e8d153cc9d1a19ee68de133739d88b2a5680b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12203.png",
     "https://cdn-eso.mmoui.com/preview/pvw12155.png",
@@ -34,11 +34,11 @@
   "source_id": "559",
   "source_url": "https://www.esoui.com/downloads/info559-CyrHUD.html",
   "stats": {
-    "downloads": 331312,
+    "downloads": 332231,
     "favorites": 156,
-    "monthly_downloads": 1190
+    "monthly_downloads": 1933
   },
   "title": "CyrHUD",
-  "updated_at": 1790582603000,
+  "updated_at": 1791060110000,
   "version": "2026.09.26"
 }

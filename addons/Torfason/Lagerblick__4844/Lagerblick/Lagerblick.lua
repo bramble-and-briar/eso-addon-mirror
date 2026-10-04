@@ -1,7 +1,7 @@
 local LB = {}
 
 LB.name = "Lagerblick"
-LB.version = "2.0.1"
+LB.version = "2.0.2"
 LB.savedVariablesName = "LagerblickSavedVariables"
 LB.savedVariablesVersion = 1
 LB.dataVersion = 2
@@ -28,7 +28,6 @@ local HOUSE_BANKS = {
     { bag = BAG_HOUSE_BANK_TEN,   option = INVENTORY_COUNT_BAG_OPTION_HOUSE_BANK_TEN,   number = 10 },
 }
 
-local COLOR_SECTION = { 0.50, 0.78, 1.00 }
 local COLOR_LINE    = { 0.82, 0.80, 0.73 }
 local COLOR_TOTAL   = { 0.90, 0.84, 0.66 }
 local COLOR_NONE    = { 0.68, 0.66, 0.60 }
@@ -593,8 +592,6 @@ function LB:AddTooltipInfo(tooltip, itemLink)
     else
         tooltip:AddLine(" ")
     end
-
-    self:AddCenteredLine(tooltip, S(SI_LAGERBLICK_TITLE), "ZoFontWinH5", COLOR_SECTION)
 
     if total > 0 then
         local inlineLines = self:BuildInlineLines(rows)

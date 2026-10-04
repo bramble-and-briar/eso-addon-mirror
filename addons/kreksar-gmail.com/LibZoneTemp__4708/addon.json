@@ -22,7 +22,7 @@
     "LibZoneTemp"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4708/",
-  "fingerprint": "913cab6ce11b9b1f411c3c298429f9be81c5c8a656363c728f8b96ceb87f8399",
+  "fingerprint": "32aaed2b00c6e1f443ac7f6b0944987f50bf4a079cd68904c073a5e765c09eb4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16700.png",
     "https://cdn-eso.mmoui.com/preview/pvw16701.png"
@@ -33,11 +33,11 @@
   "source_id": "4708",
   "source_url": "https://www.esoui.com/downloads/info4708-LibZoneTemp.html",
   "stats": {
-    "downloads": 858,
+    "downloads": 1391,
     "favorites": 1,
-    "monthly_downloads": 416
+    "monthly_downloads": 592
   },
   "title": "LibZoneTemp",
-  "updated_at": 1788722613000,
-  "version": "2.3.18"
+  "updated_at": 1791051563000,
+  "version": "2.3.19"
 }

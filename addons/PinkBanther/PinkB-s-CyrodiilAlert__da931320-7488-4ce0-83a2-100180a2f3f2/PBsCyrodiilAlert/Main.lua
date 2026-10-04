@@ -495,6 +495,18 @@ local DEFAULTS = {
 		offsetX = -24,
 		offsetY = 220,
 		draw = "FRONT",
+		-- The transitus network, as the world map shows it.
+		links = true,
+		-- Your own alliance's links in the shrine's colours: green where you can travel.
+		linksReady = true,
+		-- The farms, mines and lumbermills around each keep.
+		resources = true,
+		-- Your own arrow, and how big it is. Smaller than a keep, as on the world map.
+		player = true,
+		playerSize = 10,
+		-- The rest of the group.
+		group = true,
+		groupSize = 10,
 	},
 	-- The campaign summary. Its own switch, its own size and its own corner; the typeface and
 	-- outline come from the alert display, because two on-screen texts from one add-on in two
@@ -556,6 +568,7 @@ end
 
 addon:UpdateScreenLimits()
 addon.MIN_MAP_PIN, addon.MAX_MAP_PIN = 8, 48
+addon.MIN_MAP_PLAYER, addon.MAX_MAP_PLAYER = 4, 40
 addon.MIN_INTERVAL, addon.MAX_INTERVAL = MIN_INTERVAL, MAX_INTERVAL
 addon.MIN_REPEAT, addon.MAX_REPEAT = MIN_REPEAT, MAX_REPEAT
 
@@ -1175,6 +1188,33 @@ local function ArtifactEnergyText()
 	return ""
 end
 
+-- Whether an objective is in play at all. Every place the artifact CAN spawn is an objective
+-- of its own -- twenty-three of them across Cyrodiil -- and each answers GetObjectivePinInfo
+-- with a perfectly good pin, whether or not anything is there. The client's own map only
+-- draws the ones that are enabled (mappin_manager.lua:677); without the same test the add-on
+-- drew every spawn point as an artifact.
+local function IsObjectiveInPlay(keepId, objectiveId, bgContext)
+	if IsObjectiveEnabled and not IsObjectiveEnabled(keepId, objectiveId, bgContext) then
+		return false
+	end
+	return true
+end
+
+-- And whether the thing itself is there to be drawn: the client's second test before it puts a
+-- current-location pin down (mappin_manager.lua:680, 706).
+local function IsObjectiveObjectShown(keepId, objectiveId, bgContext)
+	if not IsObjectiveInPlay(keepId, objectiveId, bgContext) then
+		return false
+	end
+	if IsObjectiveObjectVisible and not IsObjectiveObjectVisible(keepId, objectiveId, bgContext) then
+		return false
+	end
+	return true
+end
+
+addon.IsObjectiveInPlay = IsObjectiveInPlay
+addon.IsObjectiveObjectShown = IsObjectiveObjectShown
+
 -- Every Daedric artifact currently revealed in this campaign, or nil. An artifact that has not
 -- spawned reports OBJECTIVE_CONTROL_STATE_UNKNOWN and is left out: "not out yet" is not a state
 -- worth a line on a summary.
@@ -1188,7 +1228,8 @@ function addon:Artifacts()
 	for index = 1, (GetNumObjectives() or 0) do
 		local keepId, objectiveId, bgContext = GetObjectiveIdsForIndex(index)
 		if keepId and IsThisCampaign(bgContext)
-			and GetObjectiveType(keepId, objectiveId, bgContext) == OBJECTIVE_DAEDRIC_WEAPON then
+			and GetObjectiveType(keepId, objectiveId, bgContext) == OBJECTIVE_DAEDRIC_WEAPON
+			and IsObjectiveInPlay(keepId, objectiveId, bgContext) then
 			local name, _, state = GetObjectiveInfo(keepId, objectiveId, bgContext)
 			if state ~= OBJECTIVE_CONTROL_STATE_UNKNOWN then
 				local pinType = GetObjectivePinInfo(keepId, objectiveId, bgContext)
@@ -2071,6 +2112,11 @@ function addon:PrintHelp()
 	Line(GetString(SI_PBSCA_HELP_LOG_DRAW))
 	Line(GetString(SI_PBSCA_HELP_LOG_CLEAR))
 	Line(GetString(SI_PBSCA_HELP_MAP))
+	Line(GetString(SI_PBSCA_HELP_MAP_LINKS))
+	Line(GetString(SI_PBSCA_HELP_MAP_LINKS_READY))
+	Line(GetString(SI_PBSCA_HELP_MAP_RESOURCES))
+	Line(GetString(SI_PBSCA_HELP_MAP_PLAYER))
+	Line(GetString(SI_PBSCA_HELP_MAP_GROUP))
 	Line(GetString(SI_PBSCA_HELP_MAP_PROBE))
 	Line(GetString(SI_PBSCA_HELP_BOARD))
 	Line(GetString(SI_PBSCA_HELP_BOARD_DRAW))
@@ -2223,6 +2269,75 @@ function addon:HandleCommand(argumentString)
 			for _, line in ipairs(self.map:Probe()) do
 				Print("%s", line)
 			end
+			return
+		end
+		-- "map group on|off" -- the rest of the group.
+		if second == "group" or second == "party" then
+			local value = ParseSwitch(words[3] or "")
+			if value == nil then
+				Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+				return
+			end
+			self.sv.map.group = value
+			self.map:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_MAP_GROUP) .. ": " .. OnOff(value))
+			return
+		end
+
+		-- "map player on|off" -- your own arrow.
+		if second == "player" or second == "me" then
+			local value = ParseSwitch(words[3] or "")
+			if value == nil then
+				Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+				return
+			end
+			self.sv.map.player = value
+			self.map:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_MAP_PLAYER) .. ": " .. OnOff(value))
+			return
+		end
+
+		-- "map resources on|off" -- the farms, mines and lumbermills.
+		if second == "resources" or second == "resource" then
+			local value = ParseSwitch(words[3] or "")
+			if value == nil then
+				Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+				return
+			end
+			self.sv.map.resources = value
+			self.map:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_MAP_RESOURCES) .. ": " .. OnOff(value))
+			return
+		end
+
+		-- "map ready on|off" -- the shrine's green for the routes you can take.
+		if second == "ready" or second == "green" then
+			local value = ParseSwitch(words[3] or "")
+			if value == nil then
+				Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+				return
+			end
+			self.sv.map.linksReady = value
+			self.map:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_MAP_LINKS_READY) .. ": " .. OnOff(value))
+			return
+		end
+
+		-- "map links on|off" -- the transitus network.
+		if second == "links" or second == "transitus" then
+			local value = ParseSwitch(words[3] or "")
+			if value == nil then
+				Print(GetString(SI_PBSCA_ERROR_ON_OR_OFF))
+				return
+			end
+			self.sv.map.links = value
+			self.map:Refresh()
+			self:RefreshPanel()
+			Print(GetString(SI_PBSCA_MAP_LINKS) .. ": " .. OnOff(value))
 			return
 		end
 		local value = ParseSwitch(second)
@@ -2513,6 +2628,7 @@ local function OnPlayerActivated()
 	-- not also the first time anything is created.
 	addon.hud:Refresh()
 	addon.log:Refresh()
+	addon.map:Refresh(true)
 
 	if addon.sv.banner then
 		addon:PrintStatus()

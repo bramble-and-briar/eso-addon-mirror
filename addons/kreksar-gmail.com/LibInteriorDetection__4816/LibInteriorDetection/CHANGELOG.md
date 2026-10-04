@@ -4,6 +4,36 @@ Full version history for LibInteriorDetection (renamed from LibIndoorDetection a
 
 ---
 
+## What's New in 1.3.7
+
+- **Added the 42 real zones LibZone 9.01 has that `ZONE_INTERIOR`
+  didn't** (it stopped at zoneId 1584): 6 new since July (Update 51 /
+  Season One) and 36 that were already in LibZone by April 2026 but never
+  added here. Every flag was reviewed by the author. Dev placeholder
+  zoneIds remain omitted.
+- **Four new `HOUSE_EXCEPTIONS`**, all pinned exterior:
+  - Sheogorad Chateau (1609): no Weather Control, so the house rule
+    would make it interior, but it starts in an exterior space (matches
+    Amaya Lake Lodge).
+  - Dancing Waters Wellspring (1595): no Weather Control, but it's an
+    open-sky pocket realm.
+  - Buccaneer Bay (1569) and Rogue's Refuge (1594): exterior per the
+    author; their Weather Control support wasn't confirmed, so they're
+    pinned rather than left to the rule.
+- **The Nowhere Vault (1533, 1583) is interior**: the magic of the Vault
+  protects the player from the elements (LibZoneTemp 2.3.19 gives it
+  neutral temperatures to match).
+- **Manifest APIVersion bumped to `101051 101052`** (Update 51 /
+  Season One is live; LibZone 9.01 also lists 101052).
+- **Fixed the wrong LibZone link in the README.** It pointed at
+  `info1496`, which isn't LibZone's ESOUI page; it now points to
+  https://www.esoui.com/downloads/info2171-LibZone.html, confirmed
+  against the live ESOUI listing. The LibAddonMenu-2.0 link (`info7`)
+  was already correct.
+- **What wasn't verified**: no new entry has been checked in-game yet.
+
+---
+
 ## What's New in 1.3.6
 
 - **Fixed: quitting the game could restore the wrong indoor/outdoor

@@ -22,7 +22,7 @@ The only place a zone [i]name[/i] is shown to the player is display text: the se
 [size=5][b]Features[/b][/size]
 
 [list]
-[*][b]Lore-accurate base temperatures[/b] for every overland zone and hundreds of sub-zones through West Weald (2024)
+[*][b]Lore-accurate base temperatures[/b] for every overland zone and hundreds of sub-zones through Solstice (2025) and the Season One zones (2026)
 [*][b]Explicit overrides for fire/lava zones[/b] — City of Ash, Deadlands, Tormented Spire, Bloodroot Forge, The Cauldron, and more
 [*][b]Explicit overrides for ice/frozen zones[/b] — Icereach, Frostvault, Direfrost Keep, Kyne's Aegis, and more
 [*][b]Time-of-day modifiers[/b] using the in-game Tamriel clock (dawn, day, dusk, night)
@@ -41,15 +41,15 @@ The only place a zone [i]name[/i] is shown to the player is display text: the se
 Please install the newest available version of each:
 
 [list]
-[*][url=https://www.esoui.com/downloads/info1496-LibZone.html][b]LibZone[/b][/url] — reports the player's current zoneId/parentZoneId and delve/dungeon/trial status; not used for zone names
+[*][url=https://www.esoui.com/downloads/info2171-LibZone.html][b]LibZone[/b][/url] — reports the player's current zoneId/parentZoneId and delve/dungeon/trial status; not used for zone names
 [*][url=https://www.esoui.com/downloads/info7-LibAddonMenu.html][b]LibAddonMenu-2.0[/b][/url] — settings panel UI
-[*][url=https://www.esoui.com/downloads/info2360-LibClockTST.html][b]LibClockTST[/b][/url] — in-game lore time (hour/minute) for time-of-day modifiers
+[*][url=https://www.esoui.com/downloads/info2533-LibClockTST.html][b]LibClockTST[/b][/url] — in-game lore time (hour/minute) for time-of-day modifiers
 [/list]
 
 All three above must be installed and loaded for full functionality — LibZone, LibAddonMenu-2.0, and LibClockTST are all hard dependencies, so ESO will refuse to load LibZoneTemp at all if any is missing. The library degrades gracefully if LibClockTST's clock instance isn't ready yet (defaulting to noon).
 
 [list]
-[*][b]LibInteriorDetection[/b] — optional. If installed, its live indoor/outdoor detection is used for the interior penalty and weather/time shielding instead of the narrower delve/dungeon/trial-only fallback. Nothing breaks if it isn't installed.
+[*][url=https://www.esoui.com/downloads/info4816-LibInteriorDetection.html][b]LibInteriorDetection[/b][/url] — optional. If installed, its live indoor/outdoor detection is used for the interior penalty and weather/time shielding instead of the narrower delve/dungeon/trial-only fallback. Nothing breaks if it isn't installed.
 [/list]
 
 [size=5][b]Installation[/b][/size]
@@ -111,7 +111,7 @@ Access via [b]/libzonetemp[/b] or [b]Settings → Addons → LibZoneTemp Setting
 
 [size=5][b]Zone Coverage[/b][/size]
 
-[size=4][b]Overland Zones[/b] (all factions + DLC/Chapter through West Weald)[/size]
+[size=4][b]Overland Zones[/b] (all factions + DLC/Chapter through Solstice and Season One)[/size]
 All 40+ overland zones have explicit base temperatures, weather profiles, and water temperatures.
 
 [size=4][b]Sub-Zones with Explicit Temperatures[/b][/size]
@@ -120,6 +120,8 @@ Over 200 named sub-zones now have their own entries, overriding parent-zone inhe
 [b]Fire / Lava / Volcanic[/b] — zones containing active lava rivers, Oblivion fire planes, volcanic vents, or draconic flame. Temperatures range from 30°C (warm underground ruins near volcanic activity) to 60°C (deep Deadlands and City of Ash II).
 
 [b]Ice / Frozen / Arctic[/b] — zones buried in glaciers, located on polar islands, or containing permafrost and frost atronachs. Temperatures range from −16°C (Icereach) to −2°C (March of Sacrifices).
+
+[b]Neutral[/b] — The Nowhere Vault is deliberately climate-neutral (it settles at 22°C indoors): the magic of the Vault protects the player from the elements.
 
 [b]Underground / Dungeons[/b] — most inherit from their parent zone via the existing fallback, but dungeons with notable microclimates (geothermal heat, deep cold, enclosed Daedric environments) have their own entry.
 

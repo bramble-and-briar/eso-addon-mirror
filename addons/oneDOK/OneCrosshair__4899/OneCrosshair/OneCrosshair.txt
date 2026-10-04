@@ -1,7 +1,7 @@
 ## Title: OneCrosshair
 ## Description: Animated crosshair presets with contextual resource and weaving indicators.
 ## Author: oneDOK
-## Version: 1.0
+## Version: 26.1
 ## APIVersion: 101051
 ## SavedVariables: OneCrosshairSavedVariables
 ## DependsOn: LibAddonMenu-2.0
@@ -22,6 +22,9 @@ Crosshair/Presets/Rays.lua
 Crosshair/Presets/Diamonds.lua
 Crosshair/Presets/ESO.lua
 Crosshair/CrosshairController.lua
+Rendering/ArcAssets.lua
+Rendering/ArcRenderer.lua
+Rendering/SegmentedArcRenderer.lua
 HUD/ResourceRing.lua
 HUD/Resource.lua
 HUD/Health.lua

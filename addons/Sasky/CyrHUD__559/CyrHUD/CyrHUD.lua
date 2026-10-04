@@ -17,7 +17,7 @@
 
 CyrHUD = CyrHUD or {}
 CyrHUD.addonVars = {}
-CyrHUD.addonVars.version	= "2026.07.20"
+CyrHUD.addonVars.version	= "2026.09.28"
 CyrHUD.addonVars.name 		= "CyrHUD"
 CyrHUD.addonVars.author 	= "Sasky, |c4779ce@aldericon|r, |c3CB371@Masteroshi430|r"
 CyrHUD.addonVars.website	= "http://www.esoui.com/downloads/fileinfo.php?id=559#info"
@@ -1108,7 +1108,7 @@ function CyrHUD:init()
     -- never ran for the correct milegate/bridge on this event. The handler
     -- right above it (GateChange) uses a parameter actually named `keepID`
     -- and was unaffected. Fixed to reference the correct parameter.
-    EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."PassableChange", EVENT_KEEP_IS_PASSABLE_CHANGED, function(_, keepId, battlegroundContext, isPassable) self.eventAttackChange(_, keepId, CyrHUD.battleContext) end)
+  EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."PassableChange", EVENT_KEEP_IS_PASSABLE_CHANGED, function(_, keepId, battlegroundContext, isPassable) self.eventAttackChange(_, keepId, CyrHUD.battleContext) end)
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."KillFeed", EVENT_PVP_KILL_FEED_DEATH, function(_, killLocation, killerPlayerCharacterName, killerPlayerDisplayName, killerPlayerAlliance, killerPlayerRank, victimPlayerCharacterName, victimPlayerDisplayName, victimPlayerAlliance, victimPlayerRank)  CyrHUD.playerKilled(_, killLocation, killerPlayerCharacterName, killerPlayerDisplayName, killerPlayerAlliance, killerPlayerRank, victimPlayerCharacterName, victimPlayerDisplayName, victimPlayerAlliance, victimPlayerRank) end)
 	EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name.."CampaignDataReceived",EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED, function() CyrHUD.CampaignDataPending = false end)
 
@@ -1122,9 +1122,9 @@ end
 function CyrHUD:refresh()
     --Get initial scan
     self.battles = {}
-	self.MovingObjectives = {}
-	self.Graveyards = {}
-	self.PatrollingHorrors  = {}
+	  self.MovingObjectives = {}
+	  self.Graveyards = {}
+	  self.PatrollingHorrors  = {}
     self.battleContext = BGQUERY_LOCAL
 
     -- 20/07/2026 bug fix:
@@ -1236,11 +1236,11 @@ function CyrHUD:deinit()
     EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name, EVENT_ACTION_LAYER_PUSHED)
     EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."AttackChange", EVENT_KEEP_UNDER_ATTACK_CHANGED)
     EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."ObjectiveControlState", EVENT_OBJECTIVE_CONTROL_STATE)
-	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."ArtifactControlState", EVENT_ARTIFACT_CONTROL_STATE) 
-	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."GateChange", EVENT_KEEP_GATE_STATE_CHANGED)
-	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."PassableChange", EVENT_KEEP_IS_PASSABLE_CHANGED)
+	  EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."ArtifactControlState", EVENT_ARTIFACT_CONTROL_STATE) 
+  	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."GateChange", EVENT_KEEP_GATE_STATE_CHANGED)
+  	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."PassableChange", EVENT_KEEP_IS_PASSABLE_CHANGED)
     EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."KillFeed", EVENT_PVP_KILL_FEED_DEATH)
-	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."CampaignDataReceived",EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED)
+  	EVENT_MANAGER:UnregisterForEvent(CyrHUD.addonVars.name.."CampaignDataReceived",EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED)
 
     CyrHUD_UI:SetHidden(true)
     self.visible = false
@@ -1276,41 +1276,32 @@ function CyrHUD.addonInit()
 		hidePatrollingHorrors = false,
 		enableInCyro = true,
 		enableInIC = true,
-        showPopBars = false,
+    showPopBars = false,
     }
 
     self.cfg = ZO_SavedVars:NewAccountWide("CyrHUD_SavedVars", 1.0, "config", def)
 
     --Create UI
-    self.ui = WINDOW_MANAGER:CreateTopLevelWindow("CyrHUD_UI")
+    self.ui = GetControl("CyrHUD_UI")
     self.ui:SetWidth(CyrHUD.width)
+    self.ui:SetHeight(CyrHUD.width)
     self.ui:SetMouseEnabled(true)
-    self.ui:SetMovable(true)
+    --self.ui:SetMovable(true)
     self.ui:SetClampedToScreen(true)
-    self.ui:SetHandler("OnMoveStop", self.saveWindowPosition)
+   -- self.ui:SetHandler("OnMoveStop", self.saveWindowPosition)
 
     --local _, pt, relTo, relPt = CyrHUD_UI:GetAnchor()
-    self.ui:ClearAnchors()
-    self.ui:SetAnchor(CyrHUD.cfg.selfPoint or TOPLEFT,
-        GuiRoot, CyrHUD.cfg.anchPoint or TOPRIGHT,
-        CyrHUD.cfg.xoff, CyrHUD.cfg.yoff)
+    --self.ui:ClearAnchors()
+    --self.ui:SetAnchor(CyrHUD.cfg.selfPoint or TOPLEFT, GuiRoot, CyrHUD.cfg.anchPoint or TOPRIGHT, CyrHUD.cfg.xoff, CyrHUD.cfg.yoff)
+    
+    HUD_MANAGER:RegisterKeyboardElement(self.ui, "CyrHUD", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) -- for Keyboard UI 
+    HUD_MANAGER:RegisterGamepadElement(self.ui, "CyrHUD", { defaultAnchor = ZO_Anchor:New(TOP, nil, TOP, 0, 40) }, COMPASS_OPTIONS) --for Gamepad UI
 
     --Create settings menu
     local LAM = LibAddonMenu2
     LAM:RegisterAddonPanel(CyrHUD.addonVars.name .. "-LAM", self.menuPanel)
     LAM:RegisterOptionControls(CyrHUD.addonVars.name .. "-LAM", self.menuOptions)
     self.initLAM = true
-
-    --[[if (GetDate() % 1000)== 401 then
-        --NOTE: If you see this before 4/1, please don't share
-        table.insert(self.menuOptions,{
-            type = "checkbox",
-            name = GetString(SI_CYRHUD_APRIL1),
-            tooltip = GetString(SI_CYRHUD_APRIL1_TOOLTIP),
-            getFunc = function() return CyrHUD.cfg.aprOff or false end,
-            setFunc = function(v) CyrHUD.cfg.aprOff = v; CyrHUD:refresh() end,
-        })
-    end]]
 end
 
 function CyrHUD.playerInit()
@@ -1320,24 +1311,28 @@ function CyrHUD.playerInit()
         self.addonInit()
     end
 
+
     if IsPlayerInAvAWorld() then
- 		if IsInImperialCity() and not self.cfg.enableInIC then
-		   self:deinit()
-		   return
-		elseif not IsInImperialCity() and not self.cfg.enableInCyro then
-		   self:deinit()
-		   return
-		end
-		
-		if self.visible then
-            if CyrHUD.campaignID ~= GetCurrentCampaignId() then self:refresh() end 
-        else
-            self:init()
-        end
-	    CyrHUD.campaignID = GetCurrentCampaignId()	
+          if IsInImperialCity() and not self.cfg.enableInIC then
+             self:deinit()
+             return
+          elseif not IsInImperialCity() and not self.cfg.enableInCyro then
+             self:deinit()
+             return
+          end
+          
+          if self.visible then
+              if CyrHUD.campaignID ~= GetCurrentCampaignId() then
+                  self:refresh()
+              end 
+          else
+              self:init()
+          end
+          CyrHUD.campaignID = GetCurrentCampaignId()	
     elseif self.visible then
-        self:deinit()
+          self:deinit()
     end
 end
 
 EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name .. "-init", EVENT_PLAYER_ACTIVATED, CyrHUD.playerInit)
+EVENT_MANAGER:RegisterForEvent(CyrHUD.addonVars.name .. "-init", EVENT_ADD_ON_LOADED, function() CyrHUD.playerInit() EVENT_MANAGER:UnregisterForEvent(EVENT_ADD_ON_LOADED) end)

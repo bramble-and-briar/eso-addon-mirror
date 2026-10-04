@@ -1,9 +1,11 @@
 ## Title: |c7FC7FFImmersives Reiten|r
-## APIVersion: 101050 101051
-## Version: 1.2.3
-## AddOnVersion: 10203
 ## Author: Atlas
+## Version: 2.0.0
+## AddOnVersion: 200
+## APIVersion: 101050 101051
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Enables immersive first-person riding while preserving your preferred camera perspective.
 ## SavedVariables: ImmersivesReitenSavedVariables
-## Description: Ego-Perspektive beim Reiten mit Wechsel zwischen Ego und Third Person. Mit OpenAI ChatGPT (Atlas) entwickelt; Konzept und In-Game-Tests: Torfason. Keine Abhängigkeiten.
 
+lang/en.lua
+lang/$(language).lua
 ImmersivesReiten.lua

@@ -19,6 +19,14 @@
 --
 -- Ground marker: where the camera ray meets the player's floor plane (More Markers'
 -- cursor-placement math) - correct on flat ground, meaningless on slopes/platforms.
+--
+-- Distance icons (0.8.0): camera-facing billboards of fixed world size at fixed
+-- HORIZONTAL distances from the player. Unlike the strip (a flat quad whose length
+-- changes with pitch, so its texture visibly stretches), a billboard never stretches.
+-- Path "line": along the character -> aim-point segment (spread out on screen).
+-- Path "ray": on the camera ray itself - every icon projects to the crosshair, so
+-- they stack concentrically (nearer = bigger) and the depth test removes every icon
+-- beyond the first wall: a pure occlusion range finder.
 
 local SnipersFriend = SnipersFriend
 local Utils = SnipersFriend.AimLineUtils
@@ -36,7 +44,10 @@ local GROUND_TEXTURE = "SnipersFriend/textures/ring.dds"
 local GROUND_MIN_PITCH = math.rad(2)
 local SOLID_TEXTURE = "SnipersFriend/textures/solid.dds"
 local CAP_TEXTURE = "SnipersFriend/textures/ring_dot.dds"
-local MAX_TICKS = 24
+local MAX_TICKS = 64
+local ICON_TEXTURE = "SnipersFriend/textures/icon_ring.dds"
+local ICON_MAJOR_TEXTURE = "SnipersFriend/textures/icon_ring_dot.dds"
+local ICON_REF_DIST_M = 10 -- constant-screen-size mode: iconSizeM is the size at this distance
 local MAX_RAY_M = 120
 local START_HEIGHT_M = 1.1 -- start the strip at roughly chest height, not the feet
 local START_SKIP_M = 0.8   -- skip the first bit so it doesn't clip the character model
@@ -67,7 +78,7 @@ local function EnsureControls()
         local name = TICK_NAME .. i
         local tick = _G[name] or WINDOW_MANAGER:CreateControl(name, tl, CT_TEXTURE)
         if not tick:Has3DRenderSpace() then tick:Create3DRenderSpace() end
-        tick:SetTexture(SOLID_TEXTURE)
+        tick:SetTexture(ICON_TEXTURE)
         tick:SetHidden(true)
         state.aimTicks[i] = tick
     end
@@ -176,9 +187,37 @@ local function Hide()
     state.aimLineVisible = false
 end
 
----Tick marks at fixed HORIZONTAL distances. The strip starts at the player's xz, so
----horizontal distance grows linearly along it: distance d sits at fraction d / range.
----Looking level spreads them out on screen; looking down at the ground compresses them.
+---Turn a quad into a camera-facing billboard (More Markers' pitch/yaw from the camera
+---forward in euler mode; explicit basis otherwise).
+---@param control any
+---@param x number quad position
+---@param y number
+---@param z number
+---@param cx number camera
+---@param cy number
+---@param cz number
+---@param fx number camera forward
+---@param fy number
+---@param fz number
+local function FaceCamera(control, x, y, z, cx, cy, cz, fx, fy, fz)
+    if Settings().orientMode == "euler" then
+        local pitch = math.atan2(fy, math.sqrt(fx * fx + fz * fz))
+        local yaw = math.atan2(fx, fz) - math.pi
+        control:Set3DRenderSpaceOrientation(pitch, yaw, 0)
+    else
+        local rx, ry, rz, ux, uy, uz, nx, ny, nz = Utils.BillboardBasis(cx - x, cy - y, cz - z)
+        control:Set3DRenderSpaceRight(rx, ry, rz)
+        control:Set3DRenderSpaceUp(ux, uy, uz)
+        control:Set3DRenderSpaceForward(nx, ny, nz)
+    end
+end
+
+---Billboard icons at fixed HORIZONTAL distances from the player (every tickIntervalM,
+---up to the range). Path "line": the strip starts at the player's xz, so horizontal
+---distance grows linearly along it - distance d sits at fraction d / range. Path
+---"ray": the point on the camera ray whose horizontal distance from the player is d.
+---Icons never stretch: they always face the camera and have a fixed world size (or a
+---size proportional to distance, which reads as a constant on-screen size).
 ---@param ox number segment origin (player, chest height)
 ---@param oy number
 ---@param oz number
@@ -187,17 +226,16 @@ end
 ---@param dz number
 ---@param segLen number full segment length (player -> aim point)
 ---@param rangeM number horizontal range at the aim point
----@param rx number strip basis (shared so ticks lie flat on the strip)
----@param ry number
----@param rz number
----@param ux number
----@param uy number
----@param uz number
----@param nx number
----@param ny number
----@param nz number
+---@param cx number camera
+---@param cy number
+---@param cz number
+---@param fx number camera forward
+---@param fy number
+---@param fz number
+---@param px number player
+---@param pz number
 ---@return integer shown
-local function PlaceTicks(ox, oy, oz, dx, dy, dz, segLen, rangeM, rx, ry, rz, ux, uy, uz, nx, ny, nz)
+local function PlaceIcons(ox, oy, oz, dx, dy, dz, segLen, rangeM, cx, cy, cz, fx, fy, fz, px, pz)
     local state, s = State(), Settings()
     if not s.showTicks or s.tickIntervalM <= 0 then
         HideTicks(1)
@@ -208,23 +246,30 @@ local function PlaceTicks(ox, oy, oz, dx, dy, dz, segLen, rangeM, rx, ry, rz, ux
     local n = 0
     while d < rangeM - 0.01 and shown < #state.aimTicks do
         n = n + 1
-        local u = d / rangeM
-        local tx, ty, tz = ox + dx * segLen * u, oy + dy * segLen * u, oz + dz * segLen * u
-        local tick = state.aimTicks[shown + 1]
-        local major = s.majorTickEvery > 0 and (n % s.majorTickEvery == 0)
-        local w = major and s.tickWidthM * 1.8 or s.tickWidthM
-        tick:Set3DRenderSpaceOrigin(tx, ty, tz)
-        tick:Set3DLocalDimensions(w, s.tickThicknessM)
-        if s.orientMode == "euler" then
-            -- same orientation as the strip, so the tick lies across it
-            local pitch, yaw = Utils.LineOrientation(ox, oy, oz, ox + dx, oy + dy, oz + dz)
-            tick:Set3DRenderSpaceOrientation(pitch, yaw, 0)
+        local tx, ty, tz
+        if s.iconPath == "ray" then
+            tx, ty, tz = Utils.RangeEndPoint(cx, cy, cz, fx, fy, fz, px, pz, d, MAX_RAY_M)
         else
-            tick:Set3DRenderSpaceRight(rx, ry, rz)
-            tick:Set3DRenderSpaceUp(ux, uy, uz)
-            tick:Set3DRenderSpaceForward(nx, ny, nz)
+            local u = d / rangeM
+            tx, ty, tz = ox + dx * segLen * u, oy + dy * segLen * u, oz + dz * segLen * u
         end
-        tick:SetHidden(false)
+        local icon = state.aimTicks[shown + 1]
+        local major = s.majorTickEvery > 0 and (n % s.majorTickEvery == 0)
+        local size = s.iconSizeM
+        if s.iconConstantScreenSize then
+            local dist = math.sqrt((tx - cx) ^ 2 + (ty - cy) ^ 2 + (tz - cz) ^ 2)
+            size = size * dist / ICON_REF_DIST_M
+        end
+        if major then size = size * 1.4 end
+        if icon.sfMajor ~= major then
+            icon:SetTexture(major and ICON_MAJOR_TEXTURE or ICON_TEXTURE)
+            icon.sfMajor = major
+        end
+        icon:Set3DRenderSpaceOrigin(tx, ty, tz)
+        icon:Set3DLocalDimensions(size, size)
+        FaceCamera(icon, tx, ty, tz, cx, cy, cz, fx, fy, fz)
+        SortByDistance(icon, tx, ty, tz, cx, cy, cz)
+        icon:SetHidden(false)
         shown = shown + 1
         d = d + s.tickIntervalM
     end
@@ -272,35 +317,25 @@ function AimLineActions.OnUpdate()
     local mx, my, mz = (sx + ex) / 2, (sy + ey) / 2, (sz + ez) / 2
 
     local line, cap, ground = state.aimLine, state.aimLineCap, state.aimGround
-    line:Set3DRenderSpaceOrigin(mx, my, mz)
-    line:Set3DLocalDimensions(s.lineWidthM, len)
-    local rx, ry, rz, ux, uy, uz, nx, ny, nz = Utils.StripBasis(dx, dy, dz, cx - mx, cy - my, cz - mz)
-    if s.orientMode == "euler" then
-        local pitch, yaw = Utils.LineOrientation(sx, sy, sz, ex, ey, ez)
-        line:Set3DRenderSpaceOrientation(pitch, yaw, 0)
-    else
-        line:Set3DRenderSpaceRight(rx, ry, rz)
-        line:Set3DRenderSpaceUp(ux, uy, uz)
-        line:Set3DRenderSpaceForward(nx, ny, nz)
+    if s.showLine then
+        line:Set3DRenderSpaceOrigin(mx, my, mz)
+        line:Set3DLocalDimensions(s.lineWidthM, len)
+        if s.orientMode == "euler" then
+            local pitch, yaw = Utils.LineOrientation(sx, sy, sz, ex, ey, ez)
+            line:Set3DRenderSpaceOrientation(pitch, yaw, 0)
+        else
+            local rx, ry, rz, ux, uy, uz, nx, ny, nz = Utils.StripBasis(dx, dy, dz, cx - mx, cy - my, cz - mz)
+            line:Set3DRenderSpaceRight(rx, ry, rz)
+            line:Set3DRenderSpaceUp(ux, uy, uz)
+            line:Set3DRenderSpaceForward(nx, ny, nz)
+        end
+        SortByDistance(line, mx, my, mz, cx, cy, cz)
     end
-    SortByDistance(line, mx, my, mz, cx, cy, cz)
-    line:SetHidden(false)
-    state.aimTickCount = PlaceTicks(ox, oy, oz, dx, dy, dz, segLen, rangeM, rx, ry, rz, ux, uy, uz, nx, ny, nz)
+    line:SetHidden(not s.showLine)
+    state.aimTickCount = PlaceIcons(ox, oy, oz, dx, dy, dz, segLen, rangeM, cx, cy, cz, fx, fy, fz, px, pz)
 
     cap:Set3DRenderSpaceOrigin(ex, ey, ez)
-    do
-        -- billboard: face the camera (More Markers: pitch/yaw from camera forward)
-        local pitch = math.atan2(fy, math.sqrt(fx * fx + fz * fz))
-        local yaw = math.atan2(fx, fz) - math.pi
-        if s.orientMode == "euler" then
-            cap:Set3DRenderSpaceOrientation(pitch, yaw, 0)
-        else
-            local brx, bry, brz, bux, buy, buz, bnx, bny, bnz = Utils.BillboardBasis(cx - ex, cy - ey, cz - ez)
-            cap:Set3DRenderSpaceRight(brx, bry, brz)
-            cap:Set3DRenderSpaceUp(bux, buy, buz)
-            cap:Set3DRenderSpaceForward(bnx, bny, bnz)
-        end
-    end
+    FaceCamera(cap, ex, ey, ez, cx, cy, cz, fx, fy, fz)
     SortByDistance(cap, ex, ey, ez, cx, cy, cz)
     cap:SetHidden(not s.showCap)
 
@@ -360,13 +395,15 @@ function AimLineActions.StatusLines()
     local state, s = State(), Settings()
     local rangeM, label = CurrentRange()
     local lines = {
-        string.format("aim line: %s (%s), range %s%s, width %.2f m, depth test %s, orient %s",
+        string.format("aim guide: %s (%s), range %s%s, depth test %s, orient %s",
             s.enabled and "on" or "off", state.aimLineReady and "ready" or "unavailable",
             rangeM and string.format("%.0f m", rangeM) or "none", label and (" from " .. label) or "",
-            s.lineWidthM, s.depthTest and "on" or "off", s.orientMode),
+            s.depthTest and "on" or "off", s.orientMode),
     }
-    lines[#lines + 1] = string.format("  ticks: %s every %.0f m (major every %d), %d shown",
-        s.showTicks and "on" or "off", s.tickIntervalM, s.majorTickEvery, state.aimTickCount or 0)
+    lines[#lines + 1] = string.format("  icons: %s every %.1f m on the %s (major every %d, %.2f m%s), %d shown",
+        s.showTicks and "on" or "off", s.tickIntervalM, s.iconPath == "ray" and "camera ray" or "aim line",
+        s.majorTickEvery, s.iconSizeM, s.iconConstantScreenSize and " at 10 m, constant on screen" or "", state.aimTickCount or 0)
+    lines[#lines + 1] = string.format("  line strip: %s, width %.2f m", s.showLine and "on" or "off", s.lineWidthM)
     lines[#lines + 1] = string.format("  ground marker: %s%s", s.showGround and "on" or "off",
         state.aimGroundDistM and string.format(" (floor-plane hit at %.1f m horizontal)", state.aimGroundDistM) or "")
     if state.aimLineDebug then lines[#lines + 1] = state.aimLineDebug end

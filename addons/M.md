@@ -37,7 +37,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Makos's Double Cast Protection](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/makos000/Makos-s-Double-Cast-Protection__3893) | makos000 | PC / Mac | 1.0.1 |
 | [Makos's HOTwindow](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/makos000/Makos-s-HOTwindow__3948) | makos000 | PC / Mac | 1.2.2 |
 | [MaliBuu Lantern Keeper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MaliBuuGaming/MaliBuu-Lantern-Keeper__555cab61-7b0a-41ba-8fe9-4c8df0f82ed3) | MaliBuuGaming | Console | — |
-| [Mansu's InstanceReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/Mansu-s-InstanceReset__4900) | KarimAG | PC / Mac | 1.0.0 |
+| [Mansu's HouseBookmarks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/Mansu-s-HouseBookmarks__4909) | KarimAG | PC / Mac | 1.0.0 |
+| [Mansu's InstanceReset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/Mansu-s-InstanceReset__4900) | KarimAG | PC / Mac | 1.0.1 |
 | [Many Markers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dicen9/Many-Markers__59768602-717c-425b-a4ce-7ffc14887bc0) | dicen9 | Console | — |
 | [Map Coordinates](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garkin/Map-Coordinates__520) | Garkin | PC / Mac | 5.04 |
 | [Map Filter Test Case](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/Map-Filter-Test-Case__e0a62e77-93d4-43e7-9639-fb2737b3e00a) | Gamer_sa22 | Console | — |

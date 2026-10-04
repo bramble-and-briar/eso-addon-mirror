@@ -106,30 +106,30 @@ MSI.blockedAbilities = {
 function MSI.InitZoneGeoLocLibrary()
 	MSI.LZG = LibZone
 	if not MSI.LZG then
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LZG_FAILURE)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LZG_FAILURE)))
 	else
 		MSI.libZoneLoaded = true
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LZG_SUCCESS)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LZG_SUCCESS)))
 	end
 end
 
 function MSI.InitSkillBlockLibrary()
 	MSI.LSB = LibSkillBlocker
 	if not MSI.LSB then
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LSB_FAILURE)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LSB_FAILURE)))
 	else
 		MSI.libSkillBlockerLoaded = true
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LSB_SUCCESS)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LSB_SUCCESS)))
 	end
 end
 
 function MSI.InitGetTextLibrary()
 	MSI.LGT = LibGetText
 	if not MSI.LGT then
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LGT_FAILURE)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LGT_FAILURE)))
 	else
 		MSI.libGetTextLoaded = true
-		MSI.Print("c", string.format("%s", GetString(MSI_LOAD_LIB_LGT_SUCCESS)))
+		MSI.Print("d", string.format("%s", GetString(MSI_LOAD_LIB_LGT_SUCCESS)))
 	end
 end
 
@@ -299,7 +299,7 @@ end
 
 local function LBOptionState()
 	MSI.Print("c", zo_strformat(GetString(MSI_MOD_LAWFUL_BEHAVE_STATE), (MSI.SVars.IsLawfulBehave and GetString(MSI_ADDON_ENABLED) or GetString(MSI_ADDON_DISABLED))))
-	MSI.ShowCenterMsg(2000, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_LAWFUL_BEHAVE_STATE), (MSI.SVars.IsLawfulBehave and GetString(MSI_ADDON_ENABLED) or GetString(MSI_ADDON_DISABLED))))
+	MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_LAWFUL_BEHAVE_STATE), (MSI.SVars.IsLawfulBehave and GetString(MSI_ADDON_ENABLED) or GetString(MSI_ADDON_DISABLED))))
 end
 function MSI.MSILawfulBehave()
 	MSI.SVars.IsLawfulBehave = (not MSI.SVars.IsLawfulBehave)

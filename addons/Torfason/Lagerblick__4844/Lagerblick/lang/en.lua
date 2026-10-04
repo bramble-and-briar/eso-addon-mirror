@@ -4,7 +4,7 @@ local function CreateString(stringId, text)
     end
 end
 
-CreateString("SI_LAGERBLICK_TITLE", "LAGERBLICK")
+CreateString("SI_LAGERBLICK_DESCRIPTION", "A Torfason × Atlas addon for The Elder Scrolls Online. Shows personal item stocks and storage locations directly in item tooltips.")
 CreateString("SI_LAGERBLICK_CURRENT_CHARACTER", "Current character")
 CreateString("SI_LAGERBLICK_HOUSE_STORAGE", "House storage")
 CreateString("SI_LAGERBLICK_EQUIPPED", "equipped")

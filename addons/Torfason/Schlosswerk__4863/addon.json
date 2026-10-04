@@ -22,9 +22,9 @@
     "Schlosswerk"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4863/",
-  "fingerprint": "ade264821a7d0570fc0c33d37d1015f95be627e57206dd57c480b2b1e45a7e6a",
+  "fingerprint": "ba366989e26789a9e5394f0a16d03f8a5af15777696b6d6c44531fbe4411c26b",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17522.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17682.png",
     "https://cdn-eso.mmoui.com/preview/pvw17490.png",
     "https://cdn-eso.mmoui.com/preview/pvw17491.png",
     "https://cdn-eso.mmoui.com/preview/pvw17492.png",
@@ -39,11 +39,11 @@
   "source_id": "4863",
   "source_url": "https://www.esoui.com/downloads/info4863-Schlosswerk.html",
   "stats": {
-    "downloads": 8,
+    "downloads": 52,
     "favorites": 0,
-    "monthly_downloads": 6
+    "monthly_downloads": 48
   },
   "title": "Schlosswerk",
-  "updated_at": 1790165732000,
-  "version": "0.1.1"
+  "updated_at": 1791036792000,
+  "version": "2.0.0"
 }

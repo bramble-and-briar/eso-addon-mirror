@@ -1,8 +1,4 @@
-if string.lower(tostring(GetCVar("language.2") or "en")) ~= "de" then
-    return
-end
-
-SafeAddString(SI_LAGERBLICK_TITLE, "LAGERBLICK", 1)
+SafeAddString(SI_LAGERBLICK_DESCRIPTION, "Ein Torfason × Atlas Addon für The Elder Scrolls Online. Zeigt persönliche Gegenstandsbestände und Lagerorte direkt in Gegenstands-Tooltips.", 1)
 SafeAddString(SI_LAGERBLICK_CURRENT_CHARACTER, "Aktueller Charakter", 1)
 SafeAddString(SI_LAGERBLICK_HOUSE_STORAGE, "Hauslager", 1)
 SafeAddString(SI_LAGERBLICK_EQUIPPED, "ausgerüstet", 1)

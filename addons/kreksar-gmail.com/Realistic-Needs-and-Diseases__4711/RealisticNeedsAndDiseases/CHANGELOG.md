@@ -4,6 +4,58 @@ Full version history. See README.md for current features, installation, and usag
 
 ---
 
+### 0.19.32
+- **Fixed the remaining "first food/drink isn't detected, second one is"
+  bug.** Root cause was in `OnFoodDrinkInventoryChange`, not the
+  buff-confirmation gate: the trade-window guard
+  (`RN.IsTradeWindowOpen()` — merchant, crafting station, bank, guild bank)
+  was an early `return` at the very top of the handler, so it skipped not
+  just consumption crediting but also the `_lastSlotState` cache refresh.
+  Any stack change made while one of those windows was open — buying food
+  or drink, **crafting it at a provisioning station** (the most common way
+  to get it), or withdrawing it from a bank — never reached the cache.
+  Afterward, the first item eaten from that stack was compared against
+  stale data: for a stack that had grown, the new size was larger than the
+  cached size so it didn't look like a shrink; for a brand-new slot there
+  was no cached state at all. Either way the consumption was silently
+  dropped, and that same event then refreshed the cache, which is why the
+  second item always worked.
+- **Fix**: the trade-window check now only suppresses crediting (inside
+  `MaybeHandleConsumption`); the cache is always refreshed. This matches
+  how `Disease.OnRemedyInventoryChange` already ordered things (cache
+  update before its trade-window check).
+- **What was verified**: traced the handler's control flow for the
+  craft/buy/withdraw → close window → eat sequence before and after the
+  change; confirmed the remedy handler in Disease.lua doesn't share the
+  bug; `luac -p` clean. **What wasn't**: no live-client test yet. Priority
+  in-game check: craft (or buy) a food or drink you already have a stack
+  of, close the station, eat one — it should register on the first try.
+  The 500ms buff-confirmation window is unchanged; if misses still occur
+  with no trade window involved, high latency stretching the gap between
+  the buff and inventory events past 500ms is the next suspect.
+- **Manifest APIVersion bumped to `101051 101052`** (Update 51 /
+  Season One is live).
+- **README: linked both required libraries to their ESOUI pages.**
+  LibAddonMenu-2.0 was already linked
+  (https://www.esoui.com/downloads/info7-LibAddonMenu.html); LibFoodDrinkBuff
+  was listed by name only and is now linked
+  (https://www.esoui.com/downloads/info1902-LibFoodDrinkBuff.html). Both URLs
+  confirmed against the live ESOUI listings (LAM by sirinsidiator/Seerah,
+  LibFoodDrinkBuff by Baertram). Optional dependencies are now linked as
+  well: Frostfall (https://www.esoui.com/downloads/info4710-Frostfall.html)
+  and LibZoneTemp (https://www.esoui.com/downloads/info4708-LibZoneTemp.html),
+  URLs supplied by the author.
+- **LibFoodDrinkBuff v19 confirmed to cover Granny's Eel Pie** (Update 50,
+  obtainable since the U50 Incremental 2 drop fix): its `FOOD_BUFF_ABILITIES`
+  table includes abilityId 267468, and a stubbed load test of the library's
+  Constants/Data/API files returned `true` from
+  `IsAbilityAFoodOrDrinkBuff(267468)`. No RND code change needed; the
+  existing `LibFoodDrinkBuff>=19` floor already covers it. **Unverified**:
+  that 267468 is the live in-game buff ID (library author's data) and that
+  the pie reports as `ITEMTYPE_FOOD` — needs one in-game test.
+
+---
+
 ### 0.19.31
 - **Fixed a residual food/drink consumption-crediting bug in the bidirectional
   buff-confirmation gate added in 0.19.14.** That fix held one pending

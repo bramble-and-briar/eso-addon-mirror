@@ -894,11 +894,7 @@ local function HeaderBandHeight()
     return PADDING + TITLE_HEIGHT + CONTEXT_HEIGHT + METRIC.BAND_PAD
 end
 
-function DetailWindow.Initialize()
-    if windowControl then
-        return
-    end
-
+local function InitializeWindow()
     local innerWidth = WINDOW_WIDTH - PADDING * 2
 
     windowControl = WINDOW_MANAGER:CreateTopLevelWindow(addon.name .. "_DetailWindow")
@@ -1353,7 +1349,10 @@ function DetailWindow.Initialize()
     -- Column headers, aligned to the same geometry as the XML row template. They
     -- sit below the toolbar row.
     local headerY = filterToolbarY + TITLE_HEIGHT + TOOLBAR_GAP
+    return headerY, innerWidth
+end
 
+local function InitializeList(headerY, innerWidth)
     headerImpact = WINDOW_MANAGER:CreateControl(addon.name .. "_DetailHeaderImpact", windowControl, CT_LABEL)
     headerImpact:SetFont(FONT.small)
     headerImpact:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -1523,12 +1522,31 @@ function DetailWindow.Initialize()
     windowControl:SetHeight(footerDividerY + DIVIDER_GAP + FOOTER_HEIGHT + PADDING)
 end
 
+function DetailWindow.Initialize()
+    if windowControl then
+        return
+    end
+
+    local headerY, innerWidth = InitializeWindow()
+    InitializeList(headerY, innerWidth)
+end
+
 -- Fill the scroll list from a prebuilt materials array.
 function FillList(materials)
     local dataList = ZO_ScrollList_GetDataList(listControl)
     ZO_ScrollList_Clear(listControl)
 
     for i = 1, #materials do
+        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        -- ZO_ScrollList_CreateDataEntry mutates its data table and installs a
+        -- dataEntry.data back-reference. Never pass a table owned by
+        -- SavedVariables here: that would make the persisted graph cyclic and
+        -- ESO's serializer could write it without end. Valuation getters must
+        -- continue returning newly built, detached runtime rows.
+        --
+        -- Bureau archive rule 47-B: the display office receives copies. Hand it
+        -- an original and the user's drive is reassigned as unlimited stationery.
+        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         dataList[#dataList + 1] = ZO_ScrollList_CreateDataEntry(ROW_TYPE_ID, materials[i])
     end
 

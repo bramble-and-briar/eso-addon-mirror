@@ -1,10 +1,8 @@
-local AlabuzyaUI = AlabuzyaUI
--- Bundled QuestArrow 0.2.2 by alabuzya.
-if not AlabuzyaUI.UseBundledQuestArrow then return end
 -- Pure geometry: distances are fractions of map height, NOT metres.
-AlabuzyaUI.QuestArrow = AlabuzyaUI.QuestArrow or {}
+QuestArrow = QuestArrow or {}
+local QuestArrow = QuestArrow
 local P = {}
-AlabuzyaUI.QuestArrow.Planner = P
+QuestArrow.Planner = P
 
 function P.ValidPoint(p)
     return p and type(p.x) == "number" and type(p.y) == "number"

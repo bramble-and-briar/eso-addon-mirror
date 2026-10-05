@@ -20,7 +20,7 @@ local function Snapshot()
 end
 
 local function Show(name, tries)
-    if not FT.sv.celebrate then
+    if not FT.sv.active or not FT.sv.celebrate then
         return
     end
     if IsUnitInCombat("player") then

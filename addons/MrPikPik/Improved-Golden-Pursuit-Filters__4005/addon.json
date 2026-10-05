@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/MrPikPik/Improved-Golden-Pursuit-Filters__4005",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "MrPikPik",
   "canonical_id": "esoui:4005",
   "category_id": "18",
@@ -17,7 +18,7 @@
     "ImprovedGoldenPursuits"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4005/",
-  "fingerprint": "c2f5e3417a9e214e7018ca7a45e867f58e9da9128bc4aa87d51178be3bce5517",
+  "fingerprint": "307226c91d8196d2f5f98df15549efb45d87b7766d77958ded3f3fd15ce254a1",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13568.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4005",
   "source_url": "https://www.esoui.com/downloads/info4005-ImprovedGoldenPursuitFilters.html",
   "stats": {
-    "downloads": 3614,
-    "favorites": 19,
-    "monthly_downloads": 45
+    "downloads": 3774,
+    "favorites": 20,
+    "monthly_downloads": 63
   },
   "title": "Improved Golden Pursuit Filters",
-  "updated_at": 1756063034000,
-  "version": "1.5.1"
+  "updated_at": 1791143771000,
+  "version": "1.6.0"
 }

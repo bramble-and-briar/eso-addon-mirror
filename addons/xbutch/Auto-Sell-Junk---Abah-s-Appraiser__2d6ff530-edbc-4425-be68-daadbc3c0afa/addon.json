@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/xbutch/Abah-s-Appraiser---Auto-Sell-Junk__2d6ff530-edbc-4425-be68-daadbc3c0afa",
+  "archive_path": "addons/xbutch/Auto-Sell-Junk---Abah-s-Appraiser__2d6ff530-edbc-4425-be68-daadbc3c0afa",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "xbutch",
   "canonical_id": "bethesda:2d6ff530-edbc-4425-be68-daadbc3c0afa",
   "content_id": "2d6ff530-edbc-4425-be68-daadbc3c0afa",
   "deleted": false,
-  "fingerprint": "bbcff84b05ffc1005894a188284cf5c8ecd1ee7d24adb88ec168a25ede24b3c9",
+  "fingerprint": "975e895a97b26d0583689737492bfe6cf95f059547335f3b4e8b00fa0156cde2",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "2d6ff530-edbc-4425-be68-daadbc3c0afa",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/2d6ff530-edbc-4425-be68-daadbc3c0afa",
-  "title": "Abah's Appraiser - Auto Sell Junk"
+  "title": "Auto Sell Junk - Abah's Appraiser"
 }

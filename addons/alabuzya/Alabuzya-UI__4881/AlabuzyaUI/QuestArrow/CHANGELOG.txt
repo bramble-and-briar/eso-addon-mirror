@@ -1,0 +1,14 @@
+QuestArrow 0.2.2 - 2026-09-28
+ESOUI review fixes
+
+- One public Lua addon namespace with file-local references.
+- One EVENT_ADD_ON_LOADED callback per addon; explicit module initialization.
+- SavedVariables use GetWorldName() profiles (EU / NA / PTS), retaining character IDs.
+- Existing Default settings migrate once per missing server/namespace entry.
+  Existing server settings are never replaced; old data stays available for rollback.
+- AI disclosure and source/author credits supplied for the upload description.
+- No visual layout, artwork, recharge/sale thresholds or navigation algorithm changes.
+
+Only namespaces, startup and storage changed in this release. QuestArrow already
+used a single namespace/loader and character IDs; its server profile now also
+isolates copied PTS characters from their original live character.

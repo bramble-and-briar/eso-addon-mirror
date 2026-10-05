@@ -1,8 +1,8 @@
 ## Title: Always Expanded Attribute Bars
 ## Author: |cFF0000partdark|r, |c0099ffhex|r
-## Description: Attribute bars no longer change size, with customizable colors
-## Version: 2.6a
-## APIVersion: 101046
+## Description: Attribute bars no longer change size, with customizable colors and adjustable bar size
+## Version: 3.1b u51
+## APIVersion: 101051
 ## SavedVariables: AEABSavedVars
 ## DependsOn: LibAddonMenu-2.0>=34
 
@@ -11,3 +11,4 @@ HUD.xml
 
 Settings.lua
 AlwaysExpandedAttributeBars.lua
+TargetModule.lua

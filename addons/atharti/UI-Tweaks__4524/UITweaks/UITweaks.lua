@@ -28,6 +28,9 @@ local defaultSV = {
 	hideHelp = false,
 	hideDestroy = false,
 	hideJunk = false,
+	--AutoClaimLevelUpRewards = true,
+	cleanAntiqTool = false,
+	visitPlayer = false,
 }
 -- =========================================================
 function UIT.CleanAchievement()
@@ -383,6 +386,41 @@ function UIT.DisableContextMenuAction(actionStringId)
 end
 
 -- =========================================================
+-- function UIT.OnLevelUpRewardUpdated()
+	-- local pendingRewards = ZO_LEVEL_UP_REWARDS_MANAGER:GetPendingLevelUpRewards()
+	-- if not pendingRewards then return end
+
+	-- for _, entryInfo in ipairs(pendingRewards) do
+		-- if entryInfo.choices then
+			-- MakeLevelUpRewardChoice(entryInfo.rewardId, entryInfo.choices[1].rewardId)
+		-- end
+	-- end
+
+	-- ClaimPendingLevelUpReward()
+-- end
+-- =========================================================
+function UIT.CleanUpAntiq()
+	SafeAddString(SI_ANTIQUITIES_DIG_SITE_EYE_PROMPT_DESCRIPTION, "", 2)
+
+	ZO_PreHook(ZO_PlayerToPlayer, "ShouldShowDecline", function(self, incomingEntry)
+		if incomingEntry and incomingEntry.incomingType == ZO_INTERACT_TYPE.DIG_SITE_EYE then
+			return true, false
+		end
+	end)
+end
+
+-- =========================================================
+function UIT.slashVisit()
+	SLASH_COMMANDS["/visit"] = function(cmd)
+		local player = string.match(cmd, "(@%S+)")
+		if player then
+			JumpToHouse(player)
+		end
+	end
+end
+
+
+-- =========================================================
 -- Initialization
 -- =========================================================
 function UIT.Initialize()
@@ -479,6 +517,18 @@ function UIT.Initialize()
 
 	if UIT.SV.hideJunk then
 		UIT.DisableContextMenuAction(SI_ITEM_ACTION_MARK_AS_JUNK)
+	end
+
+	-- if UIT.SV.AutoClaimLevelUpRewards then
+		-- EM:RegisterForEvent(UIT.name, EVENT_LEVEL_UP_REWARD_UPDATED, UIT.OnLevelUpRewardUpdated)
+	-- end
+
+	if UIT.SV.cleanAntiqTool then
+		UIT.CleanUpAntiq()
+	end
+
+	if UIT.SV.visitPlayer then
+		UIT.slashVisit()
 	end
 end
 

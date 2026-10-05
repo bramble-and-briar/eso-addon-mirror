@@ -1134,6 +1134,12 @@ local function RenderSparkline(innerWidth)
     return SPARK_HEIGHT + SPARK_SCALE_GAP + FOOTER_LINE
 end
 
+local function HeaderContentHeight()
+    return PADDING + ADDON_NAME_HEIGHT + VERSION_LINE_GAP + VERSION_DATE_HEIGHT
+        + VERSION_TO_TOTAL_GAP + TOTAL_HEIGHT + TOTAL_TO_PROFILE_GAP
+        + PROFILE_HEIGHT + PROFILE_TO_SUBTITLE_GAP + SUBTITLE_HEIGHT
+end
+
 -- Re-render the window from the current valuation. Pure presentation: it reads
 -- the already-computed snapshot (no scanning here) and lays out only the rows
 -- it needs, resizing the window to fit. Cheap enough to call on every coalesced
@@ -1178,9 +1184,7 @@ function Window.Update()
         subtitleLabel:SetText(Colorize(COLOR_MUTED, GetString(SI_BMW_WINDOW_EMPTY)))
     end
 
-    local y = PADDING + ADDON_NAME_HEIGHT + VERSION_LINE_GAP + VERSION_DATE_HEIGHT
-        + VERSION_TO_TOTAL_GAP + TOTAL_HEIGHT + TOTAL_TO_PROFILE_GAP
-        + PROFILE_HEIGHT + PROFILE_TO_SUBTITLE_GAP + SUBTITLE_HEIGHT
+    local y = HeaderContentHeight()
 
     -- Divider under the header.
     y = y + HEADER_TO_DIVIDER_GAP
@@ -1317,10 +1321,7 @@ function Window.Update()
     dividerTop:SetHidden(not showBreakdown or rowCount == 0)
     if not showBreakdown or rowCount == 0 then
         -- Collapse the header divider's gap when there is no breakdown to show.
-        y = PADDING + ADDON_NAME_HEIGHT + VERSION_LINE_GAP + VERSION_DATE_HEIGHT
-            + VERSION_TO_TOTAL_GAP + TOTAL_HEIGHT + TOTAL_TO_PROFILE_GAP
-            + PROFILE_HEIGHT + PROFILE_TO_SUBTITLE_GAP + SUBTITLE_HEIGHT
-            + HEADER_TO_DIVIDER_GAP
+        y = HeaderContentHeight() + HEADER_TO_DIVIDER_GAP
     end
 
     -- Footer block: bottom divider + the info rows (two-column label -> value).

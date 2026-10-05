@@ -13,7 +13,7 @@ local lastAt
 local token = 0
 
 function Envy.Check()
-    if not FT.sv.titleEnvy or IsUnitInCombat("player") or not IsUnitPlayer("reticleover") then
+    if not FT.sv.active or not FT.sv.titleEnvy or IsUnitInCombat("player") or not IsUnitPlayer("reticleover") then
         return
     end
     local title = GetUnitTitle("reticleover")

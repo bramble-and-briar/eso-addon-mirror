@@ -3,10 +3,10 @@
 
 ## Title: LibGroupCombatStats
 ## Description: a library for sharing and receiving DPS & Ult data
-## Version: 2026-07-26
+## Version: 2026-10-04
 ## Author: |c76c3f4@m00nyONE|r
 ## APIVersion: 101046 101047
-## AddOnVersion: 20260726
+## AddOnVersion: 20261004
 ## IsLibrary: true
 ## DependsOn: LibGroupBroadcast>=91
 ## PCDependsOn: LibCombat>=83

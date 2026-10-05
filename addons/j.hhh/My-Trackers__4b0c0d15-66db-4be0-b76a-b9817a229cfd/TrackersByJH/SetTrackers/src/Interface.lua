@@ -224,8 +224,18 @@ function JHSetTrackers.UI.Draw(key)
         local s = WM:CreateControl(key .. "_Stacks", c, CT_LABEL)
         s:SetAlpha(1)
         s:SetDrawLevel(5)
-        s:SetAnchor(BOTTOM, c, TOP, 0, 0)
-        s:SetFont(font .. "|45|thick-outline")
+        if key == "Death Dealer's Fete" then
+          -- DDF: stack number belongs in the center of the icon and is intentionally
+          -- smaller than the generic stack label. Parent scaling still scales both.
+          s:SetAnchor(CENTER, c, CENTER, 0, 0)
+          s:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+          s:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+          s:SetDimensions(64, 64)
+          s:SetFont(font .. "|37|thick-outline")
+        else
+          s:SetAnchor(BOTTOM, c, TOP, 0, 0)
+          s:SetFont(font .. "|45|thick-outline")
+        end
 
         s:SetColor(unpack(saved.stack.color))
 
@@ -387,13 +397,51 @@ function JHSetTrackers.UI.PlaySound(sound)
     end
 end
 
+function JHSetTrackers.UI.UpdateDDFStacks(stacks)
+  local key = "Death Dealer's Fete"
+  local c = JHSetTrackers.Controls[key] or WM:GetControlByName(key .. "_Container")
+  if not c then return end
+  stacks = tonumber(stacks) or 0
+  if stacks <= 0 then
+    c:SetHidden(true)
+    if c.stacks then c.stacks:SetText("") end
+    if c.label then c.label:SetText("") end
+    return
+  end
+  c:SetHidden(false)
+  if c.label then c.label:SetText("") end
+  if c.stacks then
+    -- Re-assert DDF presentation in case an old control survived a UI refresh.
+    c.stacks:ClearAnchors()
+    c.stacks:SetAnchor(CENTER, c, CENTER, 0, 0)
+    c.stacks:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    c.stacks:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    c.stacks:SetDimensions(64, 64)
+    c.stacks:SetFont("$(BOLD_FONT)|37|thick-outline")
+    c.stacks:SetText(tostring(stacks))
+    local r,g,b
+    if stacks <= 15 then
+      local t = (stacks - 1) / 14
+      r = 1
+      g = 0.5 * t
+      b = 0
+    else
+      local t = (stacks - 15) / 15
+      r = 1 - t
+      g = 0.5 + 0.5 * t
+      b = 0
+    end
+    c.stacks:SetColor(r,g,b,1)
+  end
+end
+
 function JHSetTrackers.UI.Update(setKey)
   local set = JHSetTrackers.Data.Sets[setKey]
   if set == nil then return end
   if set.event == EVENT_POWER_UPDATE or set.event == EVENT_EFFECT_CHANGED then return end
 
-  -- PS5/JH: normal set trackers can receive combat events immediately after
-  -- equipment callbacks. Never assume the control or saved options exist yet.
+  -- Console safety: combat events can arrive before the tracker control or
+  -- saved per-set options have been fully materialized.
   local c = JHSetTrackers.Controls[setKey]
   if c == nil and set.enabled then
     JHSetTrackers.UI.Draw(setKey)
@@ -401,7 +449,9 @@ function JHSetTrackers.UI.Update(setKey)
   end
   if c == nil or c.label == nil then return end
 
-  local pref = JHSetTrackers.preferences and JHSetTrackers.preferences.sets and JHSetTrackers.preferences.sets[setKey]
+  local pref = JHSetTrackers.preferences
+    and JHSetTrackers.preferences.sets
+    and JHSetTrackers.preferences.sets[setKey]
   local colorUp = (pref and pref.colorUp) or {0, 1, 0}
   local colorDown = (pref and pref.colorDown) or {1, 0, 0}
   local onReady = pref and pref.sounds and pref.sounds.onReady
@@ -462,8 +512,8 @@ function JHSetTrackers.UI.UpdateEffect(setKey)
   local c     = WM:GetControlByName(setKey .. "_Container")
 
   local now         = time() / 1000
-  local upTime      = set.endTime - now
-  local downTime    = set.cdEnd - now
+  local upTime      = (tonumber(set.endTime) or 0) - now
+  local downTime    = (tonumber(set.cdEnd) or 0) - now
   local inactive    = (upTime < 0 and downTime < 0) and true or false
 
   -- if not set.enabled then

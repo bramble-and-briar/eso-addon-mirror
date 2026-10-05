@@ -66,11 +66,43 @@ local DEFAULT_SAVED_VARS = {
     valueHistory = { head = 0, entries = {} },
 }
 
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+--
+-- SAVEDVARIABLES SAFETY INVARIANT
+-- ---------------------------------------------------------------------------
+-- Everything reachable from this SavedVariables root must be an acyclic,
+-- persistence-owned graph made only from numbers, booleans, strings, and newly
+-- allocated plain tables. Never store addon modules, UI controls, callbacks,
+-- runtime caches, library/API result tables, or references back to `addon`,
+-- `private`, `_G`, or the SavedVariables root itself.
+--
+-- A SavedVariables-owned table must also never be passed directly to an API
+-- that may mutate its input. In particular, ZO_ScrollList_CreateDataEntry adds
+-- UI bookkeeping to the supplied data table, including a back-reference from
+-- dataEntry.data to that same table. If the table belongs to SavedVariables,
+-- this creates a cycle that ESO's serializer can expand indefinitely, growing
+-- the save file to many gigabytes during one save operation.
+--
+-- Persistence data may be decoded or copied into detached runtime rows, but the
+-- UI must receive only those new tables. When adding a saved field, keep its
+-- size explicitly bounded and store scalar/encoded copies rather than borrowed
+-- table references.
+--
+-- Bureau archive incident 20-GB: one persistent record entered UI service.
+-- The serializer converted the user's free disk space into paperwork. All of it.
+--
+-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 local function GetSavedVarsOrDefaults()
     return private.savedVars or DEFAULT_SAVED_VARS
 end
 
 function Settings.GetSavedVars()
+    -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    -- This returns the live persistence root, not a defensive copy. Callers may
+    -- read/write known fields, but must preserve the safety invariant above and
+    -- must not hand any returned table to UI/framework code that can mutate it.
+    -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     return private.savedVars
 end
 

@@ -163,16 +163,29 @@ end
 
 -- Sizing
 local function SetSize(setKey, size)
-  local context = JHSetTrackers.Controls[setKey] -- WM:GetControlByName(setKey .. "_Container")
-
+  local context = JHSetTrackers.Controls[setKey]
   if context ~= nil then
-
-    if JHSetTrackers.Data.Sets[setKey] and JHSetTrackers.Data.Sets[setKey].id == 147462 or JHSetTrackers.Data.Sets[setKey].id == 193411 then -- pearls and esoteric
+    local set = JHSetTrackers.Data.Sets[setKey]
+    if set and (set.id == 147462 or set.id == 193411) then -- pearls and esoteric
       JHSetTrackers.UI.UpdateBarConstraints(setKey)
     else
       context:SetScale(size / scaleBase)
     end
+
+    -- Keep the saved TOPLEFT anchor authoritative. Scaling must never rewrite
+    -- position. This mirrors the Landslide move/size behaviour across reloads.
+    local saved = JHSetTrackers.preferences and JHSetTrackers.preferences.sets[setKey]
+    if saved and saved.x and saved.y then
+      context:ClearAnchors()
+      context:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, saved.x, saved.y)
+    end
     d("Updating Size for:\n|cFFFFFF" .. setKey .. "|r")
+  end
+
+  -- Make size changes durable before a console /reloadui.
+  local am = GetAddOnManager and GetAddOnManager()
+  if am and am.RequestAddOnSavedVariablesPrioritySave then
+    am:RequestAddOnSavedVariablesPrioritySave("TrackersByJH")
   end
 end
 

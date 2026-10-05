@@ -11,6 +11,8 @@ local C = EOTU_Config or {
 
 local ADDON_NAME = C.ADDON_NAME
 local PIN_TYPE = C.PIN_TYPE
+local MapPins = EOTU.internal and EOTU.internal.mapPins
+local BossData = EOTU.internal and EOTU.internal.bossData
 EOTU.pinType = PIN_TYPE
 
 EOTU.defaults = {
@@ -77,15 +79,14 @@ local function AddPins()
 
 	if not EOTU.savedVars.showBosses then return end
 
-	local index = Destinations and Destinations.ChampionTableIndex
-	if not index then
-		dbg("AddPins: Destinations data not loaded")
+	local index = BossData and BossData.ChampionTableIndex
+	local getEntries = BossData and BossData.GetChampionEntriesForMap
+	if not index or not getEntries then
+		dbg("AddPins: boss data not loaded")
 		return
 	end
 
-	local mapData = (Destinations.PublicChampionTableStore and Destinations.PublicChampionTableStore[mapName])
-		or (Destinations.DelveChampionTableStore and Destinations.DelveChampionTableStore[mapName])
-		or (Destinations.GroupChampionTableStore and Destinations.GroupChampionTableStore[mapName])
+	local mapData = getEntries(mapName)
 	if not mapData then
 		dbg("AddPins: no data for " .. mapName)
 		return
@@ -96,7 +97,7 @@ local function AddPins()
 		local y = data[index.Y]
 		local tooltipText = data[index.NAME] or "Unknown Champion"
 		dbg(string.format("  pin %.3f,%.3f  %s", x, y, tooltipText))
-		LibMapPins:CreatePin(PIN_TYPE, { tooltip = tooltipText }, x, y)
+		MapPins:CreatePin(PIN_TYPE, { tooltip = tooltipText }, x, y)
 	end
 end
 
@@ -105,8 +106,8 @@ end
 --------------------------------------------------------------------
 local function Initialize()
 	dbg("Initialize")
-	if not LibMapPins then
-		dbg("Initialize: LibMapPins not found")
+	if not MapPins then
+		dbg("Initialize: private map pin helper not found")
 		return
 	end
 	EOTU.savedVars = ZO_SavedVars:NewAccountWide(C.SAVEDVARS, EOTU.variableVersion, nil, EOTU.defaults)
@@ -139,16 +140,16 @@ local function Initialize()
 		end
 	}
 
-	LibMapPins:AddPinType(PIN_TYPE, AddPins, nil, layout, pinTooltipCreator)
+	MapPins:AddPinType(PIN_TYPE, AddPins, nil, layout, pinTooltipCreator)
 
 	CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
 		dbg("OnWorldMapChanged")
-		LibMapPins:RefreshPins(PIN_TYPE)
+		MapPins:RefreshPins(PIN_TYPE)
 	end)
 
 	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, function()
 		dbg("EVENT_PLAYER_ACTIVATED")
-		LibMapPins:RefreshPins(PIN_TYPE)
+		MapPins:RefreshPins(PIN_TYPE)
 	end)
 end
 

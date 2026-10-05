@@ -2,6 +2,8 @@
 if MSI == nil then MSI = MSI or {} end
 local MSI = _G['MSI']
 
+local activeDuration = 0
+
 local MSIMediaList = {
 	[1] = [[icon_the_poo.dds]],
 	[2] = [[icon_metu_liber.dds]],
@@ -9,14 +11,11 @@ local MSIMediaList = {
 	[4] = [[rene_metu.dds]],
 }
 
-function MSI.ShowInitCenterMsg()
-	MSI.ShowCenterMsg(4321, [[icon_metu_liber.dds]], GetString(MSI_MENU_ADDON_DESCR_TITLE))
-end
---*****************--
---  Show CenterMsg
-function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
+--****************--
+-- Show CenterMsg
+local function AnimateCenterMessage(msgDuration, msgIcon, msgText)
 	if not CenterMsgDisplay:IsHidden() then return end
-
+	
 	local animation0, timeline0 = CreateSimpleAnimation(ANIMATION_ALPHA, CenterMsgDisplay)
 
 	CenterMsgTexture:SetTexture(MSI.Name.."/Media/"..msgIcon)
@@ -24,23 +23,24 @@ function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
 
 	CenterMsgDisplay:SetHidden(false)
 	animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 1)
-	animation0:SetDuration(789 + GetLatency())
+	animation0:SetDuration(789)
 
 	-- Fade-out after Fade-in
 	timeline0:SetHandler('OnStop', function()
 		local animation0, timeline0 = CreateSimpleAnimation(ANIMATION_ALPHA, CenterMsgDisplay)
 
 		animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 1)
-		animation0:SetDuration(msgDuration + GetLatency())
+		animation0:SetDuration(msgDuration)
 
 		timeline0:SetHandler('OnStop', function()
 			local animation0, timeline0 = CreateSimpleAnimation(ANIMATION_ALPHA, CenterMsgDisplay)
 
 			animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 0)
-			animation0:SetDuration(789 + GetLatency())
+			animation0:SetDuration(789)
 
 			timeline0:SetHandler('OnStop', function()
 				CenterMsgDisplay:SetHidden(true)
+				activeDuration = 0
 			end)
 			timeline0:PlayFromStart()
 		end)
@@ -48,6 +48,27 @@ function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
 	end)
 	timeline0:PlayFromStart()
 end
+
+--*******************--
+-- Animate CenterMsg
+function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
+	if not (activeDuration == 0) then
+		zo_callLater(function() 
+			activeDuration = msgDuration
+			AnimateCenterMessage(msgDuration, msgIcon, msgText)
+		end, (789 * 2 + activeDuration) + GetLatency())
+	else
+		zo_callLater(function() 
+			activeDuration = msgDuration
+			AnimateCenterMessage(msgDuration, msgIcon, msgText)
+		end, GetLatency())
+	end
+end
+
+function MSI.ShowInitCenterMsg()
+	MSI.ShowCenterMsg(4321, [[icon_metu_liber.dds]], GetString(MSI_MENU_ADDON_DESCR_TITLE))
+end
+
 --***************--
 -- Show Announce
 function MSI.ShowAnnounce(msgDelay, msgDuration, msgText)

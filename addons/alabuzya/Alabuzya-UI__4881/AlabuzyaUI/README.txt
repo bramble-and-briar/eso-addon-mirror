@@ -1,4 +1,4 @@
-Alabuzya UI 0.1.54
+Alabuzya UI 1.0.1
 
 Developed with AI assistance, including code generation and new UI textures.
 Разработано с помощью ИИ, включая написание кода и создание новых текстур интерфейса.
@@ -43,12 +43,12 @@ Features
 
 Settings and use
 Open Settings → Addons → Alabuzya UI, or enter /alabuzya. The aliases /alabuzyaui and /diaui are also supported. LibAddonMenu-2.0 is needed to open this panel.
-Choose Diablo, WoW, DS_3 or Disabled — standard ESO under Interfaces. Use the Reload UI button in that section to apply a style change. Recharge, repair, junk selling and chat helpers can be switched independently of the visual style. The grid, bundled quest arrow and guild roster background adjustment also have their own switches.
+Choose Diablo, WoW, DS_3 or Disabled — standard ESO under Interfaces. Use the Reload UI button in that section to apply a style change. Recharge, repair, junk selling and chat helpers can be switched independently of the visual style. The grid and guild roster background adjustment also have their own switches.
 Repair/recharge default to enabled at 10%, with Crown materials allowed. Regular suitable materials are preferred; the addon does not purchase materials.
 Account-wide settings are separate for EU, NA and PTS. Navigation settings are also stored per character. Previous settings migrate automatically when updating from the preceding Alabuzya UI version.
 
 Compatibility and limitations
-Designed primarily for keyboard/mouse UI. WoW uses ESO role icons in round frames rather than live character portraits. The first WoW release needs in-game visual feedback. Standalone pChat and QuestArrow take priority over the corresponding bundled helpers; they are optional, not required dependencies. FancyActionBar and Arkadius' Trade Tools are optional integrations, not required installations.
+Designed primarily for keyboard/mouse UI. WoW uses ESO role icons in round frames rather than live character portraits. The first WoW release needs in-game visual feedback. Standalone pChat takes priority over the bundled chat helper. QuestArrow is included as a complete independent addon with its own manifest and AddOnVersion; ESO selects the newest installed copy. Enable or disable QuestArrow in the game addon list; use /qa help for its settings. FancyActionBar and Arkadius' Trade Tools are optional integrations, not required installations.
 Disable the old DiaUI, DIAhelp and overlapping full UI replacements when using Alabuzya UI. Avoid enabling two addons that control the same panels or automatic item handling at once.
 Combat damage share is an estimate from observed target health loss, not a synchronized group combat log. Quest navigation depends on game-provided data and shows direction rather than a path around obstacles.
 
@@ -78,12 +78,12 @@ Alabuzya UI — Русский
 
 Настройки и использование
 Откройте Настройки → Дополнения → Alabuzya UI или введите /alabuzya. Также работают /alabuzyaui и /diaui. Для этого меню нужна LibAddonMenu-2.0.
-В разделе «Интерфейсы» доступны Diablo, WoW, DS_3 и «Отключено — стандартный ESO». Для применения смены темы нажмите там же «Перезагрузить интерфейс». Зарядка, ремонт, продажа мусора и функции чата включаются независимо от оформления. Дополнительно предусмотрены переключатели сетки, встроенной стрелки заданий и подгонки фона списка гильдии.
+В разделе «Интерфейсы» доступны Diablo, WoW, DS_3 и «Отключено — стандартный ESO». Для применения смены темы нажмите там же «Перезагрузить интерфейс». Зарядка, ремонт, продажа мусора и функции чата включаются независимо от оформления. Дополнительно предусмотрены переключатели сетки и подгонки фона списка гильдии.
 По умолчанию ремонт и зарядка включены, порог — 10%, кронные материалы разрешены. Подходящие обычные материалы используются первыми; аддон ничего не покупает.
 Общие настройки аккаунта разделены между EU, NA и PTS. Настройки навигации дополнительно привязаны к персонажу. При обновлении с предыдущей версии Alabuzya UI прежние настройки переносятся автоматически.
 
 Совместимость и ограничения
-Основной режим — клавиатура и мышь. WoW использует значки ролей ESO в круглых рамках вместо живых портретов. Первая версия WoW нуждается в проверке внешнего вида в игре. Если установлены отдельные pChat или QuestArrow, соответствующие встроенные помощники уступают им управление. Эти аддоны необязательны. FancyActionBar и Arkadius' Trade Tools также относятся к необязательным интеграциям.
+Основной режим — клавиатура и мышь. WoW использует значки ролей ESO в круглых рамках вместо живых портретов. Первая версия WoW нуждается в проверке внешнего вида в игре. Отдельный pChat имеет приоритет над встроенным помощником чата. QuestArrow включён как полноценный независимый аддон со своим манифестом и AddOnVersion: ESO выбирает наиболее новую установленную копию. Включение и отключение QuestArrow — в игровом списке аддонов; его настройки — /qa help. FancyActionBar и Arkadius' Trade Tools также относятся к необязательным интеграциям.
 При использовании Alabuzya UI отключите старый DiaUI, DIAhelp и другие полные замены интерфейса с пересекающимися функциями. Не включайте одновременно два аддона, управляющих одними панелями или автоматической обработкой предметов.
 Доля урона оценивается по наблюдаемой потере здоровья цели и не является синхронизированным журналом боя группы. Навигация зависит от данных игры и показывает направление, а не маршрут в обход препятствий.
 
@@ -110,6 +110,15 @@ RU: Shift + перетаскивание левой кнопкой переме�
 Для перехода со старого названия DiaUI сначала прочитайте RENAME-0.1.37.txt.
 Изменения: CHANGELOG.txt. Авторство: CREDITS.txt. Лицензия: LICENSE.
 
-Assistant toolbar / Панель помощников (0.1.54)
+Assistant toolbar / Панель помощников (0.1.57)
 EN: Settings > Chat > Assistant toolbar beside chat. Independent of the visual theme and chat formatting toggle. A vertical column of native collectible icons follows chat visibility. Click to summon a random available unlocked assistant in that category; an already active collectible is dismissed. Locked/unusable categories are dimmed. The assistant ID registry is maintained in AssistantPanel.lua as new assistants are added to ESO.
 RU: Настройки > Чат > Панель помощников рядом с чатом. Не зависит от темы и переключателя обработки сообщений чата. Вертикальный столбец игровых иконок следует за видимостью чата. Клик вызывает случайного доступного помощника категории; уже активный убирается. Недоступные категории затемнены. Список идентификаторов в AssistantPanel.lua обновляется по мере добавления помощников в ESO.
+
+SESSION GOLD AND FONTS / ЗОЛОТО СЕССИИ И ШРИФТЫ
+EN: Interfaces → Font selects a localized ESO client font independently for each style; use Reload UI to apply. Income and expenses → Session gold tracker enables a theme-independent HUD widget. Click the gold square for date, character, session number, net and character gold balance; 12 recent rows initially, then a scrollable last 30 days and earlier periods via Show more. Records persist across updates, separately for EU/NA/PTS. Login/character entry starts a session; /reloadui continues it. Own-bank transfers are excluded; guild bank, trades, mail, purchases and rewards affect net according to actual gold changes. Disabled time is excluded. Shift-drag the widget to move it.
+RU: «Интерфейсы → Шрифт» выбирает локализованный шрифт ESO отдельно для темы; примените перезагрузкой интерфейса. «Доходы и расходы → Счётчик золота за сессию» включает независимый значок. Клик открывает дату, персонажа, номер сессии, сальдо и остаток золота: сначала 12 записей, затем последние 30 дней со скроллом и более ранние периоды по кнопке. История сохраняется при обновлении отдельно для EU/NA/PTS. Вход на персонажа создаёт сессию; /reloadui её продолжает. Переводы в собственный банк исключены; гильдейский банк, обмен, почта, покупки и награды учитываются по фактическому изменению золота. Выключенное время не считается. Перемещение значка: Shift + перетаскивание.
+EN: Quest circles and excavation polygons use the native world-map pins and visibility filters, shared by every custom theme. Unscryed/undiscovered dig areas unavailable on the main map cannot be shown.
+RU: Круги заданий и области раскопок используют игровые данные и фильтры основной карты во всех темах. Неизвестные/неоткрытые области, отсутствующие на основной карте, не показываются.
+
+EN: Income and expenses → Accounting period offers By day (default) and By session. Changes the widget and table immediately, retaining all session data. Daily totals cover all characters on the current server. Daily gold balance sums the latest recorded balances of characters included that day. New transactions are split by calendar date across midnight; legacy session totals belong to the start date because transaction timestamps were not previously recorded.
+RU: «Доходы и расходы → Период подсчёта»: «По дням» (по умолчанию) или «По сессиям». Значок и таблица меняются сразу, история сохраняется. Дневной итог объединяет всех персонажей текущего сервера. Остаток золота за день — сумма последних записанных остатков персонажей, участвовавших в этот день. Новые операции разделяются по календарным датам при переходе через полночь; прежние итоги сессий относятся к дате начала, поскольку время отдельных операций ранее не сохранялось.

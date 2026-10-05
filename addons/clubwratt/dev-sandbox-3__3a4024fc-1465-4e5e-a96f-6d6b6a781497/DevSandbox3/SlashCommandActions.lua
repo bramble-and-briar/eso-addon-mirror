@@ -75,9 +75,20 @@ local function HandleUnknown()
     LogUtils.Log("Recording of unrecognized harvest nodes %s", savedVars.recordUnknown and "ON" or "OFF")
 end
 
+local function HandleLooted()
+    local looted = DevSandbox3.state.savedVars.lootedSlots
+    LogUtils.Log("%d looted recipe(s) attributed to expected slots", #looted)
+    local now = GetTimeStamp()
+    for i, entry in ipairs(looted) do
+        LogUtils.Log("  %d. %s slot %s, %s", i, entry.typeName, entry.index and (entry.dist .. "m away") or "(none nearby)", NodeUtils.FormatAge(now - entry.at))
+    end
+end
+
 local function HandleHelp()
     LogUtils.Log("/ds3 list | mark | clear | refresh | debug | scan | match [<text>|clear] | ignore [<name>|clear] | unknown")
+    LogUtils.Log("/ds3 slots (status) | empties (nearest missing slots) | clearempties | looted (which slot each recipe was on)")
     LogUtils.Log("/ds3 dismiss | alert (preview) | coverage | resetcoverage | probe  - or use the addon settings menu")
+    LogUtils.Log("/ds3 quiet (turn every chat/alert option off) | clearall (spawns + empties + alert) | markers (3D/compass status)")
 end
 
 ---@param args string Raw command arguments
@@ -107,6 +118,25 @@ function SlashCommandActions.HandleCommand(args)
         local s = DevSandbox3.state.savedVars.settings
         s.probeAllTypes = not s.probeAllTypes
         LogUtils.Log("Probing all compass pin types %s", s.probeAllTypes and "ON (noisy, testing)" or "OFF")
+    elseif command == "slots" then
+        DevSandbox3.SlotActions.Status()
+    elseif command == "empties" then
+        DevSandbox3.SlotActions.ListEmpties()
+    elseif command == "clearempties" then
+        DevSandbox3.SlotActions.ClearEmpties()
+    elseif command == "clearall" then
+        DevSandbox3.SlotActions.ClearEmpties()
+        HandleClear()
+        DevSandbox3.AlertActions.Dismiss()
+    elseif command == "quiet" then
+        local s = DevSandbox3.state.savedVars.settings
+        s.logEmptySlots, s.alertOnEmptySlots, s.probeAllTypes = false, false, false
+        DevSandbox3.state.savedVars.debug, DevSandbox3.state.savedVars.recordUnknown = false, false
+        LogUtils.Log("Quiet: chat lines, big alerts, probing, debug and candidate recording all OFF")
+    elseif command == "markers" then
+        LogUtils.Log(DevSandbox3.WorldMarkerActions.Status())
+    elseif command == "looted" then
+        HandleLooted()
     elseif command == "dismiss" then
         DevSandbox3.AlertActions.Dismiss()
     elseif command == "alert" then

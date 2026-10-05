@@ -21,7 +21,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Wayshrine Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Infinite_1st/Wayshrine-Blocker__4745) | Infinite_1st | PC / Mac | 1.1 |
 | [Wayshrine Tab Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kulturnilpferd/Wayshrine-Tab-Selector__2294) | Kulturnilpferd | PC / Mac | 1.3 |
 | [wd's pings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wdiscute/wd-s-pings__4000) | wdiscute | PC / Mac | 1.23 |
-| [Wealth Evaluator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Wealth-Evaluator__1559) | Rhyono | PC / Mac | 1.52 |
+| [Wealth Evaluator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Wealth-Evaluator__1559) | Rhyono | PC / Mac | 1.53 |
 | [Weapon & Spell Power Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bronson/Weapon-Spell-Power-Tracker__1444) | bronson | PC / Mac | 2.7 |
 | [Weapon Charge Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/katkat42/Weapon-Charge-Alert__90) | katkat42 | PC / Mac | 1.1.24 |
 | [WeaponCharger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zeroIndex/WeaponCharger__2063) | zeroIndex | PC / Mac | 0.2.6 |

@@ -1,0 +1,15 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="Elms Markers">
+			<Action name="EM_PLACE_MARKER">
+					<Down>ElmsMarkers.PlaceAtMe()</Down>
+			</Action>
+      <Action name="EM_REMOVE_MARKER">
+					<Down>ElmsMarkers.RemoveNearMe()</Down>
+			</Action>
+      <Action name="EM_PLACE_RENDEZVOUS">
+					<Down>ElmsMarkers.PrepareRendezvous()</Down>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

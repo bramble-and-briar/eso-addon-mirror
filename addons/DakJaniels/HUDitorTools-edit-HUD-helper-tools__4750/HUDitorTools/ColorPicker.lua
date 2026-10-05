@@ -21,22 +21,22 @@ local SLOT_DEFINITIONS =
     {
         childName = "Grid",
         slotName = HT.COLOR_SLOT_GRID,
-        label = "Grid",
+        label = GetString(SI_HUDITORTOOLS_GRID_LAM_HEADER),
     },
     {
         childName = "Selected",
         slotName = HT.COLOR_SLOT_SELECTED,
-        label = "Selected",
+        label = GetString(SI_HUDITORTOOLS_COLOR_SELECTED),
     },
     {
         childName = "Unselected",
         slotName = HT.COLOR_SLOT_UNSELECTED,
-        label = "Unselected",
+        label = GetString(SI_HUDITORTOOLS_COLOR_UNSELECTED),
     },
     {
         childName = "Hidden",
         slotName = HT.COLOR_SLOT_HIDDEN,
-        label = "Hidden",
+        label = GetString(SI_HUDITORTOOLS_COLOR_HIDDEN),
     },
 }
 
@@ -68,7 +68,7 @@ function ColorPicker:Initialize(control)
     end)
 
     local resetButton = control:GetNamedChild("Reset")
-    resetButton:SetText("Reset")
+    resetButton:SetText(GetString(SI_GROUP_FINDER_FILTERS_RESET)) --"Reset"
     resetButton:SetHandler("OnClicked", function ()
         self:ResetActiveSlot()
     end)

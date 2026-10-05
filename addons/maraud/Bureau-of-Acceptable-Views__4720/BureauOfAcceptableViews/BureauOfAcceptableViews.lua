@@ -5,7 +5,7 @@ local SAVED_VARIABLES_NAME = "BureauOfAcceptableViews_SavedVariables"
 BureauOfAcceptableViews = {
     name = ADDON_NAME,
     savedVariablesName = SAVED_VARIABLES_NAME,
-    version = "3.10.224232",
+    version = "3.11.012748",
     -- 0=off, 1=errors, 2=warnings, 3=info, 4=verbose. Seeded silent here and
     -- overwritten from SavedVariables at load (see DEBUG_MODE_DEFAULT below, which
     -- must stay in sync -- this literal exists only because the addon table is
@@ -223,15 +223,17 @@ local isTogglingFPV = false          -- Flag to prevent re-entrant calls
 -- engine = vanilla behavior), breaking our side of the loop. This is purely a
 -- session-local runtime flag -- it touches no SavedVariables and is undone by a
 -- relog or `/bav reset`. We deliberately do NOT name or blame any addon (a
--- ZO_PreHook cannot know its caller) and we only count REAL view flips we
--- observe through our own hook -- never a timer/poll, honoring the addon's
--- event-driven contract.
+-- ZO_PreHook cannot know its caller) and count settled view flips, not raw calls.
+-- Native transitions use a one-shot next-frame observation; there is no standing
+-- camera polling for this detector.
 local OSCILLATION_WINDOW_MS       = 3000  -- sliding window for counting view flips
 local OSCILLATION_FLIP_THRESHOLD  = 8     -- flips within the window that trip backoff
 
 local viewFlipTimestamps = {}    -- sliding window of observed real-flip times (ms)
 local lastObservedFpv    = nil   -- last observed FPV-ness, to detect a real flip
 local togglePassive      = false -- backoff: when true, our FPV hook is a no-op
+local viewStateObservationPending = false
+local VIEW_STATE_OBSERVER_UPDATE_NAME = ADDON_NAME .. "_ViewStateObserver"
 
 -- Camera-write health.
 -- ---------------------------------------------------------------------------
@@ -501,6 +503,11 @@ local function SetCameraZoom(zoom)
     -- A verified write went through; the engine is honoring our distance again.
     consecutiveZoomWriteFailures = 0
 
+    local reconciler = BureauOfAcceptableViews.ZoomReconciler
+    if not isTogglingFPV and reconciler and reconciler.SyncIntent then
+        reconciler.SyncIntent(zoom)
+    end
+
     -- Keep zoom-dependent FOV in sync. This is the single verified zoom-write
     -- point, so it is the natural place to re-evaluate dynamic FOV. Route through
     -- the FOV arbiter rather than calling DynamicFov directly: while a preset
@@ -522,33 +529,21 @@ local function IsZoomLimited()
     return IsMounted() or IsPlayerInWerewolfForm() or IsUnitSwimming("player")
 end
 
--- Record a REAL view flip (FPV<->third person) observed through our own hook and
--- trip the reversible backoff if flips exceed the threshold within the sliding
--- window. Counts only genuine state changes -- never raw hook calls -- so the
--- balanced same-frame measurement pairs other addons make do not register. No
--- timer/poll: this runs only when the engine already called the toggle.
---
--- Owned toggles (limited state, or leaving FPV) are handled specially: their
--- actual camera write is DEFERRED to ZoomReconciler's next-frame reconcile, so
--- GetCameraZoom() here can still read the PRE-toggle distance for a same-frame
--- probe pair's second call (the first call's write has not landed yet). Reading
--- live zoom in that case would silently under-count the pair's second flip. Since
--- ZoomReconciler.HandleToggle takes ownership on every call in this branch (its
--- own ownership test mirrors the one below), each call reaching here IS a genuine
--- intent flip regardless of whether the write has landed -- so we flip our
--- tracked state unconditionally instead of re-deriving it from the live camera.
+local function CancelViewStateObservation()
+    if viewStateObservationPending then
+        EVENT_MANAGER:UnregisterForUpdate(VIEW_STATE_OBSERVER_UPDATE_NAME)
+        viewStateObservationPending = false
+    end
+end
+
+-- Observe the settled view after a verified reconcile or a native transition.
+-- Balanced probe pairs are sampled after both intents cancel, not between calls.
 local function NoteViewStateAndCheckOscillation(nowMs)
     local zoom, success = GetCameraZoom()
     if not success then
         return
     end
-    local owned = IsZoomLimited() or zoom <= ZOOM_FPV
-    local isFpv
-    if owned then
-        isFpv = not lastObservedFpv
-    else
-        isFpv = zoom <= ZOOM_FPV
-    end
+    local isFpv = zoom <= ZOOM_FPV
 
     if lastObservedFpv == nil then
         lastObservedFpv = isFpv
@@ -572,8 +567,24 @@ local function NoteViewStateAndCheckOscillation(nowMs)
 
     if not togglePassive and #viewFlipTimestamps >= OSCILLATION_FLIP_THRESHOLD then
         togglePassive = true
+        CancelViewStateObservation()
+        local reconciler = BureauOfAcceptableViews.ZoomReconciler
+        if reconciler and reconciler.Cancel then
+            reconciler.Cancel()
+        end
         LogDebug("ToggleFPV: runaway view oscillation detected; FPV hook is now passive")
     end
+end
+
+local function ScheduleViewStateObservation()
+    if viewStateObservationPending then
+        return
+    end
+    viewStateObservationPending = true
+    EVENT_MANAGER:RegisterForUpdate(VIEW_STATE_OBSERVER_UPDATE_NAME, 0, function()
+        CancelViewStateObservation()
+        NoteViewStateAndCheckOscillation(GetGameTimeMilliseconds())
+    end)
 end
 
 -- Pre-hook for ToggleGameCameraFirstPerson
@@ -596,15 +607,6 @@ local function PreHookToggleGameCameraFirstPerson()
         return false
     end
 
-    -- Genuine toggle for this frame: fold it into the runaway detector. This may
-    -- trip backoff; if so, go passive immediately and pass this call straight
-    -- through to the engine. Balanced probe pairs net to no real view flip, so
-    -- they do not register here.
-    NoteViewStateAndCheckOscillation(GetGameTimeMilliseconds())
-    if togglePassive then
-        return false
-    end
-
     -- Don't interfere with siege weapons - let original function handle it
     if IsGameCameraSiegeControlled() then
         LogInfo(SI_BAV_LOG_TOGGLE_SIEGE_PASS)
@@ -620,9 +622,11 @@ local function PreHookToggleGameCameraFirstPerson()
     -- no same-frame-pair bookkeeping and no dependency on frame timing: a probe
     -- pair is just two intent flips that net to zero. See ZoomReconciler.lua.
     local reconciler = BureauOfAcceptableViews.ZoomReconciler
-    if reconciler and reconciler.HandleToggle() then
+    if reconciler and reconciler.HandleToggle(viewStateObservationPending) then
+        CancelViewStateObservation()
         return true  -- owned: intent flipped, reconcile scheduled
     end
+    ScheduleViewStateObservation()
     return false     -- passthrough (engine balances any probe pair itself)
 end
 
@@ -856,6 +860,8 @@ end
 -- Event handler for EVENT_PLAYER_DEACTIVATED (logout/zone change)
 local function OnPlayerDeactivated(event)
     LogDebug(SI_BAV_LOG_ONPLAYERDEACTIVATED_SAVING)
+    CancelViewStateObservation()
+    lastObservedFpv = nil
     local cameraResponse = BureauOfAcceptableViews.CameraResponse
     if cameraResponse and cameraResponse.RestoreSmoothingNow then
         cameraResponse.RestoreSmoothingNow()
@@ -1048,6 +1054,7 @@ local function ResetCameraState(suppressOutput)
 
     -- Clear the oscillation backoff: /bav reset is the explicit recovery point, so
     -- the FPV hook resumes normal handling and the detector starts fresh.
+    CancelViewStateObservation()
     togglePassive = false
     viewFlipTimestamps = {}
     lastObservedFpv = nil
@@ -1134,6 +1141,7 @@ private.QueueSave = QueueSave
 private.GetConfiguredLastZoomThreshold = GetConfiguredLastZoomThreshold
 private.GetConfiguredMinMountedZoom = GetConfiguredMinMountedZoom
 private.SetTogglingFPV = SetTogglingFPV
+private.NoteViewStateAndCheckOscillation = NoteViewStateAndCheckOscillation
 
 local function HandleConfigCommand(args)
     return GetSettingsModule().HandleConfigCommand(args)

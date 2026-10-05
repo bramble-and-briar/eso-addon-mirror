@@ -426,7 +426,7 @@ local function OnLoaded(_,name)
     EVENT_MANAGER:AddFilterForEvent(ADDON_NAME.."_GroupUID", EVENT_EFFECT_CHANGED,
         REGISTER_FILTER_ABILITY_ID, BRIGHT_HARBINGER_ID)
 
-    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME.."_Update",16,Update)
+    EVENT_MANAGER:RegisterForUpdate(ADDON_NAME.."_Update",100,Update)
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME.."_PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
         -- Console UI/font resources can finish initializing after addon load.

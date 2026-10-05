@@ -1,6 +1,7 @@
 local addon = PsijicWay
 if not addon then return end
 
+local MapPins = addon.internal and addon.internal.mapPins
 local LAM = LibAddonMenu2
 if not LAM then return end
 
@@ -23,8 +24,8 @@ local optionsData = {
 		getFunc = function() return addon.savedVars.pinSize end,
 		setFunc = function(value)
 			addon.savedVars.pinSize = value
-			LibMapPins:SetLayoutKey(addon.pinType, "size", value)
-			LibMapPins:RefreshPins(addon.pinType)
+			MapPins:SetLayoutKey(addon.pinType, "size", value)
+			MapPins:RefreshPins(addon.pinType)
 		end,
 		default = defaults.pinSize
 	}

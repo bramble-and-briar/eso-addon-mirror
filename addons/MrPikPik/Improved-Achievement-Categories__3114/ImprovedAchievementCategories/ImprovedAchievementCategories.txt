@@ -5,9 +5,9 @@
 ## Title: Improved Achievement Categories
 ## Description: Hides empty categories in the achievement categories
 ## Author: MrPikPik
-## APIVersion: 101043
-## AddOnVersion: 104
-## Version: 1.0.4
+## APIVersion: 101051
+## AddOnVersion: 105
+## Version: 1.0.5
 ## OptionalDependsOn: VotansAchievementFavorites
 
 ImprovedAchievementCategories.lua

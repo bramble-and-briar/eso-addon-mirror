@@ -38,7 +38,7 @@ function SP:Scan()
     local maxSkillType = tonumber(SKILL_TYPE_MAX_VALUE) or 8
     for skillType = 1, maxSkillType do
         for lineIndex = 1, GetNumSkillLines(skillType) do
-            local lineName = GetSkillLineInfo(skillType, lineIndex)
+            local lineName, lineRank = GetSkillLineInfo(skillType, lineIndex)
             local wanted = self.definition[lineName]
             if wanted then
                 for abilityIndex = 1, GetNumSkillAbilities(skillType, lineIndex) do
@@ -52,6 +52,7 @@ function SP:Scan()
                         local currentCost,targetCost=paidRanks(name,rank),paidRanks(name,target)
                         local item = { line=lineName, name=name, current=currentCost, target=targetCost,
                             currentRank=rank, targetRank=target,
+                            lineRank=tonumber(lineRank) or 0,
                             skillType=skillType, lineIndex=lineIndex, abilityIndex=abilityIndex,
                             progressionIndex=progressionIndex }
                         item.category = self.researchPassives[name] and "research" or "core"
@@ -175,7 +176,18 @@ function SP:AllocateMissing()
     local readiness = self:GetReadiness(snapshot)
     local missing = readiness.missing
     if missing == 0 then return false, "All configured passives are already allocated." end
-    if self:GetUnspentPoints() < missing then return false, string.format("%d additional unspent skill points are required.", missing-self:GetUnspentPoints()) end
+    local eligibleMissing, lockedMissing = 0, 0
+    for _,item in ipairs(snapshot.skillBuild.required) do
+        local required = not (readiness.researchComplete and (item.category == "research" or self.researchPassives[item.name]))
+        if required and not item.unresolved and item.current < item.target then
+            local ranks=item.target-item.current
+            if (tonumber(item.lineRank) or 0)>=50 then eligibleMissing=eligibleMissing+ranks else lockedMissing=lockedMissing+ranks end
+        end
+    end
+    if eligibleMissing==0 then
+        return false,string.format("No passive ranks are unlocked yet; %d rank(s) are waiting on crafting level 50.",lockedMissing)
+    end
+    if self:GetUnspentPoints() < eligibleMissing then return false, string.format("%d additional unspent skill points are required for the currently unlocked passives.", eligibleMissing-self:GetUnspentPoints()) end
     if type(PrepareSkillPointAllocationRequest)~="function" or type(AddPassiveChangeToAllocationRequest)~="function" or type(SendSkillPointAllocationRequest)~="function" then
         return false, "This ESO client does not expose skill allocation requests."
     end
@@ -192,25 +204,40 @@ function SP:AllocateMissing()
 
     local prepared,prepareError=callAllocationApi("PrepareSkillPointAllocationRequest",SKILL_POINT_ALLOCATION_MODE_PURCHASE_ONLY,RESPEC_PAYMENT_TYPE_GOLD)
     if not prepared then return false,"ESO refused the allocation request: "..tostring(prepareError) end
-    local bought, changed = 0, 0
+    local bought, changed, deferred = 0, 0, 0
     for _, item in ipairs(snapshot.skillBuild.required) do
         local required = not (readiness.researchComplete and (item.category == "research" or self.researchPassives[item.name]))
         if required and not item.unresolved and item.current < item.target then
-            local abilityId = GetSpecificSkillAbilityInfo(item.skillType,item.lineIndex,item.abilityIndex,0,item.targetRank)
-            local skillLineId = GetSkillLineId(item.skillType,item.lineIndex)
-            if abilityId and abilityId>0 and skillLineId and skillLineId>0 then
-                local added,addError=callAllocationApi("AddPassiveChangeToAllocationRequest",skillLineId,abilityId,false)
-                if not added then
-                    callAllocationApi("CancelSkillPointAllocationRequest")
-                    return false,"ESO refused a passive change: "..tostring(addError)
+            local missingRanks = item.target-item.current
+            -- A request containing even one rank whose skill-line requirement
+            -- is unmet causes ESO to reject the entire batch. Only submit a
+            -- complete passive target after its crafting line reaches 50.
+            if (tonumber(item.lineRank) or 0) >= 50 then
+                local abilityId = GetSpecificSkillAbilityInfo(item.skillType,item.lineIndex,item.abilityIndex,0,item.targetRank)
+                local skillLineId = GetSkillLineId(item.skillType,item.lineIndex)
+                if abilityId and abilityId>0 and skillLineId and skillLineId>0 then
+                    local added,addError=callAllocationApi("AddPassiveChangeToAllocationRequest",skillLineId,abilityId,false)
+                    if not added then
+                        callAllocationApi("CancelSkillPointAllocationRequest")
+                        return false,"ESO refused a passive change: "..tostring(addError)
+                    end
+                    bought = bought + missingRanks
+                    changed = changed + 1
                 end
-                bought = bought + (item.target-item.current)
-                changed = changed + 1
+            else
+                deferred = deferred + missingRanks
             end
         end
     end
-    if changed==0 then callAllocationApi("CancelSkillPointAllocationRequest"); return false, "No purchasable passive ranks were found." end
+    if changed==0 then
+        callAllocationApi("CancelSkillPointAllocationRequest")
+        if deferred>0 then return false, string.format("No passive ranks are unlocked yet; %d rank(s) are waiting on crafting level 50.",deferred) end
+        return false, "No purchasable passive ranks were found."
+    end
     local sent,sendError=callAllocationApi("SendSkillPointAllocationRequest")
     if not sent then callAllocationApi("CancelSkillPointAllocationRequest"); return false,"ESO refused to apply the passives: "..tostring(sendError) end
+    if deferred>0 then
+        return true, string.format("Submitted %d unlocked passive rank(s); %d rank(s) are waiting on crafting level 50.",bought,deferred)
+    end
     return true, string.format("Submitted %d passive rank(s) for allocation.", bought)
 end

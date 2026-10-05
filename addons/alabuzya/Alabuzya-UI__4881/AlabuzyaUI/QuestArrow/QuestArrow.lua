@@ -1,9 +1,6 @@
-local AlabuzyaUI = AlabuzyaUI
--- Bundled QuestArrow 0.2.2 by alabuzya.
-if not AlabuzyaUI.UseBundledQuestArrow then return end
-local A = AlabuzyaUI.QuestArrow
+local A = QuestArrow
 local P, U = A.Planner, A.UI
-A.name, A.version = "AlabuzyaUIQuestArrow", "0.2.2"
+A.name, A.version = "QuestArrow", "0.2.2"
 A.pending, A.targets, A.nodes = {}, {}, {}
 A.generation, A.nextRequest, A.nextPlan, A.nextNodes = 0, 0, 0, 0
 A.defaults = { x = 0.5, y = 0.27, scale = 1, alpha = 1, locked = true,
@@ -355,8 +352,9 @@ function A:Command(input)
 end
 
 function A:Initialize()
-    if not AlabuzyaUI.Settings.Enabled("questArrow") then return end
-    self.saved = AlabuzyaUI.SavedVariables.Character("questArrow", self.defaults)
+    if self.initialized then return end
+    self.initialized = true
+    self.saved = A.SavedVariables.Character(nil, self.defaults)
     U:Create()
     U:Journal()
     SLASH_COMMANDS["/qa"] = function(input) self:Command(input) end
@@ -389,3 +387,8 @@ function A:Initialize()
     chat("v" .. self.version .. " загружен. Кнопка в журнале; /qa help — команды.")
 end
 
+EVENT_MANAGER:RegisterForEvent(A.name, EVENT_ADD_ON_LOADED, function(_, addonName)
+    if addonName ~= A.name then return end
+    EVENT_MANAGER:UnregisterForEvent(A.name, EVENT_ADD_ON_LOADED)
+    A:Initialize()
+end)

@@ -10,10 +10,6 @@
     {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:2125",
@@ -22,7 +18,7 @@
     "LibAsync"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2125/",
-  "fingerprint": "0ed2a45aca7bd75d5bfbdc650ef5999cc21b663eaf592d93644ab50d30031814",
+  "fingerprint": "5ba9eac376a81b9405f1f23e91b008452a8024793fbaaa2748b09d5a4ceb8b1d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7179.jpg"
   ],
@@ -32,11 +28,11 @@
   "source_id": "2125",
   "source_url": "https://www.esoui.com/downloads/info2125-LibAsync.html",
   "stats": {
-    "downloads": 2966538,
+    "downloads": 2980407,
     "favorites": 1224,
-    "monthly_downloads": 14213
+    "monthly_downloads": 24360
   },
   "title": "LibAsync",
-  "updated_at": 1780996777000,
-  "version": "3.1.4"
+  "updated_at": 1791116390000,
+  "version": "3.1.5"
 }

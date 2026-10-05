@@ -1,0 +1,8 @@
+## Title: Group Full Dante
+## Description: Shows a center-screen announcement when the group reaches 12 players.
+## Author: ChatGPT
+## Version: 1.1.0
+## APIVersion: 101051
+## AddOnVersion: 110
+
+GroupFullDante.lua

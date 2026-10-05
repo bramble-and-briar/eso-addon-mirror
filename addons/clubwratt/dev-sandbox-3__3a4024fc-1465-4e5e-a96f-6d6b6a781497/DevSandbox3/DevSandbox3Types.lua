@@ -11,6 +11,9 @@
 ---@field seenCount integer Number of times the node was sighted
 ---@field looted boolean True once the recipe was actually looted here
 ---@field candidate boolean True if recorded only because the harvest node name was unrecognized
+---@field wx number|nil World X in metres (GetUnitWorldPosition) - set from 0.8.0, used for 3D / compass markers
+---@field wy number|nil World height in metres
+---@field wz number|nil World Z in metres
 
 ---@class DevSandbox3SavedVars
 ---@field nodes DevSandbox3Node[]
@@ -22,6 +25,10 @@
 ---@field settings DevSandbox3Settings
 ---@field activeAlert DevSandbox3Alert|nil Persistent on-screen alert (survives reloadui until dismissed)
 ---@field coverage table<integer, table<string, boolean>> zoneId -> set of covered cell keys ("cx:cy")
+---@field emptySlots table<integer, DevSandbox3EmptySlot> expected-node index -> missing-slot record
+---@field emptySlotsVersion string|nil version of the bundled expected-node data the records refer to
+---@field lootedSlots table[] { index, typeName, dist, at } - which expected slot each looted recipe was on
+---@field settingsMigration integer|nil Last one-time settings migration applied (see DevSandbox3State.MIGRATION)
 
 ---@class DevSandbox3Settings
 ---@field alertEnabled boolean
@@ -34,6 +41,21 @@
 ---@field trackCoverage boolean Record covered ground while riding
 ---@field showCoverage boolean Draw covered ground on the Cyrodiil map
 ---@field probeAllTypes boolean Also react to LOCATION/VENDOR/TRAINER/NPC_FOLLOWER compass pins (noisy, testing only)
+---@field showEmptySlots boolean Draw missing-slot candidates on the Cyrodiil map
+---@field showExpectedSlots boolean Draw unverified expected slots within range (debug overlay)
+---@field logEmptySlots boolean Chat line when a slot is marked missing
+---@field alertOnEmptySlots boolean Big alert when a new missing slot is found (noisy)
+---@field emptyByPinCount boolean Also mark slots missing when the compass has zero harvest pins in range
+---@field emptySlotTtlMinutes integer Forget a missing slot this long after it was last seen empty
+---@field showEmptySlotsOutOfRange boolean Keep drawing missing slots after riding out of compass range (default: only while nearby)
+---@field showWorldMarkers boolean Floating dots in the 3D world above missing slots / recorded spawns
+---@field showCompassMarkers boolean Pins on the compass strip for the same targets
+---@field markMissingSlotsInWorld boolean Include missing expected slots (orange) in the world/compass markers
+---@field markSpawnsInWorld boolean Include recorded war torte spawns (green) in the world/compass markers
+---@field worldMarkerRangeM integer Only mark targets within this many metres
+---@field worldMarkerSizeM number World size of a 3D dot (at 10 m when constant-size is on)
+---@field worldMarkerConstantSize boolean Keep 3D dots the same size on screen regardless of distance
+---@field mapPinSize integer Map pin size in UI units for missing-slot / spawn pins (pinpoint = ~6)
 
 ---@class DevSandbox3Alert
 ---@field text string

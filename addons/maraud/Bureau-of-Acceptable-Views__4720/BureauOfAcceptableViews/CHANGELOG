@@ -3,6 +3,16 @@
 
 
 
+[color=#6FCB9F]Version: 3.11.012748[/color]
+
+Camera-toggle reliability and manual-zoom preservation fixes.
+
+- Fixed balanced camera-probe calls incorrectly disabling first-person view interception in mounted, werewolf, and swimming states.
+- Fixed stale deferred camera toggles overwriting manual zoom and the remembered third-person distance; newer verified distance changes now cancel queued toggles and retries.
+- Balanced camera-probe pairs now preserve the exact current distance, including close zoom below the remembered-distance threshold and native camera transitions.
+- Kept protection against real rapid view oscillation, with one-shot observation cleaned up on zone changes and emergency camera reset.
+
+
 [color=#6FCB9F]Version: 3.10.224232[/color]
 
 This release is focused specifically on making PvP camera control direct, predictable, and player-owned.

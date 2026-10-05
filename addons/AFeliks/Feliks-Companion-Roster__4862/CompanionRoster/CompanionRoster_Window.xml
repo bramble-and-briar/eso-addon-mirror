@@ -13,6 +13,11 @@
                 <Label name="$(parent)Companion" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
                     <Dimensions x="150" />
                     <Anchor point="LEFT" offsetX="16" />
+                    <OnMouseUp>
+                        if button == MOUSE_BUTTON_INDEX_LEFT and upInside then
+                            CompanionRoster.OnCompanionMouseUp(self)
+                        end
+                    </OnMouseUp>
                     <OnMouseEnter>
                         CompanionRoster.OnCompanionMouseEnter(self)
                     </OnMouseEnter>

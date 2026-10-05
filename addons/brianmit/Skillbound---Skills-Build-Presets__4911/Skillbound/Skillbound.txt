@@ -1,0 +1,41 @@
+## Title: Skillbound
+## Description: Skill & gear presets: save your gear, skills, champion stars, food and more as builds and wear them with one click. Optional: LibAddonMenu-2.0.
+## Author: brianmit
+## Version: 1.0.1
+## AddOnVersion: 2
+## APIVersion: 101050 101051
+## SavedVariables: Skillbound_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved
+;
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+lang/en.lua
+lang/$(language).lua
+Skillbound.lua
+Skillbound_Anim.lua
+Skillbound_Items.lua
+Skillbound_Capture.lua
+Skillbound_Apply.lua
+Skillbound_Check.lua
+Skillbound_Rules.lua
+Skillbound_Widgets.lua
+Skillbound_SkillList.lua
+Skillbound_Prebuff.lua
+Skillbound_Bank.lua
+Skillbound_Fix.lua
+Skillbound_Ready.lua
+Skillbound_Learn.lua
+Skillbound_Armory.lua
+Skillbound_Share.lua
+Skillbound_Marks.lua
+Skillbound_UI.lua
+Skillbound_Save.lua
+Skillbound_Preview.lua
+Skillbound_Launcher.lua
+Skillbound_Wheel.lua
+Skillbound_Settings.lua
+Bindings.xml

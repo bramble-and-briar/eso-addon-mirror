@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/LeopardoColorido/isOverloadON__4915",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "LeopardoColorido",
+  "canonical_id": "esoui:4915",
+  "category_id": "58",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4915",
+  "deleted": false,
+  "directories": [
+    "IsOverloadOn"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4915/",
+  "fingerprint": "d08b50dc0b3bb233fcaeefa31e8529e4418d1ce893eca0285e5fb0a984dd6053",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17717.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4915",
+  "source_url": "https://www.esoui.com/downloads/info4915-isOverloadON.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "isOverloadON",
+  "updated_at": 1791171835000,
+  "version": "1.7.0"
+}

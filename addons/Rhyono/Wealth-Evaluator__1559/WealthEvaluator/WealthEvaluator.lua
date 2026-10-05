@@ -1,8 +1,8 @@
 WealthEval = {
 Name = "WealthEvaluator",
-Author =  "Rhyono",
-Version = "1.52",
-SettingsVersion = "1.10"
+Author = "Rhyono",
+Version = "1.53",
+SettingsVersion = "1.11"
 }
 
 local WE = WealthEval
@@ -13,9 +13,9 @@ WE.guilds = {[1]={"?",0},[2]={"?",0},[3]={"?",0},[4]={"?",0},[5]={"?",0}}
 
 --homes houseID = owned,furniture value
 WE.Defaults = {
-['homes']={},['autofurnituresum']=true,['stolenwarning']=true,['unknownwarning']=true,['apval']=0,['crownsval']=0,['telvarval']=0,['voucherval']=0,['includemode']="All",['includeguilds']=true,['includeworn']=true,['includebag']=true,['includebank']=true,['includehousebank']=true,['includecraftbag']=true,['includebaggold']=true,['includebankgold']=true,['includecrowns']=false,['includetelvar']=false,['includebanktelvar']=false,['includeap']=false,['includevoucher']=false,['includemotifknowledge']=false,['includecookknowledge']=false,['includefurnknowledge']=false,['includehousecost']=false,['includefurnval']=false,['includebankspace']=false}
+['homes']={},['autofurnituresum']=true,['stolenwarning']=true,['unknownwarning']=true,['apval']=0,['crownsval']=0,['telvarval']=0,['voucherval']=0,['includemode']="All",['includeguilds']=true,['includeworn']=true,['includebag']=true,['includebank']=true,['includehousebank']=true,['includefurnvault']=true,['includecraftbag']=true,['includebaggold']=true,['includebankgold']=true,['includecrowns']=false,['includetelvar']=false,['includebanktelvar']=false,['includeap']=false,['includevoucher']=false,['includemotifknowledge']=false,['includecookknowledge']=false,['includefurnknowledge']=false,['includehousecost']=false,['includefurnval']=false,['includebankspace']=false}
 
-WE.styles = { -- visual id, achievement id, motif book id (or axes motif minus 1), type
+WE.styles = { -- visual id, achievement id, axes motif (or motif book id if no chapters), type
 [1] = {1,1025,16424}, -- High Elf
 [2] = {1,1025,27245}, -- Dark Elf
 [3] = {1,1025,16428}, -- Wood Elf
@@ -26,10 +26,10 @@ WE.styles = { -- visual id, achievement id, motif book id (or axes motif minus 1
 [8] = {1,1025,16426}, -- Orc
 [9] = {1,1025,27246}, -- Argonian
 [10] = {1,1025,54868}, -- Imperial
-[11] = {2,1025,51638}, -- Ancient Elf
-[12] = {2,1025,51565}, -- Barbaric
-[13] = {2,1025,51345}, -- Primal
-[14] = {2,1025,51688}, -- Daedric
+[11] = {1,1025,51638}, -- Ancient Elf
+[12] = {1,1025,51565}, -- Barbaric
+[13] = {1,1025,51345}, -- Primal
+[14] = {1,1025,51688}, -- Daedric
 [15] = {2,1144,57573}, -- Dwemer
 [16] = {2,1319,64670}, -- Glass
 [17] = {2,1181,57835}, -- Xivkyn
@@ -44,7 +44,7 @@ WE.styles = { -- visual id, achievement id, motif book id (or axes motif minus 1
 [26] = {2,1416,71705}, -- Daggerfall Covenant
 [27] = {2,1414,71721}, -- Ebonheart Pact
 [28] = {2,1797,71673}, -- Ra Gada
-[29] = {1,1418,71765}, -- Soul Shriven
+[29] = {3,1418,71765}, -- Soul Shriven
 [30] = {2,1933,73839}, -- Morag Tong
 [31] = {2,1676,73855}, -- Skinchanger
 [32] = {2,1422,74540}, -- Abah's Watch
@@ -89,7 +89,7 @@ WE.styles = { -- visual id, achievement id, motif book id (or axes motif minus 1
 [71] = {2,2503,147667}, -- Coldsnap
 [72] = {2,2504,147683}, -- Meridian
 [73] = {2,2505,147699}, -- Anequina
-[74] = {2,2506,147714}, -- Pellitine
+[74] = {2,2506,147715}, -- Pellitine
 [75] = {2,2507,147731}, -- Sunspire
 [76] = {2,2630,156556}, -- Dragonguard
 [77] = {2,2629,156574}, -- Stags of Z'en
@@ -141,20 +141,21 @@ WE.styles = { -- visual id, achievement id, motif book id (or axes motif minus 1
 [124] = {2,3921,203183}, -- The Recollection
 [125] = {2,3922,203215}, -- Blind Path Cultist
 [126] = {2,3923,203361}, -- Shardborn
-[127] = {2,3924,203473}, -- West Weald Legion
-[128] = {2,3925,203492}, -- Lucent Sentinel
+[127] = {2,3924,203474}, -- West Weald Legion
+[128] = {2,3925,203493}, -- Lucent Sentinel
 [129] = {3,3926,203834}, -- Hircine Bloodhunter
-[130] = {2,4159,211054}, -- Exile's Revenge
-[131] = {2,4160,211071}, -- Militant Monk
-[132] = {2,0,212084}, -- Stirk Fellowship
-[133] = {2,4241,212118}, -- Coldharbour Dominator
-[134] = {2,4242,212118}, -- Tide-Born
-[135] = {2,4289,212424}, -- Black Soul Gem
-[136] = {2,4290,212441}, -- Voskrona Guardian
+[130] = {2,4159,211055}, -- Exile's Revenge
+[131] = {2,4160,211072}, -- Militant Monk
+[132] = {2,4240,212085}, -- Stirk Fellowship
+[133] = {2,4241,212102}, -- Coldharbour Dominator
+[134] = {2,4242,212119}, -- Tide-Born
+[135] = {2,4289,212425}, -- Black Soul Gem
+[136] = {2,4290,212442}, -- Voskrona Guardian
+[137] = {2,4491,223948}, -- Koldane Cartel
 }	
  
 WE.foodrecipes = { 
-45535,45539,45540,45541,45542,45543,45544,45545,45546,45547,45548,45549,45551,45552,45553,45554,45555,45556,45557,45559,45560,45561,45562,45563,45564,45565,45567,45568,45569,45570,45571,45572,45573,45574,45575,45576,45577,45579,45580,45581,45582,45583,45584,45587,45588,45589,45590,45591,45592,45594,45595,45596,45597,45598,45599,45600,45601,45602,45603,45604,45607,45608,45609,45610,45611,45612,45614,45615,45616,45617,45618,45619,45620,45621,45622,45623,45624,45625,45626,45627,45628,45629,45630,45631,45632,45633,45634,45636,45637,45638,45639,45640,45641,45642,45643,45644,45645,45646,45647,45648,45649,45650,45651,45652,45653,45654,45655,45656,45657,45658,45659,45660,45661,45662,45663,45664,45665,45666,45667,45668,45670,45671,45672,45673,45674,45675,45676,45677,45678,45679,45680,45681,45682,45683,45684,45685,45686,45687,45688,45689,45690,45691,45692,45693,45694,45695,45696,45697,45698,45699,45700,45701,45702,45703,45704,45705,45706,45707,45708,45709,45710,45711,45712,45713,45714,45715,45716,45717,45718,45719,45791,45887,45888,45889,45890,45891,45892,45893,45894,45895,45896,45897,45898,45899,45900,45901,45902,45903,45904,45905,45906,45907,45908,45909,45910,45911,45912,45913,45914,45915,45916,45917,45918,45919,45920,45921,45922,45923,45924,45925,45926,45927,45928,45929,45930,45931,45932,45933,45934,45935,45936,45937,45938,45939,45940,45941,45942,45943,45944,45945,45946,45947,45948,45949,45950,45951,45952,45953,45954,45955,45956,45957,45958,45959,45960,45961,45962,45963,45964,45965,45966,45967,45968,45969,45970,45971,45972,45973,45974,45975,45976,45977,45978,45979,45980,45981,45982,45983,45984,45985,45986,45987,45988,45989,45990,45991,45992,45993,45994,45995,45996,45997,45998,45999,46000,46001,46002,46003,46004,46005,46006,46007,46008,46009,46010,46011,46012,46013,46014,46015,46016,46017,46018,46019,46020,46021,46022,46023,46024,46025,46026,46027,46028,46029,46030,46031,46032,46033,46034,46035,46036,46037,46038,46039,46040,46041,46042,46043,46044,46045,46046,46047,46048,46049,46050,46051,46052,46053,46054,46055,46056,46079,46081,46082,54241,54242,54243,54369,54370,54371,56943,56944,56945,56946,56947,56948,56949,56950,56951,56952,56953,56954,56955,56956,56957,56958,56959,56961,56962,56963,56964,56965,56966,56967,56968,56969,56970,56971,56972,56973,56974,56975,56976,56977,56978,56979,56980,56981,56982,56983,56984,56985,56986,56987,56988,56989,56990,56991,56992,56993,56994,56995,56996,56997,56998,56999,57000,57001,57002,57003,57004,57005,57006,57007,57008,57009,57010,57011,57012,57013,57014,57015,57016,57017,57018,57019,57020,57021,57022,57023,57024,57025,57026,57027,57028,57029,57030,57031,57032,57033,57034,57035,57036,57037,57038,57039,57040,57041,57042,57043,57044,57045,57046,57047,57048,57049,57050,57051,57052,57053,57054,57055,57056,57057,57058,57059,57060,57061,57062,57063,57064,57065,57066,57067,57068,57069,57070,57071,57072,57073,57074,57075,57076,57077,57078,57079,64223,68189,68190,68191,68192,68193,68194,68195,68196,68197,68198,68199,68200,68201,68202,68203,68204,68205,68206,68207,68208,68209,68210,68211,68212,68213,68214,68215,68216,68217,68218,68219,68220,68221,68222,68223,68224,68225,68226,68227,68228,68229,68230,68231,68232,71060,71061,71062,71063,87682,87683,87684,87688,87689,87692,87693,87694,87698,96960,96961,96962,96963,96964,96965,96966,96967,96968,115029,120077,120767,120768,120769,120770,133551,133552,133553,139012,139017,153624,153626,153628,171324,171331,171435,
+45535,45539,45540,45541,45542,45543,45544,45545,45546,45547,45548,45549,45551,45552,45553,45554,45555,45556,45557,45559,45560,45561,45562,45563,45564,45565,45567,45568,45569,45570,45571,45572,45573,45574,45575,45576,45577,45579,45580,45581,45582,45583,45584,45587,45588,45589,45590,45591,45592,45594,45595,45596,45597,45598,45599,45600,45601,45602,45603,45604,45607,45608,45609,45610,45611,45612,45614,45615,45616,45617,45618,45619,45620,45621,45622,45623,45624,45625,45626,45627,45628,45629,45630,45631,45632,45633,45634,45636,45637,45638,45639,45640,45641,45642,45643,45644,45645,45646,45647,45648,45649,45650,45651,45652,45653,45654,45655,45656,45657,45658,45659,45660,45661,45662,45663,45664,45665,45666,45667,45668,45670,45671,45672,45673,45674,45675,45676,45677,45678,45679,45680,45681,45682,45683,45684,45685,45686,45687,45688,45689,45690,45691,45692,45693,45694,45695,45696,45697,45698,45699,45700,45701,45702,45703,45704,45705,45706,45707,45708,45709,45710,45711,45712,45713,45714,45715,45716,45717,45718,45719,45791,45887,45888,45889,45890,45891,45892,45893,45894,45895,45896,45897,45898,45899,45900,45901,45902,45903,45904,45905,45906,45907,45908,45909,45910,45911,45912,45913,45914,45915,45916,45917,45918,45919,45920,45921,45922,45923,45924,45925,45926,45927,45928,45929,45930,45931,45932,45933,45934,45935,45936,45937,45938,45939,45940,45941,45942,45943,45944,45945,45946,45947,45948,45949,45950,45951,45952,45953,45954,45955,45956,45957,45958,45959,45960,45961,45962,45963,45964,45965,45966,45967,45968,45969,45970,45971,45972,45973,45974,45975,45976,45977,45978,45979,45980,45981,45982,45983,45984,45985,45986,45987,45988,45989,45990,45991,45992,45993,45994,45995,45996,45997,45998,45999,46000,46001,46002,46003,46004,46005,46006,46007,46008,46009,46010,46011,46012,46013,46014,46015,46016,46017,46018,46019,46020,46021,46022,46023,46024,46025,46026,46027,46028,46029,46030,46031,46032,46033,46034,46035,46036,46037,46038,46039,46040,46041,46042,46043,46044,46045,46046,46047,46048,46049,46050,46051,46052,46053,46054,46055,46056,46079,46081,46082,54241,54242,54243,54369,54370,54371,56943,56944,56945,56946,56947,56948,56949,56950,56951,56952,56953,56954,56955,56956,56957,56958,56959,56961,56962,56963,56964,56965,56966,56967,56968,56969,56970,56971,56972,56973,56974,56975,56976,56977,56978,56979,56980,56981,56982,56983,56984,56985,56986,56987,56988,56989,56990,56991,56992,56993,56994,56995,56996,56997,56998,56999,57000,57001,57002,57003,57004,57005,57006,57007,57008,57009,57010,57011,57012,57013,57014,57015,57016,57017,57018,57019,57020,57021,57022,57023,57024,57025,57026,57027,57028,57029,57030,57031,57032,57033,57034,57035,57036,57037,57038,57039,57040,57041,57042,57043,57044,57045,57046,57047,57048,57049,57050,57051,57052,57053,57054,57055,57056,57057,57058,57059,57060,57061,57062,57063,57064,57065,57066,57067,57068,57069,57070,57071,57072,57073,57074,57075,57076,57077,57078,57079,64223,68189,68190,68191,68192,68193,68194,68195,68196,68197,68198,68199,68200,68201,68202,68203,68204,68205,68206,68207,68208,68209,68210,68211,68212,68213,68214,68215,68216,68217,68218,68219,68220,68221,68222,68223,68224,68225,68226,68227,68228,68229,68230,68231,68232,71060,71061,71062,71063,87682,87683,87684,87688,87689,87692,87693,87694,87698,96960,96961,96962,96963,96964,96965,96966,96967,96968,115029,120077,120767,120768,120769,120770,133551,133552,133553,139012,139017,153624,153626,153628,171324,171331,171435,224835,225208,
  }
  
 WE.furnrecipes = {
@@ -167,13 +168,16 @@ WE.furnrecipes = {
 198480,198481,198482,198483,198484,198485,198486,198487,198488,198489,198490,198491,198492,198493,198494,198495,198496,198497,198498,198499,198500,198501,198502,198503,198504,198505,198506,198507,198508,198509,198510,198511,198512,198513,198514,198515,198516,198517,198518,198519,198520,198521,198522,198523,198524,198525,198526,198527,198528,198529,198530,198531,198532,198533,198534,198535,198536,198537,198538,198539,198540,198541,198542,198543,198544,198545,198546,198547,198548,198549, -- Endless Archive
 203319,203320,203321,203322,203323,203324,203325,203326,203327,203328,203329,203330,203331,203332,203333,203334,203335,203336,203337,203338,203339,203340,203341,203342,203343,203344,203345,203346,203347,203348,203349,203350,203351,203352,203353, -- Scions
 207820,207821,207822,207823,207824,207825,207826,207827,207828,207829,207830,207831,207832,207833,207834,207835,207836,207837,207838,207839,207840,207841,207842,207843,207844,207845,207846,207847,207848,207849,207850,207851,207852,207853,207854,207855,207856,207857,207858,207859,207860,207861,207862,207863,207864,207865,207866,207867,207868,207869,207870,207871,207872,207873,207874,207875,207876,207877,207878,207879,207880,207881,207882,207883,207884,207885,207886,207887,207888,207889,207890,207891,207892,207893,207894,207895,207896,207897,207898,207899,207900,207901,207902,207903,207904,207905,207906,207907,207908,207909,207910,207911,207912,207913,207914,207915,207916,207917,207918,207919,207920,207921,207922,207923,207924,207925,207926,207927, -- Gold Road
-211039,211038,211037,211036,211035,211034,211033,211032,211031,211030,211029,211028,211027,211026,211025,211024,211023,211022,211021,211020,211019,211018,211017,211016,211015,211014,211013,211012,211011,211010,211009,211008,211007,211006,211005, -- U43 coz idk what it's called
-211404,211405,211406,211407,211408,211409,211410,211411,211412,211413,211414,211415,211416,211417,211418,211419,211420,211421,211422,211423,211424,211425,211426,211427,211428,211429,211430,211431,211432,211433,211434,211435,211436,211437,211438,211439,211440,211441,211442,211443,211444,211445,211446,211447,211448,211449,211450,211451,211452,211453,211454,211455,211456,211457,211458,211459,212379, -- U44
+211039,211038,211037,211036,211035,211034,211033,211032,211031,211030,211029,211028,211027,211026,211025,211024,211023,211022,211021,211020,211019,211018,211017,211016,211015,211014,211013,211012,211011,211010,211009,211008,211007,211006,211005, -- Home Tours
+211404,211405,211406,211407,211408,211409,211410,211411,211412,211413,211414,211415,211416,211417,211418,211419,211420,211421,211422,211423,211424,211425,211426,211427,211428,211429,211430,211431,211432,211433,211434,211435,211436,211437,211438,211439,211440,211441,211442,211443,211444,211445,211446,211447,211448,211449,211450,211451,211452,211453,211454,211455,211456,211457,211458,211459,212379, -- Golden Pursuits
 212206,212207,212208,212209,212210,212561,212562,212563,212564,212565,212566,212567,212589,212590,212591,212592,212593,212594,212595,212596,212597,212598,212599,212600,212601,212602,212603,212604,212605,212606,212607,212608,212609,212610,212611,212612,212617,  -- Fallen Banners
 217504,217505,217506,217507,217508,217509,217510,217511,217512,217513,217514,217515,217516,217517,217518,217519,217520,217521,217522,217523,217524,217525,217526,217527,217528,217529,217530,217531,217532,217533,217534,217535,217536,217537,217538,217539,217540,217541,217542,217543,217544,217545,217546,217547,217548,217549,217550,217551,217552,217553,217554,217555,217556,217557,217558,217559,217560,217561,217562,217563,217564,217565,217566,217567,217568,217569,217570,217571,217573,217574,217575,217576,217577,217578,217579,217580,217581, -- Seasons of the Worm Cult
-219660,219661,219663,219664,219665,219666,219667,219668,219669,219670,219671,219672,219673,219674,219675,219676,219677,219678,219679,219680,219681,219682,219683,219684,219685,219686,219687,219688,219689,219690,219691,219692,219693,219694,219695,219696,219697,219698,219699,219704,219766,219767,219769,219770,219771,219772,219773,219774,219775,219776,219777,219768, -- Feast of Shadows 
+219660,219661,219662,219663,219664,219665,219666,219667,219668,219669,219670,219671,219672,219673,219674,219675,219676,219677,219678,219679,219680,219681,219682,219683,219684,219685,219686,219687,219688,219689,219690,219691,219692,219693,219694,219695,219696,219697,219698,219699,219704,219766,219767,219769,219770,219771,219772,219773,219774,219775,219776,219777,219768, -- Feast of Shadows
 220289,223181,223566,223567,223568,223569,223570,223571,223572,223573,223574,223575,223576,223577,223578,223579,223580,223581,223582,223583,223584,223585,223586,223587,223588,223589,223590,223591,223592,223593,223594,223595,223596,223597,223598,223599,223600,223601,223602,223603,223604,223605,223606,223607,223608,223609,223610,223611,223612,223613,223614,223615,223616,223617,223618,223619,223620,223621,223622,223623,223624,223625,223626,223627,223628,223629,223630,223631,223632,223633,223634,223635,223636,223637,223638,223639,223640,223641,223642,223643,223644,223645, -- Seasons of the Worm Cult 2
 223872,223873,223874,223895,223896,223897,223898,223899,223900,223901,223902,223903,223904,223905,223906,223907,223908,223909,223910,223911,223912,223913,223914,223915,223916,223917,223918,223919,223920,223921,223922,223923,223924,223925,223926,223927,223928,223929,223930,223931,223932,223933,223934,223935,223936,223937,223938,223939,223940,224277,224278,224279,224280,224281, -- Season Zero
+225089,225090,225091,225092,225093,225094,225095,225096,225097,225098,225099,225100,225101,225102,225104,225105,225106,225107,225108,225109,225111,225112,225113,225114,225115,225116,225117,225132,225161,225162,225163,225164,225165,225166,225167,225168,225169,225170,225171,225189,225190,225191,225192,225198,225199, -- Season Zero, Part 2
+219700,225110,225118,225119,225120,225121,225122,225123,225124,225125,225126,225127,225128,225129,225130,225131,225133,225134,225136,225137,225138,225139,225140,225141,225142,225143,225144,225145,225146,225147,225148,225149,225150,225151,225152,225153,225154,225155,225157,225158,225159,225160,226777,226778,226779,226780,226781,226782,226783,226897,226898,226899,226900,226901,226902,226903,226904,226905,226906,226907,227313, -- Season 1/2
+
 }
 
 -- [itemID] = gold, AP, writ vouchers, tel var; will be implemented once I have usable data
@@ -287,7 +291,7 @@ WE.houses = { --name, cost, furniture value, owned GetCurrentZoneHouseId()
 [112] = {"Haven of the Five Companions",0,0,0}, -- free with tickets
 [113] = {"Kthendral Deep Mines",0,0,0},   -- crown store
 [114] = {"Grand Gallery of Tamriel",0,0,0},   -- crown store
-[115] = {"Shattered Mirror Isle",0,0,0}, -- possibly crown store
+[115] = {"Shattered Mirror Isle",0,0,0}, -- crown store
 [116] = {"Castle Skingrad",0,0,0}, -- crown store
 [117] = {"Bismuth Steam Baths",1200000,0,0,},  -- gold price after achievement
 [118] = {"The Sleepy Sloth",0,0,0}, -- assuming you got it free
@@ -298,6 +302,11 @@ WE.houses = { --name, cost, furniture value, owned GetCurrentZoneHouseId()
 [123] = {"Druidspring Conservatory",0,0,0},  -- crown store
 [124] = {"Night's Den",0,0,0}, -- unlocked through questing
 [125] = {"Buccaneer Bay",0,0,0}, -- crown store
+[128] = {"Rogue's Refuge",0,0,0}, -- assuming you got it free
+[129] = {"Dancing Waters Wellspring",0,0,0}, -- crown store
+[130] = {"Star-Gazer's Vigil",0,0,0}, -- crown store
+[131] = {"Grotto of Desires",0,0,0}, -- assuming you got it free
+[132] = {"Sheogorad Chateau",0,0,0}, -- crown store
 }
 
 WE.bankspace = {
@@ -442,7 +451,6 @@ function WE.ValueDump(mode)
 end
 
 --Handles individual calls to WE.ValueDump
-
 local function WornDump()
 	return WE.ValueDump(BAG_WORN)
 end
@@ -493,6 +501,8 @@ function WE.ValueSum(mode,unk,bind_mode)
 			collect_nick = GetCollectibleInfo(collect_id)
 		end	
 		bag_type = bag_type .. " (" .. collect_nick .. ")"
+	elseif mode == BAG_FURNITURE_VAULT then
+		bag_type = "furnishing vault"
 	end	
 	local sum = 0
 	for i = 0, bag_size, 1 do
@@ -525,7 +535,7 @@ function WE.ValueSum(mode,unk,bind_mode)
 		end
 	end	
 	--Only house calls return both
-	if IsHouseBankBag(mode) then
+	if IsHouseBankBag(mode) or mode == BAG_FURNITURE_VAULT then
 		if unk == 0 or sum > 0 then
 			CHAT_SYSTEM:AddMessage("Estimated " .. bag_type .. " value: " .. WE.FormatNum(sum))
 		end
@@ -538,7 +548,6 @@ function WE.ValueSum(mode,unk,bind_mode)
 end
 
 --Handles individual calls to WE.ValueSum
-
 local function WornAll()
 	return WE.ValueSum(BAG_WORN)
 end
@@ -591,6 +600,24 @@ end
 
 local function HouseBankUnbound()
 	return HouseBankChoose(0,2)
+end
+
+local function FurnitureVaultSum(unk,bind_mode)
+	if unk == nil or unk == "" then unk = 0 end
+	if bind_mode == nil then bind_mode = 0 end
+	return WE.ValueSum(BAG_FURNITURE_VAULT,unk,bind_mode)
+end
+
+local function FurnitureVaultAll()
+	return FurnitureVaultSum(0,0)
+end
+
+local function FurnitureVaultBound()
+	return FurnitureVaultSum(0,1)
+end
+
+local function FurnitureVaultUnbound()
+	return FurnitureVaultSum(0,2)
 end
 
 function WE.CraftBagSum(unk,bind_mode)
@@ -863,6 +890,7 @@ local function WealthSum(bind_mode)
 	local furn_knowledge = WE.SV.includefurnknowledge and WE.RecipeKnowledgeCost(1,bind_mode,1) or 0
 	local house_cost =  WE.SV.includehousecost and WE.HouseCost(bind_mode) or 0
 	local housebank = 0 --set later
+	local furnvault = 0 --set later
 	--Handle tel var value
 	if tonumber(WE.SV.telvarval) == nil then
 		WE.SV.telvarval = 0
@@ -940,6 +968,10 @@ local function WealthSum(bind_mode)
 	if WE.SV.includehousebank then
 		housebank = HouseBankChoose(1,bind_mode)
 		sum = sum+housebank
+	end	
+	if WE.SV.includefurnvault then
+		furnvault = FurnitureVaultSum(1,bind_mode)
+		sum = sum+furnvault
 	end	
 	if WE.SV.includecraftbag then
 		CHAT_SYSTEM:AddMessage("Estimated craft bag value: " .. WE.FormatNum(craft))
@@ -1065,7 +1097,6 @@ function WE.GuildListingSum()
 end
 
 --Handles the different types of wealth calls
-
 local function WealthAll()
 	return WealthSum(0)
 end
@@ -1109,6 +1140,9 @@ local function WEHelp()
 	--House bank sum
 	CHAT_SYSTEM:AddMessage("Command: |cFF7700/hbanksum|r or |cFF7700/hbanksumb|r or |cFF7700/hbanksumub|r")
 	CHAT_SYSTEM:AddMessage("Purpose: Sums the house banks contents (excluding money).")	
+	--Furnishing vault sum
+	CHAT_SYSTEM:AddMessage("Command: |cFF7700/vaultsum|r or |cFF7700/vaultsumb|r or |cFF7700/vaultsumub|r")
+	CHAT_SYSTEM:AddMessage("Purpose: Sums the furnishing vault contents.")	
 	--Craftbag sum
 	CHAT_SYSTEM:AddMessage("Command: |cFF7700/craftsum|r")
 	CHAT_SYSTEM:AddMessage("Purpose: Sums the craft bag contents.")
@@ -1169,6 +1203,10 @@ SLASH_COMMANDS["/banksumub"] = BankUnbound
 SLASH_COMMANDS["/hbanksum"] = HouseBankAll
 SLASH_COMMANDS["/hbanksumb"] = HouseBankBound
 SLASH_COMMANDS["/hbanksumub"] = HouseBankUnbound
+
+SLASH_COMMANDS["/vaultsum"] = FurnitureVaultAll
+SLASH_COMMANDS["/vaultsumb"] = FurnitureVaultBound
+SLASH_COMMANDS["/vaultsumub"] = FurnitureVaultUnbound
 
 SLASH_COMMANDS["/craftsum"] = WE.CraftBagSum
 SLASH_COMMANDS["/stolensum"] = StolenSums
@@ -1252,7 +1290,7 @@ local optionsTable = {
 	    type        = "checkbox", 
 		name        = "Include House Bank",
 		tooltip     = "Include house banks value in the evaluation.",
-		getFunc     = function() return WE.SV.includebank end, 
+		getFunc     = function() return WE.SV.includehousebank end, 
 		setFunc     = function(value) SettingsUpdate('includehousebank',value) end, 
 		default     = WE.Defaults.includehousebank, 
 	},		
@@ -1266,13 +1304,21 @@ local optionsTable = {
 	},
 	[9] = {
 	    type        = "checkbox", 
+		name        = "Include Furnishing Vault",
+		tooltip     = "Include furnishing vault value in the evaluation.",
+		getFunc     = function() return WE.SV.includefurnvault end, 
+		setFunc     = function(value) SettingsUpdate('includefurnvault',value) end, 
+		default     = WE.Defaults.includefurnvault, 
+	},
+	[10] = {
+	    type        = "checkbox", 
 		name        = "Include Carried Gold",
 		tooltip     = "Only includes this character's gold.",
 		getFunc     = function() return WE.SV.includebaggold end, 
 		setFunc     = function(value) SettingsUpdate('includebaggold',value) end, 
 		default     = WE.Defaults.includebaggold, 
 	},			
-	[10] = {
+	[11] = {
 	    type        = "checkbox", 
 		name        = "Include Banked Gold",
 		tooltip     = "Include banked gold value in evaluation.",
@@ -1280,7 +1326,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includebankgold',value) end, 
 		default     = WE.Defaults.includebankgold, 
 	},			
-	[11] = {
+	[12] = {
 	    type        = "checkbox", 
 		name        = "Include Carried Tel Var",
 		tooltip     = "Includes a user-defined value for Tel Var Stones.",
@@ -1288,7 +1334,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includetelvar',value) end, 
 		default     = WE.Defaults.includetelvar, 
 	},	
-	[12] = {
+	[13] = {
 	    type        = "checkbox", 
 		name        = "Include Banked Tel Var",
 		tooltip     = "Includes a user-defined value for banked Tel Var Stones.",
@@ -1296,7 +1342,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includebanktelvar',value) end, 
 		default     = WE.Defaults.includebanktelvar, 
 	},	
-	[13] = {
+	[14] = {
 	    type        = "checkbox", 
 		name        = "Include Alliance Points",
 		tooltip     = "Includes a user-defined value for Alliance Points.",
@@ -1304,7 +1350,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includeap',value) end, 
 		default     = WE.Defaults.includeap, 
 	},	
-	[14] = {
+	[15] = {
 	    type        = "checkbox", 
 		name        = "Include Writ Vouchers",
 		tooltip     = "Includes a user-defined value for Writ Vouchers.",
@@ -1312,7 +1358,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includevoucher',value) end, 
 		default     = WE.Defaults.includevoucher, 
 	},	
-	[15] = {
+	[16] = {
 	    type        = "checkbox", 
 		name        = "Include Crowns",
 		tooltip     = "Includes a user-defined value for Crowns.",
@@ -1320,7 +1366,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includecrowns',value) end, 
 		default     = WE.Defaults.includecrowns, 
 	},		
-	[16] = {
+	[17] = {
 	    type        = "checkbox", 
 		name        = "Include Motif Knowledge",
 		tooltip     = "Include the cost of this character's motif knowledge.",
@@ -1328,7 +1374,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includemotifknowledge',value) end, 
 		default     = WE.Defaults.includemotifknowledge, 
 	},
-	[17] = {
+	[18] = {
 	    type        = "checkbox", 
 		name        = "Include Cooking Knowledge",
 		tooltip     = "Include the cost of this character's cooking recipe knowledge.",
@@ -1336,7 +1382,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includecookknowledge',value) end, 
 		default     = WE.Defaults.includecookknowledge, 
 	},	
-	[18] = {
+	[19] = {
 	    type        = "checkbox", 
 		name        = "Include Furnishing Knowledge",
 		tooltip     = "Include the cost of this character's furnishing recipe knowledge.",
@@ -1344,7 +1390,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includefurnknowledge',value) end, 
 		default     = WE.Defaults.includefurnknowledge, 
 	},
-	[19] = {
+	[20] = {
 	    type        = "checkbox", 
 		name        = "Include House Cost",
 		tooltip     = "Includes the cost of homes you own and have entered.",
@@ -1352,7 +1398,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includehousecost',value) end, 
 		default     = WE.Defaults.includehousecost, 
 	},
-	[20] = {
+	[21] = {
 	    type        = "checkbox", 
 		name        = "Include In-Home Furniture",
 		tooltip     = "Enter your home, use /furnsum. Must be used in each home.",
@@ -1360,7 +1406,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('includefurnval',value) end, 
 		default     = WE.Defaults.includefurnval, 
 	},	
-	[21] = {
+	[22] = {
 	    type        = "checkbox", 
 		name        = "Include Bank Space",
 		tooltip     = "Include the cost of upgrading bank space.",
@@ -1369,12 +1415,12 @@ local optionsTable = {
 		default     = WE.Defaults.includebankspace, 
 	},		
 	--Misc
-    [22] = {
+    [23] = {
         type = "header",
         name = "Misc Settings",
         width = "full",
     },
-	[23] = {
+	[24] = {
 	    type        = "checkbox", 
 		name        = "Automatic Furniture Sum",
 		tooltip     = "Your furniture sum will be updated and displayed on house entry.",
@@ -1382,7 +1428,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('autofurnituresum',value) end, 
 		default     = WE.Defaults.autofurnituresum 
 	},		
-	[24] = {
+	[25] = {
 	    type        = "checkbox", 
 		name        = "Stolen Warning",
 		tooltip     = "A chat message will warn you of your carried stolen wealth when accosted.",
@@ -1390,7 +1436,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('stolenwarning',value) end, 
 		default     = WE.Defaults.stolenwarning, 
 	},
-	[25] = {
+	[26] = {
 	    type        = "checkbox", 
 		name        = "Unknown Warning",
 		tooltip     = "Items lacking MM on non-/wealth output this failure.",
@@ -1398,7 +1444,7 @@ local optionsTable = {
 		setFunc     = function(value) SettingsUpdate('unknownwarning',value) end, 
 		default     = WE.Defaults.unknownwarning, 
 	},	
-	[26] = {
+	[27] = {
 		type = "editbox",
 		name = "Tel Var Value",
 		tooltip = "Set a value for Tel Var Stones.",
@@ -1408,7 +1454,7 @@ local optionsTable = {
 		width = "full",
 		default = WE.Defaults.telvarval,
 	},		
-	[27] = {
+	[28] = {
 		type = "editbox",
 		name = "Alliance Point Value",
 		tooltip = "Set a value for Alliance Points.",
@@ -1418,7 +1464,7 @@ local optionsTable = {
 		width = "full",
 		default = WE.Defaults.apval,
 	},	
-	[28] = {
+	[29] = {
 		type = "editbox",
 		name = "Writ Voucher Value",
 		tooltip = "Set a value for Writ Vouchers.",
@@ -1428,7 +1474,7 @@ local optionsTable = {
 		width = "full",
 		default = WE.Defaults.voucherval,
 	},
-	[29] = {
+	[30] = {
 		type = "editbox",
 		name = "Crown Value",
 		tooltip = "Set a value for Crowns.",

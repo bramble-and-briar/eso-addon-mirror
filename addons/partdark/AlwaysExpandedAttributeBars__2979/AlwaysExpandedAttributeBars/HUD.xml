@@ -18,7 +18,6 @@
 
 <Control name="ALT_PlayerAttributeContainer" virtual="true">
   <Dimensions y="25" x="323"/>
-  <DimensionConstraints minX="323" maxX="323"/>
   <Controls>
 
     <Texture name="$(parent)FrameCenter" alpha="1" desaturation="1">
@@ -39,7 +38,6 @@
     </Texture>
 
     <Control name="$(parent)BgContainer" alpha="0.9">
-      <DimensionConstraints minX="323" maxX="323" maxY="27"/>
       <Controls>
 
         <Texture name="$(parent)BgLeft">
@@ -127,7 +125,6 @@
 
     <StatusBar name="$(parent)FakeHealth">
       <Dimensions y="25"/>
-      <DimensionConstraints maxX="161"/>
       <Controls>
         <StatusBar name="$(parent)Gloss" alpha="0"/>
       </Controls>
@@ -138,6 +135,155 @@
 
 
 
+
+<!-- ----------------------------------------------------
+  (Module) Target Attribute Bars Resizer
+  Fixed-size target unit frame and target power shield bars
+---------------------------------------------------- -->
+
+<Control name="AEAB_TargetUnitFrame" virtual="true">
+  <DimensionConstraints minX="360" maxX="360"/>
+  <Anchor point="TOP" relativeTo="GuiRoot" offsetY="85"/>
+  <Controls>
+    <Control name="$(parent)TextArea">
+      <Anchor point="TOP" offsetY="26"/>
+      <Controls>
+        <Label name="$(grandparent)Level" font="AEAB_TargetFont"/>
+        <Label name="$(grandparent)Name" font="AEAB_TargetFont"/>
+      </Controls>
+    </Control>
+
+    <Label name="$(parent)Caption" font="AEAB_TargetFont"/>
+
+    <Label name="$(parent)ResourceNumbers" font="AEAB_TargetFont">
+      <Anchor point="TOP" relativeTo="$(parent)Caption" relativePoint="TOP" offsetY="-48"/>
+    </Label>
+
+    <Control name="$(parent)BgContainer" alpha="0.7">
+      <DimensionConstraints minX="360" maxX="360"/>
+      <Dimensions y="18"/>
+      <Controls>
+        <Texture name="$(parent)BgLeft" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_bg.dds">
+          <Dimensions x="21" y="23"/>
+          <TextureCoords left="0.2890625" right="0.453125" top="0.328125" bottom="0.6875"/>
+        </Texture>
+        <Texture name="$(parent)BgRight" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_bg.dds">
+          <Dimensions x="21" y="23"/>
+          <TextureCoords left="0.5546875" right="0.71875" top="0.328125" bottom="0.6875"/>
+        </Texture>
+        <Texture name="$(parent)BgCenter" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_bg.dds">
+          <TextureCoords left="0.453125" right="0.5546875" top="0.328125" bottom="0.6875"/>
+        </Texture>
+      </Controls>
+    </Control>
+
+    <StatusBar name="$(parent)BarLeft" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill.dds">
+      <Dimensions y="18"/>
+      <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+      <Anchor point="LEFT" offsetX="7"/>
+      <Anchor point="RIGHT" relativePoint="CENTER"/>
+      <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge.dds" width="14" height="18"/>
+      <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+      <Controls>
+        <StatusBar name="$(parent)Gloss" alpha="0.3" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill_gloss.dds">
+          <AnchorFill/>
+          <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+          <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge_gloss.dds" width="14" height="18"/>
+          <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+        </StatusBar>
+      </Controls>
+    </StatusBar>
+
+    <StatusBar name="$(parent)BarRight" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill.dds">
+      <Dimensions y="18"/>
+      <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+      <Anchor point="RIGHT" offsetX="-7"/>
+      <Anchor point="LEFT" relativePoint="CENTER"/>
+      <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge.dds" width="14" height="18"/>
+      <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+      <Controls>
+        <StatusBar name="$(parent)Gloss" alpha="0.3" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill_gloss.dds">
+          <AnchorFill/>
+          <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+          <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge_gloss.dds" width="14" height="18"/>
+          <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+        </StatusBar>
+      </Controls>
+    </StatusBar>
+
+    <Texture name="$(parent)FrameLeft" alpha="0.8" desaturation="1" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_frame.dds">
+      <Dimensions x="22" y="24"/>
+      <TextureCoords left="0.2890625" right="0.453125" top="0.328125" bottom="0.6875"/>
+    </Texture>
+
+    <Texture name="$(parent)FrameRight" alpha="0.8" desaturation="1" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_frame.dds">
+      <Dimensions x="22" y="24"/>
+      <TextureCoords left="0.5546875" right="0.71875" top="0.328125" bottom="0.6875"/>
+    </Texture>
+
+    <Texture name="$(parent)FrameCenter" alpha="0.8" desaturation="1" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_frame.dds">
+      <TextureCoords left="0.453125" right="0.5546875" top="0.328125" bottom="0.6875"/>
+      <Controls>
+        <Texture name="$(parent)TopMunge" hidden="true"/>
+        <Texture name="$(parent)BottomMunge" hidden="true"/>
+      </Controls>
+    </Texture>
+
+    <Control name="$(parent)Warner" alpha="0" layer="OVERLAY" tier="HIGH" level="500">
+      <Dimensions y="64"/>
+      <Anchor point="LEFT" offsetX="-18"/>
+      <Anchor point="RIGHT" offsetX="18"/>
+      <Controls>
+        <Texture name="$(parent)Left" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_warning.dds" blendMode="ADD">
+          <Dimensions x="37" y="64"/>
+          <TextureCoords left="0.1484375" right="0.4375" top="0" bottom="1"/>
+          <Anchor point="LEFT"/>
+        </Texture>
+
+        <Texture name="$(parent)Right" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_warning.dds" blendMode="ADD">
+          <Dimensions x="37" y="64"/>
+          <TextureCoords left="0.5625" right="0.8515625" top="0" bottom="1"/>
+          <Anchor point="RIGHT"/>
+        </Texture>
+
+        <Texture name="$(parent)Center" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_warning.dds" blendMode="ADD">
+          <TextureCoords left="0.4375" right="0.5625" top="0" bottom="1"/>
+          <Anchor point="TOPLEFT" relativeTo="$(parent)Left" relativePoint="TOPRIGHT"/>
+          <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Right" relativePoint="BOTTOMLEFT"/>
+        </Texture>
+      </Controls>
+    </Control>
+  </Controls>
+</Control>
+
+<!-- Target power shield bar -->
+<Control name="AEAB_TargetPowerShieldBar" virtual="true">
+  <Dimensions y="18"/>
+  <Controls>
+    <StatusBar name="$(parent)Gloss" alpha="0.3" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill_gloss.dds">
+      <AnchorFill/>
+      <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+      <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge_gloss.dds" width="14" height="18"/>
+      <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+    </StatusBar>
+    <StatusBar name="$(parent)Trauma" alpha="0"/>
+
+    <StatusBar name="$(parent)FakeHealth" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill.dds">
+      <Dimensions y="18"/>
+      <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+      <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge.dds" width="14" height="18"/>
+      <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+      <Controls>
+        <StatusBar name="$(parent)Gloss" alpha="0.2" textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_fill_gloss.dds">
+          <AnchorFill/>
+          <TextureCoords left="0" right="1" top="0" bottom="0.53125"/>
+          <LeadingEdge textureFile="EsoUI/Art/UnitAttributeVisualizer/targetBar_dynamic_leadingEdge_gloss.dds" width="14" height="18"/>
+          <LeadingEdgeTextureCoords left="0.125" right="1" top="0" bottom="0.53125"/>
+        </StatusBar>
+      </Controls>
+    </StatusBar>
+  </Controls>
+</Control>
 
 </Controls>
 </GuiXml>

@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/j.hhh/recov-tracker__eff02a68-b788-4269-be3d-78283a26f306",
+  "archive_path": "addons/j.hhh/Recovery-Tick-Tracker__eff02a68-b788-4269-be3d-78283a26f306",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "j.hhh",
   "canonical_id": "bethesda:eff02a68-b788-4269-be3d-78283a26f306",
   "content_id": "eff02a68-b788-4269-be3d-78283a26f306",
   "deleted": false,
-  "fingerprint": "f838c8a917ba4e86541c625457d91aa866949b79c86d0f78c707c37b88812d66",
+  "fingerprint": "2a1d900671764fba494d154cd5ed8cf7fd2df02387011a1c3387c278ef869e27",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "eff02a68-b788-4269-be3d-78283a26f306",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/eff02a68-b788-4269-be3d-78283a26f306",
-  "title": "recov tracker"
+  "title": "Recovery Tick Tracker"
 }

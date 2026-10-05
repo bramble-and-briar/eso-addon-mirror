@@ -91,9 +91,10 @@ local function Ensure()
     end
 end
 
--- Build it during the first loading screen rather than the first time someone is aimed at.
+-- Build it during the first loading screen rather than the first time someone is aimed at; while
+-- Flexatron is off, not until something needs it.
 function TitleIndex.Warm()
-    if FT.sv.autoMode or FT.sv.titleEnvy then
+    if FT.sv.active and (FT.sv.autoMode or FT.sv.titleEnvy) then
         Ensure()
     end
 end

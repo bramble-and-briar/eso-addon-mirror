@@ -320,7 +320,12 @@ function UnitFrame:Initialize(unitTag, index, container)
 	self.isDead = false
 	self.isOnline = false
 
-	self.control = CreateControlFromVirtual("ALTGF_UnitFrame" .. unitTag, container:GetControl(), "ALTGF_UnitFrame")
+	-- Creating every possible group slot at once can exceed the console Lua CPU
+	-- budget. If a previous frame was interrupted immediately after control
+	-- creation, reuse that already-created control instead of trying to create a
+	-- duplicate with the same global name on the next UI tick.
+	local controlName = "ALTGF_UnitFrame" .. unitTag
+	self.control = (_G and _G[controlName]) or CreateControlFromVirtual(controlName, container:GetControl(), "ALTGF_UnitFrame")
 	self.control:SetParent(container:GetControl())
 	self.control.m_object = self
 	self.backgroundControl = GetControl(self.control, "Background")
@@ -1527,8 +1532,16 @@ function UnitFramesManager:EnsurePreviewFrames()
 end
 
 function UnitFramesManager:RefreshPreview()
-	self:EnsurePreviewFrames()
 	local settings = self.SETTINGS
+
+	-- Do not eagerly instantiate all preview controls while preview mode is off.
+	-- They are purely visual test frames, so creating them only when requested
+	-- avoids spending a large part of the per-frame Lua CPU budget at login.
+	if not settings.PREVIEW_MODE and not self.previewFrames then
+		return
+	end
+
+	self:EnsurePreviewFrames()
 	local framesPerColumn = tonumber(settings.FRAMES_PER_COLUMN) or DEFAULTS.FRAMES_PER_COLUMN
 	local frameWidth = tonumber(settings.UNIT_FRAME_WIDTH) or (DEFAULTS.UNIT_FRAME_WIDTH + 40)
 	local frameHeight = tonumber(settings.UNIT_FRAME_HEIGHT) or (DEFAULTS.UNIT_FRAME_HEIGHT + 10)
@@ -1583,23 +1596,42 @@ function UnitFramesManager:RefreshData()
 
 	for i = 1, GROUP_FRAME_CAPACITY do
 		local unitTag = "group" .. i
-		local frame = self:GetFrame(unitTag)
 		if DoesUnitExist(unitTag) then
+			-- Create controls only for slots that actually exist. Previously the
+			-- refresh path created every possible group slot (up to 24) in one Lua
+			-- frame even when most were empty, which can hit the 1000 ms console
+			-- add-on budget and leave a half-created control behind.
+			local frame = self:GetFrame(unitTag)
 			frame:RefreshData()
 			frame:SetActive(true)
 		else
-			frame:SetActive(false)
+			local frame = self.unitFrames[unitTag]
+			if frame then
+				frame:SetActive(false)
+			end
 		end
 
 		local compUnitTag = GetCompanionUnitTagByGroupUnitTag(unitTag)
 		if compUnitTag then
-			local compFrame = self:GetFrame(compUnitTag)
 			if DoesUnitExist(compUnitTag) then
+				local compFrame = self:GetFrame(compUnitTag)
 				compFrame:RefreshData()
 				compFrame:SetActive(true)
 			else
-				compFrame:SetActive(false)
+				local compFrame = self.unitFrames[compUnitTag]
+				if compFrame then
+					compFrame:SetActive(false)
+				end
 			end
+		end
+	end
+
+	-- A companion unit tag can disappear entirely when a companion is dismissed.
+	-- Deactivate any already-created group companion frame whose unit no longer
+	-- exists, without creating any new controls during this cleanup pass.
+	for unitTag, frame in pairs(self.unitFrames) do
+		if frame.isCompanion and unitTag ~= "companion" and not DoesUnitExist(unitTag) then
+			frame:SetActive(false)
 		end
 	end
 

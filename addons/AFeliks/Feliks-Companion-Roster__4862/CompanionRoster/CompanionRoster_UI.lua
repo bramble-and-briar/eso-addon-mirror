@@ -132,7 +132,82 @@ function CompanionRoster.OnCompanionMouseEnter(control)
         nameLine = nameLine .. " |c66FF66- Unlocked|r"
     end
 
-    ZO_Tooltips_ShowTextTooltip(control, TOP, nameLine .. "\n" .. row.passivePerkDescription)
+    ZO_Tooltips_ShowTextTooltip(control, TOP, nameLine .. "\n" .. row.passivePerkDescription .. "\n|c999999Click to summon|r")
+end
+
+-- The one set of summon rules, shared by clicking a name in the roster and
+-- typing a name after the chat command. A summon only ever happens from one
+-- of those direct actions. Does nothing for a companion who's already out,
+-- since UseCollectible would toggle (dismiss) them. `canSummon` false means
+-- known-unavailable; nil (never recorded) is left to the game to decide.
+local function TrySummonCompanion(companionId, companionName, canSummon)
+    if canSummon == false then
+        d(string.format("Feliks' Companion Roster: %s can't be summoned on this character yet.", companionName))
+        return
+    end
+
+    local collectibleId = GetCompanionCollectibleId(companionId)
+    if IsCollectibleActive(collectibleId) then
+        return
+    end
+    if IsCollectibleBlocked(collectibleId, GAMEPLAY_ACTOR_CATEGORY_PLAYER) then
+        local reason = GetCollectibleBlockReason(collectibleId, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        d(string.format("Feliks' Companion Roster: can't summon %s - %s", companionName, zo_strformat(GetString("SI_COLLECTIBLEUSAGEBLOCKREASON", reason))))
+        return
+    end
+
+    UseCollectible(collectibleId, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+end
+
+-- On the CompanionRoster table (not a separate bare global) because the XML
+-- OnMouseUp handler on the Companion label calls this by name.
+function CompanionRoster.OnCompanionMouseUp(control)
+    local row = control:GetParent()
+    local companionName = control:GetText()
+
+    if selectedCharacterKey ~= CompanionRoster.Data.GetCurrentCharacterName() then
+        d(string.format("Feliks' Companion Roster: switch the dropdown to the character you're playing to summon %s.", companionName))
+        return
+    end
+
+    TrySummonCompanion(row.companionId, companionName, row.canSummon)
+end
+
+-- "<command> <name>" - summons the companion whose name matches (partial,
+-- case-insensitive, so "zer" finds Zerith-var), under the same rules as
+-- clicking their name. An exact name match wins outright; two or more
+-- partial matches list the candidates instead of guessing.
+function CompanionRoster.SummonCompanionByName(term)
+    local lowerTerm = zo_strlower(term)
+
+    local matches = {}
+    for _, companion in ipairs(CompanionRoster.Data.GetAllCompanions()) do
+        local lowerName = zo_strlower(companion.name)
+        if lowerName == lowerTerm then
+            matches = { companion }
+            break
+        end
+        if lowerName:find(lowerTerm, 1, true) then
+            table.insert(matches, companion)
+        end
+    end
+
+    if #matches == 0 then
+        d(string.format("Feliks' Companion Roster: no companion found matching \"%s\".", term))
+        return
+    end
+    if #matches > 1 then
+        local names = {}
+        for _, match in ipairs(matches) do
+            table.insert(names, match.name)
+        end
+        d(string.format("Feliks' Companion Roster: \"%s\" matches more than one companion: %s", term, table.concat(names, ", ")))
+        return
+    end
+
+    local companion = matches[1]
+    local canSummon = CompanionRoster.Data.CanSummonCompanion(CompanionRoster.Data.GetCurrentCharacterName(), companion.id)
+    TrySummonCompanion(companion.id, companion.name, canSummon)
 end
 
 -- On the CompanionRoster table (not a separate bare global) because the XML
@@ -153,7 +228,8 @@ function CompanionRoster.OnLevelMouseEnter(control)
     for _, group in ipairs(row.skillLines) do
         table.insert(lines, group.typeName .. ":")
         for _, skillLine in ipairs(group.lines) do
-            table.insert(lines, skillLine.name .. ": " .. skillLine.rank)
+            local rankText = skillLine.rank .. (skillLine.isMaxed and " (Maxed)" or "")
+            table.insert(lines, skillLine.name .. ": " .. rankText)
         end
         table.insert(lines, "")
     end
@@ -246,6 +322,15 @@ function CompanionRoster.RefreshGrid()
             if row.skillLines == nil then
                 row.skillLines = CompanionRoster.Data.GetSkillLinesForCompanion(companion.id)
             end
+
+            -- Guild skill line can only progress via quests, not grinding -
+            -- color the Level cell to call out that it's been fully maxed.
+            local levelLabel = row:GetNamedChild("Level")
+            if CompanionRoster.Data.IsGuildSkillLineMaxed(row.skillLines) then
+                levelLabel:SetColor(0.4, 1, 0.4, 1)
+            else
+                levelLabel:SetColor(1, 1, 1, 1)
+            end
         end
     end
 end
@@ -312,6 +397,160 @@ end
 function CompanionRoster.OnWindowMoveStop(control)
     local _, point, _, relativePoint, offsetX, offsetY = control:GetAnchor(0)
     CompanionRoster.Data.SaveWindowPosition(point, relativePoint, offsetX, offsetY)
+end
+
+-- Custom chat link type for a companion's name in search results - clicking
+-- it shows their Guild skill line progress. Hover-tooltips aren't possible
+-- for a custom link type (LINK_HANDLER only exposes click events, verified
+-- against the real zo_linkhandler.lua - no mouse-enter event exists), so
+-- click is the only option; moc() (mouse-over-control, a real client
+-- global) stands in for the control reference the click callback doesn't
+-- provide, letting the tooltip anchor to wherever the cursor actually is.
+local COMPANION_LINK_TYPE = "fcrcompanion"
+local COMPANION_TOOLTIP_DURATION_MS = 4000
+
+local function OnCompanionLinkClicked(link, button, text, linkStyle, linkType, companionIdText)
+    if linkType ~= COMPANION_LINK_TYPE then
+        return false
+    end
+
+    local companionId = tonumber(companionIdText)
+    local summary = companionId and CompanionRoster.Data.GetGuildSkillLineSummary(companionId)
+
+    -- moc() (mouse-over-control) resolved to the whole chat log control
+    -- rather than anything positioned near the actual click, putting the
+    -- tooltip at the top of that container instead of near the cursor.
+    -- Anchoring directly to GuiRoot at the real cursor position (both real,
+    -- verified globals - InitializeTooltip is what ZO_Tooltips_ShowTextTooltip
+    -- itself calls internally) fixes that. relativePoint must be passed
+    -- explicitly - ZO_Tooltip:SetOwner silently substitutes the OPPOSITE
+    -- point (TOPLEFT -> TOPRIGHT) when it's left nil, which anchored this
+    -- to GuiRoot's top-right corner instead of its top-left (0,0).
+    local mouseX, mouseY = GetUIMousePosition()
+    InitializeTooltip(InformationTooltip, GuiRoot, TOPLEFT, mouseX + 10, mouseY + 10, TOPLEFT)
+    InformationTooltip:AddLine(summary or "No Guild skill line data recorded yet for this companion.", "", ZO_TOOLTIP_DEFAULT_COLOR:UnpackRGB())
+    zo_callLater(ZO_Tooltips_HideTextTooltip, COMPANION_TOOLTIP_DURATION_MS)
+    return true
+end
+
+LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_CLICKED_EVENT, OnCompanionLinkClicked)
+LINK_HANDLER:RegisterCallback(LINK_HANDLER.LINK_MOUSE_UP_EVENT, OnCompanionLinkClicked)
+
+-- "<command> search <term>" (or "s") and "<command> companion <name>" (or
+-- "c") print rapport tips to chat instead of toggling the window. "<command>
+-- <name>" summons that companion. No argument at all (which is how a keybind
+-- or plain typed command calls this) opens/closes the window.
+function CompanionRoster.RunRapportSearch(term)
+    term = term:match("^%s*(.-)%s*$")
+    if term == "" then
+        d(string.format("Feliks' Companion Roster: usage - %s s <term>, e.g. %s s Undaunted", CompanionRoster.Data.GetSlashCommand(), CompanionRoster.Data.GetSlashCommand()))
+        return
+    end
+
+    local results = CompanionRoster.Data.SearchRapportTips(term)
+    if #results == 0 then
+        d(string.format("Feliks' Companion Roster: no rapport tips found for \"%s\".", term))
+        return
+    end
+
+    d(string.format("Feliks' Companion Roster: rapport tips for \"%s\" (click a name for their Guild skill line progress)", term))
+    for i, result in ipairs(results) do
+        local amountText = "+" .. (result.amountLabel or tostring(result.amount))
+        local maxedNote = result.isMaxed and " (already at max rapport)" or ""
+        local nameLink = ZO_LinkHandler_CreateLink(result.companionName, nil, COMPANION_LINK_TYPE, result.companionId)
+        d(string.format("%d. %s: %s - %s (%s)%s", i, nameLink, amountText, result.description, result.cooldown, maxedNote))
+    end
+end
+
+-- Without "all", only actions worth this much or more (in either direction)
+-- are listed - the small ones are noise when picking who to bring out.
+local COMPANION_LOOKUP_MIN_AMOUNT = 25
+
+-- Lists come pre-sorted biggest-magnitude-first (see FindRapportTipsByName),
+-- so the ones at or above the minimum are always a leading run.
+local function CountAtOrAboveMinimum(actions)
+    local count = 0
+    for _, action in ipairs(actions) do
+        if math.abs(action.amount) < COMPANION_LOOKUP_MIN_AMOUNT then
+            break
+        end
+        count = count + 1
+    end
+    return count
+end
+
+local function FormatTipLine(index, action)
+    local amountText
+    if action.amount >= 0 then
+        amountText = "+" .. (action.amountLabel or tostring(action.amount))
+    else
+        amountText = action.amountLabel and ("-" .. action.amountLabel) or tostring(action.amount)
+    end
+    return string.format("%d. %s: %s (%s)", index, amountText, action.description, action.cooldown)
+end
+
+function CompanionRoster.RunCompanionLookup(term)
+    term = term:match("^%s*(.-)%s*$")
+    local showAll = false
+    local nameOnly = term:match("^(.-)%s+[Aa][Ll][Ll]$")
+    if nameOnly then
+        term = nameOnly
+        showAll = true
+    end
+
+    if term == "" then
+        d(string.format("Feliks' Companion Roster: usage - %s c <name> [all], e.g. %s c tan", CompanionRoster.Data.GetSlashCommand(), CompanionRoster.Data.GetSlashCommand()))
+        return
+    end
+
+    local matches = CompanionRoster.Data.FindRapportTipsByName(term)
+    if #matches == 0 then
+        d(string.format("Feliks' Companion Roster: no companion found matching \"%s\".", term))
+        return
+    end
+    if #matches > 1 then
+        local names = {}
+        for _, match in ipairs(matches) do
+            table.insert(names, match.name)
+        end
+        d(string.format("Feliks' Companion Roster: \"%s\" matches more than one companion: %s", term, table.concat(names, ", ")))
+        return
+    end
+
+    local companion = matches[1]
+    local likesShown = showAll and #companion.likes or CountAtOrAboveMinimum(companion.likes)
+    local dislikesShown = showAll and #companion.dislikes or CountAtOrAboveMinimum(companion.dislikes)
+
+    d(string.format("Feliks' Companion Roster: %s - likes", companion.name))
+    for i = 1, likesShown do
+        d(FormatTipLine(i, companion.likes[i]))
+    end
+
+    d(string.format("Feliks' Companion Roster: %s - dislikes", companion.name))
+    for i = 1, dislikesShown do
+        d(FormatTipLine(i, companion.dislikes[i]))
+    end
+
+    local hidden = (#companion.likes - likesShown) + (#companion.dislikes - dislikesShown)
+    if hidden > 0 then
+        d(string.format("...%d smaller (under %d) hidden - use \"%s c %s all\" to show them all", hidden, COMPANION_LOOKUP_MIN_AMOUNT, CompanionRoster.Data.GetSlashCommand(), term))
+    end
+end
+
+function CompanionRoster.OnSlashCommand(input)
+    local verb, rest = (input or ""):match("^%s*(%S+)%s*(.-)%s*$")
+    verb = verb and zo_strlower(verb)
+    if verb == "search" or verb == "s" then
+        CompanionRoster.RunRapportSearch(rest)
+    elseif verb == "companion" or verb == "c" then
+        CompanionRoster.RunCompanionLookup(rest)
+    elseif verb == nil then
+        CompanionRoster.ToggleWindow()
+    else
+        -- Anything else is a companion name to summon. Uses the whole input,
+        -- not just the first word, so a two-word name like "bastian hallix" works.
+        CompanionRoster.SummonCompanionByName(input:match("^%s*(.-)%s*$"))
+    end
 end
 
 -- On the CompanionRoster table (not a separate bare global) because both
@@ -383,7 +622,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
     CompanionRosterWindowFooter:SetText("Feliks' Companion Roster - Version: " .. CompanionRoster.version)
     CompanionRosterWindowFooter:SetColor(unpack(FOOTER_COLOR))
 
-    CompanionRoster.slashCommand = LibSlashCommander:Register(CompanionRoster.Data.GetSlashCommand(), CompanionRoster.ToggleWindow, "Feliks' Companion Roster")
+    CompanionRoster.slashCommand = LibSlashCommander:Register(CompanionRoster.Data.GetSlashCommand(), CompanionRoster.OnSlashCommand, "Feliks' Companion Roster")
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_UI", EVENT_PLAYER_ACTIVATED, CheckSlashCommandHijack)
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_UI", EVENT_PLAYER_COMBAT_STATE, OnPlayerCombatState)
 end

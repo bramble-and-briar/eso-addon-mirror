@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/brianmit/Skillbound---Skills-Build-Presets__4911",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "brianmit",
   "canonical_id": "esoui:4911",
   "category_id": "19",
@@ -23,7 +22,7 @@
     "Skillbound"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4911/",
-  "fingerprint": "ba91238aa47e4e2a58505a253e1be5c6ac547c771c5b9d49a4aff683fec94c07",
+  "fingerprint": "957fab8f5b31b1b590f8ff94acc294f293a015390c60d56ebb0f19bffcdd8154",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17695.png",
     "https://cdn-eso.mmoui.com/preview/pvw17696.png",
@@ -35,6 +34,7 @@
     "https://cdn-eso.mmoui.com/preview/pvw17702.png",
     "https://cdn-eso.mmoui.com/preview/pvw17703.png",
     "https://cdn-eso.mmoui.com/preview/pvw17704.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17713.png",
     "https://cdn-eso.mmoui.com/preview/pvw17705.png"
   ],
   "platform": "pc",
@@ -43,11 +43,11 @@
   "source_id": "4911",
   "source_url": "https://www.esoui.com/downloads/info4911-Skillbound-SkillsBuildPresets.html",
   "stats": {
-    "downloads": 3,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 27,
+    "favorites": 2,
+    "monthly_downloads": 21
   },
   "title": "Skillbound - Skills & Build Presets",
-  "updated_at": 1791080581000,
-  "version": "1.0.0"
+  "updated_at": 1791117778000,
+  "version": "1.0.1"
 }

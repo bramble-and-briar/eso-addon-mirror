@@ -169,7 +169,7 @@
           <Anchor point="TOPLEFT"
                   relativeTo="$(parent)Instructions"
                   relativePoint="BOTTOMLEFT"
-                  offsetY="10" />
+                  offsetY="2" />
         </Label>
         <Backdrop name="$(parent)ShareBackdrop"
                   layer="CONTROLS"
@@ -235,7 +235,7 @@
           <Anchor point="TOPRIGHT"
                   relativeTo="$(parent)ShareBackdrop"
                   relativePoint="BOTTOMRIGHT"
-                  offsetY="70" />
+                  offsetY="84" />
         </Label>
         <Button name="$(parent)Import"
                 inherits="ZO_DefaultButton"

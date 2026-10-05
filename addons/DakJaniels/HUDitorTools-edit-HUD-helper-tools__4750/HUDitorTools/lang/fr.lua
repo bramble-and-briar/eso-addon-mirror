@@ -1,104 +1,111 @@
-SafeAddString(SI_HUDITORTOOLS_LAYOUTS, "Dispositions", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME, "Par défaut", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNNAMED, "Sans nom", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ACCOUNT, "Compte", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CHARACTER, "Personnage", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_SAVE, "Enregistrer", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW, "Nouveau", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT, "Importer", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT, "Exporter", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_RENAME, "Renommer", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE, "Supprimer", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_COPY, "Nouveau depuis l'actuel", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NAME, "Nom de la disposition", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC, "Spécifique au personnage", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK, "<<1>>*", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT, "<<1>>: <<2>>", 2)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE, "Importer une disposition de l'ATH", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS, "Collez une chaîne HUDitorTools, saisissez un nom, puis importez. Le nom dans la chaîne est ignoré.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING, "Chaîne de partage", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE, "Exporter une disposition de l'ATH", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS, "Ctrl+C copie la chaîne sélectionnée. Les add-ons ne peuvent pas écrire dans le presse-papiers.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL, "Tout sélectionner", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW_TITLE, "Nouvelle disposition de l'ATH", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE, "Renommer la disposition de l'ATH", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE, "Supprimer la disposition de l'ATH", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE_BODY, "Supprimer la disposition <<1>> ? Cette action est irréversible.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE, "Modifications d'ATH non enregistrées", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY, "L'ATH actuel contient des modifications non enregistrées. Passer à <<1>> ? Les positions non enregistrées seront écrasées.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT, "Disposition d'ATH <<1>> appliquée : <<2>> lignes clavier / <<4>> manette écrites ; <<3>> / <<5>> éléments enregistrés actualisés. Les commandes d'add-on omises reprennent leur position par défaut.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY, "Saisissez un nom de disposition.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN, "Ce nom est déjà utilisé dans cette portée.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_CAP, "Vous avez déjà 20 dispositions dans cette portée.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING, "Cette disposition n'existe plus.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_LAST, "Conservez au moins une disposition.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE, "Impossible de lire cette chaîne de partage.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC, "La chaîne de partage doit commencer par HUDT.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION, "Cette chaîne de partage utilise une version HUDT non prise en charge.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED, "La chaîne de partage est tronquée.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER, "La chaîne de partage contient un nombre invalide.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY, "La chaîne de partage contient un identifiant d'élément d'ATH inconnu.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA, "La chaîne de partage contient une option supplémentaire invalide.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING, "La chaîne de partage contient des données supplémentaires après la disposition.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_HEADER, "Dispositions de l'ATH", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE, "Disposition active", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP, "Applique une disposition nommée à l'ATH. Les dispositions de personnage écrasent l'ATH du compte pour cette session.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP, "Copie l'ATH actuel dans la disposition nommée sélectionnée.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP, "Crée une disposition nommée à partir de l'ATH actuel.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP, "Colle une chaîne de partage pour créer et appliquer une disposition nommée.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP, "Affiche une chaîne de partage pour l'ATH actuel. Copiez-la avec Ctrl+C.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_CHAT, "Afficher les messages de discussion", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP, "Affiche les détails d'application des dispositions et les notifications d'affichage/masquage de l'éditeur d'ATH dans le tchat. Inutile pour la plupart des joueurs.", 1)
+local strings = {
+    ["SI_HUDITORTOOLS_LAYOUTS"] = "Dispositions",
+    ["SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME"] = "Par défaut",
+    ["SI_HUDITORTOOLS_LAYOUT_UNNAMED"] = "Sans nom",
+    ["SI_HUDITORTOOLS_LAYOUT_ACCOUNT"] = "Compte",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER"] = "Personnage",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE"] = "Enregistrer",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW"] = "Nouveau",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT"] = "Importer",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT"] = "Exporter",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME"] = "Renommer",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE"] = "Supprimer",
+    ["SI_HUDITORTOOLS_LAYOUT_COPY"] = "Nouveau depuis l'actuel",
+    ["SI_HUDITORTOOLS_LAYOUT_NAME"] = "Nom de la disposition",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC"] = "Spécifique au personnage",
+    ["SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK"] = "<<1>>*",
+    ["SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT"] = "<<1>>: <<2>>",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE"] = "Importer une disposition de l'ATH",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS"] = "Collez une chaîne HUDitorTools, saisissez un nom, puis importez. Le nom dans la chaîne est ignoré.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING"] = "Chaîne de partage",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE"] = "Exporter une disposition de l'ATH",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS"] = "Ctrl+C copie la chaîne sélectionnée. Les add-ons ne peuvent pas écrire dans le presse-papiers.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL"] = "Tout sélectionner",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TITLE"] = "Nouvelle disposition de l'ATH",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE"] = "Renommer la disposition de l'ATH",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE"] = "Supprimer la disposition de l'ATH",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_BODY"] = "Supprimer la disposition <<1>> ? Cette action est irréversible.",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE"] = "Modifications d'ATH non enregistrées",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY"] = "L'ATH actuel contient des modifications non enregistrées. Passer à <<1>> ? Les positions non enregistrées seront écrasées.",
+    ["SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT"] = "Disposition d'ATH <<1>> appliquée : <<2>> lignes clavier / <<4>> manette écrites ; <<3>> / <<5>> éléments enregistrés actualisés. Les commandes d'add-on omises reprennent leur position par défaut.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY"] = "Saisissez un nom de disposition.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN"] = "Ce nom est déjà utilisé dans cette portée.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_CAP"] = "Vous avez déjà 20 dispositions dans cette portée.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING"] = "Cette disposition n'existe plus.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_LAST"] = "Conservez au moins une disposition.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE"] = "Impossible de lire cette chaîne de partage.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC"] = "La chaîne de partage doit commencer par HUDT.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION"] = "Cette chaîne de partage utilise une version HUDT non prise en charge.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED"] = "La chaîne de partage est tronquée.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER"] = "La chaîne de partage contient un nombre invalide.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY"] = "La chaîne de partage contient un identifiant d'élément d'ATH inconnu.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA"] = "La chaîne de partage contient une option supplémentaire invalide.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING"] = "La chaîne de partage contient des données supplémentaires après la disposition.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_HEADER"] = "Dispositions de l'ATH",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE"] = "Disposition active",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP"] = "Applique une disposition nommée à l'ATH. Les dispositions de personnage écrasent l'ATH du compte pour cette session.",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP"] = "Copie l'ATH actuel dans la disposition nommée sélectionnée.",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP"] = "Crée une disposition nommée à partir de l'ATH actuel.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP"] = "Colle une chaîne de partage pour créer et appliquer une disposition nommée.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP"] = "Affiche une chaîne de partage pour l'ATH actuel. Copiez-la avec Ctrl+C.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT"] = "Afficher les messages de discussion",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP"] = "Affiche les détails d'application des dispositions et les notifications d'affichage/masquage de l'éditeur d'ATH dans le tchat. Inutile pour la plupart des joueurs.",
 
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE, "Apparence", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_SCALE, "Échelle %", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT, "Police", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT, "Par défaut", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE, "Taille de police", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE, "Contour de police", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_RESET, "Réinitialiser l'échelle et la police", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM, "Moyen", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD, "Gras", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE, "Antique", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM, "Manette moyen", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD, "Manette gras", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP, "Barres de ressources", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE, "Disposition en pyramide", 2)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND, "Ne pas agrandir", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH, "Largeur de santé", 1)
+    ["SI_HUDITORTOOLS_APPEARANCE"] = "Apparence",
+    ["SI_HUDITORTOOLS_APPEARANCE_SCALE"] = "Échelle %",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT"] = "Police",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT"] = "Par défaut",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Taille de police",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Contour de police",
+    ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Réinitialiser l'échelle et la police",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Moyen",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Gras",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Antique",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM"] = "Manette moyen",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD"] = "Manette gras",
 
-SafeAddString(SI_HUDITORTOOLS_FRAME_BATTLEGROUND, "Score de champ de bataille", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER, "Jauge d'objectif", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION, "Interaction du joueur", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS, "Progression du joueur", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT, "Interaction du réticule", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_RETICLE, "Réticule", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_STEALTH_ICON, "Icône de discrétion", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_TUTORIALS, "Didacticiels", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PET_GROUP, "Groupe de familiers", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER, "Azurah surveillance du sac", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER, "Azurah minuteur de loup-garou", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER, "LuiExtended joueur", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET, "LuiExtended cible", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET, "LuiExtended cible d'alliance", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_GROUP, "LuiExtended groupe", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_RAID, "LuiExtended raid", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PET, "LuiExtended familier", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMPANION, "LuiExtended compagnon", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_BOSS, "LuiExtended boss", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_ALERTS, "LuiExtended alertes", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING, "LuiExtended texte de combat sortant", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING, "LuiExtended texte de combat entrant", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT, "LuiExtended texte de combat alertes", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT, "LuiExtended texte de combat points", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE, "LuiExtended texte de combat ressources", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS, "LuiExtended bonus du joueur", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS, "LuiExtended malus du joueur", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS, "LuiExtended bonus de la cible", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS, "LuiExtended malus de la cible", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS, "LuiExtended bonus importants", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS, "LuiExtended malus importants", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS, "LuiExtended bonus longs", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR, "LuiExtended barre d'incantation", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL, "LuiExtended contrôle", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP, "LuiExtended minicarte", 1)
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Barres de ressources",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Disposition en pyramide",
+    ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Ne pas agrandir",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Largeur de santé",
+
+    ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Score de champ de bataille",
+    ["SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER"] = "Jauge d'objectif",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION"] = "Interaction du joueur",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS"] = "Progression du joueur",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT"] = "Interaction du réticule",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE"] = "Réticule",
+    ["SI_HUDITORTOOLS_FRAME_STEALTH_ICON"] = "Icône de discrétion",
+    ["SI_HUDITORTOOLS_FRAME_TUTORIALS"] = "Didacticiels",
+    ["SI_HUDITORTOOLS_FRAME_PET_GROUP"] = "Groupe de familiers",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER"] = "Azurah surveillance du sac",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER"] = "Azurah minuteur de loup-garou",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER"] = "LuiExtended joueur",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET"] = "LuiExtended cible",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET"] = "LuiExtended cible d'alliance",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_GROUP"] = "LuiExtended groupe",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_RAID"] = "LuiExtended raid",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PET"] = "LuiExtended familier",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMPANION"] = "LuiExtended compagnon",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_BOSS"] = "LuiExtended boss",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_ALERTS"] = "LuiExtended alertes",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING"] = "LuiExtended texte de combat sortant",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING"] = "LuiExtended texte de combat entrant",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT"] = "LuiExtended texte de combat alertes",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT"] = "LuiExtended texte de combat points",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE"] = "LuiExtended texte de combat ressources",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS"] = "LuiExtended bonus du joueur",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS"] = "LuiExtended malus du joueur",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS"] = "LuiExtended bonus de la cible",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS"] = "LuiExtended malus de la cible",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS"] = "LuiExtended bonus importants",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS"] = "LuiExtended malus importants",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS"] = "LuiExtended bonus longs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR"] = "LuiExtended barre d'incantation",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL"] = "LuiExtended contrôle",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP"] = "LuiExtended minicarte",
+}
+
+for key, value in pairs(strings) do
+    SafeAddString(_G[key], value, 1)
+end

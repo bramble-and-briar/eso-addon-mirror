@@ -82,14 +82,14 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [NoMoreCarries](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/NoMoreCarries__2702) | Drako-Ei | PC / Mac | 1.1 |
 | [NoMoreOzezan](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/NoMoreOzezan__3622) | Geldis | PC / Mac | 1.0 |
 | [Noob Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Plint/Noob-Filter__1510) | Plint | PC / Mac | 100030 |
-| [NOR Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garadian/NOR-Guild-Tools__4121) | Garadian | PC / Mac | 4.00 |
+| [NOR Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Garadian/NOR-Guild-Tools__4121) | Garadian | PC / Mac | 5.00 |
 | [Not a Craftsman](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Martype/Not-a-Craftsman__1839) | Martype | PC / Mac | 0.0.1 |
 | [Notebook 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Notebook-2018__1991) | Phuein | PC / Mac | 5.00 |
 | [Notebooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Glen348/Notebooks__1105) | Glen348 | PC / Mac | Outdated |
 | [Notes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/Notes__1303) | Noobanidus | PC / Mac | 1.0.3 |
 | [NothingWasted Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/NothingWasted-Tracker__4642) | haze068 | PC / Mac | 2.0 |
 | [Nowhere Vault: Secret Seeker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Nowhere-Vault-Secret-Seeker__4875) | its_wifey | PC / Mac | 1.0.1 |
-| [NowhereKeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/NowhereKeys__4906) | tim99 | PC / Mac | 1.0 |
+| [NowhereKeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/NowhereKeys__4906) | tim99 | PC / Mac | 1.1 |
 | [NowTalking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/NowTalking__1300) | Noobanidus | PC / Mac | 1.0.3 |
 | [NQOL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/unacntble/NQOL__6987c48d-827e-4583-a5a7-6cb748174190) | unacntble | Console | — |
 | [NQOL-dev](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/unacntble/NQOL-dev__475ce77b-6d09-4c75-8c28-95fff8f907c9) | unacntble | Console | — |

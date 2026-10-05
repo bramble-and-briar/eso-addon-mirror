@@ -1,14 +1,15 @@
 ## Title: Map of Many Riches
 ## Description: Shows crafting surveys and treasure maps on the world map.
-## Version: 2.50.1
-## AddOnVersion: 25001
+## Version: 2.51.01
+## AddOnVersion: 25101
 ## Author: xbutch
-## APIVersion: 101049 101050
+## APIVersion: 101051
 ## SavedVariables: MOMR_SavedVars
 ## IsLibrary: false
-## DependsOn: LibMapPins-1.0  LibAddonMenu-2.0
+## DependsOn: LibAddonMenu-2.0
 
 MapOfManyRichesStartUp.lua
+MapOfManyRichesPins.lua
 MapOfManyRichesData.lua
 MapOfManyRiches.lua
 MapOfManyRichesOptions.lua

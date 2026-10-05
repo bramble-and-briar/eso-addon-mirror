@@ -177,16 +177,12 @@ local function Picked(wants)
 end
 
 -- This character's titles that are switched on, as [name] = true, and how many. A saved name
--- matches like Titles.IndexOf: as it is, or as the player reads it.
+-- matches as it is, or as the player reads it (Titles.IndexOf).
 local function SwitchedOn()
-    local byName, byDisplay = {}, {}
-    for _, title in ipairs(FT.Titles.GetOwned()) do
-        byName[title.name] = true
-        byDisplay[FT.Titles.Format(title.name)] = title.name
-    end
     local on, count = {}, 0
     for _, name in ipairs(FT.sv.titles) do
-        local owned = byName[name] and name or byDisplay[FT.Titles.Format(name)]
+        local index = FT.Titles.IndexOf(name)
+        local owned = index and GetTitle(index)
         if owned and not on[owned] then
             on[owned] = true
             count = count + 1
@@ -236,8 +232,9 @@ local function PickLabel(pick)
     return text
 end
 
--- Switches on exactly the picked titles, in alphabetical order. Titles this character doesn't own
--- stay as they are, so another character's picks survive (the list is account-wide).
+-- Switches on exactly the picked titles, in alphabetical order. Titles in the list this character
+-- doesn't have stay as they are: ones carried over from the list every character shared up to
+-- 0.8.4, or ones that haven't loaded yet.
 local function ApplyPick(pick)
     local titles = {}
     for _, name in ipairs(FT.sv.titles) do
@@ -298,7 +295,9 @@ end
 local function StatusText()
     local status = FT.Rotation.Status()
     local kind = status.kind
-    if kind == "new" then
+    if kind == "inactive" then
+        return L.PREVIEW_INACTIVE
+    elseif kind == "new" then
         local seconds = math.ceil(status.endsInMs / 1000)
         return string.format(L.PREVIEW_NEW, math.floor(seconds / 60), seconds % 60)
     elseif kind == "paused" then
@@ -376,7 +375,7 @@ end
 local function UpdatePanel()
     local list = LHAS.list
     local selected = list and list.GetSelectedData and list:GetSelectedData()
-    if not selected or selected ~= preview[1] or not SCENE_MANAGER:IsShowing(SETTINGS_SCENE) then
+    if not selected or selected ~= preview[1] then
         panelText = nil
         return
     end
@@ -389,7 +388,12 @@ local function UpdatePanel()
     end
 end
 
+-- Every second, only while the settings are open.
 local function UpdatePreview()
+    if not SCENE_MANAGER:IsShowing(SETTINGS_SCENE) then
+        panelText = nil
+        return
+    end
     UpdateRows(preview)
     UpdatePanel()
 end
@@ -430,6 +434,12 @@ local function AddNewTitles()
 end
 
 local function AddOptions(panel)
+    panel:AddSetting(Toggle(L.ACTIVE_LABEL, L.ACTIVE_TOOLTIP, "active", function()
+        if FT.sv.active then
+            FT.TitleIndex.Warm()
+        end
+        FT.Rotation.Resume()
+    end))
     panel:AddSetting(Toggle(L.ROTATE_LABEL, L.ROTATE_TOOLTIP, "rotate", function() FT.Rotation.Resume() end))
     panel:AddSetting({
         type = LHAS.ST_SLIDER,
@@ -446,22 +456,38 @@ local function AddOptions(panel)
     })
     panel:AddSetting(Toggle(L.AUTO_LABEL, nil, "autoMode", function() FT.Rotation.Resume() end))
     panel:AddSetting(Toggle(L.CELEBRATE_LABEL, L.CELEBRATE_TOOLTIP, "celebrate"))
-    panel:AddSetting(Dropdown(L.EMOTE_LABEL, nil, function()
-        local items = { { name = L.EMOTE_OFF, data = 0 } }
+    -- The emote and how often grey out while the auto emote is off. Switching it on before an
+    -- emote was ever picked keeps the one shown (the first flex owned).
+    local function EmoteOff()
+        return not FT.sv.emoteOn
+    end
+    -- Its info panel also says what the last check found, and when the last auto emote played.
+    local function EmoteInfo()
+        local status = FT.Emote.Status()
+        return status and L.EMOTE_TOOLTIP .. "\n\n" .. status or L.EMOTE_TOOLTIP
+    end
+    panel:AddSetting(Toggle(L.EMOTE_LABEL, EmoteInfo, "emoteOn", function()
+        if FT.sv.emoteOn and FT.sv.emoteId == 0 then
+            FT.sv.emoteId = FT.Emote.DefaultId() or 0
+        end
+    end))
+    panel:AddSetting(Dropdown(L.EMOTE_PICK_LABEL, nil, function()
+        local items = {}
         for _, emote in ipairs(FT.Emote.Choices()) do
             items[#items + 1] = { name = emote.name, data = emote.id }
         end
         return items
     end, function()
-        for _, emote in ipairs(FT.Emote.Choices()) do
-            if emote.id == FT.sv.emoteId then
+        local choices, id = FT.Emote.Choices(), FT.Emote.ChosenId()
+        for _, emote in ipairs(choices) do
+            if emote.id == id then
                 return emote.name
             end
         end
-        return L.EMOTE_OFF
+        return choices[1] and choices[1].name or ""
     end, function(id)
         FT.sv.emoteId = id
-    end))
+    end, EmoteOff))
     panel:AddSetting(Dropdown(L.EMOTE_EVERY_LABEL, L.EMOTE_EVERY_TOOLTIP, function()
         local items = {}
         for _, seconds in ipairs(EMOTE_EVERY) do
@@ -470,18 +496,15 @@ local function AddOptions(panel)
         return items
     end, function() return EveryName(FT.sv.emoteEvery) end, function(seconds)
         FT.sv.emoteEvery = seconds
-    end, function() return FT.sv.emoteId == 0 end))
+    end, EmoteOff))
     panel:AddSetting(Toggle(L.ENVY_LABEL, L.ENVY_TOOLTIP, "titleEnvy", function() FT.TitleIndex.Warm() end))
+    -- Selected, it lists the closest titles in the info panel beside the list, which scrolls.
     panel:AddSetting({
-        type = LHAS.ST_BUTTON,
+        type = LHAS.ST_LABEL,
         label = Centred(L.NEXT_LABEL),
-        buttonText = L.NEXT_BUTTON,
-        clickHandler = function()
-            FT.NextTitles.Show()
-            Settings.Refresh()
-        end,
+        tooltip = function() return FT.NextTitles.PanelText() end,
+        canSelect = true,
     })
-    panel:AddSetting({ type = LHAS.ST_LABEL, label = Centred(function() return FT.NextTitles.Text() end) })
 end
 
 -- The last entry: opens the list of titles. Everything after it belongs to that list.

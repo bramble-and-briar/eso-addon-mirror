@@ -10,7 +10,7 @@ CompanionRoster.Data = {}
 -- string back (GetAddOnManager():GetAddOnVersion() returns the separate
 -- numeric ## AddOnVersion tag instead, meant for dependency checks, not
 -- display), so this has to be maintained by hand.
-CompanionRoster.version = "2.1.0"
+CompanionRoster.version = "2.2.0"
 
 local savedVars = nil
 
@@ -77,9 +77,20 @@ local function GetActiveCompanionSkillLines()
         for skillLineIndex = 1, GetNumCompanionSkillLines(skillType) do
             local skillLineId = GetCompanionSkillLineId(skillType, skillLineIndex)
             local currentRank = GetCompanionSkillLineDynamicInfo(skillLineId)
+            -- At max rank, currentXP sits pinned equal to nextRankXP (no
+            -- further rank to roll over into) - confirmed live via debug
+            -- print against a companion with a genuinely maxed Guild line
+            -- (rank 10: lastRankXP=800, nextRankXP=900, currentXP=900).
+            -- nextRankXP == 0 was the original (wrong) assumption - it
+            -- never actually hits 0 for companion skill lines.
+            local lastRankXP, nextRankXP, currentXP = GetCompanionSkillLineXPInfo(skillLineId)
             table.insert(lines, {
                 name = zo_strformat("<<1>>", GetCompanionSkillLineNameById(skillLineId)),
                 rank = currentRank,
+                isMaxed = (currentXP >= nextRankXP),
+                lastRankXP = lastRankXP,
+                nextRankXP = nextRankXP,
+                currentXP = currentXP,
             })
         end
         if #lines > 0 then
@@ -222,6 +233,24 @@ function CompanionRoster.Data.SetCloseOnCombat(enabled)
     savedVars.closeOnCombat = enabled
 end
 
+-- Another account-wide UI preference. On by default - it only has an effect
+-- once the player has tagged a companion with a Role.
+function CompanionRoster.Data.GetShowRoleOnCollections()
+    return savedVars.showRoleOnCollections
+end
+
+function CompanionRoster.Data.SetShowRoleOnCollections(enabled)
+    savedVars.showRoleOnCollections = enabled
+end
+
+function CompanionRoster.Data.GetShowRapportOnCollections()
+    return savedVars.showRapportOnCollections
+end
+
+function CompanionRoster.Data.SetShowRapportOnCollections(enabled)
+    savedVars.showRapportOnCollections = enabled
+end
+
 function CompanionRoster.Data.GetCompanionsForCharacter(characterKey)
     local character = savedVars.characters[characterKey]
     if character == nil then
@@ -252,6 +281,66 @@ function CompanionRoster.Data.GetSkillLinesForCompanion(companionId)
         local info = character.companions[companionId]
         if info and info.skillLines then
             return info.skillLines
+        end
+    end
+    return nil
+end
+
+-- True only if every recorded Guild-type skill line is at max rank - a
+-- companion's Guild line can only progress through completing quests
+-- (not grindable the way Class/Weapon/Armor are), so reaching max is a
+-- genuine milestone worth calling out. False if no Guild skill line has
+-- been recorded yet (companion never summoned), not just if it's low rank.
+function CompanionRoster.Data.IsGuildSkillLineMaxed(skillLines)
+    if skillLines == nil then
+        return false
+    end
+
+    local guildTypeName = GetString("SI_SKILLTYPE", SKILL_TYPE_GUILD)
+    for _, group in ipairs(skillLines) do
+        if group.typeName == guildTypeName then
+            for _, line in ipairs(group.lines) do
+                if not line.isMaxed then
+                    return false
+                end
+            end
+            return #group.lines > 0
+        end
+    end
+    return false
+end
+
+-- Summary of every one of a companion's Guild-type skill lines (name,
+-- rank, and progress toward the next rank) - a companion can hold rank in
+-- more than one guild at once (Fighters Guild/Mages Guild/Undaunted all
+-- independently), confirmed live, so this lists all of them, not just the
+-- first found. General context for deciding who to bring out, not tied to
+-- whatever term a rapport-tips search matched. Returns nil if no Guild
+-- skill line has been recorded for this companion yet (never summoned).
+function CompanionRoster.Data.GetGuildSkillLineSummary(companionId)
+    local skillLines = CompanionRoster.Data.GetSkillLinesForCompanion(companionId)
+    if skillLines == nil then
+        return nil
+    end
+
+    local guildTypeName = GetString("SI_SKILLTYPE", SKILL_TYPE_GUILD)
+    for _, group in ipairs(skillLines) do
+        if group.typeName == guildTypeName then
+            local summaryLines = {}
+            for _, line in ipairs(group.lines) do
+                if line.isMaxed then
+                    table.insert(summaryLines, string.format("%s Rank %d (Maxed)", line.name, line.rank))
+                elseif line.currentXP and line.lastRankXP and line.nextRankXP then
+                    local xpIntoRank = line.currentXP - line.lastRankXP
+                    table.insert(summaryLines, string.format("%s Rank %d, %d/%d XP to next", line.name, line.rank, xpIntoRank, line.nextRankXP))
+                else
+                    -- Recorded before this addon tracked XP progress - falls
+                    -- back to just the rank until this companion is
+                    -- resummoned and recaptured with the newer fields.
+                    table.insert(summaryLines, string.format("%s Rank %d", line.name, line.rank))
+                end
+            end
+            return #summaryLines > 0 and table.concat(summaryLines, "\n") or nil
         end
     end
     return nil
@@ -335,7 +424,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- rather than mixing it - matters because data here is keyed by
     -- character name, not character id, and the same @account can play on
     -- more than one server where two different characters could share a name.
-    local defaults = { characters = {}, companionRoles = {}, slashCommand = "/fcr", closeOnCombat = false }
+    local defaults = { characters = {}, companionRoles = {}, slashCommand = "/fcr", closeOnCombat = false, showRoleOnCollections = true, showRapportOnCollections = true }
     savedVars = ZO_SavedVars:NewAccountWide("CompanionRoster_SavedVariables", CompanionRoster.savedVariablesVersion, GetWorldName(), defaults)
 
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_ACTIVATED, OnCompanionActivated)

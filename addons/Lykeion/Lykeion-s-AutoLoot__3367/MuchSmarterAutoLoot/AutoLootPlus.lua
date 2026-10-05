@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.5"
-MSAL.addonVersion = 80305
+MSAL.version = "8.3.6"
+MSAL.addonVersion = 80306
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -1372,9 +1372,9 @@ local function ShouldLootThirdPartyWorthyItem(filterType, link, threshold)
     end
 
     if filterType == "per tsc" then
-        local avgPrice, _, _ = TSCApi:GetItemData(link)
-        if avgPrice then
-            saleAvg = avgPrice
+        local price = TSCApi:GetPrice(link)
+        if type(price) == "number" then
+            saleAvg = price
         end
     end
 
@@ -3424,14 +3424,7 @@ local function OnLoaded(_, addon)
         end
     else
         -- dev on PCNA
-        TSCApi = ({
-            ["PTS"] = TSCPriceDataAPIXBNA,
-            ["NA Megaserver"] = TSCPriceDataAPIXBNA,
-            ["XB1live"] = TSCPriceDataAPIXBNA,
-            ["PS4live"] = TSCPriceDataAPIPSNA,
-            ["XB1live-eu"] = TSCPriceDataAPIXBEU,
-            ["PS4live-eu"] = TSCPriceDataAPIPSEU
-        })[GetWorldName()] or TSCPriceDataAPI
+        TSCApi = TSCPriceDataAPI
 
         if LibRadialMenu then
             LibRadialMenu:RegisterAddon("MSAL", "AutoLoot+")

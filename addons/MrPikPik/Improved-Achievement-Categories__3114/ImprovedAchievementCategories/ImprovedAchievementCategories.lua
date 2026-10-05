@@ -23,7 +23,7 @@ local function AddTopLevelCategory(self, categoryIndex, name, numSubCategories, 
 end
 
 local function AddCategory(self, lookup, tree, nodeTemplate, parent, categoryIndex, name, hidesUnearned, normalIcon, pressedIcon, mouseoverIcon, isSummary, isFakedSubcategory)
-    if nodeTemplate ~= "ZO_TreeLabelSubCategory" then return false end
+    if nodeTemplate ~= "ZO_Achievements_SubCategory" then return false end
     
     local ids
     if isFakedSubcategory then

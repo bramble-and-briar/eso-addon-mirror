@@ -4,6 +4,7 @@ AlabuzyaUI.Minimap = {}
 local root,view,title,clock,settings,player
 local tiles,pins={},{}
 local points={}
+local areas,areaControls={},{}
 local key,nextPoints='',0
 local SIZE=326
 local nextClock=0
@@ -31,6 +32,7 @@ local function RefreshMapPins()
     CALLBACK_MANAGER:FireCallbacks('OnWorldMapChanged')
     local manager=ZO_WorldMap_GetPinManager()
     if manager and manager.RefreshObjectives then manager:RefreshObjectives() end
+    if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.RefreshAllAntiquityDigSites then WORLD_MAP_MANAGER:RefreshAllAntiquityDigSites() end
     if ZO_WorldMap_RefreshWorldEvents then ZO_WorldMap_RefreshWorldEvents() end
     mapDirty=false
 end
@@ -51,7 +53,7 @@ local function Time(seconds)
     return string.format('%02d:%02d',math.floor(seconds/3600)%24,math.floor(seconds/60)%60)
 end
 local function CollectPoints()
-    points={}
+    points={} areas={}
     local manager=ZO_WorldMap_GetPinManager()
     if not manager or not manager.GetActiveObjects then return end
     manager:UpdateMovingPins()
@@ -59,6 +61,18 @@ local function CollectPoints()
         local kind=native:GetPinType()
         local control=native:GetControl()
         local texture=native.backgroundControl
+        if not control:IsControlHidden() then
+            local x,y=native:GetNormalizedPosition()
+            local blob=native.polygonBlob or native.pinBlob
+            if x and y and blob and not blob:IsControlHidden() then
+                if native.polygonBlob and native.borderInformation then
+                    areas[#areas+1]={x=x,y=y,polygon=true,border=native.borderInformation,
+                        color={blob:GetCenterColor()},edge={blob:GetBorderColor()}}
+                elseif native.radius and native.radius>0 then
+                    areas[#areas+1]={x=x,y=y,radius=native.radius,texture=blob:GetTextureFileName(),color={blob:GetColor()}}
+                end
+            end
+        end
         -- Parent map is hidden on HUD: test local visibility, not IsHidden().
         if kind~=MAP_PIN_TYPE_PLAYER and kind~=MAP_PIN_TYPE_GROUP
             and kind~=MAP_PIN_TYPE_GROUP_LEADER and kind~=MAP_PIN_TYPE_LOCATION and texture
@@ -88,6 +102,38 @@ local function CollectPoints()
         end
     end
     table.sort(points,function(a,b) return a.level<b.level end)
+end
+local function DrawAreas(width,height,left,top)
+    local used=0
+    for _,area in ipairs(areas) do
+        used=used+1
+        local kind=area.polygon and CT_POLYGON or CT_TEXTURE
+        local c=areaControls[used]
+        if c and c.areaKind~=kind then c:SetHidden(true) c=nil end
+        if not c then
+            c=WINDOW_MANAGER:CreateControl(nil,view,kind) c.areaKind=kind
+            c:SetPixelRoundingEnabled(false) c:SetMouseEnabled(false)
+            c:SetDrawLayer(DL_BACKGROUND) c:SetDrawLevel(5)
+            areaControls[used]=c
+        end
+        local w,h
+        if area.polygon then
+            w=area.border.borderWidth*width h=area.border.borderHeight*height
+            c:ClearPoints()
+            for _,point in ipairs(area.border.borderPoints) do c:AddPoint(point.x,point.y) end
+            c:SetCenterColor(unpack(area.color)) c:SetBorderColor(unpack(area.edge))
+            c:SetBorderThickness(1,1,0)
+        else
+            w=area.radius*2*height h=w
+            -- Native ZO_PinBlob is a procedural HALO, not an image texture.
+            c:SetShaderEffectType(SHADER_EFFECT_TYPE_HALO)
+            c:SetColor(unpack(area.color))
+        end
+        c:SetDimensions(w,h) c:ClearAnchors()
+        c:SetAnchor(CENTER,view,TOPLEFT,area.x*width-left,area.y*height-top)
+        c:SetHidden(false)
+    end
+    for i=used+1,#areaControls do areaControls[i]:SetHidden(true) end
 end
 local function Pin(index,x,y,texture,name,rotation,style)
     local pin=pins[index]
@@ -135,7 +181,8 @@ local function Update()
     local context=MapKey()
     local changed=context~=key
     if changed or mapDirty then
-        points={}
+        points={} areas={}
+        for _,area in ipairs(areaControls) do area:SetHidden(true) end
         for _,pin in ipairs(pins) do pin:SetHidden(true) end
         RefreshMapPins()
         -- Callbacks may change context. Never pair old coordinates with new pins.
@@ -162,6 +209,7 @@ local function Update()
         tile:SetHidden(false)
     end
     for i=columns*rows+1,#tiles do tiles[i]:SetHidden(true) end
+    DrawAreas(width,height,left,top)
     local count=0
     local function Put(px,py,texture,name,rotation,style)
         local sx,sy=px*width-left,py*height-top

@@ -18,7 +18,7 @@
     "CraftPawns"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4883/",
-  "fingerprint": "098554d20c92d90ca42c6966d062843622cf6f16a588245152657c6185b508a5",
+  "fingerprint": "12b89b4f7865a8531a9ba27eaa87dbbcbe7dacb73079127b39b5d02c90612359",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17602.png",
     "https://cdn-eso.mmoui.com/preview/pvw17603.png"
@@ -29,11 +29,11 @@
   "source_id": "4883",
   "source_url": "https://www.esoui.com/downloads/info4883-CraftPawns.html",
   "stats": {
-    "downloads": 58,
+    "downloads": 156,
     "favorites": 0,
-    "monthly_downloads": 3
+    "monthly_downloads": 153
   },
   "title": "CraftPawns",
-  "updated_at": 1790633172000,
-  "version": "1.1.1"
+  "updated_at": 1791168353000,
+  "version": "1.2"
 }

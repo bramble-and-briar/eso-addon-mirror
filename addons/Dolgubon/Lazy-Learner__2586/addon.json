@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Dolgubon/Lazy-Learner__2586",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Dolgubon",
   "canonical_id": "esoui:2586",
   "category_id": "40",
@@ -29,7 +30,7 @@
     "LazyAlchemyLearner"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2586/",
-  "fingerprint": "da6db533ce098d65f10cf0738a482af58a758f84c71840ba7741dc653ffa0bd2",
+  "fingerprint": "1bf4aa73c4357f18fe0e4ce04eb0c2db2080e50e9248bb733a39bf9fae6c33ad",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -37,11 +38,11 @@
   "source_id": "2586",
   "source_url": "https://www.esoui.com/downloads/info2586-LazyLearner.html",
   "stats": {
-    "downloads": 104052,
-    "favorites": 153,
-    "monthly_downloads": 534
+    "downloads": 106232,
+    "favorites": 154,
+    "monthly_downloads": 1383
   },
   "title": "Lazy Learner",
-  "updated_at": 1758077576000,
-  "version": "1.1.2"
+  "updated_at": 1791126940000,
+  "version": "1.1.4"
 }

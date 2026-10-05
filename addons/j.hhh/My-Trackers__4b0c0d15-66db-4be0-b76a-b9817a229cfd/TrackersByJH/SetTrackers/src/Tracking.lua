@@ -97,6 +97,11 @@ local function OnCombatEvent(setKey, _, result, _, abilityName, _, _, _, _, _, _
   if result == ACTION_RESULT_ABILITY_ON_COOLDOWN then
     JHSetTrackers:Trace(1, "<<1>> (<<2>>) on Cooldown", abilityName, abilityId)
   elseif result == set.result or (type(set.result) == "table" and JHSetTrackers.HasValue(set.result, result)) then
+    -- Arkasis-style duplicate trigger guard.
+    if set.onCooldown and set.cooldownDurationMs and set.cooldownDurationMs > 0 then
+      local elapsed = GetGameTimeMilliseconds() - (set.timeOfProc or 0)
+      if elapsed >= 0 and elapsed < set.cooldownDurationMs then return end
+    end
     if set.id == 147462 or set.id == 193411 then -- Pearls and esoteric
       JHSetTrackers.Procs[setKey].times = JHSetTrackers.Procs[setKey].times + 1
       JHSetTrackers.UI.UpdateProcs(setKey)
@@ -155,12 +160,16 @@ local function OnEffectChanged(setKey, _, change, _, effectName, unitTag, beginT
     end
     set.timeOfProc = time()
 
+    -- Death Dealer's Fete is stacks-only: never enter the generic effect timer path.
+    if setKey == "Death Dealer's Fete" then
+      set.stacks = stackCount or 0
+      JHSetTrackers.UI.UpdateDDFStacks(set.stacks)
+      return
+    end
+
     if set.durationms > 0 then
       set.endTime = endTime
-      -- if not c.isUpdating then
-        -- c.isUpdating = true
-        EM:RegisterForUpdate(JHSetTrackers.name .. setKey .. "Count", updateIntervalMs, function(...) JHSetTrackers.UI.UpdateEffect(setKey) end)
-      -- end
+      EM:RegisterForUpdate(JHSetTrackers.name .. setKey .. "Count", updateIntervalMs, function(...) JHSetTrackers.UI.UpdateEffect(setKey) end)
     end
     JHSetTrackers.UI.UpdateEffect(setKey)
   end
@@ -692,9 +701,7 @@ local function TrackSoulSpawn(track, key)
 
       local set = JHSetTrackers.Data.Sets[SUL_XAN_NAME]
       local c   = JHSetTrackers.Controls[SUL_XAN_NAME]
-      -- Console safety: Sul-Xan soul updates may fire before/after its data/UI exists.
-      if set == nil or c == nil or c.bar == nil then return end
-      if JHSetTrackers.ghostTime == nil then return end
+      if set == nil or c == nil or c.bar == nil or JHSetTrackers.ghostTime == nil then return end
       local bar = c.bar
       local t   = JHSetTrackers.ghostTime - time()
 
@@ -756,9 +763,13 @@ function JHSetTrackers.Tracking.UpdateSetBuffInfo(key)
     end
     if c.stacks then
       set.stacks = stacks
-      if set.stacks > 0
-      then c.stacks:SetText(set.stacks)
-      else c.stacks:SetText("") end
+      if key == "Death Dealer's Fete" then
+        JHSetTrackers.UI.UpdateDDFStacks(set.stacks)
+      elseif set.stacks > 0 then
+        c.stacks:SetText(set.stacks)
+      else
+        c.stacks:SetText("")
+      end
     end
   end
 end
@@ -987,6 +998,7 @@ function JHSetTrackers.Tracking.EnableTrackingForSet(setKey, enabled)
   if enabled then
 
     set.ps5HideAfterCooldown = nil
+    set.ps5HideAfterActive = nil
     if set.endTime == nil then set.endTime = 0 end
 
     -- Check manual disable first
@@ -1085,8 +1097,7 @@ function JHSetTrackers.Tracking.EnableTrackingForSet(setKey, enabled)
         REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER)
       end
 
-      -- Create the UI before starting any special update loops. On console an
-      -- update/event can fire immediately after registration.
+      -- Build the control before any special update loop can fire on console.
       set.enabled = true
       JHSetTrackers.UI.Draw(setKey)
 
@@ -1154,8 +1165,8 @@ function JHSetTrackers.Tracking.EnableTrackingForSet(setKey, enabled)
 
       if JHSetTrackers.MajorMinorSets[setKey] then JHSetTrackers.MajorMinorSets[setKey] = nil end
 
-      -- PS5/JH: removing the set must not erase an already active proc.
-      -- Keep the tracker visible until BOTH the active buff and cooldown have ended.
+      -- Console/JH behavior: if the set is removed while a proc is active,
+      -- keep the tracker visible until BOTH its buff and cooldown have ended.
       local nowMs = GetGameTimeMilliseconds()
       local cooldownRemaining = 0
       local buffRemaining = 0

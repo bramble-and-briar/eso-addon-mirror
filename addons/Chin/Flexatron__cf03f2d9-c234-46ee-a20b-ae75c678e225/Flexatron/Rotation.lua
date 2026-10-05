@@ -10,6 +10,8 @@ FT.Rotation = Rotation
 local SETTLE_MS = 2000 -- after a loading screen, before the first change
 local GRACE_MS = 4000  -- after a loading screen the game may re-send the title: not a manual pick
 local BUSY_RETRY_MS = 1000
+local HOLD_RETRY_MS = 5000 -- a best title that didn't go on is asked for again after this
+local HOLD_TRIES = 3       -- at most this many times in one place
 local CELEBRATE_MS = 5 * 60000 -- how long a new title stays on
 
 local timer              -- the next rotation step
@@ -79,9 +81,13 @@ Step = function()
     end
     local current = GetCurrentTitleIndex()
     if plan.kind == "hold" then
+        local holdPlan = plan
+        holdPlan.tries = (holdPlan.tries or 0) + 1
         Swap.To(plan.index, function(_, _, landed)
             if landed then
                 Landed()
+            elseif plan == holdPlan and not Blocked() and holdPlan.tries < HOLD_TRIES then
+                Schedule(HOLD_RETRY_MS)
             end
         end)
         return
@@ -155,9 +161,13 @@ function Rotation.Celebrate(index)
     end, CELEBRATE_MS)
 end
 
--- The player picked a title themselves: pause until the next zone change.
+-- The player picked a title themselves: pause until the next zone change. While Flexatron is off,
+-- or nothing is set to change the title, there's nothing to pause.
 local function OnTitleUpdate(_, unitTag)
-    if unitTag ~= "player" or paused or Swap.IsRunning() then
+    if unitTag ~= "player" or not FT.sv.active or paused or Swap.IsRunning() then
+        return
+    end
+    if not plan and not celebrating then
         return
     end
     if not activatedAt or GetGameTimeMilliseconds() - activatedAt < GRACE_MS then
@@ -172,8 +182,17 @@ local function OnTitleUpdate(_, unitTag)
     CHAT_ROUTER:AddSystemMessage(L.PAUSED)
 end
 
+-- After a fight: a best title that couldn't go on during it goes on now; the rotation carries on
+-- one hold later.
 local function OnCombatState(_, inCombat)
-    if not inCombat and plan and plan.kind == "rotate" and not Blocked() and not timer and not Swap.IsRunning() then
+    if inCombat or not plan or Blocked() or timer or Swap.IsRunning() then
+        return
+    end
+    if plan.kind == "hold" then
+        if GetCurrentTitleIndex() ~= plan.index then
+            Schedule(0)
+        end
+    else
         Schedule(FT.sv.holdTime * 1000)
     end
 end
@@ -184,23 +203,23 @@ local function OnPlayerActivated()
 end
 
 -- Start again after a settings change, ending a pause. delayMs lets several quick changes (like
--- switching titles on and off) settle before the title changes.
+-- switching titles on and off) settle before the title changes. With Flexatron switched off there's
+-- no plan, so this stops the rotation and leaves the title worn.
 function Rotation.Resume(delayMs)
     paused = false
     Rotation.Evaluate(false, delayMs)
 end
 
-function Rotation.IsPaused()
-    return paused
-end
-
--- What drives the title right now, for the live preview in settings. kind is "new" (a new title on
--- show), "paused", "best" (the best title for this trial, dungeon or arena), "rotating", "off" or
--- "empty" (nothing switched on). Rotating also gives nextIndex and nextInMs.
+-- What drives the title right now, for the live preview in settings. kind is "inactive"
+-- (Flexatron is off), "new" (a new title on show), "paused", "best" (the best title for this
+-- trial, dungeon or arena), "rotating", "off" or "empty" (nothing switched on). Rotating also
+-- gives nextIndex and nextInMs.
 function Rotation.Status()
     local now = GetGameTimeMilliseconds()
     local status = { swapping = Swap.IsRunning(), combat = IsUnitInCombat("player") }
-    if celebrating then
+    if not FT.sv.active then
+        status.kind = "inactive"
+    elseif celebrating then
         status.kind = "new"
         status.endsInMs = math.max(0, celebrating.endsAt - now)
     elseif paused then

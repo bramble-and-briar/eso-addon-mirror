@@ -8,12 +8,15 @@ local RECENT_MS = 5000
 
 local pending     -- the change in flight: { index, fromIndex, onFinish, timeoutId }
 local lastAsked   -- the last title Flexatron asked for
-local recent = {} -- [index] = when Flexatron last asked for that title
+local recent = {} -- [index] = when Flexatron asked for that title, until the server confirms it
 
 local function Finish(landed)
     local p = pending
     pending = nil
     zo_removeCallLater(p.timeoutId)
+    if landed then
+        recent[p.index] = nil -- confirmed: a later change to it isn't a late confirmation
+    end
     if p.onFinish then
         p.onFinish(p.fromIndex, p.index, landed)
     end
@@ -58,7 +61,9 @@ function Swap.To(toIndex, onFinish)
     return true
 end
 
--- True if this title is one Flexatron set itself just now; anything else is the player's choice.
+-- True if this title is one Flexatron set itself: the last one it asked for, or one it asked for in
+-- the last RECENT_MS that the server hasn't confirmed yet (a late answer to an earlier change).
+-- Anything else is the player's choice.
 function Swap.WasOurs(index)
     if index == lastAsked then
         return true

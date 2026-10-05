@@ -1,9 +1,6 @@
-local AlabuzyaUI = AlabuzyaUI
--- Bundled QuestArrow 0.2.2 by alabuzya.
-if not AlabuzyaUI.UseBundledQuestArrow then return end
 -- Destination discovery uses a synchronous, restored map snapshot. Never leave
 -- a remote map selected while waiting for an asynchronous quest-position reply.
-local A, P = AlabuzyaUI.QuestArrow, AlabuzyaUI.QuestArrow.Planner
+local A, P = QuestArrow, QuestArrow.Planner
 local X = { cache = {} }
 A.CrossTravel = X
 

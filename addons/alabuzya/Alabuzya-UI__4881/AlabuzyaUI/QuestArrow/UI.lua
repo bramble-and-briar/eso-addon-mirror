@@ -1,7 +1,4 @@
-local AlabuzyaUI = AlabuzyaUI
--- Bundled QuestArrow 0.2.2 by alabuzya.
-if not AlabuzyaUI.UseBundledQuestArrow then return end
-local A = AlabuzyaUI.QuestArrow
+local A = QuestArrow
 local U = {}
 A.UI = U
 local WIDTH = 420
@@ -11,7 +8,7 @@ local CYAN = { 0.36, 0.85, 0.88, 1 }
 local function label(parent, name, width, height, font)
     local c = WINDOW_MANAGER:CreateControl(name, parent, CT_LABEL)
     c:SetDimensions(width, height)
-    c:SetFont(font or AlabuzyaUI.Theme.Font(16))
+    c:SetFont(font or "ZoFontGame")
     c:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     c:SetMaxLineCount(0)
     c:SetMouseEnabled(false)
@@ -19,27 +16,27 @@ local function label(parent, name, width, height, font)
 end
 
 function U:Create()
-    local root = WINDOW_MANAGER:CreateTopLevelWindow("AlabuzyaUIQuestArrowHUD")
+    local root = WINDOW_MANAGER:CreateTopLevelWindow("QuestArrowHUD")
     self.root = root
     root:SetDimensions(WIDTH, 250)
     root:SetClampedToScreen(true)
     root:SetDrawLayer(DL_OVERLAY)
     root:SetHidden(true)
-    local bg = WINDOW_MANAGER:CreateControl("AlabuzyaUIQuestArrowBackground", root, CT_BACKDROP)
+    local bg = WINDOW_MANAGER:CreateControl("QuestArrowBackground", root, CT_BACKDROP)
     self.background = bg
     bg:SetAnchorFill(root)
     bg:SetCenterColor(0.025, 0.035, 0.055, 0.8)
     bg:SetEdgeColor(0.55, 0.7, 0.9, 0.8)
     bg:SetMouseEnabled(false)
-    self.quest = label(root, "AlabuzyaUIQuestArrowQuest", WIDTH - 20, 0)
+    self.quest = label(root, "QuestArrowQuest", WIDTH - 20, 0)
     self.quest:SetColor(0.92, 0.88, 0.77, 1)
-    self.status = label(root, "AlabuzyaUIQuestArrowStatus", WIDTH - 20, 0, AlabuzyaUI.Theme.Font(15))
+    self.status = label(root, "QuestArrowStatus", WIDTH - 20, 0, "ZoFontGameSmall")
     self.status:SetColor(0.79, 0.76, 0.68, 1)
-    self.destination = label(root, "AlabuzyaUIQuestArrowDestination", WIDTH - 20, 0, AlabuzyaUI.Theme.Font(18))
+    self.destination = label(root, "QuestArrowDestination", WIDTH - 20, 0, "ZoFontGameBold")
     self.destination:SetColor(1, 0.95, 0.84, 1)
-    self.detail = label(root, "AlabuzyaUIQuestArrowDetail", WIDTH - 20, 0, AlabuzyaUI.Theme.Font(15))
+    self.detail = label(root, "QuestArrowDetail", WIDTH - 20, 0, "ZoFontGameSmall")
     self.detail:SetColor(0.83, 0.83, 0.79, 1)
-    self.dial = WINDOW_MANAGER:CreateControl("AlabuzyaUIQuestArrowDial", root, CT_CONTROL)
+    self.dial = WINDOW_MANAGER:CreateControl("QuestArrowDial", root, CT_CONTROL)
     self.dial:SetDimensions(90, 90)
     self.dial:SetMouseEnabled(false)
     self:CreateCompass()
@@ -100,13 +97,13 @@ function U:CreateCompass()
         local angle = i * 2 * math.pi / 64
         circle[#circle + 1] = { 39 * math.cos(angle), 39 * math.sin(angle) }
     end
-    self.ring = polygon("AlabuzyaUIQuestArrowCompassRing", self.dial, circle, {0.035, 0.045, 0.055, 0.67}, 1)
+    self.ring = polygon("QuestArrowCompassRing", self.dial, circle, {0.035, 0.045, 0.055, 0.67}, 1)
     self.ring:SetBorderColor(0.65, 0.55, 0.37, 0.72)
     -- Fixed engraved ticks keep the movement easy to read without clutter.
     for i = 0, 7 do
         local angle = i * math.pi / 4
         local outer, inner = 36, i % 2 == 0 and 30 or 33
-        local tick = WINDOW_MANAGER:CreateControl("AlabuzyaUIQuestArrowCompassTick" .. i, self.dial, CT_LINE)
+        local tick = WINDOW_MANAGER:CreateControl("QuestArrowCompassTick" .. i, self.dial, CT_LINE)
         tick:SetThickness(1)
         tick:SetColor(0.8, 0.7, 0.48, i % 2 == 0 and 0.65 or 0.35)
         tick:SetMouseEnabled(false)
@@ -123,7 +120,7 @@ function U:CreateCompass()
     }
     self.needle = {}
     for i, points in ipairs(self.facets) do
-        self.needle[i] = polygon("AlabuzyaUIQuestArrowNeedle" .. i, self.dial, points, GOLD, 0.8)
+        self.needle[i] = polygon("QuestArrowNeedle" .. i, self.dial, points, GOLD, 0.8)
     end
 end
 
@@ -170,7 +167,7 @@ function U:Journal()
     if not journal or not journal.GetSelectedQuestIndex or not journal.control then return end
     if self.journalButton then return end
     self.journal = journal
-    local button = WINDOW_MANAGER:CreateControlFromVirtual("AlabuzyaUIQuestArrowJournalButton", journal.control, "ZO_DefaultButton")
+    local button = WINDOW_MANAGER:CreateControlFromVirtual("QuestArrowJournalButton", journal.control, "ZO_DefaultButton")
     self.journalButton = button
     button:SetDimensions(240, 28)
     -- Beside the stock Show On Map row, below the left quest list.

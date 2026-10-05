@@ -1,0 +1,16 @@
+## Title: LibAsync
+## Author: votan, Sharlikran and Dack
+## APIVersion: 101049 101050
+## AddOnVersion: 30106
+## Version: 3.1.6
+## IsLibrary: true
+## SavedVariables: AsyncSavedVars
+## Description: Dev-only revert of LibAsync to the 3.1.4 code (3.1.5 regression workaround). All credit to votan, Sharlikran and Dack. AddOnVersion bumped so this copy wins over 3.1.5 when both are installed.
+## OptionalDependsOn: LibDebugLogger
+## DevId: 436f6695-4798-423f-b276-d8c46cbd938e
+
+## This Add-On is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+## The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+## All rights reserved.
+
+LibAsync.lua

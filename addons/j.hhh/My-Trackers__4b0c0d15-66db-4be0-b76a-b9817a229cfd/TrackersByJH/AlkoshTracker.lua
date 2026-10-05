@@ -119,7 +119,7 @@ function AT:CreateUI()
     inactiveX:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     inactiveX:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     inactiveX:SetColor(1, 1, 1, 1)
-    inactiveX:SetText("Synergy")
+    inactiveX:SetText("")
 
     self.control, self.icon, self.label, self.inactiveX = win, icon, label, inactiveX
     self:UpdateUI()

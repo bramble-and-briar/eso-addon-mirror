@@ -60,9 +60,10 @@ function PinActions.RegisterPinType()
         gamepadSpacing = true,
     }
 
-    state.pinTypeId = LibMapPins:AddPinType(DevSandbox3.pinType, AddConfirmedPins, nil, PinUtils.CreateLayout(false), tooltipCreator)
+    local pinSize = state.savedVars.settings.mapPinSize
+    state.pinTypeId = LibMapPins:AddPinType(DevSandbox3.pinType, AddConfirmedPins, nil, PinUtils.CreateLayout(false, pinSize), tooltipCreator)
     LibMapPins:AddPinFilter(DevSandbox3.pinType, PinUtils.FILTER_LABEL, nil, state.savedVars.filters)
-    state.candidatePinTypeId = LibMapPins:AddPinType(DevSandbox3.candidatePinType, AddCandidatePins, nil, PinUtils.CreateLayout(true), tooltipCreator)
+    state.candidatePinTypeId = LibMapPins:AddPinType(DevSandbox3.candidatePinType, AddCandidatePins, nil, PinUtils.CreateLayout(true, pinSize), tooltipCreator)
     LibMapPins:AddPinFilter(DevSandbox3.candidatePinType, PinUtils.CANDIDATE_FILTER_LABEL, nil, state.savedVars.filters)
 
     -- Only the Cyrodiil (AvA) map filter list is relevant for these pins.

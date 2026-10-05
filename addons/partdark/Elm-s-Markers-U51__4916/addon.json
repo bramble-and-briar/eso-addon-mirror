@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/partdark/Elm-s-Markers-U51__4916",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "partdark",
+  "canonical_id": "esoui:4916",
+  "category_id": "45",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4916",
+  "deleted": false,
+  "directories": [
+    "ElmsMarkers"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4916/",
+  "fingerprint": "5d9adc1eff3e260894b03284dfe9e2f4dacd1d2e9a0b89c352ac25b1819d766e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17719.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4916",
+  "source_url": "https://www.esoui.com/downloads/info4916-ElmsMarkersU51.html",
+  "stats": {
+    "downloads": 3,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Elm's Markers U51",
+  "updated_at": 1791186944000,
+  "version": "4.0"
+}

@@ -30,6 +30,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ElderScrollsOfAlts 1.00.53.beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts-1.00.53.beta__3969) | Echomap | PC / Mac | 1.00.53.beta |
 | [ElderTurks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MahlukatGuluGulu/ElderTurks__2468) | MahlukatGuluGulu | PC / Mac | 1.4.3 |
 | [Elm's Markers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/Elm-s-Markers__3395) | bitrock | PC / Mac | 3.1.0 |
+| [Elm's Markers U51](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/Elm-s-Markers-U51__4916) | partdark | PC / Mac | 4.0 |
 | [Elsweyr Mural Mender](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Elsweyr-Mural-Mender__2367) | Kyoma | PC / Mac | 1.2 |
 | [Emacs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/Emacs__1046) | Ayantir | PC / Mac | 9002e72 |
 | [Emomento](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Emomento__1955) | Werewolf Finds Dragon | PC / Mac | 005-100022 |
@@ -77,7 +78,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ESO-Database.com Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Export-AddOn__916) | Keldor | PC / Mac | 4.6.18 |
 | [ESO-Database.com Game Data Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Game-Data-Export-AddOn__2687) | Keldor | PC / Mac | 1.0.24 |
 | [ESO-Database.com Leaderboard Export AddOn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Database.com-Leaderboard-Export-AddOn__3438) | Keldor | PC / Mac | 1.0.13 |
-| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.09.28.14.12 |
+| [ESO-Hub Trading](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Woeler/ESO-Hub-Trading__4095) | Woeler | PC / Mac | 2026.10.05.02.54 |
 | [ESO-Skillfactory.com Build Export](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Keldor/ESO-Skillfactory.com-Build-Export__2899) | Keldor | PC / Mac | 1.2.12 |
 | [ESO_BuildForge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SremmurdDex/ESO_BuildForge__3ea08b32-8d76-48a9-8c15-7f6867883984) | SremmurdDex | Console | — |
 | [ESO_UnlimitedSkies \[WiP\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/devKyle/ESO_UnlimitedSkies-WiP__1781) | devKyle | PC / Mac | v0.00.000.01 |

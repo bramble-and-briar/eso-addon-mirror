@@ -62,12 +62,12 @@ function HT.buildSettingsMenu()
         -- ==============================================================================
         {
             type = "header",
-            name = "HUD Editor Info Box",
+            name = GetString(SI_HUDITORTOOLS_INFO_BOX_LAM_HEADER),
         },
         {
             type = "checkbox",
-            name = "Settings button at HUD Editor InfoBox",
-            tooltip = "Enable a right click context-menu settings button top-left at the InfoBox of the HUD Editor.\If this is enabled the \'Grid\' settings will move from the InfoBox to this context menu!",
+            name = GetString(SI_HUDITORTOOLS_INFO_BOX_SETTINGS_BUTTON_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_INFO_BOX_SETTINGS_BUTTON_LAM_TT),
             getFunc = function () return settings.HUDEditorShowInfoBoxSettingsButton end,
             setFunc = function (value)
                 settings.HUDEditorShowInfoBoxSettingsButton = value
@@ -79,12 +79,12 @@ function HT.buildSettingsMenu()
         },
         {
             type = "header",
-            name = "HUD Editor",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_LAM_HEADER),
         },
         {
             type = "checkbox",
-            name = "Enable context-menu at HUD controls",
-            tooltip = "Enable a right click context-menu at movable HUD controls, where you can e.g. hide/show the HUD elements at the current HUD editor (for a better overview).\nHidden HUD elements can also be enabled from the Info Box dropdown list again (enties in red color are user-hidden HUD elements).",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_CNTXTMENU_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_HUD_EDITOR_CNTXTMENU_LAM_TT),
             getFunc = function () return settings.HUDEditContextMenu end,
             setFunc = function (value)
                 settings.HUDEditContextMenu = value
@@ -96,8 +96,8 @@ function HT.buildSettingsMenu()
         },
         {
             type = "colorpicker",
-            name = "Hidden HUD element\'s border color",
-            tooltip = "Change the border color of hidden HUD elements, so you can see them which ones are hidden at your HUD, without having to check each element\'s InfoBox",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_HIDDEN_BORDER_COLOR_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_HUD_EDITOR_HIDDEN_BORDER_COLOR_LAM_TT),
             getFunc = function ()
                 local HUDEditHiddenBorderColor = settings.HUDEditHiddenBorderColor
                 return HUDEditHiddenBorderColor.r, HUDEditHiddenBorderColor.g, HUDEditHiddenBorderColor.b, HUDEditHiddenBorderColor.a
@@ -115,12 +115,12 @@ function HT.buildSettingsMenu()
         },
         {
             type = "header",
-            name = "Grid",
+            name = GetString(SI_HUDITORTOOLS_GRID_LAM_HEADER),
         },
         {
             type = "checkbox",
-            name = "Show grid overlay",
-            tooltip = "Enable a grid below the HUD editor elements, where you can visually align the elements to (or use the snap-to-grid feature below).",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM_TT),
             getFunc = function () return settings.showGrid end,
             setFunc = function (value)
                 settings.showGrid = value
@@ -131,8 +131,8 @@ function HT.buildSettingsMenu()
         },
         {
             type = "checkbox",
-            name = "Enable snap-to-grid",
-            tooltip = "Enable the snap-to-grid feature at the grid overlay: Elements moved will be automatically aligned to the grid.",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM_TT),
             getFunc = function () return settings.gridSnap end,
             setFunc = function (value)
                 settings.gridSnap = value
@@ -144,8 +144,8 @@ function HT.buildSettingsMenu()
         },
         {
             type = "slider",
-            name = "Grid size",
-            tooltip = "The grid\'s size",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM_TT),
             min = 2,
             max = 100,
             step = 1,
@@ -163,20 +163,21 @@ function HT.buildSettingsMenu()
         },
         {
             type = "colorpicker",
-            name = "Grid line color",
-            tooltip = "Change the grid line color and alpha level",
+            name = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_LINE_COLOR_LAM),
+            tooltip = GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_LINE_COLOR_LAM_TT),
             getFunc = function ()
-                local HUDEditGridColor = settings.gridColor
+                local HUDEditGridColor = settings[HT.COLOR_SLOT_GRID]
                 return HUDEditGridColor.r, HUDEditGridColor.g, HUDEditGridColor.b, HUDEditGridColor.a
             end,
             setFunc = function (r, g, b, a)
-                settings.gridColor = { r = r, g = g, b = b, a = a }
-                HT.HUDUI_UpdateColor("gridColor")
+                settings[HT.COLOR_SLOT_GRID] = { r = r, g = g, b = b, a = a }
+                HT.HUDUI_UpdateColor(HT.COLOR_SLOT_GRID)
             end,
             default = function ()
-                local defaultGridColor = defaults.gridColor
+                local defaultGridColor = defaults[HT.COLOR_SLOT_GRID]
                 return defaultGridColor.r, defaultGridColor.g, defaultGridColor.b, defaultGridColor.a
             end,
+            disabled = function () return not settings.showGrid end,
             width = "full",
         },
         {
@@ -232,6 +233,19 @@ function HT.buildSettingsMenu()
                 HT.ShowLayoutNameDialog("new")
             end,
             width = "half",
+        },
+        {
+            type = "button",
+            name = GetString(SI_HUDITORTOOLS_LAYOUT_DELETE),
+            tooltip = GetString(SI_HUDITORTOOLS_LAYOUT_DELETE_TOOLTIP),
+            func = function()
+                HT.ShowLayoutDeleteConfirmation()
+            end,
+            disabled = function()
+                return (HT.CountAllLayoutsForCharacter() <= 1)
+            end,
+            width = "full",
+            reference = "HUDITORTOOLS_LAM_DELETE_LAYOUT_BUTTON"
         },
         {
             type = "button",

@@ -1,0 +1,12 @@
+## Title: |c7FC7FFAlchemiewerk|r
+## Description: A Torfason × Atlas addon for The Elder Scrolls Online. Learns alchemy combinations and inserts known ingredients into ESO's original Alchemy station.
+## Author: Atlas
+## Version: 1.0.2
+## AddOnVersion: 102
+## APIVersion: 101051 101050
+## SavedVariables: AlchemiewerkSavedVariables
+
+lang/en.lua
+lang/$(language).lua
+Alchemiewerk.lua
+AlchemiewerkSettings.lua

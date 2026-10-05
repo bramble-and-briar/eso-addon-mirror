@@ -249,6 +249,28 @@ function UIT.RegisterLAMPanel()
 			default = false,
 			requiresReload = true,
 		},
+		{
+			type = "checkbox",
+			name = "Antiquarian Eye: Remove Text and Decline",
+			tooltip = "When joining a digging site will prevent useless text from being shown as well as Decline option.",
+			getFunc = function() return UIT.SV.cleanAntiqTool end,
+			setFunc = function(value)
+				UIT.SV.cleanAntiqTool = value
+			end,
+			default = false,
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
+			name = "Enable /visit Command",
+			tooltip = "Adds the /visit @player command to travel to another player's house.",
+			getFunc = function() return UIT.SV.visitPlayer end,
+			setFunc = function(value)
+				UIT.SV.visitPlayer = value
+			end,
+			default = false,
+			requiresReload = true,
+		},
 
 	}
 

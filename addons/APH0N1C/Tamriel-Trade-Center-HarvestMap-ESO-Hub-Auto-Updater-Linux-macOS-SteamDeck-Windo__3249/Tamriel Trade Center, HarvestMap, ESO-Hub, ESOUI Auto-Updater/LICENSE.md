@@ -1,6 +1,6 @@
 # License & Notice
 
-Copyright © 2021-2026 @APHONlC. All rights reserved.
+Copyright &#169; 2021-2026 @APHONlC. All rights reserved.
 
 Humans are welcome to read this code and learn from it. However, no re-distribution, sale, or full re-uploading of this codebase is permitted without prior written permission. This applies to the whole of this work, including copies that have been reworded, refactored, or "cleaned up" with AI assistance; rewording code does not remove the underlying copyright.
 
@@ -32,7 +32,7 @@ For custom permissions, collaborations, or inquiries, contact @APHONlC on ESOUI 
 
 
 This project is not created by, affiliated with or sponsored by ZeniMax
-Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+Media Inc. or its affiliates. The Elder Scrolls&#174; and related logos are
 registered trademarks or trademarks of ZeniMax Media Inc. in the United
 States and/or other countries. All rights reserved.
 

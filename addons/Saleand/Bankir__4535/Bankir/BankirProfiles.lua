@@ -17,7 +17,7 @@ local function getProfilesNames()
 end
 
 local function createNewProfile(name)
-	Bankir.savedVars = ZO_SavedVars:New("BankirSavedVariables", 2, nil, BankirData.getDefaultSettings(), "Default", "Profiles", name)
+	Bankir.savedVars = ZO_SavedVars:New("BankirSavedVariables", 2, nil, Bankir.Data.getDefaultSettings(), "Default", "Profiles", name)
 	Bankir.savedVarsCharacter.profile = name
 	updateProfilesNames()
 end

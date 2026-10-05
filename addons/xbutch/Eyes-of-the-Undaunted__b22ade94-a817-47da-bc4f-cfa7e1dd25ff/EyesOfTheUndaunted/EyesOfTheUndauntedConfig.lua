@@ -11,5 +11,6 @@ C.NAMESPACE  = C.NAMESPACE or "EOTU" -- global table name
 C.SAVEDVARS  = C.SAVEDVARS or "EOTU_SavedVars"
 C.PIN_TYPE   = C.PIN_TYPE or "EOTU_Pin"
 C.SLASH      = C.SLASH or "/eotu_debug"
+C.VERSION    = C.VERSION or "1.51.01"
 
 return EOTU_Config;

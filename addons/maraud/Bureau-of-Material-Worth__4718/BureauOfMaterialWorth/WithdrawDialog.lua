@@ -607,6 +607,16 @@ local function SelectMaterial(materialData, requestedQty)
     SetRequested(requestedQty or DefaultQuantityForQuality(curQuality))
 end
 
+local function SetQuantityControlsEnabled(enabled)
+    for i = 1, #popupPresetButtons do
+        popupPresetButtons[i]:SetEnabled(enabled)
+    end
+    if popupMaxPresetButton then
+        popupMaxPresetButton:SetEnabled(enabled)
+    end
+    popupEdit:SetEditEnabled(enabled)
+end
+
 local function OnPopupFinish(moved, total, requested)
     -- Protected moves cannot be revoked after the click. Keep the final observed
     -- result visible instead of implying that a Hide action cancelled the run.
@@ -614,13 +624,7 @@ local function OnPopupFinish(moved, total, requested)
     popupProgressLabel:SetText(Colorize(COLOR_MUTED,
         stringformat(GetString(SI_BMW_WITHDRAW_RESULT_LABEL), moved or 0, total or 0)))
     popupProgressLabel:SetHidden(false)
-    for i = 1, #popupPresetButtons do
-        popupPresetButtons[i]:SetEnabled(true)
-    end
-    if popupMaxPresetButton then
-        popupMaxPresetButton:SetEnabled(true)
-    end
-    popupEdit:SetEditEnabled(true)
+    SetQuantityControlsEnabled(true)
     popupCancel:SetEnabled(true)
     popupCancel:SetText(GetString(SI_BMW_WITHDRAW_CANCEL))
 
@@ -655,13 +659,7 @@ function WithdrawDialog.Confirm()
     end
 
     -- Lock the inputs for the duration of the run.
-    for i = 1, #popupPresetButtons do
-        popupPresetButtons[i]:SetEnabled(false)
-    end
-    if popupMaxPresetButton then
-        popupMaxPresetButton:SetEnabled(false)
-    end
-    popupEdit:SetEditEnabled(false)
+    SetQuantityControlsEnabled(false)
     popupConfirm:SetEnabled(false)
     popupAddToQueue:SetEnabled(false)
     UI.ShowMeter(popupProgressBar, true)
@@ -1030,6 +1028,15 @@ local function PopulateQueueList()
     local dataList = ZO_ScrollList_GetDataList(queueList)
     ZO_ScrollList_Clear(queueList)
     for i = 1, #queue do
+        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        -- Scroll-list data is mutated with UI bookkeeping and a self-referential
+        -- dataEntry.data path. Keep `queue` runtime-only and populate it with
+        -- detached scalar copies in AddToQueue; never place SavedVariables-owned
+        -- records here or persist queue entries after they have entered the list.
+        --
+        -- Bureau archive rule 47-C: withdrawal forms are disposable. Refile a
+        -- stamped queue row and the serializer buries the disk under paperwork.
+        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         dataList[#dataList + 1] = ZO_ScrollList_CreateDataEntry(QUEUE_ROW_TYPE, queue[i])
     end
     ZO_ScrollList_Commit(queueList)
@@ -1166,6 +1173,7 @@ local queueRunGoldValue = nil
 
 local function OnQueueFinish(moved, total, requested)
     UI.ShowMeter(queueProgressBar, false)
+    SetQuantityControlsEnabled(true)
     -- Drop exhausted entries and ones whose virtual slot was reused by a
     -- different material; keep valid partials with their quantity clamped.
     NormalizeQueue()
@@ -1212,13 +1220,7 @@ function WithdrawDialog.WithdrawAll()
     queueClear:SetEnabled(false)
     popupConfirm:SetEnabled(false)
     popupAddToQueue:SetEnabled(false)
-    popupEdit:SetEditEnabled(false)
-    for i = 1, #popupPresetButtons do
-        popupPresetButtons[i]:SetEnabled(false)
-    end
-    if popupMaxPresetButton then
-        popupMaxPresetButton:SetEnabled(false)
-    end
+    SetQuantityControlsEnabled(false)
     queueRunGoldValue = allPriced and totalGold or nil
     StartRun(jobs, total, OnQueueProgress, OnQueueFinish)
 end

@@ -1,104 +1,150 @@
-SafeAddString(SI_HUDITORTOOLS_LAYOUTS, "Layouts", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME, "Standard", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNNAMED, "Unbenannt", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ACCOUNT, "Account", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CHARACTER, "Charakter", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_SAVE, "Speichern", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW, "Neu", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT, "Importieren", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT, "Exportieren", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_RENAME, "Umbenennen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE, "Löschen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_COPY, "Neu aus aktuell", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NAME, "Layout-Name", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC, "Charakterbezogen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK, "<<1>>*", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT, "<<1>>: <<2>>", 2)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE, "HUD-Layout importieren", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS, "Fügt einen HUDitorTools-Teilungsstring ein, gebt einen Namen ein und importiert. Der Name im String wird ignoriert.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING, "Teilungsstring", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE, "HUD-Layout exportieren", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS, "Strg+C kopiert den markierten Teilungsstring. Addons können die Zwischenablage nicht beschreiben.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL, "Alles markieren", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW_TITLE, "Neues HUD-Layout", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE, "HUD-Layout umbenennen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE, "HUD-Layout löschen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE_BODY, "Layout <<1>> löschen? Das kann nicht rückgängig gemacht werden.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE, "Ungespeicherte HUD-Änderungen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY, "Es gibt ungespeicherte HUD-Änderungen. Trotzdem zu <<1>> wechseln? Ungespeicherte Positionen werden überschrieben.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT, "HUD-Layout <<1>> angewendet: <<2>> Tastatur- / <<4>> Gamepad-Zeilen geschrieben; <<3>> / <<5>> registrierte Elemente aktualisiert. Ausgelassene Addon-Steuerelemente fallen auf den Standard zurück.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY, "Gebt einen Layout-Namen ein.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN, "Dieser Name wird in diesem Bereich bereits verwendet.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_CAP, "In diesem Bereich gibt es bereits 20 Layouts.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING, "Dieses Layout existiert nicht mehr.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_LAST, "Behaltet mindestens ein Layout.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE, "Dieser Teilungsstring konnte nicht gelesen werden.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC, "Der Teilungsstring muss mit HUDT beginnen.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION, "Dieser Teilungsstring verwendet eine nicht unterstützte HUDT-Version.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED, "Der Teilungsstring ist unvollständig.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER, "Der Teilungsstring enthält eine ungültige Zahl.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY, "Der Teilungsstring enthält eine unbekannte HUD-Element-ID.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA, "Der Teilungsstring enthält eine ungültige Zusatzoption.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING, "Der Teilungsstring enthält zusätzliche Daten nach dem Layout.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_HEADER, "HUD-Layouts", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE, "Aktives Layout", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP, "Wechselt das Live-HUD auf ein benanntes Layout. Charakter-Layouts überschreiben das accountweite HUD für diese Sitzung.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP, "Kopiert das Live-HUD in das ausgewählte benannte Layout.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP, "Erstellt ein benanntes Layout aus dem Live-HUD.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP, "Fügt einen Teilungsstring ein, um ein benanntes Layout zu erstellen und anzuwenden.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP, "Zeigt einen Teilungsstring für das Live-HUD. Mit Strg+C kopieren.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_CHAT, "Chat-Nachrichten anzeigen", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP, "Gibt Details zum Anwenden von Layouts und Hinweise zum Ein-/Ausblenden im HUD-Editor im Chat aus. Für die meisten Spieler nicht nötig.", 1)
+local strings = {
+    ["SI_HUDITORTOOLS_LAYOUTS"] = "Layouts",
+    ["SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME"] = "Standard",
+    ["SI_HUDITORTOOLS_LAYOUT_UNNAMED"] = "Unbenannt",
+    ["SI_HUDITORTOOLS_LAYOUT_ACCOUNT"] = "Account",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER"] = "Charakter",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE"] = "Speichern",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW"] = "Neu",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT"] = "Importieren",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT"] = "Exportieren",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME"] = "Umbenenn.",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE"] = "Löschen",
+    ["SI_HUDITORTOOLS_LAYOUT_COPY"] = "Neu aus aktuell",
+    ["SI_HUDITORTOOLS_LAYOUT_NAME"] = "Layout-Name",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC"] = "Charakterbezogen",
+    ["SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK"] = "<<1>>*",
+    ["SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT"] = "<<1>>: <<2>>",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE"] = "HUD-Layout importieren",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS"] = "HUDitorTools-Teilen Text und Name eingeben, dann importieren. Name im String wird ignoriert.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING"] = "Teilen-Text",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE"] = "HUD-Layout exportieren",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS"] = "Strg+C kopiert den markierten Teilen-Text. Addons können die Zwischenablage nicht beschreiben.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL"] = "Alles markieren",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TITLE"] = "Neues HUD-Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE"] = "HUD-Layout umbenennen",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE"] = "HUD-Layout löschen",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_BODY"] = "Layout \'<<1>>\' löschen? Das kann nicht rückgängig gemacht werden.",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE"] = "Ungespeicherte HUD-Änderungen",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY"] = "Es gibt ungespeicherte HUD-Änderungen. Trotzdem zu \'<<1>>\' wechseln? Ungespeicherte Positionen werden überschrieben.",
+    ["SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT"] = "HUD-Layout \'<<1>>\' angewendet: <<2>> Tastatur- / <<4>> Gamepad-Zeilen geschrieben; <<3>> / <<5>> registrierte Elemente aktualisiert. Ausgelassene Addon-Steuerelemente fallen auf den Standard zurück.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY"] = "Gebt einen Layout-Namen ein.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN"] = "Dieser Name wird in diesem Bereich bereits verwendet.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_CAP"] = "In diesem Bereich gibt es bereits 20 Layouts.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING"] = "Dieses Layout existiert nicht mehr.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_LAST"] = "Behaltet mindestens ein Layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE"] = "Dieser Teilen-Text konnte nicht gelesen werden.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC"] = "Der Teilen-Text muss mit HUDT beginnen.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION"] = "Dieser Teilen-Text verwendet eine nicht unterstützte HUDT-Version.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED"] = "Der Teilen-Text ist unvollständig.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER"] = "Der Teilen-Text enthält eine ungültige Zahl.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY"] = "Der Teilen-Text enthält eine unbekannte HUD-Element-ID.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA"] = "Der Teilen-Text enthält eine ungültige Zusatzoption.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING"] = "Der Teilen-Text enthält zusätzliche Daten nach dem Layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_HEADER"] = "HUD-Layouts",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE"] = "Aktives Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP"] = "Wechselt das Live-HUD auf ein benanntes Layout. Charakter-Layouts überschreiben das accountweite HUD für diese Sitzung.",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP"] = "Kopiert das Live-HUD in das ausgewählte benannte Layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP"] = "Erstellt ein benanntes Layout aus dem Live-HUD.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP"] = "Fügt einen Teilen-Text ein, um ein benanntes Layout zu erstellen und anzuwenden.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP"] = "Zeigt einen Teilen-Text für das Live-HUD. Mit Strg+C kopieren.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT"] = "Chat-Nachrichten anzeigen",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP"] = "Gibt Details zum Anwenden von Layouts und Hinweise zum Ein-/Ausblenden im HUD-Editor im Chat aus. Für die meisten Spieler nicht nötig.",
 
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE, "Darstellung", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_SCALE, "Skalierung %", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT, "Schriftart", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT, "Standard", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE, "Schriftgröße", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE, "Schriftkontur", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_RESET, "Skalierung und Schrift zurücksetzen", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM, "Mittel", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD, "Fett", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE, "Antiqua", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM, "Gamepad mittel", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD, "Gamepad fett", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP, "Attributleisten", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE, "Pyramidenlayout", 2)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND, "Nicht vergrößern", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH, "Lebensbreite", 1)
+    ["SI_HUDITORTOOLS_APPEARANCE"] = "Darstellung",
+    ["SI_HUDITORTOOLS_APPEARANCE_SCALE"] = "Skalierung %",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT"] = "Schriftart",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT"] = "Standard",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Schriftgröße",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Schriftkontur",
+    ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Skal. & Schrift zurücks.",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Mittel",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Fett",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Antiqua",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM"] = "Gamepad mittel",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD"] = "Gamepad fett",
 
-SafeAddString(SI_HUDITORTOOLS_FRAME_BATTLEGROUND, "Schlachtfeld-Punktestand", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER, "Zielanzeige", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION, "Spielerinteraktion", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS, "Spielfortschritt", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT, "Fadenkreuz-Interaktion", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_RETICLE, "Fadenkreuz", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_STEALTH_ICON, "Schleichsymbol", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_TUTORIALS, "Anleitungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PET_GROUP, "Begleitergruppe", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER, "Azurah Taschenwächter", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER, "Azurah Werwolftimer", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER, "LuiExtended Spieler", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET, "LuiExtended Ziel", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET, "LuiExtended Allianz-Ziel", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_GROUP, "LuiExtended Gruppe", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_RAID, "LuiExtended Schlachtzug", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PET, "LuiExtended Begleiter", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMPANION, "LuiExtended Gefährte", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_BOSS, "LuiExtended Boss", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_ALERTS, "LuiExtended Warnungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING, "LuiExtended Kampftext ausgehend", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING, "LuiExtended Kampftext eingehend", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT, "LuiExtended Kampftext Warnungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT, "LuiExtended Kampftext Punkte", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE, "LuiExtended Kampftext Ressourcen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS, "LuiExtended Spieler-Stärkungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS, "LuiExtended Spieler-Schwächungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS, "LuiExtended Ziel-Stärkungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS, "LuiExtended Ziel-Schwächungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS, "LuiExtended hervorgehobene Stärkungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS, "LuiExtended hervorgehobene Schwächungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS, "LuiExtended lange Stärkungen", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR, "LuiExtended Zauberleiste", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL, "LuiExtended Kontrolleffekte", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP, "LuiExtended Minikarte", 1)
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Attributleisten",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Pyramidenlayout",
+    ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Nicht vergrößern",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Lebensbreite",
+
+    ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Schlachtfeld-Punktestand",
+    ["SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER"] = "Zielanzeige",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION"] = "Spielerinteraktion",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS"] = "Spielfortschritt",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT"] = "Fadenkreuz-Interaktion",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE"] = "Fadenkreuz",
+    ["SI_HUDITORTOOLS_FRAME_STEALTH_ICON"] = "Schleichsymbol",
+    ["SI_HUDITORTOOLS_FRAME_TUTORIALS"] = "Anleitungen",
+    ["SI_HUDITORTOOLS_FRAME_PET_GROUP"] = "Begleitergruppe",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER"] = "Azurah Taschenwächter",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER"] = "Azurah Werwolftimer",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER"] = "LuiExtended Spieler",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET"] = "LuiExtended Ziel",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET"] = "LuiExtended Allianz-Ziel",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_GROUP"] = "LuiExtended Gruppe",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_RAID"] = "LuiExtended Schlachtzug",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PET"] = "LuiExtended Begleiter",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMPANION"] = "LuiExtended Gefährte",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_BOSS"] = "LuiExtended Boss",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_ALERTS"] = "LuiExtended Warnungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING"] = "LuiExtended Kampftext ausgehend",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING"] = "LuiExtended Kampftext eingehend",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT"] = "LuiExtended Kampftext Warnungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT"] = "LuiExtended Kampftext Punkte",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE"] = "LuiExtended Kampftext Ressourcen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS"] = "LuiExtended Spieler-Stärkungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS"] = "LuiExtended Spieler-Schwächungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS"] = "LuiExtended Ziel-Stärkungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS"] = "LuiExtended Ziel-Schwächungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS"] = "LuiExtended hervorgehobene Stärkungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS"] = "LuiExtended hervorgehobene Schwächungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS"] = "LuiExtended lange Stärkungen",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR"] = "LuiExtended Zauberleiste",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL"] = "LuiExtended Kontrolleffekte",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP"] = "LuiExtended Minikarte",
+
+    --New Baertram 261004
+    --LAM
+    ["SI_HUDITORTOOLS_INFO_BOX_LAM_HEADER"] = "HUD Bearbeiten Info Box",
+    ["SI_HUDITORTOOLS_INFO_BOX_SETTINGS_BUTTON_LAM"] = "Einstellungs Knopf an der HUD Berbeiten Info Box",
+    ["SI_HUDITORTOOLS_INFO_BOX_SETTINGS_BUTTON_LAM_TT"] = "Aktiviere einen rechtsklick Kontextmenü Einstellungen Knopf oben links in der Info Box der Oberfläche Bearbeiten UI.\nIs diese Einstellung aktiviert dann rutscht das \'Gitter\' Einstellungsmenü von der Info Box in dieses Kontextmenü!",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_LAM_HEADER"] = "HUD Bearbeiten",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_CNTXTMENU_LAM"] = "Aktiviere Kontextmenü an HUD Elementen",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_CNTXTMENU_LAM_TT"] = "Aktiviert ein rechtsklick Kontextmenü an jedem der verschiebaren HUD Elemente, in welchem dieses Element z.B. als anzeigen/verstecken in der aktuellen Oberflächen bearbeiten UI definiert werden kann (für eine bessere Übersicht).\nVersteckte HUD Elemente können auch in der Info Box Auswahlliste angezeigt werden (rot-farbige Einträge sind Anwender-versteckte HUD Elemente).",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_HIDDEN_BORDER_COLOR_LAM"] = "Rand Farbe - Versteckte HUD Elemente",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_HIDDEN_BORDER_COLOR_LAM_TT"] = "Ändere die Rand Farbe von Anwender-Versteckten HUD Elementen",
+    ["SI_HUDITORTOOLS_GRID_LAM_HEADER"] = "Gitter",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM"] = "Gitter aktivieren",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM_TT"] = "Zeige ein Gitter unterhalb der HUD Elemente an, an welchem die Elemente ausgerichtet (oder per \'automatischem Ausrichten\' zugeordnet) werden können.",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM"] = "Automatisch Ausrichten am Gitter",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM_TT"] = "Aktiviere die automatische Ausrichtung am Gitter (\'Grid Snap\'): Bewegte Elemente werden automatisch an den Netzlinien ausgerichtet.",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM"] = "Gitter Größe",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM_TT"] = "Die Größe des Gitters",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LINE_COLOR_LAM"] = "Gitter Linien Farbe",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LINE_COLOR_LAM_TT"] = "Wähle die Farbe und Durchsichtigkeit der Gitter Linien aus",
+    --Context menu
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_ELEMENTS"] = "Zeige alle Element-Namen an",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_ELEMENTS_TT"] = "Zeige immer alle Element-Namen an, nicht nur wenn die Maus darüber bewegt wird oder ein Eintrag aus der Info Box Liste ausgewählt wird.\nDiese Einstellung hängt von dem Schieberegler \'Verstecke Elemente <= Länge\' Wert ab.",
+    ["SI_HUDITORTOOLS_CNTXT_HIDE_ELEMENTS_LESS_LENGTH"] = "Verstecke Elemente <= Länge",
+    ["SI_HUDITORTOOLS_CNTXT_HIDE_ELEMENTS_LESS_LENGTH_TT"] = "\nVersteckt die Elemente, deren Namen kürzer/gleich des geählten Schieberegler Wertes ist.",
+    ["SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS_COUNT"] = "HUD Bearbeiten - Versteckte Elemente (#%s)",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_HIDDEN_ELEMENTS"] = "Zeige alle versteckten Elemente wieder an",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_COLOR_PICKER"] = "Zeige Farb-Auswahl",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_COLOR_PICKER_TT"] = "Zeige einen Farb-Auswahl Dialog an mit welchem du ad-hoc die Farben der \'Benutzeroberfläche Ändern\' Optionen anpassen kannst (z.B. das Gitter, usw.).",
+    ["SI_HUDITORTOOLS_CNTXT_COLORS"] = "Farben",
+    ["SI_HUDITORTOOLS_COLOR_GRID"] = "Gitter",
+    ["SI_HUDITORTOOLS_COLOR_SELECTED"] = "Ausgewählt",
+    ["SI_HUDITORTOOLS_COLOR_UNSELECTED"] = "Nicht ausgewählt",
+    ["SI_HUDITORTOOLS_COLOR_HIDDEN"] = "Versteckt",
+    ["SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS"] = "Versteckte Elemente",
+    ["SI_HUDITORTOOLS_CNTXT_ELEMENT_UNHIDE"] = "Selektierte wieder anzeigen",
+    ["SI_HUDITORTOOLS_CNTXT_HIDE_AT_HUDEDITOR"] = "Im HUD Editor verstecken",
+    ["SI_HUDITORTOOLS_CNTXT_UNHIDE_AT_HUDEDITOR"] = "Im HUD Editor anzeigen",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_HIDDEN"] = "|c00F000Zeige alle|r versteckte Elemente wieder an",
+}
+
+for key, value in pairs(strings) do
+    SafeAddString(_G[key], value, 1)
+end

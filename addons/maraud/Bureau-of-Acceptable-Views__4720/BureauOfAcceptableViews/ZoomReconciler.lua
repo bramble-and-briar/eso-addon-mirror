@@ -72,13 +72,14 @@ end
 -- ---------------------------------------------------------------------------
 -- Reconcile state
 -- ---------------------------------------------------------------------------
--- desiredZoom -- persistent intent: the distance an owned toggle wants the
---                camera to settle at. nil until the first owned toggle seeds it
---                from the live camera, so a stale intent can never survive the
---                EVENT_PLAYER_ACTIVATED restore (the main file clears it there).
+-- desiredZoom -- coalesced intent, re-seeded from the live distance whenever
+--                no reconcile is pending. Direct writes supersede queued intent.
+-- thirdPersonTarget -- exact return distance for a pending probe pair; separate
+--                      player toggles still resolve the remembered preference.
 -- pending     -- gates the one-shot updater (mirror of ContextPresets coalesce).
 -- retries     -- bounded reschedule counter for a rejected write.
 local desiredZoom = nil
+local thirdPersonTarget = nil
 local pending     = false
 local retries     = 0
 
@@ -113,6 +114,7 @@ function ZoomReconciler.Cancel()
         pending = false
     end
     desiredZoom = nil
+    thirdPersonTarget = nil
     retries = 0
 end
 
@@ -140,6 +142,9 @@ local function OnReconcileUpdate()
     if private.SetTogglingFPV then private.SetTogglingFPV(false) end
     if ok then
         retries = 0
+        if private.NoteViewStateAndCheckOscillation then
+            private.NoteViewStateAndCheckOscillation(GetGameTimeMilliseconds())
+        end
         private.QueueSave()
     elseif retries < RECONCILE_MAX_RETRIES then
         -- Engine rejected the write (e.g. a state that owns its own distance).
@@ -173,11 +178,12 @@ end
 -- Decide ownership for this toggle and, when owned, flip the intent + schedule.
 -- Returns true when we took ownership (the hook should block the engine), false
 -- to pass through to the engine's native handling (the normal third->FPV case).
-function ZoomReconciler.HandleToggle()
+function ZoomReconciler.HandleToggle(nativeTransitionPending)
     local zoom, success = private.GetCameraZoom()
     if not success then
         LogWarn("ZoomReconciler: live zoom unavailable; passing toggle to ESO")
         desiredZoom = nil
+        thirdPersonTarget = nil
         retries = 0
         return false
     end
@@ -189,20 +195,30 @@ function ZoomReconciler.HandleToggle()
         -- destination. Without this, an old third-person desiredZoom survives the
         -- passthrough; the next owned toggle from FPV flips relative to that stale
         -- value and can select FPV again instead of leaving it.
+        thirdPersonTarget = zoom
         desiredZoom = ZOOM_FPV
         retries = 0
         LogDebug(SI_BAV_LOG_TOGGLE_PASSING)
         return false
     end
 
-    -- Flip the intent relative to its OWN value, never the live camera: two
+    if not pending then
+        desiredZoom = zoom
+        if zoom > ZOOM_FPV then
+            thirdPersonTarget = zoom
+        elseif not nativeTransitionPending or thirdPersonTarget == nil then
+            thirdPersonTarget = ResolveThirdPersonTarget()
+        end
+    end
+
+    -- While pending, flip the intent relative to its OWN value, not the live camera: two
     -- flips (a probe pair) return desiredZoom to its start, so a probe that
     -- never rendered cannot corrupt the result or the remembered third zoom.
     if desiredZoom == nil then
         -- First owned toggle: seed straight to the opposite of the live view.
         desiredZoom = (zoom <= ZOOM_FPV) and ResolveThirdPersonTarget() or ZOOM_FPV
     elseif desiredZoom <= ZOOM_FPV then
-        desiredZoom = ResolveThirdPersonTarget()   -- FPV -> third person
+        desiredZoom = thirdPersonTarget or ResolveThirdPersonTarget()   -- FPV -> third person
         LogDebug(SI_BAV_LOG_TOGGLE_TO_THIRD, desiredZoom)
     else
         -- third person -> FPV: remember the third-person distance first (only if
@@ -236,15 +252,13 @@ end
 -- pair arriving after that direct write would flip relative to the STALE
 -- intent and the deferred reconcile would drag the camera back to it instead
 -- of the preset's distance -- the "two systems touch camera distance" flicker.
--- No-op while a reconcile is already pending, so it can never race the write
--- OnReconcileUpdate is about to make.
+-- A direct distance write supersedes any queued toggle or retry. The core skips
+-- this handoff during the reconciler's own guarded write.
 function ZoomReconciler.SyncIntent(zoom)
-    if pending then
-        return
-    end
     zoom = tonumber(zoom)
     if zoom == nil then
         return
     end
+    ZoomReconciler.Cancel()
     desiredZoom = zoom
 end

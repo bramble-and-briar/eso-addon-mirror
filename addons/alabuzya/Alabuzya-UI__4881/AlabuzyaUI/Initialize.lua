@@ -19,7 +19,7 @@ function AlabuzyaUI.Initialize()
     AlabuzyaUI.InventoryGrid.Initialize()
     AlabuzyaUI.Core.Initialize()
     AlabuzyaUI.AssistantPanel.Initialize()
-    if AlabuzyaUI.UseBundledQuestArrow then AlabuzyaUI.QuestArrow:Initialize() end
+    AlabuzyaUI.GoldLedger.Initialize()
 end
 EVENT_MANAGER:RegisterForEvent('AlabuzyaUI', EVENT_ADD_ON_LOADED, function(_, addonName)
     if addonName ~= 'AlabuzyaUI' then return end

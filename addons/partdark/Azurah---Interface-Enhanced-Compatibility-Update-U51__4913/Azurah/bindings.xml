@@ -1,0 +1,15 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="|c67b1e9Azurah|r">
+			<Action name="AZURAH_TOGGLE_COMPASS">
+				<Up>Azurah.CompassToggle()</Up>
+			</Action>
+			<Action name="AZURAH_TOGGLE_OPACITY">
+				<Up>Azurah.OpacityToggle()</Up>
+			</Action>
+			<Action name="AZURAH_TOGGLE_ABLOCKING">
+				<Up>Azurah.AbilityBlockToggle()</Up>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

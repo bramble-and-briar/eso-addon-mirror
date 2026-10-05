@@ -1,5 +1,5 @@
 local name = "ImprovedGoldenPursuits"
-local version = "1.5.1"
+local version = "1.6.0"
 
 IGP = {
 	sortOrder = IGP_SORTING_ORDER_DEFAULT, -- Change to desired default sorting type
@@ -103,13 +103,105 @@ local function RefreshActivityList(self, rebuild)
 			end
 			
 			-- Show "No matches" label if list is empty
-			if IGP.controls.noMatchLabel then
-				IGP.controls.noMatchLabel:SetHidden(#scrollData ~= 0)
+			if IGP.controls.noMatchLabelList then
+				IGP.controls.noMatchLabelList:SetHidden(#scrollData ~= 0)
+			end
+			if IGP.controls.noMatchLabelGrid then
+				IGP.controls.noMatchLabelGrid:SetHidden(true)
+			end
+			if IGP.controls.onlyRewardsCheckbox then
+				IGP.controls.onlyRewardsCheckbox:SetHidden(false)
+			end
+			if IGP.controls.sortingDropdown then
+				IGP.controls.sortingDropdown:GetControl():SetHidden(false)
 			end
         end
         ZO_ScrollList_Commit(self.activityList)
     else
         ZO_ScrollList_RefreshVisible(self.activityList)
+    end
+end
+
+
+local function RefreshGridList(self, rebuild)
+	if not self:IsReturningPlayerRewardsEntrySelected() then return end
+	if rebuild then
+        self.rewardsGridList:ClearGridList()
+
+        local numActiveCampaigns = PROMOTIONAL_EVENT_MANAGER:GetNumActiveCampaigns()
+        for index = 1, numActiveCampaigns do
+            local campaignData = PROMOTIONAL_EVENT_MANAGER:GetCampaignDataByIndex(index)
+            if campaignData:IsReturningPlayerCampaign() then
+                local gridHeaderName
+                local statusIcon
+                local isCampaignUnlocked = campaignData:ShouldCampaignBeVisible()
+                local isCampaignComplete = campaignData:AreAllRewardsClaimed()
+                local campaignName = campaignData:GetDisplayName()
+                if IsInGamepadPreferredMode() then
+                    if isCampaignUnlocked then
+                        statusIcon = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_unlocked32.dds"
+                    else
+                        campaignName = ZO_DISABLED_TEXT:Colorize(campaignName)
+                        if isCampaignComplete then
+                            statusIcon = "EsoUI/Art/Miscellaneous/check_icon_64.dds"
+                        else
+                            statusIcon = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_locked32.dds"
+                        end
+                    end
+                else
+                    if isCampaignUnlocked then
+                        statusIcon = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_unlocked32.dds"
+                    else
+                        campaignName = ZO_DISABLED_TEXT:Colorize(campaignName)
+                        if isCampaignComplete then
+                            statusIcon = "EsoUI/Art/Miscellaneous/check_icon_32.dds"
+                        else
+                            statusIcon = "EsoUI/Art/Miscellaneous/status_locked.dds"
+                        end
+                    end
+                end
+                gridHeaderName = zo_iconTextFormatAlignedRight(statusIcon, "100%", "100%", campaignName)
+
+                local milestones = campaignData:GetMilestones()
+                for _, milestone in ipairs(milestones) do
+                    local reward = milestone:GetRewardData()
+                    local rewardEntry = ZO_GridSquareEntryData_Shared:New(reward)
+                    rewardEntry.gridHeaderName = gridHeaderName
+                    rewardEntry.isClaimed = milestone:IsRewardClaimed()
+                    rewardEntry.isLocked = not isCampaignUnlocked
+                    -- Filter out completed
+                    if not (IGP.SV.hideComplete and rewardEntry.isClaimed) then
+                        self.rewardsGridList:AddEntry(rewardEntry)
+                    end
+                end
+
+                local capstoneReward = campaignData:GetRewardData()
+                local capstoneEntry =  ZO_GridSquareEntryData_Shared:New(capstoneReward)
+                capstoneEntry.gridHeaderName = gridHeaderName
+                capstoneEntry.isClaimed = campaignData:IsRewardClaimed()
+                capstoneEntry.isLocked = not isCampaignUnlocked
+				if not (IGP.SV.hideComplete and capstoneEntry.isClaimed) then
+                	self.rewardsGridList:AddEntry(capstoneEntry)
+				end
+            end
+
+			-- Show "No matches" label if list is empty
+			if IGP.controls.noMatchLabelGrid then
+				IGP.controls.noMatchLabelGrid:SetHidden(#self.rewardsGridList.list.data ~= 0)
+			end
+			if IGP.controls.noMatchLabelList then
+				IGP.controls.noMatchLabelList:SetHidden(true)
+			end
+			if IGP.controls.onlyRewardsCheckbox then
+				IGP.controls.onlyRewardsCheckbox:SetHidden(true)
+			end
+			if IGP.controls.sortingDropdown then
+				IGP.controls.sortingDropdown:GetControl():SetHidden(true)
+			end
+        end
+        self.rewardsGridList:CommitGridList()
+    else
+        self.rewardsGridList:RefreshGridList()
     end
 end
 
@@ -265,6 +357,7 @@ local function InitializeKeyboard()
 		IGP.sortOrder = entry.sortingType
 		IGP.SV.sortOrder = IGP.IDMappings[entry.sortingType]
 		PROMOTIONAL_EVENTS_KEYBOARD:RefreshActivityList(true)
+		PROMOTIONAL_EVENTS_KEYBOARD:RefreshGridList(true)
 	end
 	
 	local combobox = ZO_ComboBox_ObjectFromContainer(comboboxControl)
@@ -287,6 +380,7 @@ local function InitializeKeyboard()
 		local isChecked = ZO_CheckButton_IsChecked(checkbox)
 		IGP.SV.hideComplete = isChecked
 		PROMOTIONAL_EVENTS_KEYBOARD:RefreshActivityList(true)
+		PROMOTIONAL_EVENTS_KEYBOARD:RefreshGridList(true)
     end)
 	IGP.controls.hideCompleteCheckbox = checkbox
 	
@@ -300,22 +394,34 @@ local function InitializeKeyboard()
 		local isChecked = ZO_CheckButton_IsChecked(checkbox2)
 		IGP.SV.rewardsOnly = isChecked
 		PROMOTIONAL_EVENTS_KEYBOARD:RefreshActivityList(true)
+		PROMOTIONAL_EVENTS_KEYBOARD:RefreshGridList(true)
     end)
 	-- Remove filter option, if current campaign has no tasks with rewards
 	checkbox2:SetHidden(not IGP.taskRewardsAvailable)
 	IGP.controls.onlyRewardsCheckbox = checkbox2
 	
 	-- "All complete" message, if no matches
-	local noMatchLabel = WINDOW_MANAGER:CreateControl(ZO_PromotionalEvents_KeyboardTLContents:GetName() .. "NoMatchMessage", ZO_PromotionalEvents_KeyboardTLContents, CT_LABEL)
-	noMatchLabel:SetAnchor(TOP, ZO_PromotionalEvents_KeyboardTLContentsActivityList, TOP, 0, 10)
-	noMatchLabel:SetText(GetString(IGP_OVERVIEW_NO_MATCH))
-	noMatchLabel:SetFont("ZoFontWinH4")
-	noMatchLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-	noMatchLabel:SetColor(ZO_SELECTED_TEXT:UnpackRGBA())
-	noMatchLabel:SetHidden(true)
-	IGP.controls.noMatchLabel = noMatchLabel
+	local noMatchLabelList = WINDOW_MANAGER:CreateControl(ZO_PromotionalEvents_KeyboardTLContents:GetName() .. "NoMatchMessageList", ZO_PromotionalEvents_KeyboardTLContents, CT_LABEL)
+	noMatchLabelList:SetAnchor(TOP, ZO_PromotionalEvents_KeyboardTLContentsActivityList, TOP, 0, 10)
+	noMatchLabelList:SetText(GetString(IGP_OVERVIEW_NO_MATCH))
+	noMatchLabelList:SetFont("ZoFontWinH4")
+	noMatchLabelList:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	noMatchLabelList:SetColor(ZO_SELECTED_TEXT:UnpackRGBA())
+	noMatchLabelList:SetHidden(true)
+	IGP.controls.noMatchLabelList = noMatchLabelList
 	
+	-- "All complete" message, if no matches (gridlist)
+	local noMatchLabelGrid = WINDOW_MANAGER:CreateControl(ZO_PromotionalEvents_KeyboardTLContents:GetName() .. "NoMatchMessageGrid", ZO_PromotionalEvents_KeyboardTLContents, CT_LABEL)
+	noMatchLabelGrid:SetAnchor(TOP, ZO_PromotionalEvents_KeyboardTLContentsActivityList, TOP, 0, 10)
+	noMatchLabelGrid:SetText(GetString(IGP_OVERVIEW_NOTHING_TO_CLAIM))
+	noMatchLabelGrid:SetFont("ZoFontWinH4")
+	noMatchLabelGrid:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	noMatchLabelGrid:SetColor(ZO_SELECTED_TEXT:UnpackRGBA())
+	noMatchLabelGrid:SetHidden(true)
+	IGP.controls.noMatchLabelGrid = noMatchLabelGrid
+
 	PROMOTIONAL_EVENTS_KEYBOARD:RefreshActivityList(true)
+	PROMOTIONAL_EVENTS_KEYBOARD:RefreshGridList(true)
 end
 
 local function OnAddonLoaded(event, addonName)
@@ -338,16 +444,22 @@ local function OnAddonLoaded(event, addonName)
 	-- Override the function to refresh the list with our own one
 	IGP.origRefreshActivityList = ZO_PromotionalEvents_Shared.RefreshActivityList
 	ZO_PromotionalEvents_Shared.RefreshActivityList = RefreshActivityList
+
+	-- Override the function to refresh the grid with our own one
+	IGP.origRefreshGridList = ZO_PromotionalEvents_Shared.RefreshGridList
+	ZO_PromotionalEvents_Shared.RefreshGridList = RefreshGridList
 	
 	-- Refresh list every time it's shown, as otherwise tasks that get completed wouldn't be filtered out unless checkbox toggle
 	PROMOTIONAL_EVENTS_KEYBOARD.fragment:RegisterCallback("StateChange", function(oldState, newState)
 		if newState == SCENE_FRAGMENT_SHOWING then
 			PROMOTIONAL_EVENTS_KEYBOARD:RefreshActivityList(true)
+			PROMOTIONAL_EVENTS_KEYBOARD:RefreshGridList(true)
 		end
 	end)
 	PROMOTIONAL_EVENTS_GAMEPAD.fragment:RegisterCallback("StateChange", function(oldState, newState)
 		if newState == SCENE_FRAGMENT_SHOWING then
 			PROMOTIONAL_EVENTS_GAMEPAD:RefreshActivityList(true)
+			PROMOTIONAL_EVENTS_GAMEPAD:RefreshGridList(true)
 		end
 	end)
 	
@@ -355,8 +467,10 @@ local function OnAddonLoaded(event, addonName)
 	PROMOTIONAL_EVENT_MANAGER:RegisterCallback("RewardsClaimed", function()
 		if IsInGamepadPreferredMode() then
 			PROMOTIONAL_EVENTS_GAMEPAD:RefreshActivityList(true)
+			PROMOTIONAL_EVENTS_GAMEPAD:RefreshGridList(true)
 		else
 			PROMOTIONAL_EVENTS_KEYBOARD:RefreshActivityList(true)
+			PROMOTIONAL_EVENTS_KEYBOARD:RefreshGridList(true)
 		end
 	end)	
 end

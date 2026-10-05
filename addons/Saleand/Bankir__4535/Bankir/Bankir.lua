@@ -1,7 +1,7 @@
 Bankir = Bankir or {}
 
 local name = "Bankir"
-local version = "2.5"
+local version = "2.6"
 local author = "vexaiv"
 
 local function debugPrint(message)

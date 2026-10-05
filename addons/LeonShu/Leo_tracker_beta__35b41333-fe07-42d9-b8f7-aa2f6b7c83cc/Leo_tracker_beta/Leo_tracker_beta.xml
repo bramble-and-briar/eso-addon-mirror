@@ -1,0 +1,27 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="Leo_tracker_beta" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="88" y="88" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="40" offsetY="120" />
+
+            <Controls>
+                <Backdrop name="$(parent)Panel" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+
+        <Control name="Leo_tracker_beta_IconTemplate" virtual="true">
+            <Dimensions x="72" y="72" />
+            <Controls>
+                <Texture name="$(parent)Icon" layer="BACKGROUND" level="1">
+                    <AnchorFill />
+                </Texture>
+
+                <Backdrop name="$(parent)Frame" layer="OVERLAY" level="2" alpha="1">
+                    <AnchorFill />
+                </Backdrop>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

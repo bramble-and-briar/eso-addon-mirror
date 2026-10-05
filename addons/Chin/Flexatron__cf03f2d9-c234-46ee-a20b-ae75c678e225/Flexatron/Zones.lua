@@ -84,9 +84,12 @@ function Zones.BestTitle()
 end
 
 -- What should drive the title here: { kind = "hold", index }, { kind = "rotate", names }, or nil
--- to leave the title alone.
+-- to leave the title alone (always, while Flexatron is off).
 function Zones.Plan()
     local sv = FT.sv
+    if not sv.active then
+        return nil
+    end
     if sv.autoMode and Zones.InContent() then
         local index = Zones.BestTitle()
         if index then

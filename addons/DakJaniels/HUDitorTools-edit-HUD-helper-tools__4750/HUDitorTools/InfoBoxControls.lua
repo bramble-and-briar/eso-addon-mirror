@@ -36,6 +36,10 @@ local function ApplyGridSizeFromEdit()
     HT.RefreshGridOverlay()
 end
 
+local function updateEnabledStateOfCheckbutton(checkButton, isEnabled)
+    ZO_CheckButton_SetEnableState(checkButton, isEnabled)
+end
+
 local function RefreshInfoBoxControlState()
     local sv = HT.SV
     local snapCheck = infoBoxSection:GetNamedChild("SnapCheck")
@@ -43,8 +47,9 @@ local function RefreshInfoBoxControlState()
     local showColorPickerCheck = infoBoxSection:GetNamedChild("ShowColorPickerCheck")
     local editBox = infoBoxSection:GetNamedChild("GridSizeRow"):GetNamedChild("Backdrop"):GetNamedChild("Edit")
 
-    ZO_CheckButton_SetCheckState(snapCheck, sv.gridSnap)
     ZO_CheckButton_SetCheckState(showGridCheck, sv.showGrid)
+    ZO_CheckButton_SetCheckState(snapCheck, sv.gridSnap)
+    updateEnabledStateOfCheckbutton(snapCheck, sv.showGrid)
     ZO_CheckButton_SetCheckState(showColorPickerCheck, sv.showColorPicker)
     editBox:SetText(tostring(sv.gridSize))
 end
@@ -80,23 +85,24 @@ local function CreateInfoBoxSection()
     UpdateInfoBoxSectionAnchors(HT.SV.HUDEditorShowInfoBoxSettingsButton)
 
 
-    local snapCheck = infoBoxSection:GetNamedChild("SnapCheck")
     local showGridCheck = infoBoxSection:GetNamedChild("ShowGridCheck")
+    local snapCheck = infoBoxSection:GetNamedChild("SnapCheck")
     local showColorPickerCheck = infoBoxSection:GetNamedChild("ShowColorPickerCheck")
     local editBox = infoBoxSection:GetNamedChild("GridSizeRow"):GetNamedChild("Backdrop"):GetNamedChild("Edit")
 
-    ZO_CheckButton_SetLabelText(snapCheck, "Snap to Grid")
+    ZO_CheckButton_SetLabelText(showGridCheck, GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM))
+    ZO_CheckButton_SetToggleFunction(showGridCheck, function (_, checked)
+        HT.SV.showGrid = checked
+        updateEnabledStateOfCheckbutton(snapCheck, checked)
+        HT.RefreshGridOverlay()
+    end)
+
+    ZO_CheckButton_SetLabelText(snapCheck, GetString(SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM))
     ZO_CheckButton_SetToggleFunction(snapCheck, function (_, checked)
         HT.SV.gridSnap = checked
     end)
 
-    ZO_CheckButton_SetLabelText(showGridCheck, "Show Grid")
-    ZO_CheckButton_SetToggleFunction(showGridCheck, function (_, checked)
-        HT.SV.showGrid = checked
-        HT.RefreshGridOverlay()
-    end)
-
-    ZO_CheckButton_SetLabelText(showColorPickerCheck, "Show color picker")
+    ZO_CheckButton_SetLabelText(showColorPickerCheck, GetString(SI_HUDITORTOOLS_CNTXT_SHOW_COLOR_PICKER))
     ZO_CheckButton_SetToggleFunction(showColorPickerCheck, function (_, checked)
         HT.SetColorPickerVisible(checked)
     end)

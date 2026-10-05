@@ -1,30 +1,20 @@
--- Next titles: the titles the player is closest to unlocking, with progress. Runs on demand.
+-- Next titles: the titles the player is closest to unlocking, with progress, for the info panel
+-- beside the settings list. Worked out each time the panel shows them, so it's always current.
 local FT = Flexatron
 local Titles = FT.Titles
 local L = FT.L
 local NextTitles = {}
 FT.NextTitles = NextTitles
 
-local LIMIT = 5
-local lastText
+local LIMIT = 50
+local ACHIEVEMENT_COLOR = "A0A0A0" -- the achievement under each title, in grey
 
--- Titles the player has, by raw name and as they read.
-local function Owned()
-    local raw, shown = {}, {}
-    for i = 1, GetNumTitles() do
-        local name = GetTitle(i)
-        raw[name] = true
-        shown[Titles.Format(name)] = true
-    end
-    return raw, shown
-end
-
--- The closest unfinished titles: { { id, title, done, need }, ... }, one entry per title.
+-- The closest unfinished titles: { { id, title, done, need }, ... }, one entry per title, leaving
+-- out titles the player already has.
 function NextTitles.Find(limit)
-    local raw, shown = Owned()
     local candidates = {}
     for _, entry in ipairs(FT.TitleIndex.Entries()) do
-        if not IsAchievementComplete(entry.id) and not raw[entry.title] and not shown[Titles.Format(entry.title)] then
+        if not IsAchievementComplete(entry.id) and not Titles.IndexOf(entry.title) then
             local done, need = 0, 0
             for n = 1, GetAchievementNumCriteria(entry.id) do
                 local _, completed, required = GetAchievementCriterion(entry.id, n)
@@ -61,25 +51,17 @@ function NextTitles.Find(limit)
     return picked
 end
 
--- The settings button: fill the label and list them in chat with achievement links.
-function NextTitles.Show()
+-- The info panel's text: how many, then each title with its progress, and the achievement that
+-- grants it on the line below in grey. Closest first.
+function NextTitles.PanelText()
     local picked = NextTitles.Find(LIMIT)
     if #picked == 0 then
-        lastText = L.NEXT_NONE
-        CHAT_ROUTER:AddSystemMessage(L.NEXT_NONE)
-        return
+        return L.NEXT_NONE
     end
-    local lines = {}
-    CHAT_ROUTER:AddSystemMessage(L.NEXT_HEADER)
+    local lines = { string.format(L.NEXT_HEADER, #picked) }
     for _, candidate in ipairs(picked) do
-        local title = Titles.Format(candidate.title)
-        lines[#lines + 1] = string.format(L.NEXT_LINE, title, candidate.done, candidate.need)
-        CHAT_ROUTER:AddSystemMessage(string.format(L.NEXT_CHAT, title, candidate.done, candidate.need,
-            GetAchievementLink(candidate.id, LINK_STYLE_BRACKETS)))
+        lines[#lines + 1] = string.format(L.NEXT_LINE, Titles.Format(candidate.title), candidate.done, candidate.need)
+        lines[#lines + 1] = "|c" .. ACHIEVEMENT_COLOR .. zo_strformat("<<1>>", (GetAchievementInfo(candidate.id))) .. "|r"
     end
-    lastText = table.concat(lines, "\n")
-end
-
-function NextTitles.Text()
-    return lastText or L.NEXT_NOT_RUN
+    return table.concat(lines, "\n")
 end

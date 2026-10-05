@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/Wayzminn/GamepadHUDCustomizer__9a1d3850-22ef-484a-baa5-b7c30d0f31a2",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Wayzminn",
+  "canonical_id": "bethesda:9a1d3850-22ef-484a-baa5-b7c30d0f31a2",
+  "content_id": "9a1d3850-22ef-484a-baa5-b7c30d0f31a2",
+  "deleted": false,
+  "fingerprint": "cf3c75840cc248693cb38be2b245ca8ff04af79ab5074c8a91604888367ae3a8",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "9a1d3850-22ef-484a-baa5-b7c30d0f31a2",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/9a1d3850-22ef-484a-baa5-b7c30d0f31a2",
+  "title": "GamepadHUDCustomizer"
+}

@@ -1,104 +1,111 @@
-SafeAddString(SI_HUDITORTOOLS_LAYOUTS, "Макеты", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME, "По умолчанию", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNNAMED, "Без имени", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ACCOUNT, "Учётная запись", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CHARACTER, "Персонаж", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_SAVE, "Сохранить", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW, "Новый", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT, "Импорт", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT, "Экспорт", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_RENAME, "Переименовать", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE, "Удалить", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_COPY, "Новый из текущего", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NAME, "Имя макета", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC, "Для персонажа", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK, "<<1>>*", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT, "<<1>>: <<2>>", 2)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE, "Импорт макета интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS, "Вставьте строку HUDitorTools, укажите имя и нажмите «Импорт». Имя из строки игнорируется.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING, "Строка обмена", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE, "Экспорт макета интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS, "Ctrl+C копирует выделенную строку. Модификации не могут записывать буфер обмена.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL, "Выделить всё", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW_TITLE, "Новый макет интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE, "Переименовать макет интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE, "Удалить макет интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_DELETE_BODY, "Удалить макет <<1>>? Это действие нельзя отменить.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE, "Несохранённые изменения интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY, "Есть несохранённые изменения интерфейса. Переключить на <<1>>? Несохранённые позиции будут перезаписаны.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT, "Применён макет <<1>>: записано <<2>> клавиатурных / <<4>> геймпадных строк; обновлено <<3>> / <<5>> зарегистрированных элементов. Пропущенные элементы аддонов сбрасываются к значениям по умолчанию.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY, "Введите имя макета.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN, "Это имя уже используется в данной области.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_CAP, "В этой области уже есть 20 макетов.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING, "Этот макет больше не существует.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_LAST, "Оставьте хотя бы один макет.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE, "Не удалось прочитать строку обмена.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC, "Строка обмена должна начинаться с HUDT.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION, "Эта строка обмена использует неподдерживаемую версию HUDT.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED, "Строка обмена обрезана.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER, "В строке обмена указано недопустимое число.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY, "В строке обмена указан неизвестный идентификатор элемента интерфейса.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA, "В строке обмена указан недопустимый дополнительный параметр.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING, "После макета в строке обмена есть лишние данные.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_HEADER, "Макеты интерфейса", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE, "Активный макет", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP, "Переключает текущий интерфейс на именованный макет. Макеты персонажа перезаписывают интерфейс учётной записи в этой сессии.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP, "Копирует текущий интерфейс в выбранный именованный макет.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP, "Создаёт именованный макет из текущего интерфейса.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP, "Вставляет строку обмена, чтобы создать и применить именованный макет.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP, "Показывает строку обмена для текущего интерфейса. Скопируйте её через Ctrl+C.", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_CHAT, "Сообщения в чат", 1)
-SafeAddString(SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP, "Выводит в чат сведения о применении макета и уведомления о скрытии/показе элементов в редакторе. Большинству игроков это не нужно.", 1)
+local strings = {
+    ["SI_HUDITORTOOLS_LAYOUTS"] = "Макеты",
+    ["SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME"] = "По умолчанию",
+    ["SI_HUDITORTOOLS_LAYOUT_UNNAMED"] = "Без имени",
+    ["SI_HUDITORTOOLS_LAYOUT_ACCOUNT"] = "Учётная запись",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER"] = "Персонаж",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE"] = "Сохранить",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW"] = "Новый",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT"] = "Импорт",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT"] = "Экспорт",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME"] = "Переименовать",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE"] = "Удалить",
+    ["SI_HUDITORTOOLS_LAYOUT_COPY"] = "Новый из текущего",
+    ["SI_HUDITORTOOLS_LAYOUT_NAME"] = "Имя макета",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC"] = "Для персонажа",
+    ["SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK"] = "<<1>>*",
+    ["SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT"] = "<<1>>: <<2>>",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE"] = "Импорт макета интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS"] = "Вставьте строку HUDitorTools, укажите имя и нажмите «Импорт». Имя из строки игнорируется.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING"] = "Строка обмена",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE"] = "Экспорт макета интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS"] = "Ctrl+C копирует выделенную строку. Модификации не могут записывать буфер обмена.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL"] = "Выделить всё",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TITLE"] = "Новый макет интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE"] = "Переименовать макет интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE"] = "Удалить макет интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_BODY"] = "Удалить макет <<1>>? Это действие нельзя отменить.",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE"] = "Несохранённые изменения интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY"] = "Есть несохранённые изменения интерфейса. Переключить на <<1>>? Несохранённые позиции будут перезаписаны.",
+    ["SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT"] = "Применён макет <<1>>: записано <<2>> клавиатурных / <<4>> геймпадных строк; обновлено <<3>> / <<5>> зарегистрированных элементов. Пропущенные элементы аддонов сбрасываются к значениям по умолчанию.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY"] = "Введите имя макета.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN"] = "Это имя уже используется в данной области.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_CAP"] = "В этой области уже есть 20 макетов.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING"] = "Этот макет больше не существует.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_LAST"] = "Оставьте хотя бы один макет.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE"] = "Не удалось прочитать строку обмена.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC"] = "Строка обмена должна начинаться с HUDT.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION"] = "Эта строка обмена использует неподдерживаемую версию HUDT.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED"] = "Строка обмена обрезана.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER"] = "В строке обмена указано недопустимое число.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY"] = "В строке обмена указан неизвестный идентификатор элемента интерфейса.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA"] = "В строке обмена указан недопустимый дополнительный параметр.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING"] = "После макета в строке обмена есть лишние данные.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_HEADER"] = "Макеты интерфейса",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE"] = "Активный макет",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP"] = "Переключает текущий интерфейс на именованный макет. Макеты персонажа перезаписывают интерфейс учётной записи в этой сессии.",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP"] = "Копирует текущий интерфейс в выбранный именованный макет.",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP"] = "Создаёт именованный макет из текущего интерфейса.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP"] = "Вставляет строку обмена, чтобы создать и применить именованный макет.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP"] = "Показывает строку обмена для текущего интерфейса. Скопируйте её через Ctrl+C.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT"] = "Сообщения в чат",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP"] = "Выводит в чат сведения о применении макета и уведомления о скрытии/показе элементов в редакторе. Большинству игроков это не нужно.",
 
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE, "Внешний вид", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_SCALE, "Масштаб %", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT, "Шрифт", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT, "По умолчанию", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE, "Размер шрифта", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE, "Контур шрифта", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_RESET, "Сбросить масштаб и шрифт", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM, "Средний", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD, "Жирный", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE, "Антиква", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM, "Геймпад средний", 1)
-SafeAddString(SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD, "Геймпад жирный", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP, "Полосы ресурсов", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE, "Пирамида", 2)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND, "Не расширять", 1)
-SafeAddString(SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH, "Ширина здоровья", 1)
+    ["SI_HUDITORTOOLS_APPEARANCE"] = "Внешний вид",
+    ["SI_HUDITORTOOLS_APPEARANCE_SCALE"] = "Масштаб %",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT"] = "Шрифт",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT"] = "По умолчанию",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Размер шрифта",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Контур шрифта",
+    ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Сбросить масштаб и шрифт",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Средний",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Жирный",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Антиква",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM"] = "Геймпад средний",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD"] = "Геймпад жирный",
 
-SafeAddString(SI_HUDITORTOOLS_FRAME_BATTLEGROUND, "Счёт поля боя", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER, "Индикатор цели", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION, "Взаимодействие игрока", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS, "Прогресс игрока", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT, "Взаимодействие прицела", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_RETICLE, "Прицел", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_STEALTH_ICON, "Значок скрытности", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_TUTORIALS, "Обучение", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_PET_GROUP, "Группа питомцев", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER, "Azurah наблюдатель сумки", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER, "Azurah таймер оборотня", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER, "LuiExtended игрок", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET, "LuiExtended цель", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET, "LuiExtended цель альянса", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_GROUP, "LuiExtended группа", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_RAID, "LuiExtended рейд", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PET, "LuiExtended питомец", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMPANION, "LuiExtended спутник", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_BOSS, "LuiExtended босс", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_ALERTS, "LuiExtended оповещения", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING, "LuiExtended исходящий боевой текст", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING, "LuiExtended входящий боевой текст", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT, "LuiExtended боевой текст оповещений", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT, "LuiExtended боевой текст очков", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE, "LuiExtended боевой текст ресурсов", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS, "LuiExtended усиления игрока", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS, "LuiExtended ослабления игрока", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS, "LuiExtended усиления цели", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS, "LuiExtended ослабления цели", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS, "LuiExtended важные усиления", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS, "LuiExtended важные ослабления", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS, "LuiExtended долгие усиления", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR, "LuiExtended полоса произнесения", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL, "LuiExtended контроль", 1)
-SafeAddString(SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP, "LuiExtended миникарта", 1)
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Полосы ресурсов",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Пирамида",
+    ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Не расширять",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Ширина здоровья",
+
+    ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Счёт поля боя",
+    ["SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER"] = "Индикатор цели",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION"] = "Взаимодействие игрока",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS"] = "Прогресс игрока",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT"] = "Взаимодействие прицела",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE"] = "Прицел",
+    ["SI_HUDITORTOOLS_FRAME_STEALTH_ICON"] = "Значок скрытности",
+    ["SI_HUDITORTOOLS_FRAME_TUTORIALS"] = "Обучение",
+    ["SI_HUDITORTOOLS_FRAME_PET_GROUP"] = "Группа питомцев",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER"] = "Azurah наблюдатель сумки",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER"] = "Azurah таймер оборотня",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER"] = "LuiExtended игрок",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET"] = "LuiExtended цель",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET"] = "LuiExtended цель альянса",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_GROUP"] = "LuiExtended группа",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_RAID"] = "LuiExtended рейд",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PET"] = "LuiExtended питомец",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMPANION"] = "LuiExtended спутник",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_BOSS"] = "LuiExtended босс",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_ALERTS"] = "LuiExtended оповещения",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING"] = "LuiExtended исходящий боевой текст",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING"] = "LuiExtended входящий боевой текст",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT"] = "LuiExtended боевой текст оповещений",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT"] = "LuiExtended боевой текст очков",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE"] = "LuiExtended боевой текст ресурсов",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS"] = "LuiExtended усиления игрока",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS"] = "LuiExtended ослабления игрока",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS"] = "LuiExtended усиления цели",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS"] = "LuiExtended ослабления цели",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS"] = "LuiExtended важные усиления",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS"] = "LuiExtended важные ослабления",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS"] = "LuiExtended долгие усиления",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR"] = "LuiExtended полоса произнесения",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL"] = "LuiExtended контроль",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP"] = "LuiExtended миникарта",
+}
+
+for key, value in pairs(strings) do
+    SafeAddString(_G["key"], value, 1)
+end

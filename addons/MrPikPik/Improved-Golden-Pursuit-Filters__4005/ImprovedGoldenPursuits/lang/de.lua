@@ -7,3 +7,4 @@ ZO_CreateStringId("IGP_FILTER_HIDE_COMPLETE", "Nur Offene")
 ZO_CreateStringId("IGP_FILTER_REWARDS_ONLY", "Mit Belohnung")
 
 ZO_CreateStringId("IGP_OVERVIEW_NO_MATCH", "Alle Aufgaben der aktuellen Filter abgeschlossen.")
+ZO_CreateStringId("IGP_OVERVIEW_NOTHING_TO_CLAIM", "Alle Belohnungen der aktuellen Filter wurden abgeholt.")

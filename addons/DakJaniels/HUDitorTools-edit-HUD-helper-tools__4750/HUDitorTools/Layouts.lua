@@ -371,6 +371,7 @@ function HT.DeleteHudLayout(scope, layoutId)
     else
         HT.RefreshLayoutInfoBoxSection()
     end
+    HT.UpdateLAMDeleteLayoutButtonDisabledState()
     return true
 end
 

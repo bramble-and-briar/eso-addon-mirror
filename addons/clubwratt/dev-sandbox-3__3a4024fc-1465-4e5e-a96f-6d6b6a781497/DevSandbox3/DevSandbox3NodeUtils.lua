@@ -37,8 +37,9 @@ for _, name in ipairs({
     NodeUtils.KNOWN_MATERIALS[string.lower(name)] = true
 end
 
--- Cyrodiil prefixes an ordinary material with "Rich " for bonus-yield nodes.
-NodeUtils.MATERIAL_PREFIXES = { "rich " }
+-- Current Cyrodiil spawns survey-style bonus nodes: "Rich <ore/seam>", "Lush <plant/reagent>", "Pristine <wood>".
+-- Both the plain and the prefixed names are ordinary materials.
+NodeUtils.MATERIAL_PREFIXES = { "rich ", "lush ", "pristine " }
 
 ---@param lowered string already-lowercased interactable name
 ---@return boolean

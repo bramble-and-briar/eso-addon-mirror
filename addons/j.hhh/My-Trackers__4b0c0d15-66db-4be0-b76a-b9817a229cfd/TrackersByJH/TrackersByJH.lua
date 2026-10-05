@@ -1,7 +1,7 @@
 TrackersByJH = TrackersByJH or {}
 local TBJH = TrackersByJH
 TBJH.name = "TrackersByJH"
-TBJH.version = "1.0.6"
+TBJH.version = "1.1.0"
 TBJH.menus = TBJH.menus or {}
 
 function TrackersByJH_RegisterMenu(name, controls)
@@ -17,11 +17,21 @@ local SET_TRACKERS = {
     { menu="Mechanical Acuity Tracker", key="Mechanical Acuity" },
     { menu="Ansuul Tracker", key="Ansuul's Torment" },
     { menu="Aegis Caller Tracker", key="Aegis Caller" },
+    { menu="Balorgh Tracker", key="Balorgh" },
+    { menu="Bloodspawn Tracker", key="Bloodspawn" },
+    { menu="Death Dealer's Fete Tracker", key="Death Dealer's Fete" },
+    { menu="Dark Convergence Tracker", key="Dark Convergence" },
+    { menu="Maarselok Tracker", key="Maarselok" },
+    { menu="Meritorious Service Tracker", key="Meritorious Service" },
+    { menu="Rallying Cry Tracker", key="Rallying Cry" },
+    { menu="Rush of Agony Tracker", key="Rush of Agony" },
+    { menu="Whorl of the Depths Tracker", key="Whorl of the Depths" },
+    { menu="Wrath of Elements Tracker", key="Wrath of Elements" },
 }
 
 local function SetTrackerControls(key)
     return {
-        { type="description", text="This tracker is shown when the set has a complete 5-piece setup on the body, front bar, or back bar. A running cooldown remains visible after the set is unequipped until the cooldown ends." },
+        { type="description", text="Tracker visibility follows its equipment/proc type. For 5-piece sets, front and back weapon bars are evaluated separately. Active buffs/cooldowns remain visible until they finish." },
         { type="slider", name="Tracker size", min=32, max=300, step=2,
           getFunc=function()
               local p=JHSetTrackers and JHSetTrackers.preferences and JHSetTrackers.preferences.sets[key]
@@ -72,6 +82,7 @@ local function BuildMainMenu()
         { type="submenu", name="Bright Harbinger Tracker", controls=TBJH.menus["Bright Harbinger Tracker"] or {} },
         { type="submenu", name="Alkosh Tracker", controls=TBJH.menus["Alkosh Tracker"] or {} },
         { type="submenu", name="Warmask Tracker", controls=TBJH.menus["Warmask Tracker"] or {} },
+        { type="submenu", name="Landslide Tracker", controls=TBJH.menus["Landslide Tracker"] or {} },
         { type="header", name="Set Proc Trackers" },
     }
     for _,entry in ipairs(SET_TRACKERS) do

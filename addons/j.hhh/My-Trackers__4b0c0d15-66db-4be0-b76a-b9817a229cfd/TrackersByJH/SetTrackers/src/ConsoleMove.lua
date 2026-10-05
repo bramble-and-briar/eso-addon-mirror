@@ -15,10 +15,11 @@ local function EnsureControl()
   return c
 end
 local function Save()
-  local c=C(); local p=JHSetTrackers.preferences and JHSetTrackers.preferences.sets[Target()]
-  if c and p then p.x=c:GetLeft(); p.y=c:GetTop() end
+  -- Position is written directly to p.x/p.y while moving, just like Landslide.
+  -- Do NOT read GetLeft()/GetTop() from a scaled control here: on console those
+  -- values can be scale-adjusted and caused the saved position to drift after /reloadui.
   local am=GetAddOnManager and GetAddOnManager()
-  if am and am.RequestAddOnSavedVariablesPrioritySave then am:RequestAddOnSavedVariablesPrioritySave(JHSetTrackers.name) end
+  if am and am.RequestAddOnSavedVariablesPrioritySave then am:RequestAddOnSavedVariablesPrioritySave("TrackersByJH") end
 end
 local last=0
 local function Update()

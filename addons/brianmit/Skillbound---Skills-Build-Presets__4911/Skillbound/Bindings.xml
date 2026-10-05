@@ -1,0 +1,52 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Skillbound">
+            <Action name="SKILLBOUND_WINDOW">
+                <Down>Skillbound.UI.Toggle()</Down>
+            </Action>
+            <Action name="SKILLBOUND_WHEEL">
+                <Down>Skillbound.Wheel.Down()</Down>
+                <Up>Skillbound.Wheel.Up()</Up>
+            </Action>
+            <Action name="SKILLBOUND_UNDO">
+                <Down>Skillbound.Apply.Undo()</Down>
+            </Action>
+            <Action name="SKILLBOUND_RULES">
+                <Down>Skillbound.Rules.TogglePaused()</Down>
+            </Action>
+            <Action name="SKILLBOUND_PREBUFF">
+                <Down>Skillbound.Prebuff.Start()</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV1">
+                <Down>Skillbound.WearFavorite(1)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV2">
+                <Down>Skillbound.WearFavorite(2)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV3">
+                <Down>Skillbound.WearFavorite(3)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV4">
+                <Down>Skillbound.WearFavorite(4)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV5">
+                <Down>Skillbound.WearFavorite(5)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV6">
+                <Down>Skillbound.WearFavorite(6)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV7">
+                <Down>Skillbound.WearFavorite(7)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV8">
+                <Down>Skillbound.WearFavorite(8)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV9">
+                <Down>Skillbound.WearFavorite(9)</Down>
+            </Action>
+            <Action name="SKILLBOUND_FAV10">
+                <Down>Skillbound.WearFavorite(10)</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

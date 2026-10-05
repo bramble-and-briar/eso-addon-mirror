@@ -1,0 +1,82 @@
+<GuiXml>
+	<Controls>
+    <TopLevelControl name="ElmsMarkers_Announcement" mouseEnabled="true" movable="true" clampedToScreen="true">
+      <Dimensions x="800" y="200" />
+      <Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="CENTER" offsetY="-150" />
+      <OnMoveStop>ElmsMarkers.SaveAnnouncementPosition()</OnMoveStop>
+
+      <Controls>
+        <Label name="$(parent)_Label" width="800" height="200" font="EsoUI/Common/Fonts/univers67.otf|144|soft-shadow-thick" inheritAlpha="true" color="99CCFF"
+            wrapMode="TRUNCATE" verticalAlignment="TOP" horizontalAlignment="CENTER" text="[Elms Markers] Sample text">
+          <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" />
+        </Label>
+      </Controls>
+    </TopLevelControl>
+
+		<TopLevelControl name="ElmsMarkers_Frame" clampedToScreen="true" mouseEnabled="true" movable="true" hidden="true" >
+			<Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="600" offsetY="700" />
+			<Dimensions x="400" y="320" />
+			<OnMoveStop>
+				ElmsMarkers.SaveFramePosition()
+			</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)BG" edgeColor="FF000000" centerColor="D0111111" >
+					<Edge edgeSize="1" />
+					<AnchorFill />
+				</Backdrop>
+				<Control name="$(parent)_Title" >
+					<Anchor point="TOPLEFT" relativePoint="TOPLEFT" offsetX="4" offsetY="4" />
+					<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetX="-4" offsetY="40" />
+					<Controls>
+						<Line name="$(parent)base" color="FFFFFF" thickness="2" >
+							<Anchor point="BOTTOMLEFT" offsetX="4" />
+							<Anchor point="BOTTOMRIGHT" offsetX="-4" />
+						</Line>
+						<Label name="$(parent)_Subtitle" font="ZoFontHeader" text="Place New Marker" >
+							<Anchor point="CENTER" relativePoint="CENTER" />
+						</Label>
+						<Button name="$(parent)_Close" inherits="ZO_CloseButton" >
+							<Anchor point="RIGHT" relativePoint="RIGHT" offsetX="-4" offsetY="-4" />
+						</Button>
+					</Controls>
+				</Control>
+        <Control name="$(parent)_Marker_Dropdown_Panel">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_Title" offsetX="4" offsetY="2" />
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" relativeTo="$(parent)_Title" offsetX="-4" offsetY="150" />
+          <Controls>
+           <Control name="$(parent)_Marker_Dropdown" inherits="ZO_ScrollableComboBox" mouseEnabled="true" tier="HIGH" >
+              <Dimensions x="200" y="29" />
+              <Anchor point="CENTER" relativePoint="CENTER" offsetY="-25" />
+            </Control>
+            <Texture name="$(parent)_Marker_Icon">
+              <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetY="0" />
+              <Dimensions x="80" y="80"/>
+            </Texture>
+          </Controls>
+        </Control>
+        <Control name="$(parent)_Button_Group">
+          <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_Marker_Dropdown_Panel"/>
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" offsetX="-8" offsetY="-8" />
+          <Controls>
+            <Button name="$(parent)_Place_Button" text="Place" inherits="ZO_DefaultButton" >
+							<Anchor point="LEFT" relativePoint="LEFT" offsetY="-26" offsetX="-4" />
+            </Button>
+            <Button name="$(parent)_Place_Publish_Button" text="Place, Publish" inherits="ZO_DefaultButton">
+							<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_Place_Button" offsetY="6"/>
+            </Button>
+            <Button name="$(parent)_Remove_Button" text="Remove" inherits="ZO_DefaultButton" >
+							<Anchor point="RIGHT" relativePoint="RIGHT" offsetY="-26" offsetX="4"/>
+            </Button>
+						<Button name="$(parent)_Remove_Publish_Button" text="Remove, Publish" inherits="ZO_DefaultButton">
+							<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" relativeTo="$(parent)_Remove_Button" offsetY="6"/>
+						</Button>
+						<Button name="$(parent)_Share_Zone_Button" text="Share Zone Markers" inherits="ZO_DefaultButton">
+							<Anchor point="CENTER" relativePoint="BOTTOM" relativeTo="$(parent)" offsetY="-18"/>
+						</Button>
+					</Controls>
+        </Control>
+        
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

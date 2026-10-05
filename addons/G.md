@@ -18,6 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [GamePadHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Delte/GamePadHelper__71f99aa0-341b-44fb-8b98-0dbda2a5b136) | Delte | Console | — |
 | [GamePadHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/olegbl/GamePadHelper__3268) | olegbl | PC / Mac | 1.06.18 |
 | [GamePadHelper (11.1.0)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/quelron/GamePadHelper-11.1.0__4253) | quelron | PC / Mac | 1.03 |
+| [GamepadHUDCustomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wayzminn/GamepadHUDCustomizer__9a1d3850-22ef-484a-baa5-b7c30d0f31a2) | Wayzminn | Console | — |
 | [Gamer_sa22 Addon Testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/Gamer_sa22-Addon-Testing__93ab810e-7b13-4feb-8bb9-ecfadf17dace) | Gamer_sa22 | Console | — |
 | [GammaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Latetide/GammaScry__3991) | Latetide | PC / Mac | 1.0.2 |
 | [GampeadChatNoFade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/GampeadChatNoFade__3224) | Baertram | PC / Mac | 2 |
@@ -55,7 +56,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Go Fast Don't Die](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drezzek/Go-Fast-Don-t-Die__3332) | Drezzek | PC / Mac | 1.4 |
 | [Go Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Go-Home__1604) | static_recharge | PC / Mac | 8.0.0 |
 | [GoA_DolgubonsLazyWritCreatorUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_DolgubonsLazyWritCreatorUAPatch__4703) | Iriya_Altmer | PC / Mac | 1.7 |
-| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 46.99.57 |
+| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 46.99.65 |
 | [GoA_FCOLockpickerUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_FCOLockpickerUAPatch__4733) | Iriya_Altmer | PC / Mac | 1.0 |
 | [GoA_HarvestMapUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_HarvestMapUAPatch__4707) | Iriya_Altmer | PC / Mac | 1.1 |
 | [GoA_TamrielTradeCentreUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_TamrielTradeCentreUAPatch__4705) | Iriya_Altmer | PC / Mac | 1.2 |

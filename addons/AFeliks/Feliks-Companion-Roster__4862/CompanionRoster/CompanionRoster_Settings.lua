@@ -72,6 +72,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
         author = "Feliks Blackwood",
         version = CompanionRoster.version,
         registerForRefresh = true,
+        registerForDefaults = true,
     }
     LAM:RegisterAddonPanel("CompanionRoster_Options", panelData)
 
@@ -87,6 +88,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
             tooltip = "The chat command that toggles the roster window. Takes effect immediately, no reload needed.",
             getFunc = function() return CompanionRoster.Data.GetSlashCommand() end,
             setFunc = SetSlashCommand,
+            default = "/fcr",
             width = "half",
         },
         {
@@ -96,6 +98,24 @@ local function OnAddOnLoaded(eventCode, addOnName)
             getFunc = function() return CompanionRoster.Data.GetCloseOnCombat() end,
             setFunc = function(value) CompanionRoster.Data.SetCloseOnCombat(value) end,
             default = false,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Show Roles in Collections",
+            tooltip = "Shows each companion's Role icon on their tile in the Collections screen. Keyboard and mouse UI only.",
+            getFunc = function() return CompanionRoster.Data.GetShowRoleOnCollections() end,
+            setFunc = function(value) CompanionRoster.Data.SetShowRoleOnCollections(value) end,
+            default = true,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Show Rapport in Collections",
+            tooltip = "Shows each companion's current rapport number under their portrait in the Collections screen. Keyboard and mouse UI only.",
+            getFunc = function() return CompanionRoster.Data.GetShowRapportOnCollections() end,
+            setFunc = function(value) CompanionRoster.Data.SetShowRapportOnCollections(value) end,
+            default = true,
             width = "full",
         },
         {
@@ -123,6 +143,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
                 CompanionRoster.Data.SetCompanionRole(companionId, ROLE_CHOICE_TO_VALUE[choice])
                 CompanionRoster.RefreshGrid()
             end,
+            default = "None",
             width = "half",
         })
     end

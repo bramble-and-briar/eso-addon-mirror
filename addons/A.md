@@ -14,7 +14,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [A More Automated Invite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/A-More-Automated-Invite__44437e40-fb6e-46cb-9717-9b21c46fc1cf) | M0R | Console | — |
 | [A Super Useful Gadget Bar - by Gol](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Golnebo/A-Super-Useful-Gadget-Bar---by-Gol__1982) | Golnebo | PC / Mac | 1.42 |
 | [AA_Profiler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/spoqster/AA_Profiler__66400ef3-3d78-4737-a158-c48633706a83) | spoqster | Console | — |
-| [Abah's Appraiser - Auto Sell Junk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Abah-s-Appraiser---Auto-Sell-Junk__2d6ff530-edbc-4425-be68-daadbc3c0afa) | xbutch | Console | — |
 | [Ability Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jultzy94/Ability-Frames__1714) | jultzy94 | PC / Mac | 1.1 |
 | [Ability Icons Framework (AIF)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Ability-Icons-Framework-AIF__4061) | wicked_prophet | PC / Mac | 1.6.0 |
 | [ABnC Gold Manager - revisited](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dbojan/ABnC-Gold-Manager---revisited__2890) | dbojan | PC / Mac | 1.3.100009a rv3 |
@@ -153,7 +152,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 0.1.57 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.1 |
+| [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |
@@ -196,7 +196,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Group-Frames__a020fed1-e58d-4c59-8ec5-6fb71e8ee9cc) | j.hhh | Console | — |
 | [Always Logging](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eurymachos/Always-Logging__4081) | Eurymachos | PC / Mac | v3.1.12.1.0 |
 | [AlwaysCompass: Never Get Lost Again](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/AlwaysCompass-Never-Get-Lost-Again__4107) | Mouton | PC / Mac | 0.0.2 |
-| [AlwaysExpandedAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/AlwaysExpandedAttributeBars__2979) | partdark | PC / Mac | 2.6a |
+| [AlwaysExpandedAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/AlwaysExpandedAttributeBars__2979) | partdark | PC / Mac | 3.1b-n |
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__3929) | Lykeion | PC / Mac | 3.14 |
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__e1710013-83a1-4e50-941a-5464d85d587c) | Lykeion+ | Console | — |
 | [Am I Blocking?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Qcell/Am-I-Blocking__2920) | Qcell | PC / Mac | 2.7 |
@@ -290,6 +290,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Atlas__4845) | Torfason | PC / Mac | 2.0.0 |
 | [Atlas - Mounts (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitsarugi/Atlas---Mounts-WIP__1502) | Mitsarugi | PC / Mac | 0.1a |
 | [Atronach refresh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Risers/Atronach-refresh__2607) | Risers | PC / Mac | 1.0.0 |
+| [Attribute Bar Spacing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Attribute-Bar-Spacing__52520d7f-b02f-4dd5-a337-d24e924354c9) | msetten | Console | — |
 | [Auction Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jhessin/Auction-Looter__3588) | jhessin | PC / Mac | 1.0 |
 | [Audible Fish Bite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/otac0n/Audible-Fish-Bite__3477) | otac0n | PC / Mac | 1.0 |
 | [Audio Control](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Audio-Control__1390) | Phinix | PC / Mac | 1.19 |
@@ -337,6 +338,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Research](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Research__1652) | Dolgubon | PC / Mac | 3.1.0 |
 | [Auto Research Scrolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Auto-Research-Scrolls__3659) | ghostbane | PC / Mac | 1.2.0 |
 | [Auto Run](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Auto-Run__1310) | CaptainBlagbird | PC / Mac | 1.0.12 |
+| [Auto Sell Junk - Abah's Appraiser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/Auto-Sell-Junk---Abah-s-Appraiser__2d6ff530-edbc-4425-be68-daadbc3c0afa) | xbutch | Console | — |
 | [Auto-Claim or Hide Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Golden-Pursuits__48b63611-befb-44e1-b87a-1bac567ee234) | code65536 | Console | — |
 | [Auto-Claim or Hide Golden Pursuits](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Golden-Pursuits__4545) | code65536 | PC / Mac | 2.0.0 |
 | [Auto-Claim or Hide Tome Challenges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Auto-Claim-or-Hide-Tome-Challenges__910446ca-4e83-47c8-8c9b-a5d99bcec73e) | code65536 | Console | — |
@@ -383,4 +385,5 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ayleid Wells](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Verling/Ayleid-Wells__3287) | Verling | PC / Mac | 1.0.6 |
 | [Azura Guild Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aerilita/Azura-Guild-Messages__3244) | Aerilita | PC / Mac | 0.513 |
 | [Azurah - Interface Enhanced](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kith/Azurah---Interface-Enhanced__602) | Kith | PC / Mac | 2.4.47 |
+| [Azurah - Interface Enhanced (Compatibility Update U51)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/Azurah---Interface-Enhanced-Compatibility-Update-U51__4913) | partdark | PC / Mac | 3.0.0a |
 | [Azurah-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/Azurah-KR__4501) | Ricci Curvature | PC / Mac | 1.0.1 |

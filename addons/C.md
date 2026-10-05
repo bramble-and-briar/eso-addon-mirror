@@ -260,7 +260,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CraftingHouse](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PrimeRibeye/CraftingHouse__3492) | PrimeRibeye | PC / Mac | 1.4 |
 | [CraftMaterialAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant__949980bd-b411-4102-82d7-4e64ba17bc3a) | lesse83 | Console | — |
 | [CraftMaterialAssistant (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant-Beta__96d1c172-661c-4739-960f-fcf660401298) | lesse83 | Console | — |
-| [CraftPawns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HellWhyNot/CraftPawns__4883) | HellWhyNot | PC / Mac | 1.1.1 |
+| [CraftPawns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HellWhyNot/CraftPawns__4883) | HellWhyNot | PC / Mac | 1.2 |
 | [CraftStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/CraftStore__1590) | Rhyono | PC / Mac | 3.05 |
 | [CRAFTY Stocklist - The craftbag stock watchlist for your crafting profession](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rp12439_3/CRAFTY-Stocklist---The-craftbag-stock-watchlist-for-your-crafting-profession__3116) | rp12439_3 | PC / Mac | V2.65 |
 | [Criminal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/napalmskull/Criminal__3765) | napalmskull | PC / Mac | 1.0.1 |

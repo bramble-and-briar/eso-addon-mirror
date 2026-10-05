@@ -1,0 +1,13 @@
+## Title: QuestArrow
+## Author: alabuzya
+## Version: 0.2.2
+## AddOnVersion: 202
+## APIVersion: 101050
+## SavedVariables: QuestArrowSavedVariables
+## Description: AI-assisted development. Movable quest arrow with local and cross-zone wayshrine suggestions. /qa help | Contact: aabuziarov@gmail.com
+
+Planner.lua
+SavedVariables.lua
+CrossTravel.lua
+UI.lua
+QuestArrow.lua

@@ -4,6 +4,7 @@
 -- The manifest lists this file as MapOfManyRiches.addon (case-sensitive).
 local ADDON_NAME = "MapOfManyRiches"
 local PIN_TYPE = "MOMR_Pin"
+local MapPins = MOMR.internal and MOMR.internal.mapPins
 MOMR.pinType = PIN_TYPE
 
 MOMR.defaults = {
@@ -392,7 +393,7 @@ local function OnPlayerActivated()
 	lastRefreshedMapId = nil
 
 	dbg("OnPlayerActivated: Refreshing pins " .. PIN_TYPE)
-	LibMapPins:RefreshPins(PIN_TYPE)
+	MapPins:RefreshPins(PIN_TYPE)
 
 	dbg("OnPlayerActivated: Printing zone item counts")
 	PrintZoneItemCounts()
@@ -413,7 +414,7 @@ local function AddPins()
 
 	local mapId = GetCurrentMapId()
 	-- Mark this map as refreshed early so a near-simultaneous OnWorldMapChanged callback
-	-- does not immediately trigger a second LibMapPins:RefreshPins for the same map.
+	-- does not immediately trigger a second MapPins:RefreshPins for the same map.
 	if lastRefreshedMapId ~= mapId then
 		lastRefreshedMapId = mapId
 		-- (debug) indicate we recorded the refresh source
@@ -473,7 +474,7 @@ local function AddPins()
 					tooltip = tooltip
 				}
 				dbg(string.format("CreatePin type %s %s, (%s, %s), %s", pType, itemId, x, y, tostring(tooltip)))
-				LibMapPins:CreatePin(PIN_TYPE, pinTag, x, y)
+				MapPins:CreatePin(PIN_TYPE, pinTag, x, y)
 			end
 		end
 	end
@@ -495,7 +496,7 @@ local function InitializeAddon()
 
 	-- Ensure embedded libraries are available
 	local treasure = MOMR.internal and MOMR.internal.treasure
-	if not LibMapPins or not (treasure and treasure.GetMapIdData) then
+	if not MapPins or not (treasure and treasure.GetMapIdData) then
 		dbg("InitializeAddon: embedded libraries missing.")
 		return
 	end
@@ -537,7 +538,7 @@ local function InitializeAddon()
 	}
 
 	dbg("InitializeAddon: Registering pin type")
-	LibMapPins:AddPinType(PIN_TYPE, AddPins, nil, layout, pinTooltipCreator)
+	MapPins:AddPinType(PIN_TYPE, AddPins, nil, layout, pinTooltipCreator)
 
 	dbg("InitializeAddon: Registering inventory events")
 	local function OnInventoryUpdate(_, bagId, slotIndex)
@@ -550,7 +551,7 @@ local function InitializeAddon()
 			refreshPending = true
 			zo_callLater(function()
 				refreshPending = false
-				LibMapPins:RefreshPins(PIN_TYPE)
+				MapPins:RefreshPins(PIN_TYPE)
 			end, 100)
 		end
 	end
@@ -563,7 +564,7 @@ local function InitializeAddon()
 		if mapId ~= lastRefreshedMapId or not backpackCacheValid then
 			dbg("OnWorldMapChanged: Refreshing pins " .. PIN_TYPE)
 			lastRefreshedMapId = mapId
-			LibMapPins:RefreshPins(PIN_TYPE)
+			MapPins:RefreshPins(PIN_TYPE)
 		end
 	end)
 

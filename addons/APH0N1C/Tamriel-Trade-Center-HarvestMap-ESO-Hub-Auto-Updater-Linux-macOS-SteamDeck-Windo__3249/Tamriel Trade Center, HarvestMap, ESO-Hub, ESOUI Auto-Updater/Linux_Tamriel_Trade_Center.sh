@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ====================================================================================
-# {Linux/Unix} Tamriel Trade Center Auto-Updater v2026.09.30.16.04
+# {Linux/Unix} Tamriel Trade Center Auto-Updater v2026.10.04.19.22
 # Created by @APHONlC | Icon by @THAMER_AKATOSH
 # ------------------------------------------------------------------------------------
 # A utility for ESO to automate TTC, HarvestMap, ESO-Hub and ESOUI updates.
@@ -40,7 +40,7 @@
 LTTC_SELF="${BASH_SOURCE[0]}"
 LTTC_ARGS=("$@")
 unset LD_PRELOAD; unset LD_LIBRARY_PATH; unset STEAM_LD_PRELOAD
-APP_VERSION="2026.09.30.16.04"; OS_TYPE=$(uname -s); TARGET_DIR="$HOME/Documents"
+APP_VERSION="2026.10.04.19.22"; OS_TYPE=$(uname -s); TARGET_DIR="$HOME/Documents"
 LOCK_ID="lttc"
 OS_BRAND="Linux"
 TARGET_DIR="$TARGET_DIR/${OS_BRAND}_Tamriel_Trade_Center"
@@ -182,7 +182,7 @@ if [ -n "$missing_tools" ]; then
 fi
 SPINNER_PID=0
 SPIN_START=0
-SPIN_MSG_FILE="/tmp/lttc_spin.tmp"
+SPIN_MSG_FILE="$TEMP_DIR_ROOT/lttc_spin.msg"
 
 start_spinner() {
     local msg="$1"
@@ -211,8 +211,8 @@ stop_spinner() {
         kill "$SPINNER_PID" 2>/dev/null; wait "$SPINNER_PID" 2>/dev/null
         tput cnorm 2>/dev/null
         local out_str=""
-        if [ "$ok" = "0" ]; then out_str=" \e[92m[✓]\e[0m $msg (${el}s)"
-        else out_str=" \e[31m[✗]\e[0m $msg (${el}s)"; fi
+        if [ "$ok" = "0" ]; then out_str=" \e[92m[\0342\0234\0223]\e[0m $msg (${el}s)"
+        else out_str=" \e[31m[\0342\0234\0227]\e[0m $msg (${el}s)"; fi
         printf "\r\033[K%b\n" "$out_str"
         echo -e "$out_str" >> "$UI_STATE_FILE"
         SPINNER_PID=0
@@ -229,12 +229,12 @@ release_instance_lock() {
     fi
 }
 if command -v flock >/dev/null 2>&1; then
-    LOCK_FILE="/tmp/ttc_updater_$LOCK_ID.lock"
+    LOCK_FILE="$TEMP_DIR_ROOT/ttc_updater_$LOCK_ID.lock"
     exec 200<>"$LOCK_FILE"
     if ! flock -n 200; then
         OLD_PID=$(cat "$LOCK_FILE" 2>/dev/null)
         manage_old_pid "$OLD_PID"
-        rm -rf /tmp/ttc_updater_*.lock 2>/dev/null
+        rm -rf "$TEMP_DIR_ROOT"/ttc_updater_*.lock 2>/dev/null
         exec 200<>"$LOCK_FILE"
         if ! flock -n 200; then
             sleep 1
@@ -244,7 +244,7 @@ if command -v flock >/dev/null 2>&1; then
     > "$LOCK_FILE"; echo $$ >&200
     write_ttc_log "INFO" "Acquired instance lock ($LOCK_FILE), PID=$$"
 else
-    LOCK_DIR="/tmp/ttc_updater_dir_$LOCK_ID"
+    LOCK_DIR="$TEMP_DIR_ROOT/ttc_updater_dir_$LOCK_ID"
     if mkdir "$LOCK_DIR" 2>/dev/null; then
         echo $$ > "$LOCK_DIR/pid"
     else
@@ -895,12 +895,23 @@ _d() {
 }
 
 push_sys_notif() {
-    local msg="$1"
+    local msg="$1" body
     if [ "$ENABLE_NOTIFS" = "false" ]; then return; fi
-    if command -v notify-send > /dev/null; then
-        notify-send -i "dialog-information" -t 5000 \
-            --hint=string:category:system "$APP_TITLE" "$msg" 2>/dev/null
+    body="$(printf '%b' "$msg")"
+    if command -v notify-send > /dev/null && notify-send -i "dialog-information" -t 5000 \
+            --hint=string:category:system "$APP_TITLE" "$body" 2>/dev/null; then
+        return 0
     fi
+    if command -v kdialog > /dev/null && kdialog --title "$APP_TITLE" --passivepopup "$body" 8 2>/dev/null; then
+        return 0
+    fi
+    if command -v gdbus > /dev/null && gdbus call --session --dest org.freedesktop.Notifications \
+            --object-path /org/freedesktop/Notifications --method org.freedesktop.Notifications.Notify \
+            "$APP_TITLE" 0 "dialog-information" "$APP_TITLE" "$body" "[]" "{}" 5000 > /dev/null 2>&1; then
+        return 0
+    fi
+    write_ttc_log "WARN" "No desktop notification service answered (notify-send, kdialog, gdbus); Steam Deck Gaming Mode has none"
+    return 1
 }
 
 get_active_terminal() {
@@ -1911,7 +1922,7 @@ repair_missing_names() {
         if [ -s "$tmp_db" ]; then
             mv "$tmp_db" "$DB_FILE"
             if [ "$SILENT" = false ]; then
-                echo -e " \e[92m[✓]\e[0m Offline Database repair complete!"
+                echo -e " \e[92m[\0342\0234\0223]\e[0m Offline Database repair complete!"
             fi
             write_ttc_log "INFO" "Auto-Repair done."
         fi
@@ -2923,7 +2934,7 @@ ttc_upload() {
     now="$(date +%s)"
     cache="$(ttc_upload_cache "$region")"
     [ -f "$cache" ] || : > "$cache" 2>/dev/null
-    work="$(mktemp -d "${TMPDIR:-/tmp}/lttc_upload.XXXXXX")" || return 1
+    work="$(mktemp -d "$TEMP_DIR_ROOT/lttc_upload.XXXXXX")" || return 1
     ttc_upload_parse "$sv" "$region" "$now" "$cache" > "$work/parsed" 2>/dev/null || { rm -rf "$work"; return 1; }
     TTC_UPLOAD_NEWEST="$(awk -F '\t' '$1 == "N" { print $2 + 0 }' "$work/parsed")"
     map="$work/guilds"
@@ -3377,7 +3388,8 @@ fi
 TTC_URL="https://$TTC_DOMAIN/download/PriceTable"
 SAVED_VAR_DIR="$(dirname "$ADDON_DIR")/SavedVariables"
 repair_missing_names
-TEMP_DIR="$HOME/Downloads/${OS_BRAND}_Tamriel_Trade_Center_Temp"
+TEMP_DIR="$TEMP_DIR_ROOT/Downloads"
+[ -d "$HOME/Downloads/${OS_BRAND}_Tamriel_Trade_Center_Temp" ] && rm -rf "$HOME/Downloads/${OS_BRAND}_Tamriel_Trade_Center_Temp" 2>/dev/null
 TTC_USER_AGENT="TamrielTradeCentreClient/1.0.0"
 HM_USER_AGENT="HarvestMapClient/1.0.0"
 
@@ -3531,7 +3543,9 @@ while true; do
         ui_echo "\t\e[90mServer_DB_Version= ${V_COL}$SRV_DB_VER\e[0m"
         ui_echo "\t\e[90mLocal_DB_Version=  ${V_COL}$LOC_DB_VER\e[0m"
 
-        if [ "$SRV_DB_VER" != "0.0.0" ] && version_newer "$SRV_DB_VER" "$LOC_DB_VER"; then
+        HIST_SEEDED=false
+        grep -q '^#HISTORY VERSION:' "$DB_DIR/LTTC_History.db" 2>/dev/null && HIST_SEEDED=true
+        if [ "$SRV_DB_VER" != "0.0.0" ] && { version_newer "$SRV_DB_VER" "$LOC_DB_VER" || [ "$HIST_SEEDED" = false ]; }; then
             write_ttc_log "INFO" "Downloading database update v$SRV_DB_VER"
             start_spinner "Downloading database template v$SRV_DB_VER..."
             mkdir -p "$TEMP_DIR_ROOT/DB_Update"
@@ -3574,6 +3588,8 @@ while true; do
                         start_spinner "Merging shared trade history..."
                         template_history_apply "$DB_DIR/LTTC_History.db" "$NEW_HIST" "$SRV_DB_VER"
                         stop_spinner 0 "Shared trade history merged"
+                    else
+                        template_history_apply "$DB_DIR/LTTC_History.db" /dev/null "$SRV_DB_VER"
                     fi
                 else
                     stop_spinner 1 "LTTC_Database.db not found in zip"
@@ -4203,7 +4219,8 @@ while true; do
     > "$CLEAN_LOG"
     
     for target in "$TEMP_DIR" "$TEMP_DIR_ROOT"/*.tmp "$TEMP_DIR_ROOT"/*.out \
-                  "$TEMP_DIR_ROOT"/*.zip "$TEMP_DIR_ROOT"/ESOHub_Extracted; do
+                  "$TEMP_DIR_ROOT"/*.zip "$TEMP_DIR_ROOT"/ESOHub_Extracted \
+                  "$TEMP_DIR_ROOT"/lttc_upload.* "$TEMP_DIR_ROOT"/DB_Update; do
         if [ -e "$target" ]; then
             find "$target" -type f -o -type d 2>/dev/null >> "$CLEAN_LOG"
             rm -rf "$target" 2>/dev/null

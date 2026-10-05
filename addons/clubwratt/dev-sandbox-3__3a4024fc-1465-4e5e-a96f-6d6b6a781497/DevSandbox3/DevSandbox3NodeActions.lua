@@ -75,6 +75,13 @@ function NodeActions.RecordAtNormalized(zoneIdHint, nx, ny, name, looted, candid
         table.insert(nodes, node)
         isNew = true
     end
+    -- World metres for the 3D / compass markers (only when recorded at the player's own position).
+    if not nx and not node.wx then
+        local worldZone, wx, wy, wz = GetUnitWorldPosition("player")
+        if worldZone == zoneId and wx then
+            node.wx, node.wy, node.wz = wx / 100, wy / 100, wz / 100
+        end
+    end
     state.lastRecordTime = now
 
     DevSandbox3.PinActions.RefreshPins()
@@ -126,6 +133,22 @@ function NodeActions.OnLootReceived(_eventId, _receivedBy, itemName, _quantity, 
     local node, isNew = NodeActions.RecordAtPlayer(plainName, true)
     if node then
         LogUtils.Log("Looted %s - %s spawn saved (%d total)", plainName, isNew and "new" or "known", #DevSandbox3.state.savedVars.nodes)
+    end
+    -- Which expected material slot was the book sitting on? This is how we learn what node types it replaces.
+    local SlotActions = DevSandbox3.SlotActions
+    if SlotActions and SlotActions.grid then
+        local index, dist, typeName = SlotActions.NearestSlotToPlayer(DevSandbox3.SlotUtils.LOOT_ATTRIBUTION_METERS)
+        local looted = DevSandbox3.state.savedVars.lootedSlots
+        if index then
+            looted[#looted + 1] = { index = index, typeName = typeName, dist = math.floor(dist + 0.5), at = GetTimeStamp() }
+            LogUtils.Log("Book was on an expected %s slot (%dm away). /ds3 looted shows all attributions", typeName, math.floor(dist + 0.5))
+            if DevSandbox3.state.savedVars.emptySlots[index] then
+                DevSandbox3.state.savedVars.emptySlots[index] = nil
+            end
+        else
+            looted[#looted + 1] = { index = nil, typeName = "none", dist = -1, at = GetTimeStamp() }
+            LogUtils.Log("Book was NOT near any expected material slot (none within %dm) - the data may be missing this spawn", DevSandbox3.SlotUtils.LOOT_ATTRIBUTION_METERS)
+        end
     end
 end
 

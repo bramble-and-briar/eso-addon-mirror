@@ -1,8 +1,8 @@
 ## Title: Reset Markers
 ## Author: tmbrinks
 ## Version: 2.2.5
-## AddOnVersion: 020207
-## APIVersion: 101050 101051
+## AddOnVersion: 020208
+## APIVersion: 101051
 ## SavedVariables: SurveyResetMarkerSavedVars
 ## DependsOn: LibCombatAlerts>=7000
 ## OptionalDependsOn: LibAddonMenu-2.0 LibMapPins-1.0 CustomCompassPins

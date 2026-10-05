@@ -167,7 +167,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Ranks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Ranks__3745) | notnear | PC / Mac | 1.4.0 |
 | [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |
 | [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 1.9 |
-| [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.0 |
+| [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.1 |
 | [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.0 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
 | [Skylike Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptTatsu/Skylike-Dialog__1852) | CaptTatsu | PC / Mac | 1.5 |

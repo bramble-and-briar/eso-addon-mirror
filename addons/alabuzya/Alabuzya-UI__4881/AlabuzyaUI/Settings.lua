@@ -3,16 +3,24 @@ local AlabuzyaUI = AlabuzyaUI
 AlabuzyaUI.Settings = {}
 local S = AlabuzyaUI.Settings
 S.defaults = {
-    style = 'diablo',
+    style = 'diablo', fonts = {}, goldLedger = true, goldLedgerMode = 'day',
     charge = { enabled = true, threshold = 10, crown = true },
     repair = { enabled = true, threshold = 10, crown = true },
-    assistantPanel = true, junk = true, chat = true, grid = true, questArrow = true,
+    assistantPanel = true, junk = true, chat = true, grid = true,
     guildBackground = true,
 }
+S.fonts = {'default','MEDIUM_FONT','BOLD_FONT','CHAT_FONT','ANTIQUE_FONT','HANDWRITTEN_FONT','STONE_TABLET_FONT','GAMEPAD_LIGHT_FONT','GAMEPAD_MEDIUM_FONT','GAMEPAD_BOLD_FONT'}
+function S.FontFace(style)
+    local value=S.Get().fonts[style or S.Style()]
+    for _,face in ipairs(S.fonts) do
+        if face==value and face~='default' then return '$('..face..')' end
+    end
+end
 local saved, loadedStyle
 function S.Get()
     if not saved then
         saved = AlabuzyaUI.SavedVariables.Account('features', S.defaults)
+        saved.fonts=type(saved.fonts)=='table' and saved.fonts or {}
         -- Migrate the previous theme ID without changing saved layout keys.
         if saved.style == 'classic' then saved.style = 'wow' end
         if saved.style ~= 'diablo' and saved.style ~= 'wow' and saved.style ~= 'ds3' and saved.style ~= 'none' then saved.style = 'diablo' end
@@ -46,7 +54,7 @@ local function RegisterPanel()
     local ru = GetCVar('language.2') == 'ru'
     local function L(a,b) return ru and a or b end
     local panel = LAM:RegisterAddonPanel('AlabuzyaUIOptions', {
-        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='0.1.54',
+        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='1.0.1',
         registerForRefresh=true, registerForDefaults=true,
     })
     SLASH_COMMANDS['/alabuzyaui'] = function() LAM:OpenToPanel(panel) end
@@ -81,11 +89,27 @@ local function RegisterPanel()
                 choicesValues={'none','diablo','wow','ds3'}, getFunc=function() return db.style end,
                 setFunc=function(v) db.style=v end, default='diablo', needsReload=true,
                 tooltip=L('Выбор меняет только оформление после перезагрузки. Сетка, стрелка и остальные помощники работают независимо от темы и управляются своими настройками.', 'Changes presentation after reload. Grid, quest arrow and other helpers work independently of the theme, controlled by their own settings.')},
+            {type='dropdown', name=L('Шрифт','Font'),
+                choices={L('По умолчанию для темы','Theme default'),'ESO Medium','ESO Bold','ESO Chat','Antique','Handwritten','Stone Tablet','Gamepad Light','Gamepad Medium','Gamepad Bold'},
+                choicesValues=S.fonts, getFunc=function() return db.fonts[db.style] or 'default' end,
+                setFunc=function(v) db.fonts[db.style]=v end, default='default', needsReload=true,
+                tooltip=L('Шрифты клиента ESO с локализованными символами. Выбор сохраняется отдельно для каждой темы; примените перезагрузкой интерфейса.','ESO client fonts with localized glyphs. Saved separately for each theme; apply with Reload UI.')},
             Toggle('grid', L('Сетка предметов', 'Item grid'), L('Сетка инвентаря, торговца, банка и ремесла. Применяется после перезагрузки при любом оформлении.', 'Inventory, merchant, bank and crafting grids. Works with every style; requires reload.'), true),
-            Toggle('questArrow', L('Встроенная стрелка заданий', 'Bundled quest arrow'), L('Не управляет отдельно установленным QuestArrow. Применяется после перезагрузки при любом оформлении.', 'Does not control a separately installed QuestArrow. Works with every style; requires reload.'), true),
+            {type='description', text=L('QuestArrow поставляется отдельным аддоном в комплекте. Включайте или отключайте его в игровом списке аддонов; настройки стрелки: /qa help.', 'QuestArrow is bundled as an independent addon. Enable or disable it in the game addon list; arrow settings: /qa help.')},
         {type='button', name=L('Перезагрузить интерфейс','Reload UI'),
             tooltip=L('Применить изменения настроек без ввода /reloadui.','Apply pending settings without typing /reloadui.'),
             func=function() ReloadUI() end, width='full'},
+        }},
+        {type='submenu', name=L('Доходы и расходы','Income and expenses'), controls={
+            {type='checkbox',name=L('Счётчик золота','Gold tracker'),default=true,
+                getFunc=function() return db.goldLedger end,
+                setFunc=function(v) db.goldLedger=v if AlabuzyaUI.GoldLedger then AlabuzyaUI.GoldLedger.SetEnabled(v) end end,
+                tooltip=L('Клик по значку открывает историю. Переводы в собственный банк не считаются доходом/расходом. Выключенное время не учитывается.','Click the gold icon for history. Own-bank transfers are excluded. Changes while disabled are not counted.')},
+            {type='dropdown',name=L('Период подсчёта','Accounting period'),
+                choices={L('По сессиям','By session'),L('По дням','By day')},choicesValues={'session','day'},
+                getFunc=function() return db.goldLedgerMode or 'day' end,
+                setFunc=function(v) db.goldLedgerMode=v if AlabuzyaUI.GoldLedger then AlabuzyaUI.GoldLedger.Refresh() end end,
+                default='day',tooltip=L('Меняет значок и историю сразу. По дням суммируются все сессии одной календарной даты на текущем сервере.','Immediately changes the widget and history. Daily mode sums all sessions on the same calendar date on this server.')},
         }},
         Maintenance('charge', L('Зарядка оружия', 'Weapon recharge')),
         Maintenance('repair', L('Ремонт снаряжения', 'Equipment repair')),

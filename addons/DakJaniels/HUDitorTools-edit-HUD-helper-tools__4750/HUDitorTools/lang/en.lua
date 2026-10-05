@@ -1,104 +1,150 @@
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUTS", "Layouts")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME", "Default")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_UNNAMED", "Unnamed")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ACCOUNT", "Account")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CHARACTER", "Character")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_SAVE", "Save")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_NEW", "New")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_IMPORT", "Import")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_EXPORT", "Export")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_RENAME", "Rename")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_DELETE", "Delete")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_COPY", "New from current")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_NAME", "Layout name")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC", "Character specific")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK", "<<1>>*")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT", "<<1>>: <<2>>")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE", "Import HUD Layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS", "Paste a HUDitorTools share string, enter a name, then Import. The name in the string is ignored.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING", "Share string")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE", "Export HUD Layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS", "Press Ctrl+C to copy the selected share string. Addons cannot write the clipboard.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL", "Select all")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_NEW_TITLE", "New HUD Layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE", "Rename HUD Layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE", "Delete HUD Layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_DELETE_BODY", "Delete layout <<1>>? This cannot be undone.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE", "Unsaved HUD Changes")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY", "You have unsaved HUD changes. Switch to <<1>> anyway? Unsaved positions will be overwritten.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT", "Applied HUD layout <<1>>: wrote <<2>> keyboard / <<4>> gamepad rows; refreshed <<3>> / <<5>> registered elements. Omitted addon controls reset to default.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY", "Enter a layout name.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN", "That name is already used in this scope.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ERROR_CAP", "You already have 20 layouts in this scope.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING", "That layout no longer exists.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ERROR_LAST", "Keep at least one layout.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE", "Could not read that share string.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC", "Share string must start with HUDT.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION", "This share string uses an unsupported HUDT version.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED", "Share string is truncated.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER", "Share string has an invalid number.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY", "Share string has an unknown HUD element id.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA", "Share string has an invalid extra option.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING", "Share string has extra data after the layout.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_LAM_HEADER", "HUD Layouts")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE", "Active layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP", "Switch the live HUD to a named layout. Character layouts overwrite the account-wide HUD for this session.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP", "Copy the live HUD into the selected named layout.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP", "Create a named layout from the live HUD.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP", "Paste a share string to create and apply a named layout.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP", "Show a share string for the live HUD. Use Ctrl+C to copy it.")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_LAM_CHAT", "Show chat messages")
-ZO_CreateStringId("SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP", "Print layout apply details and HUD editor hide/show notices to chat. Leave this off unless you need the extra diagnostics.")
+local strings = {
+    ["SI_HUDITORTOOLS_LAYOUTS"] = "Layouts",
+    ["SI_HUDITORTOOLS_LAYOUT_DEFAULT_NAME"] = "Default",
+    ["SI_HUDITORTOOLS_LAYOUT_UNNAMED"] = "Unnamed",
+    ["SI_HUDITORTOOLS_LAYOUT_ACCOUNT"] = "Account",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER"] = "Character",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE"] = "Save",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW"] = "New",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT"] = "Import",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT"] = "Export",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME"] = "Rename",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE"] = "Delete",
+    ["SI_HUDITORTOOLS_LAYOUT_COPY"] = "New from current",
+    ["SI_HUDITORTOOLS_LAYOUT_NAME"] = "Layout name",
+    ["SI_HUDITORTOOLS_LAYOUT_CHARACTER_SPECIFIC"] = "Character specific",
+    ["SI_HUDITORTOOLS_LAYOUT_DIRTY_MARK"] = "<<1>>*",
+    ["SI_HUDITORTOOLS_LAYOUT_DROPDOWN_FORMAT"] = "<<1>>: <<2>>",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TITLE"] = "Import HUD Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_INSTRUCTIONS"] = "Paste a HUDitorTools share string, enter a name, then Import. The name in the string is ignored.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_SHARE_STRING"] = "Share string",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TITLE"] = "Export HUD Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_INSTRUCTIONS"] = "Press Ctrl+C to copy the selected share string. Addons cannot write the clipboard.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_SELECT_ALL"] = "Select all",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TITLE"] = "New HUD Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_RENAME_TITLE"] = "Rename HUD Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_TITLE"] = "Delete HUD Layout",
+    ["SI_HUDITORTOOLS_LAYOUT_DELETE_BODY"] = "Delete layout <<1>>? This cannot be undone.",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_TITLE"] = "Unsaved HUD Changes",
+    ["SI_HUDITORTOOLS_LAYOUT_UNSAVED_BODY"] = "You have unsaved HUD changes. Switch to <<1>> anyway? Unsaved positions will be overwritten.",
+    ["SI_HUDITORTOOLS_LAYOUT_APPLY_RESULT"] = "Applied HUD layout <<1>>: wrote <<2>> keyboard / <<4>> gamepad rows; refreshed <<3>> / <<5>> registered elements. Omitted addon controls reset to default.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_EMPTY"] = "Enter a layout name.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_NAME_TAKEN"] = "That name is already used in this scope.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_CAP"] = "You already have 20 layouts in this scope.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_MISSING"] = "That layout no longer exists.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_LAST"] = "Keep at least one layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_ERROR_DECODE"] = "Could not read that share string.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_MAGIC"] = "Share string must start with HUDT.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_VERSION"] = "This share string uses an unsupported HUDT version.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRUNCATED"] = "Share string is truncated.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_NUMBER"] = "Share string has an invalid number.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_SAVEKEY"] = "Share string has an unknown HUD element id.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_EXTRA"] = "Share string has an invalid extra option.",
+    ["SI_HUDITORTOOLS_LAYOUT_CODEC_ERROR_TRAILING"] = "Share string has extra data after the layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_HEADER"] = "HUD Layouts",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE"] = "Active layout",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_ACTIVE_TOOLTIP"] = "Switch the live HUD to a named layout. Character layouts overwrite the account-wide HUD for this session.",
+    ["SI_HUDITORTOOLS_LAYOUT_SAVE_TOOLTIP"] = "Copy the live HUD into the selected named layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_NEW_TOOLTIP"] = "Create a named layout from the live HUD.",
+    ["SI_HUDITORTOOLS_LAYOUT_IMPORT_TOOLTIP"] = "Paste a share string to create and apply a named layout.",
+    ["SI_HUDITORTOOLS_LAYOUT_EXPORT_TOOLTIP"] = "Show a share string for the live HUD. Use Ctrl+C to copy it.",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT"] = "Show chat messages",
+    ["SI_HUDITORTOOLS_LAYOUT_LAM_CHAT_TOOLTIP"] = "Print layout apply details and HUD editor hide/show notices to chat. Leave this off unless you need the extra diagnostics.",
 
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE", "Appearance")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_SCALE", "Scale %")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT", "Font")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT", "Default")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE", "Font size")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE", "Font outline")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_RESET", "Reset scale and font")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM", "Medium")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD", "Bold")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE", "Antique")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM", "Gamepad medium")
-ZO_CreateStringId("SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD", "Gamepad bold")
-ZO_CreateStringId("SI_HUDITORTOOLS_RESOURCE_GROUP", "Resource bars")
-ZO_CreateStringId("SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE", "Pyramid layout")
-ZO_CreateStringId("SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND", "Don't expand")
-ZO_CreateStringId("SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH", "Health width")
+    ["SI_HUDITORTOOLS_APPEARANCE"] = "Appearance",
+    ["SI_HUDITORTOOLS_APPEARANCE_SCALE"] = "Scale %",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT"] = "Font",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_DEFAULT"] = "Default",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_SIZE"] = "Font size",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_OUTLINE"] = "Font outline",
+    ["SI_HUDITORTOOLS_APPEARANCE_RESET"] = "Reset scale and font",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_MEDIUM"] = "Medium",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_BOLD"] = "Bold",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_ANTIQUE"] = "Antique",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_MEDIUM"] = "Gamepad medium",
+    ["SI_HUDITORTOOLS_APPEARANCE_FONT_GAMEPAD_BOLD"] = "Gamepad bold",
 
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_BATTLEGROUND", "Battleground Score")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER", "Objective Meter")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION", "Player Interaction")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS", "Player Progress")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT", "Reticle Interact")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_RETICLE", "Reticle")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_STEALTH_ICON", "Stealth Icon")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_TUTORIALS", "Tutorials")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_PET_GROUP", "Pet Group")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER", "Azurah Bag Watcher")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER", "Azurah Werewolf Timer")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_PLAYER", "LuiExtended Player")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_TARGET", "LuiExtended Target")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET", "LuiExtended AvA Target")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_GROUP", "LuiExtended Group")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_RAID", "LuiExtended Raid")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_PET", "LuiExtended Pet")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_COMPANION", "LuiExtended Companion")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_BOSS", "LuiExtended Boss")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_ALERTS", "LuiExtended Alerts")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING", "LuiExtended Combat Text Outgoing")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING", "LuiExtended Combat Text Incoming")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT", "LuiExtended Combat Text Alerts")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT", "LuiExtended Combat Text Points")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE", "LuiExtended Combat Text Resources")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS", "LuiExtended Player Buffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS", "LuiExtended Player Debuffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS", "LuiExtended Target Buffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS", "LuiExtended Target Debuffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS", "LuiExtended Prominent Buffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS", "LuiExtended Prominent Debuffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS", "LuiExtended Long Buffs")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR", "LuiExtended Cast Bar")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL", "LuiExtended Crowd Control")
-ZO_CreateStringId("SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP", "LuiExtended MiniMap")
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP"] = "Resource bars",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_ENABLE"] = "Pyramid layout",
+    ["SI_HUDITORTOOLS_RESOURCE_PREVENT_EXPAND"] = "Don't expand",
+    ["SI_HUDITORTOOLS_RESOURCE_GROUP_WIDTH"] = "Health width",
+
+    ["SI_HUDITORTOOLS_FRAME_BATTLEGROUND"] = "Battleground Score",
+    ["SI_HUDITORTOOLS_FRAME_OBJECTIVE_METER"] = "Objective Meter",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_INTERACTION"] = "Player Interaction",
+    ["SI_HUDITORTOOLS_FRAME_PLAYER_PROGRESS"] = "Player Progress",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE_INTERACT"] = "Reticle Interact",
+    ["SI_HUDITORTOOLS_FRAME_RETICLE"] = "Reticle",
+    ["SI_HUDITORTOOLS_FRAME_STEALTH_ICON"] = "Stealth Icon",
+    ["SI_HUDITORTOOLS_FRAME_TUTORIALS"] = "Tutorials",
+    ["SI_HUDITORTOOLS_FRAME_PET_GROUP"] = "Pet Group",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_BAG_WATCHER"] = "Azurah Bag Watcher",
+    ["SI_HUDITORTOOLS_FRAME_AZURAH_WEREWOLF_TIMER"] = "Azurah Werewolf Timer",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER"] = "LuiExtended Player",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET"] = "LuiExtended Target",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_AVA_TARGET"] = "LuiExtended AvA Target",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_GROUP"] = "LuiExtended Group",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_RAID"] = "LuiExtended Raid",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PET"] = "LuiExtended Pet",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMPANION"] = "LuiExtended Companion",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_BOSS"] = "LuiExtended Boss",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_ALERTS"] = "LuiExtended Alerts",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_OUTGOING"] = "LuiExtended Combat Text Outgoing",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_INCOMING"] = "LuiExtended Combat Text Incoming",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_ALERT"] = "LuiExtended Combat Text Alerts",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_POINT"] = "LuiExtended Combat Text Points",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_COMBAT_TEXT_RESOURCE"] = "LuiExtended Combat Text Resources",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_BUFFS"] = "LuiExtended Player Buffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PLAYER_DEBUFFS"] = "LuiExtended Player Debuffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_BUFFS"] = "LuiExtended Target Buffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_TARGET_DEBUFFS"] = "LuiExtended Target Debuffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_BUFFS"] = "LuiExtended Prominent Buffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_PROMINENT_DEBUFFS"] = "LuiExtended Prominent Debuffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_LONG_BUFFS"] = "LuiExtended Long Buffs",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CAST_BAR"] = "LuiExtended Cast Bar",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_CROWD_CONTROL"] = "LuiExtended Crowd Control",
+    ["SI_HUDITORTOOLS_FRAME_LUIE_MINIMAP"] = "LuiExtended MiniMap",
+
+    --New Baertram 261004
+    --LAM
+    ["SI_HUDITORTOOLS_INFO_BOX_LAM_HEADER"] = "HUD Editor Info Box",
+    ["SI_HUDITORTOOLS_INFO_BOX_SETTINGS_BUTTON_LAM"] = "Settings button at HUD Editor InfoBox",
+    ["SI_HUDITORTOOLS_INFO_BOX_SETTINGS_BUTTON_LAM_TT"] = "Enable a right click context-menu settings button top-left at the InfoBox of the HUD Editor.\nIf this is enabled the \'Grid\' settings will move from the InfoBox to this context menu!",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_LAM_HEADER"] = "HUD Editor",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_CNTXTMENU_LAM"] = "Enable context-menu at HUD controls",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_CNTXTMENU_LAM_TT"] = "Enable a right click context-menu at movable HUD controls, where you can e.g. hide/show the HUD elements at the current HUD editor (for a better overview).\nHidden HUD elements can also be enabled from the Info Box dropdown list again (entries in red color are user-hidden HUD elements).",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_HIDDEN_BORDER_COLOR_LAM"] = "Hidden HUD element\'s border color",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_HIDDEN_BORDER_COLOR_LAM_TT"] = "Change the border color of hidden HUD elements, so you can see them which ones are hidden at your HUD, without having to check each element\'s InfoBox",
+    ["SI_HUDITORTOOLS_GRID_LAM_HEADER"] = "Grid",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM"] = "Show grid overlay",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LAM_TT"] = "Enable a grid below the HUD editor elements, where you can visually align the elements to (or use the snap-to-grid feature below).",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM"] = "Enable snap-to-grid",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SNAP_LAM_TT"] = "Enable the snap-to-grid feature at the grid overlay: Elements moved will be automatically aligned to the grid.",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM"] = "Grid size",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM_TT"] = "The grid\'s size",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LINE_COLOR_LAM"] = "Grid line color",
+    ["SI_HUDITORTOOLS_HUD_EDITOR_GRID_LINE_COLOR_LAM_TT"] = "Change the grid line color and alpha level",
+    --Context menu
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_ELEMENTS"] = "Show all element names",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_ELEMENTS_TT"] = "Always show the element names, not only if you mouse-over or select them.\nThis setting will depend on the \'Hide element <= length\' slider value.",
+    ["SI_HUDITORTOOLS_CNTXT_HIDE_ELEMENTS_LESS_LENGTH"] = "Hide element <= length",
+    ["SI_HUDITORTOOLS_CNTXT_HIDE_ELEMENTS_LESS_LENGTH_TT"] = "\nHide the elements which name is shorter than the chosen slider value.",
+    ["SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS_COUNT"] = "HUD Editor - Hidden Elements (#%s)",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_HIDDEN_ELEMENTS"] = "Show all hidden elements again",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_COLOR_PICKER"] = "Show color picker",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_COLOR_PICKER_TT"] = "Show a live color picker in the HUD editor for grid and element colors.",
+    ["SI_HUDITORTOOLS_CNTXT_COLORS"] = "Colors",
+    ["SI_HUDITORTOOLS_COLOR_GRID"] = "Grid",
+    ["SI_HUDITORTOOLS_COLOR_SELECTED"] = "Selected",
+    ["SI_HUDITORTOOLS_COLOR_UNSELECTED"] = "Unselected",
+    ["SI_HUDITORTOOLS_COLOR_HIDDEN"] = "Hidden",
+    ["SI_HUDITORTOOLS_CNTXT_HIDDEN_ELEMENTS"] = "Hidden Elements",
+    ["SI_HUDITORTOOLS_CNTXT_ELEMENT_UNHIDE"] = "Unhide selected",
+    ["SI_HUDITORTOOLS_CNTXT_HIDE_AT_HUDEDITOR"] = "Hide at HUD Editor",
+    ["SI_HUDITORTOOLS_CNTXT_UNHIDE_AT_HUDEDITOR"] = "Unhide at HUD Editor",
+    ["SI_HUDITORTOOLS_CNTXT_SHOW_ALL_HIDDEN"] = "|c00F000Show all|r hidden elements again",
+}
+
+for stringId, value in pairs(strings) do
+    ZO_CreateStringId(stringId, value)
+end

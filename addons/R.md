@@ -73,7 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Recount (Renovated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lwndow/Recount-Renovated__2739) | lwndow | PC / Mac | 0.7.6 |
 | [Recount (Update)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ferather/Recount-Update__2754) | Ferather | PC / Mac | 0.6.5 |
 | [Recount (Wolfhunter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadow-Fighter/Recount-Wolfhunter__875) | Shadow-Fighter | PC / Mac | 0.6.3 |
-| [recov tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/recov-tracker__eff02a68-b788-4269-be3d-78283a26f306) | j.hhh | Console | — |
+| [Recovery Tick Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Recovery-Tick-Tracker__eff02a68-b788-4269-be3d-78283a26f306) | j.hhh | Console | — |
 | [RecoveryTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/RecoveryTracker__c8397663-7bee-4e0b-89de-16dcf5c029d7) | Vixen_Hunny | Console | — |
 | [Red's Countess Travel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/redeven/Red-s-Countess-Travel__2623) | redeven | PC / Mac | 1.1.0 |
 | [Refinement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Refinement-Tracker__2130) | Kyzeragon | PC / Mac | 0.9.6 |
@@ -103,7 +103,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ResearchTimer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hisdad/ResearchTimer__974) | hisdad | PC / Mac | 1.98 |
 | [ResearchTimer - Unofficial Update](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fennek/ResearchTimer---Unofficial-Update__3063) | Fennek | PC / Mac | 2.1.8 |
 | [Reset Markers (Survey & Treasure Map)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/Reset-Markers-Survey-Treasure-Map__6a2d5726-84d1-4db6-adba-e378e2005067) | tmbrinks | Console | — |
-| [Reset Markers (Survey & Treasure Map)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/Reset-Markers-Survey-Treasure-Map__4237) | tmbrinks | PC / Mac | 2.2.7 |
+| [Reset Markers (Survey & Treasure Map)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmbrinks/Reset-Markers-Survey-Treasure-Map__4237) | tmbrinks | PC / Mac | 2.2.8 |
 | [Reset Tp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eymix/Reset-Tp__3310) | Eymix | PC / Mac | 1.1 |
 | [Resist-O-Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Complicative/Resist-O-Meter__3537) | Complicative | PC / Mac | 1.2.0 |
 | [Resource Dump](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Flamindemigod/Resource-Dump__3104) | Flamindemigod | PC / Mac | 1.1.0 |

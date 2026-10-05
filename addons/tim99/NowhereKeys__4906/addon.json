@@ -18,7 +18,7 @@
     "NowhereKeys"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4906/",
-  "fingerprint": "57931bcd938aca1aad340605936bff90efdc8c209e9bd34626550eb2a7675418",
+  "fingerprint": "d9212f7e128f58f882d625aa12a1e54efa2865c998f88588424a75806064b050",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17658.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4906",
   "source_url": "https://www.esoui.com/downloads/info4906-NowhereKeys.html",
   "stats": {
-    "downloads": 19,
+    "downloads": 47,
     "favorites": 0,
-    "monthly_downloads": 16
+    "monthly_downloads": 43
   },
   "title": "NowhereKeys",
-  "updated_at": 1790950262000,
-  "version": "1.0"
+  "updated_at": 1791115483000,
+  "version": "1.1"
 }

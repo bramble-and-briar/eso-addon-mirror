@@ -3,6 +3,17 @@
 
 
 
+[color=#6FCB9F]Version: 4.5.005149[/color]
+[color=#8C8A82]Release date: 05.10.2026[/color]
+
+Stability release for Lua compatibility, batch withdrawals, and material-change reports.
+
+- Lua Compatibility: Reduced captured-variable counts in main-window updates and split detail-window initialization to stay within the Lua 5.1 upvalue limit without changing window behavior or layout.
+- Withdrawals: Quantity input and all presets now unlock after a batch withdrawal completes or times out, while remaining locked during active withdrawals. Single and batch withdrawals share the same quantity-control handling.
+- Change Details: Full inventory updates now rebuild the Since last review material-change report correctly, including combined full and single-slot updates. The report also clears correctly when stock returns to the acknowledged baseline.
+
+
+
 [color=#6FCB9F]Version: 4.4.135835[/color]
 [color=#8C8A82]Release date: 01.09.2026[/color]
 

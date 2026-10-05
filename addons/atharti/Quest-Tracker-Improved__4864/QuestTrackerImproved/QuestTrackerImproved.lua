@@ -65,6 +65,10 @@ function QTI.ApplyControlColor(control, color)
 	control:SetColor(color.r, color.g, color.b, color.a)
 end
 
+function QTI.ApplyTextAlignment(control)
+	control:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+end
+
 function QTI.ApplyConditionStyle(control)
 	if control.entryType == ENTRY_TYPE_SUBCATEGORY_CONDITION then
 		control:SetFont(QTI.GetFont(QTI.SV.hintDescFont, QTI.SV.hintDescSize, QTI.SV.hintDescStyle))
@@ -73,6 +77,7 @@ function QTI.ApplyConditionStyle(control)
 		control:SetFont(QTI.GetFont(QTI.SV.conditionFont, QTI.SV.conditionSize, QTI.SV.conditionStyle))
 		QTI.ApplyControlColor(control, QTI.SV.conditionColor)
 	end
+	QTI.ApplyTextAlignment(control)
 end
 
 function QTI.GetQuestIconTexture(questType, zoneDisplayType)
@@ -157,11 +162,18 @@ function QTI.HideButton()
 	end)
 end
 
+function QTI.ApplyTreeIndent()
+	local tracker = FOCUSED_QUEST_TRACKER
+	tracker.treeView:SetIndent(15)
+	tracker.treeView:Update()
+end
+
 function QTI.WrapPool(pool, fontGetter)
 	local originalAcquire = pool.AcquireObject
 	pool.AcquireObject = function(poolSelf, ...)
 		local control, key = originalAcquire(poolSelf, ...)
 		control:SetFont(fontGetter())
+		QTI.ApplyTextAlignment(control)
 		return control, key
 	end
 end
@@ -190,6 +202,7 @@ function QTI.ApplyFontsAndWidth()
 		control:SetFont(QTI.GetFont(QTI.SV.headerFont, QTI.SV.headerSize, QTI.SV.headerStyle))
 		control:SetWidth(QTI.SV.width)
 		QTI.ApplyControlColor(control, QTI.SV.headerColor)
+		QTI.ApplyTextAlignment(control)
 	end
 	for _, control in pairs(tracker.conditionPool:GetActiveObjects()) do
 		QTI.ApplyConditionStyle(control)
@@ -199,6 +212,7 @@ function QTI.ApplyFontsAndWidth()
 		control:SetFont(QTI.GetFont(QTI.SV.hintFont, QTI.SV.hintSize, QTI.SV.hintStyle))
 		control:SetWidth(QTI.SV.width)
 		QTI.ApplyControlColor(control, QTI.SV.hintColor)
+		QTI.ApplyTextAlignment(control)
 	end
 end
 
@@ -218,75 +232,80 @@ function QTI.RefreshHeaderIcons()
 	end
 end
 
-function QTI.HookFonts()
+function QTI.HookTracker()
 	ZO_PostHook(ZO_Tracker, "ApplyPlatformStyle", function(self)
-		QTI.ResizePanel()
+		QTI.RefreshAll()
 	end)
 
-	ZO_PostHook(ZO_Tracker, "InitializeQuestHeader", function(self, questName, questType, questHeader)
+	ZO_PostHook(ZO_Tracker, "UpdateTreeView", function(self)
+		QTI.ApplyTreeIndent()
+	end)
+
+	ZO_PostHook(ZO_Tracker, "InitializeQuestHeader", function(self, questName, questType, questHeader, isComplete, zoneDisplayType)
 		QTI.ApplyControlColor(questHeader, QTI.SV.headerColor)
+		QTI.ApplyTextAlignment(questHeader)
+		QTI.ApplyHeaderIcon(questHeader)
 	end)
 
 	ZO_PostHook(ZO_Tracker, "DoHeaderNameHighlight", function(self, label, state)
 		if state ~= 1 then
 			QTI.ApplyControlColor(label, QTI.SV.headerColor)
 		end
+		QTI.ApplyTextAlignment(label)
 	end)
 
 	ZO_PostHook(ZO_Tracker, "PopulateQuestConditions", function(self)
 		QTI.ApplyFontsAndWidth()
-	end)
-end
-
-function QTI.HookIcons()
-	ZO_PostHook(ZO_Tracker, "InitializeQuestHeader", function(self, questName, questType, questHeader, isComplete, zoneDisplayType)
-		QTI.ApplyHeaderIcon(questHeader)
-	end)
-
-	ZO_PostHook(ZO_Tracker, "ApplyPlatformStyle", function(self)
-		QTI.RefreshHeaderIcons()
+		QTI.ApplyTreeIndent()
 	end)
 end
 
 function QTI.TimerTweaks()
+	local managerHooked = false
+
 	ZO_PostHook(_G, "ZO_QuestTimer_OnUpdate", function(control)
-		local label = control.label
-		local timeLabel = control.time
+		if managerHooked then return end
+		managerHooked = true
 
-		if label:GetText() ~= TIMER_ICON then
-			label:SetText(TIMER_ICON)
-		end
+		local owner = control.owner
 
-		local xOffset = 40
-		local yOffset = -20
+		ZO_PostHook(owner, "UpdateTimer", function(self, timer, now)
+			local remaining = timer.ends - now
+			if remaining > 0 then
+				timer.time:SetText(ZO_FormatTime(remaining, TIME_FORMAT_STYLE_COLONS, TIME_FORMAT_PRECISION_SECONDS, TIME_FORMAT_DIRECTION_DESCENDING))
+			end
+		end)
 
-		label:SetWidth(24)
+		ZO_PostHook(owner, "PerformLayout", function(self)
+			for _, timer in pairs(self.timers) do
+				local label = timer.label
+				local timeLabel = timer.time
 
-		label:ClearAnchors()
-		label:SetAnchor(TOPLEFT, ZO_FocusedQuestTrackerPanel, TOPLEFT, xOffset, yOffset)
+				label:SetText(TIMER_ICON)
+				label:SetWidth(24)
+				label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+				label:ClearAnchors()
+				label:SetAnchor(LEFT, timer, LEFT, 0, 0)
 
-		timeLabel:ClearAnchors()
-		timeLabel:SetAnchor(TOPLEFT, ZO_FocusedQuestTrackerPanel, TOPLEFT, xOffset + 28, yOffset)
+				timeLabel:ClearAnchors()
+				timeLabel:SetAnchor(LEFT, timer, LEFT, 28, 0)
 
-		if not control.QTI_timerStyled then
-			control.QTI_timerStyled = true
+				timer:SetExcludeFromResizeToFitExtents(true)
+				timer:ClearAnchors()
+				timer:SetAnchor(TOPLEFT, ZO_FocusedQuestTrackerPanel, TOPLEFT, -3, -22)
+			end
+		end)
 
-			local trackerContainer = ZO_FocusedQuestTrackerPanel:GetNamedChild("Container")
-
-			label:SetParent(trackerContainer)
-			timeLabel:SetParent(trackerContainer)
-
-			control:SetHeight(0)
-
-			ZO_PreHook(control, "SetHidden", function(self, hidden)
-				label:SetHidden(hidden)
-				timeLabel:SetHidden(hidden)
-			end)
-
-			label:SetHidden(control:IsHidden())
-			timeLabel:SetHidden(control:IsHidden())
-		end
+		owner:PerformLayout()
 	end)
+end
+
+function QTI.DetachQuestTracker()
+	local hudTrackerElement = HUD_TRACKER_MANAGER:GetPlatformHUDElement()
+	if hudTrackerElement:GetCustomOptionValue("SeparatedTrackers", "Quest") ~= true then
+		hudTrackerElement:SetCustomOptionValue("SeparatedTrackers", "Quest", true)
+		HUD_TRACKER_MANAGER:RefreshLayout()
+	end
 end
 
 function QTI.ResizePanel()
@@ -297,6 +316,7 @@ function QTI.RefreshAll()
 	QTI.ApplyFontsAndWidth()
 	QTI.ResizePanel()
 	QTI.RefreshHeaderIcons()
+	QTI.ApplyTreeIndent()
 end
 
 function QTI.OnAddOnLoaded(_, addOnName)
@@ -309,11 +329,17 @@ function QTI.OnAddOnLoaded(_, addOnName)
 
 	QTI.HideButton()
 	QTI.SetupFonts()
-	QTI.HookFonts()
-	QTI.HookIcons()
+	QTI.HookTracker()
 	QTI.TimerTweaks()
+	QTI.ApplyFontsAndWidth()
 	QTI.ResizePanel()
 	QTI.RefreshHeaderIcons()
+	QTI.ApplyTreeIndent()
+
+	EM:RegisterForEvent(QTI.name .. "_Detach", EVENT_ADD_ONS_LOADED, function()
+		EM:UnregisterForEvent(QTI.name .. "_Detach", EVENT_ADD_ONS_LOADED)
+		QTI.DetachQuestTracker()
+	end)
 
 	EM:RegisterForEvent(QTI.name, EVENT_QUEST_ADVANCED, function(_, questIndex)
 		FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)

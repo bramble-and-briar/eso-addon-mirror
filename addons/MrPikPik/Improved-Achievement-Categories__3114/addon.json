@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/MrPikPik/Improved-Achievement-Categories__3114",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "MrPikPik",
   "canonical_id": "esoui:3114",
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Update 43",
-      "version": "10.1.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3114",
@@ -17,7 +18,7 @@
     "ImprovedAchievementCategories"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3114/",
-  "fingerprint": "34fa0c1117771b9592e0b6da4bb2627b21506f1a5f010a37e9a06b182f9a464e",
+  "fingerprint": "dabc57650d0a9563daeea60508bc931dd90bced512df8361e7f8c9cbd79bcceb",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10483.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "3114",
   "source_url": "https://www.esoui.com/downloads/info3114-ImprovedAchievementCategories.html",
   "stats": {
-    "downloads": 8045,
+    "downloads": 8361,
     "favorites": 14,
-    "monthly_downloads": 129
+    "monthly_downloads": 127
   },
   "title": "Improved Achievement Categories",
-  "updated_at": 1724100579000,
-  "version": "1.0.4"
+  "updated_at": 1791143714000,
+  "version": "1.0.5"
 }

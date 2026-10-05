@@ -1,9 +1,10 @@
 ## Title: Radiant Range
 ## Author: WifeyRytic
-## Version: 1.0.3
-## AddOnVersion: 3
+## Version: 1.0.5
+## AddOnVersion: 5
 ## APIVersion: 101050 101051
 ## DependsOn: LibAddonMenu-2.0>=43 LibGroupBroadcast>=91
 ## SavedVariables: RadiantRangeSavedVariables
 
 RadiantRange.lua
+RadiantRangeStone.dds

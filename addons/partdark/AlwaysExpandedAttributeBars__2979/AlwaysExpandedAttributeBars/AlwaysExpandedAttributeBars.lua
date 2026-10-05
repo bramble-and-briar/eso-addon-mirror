@@ -1,129 +1,140 @@
 -- Always Expanded Attribute Bars
--- Modified version with color customization
+-- Modified version with color customization and adjustable bar size
 
 -- Create global namespace
 AEAB = AEAB or {}
 AEAB.name = "AlwaysExpandedAttributeBars"
 
--- Use AEAB.defaults for standard ESO colors
-
 local ApplyTemplate = ApplyTemplateToControl
 
------------------------------------------------------------
+----------------------------------------------------------
 -- Attribute Bars
------------------------------------------------------------
+----------------------------------------------------------
 
 -- Templates - only apply to player attribute bars
 ApplyTemplate(ZO_PlayerAttribute, 'ALT_PlayerAttribute')
 
--- Override functions only for player bars, not for NPCs
-local originalUnwaveringInitializeBarValues = ZO_UnitVisualizer_UnwaveringModule.InitializeBarValues
-function ZO_UnitVisualizer_UnwaveringModule:InitializeBarValues(...)
-   --    if self.barControls and self.barControls[1] and self.barControls[1]:GetName():find("ZO_PlayerAttribute") then
-   --     return
-  --  end
-      return originalUnwaveringInitializeBarValues(self, ...)
-end
+-- Block the armor damage module from reshaping the player bars.
+-- Keeping this empty means the bars stay expanded instead of shrinking.
+function ZO_UnitVisualizer_ArmorDamage:InitializeBarValues() end
 
-local originalArmorDamageInitializeBarValues = ZO_UnitVisualizer_ArmorDamage.InitializeBarValues
+----------------------------------------------------------
+-- Max resource change effects (optional disable)
+----------------------------------------------------------
 
+local shrinkExpandHooked = false
+local shrinkExpandOriginal
 
-function ZO_UnitVisualizer_ArmorDamage:InitializeBarValues(...)  
-  --  if self.barControls and self.barControls[1] and self.barControls[1]:GetName():find("ZO_PlayerAttribute") then
-        return
-   -- end   
-   -- return originalArmorDamageInitializeBarValues(self, ...)
-end
-
--- Disable max resource change effects
 function AEAB.DisableResourceChangeEffects()
     if not AEAB.savedVars or not AEAB.savedVars.disableMaxResourceChangeEffects then return end
-   
-   ZO_UnitVisualizer_ShrinkExpandModule.InitializeBarValues = function() return end
-   end
+    if shrinkExpandHooked then return end
+    shrinkExpandOriginal = ZO_UnitVisualizer_ShrinkExpandModule.InitializeBarValues
+    ZO_UnitVisualizer_ShrinkExpandModule.InitializeBarValues = function() end
+    shrinkExpandHooked = true
+end
 
--- Use Custom Template for Health Bar Shields - only for player
-SecurePostHook(ZO_UnitVisualizer_PowerShieldModule, 'ShowOverlay', function(_, _, info) 
-    -- Only apply to player shields
-    local isPlayerShield = false
-    if info and info.overlayControls and info.overlayControls[1] then
-        local name = info.overlayControls[1]:GetName()
-        if name and string.find(name, "ZO_PlayerAttribute") then
-            isPlayerShield = true
+function AEAB.EnableResourceChangeEffects()
+    if not shrinkExpandHooked then return end
+    if shrinkExpandOriginal then
+        ZO_UnitVisualizer_ShrinkExpandModule.InitializeBarValues = shrinkExpandOriginal
+    end
+    shrinkExpandHooked = false
+end
+
+----------------------------------------------------------
+-- Power shield overlay customization
+----------------------------------------------------------
+
+-- Use the custom template for health bar shields (player only)
+SecurePostHook(ZO_UnitVisualizer_PowerShieldModule, 'ShowOverlay', function(_, _, info)
+    if not (info and info.overlayControls and info.overlayControls[1]) then return end
+
+    local name = info.overlayControls[1]:GetName()
+    if not (name and string.find(name, "ZO_PlayerAttribute", 1, true)) then return end
+
+    local sv = AEAB.savedVars
+    local width = (sv and sv.barWidth) or AEAB.defaults.barWidth
+    local height = (sv and sv.barHeight) or AEAB.defaults.barHeight
+
+    local function SizeOverlay(overlay)
+        if not overlay then return end
+        ApplyTemplate(overlay, 'ALT_PowerShieldBar')
+        overlay:SetDimensions(width, height)
+        local fakeHealth = overlay.fakeHealthBar
+        if fakeHealth then
+            fakeHealth:ClearAnchors()
+            fakeHealth:SetAnchorFill()
         end
     end
-    
-    if isPlayerShield then
-        -- Apply template
-        ApplyTemplate(info.overlayControls[1], 'ALT_PowerShieldBar')
-        ApplyTemplate(info.overlayControls[2], 'ALT_PowerShieldBar')
-        
-        -- Apply shield color if custom shields are enabled
-        if AEAB.savedVars and AEAB.savedVars.useCustomShieldColor and AEAB.savedVars.shieldColor then
-            info.overlayControls[1]:SetColor(unpack(AEAB.savedVars.shieldColor))
-            info.overlayControls[2]:SetColor(unpack(AEAB.savedVars.shieldColor))
+
+    SizeOverlay(info.overlayControls[1])
+    SizeOverlay(info.overlayControls[2])
+
+    -- Apply shield color if custom shields are enabled
+    if sv and sv.useCustomShieldColor and sv.shieldColor then
+        info.overlayControls[1]:SetColor(unpack(sv.shieldColor))
+        if info.overlayControls[2] then
+            info.overlayControls[2]:SetColor(unpack(sv.shieldColor))
         end
-        
-        -- Apply custom color to the fake health bar inside shield overlay
-        if AEAB.savedVars and AEAB.savedVars.useCustomHealthColor and AEAB.savedVars.healthColor then
-            -- Apply to fake health bars in shield overlays
-            if info.overlayControls[1].fakeHealthBar then
-                info.overlayControls[1].fakeHealthBar:SetColor(unpack(AEAB.savedVars.healthColor))
-            end
-            if info.overlayControls[2].fakeHealthBar then
-                info.overlayControls[2].fakeHealthBar:SetColor(unpack(AEAB.savedVars.healthColor))
-            end
-            
-            -- Also apply to original health bars
-            local healthBar = ZO_PlayerAttributeHealth
-            if healthBar then
-                local barLeft = healthBar:GetNamedChild("BarLeft")
-                local barRight = healthBar:GetNamedChild("BarRight")
-                if barLeft and barRight then
-                    barLeft:SetColor(unpack(AEAB.savedVars.healthColor))
-                    barRight:SetColor(unpack(AEAB.savedVars.healthColor))
-                end
+    end
+
+    -- Apply custom color to the fake health bar inside the shield overlay
+    if sv and sv.useCustomHealthColor and sv.healthColor then
+        if info.overlayControls[1].fakeHealthBar then
+            info.overlayControls[1].fakeHealthBar:SetColor(unpack(sv.healthColor))
+        end
+        if info.overlayControls[2] and info.overlayControls[2].fakeHealthBar then
+            info.overlayControls[2].fakeHealthBar:SetColor(unpack(sv.healthColor))
+        end
+
+        -- Also apply to the original health bars
+        local healthBar = ZO_PlayerAttributeHealth
+        if healthBar then
+            local barLeft = healthBar:GetNamedChild("BarLeft")
+            local barRight = healthBar:GetNamedChild("BarRight")
+            if barLeft and barRight then
+                barLeft:SetColor(unpack(sv.healthColor))
+                barRight:SetColor(unpack(sv.healthColor))
             end
         end
     end
 end)
 
--- Add borders to attribute bars
+----------------------------------------------------------
+-- Borders (added once)
+----------------------------------------------------------
+
 function AEAB:AddBorders()
-  local function AddBorder(control, name, r, g, b, a)
-    if control then
-      local border = control:GetNamedChild(name)
-      if not border then
-        border = WINDOW_MANAGER:CreateControl(control:GetName() .. name, control, CT_TEXTURE)
-        border:SetAnchorFill()
-        border:SetTexture("EsoUI/Art/Miscellaneous/glowBorder.dds")
-        border:SetBlendMode(TEX_BLEND_MODE_ADD)
-        border:SetDrawLevel(1)
-        border:SetColor(r, g, b, a)
-      end
-    end
-  end
-  
-  -- Add borders to health bar
-  AddBorder(ZO_PlayerAttributeHealth:GetNamedChild("BarLeft"), "HealthBorder", 1, 0.3, 0.3, 0.3)
-  AddBorder(ZO_PlayerAttributeHealth:GetNamedChild("BarRight"), "HealthBorder", 1, 0.3, 0.3, 0.3)
-  
-  -- Add borders to magicka bar
-  AddBorder(ZO_PlayerAttributeMagicka:GetNamedChild("Bar"), "MagickaBorder", 0.3, 0.5, 1, 0.3)
-  
-  -- Add borders to stamina bar
-  AddBorder(ZO_PlayerAttributeStamina:GetNamedChild("Bar"), "StaminaBorder", 0.5, 0.8, 0.3, 0.3)
-end
+    if AEAB.bordersAdded then return end
+    AEAB.bordersAdded = true
 
--- Apply settings when UI is loaded
-local function OnPlayerActivated()
-  -- Wait a bit to ensure all UI elements are loaded
-  zo_callLater(function()
-    if AEAB.ApplySettings then
-      AEAB:ApplySettings()
-      AEAB:AddBorders()
+    local function AddBorder(control, name, r, g, b, a)
+        if control then
+            local border = control:GetNamedChild(name)
+            if not border then
+                border = WINDOW_MANAGER:CreateControl(control:GetName() .. name, control, CT_TEXTURE)
+                border:SetAnchorFill()
+                border:SetTexture("EsoUI/Art/Miscellaneous/glowBorder.dds")
+                border:SetBlendMode(TEX_BLEND_MODE_ADD)
+                border:SetDrawLevel(1)
+                border:SetColor(r, g, b, a)
+            end
+        end
     end
-  end, 1000)
-end
 
-EVENT_MANAGER:RegisterForEvent(AEAB.name.."_PlayerActivated", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    local healthBar = ZO_PlayerAttributeHealth
+    if healthBar then
+        AddBorder(healthBar:GetNamedChild("BarLeft"), "HealthBorder", 1, 0.3, 0.3, 0.3)
+        AddBorder(healthBar:GetNamedChild("BarRight"), "HealthBorder", 1, 0.3, 0.3, 0.3)
+    end
+
+    local magickaBar = ZO_PlayerAttributeMagicka
+    if magickaBar then
+        AddBorder(magickaBar:GetNamedChild("Bar"), "MagickaBorder", 0.3, 0.5, 1, 0.3)
+    end
+
+    local staminaBar = ZO_PlayerAttributeStamina
+    if staminaBar then
+        AddBorder(staminaBar:GetNamedChild("Bar"), "StaminaBorder", 0.5, 0.8, 0.3, 0.3)
+    end
+end

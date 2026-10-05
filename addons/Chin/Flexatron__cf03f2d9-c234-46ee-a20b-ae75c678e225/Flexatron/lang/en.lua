@@ -3,10 +3,12 @@ Flexatron = Flexatron or {}
 
 Flexatron.L = {
     LOADED = "Flexatron loaded",
+    TURN_ON = "Flexatron is off on this character. Turn it on in Settings, Add-ons, Flexatron.",
     NO_SETTINGS_LIB = "Flexatron: install LibHarvensAddonSettings to open its settings.",
     UNIT_SECONDS = " s",
 
     -- live preview
+    PREVIEW_INACTIVE = "Flexatron is off",
     PREVIEW_NOW = "Now: %s",
     PREVIEW_NO_TITLE = "no title",
     PREVIEW_NEXT = "Next: %s in %d s",
@@ -23,6 +25,10 @@ Flexatron.L = {
     PREVIEW_MORE = "%s and %d more",
     PREVIEW_LIST_NONE = "In rotation: none",
     PANEL_LIST = "In rotation (%d)",
+
+    -- on or off
+    ACTIVE_LABEL = "Flexatron",
+    ACTIVE_TOOLTIP = "Off: nothing changes your title, plays an emote or posts in chat on its own. Your settings are kept.",
 
     -- titles
     ROTATE_LABEL = "Rotate my titles",
@@ -43,7 +49,8 @@ Flexatron.L = {
 
     -- extras
     EMOTE_LABEL = "Auto emote",
-    EMOTE_OFF = "None",
+    EMOTE_TOOLTIP = "Only while you stand idle with weapons away, and never over an emote or memento you start.",
+    EMOTE_PICK_LABEL = "Emote",
     EMOTE_EVERY_LABEL = "How often",
     EMOTE_EVERY_TOOLTIP = "While titles rotate, it comes with a title change. New titles always get it.",
     EMOTE_EVERY_CHANGE = "Every title change",
@@ -51,14 +58,41 @@ Flexatron.L = {
     EMOTE_EVERY_MINUTE = "Once a minute",
     EMOTE_EVERY_MINUTES = "Every %d min",
     EMOTE_EVERY_NEW = "Only for new titles",
+    EMOTE_STATUS_READY = "Last check: ready.",
+    EMOTE_STATUS_WAITING = "Last check: waiting (%s).",
+    EMOTE_LAST = "Last auto emote: %s ago.",
+    EMOTE_LAST_REFUSED = "Last auto emote: %s ago, refused by the game.",
+    EMOTE_LAST_NONE = "Last auto emote: none yet.",
+    EMOTE_SECONDS = "%d s",
+    EMOTE_MINUTES = "%d min",
+    EMOTE_WAIT = {
+        TRAVEL = "travelling or loading",
+        SCENE = "screen: %s",
+        COMBAT = "combat",
+        DEAD = "dead",
+        MOVING = "moving",
+        MOUNTED = "mounted",
+        SWIMMING = "swimming",
+        CROUCHED = "crouched",
+        ACTION = "blocking, stunned or aiming",
+        SIEGE = "siege weapon",
+        WEREWOLF = "werewolf form",
+        WEAPONS = "weapons out",
+        USING = "using or looting something",
+        HOUSING = "housing editor",
+        CUTSCENE = "cutscene",
+        POSE = "your pose, until you move",
+        PLAYER = "your emote or memento",
+        REFUSED = "the game refused it; trying again soon",
+        SETTLING = "standing still for 5 s",
+        ARRIVING = "just arrived",
+        ERROR = "error: %s",
+    },
     ENVY_LABEL = "Title envy",
     ENVY_TOOLTIP = "Targeting a player with a title you don't have shows its achievement in chat.",
     ENVY = "Title envy: %s isn't yours yet. %s",
     NEXT_LABEL = "Closest titles",
-    NEXT_BUTTON = "Find",
-    NEXT_HEADER = "Flexatron: your closest titles:",
+    NEXT_HEADER = "Closest titles (%d)",
     NEXT_LINE = "%s: %d of %d",
-    NEXT_CHAT = "  %s: %d of %d %s",
-    NEXT_NONE = "Flexatron: no unfinished titles found.",
-    NEXT_NOT_RUN = "",
+    NEXT_NONE = "No unfinished titles found.",
 }

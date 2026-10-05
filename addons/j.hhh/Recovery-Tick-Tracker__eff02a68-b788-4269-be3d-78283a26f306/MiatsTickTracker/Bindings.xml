@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Recovery Tick Tracker">
+            <Action name="MIAT_TICK_TRACKER_MOVE_MODE">
+                <Down>MIAT_TICK_TRACKER_TOGGLE_MOVE_MODE()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

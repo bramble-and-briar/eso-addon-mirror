@@ -214,7 +214,7 @@ local function CreateWarningUI()
     --warningText:SetFont("ZoFontWinH1")
     warningText:SetColor(1, 0.2, 0.2, 1) -- Red color for urgency
     --warningText:SetText(">>> HUNTSMAN WARMASK MISSING! <<<")
-    warningText:SetText(">>> BASH <<<")
+    warningText:SetText("")
     warningText:SetDimensions(580, 60)
     warningText:SetAnchor(CENTER, reminderControlWarning, CENTER, 0, 0)
     warningText:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
@@ -558,8 +558,7 @@ CheckConditions = function()
                     HWRSV.timerColor.a
                     )
                 end    
-                if HWRSV.enableCanBash and remainingTime <=50 then warningTimer:SetText(string.format("%d |cAAAAFF CAN BASH|r", remaining))
-                else warningTimer:SetText(string.format("%d", remaining)) end
+                warningTimer:SetText(string.format("%d", remaining))
             else
                 warningTimer:SetText("")
                 remainingTime = 0
@@ -576,7 +575,7 @@ CheckConditions = function()
                 HWRSV.bashColor.b,
                 HWRSV.bashColor.a
             )
-            warningTimer:SetText("Bash")
+            warningTimer:SetText("")
             
         elseif remainingTime > 50 and cdTimer <=10 then
             lastBashedTargetName = ""

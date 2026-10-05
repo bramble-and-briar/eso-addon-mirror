@@ -1,7 +1,7 @@
 -- Initialisation de l'addon
 local TrueRessourceBars = {
     name = "TrueRessourceBars",
-    version = "2.8",
+    version = "2.9",
     updateInterval = 50,
     previewMode = false,
     controls = {
@@ -74,7 +74,26 @@ local function GetStyleDescriptor(selectedStyleName)
     return "outline"
 end
 
--- Positions pour le TEMPS (Autorise l'intérieur ou l'extérieur de l'icône)
+-- Emplacements dans les coins pour la valeur du bouclier
+local cornerPositionMapping = {
+    ["Top Left"]     = { point = TOPLEFT, relPoint = TOPLEFT, x = 6, y = 2 },
+    ["Top Right"]    = { point = TOPRIGHT, relPoint = TOPRIGHT, x = -6, y = 2 },
+    ["Bottom Left"]  = { point = BOTTOMLEFT, relPoint = BOTTOMLEFT, x = 6, y = -2 },
+    ["Bottom Right"] = { point = BOTTOMRIGHT, relPoint = BOTTOMRIGHT, x = -6, y = -2 },
+    ["Left"]         = { point = LEFT, relPoint = LEFT, x = 6, y = 0 },
+    ["Right"]        = { point = RIGHT, relPoint = RIGHT, x = -6, y = 0 },
+}
+
+local cornerPositionChoices = {
+    "Top Left",
+    "Top Right",
+    "Bottom Left",
+    "Bottom Right",
+    "Left",
+    "Right"
+}
+
+-- Positions pour le TEMPS des auras
 local timerPositionMapping = {
     ["Top Left"]      = { point = TOPLEFT, relPoint = TOPLEFT, x = 0, y = 0 },
     ["Top Right"]     = { point = TOPRIGHT, relPoint = TOPRIGHT, x = 0, y = 0 },
@@ -101,7 +120,7 @@ local timerPositionChoices = {
     "Right Center"
 }
 
--- Positions pour les STACKS (Restreintes à l'intérieur de l'icône)
+-- Positions pour les STACKS des auras
 local stackPositionMapping = {
     ["Top Left"]     = { point = TOPLEFT, relPoint = TOPLEFT, x = 2, y = 2 },
     ["Top Right"]    = { point = TOPRIGHT, relPoint = TOPRIGHT, x = -2, y = 2 },
@@ -134,6 +153,7 @@ local defaults = {
             x = 0, y = 340, width = 360, height = 28,
             color = { r = 0.85, g = 0.15, b = 0.15, a = 1 },
             shieldColor = { r = 0.75, g = 0.25, b = 0.95, a = 0.75 },
+            shieldValuePos = "Top Right",
             font = "Gamepad Bold", fontSize = 18, fontStyle = "Outline",
             textColor = { r = 1, g = 1, b = 1, a = 1 },
             textFormat = "Current / Max (Percent)",
@@ -168,6 +188,9 @@ local defaults = {
             x = 0, y = -340, width = 460, height = 32,
             color = { r = 0.85, g = 0.15, b = 0.15, a = 1 },
             shieldColor = { r = 0.75, g = 0.25, b = 0.95, a = 0.75 },
+            shieldValuePos = "Top Right",
+            targetNamePosition = "Above",
+            targetNameFontSize = 18,
             font = "Gamepad Bold", fontSize = 20, fontStyle = "Outline",
             textColor = { r = 1, g = 1, b = 1, a = 1 },
             textFormat = "Current / Max (Percent)",
@@ -213,7 +236,7 @@ local defaults = {
     }
 }
 
--- Échantillons factices complets pour l'aperçu (Identiques à TrueDebuffsBars)
+-- Échantillons factices complets pour l'aperçu
 local dummyBuffData = {
     { icon = "/esoui/art/icons/ability_warrior_010.dds", time = 25 },
     { icon = "/esoui/art/icons/ability_rogue_038.dds", time = 120 },
@@ -281,7 +304,7 @@ local function FormatNumber(value)
     end
 end
 
--- Formatage du temps en texte lisible (Identique à TrueDebuffsBars)
+-- Formatage du temps en texte lisible
 local function FormatTime(seconds)
     if seconds <= 0 then return "" end
     if seconds > 3600 then
@@ -347,7 +370,7 @@ local function GetDoublePulseAlpha(pulseSpeed)
     end
 end
 
--- Création d'une barre unie avec système de bouclier par ancrage dynamique
+-- Création d'une barre avec étiquette de bouclier dans les coins et nom séparé
 local function CreateBarControl(barKey, config)
     local wm = WINDOW_MANAGER
     local name = TrueRessourceBars.name .. "_" .. barKey
@@ -412,16 +435,24 @@ local function CreateBarControl(barKey, config)
     shieldBar:SetDrawTier(DT_HIGH)
     shieldBar:SetHidden(true)
 
-    -- Libellés textes
+    -- Libellé du texte central
     local label = wm:CreateControl(name .. "Label", container, CT_LABEL)
     label:SetAnchor(CENTER, container, CENTER, 0, 0)
     label:SetDrawLayer(DL_OVERLAY)
     label:SetDrawTier(DT_HIGH)
 
+    -- Libellé de valeur du bouclier (positionnable dans les coins)
     local shieldLabel = wm:CreateControl(name .. "ShieldLabel", container, CT_LABEL)
-    shieldLabel:SetAnchor(RIGHT, container, RIGHT, -8, 0)
     shieldLabel:SetDrawLayer(DL_OVERLAY)
     shieldLabel:SetDrawTier(DT_HIGH)
+
+    -- Libellé spécifique pour le nom de l'ennemi (au-dessus ou en dessous)
+    local targetNameLabel = nil
+    if barKey == "target" then
+        targetNameLabel = wm:CreateControl(name .. "TargetNameLabel", container, CT_LABEL)
+        targetNameLabel:SetDrawLayer(DL_OVERLAY)
+        targetNameLabel:SetDrawTier(DT_HIGH)
+    end
 
     return {
         container = container,
@@ -436,6 +467,7 @@ local function CreateBarControl(barKey, config)
         shieldBar = shieldBar,
         label = label,
         shieldLabel = shieldLabel,
+        targetNameLabel = targetNameLabel,
         animValue = nil
     }
 end
@@ -508,7 +540,7 @@ local function ApplyBarVisuals(barKey)
         ui.lossBarNormal:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
     end
 
-    -- Typographie
+    -- Typographie du texte central
     local fontPath = fontMapping[cfg.font] or "$(GAMEPAD_BOLD_FONT)"
     local outline = GetStyleDescriptor(cfg.fontStyle)
     local fontString = string.format("%s|%d|%s", fontPath, cfg.fontSize or 18, outline)
@@ -517,14 +549,38 @@ local function ApplyBarVisuals(barKey)
     local tr, tg, tb, ta = GetRGBA(cfg.textColor, 1, 1, 1, 1)
     ui.label:SetColor(tr, tg, tb, ta)
 
+    -- Ancrage de la valeur du bouclier dans le coin sélectionné
+    local shieldPos = cfg.shieldValuePos or "Top Right"
+    local posData = cornerPositionMapping[shieldPos] or cornerPositionMapping["Top Right"]
+    ui.shieldLabel:ClearAnchors()
+    ui.shieldLabel:SetAnchor(posData.point, ui.container, posData.relPoint, posData.x, posData.y)
     ui.shieldLabel:SetFont(string.format("%s|%d|%s", fontPath, math.max(10, (cfg.fontSize or 18) - 3), outline))
     if cfg.shieldColor then
         local sr, sg, sb = GetRGBA(cfg.shieldColor, 1, 1, 1, 1)
         ui.shieldLabel:SetColor(sr, sg, sb, 1)
     end
+
+    -- Positionnement et style du nom de l'ennemi (s'il s'agit de la barre de cible)
+    if ui.targetNameLabel then
+        local namePos = cfg.targetNamePosition or "Above"
+        ui.targetNameLabel:ClearAnchors()
+        if namePos == "Above" then
+            ui.targetNameLabel:SetAnchor(BOTTOM, ui.container, TOP, 0, -3)
+            ui.targetNameLabel:SetHidden(false)
+        elseif namePos == "Below" then
+            ui.targetNameLabel:SetAnchor(TOP, ui.container, BOTTOM, 0, 3)
+            ui.targetNameLabel:SetHidden(false)
+        else
+            ui.targetNameLabel:SetHidden(true)
+        end
+
+        local nameFontSize = cfg.targetNameFontSize or 18
+        ui.targetNameLabel:SetFont(string.format("%s|%d|%s", fontPath, nameFontSize, outline))
+        ui.targetNameLabel:SetColor(tr, tg, tb, ta)
+    end
 end
 
--- Création ou réutilisation d'un contrôle d'icône d'aura (Identique à TrueDebuffsBars)
+-- Création ou réutilisation d'un contrôle d'icône d'aura
 local function GetOrCreateTargetAuraIcon(poolType, index)
     local pool = TrueRessourceBars.controls[poolType]
     local parentFrame = (poolType == "targetBuffs") and TrueRessourceBars.targetBuffFrame or TrueRessourceBars.targetDebuffFrame
@@ -592,7 +648,7 @@ local function GetOrCreateTargetAuraIcon(poolType, index)
     return ctrl
 end
 
--- Calcul des ancrages (Exactement le moteur d'ApplyAnchors de TrueDebuffsBars)
+-- Calcul des ancrages
 local function ApplyAuraAnchors(poolType, count, spacing, iconSize, direction, enableGrid, maxPerRow, vDir)
     if count == 0 then return end
     local pool = TrueRessourceBars.controls[poolType]
@@ -626,8 +682,8 @@ local function ApplyAuraAnchors(poolType, count, spacing, iconSize, direction, e
             local rowEnd = math.min(count, (row + 1) * limit)
             local countInRow = rowEnd - rowStart + 1
             local rowSpan = (countInRow * iconSize) + ((countInRow - 1) * spacing)
-
             local col = (i - 1) % limit
+
             local xOffset = -(rowSpan / 2) + (col * (iconSize + spacing)) + (iconSize / 2)
             local yOffset = (vDir == "Above") and -(row * (iconSize + spacing)) or (row * (iconSize + spacing))
             ctrl:SetAnchor(CENTER, parent, CENTER, xOffset, yOffset)
@@ -652,7 +708,6 @@ local function ApplyAuraAnchors(poolType, count, spacing, iconSize, direction, e
             local colEnd = math.min(count, (col + 1) * limit)
             local countInCol = colEnd - colStart + 1
             local colSpan = (countInCol * iconSize) + ((countInCol - 1) * spacing)
-
             local row = (i - 1) % limit
             local yOffset = -(colSpan / 2) + row * (iconSize + spacing)
             local xOffset = col * (iconSize + spacing)
@@ -661,7 +716,7 @@ local function ApplyAuraAnchors(poolType, count, spacing, iconSize, direction, e
     end
 end
 
--- Tri décroissant par durée restante (Identique à TrueDebuffsBars)
+-- Tri décroissant par durée restante
 local function CompareEffectsDescending(a, b)
     local timeA = a.isPermanent and -1 or a.timeLeft
     local timeB = b.isPermanent and -1 or b.timeLeft
@@ -701,21 +756,21 @@ local function LerpValue(currentVal, targetVal, speed)
     return currentVal + (targetVal - currentVal) * speed
 end
 
--- Mise à jour unitaire d'une barre avec ancrage géométrique des boucliers
+-- Mise à jour unitaire d'une barre
 local function UpdateSingleBar(barKey, unitTag, mechanicType)
     local ui = TrueRessourceBars.bars[barKey]
     local cfg = TrueRessourceBars.savedVars.bars[barKey]
     if not ui or not cfg then return end
 
     local current, max, effectiveMax
-    local prefix = nil
+    local targetName = ""
     local isDummyTarget = (barKey == "target" and TrueRessourceBars.previewMode and not DoesUnitExist(unitTag))
 
     if isDummyTarget then
         ui.container:SetHidden(false)
         current = 75000
         effectiveMax = 100000
-        prefix = "Target Dummy"
+        targetName = "Target Dummy"
     else
         if not DoesUnitExist(unitTag) then
             ui.container:SetHidden(true)
@@ -723,7 +778,7 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         end
         ui.container:SetHidden(false)
         current, max, effectiveMax = GetPower(unitTag, mechanicType)
-        prefix = (unitTag == "reticleover") and GetUnitName(unitTag) or nil
+        targetName = (unitTag == "reticleover") and GetUnitName(unitTag) or ""
     end
 
     local percent = effectiveMax > 0 and math.floor((current / effectiveMax) * 100) or 0
@@ -769,7 +824,22 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         ui.lossBarNormal:SetValue(ghostVal)
     end
 
-    ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, prefix))
+    -- Gestion de l'affichage du nom de l'ennemi (séparé ou intégré)
+    if barKey == "target" then
+        local namePos = cfg.targetNamePosition or "Above"
+        if ui.targetNameLabel and (namePos == "Above" or namePos == "Below") then
+            ui.targetNameLabel:SetText(targetName)
+            ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
+        elseif namePos == "Inside Bar" then
+            if ui.targetNameLabel then ui.targetNameLabel:SetText("") end
+            ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, targetName))
+        else
+            if ui.targetNameLabel then ui.targetNameLabel:SetText("") end
+            ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
+        end
+    else
+        ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
+    end
 
     -- Gestion du bouclier
     if mechanicType == MECHANIC_HEALTH then
@@ -810,7 +880,7 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
     end
 end
 
--- Rafraîchissement des auras de la cible avec le moteur complet de TrueDebuffsBars
+-- Rafraîchissement des auras
 local function UpdateTargetAuras()
     local unitTag = "reticleover"
     local hasTarget = DoesUnitExist(unitTag) and not IsReticleHidden()
@@ -1252,10 +1322,55 @@ local function BuildSettingsMenu()
             }
         }
 
+        -- Réglages spécifiques au nom de la cible ennemie
+        if barKey == "target" then
+            table.insert(controls, {
+                type = "header",
+                name = "Enemy Target Name Display",
+            })
+            table.insert(controls, {
+                type = "dropdown",
+                name = "Target Name Position",
+                tooltip = "Choose where to display the target enemy name relative to the center of the bar.",
+                choices = { "Above", "Below", "Inside Bar", "Hidden" },
+                getFunc = function() return TrueRessourceBars.savedVars.bars.target.targetNamePosition or "Above" end,
+                setFunc = function(v)
+                    TrueRessourceBars.savedVars.bars.target.targetNamePosition = v
+                    ApplyBarVisuals("target")
+                end,
+            })
+            table.insert(controls, {
+                type = "slider",
+                name = "Target Name Font Size",
+                min = 10, max = 36, step = 1,
+                disabled = function()
+                    local pos = TrueRessourceBars.savedVars.bars.target.targetNamePosition or "Above"
+                    return pos == "Hidden" or pos == "Inside Bar"
+                end,
+                getFunc = function() return TrueRessourceBars.savedVars.bars.target.targetNameFontSize or 18 end,
+                setFunc = function(v)
+                    TrueRessourceBars.savedVars.bars.target.targetNameFontSize = v
+                    ApplyBarVisuals("target")
+                end,
+            })
+        end
+
+        -- Réglages spécifiques aux boucliers (Santé joueur & Cible)
         if isHealth then
             table.insert(controls, {
                 type = "header",
                 name = "Shields Configuration",
+            })
+            table.insert(controls, {
+                type = "dropdown",
+                name = "Shield Value Position",
+                tooltip = "Choose which corner of the bar will display the shield numerical value.",
+                choices = cornerPositionChoices,
+                getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].shieldValuePos or "Top Right" end,
+                setFunc = function(v)
+                    TrueRessourceBars.savedVars.bars[barKey].shieldValuePos = v
+                    ApplyBarVisuals(barKey)
+                end,
             })
             table.insert(controls, {
                 type = "colorpicker",
@@ -1291,7 +1406,7 @@ local function BuildSettingsMenu()
         CreateBarSubmenu("Player Stamina Bar", "stamina", false),
         CreateBarSubmenu("Target Health Bar", "target", true),
         
-        -- Sous-menu : Filtres des Auras (Identique à TrueDebuffsBars)
+        -- Sous-menu : Filtres des Auras
         {
             type = "submenu",
             name = "Target Auras Filters",
@@ -1433,7 +1548,7 @@ local function BuildSettingsMenu()
             }
         },
 
-        -- Sous-menu : Apparence & Lisibilité (Taille et police des auras)
+        -- Sous-menu : Apparence & Lisibilité
         {
             type = "submenu",
             name = "Target Auras Appearance & Sizing",
@@ -1567,7 +1682,7 @@ local function OnAddOnLoaded(eventCode, addonName)
     if addonName ~= TrueRessourceBars.name then return end
     EVENT_MANAGER:UnregisterForEvent(TrueRessourceBars.name, EVENT_ADD_ON_LOADED)
 
-    -- Montée de version à 9 pour appliquer la nouvelle structure complète
+    -- Conservation stricte de la version 9 des SavedVariables
     TrueRessourceBars.savedVars = ZO_SavedVars:NewAccountWide("TrueRessourceBarsSV", 9, nil, defaults)
 
     local wm = WINDOW_MANAGER

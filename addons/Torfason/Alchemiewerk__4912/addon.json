@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Torfason/Alchemiewerk__4912",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Torfason",
+  "canonical_id": "esoui:4912",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4912",
+  "deleted": false,
+  "directories": [
+    "Alchemiewerk"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4912/",
+  "fingerprint": "2bf5b5c389014356c8379c19fb11191e98f0655d38481199f71e54e346624d9f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17707.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17706.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17708.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17709.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17710.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4912",
+  "source_url": "https://www.esoui.com/downloads/info4912-Alchemiewerk.html",
+  "stats": {
+    "downloads": 4,
+    "favorites": 0,
+    "monthly_downloads": 3
+  },
+  "title": "Alchemiewerk",
+  "updated_at": 1791116107000,
+  "version": "1.0.2"
+}

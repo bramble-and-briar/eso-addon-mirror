@@ -3,7 +3,7 @@ local CAM = CraftPawns
 
 CAM.name = "CraftPawns"
 CAM.displayName = "CraftPawns"
-CAM.version = "2.3.1"
+CAM.version = "1.1.5"
 CAM.schemaVersion = 2
 CAM.snapshotVersion = 1
 CAM.expectedPresetCost = 83

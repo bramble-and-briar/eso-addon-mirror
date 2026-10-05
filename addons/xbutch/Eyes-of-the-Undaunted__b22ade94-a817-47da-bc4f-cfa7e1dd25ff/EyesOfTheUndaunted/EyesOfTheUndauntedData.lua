@@ -1,12 +1,13 @@
-Destinations = Destinations or {}
+local BossData = EOTU.internal.bossData or {}
+EOTU.internal.bossData = BossData
 
-Destinations.ChampionTableIndex = {
+BossData.ChampionTableIndex = {
 	X = 1,
 	Y = 2,
 	NAME = 3,
 }
 
-Destinations.PublicChampionTableStore = {
+BossData.PublicChampionTableStore = {
 	["u30_oblivion_portal_base_0"] = {
 		{ 0.1545, 0.4500, "Outer Ring Boss" },
 		{ 0.1822, 0.3075, "Outer Ring Boss" },
@@ -408,7 +409,7 @@ Destinations.PublicChampionTableStore = {
 	},
 }
 
-Destinations.DelveChampionTableStore = {
+BossData.DelveChampionTableStore = {
 	["aba-loria_base_0"] = {
 		{ 0.7530, 0.6280, "Cirterisse" },
 	},
@@ -1076,7 +1077,7 @@ Destinations.DelveChampionTableStore = {
 	["u48_ssl_delve_base_1_base_0"] = {    { 0.387, 0.350, "Lector Fenworine" },},
 }
 
-Destinations.GroupChampionTableStore = {
+BossData.GroupChampionTableStore = {
 	["fungalgrotto_base_0"] = {
 		{ 0.3700, 0.4290, "Kra'gh the Dreugh King" },
 		{ 0.3890, 0.2450, "Bloodbirther" },
@@ -1456,7 +1457,6 @@ Destinations.GroupChampionTableStore = {
 		{ 0.6980, 0.4700, "Caluurion" },
 		{ 0.8030, 0.7990, "Orryn the Black" },
 		{ 0.8120, 0.7980, "Thorvokun" },
-		{ 0.8120, 0.7980, "Thorvokun" },
 	},
 	["ui_map_frvfrstvlt01_base_0"] = {
 		{ 0.8700, 0.5030, "Icestalker" },
@@ -1708,52 +1708,52 @@ Destinations.GroupChampionTableStore = {
 }
 
 -- alias for orcrest
-Destinations.PublicChampionTableStore["orcrest2_base_0"] = Destinations.PublicChampionTableStore["orcrest_base_0"]
+BossData.PublicChampionTableStore["orcrest2_base_0"] = BossData.PublicChampionTableStore["orcrest_base_0"]
 
 -- alias for Halls of Regulation
-Destinations.DelveChampionTableStore["hallsofregulation_base_0"] = Destinations.DelveChampionTableStore
+BossData.DelveChampionTableStore["hallsofregulation_base_0"] = BossData.DelveChampionTableStore
 	["hallsofregulation_2_base_0"]
 
 -- alias for pulkupper_base_0
-Destinations.DelveChampionTableStore["pulkupper_base_0"] = Destinations.DelveChampionTableStore["pulklower_base_0"]
+BossData.DelveChampionTableStore["pulkupper_base_0"] = BossData.DelveChampionTableStore["pulklower_base_0"]
 
 -- alias for Gloomreach
-Destinations.DelveChampionTableStore["gloomreach2_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
-Destinations.DelveChampionTableStore["gloomreach2b_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
-Destinations.DelveChampionTableStore["gloomreach2c_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
-Destinations.DelveChampionTableStore["gloomreach3_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
-Destinations.DelveChampionTableStore["gloomreach4_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
-Destinations.DelveChampionTableStore["gloomreach5_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
-Destinations.DelveChampionTableStore["gloomreach5b_base_0"] = Destinations.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach2_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach2b_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach2c_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach3_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach4_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach5_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
+BossData.DelveChampionTableStore["gloomreach5b_base_0"] = BossData.DelveChampionTableStore["gloomreach_base_0"]
 
 -- Alias for Blackwood
-Destinations.DelveChampionTableStore["arpeniah_base_0"] = Destinations.DelveChampionTableStore["arpenial_base_0"]
-Destinations.DelveChampionTableStore["arpeniah2_base_0"] = Destinations.DelveChampionTableStore["arpenial_base_0"]
-Destinations.DelveChampionTableStore["arpenial3_base_0"] = Destinations.DelveChampionTableStore["arpenial_base_0"]
+BossData.DelveChampionTableStore["arpeniah_base_0"] = BossData.DelveChampionTableStore["arpenial_base_0"]
+BossData.DelveChampionTableStore["arpeniah2_base_0"] = BossData.DelveChampionTableStore["arpenial_base_0"]
+BossData.DelveChampionTableStore["arpenial3_base_0"] = BossData.DelveChampionTableStore["arpenial_base_0"]
 
 -- vunalk
-Destinations.DelveChampionTableStore["vunalk1_base_0"] = Destinations.DelveChampionTableStore["vunalk2_base_0"]
+BossData.DelveChampionTableStore["vunalk1_base_0"] = BossData.DelveChampionTableStore["vunalk2_base_0"]
 
 -- u32_dreaded_refuge_int_base_0
-Destinations.DelveChampionTableStore["u32_dreaded_refuge_int_base_0"] = Destinations.DelveChampionTableStore
+BossData.DelveChampionTableStore["u32_dreaded_refuge_int_base_0"] = BossData.DelveChampionTableStore
 	["u32_dreaded_refuge_int_base2_0"]
 
 -- Champion categories
-Destinations.ChampionCategory = {
+BossData.ChampionCategory = {
 	delve = "delve",
 	public = "public",
 	group = "group",
 }
 
 -- Categorized stores (format: { x, y, "Name" })
-Destinations.DelveChampionTableStore = Destinations.DelveChampionTableStore or {}
-Destinations.PublicChampionTableStore = Destinations.PublicChampionTableStore or {}
-Destinations.GroupChampionTableStore = Destinations.GroupChampionTableStore or {}
+BossData.DelveChampionTableStore = BossData.DelveChampionTableStore or {}
+BossData.PublicChampionTableStore = BossData.PublicChampionTableStore or {}
+BossData.GroupChampionTableStore = BossData.GroupChampionTableStore or {}
 
 local CATEGORY_TO_STORE = {
-	[Destinations.ChampionCategory.delve]  = function() return Destinations.DelveChampionTableStore end,
-	[Destinations.ChampionCategory.public] = function() return Destinations.PublicChampionTableStore end,
-	[Destinations.ChampionCategory.group]  = function() return Destinations.GroupChampionTableStore end,
+	[BossData.ChampionCategory.delve]  = function() return BossData.DelveChampionTableStore end,
+	[BossData.ChampionCategory.public] = function() return BossData.PublicChampionTableStore end,
+	[BossData.ChampionCategory.group]  = function() return BossData.GroupChampionTableStore end,
 }
 
 -- Lightweight classifier using POI types; returns "delve" | "public" | "group" | "unknown"
@@ -1774,28 +1774,28 @@ local function ClassifyCurrentMapCategory()
 		if bestPoi then
 			local poiType = GetPOIType(zoneIndex, bestPoi)
 			if poiType == POI_TYPE_DUNGEON then
-				return Destinations.ChampionCategory.delve
+				return BossData.ChampionCategory.delve
 			elseif poiType == POI_TYPE_PUBLIC_DUNGEON then
-				return Destinations.ChampionCategory.public
+				return BossData.ChampionCategory.public
 			elseif poiType == POI_TYPE_GROUP_DUNGEON then
-				return Destinations.ChampionCategory.group
+				return BossData.ChampionCategory.group
 			end
 		end
 	end
 	-- Fallback: treat active instance as group dungeon
 	if (IsPlayerInGroupDungeon and IsPlayerInGroupDungeon()) or (GetCurrentZoneDungeonDifficulty and GetCurrentZoneDungeonDifficulty() ~= DUNGEON_DIFFICULTY_NONE) then
 		return
-			Destinations.ChampionCategory.group
+			BossData.ChampionCategory.group
 	end
 	return "unknown"
 end
 
 -- Expose classifier for external reuse while keeping local calls intact
-Destinations.ClassifyCurrentMapCategory = Destinations.ClassifyCurrentMapCategory or ClassifyCurrentMapCategory
+BossData.ClassifyCurrentMapCategory = BossData.ClassifyCurrentMapCategory or ClassifyCurrentMapCategory
 
 -- Unified accessor. If category is provided, only that store is searched.
 -- If omitted, the function classifies and tries the best-matching store, then falls back to all.
-function Destinations.GetChampionEntriesForMap(mapTexture, category)
+function BossData.GetChampionEntriesForMap(mapTexture, category)
 	local function copyInto(dst, src) for i = 1, #src do dst[#dst + 1] = src[i] end end
 
 	-- Build a small set of normalized candidate keys to handle common texture naming variants.

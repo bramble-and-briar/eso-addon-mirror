@@ -1161,7 +1161,11 @@ local function QueueWindowRefresh()
             FullRescan()
         end
 
-        RefreshLiveVisitDelta(visitDeltaFullRefreshPending and nil or visitDeltaChangedItemIds)
+        if visitDeltaFullRefreshPending then
+            RefreshLiveVisitDelta()
+        else
+            RefreshLiveVisitDelta(visitDeltaChangedItemIds)
+        end
         ZO_ClearTable(visitDeltaChangedItemIds)
         visitDeltaFullRefreshPending = false
         RefreshWindow()

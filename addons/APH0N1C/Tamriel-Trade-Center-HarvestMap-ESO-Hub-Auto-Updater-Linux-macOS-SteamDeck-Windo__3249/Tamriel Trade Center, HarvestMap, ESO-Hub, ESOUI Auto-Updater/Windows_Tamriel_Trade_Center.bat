@@ -1,7 +1,7 @@
 @echo off
 
 :: ====================================================================================
-:: {Windows} Tamriel Trade Center Auto-Updater v2026.09.30.16.04
+:: {Windows} Tamriel Trade Center Auto-Updater v2026.10.04.19.22
 :: Created by @APHONlC | Icon by @THAMER_AKATOSH
 :: ------------------------------------------------------------------------------------
 :: A utility for ESO to automate TTC, HarvestMap, ESO-Hub and ESOUI updates.
@@ -67,7 +67,7 @@ function Get-Part([string]$h, [int]$s) {
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
 $ErrorActionPreference = "SilentlyContinue"
 
-$APP_VERSION = "2026.09.30.16.04"
+$APP_VERSION = "2026.10.04.19.22"
 $APP_TITLE = "Windows Tamriel Trade Center v$APP_VERSION"
 $TASK_NAME = "Windows Tamriel Trade Center"
 $SYS_ID = "windows"
@@ -357,6 +357,42 @@ function Wait-WithEvents($seconds) {
     }
 }
 
+function Send-Notification([string]$title, [string]$msg) {
+    $esc = [System.Security.SecurityElement]
+    try {
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+        [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom, ContentType = WindowsRuntime] | Out-Null
+        $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
+        $template = "<toast><visual><binding template=`"ToastText02`"><text id=`"1`">$($esc::Escape($title))</text><text id=`"2`">$($esc::Escape($msg))</text></binding></visual></toast>"
+        $xmlDocument = New-Object Windows.Data.Xml.Dom.XmlDocument
+        $xmlDocument.LoadXml($template)
+        $toast = [Windows.UI.Notifications.ToastNotification]::new($xmlDocument)
+        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId).Show($toast)
+        return $true
+    } catch {
+        Log-Event "WARN" "Toast notification failed, using a tray balloon instead: $($_.Exception.Message)"
+    }
+    try {
+        $icon = $script:trayIcon
+        $temporary = $false
+        if (!$icon) {
+            $icon = New-Object System.Windows.Forms.NotifyIcon
+            $icon.Icon = if (Test-Path $ICON_FILE) { New-Object System.Drawing.Icon($ICON_FILE) } else { [System.Drawing.Icon]::ExtractAssociatedIcon((Get-Process -Id $PID).Path) }
+            $icon.Visible = $true
+            $temporary = $true
+        }
+        $icon.ShowBalloonTip(8000, $title, $msg, [System.Windows.Forms.ToolTipIcon]::Info)
+        if ($temporary) {
+            Start-Sleep -Seconds 6
+            $icon.Visible = $false
+            $icon.Dispose()
+        }
+        return $true
+    } catch {
+        Log-Event "WARN" "Tray notification failed too: $($_.Exception.Message)"
+        return $false
+    }
+}
 $FULL_SCRIPT_PATH = $env:SCRIPT_FULL_PATH
 if ([string]::IsNullOrEmpty($FULL_SCRIPT_PATH)) { $FULL_SCRIPT_PATH = "Windows_Tamriel_Trade_Center.bat" }
 $CURRENT_DIR = Split-Path $FULL_SCRIPT_PATH
@@ -481,6 +517,7 @@ function UIEcho($msg) {
 }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.Numerics
 
 $USER_AGENTS = @(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -2492,7 +2529,7 @@ function Invoke-TTCUpload([string]$domain, [string]$region, [string]$sv) {
     $cache = Get-TTCUploadCache $region
     try { $parsed = Read-TTCUpload $sv $region $now $cache } catch { return $false }
     $global:TTC_UPLOAD_NEWEST = $parsed.Newest
-    $work = Join-Path ([IO.Path]::GetTempPath()) ("lttc_upload_" + [guid]::NewGuid().ToString("N"))
+    $work = Join-Path $TEMP_DIR_ROOT ("lttc_upload_" + [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $work -Force | Out-Null
     $utf8 = New-Object System.Text.UTF8Encoding($false)
     $ok = $true; $count = 0
@@ -2881,7 +2918,9 @@ $TTC_DOMAIN = if ($AUTO_SRV -eq "1") {"us.tamrieltradecentre.com"} else {"eu.tam
 $TTC_URL = "https://$TTC_DOMAIN/download/PriceTable"
 $SAVED_VAR_DIR = (Get-Item $ADDON_DIR).Parent.FullName + "\SavedVariables"
 Auto-Repair-Database
-$TEMP_DIR = "$env:USERPROFILE\Downloads\Windows_Tamriel_Trade_Center_Temp"
+$TEMP_DIR = "$TEMP_DIR_ROOT\Downloads"
+$OLD_TEMP_DIR = "$env:USERPROFILE\Downloads\Windows_Tamriel_Trade_Center_Temp"
+if (Test-Path -LiteralPath $OLD_TEMP_DIR) { Remove-Item -LiteralPath $OLD_TEMP_DIR -Recurse -Force -ErrorAction SilentlyContinue }
 $TTC_USER_AGENT = "TamrielTradeCentreClient/1.0.0"
 $HM_USER_AGENT = "HarvestMapClient/1.0.0"
 
@@ -3089,18 +3128,21 @@ while ($true) {
         UIEcho "`t$ESC[90mServer_DB_Version= ${V_COL}$SRV_DB_VER$ESC[0m"
         UIEcho "`t$ESC[90mLocal_DB_Version=  ${V_COL}$LOC_DB_VER$ESC[0m"
 
-        if ($SRV_DB_VER -ne "0.0.0" -and (Test-VersionNewer $SRV_DB_VER $LOC_DB_VER)) {
+        $histFirst = if (Test-Path -LiteralPath $HIST_FILE) { "$(Get-Content -LiteralPath $HIST_FILE -TotalCount 1)" } else { "" }
+        $histSeeded = $histFirst -like "#HISTORY VERSION:*"
+        if ($SRV_DB_VER -ne "0.0.0" -and ((Test-VersionNewer $SRV_DB_VER $LOC_DB_VER) -or !$histSeeded)) {
             UIEcho " $ESC[36mDownloading latest database template...$ESC[0m"
             Log-Event "INFO" "Downloading database update (v$SRV_DB_VER)"
             
-            $dbZipPath = "$TEMP_DIR_ROOT\db.zip"
+            $dbZipPath = Join-Path $TEMP_DIR_ROOT "db.zip"
             try {
                 $TEMP_DIR_USED = $true
                 if ((Invoke-EsouiDownload $ESOUI_DB_ID $dbZipPath) -eq 0) {
-                    Expand-Archive -Path $dbZipPath -DestinationPath "$TEMP_DIR_ROOT\DB_Update" -Force
+                    $dbUpdateDir = Join-Path $TEMP_DIR_ROOT "DB_Update"
+                    Expand-Archive -Path $dbZipPath -DestinationPath $dbUpdateDir -Force
                     
-                    $NEW_DB = Get-ChildItem -Path "$TEMP_DIR_ROOT\DB_Update" -Filter "LTTC_Database.db" -Recurse | Select-Object -First 1
-                    $NEW_HIST = Get-ChildItem -Path "$TEMP_DIR_ROOT\DB_Update" -Filter "LTTC_History.db" -Recurse | Select-Object -First 1
+                    $NEW_DB = Get-ChildItem -Path $dbUpdateDir -Filter "LTTC_Database.db" -Recurse | Select-Object -First 1
+                    $NEW_HIST = Get-ChildItem -Path $dbUpdateDir -Filter "LTTC_History.db" -Recurse | Select-Object -First 1
                     
                     if ($NEW_DB) {
                         if (!(Test-Path $DB_FILE) -or (Get-Item $DB_FILE).length -eq 0) {
@@ -3131,9 +3173,13 @@ while ($true) {
                             UIEcho " $ESC[33mMerging shared trade history...$ESC[0m"
                             Merge-TemplateHistory $HIST_FILE $NEW_HIST.FullName $SRV_DB_VER
                             UIEcho " $ESC[92m[+] Shared trade history merged.$ESC[0m`n"
+                        } else {
+                            $cur = if (Test-Path -LiteralPath $HIST_FILE) { @([System.IO.File]::ReadAllLines($HIST_FILE) | Where-Object { !$_.StartsWith("#HISTORY VERSION:") }) } else { @() }
+                            [System.IO.File]::WriteAllText($HIST_FILE, ((@("#HISTORY VERSION: $SRV_DB_VER") + $cur) -join "`n") + "`n", (New-Object System.Text.UTF8Encoding $false))
                         }
                     }
-                    Remove-Item -Path "$TEMP_DIR_ROOT\DB_Update" -Recurse -Force
+                    Remove-Item -Path $dbUpdateDir -Recurse -Force
+                    Remove-Item -LiteralPath $dbZipPath -Force -ErrorAction SilentlyContinue
                 } else {
                     UIEcho " $ESC[31m[-] Database download failed (Timeout or Blocked).$ESC[0m`n"
                 }
@@ -3562,7 +3608,7 @@ while ($true) {
     } catch {}
 
     $deleted = New-Object System.Collections.Generic.List[string]
-    foreach ($t in @($TEMP_DIR, "$TEMP_DIR_ROOT\*.tmp", "$TEMP_DIR_ROOT\*.out", "$TEMP_DIR_ROOT\*.zip", "$TEMP_DIR_ROOT\ESOHub_Extracted")) {
+    foreach ($t in @($TEMP_DIR, "$TEMP_DIR_ROOT\*.tmp", "$TEMP_DIR_ROOT\*.out", "$TEMP_DIR_ROOT\*.zip", "$TEMP_DIR_ROOT\ESOHub_Extracted", "$TEMP_DIR_ROOT\lttc_upload_*", "$TEMP_DIR_ROOT\DB_Update")) {
         foreach ($it in @(Get-Item -Path $t -ErrorAction SilentlyContinue)) {
             $deleted.Add($it.FullName)
             if ($it.PSIsContainer) { Get-ChildItem -LiteralPath $it.FullName -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object { $deleted.Add($_.FullName) } }
@@ -3580,16 +3626,7 @@ while ($true) {
     if ($global:ENABLE_NOTIFS) {
         $msg = "TTC: $notifTTC`nESO-Hub: $notifEH`nHarvestMap: $notifHM"
         if ($global:notifAddons) { $msg += "`nAdd-ons: $($global:notifAddons)" }
-        try {
-            [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-            [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom, ContentType = WindowsRuntime] | Out-Null
-            $appId = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe"
-            $template = "<toast><visual><binding template=`"ToastText02`"><text id=`"1`">Windows Tamriel Trade Center v$APP_VERSION</text><text id=`"2`">$msg</text></binding></visual></toast>"
-            $xmlDocument = New-Object Windows.Data.Xml.Dom.XmlDocument
-            $xmlDocument.LoadXml($template)
-            $toast = [Windows.UI.Notifications.ToastNotification]::new($xmlDocument)
-            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($appId).Show($toast)
-        } catch {}
+        Send-Notification "Windows Tamriel Trade Center v$APP_VERSION" $msg
     }
 
     if ($AUTO_MODE -eq "1") { 

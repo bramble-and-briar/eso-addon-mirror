@@ -5,9 +5,9 @@
 ## Title: Improved Golden Pursuits
 ## Description: Enhances the Golden Pursuits page
 ## Author: MrPikPik
-## Version: 1.5.1
-## APIVersion: 101047
-## AddOnVersion 151
+## Version: 1.6.0
+## APIVersion: 101051
+## AddOnVersion 160
 ## SavedVariables: ImprovedGoldenPursuitsSavedVariables
 
 lang/en.lua

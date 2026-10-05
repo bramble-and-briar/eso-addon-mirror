@@ -12,6 +12,10 @@ local function Initialize()
         State.CreateSavedVarsDefaults()
     )
 
+    if State.Migrate(DevSandbox3.state.savedVars) then
+        LogUtils.Log("Settings updated for v%s: chat lines for empty slots are OFF (re-enable in settings if you want them)", DevSandbox3.version)
+    end
+
     if not LibMapPins or not LibGPS3 then
         LogUtils.Log("Missing LibMapPins-1.0 or LibGPS - addon disabled")
         return
@@ -22,6 +26,8 @@ local function Initialize()
     DevSandbox3.CompassActions.Initialize()
     DevSandbox3.AlertActions.Initialize()
     DevSandbox3.CoverageActions.Initialize()
+    DevSandbox3.SlotActions.Initialize()
+    DevSandbox3.WorldMarkerActions.Initialize()
     DevSandbox3.Settings.Initialize()
 
     SLASH_COMMANDS["/ds3"] = DevSandbox3.SlashCommandActions.HandleCommand

@@ -147,9 +147,22 @@ local function Apply(state)
     end
     local ru = GetCVar("language.2") == "ru"
     state.button:SetText(state.grid and (ru and "Список" or "List") or (ru and "Сетка" or "Grid"))
-    ZO_ScrollList_ResetToTop(list)
+    -- Commit computes bottom/left and visibleData for the new layout. Resetting
+    -- first fires OnValueChanged against the previous uniform layout, whose
+    -- entries have no bottom coordinate (FindStartPoint then subtracts nil).
     ZO_ScrollList_Commit(list)
-    ZO_ScrollList_RefreshVisible(list)
+    local ready=true
+    if state.grid then
+        local data=ZO_ScrollList_GetDataList(list)
+        for _,index in ipairs(list.visibleData or {}) do
+            if not data[index] or type(data[index].bottom)~="number" then ready=false break end
+        end
+    end
+    -- Commit can defer until anchors give the list a positive height.
+    if ready then
+        ZO_ScrollList_ResetToTop(list)
+        ZO_ScrollList_RefreshVisible(list)
+    end
 end
 -- OnEffectivelyShown is also used by ESO to populate and reset the list.
 -- Rebuild only after those handlers finish, not from a pre-hook inside them.

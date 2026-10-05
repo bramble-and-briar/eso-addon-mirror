@@ -1,0 +1,10 @@
+## Title: Leo Tracker Beta
+## Author: Leo_Kujo
+## Description: PlayStation-friendly ESO effect tracker.
+## APIVersion: 101051
+## Version: 0.2.19
+## SavedVariables: Leo_tracker_beta_SavedVariables
+## DependsOn: LibAddonMenu-2.0
+## ConsoleDependsOn: LibHarvensAddonSettings
+Leo_tracker_beta.xml
+Leo_tracker_beta.lua

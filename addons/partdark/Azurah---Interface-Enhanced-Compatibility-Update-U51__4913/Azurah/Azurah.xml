@@ -1,0 +1,14 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="Azurah" />
+		<TopLevelControl name="Azurah_Mover" virtual="true" />
+		<TopLevelControl name="Azurah_BagWatcher" clampedToScreen="true" hidden="true">
+			<Dimensions x="375" y="56" />
+			<Anchor point="TOPRIGHT" relativeTo="GuiRoot" relativePoint="TOPRIGHT" offsetX="-15" offsetY="10" />
+		</TopLevelControl>
+		<TopLevelControl name="Azurah_WerewolfTimer" clampedToScreen="true" hidden="true">
+			<Dimensions x="90" y="48" />
+			<Anchor point="BOTTOM" relativeTo="GuiRoot" relativePoint="BOTTOM" offsetX="285" offsetY="-21" />
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

@@ -1,0 +1,51 @@
+## Title: |c67b1e9A|c4779cezurah|r
+## Description: Enhances the default interface with additional overlay details and customization options while retaining the stock theme.
+## Version: 3.0.0
+## Author: Kith, |c66ccffPhinix|r, |cEFEBBEGarkin|r
+## APIVersion: 101051
+## SavedVariables: AzurahDB
+## DependsOn: LibMediaProvider-1.0>=13 LibAddonMenu-2.0>=30
+## OptionalDependsOn: UnitFramesRebirth
+
+
+Azurah.xml
+
+Locales\English_en.lua
+Locales\French_fr.lua
+Locales\German_de.lua
+Locales\Italian_it.lua
+Locales\Japanese_ja-jp.lua
+Locales\Russian_ru.lua
+Locales\Spanish_es.lua
+
+Defaults.lua
+
+Core.lua
+FrameOptions.lua
+
+Mover.lua
+Unlock.lua
+
+Player.lua
+Target.lua
+ActionBar.lua
+ExperienceBar.lua
+Bossbar.lua
+BagWatcher.lua
+Thievery.lua
+Werewolf.lua
+Compass.lua
+
+Settings.lua
+bindings.xml
+
+
+; DISCLAIMER:
+;
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms

@@ -9,6 +9,7 @@ T.font='$(ANTIQUE_FONT)'
 function T.Configure()
     if AlabuzyaUI.Settings.Style()=='wow' then AlabuzyaUI.ClassicTheme.Configure()
     elseif AlabuzyaUI.Settings.Style()=='ds3' then AlabuzyaUI.DS3Theme.Configure() end
+    if AlabuzyaUI.Settings.FontFace then T.font=AlabuzyaUI.Settings.FontFace() or T.font end
 end
 function T.MapHost() return T.Sidebar() end
 function T.QuestHost() return T.Sidebar() end

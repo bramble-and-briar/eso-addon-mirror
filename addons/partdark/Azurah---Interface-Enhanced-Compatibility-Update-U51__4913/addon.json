@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/partdark/Azurah---Interface-Enhanced-Compatibility-Update-U51__4913",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "partdark",
+  "canonical_id": "esoui:4913",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4913",
+  "deleted": false,
+  "directories": [
+    "Azurah"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4913/",
+  "fingerprint": "d0a57439584e836ac7723c2ca80f3a622a59dab9766098d0d89749eda44e1ae7",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4913",
+  "source_url": "https://www.esoui.com/downloads/info4913-Azurah-InterfaceEnhancedCompatibilityUpdateU51.html",
+  "stats": {
+    "downloads": 84,
+    "favorites": 3,
+    "monthly_downloads": 55
+  },
+  "title": "Azurah - Interface Enhanced (Compatibility Update U51)",
+  "updated_at": 1791125741000,
+  "version": "3.0.0a"
+}

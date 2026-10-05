@@ -16,6 +16,11 @@ local exportDialogControl
 local nameDialogControl
 local nameDialogMode
 
+function HT.UpdateLAMDeleteLayoutButtonDisabledState()
+    if HUDITORTOOLS_LAM_DELETE_LAYOUT_BUTTON == nil or HUDITORTOOLS_LAM_DELETE_LAYOUT_BUTTON:IsHidden() then return end
+    HUDITORTOOLS_LAM_DELETE_LAYOUT_BUTTON:UpdateDisabled()
+end
+
 function HT.HideLayoutDialogs()
     importDialogControl:SetHidden(true)
     exportDialogControl:SetHidden(true)
@@ -225,6 +230,7 @@ local function ConfirmNameDialog()
         end
         local SKIP_APPLY = true
         HT.SetActiveLayout(scope, layoutData.layoutId, SKIP_APPLY)
+        HT.UpdateLAMDeleteLayoutButtonDisabledState()
     end
     HT.HideLayoutDialogs()
 end

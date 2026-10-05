@@ -18,24 +18,24 @@
           <Anchor point="TOPRIGHT"
                   constrains="X" />
         </Label>
-        <Button name="$(parent)SnapCheck"
+        <Button name="$(parent)ShowGridCheck"
                 inherits="ZO_HUDInfoBoxCheckButton_Keyboard">
           <Anchor point="TOPLEFT"
                   relativeTo="$(parent)Header"
                   relativePoint="BOTTOMLEFT"
-                  offsetY="8" />
+                  offsetY="6" />
         </Button>
-        <Button name="$(parent)ShowGridCheck"
+        <Button name="$(parent)SnapCheck"
                 inherits="ZO_HUDInfoBoxCheckButton_Keyboard">
           <Anchor point="TOPLEFT"
-                  relativeTo="$(parent)SnapCheck"
+                  relativeTo="$(parent)ShowGridCheck"
                   relativePoint="BOTTOMLEFT"
-                  offsetY="6" />
+                  offsetY="8" />
         </Button>
         <Button name="$(parent)ShowColorPickerCheck"
                 inherits="ZO_HUDInfoBoxCheckButton_Keyboard">
           <Anchor point="TOPLEFT"
-                  relativeTo="$(parent)ShowGridCheck"
+                  relativeTo="$(parent)SnapCheck"
                   relativePoint="BOTTOMLEFT"
                   offsetY="6" />
         </Button>
@@ -48,7 +48,7 @@
           <Controls>
             <Label name="$(parent)Name"
                    font="ZoFontGame"
-                   text="Grid Size"
+                   text="SI_HUDITORTOOLS_HUD_EDITOR_GRID_SIZE_LAM"
                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
               <Anchor point="TOPLEFT" />
               <Dimensions x="70" />

@@ -4,8 +4,8 @@
 
 ## Title: Flexatron
 ## Description: Rotates titles with auto emotes, picks trifectas and hard modes in one press, and wears your best in trials, dungeons and arenas.
-## Version: 0.8.2
-## AddOnVersion: 15
+## Version: 0.8.6
+## AddOnVersion: 19
 ## APIVersion: 101050
 ## SavedVariables: Flexatron_SavedVariables
 ## DependsOn: LibHarvensAddonSettings

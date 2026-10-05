@@ -1,7 +1,7 @@
 ## Title: dev sandbox 3
 ## Author: clubwratt
-## Version: 0.6.0
-## AddOnVersion: 60
+## Version: 0.8.0
+## AddOnVersion: 80
 ## APIVersion: 101050
 ## Description: DO NOT INSTALL
 ## SavedVariables: DevSandbox3SavedVars
@@ -26,6 +26,11 @@ DevSandbox3AlertUtils.lua
 DevSandbox3AlertActions.lua
 DevSandbox3CoverageUtils.lua
 DevSandbox3CoverageActions.lua
+DevSandbox3ExpectedNodes.lua
+DevSandbox3SlotUtils.lua
+DevSandbox3SlotActions.lua
+DevSandbox3WorldMarkerUtils.lua
+DevSandbox3WorldMarkerActions.lua
 DevSandbox3Settings.lua
 SlashCommandUtils.lua
 SlashCommandActions.lua

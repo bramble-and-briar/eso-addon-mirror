@@ -61,7 +61,6 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_STORE_CHTLINE))
 		SellAllJunk()
 		MSI.Print("c", zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 		MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
-
 	end
 end
 
@@ -350,7 +349,7 @@ local function unboxQueuedContainer()
 		if #pendingUnboxingQueue > 0 then
 			unboxQueuedContainer()
 		end
-	end, #cachedUnboxingQueue * (1000 + GetLatency()))
+	end, #cachedUnboxingQueue * (2000 + GetLatency()))
 	for i, slotIndex in ipairs(cachedUnboxingQueue) do
 		if GetItemName(BAG_BACKPACK, slotIndex) == "" then
             MSI.Print("c", GetString(MSI_MOD_MISSING_ITEM_CHTLINE))
@@ -367,7 +366,7 @@ local function unboxQueuedContainer()
 					if UseThatItem(BAG_BACKPACK, item.getSlotIndex) then
 						if item.isFish then
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_FISH_FILLET_CHTLINE), item.getLink))
-						elseif (item.isTreasureMap and item.isUnopened) then
+						elseif (item.isTreasureMap or (item.getLinkId == 224681)) then-- and item.isUnopened) then
 							MSI.Print("i", zo_strformat(GetString(MSI_MOD_OPENED_SCROLL_CHTLINE), item.getLink))
 							MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_OPENED_SCROLL_CHTLINE), item.getLink))
 						elseif item.isTreasureMap then
@@ -384,14 +383,13 @@ local function unboxQueuedContainer()
 							EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
 							zo_callLater(function()
 							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
-							end, GetLatency() + 200)
+							end, 200 + GetLatency())
 						else
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
 						end
 					end
-					--UseThatItem(BAG_BACKPACK, item.getSlotIndex)
 				end
-			end, (i - 1) * (1000 + GetLatency()))
+			end, (i - 1) * (2000 + GetLatency()))
 		end
 	end
 end
@@ -466,7 +464,6 @@ if not MSI.SVars.IsMSIActive then return end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 	unboxQueuedContainer()
 end
 
@@ -484,7 +481,6 @@ if not MSI.SVars.IsMSIActive then return end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 	unboxQueuedContainer()
 end
 
@@ -502,7 +498,6 @@ if not MSI.SVars.IsMSIActive then return end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 	unboxQueuedContainer()
 end
 
@@ -520,7 +515,6 @@ if not MSI.SVars.IsMSIActive then return end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 	unboxQueuedContainer()
 end
 
@@ -538,7 +532,6 @@ if not MSI.SVars.IsMSIActive then return end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 	unboxQueuedContainer()
 end
 
@@ -553,12 +546,11 @@ if not MSI.SVars.IsMSIActive then return end
 					zo_callLater(function() 
 								BindThatItem(BAG_BACKPACK, item.getSlotIndex)
 								MSI.Print("c", zo_strformat(GetString(MSI_MOD_BOUND_SET_ITEM_CHTLINE), item.getLink))
-					end, data.stackCount * (1000 + GetLatency()))
+					end, data.stackCount * (100 + GetLatency()))
 				end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 end
 
 function MSI.MarkUnwantedJunk()
@@ -586,7 +578,6 @@ if not MSI.SVars.IsSellALLJunk then return end
 			end
 		end
 	end
-	SCENE_MANAGER:ShowBaseScene()
 end
 
 function MSI.UnmarkAll()
@@ -618,15 +609,12 @@ function MSI.PrintJunk()
     MSI.Print("d", output)
 end
 
--- print all bag items --SetItemIsJunk(BAG_BACKPACK, slotIndex, false)
 function MSI.ListAllBagItems()
     for bagSlot = 1, GetBagSize(BAG_BACKPACK) do
         local itemLink = GetItemLink(BAG_BACKPACK, bagSlot)
         local itemName = GetItemName(BAG_BACKPACK, bagSlot)
         if string.len(itemName) ~= 0 then
-        -- CHAT_ROUTER:AddSystemMessage("item Type: " .. GetItemType(BAG_BACKPACK, bagSlot) .. ", slotIndex: " .. bagSlot .. ", itemLink: " .. itemLink)
-        -- let's do some hacking here to get the item type string
-        MSI.Print("d", "Item: " .. GetItemType(BAG_BACKPACK, bagSlot) .. " " .. GetString(_G["SI_ITEMTYPE" .. GetItemType(BAG_BACKPACK, bagSlot)]) .. ", slotIndex: " .. bagSlot .. ", itemLink: " .. itemLink)
+         MSI.Print("d", "Item: " .. GetItemType(BAG_BACKPACK, bagSlot) .. " " .. GetString(_G["SI_ITEMTYPE" .. GetItemType(BAG_BACKPACK, bagSlot)]) .. ", slotIndex: " .. bagSlot .. ", itemLink: " .. itemLink)
         end
     end
 end
@@ -635,10 +623,8 @@ local function PrintControlNames(control, indent)
     indent = indent or 0
     local controlName = control:GetName()
     local w, h = control:GetDimensions()
-	--CHAT_ROUTER:AddSystemMessage(string.rep("--", indent) .. controlName .. " /  w:" .. math.floor(w) .. " h: " .. math.floor(h)) -- 打印控件名称
 	MSI.Print("d", string.rep("--", indent) .. controlName .. " /  w:" .. math.floor(w) .. " h: " .. math.floor(h))
-    -- 递归处理子控件
-    for i = 1, control:GetNumChildren() do
+     for i = 1, control:GetNumChildren() do
         local childControl = control:GetChild(i)
         if childControl then
             PrintControlNames(childControl, indent + 1)

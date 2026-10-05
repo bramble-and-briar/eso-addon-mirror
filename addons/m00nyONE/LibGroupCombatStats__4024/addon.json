@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/m00nyONE/LibGroupCombatStats__4024",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "m00nyONE",
   "canonical_id": "esoui:4024",
   "category_id": "53",
@@ -17,7 +18,7 @@
     "LibGroupCombatStats"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4024/",
-  "fingerprint": "3cc49c2f31971664fc37eaf3275245c62b43528e0352390d8920c3e5d6375693",
+  "fingerprint": "ae114e31f06b5257f9383a68c210563998741f1c4e81004967be78c232d75669",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -25,11 +26,11 @@
   "source_id": "4024",
   "source_url": "https://www.esoui.com/downloads/info4024-LibGroupCombatStats.html",
   "stats": {
-    "downloads": 225336,
-    "favorites": 70,
-    "monthly_downloads": 11375
+    "downloads": 245030,
+    "favorites": 76,
+    "monthly_downloads": 8337
   },
   "title": "LibGroupCombatStats",
-  "updated_at": 1785063064000,
-  "version": "2026-07-26"
+  "updated_at": 1791111001000,
+  "version": "2026-10-04"
 }

@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Rhyono/Wealth-Evaluator__1559",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Rhyono",
   "canonical_id": "esoui:1559",
   "category_id": "26",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -29,7 +38,7 @@
     "WealthEvaluator"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1559/",
-  "fingerprint": "80d55558c0bc86be917964bb4837a8e96723740adae26ca94070e2e5faeb52df",
+  "fingerprint": "82bf7b86ec953b019bdeca34e9da82a0a63fcb0d82153e9496540d0d750d3b96",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5617.png",
     "https://cdn-eso.mmoui.com/preview/pvw5189.png"
@@ -40,11 +49,11 @@
   "source_id": "1559",
   "source_url": "https://www.esoui.com/downloads/info1559-WealthEvaluator.html",
   "stats": {
-    "downloads": 73505,
+    "downloads": 73832,
     "favorites": 67,
-    "monthly_downloads": 142
+    "monthly_downloads": 90
   },
   "title": "Wealth Evaluator",
-  "updated_at": 1775013777000,
-  "version": "1.52"
+  "updated_at": 1791168014000,
+  "version": "1.53"
 }

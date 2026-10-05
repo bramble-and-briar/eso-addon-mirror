@@ -36,10 +36,10 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
 | [Banker Shutup Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/Banker-Shutup-Patch__839) | rkuhnjr | PC / Mac | 3.5b |
-| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.5 |
+| [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.6 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
-| [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.12 |
+| [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.13 |
 | [Bar Swap Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KnightofOsiris/Bar-Swap-Feedback__2524) | KnightofOsiris | PC / Mac | 101036.1 |
 | [Bard Class – Combat Stance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/frooke/Bard-Class-Combat-Stance__4365) | frooke | PC / Mac | 1.2.1 |
 | [barny's CC Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/barny/barny-s-CC-Tracker__3971) | barny | PC / Mac | 1.1.3 |
@@ -182,8 +182,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [bugfixxxxx](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/bugfixxxxx__b057d22b-1ffd-455c-834a-af582e3e270a) | Vixen_Hunny | Console | — |
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |
-| [Bureau of Acceptable Views](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Acceptable-Views__4720) | maraud | PC / Mac | 3.10.224232 |
-| [Bureau of Material Worth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Material-Worth__4718) | maraud | PC / Mac | 4.4.135835 |
+| [Bureau of Acceptable Views](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Acceptable-Views__4720) | maraud | PC / Mac | 3.11.012748 |
+| [Bureau of Material Worth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Material-Worth__4718) | maraud | PC / Mac | 4.5.005149 |
 | [Bureau of Private Dispatches](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Private-Dispatches__4796) | maraud | PC / Mac | 1.0.131353 |
 | [Burning Language Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IBurningTV/Burning-Language-Selector__2869) | IBurningTV | PC / Mac | 1.2 |
 | [Burning Light Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Yaeg/Burning-Light-Tracker__4786) | Yaeg | PC / Mac | 1.2.1 |

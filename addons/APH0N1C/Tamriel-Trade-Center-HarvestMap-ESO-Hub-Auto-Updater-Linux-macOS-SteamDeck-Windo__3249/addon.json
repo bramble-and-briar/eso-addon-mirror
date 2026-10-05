@@ -21,7 +21,7 @@
     " ESOUI Auto-Updater"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3249/",
-  "fingerprint": "cab86039f5c6507ab639b2f405b032b590847da70218bdcd88999fce242a6f27",
+  "fingerprint": "d68cb906a80397c4d3f6671c85bfb0ad8fec08a175a0850c6d3809a503772dc2",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15289.png",
     "https://cdn-eso.mmoui.com/preview/pvw17670.png",
@@ -51,11 +51,11 @@
   "source_id": "3249",
   "source_url": "https://www.esoui.com/downloads/info3249-TamrielTradeCenterHarvestMapESO-HubAuto-UpdaterLinuxmacOSSteamDeckWindows.html",
   "stats": {
-    "downloads": 37094,
-    "favorites": 44,
-    "monthly_downloads": 777
+    "downloads": 37159,
+    "favorites": 45,
+    "monthly_downloads": 845
   },
   "title": "Tamriel Trade Center, HarvestMap & ESO-Hub Auto-Updater (Linux, macOS, SteamDeck, & Windows)",
-  "updated_at": 1791029241000,
-  "version": "2026.09.30.16.04"
+  "updated_at": 1791116833000,
+  "version": "2026.10.04.19.22"
 }

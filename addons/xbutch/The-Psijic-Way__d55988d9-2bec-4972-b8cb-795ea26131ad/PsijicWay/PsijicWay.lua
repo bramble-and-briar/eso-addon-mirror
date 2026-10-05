@@ -1,15 +1,18 @@
 --Name Space
-PsijicWay = {}
+PsijicWay = PsijicWay or {}
 local BOT = PsijicWay
-local LMP = LibMapPins
+local LMP = BOT.internal and BOT.internal.mapPins
 
 BOT.Name = "PsijicWay"
-BOT.debug = false
 BOT.addOnName = "PsijicWay"
 BOT.addOnDisplayName = "The Psijic Way"
 BOT.author = "@XBUTCH"
-BOT.version = "1.49.05"
-BOT.defaults = { pinSize = 32 }
+BOT.version = "1.51.01"
+BOT.defaults = {
+   filters = true,
+   pinSize = 32,
+   found = {},
+}
 
 -- Keyed by quest ID, then by zone map name.
 local pinData = {
@@ -115,12 +118,34 @@ local pinData = {
    },
 }
 
-function BOT.SwitchSV()
-  if BOT.CV.CV then
-    BOT.SV = BOT.CV
-  else
-    BOT.SV = BOT.AV
-  end
+local SAVED_VARS_NAME = "PW_Vars"
+local LEGACY_SAVED_VARS_NAME = "PW_SavedVars"
+local SAVED_VARS_VERSION = 2
+
+local function MergeSavedVars(target, source, overwrite)
+   if type(target) ~= "table" or type(source) ~= "table" then return end
+
+   if (overwrite or rawget(target, "filters") == nil) and type(source.filters) == "boolean" then
+      target.filters = source.filters
+   end
+   if (overwrite or rawget(target, "pinSize") == nil) and type(source.pinSize) == "number" then
+      target.pinSize = source.pinSize
+   end
+
+   local targetFound = rawget(target, "found")
+   if type(targetFound) ~= "table" then
+      targetFound = {}
+      target.found = targetFound
+   end
+
+   local sourceFound = rawget(source, "found")
+   if type(sourceFound) == "table" then
+      for key, value in pairs(sourceFound) do
+         if overwrite or targetFound[key] == nil then
+            targetFound[key] = value
+         end
+      end
+   end
 end
 
 local QUEST_NAMES = {
@@ -138,8 +163,77 @@ local QUEST_NAMES = {
 local PIN_TYPE = "PW_Pin"
 local pinTypeId1
 
-local function pinKey(x, y)
+local function legacyPinKey(x, y)
    return string.format("%.6f,%.6f", x, y)
+end
+
+local function pinKey(questId, mapName, x, y)
+   return string.format("%d|%s|%.6f,%.6f", questId, mapName, x, y)
+end
+
+local function MigrateFoundKeys()
+   if BOT.SV.foundKeyVersion == 2 then return end
+
+   local found = rawget(BOT.SV, "found")
+   if type(found) ~= "table" then
+      found = {}
+      BOT.SV.found = found
+   end
+
+   local migratedLegacyKeys = {}
+   for questId, zoneMaps in pairs(pinData) do
+      for mapName, pins in pairs(zoneMaps) do
+         for _, pinInfo in ipairs(pins) do
+            local oldKey = legacyPinKey(pinInfo.x, pinInfo.y)
+            local oldValue = found[oldKey]
+            if oldValue ~= nil then
+               local newKey = pinKey(questId, mapName, pinInfo.x, pinInfo.y)
+               if found[newKey] == nil then
+                  found[newKey] = oldValue
+               end
+               migratedLegacyKeys[oldKey] = true
+            end
+         end
+      end
+   end
+
+   for oldKey in pairs(migratedLegacyKeys) do
+      found[oldKey] = nil
+   end
+
+   BOT.SV.foundKeyVersion = 2
+end
+
+local function InitializeSavedVars()
+   BOT.SV = ZO_SavedVars:NewAccountWide(SAVED_VARS_NAME, SAVED_VARS_VERSION, nil, BOT.defaults)
+
+   -- The manifest historically declared PW_SavedVars while the code used PW_Vars.
+   -- Load both names for one-way, idempotent migration so no legacy values are lost.
+   if not BOT.SV.legacySavedVarsMigrated then
+      local legacySV = ZO_SavedVars:NewAccountWide(LEGACY_SAVED_VARS_NAME, SAVED_VARS_VERSION, nil, {})
+      MergeSavedVars(BOT.SV, legacySV, false)
+      BOT.SV.legacySavedVarsMigrated = true
+   end
+
+   -- Older code also created character-specific branches. They were effectively
+   -- unused in the current UI, but preserve a branch explicitly selected via CV=true
+   -- if one exists in an older installation.
+   if not BOT.SV.characterSavedVarsMigrated then
+      local legacyCharacterSV = ZO_SavedVars:NewCharacterIdSettings(LEGACY_SAVED_VARS_NAME, SAVED_VARS_VERSION, nil, {})
+      if legacyCharacterSV.CV then
+         MergeSavedVars(BOT.SV, legacyCharacterSV, true)
+      end
+
+      local characterSV = ZO_SavedVars:NewCharacterIdSettings(SAVED_VARS_NAME, SAVED_VARS_VERSION, nil, {})
+      if characterSV.CV then
+         MergeSavedVars(BOT.SV, characterSV, true)
+      end
+
+      BOT.SV.characterSavedVarsMigrated = true
+   end
+
+   BOT.savedVars = BOT.SV
+   MigrateFoundKeys()
 end
 
 local PSIJIC_QUEST_ID_SET = {
@@ -158,12 +252,17 @@ end
 local COLOR_FOUND    = ZO_ColorDef:New(1, 1, 1, 1)
 local COLOR_NOTFOUND = ZO_ColorDef:New(0.5, 0.5, 0.5, 1)
 
+local function GetPinTag(pin)
+   local _, tag = pin:GetPinTypeAndTag()
+   return tag
+end
+
 local pinLayoutData = {
    level = 80,
    texture = "/esoui/art/tribute/patrons/tot_icon_psijic.dds",
    tint = function(pin)
-      local tag = pin.m_PinTag
-      if tag and BOT.SV.found[pinKey(tag.x, tag.y)] then
+      local tag = GetPinTag(pin)
+      if tag and tag.key and BOT.SV.found[tag.key] then
          return COLOR_FOUND
       else
          return COLOR_NOTFOUND
@@ -177,12 +276,13 @@ local clickHandler = {
       gamepadName = "Toggle Time Breach",
       show = function(pin) return true end,
       callback = function(pin)
-         local tag = pin.m_PinTag
-         local key = pinKey(tag.x, tag.y)
-         if BOT.SV.found[key] then
-            BOT.SV.found[key] = nil
+         local tag = GetPinTag(pin)
+         if not tag or not tag.key then return end
+
+         if BOT.SV.found[tag.key] then
+            BOT.SV.found[tag.key] = nil
          else
-            BOT.SV.found[key] = true
+            BOT.SV.found[tag.key] = true
          end
          LMP:RefreshPins(pinTypeId1)
       end,
@@ -191,7 +291,7 @@ local clickHandler = {
 
 local pinTooltipCreator = {
    creator = function(pin)
-      local tag = pin.m_PinTag
+      local tag = GetPinTag(pin)
       local text = tag and tag.questName or "Time Breach"
       if IsInGamepadPreferredMode() then
          local gpTooltip = ZO_MapLocationTooltip_Gamepad
@@ -208,51 +308,66 @@ local pinTypeAddCallback = function(pinManager)
    if not LMP:IsEnabled(PIN_TYPE) then return end
    if GetMapType() > MAPTYPE_ZONE then return end
 
-   local mapname = LMP:GetZoneAndSubzone(true)
-
---[[    if BOT.debug then
-      for questId, zoneMap in pairs(pinData) do
-         local pins = zoneMap[mapname]
-         if pins then
-            for _, pinInfo in ipairs(pins) do
-               LMP:CreatePin(PIN_TYPE, { x = pinInfo.x, y = pinInfo.y, questName = QUEST_NAMES[questId] }, pinInfo.x, pinInfo.y)
-            end
-         end
-      end
-      return
-   end ]]
-
    local questId = GetCurrentQuestId()
    if not questId then return end
 
+   local mapname = LMP:GetZoneAndSubzone(true)
    local zoneMap = pinData[questId]
    local pins = zoneMap and zoneMap[mapname]
    if pins then
       for _, pinInfo in ipairs(pins) do
-         LMP:CreatePin(PIN_TYPE, { x = pinInfo.x, y = pinInfo.y, questName = QUEST_NAMES[questId] }, pinInfo.x, pinInfo.y)
+         local key = pinKey(questId, mapname, pinInfo.x, pinInfo.y)
+         LMP:CreatePin(PIN_TYPE, {
+            x = pinInfo.x,
+            y = pinInfo.y,
+            questId = questId,
+            mapName = mapname,
+            key = key,
+            questName = QUEST_NAMES[questId],
+         }, pinInfo.x, pinInfo.y)
       end
    end
 end
 
 local pinTypeOnResizeCallback = nil
 
+local lastQuestId
+local questRefreshPending = false
+
+local function ScheduleQuestRefresh()
+   if questRefreshPending then return end
+   questRefreshPending = true
+
+   zo_callLater(function()
+      questRefreshPending = false
+      local questId = GetCurrentQuestId()
+      if questId ~= lastQuestId then
+         lastQuestId = questId
+         LMP:RefreshPins(PIN_TYPE)
+      end
+   end, 50)
+end
+
 local function OnLoad(eventCode, addonName)
    if addonName ~= BOT.Name then return end
    EVENT_MANAGER:UnregisterForEvent(BOT.Name, EVENT_ADD_ON_LOADED)
-   BOT.AV = ZO_SavedVars:NewAccountWide("PW_SavedVars", 2, nil, { filters = true, pinSize = BOT.defaults.pinSize, found = {} })
-   BOT.CV = ZO_SavedVars:NewCharacterIdSettings("PW_SavedVars", 2, nil, { filters = true, pinSize = BOT.defaults.pinSize, found = {} })
-   BOT.savedVars = BOT.AV
-   BOT.SwitchSV()
+
+   InitializeSavedVars()
+
    pinLayoutData.size = BOT.savedVars.pinSize
    pinTypeId1 = LMP:AddPinType(PIN_TYPE, pinTypeAddCallback, pinTypeOnResizeCallback, pinLayoutData, pinTooltipCreator)
    BOT.pinType = pinTypeId1
    LMP:AddPinFilter(pinTypeId1, "The Psijic Way", nil, BOT.SV, "filters")
    LMP:SetClickHandlers(PIN_TYPE, clickHandler)
-   LMP:SetEnabled(PIN_TYPE, true)
    LMP:SetPinFilterHidden(pinTypeId1, "pvp", true)
    LMP:SetPinFilterHidden(pinTypeId1, "imperialPvP", true)
    LMP:SetPinFilterHidden(pinTypeId1, "battleground", true)
    LMP:RefreshPins(PIN_TYPE)
+
+   lastQuestId = GetCurrentQuestId()
+   EVENT_MANAGER:RegisterForEvent(BOT.Name .. "_QuestAdded", EVENT_QUEST_ADDED, ScheduleQuestRefresh)
+   EVENT_MANAGER:RegisterForEvent(BOT.Name .. "_QuestRemoved", EVENT_QUEST_REMOVED, ScheduleQuestRefresh)
+
    BOT:CreateOptions()
 end
 

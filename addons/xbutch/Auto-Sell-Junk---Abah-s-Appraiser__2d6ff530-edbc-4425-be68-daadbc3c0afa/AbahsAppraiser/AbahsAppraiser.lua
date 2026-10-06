@@ -3,7 +3,7 @@ if not ASJ then ASJ = {} end
 
 ASJ.addOnName = "AbahsAppraiser"
 ASJ.addOnDisplayName = "Auto mark/sell junk"
-ASJ.version = "1.51.01"
+ASJ.version = "1.51.04"
 ASJ.author = "xbutch"
 local C = ASJ.Config
 
@@ -547,27 +547,7 @@ local function ApplyJunkRules(bagId, slotIndex)
 
 	-- Apparel
 	if itemType == ITEMTYPE_WEAPON or itemType == ITEMTYPE_ARMOR then
-		-- Set items remain protected unless explicitly included.
-		local hasSet = GetItemLinkSetInfo(itemLink, false)
-		if hasSet and not SV.asjIncludingSets then
-			dbg("Skipping set item: " .. tostring(itemLink))
-			return false
-		end
-
 		local itemTrait = GetItemTrait(bagId, slotIndex)
-
-		-- Preserve rare/valuable traits before any explicit auto-junk rule.
-		if not SV.asjIncludingRareTraits and hasRareOrValuableTrait(itemTrait) then
-			dbg("Protected from junking due to rare trait: " .. tostring(itemLink))
-			return false
-		end
-
-		-- Preserve valuable/non-basic styles before any explicit auto-junk rule.
-		if not SV.asjIncludingDLCStyle and isDLCOrValuableStyle(itemLink) then
-			dbg("Protected from junking due to DLC style: " .. tostring(itemLink))
-			return false
-		end
-
 		local isIntricate = itemTrait == ITEM_TRAIT_TYPE_WEAPON_INTRICATE
 			or itemTrait == ITEM_TRAIT_TYPE_ARMOR_INTRICATE
 			or itemTrait == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE
@@ -575,23 +555,43 @@ local function ApplyJunkRules(bagId, slotIndex)
 			or itemTrait == ITEM_TRAIT_TYPE_ARMOR_ORNATE
 			or itemTrait == ITEM_TRAIT_TYPE_JEWELRY_ORNATE
 
-		-- Intricate is explicitly protected when its dedicated setting is off.
-		if isIntricate then
-			if SV.asjIntricate then
-				dbg("Intricate item marked as junk: " .. tostring(itemLink))
-				return true
-			end
+		-- Protection rules are vetoes. Once one matches, no later auto-junk rule
+		-- may override it.
+		local hasSet = GetItemLinkSetInfo(itemLink, false)
+		if hasSet and not SV.asjIncludingSets then
+			dbg("Protected set item: " .. tostring(itemLink))
+			return false
+		end
+
+		if not SV.asjIncludingRareTraits and hasRareOrValuableTrait(itemTrait) then
+			dbg("Protected from junking due to valuable trait: " .. tostring(itemLink))
+			return false
+		end
+
+		if not SV.asjIncludingDLCStyle and isDLCOrValuableStyle(itemLink) then
+			dbg("Protected from junking due to non-basic style: " .. tostring(itemLink))
+			return false
+		end
+
+		-- Intricate OFF is itself an explicit protection.
+		if isIntricate and not SV.asjIntricate then
 			dbg("Protected intricate item (setting OFF): " .. tostring(itemLink))
 			return false
 		end
 
-		-- Ornate explicit rule takes precedence over generic trait filtering.
+		-- Positive dedicated rules are evaluated only after every protection veto.
+		if isIntricate and SV.asjIntricate then
+			dbg("Intricate item marked as junk: " .. tostring(itemLink))
+			return true
+		end
+
 		if isOrnate and SV.asjOrnate then
 			dbg("Ornate item marked as junk: " .. tostring(itemLink))
 			return true
 		end
 
-		-- Disabled means generic apparel auto-junk is completely off.
+		-- Generic apparel rule. Disabled means this generic rule is off; it is not
+		-- a veto against the dedicated Ornate/Intricate rules above.
 		local qualityThreshold = SV.asjApparelQualityThreshold or ITEM_QUALITY.ITEM_QUALITY_DISABLED
 		if qualityThreshold == ITEM_QUALITY.ITEM_QUALITY_DISABLED then return false end
 		if itemQuality > qualityThreshold then
@@ -599,14 +599,15 @@ local function ApplyJunkRules(bagId, slotIndex)
 			return false
 		end
 
-		-- Generic known/unknown trait rules only apply after explicit trait rules.
+		-- Known/researchable toggles are eligibility gates for the generic apparel
+		-- rule only. Ornate/Intricate are handled separately above.
 		local itemTraitType = GetItemLinkTraitType(itemLink)
 		if itemTraitType ~= ITEM_TRAIT_TYPE_NONE then
 			local canBeResearched = CanItemLinkBeTraitResearched(itemLink)
 			local include = (canBeResearched and SV.asjIncludingUnknownTraits)
 				or (not canBeResearched and SV.asjIncludingKnownTraits)
 			if not include then
-				dbg("Skipping item due to trait settings: " .. tostring(itemLink))
+				dbg("Skipping item due to generic trait eligibility: " .. tostring(itemLink))
 				return false
 			end
 		end

@@ -584,22 +584,28 @@ local function GetTeamConfigurationKey(match)
 
     if savedNumTeams > 0 and savedTeamSize > 0 then
         if savedNumTeams == 2 and savedTeamSize <= 4 then return "4v4" end
-        if savedNumTeams == 2 and savedTeamSize >= 8 then return "8v8" end
+        if savedNumTeams == 2 and savedTeamSize <= 8 then return "8v8" end
+        if savedNumTeams == 2 and savedTeamSize >= 9 then return "9v9" end
         if savedNumTeams == 3 and savedTeamSize <= 4 then return "4v4v4" end
+        if savedNumTeams == 3 and savedTeamSize >= 6 then return "6v6v6" end
     end
 
     local teamCount = GetMatchTeamCount(match)
     local playerCount = GetMatchPlayerCount(match)
 
-    -- Fallback: use player count heuristic, but raise the threshold so partial
-    -- 8v8 matches (where some players have left) still classify correctly.
-    -- Treat playerCount > 8 as an 8v8, and <= 8 as 4v4 for two-team matches.
+    -- Fallback for legacy matches without battleground metadata. Full new-mode
+    -- matches can be distinguished by their larger player counts; heavily
+    -- depleted matches remain classified as the nearest smaller format.
     if teamCount == 2 and playerCount <= 8 then
         return "4v4"
-    elseif teamCount == 3 then
-        return "4v4v4"
-    elseif teamCount == 2 and playerCount > 8 then
+    elseif teamCount == 2 and playerCount <= 16 then
         return "8v8"
+    elseif teamCount == 2 then
+        return "9v9"
+    elseif teamCount == 3 and playerCount <= 12 then
+        return "4v4v4"
+    elseif teamCount == 3 then
+        return "6v6v6"
     end
 
     return nil
@@ -609,13 +615,15 @@ local function GetTeamSizeFilterLabel(filter)
     if filter == "4v4" then return "4v4" end
     if filter == "4v4v4" then return "4v4v4" end
     if filter == "8v8" then return "8v8" end
+    if filter == "6v6v6" then return "6v6v6" end
+    if filter == "9v9" then return "9v9" end
     return "All"
 end
 
 local function NormalizeTeamSizeFilter(filter)
     if filter == "2" then return "4v4" end
     if filter == "3" then return "4v4v4" end
-    if filter == "4v4" or filter == "4v4v4" or filter == "8v8" then return filter end
+    if filter == "4v4" or filter == "4v4v4" or filter == "8v8" or filter == "6v6v6" or filter == "9v9" then return filter end
     return "All"
 end
 

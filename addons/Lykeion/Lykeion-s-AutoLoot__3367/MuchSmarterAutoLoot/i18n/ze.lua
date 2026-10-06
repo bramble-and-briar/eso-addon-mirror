@@ -153,6 +153,8 @@ ZO_CreateStringId("MSAL_LOOT_ANY_CHAR_UNKNOWN_TOOLTIP","启用时，总是拾取
 ZO_CreateStringId("MSAL_USE","依据<<1>>")
 ZO_CreateStringId("MSAL_USE_DEFAULT","使用默认")
 ZO_CreateStringId("MSAL_LEAVE_BEHIND","留在原地")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS","清理背包容器遺留物")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS_TOOLTIP","僅當|ccc922f<<1>>|r被設為|ccc922f<<2>>|r時可用\n\n關閉時，背包容器中不希望被拾取的物品將會留在容器中；\n啟用時，背包容器中不希望被拾取的物品將會被取出並標記為廢品")
 ZO_CreateStringId("MSAL_DONT_STEAL","不偷窃")
 ZO_CreateStringId("MSAL_DONT_STEAL_STRICT","不偷窃（严格）")
 ZO_CreateStringId("MSAL_UNOPENED_TOOLTIP","<<1>>指<<2>> / <<3>> / <<4>>的容器\n本筛选器及其子类筛选器同时作用于<<1>>及其内容物的筛选")

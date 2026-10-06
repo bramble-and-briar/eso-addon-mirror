@@ -18,7 +18,7 @@
     "BureauOfMaterialWorth"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4718/",
-  "fingerprint": "0724f4db5198df9e318b7532364166368142bb7fbf41a74792798b946431efce",
+  "fingerprint": "3c34bd9aec4e96773d13762effdb657c1b44b0740dbaa13aff5c87ea11585204",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17123.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17122.jpg",
@@ -36,11 +36,11 @@
   "source_id": "4718",
   "source_url": "https://www.esoui.com/downloads/info4718-BureauofMaterialWorth.html",
   "stats": {
-    "downloads": 492,
+    "downloads": 528,
     "favorites": 1,
-    "monthly_downloads": 54
+    "monthly_downloads": 97
   },
   "title": "Bureau of Material Worth",
-  "updated_at": 1791151113000,
-  "version": "4.5.005149"
+  "updated_at": 1791221051000,
+  "version": "4.6.202120"
 }

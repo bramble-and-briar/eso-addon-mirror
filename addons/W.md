@@ -71,6 +71,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Witches Festival](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Witches-Festival__3496) | tim99 | PC / Mac | 4.6 |
 | [Wizard's Wardrobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Wizard-s-Wardrobe__3170) | ownedbynico | PC / Mac | 1.23.2 |
 | [Wizard's Wardrobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Wizard-s-Wardrobe__645213de-645d-4170-a4d0-0ee977090114) | STUDLETON | Console | — |
+| [Wizard's Wardrobe Console Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RagePhoenix96/Wizard-s-Wardrobe-Console-Companion__f6c4019b-59cf-4a0b-8550-0e83c807df18) | RagePhoenix96 | Console | — |
 | [Wizard's Wardrobe Dungeons Extension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kecaj/Wizard-s-Wardrobe-Dungeons-Extension__3845) | kecaj | PC / Mac | 3.1 |
 | [Wizard's Wardrobe Extensions - Arena and Dungeons - Feast of Shadows updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mgsnakes/Wizard-s-Wardrobe-Extensions---Arena-and-Dungeons---Feast-of-Shadows-updated__3874) | mgsnakes | PC / Mac | 2.2 |
 | [Worhello Achievement Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/worhello/Worhello-Achievement-Exporter__3615) | worhello | PC / Mac | 3.0.1 |

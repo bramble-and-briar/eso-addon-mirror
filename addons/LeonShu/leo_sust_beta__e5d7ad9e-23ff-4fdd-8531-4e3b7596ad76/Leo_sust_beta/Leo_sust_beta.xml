@@ -1,0 +1,19 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="Leo_sust_beta" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="360" y="20" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="300" offsetY="500" />
+
+            <Controls>
+                <Backdrop name="$(parent)Background" layer="BACKGROUND" level="1" alpha="1">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Backdrop name="$(parent)Fill" layer="OVERLAY" level="2" alpha="1">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Background" relativePoint="TOPLEFT" />
+                    <Dimensions x="1" y="20" />
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

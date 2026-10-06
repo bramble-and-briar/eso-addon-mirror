@@ -1,0 +1,55 @@
+## Title: LibAPH
+## Description: Helper library for my addons.
+## IsLibrary: true
+## AddOnVersion: 26100607
+## Version: 2026.10.06.07.36
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+
+; Library
+CORE/LibAPH.lua
+lang/default.lua
+lang/$(language).lua
+DATA/PackedTable.lua
+UI/StatusIcons.lua
+UI/Theme.lua
+UI/KeyHints.lua
+UI/Window.lua
+UI/FitText.lua
+UI/ContextMenu.lua
+UI/Templates.xml
+UI/Bindings.xml
+UI/Gamepad.lua
+UI/Position.lua
+UI/UndoRedo.lua
+UI/GamepadDialogs.lua
+UI/SearchBar.lua
+UTILS/Platform.lua
+UTILS/Scheduler.lua
+HELPERS/Messaging.lua
+MODULES/ModuleManager.lua
+UTILS/Format.lua
+UTILS/LibraryVersion.lua
+HELPERS/Settings.lua
+HELPERS/ErrorCapture.lua
+UTILS/BugReport.lua
+UTILS/DependencyRegistry.lua
+MODULES/Wizard.lua
+MENU/MenuRefresh.lua
+MENU/MenuState.lua
+HELPERS/PlayerState.lua
+HELPERS/ActivityTriggers.lua
+HELPERS/AddonManager.lua
+UTILS/ProfileStore.lua
+HELPERS/SavedVariables.lua
+UTILS/SelfVersion.lua
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

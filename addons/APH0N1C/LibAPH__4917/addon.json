@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/LibAPH__4917",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4917",
+  "category_id": "53",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4917",
+  "deleted": false,
+  "directories": [
+    "LibAPH"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4917/",
+  "fingerprint": "90ff65292f5763a34ffb255cfead5c46fcf1c0e01de30137014e4179be2f8c34",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4917",
+  "source_url": "https://www.esoui.com/downloads/info4917-LibAPH.html",
+  "stats": {
+    "downloads": 26,
+    "favorites": 2,
+    "monthly_downloads": 0
+  },
+  "title": "LibAPH",
+  "updated_at": 1791246897000,
+  "version": "2026.10.06.07.36"
+}

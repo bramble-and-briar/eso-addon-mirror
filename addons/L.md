@@ -48,6 +48,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |
 | [Leo's Trainer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Trainer__2162) | LeandroSilva | PC / Mac | 2.2.3 |
+| [leo_sust_beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeonShu/leo_sust_beta__e5d7ad9e-23ff-4fdd-8531-4e3b7596ad76) | LeonShu | Console | — |
 | [Leo_tracker_beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeonShu/Leo_tracker_beta__35b41333-fe07-42d9-b8f7-aa2f6b7c83cc) | LeonShu | Console | — |
 | [Leonardo's Wardrobe Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Leonardo1123/Leonardo-s-Wardrobe-Manager__3180) | Leonardo1123 | PC / Mac | 0.4.2 |
 | [Lep Seclusa Achievement Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Treuce/Lep-Seclusa-Achievement-Helper__4069) | Treuce | PC / Mac | 0.1 |
@@ -68,12 +69,14 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibAddonMenu - SoundSlider widget](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/LibAddonMenu---SoundSlider-widget__3346) | Baertram | PC / Mac | 6 |
 | [LibAddonMenu-2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibAddonMenu-2.0__7) | sirinsidiator | PC / Mac | 2.0 r43 |
 | [LibAkaUtils](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/LibAkaUtils__3683) | akamatsu02 | PC / Mac | 22 |
-| [LibAlchemy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/LibAlchemy__2618) | Hyperioxes | PC / Mac | 2.6 |
+| [LibAlchemy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/LibAlchemy__2618) | Hyperioxes | PC / Mac | 2.7 |
 | [LibAlchemy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/LibAlchemy__48762aef-8240-473f-aef5-17d1b5d5b9b6) | Sharlikran | Console | — |
 | [LibAlchemyStation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibAlchemyStation__2628) | votan | PC / Mac | 3.4.5 |
 | [LibAlianym](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/LibAlianym__3046) | Alianym | PC / Mac | 0.40 |
 | [LibAnimation-1.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pawkette/LibAnimation-1.0__54) | Pawkette | PC / Mac | 2.3 |
 | [LibAnnyoingUpdateNotificationInGame - Launig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/LibAnnyoingUpdateNotificationInGame---Launig__1488) | Ayantir | PC / Mac | 7 |
+| [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/LibAPH__4917) | APH0N1C | PC / Mac | 2026.10.06.07.36 |
+| [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/LibAPH__dac0d37e-2d2f-4813-a148-6198c2d54687) | APH0NlC | Console | — |
 | [LibArmorInsulation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibArmorInsulation__4709) | kreksar@gmail.com | PC / Mac | 2.7.11 |
 | [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibAsync__2125) | votan | PC / Mac | 3.1.5 |
 | [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/LibAsync__72c475de-1f9e-433f-8047-57f7fb4ff786) | votan73 | Console | — |
@@ -94,7 +97,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibCombat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/LibCombat__2528) | Solinur | PC / Mac | 89 |
 | [LibCombat2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SolinurAddons/LibCombat2__96103ec3-3c4e-4865-be32-cc3b57df04d0) | SolinurAddons | Console | — |
 | [LibCombatAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCombatAlerts__756d3118-70ee-4ed7-a49e-5217da36e5fe) | code65536 | Console | — |
-| [LibCombatAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCombatAlerts__4225) | code65536 | PC / Mac | 0.8.5 |
+| [LibCombatAlerts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibCombatAlerts__4225) | code65536 | PC / Mac | 0.8.5.2 |
 | [LibCombatSkills](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/LibCombatSkills__4500daea-ed3f-4071-822c-24329a5831e3) | SugaComa | Console | — |
 | [LibConsoleDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibConsoleDialogs__4106) | votan | PC / Mac | 1.0.4.2 |
 | [LibConsoleDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan73/LibConsoleDialogs__73752f6e-3ac5-4ecd-9bfe-b71c1b926c3b) | votan73 | Console | — |
@@ -247,7 +250,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibSavedVars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/LibSavedVars__2161) | silvereyes | PC / Mac | 6.1.1 |
 | [LibSaveToDisk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomtomhotep/LibSaveToDisk__1993) | tomtomhotep | PC / Mac | 1.3g r6 |
 | [LibScroll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/circonian/LibScroll__1151) | circonian | PC / Mac | 2 |
-| [LibScrollableMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomstock/LibScrollableMenu__3546) | tomstock | PC / Mac | 2.45 |
+| [LibScrollableMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomstock/LibScrollableMenu__3546) | tomstock | PC / Mac | 2.46 |
 | [LibScrollList](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibScrollList__4609) | imPDA | PC / Mac | 4 |
 | [LibSeasonalEventManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IsJustaGhost/LibSeasonalEventManager__3670) | IsJustaGhost | PC / Mac | 1.3 |
 | [LibServerResetTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/LibServerResetTime__d1e62d86-1a34-4727-8221-e23b1c5b7616) | code65536 | Console | — |
@@ -376,7 +379,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LWT Price Info (formerly Tamriel Trash Centre)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drLemis/LWT-Price-Info-formerly-Tamriel-Trash-Centre__3724) | drLemis | PC / Mac | 2.1.0 |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__529cf85a-e597-4945-86c4-654d2a32a7bc) | Masteroshi430 | Console | — |
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
-| [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.6 |
+| [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.7 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
 | [Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |
 | [Lykeion's Home Sweet Home - Dedicated keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-keybinding-jumping-to-Sugar-Bowl-Suite__3517) | Lykeion | PC / Mac | 1.0.2 |

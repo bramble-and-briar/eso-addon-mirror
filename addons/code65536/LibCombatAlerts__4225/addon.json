@@ -38,7 +38,7 @@
     "LibCombatAlerts"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4225/",
-  "fingerprint": "6c145d5dea25d61c3574102958ca0ce1030985b3de9a0374ff9a17c266c76064",
+  "fingerprint": "38b5f728ed0af883340b600324f469d112466ffe9dfaff446d1aa2d449926484",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -46,11 +46,11 @@
   "source_id": "4225",
   "source_url": "https://www.esoui.com/downloads/info4225-LibCombatAlerts.html",
   "stats": {
-    "downloads": 61525,
-    "favorites": 23,
-    "monthly_downloads": 10971
+    "downloads": 65352,
+    "favorites": 25,
+    "monthly_downloads": 9547
   },
   "title": "LibCombatAlerts",
-  "updated_at": 1790048904000,
-  "version": "0.8.5"
+  "updated_at": 1791286018000,
+  "version": "0.8.5.2"
 }

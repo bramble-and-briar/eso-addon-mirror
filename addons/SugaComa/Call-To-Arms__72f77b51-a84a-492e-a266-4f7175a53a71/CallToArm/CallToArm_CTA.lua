@@ -14,8 +14,12 @@ CTA._updateHandle = "CALLTOARM_CTA_UPDATE"
 CTA._leaderboardQueryAt = CTA._leaderboardQueryAt or {}
 CTA._forcePopulationOnce = CTA._forcePopulationOnce or false
 CTA._campaignDataRefreshAt = CTA._campaignDataRefreshAt or 0
+CTA._selectionDataReceivedAt = CTA._selectionDataReceivedAt or 0
+CTA._selectionRequestSerial = CTA._selectionRequestSerial or 0
+CTA._selectionReadySerial = CTA._selectionReadySerial or 0
 CTA._debugNoFireCount = CTA._debugNoFireCount or 0
 CTA._campaignWarmupAt = CTA._campaignWarmupAt or 0
+CTA._keepChangeCheckScheduled = CTA._keepChangeCheckScheduled or false
 
 CTA.Popup = CTA.Popup or {}
 
@@ -30,12 +34,15 @@ end
 
 local function EnsureCampaignDataFeed(force)
     local now = GetTimeStamp()
-    if not force and CTA._campaignDataRefreshAt ~= 0 and now - CTA._campaignDataRefreshAt < 60 then return end
-    CTA._campaignDataRefreshAt = now
     if not CTA._assignedFeedRegistered then
         RegisterForAssignedCampaignData()
         CTA._assignedFeedRegistered = true
     end
+    -- Campaign selection data is server-queried and completed asynchronously.
+    -- Even forced/manual checks share a one-minute floor to avoid hammering it.
+    if CTA._campaignDataRefreshAt ~= 0 and now - CTA._campaignDataRefreshAt < 60 then return end
+    CTA._campaignDataRefreshAt = now
+    CTA._selectionRequestSerial = CTA._selectionRequestSerial + 1
     QueryCampaignSelectionData()
 end
 
@@ -450,6 +457,9 @@ local function EnsureByGuild(gid)
         if cta.state.lastSeen.lastPopulationEC == nil then
             cta.state.lastSeen.lastPopulationEC = 0
         end
+        if cta.state.lastSeen.lastPopulationStateKey == nil then
+            cta.state.lastSeen.lastPopulationStateKey = ""
+        end
 
         return g
     end
@@ -484,6 +494,30 @@ local function GetGuildCtaSettings(gid)
     local g = EnsureByGuild(gid)
     if not g then return nil end
     return g.cta
+end
+
+local function EnsureCampaignHistoryScope(settings, campaignId)
+    local lastSeen = settings and settings.state and settings.state.lastSeen
+    if not lastSeen then return end
+    if tonumber(lastSeen.campaignId) == tonumber(campaignId) then return end
+
+    -- Observation history must never cross campaign boundaries. Cooldowns remain
+    -- guild-scoped, preserving existing notification-frequency preferences.
+    lastSeen.campaignId = campaignId
+    lastSeen.top1Name = ""
+    lastSeen.top2Name = ""
+    lastSeen.emperorName = ""
+    lastSeen.lastEmpKeepsOwned = -1
+    lastSeen.lastPopulationCampaignId = nil
+    lastSeen.lastPopulationStateKey = ""
+    lastSeen.lastPopulationOwn = nil
+    lastSeen.lastPopulationEnemyMax = nil
+    lastSeen.lastPopulationSummary = ""
+    lastSeen.lastPopBars = {
+        [ALLIANCE_ALDMERI_DOMINION] = -1,
+        [ALLIANCE_EBONHEART_PACT] = -1,
+        [ALLIANCE_DAGGERFALL_COVENANT] = -1,
+    }
 end
 
 local function IsEligibleForCTA(gid)
@@ -605,14 +639,22 @@ end
 
 local function GetCampaignQueryType(campaignId)
     if not campaignId or campaignId == 0 then return nil end
-    if campaignId == GetAssignedCampaignId() then return BGQUERY_ASSIGNED_CAMPAIGN end
-    if IsPlayerInAvAWorld() and campaignId == GetCurrentCampaignId() then return BGQUERY_LOCAL end
+    local contextKey = CALLTOARM.Status.GetCampaignContextKey(
+        campaignId,
+        GetAssignedCampaignId and GetAssignedCampaignId() or 0,
+        GetCurrentCampaignId and GetCurrentCampaignId() or 0,
+        IsPlayerInAvAWorld and IsPlayerInAvAWorld() == true
+    )
+    if contextKey == "assigned" then return BGQUERY_ASSIGNED_CAMPAIGN end
+    if contextKey == "local" then return BGQUERY_LOCAL end
     return nil
 end
 
 local function HasKeepData(campaignId)
     local context = GetCampaignQueryType(campaignId)
     if not context then return false end
+    -- The initialization event can precede addon registration. Matching keep
+    -- keys are the durable API availability signal once the feed is loaded.
     for i = 1, GetNumKeeps() do
         local _, availableContext = GetKeepKeysByIndex(i)
         if (context == BGQUERY_ASSIGNED_CAMPAIGN and IsAssignedBattlegroundContext(availableContext))
@@ -623,30 +665,25 @@ end
 
 local function GetPopulationForCampaign(campaignId)
     if not campaignId or campaignId == 0 then return nil end
+    local now = GetTimeStamp and GetTimeStamp() or 0
+    if not CALLTOARM.Status or not CALLTOARM.Status.IsSelectionDataFresh(
+        now,
+        CTA._selectionDataReceivedAt,
+        CTA._selectionRequestSerial,
+        CTA._selectionReadySerial
+    ) then return nil end
 
     if GetNumSelectionCampaigns and GetSelectionCampaignId and GetSelectionCampaignPopulationData then
         for selectionIndex = 1, GetNumSelectionCampaigns() do
             local id = GetSelectionCampaignId(selectionIndex)
             if id == campaignId then
-                return {
+                local population = {
                     [ALLIANCE_ALDMERI_DOMINION] = GetSelectionCampaignPopulationData(selectionIndex, ALLIANCE_ALDMERI_DOMINION),
                     [ALLIANCE_EBONHEART_PACT] = GetSelectionCampaignPopulationData(selectionIndex, ALLIANCE_EBONHEART_PACT),
                     [ALLIANCE_DAGGERFALL_COVENANT] = GetSelectionCampaignPopulationData(selectionIndex, ALLIANCE_DAGGERFALL_COVENANT),
                 }
-            end
-        end
-    end
-
-    if CAMPAIGN_BROWSER_MANAGER and CAMPAIGN_BROWSER_MANAGER.GetCampaignDataList then
-        local list = CAMPAIGN_BROWSER_MANAGER:GetCampaignDataList() or {}
-        for i = 1, #list do
-            local data = list[i]
-            if data and data.id == campaignId then
-                return {
-                    [ALLIANCE_ALDMERI_DOMINION] = data.alliancePopulation1,
-                    [ALLIANCE_EBONHEART_PACT] = data.alliancePopulation2,
-                    [ALLIANCE_DAGGERFALL_COVENANT] = data.alliancePopulation3,
-                }
+                if CALLTOARM.Status.ValidatePopulation(population) then return population end
+                return nil
             end
         end
     end
@@ -654,32 +691,53 @@ local function GetPopulationForCampaign(campaignId)
     return nil
 end
 
-local function GetEmperorKeepsOwned(campaignId, alliance)
-    if not HasKeepData(campaignId) then return 0, 0 end
-    if not GetCampaignRulesetId then return 0, 0 end
+local function GetImperialKeepSnapshot(campaignId, referenceAlliance)
+    if not HasKeepData(campaignId) then return nil, nil end
+    if not GetCampaignRulesetId then return nil, nil end
     local rulesetId = GetCampaignRulesetId(campaignId)
-    if not rulesetId then return 0, 0 end
-    local numKeeps = GetCampaignRulesetNumImperialKeeps(rulesetId, alliance)
-    local owned = 0
+    if not rulesetId then return nil, nil end
+    local numKeeps = GetCampaignRulesetNumImperialKeeps(rulesetId, referenceAlliance)
+    if not numKeeps or numKeeps <= 0 then return nil end
+    local counts = {
+        [ALLIANCE_ALDMERI_DOMINION] = 0,
+        [ALLIANCE_EBONHEART_PACT] = 0,
+        [ALLIANCE_DAGGERFALL_COVENANT] = 0,
+    }
     local queryType = GetCampaignQueryType(campaignId)
     for i = 1, numKeeps do
-        local keepId = GetCampaignRulesetImperialKeepId(rulesetId, alliance, i)
-        if not keepId or keepId == 0 then return 0, 0 end
+        local keepId = GetCampaignRulesetImperialKeepId(rulesetId, referenceAlliance, i)
+        if not keepId or keepId == 0 then return nil end
         local found = false
         for index = 1, GetNumKeeps() do
             local availableId, context = GetKeepKeysByIndex(index)
             if availableId == keepId and ((queryType == BGQUERY_ASSIGNED_CAMPAIGN and IsAssignedBattlegroundContext(context))
                 or (queryType == BGQUERY_LOCAL and IsLocalBattlegroundContext(context))) then found = true; break end
         end
-        if not found then return 0, 0 end
-        if keepId and keepId ~= 0 then
-            local keepAlliance = GetKeepAlliance(keepId, queryType)
-            if keepAlliance == alliance then
-                owned = owned + 1
-            end
-        end
+        if not found then return nil end
+        local keepAlliance = GetKeepAlliance(keepId, queryType)
+        if counts[keepAlliance] == nil then return nil end
+        counts[keepAlliance] = counts[keepAlliance] + 1
     end
-    return owned, numKeeps
+    return { counts = counts, total = numKeeps }
+end
+
+local function GetEmperorKeepsOwned(campaignId, alliance)
+    -- ESO's own Emperor screen builds one six-keep set using the displayed
+    -- alliance, then counts the actual owners of those same keep IDs.
+    local snapshot = GetImperialKeepSnapshot(campaignId, alliance)
+    if not snapshot then return nil, nil end
+    return snapshot.counts[alliance], snapshot.total
+end
+
+local function IsImperialKeepForCampaign(campaignId, referenceAlliance, keepId)
+    if not campaignId or campaignId == 0 or not keepId or keepId == 0 then return false end
+    local rulesetId = GetCampaignRulesetId and GetCampaignRulesetId(campaignId) or nil
+    if not rulesetId then return false end
+    local numKeeps = GetCampaignRulesetNumImperialKeeps(rulesetId, referenceAlliance) or 0
+    for index = 1, numKeeps do
+        if GetCampaignRulesetImperialKeepId(rulesetId, referenceAlliance, index) == keepId then return true end
+    end
+    return false
 end
 
 local function ExpandTemplate(template, replacements)
@@ -917,6 +975,7 @@ end
 local function CheckEmperorPush(gid, settings, campaignId, guildAlliance)
     if settings.alerts.empPush ~= true then return false end
     if not CanFire(settings, "empPush") then return false end
+    if not HasKeepData(campaignId) then return false end
     if DoesCampaignHaveEmperor(campaignId) then
         local emperorAlliance = GetCampaignEmperorInfo(campaignId)
         if emperorAlliance == guildAlliance then return false end
@@ -935,7 +994,7 @@ local function CheckEmperorPush(gid, settings, campaignId, guildAlliance)
     end
 
     local owned, total = GetEmperorKeepsOwned(campaignId, guildAlliance)
-    if total == 0 or owned < 4 then
+    if not total or not owned or total == 0 or owned < 4 then
         return false
     end
 
@@ -988,13 +1047,14 @@ end
 local function CheckDethrone(gid, settings, campaignId, guildAlliance)
     if settings.alerts.dethrone ~= true then return false end
     if not CanFire(settings, "dethrone") then return false end
+    if not HasKeepData(campaignId) then return false end
     if not DoesCampaignHaveEmperor(campaignId) then return false end
 
     local emperorAlliance, emperorCharacter, emperorDisplay = GetCampaignEmperorInfo(campaignId)
     if emperorAlliance ~= guildAlliance then return false end
 
     local owned, total = GetEmperorKeepsOwned(campaignId, guildAlliance)
-    if total == 0 then return false end
+    if not total or not owned or total == 0 then return false end
 
     local threshold = tonumber(settings.rules.dethroneKeepThreshold) or 3
     if owned > threshold then
@@ -1002,7 +1062,12 @@ local function CheckDethrone(gid, settings, campaignId, guildAlliance)
         return false
     end
 
-    if settings.state.lastSeen.lastEmpKeepsOwned == owned then
+    if not CALLTOARM.Status.ShouldRaiseThroneDefense(
+        owned,
+        total,
+        threshold,
+        settings.state.lastSeen.lastEmpKeepsOwned
+    ) then
         return false
     end
 
@@ -1072,182 +1137,17 @@ local function CheckWarRages(gid, settings, campaignId, guildAlliance)
     return true
 end
 
-local function GetPopulationSeverity(pop, guildAlliance)
-    local own = tonumber(pop[guildAlliance]) or 0
-    local enemyMax = 0
-    for alliance, value in pairs(pop) do
-        if alliance ~= guildAlliance then
-            enemyMax = math.max(enemyMax, tonumber(value) or 0)
-        end
-    end
-
-    if enemyMax >= CAMPAIGN_POP_FULL and own <= CAMPAIGN_POP_MEDIUM then
-        return "CRITICAL"
-    end
-    if enemyMax >= CAMPAIGN_POP_HIGH and own <= CAMPAIGN_POP_LOW then
-        return "HIGH"
-    end
-    if enemyMax >= CAMPAIGN_POP_MEDIUM then
-        return "MEDIUM"
-    end
-    return "LOW"
-end
-
 local function BuildPopulationSummary(pop, guildAlliance)
-    local severity = GetPopulationSeverity(pop, guildAlliance)
-    local ad = tonumber(pop[ALLIANCE_ALDMERI_DOMINION]) or 0
-    local e1 = tonumber(pop[ALLIANCE_EBONHEART_PACT]) or 0
-    local e2 = tonumber(pop[ALLIANCE_DAGGERFALL_COVENANT]) or 0
-    return string.format("%s | AD:%d E1:%d E2:%d", severity, ad, e1, e2)
-end
-
-local function GetPopulationUrgencyLevel(pop, guildAlliance)
-    local severity = GetPopulationSeverity(pop, guildAlliance)
-    if severity == "CRITICAL" then return 4 end
-    if severity == "HIGH" then return 3 end
-    if severity == "MEDIUM" then return 2 end
-    return 1
-end
-
-local POPULATION_MESSAGES = {
-    [0] = {
-        neutral = {
-            "{GuildAlliance} holds advantage in Cyrodiil",
-            "{GuildAlliance} stable: no reinforcements needed",
-            "War balanced: veterans hold the line",
-        },
-        congrats = {
-            "{GuildAlliance} stands strong: well fought",
-            "Banners fly high across Cyrodiil",
-        },
-        winddown = {
-            "Fighting fades: day ends in {GuildAlliance} favour",
-        },
-    },
-    [1] = {
-        neutral = {
-            "Enemy patrols increase on {GuildAlliance} borders",
-            "Skirmishes flare: vigilance advised",
-        },
-        improving = {
-            "{GuildAlliance} steadies front: borders hold",
-        },
-        worsening = {
-            "Enemy pressure grows: border aid needed",
-        },
-    },
-    [2] = {
-        neutral = {
-            "{GuildAlliance} outnumbered: warriors needed",
-            "Ruby Throne contested: {GuildAlliance} calls",
-        },
-        improving = {
-            "Tide turns: join now, press advantage",
-            "Fresh blades could aid {GuildAlliance}",
-        },
-        worsening = {
-            "Enemy numbers swell: reinforcements needed",
-            "Cyrodiil calls: {GuildAlliance} may falter",
-        },
-    },
-    [3] = {
-        neutral = {
-            "Enemy surge: {GuildAlliance} falls back",
-            "{GuildAlliance} heavily outnumbered",
-        },
-        improving = {
-            "Line bends, not broken: join now",
-            "{GuildAlliance} rallies: your strength matters",
-        },
-        worsening = {
-            "Keeps threatened: {GuildAlliance} losing ground",
-            "War nears decision: fighters urgently needed",
-        },
-    },
-    [4] = {
-        neutral = {
-            "Defeat near: {GuildAlliance} needs you now",
-            "Enemy banners dominate: final stand nears",
-        },
-        improving = {
-            "Hope remains: warriors must answer call",
-            "{GuildAlliance} still fights: stand now",
-        },
-        worsening = {
-            "War nearly lost: decisive action needed",
-            "Hour of duty: answer call or yield field",
-        },
-    },
-    [5] = {
-        win = {
-            "War winds down: {GuildAlliance} claims night",
-            "Victory holds: last banners fly",
-        },
-        loss = {
-            "War fades: {GuildAlliance} withdraws",
-            "Fallen honoured: day ends in defeat",
-        },
-        reflective = {
-            "Dead rest where they fell: remember them",
-            "Cyrodiil grows quiet once more",
-        },
-    },
-}
-
-local function GetPopulationBars(pop, guildAlliance)
-    local ad = tonumber(pop[ALLIANCE_ALDMERI_DOMINION]) or 0
-    local e1 = tonumber(pop[ALLIANCE_EBONHEART_PACT]) or 0
-    local e2 = tonumber(pop[ALLIANCE_DAGGERFALL_COVENANT]) or 0
-    if guildAlliance == ALLIANCE_ALDMERI_DOMINION then
-        return ad, e1, e2
-    elseif guildAlliance == ALLIANCE_EBONHEART_PACT then
-        return e1, ad, e2
-    end
-    return e2, ad, e1
-end
-
-local function PickMessage(list)
-    if not list or #list == 0 then return nil end
-    local index = math.random(1, #list)
-    return list[index]
-end
-
-local function SelectPopulationMessage(tier, pf, ec, momentum, lastEC)
-    local bucket = POPULATION_MESSAGES[tier]
-    if not bucket then return nil end
-
-    if tier == 0 then
-        if ec <= 2 then
-            return PickMessage(bucket.neutral)
-        end
-        if lastEC and ec < lastEC then
-            return PickMessage(bucket.winddown)
-        end
-        return PickMessage(bucket.congrats)
-    end
-
-    if tier >= 1 and tier <= 4 then
-        if momentum > 0 then
-            return PickMessage(bucket.improving or bucket.neutral)
-        elseif momentum < 0 then
-            return PickMessage(bucket.worsening or bucket.neutral)
-        end
-        return PickMessage(bucket.neutral)
-    end
-
-    if tier == 5 then
-        if ec <= 1 then
-            return PickMessage(bucket.reflective)
-        end
-        if pf > ec then
-            return PickMessage(bucket.win)
-        elseif pf < ec then
-            return PickMessage(bucket.loss)
-        end
-        return PickMessage(bucket.reflective)
-    end
-
-    return nil
+    local state = CALLTOARM.Status.CalculatePopulationState(pop, guildAlliance)
+    if not state then return "unavailable" end
+    return string.format(
+        "%s | own:%d enemyMax:%d enemies:%d/%d",
+        string.upper(state.key),
+        state.own,
+        state.enemyMax,
+        state.enemyOne,
+        state.enemyTwo
+    )
 end
 
 local function FireAlertText(settings, messageText, replacements)
@@ -1297,30 +1197,20 @@ local function CheckPopulationAlert(gid, settings, campaignId, guildAlliance, fo
         return false
     end
 
-    local pf, e1, e2 = GetPopulationBars(pop, guildAlliance)
-    local ec = (e1 or 0) + (e2 or 0)
-    local lastPF = tonumber(settings.state.lastSeen.lastPopulationPF) or 0
-    local lastEC = tonumber(settings.state.lastSeen.lastPopulationEC) or 0
-    local delta = pf - ec
-    local momentum = (pf - ec) - (lastPF - lastEC)
-
-    local tier = 0
-    if pf == 0 and ec > 0 then
-        tier = 5
-    elseif pf > ec or (pf == ec and ec <= 2) then
-        tier = 0
-    elseif ec < lastEC and pf <= 1 then
-        tier = 5
-    elseif pf <= 1 and ec >= 5 then
-        tier = 4
-    elseif delta <= -3 and ec >= 4 then
-        tier = 3
-    elseif (delta == -1 or delta == -2) and ec >= 3 then
-        tier = 2
-    elseif (pf == ec and ec >= 3) or (pf == 1 and ec == 2) then
-        tier = 1
-    else
-        tier = 0
+    local lastSeen = settings.state.lastSeen
+    local previous
+    if tonumber(lastSeen.lastPopulationCampaignId) == campaignId
+        and lastSeen.lastPopulationOwn ~= nil
+        and lastSeen.lastPopulationEnemyMax ~= nil then
+        previous = {
+            own = tonumber(lastSeen.lastPopulationOwn),
+            enemyMax = tonumber(lastSeen.lastPopulationEnemyMax),
+        }
+    end
+    local state = CALLTOARM.Status.CalculatePopulationState(pop, guildAlliance, previous)
+    if not state then
+        DebugCTA("CTA Poll: population values incomplete; status unknown.")
+        return false
     end
 
     local now = GetTimeStamp and GetTimeStamp() or 0
@@ -1328,8 +1218,8 @@ local function CheckPopulationAlert(gid, settings, campaignId, guildAlliance, fo
     if interval < 60 then interval = 60 end
 
     local lastFired = tonumber(settings.state.lastFiredAt.population) or 0
-    local lastTier = tonumber(settings.state.lastSeen.lastPopulationLevel) or 0
-    local changed = (tier ~= lastTier)
+    local lastStateKey = tostring(lastSeen.lastPopulationStateKey or "")
+    local changed = (state.key ~= lastStateKey)
 
     if not force then
         if not changed and (now - lastFired) < interval then
@@ -1337,12 +1227,15 @@ local function CheckPopulationAlert(gid, settings, campaignId, guildAlliance, fo
         end
     end
 
-    settings.state.lastSeen.lastPopulationLevel = tier
-    settings.state.lastSeen.lastPopulationPF = pf
-    settings.state.lastSeen.lastPopulationEC = ec
-    settings.state.lastSeen.lastPopulationSummary = BuildPopulationSummary(pop, guildAlliance)
+    lastSeen.lastPopulationCampaignId = campaignId
+    lastSeen.lastPopulationStateKey = state.key
+    lastSeen.lastPopulationOwn = state.own
+    lastSeen.lastPopulationEnemyMax = state.enemyMax
+    lastSeen.lastPopulationPF = state.own
+    lastSeen.lastPopulationEC = state.enemyOne + state.enemyTwo
+    lastSeen.lastPopulationSummary = BuildPopulationSummary(pop, guildAlliance)
 
-    local message = SelectPopulationMessage(tier, pf, ec, momentum, lastEC)
+    local message = CALLTOARM.Status.SelectPopulationMessage(state)
     if not message then return false end
 
     FireAlertText(settings, message, {
@@ -1353,7 +1246,17 @@ local function CheckPopulationAlert(gid, settings, campaignId, guildAlliance, fo
     })
     settings.state.lastFiredAt.population = now
 
-    DebugCTA(string.format("CTA Pop: PF=%d E1=%d E2=%d EC=%d delta=%d momentum=%d tier=%d", pf, e1, e2, ec, delta, momentum, tier))
+    DebugCTA(string.format(
+        "CTA Pop: campaign=%d state=%s direction=%s own=%d enemies=%d/%d enemyMax=%d margin=%d",
+        campaignId,
+        state.key,
+        state.direction,
+        state.own,
+        state.enemyOne,
+        state.enemyTwo,
+        state.enemyMax,
+        state.margin
+    ))
     return true
 end
 
@@ -1447,6 +1350,7 @@ function CTA.RunPoll()
         CTA._debugBypassCooldownActive = false
         return
     end
+    EnsureCampaignHistoryScope(settings, campaignId)
 
     if ShouldSuppressForActivity(settings) or not IsActivityAllowed(settings, campaignId) then
         local displayType = GetZoneDisplayTypeSafe() or -1
@@ -1501,12 +1405,16 @@ end
 -- Automatic checks and requested briefings share acquisition, not notification state.
 function CTA.ResolveCampaign(gid)
     local guild = CALLTOARM.Guild
-    if guild and guild.IsLockActive and guild.IsLockActive() and guild.GetLockedGuildId() == gid then
-        return guild.GetLockedCampaignId()
-    end
-    local configured = GetHomeCampaignId(gid)
-    if configured and configured ~= 0 then return configured end
-    return GetAssignedCampaignId() or 0
+    local lockActive = guild and guild.IsLockActive and guild.IsLockActive() or false
+    local assigned = GetAssignedCampaignId and GetAssignedCampaignId() or 0
+    return CALLTOARM.Status.ResolveCampaign({
+        guildId = gid,
+        lockActive = lockActive,
+        lockedGuildId = lockActive and guild.GetLockedGuildId() or 0,
+        lockedCampaignId = lockActive and guild.GetLockedCampaignId() or 0,
+        configuredCampaignId = GetHomeCampaignId(gid),
+        assignedCampaignId = assigned,
+    })
 end
 
 local function BriefingLine(text)
@@ -1516,8 +1424,15 @@ end
 
 local function ShowBriefing(job)
     BriefingLine(GetGuildNameSafe(job.guildId) .. ": " .. (GetCampaignName(job.campaignId) or tostring(job.campaignId)))
-    BriefingLine("Client campaign snapshot; server data age is not exposed.")
-    if HasKeepData(job.campaignId) then
+    local secondsUntilEnd = GetSecondsUntilCampaignEnd and GetSecondsUntilCampaignEnd(job.campaignId) or nil
+    local campaignRemaining = CALLTOARM.Status.FormatCampaignRemaining(secondsUntilEnd)
+    if campaignRemaining then
+        BriefingLine("Campaign ends in " .. campaignRemaining .. ".")
+    else
+        BriefingLine("Campaign end time unavailable.")
+    end
+    local keepSnapshot = GetImperialKeepSnapshot(job.campaignId, job.alliance)
+    if keepSnapshot then
         if DoesCampaignHaveEmperor(job.campaignId) then
             local alliance, character, display = GetCampaignEmperorInfo(job.campaignId)
             BriefingLine("Emperor: " .. ((display and display ~= "") and display or character or "Unknown") .. ": " .. GetAllianceNameShort(alliance))
@@ -1526,8 +1441,8 @@ local function ShowBriefing(job)
         end
         local counts = {}
         for alliance = 1, NUM_ALLIANCES do
-            local owned, total = GetEmperorKeepsOwned(job.campaignId, alliance)
-            counts[#counts + 1] = GetAllianceNameShort(alliance) .. ": " .. (total > 0 and (owned .. "/" .. total) or "unavailable")
+            counts[#counts + 1] = GetAllianceNameShort(alliance) .. ": "
+                .. tostring(keepSnapshot.counts[alliance]) .. "/" .. tostring(keepSnapshot.total)
         end
         BriefingLine("Imperial keeps: " .. table.concat(counts, "; "))
     else
@@ -1623,8 +1538,32 @@ function CTA.Init()
     CTA._initDone = true
     CTA._leaderboardReady = {}
     EM:RegisterForUpdate(CTA._updateHandle, 1000, OnUpdate)
+    EM:RegisterForEvent("CALLTOARM_CTA_SELECTION", EVENT_CAMPAIGN_SELECTION_DATA_CHANGED, function()
+        CTA._selectionDataReceivedAt = GetTimeStamp()
+        CTA._selectionReadySerial = CTA._selectionRequestSerial
+        if CTA._pendingRequest then zo_callLater(FinishRequest, 100) end
+    end)
     EM:RegisterForEvent("CALLTOARM_CTA_LB", EVENT_CAMPAIGN_LEADERBOARD_DATA_RECEIVED, function(_, campaignId, alliance)
         CTA._leaderboardReady[tostring(campaignId) .. ":" .. tostring(alliance)] = GetTimeStamp()
+    end)
+    EM:RegisterForEvent("CALLTOARM_CTA_KEEP_OWNER", EVENT_KEEP_ALLIANCE_OWNER_CHANGED, function(_, keepId, battlegroundContext, owningAlliance, oldOwningAlliance)
+        if owningAlliance == oldOwningAlliance or CTA._keepChangeCheckScheduled then return end
+        local gid = GetRepresentedGuildId()
+        if not IsEligibleForCTA(gid) then return end
+        local campaignId = CTA.ResolveCampaign(gid)
+        local queryType = GetCampaignQueryType(campaignId)
+        local contextMatches = (queryType == BGQUERY_ASSIGNED_CAMPAIGN and IsAssignedBattlegroundContext(battlegroundContext))
+            or (queryType == BGQUERY_LOCAL and IsLocalBattlegroundContext(battlegroundContext))
+        if not contextMatches then return end
+        if not IsImperialKeepForCampaign(campaignId, GetGuildAlliance(gid), keepId) then return end
+
+        -- One ownership action can emit several related updates. Coalesce them,
+        -- then re-read the complete six-keep snapshot before deciding.
+        CTA._keepChangeCheckScheduled = true
+        zo_callLater(function()
+            CTA._keepChangeCheckScheduled = false
+            CTA.RunPoll()
+        end, 1000)
     end)
     -- Data callbacks populate caches but never bypass the user's check schedule.
     EM:RegisterForEvent("CALLTOARM_CTA_ACTIVATED", EVENT_PLAYER_ACTIVATED, function()
@@ -1639,6 +1578,12 @@ function CTA.Init()
                 and IsActivityAllowed(settings, campaignId) then
                 StartRequest(false)
             end
+        end
+    end)
+    EM:RegisterForEvent("CALLTOARM_CTA_DEACTIVATED", EVENT_PLAYER_DEACTIVATED, function()
+        if CTA._assignedFeedRegistered and UnregisterForAssignedCampaignData then
+            UnregisterForAssignedCampaignData()
+            CTA._assignedFeedRegistered = false
         end
     end)
     SLASH_COMMANDS["/ctanow"] = CTA.RunNow

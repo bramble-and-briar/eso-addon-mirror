@@ -34,7 +34,7 @@
 LibConsoleLogger = LibConsoleLogger or {}
 LibConsoleLogger.name = "LibConsoleLogger"
 -- Keep in sync with ## Version in LibConsoleLogger.addon
-LibConsoleLogger.version = "0.2.2"
+LibConsoleLogger.version = "0.3.0"
 
 LibConsoleLogger.savedVarsName = "LibConsoleLoggerSavedVars"
 LibConsoleLogger.savedVarsVersion = 1

@@ -1,5 +1,6 @@
-2026.10.01
-- Added listings total value to listings tab of trading house for trader enhancements.
+2026.10.05
+- Minor tweak to prevent the possibility of the total listing value from showing anywhere but the listing tab if you changed tabs very quickly.
+- Minor tweak to missing bank item chat output.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

@@ -1,8 +1,8 @@
 ## Title: Skillbound
 ## Description: Skill & gear presets: save your gear, skills, champion stars, food and more as builds and wear them with one click. Optional: LibAddonMenu-2.0.
 ## Author: brianmit
-## Version: 1.0.1
-## AddOnVersion: 2
+## Version: 1.0.2
+## AddOnVersion: 3
 ## APIVersion: 101050 101051
 ## SavedVariables: Skillbound_SV
 ## OptionalDependsOn: LibAddonMenu-2.0

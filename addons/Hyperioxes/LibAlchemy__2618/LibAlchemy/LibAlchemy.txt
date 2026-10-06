@@ -1,8 +1,8 @@
 ## Title: LibAlchemy
 ## Author: Hyperioxes
-## APIVersion: 101047 101048
-## Version: 2.6
-## AddOnVersion: 26
+## APIVersion: 101051 101052
+## Version: 2.7
+## AddOnVersion: 27
 ## IsLibrary: true
 ## DependsOn: LibPrice>=70530
 ## OptionalDependsOn: LibDebugLogger DebugLogViewer

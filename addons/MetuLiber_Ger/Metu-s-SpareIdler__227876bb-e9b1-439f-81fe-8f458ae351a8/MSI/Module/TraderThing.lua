@@ -44,6 +44,7 @@ local function LaunderAllStolen()
             end
         end
     end
+	--MSI.ApplyRightScene(SCENE_MANAGER:GetCurrentScene():GetName())
 	SCENE_MANAGER:ShowBaseScene()
 end
 
@@ -180,16 +181,17 @@ local function OnLootUpdatedThrottled()
 		isAllCurtLooted = true
 	end
 	
-    if (currentTime - lastLootUpdatedTimetag) > (GetLatency() + 200) then
+    if (currentTime - lastLootUpdatedTimetag) > (200 + GetLatency()) then
 		for i = 1, GetNumLootItems(), 1 do
 			local lootId, name, _, _, _, _, _, _, _ = GetLootItemInfo(i)
             LootItemById(lootId)
 		end
 		lastLootUpdatedTimetag = currentTime
 	end
-    EndLooting()
+    --EndLooting()
 	--MSI.ApplyRightScene(SCENE_MANAGER:GetCurrentScene():GetName())
-	SCENE_MANAGER:ShowBaseScene()
+	--SCENE_MANAGER:ShowBaseScene()
+	SCENE_MANAGER:Show("hudui")
 end
 local function LootClosed()
     isAllCurtLooted = true
@@ -349,7 +351,7 @@ local function unboxQueuedContainer()
 		if #pendingUnboxingQueue > 0 then
 			unboxQueuedContainer()
 		end
-	end, #cachedUnboxingQueue * (2000 + GetLatency()))
+	end, #cachedUnboxingQueue * (1000 + GetLatency()))
 	for i, slotIndex in ipairs(cachedUnboxingQueue) do
 		if GetItemName(BAG_BACKPACK, slotIndex) == "" then
             MSI.Print("c", GetString(MSI_MOD_MISSING_ITEM_CHTLINE))
@@ -375,9 +377,9 @@ local function unboxQueuedContainer()
 						elseif item.isRecipePage then
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_LEARNED_ITEM_CHTLINE), item.getLink))
 						elseif (item.isContainer or item.isUnopened) then
-							-- if (item.isContainer and item.isCraftingContainer) then
-								-- isUnboxingCraftReward = false
-							-- end
+							if (item.isContainer and item.isCraftingContainer) then
+								isUnboxingCraftReward = false
+							end
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
 							--OnLootUpdatedThrottled()
 							EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
@@ -389,7 +391,7 @@ local function unboxQueuedContainer()
 						end
 					end
 				end
-			end, (i - 1) * (2000 + GetLatency()))
+			end, (i - 1) * (1000 + GetLatency()))
 		end
 	end
 end
@@ -398,7 +400,7 @@ end
 -- Interruption Monitor
 local function listenInterruption(slotIndex)
 	EVENT_MANAGER:UnregisterForUpdate(MSI.Name.."UnboxingListen")
-	EVENT_MANAGER:RegisterForUpdate(MSI.Name.."UnboxingListen", (100 + GetLatency()), 
+	EVENT_MANAGER:RegisterForUpdate(MSI.Name.."UnboxingListen", 100, 
 	function()
 		if IsPlayerIdle(slotIndex) then
 			-- Item is interactive, continue monitoring
@@ -413,9 +415,9 @@ local function checkInterruption(slotIndex)
 	EVENT_MANAGER:UnregisterForUpdate(MSI.Name.."UnboxingCheck")
 	local timeout
 	if isUnboxingCraftReward then
-		timeout = (2000 + GetLatency())
+		timeout = 2000
 	else
-		timeout = (0 + GetLatency())
+		timeout = 0
 	end
 	EVENT_MANAGER:RegisterForUpdate(MSI.Name.."UnboxingCheck", timeout, 
 	function()
@@ -435,7 +437,7 @@ local function startInterruptionListener(slotIndex)
 	EVENT_MANAGER:UnregisterForUpdate(MSI.Name.."UnboxingListen")
 	EVENT_MANAGER:UnregisterForUpdate(MSI.Name.."UnboxingCheck")
 
-	EVENT_MANAGER:RegisterForUpdate(MSI.Name.."UnboxingListener", (100 + GetLatency()), 
+	EVENT_MANAGER:RegisterForUpdate(MSI.Name.."UnboxingListener", 100, 
 	function()
 		if isUnboxing == true then
 			EVENT_MANAGER:UnregisterForUpdate(MSI.Name.."UnboxingListener")
@@ -721,7 +723,7 @@ function MSI.InitModTraderThing()
 		MSI.MarkUnwantedJunk()
 		MSI.FilletInventoryFish()
 		MSI.LearnCollectibleItems()
-		MSI.BindUnboundSetItems()
+	--	MSI.BindUnboundSetItems()
 		MSI.UnrollRolledTreasureMap()
 		MSI.UnboxInventoryContainer()
 		MSI.UnboxInventoryUnopened()

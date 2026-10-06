@@ -9,6 +9,7 @@ local Utils = LibConsoleLogger.Utils
 
 local MAX_URL_LEN = 8191
 local MAX_CAPTURE_BYTES = 1024 * 1024
+local MAX_CAPTURE_LINES = 4000
 -- URL-safe base64 alphabet: '+' and '/' would be mangled by standard
 -- query-string parsers ('+' decodes to a space), so use '-' and '_' instead.
 local BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -136,12 +137,17 @@ end
 -- ============================================================================
 
 ---@type string[]|nil
+-- Ring buffer: lines live at indices head..tail (monotonically increasing); eviction is O(1) - no table.remove(1).
+-- Bounded by bytes (MAX_CAPTURE_BYTES) AND lines (MAX_CAPTURE_LINES): short lines would otherwise reach thousands of
+-- entries before the byte cap, and every eviction used to shift the whole array.
 local exportBuffer = nil
 local exportBufferBytes = 0
+local exportHead, exportTail = 1, 0
 
 local function ClearExportBuffer()
     exportBuffer = nil
     exportBufferBytes = 0
+    exportHead, exportTail = 1, 0
 end
 
 ---@return boolean
@@ -179,20 +185,31 @@ function WebExport.BufferD(line)
     if exportBuffer == nil then
         exportBuffer = {}
         exportBufferBytes = 0
+        exportHead, exportTail = 1, 0
     end
 
-    exportBuffer[#exportBuffer + 1] = s
+    exportTail = exportTail + 1
+    exportBuffer[exportTail] = s
     exportBufferBytes = exportBufferBytes + #s + 1
 
-    -- Drop oldest lines until within max.
-    while exportBufferBytes > maxBytes and #exportBuffer > 0 do
-        local removed = table.remove(exportBuffer, 1)
-        exportBufferBytes = exportBufferBytes - (#tostring(removed or "") + 1)
+    -- Drop oldest lines until within both caps (O(1) each).
+    while exportHead <= exportTail and (exportBufferBytes > maxBytes or (exportTail - exportHead + 1) > MAX_CAPTURE_LINES) do
+        local removed = exportBuffer[exportHead]
+        exportBuffer[exportHead] = nil
+        exportHead = exportHead + 1
+        exportBufferBytes = exportBufferBytes - (#removed + 1)
     end
 
-    if #exportBuffer == 0 then
+    if exportHead > exportTail then
         ClearExportBuffer()
         return
+    end
+
+    -- Renumber occasionally so indices never grow without bound (cheap: at most once per MAX_CAPTURE_LINES appends).
+    if exportHead > MAX_CAPTURE_LINES * 4 then
+        local compact, n = {}, 0
+        for i = exportHead, exportTail do n = n + 1; compact[n] = exportBuffer[i] end
+        exportBuffer, exportHead, exportTail = compact, 1, n
     end
 end
 
@@ -201,21 +218,19 @@ function WebExport.BufferCount()
     if exportBuffer == nil then
         return 0
     end
-    return #exportBuffer
+    return exportTail - exportHead + 1
 end
 
 ---@return string[]
 function WebExport.BufferGetLines()
-    if exportBuffer == nil then
-        return EMPTY_STRING_ARRAY
-    end
-    if #exportBuffer == 0 then
+    if exportBuffer == nil or exportHead > exportTail then
         return EMPTY_STRING_ARRAY
     end
 
-    local copy = {}
-    for i, v in ipairs(exportBuffer) do
-        copy[i] = v
+    local copy, n = {}, 0
+    for i = exportHead, exportTail do
+        n = n + 1
+        copy[n] = exportBuffer[i]
     end
     return copy
 end

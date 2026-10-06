@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.6"
-MSAL.addonVersion = 80306
+MSAL.version = "8.3.7"
+MSAL.addonVersion = 80307
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -33,6 +33,7 @@ local isRepetitiveGear = false
 local isAllCurtLooted = true
 local isUnboxing = false
 local isBagContainer = false
+local isJunkingBagContainerLeftovers = false
 -- local isHarvesting = false
 local isUsingVanillaAutoLoot = false
 local isLALwaitingForUnboxingCraftReward = false
@@ -40,6 +41,7 @@ local isWritsRewardContainerLooting = false
 local isProcessingLoot = false
 local lootWindowClosed = false
 local lootWindowSoundPlayed = false
+local lootTooltipCleanupPending = false
 local lootWindowUpdateOriginals = {}
 local lootActivityTimestamp = 0
 local chatlogSuffix = nil
@@ -1032,7 +1034,8 @@ local function OnDisposedUpdated(_, bagId, slotId, _, _, _, _)
 
     local itemType = GetItemLinkItemType(link)
     local isGear = (itemType == ITEMTYPE_WEAPON or itemType == ITEMTYPE_ARMOR)
-    local disposerApplied = isGear and db.gearDisposer or db.unwantedItemsDisposer
+    local disposerApplied = (isJunkingBagContainerLeftovers and "junk") or
+        (isGear and db.gearDisposer or db.unwantedItemsDisposer)
     if unwanted then
         if disposerApplied == "destroy" then
             if quality >= db.printDisposeThreshold then
@@ -2185,6 +2188,19 @@ local function LootCurrenciesByRules(showOverlimitWarning)
     return allCurrenciesLooted
 end
 
+local function IsLootingBackpackItem()
+    local targetName = GetLootTargetInfo()
+    if targetName == nil or targetName == "" then
+        return false
+    end
+    for bagSlot = 1, GetBagSize(BAG_BACKPACK) do
+        if GetItemName(BAG_BACKPACK, bagSlot) == targetName then
+            return true
+        end
+    end
+    return false
+end
+
 local function OnLootUpdated()
     chatlogSuffix = nil
     disposeLogLines = {}
@@ -2456,7 +2472,13 @@ local function OnLootUpdated()
     -- DebugLog("noCurtLeft :"..tostring(isAllCurtLooted))
 
     -- disposer will be triggered when there is unwanted loot and no crime will be committed. The transmute crystal will be naturally skipped cuz it's not a item and #unwantedLootIdList will be 0
-    if #unwantedLootIdList > 0 and not willCommitCrime and db.unwantedItemsDisposer ~= "none" then
+    -- auto unboxed containers are looted outside the inventory scene, so match the target in the backpack too
+    local fromBackpack = isBagContainer or (isUnboxing and IsLootingBackpackItem())
+    local cleanBagContainerLeftovers = fromBackpack and db.cleanBagContainerLeftovers and
+        db.unwantedItemsDisposer == "none"
+    isJunkingBagContainerLeftovers = cleanBagContainerLeftovers and #unwantedLootIdList > 0
+    if #unwantedLootIdList > 0 and not willCommitCrime and
+        (db.unwantedItemsDisposer ~= "none" or cleanBagContainerLeftovers) then
         DebugLog("trigger disposer")
         EVENT_MANAGER:RegisterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnDisposedUpdated)
         EVENT_MANAGER:AddFilterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
@@ -2664,11 +2686,15 @@ local function OnLootSceneShow(sceneName, newState)
     if not lootWindowClosed then
         return
     end
+    -- hiding the scene at SHOWING skips the loot screen's own HideTooltip, so clean the tooltip up
     EndLooting()
     SCENE_MANAGER:Hide(sceneName)
-    SCENE_MANAGER:Hide("gamepad_inventory_root")
-    ZO_GamepadTooltipTopLevelRightTooltip:SetParent(ZO_Gamepad_LootPickup)
-    ZO_GamepadTooltipTopLevelRightTooltipBg:SetParent(ZO_Gamepad_LootPickup)
+    if sceneName == "lootInventoryGamepad" then
+        LOOT_INVENTORY_WINDOW_GAMEPAD:HideTooltip()
+    else
+        LOOT_WINDOW_GAMEPAD:HideTooltip()
+    end
+    lootTooltipCleanupPending = true
 end
 
 local function RegisterLootWindowHooks()
@@ -2694,6 +2720,12 @@ local function OnLootClosed()
     isAllCurtLooted = true
     isBagContainer = false
     lootWindowSoundPlayed = false
+    -- the loot screen recreates its tooltip out while the loot updates keep coming, so sweep again now
+    if lootTooltipCleanupPending then
+        lootTooltipCleanupPending = false
+        LOOT_WINDOW_GAMEPAD:HideTooltip()
+        LOOT_INVENTORY_WINDOW_GAMEPAD:HideTooltip()
+    end
     isLALwaitingForUnboxingCraftReward = false
     if isWritsRewardContainerLooting then
         scheduleWritsRewardLootEnd(GetLatency() * 2 + 1000)

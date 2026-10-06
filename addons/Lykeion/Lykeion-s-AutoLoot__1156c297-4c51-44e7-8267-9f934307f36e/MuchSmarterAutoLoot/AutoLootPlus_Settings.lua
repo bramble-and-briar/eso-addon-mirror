@@ -127,6 +127,7 @@ local defaults = {
     useIconsInLog = false,
     closeLootWindow = false,
     unwantedItemsDisposer = "none",
+    cleanBagContainerLeftovers = false,
     gearDisposer = "none",
     deconThreshold = 0,
     junkThreshold = 0,
@@ -1265,6 +1266,22 @@ function Settings.Initialize(args)
                         db.unwantedItemsDisposer = value
                     end,
                     default = defaults.unwantedItemsDisposer
+                },
+                {
+                    type = "checkbox",
+                    name = "/ " .. GetString(MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS),
+                    tooltip = zo_strformat(GetString(MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS_TOOLTIP),
+                        GetString(MSAL_GENERAL_DISPOSER), GetString(MSAL_LEAVE_BEHIND)),
+                    getFunc = function()
+                        return db.cleanBagContainerLeftovers
+                    end,
+                    setFunc = function(value)
+                        db.cleanBagContainerLeftovers = value
+                    end,
+                    default = defaults.cleanBagContainerLeftovers,
+                    disabled = function()
+                        return db.unwantedItemsDisposer ~= "none"
+                    end
                 },
                 -- {
                 --     type = "slider",

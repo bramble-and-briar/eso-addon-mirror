@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/greeneca/Discord-Trial-Tagger__097d0094-d2c0-4e8c-be4e-016e8046d655",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "greeneca",
+  "canonical_id": "bethesda:097d0094-d2c0-4e8c-be4e-016e8046d655",
+  "content_id": "097d0094-d2c0-4e8c-be4e-016e8046d655",
+  "deleted": false,
+  "fingerprint": "d51623e3fd4e8471f6d4a09399bc2e424a2087aaa2bc16235cd18fa34a4c3f20",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "097d0094-d2c0-4e8c-be4e-016e8046d655",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/097d0094-d2c0-4e8c-be4e-016e8046d655",
+  "title": "Discord Trial Tagger"
+}

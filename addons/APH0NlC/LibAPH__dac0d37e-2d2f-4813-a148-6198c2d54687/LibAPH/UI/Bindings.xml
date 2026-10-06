@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="LibAPH_Search">
+        <Category>
+            <Action name="LIBAPH_SEARCH_PREVIOUS" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>return LibAPH.StepActiveSearch(-1)</Down>
+            </Action>
+            <Action name="LIBAPH_SEARCH_NEXT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>return LibAPH.StepActiveSearch(1)</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

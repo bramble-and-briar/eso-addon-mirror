@@ -91,6 +91,7 @@ function B.InitSettings()
         Check(nil, "askWear", "SET_ASK_WEAR", "SET_ASK_WEAR_TT"),
         Check(nil, "showChanges", "CHANGES_ALWAYS", "CHANGES_ALWAYS_TT"),
         Check(nil, "announce", "SET_ANNOUNCE", "SET_ANNOUNCE_TT"),
+        Check(nil, "quietSwap", "SET_QUIET", "SET_QUIET_TT"),
 
         { type = "header", name = L("SET_HDR_FOOD") },
         Check(nil, "eatFood", "SET_EAT", "SET_EAT_TT"),

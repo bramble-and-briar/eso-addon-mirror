@@ -74,7 +74,7 @@
     "NORGuildTools"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4121/",
-  "fingerprint": "627be1232d1c11e8089a669e9558d98f00082fbb28d841df2a8a4f62444c6fbd",
+  "fingerprint": "c5654054dc9d60891ca1c44173f839cc3a41a162ecfcea6c08753566542d1643",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14072.png"
   ],
@@ -84,11 +84,11 @@
   "source_id": "4121",
   "source_url": "https://www.esoui.com/downloads/info4121-NORGuildTools.html",
   "stats": {
-    "downloads": 740,
+    "downloads": 786,
     "favorites": 1,
-    "monthly_downloads": 23
+    "monthly_downloads": 27
   },
   "title": "NOR Guild Tools",
-  "updated_at": 1787404186000,
-  "version": "4.00"
+  "updated_at": 1791199893000,
+  "version": "5.00"
 }

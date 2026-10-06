@@ -10,7 +10,7 @@ CompanionRoster.Data = {}
 -- string back (GetAddOnManager():GetAddOnVersion() returns the separate
 -- numeric ## AddOnVersion tag instead, meant for dependency checks, not
 -- display), so this has to be maintained by hand.
-CompanionRoster.version = "2.2.0"
+CompanionRoster.version = "2.2.1"
 
 local savedVars = nil
 

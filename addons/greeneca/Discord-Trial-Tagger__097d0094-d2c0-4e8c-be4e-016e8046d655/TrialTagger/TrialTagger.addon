@@ -1,0 +1,33 @@
+; Console manifest (Xbox Series X|S / PS5). Must be named exactly like the
+; folder. Keep this file and TrialTagger.txt identical apart from this comment.
+;
+; The PC client reads either extension -- LibAddonMenu ships only a .addon and
+; loads on PC fine -- so the pair is not a PC/console split. .addon is what the
+; Bethesda.net console submission requires, and .txt is what every PC add-on
+; uses and what players and tooling expect to find; we ship both so neither
+; audience meets a surprise.
+;
+; APIVersion must match the live client or the add-on shows as out of date.
+; Check it in game with:  /script d(GetAPIVersion())
+; Only the first two values on the line are honoured.
+
+## Title: Trial Tagger
+## Author: |c3498dbTrial Tagger|r
+## Version: 0.1.0
+## AddOnVersion: 1
+## APIVersion: 101050 101051
+## Description: Shows your veteran trial achievements as a checksummed code you can screenshot and post to Discord for automatic role assignment.
+## SavedVariables: TrialTaggerSV
+;
+; Optional, never DependsOn. The library draws console settings panels through
+; LibHarvensAddonSettings, which has been pulled from the store before; a hard
+; dependency would stop the addon loading at all instead of falling back to the
+; /trialtag slash command.
+## OptionalDependsOn: LibAddonMenu-2.0
+
+Catalog.lua
+Codec.lua
+Scanner.lua
+UI.lua
+Settings.lua
+TrialTagger.lua

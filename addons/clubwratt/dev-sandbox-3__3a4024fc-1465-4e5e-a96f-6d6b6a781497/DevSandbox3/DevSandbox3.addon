@@ -1,37 +1,28 @@
 ## Title: dev sandbox 3
 ## Author: clubwratt
-## Version: 0.8.0
-## AddOnVersion: 80
+## Version: 4.18.0
+## AddOnVersion: 41800
 ## APIVersion: 101050
-## Description: DO NOT INSTALL
+## Description: Dots on known spawn locations that currently have no node: orange in Cyrodiil (where the Colovian War Torte recipe book spawns), purple on empty runestone locations anywhere (possible Psijic Portal).
 ## SavedVariables: DevSandbox3SavedVars
-## DependsOn: LibMapPins-1.0>=10047 LibGPS>=73
 ## OptionalDependsOn: LibConsoleLogger LibHarvensAddonSettings
 ## DevId: 3a4024fc-1465-4e5e-a96f-6d6b6a781497
 
 ## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+## Spawn location data and compass node detection technique: HarvestMap Console by Shinni (CC BY-NC-ND 4.0).
 
 DevSandbox3.lua
 DevSandbox3Types.lua
 DevSandbox3State.lua
 DevSandbox3LogUtils.lua
-DevSandbox3NodeUtils.lua
-DevSandbox3NodeActions.lua
-DevSandbox3PinUtils.lua
-DevSandbox3PinActions.lua
-DevSandbox3CompassUtils.lua
-DevSandbox3CompassActions.lua
+DevSandbox3PinTypeUtils.lua
+DevSandbox3DetectionUtils.lua
+DevSandbox3MarkerUtils.lua
+Data/DevSandbox3Data.lua
+DevSandbox3DetectionActions.lua
 DevSandbox3Compass.xml
-DevSandbox3AlertUtils.lua
-DevSandbox3AlertActions.lua
-DevSandbox3CoverageUtils.lua
-DevSandbox3CoverageActions.lua
-DevSandbox3ExpectedNodes.lua
-DevSandbox3SlotUtils.lua
 DevSandbox3SlotActions.lua
-DevSandbox3WorldMarkerUtils.lua
-DevSandbox3WorldMarkerActions.lua
+DevSandbox3MarkerActions.lua
 DevSandbox3Settings.lua
-SlashCommandUtils.lua
 SlashCommandActions.lua
 Main.lua

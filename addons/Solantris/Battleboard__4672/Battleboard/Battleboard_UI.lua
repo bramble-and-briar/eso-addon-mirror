@@ -14,6 +14,7 @@ local BLANK_ICON = _x.BLANK_ICON
 local SORT_ICON_UP = _x.SORT_ICON_UP
 local SORT_ICON_DOWN = _x.SORT_ICON_DOWN
 local ALL_CHARACTERS_KEY = _x.ALL_CHARACTERS_KEY
+local MAX_SCOREBOARD_PLAYERS = _x.MAX_SCOREBOARD_PLAYERS
 local classIcons = _x.classIcons
 local allianceNames = _x.allianceNames
 local allianceColours = _x.allianceColours
@@ -479,7 +480,7 @@ function BL.BuildUI()
         StyleFilterDropdown(BL.characterDropdown, nil, "BattleboardCharacterDropdownFallback")
     end
 
-    -- Compact team-configuration filter: All / 4v4 / 4v4v4 / 8v8.
+    -- Compact team-configuration filter for all supported Battleground formats.
     BL.teamSizeDropdown = nil
     BL.teamSizeDropdownCombo = nil
     if WINDOW_MANAGER.CreateControlFromVirtual and ZO_ComboBox_ObjectFromContainer then
@@ -494,6 +495,8 @@ function BL.BuildUI()
                 { key = "4v4", label = "4v4" },
                 { key = "4v4v4", label = "4v4v4" },
                 { key = "8v8", label = "8v8" },
+                { key = "6v6v6", label = "6v6v6" },
+                { key = "9v9", label = "9v9" },
             }
             for _, option in ipairs(options) do
                 local item = BL.teamSizeDropdownCombo:CreateItemEntry(option.label, function()
@@ -1249,11 +1252,18 @@ function BL.BuildUI()
 
     -- Permanent player table controls - created once here, populated by
     -- RefreshDetails. No controls are ever created at match-selection time.
-    -- Max 16 players (8v8); unused row slots are hidden.
-    local MAX_PLAYER_ROWS = 16
+    -- Unused row slots are hidden. The tighter spacing keeps all 18 players and
+    -- the contribution row inside the existing fixed-height details panel.
+    local MAX_PLAYER_ROWS = MAX_SCOREBOARD_PLAYERS
     local HEADER_H        = 30
-    local ROW_H           = 22
-    local ROW_STRIDE      = 24
+    local uiScale         = (GetUIGlobalScale and GetUIGlobalScale()) or 1
+    if uiScale <= 0 then uiScale = 1 end
+    local function AlignToPhysicalPixel(value)
+        return math.floor(value * uiScale + 0.5) / uiScale
+    end
+    local ROW_H           = AlignToPhysicalPixel(20)
+    local ROW_GAP         = 1 / uiScale
+    local ROW_STRIDE      = ROW_H + ROW_GAP
     local HEADER_ICON_H   = 28
 
     BL.ptControls = {}   -- permanent player table control references
@@ -1321,7 +1331,7 @@ function BL.BuildUI()
     ptSortIcon:SetHidden(true)
     BL.ptControls.sortIcon = ptSortIcon
 
-    -- 16 player row slots.
+    -- Permanent player row slots.
     BL.ptControls.rows = {}
     local mvpColumn = nil
     local teamColumn = nil
@@ -1335,23 +1345,30 @@ function BL.BuildUI()
             classColumn = col
         end
     end
+    local firstRowY = AlignToPhysicalPixel(HEADER_H + 8)
+    local previousRowBg = nil
     for i = 1, MAX_PLAYER_ROWS do
-        local rowY = HEADER_H + (i - 1) * ROW_STRIDE + 8
-
         local bg = WINDOW_MANAGER:CreateControl("BattleboardPTRowBg_" .. i, BL.playerTable, CT_BACKDROP)
         bg:SetDimensions(DETAIL_TABLE_WIDTH, ROW_H)
-        bg:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, 0, rowY)
+        if previousRowBg then
+            -- ROW_GAP is one physical screen pixel, even when ESO uses a
+            -- fractional custom UI scale such as 1.10.
+            bg:SetAnchor(TOPLEFT, previousRowBg, BOTTOMLEFT, 0, ROW_GAP)
+        else
+            bg:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, 0, firstRowY)
+        end
         bg:SetCenterColor(0, 0, 0, 0)
         bg:SetEdgeColor(0, 0, 0, 0)
         bg:SetHidden(true)
+        previousRowBg = bg
 
         local teamTex = WINDOW_MANAGER:CreateControl("BattleboardPTRowTeam_" .. i, BL.playerTable, CT_TEXTURE)
         local teamIconSize = 22
         teamTex:SetDimensions(teamIconSize, teamIconSize)
         if teamColumn then
-            teamTex:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, teamColumn.x + math.floor((teamColumn.w - teamIconSize) / 2), rowY + math.floor((ROW_H - teamIconSize) / 2))
+            teamTex:SetAnchor(LEFT, bg, LEFT, teamColumn.x + math.floor((teamColumn.w - teamIconSize) / 2), 0)
         else
-            teamTex:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, 4, rowY)
+            teamTex:SetAnchor(LEFT, bg, LEFT, 4, 0)
         end
         teamTex:SetHidden(true)
 
@@ -1360,7 +1377,7 @@ function BL.BuildUI()
         winnerTex:SetTexture(PLAYER_TABLE_MVP_ICON)
         winnerTex:SetDimensions(winnerSize, winnerSize)
         if mvpColumn then
-            winnerTex:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, mvpColumn.x + math.floor((mvpColumn.w - winnerSize) / 2), rowY + math.floor((ROW_H - winnerSize) / 2))
+            winnerTex:SetAnchor(LEFT, bg, LEFT, mvpColumn.x + math.floor((mvpColumn.w - winnerSize) / 2), 0)
         else
             winnerTex:SetAnchor(CENTER, teamTex, CENTER, 0, 0)
         end
@@ -1373,9 +1390,9 @@ function BL.BuildUI()
         local classIconSize = 20
         classTex:SetDimensions(classIconSize, classIconSize)
         if classColumn then
-            classTex:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, classColumn.x + math.floor((classColumn.w - classIconSize) / 2), rowY + math.floor((ROW_H - classIconSize) / 2))
+            classTex:SetAnchor(LEFT, bg, LEFT, classColumn.x + math.floor((classColumn.w - classIconSize) / 2), 0)
         else
-            classTex:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, 36, rowY)
+            classTex:SetAnchor(LEFT, bg, LEFT, 36, 0)
         end
         classTex:SetHidden(true)
 
@@ -1384,7 +1401,7 @@ function BL.BuildUI()
             if not col.skipCell then
                 local cell = CreateLabel(BL.playerTable, "BattleboardPTCell_" .. i .. "_" .. col.key,
                     "", DETAIL_TABLE_BODY_FONT, {0.88, 0.86, 0.78, 0.96})
-                cell:SetAnchor(TOPLEFT, BL.playerTable, TOPLEFT, col.x, rowY)
+                cell:SetAnchor(TOPLEFT, bg, TOPLEFT, col.x, 0)
                 cell:SetDimensions(col.w, 17)
                 if col.align then cell:SetHorizontalAlignment(col.align) end
                 cell:SetHidden(true)
@@ -4017,14 +4034,15 @@ function BL.RefreshDetails(match)
             local isMvp = player.isTeamMvp == true
             if isSelected then
                 slot.bg:SetCenterColor(0.10, 0.080, 0.032, 0.52)
-                slot.bg:SetEdgeColor(1, 0.82, 0.28, 0.34)
             elseif isMvp then
                 slot.bg:SetCenterColor(math.min(1, tc[1] + 0.05), math.min(1, tc[2] + 0.05), math.min(1, tc[3] + 0.05), 0.24)
-                slot.bg:SetEdgeColor(1, 0.82, 0.28, 0.16)
             else
                 slot.bg:SetCenterColor(tc[1], tc[2], tc[3], 0.14)
-                slot.bg:SetEdgeColor(0, 0, 0, 0)
             end
+            -- Keep the one-pixel inter-row gap visually uniform. The previous
+            -- selected/MVP outline added an extra horizontal edge that could look
+            -- like a team divider; their fill treatment and MVP icon remain.
+            slot.bg:SetEdgeColor(0, 0, 0, 0)
             local function onRowClick(control, button, upInside)
                 if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
                     BL.selectedPlayerRowKey = playerRowKey

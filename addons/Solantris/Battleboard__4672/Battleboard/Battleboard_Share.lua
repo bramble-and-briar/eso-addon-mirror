@@ -26,8 +26,8 @@ local Share = BL.Share
 local LINK_TYPE  = "bgls"          -- our custom chat link type (the "header")
 local LINK_TEXT  = "Battleboard"    -- renders as [Battleboard]
 local FORMAT_VER = 4               -- bump if the packed layout ever changes
-local MAX_PLAYERS = 16             -- 8v8
-local NAME_CHARS_MIN = 5           -- User ID chars for a full 16-player match
+local MAX_PLAYERS = BL.__constants.MAX_SCOREBOARD_PLAYERS
+local NAME_CHARS_MIN = 3           -- User ID chars for a full 18-player match
 local NAME_CHARS_MAX = 12          -- cap (fits the column and real @names)
 local LINK_BIT_BUDGET = 1372       -- 28 chunks -> 224 chars -> 249-char link (clean)
 local MAX_LINK_LEN = 350           -- ESO chat input hard limit
@@ -181,8 +181,8 @@ local function codeToGameType(c)  return GAME_TYPES[(c or 0) + 1] or "Battlegrou
 -- chars; right at the edge (~265) it mangles, past it (~280+) it shows raw. Link
 -- length is quantized in 8-char steps (241 -> 249 -> 257 ...). Removing the Medal
 -- field (-14 bits/player) and trimming damage/healing to 11 bits each freed enough
--- room to grow the User ID from 3 to 5 characters while keeping a full 16-player
--- match at a 241-char link (safely under the limit, with a truncation "..." flag).
+  -- room to grow the User ID while keeping a full scoreboard link under ESO's
+  -- reliable rendering limit (with a truncation "..." flag).
 --
 -- Damage/Healing are stored at DISPLAY precision in a single 11-bit code:
 --   code <= 1000        -> value < 1m, stored to the nearest 1,000   (e.g. 766k)
@@ -199,7 +199,7 @@ local W = {
     TEAM_SCORE= 10,   -- stored match score per present team (<=1023; win at ~500)
     CAPTURED  = 14,   -- DAYS since TS_EPOCH (date only; ~44 years of range)
     LOCALIDX  = 5,    -- 1-based index of local player (0 = none)
-    COUNT     = 5,    -- player count (0..16)
+    COUNT     = 5,    -- player count (0..18)
     CLASS     = 3,
     ALLY      = 2,
     KILLS     = 7,    -- <= 127
@@ -238,8 +238,8 @@ local function readBig(buf)
     return 1000000 + (code - 1000) * 100000
 end
 
--- More room in smaller matches -> longer User IDs. A 16-player 8v8 fills the link
--- and yields NAME_CHARS_MIN; a 12-player 4v4v4 or an 8-player 4v4 has spare bits,
+-- More room in smaller matches -> longer User IDs. An 18-player match uses three
+-- characters per User ID; 16-player and smaller matches have spare bits,
 -- so each name gets more characters. Encoder and decoder compute this identically
 -- from the player count and the number of teams present (both known before names
 -- are read), so no extra bits are needed to communicate the length.

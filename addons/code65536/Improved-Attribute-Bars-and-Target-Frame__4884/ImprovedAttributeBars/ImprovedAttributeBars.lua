@@ -45,7 +45,7 @@ end
 
 --------------------------------------------------------------------------------
 -- Attribute Bars
--- See /ingame/playerattributebars/playerattributebars.lua
+-- /ingame/playerattributebars/playerattributebars.lua
 --------------------------------------------------------------------------------
 
 local function RefreshAttributeBar( bar )
@@ -94,8 +94,30 @@ end
 
 --------------------------------------------------------------------------------
 -- Target Frame
--- See /esoui/ingame/unitframes/unitframes.lua
+-- /esoui/ingame/unitframes/unitframes.lua
+-- /esoui/ingame/unitattributevisualizer/modules/powershield.lua
 --------------------------------------------------------------------------------
+
+local function GetShieldModule( frame )
+	local visualizer = frame.attributeVisualizer
+	for module in pairs(visualizer and visualizer.visualModules or { }) do
+		if (module.layoutData == VISUALIZER_ANGLE_POWER_SHIELD_LAYOUT_DATA) then
+			module.IAB_UpdateGradient = function( self, gradientOverride )
+				if (self.layoutData.fakeHealthGradientOverride ~= gradientOverride) then
+					self.layoutData.fakeHealthGradientOverride = gradientOverride
+					local info = self.attributeInfo and self.attributeInfo[ATTRIBUTE_HEALTH]
+					if (info and info.overlayControls) then
+						local fakeHealthGradient = gradientOverride or ZO_POWER_BAR_GRADIENT_COLORS[COMBAT_MECHANIC_FLAGS_HEALTH]
+						for _, overlay in ipairs(info.overlayControls) do
+							ZO_StatusBar_SetGradientColor(overlay.fakeHealthBar, fakeHealthGradient)
+						end
+					end
+				end
+			end
+			return module
+		end
+	end
+end
 
 local function HookTargetFrame( )
 	local unitTag = "reticleover"
@@ -130,13 +152,23 @@ local function HookTargetFrame( )
 		end
 
 		local reactionOverrides = {
+			[UNIT_REACTION_HOSTILE] = GetGradient(UNIT_REACTION_COLOR_HOSTILE),
 			[UNIT_REACTION_NEUTRAL] = GetGradient(UNIT_REACTION_COLOR_NEUTRAL),
 			[UNIT_REACTION_FRIENDLY] = GetGradient(UNIT_REACTION_COLOR_FRIENDLY),
+			[UNIT_REACTION_PLAYER_ALLY] = GetGradient(UNIT_REACTION_COLOR_PLAYER_ALLY),
+			[UNIT_REACTION_NPC_ALLY] = GetGradient(UNIT_REACTION_COLOR_NPC_ALLY),
+			[UNIT_REACTION_COMPANION] = GetGradient(UNIT_REACTION_COLOR_COMPANION),
 		}
 
+		local shieldModule = GetShieldModule(targetFrame)
+
 		SecurePostHook(targetFrame, "UpdateUnitReaction", function( self )
+			local override = reactionOverrides[GetUnitReaction(unitTag)]
 			if (bar.barType) then
-				bar:SetColor(bar.barType, reactionOverrides[GetUnitReaction(unitTag)])
+				bar:SetColor(bar.barType, override)
+			end
+			if (shieldModule) then
+				shieldModule:IAB_UpdateGradient(override)
 			end
 		end)
 
@@ -170,7 +202,7 @@ end
 
 --------------------------------------------------------------------------------
 -- Boss Bar
--- See /esoui/ingame/unitframes/bossbar.lua
+-- /esoui/ingame/unitframes/bossbar.lua
 --------------------------------------------------------------------------------
 
 local function HookBossBar( )

@@ -1,0 +1,10 @@
+## Title: Leo Sust Beta
+## Author: Leo_Kujo
+## Description: PlayStation-friendly magicka recovery tick visualizer.
+## APIVersion: 101051
+## Version: 0.1.0
+## SavedVariables: Leo_sust_beta_SavedVariables
+## DependsOn: LibAddonMenu-2.0
+## ConsoleDependsOn: LibHarvensAddonSettings
+Leo_sust_beta.xml
+Leo_sust_beta.lua

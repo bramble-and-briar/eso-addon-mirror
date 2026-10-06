@@ -32,6 +32,9 @@
             <Action name="NECROCAT_KICK_RANDOMS">
                 <Down>NecroCat.KickNonFavorites()</Down>
             </Action>
+            <Action name="NECROCAT_TELEPORT_VIVEC">
+                <Down>NecroCat.TeleportToVivec()</Down>
+            </Action>
         </Category>
     </Layer>
 </Bindings>

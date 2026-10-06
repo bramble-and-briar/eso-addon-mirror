@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Hyperioxes/Alchemy-Tooltips__2531",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Hyperioxes",
   "canonical_id": "esoui:2531",
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2531",
@@ -17,7 +18,7 @@
     "AlchemyTooltips"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2531/",
-  "fingerprint": "7507311af14379fc40fe0bb39a8516924fd505d1a8571c1ef9a625ca0616405d",
+  "fingerprint": "9ce7ba41ecc4945cfd38bf673801bbe2c12686d44dbb9557d6a7c133733a8144",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9653.png",
     "https://cdn-eso.mmoui.com/preview/pvw9650.png",
@@ -35,11 +36,11 @@
   "source_id": "2531",
   "source_url": "https://www.esoui.com/downloads/info2531-AlchemyTooltips.html",
   "stats": {
-    "downloads": 63975,
-    "favorites": 110,
-    "monthly_downloads": 167
+    "downloads": 64515,
+    "favorites": 114,
+    "monthly_downloads": 178
   },
   "title": "Alchemy Tooltips",
-  "updated_at": 1766238777000,
-  "version": "1.30"
+  "updated_at": 1791248811000,
+  "version": "1.31"
 }

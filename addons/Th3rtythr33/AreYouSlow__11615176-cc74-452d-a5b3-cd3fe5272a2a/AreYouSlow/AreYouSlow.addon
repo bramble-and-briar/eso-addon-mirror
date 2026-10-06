@@ -1,8 +1,48 @@
 ## Title: Are You Slow?
 ## Author: Th3rtythr33
-## Version: 1.0.0
-## AddOnVersion: 1
-## APIVersion: 101050
-## Description: Shows a small on-screen readout of your current movement speed.
+## Version: 1.1.0
+## AddOnVersion: 2
+## APIVersion: 101051
+## SavedVariables: AreYouSlowSavedVars
+## DependsOn: LibHarvensAddonSettings>=20200
+## Description: Shows your current movement speed on screen, either as a smoothed number or as a 30 second bar graph. Choose which in the Add-Ons settings menu.
 
+; ---------------------------------------------------------------------------
+; MANIFEST NOTES
+; ---------------------------------------------------------------------------
+; AddOnVersion is an integer that must only ever INCREASE, and it steps by one
+; per PUBLISHED build regardless of how far the semantic Version jumps. It is
+; what the console catalogue uses; Version is only ever shown to humans.
+; 1.0.0 shipped as AddOnVersion 1, so 1.1.0 is 2.
+;
+; .addon only, no .txt: console-only addon, and the console client has
+; ignored .txt manifests since June 2025.
+;
+; PlayStation's filesystem is case-sensitive. Every path listed below, and the
+; folder and manifest names themselves, must match the real files exactly.
+;
+; Description must stay ONE line and should match the Bethesda.net listing.
+;
+; DependsOn (hard), not OptionalDependsOn: LibHarvensAddonSettings is on the
+; Bethesda.net console catalogue, so a hard dependency resolves and
+; auto-installs. The minimum is pinned to the library's LATEST release
+; (2.2.0 = 20200, still current on ESOUI as of 2026-10-05) per ESOUI best
+; practice; raise it whenever LHAS updates. On Bethesda.net the dependency is
+; attached to the add-on entry without choosing a release.
+;
+; APIVersion tracks the live game. 101051 = Update 51, live 2026-09-28.
+; PTS reported the same number on 2026-10-05, so there is nothing to add.
+;
+; File order: the XML declares virtuals that the Lua instantiates at
+; EVENT_ADD_ON_LOADED, and the XML has no OnInitialized handlers, so the order
+; is not load-bearing. XML first is the conventional lookup direction.
+; ---------------------------------------------------------------------------
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+AreYouSlow.xml
 AreYouSlow.lua

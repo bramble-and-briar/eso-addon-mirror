@@ -52,7 +52,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Battle Scrolls - Combat Stats & DPS Tracking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Semigroup1329/Battle-Scrolls---Combat-Stats-DPS-Tracking__ec9ce729-a472-4150-8f3c-1df05a369ad0) | Semigroup1329 | Console | — |
 | [Battle Scrolls Name Colors](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BLKx777/Battle-Scrolls-Name-Colors__92b1ef68-e576-4bf5-9ffe-f636c9d1c36f) | BLKx777 | Console | — |
 | [Battle Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Battle-Stats__fda40288-dadf-45a1-a4c5-005fa0319b93) | SugaComa | Console | — |
-| [Battleboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solantris/Battleboard__4672) | Solantris | PC / Mac | 1.2 |
+| [Battleboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solantris/Battleboard__4672) | Solantris | PC / Mac | 1.3 |
 | [Battleground Coffers & Alliance Tier & Rewards of the Worthy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/Battleground-Coffers-Alliance-Tier-Rewards-of-the-Worthy__2073) | kafeijao | PC / Mac | 1.8 |
 | [Battleground Mode Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/badcompany309/Battleground-Mode-Saver__4015) | badcompany309 | PC / Mac | 1.4.1 |
 | [BattlegroundHudMover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/BattlegroundHudMover__2900) | ShadowMau | PC / Mac | 1.0.6 |
@@ -183,7 +183,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |
 | [Bureau of Acceptable Views](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Acceptable-Views__4720) | maraud | PC / Mac | 3.11.012748 |
-| [Bureau of Material Worth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Material-Worth__4718) | maraud | PC / Mac | 4.5.005149 |
+| [Bureau of Material Worth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Material-Worth__4718) | maraud | PC / Mac | 4.6.202120 |
 | [Bureau of Private Dispatches](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Private-Dispatches__4796) | maraud | PC / Mac | 1.0.131353 |
 | [Burning Language Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IBurningTV/Burning-Language-Selector__2869) | IBurningTV | PC / Mac | 1.2 |
 | [Burning Light Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Yaeg/Burning-Light-Tracker__4786) | Yaeg | PC / Mac | 1.2.1 |

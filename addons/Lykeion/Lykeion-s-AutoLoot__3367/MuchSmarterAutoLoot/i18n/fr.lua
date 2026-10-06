@@ -153,6 +153,8 @@ ZO_CreateStringId("MSAL_LOOT_ANY_CHAR_UNKNOWN_TOOLTIP","Lorsqu'activé, pille to
 ZO_CreateStringId("MSAL_USE","Utiliser <<1>>")
 ZO_CreateStringId("MSAL_USE_DEFAULT","Utiliser par défaut")
 ZO_CreateStringId("MSAL_LEAVE_BEHIND","Laisser sur place")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS","Nettoyer les restes des conteneurs du sac")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS_TOOLTIP","Disponible uniquement lorsque |ccc922f<<1>>|r est réglé sur |ccc922f<<2>>|r\n\nDésactivé : les objets que vous ne voulez pas ramasser dans les conteneurs du sac restent dans le conteneur ;\nactivé : ils sont retirés et marqués comme rebut")
 ZO_CreateStringId("MSAL_DONT_STEAL","Ne pas voler")
 ZO_CreateStringId("MSAL_DONT_STEAL_STRICT","Ne pas voler (Strict)")
 ZO_CreateStringId("MSAL_UNOPENED_TOOLTIP","<<1>> désigne les contenants de <<2>> / <<3>> / <<4>>\nCe filtre et ses sous-filtres s'appliquent aux <<1>> et à leur contenu")

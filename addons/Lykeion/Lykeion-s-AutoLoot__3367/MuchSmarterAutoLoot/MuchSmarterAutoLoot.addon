@@ -2,8 +2,8 @@
 ## Author: |c215895L|c3E6284y|c5A6B73k|c777562e|c937F51i|cB08840o|cCC922Fn|r
 ## Description: An AutoLoot manager makes your looting more comfortable. Inspired by Agathorn's Smarter AutoLoot, this addon's former name is MuchSmarterAutoLoot
 ## APIVersion: 101051
-## Version: 8.3.6
-## AddOnVersion: 80306
+## Version: 8.3.7
+## AddOnVersion: 80307
 ## SavedVariables: MSAL_VARS
 ## PCDependsOn: LibAddonMenu-2.0>=41
 ## ConsoleDependsOn: LibAddonMenu-2.0>=41 LibHarvensAddonSettings>=20002

@@ -14,6 +14,15 @@ local function OnAddOnLoaded(eventCode, addonName)
     EVENT_MANAGER:UnregisterForEvent("AlchemyTooltips", EVENT_ADD_ON_LOADED)
 
     ATT_savedVars = ZO_SavedVars:NewAccountWide("AlchemyTooltipsSV", 1, nil, ATT_defaultSettings)
+    local previousShortNames = {
+      [11] = "+SpellPower",
+      [15] = "+SpellCrit",
+    }
+    for effectId, previousShortName in pairs(previousShortNames) do
+      if ATT_savedVars.effectsByWritIDShort[effectId] == previousShortName then
+        ATT_savedVars.effectsByWritIDShort[effectId] = ATT_defaultSettings.effectsByWritIDShort[effectId]
+      end
+    end
     ATT_HookBagTips()
     if not ATT_Variables.isInitialized then
       LibAlchemy:InitializePrices(LibAlchemy.SOURCE_ATTip)

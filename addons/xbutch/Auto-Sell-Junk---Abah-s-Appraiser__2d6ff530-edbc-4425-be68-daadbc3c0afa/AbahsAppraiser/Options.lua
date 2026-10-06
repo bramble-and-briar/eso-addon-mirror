@@ -6,7 +6,6 @@ local LAM = LibAddonMenu2
 if not LAM then return end
 
 local defaults = addon.defaults
-local sv = addon.savedVars
 
 local panelData = {
 	type = "panel",
@@ -73,8 +72,8 @@ local optionsData = {
 	},
 	{
 		type = "checkbox",
-		name = "Auto sell junk to Store",
-		tooltip = "If ON, automatically sells all items marked as junk when opening a store.",
+		name = "Auto sell junk at stores",
+		tooltip = "When enabled, automatically sells items currently marked as junk when a merchant opens.",
 		getFunc = function() return addon.savedVars.asjStore end,
 		setFunc = function(v) addon.savedVars.asjStore = v end,
 		default = defaults.asjStore
@@ -105,8 +104,8 @@ local optionsData = {
 	},
 	{
 		type = "checkbox",
-		name = "Per item chat announcements",
-		tooltip = "If ON, sends a chat message for each item marked as junk.",
+		name = "Per-item chat announcements",
+		tooltip = "When enabled, sends a chat message for each item marked as junk outside bulk scans.",
 		getFunc = function() return addon.savedVars.asjPerItemAnnouncements end,
 		setFunc = function(v) addon.savedVars.asjPerItemAnnouncements = v end,
 		default = defaults.asjPerItemAnnouncements
@@ -119,16 +118,16 @@ local optionsData = {
 	},
 	{
 		type = "checkbox",
-		name = "Auto mark non-crafted potions/poisons as junk",
-		tooltip = "If ON, automatically marks dropped (non player-crafted) potions and poisons as junk.",
+		name = "Auto mark non-crafted potions and poisons as junk",
+		tooltip = "When enabled, marks dropped non-player-crafted potions and poisons as junk.",
 		getFunc = function() return addon.savedVars.asjAutoMarkNonCraftedPotionsPoisons end,
 		setFunc = function(v) addon.savedVars.asjAutoMarkNonCraftedPotionsPoisons = v end,
 		default = defaults.asjAutoMarkNonCraftedPotionsPoisons
 	},
 	{
 		type = "checkbox",
-		name = "Exclude Bastian's Insight potions",
-		tooltip = "If ON, keeps potions labeled Bastian's Insight from being auto-marked as junk (even if non-crafted).",
+		name = "Protect Bastian's Insight potions",
+		tooltip = "When enabled, Bastian's Insight potions are never auto-marked as junk.",
 		getFunc = function() return addon.savedVars.asjExcludeBastiansInsight end,
 		setFunc = function(v) addon.savedVars.asjExcludeBastiansInsight = v end,
 		default = defaults.asjExcludeBastiansInsight
@@ -141,7 +140,7 @@ local optionsData = {
 	},
 	{
 		type = "dropdown",
-		name = "Automark Glyphs quality threshold",
+		name = "Glyph auto-junk quality threshold",
 		tooltip = "Sets the quality threshold for automatically marking glyphs as junk. All glyphs at or below the selected quality will be marked as junk.",
 		choices = textChoices,
 		choicesValues = textValues,
@@ -151,7 +150,7 @@ local optionsData = {
 	},
 	{
 		type = "dropdown",
-		name = "Automark Companion items quality threshold",
+		name = "Companion gear auto-junk quality threshold",
 		tooltip = "Sets the quality threshold for automatically marking companion items as junk. All companion items at or below the selected quality will be marked as junk.",
 		choices = textChoices,
 		choicesValues = textValues,
@@ -161,8 +160,8 @@ local optionsData = {
 	},
 	{
 		type = "dropdown",
-		name = "Automark apparel quality threshold",
-		tooltip = "Sets the quality threshold for automatically marking apparel (armor, weapons, jewelry) as junk. All apparel at or below the selected quality will be marked as junk.",
+		name = "Regular gear auto-junk quality threshold",
+		tooltip = "Controls the generic armor/weapon/jewelry rule. Eligible regular gear at or below this quality may be marked as junk. Disabled turns off only this generic rule.",
 		choices = textChoices,
 		choicesValues = textValues,
 		getFunc = function() return addon.savedVars.asjApparelQualityThreshold end,
@@ -172,37 +171,37 @@ local optionsData = {
 
 	{
 		type = "header",
-		name = "Trait / Set Rules",
+		name = "Gear eligibility / protection",
 		width = "full"
 	},
 	{
 		type = "checkbox",
-		name = "Include set items",
-		tooltip = "If set to false, excludes set items from the automatic junk marking.",
+		name = "Allow auto-junk for set items",
+		tooltip = "When enabled, set gear may be auto-junked by applicable rules. When disabled, set gear is protected and no later auto-junk rule can override it.",
 		getFunc = function() return addon.savedVars.asjIncludingSets end,
 		setFunc = function(v) addon.savedVars.asjIncludingSets = v end,
 		default = defaults.asjIncludingSets
 	},
 	{
 		type = "checkbox",
-		name = "Include items with known traits",
-		tooltip = "If set to false, excludes items with known traits from the automatic junk marking.",
+		name = "Allow auto-junk for already-known traits",
+		tooltip = "When enabled, regular gear with a trait this character no longer needs to research may be auto-junked if it also meets the regular gear quality threshold.",
 		getFunc = function() return addon.savedVars.asjIncludingKnownTraits end,
 		setFunc = function(v) addon.savedVars.asjIncludingKnownTraits = v end,
 		default = defaults.asjIncludingKnownTraits
 	},
 	{
 		type = "checkbox",
-		name = "Include items with unknown traits",
-		tooltip = "If set to false, excludes items with researchable traits from the automatic junk marking.",
+		name = "Allow auto-junk for researchable traits",
+		tooltip = "When enabled, regular gear whose trait can still be researched may be auto-junked if it also meets the regular gear quality threshold.",
 		getFunc = function() return addon.savedVars.asjIncludingUnknownTraits end,
 		setFunc = function(v) addon.savedVars.asjIncludingUnknownTraits = v end,
 		default = defaults.asjIncludingUnknownTraits
 	},
 	{
 		type = "checkbox",
-		name = "Include rare/dear traits",
-		tooltip = "If unchecked, protects items with valuable traits (Nirnhoned, Swift, Infused jewelry, Bloodthirsty, Harmony, Triune) from being auto-marked as junk, since they can be worth more by deconstructing.",
+		name = "Allow auto-junk for valuable traits",
+		tooltip = "When disabled, gear with Nirnhoned or valuable jewelry traits (Swift, Infused, Bloodthirsty, Harmony, Triune) is protected and no later auto-junk rule can override it.",
 		getFunc = function() return addon.savedVars.asjIncludingRareTraits end,
 		setFunc = function(v) addon.savedVars.asjIncludingRareTraits = v end,
 		default = defaults.asjIncludingRareTraits
@@ -210,13 +209,13 @@ local optionsData = {
 
 	{
 		type = "header",
-		name = "Style & Deconstruction",
+		name = "Style protection",
 		width = "full"
 	},
 	{
 		type = "checkbox",
-		name = "Include DLC style items",
-		tooltip = "If unchecked, protects items in non-basic styles (any style not core racial/common) from being auto-marked as junk because of potential style material value.",
+		name = "Allow auto-junk for non-basic styles",
+		tooltip = "When disabled, gear in non-basic styles (for example Primal) is protected for its style material value. Core racial styles and Imperial are treated as basic.",
 		getFunc = function() return addon.savedVars.asjIncludingDLCStyle end,
 		setFunc = function(v) addon.savedVars.asjIncludingDLCStyle = v end,
 		default = defaults.asjIncludingDLCStyle
@@ -230,7 +229,7 @@ local optionsData = {
 	{
 		type = "checkbox",
 		name = "Auto mark ornate as junk",
-		tooltip = "Automatically marks all ornate items as junk.",
+		tooltip = "When enabled, marks ornate gear as junk unless an active protection rule (such as set or non-basic style protection) vetoes it.",
 		getFunc = function() return addon.savedVars.asjOrnate end,
 		setFunc = function(v) addon.savedVars.asjOrnate = v end,
 		default = defaults.asjOrnate
@@ -238,7 +237,7 @@ local optionsData = {
 	{
 		type = "checkbox",
 		name = "Auto mark intricate as junk",
-		tooltip = "If ON, automatically marks all intricate items as junk. If OFF, intricate items are protected and will not be marked as junk by other rules.",
+		tooltip = "When enabled, marks intricate gear as junk unless an active protection rule vetoes it. When disabled, intricate gear is protected.",
 		getFunc = function() return addon.savedVars.asjIntricate end,
 		setFunc = function(v) addon.savedVars.asjIntricate = v end,
 		default = defaults.asjIntricate
@@ -251,24 +250,24 @@ local optionsData = {
 	},
 	{
 		type = "checkbox",
-		name = "Include Clockwork City quest items",
-		tooltip = "If set to false, excludes Clockwork City quest items from the automatic junk marking.\nThese include items for 'Nibbles and Bits', 'Morsels and Pecks', and the 'A Matter of ...' quest trio.",
+		name = "Allow auto-junk for Clockwork City quest items",
+		tooltip = "When enabled, items used by Clockwork City quests may be auto-junked. This includes 'Nibbles and Bits', 'Morsels and Pecks', and the 'A Matter of ...' quest trio.",
 		getFunc = function() return addon.savedVars.asjClockworkCity end,
 		setFunc = function(v) addon.savedVars.asjClockworkCity = v end,
 		default = defaults.asjClockworkCity
 	},
 	{
 		type = "checkbox",
-		name = "Include Thieves Guild quest items",
-		tooltip = "If set to false, excludes Thieves Guild 'The Covetous Countess' quest items from the automatic junk marking.",
+		name = "Allow auto-junk for The Covetous Countess items",
+		tooltip = "When enabled, treasures useful for The Covetous Countess may be auto-junked.",
 		getFunc = function() return addon.savedVars.asjThievesGuild end,
 		setFunc = function(v) addon.savedVars.asjThievesGuild = v end,
 		default = defaults.asjThievesGuild
 	},
 	{
 		type = "checkbox",
-		name = "Include Events quest items",
-		tooltip = "If set to false, excludes Event quest items (rare fishes) from the automatic junk marking.",
+		name = "Allow auto-junk for protected event items",
+		tooltip = "When enabled, the protected event rare-fish items may be auto-junked.",
 		getFunc = function() return addon.savedVars.asjEvents end,
 		setFunc = function(v) addon.savedVars.asjEvents = v end,
 		default = defaults.asjEvents

@@ -727,24 +727,26 @@ end
 local function MakeSteps(plan)
     local steps = {}
     local function Add(s) steps[#steps + 1] = s end
+    -- steps whose items make the game play a sound (muted with the quiet switch)
+    local function Noisy(s) s.noisy = true Add(s) end
     if plan.weaponsChange then Add(SheatheStep()) end
     -- a second mythic can't be worn: take the old one off first
     for _, g in ipairs(plan.gearSteps) do
         if g.mythic then
             local other = WornMythicSlot(g.slot)
-            if other then Add(UnequipMythicStep(other)) end
+            if other then Noisy(UnequipMythicStep(other)) end
             break
         end
     end
-    for _, g in ipairs(plan.gearSteps) do Add(GearStep(g)) end
+    for _, g in ipairs(plan.gearSteps) do Noisy(GearStep(g)) end
     for _, sk in ipairs(plan.skillSteps) do Add(SkillStep(sk)) end
     if plan.cpStep then Add(CPStep(plan.cpStep, plan)) end
-    if plan.foodStep then Add(FoodStep(plan.foodStep)) end
-    for _, qs in ipairs(plan.quickSteps) do Add(QuickStep(qs)) end
-    if plan.outfitStep then Add(OutfitStep(plan.outfitStep)) end
+    if plan.foodStep then Noisy(FoodStep(plan.foodStep)) end
+    for _, qs in ipairs(plan.quickSteps) do Noisy(QuickStep(qs)) end
+    if plan.outfitStep then Noisy(OutfitStep(plan.outfitStep)) end
     if plan.titleStep then Add(TitleStep(plan.titleStep)) end
-    for _, id in ipairs(plan.collectSteps) do Add(CollectStep(id)) end
-    for _, cs in ipairs(plan.companionSteps) do Add(CompanionStep(cs)) end
+    for _, id in ipairs(plan.collectSteps) do Noisy(CollectStep(id)) end
+    for _, cs in ipairs(plan.companionSteps) do Noisy(CompanionStep(cs)) end
     return steps
 end
 
@@ -756,6 +758,52 @@ local function Ready()
     if IsBlockActive and IsBlockActive() then return false end
     return true
 end
+
+-- Quiet switch (1.0.2): the game itself plays an item's sound when it's put on the quickslot
+-- wheel or equipped (a potion = drinking, food = eating, a poison = liquid, armor = clank). That
+-- happens in the engine, not in its Lua, so it can't be hooked: instead the sound-effect and
+-- interface volumes go to 0 while the steps run and come back right after. The old values are
+-- kept in sv.soundMuted until restored, so a crash or /reloadui mid-switch can't leave you muted.
+-- Never muted while waiting out a fight (you'd lose the combat sounds).
+local AUDIO_KEYS = { "AUDIO_SETTING_SFX_VOLUME", "AUDIO_SETTING_UI_VOLUME" }
+local QUIET_START_MS = 200
+local unmuteAt   -- frame time to restore at (a short tail: the last item sound comes a moment later)
+
+local function Unmute()
+    unmuteAt = nil
+    B.EM:UnregisterForUpdate("Skillbound_Unmute")
+    local saved = B.sv.soundMuted
+    if not saved then return end
+    B.sv.soundMuted = nil
+    for key, value in pairs(saved) do
+        if _G[key] then pcall(SetSetting, SETTING_TYPE_AUDIO, _G[key], value) end
+    end
+end
+
+local function Mute()
+    if B.sv.soundMuted then return end   -- (already muted)
+    if not (B.sv.quietSwap and SETTING_TYPE_AUDIO and GetSetting and SetSetting) then return end
+    local saved = {}
+    for _, key in ipairs(AUDIO_KEYS) do
+        if _G[key] then
+            local ok, value = pcall(GetSetting, SETTING_TYPE_AUDIO, _G[key])
+            if ok and value then saved[key] = value end
+        end
+    end
+    if not next(saved) then return end
+    B.sv.soundMuted = saved
+    for key in pairs(saved) do pcall(SetSetting, SETTING_TYPE_AUDIO, _G[key], "0") end
+end
+
+local function UnmuteSoon(ms)
+    if not B.sv.soundMuted then return end
+    unmuteAt = GetFrameTimeMilliseconds() + (ms or 600)
+    B.EM:RegisterForUpdate("Skillbound_Unmute", 100, function()
+        if unmuteAt and GetFrameTimeMilliseconds() >= unmuteAt then Unmute() end
+    end)
+end
+
+Apply.Unmute = Unmute
 
 local Finish
 
@@ -782,6 +830,7 @@ local function Tick()
         return
     end
     if not Ready() then
+        if B.sv.soundMuted then Unmute() end   -- (a fight: your sound back while it waits)
         if not r.waiting then
             r.waiting = true
             if not r.opts.silent then B.Print(L("WAIT_COMBAT", r.build.name)) end
@@ -796,6 +845,16 @@ local function Tick()
     if not step then
         Finish(r)
         return
+    end
+    -- quiet switch: muted right before an item step (the first step waits QUIET_START_MS, so your
+    -- click's own sound plays out), back on once no item step is left
+    if step.noisy then
+        if not B.sv.soundMuted then Mute() end
+        unmuteAt = nil
+    elseif B.sv.soundMuted and not unmuteAt then
+        local more = false
+        for k = r.i, #r.steps do if r.steps[k].noisy then more = true break end end
+        if not more or step.waitMs then UnmuteSoon() end
     end
     if step.state == "check" then
         local ok, done = pcall(step.check)
@@ -840,6 +899,7 @@ end
 Finish = function(r)
     running = nil
     B.EM:UnregisterForUpdate("Skillbound_Apply")
+    UnmuteSoon()
     Items.MarkDirty()
     local b = r.build
     if r.opts.silent then
@@ -883,6 +943,7 @@ function Apply.Cancel()
     if running then
         running = nil
         B.EM:UnregisterForUpdate("Skillbound_Apply")
+        UnmuteSoon(0)
         B.callbacks:FireCallbacks("ApplyProgress")
     end
 end
@@ -901,6 +962,7 @@ end
 function Apply.RunSteps(build, steps, opts)
     if running then Apply.Cancel() end
     running = { build = build, steps = steps, i = 1, problems = {}, opts = opts or {} }
+    if B.sv.quietSwap and not B.sv.soundMuted and steps[1] and steps[1].noisy then running.nextAt = Now() + QUIET_START_MS end
     B.EM:RegisterForUpdate("Skillbound_Apply", TICK_MS, Tick)
     B.callbacks:FireCallbacks("ApplyProgress")
     Tick()
@@ -1039,6 +1101,8 @@ local function OnWornChanged(_, bagId, slotId)
 end
 
 function Apply.Init()
+    -- (a switch was cut off by /reloadui, a crash or logging out while muted: volume back first)
+    Unmute()
     B.Capture.Init()
     B.EM:RegisterForEvent("Skillbound_CP", EVENT_CHAMPION_PURCHASE_RESULT, function(_, result)
         cpResult = result

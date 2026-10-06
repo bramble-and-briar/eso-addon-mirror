@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Solantris/Battleboard__4672",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Solantris",
   "canonical_id": "esoui:4672",
   "category_id": "96",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -21,7 +26,7 @@
     "Battleboard"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4672/",
-  "fingerprint": "46bf89c7ad9f4060cd3ca0eb1c7c132f433a753ecc96ffaef77d8b44806afc5f",
+  "fingerprint": "68cdb30e5b2ca4270e970aafa0450434db8013031821622c95f9dac9e123177f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16499.png",
     "https://cdn-eso.mmoui.com/preview/pvw16500.png",
@@ -34,11 +39,11 @@
   "source_id": "4672",
   "source_url": "https://www.esoui.com/downloads/info4672-Battleboard.html",
   "stats": {
-    "downloads": 921,
+    "downloads": 1485,
     "favorites": 3,
-    "monthly_downloads": 916
+    "monthly_downloads": 151
   },
   "title": "Battleboard",
-  "updated_at": 1783228625000,
-  "version": "1.2"
+  "updated_at": 1791283258000,
+  "version": "1.3"
 }

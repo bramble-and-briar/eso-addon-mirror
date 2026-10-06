@@ -1,26 +1,25 @@
--- DevSandbox3LogUtils.lua: Logging helper (LibConsoleLogger when present, chat otherwise)
-
+-- DevSandbox3LogUtils.lua: logging through LibConsoleLogger when present; a do-nothing shim otherwise
 local LogUtils = {}
 
----@param fmt string
----@param ... any
+local function Noop() end
+local logger = LibConsoleLogger and LibConsoleLogger.For and LibConsoleLogger:For("DevSandbox3") or { Log = Noop, Buffer = Noop }
+
 function LogUtils.Log(fmt, ...)
-    local msg = select("#", ...) > 0 and string.format(fmt, ...) or fmt
-    local line = string.format("[%s] %s", DevSandbox3.displayName, msg)
-    if LibConsoleLogger and LibConsoleLogger.Log then
-        LibConsoleLogger:Log(line)
-    else
-        d(line)
-    end
+    logger:Log(select("#", ...) > 0 and string.format(fmt, ...) or fmt)
 end
 
----@param fmt string
----@param ... any
+---Verbose: chat when debug is on, buffer-only (for export) otherwise.
 function LogUtils.Debug(fmt, ...)
-    local state = DevSandbox3.state
-    if state and state.savedVars and state.savedVars.debug then
-        LogUtils.Log(fmt, ...)
-    end
+    local s = DevSandbox3.state
+    local msg = select("#", ...) > 0 and string.format(fmt, ...) or fmt
+    if s and s.savedVars.settings.debug then logger:Log(msg) else logger:Buffer(msg) end
+end
+
+---Push everything buffered to the configured receiver (no-op without the library).
+function LogUtils.Export()
+    if not (LibConsoleLogger and LibConsoleLogger.Export) then d(string.format("[%s] LibConsoleLogger not loaded", DevSandbox3.displayName)); return end
+    local ok, reason = LibConsoleLogger:Export()
+    d(string.format("[%s] export %s%s", DevSandbox3.displayName, ok and "started" or "FAILED", reason and (": " .. reason) or ""))
 end
 
 DevSandbox3.LogUtils = LogUtils

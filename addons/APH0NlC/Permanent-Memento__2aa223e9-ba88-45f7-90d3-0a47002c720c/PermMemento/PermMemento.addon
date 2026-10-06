@@ -1,19 +1,29 @@
-; Based/inspired by addon "Memento Refresh" by @Pretz333 (NA)
-; Based/inspired by addon "PermAlmalexia" by @mouton
-; Based/inspired by addon "Kyzderp's Derps" specifically the "sync" feature by @Kyzeragon 
-; Modified and extended by @APHONlC
+; Inspired by addon "Memento Refresh" by @Pretz333 (NA)
+; Inspired by addon "PermAlmalexia" by @mouton
 
 ## Title: |c9CD04CPermanent Memento|r
-## Version: 0.8.7
-## AddOnVersion: 260326087
+## AddOnVersion: 26100608
+## Version: 2026.10.06.08.01
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
-## APIVersion: 101049
-## SavedVariables: PermMementoSaved
-## OptionalDependsOn: LibAddonMenu-2.0 LibCombatAlerts
-## Description: |cfa9c1bAuto-loop mementos.|r |cCCFF00Usage: /pmem <name> - /pmem stop - /pmsync <name> - /pmem ui - /pmem lock |r
+## APIVersion: 101051 101052
+## SavedVariables: PermMemento
+## DependsOn: LibAPH>=26100607
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibGroupBroadcast
+## Description: |cfa9c1bAuto-loop mementos.|r |cCCFF00Usage: /pmem |r
 
-; Main files
-PermMemento.lua
+CORE/PM_Core.lua
+lang/default.lua
+lang/$(language).lua
+MAIN/PM_Data.lua
+MAIN/PM_Settings.lua
+CORE/PM_Loop.lua
+MODULE/PM_Migration.lua
+MODULE/PM_UI.lua
+MODULE/PM_Wizard.lua
+MODULE/PM_Menu.lua
+Console/PM_UI_Console.lua
+PC/PM_Sync.lua
+MAIN/PermMemento.lua
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
@@ -24,8 +34,5 @@ PermMemento.lua
 ; https://account.elderscrollsonline.com/add-on-terms
 
 ; Permanent Memento: https://www.esoui.com/downloads/info4116
-; LICENSE
-; Copyright 2025-2026 @APHONlC
-; Licensed under the Apache License, Version 2.0.
-;
-; For permissions or inquiries, contact @APHONlC on ESOUI or GitHub.
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

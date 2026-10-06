@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Raid Auto Skeleton](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Raid-Auto-Skeleton__2537) | ownedbynico | PC / Mac | 1.3.1 |
 | [Raid Reset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eymix/Raid-Reset__2850) | Eymix | PC / Mac | 1.8 |
 | [RaidBuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/RaidBuffs__1939) | Wheels | PC / Mac | 0.17.0 |
-| [Raidificator (Dungeon, Trial, and Arena Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Raidificator-Dungeon-Trial-and-Arena-Tracker__1101) | code65536 | PC / Mac | 4.7.3.1 |
+| [Raidificator (Dungeon, Trial, and Arena Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Raidificator-Dungeon-Trial-and-Arena-Tracker__1101) | code65536 | PC / Mac | 4.8.0 |
 | [RaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blackmetallive/RaidManager__3436) | blackmetallive | PC / Mac | 1.0 |
 | [RaidNotifier - Traduzione Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/RaidNotifier---Traduzione-Italiana__2991) | Dusty82 | PC / Mac | 2.18 |
 | [RaidNotifier Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/RaidNotifier-Updated__1355) | Kyoma | PC / Mac | 2.30 |
@@ -126,7 +126,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Rhalyf's (QuickSlot) Keybindings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhalyf/Rhalyf-s-QuickSlot-Keybindings__1147) | Rhalyf | PC / Mac | 1.1 |
 | [Rhythmos - ESO Combat Overhaul](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nickxon/Rhythmos---ESO-Combat-Overhaul__4586) | Nickxon | PC / Mac | 1.0 |
 | [Ride Along](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Ride-Along__e6c08a97-e33e-4716-83c6-a46ad3c43fbb) | clubwratt | Console | — |
-| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.01 |
+| [RidinDirty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/RidinDirty__3560) | sinnereso | PC / Mac | 2026.10.05 |
 | [Riding School](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Riding-School__2491) | Shadowfen | PC / Mac | 1.4.22 |
 | [RipFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kadeer/RipFilter__1844) | kadeer | PC / Mac | 0.75 |
 | [Riposte Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Riposte-Tracker__491c3ac5-72b5-4579-80fa-36d9e97a7f5b) | codeWarrior82 | Console | — |

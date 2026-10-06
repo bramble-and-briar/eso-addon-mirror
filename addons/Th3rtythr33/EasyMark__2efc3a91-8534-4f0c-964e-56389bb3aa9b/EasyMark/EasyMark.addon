@@ -1,12 +1,40 @@
 ## Title: EasyMark
-## Description: Places a group target marker on whatever is under your reticle when a trigger you choose fires (heavy attack, double weapon swap).
-## Author: Matt Pesci
-## Version: 1.0.0
-## AddOnVersion: 100
-## APIVersion: 101049 101050
-## DependsOn: LibHarvensAddonSettings>=20004
+## Author: Th3rtythr33
+## Version: 1.01
+## AddOnVersion: 101
+## APIVersion: 101051
 ## SavedVariables: EasyMarkSavedVars
-## IsLibrary: false
+## DependsOn: LibHarvensAddonSettings>=20200
+## Description: Places a group target marker on whatever is under your reticle when a trigger you choose fires: starting a heavy attack, swapping weapon bars twice, or using a chosen ability slot or your ultimate.
+
+; ---------------------------------------------------------------------------
+; MANIFEST NOTES
+; ---------------------------------------------------------------------------
+; AddOnVersion is an integer that must only ever INCREASE, and it steps by one
+; per PUBLISHED build regardless of how far the semantic Version jumps. It is
+; what the console catalogue and the PC .addon/.txt tie-break use; Version is
+; only ever shown to humans. Build 0.2 shipped to Bethesda.net as AddOnVersion
+; 100 (an early mistake, but it is out there), so every later build is 101+.
+;
+; .addon only, no .txt. Since June 2025 the console client ignores .txt
+; manifests entirely; a .addon manifest also loads on PC, so one file covers
+; both. Never ship both: PC loads whichever has the higher AddOnVersion and
+; equal versions are undefined.
+;
+; PlayStation's filesystem is case-sensitive. Every path listed below, and the
+; folder and manifest names themselves, must match the real files exactly.
+;
+; Description must stay ONE line and should match the Bethesda.net listing.
+;
+; DependsOn (hard), not OptionalDependsOn: LibHarvensAddonSettings is on the
+; Bethesda.net console catalogue, so a hard dependency resolves and
+; auto-installs. The minimum version is pinned to the library's LATEST release
+; (2.2.0 = 20200) per ESOUI best practice; raise it whenever LHAS updates.
+; On Bethesda.net the dependency is attached to the add-on entry without
+; choosing a release.
+;
+; APIVersion tracks the live game. 101051 = Update 51, live 2026-09-28.
+; ---------------------------------------------------------------------------
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are

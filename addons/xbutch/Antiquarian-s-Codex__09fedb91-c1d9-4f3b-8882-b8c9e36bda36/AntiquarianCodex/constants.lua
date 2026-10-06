@@ -313,11 +313,18 @@ AC.FindScryDifferentZones = {
 }
 
 -- Inventory lead items, distinct from antiquity IDs and excavated reward item IDs.
--- Evidence: UESP Voyage on the Abecean Sea, Abecean Spoils of War rewards.
+-- Names and on-use descriptions verified in UESP item data; see docs/lead-tooltip-metadata.md.
 AC.TradeableLeadItems = {
 	[227317] = 804, -- Sea Serpent Skin Scrollcase
 	[227318] = 805, -- Coral-Encrusted Cogs
-	[227322] = 809 -- Polwygle Maturation Creche
+	[227319] = 806, -- Thrassian Compass
+	[227320] = 807, -- Pearl-Inlaid Navigation Chart
+	[227321] = 808, -- Xirkn-Zel Chamberpot
+	[227322] = 809, -- Polwygle Maturation Creche
+	[227323] = 810, -- Mixed-Era Coin Cache
+	[227324] = 811, -- Louse-Whisperer Ritual Totem
+	[227325] = 812, -- Shattered Animunculi Schematic
+	[227348] = 813 -- All Flags Navy Astrolabe
 }
 AC.TradeableAntiquities = {}
 for itemId, antiquityId in pairs(AC.TradeableLeadItems) do

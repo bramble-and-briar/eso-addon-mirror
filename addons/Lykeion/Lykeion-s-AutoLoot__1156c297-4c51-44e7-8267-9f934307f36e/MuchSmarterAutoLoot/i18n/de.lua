@@ -152,6 +152,8 @@ ZO_CreateStringId("MSAL_LOOT_ANY_CHAR_UNKNOWN_TOOLTIP","Wenn aktiviert, werden S
 ZO_CreateStringId("MSAL_USE_DEFAULT","Standard verwenden")
 ZO_CreateStringId("MSAL_USE","Nutze <<1>>")
 ZO_CreateStringId("MSAL_LEAVE_BEHIND","Zurücklassen")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS","Reste in Inventarbehältern aufräumen")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS_TOOLTIP","Nur verfügbar, wenn |ccc922f<<1>>|r auf |ccc922f<<2>>|r eingestellt ist\n\nDeaktiviert: Nicht gewünschte Gegenstände in Inventarbehältern bleiben im Behälter;\naktiviert: Sie werden entnommen und als Schrott markiert")
 ZO_CreateStringId("MSAL_DONT_STEAL","Nicht stehlen")
 ZO_CreateStringId("MSAL_DONT_STEAL_STRICT","Nicht stehlen (Streng)")
 ZO_CreateStringId("MSAL_UNOPENED_TOOLTIP","<<1>> bezieht sich auf Container für <<2>> / <<3>> / <<4>>\nDieser Filter und seine Unterfilter gelten sowohl für <<1>> als auch deren Inhalt")

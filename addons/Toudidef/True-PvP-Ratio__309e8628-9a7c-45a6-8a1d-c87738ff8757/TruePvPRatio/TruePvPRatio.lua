@@ -32,8 +32,10 @@ local CLASS_STYLES = {
 local recentEvents = {}
 
 local function GetRatio(k, d)
-    if d == 0 then return (k > 0) and k or 0 end
-    return k / d
+    local kills = tonumber(k) or 0
+    local deaths = tonumber(d) or 0
+    if deaths == 0 then return (kills > 0) and kills or 0 end
+    return kills / deaths
 end
 
 local function FormatRatio(k, d)
@@ -302,17 +304,39 @@ function TruePvPRatio:UpdateUI()
 
     local sortedChars = {}
     for name, data in pairs(sv.characters) do
-        table.insert(sortedChars, {name = name, data = data, ratio = GetRatio(data.kills, data.deaths)})
+        local totalKills = tonumber(data.kills) or 0
+        local totalDeaths = tonumber(data.deaths) or 0
+        
+        -- On masque completement les personnages sans aucun kill et sans aucune mort
+        if totalKills > 0 or totalDeaths > 0 then
+            table.insert(sortedChars, {
+                name = name, 
+                data = data, 
+                ratio = GetRatio(totalKills, totalDeaths)
+            })
+        end
     end
 
-    -- Tri des personnages : Veterans (>= 1500 kills) en premier, puis par meilleur ratio
+    -- Tri strict : Veterans (>= 1500 kills) d'abord, puis ratio decroissant, puis kills, puis nom
     table.sort(sortedChars, function(a, b) 
-        local isAVeteran = (a.data.kills >= 1500)
-        local isBVeteran = (b.data.kills >= 1500)
+        local aKills = tonumber(a.data.kills) or 0
+        local bKills = tonumber(b.data.kills) or 0
+        local isAVeteran = (aKills >= 1500)
+        local isBVeteran = (bKills >= 1500)
+
         if isAVeteran ~= isBVeteran then
             return isAVeteran
         end
-        return a.ratio > b.ratio
+
+        if a.ratio ~= b.ratio then
+            return a.ratio > b.ratio
+        end
+
+        if aKills ~= bKills then
+            return aKills > bKills
+        end
+
+        return a.name < b.name
     end)
 
     -- Hauteur calculee pour faire tenir exactement 15 personnages sans depasser de l'ecran
@@ -379,20 +403,22 @@ function TruePvPRatio:UpdateUI()
         row.name:SetText(classPrefix .. "|c" .. nameColor .. charInfo.name .. "|r")
 
         -- Case globale (sur 2 lignes comme a l'origine)
-        row.global:SetText(string.format("|cFFCC00K %d / D %d|r\n|cFFCC00Ratio %s | Streak %d|r", d.kills, d.deaths, FormatRatio(d.kills, d.deaths), d.maxKillStreak or 0))
+        row.global:SetText(string.format("|cFFCC00K %d / D %d|r\n|cFFCC00Ratio %s | Streak %d|r", d.kills or 0, d.deaths or 0, FormatRatio(d.kills, d.deaths), d.maxKillStreak or 0))
 
         -- Fonction pour les modes specifiques avec tiret discret si vide
         local function FormatModeWithDash(k, deaths)
-            if k == 0 and deaths == 0 then
+            local kCount = tonumber(k) or 0
+            local dCount = tonumber(deaths) or 0
+            if kCount == 0 and dCount == 0 then
                 return "|c555555—|r"
             end
-            return string.format("|cFFFFFFK %d / D %d|r\n|cAAAAAARatio %s|r", k, deaths, FormatRatio(k, deaths))
+            return string.format("|cFFFFFFK %d / D %d|r\n|cAAAAAARatio %s|r", kCount, dCount, FormatRatio(kCount, dCount))
         end
 
-        row.cyr:SetText(FormatModeWithDash(d.cyrodiil.kills, d.cyrodiil.deaths))
-        row.ic:SetText(FormatModeWithDash(d.ic.kills, d.ic.deaths))
-        row.bgSolo:SetText(FormatModeWithDash(d.bgSolo.kills, d.bgSolo.deaths))
-        row.bgGrp:SetText(FormatModeWithDash(d.bgGroup.kills, d.bgGroup.deaths))
+        row.cyr:SetText(FormatModeWithDash(d.cyrodiil and d.cyrodiil.kills, d.cyrodiil and d.cyrodiil.deaths))
+        row.ic:SetText(FormatModeWithDash(d.ic and d.ic.kills, d.ic and d.ic.deaths))
+        row.bgSolo:SetText(FormatModeWithDash(d.bgSolo and d.bgSolo.kills, d.bgSolo and d.bgSolo.deaths))
+        row.bgGrp:SetText(FormatModeWithDash(d.bgGroup and d.bgGroup.kills, d.bgGroup and d.bgGroup.deaths))
 
         row.name:SetHidden(false)
         row.global:SetHidden(false)

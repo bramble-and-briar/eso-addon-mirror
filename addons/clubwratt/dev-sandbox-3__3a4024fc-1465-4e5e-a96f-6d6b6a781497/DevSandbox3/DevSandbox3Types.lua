@@ -1,70 +1,43 @@
----@meta DevSandbox3Types
--- DevSandbox3Types.lua: Centralized type definitions for DevSandbox3
+-- DevSandbox3Types.lua: annotations only
 
----@class DevSandbox3Node
----@field gx number Global (Tamriel-normalized) X from LibGPS
----@field gy number Global (Tamriel-normalized) Y from LibGPS
----@field name string Interactable name that was matched
----@field zoneId integer Zone id the node was recorded in
----@field firstSeen integer Unix timestamp of first sighting
----@field lastSeen integer Unix timestamp of latest sighting
----@field seenCount integer Number of times the node was sighted
----@field looted boolean True once the recipe was actually looted here
----@field candidate boolean True if recorded only because the harvest node name was unrecognized
----@field wx number|nil World X in metres (GetUnitWorldPosition) - set from 0.8.0, used for 3D / compass markers
----@field wy number|nil World height in metres
----@field wz number|nil World Z in metres
+---@class DevSandbox3Node                 a located harvest node (from a compass pin)
+---@field control userdata                the engine's compass pin control
+---@field x number                        HarvestMap world frame metres (= raw world cm / 100), horizontal axis 1
+---@field z number                        horizontal axis 2
+---@field samplesX number[]               while locating
+---@field samplesZ number[]
+---@field pinTypeId integer|nil           HarvestMap pin type once named by the reticle
 
----@class DevSandbox3SavedVars
----@field nodes DevSandbox3Node[]
----@field filters table LibMapPins filter state
----@field debug boolean Log every reticle target name (to discover exact node names)
----@field extraPatterns string[] Temporary extra name patterns for testing (/ds3 match)
----@field ignoredNames table<string, boolean> Lowercase harvest-node names to treat as ordinary materials (/ds3 ignore)
----@field recordUnknown boolean Record unrecognized harvest nodes as candidates (default false; testing)
----@field settings DevSandbox3Settings
----@field activeAlert DevSandbox3Alert|nil Persistent on-screen alert (survives reloadui until dismissed)
----@field coverage table<integer, table<string, boolean>> zoneId -> set of covered cell keys ("cx:cy")
----@field emptySlots table<integer, DevSandbox3EmptySlot> expected-node index -> missing-slot record
----@field emptySlotsVersion string|nil version of the bundled expected-node data the records refer to
----@field lootedSlots table[] { index, typeName, dist, at } - which expected slot each looted recipe was on
----@field settingsMigration integer|nil Last one-time settings migration applied (see DevSandbox3State.MIGRATION)
+---@class DevSandbox3Slot                  a known spawn location (from HarvestMap-Data)
+---@field x number                        HarvestMap world frame metres
+---@field z number
+---@field h number                        height metres
+---@field pinTypeId integer
+
+---@class DevSandbox3Color
+---@field r number
+---@field g number
+---@field b number
+---@field a number
 
 ---@class DevSandbox3Settings
----@field alertEnabled boolean
----@field alertFontSize integer
----@field alertAutoDismissSeconds integer 0 = never
----@field alertSound boolean
----@field alertOnCandidates boolean Also raise the big alert for unrecognized-node candidates (testing)
----@field showPlayerRadius boolean
----@field playerRadiusMeters integer
----@field trackCoverage boolean Record covered ground while riding
----@field showCoverage boolean Draw covered ground on the Cyrodiil map
----@field probeAllTypes boolean Also react to LOCATION/VENDOR/TRAINER/NPC_FOLLOWER compass pins (noisy, testing only)
----@field showEmptySlots boolean Draw missing-slot candidates on the Cyrodiil map
----@field showExpectedSlots boolean Draw unverified expected slots within range (debug overlay)
----@field logEmptySlots boolean Chat line when a slot is marked missing
----@field alertOnEmptySlots boolean Big alert when a new missing slot is found (noisy)
----@field emptyByPinCount boolean Also mark slots missing when the compass has zero harvest pins in range
----@field emptySlotTtlMinutes integer Forget a missing slot this long after it was last seen empty
----@field showEmptySlotsOutOfRange boolean Keep drawing missing slots after riding out of compass range (default: only while nearby)
----@field showWorldMarkers boolean Floating dots in the 3D world above missing slots / recorded spawns
----@field showCompassMarkers boolean Pins on the compass strip for the same targets
----@field markMissingSlotsInWorld boolean Include missing expected slots (orange) in the world/compass markers
----@field markSpawnsInWorld boolean Include recorded war torte spawns (green) in the world/compass markers
----@field worldMarkerRangeM integer Only mark targets within this many metres
----@field worldMarkerSizeM number World size of a 3D dot (at 10 m when constant-size is on)
----@field worldMarkerConstantSize boolean Keep 3D dots the same size on screen regardless of distance
----@field mapPinSize integer Map pin size in UI units for missing-slot / spawn pins (pinpoint = ~6)
-
----@class DevSandbox3Alert
----@field text string
----@field candidate boolean
----@field at integer timestamp
+---@field markWarTorte boolean
+---@field markPsijic boolean
+---@field dotSizeCm integer                apparent size at 10 m
+---@field farScalePct integer              size at farScaleM as % of near size (100 = no shrink)
+---@field farScaleM integer
+---@field outline boolean                  black ring behind each dot
+---@field unknownM integer                 unknown starts here (closer = confirmed empty)
+---@field unknownLimitM integer            unknown dots not drawn beyond this
+---@field checkedM integer                 coming within this distance marks a slot checked
+---@field checkedMin integer               minutes checkpoints and verdicts are remembered; 0 = until cleared
+---@field checkedColor DevSandbox3Color
+---@field warTorteColor DevSandbox3Color
+---@field psijicColor DevSandbox3Color
+---@field markUnknown boolean
+---@field unknownColor DevSandbox3Color
+---@field debugNodes boolean
+---@field debug boolean
 
 ---@class DevSandbox3State
----@field savedVars DevSandbox3SavedVars
----@field pinTypeId integer|nil Numeric pin type id returned by LibMapPins
----@field candidatePinTypeId integer|nil Pin type id for unrecognized-node candidates
----@field lastReticleName string|nil Last interactable name seen on the reticle
----@field lastRecordTime integer Timestamp of the last node write (throttle)
+---@field savedVars { settings: DevSandbox3Settings, checkpoints: table<integer, table<integer, number>>, verdicts: table<integer, table<integer, { e: integer, x: number }>> }

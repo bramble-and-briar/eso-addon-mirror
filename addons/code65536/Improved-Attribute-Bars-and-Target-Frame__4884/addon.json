@@ -18,7 +18,7 @@
     "ImprovedAttributeBars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4884/",
-  "fingerprint": "d672b06f4485af65d73fdb5a3c5da7e62d8c8cc64b80184d2dac77ac01b594b7",
+  "fingerprint": "7b7aa5371a4879e247a9f4a731767dafb55a3e044ce962f23fd16b95a56764cd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17605.png",
     "https://cdn-eso.mmoui.com/preview/pvw17604.png"
@@ -29,11 +29,11 @@
   "source_id": "4884",
   "source_url": "https://www.esoui.com/downloads/info4884-ImprovedAttributeBarsandTargetFrame.html",
   "stats": {
-    "downloads": 100,
-    "favorites": 6,
-    "monthly_downloads": 70
+    "downloads": 249,
+    "favorites": 9,
+    "monthly_downloads": 228
   },
   "title": "Improved Attribute Bars and Target Frame",
-  "updated_at": 1790817817000,
-  "version": "1.1.1.1"
+  "updated_at": 1791227648000,
+  "version": "1.2.0"
 }

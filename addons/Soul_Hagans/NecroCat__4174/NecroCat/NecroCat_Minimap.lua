@@ -4,15 +4,16 @@ NecroCat.Minimap = NecroCat.Minimap or {}
 local minimap = NecroCat.Minimap
 
 local defaultSettings = {
-    enabled = true,
+    enabled = false,
     locked = false,
     rotate = true,
     previewInMenu = false,
     hideZoneAnnounce = true,
+    lootOnTop = true,
     width = 250,
     height = 250,
-    pinSize = 20,
-    playerPinSize = 32,
+    pinSize = 32,
+    playerPinSize = 20,
     opacity = 1.0,
     zoom = {
         zone = 2.0,
@@ -260,7 +261,7 @@ function minimap.UpdatePlayerPosition(forceUpdate)
         or (IsPlayerInRaid and IsPlayerInRaid())
 
     if isDungeon and GetCurrentZoneDungeonDifficulty and GetCurrentZoneDungeonDifficulty() == DUNGEON_DIFFICULTY_VETERAN then
-        NecroCat_Difficulty:SetText("|cff5555[ВЕТ]|r")
+        NecroCat_Difficulty:SetText(GetString(SI_NC_MAP_VET))
     else
         NecroCat_Difficulty:SetText("")
     end
@@ -321,6 +322,19 @@ function minimap.ApplyLayout()
         NecroCat_Minimap_MainWindow:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, cfg.left, cfg.top)
     else
         NecroCat_Minimap_MainWindow:SetAnchor(TOPRIGHT, GuiRoot, TOPRIGHT, -30, 80)
+    end
+
+    -- Управление слоем всплывающего лога лута (предметы, золото, опыт)
+    local lootTier = (cfg.lootOnTop ~= false) and DT_HIGH or DT_LOW
+    local lootLayer = (cfg.lootOnTop ~= false) and DL_OVERLAY or DL_CONTROLS
+
+    if ZO_LootHistoryControl_Keyboard then
+        ZO_LootHistoryControl_Keyboard:SetDrawTier(lootTier)
+        ZO_LootHistoryControl_Keyboard:SetDrawLayer(lootLayer)
+    end
+    if ZO_LootHistoryControl_Gamepad then
+        ZO_LootHistoryControl_Gamepad:SetDrawTier(lootTier)
+        ZO_LootHistoryControl_Gamepad:SetDrawLayer(lootLayer)
     end
     
     local width = cfg.width or 250
@@ -458,22 +472,22 @@ SLASH_COMMANDS["/ncrotate"] = function()
     minimap.settings.rotate = not minimap.settings.rotate
     minimap.RefreshMap()
     if minimap.settings.rotate then
-        d("|c66f2ff[NecroCat]|r Вращение карты: |c00ff00Включено (Компас)|r")
+        d(GetString(SI_NC_MAP_ROTATE_ON))
     else
-        d("|c66f2ff[NecroCat]|r Вращение карты: |cff0000Выключено (Север сверху)|r")
+        d(GetString(SI_NC_MAP_ROTATE_OFF))
     end
 end
 
 function minimap.GetMenuOptions()
     return {
         type = "submenu",
-        name = "|c66f2ffМиникарта|r",
-        tooltip = "Настройки встроенной миникарты",
+        name = GetString(SI_NC_LAM_MINIMAP_SUB),
+        tooltip = GetString(SI_NC_LAM_MINIMAP_SUB_TT),
         controls = {
             {
                 type = "checkbox",
-                name = "Включить миникарту",
-                tooltip = "Показывать окно миникарты на экране",
+                name = GetString(SI_NC_LAM_MAP_ENABLE),
+                tooltip = GetString(SI_NC_LAM_MAP_ENABLE_TT),
                 getFunc = function() return minimap.settings and minimap.settings.enabled end,
                 setFunc = function(val)
                     if minimap.settings then
@@ -491,8 +505,8 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "checkbox",
-                name = "Заблокировать окно от перемещения",
-                tooltip = "Запрещает случайное перетаскивание карты мышкой во время игры",
+                name = GetString(SI_NC_LAM_MAP_LOCK),
+                tooltip = GetString(SI_NC_LAM_MAP_LOCK_TT),
                 getFunc = function() return minimap.settings and minimap.settings.locked end,
                 setFunc = function(val)
                     if minimap.settings then minimap.settings.locked = val end
@@ -502,8 +516,8 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "checkbox",
-                name = "Режим предпросмотра (в меню)",
-                tooltip = "Временно показывает миникарту прямо в окне настроек, пока вы калибруете ползунки",
+                name = GetString(SI_NC_LAM_MAP_PREVIEW),
+                tooltip = GetString(SI_NC_LAM_MAP_PREVIEW_TT),
                 getFunc = function() return minimap.settings and minimap.settings.previewInMenu end,
                 setFunc = function(val)
                     if minimap.settings then
@@ -520,8 +534,8 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "checkbox",
-                name = "Вращать карту (Режим компаса)",
-                tooltip = "Стрелочка смотрит вперёд, а карта плавно вращается вокруг игрока",
+                name = GetString(SI_NC_LAM_MAP_ROTATE),
+                tooltip = GetString(SI_NC_LAM_MAP_ROTATE_TT),
                 getFunc = function() return minimap.settings and minimap.settings.rotate end,
                 setFunc = function(val)
                     if minimap.settings then
@@ -534,8 +548,8 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "checkbox",
-                name = "Скрывать всплывающие названия районов",
-                tooltip = "Убирает огромные стандартные надписи названий локаций и районов посреди экрана",
+                name = GetString(SI_NC_LAM_MAP_HIDE_ANNOUNCE),
+                tooltip = GetString(SI_NC_LAM_MAP_HIDE_ANNOUNCE_TT),
                 getFunc = function() return minimap.settings and minimap.settings.hideZoneAnnounce end,
                 setFunc = function(val)
                     if minimap.settings then minimap.settings.hideZoneAnnounce = val end
@@ -544,8 +558,22 @@ function minimap.GetMenuOptions()
                 disabled = function() return not (minimap.settings and minimap.settings.enabled) end,
             },
             {
+                type = "checkbox",
+                name = GetString(SI_NC_LAM_MAP_LOOT_ON_TOP),
+                tooltip = GetString(SI_NC_LAM_MAP_LOOT_ON_TOP_TT),
+                getFunc = function() return (minimap.settings and minimap.settings.lootOnTop) ~= false end,
+                setFunc = function(val)
+                    if minimap.settings then
+                        minimap.settings.lootOnTop = val
+                        minimap.ApplyLayout()
+                    end
+                end,
+                default = true,
+                disabled = function() return not (minimap.settings and minimap.settings.enabled) end,
+            },
+            {
                 type = "slider",
-                name = "Размер стрелочки игрока",
+                name = GetString(SI_NC_LAM_MAP_PLAYER_PIN_SIZE),
                 min = 16,
                 max = 48,
                 step = 2,
@@ -563,7 +591,7 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "slider",
-                name = "Размер значков на карте",
+                name = GetString(SI_NC_LAM_MAP_PIN_SIZE),
                 min = 14,
                 max = 36,
                 step = 2,
@@ -579,7 +607,7 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "slider",
-                name = "Ширина окна",
+                name = GetString(SI_NC_LAM_MAP_WIDTH),
                 min = 150,
                 max = 500,
                 step = 10,
@@ -596,7 +624,7 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "slider",
-                name = "Высота окна",
+                name = GetString(SI_NC_LAM_MAP_HEIGHT),
                 min = 150,
                 max = 500,
                 step = 10,
@@ -613,7 +641,7 @@ function minimap.GetMenuOptions()
             },
             {
                 type = "slider",
-                name = "Прозрачность окна (%)",
+                name = GetString(SI_NC_LAM_MAP_OPACITY),
                 min = 20,
                 max = 100,
                 step = 5,

@@ -5,18 +5,6 @@ NecroCat.name    = "NecroCat"
 local NC = NecroCat
 NC.lastWhisperTime = 0 
 
--- Регистрация клавиш
-ZO_CreateStringId("SI_BINDING_NAME_NECROCAT_MOUNT_UP", "Сесть на маунт согруппника")
-ZO_CreateStringId("SI_BINDING_NAME_NC_DIFF_BASEGAME", "Сложность: Нормал")
-ZO_CreateStringId("SI_BINDING_NAME_NC_DIFF_JOURNEYMAN", "Сложность: Опытный игрок")
-ZO_CreateStringId("SI_BINDING_NAME_NC_DIFF_ADVENTURER", "Сложность: Мастер")
-ZO_CreateStringId("SI_BINDING_NAME_NC_DIFF_VETERAN", "Сложность: Отголосок")
-ZO_CreateStringId("SI_BINDING_NAME_NECROCAT_FOLLOW_SEND", "Отправить сигнал Follow")
-ZO_CreateStringId("SI_BINDING_NAME_NECROCAT_FOLLOW_YES", "Follow: Телепортироваться (Принять)")
-ZO_CreateStringId("SI_BINDING_NAME_NECROCAT_FOLLOW_NO", "Follow: Отмена")
-ZO_CreateStringId("SI_BINDING_NAME_NECROCAT_SELF_WHISPER", "Шепот самому себе (Заметка)")
-ZO_CreateStringId("SI_BINDING_NAME_NECROCAT_KICK_RANDOMS", "Кикнуть чужих (не из Избранных)")
-
 ---------------------------------------------------------
 -- 1. ФУНКЦИИ ДЕЙСТВИЙ (МАУНТ, ЧАТ, ТЕЛЕПОРТ)
 ---------------------------------------------------------
@@ -77,7 +65,7 @@ function NC.OnChatMessage(eventCode, channelType, fromName, text, isCustomerServ
     local sender = fromDisplayName:gsub("%^%w+", "")
     if sender == "" then sender = fromName:gsub("%^%w+", "") end
     
-    NC.WhisperLabel:SetText("|c66f2ff" .. sender .. "|r написал в личку!")
+    NC.WhisperLabel:SetText(zo_strformat(GetString(SI_NC_WHISPER_ALERT), sender))
     NC.WhisperFrame:SetHidden(false)
     PlaySound("Whisper_Receive")
 
@@ -98,9 +86,9 @@ function NC.OnActivityFinderStatusUpdate(eventCode, status)
         zo_callLater(function()
             if GetActivityFinderStatus() == ACTIVITY_FINDER_STATUS_READY_CHECK then
                 AcceptLFGReadyCheckNotification()
-                d("|c66f2ff[NecroCat]|r Данж найден! Готовность принята автоматически.")
+                --d(GetString(SI_NC_DUNGEON_FOUND))
             end
-        end, 500) -- Небольшая задержка в 0.5 сек, чтобы движок игры успел проинициализировать окно
+        end, 500)
     end
 end
 
@@ -110,8 +98,8 @@ function NC.OnCampaignQueueStateChange(eventCode, id, isGroup, state)
 
     if state == CAMPAIGN_QUEUE_REQUEST_STATE_CONFIRMING then
         ConfirmCampaignEntry(id, isGroup, true)
-        local campName = (GetCampaignName and GetCampaignName(id)) or "Кампания"
-        d(string.format("|c66f2ff[NecroCat]|r Вход в |c00FF00%s|r принят автоматически!", campName))
+        local campName = (GetCampaignName and GetCampaignName(id)) or "Campaign"
+        d(zo_strformat(GetString(SI_NC_CAMPAIGN_QUEUE_CONFIRMED), campName))
     end
 end
 
@@ -126,7 +114,6 @@ function NC.CheckTrialPets()
     local isInTrial = (zoneId and NC.TrialZoneIds and NC.TrialZoneIds[zoneId]) or (IsRaidInProgress and IsRaidInProgress())
 
     if isInTrial then
-        -- Ждем 2.5 сек, чтобы игра на 100% прогрузила коллекцию даже на медленном ПК
         zo_callLater(function()
             if IsUnitInCombat("player") or IsUnitDead("player") then return end
             
@@ -134,11 +121,10 @@ function NC.CheckTrialPets()
             if activePetId and activePetId > 0 then
                 NC.savedVars.storedPets[charId] = activePetId
                 UseCollectible(activePetId)
-                d("|c66f2ff[NecroCat]|r Небоевой питомец отозван на время триала.")
+                d(GetString(SI_NC_PET_DISMISSED))
             end
         end, 2500)
     else
-        -- В домах призыв блокируется игрой: не трогаем пета и сохраняем запись в памяти!
         local isInHouse = (GetCurrentZoneHouseId and GetCurrentZoneHouseId() ~= 0)
         if isInHouse then return end
 
@@ -150,7 +136,7 @@ function NC.CheckTrialPets()
 
                 if GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_VANITY_PET) == 0 then
                     UseCollectible(storedPet)
-                    d("|c66f2ff[NecroCat]|r Питомец призван обратно.")
+                    d(GetString(SI_NC_PET_SUMMONED))
                 end
                 NC.savedVars.storedPets[charId] = nil
                 NC.savedVars.storedPetId = 0
@@ -166,7 +152,6 @@ function NC.IsPlayerFavorite(displayName, charName)
 
     local favs = sv.favoritePlayers or {}
 
-    -- 1. Высший приоритет: ручной выбор (true = добавлен, false = исключен вручную)
     if displayName and favs[displayName] ~= nil then
         return favs[displayName]
     end
@@ -174,7 +159,6 @@ function NC.IsPlayerFavorite(displayName, charName)
         return favs[charName]
     end
 
-    -- 2. Если включена настройка "Считать друзей избранными"
     if sv.treatFriendsAsFavorites and displayName and IsFriend and IsFriend(displayName) then
         return true
     end
@@ -185,12 +169,12 @@ end
 -- Исключение из группы всех игроков, которых нет в списке избранных
 function NC.KickNonFavorites()
     if not IsUnitGrouped("player") then
-        d("|cFF5555[NecroCat]|r Вы не находитесь в группе.")
+        d(GetString(SI_NC_KICK_NO_GROUP))
         return
     end
 
     if not IsUnitGroupLeader("player") then
-        d("|cFF5555[NecroCat]|r Вы должны быть лидером группы, чтобы исключать участников!")
+        d(GetString(SI_NC_KICK_NOT_LEADER))
         return
     end
 
@@ -206,13 +190,13 @@ function NC.KickNonFavorites()
                 GroupKick(unitTag)
                 kickedCount = kickedCount + 1
                 local kickedName = (displayName and displayName ~= "") and displayName or (charName or unitTag)
-                d(string.format("|c66f2ff[NecroCat]|r Исключен из группы: |cFF5555%s|r", kickedName))
+                d(zo_strformat(GetString(SI_NC_KICKED_MEMBER), kickedName))
             end
         end
     end
 
     if kickedCount == 0 then
-        d("|c66f2ff[NecroCat]|r В группе нет посторонних игроков (все участники в списке избранных).")
+        d(GetString(SI_NC_KICK_ALL_FAVORITES))
     end
 end
 
@@ -224,28 +208,43 @@ function NC.GetUnknownKnowledgeItems()
     for slotIndex = 0, bagSize - 1 do
         local itemLink = GetItemLink(BAG_BACKPACK, slotIndex)
         if itemLink and itemLink ~= "" then
-            local itemType = GetItemType(BAG_BACKPACK, slotIndex)
+            local itemType, specializedItemType = GetItemType(BAG_BACKPACK, slotIndex)
             local isUnknown = false
 
-            -- 1. Рецепты еды, напитков и чертежи мебели
+            -- 1. Рецепты еды, напитков и чертежи мебели (всегда по умолчанию)
             if itemType == ITEMTYPE_RECIPE then
                 if not IsItemLinkRecipeKnown(itemLink) then
                     isUnknown = true
                 end
 
-            -- 2. Ремесленные мотивы (главы и книги крафта)
-            elseif NC.savedVars.includeMotifs and itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
+            -- 2. Ремесленные мотивы (главы и полные книги крафта)
+            elseif NC.savedVars.includeMotifs and (itemType == ITEMTYPE_RACIAL_STYLE_MOTIF or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_BOOK) then
                 if not IsItemLinkBookKnown(itemLink) then
                     isUnknown = true
                 end
 
-            -- 3. Страницы стилей нарядов (маски монстров, плечи, оружие ивентов)
+            -- 3. Страницы стилей нарядов (маски монстров, плечи, оружие, ивентовые стили)
             elseif NC.savedVars.includeStylePages then
-                local numCollectibles = GetItemLinkNumContainerCollectibles and GetItemLinkNumContainerCollectibles(itemLink) or 0
-                if numCollectibles > 0 then
-                    local collectibleId = GetItemLinkContainerCollectibleId(itemLink, 1)
-                    if collectibleId and not IsCollectibleUnlocked(collectibleId) then
-                        isUnknown = true
+                local isStyleItem = (specializedItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE)
+                                 or (specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE)
+                                 or (itemType == ITEMTYPE_CONTAINER)
+                                 or (itemType == ITEMTYPE_COLLECTIBLE)
+
+                if isStyleItem then
+                    local numCollectibles = (GetItemLinkNumContainerCollectibles and GetItemLinkNumContainerCollectibles(itemLink)) or 0
+                    if numCollectibles > 0 then
+                        for cIdx = 1, numCollectibles do
+                            local collectibleId = GetItemLinkContainerCollectibleId(itemLink, cIdx)
+                            if collectibleId and not IsCollectibleUnlocked(collectibleId) then
+                                isUnknown = true
+                                break
+                            end
+                        end
+                    elseif GetItemLinkItemUseReferenceId then
+                        local collectibleId = GetItemLinkItemUseReferenceId(itemLink)
+                        if collectibleId and collectibleId > 0 and not IsCollectibleUnlocked(collectibleId) then
+                            isUnknown = true
+                        end
                     end
                 end
             end
@@ -268,7 +267,7 @@ local function HookLoreReaderSuppression()
     ZO_PreHook(LORE_READER, "Show", function(self)
         if NC.isLearningKnowledge then
             EndInteraction(INTERACTION_BOOK)
-            return true -- Глушим открытие книги на весь экран
+            return true
         end
     end)
 end
@@ -276,45 +275,50 @@ end
 -- Поочередное быстрое изучение найденных предметов (Турбо-режим)
 function NC.LearnAllUnknownKnowledge()
     if IsUnitInCombat("player") or IsUnitDead("player") then
-        d("|cFF0000[NecroCat]|r Нельзя изучать предметы в бою!")
+        d(GetString(SI_NC_LEARN_IN_COMBAT))
         return
     end
 
     local items = NC.GetUnknownKnowledgeItems()
     if #items == 0 then
-        d("|c66f2ff[NecroCat]|r Неизвестных рецептов, мотивов или стилей в сумке не найдено.")
+        d(GetString(SI_NC_LEARN_NONE))
         return
     end
 
-    d(string.format("|c66f2ff[NecroCat]|r Найдено неизвестных предметов: |c00FF00%d|r. Начинаем изучение...", #items))
+    d(zo_strformat(GetString(SI_NC_LEARN_START), #items))
 
-    NC.isLearningKnowledge = true -- Включаем блокировку читалки книг
+    NC.isLearningKnowledge = true
     local count = 0
 
     local function ProcessNext(index)
         if index > #items then
-            NC.isLearningKnowledge = false -- Выключаем блокировку
-            d(string.format("|c00FF00[NecroCat]|r Изучение завершено! Всего изучено: %d шт.|r", count))
+            NC.isLearningKnowledge = false
+            d(zo_strformat(GetString(SI_NC_LEARN_DONE), count))
             return
         end
 
         local item = items[index]
         local currentLink = GetItemLink(BAG_BACKPACK, item.slotIndex)
 
-        -- Проверяем, что предмет все еще в слоте
         if currentLink == item.itemLink then
             CallSecureProtected("UseItem", BAG_BACKPACK, item.slotIndex)
             count = count + 1
-            d(string.format("|c66f2ff[NecroCat]|r Изучено (%d/%d): %s", index, #items, item.itemLink))
+            d(string.format("|c66f2ff[NecroCat]|r (%d/%d): %s", index, #items, item.itemLink))
         end
 
-        -- Быстрая пауза 0.35 сек (в 4 раза быстрее, без лагов сервера)
         zo_callLater(function()
             ProcessNext(index + 1)
         end, 350)
     end
 
     ProcessNext(1)
+end
+
+---------------------------------------------------------
+-- БЫСТРЫЙ ТЕЛЕПОРТ
+---------------------------------------------------------
+function NecroCat.TeleportToVivec()
+    FastTravelToNode(284)
 end
 
 ---------------------------------------------------------
@@ -458,7 +462,7 @@ function NC.OnWornSlotUpdate(eventCode, bagId, slotIndex)
                                 else
                                     UseItem(BAG_BACKPACK, kitSlot)
                                 end
-                                d("|c66f2ff[NecroCat]|r Всё снаряжение починено кронным ремнабором.")
+                                d(GetString(SI_NC_REPAIR_CROWN))
                             end
                         else
                             RepairItemWithRepairKit(BAG_WORN, slotIndex, BAG_BACKPACK, kitSlot)
@@ -492,7 +496,7 @@ function NC.OnOpenStore()
         local currentMoney = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
         if currentMoney >= cost then
             RepairAll()
-            d(string.format("|c66f2ff[NecroCat]|r Снаряжение починено у торговца за |cFFD700%d|r золота.", cost))
+            d(zo_strformat(GetString(SI_NC_REPAIR_VENDOR), cost))
 
             -- Обновляем все слоты на экране персонажа
             if NC.UpdateAllCharacterGear then
@@ -512,7 +516,7 @@ function NC.CheckAutoConvertToRaid()
 
     if IsUnitGroupLeader("player") and GetGroupSize() >= 5 and not IsGroupRaid() then
         ConvertToRaid()
-        d("|c66f2ff[NecroCat]|r Группа автоматически преобразована в рейд (5+ чел.)")
+        d(GetString(SI_NC_AUTO_RAID_CONVERT))
     end
 end
 
@@ -681,17 +685,59 @@ local function NC_InitInteractionFix()
     if not PLAYER_TO_PLAYER then return end
 
     ZO_PreHook(PLAYER_TO_PLAYER, "AddMenuEntry", function(self, text)
-        if NC.savedVars.hideRemoveFromGroup and text == GetString(SI_PLAYER_TO_PLAYER_REMOVE_GROUP) then
-            return true -- Отменяем добавление кнопки
+        if not NC.savedVars or not text or text == "" then return end
+        local cleanText = string.lower(zo_strformat("<<1>>", text))
+
+        -- 1. Исключить из группы
+        if NC.savedVars.hideRemoveFromGroup then
+            if (SI_PLAYER_TO_PLAYER_REMOVE_GROUP and text == GetString(SI_PLAYER_TO_PLAYER_REMOVE_GROUP))
+               or string.find(cleanText, "исключить") 
+               or string.find(cleanText, "remove from group") then
+                return true
+            end
         end
-        if NC.savedVars.hideAddFriend and text == GetString(SI_PLAYER_TO_PLAYER_ADD_FRIEND) then
-            return true -- Отменяем добавление кнопки
+
+        -- 2. Пожаловаться на игрока
+        if NC.savedVars.hideReport then
+            if string.find(cleanText, "пожаловаться") 
+               or string.find(cleanText, "report") then
+                return true
+            end
         end
-        if NC.savedVars.hideTributeInvite and text then
+
+        -- 3. Пригласить в карты (Легенды о наградах)
+        if NC.savedVars.hideTributeInvite then
             if (SI_PLAYER_TO_PLAYER_TRIBUTE_INVITE and text == GetString(SI_PLAYER_TO_PLAYER_TRIBUTE_INVITE))
-               or string.find(text, "наградах")
-               or string.find(text, "Tribute") then
-                return true -- Отменяем приглашение в карточную игру
+               or string.find(cleanText, "наградах") 
+               or string.find(cleanText, "tribute") then
+                return true
+            end
+        end
+
+        -- 4. Добавить в друзья
+        if NC.savedVars.hideAddFriend then
+            if (SI_PLAYER_TO_PLAYER_ADD_FRIEND and text == GetString(SI_PLAYER_TO_PLAYER_ADD_FRIEND))
+               or string.find(cleanText, "друзья") 
+               or string.find(cleanText, "add friend") then
+                return true
+            end
+        end
+
+        -- 5. Вызвать на дуэль
+        if NC.savedVars.hideDuel then
+            if (SI_PLAYER_TO_PLAYER_CHALLENGE_DUEL and text == GetString(SI_PLAYER_TO_PLAYER_CHALLENGE_DUEL))
+               or string.find(cleanText, "дуэль") 
+               or string.find(cleanText, "duel") then
+                return true
+            end
+        end
+
+        -- 6. Обмен
+        if NC.savedVars.hideTrade then
+            if (SI_PLAYER_TO_PLAYER_TRADE and text == GetString(SI_PLAYER_TO_PLAYER_TRADE))
+               or string.find(cleanText, "обмен") 
+               or string.find(cleanText, "trade") then
+                return true
             end
         end
     end)
@@ -732,24 +778,24 @@ local function ShowBuffTooltip(control, buffData)
     end
 
     if buffData.stackCount and buffData.stackCount > 1 then
-        InformationTooltip:AddLine(string.format("Стаки: |cFFFF22%d|r", buffData.stackCount), "ZoFontGameSmall", 0.9, 0.9, 0.9)
+        InformationTooltip:AddLine(zo_strformat(GetString(SI_NC_TT_BUFF_STACKS), buffData.stackCount), "ZoFontGameSmall", 0.9, 0.9, 0.9)
     end
 
     if buffData.isPermanent then
-        InformationTooltip:AddLine("|c00FF00Постоянный эффект|r", "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_BUFF_PERMANENT), "ZoFontGameSmall")
     elseif buffData.remain and buffData.remain > 0 then
         local hours = math.floor(buffData.remain / 3600)
         local mins = math.floor((buffData.remain % 3600) / 60)
         local secs = math.floor(buffData.remain % 60)
         local timeStr = ""
         if hours > 0 then
-            timeStr = string.format("%d ч %d мин", hours, mins)
+            timeStr = string.format("%d h %d m", hours, mins)
         elseif mins > 0 then
-            timeStr = string.format("%d мин %d сек", mins, secs)
+            timeStr = string.format("%d m %d s", mins, secs)
         else
-            timeStr = string.format("%.1f сек", buffData.remain)
+            timeStr = string.format("%.1f s", buffData.remain)
         end
-        InformationTooltip:AddLine(string.format("Осталось: |c66F2FF%s|r", timeStr), "ZoFontGameSmall")
+        InformationTooltip:AddLine(zo_strformat(GetString(SI_NC_TT_BUFF_REMAIN), timeStr), "ZoFontGameSmall")
     end
 end
 
@@ -788,12 +834,19 @@ function NC.UpdateLongBuffsUI()
         NC.LongBuffsFrame:SetDimensions(totalLength, size)
     end
 
+    local menuScene = SCENE_MANAGER:GetScene("gameMenuInGame")
     if sv.longBuffsEnabled then
         HUD_SCENE:AddFragment(NC.LongBuffsFragment)
         HUD_UI_SCENE:AddFragment(NC.LongBuffsFragment)
+        if unlocked then
+            menuScene:AddFragment(NC.LongBuffsFragment)
+        else
+            menuScene:RemoveFragment(NC.LongBuffsFragment)
+        end
     else
         HUD_SCENE:RemoveFragment(NC.LongBuffsFragment)
         HUD_UI_SCENE:RemoveFragment(NC.LongBuffsFragment)
+        menuScene:RemoveFragment(NC.LongBuffsFragment)
         NC.LongBuffsFrame:SetHidden(true)
         return
     end
@@ -879,8 +932,33 @@ function NC.UpdateLongBuffs()
                 local totalDuration = isPermanent and 0 or (timeEnding - timeStarted)
                 local remain = isPermanent and 0 or (timeEnding - now)
 
-                -- Фильтр: бафф изначально длится >= 120 сек (еда, свитки) или вечный
-                if (not isPermanent and totalDuration >= 120 and remain > 0) or (isPermanent and NC.savedVars.longBuffsShowPermanent) then
+                local lowerName = string.lower(buffName or "")
+                local cleanIcon = string.lower(iconFilename)
+
+                local isSoulSummons = (abilityId == 43752)
+                        or string.find(cleanIcon, "soul")
+                        or string.find(lowerName, "душ")
+                        or string.find(lowerName, "soul")
+
+                -- Отсекаем способности оружия/доспехов (например, "Затяжная атака" на скорость коня)
+                local isCombatAbility = string.find(cleanIcon, "ability_weapon")
+                        or string.find(cleanIcon, "ability_armor")
+
+                -- Военный торт (отслеживаем до самой последней секунды)
+                local isTorte = string.find(lowerName, "военн") or string.find(lowerName, "war")
+                        or string.find(lowerName, "торт") or string.find(lowerName, "torte")
+                        or string.find(cleanIcon, "torte")
+
+                -- Свитки опыта и Амброзия (отслеживаем до самой последней секунды)
+                local isXP = string.find(lowerName, "опыт") or string.find(lowerName, "exper")
+                        or string.find(lowerName, "амброз") or string.find(lowerName, "ambros")
+                        or string.find(cleanIcon, "experience") or string.find(cleanIcon, "ambrosia") or string.find(cleanIcon, "scroll")
+
+                -- Долгий бафф: это либо торт, либо опыт, либо еда/бафф длиннее 10 минут (и не боевой скилл)
+                local isLongBuff = isTorte or isXP or (totalDuration > 600 and not isCombatAbility)
+
+                -- Фильтр: бафф изначально длится >= 1800 сек (еда, свитки) или вечный
+                if not isSoulSummons and ((not isPermanent and isLongBuff and remain > 0) or (isPermanent and NC.savedVars.longBuffsShowPermanent)) then
                     table.insert(activeBuffs, {
                         name        = buffName,
                         icon        = iconFilename,
@@ -995,7 +1073,12 @@ function NC.CreateLongBuffsUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_LongBuffsFrame")
     frame:SetDimensions(size, size)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.longBuffsLeft or 500, NC.savedVars.longBuffsTop or 300)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.longBuffsLeft and NC.savedVars.longBuffsTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.longBuffsLeft, NC.savedVars.longBuffsTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.longBuffsUnlocked)
     frame:SetMouseEnabled(NC.savedVars.longBuffsUnlocked)
     frame:SetClampedToScreen(true)
@@ -1067,12 +1150,19 @@ function NC.UpdateShortBuffsUI()
         NC.ShortBuffsFrame:SetDimensions(totalLength, size)
     end
 
+    local menuScene = SCENE_MANAGER:GetScene("gameMenuInGame")
     if sv.shortBuffsEnabled then
         HUD_SCENE:AddFragment(NC.ShortBuffsFragment)
         HUD_UI_SCENE:AddFragment(NC.ShortBuffsFragment)
+        if unlocked then
+            menuScene:AddFragment(NC.ShortBuffsFragment)
+        else
+            menuScene:RemoveFragment(NC.ShortBuffsFragment)
+        end
     else
         HUD_SCENE:RemoveFragment(NC.ShortBuffsFragment)
         HUD_UI_SCENE:RemoveFragment(NC.ShortBuffsFragment)
+        menuScene:RemoveFragment(NC.ShortBuffsFragment)
         NC.ShortBuffsFrame:SetHidden(true)
         return
     end
@@ -1161,15 +1251,23 @@ function NC.UpdateShortBuffs()
         local now = GetFrameTimeSeconds()
 
         for i = 1, numBuffs do
-            local buffName, timeStarted, timeEnding, buffSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId = GetUnitBuffInfo("player", i)
+                    local buffName, timeStarted, timeEnding, buffSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId, canClickOff = GetUnitBuffInfo("player", i)
 
-            if effectType == BUFF_EFFECT_TYPE_BUFF and iconFilename and iconFilename ~= "" then
-                local isPermanent = (timeEnding == 0) or (timeEnding <= timeStarted)
-                local totalDuration = isPermanent and 0 or (timeEnding - timeStarted)
-                local remain = isPermanent and 0 or (timeEnding - now)
+                    if effectType == BUFF_EFFECT_TYPE_BUFF and iconFilename and iconFilename ~= "" then
+                        local isPermanent = (timeEnding == 0) or (timeEnding <= timeStarted)
+                        local totalDuration = isPermanent and 0 or (timeEnding - timeStarted)
+                        local remain = isPermanent and 0 or (timeEnding - now)
 
-                -- Фильтр: баффы, которые ИЗНАЧАЛЬНО длятся < 120 сек (еда сюда не попадет никогда!)
-                if not isPermanent and totalDuration > 0 and totalDuration < 120 and remain > 0 then
+                        local lowerName = string.lower(buffName or "")
+                        local isConsumable = canClickOff
+                            or (abilityId == 66776 or abilityId == 147687 or abilityId == 147466 or abilityId == 147467 or abilityId == 147733 or abilityId == 147734)
+                            or string.find(lowerName, "военн") or string.find(lowerName, "war")
+                            or string.find(lowerName, "торт") or string.find(lowerName, "torte")
+                            or string.find(lowerName, "опыт") or string.find(lowerName, "exper")
+                            or string.find(lowerName, "амброз") or string.find(lowerName, "ambros")
+
+                        -- Фильтр: баффы, которые ИЗНАЧАЛЬНО длятся < 120 сек (еда сюда не попадет никогда!)
+                        if not isPermanent and not isConsumable and totalDuration > 0 and totalDuration < 120 and remain > 0 then
                     table.insert(activeBuffs, {
                         name        = buffName,
                         icon        = iconFilename,
@@ -1282,7 +1380,12 @@ function NC.CreateShortBuffsUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_ShortBuffsFrame")
     frame:SetDimensions(size, size)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.shortBuffsLeft or 500, NC.savedVars.shortBuffsTop or 500)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.shortBuffsLeft and NC.savedVars.shortBuffsTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.shortBuffsLeft, NC.savedVars.shortBuffsTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.shortBuffsUnlocked)
     frame:SetMouseEnabled(NC.savedVars.shortBuffsUnlocked)
     frame:SetClampedToScreen(true)
@@ -1340,12 +1443,19 @@ function NC.UpdatePlayerDebuffsUI()
         NC.PlayerDebuffsFrame:SetDimensions(totalWidth, slotHeight)
     end
 
+    local menuScene = SCENE_MANAGER:GetScene("gameMenuInGame")
     if sv.playerDebuffsEnabled then
         HUD_SCENE:AddFragment(NC.PlayerDebuffsFragment)
         HUD_UI_SCENE:AddFragment(NC.PlayerDebuffsFragment)
+        if unlocked then
+            menuScene:AddFragment(NC.PlayerDebuffsFragment)
+        else
+            menuScene:RemoveFragment(NC.PlayerDebuffsFragment)
+        end
     else
         HUD_SCENE:RemoveFragment(NC.PlayerDebuffsFragment)
         HUD_UI_SCENE:RemoveFragment(NC.PlayerDebuffsFragment)
+        menuScene:RemoveFragment(NC.PlayerDebuffsFragment)
         NC.PlayerDebuffsFrame:SetHidden(true)
         return
     end
@@ -1563,7 +1673,12 @@ function NC.CreatePlayerDebuffsUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_PlayerDebuffsFrame")
     frame:SetDimensions(size, size)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.playerDebuffsLeft or 500, NC.savedVars.playerDebuffsTop or 550)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.playerDebuffsLeft and NC.savedVars.playerDebuffsTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.playerDebuffsLeft, NC.savedVars.playerDebuffsTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.playerDebuffsUnlocked)
     frame:SetMouseEnabled(NC.savedVars.playerDebuffsUnlocked)
     frame:SetClampedToScreen(true)
@@ -1639,16 +1754,22 @@ function NC.UpdateTargetDebuffsUI()
         local totalHeight = (slotHeight * numSlots) + (spacing * (numSlots - 1))
         NC.TargetDebuffsFrame:SetDimensions(size, totalHeight)
     else
-        local totalWidth = (size * numSlots) + (spacing * (numSlots - 1))
-        NC.TargetDebuffsFrame:SetDimensions(totalWidth, slotHeight)
+        NC.TargetDebuffsFrame:SetDimensions(size, slotHeight)
     end
 
+    local menuScene = SCENE_MANAGER:GetScene("gameMenuInGame")
     if sv.targetDebuffsEnabled then
         HUD_SCENE:AddFragment(NC.TargetDebuffsFragment)
         HUD_UI_SCENE:AddFragment(NC.TargetDebuffsFragment)
+        if unlocked then
+            menuScene:AddFragment(NC.TargetDebuffsFragment)
+        else
+            menuScene:RemoveFragment(NC.TargetDebuffsFragment)
+        end
     else
         HUD_SCENE:RemoveFragment(NC.TargetDebuffsFragment)
         HUD_UI_SCENE:RemoveFragment(NC.TargetDebuffsFragment)
+        menuScene:RemoveFragment(NC.TargetDebuffsFragment)
         NC.TargetDebuffsFrame:SetHidden(true)
         return
     end
@@ -1721,14 +1842,13 @@ function NC.UpdateTargetDebuffs()
     local activeDebuffs = {}
     local isUnlocked = NC.savedVars.targetDebuffsUnlocked
 
-    -- В режиме настройки показываем 5 образцовых дебаффов цели
+    -- В режиме настройки показываем 3 образцовых дебаффа цели
     if isUnlocked then
+        NC.TargetDebuffsFrame:SetHidden(false)
         activeDebuffs = {
             { icon = "EsoUI/Art/Icons/ability_debuff_major_breach.dds", remain = 18.0, stackCount = 0, isPermanent = false },
             { icon = "EsoUI/Art/Icons/ability_debuff_minor_vulnerability.dds", remain = 12.5, stackCount = 0, isPermanent = false },
             { icon = "EsoUI/Art/Icons/ability_debuff_major_defile.dds", remain = 7.0, stackCount = 0, isPermanent = false },
-            { icon = "EsoUI/Art/Icons/ability_debuff_offbalance.dds", remain = 4.2, stackCount = 0, isPermanent = false },
-            { icon = "EsoUI/Art/Icons/ability_debuff_stun.dds", remain = 2.1, stackCount = 0, isPermanent = false },
         }
     else
         if not DoesUnitExist("reticleover") or IsUnitDead("reticleover") then
@@ -1740,28 +1860,50 @@ function NC.UpdateTargetDebuffs()
 
         local numBuffs = GetNumBuffs("reticleover")
         local now = GetFrameTimeSeconds()
+        local debuffMap = {}
 
         for i = 1, numBuffs do
             local buffName, timeStarted, timeEnding, buffSlot, stackCount, iconFilename, buffType, effectType, abilityType, statusEffectType, abilityId, canClickOff, castByPlayer = GetUnitBuffInfo("reticleover", i)
 
-            if effectType == BUFF_EFFECT_TYPE_DEBUFF and iconFilename and iconFilename ~= "" then
+            if effectType == BUFF_EFFECT_TYPE_DEBUFF and iconFilename and iconFilename ~= "" and buffName and buffName ~= "" then
                 local passesPlayerFilter = not NC.savedVars.targetDebuffsOnlyPlayer or castByPlayer
                 if passesPlayerFilter then
                     local isPermanent = (timeEnding == 0) or (timeEnding <= timeStarted)
                     local remain = isPermanent and 0 or (timeEnding - now)
 
-                    table.insert(activeDebuffs, {
-                        name        = buffName,
-                        icon        = iconFilename,
-                        remain      = remain,
-                        isPermanent = isPermanent,
-                        stackCount  = stackCount or 0,
-                        timeStarted = timeStarted or 0,
-                        slot        = buffSlot or 0,
-                        abilityId   = abilityId or 0,
-                    })
+                    local newDebuff = {
+                        name         = buffName,
+                        icon         = iconFilename,
+                        remain       = remain,
+                        isPermanent  = isPermanent,
+                        stackCount   = stackCount or 0,
+                        timeStarted  = timeStarted or 0,
+                        slot         = buffSlot or 0,
+                        abilityId    = abilityId or 0,
+                        castByPlayer = castByPlayer or false,
+                    }
+
+                    local existing = debuffMap[buffName]
+                    if not existing then
+                        debuffMap[buffName] = newDebuff
+                    else
+                        -- Приоритет 1: свой личный дебафф всегда вытесняет чужой
+                        if newDebuff.castByPlayer and not existing.castByPlayer then
+                            debuffMap[buffName] = newDebuff
+                        -- Приоритет 2: чужой дебафф никогда не может затереть твой
+                        elseif not newDebuff.castByPlayer and existing.castByPlayer then
+                            -- оставляем существующий твой
+                        -- Приоритет 3: если оба твои или оба чужие — берем с наибольшим таймером
+                        elseif newDebuff.remain > existing.remain then
+                            debuffMap[buffName] = newDebuff
+                        end
+                    end
                 end
             end
+        end
+
+        for _, debuff in pairs(debuffMap) do
+            table.insert(activeDebuffs, debuff)
         end
     end
 
@@ -1780,23 +1922,11 @@ function NC.UpdateTargetDebuffs()
 
     local size = NC.savedVars.targetDebuffsSize or 36
     local isVertical = (NC.savedVars.targetDebuffsOrientation == 1)
-    local growthMode = NC.savedVars.targetDebuffsGrowth or 1
     local spacing = 4
 
-    local isReverse = false
-    if growthMode == 2 then
-        isReverse = false
-    elseif growthMode == 3 then
-        isReverse = true
-    else
-        local cx, cy = NC.TargetDebuffsFrame:GetCenter()
-        local sw, sh = GuiRoot:GetDimensions()
-        if isVertical then
-            isReverse = (cy and cy > (sh / 2))
-        else
-            isReverse = (cx and cx > (sw / 2))
-        end
-    end
+    local numDebuffs = #activeDebuffs
+    local totalRowWidth = (numDebuffs * size) + ((numDebuffs - 1) * spacing)
+    local startX = -(totalRowWidth / 2) + (size / 2)
 
     for i, debuff in ipairs(activeDebuffs) do
         local ctrlData = GetOrCreateTargetDebuffControl(i)
@@ -1806,35 +1936,17 @@ function NC.UpdateTargetDebuffs()
         ctrlData.icon:SetDimensions(size, size)
         ctrlData.control:ClearAnchors()
 
-        if i == 1 then
-            if isVertical then
-                if isReverse then
-                    ctrlData.control:SetAnchor(BOTTOM, NC.TargetDebuffsFrame, BOTTOM, 0, 0)
-                else
-                    ctrlData.control:SetAnchor(TOP, NC.TargetDebuffsFrame, TOP, 0, 0)
-                end
+        if isVertical then
+            if i == 1 then
+                ctrlData.control:SetAnchor(TOP, NC.TargetDebuffsFrame, TOP, 0, 0)
             else
-                if isReverse then
-                    ctrlData.control:SetAnchor(RIGHT, NC.TargetDebuffsFrame, RIGHT, 0, 0)
-                else
-                    ctrlData.control:SetAnchor(LEFT, NC.TargetDebuffsFrame, LEFT, 0, 0)
-                end
+                local prevCtrl = NC.TargetDebuffControls[i - 1].control
+                ctrlData.control:SetAnchor(TOP, prevCtrl, BOTTOM, 0, spacing)
             end
         else
-            local prevCtrl = NC.TargetDebuffControls[i - 1].control
-            if isVertical then
-                if isReverse then
-                    ctrlData.control:SetAnchor(BOTTOM, prevCtrl, TOP, 0, -spacing)
-                else
-                    ctrlData.control:SetAnchor(TOP, prevCtrl, BOTTOM, 0, spacing)
-                end
-            else
-                if isReverse then
-                    ctrlData.control:SetAnchor(RIGHT, prevCtrl, LEFT, -spacing, 0)
-                else
-                    ctrlData.control:SetAnchor(LEFT, prevCtrl, RIGHT, spacing, 0)
-                end
-            end
+            -- Динамическое центрирование ряда относительно центра фрейма
+            local offsetX = startX + ((i - 1) * (size + spacing))
+            ctrlData.control:SetAnchor(TOP, NC.TargetDebuffsFrame, TOP, offsetX, 0)
         end
 
         ctrlData.icon:SetTexture(debuff.icon)
@@ -1885,7 +1997,12 @@ function NC.CreateTargetDebuffsUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_TargetDebuffsFrame")
     frame:SetDimensions(size, size)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.targetDebuffsLeft or 500, NC.savedVars.targetDebuffsTop or 220)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.targetDebuffsLeft and NC.savedVars.targetDebuffsTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.targetDebuffsLeft, NC.savedVars.targetDebuffsTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.targetDebuffsUnlocked)
     frame:SetMouseEnabled(NC.savedVars.targetDebuffsUnlocked)
     frame:SetClampedToScreen(true)
@@ -1946,10 +2063,11 @@ local function IsInFoodCombatZone()
     return isDungeon or isRaid or isBG or isPvP or isTrialOrArena
 end
 
--- Сканирование наличия активных баффов еды и военного торта
+-- Сканирование наличия активных баффов еды, военного торта и свитков опыта (Международный стандарт)
 local function CheckFoodAndTorteBuffs()
     local hasFood = false
     local hasTorte = false
+    local hasXPScroll = false
     local numBuffs = GetNumBuffs("player")
     local now = GetFrameTimeSeconds()
 
@@ -1960,35 +2078,53 @@ local function CheckFoodAndTorteBuffs()
             local isPermanent = (timeEnding == 0) or (timeEnding <= timeStarted)
             local totalDuration = isPermanent and 0 or (timeEnding - timeStarted)
             local remain = isPermanent and 0 or (timeEnding - now)
-            local cleanName = buffName and zo_strlower(zo_strformat("<<1>>", buffName)) or ""
+            local cleanIcon = string.lower(iconFilename)
 
-            -- 1. Торт (War Torte: Коловианский, Расплавленный, Бело-золотой)
-            if string.find(cleanName, "военных навык") 
-               or string.find(cleanName, "war skill")
-               or string.find(cleanName, "alliance war")
-               or string.find(cleanName, "torte") 
-               or string.find(cleanName, "торт")
-               or abilityId == 147590 or abilityId == 147591 or abilityId == 147592
-               or (iconFilename and string.find(iconFilename, "torte")) then
-                if isPermanent or remain > 60 then
+            local lowerName = string.lower(buffName or "")
+
+            local isTorteBuff = (abilityId == 147466 or abilityId == 147467 or abilityId == 147687 or abilityId == 147733 or abilityId == 147734)
+                or string.find(lowerName, "военн") or string.find(lowerName, "war")
+                or string.find(lowerName, "торт") or string.find(lowerName, "torte")
+                or string.find(cleanIcon, "torte")
+
+            local isXPBuff = (abilityId == 66776 or abilityId == 64210 or abilityId == 85501 or abilityId == 85502 or abilityId == 85503 or abilityId == 88445 or abilityId == 89683)
+                or string.find(lowerName, "опыт") or string.find(lowerName, "exper")
+                or string.find(lowerName, "амброз") or string.find(lowerName, "ambros")
+                or string.find(cleanIcon, "experience") or string.find(cleanIcon, "ambrosia") or string.find(cleanIcon, "scroll")
+
+            local isSoulSummons = (abilityId == 43752)
+                or string.find(cleanIcon, "soul")
+                or string.find(lowerName, "душ")
+                or string.find(lowerName, "soul")
+
+            -- 1. Торт (+AP: Коловианский, Расплавленный, Бело-золотой по системным ID и текстуре)
+            if isTorteBuff then
+                if isPermanent or remain > 0 then
                     hasTorte = true
                 end
 
-            -- 2. Настоящая еда (от 20 минут, исключая свитки и торты)
-            elseif not isPermanent and totalDuration >= 1200 and remain > 90 then
-                if not string.find(cleanName, "scroll") 
-                   and not string.find(cleanName, "свиток")
-                   and not string.find(cleanName, "амбрози")
-                   and not string.find(cleanName, "ambrosia")
-                   and not string.find(cleanName, "военных навык")
-                   and not string.find(cleanName, "war skill") then
+            -- 2. Свитки опыта и Амброзия (+XP: системные иконки свитков и амброзии, исключая ивенты)
+            elseif isXPBuff
+               and not string.find(cleanIcon, "cake")
+               and not string.find(cleanIcon, "pie")
+               and not string.find(cleanIcon, "brew")
+               and not string.find(cleanIcon, "event") then
+                if isPermanent or remain > 0 then
+                    hasXPScroll = true
+                end
+
+            -- 3. Настоящая еда/напитки (стандартный тайминг еды в ESO: 30 мин, 1 час, 2 часа)
+            elseif not isPermanent and remain > 600 and totalDuration >= 1500 then
+                if not isTorteBuff and not isXPBuff and not isSoulSummons
+                   and not string.find(cleanIcon, "ability_weapon")
+                   and not string.find(cleanIcon, "ability_armor") then
                     hasFood = true
                 end
             end
         end
     end
 
-    return hasFood, hasTorte
+    return hasFood, hasTorte, hasXPScroll
 end
 
 function NC.UpdateFoodReminderUI()
@@ -2018,30 +2154,50 @@ function NC.UpdateFoodReminder()
 
     local sv = NC.savedVars
     local size = sv.foodReminderSize or 48
+    local spacing = 8
 
-    -- 1. РЕЖИМ ТЕСТОВОГО ПРЕВЬЮ: показываем зеленую рамку и ОБЕ иконки
+    local showFood = (sv.foodReminderShowFood ~= false)
+    local showTorte = (sv.foodReminderShowTorte ~= false)
+    local showXP = (sv.foodReminderShowXP == true)
+
+    -- 1. РЕЖИМ ТЕСТОВОГО ПРЕВЬЮ: показывает только включенные иконки
     if sv.foodReminderPreview then
         if NC.FoodReminderPreview then NC.FoodReminderPreview:SetHidden(false) end
 
-        NC.FoodReminderFoodIcon:SetDimensions(size, size)
-        NC.FoodReminderFoodIcon:ClearAnchors()
-        NC.FoodReminderFoodIcon:SetAnchor(LEFT, NC.FoodReminderFrame, LEFT, 0, 0)
-        NC.FoodReminderFoodIcon:SetHidden(false)
+        local previewIcons = {}
+        if showFood then table.insert(previewIcons, NC.FoodReminderFoodIcon) end
+        if showTorte then table.insert(previewIcons, NC.FoodReminderTorteIcon) end
+        if showXP then table.insert(previewIcons, NC.FoodReminderXPIcon) end
 
-        NC.FoodReminderTorteIcon:SetDimensions(size, size)
-        NC.FoodReminderTorteIcon:ClearAnchors()
-        NC.FoodReminderTorteIcon:SetAnchor(LEFT, NC.FoodReminderFoodIcon, RIGHT, 8, 0)
-        NC.FoodReminderTorteIcon:SetHidden(false)
+        NC.FoodReminderFoodIcon:SetHidden(not showFood)
+        NC.FoodReminderTorteIcon:SetHidden(not showTorte)
+        NC.FoodReminderXPIcon:SetHidden(not showXP)
 
-        NC.FoodReminderFrame:SetDimensions((size * 2) + 8, size)
+        if #previewIcons == 0 then
+            NC.FoodReminderFrame:SetHidden(true)
+            return
+        end
+
+        for i, iconCtrl in ipairs(previewIcons) do
+            iconCtrl:SetDimensions(size, size)
+            iconCtrl:ClearAnchors()
+            if i == 1 then
+                iconCtrl:SetAnchor(LEFT, NC.FoodReminderFrame, LEFT, 0, 0)
+            else
+                iconCtrl:SetAnchor(LEFT, previewIcons[i - 1], RIGHT, spacing, 0)
+            end
+        end
+
+        local totalWidth = (size * #previewIcons) + (spacing * (#previewIcons - 1))
+        NC.FoodReminderFrame:SetDimensions(totalWidth, size)
         NC.FoodReminderFrame:SetHidden(false)
         return
     end
 
-    -- 2. БОЕВОЙ РЕЖИМ: зеленая рамка ВСЕГДА наглухо скрыта!
+    -- 2. БОЕВОЙ РЕЖИМ: зеленая рамка скрыта
     if NC.FoodReminderPreview then NC.FoodReminderPreview:SetHidden(true) end
 
-    -- Если открыты меню, инвентарь, карта или диалог — напоминание скрыто
+    -- Если открыты полноэкранные меню (инвентарь, карта и т.д.) — скрываем
     if not NC.FoodReminderFragment or not NC.FoodReminderFragment:IsShowing() then
         NC.FoodReminderFrame:SetHidden(true)
         return
@@ -2049,40 +2205,42 @@ function NC.UpdateFoodReminder()
 
     local inFoodZone = IsInFoodCombatZone()
     local inTorteZone = IsInTortePvPZone()
+    local inCombatZone = inFoodZone or inTorteZone
 
-    if not inFoodZone and not inTorteZone then
+    if not inCombatZone then
         NC.FoodReminderFrame:SetHidden(true)
         return
     end
 
-    local hasFood, hasTorte = CheckFoodAndTorteBuffs()
-    local needFoodAlert = inFoodZone and not hasFood
-    local needTorteAlert = inTorteZone and not hasTorte
+    local hasFood, hasTorte, hasXPScroll = CheckFoodAndTorteBuffs()
 
-    NC.FoodReminderFoodIcon:SetDimensions(size, size)
-    NC.FoodReminderTorteIcon:SetDimensions(size, size)
+    local needFoodAlert = inFoodZone and showFood and not hasFood
+    local needTorteAlert = inTorteZone and showTorte and not hasTorte
+    local needXPAlert = inCombatZone and showXP and not hasXPScroll
+
+    local activeIcons = {}
+    if needFoodAlert then table.insert(activeIcons, NC.FoodReminderFoodIcon) end
+    if needTorteAlert then table.insert(activeIcons, NC.FoodReminderTorteIcon) end
+    if needXPAlert then table.insert(activeIcons, NC.FoodReminderXPIcon) end
 
     NC.FoodReminderFoodIcon:SetHidden(not needFoodAlert)
     NC.FoodReminderTorteIcon:SetHidden(not needTorteAlert)
+    NC.FoodReminderXPIcon:SetHidden(not needXPAlert)
 
-    if not needFoodAlert and not needTorteAlert then
+    if #activeIcons == 0 then
         NC.FoodReminderFrame:SetHidden(true)
     else
-        if needFoodAlert and needTorteAlert then
-            NC.FoodReminderFoodIcon:ClearAnchors()
-            NC.FoodReminderFoodIcon:SetAnchor(LEFT, NC.FoodReminderFrame, LEFT, 0, 0)
-            NC.FoodReminderTorteIcon:ClearAnchors()
-            NC.FoodReminderTorteIcon:SetAnchor(LEFT, NC.FoodReminderFoodIcon, RIGHT, 8, 0)
-            NC.FoodReminderFrame:SetDimensions((size * 2) + 8, size)
-        elseif needFoodAlert then
-            NC.FoodReminderFoodIcon:ClearAnchors()
-            NC.FoodReminderFoodIcon:SetAnchor(CENTER, NC.FoodReminderFrame, CENTER, 0, 0)
-            NC.FoodReminderFrame:SetDimensions(size, size)
-        elseif needTorteAlert then
-            NC.FoodReminderTorteIcon:ClearAnchors()
-            NC.FoodReminderTorteIcon:SetAnchor(CENTER, NC.FoodReminderFrame, CENTER, 0, 0)
-            NC.FoodReminderFrame:SetDimensions(size, size)
+        for i, iconCtrl in ipairs(activeIcons) do
+            iconCtrl:SetDimensions(size, size)
+            iconCtrl:ClearAnchors()
+            if i == 1 then
+                iconCtrl:SetAnchor(LEFT, NC.FoodReminderFrame, LEFT, 0, 0)
+            else
+                iconCtrl:SetAnchor(LEFT, activeIcons[i - 1], RIGHT, spacing, 0)
+            end
         end
+        local totalWidth = (size * #activeIcons) + (spacing * (#activeIcons - 1))
+        NC.FoodReminderFrame:SetDimensions(totalWidth, size)
         NC.FoodReminderFrame:SetHidden(false)
     end
 end
@@ -2093,8 +2251,13 @@ function NC.CreateFoodReminderUI()
     local size = NC.savedVars.foodReminderSize or 48
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_FoodReminderFrame")
-    frame:SetDimensions((size * 2) + 8, size)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.foodReminderLeft or 600, NC.savedVars.foodReminderTop or 350)
+    frame:SetDimensions((size * 3) + 16, size)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.foodReminderLeft and NC.savedVars.foodReminderTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.foodReminderLeft, NC.savedVars.foodReminderTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.foodReminderUnlocked or NC.savedVars.foodReminderPreview)
     frame:SetMouseEnabled(NC.savedVars.foodReminderUnlocked or NC.savedVars.foodReminderPreview)
     frame:SetClampedToScreen(true)
@@ -2110,15 +2273,21 @@ function NC.CreateFoodReminderUI()
 
     local foodIcon = WINDOW_MANAGER:CreateControl("$(parent)Food", frame, CT_TEXTURE)
     foodIcon:SetDimensions(size, size)
-    foodIcon:SetAnchor(LEFT, frame, LEFT, 0, 0)
-    foodIcon:SetTexture("NecroCat/imgs/food.dds")
+    foodIcon:SetTexture("NecroCat/imgs/buffs/food.dds")
     foodIcon:SetDrawLayer(DL_CONTROLS)
+    foodIcon:SetHidden(true)
 
     local torteIcon = WINDOW_MANAGER:CreateControl("$(parent)Torte", frame, CT_TEXTURE)
     torteIcon:SetDimensions(size, size)
-    torteIcon:SetAnchor(LEFT, foodIcon, RIGHT, 8, 0)
-    torteIcon:SetTexture("NecroCat/imgs/torte.dds")
+    torteIcon:SetTexture("NecroCat/imgs/buffs/torte.dds")
     torteIcon:SetDrawLayer(DL_CONTROLS)
+    torteIcon:SetHidden(true)
+
+    local xpIcon = WINDOW_MANAGER:CreateControl("$(parent)XP", frame, CT_TEXTURE)
+    xpIcon:SetDimensions(size, size)
+    xpIcon:SetTexture("NecroCat/imgs/buffs/xpscroll.dds")
+    xpIcon:SetDrawLayer(DL_CONTROLS)
+    xpIcon:SetHidden(true)
 
     frame:SetHandler("OnMoveStop", function(self)
         self:ClearAnchors()
@@ -2131,7 +2300,16 @@ function NC.CreateFoodReminderUI()
     NC.FoodReminderPreview   = preview
     NC.FoodReminderFoodIcon  = foodIcon
     NC.FoodReminderTorteIcon = torteIcon
+    NC.FoodReminderXPIcon    = xpIcon
     NC.FoodReminderFragment  = ZO_SimpleSceneFragment:New(frame)
+
+    NC.FoodReminderFragment:RegisterCallback("StateChange", function(oldState, newState)
+        if newState == SCENE_FRAGMENT_SHOWING then
+            NC.UpdateFoodReminder()
+        elseif newState == SCENE_FRAGMENT_HIDING then
+            NC.FoodReminderFrame:SetHidden(true)
+        end
+    end)
 
     NC.UpdateFoodReminderUI()
 end
@@ -2179,6 +2357,19 @@ function NC.UpdateVeterancyUI()
         return
     end
 
+    -- Автообновление при открытии окна Полей Сражений
+    if BATTLEGROUND_FINDER_KEYBOARD and not NC.bgFinderHooked then
+        ZO_PostHook(BATTLEGROUND_FINDER_KEYBOARD, "Refresh", function()
+            if NC.UpdateVeterancy then NC.UpdateVeterancy() end
+        end)
+        NC.bgFinderHooked = true
+    end
+
+    -- Мягкое пробуждение через 2 сек после загрузки
+    zo_callLater(function()
+        if NC.UpdateVeterancy then NC.UpdateVeterancy() end
+    end, 2000)
+
     NC.UpdateVeterancy()
 end
 
@@ -2216,7 +2407,14 @@ function NC.UpdateVeterancy()
     end
     local pct = progressVal * 100
 
-    -- Сброс в 06:00 по МСК 
+    -- Железная память: если игра спит после релога, берем последний сохраненный процент
+    if pct > 0 then
+        sv.veterancyLastPct = pct
+    else
+        pct = sv.veterancyLastPct or 0
+    end
+
+    -- Сброс в 06:00 по МСК
     local todayDate = math.floor((GetTimeStamp() - 10800) / 86400)
     if not sv.veterancyDailyDate or sv.veterancyDailyDate ~= todayDate or not sv.veterancyDailyStartRank or sv.veterancyDailyStartRank == 0 then
         sv.veterancyDailyDate = todayDate
@@ -2246,7 +2444,12 @@ function NC.CreateVeterancyUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_VeterancyFrame")
     frame:SetDimensions(size + 20, size + 16)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, (sv and sv.veterancyLeft) or 500, (sv and sv.veterancyTop) or 400)
+    frame:ClearAnchors()
+    if sv and sv.veterancyLeft and sv.veterancyTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, sv.veterancyLeft, sv.veterancyTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(sv and sv.veterancyUnlocked)
     frame:SetMouseEnabled(true)
     frame:SetClampedToScreen(true)
@@ -2315,10 +2518,83 @@ end
 
 NC.CurrencyEntries = {}
 
-local function GetTotalCurrency(curt)
-    local charAmt = GetCurrencyAmount(curt, CURRENCY_LOCATION_CHARACTER) or 0
-    local bankAmt = GetCurrencyAmount(curt, CURRENCY_LOCATION_BANK) or 0
-    return charAmt + bankAmt
+-- Умный подсчет валюты с памятью по всем персонажам аккаунта
+local function GetAccountWideCurrency(curtId, curt)
+    local sv = NC.savedVars
+    if not sv then return 0 end
+
+    -- 1. Чисто аккаунтные валюты (Архивные фортуны, Торговые слитки)
+    if curt == (CURT_TRADE_BARS or 9) or curt == (CURT_ARCHIVAL_FORTUNES or 12) then
+        return GetCurrencyAmount(curt, CURRENCY_LOCATION_ACCOUNT or 3) or 0
+    end
+
+    -- 2. Валюты из карманов персонажей (Золото, AP, Тель-Вар)
+    sv.charPockets = sv.charPockets or {}
+    local charId = GetCurrentCharacterId()
+    sv.charPockets[charId] = sv.charPockets[charId] or {}
+
+    local currentPocket = GetCurrencyAmount(curt, CURRENCY_LOCATION_CHARACTER) or 0
+
+    -- Страховка от ложного дневного плюса при первом входе на нового твинка
+    if sv.currencyDailyStarts and sv.currencyDailyStarts[curtId] ~= nil and sv.charPockets[charId][curtId] == nil then
+        sv.currencyDailyStarts[curtId] = sv.currencyDailyStarts[curtId] + currentPocket
+    end
+
+    sv.charPockets[charId][curtId] = currentPocket
+
+    -- Суммируем карманы всех известных персонажей + Банк
+    local total = GetCurrencyAmount(curt, CURRENCY_LOCATION_BANK) or 0
+    for _, pockets in pairs(sv.charPockets) do
+        total = total + (pockets[curtId] or 0)
+    end
+
+    return total
+end
+
+-- Умный подсчет планарных ключей со всего аккаунта
+local function GetAccountWidePlanarKeys()
+    local sv = NC.savedVars
+    if not sv then return 0 end
+
+    sv.charPockets = sv.charPockets or {}
+    local charId = GetCurrentCharacterId()
+    sv.charPockets[charId] = sv.charPockets[charId] or {}
+
+    -- Считаем ключи в рюкзаке текущего персонажа
+    local keyId = NC.PLANAR_KEY_ITEM_ID or 224302
+    local curKeys = 0
+    local bagSize = GetBagSize(BAG_BACKPACK)
+    for slotIndex = 0, bagSize do
+        if GetItemId(BAG_BACKPACK, slotIndex) == keyId then
+            curKeys = curKeys + (GetSlotStackSize(BAG_BACKPACK, slotIndex) or 0)
+        end
+    end
+
+    -- Страховка от ложного дневного плюса на новом твинке
+    if sv.currencyDailyStarts and sv.currencyDailyStarts["planar_keys"] ~= nil and sv.charPockets[charId]["planar_keys"] == nil then
+        sv.currencyDailyStarts["planar_keys"] = sv.currencyDailyStarts["planar_keys"] + curKeys
+    end
+
+    sv.charPockets[charId]["planar_keys"] = curKeys
+
+    -- Считаем ключи в Банке и Банке ESO Plus
+    local bankKeys = 0
+    for _, bagId in ipairs({ BAG_BANK, BAG_SUBSCRIBER_BANK }) do
+        local bSize = GetBagSize(bagId)
+        for slotIndex = 0, bSize do
+            if GetItemId(bagId, slotIndex) == keyId then
+                bankKeys = bankKeys + (GetSlotStackSize(bagId, slotIndex) or 0)
+            end
+        end
+    end
+
+    -- Суммируем: банк + рюкзаки всех персонажей
+    local total = bankKeys
+    for _, pockets in pairs(sv.charPockets) do
+        total = total + (pockets["planar_keys"] or 0)
+    end
+
+    return total
 end
 
 local function FormatCurrencyNumber(amount)
@@ -2437,10 +2713,14 @@ function NC.UpdateCurrencyTracker()
 
     -- 1. Режим настройки (показываем пример с системными иконками)
     if sv.currencyTrackerUnlocked then
+        local keyLink = string.format("|H1:item:%d:4:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", NC.PLANAR_KEY_ITEM_ID or 224302)
+        local keyIcon = GetItemLinkIcon(keyLink) or "EsoUI/Art/Icons/icon_missing.dds"
+
         activeItems = {
             { icon = GetCurrencyKeyboardIcon(CURT_MONEY), delta = 17188 },
             { icon = GetCurrencyKeyboardIcon(CURT_ALLIANCE_POINTS), delta = 123998 },
             { icon = GetCurrencyKeyboardIcon(CURT_TELVAR_STONES), delta = -4000 },
+            { icon = keyIcon, delta = 12 },
             { icon = GetCurrencyKeyboardIcon(CURT_TRADE_BARS or 9), delta = 300 },
             { icon = GetCurrencyKeyboardIcon(CURT_ARCHIVAL_FORTUNES or 12), delta = 5999 },
             { icon = "EsoUI/Art/Icons/icon_experience.dds", delta = 54200 },
@@ -2464,7 +2744,7 @@ function NC.UpdateCurrencyTracker()
                 end
 
                 if passesZone then
-                    local currentAmount = GetTotalCurrency(d.curt)
+                    local currentAmount = GetAccountWideCurrency(d.id, d.curt)
                     if sv.currencyDailyStarts[d.id] == nil then
                         sv.currencyDailyStarts[d.id] = currentAmount
                     end
@@ -2475,6 +2755,18 @@ function NC.UpdateCurrencyTracker()
             end
         end
 
+        -- Планарные ключи за день (всегда на экране)
+        if sv.currencyShowPlanarKeys ~= false then
+            local currentKeys = GetAccountWidePlanarKeys()
+            if sv.currencyDailyStarts["planar_keys"] == nil then
+                sv.currencyDailyStarts["planar_keys"] = currentKeys
+            end
+            local delta = currentKeys - (sv.currencyDailyStarts["planar_keys"] or currentKeys)
+            local keyLink = string.format("|H1:item:%d:4:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", NC.PLANAR_KEY_ITEM_ID or 224302)
+            local keyIcon = GetItemLinkIcon(keyLink) or "EsoUI/Art/Icons/icon_missing.dds"
+            table.insert(activeItems, { icon = keyIcon, delta = delta })
+        end
+        
         -- Опыт за день (Накопительный безопасный расчет)
         if sv.currencyShowXP ~= false then
             local curXP, maxXP = GetCurrentRawXP()
@@ -2545,7 +2837,12 @@ function NC.CreateCurrencyTrackerUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_CurrencyTrackerFrame")
     frame:SetDimensions(120, 26)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, (sv and sv.currencyTrackerLeft) or 500, (sv and sv.currencyTrackerTop) or 300)
+    frame:ClearAnchors()
+    if sv and sv.currencyTrackerLeft and sv.currencyTrackerTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, sv.currencyTrackerLeft, sv.currencyTrackerTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(sv and sv.currencyTrackerUnlocked)
     frame:SetMouseEnabled(sv and sv.currencyTrackerUnlocked)
     frame:SetClampedToScreen(true)
@@ -2573,6 +2870,206 @@ function NC.CreateCurrencyTrackerUI()
     NC.CurrencyTrackerFragment = ZO_SimpleSceneFragment:New(frame)
 
     NC.UpdateCurrencyTrackerUI()
+end
+
+---------------------------------------------------------
+-- МОДУЛЬ: АВТО-ВСКРЫТИЕ ПАЧЕК КОНТЕЙНЕРОВ И КОНВЕРТОВ
+---------------------------------------------------------
+
+NC.isUnboxing = false
+NC.unboxBagId = nil
+NC.unboxSlotIndex = nil
+NC.unboxItemLink = nil
+NC.unboxRemaining = 0
+NC.unboxTotalOpened = 0
+NC.unboxCallLaterId = nil
+
+function NC.StopUnboxStack(reason)
+    if not NC.isUnboxing then return end
+    NC.isUnboxing = false
+
+    if NC.unboxCallLaterId then
+        zo_removeCallLater(NC.unboxCallLaterId)
+        NC.unboxCallLaterId = nil
+    end
+
+    if NC.UnboxFrame then
+        NC.UnboxFrame:SetHidden(true)
+    end
+
+    if reason == "bag_full" then
+        d(GetString(SI_NC_UNBOX_BAG_FULL))
+    elseif reason == "stopped" then
+        d(GetString(SI_NC_UNBOX_STOPPED))
+    elseif reason == "done" then
+        d(zo_strformat(GetString(SI_NC_UNBOX_DONE), NC.unboxTotalOpened))
+    end
+
+    NC.unboxBagId = nil
+    NC.unboxSlotIndex = nil
+    NC.unboxItemLink = nil
+end
+
+function NC.ProcessUnboxTick()
+    if not NC.isUnboxing then return end
+
+    -- 1. Проверка места в сумке (если осталось <= 1 свободного слота — стоп)
+    if GetNumBagFreeSlots(BAG_BACKPACK) <= 1 then
+        NC.StopUnboxStack("bag_full")
+        return
+    end
+
+    -- 2. Проверяем, что в слоте все еще тот же предмет
+    local currentLink = GetItemLink(NC.unboxBagId, NC.unboxSlotIndex)
+    if not currentLink or currentLink == "" or currentLink ~= NC.unboxItemLink then
+        NC.StopUnboxStack("done")
+        return
+    end
+
+    local currentStack = select(1, GetSlotStackSize(NC.unboxBagId, NC.unboxSlotIndex)) or 0
+    if currentStack <= 0 then
+        NC.StopUnboxStack("done")
+        return
+    end
+
+    -- 3. Открываем 1 контейнер
+    if IsProtectedFunction("UseItem") then
+        CallSecureProtected("UseItem", NC.unboxBagId, NC.unboxSlotIndex)
+    else
+        UseItem(NC.unboxBagId, NC.unboxSlotIndex)
+    end
+    NC.unboxTotalOpened = NC.unboxTotalOpened + 1
+
+    -- 4. Обновляем счетчик на плашке (показываем честный остаток в сумке)
+    if NC.UnboxRemainLabel then
+        local remainingAfter = math.max(0, currentStack - 1)
+        NC.UnboxRemainLabel:SetText(zo_strformat(GetString(SI_NC_UNBOX_REMAINING), remainingAfter))
+    end
+
+    -- 5. Безопасная пауза перед следующим открытием
+    local delay = ((NC.savedVars and NC.savedVars.unboxDelay) or 1.8) * 1000
+    NC.unboxCallLaterId = zo_callLater(function()
+        NC.ProcessUnboxTick()
+    end, delay)
+end
+
+function NC.StartUnboxStack(bagId, slotIndex)
+    if IsUnitInCombat("player") or IsUnitDead("player") then
+        d(GetString(SI_NC_LEARN_IN_COMBAT))
+        return
+    end
+
+    local itemLink = GetItemLink(bagId, slotIndex)
+    local stackCount = select(1, GetSlotStackSize(bagId, slotIndex)) or 0
+    if not itemLink or itemLink == "" or stackCount <= 1 then return end
+
+    if GetNumBagFreeSlots(BAG_BACKPACK) <= 1 then
+        d(GetString(SI_NC_UNBOX_BAG_FULL))
+        return
+    end
+
+    NC.isUnboxing = true
+    NC.unboxBagId = bagId
+    NC.unboxSlotIndex = slotIndex
+    NC.unboxItemLink = itemLink
+    NC.unboxTotalOpened = 0
+
+    if not NC.UnboxFrame then
+        NC.CreateUnboxUI()
+    end
+
+    local itemName = zo_strformat("<<1>>", GetItemLinkName(itemLink))
+    NC.UnboxTitleLabel:SetText(itemName)
+    NC.UnboxRemainLabel:SetText(zo_strformat(GetString(SI_NC_UNBOX_REMAINING), stackCount))
+    NC.UnboxFrame:SetHidden(false)
+    NC.UnboxFrame:BringWindowToTop()
+
+    d(zo_strformat(GetString(SI_NC_UNBOX_START), itemLink, stackCount))
+
+    NC.ProcessUnboxTick()
+end
+
+function NC.CreateUnboxUI()
+    if NC.UnboxFrame then return end
+
+    local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_UnboxFrame")
+    frame:SetDimensions(280, 105)
+    frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, -120)
+    frame:SetMovable(true)
+    frame:SetMouseEnabled(true)
+    frame:SetClampedToScreen(true)
+    frame:SetDrawTier(DT_HIGH)
+    frame:SetHidden(true)
+
+    local bg = WINDOW_MANAGER:CreateControl("$(parent)BG", frame, CT_BACKDROP)
+    bg:SetAnchorFill(frame)
+    bg:SetCenterColor(0.05, 0.05, 0.05, 0.95)
+    bg:SetEdgeColor(0.2, 0.85, 1, 0.9)
+    bg:SetEdgeTexture("EsoUI/Art/Tooltips/UI-Border.dds", 8, 8)
+
+    local title = WINDOW_MANAGER:CreateControl("$(parent)Title", frame, CT_LABEL)
+    title:SetAnchor(TOP, frame, TOP, 0, 10)
+    title:SetFont("ZoFontWinH4")
+    title:SetColor(0.4, 0.9, 1, 1)
+    title:SetMaxLineCount(1)
+    title:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    title:SetDimensions(260, 20)
+    title:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    local remain = WINDOW_MANAGER:CreateControl("$(parent)Remain", frame, CT_LABEL)
+    remain:SetAnchor(TOP, title, BOTTOM, 0, 4)
+    remain:SetFont("ZoFontGame")
+    remain:SetColor(1, 1, 1, 1)
+    remain:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+
+    local stopBtn = WINDOW_MANAGER:CreateControl("$(parent)StopBtn", frame, CT_BUTTON)
+    stopBtn:SetDimensions(130, 26)
+    stopBtn:SetAnchor(BOTTOM, frame, BOTTOM, 0, -8)
+    stopBtn:SetFont("ZoFontWinH4")
+    stopBtn:SetText("|cFF5555" .. GetString(SI_NC_UNBOX_FRAME_STOP) .. "|r")
+    stopBtn:SetHandler("OnClicked", function()
+        NC.StopUnboxStack("stopped")
+    end)
+
+    NC.UnboxFrame       = frame
+    NC.UnboxTitleLabel  = title
+    NC.UnboxRemainLabel = remain
+end
+
+-- Хук контекстного меню инвентаря для контейнеров и конвертов
+function NC.HookInventoryContextMenu()
+    if not LibCustomMenu then return end
+
+    LibCustomMenu:RegisterContextMenu(function(inventorySlot)
+        if NC.savedVars and NC.savedVars.autoUnboxEnabled == false then return end
+        if not inventorySlot then return end
+
+        local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+        if not bagId or not slotIndex then return end
+
+        local stackCount = select(1, GetSlotStackSize(bagId, slotIndex)) or 0
+        if stackCount <= 1 then return end
+
+        local itemType, specializedType = GetItemType(bagId, slotIndex)
+        local itemLink = GetItemLink(bagId, slotIndex)
+
+        -- 1. Конверты с отчётами об исследованиях (спец-тип 890 и 300)
+        -- 2. Стандартные контейнеры (коробки дейликов, жеоды, сундуки)
+        -- 3. Страницы стилей и ивентовые мешки
+        local isUnboxable = (specializedType == 890)
+                         or (specializedType == 300)
+                         or (itemType == ITEMTYPE_CONTAINER)
+                         or (specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE)
+                         or (specializedType == SPECIALIZED_ITEMTYPE_CONTAINER_EVENT)
+                         or (IsItemLinkContainer and IsItemLinkContainer(itemLink))
+                         or (GetItemLinkItemUseType and GetItemLinkItemUseType(itemLink) == ITEM_USE_TYPE_OPEN_CONTAINER)
+
+        if isUnboxable then
+            AddCustomMenuItem(GetString(SI_NC_MENU_UNBOX_STACK), function()
+                NC.StartUnboxStack(bagId, slotIndex)
+            end)
+        end
+    end)
 end
 
 ---------------------------------------------------------
@@ -2659,7 +3156,12 @@ function NC.CreateSpeedometerUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_SpeedometerFrame")
     frame:SetDimensions(85, 26)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.speedometerLeft or 500, NC.savedVars.speedometerTop or 450)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.speedometerLeft and NC.savedVars.speedometerTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.speedometerLeft, NC.savedVars.speedometerTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.speedometerUnlocked)
     frame:SetMouseEnabled(NC.savedVars.speedometerUnlocked)
     frame:SetClampedToScreen(true)
@@ -2812,7 +3314,12 @@ function NC.CreateSpeedrunHudUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_SpeedrunFrame")
     frame:SetDimensions(165, 28)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.speedrunHudLeft or 500, NC.savedVars.speedrunHudTop or 80)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.speedrunHudLeft and NC.savedVars.speedrunHudTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.speedrunHudLeft, NC.savedVars.speedrunHudTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(NC.savedVars.speedrunHudUnlocked)
     frame:SetMouseEnabled(NC.savedVars.speedrunHudUnlocked)
     frame:SetClampedToScreen(true)
@@ -2870,10 +3377,10 @@ function NC.CheckAutoEncounterLog()
 
     if shouldLog and not isCurrentlyLogging then
         SetEncounterLogEnabled(true)
-        d("|c66f2ff[NecroCat]|r Запись логов боя (|c00FF00Encounter Log|r) автоматически |c00FF00ВКЛЮЧЕНА|r.")
+        d(GetString(SI_NC_LOG_ENABLED))
     elseif not shouldLog and isCurrentlyLogging then
         SetEncounterLogEnabled(false)
-        d("|c66f2ff[NecroCat]|r Запись логов боя автоматически |cFF5555ВЫКЛЮЧЕНА|r.")
+        d(GetString(SI_NC_LOG_DISABLED))
     end
 end
 
@@ -2894,9 +3401,15 @@ end
 function NC.UpdateChestCounterDisplay()
     if not NC.ChestCounterLabel then return end
     local count = (NC.savedVars and NC.savedVars.currentChestsCount) or 0
-    NC.ChestCounterLabel:SetText(tostring(count))
-end
 
+    if count > 0 then
+        NC.ChestCounterLabel:SetText(tostring(count))
+        NC.ChestCounterLabel:SetHidden(false)
+    else
+        NC.ChestCounterLabel:SetText("")
+        NC.ChestCounterLabel:SetHidden(true)
+    end
+end
 function NC.ResetChestCounter()
     if not NC.savedVars then return end
     NC.savedVars.currentChestsCount = 0
@@ -2936,15 +3449,15 @@ function NC.UpdateChestCounterSize()
     NC.ChestCounterFrame:SetDimensions(size, size)
     NC.ChestCounterIcon:SetDimensions(size, size)
 
-    if size >= 48 then
-        NC.ChestCounterLabel:SetFont("ZoFontWinH1")
-    elseif size >= 36 then
-        NC.ChestCounterLabel:SetFont("ZoFontWinH2")
-    elseif size >= 28 then
-        NC.ChestCounterLabel:SetFont("ZoFontWinH4")
-    else
-        NC.ChestCounterLabel:SetFont("ZoFontGameBold")
-    end
+    -- Плавный размер шрифта строго пропорционально размеру иконки
+    local fontSize = math.max(10, math.floor(size * 0.42))
+    NC.ChestCounterLabel:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thick", fontSize))
+
+    -- Точный оптический центр замка с масштабированием
+    local offsetX = 0
+    local offsetY = math.floor(size * 0.14)
+    NC.ChestCounterLabel:ClearAnchors()
+    NC.ChestCounterLabel:SetAnchor(CENTER, NC.ChestCounterFrame, CENTER, offsetX, offsetY)
 end
 
 -- Отслеживаем сцену взлома
@@ -2972,22 +3485,28 @@ function NC.CreateChestCounterUI()
 
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_ChestFrame")
     frame:SetDimensions(size, size)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.chestLeft or 500, NC.savedVars.chestTop or 300)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.chestLeft and NC.savedVars.chestTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.chestLeft, NC.savedVars.chestTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(true)
     frame:SetMouseEnabled(true)
     frame:SetClampedToScreen(true)
+    frame:SetDrawTier(DT_HIGH)
     frame:SetHidden(true)
 
     -- Иконка сундука
     local icon = WINDOW_MANAGER:CreateControl("$(parent)Icon", frame, CT_TEXTURE)
     icon:SetAnchorFill(frame)
-    icon:SetTexture("NecroCat/imgs/chest.dds")
+    icon:SetTexture("NecroCat/imgs/stuffs/dungeonchest.dds")
     icon:SetDrawLayer(DL_CONTROLS)
 
-    -- Текст счетчика строго по центру сундука
+-- Текст счетчика идеально посажен на фасад замка сундука
     local label = WINDOW_MANAGER:CreateControl("$(parent)Label", frame, CT_LABEL)
     label:SetColor(1, 1, 1, 1)
-    label:SetAnchor(CENTER, frame, CENTER, 0, 0)
+    label:SetAnchor(CENTER, frame, CENTER, 0, 10)
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     label:SetDrawLayer(DL_OVERLAY)
@@ -3004,18 +3523,18 @@ function NC.CreateChestCounterUI()
     frame:SetHandler("OnMouseUp", function(self, button, upInside)
         if upInside and button == MOUSE_BUTTON_INDEX_RIGHT then
             NC.ResetChestCounter()
-            d("|c66f2ff[NecroCat]|r Счетчик сундуков сброшен на 0.")
+            d(GetString(SI_NC_CHEST_RESET))
         end
     end)
 
     -- Подсказка
     frame:SetHandler("OnMouseEnter", function(self)
         InitializeTooltip(InformationTooltip, self, TOP, 0, 5)
-        InformationTooltip:AddLine("|c66f2ffNecroCat: Сундуки|r", "ZoFontWinH4")
-        InformationTooltip:AddLine(string.format("Открыто в текущей зоне: |c00FF00%d|r", NC.savedVars.currentChestsCount or 0), "ZoFontGame")
-        InformationTooltip:AddLine("|c00FF00ПКМ:|r Сбросить счетчик", "ZoFontGameSmall")
-        InformationTooltip:AddLine("|cFFFF22Зажать ЛКМ:|r Перетащить иконку", "ZoFontGameSmall")
-        InformationTooltip:AddLine("|cAAAAAAАвто-сброс при смене зоны/данжа|r", "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_CHEST_TITLE), "ZoFontWinH4")
+        InformationTooltip:AddLine(zo_strformat(GetString(SI_NC_TT_CHEST_DESC), NC.savedVars.currentChestsCount or 0), "ZoFontGame")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_CHEST_RMB), "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_CHEST_DRAG), "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_CHEST_AUTORESET), "ZoFontGameSmall")
     end)
     frame:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
 
@@ -3045,7 +3564,7 @@ function NC.CountChestAtPlayerPos()
     table.insert(NC.savedVars.openedChestsCoords, { x = x, y = y, z = z })
     NC.savedVars.currentChestsCount = (NC.savedVars.currentChestsCount or 0) + 1
     NC.UpdateChestCounterDisplay()
-    d(string.format("|c66f2ff[NecroCat]|r Сундук учтен! (Всего: %d)", NC.savedVars.currentChestsCount))
+    d(zo_strformat(GetString(SI_NC_CHEST_COUNTED), NC.savedVars.currentChestsCount))
 end
 
 -- 1. Срабатывает при успешном взломе замка своими руками
@@ -3089,10 +3608,290 @@ function NC.OnLootUpdatedForChestCounter()
     end
 end
 
+---------------------------------------------------------
+-- МОДУЛЬ: ВИДЖЕТ ПЛАНАРНЫХ КЛЮЧЕЙ
+---------------------------------------------------------
+
+NC.PLANAR_KEY_ITEM_ID = 224302
+local PLANAR_KEY_BAGS = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }
+
+-- Функция подсчёта ключей (Сумка + Банк + Банк ESO Plus)
+function NC.GetPlanarKeyTotalCount()
+    local total = 0
+    for _, bagId in ipairs(PLANAR_KEY_BAGS) do
+        local bagSize = GetBagSize(bagId)
+        for slotIndex = 0, bagSize do
+            if GetItemId(bagId, slotIndex) == NC.PLANAR_KEY_ITEM_ID then
+                total = total + (GetSlotStackSize(bagId, slotIndex) or 0)
+            end
+        end
+    end
+    return total
+end
+
+-- Обновление текста на виджете
+function NC.UpdatePlanarKeyWidgetDisplay()
+    if not NC.PlanarKeyWidgetLabel then return end
+    local count = NC.GetPlanarKeyTotalCount()
+    NC.PlanarKeyWidgetLabel:SetText(tostring(count))
+end
+
+-- Применение размеров, шрифтов, смещения и видимости
+function NC.UpdatePlanarKeyWidgetUI()
+    if not NC.PlanarKeyWidgetFrame or not NC.PlanarKeyWidgetFragment then return end
+    local sv = NC.savedVars
+    if not sv then return end
+
+    local size = sv.planarKeyWidgetSize or 56
+    local fontSize = sv.planarKeyWidgetFontSize or 26
+    local offX = sv.planarKeyWidgetOffsetX or 0
+    local offY = sv.planarKeyWidgetOffsetY or 0
+    local unlocked = sv.planarKeyWidgetUnlocked or false
+
+    NC.PlanarKeyWidgetFrame:SetDimensions(size, size)
+    NC.PlanarKeyWidgetIcon:SetDimensions(size, size)
+    NC.PlanarKeyWidgetFrame:SetMovable(unlocked)
+    NC.PlanarKeyWidgetFrame:SetMouseEnabled(unlocked)
+
+    -- Применяем смещение X/Y и размер шрифта для цифры
+    NC.PlanarKeyWidgetLabel:ClearAnchors()
+    NC.PlanarKeyWidgetLabel:SetAnchor(CENTER, NC.PlanarKeyWidgetIcon, CENTER, offX, offY)
+    NC.PlanarKeyWidgetLabel:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", fontSize))
+
+    if NC.PlanarKeyWidgetPreview then
+        NC.PlanarKeyWidgetPreview:SetHidden(not unlocked)
+    end
+
+    if sv.planarKeyWidgetEnabled then
+        HUD_SCENE:AddFragment(NC.PlanarKeyWidgetFragment)
+        HUD_UI_SCENE:AddFragment(NC.PlanarKeyWidgetFragment)
+        NC.UpdatePlanarKeyWidgetDisplay()
+    else
+        HUD_SCENE:RemoveFragment(NC.PlanarKeyWidgetFragment)
+        HUD_UI_SCENE:RemoveFragment(NC.PlanarKeyWidgetFragment)
+        NC.PlanarKeyWidgetFrame:SetHidden(true)
+    end
+end
+
+-- Создание окна виджета
+function NC.CreatePlanarKeyWidgetUI()
+    if NC.PlanarKeyWidgetFrame then return end
+
+    local sv = NC.savedVars
+    local size = (sv and sv.planarKeyWidgetSize) or 56
+
+    local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_PlanarKeyFrame")
+    frame:SetDimensions(size, size)
+    frame:ClearAnchors()
+    if sv and sv.planarKeyWidgetLeft and sv.planarKeyWidgetTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, sv.planarKeyWidgetLeft, sv.planarKeyWidgetTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
+    frame:SetClampedToScreen(true)
+    frame:SetDrawTier(DT_HIGH)
+    frame:SetHidden(true)
+
+    -- Подложка-ориентир (видна только когда окно разблокировано для перемещения)
+    local preview = WINDOW_MANAGER:CreateControl("$(parent)Preview", frame, CT_BACKDROP)
+    preview:SetAnchorFill(frame)
+    preview:SetCenterColor(0, 0, 0, 0.4)
+    preview:SetEdgeColor(0.2, 0.8, 1, 0.8)
+    preview:SetDrawLayer(DL_BACKGROUND)
+    preview:SetHidden(not (sv and sv.planarKeyWidgetUnlocked))
+
+    -- Иконка ключа
+    local itemLink = string.format("|H1:item:%d:4:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", NC.PLANAR_KEY_ITEM_ID)
+    local iconTexture = GetItemLinkIcon(itemLink) or "EsoUI/Art/Icons/icon_missing.dds"
+
+    local icon = WINDOW_MANAGER:CreateControl("$(parent)Icon", frame, CT_TEXTURE)
+    icon:SetAnchorFill(frame)
+    icon:SetTexture(iconTexture)
+    icon:SetDrawLayer(DL_CONTROLS)
+
+    -- Цифра счетчика
+    local label = WINDOW_MANAGER:CreateControl("$(parent)Label", frame, CT_LABEL)
+    label:SetColor(1, 1, 1, 1)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    label:SetDrawLayer(DL_OVERLAY)
+    label:SetDrawLevel(2)
+
+    frame:SetHandler("OnMoveStop", function(self)
+        self:ClearAnchors()
+        self:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, self:GetLeft(), self:GetTop())
+        if NC.savedVars then
+            NC.savedVars.planarKeyWidgetLeft = self:GetLeft()
+            NC.savedVars.planarKeyWidgetTop  = self:GetTop()
+        end
+    end)
+
+    NC.PlanarKeyWidgetFrame    = frame
+    NC.PlanarKeyWidgetPreview  = preview
+    NC.PlanarKeyWidgetIcon     = icon
+    NC.PlanarKeyWidgetLabel    = label
+    NC.PlanarKeyWidgetFragment = ZO_SimpleSceneFragment:New(frame)
+
+    NC.UpdatePlanarKeyWidgetUI()
+end
+
+---------------------------------------------------------
+-- МОДУЛЬ: УМНАЯ КАМЕРА (МИР И БОЙ)
+---------------------------------------------------------
+
+-- Применение пресета к движку игры
+function NC.ApplyCameraPreset(presetKey, isForced)
+    if not NC.savedVars then return end
+    if not isForced and not NC.savedVars.cameraSwitcherEnabled then return end
+
+    local data = NC.savedVars[presetKey]
+    if not data then return end
+
+    SetSetting(2, 9,  string.format("%.6f", data.horizPos or 0))
+    SetSetting(2, 10, string.format("%.6f", data.horizOffset or 0))
+    SetSetting(2, 11, string.format("%.6f", data.vertOffset or 0))
+    SetSetting(2, 12, string.format("%.6f", data.fov or 50))
+end
+
+-- Захват текущих настроек из игры в выбранный пресет
+function NC.CaptureCameraPreset(presetKey)
+    if not NC.savedVars then return end
+
+    local curHorizPos    = tonumber(GetSetting(2, 9)) or 0
+    local curHorizOffset = tonumber(GetSetting(2, 10)) or 0
+    local curVertOffset  = tonumber(GetSetting(2, 11)) or 0
+    local curFov         = tonumber(GetSetting(2, 12)) or 50
+
+    NC.savedVars[presetKey] = {
+        horizPos    = curHorizPos,
+        horizOffset = curHorizOffset,
+        vertOffset  = curVertOffset,
+        fov         = curFov,
+    }
+
+    local name = (presetKey == "cameraInCombat") and GetString(SI_NC_CAM_PRESET_COMBAT) or GetString(SI_NC_CAM_PRESET_OUT)
+    d(zo_strformat(GetString(SI_NC_CAM_SAVED), name))
+    return NC.savedVars[presetKey]
+end
+
+-- Реакция на смену боя / мира
+function NC.OnCameraCombatStateChanged(inCombat)
+    if not NC.savedVars or not NC.savedVars.cameraSwitcherEnabled then return end
+    if inCombat then
+        NC.ApplyCameraPreset("cameraInCombat", false)
+    else
+        NC.ApplyCameraPreset("cameraOutCombat", false)
+    end
+end
+
+---------------------------------------------------------
+-- МОДУЛЬ: УМНЫЙ ФИЛЬТР ИСТОРИИ ЛУТА
+---------------------------------------------------------
+
+local RAW_CRAFTING_TYPES = {}
+local TRAIT_STYLE_TYPES  = {}
+
+-- Безопасное добавление типов без риска получить table index is nil
+local function RegisterItemType(targetTable, constValue)
+    if constValue and type(constValue) == "number" then
+        targetTable[constValue] = true
+    end
+end
+
+-- 1. Ресурсы сбора и материалы ремесла
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_BLACKSMITHING_RAW_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_BLACKSMITHING_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_CLOTHIER_RAW_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_CLOTHIER_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_WOODWORKING_RAW_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_WOODWORKING_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_JEWELRYCRAFTING_RAW_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_JEWELRYCRAFTING_MATERIAL)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_REAGENT)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_POTION_BASE)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_POISON_BASE)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_INGREDIENT)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_ENCHANTING_RUNE_POTENCY)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_ENCHANTING_RUNE_ASPECT)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_ENCHANTING_RUNE_ESSENCE)
+RegisterItemType(RAW_CRAFTING_TYPES, ITEMTYPE_FURNISHING_MATERIAL)
+
+-- 2. Камни стилей и особенностей (трейтов)
+RegisterItemType(TRAIT_STYLE_TYPES, ITEMTYPE_STYLE_MATERIAL)
+RegisterItemType(TRAIT_STYLE_TYPES, ITEMTYPE_RAW_STYLE_MATERIAL)
+RegisterItemType(TRAIT_STYLE_TYPES, ITEMTYPE_ARMOR_TRAIT)
+RegisterItemType(TRAIT_STYLE_TYPES, ITEMTYPE_WEAPON_TRAIT)
+RegisterItemType(TRAIT_STYLE_TYPES, ITEMTYPE_JEWELRY_TRAIT)
+RegisterItemType(TRAIT_STYLE_TYPES, ITEMTYPE_JEWELRY_RAW_TRAIT)
+
+-- Проверка: нужно ли заглушить предмет
+function NC.ShouldHideLootItem(link)
+    if not NC.savedVars or not NC.savedVars.lootFilterEnabled then return false end
+    if not link or type(link) ~= "string" or not string.find(link, "^|H") then return false end
+
+    local sv = NC.savedVars
+    local quality = GetItemLinkQuality(link) or 1
+    local itemType, specializedItemType = GetItemLinkItemType(link)
+
+    -- 1. СТРАХОВКА: Рецепты, мотивы и страницы стилей показываем ВСЕГДА
+    if sv.lootFilterAlwaysRecipes then
+        if itemType == ITEMTYPE_RECIPE 
+           or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF
+           or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_CHAPTER
+           or specializedItemType == SPECIALIZED_ITEMTYPE_RACIAL_STYLE_MOTIF_BOOK
+           or specializedItemType == SPECIALIZED_ITEMTYPE_CONTAINER_STYLE_PAGE
+           or specializedItemType == SPECIALIZED_ITEMTYPE_COLLECTIBLE_STYLE_PAGE then
+            return false
+        end
+    end
+
+    -- 2. СТРАХОВКА: Редкие материалы и заточки (фиолетовые 4 и золотые 5: Воск, Розиум, Темперинг)
+    if sv.lootFilterAlwaysRare and quality >= 4 then
+        return false
+    end
+
+    -- 3. СЕРЫЙ МУСОР (Качество 0: кишки, кости, панцири, хлам)
+    if sv.lootFilterHideTrash then
+        if quality == 0 or itemType == ITEMTYPE_TRASH then
+            return true -- Глушим!
+        end
+    end
+
+    -- 4. РЕСУРСЫ СБОРА И СЫРЬЕ (Руда, дерево, ткань, травы, ингредиенты еды)
+    if sv.lootFilterHideMaterials then
+        if RAW_CRAFTING_TYPES[itemType] or (GetItemLinkCraftingSkillType and GetItemLinkCraftingSkillType(link) > 0) then
+            return true -- Глушим!
+        end
+    end
+
+    -- 5. КАМНИ СТИЛЕЙ И ТРЕЙТОВ
+    if sv.lootFilterHideTraits and TRAIT_STYLE_TYPES[itemType] then
+        return true -- Глушим!
+    end
+
+    -- 6. МИНИМАЛЬНЫЙ ПОРОГ КАЧЕСТВА (2: Зеленый+, 3: Синий+, 4: Фиолет+, 5: Золото)
+    local minQual = sv.lootFilterMinQuality or 0
+    if minQual > 0 and quality < minQual then
+        return true -- Глушим всё, что ниже порога!
+    end
+
+    return false
+end
+
+-- Хук системной истории лута ESO (Только чистая фильтрация)
+local function HookLootHistoryFilter()
+    if not ZO_LootHistory_Shared then return end
+    ZO_PreHook(ZO_LootHistory_Shared, "OnNewItemReceived", function(self, itemLinkOrName)
+        if NC.ShouldHideLootItem and NC.ShouldHideLootItem(itemLinkOrName) then
+            return true -- Наглухо блокируем всплывание мусора!
+        end
+    end)
+end
+
 NC.GuildIcons = {
-    [839248] = "NecroCat/imgs/CastleofNecroCat.dds",
-    [698160] = "NecroCat/imgs/garden.dds",
-    [766278] = "NecroCat/imgs/gym.dds", 
+    [839248] = "NecroCat/imgs/fons/CastleofNecroCat.dds",
+    [698160] = "NecroCat/imgs/fons/garden.dds",
+    [766278] = "NecroCat/imgs/fons/gym.dds", 
 }
 
 
@@ -3197,15 +3996,15 @@ function NC.UpdateCharacterSlotGear(slot)
     local p = t:GetParent()
     if not p then return end
 
-    p:SetMouseOverTexture(not ZO_Character_IsReadOnly() and "NecroCat/imgs/mo.dds" or nil)
-    p:SetPressedMouseOverTexture(not ZO_Character_IsReadOnly() and "NecroCat/imgs/mo.dds" or nil)
+    p:SetMouseOverTexture(not ZO_Character_IsReadOnly() and "NecroCat/imgs/gear/mo.dds" or nil)
+    p:SetPressedMouseOverTexture(not ZO_Character_IsReadOnly() and "NecroCat/imgs/gear/mo.dds" or nil)
 
     local s = p:GetNamedChild("DropCallout")
     if s then
         s:ClearAnchors()
         s:SetAnchor(TOPLEFT, p, TOPLEFT, 0, 2)
         s:SetDimensions(52, 52)
-        s:SetTexture("NecroCat/imgs/spot.dds")
+        s:SetTexture("NecroCat/imgs/gear/spot.dds")
         s:SetDrawLayer(0)
     end
 
@@ -3214,7 +4013,7 @@ function NC.UpdateCharacterSlotGear(slot)
         s:ClearAnchors()
         s:SetAnchor(TOPLEFT, p, TOPLEFT, 0, 2)
         s:SetDimensions(52, 52)
-        s:SetTexture("NecroCat/imgs/spot.dds")
+        s:SetTexture("NecroCat/imgs/gear/spot.dds")
     end
 
     if not NC.savedVars.showGearStatus then
@@ -3263,7 +4062,7 @@ function NC.InitCharacterGearUI()
             local s = WINDOW_MANAGER:CreateControl("NecroCat_GearBg" .. slotId, slotControl, CT_TEXTURE)
             s:SetHidden(true)
             s:SetDrawLevel(1)
-            s:SetTexture("NecroCat/imgs/hole.dds")
+            s:SetTexture("NecroCat/imgs/gear/hole.dds")
             s:SetAnchorFill()
 
             local l = WINDOW_MANAGER:CreateControl("NecroCat_GearLabel" .. slotId, slotControl, CT_LABEL)
@@ -3340,7 +4139,7 @@ function NC.CreateGroupMenuAutoAcceptUI()
         check:SetDrawTier(DT_HIGH)
         check:SetHidden(not NC.savedVars.showAutoAcceptButton)
 
-        ZO_CheckButton_SetLabelText(check, "|c66f2ffАвтоприем|r")
+        ZO_CheckButton_SetLabelText(check, "|c66f2ff" .. GetString(SI_NC_GROUP_AUTO_ACCEPT) .. "|r")
         ZO_CheckButton_SetCheckState(check, NC.savedVars.autoAcceptDungeon)
 
         ZO_CheckButton_SetToggleFunction(check, function(control, isChecked)
@@ -3359,8 +4158,9 @@ function NC.CreateGroupMenuAutoAcceptUI()
         else
             kickBtn:SetAnchor(BOTTOMLEFT, parent, BOTTOMLEFT, 150, -90)
         end
-        kickBtn:SetText("|cFF5555Кик чужих|r")
+        kickBtn:SetText("|cFF5555" .. GetString(SI_NC_GROUP_KICK_RANDOM) .. "|r")
         kickBtn:SetDrawTier(DT_HIGH)
+        kickBtn:SetHidden(NC.savedVars and NC.savedVars.showKickRandomsButton == false)
 
         kickBtn:SetHandler("OnClicked", function()
             NC.KickNonFavorites()
@@ -3368,8 +4168,8 @@ function NC.CreateGroupMenuAutoAcceptUI()
 
         kickBtn:SetHandler("OnMouseEnter", function(self)
             InitializeTooltip(InformationTooltip, self, TOP, 0, 5)
-            InformationTooltip:AddLine("|c66f2ffNecroCat: Очистка группы|r", "ZoFontWinH4")
-            InformationTooltip:AddLine("Исключить из группы всех игроков, кроме добавленных в |c00FF00Избранное|r.", "ZoFontGameSmall")
+            InformationTooltip:AddLine(GetString(SI_NC_TT_KICK_TITLE), "ZoFontWinH4")
+            InformationTooltip:AddLine(GetString(SI_NC_TT_KICK_DESC), "ZoFontGameSmall")
         end)
         kickBtn:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
 
@@ -3398,7 +4198,12 @@ end
 function NC.CreateRecipeLearnerUI()
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_RecipeFrame")
     frame:SetDimensions(36, 36)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.recipeButtonLeft or 400, NC.savedVars.recipeButtonTop or 300)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.recipeButtonLeft and NC.savedVars.recipeButtonTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.recipeButtonLeft, NC.savedVars.recipeButtonTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(true)
     frame:SetMouseEnabled(true)
     frame:SetClampedToScreen(true)
@@ -3445,10 +4250,10 @@ function NC.CreateRecipeLearnerUI()
         highlight:SetHidden(false)
         local count = #NC.GetUnknownKnowledgeItems()
         InitializeTooltip(InformationTooltip, self, TOP, 0, 5)
-        InformationTooltip:AddLine("|c66f2ffNecroCat: Изучение рецептов|r", "ZoFontWinH4")
-        InformationTooltip:AddLine(string.format("Неизвестных в сумке: |c00FF00%d|r", count), "ZoFontGame")
-        InformationTooltip:AddLine("|c00FF00Клик:|r Изучить всё неизвестное", "ZoFontGameSmall")
-        InformationTooltip:AddLine("|cFFFF22Зажать ЛКМ:|r Перетащить иконку", "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_RECIPE_TITLE), "ZoFontWinH4")
+        InformationTooltip:AddLine(zo_strformat(GetString(SI_NC_TT_RECIPE_COUNT), count), "ZoFontGame")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_RECIPE_CLICK), "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_CHEST_DRAG), "ZoFontGameSmall")
     end)
 
     frame:SetHandler("OnMouseExit", function(self)
@@ -3472,7 +4277,7 @@ function NC.ShowFriendNotification(displayName)
     end
     NC.lastNotificationTime[displayName] = now 
     
-    NC.FriendNotificationLabel:SetText("|c00ff00" .. displayName .. "|r вошел в игру!")
+    NC.FriendNotificationLabel:SetText(zo_strformat(GetString(SI_NC_FRIEND_ONLINE), displayName))
     NC.FriendNotificationFrame:SetHidden(false)
     PlaySound("Quest_Complete")
     zo_callLater(function() if NC.FriendNotificationFrame then NC.FriendNotificationFrame:SetHidden(true) end end, 5000)
@@ -3490,14 +4295,20 @@ function NC.UpdateFriendUI()
     local locked = NC.savedVars.friendNotificationLocked
     NC.FriendNotificationFrame:SetMovable(not locked)
     NC.FriendNotificationFrame:SetMouseEnabled(not locked)
+    NC.FriendNotificationFrame:SetHidden(locked)
     NC.FriendNotificationBG:SetCenterColor(0, 0, 0, locked and 0 or 0.5)
-    if not locked then NC.FriendNotificationLabel:SetText("Перетащите плашку (Friend)!") end
+    if not locked then NC.FriendNotificationLabel:SetText(GetString(SI_NC_DRAG_FRIEND_FRAME)) end
 end
 
 local function CreateFriendNotificationUI()
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_FriendFrame")
     frame:SetDimensions(500, 60)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.friendNotificationLeft, NC.savedVars.friendNotificationTop)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.friendNotificationLeft and NC.savedVars.friendNotificationTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.friendNotificationLeft, NC.savedVars.friendNotificationTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetClampedToScreen(true)
     frame:SetHidden(true)
     frame:SetHandler("OnMoveStop", function(self)
@@ -3527,13 +4338,18 @@ function NC.UpdateWhisperUI()
     NC.WhisperFrame:SetMouseEnabled(not locked)
     NC.WhisperFrame:SetHidden(locked)
     NC.WhisperBG:SetCenterColor(0, 0, 0, locked and 0 or 0.5)
-    if not locked then NC.WhisperLabel:SetText("Перетащите плашку!") end
+    if not locked then NC.WhisperLabel:SetText(GetString(SI_NC_DRAG_WHISPER_FRAME)) end
 end
 
 local function CreateWhisperUI()
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_WhisperFrame")
     frame:SetDimensions(500, 60)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.whisperLeft, NC.savedVars.whisperTop)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.whisperLeft and NC.savedVars.whisperTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.whisperLeft, NC.savedVars.whisperTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetClampedToScreen(true)
     frame:SetHandler("OnMoveStop", function(self)
         NC.savedVars.whisperLeft = self:GetLeft()
@@ -3568,1332 +4384,11 @@ local function UpdateNoteIconPosition(newCoord)
 end
 
 function NC.OpenSettings()
-    local LAM = LibAddonMenu2
-    if LAM and NC.settingsPanel then
-        LAM:OpenToPanel(NC.settingsPanel)
+    if NC.SettingsUI and NC.SettingsUI.Toggle then
+        NC.SettingsUI.Toggle()
     end
 end
 
-local function InitializeMenu()
-    local LAM = LibAddonMenu2
-    if not LAM then return end
-
-    local panelData = {
-        type                = "panel",
-        name                = "NecroCatMenu",
-        displayName         = "|c66f2ffCastle of Necro cat|r",
-        registerForDefaults = true,
-    }
-
-    -- Формируем список доступных гильдий для настроек
-    local guildChoices = { "(По умолчанию)" }
-    local guildValues = { 0 }
-    for i = 1, GetNumGuilds() do
-        local gid = GetGuildId(i)
-        local name = GetGuildName(gid)
-        table.insert(guildChoices, name)
-        table.insert(guildValues, gid)
-    end
-
-    local optionsTable = {
-        -- =====================================================
-        -- 1. ПОДМЕНЮ: ГРУППА И FOLLOWME
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff1. Группа и FollowMe|r",
-            tooltip = "Настройки интерфейса группы, автоприема данжей, рейдов и следования",
-            controls = {
-                { type = "header", name = "Отображение и поиск" },
-                {
-                    type = "checkbox",
-                    name = "Показывать @ID вместо имен",
-                    getFunc = function() return NC.savedVars.swapGroupNames end,
-                    setFunc = function(v) 
-                        NC.savedVars.swapGroupNames = v 
-                        if GROUP_LIST then GROUP_LIST:RefreshData() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Group Finder: показывать все роли",
-                    getFunc = function() return NC.savedVars.disableEnforceRole end,
-                    setFunc = function(v) NC.savedVars.disableEnforceRole = v end,
-                },
-
-                { type = "header", name = "Автоматизация группы" },
-                {
-                    type = "checkbox",
-                    name = "Считать всех друзей избранными",
-                    tooltip = "Если включено, все друзья из списка по умолчанию защищены от кика. При этом вы всё равно можете исключить конкретного друга вручную через ПКМ по его нику.",
-                    getFunc = function() return NC.savedVars.treatFriendsAsFavorites end,
-                    setFunc = function(v) NC.savedVars.treatFriendsAsFavorites = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Кнопка 'Автоприем' в меню группы",
-                    tooltip = "Показывать переключатель автоприема в левом нижнем углу меню группы (P)",
-                    getFunc = function() return NC.savedVars.showAutoAcceptButton end,
-                    setFunc = function(v) 
-                        NC.savedVars.showAutoAcceptButton = v 
-                        if NC.AutoAcceptDungeonCheck then 
-                            NC.AutoAcceptDungeonCheck:SetHidden(not v) 
-                        end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Авто-перевод группы в рейд (5+ чел.)",
-                    tooltip = "Автоматически преобразует группу в большую (рейд) при 5+ участниках и отключает окно с предупреждением",
-                    getFunc = function() return NC.savedVars.autoConvertToRaid end,
-                    setFunc = function(v) 
-                        NC.savedVars.autoConvertToRaid = v 
-                        if v and NC.CheckAutoConvertToRaid then 
-                            NC.CheckAutoConvertToRaid() 
-                        end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Отключить диалог 'Прыжок к лидеру'",
-                    tooltip = "Отключает экранное предложение переместиться к лидеру при вступлении в группу",
-                    getFunc = function() return NC.savedVars.suppressJumpToLeader end,
-                    setFunc = function(v) 
-                        NC.savedVars.suppressJumpToLeader = v 
-                        if NC.UpdateJumpToLeaderSuppression then 
-                            NC.UpdateJumpToLeaderSuppression() 
-                        end
-                    end,
-                },
-
-                { type = "header", name = "Модуль FollowMe (Следование)" },
-                {
-                    type = "checkbox",
-                    name = "Авто-прием телепорта",
-                    getFunc = function() return NC.savedVars.followAutoAccept end,
-                    setFunc = function(v) NC.savedVars.followAutoAccept = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Видеть свои сигналы",
-                    getFunc = function() return NC.savedVars.followShowOwn end,
-                    setFunc = function(v) NC.savedVars.followShowOwn = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Кнопка в чате",
-                    getFunc = function() return NC.savedVars.followShowButton end,
-                    setFunc = function(v) 
-                        NC.savedVars.followShowButton = v
-                        if NecroCat.Follow.ChatButton then NecroCat.Follow.ChatButton:SetHidden(not v) end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Позиция кнопки (X)",
-                    min = 0, max = 500,
-                    getFunc = function() return NC.savedVars.followButtonX end,
-                    setFunc = function(v) 
-                        NC.savedVars.followButtonX = v 
-                        if NecroCat.Follow.ChatButton then NecroCat.Follow.UpdateButtonPosition() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию кнопки",
-                    func = function() NecroCat.Follow.ResetButtonPosition() end,
-                },
-            },
-        },
-
-        -- =====================================================
-        -- 2. ПОДМЕНЮ: ГИЛЬДИИ
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff2. Гильдии|r",
-            tooltip = "Настройки порядка гильдий, панели банка и кнопок гильдхолла",
-            controls = {
-                { type = "header", name = "Порядок гильдий в меню (1-5)" },
-                {
-                    type = "dropdown",
-                    name = "1-е место в списке",
-                    choices = guildChoices,
-                    choicesValues = guildValues,
-                    getFunc = function() return (NC.savedVars.customGuildOrder and NC.savedVars.customGuildOrder[1]) or 0 end,
-                    setFunc = function(v)
-                        if not NC.savedVars.customGuildOrder then NC.savedVars.customGuildOrder = {} end
-                        NC.savedVars.customGuildOrder[1] = v
-                        if GUILD_SHARED_INFO and GUILD_SHARED_INFO.UpdateGuildSelector then GUILD_SHARED_INFO:UpdateGuildSelector() end
-                        if NC.UpdateGuildBankButtons then NC.UpdateGuildBankButtons() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "2-е место в списке",
-                    choices = guildChoices,
-                    choicesValues = guildValues,
-                    getFunc = function() return (NC.savedVars.customGuildOrder and NC.savedVars.customGuildOrder[2]) or 0 end,
-                    setFunc = function(v)
-                        if not NC.savedVars.customGuildOrder then NC.savedVars.customGuildOrder = {} end
-                        NC.savedVars.customGuildOrder[2] = v
-                        if GUILD_SHARED_INFO and GUILD_SHARED_INFO.UpdateGuildSelector then GUILD_SHARED_INFO:UpdateGuildSelector() end
-                        if NC.UpdateGuildBankButtons then NC.UpdateGuildBankButtons() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "3-е место в списке",
-                    choices = guildChoices,
-                    choicesValues = guildValues,
-                    getFunc = function() return (NC.savedVars.customGuildOrder and NC.savedVars.customGuildOrder[3]) or 0 end,
-                    setFunc = function(v)
-                        if not NC.savedVars.customGuildOrder then NC.savedVars.customGuildOrder = {} end
-                        NC.savedVars.customGuildOrder[3] = v
-                        if GUILD_SHARED_INFO and GUILD_SHARED_INFO.UpdateGuildSelector then GUILD_SHARED_INFO:UpdateGuildSelector() end
-                        if NC.UpdateGuildBankButtons then NC.UpdateGuildBankButtons() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "4-е место в списке",
-                    choices = guildChoices,
-                    choicesValues = guildValues,
-                    getFunc = function() return (NC.savedVars.customGuildOrder and NC.savedVars.customGuildOrder[4]) or 0 end,
-                    setFunc = function(v)
-                        if not NC.savedVars.customGuildOrder then NC.savedVars.customGuildOrder = {} end
-                        NC.savedVars.customGuildOrder[4] = v
-                        if GUILD_SHARED_INFO and GUILD_SHARED_INFO.UpdateGuildSelector then GUILD_SHARED_INFO:UpdateGuildSelector() end
-                        if NC.UpdateGuildBankButtons then NC.UpdateGuildBankButtons() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "5-е место в списке",
-                    choices = guildChoices,
-                    choicesValues = guildValues,
-                    getFunc = function() return (NC.savedVars.customGuildOrder and NC.savedVars.customGuildOrder[5]) or 0 end,
-                    setFunc = function(v)
-                        if not NC.savedVars.customGuildOrder then NC.savedVars.customGuildOrder = {} end
-                        NC.savedVars.customGuildOrder[5] = v
-                        if GUILD_SHARED_INFO and GUILD_SHARED_INFO.UpdateGuildSelector then GUILD_SHARED_INFO:UpdateGuildSelector() end
-                        if NC.UpdateGuildBankButtons then NC.UpdateGuildBankButtons() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить порядок гильдий",
-                    tooltip = "Возвращает стандартный порядок отображения всех гильдий",
-                    func = function()
-                        NC.savedVars.customGuildOrder = {}
-                        if GUILD_SHARED_INFO and GUILD_SHARED_INFO.UpdateGuildSelector then GUILD_SHARED_INFO:UpdateGuildSelector() end
-                        if NC.UpdateGuildBankButtons then NC.UpdateGuildBankButtons() end
-                    end,
-                },
-
-                { type = "header", name = "Банк Гильдий (Панель)" },
-                {
-                    type = "checkbox",
-                    name = "Включить панель переключения",
-                    getFunc = function() return NC.savedVars.guildBankEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.guildBankEnabled = v
-                        if NC.BankFrame then NC.BankFrame:SetHidden(not v) end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Гильдия по умолчанию",
-                    tooltip = "Гильдия, банк которой будет открываться автоматически при подходе к банкиру",
-                    choices = guildChoices,
-                    choicesValues = guildValues,
-                    getFunc = function() return NC.savedVars.guildBankDefaultGuildId or 0 end,
-                    setFunc = function(v) NC.savedVars.guildBankDefaultGuildId = v end,
-                },
-
-                { type = "header", name = "Отображение кнопок Гильдхолла" },
-                {
-                    type = "dropdown",
-                    name = "Режим отображения кнопок",
-                    tooltip = "Выберите, где показывать кнопки быстрого перемещения на экране гильдии",
-                    choices = {"Показывать всегда", "Только в своей гильдии", "Скрыть полностью"},
-                    choicesValues = {1, 2, 3},
-                    getFunc = function() return NC.savedVars.guildHomeVisibility or 1 end,
-                    setFunc = function(v) 
-                        NC.savedVars.guildHomeVisibility = v 
-                        if NC.UpdateGuildHomeVisibility then NC.UpdateGuildHomeVisibility() end
-                    end,
-                },
-            },
-        },
-
-        -- =====================================================
-        -- 3. ПОДМЕНЮ: ВЗАИМОДЕЙСТВИЕ (F)
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff3. Взаимодействие с игроками (F)|r",
-            tooltip = "Скрытие лишних пунктов из радиального меню взаимодействия",
-            controls = {
-                {
-                    type = "checkbox",
-                    name = "Скрыть 'Исключить из группы'",
-                    getFunc = function() return NC.savedVars.hideRemoveFromGroup end,
-                    setFunc = function(v) NC.savedVars.hideRemoveFromGroup = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Скрыть 'Добавить в друзья'",
-                    getFunc = function() return NC.savedVars.hideAddFriend end,
-                    setFunc = function(v) NC.savedVars.hideAddFriend = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Скрыть 'Легенды о наградах' (Карты)",
-                    tooltip = "Убирает приглашение в карточную игру из колеса взаимодействия (F)",
-                    getFunc = function() return NC.savedVars.hideTributeInvite end,
-                    setFunc = function(v) NC.savedVars.hideTributeInvite = v end,
-                },
-            },
-        },
-
-        -- =====================================================
-        -- 4. ПОДМЕНЮ: ЧАТ И ИКОНКИ
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff4. Чат и Иконки|r",
-            tooltip = "Настройки кнопок быстрого доступа у окна чата",
-            controls = {
-                { type = "header", name = "Цветные иконки интерфейса" },
-                {
-                    type = "checkbox",
-                    name = "Цветные иконки классов и альянсов",
-                    tooltip = "Заменяет стандартные иконки классов, альянсов и гильд-торговца на красивые цветные.",
-                    requiresReload = true,
-                    getFunc = function() return NC.savedVars.customColorIcons end,
-                    setFunc = function(v) NC.savedVars.customColorIcons = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Иконка БГ в списках друзей и гильдии",
-                    tooltip = "Отображает значок скрещенных мечей рядом с локацией игрока в списке друзей (O) и составе гильдии (G), если он находится на Полях сражений (БГ).",
-                    getFunc = function() return NC.savedVars.showBgZoneIcon end,
-                    setFunc = function(v) 
-                        NC.savedVars.showBgZoneIcon = v 
-                        if FRIENDS_LIST then FRIENDS_LIST:RefreshData() end
-                        if GUILD_ROSTER_KEYBOARD then GUILD_ROSTER_KEYBOARD:RefreshData() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать иконку телепорта в дом",
-                    getFunc = function() return NC.savedVars.showIcon end,
-                    setFunc = function(v) NC.savedVars.showIcon = v NC.CastleIcon:SetHidden(not v) end,
-                },
-                {
-                    type = "slider",
-                    name = "Позиция иконки телепорта",
-                    min = 0, max = 800,
-                    getFunc = function() return NC.savedVars.vrxCoord end,
-                    setFunc = function(v) UpdateCastleIconPosition(v) end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать блокнот (шепот себе)",
-                    getFunc = function() return NC.savedVars.showNoteIcon end,
-                    setFunc = function(v) 
-                        NC.savedVars.showNoteIcon = v 
-                        NC.NoteIcon:SetHidden(not v) 
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Позиция блокнота",
-                    min = 0, max = 800,
-                    getFunc = function() return NC.savedVars.noteXCoord end,
-                    setFunc = function(v) UpdateNoteIconPosition(v) end,
-                },
-            },
-        },
-            
-        -- =====================================================
-        -- 5. ПОДМЕНЮ: УВЕДОМЛЕНИЯ И УДОБСТВА
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff5. Уведомления и Удобства|r",
-            tooltip = "Оповещения о шепоте, входе друзей и автоматический телепорт через святилища",
-            controls = {
-                { type = "header", name = "Управление спринтом" },
-                {
-                    type = "checkbox",
-                    name = "Спринт по нажатию на маунте",
-                    tooltip = "Автоматически включает режим «Спринт по нажатию» при посадке на маунта и возвращает «Спринт по удержанию» при спешивании.",
-                    getFunc = function() return NC.savedVars.mountSprintToggle end,
-                    setFunc = function(v) 
-                        NC.savedVars.mountSprintToggle = v 
-                        if NC.UpdateMountSprintToggle then 
-                            NC.UpdateMountSprintToggle(IsMounted()) 
-                        end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Отображать спидометр (Скорость)",
-                    tooltip = "Показывает компактный виджет с текущей скоростью передвижения в реальном времени.",
-                    getFunc = function() return NC.savedVars.speedometerEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.speedometerEnabled = v 
-                        if NC.UpdateSpeedometerUI then NC.UpdateSpeedometerUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать только на маунте",
-                    tooltip = "Если включено, спидометр будет появляться только во время верховой езды и автоматически скрываться при спешивании.",
-                    disabled = function() return not NC.savedVars.speedometerEnabled end,
-                    getFunc = function() return NC.savedVars.speedometerOnlyMounted end,
-                    setFunc = function(v) 
-                        NC.savedVars.speedometerOnlyMounted = v 
-                        if NC.UpdateSpeedometer then NC.UpdateSpeedometer() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать спидометр для перемещения",
-                    tooltip = "Позволяет зажать ЛКМ и перетащить спидометр в любое удобное место на экране.",
-                    getFunc = function() return NC.savedVars.speedometerUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.speedometerUnlocked = v 
-                        if NC.UpdateSpeedometerUI then NC.UpdateSpeedometerUI() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию спидометра",
-                    func = function()
-                        NC.savedVars.speedometerLeft = 500
-                        NC.savedVars.speedometerTop  = 450
-                        if NC.SpeedometerFrame then
-                            NC.SpeedometerFrame:ClearAnchors()
-                            NC.SpeedometerFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 450)
-                        end
-                    end,
-                },
-                { type = "header", name = "Уведомления о личных сообщениях (шепот)" },
-                {
-                    type = "checkbox",
-                    name = "Включить всплывающую плашку",
-                    getFunc = function() return NC.savedVars.whisperAlert end,
-                    setFunc = function(v) NC.savedVars.whisperAlert = v end,
-                },
-                {
-                    type = "slider",
-                    name = "Длительность показа (сек)",
-                    min = 1, max = 60, step = 0.5, decimals = 1,
-                    getFunc = function() return NC.savedVars.whisperDuration end,
-                    setFunc = function(v) NC.savedVars.whisperDuration = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Закрепить положение плашки",
-                    getFunc = function() return NC.savedVars.whisperLocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.whisperLocked = v 
-                        NC.UpdateWhisperUI()
-                    end,
-                },
-
-                { type = "header", name = "Уведомления о входе друзей" },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать окно уведомлений",
-                    getFunc = function() return not NC.savedVars.friendNotificationLocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.friendNotificationLocked = not v
-                        NC.UpdateFriendUI()
-                    end,
-                },
-
-                { type = "header", name = "Быстрое перемещение" },
-                {
-                    type = "checkbox",
-                    name = "Телепортация без подтверждения",
-                    tooltip = "Отключает диалог подтверждения при бесплатном перемещении через дорожное святилище (сразу начинает телепорт)",
-                    getFunc = function() return NC.savedVars.fastTravelConfirm end,
-                    setFunc = function(v) NC.savedVars.fastTravelConfirm = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Прятать небоевых питомцев в триалах",
-                    getFunc = function() return NC.savedVars.dismissPetsInTrials end,
-                    setFunc = function(v) 
-                        NC.savedVars.dismissPetsInTrials = v 
-                        if v and NC.CheckTrialPets then NC.CheckTrialPets() end
-                    end,
-                },
-                { type = "header", name = "Кампании и Ветеранство (PvP)" },
-                {
-                    type = "checkbox",
-                    name = "Автоприем очередей Сиродила / Имперки",
-                    tooltip = "Автоматически подтверждает вход в кампанию (при готовности очереди или когда лидер группы затягивает в кампанию) и отключает диалог подтверждения.",
-                    getFunc = function() return NC.savedVars.autoAcceptPvPQueue end,
-                    setFunc = function(v) NC.savedVars.autoAcceptPvPQueue = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Отображать значок Ветеранства",
-                    tooltip = "Отображает плавающую иконку с вашим текущим PvP рангом Ветеранства.",
-                    getFunc = function() return NC.savedVars.veterancyEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.veterancyEnabled = v 
-                        if NC.UpdateVeterancyUI then NC.UpdateVeterancyUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать опыт и ранги за день",
-                    tooltip = "Отображает под значком мелкую строчку с полученными за сегодня рангами и процентом опыта (+N X.X%).",
-                    disabled = function() return not NC.savedVars.veterancyEnabled end,
-                    getFunc = function() return NC.savedVars.veterancyShowSubText ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.veterancyShowSubText = v 
-                        if NC.UpdateVeterancyUI then NC.UpdateVeterancyUI() end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер значка",
-                    tooltip = "Размер иконки Ветеранства в пикселях",
-                    min = 24, max = 72, step = 2,
-                    getFunc = function() return NC.savedVars.veterancySize or 40 end,
-                    setFunc = function(v) 
-                        NC.savedVars.veterancySize = v 
-                        if NC.UpdateVeterancyUI then NC.UpdateVeterancyUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Позволяет зажать ЛКМ и перетащить значок в любое удобное место экрана.",
-                    getFunc = function() return NC.savedVars.veterancyUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.veterancyUnlocked = v 
-                        if NC.UpdateVeterancyUI then NC.UpdateVeterancyUI() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию значка",
-                    func = function()
-                        NC.savedVars.veterancyLeft = 500
-                        NC.savedVars.veterancyTop  = 400
-                        if NC.VeterancyFrame then
-                            NC.VeterancyFrame:ClearAnchors()
-                            NC.VeterancyFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 400)
-                        end
-                    end,
-                },
-                { type = "header", name = "Изучение рецептов и стилей" },
-                {
-                    type = "checkbox",
-                    name = "Показывать иконку изучения в инвентаре",
-                    tooltip = "Отображает плавающую кнопку быстрого изучения рецептов при открытии рюкзака или банка",
-                    getFunc = function() return NC.savedVars.showRecipeButton end,
-                    setFunc = function(v) 
-                        NC.savedVars.showRecipeButton = v 
-                        if NC.UpdateRecipeButtonVisibility then NC.UpdateRecipeButtonVisibility() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Изучать ремесленные мотивы (стили крафта)",
-                    tooltip = "Если включено, аддон будет также изучать неизвестные главы и книги мотивов",
-                    getFunc = function() return NC.savedVars.includeMotifs end,
-                    setFunc = function(v) NC.savedVars.includeMotifs = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Изучать страницы стилей нарядов (маски, оружие)",
-                    tooltip = "Если включено, аддон будет изучать неизвестные страницы масок монстров и ивентовых стилей",
-                    getFunc = function() return NC.savedVars.includeStylePages end,
-                    setFunc = function(v) NC.savedVars.includeStylePages = v end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию иконки изучения",
-                    func = function()
-                        NC.savedVars.recipeButtonLeft = 400
-                        NC.savedVars.recipeButtonTop = 300
-                        if NC.RecipeFrame then
-                            NC.RecipeFrame:ClearAnchors()
-                            NC.RecipeFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 400, 300)
-                        end
-                    end,
-                },
-                { type = "header", name = "Цвет качества экипировки" },
-                {
-                    type = "checkbox",
-                    name = "Цвет качества экипировки",
-                    tooltip = "Отображает цветные платформы качества заточки предметов и точные проценты прочности и заряда",
-                    getFunc = function() return NC.savedVars.showGearStatus end,
-                    setFunc = function(v) 
-                        NC.savedVars.showGearStatus = v 
-                        if NC.UpdateAllCharacterGear then 
-                            NC.UpdateAllCharacterGear() 
-                        end
-                    end,
-                },
-                { type = "header", name = "Авто-подтверждение действий" },
-                {
-                    type = "checkbox",
-                    name = "Авто-вставка текста: Крафт и Заточка",
-                    tooltip = "Автоматически подставляет проверочное слово ('ПОДТВЕРЖДАЮ' / 'CONFIRM') при зачаровании глифами и заточке заблокированных предметов.",
-                    getFunc = function() return NC.savedVars.autoConfirmCrafting end,
-                    setFunc = function(v) NC.savedVars.autoConfirmCrafting = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Авто-вставка текста: Уничтожение предметов",
-                    tooltip = "Автоматически подставляет проверочное слово ('ПОДТВЕРЖДАЮ' / 'CONFIRM') при уничтожении мифических предметов и кронных расходников из инвентаря. Удаление персонажей и писем по-прежнему строго защищено.",
-                    getFunc = function() return NC.savedVars.autoConfirmDestroy end,
-                    setFunc = function(v) NC.savedVars.autoConfirmDestroy = v end,
-                },
-
-                { type = "header", name = "Маркеры боя над врагами" },
-                {
-                    type = "checkbox",
-                    name = "Отображать метки над врагами в бою",
-                    tooltip = "Отображает 3D-маркер над головами всех противников, вступивших в бой с вами или вашей группой (видно даже за препятствиями)",
-                    getFunc = function() return NC.savedVars.aggroMarkerEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.aggroMarkerEnabled = v 
-                        NC.UpdateAggroMarker()
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер маркера",
-                    tooltip = "Размер отображаемого значка над головой врага в пикселях",
-                    min = 16, max = 96, step = 2,
-                    getFunc = function() return NC.savedVars.aggroMarkerSize or 48 end,
-                    setFunc = function(v) 
-                        NC.savedVars.aggroMarkerSize = v 
-                        NC.UpdateAggroMarker()
-                    end,
-                },
-
-                { type = "header", name = "Авто-привязка сетов (Коллекция)" },
-                {
-                    type = "checkbox",
-                    name = "Авто-привязка сетов в коллекцию",
-                    tooltip = "Автоматически привязывает найденную экипировку сетов, если этой вещи еще нет в вашей книге наклеек (коллекции наборов)",
-                    getFunc = function() return NC.savedVars.autoBindSetItems end,
-                    setFunc = function(v) NC.savedVars.autoBindSetItems = v end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать всплывающий тост",
-                    tooltip = "Отображает стильное всплывающее окно вверху экрана с иконкой вещи, названием сета и счетчиком собранных предметов (например: 14/25)",
-                    getFunc = function() return NC.savedVars.showAutoBindToast end,
-                    setFunc = function(v) NC.savedVars.showAutoBindToast = v end,
-                },
-                {
-                    type = "button",
-                    name = "Тестовый показ тоста (Переместить)",
-                    tooltip = "Показывает тост на 6 секунд, чтобы вы могли зажать ЛКМ и перетащить его в любое удобное место на экране.",
-                    func = function() 
-                        if NC.TestSetToast then NC.TestSetToast() end 
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию тоста",
-                    func = function()
-                        NC.savedVars.setToastLeft = 500
-                        NC.savedVars.setToastTop  = 140
-                        if NC.SetToastFrame then
-                            NC.SetToastFrame:ClearAnchors()
-                            NC.SetToastFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 140)
-                        end
-                    end,
-                },
-                { type = "header", name = "Счетчик сундуков" },
-                {
-                    type = "checkbox",
-                    name = "Отображать счетчик сундуков",
-                    tooltip = "Отображает плавающую иконку сундука со счетчиком открытых сундуков в текущей зоне",
-                    getFunc = function() return NC.savedVars.showChestCounter end,
-                    setFunc = function(v) 
-                        NC.savedVars.showChestCounter = v 
-                        if NC.UpdateChestCounterVisibility then 
-                            NC.UpdateChestCounterVisibility() 
-                        end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер иконки и шрифта",
-                    tooltip = "Настройте удобный размер отображения сундучка на экране",
-                    min = 20, max = 72, step = 2,
-                    getFunc = function() return NC.savedVars.chestSize or 36 end,
-                    setFunc = function(v) 
-                        NC.savedVars.chestSize = v 
-                        if NC.UpdateChestCounterSize then 
-                            NC.UpdateChestCounterSize() 
-                        end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию счетчика",
-                    func = function()
-                        NC.savedVars.chestLeft = 500
-                        NC.savedVars.chestTop = 300
-                        if NC.ChestCounterFrame then
-                            NC.ChestCounterFrame:ClearAnchors()
-                            NC.ChestCounterFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 300)
-                        end
-                    end,
-                },
-
-                { type = "header", name = "Суточный трекер валют и опыта" },
-                {
-                    type = "checkbox",
-                    name = "Включить суточный трекер",
-                    tooltip = "Отображает компактную строку с суточным приростом/тратой валют и полученным опытом.",
-                    getFunc = function() return NC.savedVars.currencyTrackerEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyTrackerEnabled = v 
-                        if NC.UpdateCurrencyTrackerUI then NC.UpdateCurrencyTrackerUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Позволяет зажать ЛКМ и перетащить строку валют в любое удобное место экрана.",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyTrackerUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyTrackerUnlocked = v 
-                        if NC.UpdateCurrencyTrackerUI then NC.UpdateCurrencyTrackerUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Скрывать неактуальные валюты вне зон",
-                    tooltip = "Если включено: AP и Тель-Вары видны только в Сиродиле/ИГ/БГ, а Осколки Архива — только в Бесконечном Архиве. Если выключено — все выбранные валюты отображаются везде.",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyTrackerContextOnly end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyTrackerContextOnly = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Золото (Gold)",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyShowGold ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyShowGold = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Золотые / Торговые слитки (Trade Bars)",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyShowBars ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyShowBars = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Очки Альянса (AP)",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyShowAP ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyShowAP = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Камни Тель-Вар (Tel Var)",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyShowTelVar ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyShowTelVar = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Осколки Архива (Archival Fortunes)",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyShowArchive ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyShowArchive = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Опыт за день (Daily XP)",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    getFunc = function() return NC.savedVars.currencyShowXP ~= false end,
-                    setFunc = function(v) 
-                        NC.savedVars.currencyShowXP = v 
-                        if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию строки",
-                    disabled = function() return not NC.savedVars.currencyTrackerEnabled end,
-                    func = function()
-                        NC.savedVars.currencyTrackerLeft = 500
-                        NC.savedVars.currencyTrackerTop  = 300
-                        if NC.CurrencyTrackerFrame then
-                            NC.CurrencyTrackerFrame:ClearAnchors()
-                            NC.CurrencyTrackerFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 300)
-                        end
-                    end,
-                },
-            },
-        },
-        -- =====================================================
-        -- 6. ПОДМЕНЮ: АВТО-ЗАРЯДКА И ПОЧИНКА
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff6. Авто-зарядка и Починка|r",
-            tooltip = "Настройки автоматической зарядки оружия и ремонта снаряжения",
-            controls = {
-                { type = "header", name = "Авто-зарядка оружия" },
-                {
-                    type = "checkbox",
-                    name = "Включить авто-зарядку",
-                    tooltip = "Автоматически заряжает оружие камнем душ прямо в бою или исследовании мира при падении заряда ниже указанного порога",
-                    getFunc = function() return NC.savedVars.autoRechargeEnabled end,
-                    setFunc = function(v) NC.savedVars.autoRechargeEnabled = v end,
-                },
-                {
-                    type = "slider",
-                    name = "Порог заряда (%)",
-                    tooltip = "Если заряд зачарования оружия упадет до этого значения или ниже — сработает зарядка",
-                    min = 1, max = 100, step = 1,
-                    getFunc = function() return NC.savedVars.autoRechargeThreshold end,
-                    setFunc = function(v) NC.savedVars.autoRechargeThreshold = v end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Приоритет камней душ",
-                    tooltip = "Выберите, какие камни душ расходовать в первую очередь",
-                    choices = {
-                        "Только обычные камни душ",
-                        "Сначала обычные -> затем кронные",
-                        "Сначала кронные -> затем обычные",
-                        "Только кронные камни душ",
-                    },
-                    choicesValues = { 1, 2, 3, 4 },
-                    getFunc = function() return NC.savedVars.autoRechargePriority end,
-                    setFunc = function(v) NC.savedVars.autoRechargePriority = v end,
-                },
-
-                { type = "header", name = "Авто-починка ремнаборами (в поле/бою)" },
-                {
-                    type = "checkbox",
-                    name = "Включить починку ремнаборами",
-                    tooltip = "Автоматически чинит конкретную поврежденную деталь брони походным ремнабором при падении прочности",
-                    getFunc = function() return NC.savedVars.autoRepairKitsEnabled end,
-                    setFunc = function(v) NC.savedVars.autoRepairKitsEnabled = v end,
-                },
-                {
-                    type = "slider",
-                    name = "Порог прочности (%)",
-                    tooltip = "Если прочность надетого элемента брони упадет до этого значения или ниже — сработает ремонт",
-                    min = 1, max = 100, step = 1,
-                    getFunc = function() return NC.savedVars.autoRepairKitsThreshold end,
-                    setFunc = function(v) NC.savedVars.autoRepairKitsThreshold = v end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Приоритет ремнаборов",
-                    tooltip = "Выберите, какие ремнаборы расходовать в первую очередь",
-                    choices = {
-                        "Только обычные ремнаборы",
-                        "Сначала обычные -> затем кронные",
-                        "Сначала кронные -> затем обычные",
-                        "Только кронные ремнаборы",
-                    },
-                    choicesValues = { 1, 2, 3, 4 },
-                    getFunc = function() return NC.savedVars.autoRepairKitsPriority end,
-                    setFunc = function(v) NC.savedVars.autoRepairKitsPriority = v end,
-                },
-
-                { type = "header", name = "Починка у торговца" },
-                {
-                    type = "checkbox",
-                    name = "Авто-починка за золото у торговца",
-                    tooltip = "При открытии любого магазина торговца автоматически чинит все снаряжение за золото, чтобы экономить походные ремнаборы",
-                    getFunc = function() return NC.savedVars.autoVendorRepairEnabled end,
-                    setFunc = function(v) NC.savedVars.autoVendorRepairEnabled = v end,
-                },
-            },
-        },
-
-        -- =====================================================
-        -- 7. ПОДМЕНЮ: БАФФЫ И ДЕБАФФЫ
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff7. Баффы и Дебаффы|r",
-            tooltip = "Настройки отображения баффов еды, свитков опыта и других эффектов",
-            controls = {
-                { type = "header", name = "Панель долгих баффов (Еда, Свитки)" },
-                {
-                    type = "checkbox",
-                    name = "Включить панель",
-                    getFunc = function() return NC.savedVars.longBuffsEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.longBuffsEnabled = v 
-                        if NC.UpdateLongBuffsUI then NC.UpdateLongBuffsUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Показывает полупрозрачную рамку, которую можно перетащить мышкой в любое удобное место",
-                    getFunc = function() return NC.savedVars.longBuffsUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.longBuffsUnlocked = v 
-                        if NC.UpdateLongBuffsUI then NC.UpdateLongBuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Ориентация панели",
-                    choices = { "Вертикально", "Горизонтально" },
-                    choicesValues = { 1, 2 },
-                    getFunc = function() return NC.savedVars.longBuffsOrientation or 1 end,
-                    setFunc = function(v) 
-                        NC.savedVars.longBuffsOrientation = v 
-                        if NC.UpdateLongBuffsUI then NC.UpdateLongBuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Направление роста",
-                    tooltip = "Выберите, в какую сторону будут выстраиваться новые баффы",
-                    choices = { 
-                        "Авто (по краю экрана)", 
-                        "Прямой (Вправо / Вниз)", 
-                        "Обратный (Влево / Вверх)" 
-                    },
-                    choicesValues = { 1, 2, 3 },
-                    getFunc = function() return NC.savedVars.longBuffsGrowth or 1 end,
-                    setFunc = function(v) 
-                        NC.savedVars.longBuffsGrowth = v 
-                        if NC.UpdateLongBuffs then NC.UpdateLongBuffs() end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер иконок (px)",
-                    min = 20, max = 64, step = 2,
-                    getFunc = function() return NC.savedVars.longBuffsSize or 36 end,
-                    setFunc = function(v) 
-                        NC.savedVars.longBuffsSize = v 
-                        if NC.UpdateLongBuffsUI then NC.UpdateLongBuffsUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать постоянные баффы",
-                    tooltip = "Отображать вечные эффекты без таймера (камень Мундуса, пассивки, вампиризм)",
-                    getFunc = function() return NC.savedVars.longBuffsShowPermanent end,
-                    setFunc = function(v) 
-                        NC.savedVars.longBuffsShowPermanent = v 
-                        if NC.UpdateLongBuffs then NC.UpdateLongBuffs() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию",
-                    func = function()
-                        NC.savedVars.longBuffsLeft = 500
-                        NC.savedVars.longBuffsTop  = 300
-                        if NC.LongBuffsFrame then
-                            NC.LongBuffsFrame:ClearAnchors()
-                            NC.LongBuffsFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 300)
-                        end
-                    end,
-                },
-
-                { type = "header", name = "Панель коротких баффов (Боевые)" },
-                {
-                    type = "checkbox",
-                    name = "Включить панель",
-                    getFunc = function() return NC.savedVars.shortBuffsEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.shortBuffsEnabled = v 
-                        if NC.UpdateShortBuffsUI then NC.UpdateShortBuffsUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Показывает полупрозрачную направляющую, которую можно перетащить мышкой (например, над панелью способностей)",
-                    getFunc = function() return NC.savedVars.shortBuffsUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.shortBuffsUnlocked = v 
-                        if NC.UpdateShortBuffsUI then NC.UpdateShortBuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Ориентация панели",
-                    choices = { "Вертикально", "Горизонтально" },
-                    choicesValues = { 1, 2 },
-                    getFunc = function() return NC.savedVars.shortBuffsOrientation or 2 end,
-                    setFunc = function(v) 
-                        NC.savedVars.shortBuffsOrientation = v 
-                        if NC.UpdateShortBuffsUI then NC.UpdateShortBuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Направление роста",
-                    tooltip = "Выберите, в какую сторону будут выстраиваться новые баффы",
-                    choices = { 
-                        "Авто (по краю экрана)", 
-                        "Прямой (Вправо / Вниз)", 
-                        "Обратный (Влево / Вверх)" 
-                    },
-                    choicesValues = { 1, 2, 3 },
-                    getFunc = function() return NC.savedVars.shortBuffsGrowth or 1 end,
-                    setFunc = function(v) 
-                        NC.savedVars.shortBuffsGrowth = v 
-                        if NC.UpdateShortBuffs then NC.UpdateShortBuffs() end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер иконок (px)",
-                    min = 20, max = 64, step = 2,
-                    getFunc = function() return NC.savedVars.shortBuffsSize or 36 end,
-                    setFunc = function(v) 
-                        NC.savedVars.shortBuffsSize = v 
-                        if NC.UpdateShortBuffsUI then NC.UpdateShortBuffsUI() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию коротких баффов",
-                    func = function()
-                        NC.savedVars.shortBuffsLeft = 500
-                        NC.savedVars.shortBuffsTop  = 500
-                        if NC.ShortBuffsFrame then
-                            NC.ShortBuffsFrame:ClearAnchors()
-                            NC.ShortBuffsFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 500)
-                        end
-                    end,
-                },
-
-                { type = "header", name = "Панель дебаффов на игроке (Опасности)" },
-                {
-                    type = "checkbox",
-                    name = "Включить панель",
-                    getFunc = function() return NC.savedVars.playerDebuffsEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.playerDebuffsEnabled = v 
-                        if NC.UpdatePlayerDebuffsUI then NC.UpdatePlayerDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Показывает полупрозрачную темно-красную направляющую, которую можно перетащить мышкой (например, под свое здоровье)",
-                    getFunc = function() return NC.savedVars.playerDebuffsUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.playerDebuffsUnlocked = v 
-                        if NC.UpdatePlayerDebuffsUI then NC.UpdatePlayerDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Ориентация панели",
-                    choices = { "Вертикально", "Горизонтально" },
-                    choicesValues = { 1, 2 },
-                    getFunc = function() return NC.savedVars.playerDebuffsOrientation or 2 end,
-                    setFunc = function(v) 
-                        NC.savedVars.playerDebuffsOrientation = v 
-                        if NC.UpdatePlayerDebuffsUI then NC.UpdatePlayerDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Направление роста",
-                    tooltip = "Выберите, в какую сторону будут выстраиваться новые дебаффы",
-                    choices = { 
-                        "Авто (по краю экрана)", 
-                        "Прямой (Вправо / Вниз)", 
-                        "Обратный (Влево / Вверх)" 
-                    },
-                    choicesValues = { 1, 2, 3 },
-                    getFunc = function() return NC.savedVars.playerDebuffsGrowth or 1 end,
-                    setFunc = function(v) 
-                        NC.savedVars.playerDebuffsGrowth = v 
-                        if NC.UpdatePlayerDebuffs then NC.UpdatePlayerDebuffs() end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер иконок (px)",
-                    min = 20, max = 64, step = 2,
-                    getFunc = function() return NC.savedVars.playerDebuffsSize or 36 end,
-                    setFunc = function(v) 
-                        NC.savedVars.playerDebuffsSize = v 
-                        if NC.UpdatePlayerDebuffsUI then NC.UpdatePlayerDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию дебаффов игрока",
-                    func = function()
-                        NC.savedVars.playerDebuffsLeft = 500
-                        NC.savedVars.playerDebuffsTop  = 550
-                        if NC.PlayerDebuffsFrame then
-                            NC.PlayerDebuffsFrame:ClearAnchors()
-                            NC.PlayerDebuffsFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 550)
-                        end
-                    end,
-                },
-
-                { type = "header", name = "Панель дебаффов на цели (Враге)" },
-                {
-                    type = "checkbox",
-                    name = "Включить панель",
-                    getFunc = function() return NC.savedVars.targetDebuffsEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.targetDebuffsEnabled = v 
-                        if NC.UpdateTargetDebuffsUI then NC.UpdateTargetDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Показывает полупрозрачную оранжевую направляющую, которую можно перетащить мышкой (например, под полоску здоровья босса)",
-                    getFunc = function() return NC.savedVars.targetDebuffsUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.targetDebuffsUnlocked = v 
-                        if NC.UpdateTargetDebuffsUI then NC.UpdateTargetDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать только мои дебаффы",
-                    tooltip = "Если включено, панель будет отображать только те дебаффы, которые наложили лично вы. Если выключено — отображаются вообще все дебаффы группы на боссе.",
-                    getFunc = function() return NC.savedVars.targetDebuffsOnlyPlayer end,
-                    setFunc = function(v) 
-                        NC.savedVars.targetDebuffsOnlyPlayer = v 
-                        if NC.UpdateTargetDebuffs then NC.UpdateTargetDebuffs() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Ориентация панели",
-                    choices = { "Вертикально", "Горизонтально" },
-                    choicesValues = { 1, 2 },
-                    getFunc = function() return NC.savedVars.targetDebuffsOrientation or 2 end,
-                    setFunc = function(v) 
-                        NC.savedVars.targetDebuffsOrientation = v 
-                        if NC.UpdateTargetDebuffsUI then NC.UpdateTargetDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    name = "Направление роста",
-                    tooltip = "Выберите, в какую сторону будут выстраиваться новые дебаффы",
-                    choices = { 
-                        "Авто (по краю экрана)", 
-                        "Прямой (Вправо / Вниз)", 
-                        "Обратный (Влево / Вверх)" 
-                    },
-                    choicesValues = { 1, 2, 3 },
-                    getFunc = function() return NC.savedVars.targetDebuffsGrowth or 1 end,
-                    setFunc = function(v) 
-                        NC.savedVars.targetDebuffsGrowth = v 
-                        if NC.UpdateTargetDebuffs then NC.UpdateTargetDebuffs() end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер иконок (px)",
-                    min = 20, max = 64, step = 2,
-                    getFunc = function() return NC.savedVars.targetDebuffsSize or 36 end,
-                    setFunc = function(v) 
-                        NC.savedVars.targetDebuffsSize = v 
-                        if NC.UpdateTargetDebuffsUI then NC.UpdateTargetDebuffsUI() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию дебаффов цели",
-                    func = function()
-                        NC.savedVars.targetDebuffsLeft = 500
-                        NC.savedVars.targetDebuffsTop  = 220
-                        if NC.TargetDebuffsFrame then
-                            NC.TargetDebuffsFrame:ClearAnchors()
-                            NC.TargetDebuffsFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 220)
-                        end
-                    end,
-                },
-
-                { type = "header", name = "Напоминание о еде и военном торте" },
-                {
-                    type = "checkbox",
-                    name = "Включить напоминание",
-                    tooltip = "Отображает плавающую иконку еды в боевых зонах (данжи, триалы, арены), если нет баффа еды, и иконку военного торта в Сиродиле/ИГ, если нет бонуса к AP.",
-                    getFunc = function() return NC.savedVars.foodReminderEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.foodReminderEnabled = v 
-                        if NC.UpdateFoodReminderUI then NC.UpdateFoodReminderUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разрешить перемещение (Открепить)",
-                    tooltip = "Позволяет зажимать ЛКМ и перетаскивать настоящие иконки еды/торта прямо на лету, когда они появляются на экране. При отключении иконки закрепляются и мышка свободно кликает сквозь них.",
-                    getFunc = function() return NC.savedVars.foodReminderUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.foodReminderUnlocked = v 
-                        if NC.UpdateFoodReminderUI then NC.UpdateFoodReminderUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показать тестовое превью",
-                    tooltip = "Временно выводит обе иконки (еду и торт) на экран для предварительной настройки положения и подбора размера.",
-                    getFunc = function() return NC.savedVars.foodReminderPreview end,
-                    setFunc = function(v) 
-                        NC.savedVars.foodReminderPreview = v 
-                        if NC.UpdateFoodReminder then NC.UpdateFoodReminder() end
-                    end,
-                },
-                {
-                    type = "slider",
-                    name = "Размер иконок (px)",
-                    min = 24, max = 80, step = 2,
-                    getFunc = function() return NC.savedVars.foodReminderSize or 48 end,
-                    setFunc = function(v) 
-                        NC.savedVars.foodReminderSize = v 
-                        if NC.UpdateFoodReminderUI then NC.UpdateFoodReminderUI() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию напоминания",
-                    func = function()
-                        NC.savedVars.foodReminderLeft = 600
-                        NC.savedVars.foodReminderTop  = 350
-                        if NC.FoodReminderFrame then
-                            NC.FoodReminderFrame:ClearAnchors()
-                            NC.FoodReminderFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 600, 350)
-                        end
-                    end,
-                },
-            },
-        },
-
-        -- =====================================================
-        -- 8. ПОДМЕНЮ: ДАНЖИ И ТРИАЛЫ
-        -- =====================================================
-        {
-            type = "submenu",
-            name = "|c66f2ff8. Данжи и Триалы|r",
-            tooltip = "Настройки таймера спидрана, жизней, авто-логов и полезных рейдовых функций",
-            controls = {
-                { type = "header", name = "Рейдовый виджет и Спидран" },
-                {
-                    type = "checkbox",
-                    name = "Включить виджет спидрана",
-                    tooltip = "Отображает в триалах, на аренах и в данжах время забега, оставшиеся жизни и счет",
-                    getFunc = function() return NC.savedVars.speedrunHudEnabled end,
-                    setFunc = function(v) 
-                        NC.savedVars.speedrunHudEnabled = v 
-                        if NC.UpdateSpeedrunHudUI then NC.UpdateSpeedrunHudUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Разблокировать для перемещения",
-                    tooltip = "Показывает тестовый рейдовый виджет с жизнями и очками, который можно перетащить мышкой в удобное место",
-                    getFunc = function() return NC.savedVars.speedrunHudUnlocked end,
-                    setFunc = function(v) 
-                        NC.savedVars.speedrunHudUnlocked = v 
-                        if NC.UpdateSpeedrunHudUI then NC.UpdateSpeedrunHudUI() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Показывать только на ветеране",
-                    tooltip = "Если включено, виджет будет появляться только в ветеранских данжах, триалах и аренах (где критичны спидраны и ачивки)",
-                    getFunc = function() return NC.savedVars.speedrunHudVetOnly end,
-                    setFunc = function(v) 
-                        NC.savedVars.speedrunHudVetOnly = v 
-                        if NC.UpdateSpeedrunHud then NC.UpdateSpeedrunHud() end
-                    end,
-                },
-                {
-                    type = "button",
-                    name = "Сбросить позицию виджета",
-                    func = function()
-                        NC.savedVars.speedrunHudLeft = 500
-                        NC.savedVars.speedrunHudTop  = 80
-                        if NC.SpeedrunFrame then
-                            NC.SpeedrunFrame:ClearAnchors()
-                            NC.SpeedrunFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, 500, 80)
-                        end
-                    end,
-                },
-                { type = "header", name = "Авто-логи боя (Encounter Log)" },
-                {
-                    type = "checkbox",
-                    name = "Включить авто-запись логов",
-                    tooltip = "Автоматически включает запись логов боя (Encounter.log) при входе в подземелья, триалы и арены, и выключает при выходе",
-                    getFunc = function() return NC.savedVars.autoEncounterLog end,
-                    setFunc = function(v) 
-                        NC.savedVars.autoEncounterLog = v 
-                        if NC.CheckAutoEncounterLog then NC.CheckAutoEncounterLog() end
-                    end,
-                },
-                {
-                    type = "checkbox",
-                    name = "Записывать только на ветеране",
-                    tooltip = "Если включено, логи будут записываться только на ветеранской сложности (чтобы не забивать диск лишними файлами)",
-                    getFunc = function() return NC.savedVars.autoEncounterLogVetOnly end,
-                    setFunc = function(v) 
-                        NC.savedVars.autoEncounterLogVetOnly = v 
-                        if NC.CheckAutoEncounterLog then NC.CheckAutoEncounterLog() end
-                    end,
-                },
-            },
-        },
-    }
-
-    if NecroCat.Minimap and NecroCat.Minimap.GetMenuOptions then
-        table.insert(optionsTable, NecroCat.Minimap.GetMenuOptions())
-    end
-
-    NC.settingsPanel = LAM:RegisterAddonPanel("NecroCatMenu", panelData)
-    LAM:RegisterOptionControls("NecroCatMenu", optionsTable)
-end
 ---------------------------------------------------------
 -- 5. ИНВАЙТ И МЕНЮ
 ---------------------------------------------------------
@@ -4902,10 +4397,9 @@ end
 local function TryTeleportToPlayer(displayName)
     if not displayName or displayName == "" then return end
 
-
     if IsFriend(displayName) then
         JumpToFriend(displayName)
-        d("|c66f2ff[NecroCat]|r Прыжок к другу: " .. displayName)
+        d(zo_strformat(GetString(SI_NC_TELEPORT_FRIEND), displayName))
         return
     end
 
@@ -4914,7 +4408,7 @@ local function TryTeleportToPlayer(displayName)
         local unitTag = GetGroupUnitTagByIndex(i)
         if GetUnitDisplayName(unitTag) == displayName then
             JumpToGroupMember(unitTag)
-            d("|c66f2ff[NecroCat]|r Прыжок к согруппнику: " .. displayName)
+            d(zo_strformat(GetString(SI_NC_TELEPORT_GROUP), displayName))
             foundInGroup = true
             break
         end
@@ -4922,7 +4416,7 @@ local function TryTeleportToPlayer(displayName)
     
     if foundInGroup then return end
 
-    d("|cFF0000[NecroCat]|r Телепорт к " .. displayName .. " невозможен (не друг и не в группе).")
+    d(zo_strformat(GetString(SI_NC_TELEPORT_FAIL), displayName))
 end
 
 -- =========================================================
@@ -4941,10 +4435,10 @@ end
 -- Хук для клика по нику в чате
 local function HookChatContextMenu()
     ZO_PreHook("ZO_ChatSystem_ShowGameplayContextMenu", function(link)
-        if not LibCustomMenu then return end -- Безопасность: если библиотеки нет, просто ничего не делаем и не ломаем игру
+        if not LibCustomMenu then return end
         local linkType, displayName = ZO_LinkHandler_ParseLink(link)
         if linkType == "player" and displayName then
-            AddCustomMenuItem("|c22ff22Скопировать @ID|r", function()
+            AddCustomMenuItem(GetString(SI_NC_MENU_COPY_ID), function()
                 NC.ShowCopyDialog(displayName)
             end)
         end
@@ -4958,17 +4452,17 @@ local function AddNecroMenuEntries(data)
     if not displayName then return end
 
     -- 1. Пункт Копирования @ID
-    AddCustomMenuItem("|c22ff22Скопировать @ID|r", function()
+    AddCustomMenuItem(GetString(SI_NC_MENU_COPY_ID), function()
         NC.ShowCopyDialog(displayName)
     end)
 
     -- 2. Пункт Телепорта к игроку
-    AddCustomMenuItem("|cff6401Телепорт к игроку|r", function() 
+    AddCustomMenuItem(GetString(SI_NC_MENU_TRAVEL_PLAYER), function() 
         TryTeleportToPlayer(displayName)
     end)
     
     -- 3. Пункт Инвайта
-    AddCustomMenuItem("|c66f2ffInvite to Party|r", function() 
+    AddCustomMenuItem(GetString(SI_NC_MENU_INVITE_PARTY), function() 
         if GroupInviteByName then GroupInviteByName(displayName) end 
     end)
 
@@ -4982,41 +4476,39 @@ local function AddNecroMenuEntries(data)
 
     local necroCatSubMenu = {
         {
-            label = isTracked and "|cFF5555Disable Tracking|r" or "|c55FF55Enable Tracking|r",
+            label = isTracked and GetString(SI_NC_MENU_DISABLE_TRACKING) or GetString(SI_NC_MENU_ENABLE_TRACKING),
             callback = function()
                 if isTracked then
                     NC.savedVars.trackedPlayers[displayName] = nil
-                    d(string.format("[NecroCat] Отслеживание %s отключено.", displayName))
+                    d(string.format("[NecroCat] %s: tracking off", displayName))
                 else
                     NC.savedVars.trackedPlayers[displayName] = true
-                    d(string.format("[NecroCat] Отслеживание %s включено.", displayName))
+                    d(string.format("[NecroCat] %s: tracking on", displayName))
                 end
             end
         },
         {
-            label = isFavorite and "|cFF5555Убрать из избранных|r" or "|c55FF55В избранные (WhiteList)|r",
+            label = isFavorite and GetString(SI_NC_MENU_FAVORITE_REMOVE) or GetString(SI_NC_MENU_FAVORITE_ADD),
             callback = function()
                 if isFavorite then
-                    -- Если это друг и включен авто-статус друзей — ставим жесткую блокировку (false)
                     if NC.savedVars.treatFriendsAsFavorites and IsFriend and IsFriend(displayName) then
                         NC.savedVars.favoritePlayers[displayName] = false
                     else
                         NC.savedVars.favoritePlayers[displayName] = nil
                     end
-                    d(string.format("|c66f2ff[NecroCat]|r %s убран из списка избранных.", displayName))
+                    d(string.format("|c66f2ff[NecroCat]|r %s removed from favorites.", displayName))
                 else
-                    -- Если был заблокированным другом — снимаем метку (nil), иначе добавляем в белый список (true)
                     if NC.savedVars.favoritePlayers[displayName] == false then
                         NC.savedVars.favoritePlayers[displayName] = nil
                     else
                         NC.savedVars.favoritePlayers[displayName] = true
                     end
-                    d(string.format("|c66f2ff[NecroCat]|r %s добавлен в список избранных!", displayName))
+                    d(string.format("|c66f2ff[NecroCat]|r %s added to favorites!", displayName))
                 end
             end
         },
         {
-            label = "|cffff22Закрепить друга (в чат)|r",
+            label = GetString(SI_NC_MENU_PIN_FRIEND),
             callback = function()
                 local nextNum = 1
                 if NC.savedVars and NC.savedVars.pinned then
@@ -5028,19 +4520,19 @@ local function AddNecroMenuEntries(data)
             end
         },
         {
-            label = "|cff5555Открепить друга (в чат)|r",
+            label = GetString(SI_NC_MENU_UNPIN_FRIEND),
             callback = function()
                 StartChatInput(string.format("/unpinfriend %s", displayName))
             end
         },
         {
-            label = "Показать список друзей",
+            label = GetString(SI_NC_MENU_LIST_PINNED),
             callback = function()
                 SLASH_COMMANDS["/listpinned"]()
             end
         },
         {
-            label = "Очистить список друзей",
+            label = GetString(SI_NC_MENU_CLEAR_PINNED),
             callback = function()
                 SLASH_COMMANDS["/pinclear"]()
             end
@@ -5064,7 +4556,7 @@ local function AddNecroMenuEntries(data)
             table.insert(houseSubMenu, {
                 label = string.format("|c00FF00|t18:18:EsoUI/Art/Icons/mapkey/mapkey_housing.dds|t %d. %s|r", index, hData.name),
                 callback = function()
-                    d(string.format("|c66f2ff[NecroCat]|r Телепортация в дом «%s» (%s)...", hData.name, targetOwner))
+                    d(string.format("|c66f2ff[NecroCat]|r %s (%s)...", hData.name, targetOwner))
                     if targetOwner == GetDisplayName() then
                         RequestJumpToHouse(hData.houseId)
                     else
@@ -5075,14 +4567,14 @@ local function AddNecroMenuEntries(data)
         end
     else
         table.insert(houseSubMenu, {
-            label = "|c888888(Нет привязанных домов)|r",
+            label = GetString(SI_NC_MENU_HOUSE_EMPTY),
             callback = function() end
         })
     end
 
     -- Б. Кнопка привязки
     table.insert(houseSubMenu, {
-        label = "|cffff22+ Привязать дом (в чат)|r",
+        label = GetString(SI_NC_MENU_HOUSE_PIN),
         callback = function()
             local nextHousePos = (playerHouseList and #playerHouseList or 0) + 1
             local curHouseId = GetCurrentZoneHouseId()
@@ -5097,7 +4589,7 @@ local function AddNecroMenuEntries(data)
     -- В. Удаление домов
     if playerHouseList and #playerHouseList > 0 then
         table.insert(houseSubMenu, {
-            label = "|cff5555- Отвязать дом (в чат)|r",
+            label = GetString(SI_NC_MENU_HOUSE_UNPIN),
             callback = function()
                 if #playerHouseList == 1 then
                     StartChatInput(string.format("/unhousepin %s 1", displayName))
@@ -5107,7 +4599,7 @@ local function AddNecroMenuEntries(data)
             end
         })
         table.insert(houseSubMenu, {
-            label = "Очистить все дома игрока",
+            label = GetString(SI_NC_MENU_HOUSE_CLEAR),
             callback = function()
                 SLASH_COMMANDS["/clearhouses"](displayName)
             end
@@ -5192,13 +4684,12 @@ end
 function NC.UpdateAggroMarker()
     if NC.savedVars.aggroMarkerEnabled then
         local size = NC.savedVars.aggroMarkerSize or 48
-        local texture = NC.savedVars.aggroMarkerTexture or "NecroCat/imgs/aggro.dds"
+        local texture = NC.savedVars.aggroMarkerTexture or "NecroCat/imgs/stuffs/aggro.dds"
         SetFloatingMarkerInfo(MAP_PIN_TYPE_AGGRO, size, texture)
     else
         SetFloatingMarkerInfo(MAP_PIN_TYPE_AGGRO, 0, "")
     end
 end
-
 ---------------------------------------------------------
 -- МОДУЛЬ: АВТО-ПРИВЯЗКА СЕТОВ И ТОСТ
 ---------------------------------------------------------
@@ -5206,7 +4697,12 @@ end
 function NC.CreateSetToastUI()
     local frame = WINDOW_MANAGER:CreateTopLevelWindow("NecroCat_SetToastFrame")
     frame:SetDimensions(360, 54)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.setToastLeft or 500, NC.savedVars.setToastTop or 140)
+    frame:ClearAnchors()
+    if NC.savedVars and NC.savedVars.setToastLeft and NC.savedVars.setToastTop then
+        frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, NC.savedVars.setToastLeft, NC.savedVars.setToastTop)
+    else
+        frame:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    end
     frame:SetMovable(true)
     frame:SetMouseEnabled(true)
     frame:SetClampedToScreen(true)
@@ -5351,24 +4847,23 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         pinned          = {},
         whisperAlert    = false,
         whisperLocked   = true,
-        whisperLeft     = 500,
-        whisperTop      = 300,
         whisperDuration = 3.5,
         firstLoad       = true,
         disableEnforceRole = true,
         swapGroupNames  = false,
         hideRemoveFromGroup = false,
-        hideAddFriend       = false,
+        hideReport          = false,
         hideTributeInvite   = false,
+        hideAddFriend       = false,
+        hideDuel            = false,
+        hideTrade           = false,
         trackedPlayers           = {},
         favoritePlayers          = {},
         treatFriendsAsFavorites  = true,
-        friendNotificationLeft   = 500,
-        friendNotificationTop    = 200,
         friendNotificationLocked = true,
         followAutoAccept = false,
         followShowOwn = false,
-        followShowButton = true,
+        followShowButton = false,
         followButtonX = 177,
         followDialogLeft = 500,
         followDialogTop = 300,
@@ -5389,10 +4884,10 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         autoConfirmCrafting  = false,
         autoConfirmDestroy   = false,
         showRecipeButton     = false,
-        recipeButtonLeft     = 400,
-        recipeButtonTop      = 300,
         includeMotifs        = false,
         includeStylePages    = false,
+        autoUnboxEnabled     = true,
+        unboxDelay           = 1.8,
         -- Smart Auto-Recharge & Auto-Repair
         autoRechargeEnabled     = false,
         autoRechargeThreshold   = 20,
@@ -5402,24 +4897,20 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         autoRepairKitsThreshold = 20,
         autoRepairKitsPriority  = 2,
         
-        autoVendorRepairEnabled = true,
+        autoVendorRepairEnabled = false,
         showGearStatus          = false,
 
         -- Маркер агро над врагами
         aggroMarkerEnabled      = false,
         aggroMarkerSize         = 48,
-        aggroMarkerTexture      = "NecroCat/imgs/aggro.dds",
+        aggroMarkerTexture      = "NecroCat/imgs/stuffs/aggro.dds",
 
         -- Авто-привязка сетов (Stickerbook) и всплывающий тост
         autoBindSetItems        = false,
         showAutoBindToast       = true,
-        setToastLeft            = 500,
-        setToastTop             = 140,
         -- Счетчик сундуков
         showChestCounter        = false,
         chestSize               = 36,
-        chestLeft               = 500,
-        chestTop                = 300,
         currentChestsCount      = 0,
         lastZoneId              = 0,
         openedChestsCoords      = {},
@@ -5427,15 +4918,46 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         showBgZoneIcon          = false,
         playerHouses            = {},
         minimap                 = {},
+        
+        -- Виджет планарных ключей
+        planarKeyWidgetEnabled   = false,
+        planarKeyWidgetSize      = 56,
+        planarKeyWidgetFontSize  = 26,
+        planarKeyWidgetOffsetX   = 0,
+        planarKeyWidgetOffsetY   = 0,
+        planarKeyWidgetUnlocked  = false,
+        currencyShowPlanarKeys   = false,
+        
+        -- Модуль: Умная камера (Пресеты Мира и Боя)
+        cameraSwitcherEnabled = false,
+        cameraOutCombat = {
+            fov         = 50.0,
+            horizPos    = 0.0,
+            horizOffset = 0.0,
+            vertOffset  = 0.0,
+        },
+        cameraInCombat = {
+            fov         = 55.0,
+            horizPos    = 0.0,
+            horizOffset = 0.0,
+            vertOffset  = -0.12,
+        },
+
+        -- Модуль: Умный фильтр истории лута
+        lootFilterEnabled        = false,
+        lootFilterMinQuality     = 0,     -- 0: Все, 2: Зеленый+, 3: Синий+, 4: Фиолет+, 5: Золото
+        lootFilterHideTrash      = true,  -- Скрывать серый мусор (кишки, сломанное оружие)
+        lootFilterHideMaterials  = false, -- Скрывать сырье и ресурсы сбора (руда, дерево, ткань, травы)
+        lootFilterHideTraits     = false, -- Скрывать камни стиля и особенностей (трейты)
+        lootFilterAlwaysRare     = true,  -- Страховка: всегда показывать заточки и ресурсы фиол/золото (>=4)
+        lootFilterAlwaysRecipes  = true,  -- Страховка: всегда показывать рецепты, мотивы и стили
 
         -- Модуль: Долгие баффы (Еда и свитки)
-        longBuffsEnabled         = true,
+        longBuffsEnabled         = false,
         longBuffsShowPermanent   = false,
         longBuffsOrientation     = 1, -- 1: Вертикально, 2: Горизонтально
         longBuffsGrowth          = 1, -- 1: Авто, 2: Прямой (Вправо/Вниз), 3: Обратный (Влево/Вверх)
         longBuffsSize            = 36,
-        longBuffsLeft            = 500,
-        longBuffsTop             = 300,
         longBuffsUnlocked        = false,
 
         -- Модуль: Короткие боевые баффы игрока
@@ -5443,8 +4965,6 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         shortBuffsOrientation    = 2, -- 1: Вертикально, 2: Горизонтально
         shortBuffsGrowth         = 1, -- 1: Авто, 2: Прямой (Вправо/Вниз), 3: Обратный (Влево/Вверх)
         shortBuffsSize           = 36,
-        shortBuffsLeft           = 500,
-        shortBuffsTop            = 500,
         shortBuffsUnlocked       = false,
 
         -- Модуль: Дебаффы на игроке
@@ -5452,8 +4972,6 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         playerDebuffsOrientation = 2, -- 1: Вертикально, 2: Горизонтально
         playerDebuffsGrowth      = 1, -- 1: Авто, 2: Прямой (Вправо/Вниз), 3: Обратный (Влево/Вверх)
         playerDebuffsSize        = 36,
-        playerDebuffsLeft        = 500,
-        playerDebuffsTop         = 550,
         playerDebuffsUnlocked    = false,
 
         -- Модуль: Дебаффы на цели (враге)
@@ -5462,22 +4980,19 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         targetDebuffsOrientation = 2, -- 1: Вертикально, 2: Горизонтально
         targetDebuffsGrowth      = 1, -- 1: Авто, 2: Прямой (Вправо/Вниз), 3: Обратный (Влево/Вверх)
         targetDebuffsSize        = 36,
-        targetDebuffsLeft        = 500,
-        targetDebuffsTop         = 220,
         targetDebuffsUnlocked    = false,
 
-        -- Модуль: Напоминание о еде и военном торте
+        -- Модуль: Напоминание о еде, торте и свитках опыта
         foodReminderEnabled      = false,
+        foodReminderShowFood     = true,
+        foodReminderShowTorte    = true,
+        foodReminderShowXP       = false,
         foodReminderSize         = 48,
-        foodReminderLeft         = 600,
-        foodReminderTop          = 350,
         foodReminderUnlocked     = false,
         foodReminderPreview      = false,
 
         -- Модуль: Спидран и Рейдовый таймер
         speedrunHudEnabled       = false,
-        speedrunHudLeft          = 500,
-        speedrunHudTop           = 80,
         speedrunHudUnlocked      = false,
         speedrunHudVetOnly       = true,
         dungeonStartTimeStamp    = 0,
@@ -5493,21 +5008,15 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         -- Модуль: Спидометр
         speedometerEnabled       = false,
         speedometerOnlyMounted   = false,
-        speedometerLeft          = 500,
-        speedometerTop           = 450,
         speedometerUnlocked      = false,
 
         -- Модуль: Ветеранство (PvP ранг)
         veterancyEnabled         = false,
         veterancySize            = 40,
-        veterancyLeft            = 500,
-        veterancyTop             = 400,
         veterancyUnlocked        = false,
 
         -- Модуль: Суточный трекер валют и опыта
         currencyTrackerEnabled      = false,
-        currencyTrackerLeft         = 500,
-        currencyTrackerTop          = 300,
         currencyTrackerUnlocked      = false,
         currencyTrackerContextOnly  = true,
         currencyShowGold            = true,
@@ -5527,6 +5036,11 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         NC.savedVars.guildBankDefaultGuildId = GetGuildId(NC.savedVars.guildBankDefaultIndex)
     end
 
+    -- Бесшовная авто-миграция пути маркера агро для всех игроков
+    if NC.savedVars.aggroMarkerTexture == "NecroCat/imgs/aggro.dds" then
+        NC.savedVars.aggroMarkerTexture = "NecroCat/imgs/stuffs/aggro.dds"
+    end
+
     if NC.savedVars.firstLoad then
         NC.savedVars.firstLoad = false
         NC.savedVars.vrxCoord = 136
@@ -5536,7 +5050,7 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
 
     NC.CastleIcon = WINDOW_MANAGER:CreateControl("NecroCatGuildHall", ZO_ChatWindow, CT_BUTTON)
     NC.CastleIcon:SetDimensions(25, 25)
-    NC.CastleIcon:SetNormalTexture("NecroCat/imgs/CastleofNecroCat.dds")
+    NC.CastleIcon:SetNormalTexture("NecroCat/imgs/fons/CastleofNecroCat.dds")
     NC.CastleIcon:SetHidden(not NC.savedVars.showIcon)
     NC.CastleIcon:SetAnchor(TOPRIGHT, ZO_ChatWindow, TOPRIGHT, -NC.savedVars.vrxCoord, 10)
     NC.CastleIcon:SetHandler("OnMouseUp", function(ctrl, button, upInside)
@@ -5549,9 +5063,9 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     end)
     NC.CastleIcon:SetHandler("OnMouseEnter", function(ctrl)
         InitializeTooltip(InformationTooltip, ctrl, TOP, 0, 5)
-        InformationTooltip:AddLine("|c66f2ffNecro cat's Guildhall|r", "ZoFontWinH4")
-        InformationTooltip:AddLine("|c00FF00ЛКМ:|r Телепорт в гильдхолл", "ZoFontGameSmall")
-        InformationTooltip:AddLine("|c66f2ffПКМ:|r Настройки аддона", "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_GUILDHALL), "ZoFontWinH4")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_GUILDHALL_LMB), "ZoFontGameSmall")
+        InformationTooltip:AddLine(GetString(SI_NC_TT_GUILDHALL_RMB), "ZoFontGameSmall")
     end)
     NC.CastleIcon:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
     
@@ -5563,7 +5077,7 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     NC.NoteIcon:SetHandler("OnClicked", NC.SelfWhisper)
     NC.NoteIcon:SetHandler("OnMouseEnter", function(ctrl)
         InitializeTooltip(InformationTooltip, ctrl, TOP, 0, 5)
-        SetTooltipText(InformationTooltip, "|c66f2ffНаписать себе в личку|r")
+        SetTooltipText(InformationTooltip, GetString(SI_NC_TT_NOTE))
     end)
     NC.NoteIcon:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
     
@@ -5585,6 +5099,7 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     
     -- Безопасные вызовы хуков
     if HookFriendsAndGuildMenu then HookFriendsAndGuildMenu() end
+    if NC.HookInventoryContextMenu then NC.HookInventoryContextMenu() end
     NC.HookFriendsSorting()
     NC.HookGuildSelector()
     NC.HookMenuColors()
@@ -5610,6 +5125,7 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     NC.CreateSpeedometerUI()
     NC.CreateVeterancyUI()
     NC.CreateCurrencyTrackerUI()
+    NC.CreatePlanarKeyWidgetUI()
 
     -- Отслеживание событий триала
     EVENT_MANAGER:RegisterForEvent(NC.name .. "_TrialStart", EVENT_RAID_TRIAL_STARTED, function()
@@ -5729,11 +5245,16 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         if sv.speedrunHudEnabled and not sv.speedrunHudUnlocked and NC.UpdateSpeedrunHud then
             NC.UpdateSpeedrunHud()
         end
-        if sv.foodReminderEnabled and not sv.foodReminderPreview and NC.UpdateFoodReminder then
-            NC.UpdateFoodReminder()
-        end
         if sv.speedometerEnabled and not sv.speedometerUnlocked and NC.UpdateSpeedometer then
             NC.UpdateSpeedometer()
+        end
+    end)
+
+    -- Спокойный опрос напоминания о еде (раз в 2 секунды вместо безумных 100 мс)
+    EVENT_MANAGER:RegisterForUpdate(NC.name .. "_FoodTimer", 2000, function()
+        local sv = NC.savedVars
+        if sv and sv.foodReminderEnabled and not sv.foodReminderPreview and NC.UpdateFoodReminder then
+            NC.UpdateFoodReminder()
         end
     end)
 
@@ -5775,6 +5296,21 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         NC.BankFrame:SetHidden(true)
     end
 
+    -- Отслеживание изменений сумок и банка для планарных ключей
+    local isPlanarThrottled = false
+    EVENT_MANAGER:RegisterForEvent(NC.name .. "_PlanarKeyInv", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(eventCode, bagId)
+        if bagId == BAG_BACKPACK or bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK then
+            if not isPlanarThrottled then
+                isPlanarThrottled = true
+                zo_callLater(function()
+                    isPlanarThrottled = false
+                    if NC.UpdatePlanarKeyWidgetDisplay then NC.UpdatePlanarKeyWidgetDisplay() end
+                    if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
+                end, 200)
+            end
+        end
+    end)
+
 
     EVENT_MANAGER:RegisterForEvent(NC.name, EVENT_CHAT_MESSAGE_CHANNEL, NC.OnChatMessage)
     EVENT_MANAGER:RegisterForEvent(NC.name, EVENT_ACTIVITY_FINDER_STATUS_UPDATE, NC.OnActivityFinderStatusUpdate)
@@ -5793,6 +5329,8 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         if NC.UpdateMountSprintToggle then NC.UpdateMountSprintToggle(IsMounted()) end
         if NC.UpdateVeterancy then NC.UpdateVeterancy() end
         if NC.UpdateCurrencyTracker then NC.UpdateCurrencyTracker() end
+        if NC.UpdatePlanarKeyWidgetDisplay then NC.UpdatePlanarKeyWidgetDisplay() end
+        if NC.OnCameraCombatStateChanged then NC.OnCameraCombatStateChanged(IsUnitInCombat("player")) end
 
         -- Авто-проверка логов боя при входе/выходе из зон
         if NC.CheckAutoEncounterLog then
@@ -5817,6 +5355,9 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     EVENT_MANAGER:RegisterForEvent(NC.name .. "_CombatState", EVENT_PLAYER_COMBAT_STATE, function(eventCode, inCombat)
         if not inCombat then
             NC.CheckAllWornGear()
+        end
+        if NC.OnCameraCombatStateChanged then
+            NC.OnCameraCombatStateChanged(inCombat)
         end
     end)
     EVENT_MANAGER:RegisterForEvent(NC.name .. "_PlayerAlive", EVENT_PLAYER_ALIVE, function()
@@ -5867,8 +5408,9 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
 
 -- Запуск хука для чата
     HookChatContextMenu()
-
-    InitializeMenu()
+-- Запуск фильтра истории лута
+    HookLootHistoryFilter()
+    
     NecroCat.Follow.Init()
     
     EVENT_MANAGER:UnregisterForEvent(NC.name, EVENT_ADD_ON_LOADED)
@@ -6073,7 +5615,7 @@ function NC.AddHouseToPlayer(displayName, houseId, houseName, targetPos, actualO
 
     table.insert(list, pos, { houseId = houseId, name = finalName, owner = realOwner })
 
-    d(string.format("|c66f2ff[NecroCat]|r Дом |c00FF00«%s»|r записан для |cFFFF22%s|r на позицию |c00FF00#%d|r!", finalName, displayName, pos))
+    d(zo_strformat(GetString(SI_NC_HOUSE_SAVED), finalName, displayName, pos))
 end
 
 -- Удаление дома по номеру позиции
@@ -6088,7 +5630,7 @@ function NC.RemoveHouseFromPlayer(displayName, pos)
 
     if index and list[index] then
         local removed = table.remove(list, index)
-        d(string.format("|c66f2ff[NecroCat]|r Дом «%s» (#%d) удален у %s.", removed.name, index, displayName))
+        d(zo_strformat(GetString(SI_NC_HOUSE_DELETED), removed.name, index, displayName))
         if #list == 0 then
             NC.savedVars.playerHouses[displayName] = nil
         end

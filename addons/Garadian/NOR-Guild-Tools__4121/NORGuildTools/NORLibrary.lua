@@ -259,14 +259,14 @@ Admission:
 3. When asking to join or being admitted, all candidates agree to abide by the terms of membership in NOR and will:
    a. Provide a valid email address, date of birth, and first name for purposes of compliance with this Charter and record keeping.
    b. Be age 16 years or older.
-        i. Minors will not be admitted unless their parents or guardians are currently members.
-        ii. Minors must be supervised by their member-parents or guardians while online.
-        iii. Parents or guardians are responsible and accountable for the behavior of minors in their charge.
-   c. Conduct themselves in an age-appropriate manner.
-   d. Restrict public text and speech to PG-13.
-   e. Abide by each game's Terms of Service or End User License Agreement.
-   f. Comply with directives of this Charter, lawful orders from superior officers as well as any other NOR documents, if any, cited in this Charter.
-   g. Not previously been expelled from NOR. To apply for Reinstatement, see the appropriate section in this Charter.
+1. Minors will not be admitted unless their parents or guardians are currently members.
+2. Minors must be supervised by their member-parents or guardians while online.
+3. Parents or guardians are responsible and accountable for the behavior of minors in their charge.
+4. Conduct themselves in a courteious and socially-appropriate manner.
+5. Restrict text and speech in public text and voice channels to “Family-Friendly”;
+6. Abide by each game's Terms of Service or End User License Agreement.
+7. Comply with directives of this Charter, guidance from officers in the guild Chain-of-Command, as well as other NOR documents, if any, cited in this Charter.
+8. Not previously been expelled from NOR. To apply for Reinstatement, see the appropriate section in this Charter.
 ___
 ]] },
 
@@ -329,6 +329,12 @@ Squire Promotion Requirements:
 
 Previously a Recruit rank for two or more weeks
 
+3. Squire Court (SC)
+
+The majority of the guild’s membership is a variation of the Squire rank.
+Squire Promotion Requirements
+Previously a Squire rank for three or more months.
+
 4. Squire Honor (SH)
 
 The Squire Honor along with Squires are the majority of the guild’s membership.
@@ -347,6 +353,14 @@ As non-officer members of the New OutRiders, Knights have no official mandate, h
 Knight Promotion Requirements:
 
 Previously an active Squire and or Squire Honor for nine or more months.
+
+6. Knight Elite (KE)
+
+Knight Elites have been with the guild long enough that they understand the way the guild operates, they have shown dedication to the guild and are great examples to new recruits and squires.
+Knight Elite Mandate
+As non-officer members of the New OutRiders, Knights have no official mandate, however they have the power to tag alts of members.
+Knight Elite Promotion Requirements
+Previously an active Knight for six or more months.
 ___
 
  ]] },
@@ -366,7 +380,7 @@ ___
 
 	{ name = "Baron and Baroness", text = [[
 
-7. Baron (BA) or Baroness (BA)
+7. Baron (BA) or Baroness (BA) or Banneret (BA)
 
 The Baron is the entry officer rank in order of precedence in the New OutRiders.
 
@@ -387,7 +401,7 @@ ___
 	
 	{ name = "Count and Countess", text = [[
 
-8. Count (CT) or Countess (CS)
+8. Count (CT) or Countess (CS) or Castellan (CN)
 
 The Count/ess is the second in charge at the branch level. They are one of the branch leaders closest advisors. They are also first to take over the realm when the Duke/Duchess steps down.
 
@@ -406,7 +420,7 @@ ___
 
 	{ name = "Duke and Duchess", text = [[
 
-9. Duke (DK) or Duchess (DC)
+9. Duke (DK) or Duchess (DC) or Dux (DX)
 
 The Duke and Duchess are the Branch Leaders that maintain and run the individual games the guild is established in.
 
@@ -453,7 +467,7 @@ ___
 
 	{ name = "Lord and Lady", text = [[
 
-12. Lord (LD) or Lady (LY)
+12. Lord (LD) or Lady (LY) or Liege (LI)
 
 - The Lord and Lady is the highest rank in order of precedence in the New OutRiders. They are the active sitting High Council members.
 - The High Council Mandate is described in the High Council section of this document.
@@ -983,11 +997,17 @@ ___
 
 Dereliction:
 
-Applies to Officers only. Accepting a rank without its attendant obligations. Flagrantly, openly and notoriously failing to fulfill or abide by the Officer Mandate.
+Applies to Officers only. Dereliction is defined as accepting an officer rank without fulfilling its attendant obligations or failing to abide by the Officer Mandate in a manner that is flagrant, open, or notorious.
+An officer shall be considered derelict under any of the following conditions:
 
-1. Failure to login to the Branch server for a period of seven (7) days without prior notice or provision;
-2. Failure to login for a period of thirty (30) days without prior notice or provision;
-3. Failure to login for three (3) thirty (30) day periods in a single year even with prior notice or provision.
+1. Failure to provide reasonable notice when anticipating an absence of seven (7) days or more.
+Officers are expected to communicate anticipated absences to their Branch Leader or superior officer, to ensure continuity of branch operations.
+2. Failure to fulfill the basic responsibilities of the Officer Mandate, including participation in guild activities, communication with branch leadership, and reasonable support of branch operations.
+Persistent or habitual failure to perform these duties shall be considered dereliction and may result in retirement from officership.
+3. Failure to log in or communicate for a period of thirty (30) consecutive days without prior notice or provision.
+Such absence shall result in automatic retirement from officership.
+4. Failure to log in for three (3) separate periods of thirty (30) days within a single calendar year, even with prior notice or provision.
+Such cumulative absence demonstrates inability to reliably serve and may result in retirement from officership..
 
 Conduct Unbecoming:
 
@@ -1168,6 +1188,10 @@ Hailing:
 
 A greeting of “Hail *NOR/” should be given to your guildmates upon entering any host. Custom urges one include your main NOR name in the Hail if you are on an Alt.
 
+Family- Friendly Communication:
+
+*NOR/ is a family-friendly community, and our public text spaces, voice channels, and in-party communications are expected to remain suitable for a mixed-age audience. *NOR/ does not permit profanity, vulgar or obscene language, sexual language, slurs, and excessively graphic or crude language. This standard applies even if the language is common in a guild member’s everyday speech or where members are accustomed to hearing it elsewhere in their daily lives. Please keep all communication clean and respectful. When in doubt, err on the side of cleaner language.
+
 Forums/Discord:
 
 We encourage members to participate in all aspects of guild life, in particular the forums. This has been the primary means of communication between members for many years.
@@ -1234,6 +1258,12 @@ Amended by the High Council March 12, 2023
 Amended by the High Council April 23, 2023
 Amended by the High Council March 10, 2024 (Updated Harassment Policy)
 Amended by the High Council May 5th, 2024 (Realm Advisors)
+Amended by the High Council April 12th, 2026 (Revised Ranks)
+Amended by the High Council May 31st, 2026 (Revised Officer Ranks) v22
+Amended by the High Council September 13th, 2026 (Revised Definitions & Admission Section Revisions) v23
+
+The High Council:
+March 2024 – 2026 Current: Lord Garadian, Lord Ryland, Lord Tundrra, Lord Yavool and Lady Zyera
 ___
 
  ]] },

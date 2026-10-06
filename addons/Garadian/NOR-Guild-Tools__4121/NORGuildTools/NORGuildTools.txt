@@ -1,7 +1,7 @@
 ## Title: NOR Guild Tools
-## APIVersion: 101050
+## APIVersion: 101051
 ## Author: Garadian
-## Version: 4.00
+## Version: 5.00
 ## Description: Type /nor in game for list of commands.
 
 ## SavedVariables: NORGuildTools_Saved

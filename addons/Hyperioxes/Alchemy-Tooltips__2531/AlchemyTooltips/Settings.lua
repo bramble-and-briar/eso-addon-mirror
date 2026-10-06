@@ -233,21 +233,28 @@ function ATT_LoadSettings()
     text = GetString(AT_DisplayedInventoryName_desc),
     width = "full",
   })
-  for key, name in pairs(ATT_Variables.properEffectNames) do
+  local effectIds = {}
+  for effectId in pairs(ATT_Variables.properEffectNames) do
+    effectIds[#effectIds + 1] = effectId
+  end
+  table.sort(effectIds)
+  for _, effectId in ipairs(effectIds) do
+    local savedEffectId = effectId
+    local effectName = ATT_Variables.properEffectNames[savedEffectId]
     table.insert(optionsData[AT_ADVANCED_NAME_SETTINGS].controls, {
       type = "description",
-      text = name .. "  --->  " .. ATT_savedVars.effectsByWritIDShort[key],
+      text = effectName .. "  --->  " .. ATT_savedVars.effectsByWritIDShort[savedEffectId],
       width = "half",
-      reference = "description" .. key
+      reference = "description" .. savedEffectId
     })
     table.insert(optionsData[AT_ADVANCED_NAME_SETTINGS].controls, {
       type = "editbox",
       name = GetString(AT_ChangeDisplayedName_name),
-      getFunc = function() return ATT_savedVars.effectsByWritIDShort[key] end,
+      getFunc = function() return ATT_savedVars.effectsByWritIDShort[savedEffectId] end,
       setFunc = function(text)
-        ATT_savedVars.effectsByWritIDShort[key] = text
-        _G["description" .. key].data.text = name .. "  --->  " .. ATT_savedVars.effectsByWritIDShort[key]
-        _G["description" .. key]:UpdateValue()
+        ATT_savedVars.effectsByWritIDShort[savedEffectId] = text
+        _G["description" .. savedEffectId].data.text = effectName .. "  --->  " .. ATT_savedVars.effectsByWritIDShort[savedEffectId]
+        _G["description" .. savedEffectId]:UpdateValue()
       end,
       isMultiline = false, --boolean
       width = "half", --or "half" (optional)

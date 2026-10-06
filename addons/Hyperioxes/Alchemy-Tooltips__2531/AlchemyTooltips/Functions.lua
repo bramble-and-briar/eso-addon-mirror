@@ -28,28 +28,13 @@ function ATT_Functions:checkPotion(itemLink)
   end
   --d(id)
 
-  local effect1, effect2, effect3, effect4
-  local calculation = math.floor(id / 65536) % 256
-  if calculation > 32 then
-    effect1 = LibAlchemy.effectsByWritID[calculation - 128]
-    effect4 = effect1
-  else
-    effect1 = LibAlchemy.effectsByWritID[calculation]
-  end
-  if (math.floor(id / 256) % 256) > 32 then
-    effect2 = LibAlchemy.effectsByWritID[(math.floor(id / 256) % 256) - 128]
-    effect4 = effect2
-  else
-    effect2 = LibAlchemy.effectsByWritID[math.floor(id / 256) % 256]
-  end
-  if (id % 256) > 32 then
-    effect3 = LibAlchemy.effectsByWritID[(id % 256) - 128]
-    effect4 = effect3
-  else
-    effect3 = LibAlchemy.effectsByWritID[id % 256]
-  end
+  local effectId1, effectId2, effectId3, prolongedEffectId = LibAlchemy:GetEffectsFromItemLink(itemLink)
+  local effect1 = LibAlchemy.effectsByWritID[effectId1]
+  local effect2 = LibAlchemy.effectsByWritID[effectId2]
+  local effect3 = LibAlchemy.effectsByWritID[effectId3]
+  local prolongedEffect = LibAlchemy.effectsByWritID[prolongedEffectId]
 
-  local BestCombination = LibAlchemy:getBestCombination({ effect1, effect2, effect3, effect4 })
+  local BestCombination = LibAlchemy:getBestCombination({ effect1, effect2, effect3, prolongedEffect })
   return { BestCombination, string.format("%.2f", LibAlchemy:getCraftingCost(BestCombination, itemLink)), 0 }
 end
 
@@ -129,6 +114,18 @@ function ATT_Functions:getPotionQualityBasedOnCraftingCost(craftingCost)
 
 end
 
+local legacyEffectIdToSettingsId = {
+  [13] = 11, -- Increase Weapon Power -> Increase Power
+  [14] = 12, -- Maim -> Cowardice
+  [17] = 15, -- Weapon Critical -> Critical
+  [18] = 36, -- old Enervation id -> current Enervation setting
+}
+
+local function getDisplayedEffectName(effectId)
+  local settingsEffectId = legacyEffectIdToSettingsId[effectId] or effectId
+  return ATT_savedVars.effectsByWritIDShort[settingsEffectId]
+end
+
 function ATT_Functions:processItemLink(link)
   local effect1, effect2, effect3, effect4 = LibAlchemy:GetEffectsFromItemLink(link)
   local CP = tonumber(select(5, ZO_LinkHandler_ParseLink(link)) - select(6, ZO_LinkHandler_ParseLink(link)))
@@ -136,11 +133,11 @@ function ATT_Functions:processItemLink(link)
   if effect1 ~= 0 then
     local BestCombination = LibAlchemy:getBestCombination({ LibAlchemy.effectsByWritID[effect1], LibAlchemy.effectsByWritID[effect2], LibAlchemy.effectsByWritID[effect3], LibAlchemy.effectsByWritID[effect4] }) or 0
     local craftingCost = LibAlchemy:getCraftingCost(BestCombination, link) or 0
-    local newText = "(" .. ATT_savedVars.effectsByWritIDShort[effect1]
+    local newText = "(" .. getDisplayedEffectName(effect1)
     if effect2 ~= 0 then
-      newText = newText .. "/" .. ATT_savedVars.effectsByWritIDShort[effect2]
+      newText = newText .. "/" .. getDisplayedEffectName(effect2)
       if effect3 ~= 0 then
-        newText = newText .. "/" .. ATT_savedVars.effectsByWritIDShort[effect3]
+        newText = newText .. "/" .. getDisplayedEffectName(effect3)
       end
     end
     newText = newText .. ")"
@@ -274,9 +271,13 @@ function ATT_Functions:InitializePrices()
   LibAlchemy.reagents[150671][2] = ATT_Functions:GeneratePrice("|H0:item:150671:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
   LibAlchemy.reagents[139019][2] = ATT_Functions:GeneratePrice("|H0:item:139019:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
   LibAlchemy.reagents[139020][2] = ATT_Functions:GeneratePrice("|H0:item:139020:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
-  LibAlchemy.reagents[150672][2] = ATT_Functions:GeneratePrice("|H0:item:150671:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
-  LibAlchemy.reagents[150670][2] = ATT_Functions:GeneratePrice("|H0:item:139019:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
-  LibAlchemy.reagents[150669][2] = ATT_Functions:GeneratePrice("|H0:item:139020:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[150672][2] = ATT_Functions:GeneratePrice("|H0:item:150672:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[150670][2] = ATT_Functions:GeneratePrice("|H0:item:150670:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[150669][2] = ATT_Functions:GeneratePrice("|H0:item:150669:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[224357][2] = ATT_Functions:GeneratePrice("|H0:item:224357:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[224358][2] = ATT_Functions:GeneratePrice("|H0:item:224358:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[224359][2] = ATT_Functions:GeneratePrice("|H0:item:224359:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
+  LibAlchemy.reagents[224360][2] = ATT_Functions:GeneratePrice("|H0:item:224360:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h")
 
   --solvents
   LibAlchemy.solvents[3][1] = ATT_Functions:GeneratePrice("|H0:item:883:30:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h") or 0

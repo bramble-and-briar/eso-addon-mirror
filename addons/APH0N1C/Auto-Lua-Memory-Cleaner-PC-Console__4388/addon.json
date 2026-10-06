@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/APH0N1C/Auto-Lua-Memory-Cleaner-PC-Console__4388",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "APH0N1C",
   "canonical_id": "esoui:4388",
   "category_id": "159",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4388",
@@ -17,14 +18,12 @@
     "AutoLuaMemoryCleaner"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4388/",
-  "fingerprint": "eab669897781e36964baa014b229ed08c9ca38e7f983a4a28ba93d75071d1df1",
+  "fingerprint": "45cf3f5ff35dde5259a42b144c3db1916e1457113065562a1c5598cbf6e600f3",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw15518.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15519.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15216.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15318.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15520.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15217.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17745.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17744.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17743.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17746.png"
   ],
   "platform": "pc",
   "published": true,
@@ -32,11 +31,11 @@
   "source_id": "4388",
   "source_url": "https://www.esoui.com/downloads/info4388-AutoLuaMemoryCleanerPCConsole.html",
   "stats": {
-    "downloads": 2555,
+    "downloads": 2821,
     "favorites": 12,
-    "monthly_downloads": 109
+    "monthly_downloads": 96
   },
   "title": "Auto Lua Memory Cleaner (PC & Console)",
-  "updated_at": 1774470795000,
-  "version": "0.0.8"
+  "updated_at": 1791247121000,
+  "version": "2026.10.06.08.01"
 }

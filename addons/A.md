@@ -152,12 +152,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [akamatsu02's Automated Trial Logger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/akamatsu02-s-Automated-Trial-Logger__3690) | akamatsu02 | PC / Mac | 1.1 LC |
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
-| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.1 |
+| [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.6 |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
 | [Alchemy Quantity Input](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chuaznega/Alchemy-Quantity-Input__4520) | Chuaznega | PC / Mac | 1.0 |
-| [Alchemy Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Alchemy-Tooltips__2531) | Hyperioxes | PC / Mac | 1.30 |
+| [Alchemy Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyperioxes/Alchemy-Tooltips__2531) | Hyperioxes | PC / Mac | 1.31 |
 | [Alchemy Unknown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Alchemy-Unknown__1585) | Rhyono | PC / Mac | 1.25 |
 | [Aldanga's Improved Antiquities](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aldanga/Aldanga-s-Improved-Antiquities__2669) | Aldanga | PC / Mac | 0.1.0 |
 | [Aldanga's Lazier Writ Precrafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aldanga/Aldanga-s-Lazier-Writ-Precrafter__2674) | Aldanga | PC / Mac | 1.7.0 |
@@ -320,7 +320,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Kick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Kick__3613) | peniku8 | PC / Mac | 2.2.5 |
 | [Auto Loot Crafting Materials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/estera/Auto-Loot-Crafting-Materials__1430) | estera | PC / Mac | 1.0 |
 | [AUTO LUA MEMORY CLEANER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/AUTO-LUA-MEMORY-CLEANER__9926b8d4-d4ca-4215-8790-013c0b1630c0) | APH0NlC | Console | — |
-| [Auto Lua Memory Cleaner (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Auto-Lua-Memory-Cleaner-PC-Console__4388) | APH0N1C | PC / Mac | 0.0.8 |
+| [Auto Lua Memory Cleaner (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Auto-Lua-Memory-Cleaner-PC-Console__4388) | APH0N1C | PC / Mac | 2026.10.06.08.01 |
 | [Auto Message](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Message__2859) | peniku8 | PC / Mac | 1.4.12 |
 | [Auto Offline - Sets Your Status To Offline On Logout](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Auto-Offline---Sets-Your-Status-To-Offline-On-Logout__4634) | Duesentrieb | PC / Mac | 20260624-0001 |
 | [Auto Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Auto-Opener__79b6b597-9e33-4cd7-b076-44e9a153a44c) | Copper0 | Console | — |

@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/APH0N1C/Permanent-Memento-PC-Console__4116",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "APH0N1C",
   "canonical_id": "esoui:4116",
   "category_id": "27",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4116",
@@ -17,16 +18,14 @@
     "PermMemento"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4116/",
-  "fingerprint": "c7592c12191b98a4542ce8092dc611002f9c919870d3fb00d6cd34b52fa352db",
+  "fingerprint": "0a6040b7c90fa5a2210f78eb84232451dcf1a3d39a9399858f903feb2c06a669",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw15320.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15319.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15181.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15180.png",
-    "https://cdn-eso.mmoui.com/preview/pvw14053.png",
-    "https://cdn-eso.mmoui.com/preview/pvw14054.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17750.png",
     "https://cdn-eso.mmoui.com/preview/pvw14055.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17751.png",
     "https://cdn-eso.mmoui.com/preview/pvw14056.png",
+    "https://cdn-eso.mmoui.com/preview/pvw14054.png",
+    "https://cdn-eso.mmoui.com/preview/pvw14053.png",
     "https://cdn-eso.mmoui.com/preview/pvw14057.png"
   ],
   "platform": "pc",
@@ -35,11 +34,11 @@
   "source_id": "4116",
   "source_url": "https://www.esoui.com/downloads/info4116-PermanentMementoPCConsole.html",
   "stats": {
-    "downloads": 4255,
+    "downloads": 4402,
     "favorites": 9,
-    "monthly_downloads": 78
+    "monthly_downloads": 56
   },
   "title": "Permanent Memento (PC & Console)",
-  "updated_at": 1774470821000,
-  "version": "0.8.7"
+  "updated_at": 1791247259000,
+  "version": "2026.10.06.08.01"
 }

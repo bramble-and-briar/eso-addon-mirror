@@ -67,7 +67,8 @@ local STACK_SIZE = private.STACK_SIZE
 -- with every new point: switching from MM to TTC/ATT starts a fresh comparable
 -- run instead of creating a false market spike. PRUNE_MAX_AGE_SECONDS drops
 -- entries for materials not observed in a month; the per-item point count is
--- bounded separately.
+-- bounded separately. Points outside the seven-day analysis window are pruned
+-- on load and on price writes, retaining the newest point as a price baseline.
 local PRUNE_MAX_AGE_SECONDS   = 30 * 24 * 60 * 60  -- 30 days
 local PRICE_TREND_WINDOW_SECONDS = 7 * 24 * 60 * 60
 -- Session-gated writes can land more than one point a day, so keep enough room
@@ -191,6 +192,24 @@ local function LatestComparablePricePoint(points, source)
         return nil
     end
     return latest
+end
+
+local function PrunePriceHistoryPoints(points, now)
+    local cutoff = now - PRICE_TREND_WINDOW_SECONDS
+    local pointCount = #points
+    local retainedCount = 0
+
+    for index = 1, pointCount do
+        local point = points[index]
+        if index == pointCount or (point.t and point.t >= cutoff) then
+            retainedCount = retainedCount + 1
+            points[retainedCount] = point
+        end
+    end
+
+    for index = retainedCount + 1, pointCount do
+        points[index] = nil
+    end
 end
 
 local function AppendPriceHistoryPoint(points, price, stamp, source)
@@ -1903,14 +1922,15 @@ UpdatePriceHistoryBaselines = function()
             if not latest or not latest.t or sourceChanged or needsSourceAnchor
                 or not alreadyWritten then
                 AppendPriceHistoryPoint(points, unitPrice, now, info.source)
-                history[info.itemId] = EncodePriceHistorySeries(points)
                 priceHistoryWrittenThisSession[info.itemId] = true
             else
                 latest.p = zo_round(unitPrice)
                 latest.t = now
                 latest.s = info.source
-                history[info.itemId] = EncodePriceHistorySeries(points)
             end
+
+            PrunePriceHistoryPoints(points, now)
+            history[info.itemId] = EncodePriceHistorySeries(points)
         end
     end
 end
@@ -2527,23 +2547,52 @@ function Valuation.ColorizeMaterialName(name, quality)
 end
 
 -- Drop price-history baselines for materials not seen in PRUNE_MAX_AGE_SECONDS so
--- the table cannot grow without bound. Called once on load.
+-- the table cannot grow without bound, and trim retained series to the analysis
+-- window while preserving the newest price baseline. Called once on load.
 function Valuation.PrunePriceHistory()
+    local result = {
+        materialsChecked = 0,
+        materialsRemoved = 0,
+        pointsRemoved = 0,
+        pointsRemaining = 0,
+        bytesBefore = 0,
+        bytesAfter = 0,
+        bytesRemoved = 0,
+    }
     local sv = private.savedVars
-    if not sv or not sv.priceHistory then
-        return
+    if not sv or type(sv.priceHistory) ~= "table" then
+        return result
     end
 
     local now = GetTimeStamp()
     for itemId, storedEntry in pairs(sv.priceHistory) do
         local points = DecodePriceHistorySeries(storedEntry)
+        local pointCount = #points
+        local encodedBefore = type(storedEntry) == "string" and storedEntry
+            or EncodePriceHistorySeries(points)
+        result.materialsChecked = result.materialsChecked + 1
+        result.bytesBefore = result.bytesBefore + #encodedBefore
+
         local newest = points[#points]
         if not newest or not newest.t or (now - newest.t) >= PRUNE_MAX_AGE_SECONDS then
             sv.priceHistory[itemId] = nil
+            result.materialsRemoved = result.materialsRemoved + 1
+            result.pointsRemoved = result.pointsRemoved + pointCount
         else
-            sv.priceHistory[itemId] = EncodePriceHistorySeries(points)
+            PrunePriceHistoryPoints(points, now)
+            local encodedAfter = EncodePriceHistorySeries(points)
+            sv.priceHistory[itemId] = encodedAfter
+            result.pointsRemoved = result.pointsRemoved + pointCount - #points
+            result.pointsRemaining = result.pointsRemaining + #points
+            result.bytesAfter = result.bytesAfter + #encodedAfter
         end
     end
+
+    result.bytesRemoved = math.max(0, result.bytesBefore - result.bytesAfter)
+    if result.pointsRemoved > 0 or result.materialsRemoved > 0 then
+        InvalidatePriceTrendCache()
+    end
+    return result
 end
 
 private.GetValuationSnapshot = Valuation.GetSnapshot

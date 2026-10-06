@@ -25,8 +25,8 @@ B.UI = UI
 -- The window can be resized from every edge / corner (sv.window.w / h). Everything is
 -- anchored so it follows the size: the list and the arch grow in height, the right
 -- column and the "what will change" panel in width and height.
-local WIN_W, WIN_H = 920, 740    -- standard size (0.6.0: taller for the Buffs row and the weapon rows)
-local MIN_W, MIN_H, MAX_W, MAX_H = 900, 720, 1400, 1000   -- (900: room for the Buffs row's Auto + Now)
+local WIN_W, WIN_H = 960, 780    -- standard size (0.6.0: taller for the Buffs row and the weapon rows; 1.0.2: bigger skills)
+local MIN_W, MIN_H, MAX_W, MAX_H = 960, 760, 1400, 1000   -- (960: room for the Buffs row's Auto + Now at 40 px skills)
 local HEADER_H = 110             -- cartouche + tabs
 local CONTENT_Y = 116            -- content starts here (under the tabs). NOT "TOP": that is the game's anchor constant
 local MINI_H = 84                -- minimized: only the title plate
@@ -34,7 +34,11 @@ local LIST_X, LIST_W = 24, 196
 local CARD_H, CARD_GAP, FOLDER_H = 46, 6, 22
 local ARCH_X, ARCH_W, ARCH_Y = 236, 236, 118
 local RX = 494                   -- right column (its width follows the window)
-local SLOT, SKILL = 34, 32
+local GEAR, SKILL = 38, 40       -- gear slot (arch) and skill slot sizes
+local POISON = 30                -- the poison slots at the end of each weapon row
+local ULT = 46                   -- the ultimate is a bit bigger, amber-framed (loadout sketch B, 2026-10-06)
+local SKILL_STEP = SKILL + 8     -- distance between skill slots
+local BAR_ROW = ULT + 6          -- distance between the loadout rows
 
 local ui = { rows = {}, slots = {}, skills = {}, chips = {}, ruleRows = {}, stars = {} }
 local listOffset = 0
@@ -47,16 +51,19 @@ local PARTS_SHOWN = {
     { "collect", "PART_COLLECT" }, { "companion", "PART_COMPANION" },
 }
 
--- the arch (0.6.0, user's wish: sorted, not mixed): armor on the left, jewelry on the right,
--- then a row each for the front bar's weapons, the back bar's weapons and the two poisons
-local LEFT_COL = { EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND, EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET }
-local RIGHT_COL = { EQUIP_SLOT_NECK, EQUIP_SLOT_RING1, EQUIP_SLOT_RING2 }
-local GEAR_ROWS = {
-    { "GEAR_FRONT", { EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND } },
-    { "GEAR_BACK", { EQUIP_SLOT_BACKUP_MAIN, EQUIP_SLOT_BACKUP_OFF } },
-    { "GEAR_POISONS", { EQUIP_SLOT_POISON, EQUIP_SLOT_BACKUP_POISON } },
+-- the arch (sketch B "sections" + C "set colors", 2026-10-06): the build's crest on top, then
+-- ARMOR (4 + 3), JEWELRY (3), WEAPONS (front bar / back bar, each: main, off hand, its poison)
+local ARMOR_ROWS = {
+    { EQUIP_SLOT_HEAD, EQUIP_SLOT_SHOULDERS, EQUIP_SLOT_CHEST, EQUIP_SLOT_HAND },
+    { EQUIP_SLOT_WAIST, EQUIP_SLOT_LEGS, EQUIP_SLOT_FEET },
 }
-local SLOT_STEP = SLOT + 4       -- distance between gear slots
+local JEWELRY_ROW = { EQUIP_SLOT_NECK, EQUIP_SLOT_RING1, EQUIP_SLOT_RING2 }
+local WEAPON_ROWS = {
+    { "BAR_FRONT", EQUIP_SLOT_MAIN_HAND, EQUIP_SLOT_OFF_HAND, EQUIP_SLOT_POISON },
+    { "BAR_BACK", EQUIP_SLOT_BACKUP_MAIN, EQUIP_SLOT_BACKUP_OFF, EQUIP_SLOT_BACKUP_POISON },
+}
+local GEAR_GAP = 8               -- between gear slots
+local ARCH_SECTIONS_Y = 204     -- ARMOR starts here (above: the crest, its class and two lines of notes)
 local TABS = { { key = "builds", text = "TAB_BUILDS" }, { key = "rules", text = "TAB_RULES" }, { key = "check", text = "TAB_CHECK" } }
 
 -- (other = only on another character: red like missing, it can't be worn from here; 0.6.9)
@@ -146,8 +153,8 @@ end
 local function SetList(b)
     local list = {}
     if not b.gear then return list end
-    for _, t in pairs(B.Check.SetCounts(b.gear)) do
-        list[#list + 1] = { name = B.Check.SetName(t.link), n = t.n, max = t.max, full = t.n >= t.max }
+    for id, t in pairs(B.Check.SetCounts(b.gear)) do
+        list[#list + 1] = { id = id, name = B.Check.SetName(t.link), n = t.n, max = t.max, full = t.n >= t.max }
     end
     table.sort(list, function(x, y)
         if x.full ~= y.full then return x.full end
@@ -158,6 +165,8 @@ local function SetList(b)
 end
 
 -- one set: complete = gold name + dim count, partial = soft name + orange count
+-- (2026-10-06: colored set stripes in the arch + dots here were tried and removed: the user
+-- found them unneeded, the sets line already names the sets. Don't bring them back.)
 local function SetText(s)
     return B.Colorize(s.full and C.gold or C.soft, s.name) .. " " .. B.Colorize(s.full and C.dim or C.warn, s.n .. "/" .. s.max)
 end
@@ -1151,8 +1160,8 @@ local function GearPicker(slot, anchor)
 end
 UI.ClosePicker = ClosePicker
 
-local function MakeSlot(parent, slot)
-    local c = SquareSlot(parent, SLOT)
+local function MakeSlot(parent, slot, size)
+    local c = SquareSlot(parent, size or GEAR)
     c.dot = W.Tex(c, B.TEX .. "disc.dds", 9, 9, C.bad)
     c.dot:SetAnchor(CENTER, c, TOPRIGHT, -2, 2)
     c.dot:SetDrawLevel(6)
@@ -1295,7 +1304,7 @@ local function SkillPicker(cat, slot, anchor)
 end
 
 local function MakeSkill(parent, cat, slot)
-    local c = SquareSlot(parent, SKILL)
+    local c = SquareSlot(parent, slot == Capture.ULT_SLOT and ULT or SKILL)
     c.quality:SetHidden(true)
     c:SetHandler("OnMouseEnter", function(self)
         local b = B.Get(ui.sel)
@@ -1346,7 +1355,7 @@ local function PaintSkill(c, b)
             c.frame:SetFrameColor(C.bad, 1)
         else
             c.icon:SetColor(1, 1, 1, 1)
-            c.frame:SetFrameColor(ult and C.gold or C.edge, 1)
+            c.frame:SetFrameColor(ult and C.theme or C.edge, 1)
         end
     else
         c.icon:SetHidden(true)
@@ -1737,12 +1746,13 @@ end
 --   hover: the crest lifts 3 px, its edge turns amber, the light comes up (120 ms)
 --   click: the save window (name, picture, parts) for this build
 --   another build selected: the crest dips to 92 % and fades in again (220 ms)
-local CREST_W, CREST_H = 92, 115
+local CREST_W, CREST_H = 72, 90   -- (2026-10-06: smaller, on top of the arch; was 92 x 115 in the middle)
+local CREST_BOX = 44              -- the build picture's frame inside the crest
 local function MakeEmblem(parent)
     local e = WINDOW_MANAGER:CreateControl(nil, parent, CT_CONTROL)
     e:SetDimensions(CREST_W, CREST_H + 22)
     e:SetMouseEnabled(true)
-    Anim.Anchor(e, TOP, parent, TOP, 0, 156)   -- (centered between the two gear columns)
+    Anim.Anchor(e, TOP, parent, TOP, 0, 46)   -- (in the arch's dome, above the gear sections; 26 touched the curve)
     e.light = W.Glow(e, CREST_W * 2, CREST_H * 1.7, C.theme, 0.08)
     e.light:SetAnchor(CENTER, e, TOP, 0, CREST_H / 2)
     e.inner = WINDOW_MANAGER:CreateControl(nil, e, CT_CONTROL)
@@ -1751,10 +1761,10 @@ local function MakeEmblem(parent)
     e.fill = W.Tex(e.inner, B.TEX .. "crest_fill.dds", CREST_W, CREST_H, C.card, 0.95)
     e.fill:SetAnchor(CENTER, e.inner, CENTER, 0, 0)
     local box = WINDOW_MANAGER:CreateControl(nil, e.inner, CT_CONTROL)
-    box:SetDimensions(56, 56)
-    box:SetAnchor(CENTER, e.inner, TOP, 0, 46)
+    box:SetDimensions(CREST_BOX, CREST_BOX)
+    box:SetAnchor(CENTER, e.inner, TOP, 0, math.floor(CREST_H * 0.4))
     W.Frame(box, C.goldDark, 1)
-    e.icon = W.Tex(box, nil, 54, 54)
+    e.icon = W.Tex(box, nil, CREST_BOX - 2, CREST_BOX - 2)
     e.icon:SetAnchor(CENTER, box, CENTER, 0, 0)
     e.icon:SetDrawLevel(2)
     e.edge = W.Tex(e.inner, B.TEX .. "crest_edge.dds", CREST_W, CREST_H, C.gold)
@@ -1762,11 +1772,12 @@ local function MakeEmblem(parent)
     e.edge:SetDrawLevel(3)
     e.caption = W.Label(e, B.Font("head", 11), C.dim, "", TEXT_ALIGN_CENTER)
     e.caption:SetAnchor(TOP, e.inner, BOTTOM, 0, 4)
-    -- the build's notes (rotation, what it's for), a few lines under the crest
+    -- the build's notes (rotation, what it's for): two lines under the crest, all of it in the
+    -- crest's tooltip (the gear sections start right below)
     e.note = W.Label(parent, B.Font("text", 11), C.soft, "", TEXT_ALIGN_CENTER)
-    e.note:SetAnchor(TOP, e.caption, BOTTOM, 0, 6)
-    e.note:SetWidth(124)
-    e.note:SetMaxLineCount(4)
+    e.note:SetAnchor(TOP, e.caption, BOTTOM, 0, 4)
+    e.note:SetWidth(ARCH_W - 44)
+    e.note:SetMaxLineCount(2)
     e.hoverP = 0
     local function Paint()
         local p = e.hoverP
@@ -1784,7 +1795,9 @@ local function MakeEmblem(parent)
     e:SetHandler("OnMouseEnter", function()
         Hover(true)
         InitializeTooltip(InformationTooltip, e, BOTTOM, 0, -6, TOP)
-        SetTooltipText(InformationTooltip, L("EMBLEM_TT"))
+        local b = B.Get(ui.sel)
+        local note = b and b.note and b.note ~= "" and (B.Colorize(C.soft, b.note) .. "\n\n") or ""
+        SetTooltipText(InformationTooltip, note .. L("EMBLEM_TT"))
     end)
     e:SetHandler("OnMouseExit", function()
         Hover(false)
@@ -3215,30 +3228,42 @@ local function CreateBuildsPage(win)
     content:SetAnchorFill(arch)
     ui.archContent = content
     MakeEmblem(content)
-    local slotTop = 112
-    for i, slot in ipairs(LEFT_COL) do
-        local s = MakeSlot(content, slot)
-        Anim.Anchor(s, TOPLEFT, content, TOPLEFT, 18, slotTop + (i - 1) * SLOT_STEP)
+    -- a section header (small, like the cards' headers) and a centered row of gear slots
+    local function Section(textKey, y)
+        local h = W.Header(content, L(textKey))
+        h.label:SetFont(B.Font("head", 11))
+        h:SetAnchor(TOPLEFT, content, TOPLEFT, 18, y)
+        h:SetAnchor(TOPRIGHT, content, TOPRIGHT, -18, y)
     end
-    for i, slot in ipairs(RIGHT_COL) do
-        local s = MakeSlot(content, slot)
-        Anim.Anchor(s, TOPRIGHT, content, TOPRIGHT, -18, slotTop + (i - 1) * SLOT_STEP)
-    end
-    -- under the armor: FRONT BAR / BACK BAR / POISONS, each a label, a thin line, two slots
-    local rowsTop = slotTop + #LEFT_COL * SLOT_STEP + 4
-    for r, def in ipairs(GEAR_ROWS) do
-        local y = rowsTop + (r - 1) * SLOT_STEP
-        local label = W.Label(content, B.Font("head", 11), C.dim, zo_strupper(L(def[1])))
-        label:SetAnchor(LEFT, content, TOPLEFT, 18, y + SLOT / 2)
-        local first
-        for i = #def[2], 1, -1 do
-            local s = MakeSlot(content, def[2][i])
-            Anim.Anchor(s, TOPRIGHT, content, TOPRIGHT, -18 - (#def[2] - i) * (SLOT + 6), y)
-            first = s
+    local function Row(slots, y)
+        local w = #slots * GEAR + (#slots - 1) * GEAR_GAP
+        for i, slot in ipairs(slots) do
+            local s = MakeSlot(content, slot)
+            Anim.Anchor(s, TOPLEFT, content, TOP, -w / 2 + (i - 1) * (GEAR + GEAR_GAP), y)
         end
-        local line = W.Tex(content, nil, 10, 1, C.line)
-        line:SetAnchor(LEFT, label, RIGHT, 8, 0)
-        line:SetAnchor(RIGHT, first, LEFT, -8, 0)
+    end
+    -- (2026-10-06: a bit more air, user: header -> slots 22 (was 18), section -> section 28 (was 18))
+    local HEAD_GAP, SECTION_GAP = 22, 28
+    local y = ARCH_SECTIONS_Y
+    Section("ARCH_ARMOR", y)
+    Row(ARMOR_ROWS[1], y + HEAD_GAP)
+    Row(ARMOR_ROWS[2], y + HEAD_GAP + GEAR + GEAR_GAP)
+    y = y + HEAD_GAP + 2 * GEAR + GEAR_GAP + SECTION_GAP
+    Section("ARCH_JEWELRY", y)
+    Row(JEWELRY_ROW, y + HEAD_GAP)
+    y = y + HEAD_GAP + GEAR + SECTION_GAP
+    Section("ARCH_WEAPONS", y)
+    -- FRONT BAR [main][off]  [poison]  /  BACK BAR [main][off]  [poison]
+    for r, def in ipairs(WEAPON_ROWS) do
+        local ry = y + HEAD_GAP + (r - 1) * (GEAR + GEAR_GAP + 2)
+        local label = W.Label(content, B.Font("head", 11), C.dim, zo_strupper(L(def[1])))
+        label:SetAnchor(LEFT, content, TOPLEFT, 18, ry + GEAR / 2)
+        local poison = MakeSlot(content, def[4], POISON)
+        Anim.Anchor(poison, TOPRIGHT, content, TOPRIGHT, -18, ry + (GEAR - POISON) / 2)
+        local off = MakeSlot(content, def[3])
+        Anim.Anchor(off, TOPRIGHT, content, TOPRIGHT, -18 - POISON - 12, ry)
+        local main = MakeSlot(content, def[2])
+        Anim.Anchor(main, TOPRIGHT, content, TOPRIGHT, -18 - POISON - 12 - GEAR - GEAR_GAP, ry)
     end
     -- bottom of the arch: [star Favorite] [Preview]
     ui.favBtn = W.Button(content, L("FAV_BUTTON"), function()
@@ -3349,7 +3374,7 @@ local function CreateBuildsPage(win)
     --   PUTS ON        one line of chips (only the parts that are on, "+N" when they don't fit)
     -- The check moved into the line under the name (a dot + "all good" / "2 to check", hover
     -- lists them); the "Also: outfit · title · mount" line moved into those chips' tooltips.
-    local PAD_X, ROW = 10, SKILL + 6
+    local PAD_X = 10
     local function Card(top, height, title, under)
         local c = WINDOW_MANAGER:CreateControl(nil, d, CT_CONTROL)
         if under then
@@ -3373,26 +3398,35 @@ local function CreateBuildsPage(win)
         return c
     end
 
-    local loadout = Card(78, 30 + 3 * ROW, L("CARD_LOADOUT"))
+    -- (sketch B, 2026-10-06: 40 px skills, the ultimate 46 px with an amber frame behind a thin
+    -- divider; the five normal skills sit centered on the ultimate's height)
+    local BAR_X = 64
+    local ULT_X = BAR_X + 4 * SKILL_STEP + SKILL + 21   -- (divider halfway in the 21 px gap)
+    local loadout = Card(78, 28 + 2 * BAR_ROW + SKILL + 12, L("CARD_LOADOUT"))
     ui.loadoutCard = loadout
     for bar, cat in ipairs(Capture.BARS) do
-        local y = 28 + (bar - 1) * ROW
+        local y = 28 + (bar - 1) * BAR_ROW
         local label = W.Label(loadout, B.Font("head", 12), C.dim, L(bar == 1 and "BAR_FRONT" or "BAR_BACK"))
-        label:SetAnchor(TOPLEFT, loadout, TOPLEFT, PAD_X, y + 9)
+        label:SetAnchor(LEFT, loadout, TOPLEFT, PAD_X, y + ULT / 2)
         for slot = Capture.FIRST_SLOT, Capture.ULT_SLOT do
-            local x = 60 + (slot - Capture.FIRST_SLOT) * ROW + (slot == Capture.ULT_SLOT and 10 or 0)
             local s = MakeSkill(loadout, cat, slot)
-            Anim.Anchor(s, TOPLEFT, loadout, TOPLEFT, x, y)
+            if slot == Capture.ULT_SLOT then
+                Anim.Anchor(s, TOPLEFT, loadout, TOPLEFT, ULT_X, y)
+            else
+                Anim.Anchor(s, TOPLEFT, loadout, TOPLEFT, BAR_X + (slot - Capture.FIRST_SLOT) * SKILL_STEP, y + (ULT - SKILL) / 2)
+            end
         end
+        local divider = W.Tex(loadout, nil, 1, SKILL - 8, C.goldDark)
+        divider:SetAnchor(CENTER, loadout, TOPLEFT, ULT_X - 11, y + ULT / 2)
     end
     -- third row: the build's prebuff skills (Skillbound_Prebuff.lua), an Auto switch, "Now"
-    local preY = 28 + 2 * ROW
+    local preY = 28 + 2 * BAR_ROW
     local preLabel = W.Label(loadout, B.Font("head", 12), C.dim, L("BAR_PREBUFF"))
-    preLabel:SetAnchor(TOPLEFT, loadout, TOPLEFT, PAD_X, preY + 9)
+    preLabel:SetAnchor(LEFT, loadout, TOPLEFT, PAD_X, preY + SKILL / 2)
     W.Tip(preLabel, function() return L("PRE_INFO_TT") end, TOP)
     for slot = B.Prebuff.FIRST, B.Prebuff.LAST do
         local s = MakePreSlot(loadout, slot)
-        Anim.Anchor(s, TOPLEFT, loadout, TOPLEFT, 60 + (slot - Capture.FIRST_SLOT) * ROW, preY)
+        Anim.Anchor(s, TOPLEFT, loadout, TOPLEFT, BAR_X + (slot - Capture.FIRST_SLOT) * SKILL_STEP, preY)
     end
     ui.preAuto = W.Switch(loadout, L("PRE_AUTO"), function()
         local b = B.Get(ui.sel)
@@ -3403,7 +3437,7 @@ local function CreateBuildsPage(win)
         b.prebuff = b.prebuff or { skills = {} }
         b.prebuff.auto = v or nil
     end, function() return L("PRE_AUTO_TT") end)
-    ui.preAuto:SetAnchor(LEFT, loadout, TOPLEFT, 60 + 5 * ROW + 4, preY + SKILL / 2)
+    ui.preAuto:SetAnchor(LEFT, loadout, TOPLEFT, BAR_X + 4 * SKILL_STEP + SKILL + 14, preY + SKILL / 2)
     ui.preNow = W.Button(loadout, L("PRE_NOW"), function()
         local b = B.Get(ui.sel)
         if b then B.Prebuff.Start(b) end
@@ -3695,6 +3729,7 @@ end
 -- everything that depends on the window's size (called while resizing, too)
 local function Relayout()
     if not ui.win then return end
+    if ui.bg then W.FitBG(ui.bg) end   -- (in case the game has no OnRectChanged: see W.Tex)
     LayoutTabs()
     MoveUnderline(true)
     if ui.minimized then return end
@@ -3787,6 +3822,7 @@ function UI.Create()
     -- background + frame
     local bg = W.Tex(win, B.BG)
     bg:SetAnchorFill(win)
+    ui.bg = bg
     W.Frame(win, C.goldDark, 1)
     local inner = WINDOW_MANAGER:CreateControl(nil, win, CT_CONTROL)
     inner:SetAnchor(TOPLEFT, win, TOPLEFT, 6, 6)

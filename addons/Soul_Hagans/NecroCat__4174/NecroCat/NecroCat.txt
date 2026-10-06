@@ -1,12 +1,14 @@
 ## Title: |c66f2ffCastle of Necro cat Guild Hall|r
 ## Author: |cff6401Soul_Hagans|r
-## APIVersion: 101050 101051
-## Version: 2.1.2
-## AddOnVersion: 20102
+## APIVersion: 101051
+## Version: 3.0.0
+## AddOnVersion: 30000
 ## Description: Добавляет кнопки для перемещения в гилд и крафт холлы,а так же остальные функции.
 ## SavedVariables: NecroCat_SV
-## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: LibCustomMenu>=70300 HarvestMap LibMapPins OdySupportIcons
+
+lang/en.lua
+lang/$(language).lua
 
 bindings.xml
 NecroCat_Minimap.xml
@@ -17,4 +19,10 @@ NecroCat_Follow.lua
 HarvestIcons.lua
 NecroCat_Minimap.lua
 NecroCat_Minimap_Pins.lua
-
+NecroCat_HarvestMap.lua
+NecroCat_Frames.lua
+NecroCat_FrameTarget.lua
+NecroCat_FrameBoss.lua
+NecroCat_Group_Frames.lua
+NecroCat_Companion_Frames.lua
+NecroCat_Settings.lua

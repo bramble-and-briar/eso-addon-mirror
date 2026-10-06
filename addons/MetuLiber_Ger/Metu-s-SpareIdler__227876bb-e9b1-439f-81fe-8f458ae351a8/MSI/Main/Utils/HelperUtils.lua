@@ -35,6 +35,7 @@ function MSI.ApplyRightScene(givenScene)
 		--SCENE_MANAGER:Hide("loreLibrary")
 		SCENE_MANAGER:Show("gamepad_inventory_root")
 	else
+		--SCENE_MANAGER:ShowBaseScene()
 		SCENE_MANAGER:Show("hudui")
 	end
 end

@@ -60,6 +60,7 @@ _x.SORT_ICON_DOWN = "/esoui/art/miscellaneous/list_sortheader_icon_neutral.dds"
 
 _x.ALL_CHARACTERS_KEY = "__ALL__"
 _x.MAX_LOCKED_MATCHES = 20
+_x.MAX_SCOREBOARD_PLAYERS = 18
 
 _x.classIcons = {
     [1] = "esoui/art/icons/class/gamepad/gp_class_dragonknight.dds",

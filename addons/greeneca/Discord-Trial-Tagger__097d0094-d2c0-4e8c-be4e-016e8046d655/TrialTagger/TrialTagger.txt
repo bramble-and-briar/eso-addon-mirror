@@ -1,0 +1,24 @@
+; PC/Mac manifest. Keep in sync with TrialTagger.addon, which is the manifest
+; the Bethesda.net console submission requires. The PC client would load either
+; one, so this file is convention rather than necessity.
+; APIVersion must match the live client; check in game with:
+;   /script d(GetAPIVersion())
+
+## Title: Trial Tagger
+## Author: |c3498dbTrial Tagger|r
+## Version: 0.1.0
+## AddOnVersion: 1
+## APIVersion: 101050 101051
+## Description: Shows your veteran trial achievements as a checksummed code you can screenshot and post to Discord for automatic role assignment.
+## SavedVariables: TrialTaggerSV
+;
+; Optional, never DependsOn. Without it there is no Settings entry and the
+; addon says so on load, pointing at the /trialtag command instead.
+## OptionalDependsOn: LibAddonMenu-2.0
+
+Catalog.lua
+Codec.lua
+Scanner.lua
+UI.lua
+Settings.lua
+TrialTagger.lua

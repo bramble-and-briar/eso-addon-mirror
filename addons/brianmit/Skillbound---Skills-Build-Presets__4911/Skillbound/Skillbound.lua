@@ -34,7 +34,7 @@ local L = B.L
 
 B.LOGO = "Skillbound/Textures/logo.dds"   -- sword through a ring (logo 2, picked 2026-10-01)
 B.TEX = "Skillbound/Textures/"
-B.VERSION = "1.0.1"   -- keep the same as "## Version" in Skillbound.txt (shown in the window's credit)
+B.VERSION = "1.0.2"   -- keep the same as "## Version" in Skillbound.txt (shown in the window's credit)
 B.AUTHOR = "brianmit"
 B.BG = B.TEX .. "bg_graphite.dds"   -- window / panel / button background (palette 2)
 B.MAX_FAV = 10   -- favorites: button slots, keybinds, quick wheel (all up to 10)
@@ -122,6 +122,7 @@ local defaults = {
     askWear = true,           -- "Switch to <build>?" before wearing from the window / the button's favorites
     foodRenewMin = 0,         -- "Eat in dungeons" renews the food once fewer minutes than this are left (0 = only when it ran out)
     readyCard = true,         -- the ready check card when you enter a dungeon or trial (Skillbound_Ready.lua)
+    quietSwap = true,         -- mute the game's item sounds (drinking / eating / equip) while a build goes on
     fix = { repairAt = 60, chargeAt = 30, autoRepair = false, autoCharge = false },   -- Gear check, Skillbound_Fix.lua
     prebuff = { restoreAfter = 12 },   -- seconds the buff skills stay on the bar at most (Skillbound_Prebuff.lua)
     eatFood = true,           -- wearing a build eats its food when the buff isn't running

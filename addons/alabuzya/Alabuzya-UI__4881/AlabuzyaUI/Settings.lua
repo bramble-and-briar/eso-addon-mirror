@@ -7,7 +7,7 @@ S.defaults = {
     charge = { enabled = true, threshold = 10, crown = true },
     repair = { enabled = true, threshold = 10, crown = true },
     assistantPanel = true, junk = true, chat = true, grid = true,
-    guildBackground = true,
+    guildBackground = true, overlayMap = {enabled=true,opacity=0.28,scale=1},
 }
 S.fonts = {'default','MEDIUM_FONT','BOLD_FONT','CHAT_FONT','ANTIQUE_FONT','HANDWRITTEN_FONT','STONE_TABLET_FONT','GAMEPAD_LIGHT_FONT','GAMEPAD_MEDIUM_FONT','GAMEPAD_BOLD_FONT'}
 function S.FontFace(style)
@@ -27,6 +27,10 @@ function S.Get()
         for _, kind in ipairs({'charge', 'repair'}) do
             saved[kind].threshold = math.max(1, math.min(90, tonumber(saved[kind].threshold) or 10))
         end
+        saved.overlayMap=type(saved.overlayMap)=='table' and saved.overlayMap or {}
+        saved.overlayMap.enabled=saved.overlayMap.enabled~=false
+        saved.overlayMap.opacity=math.max(0.05,math.min(0.8,tonumber(saved.overlayMap.opacity) or 0.28))
+        saved.overlayMap.scale=math.max(0.5,math.min(1.2,tonumber(saved.overlayMap.scale) or 1))
         loadedStyle = saved.style
     end
     return saved
@@ -54,7 +58,7 @@ local function RegisterPanel()
     local ru = GetCVar('language.2') == 'ru'
     local function L(a,b) return ru and a or b end
     local panel = LAM:RegisterAddonPanel('AlabuzyaUIOptions', {
-        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='1.0.1',
+        type='panel', name='Alabuzya UI', displayName='Alabuzya UI', author='alabuzya', version='1.0.6',
         registerForRefresh=true, registerForDefaults=true,
     })
     SLASH_COMMANDS['/alabuzyaui'] = function() LAM:OpenToPanel(panel) end
@@ -110,6 +114,18 @@ local function RegisterPanel()
                 getFunc=function() return db.goldLedgerMode or 'day' end,
                 setFunc=function(v) db.goldLedgerMode=v if AlabuzyaUI.GoldLedger then AlabuzyaUI.GoldLedger.Refresh() end end,
                 default='day',tooltip=L('Меняет значок и историю сразу. По дням суммируются все сессии одной календарной даты на текущем сервере.','Immediately changes the widget and history. Daily mode sums all sessions on the same calendar date on this server.')},
+        }},
+        {type='submenu',name=L('Оверлей карты','Map overlay'),controls={
+            {type='checkbox',name=L('Включить оверлей карты','Enable map overlay'),
+                getFunc=function() return db.overlayMap.enabled end,
+                setFunc=function(v) db.overlayMap.enabled=v if AlabuzyaUI.OverlayMap then AlabuzyaUI.OverlayMap.Refresh() end end,default=true},
+            {type='description',text=L('Назначьте клавишу в Управление → Назначение клавиш → Alabuzya UI. Нажатие показывает или скрывает обесцвеченную карту без рамки; значки и области остаются цветными. Работает со всеми стилями, включая стандартный ESO.','Assign a key under Controls → Keybindings → Alabuzya UI. Press to show or hide a borderless desaturated map; pins and areas remain colored. Works with every style, including standard ESO.')},
+            {type='slider',name=L('Видимость подложки (%)','Map background opacity (%)'),min=5,max=80,step=1,
+                getFunc=function() return math.floor(db.overlayMap.opacity*100+0.5) end,
+                setFunc=function(v) db.overlayMap.opacity=v/100 end,default=28},
+            {type='slider',name=L('Размер карты (%)','Map size (%)'),min=50,max=120,step=5,
+                getFunc=function() return math.floor(db.overlayMap.scale*100+0.5) end,
+                setFunc=function(v) db.overlayMap.scale=v/100 end,default=100},
         }},
         Maintenance('charge', L('Зарядка оружия', 'Weapon recharge')),
         Maintenance('repair', L('Ремонт снаряжения', 'Equipment repair')),

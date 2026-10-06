@@ -1,0 +1,8 @@
+[b]v2.7 ~DakJaniels (28-September-2026)[/b]
+[list][*]Updated reagent traits for Update 51. Increase Spell Power and Increase Weapon Power are now Increase Power. Spell Critical and Weapon Critical are now Critical. Increase Weapon Power on some reagents is now Force.
+[*]Added traits Damage Shield, Heal Absorption, Mending, and Vexation. Maim is no longer a trait. Enervation now cancels Force, and its master-writ id is 36.
+[*]Added reagents Cultivated Cryptpods (224357), Daedra-Blood Maggots (224358), Fossilized Verminous Bones (224359), and Winter's Grave Tongue (224360).
+[*]Rebuilt the effect index and cancel pairs from the Update 51 trait set.
+[*]Master-writ effect ids 33 through 38 cover the new traits. Old potion and writ ids 13, 14, 17, and 18 still resolve: Increase Power, Cowardice, Critical, and Enervation.
+[*]Price lookups include the four new reagents. Chaurus Egg, Vile Coagulant, and Crimson Nirnroot now price their own item ids.
+[/list]

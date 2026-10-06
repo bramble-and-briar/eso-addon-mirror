@@ -1,6 +1,6 @@
 ## Title: Feliks' Companion Roster
 ## Author: Feliks Blackwood
-## Version: 2.2.0
+## Version: 2.2.1
 ## APIVersion: 101051
 ## SavedVariables: CompanionRoster_SavedVariables
 ## DependsOn: LibSlashCommander>=45 LibAddonMenu-2.0>=43

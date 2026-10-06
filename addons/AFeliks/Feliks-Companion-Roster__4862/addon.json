@@ -18,7 +18,7 @@
     "CompanionRoster"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4862/",
-  "fingerprint": "3e71c4ee5306b1741677afb688530ed8ccd0fea2bdd312df5c098f21affc3136",
+  "fingerprint": "1c091d232dbeb7abb6d7bc1c2965bde58cad0ef367d9a555033ca40658be7636",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17714.png",
     "https://cdn-eso.mmoui.com/preview/pvw17718.png",
@@ -33,11 +33,11 @@
   "source_id": "4862",
   "source_url": "https://www.esoui.com/downloads/info4862-FeliksCompanionRoster.html",
   "stats": {
-    "downloads": 126,
-    "favorites": 4,
-    "monthly_downloads": 118
+    "downloads": 151,
+    "favorites": 5,
+    "monthly_downloads": 136
   },
   "title": "Feliks' Companion Roster",
-  "updated_at": 1791171333000,
-  "version": "2.2.0"
+  "updated_at": 1791263165000,
+  "version": "2.2.1"
 }

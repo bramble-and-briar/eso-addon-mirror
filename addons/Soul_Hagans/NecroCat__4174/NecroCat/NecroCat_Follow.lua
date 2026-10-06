@@ -7,11 +7,10 @@ local FM = NecroCat.Follow
 ---------------------------------------------------------
 
 function NecroCat.Follow.AcceptDialog()
-    -- Проверяем: если окно открыто, то делаем телепорт
     if NecroCat.Follow.Dialog and not NecroCat.Follow.Dialog:IsHidden() then
         if NecroCat.Follow.Dialog.leader then
             JumpToGroupMember(NecroCat.Follow.Dialog.leader)
-            d("Телепортация к: " .. NecroCat.Follow.Dialog.leader)
+            d(zo_strformat(GetString(SI_NC_FOLLOW_JUMPING), NecroCat.Follow.Dialog.leader))
         end
         FM.CloseDialog()
     end
@@ -48,16 +47,16 @@ local function CreateDialog()
 
     local label = WINDOW_MANAGER:CreateControl("$(parent)Label", frame, CT_LABEL)
     label:SetAnchor(TOP, frame, TOP, 0, 20)
-    label:SetDimensions(340, 160) -- Немного увеличили ширину и высоту
+    label:SetDimensions(340, 160)
     label:SetFont("ZoFontWinH3")
-    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER) -- По горизонтали по центру
-    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)   -- По вертикали по центру (это самое важное!)
-    
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+
     local btnYes = WINDOW_MANAGER:CreateControl("$(parent)BtnYes", frame, CT_BUTTON)
     btnYes:SetDimensions(100, 30)
     btnYes:SetAnchor(BOTTOM, frame, BOTTOM, -60, -10)
     btnYes:SetNormalTexture("/esoui/art/buttons/btn_up.dds")
-    btnYes:SetText("Да")
+    btnYes:SetText(GetString(SI_NC_FOLLOW_YES))
     btnYes:SetFont("ZoFontWinH3")
     btnYes:SetHandler("OnClicked", NecroCat.Follow.AcceptDialog)
 
@@ -65,7 +64,7 @@ local function CreateDialog()
     btnNo:SetDimensions(100, 30)
     btnNo:SetAnchor(BOTTOM, frame, BOTTOM, 60, -10)
     btnNo:SetNormalTexture("/esoui/art/buttons/btn_up.dds")
-    btnNo:SetText("Нет")
+    btnNo:SetText(GetString(SI_NC_FOLLOW_NO))
     btnNo:SetFont("ZoFontWinH3")
     btnNo:SetHandler("OnClicked", NecroCat.Follow.CloseDialog)
 
@@ -80,12 +79,13 @@ end
 function FM.OpenDialog(leader, zone)
     local frame = NecroCat.Follow.Dialog
     if not frame then CreateDialog() frame = NecroCat.Follow.Dialog end
-    
-    local header = "|cFFD700ВАС ПРИЗЫВАЮТ|r"
-    local text = header .. "\n\n" .. leader .. "\n" .. zone .. "\n\nТелепортироваться?"
-    
+
+    local header = GetString(SI_NC_FOLLOW_DIALOG_HEADER)
+    local question = GetString(SI_NC_FOLLOW_DIALOG_QUESTION)
+    local text = header .. "\n\n" .. leader .. "\n" .. zone .. "\n\n" .. question
+
     NecroCat.Follow.Label:SetText(text)
-    
+
     frame.leader = leader
     frame:SetHidden(false)
 end
@@ -118,55 +118,51 @@ local function OnChatMessage(eventCode, channelType, fromName, messageText, isCu
     end
 end
 
--- 1. Функция переключения авторежима
+-- Переключение авторежима
 function FM.ToggleAutoPrepare()
-    -- Переключаем значение (было true стало false, и наоборот)
     NecroCat.savedVars.followAutoPrepare = not NecroCat.savedVars.followAutoPrepare
-    
-    -- Сразу обновляем цвет кнопки
     FM.UpdateChatButtonColor()
-    
-    -- Пишем сообщение в чат, чтобы ты видел, что режим изменился
+
     if NecroCat.savedVars.followAutoPrepare then
-        d("|c00FF00[NecroCat]: Авто-маяк при телепорте включен.|r")
+        d(GetString(SI_NC_FOLLOW_AUTO_ON))
     else
-        d("|cFF0000[NecroCat]: Авто-маяк при телепорте выключен.|r")
+        d(GetString(SI_NC_FOLLOW_AUTO_OFF))
     end
 end
 
--- 2. Функция обновления видимости кнопки (через прозрачность)
 function FM.UpdateChatButtonColor()
     if not FM.ChatButton then return end
-    
-    -- Всегда держим рабочую зеленую галочку
     FM.ChatButton:SetNormalTexture("/esoui/art/buttons/accept_up.dds")
-    
+
     if NecroCat.savedVars.followAutoPrepare then
-        -- Если включен: яркая (100% непрозрачности)
-        FM.ChatButton:SetAlpha(1.0) 
+        FM.ChatButton:SetAlpha(1.0)
     else
-        -- Если выключен: полупрозрачная/тусклая (35% видимости)
-        FM.ChatButton:SetAlpha(0.35) 
+        FM.ChatButton:SetAlpha(0.35)
     end
 end
 
--- Флаг, чтобы не триггерить маяк при обычном входе/перезагрузке интерфейса
 local isFirstLoad = true
+local isChatHooked = false
 
 local function OnPlayerActivated(eventCode)
-    -- Если это самый первый вход в игру или /reloadui — просто запоминаем и ничего не делаем
+    -- Глушим чат, когда он уже 100% проснулся в мире
+    if not isChatHooked and CHAT_SYSTEM and CHAT_SYSTEM.primaryContainer then
+        ZO_PreHook(CHAT_SYSTEM.primaryContainer, "AddEventMessageToContainer", function(self, message)
+            if type(message) == "string" and message:find("FM:") then
+                return true
+            end
+        end)
+        isChatHooked = true
+    end
+
     if isFirstLoad then
         isFirstLoad = false
         return
     end
 
-    -- Безопасная проверка: загружены ли сохранения и включен ли авторежим
     if not (NecroCat.savedVars and NecroCat.savedVars.followAutoPrepare) then return end
-
-    -- Проверяем: находимся ли мы вообще в группе?
     if not IsUnitGrouped("player") then return end
 
-    -- Даем игре полсекунды (500 мс) на полную отрисовку чата и вызываем подготовку маяка
     zo_callLater(function()
         FM.SendBeacon()
     end, 500)
@@ -174,37 +170,46 @@ end
 
 EVENT_MANAGER:RegisterForEvent("NecroCat_Follow_Load", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 
--- 3. Обновленная функция инициализации
+-- Обновление позиции кнопки в чате
+function FM.UpdateButtonPosition()
+    if not FM.ChatButton then return end
+    local x = (NecroCat.savedVars and NecroCat.savedVars.followButtonX) or 177
+    FM.ChatButton:ClearAnchors()
+    FM.ChatButton:SetAnchor(TOPLEFT, ZO_ChatWindow, TOPLEFT, x, 10)
+end
+
+-- Сброс позиции кнопки на 177
+function FM.ResetButtonPosition()
+    if not NecroCat.savedVars then return end
+    NecroCat.savedVars.followButtonX = 177
+    FM.UpdateButtonPosition()
+end
+
 function FM.Init()
     CreateDialog()
     EVENT_MANAGER:RegisterForEvent("NecroCat_Follow", EVENT_CHAT_MESSAGE_CHANNEL, OnChatMessage)
     SLASH_COMMANDS["/fm"] = function() FM.SendBeacon() end
-    SLASH_COMMANDS["/fmdemo"] = function() 
-        FM.OpenDialog("Тестовый Игрок", "Тестовая Зона") 
-    end    
-    
-    -- Создаем кнопку в чате
+    SLASH_COMMANDS["/fmdemo"] = function()
+        FM.OpenDialog(GetString(SI_NC_FOLLOW_DEMO_PLAYER), GetString(SI_NC_FOLLOW_DEMO_ZONE))
+    end
+
     local btn = WINDOW_MANAGER:CreateControl("NecroCat_FollowChatBtn", ZO_ChatWindow, CT_BUTTON)
     btn:SetDimensions(28, 28)
     btn:SetAnchor(TOPLEFT, ZO_ChatWindow, TOPLEFT, NecroCat.savedVars.followButtonX or 177, 10)
     btn:SetNormalTexture("/esoui/art/buttons/accept_up.dds")
-    
-    -- Вместо OnClicked используем OnMouseUp, чтобы разделять левый и правый клик
+
     btn:SetHandler("OnMouseUp", function(self, button, upInside)
         if upInside then
             if button == MOUSE_BUTTON_INDEX_LEFT then
-                -- Левый клик: отправляем маяк прямо сейчас
                 FM.SendBeacon()
             elseif button == MOUSE_BUTTON_INDEX_RIGHT then
-                -- Правый клик: переключаем авторежим
                 FM.ToggleAutoPrepare()
             end
         end
     end)
-    
+
     btn:SetHidden(not NecroCat.savedVars.followShowButton)
     FM.ChatButton = btn
-    
-    -- При загрузке игры сразу проверяем сохраненный режим и красим кнопку
+
     FM.UpdateChatButtonColor()
 end

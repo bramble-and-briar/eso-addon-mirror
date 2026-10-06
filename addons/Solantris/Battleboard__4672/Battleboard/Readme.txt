@@ -21,7 +21,7 @@ Core Features
 - Saves Battleground scoreboard results, including teams, scores, match outcome, player rows, class, kills, deaths, assists, damage, healing, medal score, and KD.
 - Records queue length, match length, combat time, time dead, DPS, HPS, and deserter cooldown history where available.
 - Assigns each saved match a short deterministic match ID so players from the same match should generate the same ID without syncing data.
-- Supports 4v4, 4v4v4 and 8v8 Battleground formats, including round-end handling for 4v4 Deathmatch.
+- Supports 4v4, 4v4v4, 8v8, 6v6v6, and 9v9 Battleground formats, including round-end handling for 4v4 Deathmatch.
 - Stores data locally in `BattleboardSavedVariables`.
 
 

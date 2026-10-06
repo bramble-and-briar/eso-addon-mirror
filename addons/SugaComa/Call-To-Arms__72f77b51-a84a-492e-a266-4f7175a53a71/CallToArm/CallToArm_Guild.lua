@@ -226,31 +226,33 @@ function G.SetHomeCampaignId(gid, campaignId)
 end
 
 function G.FindDefaultHomeCampaignId()
+    -- Update 51 exposes the actual assigned/home campaign directly. Prefer it
+    -- over guessing from the browser list.
+    if GetAssignedCampaignId then
+        local assignedCampaignId = tonumber(GetAssignedCampaignId()) or 0
+        if assignedCampaignId ~= 0 then return assignedCampaignId end
+    end
+
     if GetNumSelectionCampaigns and GetSelectionCampaignId then
         local best = 0
+        local bestDuration = -1
         for i = 1, GetNumSelectionCampaigns() do
             local campaignId = GetSelectionCampaignId(i)
             if campaignId and campaignId ~= 0 then
-                local rulesetOk = true
-                local durationOk = true
-                if GetCampaignRulesetType and CAMPAIGN_RULESET_TYPE_ALLIANCE_LOCKED then
-                    rulesetOk = GetCampaignRulesetType(campaignId) == CAMPAIGN_RULESET_TYPE_ALLIANCE_LOCKED
-                end
-                if GetCampaignDurationType and CAMPAIGN_DURATION_LONG then
-                    durationOk = GetCampaignDurationType(campaignId) == CAMPAIGN_DURATION_LONG
-                end
-                if rulesetOk and durationOk then
+                local rulesetId = GetCampaignRulesetId and GetCampaignRulesetId(campaignId) or nil
+                local rulesetType = rulesetId and GetCampaignRulesetType and GetCampaignRulesetType(rulesetId) or nil
+                local isCyrodiil = rulesetType == nil or rulesetType == CAMPAIGN_RULESET_TYPE_CYRODIIL
+                local duration = rulesetId and GetCampaignRulesetDurationInSeconds
+                    and tonumber(GetCampaignRulesetDurationInSeconds(rulesetId)) or 0
+                if isCyrodiil and duration > bestDuration then
                     best = campaignId
-                    break
+                    bestDuration = duration
                 end
             end
         end
         if best ~= 0 then
             return best
         end
-    end
-    if GetAssignedCampaignId then
-        return GetAssignedCampaignId()
     end
     return 0
 end

@@ -4,8 +4,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "RavageMagicka",
-      [2] = "RestoreHealth",
-      [3] = "Cowardice",
+      [2] = "HealAbsorption",
+      [3] = "RestoreHealth",
       [4] = "Invisible",
     },
   },
@@ -14,8 +14,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "IncreaseSpellResist",
-      [2] = "Cowardice",
-      [3] = "RestoreHealth",
+      [2] = "RestoreHealth",
+      [3] = "Mending",
       [4] = "RestoreMagicka",
     },
   },
@@ -23,9 +23,9 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_poisonmaking_reagent_butterfly_wing.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "LingeringHealth",
-      [2] = "RestoreHealth",
-      [3] = "Uncertainty",
+      [1] = "RestoreHealth",
+      [2] = "DamageShield",
+      [3] = "LingeringHealth",
       [4] = "Vitality",
     },
   },
@@ -44,8 +44,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "IncreaseArmor",
-      [2] = "Maim",
-      [3] = "RestoreHealth",
+      [2] = "RestoreHealth",
+      [3] = "Cowardice",
       [4] = "RestoreStamina",
     },
   },
@@ -53,10 +53,10 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_forester_potion_sp_names_001.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "RestoreMagicka",
-      [2] = "IncreaseSpellPower",
-      [3] = "SpellCritical",
-      [4] = "Breach",
+      [1] = "Force",
+      [2] = "RestoreMagicka",
+      [3] = "Breach",
+      [4] = "Critical",
     },
   },
   [30161] = {
@@ -64,7 +64,7 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "RestoreMagicka",
-      [2] = "IncreaseSpellPower",
+      [2] = "IncreasePower",
       [3] = "RavageHealth",
       [4] = "Detection",
     },
@@ -73,10 +73,10 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_forester_potion_sp_names_002.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "IncreaseWeaponPower",
-      [2] = "Fracture",
-      [3] = "RestoreStamina",
-      [4] = "WeaponCritical",
+      [1] = "IncreasePower",
+      [2] = "RestoreStamina",
+      [3] = "Fracture",
+      [4] = "Critical",
     },
   },
   [30157] = {  --Blessed Thistle
@@ -84,8 +84,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "RestoreStamina",
-      [2] = "RavageHealth",
-      [3] = "IncreaseWeaponPower",
+      [2] = "IncreasePower",
+      [3] = "HealAbsorption",
       [4] = "Speed",
     },
   },
@@ -93,9 +93,9 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_mushroom_namiras_rot_r1.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "SpellCritical",
-      [2] = "Invisible",
-      [3] = "Speed",
+      [1] = "Enervation",
+      [2] = "Speed",
+      [3] = "Invisible",
       [4] = "Unstoppable",
     },
   },
@@ -134,8 +134,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "RestoreMagicka",
-      [2] = "Heroism",
-      [3] = "Enervation",
+      [2] = "Uncertainty",
+      [3] = "Heroism",
       [4] = "Speed",
     },
   },
@@ -163,9 +163,9 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_mushroom_imp_stool_r2.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "Maim",
-      [2] = "IncreaseArmor",
-      [3] = "RavageStamina",
+      [1] = "Cowardice",
+      [2] = "RavageStamina",
+      [3] = "IncreaseArmor",
       [4] = "Enervation",
     },
   },
@@ -175,8 +175,8 @@ LibAlchemy.reagents = {
     [3] = {
       [1] = "RavageStamina",
       [2] = "RestoreHealth",
-      [3] = "Maim",
-      [4] = "Hindrance",
+      [3] = "Hindrance",
+      [4] = "Cowardice",
     },
   },
   [77591] = {
@@ -204,18 +204,18 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "RavageHealth",
-      [2] = "Enervation",
-      [3] = "Uncertainty",
-      [4] = "Invisible",
+      [2] = "Uncertainty",
+      [3] = "Invisible",
+      [4] = "HealAbsorption",
     },
   },
   [77589] = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_poisonmaking_reagent_scrib_jelly.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "RavageMagicka",
-      [2] = "Vulnerability",
-      [3] = "Speed",
+      [1] = "Vexation",
+      [2] = "Speed",
+      [3] = "Vulnerability",
       [4] = "LingeringHealth",
     },
   },
@@ -224,8 +224,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "Hindrance",
-      [2] = "LingeringHealth",
-      [3] = "Invisible",
+      [2] = "Invisible",
+      [3] = "DamageShield",
       [4] = "Defile",
     },
   },
@@ -234,8 +234,8 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "Fracture",
-      [2] = "IncreaseWeaponPower",
-      [3] = "RavageHealth",
+      [2] = "RavageHealth",
+      [3] = "Force",
       [4] = "RavageStamina",
     },
   },
@@ -244,9 +244,9 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "Fracture",
-      [2] = "Detection",
-      [3] = "Enervation",
-      [4] = "Vitality",
+      [2] = "Uncertainty",
+      [3] = "Detection",
+      [4] = "Mending",
     },
   },
   [30152] = {
@@ -254,7 +254,7 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "Breach",
-      [2] = "IncreaseSpellPower",
+      [2] = "IncreasePower",
       [3] = "RavageHealth",
       [4] = "RavageMagicka",
     },
@@ -264,18 +264,18 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "RestoreHealth",
-      [2] = "WeaponCritical",
-      [3] = "SpellCritical",
-      [4] = "Entrapment",
+      [2] = "Critical",
+      [3] = "Entrapment",
+      [4] = "DamageShield",
     },
   },
   [30154] = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_mushroom_white_cap_r1.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "Cowardice",
-      [2] = "IncreaseSpellResist",
-      [3] = "RavageMagicka",
+      [1] = "Enervation",
+      [2] = "RavageMagicka",
+      [3] = "IncreaseSpellResist",
       [4] = "Detection",
     },
   },
@@ -283,10 +283,10 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_flower_wormwood_r1.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "WeaponCritical",
-      [2] = "Detection",
-      [3] = "Unstoppable",
-      [4] = "Hindrance",
+      [1] = "Critical",
+      [2] = "Hindrance",
+      [3] = "Detection",
+      [4] = "Unstoppable",
     },
   },
   [139020] = { --Clam Gall
@@ -303,7 +303,7 @@ LibAlchemy.reagents = {
     [1] = "|t-64:64:/esoui/art/icons/crafting_style_item_celestial_r1.dds|t|",
     [2] = 1,
     [3] = {
-      [1] = "LingeringHealth",
+      [1] = "Mending",
       [2] = "Speed",
       [3] = "Vitality",
       [4] = "Protection",
@@ -314,7 +314,7 @@ LibAlchemy.reagents = {
     [2] = 1,
     [3] = {
       [1] = "Timidity",
-      [2] = "SpellCritical",
+      [2] = "Force",
       [3] = "GradualRavageHealth",
       [4] = "RestoreHealth",
     },
@@ -335,8 +335,48 @@ LibAlchemy.reagents = {
     [3] = {
       [1] = "Timidity",
       [2] = "RavageMagicka",
-      [3] = "RestoreStamina",
+      [3] = "Vexation",
       [4] = "Detection",
+    },
+  },
+  [224357] = { --Cultivated Cryptpods
+    [1] = "|t-64:64:/esoui/art/icons/crafting_alchemy_spore_pod.dds|t|",
+    [2] = 1,
+    [3] = {
+      [1] = "Heroism",
+      [2] = "IncreasePower",
+      [3] = "Mending",
+      [4] = "DamageShield",
+    },
+  },
+  [224358] = { --Daedra-Blood Maggots
+    [1] = "|t-64:64:/esoui/art/icons/crafting_plump_maggot.dds|t|",
+    [2] = 1,
+    [3] = {
+      [1] = "Defile",
+      [2] = "HealAbsorption",
+      [3] = "Cowardice",
+      [4] = "Entrapment",
+    },
+  },
+  [224359] = { --Fossilized Verminous Bones
+    [1] = "|t-64:64:/esoui/art/icons/justice_stolen_unique_ashpit_bone.dds|t|",
+    [2] = 1,
+    [3] = {
+      [1] = "Heroism",
+      [2] = "RestoreStamina",
+      [3] = "Force",
+      [4] = "Detection",
+    },
+  },
+  [224360] = { --Winter's Grave Tongue
+    [1] = "|t-64:64:/esoui/art/icons/crafting_alchemy_stoneflower_petal.dds|t|",
+    [2] = 1,
+    [3] = {
+      [1] = "Vexation",
+      [2] = "HealAbsorption",
+      [3] = "Defile",
+      [4] = "Breach",
     },
   },
 }
@@ -393,13 +433,13 @@ LibAlchemy.potionEffectIdToString = {
   [8] = "Breach",
   [9] = "IncreaseArmor",
   [10] = "Fracture",
-  [11] = "IncreaseSpellPower",
+  [11] = "IncreasePower",
   [12] = "Cowardice",
-  [13] = "IncreaseWeaponPower",
-  [14] = "Maim",
-  [15] = "SpellCritical",
+  [13] = "IncreasePower",
+  [14] = "Cowardice",
+  [15] = "Critical",
   [16] = "Uncertainty",
-  [17] = "WeaponCritical",
+  [17] = "Critical",
   [18] = "Enervation",
   [19] = "Unstoppable",
   [20] = "Entrapment",
@@ -415,6 +455,12 @@ LibAlchemy.potionEffectIdToString = {
   [30] = "Defile",
   [31] = "Heroism",
   [32] = "Timidity",
+  [33] = "DamageShield",
+  [34] = "HealAbsorption",
+  [35] = "Force",
+  [36] = "Enervation",
+  [37] = "Mending",
+  [38] = "Vexation",
 }
 LibAlchemy.effectsByWritID = LibAlchemy.potionEffectIdToString -- for compatibility
 
@@ -429,14 +475,14 @@ LibAlchemy.effectsByWritIDShort = {
   [8] = "-SpellRes",
   [9] = "+Armor",
   [10] = "-Armor",
-  [11] = "+SpellPower",
+  [11] = "+Power",
   [12] = "-Power",
-  [13] = "+WeaponPower",
-  [14] = "-Damage",
-  [15] = "+SpellCrit",
+  [13] = "+Power",
+  [14] = "-Power",
+  [15] = "+Crit",
   [16] = "-Crit",
-  [17] = "+WeaponCrit",
-  [18] = "-CritDmg",
+  [17] = "+Crit",
+  [18] = "Enervation",
   [19] = "Unstoppable",
   [20] = "Stun/Immobilize",
   [21] = "Detection",
@@ -451,6 +497,12 @@ LibAlchemy.effectsByWritIDShort = {
   [30] = "-Defile",
   [31] = "+Heroism",
   [32] = "-Heroism",
+  [33] = "DamageShield",
+  [34] = "HealAbsorb",
+  [35] = "Force",
+  [36] = "Enervation",
+  [37] = "Mending",
+  [38] = "Vexation",
 }
 
 LibAlchemy.trashPotions = {
@@ -485,14 +537,14 @@ LibAlchemy.opposites = {
   ["IncreaseSpellResist"] = "Breach",
   ["Breach"] = "IncreaseSpellResist",
 
-  ["IncreaseSpellPower"] = "Cowardice",
-  ["Cowardice"] = "IncreaseSpellPower",
+  ["IncreasePower"] = "Cowardice",
+  ["Cowardice"] = "IncreasePower",
 
   ["Vitality"] = "Defile",
   ["Defile"] = "Vitality",
 
-  ["WeaponCritical"] = "Enervation",
-  ["Enervation"] = "WeaponCritical",
+  ["Force"] = "Enervation",
+  ["Enervation"] = "Force",
 
   ["Unstoppable"] = "Entrapment",
   ["Entrapment"] = "Unstoppable",
@@ -503,15 +555,17 @@ LibAlchemy.opposites = {
   ["Speed"] = "Hindrance",
   ["Hindrance"] = "Speed",
 
-  ["IncreaseWeaponPower"] = "Maim",
-  ["Maim"] = "IncreaseWeaponPower",
+  ["DamageShield"] = "HealAbsorption",
+  ["HealAbsorption"] = "DamageShield",
 
   ["Protection"] = "Vulnerability",
   ["Vulnerability"] = "Protection",
 
-  ["SpellCritical"] = "Uncertainty",
-  ["Uncertainty"] = "SpellCritical",
+  ["Critical"] = "Uncertainty",
+  ["Uncertainty"] = "Critical",
 
+  ["Mending"] = "Vexation",
+  ["Vexation"] = "Mending",
 
 }
 
@@ -526,14 +580,11 @@ LibAlchemy.effects = {
     [6] = 30166, --Water Hyacinth
     [7] = 30155, --Luminous Russula
     [8] = 150672, --Crimson Nirnroot
-
   },
   ["LingeringHealth"] = {
     [1] = 77585, --Butterfly Wing
     [2] = 150731, --Dragon Blood
-    [3] = 139019, --Powdered Mother of Pearl
-    [4] = 77584, --Spider Egg
-    [5] = 77589, --Scrib Jelly
+    [3] = 77589, --Scrib Jelly
   },
 
   ["RestoreMagicka"] = {
@@ -543,8 +594,6 @@ LibAlchemy.effects = {
     [4] = 30158, --Lady's Smock
     [5] = 150671, --Dragon Rheum
     [6] = 150670, --Vile Coagulant
-
-
   },
   ["RestoreStamina"] = {
     [1] = 30163, --Mountain Flower
@@ -552,8 +601,7 @@ LibAlchemy.effects = {
     [3] = 30162, --Dragonthorn
     [4] = 30157, --Blessed Thistle
     [5] = 150731, --Dragon Blood
-    [6] = 150669, --Chaurus Egg
-
+    [6] = 224359, --Fossilized Verminous Bones
   },
 
   ["Unstoppable"] = {
@@ -572,50 +620,48 @@ LibAlchemy.effects = {
     [1] = 150671, --Dragon Rheum
     [2] = 150731, --Dragon Blood
     [3] = 150789, --Dragon Bile
+    [4] = 224357, --Cultivated Cryptpods
+    [5] = 224359, --Fossilized Verminous Bones
   },
   ["RavageHealth"] = {
     [1] = 30161, --Corn Flower
-    [2] = 30157, --Blessed Thistle
-    [3] = 77590, --Nightshade
-    [4] = 30151, --Emetic Russula
-    [5] = 30165, --Nirnroot
-    [6] = 30149, --Stinkhorn
-    [7] = 30152, --Violet Coprinus
-    [8] = 150670, --Vile Coagulant
+    [2] = 77590, --Nightshade
+    [3] = 30151, --Emetic Russula
+    [4] = 30165, --Nirnroot
+    [5] = 30149, --Stinkhorn
+    [6] = 30152, --Violet Coprinus
+    [7] = 150670, --Vile Coagulant
   },
-  ["IncreaseWeaponPower"] = {
+  ["IncreasePower"] = {
+    [1] = 30157, --Blessed Thistle
+    [2] = 30161, --Corn Flower
+    [3] = 224357, --Cultivated Cryptpods
+    [4] = 30162, --Dragonthorn
+    [5] = 30152, --Violet Coprinus
+  },
+  ["Force"] = {
+    [1] = 150672, --Crimson Nirnroot
+    [2] = 224359, --Fossilized Verminous Bones
+    [3] = 30158, --Lady's Smock
+    [4] = 30149, --Stinkhorn
+  },
+  ["Critical"] = {
     [1] = 30162, --Dragonthorn
-    [2] = 30157, --Blessed Thistle
-    [3] = 30149, --Stinkhorn
-  },
-  ["WeaponCritical"] = {
-    [1] = 30159, --Wormwood
-    [2] = 30162, --Dragonthorn
+    [2] = 30158, --Lady's Smock
     [3] = 30166, --Water Hyacinth
+    [4] = 30159, --Wormwood
   },
   ["Fracture"] = {
     [1] = 30162, --Dragonthorn
     [2] = 77581, --Torchbug Thorax
     [3] = 30149, --Stinkhorn
   },
-  ["IncreaseSpellPower"] = {
-    [1] = 30152, --Violet Coprinus
-    [2] = 30161, --Corn Flower
-    [3] = 30158, --Lady's Smock
-  },
-  ["SpellCritical"] = {
-    [1] = 30158, --Lady's Smock
-    [2] = 30153, --Namira's Rot
-    [3] = 30166, --Water Hyacinth
-    [4] = 150672, --Crimson Nirnroot
-  },
   ["Vitality"] = {
     [1] = 77585, --Butterfly Wing
-    [2] = 77581, --Torchbug Thorax
-    [3] = 150789, --Dragon Bile
-    [4] = 77583, --Beetle Scuttle
-    [5] = 77587, --Fleshfly Larva
-    [6] = 139019, --Powdered Mother of Pearl
+    [2] = 150789, --Dragon Bile
+    [3] = 77583, --Beetle Scuttle
+    [4] = 77587, --Fleshfly Larva
+    [5] = 139019, --Powdered Mother of Pearl
   },
   ["GradualRavageHealth"] = {
     [1] = 77587, --Fleshfly Larva
@@ -623,9 +669,10 @@ LibAlchemy.effects = {
     [3] = 150672, --Crimson Nirnroot
   },
   ["Cowardice"] = {
-    [1] = 30148, --Blue Entoloma
-    [2] = 30160, --Bugloss
-    [3] = 30154, --White Cap
+    [1] = 30156, --Imp Stool
+    [2] = 30155, --Luminous Russula
+    [3] = 30163, --Mountain Flower
+    [4] = 224358, --Daedra-Blood Maggots
   },
   ["IncreaseSpellResist"] = {
     [1] = 30160, --Bugloss
@@ -634,8 +681,9 @@ LibAlchemy.effects = {
     [4] = 77591, --Mudcrab Chitin
   },
   ["Uncertainty"] = {
-    [1] = 77585, --Butterfly Wing
+    [1] = 150671, --Dragon Rheum
     [2] = 30165, --Nirnroot
+    [3] = 77581, --Torchbug Thorax
   },
   ["IncreaseArmor"] = {
     [1] = 30163, --Mountain Flower
@@ -643,15 +691,11 @@ LibAlchemy.effects = {
     [3] = 30156, --Imp Stool
     [4] = 77591, --Mudcrab Chitin
   },
-  ["Maim"] = {
-    [1] = 30163, --Mountain Flower
-    [2] = 30156, --Imp Stool
-    [3] = 30155, --Luminous Russula
-  },
   ["Breach"] = {
     [1] = 77583, --Beetle Scuttle
     [2] = 30152, --Violet Coprinus
     [3] = 30158, --Lady's Smock
+    [4] = 224360, --Winter's Grave Tongue
   },
   ["Detection"] = {
     [1] = 30161, --Corn Flower
@@ -659,6 +703,7 @@ LibAlchemy.effects = {
     [3] = 30154, --White Cap
     [4] = 30159, --Wormwood
     [5] = 150669, --Chaurus Egg
+    [6] = 224359, --Fossilized Verminous Bones
   },
   ["Speed"] = {
     [1] = 150671, --Dragon Rheum
@@ -677,6 +722,7 @@ LibAlchemy.effects = {
   ["Entrapment"] = {
     [1] = 30151, --Emetic Russula
     [2] = 30166, --Water Hyacinth
+    [3] = 224358, --Daedra-Blood Maggots
   },
   ["Defile"] = {
     [1] = 77591, --Mudcrab Chitin
@@ -684,12 +730,13 @@ LibAlchemy.effects = {
     [3] = 77584, --Spider Egg
     [4] = 139020, --Clam Gall
     [5] = 150731, --Dragon Blood
+    [6] = 224358, --Daedra-Blood Maggots
+    [7] = 224360, --Winter's Grave Tongue
   },
   ["Enervation"] = {
     [1] = 30156, --Imp Stool
-    [2] = 30165, --Nirnroot
-    [3] = 150671, --Dragon Rheum
-    [4] = 77581, --Torchbug Thorax
+    [2] = 30153, --Namira's Rot
+    [3] = 30154, --White Cap
   },
   ["Hindrance"] = {
     [1] = 30155, --Luminous Russula
@@ -706,11 +753,10 @@ LibAlchemy.effects = {
   },
   ["RavageMagicka"] = {
     [1] = 30151, --Emetic Russula
-    [2] = 77589, --Scrib Jelly
-    [3] = 30152, --Violet Coprinus
-    [4] = 30154, --White Cap
-    [5] = 30148, --Blue Entoloma
-    [6] = 150669, --Chaurus Egg
+    [2] = 30152, --Violet Coprinus
+    [3] = 30154, --White Cap
+    [4] = 30148, --Blue Entoloma
+    [5] = 150669, --Chaurus Egg
   },
   ["Vulnerability"] = {
     [1] = 150789, --Dragon Bile
@@ -722,6 +768,29 @@ LibAlchemy.effects = {
     [1] = 150672, --Crimson Nirnroot
     [2] = 150670, --Vile Coagulant
     [3] = 150669, --Chaurus Egg
-  }
+  },
+  ["DamageShield"] = {
+    [1] = 77585, --Butterfly Wing
+    [2] = 224357, --Cultivated Cryptpods
+    [3] = 77584, --Spider Egg
+    [4] = 30166, --Water Hyacinth
+  },
+  ["HealAbsorption"] = {
+    [1] = 30157, --Blessed Thistle
+    [2] = 30148, --Blue Entoloma
+    [3] = 224358, --Daedra-Blood Maggots
+    [4] = 30165, --Nirnroot
+    [5] = 224360, --Winter's Grave Tongue
+  },
+  ["Mending"] = {
+    [1] = 30160, --Bugloss
+    [2] = 224357, --Cultivated Cryptpods
+    [3] = 139019, --Powdered Mother of Pearl
+    [4] = 77581, --Torchbug Thorax
+  },
+  ["Vexation"] = {
+    [1] = 150669, --Chaurus Egg
+    [2] = 77589, --Scrib Jelly
+    [3] = 224360, --Winter's Grave Tongue
+  },
 }
-

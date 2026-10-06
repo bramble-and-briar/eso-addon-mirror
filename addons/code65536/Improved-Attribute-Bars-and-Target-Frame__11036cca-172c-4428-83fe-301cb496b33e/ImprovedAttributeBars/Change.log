@@ -1,5 +1,10 @@
+Version 1.2.0 (2026/10/05)
+* The target frame health bar will now use unit reaction colors for all units
+  (instead of just for neutral and friendly NPCs) to ensure that the target
+  frame matches the colors of the in-world health bars and nameplates
+
 Version 1.1.1 (2026/09/30)
-* Target frame health numbers will no longer be hidden for damage-immune NPCs
+* Target frame health numbers will no longer be hidden for invincible NPCs
 
 Version 1.1.0 (2026/09/30)
 * The target frame health bars for neutral NPCs (e.g., citizens who have not

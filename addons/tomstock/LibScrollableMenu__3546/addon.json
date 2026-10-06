@@ -8,6 +8,10 @@
   "category_id": "53",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     },
@@ -54,7 +58,7 @@
     "LibScrollableMenu"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3546/",
-  "fingerprint": "90ed04e79e6817ac55d66db0cc338322255a7e8e23e69462de633316d4c8dc34",
+  "fingerprint": "57fdda61e81aa46a0771e3bf8f33cf0ac3ca56c28fd1a835ae9b65cb1ed86eb3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14558.png",
     "https://cdn-eso.mmoui.com/preview/pvw14559.png",
@@ -70,11 +74,11 @@
   "source_id": "3546",
   "source_url": "https://www.esoui.com/downloads/info3546-LibScrollableMenu.html",
   "stats": {
-    "downloads": 779626,
-    "favorites": 222,
-    "monthly_downloads": 11461
+    "downloads": 822934,
+    "favorites": 226,
+    "monthly_downloads": 12643
   },
   "title": "LibScrollableMenu",
-  "updated_at": 1786480714000,
-  "version": "2.45"
+  "updated_at": 1791235276000,
+  "version": "2.46"
 }

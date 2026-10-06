@@ -1,3 +1,8 @@
+Version 4.8.0 (2026/10/06)
+* Added a "Display Score Banner (Screenshot Mode)" command to the context menus
+  of entries in the History Browser to redisplay the base-game score banner
+  and temporarily hide the rest of the user interface (Thanks @M0R_Gaming)
+
 Version 4.7.3 (2026/08/31)
 * Added a "Display Score Banner" command to the context menus of entries in the
   History Browser to redisplay the base-game score banner shown at the end of

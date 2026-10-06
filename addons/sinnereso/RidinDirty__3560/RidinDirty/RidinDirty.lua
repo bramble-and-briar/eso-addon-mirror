@@ -1,7 +1,7 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.10.01",
+	version = "2026.10.05",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
@@ -132,28 +132,6 @@ local function PassengerStateChange(eventCode, isMounted)
 	if mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount then zo_callLater(function() PassengerStateChange() end, 1000) end
 end
 
-local function CheckBankMemory()
-	local displayMessage = true
-	local itemFound = false
-	for i, v in pairs(RidinDirty.savedVariables["Banked Memory"]) do
-		if i ~= nil and i ~= "version" and i ~= "default" then
-			for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
-				if i == GetItemId(BAG_BANK, slotIndex) then itemFound = true break end
-			end
-			if IsESOPlusSubscriber() then
-				for slotIndex = 0, GetBagSize(BAG_SUBSCRIBER_BANK) - 1 do
-					if i == GetItemId(BAG_SUBSCRIBER_BANK, slotIndex) then itemFound = true break end
-				end
-			end
-			if not itemFound then
-				if displayMessage then displayMessage = false df("--- Missing From Bank ---") end
-				df(rdLogo .. tostring(v))
-			end
-		end
-		itemFound = false
-	end
-end
-
 local function SaveBankMemory()
 	ZO_ClearTable(RidinDirty.savedVariables["Banked Memory"])
 	RidinDirty.bankedMemory["version"] = 1
@@ -172,6 +150,22 @@ local function SaveBankMemory()
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Bank memory saved.")
 end
 
+local function pvpAddonFilter(addon)
+	local addons = {
+	"merTorchbug",
+	"Zgoo",
+	"TextureIt",
+	"SoundBoard",
+	"HarvestMap",
+	"LibMainMenu-2.0",
+	"NodeDetection",
+	}
+	for _, name in ipairs(addons) do
+		if name == addon then return true end
+	end
+	return false
+end
+
 local function PvPAddonSave()
 	local addOnManager = GetAddOnManager()
 	local numAddOns = addOnManager:GetNumAddOns()
@@ -179,7 +173,11 @@ local function PvPAddonSave()
 	RidinDirty.addonMemory["version"] = 1
 	for addonIndex = 1, numAddOns do
 		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-		if (isEnabled and addonState == 2) or (addonName == "RidinDirty") then RidinDirty.addonMemory[addonIndex] = addonName end
+		if GetUnitDisplayName("player") == RidinDirty.author then
+			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
+		else
+			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) then RidinDirty.addonMemory[addonIndex] = addonName end
+		end
 	end
 	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Performance mode addons saved."))
 end
@@ -476,10 +474,12 @@ local function InLootWhitelist(value)
 	135005,--Prisoner's Ragged Style Box
 	78003,--Large Laundered Shipment
 	79677,--Assassin's Potion Kit
+	43757,--Wet Gunny Sac
 	126012,--Waterlogged Strong Box
 	197853,--Abyss-Drenched Folio Volume
 	217654,--Algae-Laden Sunport Pack
 	224302,--Wondrous Nowhere Keys
+	227312,--Sack of Pirate Gold
 	------
 	--187909,--Tribute Roister Purse
 	--134583,--Trans Geode 1
@@ -1629,6 +1629,26 @@ end
 ---------------------------------------------
 ------ AUTO BANK & STORAGE STACKER --
 ---------------------------------------------
+local function CheckBankMemory()
+	local itemFound = false
+	for i, v in pairs(RidinDirty.savedVariables["Banked Memory"]) do
+		if i ~= nil and i ~= "version" and i ~= "default" then
+			for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
+				if i == GetItemId(BAG_BANK, slotIndex) then itemFound = true break end
+			end
+			if IsESOPlusSubscriber() then
+				for slotIndex = 0, GetBagSize(BAG_SUBSCRIBER_BANK) - 1 do
+					if i == GetItemId(BAG_SUBSCRIBER_BANK, slotIndex) then itemFound = true break end
+				end
+			end
+			if not itemFound then
+				df(rdLogo .. "|cFFA2A2MISSING:|r --> " .. tostring(v))
+			end
+		end
+		itemFound = false
+	end
+end
+
 local function BankBalances(eventCode, bagId, carriedGold, carriedAP, carriedTelvar, carriedVoucher, moveGold, moveAP, moveTelvar, moveVoucher)
 	--if not RidinDirty.savedVariables.balanceDisplay then return end
 	local bankedCurrencies = (rdLogo .. "Balances:")
@@ -1948,7 +1968,7 @@ local function AutoRepCharge(_, bagId, slotIndex, _, _, updateReason)
 		end
 	end
 end
---INVENTORY_UPDATE_REASON_DURABILITY_CHANGE--INVENTORY_UPDATE_REASON_ITEM_CHARGE--ZO_SharedInventoryManager:ClearNewStatus(bagId, slotIndex)
+--INVENTORY_UPDATE_REASON_DURABILITY_CHANGE--INVENTORY_UPDATE_REASON_ITEM_CHARGE--ZO_SharedInventoryManager:ClearNewStatus(bagId, slotIndex)--ITEMTYPE_CONTAINER_STACKABLE--SPECIALIZED_ITEMTYPE_CONTAINER_STACKABLE
 local function JunkManager(eventCode, bagId, slotIndex, isNewItem, soundCategory, updateReason, stackChange, byCharacterName, byDisplayName, isLastUpdate, bonusDropSource)
 	if bagId == BAG_WORN and (updateReason == INVENTORY_UPDATE_REASON_DURABILITY_CHANGE or updateReason == INVENTORY_UPDATE_REASON_ITEM_CHARGE) then
 		AutoRepCharge(_, bagId, slotIndex, _, _, updateReason)
@@ -2422,8 +2442,10 @@ function RidinDirty.TraderEnhanceToggle(toggle)
 		SecurePostHook(TRADING_HOUSE, "SetCurrentMode", function(self, mode)
 			if mode == ZO_TRADING_HOUSE_MODE_LISTINGS then
 				zo_callLater(function()
-					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
-					RidinDirty.TraderSalesTotal:SetAlpha(1)
+					if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+						RidinDirty.TraderSalesTotal:SetAlpha(1)
+					end
 				end, searchDelay)
 			else
 				RidinDirty.TraderSalesTotal:SetAlpha(0)
@@ -3153,12 +3175,21 @@ SLASH_COMMANDS["/rdpvp"] = function (option)
 	local pvpMode = false
 	for addonIndex = 1, numAddOns do
 		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-		if not isEnabled and addonName ~= "merTorchbug" and addonName ~= "Zgoo" and addonName ~= "TextureIt" and addonName ~= "SoundBoard" then pvpMode = true break end
+		if not isEnabled then
+			if GetUnitDisplayName("player") == RidinDirty.author then
+				if not pvpAddonFilter(addonName) then pvpMode = true break end
+			else
+				pvpMode = true
+				break
+			end
+		end
 	end
 	if pvpMode then
 		for addonIndex = 1, numAddOns do
 			local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-			if addonName ~= "merTorchbug" and addonName ~= "Zgoo" and addonName ~= "TextureIt" and addonName ~= "SoundBoard" then
+			if GetUnitDisplayName("player") == RidinDirty.author then
+				if not pvpAddonFilter(addonName) then addOnManager:SetAddOnEnabled(addonIndex, true) end
+			else
 				addOnManager:SetAddOnEnabled(addonIndex, true)
 			end
 		end
@@ -3199,9 +3230,10 @@ if InAlphaList(GetUnitDisplayName("player")) then
 				local itemId = GetItemId(bagId, slotIndex)
 				local itemLink = GetItemLink(bagId, slotIndex, LINK_STYLE_BRACKETS)
 				local itemType, specialType = GetItemType(bagId, slotIndex)
+				--local containerCoId = GetItemLinkContainerCollectibleId(itemLink)
 				if IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) then itemLink = (IsKnowledgeUnknown(itemId, itemLink, itemType, specialType) .. itemLink) end
 				if itemLink ~= (nil or "") then
-					df(itemLink .. " - " .. itemId .. " - " .. itemType .. " - " .. specialType)
+					df(itemLink .. " - " .. itemId .. " - " .. itemType .. " - " .. specialType)-- .. " - " .. containerCoId)
 				end
 			end
 		end
@@ -3210,15 +3242,13 @@ end
 
 if InAlphaList(GetUnitDisplayName("player")) then
 	SLASH_COMMANDS["/rdtest"] = function (option)--<< ADMIN TEST FUNCTION
-		--ZO_PlayerAttributeHealth:SetAnchor(TOP, ZO_BuffDebuffTopLevelSelfContainer, BOTTOM, 0, 24)
-		--ZO_PlayerAttributeMagicka:SetAnchor(TOPRIGHT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
-		--ZO_PlayerAttributeStamina:SetAnchor(TOPLEFT, ZO_PlayerAttributeHealth, BOTTOM, 0, 8)
-		local hisValid, hpoint, hrelativeTo, hrelativePoint, hoffsetX, hoffsetY = ZO_PlayerAttributeHealth:GetAnchor()
-		local misValid, mpoint, mrelativeTo, mrelativePoint, moffsetX, moffsetY = ZO_PlayerAttributeMagicka:GetAnchor()
-		local sisValid, spoint, srelativeTo, srelativePoint, soffsetX, soffsetY = ZO_PlayerAttributeStamina:GetAnchor()
-		df("H: " .. tostring(hpoint) .. " - " .. tostring(hrelativeTo) .. " - " .. tostring(hrelativePoint) .. " - " .. tostring(hoffsetX) .. " - " .. tostring(hoffsetY))
-		df("M: " .. tostring(mpoint) .. " - " .. tostring(mrelativeTo) .. " - " .. tostring(mrelativePoint) .. " - " .. tostring(moffsetX) .. " - " .. tostring(moffsetY))
-		df("S: " .. tostring(spoint) .. " - " .. tostring(srelativeTo) .. " - " .. tostring(srelativePoint) .. " - " .. tostring(soffsetX) .. " - " .. tostring(soffsetY))
+		local addOnManager = GetAddOnManager()
+		local numAddOns = addOnManager:GetNumAddOns()
+		for addonIndex = 1, numAddOns do
+			local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
+			--if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
+			df(tostring(addonName))
+		end
 	end
 end
 
@@ -3377,8 +3407,10 @@ local function RDInitializeSettings()
 		SecurePostHook(TRADING_HOUSE, "SetCurrentMode", function(self, mode)
 			if mode == ZO_TRADING_HOUSE_MODE_LISTINGS then
 				zo_callLater(function()
-					RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
-					RidinDirty.TraderSalesTotal:SetAlpha(1)
+					if TRADING_HOUSE:GetCurrentMode() == ZO_TRADING_HOUSE_MODE_LISTINGS then
+						RidinDirty.TraderSalesTotal.label:SetText (tostring(ZO_LocalizeDecimalNumber(GetTotalListingsValue())) .. " " .. goldIcon .. " TOTAL")
+						RidinDirty.TraderSalesTotal:SetAlpha(1)
+					end
 				end, searchDelay)
 			else
 				RidinDirty.TraderSalesTotal:SetAlpha(0)

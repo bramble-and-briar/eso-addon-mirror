@@ -77,6 +77,22 @@ local strings = {
     SI_BMW_SETTING_REFRESH_NAME = "Refresh prices now",
     SI_BMW_SETTING_REFRESH_TOOLTIP = "Clear the cached prices and recompute the Craft Bag value. Useful after Master Merchant or Tamriel Trade Centre finishes importing fresh data. The same action is available by clicking Market prices on the panel.",
 
+    SI_BMW_HEADER_SAVED_DATA = "|cC5C29ESaved data|r",
+    SI_BMW_HISTORY_CLEANUP_BUTTON = "Clean outdated price history",
+    SI_BMW_HISTORY_CLEANUP_TOOLTIP = "Run the automatic retention rules now, after confirmation. This does not reset recent history or your settings.",
+    SI_BMW_HISTORY_CLEANUP_DESCRIPTION = "Price history is already cleaned automatically on addon load and when prices are recorded; it does not wait for a weekly timer. You may run the same cleanup now. It keeps observations from the last seven days and the latest price baseline, and removes history for materials not observed for 30 days. Only the current account and server are affected. Settings, snapshots, stock-change reports and the total-value chart are preserved.",
+    SI_BMW_HISTORY_CLEANUP_SAVE_NOTICE = "Cleanup takes effect in memory immediately. The file on disk is updated at your next normal logout or /reloadui. You do not need to reload immediately; the addon will not reload automatically.",
+    SI_BMW_HISTORY_CLEANUP_CONFIRM_TITLE = "Clean outdated price history?",
+    SI_BMW_HISTORY_CLEANUP_CONFIRM_BODY = "Remove outdated price observations for the current account and server?\n\nThe last seven days and latest price baseline are kept. History for materials not observed for 30 days is removed entirely. Settings, snapshots, stock-change reports and the total-value chart are not reset. Deleted observations cannot be restored.\n\nChanges are saved to disk at your next normal logout or /reloadui; no automatic reload will occur.",
+    SI_BMW_HISTORY_CLEANUP_ACCEPT = "Clean history",
+    SI_BMW_HISTORY_CLEANUP_CANCEL = "Cancel",
+    SI_BMW_HISTORY_CLEANUP_RESULT_TITLE = "Last manual cleanup",
+    SI_BMW_HISTORY_CLEANUP_PENDING = "Manual cleanup has not been run this session.",
+    SI_BMW_HISTORY_CLEANUP_EMPTY = "No price history has been recorded yet. Nothing was deleted.",
+    SI_BMW_HISTORY_CLEANUP_NO_CHANGE = "Materials checked: %s. No outdated data was found; nothing was deleted.",
+    SI_BMW_HISTORY_CLEANUP_RESULT = "Materials checked: %s\nPrice observations removed: %s\nMaterial histories removed: %s\nPrice observations retained: %s\nHistory-string reduction: %s bytes (not the total save-file size).",
+    SI_BMW_HISTORY_CLEANUP_UNAVAILABLE = "Price-history cleanup is unavailable because the valuation module is not loaded.",
+
     -- Window
     -- Account/character label on the title line. %s = @account handle, %s =
     -- character name. The Craft Bag is account-wide, so the handle leads.

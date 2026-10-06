@@ -87,6 +87,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [dev sandbox](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox__436f6695-4798-423f-b276-d8c46cbd938e) | clubwratt | Console | — |
 | [dev sandbox 2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-2__bc6b3b76-f701-4533-9492-c50acb1783bc) | clubwratt | Console | — |
 | [dev sandbox 3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/dev-sandbox-3__3a4024fc-1465-4e5e-a96f-6d6b6a781497) | clubwratt | Console | — |
+| [Diablo Frames Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RagePhoenix96/Diablo-Frames-Console__da37ddee-0a3a-403e-aee9-d45c9af8a488) | RagePhoenix96 | Console | — |
 | [DiabloFrames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/DiabloFrames__3051) | buldezir | PC / Mac | 1.0.9 |
 | [DiabloOrbs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/DiabloOrbs__4474) | s1by0z | PC / Mac | 2.1.1 |
 | [DIAhelp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/DIAhelp__4876) | alabuzya | PC / Mac | 1.0.5 |
@@ -103,6 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [DISCONTINUED - Lesser Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/DISCONTINUED---Lesser-Icons__4231) | wicked_prophet | PC / Mac | 1.0 |
 | [DISCONTINUED: CSPS - PTS 46 Subclassing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/DISCONTINUED-CSPS---PTS-46-Subclassing__4123) | Irniben | PC / Mac | 5.6.0 |
 | [Discord Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Medallyonify/Discord-Status__2054) | Medallyonify | PC / Mac | 1.0.2 |
+| [Discord Trial Tagger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/greeneca/Discord-Trial-Tagger__097d0094-d2c0-4e8c-be4e-016e8046d655) | greeneca | Console | — |
 | [Disenchanted Snowglobe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Disenchanted-Snowglobe__3269) | kawamonkey | PC / Mac | 1.0 |
 | [DismissThis](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PhoenixWeb/DismissThis__2716) | PhoenixWeb | PC / Mac | v1.4 |
 | [Display Leads - with Location Info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/remosito/Display-Leads---with-Location-Info__2651) | remosito | PC / Mac | 42.1 |

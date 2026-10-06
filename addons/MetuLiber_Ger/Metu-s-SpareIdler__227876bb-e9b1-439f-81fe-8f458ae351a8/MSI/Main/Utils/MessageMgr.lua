@@ -2,7 +2,7 @@
 if MSI == nil then MSI = MSI or {} end
 local MSI = _G['MSI']
 
-local activeDuration = 0
+local blendDurations = 789
 
 local MSIMediaList = {
 	[1] = [[icon_the_poo.dds]],
@@ -23,7 +23,7 @@ local function AnimateCenterMessage(msgDuration, msgIcon, msgText)
 
 	CenterMsgDisplay:SetHidden(false)
 	animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 1)
-	animation0:SetDuration(789)
+	animation0:SetDuration(blendDurations)
 
 	-- Fade-out after Fade-in
 	timeline0:SetHandler('OnStop', function()
@@ -36,11 +36,11 @@ local function AnimateCenterMessage(msgDuration, msgIcon, msgText)
 			local animation0, timeline0 = CreateSimpleAnimation(ANIMATION_ALPHA, CenterMsgDisplay)
 
 			animation0:SetAlphaValues(CenterMsgDisplay:GetAlpha(), 0)
-			animation0:SetDuration(789)
+			animation0:SetDuration(blendDurations)
 
 			timeline0:SetHandler('OnStop', function()
 				CenterMsgDisplay:SetHidden(true)
-				activeDuration = 0
+				MSI.activeDuration = 0
 			end)
 			timeline0:PlayFromStart()
 		end)
@@ -52,16 +52,16 @@ end
 --*******************--
 -- Animate CenterMsg
 function MSI.ShowCenterMsg(msgDuration, msgIcon, msgText)
-	if not (activeDuration == 0) then
+	if not (MSI.activeDuration == 0) then
 		zo_callLater(function() 
-			activeDuration = msgDuration
+			MSI.activeDuration = blendDurations * 2 + msgDuration
 			AnimateCenterMessage(msgDuration, msgIcon, msgText)
-		end, (789 * 2 + activeDuration) + GetLatency())
+		end, (blendDurations * 2 + MSI.activeDuration) + (200 + GetLatency()))
 	else
 		zo_callLater(function() 
-			activeDuration = msgDuration
+			MSI.activeDuration = msgDuration
 			AnimateCenterMessage(msgDuration, msgIcon, msgText)
-		end, GetLatency())
+		end, (100 + GetLatency()))
 	end
 end
 

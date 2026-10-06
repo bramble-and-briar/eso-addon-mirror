@@ -13,21 +13,17 @@ local JUNK_ICON_TEXTURE = "AbahsAppraiser/icons/junk_gp.dds"
 local GP_NAMESPACE = (ASJ.addOnName or "AbahsAppraiser") .. "_GP"
 local PRE_PREFIX = "|cE5C07BASJ|r "
 
-local inJunkSetup = false
-
 local function OnGamepadEntrySetup(control, data)
-    if inJunkSetup then return end
     local bagId = data and data.bagId
     local slotIndex = data and data.slotIndex
     if bagId == nil or slotIndex == nil then return end
     local statusIndicator = control.statusIndicator
     if not statusIndicator then return end
     if IsItemJunk(bagId, slotIndex) then
-        inJunkSetup = true
+        -- Match ESO's own post-setup pattern: append without clearing or
+        -- toggling the MultiIcon, so existing trait/status icons keep cycling.
         statusIndicator:AddIcon(JUNK_ICON_TEXTURE)
-        statusIndicator:Hide()
         statusIndicator:Show()
-        inJunkSetup = false
     end
 end
 

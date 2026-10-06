@@ -247,6 +247,76 @@ local function StopDoubleSwapWatcher()
 end
 
 -------------------------------------------------------------------------------
+-- Trigger: Ability Slot Used (one trigger per slot, one shared watcher)
+-------------------------------------------------------------------------------
+--
+-- EVENT_ACTION_SLOT_ABILITY_USED reports the Lua slot index (3..7 = abilities
+-- 1..5, 8 = ultimate) on whichever bar is active. All six slot triggers share a
+-- single event registration that stays alive while any of them has a marker.
+
+-- Lua slot indices are one higher than the 0-based engine constants.
+local FIRST_ABILITY_SLOT = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1
+local ULTIMATE_SLOT = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
+
+local function AbilitySlotKey(slotIndex)
+    return "abilitySlot" .. tostring(slotIndex)
+end
+
+local function OnActionSlotAbilityUsed(_, actionSlotIndex)
+    local markType = EM.sv.marks[AbilitySlotKey(actionSlotIndex)]
+    if markType ~= nil then
+        ApplyMark(markType)
+    end
+end
+
+local ABILITY_SLOT_EVENT_NAME = EM.name .. "_AbilitySlot"
+local abilitySlotWatcherUsers = 0
+
+local function StartAbilitySlotWatcher()
+    abilitySlotWatcherUsers = abilitySlotWatcherUsers + 1
+    if abilitySlotWatcherUsers == 1 then
+        EVENT_MANAGER:RegisterForEvent(ABILITY_SLOT_EVENT_NAME, EVENT_ACTION_SLOT_ABILITY_USED, OnActionSlotAbilityUsed)
+    end
+end
+
+local function StopAbilitySlotWatcher()
+    abilitySlotWatcherUsers = abilitySlotWatcherUsers - 1
+    if abilitySlotWatcherUsers <= 0 then
+        abilitySlotWatcherUsers = 0
+        EVENT_MANAGER:UnregisterForEvent(ABILITY_SLOT_EVENT_NAME, EVENT_ACTION_SLOT_ABILITY_USED)
+    end
+end
+
+-- Returns the player's current binding for a slot as text with embedded button
+-- icons. The icon markup is resolved by the game for the connected controller,
+-- so it shows Xbox glyphs on Xbox and PlayStation glyphs on PS5. In keyboard
+-- mode on PC it shows the key name instead.
+local KEYBIND_ICON_SCALE_PERCENT = 100
+
+local function GetAbilitySlotKeybindText(slotIndex)
+    local actionName
+    if ZO_Keybindings_ShouldUseGamepadAction() then
+        actionName = "GAMEPAD_ACTION_BUTTON_" .. tostring(slotIndex)
+    else
+        actionName = "ACTION_BUTTON_" .. tostring(slotIndex)
+    end
+    local NO_HOLD = false
+    local bindingText = ZO_Keybindings_GetHighestPriorityBindingStringFromAction(actionName,
+        KEYBIND_TEXT_OPTIONS_FULL_NAME, KEYBIND_TEXTURE_OPTIONS_EMBED_MARKUP, nil, NO_HOLD, KEYBIND_ICON_SCALE_PERCENT)
+    if bindingText == nil or bindingText == "" then
+        return GetString(SI_ACTION_IS_NOT_BOUND)
+    end
+    return bindingText
+end
+
+local function AbilitySlotDisplayName(slotIndex)
+    if slotIndex == ULTIMATE_SLOT then
+        return "Ultimate"
+    end
+    return "Ability " .. tostring(slotIndex - FIRST_ABILITY_SLOT + 1)
+end
+
+-------------------------------------------------------------------------------
 -- Trigger registry
 -------------------------------------------------------------------------------
 
@@ -254,6 +324,7 @@ EM.triggers =
 {
     {
         key = "heavyAttack",
+        section = "Triggers",
         label = "Heavy Attack",
         tooltip = "Marks the target you are looking at the moment you begin a heavy attack.",
         start = StartHeavyAttackWatcher,
@@ -262,6 +333,7 @@ EM.triggers =
     },
     {
         key = "doubleSwap",
+        section = "Triggers",
         label = "Swap Weapons Twice",
         tooltip = "Marks the target you are looking at when you swap weapon bars twice within two seconds.",
         start = StartDoubleSwapWatcher,
@@ -269,6 +341,23 @@ EM.triggers =
         active = false,
     },
 }
+
+for slotIndex = FIRST_ABILITY_SLOT, ULTIMATE_SLOT do
+    local displayName = AbilitySlotDisplayName(slotIndex)
+    table.insert(EM.triggers,
+    {
+        key = AbilitySlotKey(slotIndex),
+        section = "Triggers",
+        -- Evaluated each time the settings panel draws, so a rebind shows up.
+        label = function()
+            return string.format("%s  %s", displayName, GetAbilitySlotKeybindText(slotIndex))
+        end,
+        tooltip = string.format("Marks the target you are looking at when you use %s on either bar.", displayName),
+        start = StartAbilitySlotWatcher,
+        stop = StopAbilitySlotWatcher,
+        active = false,
+    })
+end
 
 -- Start watchers for triggers that have a marker assigned and stop the rest.
 function EM.RefreshWatchers()
@@ -286,22 +375,141 @@ function EM.RefreshWatchers()
 end
 
 -------------------------------------------------------------------------------
--- Saved variables
+-- Saved variables (account-wide by default, per-character on request)
 -------------------------------------------------------------------------------
+--
+-- Two stores live in the same saved-variable table:
+--   EM.svAccount   shared by every character on the account (the default)
+--   EM.svCharacter this character's own marks plus the "use mine" flag
+-- EM.sv always points at whichever store is active, so the trigger handlers
+-- just read EM.sv.marks and never care which one it is.
 
-local function BuildDefaults()
-    local defaults = { marks = {} }
+local function BuildMarkDefaults()
+    local marks = {}
     for _, trigger in ipairs(EM.triggers) do
-        defaults.marks[trigger.key] = TARGET_MARKER_TYPE_NONE
+        marks[trigger.key] = TARGET_MARKER_TYPE_NONE
     end
-    return defaults
+    return marks
 end
 
+local function BuildAccountDefaults()
+    return { marks = BuildMarkDefaults() }
+end
+
+local function BuildCharacterDefaults()
+    return { useCharacterSettings = false, marks = BuildMarkDefaults() }
+end
+
+-- Guard against saved data from a build with a different trigger list.
+local function SanitizeMarks(marks)
+    for _, trigger in ipairs(EM.triggers) do
+        if MARK_NAME_BY_TYPE[marks[trigger.key]] == nil then
+            marks[trigger.key] = TARGET_MARKER_TYPE_NONE
+        end
+    end
+end
+
+local function CopyMarks(from, to)
+    for _, trigger in ipairs(EM.triggers) do
+        to[trigger.key] = from[trigger.key]
+    end
+end
+
+local function SelectActiveStore()
+    if EM.svCharacter.useCharacterSettings then
+        EM.sv = EM.svCharacter
+    else
+        EM.sv = EM.svAccount
+    end
+end
+
+local function RefreshSettingsPanel()
+    if EM.settingsPanel and EM.settingsPanel.UpdateControls then
+        EM.settingsPanel:UpdateControls()
+    end
+end
+
+-- "Reset to Defaults" clears the marks in whichever store is active. It does
+-- not change the account-wide / this-character choice.
 local function ResetToDefaults()
     for _, trigger in ipairs(EM.triggers) do
         EM.sv.marks[trigger.key] = TARGET_MARKER_TYPE_NONE
     end
     EM.RefreshWatchers()
+end
+
+-------------------------------------------------------------------------------
+-- Switching between account-wide and this-character settings
+-------------------------------------------------------------------------------
+
+local SWITCH_DIALOG_NAME = "EASYMARK_SWITCH_TO_ACCOUNT_WIDE"
+
+local function FinishSwitchToAccountWide(applyCharacterSettings)
+    if applyCharacterSettings then
+        CopyMarks(EM.svCharacter.marks, EM.svAccount.marks)
+    end
+    EM.svCharacter.useCharacterSettings = false
+    SelectActiveStore()
+    EM.RefreshWatchers()
+    RefreshSettingsPanel()
+end
+
+local function RegisterSwitchDialog()
+    ZO_Dialogs_RegisterCustomDialog(SWITCH_DIALOG_NAME,
+    {
+        canQueue = true,
+        gamepadInfo =
+        {
+            dialogType = GAMEPAD_DIALOGS.BASIC,
+        },
+        title =
+        {
+            text = "EasyMark: Account-Wide Settings",
+        },
+        mainText =
+        {
+            text = "This character has its own EasyMark settings.\n\nApply them to the whole account, or discard them and use the existing account-wide settings?",
+        },
+        buttons =
+        {
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = "Apply to Account",
+                callback = function()
+                    FinishSwitchToAccountWide(true)
+                end,
+            },
+            {
+                keybind = "DIALOG_NEGATIVE",
+                text = "Discard",
+                callback = function()
+                    FinishSwitchToAccountWide(false)
+                end,
+            },
+        },
+        -- Dismissed without choosing: stay on this-character settings and
+        -- redraw so the checkbox reflects that.
+        noChoiceCallback = function()
+            RefreshSettingsPanel()
+        end,
+    })
+end
+
+local function SetUseCharacterSettings(enabled)
+    if enabled == nil or enabled == EM.svCharacter.useCharacterSettings then
+        return
+    end
+    if enabled then
+        -- This character starts with a copy of the account-wide settings.
+        CopyMarks(EM.svAccount.marks, EM.svCharacter.marks)
+        EM.svCharacter.useCharacterSettings = true
+        SelectActiveStore()
+        EM.RefreshWatchers()
+        RefreshSettingsPanel()
+    else
+        -- Let the player decide what happens to this character's settings.
+        ZO_Dialogs_ShowPlatformDialog(SWITCH_DIALOG_NAME)
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -325,29 +533,49 @@ local function CreateSettingsMenu()
         return
     end
 
+    -- allowRefresh is deliberately NOT set. It is not a refresh-on-show flag
+    -- (LHAS re-reads every getter on panel show for free); it means "re-run
+    -- every getter whenever any control changes", which nothing here needs.
+    -- The scope switch calls UpdateControls() explicitly instead.
     local options =
     {
         allowDefaults = true,
-        allowRefresh = true,
         defaultsFunction = ResetToDefaults,
     }
     local panel = LibHarvensAddonSettings:AddAddon("EasyMark", options)
     if not panel then
         return
     end
-
-    panel:AddSetting({
-        type = LibHarvensAddonSettings.ST_SECTION,
-        label = "Triggers",
-    })
+    EM.settingsPanel = panel
 
     panel:AddSetting({
         type = LibHarvensAddonSettings.ST_LABEL,
         label = "Pick a marker for each trigger. A trigger set to None is not watched at all.",
     })
 
+    -- No `default` on purpose: Reset to Defaults must not flip the scope.
+    panel:AddSetting({
+        type = LibHarvensAddonSettings.ST_CHECKBOX,
+        label = "This character only",
+        tooltip = "Off: every character on this account shares the same settings. On: this character keeps its own settings, starting from a copy of the account-wide ones. Turning it off again asks whether to apply this character's settings to the account or discard them.",
+        getFunction = function()
+            return EM.svCharacter.useCharacterSettings
+        end,
+        setFunction = SetUseCharacterSettings,
+    })
+
+    -- Triggers are listed in registry order; a new section header is emitted
+    -- whenever the section name changes.
+    local currentSection = nil
     for _, trigger in ipairs(EM.triggers) do
         local key = trigger.key
+        if trigger.section ~= currentSection then
+            currentSection = trigger.section
+            panel:AddSetting({
+                type = LibHarvensAddonSettings.ST_SECTION,
+                label = currentSection,
+            })
+        end
         panel:AddSetting({
             type = LibHarvensAddonSettings.ST_DROPDOWN,
             label = trigger.label,
@@ -375,15 +603,13 @@ local function OnAddOnLoaded(_, addonName)
     end
     EVENT_MANAGER:UnregisterForEvent(EM.name, EVENT_ADD_ON_LOADED)
 
-    EM.sv = ZO_SavedVars:NewAccountWide(EM.savedVarsName, EM.savedVarsVersion, nil, BuildDefaults())
+    EM.svAccount = ZO_SavedVars:NewAccountWide(EM.savedVarsName, EM.savedVarsVersion, nil, BuildAccountDefaults())
+    EM.svCharacter = ZO_SavedVars:NewCharacterIdSettings(EM.savedVarsName, EM.savedVarsVersion, nil, BuildCharacterDefaults())
+    SanitizeMarks(EM.svAccount.marks)
+    SanitizeMarks(EM.svCharacter.marks)
+    SelectActiveStore()
 
-    -- Guard against saved data from a build with a different trigger list.
-    for _, trigger in ipairs(EM.triggers) do
-        if MARK_NAME_BY_TYPE[EM.sv.marks[trigger.key]] == nil then
-            EM.sv.marks[trigger.key] = TARGET_MARKER_TYPE_NONE
-        end
-    end
-
+    RegisterSwitchDialog()
     CreateSettingsMenu()
     EM.RefreshWatchers()
 end

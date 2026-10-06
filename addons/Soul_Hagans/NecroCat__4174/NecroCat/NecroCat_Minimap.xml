@@ -15,7 +15,7 @@
           <AnchorFill />
           <Controls>
             <!-- 1. Фоновая подложка под картой (закрывает пустоты за краями) -->
-            <Texture name="$(parent)_Background" layer="0" textureFile="NecroCat/imgs/map_bg.dds">
+            <Texture name="$(parent)_Background" layer="0" textureFile="NecroCat/imgs/fons/map_bg.dds">
               <AnchorFill />
             </Texture>
 

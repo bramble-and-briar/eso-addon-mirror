@@ -1,4 +1,4 @@
-Alabuzya UI 1.0.1
+Alabuzya UI 1.0.6
 
 Developed with AI assistance, including code generation and new UI textures.
 Разработано с помощью ИИ, включая написание кода и создание новых текстур интерфейса.
@@ -31,6 +31,7 @@ A configurable interface and everyday helpers for The Elder Scrolls Online on PC
 The custom UI textures were newly generated with OpenAI image generation and prepared for use in ESO. The resource display and theme system were written anew, and the functional modules have been reworked and integrated into the Alabuzya UI codebase. Game-provided icons, maps and fonts remain supplied by ESO.
 
 Features
+- Frameless desaturated map overlay with colored native pins and quest/excavation areas, in every style and the stock UI. Assign a toggle key in Controls → Keybindings → Alabuzya UI. Map overlay settings: enable, opacity and size. No default key.
 - Diablo resource orbs or WoW horizontal bars/role icons, dual skill panels, styled compass and chat window.
 - Combat statistics, critical chance and power displays, effects and target health information.
 - Compact group and trial frames with level/Champion Points, roles and context menus.
@@ -57,6 +58,22 @@ Close ESO and extract the AlabuzyaUI folder into Documents/Elder Scrolls Online/
 
 Author, credits and contact
 Alabuzya UI: alabuzya. Developed with OpenAI AI assistance for code and artwork. Supporting modules are adapted from the author's DIAhelp project; bundled QuestArrow is also by alabuzya. Full credits and licensing details are included in CREDITS.txt and LICENSE (GPL-3.0-or-later).
+Thanks to Baertram for valuable guidance as I learn to develop ESO addons.
+Profile: https://www.esoui.com/forums/member.php?u=2028
+Thanks also to Atharti for suggesting texture compression — without that tip,
+I would have taken much longer to realize it was needed.
+Profile: https://www.esoui.com/forums/member.php?u=75599
+
+Thanks to Bandits UI — https://www.esoui.com/downloads/info1643-BanditsUserInterface.html for long-buff placement and power/critical displays.
+Thanks to AUI — https://www.esoui.com/downloads/info919-AUI-AdvancedUI.html for DPS display inspiration.
+Thanks to Votan’s Minimap — https://www.esoui.com/downloads/info1399-VotansMiniMap.html for minimap inspiration.
+Thanks to Ravalox’ Quest Tracker — https://www.esoui.com/downloads/info13-RavaloxQuestTracker.html for quest grouping by zone.
+Thanks to Fancy Action Bar — https://www.esoui.com/downloads/info2462-FancyActionBar.html for the dual action-bar idea.
+Thanks to DiabloFrames — https://www.esoui.com/downloads/info3051-DiabloFrames.html for the inspiration to start this project.
+Thanks to Fyrakin’s Minimap [Masteroshi430 branch] — https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html for round minimap and ActionMap inspiration.
+Thanks to MapRadar — https://www.esoui.com/downloads/info3866-MapRadar.html for overlay research.
+
+
 Contact: aabuziarov@gmail.com. For bug reports, include the addon version, a description of what happened, steps to reproduce, a screenshot or Lua error, and relevant enabled addons.
 An independent community addon; not affiliated with or sponsored by ZeniMax Media Inc.
 
@@ -66,6 +83,7 @@ Alabuzya UI — Русский
 Собственные текстуры интерфейса заново сгенерированы с помощью OpenAI и подготовлены для использования в ESO. Панель ресурсов и система оформления написаны заново; функциональные модули переработаны и объединены в кодовой базе Alabuzya UI. Штатные значки, карты и шрифты предоставляет сама игра.
 
 Возможности
+- Оверлей обесцвеченной карты без рамки с цветными значками и областями заданий/раскопок, во всех темах и стандартном интерфейсе. Назначьте клавишу в «Управление → Назначение клавиш → Alabuzya UI». В настройках оверлея — включение, прозрачность и размер. По умолчанию клавиша не назначена.
 - Сферы ресурсов Diablo или полосы ресурсов и значки ролей WoW, две панели умений, оформление компаса и чата.
 - Боевая статистика, показатели критического шанса и силы, эффекты и здоровье цели.
 - Компактные панели группы и испытания с уровнем/ОГ, ролями и контекстным меню.
@@ -92,6 +110,22 @@ Alabuzya UI — Русский
 
 Авторство и обратная связь
 Автор Alabuzya UI — alabuzya. При разработке кода и графики использовалась помощь ИИ OpenAI. Вспомогательные модули адаптированы из собственного проекта автора DIAhelp; встроенный QuestArrow также создан alabuzya. Полные сведения об авторстве и лицензии — в CREDITS.txt и LICENSE (GPL-3.0-or-later).
+Выражаю благодарность Baertram за важные подсказки новичку в разработке аддонов ESO.
+Профиль: https://www.esoui.com/forums/member.php?u=2028
+А также Atharti за совет сжать текстуры — без него я бы ещё долго
+не догадался это сделать.
+Профиль: https://www.esoui.com/forums/member.php?u=75599
+
+Спасибо Bandits UI — https://www.esoui.com/downloads/info1643-BanditsUserInterface.html за расположение длительных бафов и показатели силы/крита.
+Спасибо AUI — https://www.esoui.com/downloads/info919-AUI-AdvancedUI.html за идею отображения DPS.
+Спасибо Votan’s Minimap — https://www.esoui.com/downloads/info1399-VotansMiniMap.html за идеи миникарты.
+Спасибо Ravalox’ Quest Tracker — https://www.esoui.com/downloads/info13-RavaloxQuestTracker.html за группировку заданий по зонам.
+Спасибо Fancy Action Bar — https://www.esoui.com/downloads/info2462-FancyActionBar.html за идею двух панелей навыков.
+Спасибо DiabloFrames — https://www.esoui.com/downloads/info3051-DiabloFrames.html за вдохновение для создания этого проекта.
+Спасибо Fyrakin’s Minimap [Masteroshi430 branch] — https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html за идеи круглой миникарты и ActionMap.
+Спасибо MapRadar — https://www.esoui.com/downloads/info3866-MapRadar.html за материалы для изучения оверлеев.
+
+
 Связь: aabuziarov@gmail.com. В сообщении об ошибке укажите версию аддона, описание проблемы, шаги для повторения, приложите скриншот или текст Lua-ошибки и перечислите связанные включённые аддоны.
 Независимый аддон сообщества, не связанный с ZeniMax Media Inc. и не спонсируемый ею.
 
@@ -122,3 +156,7 @@ RU: Круги заданий и области раскопок использ�
 
 EN: Income and expenses → Accounting period offers By day (default) and By session. Changes the widget and table immediately, retaining all session data. Daily totals cover all characters on the current server. Daily gold balance sums the latest recorded balances of characters included that day. New transactions are split by calendar date across midnight; legacy session totals belong to the start date because transaction timestamps were not previously recorded.
 RU: «Доходы и расходы → Период подсчёта»: «По дням» (по умолчанию) или «По сессиям». Значок и таблица меняются сразу, история сохраняется. Дневной итог объединяет всех персонажей текущего сервера. Остаток золота за день — сумма последних записанных остатков персонажей, участвовавших в этот день. Новые операции разделяются по календарным датам при переходе через полночь; прежние итоги сессий относятся к дате начала, поскольку время отдельных операций ранее не сохранялось.
+
+Overlay troubleshooting / Диагностика оверлея
+/auimap toggles the overlay and prints status; /auimap status reports state without toggling. Include the printed line when reporting a problem.
+/auimap переключает оверлей и выводит состояние; /auimap status только выводит состояние. При проблеме приложите строку из чата.

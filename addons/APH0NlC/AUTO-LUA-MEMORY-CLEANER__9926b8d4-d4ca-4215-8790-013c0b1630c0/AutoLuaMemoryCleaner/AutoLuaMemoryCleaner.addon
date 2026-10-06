@@ -1,14 +1,24 @@
 ## Title: |c9CD04CAuto Lua Memory Cleaner|r
-## Version: 0.0.8
-## AddOnVersion: 260326008
+## AddOnVersion: 26100608
+## Version: 2026.10.06.08.01
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
-## APIVersion: 101049
+## APIVersion: 101051 101052
 ## SavedVariables: AutoLuaCleaner
-## OptionalDependsOn: LibAddonMenu-2.0 LibCombatAlerts
-## Description: |cfa9c1bLightweight|r |cCCFF00Auto Lua Memory Cleaner|r
+## DependsOn: LibAPH>=26100607
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
+## Description: |cfa9c1bLightweight|r |cCCFF00Auto Lua Memory Cleaner|r. Type /alc for a full list of commands.
 
-; Main files
-AutoLuaMemoryCleaner.lua
+Core/ALC_Core.lua
+lang/default.lua
+lang/$(language).lua
+Data/ALC_Data.lua
+Core/ALC_Commands.lua
+MODULE/ALC_Migration.lua
+MODULE/ALC_Wizard.lua
+MODULE/ALC_Menu.lua
+MODULE/ALC_UI.lua
+PC/ALC_PC.lua
+Console/ALC_Console.lua
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
@@ -19,8 +29,5 @@ AutoLuaMemoryCleaner.lua
 ; https://account.elderscrollsonline.com/add-on-terms
 
 ; Auto Lua Memory Cleaner: https://www.esoui.com/downloads/info4388
-; LICENSE
-; Copyright 2025-2026 @APHONlC
-; Licensed under the Apache License, Version 2.0.
-;
-; For permissions or inquiries, contact @APHONlC on ESOUI or GitHub.
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

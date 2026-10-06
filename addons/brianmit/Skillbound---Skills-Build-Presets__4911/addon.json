@@ -22,9 +22,9 @@
     "Skillbound"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4911/",
-  "fingerprint": "957fab8f5b31b1b590f8ff94acc294f293a015390c60d56ebb0f19bffcdd8154",
+  "fingerprint": "7c642497f8def5510d808a483b752ef1b6d1fb7c33b942cc1d15e3975b0e1d19",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17695.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17748.png",
     "https://cdn-eso.mmoui.com/preview/pvw17696.png",
     "https://cdn-eso.mmoui.com/preview/pvw17697.png",
     "https://cdn-eso.mmoui.com/preview/pvw17698.png",
@@ -43,11 +43,11 @@
   "source_id": "4911",
   "source_url": "https://www.esoui.com/downloads/info4911-Skillbound-SkillsBuildPresets.html",
   "stats": {
-    "downloads": 27,
-    "favorites": 2,
-    "monthly_downloads": 21
+    "downloads": 53,
+    "favorites": 3,
+    "monthly_downloads": 46
   },
   "title": "Skillbound - Skills & Build Presets",
-  "updated_at": 1791117778000,
-  "version": "1.0.1"
+  "updated_at": 1791256737000,
+  "version": "1.0.2"
 }

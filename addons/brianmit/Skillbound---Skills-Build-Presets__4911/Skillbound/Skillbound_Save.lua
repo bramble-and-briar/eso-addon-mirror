@@ -165,7 +165,7 @@ local function PaintRow(r)
     r.track:SetColor(Anim.Lerp(C.slot.r, C.theme.r * 0.55, on), Anim.Lerp(C.slot.g, C.theme.g * 0.55, on),
         Anim.Lerp(C.slot.b, C.theme.b * 0.55, on), 1)
     local edge = on > 0.5 and C.theme or (p > 0.5 and C.gold or C.goldDark)
-    r.edge:SetColor(B.RGBA(edge, Anim.Lerp(0.8, 1, math.max(on, p))))
+    r.edge:SetColor(B.RGBA(edge, 1))
     Anim.Offset(r.knob, 20 * on, 0)
     r.knob:SetColor(Anim.Lerp(C.dim.r, C.text.r, on), Anim.Lerp(C.dim.g, C.text.g, on), Anim.Lerp(C.dim.b, C.text.b, on), 1)
     r.knob:SetScale(1 + 0.12 * p)
@@ -240,7 +240,7 @@ local function MakeRow(i, def, parent)
     r.edge:SetAnchor(CENTER, r.track, CENTER, 0, 0)
     r.edge:SetDrawLevel(2)
     r.knobGlow = W.Glow(r, 34, 34, C.theme, 0)
-    r.knob = W.Tex(r, B.TEX .. "disc.dds", 16, 16)
+    r.knob = W.Tex(r, B.TEX .. "knob.dds", 16, 16)
     Anim.Anchor(r.knob, LEFT, r.track, LEFT, 3, 0)
     r.knob:SetDrawLevel(3)
     r.knobGlow:SetAnchor(CENTER, r.knob, CENTER, 0, 0)
@@ -476,7 +476,7 @@ local function Create()
         end)
     end
     -- the free 10th spot: "Eat in dungeons" (not a part: "All" leaves it alone)
-    ui.eatRow = MakeRow(#PARTS + 1, { "autoEat", "SAVE_AUTO_EAT" })
+    ui.eatRow = MakeRow(#PARTS + 1, { "autoEat", "SAVE_AUTO_EAT_SWITCH" })   -- (short: "Eat/drink in dungeons" is too wide for the switch row)
     ui.rows[#PARTS + 1] = nil
 
     -- notes (rotation, what it's for...): shown in the arch under the build's picture

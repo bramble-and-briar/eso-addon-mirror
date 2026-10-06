@@ -7,6 +7,7 @@ MSI.Version = "2.7dev"
 MSI.DevAcc 	= "Metu-_-Liber"
 MSI.panel 	= nil
 MSI.playerActivated = false
+MSI.activeDuration = 0
 
 --*****************--
 -- InitSavedVariables
@@ -116,11 +117,11 @@ function MSI.InitModuleEvents()
 	if MSI.InitModLycanStatus then MSI.InitModLycanStatus() end
 	if MSI.InitModDisputeReticle then MSI.InitModDisputeReticle() end
 	if MSI.InitModLockcrackClue then MSI.InitModLockcrackClue() end
-	if MSI.InitModClaimTomePoints then MSI.InitModClaimTomePoints() end
 	if MSI.InitModCaimPursuitPoints then MSI.InitModCaimPursuitPoints() end
 	if MSI.InitModHirelingMail then MSI.InitModHirelingMail() end
 	if MSI.InitModSkipDialogs then MSI.InitModSkipDialogs() end
 	if MSI.InitModTraderThing then MSI.InitModTraderThing() end
+	if MSI.InitModClaimTomePoints then MSI.InitModClaimTomePoints() end
 	--if MSI.InitModMapZoneIcons then MSI.InitModMapZoneIcons() end
 end
 -- Init MSI AddOn

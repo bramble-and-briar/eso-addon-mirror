@@ -1,0 +1,9 @@
+[b]v1.31 ~DakJaniels (28-September-2026)[/b]
+[list][*]Requires LibAlchemy 2.7.
+[*]Advanced name settings follow the Update 51 traits. Increase Power and Critical replace the old spell and weapon versions. Damage Shield, Heal Absorption, Force, Enervation, Mending, and Vexation are included. Effect rows are listed in id order.
+[*]Unchanged saved names "+SpellPower" and "+SpellCrit" update to "+Power" and "+Crit". Names you already edited are left alone.
+[*]Previously crafted potions still use effect ids 13, 14, 17, and 18. Those display as Increase Power, Cowardice, Critical, and Enervation, and editing that setting updates both old and new potions.
+[*]The weapon-power icon stays on item-link key 7-258-13-17-5. Newly crafted potions keep the game icon unless they already match an existing key.
+[*]Potion tooltips decode effects with LibAlchemy:GetEffectsFromItemLink, so ids 33 through 38 are no longer treated as a prolonged effect.
+[*]Reinitialize Prices includes the four new reagents. Chaurus Egg, Vile Coagulant, and Crimson Nirnroot now price their own item ids.
+[/list]

@@ -5,6 +5,23 @@ Developed with AI assistance, including code generation and new UI artwork.
 ENGLISH
 Author and maintainer: alabuzya <aabuziarov@gmail.com>, 2026.
 
+Acknowledgements
+Thanks to Baertram for valuable guidance as I learn to develop ESO addons.
+Profile: https://www.esoui.com/forums/member.php?u=2028
+Thanks also to Atharti for suggesting texture compression — without that tip,
+I would have taken much longer to realize it was needed.
+Profile: https://www.esoui.com/forums/member.php?u=75599
+
+Thanks to Bandits UI — https://www.esoui.com/downloads/info1643-BanditsUserInterface.html for long-buff placement and power/critical displays.
+Thanks to AUI — https://www.esoui.com/downloads/info919-AUI-AdvancedUI.html for DPS display inspiration.
+Thanks to Votan’s Minimap — https://www.esoui.com/downloads/info1399-VotansMiniMap.html for minimap inspiration.
+Thanks to Ravalox’ Quest Tracker — https://www.esoui.com/downloads/info13-RavaloxQuestTracker.html for quest grouping by zone.
+Thanks to Fancy Action Bar — https://www.esoui.com/downloads/info2462-FancyActionBar.html for the dual action-bar idea.
+Thanks to DiabloFrames — https://www.esoui.com/downloads/info3051-DiabloFrames.html for the inspiration to start this project.
+Thanks to Fyrakin’s Minimap [Masteroshi430 branch] — https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html for round minimap and ActionMap inspiration.
+Thanks to MapRadar — https://www.esoui.com/downloads/info3866-MapRadar.html for overlay research.
+
+
 Alabuzya UI has a newly written resource display and theme system. Supporting
 functional modules are adapted from the author's DIAhelp project and reworked
 for this addon. Bundled QuestArrow 0.2.2 is also by alabuzya.
@@ -34,6 +51,23 @@ Not affiliated with or sponsored by ZeniMax Media Inc.
 РУССКИЙ
 Автор и сопровождающий: alabuzya <aabuziarov@gmail.com>, 2026.
 
+Благодарности
+Выражаю благодарность Baertram за важные подсказки новичку в разработке аддонов ESO.
+Профиль: https://www.esoui.com/forums/member.php?u=2028
+А также Atharti за совет сжать текстуры — без него я бы ещё долго
+не догадался это сделать.
+Профиль: https://www.esoui.com/forums/member.php?u=75599
+
+Спасибо Bandits UI — https://www.esoui.com/downloads/info1643-BanditsUserInterface.html за расположение длительных бафов и показатели силы/крита.
+Спасибо AUI — https://www.esoui.com/downloads/info919-AUI-AdvancedUI.html за идею отображения DPS.
+Спасибо Votan’s Minimap — https://www.esoui.com/downloads/info1399-VotansMiniMap.html за идеи миникарты.
+Спасибо Ravalox’ Quest Tracker — https://www.esoui.com/downloads/info13-RavaloxQuestTracker.html за группировку заданий по зонам.
+Спасибо Fancy Action Bar — https://www.esoui.com/downloads/info2462-FancyActionBar.html за идею двух панелей навыков.
+Спасибо DiabloFrames — https://www.esoui.com/downloads/info3051-DiabloFrames.html за вдохновение для создания этого проекта.
+Спасибо Fyrakin’s Minimap [Masteroshi430 branch] — https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html за идеи круглой миникарты и ActionMap.
+Спасибо MapRadar — https://www.esoui.com/downloads/info3866-MapRadar.html за материалы для изучения оверлеев.
+
+
 Панель ресурсов и система оформления Alabuzya UI написаны заново. Вспомогательные
 функциональные модули адаптированы из собственного проекта автора DIAhelp
 и переработаны для этого аддона. Встроенный QuestArrow 0.2.2 также создан alabuzya.
@@ -58,7 +92,7 @@ Not affiliated with or sponsored by ZeniMax Media Inc.
 в пределах прав автора. Права на игровые материалы и товарные знаки не заявляются.
 Аддон не связан с ZeniMax Media Inc. и не спонсируется ею.
 
-CLASSIC THEME / ТЕМА CLASSIC
+WoW THEME / ТЕМА WoW
 WoW artwork (gryphons, ring and reusable frame) was generated with OpenAI image generation in September 2026 from the maintainer-approved Classic-WoW-DualBar-v2 concept. No Blizzard texture files are included. Original source images and preparation notes are retained in art/classic in the working project.
 Графика WoW (грифоны, круглая и разрезаемая рамки) создана с помощью OpenAI в сентябре 2026 по утверждённому концепту Classic-WoW-DualBar-v2. Текстуры Blizzard в аддон не включены. Исходники и сведения о подготовке сохранены в art/classic рабочего проекта.
 

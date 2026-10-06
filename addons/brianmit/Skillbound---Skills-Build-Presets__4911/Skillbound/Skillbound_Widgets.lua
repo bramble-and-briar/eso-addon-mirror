@@ -27,12 +27,35 @@ function W.Label(parent, font, color, text, align)
     return l
 end
 
+-- The background picture (bg_graphite.dds, 2048 x 1024, 2026-10-06) is never stretched: like a
+-- CSS "cover" it shows the middle part that has the control's shape (a 960 x 780 window shows
+-- 62 % of its width, full height). It used to be a square stretched to every window's shape.
+local BG_ASPECT = 2
+function W.FitBG(t)
+    local w, h = t:GetDimensions()
+    if not w or not h or w < 2 or h < 2 then return end
+    local a = w / h
+    if a < BG_ASPECT then
+        local f = a / BG_ASPECT
+        t:SetTextureCoords(0.5 - f / 2, 0.5 + f / 2, 0, 1)
+    else
+        local f = BG_ASPECT / a
+        t:SetTextureCoords(0, 1, 0.5 - f / 2, 0.5 + f / 2)
+    end
+end
+
 function W.Tex(parent, texture, w, h, color, alpha)
     local t = WINDOW_MANAGER:CreateControl(nil, parent, CT_TEXTURE)
     if texture then t:SetTexture(texture) end
     if w then t:SetDimensions(w, h or w) end
     if color then t:SetColor(B.RGBA(color, alpha)) end
     t:SetMouseEnabled(false)
+    if texture == B.BG then
+        -- re-crop whenever its size changes (anchored fill: follows window resizing); the
+        -- first crop waits a frame, when the anchors have given it a size
+        pcall(t.SetHandler, t, "OnRectChanged", function(self) W.FitBG(self) end)
+        B.Later(function() W.FitBG(t) end, 0)
+    end
     return t
 end
 
@@ -457,7 +480,7 @@ function W.Switch(parent, text, getter, setter, tooltip)
     s.track = W.Tex(s, B.TEX .. "pill.dds", 34, 18)
     s.edge = W.Tex(s, B.TEX .. "pill_edge.dds", 34, 18)
     s.edge:SetDrawLevel(2)
-    s.knob = W.Tex(s, B.TEX .. "disc.dds", 12, 12)
+    s.knob = W.Tex(s, B.TEX .. "knob.dds", 12, 12)
     s.knob:SetDrawLevel(3)
     local function Place()
         local lw = (text and text ~= "") and (s.label:GetTextWidth() > 5 and s.label:GetTextWidth() or #text * 7) + 8 or 0

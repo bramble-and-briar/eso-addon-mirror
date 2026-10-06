@@ -66,8 +66,11 @@ local function CollectPoints()
             local blob=native.polygonBlob or native.pinBlob
             if x and y and blob and not blob:IsControlHidden() then
                 if native.polygonBlob and native.borderInformation then
+                    -- PolygonControl exposes GetCenterColor, but no GetBorderColor.
+                    -- ESO obtains the border color from the owning ZO_MapPin.
+                    local edge=native:GetBorderColor()
                     areas[#areas+1]={x=x,y=y,polygon=true,border=native.borderInformation,
-                        color={blob:GetCenterColor()},edge={blob:GetBorderColor()}}
+                        color={blob:GetCenterColor()},edge={edge:UnpackRGBA()}}
                 elseif native.radius and native.radius>0 then
                     areas[#areas+1]={x=x,y=y,radius=native.radius,texture=blob:GetTextureFileName(),color={blob:GetColor()}}
                 end
@@ -103,7 +106,7 @@ local function CollectPoints()
     end
     table.sort(points,function(a,b) return a.level<b.level end)
 end
-local function DrawAreas(width,height,left,top)
+function AlabuzyaUI.Minimap.DrawAreas(view,areaControls,areas,width,height,left,top)
     local used=0
     for _,area in ipairs(areas) do
         used=used+1
@@ -112,7 +115,9 @@ local function DrawAreas(width,height,left,top)
         if c and c.areaKind~=kind then c:SetHidden(true) c=nil end
         if not c then
             c=WINDOW_MANAGER:CreateControl(nil,view,kind) c.areaKind=kind
-            c:SetPixelRoundingEnabled(false) c:SetMouseEnabled(false)
+            -- Pixel rounding is a texture API, not a PolygonControl method.
+            if kind==CT_TEXTURE then c:SetPixelRoundingEnabled(false) end
+            c:SetMouseEnabled(false)
             c:SetDrawLayer(DL_BACKGROUND) c:SetDrawLevel(5)
             areaControls[used]=c
         end
@@ -135,11 +140,11 @@ local function DrawAreas(width,height,left,top)
     end
     for i=used+1,#areaControls do areaControls[i]:SetHidden(true) end
 end
-local function Pin(index,x,y,texture,name,rotation,style)
+function AlabuzyaUI.Minimap.DrawPin(view,pins,index,x,y,texture,name,rotation,style,interactive)
     local pin=pins[index]
     if not pin then
         pin=Texture(view) pin:SetDimensions(22,22) pin:SetDrawLayer(DL_OVERLAY)
-        pin:SetMouseEnabled(true)
+        pin:SetMouseEnabled(interactive~=false)
         pin:SetHandler('OnMouseEnter',function(self)
             if self.caption then ZO_Tooltips_ShowTextTooltip(self,TOPLEFT,self.caption) end
         end)
@@ -158,15 +163,10 @@ local function Pin(index,x,y,texture,name,rotation,style)
     pin:ClearAnchors() pin:SetAnchor(CENTER,view,TOPLEFT,x,y)
     pin:SetHidden(false)
 end
-local function Update()
+function AlabuzyaUI.Minimap.ReadFrame()
     local now=GetFrameTimeSeconds()
-    if now>=nextClock then
-        clock:SetText(Time(GetSecondsSinceMidnight())..'  |cBBB6A0'..Time((GetTimeStamp()%20955)*86400/20955)..'|r')
-        nextClock=now+1
-    end
     -- Only change global map context on HUD; never interrupt world-map browsing.
     if ZO_WorldMap_IsWorldMapShowing() then wasBrowsing=true return end
-    if root:IsHidden() then return end
     if wasBrowsing then mapDirty=true wasBrowsing=false end
     if not DoesCurrentMapMatchMapForPlayerLocation() then
         local result=SetMapToPlayerLocation()
@@ -182,8 +182,6 @@ local function Update()
     local changed=context~=key
     if changed or mapDirty then
         points={} areas={}
-        for _,area in ipairs(areaControls) do area:SetHidden(true) end
-        for _,pin in ipairs(pins) do pin:SetHidden(true) end
         RefreshMapPins()
         -- Callbacks may change context. Never pair old coordinates with new pins.
         if MapKey()~=context or not DoesCurrentMapMatchMapForPlayerLocation() then
@@ -192,7 +190,27 @@ local function Update()
         key=context nextPoints=0
     end
     if now>=nextPoints then CollectPoints() nextPoints=now+0.5 end
-    if changed then title:SetText(zo_strformat('<<1>>',GetMapName())) end
+    return {columns=columns,rows=rows,x=x,y=y,heading=heading,key=context,
+        points=points,areas=areas,name=GetMapName()}
+end
+function AlabuzyaUI.Minimap.InitializeShared()
+    if AlabuzyaUI.Minimap.sharedReady then return end
+    AlabuzyaUI.Minimap.sharedReady=true
+    CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged',function() mapDirty=true end)
+    EVENT_MANAGER:RegisterForEvent('AlabuzyaUIMapData',EVENT_PLAYER_ACTIVATED,function() mapDirty=true end)
+end
+local function Update()
+    local now=GetFrameTimeSeconds()
+    if now>=nextClock then
+        clock:SetText(Time(GetSecondsSinceMidnight())..'  |cBBB6A0'..Time((GetTimeStamp()%20955)*86400/20955)..'|r')
+        nextClock=now+1
+    end
+    if ZO_WorldMap_IsWorldMapShowing() then wasBrowsing=true return end
+    if root:IsHidden() then return end
+    local frame=AlabuzyaUI.Minimap.ReadFrame()
+    if not frame then return end
+    local columns,rows,x,y,heading=frame.columns,frame.rows,frame.x,frame.y,frame.heading
+    title:SetText(zo_strformat('<<1>>',frame.name))
     local zoom=AlabuzyaUI.Minimap.GetZoom()
     local width=SIZE*zoom local height=width*rows/columns
     -- Fixed player center, including map edges. No delayed position or heading.
@@ -209,12 +227,12 @@ local function Update()
         tile:SetHidden(false)
     end
     for i=columns*rows+1,#tiles do tiles[i]:SetHidden(true) end
-    DrawAreas(width,height,left,top)
+    AlabuzyaUI.Minimap.DrawAreas(view,areaControls,frame.areas,width,height,left,top)
     local count=0
     local function Put(px,py,texture,name,rotation,style)
         local sx,sy=px*width-left,py*height-top
         if sx>=0 and sx<=SIZE and sy>=0 and sy<=SIZE then
-            count=count+1 Pin(count,sx,sy,texture,name,rotation,style)
+            count=count+1 AlabuzyaUI.Minimap.DrawPin(view,pins,count,sx,sy,texture,name,rotation,style)
         end
     end
     for _,point in ipairs(points) do Put(point.x,point.y,point.texture,point.caption,point.rotation,point) end
@@ -230,6 +248,7 @@ local function Update()
     player:SetDrawLevel(count+1) player:SetTextureRotation(heading) player:SetHidden(false)
 end
 function AlabuzyaUI.Minimap.Initialize()
+    AlabuzyaUI.Minimap.InitializeShared()
     if AlabuzyaUI.Settings and not AlabuzyaUI.Settings.StyleEnabled() then return end
     settings=AlabuzyaUI.SavedVariables.Account('minimap',{zoomBias=1})
     local theme=AlabuzyaUI.Theme
@@ -261,7 +280,5 @@ function AlabuzyaUI.Minimap.Initialize()
     clock=Label(root,24) clock:SetAnchor(TOPLEFT,root,TOPLEFT,12,SIZE+44)
     if theme.ds3 then AlabuzyaUI.DS3Theme.SkinMap(root,view,title,clock,Zoom)
     elseif theme.classic then AlabuzyaUI.ClassicTheme.SkinMap(root,view,title,clock,Zoom) end
-    CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged',function() mapDirty=true end)
-    EVENT_MANAGER:RegisterForEvent('AlabuzyaUIMinimap',EVENT_PLAYER_ACTIVATED,function() mapDirty=true end)
     root:SetHandler('OnUpdate',Update)
 end

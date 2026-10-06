@@ -3,6 +3,13 @@
 
 
 
+[color=#6FCB9F]Version: 4.6.202120[/color]
+[color=#8C8A82]Release date: 05.10.2026[/color]
+
+- SavedVariables: Price history now discards observations outside the seven-day analysis window on load and price writes, retaining the latest price baseline for materials still covered by the existing 30-day retention policy. Sampling cadence and the observation limit are unchanged; snapshots, review baselines, change reports, and the value-history chart are preserved.
+- Manual Cleanup: Added a confirmed cleanup action in settings, with English and Russian explanations and a result summary in the panel and chat. Reports removed observations, removed material histories, retained observations and history-string byte savings; handles fresh installs and repeat cleanups. Changes take effect immediately in memory and are saved on the next normal logout or /reloadui, without forcing a reload.
+
+
 [color=#6FCB9F]Version: 4.5.005149[/color]
 [color=#8C8A82]Release date: 05.10.2026[/color]
 

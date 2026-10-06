@@ -1,7 +1,7 @@
 -- Initialisation de l'addon
 local TrueRessourceBars = {
     name = "TrueRessourceBars",
-    version = "2.9",
+    version = "3.2",
     updateInterval = 50,
     previewMode = false,
     controls = {
@@ -150,6 +150,7 @@ local auraOrientationChoices = {
 local defaults = {
     bars = {
         health = {
+            enabled = "Yes",
             x = 0, y = 340, width = 360, height = 28,
             color = { r = 0.85, g = 0.15, b = 0.15, a = 1 },
             shieldColor = { r = 0.75, g = 0.25, b = 0.95, a = 0.75 },
@@ -163,6 +164,7 @@ local defaults = {
             warningPulseSpeed = 120,
         },
         magicka = {
+            enabled = "Yes",
             x = -220, y = 380, width = 260, height = 24,
             color = { r = 0.15, g = 0.45, b = 0.95, a = 1 },
             font = "Gamepad Bold", fontSize = 16, fontStyle = "Outline",
@@ -174,6 +176,7 @@ local defaults = {
             warningPulseSpeed = 120,
         },
         stamina = {
+            enabled = "Yes",
             x = 220, y = 380, width = 260, height = 24,
             color = { r = 0.15, g = 0.85, b = 0.25, a = 1 },
             font = "Gamepad Bold", fontSize = 16, fontStyle = "Outline",
@@ -185,6 +188,7 @@ local defaults = {
             warningPulseSpeed = 120,
         },
         target = {
+            enabled = "Yes",
             x = 0, y = -340, width = 460, height = 32,
             color = { r = 0.85, g = 0.15, b = 0.15, a = 1 },
             shieldColor = { r = 0.75, g = 0.25, b = 0.95, a = 0.75 },
@@ -201,6 +205,8 @@ local defaults = {
         }
     },
     targetAuras = {
+        buffsEnabled = "Yes",
+        debuffsEnabled = "Yes",
         buffX = 5, buffY = -295,
         debuffX = 5, debuffY = -385,
 
@@ -236,7 +242,7 @@ local defaults = {
     }
 }
 
--- Échantillons factices complets pour l'aperçu
+-- Échantillons factices pour l'aperçu
 local dummyBuffData = {
     { icon = "/esoui/art/icons/ability_warrior_010.dds", time = 25 },
     { icon = "/esoui/art/icons/ability_rogue_038.dds", time = 120 },
@@ -370,40 +376,34 @@ local function GetDoublePulseAlpha(pulseSpeed)
     end
 end
 
--- Création d'une barre avec étiquette de bouclier dans les coins et nom séparé
+-- Création d'une barre unie
 local function CreateBarControl(barKey, config)
     local wm = WINDOW_MANAGER
     local name = TrueRessourceBars.name .. "_" .. barKey
 
-    -- Conteneur principal
     local container = wm:CreateControl(name .. "Container", TrueRessourceBars.root, CT_CONTROL)
     container:SetDimensions(config.width, config.height)
     container:SetAnchor(CENTER, GuiRoot, CENTER, config.x, config.y)
 
-    -- Bordure noire pure de 3 pixels
     local border = wm:CreateControl(name .. "Border", container, CT_TEXTURE)
     border:SetAnchor(TOPLEFT, container, TOPLEFT, -BORDER_SIZE, -BORDER_SIZE)
     border:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, BORDER_SIZE, BORDER_SIZE)
     border:SetColor(0, 0, 0, 1)
     border:SetDrawTier(DT_LOW)
 
-    -- Fond intérieur sombre sous la barre (quand elle se vide)
     local bg = wm:CreateControl(name .. "BG", container, CT_TEXTURE)
     bg:SetAnchorFill()
     bg:SetColor(0.04, 0.04, 0.05, 0.95)
     bg:SetDrawTier(DT_LOW)
 
-    -- Barre d'animation (Ghost Bar)
     local lossBarNormal = wm:CreateControl(name .. "LossNormal", container, CT_STATUSBAR)
     lossBarNormal:SetAnchorFill()
     lossBarNormal:SetDrawTier(DT_MEDIUM)
 
-    -- Barre principale
     local barNormal = wm:CreateControl(name .. "BarNormal", container, CT_STATUSBAR)
     barNormal:SetAnchorFill()
     barNormal:SetDrawTier(DT_HIGH)
 
-    -- Demi-barres pour le mode "To Center"
     local halfWidth = config.width / 2
 
     local lossCenterL = wm:CreateControl(name .. "LossCenterL", container, CT_STATUSBAR)
@@ -430,23 +430,19 @@ local function CreateBarControl(barKey, config)
     barCenterR:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
     barCenterR:SetDrawTier(DT_HIGH)
 
-    -- Barre de bouclier (Damage Shield)
     local shieldBar = wm:CreateControl(name .. "ShieldBar", container, CT_STATUSBAR)
     shieldBar:SetDrawTier(DT_HIGH)
     shieldBar:SetHidden(true)
 
-    -- Libellé du texte central
     local label = wm:CreateControl(name .. "Label", container, CT_LABEL)
     label:SetAnchor(CENTER, container, CENTER, 0, 0)
     label:SetDrawLayer(DL_OVERLAY)
     label:SetDrawTier(DT_HIGH)
 
-    -- Libellé de valeur du bouclier (positionnable dans les coins)
     local shieldLabel = wm:CreateControl(name .. "ShieldLabel", container, CT_LABEL)
     shieldLabel:SetDrawLayer(DL_OVERLAY)
     shieldLabel:SetDrawTier(DT_HIGH)
 
-    -- Libellé spécifique pour le nom de l'ennemi (au-dessus ou en dessous)
     local targetNameLabel = nil
     if barKey == "target" then
         targetNameLabel = wm:CreateControl(name .. "TargetNameLabel", container, CT_LABEL)
@@ -478,17 +474,20 @@ local function ApplyBarVisuals(barKey)
     local cfg = TrueRessourceBars.savedVars.bars[barKey]
     if not ui or not cfg then return end
 
+    if cfg.enabled == "No" then
+        ui.container:SetHidden(true)
+        return
+    end
+
     ui.container:ClearAnchors()
     ui.container:SetAnchor(CENTER, GuiRoot, CENTER, cfg.x, cfg.y)
     ui.container:SetDimensions(cfg.width, cfg.height)
     ui.container:SetAlpha(1.0)
 
-    -- Couleurs de base
     SetBarColor(ui.barNormal, cfg.color)
     SetBarColor(ui.barCenterL, cfg.color)
     SetBarColor(ui.barCenterR, cfg.color)
 
-    -- Couleur plus claire pour l'animation
     local r, g, b = GetRGBA(cfg.color, 1, 1, 1, 1)
     local animColor = {
         r = math.min(1, r + 0.35),
@@ -504,7 +503,6 @@ local function ApplyBarVisuals(barKey)
         SetBarColor(ui.shieldBar, cfg.shieldColor)
     end
 
-    -- Sens d'écoulement
     if cfg.drainDirection == "To Center" then
         ui.barNormal:SetHidden(true)
         ui.lossBarNormal:SetHidden(true)
@@ -528,7 +526,7 @@ local function ApplyBarVisuals(barKey)
 
         ui.barNormal:SetBarAlignment(BAR_ALIGNMENT_REVERSE)
         ui.lossBarNormal:SetBarAlignment(BAR_ALIGNMENT_REVERSE)
-    else -- Right to Left
+    else
         ui.barNormal:SetHidden(false)
         ui.lossBarNormal:SetHidden(false)
         ui.barCenterL:SetHidden(true)
@@ -540,7 +538,6 @@ local function ApplyBarVisuals(barKey)
         ui.lossBarNormal:SetBarAlignment(BAR_ALIGNMENT_NORMAL)
     end
 
-    -- Typographie du texte central
     local fontPath = fontMapping[cfg.font] or "$(GAMEPAD_BOLD_FONT)"
     local outline = GetStyleDescriptor(cfg.fontStyle)
     local fontString = string.format("%s|%d|%s", fontPath, cfg.fontSize or 18, outline)
@@ -549,7 +546,6 @@ local function ApplyBarVisuals(barKey)
     local tr, tg, tb, ta = GetRGBA(cfg.textColor, 1, 1, 1, 1)
     ui.label:SetColor(tr, tg, tb, ta)
 
-    -- Ancrage de la valeur du bouclier dans le coin sélectionné
     local shieldPos = cfg.shieldValuePos or "Top Right"
     local posData = cornerPositionMapping[shieldPos] or cornerPositionMapping["Top Right"]
     ui.shieldLabel:ClearAnchors()
@@ -560,7 +556,6 @@ local function ApplyBarVisuals(barKey)
         ui.shieldLabel:SetColor(sr, sg, sb, 1)
     end
 
-    -- Positionnement et style du nom de l'ennemi (s'il s'agit de la barre de cible)
     if ui.targetNameLabel then
         local namePos = cfg.targetNamePosition or "Above"
         ui.targetNameLabel:ClearAnchors()
@@ -608,7 +603,6 @@ local function GetOrCreateTargetAuraIcon(poolType, index)
 
     ctrl:SetDimensions(settings.iconSize, settings.iconSize)
 
-    -- Configuration de la police du temps
     local tFont
     if styleDesc and styleDesc ~= "" then
         tFont = string.format("%s|%d|%s", selectedFont, settings.timerSize, styleDesc)
@@ -626,7 +620,6 @@ local function GetOrCreateTargetAuraIcon(poolType, index)
         ctrl.timerLabel:SetAnchor(tPos.point, ctrl, tPos.relPoint, tPos.x, tPos.y)
     end
 
-    -- Configuration de la police des charges
     local sFont
     if styleDesc and styleDesc ~= "" then
         sFont = string.format("%s|%d|%s", selectedFont, settings.stackSize, styleDesc)
@@ -762,6 +755,11 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
     local cfg = TrueRessourceBars.savedVars.bars[barKey]
     if not ui or not cfg then return end
 
+    if cfg.enabled == "No" then
+        ui.container:SetHidden(true)
+        return
+    end
+
     local current, max, effectiveMax
     local targetName = ""
     local isDummyTarget = (barKey == "target" and TrueRessourceBars.previewMode and not DoesUnitExist(unitTag))
@@ -787,7 +785,6 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         ui.animValue = current
     end
 
-    -- Vitesse d'interpolation vive (0.45 par 50ms)
     ui.animValue = LerpValue(ui.animValue, current, 0.45)
     if math.abs(ui.animValue - current) < 1.5 then
         ui.animValue = current
@@ -824,7 +821,6 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         ui.lossBarNormal:SetValue(ghostVal)
     end
 
-    -- Gestion de l'affichage du nom de l'ennemi (séparé ou intégré)
     if barKey == "target" then
         local namePos = cfg.targetNamePosition or "Above"
         if ui.targetNameLabel and (namePos == "Above" or namePos == "Below") then
@@ -841,7 +837,6 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         ui.label:SetText(BuildDisplayText(cfg.textFormat, current, effectiveMax, percent, nil))
     end
 
-    -- Gestion du bouclier
     if mechanicType == MECHANIC_HEALTH then
         local shieldVal = isDummyTarget and 20000 or GetShieldValue(unitTag)
         if shieldVal > 0 then
@@ -853,7 +848,7 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
                 ui.shieldBar:SetAnchor(CENTER, ui.container, CENTER, 0, 0)
             elseif cfg.drainDirection == "Left to Right" then
                 ui.shieldBar:SetAnchor(RIGHT, ui.container, RIGHT, 0, 0)
-            else -- Right to Left
+            else
                 ui.shieldBar:SetAnchor(LEFT, ui.container, LEFT, 0, 0)
             end
 
@@ -871,7 +866,6 @@ local function UpdateSingleBar(barKey, unitTag, mechanicType)
         ui.shieldLabel:SetText("")
     end
 
-    -- Gestion du Warning Mode (Double-Pulsation)
     if cfg.warningEnabled and percent <= cfg.warningThreshold and percent > 0 then
         local alpha = GetDoublePulseAlpha(cfg.warningPulseSpeed or 120)
         ui.container:SetAlpha(alpha)
@@ -884,6 +878,7 @@ end
 local function UpdateTargetAuras()
     local unitTag = "reticleover"
     local hasTarget = DoesUnitExist(unitTag) and not IsReticleHidden()
+    local settings = TrueRessourceBars.savedVars.targetAuras
 
     if not hasTarget and not TrueRessourceBars.previewMode then
         TrueRessourceBars.targetBuffFrame:SetHidden(true)
@@ -891,32 +886,40 @@ local function UpdateTargetAuras()
         return
     end
 
-    TrueRessourceBars.targetBuffFrame:SetHidden(false)
-    TrueRessourceBars.targetDebuffFrame:SetHidden(false)
+    local showBuffs = (settings.buffsEnabled ~= "No")
+    local showDebuffs = (settings.debuffsEnabled ~= "No")
+
+    TrueRessourceBars.targetBuffFrame:SetHidden(not showBuffs)
+    TrueRessourceBars.targetDebuffFrame:SetHidden(not showDebuffs)
+
+    if not showBuffs and not showDebuffs then return end
 
     local currentTime = GetFrameTimeSeconds()
-    local settings = TrueRessourceBars.savedVars.targetAuras
     local buffsList = {}
     local debuffsList = {}
 
     if TrueRessourceBars.previewMode then
-        for i, item in ipairs(dummyBuffData) do
-            table.insert(buffsList, {
-                icon = item.icon,
-                timeLeft = item.time,
-                isPermanent = false,
-                stackCount = (i % 2 == 0) and 3 or 0,
-                name = "PreviewBuff" .. i
-            })
+        if showBuffs then
+            for i, item in ipairs(dummyBuffData) do
+                table.insert(buffsList, {
+                    icon = item.icon,
+                    timeLeft = item.time,
+                    isPermanent = false,
+                    stackCount = (i % 2 == 0) and 3 or 0,
+                    name = "PreviewBuff" .. i
+                })
+            end
         end
-        for i, item in ipairs(dummyDebuffData) do
-            table.insert(debuffsList, {
-                icon = item.icon,
-                timeLeft = item.time,
-                isPermanent = false,
-                stackCount = 0,
-                name = "PreviewDebuff" .. i
-            })
+        if showDebuffs then
+            for i, item in ipairs(dummyDebuffData) do
+                table.insert(debuffsList, {
+                    icon = item.icon,
+                    timeLeft = item.time,
+                    isPermanent = false,
+                    stackCount = 0,
+                    name = "PreviewDebuff" .. i
+                })
+            end
         end
     else
         for i = 1, GetNumBuffs(unitTag) do
@@ -939,9 +942,9 @@ local function UpdateTargetAuras()
                         timeLeft = timeLeft
                     }
 
-                    if effectType == BUFF_EFFECT_TYPE_DEBUFF then
+                    if effectType == BUFF_EFFECT_TYPE_DEBUFF and showDebuffs then
                         table.insert(debuffsList, effectEntry)
-                    else
+                    elseif effectType ~= BUFF_EFFECT_TYPE_DEBUFF and showBuffs then
                         table.insert(buffsList, effectEntry)
                     end
                 end
@@ -956,36 +959,16 @@ local function UpdateTargetAuras()
     for i, data in ipairs(buffsList) do
         local ctrl = GetOrCreateTargetAuraIcon("targetBuffs", i)
         ctrl:SetTexture(data.icon)
-
-        local timeText = ""
-        if not data.isPermanent then
-            timeText = FormatTime(data.timeLeft)
-        end
-        ctrl.timerLabel:SetText(timeText)
-
-        if data.stackCount > 1 then
-            ctrl.stackLabel:SetText(tostring(data.stackCount))
-        else
-            ctrl.stackLabel:SetText("")
-        end
+        ctrl.timerLabel:SetText(not data.isPermanent and FormatTime(data.timeLeft) or "")
+        ctrl.stackLabel:SetText(data.stackCount > 1 and tostring(data.stackCount) or "")
     end
 
     local debuffCount = #debuffsList
     for i, data in ipairs(debuffsList) do
         local ctrl = GetOrCreateTargetAuraIcon("targetDebuffs", i)
         ctrl:SetTexture(data.icon)
-
-        local timeText = ""
-        if not data.isPermanent then
-            timeText = FormatTime(data.timeLeft)
-        end
-        ctrl.timerLabel:SetText(timeText)
-
-        if data.stackCount > 1 then
-            ctrl.stackLabel:SetText(tostring(data.stackCount))
-        else
-            ctrl.stackLabel:SetText("")
-        end
+        ctrl.timerLabel:SetText(not data.isPermanent and FormatTime(data.timeLeft) or "")
+        ctrl.stackLabel:SetText(data.stackCount > 1 and tostring(data.stackCount) or "")
     end
 
     ApplyAuraAnchors("targetBuffs", buffCount, settings.spacing, settings.iconSize, settings.buffDir, settings.buffEnableGrid, settings.buffMaxPerRow, settings.buffRowDirection)
@@ -999,73 +982,62 @@ local function UpdateTargetAuras()
     end
 end
 
--- Neutralisation absolue et définitive des barres et auras natives d'ESO
+-- Neutralisation propre, officielle et conforme à la Sandbox Console
 local function SuppressControl(ctrl)
     if not ctrl then return end
     ctrl:SetHidden(true)
     ctrl:SetAlpha(0)
-    ctrl:ClearAnchors()
-    ctrl:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, -10000, -10000)
-end
-
-local function HideNativePlayerAndTargetBars()
-    -- 1. Neutralisation de la cible ennemie Gamepad
-    if ZO_GamepadTargetUnitFrame then
-        SuppressControl(ZO_GamepadTargetUnitFrame)
-        ZO_PreHookHandler(ZO_GamepadTargetUnitFrame, "OnShow", function(self)
+    if not ctrl._hookedOnShow then
+        ZO_PreHookHandler(ctrl, "OnShow", function(self)
             self:SetHidden(true)
             self:SetAlpha(0)
             return true
         end)
+        ctrl._hookedOnShow = true
     end
+end
 
-    -- 2. Neutralisation des auras natives de la cible ennemie
-    local targetAuraControls = {
-        ZO_GamepadTargetUnitFrameBuffs,
-        ZO_GamepadTargetUnitFrameDebuffs,
-        ZO_TargetUnitFramerGamepadBuffs,
-        ZO_TargetUnitFramerGamepadDebuffs,
-    }
-    for _, ctrl in ipairs(targetAuraControls) do
-        if ctrl then
-            SuppressControl(ctrl)
-            ZO_PreHookHandler(ctrl, "OnShow", function(self)
-                self:SetHidden(true)
-                return true
-            end)
-        end
-    end
+local function CleanGamepadUI()
+    -- 1. Récupération des fragments réels du joueur et de la cible
+    local playerFrag = PLAYER_ATTRIBUTE_BARS_FRAGMENT or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.fragment)
+    local targetFrag = (GAMEPAD_TARGET_UNIT_FRAME and GAMEPAD_TARGET_UNIT_FRAME.fragment) or TARGET_UNIT_FRAME_FRAGMENT
 
-    -- 3. Détachement de tous les fragments de scènes HUD
-    local fragmentsToRemove = {
-        PLAYER_ATTRIBUTE_BARS_FRAGMENT,
-        GAMEPAD_PLAYER_ATTRIBUTE_BARS_FRAGMENT,
-        TARGET_UNIT_FRAME_FRAGMENT,
-        GAMEPAD_TARGET_UNIT_FRAME_FRAGMENT,
+    local fragmentsToDrop = {
+        playerFrag,
+        targetFrag,
     }
+
+    -- 2. Nettoyage sur l'ensemble des scènes de HUD Gamepad et Standard
     local scenesToClean = {
         HUD_SCENE,
         HUD_UI_SCENE,
-        GAMEPAD_HUD_SCENE,
-        GAMEPAD_HUD_UI_SCENE,
+        SCENE_MANAGER:GetScene("gamepad_hud_scene"),
+        SCENE_MANAGER:GetScene("gamepad_hud_ui_scene"),
+        SCENE_MANAGER:GetScene("hud"),
+        SCENE_MANAGER:GetScene("hudui"),
     }
 
     for _, scene in ipairs(scenesToClean) do
         if scene then
-            for _, frag in ipairs(fragmentsToRemove) do
-                if frag then
+            for _, frag in ipairs(fragmentsToDrop) do
+                if frag and scene:HasFragment(frag) then
                     scene:RemoveFragment(frag)
                 end
             end
         end
     end
 
-    -- 4. Désactivation des gestionnaires de cible natifs
+    -- 3. Neutralisation du conteneur des barres de ressources joueur (Gamepad & Clavier)
+    local playerGamepadContainer = ZO_PlayerAttributeContainerGamepad or (PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.control)
+    if playerGamepadContainer then
+        SuppressControl(playerGamepadContainer)
+    end
+    if ZO_PlayerAttribute then
+        SuppressControl(ZO_PlayerAttribute)
+    end
+
+    -- 4. Neutralisation de la barre de cible Gamepad (Contrôle et Frame interne)
     if GAMEPAD_TARGET_UNIT_FRAME then
-        GAMEPAD_TARGET_UNIT_FRAME.Show = function() end
-        GAMEPAD_TARGET_UNIT_FRAME.Update = function() end
-        GAMEPAD_TARGET_UNIT_FRAME.RefreshData = function() end
-        GAMEPAD_TARGET_UNIT_FRAME.SetHidden = function() end
         if GAMEPAD_TARGET_UNIT_FRAME.control then
             SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.control)
         end
@@ -1073,42 +1045,19 @@ local function HideNativePlayerAndTargetBars()
             SuppressControl(GAMEPAD_TARGET_UNIT_FRAME.frame)
         end
     end
-
-    if TARGET_UNIT_FRAME then
-        TARGET_UNIT_FRAME.Show = function() end
-        TARGET_UNIT_FRAME.Update = function() end
-        TARGET_UNIT_FRAME.RefreshData = function() end
-        TARGET_UNIT_FRAME.SetHidden = function() end
-        if TARGET_UNIT_FRAME.control then
-            SuppressControl(TARGET_UNIT_FRAME.control)
-        end
+    if ZO_GamepadTargetUnitFrame then
+        SuppressControl(ZO_GamepadTargetUnitFrame)
     end
 
-    if PLAYER_ATTRIBUTE_BARS and PLAYER_ATTRIBUTE_BARS.control then
-        SuppressControl(PLAYER_ATTRIBUTE_BARS.control)
-    end
-
-    -- 5. Neutralisation de tous les contrôles natifs connus
-    local framesToSilence = {
-        ZO_TargetUnitFrameGamepad,
-        ZO_TargetUnitFramerGamepad,
-        ZO_TargetUnitFrameGamepadBar,
-        ZO_TargetUnitFramerGamepadBar,
-        ZO_BuffDebuffGamepad,
-        ZO_BuffDebuffGamepadContainer,
-        ZO_TargetUnitFramer,
-        ZO_TargetUnitFrame,
-        ZO_BuffDebuff,
-
-        ZO_PlayerAttributeContainerGamepad,
-        ZO_PlayerAttributeContainerGamepadHealth,
-        ZO_PlayerAttributeContainerGamepadMagicka,
-        ZO_PlayerAttributeContainerGamepadStamina,
-        ZO_PlayerAttribute,
+    -- 5. Neutralisation des auras natives de la cible Gamepad
+    local targetAuraControls = {
+        ZO_GamepadTargetUnitFrameBuffs,
+        ZO_GamepadTargetUnitFrameDebuffs,
     }
-
-    for _, f in ipairs(framesToSilence) do
-        SuppressControl(f)
+    for _, ctrl in ipairs(targetAuraControls) do
+        if ctrl then
+            SuppressControl(ctrl)
+        end
     end
 end
 
@@ -1153,7 +1102,6 @@ end
 
 local function OnReticleTargetChanged()
     TrueRessourceBars.shieldCache["reticleover"] = 0
-    HideNativePlayerAndTargetBars()
 end
 
 -- Boucle générale de mise à jour
@@ -1209,6 +1157,17 @@ local function BuildSettingsMenu()
 
     local function CreateBarSubmenu(title, barKey, isHealth)
         local controls = {
+            {
+                type = "dropdown",
+                name = "Active",
+                tooltip = "Enable or disable this resource bar.",
+                choices = { "Yes", "No" },
+                getFunc = function() return TrueRessourceBars.savedVars.bars[barKey].enabled or "Yes" end,
+                setFunc = function(v)
+                    TrueRessourceBars.savedVars.bars[barKey].enabled = v
+                    ApplyBarVisuals(barKey)
+                end,
+            },
             {
                 type = "slider",
                 name = "Position X",
@@ -1322,7 +1281,6 @@ local function BuildSettingsMenu()
             }
         }
 
-        -- Réglages spécifiques au nom de la cible ennemie
         if barKey == "target" then
             table.insert(controls, {
                 type = "header",
@@ -1355,7 +1313,6 @@ local function BuildSettingsMenu()
             })
         end
 
-        -- Réglages spécifiques aux boucliers (Santé joueur & Cible)
         if isHealth then
             table.insert(controls, {
                 type = "header",
@@ -1405,7 +1362,7 @@ local function BuildSettingsMenu()
         CreateBarSubmenu("Player Magicka Bar", "magicka", false),
         CreateBarSubmenu("Player Stamina Bar", "stamina", false),
         CreateBarSubmenu("Target Health Bar", "target", true),
-        
+
         -- Sous-menu : Filtres des Auras
         {
             type = "submenu",
@@ -1444,6 +1401,19 @@ local function BuildSettingsMenu()
             name = "Target Buffs Bar Configuration",
             tooltip = "Positions, orientation, and multiple row/column settings for target buffs.",
             controls = {
+                {
+                    type = "dropdown",
+                    name = "Active",
+                    tooltip = "Enable or disable the target buffs bar.",
+                    choices = { "Yes", "No" },
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.buffsEnabled or "Yes" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.targetAuras.buffsEnabled = v
+                        if v == "No" then
+                            TrueRessourceBars.targetBuffFrame:SetHidden(true)
+                        end
+                    end,
+                },
                 {
                     type = "slider",
                     name = "Buffs Position (X)",
@@ -1499,6 +1469,19 @@ local function BuildSettingsMenu()
             name = "Target Debuffs Bar Configuration",
             tooltip = "Positions, orientation, and multiple row/column settings for target debuffs.",
             controls = {
+                {
+                    type = "dropdown",
+                    name = "Active",
+                    tooltip = "Enable or disable the target debuffs bar.",
+                    choices = { "Yes", "No" },
+                    getFunc = function() return TrueRessourceBars.savedVars.targetAuras.debuffsEnabled or "Yes" end,
+                    setFunc = function(v)
+                        TrueRessourceBars.savedVars.targetAuras.debuffsEnabled = v
+                        if v == "No" then
+                            TrueRessourceBars.targetDebuffFrame:SetHidden(true)
+                        end
+                    end,
+                },
                 {
                     type = "slider",
                     name = "Debuffs Position (X)",
@@ -1621,7 +1604,7 @@ local function BuildSettingsMenu()
                         return r, g, b, a
                     end,
                     setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.targetAuras.timerColor = {r = r, g = g, b = b, a = a}
+                        TrueRessourceBars.savedVars.targetAuras.timerColor = { r = r, g = g, b = b, a = a }
                     end,
                 },
             }
@@ -1662,7 +1645,7 @@ local function BuildSettingsMenu()
                         return r, g, b, a
                     end,
                     setFunc = function(r, g, b, a)
-                        TrueRessourceBars.savedVars.targetAuras.stackColor = {r = r, g = g, b = b, a = a}
+                        TrueRessourceBars.savedVars.targetAuras.stackColor = { r = r, g = g, b = b, a = a }
                     end,
                 },
             }
@@ -1674,7 +1657,7 @@ end
 
 -- Réactivation et masquage lors du changement de zone
 local function OnPlayerActivated()
-    HideNativePlayerAndTargetBars()
+    CleanGamepadUI()
 end
 
 -- Chargement de l'addon
@@ -1682,7 +1665,7 @@ local function OnAddOnLoaded(eventCode, addonName)
     if addonName ~= TrueRessourceBars.name then return end
     EVENT_MANAGER:UnregisterForEvent(TrueRessourceBars.name, EVENT_ADD_ON_LOADED)
 
-    -- Conservation stricte de la version 9 des SavedVariables
+    -- Maintien strict de la version 9 des SavedVariables
     TrueRessourceBars.savedVars = ZO_SavedVars:NewAccountWide("TrueRessourceBarsSV", 9, nil, defaults)
 
     local wm = WINDOW_MANAGER
@@ -1707,7 +1690,7 @@ local function OnAddOnLoaded(eventCode, addonName)
     end
     UpdateAuraPositions()
 
-    HideNativePlayerAndTargetBars()
+    CleanGamepadUI()
     BuildSettingsMenu()
 
     -- Enregistrement des événements de détection des boucliers et cible

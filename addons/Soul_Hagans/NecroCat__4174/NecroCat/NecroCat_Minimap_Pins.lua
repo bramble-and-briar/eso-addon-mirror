@@ -101,6 +101,20 @@ function pins.Reset()
     g_pinIndex = 0
 end
 
+local function GetIconPriority(tex)
+    if not tex or type(tex) ~= "string" then return 0 end
+    local s = string.lower(tex)
+    -- Плотные сервисные значки, ключи карты и наковальни имеют высший приоритет (3)
+    if string.find(s, "servicepin") or string.find(s, "mapkey") or string.find(s, "craft") then
+        return 3
+    end
+    -- Полупрозрачные блеклые POI пергамента карты ZOS имеют низкий приоритет (1)
+    if string.find(s, "/poi/") or string.find(s, "poi_") then
+        return 1
+    end
+    return 2
+end
+
 -- =========================================================================
 -- 2. СОЗДАНИЕ И ВРАЩЕНИЕ МЕТОК
 -- =========================================================================
@@ -113,11 +127,15 @@ function pins.CreatePin(iconTexture, normX, normY, text, size, tooltipCreator, p
     if not iconTexture or type(iconTexture) ~= "string" or iconTexture == "" then return end
 
     local pin = nil
-    if pinType then
-        for _, existingPin in ipairs(g_activePins) do
-            if existingPin.normX and existingPin.normY and existingPin.m_PinType == pinType then
-                if math.abs(existingPin.normX - normX) < 0.0008 and math.abs(existingPin.normY - normY) < 0.0008 then
-                    if existingPin.isAreaPin == (string.find(tostring(iconTexture), "areaPin") ~= nil) then
+    local isArea = (string.find(tostring(iconTexture), "areaPin") ~= nil or string.find(tostring(iconTexture), "AreaPin") ~= nil)
+    
+    for _, existingPin in ipairs(g_activePins) do
+        if existingPin.normX and existingPin.normY then
+            -- Если координаты почти идентичны (в пределах 0.0012)
+            if math.abs(existingPin.normX - normX) < 0.0012 and math.abs(existingPin.normY - normY) < 0.0012 then
+                -- Не склеиваем квесты и зоны поиска
+                if existingPin.isAreaPin == isArea and not existingPin.isQuestPin then
+                    if existingPin.m_PinType == pinType or (not existingPin.isQuestPin and not isArea) then
                         pin = existingPin
                         break
                     end
@@ -126,15 +144,28 @@ function pins.CreatePin(iconTexture, normX, normY, text, size, tooltipCreator, p
         end
     end
 
-    if not pin then
-        pin = AcquirePin()
+    -- Если метка в этой точке уже есть — применяем правило плотного приоритета
+    if pin then
+        local currentPrio = GetIconPriority(pin.currentIconTexture)
+        local newPrio = GetIconPriority(iconTexture)
+        
+        -- Повышаем качество текстуры, если новая плотнее и ярче
+        if newPrio >= currentPrio then
+            pin:SetTexture(iconTexture)
+            pin.currentIconTexture = iconTexture
+        end
+        if text and text ~= "" then pin.pinText = text end
+        if tooltipCreator then pin.pinTooltipCreator = tooltipCreator end
+        return pin
     end
+
+    pin = AcquirePin()
     
     local userBaseSize = (minimap.settings and minimap.settings.pinSize) or 20
     local rawSize = size or 20
     local finalPinSize
 
-    if string.find(tostring(iconTexture), "areaPin") or string.find(tostring(iconTexture), "AreaPin") then
+    if isArea then
         finalPinSize = rawSize
         pin.isAreaPin = true
     else
@@ -144,6 +175,7 @@ function pins.CreatePin(iconTexture, normX, normY, text, size, tooltipCreator, p
     
     pin:SetDimensions(finalPinSize, finalPinSize)
     pin:SetTexture(iconTexture)
+    pin.currentIconTexture = iconTexture
     pin.pinText = text
     pin.pinTooltipCreator = tooltipCreator
     pin.normX = normX
@@ -365,9 +397,10 @@ function pins.RefreshWayshrines()
 
     local numNodes = GetNumFastTravelNodes()
     for nodeIndex = 1, numNodes do
-        local known, name, normX, normY, icon, _, _, isLocatedInCurrentMap = GetFastTravelNodeInfo(nodeIndex)
-        if known and isLocatedInCurrentMap and normX > 0 and normY > 0 then
-            pins.CreatePin(icon, normX, normY, name, 24)
+        local known, name, normX, normY, icon, _, poiType, isLocatedInCurrentMap = GetFastTravelNodeInfo(nodeIndex)
+        -- Рисуем ТОЛЬКО настоящие дорожные святилища (тип 1), не трогая данжи, триалы и дома
+        if known and isLocatedInCurrentMap and normX > 0 and normY > 0 and (poiType == 1 or poiType == POI_TYPE_WAYSHRINE) then
+            pins.CreatePin(icon, normX, normY, name, 24, nil, MAP_PIN_TYPE_FAST_TRAVEL_WAYSHRINE)
         end
     end
 end
@@ -492,20 +525,27 @@ function pins.RefreshQuests()
 
             if x and y and x > 0 and y > 0 and x < 1 and y < 1 then
                 local isAssisted = mapPin.IsAssisted and mapPin:IsAssisted()
-                local radius = (mapPin.GetAreaRadius and mapPin:GetAreaRadius()) or (mapPin.m_PinTag and mapPin.m_PinTag.radius) or 0
+                local radius = mapPin.radius or (mapPin.m_PinTag and mapPin.m_PinTag.radius) or (mapPin.GetRadius and mapPin:GetRadius()) or 0
                 
                 local questName = ""
                 local qIndex = mapPin.GetQuestIndex and mapPin:GetQuestIndex()
+                if not qIndex and mapPin.m_PinTag and type(mapPin.m_PinTag) == "table" then
+                    qIndex = mapPin.m_PinTag[1] or mapPin.m_PinTag.questIndex
+                end
                 if qIndex and qIndex > 0 then
                     questName = GetJournalQuestName(qIndex)
                 end
 
                 if radius and radius > 0 then
+                    -- Площадная зона квеста (Area Pin)
                     local areaDiameter = zo_round(radius * 2 * containerSize)
                     local areaIcon = isAssisted and "EsoUI/Art/MapPins/map_assistedAreaPin.dds" or "EsoUI/Art/MapPins/map_areaPin.dds"
-                    local p = pins.CreatePin(areaIcon, x, y, questName ~= "" and ("|cffff66Зона задачи: " .. questName .. "|r") or nil, areaDiameter, nil, mapPin:GetPinType(), nil, nil, DL_BACKGROUND, 1)
+                    -- Сочный бирюзовый для активного квеста и яркий чёткий белый контур для остальных
+                    local areaTint = isAssisted and ZO_ColorDef:New(0.0, 0.85, 1.0, 0.85) or ZO_ColorDef:New(1.0, 1.0, 1.0, 0.95)
+                    local p = pins.CreatePin(areaIcon, x, y, questName ~= "" and ("|cffff66Зона задачи: " .. questName .. "|r") or nil, areaDiameter, nil, mapPin:GetPinType(), nil, areaTint, DL_BACKGROUND, 1)
                     if p then p.isQuestPin = true end
                 else
+                    -- Точечный маркер квеста
                     local icon = mapPin.GetQuestIcon and mapPin:GetQuestIcon()
                     if not icon or icon == "" then
                         icon = isAssisted and "EsoUI/Art/Compass/quest_assisted_icon.dds" or "EsoUI/Art/Compass/quest_icon.dds"
@@ -513,6 +553,56 @@ function pins.RefreshQuests()
 
                     local p = pins.CreatePin(icon, x, y, questName ~= "" and ("|cffff66" .. questName .. "|r") or nil, 24, nil, mapPin:GetPinType(), nil, nil, DL_OVERLAY, 22)
                     if p then p.isQuestPin = true end
+                end
+            end
+        end
+    end
+end
+
+-- =========================================================================
+-- 5.1. ЗОНЫ ЛОЦИРОВАНИЯ И РАСКОПОК (Реликвии / Antiquities)
+-- =========================================================================
+function pins.RefreshAntiquities()
+    if not GetNumInProgressAntiquities then return end
+    local containerSize = NecroCat_MapContainer:GetWidth()
+    local numInprogress = GetNumInProgressAntiquities()
+
+    for antiquityIndex = 1, numInprogress do
+        local numDigSites = GetNumDigSitesForInProgressAntiquity(antiquityIndex)
+        for digSiteIndex = 1, numDigSites do
+            local digSiteId = GetInProgressAntiquityDigSiteId(antiquityIndex, digSiteIndex)
+            if digSiteId and digSiteId > 0 then
+                local centerX, centerZ, isShownInCurrentMap = GetDigSiteNormalizedCenterPosition(digSiteId)
+                if isShownInCurrentMap and centerX > 0 and centerZ > 0 and centerX < 1 and centerZ < 1 then
+                    local isTracked = IsDigSiteAssociatedWithTrackedAntiquity(digSiteId)
+                    local borderPoints = { GetDigSiteNormalizedBorderPoints(digSiteId) }
+                    
+                    local minX, maxX = 1.0, 0.0
+                    local minY, maxY = 1.0, 0.0
+                    for p = 1, #borderPoints, 2 do
+                        local bx = borderPoints[p]
+                        local by = borderPoints[p + 1]
+                        if bx and by then
+                            minX = math.min(minX, bx)
+                            maxX = math.max(maxX, bx)
+                            minY = math.min(minY, by)
+                            maxY = math.max(maxY, by)
+                        end
+                    end
+
+                    local blobWidth = (maxX > minX) and (maxX - minX) or 0.08
+                    local blobHeight = (maxY > minY) and (maxY - minY) or 0.08
+                    local diameter = zo_round(math.max(blobWidth, blobHeight) * containerSize)
+                    
+                    -- Каноничный сочный бирюзовый цвет как на большой карте
+                    local color = ZO_ColorDef:New(0.0, 0.85, 1.0, 0.90)
+                    local pinType = isTracked and MAP_PIN_TYPE_TRACKED_ANTIQUITY_DIG_SITE or MAP_PIN_TYPE_ANTIQUITY_DIG_SITE
+
+                    -- 1. Чёткий бирюзовый купол зоны раскопок
+                    pins.CreatePin("EsoUI/Art/MapPins/map_areaPin.dds", centerX, centerZ, "|c66f2ffМесто раскопок (Реликвия)|r", diameter, nil, pinType, digSiteId, color, DL_BACKGROUND, 1)
+
+                    -- 2. Значок лопаты по центру
+                    pins.CreatePin("EsoUI/Art/Icons/ServiceMapPins/servicepin_antiquities.dds", centerX, centerZ, "|c66f2ffМесто раскопок (Реликвия)|r", 22, nil, pinType, digSiteId, nil, DL_OVERLAY, 16)
                 end
             end
         end
@@ -553,13 +643,15 @@ function pins.RefreshCyrodiil()
                         local isResource = (keepType == KEEP_TYPE_RESOURCE)
                         local size = isResource and 22 or 28
 
-                        pins.CreatePin(icon, normX, normY, keepName, size, nil, pinType, keepId)
-
+                        -- 1. Если замок/ресурс/район в осаде — рисуем аккуратную звезду штурма НА ЗАДНЕМ ПЛАНЕ (слой 10)
                         local isUnderAttack = GetKeepUnderAttack and GetKeepUnderAttack(keepId, bgContext)
                         if isUnderAttack then
-                            local burstSize = isResource and 24 or 30
-                            pins.CreatePin("EsoUI/Art/MapPins/AvA_attackBurst_32.dds", normX, normY, "|cff3333[В ОСАДЕ] " .. keepName .. "|r", burstSize, nil, pinType, keepId, nil, DL_OVERLAY, 15)
+                            local burstSize = isResource and 32 or 46
+                            pins.CreatePin("EsoUI/Art/MapPins/AvA_attackBurst_64.dds", normX, normY, "|cff3333[В ОСАДЕ] " .. keepName .. "|r", burstSize, nil, "NCMM_KeepUnderAttackBurst", keepId, nil, DL_OVERLAY, 10)
                         end
+
+                        -- 2. Рисуем сам замок/ресурс ПОВЕРХ вспышки на переднем плане (слой 12)
+                        pins.CreatePin(icon, normX, normY, keepName, size, nil, pinType, keepId, nil, DL_OVERLAY, 12)
                     end
                 end
             end
@@ -606,41 +698,52 @@ function pins.RefreshBattleground()
     for i = 1, numObjectives do
         local keepId, objectiveId, bgContext = GetObjectiveIdsForIndex(i)
         
-        if keepId and objectiveId and bgContext then
+        if keepId and objectiveId and bgContext and IsLocalBattlegroundContext(bgContext) then
             local isEnabled = IsObjectiveEnabled(keepId, objectiveId, bgContext)
-            local isVisible = IsObjectiveObjectVisible(keepId, objectiveId, bgContext)
+            local exists = DoesObjectiveExist(keepId, objectiveId, bgContext)
             
-            if isEnabled and isVisible and IsLocalBattlegroundContext(bgContext) then
+            if isEnabled and exists then
+                -- 1. Точки спавна и постаменты появления (Мяч Хаоса, Флаги, Базы)
                 local spawnPinType, spawnX, spawnY = GetObjectiveSpawnPinInfo(keepId, objectiveId, bgContext)
-                if spawnPinType and spawnPinType ~= MAP_PIN_TYPE_INVALID and spawnX and spawnY and spawnX > 0 and spawnY > 0 then
+                if spawnPinType and spawnPinType ~= MAP_PIN_TYPE_INVALID and spawnX and spawnY and spawnX > 0 and spawnY > 0 and spawnX < 1 and spawnY < 1 then
                     local layout = ZO_MapPin and ZO_MapPin.PIN_DATA and ZO_MapPin.PIN_DATA[spawnPinType]
                     local icon = layout and layout.texture
                     if type(icon) == "function" then
-                        local ok, res = pcall(icon, { m_PinType = spawnPinType })
+                        local ok, res = pcall(icon, { m_PinType = spawnPinType, keepId = keepId, objectiveId = objectiveId })
                         if ok and type(res) == "string" then icon = res else icon = nil end
                     end
                     if icon and icon ~= "" then
-                        pins.CreatePin(icon, spawnX, spawnY, "Точка появления", 20, nil, spawnPinType)
+                        local tint = layout and layout.tint
+                        if type(tint) == "function" then
+                            local ok, res = pcall(tint, { m_PinType = spawnPinType, keepId = keepId, objectiveId = objectiveId })
+                            if ok then tint = res else tint = nil end
+                        end
+                        pins.CreatePin(icon, spawnX, spawnY, "Место появления", 22, nil, spawnPinType, nil, tint, DL_OVERLAY, 18)
                     end
                 end
 
+                -- 2. Базы и точки возврата реликвий
                 local returnPinType, returnX, returnY = GetObjectiveReturnPinInfo(keepId, objectiveId, bgContext)
-                if returnPinType and returnPinType ~= MAP_PIN_TYPE_INVALID and returnX and returnY and returnX > 0 and returnY > 0 then
+                if returnPinType and returnPinType ~= MAP_PIN_TYPE_INVALID and returnX and returnY and returnX > 0 and returnY > 0 and returnX < 1 and returnY < 1 then
                     local layout = ZO_MapPin and ZO_MapPin.PIN_DATA and ZO_MapPin.PIN_DATA[returnPinType]
                     local icon = layout and layout.texture
                     if type(icon) == "function" then
-                        local ok, res = pcall(icon, { m_PinType = returnPinType })
+                        local ok, res = pcall(icon, { m_PinType = returnPinType, keepId = keepId, objectiveId = objectiveId })
                         if ok and type(res) == "string" then icon = res else icon = nil end
                     end
                     if icon and icon ~= "" then
-                        pins.CreatePin(icon, returnX, returnY, "База реликвии", 22, nil, returnPinType)
+                        local tint = layout and layout.tint
+                        if type(tint) == "function" then
+                            local ok, res = pcall(tint, { m_PinType = returnPinType, keepId = keepId, objectiveId = objectiveId })
+                            if ok then tint = res else tint = nil end
+                        end
+                        pins.CreatePin(icon, returnX, returnY, "База реликвии", 24, nil, returnPinType, nil, tint, DL_OVERLAY, 18)
                     end
                 end
             end
         end
     end
 end
-
 -- =========================================================================
 -- 7. ЖИВОЙ ТРЕКЕР ГРУППЫ И СПУТНИКОВ
 -- =========================================================================
@@ -934,6 +1037,7 @@ function pins.RefreshAll()
     if pins.RefreshPOIs then pins.RefreshPOIs() end
     if pins.RefreshSkyshards then pins.RefreshSkyshards() end
     if pins.RefreshQuests then pins.RefreshQuests() end
+    if pins.RefreshAntiquities then pins.RefreshAntiquities() end
     
     local lmp = LibMapPins
     if lmp and lmp.RefreshPins then
@@ -1001,11 +1105,54 @@ EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_PinTeleport", EVENT_PLAYER_ACTI
     if pins.RefreshAll then pins.RefreshAll() end
 end)
 
--- Мгновенное обновление флагов и реликвий на Полях Сражений
-EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_BGObjectives", EVENT_OBJECTIVES_UPDATED, function()
-    if pins.RefreshBattleground then pins.RefreshBattleground() end
-end)
+local function OnBattlegroundObjectivesChanged()
+    if not g_isPlayerActivated then return end
+    EVENT_MANAGER:UnregisterForUpdate("NecroCat_Minimap_BGDebounce")
+    EVENT_MANAGER:RegisterForUpdate("NecroCat_Minimap_BGDebounce", 100, function()
+        EVENT_MANAGER:UnregisterForUpdate("NecroCat_Minimap_BGDebounce")
+        if pins.RefreshAll then
+            pins.RefreshAll()
+        end
+        if minimap.UpdatePlayerPosition then
+            minimap.UpdatePlayerPosition(true)
+        end
+    end)
+end
 
-EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_BGControl", EVENT_OBJECTIVE_CONTROL_STATE, function()
-    if pins.RefreshBattleground then pins.RefreshBattleground() end
-end)
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_BGObjectives", EVENT_OBJECTIVES_UPDATED, OnBattlegroundObjectivesChanged)
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_BGControl", EVENT_OBJECTIVE_CONTROL_STATE, OnBattlegroundObjectivesChanged)
+
+local function OnAntiquitiesStateChanged()
+    if not g_isPlayerActivated then return end
+    EVENT_MANAGER:UnregisterForUpdate("NecroCat_Minimap_AntiquityDebounce")
+    EVENT_MANAGER:RegisterForUpdate("NecroCat_Minimap_AntiquityDebounce", 200, function()
+        EVENT_MANAGER:UnregisterForUpdate("NecroCat_Minimap_AntiquityDebounce")
+        if pins.RefreshAll then
+            pins.RefreshAll()
+        end
+        if minimap.UpdatePlayerPosition then
+            minimap.UpdatePlayerPosition(true)
+        end
+    end)
+end
+
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_DigSites", EVENT_ANTIQUITY_DIG_SITES_UPDATED, OnAntiquitiesStateChanged)
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_Antiquities", EVENT_ANTIQUITIES_UPDATED, OnAntiquitiesStateChanged)
+
+local function OnCyrodiilStateChanged()
+    if not g_isPlayerActivated then return end
+    EVENT_MANAGER:UnregisterForUpdate("NecroCat_Minimap_CyroDebounce")
+    EVENT_MANAGER:RegisterForUpdate("NecroCat_Minimap_CyroDebounce", 150, function()
+        EVENT_MANAGER:UnregisterForUpdate("NecroCat_Minimap_CyroDebounce")
+        if pins.RefreshAll then
+            pins.RefreshAll()
+        end
+        if minimap.UpdatePlayerPosition then
+            minimap.UpdatePlayerPosition(true)
+        end
+    end)
+end
+
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_KeepAttack", EVENT_KEEP_UNDER_ATTACK_CHANGED, OnCyrodiilStateChanged)
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_KeepOwner", EVENT_KEEP_ALLIANCE_OWNER_CHANGED, OnCyrodiilStateChanged)
+EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_KeepInit", EVENT_KEEPS_INITIALIZED, OnCyrodiilStateChanged)

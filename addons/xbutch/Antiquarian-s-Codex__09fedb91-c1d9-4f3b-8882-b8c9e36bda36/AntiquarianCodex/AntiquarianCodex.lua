@@ -519,132 +519,53 @@ end
 
 -- Append information about an antiquity lead to a tooltip
 local function CreateLeadToolip(leadId)
-	if not leadId or not units then
-		dbg('CreateLeadToolip: No leadId or units')
-		return {}
-	end
-
+	if not leadId then return {} end
+	-- A tooltip may open before the asynchronous catalog scan reaches this lead.
+	if not units[leadId] then UpdateAntiquityRecord(leadId) end
 	local data = units[leadId]
-	if not data then
-		dbg('CreateLeadToolip: No data for leadId ' .. tostring(leadId))
-		return {}
+	if not data then return {} end
+
+	local entry = AC.Locations and AC.Locations[leadId]
+	local fullDesc = entry and entry[1]
+	local locShort = entry and entry[3]
+	local source = AC.UNKNOWN
+	if fullDesc and fullDesc ~= '' and fullDesc ~= AC.UNKNOWN then
+		source = (locShort and locShort ~= '' and locShort ~= AC.UNKNOWN) and locShort or fullDesc
+		-- Acquisition information stays separate from the client dig zone, even for owned leads.
+		local findZoneId = AC.FindScryDifferentZones and AC.FindScryDifferentZones[leadId]
+		local findZone
+		if findZoneId then
+			if findZoneId < (AC.ZONEID_ALLZONES or 9999) then
+				findZone = ZO_CachedStrFormat('<<C:1>>', GetZoneNameById(findZoneId))
+			else
+				findZone = AC.ZONENAME_SPECIAL and AC.ZONENAME_SPECIAL[findZoneId]
+			end
+		elseif fullDesc ~= AC.LOC_LONG_HIGHSEAS_UNCONFIRMED then
+			findZone = ZO_CachedStrFormat('<<C:1>>', GetZoneNameById(GetAntiquityZoneId(leadId)))
+		end
+		if findZone and findZone ~= '' then source = zo_strformat('<<1>>, <<2>>', source, findZone) end
 	end
 
-	-- Build the text string instead of directly adding to tooltip
-	local lines = {}
-
-	dbg('CreateLeadToolip: Processing leadId ' .. tostring(leadId))
-	dbg('Data.Lead: ' .. tostring(data.Lead))
-	dbg('Data.Zone: ' .. tostring(data.Zone))
-	dbg('Data.Location: ' .. tostring(data.Location))
-	dbg('Data.Diff: ' .. tostring(data.Diff))
-
-	-- Add zone/location info as two lines:
-	-- 1) "<location>, <zone>" (or whichever part is available)
-	-- 2) "<details>" (full description, if present and different from location)
-	local zone = (data.Zone and data.Zone ~= '') and data.Zone or nil
-	local locShort = (data.Location and data.Location ~= '' and data.Location ~= 'Unknown') and data.Location or nil
-	local fullDesc = (AC and AC.Locations and AC.Locations[leadId] and AC.Locations[leadId][1]) or nil
-
-	-- First line
-	local firstLine
-	if locShort and zone then
-		firstLine = zo_strformat('<<1>>, <<2>>', locShort, zone)
-	elseif locShort then
-		firstLine = zo_strformat('<<1>>', locShort)
-	elseif zone then
-		firstLine = zo_strformat('<<1>>', zone)
-	end
-	if firstLine then
-		table.insert(lines, firstLine)
-	else
-		dbg('CreateLeadToolip: No zone/location available for first line')
-	end
-
+	local digZone = ZO_CachedStrFormat('<<C:1>>', GetZoneNameById(GetAntiquityZoneId(leadId)))
+	local setName = data.Set and data.Set ~= '' and data.Set or AC.UNKNOWN
+	local setColor = ({[1] = '|c00FF00', [2] = '|c0080FF', [3] = '|c8000FF',
+		[4] = '|cFFD700', [5] = '|cFF8000'})[data.SetQuality] or ''
+	if setColor ~= '' then setName = setColor .. setName .. '|r' end
+	local found = GetNumAntiquitiesRecovered(leadId)
+	local codexMissing = math.max(0, GetNumAntiquityLoreEntries(leadId) - GetNumAntiquityLoreEntriesAcquired(leadId))
+	local lines = {
+		zo_strformat(AC.TOOLTIP_SOURCE, source),
+		zo_strformat(AC.TOOLTIP_DIG, digZone ~= '' and digZone or AC.UNKNOWN),
+		zo_strformat(AC.TOOLTIP_SET, setName),
+		zo_strformat(AC.TOOLTIP_FOUND, found),
+		zo_strformat(AC.TOOLTIP_CODEX_MISSING, codexMissing)
+	}
 	if AC.TradeableAntiquities and AC.TradeableAntiquities[leadId] then
 		table.insert(lines, AC.TOOLTIP_TRADEABLELEAD)
 	end
-
-	-- Second line (Details)
-	if fullDesc and fullDesc ~= '' and fullDesc ~= locShort then table.insert(lines, zo_strformat('<<1>>', fullDesc)) end
-
-	--[[     -- Add difficulty info
-    if data.Diff then
-        -- dbg('Adding Difficulty: ' .. tostring(data.Diff))
-        local diffColor = ''
-        if data.Diff == 1 then
-            diffColor = '|c00FF00' -- green
-        elseif data.Diff == 2 then
-            diffColor = '|c0080FF' -- blue
-        elseif data.Diff == 3 then
-            diffColor = '|c8000FF' -- purple
-        elseif data.Diff == 4 then
-            diffColor = '|cFFD700' -- gold
-        elseif data.Diff == 5 then
-            diffColor = '|cFF8000' -- orange
-        end
-        table.insert(lines, zo_strformat('<<1>>Difficulty: <<2>>|r', diffColor, data.Diff))
-    else
-        dbg('Skipping Difficulty - value: ' .. tostring(data.Diff))
-    end ]]
-
-	-- Add set information
-	-- dbg('About to process Set info')
-	if data.Set and data.Set ~= '' then
-		dbg('Adding Set: ' .. tostring(data.Set) .. ', Quality: ' .. tostring(data.SetQuality))
-		local setColor = ''
-		if data.SetQuality == 1 then
-			setColor = '|c00FF00' -- green
-		elseif data.SetQuality == 2 then
-			setColor = '|c0080FF' -- blue
-		elseif data.SetQuality == 3 then
-			setColor = '|c8000FF' -- purple
-		elseif data.SetQuality == 4 then
-			setColor = '|cFFD700' -- gold
-		elseif data.SetQuality == 5 then
-			setColor = '|cFF8000' -- orange
-		end
-		table.insert(lines, zo_strformat('<<1>>Set: <<2>>|r', setColor, data.Set))
-		-- dbg('Set info added successfully')
-	else
-		dbg('Skipping Set - value: ' .. tostring(data.Set))
+	if fullDesc and fullDesc ~= '' and fullDesc ~= AC.UNKNOWN and fullDesc ~= locShort then
+		table.insert(lines, zo_strformat('<<1>>', fullDesc))
 	end
-
-	-- Live dynamic values to avoid stale cache
-	local liveDug = GetNumAntiquitiesRecovered(leadId)
-	local liveLoreLeft = GetNumAntiquityLoreEntries(leadId) - GetNumAntiquityLoreEntriesAcquired(leadId)
-	local liveHaveLead = DoesAntiquityHaveLead(leadId)
-	local liveExpiration = GetAntiquityLeadTimeRemainingSeconds(leadId)
-	if liveHaveLead and liveExpiration == 0 then liveExpiration = 2851200 end -- fallback like PopulateUnits
-
-	-- Add recovery status
-	if liveDug then table.insert(lines, zo_strformat('Times Recovered: <<1>>', liveDug)) end
-
-	-- Add lore status
-	if liveLoreLeft and liveLoreLeft > 0 then
-		table.insert(lines, zo_strformat('|cFFFF00Lore Entries Missing: <<1>>|r', liveLoreLeft))
-	else
-		dbg('Skipping Lore - value: ' .. tostring(liveLoreLeft))
-	end
-
-	--[[   -- Add expiration info
-    if liveHaveLead and liveExpiration and liveExpiration > 0 then
-        dbg('Adding Expiration: ' .. tostring(liveExpiration))
-        local expirationColor = colorizeExpiration(liveExpiration)
-        local expirationText = formatExpiration(liveExpiration)
-        table.insert(lines, zo_strformat('<<1>>Expires in: <<2>>|r', expirationColor, expirationText))
-    else
-        dbg('Skipping Expiration - HaveLead: ' .. tostring(liveHaveLead) .. ', Expiration: ' .. tostring(liveExpiration))
-    end
-]]
-
-	-- Add set completion info (wrapped in additional safety)
-	-- dbg('About to process Set completion')
-	-- Add set completion info
-	dbg('Processing SetId: ' .. tostring(data.SetId))
-
-	-- Return the complete text (or table of lines)
-	dbg('CreateLeadToolip: Final lines count: ' .. #lines)
 	return lines
 end
 
@@ -855,12 +776,19 @@ local function TooltipTradeableLeadItemHook(self, itemLink)
 	AppendACSectionToTooltip(self, CreateLeadToolip(antiquityId))
 end
 
+local function TooltipClearedHook(self)
+	-- Duplicate hooks share a layout, but a cleared tooltip starts a new layout.
+	self.__ac_lastAppendSignature = nil
+	self.__ac_lastAppendTime = nil
+end
+
 local TOOLTIP_HOOK_SPECS = {
 	{name = 'LayoutAntiquityLead', handler = TooltipLeadHook},
 	{name = 'LayoutAntiquitySetFragment', handler = TooltipFragmentHook},
 	{name = 'LayoutAntiquityReward', handler = TooltipRewardHook},
 	{name = 'LayoutAntiquitySetReward', handler = TooltipSetRewardHook},
-	{name = 'LayoutItem', handler = TooltipTradeableLeadItemHook}
+	{name = 'LayoutItem', handler = TooltipTradeableLeadItemHook},
+	{name = 'ClearLines', handler = TooltipClearedHook}
 }
 
 local function EnsureTooltipPostHooks(sourceTag)

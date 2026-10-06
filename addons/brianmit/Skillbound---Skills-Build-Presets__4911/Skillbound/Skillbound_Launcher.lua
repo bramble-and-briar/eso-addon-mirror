@@ -285,8 +285,19 @@ local function Tooltip(part)
         if build then
             lines[#lines + 1] = B.Colorize(C.warn, waiting and L("LAUNCHER_WAITING", build.name) or L("LAUNCHER_PUTTING_ON", build.name, done, total))
         end
-        for _, line in ipairs(B.Check.Current()) do
-            lines[#lines + 1] = B.Dot(line.level == "bad" and C.bad or C.warn) .. " " .. line.text
+        -- (one short line, not the whole check list: that sits in the window's build line and
+        -- on the Gear check tab; the long list made this tooltip an untidy wall of text)
+        if worn then
+            local bad, n = false, 0
+            for _, line in ipairs(B.Check.Current()) do
+                n = n + 1
+                if line.level == "bad" then bad = true end
+            end
+            if n > 0 then
+                lines[#lines + 1] = B.Dot(bad and C.bad or C.warn) .. " " .. L("CHECK_SHORT_N", n)
+            else
+                lines[#lines + 1] = B.Dot(C.good) .. " " .. L("CHECK_SHORT_GOOD")
+            end
         end
         if #B.sv.rules > 0 then
             lines[#lines + 1] = B.Rules.IsPaused() and B.Colorize(C.dim, L("LAUNCHER_RULES_OFF"))

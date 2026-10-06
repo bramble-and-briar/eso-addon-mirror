@@ -100,4 +100,17 @@ local function OnTileLayout(tile)
     end
 end
 
+-- Switching categories clears the pooled tiles with Reset, which blanks the
+-- title and icon but never calls LayoutPlatform again, so without this the
+-- rapport number and Role icon would be left behind on the emptied tile.
+local function HideOverlays(tile)
+    if tile.companionRosterRoleIcon then
+        tile.companionRosterRoleIcon:SetHidden(true)
+    end
+    if tile.companionRosterRapportLabel then
+        tile.companionRosterRapportLabel:SetHidden(true)
+    end
+end
+
 SecurePostHook(ZO_CollectibleTile_Keyboard, "LayoutPlatform", OnTileLayout)
+SecurePostHook(ZO_CollectibleTile_Keyboard, "Reset", HideOverlays)

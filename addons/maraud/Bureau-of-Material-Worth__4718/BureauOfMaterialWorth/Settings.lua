@@ -9,6 +9,9 @@ local tonumber = tonumber
 local zo_round = zo_round
 local stringformat = string.format
 
+local HISTORY_CLEANUP_DIALOG = "BUREAU_OF_MATERIAL_WORTH_HISTORY_CLEANUP"
+local historyCleanupSummary
+
 -- Default account-wide configuration. Kept deliberately small: this addon has
 -- no gameplay-affecting state, only presentation/diagnostics.
 --   debugMode             chat verbosity (mirrors the core's debugMode contract)
@@ -245,6 +248,40 @@ function Settings.SetDebugMode(level, suppressOutput)
     return false
 end
 
+function Settings.GetHistoryCleanupSummary()
+    return historyCleanupSummary or GetString(SI_BMW_HISTORY_CLEANUP_PENDING)
+end
+
+local function CleanPriceHistory()
+    local valuation = addon.Valuation
+    if not valuation or not valuation.PrunePriceHistory then
+        historyCleanupSummary = GetString(SI_BMW_HISTORY_CLEANUP_UNAVAILABLE)
+        private.ChatError(SI_BMW_HISTORY_CLEANUP_UNAVAILABLE)
+    else
+        local result = valuation.PrunePriceHistory()
+        local formatCount = ZO_LocalizeDecimalNumber
+        if result.materialsChecked == 0 then
+            historyCleanupSummary = GetString(SI_BMW_HISTORY_CLEANUP_EMPTY)
+        elseif result.pointsRemoved == 0 and result.materialsRemoved == 0
+            and result.bytesRemoved == 0 then
+            historyCleanupSummary = stringformat(GetString(SI_BMW_HISTORY_CLEANUP_NO_CHANGE),
+                formatCount(result.materialsChecked))
+        else
+            historyCleanupSummary = stringformat(GetString(SI_BMW_HISTORY_CLEANUP_RESULT),
+                formatCount(result.materialsChecked), formatCount(result.pointsRemoved),
+                formatCount(result.materialsRemoved), formatCount(result.pointsRemaining),
+                formatCount(result.bytesRemoved))
+            historyCleanupSummary = historyCleanupSummary .. "\n"
+                .. GetString(SI_BMW_HISTORY_CLEANUP_SAVE_NOTICE)
+        end
+        private.ChatInfo(historyCleanupSummary)
+    end
+
+    if CALLBACK_MANAGER and Settings.panel then
+        CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", Settings.panel)
+    end
+end
+
 function Settings.RegisterSettingsPanel()
     local lam = LibAddonMenu2
     if not lam then
@@ -253,6 +290,19 @@ function Settings.RegisterSettingsPanel()
     end
 
     local panelIdentifier = addon.name .. "_Settings"
+    ZO_Dialogs_RegisterCustomDialog(HISTORY_CLEANUP_DIALOG, {
+        title = { text = GetString(SI_BMW_HISTORY_CLEANUP_CONFIRM_TITLE) },
+        mainText = { text = GetString(SI_BMW_HISTORY_CLEANUP_CONFIRM_BODY) },
+        buttons = {
+            {
+                text = GetString(SI_BMW_HISTORY_CLEANUP_ACCEPT),
+                callback = CleanPriceHistory,
+            },
+            {
+                text = GetString(SI_BMW_HISTORY_CLEANUP_CANCEL),
+            },
+        },
+    })
     local debugChoices = {
         private.GetDebugLevelName(0),
         private.GetDebugLevelName(1),
@@ -707,6 +757,35 @@ function Settings.RegisterSettingsPanel()
                     addon.Valuation.ForceRefresh()
                 end
             end,
+            width = "full",
+        },
+        {
+            type = "header",
+            name = GetString(SI_BMW_HEADER_SAVED_DATA),
+            width = "full",
+        },
+        {
+            type = "description",
+            text = GetString(SI_BMW_HISTORY_CLEANUP_DESCRIPTION) .. "\n\n"
+                .. GetString(SI_BMW_HISTORY_CLEANUP_SAVE_NOTICE),
+            width = "full",
+        },
+        {
+            type = "button",
+            name = GetString(SI_BMW_HISTORY_CLEANUP_BUTTON),
+            tooltip = GetString(SI_BMW_HISTORY_CLEANUP_TOOLTIP),
+            func = function()
+                ZO_Dialogs_ShowDialog(HISTORY_CLEANUP_DIALOG)
+            end,
+            disabled = function()
+                return not addon.Valuation or not addon.Valuation.PrunePriceHistory
+            end,
+            width = "full",
+        },
+        {
+            type = "description",
+            title = GetString(SI_BMW_HISTORY_CLEANUP_RESULT_TITLE),
+            text = Settings.GetHistoryCleanupSummary,
             width = "full",
         },
     }

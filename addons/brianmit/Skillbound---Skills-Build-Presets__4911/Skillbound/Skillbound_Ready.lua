@@ -238,7 +238,18 @@ function Ready.Init()
     B.EM:RegisterForEvent("Skillbound_ReadyZone", EVENT_PLAYER_ACTIVATED, function()
         -- (after the auto eat had its go at 3 s, so the food line shows the result)
         B.Later(function()
-            if B.sv.readyCard and B.Apply.InInstance() then Ready.Show(false) end
+            -- only once, when you come INTO an instance: loading screens inside it (boss portals,
+            -- reviving at a wayshrine, /reloadui) fired this again and the card showed mid-run.
+            -- c.readyZone = the instance it last showed in, cleared once you're outside again.
+            local c = B.Char()
+            if not B.Apply.InInstance() then
+                c.readyZone = nil
+                return
+            end
+            local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+            if c.readyZone == zoneId then return end
+            c.readyZone = zoneId
+            if B.sv.readyCard then Ready.Show(false) end
         end, 5000)
     end)
 end

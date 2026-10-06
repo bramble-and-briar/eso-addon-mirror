@@ -363,6 +363,24 @@ do	-- See /esoui/ingame/centerscreenannounce/centerscreenannouncehandlers.lua
 		messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_RAID_TRIAL)
 		CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
 	end
+
+	local screenshotScene = nil
+	function RCR.DisplayScoreBannerForScreenshot( ... )
+		if (not screenshotScene) then
+			screenshotScene = ZO_InteractScene:New("RCR_ScoreScreenshot", SCENE_MANAGER, { type = "RCR_ScoreScreenshot", interactTypes = { INTERACTION_NONE } })
+			screenshotScene:RegisterCallback("StateChange", function( oldState, newState )
+				if (newState == SCENE_SHOWING) then
+					KEYBOARD_CHAT_SYSTEM:Minimize()
+					KEYBOARD_CHAT_SYSTEM:HideMinBar()
+				elseif (newState == SCENE_HIDDEN) then
+					KEYBOARD_CHAT_SYSTEM:ShowMinBar()
+					KEYBOARD_CHAT_SYSTEM:Maximize()
+				end
+			end)
+		end
+		RCR.DisplayScoreBanner(...)
+		SCENE_MANAGER:Push("RCR_ScoreScreenshot")
+	end
 end
 
 function RCR.RemoveTimeAdjustmentFromScore( raidId, score, duration )

@@ -13,6 +13,7 @@ local Score = _x.Score
 local GetGameTypeName = _x.GetGameTypeName
 local GetRoundIndex = _x.GetRoundIndex
 local IsFinalRoundPostround4v4Deathmatch = _x.IsFinalRoundPostround4v4Deathmatch
+local MAX_SCOREBOARD_PLAYERS = _x.MAX_SCOREBOARD_PLAYERS
 local DetermineWinner = _x.DetermineWinner
 local GetCurrentCharacterIdOrNil = _x.GetCurrentCharacterIdOrNil
 local GetCurrentCharacterName = _x.GetCurrentCharacterName
@@ -427,7 +428,7 @@ function BL.CaptureCurrentScoreboard()
     local scores = ReadCurrentTeamScores(captureContext)
 
     local players = {}
-    local count = Num(GetNumScoreboardEntries(roundIndex))
+    local count = math.min(Num(GetNumScoreboardEntries(roundIndex)), MAX_SCOREBOARD_PLAYERS)
     local localPlayerEntryIndex = Num(GetScoreboardLocalPlayerEntryIndex(roundIndex))
 
     for i = 1, count do

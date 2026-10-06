@@ -24,6 +24,10 @@ local Num = _x.Num
 local FormatBigNumber = _x.FormatBigNumber
 local FormatTimestamp = _x.FormatTimestamp
 local IsNumericSortKey = _x.IsNumericSortKey
+local MAX_SCOREBOARD_PLAYERS = _x.MAX_SCOREBOARD_PLAYERS
+local END_MATCH_ROW_HEIGHT = 22
+local END_MATCH_ROW_STRIDE = 24
+local END_MATCH_EXTRA_HEIGHT = math.max(0, MAX_SCOREBOARD_PLAYERS - 16) * END_MATCH_ROW_STRIDE
 local LAYOUT_SCALE = 1.35
 local TEXT_SCALE = 1.5
 local PLAYER_NAME_EXTRA_WIDTH = 60
@@ -74,7 +78,7 @@ end
 
 local columns, DETAIL_TABLE_WIDTH = BuildEndMatchColumns()
 local DETAIL_TABLE_BODY_FONT = _x.DETAIL_TABLE_BODY_FONT
-local PAGE_ONE_PANEL_HEIGHT = s(_x.PAGE_ONE_PANEL_HEIGHT) - PANEL_HEIGHT_TRIM
+local PAGE_ONE_PANEL_HEIGHT = s(_x.PAGE_ONE_PANEL_HEIGHT + END_MATCH_EXTRA_HEIGHT) - PANEL_HEIGHT_TRIM
 local PAGE_ONE_FOOTER_HEIGHT = s(_x.PAGE_ONE_FOOTER_HEIGHT)
 
 local OVERLAY_SCALE = 1
@@ -83,7 +87,7 @@ local BASE_DETAIL_Y = s(10)
 local BASE_WINDOW_WIDTH = DETAIL_TABLE_WIDTH + OVERLAY_MARGIN * 2
 local BASE_WINDOW_HEIGHT = BASE_DETAIL_Y + PAGE_ONE_PANEL_HEIGHT + PAGE_ONE_FOOTER_HEIGHT + s(10)
 local TEAM_BLOCK_HEIGHT = s(105)
-local PLAYER_TABLE_HEIGHT = s(457)
+local PLAYER_TABLE_HEIGHT = s(457 + END_MATCH_EXTRA_HEIGHT)
 
 local function FormatDurationSeconds(seconds)
     seconds = math.floor(Num(seconds) + 0.5)
@@ -639,10 +643,13 @@ function BL.BuildEndMatchScoreboard()
 
     overlay.ptControls = { headers = {}, headerIcons = {}, rows = {} }
     local pt = overlay.ptControls
-    local MAX_PLAYER_ROWS = 16
+    local MAX_PLAYER_ROWS = MAX_SCOREBOARD_PLAYERS
     local HEADER_H = s(30)
-    local ROW_H = s(22)
-    local ROW_STRIDE = s(24)
+    local ROW_H = s(END_MATCH_ROW_HEIGHT)
+    local ROW_STRIDE = s(END_MATCH_ROW_STRIDE)
+    -- Labels in this overlay are scaled by TEXT_SCALE. Keep their unscaled
+    -- control height small enough that the rendered bounds equal the row height.
+    local ROW_LABEL_H = math.max(1, math.floor(ROW_H / TEXT_SCALE + 0.5))
     local HEADER_ICON_H = s(28)
 
     local ptHeaderBg = WINDOW_MANAGER:CreateControl("BattleboardEndMatchPTHeaderBg", overlay.playerTable, CT_BACKDROP)
@@ -765,8 +772,9 @@ function BL.BuildEndMatchScoreboard()
         for _, col in ipairs(columns) do
             if not col.skipCell then
                 local cell = CreateLabel(overlay.playerTable, "BattleboardEndMatchPTCell_" .. i .. "_" .. col.key, "", DETAIL_TABLE_BODY_FONT, {0.88, 0.86, 0.78, 0.96})
-                cell:SetAnchor(TOPLEFT, overlay.playerTable, TOPLEFT, col.x, rowY)
-                cell:SetDimensions(col.w, s(17))
+                cell:SetAnchor(LEFT, bgRow, LEFT, col.x, 0)
+                cell:SetDimensions(col.w, ROW_LABEL_H)
+                cell:SetVerticalAlignment(TEXT_ALIGN_CENTER)
                 if col.align then cell:SetHorizontalAlignment(col.align) end
                 cell:SetHidden(true)
                 cells[col.key] = cell
@@ -800,9 +808,10 @@ function BL.BuildEndMatchScoreboard()
     end
     local contribLabelW = s(118)
     local ptContribLabel = CreateLabel(overlay.playerTable, "BattleboardEndMatchPTContribLabel", "", DETAIL_TABLE_BODY_FONT, {0.92, 0.84, 0.62, 1})
-    ptContribLabel:SetAnchor(TOPLEFT, overlay.playerTable, TOPLEFT, medalsColX - contribLabelW - s(28), contribY)
-    ptContribLabel:SetDimensions(contribLabelW, s(17))
+    ptContribLabel:SetAnchor(LEFT, ptContribBg, LEFT, medalsColX - contribLabelW - s(28), 0)
+    ptContribLabel:SetDimensions(contribLabelW, ROW_LABEL_H)
     ptContribLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    ptContribLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     ptContribLabel:SetHidden(true)
 
     local ptContribCells = {}
@@ -810,8 +819,9 @@ function BL.BuildEndMatchScoreboard()
         if not col.skipCell and col.key ~= "playerName" then
             local align = col.key == "playerName" and TEXT_ALIGN_RIGHT or col.align
             local cell = CreateLabel(overlay.playerTable, "BattleboardEndMatchPTContrib_" .. col.key, "", DETAIL_TABLE_BODY_FONT, {0.92, 0.84, 0.62, 1})
-            cell:SetAnchor(TOPLEFT, overlay.playerTable, TOPLEFT, col.x, contribY)
-            cell:SetDimensions(col.w, s(17))
+            cell:SetAnchor(LEFT, ptContribBg, LEFT, col.x, 0)
+            cell:SetDimensions(col.w, ROW_LABEL_H)
+            cell:SetVerticalAlignment(TEXT_ALIGN_CENTER)
             if align then cell:SetHorizontalAlignment(align) end
             cell:SetHidden(true)
             ptContribCells[col.key] = cell

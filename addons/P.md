@@ -57,7 +57,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PermAlmalexia: Permanent Mementos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/PermAlmalexia-Permanent-Mementos__3578) | Mouton | PC / Mac | 1.2.1 |
 | [Permanent Experience Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/positron/Permanent-Experience-Bar__2080) | positron | PC / Mac | 1.1.0 |
 | [Permanent Memento](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Permanent-Memento__2aa223e9-ba88-45f7-90d3-0a47002c720c) | APH0NlC | Console | — |
-| [Permanent Memento (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Permanent-Memento-PC-Console__4116) | APH0N1C | PC / Mac | 0.8.7 |
+| [Permanent Memento (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Permanent-Memento-PC-Console__4116) | APH0N1C | PC / Mac | 2026.10.06.08.01 |
 | [Persona](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Persona__a3bda6e6-a854-4387-825a-dccb05d706d8) | SugaComa | Console | — |
 | [Personal Assistant + Companions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/Personal-Assistant-Companions__1296) | Ayantir | PC / Mac | 19 |
 | [Personal Dps Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Personal-Dps-Tracker__c9b85989-bab6-4000-a3fc-80ed49e25e87) | Shienar | Console | — |

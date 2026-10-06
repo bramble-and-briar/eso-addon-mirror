@@ -153,6 +153,8 @@ ZO_CreateStringId("MSAL_LOOT_ANY_CHAR_UNKNOWN_TOOLTIP","When enabled, always loo
 ZO_CreateStringId("MSAL_USE_DEFAULT","Use Default")
 ZO_CreateStringId("MSAL_USE","Use <<1>>")
 ZO_CreateStringId("MSAL_LEAVE_BEHIND","Leave Behind")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS","Clean Up Backpack Container Leftovers")
+ZO_CreateStringId("MSAL_CLEAN_BAG_CONTAINER_LEFTOVERS_TOOLTIP","Only available while |ccc922f<<1>>|r is set to |ccc922f<<2>>|r\n\nWhen disabled, items you do not want to loot in backpack containers stay in the container;\nwhen enabled, they are taken out and marked as junk")
 ZO_CreateStringId("MSAL_DONT_STEAL","Don't Steal")
 ZO_CreateStringId("MSAL_DONT_STEAL_STRICT","Don't Steal (Strict)")
 ZO_CreateStringId("MSAL_UNOPENED_TOOLTIP","<<1>> refers to containers of <<2>> / <<3>> / <<4>>\nThis filter and its sub-filters apply to both <<1>> and their contents")

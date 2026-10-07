@@ -1,7 +1,7 @@
 RoleplayPostSupport = RoleplayPostSupport or {}
 local A = RoleplayPostSupport
 local function L(...) return A.L(...) end
-A.name, A.version = "RoleplayPostSupport", "1.2.2"
+A.name, A.version = "RoleplayPostSupport", "1.2.5"
 local ready = false
 
 function A.Notify(message)
@@ -120,9 +120,14 @@ local function activated()
         A.UI.Refresh()
     end)
     EVENT_MANAGER:UnregisterForEvent(A.name, EVENT_PLAYER_ACTIVATED)
-    local api = GetAPIVersion()
-    if api ~= 101050 and api ~= 101051 then
-        A.Notify(L("CORE_UNSUPPORTED_API", tostring(api)))
+    -- ESO derives this flag from the manifest's APIVersion declaration.
+    local addOnManager = GetAddOnManager()
+    for index = 1, addOnManager:GetNumAddOns() do
+        local name, _, _, _, _, _, isOutOfDate = addOnManager:GetAddOnInfo(index)
+        if name == A.name then
+            if isOutOfDate then A.Notify(L("CORE_UNSUPPORTED_API", tostring(GetAPIVersion()))) end
+            break
+        end
     end
     A.Debug(L("CORE_INITIALIZED", tostring(limit)))
 end

@@ -42,6 +42,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Jump](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uberswe/Jump__3491) | uberswe | PC / Mac | 1.2 |
 | [Jump Out Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/czerepx/Jump-Out-Alert__2956) | czerepx | PC / Mac | 0.1.0 |
 | [Jump Over Assistants](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Jump-Over-Assistants__4405) | STUDLETON | PC / Mac | 0.1.1 |
+| [Jump to Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Jump-to-Search__65eefa37-d12c-4876-bdb9-aa547f7a070a) | clubwratt | Console | — |
 | [JunkAll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Bleifish/JunkAll__2391) | Bleifish | PC / Mac | 1.1.1 |
 | [JunkBuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ADH/JunkBuster__266) | ADH | PC / Mac | 1.92 |
 | [Junkee 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/Junkee-2018__1947) | Phuein | PC / Mac | 1.84 |

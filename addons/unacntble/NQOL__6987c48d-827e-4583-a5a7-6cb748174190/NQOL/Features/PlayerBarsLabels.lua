@@ -183,12 +183,28 @@ function PlayerBars.GetGroupHeightTooltip()
     return NQOL.L("features.player_bars.group_height_tooltip")
 end
 
+function PlayerBars.GetGroupColumnsLabel()
+    return NQOL.L("features.player_bars.group_columns_label")
+end
+
+function PlayerBars.GetGroupColumnsTooltip()
+    return NQOL.L("features.player_bars.group_columns_tooltip")
+end
+
 function PlayerBars.GetGroupRowGapLabel()
     return NQOL.L("features.player_bars.group_row_gap_label")
 end
 
 function PlayerBars.GetGroupRowGapTooltip()
     return NQOL.L("features.player_bars.group_row_gap_tooltip")
+end
+
+function PlayerBars.GetGroupColumnGapLabel()
+    return NQOL.L("features.player_bars.group_column_gap_label")
+end
+
+function PlayerBars.GetGroupColumnGapTooltip()
+    return NQOL.L("features.player_bars.group_column_gap_tooltip")
 end
 
 function PlayerBars.GetGroupBorderSizeLabel()

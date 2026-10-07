@@ -1,18 +1,19 @@
 -- =============================================================================
 -- Under Pressure -- UI/Debug.lua
 -- =============================================================================
--- Optional debug overlay. Toggled via the slash command /updebug and via
--- the settings panel. Shows LIVE values only:
---   * health, combat state
+-- Optional debug overlay. Toggled from the settings panel (Debug > Show
+-- debug overlay; also /updebug through 0.3.3). Shows LIVE values only:
+--   * health, combat state, dead state (engine's isDead, not just the UI's)
 --   * adjusted pressure DPS, burst multiplier, risk bonus
---   * attacker count, silence state and count
+--   * attacker count, silence state and count, plague state and time left
 --   * current TTD, candidate state, published state, active debuff count
 --   * last 8 events, with abilityType / statusEffectType for each effect --
 --     the only way to verify silence detection on console hardware
 --
--- Feature-detect results deliberately live in /up-api-audit (chat) instead.
--- They are fixed for the session, so repainting them here at 5 Hz consumed
--- space in a fixed-size overlay to say the same thing every frame.
+-- Feature-detect results deliberately live in the API audit (Settings > Debug
+-- > Print, to chat) instead. They are fixed for the session, so repainting
+-- them here at 5 Hz consumed space in a fixed-size overlay to say the same
+-- thing every frame.
 -- =============================================================================
 
 UP = UP or {}
@@ -91,6 +92,8 @@ function UP.Debug.Init()
     header = root:GetNamedChild("Header")
     body   = root:GetNamedChild("Body")
     visible = not root:IsHidden()
+    local sv = UP.sv or {}
+    UP.Debug.ApplyFontSize(sv.debug_font_size)
     return true
 end
 
@@ -112,7 +115,7 @@ function UP.Debug.Refresh()
 
     -- Feature-detect results are NOT shown here any more. They are static for
     -- the session, so repainting them at 5 Hz was wasted space in a fixed-size
-    -- overlay. Run /up-api-audit for that, which prints to chat instead.
+    -- overlay. The API audit button (Settings > Debug) prints them to chat.
 
     header:SetText(("UP debug | TTD %s s | %s"):format(
         fmtNum(s.ttd), tostring(s.publishedState)))
@@ -121,18 +124,28 @@ function UP.Debug.Refresh()
     for _ in pairs(s.activeEffects or {}) do effectCount = effectCount + 1 end
 
     local lines = {
-        ("hp=%d / %d   inCombat=%s"):format(
-            s.health or 0, s.maxHealth or 0, tostring(s.inCombat and true or false)),
+        ("hp=%d / %d   inCombat=%s  dead=%s"):format(
+            s.health or 0, s.maxHealth or 0, tostring(s.inCombat and true or false),
+            tostring(s.isDead and true or false)),
         ("pressureDPS=%s  burstMul=%s  riskBonus=%s"):format(
             fmtNum(s.pressureDps), fmtNum(s.burstMul), fmtNum(s.riskBonus)),
-        -- The "+VISUALTEST" marker matters: without it a ring on screen beside
-        -- "silenced=no" looks like a detection bug rather than /up-visual-test.
+        -- The "+PREVIEW" marker matters: without it a ring on screen beside
+        -- "silenced=no" looks like a detection bug rather than the Preview
+        -- button.
         ("attackers=%d  silenced=%s%s"):format(
             s.attackerCount or 0,
             (UP.Silence and UP.Silence.IsActive and UP.Silence.IsActive())
                 and ("YES x" .. tostring(UP.Silence.Count())) or "no",
-            (UP.SilenceRing and UP.SilenceRing.IsTestActive and UP.SilenceRing.IsTestActive())
-                and "  +VISUALTEST" or ""),
+            (UP.SilenceRing and UP.SilenceRing.IsPreviewActive and UP.SilenceRing.IsPreviewActive())
+                and "  +PREVIEW" or ""),
+        -- Plaguebreak (0.4.0). "+PREVIEW" for the same reason as the silence
+        -- line: a tint beside "plague=no" must be explained.
+        ("plague=%s%s"):format(
+            (UP.Plague and UP.Plague.IsActive and UP.Plague.IsActive())
+                and ("YES %.1fs left"):format((UP.Plague.RemainingMs(GetGameTimeMilliseconds()) or 0) / 1000)
+                or "no",
+            (UP.PlagueTint and UP.PlagueTint.IsPreviewActive and UP.PlagueTint.IsPreviewActive())
+                and "  +PREVIEW" or ""),
         ("dmgEvts=%d  activeDebuffs=%d  cand=%s"):format(
             s.damageEventCount or 0, effectCount, tostring(s.candidateState)),
         "--- recent events ---",
@@ -145,38 +158,27 @@ function UP.Debug.Refresh()
 end
 
 -- =============================================================================
--- /upfont <size>  -- live font tuner for console readability
+-- Overlay text size (Settings > Debug > Debug text size)
 -- =============================================================================
--- Adjust the debug overlay font size at runtime without /reloadui.
--- Usage in chat:   /upfont 34
--- With no argument it resets to the default (27 body / 34 header).
+-- Was the /upfont <size> slash command through 0.3.3, which was never
+-- persisted; 0.4.0 made it a slider stored in sv.debug_font_size and applied
+-- here at Init and on every slider step.
 --
 -- The requested size is snapped to the nearest font that actually exists in
--- the gamepad fontdefs, so the reported size may differ from what you typed.
--- Through 0.2.7 this built $(MEDIUM_FONT)/$(BOLD_FONT) descriptors, which are
--- keyboard-only constants and are the reason the size never changed on
--- console. See UI/Fonts.lua.
+-- the gamepad fontdefs, so the on-screen size moves in steps. Through 0.2.7
+-- this built $(MEDIUM_FONT)/$(BOLD_FONT) descriptors, which are keyboard-only
+-- constants and are the reason the size never changed on console. See
+-- UI/Fonts.lua.
 -- =============================================================================
-local DEFAULT_BODY_SIZE = 27
+UP.Debug.DEFAULT_FONT_SIZE = 27
 
-SLASH_COMMANDS["/upfont"] = function(arg)
-    local requested = tonumber(arg) or DEFAULT_BODY_SIZE
-    if not UP_DebugRoot then return end
-
-    local b = UP_DebugRoot:GetNamedChild("Body")
-    local h = UP_DebugRoot:GetNamedChild("Header")
-
+function UP.Debug.ApplyFontSize(sizePx)
+    if not root then return end
+    local requested = tonumber(sizePx) or UP.Debug.DEFAULT_FONT_SIZE
+    if requested < UP.Fonts.MIN_SIZE then requested = UP.Fonts.MIN_SIZE end
+    if requested > UP.Fonts.MAX_SIZE then requested = UP.Fonts.MAX_SIZE end
     -- Header sits one rung up the ladder from the body rather than a fixed
     -- +8px, since the ladder is not evenly spaced.
-    local bodyName,   bodySize   = UP.Fonts.Nearest(requested, false)
-    local headerName, headerSize = UP.Fonts.Nearest(requested + 6, true)
-
-    UP.Fonts.Apply(b, requested, false)
-    UP.Fonts.Apply(h, requested + 6, true)
-
-    if CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
-        CHAT_SYSTEM:AddMessage(
-            ("UP font: body %s (%d), header %s (%d) -- requested %d"):format(
-                tostring(bodyName), bodySize, tostring(headerName), headerSize, requested))
-    end
+    UP.Fonts.Apply(body,   requested,     false)
+    UP.Fonts.Apply(header, requested + 6, true)
 end

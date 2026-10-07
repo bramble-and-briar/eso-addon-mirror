@@ -1,6 +1,6 @@
 ## Title: Automatic Overland Difficulty
-## Version: 1.5.1
-## APIVersion: 101050
+## Version: 1.5.2
+## APIVersion: 101051
 ## Author: |cFFFF00Wrynch|r
 ## Description: Automatically requests Challenge Difficulty changes from custom rules or World Progression zone levels.
 ## DependsOn: LibAddonMenu-2.0>=43 LibGPS>=73

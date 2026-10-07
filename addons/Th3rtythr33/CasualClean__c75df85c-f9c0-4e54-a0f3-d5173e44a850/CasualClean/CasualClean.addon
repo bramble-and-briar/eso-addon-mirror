@@ -1,13 +1,58 @@
 ## Title: CasualClean
 ## Author: Th3rtythr33
-## Version: 1.5.0
-## AddOnVersion: 9
-## APIVersion: 101050
-## Description: A more minimal, immersive HUD. Mag/Stam Arcs flank your reticle, fading in only when a resource is spent and replacing the default magicka and stamina bars; they run everywhere, including Cyrodiil, Battlegrounds, Dungeons and Trials. Separately, the companion unit frame is hidden and your companion is marked with a follower icon over their head that shifts from green to yellow to red as their health drops, showing an X if they die; when they're off-screen the icon clamps to the screen edge and an arrow points toward them. The companion features disable themselves in Cyrodiil and Battlegrounds always, and in Dungeons/Trials while grouped.
-## DependsOn: LibHarvensAddonSettings
+## Version: 1.6.6
+## AddOnVersion: 10
+## APIVersion: 101051
+## Description: Requires LibHarvensAddonSettings (auto-installed). A more minimal, immersive HUD. Mag/Stam Arcs flank your reticle, fading in only when a resource is spent and replacing the default magicka and stamina bars. The quest tracker and the Golden Pursuit tracker can be kept off the screen during play and shown on the main menu instead. The companion unit frame is hidden and your companion is marked with a follower icon over their head that shifts from green to yellow to red as their health drops, showing an X if they die; when they're off-screen the icon clamps to the screen edge and an arrow points toward them. The companion features disable themselves in Cyrodiil and Battlegrounds always, and in Dungeons/Trials while grouped. Every feature can be switched off in the add-on settings. Every feature can be switched off in the add-on settings. Every feature can be switched off in the add-on settings. Credits: the companion marker's screen-projection technique is based on Breadcrumbs by tmp, and recolouring the game's companion map pin as an over-the-head marker follows OdySupportIcons by Odylon and ExoY. Created with AI assistance.
+## DependsOn: LibHarvensAddonSettings>=20200
 ## SavedVariables: CasualCleanVars
+
+; ---------------------------------------------------------------------------
+; MANIFEST NOTES
+; ---------------------------------------------------------------------------
+; AddOnVersion is an integer that must only ever INCREASE, and it steps by one
+; per PUBLISHED build regardless of how far the semantic Version jumps. It is
+; what the console catalogue uses; Version is only ever shown to humans.
+; 1.5.0 shipped as AddOnVersion 9, so 1.6.6 is 10 (Version jumped; AddOnVersion steps by one).
+;
+; .addon only, no .txt: console-only addon, and the console client has
+; ignored .txt manifests since June 2025.
+;
+; PlayStation's filesystem is case-sensitive. Every path listed below, and the
+; folder and manifest names themselves, must match the real files exactly.
+; That includes the texture paths built in UI/MagStamArcs.lua.
+;
+; Description must stay ONE line and should match the Bethesda.net listing,
+; which is edited separately in the uploader. ESOUI's release rules require
+; two things it now carries: the non-optional dependency named at the top, and
+; credit for borrowed techniques (Breadcrumbs by tmp for the projection,
+; OdySupportIcons by Odylon and ExoY for the recoloured companion pin).
+;
+; DependsOn (hard), not OptionalDependsOn: LibHarvensAddonSettings is on the
+; Bethesda.net console catalogue, so a hard dependency resolves and
+; auto-installs. The minimum is pinned to the library's LATEST release
+; (2.2.0 = 20200, still current on ESOUI as of 2026-10-05) per ESOUI best
+; practice; raise it whenever LHAS updates. On Bethesda.net the dependency is
+; attached to the add-on entry without choosing a release.
+;
+; APIVersion tracks the live game. 101051 = Update 51, live 2026-09-28.
+;
+; File order: CasualClean.lua is first because it creates the shared namespace
+; the other Lua files hang modules off. The XML declares one virtual animation
+; that UI/MagStamArcs.lua instantiates at EVENT_ADD_ON_LOADED and has no
+; OnInitialized handlers, so its position is not load-bearing; XML before the
+; Lua that uses it is the conventional direction. Settings.lua is last because
+; it binds to every module.
+; ---------------------------------------------------------------------------
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 CasualClean.lua
 UI/MagStamArcs.xml
 UI/MagStamArcs.lua
+UI/QuestTracker.lua
 Settings.lua

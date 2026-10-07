@@ -10,10 +10,16 @@
 -- shape says "you are in danger", not "you cannot cast". Hence a separate
 -- readout -- see UI/SilenceRing.lua.
 --
--- READOUT ONLY. This module never feeds the pressure model. Silence already
--- contributes through the normal effect pipeline; adding pressure here would
--- double-count it and would break the invariant that the indicator shape
--- answers "how fast would I die" and nothing else.
+-- READOUT ONLY, ITSELF. This module's own code never touches the pressure
+-- model -- it has no reference to UP.Engine anywhere below. It does not
+-- follow that silence is invisible to the risk bonus: EventIngest.lua's
+-- onEffectChanged calls IsSilenceEffect() (below) to drive the ring, and, in
+-- the SAME branch, separately calls UP.Engine.IngestEffect() directly with
+-- UP.RISK.CONTROL (0.3.2). One detector, two independent downstream effects,
+-- both living in EventIngest rather than here -- see the comment there before
+-- assuming "SilenceTracker doesn't feed the engine" means "silence doesn't
+-- feed the engine". This module still must never become the second one
+-- itself; that is what "READOUT ONLY" protects.
 --
 -- TWO DETECTION SIGNALS, DELIBERATELY
 -- -----------------------------------
@@ -28,7 +34,11 @@
 -- confirm (see FeatureDetect), and abilityType is an independent field on the
 -- same event that costs nothing to read. `abilityType` was already a named
 -- parameter of onEffectChanged before this feature existed -- it was simply
--- unused.
+-- unused. This is also now the ONLY silence detector left in the addon
+-- (0.3.2): AbilityClassifier's statusEffectType map used to carry a redundant,
+-- less robust, single-signal copy of the same test; it was removed once this
+-- one started feeding the risk bonus too, so there is exactly one place that
+-- decides "is this a silence" and everything downstream reads from it.
 --
 -- Both constants verified present in ESOUIDocumentation.txt at API 101050.
 -- There is no direct state query -- no IsUnitSilenced(). (IsPlayerStunned()

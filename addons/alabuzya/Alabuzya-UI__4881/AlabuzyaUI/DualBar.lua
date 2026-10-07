@@ -5,6 +5,15 @@ local rows = {}
 local emptyActive = {}
 local root, currentStyle
 local registered = false
+local layoutPending = false
+local function ScheduleLayout()
+    if layoutPending then return end
+    layoutPending=true
+    zo_callLater(function()
+        layoutPending=false
+        if root then AlabuzyaUI.DualBar.Layout(root,currentStyle) end
+    end,0)
+end
 local function OtherBar()
     local active = GetActiveHotbarCategory()
     if active == HOTBAR_CATEGORY_PRIMARY then return HOTBAR_CATEGORY_BACKUP end
@@ -90,26 +99,30 @@ function AlabuzyaUI.DualBar.Layout(topLevelCtrl, style)
         end
     end
     local quick = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    local sideSize=iconSize+12
+    local sideX=offset+sideSize/2+8
+    local sideY=4-iconSize/2
     if quick and quick.slot then
-        quick.slot:SetDimensions(iconSize,iconSize)
+        quick.slot:SetDimensions(sideSize,sideSize)
         if quick.icon then
             quick.icon:ClearAnchors() quick.icon:SetAnchor(CENTER,quick.slot,CENTER,0,0)
-            quick.icon:SetDimensions(iconSize,iconSize)
+            quick.icon:SetDimensions(sideSize,sideSize)
         end
+        if quick.button then quick.button:SetDimensions(sideSize,sideSize) end
         quick.slot:ClearAnchors()
-        quick.slot:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, 0, (size + gap) / 2)
+        quick.slot:SetAnchor(CENTER,container,BOTTOM,-sideX,sideY)
     end
     local ultimate = ZO_ActionBar_GetButton(ACTION_BAR_ULTIMATE_SLOT_INDEX+1)
     if ultimate and ultimate.slot then
-        ultimate.slot:SetDimensions(iconSize,iconSize)
+        ultimate.slot:SetDimensions(sideSize,sideSize)
         if ultimate.icon then
             ultimate.icon:ClearAnchors() ultimate.icon:SetAnchor(CENTER,ultimate.slot,CENTER,0,0)
-            ultimate.icon:SetDimensions(iconSize,iconSize)
+            ultimate.icon:SetDimensions(sideSize,sideSize)
         end
-        if ultimate.button then ultimate.button:SetDimensions(iconSize,iconSize) end
-        if ultimate.status then ultimate.status:SetDimensions(iconSize,iconSize) end
+        if ultimate.button then ultimate.button:SetDimensions(sideSize,sideSize) end
+        if ultimate.status then ultimate.status:SetDimensions(sideSize,sideSize) end
         ultimate.slot:ClearAnchors()
-        ultimate.slot:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, (size + gap) / 2)
+        ultimate.slot:SetAnchor(CENTER,container,BOTTOM,sideX,sideY)
         if ultimate.timerText then
             ultimate.timerText:SetFont(AlabuzyaUI.Theme.Font(math.floor(size * 0.52 + 0.5),'thick-outline'))
             ultimate.timerText:SetColor(1, 1, 1, 1)
@@ -118,16 +131,18 @@ function AlabuzyaUI.DualBar.Layout(topLevelCtrl, style)
     end
     if not registered then
         registered = true
-        local function Update()
-            -- Run after the game's own action-bar reanchoring and assignments.
-            zo_callLater(function()
-                if root then AlabuzyaUI.DualBar.Layout(root, currentStyle) end
-            end, 0)
-        end
         for _, event in ipairs({EVENT_ACTION_SLOTS_ACTIVE_HOTBAR_UPDATED,
             EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED, EVENT_HOTBAR_SLOT_UPDATED,
             EVENT_ACTIVE_WEAPON_PAIR_CHANGED, EVENT_PLAYER_ACTIVATED}) do
-            EVENT_MANAGER:RegisterForEvent("AlabuzyaUIDualBar", event, Update)
+            EVENT_MANAGER:RegisterForEvent("AlabuzyaUIDualBar", event, ScheduleLayout)
+        end
+        -- Native quickslot refreshes also reanchor without a hotbar event.
+        -- Restore our layout after those methods, once per update batch.
+        for _,button in ipairs({quick,ultimate}) do
+            if ZO_PostHook then
+                if button.ApplyAnchor then ZO_PostHook(button,'ApplyAnchor',ScheduleLayout) end
+                if button.ApplyStyle then ZO_PostHook(button,'ApplyStyle',ScheduleLayout) end
+            end
         end
     end
     Refresh()

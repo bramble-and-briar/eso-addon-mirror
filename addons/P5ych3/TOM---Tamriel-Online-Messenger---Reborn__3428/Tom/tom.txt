@@ -1,7 +1,7 @@
 ## Title: |c4779ceTamriel Online Messenger - Reborn|r
 ## APIVersion: 101050 101051
-## Description: Manage your daily conversations, store a message history, receive visual alerts, customize notifications and enjoy never missing another message again! (v6.4.2)
-## Version: 6.4.2
+## Description: Manage your daily conversations, store a message history, receive visual alerts, customize notifications and enjoy never missing another message again! (v6.4.3)
+## Version: 6.4.3
 ## SavedVariables: tomvars
 ## Author: |c4779ceP5YCH3|r
 ## DependsOn: LibAddonMenu-2.0>=40

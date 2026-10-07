@@ -1,3 +1,7 @@
+1.0.7 — Diablo action bar / Панель навыков Diablo
+EN: Fixed quickslot drift after native button anchoring/style refreshes in Diablo. Enlarged the potion/quickslot and ultimate icons from 36 to 48 pixels and moved them closer to the five skill slots, with symmetric spacing and aligned centers.
+RU: Исправлено смещение зелья/быстрого доступа после штатного обновления положения и оформления кнопки в Diablo. Значки зелья и ультимативной способности увеличены с 36 до 48 пикселей и пододвинуты к пяти навыкам, с симметричными отступами и центрами на одной линии.
+
 1.0.6 — Urgent map fixes / Срочные исправления карты
 EN: Fixed repeated Lua errors when displaying antiquity excavation areas: polygon border colors now come from the native map pin, and pixel rounding is applied only to texture controls. These repeated errors could cause severe FPS drops. Fixes apply to both the minimap and map overlay in every style. Includes the corrected standalone overlay window and immediate visibility switching.
 RU: Исправлены повторяющиеся ошибки Lua при отображении областей археологических раскопок: цвет границы берётся у игрового значка, а округление пикселей применяется только к текстурам. Повторяющиеся ошибки могли вызывать сильное падение FPS. Исправления действуют для миникарты и оверлея во всех стилях. Включены исправленный запуск отдельного окна оверлея и мгновенное переключение его видимости.

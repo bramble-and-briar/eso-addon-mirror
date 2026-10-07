@@ -82,6 +82,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Test01 Better Twins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Test01-Better-Twins__4dd951d1-312d-470c-b02c-f1961618b998) | BMGxSancho | Console | — |
 | [Testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testing__8cd10e06-846e-4b81-9858-f1a6943f0b32) | FiNk3F13 | Console | — |
 | [TestMapAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/TestMapAddon__cee315a7-bef0-44c7-9a12-dbc6bdb6674d) | PinkBanther | Console | — |
+| [Testo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testo__216fbb06-0224-40a3-bc08-d47f6a6a1157) | FiNk3F13 | Console | — |
+| [testt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/testt__27d04e89-fb05-4cae-98d1-bbb320a1b2f1) | FiNk3F13 | Console | — |
 | [TESTUPDATE2112](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rob82668/TESTUPDATE2112__4435) | rob82668 | PC / Mac | 1.0.0 |
 | [Tetris for Fishing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sem/Tetris-for-Fishing__3314) | Sem | PC / Mac | 1.7 |
 | [Tetsu's Arcanist Crux Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/Tetsu-s-Arcanist-Crux-Tracker__1f8d805e-a54a-4b23-b91b-e92bd4ac3488) | Tetsurion | Console | — |
@@ -101,6 +103,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [The Elder Bar Reloaded](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/The-Elder-Bar-Reloaded__3075) | SimonIllyan | PC / Mac | 12.1.3 |
 | [The Elder Cam](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldrni/The-Elder-Cam__2237) | Eldrni | PC / Mac | 1.2.1 |
 | [The Librarium](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Librarium__2729) | Alianym | PC / Mac | 2.32 |
+| [The Profit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukartofanu/The-Profit__4921) | manukartofanu | PC / Mac | 1.0.0 |
 | [The Psijic Way](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/The-Psijic-Way__d55988d9-2bec-4972-b8cb-795ea26131ad) | xbutch | Console | — |
 | [The Questing Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Questing-Guide__2612) | Alianym | PC / Mac | 0.72 |
 | [The Soulless of Tamriel - Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neomazu/The-Soulless-of-Tamriel---Guild-Hall__3604) | Neomazu | PC / Mac | 1.1 |
@@ -145,7 +148,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ToggleGroupFrame (and Companion Unit Frame)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleGroupFrame-and-Companion-Unit-Frame__3698) | Saint-Ange | PC / Mac | 1.5.1 |
 | [ToggleQuestTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/ToggleQuestTracker__3809) | Saint-Ange | PC / Mac | 1.2.2 |
 | [ToggleStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/ToggleStatus__2954) | Wheels | PC / Mac | 2.1 |
-| [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.2 |
+| [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.3 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
 | [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.0 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |

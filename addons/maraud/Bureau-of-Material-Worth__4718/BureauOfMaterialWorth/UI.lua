@@ -51,6 +51,7 @@ UI.HEX = {
     warn   = private.COLOR_WARN,
     gain   = private.COLOR_GAIN,
     loss   = private.COLOR_LOSS,
+    brass  = "BCA779",
 }
 
 -- The same tones as { r, g, b } triples, derived once at load. Anything that
@@ -90,13 +91,13 @@ UI.FONT = {
 -- and uses PADDING; the two free-floating windows have more room and use
 -- PADDING_WIDE, but every internal gap comes from this scale.
 UI.METRIC = {
-    PADDING      = 12,
+    PADDING      = 16,
     PADDING_WIDE = 16,
     GAP_TIGHT    = 4,
     GAP          = 8,
     GAP_WIDE     = 12,
     RULE_HEIGHT  = 4,   -- the divider texture's natural height
-    ACCENT_RULE  = 2,   -- thickness of the accent underline in a header band
+    ACCENT_RULE  = 1,
     BAND_PAD     = 6,   -- air between a header band's edge and its text
     -- How far a selection outline sits outside the control it marks. Negative
     -- insets on a CT_BACKDROP grow the frame, so the ring reads as around the
@@ -113,30 +114,30 @@ UI.METRIC = {
 -- an accent underline. ROW_HOVER is the same accent at a lower alpha, so
 -- pointing at a row and reading a title feel like the same surface.
 UI.CHROME = {
-    BG          = { 0.043, 0.047, 0.055 },
-    BG_ALPHA    = 0.90,
+    BG          = { 0.067, 0.075, 0.075 },
+    BG_ALPHA    = 0.96,
     -- The one sanctioned deviation from BG_ALPHA: a window that takes typed input
     -- (the withdraw quantity) must not let a busy scene bleed through the digits,
     -- so it reads a little more solid. A token rather than a local constant in
     -- that file, so "more solid" means the same thing everywhere it is claimed.
-    BG_ALPHA_SOLID = 0.94,
-    EDGE        = { 0.42, 0.40, 0.34 },
-    EDGE_ALPHA  = 0.90,
-    INSET       = 2,
-    HEADER_BAND = { 0.435, 0.796, 0.624, 0.07 },
-    ACCENT_LINE = { 0.435, 0.796, 0.624, 0.55 },
-    ROW_HOVER   = { 0.435, 0.796, 0.624, 0.10 },
-    CATEGORY_SHARE = { 0.435, 0.796, 0.624, 0.075 },
-    BADGE       = { 0.435, 0.796, 0.624, 0.10 },
+    BG_ALPHA_SOLID = 0.98,
+    EDGE        = { 0.737, 0.655, 0.475 },
+    EDGE_ALPHA  = 0.42,
+    INSET       = 1,
+    HEADER_BAND = { 0.737, 0.655, 0.475, 0.065 },
+    ACCENT_LINE = { 0.737, 0.655, 0.475, 0.48 },
+    ROW_HOVER   = { 0.439, 0.773, 0.741, 0.12 },
+    CATEGORY_SHARE = { 0.439, 0.773, 0.741, 0.38 },
+    BADGE       = { 1, 1, 1, 0.055 },
     -- The accent at near-full strength: what a marker is drawn at when it must
     -- read as a hard edge rather than a wash -- the ring around the active filter
     -- button, the tick beside the leading category. Above ACCENT_LINE, because a
     -- mark points at one thing while an underline only closes a band.
     ACCENT_MARK = 0.95,
-    ROW_ZEBRA   = { 1, 1, 1, 0.028 },
+    ROW_ZEBRA   = { 1, 1, 1, 0.025 },
     TRACK       = { 1, 1, 1, 0.07 },
-    RULE_STRONG = 0.34,  -- alpha for a structural divider
-    RULE_SOFT   = 0.18,  -- alpha for a divider inside a block
+    RULE_STRONG = 0.24,
+    RULE_SOFT   = 0.12,
 }
 
 local DIVIDER_TEXTURE = "EsoUI/Art/Miscellaneous/horizontalDivider.dds"
@@ -196,6 +197,103 @@ end
 -- than component-by-component at the call site.
 function UI.PaintFill(fill, color)
     fill:SetCenterColor(unpack(color))
+end
+
+function UI.ApplyField(backdrop)
+    FlattenBackdrop(backdrop)
+    backdrop:SetInsets(1, 1, -1, -1)
+    backdrop:SetCenterColor(0, 0, 0, 0.32)
+    backdrop:SetEdgeColor(1, 1, 1, 0.16)
+end
+
+function UI.RowHeight(surface)
+    local compact = private.savedVars and private.savedVars.uiDensity == "compact"
+    if surface == "category" then
+        return compact and 24 or 30
+    elseif surface == "queue" then
+        return compact and 28 or 34
+    end
+    return compact and 26 or 32
+end
+
+local function PaintButtonText(button, method, tone, alpha)
+    local r, g, b = UI.Tone(tone)
+    button[method](button, r, g, b, alpha or 1)
+end
+
+function UI.PaintButton(button)
+    local plate = button.bmwPlate
+    if not plate then
+        return
+    end
+    local disabled = button:GetState() == BSTATE_DISABLED
+        or button:GetState() == BSTATE_DISABLED_PRESSED
+    local active = not disabled and (button.bmwSelected or button.bmwHovered)
+    local primary = button.bmwStyle == "primary"
+    local r, g, b = UI.Tone((active or primary) and "accent" or "name")
+    plate:SetCenterColor(r, g, b, active and 0.18 or (primary and 0.12 or 0.035))
+    plate:SetAlpha(disabled and 0.35 or 1)
+    PaintButtonText(button, "SetNormalFontColor",
+        (button.bmwSelected or primary) and "accent" or "soft")
+    if button.bmwUnderline then
+        button.bmwUnderline:SetHidden(not button.bmwSelected)
+    end
+end
+
+function UI.SelectButton(button, selected)
+    button.bmwSelected = selected
+    UI.PaintButton(button)
+end
+
+function UI.ApplyButton(button, style)
+    if button.bmwPlate then
+        return
+    end
+    button.bmwStyle = style
+    button:SetFont(UI.FONT.small)
+    button:SetNormalTexture("")
+    button:SetMouseOverTexture("")
+    button:SetPressedTexture("")
+    button:SetPressedMouseOverTexture("")
+    button:SetDisabledTexture("")
+    button:SetDisabledPressedTexture("")
+    button:SetNormalOffset(0, 0)
+    button:SetPressedOffset(0, 0)
+    PaintButtonText(button, "SetMouseOverFontColor", "name")
+    PaintButtonText(button, "SetPressedFontColor", "accent")
+    PaintButtonText(button, "SetDisabledFontColor", "muted", 0.65)
+    PaintButtonText(button, "SetDisabledPressedFontColor", "muted", 0.65)
+    button:GetLabelControl():SetMaxLineCount(1)
+    button:GetLabelControl():SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+
+    button.bmwPlate = UI.CreateFill(nil, button, UI.CHROME.TRACK)
+    button.bmwPlate:SetAnchorFill(button)
+    button.bmwPlate:SetDrawLayer(DL_BACKGROUND)
+    if style == "tab" then
+        button.bmwUnderline = UI.CreateFill(nil, button, UI.CHROME.ROW_HOVER)
+        local r, g, b = UI.Tone("accent")
+        button.bmwUnderline:SetCenterColor(r, g, b, 1)
+        button.bmwUnderline:SetHeight(2)
+        button.bmwUnderline:SetAnchor(BOTTOMLEFT, button, BOTTOMLEFT, 0, 0)
+        button.bmwUnderline:SetAnchor(BOTTOMRIGHT, button, BOTTOMRIGHT, 0, 0)
+    end
+    local enter = button:GetHandler("OnMouseEnter")
+    local exit = button:GetHandler("OnMouseExit")
+    button:SetHandler("OnMouseEnter", function(self, ...)
+        self.bmwHovered = true
+        UI.PaintButton(self)
+        if enter then
+            return enter(self, ...)
+        end
+    end)
+    button:SetHandler("OnMouseExit", function(self, ...)
+        self.bmwHovered = false
+        UI.PaintButton(self)
+        if exit then
+            return exit(self, ...)
+        end
+    end)
+    UI.PaintButton(button)
 end
 
 -- The inverse of a fill: an empty rectangle with an accent outline, used to mark

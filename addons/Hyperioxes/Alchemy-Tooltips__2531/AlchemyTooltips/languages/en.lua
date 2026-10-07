@@ -1,6 +1,7 @@
 ZO_CreateStringId("AT_CheapestCombination", "Cheapest Combination: ")
 ZO_CreateStringId("AT_CraftingCost", "Crafting Cost: ")
 ZO_CreateStringId("AT_CantCraft", "This potion/poison cannot be crafted, it can only be looted")
+ZO_CreateStringId("AT_NoCombination", "This combination of effects can no longer be crafted as of Update 51")
 ZO_CreateStringId("AT_SendHelp", "It appears I haven't added that potion/poison to addon's database yet. If you want to help, please mail one sample of this potion/poison to @Hyperioxes on PC EU. Attachment will be sent back after I write down potion/poison's ID")
 
 -- settings

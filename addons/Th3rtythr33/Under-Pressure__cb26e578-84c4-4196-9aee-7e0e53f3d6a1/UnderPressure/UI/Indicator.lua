@@ -74,6 +74,99 @@ local function clamp(v, lo, hi)
 end
 
 -- ---------------------------------------------------------------------------
+-- De-escalation fade for triangles 2 and 3 (0.3.2)
+-- ---------------------------------------------------------------------------
+-- Triangle 1 (bottom of the stack) keeps the original behaviour: it hides
+-- the instant the published state drops below it, no fade -- see applyState.
+-- Triangles 2 and 3, the more severe marks, linger instead: a graduated
+-- fade from the normal resting alpha down through 75% / 50% / 25% (one 200ms
+-- segment each, interpolated smoothly within the segment rather than jumping
+-- at the boundary) before finally hiding.
+--
+-- This is entirely independent of the engine's state_persistence_ms hold.
+-- That hold still gates WHEN the published state -- and hence the new
+-- triangle count -- changes; this only governs how a triangle that falls out
+-- of the new count is removed from the screen once it does.
+--
+-- Escalating back into a triangle mid-fade needs no special-case code: the
+-- cancel branch in applyState below unhides it immediately, and
+-- pulseBrighten() (already called from SetState on any escalation) snaps it
+-- to full opacity the same way it already does for every other visible mark.
+local FADE_NAMESPACE = "UnderPressure_TriFade"
+local FADE_TICK_MS   = 50    -- interpolation granularity, not a step size
+local FADE_TOTAL_MS  = 600   -- three 200ms segments
+local RESTING_ALPHA  = 0.92  -- shared with pulseBrighten / settleFade below
+
+-- Segment boundaries and target alpha, matching the spec exactly: 200ms ->
+-- 75%, 400ms -> 50%, 600ms -> 25%, then hidden.
+local FADE_SEGMENTS = {
+    { untilMs = 200, from = RESTING_ALPHA, to = 0.75 },
+    { untilMs = 400, from = 0.75,          to = 0.50 },
+    { untilMs = 600, from = 0.50,          to = 0.25 },
+}
+
+local function fadeAlphaAt(elapsedMs)
+    for _, seg in ipairs(FADE_SEGMENTS) do
+        if elapsedMs <= seg.untilMs then
+            local segStart = seg.untilMs - 200
+            local t = (elapsedMs - segStart) / 200
+            if t < 0 then t = 0 elseif t > 1 then t = 1 end
+            return seg.from + (seg.to - seg.from) * t
+        end
+    end
+    return 0
+end
+
+-- Height must account for a triangle that's technically past the current
+-- state's triangle count but still visually lingering in a fade -- shrinking
+-- the root early would risk cutting it off mid-animation.
+local function updateRootHeight(triCount)
+    if not root then return end
+    local top = triCount
+    if tris[3] and not tris[3]:IsHidden() then top = math.max(top, 3) end
+    if tris[2] and not tris[2]:IsHidden() then top = math.max(top, 2) end
+    root:SetDimensions(ROOT_WIDTH, (top > 0) and (top * TILE) or TILE)
+end
+
+local fadeStartMs = {}  -- [2] / [3] -> GetGameTimeMilliseconds() when started
+
+local function stopFadeIndex(i)
+    fadeStartMs[i] = nil
+end
+
+local function updateFades()
+    local now = GetGameTimeMilliseconds()
+    local stillActive = false
+    for i = 2, 3 do
+        local start = fadeStartMs[i]
+        if start then
+            local elapsed = now - start
+            local t = tris[i]
+            if elapsed >= FADE_TOTAL_MS then
+                fadeStartMs[i] = nil
+                if t then
+                    t:SetHidden(true)
+                    if t.SetColor then t:SetColor(1, 1, 1, RESTING_ALPHA) end
+                end
+            else
+                stillActive = true
+                if t and t.SetColor then t:SetColor(1, 1, 1, fadeAlphaAt(elapsed)) end
+            end
+        end
+    end
+    updateRootHeight(TRIANGLE_COUNT[currentState] or 0)
+    if not stillActive then
+        EVENT_MANAGER:UnregisterForUpdate(FADE_NAMESPACE)
+    end
+end
+
+local function startFadeIndex(i)
+    if fadeStartMs[i] then return end  -- already fading; don't restart it
+    fadeStartMs[i] = GetGameTimeMilliseconds()
+    EVENT_MANAGER:RegisterForUpdate(FADE_NAMESPACE, FADE_TICK_MS, updateFades)
+end
+
+-- ---------------------------------------------------------------------------
 -- State application (declared before Init so Init can call it)
 -- ---------------------------------------------------------------------------
 local function applyState(newState, force)
@@ -90,14 +183,27 @@ local function applyState(newState, force)
         end
     end
 
-    for i = 1, 3 do
+    -- Triangle 1: default behaviour, unchanged -- shows/hides immediately
+    -- with the state, no fade.
+    local t1 = tris[1]
+    if t1 then t1:SetHidden(1 > triCount) end
+
+    -- Triangles 2 and 3: falling out of the new count starts a fade instead
+    -- of hiding immediately. Coming back into the count cancels any fade in
+    -- progress and shows it immediately (see the block comment above).
+    for i = 2, 3 do
         local t = tris[i]
-        if t then t:SetHidden(i > triCount) end
+        if t then
+            if i <= triCount then
+                stopFadeIndex(i)
+                t:SetHidden(false)
+            elseif not t:IsHidden() and not fadeStartMs[i] then
+                startFadeIndex(i)
+            end
+        end
     end
 
-    local h = (triCount > 0) and (triCount * TILE) or TILE
-    if root then root:SetDimensions(ROOT_WIDTH, h) end
-
+    updateRootHeight(triCount)
     currentState = newState
 end
 
@@ -158,9 +264,9 @@ end
 -- close.
 local HUD_SCENES = { HUD_SCENE, HUD_UI_SCENE }
 
--- The silence ring needs the same "is the HUD up" answer. It reads this rather
--- than registering its own callbacks on the same two scenes to recompute the
--- identical boolean.
+-- The silence ring and the plague tint need the same "is the HUD up" answer.
+-- They read this rather than registering their own callbacks on the same two
+-- scenes to recompute the identical boolean.
 function UP.UI.IsHudShown()
     return lastHudShown
 end
@@ -175,9 +281,12 @@ local function refreshHudShown()
     end
     lastHudShown = shown
     UP.UI.UpdateVisibility()
-    -- One subscription, two consumers.
+    -- One subscription, three consumers.
     if UP.SilenceRing and UP.SilenceRing.UpdateVisibility then
         UP.SilenceRing.UpdateVisibility()
+    end
+    if UP.PlagueTint and UP.PlagueTint.UpdateVisibility then
+        UP.PlagueTint.UpdateVisibility()
     end
 end
 
@@ -215,10 +324,10 @@ function UP.UI.Init()
     }
     counterLabel = root:GetNamedChild("Counter")
 
-    if base and base.SetColor then base:SetColor(1, 1, 1, 0.92) end
+    if base and base.SetColor then base:SetColor(1, 1, 1, RESTING_ALPHA) end
     for _, t in ipairs(tris) do
         if t then
-            if t.SetColor then t:SetColor(1, 1, 1, 0.92) end
+            if t.SetColor then t:SetColor(1, 1, 1, RESTING_ALPHA) end
             t:SetHidden(true)
         end
     end
@@ -315,24 +424,31 @@ end
 -- ---------------------------------------------------------------------------
 -- State change with animation
 -- ---------------------------------------------------------------------------
+-- Triangles 2/3 lingering in a de-escalation fade are deliberately excluded
+-- here: they have their own animation loop (updateFades above), and
+-- pulseBrighten / settleFade would otherwise fight it for control of the
+-- same alpha channel. i <= triCount is sufficient to detect that case --
+-- a lingering triangle is, by construction, past the current triangle
+-- count (see applyState) even though it isn't hidden yet.
 local function eachVisible(fn)
     if base and not base:IsHidden() then fn(base) end
-    for _, t in ipairs(tris) do
-        if t and not t:IsHidden() then fn(t) end
+    local triCount = TRIANGLE_COUNT[currentState] or 0
+    for i, t in ipairs(tris) do
+        if t and i <= triCount and not t:IsHidden() then fn(t) end
     end
 end
 
 local function pulseBrighten()
     eachVisible(function(c) c:SetColor(1, 1, 1, 1.0) end)
     zo_callLater(function()
-        eachVisible(function(c) c:SetColor(1, 1, 1, 0.92) end)
+        eachVisible(function(c) c:SetColor(1, 1, 1, RESTING_ALPHA) end)
     end, 180)
 end
 
 local function settleFade()
     eachVisible(function(c) c:SetColor(1, 1, 1, 0.70) end)
     zo_callLater(function()
-        eachVisible(function(c) c:SetColor(1, 1, 1, 0.92) end)
+        eachVisible(function(c) c:SetColor(1, 1, 1, RESTING_ALPHA) end)
     end, 220)
 end
 

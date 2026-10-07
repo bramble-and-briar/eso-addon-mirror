@@ -1,8 +1,8 @@
 ## Title: LibAPH
 ## Description: Helper library for my addons.
 ## IsLibrary: true
-## AddOnVersion: 26100607
-## Version: 2026.10.06.07.36
+## AddOnVersion: 26100717
+## Version: 2026.10.07.17.24
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
 ## APIVersion: 101051 101052
 
@@ -38,6 +38,7 @@ MODULES/Wizard.lua
 MENU/MenuRefresh.lua
 MENU/MenuState.lua
 HELPERS/PlayerState.lua
+UTILS/MemoryCleanup.lua
 HELPERS/ActivityTriggers.lua
 HELPERS/AddonManager.lua
 UTILS/ProfileStore.lua

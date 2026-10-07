@@ -18,7 +18,7 @@
     "BureauOfPrivateDispatches"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4796/",
-  "fingerprint": "7c7a698b45e8912e9fc0ecb097ce3be14f4f7c0862bb1ffcacbc12dec90bace3",
+  "fingerprint": "f6fbe8b91021b18f624d3db1077312524115a29e7caf4cce6d6821ead2c6cd11",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17140.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17141.jpg",
@@ -35,11 +35,11 @@
   "source_id": "4796",
   "source_url": "https://www.esoui.com/downloads/info4796-BureauofPrivateDispatches.html",
   "stats": {
-    "downloads": 6,
-    "favorites": 0,
-    "monthly_downloads": 5
+    "downloads": 49,
+    "favorites": 1,
+    "monthly_downloads": 23
   },
   "title": "Bureau of Private Dispatches",
-  "updated_at": 1787740471000,
-  "version": "1.0.131353"
+  "updated_at": 1791325722000,
+  "version": "1.1.012551"
 }

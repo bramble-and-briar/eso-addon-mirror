@@ -13,6 +13,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kaljastus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Kaljastus__2038) | Ek1 | PC / Mac | 4.0-20180621 |
 | [KamiChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kamimark/KamiChat__3087) | kamimark | PC / Mac | 1.0.0 |
 | [Katt's Crypt Icons for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DonjaZero/Katt-s-Crypt-Icons-for-OdySupportIcons__3818) | DonjaZero | PC / Mac | 1.7.2 |
+| [KDialogueHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KDialogueHistory__4919) | Konten | PC / Mac | 1.0.0 |
 | [KDStatTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/KDStatTracker__0f87c2f6-55c7-4450-b93b-d6395ac2004d) | Vixen_Hunny | Console | — |
 | [KDStatTracker\[BETA\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/KDStatTracker-BETA__c8ab1f8d-4c10-4310-a76f-473ac11c3d05) | Vixen_Hunny | Console | — |
 | [Kecaj Trial Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kecaj/Kecaj-Trial-Icons__3775) | kecaj | PC / Mac | 0.2.1 |

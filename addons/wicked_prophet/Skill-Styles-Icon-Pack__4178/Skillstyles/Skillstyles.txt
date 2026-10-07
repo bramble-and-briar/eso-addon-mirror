@@ -7,7 +7,7 @@
 ## Title: Skill Styles
 ## APIVersion: 101050 101051
 ## Author: |ce6202dKwiebe-Kwibus|r
-## AddOnVersion: 19
+## AddOnVersion: 20
 ## IsLibrary: false
 ## DependsOn: AbilityIconsFramework
 

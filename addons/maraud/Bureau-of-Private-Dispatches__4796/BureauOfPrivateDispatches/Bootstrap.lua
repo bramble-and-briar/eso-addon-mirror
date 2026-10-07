@@ -37,6 +37,7 @@ function addon:Initialize()
 		locked = false,
 		scale = 1,
 		opacity = 1,
+		visibleSenderLimit = 6,
 		autoCollapseInCombat = false,
 		followUpWaitingSeconds = 90,
 		followUpOverdueSeconds = 180,

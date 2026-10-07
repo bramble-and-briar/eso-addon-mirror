@@ -14,7 +14,7 @@ BureauOfPrivateDispatches =
 	name = ADDON_NAME,
 	savedVariablesName = SAVED_VARIABLES_NAME,
 	savedVariablesVersion = SAVED_VARIABLES_VERSION,
-	version = "1.0.131353",
+	version = "1.1.012551",
 	private = {},
 	isInitialized = false,
 }

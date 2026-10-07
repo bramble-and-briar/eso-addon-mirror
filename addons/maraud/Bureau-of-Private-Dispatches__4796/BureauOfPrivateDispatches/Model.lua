@@ -395,9 +395,30 @@ function addon:FindTapeSender(fromName, fromDisplayName)
 	return nil, nil
 end
 
+function addon:GetVisibleSenderLimit()
+	local limit = self.savedVariables ~= nil and self.savedVariables.visibleSenderLimit
+		or CONFIG.DEFAULT_VISIBLE_SENDERS
+	if limit == CONFIG.DEFAULT_VISIBLE_SENDERS or limit == 8 or limit == CONFIG.MAX_VISIBLE_SENDERS then
+		return limit
+	end
+	return CONFIG.DEFAULT_VISIBLE_SENDERS
+end
+
+function addon:SetVisibleSenderLimit(limit)
+	if self.savedVariables == nil
+		or (limit ~= CONFIG.DEFAULT_VISIBLE_SENDERS and limit ~= 8 and limit ~= CONFIG.MAX_VISIBLE_SENDERS) then
+		return false
+	end
+
+	self.savedVariables.visibleSenderLimit = limit
+	self.overflowPage = 0
+	self:RefreshNotifications()
+	return true
+end
+
 function addon:GetOverflowPageCount()
 	local total = #self.senderOrder
-	local pageSize = CONFIG.MAX_VISIBLE_SENDERS
+	local pageSize = self:GetVisibleSenderLimit()
 	if total <= pageSize then
 		return 1
 	end
@@ -1266,8 +1287,10 @@ end
 
 function addon:MarkOutgoingReply(fromName, fromDisplayName)
 	local senderId = self:FindNotificationSender(fromName, fromDisplayName)
+	local canUseTargetFallback = senderId == nil
+		and CanUseReplyTargetFallback(fromName, fromDisplayName)
 	local hasExplicitTarget = false
-	if senderId == nil then
+	if canUseTargetFallback then
 		senderId, hasExplicitTarget = self:FindCurrentWhisperTargetSender()
 	end
 	if senderId == nil and hasExplicitTarget then
@@ -1275,7 +1298,7 @@ function addon:MarkOutgoingReply(fromName, fromDisplayName)
 	end
 	if senderId == nil
 		and self.replyTargetSenderId ~= nil
-		and CanUseReplyTargetFallback(fromName, fromDisplayName) then
+		and canUseTargetFallback then
 		local entry = self.notificationsBySender[self.replyTargetSenderId]
 		if entry ~= nil
 			and self.replyTargetOpenedMs ~= nil

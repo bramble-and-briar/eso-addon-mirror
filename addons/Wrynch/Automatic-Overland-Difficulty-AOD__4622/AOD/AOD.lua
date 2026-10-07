@@ -745,7 +745,7 @@ function Addon.GetZoneStoryActivityIdForPOI(zoneIndex, poiIndex, zoneCompletionT
         return nil, zoneId, nil
     end
 
-    local numActivities = GetNumZoneActivitiesForZoneCompletionType(zoneStoryZoneId, zoneCompletionType)
+    local numActivities = GetNumZoneActivitiesForZoneCompletionTypeAndIndex(zoneStoryZoneId, zoneCompletionType, nil)
     for activityIndex = 1, numActivities do
         local activityId = GetZoneActivityIdForZoneCompletionType(zoneStoryZoneId, zoneCompletionType, activityIndex)
         local activityZoneIndex, activityPOIIndex = GetPOIIndices(activityId)

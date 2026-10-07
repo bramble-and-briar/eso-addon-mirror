@@ -1,4 +1,4 @@
-Alabuzya UI 1.0.6
+Alabuzya UI 1.0.7
 
 Developed with AI assistance, including code generation and new UI textures.
 Разработано с помощью ИИ, включая написание кода и создание новых текстур интерфейса.

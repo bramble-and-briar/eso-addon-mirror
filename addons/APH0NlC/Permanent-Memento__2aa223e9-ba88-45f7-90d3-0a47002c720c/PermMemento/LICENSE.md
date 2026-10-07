@@ -11,6 +11,12 @@ In the event this addon becomes unmaintained (defined as breaking due to a live 
 2. No original or modified code is sold or locked behind a paywall.
 3. You do not claim ownership over the original codebase.
 
+### Licensing Boundary
+
+The all-rights-reserved terms above cover only this project's own code and logic. I do not claim ownership of the names, trademarks, brands or code of any third-party tools, libraries, add-ons or services it works with, depends on or is compatible with. This license grants no rights to any of them and does not override their own licenses or Terms of Service.
+
+Projects listed as inspiration shaped the idea, not the implementation. No code, assets or text were copied from them; everything here is written from scratch.
+
 ### Explicit AI & Machine Learning Opt-Out
 
 Separately from the terms above, I do not authorize AI agents, LLMs, or automated bots to read, ingest, process, index, summarize, or otherwise use this code in any way, in whole or in part. This includes use for training machine learning models, AI-assisted coding, or reproduction, regardless of whether the result is ever redistributed.

@@ -288,7 +288,7 @@ function LibAPH.CreateCopyTextBox(opts)
 		sections_combo = ZO_ComboBox_ObjectFromContainer(sections_container)
 		sections_combo:SetSortsItems(false)
 		sections_combo:EnableMultiSelect(opts.sectionsText or LibAPH.L("MORE_INFO"), opts.noSectionsText or LibAPH.L("MORE_INFO_0"))
-		LibAPH.UseGreenSelection(sections_combo)
+		LibAPH.UseTextSelection(sections_combo)
 	end
 	local top_row_left = sections_container or copy_lbl
 

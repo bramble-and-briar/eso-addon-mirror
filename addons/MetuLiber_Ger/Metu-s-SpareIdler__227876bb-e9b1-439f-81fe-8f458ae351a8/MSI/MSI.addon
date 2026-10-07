@@ -5,8 +5,8 @@
 ## DisableSavedVariablesAutoSaving: 0
 ## APIVersion: 101051 101052
 ## IsLibrary: false
-## Version: 2.7.74
-## AddOnVersion: 2774
+## Version: 2.7.82
+## AddOnVersion: 2782
 ## SavedVariables: MSI_SavedVariables_AccountPath MSI_SavedVariables_CharacterPath
 ## ConsoleDependsOn: LibAddonMenu-2.0>=43 LibHarvensAddonSettings>=20109 LibSlashCommander>=45 LibGetText>=12
 ## OptionalConsoleDependsOn: LibZone>=0900 LibSkillBlocker>=110 LibQRCode>=046

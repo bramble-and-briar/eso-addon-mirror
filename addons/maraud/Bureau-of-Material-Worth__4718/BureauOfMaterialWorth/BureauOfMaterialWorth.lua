@@ -12,8 +12,8 @@ local SAVED_VARIABLES_NAME = "BureauOfMaterialWorth_SavedVariables"
 BureauOfMaterialWorth = {
     name = ADDON_NAME,
     savedVariablesName = SAVED_VARIABLES_NAME,
-    version = "4.6.202120",
-    releaseDate = "05.10.2026",
+    version = "4.7.181736",
+    releaseDate = "06.10.2026",
     -- 0=off, 1=errors, 2=warnings, 3=info, 4=verbose. Ships at 0: a release
     -- build must stay silent in chat until the user opts into diagnostics via
     -- the settings panel or /bmw debug.
@@ -189,18 +189,18 @@ end
 -- The eight tones are the whole palette. private.UI (UI.lua) derives its control
 -- tints from exactly these strings, so a label's |c code and the fill behind it
 -- can no longer describe two different colours.
-private.COLOR_ACCENT = "6FCB9F"  -- brand green: titles / grand total
-private.COLOR_MUTED  = "8C8A82"  -- dim grey: subtitle / footer / secondary
-private.COLOR_NAME   = "DBD9D0"  -- near-white: category / material names
+private.COLOR_ACCENT = "70C5BD"
+private.COLOR_MUTED  = "A0A6A5"
+private.COLOR_NAME   = "E5E8E7"
 -- One step down from COLOR_NAME, for prose that explains rather than states: the
 -- body of a tooltip under its title, a hint under a control. It has to be quieter
 -- than a figure the player is reading, but is too long to sit at COLOR_MUTED and
 -- stay comfortable.
-private.COLOR_SOFT   = "C7C4B8"  -- soft stone: explanatory body text
-private.COLOR_GOLD   = "F4D03F"  -- soft gold: gold figures
-private.COLOR_WARN   = "D0905E"  -- amber: "missing price" hint
-private.COLOR_GAIN    = "8FCB9F"  -- green: positive delta / price change
-private.COLOR_LOSS    = "D08A8A"  -- soft red: negative delta / price change
+private.COLOR_SOFT   = "C3CBC9"
+private.COLOR_GOLD   = "E8C875"
+private.COLOR_WARN   = "E7B879"
+private.COLOR_GAIN   = "91CAA4"
+private.COLOR_LOSS   = "E09A9A"
 
 private.GOLD_ICON = "|t16:16:EsoUI/Art/currency/currency_gold.dds|t"
 

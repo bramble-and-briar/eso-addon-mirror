@@ -1,0 +1,41 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/APH0N1C/One-APH-a-Time__4923",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4923",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4923",
+  "deleted": false,
+  "directories": [
+    "OneAPHaTime"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4923/",
+  "fingerprint": "fa643e84e364f778c7ab6d375134907cab3abc1bed18d5bdc69affaa7d759ee5",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17793.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17790.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17791.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4923",
+  "source_url": "https://www.esoui.com/downloads/info4923-OneAPHaTime.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "One APH a Time",
+  "updated_at": 1791371965000,
+  "version": "2026.10.06.13.49"
+}

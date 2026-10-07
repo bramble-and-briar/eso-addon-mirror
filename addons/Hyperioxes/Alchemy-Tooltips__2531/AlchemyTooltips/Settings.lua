@@ -4,7 +4,7 @@ function ATT_LoadSettings()
     name = "Alchemy Tooltips",
     displayName = "Alchemy Tooltips",
     author = "Hyperioxes, |cff9b15Sharlikran|r",
-    version = "1.30",
+    version = "1.32",
     website = "https://www.esoui.com/downloads/info2531-AlchemyTooltips.html",
     feedback = "https://www.esoui.com/downloads/info2531-AlchemyTooltips.html#comments",
     slashCommand = "/alchemytooltips",

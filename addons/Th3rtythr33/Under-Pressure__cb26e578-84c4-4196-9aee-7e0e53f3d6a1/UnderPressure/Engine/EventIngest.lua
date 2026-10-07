@@ -15,6 +15,9 @@ UP = UP or {}
 UP.Ingest = {}
 
 local NAMESPACE = "UnderPressure_Ingest"
+-- Plaguebreak explosion hits on anyone (0.4.0); one namespace per explosion
+-- ability id, filtered by that id. See Register().
+local NAMESPACE_BOOM = "UnderPressure_PlagueBoom"
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -40,6 +43,17 @@ addHostileResult(ACTION_RESULT_CRITICAL_DAMAGE)
 addHostileResult(ACTION_RESULT_DOT_TICK)
 addHostileResult(ACTION_RESULT_DOT_TICK_CRITICAL)
 addHostileResult(ACTION_RESULT_BLOCKED_DAMAGE)
+-- FLAGGED (2026-08-16), not changed: LibCombat -- the ecosystem's reference
+-- combat-parsing library -- does NOT count ACTION_RESULT_PARTIAL_RESIST as
+-- damage. It routes PARTIAL_RESIST, RESIST, PRECISE_DAMAGE, WRECKING_DAMAGE and
+-- REFLECTED into a handler it literally names "onWTF" and uses them only for an
+-- ability-type heuristic, never for damage totals -- i.e. even the reference
+-- implementation treats these as poorly understood.
+--
+-- Leaving it in place because removing it would change pressure readings, and
+-- that is a tuning decision to make deliberately with live testing, not a
+-- drive-by edit. Worth resolving one way or the other: if PARTIAL_RESIST does
+-- not carry a meaningful hitValue, this is inflating the damage windows.
 addHostileResult(ACTION_RESULT_PARTIAL_RESIST)
 
 -- ---------------------------------------------------------------------------
@@ -51,6 +65,17 @@ local function onCombatEvent(eventCode, result, isError, abilityName, abilityGra
                               damageType, log, sourceUnitId, targetUnitId,
                               abilityId, overflow)
     if isError then return end
+
+    -- Plaguebreak (0.4.0): sees every event BEFORE the hostile filter below,
+    -- because the attribution evidence it needs -- heals landing on us -- is
+    -- exactly what that filter discards. Its own first line is a fast exit
+    -- while no plague is active, so normal play pays one function call.
+    if UP.Plague then
+        UP.Plague.OnCombat("main", result, abilityName, sourceName, sourceType,
+                           targetName, targetType, hitValue, sourceUnitId, targetUnitId,
+                           abilityId, now())
+    end
+
     if not HOSTILE_RESULTS[result] then return end
     if not hitValue or hitValue <= 0 then return end
 
@@ -108,6 +133,15 @@ local function onEffectChanged(eventCode, changeType, effectSlot, effectName,
         endTimeMs = endTime * 1000
     end
 
+    -- PLAGUEBREAK (0.4.0), ahead of the isDebuff gate for the same reason the
+    -- silence check is: while a plague is on us, BUFFS gained are attribution
+    -- evidence for who cleansed it, and the gate would discard them. The
+    -- plague debuff itself still flows on into the classifier below like any
+    -- other debuff (DISEASE status -> DOT risk); this call only tracks it.
+    if UP.Plague then
+        UP.Plague.OnEffect(changeType, abilityId, effectName, endTimeMs, now(), effectType, sourceType)
+    end
+
     -- SILENCE, CHECKED FIRST -- ahead of both early returns below.
     --
     -- This ordering is load-bearing. The isDebuff gate and the RISK.NONE gate
@@ -117,12 +151,19 @@ local function onEffectChanged(eventCode, changeType, effectSlot, effectName,
     -- category comes back NONE and the event is dropped. Silence detection does
     -- not depend on classification at all, so it must not sit behind it.
     --
-    -- Purely a readout. It feeds the ring, never the pressure model -- silence
-    -- already contributes CONTROL risk through the normal path below when
-    -- statusEffectType is available, and counting it twice would be wrong.
+    -- ONE detector, TWO consumers (0.3.2). isSilence() is the more robust test
+    -- -- it accepts either abilityType or statusEffectType, where the classifier
+    -- below trusts statusEffectType alone -- so it now drives the ring AND
+    -- injects the CONTROL risk bonus directly, instead of also depending on the
+    -- classifier's statusEffectType-only map to independently rediscover the
+    -- same fact with weaker coverage. AbilityClassifier no longer carries a
+    -- SILENCE entry at all (see AbilityClassifier.lua), so nothing downstream
+    -- double-detects it. IngestEffect already no-ops safely on FADED regardless
+    -- of the category passed in, so this is safe to call unconditionally.
     if UP.Silence.IsSilenceEffect(abilityType, statusEffectType) then
         UP.Silence.Record(abilityId, changeType, endTimeMs)
         UP.Debug.LogSilence(abilityId, changeType, abilityType, statusEffectType)
+        UP.Engine.IngestEffect(now(), abilityId, UP.RISK.CONTROL, changeType, endTimeMs)
     end
 
     -- Only care about debuffs gained or refreshed. Use BUFF_EFFECT_TYPE_DEBUFF
@@ -151,8 +192,65 @@ local function onEffectChanged(eventCode, changeType, effectSlot, effectName,
 end
 
 -- ---------------------------------------------------------------------------
--- EVENT_POWER_UPDATE handler (health deltas; shield power not exposed)
+-- Plaguebreak explosion channel and own-cast observer (0.4.0)
 -- ---------------------------------------------------------------------------
+-- Receives EVENT_COMBAT_EVENT filtered by the explosion's ability id, so hits
+-- on groupmates reach us without opening the main registration to every
+-- combat event in the zone. Only hits this client is sent arrive; the report
+-- says so.
+local function onExplosionEvent(eventCode, result, isError, abilityName, abilityGraphic,
+                                abilityActionSlotType, sourceName, sourceType,
+                                targetName, targetType, hitValue, powerType,
+                                damageType, log, sourceUnitId, targetUnitId,
+                                abilityId, overflow)
+    if isError then return end
+    UP.Plague.OnCombat("boom", result, abilityName, sourceName, sourceType,
+                       targetName, targetType, hitValue, sourceUnitId, targetUnitId,
+                       abilityId, now())
+end
+
+-- The player's own ability presses. EVENT_ACTION_SLOT_ABILITY_USED is engine
+-- fired and platform independent (see workspace CLAUDE.md: the PC-only
+-- ZO_ActionBar_OnActionButtonDown hook does not fire in gamepad mode). The
+-- slot is resolved to an ability id and name here, where the game API lives,
+-- so the tracker's recorder stays API free and testable.
+local function onActionSlotUsed(eventCode, slotIndex)
+    if not (UP.Plague and UP.Plague.IsActive and UP.Plague.IsActive()) then return end
+    local abilityId, name = 0, nil
+    if type(GetSlotBoundId) == "function" then
+        local category = (type(GetActiveHotbarCategory) == "function") and GetActiveHotbarCategory() or nil
+        local ok, id = pcall(GetSlotBoundId, slotIndex, category)
+        if ok and type(id) == "number" then abilityId = id end
+    end
+    if abilityId > 0 and type(GetAbilityName) == "function" then
+        local ok, n = pcall(GetAbilityName, abilityId)
+        if ok and type(n) == "string" then name = n end
+    end
+    UP.Plague.OnOwnCast(abilityId, name, now())
+end
+
+-- ---------------------------------------------------------------------------
+-- EVENT_POWER_UPDATE handler (health deltas)
+-- ---------------------------------------------------------------------------
+-- CORRECTION (2026-08-16): this comment previously said "shield power not
+-- exposed". That is wrong. Damage-shield magnitude IS available, on the
+-- attribute-visualizer channel rather than the power channel:
+--
+--   EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED / _UPDATED / _REMOVED
+--     with visual type ATTRIBUTE_VISUAL_POWER_SHIELDING
+--   GetUnitAttributeVisualizerEffectInfo(unitTag, visual, statType,
+--                                        attributeType, powerType)
+--     -> value, maxValue, sequenceId
+--
+-- That is exactly what drives ZOS's own shield overlay on the health bar
+-- (esoui/ingame/unitattributevisualizer/modules/powershield.lua). The same
+-- channel also carries ATTRIBUTE_VISUAL_INCREASED/_DECREASED_MAX_POWER, which
+-- would explain sudden max-health changes that currently look like damage, and
+-- ATTRIBUTE_VISUAL_NO_HEALING for defile.
+--
+-- Nothing here has been changed to use it: that would alter how pressure is
+-- computed, which is a tuning decision, not a comment fix. Recorded so the
+-- option is known rather than believed impossible.
 local function onPowerUpdate(eventCode, unitTag, powerIndex, powerType,
                               powerValue, powerMax, powerEffectiveMax)
     if unitTag ~= "player" then return end
@@ -178,12 +276,24 @@ end
 -- ---------------------------------------------------------------------------
 -- EVENT_PLAYER_ALIVE fires when the local player comes back alive (revive,
 -- soul gem, wayshrine). EVENT_PLAYER_DEAD fires on death. Both are used to
--- toggle the indicator's visibility through the UI module.
+-- toggle the indicator's visibility through the UI module, and (0.3.2) to
+-- stop a lethal pre-death reading from surviving into the next life.
 local function onPlayerDead(eventCode)
     if UP.UI and UP.UI.SetDead then UP.UI.SetDead(true) end
     -- Effects clear on death, but FADED events for them are not guaranteed to
     -- arrive. Clearing explicitly means the ring cannot survive a death.
     if UP.Silence and UP.Silence.Clear then UP.Silence.Clear() end
+    -- Same for the plague tint. SetDead first so a FADED that does arrive is
+    -- read as death, not as an early removal; Clear keeps any pending report.
+    if UP.Plague then
+        if UP.Plague.SetDead then UP.Plague.SetDead(true) end
+        if UP.Plague.Clear then UP.Plague.Clear() end
+    end
+    -- Stop the 10 Hz tick from doing any work while dead. Health reads 0 the
+    -- whole time, so left running it would just recompute TTD=0 (RED_THREE)
+    -- every 100ms for no one to see -- the indicator is already hidden by
+    -- SetDead above.
+    if UP.Engine and UP.Engine.SetDead then UP.Engine.SetDead(true) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -195,9 +305,38 @@ end
 -- with no event ever arriving to correct it.
 local function onEffectsFullUpdate(eventCode)
     if UP.Silence and UP.Silence.Resync then UP.Silence.Resync() end
+    if UP.Plague and UP.Plague.Resync then UP.Plague.Resync() end
 end
 
+-- Order matters here. Reset() must run, and combat state must be re-seeded,
+-- BEFORE UP.UI.SetDead(false) -- that call is what re-evaluates visibility,
+-- and it must not find a stale RED_THREE reading or a stale inCombat value
+-- still sitting there when it does. (SetInCombat below also re-evaluates
+-- visibility on its own, but lastDead is still true at that point, so it
+-- cannot prematurely reveal anything -- see Indicator.lua's shouldShow.)
 local function onPlayerAlive(eventCode)
+    -- Clears the damage buffer, active effects, and the published state back
+    -- to green_square, and pushes that to the indicator immediately. Without
+    -- this, whatever burst killed the player -- still within the damage
+    -- buffer's 8s window -- keeps reading as lethal against whatever health
+    -- they resurrect with, for as long as that window has left to run.
+    if UP.Engine and UP.Engine.Reset then UP.Engine.Reset() end
+    if UP.Engine and UP.Engine.SetDead then UP.Engine.SetDead(false) end
+    if UP.Plague and UP.Plague.SetDead then UP.Plague.SetDead(false) end
+
+    -- EVENT_PLAYER_COMBAT_STATE only fires on a CHANGE (see the load-time
+    -- seeding in UnderPressure.lua for the same reasoning). Re-querying here
+    -- closes the gap where a combat-state transition around the death/revive
+    -- boundary was missed or arrived out of order, leaving lastInCombat
+    -- stale at the exact moment visibility is about to be re-evaluated.
+    if type(IsUnitInCombat) == "function" then
+        local ok, inCombat = pcall(IsUnitInCombat, "player")
+        if ok then
+            UP.Engine.SetCombatState(inCombat == true)
+            if UP.UI and UP.UI.SetInCombat then UP.UI.SetInCombat(inCombat == true) end
+        end
+    end
+
     if UP.UI and UP.UI.SetDead then UP.UI.SetDead(false) end
 end
 
@@ -227,7 +366,9 @@ function UP.Ingest.Register()
     EVENT_MANAGER:AddFilterForEvent(NAMESPACE, EVENT_EFFECT_CHANGED,
         REGISTER_FILTER_UNIT_TAG, "player")
 
-    -- Power changes (health only; damage-shield power is not exposed)
+    -- Power changes (health only). See the correction above onPowerUpdate:
+    -- damage-shield magnitude IS available, via
+    -- EVENT_UNIT_ATTRIBUTE_VISUAL_* / ATTRIBUTE_VISUAL_POWER_SHIELDING.
     EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_POWER_UPDATE, onPowerUpdate)
     EVENT_MANAGER:AddFilterForEvent(NAMESPACE, EVENT_POWER_UPDATE,
         REGISTER_FILTER_UNIT_TAG, "player")
@@ -251,6 +392,28 @@ function UP.Ingest.Register()
     if type(EVENT_PLAYER_ALIVE) == "number" then
         EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_PLAYER_ALIVE, onPlayerAlive)
     end
+
+    -- Plaguebreak explosion hits on ANYONE (0.4.0). A second EVENT_COMBAT_EVENT
+    -- registration per explosion id, each under its own namespace and filtered
+    -- by REGISTER_FILTER_ABILITY_ID -- namespaces are independent, so the same
+    -- event carries a different filter in each (the Tank Mode registration
+    -- used the same fact). Without filters the main registration is already
+    -- unfiltered and sees everything, so nothing extra is needed there.
+    if UP.features.combatFilter and type(REGISTER_FILTER_ABILITY_ID) == "number" and UP.Plague then
+        local any = false
+        for id in pairs(UP.Plague.EXPLOSION_ABILITY_IDS) do
+            local ns = NAMESPACE_BOOM .. tostring(id)
+            EVENT_MANAGER:RegisterForEvent(ns, EVENT_COMBAT_EVENT, onExplosionEvent)
+            EVENT_MANAGER:AddFilterForEvent(ns, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, id)
+            any = true
+        end
+        UP.Plague.SetBoomChannel(any)
+    end
+
+    -- Our own ability presses, for cleanse attribution.
+    if type(EVENT_ACTION_SLOT_ABILITY_USED) == "number" then
+        EVENT_MANAGER:RegisterForEvent(NAMESPACE, EVENT_ACTION_SLOT_ABILITY_USED, onActionSlotUsed)
+    end
 end
 
 -- Counterpart to Register(). Nothing calls it as of 0.2.9 -- its only caller
@@ -270,5 +433,14 @@ function UP.Ingest.Unregister()
     end
     if type(EVENT_PLAYER_ALIVE) == "number" then
         EVENT_MANAGER:UnregisterForEvent(NAMESPACE, EVENT_PLAYER_ALIVE)
+    end
+    if type(EVENT_ACTION_SLOT_ABILITY_USED) == "number" then
+        EVENT_MANAGER:UnregisterForEvent(NAMESPACE, EVENT_ACTION_SLOT_ABILITY_USED)
+    end
+    if UP.Plague then
+        for id in pairs(UP.Plague.EXPLOSION_ABILITY_IDS) do
+            EVENT_MANAGER:UnregisterForEvent(NAMESPACE_BOOM .. tostring(id), EVENT_COMBAT_EVENT)
+        end
+        UP.Plague.SetBoomChannel(false)
     end
 end

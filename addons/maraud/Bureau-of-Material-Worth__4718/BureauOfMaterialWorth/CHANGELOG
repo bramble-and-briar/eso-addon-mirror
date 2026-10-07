@@ -3,6 +3,19 @@
 
 
 
+[color=#6FCB9F]Version: 4.7.181736[/color]
+[color=#8C8A82]Release date: 06.10.2026[/color]
+
+New and reworked interface, improved visuals, expanded material table capabilities, and better output features.
+
+- Visuals: Unified graphite surfaces, brass header rules, turquoise actions, brighter reading tones, and flat buttons and input fields across all addon windows and tooltips.
+- Summary: Removed the release line from the working panel; profession rows now use thin share indicators and more generous spacing. Increased default/minimum width to 460 px and widened the category-name area so names and percentages have more room; larger saved widths remain unchanged.
+- Material Table: Added persistent Materials / Changes / Dynamics tabs, compact snapshot actions, clearer active filters and column modes, and a wider material-name area. Fixed the inherited anchor that stretched the snapshot-clear button.
+- Withdrawals: Added a quantity stepper, selected-preset indicators, compact capacity readouts, a primary withdrawal action, consistent queue rows, and visible batch-progress/result text. Protected item-movement logic is unchanged.
+- Settings: Grouped controls by task and added Comfortable / Compact interface density (requires a UI reload). Current settings, Appearance, and Diagnostics and saved data remain visible without expanding submenus. Existing saved data and window positions are preserved. New labels are localized in English and Russian.
+
+
+
 [color=#6FCB9F]Version: 4.6.202120[/color]
 [color=#8C8A82]Release date: 05.10.2026[/color]
 

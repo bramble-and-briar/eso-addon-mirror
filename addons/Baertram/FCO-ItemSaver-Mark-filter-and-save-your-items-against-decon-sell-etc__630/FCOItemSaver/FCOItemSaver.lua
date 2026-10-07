@@ -216,20 +216,45 @@ ReloadUI does not do anything, but manually mass marking via flag icon works fin
 
 
 --______________________________________
--- Current max # of bugs/features/ToDos: 336
+-- Current max # of bugs/features/ToDos: 337
 --______________________________________
 
 
 ------------------------------------------------------------------------------------
--- Currently worked on [Added/Fixed/Changed] -              Updated last 2026-04-15
+-- Currently worked on [Added/Fixed/Changed] -              Updated last 2026-09-27
 ------------------------------------------------------------------------------------
---#336 Fix default offsets for the add. inv. "flag" context menu buttons
+--#337 "Crafted by" tag not properly saved for FCOISUniqueItemIds
+-->See file FCOIS_Functions, function FCOIS.CreateFCOISUniqueIdString
 
+--[[
+Anybody know if ESO broke the "crafted by" portion of the unique item ID?
+I tried out using this so I could start tagging things my own characters crafted separately from things crafted by others in my guild,
+but it seems to not care about who crafted what.
+Since I'm not getting any errors, I'm hesitant to believe this is an FCOIS bug at all - feels more like "ZOS broke something" material.
+
+----------------------------------
+Thanks for looking into this. As requested on the ESOUI forum... loktai (Michael Wray)
+
+My account is @loktaigreywolf on the NA server. I have settings configured to be accountwide, although it does appear to be the case that per-character settings replicate this issue for me.
+
+Kur'Dar is my character and Lord-Azmatar is a guildmate but not mine. Item links notated below.
+
+Kur'Dar crafted baked potato - |H1:item:28354:3:1:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h
+Lord-Azmatar crafted baked potato - |H1:item:28354:3:0:0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:0|h|h
+
+Let me know if there's any other data that would benefit you and I will endeavour to make it so.
+]]
 
 -------------------------------------------------------------------------------------
---Changelog (last version: 2.8.2 - New version: 2.8.3) -    Updated last: 2026-04-15
+--Changelog (last version: 2.8.3 - New version: 2.8.4) -    Updated last: 2026-10-03
 -------------------------------------------------------------------------------------
 --[Fixed]
+--Fixed #337: FCOIS uniqueItemIds' "Crafted by" part wasn't saved properly for non-armor/non-weapon items
+--Thus SavedVariables might contain entries with "nil" string parts: On first login with FCOIS uniqueItemIds enabled the SVs will be scanned and repaired automatically. You could see some lines like in chat (if pChat or  DebugLogViewer UI is enabled -> Which show you the chat before player activated fires):
+--[FCOIS]Migrating FCOIS uniqueIds' parts with 'NIL' to appropriate value
+--[FCOIS]Found <n> wrong formatted unique FCOIS marker itemIds:
+-->markerIcon: 1, oldKey: 8888888888,160,3,8,20,nil,nil,nil,nil,nil, / fixedKey: 8888888888,160,3,8,20,0,0,0,,
+---> This should only happen once per account (or "AllAccountsSavedTheSame), or character (if Character saved SavedVariables are enabled)
 
 
 --[Changed]

@@ -74,7 +74,7 @@
     "pChat"
   ],
   "download_url": "https://www.esoui.com/downloads/dl93/",
-  "fingerprint": "6051b64aa38eca2b0e761bd6949bf85942da9bcc5968430ee23ecfa53d6d384e",
+  "fingerprint": "63a565e1dcb29e41bdd2cdb655d50bc5333ea78ffd1dcba361448e35781c3591",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14795.png",
     "https://cdn-eso.mmoui.com/preview/pvw2872.jpg",
@@ -94,11 +94,11 @@
   "source_id": "93",
   "source_url": "https://www.esoui.com/downloads/info93-pChatChatcustomizationhelplooknotificationsoundautomationhistory.html",
   "stats": {
-    "downloads": 1852145,
-    "favorites": 1197,
-    "monthly_downloads": 5034
+    "downloads": 1862132,
+    "favorites": 1198,
+    "monthly_downloads": 14782
   },
   "title": "pChat (Chat customization & help: look/notification/sound/automation/history)",
-  "updated_at": 1790699903000,
-  "version": "10.0.7.5"
+  "updated_at": 1791291624000,
+  "version": "10.0.7.6"
 }

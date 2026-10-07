@@ -10,9 +10,28 @@
 if not ALC then return end
 local ALC = ALC
 local ALC_Console = ALC.Console
-local ui_update_fn
-local last_ui_update = 0
 local ui_label
+local ui_ticking = false
+local last_width_key
+local UI_UPDATE_NAME = "ALC_StatusWindow"
+local UI_UPDATE_MS = 1000
+
+local function UiTick()
+	ALC.update_ui()
+end
+
+local function StartUiTicks()
+	if ui_ticking then return end
+	ui_ticking = true
+	EVENT_MANAGER:RegisterForUpdate(UI_UPDATE_NAME, UI_UPDATE_MS, UiTick)
+	ALC.update_ui()
+end
+
+local function StopUiTicks()
+	if not ui_ticking then return end
+	ui_ticking = false
+	EVENT_MANAGER:UnregisterForUpdate(UI_UPDATE_NAME)
+end
 
 function ALC.get_gamepad_mover(target)
 	if ALC_Console.create_gamepad_mover then
@@ -27,11 +46,15 @@ function ALC.toggle_ui_update()
 		ALC.create_ui()
 	end
 	if ALC.settings.show_ui then
-		ALC.ui_window:SetHandler("OnUpdate", ui_update_fn)
+		ALC.ui_window:SetHandler("OnEffectivelyShown", StartUiTicks)
+		ALC.ui_window:SetHandler("OnEffectivelyHidden", StopUiTicks)
 	else
-		ALC.ui_window:SetHandler("OnUpdate", nil)
+		ALC.ui_window:SetHandler("OnEffectivelyShown", nil)
+		ALC.ui_window:SetHandler("OnEffectivelyHidden", nil)
+		StopUiTicks()
 	end
 	ALC.update_ui_scenes()
+	if ALC.settings.show_ui and not ALC.ui_window:IsHidden() then StartUiTicks() end
 end
 
 local function place_default(win)
@@ -45,6 +68,7 @@ function ALC.apply_ui_size()
 	win:SetScale(ALC.settings.ui_scale or 1.0)
 	win:SetDimensions(ALC.settings.ui_width or 150, ALC.settings.ui_height or 40)
 	if win.libaph_apply_font_scale then win.libaph_apply_font_scale() end
+	win.alc_resized = true
 	ALC.update_ui()
 end
 
@@ -70,7 +94,18 @@ function ALC.update_ui()
 	local status_line = ALC.build_memory_status_line(
 		current_lua, ALC.session_mb_freed, pool_mb, ALC.session_pool_mb_freed
 	)
-	ui_label:SetText(combat_str .. status_line)
+	local pick = ALC.last_auto_pick
+	local pick_str = pick and ("|c888888" .. pick.text .. "|r  ") or ""
+	local text = combat_str .. pick_str .. status_line
+	if text ~= ui_label.alc_text then
+		ui_label.alc_text = text
+		ui_label:SetText(text)
+	end
+
+	local width_key = string.gsub(text, "%d", "0")
+	if width_key == last_width_key and not ALC.ui_window.alc_resized then return end
+	last_width_key = width_key
+	ALC.ui_window.alc_resized = nil
 
 	local needed_width = ui_label:GetTextWidth() + 20
 	local target_width = math.max(ALC.settings.ui_width or 0, needed_width)
@@ -91,6 +126,7 @@ function ALC.create_ui()
 		onResizeStop = function(width, height)
 			ALC.settings.ui_width = width
 			ALC.settings.ui_height = height
+			if ALC.ui_window then ALC.ui_window.alc_resized = true end
 			ALC.ui_position:Save()
 		end,
 	})
@@ -108,13 +144,10 @@ function ALC.create_ui()
 	ALC.update_ui_anchor()
 
 	ui_label = text_lbl
+	EVENT_MANAGER:RegisterForEvent(UI_UPDATE_NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+		if ALC.ui_window then ALC.ui_window.alc_resized = true end
+	end)
 
-	ui_update_fn = function(ctrl, frame_time)
-		if not ALC.settings.show_ui then return end
-		if frame_time - last_ui_update < 1.0 then return end
-		last_ui_update = frame_time
-		ALC.update_ui()
-	end
 	ALC.hud_fragment = ZO_HUDFadeSceneFragment:New(win)
 end
 

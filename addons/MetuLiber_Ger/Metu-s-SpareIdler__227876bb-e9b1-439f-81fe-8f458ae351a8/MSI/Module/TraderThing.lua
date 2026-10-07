@@ -26,7 +26,6 @@ local function SellAllStolenJunk()
             end
         end
     end
-	SCENE_MANAGER:ShowBaseScene()
 end
 
 local function LaunderAllStolen()
@@ -44,8 +43,6 @@ local function LaunderAllStolen()
             end
         end
     end
-	--MSI.ApplyRightScene(SCENE_MANAGER:GetCurrentScene():GetName())
-	SCENE_MANAGER:ShowBaseScene()
 end
 
 local function OpenStore()
@@ -80,6 +77,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_FENCE_CHTLINE))
 			SellAllStolenJunk()
 			MSI.Print("c", zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 			MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
+			SCENE_MANAGER:Show("hudui")
 		end
 	end
 end
@@ -99,6 +97,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_LAUNDER_CHTLINE))
 			LaunderAllStolen()
 			MSI.Print("c", zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 			MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
+		--	SCENE_MANAGER:Show("hudui")
 		end
 	end
 end
@@ -167,6 +166,7 @@ local function IsCraftingContainer(str)
     return false
 end
 local function OnLootUpdatedThrottled()
+	EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
     lootActivityTimestamp = GetGameTimeMilliseconds()
     local currentTime = GetGameTimeMilliseconds()
 	local currencyInfo = LOOT_SHARED:GetLootCurrencyInformation()
@@ -188,10 +188,10 @@ local function OnLootUpdatedThrottled()
 		end
 		lastLootUpdatedTimetag = currentTime
 	end
-    --EndLooting()
+    EndLooting()
 	--MSI.ApplyRightScene(SCENE_MANAGER:GetCurrentScene():GetName())
 	--SCENE_MANAGER:ShowBaseScene()
-	SCENE_MANAGER:Show("hudui")
+	--SCENE_MANAGER:Show("hudui")
 end
 local function LootClosed()
     isAllCurtLooted = true
@@ -376,16 +376,17 @@ local function unboxQueuedContainer()
 							MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_VIEWED_NOTE_CHTLINE), item.getLink))
 						elseif item.isRecipePage then
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_LEARNED_ITEM_CHTLINE), item.getLink))
-						elseif (item.isContainer or item.isUnopened) then
-							if (item.isContainer and item.isCraftingContainer) then
+						elseif item.isContainer then
+							if item.isCraftingContainer then
 								isUnboxingCraftReward = false
 							end
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
 							--OnLootUpdatedThrottled()
-							EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
 							zo_callLater(function()
 							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
 							end, 200 + GetLatency())
+						elseif item.isUnopened then
+							MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_UNOPENED_CHTLINE), item.getLink))
 						else
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
 						end

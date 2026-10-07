@@ -286,9 +286,19 @@ function GamepadOptions.BuildGroupHeightOption()
     return GamepadOptions.BuildSliderOption(GamepadOptions.GROUP_FRAME_PANEL_ID, 9, playerBars.GetGroupHeightLabel(), playerBars.GetGroupHeightTooltip(), playerBars.GetGroupHeightMin(), playerBars.GetGroupHeightMax(), "%.0f", playerBars.GetGroupHeight, playerBars.SetGroupHeight, 2)
 end
 
+function GamepadOptions.BuildGroupColumnsOption()
+    local playerBars = NQOL.Features.PlayerBars
+    return GamepadOptions.BuildValueStepSliderOption(GamepadOptions.GROUP_FRAME_PANEL_ID, 38, playerBars.GetGroupColumnsLabel(), playerBars.GetGroupColumnsTooltip(), playerBars.GetGroupColumnsMin(), playerBars.GetGroupColumnsMax(), "%.0f", playerBars.GetGroupColumns, playerBars.SetGroupColumns, 1, nil, playerBars.GetGroupColumnsDefault)
+end
+
 function GamepadOptions.BuildGroupRowGapOption()
     local playerBars = NQOL.Features.PlayerBars
     return GamepadOptions.BuildSliderOption(GamepadOptions.GROUP_FRAME_PANEL_ID, 10, playerBars.GetGroupRowGapLabel(), playerBars.GetGroupRowGapTooltip(), playerBars.GetGroupRowGapMin(), playerBars.GetGroupRowGapMax(), "%.0f", playerBars.GetGroupRowGap, playerBars.SetGroupRowGap, 5)
+end
+
+function GamepadOptions.BuildGroupColumnGapOption()
+    local playerBars = NQOL.Features.PlayerBars
+    return GamepadOptions.BuildSliderOption(GamepadOptions.GROUP_FRAME_PANEL_ID, 39, playerBars.GetGroupColumnGapLabel(), playerBars.GetGroupColumnGapTooltip(), playerBars.GetGroupColumnGapMin(), playerBars.GetGroupColumnGapMax(), "%.0f", playerBars.GetGroupColumnGap, playerBars.SetGroupColumnGap, 5)
 end
 
 function GamepadOptions.BuildCompanionBorderSizeOption()

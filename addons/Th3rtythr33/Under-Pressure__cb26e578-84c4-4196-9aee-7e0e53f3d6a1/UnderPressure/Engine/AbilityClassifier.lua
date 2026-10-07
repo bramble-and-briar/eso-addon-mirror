@@ -1,6 +1,14 @@
 -- =============================================================================
 -- Under Pressure -- AbilityClassifier.lua
 -- =============================================================================
+-- PROVENANCE (2026-10-06): the 0.3.3 copy of this file was lost to OneDrive
+-- NUL-byte damage. This is the 0.3.0 copy from UnderPressure-Archive/ with the
+-- two later edits re-applied from Docs/UnderPressure.md: the SILENCE entry
+-- removed from the status-effect map (0.3.2) and the stale "extend it via the
+-- LibAddonMenu settings panel" claim removed from this header (0.3.3). The
+-- lost file was ~1 KB longer, so some 0.3.2/0.3.3 comment text is paraphrased
+-- rather than verbatim; the code is believed identical.
+--
 -- Maps incoming hostile effects to risk categories. Two-tier strategy:
 --
 -- 1. If the live EVENT_EFFECT_CHANGED callback delivers a usable
@@ -11,9 +19,12 @@
 -- 2. Otherwise the classifier falls back to a static abilityId table. The
 --    starter table covers common Cyrodiil / Battlegrounds threats as of
 --    Update 48-49 plus a few historically iconic anti-heal and execute IDs.
---    The table is intentionally NOT exhaustive: it is expected that users
---    extend it via the LibAddonMenu settings panel or the saved-variables
---    file once they observe real combat events through the debug overlay.
+--    The table is intentionally NOT exhaustive. Saved-variable overrides
+--    (abilityOverrides / riskBonusOverrides, read in init below) can extend
+--    it, but no settings panel has ever exposed them under either library and
+--    console users cannot edit saved-variable files -- so in practice entries
+--    are added here, in code, after observing real combat events through the
+--    debug overlay.
 --
 -- IMPORTANT
 -- ---------
@@ -30,7 +41,9 @@ UP.Classifier = {}
 -- ---------------------------------------------------------------------------
 UP.RISK = {
     NONE           = "none",
-    CONTROL        = "control",        -- stun, root, fear, silence, disorient
+    CONTROL        = "control",        -- stun, root, fear, disorient (silence
+                                       -- too, but injected by EventIngest, not
+                                       -- classified here -- see the map below)
     ANTIHEAL       = "antiheal",       -- major/minor defile, healing reduction
     VULNERABILITY  = "vulnerability",  -- major vulnerability, off-balance, breach
     EXECUTE        = "execute",        -- execute-style damage amplifiers
@@ -41,8 +54,11 @@ UP.RISK = {
 -- ---------------------------------------------------------------------------
 -- Risk bonus magnitudes (additive DPS injected into the threat estimate)
 -- ---------------------------------------------------------------------------
--- All values are tunable from the settings panel. Defaults below are starting
--- points; the spec explicitly requires real-PvP tuning.
+-- Not adjustable from the settings panel: the effect_weight slider that scaled
+-- all of these went in 0.2.9, and per-category overrides only exist as the
+-- riskBonusOverrides saved variable. Treat these as untuned starting points --
+-- they were authored against a model that silently discarded them until the
+-- 0.2.8 seconds/milliseconds fix made them live (see Docs/UnderPressure.md).
 UP.DefaultRiskBonus = {
     [UP.RISK.CONTROL]       = 2500,   -- you cannot react -> high implicit risk
     [UP.RISK.ANTIHEAL]      = 1500,
@@ -62,7 +78,12 @@ local function buildStatusEffectMap()
     if type(STATUS_EFFECT_TYPE_STUN)        == "number" then m[STATUS_EFFECT_TYPE_STUN]        = UP.RISK.CONTROL end
     if type(STATUS_EFFECT_TYPE_DISORIENT)   == "number" then m[STATUS_EFFECT_TYPE_DISORIENT]   = UP.RISK.CONTROL end
     if type(STATUS_EFFECT_TYPE_FEAR)        == "number" then m[STATUS_EFFECT_TYPE_FEAR]        = UP.RISK.CONTROL end
-    if type(STATUS_EFFECT_TYPE_SILENCE)     == "number" then m[STATUS_EFFECT_TYPE_SILENCE]     = UP.RISK.CONTROL end
+    -- No SILENCE entry (0.3.2). Silence reaches the engine as CONTROL directly
+    -- from EventIngest.onEffectChanged, off SilenceTracker's dual-signal test
+    -- (abilityType OR statusEffectType), which is strictly more robust than a
+    -- statusEffectType-only row here would be. Re-adding it would create a
+    -- second, weaker detector for the same fact. See Docs/UnderPressure.md,
+    -- "Unified silence detection".
     if type(STATUS_EFFECT_TYPE_SNARE)       == "number" then m[STATUS_EFFECT_TYPE_SNARE]       = UP.RISK.CONTROL end
     if type(STATUS_EFFECT_TYPE_ROOT)        == "number" then m[STATUS_EFFECT_TYPE_ROOT]        = UP.RISK.CONTROL end
     if type(STATUS_EFFECT_TYPE_BLEED)       == "number" then m[STATUS_EFFECT_TYPE_BLEED]       = UP.RISK.DOT end
@@ -108,6 +129,9 @@ UP.Classifier.abilityIdMap = {
     -- DoT pressure
     [217621] = UP.RISK.DOT,        -- Lingering Torment (verified visible on console)
     [122658] = UP.RISK.DOT,        -- Bleeds (generic; verify)
+    [159612] = UP.RISK.DOT,        -- Plague Carrier: the Plaguebreak set's plague
+                                   -- (id from UESP skill data 2026-10-06; also
+                                   -- tracked by Engine/PlagueTracker.lua)
 
     -- Execute setups
     [61905]  = UP.RISK.EXECUTE,    -- Reverse Slice / generic execute (verify)

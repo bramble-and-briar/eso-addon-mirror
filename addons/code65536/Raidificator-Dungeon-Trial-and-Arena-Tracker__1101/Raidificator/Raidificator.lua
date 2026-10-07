@@ -361,9 +361,11 @@ do	-- See /esoui/ingame/centerscreenannounce/centerscreenannouncehandlers.lua
 		messageParams:SetText(zo_strformat(SI_TRIAL_COMPLETED_LARGE, GetRaidName(raidId)))
 		messageParams:SetLifespanMS(TRIAL_COMPLETE_LIFESPAN_MS)
 		messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_RAID_TRIAL)
+		CENTER_SCREEN_ANNOUNCE:RemoveAllCSAsOfAnnounceType(CENTER_SCREEN_ANNOUNCE_TYPE_RAID_TRIAL)
 		CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
 	end
 
+	local COUNTDOWN_MS = 4000
 	local screenshotScene = nil
 	function RCR.DisplayScoreBannerForScreenshot( ... )
 		if (not screenshotScene) then
@@ -378,8 +380,18 @@ do	-- See /esoui/ingame/centerscreenannounce/centerscreenannouncehandlers.lua
 				end
 			end)
 		end
+
+		-- Countdown
+		SCENE_MANAGER:ShowBaseScene()
+		local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_COUNTDOWN_TEXT)
+		messageParams:SetLifespanMS(COUNTDOWN_MS)
+		messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COUNTDOWN)
+		CENTER_SCREEN_ANNOUNCE:RemoveAllCSAsOfAnnounceType(CENTER_SCREEN_ANNOUNCE_TYPE_COUNTDOWN)
+		CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
+		zo_callLater(function() SCENE_MANAGER:Push("RCR_ScoreScreenshot") end, COUNTDOWN_MS)
+
+		-- Because CSA is queued, the score banner will show only after the countdown has completed
 		RCR.DisplayScoreBanner(...)
-		SCENE_MANAGER:Push("RCR_ScoreScreenshot")
 	end
 end
 

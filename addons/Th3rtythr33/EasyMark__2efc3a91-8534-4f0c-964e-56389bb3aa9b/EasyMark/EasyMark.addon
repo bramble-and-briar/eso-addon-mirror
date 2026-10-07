@@ -1,20 +1,20 @@
 ## Title: EasyMark
 ## Author: Th3rtythr33
-## Version: 1.01
-## AddOnVersion: 101
+## Version: 1.1
+## AddOnVersion: 110
 ## APIVersion: 101051
 ## SavedVariables: EasyMarkSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
-## Description: Places a group target marker on whatever is under your reticle when a trigger you choose fires: starting a heavy attack, swapping weapon bars twice, or using a chosen ability slot or your ultimate.
+## Description: Places a group target marker on whatever is under your reticle when a trigger you choose fires: starting a heavy attack, swapping weapon bars twice, pressing the quest-tracker cycle button, or using a chosen ability slot or your ultimate.
 
 ; ---------------------------------------------------------------------------
 ; MANIFEST NOTES
 ; ---------------------------------------------------------------------------
-; AddOnVersion is an integer that must only ever INCREASE, and it steps by one
-; per PUBLISHED build regardless of how far the semantic Version jumps. It is
-; what the console catalogue and the PC .addon/.txt tie-break use; Version is
-; only ever shown to humans. Build 0.2 shipped to Bethesda.net as AddOnVersion
-; 100 (an early mistake, but it is out there), so every later build is 101+.
+; AddOnVersion is an integer that must only ever INCREASE. It is what the
+; console catalogue and the PC .addon/.txt tie-break use; Version is only ever
+; shown to humans. Every EasyMark build gets published, so a number is never
+; reused. History: 0.2 shipped as 100 (an early mistake), 1.01 as 101, and
+; from 1.1 = 110 onward AddOnVersion mirrors the version digits (1.2 = 120).
 ;
 ; .addon only, no .txt. Since June 2025 the console client ignores .txt
 ; manifests entirely; a .addon manifest also loads on PC, so one file covers

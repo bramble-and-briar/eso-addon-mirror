@@ -1,14 +1,14 @@
 ## Title: |c6FCB9FBureau|r of Private Dispatches
-## Version: 1.0.131353
-## AddOnVersion: 10
-## APIVersion: 101050 101051
+## Version: 1.1.012551
+## AddOnVersion: 11
+## APIVersion: 101051
 ## Author: |c6FCB9Fmeshlg|r @ArtieFox
 ## Description: Compact movable notifications for incoming private messages.
 ## SavedVariables: BureauOfPrivateDispatchesSavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: pChat
 
-; Release: 1.0.131353
+; Release: 1.1.012551
 ; On release, keep the ## Version / ## AddOnVersion lines above and the
 ; `version` field in BureauOfPrivateDispatches.lua in step.
 ;

@@ -24,6 +24,7 @@ function ALC.register_slash_commands()
 	SLASH_COMMANDS["/alcon"] = function()
 		ALC.settings.is_enabled = not ALC.settings.is_enabled
 		ALC.toggle_core_events()
+		ALC.say_setting("CHK_AUTO_LUA_CLEANUP", ALC.settings.is_enabled)
 	end
 	SLASH_COMMANDS["/alcenable"] = SLASH_COMMANDS["/alcon"]
 
@@ -32,33 +33,37 @@ function ALC.register_slash_commands()
 		SLASH_COMMANDS["/alcui"] = function()
 			ALC.settings.show_ui = not ALC.settings.show_ui
 			ALC.call_optional(ALC.toggle_ui_update, "UI module (toggle_ui_update)")
+			ALC.refresh_slash_commands()
+			ALC.say_setting("CHK_SHOW_UI", ALC.settings.show_ui)
 		end
 		SLASH_COMMANDS["/alctoggleui"] = SLASH_COMMANDS["/alcui"]
 
 		SLASH_COMMANDS["/alclock"] = function()
-			if not ALC.settings.show_ui then return end
 			ALC.settings.is_ui_locked = not ALC.settings.is_ui_locked
 			if ALC.ui_window then ALC.ui_window:SetMovable(not ALC.settings.is_ui_locked) end
+			ALC.say_setting("CHK_LOCK_UI", ALC.settings.is_ui_locked)
 		end
 		SLASH_COMMANDS["/alcuilock"] = SLASH_COMMANDS["/alclock"]
 
 		SLASH_COMMANDS["/alcreset"] = function()
-			if not ALC.settings.show_ui then return end
 			ALC.settings.ui_x = nil
 			ALC.settings.ui_y = nil
 			ALC.settings.ui_point = nil
 			ALC.call_optional(ALC.reset_ui_position, "UI module (reset_ui_position)")
+			d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_UI_POSITION_RESET"))
 		end
 		SLASH_COMMANDS["/alcuireset"] = SLASH_COMMANDS["/alcreset"]
 	end
 
 	SLASH_COMMANDS["/alccsa"] = function()
 		ALC.settings.is_csa_enabled = not ALC.settings.is_csa_enabled
+		ALC.say_setting("CHK_CSA", ALC.settings.is_csa_enabled)
 	end
 	SLASH_COMMANDS["/alctogglecsa"] = SLASH_COMMANDS["/alccsa"]
 
 	SLASH_COMMANDS["/alclogs"] = function()
 		ALC.settings.is_log_enabled = not ALC.settings.is_log_enabled
+		ALC.say_setting("CHK_CHAT_LOGS", ALC.settings.is_log_enabled)
 	end
 	SLASH_COMMANDS["/alcchatlogs"] = SLASH_COMMANDS["/alclogs"]
 
@@ -67,14 +72,11 @@ function ALC.register_slash_commands()
 
 	SLASH_COMMANDS["/alcpoolreload"] = function()
 		ALC.settings.auto_clear_pool_on_teleport = not ALC.settings.auto_clear_pool_on_teleport
+		ALC.refresh_slash_commands()
 		d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_POOL_RELOAD_TOGGLE", ALC.settings.auto_clear_pool_on_teleport and ALC.L("WORD_ON") or ALC.L("WORD_OFF")))
 	end
 
 	SLASH_COMMANDS["/alcpoolconfirm"] = function()
-		if not ALC.settings.auto_clear_pool_on_teleport then
-			d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_POOL_CONFIRM_UNAVAILABLE"))
-			return
-		end
 		ALC.settings.pool_reload_confirm_auto = not ALC.settings.pool_reload_confirm_auto
 		d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_POOL_CONFIRM_TOGGLE", ALC.settings.pool_reload_confirm_auto and ALC.L("WORD_ON") or ALC.L("WORD_OFF")))
 	end
@@ -94,9 +96,8 @@ function ALC.register_slash_commands()
 		SLASH_COMMANDS["/alcbug"] = SLASH_COMMANDS["/alcbugreport"]
 	end
 
-	SLASH_COMMANDS["/alcsimulateerror"] = function()
-		if GetDisplayName() ~= "@APHONlC" then return end
-		ALC.dev_simulate_error()
+	if GetDisplayName() == "@APHONlC" then
+		SLASH_COMMANDS["/alcsimulateerror"] = function() ALC.dev_simulate_error() end
 	end
 
 	SLASH_COMMANDS["/alclibwarn"] = function()
@@ -120,4 +121,6 @@ function ALC.register_slash_commands()
 	SLASH_COMMANDS["/alcunloadmenu"] = function() ALC.toggle_module_disabled("menu") end
 	SLASH_COMMANDS["/alcunloadmigration"] = function() ALC.toggle_module_disabled("migration") end
 	SLASH_COMMANDS["/alcunloadui"] = function() ALC.toggle_module_disabled("ui") end
+
+	ALC.refresh_slash_commands()
 end

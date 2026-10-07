@@ -1,3 +1,7 @@
+Version 4.8.1 (2026/10/06)
+* Added a 4s countdown delay before displaying the screenshot mode score banner,
+  to give the user some time to adjust their camera
+
 Version 4.8.0 (2026/10/06)
 * Added a "Display Score Banner (Screenshot Mode)" command to the context menus
   of entries in the History Browser to redisplay the base-game score banner

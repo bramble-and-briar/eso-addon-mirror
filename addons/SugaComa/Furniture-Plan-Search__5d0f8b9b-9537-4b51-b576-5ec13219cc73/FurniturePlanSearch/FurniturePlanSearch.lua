@@ -1,4 +1,4 @@
--- Furniture Plan Search 0.2.3 - Update 51 / API 101051 PS5 UAT candidate.
+-- Furniture Plan Search 0.2.4 - Update 51 / API 101051 PS5 UAT candidate.
 local ADDON_NAME = "FurniturePlanSearch"
 
 local searchText = ""
@@ -261,15 +261,11 @@ local function OnAddonLoaded(_, addonName)
         ZO_GamepadCraftingUtils_RefreshGenericHeaderData(self)
     end
 
-    -- Alchemy, enchanting and smithing enter recipes through their own native
-    -- mode selectors, then converge here. The native function pushes the scene
-    -- before it applies EMBEDDED_SETTINGS, so refresh only after it returns.
-    ZO_PostHook(GAMEPAD_PROVISIONER, "EmbedInCraftingScene", function()
-        ScheduleRecipeMenuRefresh(GetCraftingInteractionType())
-    end)
-
     GAMEPAD_PROVISIONER_CREATION_SCENE:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_SHOWING then
+            -- Embedded crafting pushes this scene before applying its settings.
+            -- Defer until the native call stack has finished so the furnishing
+            -- filter and header data are ready without hooking that method.
             ScheduleRecipeMenuRefresh(GetCraftingInteractionType())
         elseif newState == SCENE_SHOWN then
             -- The keybind group is fully presented only after the scene transition.

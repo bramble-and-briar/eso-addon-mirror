@@ -1,0 +1,47 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/APH0N1C/Character-Bound-Item-Hider__4922",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4922",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4922",
+  "deleted": false,
+  "directories": [
+    "CharacterBoundItemHider"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4922/",
+  "fingerprint": "0f12b1d60279faedde0511d5656e2e7f883988b7aca373be7ffe2ba946215009",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17789.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17788.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17787.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17786.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17785.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17784.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17783.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17782.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17781.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4922",
+  "source_url": "https://www.esoui.com/downloads/info4922-CharacterBoundItemHider.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Character Bound Item Hider",
+  "updated_at": 1791369557000,
+  "version": "2026.10.06.13.49"
+}

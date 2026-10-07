@@ -7,7 +7,7 @@ MSI.Version = "2.7dev"
 MSI.DevAcc 	= "Metu-_-Liber"
 MSI.panel 	= nil
 MSI.playerActivated = false
-MSI.activeDuration = 0
+--MSI.activeDuration = 0
 
 --*****************--
 -- InitSavedVariables

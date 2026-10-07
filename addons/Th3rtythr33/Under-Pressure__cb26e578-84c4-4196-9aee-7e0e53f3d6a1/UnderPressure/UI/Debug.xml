@@ -12,8 +12,8 @@
                      were used here through 0.2.7; those constants appear
                      nowhere in the gamepad fontdefs (ZOS uses the
                      $(GAMEPAD_*) family there), so they are not safe on
-                     console. Lua may re-apply a different size via /upfont;
-                     these attributes are the pre-Lua defaults.
+                     console. Lua re-applies the saved size from the Debug
+                     text size slider; these attributes are the pre-Lua defaults.
                      See UI/Fonts.lua. -->
                 <Label name="$(parent)Header" font="ZoFontGamepadBold34" color="FFFFFFFF">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="10" offsetY="6"/>

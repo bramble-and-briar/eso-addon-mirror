@@ -1,0 +1,8 @@
+## Title: LibTrack
+## Author: CodeWarrior82
+## Description: Simple Library for my other add-ons to use to track equiped sets and skills.
+## APIVersion: 101051
+## DependsOn: LibChatMessage LibAddonMenu-2.0>=42
+
+
+LibTrack.lua

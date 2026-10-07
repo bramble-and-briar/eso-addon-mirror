@@ -87,6 +87,7 @@ local ADDON_ICONS = {
 	"ability_necromancer_013_red.dds",
 
 	-- nightblade
+	"ability_nightblade_001_sagecyan.dds",
 	"ability_nightblade_002_purple.dds",
 	"ability_nightblade_002_strikinggold.dds",
 	"ability_nightblade_003_purple.dds",
@@ -105,6 +106,7 @@ local ADDON_ICONS = {
 	"ability_sorcerer_lightning_prey_redcelestial.dds",
 	"ability_sorcerer_mage_fury_red.dds",
 	"ability_sorcerer_overload_lightningyellow.dds",
+	"ability_sorcerer_surge_fieryyellow.dds",
 	"ability_sorcerer_thunderclap_red.dds",
 	"u49_ability_stormcalling_lightningform_celestial.dds",
 
@@ -113,6 +115,7 @@ local ADDON_ICONS = {
 	"ability_templar_cleansing_ritual_blue.dds",
 	"ability_templar_over_exposure_blue.dds",
 	"ability_templar_rushed_ceremony_blue.dds",
+	"ability_templar_sun_strike_fierytorment.dds",
 	"ability_templar_trained_attacker_blue.dds",
 	"ability_templar_trained_attacker_winddragon.dds",
 
@@ -167,8 +170,8 @@ local ADDON_ICONS = {
 	"ability_destructionstaff_005_green.dds",
 	"ability_destructionstaff_011_orange.dds",
 	"ability_destructionstaff_011_purple.dds",
-	"ability_destructionstaff_012_purple.dds",
 	"ability_destructionstaff_012_padomayvortex.dds",
+	"ability_destructionstaff_012_purple.dds",
 
 	-- dual wield
 	"ability_dualwield_001_goldcoin.dds",
@@ -180,6 +183,7 @@ local ADDON_ICONS = {
 	"ability_dualwield_005_jadegreen.dds",
 	"ability_dualwield_005_orange.dds",
 	"ability_dualwield_005_red.dds",
+	"u49_ability_dualwield_whirlwind_blacksands.dds",
 
 	-- restoration staff
 	"ability_restorationstaff_001_green.dds",
@@ -222,6 +226,7 @@ local ADDON_ICONS = {
 	-- ========================================================================
 
 	-- armor
+	"ability_armor_002_sagecyan.dds",
 	"ability_armor_003_yellow.dds",
 
 	-- alliance war (ava)
@@ -248,6 +253,7 @@ local ADDON_ICONS = {
 	-- werewolf
 	"ability_werewolf_001_ashen.dds",
 	"ability_werewolf_001_black.dds",
+	"ability_werewolf_001_ragefire.dds",
 	"ability_werewolf_001_red.dds",
 	"ability_werewolf_001_white.dds",
 	"ability_werewolf_003_green.dds",

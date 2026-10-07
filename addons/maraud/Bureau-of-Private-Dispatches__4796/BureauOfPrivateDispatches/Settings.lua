@@ -252,6 +252,21 @@ function addon:RegisterSettingsPanel()
 			reference = "BPDSettingsOpacity",
 		},
 		{
+			type = "dropdown",
+			name = GetString(SI_BPD_SETTINGS_VISIBLE_SENDERS),
+			tooltip = GetString(SI_BPD_SETTINGS_VISIBLE_SENDERS_TT),
+			choices = { "6", "8", "12" },
+			getFunc = function()
+				return tostring(self:GetVisibleSenderLimit())
+			end,
+			setFunc = function(value)
+				self:SetVisibleSenderLimit(tonumber(value))
+			end,
+			default = tostring(CONFIG.DEFAULT_VISIBLE_SENDERS),
+			width = "full",
+			reference = "BPDSettingsVisibleSenders",
+		},
+		{
 			type = "checkbox",
 			name = GetString(SI_BPD_SETTINGS_AUTOCOLLAPSE),
 			tooltip = GetString(SI_BPD_SETTINGS_AUTOCOLLAPSE_TT),

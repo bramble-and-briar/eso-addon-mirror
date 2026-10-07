@@ -18,7 +18,7 @@
     "Skillstyles"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4178/",
-  "fingerprint": "7a9942525e214e96e6707f5e49ee34a893c0484a6afc52c409f8eaed27af948d",
+  "fingerprint": "93c9bd4e503a3da9b940730bb3fe04b4490b0d205a8d4bd4aa36bb201e616438",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16082.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4178",
   "source_url": "https://www.esoui.com/downloads/info4178-SkillStylesIconPack.html",
   "stats": {
-    "downloads": 3216,
-    "favorites": 6,
-    "monthly_downloads": 609
+    "downloads": 3745,
+    "favorites": 8,
+    "monthly_downloads": 162
   },
   "title": "Skill Styles Icon Pack",
-  "updated_at": 1785537333000,
-  "version": "1.9"
+  "updated_at": 1791292011000,
+  "version": "2.0"
 }

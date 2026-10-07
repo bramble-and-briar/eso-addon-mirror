@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Baertram/FCO-ItemSaver-Mark-filter-and-save-your-items-against-decon-sell-etc__630",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Baertram",
   "canonical_id": "esoui:630",
   "category_id": "20",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "FCOItemSaver"
   ],
   "download_url": "https://www.esoui.com/downloads/dl630/",
-  "fingerprint": "9b06c34f691c963149231f3c26604dcbec09aab9f3731d9d7467f009ec323792",
+  "fingerprint": "7c62fa093e91a737f2dd2511fd3f5a9ad2be3be1e00a17dc27236938725426a7",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw2398.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw1926.jpg",
@@ -101,11 +106,11 @@
   "source_id": "630",
   "source_url": "https://www.esoui.com/downloads/info630-FCOItemSaverMarkfilterandsaveyouritemsagainstdeconselletc..html",
   "stats": {
-    "downloads": 1033210,
-    "favorites": 770,
-    "monthly_downloads": 1112
+    "downloads": 1036342,
+    "favorites": 774,
+    "monthly_downloads": 1701
   },
   "title": "FCO ItemSaver (Mark, filter and save your items against decon/sell/etc.)",
-  "updated_at": 1776262379000,
-  "version": "2.8.3"
+  "updated_at": 1791291956000,
+  "version": "2.8.4"
 }

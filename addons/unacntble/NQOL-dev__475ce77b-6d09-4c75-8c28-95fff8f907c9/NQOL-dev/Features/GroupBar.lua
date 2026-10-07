@@ -1078,13 +1078,14 @@ function PlayerBars.Group.ApplyDeathCounter(row, data, settings, labelFont)
     row.deathCounterLabel:SetColor(1, 1, 1, 1)
     row.deathCounterLabel:SetText(tostring(deathCount))
     row.deathCounterLabel:SetDimensions(PlayerBars.Group.DEATH_COUNTER_WIDTH - PlayerBars.Group.ICON_SIZE - PlayerBars.Group.ICON_GAP, settings.height)
+    local outerGap = row.deathCounterOuterGap or PlayerBars.Group.ICON_GAP
 
     if settings.reverse == true then
         row.deathCounterLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-        row.deathCounterLabel:SetAnchor(RIGHT, row, LEFT, -PlayerBars.Group.ICON_GAP, 0)
+        row.deathCounterLabel:SetAnchor(RIGHT, row, LEFT, -outerGap, 0)
         row.deathCounterIcon:SetAnchor(RIGHT, row.deathCounterLabel, LEFT, -PlayerBars.Group.ICON_GAP, 0)
     else
-        row.deathCounterIcon:SetAnchor(LEFT, row, RIGHT, PlayerBars.Group.ICON_GAP, 0)
+        row.deathCounterIcon:SetAnchor(LEFT, row, RIGHT, outerGap, 0)
         row.deathCounterLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
         row.deathCounterLabel:SetAnchor(LEFT, row.deathCounterIcon, RIGHT, PlayerBars.Group.ICON_GAP, 0)
     end
@@ -1398,10 +1399,17 @@ function PlayerBars.Group.LayoutAndApplyRows()
     local valueWidth = PlayerBars.Group.VALUE_WIDTH
     local dataRows = BuildSortedGroupRows(rowCount, settings)
     rowCount = #dataRows
-    local rootHeight = rowCount > 0 and rowCount * height + (rowCount - 1) * rowGap or height
+    local columns = math.min(settings.columns, math.max(rowCount, 1))
+    local rowsPerColumn = math.max(math.ceil(rowCount / columns), 1)
+    -- Reserve the full death counter and a fixed margin on each side at zero.
+    -- Status icons sit on the outside edges of a two-column frame.
+    local columnGap = PlayerBars.Group.DEATH_COUNTER_WIDTH + 2 * PlayerBars.Group.ICON_GAP
+        + Clamp(settings.columnGap, PlayerBars.Group.COLUMN_GAP_MIN, PlayerBars.Group.COLUMN_GAP_MAX)
+    local rootWidth = columns * width + (columns - 1) * columnGap
+    local rootHeight = rowsPerColumn * height + (rowsPerColumn - 1) * rowGap
     local labelFont = GetGroupLabelFont()
 
-    PlayerBars.Group.root:SetDimensions(width, rootHeight)
+    PlayerBars.Group.root:SetDimensions(rootWidth, rootHeight)
 
     for index = 1, PlayerBars.Group.MAX_ROWS do
         local row = PlayerBars.Group.rows[index]
@@ -1422,7 +1430,12 @@ function PlayerBars.Group.LayoutAndApplyRows()
             row:SetHidden(false)
             row:ClearAnchors()
             row:SetDimensions(width, height)
-            row:SetAnchor(TOPLEFT, PlayerBars.Group.root, TOPLEFT, 0, (index - 1) * (height + rowGap))
+            local columnIndex = math.floor((index - 1) / rowsPerColumn)
+            local rowIndex = (index - 1) % rowsPerColumn
+            row:SetAnchor(TOPLEFT, PlayerBars.Group.root, TOPLEFT,
+                columnIndex * (width + columnGap), rowIndex * (height + rowGap))
+
+            row.deathCounterOuterGap = PlayerBars.Group.ICON_GAP
 
             row.statusIcon:ClearAnchors()
             row.leaderIcon:ClearAnchors()
@@ -1430,7 +1443,15 @@ function PlayerBars.Group.LayoutAndApplyRows()
             row.deathCounterIcon:ClearAnchors()
             row.deathCounterLabel:ClearAnchors()
             local showLeader = settings.showLeader == true and data.isLeader == true
-            if settings.reverse == true then
+            local statusOnRight = settings.reverse == true
+            if columns > 1 then
+                statusOnRight = columnIndex == columns - 1
+                if statusOnRight == (settings.reverse ~= true) then
+                    row.deathCounterOuterGap = 2 * (PlayerBars.Group.ICON_SIZE + PlayerBars.Group.ICON_GAP)
+                        + PlayerBars.Group.ICON_GAP
+                end
+            end
+            if statusOnRight then
                 row.leaderIcon:SetAnchor(LEFT, row, RIGHT, PlayerBars.Group.ICON_GAP, 0)
                 if showLeader then
                     row.statusIcon:SetAnchor(LEFT, row.leaderIcon, RIGHT, PlayerBars.Group.ICON_GAP, 0)

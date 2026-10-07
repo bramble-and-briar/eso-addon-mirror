@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/tim-p/Flobot-s-Blame-Game__4920",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "tim-p",
+  "canonical_id": "esoui:4920",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4920",
+  "deleted": false,
+  "directories": [
+    "FlobotsBlameGame"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4920/",
+  "fingerprint": "1be8cc65643c5392de59069b3d0bdf36ce66b1e37c5bb5699768772ab181851f",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4920",
+  "source_url": "https://www.esoui.com/downloads/info4920-FlobotsBlameGame.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "Flobot's Blame Game",
+  "updated_at": 1791306287000,
+  "version": "2026-10-06"
+}

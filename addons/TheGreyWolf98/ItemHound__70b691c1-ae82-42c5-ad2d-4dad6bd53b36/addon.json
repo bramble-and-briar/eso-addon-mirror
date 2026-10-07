@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/TheGreyWolf98/ItemHound__70b691c1-ae82-42c5-ad2d-4dad6bd53b36",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "TheGreyWolf98",
+  "canonical_id": "bethesda:70b691c1-ae82-42c5-ad2d-4dad6bd53b36",
+  "content_id": "70b691c1-ae82-42c5-ad2d-4dad6bd53b36",
+  "deleted": false,
+  "fingerprint": "9c5051df6e0d1783ca84962ff54316c500a56edf1c3c85624f8e60f77ffc44e0",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "70b691c1-ae82-42c5-ad2d-4dad6bd53b36",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/70b691c1-ae82-42c5-ad2d-4dad6bd53b36",
+  "title": "ItemHound"
+}

@@ -1,0 +1,16 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="FlobotsBlameGame">
+            <Action name="FlobotsBlameGame_Debug_Key">
+                <Down>
+                    FlobotsBlameGame.Debug()
+                </Down>
+            </Action>
+			<Action name="FlobotsBlameGame_Blame_Key">
+                <Down>
+                    FlobotsBlameGame.BlameKey()
+                </Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

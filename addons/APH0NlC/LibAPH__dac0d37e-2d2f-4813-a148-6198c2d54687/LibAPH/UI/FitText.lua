@@ -9,9 +9,9 @@
 
 local LibAPH = LibAPH
 
-local KEYBOARD_FONTS = { "ZoFontWinH4", "ZoFontWinH5", "ZoFontGameBold", "ZoFontGame", "ZoFontGameSmall", "ZoFontGameTiny" }
-local GAMEPAD_FONTS = { "ZoFontGamepad22", "ZoFontGamepad20", "ZoFontGamepad18", "ZoFontGamepad16", "ZoFontGamepad14" }
-local KEYBIND_FONTS = { "ZoFontDialogKeybindDescription", "ZoFontGame", "ZoFontGameSmall", "ZoFontGameTiny" }
+local KEYBOARD_FONTS = { "ZoFontWinH4", "ZoFontWinH5", "ZoFontGameBold", "ZoFontGame", "ZoFontGameSmall", "$(BOLD_FONT)|11|soft-shadow-thin" }
+local GAMEPAD_FONTS = { "ZoFontGamepad22", "ZoFontGamepad20", "ZoFontGamepad18", "$(GAMEPAD_MEDIUM_FONT)|16|soft-shadow-thick", "$(GAMEPAD_MEDIUM_FONT)|14|soft-shadow-thick" }
+local KEYBIND_FONTS = { "ZoFontDialogKeybindDescription", "ZoFontGame", "ZoFontGameSmall", "$(BOLD_FONT)|11|soft-shadow-thin" }
 local BUTTON_PADDING = 14
 local MIN_BUTTON_WIDTH = 40
 

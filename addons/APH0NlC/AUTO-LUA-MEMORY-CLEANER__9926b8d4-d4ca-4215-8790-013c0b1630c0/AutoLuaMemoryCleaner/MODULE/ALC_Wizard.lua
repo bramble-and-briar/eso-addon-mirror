@@ -163,14 +163,26 @@ local function wizard_step_cleanup_mode_forced()
 	)
 end
 
+local function wizard_step_cleanup_mode_manual()
+	wizard_show_dialog("ALC_WIZARD_CLEANUP_MODE_MANUAL", "|c9CD04CAuto Lua Memory Cleaner|r",
+		ALC.L("CLEANUP_MODE_MANUAL_BODY"),
+		{
+			{ text = ALC.L("MODE_VANILLA"), keybind = "DIALOG_PRIMARY",
+				callback = function() wizard_step_cleanup_mode_pick("vanilla") end },
+			{ text = ALC.L("MODE_FORCED"), keybind = "DIALOG_NEGATIVE",
+				callback = wizard_step_cleanup_mode_forced }
+		}
+	)
+end
+
 local function wizard_step_cleanup_mode_custom()
 	wizard_show_dialog("ALC_WIZARD_CLEANUP_MODE_CUSTOM", "|c9CD04CAuto Lua Memory Cleaner|r",
 		ALC.L("CLEANUP_MODE_CUSTOM_BODY"),
 		{
-			{ text = ALC.L("MODE_AUTOMATIC"), keybind = "DIALOG_PRIMARY",
-				callback = function() wizard_step_cleanup_mode_pick("automatic") end },
-			{ text = ALC.L("MODE_FORCED"), keybind = "DIALOG_NEGATIVE",
-				callback = wizard_step_cleanup_mode_forced }
+			{ text = ALC.L("MODE_BACKGROUND"), keybind = "DIALOG_PRIMARY",
+				callback = function() wizard_step_cleanup_mode_pick("background") end },
+			{ text = ALC.L("CUSTOMIZE"), keybind = "DIALOG_NEGATIVE",
+				callback = wizard_step_cleanup_mode_manual }
 		}
 	)
 end
@@ -180,7 +192,7 @@ local function wizard_step_cleanup_mode()
 		ALC.L("CLEANUP_MODE_BODY"),
 		{
 			{ text = ALC.L("USE_DEFAULT"), keybind = "DIALOG_PRIMARY",
-				callback = function() wizard_step_cleanup_mode_pick("background") end },
+				callback = function() wizard_step_cleanup_mode_pick("automatic") end },
 			{ text = ALC.L("CUSTOMIZE"), keybind = "DIALOG_NEGATIVE",
 				callback = wizard_step_cleanup_mode_custom }
 		}

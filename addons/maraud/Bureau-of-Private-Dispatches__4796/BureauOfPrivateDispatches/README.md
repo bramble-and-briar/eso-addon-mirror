@@ -6,7 +6,7 @@ whisper cannot disappear unnoticed in a busy chat window. Each sender owns one
 notification: a later message updates that notification and moves it to the top
 instead of filling the screen with duplicates.
 
-> **Compatibility:** API: LIVE 101050. Requires LibAddonMenu-2.0. pChat is an
+> **Compatibility:** API: LIVE 101051. Requires LibAddonMenu-2.0. pChat is an
 > optional dependency used only to fill restored whisper previews.
 
 ---
@@ -23,10 +23,10 @@ can later be promoted for its one explicit follow-up reminder.
 The first visible sender owns one expanded two-line card. It is normally the
 newest sender, while a one-time overdue reminder can temporarily promote an
 older one. Every sender below it uses a compact one-line row, so the active
-message keeps its context without making the full stack tall. Up to twelve
-sender notifications are visible at once; any additional senders remain in the
-ordered model and are summarized by an overflow row until space becomes
-available.
+message keeps its context without making the full stack tall. Six sender
+notifications are visible by default; settings can raise this to eight or
+twelve. Additional senders remain in the ordered model and are available
+through the paged overflow row.
 
 Drag the header to place the notification area anywhere on screen. Its exact
 position is saved account-wide and restored after logout or `/reloadui`.
@@ -35,29 +35,29 @@ position is saved account-wide and restored after logout or `/reloadui`.
 
 ## Reading a notification
 
-Every card carries the same six pieces of information in fixed positions, so a
+Every card carries the same five pieces of information in fixed positions, so a
 dense stack stays scannable without reading it word by word.
 
 ```text
 ┌─────────────────────────────────────────────┐
-│ ✉ DISPATCHES                  3 · 6   ⌃  ⊘ │  senders, messages, controls
+│ ✉ DISPATCHES                  6 · 9   ⌃  ⊘ │  senders, messages, controls
 ├─────────────────────────────────────────────┤
-│▌(A) @Alpha                   ×2  !   12s  × │  identity, unread, status, age
-│▌    Are you free for the dungeon...           │  expanded latest sender
+│▌ @Alpha                      ×2  !   12s  × │  identity, unread, status, age
+│▌ Are you free for the dungeon...             │  expanded latest sender
 ├─────────────────────────────────────────────┤
 │▌ @Vesta  Trading the motif now     *   1m  × │  compact waiting sender
 │▌ @Orion  Invite after the boss  ×3 ...   4m  │  reply composer opened
 ├─────────────────────────────────────────────┤
-│ +4 more senders waiting                     │  overflow row
+│▌ @Aster  Ready when you are          5m   × │
+│▌ @Nyra   Thanks for the trade        6m   × │
+│▌ @Theo   See you tomorrow            7m   × │
 └─────────────────────────────────────────────┘
 ```
 
 - **Colored identity.** A stable hash of the sender's `@id` picks one of five
 	palette hues, so the same person always arrives in the same color. Every row
-	keeps its colored rail; the expanded row also shows a seal with the sender's
-	initial. A single relation glyph can appear beside the status: `G` group,
-	`F` friend, `#` guild. If more than one applies, the
-	card keeps the highest of those four and the tooltip lists the rest.
+	keeps its colored rail without a letter badge. Group, friend, and guild
+	relations are listed in the tooltip rather than taking space in the row.
 - **Unread counter.** Shown only from the second unread message onward, capped at
 	`99+` so a spammer cannot widen the card.
 - **Follow-up status.** Empty while pending, `...` while reply grace is active,
@@ -87,13 +87,14 @@ dense stack stays scannable without reading it word by word.
 	status, and age on the first line, plus up to 34 UTF-8 characters of the latest
 	message below. It is normally the newest sender, but an overdue reminder can
 	promote an older sender once.
-- Every older sender uses a compact one-line row with the account id, preview,
-	unread count, and age.
+- Every older sender uses a compact one-line row with separate areas for the
+	account id and muted preview, followed by unread count, status, and age.
 - Moving the pointer over the panel temporarily freezes presentation order. New
 	messages still update immediately, but no row can jump away under the cursor;
 	new senders are appended until the interaction ends, then newest-first order
 	is restored in one redraw.
-- Up to twelve sender cards are rendered; an overflow row reports the number of
+- Six sender cards are rendered by default. The visible-notifications setting
+	selects six, eight, or twelve per page; an overflow row provides access to
 	additional waiting senders.
 - Long account names and previews use ellipsis rather than resizing or shifting
 	the panel. The ellipsis is counted inside the character budget, so a preview
@@ -122,7 +123,8 @@ dense stack stays scannable without reading it word by word.
 - Every sender card has its own dismiss button, armed on mouse-down so a whisper
 	arriving mid-click cannot redirect the dismissal to a different sender. The
 	button always hides; it never ignores.
-- The header has a collapse toggle and a clear-all action.
+- The header uses stock ESO icons for lock, collapse, and clear-all. The
+	clear-all icon is distinct from each card's hover dismiss cross.
 - The header count reports both waiting senders and accumulated messages.
 - A new whisper never expands a collapsed panel automatically. Instead, the
 	header briefly pulses with that sender's identity color.
@@ -130,12 +132,13 @@ dense stack stays scannable without reading it word by word.
 	alerts. `/bpd mute` silences incoming and overdue sounds. `/bpd dnd` and combat
 	auto-DND keep collecting cards but hold pulses and sounds until the mode
 	ends, then deliver the deferred visual cue once.
-- Mouse-hover tooltips describe every action.
+- Mouse-hover tooltips show the full cleaned latest message above the available
+	actions. Restored cards without message text show an explanation instead.
 - Keyboard bindings live in Controls → Bureau of Private Dispatches. They are
 	unassigned by default. Reply uses the focused sender, or the latest incoming
 	whisper if nothing is focused, and does not overwrite text already in the chat
 	box. Clear-all from a key only works while the panel is visible and expanded.
-	The header lock glyph, and its matching binding, freeze placement.
+	The header lock icon, and its matching binding, freeze placement.
 - `/bpd scale` and `/bpd opacity` resize the panel and dim only its backgrounds.
 	Text, glyphs, and identity rails stay fully opaque. `/bpd autocollapse` hides
 	cards while in combat without changing the saved collapsed state and without
@@ -177,8 +180,9 @@ dense stack stays scannable without reading it word by word.
 	the last hidden sender can be restored from the overflow row. An outgoing
 	whisper to a taped sender drops that tape entry instead of bringing the card
 	back. Clear-all empties both the panel and the tape.
-- Overflow is paged. Left-click walks through extra senders twelve at a time;
-	a new incoming whisper returns to the first page.
+- Overflow is paged. Left-click walks through extra senders using the selected
+	page size of six, eight, or twelve; a new incoming whisper returns to the
+	first page.
 - Follow-up timers keep running across `/reloadui`. Unanswered senders are
 	snapshotted per character so a reload cannot wipe pending cards. The snapshot
 	stores only sender identity, unread count, and timestamps: never message
@@ -357,7 +361,8 @@ All visual and behavioral release defaults live in the table exported by
 `Config.lua`. It groups:
 
 - panel, header, card, and overflow dimensions;
-- card internals: rail width, seal size, meta column widths, row offsets;
+- card internals: rail width, text padding, compact sender width, meta column
+	widths, row offsets, and header icon textures;
 - normal and compact font sizes;
 - background, text, hairline, hover, and accent colors;
 - the per-sender identity hue palette;

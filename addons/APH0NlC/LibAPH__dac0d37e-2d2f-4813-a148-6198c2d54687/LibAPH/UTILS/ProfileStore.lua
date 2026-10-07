@@ -19,6 +19,7 @@ function LibAPH.CreateProfileStore(opts)
 		getSaved = opts.getSaved,
 		field = opts.field or "profiles",
 		activeField = opts.activeField or "active_profile",
+		perCharacter = opts.perCharacter == true,
 		capture = opts.capture,
 		onChanged = opts.onChanged,
 	}, ProfileStore)
@@ -44,14 +45,58 @@ function ProfileStore:GetNames()
 	return names
 end
 
+local function CharacterKey()
+	return GetCurrentCharacterId()
+end
+
+function ProfileStore:ActiveMap(saved)
+	local map = saved[self.activeField]
+	if type(map) ~= "table" then
+		map = {}
+		saved[self.activeField] = map
+	end
+	return map
+end
+
 function ProfileStore:GetActiveName()
 	local saved = self.getSaved()
-	return saved and saved[self.activeField] or nil
+	if not saved then return nil end
+	if not self.perCharacter then return saved[self.activeField] end
+	local map = saved[self.activeField]
+	return type(map) == "table" and map[CharacterKey()] or nil
 end
 
 function ProfileStore:SetActiveName(name)
 	local saved = self.getSaved()
-	if saved then saved[self.activeField] = name end
+	if not saved then return end
+	if self.perCharacter then
+		self:ActiveMap(saved)[CharacterKey()] = name
+	else
+		saved[self.activeField] = name
+	end
+end
+
+function ProfileStore:ReplaceActive(saved, oldName, newName)
+	if not self.perCharacter then
+		if saved[self.activeField] == oldName then saved[self.activeField] = newName end
+		return
+	end
+	local map = self:ActiveMap(saved)
+	for key, name in pairs(map) do
+		if name == oldName then map[key] = newName end
+	end
+end
+
+function ProfileStore:GetCharacterIdsUsing(name)
+	local ids = {}
+	local saved = self.getSaved()
+	if not saved or not self.perCharacter then return ids end
+	local map = saved[self.activeField]
+	if type(map) ~= "table" then return ids end
+	for id, active in pairs(map) do
+		if active == name then ids[#ids + 1] = id end
+	end
+	return ids
 end
 
 function ProfileStore:Get(name)
@@ -62,11 +107,11 @@ end
 
 function ProfileStore:Save(name, snapshot)
 	if not name or name == "" then return false, "empty" end
-	local profiles, saved = self:Profiles()
+	local profiles = self:Profiles()
 	if not profiles then return false, "nosaved" end
 	local existed = profiles[name] ~= nil
 	profiles[name] = snapshot or (self.capture and self.capture())
-	saved[self.activeField] = name
+	self:SetActiveName(name)
 	self:Changed()
 	return true, existed and "overwritten" or "created"
 end
@@ -76,7 +121,7 @@ function ProfileStore:Delete(name)
 	if not profiles then return false end
 	if not profiles[name] then return false end
 	profiles[name] = nil
-	if saved[self.activeField] == name then saved[self.activeField] = nil end
+	self:ReplaceActive(saved, name, nil)
 	self:Changed()
 	return true
 end
@@ -89,7 +134,7 @@ function ProfileStore:Rename(oldName, newName)
 	if profiles[newName] then return false, "duplicate" end
 	profiles[newName] = profiles[oldName]
 	profiles[oldName] = nil
-	if saved[self.activeField] == oldName then saved[self.activeField] = newName end
+	self:ReplaceActive(saved, oldName, newName)
 	self:Changed()
 	return true
 end

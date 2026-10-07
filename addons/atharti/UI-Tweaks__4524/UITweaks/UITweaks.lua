@@ -31,6 +31,8 @@ local defaultSV = {
 	--AutoClaimLevelUpRewards = true,
 	cleanAntiqTool = false,
 	visitPlayer = false,
+	dontStopInteraction = false,
+	disableGroupAreaPopup = false,
 }
 -- =========================================================
 function UIT.CleanAchievement()
@@ -40,11 +42,9 @@ end
 -- =========================================================
 function UIT.InsertItemLink(inventorySlot)
 	local components = ZO_InventorySlot_GetInventorySlotComponents(inventorySlot)
-	if components then
-		local itemLink = GetItemLink(components.bagId, components.slotIndex, LINK_STYLE_BRACKETS)
-		if itemLink then
-			ZO_LinkHandler_InsertLink(itemLink)
-		end
+	local itemLink = GetItemLink(components.bagId, components.slotIndex, LINK_STYLE_BRACKETS)
+	if itemLink then
+		ZO_LinkHandler_InsertLink(itemLink)
 	end
 end
 
@@ -151,8 +151,6 @@ local QUESTS_TO_ABANDON = {
 local autoAbandonEnabled = true
 
 function UIT.OnQuestAdded(eventCode, journalQuestIndex, questName, objectiveName)
-	if not UIT.SV.RollRawlkhaEnabled then return end
-
 	local questId = GetJournalQuestId(journalQuestIndex)
 
 	if questId == 5834 then
@@ -169,32 +167,27 @@ function UIT.OnQuestAdded(eventCode, journalQuestIndex, questName, objectiveName
 end
 -- =========================================================
 function UIT.SetCameraZoom()
-	local ZOOM_MAX = 10
 	local ZOOM_MIN = 2
 	local ZOOM_FPV = 0
 	local ZOOM_STEP = 0.5
 
-	local lastZoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
-	local cameraSavedVars = ZO_SavedVars:New("UITweaks_CameraZoom_SV", 1, nil, {zoom = lastZoom})
+	local savedZoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
 
 	local function IsZoomLimited()
-		return (IsMounted() or IsWerewolf())
+		return IsMounted() or IsWerewolf()
 	end
 
 	local origToggleGameCameraFirstPerson = ToggleGameCameraFirstPerson
 	ToggleGameCameraFirstPerson = function(...)
 		local zoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
-		if IsZoomLimited() or zoom <= ZOOM_FPV then
-			if zoom <= ZOOM_FPV then
-				SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, cameraSavedVars.zoom)
-			else
-				lastZoom = zoom
-				SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, ZOOM_FPV)
-			end
+		if zoom <= ZOOM_FPV then
+			SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, savedZoom)
+		elseif not IsZoomLimited() then
+			savedZoom = zoom
+			origToggleGameCameraFirstPerson(...)
 		else
 			origToggleGameCameraFirstPerson(...)
 		end
-		cameraSavedVars.zoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
 	end
 
 	local origCameraZoomIn = CameraZoomIn
@@ -203,16 +196,12 @@ function UIT.SetCameraZoom()
 		if IsGameCameraSiegeControlled() or zoom > ZOOM_MIN then
 			origCameraZoomIn(...)
 		else
-			local newZoom = zoom - ZOOM_STEP
-			if newZoom < ZOOM_FPV then
-				newZoom = ZOOM_FPV
-			end
+			local newZoom = zo_max(zoom - ZOOM_STEP, ZOOM_FPV)
 			if newZoom < zoom then
+				savedZoom = zoom
 				SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, newZoom)
-				lastZoom = zoom
 			end
 		end
-		cameraSavedVars.zoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
 	end
 
 	local origCameraZoomOut = CameraZoomOut
@@ -221,22 +210,18 @@ function UIT.SetCameraZoom()
 		if IsGameCameraSiegeControlled() or zoom >= ZOOM_MIN then
 			origCameraZoomOut(...)
 		else
-			local newZoom = zoom + ZOOM_STEP
-			SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, newZoom)
+			SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, zoom + ZOOM_STEP)
 		end
-		cameraSavedVars.zoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
 	end
 
 	EM:RegisterForEvent(UIT.name .. "_CameraZoom", EVENT_PLAYER_ACTIVATED, function()
-		SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, cameraSavedVars.zoom)
+		SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, savedZoom)
 	end)
 end
 -- =========================================================
 function UIT.SetHideStealth()
 	local stealthText = WINDOW_MANAGER:GetControlByName("ZO_ReticleContainerStealthIconStealthText")
-	if stealthText then
-		stealthText:SetText("")
-	end
+	stealthText:SetText("")
 end
 
 -- =========================================================
@@ -358,24 +343,14 @@ function UIT.CursorFix()
 end
 
 -- =========================================================
-function UIT_ReloadUI()
-	ReloadUI()
-end
--- =========================================================
 function UIT.DisableEnlightenment()
 	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
 
-	local function SuppressEnlightenment(...)
-		if UIT.SV.enlightenmentOff then
-			return true
-		end
-		return false
-	end
-
-	ZO_PreHook(handlers, EVENT_ENLIGHTENED_STATE_GAINED, SuppressEnlightenment)
-	ZO_PreHook(handlers, EVENT_ENLIGHTENED_STATE_LOST, SuppressEnlightenment)
-	ZO_PreHook(handlers, EVENT_PLAYER_ACTIVATED, SuppressEnlightenment)
+	ZO_PreHook(handlers, EVENT_ENLIGHTENED_STATE_GAINED, function() return true end)
+	ZO_PreHook(handlers, EVENT_ENLIGHTENED_STATE_LOST,	 function() return true end)
+	ZO_PreHook(handlers, EVENT_PLAYER_ACTIVATED,		 function() return true end)
 end
+
 -- =========================================================
 function UIT.DisableContextMenuAction(actionStringId)
 	ZO_PreHook(ZO_InventorySlotActions, "AddSlotAction", function(self, actionId)
@@ -417,6 +392,47 @@ function UIT.slashVisit()
 			JumpToHouse(player)
 		end
 	end
+end
+
+-- =========================================================
+function UIT.NoInterrupt()
+	ZO_PreHook(END_IN_WORLD_INTERACTIONS_FRAGMENT, "Show", function(self)
+		EndPendingInteraction()
+		self:OnShown()
+		return true
+	end)
+end
+
+-- =========================================================
+function UIT.SuppressGroupZone()
+	local lang = GetCVar("language.2")
+
+	local entering, leaving
+	if lang == "de" then
+		entering = "Ihr habt einen Bereich für Gruppen betreten."
+		leaving	 = "Ihr habt den Bereich für Gruppen verlassen."
+	elseif lang == "fr" then
+		entering = "Vous entrez dans une zone de groupe."
+		leaving	 = "Sortie de la zone de groupe."
+	elseif lang == "ru" then
+		entering = "Вы входите в групповую область."
+		leaving	 = "Вы покидаете групповую область."
+	elseif lang == "zh" then
+		entering = "您正在进入组队区域."
+		leaving	 = "您即将离开组队区域."
+	else
+		entering = "Entering Group Area."
+		leaving	 = "Leaving Group Area."
+	end
+
+	local handlers = ZO_CenterScreenAnnounce_GetEventHandlers()
+
+	local function HookGroupZoneMessages(primaryText, secondaryText)
+		return primaryText == entering or primaryText == leaving
+			or secondaryText == entering or secondaryText == leaving
+	end
+
+	ZO_PreHook(handlers, EVENT_DISPLAY_ANNOUNCEMENT, HookGroupZoneMessages)
 end
 
 
@@ -529,6 +545,14 @@ function UIT.Initialize()
 
 	if UIT.SV.visitPlayer then
 		UIT.slashVisit()
+	end
+
+	if UIT.SV.dontStopInteraction then
+		UIT.NoInterrupt()
+	end
+
+	if UIT.SV.disableGroupAreaPopup then
+		UIT.SuppressGroupZone()
 	end
 end
 

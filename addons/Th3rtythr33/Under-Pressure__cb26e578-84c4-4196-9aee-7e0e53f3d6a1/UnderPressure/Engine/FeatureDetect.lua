@@ -27,9 +27,11 @@
 --    hardcoded into ASSUMED below. All are archived with their consuming
 --    guards in APIAUDITS.md at the workspace root.
 --
--- 2. REPORTING -- UP.RunApiAudit(), on demand via /up-api-audit, printed to
---    chat. Nothing depends on it. This used to be a block in the debug
---    overlay plus a startup dump into the debug log buffer; both are gone.
+-- 2. REPORTING -- UP.RunApiAudit(), on demand from the "Print API audit"
+--    button under Settings > Debug (the /up-api-audit slash command through
+--    0.3.3), printed to chat. Nothing depends on it. This used to be a block in
+--    the debug overlay plus a startup dump into the debug log buffer; both are
+--    gone.
 --
 --    It reports the STARTUP SNAPSHOT, so what you read is what the addon is
 --    actually running on. It does not re-probe -- see the comment above
@@ -46,7 +48,7 @@ UP.features = {}
 -- The addon prints NOTHING to chat unless the user asks for it. Anything that
 -- would previously have been a d() during load -- the version banner, the
 -- saved-vars migration notice, and the three failure messages -- is recorded
--- here instead and printed by /up-api-audit.
+-- here instead and printed by the API audit (Settings > Debug > Print).
 --
 -- Diagnosability is the point: on console Lua errors are invisible, so a
 -- failed load that also says nothing anywhere is undebuggable. This keeps the
@@ -73,7 +75,7 @@ end
 --                       EVENT_PLAYER_COMBAT_STATE being registered, and that
 --                       behaviour works. So: true.
 --
--- They still appear in /up-api-audit, labelled (assumed), so the readout
+-- They still appear in the API audit, labelled (assumed), so the readout
 -- never implies a measurement that did not happen. The probes and the guards
 -- they gated are preserved in APIAUDITS.md at the workspace root -- restore
 -- from there if ZOS ever changes this.
@@ -144,7 +146,7 @@ function UP.RunFeatureDetect()
 end
 
 -- ---------------------------------------------------------------------------
--- REPORTING (/up-api-audit)
+-- REPORTING (Settings > Debug > Print API audit)
 -- ---------------------------------------------------------------------------
 -- Reports the flags the addon is ACTUALLY RUNNING ON -- the startup snapshot,
 -- not a fresh probe.
@@ -229,6 +231,18 @@ function UP.RunApiAudit()
         d("  |cFF4040Silence ring cannot work: neither constant exists|r")
     end
 
+    -- Plaguebreak (0.4.0). The tracker hard-codes two ability ids (159612 the
+    -- plague, 159623 the explosion) with a name fallback. REPORTING ONLY, like
+    -- the silence lines: a failure here does not change behaviour, it means the
+    -- fallback is carrying the feature, which is worth knowing on hardware.
+    if UP.Plague and UP.Plague.VerifyIds then
+        local ok, detail = UP.Plague.VerifyIds()
+        d(("  %s  %-16s %s"):format(
+            ok and "|c00FF00YES|r" or (ok == false and "|cFF4040NO |r" or "|cAAAAAA?? |r"),
+            "plaguebreakIds",
+            ok and tostring(detail) or ("-- " .. tostring(detail) .. "; relying on name matching")))
+    end
+
     -- A Tank-mode block used to follow, reporting whether the group-filtered
     -- second registration was active -- it depended on combatFilter AND
     -- COMBAT_UNIT_TYPE_OTHER_PLAYER at once, which the per-flag list above did
@@ -236,6 +250,11 @@ function UP.RunApiAudit()
     -- consumer of COMBAT_UNIT_TYPE_OTHER_PLAYER is gone with it.
 end
 
--- Registered at file scope, not from onAddOnLoaded, so the audit still works
--- if startup bailed -- which is exactly when you most want to run it.
-SLASH_COMMANDS["/up-api-audit"] = function() UP.RunApiAudit() end
+-- No slash command (0.4.0). Through 0.3.3 /up-api-audit was registered HERE,
+-- at file scope, so the audit still worked when startup bailed before
+-- onAddOnLoaded finished -- exactly when it is most useful. Moving it onto an
+-- LHAS button gives that up: the button only exists if UP.Settings.Init ran.
+-- Accepted knowingly, because on console the command meant typing through the
+-- on-screen keyboard and the author wanted every slash command gone. The
+-- "never ran" branch in UP.RunApiAudit above is kept so the function stays
+-- correct if a future diagnostic path calls it from a failed startup.

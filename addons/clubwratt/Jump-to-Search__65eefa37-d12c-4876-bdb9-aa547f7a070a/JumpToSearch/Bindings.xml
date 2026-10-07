@@ -1,0 +1,17 @@
+<Bindings>
+    <!--
+        Our own action layer so the R3 press is only live while a searchable gamepad
+        screen is showing (Main pushes/removes it on scene state changes). The action
+        inherits R3's default binding and falls through to the screen's own R3 keybind
+        (destroy, stow materials, bank upgrade, preview...) when the handler returns false,
+        i.e. when the header is unavailable or the user is already in it.
+    -->
+    <Layer name="JumpToSearchLayer" allowFallthrough="true">
+        <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
+            <Action name="JUMP_TO_SEARCH_FOCUS" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+                <Down>return JumpToSearch.FocusActions.OnJumpKeyDown()</Down>
+                <Up>return JumpToSearch.FocusActions.OnJumpKeyUp()</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

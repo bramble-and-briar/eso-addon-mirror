@@ -1,0 +1,10 @@
+## Title: ZoneSweep
+## Author: TheGreyWolf98
+## Version: 0.3.0
+## AddOnVersion: 6
+## APIVersion: 101050 101051
+## SavedVariables: ZoneSweepSavedVariables
+## Description: Current-zone checklist test. Type /zs to open.
+
+BossData.lua
+ZoneSweep.lua

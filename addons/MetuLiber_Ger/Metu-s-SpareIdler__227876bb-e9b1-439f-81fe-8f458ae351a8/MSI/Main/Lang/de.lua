@@ -166,6 +166,7 @@ local localization_strings = {
 	MSI_MOD_COLLECTED_CHTLINE 		= "<<1>> gesammelt",
 	MSI_MOD_OPENED_STCKBL_CHTLINE 	= "<<1>> ge\195\182ffnet (Stapelbar)",
 	MSI_MOD_OPENED_CONTI_CHTLINE 	= "<<1>> ge\195\182ffnet",
+	MSI_MOD_OPENED_UNOPENED_CHTLINE = "<<1>> aufgemacht",
 	MSI_MOD_DETECTED_CRAFTED_LINE 	= "<<1>> (CraftConti) erkannt",
 	MSI_MOD_OPENED_CRAFTED_LINE 	= "<<1>> (CraftConti) ge\195\182ffnet",
 	MSI_MOD_OPENED_SCROLL_CHTLINE 	= "<<1>> ausgerollt",

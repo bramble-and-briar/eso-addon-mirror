@@ -35,6 +35,9 @@ function ATT_Functions:checkPotion(itemLink)
   local prolongedEffect = LibAlchemy.effectsByWritID[prolongedEffectId]
 
   local BestCombination = LibAlchemy:getBestCombination({ effect1, effect2, effect3, prolongedEffect })
+  if type(BestCombination) ~= "table" then
+    return { [3] = 3 }
+  end
   return { BestCombination, string.format("%.2f", LibAlchemy:getCraftingCost(BestCombination, itemLink)), 0 }
 end
 
@@ -97,6 +100,11 @@ function ATT_Functions:AddPotionInfo(tooltip, type)
 
 
     end
+    if type[3] == 3 then
+      AddDivider(tooltip)
+      AddVerticalPadding(tooltip, 8)
+      AddLine(tooltip, GetString(AT_NoCombination))
+    end
   end
 
 end
@@ -131,8 +139,12 @@ function ATT_Functions:processItemLink(link)
   local CP = tonumber(select(5, ZO_LinkHandler_ParseLink(link)) - select(6, ZO_LinkHandler_ParseLink(link)))
   local iconTexture = ATT_Variables.replaceIcons[GetItemLinkItemType(link) .. "-" .. CP .. "-" .. effect1 .. "-" .. effect2 .. "-" .. effect3] or 0
   if effect1 ~= 0 then
-    local BestCombination = LibAlchemy:getBestCombination({ LibAlchemy.effectsByWritID[effect1], LibAlchemy.effectsByWritID[effect2], LibAlchemy.effectsByWritID[effect3], LibAlchemy.effectsByWritID[effect4] }) or 0
-    local craftingCost = LibAlchemy:getCraftingCost(BestCombination, link) or 0
+    local BestCombination = LibAlchemy:getBestCombination({ LibAlchemy.effectsByWritID[effect1], LibAlchemy.effectsByWritID[effect2], LibAlchemy.effectsByWritID[effect3], LibAlchemy.effectsByWritID[effect4] })
+    local qualityNumber = 0
+    if type(BestCombination) == "table" then
+      local craftingCost = LibAlchemy:getCraftingCost(BestCombination, link) or 0
+      qualityNumber = ATT_Functions:getPotionQualityBasedOnCraftingCost(craftingCost)
+    end
     local newText = "(" .. getDisplayedEffectName(effect1)
     if effect2 ~= 0 then
       newText = newText .. "/" .. getDisplayedEffectName(effect2)
@@ -141,7 +153,7 @@ function ATT_Functions:processItemLink(link)
       end
     end
     newText = newText .. ")"
-    return newText, ATT_Functions:getPotionQualityBasedOnCraftingCost(craftingCost), iconTexture
+    return newText, qualityNumber, iconTexture
   end
   return GetItemLinkName(link), 0, 0
 end
@@ -156,7 +168,10 @@ end
 function ATT_Functions:GetCustomQualityFromItemLink(link)
   local effect1, effect2, effect3, effect4 = LibAlchemy:GetEffectsFromItemLink(link)
   if effect1 ~= 0 then
-    local BestCombination = LibAlchemy:getBestCombination({ LibAlchemy.effectsByWritID[effect1], LibAlchemy.effectsByWritID[effect2], LibAlchemy.effectsByWritID[effect3], LibAlchemy.effectsByWritID[effect4] }) or 0
+    local BestCombination = LibAlchemy:getBestCombination({ LibAlchemy.effectsByWritID[effect1], LibAlchemy.effectsByWritID[effect2], LibAlchemy.effectsByWritID[effect3], LibAlchemy.effectsByWritID[effect4] })
+    if type(BestCombination) ~= "table" then
+      return nil
+    end
     local craftingCost = LibAlchemy:getCraftingCost(BestCombination, link) or 0
     return ATT_Functions:getPotionQualityBasedOnCraftingCost(craftingCost)
   end

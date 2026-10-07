@@ -9,6 +9,16 @@
 --   5. Register event listeners
 --   6. Start the engine tick loop and the (slower) UI refresh loop
 --
+-- NO SLASH COMMANDS (0.4.0). Through 0.3.3 this file registered /updebug and
+-- /up-visual-test (and 0.4.0 briefly added /up-plague-test), while
+-- FeatureDetect registered /up-api-audit and Debug registered /upfont. All of
+-- them are gone: on console a slash command means opening the on-screen
+-- keyboard through chat, and every one of them had a natural home in the
+-- settings menu -- Preview buttons beside the toggles they preview, a Print
+-- button for the API audit, a slider for the overlay text size, and the
+-- overlay checkbox that already existed. SLASH_COMMANDS is not touched
+-- anywhere in this add-on; Tools/tests/underpressure_plague.lua asserts it.
+--
 -- TIMERS: there are two, deliberately at different rates.
 --   * UnderPressure_Tick    -- 10 Hz, the pressure model. State changes push
 --                              to the UI immediately from inside the engine.
@@ -30,9 +40,14 @@
 
 UP = UP or {}
 UP.name    = "UnderPressure"
--- Keep in sync with ## Version in UnderPressure.addon and panelData.version
--- in Settings.lua. Through 0.2.7 these three disagreed four ways.
-UP.version = "0.3.0"
+-- Keep in sync with ## Version in UnderPressure.addon. Through 0.2.7 the
+-- version string lived in three places and disagreed four ways; as of 0.3.3
+-- there are two, because Settings.lua now READS UP.version for the settings
+-- panel header rather than carrying its own copy.
+UP.version = "0.4.0"
+-- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
+-- displays panel.author but never sets it). Matches ## Author in the manifest.
+UP.author  = "Th3rtythr33"
 
 local DEFAULT_SAVED = {
     hidden        = false,
@@ -44,6 +59,14 @@ local DEFAULT_SAVED = {
     -- Silence ring (0.3.0). Independent of `hidden`, which is the Threat
     -- Indicator's master toggle -- see UI/SilenceRing.lua for why.
     silence_ring  = true,
+    -- Plaguebreak (0.4.0). Its own switches, independent of `hidden` like the
+    -- silence ring. Strength is the tint root's alpha; see UI/PlagueTint.lua.
+    plague_tint          = true,
+    plague_tint_strength = 0.6,
+    plague_report        = true,
+    -- Debug overlay text size (0.4.0), formerly the /upfont tuner's argument,
+    -- which was never persisted. Snapped to the gamepad font ladder on apply.
+    debug_font_size      = 27,
     tunables      = {},
     abilityOverrides   = {},
     riskBonusOverrides = {},
@@ -59,8 +82,10 @@ local DEFAULT_SAVED = {
 -- point of removing the controls was that the defaults are tuned, so clear the
 -- overrides once and let everyone land on them.
 --
--- LAM's registerForDefaults would normally have covered this, but it only
--- resets controls that still exist in the options table.
+-- A settings library's reset-to-defaults would normally have covered this, but
+-- it only resets controls that still exist in the options table. True of LAM's
+-- registerForDefaults through 0.3.2 and equally true of LibHarvensAddonSettings'
+-- allowDefaults since 0.3.3, which iterates its own settings list.
 local REMOVED_TUNABLES = {
     "weight_1s", "weight_2s", "weight_3s", "weight_6s",
     "burst_multiplier", "effect_weight", "pressure_floor",
@@ -90,7 +115,7 @@ local SAVED_VARS_VERSION = 3
 -- does not actually persist (documented in ZOS's own zo_savedvars.lua).
 --
 -- Account-wide rather than per-character: these are HUD preferences, and
--- users with several tanks would otherwise have to retune each one.
+-- users with several characters would otherwise have to retune each one.
 
 -- Drop stored values for settings whose control no longer exists. Guarded by
 -- its own flag rather than SAVED_VARS_VERSION: bumping the version resets the
@@ -195,12 +220,17 @@ local function onAddOnLoaded(eventCode, addonName)
 
     -- Classifier needs access to override tables in saved vars
     UP.Classifier.init(UP.sv)
+    -- Plague tracker: resets state and checks the hard-coded ability ids still
+    -- resolve to plague names (a failure becomes a startup note).
+    UP.Plague.Init()
 
     -- UI
     if not UP.UI.Init() then return end
     -- Not fatal if it fails: the silence ring disables itself and the rest of
     -- the addon carries on. Its initial state is seeded by the Resync below.
     UP.SilenceRing.Init()
+    -- Same contract as the ring: disables itself if its control is missing.
+    UP.PlagueTint.Init()
     UP.Debug.Init()
     UP.Debug.SetVisible(UP.sv.debug or false)
 
@@ -216,6 +246,9 @@ local function onAddOnLoaded(eventCode, addonName)
     -- rest of the duration -- the same failure shape as the combat-state seeding
     -- below. Must run AFTER SilenceRing.Init so there is a UI to publish to.
     UP.Silence.Resync()
+    -- Same for a plague already on us at /reloadui. Must run AFTER
+    -- PlagueTint.Init so there is a tint to publish to.
+    UP.Plague.Resync()
 
     -- Seed combat state. EVENT_PLAYER_COMBAT_STATE only fires on a CHANGE, so
     -- without this the addon believes it is out of combat until the next
@@ -234,46 +267,10 @@ local function onAddOnLoaded(eventCode, addonName)
     UP.Engine.Start()
     EVENT_MANAGER:RegisterForUpdate(UI_REFRESH_NAMESPACE, UI_REFRESH_MS, refreshUI)
 
-    -- Slash commands
-    SLASH_COMMANDS["/updebug"] = function()
-        if UP.Debug and UP.Debug.Toggle then
-            UP.Debug.Toggle()
-            UP.sv.debug = not UP.sv.debug
-        end
-    end
-
-    -- Shows the silence ring for 10s without needing something to actually
-    -- silence you. Registered here rather than at file scope (as /up-api-audit
-    -- is) because it needs UP.SilenceRing.Init to have run -- and unlike the
-    -- audit, there is no value in it working after a failed startup.
-    --
-    -- This prints one line to chat. The standing rule is no chat output unless
-    -- the user asks for it; typing the command IS asking, same as
-    -- /up-api-audit. A test command that gave no acknowledgement would be
-    -- indistinguishable from one that failed to register.
-    local function runVisualTest()
-        if UP.SilenceRing and UP.SilenceRing.RunVisualTest and UP.SilenceRing.RunVisualTest() then
-            d(("|cFFD700[Under Pressure]|r silence ring shown for %ds (visual test)."):format(
-                (UP.SilenceRing.TestDurationMs() or 10000) / 1000))
-        else
-            d("|cFF4040[Under Pressure]|r silence ring unavailable; nothing to show.")
-        end
-    end
-    SLASH_COMMANDS["/up-visual-test"] = runVisualTest
-
-    -- NOTE: "/up" is also declared as panelData.slashCommand in Settings.lua,
-    -- so LibAddonMenu registers it itself when LAM is present. We only claim
-    -- the command when LAM is ABSENT (console today), where it would
-    -- otherwise do nothing at all. Overwriting LAM's working handler with our
-    -- own -- which is what 0.2.7 did -- was strictly a downgrade: it gated on
-    -- LibStub (removed in LAM r36+, so the branch was dead) and passed
-    -- UP_IndicatorRoot, the indicator texture control, to OpenToPanel instead
-    -- of the settings panel object.
-    if not (UP.Settings and UP.Settings.panel) then
-        SLASH_COMMANDS["/up"] = function()
-            d("[Under Pressure] Settings UI unavailable (LibAddonMenu-2.0 not loaded).")
-        end
-    end
+    -- No slash commands are registered here or anywhere else -- see the note
+    -- at the top of this file. "/up" went in 0.3.3 with LibAddonMenu (LHAS has
+    -- no slash-command concept; its console entry is Main Menu > Add-Ons), and
+    -- the rest went in 0.4.0, each replaced by a control in the settings menu.
 
     UP.Note(("v%s loaded cleanly."):format(UP.version))
 end

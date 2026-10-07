@@ -1,0 +1,22 @@
+## Title: Jump to Search
+## Author: clubwratt
+## Version: 0.1.1
+## AddOnVersion: 101
+## APIVersion: 101050
+## Description: Press R3 in the inventory, bank, guild bank, guild store, vendor, mail or trade screen to focus the search box without scrolling to the top. Up or down returns to the item you were on.
+## SavedVariables: JumpToSearchSavedVars
+## OptionalDependsOn: LibConsoleLogger
+## DevId: 65eefa37-d12c-4876-bdb9-aa547f7a070a
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+Bindings.xml
+JumpToSearch.lua
+JumpToSearchTypes.lua
+JumpToSearchState.lua
+JumpToSearchLogUtils.lua
+JumpToSearchScreenUtils.lua
+JumpToSearchFocusActions.lua
+SlashCommandUtils.lua
+SlashCommandActions.lua
+Main.lua

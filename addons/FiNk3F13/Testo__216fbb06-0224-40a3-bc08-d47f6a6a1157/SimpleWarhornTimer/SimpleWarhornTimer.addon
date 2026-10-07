@@ -1,0 +1,10 @@
+
+## Title: SimpleWarhornTimer
+## APIVersion: 101051
+## Version: 1.6.2
+## Author: FiNk3F13
+## Description: Zeigt Buff-Timer fuer Warhorn und andere Buffs an, mit Chat-Uptime am Kampfende.
+## DependsOn: LibHarvensAddonSettings
+## SavedVariables: SimpleWarhornTimer_SavedVariables
+
+SimpleWarhornTimer.lua

@@ -18,7 +18,7 @@
     "AlchemyTooltips"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2531/",
-  "fingerprint": "9ce7ba41ecc4945cfd38bf673801bbe2c12686d44dbb9557d6a7c133733a8144",
+  "fingerprint": "da9e8e42396497126ae84543d6055531ef449983217921744b01d95c8666bf12",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9653.png",
     "https://cdn-eso.mmoui.com/preview/pvw9650.png",
@@ -36,11 +36,11 @@
   "source_id": "2531",
   "source_url": "https://www.esoui.com/downloads/info2531-AlchemyTooltips.html",
   "stats": {
-    "downloads": 64515,
-    "favorites": 114,
-    "monthly_downloads": 178
+    "downloads": 64949,
+    "favorites": 115,
+    "monthly_downloads": 719
   },
   "title": "Alchemy Tooltips",
-  "updated_at": 1791248811000,
-  "version": "1.31"
+  "updated_at": 1791295312000,
+  "version": "1.32"
 }

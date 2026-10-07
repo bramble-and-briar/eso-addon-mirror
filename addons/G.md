@@ -83,7 +83,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Grandparents holiday Guildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KesBruun/Grandparents-holiday-Guildhall__3272) | KesBruun | PC / Mac | 0.0.1.1 |
 | [Greasy Grabby Mitts (Lucent Orphic Mirrors)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Greasy-Grabby-Mitts-Lucent-Orphic-Mirrors__4366) | STUDLETON | PC / Mac | 0.2.0 |
 | [GREED](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Previsible/GREED__4691) | Previsible | PC / Mac | 1 |
-| [Greymind Quick Slot Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bsrealm/Greymind-Quick-Slot-Bar__258) | bsrealm | PC / Mac | v2.7.2.24 |
+| [Greymind Quick Slot Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bsrealm/Greymind-Quick-Slot-Bar__258) | bsrealm | PC / Mac | v2.7.2.25 |
 | [GREYMOOR - Enhanced Lockpicking - A Lockpicking Interface Retexture](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luxape/GREYMOOR---Enhanced-Lockpicking---A-Lockpicking-Interface-Retexture__2420) | luxape | PC / Mac | 1.4 |
 | [Greyskull : Weapon / Spell Damage Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/Greyskull-Weapon-Spell-Damage-Meter__1924) | ghostbane | PC / Mac | 1.1.1 |
 | [Grid Pad — a real grid inventory for gamepad players](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SquizzOC/Grid-Pad-a-real-grid-inventory-for-gamepad-players__4686) | SquizzOC | PC / Mac | 1.04 |

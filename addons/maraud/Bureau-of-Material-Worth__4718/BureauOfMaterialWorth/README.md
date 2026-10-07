@@ -58,6 +58,10 @@ materials the total updates on its own.
   figures stand out. Both the icons and the color scale can be toggled off.
 
 ### Per-category material table
+- A shared **Guild Bureau** appearance across all windows: graphite surfaces,
+  brass rules, turquoise actions, flat controls, and persistent
+  **Materials / Changes / Dynamics** tabs. Choose **Comfortable** or **Compact**
+  interface density in settings; changing density requires a UI reload.
 - **Click any category row** to open a separate, scrollable window listing *every
   individual material* in that profession - handy for "Other", which can hold
   hundreds of distinct materials.
@@ -65,8 +69,8 @@ materials the total updates on its own.
 - Each row shows the material's **icon**, its **name** (tinted by quality), a
   compact **price-source badge** (MM / TTC / ATT and other LibPrice sources), the
   **quantity** you hold, and its **total value**. Hover the **icon** for the
-  game's own item tooltip. **Shift-click** a row to insert the item link in chat;
-  the table header keeps that reminder visible. **Click any column header** to
+  game's own item tooltip. **Shift-click** a row to insert the item link in chat.
+  **Click any column header** to
   sort by it (click again to flip direction), including Price dynamics and
   **Since snapshot**. A category list still opens on **value, highest first** - the "what
   to sell right now" order - so the stacks that make up most of the bag's worth
@@ -124,8 +128,8 @@ materials the total updates on its own.
 
 ### Snapshot and changes
 
-- The material table has snapshot controls on its title bar. **Remember** saves a
-  snapshot of the Craft Bag's current composition; **Since snapshot** shows a
+- The material table has snapshot controls beside its view tabs. **Remember** saves a
+  snapshot of the Craft Bag's current composition; the **Changes** tab shows a
   per-material diff against it - what was added, removed, or changed in quantity.
   Replacing an existing snapshot requires confirmation, preventing an accidental
   click from silently resetting the comparison baseline.
@@ -219,6 +223,9 @@ materials the total updates on its own.
   baseline (per visit or per session); show/hide the value-history sparkline and
   the chat announcement; show/hide the background and border; set the panel width
   and offset; choose chat-debug verbosity; and force a price refresh.
+- **Current settings**, **Appearance**, and **Diagnostics and saved data** stay
+  visible without opening a submenu. Summary width defaults to **460 px**, with
+  a **460-600 px** range and more room for category names and percentages.
 - Full **English and Russian** localization.
 - Slash commands for everything (see below).
 

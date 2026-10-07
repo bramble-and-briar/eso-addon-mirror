@@ -8,6 +8,10 @@
   "category_id": "27",
   "compatibility": [
     {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
     }
@@ -18,7 +22,7 @@
     "AOD"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4622/",
-  "fingerprint": "7c56d7ac8662cadc633828dfb165938f7242dd9850b9a1a3552c2fdf23aa57fd",
+  "fingerprint": "9499550d2a42e5e80c58755df3ba42b89a6a4d0c16df3a8c8b9d5409bcd2a5e7",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16278.png",
     "https://cdn-eso.mmoui.com/preview/pvw17106.png",
@@ -31,11 +35,11 @@
   "source_id": "4622",
   "source_url": "https://www.esoui.com/downloads/info4622-AutomaticOverlandDifficultyAOD.html",
   "stats": {
-    "downloads": 5084,
-    "favorites": 7,
-    "monthly_downloads": 3893
+    "downloads": 5427,
+    "favorites": 10,
+    "monthly_downloads": 278
   },
   "title": "Automatic Overland Difficulty (AOD)",
-  "updated_at": 1788531445000,
-  "version": "1.5.1"
+  "updated_at": 1791290158000,
+  "version": "1.5.2"
 }

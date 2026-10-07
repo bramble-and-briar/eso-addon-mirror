@@ -66,6 +66,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Channel Skill Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockingdice/Channel-Skill-Helper__1829) | rockingdice | PC / Mac | 1.01 |
 | [Chaotic Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kanori/Chaotic-Tools__3686) | kanori | PC / Mac | 2.171 |
 | [Character Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Achievements__3322) | silvereyes | PC / Mac | 1.0.2 |
+| [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Character-Bound-Item-Hider__4922) | APH0N1C | PC / Mac | 2026.10.06.13.49 |
+| [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Character-Bound-Item-Hider__49e5c9da-dc0d-4bf5-b60c-6e6e53784107) | APH0NlC | Console | — |
 | [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.3.0 |
 | [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.3 |
 | [Character Zone Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Zone-Tracker__3323) | silvereyes | PC / Mac | 1.3.0 |

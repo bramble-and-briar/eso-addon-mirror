@@ -141,17 +141,19 @@ function ALC.build_lam2_menu()
 		type = "checkbox",
 		name = function() return ALC.L("CHK_AUTO_POOL_CLEANUP") end,
 		getFunc = function() return ALC.settings.auto_clear_pool_on_teleport end,
-		setFunc = function(v) ALC.settings.auto_clear_pool_on_teleport = v end
+		setFunc = function(v)
+			ALC.settings.auto_clear_pool_on_teleport = v
+			ALC.refresh_slash_commands()
+		end
 	})
 
-	table.insert(cleanup_controls, {
+	if ALC.settings.auto_clear_pool_on_teleport then table.insert(cleanup_controls, {
 		type = "checkbox",
 		name = function() return ALC.L("CHK_AUTO_POOL_CLEANUP_CONFIRM") end,
 		getFunc = function() return ALC.settings.pool_reload_confirm_auto end,
 		setFunc = function(v) ALC.settings.pool_reload_confirm_auto = v end,
-		disabled = function() return not ALC.settings.auto_clear_pool_on_teleport end,
-		hidden = function() return not ALC.settings.auto_clear_pool_on_teleport end
-	})
+		disabled = function() return not ALC.settings.auto_clear_pool_on_teleport end
+	}) end
 
 	ALC.platform_build_pool_threshold_slider(cleanup_controls)
 
@@ -205,6 +207,7 @@ function ALC.build_lam2_menu()
 			setFunc = function(v)
 				ALC.settings.show_ui = v
 				ALC.call_optional(ALC.toggle_ui_update, "UI module (toggle_ui_update)")
+				ALC.refresh_slash_commands()
 			end
 		},
 		{
@@ -288,6 +291,9 @@ function ALC.build_lam2_menu()
 		disabled = function() return not ALC.settings.show_ui end
 	})
 
+	if not ALC.settings.show_ui then
+		for index = #ui_config_controls, 2, -1 do table.remove(ui_config_controls, index) end
+	end
 	table.insert(build_data, {
 		type = "submenu",
 		name = function() return "|c00FFFF" .. ALC.L("HEADER_UI_CONFIG") .. "|r" end,
@@ -421,6 +427,7 @@ function ALC.build_lam2_menu()
 
 	lam_panel = lib_lam:RegisterAddonPanel("AutoLuaCleanerOptions", menu_header)
 	lib_lam:RegisterOptionControls("AutoLuaCleanerOptions", build_data)
+	ALC.menu_layout = ALC.get_menu_layout()
 
 	local persisted_submenus = {
 		"ALC_Submenu_UIConfig", "ALC_Submenu_Language",

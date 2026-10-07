@@ -1,0 +1,9 @@
+## Title: KDialogueHistory
+## Description: Keeps your previous dialogue choices visible during conversations, with NPC and dialogue details on hover.
+## Author: |cFF9B15@Konten|r
+## Version: 1.0.0
+## APIVersion: 101051
+
+; AI-Generated: Ðeveloped with the assistance of Google Gemini.
+
+KDialogueHistory.lua

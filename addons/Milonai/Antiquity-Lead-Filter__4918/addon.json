@@ -1,0 +1,42 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Milonai/Antiquity-Lead-Filter__4918",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Milonai",
+  "canonical_id": "esoui:4918",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4918",
+  "deleted": false,
+  "directories": [
+    "AntiquityLeadFilter",
+    "__MACOSX"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4918/",
+  "fingerprint": "c6a2cdc2e4186bc6e659c2d75f4eb1fb7c63f53de066588a0af5dd0676cfdce8",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17792.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17763.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17764.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4918",
+  "source_url": "https://www.esoui.com/downloads/info4918-AntiquityLeadFilter.html",
+  "stats": {
+    "downloads": 37,
+    "favorites": 0,
+    "monthly_downloads": 33
+  },
+  "title": "Antiquity Lead Filter",
+  "updated_at": 1791371362000,
+  "version": "16"
+}

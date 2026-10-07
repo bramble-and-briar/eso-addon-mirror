@@ -41,8 +41,8 @@ local METRIC = UI.METRIC
 -- fallback when no value is saved, and MIN/MAX/STEP bound the slider. Every
 -- width-dependent control reads CurrentWidth() so a width change can be
 -- re-applied at runtime without recreating controls.
-local DEFAULT_WINDOW_WIDTH = 400
-local MIN_WINDOW_WIDTH = 400
+local DEFAULT_WINDOW_WIDTH = 460
+local MIN_WINDOW_WIDTH = 460
 local MAX_WINDOW_WIDTH = 600
 local WINDOW_WIDTH_STEP = 10
 local PADDING        = METRIC.PADDING
@@ -52,14 +52,12 @@ local TOTAL_TO_PROFILE_GAP = 5
 local PROFILE_TO_SUBTITLE_GAP = 1
 local TOTAL_HEIGHT   = 34
 local SUBTITLE_HEIGHT = 18
-local ROW_HEIGHT     = 22
+local ROW_HEIGHT     = 30
 local DIVIDER_GAP    = 10   -- vertical space a divider occupies
 local FOOTER_LINE    = 16
 local SECTION_GAP    = 4    -- compact, consistent separation between blocks
 local SPARK_TOP_GAP  = 12   -- separation between footer and history caption
-local VERSION_LINE_GAP = 2
-local VERSION_DATE_HEIGHT = FOOTER_LINE
-local VERSION_TO_TOTAL_GAP = 8
+local TITLE_TO_TOTAL_GAP = 14
 local HEADER_TO_DIVIDER_GAP = 1
 local FOOTER_ALPHA   = 0.82
 local HEADER_BAND_PAD = METRIC.BAND_PAD
@@ -230,7 +228,6 @@ local profileLabel    -- "@account · Character" on the right of the title line
 local totalLabel      -- prominent grand-total gold figure
 local subtitleLabel   -- "<n> slots · <n> stacks · <n> items"
 local versionNameLabel -- compact addon name at the bottom of the panel
-local versionLabel    -- compact release date at the bottom of the panel
 local dividerTop      -- line under the header block
 local dividerBottom   -- line above the footer
 -- Footer rows are two-column (muted label left, value right), mirroring the
@@ -337,8 +334,7 @@ end
 -- underline does not crowd the text it sits under. Derived rather than a constant
 -- so a change to either line's height carries the band with it.
 local function HeaderBandHeight()
-    return PADDING + ADDON_NAME_HEIGHT + VERSION_LINE_GAP + VERSION_DATE_HEIGHT
-        + HEADER_BAND_PAD
+    return PADDING + ADDON_NAME_HEIGHT + HEADER_BAND_PAD
 end
 
 -- Both of the panel's rules come from the shared builder, at the two shared
@@ -363,14 +359,18 @@ local function CreateFooterRow(name)
     label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     label:SetAnchor(LEFT, container, LEFT, 0, 0)
-    label:SetWidth(CurrentWidth() * 0.4)
+    label:SetWidth((CurrentWidth() - PADDING * 2) * 0.42 - METRIC.GAP)
+    label:SetMaxLineCount(1)
+    label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
     local value = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
     value:SetFont(FONT.small)
     value:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     value:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     value:SetAnchor(RIGHT, container, RIGHT, 0, 0)
-    value:SetWidth(CurrentWidth() * 0.6 - PADDING)
+    value:SetWidth((CurrentWidth() - PADDING * 2) * 0.58)
+    value:SetMaxLineCount(1)
+    value:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
     return { container = container, label = label, value = value }
 end
@@ -425,14 +425,14 @@ local function AcquireRow(index)
     -- until the tooltip appeared; this is the same accent wash the detail and
     -- withdraw tables use, so a hover means the same thing everywhere.
     local shareFill = UI.CreateFill(nil, container, UI.CHROME.CATEGORY_SHARE)
-    shareFill:SetHeight(ROW_HEIGHT - 4)
-    shareFill:SetAnchor(LEFT, container, LEFT, 0, 0)
+    shareFill:SetHeight(2)
+    shareFill:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, LEADER_MARKER_WIDTH + 5, -1)
     shareFill:SetHidden(true)
 
     local hoverFill = UI.CreateHoverFill(nil, container)
 
     local leaderMarker = WINDOW_MANAGER:CreateControl(nil, container, CT_TEXTURE)
-    leaderMarker:SetDimensions(LEADER_MARKER_WIDTH, ROW_HEIGHT - 6)
+    leaderMarker:SetDimensions(LEADER_MARKER_WIDTH, 16)
     leaderMarker:SetAnchor(LEFT, container, LEFT, 0, 0)
     leaderMarker:SetColor(unpack(LEADER_MARKER_COLOR))
     leaderMarker:SetHidden(true)
@@ -441,15 +441,19 @@ local function AcquireRow(index)
     nameLabel:SetFont(FONT.body)
     nameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     nameLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    nameLabel:SetAnchor(LEFT, container, LEFT, LEADER_MARKER_WIDTH + 5, 0)
-    nameLabel:SetWidth(CurrentWidth() * 0.5 - LEADER_MARKER_WIDTH - 5)
+    nameLabel:SetAnchor(LEFT, container, LEFT, LEADER_MARKER_WIDTH + 5, -2)
+    nameLabel:SetWidth((CurrentWidth() - PADDING * 2) * 0.60 - LEADER_MARKER_WIDTH - 13)
+    nameLabel:SetMaxLineCount(1)
+    nameLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
     local goldLabel = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
     goldLabel:SetFont(FONT.body)
     goldLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     goldLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    goldLabel:SetAnchor(RIGHT, container, RIGHT, 0, 0)
-    goldLabel:SetWidth(CurrentWidth() * 0.5 - PADDING)
+    goldLabel:SetAnchor(RIGHT, container, RIGHT, 0, -2)
+    goldLabel:SetWidth((CurrentWidth() - PADDING * 2) * 0.40)
+    goldLabel:SetMaxLineCount(1)
+    goldLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 
     local row = {
         container = container,
@@ -546,6 +550,7 @@ function Window.Initialize()
         return
     end
 
+    ROW_HEIGHT = UI.RowHeight("category")
     rowPool = {}
 
     windowControl = WINDOW_MANAGER:CreateTopLevelWindow(addon.name .. "_Window")
@@ -564,8 +569,8 @@ function Window.Initialize()
     backdrop = WINDOW_MANAGER:CreateControl(addon.name .. "_Backdrop", windowControl, CT_BACKDROP)
     backdrop:SetAnchorFill(windowControl)
 
-    -- The shared letterhead: an accent wash behind the addon name and release
-    -- line, closed by an accent underline. Created before those labels so it sits
+    -- The shared letterhead: a brass wash behind the addon name,
+    -- closed by a fine rule. Created before those labels so it sits
     -- behind them, and spanning the full window width (not the inner width) so it
     -- reads as a band across the panel rather than a floating rectangle.
     headerBand = UI.CreateHeaderBand(addon.name .. "_HeaderBand", windowControl,
@@ -576,27 +581,13 @@ function Window.Initialize()
 
     versionNameLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_VersionName", windowControl, CT_LABEL)
     versionNameLabel:SetFont(FONT.heading)
-    versionNameLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    versionNameLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     versionNameLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     versionNameLabel:SetAlpha(1)
     versionNameLabel:SetWidth(CurrentWidth() - PADDING * 2)
     versionNameLabel:SetHeight(ADDON_NAME_HEIGHT)
-    versionNameLabel:SetText(Colorize(COLOR_ACCENT, GetString(SI_BMW_WINDOW_ADDON_NAME)))
-
-    versionLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_Version", windowControl, CT_LABEL)
-    versionLabel:SetFont(FONT.small)
-    versionLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    versionLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    versionLabel:SetAlpha(0.58)
-    versionLabel:SetWidth(CurrentWidth() - PADDING * 2)
-    versionLabel:SetHeight(VERSION_DATE_HEIGHT)
-    -- Version and release date come from the core table, not from the localized
-    -- string, so bumping BureauOfMaterialWorth.version updates this footer in
-    -- every language at once.
-    versionLabel:SetText(Colorize(COLOR_MUTED, stringformat(
-        GetString(SI_BMW_WINDOW_VERSION_DATE), addon.version, addon.releaseDate)))
+    versionNameLabel:SetText(Colorize(UI.HEX.brass, GetString(SI_BMW_WINDOW_ADDON_NAME)))
     versionNameLabel:SetAnchor(TOPLEFT, windowControl, TOPLEFT, PADDING, PADDING)
-    versionLabel:SetAnchor(TOPLEFT, versionNameLabel, BOTTOMLEFT, 0, VERSION_LINE_GAP)
 
     -- Account/character identity follows the bag composition line.
     profileLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_Profile", windowControl, CT_LABEL)
@@ -613,7 +604,7 @@ function Window.Initialize()
     totalLabel:SetFont(FONT.hero)
     totalLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     totalLabel:SetDimensions(CurrentWidth() - PADDING * 2, TOTAL_HEIGHT)
-    totalLabel:SetAnchor(TOPLEFT, versionLabel, BOTTOMLEFT, 0, VERSION_TO_TOTAL_GAP)
+    totalLabel:SetAnchor(TOPLEFT, versionNameLabel, BOTTOMLEFT, 0, TITLE_TO_TOTAL_GAP)
     -- Hover the grand total for the "net if sold" breakdown: the guild-store
     -- listing fee (1%) and sales tax (7%) itemized, then the gold left after both.
     -- The Craft Bag total is valued at market/list price, so this answers "what
@@ -1036,7 +1027,7 @@ local function RenderSparkline(innerWidth)
     -- A bar is never narrower than one pixel, so a series with more samples than
     -- the strip has pixels would sum up wider than its container and spill past
     -- the panel edge. VALUE_HISTORY_CAPACITY (90) fits comfortably inside the
-    -- narrowest supported panel (MIN_WINDOW_WIDTH 400 minus padding), but nothing
+    -- narrowest supported panel (MIN_WINDOW_WIDTH 460 minus padding), but nothing
     -- enforced that pairing: raising the capacity or lowering the minimum width
     -- silently broke the layout. Clamp to what fits and drop the oldest samples
     -- beyond it, so the chart degrades to a shorter time window instead.
@@ -1135,8 +1126,7 @@ local function RenderSparkline(innerWidth)
 end
 
 local function HeaderContentHeight()
-    return PADDING + ADDON_NAME_HEIGHT + VERSION_LINE_GAP + VERSION_DATE_HEIGHT
-        + VERSION_TO_TOTAL_GAP + TOTAL_HEIGHT + TOTAL_TO_PROFILE_GAP
+    return PADDING + ADDON_NAME_HEIGHT + TITLE_TO_TOTAL_GAP + TOTAL_HEIGHT + TOTAL_TO_PROFILE_GAP
         + PROFILE_HEIGHT + PROFILE_TO_SUBTITLE_GAP + SUBTITLE_HEIGHT
 end
 
@@ -1247,7 +1237,7 @@ function Window.Update()
                 and data.gold / grandTotal or 0
             if share > 0 then
                 row.shareFill:SetWidth(mathmax(2,
-                    zo_round((CurrentWidth() - PADDING * 2) * share)))
+                    zo_round((CurrentWidth() - PADDING * 2 - LEADER_MARKER_WIDTH - 5) * share)))
                 row.shareFill:SetHidden(false)
             else
                 row.shareFill:SetHidden(true)
@@ -1269,8 +1259,8 @@ function Window.Update()
                     stringformat(GetString(SI_BMW_ROW_PERCENT), data.threshold))
             end
             row.name:ClearAnchors()
-            row.name:SetAnchor(LEFT, row.container, LEFT, LEADER_MARKER_WIDTH + 5, 0)
-            row.name:SetWidth(CurrentWidth() * 0.5 - LEADER_MARKER_WIDTH - 5)
+            row.name:SetAnchor(LEFT, row.container, LEFT, LEADER_MARKER_WIDTH + 5, -2)
+            row.name:SetWidth((CurrentWidth() - PADDING * 2) * 0.60 - LEADER_MARKER_WIDTH - 13)
             row.name:SetText(nameText)
             -- Flag categories that have unpriced slots with a subtle marker so
             -- the total reads honestly at a glance, detail is in the tooltip.
@@ -1497,8 +1487,8 @@ function Window.ApplyWidth()
     if versionNameLabel then
         versionNameLabel:SetWidth(innerWidth)
     end
-    if versionLabel then
-        versionLabel:SetWidth(innerWidth)
+    if totalLabel then
+        totalLabel:SetWidth(innerWidth)
     end
     if dividerBottom then
         dividerBottom:SetWidth(innerWidth)
@@ -1513,8 +1503,8 @@ function Window.ApplyWidth()
         for i = 1, #rowPool do
             local row = rowPool[i]
             row.container:SetWidth(innerWidth)
-            row.name:SetWidth(width * 0.5 - LEADER_MARKER_WIDTH - 5)
-            row.gold:SetWidth(width * 0.5 - PADDING)
+            row.name:SetWidth(innerWidth * 0.60 - LEADER_MARKER_WIDTH - 13)
+            row.gold:SetWidth(innerWidth * 0.40)
         end
     end
 
@@ -1524,8 +1514,8 @@ function Window.ApplyWidth()
             return
         end
         row.container:SetWidth(innerWidth)
-        row.label:SetWidth(width * 0.4)
-        row.value:SetWidth(width * 0.6 - PADDING)
+        row.label:SetWidth(innerWidth * 0.42 - METRIC.GAP)
+        row.value:SetWidth(innerWidth * 0.58)
     end
     ResizeFooterRow(footerInventoryRow)
     ResizeFooterRow(footerPriceRefreshRow)

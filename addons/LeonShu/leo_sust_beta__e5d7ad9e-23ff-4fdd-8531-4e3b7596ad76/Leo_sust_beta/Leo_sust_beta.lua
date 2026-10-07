@@ -6,6 +6,8 @@ local DEFAULT_TICK_INTERVAL_MS = 2000
 local MIN_TICK_INTERVAL_MS = 1400
 local MAX_TICK_INTERVAL_MS = 2600
 local TICK_TOLERANCE_MS = 450
+local INTERVAL_ADAPT_TOLERANCE_MS = 200
+local PASSIVE_REGEN_TOLERANCE = 10
 local TIMER_INTERVAL_MS = 50
 local MIN_WIDTH = 160
 local MAX_WIDTH = 900
@@ -36,18 +38,25 @@ local consoleSettings
 local settingsRegistered = false
 local settingsCallbacksRegistered = false
 local consoleSceneCallbackRegistered = false
+local sceneManagerCallbackRegistered = false
 local settingsMenuOpen = false
+local gameMenuOpen = false
 local timerUpdateRegistered = false
 local ApplyPanelSettings
 
 local state = {
     lastPower = nil,
+    lastPowerMax = nil,
     lastPowerAt = nil,
     lastDelta = nil,
     lastNaturalTickAt = nil,
     tickIntervalMs = DEFAULT_TICK_INTERVAL_MS,
+    displayIntervalMs = DEFAULT_TICK_INTERVAL_MS,
     confidence = 0,
     recentGains = {},
+    latencyAtLastNatural = nil,
+    lastLatency = nil,
+    lastExpectedRecovery = nil,
     lastClassification = "not_initialized",
 }
 
@@ -62,26 +71,66 @@ local function Clamp(value, minimum, maximum)
 end
 
 local function Now()
+    if GetGameTimeMilliseconds then
+        return GetGameTimeMilliseconds()
+    end
+
     return GetFrameTimeMilliseconds()
 end
 
-local function ReadMagicka()
-    if not GetUnitPower then
+local function GetCurrentLatency()
+    if not GetLatency then
+        return 0
+    end
+
+    return tonumber(GetLatency()) or 0
+end
+
+local function GetExpectedMagickaRecovery()
+    if not GetPlayerStat then
         return nil
     end
 
-    return tonumber(GetUnitPower("player", MAGICKA_POWER_TYPE))
+    local inCombat = IsUnitInCombat and IsUnitInCombat("player") or false
+    local statType
+    if inCombat then
+        statType = STAT_MAGICKA_REGEN_COMBAT or STAT_MAGICKA_REGEN_IDLE
+    else
+        statType = STAT_MAGICKA_REGEN_IDLE or STAT_MAGICKA_REGEN_COMBAT
+    end
+
+    if not statType then
+        return nil
+    end
+
+    local recovery = GetPlayerStat(statType)
+    return tonumber(recovery)
+end
+
+local function ReadMagickaState()
+    if not GetUnitPower then
+        return nil, nil
+    end
+
+    -- Capture both returns before converting. Passing GetUnitPower directly
+    -- to tonumber would treat the maximum value as tonumber's base argument.
+    local currentPower, powerMax = GetUnitPower("player", MAGICKA_POWER_TYPE)
+    return tonumber(currentPower), tonumber(powerMax)
 end
 
 local function ResetSynchronization(keepPower)
     state.lastNaturalTickAt = nil
     state.tickIntervalMs = DEFAULT_TICK_INTERVAL_MS
+    state.displayIntervalMs = DEFAULT_TICK_INTERVAL_MS
     state.confidence = 0
     state.recentGains = {}
+    state.latencyAtLastNatural = nil
+    state.lastLatency = nil
+    state.lastExpectedRecovery = nil
     state.lastClassification = "reset"
 
     if not keepPower then
-        state.lastPower = ReadMagicka()
+        state.lastPower, state.lastPowerMax = ReadMagickaState()
         state.lastPowerAt = Now()
     end
 
@@ -94,16 +143,18 @@ local function IsPlausibleInterval(intervalMs)
     return intervalMs >= MIN_TICK_INTERVAL_MS and intervalMs <= MAX_TICK_INTERVAL_MS
 end
 
-local function AddRecentGain(timestamp, amount)
+local function AddRecentGain(timestamp, amount, latency)
     local gains = state.recentGains
-    gains[#gains + 1] = { at = timestamp, amount = amount }
+    gains[#gains + 1] = { at = timestamp, amount = amount, latency = latency }
     while #gains > 8 do
         table.remove(gains, 1)
     end
 end
 
-local function SetNaturalTick(timestamp, measuredInterval, confidence)
-    if measuredInterval and IsPlausibleInterval(measuredInterval) then
+local function SetNaturalTick(timestamp, measuredInterval, confidence, latency)
+    if measuredInterval
+        and IsPlausibleInterval(measuredInterval)
+        and math.abs(measuredInterval - state.tickIntervalMs) <= INTERVAL_ADAPT_TOLERANCE_MS then
         state.tickIntervalMs = Clamp(
             state.tickIntervalMs * 0.8 + measuredInterval * 0.2,
             MIN_TICK_INTERVAL_MS,
@@ -112,23 +163,51 @@ local function SetNaturalTick(timestamp, measuredInterval, confidence)
     end
 
     state.lastNaturalTickAt = timestamp
+    state.latencyAtLastNatural = latency
+    -- Keep the visual duration equal to the measured passive-tick interval.
+    -- Latency is used only to validate event timing; subtracting it here
+    -- would make the bar finish before the resource actually recovers.
+    state.displayIntervalMs = state.tickIntervalMs
     state.confidence = math.max(state.confidence, confidence or 1)
     state.lastClassification = "natural"
 end
 
-local function TryLearnNaturalTick(timestamp)
+local function GetLatencyCorrectedInterval(first, second)
+    local observedInterval = second.at - first.at
+    local latencyDelta = ((second.latency or 0) - (first.latency or 0)) / 2
+    return observedInterval - latencyDelta
+end
+
+local function TryLearnNaturalTick(timestamp, latency)
     local gains = state.recentGains
 
-    -- Once the phase is known, only a gain close to the expected two-second
-    -- phase can re-anchor it. One-second sustain ticks are ignored.
+    -- Once the phase is known, require both the passive regen amount and the
+    -- expected phase. This prevents sustain abilities from re-anchoring the
+    -- timer when their restore happens near a natural tick.
     if state.lastNaturalTickAt then
-        local elapsed = timestamp - state.lastNaturalTickAt
-        local periods = math.max(1, math.floor(elapsed / state.tickIntervalMs + 0.5))
-        local expectedElapsed = periods * state.tickIntervalMs
-        if periods <= 4 and math.abs(elapsed - expectedElapsed) <= TICK_TOLERANCE_MS then
-            local measuredInterval = elapsed / periods
-            local anchor = state.lastNaturalTickAt + expectedElapsed
-            SetNaturalTick(anchor, measuredInterval, math.min(3, state.confidence + 1))
+        local previousLatency = state.latencyAtLastNatural or latency
+        local latencyDelta = (latency - previousLatency) / 2
+        local observedElapsed = timestamp - state.lastNaturalTickAt
+        local serverElapsed = observedElapsed - latencyDelta
+        local periods = math.max(1, math.floor(serverElapsed / state.tickIntervalMs + 0.5))
+        local expectedServerElapsed = periods * state.tickIntervalMs
+
+        local earlyBy = expectedServerElapsed - serverElapsed
+        local allowedEarly = math.max(0, ((previousLatency - latency) / 2) + 10)
+
+        -- A passive tick may arrive late, but it should not be accepted
+        -- hundreds of milliseconds early. Only allow early arrival explained
+        -- by the latency change between the two observations.
+        if earlyBy < allowedEarly then
+            local measuredInterval
+            if math.abs(serverElapsed - expectedServerElapsed) <= INTERVAL_ADAPT_TOLERANCE_MS then
+                measuredInterval = serverElapsed / periods
+            end
+
+            -- The event timestamp is the moment the client actually observes
+            -- the resource change. Start the next visual cycle here instead
+            -- of anchoring it at a rounded future timestamp.
+            SetNaturalTick(timestamp, measuredInterval, math.min(3, state.confidence + 1), latency)
             return true
         end
 
@@ -139,16 +218,16 @@ local function TryLearnNaturalTick(timestamp)
     -- Before locking the phase, require two consecutive plausible intervals.
     -- This prevents a one-second resource effect from becoming the timer.
     if #gains >= 3 then
-        local first = gains[#gains - 2].at
-        local second = gains[#gains - 1].at
         local third = gains[#gains].at
-        local firstInterval = second - first
-        local secondInterval = third - second
+        local firstInterval = GetLatencyCorrectedInterval(gains[#gains - 2], gains[#gains - 1])
+        local secondInterval = GetLatencyCorrectedInterval(gains[#gains - 1], gains[#gains])
 
         if IsPlausibleInterval(firstInterval)
             and IsPlausibleInterval(secondInterval)
+            and math.abs(firstInterval - state.tickIntervalMs) <= INTERVAL_ADAPT_TOLERANCE_MS
+            and math.abs(secondInterval - state.tickIntervalMs) <= INTERVAL_ADAPT_TOLERANCE_MS
             and math.abs(firstInterval - secondInterval) <= TICK_TOLERANCE_MS then
-            SetNaturalTick(third, (firstInterval + secondInterval) / 2, 2)
+            SetNaturalTick(third, (firstInterval + secondInterval) / 2, 2, latency)
             return true
         end
     end
@@ -158,18 +237,26 @@ local function TryLearnNaturalTick(timestamp)
 end
 
 local function GetProgress(timestamp)
-    if not state.lastNaturalTickAt or state.tickIntervalMs <= 0 then
+    if not state.lastNaturalTickAt or state.displayIntervalMs <= 0 then
         return 0
     end
 
     local elapsed = math.max(0, timestamp - state.lastNaturalTickAt)
-    local remainder = elapsed % state.tickIntervalMs
-    return Clamp(remainder / state.tickIntervalMs, 0, 1)
+    -- Keep predicting the shared cycle between confirmed ticks. A confirmed
+    -- passive event will correct the phase, while the prediction prevents the
+    -- bar from freezing at 100% if the next power update is delayed or merged
+    -- with another resource change.
+    local remainder = elapsed % state.displayIntervalMs
+    return Clamp(remainder / state.displayIntervalMs, 0, 1)
 end
 
 local function IsPanelAllowedByVisibility()
     if settingsMenuOpen then
         return true
+    end
+
+    if gameMenuOpen then
+        return false
     end
 
     if not savedVars.showOnlyInCombat then
@@ -275,6 +362,55 @@ local function OnConsoleSettingsSceneStateChange(newState)
         settingsMenuOpen = false
         ApplyPanelSettings()
     end
+end
+
+local function GetCurrentSceneName()
+    if not SCENE_MANAGER or not SCENE_MANAGER.GetCurrentScene then
+        return nil
+    end
+
+    local currentScene = SCENE_MANAGER:GetCurrentScene()
+    if currentScene and currentScene.GetName then
+        return currentScene:GetName()
+    end
+
+    return nil
+end
+
+local function IsHudSceneName(sceneName)
+    return sceneName == "hud" or sceneName == "hudui"
+end
+
+local function SyncGameMenuState()
+    local currentSceneName = GetCurrentSceneName()
+    if currentSceneName then
+        gameMenuOpen = not IsHudSceneName(currentSceneName)
+    end
+end
+
+local function OnSceneStateChanged(scene, _, newState)
+    local sceneName = scene and scene.GetName and scene:GetName() or nil
+    if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+        -- Any non-HUD scene is a menu or modal interface. The own settings
+        -- callback can override this through settingsMenuOpen.
+        if sceneName and not IsHudSceneName(sceneName) then
+            gameMenuOpen = true
+        end
+    elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+        SyncGameMenuState()
+    end
+
+    Render()
+end
+
+local function RegisterSceneManagerCallback()
+    if sceneManagerCallbackRegistered or not SCENE_MANAGER or not SCENE_MANAGER.RegisterCallback then
+        return
+    end
+
+    SCENE_MANAGER:RegisterCallback("SceneStateChanged", OnSceneStateChanged)
+    sceneManagerCallbackRegistered = true
+    SyncGameMenuState()
 end
 
 local function RegisterConsoleSettingsSceneCallback()
@@ -473,7 +609,7 @@ local function InitializeSettings()
             name = "Leo Sust Beta",
             displayName = "Leo Sust Beta",
             author = "Leo_Kujo",
-            version = "0.1.0",
+            version = "0.1.7",
             registerForRefresh = true,
             registerForDefaults = true,
         })
@@ -513,12 +649,16 @@ local function PrintDiagnostics(command)
     local now = Now()
     local progress = GetProgress(now)
     AddChatLine(string.format(
-        "Lua=LOADED | HUD=%s | Settings=%s | magicka=%s | delta=%s | interval=%.0fms | confidence=%d | progress=%.2f | last=%s",
+        "Lua=LOADED | HUD=%s | Settings=%s | magicka=%s | max=%s | delta=%s | passive=%s | latency=%dms | interval=%.0fms | display=%.0fms | confidence=%d | progress=%.2f | last=%s",
         panel and "OK" or "NOT_INITIALIZED",
         settingsRegistered and "OK" or "NOT_REGISTERED",
         tostring(state.lastPower),
+        tostring(state.lastPowerMax),
         tostring(state.lastDelta),
+        tostring(state.lastExpectedRecovery),
+        state.lastLatency or 0,
         state.tickIntervalMs,
+        state.displayIntervalMs,
         state.confidence,
         progress,
         state.lastClassification
@@ -527,24 +667,68 @@ end
 
 SLASH_COMMANDS["/leosust"] = PrintDiagnostics
 
-local function OnPowerUpdate(_, unitTag, _, powerType, power)
+local function MatchesPassiveRecovery(amount, expectedRecovery, previousPower, currentPower, powerMax)
+    if not expectedRecovery or expectedRecovery <= 0 then
+        return false
+    end
+
+    local expectedGain = expectedRecovery
+
+    -- The final natural tick can be smaller than the recovery stat when the
+    -- resource reaches its maximum. Treat that capped remainder as passive
+    -- instead of losing synchronization at the cap.
+    if powerMax
+        and previousPower
+        and currentPower
+        and currentPower >= powerMax
+        and previousPower < powerMax then
+        local remainingToCap = powerMax - previousPower
+        if remainingToCap > 0 then
+            expectedGain = math.min(expectedGain, remainingToCap)
+        end
+    end
+
+    return expectedGain > 0 and math.abs(amount - expectedGain) <= PASSIVE_REGEN_TOLERANCE
+end
+
+local function OnPowerUpdate(_, unitTag, _, powerType, power, powerMax)
     if unitTag ~= "player" or powerType ~= MAGICKA_POWER_TYPE then
         return
     end
 
-    local currentPower = tonumber(power) or ReadMagicka()
+    local currentPower = tonumber(power)
+    local currentPowerMax = tonumber(powerMax)
+    if not currentPower then
+        currentPower, currentPowerMax = ReadMagickaState()
+    elseif not currentPowerMax then
+        local _, readPowerMax = ReadMagickaState()
+        currentPowerMax = readPowerMax
+    end
     if not currentPower then
         return
     end
 
     local timestamp = Now()
+    local latency = GetCurrentLatency()
+    local expectedRecovery = GetExpectedMagickaRecovery()
+    state.lastLatency = latency
+    state.lastExpectedRecovery = expectedRecovery
+    if currentPowerMax then
+        state.lastPowerMax = currentPowerMax
+    end
     if state.lastPower ~= nil then
         local delta = currentPower - state.lastPower
         state.lastDelta = delta
         if delta > 0 then
-            AddRecentGain(timestamp, delta)
-            if TryLearnNaturalTick(timestamp) then
-                StartTimerUpdates()
+            if MatchesPassiveRecovery(delta, expectedRecovery, state.lastPower, currentPower, currentPowerMax or state.lastPowerMax) then
+                AddRecentGain(timestamp, delta, latency)
+                if TryLearnNaturalTick(timestamp, latency) then
+                    StartTimerUpdates()
+                end
+            elseif expectedRecovery then
+                state.lastClassification = "external_restore"
+            else
+                state.lastClassification = "regen_stat_unavailable"
             end
         elseif delta < 0 then
             state.lastClassification = "resource_spent"
@@ -557,13 +741,17 @@ local function OnPowerUpdate(_, unitTag, _, powerType, power)
 end
 
 local function OnPlayerActivated()
-    state.lastPower = ReadMagicka()
+    state.lastPower, state.lastPowerMax = ReadMagickaState()
     state.lastPowerAt = Now()
     state.lastDelta = nil
     state.lastNaturalTickAt = nil
     state.tickIntervalMs = DEFAULT_TICK_INTERVAL_MS
+    state.displayIntervalMs = DEFAULT_TICK_INTERVAL_MS
     state.confidence = 0
     state.recentGains = {}
+    state.latencyAtLastNatural = nil
+    state.lastLatency = GetCurrentLatency()
+    state.lastExpectedRecovery = GetExpectedMagickaRecovery()
     state.lastClassification = "waiting_for_natural_ticks"
     ApplyPanelSettings()
 end
@@ -607,6 +795,7 @@ local function OnAddOnLoaded(_, addonName)
     NormalizeSavedVars()
     SetBackdropColors()
     ApplyPanelSettings()
+    RegisterSceneManagerCallback()
     InitializeSettings()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)

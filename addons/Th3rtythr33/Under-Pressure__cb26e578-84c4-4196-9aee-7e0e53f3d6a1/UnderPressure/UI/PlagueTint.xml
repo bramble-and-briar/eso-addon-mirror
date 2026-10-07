@@ -1,0 +1,61 @@
+<GuiXml>
+    <Animations>
+        <!--
+            Breathing haze for the Plaguebreak screen tint (0.4.0).
+
+            Same construction as UP_SilencePulse: declared here, driven by the
+            engine, no per-frame Lua. The base Vignette layer stays at constant
+            alpha so the tint never reads as "off" mid-cycle; only the flat Haze
+            layer breathes, which is what makes it look like smoke rather than a
+            colour filter. 2.6 s per cycle is deliberately slow: this is a
+            persistent condition, not an alarm, and a fast pulse over the whole
+            screen is nauseating.
+
+            (XML comments cannot contain a double hyphen; see UI/SilenceRing.xml.)
+        -->
+        <AnimationTimeline name="UP_PlagueHazePulse" playbackType="LOOP" loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <AlphaAnimation duration="1300" startAlpha="0" endAlpha="0.35"/>
+                <AlphaAnimation duration="1300" delay="1300" startAlpha="0.35" endAlpha="0"/>
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
+
+    <Controls>
+        <!--
+            Full-screen Plaguebreak tint.
+
+            Anchored to GuiRoot on both corners so it fills whatever the screen
+            is. layer=BACKGROUND and tier=LOW on the TOP-LEVEL control put it
+            beneath every other HUD element, including this add-on's own
+            indicator and ring. (Precedent for both attributes on a
+            TopLevelControl: ZO_AntiquityDiggingTopLevel carries
+            layer="BACKGROUND"; ZO_AutoSaving_Console_TopLevel carries tier.)
+            The workspace note about a CHILD given a different tier from its
+            parent not rendering does not apply here: the children inherit.
+
+            Vignette: our own 256x256 white DXT5 with a radial, lightly noised
+            alpha (clear centre, dense corners), tinted green by `color`.
+            Haze:     no texture file, a solid colour rectangle, alpha driven by
+                      UP_PlagueHazePulse. Starts at 0 so it cannot flash before
+                      the timeline takes over.
+
+            Strength is applied to the ROOT via SetAlpha from Lua; child alpha
+            inherits, so one call scales both layers together.
+
+            mouseEnabled=false: this must never eat a click or a stick.
+        -->
+        <TopLevelControl name="UP_PlagueTintRoot" mouseEnabled="false" movable="false" hidden="true" layer="BACKGROUND" tier="LOW">
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT"/>
+            <Anchor point="BOTTOMRIGHT" relativeTo="GuiRoot" relativePoint="BOTTOMRIGHT"/>
+            <Controls>
+                <Texture name="$(parent)Vignette" textureFile="UnderPressure/UI/Textures/plague_vignette.dds" color="6B9E55">
+                    <AnchorFill/>
+                </Texture>
+                <Texture name="$(parent)Haze" color="5E8F4A" alpha="0">
+                    <AnchorFill/>
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

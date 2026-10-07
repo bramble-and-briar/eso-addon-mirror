@@ -44,7 +44,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FCO Guild Lottery (Raffle, guild members joined list, dice throws & history)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Guild-Lottery-Raffle-guild-members-joined-list-dice-throws-history__2942) | Baertram | PC / Mac | 0.4 |
 | [FCO GuildCampaign](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-GuildCampaign__3567) | Baertram | PC / Mac | 0.3 |
 | [FCO GuildInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-GuildInfo__1265) | Baertram | PC / Mac | 2.44 |
-| [FCO ItemSaver (Mark, filter and save your items against decon/sell/etc.)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ItemSaver-Mark-filter-and-save-your-items-against-decon-sell-etc__630) | Baertram | PC / Mac | 2.8.3 |
+| [FCO ItemSaver (Mark, filter and save your items against decon/sell/etc.)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ItemSaver-Mark-filter-and-save-your-items-against-decon-sell-etc__630) | Baertram | PC / Mac | 2.8.4 |
 | [FCO Lockpicker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Lockpicker__909) | Baertram | PC / Mac | 0.31 |
 | [FCO Lockpicker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram_ESOUI/FCO-Lockpicker__f141edd7-7b4f-4b3e-b32e-9e6df1ec228b) | Baertram_ESOUI | Console | — |
 | [FCO Mounty](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Mounty__1866) | Baertram | PC / Mac | 0.2.81 |
@@ -95,6 +95,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Flexatron](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/Flexatron__cf03f2d9-c234-46ee-a20b-ae75c678e225) | -Chin | Console | — |
 | [Flexible Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Flexible-Bars__4be7617d-7e6d-42bf-bcbb-921e37ace7bc) | M0R | Console | — |
 | [FloatingDamageNumbers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bluraptor7099/FloatingDamageNumbers__4381) | bluraptor7099 | PC / Mac | 1.4.1 |
+| [Flobot's Blame Game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim-p/Flobot-s-Blame-Game__4920) | tim-p | PC / Mac | 2026-10-06 |
 | [Floffel's Pledge queuer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Floffel/Floffel-s-Pledge-queuer__2563) | Floffel | PC / Mac | 1.42 |
 | [Flowers She Likes (Fixed & Modernized) - original by Ayantir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Flowers-She-Likes-Fixed-Modernized---original-by-Ayantir__4398) | Hyborem | PC / Mac | v.14.2 |
 | [Fluffiels' Panic Beams](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fluffiels/Fluffiels-Panic-Beams__4579) | Fluffiels | PC / Mac | 1.09 |

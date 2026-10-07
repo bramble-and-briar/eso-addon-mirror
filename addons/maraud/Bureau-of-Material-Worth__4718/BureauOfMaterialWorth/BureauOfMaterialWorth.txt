@@ -1,13 +1,13 @@
 ## Title: |c6FCB9FBureau|r of Material Worth
-## Version: 4.6.202120
-## AddOnVersion: 46
+## Version: 4.7.181736
+## AddOnVersion: 47
 ## APIVersion: 101051
 ## Author: |c6FCB9Fmeshlg|r @ArtieFox
 ## Description: Know what your Craft Bag is worth. Sums its market value (via LibPrice) with a per-profession breakdown and a clickable, scrollable material list.
 ## SavedVariables: BureauOfMaterialWorth_SavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43 LibPrice>=70530
 
-; ReleaseDate: 05.10.2026 | 4.6.202120
+; ReleaseDate: 06.10.2026 | 4.7.181736
 ; !!! On release, update exactly two places: the ## Version / ## AddOnVersion
 ; lines above, and the `version` / `releaseDate` fields in
 ; BureauOfMaterialWorth.lua. The footer label, the settings dashboard and the

@@ -53,6 +53,7 @@ local DEFAULT_SAVED_VARS = {
     colorScaleGold = true,
     sortByValue = false,
     detailColumnMode = "analytics",
+    uiDensity = "comfortable",
     deltaMode = "visit",
     showBackground = true,
     showBorder = false,
@@ -60,7 +61,7 @@ local DEFAULT_SAVED_VARS = {
     showProfile = true,
     notificationMode = "detailed",
     showInGuildStore = true,
-    windowWidth = 400,
+    windowWidth = 460,
     windowOffsetX = -25,
     windowOffsetY = 0,
     priceTrendThreshold = 20,
@@ -169,7 +170,7 @@ function Settings.NormalizeWindowWidth()
         return
     end
 
-    local minWidth = (addon.Window and addon.Window.MIN_WIDTH) or 400
+    local minWidth = (addon.Window and addon.Window.MIN_WIDTH) or 460
     local maxWidth = (addon.Window and addon.Window.MAX_WIDTH) or 600
     local step = (addon.Window and addon.Window.WIDTH_STEP) or 10
     local default = (addon.Window and addon.Window.DEFAULT_WIDTH)
@@ -350,7 +351,7 @@ function Settings.RegisterSettingsPanel()
     -- mode rows (order/baseline are not on/off) use the neutral label tone.
     local STATUS_COLOR_ON   = private.COLOR_ACCENT
     local STATUS_COLOR_OFF  = private.COLOR_MUTED
-    local STATUS_COLOR_MODE = "C5C29E"
+    local STATUS_COLOR_MODE = private.UI.HEX.brass
 
     local Colorize = private.Colorize
 
@@ -418,7 +419,7 @@ function Settings.RegisterSettingsPanel()
         type = "panel",
         name = GetString(SI_BMW_PANEL_NAME),
         displayName = GetString(SI_BMW_PANEL_DISPLAY_NAME),
-        author = "|c6FCB9Fmeshlg|r @ArtieFox",
+        author = Colorize(private.COLOR_ACCENT, "meshlg") .. " @ArtieFox",
         version = addon.version,
         slashCommand = "/bmwsettings",
         registerForRefresh = true,
@@ -451,12 +452,32 @@ function Settings.RegisterSettingsPanel()
             width = "full",
         },
         {
+            type = "dropdown",
+            name = GetString(SI_BMW_SETTING_DENSITY_NAME),
+            tooltip = GetString(SI_BMW_SETTING_DENSITY_TOOLTIP),
+            choices = {
+                GetString(SI_BMW_SETTING_DENSITY_COMFORTABLE),
+                GetString(SI_BMW_SETTING_DENSITY_COMPACT),
+            },
+            choicesValues = { "comfortable", "compact" },
+            getFunc = function()
+                return GetSavedVarsOrDefaults().uiDensity == "compact" and "compact" or "comfortable"
+            end,
+            setFunc = function(value)
+                private.savedVars.uiDensity = value == "compact" and "compact" or "comfortable"
+            end,
+            default = DEFAULT_SAVED_VARS.uiDensity,
+            requiresReload = true,
+            width = "full",
+        },
+        {
             -- Category-breakdown cluster. The master "show breakdown" toggle plus
             -- the three controls (icons, color, sort) that only do anything while
             -- it is on, grouped in a submenu whose title carries a live [on]/[off]
             -- tag. The dependent controls gate on BreakdownDisabled so they grey
             -- out together when the breakdown is off.
             type = "submenu",
+            reference = "BMWSettingsBreakdownGroup",
             name = function()
                 return GetString(SI_BMW_SUBMENU_BREAKDOWN_NAME) .. "  " .. BoolTag(IsBreakdownOn())
             end,
@@ -679,7 +700,7 @@ function Settings.RegisterSettingsPanel()
             type = "slider",
             name = GetString(SI_BMW_SETTING_WIDTH_NAME),
             tooltip = GetString(SI_BMW_SETTING_WIDTH_TOOLTIP),
-            min = addon.Window and addon.Window.MIN_WIDTH or 400,
+            min = addon.Window and addon.Window.MIN_WIDTH or 460,
             max = addon.Window and addon.Window.MAX_WIDTH or 600,
             step = addon.Window and addon.Window.WIDTH_STEP or 10,
             getFunc = function() return GetSavedVarsOrDefaults().windowWidth or DEFAULT_SAVED_VARS.windowWidth end,
@@ -790,8 +811,65 @@ function Settings.RegisterSettingsPanel()
         },
     }
 
+    local byName, diagnostics = {}, {}
+    local inDiagnostics = false
+    for index = 4, #optionsData do
+        local option = optionsData[index]
+        if option.type == "header" and option.name == GetString(SI_BMW_HEADER_DIAGNOSTICS) then
+            inDiagnostics = true
+        elseif inDiagnostics then
+            diagnostics[#diagnostics + 1] = option
+        elseif option.type ~= "header" then
+            byName[option.reference or option.name] = option
+        end
+    end
+    local sections = {
+        { title = SI_BMW_HEADER_DISPLAY, names = {
+            GetString(SI_BMW_SETTING_DENSITY_NAME), GetString(SI_BMW_SETTING_BACKGROUND_NAME),
+            GetString(SI_BMW_SETTING_BORDER_NAME), GetString(SI_BMW_SETTING_PROFILE_NAME),
+            GetString(SI_BMW_SETTING_WIDTH_NAME), GetString(SI_BMW_SETTING_OFFSET_X_NAME),
+            GetString(SI_BMW_SETTING_OFFSET_Y_NAME),
+        } },
+        { title = SI_BMW_HEADER_TABLE, names = {
+            "BMWSettingsBreakdownGroup", GetString(SI_BMW_SETTING_DETAIL_COLUMNS_NAME),
+        } },
+        { title = SI_BMW_HEADER_HISTORY, names = {
+            GetString(SI_BMW_SETTING_PRICE_TREND_THRESHOLD_NAME),
+            GetString(SI_BMW_SETTING_DELTA_MODE_NAME), GetString(SI_BMW_SETTING_VALUE_HISTORY_NAME),
+        } },
+        { title = SI_BMW_HEADER_NOTIFICATIONS, names = {
+            GetString(SI_BMW_SETTING_NOTIFY_VISIT_NAME), GetString(SI_BMW_SETTING_GUILD_STORE_NAME),
+        } },
+    }
+    local groupedOptions = { optionsData[1], optionsData[3] }
+    for index = 1, #sections do
+        local section = sections[index]
+        local controls = {}
+        for nameIndex = 1, #section.names do
+            controls[#controls + 1] = byName[section.names[nameIndex]]
+        end
+        if section.title == SI_BMW_HEADER_DISPLAY then
+            groupedOptions[#groupedOptions + 1] = {
+                type = "header", name = GetString(section.title), width = "full",
+            }
+            for controlIndex = 1, #controls do
+                groupedOptions[#groupedOptions + 1] = controls[controlIndex]
+            end
+        else
+            groupedOptions[#groupedOptions + 1] = {
+                type = "submenu", name = GetString(section.title), controls = controls,
+            }
+        end
+    end
+    groupedOptions[#groupedOptions + 1] = {
+        type = "header", name = GetString(SI_BMW_HEADER_DIAGNOSTICS), width = "full",
+    }
+    for index = 1, #diagnostics do
+        groupedOptions[#groupedOptions + 1] = diagnostics[index]
+    end
+
     local panel = lam:RegisterAddonPanel(panelIdentifier, panelData)
-    lam:RegisterOptionControls(panelIdentifier, optionsData)
+    lam:RegisterOptionControls(panelIdentifier, groupedOptions)
     Settings.panel = panel
 end
 

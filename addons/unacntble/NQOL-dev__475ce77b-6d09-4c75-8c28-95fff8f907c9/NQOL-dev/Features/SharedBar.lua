@@ -215,12 +215,18 @@ PlayerBars.Group = {
     DEFAULT_WIDTH = 260,
     DEFAULT_HEIGHT = 26,
     DEFAULT_ROW_GAP = 4,
+    DEFAULT_COLUMN_GAP = 0,
+    DEFAULT_COLUMNS = 1,
+    COLUMNS_MIN = 1,
+    COLUMNS_MAX = 2,
     WIDTH_MIN = 80,
     WIDTH_MAX = 700,
     HEIGHT_MIN = 10,
     HEIGHT_MAX = 80,
     ROW_GAP_MIN = 0,
     ROW_GAP_MAX = 30,
+    COLUMN_GAP_MIN = 0,
+    COLUMN_GAP_MAX = 30,
     ICON_SIZE = 22,
     ICON_GAP = 4,
     VALUE_WIDTH = 86,
@@ -455,6 +461,8 @@ local defaults = {
                 width = PlayerBars.Group.DEFAULT_WIDTH,
                 height = PlayerBars.Group.DEFAULT_HEIGHT,
                 rowGap = PlayerBars.Group.DEFAULT_ROW_GAP,
+                columnGap = PlayerBars.Group.DEFAULT_COLUMN_GAP,
+                columns = PlayerBars.Group.DEFAULT_COLUMNS,
                 borderSize = C.CLASSIC_DEFAULT_BORDER_SIZE,
                 font = NQOL.Util.GetDefaultFont(),
                 fontSize = C.CLASSIC_DEFAULT_FONT_SIZE,
@@ -907,6 +915,8 @@ function PlayerBars.Group.GetSettings()
     NQOL.Settings.ClampedNumber(settings, groupDefaults, "width", PlayerBars.Group.WIDTH_MIN, PlayerBars.Group.WIDTH_MAX, true)
     NQOL.Settings.ClampedNumber(settings, groupDefaults, "height", PlayerBars.Group.HEIGHT_MIN, PlayerBars.Group.HEIGHT_MAX, true)
     NQOL.Settings.ClampedNumber(settings, groupDefaults, "rowGap", PlayerBars.Group.ROW_GAP_MIN, PlayerBars.Group.ROW_GAP_MAX, true)
+    NQOL.Settings.ClampedNumber(settings, groupDefaults, "columnGap", PlayerBars.Group.COLUMN_GAP_MIN, PlayerBars.Group.COLUMN_GAP_MAX, true)
+    NQOL.Settings.ClampedNumber(settings, groupDefaults, "columns", PlayerBars.Group.COLUMNS_MIN, PlayerBars.Group.COLUMNS_MAX, true)
     NQOL.Settings.ClampedNumber(settings, groupDefaults, "borderSize", C.CLASSIC_BORDER_SIZE_MIN, C.CLASSIC_BORDER_SIZE_MAX, true)
     if not NQOL.Util.IsFontChoice(settings.font) then
         settings.font = groupDefaults.font

@@ -1,7 +1,7 @@
 ## Title: |cFFD700UI Tweaks|r
 ## Author: |cFFD700@Atharti|r
 ## Description: Various UI Tweaks.
-## Version: 2.4
+## Version: 2.5
 ## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: UITweaks_SV

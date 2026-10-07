@@ -1,8 +1,8 @@
 local strings = {
     -- Settings panel
     SI_BMW_PANEL_NAME = "Bureau of Material Worth",
-    SI_BMW_PANEL_DISPLAY_NAME = "|c6FCB9FBureau|r of Material Worth",
-    SI_BMW_PANEL_INTRO = "|c6FCB9FCraft Bag value at a glance.|r Bureau of Material Worth sums the market value of everything in your Craft Bag and shows it in a small panel beside the bag, with an optional breakdown by crafting profession.",
+    SI_BMW_PANEL_DISPLAY_NAME = "|c70C5BDBureau|r of Material Worth",
+    SI_BMW_PANEL_INTRO = "|cBCA779Guild Bureau|r\nCraft Bag valuation, material records, and withdrawals.",
     SI_BMW_PANEL_OVERVIEW = "|c8C8A82• Uses LibPrice (Master Merchant / Tamriel Trade Centre / Arkadius' Trade Tools)\n• Computes lazily, only while the Craft Bag is open\n• Updates incrementally as you deposit or withdraw materials|r",
 
     -- Live at-a-glance status block at the top of the panel. It reflects the
@@ -10,7 +10,7 @@ local strings = {
     -- while the Craft Bag is open, so a value readout here would be stale or
     -- zero. On = green, off = muted grey; mode rows (order/baseline) use the
     -- neutral label tone. Each row reads through the same getter as its control.
-    SI_BMW_STATUS_TITLE = "|cC5C29ECurrent status|r",
+    SI_BMW_STATUS_TITLE = "|cBCA779Current status|r",
     SI_BMW_STATUS_ON = "on",
     SI_BMW_STATUS_OFF = "off",
     SI_BMW_STATUS_LABEL_BREAKDOWN = "Category breakdown:",
@@ -24,8 +24,15 @@ local strings = {
     SI_BMW_STATUS_LABEL_GUILD_STORE = "In guild store:",
     SI_BMW_STATUS_LABEL_DELTA = "Change baseline:",
 
-    SI_BMW_HEADER_DISPLAY = "|cC5C29EDisplay|r",
-    SI_BMW_HEADER_DIAGNOSTICS = "|cC5C29EDiagnostics|r",
+    SI_BMW_HEADER_DISPLAY = "|cBCA779Appearance|r",
+    SI_BMW_HEADER_TABLE = "|cBCA779Material table|r",
+    SI_BMW_HEADER_HISTORY = "|cBCA779History and comparison|r",
+    SI_BMW_HEADER_NOTIFICATIONS = "|cBCA779Notifications and trading|r",
+    SI_BMW_HEADER_DIAGNOSTICS = "|cBCA779Diagnostics and saved data|r",
+    SI_BMW_SETTING_DENSITY_NAME = "Interface density",
+    SI_BMW_SETTING_DENSITY_TOOLTIP = "Comfortable gives rows more space. Compact fits more data into the summary, material table, and withdraw queue. Requires a UI reload; existing window positions and data are preserved.",
+    SI_BMW_SETTING_DENSITY_COMFORTABLE = "Comfortable",
+    SI_BMW_SETTING_DENSITY_COMPACT = "Compact",
 
     -- Category-breakdown submenu: the master "show breakdown" toggle plus the
     -- three controls that only do anything while it is on (icons, color, sort).
@@ -77,7 +84,7 @@ local strings = {
     SI_BMW_SETTING_REFRESH_NAME = "Refresh prices now",
     SI_BMW_SETTING_REFRESH_TOOLTIP = "Clear the cached prices and recompute the Craft Bag value. Useful after Master Merchant or Tamriel Trade Centre finishes importing fresh data. The same action is available by clicking Market prices on the panel.",
 
-    SI_BMW_HEADER_SAVED_DATA = "|cC5C29ESaved data|r",
+    SI_BMW_HEADER_SAVED_DATA = "|cBCA779Saved data|r",
     SI_BMW_HISTORY_CLEANUP_BUTTON = "Clean outdated price history",
     SI_BMW_HISTORY_CLEANUP_TOOLTIP = "Run the automatic retention rules now, after confirmation. This does not reset recent history or your settings.",
     SI_BMW_HISTORY_CLEANUP_DESCRIPTION = "Price history is already cleaned automatically on addon load and when prices are recorded; it does not wait for a weekly timer. You may run the same cleanup now. It keeps observations from the last seven days and the latest price baseline, and removes history for materials not observed for 30 days. Only the current account and server are affected. Settings, snapshots, stock-change reports and the total-value chart are preserved.",
@@ -195,6 +202,9 @@ local strings = {
     SI_BMW_DETAIL_CONTEXT_VISIT_DIFF = "Stock: %s · Prices: %s",
     SI_BMW_DETAIL_CONTEXT_FILTER_ALL = "all prices",
     SI_BMW_DETAIL_GROUP_SNAPSHOT = "Snapshot",
+    SI_BMW_DETAIL_TAB_MATERIALS = "Materials",
+    SI_BMW_DETAIL_TAB_DIFF = "Changes",
+    SI_BMW_DETAIL_TAB_TREND = "Dynamics",
     SI_BMW_DETAIL_SNAPSHOT_READY = "Baseline: %s",
     SI_BMW_DETAIL_SNAPSHOT_MISSING = "No baseline",
     SI_BMW_DETAIL_GROUP_FILTER = "Filter",
@@ -293,6 +303,10 @@ local strings = {
     -- of the Craft Bag into the backpack.
     SI_BMW_WITHDRAW_TITLE = "Withdraw %s",
     SI_BMW_WITHDRAW_FREE_SLOTS = "Free backpack slots: %d",
+    SI_BMW_WITHDRAW_FREE_COMPACT = "Free slots: %d",
+    SI_BMW_WITHDRAW_MAX_COMPACT = "Available: %s",
+    SI_BMW_WITHDRAW_INCREASE = "Increase quantity",
+    SI_BMW_WITHDRAW_DECREASE = "Decrease quantity",
     SI_BMW_WITHDRAW_MAX = "Max withdrawable: %s",
     -- %s already carries the gold icon (see FormatGold).
     SI_BMW_WITHDRAW_TOTAL_VALUE = "Total value: %s",

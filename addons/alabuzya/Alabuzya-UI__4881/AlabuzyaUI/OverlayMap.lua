@@ -9,7 +9,7 @@ local lastUpdate='not started'
 function M.Status()
     local scene=SCENE_MANAGER and SCENE_MANAGER:GetCurrentScene()
     local name=scene and scene:GetName() or '?'
-    local text=string.format('Alabuzya UI overlay [1.0.6]: ready=%s enabled=%s requested=%s hidden=%s scene=%s update=%s',
+    local text=string.format('Alabuzya UI overlay [1.0.7]: ready=%s enabled=%s requested=%s hidden=%s scene=%s update=%s',
         tostring(db~=nil),tostring(db and db.enabled),tostring(requested),
         tostring(root and root:IsHidden()),name,lastUpdate)
     if d then d(text) end

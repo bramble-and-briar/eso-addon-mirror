@@ -1934,6 +1934,27 @@ function PlayerBars.GetGroupHeightMax()
     return PlayerBars.Group.HEIGHT_MAX
 end
 
+function PlayerBars.GetGroupColumns()
+    return PlayerBars.Group.GetSettings().columns
+end
+
+function PlayerBars.SetGroupColumns(value)
+    PlayerBars.Group.GetSettings().columns = Clamp(Round(value), PlayerBars.Group.COLUMNS_MIN, PlayerBars.Group.COLUMNS_MAX)
+    PlayerBars.Group.QueueRefresh()
+end
+
+function PlayerBars.GetGroupColumnsMin()
+    return PlayerBars.Group.COLUMNS_MIN
+end
+
+function PlayerBars.GetGroupColumnsMax()
+    return PlayerBars.Group.COLUMNS_MAX
+end
+
+function PlayerBars.GetGroupColumnsDefault()
+    return defaults.ui.customFrames.groupFrame.columns
+end
+
 function PlayerBars.GetGroupRowGap()
     return PlayerBars.Group.GetSettings().rowGap
 end
@@ -1949,6 +1970,23 @@ end
 
 function PlayerBars.GetGroupRowGapMax()
     return PlayerBars.Group.ROW_GAP_MAX
+end
+
+function PlayerBars.GetGroupColumnGap()
+    return PlayerBars.Group.GetSettings().columnGap
+end
+
+function PlayerBars.SetGroupColumnGap(value)
+    PlayerBars.Group.GetSettings().columnGap = Clamp(Round(value), PlayerBars.Group.COLUMN_GAP_MIN, PlayerBars.Group.COLUMN_GAP_MAX)
+    PlayerBars.Group.QueueRefresh()
+end
+
+function PlayerBars.GetGroupColumnGapMin()
+    return PlayerBars.Group.COLUMN_GAP_MIN
+end
+
+function PlayerBars.GetGroupColumnGapMax()
+    return PlayerBars.Group.COLUMN_GAP_MAX
 end
 
 function PlayerBars.GetGroupBorderSize()

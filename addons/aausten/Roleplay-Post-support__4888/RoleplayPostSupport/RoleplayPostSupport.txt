@@ -1,8 +1,8 @@
 ## Title: Roleplay Post Support
 ## Description: Prepare long roleplay posts in native chat, one manual Enter at a time. Optional local session archives.
 ## Author: aausten
-## Version: 1.2.2
-## AddOnVersion: 10202
+## Version: 1.2.5
+## AddOnVersion: 10205
 ## APIVersion: 101050 101051
 ## SavedVariables: RoleplayPostSupportSavedVariables
 

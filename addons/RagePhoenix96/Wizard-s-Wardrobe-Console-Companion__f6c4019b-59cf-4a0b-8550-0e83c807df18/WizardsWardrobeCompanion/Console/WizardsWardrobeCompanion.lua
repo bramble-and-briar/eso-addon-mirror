@@ -1,6 +1,6 @@
 local companion = WizardsWardrobeCompanion
 companion.name = "WizardsWardrobeCompanion"
-companion.version = "1.0.0"
+companion.version = "1.0.1"
 companion.status = "waiting"
 companion.sharedZones = {}
 companion.warnings = {}

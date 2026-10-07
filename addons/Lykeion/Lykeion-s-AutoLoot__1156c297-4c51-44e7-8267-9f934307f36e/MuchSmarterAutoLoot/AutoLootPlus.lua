@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.7"
-MSAL.addonVersion = 80307
+MSAL.version = "8.3.8"
+MSAL.addonVersion = 80308
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -2273,6 +2273,7 @@ local function OnLootUpdated()
         local chatlogPostfix = ""
 
         local lootedAs = nil
+        local isBlacklisted = itemOnList(link, BLIST_TOKEN)
         local deferTreasureLog = itemType == ITEMTYPE_TREASURE and isStolen and
             db.stolenTreasureThreshold > ITEM_DISPLAY_QUALITY_TRASH and
             not itemOnList(link, WLIST_TOKEN) and not itemOnList(link, WLIST_JUNK_TOKEN)
@@ -2282,7 +2283,7 @@ local function OnLootUpdated()
         end
 
         if (isStolen and (db.stolenRule == "never loot" or db.stolenRule == "never loot strict")) or
-            (db.stolenRule == "follow" and not CanLootWithoutBounty(link)) or itemOnList(link, BLIST_TOKEN) then
+            (db.stolenRule == "follow" and not CanLootWithoutBounty(link)) or isBlacklisted then
             if isStolen and db.stolenRule == "never loot strict" then
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_RESPECRESULT10)
             end
@@ -2357,7 +2358,7 @@ local function OnLootUpdated()
             end
         end
 
-        if not lootedAs and db.alwaysLootStackable and IsItemLinkStackable(link) then
+        if not lootedAs and not isBlacklisted and db.alwaysLootStackable and IsItemLinkStackable(link) then
             local inventoryCount, _, _ = GetItemLinkStacks(link)
             if inventoryCount > 0 then
                 for bagSlot = 1, GetBagSize(BAG_BACKPACK) do
@@ -2531,14 +2532,18 @@ local function OnLootUpdated()
 
         local bListedSetGearList = {}
         local leftInWindow = false
+        local bListedLeft = false
         for i = 1, #unwantedLootIdList, 1 do
             local lootId = unwantedLootIdList[i]
             local link = GetLootItemLink(lootId)
             local isSetItem = IsItemLinkSetCollectionPiece(link)
             local name = LocalizeString("<<1>>", GetItemLinkName(link))
-            if itemOnList(link, BLIST_TOKEN) and isSetItem then
-                table.insert(bListedSetGearList, link)
-                leftInWindow = true
+            if itemOnList(link, BLIST_TOKEN) then
+                -- blacklisted means never looted; only a set piece is worth reporting
+                if isSetItem then
+                    table.insert(bListedSetGearList, link)
+                end
+                bListedLeft = true
             elseif IsItemLinkStolen(link) and (db.stolenRule == "never loot" or db.stolenRule == "never loot strict") then
                 leftInWindow = true
             else
@@ -2548,13 +2553,18 @@ local function OnLootUpdated()
         if #bListedSetGearList > 0 then
             ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
         end
-        -- the disposer took everything it was handed, so the window has nothing left to show
-        if not leftInWindow and isAllCurtLooted then
+        -- a blacklisted leftover does not hold the window when skipping is on, but the same target
+        -- opened again means the player wants to see it, so that one time the window is left alone
+        local bListedHoldsWindow = bListedLeft and not db.closeLootWindow
+        local isReopened = bListedLeft and db.closeLootWindow and #currentNotLootedNameList > 0 and
+            IsSameArray(currentNotLootedNameList, lastNotLootedNameList)
+        if not leftInWindow and not bListedHoldsWindow and not isReopened and isAllCurtLooted then
             DebugLog("closing loot window after disposer")
             lootWindowClosed = true
             EndLooting()
             SCENE_MANAGER:Hide("loot")
         end
+        lastNotLootedNameList = currentNotLootedNameList
     else
         if db.closeLootWindow then
             if (IsSameArray(currentNotLootedNameList, lastNotLootedNameList) and #currentNotLootedNameList ~= 0) then
@@ -3002,6 +3012,9 @@ if not ZO_IsConsoleOrGameCoreUI() then
                 link = GetItemLink(bagId, slotIndex)
             end
             if link and link ~= "" then
+                AddCustomMenuItem(GetString(MSAL_CONTEXT_ADD_BLACKLIST), function()
+                    MSAL.ContextAddToList(link, BLIST_TOKEN)
+                end)
                 AddCustomMenuItem(GetString(MSAL_CONTEXT_ADD_WHITELIST), function()
                     MSAL.ContextAddToList(link, WLIST_TOKEN)
                 end)
@@ -3098,6 +3111,9 @@ if ZO_IsConsoleOrGameCoreUI() then
             if link == nil or link == "" then
                 return
             end
+            slotActions:AddSlotAction(MSAL_CONTEXT_ADD_BLACKLIST, function()
+                MSAL.ContextAddToList(link, BLIST_TOKEN)
+            end, "secondary")
             slotActions:AddSlotAction(MSAL_CONTEXT_ADD_WHITELIST, function()
                 MSAL.ContextAddToList(link, WLIST_TOKEN)
             end, "secondary")
@@ -3311,10 +3327,8 @@ local function OnPlayerActivated()
                 --     end)
                 
             else
-                if db.loginReminder == true
-                and db.lastStartup ~= os.date("%Y%m%d")
-                then
-                    db.lastStartup = os.date("%Y%m%d")
+                if MSAL.loginReminderDue then
+                    MSAL.loginReminderDue = nil
                     zo_callLater(function()
                         ChatboxPrint(chatboxPrefix .. GetString(MSAL_PANEL_DISPLAYNAME) .. " |ccc922f" .. MSAL.version ..
                                     GetString(MSAL_SPACE) ..
@@ -3787,22 +3801,29 @@ local function OnLoaded(_, addon)
         if db.destroyUnsaleableJunk ~= nil then
             db.destroyUnsaleableJunk = nil
         end
-        if type(db.stolenTreasureThreshold) == "string" then
-            db.stolenTreasureThreshold = tonumber(db.stolenTreasureThreshold) or 0
-        end
-        if type(db.stolenTreasureThreshold) ~= "number" then
-            db.stolenTreasureThreshold = 0
-        end
-        -- Clamp to the qualities offered by the dropdown.
-        if db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_TRASH and
-            db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_MAGIC and
-            db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_ARCANE and
-            db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_ARTIFACT then
-            db.stolenTreasureThreshold = 0
-        end
 
         db.latestMinorUpdateVersion = MSAL.addonVersion
     end -- latestMinorUpdateVersion
+
+    -- the one-time renames above can carry a legacy string over, so the types are healed after them
+    MSAL.Settings.CoerceNumericDefaults(dbAccount)
+    MSAL.Settings.CoerceNumericDefaults(dbChar)
+
+    -- Clamp to the qualities offered by the dropdown.
+    if db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_TRASH and
+        db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_MAGIC and
+        db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_ARCANE and
+        db.stolenTreasureThreshold ~= ITEM_DISPLAY_QUALITY_ARTIFACT then
+        db.stolenTreasureThreshold = 0
+    end
+
+    -- stamp the day in the load phase, where the save is written from, not later in OnPlayerActivated
+    MSAL.loginReminderDue = db.enabled and db.loginReminder == true and
+        tonumber(GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT)) ~= 1 and
+        db.lastStartup ~= os.date("%Y%m%d")
+    if MSAL.loginReminderDue then
+        db.lastStartup = os.date("%Y%m%d")
+    end
 
     -- LAM is okay when an option is not in option arr but LHAS would throw exception, so we need to sanitize these options here.
     -- db.filters.treasureMaps = GetSafeDynamicOption(db.filters.treasureMaps)
@@ -4014,16 +4035,21 @@ function MSAL.LootAllPlus(self)
     end
 
     local num = GetNumLootItems()
-    local bListSetGearList = {}
+    local bListedSetGearList = {}
     for i = 1, num, 1 do
         local lootId, name, _, _, _, _, _, _, _ = GetLootItemInfo(i)
         local link = GetLootItemLink(lootId)
-        -- local isSetItem = IsItemLinkSetCollectionPiece(link)
         if itemOnList(link, BLIST_TOKEN) then
-            ChatboxLog(zo_strformat(GetString(MSAL_LOOTING_BLACKLISTED), link))
+            -- only a blacklisted set piece is worth reporting, the rest is skipped quietly
+            if IsItemLinkSetCollectionPiece(link) then
+                table.insert(bListedSetGearList, link)
+            end
         else
             LootItemById(lootId)
         end
+    end
+    if #bListedSetGearList > 0 then
+        ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
     end
     EndLooting()
     SCENE_MANAGER:HideCurrentScene()
@@ -4046,21 +4072,27 @@ function MSAL.Destroy(self)
     for _, curt in ipairs(curtType) do
         LootCurrency(curt)
     end
-    local bListSetGearList = {}
+    local bListedSetGearList = {}
+    local leftInWindow = false
     for i = 1, num, 1 do
         local lootId, name, icon, quantity, quality, value, isQuest, isStolen, lootType = GetLootItemInfo(i)
         local link = GetLootItemLink(lootId)
-        local isSetItem = IsItemLinkSetCollectionPiece(link)
-        if itemOnList(link, BLIST_TOKEN) and isSetItem then
-            table.insert(bListSetGearList, link)
+        if itemOnList(link, BLIST_TOKEN) then
+            -- blacklisted means never looted; only a set piece is worth reporting
+            if IsItemLinkSetCollectionPiece(link) then
+                table.insert(bListedSetGearList, link)
+            end
+            leftInWindow = true
         else
             LootItemById(lootId)
         end
     end
-    if #bListSetGearList > 0 then
+    if #bListedSetGearList > 0 then
+        ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
+    end
+    if leftInWindow then
         EndLooting()
         SCENE_MANAGER:HideCurrentScene()
-        ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListSetGearList[1]))
     end
 end
 
@@ -4081,21 +4113,27 @@ function MSAL.Junking(self)
     for _, curt in ipairs(curtType) do
         LootCurrency(curt)
     end
-    local bListSetGearList = {}
+    local bListedSetGearList = {}
+    local leftInWindow = false
     for i = 1, num, 1 do
         local lootId, name, icon, quantity, quality, value, isQuest, isStolen, lootType = GetLootItemInfo(i)
         local link = GetLootItemLink(lootId)
-        local isSetItem = IsItemLinkSetCollectionPiece(link)
-        if itemOnList(link, BLIST_TOKEN) and isSetItem then
-            table.insert(bListSetGearList, link)
+        if itemOnList(link, BLIST_TOKEN) then
+            -- blacklisted means never looted; only a set piece is worth reporting
+            if IsItemLinkSetCollectionPiece(link) then
+                table.insert(bListedSetGearList, link)
+            end
+            leftInWindow = true
         else
             LootItemById(lootId)
         end
     end
-    if #bListSetGearList > 0 then
+    if #bListedSetGearList > 0 then
+        ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListedSetGearList[1]))
+    end
+    if leftInWindow then
         EndLooting()
         SCENE_MANAGER:HideCurrentScene()
-        ChatboxLog(zo_strformat(GetString(MSAL_LIST_LOOTING_CONFLICT), bListSetGearList[1]))
     end
 end
 

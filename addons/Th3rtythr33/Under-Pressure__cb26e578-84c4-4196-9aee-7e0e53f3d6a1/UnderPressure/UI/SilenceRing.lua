@@ -30,29 +30,30 @@ local pulseTimeline
 -- Whether the player is currently silenced, per SilenceTracker.
 local silenced = false
 
--- Visual-test override (/up-visual-test). A timestamp, deliberately NOT a
--- boolean and deliberately NOT routed through SilenceTracker: the test must be
--- unable to corrupt real silence state, so it is a second, independent reason
--- for this control to be visible and touches nothing the tracker owns. A real
--- silence arriving mid-test therefore behaves normally, and outlives the test if
+-- Preview override (the "Preview" button in Settings > Silence Indicator;
+-- /up-visual-test through 0.3.3). A timestamp, deliberately NOT a boolean and
+-- deliberately NOT routed through SilenceTracker: the preview must be unable to
+-- corrupt real silence state, so it is a second, independent reason for this
+-- control to be visible and touches nothing the tracker owns. A real silence
+-- arriving mid-preview therefore behaves normally, and outlives the preview if
 -- it is still active when the window closes.
-local TEST_DURATION_MS = 10000
-local testUntilMs = 0
+local PREVIEW_DURATION_MS = 10000
+local previewUntilMs = 0
 
-local function testActive()
-    return testUntilMs > 0 and GetGameTimeMilliseconds() < testUntilMs
+local function previewActive()
+    return previewUntilMs > 0 and GetGameTimeMilliseconds() < previewUntilMs
 end
 
 -- ---------------------------------------------------------------------------
 -- Visibility
 -- ---------------------------------------------------------------------------
 local function shouldShow()
-    local forced = testActive()
+    local forced = previewActive()
     if not (silenced or forced) then return false end
 
-    -- The test bypasses the user's own toggle. The point of the command is to
-    -- look at the visual, and a command that silently did nothing because of an
-    -- unrelated setting would read as broken.
+    -- The preview bypasses the user's own toggle. The point of the button is
+    -- to look at the visual, and a button that silently did nothing because of
+    -- an unrelated setting would read as broken.
     if not forced then
         local sv = UP.sv or {}
         if sv.silence_ring == false then return false end
@@ -62,9 +63,16 @@ local function shouldShow()
     -- than subscribing to HUD_SCENE/HUD_UI_SCENE a second time to recompute the
     -- same boolean. Fails open if that is somehow unavailable: a ring drawn over
     -- a menu is a cosmetic bug, a ring that never appears is a broken feature.
-    -- The test does NOT bypass this one -- drawing over an open menu is exactly
-    -- as wrong during a test as in play, and the menu is where the toggle is.
-    if UP.UI and UP.UI.IsHudShown and not UP.UI.IsHudShown() then return false end
+    --
+    -- The preview DOES bypass this one (0.4.0; through 0.3.3 it did not). The
+    -- button lives in the settings menu, so the HUD scene is hidden at the
+    -- exact moment the player presses it, and a preview that only appeared
+    -- after backing out of the menu would defeat the point of putting it there.
+    -- This is the one sanctioned exception to "never draw over a menu", bounded
+    -- to PREVIEW_DURATION_MS and triggered only by the player's own press.
+    if not forced then
+        if UP.UI and UP.UI.IsHudShown and not UP.UI.IsHudShown() then return false end
+    end
     return true
 end
 
@@ -98,19 +106,22 @@ end
 -- is just this module's cached copy of it, and exposing it would create two
 -- sources of truth that could disagree.
 --
--- IsTestActive is different: the test override is genuinely this module's own
--- state and lives nowhere else. The debug overlay reads it so that a ring on
--- screen alongside "silenced=no" is explained rather than alarming.
-function UP.SilenceRing.IsTestActive()
-    return testActive()
+-- IsPreviewActive is different: the preview override is genuinely this
+-- module's own state and lives nowhere else. The debug overlay reads it so that
+-- a ring on screen alongside "silenced=no" is explained rather than alarming.
+function UP.SilenceRing.IsPreviewActive()
+    return previewActive()
 end
 
 -- ---------------------------------------------------------------------------
--- /up-visual-test
+-- Preview (Settings > Silence Indicator > Preview)
 -- ---------------------------------------------------------------------------
--- Shows the ring for TEST_DURATION_MS so the art, placement and pulse can be
+-- Shows the ring for PREVIEW_DURATION_MS so the art, placement and pulse can be
 -- checked without finding something to silence you -- which on console means
 -- queueing for PvP or hunting a specific mob, and gives no control over timing.
+-- Was the /up-visual-test slash command through 0.3.3; 0.4.0 moved it onto an
+-- LHAS button so it is one A-press away from the toggle it previews, and
+-- removed every slash command from the add-on.
 --
 -- Returns false if the control never initialised, so the caller can say so
 -- rather than appearing to succeed.
@@ -123,26 +134,26 @@ end
 -- surplus callbacks is the design rather than a compromise.
 --
 -- The +50ms guards the other direction: if the callback ran a hair EARLY,
--- testActive() would still be true, nothing would clear, and the ring would hang
--- until the next unrelated visibility change.
-function UP.SilenceRing.RunVisualTest()
+-- previewActive() would still be true, nothing would clear, and the ring would
+-- hang until the next unrelated visibility change.
+function UP.SilenceRing.RunPreview()
     if not root then return false end
 
-    testUntilMs = GetGameTimeMilliseconds() + TEST_DURATION_MS
+    previewUntilMs = GetGameTimeMilliseconds() + PREVIEW_DURATION_MS
     UP.SilenceRing.UpdateVisibility()
 
     zo_callLater(function()
-        if GetGameTimeMilliseconds() >= testUntilMs then
-            testUntilMs = 0
+        if GetGameTimeMilliseconds() >= previewUntilMs then
+            previewUntilMs = 0
         end
         UP.SilenceRing.UpdateVisibility()
-    end, TEST_DURATION_MS + 50)
+    end, PREVIEW_DURATION_MS + 50)
 
     return true
 end
 
-function UP.SilenceRing.TestDurationMs()
-    return TEST_DURATION_MS
+function UP.SilenceRing.PreviewDurationMs()
+    return PREVIEW_DURATION_MS
 end
 
 -- ---------------------------------------------------------------------------

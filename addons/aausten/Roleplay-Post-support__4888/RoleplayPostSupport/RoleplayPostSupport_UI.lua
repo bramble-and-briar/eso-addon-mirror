@@ -272,14 +272,7 @@ local function refreshSessions()
     c.recordingIndicator:SetHidden(not recording)
     c.recordingTitle:SetText(L("UI_RECORDING_TITLE", session and plain(session.name) or L("UI_SESSION_FALLBACK")))
     c.record:SetText(L(recording and "UI_RECORDING_STOP" or "UI_RECORDING_START"))
-    local count = session and #session.participants or 0
-    local warningKey
-    if addonOnly then
-        warningKey = recording and "UI_RECORD_WARNING_MARKED_ON" or "UI_RECORD_WARNING_MARKED_OFF"
-    else
-        warningKey = recording and "UI_RECORD_WARNING_ALL_ON" or "UI_RECORD_WARNING_ALL_OFF"
-    end
-    c.recordWarning:SetText(L(warningKey, count))
+    c.recordWarning:SetText(L(recording and "UI_RECORD_WARNING_ON" or "UI_RECORD_WARNING_OFF"))
     refreshHistory(session)
 end
 

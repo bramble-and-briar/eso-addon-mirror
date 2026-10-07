@@ -93,7 +93,7 @@ local ARROW_DOWN = "|t16:16:EsoUI/Art/Miscellaneous/list_sortDown.dds|t"
 
 -- Layout
 -- ---------------------------------------------------------------------------
-local WINDOW_WIDTH = 800   -- widened from 720 for the cumulative-share column
+local WINDOW_WIDTH = 880
 -- A free-floating window, so it takes the wider step of the shared spacing scale
 -- (the narrow summary panel takes METRIC.PADDING). Every inset below is derived
 -- from this, so the whole frame re-flows from the one token.
@@ -104,7 +104,7 @@ local HEADER_HEIGHT = 20
 local ROW_ACTION_WIDTH = 48
 local DIVIDER_GAP  = 10
 local ROW_HEIGHT   = 26
-local LIST_MAX_ROWS = 16   -- beyond this the list scrolls instead of growing
+local LIST_MAX_ROWS = 14
 local FOOTER_HEIGHT = 18   -- summary line beneath the list (divider + this label)
 
 
@@ -197,10 +197,9 @@ local currentCategoryName  -- remembered so the title can restore after a search
 local searchBox       -- the search editbox
 local searchHint      -- placeholder inside the search box
 local searchClearButton -- clears the whole-bag search without touching filters
-local changesButton   -- toolbar button; toggles between "Changes" and "Back"
+local viewTabs = {}
 local snapshotStatusLabel -- compact persistent state of the saved comparison baseline
 local filterButtons = {} -- { all, priced, unpriced } price-coverage filter controls
-local selectedFilterFrame -- accent outline around the active price filter
 local resetFiltersButton -- clears the active price filter and/or text query
 local searchQuery = ""  -- current search text; "" means "show the category"
 local suppressSearchEvent = false  -- guards the search box against its own SetText
@@ -268,8 +267,6 @@ local function ShowWindow()
 end
 
 local columnModeButtons = {}
-local selectedColumnModeFrame
-local linkHintLabel
 
 -- The basic table focuses on the immediate inventory decision: what it is, how
 -- much is held, and what it is worth. Analytics adds the Pareto and price-drift
@@ -584,6 +581,7 @@ local function SetupRow(rowControl, data)
     -- shared type scale, so a row of the table reads at the same size as a row of
     -- the summary panel. No-ops after the first time this control is used.
     UI.ApplyRowFonts(rowControl, ROW_COLUMNS)
+    rowControl:SetHeight(ROW_HEIGHT)
 
     local cumThresholdMarker = rowControl:GetNamedChild("CumThresholdMarker")
     if not rowControl.bmwCumThresholdMarkerStyled then
@@ -1032,19 +1030,8 @@ local function InitializeWindow()
     contextLabel:SetMaxLineCount(1)
     contextLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     contextLabel:SetAnchor(TOPLEFT, windowControl, TOPLEFT, PADDING, PADDING + TITLE_HEIGHT)
-    contextLabel:SetDimensions(WINDOW_WIDTH - PADDING * 2 - 230, CONTEXT_HEIGHT)
-
-    -- Persistent Shift-click reminder: always visible in the header, not only
-    -- on row hover, so linking a material to chat stays discoverable.
-    linkHintLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_DetailLinkHint", windowControl, CT_LABEL)
-    linkHintLabel:SetFont(FONT.small)
-    linkHintLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
-    linkHintLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    linkHintLabel:SetMaxLineCount(1)
-    linkHintLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    linkHintLabel:SetDimensions(220, CONTEXT_HEIGHT)
-    linkHintLabel:SetAnchor(TOPRIGHT, windowControl, TOPRIGHT, -PADDING, PADDING + TITLE_HEIGHT)
-    linkHintLabel:SetText(Colorize(COLOR_MUTED, GetString(SI_BMW_DETAIL_LINK_HINT)))
+    contextLabel:SetDimensions(innerWidth, CONTEXT_HEIGHT)
+    titleLabel:SetColor(UI.Tone("name"))
 
     -- Close button (built-in virtual) anchored top-right.
     local closeButton = WINDOW_MANAGER:CreateControlFromVirtual(
@@ -1070,6 +1057,7 @@ local function InitializeWindow()
     searchBackdrop:SetDimensions(SEARCH_WIDTH, TITLE_HEIGHT)
     searchBackdrop:ClearAnchors()
     searchBackdrop:SetAnchor(TOPRIGHT, windowControl, TOPRIGHT, -PADDING, filterToolbarY)
+    UI.ApplyField(searchBackdrop)
     -- Clicking anywhere on the backdrop (incl. its padding) focuses the editbox,
     -- so the hit target is the whole field, not just the text glyphs.
     searchBackdrop:SetMouseEnabled(true)
@@ -1154,9 +1142,34 @@ local function InitializeWindow()
     -- gets a title+body hover tooltip (the headerCum idiom) since the
     -- manual-snapshot model is not self-evident.
     local BUTTON_WIDTH = 100
-    local CHANGES_BUTTON_WIDTH = 140
     local GROUP_LABEL_WIDTH = 62
     local GROUP_LABEL_GAP = 8
+
+    local tabDefinitions = {
+        { key = "category", stringId = SI_BMW_DETAIL_TAB_MATERIALS, width = 104,
+            action = function() DetailWindow.ShowMaterials() end },
+        { key = "diff", stringId = SI_BMW_DETAIL_TAB_DIFF, width = 120,
+            action = function() DetailWindow.ShowDiff() end },
+        { key = "trend", stringId = SI_BMW_DETAIL_TAB_TREND, width = 116,
+            action = function() DetailWindow.ShowPriceTrends() end },
+    }
+    local previousTab
+    for index = 1, #tabDefinitions do
+        local definition = tabDefinitions[index]
+        local button = WINDOW_MANAGER:CreateControlFromVirtual(
+            addon.name .. "_DetailTab" .. definition.key, windowControl, "ZO_DefaultButton")
+        button:SetDimensions(definition.width, TITLE_HEIGHT)
+        if previousTab then
+            button:SetAnchor(LEFT, previousTab, RIGHT, 4, 0)
+        else
+            button:SetAnchor(TOPLEFT, windowControl, TOPLEFT, PADDING, snapshotToolbarY)
+        end
+        button:SetText(GetString(definition.stringId))
+        button:SetHandler("OnClicked", definition.action)
+        UI.ApplyButton(button, "tab")
+        viewTabs[definition.key] = button
+        previousTab = button
+    end
 
     snapshotGroupLabel = WINDOW_MANAGER:CreateControl(
         addon.name .. "_DetailSnapshotGroupLabel", windowControl, CT_LABEL)
@@ -1164,7 +1177,7 @@ local function InitializeWindow()
     snapshotGroupLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     snapshotGroupLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     snapshotGroupLabel:SetDimensions(GROUP_LABEL_WIDTH, TITLE_HEIGHT)
-    snapshotGroupLabel:SetAnchor(TOPLEFT, windowControl, TOPLEFT, PADDING, snapshotToolbarY)
+    snapshotGroupLabel:SetAnchor(LEFT, previousTab, RIGHT, 16, 0)
     snapshotGroupLabel:SetText(Colorize(COLOR_MUTED, GetString(SI_BMW_DETAIL_GROUP_SNAPSHOT)))
 
     local function WireButtonTooltip(button, titleId, bodyId)
@@ -1192,47 +1205,17 @@ local function InitializeWindow()
     end)
     WireButtonTooltip(rememberButton, SI_BMW_DETAIL_BTN_REMEMBER_TOOLTIP_TITLE,
         SI_BMW_DETAIL_BTN_REMEMBER_TOOLTIP_BODY)
-
-    changesButton = WINDOW_MANAGER:CreateControlFromVirtual(
-        addon.name .. "_DetailChanges", windowControl, "ZO_DefaultButton")
-    changesButton:SetDimensions(CHANGES_BUTTON_WIDTH, TITLE_HEIGHT)
-    changesButton:SetAnchor(TOPLEFT, rememberButton, TOPRIGHT, 8, 0)
-    changesButton:SetText(GetString(SI_BMW_DETAIL_BTN_CHANGES))
-    -- This button is a toggle: in the material views it opens the diff ("Changes");
-    -- in the diff view it returns to the material list ("Back"). The label is kept
-    -- in step by UpdateChangesButton (called from each Show*). Its action and
-    -- tooltip read viewMode at event time so the single bound handler covers both.
-    changesButton:SetHandler("OnClicked", function()
-        if viewMode ~= "category" then
-            DetailWindow.ShowMaterials()
-        else
-            DetailWindow.ShowDiff()
-        end
-    end)
-    changesButton:SetHandler("OnMouseEnter", function(self)
-        local titleId, bodyId
-        if viewMode ~= "category" then
-            titleId, bodyId = SI_BMW_DETAIL_BTN_BACK_TOOLTIP_TITLE, SI_BMW_DETAIL_BTN_BACK_TOOLTIP_BODY
-        else
-            titleId, bodyId = SI_BMW_DETAIL_BTN_CHANGES_TOOLTIP_TITLE, SI_BMW_DETAIL_BTN_CHANGES_TOOLTIP_BODY
-        end
-        InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -2, TOP)
-        UI.TipTitle(InformationTooltip, GetString(titleId))
-        UI.TipLine(InformationTooltip, GetString(bodyId))
-    end)
-    changesButton:SetHandler("OnMouseExit", function()
-        ClearTooltip(InformationTooltip)
-    end)
+    UI.ApplyButton(rememberButton)
 
     -- "Clear" forgets the saved snapshot. Sits after "Changes" on the toolbar.
     -- Because clearing is destructive and cannot be undone, it opens a confirmation
     -- dialog. When the diff view is open, a confirmed clear refreshes it into the
     -- "press Remember" empty state immediately.
     clearButton = WINDOW_MANAGER:CreateControlFromVirtual(
-        addon.name .. "_DetailClear", windowControl, "ZO_DefaultButton")
-    clearButton:SetDimensions(BUTTON_WIDTH, TITLE_HEIGHT)
-    clearButton:SetAnchor(TOPLEFT, changesButton, TOPRIGHT, 8, 0)
-    clearButton:SetText(GetString(SI_BMW_DETAIL_BTN_CLEAR))
+        addon.name .. "_DetailClear", windowControl, "ZO_CloseButton")
+    clearButton:SetDimensions(24, 24)
+    clearButton:ClearAnchors()
+    clearButton:SetAnchor(LEFT, rememberButton, RIGHT, 8, 0)
     clearButton:SetHandler("OnClicked", function()
         -- Destructive and not undoable, so confirm before clearing. The dialog's
         -- accept callback (registered below) does the actual clear + chat notice.
@@ -1250,9 +1233,9 @@ local function InitializeWindow()
     snapshotStatusLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     snapshotStatusLabel:SetMaxLineCount(1)
     snapshotStatusLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-    snapshotStatusLabel:SetAnchor(LEFT, clearButton, RIGHT, 10, 0)
-    snapshotStatusLabel:SetDimensions(WINDOW_WIDTH - (PADDING * 2 + GROUP_LABEL_WIDTH
-        + GROUP_LABEL_GAP + BUTTON_WIDTH * 2 + CHANGES_BUTTON_WIDTH + 26), TITLE_HEIGHT)
+    snapshotStatusLabel:SetAnchor(LEFT, clearButton, RIGHT, 8, 0)
+    snapshotStatusLabel:SetDimensions(innerWidth - 348 - 16 - GROUP_LABEL_WIDTH
+        - GROUP_LABEL_GAP - BUTTON_WIDTH - 8 - 24 - 8, TITLE_HEIGHT)
 
     -- Price coverage filters live on their own row beside the search box. They
     -- filter the current category/search view and are hidden for the snapshot
@@ -1292,14 +1275,9 @@ local function InitializeWindow()
             end
         end)
         filterButtons[definition.key] = button
+        UI.ApplyButton(button, "tab")
         previousFilterButton = button
     end
-
-    -- The outline that marks the active price filter. Built by the shared layer, so
-    -- it is provably the same green as the header underline and the row hover wash,
-    -- and its strength is a token rather than a number chosen here.
-    selectedFilterFrame = UI.CreateSelectionFrame(
-        addon.name .. "_DetailSelectedFilterFrame", windowControl)
 
     resetFiltersButton = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_DetailResetFilters", windowControl, "ZO_DefaultButton")
@@ -1317,6 +1295,7 @@ local function InitializeWindow()
         Populate()
     end)
     resetFiltersButton:SetHidden(true)
+    UI.ApplyButton(resetFiltersButton)
 
     local COLUMN_MODE_WIDTH = 80
     local columnModeDefinitions = {
@@ -1341,10 +1320,9 @@ local function InitializeWindow()
             DetailWindow.ApplyColumnMode()
         end)
         columnModeButtons[definition.key] = button
+        UI.ApplyButton(button, "tab")
         previousColumnModeButton = button
     end
-    selectedColumnModeFrame = UI.CreateSelectionFrame(
-        addon.name .. "_DetailSelectedColumnModeFrame", windowControl)
 
     -- Column headers, aligned to the same geometry as the XML row template. They
     -- sit below the toolbar row.
@@ -1353,6 +1331,7 @@ local function InitializeWindow()
 end
 
 local function InitializeList(headerY, innerWidth)
+    ROW_HEIGHT = UI.RowHeight("detail")
     headerImpact = WINDOW_MANAGER:CreateControl(addon.name .. "_DetailHeaderImpact", windowControl, CT_LABEL)
     headerImpact:SetFont(FONT.small)
     headerImpact:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
@@ -2083,12 +2062,7 @@ UpdatePriceFilterButtons = function()
     for key, button in pairs(filterButtons) do
         button:SetHidden(hideFilters)
         button:SetEnabled(not hideFilters)
-    end
-
-    if selectedFilterFrame then
-        selectedFilterFrame:ClearAnchors()
-        selectedFilterFrame:SetAnchorFill(filterButtons[priceFilter])
-        selectedFilterFrame:SetHidden(hideFilters)
+        UI.SelectButton(button, key == priceFilter)
     end
     if searchClearButton then
         searchClearButton:SetHidden(searchQuery == "")
@@ -2104,23 +2078,15 @@ UpdatePriceFilterButtons = function()
     end
 
     local hideColumnMode = viewMode ~= "category"
-    for _, button in pairs(columnModeButtons) do
+    for key, button in pairs(columnModeButtons) do
         button:SetHidden(hideColumnMode)
         button:SetEnabled(not hideColumnMode)
-    end
-    if selectedColumnModeFrame then
-        local active = columnModeButtons[GetDetailColumnMode()]
-        selectedColumnModeFrame:ClearAnchors()
-        if active then
-            selectedColumnModeFrame:SetAnchorFill(active)
-        end
-        selectedColumnModeFrame:SetHidden(hideColumnMode or not active)
+        UI.SelectButton(button, key == GetDetailColumnMode())
     end
 
     local trend = viewMode == "trend"
     if snapshotGroupLabel then
-        snapshotGroupLabel:SetText(Colorize(COLOR_MUTED, GetString(
-            trend and SI_BMW_PRICE_TREND_GROUP or SI_BMW_DETAIL_GROUP_SNAPSHOT)))
+        snapshotGroupLabel:SetHidden(trend)
     end
     if rememberButton then
         rememberButton:SetEnabled(not trend)
@@ -2133,27 +2099,14 @@ UpdatePriceFilterButtons = function()
     if snapshotStatusLabel then
         snapshotStatusLabel:SetHidden(trend)
     end
-    if changesButton and snapshotGroupLabel and rememberButton then
-        changesButton:ClearAnchors()
-        if trend then
-            changesButton:SetAnchor(LEFT, snapshotGroupLabel, RIGHT, 8, 0)
-        else
-            changesButton:SetAnchor(TOPLEFT, rememberButton, TOPRIGHT, 8, 0)
-        end
-    end
 end
 
 -- Keep the toggle button's label in step with the mode: "Back" while the diff is
 -- shown, "Changes" otherwise. The action and tooltip read viewMode at event time
 -- (see Initialize), so only the label needs refreshing here.
-local function UpdateChangesButton()
-    if not changesButton then
-        return
-    end
-    if viewMode ~= "category" then
-        changesButton:SetText(GetString(SI_BMW_DETAIL_BTN_BACK))
-    else
-        changesButton:SetText(GetString(SI_BMW_DETAIL_BTN_CHANGES))
+local function UpdateViewTabs()
+    for key, button in pairs(viewTabs) do
+        UI.SelectButton(button, key == viewMode)
     end
 end
 
@@ -2167,7 +2120,7 @@ function DetailWindow.Show(categoryId, categoryName)
     currentCategoryName = categoryName
     RestoreSortState()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()
@@ -2187,7 +2140,7 @@ function DetailWindow.ShowAll()
     currentCategoryName = nil
     RestoreSortState()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()
@@ -2208,7 +2161,7 @@ function DetailWindow.ShowMaterials()
     diffSource = "snapshot"
     RestoreSortState()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()
@@ -2228,7 +2181,7 @@ function DetailWindow.ShowDiff()
     diffSource = "snapshot"
     RestoreSortState()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()
@@ -2248,7 +2201,7 @@ function DetailWindow.ShowVisitDiff()
     diffSource = "visit"
     RestoreSortState()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()
@@ -2270,7 +2223,7 @@ function DetailWindow.ShowUnpriced()
     priceFilter = "unpriced"
     RestoreSortState()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()
@@ -2289,7 +2242,7 @@ function DetailWindow.ShowPriceTrends()
     RestoreSortState()
     searchBox:LoseFocus()
 
-    UpdateChangesButton()
+    UpdateViewTabs()
     UpdateColumnLayout()
     UpdateHeaders()
     UpdatePriceFilterButtons()

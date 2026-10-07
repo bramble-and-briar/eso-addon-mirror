@@ -39,18 +39,10 @@ function S.RegisterLAMPanel()
 		{
 			type = "checkbox",
 			name = "Hide Game UI On Stun",
-			tooltip = "Hides the game interface (action bars, chat, etc.) when affected. Charmed and Feared text alerts will not be visible if its ON.",
+			tooltip = "Hides the game interface (action bars, chat, etc.) when affected. Text pop-ups will not be visible if its ON.",
 			getFunc = function() return S.SV.hideGameUI end,
 			setFunc = function(value) S.SV.hideGameUI = value end,
 			default = false,
-		},
-		{
-			type = "checkbox",
-			name = "Text Labels On Stun",
-			tooltip = "Show on-screen text messages when stunned, feared or charmed",
-			getFunc = function() return S.SV.enableTextAlerts end,
-			setFunc = function(value) S.SV.enableTextAlerts = value end,
-			default = true,
 		},
 		{
 			type = "dropdown",
@@ -134,6 +126,15 @@ function S.RegisterLAMPanel()
 			width = "half",
 		},
 		{
+			type = "checkbox",
+			name = "Text",
+			tooltip = "Show on-screen text when stunned",
+			getFunc = function() return S.SV.textStun end,
+			setFunc = function(value) S.SV.textStun = value end,
+			default = true,
+			disabled = function() return not S.SV.trackStun end,
+		},
+		{
 			type = "divider",
 		},
 		{
@@ -201,6 +202,15 @@ function S.RegisterLAMPanel()
 			width = "half",
 		},
 		{
+			type = "checkbox",
+			name = "Text",
+			tooltip = "Show on-screen text when feared",
+			getFunc = function() return S.SV.textFear end,
+			setFunc = function(value) S.SV.textFear = value end,
+			default = true,
+			disabled = function() return not S.SV.trackFear end,
+		},
+		{
 			type = "divider",
 		},
 		{
@@ -266,6 +276,15 @@ function S.RegisterLAMPanel()
 			default = "BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",
 			disabled = function() return not S.SV.trackCharm or not S.SV.charmSoundEnabled end,
 			width = "half",
+		},
+		{
+			type = "checkbox",
+			name = "Text",
+			tooltip = "Show on-screen text when charmed",
+			getFunc = function() return S.SV.textCharm end,
+			setFunc = function(value) S.SV.textCharm = value end,
+			default = true,
+			disabled = function() return not S.SV.trackCharm end,
 		},
 		{
 			type = "header",
@@ -376,6 +395,61 @@ function S.RegisterLAMPanel()
 			end,
 			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
 			disabled = function() return not S.SV.trackSilenced or not S.SV.silencedSoundEnabled end,
+			width = "half",
+		},
+		{
+			type = "divider",
+		},
+		{
+			type = "checkbox",
+			name = "|cFFD700STAGGERED!|r",
+			tooltip = "Show alert when staggered",
+			getFunc = function() return S.SV.trackStaggered end,
+			setFunc = function(value) S.SV.trackStaggered = value end,
+			default = true,
+			width = "half",
+		},
+		{
+			type = "colorpicker",
+			name = "",
+			tooltip = "Choose the color for staggered alert text",
+			getFunc = function()
+				local hex = S.SV.staggeredColor or "FFD700"
+				local r = tonumber("0x" .. hex:sub(1,2)) / 255
+				local g = tonumber("0x" .. hex:sub(3,4)) / 255
+				local b = tonumber("0x" .. hex:sub(5,6)) / 255
+				return r, g, b
+			end,
+			setFunc = function(r, g, b)
+				local hex = string.format("%02X%02X%02X", r*255, g*255, b*255)
+				S.SV.staggeredColor = hex
+			end,
+			default = {1, 0.843, 0},
+			disabled = function() return not S.SV.trackStaggered end,
+			width = "half",
+		},
+		{
+			type = "checkbox",
+			name = "Sound",
+			tooltip = "Play a sound when staggered",
+			getFunc = function() return S.SV.staggeredSoundEnabled end,
+			setFunc = function(value) S.SV.staggeredSoundEnabled = value end,
+			default = true,
+			disabled = function() return not S.SV.trackStaggered end,
+			width = "half",
+		},
+		{
+			type = "dropdown",
+			name = "",
+			tooltip = "Select sound to play when staggered",
+			choices = soundChoices,
+			getFunc = function() return S.SV.staggeredSound end,
+			setFunc = function(value)
+				S.SV.staggeredSound = value
+				PlaySound(SOUNDS[value])
+			end,
+			default = "DEATH_RECAP_KILLING_BLOW_SHOWN",
+			disabled = function() return not S.SV.trackStaggered or not S.SV.staggeredSoundEnabled end,
 			width = "half",
 		},
 		{

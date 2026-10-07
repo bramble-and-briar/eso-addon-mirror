@@ -1,5 +1,5 @@
 -- Shared namespace. Created here because this file is first in the manifest;
--- UI/MagStamArcs.lua and Settings.lua hang their modules off it. All of
+-- UI/MagStamArcs.lua, UI/QuestTracker.lua and Settings.lua hang their modules off it. All of
 -- them are parsed before EVENT_ADD_ON_LOADED fires, so OnAddOnLoaded below
 -- can call into them unconditionally.
 CasualClean = CasualClean or {}
@@ -73,6 +73,13 @@ local ON_SCREEN_HYSTERESIS = 24 -- px
 -- lowers G), so no separate lerp helper is needed.
 local HEALTH_MID_PERCENT = 0.6
 local HEALTH_LOW_PERCENT = 0.01
+
+-- Companion-pin settings (1.6.6). The pin master switch is a hard off: the
+-- 30 Hz poll is unregistered, not merely drawing nothing. Hiding the default
+-- companion unit frame is its own choice because some players want the pin
+-- AND the frame's health bar.
+local DEFAULT_COMPANION_MARKER = true
+local DEFAULT_HIDE_COMPANION_FRAME = true
 
 local abs, atan2, sin, cos, min, huge = math.abs, math.atan2, math.sin, math.cos, math.min, math.huge
 
@@ -158,7 +165,21 @@ end
 -- ZOS creates the companion unit frame object in its own handler for the
 -- same event we listen for; if ours runs first in the same tick,
 -- GetUnitFrame can still be nil, so retry briefly rather than give up.
+-- Both settings have to agree before the frame is hidden; a disabled pin
+-- leaves the frame alone regardless of the hide-frame choice.
+local function CompanionFrameShouldBeHidden()
+    if not savedVars then
+        return DEFAULT_COMPANION_MARKER and DEFAULT_HIDE_COMPANION_FRAME
+    end
+    return savedVars.companionMarker ~= false and savedVars.hideCompanionFrame ~= false
+end
+
 local function HideCompanionFrameWithRetry(attemptsLeft)
+    -- Re-checked on every retry: a pending retry must not re-hide a frame the
+    -- player un-hid in the settings a moment ago.
+    if not CompanionFrameShouldBeHidden() then
+        return
+    end
     if TryHideCompanionFrame() or attemptsLeft <= 0 then
         return
     end
@@ -408,19 +429,66 @@ local function RefreshState()
     if CC.MagStamArcs then
         CC.MagStamArcs.Refresh()
     end
+    -- Same idea for the quest tracker: Refresh is idempotent, and re-asserting
+    -- the scene membership and hidden reason after a loading screen is cheap.
+    if CC.QuestTracker then
+        CC.QuestTracker.Refresh()
+    end
 
-    if IsInRestrictedContent() then
+    -- Master switch first: off means no poll, no hidden frame, whatever the
+    -- content. Then the restricted-content rule, then the companion itself.
+    if (savedVars and savedVars.companionMarker == false) or IsInRestrictedContent() then
         StopPolling()
         ShowCompanionFrame()
         return
     end
 
     if DoesUnitExist(COMPANION_TAG) then
-        HideCompanionFrameWithRetry(4)
+        if CompanionFrameShouldBeHidden() then
+            HideCompanionFrameWithRetry(4)
+        else
+            ShowCompanionFrame()
+        end
         StartPolling()
     else
         StopPolling()
     end
+end
+
+-- Settings-panel surface for the companion features. Setters write the saved
+-- variable and re-run RefreshState, which is the single place that turns
+-- those values into polling and frame visibility.
+CC.Companion = {
+    DEFAULT_MARKER = DEFAULT_COMPANION_MARKER,
+    DEFAULT_HIDE_FRAME = DEFAULT_HIDE_COMPANION_FRAME,
+}
+
+function CC.Companion.GetEnabled()
+    if savedVars and savedVars.companionMarker ~= nil then
+        return savedVars.companionMarker
+    end
+    return DEFAULT_COMPANION_MARKER
+end
+
+function CC.Companion.SetEnabled(value)
+    if savedVars then
+        savedVars.companionMarker = value and true or false
+    end
+    RefreshState()
+end
+
+function CC.Companion.GetHideFrame()
+    if savedVars and savedVars.hideCompanionFrame ~= nil then
+        return savedVars.hideCompanionFrame
+    end
+    return DEFAULT_HIDE_COMPANION_FRAME
+end
+
+function CC.Companion.SetHideFrame(value)
+    if savedVars then
+        savedVars.hideCompanionFrame = value and true or false
+    end
+    RefreshState()
 end
 
 local function OnAddOnLoaded(eventCode, addonName)
@@ -444,6 +512,17 @@ local function OnAddOnLoaded(eventCode, addonName)
         arcOffsetX = CC.MagStamArcs.DEFAULT_ARC_OFFSET_X,
         arcHeight = CC.MagStamArcs.DEFAULT_ARC_HEIGHT,
         hideDefaultBars = CC.MagStamArcs.DEFAULT_HIDE_DEFAULT_BARS,
+        -- One flag per HUD tracker group (quest, Golden Pursuit); the module
+        -- owns the list, so new groups need no change here.
+        questTrackerInMenu = CC.QuestTracker.DEFAULTS.questTrackerInMenu,
+        pursuitTrackerInMenu = CC.QuestTracker.DEFAULTS.pursuitTrackerInMenu,
+        trackerPeek = CC.QuestTracker.DEFAULTS.trackerPeek,
+        trackerPeekSeconds = CC.QuestTracker.DEFAULTS.trackerPeekSeconds,
+        -- 1.6.6 master switches and the companion-frame choice. All default
+        -- to the pre-1.6.6 behaviour so an upgrade changes nothing.
+        arcsEnabled = CC.MagStamArcs.DEFAULT_ENABLED,
+        companionMarker = DEFAULT_COMPANION_MARKER,
+        hideCompanionFrame = DEFAULT_HIDE_COMPANION_FRAME,
     })
     headOffsetY = savedVars.headOffsetY
     smoothingAlpha = savedVars.smoothingAlpha
@@ -454,6 +533,7 @@ local function OnAddOnLoaded(eventCode, addonName)
     -- Order matters: the arcs build their controls and read defaults, then
     -- the settings panel binds getters/setters to them.
     CC.MagStamArcs.Init()
+    CC.QuestTracker.Init()
     CC.Settings.Init()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTIVE_COMPANION_STATE_CHANGED, RefreshState)
@@ -741,6 +821,14 @@ SLASH_COMMANDS["/casualclean"] = function(args)
     elseif cmd == "burst" then
         HandleBurstCommand(rest)
         return
+    elseif cmd == "tracker" then
+        -- Whether the first-party globals resolved, which hidden reasons are
+        -- set, and which scenes the tracker fragments currently belong to.
+        -- This is the only window into the feature on console.
+        for _, line in ipairs(CC.QuestTracker.GetReport()) do
+            d("  " .. line)
+        end
+        return
     elseif cmd == "arcs" then
         -- Reports both gradient stops for each power type. Which of START/END
         -- reads better as a solid arc fill is a visual question that can't be
@@ -761,13 +849,16 @@ SLASH_COMMANDS["/casualclean"] = function(args)
     end
 
     d(string.format(
-        "CasualClean: companion=%s restricted=%s windowHidden=%s markerHidden=%s offset=%.0f alpha=%.2f",
+        "CasualClean: companion=%s restricted=%s windowHidden=%s markerHidden=%s offset=%.0f alpha=%.2f pin=%s hideFrame=%s arcs=%s",
         tostring(DoesUnitExist(COMPANION_TAG)),
         tostring(IsInRestrictedContent()),
         tostring(hudWindow and hudWindow:IsHidden()),
         tostring(marker and marker:IsHidden()),
         headOffsetY,
-        smoothingAlpha
+        smoothingAlpha,
+        tostring(CC.Companion.GetEnabled()),
+        tostring(CC.Companion.GetHideFrame()),
+        tostring(CC.MagStamArcs.GetEnabled())
     ))
 
     if DoesUnitExist(COMPANION_TAG) then

@@ -7,7 +7,7 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-local function IsConsoleUI()
+local function is_gamepad_ui()
 	return IsInGamepadPreferredMode()
 end
 
@@ -16,7 +16,7 @@ local get_today_date_str, hook_error_capture, init, safe_csa, show_copy_text_box
 
 ALC = {
 	name = "AutoLuaMemoryCleaner",
-	version = "2026.10.06.08.01",
+	version = "2026.10.07.17.24",
 	defaults = {
 		schema_version = 2,
 		is_enabled = true,
@@ -45,7 +45,7 @@ ALC = {
 		warned_module_labels = {},
 		auto_clear_pool_on_teleport = true,
 		pool_reload_confirm_auto = true,
-		cleanup_mode = "background",
+		cleanup_mode = "automatic",
 		pool_reload_delay_sec = 3,
 		pool_reload_test_pending = false,
 		pool_reload_test_before_mb = 0,
@@ -93,6 +93,7 @@ function ALC.toggle_module_disabled(mod_key, silent)
 		ALC.settings.warned_module_labels = {}
 	end
 	LibAPH.SyncModuleLifecycle(ALC_modules, mod_key, now_disabled)
+	ALC.refresh_slash_commands()
 	return now_disabled
 end
 
@@ -114,6 +115,7 @@ function ALC.reset_to_defaults()
 	end)
 	ALC.set_cleanup_mode(ALC.settings.cleanup_mode)
 	ALC.call_optional(ALC.toggle_ui_update, "UI module (toggle_ui_update)")
+	ALC.refresh_slash_commands()
 end
 
 function ALC.get_hybrid_memory_data()
@@ -132,7 +134,7 @@ local trigger_memory_check
 local scene_callback_fn
 
 local function get_platform_module()
-	return IsConsoleUI() and ALC_Console or ALC_PC
+	return is_gamepad_ui() and ALC_Console or ALC_PC
 end
 
 function ALC.get_active_memory_mb()
@@ -187,7 +189,7 @@ end
 function ALC.get_settings_library()
 	local lam_v, lam_e = LibAPH.CheckLibraryVersion("LibAddonMenu-2.0")
 	local lhas_v, lhas_e = 0, false
-	if IsConsoleUI() then
+	if is_gamepad_ui() then
 		lhas_v, lhas_e = LibAPH.CheckLibraryVersion("LibHarvensAddonSettings")
 	end
 	return lam_v, lam_e, lhas_v, lhas_e
@@ -277,7 +279,7 @@ function ALC.build_client_info_text()
 
 	local libaph_str = "|c00FF00LibAPH (v" .. LibAPH.VERSION .. ")|r"
 	local library_version_str = libaph_str .. ", " .. lam_str
-	if IsConsoleUI() then
+	if is_gamepad_ui() then
 		library_version_str = library_version_str .. ", " .. lhas_str
 	end
 
@@ -380,15 +382,41 @@ function hook_error_capture()
 	end)
 end
 
+local function command_shown(c)
+	if (c.pc_only and IsConsoleUI()) or (c.console_only and not IsConsoleUI()) then return false end
+	return not (c.disabled_check and c.disabled_check())
+end
+
+function ALC.get_menu_layout()
+	return tostring(ALC.settings.auto_clear_pool_on_teleport and true or false) .. "," .. tostring(ALC.settings.show_ui and true or false)
+end
+
+function ALC.refresh_slash_commands()
+	if not ALC.settings then return end
+	if ALC.menu_layout and ALC.menu_layout ~= ALC.get_menu_layout() then
+		zo_callLater(function() ALC.chat:Print(ALC.L("CHAT_RELOAD_TO_APPLY")) end, 0)
+	end
+	if not LibAPH.SetSlashCommandsShown then return end
+	for _, cat in ipairs(ALC.COMMAND_CATEGORIES) do
+		for _, c in ipairs(cat.cmds) do
+			local names = { c.cmd }
+			if c.alias then names[#names + 1] = c.alias end
+			LibAPH.SetSlashCommandsShown(names, command_shown(c))
+		end
+	end
+end
+
+function ALC.say_setting(label_key, on)
+	d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_SETTING_STATE", ALC.L(label_key), on and ALC.L("WORD_ON") or ALC.L("WORD_OFF")))
+end
+
 function ALC.build_command_list_text(double_spaced)
 	local sep = double_spaced and "\n\n" or "\n"
 	local lines = {}
 	for _, cat in ipairs(ALC.COMMAND_CATEGORIES) do
 		local cat_lines = {}
 		for _, c in ipairs(cat.cmds) do
-			local nonexistent_here = (c.pc_only and IsConsoleUI()) or (c.console_only and not IsConsoleUI())
-			local is_off = c.disabled_check and c.disabled_check()
-			if not nonexistent_here and not is_off then
+			if command_shown(c) then
 				table.insert(cat_lines, string.format("|c00FFFF%s|r |cFFD700- %s|r%s", c.cmd, ALC.L(c.desc_key), sep))
 			end
 		end
@@ -409,8 +437,8 @@ function ALC.toggle_core_events()
 				if not in_combat then trigger_memory_check("CombatEnd", 3000) end
 			end
 		)
-		if IsConsoleUI() then
-			EVENT_MANAGER:RegisterForEvent(ALC.name .. "_LowMem", EVENT_CONSOLE_ADD_ONS_MEMORY_LIMIT_REACHED, function() ALC.run_manual_cleanup() end)
+		if is_gamepad_ui() then
+			EVENT_MANAGER:RegisterForEvent(ALC.name .. "_LowMem", EVENT_CONSOLE_ADD_ONS_MEMORY_LIMIT_REACHED, function() ALC.run_manual_cleanup(false, "lowmem") end)
 		end
 		EVENT_MANAGER:RegisterForUpdate(ALC.name .. "_AutoSweep", 5000,
 			function()
@@ -457,7 +485,15 @@ function safe_csa(title, body, lifespan_ms)
 	LibAPH.SafeCSA(ALC.settings.is_csa_enabled, title, body, lifespan_ms or 4000)
 end
 
-local CLEANUP_MODES = { "automatic", "background", "aggressive", "deep" }
+local CLEANUP_MODES = { "automatic", "vanilla", "background", "aggressive", "deep" }
+local AUTO_MIN_GROWTH_MB = 2
+local AUTO_MIN_GROWTH_SHARE = 0.05
+local AUTO_SECOND_PASS_SHARE = 0.05
+local AUTO_RECHECK_EVERY = 5
+local last_after_lua
+local auto_second_share
+local auto_menu_runs = 0
+local AUTO_PICK_SHOW_MS = 3000
 
 function ALC.get_cleanup_modes()
 	return CLEANUP_MODES
@@ -468,7 +504,7 @@ function ALC.get_cleanup_mode()
 	for _, known in ipairs(ALC.get_cleanup_modes()) do
 		if known == mode then return mode end
 	end
-	return "background"
+	return "automatic"
 end
 
 function ALC.get_cleanup_mode_choices()
@@ -485,13 +521,31 @@ end
 function ALC.set_cleanup_mode(mode)
 	ALC.settings.cleanup_mode = mode
 	local dropdown = _G["ALC_CleanupModeDropdown"]
-	if dropdown and dropdown.UpdateChoices then dropdown:UpdateChoices(ALC.get_cleanup_mode_choices()) end
+	if dropdown and dropdown.UpdateChoices then
+		dropdown:UpdateChoices(ALC.get_cleanup_mode_choices())
+		if dropdown.UpdateValue then dropdown:UpdateValue() end
+	end
 end
 
 local function alc_gc_pass_count(opts)
-	local passes = ALC.get_cleanup_mode() == "aggressive" and 1 or 2
+	local passes = opts.mode == "aggressive" and 1 or 2
 	if opts.extraPass then passes = passes + 1 end
 	return passes
+end
+
+function ALC.pick_auto_mode(forced, reason)
+	if reason == "lowmem" then return "deep" end
+	local lua_mb = collectgarbage("count") / 1024
+	if not forced and last_after_lua then
+		local wanted = math.max(AUTO_MIN_GROWTH_MB, last_after_lua * AUTO_MIN_GROWTH_SHARE)
+		if lua_mb - last_after_lua < wanted then return "vanilla" end
+	end
+	if IsUnitInCombat("player") or not LibAPH.IsPlayerInMenu() then return "background" end
+	auto_menu_runs = auto_menu_runs + 1
+	if auto_second_share and auto_second_share < AUTO_SECOND_PASS_SHARE and auto_menu_runs % AUTO_RECHECK_EVERY ~= 0 then
+		return "aggressive"
+	end
+	return "deep"
 end
 
 local function alc_run_gc_pass(opts)
@@ -513,44 +567,121 @@ local function alc_run_gc_pass(opts)
 		end
 
 		local passes = alc_gc_pass_count(opts)
-		local mode = ALC.get_cleanup_mode()
+		local mode = opts.mode
 		if mode ~= "aggressive" and mode ~= "deep" then
 			LibAPH.StepCleanup(passes, report)
 			return
 		end
-		for _ = 1, passes do collectgarbage("collect") end
+		local first_freed
+		for pass = 1, passes do
+			local before_pass = collectgarbage("count")
+			collectgarbage("collect")
+			local freed_pass = before_pass - collectgarbage("count")
+			if pass == 1 then
+				first_freed = freed_pass
+			elseif pass == 2 and opts.measure then
+				auto_second_share = first_freed > 0 and math.max(freed_pass, 0) / first_freed or 0
+			end
+		end
 		report()
 	end, settle_before)
 end
 
-function ALC.run_manual_cleanup(force_feedback)
-	if not force_feedback and ALC.get_cleanup_mode() == "automatic" then return end
+local function report_cleanup(after_lua, freed, after_pool, freed_pool, note, force_feedback)
+	mem_state = 0
+	last_after_lua = after_lua
+	local reported = false
+
+	if freed > 0.001 or freed_pool > 0.001 then
+		reported = true
+		ALC.session_mb_freed = ALC.session_mb_freed + freed
+		ALC.session_pool_mb_freed = ALC.session_pool_mb_freed + freed_pool
+
+		local msg = ALC.build_memory_status_line(after_lua, freed, after_pool, freed_pool)
+		if note then msg = msg .. " |c888888(" .. note .. ")|r" end
+
+		if ALC.settings.is_log_enabled then
+			ALC.chat:Print(msg)
+		end
+		local body = build_memory_status_lines(after_lua, freed, after_pool, freed_pool)
+		if note then body = note .. "\n" .. body end
+		safe_csa(ALC.L("CSA_TITLE_CLEANED"), body)
+	elseif force_feedback then
+		reported = true
+		local msg = ALC.build_memory_status_line(after_lua, 0, after_pool, 0) .. " |c888888" .. ALC.L("LABEL_ALREADY_CLEAN") .. "|r"
+		if note then msg = msg .. " |c888888(" .. note .. ")|r" end
+		if ALC.settings.is_log_enabled then
+			ALC.chat:Print(msg)
+		end
+		local body = build_memory_status_lines(after_lua, 0, after_pool, 0)
+		if note then body = note .. "\n" .. body end
+		safe_csa(ALC.L("CSA_TITLE_ALREADY_CLEAN"), body)
+	end
+
+	if note and reported then
+		local shown = { text = note, at = GetGameTimeMilliseconds() }
+		ALC.last_auto_pick = shown
+		zo_callLater(function()
+			if ALC.last_auto_pick ~= shown then return end
+			ALC.last_auto_pick = nil
+			if ALC.settings.show_ui then ALC.call_optional(ALC.update_ui, "UI module (update_ui)") end
+		end, AUTO_PICK_SHOW_MS)
+	end
+
+	if ALC.settings.show_ui then ALC.call_optional(ALC.update_ui, "UI module (update_ui)") end
+end
+
+local function picked_note(picked)
+	return picked and ALC.L("AUTO_PICKED", ALC.L("PICK_" .. picked:upper()))
+end
+
+local function report_result(result, force_feedback, by)
+	local note = by and ALC.L("CLEANED_BY", by) or picked_note(result.picked)
+	report_cleanup(result.afterLua, result.freedLua, result.afterPool, result.freedPool, note, force_feedback)
+end
+
+function ALC.track_shared_cleanups()
+	if not LibAPH.RegisterCleanupListener then return end
+	LibAPH.RegisterCleanupListener(ALC.name, function(result)
+		if result.sources[ALC.name] then return end
+		last_cleanup_time = GetGameTimeMilliseconds()
+		report_result(result, false, result.source)
+	end)
+end
+
+function ALC.run_manual_cleanup(force_feedback, reason)
+	if LibAPH.RunCleanup then
+		local started = LibAPH.RunCleanup({
+			method = ALC.get_cleanup_mode(),
+			source = ALC.name,
+			force = force_feedback,
+			reason = reason,
+			onDone = function(result) report_result(result, force_feedback) end,
+		})
+		if started then
+			mem_state = 1
+			last_cleanup_time = GetGameTimeMilliseconds()
+		end
+		return
+	end
+
+	local mode, picked = ALC.get_cleanup_mode(), nil
+	if mode == "vanilla" then
+		if not force_feedback then return end
+		mode = "background"
+	elseif mode == "automatic" then
+		mode = ALC.pick_auto_mode(force_feedback, reason)
+		if mode == "vanilla" then return end
+		picked = mode
+	end
 	mem_state = 1
 	last_cleanup_time = GetGameTimeMilliseconds()
 	alc_run_gc_pass({
+		mode = mode,
+		measure = picked == "deep",
 		getPoolMB = ALC.get_console_pool_mb,
-		onDone = function(before_lua, after_lua, freed, before_pool, after_pool, freed_pool)
-			mem_state = 0
-
-			if freed > 0.001 or freed_pool > 0.001 then
-				ALC.session_mb_freed = ALC.session_mb_freed + freed
-				ALC.session_pool_mb_freed = ALC.session_pool_mb_freed + freed_pool
-
-				local msg = ALC.build_memory_status_line(after_lua, freed, after_pool, freed_pool)
-
-				if ALC.settings.is_log_enabled then
-					ALC.chat:Print(msg)
-				end
-				safe_csa(ALC.L("CSA_TITLE_CLEANED"), build_memory_status_lines(after_lua, freed, after_pool, freed_pool))
-			elseif force_feedback then
-				local msg = ALC.build_memory_status_line(after_lua, 0, after_pool, 0) .. " |c888888" .. ALC.L("LABEL_ALREADY_CLEAN") .. "|r"
-				if ALC.settings.is_log_enabled then
-					ALC.chat:Print(msg)
-				end
-				safe_csa(ALC.L("CSA_TITLE_ALREADY_CLEAN"), build_memory_status_lines(after_lua, 0, after_pool, 0))
-			end
-
-			if ALC.settings.show_ui then ALC.call_optional(ALC.update_ui, "UI module (update_ui)") end
+		onDone = function(_, after_lua, freed, _, after_pool, freed_pool)
+			report_cleanup(after_lua, freed, after_pool, freed_pool, picked_note(picked), force_feedback)
 		end,
 	})
 end
@@ -558,6 +689,7 @@ end
 function trigger_memory_check(check_type, delay)
 	if not ALC.settings.is_enabled then return end
 	if mem_state == 1 or is_mem_check_queued then return end
+	if LibAPH.IsCleanupRunning and LibAPH.IsCleanupRunning() then return end
 
 	local now_ms = GetGameTimeMilliseconds()
 	local fallback_ms = ALC.settings.fallback_delay_sec * 1000
@@ -576,7 +708,7 @@ function trigger_memory_check(check_type, delay)
 		is_mem_check_queued = true
 		zo_callLater(function()
 			is_mem_check_queued = false
-			if mem_state == 1 then return end
+			if mem_state == 1 or (LibAPH.IsCleanupRunning and LibAPH.IsCleanupRunning()) then return end
 
 			local still_in_combat = IsUnitInCombat("player")
 			if still_in_combat or IsUnitDead("player") then
@@ -632,7 +764,7 @@ function ALC.show_missing_library_warning()
 		ALC.L("LIBWARN_CONSEQUENCE_LAM"))
 	if lam_alert then table.insert(alerts, lam_alert) end
 
-	if IsConsoleUI() then
+	if is_gamepad_ui() then
 		local lhas_alert = LibAPH.BuildLibraryWarning(libwarn_templates, "LibHarvensAddonSettings", "LHAS", lhas_ver, lhas_en, REQUIRED_LHAS_VERSION,
 			ALC.L("LIBWARN_CONSEQUENCE_LHAS"))
 		if lhas_alert then table.insert(alerts, lhas_alert) end
@@ -846,6 +978,7 @@ function init(event_code, addon_name)
 
 	hook_error_capture()
 	ALC.toggle_core_events()
+	ALC.track_shared_cleanups()
 
 	EVENT_MANAGER:RegisterForEvent(ALC.name, EVENT_PLAYER_ACTIVATED, function()
 		trigger_memory_check("ZoneLoad", 5000)

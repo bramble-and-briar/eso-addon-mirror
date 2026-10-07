@@ -99,6 +99,29 @@ local function MeasureWidth(entries)
 	return math.min(MAX_WIDTH, math.ceil(widest))
 end
 
+local tooltip_shown = false
+
+local function HideRowTooltip()
+	if not tooltip_shown then return end
+	tooltip_shown = false
+	ClearTooltip(InformationTooltip)
+end
+
+local function ShowRowTooltip(row)
+	local entry, menu = row.libaph_entry, row.libaph_menu
+	local text = entry and entry.tooltip
+	if type(text) == "function" then text = text() end
+	if ON_CONSOLE or not menu or type(text) ~= "string" or text == "" then
+		HideRowTooltip()
+		return
+	end
+	local win = menu.win
+	local offset = (row:GetTop() + row:GetHeight() / 2) - (win:GetTop() + win:GetHeight() / 2)
+	InitializeTooltip(InformationTooltip, win, RIGHT, -SUBMENU_GAP, offset, LEFT)
+	SetTooltipText(InformationTooltip, text)
+	tooltip_shown = true
+end
+
 local function CloseFrom(depth)
 	for level = #menus, depth, -1 do
 		local menu = menus[level]
@@ -115,6 +138,7 @@ function LibAPH.IsContextMenuOpen()
 end
 
 function LibAPH.CloseContextMenu()
+	HideRowTooltip()
 	if open_depth == 0 then return end
 	local on_hide = menus[1] and menus[1].on_hide
 	CloseFrom(1)
@@ -230,7 +254,10 @@ local function WireRow(row)
 		if upInside and button == MOUSE_BUTTON_INDEX_LEFT then LibAPH.ContextMenuRowClicked(self) end
 	end)
 	row:SetHandler("OnMouseEnter", function(self) LibAPH.ContextMenuRowEntered(self) end)
-	row:SetHandler("OnMouseExit", function(self) StopMarquee(self) end)
+	row:SetHandler("OnMouseExit", function(self)
+		StopMarquee(self)
+		HideRowTooltip()
+	end)
 end
 
 local function SetupRow(row, data)
@@ -584,6 +611,7 @@ function LibAPH.ContextMenuRowEntered(row)
 	if not menu then return end
 	HighlightRow(menu, row.libaph_index)
 	StartMarquee(row)
+	ShowRowTooltip(row)
 	CloseFrom(menu.level + 1)
 	if row.libaph_entry and row.libaph_entry.submenu then OpenSubmenu(menu, row) end
 end
@@ -634,6 +662,45 @@ function LibAPH.GetContextMenuPlacement(level)
 	local menu = menus[level or 1]
 	if not menu then return nil end
 	return menu.placed, menu.list_height, menu.content_height
+end
+
+function LibAPH.GroupedChoiceEntries(groups, opts)
+	opts = opts or {}
+	local current, mark = opts.current, opts.markColor or THEME.GREEN
+	local entries = {}
+	for _, group in ipairs(groups) do
+		local items = group.items or {}
+		if #items > 0 or group.extra or opts.keepEmpty then
+			local holds = group.holds == true
+			for _, item in ipairs(items) do
+				if item.value == current then holds = true end
+			end
+			entries[#entries + 1] = {
+				text = group.title,
+				color = holds and mark or nil,
+				submenuFilter = group.filter == true,
+				submenu = function()
+					local out = {}
+					for _, item in ipairs(items) do
+						out[#out + 1] = {
+							text = item.text,
+							selected = item.value == current,
+							onClick = function()
+								if opts.onPick then opts.onPick(item.value, item) end
+							end,
+						}
+					end
+					for _, extra in ipairs(group.extra or {}) do out[#out + 1] = extra end
+					return out
+				end,
+			}
+		end
+	end
+	return entries
+end
+
+function LibAPH.ShowGroupedChoiceMenu(control, groups, opts)
+	return LibAPH.ShowContextMenu(control, LibAPH.GroupedChoiceEntries(groups, opts), opts)
 end
 
 function LibAPH.UseContextMenuForCombo(container, build, opts)

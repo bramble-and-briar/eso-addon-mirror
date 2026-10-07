@@ -3,6 +3,8 @@ local SAVED_VARS_NAME = "Leo_tracker_beta_SavedVariables"
 local TIMER_UPDATE_NAME = ADDON_NAME .. "_TimerUpdate"
 local TARGET_REFRESH_NAME = ADDON_NAME .. "_TargetRefresh"
 local TARGET_SCAN_NAME = ADDON_NAME .. "_TargetScan"
+local SELF_TIMER_UPDATE_NAME = ADDON_NAME .. "_SelfTimerUpdate"
+local SELF_SCAN_NAME = ADDON_NAME .. "_SelfScan"
 
 local MAX_WATCHED_EFFECTS = 100
 local ICON_SIZE = 72
@@ -26,10 +28,21 @@ local DEFAULTS = {
     iconAlpha = 1.0,
     textSize = 18,
     watched = {},
+    self = {
+        x = 40,
+        y = 212,
+        scale = 1.0,
+        panelAlpha = 0.88,
+        iconAlpha = 1.0,
+        textSize = 18,
+        watched = {},
+    },
 }
 
 local panel
 local panelBackdrop
+local selfPanel
+local selfPanelBackdrop
 local savedVars
 local settingsPanel
 local settingsOptions
@@ -40,6 +53,8 @@ local settingsCallbacksRegistered = false
 local consoleSceneCallbackRegistered = false
 local inputBuffer = ""
 local removeInputBuffer = ""
+local selfAddInputBuffer = ""
+local selfRemoveInputBuffer = ""
 
 local watchedById = {}
 local activeInstances = {}
@@ -49,6 +64,8 @@ local timerUpdateRegistered = false
 local targetRefreshRegistered = false
 local targetScanRegistered = false
 local targetRefreshAttempt = 0
+local selfTimerUpdateRegistered = false
+local selfScanRegistered = false
 local scanDiagnostics = {
     buffCount = 0,
     matchingCount = 0,
@@ -62,6 +79,11 @@ local effectEventDiagnostics = {
 }
 local PrintTargetScanDiagnostics
 
+local selfWatchedById = {}
+local selfActiveInstances = {}
+local selfActiveById = {}
+local selfIconControls = {}
+
 local function IsCurrentTarget(unitTag)
     if unitTag == "reticleover" then
         return true
@@ -70,17 +92,24 @@ local function IsCurrentTarget(unitTag)
     return AreUnitsEqual ~= nil and AreUnitsEqual(unitTag, "reticleover")
 end
 
+local function IsPlayerUnit(unitTag)
+    if unitTag == "player" then
+        return true
+    end
+
+    return AreUnitsEqual ~= nil and AreUnitsEqual(unitTag, "player")
+end
+
 local function AddChatLine(text)
-    if CHAT_SYSTEM then
-        CHAT_SYSTEM:AddMessage("[Leo Tracker Beta] " .. text)
+    local message = "[Leo Tracker Beta] " .. tostring(text)
+    if d then
+        d(message)
+    elseif CHAT_SYSTEM and CHAT_SYSTEM.AddMessage then
+        CHAT_SYSTEM:AddMessage(message)
     end
 end
 
 local function PrintDiagnostics(command)
-    if not CHAT_SYSTEM then
-        return
-    end
-
     if tostring(command or ""):lower():match("^%s*scan%s*$") then
         if PrintTargetScanDiagnostics then
             PrintTargetScanDiagnostics()
@@ -93,8 +122,8 @@ local function PrintDiagnostics(command)
     local settingsState = settingsRegistered and "OK" or "NOT_REGISTERED"
     local lamState = LibAddonMenu2 and "OK" or "MISSING"
 
-    CHAT_SYSTEM:AddMessage(string.format(
-        "[Leo Tracker Beta] Lua=LOADED | HUD=%s | SavedVariables=%s | Settings=%s | LibAddonMenu=%s",
+    AddChatLine(string.format(
+        "Lua=LOADED | HUD=%s | SavedVariables=%s | Settings=%s | LibAddonMenu=%s",
         panelState,
         savedVarsState,
         settingsState,
@@ -104,6 +133,12 @@ end
 
 SLASH_COMMANDS["/leotracker"] = PrintDiagnostics
 SLASH_COMMANDS["/ltb"] = PrintDiagnostics
+SLASH_COMMANDS["/leotracker_scan"] = function()
+    if PrintTargetScanDiagnostics then
+        PrintTargetScanDiagnostics()
+    end
+end
+SLASH_COMMANDS["/ltbscan"] = SLASH_COMMANDS["/leotracker_scan"]
 
 local function Clamp(value, minimum, maximum)
     return math.max(minimum, math.min(maximum, value))
@@ -113,8 +148,14 @@ local function GetNowMilliseconds()
     return GetFrameTimeMilliseconds()
 end
 
-local function GetTrackerTextFont()
-    local fontSize = savedVars and tonumber(savedVars.textSize) or DEFAULTS.textSize
+local function GetTrackerTextFont(configOverride)
+    local fontSize
+    if configOverride then
+        fontSize = tonumber(configOverride.textSize)
+    else
+        fontSize = savedVars and tonumber(savedVars.textSize) or DEFAULTS.textSize
+    end
+    fontSize = fontSize or DEFAULTS.textSize
     fontSize = Clamp(fontSize, MIN_TEXT_SIZE, MAX_TEXT_SIZE)
 
     local fontFace
@@ -152,10 +193,6 @@ local function EffectTimeToMilliseconds(endTime)
 end
 
 PrintTargetScanDiagnostics = function()
-    if not CHAT_SYSTEM then
-        return
-    end
-
     local targetExists = DoesUnitExist("reticleover")
     local targetDead = targetExists and IsUnitDead("reticleover") or false
     local buffCount = targetExists and (GetNumBuffs("reticleover") or 0) or 0
@@ -197,6 +234,41 @@ PrintTargetScanDiagnostics = function()
 
     if matchingCount == 0 then
         AddChatLine("No watched AbilityId was returned by GetUnitBuffInfo for reticleover.")
+    end
+
+    local selfExists = DoesUnitExist("player")
+    local selfDead = selfExists and IsUnitDead("player") or false
+    local selfBuffCount = selfExists and (GetNumBuffs("player") or 0) or 0
+    AddChatLine(string.format(
+        "Self exists=%s dead=%s buffs=%d watched=%d",
+        tostring(selfExists),
+        tostring(selfDead),
+        selfBuffCount,
+        savedVars and savedVars.self and #savedVars.self.watched or 0
+    ))
+
+    local selfMatchingCount = 0
+    if selfExists and not selfDead and savedVars and savedVars.self then
+        for buffIndex = 1, selfBuffCount do
+            local effectName, beginTime, endTime, effectSlot, stackCount, iconName, _, effectType, _, _, abilityId = GetUnitBuffInfo("player", buffIndex)
+            if abilityId and selfWatchedById[abilityId] then
+                selfMatchingCount = selfMatchingCount + 1
+                AddChatLine(string.format(
+                    "Self MATCH id=%d slot=%s end=%s delta=%s type=%s stacks=%s name=%s",
+                    abilityId,
+                    tostring(effectSlot),
+                    tostring(endTime),
+                    tostring(endTime and (endTime * 1000 - now) or nil),
+                    tostring(effectType),
+                    tostring(stackCount),
+                    tostring(effectName)
+                ))
+            end
+        end
+    end
+
+    if selfMatchingCount == 0 then
+        AddChatLine("No watched AbilityId was returned by GetUnitBuffInfo for player.")
     end
 
     local lastEvent = effectEventDiagnostics.last
@@ -277,6 +349,173 @@ local function NormalizeSavedVars()
     savedVars.panelAlpha = Clamp(tonumber(savedVars.panelAlpha) or DEFAULTS.panelAlpha, 0.1, 1.0)
     savedVars.iconAlpha = Clamp(tonumber(savedVars.iconAlpha) or DEFAULTS.iconAlpha, 0.1, 1.0)
     savedVars.textSize = Clamp(tonumber(savedVars.textSize) or DEFAULTS.textSize, MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+
+    if type(savedVars.self) ~= "table" then
+        savedVars.self = {}
+    end
+
+    savedVars.self.x = tonumber(savedVars.self.x) or DEFAULTS.self.x
+    savedVars.self.y = tonumber(savedVars.self.y) or DEFAULTS.self.y
+    savedVars.self.scale = Clamp(tonumber(savedVars.self.scale) or DEFAULTS.self.scale, 0.5, 2.0)
+    savedVars.self.panelAlpha = Clamp(tonumber(savedVars.self.panelAlpha) or DEFAULTS.self.panelAlpha, 0.1, 1.0)
+    savedVars.self.iconAlpha = Clamp(tonumber(savedVars.self.iconAlpha) or DEFAULTS.self.iconAlpha, 0.1, 1.0)
+    savedVars.self.textSize = Clamp(tonumber(savedVars.self.textSize) or DEFAULTS.self.textSize, MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+    if type(savedVars.self.watched) ~= "table" then
+        savedVars.self.watched = {}
+    end
+end
+
+local function RebuildSelfWatchedIndex()
+    selfWatchedById = {}
+
+    local cleaned = {}
+    for _, entry in ipairs(savedVars.self.watched) do
+        local rawId = type(entry) == "table" and entry.id or entry
+        local savedName = type(entry) == "table" and entry.name or nil
+        local abilityId = ParseAbilityId(rawId)
+        if abilityId and not selfWatchedById[abilityId] and #cleaned < MAX_WATCHED_EFFECTS then
+            local cleanEntry = {
+                id = abilityId,
+                name = savedName or GetAbilityDisplayName(abilityId),
+            }
+            cleaned[#cleaned + 1] = cleanEntry
+            selfWatchedById[abilityId] = cleanEntry
+        end
+    end
+
+    savedVars.self.watched = cleaned
+end
+
+local function GetCurrentPlayerStackCount(abilityId, effectSlot)
+    if not abilityId or not DoesUnitExist("player") then
+        return nil
+    end
+
+    local buffCount = GetNumBuffs("player") or 0
+    for buffIndex = 1, buffCount do
+        local _, _, _, currentSlot, currentStackCount, _, _, _, _, _, currentAbilityId = GetUnitBuffInfo("player", buffIndex)
+        if currentAbilityId == abilityId and (effectSlot == nil or currentSlot == effectSlot) then
+            return tonumber(currentStackCount) or 0
+        end
+    end
+
+    return nil
+end
+
+local function ClearSelfEffects()
+    selfActiveInstances = {}
+    selfActiveById = {}
+end
+
+local function SetSelfEffectInstance(abilityId, effectSlot, effectName, endTime, iconName, stackCount, effectType, sourceType)
+    local watched = selfWatchedById[abilityId]
+    if not watched then
+        return
+    end
+
+    local normalizedStackCount = tonumber(stackCount)
+    if not normalizedStackCount or normalizedStackCount < 1 then
+        normalizedStackCount = GetCurrentPlayerStackCount(abilityId, effectSlot) or 0
+    end
+    normalizedStackCount = math.max(0, math.floor(normalizedStackCount))
+
+    local now = GetNowMilliseconds()
+    local endTimeMs = EffectTimeToMilliseconds(endTime)
+    local stackOnly = false
+    local slotKey = tostring(effectSlot or abilityId)
+
+    if not endTimeMs then
+        stackOnly = true
+    elseif endTimeMs <= now then
+        return
+    end
+
+    local instances = selfActiveInstances[abilityId]
+    if not instances then
+        instances = {}
+        selfActiveInstances[abilityId] = instances
+    end
+
+    instances[slotKey] = {
+        abilityId = abilityId,
+        effectSlot = effectSlot,
+        name = effectName or watched.name,
+        endTime = endTimeMs,
+        iconName = iconName or MISSING_ICON,
+        stackCount = normalizedStackCount,
+        effectType = effectType,
+        sourceType = sourceType,
+        stackOnly = stackOnly,
+    }
+
+    if effectName and effectName ~= "" then
+        watched.name = effectName
+    end
+end
+
+local function RemoveSelfEffectInstance(abilityId, effectSlot)
+    local instances = selfActiveInstances[abilityId]
+    if not instances then
+        return
+    end
+
+    instances[tostring(effectSlot or abilityId)] = nil
+    if next(instances) == nil then
+        selfActiveInstances[abilityId] = nil
+    end
+end
+
+local function RebuildSelfActiveEffects()
+    selfActiveById = {}
+
+    for abilityId, instances in pairs(selfActiveInstances) do
+        local latest
+        for _, instance in pairs(instances) do
+            local instanceEndTime = instance.endTime or 0
+            local latestEndTime = latest and (latest.endTime or 0) or 0
+            if not latest
+                or instanceEndTime > latestEndTime
+                or (instanceEndTime == latestEndTime and instance.stackCount > latest.stackCount) then
+                latest = instance
+            end
+        end
+
+        if latest then
+            selfActiveById[abilityId] = latest
+        end
+    end
+end
+
+local function PruneSelfExpiredEffects()
+    local now = GetNowMilliseconds()
+    local changed = false
+
+    for abilityId, instances in pairs(selfActiveInstances) do
+        for slotKey, instance in pairs(instances) do
+            if not instance.stackOnly and instance.endTime <= now then
+                instances[slotKey] = nil
+                changed = true
+            end
+        end
+
+        if next(instances) == nil then
+            selfActiveInstances[abilityId] = nil
+        end
+    end
+
+    if changed then
+        RebuildSelfActiveEffects()
+    end
+end
+
+local function HasSelfTimedEffects()
+    for _, effect in pairs(selfActiveById) do
+        if not effect.stackOnly then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function IsDebuff(effectType)
@@ -367,7 +606,7 @@ end
 local function SetEffectInstance(abilityId, effectSlot, effectName, endTime, iconName, stackCount, effectType, sourceType, castByPlayer)
     local watched = watchedById[abilityId]
     local endTimeMs = EffectTimeToMilliseconds(endTime)
-    if not watched or not endTimeMs or endTimeMs <= GetNowMilliseconds() then
+    if not watched then
         return
     end
 
@@ -376,6 +615,13 @@ local function SetEffectInstance(abilityId, effectSlot, effectName, endTime, ico
     local normalizedStackCount = tonumber(stackCount)
     if not normalizedStackCount or normalizedStackCount < 1 then
         normalizedStackCount = GetCurrentTargetStackCount(abilityId, effectSlot) or 0
+    end
+
+    local stackOnly = false
+    if not endTimeMs then
+        stackOnly = true
+    elseif endTimeMs <= GetNowMilliseconds() then
+        return
     end
 
     local instances = activeInstances[abilityId]
@@ -395,6 +641,7 @@ local function SetEffectInstance(abilityId, effectSlot, effectName, endTime, ico
         effectType = effectType,
         sourceType = sourceType,
         castByPlayer = castByPlayer,
+        stackOnly = stackOnly,
     }
 
     if effectName and effectName ~= "" then
@@ -420,7 +667,11 @@ local function RebuildActiveEffects()
     for abilityId, instances in pairs(activeInstances) do
         local latest
         for _, instance in pairs(instances) do
-            if not latest or instance.endTime > latest.endTime then
+            local instanceEndTime = instance.endTime or 0
+            local latestEndTime = latest and (latest.endTime or 0) or 0
+            if not latest
+                or instanceEndTime > latestEndTime
+                or (instanceEndTime == latestEndTime and instance.stackCount > latest.stackCount) then
                 latest = instance
             end
         end
@@ -437,7 +688,7 @@ local function PruneExpiredEffects()
 
     for abilityId, instances in pairs(activeInstances) do
         for slotKey, instance in pairs(instances) do
-            if instance.endTime <= now then
+            if not instance.stackOnly and instance.endTime <= now then
                 instances[slotKey] = nil
                 changed = true
             end
@@ -451,6 +702,16 @@ local function PruneExpiredEffects()
     if changed then
         RebuildActiveEffects()
     end
+end
+
+local function HasTargetTimedEffects()
+    for _, effect in pairs(activeById) do
+        if not effect.stackOnly then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function SetPanelDimensions(activeCount)
@@ -477,7 +738,7 @@ local function CreateIconControl(index)
         CT_LABEL
     )
     timer:SetAnchorFill(control)
-    timer:SetFont(GetTrackerTextFont())
+    timer:SetFont(GetTrackerTextFont(savedVars))
     timer:SetColor(1, 1, 1, 1)
     timer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     timer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -507,7 +768,7 @@ local function CreateIconControl(index)
 
     stacks:SetDimensions(24, 24)
     stacks:SetAnchor(TOPRIGHT, control, TOPRIGHT, -3, 3)
-    stacks:SetFont(GetTrackerTextFont())
+    stacks:SetFont(GetTrackerTextFont(savedVars))
     stacks:SetColor(1, 1, 1, 1)
     stacks:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
     stacks:SetVerticalAlignment(TEXT_ALIGN_TOP)
@@ -541,6 +802,12 @@ local function ApplyTextFonts()
     for _, iconData in ipairs(iconControls) do
         iconData.timer:SetFont(font)
         iconData.stacks:SetFont(font)
+    end
+
+    local selfFont = GetTrackerTextFont(savedVars.self)
+    for _, iconData in ipairs(selfIconControls) do
+        iconData.timer:SetFont(selfFont)
+        iconData.stacks:SetFont(selfFont)
     end
 end
 
@@ -582,9 +849,14 @@ local function RenderPanel()
         iconData.icon:SetAlpha(savedVars.iconAlpha)
         ApplyIconBorder(iconData, effect)
 
-        local remaining = math.max(0, (effect.endTime - GetNowMilliseconds()) / 1000)
-        iconData.timer:SetHidden(false)
-        iconData.timer:SetText(string.format("%.1f", remaining))
+        if effect.stackOnly then
+            iconData.timer:SetHidden(true)
+            iconData.timer:SetText("")
+        else
+            local remaining = math.max(0, (effect.endTime - GetNowMilliseconds()) / 1000)
+            iconData.timer:SetHidden(false)
+            iconData.timer:SetText(string.format("%.1f", remaining))
+        end
 
         local stackCount = tonumber(effect.stackCount) or 0
         iconData.stacks:SetHidden(false)
@@ -592,6 +864,236 @@ local function RenderPanel()
     end
 
     HideUnusedIcons(#visibleEffects)
+end
+
+local function SetSelfPanelDimensions(activeCount)
+    local count = math.max(1, activeCount)
+    local width = PANEL_PADDING * 2 + count * ICON_SIZE + math.max(0, count - 1) * ICON_GAP
+    local height = PANEL_PADDING * 2 + ICON_SIZE
+    selfPanel:SetDimensions(width, height)
+end
+
+local function CreateSelfIconControl(index)
+    if selfIconControls[index] then
+        return selfIconControls[index]
+    end
+
+    local control = WINDOW_MANAGER:CreateControlFromVirtual(
+        ADDON_NAME .. "SelfIcon" .. tostring(index),
+        selfPanel,
+        "Leo_tracker_beta_IconTemplate"
+    )
+
+    local timer = WINDOW_MANAGER:CreateControl(
+        ADDON_NAME .. "SelfIcon" .. tostring(index) .. "Timer",
+        control,
+        CT_LABEL
+    )
+    timer:SetAnchorFill(control)
+    timer:SetFont(GetTrackerTextFont(savedVars.self))
+    timer:SetColor(1, 1, 1, 1)
+    timer:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    timer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    timer:SetDrawLayer(DL_OVERLAY)
+    timer:SetDrawTier(DT_HIGH)
+    timer:SetDrawLevel(10)
+    timer:SetHidden(false)
+
+    local stacks = WINDOW_MANAGER:CreateControl(
+        ADDON_NAME .. "SelfIcon" .. tostring(index) .. "Stacks",
+        control,
+        CT_LABEL
+    )
+    local border = control:GetNamedChild("Frame")
+    if border then
+        border:SetCenterColor(0, 0, 0, 0)
+        border:SetEdgeTexture("", 1, 1, 0, 0)
+        border:SetAlpha(1)
+        border:SetDrawLayer(DL_OVERLAY)
+        border:SetDrawTier(DT_HIGH)
+        border:SetDrawLevel(9)
+        border:SetHidden(false)
+    end
+
+    stacks:SetDimensions(24, 24)
+    stacks:SetAnchor(TOPRIGHT, control, TOPRIGHT, -3, 3)
+    stacks:SetFont(GetTrackerTextFont(savedVars.self))
+    stacks:SetColor(1, 1, 1, 1)
+    stacks:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    stacks:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    stacks:SetDrawLayer(DL_OVERLAY)
+    stacks:SetDrawTier(DT_HIGH)
+    stacks:SetDrawLevel(11)
+    stacks:SetHidden(false)
+
+    selfIconControls[index] = {
+        control = control,
+        icon = control:GetNamedChild("Icon"),
+        border = border,
+        timer = timer,
+        stacks = stacks,
+    }
+
+    return selfIconControls[index]
+end
+
+local function RenderSelfPanel()
+    if not selfPanel then
+        return
+    end
+
+    local visibleEffects = {}
+    for _, watched in ipairs(savedVars.self.watched) do
+        local effect = selfActiveById[watched.id]
+        if effect then
+            visibleEffects[#visibleEffects + 1] = effect
+        end
+    end
+
+    SetSelfPanelDimensions(#visibleEffects)
+    selfPanel:SetHidden(not settingsMenuOpen and #visibleEffects == 0)
+
+    for index, effect in ipairs(visibleEffects) do
+        local iconData = CreateSelfIconControl(index)
+        local offsetX = PANEL_PADDING + (index - 1) * (ICON_SIZE + ICON_GAP)
+
+        iconData.control:ClearAnchors()
+        iconData.control:SetAnchor(TOPLEFT, selfPanel, TOPLEFT, offsetX, PANEL_PADDING)
+        iconData.control:SetHidden(false)
+        iconData.icon:SetTexture(effect.iconName or MISSING_ICON)
+        iconData.icon:SetAlpha(savedVars.self.iconAlpha)
+
+        if iconData.border then
+            local color = IsDebuff(effect.effectType) and DEBUFF_BORDER_COLOR or BUFF_BORDER_COLOR
+            iconData.border:SetEdgeColor(color[1], color[2], color[3], 1)
+        end
+
+        if effect.stackOnly then
+            iconData.timer:SetHidden(true)
+            iconData.timer:SetText("")
+        else
+            local remaining = math.max(0, (effect.endTime - GetNowMilliseconds()) / 1000)
+            iconData.timer:SetHidden(false)
+            iconData.timer:SetText(string.format("%.1f", remaining))
+        end
+
+        local stackCount = tonumber(effect.stackCount) or 0
+        iconData.stacks:SetHidden(false)
+        iconData.stacks:SetText(stackCount > 1 and tostring(stackCount) or "")
+    end
+
+    for index, iconData in ipairs(selfIconControls) do
+        if index > #visibleEffects then
+            iconData.control:SetHidden(true)
+        end
+    end
+end
+
+local function StopSelfTimerUpdates()
+    if selfTimerUpdateRegistered then
+        EVENT_MANAGER:UnregisterForUpdate(SELF_TIMER_UPDATE_NAME)
+        selfTimerUpdateRegistered = false
+    end
+end
+
+local function StartSelfTimerUpdates()
+    if selfTimerUpdateRegistered then
+        return
+    end
+
+    EVENT_MANAGER:RegisterForUpdate(SELF_TIMER_UPDATE_NAME, TIMER_INTERVAL_MS, function()
+        PruneSelfExpiredEffects()
+        RenderSelfPanel()
+        if not HasSelfTimedEffects() then
+            StopSelfTimerUpdates()
+        end
+    end)
+    selfTimerUpdateRegistered = true
+end
+
+local function StopSelfScanUpdates()
+    if selfScanRegistered then
+        EVENT_MANAGER:UnregisterForUpdate(SELF_SCAN_NAME)
+        selfScanRegistered = false
+    end
+end
+
+local function ScanSelfPanel()
+    if not DoesUnitExist("player") or IsUnitDead("player") then
+        ClearSelfEffects()
+        RenderSelfPanel()
+        StopSelfTimerUpdates()
+        StopSelfScanUpdates()
+        return
+    end
+
+    local buffCount = GetNumBuffs("player") or 0
+    local seenStackOnly = {}
+    for buffIndex = 1, buffCount do
+        local effectName, _, endTime, effectSlot, stackCount, iconName, _, effectType, _, _, abilityId = GetUnitBuffInfo("player", buffIndex)
+        if abilityId and selfWatchedById[abilityId] then
+            local normalizedStackCount = tonumber(stackCount)
+            if (not normalizedStackCount or normalizedStackCount < 1) and (not endTime or endTime <= 0) then
+                normalizedStackCount = GetCurrentPlayerStackCount(abilityId, effectSlot) or 0
+            end
+            if not endTime or endTime <= 0 then
+                seenStackOnly[tostring(abilityId) .. ":" .. tostring(effectSlot or abilityId)] = true
+            end
+            SetSelfEffectInstance(abilityId, effectSlot, effectName, endTime, iconName, stackCount, effectType, nil)
+        end
+    end
+
+    for abilityId, instances in pairs(selfActiveInstances) do
+        for slotKey, instance in pairs(instances) do
+            local seenKey = tostring(abilityId) .. ":" .. tostring(slotKey)
+            if instance.stackOnly and not seenStackOnly[seenKey] then
+                instances[slotKey] = nil
+            end
+        end
+        if next(instances) == nil then
+            selfActiveInstances[abilityId] = nil
+        end
+    end
+
+    RebuildSelfActiveEffects()
+    RenderSelfPanel()
+    if HasSelfTimedEffects() then
+        StartSelfTimerUpdates()
+    else
+        StopSelfTimerUpdates()
+    end
+end
+
+local function StartSelfScanUpdates()
+    if selfScanRegistered then
+        return
+    end
+
+    EVENT_MANAGER:RegisterForUpdate(SELF_SCAN_NAME, PANEL_SCAN_INTERVAL_MS, ScanSelfPanel)
+    selfScanRegistered = true
+end
+
+local function RequestSelfRefresh()
+    ScanSelfPanel()
+    if #savedVars.self.watched > 0 and DoesUnitExist("player") and not IsUnitDead("player") then
+        StartSelfScanUpdates()
+    else
+        StopSelfScanUpdates()
+    end
+end
+
+local function ApplySelfPanelSettings()
+    if not selfPanel then
+        return
+    end
+
+    selfPanel:ClearAnchors()
+    selfPanel:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, savedVars.self.x, savedVars.self.y)
+    selfPanel:SetScale(savedVars.self.scale)
+    if selfPanelBackdrop then
+        selfPanelBackdrop:SetAlpha(savedVars.self.panelAlpha)
+    end
+    RenderSelfPanel()
 end
 
 local function StopTimerUpdates()
@@ -605,7 +1107,7 @@ local function TimerUpdate()
     PruneExpiredEffects()
     RenderPanel()
 
-    if next(activeById) == nil then
+    if not HasTargetTimedEffects() then
         StopTimerUpdates()
     end
 end
@@ -633,17 +1135,22 @@ local function ApplyPanelSettings()
     RenderPanel()
 end
 
+local function ApplyAllPanelSettings()
+    ApplyPanelSettings()
+    ApplySelfPanelSettings()
+end
+
 local function OnLAMPanelOpened(selectedPanel)
     if selectedPanel == settingsPanel then
         settingsMenuOpen = true
-        ApplyPanelSettings()
+        ApplyAllPanelSettings()
     end
 end
 
 local function OnLAMPanelClosed(selectedPanel)
     if selectedPanel == settingsPanel then
         settingsMenuOpen = false
-        ApplyPanelSettings()
+        ApplyAllPanelSettings()
     end
 end
 
@@ -651,11 +1158,11 @@ local function OnConsoleSettingsSceneStateChange(newState)
     if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
         if consoleSettings and consoleSettings.selected then
             settingsMenuOpen = true
-            ApplyPanelSettings()
+            ApplyAllPanelSettings()
         end
     elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
         settingsMenuOpen = false
-        ApplyPanelSettings()
+        ApplyAllPanelSettings()
     end
 end
 
@@ -683,7 +1190,7 @@ local function OnConsoleAddonSelected(_, addonSettings)
     end
 
     settingsMenuOpen = isOurSettings
-    ApplyPanelSettings()
+    ApplyAllPanelSettings()
 end
 
 local function RegisterSettingsCallbacks()
@@ -706,17 +1213,33 @@ local function ScanCurrentTarget()
     end
 
     local buffCount = GetNumBuffs("reticleover") or 0
+    local seenStackOnly = {}
     for buffIndex = 1, buffCount do
         local effectName, _, endTime, effectSlot, stackCount, iconName, _, effectType, _, _, abilityId, _, castByPlayer = GetUnitBuffInfo("reticleover", buffIndex)
         if abilityId and watchedById[abilityId] and IsAllowedSource(effectType, nil, castByPlayer, abilityId, effectSlot) then
+            if not endTime or endTime <= 0 then
+                seenStackOnly[tostring(abilityId) .. ":" .. tostring(effectSlot or abilityId)] = true
+            end
             SetEffectInstance(abilityId, effectSlot, effectName, endTime, iconName, stackCount, effectType, nil, castByPlayer)
+        end
+    end
+
+    for abilityId, instances in pairs(activeInstances) do
+        for slotKey, instance in pairs(instances) do
+            local seenKey = tostring(abilityId) .. ":" .. tostring(slotKey)
+            if instance.stackOnly and not seenStackOnly[seenKey] then
+                instances[slotKey] = nil
+            end
+        end
+        if next(instances) == nil then
+            activeInstances[abilityId] = nil
         end
     end
 
     RebuildActiveEffects()
     RenderPanel()
 
-    if next(activeById) ~= nil then
+    if HasTargetTimedEffects() then
         StartTimerUpdates()
     else
         StopTimerUpdates()
@@ -809,13 +1332,37 @@ local function OnEffectChanged(_, changeType, effectSlot, effectName, unitTag, b
     RebuildActiveEffects()
     RenderPanel()
 
-    if next(activeById) ~= nil then
+    if HasTargetTimedEffects() then
         StartTimerUpdates()
     else
         StopTimerUpdates()
     end
 
     StartTargetScanUpdates()
+end
+
+local function OnSelfEffectChanged(_, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, effectType, abilityType, statusEffectType, unitName, unitId, abilityId, sourceType)
+    if not IsPlayerUnit(unitTag) then
+        return
+    end
+
+    if not abilityId or not selfWatchedById[abilityId] then
+        return
+    end
+
+    RemoveSelfEffectInstance(abilityId, effectSlot)
+    if changeType ~= EFFECT_RESULT_FADED then
+        SetSelfEffectInstance(abilityId, effectSlot, effectName, endTime, iconName, stackCount, effectType, sourceType)
+    end
+
+    RebuildSelfActiveEffects()
+    RenderSelfPanel()
+    if HasSelfTimedEffects() then
+        StartSelfTimerUpdates()
+    else
+        StopSelfTimerUpdates()
+    end
+    StartSelfScanUpdates()
 end
 
 local function AddWatchedAbility(value)
@@ -885,12 +1432,194 @@ local function GetTrackedEffectsDescription()
     return table.concat(lines, "\n")
 end
 
+local function GetSelfTrackedEffectsDescription()
+    if #savedVars.self.watched == 0 then
+        return "No tracked effects."
+    end
+
+    local lines = {}
+    for _, entry in ipairs(savedVars.self.watched) do
+        lines[#lines + 1] = string.format("%s  [%d]", entry.name, entry.id)
+    end
+
+    return table.concat(lines, "\n")
+end
+
+local function AppendSelfSettingsOptions()
+    local config = savedVars.self
+    local options = {
+        {
+            type = "header",
+            name = "Self panel",
+        },
+        {
+            type = "description",
+            text = "Tracks selected effects currently active on your character, regardless of who applied them.",
+        },
+        {
+            type = "slider",
+            name = "Position X",
+            min = -3000,
+            max = 3000,
+            step = 1,
+            decimals = 0,
+            getFunc = function() return config.x end,
+            setFunc = function(value)
+                config.x = math.floor(tonumber(value) or DEFAULTS.self.x)
+                ApplySelfPanelSettings()
+            end,
+            default = DEFAULTS.self.x,
+        },
+        {
+            type = "slider",
+            name = "Position Y",
+            min = -2000,
+            max = 2000,
+            step = 1,
+            decimals = 0,
+            getFunc = function() return config.y end,
+            setFunc = function(value)
+                config.y = math.floor(tonumber(value) or DEFAULTS.self.y)
+                ApplySelfPanelSettings()
+            end,
+            default = DEFAULTS.self.y,
+        },
+        {
+            type = "slider",
+            name = "Scale",
+            min = 0.5,
+            max = 2.0,
+            step = 0.05,
+            decimals = 2,
+            getFunc = function() return config.scale end,
+            setFunc = function(value)
+                config.scale = Clamp(tonumber(value) or DEFAULTS.self.scale, 0.5, 2.0)
+                ApplySelfPanelSettings()
+            end,
+            default = DEFAULTS.self.scale,
+        },
+        {
+            type = "slider",
+            name = "Panel opacity",
+            min = 0.1,
+            max = 1.0,
+            step = 0.05,
+            decimals = 2,
+            getFunc = function() return config.panelAlpha end,
+            setFunc = function(value)
+                config.panelAlpha = Clamp(tonumber(value) or DEFAULTS.self.panelAlpha, 0.1, 1.0)
+                ApplySelfPanelSettings()
+            end,
+            default = DEFAULTS.self.panelAlpha,
+        },
+        {
+            type = "slider",
+            name = "Icon opacity",
+            min = 0.1,
+            max = 1.0,
+            step = 0.05,
+            decimals = 2,
+            getFunc = function() return config.iconAlpha end,
+            setFunc = function(value)
+                config.iconAlpha = Clamp(tonumber(value) or DEFAULTS.self.iconAlpha, 0.1, 1.0)
+                RenderSelfPanel()
+            end,
+            default = DEFAULTS.self.iconAlpha,
+        },
+        {
+            type = "slider",
+            name = "Text size",
+            tooltip = "Changes the size of the timer and stack counter.",
+            min = MIN_TEXT_SIZE,
+            max = MAX_TEXT_SIZE,
+            step = 1,
+            decimals = 0,
+            getFunc = function() return config.textSize end,
+            setFunc = function(value)
+                config.textSize = Clamp(math.floor(tonumber(value) or DEFAULTS.self.textSize), MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+                local font = GetTrackerTextFont(savedVars.self)
+                for _, iconData in ipairs(selfIconControls) do
+                    iconData.timer:SetFont(font)
+                    iconData.stacks:SetFont(font)
+                end
+                RenderSelfPanel()
+            end,
+            default = DEFAULTS.self.textSize,
+        },
+        {
+            type = "header",
+            name = "Tracked effects",
+        },
+        {
+            type = "description",
+            text = GetSelfTrackedEffectsDescription,
+        },
+        {
+            type = "editbox",
+            name = "Add AbilityId",
+            tooltip = "Enter a positive integer AbilityId.",
+            getFunc = function() return selfAddInputBuffer end,
+            setFunc = function(value)
+                local abilityId = ParseAbilityId(value)
+                if abilityId and not selfWatchedById[abilityId] and #config.watched < MAX_WATCHED_EFFECTS and (not DoesAbilityExist or DoesAbilityExist(abilityId)) then
+                    local entry = { id = abilityId, name = GetAbilityDisplayName(abilityId) }
+                    config.watched[#config.watched + 1] = entry
+                    selfWatchedById[abilityId] = entry
+                    RequestSelfRefresh()
+                end
+                selfAddInputBuffer = ""
+                RefreshSettingsDisplay()
+            end,
+            isMultiline = false,
+            isExtraWide = true,
+            maxChars = 10,
+            default = "",
+        },
+        {
+            type = "editbox",
+            name = "Remove AbilityId",
+            tooltip = "Enter an existing AbilityId to remove it from the self panel.",
+            getFunc = function() return selfRemoveInputBuffer end,
+            setFunc = function(value)
+                local abilityId = ParseAbilityId(value)
+                if abilityId and selfWatchedById[abilityId] then
+                    for index, entry in ipairs(config.watched) do
+                        if entry.id == abilityId then
+                            table.remove(config.watched, index)
+                            break
+                        end
+                    end
+                    selfWatchedById[abilityId] = nil
+                    selfActiveInstances[abilityId] = nil
+                    selfActiveById[abilityId] = nil
+                    RenderSelfPanel()
+                    RequestSelfRefresh()
+                end
+                selfRemoveInputBuffer = ""
+                RefreshSettingsDisplay()
+            end,
+            isMultiline = false,
+            isExtraWide = true,
+            maxChars = 10,
+            default = "",
+        },
+    }
+
+    for _, option in ipairs(options) do
+        settingsOptions[#settingsOptions + 1] = option
+    end
+end
+
 local function RebuildSettingsOptions()
     if not LibAddonMenu2 or not LibAddonMenu2.RegisterOptionControls then
         return
     end
 
     settingsOptions = {
+        {
+            type = "header",
+            name = "Target panel",
+        },
         {
             type = "description",
             text = "Tracks only effects on your current reticle target. Debuffs are shown only when their source is you.",
@@ -1021,6 +1750,8 @@ local function RebuildSettingsOptions()
         },
     }
 
+    AppendSelfSettingsOptions()
+
     local registered, registrationError = pcall(function()
         LibAddonMenu2:RegisterOptionControls(ADDON_NAME .. "_Settings", settingsOptions)
     end)
@@ -1042,7 +1773,7 @@ local function InitializeSettings()
             name = "Leo Tracker Beta",
             displayName = "Leo Tracker Beta",
             author = "Leo_Kujo",
-            version = "0.2.19",
+            version = "0.3.3",
             registerForRefresh = true,
             registerForDefaults = true,
         })
@@ -1065,7 +1796,21 @@ end
 
 local function OnPlayerActivated()
     ApplyPanelSettings()
+    ApplySelfPanelSettings()
     RequestTargetRefresh()
+    RequestSelfRefresh()
+end
+
+local function OnPlayerAlive()
+    RequestSelfRefresh()
+    RequestTargetRefresh()
+end
+
+local function OnPlayerDead()
+    ClearSelfEffects()
+    StopSelfTimerUpdates()
+    RenderSelfPanel()
+    StopSelfScanUpdates()
 end
 
 local function OnAddOnLoaded(_, addonName)
@@ -1075,26 +1820,32 @@ local function OnAddOnLoaded(_, addonName)
 
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
-    panel = Leo_tracker_beta
-    if not panel then
-        AddChatLine("HUD root control Leo_tracker_beta was not created from XML")
+    panel = Leo_tracker_beta_Target
+    selfPanel = Leo_tracker_beta_Self
+    if not panel or not selfPanel then
+        AddChatLine("HUD root controls Leo_tracker_beta_Target/Leo_tracker_beta_Self were not created from XML")
         return
     end
 
     panelBackdrop = panel:GetNamedChild("Panel")
+    selfPanelBackdrop = selfPanel:GetNamedChild("Panel")
     if not panelBackdrop then
         AddChatLine("HUD backdrop control Leo_tracker_betaPanel was not found")
     end
     savedVars = ZO_SavedVars:NewAccountWide(SAVED_VARS_NAME, 1, nil, DEFAULTS)
 
-    RebuildWatchedIndex()
     NormalizeSavedVars()
-    ApplyPanelSettings()
+    RebuildWatchedIndex()
+    RebuildSelfWatchedIndex()
+    ApplyAllPanelSettings()
     InitializeSettings()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Alive", EVENT_PLAYER_ALIVE, OnPlayerAlive)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Dead", EVENT_PLAYER_DEAD, OnPlayerDead)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_RETICLE_TARGET_CHANGED, OnReticleTargetChanged)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_EFFECT_CHANGED, OnEffectChanged)
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_SelfEffects", EVENT_EFFECT_CHANGED, OnSelfEffectChanged)
 
 end
 

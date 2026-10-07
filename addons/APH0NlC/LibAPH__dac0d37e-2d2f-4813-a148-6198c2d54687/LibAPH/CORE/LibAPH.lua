@@ -9,7 +9,7 @@
 
 LibAPH = LibAPH or {}
 local LibAPH = LibAPH
-LibAPH.VERSION = "2026.10.06.07.36"
+LibAPH.VERSION = "2026.10.07.17.24"
 
 function LibAPH.L(key, ...)
 	local id = _G["SI_LIBAPH_" .. key]
@@ -37,8 +37,7 @@ EVENT_MANAGER:RegisterForEvent("LibAPH_Init", EVENT_ADD_ON_LOADED, function(even
 	if not IsConsoleUI() then
 		SLASH_COMMANDS["/libaphbugreport"] = LibAPH.bug_reporter.Show
 	end
-	SLASH_COMMANDS["/libaphsimulateerror"] = function()
-		if GetDisplayName() ~= "@APHONlC" then return end
-		LibAPH.dev_simulate_error()
+	if GetDisplayName() == "@APHONlC" then
+		SLASH_COMMANDS["/libaphsimulateerror"] = LibAPH.dev_simulate_error
 	end
 end)

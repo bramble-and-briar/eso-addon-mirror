@@ -123,6 +123,11 @@
         <Control name="BureauOfMaterialWorth_WithdrawQueueRow" virtual="true" mouseEnabled="true">
             <Dimensions y="28" />
             <Controls>
+                <Backdrop name="$(parent)Hover" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" />
+                </Backdrop>
+
                 <Texture name="$(parent)Icon">
                     <Dimensions x="24" y="24" />
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="2" />

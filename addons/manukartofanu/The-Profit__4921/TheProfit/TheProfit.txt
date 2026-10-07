@@ -1,0 +1,13 @@
+## Title: |cE7C56AThe Profit|r
+## Description: Portfolio profit tracking and personal guild-trade history.
+## APIVersion: 101051
+## Author: manukartofanu
+## Version: 1.0.0
+## AddOnVersion: 10000
+## DependsOn: LibHistoire>=1103 LibAsync LibCustomMenu>=730 LibAddonMenu-2.0>=43
+## OptionalDependsOn: AwesomeGuildStore>=3282
+## SavedVariables: TheProfitSavedVariables
+
+TheProfit.lua
+TheProfit_UI.xml
+Bindings.xml

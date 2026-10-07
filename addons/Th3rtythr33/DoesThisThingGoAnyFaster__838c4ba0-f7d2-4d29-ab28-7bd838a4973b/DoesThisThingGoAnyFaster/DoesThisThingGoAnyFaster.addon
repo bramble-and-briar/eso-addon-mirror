@@ -1,9 +1,47 @@
 ## Title: Does This Thing Go Any Faster?
 ## Author: Th3rtythr33
-## Version: 1.11.0
-## AddOnVersion: 12
-## APIVersion: 101050
+## Version: 1.12.0
+## AddOnVersion: 13
+## APIVersion: 101051
 ## SavedVariables: DoesThisThingGoAnyFasterSaved
-## Description: Shows an on-screen indicator whenever your mount is sprinting.
+## OptionalDependsOn: LibHarvensAddonSettings>=20200
+## Description: Shows an on-screen indicator whenever your mount is sprinting. With LibHarvensAddonSettings installed, the Add-Ons settings menu lets you choose the text and whether the mount stamina bar turns gold.
+
+; ---------------------------------------------------------------------------
+; MANIFEST NOTES
+; ---------------------------------------------------------------------------
+; AddOnVersion is an integer that must only ever INCREASE, and it steps by one
+; per PUBLISHED build regardless of how far the semantic Version jumps. It is
+; what the console catalogue uses; Version is only ever shown to humans.
+; 1.11.0 shipped as AddOnVersion 12, so 1.12.0 is 13.
+;
+; .addon only, no .txt: console-only addon, and the console client has
+; ignored .txt manifests since June 2025.
+;
+; PlayStation's filesystem is case-sensitive. Every path listed below, and the
+; folder and manifest names themselves, must match the real files exactly.
+;
+; Description must stay ONE line and should match the Bethesda.net listing.
+;
+; OptionalDependsOn, not DependsOn, by request: the addon works in full
+; without LibHarvensAddonSettings (the defaults reproduce 1.11.0 exactly);
+; the library only adds the settings menu. The trade-off is that the console
+; will not auto-install the library for players who do not already have it.
+; The minimum is pinned to the library's LATEST release (2.2.0 = 20200, still
+; current on ESOUI as of 2026-10-06) per ESOUI best practice; raise it
+; whenever LHAS updates.
+;
+; APIVersion tracks the live game. 101051 = Update 51, live 2026-09-28.
+;
+; SavedVariables holds two stores in one table: per-character calibration
+; ceilings (ZO_SavedVars:New) and account-wide display preferences
+; (ZO_SavedVars:NewAccountWide, namespace "Display").
+; ---------------------------------------------------------------------------
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 DoesThisThingGoAnyFaster.lua

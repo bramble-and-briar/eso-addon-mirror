@@ -39,6 +39,10 @@ M.DEFAULT_ARC_HEIGHT = 128   -- px; the source canvas height, i.e. scale 1.0
 -- alongside the stock bars (useful for comparing them, and for anyone who
 -- wants the numbers as well as the shape).
 M.DEFAULT_HIDE_DEFAULT_BARS = true
+-- Master switch (1.6.6). Off means a HARD off: both power-update
+-- registrations are removed, the arcs' root is hidden, and the stock bars are
+-- restored -- not merely alpha 0 with the events still waking the module.
+M.DEFAULT_ENABLED = true
 
 -- Canvas geometry, taken verbatim from `Tools/png2dds.py --pot` output.
 -- The source art is tight-cropped and non-power-of-two (border 24x121, fill
@@ -247,10 +251,37 @@ local function RefreshArc(arc)
     SetArcShown(arc, fraction < FULL_EPSILON)
 end
 
+-- Forward declarations: the event registration helpers are defined below
+-- OnPowerUpdate, which they reference, but Refresh needs to call them.
+local RegisterPowerEvents, UnregisterPowerEvents
+
+function M.GetEnabled()
+    local s = sv()
+    if s and s.arcsEnabled ~= nil then
+        return s.arcsEnabled
+    end
+    return M.DEFAULT_ENABLED
+end
+
 function M.Refresh()
     if not root then
         return
     end
+    if not M.GetEnabled() then
+        -- Hard off. Order: stop listening, drop the arcs, give ZOS its bars
+        -- back (nil requirement = exact stock behaviour, regardless of the
+        -- hide-bars setting, which only has meaning while the arcs replace
+        -- them).
+        UnregisterPowerEvents()
+        for _, arc in ipairs(arcs) do
+            SetArcShown(arc, false)
+        end
+        root:SetHidden(true)
+        ApplyDefaultBarHidingWithRetry(false, 4)
+        return
+    end
+    root:SetHidden(false)
+    RegisterPowerEvents()
     for _, arc in ipairs(arcs) do
         RefreshArc(arc)
     end
@@ -329,6 +360,11 @@ function M.SetHideDefaultBars(value)
     M.Refresh()
 end
 
+function M.SetEnabled(value)
+    sv().arcsEnabled = value and true or false
+    M.Refresh()
+end
+
 -- -----------------------------------------------------------------------------
 -- Construction
 -- -----------------------------------------------------------------------------
@@ -389,15 +425,16 @@ local function OnPowerUpdate(_, _, _, powerType, current, _, effectiveMax)
     end
 end
 
-function M.Init()
-    CreateControls()
-    ApplyLayout()
-    RefreshColors()
+-- One registration per power type, each filtered to the player and to that
+-- type -- the same pattern ZOS's own bars use. A single unfiltered
+-- registration would wake this code for every power change on every unit in
+-- the world. Guarded by a flag so Refresh can call it freely.
+local eventsOn = false
 
-    -- One registration per power type, each filtered to the player and to
-    -- that type -- the same pattern ZOS's own bars use. A single unfiltered
-    -- registration would wake this code for every power change on every unit
-    -- in the world.
+RegisterPowerEvents = function()
+    if eventsOn then
+        return
+    end
     for _, spec in ipairs(POWER_TYPES) do
         local eventName = ADDON_NAME .. "Arc" .. spec.key
         EVENT_MANAGER:RegisterForEvent(eventName, EVENT_POWER_UPDATE, OnPowerUpdate)
@@ -405,6 +442,23 @@ function M.Init()
             REGISTER_FILTER_UNIT_TAG, "player",
             REGISTER_FILTER_POWER_TYPE, spec.powerType)
     end
+    eventsOn = true
+end
 
+UnregisterPowerEvents = function()
+    if not eventsOn then
+        return
+    end
+    for _, spec in ipairs(POWER_TYPES) do
+        EVENT_MANAGER:UnregisterForEvent(ADDON_NAME .. "Arc" .. spec.key, EVENT_POWER_UPDATE)
+    end
+    eventsOn = false
+end
+
+function M.Init()
+    CreateControls()
+    ApplyLayout()
+    RefreshColors()
+    -- Refresh registers the events (or not) according to the master switch.
     M.Refresh()
 end

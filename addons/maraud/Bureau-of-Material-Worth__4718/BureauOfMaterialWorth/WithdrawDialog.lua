@@ -448,6 +448,7 @@ local popupTitle, popupIcon
 local popupFreeLabel, popupMaxLabel, popupValueLabel
 local popupQtyLabel, popupEditBg, popupEdit
 local popupPresetButtons = {}
+local popupQuantityButtons = {}
 local popupMaxPresetButton
 local popupConfirm, popupAddToQueue, popupCancel
 local popupProgressBar, popupProgressLabel
@@ -543,13 +544,13 @@ end
 
 local function RenderPopup()
     popupFreeLabel:SetText(Colorize(COLOR_MUTED,
-        stringformat(GetString(SI_BMW_WITHDRAW_FREE_SLOTS), GetNumBagFreeSlots(BAG_BACKPACK))))
+        stringformat(GetString(SI_BMW_WITHDRAW_FREE_COMPACT), GetNumBagFreeSlots(BAG_BACKPACK))))
 
     if curMax <= 0 then
         popupMaxLabel:SetText(Colorize(COLOR_WARN, GetString(SI_BMW_WITHDRAW_BACKPACK_FULL)))
     else
         popupMaxLabel:SetText(Colorize(COLOR_MUTED,
-            stringformat(GetString(SI_BMW_WITHDRAW_MAX), ZO_LocalizeDecimalNumber(curMax))))
+            stringformat(GetString(SI_BMW_WITHDRAW_MAX_COMPACT), ZO_LocalizeDecimalNumber(curMax))))
     end
 
     -- Total value of the working quantity, or a muted dash when unpriced.
@@ -566,6 +567,15 @@ local function RenderPopup()
     local canWithdraw = not isWithdrawing and curRequested > 0 and curRequested <= curMax
     popupConfirm:SetEnabled(canWithdraw)
     popupAddToQueue:SetEnabled(not isWithdrawing and curMaterialData ~= nil)
+    UI.PaintButton(popupConfirm)
+    UI.PaintButton(popupAddToQueue)
+    for index = 1, #popupPresetButtons do
+        local button = popupPresetButtons[index]
+        UI.SelectButton(button, curRequested > 0 and curRequested == button.bmwQuantity)
+    end
+    UI.SelectButton(popupMaxPresetButton, curMax > 0 and curRequested == curMax)
+    popupQuantityButtons[1]:SetEnabled(not isWithdrawing and curRequested > 0)
+    popupQuantityButtons[2]:SetEnabled(not isWithdrawing and curRequested < curMax)
 end
 
 local function SetRequested(qty)
@@ -615,6 +625,9 @@ local function SetQuantityControlsEnabled(enabled)
         popupMaxPresetButton:SetEnabled(enabled)
     end
     popupEdit:SetEditEnabled(enabled)
+    for index = 1, #popupQuantityButtons do
+        popupQuantityButtons[index]:SetEnabled(enabled)
+    end
 end
 
 local function OnPopupFinish(moved, total, requested)
@@ -780,25 +793,30 @@ local function InitializePopup()
     popupBatchSummaryLabel:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, HeaderBandHeight())
     popupBatchSummaryLabel:SetHidden(true)
 
-    local y = PADDING + TITLE_HEIGHT + SECTION_GAP
+    local y = HeaderBandHeight() + SECTION_GAP
 
     popupFreeLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_WithdrawFree", popup, CT_LABEL)
-    popupFreeLabel:SetFont(FONT.body)
-    popupFreeLabel:SetWidth(innerWidth)
+    popupFreeLabel:SetFont(FONT.small)
+    popupFreeLabel:SetDimensions(innerWidth * 0.48, LINE)
     popupFreeLabel:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, y)
-    y = y + LINE
 
     popupMaxLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_WithdrawMax", popup, CT_LABEL)
-    popupMaxLabel:SetFont(FONT.body)
-    popupMaxLabel:SetWidth(innerWidth)
-    popupMaxLabel:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, y)
+    popupMaxLabel:SetFont(FONT.small)
+    popupMaxLabel:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    popupMaxLabel:SetMaxLineCount(1)
+    popupMaxLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    popupMaxLabel:SetDimensions(innerWidth * 0.50, LINE)
+    popupMaxLabel:SetAnchor(TOPRIGHT, popup, TOPRIGHT, -PADDING, y)
     y = y + LINE
 
     popupValueLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_WithdrawValue", popup, CT_LABEL)
-    popupValueLabel:SetFont(FONT.body)
-    popupValueLabel:SetWidth(innerWidth)
+    popupValueLabel:SetFont(FONT.heading)
+    popupValueLabel:SetDimensions(innerWidth, LINE)
     popupValueLabel:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, y)
     y = y + LINE + SECTION_GAP
+    local quantityY = y
+    local QUANTITY_HEIGHT = 40
+    y = y + QUANTITY_HEIGHT + SECTION_GAP
 
     -- Preset buttons, wrapped across rows so they fit the popup width. The button
     -- width is derived from how many fit per row so they span the full width
@@ -817,6 +835,8 @@ local function InitializePopup()
         button:SetAnchor(TOPLEFT, popup, TOPLEFT,
             PADDING + col * (btnWidth + btnGap), y + rowN * (BUTTON_HEIGHT + btnGap))
         button:SetHandler("OnClicked", function() SetRequested(count) end)
+        button.bmwQuantity = count
+        UI.ApplyButton(button, "tab")
         popupPresetButtons[i] = button
     end
     popupMaxPresetButton = WINDOW_MANAGER:CreateControlFromVirtual(
@@ -832,6 +852,7 @@ local function InitializePopup()
         ComputeMax()
         SetRequested(curMax)
     end)
+    UI.ApplyButton(popupMaxPresetButton, "tab")
     local presetRows = mathfloor((#PRESETS) / presetsPerRow) + 1
     y = y + presetRows * (BUTTON_HEIGHT + btnGap) + SECTION_GAP
 
@@ -839,17 +860,18 @@ local function InitializePopup()
     popupQtyLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_WithdrawQtyLabel", popup, CT_LABEL)
     popupQtyLabel:SetFont(FONT.body)
     popupQtyLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-    popupQtyLabel:SetDimensions(120, BUTTON_HEIGHT)
-    popupQtyLabel:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, y)
+    popupQtyLabel:SetDimensions(120, QUANTITY_HEIGHT)
+    popupQtyLabel:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, quantityY)
     popupQtyLabel:SetText(Colorize(COLOR_MUTED, GetString(SI_BMW_WITHDRAW_QTY_LABEL)))
 
     popupEditBg = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_WithdrawEditBg", popup, "ZO_DefaultBackdrop")
-    popupEditBg:SetDimensions(140, BUTTON_HEIGHT)
+    popupEditBg:SetDimensions(innerWidth - 120 - CONTROL_GAP, QUANTITY_HEIGHT)
     -- ZO_DefaultBackdrop ships with its own anchors; clear them before ours so
     -- this does not become a rejected third anchor.
     popupEditBg:ClearAnchors()
     popupEditBg:SetAnchor(LEFT, popupQtyLabel, RIGHT, CONTROL_GAP, 0)
+    UI.ApplyField(popupEditBg)
     -- Clicking anywhere on the backdrop (incl. its padding) focuses the editbox,
     -- so the whole field is the hit target, not just the glyphs. Without this the
     -- box reads as "locked" because a custom (non-dialog) editbox does not grab
@@ -862,9 +884,9 @@ local function InitializePopup()
     end)
 
     popupEdit = WINDOW_MANAGER:CreateControl(addon.name .. "_WithdrawEdit", popupEditBg, CT_EDITBOX)
-    popupEdit:SetAnchor(TOPLEFT, popupEditBg, TOPLEFT, 8, 2)
-    popupEdit:SetAnchor(BOTTOMRIGHT, popupEditBg, BOTTOMRIGHT, -8, -2)
-    popupEdit:SetFont(FONT.body)
+    popupEdit:SetAnchor(TOPLEFT, popupEditBg, TOPLEFT, 40, 2)
+    popupEdit:SetAnchor(BOTTOMRIGHT, popupEditBg, BOTTOMRIGHT, -40, -2)
+    popupEdit:SetFont(FONT.heading)
     popupEdit:SetMaxInputChars(7)
     popupEdit:SetMouseEnabled(true)
     popupEdit:SetTextType(TEXT_TYPE_NUMERIC)
@@ -889,7 +911,30 @@ local function InitializePopup()
         self:LoseFocus()
         WithdrawDialog.CancelPopup()
     end)
-    y = y + BUTTON_HEIGHT + SECTION_GAP
+    for index = 1, 2 do
+        local increase = index == 2
+        local button = WINDOW_MANAGER:CreateControl(
+            addon.name .. "_WithdrawStep" .. index, popupEditBg, CT_BUTTON)
+        button:SetDimensions(30, 30)
+        button:SetAnchor(increase and RIGHT or LEFT, popupEditBg,
+            increase and RIGHT or LEFT, increase and -4 or 4, 0)
+        local texture = increase and "plus" or "minus"
+        button:SetNormalTexture("EsoUI/Art/Buttons/" .. texture .. "_up.dds")
+        button:SetMouseOverTexture("EsoUI/Art/Buttons/" .. texture .. "_over.dds")
+        button:SetPressedTexture("EsoUI/Art/Buttons/" .. texture .. "_down.dds")
+        button:SetHandler("OnClicked", function()
+            if not isWithdrawing then
+                SetRequested(curRequested + (increase and 1 or -1))
+            end
+        end)
+        button:SetHandler("OnMouseEnter", function(self)
+            InitializeTooltip(InformationTooltip, self, BOTTOM, 0, -2, TOP)
+            UI.TipLine(InformationTooltip, GetString(increase
+                and SI_BMW_WITHDRAW_INCREASE or SI_BMW_WITHDRAW_DECREASE))
+        end)
+        button:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+        popupQuantityButtons[index] = button
+    end
 
     -- Progress block: bar + centered label. Reserves its own vertical space ABOVE
     -- the action buttons so the two never overlap while a run is in progress.
@@ -924,6 +969,7 @@ local function InitializePopup()
     popupConfirm:SetAnchor(TOPLEFT, popup, TOPLEFT, PADDING, y)
     popupConfirm:SetText(GetString(SI_BMW_WITHDRAW_CONFIRM))
     popupConfirm:SetHandler("OnClicked", function() WithdrawDialog.Confirm() end)
+    UI.ApplyButton(popupConfirm, "primary")
 
     popupAddToQueue = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_WithdrawAddToQueue", popup, "ZO_DefaultButton")
@@ -935,6 +981,7 @@ local function InitializePopup()
             WithdrawDialog.AddToQueue(curMaterialData)
         end
     end)
+    UI.ApplyButton(popupAddToQueue)
 
     popupCancel = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_WithdrawCancelBtn", popup, "ZO_DefaultButton")
@@ -942,6 +989,7 @@ local function InitializePopup()
     popupCancel:SetAnchor(TOPRIGHT, popup, TOPRIGHT, -PADDING, y)
     popupCancel:SetText(GetString(SI_BMW_WITHDRAW_CANCEL))
     popupCancel:SetHandler("OnClicked", function() WithdrawDialog.CancelPopup() end)
+    UI.ApplyButton(popupCancel)
 
     popupBaseHeight = y + BUTTON_HEIGHT + PADDING
     -- Batch mode shows only the header band and the one summary line beneath it, so
@@ -1022,6 +1070,8 @@ local function RenderQueueSummary()
 
     queueWithdrawAll:SetEnabled(not isWithdrawing and canWithdraw)
     queueClear:SetEnabled(not isWithdrawing and #queue > 0)
+    UI.PaintButton(queueWithdrawAll)
+    UI.PaintButton(queueClear)
 end
 
 local function PopulateQueueList()
@@ -1147,6 +1197,8 @@ end
 
 local function OnQueueProgress(moved, total)
     queueProgressBar:SetValue(total > 0 and moved / total or 0)
+    queueProgressBar.bmwLabel:SetText(Colorize(COLOR_MUTED,
+        stringformat(GetString(SI_BMW_WITHDRAW_PROGRESS), moved, total)))
 end
 
 local function NormalizeQueue()
@@ -1173,6 +1225,8 @@ local queueRunGoldValue = nil
 
 local function OnQueueFinish(moved, total, requested)
     UI.ShowMeter(queueProgressBar, false)
+    queueProgressBar.bmwLabel:SetText(Colorize(COLOR_MUTED,
+        stringformat(GetString(SI_BMW_WITHDRAW_RESULT_LABEL), moved or 0, total or 0)))
     SetQuantityControlsEnabled(true)
     -- Drop exhausted entries and ones whose virtual slot was reused by a
     -- different material; keep valid partials with their quantity clamped.
@@ -1216,6 +1270,7 @@ function WithdrawDialog.WithdrawAll()
 
     UI.ShowMeter(queueProgressBar, true)
     queueProgressBar:SetValue(0)
+    queueProgressBar.bmwLabel:SetText("")
     queueWithdrawAll:SetEnabled(false)
     queueClear:SetEnabled(false)
     popupConfirm:SetEnabled(false)
@@ -1234,6 +1289,10 @@ local function SetupQueueRow(rowControl, data)
     -- The template declares the columns' geometry; their face comes from the shared
     -- type scale. No-ops after the first time this control is used.
     UI.ApplyRowFonts(rowControl, QUEUE_ROW_COLUMNS)
+    rowControl:SetHeight(QUEUE_ROW_HEIGHT)
+    UI.PaintRowFill(rowControl:GetNamedChild("Hover"), "zebra")
+    rowControl:GetNamedChild("Hover"):SetHidden(false)
+    UI.ApplyField(rowControl:GetNamedChild("QtyBg"))
 
     rowControl:GetNamedChild("Icon"):SetTexture(data.icon)
 
@@ -1252,12 +1311,19 @@ local function SetupQueueRow(rowControl, data)
     -- The qty editbox is nested inside the QtyBg backdrop (see DetailWindow.xml),
     -- so its name suffix is "QtyBgEdit", not "Qty".
     local edit = rowControl:GetNamedChild("QtyBgEdit")
+    edit:SetFont(FONT.body)
     rowControl.bmwSuppressEdit = true
     edit:SetText(tostring(data.qty or 0))
     rowControl.bmwSuppressEdit = false
 
     if not rowControl.bmwBound then
         rowControl.bmwBound = true
+        rowControl:SetHandler("OnMouseEnter", function(self)
+            UI.PaintRowFill(self:GetNamedChild("Hover"))
+        end)
+        rowControl:SetHandler("OnMouseExit", function(self)
+            UI.PaintRowFill(self:GetNamedChild("Hover"), "zebra")
+        end)
 
         edit:SetHandler("OnTextChanged", function(self)
             if rowControl.bmwSuppressEdit then
@@ -1369,6 +1435,12 @@ local function InitializeQueueSection()
     -- Same meter as the single-material run above, so a batch run and a single
     -- withdrawal report progress in one visual language.
     UI.ApplyMeter(queueProgressBar, addon.name .. "_QueueProgressTrack")
+    queueProgressBar.bmwLabel = WINDOW_MANAGER:CreateControl(
+        addon.name .. "_QueueProgressText", queueSection, CT_LABEL)
+    queueProgressBar.bmwLabel:SetFont(FONT.small)
+    queueProgressBar.bmwLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    queueProgressBar.bmwLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    queueProgressBar.bmwLabel:SetAnchorFill(queueProgressBar)
     footerY = footerY + PROGRESS_HEIGHT + SECTION_GAP
 
     queueWithdrawAll = WINDOW_MANAGER:CreateControlFromVirtual(
@@ -1377,6 +1449,7 @@ local function InitializeQueueSection()
     queueWithdrawAll:SetAnchor(TOPLEFT, queueSection, TOPLEFT, 0, footerY)
     queueWithdrawAll:SetText(GetString(SI_BMW_QUEUE_WITHDRAW_ALL))
     queueWithdrawAll:SetHandler("OnClicked", function() WithdrawDialog.WithdrawAll() end)
+    UI.ApplyButton(queueWithdrawAll, "primary")
 
     queueClear = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_QueueClear", queueSection, "ZO_DefaultButton")
@@ -1384,6 +1457,7 @@ local function InitializeQueueSection()
     queueClear:SetAnchor(TOPRIGHT, queueSection, TOPRIGHT, 0, footerY)
     queueClear:SetText(GetString(SI_BMW_QUEUE_CLEAR))
     queueClear:SetHandler("OnClicked", function() WithdrawDialog.ClearQueue() end)
+    UI.ApplyButton(queueClear)
 
     queueSection:SetHeight(footerY + BUTTON_HEIGHT)
 
@@ -1397,6 +1471,7 @@ function WithdrawDialog.Initialize()
     if popup then
         return
     end
+    QUEUE_ROW_HEIGHT = UI.RowHeight("queue")
     InitializePopup()
     InitializeQueueSection()
 end

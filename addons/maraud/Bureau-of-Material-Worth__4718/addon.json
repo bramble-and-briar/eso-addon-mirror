@@ -18,17 +18,16 @@
     "BureauOfMaterialWorth"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4718/",
-  "fingerprint": "3c34bd9aec4e96773d13762effdb657c1b44b0740dbaa13aff5c87ea11585204",
+  "fingerprint": "fb4025a3cf54f67d3093121f4e34b3d0ff72b6bb992d01434305fbafd939b701",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17123.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17122.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17124.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17125.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17126.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17127.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17128.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17129.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17130.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw17765.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17766.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17767.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17768.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17769.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17770.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17771.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17772.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -36,11 +35,11 @@
   "source_id": "4718",
   "source_url": "https://www.esoui.com/downloads/info4718-BureauofMaterialWorth.html",
   "stats": {
-    "downloads": 528,
+    "downloads": 564,
     "favorites": 1,
-    "monthly_downloads": 97
+    "monthly_downloads": 129
   },
   "title": "Bureau of Material Worth",
-  "updated_at": 1791221051000,
-  "version": "4.6.202120"
+  "updated_at": 1791300348000,
+  "version": "4.7.181736"
 }

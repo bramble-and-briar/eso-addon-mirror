@@ -21,10 +21,10 @@ UP.Engine = {}
 UP.STATE = {
     GREEN_SQUARE   = "green_square",        -- safe / low current pressure
     YELLOW_EMPTY   = "yellow_empty",        -- recent damage but not lethal
-    YELLOW_FILLED  = "yellow_filled",       -- moderate pressure, ttd 3-6s
-    RED_ONE        = "red_one",             -- ttd 2-3s
-    RED_TWO        = "red_two",             -- ttd 1-2s
-    RED_THREE      = "red_three",           -- ttd < 1s
+    YELLOW_FILLED  = "yellow_filled",       -- moderate pressure, ttd 2-4s
+    RED_ONE        = "red_one",             -- ttd 1-2s
+    RED_TWO        = "red_two",             -- ttd 0.5-1s
+    RED_THREE      = "red_three",           -- ttd < 0.5s
 }
 
 -- Ordered severity, defined here rather than in the UI because the engine now
@@ -68,10 +68,10 @@ UP.Defaults = {
     pressure_floor        = 100,    -- DPS minimum when computing TTD
 
     -- State decision thresholds (seconds)
-    red_three_ttd         = 1.0,
-    red_two_ttd           = 2.0,
-    red_one_ttd           = 3.0,
-    yellow_filled_ttd     = 6.0,
+    red_three_ttd         = 0.5,
+    red_two_ttd           = 1.0,
+    red_one_ttd           = 2.0,
+    yellow_filled_ttd     = 4.0,
 
     -- "Recent damage" window for yellow_empty / green_square decision
     recent_pressure_window_s = 10.0,
@@ -109,6 +109,10 @@ local state = {
     currentHealth   = 0,
     maxHealth       = 1,
     inCombat        = false,
+    -- Set by EventIngest's death/alive handlers. Gates Tick() below so the
+    -- model doesn't spend the 10 Hz budget recomputing a meaningless TTD from
+    -- zeroed health for however long the player stays dead.
+    isDead          = false,
 
     candidateState  = nil,
     candidateSince  = 0,
@@ -176,6 +180,50 @@ end
 
 function UP.Engine.SetCombatState(inCombat)
     state.inCombat = inCombat
+end
+
+function UP.Engine.SetDead(isDead)
+    state.isDead = isDead == true
+end
+
+-- Clears every accumulated reading so a stale pre-death burst can never carry
+-- across a resurrection. Without this, the damage buffer's 8s horizon and the
+-- persistence gate's "escalation is instant" rule combine badly: a lethal
+-- burst that killed the player is still sitting in the buffer, still reads as
+-- high DPS against whatever health the player resurrects with, and the shape
+-- was never told to change away from RED_THREE while hidden (SetState only
+-- fires on an actual change, and nothing changed while dead -- see Tick()'s
+-- isDead guard). Called from EventIngest's onPlayerAlive, before combat state
+-- or visibility are touched, so nothing can reveal the stale reading first.
+--
+-- Mirrors UP.Silence.Clear(), called from the same onPlayerDead/onPlayerAlive
+-- pair for the same reason: effects and readings that don't survive a death
+-- shouldn't be left for the next life to inherit.
+function UP.Engine.Reset()
+    local dmgT, dmgA = state.dmgT, state.dmgA
+    for i = 1, #dmgT do
+        dmgT[i] = nil
+        dmgA[i] = nil
+    end
+    state.dmgHead     = 1
+    state.lastDamageT = 0
+    state.activeEffects = {}
+
+    state.candidateState = nil
+    state.candidateSince = 0
+    state.publishedState = UP.STATE.GREEN_SQUARE
+    state.publishedSince = GetGameTimeMilliseconds()
+
+    state.lastPressureDps = 0
+    state.lastTtd         = math.huge
+    state.lastBurstMul    = 1.0
+    state.lastRiskBonus   = 0
+
+    -- Push immediately rather than waiting for the next tick -- Tick() skips
+    -- all work while isDead is true, and the caller clears that flag right
+    -- after this returns, so nothing else would force the shape back to
+    -- green_square before the indicator becomes visible again.
+    if UP.UI and UP.UI.SetState then UP.UI.SetState(UP.STATE.GREEN_SQUARE) end
 end
 
 -- ---------------------------------------------------------------------------
@@ -407,6 +455,15 @@ local function getTunables()
 end
 
 function UP.Engine.Tick()
+    -- Nothing to compute while dead: health reads 0, so every window would
+    -- just recompute TTD=0 (RED_THREE) for as long as the player stays dead,
+    -- for no visible benefit -- the indicator is already hidden via SetDead
+    -- in Indicator.lua. Skipping the whole tick saves that work outright
+    -- rather than computing a result nobody will see. Reset() (called from
+    -- onPlayerAlive) is what actually clears the stale reading before this
+    -- resumes; this guard only stops it from being recomputed while dead.
+    if state.isDead then return end
+
     -- The gameTime guard that used to sit here was removed on 2026-07-29:
     -- GetGameTimeMilliseconds is now an assumption, not a probe. See
     -- APIAUDITS.md to restore it.
@@ -498,5 +555,6 @@ function UP.Engine.Snapshot()
         damageEventCount = damageEventCount(),
         attackerCount    = attackerCount,
         inCombat         = state.inCombat,
+        isDead           = state.isDead,
     }
 end

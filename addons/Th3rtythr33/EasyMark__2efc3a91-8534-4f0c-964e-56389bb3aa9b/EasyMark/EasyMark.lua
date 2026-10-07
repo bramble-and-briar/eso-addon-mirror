@@ -287,19 +287,13 @@ local function StopAbilitySlotWatcher()
     end
 end
 
--- Returns the player's current binding for a slot as text with embedded button
--- icons. The icon markup is resolved by the game for the connected controller,
--- so it shows Xbox glyphs on Xbox and PlayStation glyphs on PS5. In keyboard
--- mode on PC it shows the key name instead.
+-- Returns the player's current binding for an action as text with embedded
+-- button icons. The icon markup is resolved by the game for the connected
+-- controller, so it shows Xbox glyphs on Xbox and PlayStation glyphs on PS5.
+-- In keyboard mode on PC it shows the key name instead.
 local KEYBIND_ICON_SCALE_PERCENT = 100
 
-local function GetAbilitySlotKeybindText(slotIndex)
-    local actionName
-    if ZO_Keybindings_ShouldUseGamepadAction() then
-        actionName = "GAMEPAD_ACTION_BUTTON_" .. tostring(slotIndex)
-    else
-        actionName = "ACTION_BUTTON_" .. tostring(slotIndex)
-    end
+local function GetActionKeybindText(actionName)
     local NO_HOLD = false
     local bindingText = ZO_Keybindings_GetHighestPriorityBindingStringFromAction(actionName,
         KEYBIND_TEXT_OPTIONS_FULL_NAME, KEYBIND_TEXTURE_OPTIONS_EMBED_MARKUP, nil, NO_HOLD, KEYBIND_ICON_SCALE_PERCENT)
@@ -309,11 +303,102 @@ local function GetAbilitySlotKeybindText(slotIndex)
     return bindingText
 end
 
+-- Ability slots have separate keyboard and gamepad actions; pick the one the
+-- game itself would show, mirroring the action bar.
+local function GetAbilitySlotKeybindText(slotIndex)
+    if ZO_Keybindings_ShouldUseGamepadAction() then
+        return GetActionKeybindText("GAMEPAD_ACTION_BUTTON_" .. tostring(slotIndex))
+    end
+    return GetActionKeybindText("ACTION_BUTTON_" .. tostring(slotIndex))
+end
+
 local function AbilitySlotDisplayName(slotIndex)
     if slotIndex == ULTIMATE_SLOT then
         return "Ultimate"
     end
     return "Ability " .. tostring(slotIndex - FIRST_ABILITY_SLOT + 1)
+end
+
+-------------------------------------------------------------------------------
+-- Trigger: Quest Tracker Cycle (the assist button, D-pad Right by default)
+-------------------------------------------------------------------------------
+--
+-- The "assist next tracked quest" binding (ASSIST_NEXT_TRACKED_QUEST in
+-- ingame/globals/bindings.xml) is one of the few inputs whose handlers are
+-- plain Lua: press calls HUD_TRACKER_MANAGER:BeginAssistInteract() and release
+-- calls EndAssistInteract(). There is a single bindings file for both input
+-- devices, so the same Lua runs on console. Pre-hooking the method on the
+-- class ZO_HUDTracker_Manager sees every press.
+--
+-- Only a TAP marks. The same button does other things when held: ZOS's own
+-- press handler starts a timer that cycles the aspiration tracker after
+-- 200 ms (then every 500 ms), and on a controller a hold also opens the
+-- target-marker wheel after 250 ms. So the mark is placed on RELEASE, and only
+-- if the press lasted under 200 ms and ZOS's "a hold already cycled
+-- something" flag (cycledAssistedAsipration, their spelling) is unset. That
+-- is exactly the condition under which ZOS itself advances the quest.
+--
+-- Neither hook ever swallows (both return false), so the quest still cycles
+-- and any other add-on's hook on the same methods still runs. ZO_PreHook
+-- cannot be undone, so the hooks are installed once, on first enable, and
+-- gated by a flag afterwards; with the trigger set to None they do nothing.
+
+local QUEST_CYCLE_ACTION_NAME = "ASSIST_NEXT_TRACKED_QUEST"
+local QUEST_CYCLE_TAP_MAX_MS = 200
+
+local questCycle =
+{
+    hookInstalled = false,
+    active = false,
+    pressMs = nil,      -- frame time of the press we saw, or nil
+}
+
+local function OnAssistInteractPress()
+    questCycle.pressMs = GetFrameTimeMilliseconds()
+    return false
+end
+
+local function OnAssistInteractRelease(manager)
+    local pressMs = questCycle.pressMs
+    questCycle.pressMs = nil
+
+    if not questCycle.active then
+        return false
+    end
+    -- A hold that already cycled the aspiration tracker is not a tap.
+    if type(manager) == "table" and manager.cycledAssistedAsipration then
+        return false
+    end
+    -- If we saw the press, measure it ourselves as well; this also covers a
+    -- hold whose timer another add-on's hook prevented from starting.
+    if pressMs ~= nil and (GetFrameTimeMilliseconds() - pressMs) >= QUEST_CYCLE_TAP_MAX_MS then
+        return false
+    end
+
+    ApplyMark(EM.sv.marks.questCycle)
+    return false
+end
+
+local function StartQuestCycleWatcher()
+    questCycle.active = true
+    if questCycle.hookInstalled then
+        return
+    end
+    if type(ZO_PreHook) ~= "function"
+        or type(ZO_HUDTracker_Manager) ~= "table"
+        or type(ZO_HUDTracker_Manager.BeginAssistInteract) ~= "function"
+        or type(ZO_HUDTracker_Manager.EndAssistInteract) ~= "function" then
+        d("[EasyMark] The quest tracker assist handlers were not found; the Quest Tracker Cycle trigger is inactive.")
+        return
+    end
+    ZO_PreHook(ZO_HUDTracker_Manager, "BeginAssistInteract", OnAssistInteractPress)
+    ZO_PreHook(ZO_HUDTracker_Manager, "EndAssistInteract", OnAssistInteractRelease)
+    questCycle.hookInstalled = true
+end
+
+local function StopQuestCycleWatcher()
+    questCycle.active = false
+    questCycle.pressMs = nil
 end
 
 -------------------------------------------------------------------------------
@@ -338,6 +423,17 @@ EM.triggers =
         tooltip = "Marks the target you are looking at when you swap weapon bars twice within two seconds.",
         start = StartDoubleSwapWatcher,
         stop = StopDoubleSwapWatcher,
+        active = false,
+    },
+    {
+        key = "questCycle",
+        section = "Triggers",
+        label = function()
+            return string.format("Quest Tracker Cycle  %s", GetActionKeybindText(QUEST_CYCLE_ACTION_NAME))
+        end,
+        tooltip = "Marks the target you are looking at when you tap the button that cycles the tracked quest (D-pad Right by default on a controller). The quest still cycles as normal. Holding the button does not mark, so the target-marker wheel and the activity tracker cycle work as before.",
+        start = StartQuestCycleWatcher,
+        stop = StopQuestCycleWatcher,
         active = false,
     },
 }

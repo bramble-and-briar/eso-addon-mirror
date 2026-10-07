@@ -7,8 +7,8 @@
 ## Title: Raidificator
 ## Description: Tracks and records the time, score, and vitality of PvE content
 ## Author: @code65536; original concept by @Olivierko
-## Version: 4.8.0
-## AddOnVersion: 408000
+## Version: 4.8.1.1
+## AddOnVersion: 408011
 ## APIVersion: 101051
 ## SavedVariables: RaidificatorSavedVariables RaidificatorSavedVariablesEx RaidificatorHistory ACACUC_Raidificator
 ## DependsOn: LibExtendedJournal>=205031

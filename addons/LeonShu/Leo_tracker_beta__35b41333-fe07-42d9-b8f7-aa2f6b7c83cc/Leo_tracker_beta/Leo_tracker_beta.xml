@@ -1,8 +1,19 @@
 <GuiXml>
     <Controls>
-        <TopLevelControl name="Leo_tracker_beta" clampedToScreen="true" mouseEnabled="false" hidden="true">
+        <TopLevelControl name="Leo_tracker_beta_Target" clampedToScreen="true" mouseEnabled="false" hidden="true">
             <Dimensions x="88" y="88" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="40" offsetY="120" />
+
+            <Controls>
+                <Backdrop name="$(parent)Panel" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="Leo_tracker_beta_Self" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="88" y="88" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="40" offsetY="212" />
 
             <Controls>
                 <Backdrop name="$(parent)Panel" inherits="ZO_DefaultBackdrop" alpha="0.88">

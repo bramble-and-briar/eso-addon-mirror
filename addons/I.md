@@ -134,6 +134,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Stack Splitter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Item-Stack-Splitter__fd260c09-574e-4494-9d13-dad835b05662) | Eldibabalo | Console | — |
 | [Item Titan](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/boggo/Item-Titan__1681) | boggo | PC / Mac | 0.3.3 |
 | [Item Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/A5ha/Item-Tracker__4351) | A5ha | PC / Mac | 5 |
+| [ItemHound](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/ItemHound__70b691c1-ae82-42c5-ad2d-4dad6bd53b36) | TheGreyWolf98 | Console | — |
 | [Items tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/Items-tracker__1472) | Upyachka | PC / Mac | 1.1_ |
 | [ItemShare](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/ItemShare__4533) | evainefaye | PC / Mac | 1.2.5 |
 | [ItemTrig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/ItemTrig__2312) | DavidJCobb | PC / Mac | 1.0.14 |

@@ -15,7 +15,7 @@ local PM_state = PM.state
 local PM_ui_refs = PM.ui_refs
 
 PM.name = "PermMemento"
-PM.version = "2026.10.06.08.01"
+PM.version = "2026.10.07.17.24"
 PM.REQUIRED_LAM_VERSION = 43
 PM.REQUIRED_LHAS_VERSION = 20200
 
@@ -106,12 +106,11 @@ PM.COMMAND_REFERENCE = {
 	{ section_key = "HEADER_GENERAL_SETTINGS", commands = {
 		{ cmd = "/pmem <name>", alias = "/permmemento", desc_key = "CMD_DESC_FORCE_LOOP", available = function() return true end },
 		{ cmd = "/pmemstop", alias = "/permmementostop", desc_key = "CMD_DESC_STOP_LOOP", available = function() return true end },
-		{ cmd = "/pmemrand", alias = "/pmemrandom", desc_key = "CMD_DESC_ACTIVATE_RANDOM", available = function() return true end },
-		{ cmd = "/pmemrandzone", alias = "/pmemrandomzonechange", desc_key = "CMD_DESC_TOGGLE_ZONE_RAND", available = function() return true end },
-		{ cmd = "/pmemrandlog", alias = "/pmemrandomlogin", desc_key = "CMD_DESC_TOGGLE_LOGIN_RAND", available = function() return true end },
+		{ cmd = "/pmemrand", alias = "/pmemrandom", desc_key = "CMD_DESC_ACTIVATE_RANDOM", available = function() return PM_modules.loop and PM.settings.enable_random_fav end },
+		{ cmd = "/pmemrandzone", alias = "/pmemrandomzonechange", desc_key = "CMD_DESC_TOGGLE_ZONE_RAND", available = function() return PM_modules.loop and PM.settings.enable_random_fav end },
+		{ cmd = "/pmemrandlog", alias = "/pmemrandomlogin", desc_key = "CMD_DESC_TOGGLE_LOGIN_RAND", available = function() return PM_modules.loop and PM.settings.enable_random_fav end },
 		{ cmd = "/pmemfree", alias = "/pmemunrestrict", desc_key = "CMD_DESC_TOGGLE_UNRESTRICTED", available = function() return true end },
 		{ cmd = "/pmempause", alias = "/pmemtogglepause", desc_key = "CMD_DESC_PAUSE_RESUME", available = function() return true end },
-		{ cmd = "/pmemcur", alias = "/pmemcurrent", desc_key = "CMD_DESC_PRINT_CURRENT", available = function() return true end },
 		{ cmd = "/pmembugreport", alias = "/pmembug", desc_key = "CMD_DESC_BUG_REPORT", available = function() return not IsConsoleUI() end },
 	}},
 	{ section_key = "HEADER_MODULE_MANAGER", commands = {
@@ -132,23 +131,23 @@ PM.COMMAND_REFERENCE = {
 		{ cmd = "/pmemmenuscale <val>", alias = "/pmemsetmenuscale", desc_key = "CMD_DESC_SET_MENU_SCALE", available = function() return PM_modules.ui end },
 	}},
 	{ section_key = "HEADER_SYNC_SETTINGS", commands = {
-		{ cmd = "/pmsync <name>", alias = "/permmementosync", desc_key = "CMD_DESC_SEND_SYNC_REQUEST", available = function() return PM_modules.sync end },
-		{ cmd = "/pmsyncrand", alias = "/permmementosyncrandom", desc_key = "CMD_DESC_SEND_RANDOM_SYNC", available = function() return PM_modules.sync end },
-		{ cmd = "/pmsyncstop", alias = "/permmementosyncstop", desc_key = "CMD_DESC_SEND_STOP_REQUEST", available = function() return PM_modules.sync end },
-		{ cmd = "/pmsyncon", alias = "/pmemsyncenable", desc_key = "CMD_DESC_TOGGLE_SYNC_LISTENING", available = function() return PM_modules.sync end },
-		{ cmd = "/pmsyncdelay", alias = "/pmemsyncrandomdelay", desc_key = "CMD_DESC_TOGGLE_RANDOM_SYNC_DELAY", available = function() return PM_modules.sync end },
+		{ cmd = "/pmsync <name>", alias = "/permmementosync", desc_key = "CMD_DESC_SEND_SYNC_REQUEST", available = function() return PM_modules.sync and PM.settings.sync_module.is_enabled end },
+		{ cmd = "/pmsyncrand", alias = "/permmementosyncrandom", desc_key = "CMD_DESC_SEND_RANDOM_SYNC", available = function() return PM_modules.sync and PM_modules.loop and PM.settings.sync_module.is_enabled end },
+		{ cmd = "/pmsyncstop", alias = "/permmementosyncstop", desc_key = "CMD_DESC_SEND_STOP_REQUEST", available = function() return PM_modules.sync and PM.settings.sync_module.is_enabled end },
+		{ cmd = "/pmsyncon", alias = "/pmemsyncenable", desc_key = "CMD_DESC_TOGGLE_SYNC_LISTENING", available = function() return PM_modules.sync and not IsConsoleUI() end },
+		{ cmd = "/pmsyncdelay", alias = "/pmemsyncrandomdelay", desc_key = "CMD_DESC_TOGGLE_RANDOM_SYNC_DELAY", available = function() return PM_modules.sync and not IsConsoleUI() and PM.settings.sync_module.is_enabled end },
 	}},
 	{ section_key = "HEADER_FAVORITES_MANAGER", commands = {
 		{ cmd = "/pmemwipefav", alias = "/pmemdeleteallfavorites", desc_key = "CMD_DESC_CLEAR_ALL_FAVORITES", available = function() return PM_modules.menu and PM.settings.enable_random_fav end },
 	}},
 	{ section_key = "HEADER_PROFILE_MANAGER", commands = {
-		{ cmd = "/pmemacct", alias = "/pmemuseaccountsettings", desc_key = "CMD_DESC_TOGGLE_ACCOUNT_SETTINGS", available = function() return PM_modules.migration end },
+		{ cmd = "/pmemacct", alias = "/pmemuseaccountsettings", desc_key = "CMD_DESC_TOGGLE_ACCOUNT_SETTINGS", available = function() return true end },
 	}},
 	{ section_key = "HEADER_LEARNED_DATA_MGMT", commands = {
-		{ cmd = "/pmemscan", alias = "/pmemautolearn", desc_key = "CMD_DESC_START_AUTOSCAN", available = function() return PM.settings.enable_learning end },
+		{ cmd = "/pmemscan", alias = "/pmemautolearn", desc_key = "CMD_DESC_START_AUTOSCAN", available = function() return PM_modules.loop and PM.settings.enable_learning end },
 		{ cmd = "/pmemlist", alias = "/pmemlearned", desc_key = "CMD_DESC_LIST_LEARNED", available = function() return PM.settings.enable_learning end },
-		{ cmd = "/pmemplay <name>", alias = "/pmemactivatelearned", desc_key = "CMD_DESC_FORCE_LOOP_LEARNED", available = function() return PM.settings.enable_learning end },
-		{ cmd = "/pmemrandlrn", alias = "/pmemrandomlearned", desc_key = "CMD_DESC_ACTIVATE_RANDOM_LEARNED", available = function() return PM.settings.enable_learning end },
+		{ cmd = "/pmemplay <name>", alias = "/pmemactivatelearned", desc_key = "CMD_DESC_FORCE_LOOP_LEARNED", available = function() return PM_modules.loop and PM.settings.enable_learning end },
+		{ cmd = "/pmemrandlrn", alias = "/pmemrandomlearned", desc_key = "CMD_DESC_ACTIVATE_RANDOM_LEARNED", available = function() return PM_modules.loop and PM.settings.enable_learning end },
 		{ cmd = "/pmemwipe", alias = "/pmemdeletealllearned", desc_key = "CMD_DESC_WIPE_ALL_LEARNED", available = function() return PM_modules.menu and PM.settings.enable_learning end },
 	}},
 	{ section_key = "SECTION_ANNOUNCE_DELAYS", commands = {
@@ -160,11 +159,34 @@ PM.COMMAND_REFERENCE = {
 		{ cmd = "/pmemreset", alias = "/pmemresetdefaults", desc_key = "CMD_DESC_RESET_TO_DEFAULTS", available = function() return true end },
 		{ cmd = "/pmemwizard", desc_key = "CMD_DESC_RERUN_WIZARD", available = function() return PM_modules.wizard end },
 		{ cmd = "/pmemlibwarn", desc_key = "CMD_DESC_TOGGLE_LIB_WARNING", available = function() return true end },
-		{ cmd = "/pmemlogs", alias = "/pmemchatlogs", desc_key = "CMD_DESC_TOGGLE_CHAT_LOGS", available = function() return true end },
-		{ cmd = "/pmemnospin", alias = "/pmemstopspinning", desc_key = "CMD_DESC_TOGGLE_STOP_SPINNING", available = function() return true end },
+		{ cmd = "/pmemlogs", alias = "/pmemchatlogs", desc_key = "CMD_DESC_TOGGLE_CHAT_LOGS", available = function() return not IsConsoleUI() end },
+		{ cmd = "/pmemnospin", alias = "/pmemstopspinning", desc_key = "CMD_DESC_TOGGLE_STOP_SPINNING", available = function() return not IsConsoleUI() end },
 		{ cmd = "/pmemclientinfo", desc_key = "CMD_DESC_PRINT_CLIENT_INFO", available = function() return true end },
 	}}
 }
+
+function PM.get_menu_layout()
+	local sync = PM.settings.sync_module
+	return table.concat({
+		tostring(PM.settings.enable_random_fav and true or false), tostring(PM.settings.enable_learning and true or false),
+		tostring(sync and sync.is_enabled and true or false),
+	}, ",")
+end
+
+function PM.refresh_slash_commands()
+	if not PM.settings then return end
+	if PM.menu_layout and PM.menu_layout ~= PM.get_menu_layout() then
+		zo_callLater(function() PM.chat:Print(PM.L("CHAT_RELOAD_TO_APPLY")) end, 0)
+	end
+	if not LibAPH.SetSlashCommandsShown then return end
+	for _, sect in ipairs(PM.COMMAND_REFERENCE) do
+		for _, entry in ipairs(sect.commands) do
+			local names = { entry.cmd:match("^(%S+)") }
+			if entry.alias then names[#names + 1] = entry.alias end
+			LibAPH.SetSlashCommandsShown(names, entry.available() and true or false)
+		end
+	end
+end
 
 function PM.build_command_reference_text(double_spaced)
 	local sep = double_spaced and "\n\n" or "\n"
@@ -193,6 +215,7 @@ function PM.reset_to_defaults()
 	})
 	PM.refresh_loop_event_registrations()
 	PM.call_optional(PM.toggle_ui_update, "UI module (toggle_ui_update)")
+	PM.refresh_slash_commands()
 end
 
 function PM.delete_all_character_profiles()
@@ -215,6 +238,7 @@ function PM.toggle_module_disabled(mod_key, silent)
 		end, silent)
 	LibAPH.SyncModuleLifecycle(PM_modules, mod_key, now_disabled)
 	PM_state.cached_stats_suffix = nil
+	PM.refresh_slash_commands()
 	if not now_disabled then
 		PM.acct_saved.warned_labels = {}
 	end

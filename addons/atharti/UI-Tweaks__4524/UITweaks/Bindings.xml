@@ -8,7 +8,7 @@
 				<Down>UITweaks_Fullscreen()</Down>
 			</Action>
 			<Action name="UITWEAKS_RELOAD">
-				<Down>UIT_ReloadUI()</Down>
+				<Down>ReloadUI()</Down>
 			</Action>
 		</Category>
 	</Layer>

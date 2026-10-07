@@ -1,6 +1,31 @@
 AutoLuaMemoryCleaner - Changelog
 =================================
 
+Version: 2026.10.07.17.24 (26100717)
+---------------------------
+
+Memory Cleanup
+  - Cleanups from other add-ons that use LibAPH show in the window, chat logs and announcements.
+
+Slash Commands
+  - /alcon, /alccsa, /alclogs, /alcui and /alclock now say what they switched on or off.
+  - /alclock and /alcreset are hidden while Show UI is off, and /alcpoolconfirm while Auto Pool Cleanup After Travel is off.
+
+Settings Menu
+  - The status window settings and the Auto Pool Cleanup After Travel Confirmation checkbox only appear while their setting is on.
+
+Version: 2026.10.07.07.01 (26100707)
+---------------------------
+
+Cleanup Method
+  - Update Automatic cleanup method, now the default: it picks the best method for each cleanup.
+  - Added Vanilla, which leaves memory management to the game engine.
+  - Chat, the center-screen message and the status window show which method Automatic picked; the status window shows it for 3 seconds.
+  - Fixed the Cleanup Method dropdown showing empty text after switching methods.
+
+Technical Style & Logic
+  - The status window refreshes once a second only while it is on screen, instead of checking every frame, and only re-measures its width when the text layout changes.
+
 Version: 2026.10.06.08.01 (26100608)
 ---------------------------
 
@@ -13,7 +38,7 @@ Technical Style & Logic
 Memory Pool Cleanup
   - Added Auto Pool Cleanup After Travel - watches for you traveling and reloads the UI afterward if the addon memory pool is worth clearing, or if you set a specific custom threshold for clearing. It only reloads when the pool has also grown since login or the last reload, so it never reloads for nothing.
   - Improved the accuracy of the Pool Cleanup report with an adaptive re-check.
-  - Added Cleanup Method - Background (the default) cleans up in small steps over several frames, so clearing a big Lua heap no longer have micro-stutters for the game. Automatic leaves memory to the game engine; Aggressive and Deep Clean run one or two full passes. /alccleanupmode switches between them.
+  - Added Cleanup Method - Automatic (the default) picks the best of them each time and says which one it used, Background cleans up in small steps over several frames, so clearing a big Lua heap no longer have micro-stutters for the game, Vanilla leaves memory to the game engine; Aggressive and Deep Clean run one or two full passes. /alccleanupmode switches between them.
 
 UI & Console Updates
   - Added a Setup Wizard on first install to ask your preferences.

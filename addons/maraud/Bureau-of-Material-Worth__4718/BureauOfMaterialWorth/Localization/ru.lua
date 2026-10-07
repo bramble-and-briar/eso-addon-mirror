@@ -4,8 +4,8 @@
 local strings = {
     -- Settings panel
     [SI_BMW_PANEL_NAME] = "Bureau of Material Worth",
-    [SI_BMW_PANEL_DISPLAY_NAME] = "|c6FCB9FBureau|r of Material Worth",
-    [SI_BMW_PANEL_INTRO] = "|c6FCB9FСтоимость материалов в ремесленной сумке с первого взгляда.|r Bureau of Material Worth подсчитывает рыночную стоимость всего содержимого ремесленной сумки и показывает её в небольшой панели рядом с ней, при необходимости с разбивкой по профессиям.",
+    [SI_BMW_PANEL_DISPLAY_NAME] = "|c70C5BDBureau|r of Material Worth",
+    [SI_BMW_PANEL_INTRO] = "|cBCA779Гильдейское бюро|r\nОценка ремесленной сумки, реестр материалов и извлечение.",
     [SI_BMW_PANEL_OVERVIEW] = "|c8C8A82• Использует LibPrice (Master Merchant / Tamriel Trade Centre / Arkadius' Trade Tools)\n• Подсчитывает стоимость только при открытой ремесленной сумке\n• Постепенно обновляет данные при добавлении и извлечении материалов|r",
 
     -- Живой статус-блок вверху панели. Отражает текущую конфигурацию (не живую
@@ -13,7 +13,7 @@ local strings = {
     -- так что значение здесь было бы нулевым или устаревшим. Вкл - зелёный, выкл -
     -- приглушённый; строки-режимы (порядок/база) используют нейтральный тон.
     -- Каждая строка читается через тот же геттер, что и её контрол.
-    [SI_BMW_STATUS_TITLE] = "|cC5C29EТекущие настройки|r",
+    [SI_BMW_STATUS_TITLE] = "|cBCA779Текущие настройки|r",
     [SI_BMW_STATUS_ON] = "вкл",
     [SI_BMW_STATUS_OFF] = "выкл",
     [SI_BMW_STATUS_LABEL_BREAKDOWN] = "Разбивка по категориям:",
@@ -27,8 +27,15 @@ local strings = {
     [SI_BMW_STATUS_LABEL_GUILD_STORE] = "В гильдейском магазине:",
     [SI_BMW_STATUS_LABEL_DELTA] = "База сравнения:",
 
-    [SI_BMW_HEADER_DISPLAY] = "|cC5C29EОтображение|r",
-    [SI_BMW_HEADER_DIAGNOSTICS] = "|cC5C29EДиагностика|r",
+    [SI_BMW_HEADER_DISPLAY] = "|cBCA779Оформление|r",
+    [SI_BMW_HEADER_TABLE] = "|cBCA779Таблица материалов|r",
+    [SI_BMW_HEADER_HISTORY] = "|cBCA779История и сравнение|r",
+    [SI_BMW_HEADER_NOTIFICATIONS] = "|cBCA779Уведомления и торговля|r",
+    [SI_BMW_HEADER_DIAGNOSTICS] = "|cBCA779Диагностика и сохранения|r",
+    [SI_BMW_SETTING_DENSITY_NAME] = "Плотность интерфейса",
+    [SI_BMW_SETTING_DENSITY_TOOLTIP] = "Комфортный режим добавляет пространство между строками. Компактный вмещает больше данных в сводке, таблице материалов и очереди извлечения. Требуется перезагрузка интерфейса; положение окон и данные сохраняются.",
+    [SI_BMW_SETTING_DENSITY_COMFORTABLE] = "Комфортный",
+    [SI_BMW_SETTING_DENSITY_COMPACT] = "Компактный",
 
     -- Submenu разбивки по категориям: master-переключатель «показывать разбивку»
     -- плюс три контрола, которые действуют только пока она включена (иконки,
@@ -81,7 +88,7 @@ local strings = {
     [SI_BMW_SETTING_REFRESH_NAME] = "Обновить цены сейчас",
     [SI_BMW_SETTING_REFRESH_TOOLTIP] = "Сбросить кэш цен и пересчитать стоимость ремесленной сумки. Полезно после того, как Master Merchant или Tamriel Trade Centre завершит загрузку свежих данных. То же действие доступно по нажатию на строку «Рыночные цены» на панели.",
 
-    [SI_BMW_HEADER_SAVED_DATA] = "|cC5C29EСохранённые данные|r",
+    [SI_BMW_HEADER_SAVED_DATA] = "|cBCA779Сохранённые данные|r",
     [SI_BMW_HISTORY_CLEANUP_BUTTON] = "Очистить устаревшую историю цен",
     [SI_BMW_HISTORY_CLEANUP_TOOLTIP] = "Применить правила автоматической очистки сейчас, после подтверждения. Недавняя история и настройки не сбрасываются.",
     [SI_BMW_HISTORY_CLEANUP_DESCRIPTION] = "История цен уже очищается автоматически при загрузке аддона и записи цен, без ожидания еженедельного таймера. При желании ту же очистку можно запустить сейчас. Сохраняются наблюдения за последние семь дней и последняя цена; история материалов, не наблюдавшихся 30 дней, удаляется целиком. Очистка действует только для текущего аккаунта и сервера. Настройки, снимки, отчёты изменений запасов и график общей стоимости сохраняются.",
@@ -183,6 +190,9 @@ local strings = {
     [SI_BMW_DETAIL_CONTEXT_VISIT_DIFF] = "Запасы: %s · Цены: %s",
     [SI_BMW_DETAIL_CONTEXT_FILTER_ALL] = "все цены",
     [SI_BMW_DETAIL_GROUP_SNAPSHOT] = "Снимок",
+    [SI_BMW_DETAIL_TAB_MATERIALS] = "Материалы",
+    [SI_BMW_DETAIL_TAB_DIFF] = "Изменения",
+    [SI_BMW_DETAIL_TAB_TREND] = "Динамика",
     [SI_BMW_DETAIL_SNAPSHOT_READY] = "База: %s",
     [SI_BMW_DETAIL_SNAPSHOT_MISSING] = "Базы нет",
     [SI_BMW_DETAIL_GROUP_FILTER] = "Фильтр",
@@ -270,6 +280,10 @@ local strings = {
     -- Withdraw dialog
     [SI_BMW_WITHDRAW_TITLE] = "Извлечь: %s",
     [SI_BMW_WITHDRAW_FREE_SLOTS] = "Свободных ячеек в сумке: %d",
+    [SI_BMW_WITHDRAW_FREE_COMPACT] = "Свободно ячеек: %d",
+    [SI_BMW_WITHDRAW_MAX_COMPACT] = "Доступно: %s",
+    [SI_BMW_WITHDRAW_INCREASE] = "Увеличить количество",
+    [SI_BMW_WITHDRAW_DECREASE] = "Уменьшить количество",
     [SI_BMW_WITHDRAW_MAX] = "Максимум для извлечения: %s",
     [SI_BMW_WITHDRAW_TOTAL_VALUE] = "Общая стоимость: %s",
     [SI_BMW_WITHDRAW_QTY_LABEL] = "Количество",

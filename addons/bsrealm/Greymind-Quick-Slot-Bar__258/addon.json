@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/bsrealm/Greymind-Quick-Slot-Bar__258",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "bsrealm",
   "canonical_id": "esoui:258",
   "category_id": "25",
@@ -53,7 +54,7 @@
     "GreymindQuickSlotBar"
   ],
   "download_url": "https://www.esoui.com/downloads/dl258/",
-  "fingerprint": "25489bc02423870ca298d1c0c95c1cd2e8049715f38de19b898a1c8cf1cebdc2",
+  "fingerprint": "2f75e249cfdc999999844cebb9830af4487f605db511df0b8ae7e01a797ad8af",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8343.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw8346.jpg",
@@ -70,11 +71,11 @@
   "source_id": "258",
   "source_url": "https://www.esoui.com/downloads/info258-GreymindQuickSlotBar.html",
   "stats": {
-    "downloads": 712712,
-    "favorites": 768,
-    "monthly_downloads": 808
+    "downloads": 714363,
+    "favorites": 771,
+    "monthly_downloads": 730
   },
   "title": "Greymind Quick Slot Bar",
-  "updated_at": 1781439713000,
-  "version": "v2.7.2.24"
+  "updated_at": 1791311012000,
+  "version": "v2.7.2.25"
 }

@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/manukartofanu/The-Profit__4921",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "manukartofanu",
+  "canonical_id": "esoui:4921",
+  "category_id": "94",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4921",
+  "deleted": false,
+  "directories": [
+    "TheProfit"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4921/",
+  "fingerprint": "c69538e3324332858ed9e6fb4fb973a4faf696e18d357321740c5d65447d6930",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17774.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17775.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17776.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17777.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4921",
+  "source_url": "https://www.esoui.com/downloads/info4921-TheProfit.html",
+  "stats": {
+    "downloads": 13,
+    "favorites": 1,
+    "monthly_downloads": 2
+  },
+  "title": "The Profit",
+  "updated_at": 1791329924000,
+  "version": "1.0.0"
+}

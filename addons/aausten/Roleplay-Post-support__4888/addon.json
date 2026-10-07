@@ -18,7 +18,7 @@
     "RoleplayPostSupport"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4888/",
-  "fingerprint": "96eaf28901a13bdef0f1abedc77ab44b88a203c08cfeae7c9cfe0c1e57901920",
+  "fingerprint": "35d0b8c2ba7ede49684123c333d5b5cb12c79792548e399255b5ad4db77a0503",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4888",
   "source_url": "https://www.esoui.com/downloads/info4888-RoleplayPostsupport.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 31,
     "favorites": 0,
-    "monthly_downloads": 5
+    "monthly_downloads": 30
   },
   "title": "Roleplay Post support",
-  "updated_at": 1790803700000,
-  "version": "1.2.2"
+  "updated_at": 1791317035000,
+  "version": "1.2.5"
 }

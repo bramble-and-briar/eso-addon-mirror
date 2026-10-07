@@ -1,7 +1,7 @@
 ## Title: Wizard's Wardrobe Console Companion
-## Author: Damien
-## Version: 1.0.0
-## AddOnVersion: 10000
+## Author: Console Companion Contributors
+## Version: 1.0.1
+## AddOnVersion: 10001
 ## APIVersion: 101048
 ## Description: Unofficial console companion: shared dungeon Trash/Bosses loadouts and equipped-setup tracking fixes. Requires Wizard's Wardrobe 0.4.2.
 ## ConsoleDependsOn: WizardsWardrobe>=402 LibHarvensAddonSettings>=20006

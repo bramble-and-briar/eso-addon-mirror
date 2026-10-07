@@ -7,7 +7,6 @@ local FormatLocalizedText = private.FormatLocalizedText
 local BuildFont = private.BuildFont
 local Utf8Prefix = private.Utf8Prefix
 local ResolveSenderHue = private.ResolveSenderHue
-local ResolveSenderInitial = private.ResolveSenderInitial
 local FormatElapsed = private.FormatElapsed
 local SetControlColor = private.SetControlColor
 local FOLLOW_UP_STATES = addon.followUpStates
@@ -162,31 +161,40 @@ function addon:CreateSurfaceFill(name, parent, centerColor, drawLevel)
 	return surface
 end
 
-function addon:CreateGlyphButton(name, parent, glyph, tooltipText, hoverColor, onClicked)
+function addon:CreateGlyphButton(name, parent, glyph, tooltipText, hoverColor, onClicked, iconTexture)
 	local button = WINDOW_MANAGER:CreateControl(name, parent, CT_BUTTON)
 	button:SetDimensions(CONFIG.CLOSE_BUTTON_SIZE, CONFIG.CLOSE_BUTTON_SIZE)
 	button:SetDrawLevel(CONFIG.DRAW_LEVEL_CONTENT)
 
-	local label = WINDOW_MANAGER:CreateControl(name .. "Label", button, CT_LABEL)
-	label:SetAnchorFill(button)
-	label:SetDrawLevel(CONFIG.DRAW_LEVEL_CONTENT)
-	label:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.GLYPH_FONT_SIZE))
-	label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-	label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-	label:SetText(glyph)
-	SetControlColor(label, CONFIG.GLYPH_COLOR)
-	button.label = label
+	local visual
+	if iconTexture ~= nil then
+		visual = WINDOW_MANAGER:CreateControl(name .. "Icon", button, CT_TEXTURE)
+		visual:SetAnchor(CENTER, button, CENTER, 0, 0)
+		visual:SetDimensions(CONFIG.HEADER_ICON_SIZE, CONFIG.HEADER_ICON_SIZE)
+		visual:SetTexture(iconTexture)
+		button.icon = visual
+	else
+		visual = WINDOW_MANAGER:CreateControl(name .. "Label", button, CT_LABEL)
+		visual:SetAnchorFill(button)
+		visual:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.GLYPH_FONT_SIZE))
+		visual:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+		visual:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+		visual:SetText(glyph)
+		button.label = visual
+	end
+	visual:SetDrawLevel(CONFIG.DRAW_LEVEL_CONTENT)
+	SetControlColor(visual, CONFIG.GLYPH_COLOR)
 	button.tooltipText = tooltipText
 
 	button:SetHandler("OnClicked", onClicked)
 	button:SetHandler("OnMouseEnter", function(control)
 		self:BeginPanelInteraction()
 		button:SetAlpha(1)
-		SetControlColor(label, hoverColor)
+		SetControlColor(visual, hoverColor)
 		ShowControlTooltip(control, button.tooltipText or tooltipText)
 	end)
 	button:SetHandler("OnMouseExit", function(control)
-		SetControlColor(label, CONFIG.GLYPH_COLOR)
+		SetControlColor(visual, CONFIG.GLYPH_COLOR)
 		HideControlTooltip(control)
 		if button.hideWhenIdle then
 			button:SetAlpha(0)
@@ -194,7 +202,7 @@ function addon:CreateGlyphButton(name, parent, glyph, tooltipText, hoverColor, o
 		self:SchedulePanelInteractionEnd()
 	end)
 	button:SetHandler("OnEffectivelyHidden", function(control)
-		SetControlColor(label, CONFIG.GLYPH_COLOR)
+		SetControlColor(visual, CONFIG.GLYPH_COLOR)
 		HideControlTooltip(control)
 		if button.hideWhenIdle then
 			button:SetAlpha(0)
@@ -374,6 +382,9 @@ function addon:BuildCardTooltipLines(entry)
 
 	if entry.previewIsPlaceholder then
 		lines[#lines + 1] = GetString(SI_BPD_TOOLTIP_PLACEHOLDER)
+	elseif type(entry.preview) == "string" and entry.preview ~= "" then
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = entry.preview
 	end
 
 	lines[#lines + 1] = ""
@@ -468,15 +479,6 @@ function addon:CreateNotificationCard(index)
 	card.rail:SetAnchor(BOTTOMLEFT, card, BOTTOMLEFT, 0, 0)
 	card.rail:SetWidth(CONFIG.RAIL_WIDTH)
 
-	card.badge = self:CreateSurface(name .. "Badge", card, CONFIG.ACCENT_COLOR, CONFIG.DRAW_LEVEL_ACCENT)
-	card.badgeLabel = WINDOW_MANAGER:CreateControl(name .. "BadgeLabel", card.badge, CT_LABEL)
-	card.badgeLabel:SetAnchorFill(card.badge)
-	card.badgeLabel:SetDrawLevel(CONFIG.DRAW_LEVEL_CONTENT)
-	card.badgeLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-	card.badgeLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-	card.badgeLabel:SetMaxLineCount(1)
-	SetControlColor(card.badgeLabel, CONFIG.BADGE_TEXT_COLOR)
-
 	card.closeButton = self:CreateGlyphButton(
 		name .. "Close",
 		card,
@@ -552,14 +554,6 @@ function addon:CreateNotificationCard(index)
 	card.statusLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 	card.statusLabel:SetMaxLineCount(1)
 	SetControlColor(card.statusLabel, CONFIG.MUTED_TEXT_COLOR)
-
-	card.relationLabel = WINDOW_MANAGER:CreateControl(name .. "Relation", card, CT_LABEL)
-	card.relationLabel:SetDrawLevel(CONFIG.DRAW_LEVEL_CONTENT)
-	card.relationLabel:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.META_FONT_SIZE))
-	card.relationLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-	card.relationLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-	card.relationLabel:SetMaxLineCount(1)
-	SetControlColor(card.relationLabel, CONFIG.MUTED_TEXT_COLOR)
 
 	card.timeLabel = WINDOW_MANAGER:CreateControl(name .. "Time", card, CT_LABEL)
 	card.timeLabel:SetDrawLevel(CONFIG.DRAW_LEVEL_CONTENT)
@@ -688,6 +682,7 @@ function addon:CreateInterface()
 	)
 	self.headerTitle:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.HEADER_FONT_SIZE))
 	self.headerTitle:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	self.headerTitle:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
 	self.headerTitle:SetMaxLineCount(1)
 	self.headerTitle:SetText(GetString(SI_BPD_HEADER_TITLE))
 	SetControlColor(self.headerTitle, CONFIG.HEADER_TEXT_COLOR)
@@ -695,36 +690,40 @@ function addon:CreateInterface()
 	self.clearButton = self:CreateGlyphButton(
 		ADDON_NAME .. "ClearAll",
 		self.header,
-		"×",
+		nil,
 		GetString(SI_BPD_TOOLTIP_CLEAR_ALL),
 		CONFIG.DISMISS_HOVER_COLOR,
 		function()
 			self:ClearAllNotifications()
-		end
+		end,
+		CONFIG.HEADER_CLEAR_TEXTURE
 	)
+	self.clearButton.icon:SetTextureCoords(0.15625, 0.84375, 0.15625, 0.84375)
 	self.clearButton:SetAnchor(RIGHT, self.header, RIGHT, -CONFIG.CLOSE_BUTTON_INSET, 0)
 
 	self.collapseButton = self:CreateGlyphButton(
 		ADDON_NAME .. "Collapse",
 		self.header,
-		"-",
+		nil,
 		GetString(SI_BPD_TOOLTIP_COLLAPSE),
 		CONFIG.GLYPH_HOVER_COLOR,
 		function()
 			self:ToggleCollapsed()
-		end
+		end,
+		CONFIG.HEADER_COLLAPSE_TEXTURE
 	)
 	self.collapseButton:SetAnchor(RIGHT, self.clearButton, LEFT, -2, 0)
 
 	self.lockButton = self:CreateGlyphButton(
 		ADDON_NAME .. "Lock",
 		self.header,
-		"=",
+		nil,
 		GetString(SI_BPD_TOOLTIP_LOCK),
 		CONFIG.GLYPH_HOVER_COLOR,
 		function()
 			self:TogglePanelLock()
-		end
+		end,
+		CONFIG.HEADER_UNLOCK_TEXTURE
 	)
 	self.lockButton:SetAnchor(RIGHT, self.collapseButton, LEFT, -2, 0)
 
@@ -733,8 +732,10 @@ function addon:CreateInterface()
 	self.headerCount:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.HEADER_COUNT_FONT_SIZE))
 	self.headerCount:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 	self.headerCount:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	self.headerCount:SetDimensions(CONFIG.HEADER_COUNT_WIDTH, CONFIG.HEADER_HEIGHT)
 	self.headerCount:SetMaxLineCount(1)
 	SetControlColor(self.headerCount, CONFIG.COUNT_TEXT_COLOR)
+	self.headerTitle:SetAnchor(RIGHT, self.headerCount, LEFT, -CONFIG.HEADER_HORIZONTAL_PADDING, 0)
 
 	self.header:SetHandler("OnMouseDown", function(_, button)
 		if button == MOUSE_BUTTON_INDEX_LEFT then
@@ -832,8 +833,8 @@ function addon:ApplyPanelLock()
 	if self.root ~= nil and type(self.root.SetMovable) == "function" then
 		self.root:SetMovable(not locked)
 	end
-	if self.lockButton ~= nil and self.lockButton.label ~= nil then
-		self.lockButton.label:SetText(locked and "#" or "=")
+	if self.lockButton ~= nil and self.lockButton.icon ~= nil then
+		self.lockButton.icon:SetTexture(locked and CONFIG.HEADER_LOCK_TEXTURE or CONFIG.HEADER_UNLOCK_TEXTURE)
 		self.lockButton.tooltipText = GetString(locked and SI_BPD_TOOLTIP_UNLOCK or SI_BPD_TOOLTIP_LOCK)
 	end
 end
@@ -1332,8 +1333,6 @@ function addon:ReleaseCard(card)
 	card.revision = nil
 	card.closeButton:SetAlpha(0)
 	card.statusLabel:SetText("")
-	card.relationLabel:SetText("")
-	card.relationLabel:SetHidden(true)
 	card.consumeMiddleUp = nil
 	HideControlTooltip(card.closeButton)
 	HideControlTooltip(card)
@@ -1355,30 +1354,14 @@ function addon:PopulateCard(card, entry, expanded)
 	else
 		card.rail:SetCenterColor(unpack(hue))
 	end
-	card.badge:SetCenterColor(unpack(hue))
-	card.badgeLabel:SetText(ResolveSenderInitial(entry.senderId))
 	card.pulseBackdrop:SetCenterColor(hue[1], hue[2], hue[3], CONFIG.PULSE_TINT_ALPHA)
 
-	card.badge:ClearAnchors()
 	card.senderLabel:ClearAnchors()
 	card.messageLabel:ClearAnchors()
 	card.countLabel:ClearAnchors()
 	card.statusLabel:ClearAnchors()
-	card.relationLabel:ClearAnchors()
 	card.timeLabel:ClearAnchors()
 	card.closeButton:ClearAnchors()
-
-	local relationGlyph, relationColor = self:GetPrimaryRelationBadge(entry)
-	if relationGlyph ~= nil then
-		card.relationLabel:SetText(relationGlyph)
-		SetControlColor(card.relationLabel, relationColor)
-		card.relationLabel:SetHidden(false)
-	else
-		card.relationLabel:SetText("")
-		card.relationLabel:SetHidden(true)
-	end
-	local relationWidth = relationGlyph ~= nil and CONFIG.RELATION_WIDTH or 0
-	local relationGap = relationGlyph ~= nil and CONFIG.META_GAP or 0
 
 	local closeZone = CONFIG.CLOSE_BUTTON_INSET + CONFIG.CLOSE_BUTTON_SIZE + CONFIG.META_GAP
 	local unreadCount = entry.unreadCount or 1
@@ -1412,26 +1395,30 @@ function addon:PopulateCard(card, entry, expanded)
 	SetControlColor(card.statusLabel, statusColor)
 	local senderTextColor = entry.followUpState == FOLLOW_UP_STATES.ANSWERED
 		and CONFIG.MUTED_TEXT_COLOR or CONFIG.SENDER_TEXT_COLOR
+	SetControlColor(card.senderLabel, senderTextColor)
+	SetControlColor(
+		card.messageLabel,
+		entry.followUpState == FOLLOW_UP_STATES.ANSWERED
+			and CONFIG.MUTED_TEXT_COLOR or CONFIG.MESSAGE_TEXT_COLOR
+	)
 
 	if not expanded then
-		local textLeft = CONFIG.RAIL_WIDTH + CONFIG.BADGE_GAP
+		local textLeft = CONFIG.RAIL_WIDTH + CONFIG.CARD_HORIZONTAL_PADDING
 		local timeRight = closeZone
 		local countRight = timeRight + CONFIG.COMPACT_TIME_WIDTH + CONFIG.META_GAP
 		local statusRight = countRight + CONFIG.COMPACT_COUNT_WIDTH + CONFIG.META_GAP
-		local relationRight = statusRight + CONFIG.STATUS_WIDTH + CONFIG.META_GAP
-		local textRight = relationRight + relationWidth + relationGap
+		local textRight = statusRight + CONFIG.STATUS_WIDTH + CONFIG.META_GAP
 
-		card.badge:SetHidden(true)
 		card.senderLabel:SetFont(BuildFont(CONFIG.FONT_FACE, CONFIG.COMPACT_FONT_SIZE))
+		card.senderLabel:SetWidth(CONFIG.COMPACT_SENDER_WIDTH)
 		card.senderLabel:SetHeight(CONFIG.COMPACT_CARD_HEIGHT)
-		SetControlColor(card.senderLabel, senderTextColor)
-		card.senderLabel:SetText(FormatLocalizedText(
-			SI_BPD_NOTIFICATION_COMPACT,
-			Utf8Prefix(entry.senderId, CONFIG.COMPACT_SENDER_CHARACTERS),
-			Utf8Prefix(entry.preview, CONFIG.COMPACT_PREVIEW_CHARACTERS)
-		))
+		card.senderLabel:SetText(Utf8Prefix(entry.senderId, CONFIG.COMPACT_SENDER_CHARACTERS))
 		card.senderLabel:SetAnchor(LEFT, card, LEFT, textLeft, 0)
-		card.senderLabel:SetAnchor(RIGHT, card, RIGHT, -textRight, 0)
+		card.messageLabel:SetFont(BuildFont(CONFIG.FONT_FACE, CONFIG.COMPACT_FONT_SIZE))
+		card.messageLabel:SetHeight(CONFIG.COMPACT_CARD_HEIGHT)
+		card.messageLabel:SetText(Utf8Prefix(entry.preview, CONFIG.COMPACT_PREVIEW_CHARACTERS))
+		card.messageLabel:SetAnchor(LEFT, card.senderLabel, RIGHT, CONFIG.COMPACT_MESSAGE_GAP, 0)
+		card.messageLabel:SetAnchor(RIGHT, card, RIGHT, -textRight, 0)
 
 		card.countLabel:SetWidth(CONFIG.COMPACT_COUNT_WIDTH)
 		card.countLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
@@ -1439,30 +1426,19 @@ function addon:PopulateCard(card, entry, expanded)
 		card.statusLabel:SetWidth(CONFIG.STATUS_WIDTH)
 		card.statusLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
 		card.statusLabel:SetAnchor(RIGHT, card, RIGHT, -statusRight, 0)
-		card.relationLabel:SetWidth(CONFIG.RELATION_WIDTH)
-		card.relationLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
-		card.relationLabel:SetAnchor(RIGHT, card, RIGHT, -relationRight, 0)
 		card.timeLabel:SetWidth(CONFIG.COMPACT_TIME_WIDTH)
 		card.timeLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
 		card.timeLabel:SetAnchor(RIGHT, card, RIGHT, -timeRight, 0)
-		card.messageLabel:SetHidden(true)
 	else
-		local badgeSize = CONFIG.BADGE_SIZE
-		local textLeft = CONFIG.RAIL_WIDTH + CONFIG.BADGE_GAP + badgeSize + CONFIG.BADGE_GAP
+		local textLeft = CONFIG.RAIL_WIDTH + CONFIG.CARD_HORIZONTAL_PADDING
 		local timeRight = closeZone
 		local countRight = timeRight + CONFIG.TIME_WIDTH + CONFIG.META_GAP
 		local statusRight = countRight + CONFIG.COUNT_WIDTH + CONFIG.META_GAP
-		local relationRight = statusRight + CONFIG.STATUS_WIDTH + CONFIG.META_GAP
-		local senderRight = relationRight + relationWidth + relationGap
+		local senderRight = statusRight + CONFIG.STATUS_WIDTH + CONFIG.META_GAP
 		local messageRight = CONFIG.CLOSE_BUTTON_INSET + CONFIG.CLOSE_BUTTON_SIZE + CONFIG.META_GAP
 
-		card.badge:SetDimensions(badgeSize, badgeSize)
-		card.badge:SetAnchor(LEFT, card, LEFT, CONFIG.RAIL_WIDTH + CONFIG.BADGE_GAP, 0)
-		card.badge:SetHidden(false)
-		card.badgeLabel:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.BADGE_FONT_SIZE))
 		card.senderLabel:SetFont(BuildFont(CONFIG.FONT_FACE_BOLD, CONFIG.SENDER_FONT_SIZE))
 		card.senderLabel:SetHeight(CONFIG.SENDER_ROW_HEIGHT)
-		SetControlColor(card.senderLabel, senderTextColor)
 		card.senderLabel:SetText(Utf8Prefix(entry.senderId, CONFIG.SENDER_DISPLAY_CHARACTERS))
 		card.senderLabel:SetAnchor(TOPLEFT, card, TOPLEFT, textLeft, CONFIG.SENDER_ROW_OFFSET_Y)
 		card.senderLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -senderRight, CONFIG.SENDER_ROW_OFFSET_Y)
@@ -1472,24 +1448,17 @@ function addon:PopulateCard(card, entry, expanded)
 		card.countLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -countRight, CONFIG.SENDER_ROW_OFFSET_Y + 2)
 		card.statusLabel:SetWidth(CONFIG.STATUS_WIDTH)
 		card.statusLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
-		card.relationLabel:SetWidth(CONFIG.RELATION_WIDTH)
-		card.relationLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
-		card.relationLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -relationRight, CONFIG.SENDER_ROW_OFFSET_Y + 2)
 		card.statusLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -statusRight, CONFIG.SENDER_ROW_OFFSET_Y + 2)
 		card.timeLabel:SetWidth(CONFIG.TIME_WIDTH)
 		card.timeLabel:SetHeight(CONFIG.META_ROW_HEIGHT)
 		card.timeLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -timeRight, CONFIG.SENDER_ROW_OFFSET_Y + 2)
+		card.messageLabel:SetFont(BuildFont(CONFIG.FONT_FACE, CONFIG.MESSAGE_FONT_SIZE))
 		card.messageLabel:SetText(Utf8Prefix(entry.preview, CONFIG.MESSAGE_PREVIEW_CHARACTERS))
 		card.messageLabel:SetHeight(CONFIG.MESSAGE_ROW_HEIGHT)
 		card.messageLabel:SetAnchor(TOPLEFT, card, TOPLEFT, textLeft, CONFIG.MESSAGE_ROW_OFFSET_Y)
 		card.messageLabel:SetAnchor(TOPRIGHT, card, TOPRIGHT, -messageRight, CONFIG.MESSAGE_ROW_OFFSET_Y)
-		SetControlColor(
-			card.messageLabel,
-			entry.followUpState == FOLLOW_UP_STATES.ANSWERED
-				and CONFIG.MUTED_TEXT_COLOR or CONFIG.MESSAGE_TEXT_COLOR
-		)
-		card.messageLabel:SetHidden(false)
 	end
+	card.messageLabel:SetHidden(false)
 
 	card.timeLabel:SetText(FormatElapsed(GetGameTimeMilliseconds() - entry.lastMessageMs))
 
@@ -1557,7 +1526,7 @@ function addon:RefreshNotifications()
 	local totalSenders = #self.senderOrder
 	local presentationOrder = self.displayOrder
 	local collapsed = self:IsPanelCollapsed() and totalSenders > 0
-	local pageSize = CONFIG.MAX_VISIBLE_SENDERS
+	local pageSize = self:GetVisibleSenderLimit()
 	local startIndex = ((self.overflowPage or 0) * pageSize) + 1
 	local visibleSenders = 0
 	if not collapsed then
@@ -1642,7 +1611,7 @@ function addon:RefreshNotifications()
 		self.headerCount:SetText(FormatLocalizedText(SI_BPD_HEADER_COUNT, totalSenders, displayedTotalUnread))
 	end
 
-	self.collapseButton.label:SetText(collapsed and "+" or "-")
+	self.collapseButton.icon:SetTexture(collapsed and CONFIG.HEADER_EXPAND_TEXTURE or CONFIG.HEADER_COLLAPSE_TEXTURE)
 	self.root:SetHeight(offsetY)
 	self:UpdateVisibility()
 end

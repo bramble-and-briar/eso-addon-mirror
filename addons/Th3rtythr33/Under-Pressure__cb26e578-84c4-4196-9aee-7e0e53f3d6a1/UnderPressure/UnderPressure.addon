@@ -1,28 +1,57 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.3.0
-## AddOnVersion: 11
-## APIVersion: 101049 101050
+## Version: 0.4.0
+## AddOnVersion: 14
+## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
-## DependsOn: LibAddonMenu-2.0>=32
-## Description: Quickly see how much danger you are in and how long you have to live if the damage isn't healed through or mitigated. Also provides a counter of how many distinct mobs you are taking damage from.
+## DependsOn: LibHarvensAddonSettings>=20200
+## Description: Quickly see how much danger you are in with simple HUD elements designed to alert you to impending doom. Threat Indicator: Shows how long you can survive under current incoming damage and effects as well as a count of how many units are attacking you. Helpful in challenge areas like Night Market or on higher difficulty settings with attribute bars hidden. Silence Indicator: Appears near your reticle when you're silenced and stays on screen until the effect ends. Intended to provide an additional indicator to let you know you're silenced. Works even if you play with the skill bar hidden and combat text off. Plague Indicator: Tints your screen a smoky green while a Plaguebreak plague is on you. If it is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw. Each Indicator can be turned off in the settings if it's not wanted.
 
-; AddOnVersion tracks the LAST PUBLISHED build. 0.2.7 = 8, 0.2.8 = 9,
-; 0.2.9 = 10, so 0.3.0 = 11. It must only ever increase. It was briefly set to
-; 30 while the release was planned as 3.0; that build was never published, so
-; stepping back to 9 was safe and would NOT have been safe if 30 had shipped.
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+;
+; AddOnVersion steps by ONE per published build and only ever increases.
+; 0.2.7 = 8, 0.2.8 = 9, 0.2.9 = 10, 0.3.0 = 11, 0.3.2 = 12. 0.3.3 was built as
+; 13 but NEVER uploaded (confirmed by the author 2026-10-06), so 0.4.0 takes 14
+; and 13 never existed on Bethesda.net. It was briefly set to 30 while a release
+; was planned as 3.0; that build was never published either, so stepping back
+; to 9 was safe and would NOT have been safe if 30 had shipped.
 ;
 ; The Tank Mode sentence was dropped from the Description in 0.2.9 along with
-; the feature. The Bethesda.net web listing carries its own copy of this text
+; the feature. On 2026-10-06 the Description was replaced wholesale with the
+; copy already live on the Bethesda.net listing: the add-on is not the
+; tank-specific tool it was first conceived as, and the listing had moved on
+; while this line had not. The web listing carries its own copy of this text
 ; and has to be edited separately, in the uploader -- it is not derived from
-; this file.
+; this file. Keep the two matching.
 ;
-; DependsOn (not Optional) is correct: LibAddonMenu-2.0 IS listed on the
-; Bethesda.net console portal, confirmed by the author 2026-07-28, so the
-; dependency resolves and gets auto-installed there. Do not "fix" this to
-; OptionalDependsOn -- that was tried in 0.2.8 development on the mistaken
-; belief that LAM was unavailable on console, and it would cost users the
-; auto-install and therefore the settings panel entirely.
+; The settings library changed in 0.3.3: LibAddonMenu-2.0 -> LibHarvensAddonSettings.
+; LAM does resolve on console, but its console support is a partial
+; auto-conversion INTO LibHarvensAddonSettings and not every control type
+; survives it; depending on LHAS directly drops the conversion layer. See
+; Docs/UnderPressure.md.
+;
+; DependsOn (not Optional) is correct: LibHarvensAddonSettings IS listed on the
+; Bethesda.net console catalogue under its own name, confirmed by the author
+; 2026-08-01, so the dependency resolves and gets auto-installed there. Do not
+; "fix" this to OptionalDependsOn -- that was tried in 0.2.8 development (for
+; LAM) on the mistaken belief that the library was unavailable on console, and
+; it would cost users the auto-install and therefore the settings panel
+; entirely.
+;
+; Ignore the "For Console" note on LibHarvensAddonSettings' ESOUI project page
+; telling you to depend on LibVotans instead. That dates from a bogus DMCA
+; takedown; the Bethesda.net listing has since been restored under the original
+; name, and the manifest name was never the thing that changed anyway.
+;
+; The >=20200 bound is LHAS 2.2.0 (its AddOnVersion scheme is MMmmpp). Workspace
+; rule since 2026-10-05, from ESOUI's published best practice: the minimum
+; tracks the library's LATEST release and is raised before every upload. On
+; Bethesda.net the dependency is attached without picking a release and the
+; console always installs the latest, so the bound cannot false-negative there.
 ;
 ; The Description directive above must stay a SINGLE line (manifest
 ; directives cannot wrap) and should match the Bethesda.net listing copy.
@@ -31,12 +60,15 @@
 ; |cRRGGBB|r colour codes. Plain text like this is the safe intersection.
 
 ; Load order: bootstrap -> engine -> UI -> settings -> main entry
-; Fonts.lua must load before any UI that sets a font.
+; Fonts.lua must load before any UI that sets a font. Settings.lua reads
+; UP.PlagueTint.* constants at Init() time (not parse time), so PlagueTint.lua
+; only has to precede it in the list, which it does by a wide margin.
 
 Engine/FeatureDetect.lua
 Engine/AbilityClassifier.lua
 Engine/AttackerTracker.lua
 Engine/SilenceTracker.lua
+Engine/PlagueTracker.lua
 Engine/PressureEngine.lua
 Engine/EventIngest.lua
 
@@ -45,6 +77,8 @@ UI/Indicator.xml
 UI/Indicator.lua
 UI/SilenceRing.xml
 UI/SilenceRing.lua
+UI/PlagueTint.xml
+UI/PlagueTint.lua
 UI/Debug.xml
 UI/Debug.lua
 

@@ -35,5 +35,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ZoneDailyTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thewizadt/ZoneDailyTracker__722c9210-1e17-4104-b9d8-b3b79b069984) | thewizadt | Console | — |
 | [ZoneNameLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/ZoneNameLogger__2194) | Coorbin | PC / Mac | 1.0 |
 | [ZoneSets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Soul_Hagans/ZoneSets__4788) | Soul_Hagans | PC / Mac | 1.3.2 |
+| [ZoneSweep](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/ZoneSweep__442cb9b3-e5a9-4cf0-a01f-df3af415e92a) | TheGreyWolf98 | Console | — |
 | [ZoomInFurther](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/ZoomInFurther__e748a1af-bca6-470d-be77-d5e7ab432006) | murphyx | Console | — |
 | [Zoruah's Gamepad Tuner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/OfficialZoruah/Zoruah-s-Gamepad-Tuner__4606) | OfficialZoruah | PC / Mac | 2.0.0 |

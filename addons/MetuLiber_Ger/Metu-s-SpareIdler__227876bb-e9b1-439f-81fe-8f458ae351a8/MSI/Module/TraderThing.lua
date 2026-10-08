@@ -77,7 +77,6 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_FENCE_CHTLINE))
 			SellAllStolenJunk()
 			MSI.Print("c", zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 			MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_SLD_STLN_JUNK_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
-			SCENE_MANAGER:Show("hudui")
 		end
 	end
 end
@@ -97,7 +96,7 @@ MSI.Print("d", GetString(MSI_MOD_OPEN_LAUNDER_CHTLINE))
 			LaunderAllStolen()
 			MSI.Print("c", zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
 			MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_LAUNDRD_STLN_CHTLINE), total, GetCurrencyName(CURT_MONEY, false, false)))
-		--	SCENE_MANAGER:Show("hudui")
+			SCENE_MANAGER:ShowBaseScene()
 		end
 	end
 end
@@ -189,9 +188,6 @@ local function OnLootUpdatedThrottled()
 		lastLootUpdatedTimetag = currentTime
 	end
     EndLooting()
-	--MSI.ApplyRightScene(SCENE_MANAGER:GetCurrentScene():GetName())
-	--SCENE_MANAGER:ShowBaseScene()
-	--SCENE_MANAGER:Show("hudui")
 end
 local function LootClosed()
     isAllCurtLooted = true
@@ -358,14 +354,15 @@ local function unboxQueuedContainer()
 			--MSI.ShowCenterMsg(2468, [[icon_warn.dds]], zo_strformat(GetString(MSI_MOD_MISSING_ITEM_CHTLINE)))
 		else
 			zo_callLater(function() 
-
 				-- MSI.Print("d", string.format("TypId: %s Typ: %s", GetItemLinkItemType(GetItemLink(BAG_BACKPACK, slotIndex)), tostring(GetString("SI_ITEMTYPE", GetItemLinkItemType(GetItemLink(BAG_BACKPACK, slotIndex))))))
 				-- MSI.Print("d", string.format("Quali: %s Set: %s", GetItemLinkFunctionalQuality(GetItemLink(BAG_BACKPACK, slotIndex)), (IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(GetItemLink(BAG_BACKPACK, slotIndex))) and GetString(MSI_ADDON_YES) or GetString(MSI_ADDON_NO))))
 				-- MSI.Print("d", string.format("Conti: %s Geb: %s", (IsItemLinkContainer(GetItemLink(BAG_BACKPACK, slotIndex)) and GetString(MSI_ADDON_YES) or GetString(MSI_ADDON_NO)), (IsItemLinkBound(GetItemLink(BAG_BACKPACK, slotIndex)) and GetString(MSI_ADDON_YES) or GetString(MSI_ADDON_NO))))
-		
 				local item = GetItemDataIfUnknown(BAG_BACKPACK, slotIndex)
 				if item ~= nil then
 					if UseThatItem(BAG_BACKPACK, item.getSlotIndex) then
+						if item.isCraftingContainer then
+							isUnboxingCraftReward = false
+						end
 						if item.isFish then
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_FISH_FILLET_CHTLINE), item.getLink))
 						elseif (item.isTreasureMap or (item.getLinkId == 224681)) then-- and item.isUnopened) then
@@ -376,20 +373,18 @@ local function unboxQueuedContainer()
 							MSI.ShowCenterMsg(2468, [[icon_info.dds]], zo_strformat(GetString(MSI_MOD_VIEWED_NOTE_CHTLINE), item.getLink))
 						elseif item.isRecipePage then
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_LEARNED_ITEM_CHTLINE), item.getLink))
-						elseif item.isContainer then
-							if item.isCraftingContainer then
-								isUnboxingCraftReward = false
+						elseif (item.isContainer or item.isUnopened) then
+							if not item.isUnopened then
+								MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
+							elseif item.isUnopened then
+								MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_UNOPENED_CHTLINE), item.getLink))
 							end
-							MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_CONTI_CHTLINE), item.getLink))
-							--OnLootUpdatedThrottled()
-							zo_callLater(function()
-							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
-							end, 200 + GetLatency())
-						elseif item.isUnopened then
-							MSI.Print("c", zo_strformat(GetString(MSI_MOD_OPENED_UNOPENED_CHTLINE), item.getLink))
 						else
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
 						end
+						zo_callLater(function()
+							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
+						end, 200 + GetLatency())
 					end
 				end
 			end, (i - 1) * (1000 + GetLatency()))

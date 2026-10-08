@@ -1962,7 +1962,7 @@ local function createBuffControl(yOffset, abilityId)
     local color = info and info.color or {1,1,1,1}
 
     local ctrl = wm:CreateControl(nil, mainWindow, CT_CONTROL)
-    ctrl:SetDimensions(300, 40)
+    ctrl:SetDimensions(380, 40)
     ctrl:SetAnchor(TOPLEFT, mainWindow, TOPLEFT, 0, yOffset)
     ctrl:SetHidden(false)
 
@@ -1984,10 +1984,21 @@ local function createBuffControl(yOffset, abilityId)
     label:SetColor(1, 1, 0, 1)
     label:SetText("0")
 
-    return { ctrl = ctrl, bar = bar, label = label, icon = icon, abilityId = abilityId }
+    local uptimeLabel = wm:CreateControl(nil, ctrl, CT_LABEL)
+    uptimeLabel:SetAnchor(LEFT, bar, RIGHT, 10, 0)
+    uptimeLabel:SetDimensions(80, 40)
+    uptimeLabel:SetFont("$(BOLD_FONT)|26|soft-shadow-thin")
+    uptimeLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    uptimeLabel:SetColor(1, 1, 1, 1)
+    uptimeLabel:SetText("0%")
+
+    return { ctrl = ctrl, bar = bar, label = label, uptimeLabel = uptimeLabel, icon = icon, abilityId = abilityId }
 end
 
 updateUI = function()
+    local uptimeStart = activeStartTime or fightStartTime
+    local uptimeEnd = fightEndTime or nowMS()
+    local uptimeDuration = uptimeStart and math.max(1000, uptimeEnd - uptimeStart) or 0
     local activeBuffs = {}
     for _, abilityId in ipairs(mainUIBuffOrder) do
         if settings.enabledBuffs[tostring(abilityId)] then
@@ -2021,11 +2032,16 @@ updateUI = function()
         item.bar:SetMinMax(0, buff.total)
         item.bar:SetValue(buff.remaining)
         item.label:SetText(string.format("%.1f", buff.remaining))
+        local uptimePct = 0
+        if uptimeStart then
+            uptimePct = getLiveScopeTotal(playerReceivedScopes, buff.id, uptimeStart, uptimeEnd) / uptimeDuration * 100
+        end
+        item.uptimeLabel:SetText(string.format("%d%%", pctInt(math.min(100, math.max(0, uptimePct)))))
     end
 
     local hasActiveBuffs = #activeBuffs > 0
     local windowHeight = hasActiveBuffs and (rowOffset + (#activeBuffs * 45)) or 52
-    mainWindow:SetDimensions(300, windowHeight)
+    mainWindow:SetDimensions(380, windowHeight)
 
     if mainMoveHintBackdrop then
         mainMoveHintBackdrop:SetHidden(not mainMoveMode)
@@ -2313,7 +2329,7 @@ local function createUI()
     mainMoveOverlayLabel:SetText("Main UI verschieben")
 
     mainWindow = wm:CreateTopLevelWindow(ADDON_NAME.."Main")
-    mainWindow:SetDimensions(300, 200)
+    mainWindow:SetDimensions(380, 200)
     refreshMainWindowAnchor()
     mainWindow:SetScale(settings.scale)
     mainWindow:SetMouseEnabled(true)

@@ -1,10 +1,10 @@
 ## Title: |c9CD04CAuto Lua Memory Cleaner|r
-## AddOnVersion: 26100608
-## Version: 2026.10.06.08.01
+## AddOnVersion: 26100717
+## Version: 2026.10.07.17.24
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
 ## APIVersion: 101051 101052
 ## SavedVariables: AutoLuaCleaner
-## DependsOn: LibAPH>=26100607
+## DependsOn: LibAPH>=26100717
 ## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
 ## Description: |cfa9c1bLightweight|r |cCCFF00Auto Lua Memory Cleaner|r. Type /alc for a full list of commands.
 
@@ -27,7 +27,5 @@ Console/ALC_Console.lua
 ;
 ; You can read the full terms at:
 ; https://account.elderscrollsonline.com/add-on-terms
-
-; Auto Lua Memory Cleaner: https://www.esoui.com/downloads/info4388
 
 ; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

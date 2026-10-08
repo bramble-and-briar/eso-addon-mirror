@@ -74,8 +74,28 @@ function QTI.RegisterSettings()
 			step = 1,
 			getFunc = function() return QTI.SV.iconSize end,
 			setFunc = function(value) QTI.SV.iconSize = value; QTI.RefreshAll() end,
+		},	
+		{
+			type = "checkbox",
+			name = "Hide Pinned Golden Pursuits",
+			tooltip = "Hides pinned Golden Pursuits task under quest tracker.",
+			min = 8,
+			max = 48,
+			step = 1,
+			getFunc = function() return QTI.SV.hidePursuits end,
+			setFunc = function(value) QTI.SV.hidePursuits = value end,
+			requiresReload = true,
 		},
-
+		{
+			type = "checkbox",
+			name = "Keep Activities Under QuestTracker",
+			tooltip = "Anchors the shared tracker container (activity, housing, etc.) under the quest tracker.",
+			getFunc = function() return QTI.SV.stickyTrackers end,
+			setFunc = function(value)
+				QTI.SV.stickyTrackers = value
+			end,
+			requiresReload = true,
+		},
 		{
 			type = "header",
 			name = "|t30:30:/esoui/art/notifications/gamepad/gp_notificationicon_quest.dds|t Quest Header",

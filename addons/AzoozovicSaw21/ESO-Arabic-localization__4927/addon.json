@@ -1,0 +1,52 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/AzoozovicSaw21/ESO-Arabic-localization__4927",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "AzoozovicSaw21",
+  "canonical_id": "esoui:4927",
+  "category_id": "163",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4927",
+  "deleted": false,
+  "directories": [
+    "EsoAR",
+    "EsoUI",
+    "gamedata"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4927/",
+  "fingerprint": "91947d68442e97c6bd42c21f0e035d4fb7f3c213c801453349504dadf2b92970",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17808.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17809.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17811.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17810.png"
+  ],
+  "omitted_files": [
+    {
+      "bytes": 123641704,
+      "download_url": "https://www.esoui.com/downloads/dl4927/",
+      "path": "gamedata/lang/ar.lang",
+      "reason": "exceeds the mirror's 95 MiB per-file Git limit",
+      "sha256": "7bfcae3bca31080b75bbc100fc55a2370f8fb2cde13904cfcf4ece4ec1811d18"
+    }
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4927",
+  "source_url": "https://www.esoui.com/downloads/info4927-ESOArabiclocalization.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "ESO Arabic localization",
+  "updated_at": 1791440573000,
+  "version": "2.0.0"
+}

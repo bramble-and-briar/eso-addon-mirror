@@ -1,6 +1,6 @@
 CraftMaterialAssistant = CraftMaterialAssistant or {
     name = "CraftMaterialAssistant",
-    version = "1.0.5",
+    version = "1.0.6",
     savedVarsName = "CraftMaterialAssistantSavedVars",
     variableVersion = 1
 }
@@ -372,7 +372,8 @@ CMA.researchLineIndexEquipTypeMap = {
     [EQUIP_TYPE_SHOULDERS] = 13,
     [EQUIP_TYPE_WAIST] = 14,
     [EQUIP_TYPE_NECK] = 1,
-    [EQUIP_TYPE_RING] = 2
+    [EQUIP_TYPE_RING] = 2,
+    [EQUIP_TYPE_OFF_HAND] = 6
 }
 
 -- mapping weaponType to research line index
@@ -388,5 +389,6 @@ CMA.researchLineIndexWeaponTypeMap = {
     [WEAPONTYPE_FIRE_STAFF] = 2,
     [WEAPONTYPE_FROST_STAFF] = 3,
     [WEAPONTYPE_LIGHTNING_STAFF] = 4,
-    [WEAPONTYPE_HEALING_STAFF] = 5
+    [WEAPONTYPE_HEALING_STAFF] = 5,
+    [WEAPONTYPE_SHIELD] = 6
 }

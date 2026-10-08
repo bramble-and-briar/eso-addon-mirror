@@ -297,6 +297,30 @@ local function ActionMatches(action, term)
     return zo_strlower(action.description):find(term, 1, true) ~= nil
 end
 
+-- This companion's Guild-type skill lines (Fighters Guild, Mages Guild,
+-- Undaunted) whose name contains `term`, as { name, rank, isMaxed }. Empty
+-- when the term isn't a Guild skill line, or the companion's skill lines
+-- were never recorded (they're only readable while that companion is out).
+local function GetMatchingGuildLines(companionId, term)
+    local matches = {}
+    local skillLines = companionId and CompanionRoster.Data.GetSkillLinesForCompanion(companionId)
+    if skillLines == nil then
+        return matches
+    end
+
+    local guildTypeName = GetString("SI_SKILLTYPE", SKILL_TYPE_GUILD)
+    for _, group in ipairs(skillLines) do
+        if group.typeName == guildTypeName then
+            for _, line in ipairs(group.lines) do
+                if zo_strlower(line.name):find(term, 1, true) then
+                    table.insert(matches, { name = line.name, rank = line.rank, isMaxed = line.isMaxed })
+                end
+            end
+        end
+    end
+    return matches
+end
+
 -- Ranks companions by the best (highest-amount) matching positive rapport
 -- action for `term` (case-insensitive substring match against each
 -- action's categories and description text). A companion already at max
@@ -327,6 +351,14 @@ function CompanionRoster.Data.SearchRapportTips(term)
             local isMaxed = recorded ~= nil and recorded.rapportValue ~= nil and recorded.rapportMax ~= nil
                 and recorded.rapportValue >= recorded.rapportMax
 
+            local skillLineRanks = GetMatchingGuildLines(companionId, term)
+            local lowestSkillRank = nil
+            for _, line in ipairs(skillLineRanks) do
+                if lowestSkillRank == nil or line.rank < lowestSkillRank then
+                    lowestSkillRank = line.rank
+                end
+            end
+
             table.insert(results, {
                 companionName = companionName,
                 companionId = companionId,
@@ -335,15 +367,34 @@ function CompanionRoster.Data.SearchRapportTips(term)
                 description = bestMatch.description,
                 cooldown = bestMatch.cooldown,
                 isMaxed = isMaxed,
+                rapportValue = recorded and recorded.rapportValue,
+                rapportMax = recorded and recorded.rapportMax,
+                skillLineRanks = skillLineRanks,
+                lowestSkillRank = lowestSkillRank,
             })
         end
     end
 
+    -- Most rapport gained comes first; only when that ties does the lower
+    -- Guild skill line rank win (more room to gain), with an unknown rank
+    -- after a known one, then name so the order is stable.
     table.sort(results, function(a, b)
         if a.isMaxed ~= b.isMaxed then
             return not a.isMaxed
         end
-        return a.amount > b.amount
+        if a.amount ~= b.amount then
+            return a.amount > b.amount
+        end
+        if a.lowestSkillRank ~= b.lowestSkillRank then
+            if a.lowestSkillRank == nil then
+                return false
+            end
+            if b.lowestSkillRank == nil then
+                return true
+            end
+            return a.lowestSkillRank < b.lowestSkillRank
+        end
+        return a.companionName < b.companionName
     end)
 
     return results

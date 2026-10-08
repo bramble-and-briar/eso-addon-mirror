@@ -33,6 +33,7 @@ local REQUERY_M = 5
 local CELL = 100                  -- grid cell metres; keys are integers: cx * 100000 + cz (world fits in 0..99999 m)
 
 SlotActions.zoneId = nil
+SlotActions.loadedActive = nil    -- the active state the current grid was loaded under (nil = never loaded)
 SlotActions.count = 0
 SlotActions.grid = {}             -- cellKey -> DevSandbox3Slot[]
 SlotActions.inRange = {}          -- slots within RANGE_M of the last query point (reused array)
@@ -48,10 +49,23 @@ local lastQx, lastQz = math.huge, math.huge
 
 local function CellKey(cx, cz) return cx * 100000 + cz end
 
----Load every harvestable slot of the player's zone.
+---Is the addon active in the current zone? Off outside Cyrodiil unless the CYRODIIL ONLY setting is cleared.
+function SlotActions.IsActiveZone()
+    local s = DevSandbox3.state.savedVars.settings
+    return SlotActions.zoneId == SlotActions.CYRODIIL or not s.cyrodiilOnly
+end
+
+---Load every harvestable slot of the player's zone. Call again after toggling CYRODIIL ONLY (it is a no-op while the
+---zone and the active state are unchanged).
 function SlotActions.LoadZone()
     local zoneId = GetZoneId(GetUnitZoneIndex("player"))
-    if zoneId == SlotActions.zoneId then return end
+    local active = zoneId == SlotActions.CYRODIIL or not DevSandbox3.state.savedVars.settings.cyrodiilOnly
+    if zoneId == SlotActions.zoneId and active == SlotActions.loadedActive then return end
+    SlotActions.loadedActive = active
+    for k in pairs(SlotActions.empty) do SlotActions.empty[k] = nil end
+    for k in pairs(SlotActions.unknown) do SlotActions.unknown[k] = nil end
+    for k in pairs(SlotActions.wasEmpty) do SlotActions.wasEmpty[k] = nil end
+    SlotActions.confirmedM, SlotActions.canJudge = 0, false
     SlotActions.zoneId, SlotActions.count, SlotActions.grid, SlotActions.inRangeCount = zoneId, 0, {}, 0
     lastQx = math.huge
     -- persisted memory for this zone, pruned of expired entries
@@ -62,6 +76,7 @@ function SlotActions.LoadZone()
     local now = GetTimeStamp()
     for k, expiry in pairs(SlotActions.checked) do if expiry ~= 0 and expiry <= now then SlotActions.checked[k] = nil end end
     for k, v in pairs(SlotActions.verdicts) do if v.x ~= 0 and v.x <= now then SlotActions.verdicts[k] = nil end end
+    if not active then LogUtils.Debug("zone %d: outside Cyrodiil, addon inactive (CYRODIIL ONLY)", zoneId); return end
     local zone = DevSandbox3_Data and DevSandbox3_Data[zoneId]
     if not zone then LogUtils.Debug("no spawn data for zone %d", zoneId); return end
     local grid, n = SlotActions.grid, 0

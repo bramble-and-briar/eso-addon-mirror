@@ -25,7 +25,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tamriel Progress Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Racconplayz/Tamriel-Progress-Map__4799) | Racconplayz | PC / Mac | 2.7.5 |
 | [Tamriel Races](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tamriel-Races__167ff6ab-0d5c-4582-83cc-0ec8ced35cc1) | SugaComa | Console | — |
 | [Tamriel Sky Dial](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MemphisKane991/Tamriel-Sky-Dial__4860) | MemphisKane991 | PC / Mac | 1.1 |
-| [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.1 |
+| [Tamriel Tomes Map Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591) | runcarsnowpen | PC / Mac | 1.2.2 |
 | [Tamriel Trade Center, HarvestMap & ESO-Hub Auto-Updater (Linux, macOS, SteamDeck, & Windows)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Tamriel-Trade-Center-HarvestMap-ESO-Hub-Auto-Updater-Linux-macOS-SteamDeck-Windo__3249) | APH0N1C | PC / Mac | 2026.10.04.19.22 |
 | [Tamriel Trade Centre](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cyxui/Tamriel-Trade-Centre__1245) | cyxui | PC / Mac | 4.27.281.39281 |
 | [Tamriel Trade Centre - Patch Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/Tamriel-Trade-Centre---Patch-Italiana__3033) | Dusty82 | PC / Mac | 4.10.146.18293 |
@@ -83,6 +83,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testing__8cd10e06-846e-4b81-9858-f1a6943f0b32) | FiNk3F13 | Console | — |
 | [TestMapAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/TestMapAddon__cee315a7-bef0-44c7-9a12-dbc6bdb6674d) | PinkBanther | Console | — |
 | [Testo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/Testo__216fbb06-0224-40a3-bc08-d47f6a6a1157) | FiNk3F13 | Console | — |
+| [testo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/testo__656a56dd-1f9a-428e-a52e-dc72a77de425) | FiNk3F13 | Console | — |
 | [testt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FiNk3F13/testt__27d04e89-fb05-4cae-98d1-bbb320a1b2f1) | FiNk3F13 | Console | — |
 | [TESTUPDATE2112](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rob82668/TESTUPDATE2112__4435) | rob82668 | PC / Mac | 1.0.0 |
 | [Tetris for Fishing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sem/Tetris-for-Fishing__3314) | Sem | PC / Mac | 1.7 |
@@ -95,6 +96,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tetsu's Raid Lead Assistant development](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/Tetsu-s-Raid-Lead-Assistant-development__a9073aea-3308-48be-91d6-ecdc650b851e) | Tetsurion | Console | — |
 | [Text Trials Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/Text-Trials-Guide__2461) | Splat | PC / Mac | 1.2.8 |
 | [TG's Group Trackers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TaTerGoTcha/TG-s-Group-Trackers__cd045612-ec90-4885-be99-f35f328691f8) | TaTerGoTcha | Console | — |
+| [TGW Bind & Invite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/TGW-Bind-Invite__23c652bc-541e-443a-8f1f-e2f7c0bfef13) | TheGreyWolf98 | Console | — |
 | [Thank A Healer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tevnar/Thank-A-Healer__2958) | Tevnar | PC / Mac | 1.0.0 |
 | [Thank You <3](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/im_rookie/Thank-You-3__3822) | im_rookie | PC / Mac | 1.1 |
 | [Thank You For Your Service](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/Thank-You-For-Your-Service__2886) | skineh | PC / Mac | 1.0.2 |

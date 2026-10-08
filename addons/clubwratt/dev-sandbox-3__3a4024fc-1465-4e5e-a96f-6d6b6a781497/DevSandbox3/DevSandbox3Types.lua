@@ -27,6 +27,7 @@
 ---@field farScalePct integer              size at farScaleM as % of near size (100 = no shrink)
 ---@field farScaleM integer
 ---@field outline boolean                  black ring behind each dot
+---@field cyrodiilOnly boolean             nothing is loaded, judged or drawn outside Cyrodiil (default on)
 ---@field unknownM integer                 unknown starts here (closer = confirmed empty)
 ---@field unknownLimitM integer            unknown dots not drawn beyond this
 ---@field checkedM integer                 coming within this distance marks a slot checked

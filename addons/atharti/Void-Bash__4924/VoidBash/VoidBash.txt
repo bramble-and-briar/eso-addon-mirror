@@ -1,0 +1,8 @@
+## Title: |cFFD700VoidBash|r
+## Description: Tracks the Void Bash set cooldown.
+## Author: |cFFD700@Atharti|r
+## Version: 1.0
+## APIVersion: 101051
+## SavedVariables: VoidBash_SV
+
+VoidBash.lua

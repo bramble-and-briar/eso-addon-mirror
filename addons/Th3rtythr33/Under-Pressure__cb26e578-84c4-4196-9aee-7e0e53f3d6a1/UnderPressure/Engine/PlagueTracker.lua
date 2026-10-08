@@ -29,22 +29,41 @@
 -- dead (death also drops the debuff, without an explosion). The explosion
 -- damage itself is the confirming signal and is collected either way.
 --
--- WHO REMOVED IT -- AND WHY THIS IS A GUESS. At API 101051 the
--- ACTION_RESULT_EFFECT_GAINED family does not exist (checked against
--- ESOUIDocumentation.txt and the live esoui source, 2026-10-06), so a cleanse
--- that only strips effects -- an ally's Purge or Efficient Purge, the Purify
--- synergy, Wyrd Tree's Blessing -- produces NO event on the victim's client.
--- What we can see:
---   * our own ability presses (EVENT_ACTION_SLOT_ABILITY_USED -> slot -> name)
---   * friendly combat events that land on us (HEAL / HOT_TICK / POWER_ENERGIZE),
---     which carry the caster's name: Cleanse (heals per effect removed), the
---     Ritual morphs (HoT), Renewing Undeath, Curse Eater's magicka return
---   * buffs gained on us (EVENT_EFFECT_CHANGED, effectType BUFF), which carry
---     the source TYPE (player / group / other) but not the source name
--- Attribute() ranks whatever it finds inside ATTRIB_WINDOW_MS of the fade
--- against a table of known cleanse names and says how confident it is. When
--- nothing qualifies it says "unknown" and names the reason, rather than
--- blaming the nearest heal.
+-- WHO REMOVED IT -- KNOWN CLEANSES ONLY, NEVER A GUESS. ESOUIDocumentation.txt
+-- at 101051 lists no effect-applied / effect-removed combat result, and ZOS's
+-- own Lua never references one -- but the documentation is incomplete here:
+-- ACTION_RESULT_EFFECT_GAINED (2240), ACTION_RESULT_EFFECT_GAINED_DURATION
+-- (2245) and ACTION_RESULT_EFFECT_FADED (2250) are live globals that LibCombat
+-- 89 uses bare, and its source quotes a real event in that shape:
+--   "R: 2245, Overcharged (178118) ... Solinur^Mx (31967, 1) -> The Precursor"
+-- i.e. WHO applied WHAT to WHOM. Same situation as ACTION_RESULT_BEGIN, which
+-- EasyMark relies on (see Docs/EasyMark-ConsoleResearch.md). Their presence on
+-- console is unverified, so every use below is type()-guarded and the API audit
+-- reports whether they exist (UP.Plague.EffectResultsAvailable).
+--
+-- What that gives us, all already delivered by the target=player registration:
+--   * our own ability presses (EVENT_ACTION_SLOT_ABILITY_USED -> slot -> name),
+--     ability slots 3..8 only -- the light/heavy attack slots are dropped at
+--     the source, see EventIngest.onActionSlotUsed
+--   * effects APPLIED to us by anyone, with the applier's name, IF the
+--     undocumented results exist and the cleanse applies an effect to its
+--     targets when it fires (an ally's Purge may; whether it does is what the
+--     field will tell us -- see UP.Debug.LogPlagueEvidence)
+--   * friendly combat events that land on us (HEAL / HOT_TICK / POWER_ENERGIZE)
+--     with the caster's name: Cleanse heals per effect removed, Purify heals
+--     its activator, Renewing Undeath heals the area it cleanses, Curse Eater
+--     returns magicka to the target it cleansed
+--   * buffs gained on us (EVENT_EFFECT_CHANGED, effectType BUFF), source TYPE
+--     only
+-- Attribute() names a remover ONLY when one of those matches a cleanse in
+-- UP.Plague.CLEANSES by display name, AND the evidence kind is one that
+-- cleanse can actually produce (an ally's Extended Ritual ticking on you, or
+-- its HoT effect being applied to you, is not evidence they cleansed you -- the
+-- Ritual cleanses its caster; you would have had to press Purify, which heals
+-- you under its own name). Anything else, including an ability you pressed at
+-- the same instant, is not mentioned: the first field report (2026-10-07)
+-- blamed a heavy attack, which cannot cleanse, and a wrong name is worse than
+-- "unknown".
 --
 -- READOUT ONLY. Nothing here feeds the pressure model. The plague debuff
 -- reaches the engine through the normal classifier path (DISEASE status ->
@@ -79,27 +98,59 @@ local PLAGUE_NAMES    = { ["plague carrier"] = true }
 local EXPLOSION_NAMES = { ["plaguebreak"] = true }
 
 -- Known cleanses, lower-cased display names, from UESP skill data 2026-10-06.
--- Value is who the cleanse can reach; used only in the wording of the report.
+-- Each entry says which EVIDENCE KINDS can legitimately name it:
+--   cast    = you pressed it (EVENT_ACTION_SLOT_ABILITY_USED) and it cleanses you
+--   applied = an effect under this name being APPLIED to you by its caster
+--             (ACTION_RESULT_EFFECT_GAINED / _GAINED_DURATION, undocumented but
+--             live per LibCombat) is the cleanse reaching you; names the caster
+--   heal    = a heal / HoT tick / resource return under this name landing on
+--             you IS the cleanse reaching you (so an ally's can be named)
+--   buff    = an effect GAINED on you under this name (EVENT_EFFECT_CHANGED,
+--             source type only) is the cleanse firing
+-- Whether an ally's Purge produces an `applied` event depends on whether the
+-- ability applies an effect to its targets when it fires; the flag says only
+-- that IF such an event arrives under that name, it is a cleanse of you.
 UP.Plague.CLEANSES = {
-    ["purge"]                 = "group",
-    ["efficient purge"]       = "group",
-    ["cleanse"]               = "group",
-    ["cleansing ritual"]      = "self + Purify synergy",
-    ["extended ritual"]       = "self + Purify synergy",
-    ["ritual of retribution"] = "self + Purify synergy",
-    ["purify"]                = "synergy",
-    ["expunge"]               = "self",
-    ["expunge and modify"]    = "self",
-    ["hexproof"]              = "self",
-    ["renewing undeath"]      = "group",
-    ["betty netch"]           = "self",
-    ["blue betty"]            = "self",
-    ["bull netch"]            = "self",
-    ["stendarr's embrace"]    = "set (on heal)",
-    ["curse eater"]           = "set (on direct heal)",
-    ["wyrd tree's blessing"]  = "set (self)",
-    ["mara's balm"]           = "set (self)",
-    ["arkay's charity"]       = "set",
+    -- Alliance War > Support. Your own press cleanses you. The Cleanse morph
+    -- also heals every target it cleansed, so an ally's Cleanse shows up as a
+    -- heal under that name. An ally's Purge / Efficient Purge can only show up
+    -- as an effect applied to you, if the undocumented results carry it.
+    ["purge"]                 = { cast = true,  applied = true,  heal = false, buff = true },
+    ["efficient purge"]       = { cast = true,  applied = true,  heal = false, buff = true },
+    ["cleanse"]               = { cast = true,  applied = true,  heal = true,  buff = true },
+    -- Templar Restoring Light. The Ritual cleanses its CASTER; allies cleanse
+    -- themselves through the Purify synergy, which heals the activator under
+    -- its own name. So the Ritual morphs count only as your own press; an
+    -- ally's Ritual HoT ticking on you, or being applied to you, is explicitly
+    -- not evidence.
+    ["cleansing ritual"]      = { cast = true,  applied = false, heal = false, buff = false },
+    ["extended ritual"]       = { cast = true,  applied = false, heal = false, buff = false },
+    ["ritual of retribution"] = { cast = true,  applied = false, heal = false, buff = false },
+    ["purify"]                = { cast = false, applied = true,  heal = true,  buff = true },
+    -- Necromancer Living Death. Expunge morphs are self-only; Expunge and
+    -- Modify also returns resources to you under its own name. Renewing
+    -- Undeath heals the area it cleanses, so an ally's can be named.
+    ["expunge"]               = { cast = true,  applied = true,  heal = false, buff = true },
+    ["expunge and modify"]    = { cast = true,  applied = true,  heal = true,  buff = true },
+    ["hexproof"]              = { cast = true,  applied = true,  heal = false, buff = true },
+    ["renewing undeath"]      = { cast = true,  applied = true,  heal = true,  buff = true },
+    -- Warden netch: removes one negative effect every 5 s while active. Only
+    -- the cast is visible, so this can only be named if the cast itself fell
+    -- inside the window -- weak, but it is a real cleanse and not a guess. The
+    -- netch buff being applied at cast time is not the cleanse moment.
+    ["betty netch"]           = { cast = true,  applied = false, heal = false, buff = false },
+    ["blue betty"]            = { cast = true,  applied = false, heal = false, buff = false },
+    ["bull netch"]            = { cast = true,  applied = false, heal = false, buff = false },
+    -- Sets. Curse Eater returns magicka to the target it cleansed and Mara's
+    -- Balm heals its wearer, both under the set's name. Stendarr's Embrace and
+    -- Wyrd Tree's Blessing produce no heal or resource event of their own --
+    -- the heal that triggers Stendarr's is an ordinary heal under the HEALER'S
+    -- ability name -- so only their per-target cooldown effect, applied to you
+    -- under the set's name by the wearer, could ever name them.
+    ["curse eater"]           = { cast = false, applied = true,  heal = true,  buff = true },
+    ["mara's balm"]           = { cast = false, applied = true,  heal = true,  buff = true },
+    ["stendarr's embrace"]    = { cast = false, applied = true,  heal = false, buff = true },
+    ["wyrd tree's blessing"]  = { cast = false, applied = true,  heal = false, buff = true },
 }
 
 -- Strip ESO's grammar suffixes ("Name^Mx") and lower-case for table lookups.
@@ -137,6 +188,18 @@ local DOT_RESULTS = {}
 for _, v in ipairs({ ACTION_RESULT_DOT_TICK, ACTION_RESULT_DOT_TICK_CRITICAL }) do
     if type(v) == "number" then DOT_RESULTS[v] = true end
 end
+-- Effect APPLIED to a target, carrying the applier's name. Undocumented but
+-- live (LibCombat 89 uses them bare); nil-safe so the set is simply empty on
+-- a build that lacks them, and EffectResultsAvailable() says which.
+local EFFECT_APPLIED_RESULTS = {}
+for _, v in ipairs({ ACTION_RESULT_EFFECT_GAINED, ACTION_RESULT_EFFECT_GAINED_DURATION }) do
+    if type(v) == "number" then EFFECT_APPLIED_RESULTS[v] = true end
+end
+function UP.Plague.EffectResultsAvailable()
+    return type(ACTION_RESULT_EFFECT_GAINED) == "number"
+        or type(ACTION_RESULT_EFFECT_GAINED_DURATION) == "number"
+end
+
 -- Friendly things that land on us and carry a caster name.
 local FRIENDLY_RESULTS = {}
 for _, v in ipairs({ ACTION_RESULT_HEAL, ACTION_RESULT_CRITICAL_HEAL,
@@ -220,43 +283,40 @@ function UP.Plague.Attribute(p)
     for i = #p.recent, 1, -1 do
         local e = p.recent[i]
         if e.t >= lo and e.t <= hi then
-            local known = UP.Plague.CLEANSES[lowerKey(e.ability)] ~= nil
+            local known = UP.Plague.CLEANSES[lowerKey(e.ability)]
             local rank
-            if e.kind == "cast" and known then rank = 1
-            elseif (e.kind == "heal" or e.kind == "buff") and known then rank = 2
-            elseif e.kind == "cast" and (fadeT - e.t) <= 500 then rank = 3
-            elseif e.kind == "heal" and (fadeT - e.t) <= 500 then rank = 4
+            if known then
+                if e.kind == "cast" and known.cast then rank = 1
+                elseif e.kind == "applied" and known.applied then rank = 2
+                elseif e.kind == "heal" and known.heal then rank = 2
+                elseif e.kind == "buff" and known.buff then rank = 3
+                end
             end
+            -- No further rungs. Unknown abilities are never named, however
+            -- close to the fade they landed.
             if rank and rank < bestRank then best, bestRank = e, rank end
         end
     end
 
     if not best then
-        return "unknown. No cleanse reached this client: an ally's Purge or Efficient Purge, "
-            .. "the Purify synergy and most set passives remove effects without any event you can see.",
+        return "unknown. Nothing that can cleanse you left a trace this client can see "
+            .. "(an ally's Purge or Efficient Purge, and most set passives, never do).",
             "unknown"
     end
 
     local before = fadeT - best.t
     local when = before >= 0 and (secs(before) .. " before it vanished") or (secs(-before) .. " after")
     local who
-    if best.kind == "cast" then
+    if best.kind == "cast" or best.whoType == UNIT_PLAYER then
         who = "you"
     elseif best.who and best.who ~= "" then
         who = unitDisplay(best.who)
         if UNIT_GROUP and best.whoType == UNIT_GROUP then who = who .. " (group)" end
-    elseif best.kind == "buff" then
-        who = (UNIT_GROUP and best.whoType == UNIT_GROUP) and "a groupmate" or "someone"
     else
-        who = "someone"
+        who = (UNIT_GROUP and best.whoType == UNIT_GROUP) and "a groupmate" or "someone"
     end
     local ability = abilityDisplay(best.ability)
-    if ability == "" then ability = "an unnamed ability" end
-
-    if bestRank <= 2 then
-        return ("%s with %s (%s)"):format(who, ability, when), "known"
-    end
-    return ("probably %s with %s (%s; not a known cleanse)"):format(who, ability, when), "likely"
+    return ("%s with %s (%s)"):format(who, ability, when), "known"
 end
 
 function UP.Plague.BuildReport(p, nowMs)
@@ -279,8 +339,7 @@ function UP.Plague.BuildReport(p, nowMs)
     lines[#lines + 1] = head .. " -- " .. table.concat(detail, ", ") .. "."
 
     local who, conf = UP.Plague.Attribute(p)
-    local label = (conf == "known") and "Removed by" or (conf == "likely" and "Removed by (best guess)" or "Removed by")
-    lines[#lines + 1] = ("  %s: %s"):format(label, who)
+    lines[#lines + 1] = ("  Removed by: %s"):format(who)
 
     if p.hitCount > 0 then
         -- Order targets: you first, then by damage.
@@ -471,11 +530,22 @@ function UP.Plague.OnCombat(channel, result, abilityName, sourceName, sourceType
         return
     end
 
-    -- Friendly event landing on us while plagued: attribution evidence.
-    if active and channel == "main" and FRIENDLY_RESULTS[result] and targetType == UNIT_PLAYER then
-        pushRecent({ t = nowMs, kind = "heal", who = sourceName, whoType = sourceType,
-                     ability = abilityName, abilityId = abilityId })
-        if pending then pending.recent[#pending.recent + 1] = recent[#recent] end
+    -- Evidence while plagued, both on the main (target=player) channel:
+    -- an effect applied to us by someone, or a friendly event landing on us.
+    if active and channel == "main" and targetType == UNIT_PLAYER then
+        local kind = nil
+        if EFFECT_APPLIED_RESULTS[result] then kind = "applied"
+        elseif FRIENDLY_RESULTS[result] then kind = "heal" end
+        if kind then
+            pushRecent({ t = nowMs, kind = kind, who = sourceName, whoType = sourceType,
+                         ability = abilityName, abilityId = abilityId })
+            if pending then pending.recent[#pending.recent + 1] = recent[#recent] end
+            -- Only while the overlay is up; this is how the field answers
+            -- "what does an ally's Purge look like to the victim?"
+            if UP.Debug and UP.Debug.LogPlagueEvidence then
+                UP.Debug.LogPlagueEvidence(kind, sourceName, sourceType, abilityName, abilityId)
+            end
+        end
     end
 end
 

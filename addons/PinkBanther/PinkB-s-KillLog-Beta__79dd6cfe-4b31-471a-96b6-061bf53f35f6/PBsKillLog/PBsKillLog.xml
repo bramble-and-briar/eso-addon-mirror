@@ -1,0 +1,34 @@
+<GuiXml>
+	<!-- The kill log window. Everything in it is console-safe on purpose:
+	     - The font is ZoFontGamepad20, a face the console UI already has loaded. The keyboard
+	       ZoFontChat is built on CHAT_FONT, which was measured crashing a PS5: a face nothing
+	       else is drawing with has to be built on use, out of the memory every add-on shares,
+	       and on a Japanese client CHAT_FONT is the large CJK face. The size is changed from Lua
+	       by PBsKillLog.ApplyFont, which keeps to faces the console UI already has.
+	     - The frame is a plain colour texture, as in PB's LuaMemoryMonitor, not the keyboard
+	       backdrop template.
+	     - Nothing takes input until the window is unlocked with the mouse: on console a control
+	       that wants input takes every gamepad button away from the game while it is up. -->
+	<Controls>
+		<TopLevelControl name="PBsKillLogWindow" hidden="true" clampedToScreen="true">
+			<Dimensions x="640" y="240"/>
+			<Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="60" offsetY="300"/>
+			<DimensionConstraints minX="160" minY="48"/>
+			<OnMoveStop>
+				PBsKillLog.OnMoveStop()
+			</OnMoveStop>
+			<OnResizeStop>
+				PBsKillLog.OnResizeStop()
+			</OnResizeStop>
+			<Controls>
+				<!-- Shown only while the window is unlocked or the settings panel is open. -->
+				<Texture name="$(parent)Frame" color="000000" alpha="0.6" hidden="true">
+					<AnchorFill/>
+				</Texture>
+				<TextBuffer name="$(parent)Buffer" font="ZoFontGamepad20" maxHistoryLines="200">
+					<AnchorFill/>
+				</TextBuffer>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

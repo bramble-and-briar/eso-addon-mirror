@@ -1,7 +1,7 @@
 ## Title: |cffdd00Dovah|r|c0057b8Mova|r
 ## Description: DovahMova — Ukrainian localization helper for ESO: English names next to Ukrainian ones, adjective agreement and Ukrainian support for popular addons.
 ## Author: Frozenshtoldts and DovahMova Team
-## Version: 1.5.0
+## Version: 1.5.1
 ## AddOnVersion: 10500
 ## APIVersion: 101050 101051
 ## SavedVariables: DovahMovaVariables

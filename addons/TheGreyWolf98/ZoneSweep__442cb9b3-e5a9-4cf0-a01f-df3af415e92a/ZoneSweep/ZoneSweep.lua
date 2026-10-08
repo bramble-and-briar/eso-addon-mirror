@@ -1,4 +1,4 @@
--- ZoneSweep 0.3.0: broad encounter tracking test build.
+-- ZoneSweep 0.4.0: controller checklist release candidate.
 local NAME="ZoneSweep"
 local ui, snapshot, db
 local traceEnabled=false
@@ -88,15 +88,32 @@ local function CreateWindow()
  local lines={}
  for i=1,16 do lines[i]=Label(35,207+(i-1)*28,1050,28,"ZoFontGamepad22");lines[i]:SetMaxLineCount(1)end
  local footer=Label(35,701,1050,45,"ZoFontGamepad22")
- local credit=Label(35,760,1050,30,"ZoFontGamepad22");credit:SetText("by @TheGreyWolf98  |  ZoneSweep 0.3.0 test");credit:SetColor(.57,.24,.23,1)
+ local credit=Label(35,760,1050,30,"ZoFontGamepad22");credit:SetText("by @TheGreyWolf98  |  ZoneSweep 0.4.0");credit:SetColor(.57,.24,.23,1)
  ui={window=window,category=0,page=1,onlyMissing=true,selected=1}
+ local keys
  local function Render()
   title:SetText("ZoneSweep  |  "..snapshot.name)
   summary:SetText(snapshot.character.."  |  Character checklist + separate account totals\nRecorded = saved for this toon. Unknown = no personal record; account ticks are not imported.")
   local rows={};ui.visibleActivities={}
   local entry=snapshot.categories[ui.category]
-  if ui.debug then
-   heading:SetText("Boss-event test | /zs debug opens this log")
+  if ui.help then
+   heading:SetText("How to use ZoneSweep")
+   rows={"Type /zs or /zonesweep to open the current-zone checklist.",
+    "Overview: D-pad selects a category; A opens it. LB/RB cycles categories.",
+    "X switches between all activities and activities still to do.",
+    "LT/RT changes pages. Y reads the latest zone progress. B closes.",
+    "Delves, world bosses and world events record progress for this character.",
+    "On their lists: D-pad selects a site; A ticks or clears your personal record.",
+    "Use manual ticks for earlier completions you know this character has done.",
+    "Recorded = saved for this character. Unknown = no personal record yet.",
+    "Account totals are shown separately and never copied into personal records.",
+    "Complete activities while ZoneSweep is installed to build personal history.",
+    "Quest sites come from the zone guide; they are not every side quest.",
+    "Some categories provide totals only; named lists depend on ESO's data.",
+    "Type /zs help to reopen these instructions.",
+    "For troubleshooting: /zs debug, fight the boss, then /zs debug again."}
+  elseif ui.debug then
+   heading:SetText("Encounter log | /zs debug")
    rows[#rows+1]=Context()
    rows[#rows+1]="Capture enabled. Fight a boss or world event, then reopen /zs debug."
    for _,line in ipairs(trace)do rows[#rows+1]=line end
@@ -109,29 +126,37 @@ local function CreateWindow()
      ui.visibleActivities[#rows]=activity
     end
    end
-   if #rows==0 then rows[1]=#entry.activities==0 and "Named activities unavailable in this test; see the category count." or "No unfinished activities reported." end
+   if #rows==0 then rows[1]=#entry.activities==0 and "ESO provides a total only for this category; see the count above." or "No unfinished activities reported." end
   else
    heading:SetText("Current-zone checklist")
    for _,c in ipairs(snapshot.categories)do rows[#rows+1]=c.name.."    "..c.done.." / "..c.total..(c.accountDone and " recorded; history unknown  |  Account "..c.accountDone.." / "..c.total or "") end
    if #rows==0 then rows[1]="No zone-guide activities available in this location. Try an overland zone."end
   end
-  local pages=math.max(1,math.ceil(#rows/16));ui.page=math.max(1,math.min(ui.page,pages))
+  ui.rowCount=#rows
+  local selectable=not ui.help and not ui.debug and ((not entry and #snapshot.categories>0) or (entry and entry.accountDone and #ui.visibleActivities>0))
+  local pages=math.max(1,math.ceil(#rows/16));ui.page=math.max(1,math.min(ui.page,pages));ui.pages=pages
   ui.selected=math.max(1,math.min(ui.selected,#rows))
   for i,label in ipairs(lines)do
    local index=(ui.page-1)*16+i
-   label:SetText(rows[index] and ((not ui.debug and entry and entry.accountDone and index==ui.selected and "> " or "")..rows[index]) or "")
-   label:SetColor(not ui.debug and entry and entry.accountDone and index==ui.selected and .95 or .85,not ui.debug and entry and entry.accountDone and index==ui.selected and .4 or .85,not ui.debug and entry and entry.accountDone and index==ui.selected and .35 or .88,1)
+   label:SetText(rows[index] and ((selectable and index==ui.selected and "> " or "")..rows[index]) or "")
+   label:SetColor(selectable and index==ui.selected and .95 or .85,selectable and index==ui.selected and .4 or .85,selectable and index==ui.selected and .35 or .88,1)
   end
-  footer:SetText("Page "..ui.page.." / "..pages.."  |  LB/RB: categories  |  X: "..(ui.onlyMissing and "show all" or "unfinished only").."\nD-pad: select  |  A: tick/clear personal record  |  Y: refresh  |  B: close")
+  footer:SetText("Page "..ui.page.." / "..pages.."  |  LT/RT: pages  |  LB/RB: categories  |  /zs help: instructions\n"..(selectable and (entry and "D-pad: select  |  A: tick/clear  |  " or "D-pad: select  |  A: open category  |  ") or "")..(entry and "X: "..(ui.onlyMissing and "show all" or "unfinished only").."  |  " or "").."Y: refresh  |  B: close")
+  if keys and KEYBIND_STRIP.UpdateKeybindButtonGroup and SCENE_MANAGER:IsShowing("zonesweep")then KEYBIND_STRIP:UpdateKeybindButtonGroup(keys)end
  end
  ui.refresh=function()snapshot=ReadZone();ui.category=math.min(ui.category,#snapshot.categories);Render()end
- local function Cycle(delta)ui.debug=false;ui.category=(ui.category+delta)%(#snapshot.categories+1);ui.page=1;ui.selected=1;Render()end
+ local function Cycle(delta)ui.debug=false;ui.help=false;ui.category=(ui.category+delta)%(#snapshot.categories+1);ui.page=1;ui.selected=1;Render()end
  local function Move(delta)
-  ui.selected=math.max(1,math.min(ui.selected+delta,#ui.visibleActivities))
+  if ui.help or ui.debug then return end
+  local entry=snapshot.categories[ui.category]
+  if entry and not entry.accountDone then return end
+  local count=entry and #ui.visibleActivities or #snapshot.categories
+  ui.selected=math.max(1,math.min(ui.selected+delta,count))
   ui.page=math.max(1,math.ceil(ui.selected/16));Render()
  end
  local function Mark()
-  if ui.debug then return end
+  if ui.debug or ui.help then return end
+  if ui.category==0 then ui.category=ui.selected;ui.page=1;ui.selected=1;Render();return end
   local entry=snapshot.categories[ui.category]
   local activity=ui.visibleActivities[ui.selected]
   if not entry or not entry.accountDone or not activity then return end
@@ -139,17 +164,22 @@ local function CreateWindow()
   if records[activity.key] then records[activity.key]=nil else records[activity.key]={source="manual",at=GetTimeStamp()}end
   ui.refresh()
  end
- local keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
+ local function CanSelect()
+  if ui.help or ui.debug then return false end
+  local entry=snapshot.categories[ui.category]
+  return (ui.category==0 and #snapshot.categories>0) or (entry~=nil and entry.accountDone~=nil and #ui.visibleActivities>0)
+ end
+ keys={alignment=KEYBIND_STRIP_ALIGN_CENTER,
   {name="Previous category",keybind="UI_SHORTCUT_LEFT_SHOULDER",callback=function()Cycle(-1)end},
   {name="Next category",keybind="UI_SHORTCUT_RIGHT_SHOULDER",callback=function()Cycle(1)end},
-  {name="Show all / Unfinished",keybind="UI_SHORTCUT_SECONDARY",callback=function()ui.onlyMissing=not ui.onlyMissing;ui.page=1;Render()end},
+  {name=function()return ui.onlyMissing and "Show all" or "Unfinished only"end,visible=function()return not ui.help and not ui.debug and ui.category>0 end,keybind="UI_SHORTCUT_SECONDARY",callback=function()if ui.debug or ui.help or ui.category==0 then return end;ui.onlyMissing=not ui.onlyMissing;ui.page=1;ui.selected=1;Render()end},
   {name="Refresh",keybind="UI_SHORTCUT_TERTIARY",callback=function()ui.page=1;ui.refresh()end},
-  {name="Previous page",keybind="UI_SHORTCUT_LEFT_TRIGGER",callback=function()ui.page=ui.page-1;Render();ui.selected=(ui.page-1)*16+1;Render()end},
-  {name="Next page",keybind="UI_SHORTCUT_RIGHT_TRIGGER",callback=function()ui.page=ui.page+1;Render();ui.selected=(ui.page-1)*16+1;Render()end},
+  {name="Previous page",enabled=function()return ui.page>1 end,keybind="UI_SHORTCUT_LEFT_TRIGGER",callback=function()ui.page=ui.page-1;Render();ui.selected=(ui.page-1)*16+1;Render()end},
+  {name="Next page",enabled=function()return ui.page<ui.pages end,keybind="UI_SHORTCUT_RIGHT_TRIGGER",callback=function()ui.page=ui.page+1;Render();ui.selected=(ui.page-1)*16+1;Render()end},
   {name="Close",keybind="UI_SHORTCUT_NEGATIVE",callback=function()SCENE_MANAGER:Hide("zonesweep")end},
-  {name="Tick / Clear",keybind="UI_SHORTCUT_PRIMARY",callback=Mark},
-  {keybind="UI_SHORTCUT_INPUT_UP",callback=function()Move(-1)end},
-  {keybind="UI_SHORTCUT_INPUT_DOWN",callback=function()Move(1)end},
+  {name=function()return ui.category==0 and "Open category" or "Tick / Clear"end,visible=CanSelect,keybind="UI_SHORTCUT_PRIMARY",callback=Mark},
+  {visible=CanSelect,keybind="UI_SHORTCUT_INPUT_UP",callback=function()Move(-1)end},
+  {visible=CanSelect,keybind="UI_SHORTCUT_INPUT_DOWN",callback=function()Move(1)end},
  }
  local scene=ZO_Scene:New("zonesweep",SCENE_MANAGER)
  scene:AddFragmentGroup(IsInGamepadPreferredMode()and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW or FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
@@ -372,6 +402,8 @@ end
 
 local function Open(text)
  CreateWindow()
+ ui.help=type(text)=="string" and string.lower(text):match("^%s*help%s*$")~=nil
+ ui.selected=1
  ui.debug=type(text)=="string" and string.lower(text):match("^%s*debug%s*$")~=nil
  if ui.debug and not traceEnabled then traceEnabled=true;Trace("Started on "..Clean(GetUnitName("player")))end
  ui.category=0;ui.page=1;ui.refresh();SCENE_MANAGER:Show("zonesweep")end

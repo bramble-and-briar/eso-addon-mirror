@@ -196,10 +196,6 @@ local function OnSetTradeItem(tooltipSelf, who, tradeIndex)
     AppendMatchInfo(tooltipSelf, GetTradeItemLink(who, tradeIndex, LINK_STYLE_DEFAULT))
 end
 
-local function OnSetStoreItem(tooltipSelf, entryIndex)
-    AppendMatchInfo(tooltipSelf, GetStoreItemLink(entryIndex, LINK_STYLE_DEFAULT))
-end
-
 local function OnSetAttachedMailItem(tooltipSelf, mailId, attachSlot)
     AppendMatchInfo(tooltipSelf, GetAttachedItemLink(mailId, attachSlot, LINK_STYLE_DEFAULT))
 end
@@ -210,7 +206,6 @@ for _, tooltipControl in ipairs({ ItemTooltip, PopupTooltip, InformationTooltip 
         ZO_PostHook(tooltipControl, "SetBagItem", OnSetBagItem)
         ZO_PostHook(tooltipControl, "SetTradingHouseItem", OnSetTradingHouseItem)
         ZO_PostHook(tooltipControl, "SetTradeItem", OnSetTradeItem)
-        ZO_PostHook(tooltipControl, "SetStoreItem", OnSetStoreItem)
         ZO_PostHook(tooltipControl, "SetAttachedMailItem", OnSetAttachedMailItem)
     end
 end
@@ -223,7 +218,6 @@ local BADGE_LIST_NAMES = {
     "ZO_PlayerBankBackpack",
     "ZO_HouseBankBackpack",
     "ZO_GuildBankBackpack",
-    "ZO_StoreWindowList",
     "ZO_TradingHouseBrowseItemsRightPaneSearchResults",
 }
 
@@ -252,15 +246,6 @@ local function InstallRowBadgeHooks()
             if slot and slot.Control then
                 FlagRowIcon(slot.Control, nil)
             end
-        end)
-    end
-
-    -- Vendor (NPC store) list. Buyback is deliberately left alone - those are
-    -- items you just sold. Row link is the store entry index (data.slotIndex).
-    local storeDataType = ZO_StoreWindowList and ZO_ScrollList_GetDataTypeTable(ZO_StoreWindowList, 1)
-    if storeDataType then
-        ZO_PostHook(storeDataType, "setupCallback", function(rowControl, data)
-            FlagRowIcon(rowControl, GetStoreItemLink(data.slotIndex, LINK_STYLE_DEFAULT))
         end)
     end
 

@@ -4,7 +4,7 @@
 
 *A lightweight, event-driven background memory cleaner for The Elder Scrolls Online.*
 
-![Version](https://img.shields.io/badge/version-2026.10.06.08.01-9CD04C?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.10.07.17.24-9CD04C?style=flat-square)
 ![ESO API](https://img.shields.io/badge/ESO%20API-101051%20%7C%20101052-00FFFF?style=flat-square)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-fa9c1b?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-PC%20%7C%20Xbox%20%7C%20PlayStation-FF69B4?style=flat-square)
@@ -30,9 +30,10 @@ Auto Lua Memory Cleaner is event-driven first: real triggers (exiting combat, en
 ## Features
 
 - **Near-Zero Idle Footprint:** most checks run only on real triggers - loading screens, exiting combat state, entering a menu - backed by a lightweight ~5-second fallback poll so idle time standing around is still covered without a heavy constant loop.
-- **Smart Combat Lockout:** blocks the automatic threshold-based cleanup from running while you're in combat, preventing mid-fight frame drops *(imagine crashing in the middle of your Trifecta, or God Slayer run!)* - the only exception is for a console low-memory event, where the risk is an outright forced reload. *(If you are using "Automatic" as the cleanup mode, memory management is left entirely to the game engine and may not prevent the forced reload - this addon does not touch how the base-game cleanup works.)*
-- **(PC & Console) Support:** automatically adapts to your hardware specific memory rules. On PC, it helps you stay safely below the 512MB performance "soft limit" to prevent UI lag and stuttering. On Console, it safely monitors the strict 100MB hardware memory pool to prevent the game from forcefully reloading your UI. *(If you are using "Automatic" as the cleanup mode, memory management is left entirely to the game engine and may not prevent the forced reload - this addon does not touch how the base-game cleanup works.)*
-- **Cleanup Method:** pick how ALC clears Lua memory. Background (Recommended, the default) cleans up in small steps over several frames with no stutter. Automatic leaves it to the game engine. Aggressive runs one full pass (a minor stutter) and Deep Clean runs two (a short freeze).
+- **Smart Combat Lockout:** blocks the automatic threshold-based cleanup from running while you're in combat, preventing mid-fight frame drops *(imagine crashing in the middle of your Trifecta, or God Slayer run!)* - the only exception is for a console low-memory event, where the risk is an outright forced reload. *(If you are using "Vanilla" as the cleanup mode, memory management is left entirely to the game engine and may not prevent the forced reload - this addon does not touch how the base-game cleanup works.)*
+- **(PC & Console) Support:** automatically adapts to your hardware specific memory rules. On PC, it helps you stay safely below the 512MB performance "soft limit" to prevent UI lag and stuttering. On Console, it safely monitors the strict 100MB hardware memory pool to prevent the game from forcefully reloading your UI. *(If you are using "Vanilla" as the cleanup mode, memory management is left entirely to the game engine and may not prevent the forced reload - this addon does not touch how the base-game cleanup works.)*
+- **Cleanup Method:** pick how ALC clears Lua memory. Automatic (Recommended, the default) picks the best method each time. Background cleans up in small steps over several frames with no stutter. Vanilla leaves it to the game engine. Aggressive runs one full pass (a minor stutter) and Deep Clean runs two (a short freeze).
+- **Other Add-ons:** Their LibAPH cleanups show in the window and chat too.
 - **Single-Pass Engine Sweep:** a single blocking garbage collection cycle that forces execution of pending `__gc` hooks and clears out orphaned weak tables in one pass, with a smaller chance of catching every ready collectible garbage.
 - **Double-Pass Engine Sweep:** a dual-pass garbage collection cycle to safely force execution of all pending `__gc` hooks and ensure orphaned weak tables are properly erased from the addon's Lua heap.
 - **Background Sweep:** spreads the same garbage collection work across many game frames instead of running it all at once, so the addon's Lua heap gets cleaned without any single-frame pause large enough to notice *(the trade-off is that a full sweep takes a little longer in real time to finish)*.
@@ -113,10 +114,10 @@ Server-side or network lag shows up as stutter that can feel identical to a fram
 
 ## License
 
-Copyright &#169; 2025-2026 @APHONlC. All rights reserved. See LICENSE.md
+Copyright © 2025-2026 @APHONlC. All rights reserved. See LICENSE.md
 
 > [!NOTE]
-> This add-on is not created by, affiliated with, or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls&#174; and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+> This add-on is not created by, affiliated with, or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 
 For permissions or inquiries, contact @APHONlC on ESOUI.
 
@@ -127,7 +128,7 @@ I would like to thank the following, for providing resources and their awesome p
 - [ESOUI Wiki](https://wiki.esoui.com/Main_Page)
 - [ESO Forums](https://forums.elderscrollsonline.com/en/discussion/689370/libharvensaddonsettings-to-libvotan-change-guide)
 - [@sirinsidiator](https://github.com/esoui/esoui)
-- [@Flat-Badger-1971](https://github.com/Flat-Badger-1971/eso-api)
+- [@Flat-Badger-1971](https://www.esoui.com/downloads/info4074-ESOluaAPIintellisenseforVisualStudioCode.html)
 - [@sirinsidiator & @Seerah](https://www.esoui.com/downloads/info7.html) <sub>*(LibAddonMenu-2.0)*</sub>
 - [@Harven & @votan](https://www.esoui.com/downloads/info584.html) <sub>*(LibHarvensAddonSettings)*</sub>
 - [@SinusPi, @merlight, @Rhyono, @Dolgubon](https://www.esoui.com/downloads/info1624.html) <sub>*(Zgoo High Isle)*</sub>

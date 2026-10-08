@@ -7,16 +7,21 @@ local isLoaded = false
 local procTime = 15
 local vulnTime = 7
 local isMenuOpen = false
+local setId = 666
+local setCount = 2 --5,2,3,1
+local isEquiped = false
+local callBackName = "callbackArch"
 
-archdruidTracker = {}
+local archdruidTracker = {}
 
 archdruidTracker.defaults = {
     trackArch = true,
+    autoTrack = true,
     trackVuln = true,
 	notifyEnd = true,
 	notifyVuln = true,
-    yAxisText = 930,
-    xAxisText = 1300
+    yAxisTextArch = 930,
+    xAxisTextArch = 1300
 }
 
 archdruidTracker.majorEffects = {
@@ -33,7 +38,7 @@ archdruidTracker.majorEffects = {
     [148976] = true,
 	[163060] = true,
 	[167061] = true,
-	[176815] = true,
+	[176815] = true,--archdruid major buln proc 
 	[195242] = true,
 	[192836] = true,
 	[226400] = true,
@@ -52,7 +57,7 @@ end
 
 --check if LibNotify is available
 local function isLibAvailable()
-    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" and type(LibNotify.getSet) == "function" then
         return true
     else 
 		return false
@@ -150,7 +155,7 @@ local function registerAlertsVuln()
     EVENT_MANAGER:RegisterForEvent("archVulnDebuff", EVENT_COMBAT_EVENT, combatReportVuln)
 	EVENT_MANAGER:AddFilterForEvent("archVulnDebuff", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 176815)--major vulnerability abilityId, archdruid
 end
---poss 176815 106754 
+ 
 --unregister for notifications about archdruid vulnerability proc
 local function unRegisterAlertsVuln()
     EVENT_MANAGER:UnregisterForEvent("archVulnDebuff", EVENT_COMBAT_EVENT)
@@ -177,7 +182,7 @@ end
 --when UI closes
 local function onMenuClosed()
 	isMenuOpen = false
-    if archdruidTracker.savedVariables.trackArch then
+    if archdruidTracker.savedVariables.trackArch and isEquiped then
         archAddonText:SetHidden(false)
     end
 end
@@ -206,6 +211,74 @@ local function setAnchorIcon(x, y)
 	zo_callLater(function () if isMenuOpen == true then archAddonText:SetHidden(true) end end, 2000)
     archAddonText:ClearAnchors()
     archAddonText:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
+end
+
+--query lib to check if set is equipped
+local function isSetEquiped(id, count)
+	if isLibAvailable() then
+		if LibNotify.getSet(appName, id, count) then
+			isEquiped = true
+			return true
+		else
+			isEquiped = false
+			return false
+		end
+    end
+end
+
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    printMessage("Archdruid set not found")
+
+    unRegisterAlerts()
+    archAddonText:SetHidden(true)
+    unRegisterAlertsVuln()
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+
+    printMessage("Found Archdruid set")
+
+    if archdruidTracker.savedVariables.trackArch then
+        registerAlerts()
+        archAddonText:SetHidden(false)
+    end
+
+    if archdruidTracker.savedVariables.trackVuln then
+        registerAlertsVuln()
+    end
+
+end
+
+--handle equipment change callbacks
+local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+
+    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
+        zo_callLater(function ()
+	if isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack then startTrackingAuto() else stopTrackingAuto() end
+	end, 1000)
+    end
+
+    --if isNewItem then
+    --    printMessage("new item")
+    --else
+    --    printMessage("not new item")
+    --end
+
+    --printMessage(tostring "eventCode- " .. eventCode)
+    --printMessage(tostring "slotIndex- " .. slotIndex)
+
+
+	
+    --registerAlerts() registerAlertsVuln() zo_callLater(function() printMessage("Found Archdruid set") end, 600)
+end
+
+--request callbacks when gear items are equipped or unequipped
+local function enableCallbacksGear()
+    EVENT_MANAGER:RegisterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onEquipmentChanged)
+    EVENT_MANAGER:AddFilterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
 end
 
 --setup options menu
@@ -253,6 +326,18 @@ local function createOptions()
         },
         {
             type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you are wearing all the pieces of the correct set and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return archdruidTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                archdruidTracker.savedVariables.autoTrack = value
+            end,
+            default = archdruidTracker.defaults.autoTrack,
+        },
+        {
+            type = "checkbox",
             name = "Track Debuff",
             tooltip = "Displays a smaller timer that tracks the Archdruid Major Vulnerability debuff.\nTo track the Major Vulnerability debuff tracking for the cooldown needs to be enabled.",
             getFunc = function()
@@ -274,13 +359,13 @@ local function createOptions()
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
             min = 0, max = 1700, step = 10,
             getFunc = function()
-                return archdruidTracker.savedVariables.xAxisText
+                return archdruidTracker.savedVariables.xAxisTextArch
             end,
             setFunc = function(value)
-                archdruidTracker.savedVariables.xAxisText = value
-                setAnchorIcon(archdruidTracker.savedVariables.xAxisText, archdruidTracker.savedVariables.yAxisText)
+                archdruidTracker.savedVariables.xAxisTextArch = value
+                setAnchorIcon(archdruidTracker.savedVariables.xAxisTextArch, archdruidTracker.savedVariables.yAxisTextArch)
             end,
-            default = archdruidTracker.defaults.xAxisText,
+            default = archdruidTracker.defaults.xAxisTextArch,
         },
         {
             type = "slider",
@@ -288,13 +373,13 @@ local function createOptions()
             tooltip = "Adjust the up and down position of the on screen icon and timer text.",
             min = 0, max = 1000, step = 10,
             getFunc = function()
-                return archdruidTracker.savedVariables.yAxisText
+                return archdruidTracker.savedVariables.yAxisTextArch
             end,
             setFunc = function(value)
-                archdruidTracker.savedVariables.yAxisText = value
-                setAnchorIcon(archdruidTracker.savedVariables.xAxisText, archdruidTracker.savedVariables.yAxisText)
+                archdruidTracker.savedVariables.yAxisTextArch = value
+                setAnchorIcon(archdruidTracker.savedVariables.xAxisTextArch, archdruidTracker.savedVariables.yAxisTextArch)
             end,
-            default = archdruidTracker.defaults.yAxisText,
+            default = archdruidTracker.defaults.yAxisTextArch,
         },
 		{
             type = "checkbox",
@@ -327,8 +412,8 @@ local function createOptions()
         }
     }
 
-    LAM:RegisterAddonPanel("Archdruid Tracker", panelData)
-    LAM:RegisterOptionControls("Archdruid Tracker", optionsData)
+    LAM:RegisterAddonPanel("Archdruid Tracker New", panelData)
+    LAM:RegisterOptionControls("Archdruid Tracker New", optionsData)
 end
 
 --an addon has loaded
@@ -342,6 +427,21 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
+    --register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
+
+    --load saved variables
+    archdruidTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("archAddonVars", 1, "Settings", archdruidTracker.defaults, GetUnitName("player"))
+
+    --check if set is equipped and quit if set is not equipped
+    if not isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack then
+        printMessage("Archdruid set not found")
+        return
+    else
+        isEquiped = true
+        zo_callLater(function() printMessage("Found Archdruid set") end, 600)
+    end
+
 	--notify about new library
 	if not isLibAvailable() then
 		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
@@ -351,12 +451,11 @@ local function onAddOnLoaded(event, name)
 		zo_callLater(function() printMessage("add-on loaded") end, 500)
 	end
 
-	--load saved variables
-    archdruidTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("adtAddonVars", 1, "Settings", archdruidTracker.defaults, GetUnitName("player"))
+
 
 	--notify if tracking is disabled
 	if not archdruidTracker.savedVariables.trackArch then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
+		zo_callLater(function() printMessage("tracking disabled") end, 700)
 	end
 
     --setup text field areas
@@ -370,7 +469,7 @@ local function onAddOnLoaded(event, name)
     archAddonTextLabelVuln:SetText("")
     archAddonTextLabelVuln:SetColor(255, 255, 0, 255)
 
-    setAnchorStartupIcon(archdruidTracker.savedVariables.xAxisText, archdruidTracker.savedVariables.yAxisText)
+    setAnchorStartupIcon(archdruidTracker.savedVariables.xAxisTextArch, archdruidTracker.savedVariables.yAxisTextArch)
 
     --register for combat alerts if tracking is enabled
     if archdruidTracker.savedVariables.trackArch then

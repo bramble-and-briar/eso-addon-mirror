@@ -71,7 +71,7 @@
         </Control>
 
         <TopLevelControl name="CompanionGearHunterWindow" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true">
-            <Dimensions x="837" y="520" />
+            <Dimensions x="837" y="556" />
             <Anchor point="CENTER" />
 
             <OnMoveStop>
@@ -136,6 +136,9 @@
                      CLAUDE.md documents that a bare mouse-enabled Texture
                      didn't receive mouse events in this exact engine
                      version, and this is the pattern that fixed it there. -->
+                <!-- A hybrid companion (two roles) shows a second icon,
+                     Icon2, beside the first; the control's width is set
+                     from Lua to fit one icon or two. -->
                 <Control name="$(parent)CompanionRole" mouseEnabled="true" hidden="true">
                     <Dimensions x="24" y="24" />
                     <Anchor point="LEFT" relativeTo="$(parent)CompanionDropdown" relativePoint="RIGHT" offsetX="10" />
@@ -147,7 +150,12 @@
                     </OnMouseExit>
                     <Controls>
                         <Texture name="$(parent)Icon">
-                            <AnchorFill />
+                            <Dimensions x="24" y="24" />
+                            <Anchor point="LEFT" />
+                        </Texture>
+                        <Texture name="$(parent)Icon2" hidden="true">
+                            <Dimensions x="24" y="24" />
+                            <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="2" />
                         </Texture>
                     </Controls>
                 </Control>
@@ -222,8 +230,67 @@
                      ColumnSlot, while the row's own bounds (and its Stripe
                      highlight backdrop) extend that same 10px further left
                      for a symmetric bleed on both sides of the grid. -->
-                <Control name="$(parent)Row1" inherits="CompanionGearHunter_SlotRow">
+                <!-- "All slots" bulk-edit row, laid out on the same absolute
+                     column offsets as a real row so its three dropdowns sit
+                     directly above the wanted columns. They act as actions
+                     (pick a value -> applied to every slot, then blank
+                     again), not as stored state. Clear sits in the Find
+                     column: 54 wide, left edge 371 centres it on the 50px
+                     Find header (373 to 423). -->
+                <Control name="$(parent)AllRow">
+                    <Dimensions x="797" y="30" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)ColumnSlot" relativePoint="BOTTOMLEFT" offsetX="-10" offsetY="10" />
+                    <Controls>
+                        <Label name="$(parent)Label" font="ZoFontWinH5" text="All slots" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
+                            <Dimensions x="80" />
+                            <Anchor point="LEFT" offsetX="10" />
+                            <OnMouseEnter>
+                                ZO_Tooltips_ShowTextTooltip(self, TOP, "Set a value on every slot of this companion at once. Type only affects armor; picking Any resets that column.")
+                            </OnMouseEnter>
+                            <OnMouseExit>
+                                ZO_Tooltips_HideTextTooltip()
+                            </OnMouseExit>
+                        </Label>
+
+                        <Button name="$(parent)Clear" inherits="ZO_DefaultButton" text="Clear">
+                            <Dimensions x="54" y="26" />
+                            <Anchor point="LEFT" offsetX="371" />
+                            <OnClicked>
+                                CompanionGearHunter.OnClearClicked()
+                            </OnClicked>
+                            <OnMouseEnter>
+                                ZO_Tooltips_ShowTextTooltip(self, TOP, "Clear every slot for this companion.")
+                            </OnMouseEnter>
+                            <OnMouseExit>
+                                ZO_Tooltips_HideTextTooltip()
+                            </OnMouseExit>
+                        </Button>
+
+                        <Control name="$(parent)Type" inherits="ZO_ComboBox" mouseEnabled="true">
+                            <Dimensions x="100" y="24" />
+                            <Anchor point="LEFT" offsetX="431" />
+                        </Control>
+
+                        <Control name="$(parent)Trait" inherits="ZO_ComboBox" mouseEnabled="true">
+                            <Dimensions x="130" y="24" />
+                            <Anchor point="LEFT" offsetX="539" />
+                        </Control>
+
+                        <Control name="$(parent)Quality" inherits="ZO_ComboBox" mouseEnabled="true">
+                            <Dimensions x="110" y="24" />
+                            <Anchor point="LEFT" offsetX="677" />
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Backdrop name="$(parent)AllRowDivider" centerColor="FFFFFF25" edgeColor="00000000">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)AllRow" relativePoint="BOTTOMLEFT" offsetX="10" offsetY="2" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)AllRow" relativePoint="BOTTOMRIGHT" offsetX="-10" offsetY="2" />
+                </Backdrop>
+
+                <Control name="$(parent)Row1" inherits="CompanionGearHunter_SlotRow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)AllRow" relativePoint="BOTTOMLEFT" offsetY="6" />
                 </Control>
                 <Control name="$(parent)Row2" inherits="CompanionGearHunter_SlotRow">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" />
@@ -265,8 +332,19 @@
                      (Off-Hand, for a two-handed weapon), and this way the
                      footer can't end up positioned past the window's own
                      edge no matter how the row width changes later. -->
-                <Label name="$(parent)Footer" font="ZoFontGameSmall" horizontalAlignment="RIGHT" verticalAlignment="CENTER">
+                <Label name="$(parent)Footer" font="ZoFontGameSmall" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true">
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)Row12" relativePoint="BOTTOMRIGHT" offsetY="14" />
+                    <OnMouseUp>
+                        if button == MOUSE_BUTTON_INDEX_LEFT and upInside then
+                            CompanionGearHunter.OnFooterClicked()
+                        end
+                    </OnMouseUp>
+                    <OnMouseEnter>
+                        CompanionGearHunter.OnFooterMouseEnter(self)
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        CompanionGearHunter.OnFooterMouseExit(self)
+                    </OnMouseExit>
                 </Label>
             </Controls>
         </TopLevelControl>

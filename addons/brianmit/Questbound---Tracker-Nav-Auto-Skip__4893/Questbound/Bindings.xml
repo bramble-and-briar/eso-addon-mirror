@@ -1,0 +1,24 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Questbound">
+            <Action name="QUESTBOUND_TRACKER">
+                <Down>Questbound.ToggleTracker()</Down>
+            </Action>
+            <Action name="QUESTBOUND_ARROW">
+                <Down>Questbound.ToggleArrow()</Down>
+            </Action>
+            <Action name="QUESTBOUND_NEXT">
+                <Down>Questbound.Nav.AssistNext()</Down>
+            </Action>
+            <Action name="QUESTBOUND_TELEPORT">
+                <Down>Questbound.Teleport.StartFollowed()</Down>
+            </Action>
+            <Action name="QUESTBOUND_PATH">
+                <Down>Questbound.TogglePath()</Down>
+            </Action>
+            <Action name="QUESTBOUND_SKIP">
+                <Down>Questbound.Skip.Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

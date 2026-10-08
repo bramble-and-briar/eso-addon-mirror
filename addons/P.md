@@ -104,6 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
 | [PinkB's HudManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager__9f445510-52db-43d8-bb0a-c6e497fce454) | PinkBanther | Console | — |
 | [PinkB's HudManager(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager-Beta__d761d228-adae-40b7-8320-6e4504e2d2ec) | PinkBanther | Console | — |
+| [PinkB's KillLog(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-KillLog-Beta__79dd6cfe-4b31-471a-96b6-061bf53f35f6) | PinkBanther | Console | — |
 | [PinkB'S LDLStats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-S-LDLStats__3ecaea11-d7db-4461-b3c5-c1687ee9d6a0) | PinkBanther | Console | — |
 | [PinkB's LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-LibDebugLogger__0b8ba311-219e-4207-ba00-2876c16ec5b5) | PinkBanther | Console | — |
 | [PinkB's LuaMemoryMonitor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-LuaMemoryMonitor__f4878125-abb0-49bd-b8d3-ca06c9ad746a) | PinkBanther | Console | — |
@@ -226,6 +227,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pug Blacklist (Group Management)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/Pug-Blacklist-Group-Management__4322) | haze068 | PC / Mac | 5 |
 | [PUGmo - The Pick Up Group utility + more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tigertron/PUGmo---The-Pick-Up-Group-utility-more__3207) | Tigertron | PC / Mac | 21.10.09 |
 | [PUGSupportIcons - icon pack for OdySupport Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/def-venom/PUGSupportIcons---icon-pack-for-OdySupport-Icons__3397) | def venom | PC / Mac | 1.001 |
+| [Pull Card: Controller Friendly Dungeon Boss Mechanics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased-mods/Pull-Card-Controller-Friendly-Dungeon-Boss-Mechanics__438e8153-db0e-4264-87cb-29c1d97e20ef) | yodased-mods | Console | — |
 | [Puma](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Puma__5fcc6401-3a36-427e-acd5-9611fb589e78) | Vixen_Hunny | Console | — |
 | [PurchaseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/be.ste/PurchaseTracker__2891) | be.ste | PC / Mac | 1.0.0 |
 | [Purge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Purge-Tracker__1803) | code65536 | PC / Mac | 1.3.2 |

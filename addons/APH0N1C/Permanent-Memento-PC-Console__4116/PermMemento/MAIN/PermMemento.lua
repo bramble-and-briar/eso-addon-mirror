@@ -257,12 +257,14 @@ function init(eventCode, addOnName)
 
 	SLASH_COMMANDS["/pmemrandfav"] = function()
 		PM.settings.enable_random_fav = not PM.settings.enable_random_fav
+		PM.refresh_slash_commands()
 		local t_txt = PM.settings.enable_random_fav and PM.L("WORD_ON") or PM.L("WORD_OFF")
 		PM.log_msg(PM.L("CHAT_RANDOM_FAV", t_txt), true, "settings")
 	end
 
 	SLASH_COMMANDS["/pmemlearn"] = function()
 		PM.settings.enable_learning = not PM.settings.enable_learning
+		PM.refresh_slash_commands()
 		local t_txt = PM.settings.enable_learning and PM.L("WORD_ON") or PM.L("WORD_OFF")
 		PM.log_msg(PM.L("CHAT_LEARNING_MODE", t_txt), true, "settings")
 	end
@@ -279,9 +281,8 @@ function init(eventCode, addOnName)
 		SLASH_COMMANDS["/pmembug"] = SLASH_COMMANDS["/pmembugreport"]
 	end
 
-	SLASH_COMMANDS["/pmemsimulateerror"] = function()
-		if GetDisplayName() ~= "@APHONlC" then return end
-		PM.dev_simulate_error()
+	if GetDisplayName() == "@APHONlC" then
+		SLASH_COMMANDS["/pmemsimulateerror"] = function() PM.dev_simulate_error() end
 	end
 
 	if PM_modules.ui and not module_disabled.ui then
@@ -320,6 +321,8 @@ function init(eventCode, addOnName)
 			PM.settings.active_id = r_id
 			PM.log_msg(PM.L("CHAT_RANDOMLY_SELECTED", PM.get_data(r_id).name), true, "random")
 			PM.call_optional(PM.start_loop, "Loop module (start_loop)", r_id)
+		elseif PM_modules.loop then
+			PM.log_msg(PM.L("CHAT_NO_RANDOM_AVAILABLE"), true, "error", 90)
 		end
 	end
 	SLASH_COMMANDS["/pmemrandom"] = SLASH_COMMANDS["/pmemrand"]
@@ -416,14 +419,6 @@ function init(eventCode, addOnName)
 	end
 	SLASH_COMMANDS["/pmemactivatelearned"] = SLASH_COMMANDS["/pmemplay"]
 
-	SLASH_COMMANDS["/pmemcur"] = function()
-		local md = PM.get_data(PM.settings.active_id)
-		if PM.settings.active_id and md then
-			PM.log_msg(PM.L("CHAT_ACTIVE_MEMENTO", md.name or PM.L("LABEL_UNKNOWN")), false)
-		else PM.log_msg(PM.L("LABEL_INACTIVE"), false) end
-	end
-	SLASH_COMMANDS["/pmemcurrent"] = SLASH_COMMANDS["/pmemcur"]
-
 	SLASH_COMMANDS["/pmemclientinfo"] = function()
 		local text = PM.call_optional(PM.get_stats_text, "Loop module (get_stats_text)")
 		if not text then return end
@@ -478,15 +473,13 @@ function init(eventCode, addOnName)
 	end
 	SLASH_COMMANDS["/pmemloopincombat"] = SLASH_COMMANDS["/pmemcombat"]
 
-	if PM_modules.migration and not module_disabled.migration then
-		SLASH_COMMANDS["/pmemacct"] = function()
-			PM.char_saved.use_account_settings = not PM.char_saved.use_account_settings
-			PM.call_optional(PM.update_settings_reference, "update_settings_reference")
-			PM.log_msg(PM.L("CHAT_ACCOUNT_WIDE_SETTINGS"), true, "settings", 80)
-			zo_callLater(function() ReloadUI("ingame") end, 2000)
-		end
-		SLASH_COMMANDS["/pmemuseaccountsettings"] = SLASH_COMMANDS["/pmemacct"]
+	SLASH_COMMANDS["/pmemacct"] = function()
+		PM.char_saved.use_account_settings = not PM.char_saved.use_account_settings
+		PM.call_optional(PM.update_settings_reference, "update_settings_reference")
+		PM.log_msg(PM.L("CHAT_ACCOUNT_WIDE_SETTINGS"), true, "settings", 80)
+		zo_callLater(function() ReloadUI("ingame") end, 2000)
 	end
+	SLASH_COMMANDS["/pmemuseaccountsettings"] = SLASH_COMMANDS["/pmemacct"]
 
 	if PM_modules.menu and not module_disabled.menu then
 		SLASH_COMMANDS["/pmemwipefav"] = function() PM.call_optional(PM.delete_all_favorites, "Menu module (delete_all_favorites)") end
@@ -573,6 +566,7 @@ function init(eventCode, addOnName)
 			SLASH_COMMANDS["/pmsyncon"] = function()
 				PM.settings.sync_module.is_enabled = not PM.settings.sync_module.is_enabled
 				PM.toggle_sync_listener()
+				PM.refresh_slash_commands()
 				local t_txt = PM.settings.sync_module.is_enabled and PM.L("WORD_ON") or PM.L("WORD_OFF")
 				PM.log_msg(PM.L("CHAT_SYNC_LISTENING", t_txt), true, "settings")
 			end
@@ -599,12 +593,16 @@ function init(eventCode, addOnName)
 
 		SLASH_COMMANDS["/pmsyncrand"] = function()
 			local r_id = PM.call_optional(PM.get_random_any, "Loop module (get_random_any)")
-			if r_id and PM.send_sync and PM.send_sync("play", r_id) then
+			if not r_id then
+				if PM_modules.loop then PM.log_msg(PM.L("CHAT_NO_RANDOM_AVAILABLE"), true, "error", 90) end
+			elseif PM.send_sync and PM.send_sync("play", r_id) then
 				PM.log_msg(PM.L("CHAT_SENT_RANDOM_SYNC"), true, "sync", 90)
 			end
 		end
 		SLASH_COMMANDS["/permmementosyncrandom"] = SLASH_COMMANDS["/pmsyncrand"]
 	end
+
+	PM.refresh_slash_commands()
 end
 
 function on_player_activated()

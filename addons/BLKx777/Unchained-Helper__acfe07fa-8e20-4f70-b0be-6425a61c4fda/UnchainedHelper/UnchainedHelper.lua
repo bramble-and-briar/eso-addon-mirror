@@ -2,7 +2,7 @@ UnchainedHelper = UnchainedHelper or { }
 local UnchainedHelper = UnchainedHelper
 
 UnchainedHelper.name		= "UnchainedHelper"
-UnchainedHelper.version = "1.0.10"
+UnchainedHelper.version = "1.0.11"
 UnchainedHelper.varVersion 	= "9"
 
 UnchainedHelper.defaults	= {
@@ -19,9 +19,7 @@ UnchainedHelper.defaults	= {
     ["showTotemAlert"] = true,
     ["totemAlertDuration"] = 3,
     ["totemAbilityId"] = 0,
-    ["showNetchDangerAlert"] = true,
-    ["netchDangerSound"] = true,
-    ["netchDangerDuration"] = 2,
+    ["showTotemSmartTimer"] = true,
 	["showRaisedMarkers"] = true,
     ["showCardinalMarkers"] = false,
 	["markerSize"] = 175,
@@ -94,9 +92,12 @@ UnchainedHelper.currentWave = 0
 UnchainedHelper.lastPortalSpawn = 0
 UnchainedHelper.lastTotemAlert = 0
 UnchainedHelper.totemAlertHideAt = 0
-UnchainedHelper.lastNetchDangerAlert = 0
-UnchainedHelper.netchDangerHideAt = 0
-UnchainedHelper.netchDetectorRegistered = false
+UnchainedHelper.totemFirstSpawnAt = 0
+UnchainedHelper.totemLastSpawnAt = 0
+UnchainedHelper.totemLearnedInterval = 0
+UnchainedHelper.totemNextPredictedAt = 0
+UnchainedHelper.totemSpawnCount = 0
+UnchainedHelper.totemLastTimerText = nil
 UnchainedHelper.cardinalMarkers = {}
 UnchainedHelper.cardinalStage = 0
 
@@ -1097,110 +1098,6 @@ function UnchainedHelper.ShowSpawnCallout(stage, round, wave)
     EVENT_MANAGER:RegisterForUpdate(UnchainedHelper.name .. "SpawnCalloutHide", duration, function()
         UnchainedHelper.HideSpawnCallout()
     end)
-end
-
-function UnchainedHelper.HideNetchDangerAlert()
-    UnchainedHelper.netchDangerHideAt = 0
-    if UnchainedHelperNetchDangerAlert then
-        UnchainedHelperNetchDangerAlert:SetHidden(true)
-    end
-end
-
-local function UH_NormalizeCombatName(value)
-    local text = tostring(value or "")
-    if zo_strformat then
-        local ok, formatted = pcall(zo_strformat, "<<1>>", text)
-        if ok and formatted then text = formatted end
-    end
-    if zo_strlower then return zo_strlower(text) end
-    return string.lower(text)
-end
-
-function UnchainedHelper.IsLocalPlayerCombatTarget(targetName, targetType, targetUnitId)
-    if GetUnitId and targetUnitId and targetUnitId ~= 0 then
-        local ok, playerUnitId = pcall(GetUnitId, "player")
-        if ok and playerUnitId and playerUnitId ~= 0 and targetUnitId == playerUnitId then
-            return true
-        end
-    end
-
-    if COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER then
-        local target = UH_NormalizeCombatName(targetName)
-        if target == "" then return true end
-    end
-
-    local target = UH_NormalizeCombatName(targetName)
-    if target == "" then return false end
-    local playerName = UH_NormalizeCombatName(GetUnitName and GetUnitName("player") or "")
-    local rawPlayerName = UH_NormalizeCombatName(GetRawUnitName and GetRawUnitName("player") or "")
-    return (playerName ~= "" and target == playerName) or (rawPlayerName ~= "" and target == rawPlayerName)
-end
-
-function UnchainedHelper.IsActualStage2()
-    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return false end
-    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
-    return stage == 2
-end
-
-function UnchainedHelper.ShowNetchDangerAlert(kind, abilityId)
-    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showNetchDangerAlert == false then return end
-    if not UnchainedHelper.IsActualStage2() then return end
-
-    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
-    if UnchainedHelper.lastNetchDangerAlert and now - UnchainedHelper.lastNetchDangerAlert < 1200 then return end
-    UnchainedHelper.lastNetchDangerAlert = now
-
-    if UnchainedHelperNetchDangerAlertText then
-        UnchainedHelperNetchDangerAlertText:SetText("NETCH POISON - MOVE")
-        if UnchainedHelperNetchDangerAlertText.SetColor then
-            UnchainedHelperNetchDangerAlertText:SetColor(0.55, 1.0, 0.38, 1)
-        end
-    end
-    if UnchainedHelperNetchDangerAlert then
-        UnchainedHelperNetchDangerAlert:SetHidden(false)
-    end
-
-    if UnchainedHelper.savedVars.netchDangerSound ~= false and PlaySound then
-        pcall(PlaySound, "Duel_Boundary_Warning")
-    end
-
-    local seconds = math.max(1, math.min(5, UnchainedHelper.savedVars.netchDangerDuration or 2))
-    UnchainedHelper.netchDangerHideAt = now + (seconds * 1000)
-end
-
-function UnchainedHelper.NetchDangerCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, combatEventLog, sourceUnitId, targetUnitId, abilityId)
-    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showNetchDangerAlert == false then return end
-    if not UnchainedHelper.IsActualStage2() then return end
-    if abilityId ~= 114801 then return end
-    if not UnchainedHelper.IsLocalPlayerCombatTarget(targetName, targetType, targetUnitId) then return end
-
-    UnchainedHelper.ShowNetchDangerAlert("poison", abilityId)
-end
-
-function UnchainedHelper.RegisterNetchDangerDetector()
-    local eventName = UnchainedHelper.name .. "NetchDangerDetector"
-    EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_COMBAT_EVENT)
-    UnchainedHelper.netchDetectorRegistered = false
-
-    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showNetchDangerAlert == false then return end
-    if not UnchainedHelper.IsActualStage2() then return end
-
-    EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, UnchainedHelper.NetchDangerCombatEvent)
-    EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 114801, REGISTER_FILTER_IS_ERROR, false)
-    UnchainedHelper.netchDetectorRegistered = true
-end
-
-function UnchainedHelper.UpdateNetchDangerDetector()
-    local shouldRun = UnchainedHelper.savedVars
-        and UnchainedHelper.savedVars.showNetchDangerAlert ~= false
-        and UnchainedHelper.IsActualStage2()
-    if shouldRun and not UnchainedHelper.netchDetectorRegistered then
-        UnchainedHelper.RegisterNetchDangerDetector()
-    elseif not shouldRun and UnchainedHelper.netchDetectorRegistered then
-        EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
-        UnchainedHelper.netchDetectorRegistered = false
-        UnchainedHelper.HideNetchDangerAlert()
-    end
 end
 
 function UnchainedHelper.NotifyNewWave(nextFight)
@@ -2776,13 +2673,45 @@ function UnchainedHelper.HideTotemAlert()
     end
 end
 
-function UnchainedHelper.ShowTotemAlert(abilityId)
-    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.showTotemAlert then return end
-    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
+function UnchainedHelper.HideTotemTimer()
+    UnchainedHelper.totemLastTimerText = nil
+    if UnchainedHelperTotemTimer then
+        UnchainedHelperTotemTimer:SetHidden(true)
+    end
+end
 
-    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
-    if UnchainedHelper.lastTotemAlert and now - UnchainedHelper.lastTotemAlert < 4000 then return end
-    UnchainedHelper.lastTotemAlert = now
+function UnchainedHelper.ResetTotemSmartTimer()
+    UnchainedHelper.totemFirstSpawnAt = 0
+    UnchainedHelper.totemLastSpawnAt = 0
+    UnchainedHelper.totemLearnedInterval = 0
+    UnchainedHelper.totemNextPredictedAt = 0
+    UnchainedHelper.totemSpawnCount = 0
+    UnchainedHelper.HideTotemTimer()
+end
+
+function UnchainedHelper.SetTotemTimerText(text, urgent)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemSmartTimer == false then
+        UnchainedHelper.HideTotemTimer()
+        return
+    end
+    if not UnchainedHelperTotemTimerText or not UnchainedHelperTotemTimer then return end
+    if UnchainedHelper.totemLastTimerText ~= text then
+        UnchainedHelper.totemLastTimerText = text
+        UnchainedHelperTotemTimerText:SetText(text)
+    end
+    if UnchainedHelperTotemTimerText.SetColor then
+        if urgent then
+            UnchainedHelperTotemTimerText:SetColor(1.0, 0.56, 0.25, 1)
+        else
+            UnchainedHelperTotemTimerText:SetColor(0.96, 0.81, 0.45, 1)
+        end
+    end
+    UnchainedHelperTotemTimer:SetHidden(false)
+end
+
+function UnchainedHelper.ShowTotemAlert(abilityId)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemAlert == false then return end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
 
     if abilityId and abilityId > 0 and (UnchainedHelper.savedVars.totemAbilityId or 0) == 0 then
         UnchainedHelper.savedVars.totemAbilityId = abilityId
@@ -2795,18 +2724,138 @@ function UnchainedHelper.ShowTotemAlert(abilityId)
         UnchainedHelperTotemAlert:SetHidden(false)
     end
 
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
     local seconds = UnchainedHelper.savedVars.totemAlertDuration or 3
     UnchainedHelper.totemAlertHideAt = now + (seconds * 1000)
 end
 
+function UnchainedHelper.RecordTotemSpawn(abilityId)
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+
+    -- Barrage of Stone can generate multiple combat events from a single Totem.
+    -- Treat events inside this window as one spawn.
+    if UnchainedHelper.totemLastSpawnAt and UnchainedHelper.totemLastSpawnAt > 0 and now - UnchainedHelper.totemLastSpawnAt < 4000 then
+        return
+    end
+
+    UnchainedHelper.lastTotemAlert = now
+    UnchainedHelper.ShowTotemAlert(abilityId)
+
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemSmartTimer == false then
+        UnchainedHelper.totemLastSpawnAt = now
+        return
+    end
+
+    UnchainedHelper.totemSpawnCount = (UnchainedHelper.totemSpawnCount or 0) + 1
+
+    if not UnchainedHelper.totemFirstSpawnAt or UnchainedHelper.totemFirstSpawnAt == 0 then
+        UnchainedHelper.totemFirstSpawnAt = now
+        UnchainedHelper.totemLastSpawnAt = now
+        UnchainedHelper.SetTotemTimerText("TOTEM TIMER: LEARNING 1/2", false)
+        return
+    end
+
+    if not UnchainedHelper.totemLearnedInterval or UnchainedHelper.totemLearnedInterval <= 0 then
+        local sample = now - UnchainedHelper.totemFirstSpawnAt
+        -- Reject impossible/accidental samples, then restart learning from this Totem.
+        if sample < 5000 or sample > 120000 then
+            UnchainedHelper.totemFirstSpawnAt = now
+            UnchainedHelper.totemLastSpawnAt = now
+            UnchainedHelper.totemSpawnCount = 1
+            UnchainedHelper.SetTotemTimerText("TOTEM TIMER: LEARNING 1/2", false)
+            return
+        end
+
+        UnchainedHelper.totemLearnedInterval = sample
+        UnchainedHelper.totemLastSpawnAt = now
+        UnchainedHelper.totemNextPredictedAt = now + sample
+        UnchainedHelper.SetTotemTimerText(string.format("NEXT TOTEM: ~%ds", math.max(1, math.floor(sample / 1000 + 0.5))), false)
+        return
+    end
+
+    -- Every real Totem resynchronizes the forecast. If its spacing is close to the
+    -- learned cadence, gently refine the interval instead of replacing it outright.
+    local measured = now - (UnchainedHelper.totemLastSpawnAt or now)
+    local learned = UnchainedHelper.totemLearnedInterval
+    if measured >= learned * 0.70 and measured <= learned * 1.30 then
+        learned = math.floor((learned * 0.75) + (measured * 0.25) + 0.5)
+        UnchainedHelper.totemLearnedInterval = learned
+    end
+    UnchainedHelper.totemLastSpawnAt = now
+    UnchainedHelper.totemNextPredictedAt = now + learned
+end
+
+function UnchainedHelper.UpdateTotemSmartTimer(now)
+    if not UnchainedHelper.savedVars or UnchainedHelper.savedVars.showTotemSmartTimer == false then
+        UnchainedHelper.HideTotemTimer()
+        return
+    end
+    if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then
+        UnchainedHelper.ResetTotemSmartTimer()
+        return
+    end
+
+    -- Totem of Stone belongs to Drakeeh's Cage (Stage 5). Keep the learned timer
+    -- invisible everywhere else so an old sample cannot leak into another arena.
+    local stage = UnchainedHelper.GetCurrentStage and (UnchainedHelper.GetCurrentStage() or 0) or 0
+    if stage ~= 5 then
+        if (UnchainedHelper.totemFirstSpawnAt or 0) > 0 then
+            UnchainedHelper.ResetTotemSmartTimer()
+        else
+            UnchainedHelper.HideTotemTimer()
+        end
+        return
+    end
+
+    local first = UnchainedHelper.totemFirstSpawnAt or 0
+    local interval = UnchainedHelper.totemLearnedInterval or 0
+    if first <= 0 then
+        UnchainedHelper.HideTotemTimer()
+        return
+    end
+
+    if interval <= 0 then
+        -- Do not leave a stale half-learned state forever if the second Totem never appears.
+        if now - first > 120000 then
+            UnchainedHelper.ResetTotemSmartTimer()
+        else
+            UnchainedHelper.SetTotemTimerText("TOTEM TIMER: LEARNING 1/2", false)
+        end
+        return
+    end
+
+    local nextAt = UnchainedHelper.totemNextPredictedAt or 0
+    if nextAt <= 0 then
+        nextAt = (UnchainedHelper.totemLastSpawnAt or now) + interval
+        UnchainedHelper.totemNextPredictedAt = nextAt
+    end
+
+    local remainingMs = nextAt - now
+    if remainingMs < -3000 then
+        repeat
+            nextAt = nextAt + interval
+        until nextAt > now - 3000
+        UnchainedHelper.totemNextPredictedAt = nextAt
+        remainingMs = nextAt - now
+    end
+
+    if remainingMs <= 0 then
+        UnchainedHelper.SetTotemTimerText("TOTEM EXPECTED", true)
+    else
+        local seconds = math.max(1, math.ceil(remainingMs / 1000))
+        UnchainedHelper.SetTotemTimerText(string.format("NEXT TOTEM: ~%ds", seconds), seconds <= 5)
+    end
+end
+
 function UnchainedHelper.TotemCombatEvent(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName, sourceType, targetName, targetType, hitValue, powerType, damageType, combatEventLog, sourceUnitId, targetUnitId, abilityId)
-    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.showTotemAlert then return end
+    if not UnchainedHelper.savedVars then return end
+    if UnchainedHelper.savedVars.showTotemAlert == false and UnchainedHelper.savedVars.showTotemSmartTimer == false then return end
     if not UnchainedHelper.IsInBlackrose or not UnchainedHelper.IsInBlackrose() then return end
 
     local learnedId = UnchainedHelper.savedVars.totemAbilityId or 0
     if learnedId > 0 then
         if abilityId == learnedId then
-            UnchainedHelper.ShowTotemAlert(abilityId)
+            UnchainedHelper.RecordTotemSpawn(abilityId)
         end
         return
     end
@@ -2816,14 +2865,18 @@ function UnchainedHelper.TotemCombatEvent(eventCode, result, isError, abilityNam
 
     if string.find(ability, "barrage of stone", 1, true)
         or (string.find(source, "totem of stone", 1, true) and string.find(ability, "barrage", 1, true)) then
-        UnchainedHelper.ShowTotemAlert(abilityId)
+        if abilityId and abilityId > 0 then
+            UnchainedHelper.savedVars.totemAbilityId = abilityId
+        end
+        UnchainedHelper.RecordTotemSpawn(abilityId)
     end
 end
 
 function UnchainedHelper.RegisterTotemDetector()
     local eventName = UnchainedHelper.name .. "TotemDetector"
     EVENT_MANAGER:UnregisterForEvent(eventName, EVENT_COMBAT_EVENT)
-    if not UnchainedHelper.savedVars or not UnchainedHelper.savedVars.showTotemAlert then return end
+    if not UnchainedHelper.savedVars then return end
+    if UnchainedHelper.savedVars.showTotemAlert == false and UnchainedHelper.savedVars.showTotemSmartTimer == false then return end
 
     EVENT_MANAGER:RegisterForEvent(eventName, EVENT_COMBAT_EVENT, UnchainedHelper.TotemCombatEvent)
     EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_COMBAT_EVENT, REGISTER_FILTER_IS_ERROR, false)
@@ -2839,10 +2892,7 @@ function UnchainedHelper.UpdateTimer()
     if UnchainedHelper.totemAlertHideAt and UnchainedHelper.totemAlertHideAt > 0 and now >= UnchainedHelper.totemAlertHideAt then
         UnchainedHelper.HideTotemAlert()
     end
-    if UnchainedHelper.netchDangerHideAt and UnchainedHelper.netchDangerHideAt > 0 and now >= UnchainedHelper.netchDangerHideAt then
-        UnchainedHelper.HideNetchDangerAlert()
-    end
-    UnchainedHelper.UpdateNetchDangerDetector()
+    UnchainedHelper.UpdateTotemSmartTimer(now)
 
     if UnchainedHelper.eraseIconTime==0 or UnchainedHelper.eraseIconTime > GetGameTimeMilliseconds() then
     else
@@ -2862,7 +2912,6 @@ end
 
 function UnchainedHelper.UnregisterZoneEvents()
     UnchainedHelper.HideSpawnCallout()
-    UnchainedHelper.HideNetchDangerAlert()
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "Ability" .. 114578, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "Announcement", EVENT_DISPLAY_ANNOUNCEMENT)
     EVENT_MANAGER:UnregisterForUpdate(UnchainedHelper.name.."Update")
@@ -2870,9 +2919,8 @@ function UnchainedHelper.UnregisterZoneEvents()
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."ECE"..109992, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT)
     EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
-    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
-    UnchainedHelper.netchDetectorRegistered = false
-            UnchainedHelper.HideTotemAlert()
+    UnchainedHelper.HideTotemAlert()
+    UnchainedHelper.ResetTotemSmartTimer()
     UnchainedHelper.ClearIcons(false, true)
 end
 
@@ -2902,7 +2950,6 @@ function UnchainedHelper.PlayerActivated()
         EVENT_MANAGER:AddFilterForEvent(UnchainedHelper.name.."ECE"..113150, EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 113150, REGISTER_FILTER_IS_ERROR, false)
 
         UnchainedHelper.RegisterTotemDetector()
-        UnchainedHelper.UpdateNetchDangerDetector()
 
 
         UnchainedHelperFramePurge:SetText("")

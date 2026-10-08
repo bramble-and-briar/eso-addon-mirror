@@ -44,6 +44,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Vixen's Effect Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixen-s-Effect-Viewer__7a48fb7e-4903-4ff4-8d74-c6050c85363a) | Vixen_Hunny | Console | — |
 | [Vixen's Testing grounds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixen-s-Testing-grounds__4b4ddced-3d97-431c-8c43-a9c732ea2cae) | Vixen_Hunny | Console | — |
 | [Vixy's Testing Grounds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Vixy-s-Testing-Grounds__ac8a5471-5c72-448f-86f0-1d33a74c88ae) | Vixen_Hunny | Console | — |
+| [Void Bash](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Void-Bash__4924) | atharti | PC / Mac | 1.0 |
 | [Void Mystyx Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Superkitty193/Void-Mystyx-Guild-Hall__3930) | Superkitty193 | PC / Mac | 3.0 |
 | [Void's Execute Blocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Void-Commander/Void-s-Execute-Blocker__4117) | Void Commander | PC / Mac | 1.0 |
 | [Volcano's Stat Colours](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Volcano_Beetle/Volcano-s-Stat-Colours__f53af274-25ac-4c9f-8785-ad598d053a11) | Volcano_Beetle | Console | — |

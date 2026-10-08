@@ -47,6 +47,7 @@ local function RegisterDeathCheckEvents()
     local function CheckPlayerDeathStatus()
         local playerIsDead = IsUnitDead("player")
         if playerIsDead then
+            MS.CancelCombatHideCooldown()
             -- Invalidate pending target cooldowns before updating visibility.
             penDisableTimestamp = penDisableTimestamp + 1
             if MS.modules.penskull then MS.modules.penskull.renderPaused = false end
@@ -68,6 +69,35 @@ end
 local function RegisterWeaponSwapEvent()
     EVENT_MANAGER:RegisterForEvent(MS.name, EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
         RenderAllModules(true)
+    end)
+end
+
+--------------------------------------------------------------------------------
+-- COMBAT STATE EVENT
+--------------------------------------------------------------------------------
+local combatHideDelay = 5000
+local combatHideUpdateName = MS.name .. "CombatHideCooldown"
+
+function MS.CancelCombatHideCooldown()
+    MS.combatHideUntil = nil
+    EVENT_MANAGER:UnregisterForUpdate(combatHideUpdateName)
+end
+
+local function RegisterCombatStateEvent()
+    EVENT_MANAGER:RegisterForEvent(MS.name .. "CombatState", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
+        MS.CancelCombatHideCooldown()
+        if not MS.db.sharedSettings.combatOnly then return end
+
+        if not inCombat and not IsUnitDead("player") then
+            MS.combatHideUntil = GetGameTimeMilliseconds() + combatHideDelay
+            EVENT_MANAGER:RegisterForUpdate(combatHideUpdateName, combatHideDelay, function()
+                MS.CancelCombatHideCooldown()
+                if _G.Meterskull_UpdateUIVisibility then
+                    _G.Meterskull_UpdateUIVisibility()
+                end
+            end)
+        end
+        if _G.Meterskull_UpdateUIVisibility then _G.Meterskull_UpdateUIVisibility() end
     end)
 end
 
@@ -171,6 +201,7 @@ end
 -- Register all game events (called after modules are initialized)
 function MS.RegisterGameEvents()
     RegisterDeathCheckEvents()
+    RegisterCombatStateEvent()
     RegisterWeaponSwapEvent()
     RegisterTargetChangeEvent()
     RegisterBlockStateEvent()

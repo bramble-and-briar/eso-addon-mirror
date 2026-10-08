@@ -1,0 +1,12 @@
+## Title: An_Daghdha1233 Inventory
+## Description: Controller inventory with gear filters, slottable items, quickslot assignment, factual comparisons, native Map access, and Irish manuscript-inspired artwork.
+## Author: An_Daghdha1233
+## Version: 0.4.1
+## AddOnVersion: 8
+## APIVersion: 101051
+## SavedVariables: An_Daghdha1233InventorySavedVariables
+
+Data.lua
+Integration.lua
+View.lua
+Main.lua

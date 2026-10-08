@@ -7,7 +7,7 @@ CompanionGearHunter.savedVariablesVersion = 1
 -- Keep in sync with ## Version in CompanionGearHunter.txt on every real
 -- release bump (see CompanionRoster's own versioning policy: bump only when
 -- actually cutting a release, not on every commit).
-CompanionGearHunter.version = "0.9.0"
+CompanionGearHunter.version = "0.9.1"
 
 CompanionGearHunter.Data = {}
 
@@ -69,6 +69,31 @@ function CompanionGearHunter.Data.GetTraitOptions(category)
     end
     table.sort(options, function(a, b) return a.name < b.name end)
     return options
+end
+
+-- Trait choices for the "All slots" row, which has to name a trait without
+-- knowing which slot category it will land on: { suffix = "VIGOROUS",
+-- name = <localized> }, named from the armor family (the names read the same in
+-- all three). GetTraitTypeForSuffix turns a suffix into the real enum for one
+-- category.
+function CompanionGearHunter.Data.GetTraitSuffixOptions()
+    local options = {}
+    for _, suffix in ipairs(COMPANION_TRAIT_SUFFIXES) do
+        local traitType = _G[CATEGORY_TRAIT_PREFIX.armor .. suffix]
+        if traitType ~= nil then
+            local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
+            if traitName ~= "" then
+                table.insert(options, { suffix = suffix, name = traitName })
+            end
+        end
+    end
+    table.sort(options, function(a, b) return a.name < b.name end)
+    return options
+end
+
+function CompanionGearHunter.Data.GetTraitTypeForSuffix(category, suffix)
+    local prefix = CATEGORY_TRAIT_PREFIX[category]
+    return prefix and _G[prefix .. suffix] or nil
 end
 
 CompanionGearHunter.Data.WEIGHT_OPTIONS = {
@@ -180,6 +205,45 @@ end
 
 function CompanionGearHunter.Data.SetWishlistQualityFloor(companionId, slotKey, value)
     GetOrCreateWishlistSlot(companionId, slotKey).qualityFloor = value
+end
+
+-- Bulk edit ("All slots" row) ----------------------------------------------
+
+-- Sets one wanted field on every slot of a companion. `field` is "subType",
+-- "trait" or "qualityFloor"; for "trait" the value is a trait suffix (see
+-- GetTraitSuffixOptions), translated per slot to that category's own enum.
+-- Weight only exists on armor, so "subType" skips weapons and jewelry. A real
+-- value also ticks Find on the slots it touches (otherwise it would be stored
+-- where no one can see it); "Any" (nil) just resets the field and leaves Find
+-- alone, so it works as an undo. A hidden Off-Hand is skipped so nothing is
+-- changed out of sight.
+function CompanionGearHunter.Data.ApplyToAllSlots(companionId, field, value)
+    local skipOffHand = CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
+
+    for _, slotDef in ipairs(CompanionGearHunter.Data.SLOTS) do
+        local applies = not (slotDef.key == "OffHand" and skipOffHand)
+        if field == "subType" and slotDef.category ~= "armor" then
+            applies = false
+        end
+
+        if applies then
+            local slotEntry = GetOrCreateWishlistSlot(companionId, slotDef.key)
+            if field == "trait" then
+                slotEntry.trait = value ~= nil and CompanionGearHunter.Data.GetTraitTypeForSuffix(slotDef.category, value) or nil
+            else
+                slotEntry[field] = value
+            end
+            if value ~= nil then
+                slotEntry.enabled = true
+            end
+        end
+    end
+end
+
+-- Wipes the whole page for one companion (every slot, hidden Off-Hand
+-- included); other companions are untouched.
+function CompanionGearHunter.Data.ClearCompanionWishlist(companionId)
+    savedVars.wishlist[companionId] = nil
 end
 
 -- Item link decoding + wishlist matching ----------------------------------

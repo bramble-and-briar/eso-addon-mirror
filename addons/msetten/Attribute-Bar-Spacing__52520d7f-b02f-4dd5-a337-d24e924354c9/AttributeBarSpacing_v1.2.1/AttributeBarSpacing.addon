@@ -1,0 +1,9 @@
+## Title: Attribute Bar Spacing
+## Author: msetten
+## Version: 1.2.1
+## APIVersion: 101048 101049 101050 101051
+## AddOnVersion: 1
+## SavedVariables: AttributeBarSpacingSavedVars
+## DependsOn: LibAddonMenu-2.0
+
+AttributeBarSpacing.lua

@@ -1,10 +1,10 @@
 ## Title: Archdruid Tracker
 ## Author: CodeWarrior82
-## Description: Tracks the Archdruid Devyric debuff
-## APIVersion: 101050
+## Description: Tracks the Archdruid Devyric debuff.
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## OptionalDependsOn: LibNotify
-## SavedVariables: adtAddonVars
+## SavedVariables: archAddonVars
 
 archdruidTracker.lua
 archdruidTracker.xml

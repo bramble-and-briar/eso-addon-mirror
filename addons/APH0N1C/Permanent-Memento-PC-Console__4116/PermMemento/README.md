@@ -4,7 +4,7 @@
 
 *Auto-loops your active memento of choice.*
 
-![Version](https://img.shields.io/badge/version-2026.10.06.08.01-9CD04C?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.10.07.17.24-9CD04C?style=flat-square)
 ![ESO API](https://img.shields.io/badge/ESO%20API-101051%20%7C%20101052-00FFFF?style=flat-square)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-fa9c1b?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-PC%20%7C%20Xbox%20%7C%20PlayStation-FF69B4?style=flat-square)
@@ -35,7 +35,7 @@ It also watches for various things where you don't want a memento to be used, li
 - **Learned Data:** Scans your collections for mementos you actually own and builds a custom list automatically, if it's not one of the default supported memento.
 - **Favorites:** Star a subset of your learned mementos for quick random-select without pulling from your entire collection.
 - **Random Modes:** Auto-pick a random supported (or favorited, or learned) memento on login, on zone change, or on demand.
-- **Group Sync:** Broadcast your active memento to grouped players running the addon so everyone loops the same one together (needs LibGroupBroadcast).
+- **Group Sync:** Broadcast your active memento to grouped players running the addon so everyone, you included, plays the same one at the same moment; players who already have a memento playing are left out (needs LibGroupBroadcast).
 - **Profiles:** Character-specific or account-wide settings.
 - **Module Manager:** soft-disable optional feature files when not needed to save up on CPU usage - re-enable any of them anytime via slash command or the dedicated Module Manager settings.
 - **(PC & Console) Support:** Full console settings menu and native right-stick UI window dragging on Xbox/PlayStation.
@@ -58,7 +58,6 @@ It also watches for various things where you don't want a memento to be used, li
 | <kbd>/pmemstop</kbd> | Stop the current loop |
 | <kbd>/pmempause</kbd> | Pause/resume the current loop |
 | <kbd>/pmemlist</kbd> | List learned mementos |
-| <kbd>/pmemcur</kbd> | Show currently looping memento |
 | <kbd>/pmemplay &lt;name&gt;</kbd> | Start a specific learned memento |
 | <kbd>/pmemrand</kbd> | Loop a random supported memento |
 | <kbd>/pmemrandfav</kbd> | Toggle random-memento-from-favorites on login/zone |
@@ -127,10 +126,10 @@ It also watches for various things where you don't want a memento to be used, li
 
 ## License
 
-Copyright &#169; 2025-2026 @APHONlC. All rights reserved. See LICENSE.md
+Copyright © 2025-2026 @APHONlC. All rights reserved. See LICENSE.md
 
 > [!NOTE]
-> This add-on is not created by, affiliated with, or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls&#174; and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+> This add-on is not created by, affiliated with, or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 
 For permissions or inquiries, contact @APHONlC on ESOUI.
 
@@ -141,7 +140,7 @@ I would like to thank the following, for providing resources and their awesome p
 - [ESOUI Wiki](https://wiki.esoui.com/Main_Page)
 - [UESP](https://en.uesp.net/)
 - [@sirinsidiator](https://github.com/esoui/esoui)
-- [@Flat-Badger-1971](https://github.com/Flat-Badger-1971/eso-api)
+- [@Flat-Badger-1971](https://www.esoui.com/downloads/info4074-ESOluaAPIintellisenseforVisualStudioCode.html)
 - [@sirinsidiator & @Seerah](https://www.esoui.com/downloads/info7.html) <sub>*(LibAddonMenu-2.0)*</sub>
 - [@Harven & @votan](https://www.esoui.com/downloads/info584.html) <sub>*(LibHarvensAddonSettings)*</sub>
 - [@sirinsidiator](https://www.esoui.com/downloads/info1337-LibGroupBroadcast.html) <sub>*(LibGroupBroadcast)*</sub>

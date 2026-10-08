@@ -27,6 +27,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Zolan's Slash Commands](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zolan/Zolan-s-Slash-Commands__385) | zolan | PC / Mac | 2.9 |
 | [ZolansAutoRepair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DunkleMaterie/ZolansAutoRepair__2219) | DunkleMaterie | PC / Mac | 3.0 |
 | [Zone Chat for Group Activities only](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shawn5150/Zone-Chat-for-Group-Activities-only__2464) | Shawn5150 | PC / Mac | 0.31 |
+| [Zone Completion Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Milonai/Zone-Completion-Map__4925) | Milonai | PC / Mac | 2 |
 | [Zone Dailies Achievement Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/psi-pisi/Zone-Dailies-Achievement-Tracker__4077) | psi-pisi | PC / Mac | 1.0.5 |
 | [Zone Mount and Pet Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MadeByQwerty/Zone-Mount-and-Pet-Switcher__03172246-c90c-4b8b-9821-06a74a01ce96) | MadeByQwerty | Console | — |
 | [Zone Mount and Pet Switcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MadeByQwerty/Zone-Mount-and-Pet-Switcher__4216) | MadeByQwerty | PC / Mac | 1.2.1 |

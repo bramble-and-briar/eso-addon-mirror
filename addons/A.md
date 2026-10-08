@@ -31,7 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AchievementInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asto/AchievementInfo__350) | Asto | PC / Mac | 4.17 |
 | [Action Bar Labels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CMDRMitchcraft/Action-Bar-Labels__4348) | CMDRMitchcraft | PC / Mac | 1.0 |
 | [Action Bar Skill Styles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Action-Bar-Skill-Styles__3928) | Anthonysc | PC / Mac | 0.0.4 |
-| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.163 |
+| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.166 |
 | [Action Duration Reminder ES by Kroon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KKroon/Action-Duration-Reminder-ES-by-Kroon__3706) | KKroon | PC / Mac | 3.96 |
 | [Activity Finder Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Activity-Finder-Plus__4676) | FirewoodDoge | PC / Mac | 1.0.2 |
 | [Acuity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Acuity__1950) | Wheels | PC / Mac | 2.4 |
@@ -200,6 +200,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__3929) | Lykeion | PC / Mac | 3.14 |
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__e1710013-83a1-4e50-941a-5464d85d587c) | Lykeion+ | Console | — |
 | [Am I Blocking?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Qcell/Am-I-Blocking__2920) | Qcell | PC / Mac | 2.7 |
+| [An_Daghdha1233 Inventory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForiMonster/An_Daghdha1233-Inventory__be795295-0a8b-40e3-9fc6-f3086e0f202c) | ForiMonster | Console | — |
 | [AncestralMotifsCheck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tumsa/AncestralMotifsCheck__3498) | tumsa | PC / Mac | 1.3.1 |
 | [andy.s's Heat Shocker Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/andy.s-s-Heat-Shocker-Tracker__6c2f0adf-9ca4-4dc4-bd4f-e1f6f5059665) | Lykeion+ | Console | — |
 | [AnimatedActionBar+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/AnimatedActionBar__4598) | haze068 | PC / Mac | 2.0 |

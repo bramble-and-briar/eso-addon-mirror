@@ -13,6 +13,7 @@ function State.CreateSavedVarsDefaults()
             farScalePct = 50,                             -- dot size at farScaleM relative to near size (100 = constant)
             farScaleM = 100,                              -- distance at which farScalePct applies
             outline = true,                               -- black ring behind each dot
+            cyrodiilOnly = true,                          -- nothing at all outside Cyrodiil (not even runestone / Psijic dots)
             markWarTorte = true,                          -- orange: any empty harvestable location in Cyrodiil
             warTorteColor = { r = 1.0, g = 0.55, b = 0.15, a = 0.9 },
             markPsijic = true,                            -- purple: any empty enchanting location, every zone

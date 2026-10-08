@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/brianmit/Questbound---Quest-Tracker-GPS__4893",
+  "archive_path": "addons/brianmit/Questbound---Tracker-Nav-Auto-Skip__4893",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "brianmit",
@@ -22,7 +22,7 @@
     "Questbound"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4893/",
-  "fingerprint": "c56d0814fa2d4224474d712206078843478fd0c0484c0a7c334426193d2b78be",
+  "fingerprint": "630f798331aaf0f8bade791c1b55b9306d669ea415ec5a49252669f5442bc881",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17640.png",
     "https://cdn-eso.mmoui.com/preview/pvw17641.png",
@@ -39,13 +39,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "4893",
-  "source_url": "https://www.esoui.com/downloads/info4893-Questbound-QuestTrackerGPS.html",
+  "source_url": "https://www.esoui.com/downloads/info4893-Questbound-TrackerNavAutoSkip.html",
   "stats": {
-    "downloads": 25,
+    "downloads": 219,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 200
   },
-  "title": "Questbound - Quest Tracker & GPS",
-  "updated_at": 1790739914000,
-  "version": "1.0.1"
+  "title": "Questbound - Tracker, Nav & Auto Skip",
+  "updated_at": 1791402003000,
+  "version": "1.1.0"
 }

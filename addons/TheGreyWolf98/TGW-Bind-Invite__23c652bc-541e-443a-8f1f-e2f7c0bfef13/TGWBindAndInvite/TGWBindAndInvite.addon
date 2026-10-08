@@ -1,0 +1,10 @@
+## Title: TGW Bind & Invite
+## Author: TheGreyWolf98
+## Version: 1.0.0
+## AddOnVersion: 4
+## APIVersion: 101050 101051
+## SavedVariables: TGWBindAndInviteSavedVariables
+## Description: Manual or automatic collection binding and keyword whisper invites. /tgw opens the controller menu.
+Core.lua
+UI.lua
+Main.lua

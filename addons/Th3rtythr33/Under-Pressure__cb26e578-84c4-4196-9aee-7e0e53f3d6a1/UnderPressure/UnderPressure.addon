@@ -1,7 +1,7 @@
 ## Title: Under Pressure
 ## Author: Th3rtythr33
-## Version: 0.4.0
-## AddOnVersion: 14
+## Version: 0.4.1
+## AddOnVersion: 15
 ## APIVersion: 101051
 ## SavedVariables: UnderPressureSavedVars
 ## DependsOn: LibHarvensAddonSettings>=20200
@@ -15,8 +15,9 @@
 ;
 ; AddOnVersion steps by ONE per published build and only ever increases.
 ; 0.2.7 = 8, 0.2.8 = 9, 0.2.9 = 10, 0.3.0 = 11, 0.3.2 = 12. 0.3.3 was built as
-; 13 but NEVER uploaded (confirmed by the author 2026-10-06), so 0.4.0 takes 14
-; and 13 never existed on Bethesda.net. It was briefly set to 30 while a release
+; 13 but NEVER uploaded (confirmed by the author 2026-10-06), so 0.4.0 took 14
+; (published 2026-10-06) and 13 never existed on Bethesda.net. 0.4.1 = 15.
+; It was briefly set to 30 while a release
 ; was planned as 3.0; that build was never published either, so stepping back
 ; to 9 was safe and would NOT have been safe if 30 had shipped.
 ;

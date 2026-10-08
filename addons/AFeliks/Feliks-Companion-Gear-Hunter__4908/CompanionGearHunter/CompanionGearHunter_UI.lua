@@ -9,9 +9,17 @@ ZO_CreateStringId("SI_BINDING_NAME_COMPANIONGEARHUNTER_TOGGLE", "Toggle Feliks' 
 
 local IGNORE_CALLBACKS = true
 
+-- The addon's own ESOUI download page - opened when the footer is clicked.
+local ESOUI_PAGE_URL = "https://www.esoui.com/downloads/info4908.html"
+local FOOTER_HOVER_COLOR = { 0.6, 0.8, 1, 1 }
+
 local companionDropdown = nil
 local selectedCompanionId = nil
 local currentCompanionRole = nil
+local currentCompanionRoleSecondary = nil
+
+-- companionId -> its dropdown entry, so labels can be updated in place.
+local companionEntries = {}
 
 -- Same engine constants CompanionRoster stores its Role tag as
 -- (LFG_ROLE_TANK/_HEAL/_DPS), so a role read from there is directly usable
@@ -132,34 +140,138 @@ local function PopulateQualityCombo(combo, slotDef)
     end
 end
 
+-- "All slots" row ---------------------------------------------------------
+-- Three dropdowns that act as buttons: picking a value applies it to every
+-- slot of the selected companion (see Data.ApplyToAllSlots), then the
+-- dropdown goes back to blank so it never reads as stored state.
+
+local allSlotsCombos = {}
+
+local function BlankAllSlotsCombos()
+    for _, combo in ipairs(allSlotsCombos) do
+        combo:SetSelectedItemText("")
+    end
+end
+
+local function OnAllSlotsSelected(comboBoxControl, entryText, entry)
+    if selectedCompanionId == nil then
+        return
+    end
+    CompanionGearHunter.Data.ApplyToAllSlots(selectedCompanionId, entry.field, entry.matchValue)
+    CompanionGearHunter.RefreshGrid()
+    -- Blanked again next frame in case the combo writes the picked text
+    -- after calling back, which would undo the blanking RefreshGrid just did.
+    zo_callLater(BlankAllSlotsCombos, 1)
+end
+
+-- options: list of { name =, value = }; "Any" is always added first.
+local function PopulateAllSlotsCombo(combo, field, options)
+    combo:SetSortsItems(false)
+    combo:ClearItems()
+
+    local anyEntry = combo:CreateItemEntry("Any", OnAllSlotsSelected)
+    anyEntry.field, anyEntry.matchValue = field, nil
+    combo:AddItem(anyEntry)
+
+    for _, option in ipairs(options) do
+        local entry = combo:CreateItemEntry(option.name, OnAllSlotsSelected)
+        entry.field, entry.matchValue = field, option.value
+        combo:AddItem(entry)
+    end
+
+    combo:SetSelectedItemText("")
+    table.insert(allSlotsCombos, combo)
+end
+
+local function SetUpAllSlotsRow()
+    local allRow = CompanionGearHunterWindowAllRow
+
+    local traitOptions = {}
+    for _, option in ipairs(CompanionGearHunter.Data.GetTraitSuffixOptions()) do
+        table.insert(traitOptions, { name = option.name, value = option.suffix })
+    end
+
+    PopulateAllSlotsCombo(ZO_ComboBox_ObjectFromContainer(allRow:GetNamedChild("Type")), "subType", CompanionGearHunter.Data.WEIGHT_OPTIONS)
+    PopulateAllSlotsCombo(ZO_ComboBox_ObjectFromContainer(allRow:GetNamedChild("Trait")), "trait", traitOptions)
+    PopulateAllSlotsCombo(ZO_ComboBox_ObjectFromContainer(allRow:GetNamedChild("Quality")), "qualityFloor", CompanionGearHunter.Data.QUALITY_OPTIONS)
+end
+
+-- Clear button: wipes the selected companion's whole page, after a
+-- confirmation - there is no undo.
+local CLEAR_DIALOG = "COMPANIONGEARHUNTER_CLEAR_PAGE"
+
+local function RegisterClearDialog()
+    ZO_Dialogs_RegisterCustomDialog(CLEAR_DIALOG, {
+        title = { text = "Clear Gear Page" },
+        mainText = { text = "Clear all wanted gear for <<1>>?" },
+        buttons = {
+            {
+                text = "Clear",
+                callback = function(dialog)
+                    CompanionGearHunter.Data.ClearCompanionWishlist(dialog.data.companionId)
+                    CompanionGearHunter.RefreshGrid()
+                end,
+            },
+            { text = SI_DIALOG_CANCEL },
+        },
+    })
+end
+
+-- On the CompanionGearHunter table because the XML Clear button calls this
+-- by name.
+function CompanionGearHunter.OnClearClicked()
+    if selectedCompanionId == nil then
+        return
+    end
+    local entry = companionEntries[selectedCompanionId]
+    ZO_Dialogs_ShowDialog(CLEAR_DIALOG, { companionId = selectedCompanionId }, { mainTextParams = { entry and entry.baseName or "" } })
+end
+
 -- On the CompanionGearHunter table (not a separate bare global) because the
 -- XML OnMouseEnter handler on the Role texture's wrapper Control calls this
 -- by name.
 function CompanionGearHunter.OnCompanionRoleMouseEnter(control)
     if currentCompanionRole then
-        ZO_Tooltips_ShowTextTooltip(control, TOP, ROLE_NAMES[currentCompanionRole] or "Unknown role")
+        local text = ROLE_NAMES[currentCompanionRole] or "Unknown role"
+        if currentCompanionRoleSecondary then
+            text = text .. " + " .. (ROLE_NAMES[currentCompanionRoleSecondary] or "Unknown role")
+        end
+        ZO_Tooltips_ShowTextTooltip(control, TOP, text)
     end
 end
 
 -- CompanionRoster only exists as a global when that addon is actually
 -- installed and loaded - guarding on it (and its Data table) is what makes
--- this integration optional rather than a hard dependency.
+-- this integration optional rather than a hard dependency. An older
+-- CompanionRoster has no second role (GetCompanionRoles), so it falls back
+-- to the single-role getter and shows one icon.
 local function RefreshCompanionRole()
-    currentCompanionRole = (CompanionRoster and CompanionRoster.Data and selectedCompanionId)
-        and CompanionRoster.Data.GetCompanionRole(selectedCompanionId)
-        or nil
+    currentCompanionRole, currentCompanionRoleSecondary = nil, nil
+    if CompanionRoster and CompanionRoster.Data and selectedCompanionId then
+        if CompanionRoster.Data.GetCompanionRoles then
+            currentCompanionRole, currentCompanionRoleSecondary = CompanionRoster.Data.GetCompanionRoles(selectedCompanionId)
+        else
+            currentCompanionRole = CompanionRoster.Data.GetCompanionRole(selectedCompanionId)
+        end
+    end
 
     local roleControl = CompanionGearHunterWindowCompanionRole
+    local icon2 = roleControl:GetNamedChild("Icon2")
     if currentCompanionRole then
         roleControl:GetNamedChild("Icon"):SetTexture(ZO_GetRoleIcon(currentCompanionRole))
+        if currentCompanionRoleSecondary then
+            icon2:SetTexture(ZO_GetRoleIcon(currentCompanionRoleSecondary))
+            icon2:SetHidden(false)
+            roleControl:SetWidth(50)
+        else
+            icon2:SetHidden(true)
+            roleControl:SetWidth(24)
+        end
         roleControl:SetHidden(false)
     else
         roleControl:SetHidden(true)
     end
 end
-
--- companionId -> its dropdown entry, so labels can be updated in place.
-local companionEntries = {}
 
 -- Appends a companion icon (in the "wanted" color) to the name of any companion with something still being
 -- hunted. Suffix rather than prefix so names stay left-aligned whether or not
@@ -185,6 +297,7 @@ function CompanionGearHunter.RefreshGrid()
     end
 
     RefreshCompanionRole()
+    BlankAllSlotsCombos()
 
     -- Shared with CompanionGearHunter_Data.lua's matching/upgrade logic
     -- (GetCandidateSlotKeysForCompanion) so the grid and the tooltip
@@ -322,6 +435,20 @@ local function PopulateCompanionDropdown()
     end
 end
 
+-- On the CompanionGearHunter table because the XML footer handlers call these
+-- by name.
+function CompanionGearHunter.OnFooterClicked()
+    RequestOpenUnsafeURL(ESOUI_PAGE_URL)
+end
+
+function CompanionGearHunter.OnFooterMouseEnter(control)
+    control:SetColor(unpack(FOOTER_HOVER_COLOR))
+end
+
+function CompanionGearHunter.OnFooterMouseExit(control)
+    control:SetColor(unpack(BLANK_TEXT_COLOR))
+end
+
 -- On the CompanionGearHunter table (not a separate bare global) because the
 -- XML OnMoveStop handler calls this by name.
 function CompanionGearHunter.OnWindowMoveStop(control)
@@ -406,6 +533,9 @@ local function OnAddOnLoaded(eventCode, addOnName)
 
         rows[i] = { control = rowControl, slotDef = slotDef, wantType = wantType, wantTrait = wantTrait, wantQuality = wantQuality }
     end
+
+    SetUpAllSlotsRow()
+    RegisterClearDialog()
 
     local savedPosition = CompanionGearHunter.Data.GetWindowPosition()
     if savedPosition then

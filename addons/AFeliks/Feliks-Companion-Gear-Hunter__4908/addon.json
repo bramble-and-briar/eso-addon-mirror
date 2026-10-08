@@ -18,14 +18,15 @@
     "CompanionGearHunter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4908/",
-  "fingerprint": "a39ad7111cec803c93c57835ff432e476800ccbec01e4c6d912ada37a69367ec",
+  "fingerprint": "9efca7067b5bcec19edf434ba806be32632e524c02e6d21d7ca47cceac748e0f",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17662.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17663.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17806.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17807.png",
     "https://cdn-eso.mmoui.com/preview/pvw17666.png",
     "https://cdn-eso.mmoui.com/preview/pvw17667.png",
     "https://cdn-eso.mmoui.com/preview/pvw17664.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17665.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17665.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17663.png"
   ],
   "platform": "pc",
   "published": true,
@@ -33,11 +34,11 @@
   "source_id": "4908",
   "source_url": "https://www.esoui.com/downloads/info4908-FeliksCompanionGearHunter.html",
   "stats": {
-    "downloads": 2,
+    "downloads": 43,
     "favorites": 2,
-    "monthly_downloads": 0
+    "monthly_downloads": 33
   },
   "title": "Feliks' Companion Gear Hunter",
-  "updated_at": 1791010131000,
-  "version": "0.9.0"
+  "updated_at": 1791411225000,
+  "version": "0.9.1"
 }

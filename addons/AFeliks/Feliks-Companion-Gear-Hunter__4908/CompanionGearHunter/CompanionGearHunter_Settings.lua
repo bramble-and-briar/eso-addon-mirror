@@ -148,7 +148,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "description",
-            text = "The color of the icons shown on items in your bags, banks, stores, trades and mail, in chat, and next to companions in the window. Dark colors are not suggested.",
+            text = "The color of the icons shown on items in your bags, banks, guild stores, trades and mail, in chat, and next to companions in the window. Dark colors are not suggested.",
             width = "full",
         },
         {

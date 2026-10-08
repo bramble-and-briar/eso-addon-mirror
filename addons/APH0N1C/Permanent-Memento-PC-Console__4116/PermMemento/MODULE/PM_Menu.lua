@@ -17,6 +17,15 @@ local PM_ui_refs = PM.ui_refs
 local session_bugs = {}
 local build_delay_trigger_options
 
+local function only_built(...)
+	local list = {}
+	for index = 1, select("#", ...) do
+		local control = select(index, ...)
+		if control then list[#list + 1] = control end
+	end
+	return list
+end
+
 local function show_menu_scene(scene)
 	return LibAPH.ShowMenuScene(scene)
 end
@@ -240,6 +249,7 @@ function PM.update_menu_choices()
 	local act_ddl = _G["PM_ActiveDropdown"]
 	if act_ddl and act_ddl.UpdateChoices then
 		act_ddl:UpdateChoices(PM_state.active_names, PM_state.active_ids)
+		act_ddl:UpdateValue()
 	end
 
 	PM_state.sync_names, PM_state.sync_ids = {PM.L("LABEL_NONE")}, {0}
@@ -260,6 +270,7 @@ function PM.update_menu_choices()
 	local sync_ddl = _G["PM_SyncDropdown"]
 	if sync_ddl and sync_ddl.UpdateChoices then
 		sync_ddl:UpdateChoices(PM_state.sync_names, PM_state.sync_ids)
+		sync_ddl:UpdateValue()
 	end
 
 	PM_state.learned_list_names, PM_state.learned_list_values = {PM.L("LABEL_NONE")}, {0}
@@ -275,6 +286,7 @@ function PM.update_menu_choices()
 	local lrn_ddl = _G["PM_LearnedDropdown"]
 	if lrn_ddl and lrn_ddl.UpdateChoices then
 		lrn_ddl:UpdateChoices(PM_state.learned_list_names, PM_state.learned_list_values)
+		lrn_ddl:UpdateValue()
 	end
 end
 
@@ -430,46 +442,54 @@ function PM.build_general_options(b_data, is_pad)
 				return PM_state.pending_id
 			end,
 			setFunc = function(v) PM_state.pending_id = v end,
-			disabled = function() return PM.settings.is_random_on_zone end
-		},
-		{
-			type = "button", name = function() return "|cFFFF00" .. PM.L("BTN_ACTIVATE_RANDOM") .. "|r" end, width = "half",
-			func = function()
-				local r_id = PM.call_optional(PM.get_random_supported, "Loop module (get_random_supported)")
-				if r_id then
-					PM.settings.active_id = r_id
-					PM.log_msg(PM.L("CHAT_RANDOMLY_SELECTED", PM.get_data(r_id).name), true, "random", 90)
-					PM.call_optional(PM.start_loop, "Loop module (start_loop)", r_id)
-				end
-			end,
-			disabled = function() return not PM_modules.loop end
-		},
-		{
-			type = "button", name = function() return "|c00FF00" .. PM.L("BTN_APPLY_SELECTED") .. "|r" end, width = "half",
-			func = function()
-				if PM_state.pending_id and PM_state.pending_id ~= 0 then
-					PM.settings.active_id = PM_state.pending_id
-					local md = PM.get_data(PM_state.pending_id)
-					PM.log_msg(PM.L("CHAT_SELECTED_VIA_MENU", md.name or PM.L("LABEL_UNKNOWN")), true, "activation")
-					PM.call_optional(PM.start_loop, "Loop module (start_loop)", PM_state.pending_id); PM_state.pending_id = nil
-				elseif PM_state.pending_id == 0 then
-					PM.settings.active_id = nil; PM_state.loop_token = (PM_state.loop_token or 0) + 1
-					PM.log_msg(PM.L("CHAT_AUTOLOOP_STOPPED"), true, "stop", 90)
-					PM_state.pending_id = nil; PM_state.next_fire_time = 0
-				end
-			end,
-			disabled = function() return not PM_modules.loop end
-		},
-		{
-			type = "checkbox", name = function() return PM.L("CHK_RANDOM_ON_ZONE") end,
-			getFunc = function() return PM.settings.is_random_on_zone end,
-			setFunc = function(v) PM.settings.is_random_on_zone = v end
-		},
-		{
-			type = "checkbox", name = function() return PM.L("CHK_RANDOM_ON_LOGIN") end,
-			getFunc = function() return PM.settings.is_random_on_login end,
-			setFunc = function(v) PM.settings.is_random_on_login = v end
-		},
+			disabled = function() return PM.settings.enable_random_fav and PM.settings.is_random_on_zone end
+		}
+	}
+	local random_button = {
+		type = "button", name = function() return "|cFFFF00" .. PM.L("BTN_ACTIVATE_RANDOM") .. "|r" end, width = "half",
+		func = function()
+			local r_id = PM.call_optional(PM.get_random_supported, "Loop module (get_random_supported)")
+			if r_id then
+				PM.settings.active_id = r_id
+				PM.log_msg(PM.L("CHAT_RANDOMLY_SELECTED", PM.get_data(r_id).name), true, "random", 90)
+				PM.call_optional(PM.start_loop, "Loop module (start_loop)", r_id)
+			else
+				PM.log_msg(PM.L("CHAT_NO_RANDOM_AVAILABLE"), true, "error", 90)
+			end
+		end,
+		disabled = function() return not PM_modules.loop or not PM.settings.enable_random_fav end
+	}
+	local random_on = PM.settings.enable_random_fav
+	if PM_modules.loop and random_on then table.insert(grp_gen, random_button) end
+	if PM_modules.loop then table.insert(grp_gen, {
+		type = "button", name = function() return "|c00FF00" .. PM.L("BTN_APPLY_SELECTED") .. "|r" end, width = random_on and "half" or "full",
+		func = function()
+			if PM_state.pending_id and PM_state.pending_id ~= 0 then
+				PM.settings.active_id = PM_state.pending_id
+				local md = PM.get_data(PM_state.pending_id)
+				PM.log_msg(PM.L("CHAT_SELECTED_VIA_MENU", md.name or PM.L("LABEL_UNKNOWN")), true, "activation")
+				PM.call_optional(PM.start_loop, "Loop module (start_loop)", PM_state.pending_id); PM_state.pending_id = nil
+			elseif PM_state.pending_id == 0 then
+				PM.settings.active_id = nil; PM_state.loop_token = (PM_state.loop_token or 0) + 1
+				PM.log_msg(PM.L("CHAT_AUTOLOOP_STOPPED"), true, "stop", 90)
+				PM_state.pending_id = nil; PM_state.next_fire_time = 0
+			end
+		end,
+		disabled = function() return not PM_modules.loop end
+	}) end
+	if random_on then table.insert(grp_gen, {
+		type = "checkbox", name = function() return PM.L("CHK_RANDOM_ON_ZONE") end,
+		getFunc = function() return PM.settings.is_random_on_zone end,
+		setFunc = function(v) PM.settings.is_random_on_zone = v end,
+		disabled = function() return not PM.settings.enable_random_fav end
+	})
+	table.insert(grp_gen, {
+		type = "checkbox", name = function() return PM.L("CHK_RANDOM_ON_LOGIN") end,
+		getFunc = function() return PM.settings.is_random_on_login end,
+		setFunc = function(v) PM.settings.is_random_on_login = v end,
+		disabled = function() return not PM.settings.enable_random_fav end
+	}) end
+	for _, ctrl in ipairs({
 		{
 			type = "checkbox", name = function() return PM.L("CHK_LOOP_IN_COMBAT") end,
 			getFunc = function() return PM.settings.is_loop_in_combat end,
@@ -485,9 +505,9 @@ function PM.build_general_options(b_data, is_pad)
 			getFunc = function() return PM.settings.is_log_enabled end,
 			setFunc = function(v) PM.settings.is_log_enabled = v end
 		}
-	}
+	}) do table.insert(grp_gen, ctrl) end
 
-if is_pad then
+	if is_pad then
 		table.insert(b_data, {
 			type = "submenu", name = function() return "|c00FF00" .. PM.L("HEADER_GENERAL_SETTINGS") .. "|r" end,
 			controls = grp_gen
@@ -521,6 +541,7 @@ function PM.build_module_manager_options(b_data, is_pad)
 			getFunc = function() return PM.settings.enable_random_fav end,
 			setFunc = function(v)
 				PM.settings.enable_random_fav = v
+				PM.refresh_slash_commands()
 				PM.log_msg(PM.L("CHAT_RANDOM_FAV", v and PM.L("WORD_ON") or PM.L("WORD_OFF")), true, "settings")
 			end
 		},
@@ -529,22 +550,20 @@ function PM.build_module_manager_options(b_data, is_pad)
 			getFunc = function() return PM.settings.enable_learning end,
 			setFunc = function(v)
 				PM.settings.enable_learning = v
+				PM.refresh_slash_commands()
 				PM.log_msg(PM.L("CHAT_LEARNING_MODE", v and PM.L("WORD_ON") or PM.L("WORD_OFF")), true, "settings")
 			end
 		}
 	}
 
-	if not is_pad then
+	if not is_pad and PM_modules.sync then
 		table.insert(grp_pwr, {
 			type = "checkbox",
-			name = function()
-				local n = PM.L("CHK_ENABLE_SYNC_LISTENER")
-				if not PM_modules.sync then n = n .. " |cFF0000" .. PM.L("LABEL_DISABLED_PAREN") .. "|r" end
-				return n
-			end,
+			name = function() return PM.L("CHK_ENABLE_SYNC_LISTENER") end,
 			getFunc = function() return PM.settings.sync_module.is_enabled end,
 			setFunc = function(v)
 				PM.settings.sync_module.is_enabled = v; PM.toggle_sync_listener()
+				PM.refresh_slash_commands()
 				PM.log_msg(PM.L("CHAT_SYNC_LISTENING", v and PM.L("WORD_ON") or PM.L("WORD_OFF")), true, "settings")
 			end,
 			disabled = function() return not PM_modules.sync end
@@ -695,9 +714,8 @@ function PM.build_ui_position_options(b_data, is_pad)
 end
 
 function PM.build_sync_options(b_data, is_pad)
-	if not PM_modules.sync then return end
-	if not is_pad then
-		local grp_sync = {
+	if not is_pad and PM_modules.sync and PM.settings.sync_module.is_enabled then
+		local grp_sync = only_built(
 			{
 				type = "description",
 				text = function()
@@ -716,11 +734,15 @@ function PM.build_sync_options(b_data, is_pad)
 				end,
 				disabled = function() return not PM.settings.sync_module.is_enabled end
 			},
-			{
+			PM_modules.loop and {
 				type = "button", name = function() return PM.L("BTN_SEND_RANDOM_SYNC") end,
 				func = function()
 					local r_id = PM.call_optional(PM.get_random_any, "Loop module (get_random_any)")
-					if r_id and PM.send_sync then PM.send_sync("play", r_id) end
+					if not r_id then
+						PM.log_msg(PM.L("CHAT_NO_RANDOM_AVAILABLE"), true, "error", 90)
+					elseif PM.send_sync then
+						PM.send_sync("play", r_id)
+					end
 				end,
 				disabled = function() return not PM.settings.sync_module.is_enabled or not PM_modules.loop end
 			},
@@ -746,7 +768,7 @@ function PM.build_sync_options(b_data, is_pad)
 					return not PM.settings.sync_module.is_enabled or PM.settings.sync_module.is_random
 				end
 			}
-		}
+		)
 		table.insert(b_data, {
 			type = "submenu", name = function() return "|c800080" .. PM.L("HEADER_SYNC_SETTINGS") .. "|r" end,
 			reference = "PM_Submenu_Sync",
@@ -861,7 +883,7 @@ end
 
 function PM.build_learned_data_options(b_data, is_pad)
 	if not PM.settings.enable_learning then return end
-	local grp_lrn = {
+	local grp_lrn = only_built(
 		{
 			type = "description",
 			text = function()
@@ -878,7 +900,7 @@ function PM.build_learned_data_options(b_data, is_pad)
 			setFunc = function(v) PM_state.selected_learned_id = v end,
 			disabled = function() return not PM.settings.enable_learning end
 		},
-		{
+		PM_modules.loop and {
 			type = "button", name = function() return "|c00FF00" .. PM.L("BTN_ACTIVATE_SELECTION") .. "|r" end, width = "half",
 			func = function()
 				if PM_state.selected_learned_id and PM_state.selected_learned_id ~= 0 then
@@ -890,7 +912,7 @@ function PM.build_learned_data_options(b_data, is_pad)
 			end,
 			disabled = function() return not PM.settings.enable_learning or not PM_modules.loop end
 		},
-		{
+		PM_modules.loop and {
 			type = "button", name = function() return "|cFFFF00" .. PM.L("BTN_LEARN_AUTOSCAN") .. "|r" end, width = "half",
 			func = function() PM.call_optional(PM.auto_scan_mementos, "Loop module (auto_scan_mementos)") end,
 			disabled = function() return not PM.settings.enable_learning or not PM_modules.loop end
@@ -900,7 +922,7 @@ function PM.build_learned_data_options(b_data, is_pad)
 			func = function() PM.delete_learned_data(PM_state.selected_learned_id) end,
 			disabled = function() return not PM.settings.enable_learning end
 		},
-		{
+		PM_modules.loop and {
 			type = "button", name = function() return PM.L("BTN_RANDOMIZED_LEARNED") end, width = "half",
 			func = function()
 				local r_id = PM.call_optional(PM.get_random_learned, "Loop module (get_random_learned)")
@@ -919,7 +941,7 @@ function PM.build_learned_data_options(b_data, is_pad)
 			func = function() PM.delete_all_learned_data() end,
 			disabled = function() return not PM.settings.enable_learning end
 		}
-	}
+	)
 	table.insert(b_data, {
 		type = "submenu", name = function() return "|cFFFF00" .. PM.L("HEADER_LEARNED_DATA_MGMT") .. "|r" end,
 		reference = "PM_Submenu_LearnedData",
@@ -1044,14 +1066,14 @@ end
 function PM.build_commands_options(b_data, is_pad)
 
 	local grp_cmd = {}
-	table.insert(grp_cmd, {
+	if PM_modules.loop then table.insert(grp_cmd, {
 		type = "checkbox", name = function() return PM.L("CHK_STOP_SPINNING") end,
 		getFunc = function() return PM.settings.is_stop_spinning end,
 		setFunc = function(v)
 			PM.settings.is_stop_spinning = v; PM.call_optional(PM.apply_spin_stop, "Loop module (apply_spin_stop)")
 		end,
 		disabled = function() return not PM_modules.loop end
-	})
+	}) end
 	table.insert(grp_cmd, {
 		type = "checkbox", name = function() return PM.L("CHK_LIB_WARNING_ENABLED") end,
 		getFunc = function() return PM.settings.is_lib_warning_enabled end,
@@ -1249,6 +1271,7 @@ function PM.build_menu()
 
 	PM.lam_panel = lib_lam:RegisterAddonPanel("PermMementoOptions", hdr_data)
 	lib_lam:RegisterOptionControls("PermMementoOptions", b_data)
+	PM.menu_layout = PM.get_menu_layout()
 
 	local persisted_submenus = {
 		"PM_Submenu_ModuleManager", "PM_Submenu_UIPosition", "PM_Submenu_Sync",

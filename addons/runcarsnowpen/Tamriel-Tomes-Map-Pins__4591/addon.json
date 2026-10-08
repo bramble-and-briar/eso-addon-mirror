@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/runcarsnowpen/Tamriel-Tomes-Map-Pins__4591",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "runcarsnowpen",
   "canonical_id": "esoui:4591",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4591",
@@ -21,7 +18,7 @@
     "TamrielTomes_MapPins"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4591/",
-  "fingerprint": "b2172b59cc5f1245d92fb737d8cd6cebf37d2f6069de37328fa8475b1bfaea37",
+  "fingerprint": "8958e81f180b977bca067bcbf7751492d937a90065c9949360d28d5ec6b54a3b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16109.png",
     "https://cdn-eso.mmoui.com/preview/pvw16110.png"
@@ -32,11 +29,11 @@
   "source_id": "4591",
   "source_url": "https://www.esoui.com/downloads/info4591-TamrielTomesMapPins.html",
   "stats": {
-    "downloads": 872,
-    "favorites": 5,
-    "monthly_downloads": 170
+    "downloads": 1101,
+    "favorites": 6,
+    "monthly_downloads": 73
   },
   "title": "Tamriel Tomes Map Pins",
-  "updated_at": 1782101779000,
-  "version": "1.2.1"
+  "updated_at": 1791452339000,
+  "version": "1.2.2"
 }

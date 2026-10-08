@@ -39,7 +39,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bankir](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Bankir__4535) | Saleand | PC / Mac | 2.6 |
 | [BankManagerTESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IgorSab/BankManagerTESO__4072) | IgorSab | PC / Mac | 1 |
 | [Banner Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phamo1000/Banner-Status__608b7ab5-db64-423a-af5c-2438027f0eed) | Phamo1000 | Console | — |
-| [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.13 |
+| [Bar Steward - Multi Toolbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FlatBadger/Bar-Steward---Multi-Toolbar__3375) | FlatBadger | PC / Mac | 3.5.14 |
 | [Bar Swap Feedback](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KnightofOsiris/Bar-Swap-Feedback__2524) | KnightofOsiris | PC / Mac | 101036.1 |
 | [Bard Class – Combat Stance](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/frooke/Bard-Class-Combat-Stance__4365) | frooke | PC / Mac | 1.2.1 |
 | [barny's CC Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/barny/barny-s-CC-Tracker__3971) | barny | PC / Mac | 1.1.3 |

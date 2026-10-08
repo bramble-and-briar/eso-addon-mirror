@@ -44,7 +44,6 @@ local newTracker = {
 	appliedBySelf = false,
 	hideInactive = false,
 	hideActive = false,
-    hideOutOfCombat = false,
 	hidden = false,
 	x = 0,
 	y = 0,
@@ -669,7 +668,6 @@ function UniversalTracker.InitSettings()
 				appliedBySelf = false,
 				hideInactive = false,
 				hideActive = false,
-    			hideOutOfCombat = false,
 				hidden = false,
 				x = 0,
 				y = 0,
@@ -1243,17 +1241,6 @@ function UniversalTracker.InitSettings()
 			newTracker.appliedBySelf = value
 		end,
 		default = newTracker.appliedBySelf
-	}
-
-	local hideOutOfCombat = {
-		type = LibHarvensAddonSettings.ST_CHECKBOX,
-		label = "Only In Combat",
-		tooltip = "Hides the tracker when you are out of combat.\n\nDoesn't affect trackers with \"All\" target type.",
-		getFunction = function() return newTracker.hideOutOfCombat end,
-		setFunction = function(value) 
-			newTracker.hideOutOfCombat = value
-		end,
-		default = newTracker.hideInactive
 	}
 
 	local hideInactive = {
@@ -2152,7 +2139,7 @@ function UniversalTracker.InitSettings()
 	settingPages.trackedList = {accountTrackersLabel, characterTrackersLabel, navLabel, returnToMainMenuButton}
 
 	settingPages.newTracker.general = {generalLabel, setNewTrackerName, setNewTrackerType, setNewTrackerTargetType, setNewTrackerOverrideTexture, hideTracker}
-	settingPages.newTracker.visiblity = {visibilityLabel, setRequiredSetID, setRequiredSkillID, setRequiredZone, appliedBySelf, hideInactive, hideActive, hideOutOfCombat}
+	settingPages.newTracker.visiblity = {visibilityLabel, setRequiredSetID, setRequiredSkillID, setRequiredZone, appliedBySelf, hideInactive, hideActive}
 	settingPages.newTracker.abilities = {abilityIDListLabel, setNewAbilityID, add1AbilityID}
 	settingPages.newTracker.position = {positionLabel, newScale, newXOffset, newYOffset}
 	settingPages.newTracker.bar = {barSettingsLabel, setBarAlignment, setBarLength, setBarBackgroundColor, setBarEdgeColor, setUseBarEndColor, setBarStartColor, setBarEndColor}

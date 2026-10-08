@@ -1,6 +1,6 @@
 ## Title: Immersive Rumors
 ## Author: Fadosch
-## Version: 1.0.0
+## Version: 1.0.1
 ## APIVersion: 101051 101052
 ## AddOnVersion: 10000
 ## SavedVariables: ImmersiveRumorsSavedVars

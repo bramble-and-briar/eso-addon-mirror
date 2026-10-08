@@ -1,0 +1,16 @@
+## Title: Zone Completion Map
+## Description: Tints fully completed zones on the Tamriel and Aurbis world maps.
+## Author: Domenikus
+## Version: 1.0.0
+## AddOnVersion: 2
+## APIVersion: 101051 101052
+## DependsOn: LibAddonMenu-2.0
+## SavedVariables: ZoneCompletionMap_SV
+
+lang/en.lua
+lang/$(language).lua
+Completion.lua
+BlobScanner.lua
+Overlay.lua
+Settings.lua
+ZoneCompletionMap.lua

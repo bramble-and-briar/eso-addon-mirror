@@ -11,7 +11,7 @@
                     <AnchorFill />
                 </Backdrop>
                 <Label name="$(parent)Companion" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
-                    <Dimensions x="150" />
+                    <Dimensions x="136" />
                     <Anchor point="LEFT" offsetX="16" />
                     <OnMouseUp>
                         if button == MOUSE_BUTTON_INDEX_LEFT and upInside then
@@ -26,7 +26,7 @@
                     </OnMouseExit>
                 </Label>
                 <Control name="$(parent)Role" mouseEnabled="true">
-                    <Dimensions x="20" y="20" />
+                    <Dimensions x="34" y="20" />
                     <Anchor point="LEFT" relativeTo="$(parent)Companion" relativePoint="RIGHT" offsetX="4" />
                     <OnMouseUp>
                         if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
@@ -41,7 +41,12 @@
                     </OnMouseExit>
                     <Controls>
                         <Texture name="$(parent)Icon">
-                            <AnchorFill />
+                            <Dimensions x="20" y="20" />
+                            <Anchor point="CENTER" />
+                        </Texture>
+                        <Texture name="$(parent)Icon2" hidden="true">
+                            <Dimensions x="16" y="16" />
+                            <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="2" />
                         </Texture>
                     </Controls>
                 </Control>
@@ -170,6 +175,126 @@
                     <OnMouseExit>
                         CompanionRoster.OnFooterMouseExit(self)
                     </OnMouseExit>
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Results popup for /fcr s and /fcr c. The pieces below are built at
+             runtime from these two templates and parented to the scroll
+             container's own ScrollChild (see CompanionRoster.ShowResults). -->
+
+        <!-- A plain wrapped line of text: a heading, a like/dislike line, a note. -->
+        <Label name="CompanionRoster_ResultText" font="ZoFontGame" virtual="true">
+            <Dimensions x="500" />
+        </Label>
+
+        <!-- One /fcr s result: companion name (hover for their Guild skill lines),
+             their rapport and Guild rank beside it, and the rapport action
+             wrapped underneath. -->
+        <Control name="CompanionRoster_ResultRow" resizeToFitDescendents="true" virtual="true">
+            <Controls>
+                <Label name="$(parent)Name" font="ZoFontGameBold" mouseEnabled="true">
+                    <Anchor point="TOPLEFT" />
+                    <OnMouseEnter>
+                        CompanionRoster.OnResultNameMouseEnter(self)
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ZO_Tooltips_HideTextTooltip()
+                    </OnMouseExit>
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGame">
+                    <Anchor point="LEFT" relativeTo="$(parent)Name" relativePoint="RIGHT" offsetX="8" />
+                </Label>
+                <Label name="$(parent)Detail" font="ZoFontGame">
+                    <Dimensions x="480" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="BOTTOMLEFT" offsetX="16" offsetY="2" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="CompanionRosterResults" movable="true" resizeHandleSize="8" mouseEnabled="true" clampedToScreen="true" hidden="true">
+            <Dimensions x="560" y="420" />
+            <DimensionConstraints minX="360" minY="220" />
+            <Anchor point="CENTER" />
+
+            <OnMoveStop>
+                CompanionRoster.OnResultsMoveStop(self)
+            </OnMoveStop>
+            <OnResizeStop>
+                CompanionRoster.OnResultsResizeStop(self)
+            </OnResizeStop>
+
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Control name="$(parent)Header" mouseEnabled="true">
+                    <Dimensions y="32" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+
+                    <OnMouseDown>
+                        if button == MOUSE_BUTTON_INDEX_LEFT then
+                            CompanionRosterResults:StartMoving()
+                        end
+                    </OnMouseDown>
+                    <OnMouseUp>
+                        CompanionRosterResults:StopMovingOrResizing()
+                    </OnMouseUp>
+
+                    <Controls>
+                        <Label name="$(parent)Title" font="ZoFontWinH3" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                            <AnchorFill />
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <Button name="$(parent)CloseButton" inherits="ZO_CloseButton">
+                    <OnClicked>
+                        CompanionRosterResults:SetHidden(true)
+                    </OnClicked>
+                </Button>
+
+                <Control name="$(parent)Container" inherits="ZO_ScrollContainer">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="16" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-32" />
+                </Control>
+
+                <!-- Same footer as the roster window: addon name, version, and
+                     a click-through to the ESOUI page. -->
+                <Label name="$(parent)Footer" font="ZoFontGameSmall" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true">
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" offsetY="-8" />
+                    <OnMouseUp>
+                        if button == MOUSE_BUTTON_INDEX_LEFT and upInside then
+                            CompanionRoster.OnFooterClicked()
+                        end
+                    </OnMouseUp>
+                    <OnMouseEnter>
+                        CompanionRoster.OnFooterMouseEnter(self)
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        CompanionRoster.OnFooterMouseExit(self)
+                    </OnMouseExit>
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- The always-visible Companion Info line (see CompanionRoster_HUD.lua).
+             Inherits ZO_HUDManager_Element so the base game's Edit HUD can move
+             it: the control needs exactly ONE anchor, and the inherited
+             $(parent)HUDElementRef child is what sizes its box in the editor.
+             The default position is set in Lua (config.defaultAnchor) and the
+             width is set to fit the text, so none is given here. -->
+        <TopLevelControl name="CompanionRosterHUD" inherits="ZO_HUDManager_Element" hidden="true">
+            <Dimensions x="200" y="24" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="9" offsetY="6" />
+            <Controls>
+                <Backdrop name="$(parent)BG" centerColor="66000000" edgeColor="00000000">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" font="ZoFontGame" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Anchor point="LEFT" offsetX="6" />
                 </Label>
             </Controls>
         </TopLevelControl>

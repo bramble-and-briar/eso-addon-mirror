@@ -50,7 +50,10 @@ local function IsAdjective(word)
 end
 
 local function RemoveTags(text)
-	text = string.gsub(text, "%^[aа]", "")
+	-- Кириличне «а» — два байти (D0 B0), тому не в класі [aа]: клас зрізав би лише "^\208",
+	-- лишаючи байт \176 — невалідний UTF-8, і гра не показує рядок взагалі
+	text = string.gsub(text, "%^a", "")
+	text = string.gsub(text, "%^а", "")
 	text = string.gsub(text, "%^[fmnp]", "")
 	return text
 end

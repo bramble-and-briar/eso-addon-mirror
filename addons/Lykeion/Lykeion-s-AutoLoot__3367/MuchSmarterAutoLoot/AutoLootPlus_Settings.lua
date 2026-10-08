@@ -282,6 +282,23 @@ function Settings.InitializeSavedVariables()
     return dbAccount, dbChar, db
 end
 
+-- the loot path compares numeric options with numbers, but older saves can hold them as strings or nil
+function Settings.CoerceNumericDefaults(savedTable)
+    local function coerce(saved, defs)
+        for key, defaultValue in pairs(defs) do
+            local value = saved[key]
+            if type(defaultValue) == "table" then
+                if type(value) == "table" then
+                    coerce(value, defaultValue)
+                end
+            elseif type(defaultValue) == "number" and type(value) ~= "number" then
+                saved[key] = tonumber(value) or defaultValue
+            end
+        end
+    end
+    coerce(savedTable, defaults)
+end
+
 function Settings.Initialize(args)
     getDB, setDB = args.getDB, args.setDB
     db = args.getDB()

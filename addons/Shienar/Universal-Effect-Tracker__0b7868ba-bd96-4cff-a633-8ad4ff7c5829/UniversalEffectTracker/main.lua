@@ -21,6 +21,13 @@ UniversalTracker.defaultsCharacter = {
 	},
 }
 
+-- Some AbilityIDs are permanent but return false to IsAbilityPermanent() for some reason.
+UniversalTracker.secretlyPermanent = {
+	-- Nothing Wasted
+	[263461] = true,
+	[263462] = true
+}
+
 UniversalTracker.unitIDs = {}
 
 -- A tracker's userdata objects are stored in these tables at index [id], not in the saved variables.

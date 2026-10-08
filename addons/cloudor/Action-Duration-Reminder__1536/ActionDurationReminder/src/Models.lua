@@ -183,6 +183,8 @@ local mEffect = {}
 ---@field OFF_BALANCE_ICON_KEYWORD? string
 ---@field POWER_LASH_ABILITY_ID? number
 ---@field POWER_LASH_GUIDE_ABILITY_ID? number
+---@field NOTHING_WASTED_ABILITY_ID? number
+---@field NOTHING_WASTED_WINDOW_MS? number
 ---@field DUR_SOURCE_TICK? string
 ---@field DUR_SOURCE_CHANNEL? string
 ---@field DUR_SOURCE_FILTER? string

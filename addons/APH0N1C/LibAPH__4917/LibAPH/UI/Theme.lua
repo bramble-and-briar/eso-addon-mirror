@@ -101,6 +101,10 @@ local green_hooked = false
 local function TintSelection(dropdown, control)
 	local highlight = control.m_selectionHighlight
 	if not highlight then return end
+	if dropdown.owner and dropdown.owner.libaph_text_selection then
+		highlight:SetHidden(true)
+		return
+	end
 	local color = dropdown.owner and dropdown.owner.libaph_green_selection and THEME.SELECTED or nil
 	if color then
 		highlight:SetCenterColor(color[1], color[2], color[3], color[4])
@@ -111,14 +115,37 @@ local function TintSelection(dropdown, control)
 	end
 end
 
-function LibAPH.UseGreenSelection(combo)
-	if not combo then return false end
-	combo.libaph_green_selection = true
+local function HookSelectionTint()
 	local dropdown = ZO_COMBO_BOX_DROPDOWN_KEYBOARD
 	if not green_hooked and dropdown then
 		green_hooked = true
 		ZO_PostHook(dropdown, "SetupEntryBase", TintSelection)
 	end
+end
+
+function LibAPH.UseGreenSelection(combo)
+	if not combo then return false end
+	combo.libaph_green_selection = true
+	HookSelectionTint()
+	return true
+end
+
+function LibAPH.UseTextSelection(combo)
+	if not combo then return false end
+	combo.libaph_text_selection = true
+	local selected
+	local base = combo.GetItemNormalColor
+	combo.GetItemNormalColor = function(self, item)
+		if item.enabled ~= false then
+			local source = item.GetDataSource and item:GetDataSource() or item
+			if self:IsItemSelected(source) then
+				selected = selected or ZO_ColorDef:New(THEME.SELECTED[1], THEME.SELECTED[2], THEME.SELECTED[3], THEME.SELECTED[4])
+				return selected
+			end
+		end
+		return base(self, item)
+	end
+	HookSelectionTint()
 	return true
 end
 

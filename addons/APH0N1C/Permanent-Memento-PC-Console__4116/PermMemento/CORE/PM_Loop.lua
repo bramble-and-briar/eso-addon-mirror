@@ -144,9 +144,8 @@ function PM.apply_spin_stop()
 end
 
 function PM.get_random_supported()
-	if not PM.settings.enable_random_fav then return nil end
 	local avail = {}
-	if PM.settings.favorites then
+	if PM.settings.enable_random_fav and PM.settings.favorites then
 		for f_id, is_fav in pairs(PM.settings.favorites) do
 			if is_fav and IsCollectibleUnlocked(f_id) then
 				local is_hardcoded = (PM_memento_data[f_id] ~= nil)
@@ -169,7 +168,6 @@ function PM.get_random_supported()
 end
 
 function PM.get_random_learned()
-	if not PM.settings.enable_random_fav then return nil end
 	if not PM.acct_saved or not PM.acct_saved.learned_data then return nil end
 	local avail = {}
 	for f_id, _ in pairs(PM.acct_saved.learned_data) do
@@ -179,7 +177,6 @@ function PM.get_random_learned()
 end
 
 function PM.get_random_any()
-	if not PM.settings.enable_random_fav then return nil end
 	local avail = {}
 	for i = 1, GetTotalCollectiblesByCategoryType(COLLECTIBLE_CATEGORY_TYPE_MEMENTO) do
 		local f_id = GetCollectibleIdFromType(COLLECTIBLE_CATEGORY_TYPE_MEMENTO, i)
@@ -209,20 +206,17 @@ local BUSY_RULES = {
 	{ "busy_check_sneaking", function() return GetUnitStealthState("player") ~= STEALTH_STATE_NONE end, "LABEL_SNEAKING", "delay_sneak", 5 },
 	{ "busy_check_moving", function() return PM_state.is_moving end, "LABEL_MOVING", "delay_move", 5 },
 }
-local busy_checks = {}
-for i, rule in ipairs(BUSY_RULES) do busy_checks[i] = { check = rule[2] } end
-
 local function get_busy_state()
 	local settings = PM.settings
 	for i = 1, #BUSY_RULES do
-		local rule, entry = BUSY_RULES[i], busy_checks[i]
+		local rule = BUSY_RULES[i]
 		local enabled = settings[rule[1]]
 		if rule.invert then enabled = not enabled end
-		entry.enabled = enabled
-		entry.reasonKey = rule[3] and PM.L(rule[3]) or nil
-		entry.delayMs = (settings[rule[4]] or rule[5]) * 1000
+		if enabled ~= false and rule[2]() then
+			return true, rule[3] and PM.L(rule[3]) or nil, (settings[rule[4]] or rule[5]) * 1000
+		end
 	end
-	return LibAPH.CheckBusyReason(busy_checks)
+	return false, nil, 0
 end
 
 local function resolve_memento_duration_ms(c_id, r_id, begin_s, end_s)

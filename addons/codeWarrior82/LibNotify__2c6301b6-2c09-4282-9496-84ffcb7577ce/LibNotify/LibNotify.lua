@@ -109,16 +109,109 @@ LibNotify.samples = {
     },
 }
 
+LibNotify.sets = {
+    setList = {}, --format: [setId] = totalPieces
+}
+
+LibNotify.allGearSlots = {
+    0,  -- head
+    2,  -- chest
+    3,  -- shoulders
+    6,  -- waist
+    16, -- hands
+    8,  -- legs
+    9,  -- feet
+    1,  -- neck
+    11, -- ring1
+    12, -- ring2
+    4,  --front bar 1
+    5,  --front bar 2
+    20, --back bar 1
+    21, --back bar 2
+}
+
+LibNotify.TWO_HANDED_WEAPONS = {
+    [WEAPONTYPE_TWO_HANDED_AXE]    = true,
+    [WEAPONTYPE_TWO_HANDED_HAMMER] = true,
+    [WEAPONTYPE_TWO_HANDED_SWORD]  = true,
+    [WEAPONTYPE_BOW]               = true,
+    [WEAPONTYPE_FIRE_STAFF]        = true,
+    [WEAPONTYPE_FROST_STAFF]       = true,
+    [WEAPONTYPE_LIGHTNING_STAFF]   = true,
+    [WEAPONTYPE_HEALING_STAFF]     = true,
+}
+
 --print message to chat box
 local function printMessage(msg)
 	local chat = LibChatMessage(appName, "MA")
 	chat:Print(msg)
 end
 
+-------------------------------------------start check sets
+
 --check add-on validity
 local function isAddonValid(name)
     return LibNotify.addons[name]
 end
+
+--check what sets are equiped and store results
+local function checkCurrentSets()
+    --reset for a clean scan
+    LibNotify.sets.setList = {}
+
+    for _, slotIndex in ipairs(LibNotify.allGearSlots) do
+        local itemLink = GetItemLink(BAG_WORN, slotIndex)
+
+        if itemLink ~= "" then
+            local hasSet, setName, _, _, _, setId = GetItemLinkSetInfo(itemLink, false)
+
+            if hasSet and setId then
+                local weight = 1
+
+                --account for 2-handed weapons on front or back bar main-hand slot
+                if slotIndex == 4 or slotIndex == 20 then
+                    local weaponType = GetItemWeaponType(BAG_WORN, slotIndex)
+                    if weaponType and LibNotify.TWO_HANDED_WEAPONS[weaponType] then
+                        weight = 2
+                    end
+                end
+
+                --add to total piece count
+                LibNotify.sets.setList[setId] = (LibNotify.sets.setList[setId] or 0) + weight
+            end
+        end
+    end
+end
+
+--catch callbacks
+local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+
+    checkCurrentSets()
+    --2 seconds after sets are checked check for specific set
+end
+
+--enable callbacks when an item is equiped or unequiped
+local function enableCallbacksGear()
+    EVENT_MANAGER:RegisterForEvent("callback", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onEquipmentChanged)
+    EVENT_MANAGER:AddFilterForEvent("callback", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+end
+
+--run set check verification when another add-on calls
+function LibNotify.getSet(addonName, setId, setCount)
+
+    --if not listed add-on tries to access notify service, quit
+    if not isAddonValid(addonName) then printMessage("Restricted Access") return end
+
+    if (LibNotify.sets.setList[setId] or 0) >= setCount then
+        return true
+    else
+        return false
+    end
+end
+
+-------------------------------------------end check sets
+
+-------------------------------------------start notifications
 
 --play sound effect
 local function doSound(audio)
@@ -329,6 +422,8 @@ local function setAnchorStartupStatic(x, y)
     libNotify:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
 end
 
+-------------------------------------------end notifications
+
 --setup options menu
 local function createOptions()
 
@@ -515,6 +610,10 @@ local function libLoaded(event, name)
     setupTextSlots()
     --setup options menu
     createOptions()
+    --register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
+    --check what sets are currently equiped
+    checkCurrentSets()
 end
 
 --register for notification that an addon has been loaded
@@ -522,4 +621,7 @@ EVENT_MANAGER:RegisterForEvent(appName, EVENT_ADD_ON_LOADED, libLoaded)
 
 
 --example of message from other addon, 
---notifyForAddonPlease(appName, abilityID, "Aerie's Call ended")
+--LibNotify.notifyForAddonPlease(appName, abilityID, "message here")
+
+--example of message from other addon,
+--LibNotify.getSet(appName, setId, setCount)

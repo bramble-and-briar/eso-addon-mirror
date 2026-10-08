@@ -1,6 +1,6 @@
 ## Title: Feliks' Companion Gear Hunter
 ## Author: Feliks Blackwood
-## Version: 0.9.0
+## Version: 0.9.1
 ## APIVersion: 101050 101051
 ## SavedVariables: CompanionGearHunter_SavedVariables
 ## DependsOn: LibSlashCommander>=45 LibAddonMenu-2.0>=43

@@ -18,14 +18,16 @@
     "CompanionRoster"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4862/",
-  "fingerprint": "1c091d232dbeb7abb6d7bc1c2965bde58cad0ef367d9a555033ca40658be7636",
+  "fingerprint": "6ab22f46a4a5fc77fa126e41bc3ab8c72dc57290c26346a3161e94791c7b1906",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17714.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17802.png",
     "https://cdn-eso.mmoui.com/preview/pvw17718.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17716.png",
     "https://cdn-eso.mmoui.com/preview/pvw17488.png",
     "https://cdn-eso.mmoui.com/preview/pvw17489.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17715.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17715.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17803.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17804.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17805.png"
   ],
   "platform": "pc",
   "published": true,
@@ -33,11 +35,11 @@
   "source_id": "4862",
   "source_url": "https://www.esoui.com/downloads/info4862-FeliksCompanionRoster.html",
   "stats": {
-    "downloads": 151,
+    "downloads": 194,
     "favorites": 5,
-    "monthly_downloads": 136
+    "monthly_downloads": 176
   },
   "title": "Feliks' Companion Roster",
-  "updated_at": 1791263165000,
-  "version": "2.2.1"
+  "updated_at": 1791410117000,
+  "version": "2.3.0"
 }

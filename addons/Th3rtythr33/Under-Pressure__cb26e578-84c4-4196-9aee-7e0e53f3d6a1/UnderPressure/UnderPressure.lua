@@ -44,7 +44,7 @@ UP.name    = "UnderPressure"
 -- version string lived in three places and disagreed four ways; as of 0.3.3
 -- there are two, because Settings.lua now READS UP.version for the settings
 -- panel header rather than carrying its own copy.
-UP.version = "0.4.0"
+UP.version = "0.4.1"
 -- Read by Settings.lua for the console settings header (LibHarvensAddonSettings
 -- displays panel.author but never sets it). Matches ## Author in the manifest.
 UP.author  = "Th3rtythr33"

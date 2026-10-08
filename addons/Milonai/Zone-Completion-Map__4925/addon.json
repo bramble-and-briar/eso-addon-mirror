@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Milonai/Zone-Completion-Map__4925",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Milonai",
+  "canonical_id": "esoui:4925",
+  "category_id": "20",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4925",
+  "deleted": false,
+  "directories": [
+    "ZoneCompletionMap",
+    "__MACOSX"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4925/",
+  "fingerprint": "08244de59abb2ae5178f60c0cf646eaaf24943655ff2272a7f2d2252c2e6e51e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17799.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17800.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17801.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4925",
+  "source_url": "https://www.esoui.com/downloads/info4925-ZoneCompletionMap.html",
+  "stats": {
+    "downloads": 14,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "Zone Completion Map",
+  "updated_at": 1791457443000,
+  "version": "2"
+}

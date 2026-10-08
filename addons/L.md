@@ -75,7 +75,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibAlianym](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/LibAlianym__3046) | Alianym | PC / Mac | 0.40 |
 | [LibAnimation-1.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pawkette/LibAnimation-1.0__54) | Pawkette | PC / Mac | 2.3 |
 | [LibAnnyoingUpdateNotificationInGame - Launig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/LibAnnyoingUpdateNotificationInGame---Launig__1488) | Ayantir | PC / Mac | 7 |
-| [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/LibAPH__4917) | APH0N1C | PC / Mac | 2026.10.06.07.36 |
+| [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/LibAPH__4917) | APH0N1C | PC / Mac | 2026.10.07.17.24 |
 | [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/LibAPH__dac0d37e-2d2f-4813-a148-6198c2d54687) | APH0NlC | Console | — |
 | [LibArmorInsulation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibArmorInsulation__4709) | kreksar@gmail.com | PC / Mac | 2.7.11 |
 | [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibAsync__2125) | votan | PC / Mac | 3.1.5 |

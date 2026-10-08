@@ -101,3 +101,16 @@ ZO_PostHook(ACTIVITY_TRACKER, "Update", function()
 		QTI.RefreshQueueTimerSubLabel()
 	end
 end)
+
+function QTI.AnchorSharedTrackersUnderQuest()
+	local questPanel = FOCUSED_QUEST_TRACKER:GetTrackerControl()
+
+	ZO_HUDTrackers:ClearAnchors()
+	ZO_HUDTrackers:SetAnchor(TOPRIGHT, questPanel, BOTTOMRIGHT, 0, 10)
+
+	ZO_PostHook(HUD_TRACKER_MANAGER, "RefreshLayout", function()
+		ZO_HUDTrackers:ClearAnchors()
+		ZO_HUDTrackers:SetAnchor(TOPRIGHT, questPanel, BOTTOMRIGHT, 0, 10)
+	end)
+end
+

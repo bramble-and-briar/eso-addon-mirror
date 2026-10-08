@@ -185,7 +185,9 @@ function UnchainedHelper.setupMenu()
                 if value then
                     if UnchainedHelper.IsInBlackrose and UnchainedHelper.IsInBlackrose() then UnchainedHelper.RegisterTotemDetector() end
                 else
-                    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
+                    if UnchainedHelper.savedVars.showTotemSmartTimer == false then
+                        EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
+                    end
                     if UnchainedHelper.HideTotemAlert then UnchainedHelper.HideTotemAlert() end
                 end
             end,
@@ -201,41 +203,25 @@ function UnchainedHelper.setupMenu()
             setFunc = function(value) UnchainedHelper.savedVars.totemAlertDuration = value end,
             default = UnchainedHelper.defaults.totemAlertDuration,
         },
-
         {
             type = "checkbox",
-            name = "Stage 2 Poison Netch alert",
-            tooltip = "Warns when Poisonbloom from a Bull Netch affects your character during Stage 2.",
-            getFunc = function() return UnchainedHelper.savedVars.showNetchDangerAlert ~= false end,
+            name = "Smart Totem timer",
+            tooltip = "Learns the Totem spawn interval from the first two detected Totems, then predicts the repeating sequence and resynchronizes on each real spawn.",
+            getFunc = function() return UnchainedHelper.savedVars.showTotemSmartTimer ~= false end,
             setFunc = function(value)
-                UnchainedHelper.savedVars.showNetchDangerAlert = value
+                UnchainedHelper.savedVars.showTotemSmartTimer = value
                 if value then
-                    if UnchainedHelper.UpdateNetchDangerDetector then UnchainedHelper.UpdateNetchDangerDetector() end
+                    if UnchainedHelper.IsInBlackrose and UnchainedHelper.IsInBlackrose() then UnchainedHelper.RegisterTotemDetector() end
                 else
-                    EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "NetchDangerDetector", EVENT_COMBAT_EVENT)
-                    UnchainedHelper.netchDetectorRegistered = false
-                    if UnchainedHelper.HideNetchDangerAlert then UnchainedHelper.HideNetchDangerAlert() end
+                    if UnchainedHelper.ResetTotemSmartTimer then UnchainedHelper.ResetTotemSmartTimer() end
+                    if UnchainedHelper.savedVars.showTotemAlert == false then
+                        EVENT_MANAGER:UnregisterForEvent(UnchainedHelper.name .. "TotemDetector", EVENT_COMBAT_EVENT)
+                    end
                 end
             end,
-            default = UnchainedHelper.defaults.showNetchDangerAlert,
+            default = UnchainedHelper.defaults.showTotemSmartTimer,
         },
-        {
-            type = "checkbox",
-            name = "Poison Netch warning sound",
-            getFunc = function() return UnchainedHelper.savedVars.netchDangerSound ~= false end,
-            setFunc = function(value) UnchainedHelper.savedVars.netchDangerSound = value end,
-            default = UnchainedHelper.defaults.netchDangerSound,
-        },
-        {
-            type = "slider",
-            name = "Netch alert duration",
-            min = 1,
-            max = 5,
-            step = 1,
-            getFunc = function() return UnchainedHelper.savedVars.netchDangerDuration or 2 end,
-            setFunc = function(value) UnchainedHelper.savedVars.netchDangerDuration = value end,
-            default = UnchainedHelper.defaults.netchDangerDuration,
-        },
+
         {
             type = "header",
             name = "Markers",

@@ -18,7 +18,7 @@
     "AutoLuaMemoryCleaner"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4388/",
-  "fingerprint": "45cf3f5ff35dde5259a42b144c3db1916e1457113065562a1c5598cbf6e600f3",
+  "fingerprint": "dff88801850b32fcc70b834ff829f2d1060cfbfc2b336c2acfb03dc9f743e4b5",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17745.png",
     "https://cdn-eso.mmoui.com/preview/pvw17744.png",
@@ -31,11 +31,11 @@
   "source_id": "4388",
   "source_url": "https://www.esoui.com/downloads/info4388-AutoLuaMemoryCleanerPCConsole.html",
   "stats": {
-    "downloads": 2821,
+    "downloads": 3019,
     "favorites": 12,
-    "monthly_downloads": 96
+    "monthly_downloads": 327
   },
   "title": "Auto Lua Memory Cleaner (PC & Console)",
-  "updated_at": 1791247121000,
-  "version": "2026.10.06.08.01"
+  "updated_at": 1791366674000,
+  "version": "2026.10.07.17.24"
 }

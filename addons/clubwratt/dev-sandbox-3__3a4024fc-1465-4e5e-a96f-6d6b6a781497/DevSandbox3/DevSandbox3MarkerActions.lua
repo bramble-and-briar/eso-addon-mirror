@@ -2,7 +2,7 @@
 --
 -- Every 100 ms while the HUD is up: judge the slots around the player, then draw
 --   orange  dot 1.5 m above every empty harvestable slot in Cyrodiil      (war torte)
---   purple  dot 1.5 m above every empty enchanting slot anywhere           (psijic)
+--   purple  dot 1.5 m above every empty enchanting slot                    (psijic; anywhere only with CYRODIIL ONLY off)
 --   yellow  dot 1.5 m above every uncovered slot beyond the confirmed distance (unknown yet)
 --   pale blue (translucent) instead of any of the above for a slot the player has been within checkedM of recently
 --   cyan    dot above every known node when debugNodes is on (must sit on real nodes). Same size as the other dots,
@@ -94,7 +94,11 @@ local function Place(x, z, h, r, g, b, a)
 end
 
 local function Update()
-    if IsReticleHidden() then HideFrom(1) return end
+    if IsReticleHidden() or not SlotActions.IsActiveZone() then
+        HideFrom(1)
+        if not SlotActions.IsActiveZone() then local dr = Markers.drawn; dr.empty, dr.unknown, dr.checked = 0, 0, 0 end
+        return
+    end
     local s = S()
     local _, prx, pry, prz = GetUnitRawWorldPosition("player")
     local px, ph, pz = prx / 100, pry / 100, prz / 100

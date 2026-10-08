@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/atharti/Void-Bash__4924",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "atharti",
+  "canonical_id": "esoui:4924",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4924",
+  "deleted": false,
+  "directories": [
+    "VoidBash"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4924/",
+  "fingerprint": "5f486d550e99b9e7d63d41370664dd9de11294d11e0e702fd37271a7fae84492",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17795.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4924",
+  "source_url": "https://www.esoui.com/downloads/info4924-VoidBash.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 7
+  },
+  "title": "Void Bash",
+  "updated_at": 1791384066000,
+  "version": "1.0"
+}

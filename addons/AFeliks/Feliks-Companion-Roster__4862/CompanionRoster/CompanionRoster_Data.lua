@@ -10,7 +10,7 @@ CompanionRoster.Data = {}
 -- string back (GetAddOnManager():GetAddOnVersion() returns the separate
 -- numeric ## AddOnVersion tag instead, meant for dependency checks, not
 -- display), so this has to be maintained by hand.
-CompanionRoster.version = "2.2.1"
+CompanionRoster.version = "2.3.0"
 
 local savedVars = nil
 
@@ -210,6 +210,25 @@ function CompanionRoster.Data.GetWindowPosition()
     return savedVars.windowPosition
 end
 
+-- The /fcr s and /fcr c results popup remembers its own position, separate
+-- from the roster window's.
+function CompanionRoster.Data.SaveResultsPosition(point, relativePoint, offsetX, offsetY)
+    savedVars.resultsPosition = { point = point, relativePoint = relativePoint, offsetX = offsetX, offsetY = offsetY }
+end
+
+function CompanionRoster.Data.GetResultsPosition()
+    return savedVars.resultsPosition
+end
+
+-- The popup is resizable; its size is remembered the same way.
+function CompanionRoster.Data.SaveResultsSize(width, height)
+    savedVars.resultsSize = { width = width, height = height }
+end
+
+function CompanionRoster.Data.GetResultsSize()
+    return savedVars.resultsSize
+end
+
 -- The chat command that toggles the window - also a UI preference, so
 -- account-wide like the window position above. Changing it is applied live
 -- (LibSlashCommander's Command:RemoveAlias/AddAlias write straight into the
@@ -249,6 +268,74 @@ end
 
 function CompanionRoster.Data.SetShowRapportOnCollections(enabled)
     savedVars.showRapportOnCollections = enabled
+end
+
+-- The two colors for "done" (a maxed rapport or Guild line) and "in progress",
+-- shared by every surface that shows that state - roster window, Collections
+-- tiles and chat search results - so one setting recolors them all. Chosen in
+-- the settings panel, falling back to these defaults. Account-wide.
+CompanionRoster.Data.DEFAULT_COLORS = {
+    done = { 0.4, 1, 0.4 },
+    inProgress = { 1, 0.8, 0.4 },
+}
+
+-- Returns r, g, b (0-1) for "done" or "inProgress".
+function CompanionRoster.Data.GetColor(kind)
+    local saved = savedVars and savedVars.colors and savedVars.colors[kind]
+    local color = saved or CompanionRoster.Data.DEFAULT_COLORS[kind]
+    return color[1], color[2], color[3]
+end
+
+function CompanionRoster.Data.SetColor(kind, r, g, b)
+    savedVars.colors = savedVars.colors or {}
+    savedVars.colors[kind] = { r, g, b }
+end
+
+-- Same color as an "RRGGBB" string, for |c escape codes in chat and labels.
+function CompanionRoster.Data.GetColorHex(kind)
+    local r, g, b = CompanionRoster.Data.GetColor(kind)
+    return string.format("%02X%02X%02X", zo_round(r * 255), zo_round(g * 255), zo_round(b * 255))
+end
+
+-- Companion Info frame (CompanionRoster_HUD.lua) preferences, account-wide.
+-- Stored in one flat savedVars.hud table and read through GetHudOption so a
+-- key that was never saved falls back to its default (a saved `false` stays
+-- false, which is why this isn't `saved or default`).
+CompanionRoster.Data.HUD_DEFAULTS = {
+    enabled = true,
+    bold = false,
+    level = true,
+    xpRaw = true,
+    xpPercent = true,
+    xpGain = true,
+    rapportLevel = true,
+    rapportChange = true,
+    rapportNumber = true,
+}
+
+function CompanionRoster.Data.GetHudOption(key)
+    local saved = savedVars and savedVars.hud and savedVars.hud[key]
+    if saved == nil then
+        return CompanionRoster.Data.HUD_DEFAULTS[key]
+    end
+    return saved
+end
+
+function CompanionRoster.Data.SetHudOption(key, value)
+    savedVars.hud = savedVars.hud or {}
+    savedVars.hud[key] = value
+end
+
+CompanionRoster.Data.DEFAULT_HUD_COLOR = { 1, 1, 1 }
+
+-- Returns r, g, b (0-1) for the frame's text.
+function CompanionRoster.Data.GetHudColor()
+    local color = savedVars and savedVars.hudColor or CompanionRoster.Data.DEFAULT_HUD_COLOR
+    return color[1], color[2], color[3]
+end
+
+function CompanionRoster.Data.SetHudColor(r, g, b)
+    savedVars.hudColor = { r, g, b }
 end
 
 function CompanionRoster.Data.GetCompanionsForCharacter(characterKey)
@@ -346,18 +433,72 @@ function CompanionRoster.Data.GetGuildSkillLineSummary(companionId)
     return nil
 end
 
--- The player's own tag for how they've built a companion (Tank/Healer/DPS)
--- - there's no API to derive this from gear or slotted skills, it's purely
--- a manual label. Stored account-wide (independent of savedVars.characters)
--- since a companion's actual build already is - see GetSkillLinesForCompanion
--- above. Value is nil (no role set) or one of LFG_ROLE_TANK/LFG_ROLE_HEAL/
--- LFG_ROLE_DPS, the same engine constants the game's own Group Finder uses.
+-- The player's own tag for how they've built a companion (Tank/Healer/DPS,
+-- or a hybrid of two) - there's no API to derive this from gear or slotted
+-- skills, it's purely a manual label. Stored account-wide (independent of
+-- savedVars.characters) since a companion's actual build already is - see
+-- GetSkillLinesForCompanion above. Values are nil (no role set) or one of
+-- LFG_ROLE_TANK/LFG_ROLE_HEAL/LFG_ROLE_DPS, the same engine constants the
+-- game's own Group Finder uses.
+--
+-- A hybrid is stored as a primary role in companionRoles (exactly where a
+-- single role has always lived) plus an optional second role in
+-- companionRolesSecondary. Keeping the primary where it was means data saved
+-- before hybrids existed needs no migration, and an older Gear Hunter that
+-- only reads the primary still shows a sensible icon.
+CompanionRoster.Data.ROLE_NAMES = {
+    [LFG_ROLE_TANK] = "Tank",
+    [LFG_ROLE_HEAL] = "Healer",
+    [LFG_ROLE_DPS] = "DPS",
+}
+
+-- Every choice the right-click menu and settings panel offer, in display
+-- order: the three single roles, then the three hybrids.
+CompanionRoster.Data.ROLE_CHOICES = {
+    { primary = LFG_ROLE_TANK },
+    { primary = LFG_ROLE_HEAL },
+    { primary = LFG_ROLE_DPS },
+    { primary = LFG_ROLE_TANK, secondary = LFG_ROLE_DPS },
+    { primary = LFG_ROLE_HEAL, secondary = LFG_ROLE_DPS },
+    { primary = LFG_ROLE_TANK, secondary = LFG_ROLE_HEAL },
+}
+
+-- "Tank", or "Tank + DPS" for a hybrid; nil when there's no role.
+function CompanionRoster.Data.GetRoleLabel(primary, secondary)
+    local name = CompanionRoster.Data.ROLE_NAMES[primary]
+    if name == nil then
+        return nil
+    end
+    local secondaryName = secondary ~= nil and CompanionRoster.Data.ROLE_NAMES[secondary]
+    if secondaryName then
+        name = name .. " + " .. secondaryName
+    end
+    return name
+end
+
+-- Primary, secondary. Secondary is nil unless the companion is a hybrid.
+function CompanionRoster.Data.GetCompanionRoles(companionId)
+    return savedVars.companionRoles[companionId], savedVars.companionRolesSecondary[companionId]
+end
+
+function CompanionRoster.Data.SetCompanionRoles(companionId, primary, secondary)
+    savedVars.companionRoles[companionId] = primary
+    -- A second role only means something next to a different first role.
+    if primary ~= nil and secondary ~= nil and secondary ~= primary then
+        savedVars.companionRolesSecondary[companionId] = secondary
+    else
+        savedVars.companionRolesSecondary[companionId] = nil
+    end
+end
+
+-- Kept so older callers (and an older Gear Hunter) keep working: the primary
+-- role only, and setting a single role clears any second role.
 function CompanionRoster.Data.GetCompanionRole(companionId)
     return savedVars.companionRoles[companionId]
 end
 
 function CompanionRoster.Data.SetCompanionRole(companionId, role)
-    savedVars.companionRoles[companionId] = role
+    CompanionRoster.Data.SetCompanionRoles(companionId, role, nil)
 end
 
 -- Companion -> Keepsake collectible id. The Keepsake (Collections >
@@ -424,8 +565,9 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- rather than mixing it - matters because data here is keyed by
     -- character name, not character id, and the same @account can play on
     -- more than one server where two different characters could share a name.
-    local defaults = { characters = {}, companionRoles = {}, slashCommand = "/fcr", closeOnCombat = false, showRoleOnCollections = true, showRapportOnCollections = true }
+    local defaults = { characters = {}, companionRoles = {}, companionRolesSecondary = {}, slashCommand = "/fcr", closeOnCombat = false, showRoleOnCollections = true, showRapportOnCollections = true }
     savedVars = ZO_SavedVars:NewAccountWide("CompanionRoster_SavedVariables", CompanionRoster.savedVariablesVersion, GetWorldName(), defaults)
+    savedVars.companionRolesSecondary = savedVars.companionRolesSecondary or {}
 
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
     EVENT_MANAGER:RegisterForEvent("CompanionRoster_Data", EVENT_COMPANION_RAPPORT_UPDATE, OnCompanionRapportUpdate)

@@ -9,10 +9,10 @@ function Slash.Status()
     for _ in pairs(Sl.empty) do empty = empty + 1 end
     for _ in pairs(Sl.unknown) do unknown = unknown + 1 end
     for _ in pairs(D.lingering) do lingering = lingering + 1 end
-    LogUtils.Log("v%s: pins live %d, located %d (+%d lingering), confirmed to %dm; zone %s, %d locations within %dm: %d EMPTY, %d unconfirmed; drawn: %d empty, %d unknown, %d checked; orange=%s purple=%s yellow=%s cyan=%s",
-        DevSandbox3.version, D.liveCount, D.locatedCount, lingering, math.floor(Sl.confirmedM + 0.5), tostring(Sl.zoneId), Sl.inRangeCount, Sl.RANGE_M, empty, unknown,
+    LogUtils.Log("v%s: pins live %d, located %d (+%d lingering), confirmed to %dm; zone %s (%s), %d locations within %dm: %d EMPTY, %d unconfirmed; drawn: %d empty, %d unknown, %d checked; orange=%s purple=%s yellow=%s cyan=%s cyrodiilOnly=%s",
+        DevSandbox3.version, D.liveCount, D.locatedCount, lingering, math.floor(Sl.confirmedM + 0.5), tostring(Sl.zoneId), Sl.IsActiveZone() and "active" or "INACTIVE outside Cyrodiil", Sl.inRangeCount, Sl.RANGE_M, empty, unknown,
         DevSandbox3.Markers.drawn.empty, DevSandbox3.Markers.drawn.unknown, DevSandbox3.Markers.drawn.checked,
-        tostring(s.markWarTorte), tostring(s.markPsijic), tostring(s.markUnknown), tostring(s.debugNodes))
+        tostring(s.markWarTorte), tostring(s.markPsijic), tostring(s.markUnknown), tostring(s.debugNodes), tostring(s.cyrodiilOnly))
     local _, prx, _py, prz = GetUnitRawWorldPosition("player")
     local px, pz = prx / 100, prz / 100
     local list = {}
@@ -42,7 +42,8 @@ function Slash.Handle(args)
     elseif cmd == "clear" then DevSandbox3.SlotActions.ClearCheckpoints()
     elseif cmd == "nodes" then s.debugNodes = not s.debugNodes; LogUtils.Log("cyan node dots %s", s.debugNodes and "ON" or "OFF")
     elseif cmd == "debug" then s.debug = not s.debug; LogUtils.Log("debug logging %s", s.debug and "ON" or "OFF")
-    else LogUtils.Log("/ds3 status | clear (forget checkpoints) | export (push log to receiver) | nodes (cyan dot on every located node) | debug") end
+    elseif cmd == "cyrodiil" then s.cyrodiilOnly = not s.cyrodiilOnly; DevSandbox3.SlotActions.LoadZone(); LogUtils.Log("Cyrodiil only %s", s.cyrodiilOnly and "ON" or "OFF")
+    else LogUtils.Log("/ds3 status | clear (forget checkpoints) | export (push log to receiver) | nodes (cyan dot on every located node) | debug | cyrodiil (toggle Cyrodiil only)") end
 end
 
 DevSandbox3.Slash = Slash

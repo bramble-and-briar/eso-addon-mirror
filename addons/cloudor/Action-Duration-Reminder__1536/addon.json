@@ -18,7 +18,7 @@
     "ActionDurationReminder"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1536/",
-  "fingerprint": "7b02ab0f3f26a3c225eb46788e9e32b44c7a94d8819fdd8cbc48b70c42baa29c",
+  "fingerprint": "e04c11a0109df456d0c938ad97de8380efda83649396bf09f4fb0f9a7e8f225a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5001.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw5004.jpg",
@@ -35,11 +35,11 @@
   "source_id": "1536",
   "source_url": "https://www.esoui.com/downloads/info1536-ActionDurationReminder.html",
   "stats": {
-    "downloads": 6593691,
+    "downloads": 6613267,
     "favorites": 1556,
-    "monthly_downloads": 22272
+    "monthly_downloads": 30084
   },
   "title": "Action Duration Reminder",
-  "updated_at": 1790848469000,
-  "version": "3.163"
+  "updated_at": 1791386897000,
+  "version": "3.166"
 }

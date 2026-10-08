@@ -82,7 +82,7 @@ PvPUA.constants.emperorKeeps = {
 }
 
 PvPUA.constants.userIcons = {
-    ["@user562"]         = { texture = "PvPUA/Textures/icon_panda.dds", alpha = 0.65 },
+    ["@user562"]         = { texture = "PvPUA/Textures/icon_panda.dds" },
     ["@sir gilson7"]     = { texture = "PvPUA/Textures/icon_werewolf.dds", heightOffset = 1.0 },
     ["@get em nala"]     = { texture = "PvPUA/Textures/icon_hedgehog.dds" },
     ["@suzyqboston3383"] = { texture = "PvPUA/Textures/icon_trinity.dds", heightOffset = 1.0 },
@@ -96,16 +96,29 @@ PvPUA.constants.userIcons = {
 PvPUA.constants.ICON_NONE    = 1
 PvPUA.constants.ICON_DEFAULT = 2
 
+PvPUA.constants.iconCategories = {
+    { id = "other",     name = "Other" },
+    { id = "alliances", name = "Alliances" },
+    { id = "symbols",   name = "Symbols" },
+    { id = "memes",     name = "Memes" },
+}
+
 PvPUA.constants.iconChoices = {
-    { name = "None",       texture = "EsoUI/Art/Buttons/decline_up.dds", none = true },
-    { name = "Default",    isDefault = true },
-    { name = "Kiss",       texture = "PvPUA/Textures/icon_kiss.dds" },
-    { name = "Troll Blob", texture = "PvPUA/Textures/icon_trollblob.dds" },
-    { name = "Trollface",  texture = "PvPUA/Textures/icon_trollface.dds" },
-    { name = "Butterfly",  texture = "PvPUA/Textures/icon_butterfly.dds" },
-    { name = "Hi",         texture = "PvPUA/Textures/icon_hi.dds" },
-    { name = "Crown",      texture = "PvPUA/Textures/icon_crown.dds" },
-    { name = "Arrow",      texture = "PvPUA/Textures/icon_arrow.dds" },
+    { name = "None",       category = "other",     texture = "EsoUI/Art/Buttons/decline_up.dds", none = true },
+    { name = "Default",    category = "other",     isDefault = true },
+    { name = "Kiss",       category = "memes",     texture = "PvPUA/Textures/icon_kiss.dds" },
+    { name = "Troll Blob", category = "memes",     texture = "PvPUA/Textures/icon_trollblob.dds" },
+    { name = "Trollface",  category = "memes",     texture = "PvPUA/Textures/icon_trollface.dds" },
+    { name = "Butterfly",  category = "other",     texture = "PvPUA/Textures/icon_butterfly.dds" },
+    { name = "Hi",         category = "other",     texture = "PvPUA/Textures/icon_hi.dds" },
+    { name = "Crown",      category = "symbols",   texture = "PvPUA/Textures/icon_crown.dds" },
+    { name = "Arrow",      category = "symbols",   texture = "PvPUA/Textures/icon_arrow.dds" },
+    { name = "DC Banner",  category = "alliances", texture = "PvPUA/Textures/icon_dc_banner.dds" },
+    { name = "DC Shield",  category = "alliances", texture = "PvPUA/Textures/icon_dc_shield.dds" },
+    { name = "AD Banner",  category = "alliances", texture = "PvPUA/Textures/icon_ad_banner.dds" },
+    { name = "AD Shield",  category = "alliances", texture = "PvPUA/Textures/icon_ad_shield.dds" },
+    { name = "EP Banner",  category = "alliances", texture = "PvPUA/Textures/icon_ep_banner.dds" },
+    { name = "EP Shield",  category = "alliances", texture = "PvPUA/Textures/icon_ep_shield.dds" },
 }
 
 PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, listSize = "Default", uiScale = 1.0, barMode = "AP", iconShowSelf = true, iconShowOthers = true, iconShowSmallGroupFrames = true, iconShowLargeGroupFrames = true, showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0 }
@@ -195,6 +208,9 @@ PI.SIZE_STEP   = 5
 PI.HEIGHT_MIN  = -1.0
 PI.HEIGHT_MAX  = 3.0
 PI.HEIGHT_STEP = 0.1
+PI.OPACITY_MIN  = 20
+PI.OPACITY_MAX  = 100
+PI.OPACITY_STEP = 5
 
 local ICON_MARKER_DATA = {
     scaleX = 2,
@@ -319,10 +335,15 @@ local function PIListEntry(nameLower)
     return info
 end
 
+local function PIRoundOpacity(v)
+    v = zo_clamp(tonumber(v) or 100, PI.OPACITY_MIN, PI.OPACITY_MAX)
+    return math.floor(v / PI.OPACITY_STEP + 0.5) * PI.OPACITY_STEP
+end
+
 local function PIListStyle(nameLower)
     local info = PIListEntry(nameLower)
     if not info or not info.texture then return nil end
-    return PvPUA.constants.ICON_DEFAULT, math.floor((info.scale or 1) * 100 + 0.5), info.heightOffset or 0
+    return PvPUA.constants.ICON_DEFAULT, math.floor((info.scale or 1) * 100 + 0.5), info.heightOffset or 0, PIRoundOpacity((info.alpha or 1) * 100)
 end
 
 local function PIIconTexture(iconIndex, nameLower)
@@ -331,7 +352,7 @@ local function PIIconTexture(iconIndex, nameLower)
     if icon.isDefault then
         local info = nameLower and PIListEntry(nameLower)
         if not info or not info.texture then return nil end
-        return info.texture, info.alpha or 1.0
+        return info.texture, 1.0
     end
     return icon.texture, icon.alpha or 1.0
 end
@@ -363,13 +384,55 @@ local function PIIsChoiceAllowedForMe(index)
     return true
 end
 
-function PI.BuildPickerChoices()
+function PI.GetCategoryChoices()
+    local list = {}
+    for i, category in ipairs(PvPUA.constants.iconCategories) do
+        list[i] = { name = category.name, value = category.id }
+    end
+    return list
+end
+
+function PI.GetIconCategory(index)
+    local icon = index and PvPUA.constants.iconChoices[index]
+    return icon and icon.category or PvPUA.constants.iconCategories[1].id
+end
+
+function PI.GetFirstIconInCategory(categoryId)
+    for i, icon in ipairs(PvPUA.constants.iconChoices) do
+        if icon.category == categoryId and PIIsChoiceAllowedForMe(i) then return i end
+    end
+    return nil
+end
+
+function PI.GetMyCategory()
+    return PI.GetIconCategory(PI.GetMyIcon())
+end
+
+function PI.RefreshIconMenu()
+    zo_callLater(function()
+        local lcm = rawget(_G, "LibConsoleMenu")
+        if lcm and lcm.list and lcm.list.RefreshVisible then
+            pcall(lcm.list.RefreshVisible, lcm.list)
+        end
+    end, 1)
+end
+
+function PI.SetMyCategory(categoryId)
+    if categoryId == PI.GetMyCategory() then return end
+    local first = PI.GetFirstIconInCategory(categoryId)
+    if not first then return end
+    PI.SetMyIcon(first)
+    PI.RefreshIconMenu()
+end
+
+function PI.BuildPickerChoices(categoryId)
+    categoryId = categoryId or PI.GetMyCategory()
     PI.pickerToIndex = {}
     PI.indexToPicker = {}
     local textures = {}
     local me = PIMyNameLower()
     for i, icon in ipairs(PvPUA.constants.iconChoices) do
-        if PIIsChoiceAllowedForMe(i) then
+        if icon.category == categoryId and PIIsChoiceAllowedForMe(i) then
             local texture = icon.texture
             if icon.isDefault then texture = PIIconTexture(i, me) end
             textures[#textures + 1] = texture
@@ -381,23 +444,23 @@ function PI.BuildPickerChoices()
 end
 
 function PI.GetMyPickerIndex()
-    if not PI.indexToPicker then PI.BuildPickerChoices() end
+    PI.BuildPickerChoices()
     return PI.indexToPicker[PI.GetMyIcon()] or 1
 end
 
 function PI.SetMyPickerIndex(pickerIndex)
-    if not PI.pickerToIndex then PI.BuildPickerChoices() end
+    PI.BuildPickerChoices()
     local index = PI.pickerToIndex[tonumber(pickerIndex) or 1]
     if index then PI.SetMyIcon(index) end
 end
 
 function PI.GetMyDefaults()
     local me = PIMyNameLower()
-    local iconIndex, sizePct, height
+    local iconIndex, sizePct, height, opacity
     if me then
-        iconIndex, sizePct, height = PIListStyle(me)
+        iconIndex, sizePct, height, opacity = PIListStyle(me)
     end
-    return iconIndex or PvPUA.constants.ICON_NONE, PIRoundSize(sizePct or 100), PIRoundHeight(height or 0)
+    return iconIndex or PvPUA.constants.ICON_NONE, PIRoundSize(sizePct or 100), PIRoundHeight(height or 0), PIRoundOpacity(opacity or 100)
 end
 
 function PI.GetMyIcon()
@@ -444,13 +507,25 @@ function PI.SetMyHeight(v)
     PI.OnMyStyleChanged(750)
 end
 
+function PI.GetMyOpacity()
+    local cv = PvPUA.charVariables
+    if cv and cv.iconOpacity ~= nil then return PIRoundOpacity(cv.iconOpacity) end
+    local _, _, _, defaultOpacity = PI.GetMyDefaults()
+    return defaultOpacity
+end
+
+function PI.SetMyOpacity(v)
+    PvPUA.charVariables.iconOpacity = PIRoundOpacity(v)
+    PI.OnMyStyleChanged(750)
+end
+
 local function PIResolve(unit, nameLower)
     if unit == "player" then
-        return PI.GetMyIcon(), PI.GetMySize(), PI.GetMyHeight()
+        return PI.GetMyIcon(), PI.GetMySize(), PI.GetMyHeight(), PI.GetMyOpacity()
     end
     local r = PI.remote[nameLower]
     if r then
-        return r.icon, r.size, r.height
+        return r.icon, r.size, r.height, r.opacity
     end
     return PIListStyle(nameLower)
 end
@@ -472,12 +547,12 @@ end
 local PI_SEEN = {}
 
 local function PIShowUnit(unit, nameLower)
-    local iconIndex, sizePct, height = PIResolve(unit, nameLower)
+    local iconIndex, sizePct, height, opacity = PIResolve(unit, nameLower)
     local texture, alpha = PIIconTexture(iconIndex, nameLower)
     if not texture then return end
 
     local marker = PIGetMarker(nameLower)
-    marker:applyStyle(texture, alpha, sizePct, height)
+    marker:applyStyle(texture, alpha * (opacity or 100) / 100, sizePct, height)
     if not marker.enabled then
         marker:enable()
         marker:show()
@@ -563,6 +638,14 @@ local function PIDecodeHeight(steps)
     return PIRoundHeight(PI.HEIGHT_MIN + (tonumber(steps) or 10) * PI.HEIGHT_STEP)
 end
 
+local function PIEncodeOpacity(v)
+    return zo_clamp(math.floor((PIRoundOpacity(v) - PI.OPACITY_MIN) / PI.OPACITY_STEP + 0.5), 0, 31)
+end
+
+local function PIDecodeOpacity(steps)
+    return PIRoundOpacity(PI.OPACITY_MIN + (tonumber(steps) or 16) * PI.OPACITY_STEP)
+end
+
 function PI.Broadcast(request)
     if not PI.protocol or not IsUnitGrouped("player") then return end
     if not PvPUA.savedVariables or not PvPUA.charVariables then return end
@@ -570,6 +653,7 @@ function PI.Broadcast(request)
         icon    = PI.GetMyIcon(),
         size    = PIEncodeSize(PI.GetMySize()),
         height  = PIEncodeHeight(PI.GetMyHeight()),
+        opacity = PIEncodeOpacity(PI.GetMyOpacity()),
         request = request == true,
     })
 end
@@ -622,6 +706,7 @@ local function PIOnIconData(unitTag, data)
         icon   = iconIndex,
         size   = PIDecodeSize(data.size),
         height = PIDecodeHeight(data.height),
+        opacity = PIDecodeOpacity(data.opacity),
     }
     PI.ScheduleGroupRefresh()
 end
@@ -645,6 +730,7 @@ function PI.InitNetwork()
     protocol:AddField(LGB.CreateNumericField("icon",   { minValue = 0, maxValue = 63, trimValues = true }))
     protocol:AddField(LGB.CreateNumericField("size",   { minValue = 0, maxValue = 63, trimValues = true }))
     protocol:AddField(LGB.CreateNumericField("height", { minValue = 0, maxValue = 63, trimValues = true }))
+    protocol:AddField(LGB.CreateNumericField("opacity", { minValue = 0, maxValue = 31, trimValues = true }))
     protocol:AddField(LGB.CreateFlagField("request", { defaultValue = false }))
     protocol:OnData(PIOnIconData)
     protocol:Finalize({ isRelevantInCombat = true, replaceQueuedMessages = true })
@@ -685,8 +771,10 @@ local function PIGetGroupFrameIconInfo(unitTag, frameStyle)
     end
 
     local nameLower = string.lower(displayName)
-    local iconIndex = PIResolve(unit, nameLower)
-    return PIIconTexture(iconIndex, nameLower)
+    local iconIndex, _, _, opacity = PIResolve(unit, nameLower)
+    local texture, alpha = PIIconTexture(iconIndex, nameLower)
+    if not texture then return nil end
+    return texture, alpha * (opacity or 100) / 100
 end
 
 local function PIUpdateGroupFrameIcon(frame)
@@ -5768,8 +5856,9 @@ function PvPUA:CreateSettings()
     self:AIRefreshGuildChoices()
 
     local screenW, screenH = ScreenBounds()
-    local myIconDefault, mySizeDefault, myHeightDefault = PI.GetMyDefaults()
-    local myPickerChoices = PI.BuildPickerChoices()
+    local myIconDefault, mySizeDefault, myHeightDefault, myOpacityDefault = PI.GetMyDefaults()
+    local myCategoryDefault = PI.GetIconCategory(myIconDefault)
+    PI.BuildPickerChoices(myCategoryDefault)
     local myPickerDefault = PI.indexToPicker[myIconDefault] or 1
 
     local addonCategory = MOD_BROWSER_CATEGORY_TYPE_PVP
@@ -5790,7 +5879,7 @@ function PvPUA:CreateSettings()
     local menu = LibConsoleMenu:CreateAddonMenu("PvPUA", {
         title          = "PvP UA!",
         author         = "user562",
-        version        = "5",
+        version        = "5.1",
         category       = addonCategory,
         enableDefaults = true,
         enableReset    = true,
@@ -6098,9 +6187,15 @@ function PvPUA:CreateSettings()
           name = "|c" .. DC_HEX .. "Icon|r",
           icon = "EsoUI/Art/Options/Gamepad/gp_options_nameplates.dds",
           options = {
+        { type = "selector",
+          name = "Category",
+          choices = PI.GetCategoryChoices(),
+          default = myCategoryDefault,
+          getFunc = function() return PI.GetMyCategory() end,
+          setFunc = function(categoryId) PI.SetMyCategory(categoryId) end },
         { type = "iconpicker",
           name = "Icon",
-          choices = myPickerChoices,
+          choices = function() return PI.BuildPickerChoices() end,
           default = myPickerDefault,
           getFunc = function() return PI.GetMyPickerIndex() end,
           setFunc = function(index) PI.SetMyPickerIndex(index) end },
@@ -6112,6 +6207,10 @@ function PvPUA:CreateSettings()
           default = myHeightDefault,
           getFunc = function() return PI.GetMyHeight() end,
           setFunc = function(v) PI.SetMyHeight(v) end },
+        { type = "slider", name = "Opacity", min = PI.OPACITY_MIN, max = PI.OPACITY_MAX, step = PI.OPACITY_STEP,
+          default = myOpacityDefault,
+          getFunc = function() return PI.GetMyOpacity() end,
+          setFunc = function(v) PI.SetMyOpacity(v) end },
         { type = "checklist",
           name = "Show",
           noSelectionText = "None",

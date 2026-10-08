@@ -1,6 +1,23 @@
 PermMemento - Changelog
 =========================
 
+Version: 2026.10.07.17.24 (26100717)
+---------------------------
+
+Group Sync
+  - Players who already have a memento playing are left out of a sync instead of queuing it.
+
+Settings Menu
+  - Fixed the Active, Sync and Learned memento dropdowns that could still show empty text after their lists refresh.
+  - Activate Random Memento, Randomize on Zone Change and Randomize on Login only appear while Enable Randomization & Favorites is on, and the Group Sync section only while Group Sync is on.
+  - Fixed Select Active Memento staying greyed out when Randomize on Zone Change was on but Randomization & Favorites was off.
+
+Slash Commands
+  - Commands that need Randomization & Favorites, Learning or Group Sync are hidden while that option is off.
+  - Fixed /pmemacct (/pmemuseaccountsettings) being missing after the first session.
+  - Random picks now say so when there is nothing to pick from, and a group sync message that could not be sent says so.
+  - The /pmem command list on console no longer shows PC-only commands.
+
 Version: 2026.10.06.08.01 (26100608)
 ---------------------------
 
@@ -19,6 +36,7 @@ Technical Style & Logic
   - Updated Module Manager - Sync, Wizard, Menu, UI, and Migration can each be soft-disabled independently (/pmemunloadsync, /pmemunloadmenu, /pmemunloadui, /pmemunloadwizard, /pmemunloadmigration).
   - New Codebase changes and language localization support.
   - Removed a per-tick table allocation from the HUD's update handler.
+  - The busy check now stops at the first reason that applies and only looks up that reason's text.
 
 UI & Console Updates
   - The HUD UI auto hides and shows, if theres no active memento.
@@ -33,6 +51,7 @@ Maintenance & Bug Fixes
   - Fixed Crafting detection.
   - Updated the default Memento Delay values for new installs.
   - Removed Live statistics in favor of Client information for easier bug tracking.
+  - Fixed the Active, Sync and Learned memento dropdowns showing empty text after their lists refresh.
 
 
 Version: 2026.03.26.21.30 (26032621)

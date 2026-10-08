@@ -18,11 +18,12 @@
     "KDialogueHistory"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4919/",
-  "fingerprint": "3d53cdf6b5bc4fdd8b0c16e789160f80759db96212396ffb37c2fc2e13fe4a14",
+  "fingerprint": "89d1617fe0f9b263c1797726d4cf54e3880d69cc77008ba2302ed61897748b9d",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17760.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17761.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17759.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw17759.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17794.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -30,11 +31,11 @@
   "source_id": "4919",
   "source_url": "https://www.esoui.com/downloads/info4919-KDialogueHistory.html",
   "stats": {
-    "downloads": 5,
-    "favorites": 0,
-    "monthly_downloads": 4
+    "downloads": 10,
+    "favorites": 1,
+    "monthly_downloads": 9
   },
   "title": "KDialogueHistory",
-  "updated_at": 1791297360000,
-  "version": "1.0.0"
+  "updated_at": 1791376922000,
+  "version": "1.1.0"
 }

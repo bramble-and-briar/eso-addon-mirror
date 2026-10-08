@@ -105,6 +105,35 @@ function LibAPH.SendRawChatLine(msg)
 	end
 end
 
+local stored_slash_handlers = {}
+local CHAT_SYSTEM_NAMES = { "CHAT_SYSTEM", "KEYBOARD_CHAT_SYSTEM", "GAMEPAD_CHAT_SYSTEM" }
+
+local function ClearSlashAutoComplete()
+	for _, name in ipairs(CHAT_SYSTEM_NAMES) do
+		local system = rawget(_G, name)
+		local entry = type(system) == "table" and system.textEntry
+		local auto = type(entry) == "table" and entry.slashCommandAutoComplete
+		if type(auto) == "table" and type(auto.ClearPossibleCommandMatches) == "function" then
+			auto:ClearPossibleCommandMatches()
+		end
+	end
+end
+
+function LibAPH.SetSlashCommandsShown(names, shown)
+	local changed = false
+	for _, name in ipairs(names) do
+		local current = SLASH_COMMANDS[name]
+		if current then stored_slash_handlers[name] = current end
+		local wanted = shown and stored_slash_handlers[name] or nil
+		if current ~= wanted then
+			SLASH_COMMANDS[name] = wanted
+			changed = true
+		end
+	end
+	if changed then ClearSlashAutoComplete() end
+	return changed
+end
+
 local RELOAD_DELAY_MS = 1500
 
 function LibAPH.IsSafeToReloadUI()

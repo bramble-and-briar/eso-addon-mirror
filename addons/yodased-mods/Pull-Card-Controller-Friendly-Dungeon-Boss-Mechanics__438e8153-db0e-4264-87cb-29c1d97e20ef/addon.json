@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/yodased-mods/Dungeon-Boss-Pull-Card__438e8153-db0e-4264-87cb-29c1d97e20ef",
+  "archive_path": "addons/yodased-mods/Pull-Card-Controller-Friendly-Dungeon-Boss-Mechanics__438e8153-db0e-4264-87cb-29c1d97e20ef",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "yodased-mods",
   "canonical_id": "bethesda:438e8153-db0e-4264-87cb-29c1d97e20ef",
   "content_id": "438e8153-db0e-4264-87cb-29c1d97e20ef",
   "deleted": false,
-  "fingerprint": "4f49d82e6030510594afc0796f3e95c319829f8f6c612be37eb2d5f3ad9f713d",
+  "fingerprint": "b12ac4c8980145d8a0a238a8c480eaa097fb46b8f201c7f5c4787902de239ec7",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "438e8153-db0e-4264-87cb-29c1d97e20ef",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/438e8153-db0e-4264-87cb-29c1d97e20ef",
-  "title": "Dungeon Boss Pull Card"
+  "title": "Pull Card: Controller Friendly Dungeon Boss Mechanics"
 }

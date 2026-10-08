@@ -57,7 +57,10 @@ local function send_sync(kind, c_id)
 		PM.log_msg(PM.L(blocked), true, "error", 90)
 		return false
 	end
-	if not sync_protocol:Send({ kind = kind, collectibleId = c_id or 0 }) then return false end
+	if not sync_protocol:Send({ kind = kind, collectibleId = c_id or 0 }) then
+		PM.log_msg(PM.L("CHAT_SYNC_SEND_FAILED"), true, "error", 90)
+		return false
+	end
 	PM.log_msg(PM.L(kind == "stop" and "CHAT_SENT_GROUP_STOP" or "CHAT_SENT_GROUP_SYNC"), true, "sync", 90)
 	return true
 end
@@ -92,6 +95,8 @@ function PM.sync_engine.initialize()
 				send_sync("play", r_id)
 				PM.log_msg(PM.L("CHAT_SENT_RANDOM_SYNC"), true, "sync", 90); return
 			end
+			if PM._modules.loop then PM.log_msg(PM.L("CHAT_NO_RANDOM_AVAILABLE"), true, "error", 90) end
+			return
 		end
 
 		local max_cat = GetTotalCollectiblesByCategoryType(COLLECTIBLE_CATEGORY_TYPE_MEMENTO)
@@ -108,20 +113,22 @@ function PM.sync_engine.initialize()
 	end
 	SLASH_COMMANDS["/permmementosync"] = SLASH_COMMANDS["/pmsync"]
 
-	local function attempt_col(c_id)
+	local function attempt_col(c_id, own)
 		if not IsCollectibleUsable(c_id) then return end
 		if not PM.settings or not PM.settings.sync_module.is_enabled then return end
 		if IsUnitInCombat("player") and PM.settings.sync_module.ignore_in_combat then
 			return
 		end
 
-		if PM.settings.active_id then
+		if PM.settings.active_id and not own then
+			PM.log_msg(PM.L("CHAT_SYNC_SKIPPED_ACTIVE"), true, "sync", 70)
+		elseif PM.settings.active_id then
 			PM.log_msg(PM.L("CHAT_SYNC_RECEIVED_QUEUING"), true, "sync", 70); PM.settings.pending_sync_id = c_id
 		else
 			local c_rem, _ = GetCollectibleCooldownAndDuration(c_id)
 			if c_rem and c_rem > 0 then
 				PM.log_msg(PM.L("CHAT_SYNC_RECEIVED_COOLDOWN"), true, "sync", 70)
-				zo_callLater(function() attempt_col(c_id) end, c_rem + 1000)
+				zo_callLater(function() attempt_col(c_id, own) end, c_rem + 1000)
 			else
 				PM.log_msg(PM.L("CHAT_SYNC_RECEIVED_PLAYING"), true, "sync", 80)
 				PM_state.is_sync_firing = true; UseCollectible(c_id)
@@ -149,8 +156,15 @@ function PM.sync_engine.initialize()
 	end
 
 	on_sync_data = function(unitTag, data)
-		if not sync_listening() or type(data) ~= "table" then return end
-		if AreUnitsEqual(unitTag, "player") then return end
+		if type(data) ~= "table" then return end
+		if AreUnitsEqual(unitTag, "player") then
+			local own_id = tonumber(data.collectibleId)
+			if data.kind == "play" and PM_state.sync_running and own_id and own_id ~= 0 and IsCollectibleUnlocked(own_id) then
+				attempt_col(own_id, true)
+			end
+			return
+		end
+		if not sync_listening() then return end
 		if data.kind == "stop" then
 			receive_stop(zo_strformat("<<1>>", GetUnitName(unitTag)))
 		elseif data.kind == "play" then

@@ -4,7 +4,7 @@
 local l = {} -- private table for local use
 local m = { l = l } -- public table for module use
 local NAME = "ActionDurationReminder"
-local VERSION = "3.163"
+local VERSION = "3.166"
 local TITLE = "Action Duration Reminder"
 local LINK_TYPE = "ADR_LINK"
 

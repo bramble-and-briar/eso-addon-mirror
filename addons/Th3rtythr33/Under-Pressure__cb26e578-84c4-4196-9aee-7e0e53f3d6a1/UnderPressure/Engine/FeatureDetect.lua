@@ -243,6 +243,18 @@ function UP.RunApiAudit()
             ok and tostring(detail) or ("-- " .. tostring(detail) .. "; relying on name matching")))
     end
 
+    -- Effect-applied combat results (0.4.1). Undocumented but live on PC per
+    -- LibCombat; unknown on console. If NO, cleanse attribution can only use
+    -- heals, your own presses and buffs gained; an ally's Purge stays unknown.
+    if UP.Plague and UP.Plague.EffectResultsAvailable then
+        local ok = UP.Plague.EffectResultsAvailable()
+        d(("  %s  %-16s %s"):format(
+            ok and "|c00FF00YES|r" or "|cFF4040NO |r",
+            "effectResults",
+            ok and "(ACTION_RESULT_EFFECT_GAINED family present)"
+               or "-- undocumented results absent; allies' effects applied to you are invisible"))
+    end
+
     -- A Tank-mode block used to follow, reporting whether the group-filtered
     -- second registration was active -- it depended on combatFilter AND
     -- COMBAT_UNIT_TYPE_OTHER_PLAYER at once, which the per-flag list above did

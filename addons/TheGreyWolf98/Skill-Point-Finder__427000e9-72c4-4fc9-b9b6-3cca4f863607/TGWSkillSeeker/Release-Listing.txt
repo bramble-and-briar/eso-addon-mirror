@@ -1,0 +1,30 @@
+OVERVIEW
+Find your next skill points with automatic character progress tracking for dungeon
+quests, zone quests, skyshards, public-dungeon group events and Alliance Rank.
+Browse saved characters in a controller-friendly window. Open with /spf.
+
+DESCRIPTION
+Skill Point Finder helps you see where each of your characters still has skill
+points to earn, without manually ticking off their existing progress.
+
+Track base-game and DLC dungeon skill-point quests, zone quest rewards and
+skyshards, Cyrodiil, Imperial City, Alliance Rank and public-dungeon group events.
+The Other category includes The Harbourage, level awards and the Infinite Archive
+introduction.
+
+Log into each character once to capture their existing history automatically,
+then use the character selector to review any saved character. Offline characters
+show their last saved scan. Supported progress changes refresh automatically.
+
+The zone view groups EP, DC and AD in story progression order, with DLC zones in
+release order across two columns. Separate quest and skyshard colours make missing
+progress easy to spot. Dungeon entries use clear completion checkboxes.
+
+Open with /spf. Use LB/RB for categories, the D-pad for entries and columns,
+A for details, X for characters and Y to scan your currently logged-in character.
+No external libraries required.
+
+Dungeon completion refers to the one-time skill-point quest; public-dungeon
+completion refers to the group event. Available points and skyshard counts are
+shown separately. Unsupported optional or legacy rewards are marked unknown.
+Catalogue coverage and limitations are documented in README.txt.

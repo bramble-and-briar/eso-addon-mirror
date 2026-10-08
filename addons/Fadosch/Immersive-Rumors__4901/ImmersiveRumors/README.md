@@ -1,5 +1,5 @@
 # Immersive Rumors
-**Author:** Fadosch | **Version:** 1.0.0
+**Author:** Fadosch | **Version:** 1.0.1
 
 An immersion addon for **The Elder Scrolls Online (Update 51+)** that removes blue text highlights from **Rumors** clues, hints, and journal entries. 
 

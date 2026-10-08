@@ -1,0 +1,19 @@
+## Title: ESO Arabic 2.0
+## APIVersion: 101050 101051
+## Version: 2.0.0
+## Author: AzoozovicSaw21
+## Description: !ﻊﺘﻤﺘﺳﺍ .ﺔﻴﺑﺮﻌﻟﺍ ﺔﻐﻠﻟﺍ ﻰﻟﺇ ﺔﻴﻤﺳﺭ ﺮﻴﻏ ﺔﻤﺟﺮﺗ
+## SavedVariables: ESOArabicSavedVariables
+##
+EsoAR.lua
+modules/ArabicText.lua
+modules/ArabicForms.lua
+modules/ArabicFormatting.lua
+modules/ArabicRTL.lua
+modules/ArabicLayouts.lua
+modules/ArabicCompatibility.lua
+modules/ArabicStoreStrings.lua
+modules/ArabicTestPanel.lua
+modules/ArabicFontBackup.xml
+fonts/ArabicUI.slug
+fonts/ArabicUIBold.slug

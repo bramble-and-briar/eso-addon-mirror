@@ -140,7 +140,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Donation Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Libum/Donation-Tracker__2191) | Libum | PC / Mac | 1.20 |
 | [Dont Portal Twice (Cloudrest)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Dont-Portal-Twice-Cloudrest__2511) | ownedbynico | PC / Mac | 1.3 |
 | [DontLeaveGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uberswe/DontLeaveGuild__3335) | uberswe | PC / Mac | 1.2 |
-| [DovahMova - Ukrainian AI Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/DovahMova---Ukrainian-AI-Localization__4202) | Frozenshtoldts | PC / Mac | 1.5.0 |
+| [DovahMova - Ukrainian AI Localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Frozenshtoldts/DovahMova---Ukrainian-AI-Localization__4202) | Frozenshtoldts | PC / Mac | 1.5.1 |
 | [DoYouEvenDebuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AiMPlAyEr/DoYouEvenDebuff__2243) | AiMPlAyEr | PC / Mac | 1.7 |
 | [DPSMeterFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/voidbiscuit/DPSMeterFix__3416) | voidbiscuit | PC / Mac | 0.0.0 |
 | [Dragon Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Dragon-Hunter__3550) | kawamonkey | PC / Mac | 1.0 |
@@ -169,7 +169,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Duel Results](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Duel-Results__47568dd9-5328-4e2a-9862-c59932473a4b) | Vixen_Hunny | Console | — |
 | [DuelRPG](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neferys/DuelRPG__1100) | Neferys | PC / Mac | 0.6d |
 | [DuesPaid](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TuckerScorpions/DuesPaid__2579) | TuckerScorpions | PC / Mac | 3.7 |
-| [Dungeon Boss Pull Card](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased-mods/Dungeon-Boss-Pull-Card__438e8153-db0e-4264-87cb-29c1d97e20ef) | yodased-mods | Console | — |
 | [Dungeon Boss Pull Cards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased/Dungeon-Boss-Pull-Cards__4793) | yodased | PC / Mac | 0.20.0 |
 | [Dungeon Champions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scott123/Dungeon-Champions__2023) | Scott123 | PC / Mac | 1.0.16 |
 | [Dungeon Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/Dungeon-Helper__1956) | tomkolp | PC / Mac | 1.0.3 |

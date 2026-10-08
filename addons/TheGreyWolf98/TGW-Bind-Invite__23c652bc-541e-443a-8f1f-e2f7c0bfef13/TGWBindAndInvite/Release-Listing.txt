@@ -1,0 +1,35 @@
+TGW Bind & Invite
+Version 1.0.0
+By @TheGreyWolf98
+
+Keep control of your loot and get your group together with one controller-friendly addon.
+
+Manual binding lets you finish a dungeon or trial, offer gear to your group, then
+bind the uncollected pieces you keep. Review items individually in the preview,
+or use /tgw bind to bind one eligible copy of each missing backpack collection
+piece. Spare duplicates are left alone, the lowest-quality eligible copy is
+preferred, and locked items are protected. Optional AutoBind handles newly
+received uncollected pieces when you want to collect as you go.
+
+AutoInvite sends a group invitation when someone whispers your chosen exact
+keyword. Choose a controller preset or set your own with /tgw keyword yourword.
+Dungeon and trial limits, leadership checks, duplicate protection and pending
+invite reservations help keep recruitment under control.
+
+Both automatic features are independently toggleable and OFF by default.
+Includes a controller menu, binding preview, instructions and session log.
+Account settings are saved separately per server. No external libraries required.
+
+Commands
+/tgw or /tgwbi — open the menu.
+/tgw bind — immediately bind one eligible copy per missing collection piece.
+/tgw keyword yourword — set your custom invitation keyword.
+
+Binding removes trading rights. Preview exclusions last for the current session;
+use the game's item lock for lasting protection. Invites use ESO whispers, not
+Xbox private messages. Disable equivalent AutoBind/AutoInvite features in other
+addons, including NQOL, to avoid overlapping automation.
+
+1.0.0: Improved confirmation timing for asynchronous Xbox binding responses.
+Manual binding and whisper invites tested on Xbox; latest timing adjustment
+validated locally and awaiting an Xbox spot-check.

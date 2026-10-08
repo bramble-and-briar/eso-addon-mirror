@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 Meterskull = {
     name     = "Meterskull",
-    version  = "1.5.9",
+    version  = "1.6.0",
     modules  = {},
     db       = {},
     defaults = {},
@@ -50,6 +50,7 @@ local defaults = {
     sharedSettings = {
         accountWideSettings  = true,
         uiLocked             = false,
+        combatOnly           = false,
         renderTick           = 1000,   -- ms
         showArmorskull       = true,
         showHybridarmorskull = false,
@@ -67,6 +68,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 physical = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -86,6 +89,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 lowestResist = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -100,6 +105,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 power = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -114,6 +121,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 critChance = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -133,6 +142,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 critResist = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -147,6 +158,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 penetration = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -161,6 +174,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 recovery = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -175,6 +190,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 recovery = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -189,6 +206,8 @@ local defaults = {
         settings = {
             customScale     = 20,
             backgroundColor = { 0, 0, 0, 0.8 },
+            borderOpacity   = 50,
+            textOpacity     = 100,
             levels = {
                 recovery = {
                     { color = { 1, 1, 1, 1 }, level = 0 },
@@ -401,6 +420,7 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         end
         self.uiRefs.main:SetHidden(true)
         self.uiRefs.bg:SetCenterColor(unpack(MS.db[self.dbKey].settings.backgroundColor))
+        self:ApplyOpacity()
         self:CustomScale(MS.db[self.dbKey].settings.customScale)
 
         self.uiRefs.main:ClearAnchors()
@@ -410,6 +430,27 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
             MS.db[self.dbKey].location.y
         )
         return true
+    end
+
+    function mod:ApplyOpacity()
+        if not self.uiRefs then return end
+        local settings = MS.db[self.dbKey].settings
+        if self.uiRefs.bg then
+            self.uiRefs.bg:SetEdgeColor(0.6, 0.6, 0.6, settings.borderOpacity / 100)
+        end
+
+        local cfg = _G.MeterskullModuleUIConfig[self.name]
+        if not cfg then return end
+        local alpha = settings.textOpacity / 100
+        -- Control alpha preserves threshold colors and state-based color alpha.
+        for _, field in ipairs(cfg.fields) do
+            local valueControl = self.uiRefs[field.name]
+            local labelControl = self.uiRefs[field.name .. "Label"]
+            local secondLabelControl = self.uiRefs[field.name .. "SecondLabel"]
+            if valueControl then valueControl:SetAlpha(alpha) end
+            if labelControl then labelControl:SetAlpha(alpha) end
+            if secondLabelControl then secondLabelControl:SetAlpha(alpha) end
+        end
     end
 
     function mod:StopAnimations()
@@ -432,12 +473,18 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         if renderFunc then renderFunc(self, initial, skipAnimation) end
     end
 
+    function mod:ShouldShow()
+        local showKey = "show"..string.gsub(self.name,"^%l",string.upper)
+        return MS.db.sharedSettings[showKey] and not IsUnitDead("player")
+            and (not MS.db.sharedSettings.combatOnly or IsUnitInCombat("player")
+                or (MS.combatHideUntil or 0) > GetGameTimeMilliseconds())
+    end
+
     function mod:UpdateRenderTick()
         local updateName = self.eventNamespace .. "Render"
         EVENT_MANAGER:UnregisterForUpdate(updateName)
-        local showKey = "show"..string.gsub(self.name,"^%l",string.upper)
         if not self.uiRefs or not self.uiRefs.main or self.renderPaused
-            or not MS.db.sharedSettings[showKey] or IsUnitDead("player") then
+            or not self:ShouldShow() then
             return
         end
         EVENT_MANAGER:RegisterForUpdate(
@@ -452,23 +499,39 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         MS.db.sharedSettings[showKey] = show
         if not self.uiRefs or not self.uiRefs.main then return end
 
-        local playerIsDead = IsUnitDead("player")
-        local shouldShow = show and not playerIsDead
+        -- Preview controls change visibility instantly, without starting HUD fades.
+        if MS.lamPreviewActive then
+            if self.fragment then
+                self.fragment:SetHiddenForReason("MeterskullPreview", true, 0, 0)
+            end
+            self.uiRefs.main:SetAlpha(1)
+            self.uiRefs.main:SetHidden(not show)
+            if show then self:Render(true, true) else self:StopAnimations() end
+            self:UpdateRenderTick()
+            return
+        end
+
+        local shouldShow = self:ShouldShow()
 
         if shouldShow then
             if not self.fragment then
-                self.fragment = ZO_HUDFadeSceneFragment:New(self.uiRefs.main,nil,0)
+                self.fragment = ZO_HUDFadeSceneFragment:New(self.uiRefs.main,250,250)
+            end
+            if self.fragment:IsHiddenForReason("MeterskullPreview") then
+                self.uiRefs.main:SetHidden(true)
+                self.fragment:SetHiddenForReason("MeterskullPreview", false)
             end
             SCENE_MANAGER:GetScene("hud"):AddFragment(self.fragment)
             SCENE_MANAGER:GetScene("hudui"):AddFragment(self.fragment)
             self:Render(true, true)
         else
             self:StopAnimations()
-            self.uiRefs.main:SetHidden(true)
             if self.fragment then
                 SCENE_MANAGER:GetScene("hud"):RemoveFragment(self.fragment)
                 SCENE_MANAGER:GetScene("hudui"):RemoveFragment(self.fragment)
-                self.fragment = nil
+                -- Reuse the fragment so a new show can reverse an unfinished fade.
+            else
+                self.uiRefs.main:SetHidden(true)
             end
         end
         self:UpdateRenderTick()

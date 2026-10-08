@@ -78,7 +78,7 @@ function UniversalTracker.InitCompact(settingsTable, unitTag, control)
 				else
 					textureControl:SetTexture(settingsTable.overrideTexturePath)
 				end
-				if not IsAbilityPermanent(abilityId) then
+				if not IsAbilityPermanent(abilityId) and not UniversalTracker.secretlyPermanent[abilityId] then
                     if tonumber(settingsTable.textSettings.duration.overrideDuration) then
                         endTime = startTime + tonumber(settingsTable.textSettings.duration.overrideDuration)
                     end
@@ -131,7 +131,7 @@ function UniversalTracker.InitCompact(settingsTable, unitTag, control)
 						else
 							textureControl:SetTexture(settingsTable.overrideTexturePath)
 						end
-						if not IsAbilityPermanent(abilityId) then
+						if not IsAbilityPermanent(abilityId) and not UniversalTracker.secretlyPermanent[abilityId] then
                             if tonumber(settingsTable.textSettings.duration.overrideDuration) then
                                 endTime = startTime + tonumber(settingsTable.textSettings.duration.overrideDuration)
                             end
@@ -200,7 +200,7 @@ function UniversalTracker.InitCompact(settingsTable, unitTag, control)
 					textureControl:SetTexture(settingsTable.overrideTexturePath)
 				end
 
-                if not IsAbilityPermanent(abilityID) then
+                if not IsAbilityPermanent(abilityID) and not UniversalTracker.secretlyPermanent[abilityID] then
                     local endTime
                     if tonumber(settingsTable.textSettings.duration.overrideDuration) then
                         endTime = GetGameTimeMilliseconds() + (1000*tonumber(settingsTable.textSettings.duration.overrideDuration))
@@ -256,7 +256,7 @@ function UniversalTracker.InitCompact(settingsTable, unitTag, control)
 			end
 			if changeType ~= EFFECT_RESULT_FADED then
                 UniversalTracker.updateVisibility(control, true, settingsTable)
-                if not IsAbilityPermanent(abilityID) then
+                if not IsAbilityPermanent(abilityID) and not UniversalTracker.secretlyPermanent[abilityID] then
                     if tonumber(settingsTable.textSettings.duration.overrideDuration) then
                         endTime = startTime + tonumber(settingsTable.textSettings.duration.overrideDuration)
                     end

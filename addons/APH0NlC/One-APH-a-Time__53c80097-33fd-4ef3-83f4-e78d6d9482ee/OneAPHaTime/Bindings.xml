@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="One APH a Time">
+        <Category name="One APH a Time">
+            <Action name="OAPH_GET_ALL">
+                <Down>return OAPH.GetAll()</Down>
+            </Action>
+            <Action name="OAPH_TOGGLE">
+                <Down>OAPH.Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

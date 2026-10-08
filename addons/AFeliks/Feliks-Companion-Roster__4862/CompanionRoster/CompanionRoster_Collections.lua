@@ -41,10 +41,23 @@ local function GetOrCreateRoleIcon(tile)
     return tile.companionRosterRoleIcon
 end
 
--- Same colors as the roster window's Rapport column: green once maxed,
--- orange while still in progress.
-local RAPPORT_COLOR_MAXED = { 0.4, 1, 0.4, 1 }
-local RAPPORT_COLOR_IN_PROGRESS = { 1, 0.8, 0.4, 1 }
+-- The second icon of a hybrid, just to the right of the first. Created lazily
+-- the first time a hybrid tile needs it and only hidden afterward (tiles are
+-- pooled).
+local function GetOrCreateSecondRoleIcon(tile)
+    if tile.companionRosterRoleIcon2 == nil then
+        local tileControl = tile:GetControl()
+        local icon = CreateControl(tileControl:GetName() .. "CompanionRosterRole2", tileControl, CT_TEXTURE)
+        icon:SetDimensions(ROLE_ICON_SIZE, ROLE_ICON_SIZE)
+        icon:SetAnchor(LEFT, GetOrCreateRoleIcon(tile), RIGHT, 0, 0)
+        icon:SetDrawLevel(5)
+        tile.companionRosterRoleIcon2 = icon
+    end
+    return tile.companionRosterRoleIcon2
+end
+
+-- Colored like the roster window's Rapport column (the configurable
+-- "done"/"in progress" colors - see CompanionRoster.Data.GetColor).
 local RAPPORT_OFFSET_Y = 0 -- below the portrait, above the name label
 
 local function GetOrCreateRapportLabel(tile)
@@ -77,13 +90,23 @@ local function OnTileLayout(tile)
         companionId = GetCompanionIdForCollectible(collectibleData:GetId())
     end
 
-    local role = companionId and CompanionRoster.Data.GetShowRoleOnCollections() and CompanionRoster.Data.GetCompanionRole(companionId)
+    local role, secondaryRole
+    if companionId and CompanionRoster.Data.GetShowRoleOnCollections() then
+        role, secondaryRole = CompanionRoster.Data.GetCompanionRoles(companionId)
+    end
     if role then
         local icon = GetOrCreateRoleIcon(tile)
         icon:SetTexture(ZO_GetRoleIcon(role))
         icon:SetHidden(false)
     elseif tile.companionRosterRoleIcon then
         tile.companionRosterRoleIcon:SetHidden(true)
+    end
+    if role and secondaryRole then
+        local icon2 = GetOrCreateSecondRoleIcon(tile)
+        icon2:SetTexture(ZO_GetRoleIcon(secondaryRole))
+        icon2:SetHidden(false)
+    elseif tile.companionRosterRoleIcon2 then
+        tile.companionRosterRoleIcon2:SetHidden(true)
     end
 
     local rapportValue, rapportMax
@@ -93,7 +116,8 @@ local function OnTileLayout(tile)
     if rapportValue then
         local label = GetOrCreateRapportLabel(tile)
         label:SetText(tostring(rapportValue))
-        label:SetColor(unpack((rapportMax and rapportValue >= rapportMax) and RAPPORT_COLOR_MAXED or RAPPORT_COLOR_IN_PROGRESS))
+        local r, g, b = CompanionRoster.Data.GetColor((rapportMax and rapportValue >= rapportMax) and "done" or "inProgress")
+        label:SetColor(r, g, b, 1)
         label:SetHidden(false)
     elseif tile.companionRosterRapportLabel then
         tile.companionRosterRapportLabel:SetHidden(true)
@@ -106,6 +130,9 @@ end
 local function HideOverlays(tile)
     if tile.companionRosterRoleIcon then
         tile.companionRosterRoleIcon:SetHidden(true)
+    end
+    if tile.companionRosterRoleIcon2 then
+        tile.companionRosterRoleIcon2:SetHidden(true)
     end
     if tile.companionRosterRapportLabel then
         tile.companionRosterRapportLabel:SetHidden(true)

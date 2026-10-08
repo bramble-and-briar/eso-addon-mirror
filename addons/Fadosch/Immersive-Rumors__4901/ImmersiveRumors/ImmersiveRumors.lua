@@ -12,7 +12,7 @@ RumorsNoBlueHints = ImmersiveRumors
 local RNBH = ImmersiveRumors
 
 IR.name = "ImmersiveRumors"
-IR.version = "1.0.0"
+IR.version = "1.0.1"
 IR.author = "Fadosch"
 
 -- Default settings
@@ -51,11 +51,11 @@ function IR.IsBlueColor(hex)
     if not (r and g and b) then return false end
 
     -- Characteristics of blue/cyan text highlights in ESO:
-    -- 1. Blue channel is prominent: b >= 100
-    -- 2. Blue channel is substantially higher than red: b - r >= 35
+    -- 1. Blue channel is prominent: b >= 90
+    -- 2. Blue channel is substantially higher than red: b - r >= 25
     -- 3. Green channel is greater or equal to red (excludes purples/magentas): g >= r
     -- 4. Blue channel is dominant or close to green: b >= (g * 0.7)
-    return (b >= 100) and ((b - r) >= 35) and (g >= r) and (b >= (g * 0.7))
+    return (b >= 90) and ((b - r) >= 30) and (g >= r) and (b >= (g * 0.7))
 end
 
 -- Fast test to check if a string contains any blue color tags
@@ -372,6 +372,61 @@ local function SetupHooks()
                     zo_callLater(IR.ScanAndSanitizeAll, 50)
                 end
             end)
+        end
+    end
+
+    -- Hook Lore Reader (books, scrolls, notes found in the world)
+    if LORE_READER and type(LORE_READER.Show) == "function" then
+        local origShow = LORE_READER.Show
+        LORE_READER.Show = function(self, title, body, medium, showTitle, ...)
+            if IR.settings.enabled then
+                if type(body) == "string" and IR.ContainsBlueHighlight(body) then
+                    body = IR.RemoveBlueHighlights(body)
+                    DebugMsg("Neutralized blue highlights in Lore Reader body")
+                end
+                if type(title) == "string" and IR.ContainsBlueHighlight(title) then
+                    title = IR.RemoveBlueHighlights(title)
+                    DebugMsg("Neutralized blue highlights in Lore Reader title")
+                end
+            end
+            return origShow(self, title, body, medium, showTitle, ...)
+        end
+        DebugMsg("Hooked LORE_READER:Show()")
+    end
+
+    -- Register for EVENT_SHOW_BOOK to also scan the book UI controls after display
+    if EVENT_SHOW_BOOK then
+        EVENT_MANAGER:RegisterForEvent(IR.name .. "_Book", EVENT_SHOW_BOOK,
+            function(eventCode, title, body, medium, showTitle, bookId)
+                if IR.settings.enabled then
+                    DebugMsg("EVENT_SHOW_BOOK fired: title=%s, bookId=%s", tostring(title), tostring(bookId))
+                    zo_callLater(function()
+                        if ZO_LoreReader then
+                            IR.SanitizeControlTree(ZO_LoreReader)
+                        end
+                    end, 100)
+                end
+            end)
+        DebugMsg("Registered for EVENT_SHOW_BOOK")
+    end
+
+    -- Hook Lore Reader scenes (keyboard and gamepad)
+    if SCENE_MANAGER then
+        local lrSceneNames = { "loreReaderKeyboard", "loreReaderGamepad", "loreReader" }
+        for _, sceneName in ipairs(lrSceneNames) do
+            local lrScene = SCENE_MANAGER:GetScene(sceneName)
+            if lrScene then
+                lrScene:RegisterCallback("StateChange", function(oldState, newState)
+                    if newState == SCENE_SHOWN then
+                        zo_callLater(function()
+                            if ZO_LoreReader then
+                                IR.SanitizeControlTree(ZO_LoreReader)
+                            end
+                        end, 50)
+                    end
+                end)
+                DebugMsg("Hooked Lore Reader scene: %s", sceneName)
+            end
         end
     end
 

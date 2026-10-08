@@ -427,11 +427,15 @@ end
 
 local function OnLAMPanelOpened()
     if not MS or not MS.db then return end
+    MS.lamPreviewActive = true
     for moduleName, controls in pairs(UIControls) do
         if controls.main and fixedPositions[moduleName] then
             SetPositionForLAMPreview(controls.main, fixedPositions[moduleName])
             local settingKey = "show" .. string.gsub(moduleName, "^%l", string.upper)
-            controls.main:SetHidden(not MS.db.sharedSettings[settingKey])
+            local mod = MS.modules[moduleName]
+            if mod then
+                mod:ToggleVisibility(MS.db.sharedSettings[settingKey])
+            end
             controls.main:SetMovable(false)
             controls.main:SetMouseEnabled(false)
         end
@@ -440,9 +444,7 @@ end
 
 local function OnLAMPanelClosed()
     if not MS or not MS.db then return end
-
-    local currentScene = SCENE_MANAGER:GetCurrentScene()
-    local isInGame = currentScene and (currentScene:GetName() == "hud" or currentScene:GetName() == "hudui")
+    MS.lamPreviewActive = false
 
     for moduleName, controls in pairs(UIControls) do
         if controls.main and MS.db[moduleName] then
@@ -454,14 +456,10 @@ local function OnLAMPanelClosed()
                 MS.db[moduleName].location.x,
                 MS.db[moduleName].location.y
             )
-            local settingKey = "show" .. string.gsub(moduleName, "^%l", string.upper)
-            if isInGame and MS.db.sharedSettings[settingKey] then
-                controls.main:SetHidden(false)
-            else
-                controls.main:SetHidden(true)
-            end
+            controls.main:SetHidden(true)
         end
     end
+    UpdateUIVisibility()
     UpdateUILockState()
 end
 

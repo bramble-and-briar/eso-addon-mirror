@@ -75,24 +75,22 @@
             </Controls>
         </TopLevelControl>
 
-        <TopLevelControl name="UnchainedHelperNetchDangerAlert" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
-            <Dimensions x="900" y="72" />
-            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-70" />
+        <TopLevelControl name="UnchainedHelperTotemAlert" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
+            <Dimensions x="640" y="72" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-260" />
             <Controls>
-                <Label name="$(parent)Text" text="NETCH DANGER - MOVE" color="E8D56A" font="$(GAMEPAD_BOLD_FONT)|$(KB_34)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                <Label name="$(parent)Text" text="TOTEM ACTIVE" color="F6CF72" font="$(GAMEPAD_BOLD_FONT)|$(KB_36)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="CENTER">
                     <AnchorFill />
                 </Label>
             </Controls>
         </TopLevelControl>
 
-        <TopLevelControl name="UnchainedHelperTotemAlert" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
-            <Dimensions x="640" y="92" />
-            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-260" />
+
+        <TopLevelControl name="UnchainedHelperTotemTimer" mouseEnabled="false" movable="false" hidden="true" clampedToScreen="true">
+            <Dimensions x="640" y="46" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="-215" />
             <Controls>
-                <Backdrop name="$(parent)Bg" centerColor="080808D8" edgeColor="B88736EE" edgeSize="2">
-                    <AnchorFill />
-                </Backdrop>
-                <Label name="$(parent)Text" text="TOTEM ACTIVE" color="F6CF72" font="$(GAMEPAD_BOLD_FONT)|$(KB_36)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                <Label name="$(parent)Text" text="NEXT TOTEM: ~20s" color="F6CF72" font="$(GAMEPAD_MEDIUM_FONT)|$(KB_28)|soft-shadow-thick" verticalAlignment="CENTER" horizontalAlignment="CENTER">
                     <AnchorFill />
                 </Label>
             </Controls>

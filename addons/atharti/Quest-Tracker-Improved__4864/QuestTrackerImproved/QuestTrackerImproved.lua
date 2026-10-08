@@ -52,6 +52,9 @@ local defaultSV = {
 
 	width = 252,
 	iconSize = 32,
+	
+	hidePursuits = false,
+	stickyTrackers = true,
 }
 
 function QTI.GetFont(font, size, style)
@@ -163,9 +166,7 @@ function QTI.HideButton()
 end
 
 function QTI.ApplyTreeIndent()
-	local tracker = FOCUSED_QUEST_TRACKER
-	tracker.treeView:SetIndent(15)
-	tracker.treeView:Update()
+	FOCUSED_QUEST_TRACKER.treeView:Update()
 end
 
 function QTI.WrapPool(pool, fontGetter)
@@ -186,6 +187,11 @@ function QTI.WrapConditionPool(pool)
 			control.QTI_setTextWrapped = true
 			local originalSetText = control.SetText
 			control.SetText = function(controlSelf, text)
+				if controlSelf.entryType ~= ENTRY_TYPE_SUBCATEGORY_CONDITION then
+					if not text:find("^•") then
+						text = "• " .. text
+					end
+				end
 				originalSetText(controlSelf, text)
 				QTI.ApplyConditionStyle(controlSelf)
 			end
@@ -214,6 +220,23 @@ function QTI.ApplyFontsAndWidth()
 		QTI.ApplyControlColor(control, QTI.SV.hintColor)
 		QTI.ApplyTextAlignment(control)
 	end
+end
+
+function QTI.RestoreLeftTreeAnchor()
+	local tracker = FOCUSED_QUEST_TRACKER
+
+	local container = tracker:GetTrackerControl()
+
+	tracker.treeView:Clear()
+	tracker.headerPool:ReleaseAllObjects()
+	tracker.tracked = {}
+	tracker.assistedData = nil
+
+	tracker.treeView = ZO_TreeControl:New(ZO_Anchor:New(TOPLEFT, container, TOPLEFT), 15)
+	tracker.treeView:SetRelativePoint(BOTTOMLEFT)
+
+	tracker.initialized = false
+	tracker:InitialTrackingUpdate()
 end
 
 function QTI.SetupFonts()
@@ -335,10 +358,22 @@ function QTI.OnAddOnLoaded(_, addOnName)
 	QTI.ResizePanel()
 	QTI.RefreshHeaderIcons()
 	QTI.ApplyTreeIndent()
+	
+	if QTI.SV.hidePursuits then
+		TIMED_ACTIVITY_TRACKER:GetFragment():SetHiddenForReason("QTI", true)
+	end
 
-	EM:RegisterForEvent(QTI.name .. "_Detach", EVENT_ADD_ONS_LOADED, function()
-		EM:UnregisterForEvent(QTI.name .. "_Detach", EVENT_ADD_ONS_LOADED)
+	EM:RegisterForEvent(QTI.name, EVENT_ADD_ONS_LOADED, function()
+		EM:UnregisterForEvent(QTI.name, EVENT_ADD_ONS_LOADED)
+		
 		QTI.DetachQuestTracker()
+		
+		if QTI.SV.stickyTrackers then
+			QTI.AnchorSharedTrackersUnderQuest()
+		end
+		
+		QTI.RestoreLeftTreeAnchor()
+		QTI.HideArchiveButton()
 	end)
 
 	EM:RegisterForEvent(QTI.name, EVENT_QUEST_ADVANCED, function(_, questIndex)

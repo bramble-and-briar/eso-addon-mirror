@@ -216,6 +216,12 @@ end
 -- so the tracker's recorder stays API free and testable.
 local function onActionSlotUsed(eventCode, slotIndex)
     if not (UP.Plague and UP.Plague.IsActive and UP.Plague.IsActive()) then return end
+    -- Ability slots only: 3..7 are the bar, 8 the ultimate (the same indices
+    -- EasyMark relies on). Slots 1 and 2 are light and heavy attack, which
+    -- also raise this event and cannot cleanse anything -- the first field
+    -- report (2026-10-07) named a heavy attack as the remover because this
+    -- filter was missing. Anything above 8 is a quickslot or wheel.
+    if type(slotIndex) ~= "number" or slotIndex < 3 or slotIndex > 8 then return end
     local abilityId, name = 0, nil
     if type(GetSlotBoundId) == "function" then
         local category = (type(GetActiveHotbarCategory) == "function") and GetActiveHotbarCategory() or nil

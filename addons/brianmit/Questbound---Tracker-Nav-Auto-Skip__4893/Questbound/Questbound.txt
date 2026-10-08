@@ -1,0 +1,36 @@
+## Title: Questbound
+## Description: Quest tracker with a direction arrow and Nav arrows on the ground that lead you to your quest. Optional: LibAddonMenu-2.0 (settings), Advanced UI (minimap route).
+## Author: brianmit
+## Version: 1.1.0
+## AddOnVersion: 3
+## APIVersion: 101050 101051
+## SavedVariables: Questbound_SV
+## OptionalDependsOn: LibAddonMenu-2.0>=43 AUI
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries.
+; All rights reserved
+;
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+Questbound_Strings.lua
+Questbound_Strings_de.lua
+Questbound_Strings_fr.lua
+Questbound_RouteData.lua
+Questbound.lua
+Questbound_Nav.lua
+Questbound_Arrow.lua
+Questbound_Roads.lua
+Questbound_Path.lua
+Questbound_Beacon.lua
+Questbound_Minimap.lua
+Questbound_Reticle.lua
+Questbound_Dungeon.lua
+Questbound_Tracker.lua
+Questbound_Teleport.lua
+Questbound_Banner.lua
+Questbound_Skip.lua
+Questbound_Story.lua
+Questbound_Launcher.lua
+Questbound_Settings.lua
+Bindings.xml

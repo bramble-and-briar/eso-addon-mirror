@@ -729,7 +729,7 @@ local tooltipHooksInstalled = false
 local acOriginalTooltipFns = {} -- store last-seen function pointers to detect replacement
 local acHookMonitorActive = false -- avoid multiple monitor loops
 local acHookMonitorEnabled = false -- verbose hook monitor logging only; auto-rehook is always active
-local acHookedPointers = {} -- "<method>|<pointer>" values we already post-hooked
+local acHookedPointers = {} -- "<method>|<pointer>" values of installed post-hook wrappers
 local acLoggedReplacements = {} -- track already logged replacements to reduce spam
 local AC_HOOK_MONITOR_INTERVAL_MS = 3000
 
@@ -811,12 +811,12 @@ local function EnsureTooltipPostHooks(sourceTag)
 			if not acHookedPointers[pointerKey] then
 				local ok, err = pcall(function() SecurePostHook(ZO_Tooltip, spec.name, spec.handler) end)
 				if ok then
-					acHookedPointers[pointerKey] = true
 					hooked = hooked + 1
-					-- SecurePostHook replaced ZO_Tooltip[spec.name] with a new wrapper.
-					-- Store the post-hook pointer so the monitor treats our own wrapper as
-					-- "expected" and doesn't falsely detect it as a third-party replacement.
-					acOriginalTooltipFns[spec.name] = ZO_Tooltip[spec.name]
+					-- Track the installed wrapper so polling does not hook it again.
+					-- The original function still needs a hook if another addon restores it.
+					local installedPtr = ZO_Tooltip[spec.name]
+					acOriginalTooltipFns[spec.name] = installedPtr
+					acHookedPointers[GetHookPointerKey(spec.name, installedPtr)] = true
 				else
 					dbg(string.format('SecurePostHook failed for %s: %s', tostring(spec.name), tostring(err)))
 				end

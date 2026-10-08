@@ -1,9 +1,9 @@
 ## Title: dev sandbox 3
 ## Author: clubwratt
-## Version: 4.18.0
-## AddOnVersion: 41800
+## Version: 4.19.1
+## AddOnVersion: 41901
 ## APIVersion: 101050
-## Description: Dots on known spawn locations that currently have no node: orange in Cyrodiil (where the Colovian War Torte recipe book spawns), purple on empty runestone locations anywhere (possible Psijic Portal).
+## Description: Dots on known spawn locations that currently have no node: orange in Cyrodiil (where the Colovian War Torte recipe book spawns), purple on empty runestone locations (possible Psijic Portal). Off outside Cyrodiil by default (CYRODIIL ONLY setting).
 ## SavedVariables: DevSandbox3SavedVars
 ## OptionalDependsOn: LibConsoleLogger LibHarvensAddonSettings
 ## DevId: 3a4024fc-1465-4e5e-a96f-6d6b6a781497

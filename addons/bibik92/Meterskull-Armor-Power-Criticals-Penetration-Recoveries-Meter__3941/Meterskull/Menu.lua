@@ -72,6 +72,21 @@ local function InitializeMenu(MS)
         default = MS.defaults.sharedSettings.uiLocked,
     }
 
+    optionsData[#optionsData + 1] = {
+        type = "checkbox",
+        name = "Show Only During Combat",
+        tooltip = "Show enabled UI modules during combat, then wait 5 seconds before fading them out. When disabled, they are also shown out of combat. Previews remain visible without fades in this settings panel.",
+        getFunc = function() return MS.db.sharedSettings.combatOnly end,
+        setFunc = function(value)
+            MS.db.sharedSettings.combatOnly = value
+            MS.CancelCombatHideCooldown()
+            if _G.Meterskull_UpdateUIVisibility then
+                _G.Meterskull_UpdateUIVisibility()
+            end
+        end,
+        default = MS.defaults.sharedSettings.combatOnly,
+    }
+
     -- Helper: toggle module + update LAM2 preview directly (fragment system does not
     -- affect controls during LAM2 preview since the scene is not "hud"/"hudui").
     local function ToggleModule(mod, value)
@@ -135,6 +150,57 @@ local function InitializeMenu(MS)
             { type = "colorpicker", name = "Magicka Recovery UI Color", getFunc = function() return unpack(MS.db.magskull.settings.backgroundColor) end, setFunc = function(r,g,b,a) MS.db.magskull.settings.backgroundColor={r,g,b,a}; if MS.modules.magskull.uiRefs then MS.modules.magskull.uiRefs.bg:SetCenterColor(r,g,b,a) end end, default={unpack(MS.defaults.magskull.settings.backgroundColor)} },
             { type = "colorpicker", name = "Stamina Recovery UI Color", getFunc = function() return unpack(MS.db.stamskull.settings.backgroundColor) end, setFunc = function(r,g,b,a) MS.db.stamskull.settings.backgroundColor={r,g,b,a}; if MS.modules.stamskull.uiRefs then MS.modules.stamskull.uiRefs.bg:SetCenterColor(r,g,b,a) end end, default={unpack(MS.defaults.stamskull.settings.backgroundColor)} },
         },
+    }
+
+    -- Border and Text Opacity
+    local opacityModules = {
+        { key = "armorskull",       name = "Armor UI" },
+        { key = "hybridarmorskull", name = "Hybrid Armor UI" },
+        { key = "powerskull",       name = "Power UI" },
+        { key = "critskull",        name = "Criticals UI" },
+        { key = "critresiskull",    name = "Critical Resistance UI" },
+        { key = "penskull",         name = "Penetration UI" },
+        { key = "healthskull",      name = "Health Recovery UI" },
+        { key = "magskull",         name = "Magicka Recovery UI" },
+        { key = "stamskull",        name = "Stamina Recovery UI" },
+    }
+
+    local function MakeOpacityControls(settingKey, description, tooltip)
+        local controls = {
+            { type = "description", text = "|cd9d9d9" .. description .. "|r" },
+        }
+        for _, moduleInfo in ipairs(opacityModules) do
+            local key = moduleInfo.key
+            controls[#controls + 1] = {
+                type = "slider",
+                name = moduleInfo.name .. " Opacity (%)",
+                tooltip = tooltip,
+                min = 0, max = 100, step = 1,
+                getFunc = function() return MS.db[key].settings[settingKey] end,
+                setFunc = function(value)
+                    MS.db[key].settings[settingKey] = value
+                    if MS.modules[key] then MS.modules[key]:ApplyOpacity() end
+                end,
+                default = MS.defaults[key].settings[settingKey],
+            }
+        end
+        return controls
+    end
+
+    optionsData[#optionsData + 1] = {
+        type = "submenu",
+        name = "Border Opacity",
+        controls = MakeOpacityControls("borderOpacity",
+            "Adjust the border opacity for each UI module (Default = 50%). Set to 0% to hide the border.",
+            "Border opacity from 0% (invisible) to 100% (fully opaque). Does not affect the background or text."),
+    }
+
+    optionsData[#optionsData + 1] = {
+        type = "submenu",
+        name = "Text Opacity",
+        controls = MakeOpacityControls("textOpacity",
+            "Adjust the opacity of numbers and labels for each UI module (Default = 100%).",
+            "Numbers and labels opacity from 0% (invisible) to 100% (original opacity). Applied together with existing color transparency."),
     }
 
     -- Custom Scales
@@ -272,6 +338,7 @@ local function InitializeMenu(MS)
         if panel == myPanel then
             _G.Meterskull_OnLAMPanelOpened()
         else
+            MS.lamPreviewActive = false
             if MS_ArmorskullUI then MS_ArmorskullUI:SetHidden(true) end
             if MS_HybridarmorskullUI then MS_HybridarmorskullUI:SetHidden(true) end
             if MS_PowerskullUI then MS_PowerskullUI:SetHidden(true) end

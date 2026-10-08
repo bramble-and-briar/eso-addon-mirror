@@ -63,6 +63,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Waboku/Masquerade__1679) | Waboku | PC / Mac | 001-100018 |
 | [Masquerade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Masquerade__1514) | Werewolf Finds Dragon | PC / Mac | 010-100022 |
 | [Mass Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ahmetertem/Mass-Deconstructor__1118) | ahmetertem | PC / Mac | 7.3 |
+| [Master Baiter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Master-Baiter__fcf311fe-14ad-4eff-ae72-cee32d7b5943) | TheGreyWolf98 | Console | — |
 | [Master Merchant 3.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/Master-Merchant-3.0__2753) | Sharlikran | PC / Mac | 3.8.33 |
 | [Master Merchant RU Patch (for v1.9.2)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/Master-Merchant-RU-Patch-for-v1.9.2__1450) | ForgottenLight | PC / Mac | 1.9.2.1 |
 | [Master Writ Inventory Marker (WritWorthy Extension)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Master-Writ-Inventory-Marker-WritWorthy-Extension__2887) | code65536 | PC / Mac | 4.0.4 |
@@ -97,7 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MetaCheck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ulrich/MetaCheck__2725) | Ulrich | PC / Mac | 1.0.2 |
 | [Meterskull Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Meterskull-Console__90fcc3e4-279e-4654-834d-5ed6e5dc9a32) | j.hhh | Console | — |
 | [METERSKULL Port](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/METERSKULL-Port__36532469-e4dc-4cc3-b312-16b8a4bebc5b) | mYoda01 | Console | — |
-| [Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941) | bibik92 | PC / Mac | 1.5.9 |
+| [Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941) | bibik92 | PC / Mac | 1.6.0 |
 | [Metu's SpareIdler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MetuLiber_Ger/Metu-s-SpareIdler__227876bb-e9b1-439f-81fe-8f458ae351a8) | MetuLiber_Ger | Console | — |
 | [Miat's Battlegrounds Queue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Miat-s-Battlegrounds-Queue__1701) | dorrino | PC / Mac | 0.01 |
 | [Miat's CastIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Miat-s-CastIcon__1807) | dorrino | PC / Mac | 1.11 |

@@ -18,7 +18,7 @@
     "ImmersiveRumors"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4901/",
-  "fingerprint": "4a661701077e5b0a9ca7dca5a08f35f73e20b1fa8ce2572d8571d656c6b1c261",
+  "fingerprint": "efcd6061c36d0691a190a789dab029a84b4f88b33fb7130c1dff1b27f1b1ea32",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4901",
   "source_url": "https://www.esoui.com/downloads/info4901-ImmersiveRumors.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 85,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 79
   },
   "title": "Immersive Rumors",
-  "updated_at": 1790850102000,
-  "version": "1.0.0"
+  "updated_at": 1791384222000,
+  "version": "1.0.1"
 }

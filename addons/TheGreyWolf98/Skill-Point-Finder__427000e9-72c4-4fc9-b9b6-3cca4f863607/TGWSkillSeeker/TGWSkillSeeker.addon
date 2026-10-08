@@ -1,0 +1,10 @@
+## Title: Skill Point Finder
+## Author: TheGreyWolf98
+## Version: 1.0.0
+## AddOnVersion: 6
+## APIVersion: 101050 101051
+## SavedVariables: TGWSkillSeekerSavedVariables
+## Description: Character skill-point source tracker. /spf opens the controller window.
+Data.lua
+Tracker.lua
+UI.lua

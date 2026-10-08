@@ -28,17 +28,20 @@ function Settings.Initialize()
     panel:AddSetting(Slider(LAS, "FAR DOT SIZE (%)", "farScalePct", 25, 100, 5, "Size of a dot at the far distance below, relative to a close one. 100 = same size everywhere."))
     panel:AddSetting(Slider(LAS, "FAR DISTANCE (M)", "farScaleM", 50, 200, 10))
     panel:AddSetting(Check(LAS, "BLACK OUTLINE", "outline"))
+    panel:AddSetting({ type = LAS.ST_CHECKBOX, label = "CYRODIIL ONLY", tooltip = "Do nothing outside Cyrodiil - no spawn data loaded, no dots, not even runestone (Psijic) dots. Turn off to mark empty runestone locations in every zone.",
+        getFunction = function() return S().cyrodiilOnly end, setFunction = function(v) S().cyrodiilOnly = v; DevSandbox3.SlotActions.LoadZone() end })
     panel:AddSetting(Check(LAS, "WAR TORTE SPAWNS", "markWarTorte", "Any harvestable spawn location in Cyrodiil with no node - the Colovian War Torte recipe spawns in these."))
     panel:AddSetting(Color(LAS, "War Torte dot color", "warTorteColor"))
-    panel:AddSetting(Check(LAS, "PSIJIC PORTAL SPAWNS", "markPsijic", "Runestone spawn locations with no node, in every zone - a possible Psijic Portal."))
+    panel:AddSetting(Check(LAS, "PSIJIC PORTAL SPAWNS", "markPsijic", "Runestone spawn locations with no node - a possible Psijic Portal. In every zone only when CYRODIIL ONLY is off."))
     panel:AddSetting(Color(LAS, "Psijic dot color", "psijicColor"))
     panel:AddSetting(Check(LAS, "UNKNOWN (FAR)", "markUnknown", "No node seen there yet, but it is farther than the compass reliably reports nodes - may just be out of range."))
     panel:AddSetting(Color(LAS, "Unknown dot color", "unknownColor"))
     panel:AddSetting(Slider(LAS, "Unknown start (m)", "unknownM", 30, 200, 10, "Closer than this a location with no node is confirmed empty; farther it is unknown. Also never farther than the farthest node the compass has placed."))
     panel:AddSetting(Slider(LAS, "Unknown limit (m)", "unknownLimitM", 50, 200, 10, "Unknown dots are not drawn beyond this distance."))
     panel:AddSetting(Slider(LAS, "CHECKPOINT DISTANCE (M)", "checkedM", 5, 50, 1, "Coming within this distance of a location marks it as a checkpoint: its dot changes to the checkpoint color."))
-    panel:AddSetting({ type = LAS.ST_SLIDER, label = "CHECKPOINT DURATION (MIN)", tooltip = "How long checkpoints and resolved locations are remembered (survives reload and relog). 0 = until you press CLEAR CHECKPOINTS.", min = 0, max = 600, step = 15, format = "%d",
-        unit = function() return S().checkedMin == 0 and " = until cleared" or " min" end,
+    -- NOTE: LibHarvensAddonSettings (Console/Settings.lua:112) does `#self.unit` BEFORE GetValueOrCallback, so
+    -- `unit` must be a plain string - a function throws "operator # is not supported" and leaves the row blank.
+    panel:AddSetting({ type = LAS.ST_SLIDER, label = "CHECKPOINT DURATION (MIN)", tooltip = "How long checkpoints and resolved locations are remembered (survives reload and relog). 0 = until you press CLEAR CHECKPOINTS.", min = 0, max = 600, step = 15, format = "%d", unit = " min",
         getFunction = function() return S().checkedMin end, setFunction = function(v) S().checkedMin = v end })
     panel:AddSetting(Color(LAS, "Checkpoint dot color", "checkedColor"))
     panel:AddSetting(Check(LAS, "DEBUG: CYAN NODE DOTS", "debugNodes", "Where the compass says each nearby node is. Must sit on top of real nodes."))

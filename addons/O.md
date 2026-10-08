@@ -32,6 +32,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Omni Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RunningDuck/Omni-Stats__863) | RunningDuck | PC / Mac | 4.0.0 |
 | [OmNomNom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/OmNomNom__1037) | Werewolf Finds Dragon | PC / Mac | 002-100022 |
 | [One APH a Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/One-APH-a-Time__4923) | APH0N1C | PC / Mac | 2026.10.06.13.49 |
+| [One APH a Time](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/One-APH-a-Time__53c80097-33fd-4ef3-83f4-e78d6d9482ee) | APH0NlC | Console | — |
 | [One Click Champion Points](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/One-Click-Champion-Points__4870) | brianmit | PC / Mac | 1.1.0 |
 | [One Key Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ArMy-RiPPeR/One-Key-Assistant__2481) | \[ArMy\]RiPPeR | PC / Mac | 1.2 |
 | [One More Rockgrove Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/One-More-Rockgrove-Helper__38f0df90-e793-4c9c-af2b-44a958ed38cf) | M0R | Console | — |

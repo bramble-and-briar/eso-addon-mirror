@@ -8,7 +8,7 @@ DovahMova = DovahMova or {}
 local DovahMova = DovahMova
 
 DovahMova.name = "DovahMova"
-DovahMova.version = "1.5.0"
+DovahMova.version = "1.5.1"
 DovahMova.author = "Frozenshtoldts and DovahMova Team"
 
 -- Режими відображення назв (значення зберігаються в налаштуваннях)

@@ -78,6 +78,18 @@ function UP.Debug.LogSilence(abilityId, changeType, abilityType, statusEffectTyp
     trimLog()
 end
 
+-- Plaguebreak attribution evidence (0.4.1): an effect applied to us or a
+-- friendly event landing on us while a plague is active. Logged by kind so a
+-- player can see, on hardware, what an ally's Purge actually looks like from
+-- the victim's side -- the one question the design could not answer offline.
+function UP.Debug.LogPlagueEvidence(kind, sourceName, sourceType, abilityName, abilityId)
+    if not visible then return end
+    logBuffer[#logBuffer + 1] = ("plague %-7s from=%s(%s) ab=%s id=%s"):format(
+        tostring(kind), tostring(sourceName or "-"), tostring(sourceType or "-"),
+        tostring(abilityName or "-"), tostring(abilityId or "-"))
+    trimLog()
+end
+
 -- Unconditional, unlike the per-event loggers: this is for rare one-off
 -- diagnostics (currently only a font-apply failure), not hot-path traffic.
 function UP.Debug.Log(msg)

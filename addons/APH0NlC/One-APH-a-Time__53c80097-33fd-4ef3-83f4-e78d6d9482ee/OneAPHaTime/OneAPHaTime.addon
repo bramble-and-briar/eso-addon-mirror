@@ -1,0 +1,23 @@
+## Title: |c9CD04COne APH a Time|r
+## AddOnVersion: 26100613
+## Version: 2026.10.06.13.49
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+## SavedVariables: OAPHSV
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibAPH
+## Description: |cfa9c1bWithdraw takes one of a stack of recipes, motifs, fragments, containers or furnishings; Get All takes one of everything the settings allow. Learned items are used when you close the storage.|r |cCCFF00Toggle: /oneaphatime|r
+
+lang/default.lua
+lang/$(language).lua
+OneAPHaTime.lua
+Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

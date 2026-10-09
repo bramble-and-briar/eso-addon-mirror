@@ -8,9 +8,9 @@ local TT = TrialTagger
 TT.Catalog = {
 
     payloadVersion = 2,
-    catalogVersion = 3,
+    catalogVersion = 4,
     numTrials = 15,
-    trialBits = 58,
+    trialBits = 59,
     trialBytes = 10,
     maxSlots = 5,
 
@@ -76,10 +76,11 @@ TT.Catalog = {
             abbr = "MOL",
             name = "Maw of Lorkhaj",
             prefix = "V",
-            width = 2,
+            width = 3,
             slots = {
-                { key = "vet_complete", tier = "vet_complete", mask = 2, short = "vC", label = "vC", ids = { 1368 } },
-                { key = "vet_hm_complete", tier = "vet_hm_complete", mask = 1, short = "vHM", label = "HM", ids = { 1344 } },
+                { key = "vet_complete", tier = "vet_complete", mask = 4, short = "vC", label = "vC", ids = { 1368 } },
+                { key = "vet_hm_complete", tier = "vet_hm_complete", mask = 2, short = "vHM", label = "HM", ids = { 1344 } },
+                { key = "trifecta", tier = "trifecta", mask = 1, short = "TRI", label = "Dro-m'Athra Destroyer", ids = { 1391 } },
             },
         },
         {

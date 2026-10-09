@@ -8,10 +8,12 @@ PullCardData.CATEGORIES = {
     { key = "base", name = "Base Game Dungeons" },
     { key = "dlc", name = "DLC Dungeons" },
     { key = "trial", name = "Trials" },
+    { key = "arena", name = "Group Arenas" },
+    { key = "solo", name = "Solo Arenas" },
 }
 
 -- Registers a dungeon or trial. Must be called before its encounters.
---   category: "base" | "dlc" | "trial"
+--   category: "base" | "dlc" | "trial" | "arena" (group arenas) | "solo" (solo arenas, use addRound)
 --   opts.group:  DLC/chapter name, shown in the menu label (e.g. "Wolfhunter")
 --   opts.zoneId: GetZoneId() of the instance; when set, it is used instead of
 --                the zone name to match the player's location (see debug view)
@@ -63,4 +65,14 @@ end
 
 function PullCardData.addBoss(name, ...)
     PullCardData.addShared({name}, ...)
+end
+
+-- Solo arena round. Pops when the player enters `area` (the subzone/map name the
+-- game shows for that round) instead of when a boss frame appears. `area` may be
+-- a list when the game uses more than one name for a round. No role lines: solo
+-- content.
+function PullCardData.addRound(arenaName, area, title, summary, mechanics, tldr, extra)
+    PullCardData.addShared({}, arenaName, title, {}, summary, mechanics, nil, nil, nil, tldr, extra)
+    local encounters = PullCardData.encounters
+    encounters[#encounters].area = type(area) == "table" and area or { area }
 end

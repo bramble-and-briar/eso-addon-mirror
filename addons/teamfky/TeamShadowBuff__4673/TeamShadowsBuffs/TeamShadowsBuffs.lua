@@ -310,6 +310,8 @@ local function OnAddonLoaded(_, addonName)
         crimson_oath_proc = "crimson_oath",
         tremorscale_proc = "tremorscale",
         pillagers_profit_cd = "pillagers_profit",
+        major_sorcery = "major_brutality",
+        major_prophecy = "major_savagery",
     }
     local function MergeTrackerSettings(oldKey, newKey)
         local all = characterVars.effectSettings or {}

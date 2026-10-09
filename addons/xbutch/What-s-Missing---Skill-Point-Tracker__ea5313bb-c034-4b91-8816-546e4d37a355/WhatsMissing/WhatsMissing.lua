@@ -381,7 +381,11 @@ local function SPT_CalculateTotalPoints()
 	local skyshards = 0
 	for _, zi in ipairs(SPT.data.zones) do
 		quests = quests + #zi.quests
-		zi.skyshards = GetNumSkyshardsInZone(SPT.data.ZId.ZN[zi.key])
+		if zi.skyshardAchievement then
+			zi.skyshards = GetNumSkyshardsInAchievement(zi.skyshardAchievement)
+		else
+			zi.skyshards = GetNumSkyshardsInZone(SPT.data.ZId.ZN[zi.key])
+		end
 		skyshards = skyshards + zi.skyshards
 	end
 
@@ -463,6 +467,7 @@ local zones = {
 	{ key = "AP",  quests = { 6971, 6972, 6973, 6974, 6975, 6976, 7025, 6991, 6977 } },
 	{ key = "WW",  quests = { 7071, 7072, 7073, 7074, 7075, 7076, 7077, 7078, 7220 } },
 	{ key = "SO",  quests = { 7294, 7295, 7296, 7284, 7329, 7285, 7317, 7286, 7393 } },
+	{ key = "NV",  quests = {}, name = SPT_GUI_NOWHERE_VAULT, skyshardAchievement = 4657 },
 }
 
 SPT.data = {
@@ -705,6 +710,16 @@ local function GetGDQuestTooltipText(dungeon)
 	return FormatQuestName(questName, GCQI(dungeon.quest) ~= "")
 end
 
+local function GetSkyshardTooltipText(zone)
+	local lines = { GS(SPT_GUI_SKYSHARDS) }
+	for index = 1, zone.skyshards do
+		local skyshardId = GetAchievementSkyshardId(zone.skyshardAchievement, index)
+		local acquired = GetSkyshardDiscoveryStatus(skyshardId) == SKYSHARD_DISCOVERY_STATUS_ACQUIRED
+		lines[#lines + 1] = FormatQuestName(GetSkyshardHint(skyshardId), acquired)
+	end
+	return table.concat(lines, "\n\n")
+end
+
 local function GetPDTooltipText(pdung)
 	local name = GetAchievementInfo(pdung.achievement)
 	return FormatQuestName(name, IAchC(pdung.achievement))
@@ -718,8 +733,8 @@ local function SPT_GetZoneName(zone)
 	return zf("<<C:1>>", GZNBId(SPT.data.ZId.ZN[zone]))
 end
 
--- Quest/achievement completion (GetQuestTooltipText, GetGDQuestTooltipText,
--- GetPDTooltipText) is read live from the game API and only ever reflects
+-- Quest, achievement, and skyshard completion in tooltips is read live
+-- from the game API and only ever reflects
 -- whoever is actually logged in - it ignores which pd we're rendering from.
 -- So when rendering someone other than the live character, we must use
 -- their cached tooltip strings (captured the last time THEY were live)
@@ -772,20 +787,21 @@ local function SPT_UpdateGUITable(pd, tooltips)
 	for i, z in ipairs(SPT.data.zones) do
 		local text
 		if live then
-			text = GetQuestTooltipText(z.quests)
+			text = z.skyshardAchievement and GetSkyshardTooltipText(z) or GetQuestTooltipText(z.quests)
 			tooltips.SQS[z.key] = text
 		else
 			text = (tooltips.SQS and tooltips.SQS[z.key]) or ""
 		end
 		table.insert(SPT.GUI.SQS, {
 			i,
-			SPT_GetZoneName(z.key),
+			z.name and GS(z.name) or SPT_GetZoneName(z.key),
 			GetSV(pd.ZQ[z.key]),
 			#z.quests,
 			GetSV(pd.SS[z.key]),
 			z.skyshards,
 			text,
 			z.quests,
+			z.key,
 		})
 	end
 
@@ -972,9 +988,12 @@ local function SPT_RenderSQS()
 	local SQS_ColorSS = { need = SPT_rgbToHex(SPT.settings.SQS.needColorSS), progress = SPT_rgbToHex(SPT.settings.SQS.progColorSS), done = SPT_rgbToHex(SPT.settings.SQS.doneColorSS) }
 	local tempTable = SPT_SortTable(SPT.GUI.SQS, SPT.settings.SQS.sortCol)
 	local list = tabGamepadLists[2]
+	local selected = list:GetTargetData()
+	local selectedKey = selected and selected.rowKey
 	list:Clear()
 	for i = 1, #tempTable do
 		local d = {
+			rowKey      = "zone:" .. tempTable[i][9],
 			zone        = tempTable[i][2],
 			quests      = SPT_FormatProgress(tempTable[i][3], tempTable[i][4], SQS_ColorZQ),
 			skyshards   = SPT_FormatProgress(tempTable[i][5], tempTable[i][6], SQS_ColorSS),
@@ -984,6 +1003,11 @@ local function SPT_RenderSQS()
 		list:AddEntry("SPT_SQSSTemplate", d)
 	end
 	SPT_CommitList(list)
+	if selectedKey then
+		for index, row in ipairs(list.dataList) do
+			if row.rowKey == selectedKey then list:SetSelectedIndexWithoutAnimation(index); break end
+		end
+	end
 	SPT_GUI_Body_SQS_SL_T:SetText(SPT.GUI.SQS_SL_T)
 	SPT_GUI_Body_SQS_SS_T:SetText(SPT.GUI.SQS_SS_T)
 end
@@ -1280,7 +1304,7 @@ local function SPT_RefreshViewingDisplay()
 	-- one if there's nothing cached for them yet - panels never show stale
 	-- leftovers from whoever was displayed before. tooltips is passed
 	-- explicitly (never nil) except for self, so SPT_UpdateGUITable never
-	-- falls back to live quest-completion data for someone else.
+-- falls back to live completion data for someone else.
 	local pd, tooltips
 	if isSelf then
 		pd, tooltips = nil, nil -- SPT_UpdateGUITable defaults to live data
@@ -1373,7 +1397,9 @@ end
 
 local function ProcessScanSlice()
 	if not scan.running then return end
-	local deadline = GetFrameTimeMilliseconds() + SCAN_BUDGET_MS
+	-- Frame time is fixed during a callback; game time advances while Lua runs.
+	-- Yield at work-unit boundaries, so 8 ms is a cooperative target, not a hard cap.
+	local deadline = GetGameTimeMilliseconds() + SCAN_BUDGET_MS
 	local pd = SPT.ptsData
 
 	-- Phase 1: GSP (synchronous — fast enough to do in one shot)
@@ -1409,7 +1435,7 @@ local function ProcessScanSlice()
 				pd.ZQ[zd.key] = pd.ZQ[zd.key] + ((GCQI(zd.quests[i]) ~= "") and 1 or 0)
 			end
 			pd.ZQTot = pd.ZQTot + pd.ZQ[zd.key]
-			if GetFrameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1424,7 +1450,7 @@ local function ProcessScanSlice()
 			local d = gd[scan.index]
 			pd.GD[d.key] = GCQI(d.quest) ~= "" and 1 or 0
 			pd.GDTot = pd.GDTot + pd.GD[d.key]
-			if GetFrameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1439,7 +1465,7 @@ local function ProcessScanSlice()
 			local d = pdd[scan.index]
 			pd.PD[d.key] = IAchC(d.achievement) and 1 or 0
 			pd.PDTot = pd.PDTot + pd.PD[d.key]
-			if GetFrameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1455,13 +1481,20 @@ local function ProcessScanSlice()
 			local zId = SPT.data.ZId.ZN[zd.key]
 			pd.SS[zd.key] = 0
 			for i = 1, zd.skyshards do
-				local ssId = GetZoneSkyshardId(zId, i)
+				-- An achievement can group skyshards across separate room maps.
+				-- Discovery status still belongs to the active character.
+				local ssId
+				if zd.skyshardAchievement then
+					ssId = GetAchievementSkyshardId(zd.skyshardAchievement, i)
+				else
+					ssId = GetZoneSkyshardId(zId, i)
+				end
 				if GetSkyshardDiscoveryStatus(ssId) == SKYSHARD_DISCOVERY_STATUS_ACQUIRED then
 					pd.SS[zd.key] = pd.SS[zd.key] + 1
 				end
 			end
 			pd.numSSTot = pd.numSSTot + pd.SS[zd.key]
-			if GetFrameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1941,6 +1974,7 @@ local function SPT_Initialized(eventCode, addonName)
 	end)
 
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_SKILL_POINTS_CHANGED,  function() SPT_MarkDirty() end)
+	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_SKYSHARDS_UPDATED,      function() SPT_MarkDirty() end)
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_QUEST_REMOVED,         function(_, isCompleted) if isCompleted then SPT_MarkDirty() end end)
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_LEVEL_UPDATE,          function(_, unitTag) if unitTag == "player" then SPT_MarkDirty() end end)
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_ACHIEVEMENT_AWARDED,   function() SPT_MarkDirty() end)

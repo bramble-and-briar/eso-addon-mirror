@@ -273,6 +273,8 @@ end
 
 local function Tooltip(part)
     ClearTooltip(InformationTooltip)
+    -- (the build list panel is open: no tooltip over / next to it)
+    if B.UI.ListPanelOpen and B.UI.ListPanelOpen() then return end
     if part == "arrow" then
         InitializeTooltip(InformationTooltip, ui.arrowArea, TOP, 0, 10, BOTTOM)
         SetTooltipText(InformationTooltip, L(B.sv.launcher.folded and "LAUNCHER_UNFOLD_TT" or "LAUNCHER_FOLD_TT", FOLD_TO))
@@ -319,25 +321,19 @@ local function Tooltip(part)
     end
 end
 
+-- the build list panel under the slot (was the game's plain menu)
 local function PickForSlot(i)
-    ClearMenu()
-    local list = B.SortedBuilds()
-    if #list == 0 then
-        AddMenuItem(L("LIST_EMPTY_SHORT"), function() B.UI.Show() end)
-    end
-    for _, b in ipairs(list) do
-        AddMenuItem(b.name, function()
-            local fav = B.Char().fav
-            -- the same build twice makes no sense: move it
-            for j = #fav, 1, -1 do
-                if fav[j] == b.id then table.remove(fav, j) end
-            end
-            if i > #fav + 1 then i = #fav + 1 end
-            if fav[i] then fav[i] = b.id else fav[#fav + 1] = b.id end
-            B.callbacks:FireCallbacks("BuildsChanged")
-        end)
-    end
-    ShowMenu(ui.win)
+    ClearTooltip(InformationTooltip)
+    B.UI.PickFavorite(ui.favs[i] or ui.win, i, function(b)
+        local fav = B.Char().fav
+        -- the same build twice makes no sense: move it
+        for j = #fav, 1, -1 do
+            if fav[j] == b.id then table.remove(fav, j) end
+        end
+        if i > #fav + 1 then i = #fav + 1 end
+        if fav[i] then fav[i] = b.id else fav[#fav + 1] = b.id end
+        B.callbacks:FireCallbacks("BuildsChanged")
+    end)
 end
 
 local function FavMenu(i)

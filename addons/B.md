@@ -31,7 +31,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BanditsUserInterfaceZHPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FusRoDah/BanditsUserInterfaceZHPatch__3909) | FusRoDah | PC / Mac | 4.413 |
 | [Bank balancer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Bank-balancer__2066) | Ek1 | PC / Mac | 4.0-180709 |
 | [Bank Data Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/jreid01/Bank-Data-Exporter__3825) | jreid01 | PC / Mac | 1.0.3.1 |
-| [Bank Manager Revived - Slim Edition](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---Slim-Edition__2333) | Gamer1986PAN | PC / Mac | 14.90 |
+| [Bank Manager Revived - Slim Edition](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/Bank-Manager-Revived---Slim-Edition__2333) | Gamer1986PAN | PC / Mac | 15.13 |
 | [Bank Stacker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Bank-Stacker__1837) | Dolgubon | PC / Mac | 1.1.1 |
 | [Banker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nols1000/Banker__362) | Nols1000 | PC / Mac | 1.6 |
 | [Banker Shutup](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mctaylor/Banker-Shutup__869) | mctaylor | PC / Mac | 3.5c |
@@ -64,6 +64,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Beltalowda - testing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kickimanjaro/Beltalowda---testing__4395) | Kickimanjaro | PC / Mac | 0.5.4 |
 | [Berserk Tracker (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Berserk-Tracker-PC-Console__4801) | Duesentrieb | PC / Mac | 20260829-0001 |
 | [BestFriends 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/BestFriends-2018__1975) | Phuein | PC / Mac | 2.16 |
+| [beta jh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/beta-jh__bd7f229c-f922-457b-a9c6-16e3f0427654) | j.hhh | Console | — |
 | [BetaBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tetsurion/BetaBars__1f95515e-9df4-487e-9e56-ab184190fd95) | Tetsurion | Console | — |
 | [BetaScry](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Latetide/BetaScry__3783) | Latetide | PC / Mac | 1.0.0 |
 | [Better Antiquities Journal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DH8Wolf/Better-Antiquities-Journal__2701) | DH8Wolf | PC / Mac | 0.3 |

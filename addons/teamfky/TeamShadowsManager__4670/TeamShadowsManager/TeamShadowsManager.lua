@@ -2837,6 +2837,19 @@ local function RegisterSettingsPanel()
                 },
                 {
                     type = "checkbox",
+                    name = function() return PBT.GetString("rockgrove_options_enabled") end,
+                    getFunc = function() return PBT.savedVars.bahseiRaidOptions ~= false end,
+                    setFunc = function(value)
+                        PBT.savedVars.bahseiRaidOptions = value
+                        if not value and PBT.BahseiPortal then
+                            PBT.BahseiPortal:RemoveWallArrows()
+                            PBT.BahseiPortal:ResetPortalState()
+                        end
+                    end,
+                    default = PBT.defaults.bahseiRaidOptions,
+                },
+                {
+                    type = "checkbox",
                     name = function() return PBT.GetString("bahsei_wall_arrows") end,
                     tooltip = function() return PBT.GetString("bahsei_wall_arrows_tooltip") end,
                     getFunc = function() return PBT.savedVars.bahseiWallArrows ~= false end,
@@ -2845,6 +2858,16 @@ local function RegisterSettingsPanel()
                         if not value and PBT.BahseiPortal then PBT.BahseiPortal:RemoveWallArrows() end
                     end,
                     default = PBT.defaults.bahseiWallArrows,
+                },
+                {
+                    type = "checkbox",
+                    name = function() return PBT.GetString("bahsei_ghost_counter_enabled") end,
+                    getFunc = function() return PBT.savedVars.bahseiGhostCounter ~= false end,
+                    setFunc = function(value)
+                        PBT.savedVars.bahseiGhostCounter = value
+                        if not value and PBT.BahseiPortal then PBT.BahseiPortal:HideGhostCounter() end
+                    end,
+                    default = PBT.defaults.bahseiGhostCounter,
                 },
                 {
                     type = "checkbox",
@@ -2863,28 +2886,13 @@ local function RegisterSettingsPanel()
                 },
                 {
                     type = "slider",
-                    name = function() return PBT.GetString("bahsei_ghost_total") end,
-                    min = 6,
-                    max = 20,
-                    step = 1,
-                    getFunc = function() return PBT.savedVars.bahseiGhostTotal end,
-                    setFunc = function(value)
-                        PBT.savedVars.bahseiGhostTotal = value
-                        if PBT.savedVars.bahseiGhostThreshold >= value then
-                            PBT.savedVars.bahseiGhostThreshold = value - 1
-                        end
-                    end,
-                    default = PBT.defaults.bahseiGhostTotal,
-                },
-                {
-                    type = "slider",
                     name = function() return PBT.GetString("bahsei_ghost_threshold") end,
                     min = 1,
-                    max = 10,
+                    max = 23,
                     step = 1,
                     getFunc = function() return PBT.savedVars.bahseiGhostThreshold end,
                     setFunc = function(value)
-                        PBT.savedVars.bahseiGhostThreshold = math.min(value, PBT.savedVars.bahseiGhostTotal - 1)
+                        PBT.savedVars.bahseiGhostThreshold = math.min(value, 23)
                     end,
                     default = PBT.defaults.bahseiGhostThreshold,
                 },
@@ -3385,8 +3393,14 @@ local function OnAddonLoaded(_, addonName)
     if PBT.savedVars.nahvPortalHpWarning == nil then
         PBT.savedVars.nahvPortalHpWarning = PBT.defaults.nahvPortalHpWarning
     end
+    if PBT.savedVars.bahseiRaidOptions == nil then
+        PBT.savedVars.bahseiRaidOptions = PBT.defaults.bahseiRaidOptions
+    end
     if PBT.savedVars.bahseiWallArrows == nil then
         PBT.savedVars.bahseiWallArrows = PBT.defaults.bahseiWallArrows
+    end
+    if PBT.savedVars.bahseiGhostCounter == nil then
+        PBT.savedVars.bahseiGhostCounter = PBT.defaults.bahseiGhostCounter
     end
     if PBT.savedVars.bahseiGhostCall == nil then
         PBT.savedVars.bahseiGhostCall = PBT.defaults.bahseiGhostCall
@@ -3394,8 +3408,9 @@ local function OnAddonLoaded(_, addonName)
     if PBT.savedVars.bahseiGhostReceive == nil then
         PBT.savedVars.bahseiGhostReceive = PBT.defaults.bahseiGhostReceive
     end
-    PBT.savedVars.bahseiGhostTotal = zo_clamp(tonumber(PBT.savedVars.bahseiGhostTotal) or PBT.defaults.bahseiGhostTotal, 6, 20)
-    PBT.savedVars.bahseiGhostThreshold = zo_clamp(tonumber(PBT.savedVars.bahseiGhostThreshold) or PBT.defaults.bahseiGhostThreshold, 1, PBT.savedVars.bahseiGhostTotal - 1)
+    -- Encounter.log confirms eight portal phantoms (unitTypeId 103349).
+    PBT.savedVars.bahseiGhostTotal = 24
+    PBT.savedVars.bahseiGhostThreshold = zo_clamp(tonumber(PBT.savedVars.bahseiGhostThreshold) or PBT.defaults.bahseiGhostThreshold, 1, 23)
     if PBT.savedVars.narrationDebug == nil then
         PBT.savedVars.narrationDebug = false
     end

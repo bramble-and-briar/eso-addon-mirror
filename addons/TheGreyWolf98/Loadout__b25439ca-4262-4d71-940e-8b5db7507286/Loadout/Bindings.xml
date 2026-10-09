@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Loadout">
+            <Action name="LOADOUT_TOGGLE">
+                <Down>Loadout.Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

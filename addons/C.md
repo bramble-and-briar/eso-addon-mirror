@@ -39,6 +39,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CASE - Character Addon Settings Editor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/CASE---Character-Addon-Settings-Editor__4036) | atharti | PC / Mac | 6.8 |
 | [Cashier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tarlac/Cashier__2040) | Tarlac | PC / Mac | 1.35 |
 | [Cast Skill IDs (CastIDs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wendiga/Cast-Skill-IDs-CastIDs__4183) | Wendiga | PC / Mac | 1.1 |
+| [CastHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/CastHelper__4928) | DesertMorfen | PC / Mac | 1.2.6 |
 | [CasualClean](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/CasualClean__c75df85c-f9c0-4e54-a0f3-d5173e44a850) | Th3rtythr33 | Console | — |
 | [Cat Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cpcharles/Cat-Icons__4228) | cpcharles | PC / Mac | 1.6 |
 | [CatSupportIcons - icon pack for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/def-venom/CatSupportIcons---icon-pack-for-OdySupportIcons__3396) | def venom | PC / Mac | 1.001 |
@@ -263,7 +264,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CraftMaterialAssistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant__949980bd-b411-4102-82d7-4e64ba17bc3a) | lesse83 | Console | — |
 | [CraftMaterialAssistant (Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lesse83/CraftMaterialAssistant-Beta__96d1c172-661c-4739-960f-fcf660401298) | lesse83 | Console | — |
 | [CraftPawns](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HellWhyNot/CraftPawns__4883) | HellWhyNot | PC / Mac | 1.2 |
-| [CraftStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/CraftStore__1590) | Rhyono | PC / Mac | 3.05 |
+| [CraftStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/CraftStore__1590) | Rhyono | PC / Mac | 3.06 |
 | [CRAFTY Stocklist - The craftbag stock watchlist for your crafting profession](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rp12439_3/CRAFTY-Stocklist---The-craftbag-stock-watchlist-for-your-crafting-profession__3116) | rp12439_3 | PC / Mac | V2.65 |
 | [Criminal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/napalmskull/Criminal__3765) | napalmskull | PC / Mac | 1.0.1 |
 | [Criscal's Enchantability Display (Check Enchantment)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Criscal/Criscal-s-Enchantability-Display-Check-Enchantment__317) | Criscal | PC / Mac | 1.0.20 |

@@ -13,6 +13,11 @@ function Scanner.GetAchievement(id)
     if not id or id <= 0 then return nil end
     local name, description, points, icon, completed = GetAchievementInfo(id)
     if not name or name == "" then return nil end
+    -- The title an achievement grants is not the achievement's own name:
+    -- "Maw of Lorkhaj: Moons' Champion" grants "Dro-m'Athra Destroyer". The
+    -- catalog names roles after the title wherever one exists, and nothing in
+    -- GetAchievementInfo carries it, so it has to be read separately.
+    local hasTitle, title = GetAchievementRewardTitle(id)
     return {
         id = id,
         name = name,
@@ -20,6 +25,9 @@ function Scanner.GetAchievement(id)
         points = points,
         icon = icon,
         completed = completed == true,
+        -- nil rather than "" when there is no title, so the dump does not
+        -- gain an empty key on each of the ~4000 achievements that grant none.
+        title = (hasTitle and title ~= "") and title or nil,
     }
 end
 
@@ -153,6 +161,9 @@ function Scanner.DumpToSavedVars(savedVars)
                 description = info.description,
                 points = info.points,
                 completed = info.completed,
+                -- Absent for most achievements. Present for the ones the
+                -- catalog should be naming roles after.
+                title = info.title,
             }
         end
         dump[page.title] = entries

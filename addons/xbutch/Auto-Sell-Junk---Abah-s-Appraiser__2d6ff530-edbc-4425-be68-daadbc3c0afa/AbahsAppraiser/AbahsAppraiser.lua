@@ -3,7 +3,7 @@ if not ASJ then ASJ = {} end
 
 ASJ.addOnName = "AbahsAppraiser"
 ASJ.addOnDisplayName = "Auto mark/sell junk"
-ASJ.version = "1.51.04"
+ASJ.version = "1.51.05"
 ASJ.author = "xbutch"
 local C = ASJ.Config
 
@@ -650,7 +650,9 @@ local scanState = {
 
 local function ProcessScanSlice()
 	if not scanState.running then return end
-	local start = GetFrameTimeMilliseconds()
+	-- Frame time is fixed during a callback; game time advances while Lua runs.
+	-- The budget is cooperative and checked after each inventory slot.
+	local start = GetGameTimeMilliseconds()
 	local bagId = scanState.bag
 	while scanState.nextSlot <= scanState.lastIndex do
 		local slotIndex = scanState.nextSlot
@@ -665,7 +667,7 @@ local function ProcessScanSlice()
 			scanState.skippedEmpty = scanState.skippedEmpty + 1
 		end
 		scanState.nextSlot = scanState.nextSlot + 1
-		if (GetFrameTimeMilliseconds() - start) >= ASJ.scanSliceTimeMS then break end
+		if (GetGameTimeMilliseconds() - start) >= ASJ.scanSliceTimeMS then break end
 	end
 	if scanState.nextSlot > scanState.lastIndex then
 		scanState.running = false

@@ -98,7 +98,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MetaCheck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ulrich/MetaCheck__2725) | Ulrich | PC / Mac | 1.0.2 |
 | [Meterskull Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Meterskull-Console__90fcc3e4-279e-4654-834d-5ed6e5dc9a32) | j.hhh | Console | — |
 | [METERSKULL Port](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/METERSKULL-Port__36532469-e4dc-4cc3-b312-16b8a4bebc5b) | mYoda01 | Console | — |
-| [Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941) | bibik92 | PC / Mac | 1.6.0 |
+| [Meterskull: Armor, Power, Criticals, Penetration, Recoveries Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bibik92/Meterskull-Armor-Power-Criticals-Penetration-Recoveries-Meter__3941) | bibik92 | PC / Mac | 1.6.1 |
 | [Metu's SpareIdler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MetuLiber_Ger/Metu-s-SpareIdler__227876bb-e9b1-439f-81fe-8f458ae351a8) | MetuLiber_Ger | Console | — |
 | [Miat's Battlegrounds Queue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Miat-s-Battlegrounds-Queue__1701) | dorrino | PC / Mac | 0.01 |
 | [Miat's CastIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dorrino/Miat-s-CastIcon__1807) | dorrino | PC / Mac | 1.11 |

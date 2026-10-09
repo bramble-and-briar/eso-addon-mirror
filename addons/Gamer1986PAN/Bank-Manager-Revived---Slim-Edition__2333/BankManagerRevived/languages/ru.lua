@@ -126,3 +126,20 @@ SafeAddString(BMR_IMPORT_DESC									, "Выбрать с какого перс
 SafeAddString(BMR_IMPORTED										, "Настройки BMR были импортированы с персонажа <<1>>", 1)
 
 SafeAddString(BMR_ZOS_LIMITATIONS							, "Учитывая ограничения игры, за один раз BMR обрабатывает только 98 предметов. Пожалуйста, подождите 10 секунд и повторите действие еще раз.", 1)
+-- Новые параметры / ScriptTracker
+SafeAddString(BMR_GLOBAL_ADDON_PROFILE			, "Глобальный профиль аддона (перезагрузка после выбора)", 1)
+SafeAddString(BMR_GLOBAL_ADDON_PROFILE_TOOLTIP	, "Выберите глобальный профиль BMR. Интерфейс будет перезагружен после изменения. По умолчанию: <<1>>", 1)
+SafeAddString(BMR_PROFILE_COUNT					, "Количество профилей", 1)
+SafeAddString(BMR_PROFILE_COUNT_TOOLTIP			, "Определяет количество доступных профилей BMR. Профили выше этого числа сохраняются, но скрываются до увеличения значения.", 1)
+
+SafeAddString(BMR_SCRIPTTRACKER						, "ScriptTracker / Скриптуры", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DESC					, "Автоматически помещает в банк скриптуры, уже известные текущему персонажу, и извлекает из банка скриптуры, которые персонаж ещё не знает. Перемещение выполняет BMR.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ENABLE				, "Включить автоматическое управление скриптурами", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ENABLE_TOOLTIP	, "При открытии банка использует данные ScriptTracker о знаниях текущего персонажа.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEPOSIT_KNOWN	, "Помещать известные скриптуры в банк", 1)
+SafeAddString(BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN, "Извлекать неизвестные скриптуры из банка", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ONE_ONLY			, "Извлекать только один экземпляр каждой неизвестной скриптуры", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP, "Если включено, BMR извлекает из банка не более одного экземпляра каждой неизвестной скриптуры. Если скриптура уже есть в инвентаре, дополнительный экземпляр не извлекается.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEBUG				, "Включить отладочные сообщения ScriptTracker", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEBUG_TOOLTIP	, "Выводит подробную диагностическую информацию ScriptTracker/BMR в чат. По умолчанию отключено.", 1)
+

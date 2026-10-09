@@ -381,7 +381,9 @@ end
 local function ReceiveBahseiPayload(unitTag, data)
     if IsSelf(unitTag) then return end
     local payload = data and data.payload
-    if type(payload) ~= "string" or not payload:match("^TSMB1|[A-Z0-9_]+|%d+$") then return end
+    if type(payload) ~= "string"
+        or not (payload:match("^TSMB1|[A-Z0-9_]+|%d+$") or payload:match("^TSMB1|[A-Z0-9_]+|%d+|%d+$"))
+    then return end
     if TSM.BahseiPortal and TSM.BahseiPortal.OnGroupSignal then
         TSM.BahseiPortal:OnGroupSignal(unitTag, payload)
     end
@@ -420,7 +422,9 @@ function Module:InitializeProtocol()
             bahsei:OnData(ReceiveBahseiPayload)
             local bahseiFinalized = bahsei:Finalize({
                 isRelevantInCombat = true,
-                replaceQueuedMessages = true,
+                -- Death packets must never replace one another; each unique
+                -- Spectre is part of the shared 24 -> 0 counter.
+                replaceQueuedMessages = false,
             })
             return bahseiFinalized == true and bahsei or nil
         end)
@@ -437,7 +441,7 @@ function Module:InitializeProtocol()
     return true
 end
 
-function Module:SendBahseiSignal(signal, value)
+function Module:SendBahseiSignal(signal, value, total)
     if not IsUnitGrouped or not IsUnitGrouped("player") then return false, "not_grouped" end
     if not self:InitializeProtocol() then return false, self.lastProtocolError or "protocol_unavailable" end
     if not self.bahseiProtocol then return false, self.lastBahseiProtocolError or "protocol_unavailable" end
@@ -446,14 +450,29 @@ function Module:SendBahseiSignal(signal, value)
     end
 
     signal = tostring(signal or ""):upper():gsub("[^A-Z0-9_]", "")
-    value = zo_clamp(tonumber(value) or 0, 0, 99)
+    value = tonumber(value) or 0
+    if signal == "DEAD" then
+        value = math.max(0, math.floor(value))
+    else
+        value = zo_clamp(value, 0, 99)
+    end
     if signal == "" or #signal > 12 then return false, "invalid_signal" end
 
+    local valueText = signal == "DEAD" and string.format("%.0f", value) or tostring(math.floor(value))
+    local payload
+    if total ~= nil then
+        total = zo_clamp(tonumber(total) or 0, 0, 99)
+        payload = string.format("TSMB1|%s|%s|%d", signal, valueText, total)
+    else
+        payload = string.format("TSMB1|%s|%s", signal, valueText)
+    end
+    if #payload > 32 then return false, "payload_too_long" end
+
     local sent = self.bahseiProtocol:Send({
-        payload = string.format("TSMB1|%s|%d", signal, value),
+        payload = payload,
     }, {
         isRelevantInCombat = true,
-        replaceQueuedMessages = true,
+        replaceQueuedMessages = false,
     })
     return sent == true, sent == true and nil or "send_failed"
 end

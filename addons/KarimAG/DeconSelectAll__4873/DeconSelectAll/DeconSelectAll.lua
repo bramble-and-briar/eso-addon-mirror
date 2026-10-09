@@ -40,7 +40,7 @@ local DSA = DeconSelectAll
 
 DSA.name          = "DeconSelectAll"
 DSA.displayName   = "Decon Select All"
-DSA.version       = "1.0.1"
+DSA.version       = "1.1.0"
 DSA.author        = "Karim"
 DSA.savedVarsName = "DeconSelectAll_SavedVars"
 
@@ -57,6 +57,7 @@ local defaults =
     skipArmory       = true,   -- items used by an Armory build
     maxQuality       = ITEM_FUNCTIONAL_QUALITY_ARTIFACT or 4, -- purple; gold (legendary) is skipped by default
     chatSummary      = true,   -- print a one-line summary in the chat after selecting
+    skipTraits       = {},     -- [ITEM_TRAIT_TYPE_*] = true : traits never selected (empty by default)
 }
 
 -- ---------------------------------------------------------------------------
@@ -82,6 +83,18 @@ local STRINGS =
         SKIP_set        = "<<1>> set item(s)",
         SKIP_research   = "<<1>> researchable",
         SKIP_ornate     = "<<1>> ornate",
+        SKIP_trait      = "<<1>> with an excluded trait",
+        HELP_TRAITS     = "/dsa traits - list the traits and whether they are excluded",
+        HELP_TRAIT      = "/dsa trait <name> - exclude / re-include a trait, e.g. /dsa trait nirnhoned",
+        TRAITS_TITLE    = "Excluded traits are never selected ([x] = excluded):",
+        TRAIT_TOGGLED   = "Trait <<1>>: <<2>>.",
+        TRAIT_EXCLUDED  = "excluded",
+        TRAIT_INCLUDED  = "included again",
+        TRAIT_NOT_FOUND = "No trait matches \"<<1>>\". Use /dsa traits to see the names.",
+        TRAIT_AMBIGUOUS = "Several traits match \"<<1>>\": <<2>>. Be more specific.",
+        OPT_TRAITS      = "Traits to skip",
+        OPT_TRAITS_TT   = "Items with a ticked trait are never selected, whatever the other rules say.",
+        OPT_TRAITS_DESC = "Tick the traits you never want to deconstruct (for example Nirnhoned). Items with an unresearched trait are already covered by \"Skip researchable traits\"; this list is for traits you simply want to keep.",
         HELP_TITLE      = "Decon Select All <<1>> - commands:",
         HELP_SELECT     = "/dsa select - select all listed items (same as the button)",
         HELP_SETS       = "/dsa sets - toggle skipping set items (currently: <<1>>)",
@@ -126,6 +139,18 @@ local STRINGS =
         SKIP_set        = "<<1>> objet(s) d'ensemble",
         SKIP_research   = "<<1>> trait(s) à rechercher",
         SKIP_ornate     = "<<1>> ornemental(aux)",
+        SKIP_trait      = "<<1>> avec un trait exclu",
+        HELP_TRAITS     = "/dsa traits - liste les traits et indique ceux qui sont exclus",
+        HELP_TRAIT      = "/dsa trait <nom> - exclure / réinclure un trait, ex. /dsa trait nirn",
+        TRAITS_TITLE    = "Les traits exclus ne sont jamais sélectionnés ([x] = exclu) :",
+        TRAIT_TOGGLED   = "Trait <<1>> : <<2>>.",
+        TRAIT_EXCLUDED  = "exclu",
+        TRAIT_INCLUDED  = "réinclus",
+        TRAIT_NOT_FOUND = "Aucun trait ne correspond à « <<1>> ». Tapez /dsa traits pour voir les noms.",
+        TRAIT_AMBIGUOUS = "Plusieurs traits correspondent à « <<1>> » : <<2>>. Précisez.",
+        OPT_TRAITS      = "Traits à ignorer",
+        OPT_TRAITS_TT   = "Les objets portant un trait coché ne sont jamais sélectionnés, quelles que soient les autres règles.",
+        OPT_TRAITS_DESC = "Cochez les traits que vous ne voulez jamais déconstruire (par exemple Nirn). Les objets dont le trait n'est pas encore recherché sont déjà couverts par « Ignorer les traits à rechercher » ; cette liste sert aux traits que vous voulez simplement garder.",
         HELP_TITLE      = "Decon Select All <<1>> - commandes :",
         HELP_SELECT     = "/dsa select - sélectionne tous les objets listés (comme le bouton)",
         HELP_SETS       = "/dsa sets - ignorer ou non les objets d'ensemble (actuellement : <<1>>)",
@@ -279,6 +304,85 @@ local function IsProtectedByFCOIS(bagId, slotIndex, kind)
     return ok and isProtected == true
 end
 
+-- ---------------------------------------------------------------------------
+-- Trait catalogue, built from the game's own constants the same way the crafting UI does
+-- (ZO_CraftingUtils_GetSmithingTraitItemInfo), so new traits appear without an add-on update.
+-- Ornate traits are left out: they are handled by the "skip ornate" rule.
+-- ---------------------------------------------------------------------------
+local traitCatalogue = nil -- { { traitType, name, category }, ... } sorted by category then name
+
+local function BuildTraitCatalogue()
+    local ornateTraits =
+    {
+        [ITEM_TRAIT_TYPE_ARMOR_ORNATE or -1] = true,
+        [ITEM_TRAIT_TYPE_WEAPON_ORNATE or -1] = true,
+        [ITEM_TRAIT_TYPE_JEWELRY_ORNATE or -1] = true,
+    }
+    local categoryOrder =
+    {
+        [ITEM_TRAIT_TYPE_CATEGORY_ARMOR or -1] = 1,
+        [ITEM_TRAIT_TYPE_CATEGORY_WEAPON or -1] = 2,
+        [ITEM_TRAIT_TYPE_CATEGORY_JEWELRY or -1] = 3,
+    }
+
+    local catalogue = {}
+    local firstTrait = ITEM_TRAIT_TYPE_ITERATION_BEGIN or 0
+    local lastTrait = ITEM_TRAIT_TYPE_ITERATION_END or -1
+    for traitType = firstTrait, lastTrait do
+        if traitType ~= ITEM_TRAIT_TYPE_NONE and not ornateTraits[traitType] then
+            local name = GetString("SI_ITEMTRAITTYPE", traitType)
+            if name and name ~= "" then
+                local category = GetItemTraitTypeCategory(traitType)
+                if categoryOrder[category] then
+                    catalogue[#catalogue + 1] = { traitType = traitType, name = name, category = category }
+                end
+            end
+        end
+    end
+
+    table.sort(catalogue, function(left, right)
+        if left.category ~= right.category then
+            return categoryOrder[left.category] < categoryOrder[right.category]
+        end
+        return left.name < right.name
+    end)
+    return catalogue
+end
+
+local function GetTraitCatalogue()
+    if not traitCatalogue then
+        traitCatalogue = BuildTraitCatalogue()
+    end
+    return traitCatalogue
+end
+
+-- Localised category name ("Armor", "Weapons", "Jewelry") via the smithing filter strings the game uses
+local function GetTraitCategoryName(category)
+    local filterType
+    if category == ITEM_TRAIT_TYPE_CATEGORY_ARMOR then
+        filterType = SMITHING_FILTER_TYPE_ARMOR
+    elseif category == ITEM_TRAIT_TYPE_CATEGORY_WEAPON then
+        filterType = SMITHING_FILTER_TYPE_WEAPONS
+    elseif category == ITEM_TRAIT_TYPE_CATEGORY_JEWELRY then
+        filterType = SMITHING_FILTER_TYPE_JEWELRY
+    end
+    if filterType then
+        return GetString("SI_SMITHINGFILTERTYPE", filterType)
+    end
+    return tostring(category)
+end
+
+function DSA.IsTraitExcluded(traitType)
+    local sv = DSA.sv or defaults
+    return sv.skipTraits ~= nil and sv.skipTraits[traitType] == true
+end
+
+function DSA.SetTraitExcluded(traitType, excluded)
+    local sv = DSA.sv or defaults
+    sv.skipTraits = sv.skipTraits or {}
+    sv.skipTraits[traitType] = excluded and true or nil
+end
+
 -- Returns a short reason key when the item must not be selected, nil otherwise.
 local function GetSkipReason(bagId, slotIndex, kind, sv)
     -- Always skipped: locked items (the in-game padlock)
@@ -321,6 +425,14 @@ local function GetSkipReason(bagId, slotIndex, kind, sv)
         if sv.skipOrnate and traitInformation == ITEM_TRAIT_INFORMATION_ORNATE then
             return "ornate"
         end
+
+        -- Traits the player chose to keep (settings list)
+        if sv.skipTraits and next(sv.skipTraits) ~= nil then
+            local traitType = GetItemTrait(bagId, slotIndex)
+            if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE and sv.skipTraits[traitType] == true then
+                return "trait"
+            end
+        end
     end
 
     return nil
@@ -352,7 +464,7 @@ local function WouldExceedGameLimits(panel, kind, bagId, slotIndex)
     return newStackCount > GetMaxIterationsPerBatch() * stackPerIteration
 end
 
-local SKIP_ORDER = { "locked", "fcois", "armory", "quality", "set", "research", "ornate" }
+local SKIP_ORDER = { "locked", "fcois", "armory", "quality", "set", "research", "ornate", "trait" }
 
 local function BuildSkippedText(counters)
     local parts = {}
@@ -518,12 +630,86 @@ local function PrintHelp()
     DSA.Msg(DSA.L("HELP_ARMORY", OnOff(sv.skipArmory)))
     DSA.Msg(DSA.L("HELP_QUALITY", QualityName(sv.maxQuality)))
     DSA.Msg(DSA.L("HELP_QUIET", OnOff(sv.chatSummary)))
+    DSA.Msg(DSA.L("HELP_TRAITS"))
+    DSA.Msg(DSA.L("HELP_TRAIT"))
     DSA.Msg(DSA.L("HELP_KEYBIND"))
 end
 
 local function Toggle(settingKey, labelKey)
     DSA.sv[settingKey] = not DSA.sv[settingKey]
     DSA.Msg(DSA.L("SETTING_SET", DSA.L(labelKey), OnOff(DSA.sv[settingKey])))
+end
+
+-- /dsa traits : one line per category, [x] = excluded
+local function PrintTraits()
+    DSA.Msg(DSA.L("TRAITS_TITLE"))
+    local namesByCategory = {}
+    local categoryOrder = {}
+    for _, entry in ipairs(GetTraitCatalogue()) do
+        local names = namesByCategory[entry.category]
+        if not names then
+            names = {}
+            namesByCategory[entry.category] = names
+            categoryOrder[#categoryOrder + 1] = entry.category
+        end
+        local mark = DSA.IsTraitExcluded(entry.traitType) and "[x] " or "[ ] "
+        names[#names + 1] = mark .. entry.name
+    end
+    for _, category in ipairs(categoryOrder) do
+        DSA.Msg(GetTraitCategoryName(category) .. ": " .. table.concat(namesByCategory[category], ", "))
+    end
+end
+
+-- /dsa trait <name> : toggles the trait whose localised name matches (prefix first, then substring)
+local function ToggleTraitByName(query)
+    query = (query or ""):lower()
+    if query == "" then
+        PrintTraits()
+        return
+    end
+
+    local exactMatches, prefixMatches, substringMatches = {}, {}, {}
+    for _, entry in ipairs(GetTraitCatalogue()) do
+        local name = entry.name:lower()
+        if name == query then
+            exactMatches[#exactMatches + 1] = entry
+        elseif name:sub(1, #query) == query then
+            prefixMatches[#prefixMatches + 1] = entry
+        elseif name:find(query, 1, true) then
+            substringMatches[#substringMatches + 1] = entry
+        end
+    end
+
+    local matches = substringMatches
+    if #exactMatches > 0 then
+        matches = exactMatches
+    elseif #prefixMatches > 0 then
+        matches = prefixMatches
+    end
+    -- the same trait name exists once per category (e.g. Infused for armor, weapons and jewelry): toggle them together
+    local uniqueNames = {}
+    for _, entry in ipairs(matches) do
+        uniqueNames[entry.name] = true
+    end
+    local distinctNames = {}
+    for name in pairs(uniqueNames) do
+        distinctNames[#distinctNames + 1] = name
+    end
+    table.sort(distinctNames)
+
+    if #distinctNames == 0 then
+        DSA.Msg(DSA.L("TRAIT_NOT_FOUND", query))
+        return
+    elseif #distinctNames > 1 then
+        DSA.Msg(DSA.L("TRAIT_AMBIGUOUS", query, table.concat(distinctNames, ", ")))
+        return
+    end
+
+    local nowExcluded = not DSA.IsTraitExcluded(matches[1].traitType)
+    for _, entry in ipairs(matches) do
+        DSA.SetTraitExcluded(entry.traitType, nowExcluded)
+    end
+    DSA.Msg(DSA.L("TRAIT_TOGGLED", matches[1].name, nowExcluded and DSA.L("TRAIT_EXCLUDED") or DSA.L("TRAIT_INCLUDED")))
 end
 
 local function OnSlashCommand(args)
@@ -545,6 +731,10 @@ local function OnSlashCommand(args)
         Toggle("skipArmory", "OPT_ARMORY")
     elseif command == "quiet" then
         Toggle("chatSummary", "OPT_QUIET")
+    elseif command == "traits" then
+        PrintTraits()
+    elseif command == "trait" then
+        ToggleTraitByName(rest)
     elseif command == "quality" then
         local quality = tonumber(rest)
         local minQuality = ITEM_FUNCTIONAL_QUALITY_NORMAL or 1
@@ -654,7 +844,42 @@ local function InitSettingsMenu()
             setFunc = function(value) sv.chatSummary = value end,
             default = defaults.chatSummary,
         },
+        {
+            type = "header",
+            name = DSA.L("OPT_TRAITS"),
+        },
+        {
+            type = "description",
+            text = DSA.L("OPT_TRAITS_DESC"),
+        },
     }
+
+    -- One submenu per trait category (Armor / Weapons / Jewelry), one checkbox per trait
+    local submenus = {}
+    for _, entry in ipairs(GetTraitCatalogue()) do
+        local submenu = submenus[entry.category]
+        if not submenu then
+            submenu =
+            {
+                type = "submenu",
+                name = GetTraitCategoryName(entry.category),
+                tooltip = DSA.L("OPT_TRAITS_TT"),
+                controls = {},
+            }
+            submenus[entry.category] = submenu
+            optionsTable[#optionsTable + 1] = submenu
+        end
+        local traitType = entry.traitType
+        submenu.controls[#submenu.controls + 1] =
+        {
+            type = "checkbox",
+            name = entry.name,
+            getFunc = function() return DSA.IsTraitExcluded(traitType) end,
+            setFunc = function(value) DSA.SetTraitExcluded(traitType, value) end,
+            default = false,
+        }
+    end
+
     LAM:RegisterOptionControls(panelName, optionsTable)
 end
 

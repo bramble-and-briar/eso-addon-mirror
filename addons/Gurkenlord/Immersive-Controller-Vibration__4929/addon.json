@@ -1,0 +1,40 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Gurkenlord/Immersive-Controller-Vibration__4929",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Gurkenlord",
+  "canonical_id": "esoui:4929",
+  "category_id": "162",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4929",
+  "deleted": false,
+  "directories": [
+    "ImmersiveControllerVibration"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4929/",
+  "fingerprint": "c915d7027e58169037880b7e32ee5ef02769befbae3ac82227c25fd59a5a14da",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17834.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17835.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4929",
+  "source_url": "https://www.esoui.com/downloads/info4929-ImmersiveControllerVibration.html",
+  "stats": {
+    "downloads": 15,
+    "favorites": 1,
+    "monthly_downloads": 12
+  },
+  "title": "Immersive Controller Vibration",
+  "updated_at": 1791543905000,
+  "version": "0.5.62"
+}

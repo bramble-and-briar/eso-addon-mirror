@@ -75,7 +75,7 @@ local function InitializeMenu(MS)
     optionsData[#optionsData + 1] = {
         type = "checkbox",
         name = "Show Only During Combat",
-        tooltip = "Show enabled UI modules during combat, then wait 5 seconds before fading them out. When disabled, they are also shown out of combat. Previews remain visible without fades in this settings panel.",
+        tooltip = "Show enabled UI modules during combat, then hide them 5 seconds after combat ends. When disabled, they are also shown out of combat. Previews remain visible in this settings panel.",
         getFunc = function() return MS.db.sharedSettings.combatOnly end,
         setFunc = function(value)
             MS.db.sharedSettings.combatOnly = value

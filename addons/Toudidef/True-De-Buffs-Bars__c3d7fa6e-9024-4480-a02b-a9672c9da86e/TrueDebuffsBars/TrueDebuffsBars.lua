@@ -40,7 +40,7 @@ local timerPositionMapping = {
     ["Bottom Left"]   = { point = BOTTOMLEFT, relPoint = BOTTOMLEFT, x = 0, y = 0 },
     ["Bottom Right"]  = { point = BOTTOMRIGHT, relPoint = BOTTOMRIGHT, x = 0, y = 0 },
     ["Center"]        = { point = CENTER, relPoint = CENTER, x = 0, y = 0 },
-    ["Low Center"]    = { point = BOTTOM, relPoint = BOTTOM, x = 0, y = -3 }, -- Centré en bas à l'intérieur
+    ["Low Center"]    = { point = BOTTOM, relPoint = BOTTOM, x = 0, y = -3 },
     ["Below Center"]  = { point = TOP, relPoint = BOTTOM, x = 0, y = 2 },
     ["Above Center"]  = { point = BOTTOM, relPoint = TOP, x = 0, y = -2 },
     ["Left Center"]   = { point = RIGHT, relPoint = LEFT, x = -4, y = 0 },
@@ -149,6 +149,37 @@ local function GetStyleDescriptor(selectedStyleName)
     return "outline"
 end
 
+-- Détecte si l'interface doit être complètement masquée (menus, scoreboard, réticule)
+local function ShouldHideAllUI()
+    -- Le mode prévisualisation ignore le masquage pour permettre les réglages
+    if TrueDebuffsBars.previewMode then
+        return false
+    end
+
+    -- Masque si le réticule est absent (mode curseur, fenêtres d'interaction)
+    if IsReticleHidden() then
+        return true
+    end
+
+    if SCENE_MANAGER then
+        -- Masque pendant le tableau des scores des Champs de Bataille (BG)
+        if SCENE_MANAGER:IsShowing("battleground_scoreboard") or SCENE_MANAGER:IsShowing("gamepad_battleground_scoreboard") then
+            return true
+        end
+
+        -- Vérifie la scène active du HUD Gamepad ou standard
+        local isHudShowing = SCENE_MANAGER:IsShowing("gamepad_hud_scene") 
+                        or SCENE_MANAGER:IsShowing("gamepad_hud") 
+                        or SCENE_MANAGER:IsShowing("hud")
+
+        if not isHudShowing then
+            return true
+        end
+    end
+
+    return false
+end
+
 -- Création ou réutilisation d'un contrôle d'icône
 local function GetOrCreateIconControl(poolType, index)
     local pool = TrueDebuffsBars.controls[poolType]
@@ -194,7 +225,7 @@ local function GetOrCreateIconControl(poolType, index)
         ctrl.timerLabel:SetAnchor(tPos.point, ctrl, tPos.relPoint, tPos.x, tPos.y)
     end
 
-    -- Configuration de la police des stacks
+    -- Configuration de la police des charges
     local sFont
     if styleDesc and styleDesc ~= "" then
         sFont = string.format("%s|%d|%s", selectedFont, settings.stackSize, styleDesc)
@@ -298,10 +329,7 @@ end
 
 -- Boucle principale
 function TrueDebuffsBars.UpdateBuffs()
-    local shouldHide = false
-    if IsReticleHidden() and not TrueDebuffsBars.previewMode then
-        shouldHide = true
-    end
+    local shouldHide = ShouldHideAllUI()
 
     TrueDebuffsBars.buffFrame:SetHidden(shouldHide)
     TrueDebuffsBars.debuffFrame:SetHidden(shouldHide)
@@ -413,7 +441,7 @@ function TrueDebuffsBars.UpdateBuffs()
     end
 end
 
--- Mise à jour des positions
+-- Mise à jour des positions des conteneurs
 local function UpdateFramePositions()
     TrueDebuffsBars.buffFrame:ClearAnchors()
     TrueDebuffsBars.buffFrame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, TrueDebuffsBars.savedVars.buffX, TrueDebuffsBars.savedVars.buffY)
@@ -431,7 +459,7 @@ local function BuildMenu()
         type = "panel",
         name = "True (De)Buffs Bars",
         displayName = "|cff5900True (De)Buffs Bars|r",
-        author = "|cff5900Toudidef|r",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = TrueDebuffsBars.version,
         registerForRefresh = true,
         registerForDefaults = true,

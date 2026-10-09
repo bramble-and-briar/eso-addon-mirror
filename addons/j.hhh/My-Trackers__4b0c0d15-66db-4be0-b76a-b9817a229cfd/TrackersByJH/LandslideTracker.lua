@@ -63,16 +63,16 @@ local function SetupHUDVisibility()
     end
 end
 local function StackColor(n)
-    n=math.max(0,math.min(10,n or 0))
-    -- Exact anchor colors: 1 = red, 5 = orange, 10 = green.
+    n=math.max(0,math.min(12,n or 0))
+    -- Exact anchor colors: 1 = red, 5 = orange, 12 = green.
     if n <= 1 then
         return 1, 0, 0, 1
     elseif n <= 5 then
         local t=(n-1)/4
         return 1, 0.5*t, 0, 1 -- red (1) -> orange (5)
     end
-    local t=(n-5)/5
-    return 1-t, 0.5+0.5*t, 0, 1 -- orange (5) -> green (10)
+    local t=(n-5)/7
+    return 1-t, 0.5+0.5*t, 0, 1 -- orange (5) -> green (12)
 end
 Refresh = function()
     if not frame then return end

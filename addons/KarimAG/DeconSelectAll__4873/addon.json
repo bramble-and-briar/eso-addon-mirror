@@ -22,7 +22,7 @@
     "DeconSelectAll"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4873/",
-  "fingerprint": "defeaab3b00dc25b63f1af4e9761bb36c5368ceddc37654e9cac4f3420996924",
+  "fingerprint": "9f913a20e384ef06c2f4a087f0819efd5c96d2783c732c9b7bdd811fa8af441a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17552.png",
     "https://cdn-eso.mmoui.com/preview/pvw17553.png",
@@ -34,11 +34,11 @@
   "source_id": "4873",
   "source_url": "https://www.esoui.com/downloads/info4873-DeconSelectAll.html",
   "stats": {
-    "downloads": 26,
-    "favorites": 1,
-    "monthly_downloads": 25
+    "downloads": 47,
+    "favorites": 3,
+    "monthly_downloads": 46
   },
   "title": "DeconSelectAll",
-  "updated_at": 1790800506000,
-  "version": "1.0.1"
+  "updated_at": 1791483936000,
+  "version": "1.1.0"
 }

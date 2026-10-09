@@ -4,7 +4,7 @@ local TSB = TeamShadowsBuffs
 
 TSB.name = "TeamShadowsBuffs"
 TSB.displayName = "Team Shadows Buffs"
-TSB.version = "1.1.9"
+TSB.version = "1.1.10"
 TSB.iconPath = "TeamShadowsBuffs/icons/team_shadows_buffs.dds"
 TSB.savedVariableName = "TeamShadowsBuffsSavedVariables"
 TSB.savedVariableVersion = 1
@@ -86,7 +86,7 @@ TSB.defaults = {
     statsTrackerY = 420,
     targetStatsTrackerX = 900,
     targetStatsTrackerY = 530,
-    playerOrder = "major_slayer,major_courage,major_force,major_berserk,major_sorcery,major_brutality,major_savagery,major_prophecy,major_resolve,major_heroism,major_expedition",
+    playerOrder = "major_slayer,major_courage,major_force,major_berserk,major_brutality,major_savagery,major_resolve,major_heroism,major_expedition",
     bossOrder = "major_vulnerability,major_breach,major_brittle,major_cowardice,major_maim,off_balance",
     effectSettings = {},
     panelSettings = {},

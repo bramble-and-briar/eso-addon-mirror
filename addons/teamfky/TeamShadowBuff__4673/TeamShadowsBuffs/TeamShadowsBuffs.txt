@@ -1,7 +1,7 @@
 ## Title: Team Shadows Buffs
-## APIVersion: 101050
-## Version: 1.1.9
-## AddOnVersion: 10109
+## APIVersion: 101050 101051
+## Version: 1.1.10
+## AddOnVersion: 10110
 ## Author: TeamFF - EyrOn
 ## Description: Modular buff/debuff tracker for ESO. Modules are isolated so one failure does not stop the addon.
 ## SavedVariables: TeamShadowsBuffsSavedVariables

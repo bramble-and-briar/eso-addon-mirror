@@ -30,7 +30,7 @@ db = {}
 local ADDON_NAME					= "BankManagerRevived"
 local displayName					= "|c3366FFBank|r Manager |c990000Revived|r |cFF0000(Slim Edition)|r"
 local ADDON_AUTHOR				= "Ayantir & SnowmanDK & Lexynide & Gamer1986PAN & @DeadSoon"
-local ADDON_VERSION				= "14.90"
+local ADDON_VERSION				= "15.13"
 local ADDON_WEBSITE				= "https://www.esoui.com/downloads/fileinfo.php?id=2333"
 local isBanking					= false
 local actualProfile				= 1
@@ -46,6 +46,9 @@ local qtyMovedToGBank			= 0
 local countMovedToGBank			= 0
 local dataSorted
 local isESOPlusSubscriber
+
+-- Optional external transfer providers. Kept empty when no provider is registered.
+local transferProviders = {}
 
 local ACTION_NOTSET				= 1
 local ACTION_PUSH					= 2
@@ -70,602 +73,103 @@ local movedItems = {
 	[BAG_SUBSCRIBER_BANK] = {},
 }
 
--- Defaults structure for SV
--- memory is a bit wasted here, still need to try to find how to dynamically build defaults after the SV pull from file
+-- Defaults structure for SavedVariables.
+-- Profiles are created on demand instead of keeping dozens of empty profile
+-- definitions in the defaults table.
+local PROFILE_MIN = 1
+local PROFILE_DEFAULT_COUNT = 1
+local PROFILE_MAX = 100
+
+local function NewProfile(defined)
+	return {
+		name = "",
+		defined = defined == true,
+		autoTransfert = true,
+		detailledDisplay = true,
+		summary = true,
+		protected = true,
+		moved = true,
+		detailledNotMoved = true,
+		initialWaitInSecs = 2,
+		overfill = 0,
+		pauseInMs = 0,
+		userRules = "",
+		userRulesAfter = false,
+	}
+end
+
 local defaults = {
 	worldname = GetWorldName(),
 	actualProfile = {},
 	globalAddonProfile = 1,
 	gui_x = -600,
 	gui_y = -400,
+	profileCount = PROFILE_DEFAULT_COUNT,
+	profileCountInitialized = false,
+	scriptTracker = {
+		enabled = true,
+		depositKnown = true,
+		withdrawUnknown = true,
+		withdrawOneOnly = true,
+		debug = false,
+	},
 	profiles = {
-		[1] = {
-			name = "",
-			defined					= true,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[2] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[3] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[4] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[5] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[6] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[7] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[8] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[9] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
---[[		[10] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[11] = {
-			name = "",
-			defined					= true,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[12] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[13] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[14] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[15] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[16] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[17] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[18] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[19] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[20] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[21] = {
-			name = "",
-			defined					= true,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[22] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[23] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[24] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[25] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[26] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[27] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[28] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[29] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[30] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[31] = {
-			name = "",
-			defined					= true,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[32] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[33] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[34] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[35] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[36] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[37] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[38] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},
-		[39] = {
-			name = "",
-			defined					= false,
-			autoTransfert			= true,
-			detailledDisplay		= true,
-			summary				 	= true,
-			protected				= true,
-			moved						= true,
-			detailledNotMoved		= true,
-			initialWaitInSecs		= 2,
-			overfill					= 0,
-			pauseInMs				= 0,
-			userRules				= "",
-			userRulesAfter 		= false,
-		},]]
+		[1] = NewProfile(true),
 	}
-} 
+}
+
+local function DeepCopy(value)
+	if type(value) ~= "table" then return value end
+	local copy = {}
+	for key, child in pairs(value) do
+		copy[key] = DeepCopy(child)
+	end
+	return copy
+end
+
+local function EnsureProfile(profileIndex, defined)
+	if profileIndex < PROFILE_MIN or profileIndex > PROFILE_MAX then return nil end
+	if not db.profiles[profileIndex] then
+		db.profiles[profileIndex] = NewProfile(defined)
+	end
+	local profile = db.profiles[profileIndex]
+	local template = NewProfile(false)
+	for key, value in pairs(template) do
+		if profile[key] == nil then
+			profile[key] = value
+		end
+	end
+	if defined == true then
+		profile.defined = true
+	end
+	if BankManagerRules and BankManagerRules.defaults and not profile.rules then
+		profile.rules = DeepCopy(BankManagerRules.defaults)
+	end
+	return profile
+end
+
+local function EnsureProfiles()
+	db.profileCount = tonumber(db.profileCount) or PROFILE_DEFAULT_COUNT
+	db.profileCount = math.max(PROFILE_MIN, math.min(PROFILE_MAX, db.profileCount))
+
+	-- One-time migration: if an older installation had profiles beyond the
+	-- former hard-coded range, keep them visible automatically.
+	if db.profileCountInitialized ~= true then
+		local highestDefined = 1
+		for index, profile in pairs(db.profiles or {}) do
+			index = tonumber(index)
+			if index and index >= 1 and index <= PROFILE_MAX and type(profile) == "table" and profile.defined then
+				highestDefined = math.max(highestDefined, index)
+			end
+		end
+		db.profileCount = math.max(db.profileCount, highestDefined)
+		db.profileCountInitialized = true
+	end
+
+	for index = 1, db.profileCount do
+		EnsureProfile(index, index == 1)
+	end
+end
 
 -- BMR code
 
@@ -1126,7 +630,17 @@ local function moveItems(atGBank, errorReasonAtGBank)
 				local itemMoved = false
 				local qtyToMove, destSlot
 				
-				if BankManagerRules.data[moveData.ruleName].isSpecial then
+				if moveData.custom then
+					qtyToMove = math.min(stackSize, tonumber(moveData.maxQty) or stackSize)
+					local currentStackCount = bagIdTo == BAG_BACKPACK and stackCountBackpack or stackCountBank
+					bagIdTo, destSlot = FindDestSlotInBag(currentStackCount, bagIdTo, moveData.bagId, moveData.slotId, maxStack)
+					if destSlot then
+						itemMoved = moveItemInSlot(moveData.bagId, moveData.slotId, bagIdTo, destSlot, qtyToMove, moveData.itemLink)
+					elseif db.profiles[actualProfile].detailledNotMoved then
+						PrintItemsNotMovedToBag(moveData.itemLink, moveData.itemIcon, bagIdTo, qtyToMove)
+					end
+					
+				elseif BankManagerRules.data[moveData.ruleName].isSpecial then
 				
 					if bagIdTo == BAG_BACKPACK then
 						qtyToMove = BankManagerRules.static.special[moveData.ruleName][moveData.itemLink]
@@ -1535,6 +1049,140 @@ local function moveCurrencies()
 	
 end
 
+
+local function ScriptDebug(message)
+	if db and db.scriptTracker and db.scriptTracker.debug then
+		d(string.format("[BMR ScriptTracker DEBUG] %s", tostring(message)))
+	end
+end
+
+local function RunTransferProviders()
+	ScriptDebug("RunTransferProviders() entered")
+	ScriptDebug("ScriptTracker global: " .. tostring(ScriptTracker ~= nil))
+	ScriptDebug("db.scriptTracker: " .. tostring(db.scriptTracker ~= nil))
+	if db.scriptTracker then
+		ScriptDebug(string.format("settings enabled=%s depositKnown=%s withdrawUnknown=%s withdrawOneOnly=%s", tostring(db.scriptTracker.enabled), tostring(db.scriptTracker.depositKnown), tostring(db.scriptTracker.withdrawUnknown), tostring(db.scriptTracker.withdrawOneOnly)))
+	end
+	local function addCustomMove(bagId, slotId, direction, maxQty)
+		if not bagId or not slotId or movedItems[bagId][slotId] then return end
+		local itemLink = GetItemLink(bagId, slotId)
+		if not itemLink or itemLink == "" then return end
+		local itemId = GetItemId(bagId, slotId)
+		if not itemId or itemId == 0 then return end
+
+		local moveData = {
+			ruleName = "__BMR_CUSTOM__",
+			bagId = bagId,
+			slotId = slotId,
+			itemLink = itemLink,
+			itemIcon = GetItemLinkInfo(itemLink),
+			custom = true,
+			maxQty = maxQty,
+		}
+
+		if direction == "push" and bagId == BAG_BACKPACK then
+			table.insert(pushQueue, moveData)
+			movedItems[bagId][slotId] = true
+		elseif direction == "pull" and (bagId == BAG_BANK or bagId == BAG_SUBSCRIBER_BANK) then
+			table.insert(pullQueue, moveData)
+			movedItems[bagId][slotId] = true
+			hasAnyPullToDo = true
+		end
+	end
+
+	-- Built-in ScriptTracker integration.
+	if db.scriptTracker and db.scriptTracker.enabled and ScriptTracker then
+		local charId = GetCurrentCharacterId()
+		ScriptDebug("Current character ID: " .. tostring(charId))
+		ScriptDebug("API GetScriptId=" .. tostring(type(ScriptTracker.GetScriptId)) .. ", DoesCharHaveScriptUnlocked=" .. tostring(type(ScriptTracker.DoesCharHaveScriptUnlocked)) .. ", ScanCharacter=" .. tostring(type(ScriptTracker.ScanCharacter)))
+		if ScriptTracker.ScanCharacter then
+			local ok, err = pcall(ScriptTracker.ScanCharacter)
+			ScriptDebug("ScanCharacter result: " .. tostring(ok) .. (err and (" / " .. tostring(err)) or ""))
+		end
+
+		local function isScriptKnown(scriptId)
+			if not scriptId or scriptId == 0 then return false end
+			if ScriptTracker.DoesCharHaveScriptUnlocked then
+				local known = ScriptTracker.DoesCharHaveScriptUnlocked(charId, scriptId)
+				if known ~= nil then return known == true end
+			end
+			return ScriptTracker.GetScriptUnlocked and ScriptTracker.GetScriptUnlocked(scriptId) == true
+		end
+
+		local seenUnknown = {}
+		local inventoryScripts = {}
+
+		-- Scan the current inventory once. Besides finding known scripts to deposit,
+		-- this also prevents withdrawing a second copy of a script already carried.
+		if (db.scriptTracker.depositKnown or db.scriptTracker.withdrawUnknown) and ScriptTracker.GetScriptId then
+			local scanned, recognized, known, queued, inventoryCount = 0, 0, 0, 0, 0
+			local size = GetBagSize(BAG_BACKPACK)
+			ScriptDebug("Scanning backpack, size=" .. tostring(size))
+			for slotIndex = 0, size - 1 do
+				local itemId = GetItemId(BAG_BACKPACK, slotIndex)
+				if itemId and itemId ~= 0 then
+					scanned = scanned + 1
+					local scriptId = ScriptTracker.GetScriptId(itemId)
+					if scriptId and scriptId ~= 0 then
+						recognized = recognized + 1
+						if not inventoryScripts[scriptId] then inventoryCount = inventoryCount + 1 end
+						inventoryScripts[scriptId] = true
+						local knownState = isScriptKnown(scriptId)
+						ScriptDebug(string.format("BACKPACK slot=%d itemId=%d scriptId=%s known=%s item=%s", slotIndex, itemId, tostring(scriptId), tostring(knownState), tostring(GetItemName(BAG_BACKPACK, slotIndex))))
+						if db.scriptTracker.depositKnown and knownState then
+							known = known + 1
+							addCustomMove(BAG_BACKPACK, slotIndex, "push")
+							queued = queued + 1
+						end
+					end
+				end
+			end
+			ScriptDebug(string.format("Backpack result: scanned=%d recognized=%d known=%d queued=%d inventoryScripts=%d", scanned, recognized, known, queued, inventoryCount))
+		end
+
+		if db.scriptTracker.withdrawUnknown and ScriptTracker.GetScriptId then
+			local function scanBank(bagId, bagName)
+				local scanned, recognized, unknown, queued = 0, 0, 0, 0
+				local size = GetBagSize(bagId)
+				ScriptDebug("Scanning " .. bagName .. ", size=" .. tostring(size))
+				for slotIndex = 0, size - 1 do
+					local itemId = GetItemId(bagId, slotIndex)
+					if itemId and itemId ~= 0 then
+						scanned = scanned + 1
+						local scriptId = ScriptTracker.GetScriptId(itemId)
+						if scriptId and scriptId ~= 0 then
+							recognized = recognized + 1
+							local knownState = isScriptKnown(scriptId)
+							ScriptDebug(string.format("%s slot=%d itemId=%d scriptId=%s known=%s item=%s", bagName, slotIndex, itemId, tostring(scriptId), tostring(knownState), tostring(GetItemName(bagId, slotIndex))))
+							if not knownState and not inventoryScripts[scriptId] and not seenUnknown[scriptId] then
+								unknown = unknown + 1
+								addCustomMove(bagId, slotIndex, "pull", db.scriptTracker.withdrawOneOnly and 1 or nil)
+								queued = queued + 1
+								seenUnknown[scriptId] = true
+							end
+						end
+					end
+				end
+				ScriptDebug(string.format("%s result: scanned=%d recognized=%d unknown=%d queued=%d", bagName, scanned, recognized, unknown, queued))
+			end
+			scanBank(BAG_BANK, "BANK")
+			scanBank(BAG_SUBSCRIBER_BANK, "SUBSCRIBER_BANK")
+		end
+	end
+
+	ScriptDebug(string.format("Queues after ScriptTracker: push=%d pull=%d", #pushQueue, #pullQueue))
+
+	-- External integrations can register additional transfer providers.
+	for name, provider in pairs(transferProviders or {}) do
+		if type(provider) == "function" then
+			local ok, err = pcall(provider, addCustomMove, actualProfile, db.profiles[actualProfile])
+			if not ok then
+				d(string.format("[BMR] Transfer provider '%s' failed: %s", tostring(name), tostring(err)))
+			end
+		end
+	end
+end
+
 -- move currencies, prepare items, build push/pull queue and move items
 local function interactWithBank()
 	
@@ -1543,6 +1191,9 @@ local function interactWithBank()
 		
 		moveCurrencies()
 		dataSorted = sortByKeyAndPosition(BankManagerRules.data)
+
+		RunTransferProviders()
+		ScriptDebug(string.format("Queues before normal BMR scan: push=%d pull=%d", #pushQueue, #pullQueue))
 		
 		-- Prepare items, check if they must be moved and queue them
 		for slotIndex in pairs(SHARED_INVENTORY.bagCache[BAG_BACKPACK]) do
@@ -1572,7 +1223,9 @@ local function interactWithBank()
 		--d(GetGameTimeMilliseconds() - startTimeInMs)
 		
 		-- items have been queued
+		ScriptDebug(string.format("Final queues before moveItems: push=%d pull=%d", #pushQueue, #pullQueue))
 		if #pushQueue > 0 or #pullQueue > 0 then
+			ScriptDebug("Calling moveItems()")
 			moveItems() -- zo_CallLater inside, nothing behind this line should be run, but inside it.
 		end
 		
@@ -1608,7 +1261,7 @@ end
 local function nextRule(step)
 	
 	local changed
-	for i=actualProfile+step, 9, step do --change the 9 up to 39 for profile number increase
+	for i=actualProfile+step, db.profileCount, step do
 		if db.profiles[i].defined then
 			changed = true
 			actualProfile = i
@@ -1668,7 +1321,7 @@ local function onOpenBank()
 		
 			local multipleProfiles = false
 			
-			for i=2, 9 do --change the 9 up to 39 for profile number increase
+			for i=2, db.profileCount do
 				if db.profiles[i].defined == true then
 					multipleProfiles = true
 					break
@@ -1746,7 +1399,7 @@ local function interactWithGBank()
 		
 		local multipleProfiles = false
 		
-		for i=2, 9 do --change the 9 up to 39 for profile number increase
+		for i=2, db.profileCount do
 			if db.profiles[i].defined == true then
 				multipleProfiles = true
 				break
@@ -2747,6 +2400,16 @@ local function buildLAMPanel()
 	ZO_SavedVars:NewCharacterIdSettings("BMVars", 5, nil, nil, nil)
 	db = ZO_SavedVars:NewAccountWide("BMVars", 1, nil, defaults, nil)
 
+	-- Ensure nested ScriptTracker settings exist for older saved-variable files.
+	db.scriptTracker = db.scriptTracker or {}
+	db.scriptTracker.enabled = db.scriptTracker.enabled ~= false
+	db.scriptTracker.depositKnown = db.scriptTracker.depositKnown ~= false
+	db.scriptTracker.withdrawUnknown = db.scriptTracker.withdrawUnknown ~= false
+	db.scriptTracker.withdrawOneOnly = db.scriptTracker.withdrawOneOnly ~= false
+	db.scriptTracker.debug = db.scriptTracker.debug == true
+
+	EnsureProfiles()
+
 
 
 	NamesToIDSavedVars()
@@ -2758,7 +2421,12 @@ local function buildLAMPanel()
 		db.actualProfile[characterName] = 1
 	end
 
-	actualProfile = tonumber(db.actualProfile[characterName])
+	actualProfile = tonumber(db.actualProfile[characterName]) or 1
+	if actualProfile < PROFILE_MIN or actualProfile > db.profileCount then
+		actualProfile = 1
+		db.actualProfile[characterName] = 1
+	end
+	EnsureProfile(actualProfile, false)
 
 	-- Creating LAM optionPanel following the rules
 	local currenciesSubmenuControls = LAMSubmenu("currencies")
@@ -2797,7 +2465,7 @@ local function buildLAMPanel()
 
 
 	local listOfProfiles = {}
-	for i=1, 9 do --change the 9 up to 39 for profile number increase
+	for i=1, db.profileCount do
 		listOfProfiles[i] = i
 	end
 
@@ -2809,8 +2477,8 @@ local function buildLAMPanel()
 	local optionsTable = {
 		{
 			type = "dropdown",
-			name = "Global Addon Profile (auto reload when selected)",
-			tooltip = "Tooltip" .. " [DEFAULT: " .. defaults["globalAddonProfile"] .. "]",
+			name = GetString(BMR_GLOBAL_ADDON_PROFILE),
+			tooltip = zo_strformat(GetString(BMR_GLOBAL_ADDON_PROFILE_TOOLTIP), defaults["globalAddonProfile"]),
 			choices = dropdownGlobalAddonProfileChoices,
 			choicesValues = dropdownGlobalAddonProfileValues,
 			getFunc = function() return db.globalAddonProfile end,
@@ -2818,6 +2486,26 @@ local function buildLAMPanel()
 				ReloadUI();
 			end,
 			default = defaults["globalAddonProfile"],
+		},
+		{
+			type = "slider",
+			name = GetString(BMR_PROFILE_COUNT),
+			tooltip = GetString(BMR_PROFILE_COUNT_TOOLTIP),
+			min = PROFILE_MIN,
+			max = PROFILE_MAX,
+			step = 1,
+			getFunc = function() return db.profileCount end,
+			setFunc = function(value)
+				value = math.max(PROFILE_MIN, math.min(PROFILE_MAX, math.floor(tonumber(value) or PROFILE_DEFAULT_COUNT)))
+				db.profileCount = value
+				EnsureProfiles()
+				if actualProfile > value then
+					actualProfile = 1
+					db.actualProfile[characterName] = 1
+				end
+				ReloadUI()
+			end,
+			default = PROFILE_DEFAULT_COUNT,
 		},
 		{	-- Profile list
 			type = "submenu",
@@ -2832,8 +2520,9 @@ local function buildLAMPanel()
 					getFunc = function() return db.actualProfile[characterName] end,
 					setFunc = function(choice)
 						actualProfile = tonumber(choice)
+						EnsureProfile(actualProfile, true)
 						db.actualProfile[characterName] = choice
-						db.profiles[actualProfile].defined = true
+						CALLBACK_MANAGER:FireCallbacks("LAM-RefreshPanel", panel)
 					end,
 				},
 				{
@@ -2853,7 +2542,8 @@ local function buildLAMPanel()
 						local profileToDelete = actualProfile
 						actualProfile = 1
 						db.actualProfile[characterName] = "1"
-						db.profiles[profileToDelete] = defaults.profiles[profileToDelete]
+						db.profiles[profileToDelete] = NewProfile(false)
+					EnsureProfile(profileToDelete, false)
 					end,
 				},
 			},
@@ -2942,6 +2632,56 @@ local function buildLAMPanel()
 					getFunc = function() return db.profiles[actualProfile].pauseInMs end,
 					setFunc = function(value) db.profiles[actualProfile].pauseInMs = value end,
 					default = 0,
+				},
+			},
+		},
+		{
+			type = "submenu",
+			name = GetString(BMR_SCRIPTTRACKER),
+			controls = {
+				{
+					type = "description",
+					text = GetString(BMR_SCRIPTTRACKER_DESC),
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = GetString(BMR_SCRIPTTRACKER_ENABLE),
+					tooltip = GetString(BMR_SCRIPTTRACKER_ENABLE_TOOLTIP),
+					getFunc = function() return db.scriptTracker.enabled end,
+					setFunc = function(v) db.scriptTracker.enabled = v end,
+					default = true,
+					disabled = function() return ScriptTracker == nil end,
+				},
+				{
+					type = "checkbox",
+					name = GetString(BMR_SCRIPTTRACKER_DEPOSIT_KNOWN),
+					getFunc = function() return db.scriptTracker.depositKnown end,
+					setFunc = function(v) db.scriptTracker.depositKnown = v end,
+					default = true,
+				},
+				{
+					type = "checkbox",
+					name = GetString(BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN),
+					getFunc = function() return db.scriptTracker.withdrawUnknown end,
+					setFunc = function(v) db.scriptTracker.withdrawUnknown = v end,
+					default = true,
+				},
+				{
+					type = "checkbox",
+					name = GetString(BMR_SCRIPTTRACKER_ONE_ONLY),
+					tooltip = GetString(BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP),
+					getFunc = function() return db.scriptTracker.withdrawOneOnly end,
+					setFunc = function(v) db.scriptTracker.withdrawOneOnly = v end,
+					default = true,
+				},
+				{
+					type = "checkbox",
+					name = GetString(BMR_SCRIPTTRACKER_DEBUG),
+					tooltip = GetString(BMR_SCRIPTTRACKER_DEBUG_TOOLTIP),
+					getFunc = function() return db.scriptTracker.debug end,
+					setFunc = function(v) db.scriptTracker.debug = v end,
+					default = false,
 				},
 			},
 		},
@@ -3097,10 +2837,10 @@ local function onAddonLoaded(_, addon)
 			-- Adding defaults values to all our rules
 			BankManagerRules.defaults = BankManagerRules.addDefaultFilters(BankManagerRules.data, BankManagerRules.defaults)
 			
-			-- Load profiles defaults, Huge memory waste :'(
-			for i=1, 9 do --change the 9 up to 39 for profile number increase
-				defaults.profiles[i].rules = BankManagerRules.defaults
-			end
+			-- Create only the profiles the user has enabled. Existing profiles
+			-- from older BMR versions are preserved by EnsureProfiles().
+			-- Profiles are initialized inside buildLAMPanel(), after the SavedVariables
+			-- have been loaded into db.
 			
 			-- Build it a single time to avoid unneeded loops
 			listOfActiveGuilds()
@@ -3169,7 +2909,7 @@ function BankManagerRevived_runProfile(profile)
 		
 		if isBanking then
 		
-			for i=2, 9 do --change the 9 up to 39 for profile number increase
+			for i=2, db.profileCount do
 				if db.profiles[i].defined == true then
 					multipleProfiles = true
 					break

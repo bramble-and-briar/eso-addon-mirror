@@ -20,7 +20,7 @@ archdruidTracker.defaults = {
     trackVuln = true,
 	notifyEnd = true,
 	notifyVuln = true,
-    yAxisTextArch = 930,
+    yAxisTextArch = 950,
     xAxisTextArch = 1300
 }
 
@@ -182,7 +182,9 @@ end
 --when UI closes
 local function onMenuClosed()
 	isMenuOpen = false
-    if archdruidTracker.savedVariables.trackArch and isEquiped then
+    if archdruidTracker.savedVariables.trackArch and isEquiped and archdruidTracker.savedVariables.autoTrack then
+        archAddonText:SetHidden(false)
+    elseif archdruidTracker.savedVariables.trackArch and not archdruidTracker.savedVariables.autoTrack then
         archAddonText:SetHidden(false)
     end
 end
@@ -229,19 +231,18 @@ end
 --stop tracking if set is not equipped
 local function stopTrackingAuto()
 
-    printMessage("Archdruid set not found")
-
-    unRegisterAlerts()
-    archAddonText:SetHidden(true)
-    unRegisterAlertsVuln()
+    if archdruidTracker.savedVariables.trackArch and archdruidTracker.savedVariables.autoTrack then
+        printMessage("Archdruid set not found")
+        unRegisterAlerts()
+        archAddonText:SetHidden(true)
+        unRegisterAlertsVuln()
+    end
 end
 
 --start tracking if set is not equipped
 local function startTrackingAuto()
-
-    printMessage("Found Archdruid set")
-
-    if archdruidTracker.savedVariables.trackArch then
+    if archdruidTracker.savedVariables.trackArch and archdruidTracker.savedVariables.autoTrack then
+        printMessage("Found Archdruid set")
         registerAlerts()
         archAddonText:SetHidden(false)
     end
@@ -249,30 +250,15 @@ local function startTrackingAuto()
     if archdruidTracker.savedVariables.trackVuln then
         registerAlertsVuln()
     end
-
 end
 
 --handle equipment change callbacks
 local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
-
     if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
         zo_callLater(function ()
-	if isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack then startTrackingAuto() else stopTrackingAuto() end
+	if isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack and archdruidTracker.savedVariables.trackArch then startTrackingAuto() else stopTrackingAuto() end
 	end, 1000)
     end
-
-    --if isNewItem then
-    --    printMessage("new item")
-    --else
-    --    printMessage("not new item")
-    --end
-
-    --printMessage(tostring "eventCode- " .. eventCode)
-    --printMessage(tostring "slotIndex- " .. slotIndex)
-
-
-	
-    --registerAlerts() registerAlertsVuln() zo_callLater(function() printMessage("Found Archdruid set") end, 600)
 end
 
 --request callbacks when gear items are equipped or unequipped
@@ -427,36 +413,36 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-    --register for callbacks when an equiped piece of gear is added or removed
-    enableCallbacksGear()
-
     --load saved variables
     archdruidTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("archAddonVars", 1, "Settings", archdruidTracker.defaults, GetUnitName("player"))
 
-    --check if set is equipped and quit if set is not equipped
-    if not isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack then
-        printMessage("Archdruid set not found")
-        return
-    else
-        isEquiped = true
-        zo_callLater(function() printMessage("Found Archdruid set") end, 600)
-    end
+    --setup add on menu options
+    createOptions()
+
+    --register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
 
 	--notify about new library
 	if not isLibAvailable() then
-		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
+		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 400)
 		return
-	else
+	elseif  isLibAvailable() and archdruidTracker.savedVariables.trackArch then
 		--notify that add-on has been loaded
-		zo_callLater(function() printMessage("add-on loaded") end, 500)
+	    zo_callLater(function() printMessage("add-on loaded") end, 400)
 	end
 
+    --check if set is equipped
+    if not isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack and archdruidTracker.savedVariables.trackArch then
+        --notify set not found
+        zo_callLater(function() printMessage("Archdruid set not found") end, 600)
+    elseif isSetEquiped(setId, setCount) and archdruidTracker.savedVariables.autoTrack and archdruidTracker.savedVariables.trackArch then
+        isEquiped = true
+        --notify set found
+        zo_callLater(function() printMessage("Found Archdruid set") end, 600)
+    end
 
-
-	--notify if tracking is disabled
-	if not archdruidTracker.savedVariables.trackArch then
-		zo_callLater(function() printMessage("tracking disabled") end, 700)
-	end
+    --double check if set is equipped without autotracking stipulation
+    if isSetEquiped(setId, setCount) then isEquiped = true end
 
     --setup text field areas
     archAddonText:SetMovable(true)
@@ -472,23 +458,25 @@ local function onAddOnLoaded(event, name)
     setAnchorStartupIcon(archdruidTracker.savedVariables.xAxisTextArch, archdruidTracker.savedVariables.yAxisTextArch)
 
     --register for combat alerts if tracking is enabled
-    if archdruidTracker.savedVariables.trackArch then
+    if archdruidTracker.savedVariables.trackArch and not archdruidTracker.savedVariables.autoTrack then
         registerAlerts()
         archAddonText:SetHidden(false)
-    else
+    elseif archdruidTracker.savedVariables.trackArch and archdruidTracker.savedVariables.autoTrack and isEquiped then
+        registerAlerts()
+        archAddonText:SetHidden(false)
+    elseif archdruidTracker.savedVariables.trackArch and archdruidTracker.savedVariables.autoTrack and not isEquiped then
+        archAddonText:SetHidden(true)
+    elseif not archdruidTracker.savedVariables.trackArch then
         archAddonText:SetHidden(true)
     end
 
     --register for combat alerts if tracking is enabled for major vulnerability
-    if archdruidTracker.savedVariables.trackVuln then
+    if archdruidTracker.savedVariables.trackVuln  and isEquiped then
         registerAlertsVuln()
     end
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-
-    --setup add on menu options
-    createOptions()
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

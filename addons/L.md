@@ -273,7 +273,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibSurfaceTools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/imPDA/LibSurfaceTools__4584) | imPDA | PC / Mac | 8 |
 | [LibTableFunctions-1.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Onigar/LibTableFunctions-1.0__2624) | Onigar | PC / Mac | 1.0.1 |
 | [LibTarget](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fyeur/LibTarget__4830) | Fyeur | PC / Mac | 1.0.0 |
-| [LibTeamshadows](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/LibTeamshadows__4669) | teamfky | PC / Mac | 1.3.2 |
+| [LibTeamshadows](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/LibTeamshadows__4669) | teamfky | PC / Mac | 1.3.3 |
 | [LibTextFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibTextFilter__e2dbb014-9ae4-408e-9617-05161b5c9650) | sirinsidiator | Console | — |
 | [LibTextFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/LibTextFilter__1311) | sirinsidiator | PC / Mac | 1.0.7 |
 | [LibTextFormat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saranicole1980/LibTextFormat__cec7b602-5dc0-4af0-a949-cd5483dc7329) | saranicole1980 | Console | — |
@@ -316,6 +316,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LMP Oxygen Fonts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Corodius/LMP-Oxygen-Fonts__598) | Corodius | PC / Mac | 1.0 |
 | [LMP_jpFontFI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Calamath/LMP_jpFontFI__2936) | Calamath | PC / Mac | 2.2.0 |
 | [Loading Music](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Loading-Music__1322) | CaptainBlagbird | PC / Mac | 1.0.11 |
+| [Loadout](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Loadout__b25439ca-4262-4d71-940e-8b5db7507286) | TheGreyWolf98 | Console | — |
 | [LocalizatorRUS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Adeptichhhe/LocalizatorRUS__4740) | Adeptichhhe | PC / Mac | 3.7 |
 | [Lock Weapon Swap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Lock-Weapon-Swap__2865) | andy.s | PC / Mac | 0.2 |
 | [Lock Weapon Swap Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/batrada/Lock-Weapon-Swap-Updated__4013) | batrada | PC / Mac | 1.0 |

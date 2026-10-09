@@ -1,0 +1,48 @@
+Atlas interface and integration: @TheGreyWolf98.
+
+Thirty sample lorebook coordinates adapted from LoreBooks ShalidorData.lua:
+Ales Machat (Garkin), Ayantir, Kyoma, Sharlikran and community contributors.
+Source: https://github.com/ESOUIMods/LoreBooks
+Changes: limited to ten regional titles per test zone, one position each;
+converted to Atlas's small map-keyed schema. This is not the LoreBooks addon
+and is not endorsed by its maintainers.
+
+Treasure, public-dungeon and delve coordinate facts cross-checked against MapPins:
+Hoft, art1ink and community contributors.
+Source: https://github.com/art1ink/MapPins
+Atlas contains no MapPins code or custom texture assets.
+0.1.2 adds a limited High Isle and Blackwood coordinate subset, including
+community data contributed by art1ink. It does not bundle the complete database.
+
+ESO UI/API reference: https://github.com/esoui/esoui
+Icons are references to ESO's built-in game assets, not bundled copies.
+
+Atlas is distributed for noncommercial use under Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0).
+You may share and adapt with attribution and indication of changes, for
+noncommercial purposes, distributing adaptations under the same license.
+License: https://creativecommons.org/licenses/by-nc-sa/4.0/
+Full terms: https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+Retain this attribution when redistributing the test data.
+
+Expanded treasure-map and survey data adapted from LibTreasure, Marc / Masteroshi430.
+Source: https://github.com/Masteroshi430/LibTreasure/blob/main/LibTreasure/data.lua
+Changes: retain coordinates and item IDs; index by native map ID; omit clue pins.
+MIT license retained in TreasureData-LICENSE.txt. 254 digs, 173 survey sites.
+
+Expanded interior champion data adapted from Destinations, SnowmanDK and contributors.
+Source: https://github.com/LennartPiro/Destinations/blob/master/data/DestinationsChampions.lua
+Changes: remove zone overview records and duplicate rows; normalize tile keys;
+preserve Atlas's existing interior records. MIT terms in BossData-LICENSE.txt.
+
+Expanded Shalidor locations: LoreBooks 2019 snapshot, Garkin, Ayantir, Kyoma
+and community contributors. CC BY-NC-SA 4.0 notice in LorebookData-LICENSE.txt.
+Source: https://github.com/ESOUIMods/LoreBooks/blob/589d6e7bd3a812599f6dd2dfacd02640f05bbeb3/Lorebooks/LoreBooksData.lua
+Changes: retain map tile, coordinates, collection and book IDs; remove extra
+metadata and duplicate rows. No runtime code or custom textures are bundled.
+This historical snapshot is separate from the current maintainer's database.
+
+
+0.1.5 recent-zone supplement: 30 treasure digs, 18 survey sites and 51 interior boss coordinate facts cross-checked against MapPins (Hoft, art1ink and community contributors), covering Galen, Necrom, Gold Road and Solstice where recorded. No MapPins runtime code or custom assets are included. Names are resolved from ESO item/achievement IDs.
+
+Recent-zone Shalidor supplement: 76 coordinate facts on 22 map tiles, cross-checked against MapPins (art1ink and contributors); adapted to Atlas coordinate/book ID records.

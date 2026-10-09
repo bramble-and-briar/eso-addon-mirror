@@ -1,12 +1,12 @@
--- JumpToSearchFocusActions.lua: the R3 jump into the search header and the up/down return.
+-- JumpToSearchFocusActions.lua: the D-pad Right jump into the search header and the up/down return.
 --
 -- How the base game does it (zo_gamepadparametricscrolllistscreen.lua): the header is only
 -- reachable by pressing up at list index 1 (UpdateDirectionalInput -> RequestEnterHeader).
 -- RequestEnterHeader deactivates the current list WITHOUT touching its selection, and
 -- RequestLeaveHeader reactivates it in place - so the game already remembers where you were.
--- All we add is a way in from anywhere (R3) and a way back from the header on "up".
+-- All we add is a way in from anywhere (D-pad Right) and a way back from the header on "up".
 --
---   R3 ──▶ CanJump? ──no──▶ return false (falls through to the screen's own R3 keybind)
+--   D-pad Right ──▶ CanJump? ──no──▶ return false (falls through to the screen's own D-pad Right keybind, if any)
 --           │yes
 --           ▼
 --   screen:RequestEnterHeader()  (list deactivated in place, header highlighted)
@@ -141,7 +141,7 @@ function FocusActions.TryJump()
     return true
 end
 
----Bindings.xml <Down>. Return true to consume R3, false to let the screen's own R3 keybind run.
+---Bindings.xml <Down>. Return true to consume D-pad Right, false to let the screen's own D-pad Right keybind (if any) run.
 ---@return boolean
 function FocusActions.OnJumpKeyDown()
     local state = State()
@@ -162,7 +162,7 @@ function FocusActions.OnJumpKeyDown()
     return consumedDown
 end
 
----Bindings.xml <Up>. Mirror the down decision so the game's R3 keybind sees a matched pair.
+---Bindings.xml <Up>. Mirror the down decision so any stock D-pad Right keybind sees a matched pair.
 ---@return boolean
 function FocusActions.OnJumpKeyUp()
     local handled = consumedDown
@@ -177,7 +177,7 @@ function FocusActions.OnTargetSceneStateChanged(target, newState)
     local state = State()
     if newState == SCENE_SHOWN then
         -- Push at SHOWN, not SHOWING: the game's UI-shortcut action layer fragment (which owns
-        -- the stock R3 handler) re-pushes itself while the scene is SHOWING, and whichever layer
+        -- the stock UI_SHORTCUT_INPUT_RIGHT handler) re-pushes itself while the scene is SHOWING, and whichever layer
         -- is pushed last gets the button first.
         state.activeTarget = target
         if not state.layerPushed then

@@ -19,7 +19,7 @@ local function PrintStatus()
         JumpToSearch.version, OnOff(sv.enabled), OnOff(sv.openKeyboard), OnOff(sv.debug),
         tostring(IsActionLayerActiveByName(JumpToSearch.actionLayerName)),
         state.activeTarget and state.activeTarget.name or "none")
-    Log.Log("R3 presses=%d jumps=%d fallthroughs=%d returns=%d",
+    Log.Log("D-pad Right presses=%d jumps=%d fallthroughs=%d returns=%d",
         counters.keyDowns, counters.jumps, counters.fallthroughs, counters.returns)
 
     local target = state.activeTarget
@@ -46,10 +46,10 @@ function SlashCommandActions.HandleCommand(args)
 
     if command == "on" then
         sv.enabled = true
-        Log.Log("R3 jump enabled")
+        Log.Log("D-pad Right jump enabled")
     elseif command == "off" then
         sv.enabled = false
-        Log.Log("R3 jump disabled")
+        Log.Log("D-pad Right jump disabled")
     elseif command == "keyboard" then
         if remaining == "on" or remaining == "off" then
             sv.openKeyboard = (remaining == "on")

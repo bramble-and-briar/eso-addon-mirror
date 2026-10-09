@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Gamer1986PAN/Bank-Manager-Revived---Slim-Edition__2333",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Gamer1986PAN",
   "canonical_id": "esoui:2333",
   "category_id": "33",
   "compatibility": [
     {
-      "name": "Lost Depths",
-      "version": "8.1.5"
-    },
-    {
-      "name": "High Isle",
-      "version": "8.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2333",
@@ -21,7 +18,7 @@
     "BankManagerRevived"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2333/",
-  "fingerprint": "d280d5931fb7f1f839656cad5b8b7d892687cd50a403aed56a77762b0c5fd2d2",
+  "fingerprint": "383ed56b4795793f0fe69fcd772faab53961fdc3d6bf883bba9d7800c1add7da",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw7960.png",
     "https://cdn-eso.mmoui.com/preview/pvw8318.png",
@@ -33,11 +30,11 @@
   "source_id": "2333",
   "source_url": "https://www.esoui.com/downloads/info2333-BankManagerRevived-SlimEdition.html",
   "stats": {
-    "downloads": 45192,
+    "downloads": 45490,
     "favorites": 53,
-    "monthly_downloads": 41
+    "monthly_downloads": 145
   },
   "title": "Bank Manager Revived - Slim Edition",
-  "updated_at": 1654491824000,
-  "version": "14.90"
+  "updated_at": 1791486716000,
+  "version": "15.13"
 }

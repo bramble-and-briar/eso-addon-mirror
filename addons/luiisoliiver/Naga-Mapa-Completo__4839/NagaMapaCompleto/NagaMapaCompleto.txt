@@ -1,0 +1,14 @@
+## Title: |cE0B050Naga Mapa Completo|r
+## Author: |c66CCFFNaga|r
+## Description: Diário de conclusão de Tamriel com progresso (Alianças), Economia e PvE/PvP. Locais do mapa coloridos por progresso e tooltip ao passar o mouse. PT/EN/DE/RU/FR/ES. Requer LibAddonMenu-2.0.
+## Version: 2.8.9
+## AddOnVersion: 20705
+## APIVersion: 101050 101051
+## SavedVariables: NagaMapaCompleto_SavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
+
+# English fallback + dynamic ESO client language (includes pt)
+localization/en.lua
+localization/$(language).lua
+bindings.xml
+NagaMapaCompleto.lua

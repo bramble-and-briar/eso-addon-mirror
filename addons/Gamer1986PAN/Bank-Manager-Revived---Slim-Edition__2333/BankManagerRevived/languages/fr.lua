@@ -126,3 +126,20 @@ SafeAddString(BMR_IMPORT_DESC									, "Choisissez à partir de quel personnage
 SafeAddString(BMR_IMPORTED										, "Les paramètres de BMR ont été importés à partir du personnage <<1>>", 1)
 
 SafeAddString(BMR_ZOS_LIMITATIONS							, "En raison d'une restriction du jeu, BMR n'a traité que 98 objets de votre inventaire. Veuillez patienter 10 secondes et interagir à nouveau avec le PNJ.", 1)
+-- Nouvelles options / ScriptTracker
+SafeAddString(BMR_GLOBAL_ADDON_PROFILE			, "Profil global de l'addon (rechargement automatique)", 1)
+SafeAddString(BMR_GLOBAL_ADDON_PROFILE_TOOLTIP	, "Sélectionne le profil global de BMR. L'interface sera rechargée après modification. Par défaut : <<1>>", 1)
+SafeAddString(BMR_PROFILE_COUNT					, "Nombre de profils", 1)
+SafeAddString(BMR_PROFILE_COUNT_TOOLTIP			, "Détermine le nombre de profils BMR disponibles. Les profils au-delà de cette valeur sont conservés mais masqués jusqu'à ce que la valeur soit augmentée.", 1)
+
+SafeAddString(BMR_SCRIPTTRACKER						, "ScriptTracker / Parchemins", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DESC					, "Dépose automatiquement en banque les parchemins déjà connus par le personnage actuel et retire de la banque ceux qu'il ne connaît pas encore. BMR effectue les transferts.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ENABLE				, "Activer la gestion automatique des parchemins", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ENABLE_TOOLTIP	, "Utilise les connaissances du personnage actuel indiquées par ScriptTracker lors de l'ouverture de la banque.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEPOSIT_KNOWN	, "Déposer les parchemins connus", 1)
+SafeAddString(BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN, "Retirer les parchemins inconnus", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ONE_ONLY			, "Ne retirer qu'un exemplaire par parchemin inconnu", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP, "Si activé, BMR retire au maximum un exemplaire de chaque parchemin inconnu. Si le parchemin est déjà dans l'inventaire, aucun autre exemplaire n'est retiré.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEBUG				, "Activer les messages de débogage ScriptTracker", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEBUG_TOOLTIP	, "Affiche des informations détaillées de diagnostic ScriptTracker/BMR dans le chat. Désactivé par défaut.", 1)
+

@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 Meterskull = {
     name     = "Meterskull",
-    version  = "1.6.0",
+    version  = "1.6.1",
     modules  = {},
     db       = {},
     defaults = {},
@@ -499,10 +499,10 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
         MS.db.sharedSettings[showKey] = show
         if not self.uiRefs or not self.uiRefs.main then return end
 
-        -- Preview controls change visibility instantly, without starting HUD fades.
+        -- Keep HUD fragments hidden while preview controls are shown directly.
         if MS.lamPreviewActive then
             if self.fragment then
-                self.fragment:SetHiddenForReason("MeterskullPreview", true, 0, 0)
+                self.fragment:SetHiddenForReason("MeterskullPreview", true)
             end
             self.uiRefs.main:SetAlpha(1)
             self.uiRefs.main:SetHidden(not show)
@@ -515,7 +515,9 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
 
         if shouldShow then
             if not self.fragment then
-                self.fragment = ZO_HUDFadeSceneFragment:New(self.uiRefs.main,250,250)
+                -- Complete scene transitions without addon animation callbacks.
+                self.fragment = ZO_SimpleSceneFragment:New(self.uiRefs.main)
+                ZO_MixinHideableSceneFragment(self.fragment)
             end
             if self.fragment:IsHiddenForReason("MeterskullPreview") then
                 self.uiRefs.main:SetHidden(true)
@@ -529,7 +531,6 @@ function MS.CreateModule(name, dbKey, uiRefs, namespace, renderFunc, scaleFunc)
             if self.fragment then
                 SCENE_MANAGER:GetScene("hud"):RemoveFragment(self.fragment)
                 SCENE_MANAGER:GetScene("hudui"):RemoveFragment(self.fragment)
-                -- Reuse the fragment so a new show can reverse an unfinished fade.
             else
                 self.uiRefs.main:SetHidden(true)
             end

@@ -104,6 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
 | [PinkB's HudManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager__9f445510-52db-43d8-bb0a-c6e497fce454) | PinkBanther | Console | — |
 | [PinkB's HudManager(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager-Beta__d761d228-adae-40b7-8320-6e4504e2d2ec) | PinkBanther | Console | — |
+| [PinkB's KillLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-KillLog__ff4bafd1-1006-4f21-8d38-7a45f4527518) | PinkBanther | Console | — |
 | [PinkB's KillLog(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-KillLog-Beta__79dd6cfe-4b31-471a-96b6-061bf53f35f6) | PinkBanther | Console | — |
 | [PinkB'S LDLStats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-S-LDLStats__3ecaea11-d7db-4461-b3c5-c1687ee9d6a0) | PinkBanther | Console | — |
 | [PinkB's LibDebugLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-LibDebugLogger__0b8ba311-219e-4207-ba00-2876c16ec5b5) | PinkBanther | Console | — |

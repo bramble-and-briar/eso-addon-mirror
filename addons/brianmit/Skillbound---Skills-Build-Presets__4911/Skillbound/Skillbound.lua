@@ -34,9 +34,13 @@ local L = B.L
 
 B.LOGO = "Skillbound/Textures/logo.dds"   -- sword through a ring (logo 2, picked 2026-10-01)
 B.TEX = "Skillbound/Textures/"
-B.VERSION = "1.0.2"   -- keep the same as "## Version" in Skillbound.txt (shown in the window's credit)
+B.VERSION = "1.0.3"   -- keep the same as "## Version" in Skillbound.txt (shown in the window's credit)
 B.AUTHOR = "brianmit"
 B.BG = B.TEX .. "bg_graphite.dds"   -- window / panel / button background (palette 2)
+-- the main window's wallpapers (2026-10-08): 0 = the Mundus night sky above, 1-10 drawn by
+-- _SkillboundDev/make_wallpapers.ps1 (2048 x 1024 DXT1); names in WALL_0 .. WALL_10
+B.WALLS = { [0] = B.BG }
+for i = 1, 10 do B.WALLS[i] = B.TEX .. "walls/wall_" .. i .. ".dds" end
 B.MAX_FAV = 10   -- favorites: button slots, keybinds, quick wheel (all up to 10)
 B.SKILLS_ICON = "/esoui/art/mainmenu/menubar_skills_up.dds"   -- the game's own Skills menu icon
 
@@ -421,6 +425,15 @@ local function Slash(args)
             if ending - started >= 1200 then
                 d(string.format("  %s (%d): %d min long, %d min left", B.Name(name), id, math.floor((ending - started) / 60), math.floor((ending - now) / 60)))
             end
+        end
+    elseif cmd == "steps" then
+        -- diagnostic (English only, dev tool): how long each step of the last switch took
+        local log = B.Apply.lastLog
+        if not log then
+            d("Skillbound: no build switch since the last reload.")
+        else
+            d(string.format("Skillbound: last switch \"%s\" took %d ms:", log.name, log.total))
+            for _, e in ipairs(log) do d(string.format("  %5d ms  %s%s", e.ms, e.label, e.how)) end
         end
     elseif cmd == "errors" then
         -- the last errors the safety net caught (for bug reports)

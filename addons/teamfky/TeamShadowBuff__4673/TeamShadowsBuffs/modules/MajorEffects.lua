@@ -99,7 +99,7 @@ local function FindEffectByName(effectName)
     if normalized == "" then return nil end
 
     if normalized:find("prophetie majeure", 1, true) or normalized:find("major prophecy", 1, true) then
-        return effectsByKey.major_prophecy
+        return effectsByKey.major_savagery
     end
 
     if normalized:find("sauvagerie majeure", 1, true) or normalized:find("major savagery", 1, true) then

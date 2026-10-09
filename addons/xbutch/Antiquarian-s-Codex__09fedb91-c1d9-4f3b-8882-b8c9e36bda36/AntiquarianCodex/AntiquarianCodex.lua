@@ -216,11 +216,67 @@ local function colorizeExpiration(leadtimeleft)
 end
  ]]
 
--- Helper function to extract antiquity ID from item link
+local resolvedLeadItems = {}
+local leadItemPrefix
+local leadItemNameIndex
+
+local function NormalizeLeadItemName(name)
+	if type(name) ~= 'string' then return '' end
+	name = zo_strformat('<<1>>', name)
+	return name:gsub('|c%x%x%x%x%x%x', ''):gsub('|r', ''):gsub('%^.*$', ''):gsub('^%s+', ''):gsub('%s+$', ''):lower()
+end
+
+local function GetLeadItemPrefix()
+	if leadItemPrefix then return leadItemPrefix end
+	-- Learn the localized label from a verified item instead of assuming English.
+	for itemId, antiquityId in pairs(AC.TradeableLeadItems or {}) do
+		local link = '|H1:item:' .. itemId .. ':1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h'
+		local itemName = NormalizeLeadItemName(GetItemLinkName(link))
+		local antiquityName = NormalizeLeadItemName(GetAntiquityName(antiquityId))
+		if antiquityName ~= '' and #itemName > #antiquityName and itemName:sub(-#antiquityName) == antiquityName then
+			leadItemPrefix = itemName:sub(1, #itemName - #antiquityName)
+			return leadItemPrefix
+		end
+	end
+end
+
+local function GetLeadItemNameIndex()
+	if leadItemNameIndex then return leadItemNameIndex end
+	local index, seen = {}, {}
+	local id = GetNextAntiquityId()
+	while id and id > 0 do
+		if seen[id] then return nil end
+		seen[id] = true
+		local name = NormalizeLeadItemName(GetAntiquityName(id))
+		if name ~= '' then
+			-- Ambiguous names must never select an arbitrary antiquity.
+			if index[name] == nil then index[name] = id else index[name] = false end
+		end
+		id = GetNextAntiquityId(id)
+	end
+	if next(seen) then leadItemNameIndex = index end
+	return leadItemNameIndex
+end
+
+-- Resolve verified IDs first, then other unopened lead items using client names.
 local function GetAntiquityIdFromItemLink(itemLink)
 	if type(itemLink) ~= 'string' or itemLink == '' then return nil end
 	local itemId = GetItemLinkItemId(itemLink)
-	return AC.TradeableLeadItems and AC.TradeableLeadItems[itemId]
+	local id = (AC.TradeableLeadItems and AC.TradeableLeadItems[itemId]) or resolvedLeadItems[itemId]
+	if id then return id end
+	if type(GetItemLinkName) ~= 'function' or type(GetItemLinkItemType) ~= 'function'
+		or type(GetNextAntiquityId) ~= 'function' or not ITEMTYPE_CONTAINER_STACKABLE then return nil end
+	if GetItemLinkItemType(itemLink) ~= ITEMTYPE_CONTAINER_STACKABLE then return nil end
+	local prefix = GetLeadItemPrefix()
+	local name = NormalizeLeadItemName(GetItemLinkName(itemLink))
+	if not prefix or name:sub(1, #prefix) ~= prefix then return nil end
+	local index = GetLeadItemNameIndex()
+	id = index and index[name:sub(#prefix + 1)]
+	if not id then return nil end
+	resolvedLeadItems[itemId] = id
+	AC.TradeableAntiquities = AC.TradeableAntiquities or {}
+	AC.TradeableAntiquities[id] = itemId
+	return id
 end
 
 -----------------------------------------------------
@@ -528,7 +584,7 @@ local function CreateLeadToolip(leadId)
 	local entry = AC.Locations and AC.Locations[leadId]
 	local fullDesc = entry and entry[1]
 	local locShort = entry and entry[3]
-	local source = AC.UNKNOWN
+	local source
 	if fullDesc and fullDesc ~= '' and fullDesc ~= AC.UNKNOWN then
 		source = (locShort and locShort ~= '' and locShort ~= AC.UNKNOWN) and locShort or fullDesc
 		-- Acquisition information stays separate from the client dig zone, even for owned leads.
@@ -554,12 +610,12 @@ local function CreateLeadToolip(leadId)
 	local found = GetNumAntiquitiesRecovered(leadId)
 	local codexMissing = math.max(0, GetNumAntiquityLoreEntries(leadId) - GetNumAntiquityLoreEntriesAcquired(leadId))
 	local lines = {
-		zo_strformat(AC.TOOLTIP_SOURCE, source),
 		zo_strformat(AC.TOOLTIP_DIG, digZone ~= '' and digZone or AC.UNKNOWN),
 		zo_strformat(AC.TOOLTIP_SET, setName),
 		zo_strformat(AC.TOOLTIP_FOUND, found),
 		zo_strformat(AC.TOOLTIP_CODEX_MISSING, codexMissing)
 	}
+	if source then table.insert(lines, 1, zo_strformat(AC.TOOLTIP_SOURCE, source)) end
 	if AC.TradeableAntiquities and AC.TradeableAntiquities[leadId] then
 		table.insert(lines, AC.TOOLTIP_TRADEABLELEAD)
 	end

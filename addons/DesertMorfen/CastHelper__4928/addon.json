@@ -1,0 +1,42 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/DesertMorfen/CastHelper__4928",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "DesertMorfen",
+  "canonical_id": "esoui:4928",
+  "category_id": "112",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4928",
+  "deleted": false,
+  "directories": [
+    "CastHelper"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4928/",
+  "fingerprint": "4fe1d57248a500b5f1d38f6979dd04989b88830d2fef514d0ec02e493ad897b3",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17830.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17831.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17832.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17833.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4928",
+  "source_url": "https://www.esoui.com/downloads/info4928-CastHelper.html",
+  "stats": {
+    "downloads": 16,
+    "favorites": 0,
+    "monthly_downloads": 12
+  },
+  "title": "CastHelper",
+  "updated_at": 1791533735000,
+  "version": "1.2.6"
+}

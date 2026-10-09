@@ -2,7 +2,7 @@ PullCard = PullCard or {}
 local PC = PullCard
 
 PC.name = "PullCard"
-PC.version = "0.2.2"
+PC.version = "0.5.1"
 PC.window = nil
 PC.savedVars = nil
 PC.closeAtMs = 0
@@ -11,14 +11,20 @@ PC.currentBossData = nil
 PC.manualIndex = 1
 PC.detectedBossNames = {}
 PC.debugMode = false
-PC.lastPrefilledBoss = nil
+-- Last boss/round detected or opened from the menu, even when no card popped
+-- (cooldown, Auto Pop-Up off). This is what /currentboss sends to chat.
+PC.chatBoss = nil
 PC.encountersByName = {}
 PC.lastAutoShownAt = {}
 
 local DEFAULT_SETTINGS = {
     displaySeconds = 10,
     repeatCooldownMinutes = 10,
+    autoPopup = true,
+    chatTag = true,
 }
+
+local CHAT_TAG = " (PullCard)"
 
 local function Trim(s)
     if not s then return "" end
@@ -150,26 +156,35 @@ function PC:GetPlayerRoleText(data)
     return ""
 end
 
+-- Zone / map / subzone, used to work out matching rules (e.g. solo-arena rounds).
+function PC:GetLocationText()
+    local zoneName = GetUnitZone("player") or "?"
+    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+
+    return string.format(
+        "Zone: %s (%s)\nMap: %s\nSubzone: %s\nGroup dungeon: %s",
+        tostring(zoneName),
+        tostring(zoneId),
+        tostring(GetMapName()),
+        tostring(GetPlayerActiveSubzoneName()),
+        tostring(self:IsInGroupDungeon())
+    )
+end
+
 function PC:GetDebugText()
     if not self.debugMode then return "" end
 
-    local zoneName = GetUnitZone("player") or "?"
-    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
     local bosses = (#self.detectedBossNames > 0) and table.concat(self.detectedBossNames, ", ") or "none"
-
-    return string.format(
-        "DEBUG\nZone: %s (%s)\nGroup dungeon: %s\nDetected: %s",
-        tostring(zoneName),
-        tostring(zoneId),
-        tostring(self:IsInGroupDungeon()),
-        bosses
-    )
+    return "DEBUG\n" .. self:GetLocationText() .. "\nDetected: " .. bosses
 end
 
 function PC:SetBoss(encounter, rawName, source)
     self.currentBossName = encounter and encounter.title or rawName
     self.currentBossData = encounter
     self.currentSource = source or "unknown"
+    if encounter then
+        self.chatBoss = encounter
+    end
 
     self:Render()
 end
@@ -181,6 +196,14 @@ end
 function PC:GetRepeatCooldownSeconds()
     local minutes = self.savedVars and self.savedVars.repeatCooldownMinutes
     return (minutes or DEFAULT_SETTINGS.repeatCooldownMinutes) * 60
+end
+
+-- Off = no automatic cards (e.g. farming the same boss); the menu still opens them.
+function PC:IsAutoPopupEnabled()
+    if not self.savedVars or self.savedVars.autoPopup == nil then
+        return DEFAULT_SETTINGS.autoPopup
+    end
+    return self.savedVars.autoPopup
 end
 
 -- True if this boss already auto-popped recently (e.g. re-targeted mid-fight).
@@ -235,19 +258,63 @@ function PC:RefreshAuto()
 
     -- Only pop for bosses we have a card for in this dungeon.
     if encounter then
-        if self:IsOnRepeatCooldown(encounter) then
+        self.chatBoss = encounter
+        if not self:IsAutoPopupEnabled() or self:IsOnRepeatCooldown(encounter) then
             return
         end
 
         self.lastAutoShownAt[encounter] = GetFrameTimeSeconds()
         self:SetBoss(encounter, rawName, "auto")
         self:OpenWindow()
-    else
+    elseif not self.window or self.window:IsHidden() then
+        -- Don't blank a card that's still on screen (e.g. a round card when
+        -- the round's boss frames change).
         self.currentBossName = nil
         self.currentBossData = nil
         self.currentSource = "none"
         self:Render()
     end
+end
+
+-- Solo arenas: returns the round card for the area the player is standing in.
+function PC:ResolveRound()
+    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+    local zoneName = NormalizeZoneName(GetUnitZone("player"))
+    local subzone = NormalizeZoneName(GetPlayerActiveSubzoneName())
+    local mapName = NormalizeZoneName(GetMapName())
+
+    local function findRound(dungeon, location)
+        if location == "" then return nil end
+        for _, encounter in ipairs(dungeon.encounters) do
+            for _, areaName in ipairs(encounter.area or {}) do
+                if NormalizeZoneName(areaName) == location then
+                    return encounter
+                end
+            end
+        end
+        return nil
+    end
+
+    for _, dungeon in ipairs(PullCardData.dungeonOrder) do
+        if dungeon.category == "solo" and IsPlayerInDungeon(dungeon, zoneId, zoneName) then
+            -- Subzone first: the map name can lag a round behind (in Maelstrom
+            -- round 8 the map still reads round 7's "Vault of Umbrage").
+            return findRound(dungeon, subzone) or findRound(dungeon, mapName)
+        end
+    end
+    return nil
+end
+
+function PC:RefreshRound()
+    local encounter = self:ResolveRound()
+    if not encounter then return end
+
+    self.chatBoss = encounter
+    if not self:IsAutoPopupEnabled() or self:IsOnRepeatCooldown(encounter) then return end
+
+    self.lastAutoShownAt[encounter] = GetFrameTimeSeconds()
+    self:SetBoss(encounter, nil, "round")
+    self:OpenWindow()
 end
 
 function PC:Render()
@@ -263,7 +330,8 @@ function PC:Render()
     elseif data then
         local summary = data.summary or "Watch the encounter flow, protect your team, and execute one clean mechanic cycle."
         self.window.title:SetText((data.dungeon or "Dungeon") .. " — " .. (data.title or bossName))
-        self.window.body:SetText("SUMMARY\n" .. summary .. "\n\nEVERYONE\n" .. (data.everyone or "No notes yet."))
+        local mechanicsLabel = data.area and "MECHANICS" or "EVERYONE"
+        self.window.body:SetText("SUMMARY\n" .. summary .. "\n\n" .. mechanicsLabel .. "\n" .. (data.everyone or "No notes yet."))
 
         local sections = {}
         local roleText = self:GetPlayerRoleText(data)
@@ -306,31 +374,106 @@ function PC:Browse(delta)
     self:OpenWindow()
 end
 
+-- Text for the group: the boss's TL;DR (falls back to its "everyone" line),
+-- plus a short "(PullCard)" tag unless turned off in Settings.
+function PC:GetChatText()
+    local data = self.chatBoss
+    if not data then return nil end
+
+    local text
+    if data.tldr and data.tldr ~= "" then
+        text = data.tldr
+    elseif data.everyone and data.everyone ~= "" then
+        text = "[" .. data.title .. "] " .. data.everyone
+    else
+        return nil
+    end
+
+    local tagOn = not self.savedVars or self.savedVars.chatTag ~= false
+    return tagOn and (text .. CHAT_TAG) or text
+end
+
+-- /pullcard <part of a boss name>: finds cards by name, alias or title.
+-- Matches in the player's current dungeon win over the same name elsewhere.
+function PC:SearchEncounters(query)
+    local q = NormalizeBossName(query)
+    if q == "" then return {} end
+
+    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+    local zoneName = NormalizeZoneName(GetUnitZone("player"))
+    local here, elsewhere = {}, {}
+
+    for _, encounter in ipairs(GetEncounters()) do
+        local found = NormalizeBossName(encounter.title):find(q, 1, true)
+        if not found then
+            for _, list in ipairs({ encounter.names or {}, encounter.aliases or {} }) do
+                for _, name in ipairs(list) do
+                    if NormalizeBossName(name):find(q, 1, true) then
+                        found = true
+                        break
+                    end
+                end
+                if found then break end
+            end
+        end
+
+        if found then
+            if IsPlayerInDungeon(encounter.dungeonInfo, zoneId, zoneName) then
+                table.insert(here, encounter)
+            else
+                table.insert(elsewhere, encounter)
+            end
+        end
+    end
+
+    return #here > 0 and here or elsewhere
+end
+
+function PC:HandlePullCardCommand(args)
+    local query = Trim(args)
+    if query == "" then
+        d("PullCard: /currentboss fills chat with the strategy for the boss you're on. /pullcard <part of a boss name> does it for any boss, e.g. /pullcard domi")
+        return
+    end
+
+    local matches = self:SearchEncounters(query)
+    if #matches == 0 then
+        d("PullCard: no boss matches \"" .. query .. "\". Try part of the name from the boss's health bar.")
+    elseif #matches == 1 then
+        self.chatBoss = matches[1]
+        self:PrefillGroupChat()
+    else
+        local lines = {}
+        for i = 1, math.min(#matches, 5) do
+            table.insert(lines, matches[i].title .. " (" .. matches[i].dungeon .. ")")
+        end
+        local more = #matches > 5 and (" and " .. (#matches - 5) .. " more") or ""
+        d("PullCard: " .. #matches .. " matches, type more of the name: " .. table.concat(lines, "; ") .. more)
+    end
+end
+
+-- Addons can't send chat; this fills the party chat box and the player presses send.
 function PC:PrefillGroupChat()
-    local d = self.currentBossData
-    if not d or not d.tldr or d.tldr == "" then return end
+    local text = self:GetChatText()
+    if not text then
+        d("PullCard: no boss yet. Get near a boss, or open one from the PullCard menu.")
+        return
+    end
 
     -- Deliberately isolated. PC behavior is known; console/gamepad behavior
     -- can be swapped here without changing the rest of the addon.
     local chatSystem = ZO_GetChatSystem and ZO_GetChatSystem()
     if chatSystem and chatSystem.StartTextEntry then
-        chatSystem:StartTextEntry(d.tldr, CHAT_CHANNEL_PARTY, nil, true)
+        chatSystem:StartTextEntry(text, CHAT_CHANNEL_PARTY, nil, true)
+    else
+        -- No chat entry available: at least show it to the player.
+        d(text)
     end
 end
 
 function PC:RegisterSlashCommands()
-    SLASH_COMMANDS["/currentboss"] = function()
-        local data = PC.currentBossData
-        if not data or not data.tldr or data.tldr == "" then
-            d("PullCard: No boss strategy available")
-            return
-        end
-
-        local chatSystem = ZO_GetChatSystem and ZO_GetChatSystem()
-        if chatSystem and chatSystem.StartTextEntry then
-            chatSystem:StartTextEntry(data.tldr, CHAT_CHANNEL_PARTY, nil, true)
-        end
-    end
+    SLASH_COMMANDS["/currentboss"] = function() PC:PrefillGroupChat() end
+    SLASH_COMMANDS["/pullcard"] = function(args) PC:HandlePullCardCommand(args) end
 end
 
 function PC:RegisterConsoleMenu()
@@ -348,6 +491,18 @@ function PC:RegisterConsoleMenu()
     if not menu then return end
 
     local options = {
+        {
+            type = "button",
+            name = "Explain Boss to Group",
+            tooltip = function()
+                local text = PC:GetChatText()
+                if not text then
+                    return "No boss yet. Get near a boss, or open one from the menu below. Also available as /currentboss."
+                end
+                return "Fills your chat box with this (you press send):\n\n" .. text .. "\n\nMake sure chat is on the Group channel. Also available by typing /currentboss."
+            end,
+            func = function() PC:PrefillGroupChat() end,
+        },
         {
             type = "submenu",
             name = "Settings",
@@ -375,6 +530,23 @@ end
 function PC:BuildSettingsOptions()
     return {
         {
+            type = "selector",
+            name = "Auto Pop-Up",
+            tooltip = "Turn off to stop cards popping up automatically, e.g. while farming the same boss over and over. You can still open any card from this menu. Stays off until you turn it back on.",
+            choices = {
+                { name = "On", value = "on" },
+                { name = "Off", value = "off" },
+            },
+            default = "on",
+            getFunc = function() return PC:IsAutoPopupEnabled() and "on" or "off" end,
+            setFunc = function(value)
+                PC.savedVars.autoPopup = (value == "on")
+                if value == "off" then
+                    PC:CloseWindow()
+                end
+            end,
+        },
+        {
             type = "slider",
             name = "Card display time (seconds)",
             tooltip = "How long the PullCard stays on screen before closing.",
@@ -397,15 +569,39 @@ function PC:BuildSettingsOptions()
             setFunc = function(value) PC.savedVars.repeatCooldownMinutes = value end,
         },
         {
-            type = "checkbox",
+            type = "selector",
+            name = "Chat Tag",
+            tooltip = "Adds \"(PullCard)\" to the end of strategies you put in chat, so your group knows where they came from.",
+            choices = {
+                { name = "On", value = "on" },
+                { name = "Off", value = "off" },
+            },
+            default = "on",
+            getFunc = function() return PC.savedVars.chatTag ~= false and "on" or "off" end,
+            setFunc = function(value) PC.savedVars.chatTag = (value == "on") end,
+        },
+        -- LibConsoleMenu has no checkbox type (rows with unknown types are
+        -- silently dropped); "selector" is the confirmed-working on/off control.
+        {
+            type = "selector",
             name = "Debug Text",
             tooltip = "Shows zone name/ID and detected boss names on the card.",
-            default = false,
-            getFunc = function() return PC.debugMode end,
+            choices = {
+                { name = "Off", value = "off" },
+                { name = "On", value = "on" },
+            },
+            default = "off",
+            getFunc = function() return PC.debugMode and "on" or "off" end,
             setFunc = function(value)
-                PC.debugMode = value
+                PC.debugMode = (value == "on")
                 PC:Render()
             end,
+        },
+        {
+            type = "button",
+            name = "Location Info",
+            tooltip = function() return PC:GetLocationText() end,
+            func = function() end,
         },
     }
 end
@@ -572,7 +768,15 @@ function PC:Initialize()
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_PLAYER_ACTIVATED, function()
         zo_callLater(function()
             PC:RefreshAuto()
+            PC:RefreshRound()
         end, 500)
+    end)
+
+    -- Fires on subzone changes too: that's how solo-arena rounds are detected.
+    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ZONE_CHANGED, function()
+        zo_callLater(function()
+            PC:RefreshRound()
+        end, 300)
     end)
 end
 

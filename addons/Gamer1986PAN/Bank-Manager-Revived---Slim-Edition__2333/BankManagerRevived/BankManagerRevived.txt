@@ -5,12 +5,13 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: BankManagerRevived |cFF0000(Slim Edition)|r
-## APIVersion: 101034 101035
-## Version: 14.90
+## APIVersion: 101051 101050
+## Version: 15.13
 ## Author: Ayantir & |cFF0000Gamer1986PAN & @DeadSoon|r
 ## Description: Manage your Banks with automated push/pull. Disabled the material pull and some other unneeded stuff to get smaller saved vars.
 ## SavedVariables: BMVars
 ## DependsOn: LibAddonMenu-2.0 LibResearch
+## OptionalDependsOn: ScriptTracker
 
 languages\en.lua
 languages\$(language).lua

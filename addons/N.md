@@ -6,7 +6,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
-| [Naga Mapa Completo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/Naga-Mapa-Completo__4839) | luiisoliiver | PC / Mac | 2.8.9 |
+| [Naga Mapa Completo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/Naga-Mapa-Completo__4839) | luiisoliiver | PC / Mac | 2.9.0 |
 | [Nail Down GUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manavortex/Nail-Down-GUI__1460) | manavortex | PC / Mac | 0.1b |
 | [name](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wsollers/name__a2b82a6f-4da6-492b-9132-52354a645321) | wsollers | Console | — |
 | [Name Language Ninja - Translation assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Name-Language-Ninja---Translation-assistant__2667) | Shinntarou | PC / Mac | 1.1.17 |

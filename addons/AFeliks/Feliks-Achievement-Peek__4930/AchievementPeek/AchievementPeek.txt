@@ -1,0 +1,7 @@
+## Title: Feliks' Achievement Peek
+## Author: Feliks Blackwood
+## Version: 1.0.0
+## APIVersion: 101051
+## Description: Right-click an achievement link in chat to open that achievement in your own Achievements window and see your progress instead of the sender's.
+
+AchievementPeek.lua

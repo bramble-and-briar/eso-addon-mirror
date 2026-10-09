@@ -52,7 +52,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Decluttered Scrying Leads](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Decluttered-Scrying-Leads__3009) | kawamonkey | PC / Mac | 1.0.1 |
 | [DeconIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cmw69krinkle/DeconIcon__3347) | cmw69krinkle | PC / Mac | 1.0.0 |
 | [DeconOrSell](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/DeconOrSell__3972) | Saint-Ange | PC / Mac | 1.1.3 |
-| [DeconSelectAll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/DeconSelectAll__4873) | KarimAG | PC / Mac | 1.0.1 |
+| [DeconSelectAll](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KarimAG/DeconSelectAll__4873) | KarimAG | PC / Mac | 1.1.0 |
 | [DeconStats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/DeconStats__3973) | Saint-Ange | PC / Mac | 1.0.2 |
 | [DeconstructAll (+gamepad)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/DeconstructAll-gamepad__3667) | awfuldead | PC / Mac | 0.2.0 |
 | [Deconstruction Assistant (Scions of Ithelia)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CodeStripper/Deconstruction-Assistant-Scions-of-Ithelia__1718) | CodeStripper | PC / Mac | 2.0.4 |

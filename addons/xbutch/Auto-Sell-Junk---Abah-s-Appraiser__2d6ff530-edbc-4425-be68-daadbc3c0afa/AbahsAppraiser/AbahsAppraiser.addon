@@ -5,8 +5,8 @@
 
 ## Title: Auto Sell Junk - Abah’s Appraiser
 ## Description: Automatically sells junk items when visiting a merchant.
-## Version: 1.51.04
-## AddOnVersion: 15104
+## Version: 1.51.05
+## AddOnVersion: 15105
 ## DependsOn: LibAddonMenu-2.0
 ## Author: xbutch
 ## SavedVariables: ASJ_SavedVars

@@ -62,7 +62,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Session Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Session-Timer__2259) | Rhyono | PC / Mac | 1.11 |
 | [Set Collection Marker (Sticker Book)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Set-Collection-Marker-Sticker-Book__2804) | Kyzeragon | PC / Mac | 3.0.0 |
 | [Set Container Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Set-Container-Collector__4652) | FirewoodDoge | PC / Mac | 1.0.1 |
-| [Set Hunter - Gear Finder & XP Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882) | brianmit | PC / Mac | 1.0.1 |
+| [Set Hunter - Gear Finder & XP Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Set-Hunter---Gear-Finder-XP-Guide__4882) | brianmit | PC / Mac | 1.1.0 |
 | [Set Junker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HerrPulaRau/Set-Junker__2572) | HerrPulaRau | PC / Mac | 1.3.1 |
 | [Set Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BoltActionBalrog/Set-Master__3192) | BoltActionBalrog | PC / Mac | 1.3.1 |
 | [Set Tracker updated 2025 01](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinntarou/Set-Tracker-updated-2025-01__4019) | Shinntarou | PC / Mac | 3.2.0 |
@@ -168,7 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Ranks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Skill-Ranks__3745) | notnear | PC / Mac | 1.4.0 |
 | [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |
 | [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 2.0 |
-| [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.2 |
+| [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.3 |
 | [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.0 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
 | [Skylike Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptTatsu/Skylike-Dialog__1852) | CaptTatsu | PC / Mac | 1.5 |

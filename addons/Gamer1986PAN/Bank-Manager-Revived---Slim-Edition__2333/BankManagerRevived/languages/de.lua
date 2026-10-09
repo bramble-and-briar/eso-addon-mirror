@@ -128,3 +128,20 @@ SafeAddString(BMR_IMPORT_DESC									, "Von welchem Charakter Einstellungen imp
 SafeAddString(BMR_IMPORTED										, "BMR Einstellungen wurden von <<1>> importiert.", 1)
 
 SafeAddString(BMR_ZOS_LIMITATIONS							, "Wegen Spiel-Einschränkungen, konnte BMR nur 98 Gegenstände bearbeiten. Bitte warte 10 Sekunden und interagiere erneut mit dem NPC.", 1)
+-- Neue Optionen / ScriptTracker
+SafeAddString(BMR_GLOBAL_ADDON_PROFILE			, "Globales Addon-Profil (bei Auswahl UI neu laden)", 1)
+SafeAddString(BMR_GLOBAL_ADDON_PROFILE_TOOLTIP	, "Wählt das globale BMR-Addon-Profil. Nach der Änderung wird die Benutzeroberfläche neu geladen. Standard: <<1>>", 1)
+SafeAddString(BMR_PROFILE_COUNT					, "Anzahl der Profile", 1)
+SafeAddString(BMR_PROFILE_COUNT_TOOLTIP			, "Legt fest, wie viele BMR-Profile verfügbar sind. Profile über dieser Zahl bleiben erhalten und werden ausgeblendet, bis die Anzahl wieder erhöht wird.", 1)
+
+SafeAddString(BMR_SCRIPTTRACKER						, "ScriptTracker / Skripturen", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DESC					, "Skripturen, die der aktuelle Charakter bereits kennt, werden automatisch in die Bank gelegt. Skripturen, die der Charakter noch nicht kennt, werden aus der Bank entnommen. BMR führt die eigentliche Verlagerung durch.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ENABLE				, "Automatische Skriptur-Verwaltung aktivieren", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ENABLE_TOOLTIP	, "Verwendet beim Öffnen der Bank den aktuellen Kenntnisstand des Charakters aus ScriptTracker.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEPOSIT_KNOWN	, "Bekannte Skripturen in die Bank legen", 1)
+SafeAddString(BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN, "Unbekannte Skripturen aus der Bank entnehmen", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ONE_ONLY			, "Nur ein Exemplar je unbekannter Skriptur entnehmen", 1)
+SafeAddString(BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP, "Wenn aktiviert, entnimmt BMR höchstens ein Exemplar jeder unbekannten Skriptur. Befindet sich die Skriptur bereits im Inventar, wird kein weiteres Exemplar entnommen.", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEBUG				, "ScriptTracker-Debugausgaben aktivieren", 1)
+SafeAddString(BMR_SCRIPTTRACKER_DEBUG_TOOLTIP	, "Schreibt detaillierte Diagnoseinformationen zu ScriptTracker und BMR in den Chat. Standardmäßig deaktiviert.", 1)
+

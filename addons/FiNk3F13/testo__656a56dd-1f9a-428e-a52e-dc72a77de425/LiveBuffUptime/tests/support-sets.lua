@@ -21,6 +21,12 @@ env.setBuffs("group1", {})
 env.setBuffs("group2", {})
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
+local function damage()
+    env.events.LiveBuffUptimeCombatTiming(nil, ACTION_RESULT_DAMAGE, false, nil, nil, nil,
+        "Caster", COMBAT_UNIT_TYPE_PLAYER, "Enemy", 4, 100)
+end
+local tick = env.events.tick
+env.events.tick = function() damage(); tick() end
 for _, profile in ipairs(LiveBuffUptimeCooldowns.profiles) do
     for _, id in ipairs(profile.ids or {profile.id}) do assert(filters[id], "Missing filtered proc registration") end
 end

@@ -74,4 +74,20 @@ immunity.intervals = { { 0, 22 } }
 near(Meter.PercentExcluding(offBalance, immunity, 22), 100)
 near(Meter.PercentExcluding(Meter.New(0), immunity, 22), 0)
 near(Meter.PercentExcluding(offBalance, immunity, 7, 0, 7), 100)
+
+-- Cumulative interval queries must agree with a plain independently summed list.
+state = Meter.New(0)
+local plain = {}
+for index = 0, 199 do
+    local starts = index * 3
+    Meter.Observe(state, { starts = starts, ends = starts + 1 }, starts, true, true)
+    Meter.Observe(state, nil, starts + 2, true, true)
+    plain[#plain + 1] = { starts, starts + 1 }
+end
+for index = 0, 1999 do
+    local starts = (index * 17 % 650) - 25
+    local ends = starts + (index * 23 % 200)
+    near(Meter.IntervalTotal(state.intervals, starts, ends), Meter.IntervalTotal(plain, starts, ends))
+end
+near(state.total, 200)
 print("Uptime: intervals, clipping, immunity exclusion, overlaps and delayed reapplication passed")

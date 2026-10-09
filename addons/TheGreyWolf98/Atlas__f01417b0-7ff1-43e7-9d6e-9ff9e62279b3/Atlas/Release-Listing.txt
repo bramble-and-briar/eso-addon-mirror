@@ -1,0 +1,45 @@
+ATLAS 1.0.0
+by @TheGreyWolf98
+
+OVERVIEW
+Your map. Your layers. Atlas brings skyshards, lorebooks, treasure-map digs,
+crafting surveys, bosses and discovery locations together in one compact,
+controller-friendly panel, with account-wide settings and optional filtering
+for the maps and surveys in your backpack.
+
+DESCRIPTION
+Explore Tamriel with the map information you want, all controlled from one
+screen. Atlas combines thirteen individually switchable map layers:
+
+- Skyshards and recorded Shalidor lorebooks
+- Treasure-map dig sites and crafting surveys
+- Recorded delve and public-dungeon interior bosses
+- Delve and public-dungeon entrances
+- World bosses and dolmens/world events
+- Wayshrines and striking locales
+- Mundus stones and set crafting stations
+
+Open /atlas and use the D-pad to select a feature, A to toggle, Y to refresh
+and B to close. PlayStation uses ESO's corresponding button prompts.
+All fifteen feature/filter switches fit on one panel; settings are shared
+across your characters. PC users can also click the feature rows.
+
+Hide collected removes acquired skyshards and known lorebooks for the current
+character. Carried maps / surveys only shows recorded sites for maps and
+reports in that character's backpack, helping you focus on what you can use.
+The relevant map or report is still required to dig or harvest.
+
+IMPORTANT: Remove or disable other add-ons that provide the same skyshard,
+lorebook, treasure-map, survey or boss pins before using Atlas, to avoid
+duplicate markers and competing pin layers. If keeping an overlapping addon
+for features Atlas does not cover, disable its matching pin layers or Atlas's
+matching layer. A map display such as Votan's minimap can remain enabled;
+Atlas's pins use ESO's normal map-pin system.
+
+Coverage varies by zone and map floor. Group-dungeon interior boss coverage
+is incomplete; Atlas does not promise every boss in every dungeon. Lorebooks
+are recorded Shalidor locations, not a complete Eidetic Memory database.
+Event markers show locations, not live spawn alerts. Wayshrine markers do
+not unlock travel. Side-quest start markers are not included.
+
+No external addon libraries are required.

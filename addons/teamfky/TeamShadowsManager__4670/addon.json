@@ -18,7 +18,7 @@
     "TeamShadowsManager"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4670/",
-  "fingerprint": "035e6e7cfd95701547e4ddcbd6ac38896af6e14cbfd9a3a0b6125d5c3c5110e3",
+  "fingerprint": "b935dd7355ad56a77913fbb5b86c82fc7a0911bebcdbe69743baf30ec8e60432",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16494.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4670",
   "source_url": "https://www.esoui.com/downloads/info4670-TeamShadowsManager.html",
   "stats": {
-    "downloads": 56,
+    "downloads": 121,
     "favorites": 1,
-    "monthly_downloads": 27
+    "monthly_downloads": 35
   },
   "title": "TeamShadowsManager",
-  "updated_at": 1787051010000,
-  "version": "1.1.18"
+  "updated_at": 1791480440000,
+  "version": "1.1.20"
 }

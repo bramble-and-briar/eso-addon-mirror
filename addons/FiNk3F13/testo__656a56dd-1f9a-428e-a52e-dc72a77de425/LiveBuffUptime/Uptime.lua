@@ -7,12 +7,14 @@ end
 
 local function record(state, starts, ends)
     if ends <= starts then return end
-    state.total = state.total + ends - starts
     local previous = state.intervals[#state.intervals]
     if previous and starts <= previous[2] then
+        state.total = state.total + math.max(0, ends - previous[2])
         previous[2] = math.max(previous[2], ends)
+        previous[3] = state.total
     else
-        state.intervals[#state.intervals + 1] = { starts, ends }
+        state.total = state.total + ends - starts
+        state.intervals[#state.intervals + 1] = { starts, ends, state.total }
     end
 end
 
@@ -41,6 +43,26 @@ function Meter.Observe(state, effect, now, counting, allowBackfill)
 end
 
 function Meter.IntervalTotal(intervals, starts, ends)
+    if ends <= starts then return 0 end
+    if #intervals > 0 and intervals[#intervals][3] then
+        -- Recorded intervals carry cumulative totals; two searches avoid rescanning a long fight.
+        local function coveredUntil(time)
+            local low, high, found = 1, #intervals, 0
+            while low <= high do
+                local index = math.floor((low + high) / 2)
+                if intervals[index][1] < time then
+                    found, low = index, index + 1
+                else
+                    high = index - 1
+                end
+            end
+            if found == 0 then return 0 end
+            local interval = intervals[found]
+            local previous = found > 1 and intervals[found - 1][3] or 0
+            return previous + math.max(0, math.min(time, interval[2]) - interval[1])
+        end
+        return math.max(0, coveredUntil(ends) - coveredUntil(starts))
+    end
     local total = 0
     for _, interval in ipairs(intervals) do
         total = total + math.max(0, math.min(ends, interval[2]) - math.max(starts, interval[1]))
@@ -57,11 +79,21 @@ end
 
 function Meter.ExcludedTotal(intervals, excluded, starts, now)
     local excludedTime = 0
+    local activeIndex = 1
     for _, interval in ipairs(excluded.intervals) do
         local first, last = math.max(starts, interval[1]), math.min(now, interval[2])
         if last > first then
             -- Active effect time remains eligible even if immunity overlaps it.
-            excludedTime = excludedTime + last - first - Meter.IntervalTotal(intervals, first, last)
+            while intervals[activeIndex] and intervals[activeIndex][2] <= first do
+                activeIndex = activeIndex + 1
+            end
+            local overlap, index = 0, activeIndex
+            while intervals[index] and intervals[index][1] < last do
+                local interval = intervals[index]
+                overlap = overlap + math.max(0, math.min(last, interval[2]) - math.max(first, interval[1]))
+                index = index + 1
+            end
+            excludedTime = excludedTime + last - first - overlap
         end
     end
     return excludedTime
@@ -80,7 +112,15 @@ end
 function Meter.ScopeEvent(scope, slot, time, active, replay)
     if not replay then
         scope.events[#scope.events + 1] = { slot = slot, time = time, active = active, seq = #scope.events + 1 }
+        if scope.lastEventTime and time < scope.lastEventTime then
+            -- Late callbacks must correct live values as well as the final result.
+            local rebuilt = Meter.RebuildScope(scope)
+            scope.slots, scope.count, scope.starts = rebuilt.slots, rebuilt.count, rebuilt.starts
+            scope.intervals, scope.lastEventTime = rebuilt.intervals, rebuilt.lastEventTime
+            return
+        end
     end
+    scope.lastEventTime = math.max(scope.lastEventTime or time, time)
     if active and not scope.slots[slot] then
         if scope.count == 0 then scope.starts = time end
         scope.slots[slot] = true
@@ -89,7 +129,11 @@ function Meter.ScopeEvent(scope, slot, time, active, replay)
         scope.slots[slot] = nil
         scope.count = scope.count - 1
         if scope.count == 0 then
-            if time > scope.starts then scope.intervals[#scope.intervals + 1] = { scope.starts, time } end
+            if time > scope.starts then
+                local previous = scope.intervals[#scope.intervals]
+                local total = (previous and previous[3] or 0) + time - scope.starts
+                scope.intervals[#scope.intervals + 1] = { scope.starts, time, total }
+            end
             scope.starts = nil
         end
     end
@@ -118,5 +162,6 @@ function Meter.RebuildScope(scope)
     for _, event in ipairs(scope.events) do
         Meter.ScopeEvent(rebuilt, event.slot, event.time, event.active, true)
     end
+    rebuilt.events = scope.events
     return rebuilt
 end

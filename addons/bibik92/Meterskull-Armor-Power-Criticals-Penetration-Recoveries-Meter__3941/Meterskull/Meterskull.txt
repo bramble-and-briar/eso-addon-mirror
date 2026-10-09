@@ -1,7 +1,7 @@
 ## Title: Meterskull
 ## Description: Meterskull is an advanced real-time UI meter for Armor, Power Damage, Critical Chance/Damage/Resistance, Penetration and Recoveries.
 ## Author: |cCCFF00bibik92|r
-## Version: 1.6.0
+## Version: 1.6.1
 ## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: MeterskullSettings

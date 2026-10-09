@@ -105,7 +105,10 @@ end
 local function Pick(i)
     local b = state and i and state.list[i]
     Close()
-    if b then B.Apply.Wear(b) end
+    if b then
+        PlaySound(SOUNDS.DEFAULT_CLICK)   -- (same click as the button's favorites)
+        B.Apply.Wear(b)
+    end
 end
 
 local function Create()

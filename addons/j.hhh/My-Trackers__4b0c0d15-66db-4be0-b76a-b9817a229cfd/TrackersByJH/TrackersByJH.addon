@@ -1,13 +1,14 @@
 ## Title: Trackers by JH
 ## Description: JH tracker collection for console with all integrated trackers, including Landslide and the latest standalone set/proc trackers.
 ## Author: JH
-## Version: 1.1.5
-## AddOnVersion: 1105
+## Version: 1.1.6
+## AddOnVersion: 1106
 ## APIVersion: 101050 101051
-## SavedVariables: AlkoshTrackerSV BrightHarbingerTrackerSavedVariables WarmasktrackerByJHData JHSetTrackersVariables LandslideTrackerByJHSavedVariables
+## SavedVariables: AlkoshTrackerSV BrightHarbingerTrackerSavedVariables WarmasktrackerByJHData JHSetTrackersVariables LandslideTrackerByJHSavedVariables NothingWastedTrackerByJHVariables
 ## DependsOn: LibAddonMenu-2.0
 
 LandslideTracker.lua
+NothingWasted.lua
 TrackersByJH.lua
 BrightHarbingerTracker.lua
 AlkoshTracker.lua

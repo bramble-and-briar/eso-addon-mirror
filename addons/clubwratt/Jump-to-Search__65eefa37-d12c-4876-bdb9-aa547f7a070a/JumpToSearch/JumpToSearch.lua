@@ -2,7 +2,7 @@
 JumpToSearch = {
     name = "JumpToSearch",
     displayName = "Jump to Search",
-    version = "0.1.1",
+    version = "0.2.1",
     savedVarsName = "JumpToSearchSavedVars",
     savedVarsVersion = 1,
     actionLayerName = "JumpToSearchLayer",

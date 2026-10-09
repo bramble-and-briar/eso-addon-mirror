@@ -484,7 +484,7 @@ local MF_TITLE, MF_HEADER, MF_LABEL, MF_SMALL = "ZoFontWinH2", "ZoFontWinH4", "Z
 local MTABS = {
     { id = "markers", label = "MARKERS" },
     { id = "pull",    label = "DÉCOMPTE & ANNONCE" },
-    { id = "timers",  label = "TIMERS & MANNEQUIN" },
+    { id = "timers",  label = "TIMERS" },
 }
 local activeManagerTab = "markers"
 
@@ -1119,11 +1119,12 @@ local function BuildPullTab(pane)
         function(v) SV().menuButtonSize = v; UI:ApplyMenuButtonSettings() end)):SetAnchor(TOPLEFT, a, TOPLEFT, 0, 170)
 end
 
--- ---------------- onglet TIMERS & MANNEQUIN ----------------
+-- ---------------- onglet TIMERS ----------------
 local function BuildTimersTab(pane)
     pane.widgets = {}
     local function track(w) table.insert(pane.widgets, w); return w end
     local boss = MakeCard(pane, "TIMERS BOSS")
+    pane.bossCard = boss
     boss:SetAnchor(TOPLEFT, pane, TOPLEFT, 0, 0); boss:SetDimensions(470, 410)
     local b = boss.content
     local t = track(MakeToggle(b, function() return SV().bossSpawnTimers ~= false end,
@@ -1164,12 +1165,48 @@ local function BuildTimersTab(pane)
     track(FlatButton(b, "OUVRIR LES RÉGLAGES ESO (détails)", 300, 32, function() if PBT.OpenSettings then PBT.OpenSettings() end end)):SetAnchor(TOPLEFT, b, TOPLEFT, 0, 316)
 
     local dummy = MakeCard(pane, "MANNEQUIN")
+    pane.dummyCard = dummy
     dummy:SetAnchor(TOPLEFT, boss, TOPRIGHT, 16, 0); dummy:SetDimensions(470, 230)
     local d = dummy.content
     MLabel(d, MF_SMALL, MC.textDim, "Durée du timer mannequin"):SetAnchor(TOPLEFT, d, TOPLEFT, 0, 4)
     track(MakeSlider(d, 430, 1, 60, 1, function() return tonumber(SV().practiceSeconds) or 10 end, function(v) SV().practiceSeconds = v end, "s")):SetAnchor(TOPLEFT, d, TOPLEFT, 0, 22)
     local at = track(MakeToggle(d, function() return SV().autoPracticeOnDummyReset ~= false end, function(v) SV().autoPracticeOnDummyReset = v end)); at:SetAnchor(TOPLEFT, d, TOPLEFT, 0, 64)
     MLabel(d, MF_SMALL, MC.text, "Auto-timer après reset mannequin"):SetAnchor(LEFT, at, RIGHT, 8, 0)
+
+    local raid = MakeCard(pane, "OPTIONS ROCHEBOSQUE")
+    pane.raidCard = raid
+    raid:SetAnchor(TOPLEFT, dummy, BOTTOMLEFT, 0, 16); raid:SetDimensions(470, 194)
+    local r = raid.content
+    local function raidToggle(y, label, key, onChanged)
+        local toggle = track(MakeToggle(r,
+            function() return SV()[key] ~= false end,
+            function(v)
+                SV()[key] = v
+                if onChanged then onChanged(v) end
+                UI:RefreshForm()
+            end))
+        toggle:SetAnchor(TOPLEFT, r, TOPLEFT, 0, y)
+        MLabel(r, MF_SMALL, MC.text, label):SetAnchor(LEFT, toggle, RIGHT, 8, 0)
+        return toggle
+    end
+    raidToggle(0, "Options du raid activées", "bahseiRaidOptions", function(v)
+        if not v and PBT.BahseiPortal then
+            PBT.BahseiPortal:RemoveWallArrows()
+            PBT.BahseiPortal:ResetPortalState()
+        end
+    end)
+    raidToggle(30, "Flèches murales du portail", "bahseiWallArrows", function(v)
+        if not v and PBT.BahseiPortal then PBT.BahseiPortal:RemoveWallArrows() end
+    end)
+    raidToggle(60, "Compteur partagé des fantômes", "bahseiGhostCounter", function(v)
+        if not v and PBT.BahseiPortal then PBT.BahseiPortal:HideGhostCounter() end
+    end)
+    raidToggle(90, "Appel automatique des renforts", "bahseiGhostCall")
+    raidToggle(120, "Recevoir le compteur et l'appel", "bahseiGhostReceive", function(v)
+        if not v and PBT.BahseiPortal and not PBT.BahseiPortal.insidePortal then
+            PBT.BahseiPortal:HideGhostCounter()
+        end
+    end)
 end
 
 -- ---------------- refresh ----------------
@@ -1211,6 +1248,24 @@ function UI:RefreshForm()
     end
     local tp = self.managerPanes and self.managerPanes.timers
     if tp and tp.instanceLbl then
+        local isHouse = GetCurrentZoneHouseId and (tonumber(GetCurrentZoneHouseId()) or 0) > 0
+        local currentTrial = PBT.GetCurrentTrialKey and PBT.GetCurrentTrialKey() or nil
+        local isRockgrove = currentTrial == "rockgrove"
+        if tp.bossCard then tp.bossCard:SetHidden(isHouse or not currentTrial) end
+        if tp.dummyCard then
+            tp.dummyCard:ClearAnchors()
+            tp.dummyCard:SetAnchor(TOPLEFT, tp, TOPLEFT, 0, 0)
+            tp.dummyCard:SetHidden(not isHouse)
+        end
+        if tp.raidCard then
+            tp.raidCard:ClearAnchors()
+            if tp.bossCard then
+                tp.raidCard:SetAnchor(TOPLEFT, tp.bossCard, TOPRIGHT, 16, 0)
+            else
+                tp.raidCard:SetAnchor(TOPLEFT, tp, TOPLEFT, 0, 0)
+            end
+            tp.raidCard:SetHidden(not isRockgrove)
+        end
         if tp.widgets then for _, w in ipairs(tp.widgets) do if w.Redraw then w.Redraw() end end end
         local raids = PBT.GetNativeRaidTimersForCurrentInstance and PBT.GetNativeRaidTimersForCurrentInstance() or {}
         local raid = raids[1]

@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/AFeliks/Feliks-Achievement-Peek__4930",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "AFeliks",
+  "canonical_id": "esoui:4930",
+  "category_id": "18",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4930",
+  "deleted": false,
+  "directories": [
+    "AchievementPeek"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4930/",
+  "fingerprint": "3fa659b2d22a6c9f61969760c443d02c13b119351b196ceed19890af95009c39",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4930",
+  "source_url": "https://www.esoui.com/downloads/info4930-FeliksAchievementPeek.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Feliks' Achievement Peek",
+  "updated_at": 1791495545000,
+  "version": "1.0.0"
+}

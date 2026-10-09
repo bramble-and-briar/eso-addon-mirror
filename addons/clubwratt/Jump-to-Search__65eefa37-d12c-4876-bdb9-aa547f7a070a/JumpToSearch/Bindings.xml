@@ -1,14 +1,17 @@
 <Bindings>
     <!--
-        Our own action layer so the R3 press is only live while a searchable gamepad
+        Our own action layer so the D-pad Right press is only live while a searchable gamepad
         screen is showing (Main pushes/removes it on scene state changes). The action
-        inherits R3's default binding and falls through to the screen's own R3 keybind
-        (destroy, stow materials, bank upgrade, preview...) when the handler returns false,
-        i.e. when the header is unavailable or the user is already in it.
+        inherits D-pad Right's default binding (UI_SHORTCUT_INPUT_RIGHT, the ethereal "forward/select"
+        bind used by stick-navigation screens) and falls through to whatever the screen
+        itself bound to D-pad Right when the handler returns false, i.e. when the header is
+        unavailable or the user is already in it. None of our target screens bind it (they
+        all use GAME_NAVIGATION_TYPE_BUTTON), and vertical lists never poll the d-pad
+        horizontally, so the press is otherwise a no-op in the list.
     -->
     <Layer name="JumpToSearchLayer" allowFallthrough="true">
         <Category name="SI_KEYBINDINGS_CATEGORY_USER_INTERFACE">
-            <Action name="JUMP_TO_SEARCH_FOCUS" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+            <Action name="JUMP_TO_SEARCH_FOCUS" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
                 <Down>return JumpToSearch.FocusActions.OnJumpKeyDown()</Down>
                 <Up>return JumpToSearch.FocusActions.OnJumpKeyUp()</Up>
             </Action>

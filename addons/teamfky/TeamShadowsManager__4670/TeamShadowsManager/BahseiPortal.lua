@@ -3,8 +3,12 @@ TeamShadowsManager = TeamShadowsManager or {}
 local TSM = TeamShadowsManager
 local Module = {
     zoneId = 1263,
+    ghostUnitTypeId = 103349,
+    -- The encounter is split into 3 portal sections with 8 Spectres each.
+    ghostTotal = 24,
     eyeClockwiseId = 153517,
     eyeCounterClockwiseId = 153518,
+    eyeExplodeId = 153662,
     bitterMarrowId = 153423,
     malignantMarrowId = 153421,
     -- Measured Bahsei arena corners (One More Rockgrove Helper):
@@ -27,6 +31,9 @@ local Module = {
     maxAliveSeen = 0,
     deathCount = 0,
     lastFallbackDeathMs = 0,
+    lastBroadcastCounter = nil,
+    cycleActive = false,
+    currentRemaining = 24,
     callSent = false,
     displayToken = 0,
     lastSignal = {},
@@ -50,16 +57,22 @@ local function IsInRockgrove()
 end
 
 local function IsEnabled(setting)
-    return TSM.savedVars and TSM.savedVars.enabled ~= false and TSM.savedVars[setting] ~= false
+    return TSM.savedVars
+        and TSM.savedVars.enabled ~= false
+        and TSM.savedVars.bahseiRaidOptions ~= false
+        and TSM.savedVars[setting] ~= false
 end
 
 local function IsGhostName(name)
     name = zo_strlower and zo_strlower(tostring(name or "")) or string.lower(tostring(name or ""))
-    return name:find("spectre", 1, true) ~= nil
-        or name:find("fant", 1, true) ~= nil
-        or name:find("wraith", 1, true) ~= nil
-        or name:find("phantom", 1, true) ~= nil
-        or name:find("ghost", 1, true) ~= nil
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    -- Encounter.log: the Bahsei portal phantom is exactly "Spectre"
+    -- (unitTypeId 103349). Exact names avoid counting Burning Specters and pets.
+    return name == "spectre"
+        or name == "specter"
+        or name == "ghost"
+        or name == "phantom"
+        or name == "wraith"
 end
 
 local function SenderName(unitTag)
@@ -93,12 +106,47 @@ function Module:ResetPortalState()
     self.maxAliveSeen = 0
     self.deathCount = 0
     self.lastFallbackDeathMs = 0
+    self.lastBroadcastCounter = nil
+    self.cycleActive = false
+    self.currentRemaining = self.ghostTotal
     self.callSent = false
     if self.counterWindow then self.counterWindow:SetHidden(true) end
 end
 
+function Module:StartGhostCycle()
+    local now = NowMs()
+    if self.cycleActive and self.cycleStartedAt and now - self.cycleStartedAt < 5000 then return end
+    self:ResetPortalState()
+    self.cycleActive = true
+    self.cycleStartedAt = now
+    self.currentRemaining = self.ghostTotal
+    self:UpdateGhostCounter(self.ghostTotal, self.ghostTotal, false)
+end
+
+function Module:FinishGhostCycle()
+    self.insidePortal = false
+    self.cycleActive = false
+    self:HideGhostCounter()
+end
+
+function Module:HideGhostCounter()
+    if self.counterWindow then self.counterWindow:SetHidden(true) end
+end
+
+function Module:BroadcastGhostCounter(remaining, total)
+    if not self.insidePortal or not IsEnabled("bahseiGhostCounter") then return false end
+    local signature = tostring(remaining) .. "/" .. tostring(total)
+    if self.lastBroadcastCounter == signature then return false end
+    self.lastBroadcastCounter = signature
+    if TSM.GroupShare and TSM.GroupShare.SendBahseiSignal then
+        return TSM.GroupShare:SendBahseiSignal("COUNT", remaining, total)
+    end
+    return false
+end
+
 function Module:TrackGhost(name, unitId)
     if not self.insidePortal or not IsGhostName(name) then return end
+    if not IsEnabled("bahseiGhostCounter") and not IsEnabled("bahseiGhostCall") then return end
     unitId = tonumber(unitId) or 0
     if unitId <= 0 then return end
     local key = tostring(unitId)
@@ -106,13 +154,19 @@ function Module:TrackGhost(name, unitId)
     if not self.deaths[key] then self.aliveGhosts[key] = true end
     self.maxAliveSeen = math.max(self.maxAliveSeen, CountKeys(self.aliveGhosts))
 
-    local configuredTotal = zo_clamp(tonumber(TSM.savedVars and TSM.savedVars.bahseiGhostTotal) or 10, 6, 20)
-    local observedTotal = CountKeys(self.seenGhosts)
-    local remaining = math.max(configuredTotal, observedTotal) - self.deathCount
-    self:UpdateGhostCounter(math.max(0, remaining))
+    local remaining = math.max(0, self.ghostTotal - self.deathCount)
+    self:UpdateGhostCounter(remaining, self.ghostTotal, false)
 end
 
-function Module:UpdateGhostCounter(remaining)
+function Module:UpdateGhostCounter(remaining, total, broadcast)
+    total = tonumber(total) or self.ghostTotal
+    remaining = zo_clamp(tonumber(remaining) or total, 0, total)
+    self.currentRemaining = remaining
+    if broadcast then self:BroadcastGhostCounter(remaining, total) end
+    if not IsEnabled("bahseiGhostCounter") then
+        self:HideGhostCounter()
+        return
+    end
     if not self.counterWindow then
         local wm = WINDOW_MANAGER
         local window = wm:CreateTopLevelWindow("TeamShadowsManagerBahseiCounter")
@@ -138,8 +192,8 @@ function Module:UpdateGhostCounter(remaining)
         label:SetColor(1, 0.82, 0.30, 1)
         self.counterWindow, self.counterLabel = window, label
     end
-    local text = TSM.GetString and TSM.GetString("bahsei_ghost_counter", remaining)
-        or string.format("FANTÔMES : %d", remaining)
+    local text = TSM.GetString and TSM.GetString("bahsei_ghost_counter", remaining, total)
+        or string.format("FANTÔMES : %d/%d", remaining, total)
     self.counterLabel:SetText(text)
     self.counterWindow:SetHidden(false)
 end
@@ -281,7 +335,9 @@ end
 
 function Module:SendReinforcementCall(manual)
     if self.callSent and not manual then return false end
-    local remaining = zo_clamp(tonumber(TSM.savedVars and TSM.savedVars.bahseiGhostThreshold) or 5, 1, 20)
+    local remaining = manual
+        and zo_clamp(tonumber(self.currentRemaining) or self.ghostTotal, 0, self.ghostTotal)
+        or zo_clamp(tonumber(TSM.savedVars and TSM.savedVars.bahseiGhostThreshold) or 5, 1, self.ghostTotal - 1)
     local sent, reason = false, "protocol_unavailable"
     if TSM.GroupShare and TSM.GroupShare.SendBahseiSignal then
         sent, reason = TSM.GroupShare:SendBahseiSignal(manual and "MANUAL" or "GHOSTS", remaining)
@@ -308,53 +364,101 @@ end
 
 function Module:OnGroupSignal(unitTag, payload)
     if not IsInRockgrove() or not IsEnabled("bahseiGhostReceive") then return end
-    local signal, remaining = payload:match("^TSMB1|([A-Z0-9_]+)|(%d+)$")
+    local signal, remaining, total = payload:match("^TSMB1|([A-Z0-9_]+)|(%d+)|(%d+)$")
+    if not signal then signal, remaining = payload:match("^TSMB1|([A-Z0-9_]+)|(%d+)$") end
     remaining = tonumber(remaining)
-    if (signal ~= "GHOSTS" and signal ~= "MANUAL") or not remaining or remaining < 0 or remaining > 20 then return end
+    total = tonumber(total)
+    if signal == "DEAD" then
+        if not self.cycleActive or not remaining or remaining <= 0 then return end
+    elseif signal == "COUNT" then
+        if not self.cycleActive or not IsEnabled("bahseiGhostCounter") or not remaining or not total
+            or total ~= self.ghostTotal or remaining < 0 or remaining > total
+        then return end
+    elseif signal == "CLEAR" then
+        self:HideGhostCounter()
+        return
+    elseif signal ~= "GHOSTS" and signal ~= "MANUAL" then
+        return
+    elseif not remaining or remaining < 0 or remaining > self.ghostTotal then
+        return
+    end
 
     local signature = tostring(unitTag) .. "|" .. payload
     local now = NowMs()
     if self.lastSignal[signature] and now - self.lastSignal[signature] < 10000 then return end
     self.lastSignal[signature] = now
-    self:ShowCallAlert(SenderName(unitTag), remaining)
+    if signal == "DEAD" then
+        self:ApplyGhostDeath("unit:" .. tostring(remaining), false)
+    elseif signal == "COUNT" then
+        -- Snapshots are only allowed to move the counter forward. This also
+        -- repairs missed death packets without letting a late portal entrant
+        -- reset everybody from 5 back to 24.
+        local current = tonumber(self.currentRemaining) or self.ghostTotal
+        if remaining < current then
+            self.deathCount = math.max(self.deathCount, total - remaining)
+            self:UpdateGhostCounter(remaining, total, false)
+        end
+    else
+        self:ShowCallAlert(SenderName(unitTag), remaining)
+    end
+end
+
+function Module:ApplyGhostDeath(key, localDeath)
+    if not self.cycleActive then
+        self.cycleActive = true
+        self.currentRemaining = self.ghostTotal
+    end
+    if self.deaths[key] then return false end
+    self.deaths[key] = true
+    local aliveBefore = CountKeys(self.aliveGhosts)
+    self.aliveGhosts[key] = nil
+    self.deathCount = self.deathCount + 1
+    local total = self.ghostTotal
+    local threshold = zo_clamp(tonumber(TSM.savedVars.bahseiGhostThreshold) or 5, 1, total - 1)
+    local remaining = math.max(0, total - self.deathCount)
+    self:UpdateGhostCounter(remaining, total, false)
+    local aliveAfter = CountKeys(self.aliveGhosts)
+    local observedTransition = self.maxAliveSeen > threshold and aliveBefore > threshold and aliveAfter <= threshold
+    if localDeath and self.insidePortal and IsEnabled("bahseiGhostCall")
+        and (remaining <= threshold or observedTransition) and not self.callSent
+    then
+        self:SendReinforcementCall(false)
+    end
+    return true
 end
 
 function Module:RecordGhostDeath(targetName, targetUnitId)
-    if not self.insidePortal or not IsEnabled("bahseiGhostCall") or not IsGhostName(targetName) then return end
+    if not self.insidePortal or not IsGhostName(targetName) then return end
+    if not IsEnabled("bahseiGhostCounter") and not IsEnabled("bahseiGhostCall") then return end
 
-    local key
     targetUnitId = tonumber(targetUnitId) or 0
+    local key
     if targetUnitId > 0 then
-        key = tostring(targetUnitId)
-        if self.deaths[key] then return end
+        key = "unit:" .. tostring(targetUnitId)
     else
         local now = NowMs()
         if now - self.lastFallbackDeathMs < 350 then return end
         self.lastFallbackDeathMs = now
         key = "fallback:" .. tostring(now)
     end
+    if not self:ApplyGhostDeath(key, true) then return end
 
-    self.deaths[key] = true
-    local aliveBefore = CountKeys(self.aliveGhosts)
-    self.aliveGhosts[key] = nil
-    self.deathCount = self.deathCount + 1
-    local configuredTotal = zo_clamp(tonumber(TSM.savedVars.bahseiGhostTotal) or 10, 6, 20)
-    local observedTotal = CountKeys(self.seenGhosts)
-    local total = math.max(configuredTotal, observedTotal)
-    local threshold = zo_clamp(tonumber(TSM.savedVars.bahseiGhostThreshold) or 5, 1, total - 1)
-    local remaining = math.max(0, total - self.deathCount)
-    self:UpdateGhostCounter(remaining)
-    local aliveAfter = CountKeys(self.aliveGhosts)
-    local observedTransition = self.maxAliveSeen > threshold and aliveBefore > threshold and aliveAfter <= threshold
-    if (remaining <= threshold or observedTransition) and not self.callSent then self:SendReinforcementCall(false) end
+    if targetUnitId > 0 and TSM.GroupShare and TSM.GroupShare.SendBahseiSignal then
+        TSM.GroupShare:SendBahseiSignal("DEAD", targetUnitId)
+    end
+    self:BroadcastGhostCounter(self.currentRemaining, self.ghostTotal)
 end
 
 local function OnDirection(_, result, _, _, _, _, _, _, _, _, _, _, _, _, _, _, abilityId)
     if result ~= ACTION_RESULT_EFFECT_GAINED then return end
     if abilityId == Module.eyeClockwiseId then
+        Module:StartGhostCycle()
         Module:ShowWallArrows(true)
     elseif abilityId == Module.eyeCounterClockwiseId then
+        Module:StartGhostCycle()
         Module:ShowWallArrows(false)
+    elseif abilityId == Module.eyeExplodeId then
+        Module:FinishGhostCycle()
     end
 end
 
@@ -370,9 +474,9 @@ local function OnPortalEffect(_, changeType, _, _, unitTag, _, _, _, _, _, _, _,
     if unitTag ~= "player" then return end
     if abilityId == Module.bitterMarrowId then
         if changeType == EFFECT_RESULT_GAINED then
-            Module:ResetPortalState()
+            if not Module.cycleActive then Module:StartGhostCycle() end
             Module.insidePortal = true
-            Module:UpdateGhostCounter(zo_clamp(tonumber(TSM.savedVars and TSM.savedVars.bahseiGhostTotal) or 10, 6, 20))
+            Module:UpdateGhostCounter(Module.currentRemaining, Module.ghostTotal, false)
             Module:RemoveWallArrows()
         elseif changeType == EFFECT_RESULT_FADED then
             Module.insidePortal = false

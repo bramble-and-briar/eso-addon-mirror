@@ -18,7 +18,7 @@
     "LibTeamShadows"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4669/",
-  "fingerprint": "4c86c08498884346485b6c5eb040ee2edcfb0f38665cf1cde604aaab0ede72a6",
+  "fingerprint": "5017d8112aba06d7251c7309bff347349ab5d7857d1c7ce31b9bf168e5a0b03a",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4669",
   "source_url": "https://www.esoui.com/downloads/info4669-LibTeamshadows.html",
   "stats": {
-    "downloads": 810,
+    "downloads": 1406,
     "favorites": 0,
-    "monthly_downloads": 371
+    "monthly_downloads": 299
   },
   "title": "LibTeamshadows",
-  "updated_at": 1787052325000,
-  "version": "1.3.2"
+  "updated_at": 1791480355000,
+  "version": "1.3.3"
 }

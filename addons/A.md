@@ -219,7 +219,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Antiquity Deal Intel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thevoidcousine/Antiquity-Deal-Intel__4401) | thevoidcousine | PC / Mac | 2.0.0 |
 | [Antiquity Digging Turn Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Antiquity-Digging-Turn-Counter__3006) | kawamonkey | PC / Mac | 1.0 |
 | [Antiquity Lead Expiry Warnings](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mccalli/Antiquity-Lead-Expiry-Warnings__3813) | mccalli | PC / Mac | 1.0.8 |
-| [Antiquity Lead Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Milonai/Antiquity-Lead-Filter__4918) | Milonai | PC / Mac | 16 |
+| [Antiquity Lead Filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Milonai/Antiquity-Lead-Filter__4918) | Milonai | PC / Mac | 4.0.0 |
 | [Antiquity Tooltip Fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Antiquity-Tooltip-Fix__4792) | DakJaniels | PC / Mac | 1 |
 | [AOEHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/AOEHelper__3342) | m00nyONE | PC / Mac | 1.2.2 |
 | [AP Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/AP-Meter__1792) | ghostbane | PC / Mac | 2.0.4 |
@@ -289,6 +289,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AsylumTracker.LangPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Maxim_ZG/AsylumTracker.LangPatch__2847) | Maxim_ZG | PC / Mac | 2.1.6 |
 | [AT Finisher (Finish Him !!!) - Ascending Tide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/AT-Finisher-Finish-Him---Ascending-Tide__1979) | Rhyono | PC / Mac | 1.1.8 |
 | [ATHGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cptnn3m0/ATHGuild__2738) | cptnn3m0 | PC / Mac | 0.0.19 |
+| [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Atlas__f01417b0-7ff1-43e7-9d6e-9ff9e62279b3) | TheGreyWolf98 | Console | — |
 | [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Atlas__4845) | Torfason | PC / Mac | 2.0.0 |
 | [Atlas - Mounts (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitsarugi/Atlas---Mounts-WIP__1502) | Mitsarugi | PC / Mac | 0.1a |
 | [Atronach refresh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Risers/Atronach-refresh__2607) | Risers | PC / Mac | 1.0.0 |

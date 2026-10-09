@@ -1,0 +1,10 @@
+## Title: Loadout
+## Author: @TheGreyWolf98
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051
+## Description: A controller-friendly overview of your currently equipped build. Open with /loadout.
+
+LoadoutData.lua
+LoadoutUI.lua
+Bindings.xml

@@ -20,6 +20,7 @@ local strings = {
 	SPT_GUI_ZONE		= "Zone",
 	SPT_GUI_STORYLINE	= "Storyline",
 	SPT_GUI_SKYSHARDS	= "Skyshards",
+	SPT_GUI_NOWHERE_VAULT = "Nowhere Vault",
 	SPT_GUI_GROUP_DUNGEON = "Group Dungeon",
 	SPT_GUI_PUBLIC_DUNGEON = "Public Dungeon",
 	SPT_GUI_DUNGEON_NAME = "Dungeon Name",

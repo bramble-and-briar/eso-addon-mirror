@@ -1,0 +1,1 @@
+-- Tamriel Progress Map: English fallback is used for Chinese ESO clients.

@@ -3,6 +3,7 @@ local combat = false
 local targetExists = false
 local buffs = { player = {}, reticleover = {} }
 local controls, events, messages = {}, {}, {}
+local rawEvents = {}
 local panel = {}
 local saved
 local uiMode, cameraMode = false, false
@@ -50,7 +51,18 @@ WINDOW_MANAGER = {
     end,
 }
 EVENT_MANAGER = {
-    RegisterForEvent = function(_, _, event, callback) events[event] = callback end,
+    RegisterForEvent = function(_, name, event, callback)
+        events[name] = callback
+        rawEvents[event] = callback
+        -- Single-event UI tests advance the scheduled tick; named callbacks allow unflushed bursts.
+        events[event] = function(...)
+            callback(...)
+            if events.tick and (event == EVENT_EFFECT_CHANGED or event == EVENT_RETICLE_TARGET_CHANGED
+                or event == EVENT_COMBAT_EVENT or event == EVENT_UNIT_DEATH_STATE_CHANGED or event == EVENT_GROUP_UPDATE) then
+                events.tick()
+            end
+        end
+    end,
     UnregisterForEvent = function(_, _, event) events[event] = nil end,
     RegisterForUpdate = function(_, _, interval, callback)
         if interval == 100 then events.tick = callback
@@ -103,6 +115,9 @@ dofile("Uptime.lua")
 dofile("GroupUptime.lua")
 dofile("Aliases.lua")
 dofile("Cooldowns.lua")
+dofile("Diagnostics.lua")
+dofile("StackUptime.lua")
+dofile("LiveUptime.lua")
 dofile("LiveBuffUptime.lua")
 events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
 setting("Effekt-ID").setFunction("bad")
@@ -207,8 +222,9 @@ events[EVENT_PLAYER_COMBAT_STATE](nil, true)
 assert(targetWindow.labels[2].text == "0.0 %")
 print("Addon: configuration, combat, target loss, freeze, movement, 3s timeout, held drag, selection and cursor restoration passed")
 return {
-    events = events, controls = controls, panel = panel, setting = setting,
+    events = events, rawEvents = rawEvents, controls = controls, panel = panel, setting = setting, messages = messages,
     setClock = function(value) clock = value end,
     setCombat = function(value) combat = value end,
     setBuffs = function(unit, value) buffs[unit] = value end,
+    saved = function() return saved end,
 }

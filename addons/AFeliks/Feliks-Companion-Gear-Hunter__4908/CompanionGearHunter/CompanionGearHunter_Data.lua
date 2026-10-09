@@ -7,7 +7,7 @@ CompanionGearHunter.savedVariablesVersion = 1
 -- Keep in sync with ## Version in CompanionGearHunter.txt on every real
 -- release bump (see CompanionRoster's own versioning policy: bump only when
 -- actually cutting a release, not on every commit).
-CompanionGearHunter.version = "0.9.1"
+CompanionGearHunter.version = "1.0.0"
 
 CompanionGearHunter.Data = {}
 

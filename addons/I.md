@@ -17,6 +17,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ignis's Power Tracker Widget](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ignisferrum/Ignis-s-Power-Tracker-Widget__2525) | ignisferrum | PC / Mac | 1.4.6 |
 | [IGOR :: Research Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rkuhnjr/IGOR-Research-Assistant__859) | rkuhnjr | PC / Mac | 0.1 |
 | [Immaculate Construction](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cardinal05/Immaculate-Construction__1929) | Cardinal05 | PC / Mac | 0.99h |
+| [Immersive Controller Vibration](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gurkenlord/Immersive-Controller-Vibration__4929) | Gurkenlord | PC / Mac | 0.5.62 |
 | [Immersive Gamepad Dialogue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/someguy/Immersive-Gamepad-Dialogue__4212) | someguy | PC / Mac | 1.0 |
 | [Immersive Horse Riding](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Nuojua/Immersive-Horse-Riding__1048) | Nuojua | PC / Mac | 3.1 |
 | [Immersive Horse Riding FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dimimiss/Immersive-Horse-Riding-FIX__2356) | dimimiss | PC / Mac | 2.5 |

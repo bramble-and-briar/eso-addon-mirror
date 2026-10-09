@@ -1,7 +1,7 @@
 TrackersByJH = TrackersByJH or {}
 local TBJH = TrackersByJH
 TBJH.name = "TrackersByJH"
-TBJH.version = "1.1.0"
+TBJH.version = "1.1.6"
 TBJH.menus = TBJH.menus or {}
 
 function TrackersByJH_RegisterMenu(name, controls)
@@ -27,6 +27,9 @@ local SET_TRACKERS = {
     { menu="Rush of Agony Tracker", key="Rush of Agony" },
     { menu="Whorl of the Depths Tracker", key="Whorl of the Depths" },
     { menu="Wrath of Elements Tracker", key="Wrath of Elements" },
+    { menu="Zaan Tracker", key="Zaan" },
+    { menu="Spaulder of Ruin Tracker", key="Spaulder of Ruin" },
+    { menu="Highland Sentinel Tracker", key="Highland Sentinel" },
 }
 
 local function SetTrackerControls(key)
@@ -83,6 +86,7 @@ local function BuildMainMenu()
         { type="submenu", name="Alkosh Tracker", controls=TBJH.menus["Alkosh Tracker"] or {} },
         { type="submenu", name="Warmask Tracker", controls=TBJH.menus["Warmask Tracker"] or {} },
         { type="submenu", name="Landslide Tracker", controls=TBJH.menus["Landslide Tracker"] or {} },
+        { type="submenu", name="Nothing Wasted Tracker", controls=TBJH.menus["Nothing Wasted Tracker"] or {} },
         { type="header", name="Set Proc Trackers" },
     }
     for _,entry in ipairs(SET_TRACKERS) do

@@ -661,6 +661,7 @@ end
 -- the amber bar. Hover lights a row; a click flashes it and closes. "toggle" rows carry a switch
 -- and keep the panel open. X / a click outside closes. UI.OpenListPanel(anchor, title, rows).
 local CPP_W, CPP_ROW, CPP_HEAD = 320, 38, 24
+local CPP_MAX_H = 5 * CPP_ROW + CPP_HEAD   -- (longer lists scroll)
 local cpp = { rows = {} }
 
 local function CloseCPPicker()
@@ -708,6 +709,7 @@ local function MakeCPRow(i)
     r.line:SetAnchor(LEFT, r.head, RIGHT, 8, 0)
     r.line:SetAnchor(RIGHT, r, RIGHT, -6, 2)
     r.key = W.Name("CPRow")
+    r:SetHandler("OnMouseWheel", function(_, delta) UI.ScrollListPanel(delta) end)
     r:SetHandler("OnMouseEnter", function(self)
         if not (self.data and not self.data.head) then return end
         local from = self.bg:GetAlpha()
@@ -764,25 +766,120 @@ local function CreateCPPicker()
     cpp.list = WINDOW_MANAGER:CreateControl(nil, win, CT_CONTROL)
     cpp.list:SetAnchor(TOPLEFT, win, TOPLEFT, 8, 36)
     cpp.list:SetAnchor(TOPRIGHT, win, TOPRIGHT, -8, 36)
+    -- scrollbar (only for long lists): thin track + amber thumb
+    cpp.track = W.Tex(cpp.list, nil, 2, 10, C.line)
+    cpp.track:SetAnchor(TOPRIGHT, cpp.list, TOPRIGHT, -1, 0)
+    cpp.track:SetAnchor(BOTTOMRIGHT, cpp.list, BOTTOMRIGHT, -1, 0)
+    cpp.thumb = W.Tex(cpp.list, nil, 4, 20, C.theme, 0.8)
+    cpp.track:SetHidden(true)
+    cpp.thumb:SetHidden(true)
+    win:SetHandler("OnMouseWheel", function(_, delta) UI.ScrollListPanel(delta) end)
+    -- the scrollbar's click / drag area: a direct child of the window (handlers on textures nested
+    -- deeper never get the mouse), a bit wider than the thin bar so it's easy to hit
+    local bar = WINDOW_MANAGER:CreateControl(nil, win, CT_CONTROL)
+    bar:SetWidth(16)
+    bar:SetAnchor(TOPRIGHT, cpp.list, TOPRIGHT, 6, 0)
+    bar:SetAnchor(BOTTOMRIGHT, cpp.list, BOTTOMRIGHT, 6, 0)
+    bar:SetDrawLevel(20)
+    bar:SetMouseEnabled(true)
+    bar:SetHidden(true)
+    cpp.bar = bar
+    bar:SetHandler("OnMouseWheel", function(_, delta) UI.ScrollListPanel(delta) end)
+    bar:SetHandler("OnMouseEnter", function() cpp.thumb:SetAlpha(1) cpp.thumb:SetWidth(6) end)
+    bar:SetHandler("OnMouseExit", function()
+        if not cpp.dragging then cpp.thumb:SetAlpha(0.8) cpp.thumb:SetWidth(4) end
+    end)
+    bar:SetHandler("OnMouseDown", function(_, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or not cpp.scrolls then return end
+        local _, my = GetUIMousePosition()
+        local y = my - cpp.list:GetTop()
+        local thumbY = cpp.thumbY or 0
+        -- on the thumb: grab it where you clicked; on the track: the thumb jumps under the mouse
+        if y >= thumbY and y <= thumbY + cpp.thumbH then
+            cpp.grab = y - thumbY
+        else
+            cpp.grab = cpp.thumbH / 2
+        end
+        cpp.dragging = true
+    end)
+    bar:SetHandler("OnMouseUp", function()
+        cpp.dragging = false
+        if not B.IsOver(cpp.bar, 0) then cpp.thumb:SetAlpha(0.8) cpp.thumb:SetWidth(4) end
+    end)
+    -- smooth scrolling: the list glides toward cpp.target; dragging follows the mouse directly
+    win:SetHandler("OnUpdate", B.Safe(function()
+        if not cpp.scrolls then return end
+        local now = GetFrameTimeSeconds()
+        local dt = math.min(0.05, now - (cpp.lastT or now))
+        cpp.lastT = now
+        if cpp.dragging then
+            local _, my = GetUIMousePosition()
+            local room = CPP_MAX_H - cpp.thumbH
+            local f = room > 0 and zo_clamp((my - cpp.list:GetTop() - cpp.grab) / room, 0, 1) or 0
+            cpp.target = f * cpp.maxPos
+            cpp.pos = cpp.target
+            UI.PlaceListRows()
+        elseif cpp.pos ~= cpp.target then
+            if not Anim.Enabled() or math.abs(cpp.target - cpp.pos) < 0.5 then
+                cpp.pos = cpp.target
+            else
+                cpp.pos = cpp.pos + (cpp.target - cpp.pos) * math.min(1, dt * 14)
+            end
+            UI.PlaceListRows()
+        end
+    end, "list panel"))
 end
 
 -- the panel with any rows: { head } | { text, sub, color (ring) or icon, nameColor, on, pick } |
 -- { toggle = true, text, sub, get, set }
-function UI.OpenListPanel(anchor, title, rows)
-    if not cpp.win then CreateCPPicker() end
-    if B.SkillList then B.SkillList.Close() end
-    cpp.title:SetText(zo_strupper(title))
-    local y = 0
-    for i, data in ipairs(rows) do
-        local r = cpp.rows[i] or MakeCPRow(i)
+-- Longer lists scroll (2026-10-08): at most CPP_MAX_H of rows show. Smooth: cpp.pos (pixels)
+-- glides toward cpp.target (wheel = one row per notch); the scrollbar can be dragged or clicked.
+-- Controls can't clip their children, so rows at the top / bottom edge fade out as they leave
+-- (gone when half outside) instead of being cut.
+local function RowH(data) return data.head and CPP_HEAD or CPP_ROW end
+
+-- where each row sits now: rows move with cpp.pos, edge rows fade
+function UI.PlaceListRows()
+    local h = cpp.scrolls and CPP_MAX_H or cpp.total
+    for k, r in ipairs(cpp.rows) do
+        local data = cpp.data[k]
+        if data then
+            local rh = RowH(data)
+            local y = cpp.tops[k] - (cpp.pos or 0)
+            local out = math.max(0, -y, y + rh - h)
+            local a = 1 - out / (rh * 0.5)
+            r:SetHidden(a <= 0)
+            r:SetAlpha(zo_clamp(a, 0, 1))
+            r:SetMouseEnabled(a > 0.6)
+            r:ClearAnchors()
+            r:SetAnchor(TOPLEFT, cpp.list, TOPLEFT, 0, y)
+            r:SetAnchor(TOPRIGHT, cpp.list, TOPRIGHT, cpp.scrolls and -12 or 0, y)
+        end
+    end
+    if cpp.scrolls then
+        cpp.thumbH = math.max(20, h * h / cpp.total)
+        cpp.thumbY = (h - cpp.thumbH) * (cpp.maxPos > 0 and cpp.pos / cpp.maxPos or 0)
+        cpp.thumb:SetHeight(cpp.thumbH)
+        cpp.thumb:ClearAnchors()
+        cpp.thumb:SetAnchor(TOPRIGHT, cpp.list, TOPRIGHT, 0, cpp.thumbY)
+    end
+end
+
+local function PaintListPanel()
+    local rows = cpp.data
+    cpp.tops, cpp.total = {}, 0
+    for k, data in ipairs(rows) do
+        cpp.tops[k] = cpp.total
+        cpp.total = cpp.total + RowH(data)
+    end
+    cpp.scrolls = cpp.total > CPP_MAX_H
+    cpp.maxPos = cpp.scrolls and cpp.total - CPP_MAX_H or 0
+    cpp.target = zo_clamp(cpp.target or 0, 0, cpp.maxPos)
+    cpp.pos = cpp.target
+    for k, data in ipairs(rows) do
+        local r = cpp.rows[k] or MakeCPRow(k)
         r.data = data
-        r:SetHidden(false)
-        local h = data.head and CPP_HEAD or CPP_ROW
-        r:ClearAnchors()
-        r:SetAnchor(TOPLEFT, cpp.list, TOPLEFT, 0, y)
-        r:SetAnchor(TOPRIGHT, cpp.list, TOPRIGHT, 0, y)
-        r:SetHeight(h)
-        y = y + h
+        r:SetHeight(RowH(data))
         local isHead = data.head ~= nil
         local hasIcon = not isHead and data.icon ~= nil
         local hasRing = not isHead and not hasIcon and data.color ~= nil
@@ -815,19 +912,56 @@ function UI.OpenListPanel(anchor, title, rows)
             if data.toggle then r.sw:Refresh() end
         end
     end
-    for i = #rows + 1, #cpp.rows do cpp.rows[i]:SetHidden(true) end
-    cpp.list:SetHeight(y)
-    cpp.win:SetHeight(36 + y + 10)
+    for k = #rows + 1, #cpp.rows do
+        cpp.rows[k].data = nil
+        cpp.rows[k]:SetHidden(true)
+    end
+    local h = cpp.scrolls and CPP_MAX_H or cpp.total
+    cpp.list:SetHeight(h)
+    cpp.win:SetHeight(36 + h + 10)
+    cpp.track:SetHidden(not cpp.scrolls)
+    cpp.thumb:SetHidden(not cpp.scrolls)
+    cpp.bar:SetHidden(not cpp.scrolls)
+    cpp.dragging = false
+    UI.PlaceListRows()
+end
+
+-- mouse wheel: one row per notch, gliding
+function UI.ScrollListPanel(delta)
+    if not cpp.win or cpp.win:IsHidden() or not cpp.scrolls then return end
+    cpp.target = zo_clamp((cpp.target or 0) - delta * CPP_ROW, 0, cpp.maxPos)
+end
+
+function UI.OpenListPanel(anchor, title, rows, below)
+    if not cpp.win then CreateCPPicker() end
+    if B.SkillList then B.SkillList.Close() end
+    cpp.title:SetText(zo_strupper(title))
+    cpp.data, cpp.target = rows, 0
+    -- (opens scrolled to the row the build uses now, when that's further down)
+    for k, data in ipairs(rows) do
+        if data.on then cpp.target = math.max(0, (k - 3) * CPP_ROW) break end
+    end
+    PaintListPanel()
     cpp.win:ClearAnchors()
     if anchor then
         cpp.win:SetAnchor(TOPLEFT, anchor, TOPRIGHT, 10, -12)
     else
         cpp.win:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     end
+    if below and anchor then
+        -- (from the button: under the slot you clicked)
+        cpp.win:ClearAnchors()
+        cpp.win:SetAnchor(TOPLEFT, anchor, BOTTOMLEFT, -8, 10)
+    end
     cpp.win:SetHidden(false)
     Anim.Alpha(cpp.win, 0, 1, Anim.STD, Anim.Out, "Skillbound_CPPickOpen")
-    for i, r in ipairs(cpp.rows) do
-        if not r:IsHidden() then Anim.Alpha(r, 0, 1, Anim.STD, Anim.Out, r.key .. "In", nil, i * 20, true) end
+    -- rows fade in one after another (only the ones fully in view: edge rows keep their edge fade)
+    local n = 0
+    for _, r in ipairs(cpp.rows) do
+        if not r:IsHidden() and r:GetAlpha() >= 1 then
+            n = n + 1
+            Anim.Alpha(r, 0, 1, Anim.STD, Anim.Out, r.key .. "In", nil, n * 20, true)
+        end
     end
     -- a click anywhere else closes it (checked a moment later: this very click doesn't count)
     B.Later(function()
@@ -838,6 +972,44 @@ function UI.OpenListPanel(anchor, title, rows)
     end, 50)
 end
 UI.CloseCPPicker = CloseCPPicker
+
+function UI.ListPanelOpen()
+    return cpp.win ~= nil and not cpp.win:IsHidden()
+end
+
+-- The button's "+" / "Put another build here" (2026-10-08, sketch A + D's dimming): the list
+-- panel under the slot. Each build with its picture and class; the worn one has the amber bar
+-- ("worn now"); builds already on the button come last, dimmed, under their own header (picking
+-- one moves it here). onPick(build).
+function UI.PickFavorite(anchor, slotIndex, onPick)
+    local fav = B.Char().fav
+    local onButton = {}
+    for j, id in ipairs(fav) do
+        if j ~= slotIndex then onButton[id] = true end
+    end
+    local rows, later = {}, {}
+    local function Row(b, dim)
+        return {
+            text = b.name,
+            icon = UI.BuildIcon(b),
+            sub = dim and L("FAV_ALREADY") or ClassName(b.classId),
+            nameColor = dim and C.dim or nil,
+            on = IsWorn(b) and not dim, inUse = L("WORN_NOW"),
+            pick = function() onPick(b) end,
+        }
+    end
+    for _, b in ipairs(B.SortedBuilds()) do
+        if onButton[b.id] then later[#later + 1] = b else rows[#rows + 1] = Row(b) end
+    end
+    if #later > 0 then
+        rows[#rows + 1] = { head = L("FAV_HEAD_ON_BUTTON") }
+        for _, b in ipairs(later) do rows[#rows + 1] = Row(b, true) end
+    end
+    if #rows == 0 then
+        rows[1] = { text = L("LIST_EMPTY_SHORT"), pick = function() UI.Show() end }
+    end
+    UI.OpenListPanel(anchor, L("FAV_PANEL_TITLE"), rows, true)
+end
 
 -- ---------------------------------------------------------------------------
 -- The arch (gear) and the right column
@@ -3741,6 +3913,124 @@ local function Relayout()
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- Wallpapers (2026-10-08): small glass arrows inside the window, in the narrow strips between the
+-- frame line (6 px in) and the content (~17 px in) on the left and right (outside the window
+-- they were hard to see; bigger ones touched the cards). Right = next, left = back; the new
+-- picture fades in over the old (bg2) while sliding in from that side. The choice is kept in
+-- sv.window.wall (0 = the Mundus night sky). The pictures are B.WALLS.
+
+local WALL_MS = 550   -- the wallpaper switch (slide + crossfade)
+
+local function WallIndex()
+    local i = tonumber(B.sv.window.wall) or 0
+    if not B.WALLS[i] then i = 0 end
+    return i
+end
+
+function UI.WallTexture()
+    return B.WALLS[WallIndex()]
+end
+
+local function WallTooltip(btn)
+    local i = WallIndex()
+    if btn.dir > 0 then
+        InitializeTooltip(InformationTooltip, btn, LEFT, 6, 0, RIGHT)
+    else
+        InitializeTooltip(InformationTooltip, btn, RIGHT, -6, 0, LEFT)
+    end
+    SetTooltipText(InformationTooltip, L(btn.dir > 0 and "WALL_TT_NEXT" or "WALL_TT_PREV", L("WALL_" .. i), i + 1, #B.WALLS + 1))
+end
+
+function UI.StepWall(dir)
+    local n = #B.WALLS + 1
+    local i = (WallIndex() + dir) % n
+    B.sv.window.wall = i
+    local tex = B.WALLS[i]
+    if not ui.bg then return end
+    if not Anim.Enabled() then
+        ui.bg:SetTexture(tex)
+        return
+    end
+    -- sketch E "slide + crossfade": the new picture fades in over the old one while it glides
+    -- in a little from the side of the arrow you clicked (next: from the right, back: from the
+    -- left), then takes its place. (Controls can't clip, so the slide moves the part of the
+    -- picture that's shown, not the texture control: no spill outside.)
+    ui.bg2:SetTexture(tex)
+    local w, h = ui.bg2:GetDimensions()
+    local a = (w and h and h > 0) and w / h or 2
+    local u0, u1, v0, v1 = 0, 1, 0, 1
+    if a < 2 then
+        u0, u1 = 0.5 - a / 4, 0.5 + a / 4
+    else
+        local f = 2 / a
+        v0, v1 = 0.5 - f / 2, 0.5 + f / 2
+    end
+    -- (never past the picture's edge; the crop is centered, so both sides have the same room)
+    local slide = math.min(0.12 * (u1 - u0), u0) * (dir > 0 and 1 or -1)
+    Anim.Run("Skillbound_Wall", WALL_MS, Anim.Out, function(p)
+        local d = slide * (1 - p)
+        ui.bg2:SetTextureCoords(u0 - d, u1 - d, v0, v1)
+        ui.bg2:SetAlpha(p)
+    end, function()
+        ui.bg:SetTexture(tex)
+        W.FitBG(ui.bg)
+        ui.bg2:SetAlpha(0)
+        W.FitBG(ui.bg2)
+    end)
+end
+
+-- sketch B "frosted glass blade" (wall_arrow.dds, white with its own alpha): dir 1 = right edge
+-- (next), -1 = left edge, mirrored (back). Hover: amber, clearer, 15 % bigger. The click area is
+-- the whole strip height around the arrow so it's easy to hit.
+local function CreateWallButton(win, dir)
+    local btn = WINDOW_MANAGER:CreateControl(nil, win, CT_CONTROL)
+    btn.dir = dir
+    btn:SetDimensions(11, 40)
+    -- (centered in the strip: 6 .. 17 px from the window edge)
+    if dir > 0 then
+        btn:SetAnchor(RIGHT, win, RIGHT, -6, 0)
+    else
+        btn:SetAnchor(LEFT, win, LEFT, 6, 0)
+    end
+    btn:SetMouseEnabled(true)
+    btn:SetDrawLevel(12)
+    btn.arrow = W.Tex(btn, B.TEX .. "wall_arrow.dds", 9, 18)
+    if dir < 0 then btn.arrow:SetTextureCoords(1, 0, 0, 1) end   -- (mirrored: points left)
+    btn.arrow:SetColor(1, 1, 1, 1)
+    btn.arrow:SetAlpha(0.85)
+    Anim.Anchor(btn.arrow, CENTER, btn, CENTER, 0, 0)
+    local key = "Skillbound_WallBtn" .. dir
+    local function Hover(on)
+        local from = btn.hoverP or 0
+        local to = on and 1 or 0
+        Anim.Run(key, Anim.MICRO, Anim.Out, function(p)
+            local h = Anim.Lerp(from, to, p)
+            btn.hoverP = h
+            -- white -> amber, faint -> clear, a little bigger (no sideways nudge: the strip is narrow)
+            local ar, ag, ab = B.RGBA(C.theme)
+            btn.arrow:SetColor(1 + (ar - 1) * h, 1 + (ag - 1) * h, 1 + (ab - 1) * h, 1)
+            btn.arrow:SetAlpha(0.85 + 0.15 * h)
+            btn.arrow:SetScale(1 + 0.15 * h)
+        end)
+    end
+    btn:SetHandler("OnMouseEnter", function(self)
+        Hover(true)
+        WallTooltip(self)
+    end)
+    btn:SetHandler("OnMouseExit", function()
+        Hover(false)
+        ClearTooltip(InformationTooltip)
+    end)
+    btn:SetHandler("OnMouseUp", function(self, button, upInside)
+        if not upInside or button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        PlaySound(SOUNDS.DEFAULT_CLICK)
+        UI.StepWall(dir)
+        WallTooltip(self)
+    end)
+    return btn
+end
+
 local function SaveGeometry()
     local win = ui.win
     local x, y = win:GetLeft(), win:GetTop()
@@ -3819,10 +4109,16 @@ function UI.Create()
         Relayout()
     end)
 
-    -- background + frame
+    -- background + frame (bg2 lies over it only while a new wallpaper fades in)
     local bg = W.Tex(win, B.BG)
     bg:SetAnchorFill(win)
     ui.bg = bg
+    ui.bg2 = W.Tex(win, B.BG)
+    ui.bg2:SetAnchorFill(win)
+    ui.bg2:SetAlpha(0)
+    bg:SetTexture(UI.WallTexture())
+    ui.wallNext = CreateWallButton(win, 1)
+    ui.wallPrev = CreateWallButton(win, -1)
     W.Frame(win, C.goldDark, 1)
     local inner = WINDOW_MANAGER:CreateControl(nil, win, CT_CONTROL)
     inner:SetAnchor(TOPLEFT, win, TOPLEFT, 6, 6)
@@ -4262,7 +4558,13 @@ function UI.Init()
     end)
     B.callbacks:RegisterCallback("StepDone", function(step) FlashStep(step, C.theme) end)
     B.callbacks:RegisterCallback("StepFailed", function(step) FlashStep(step, C.warn) end)
-    B.callbacks:RegisterCallback("Worn", function()
+    B.callbacks:RegisterCallback("Worn", function(b)
+        -- the build you just put on becomes the picked card (the selection used to stay on the old
+        -- one when you wore it from the button, the wheel, a keybind or a rule)
+        if b and not b.undo and b.id and B.Get(b.id) and ui.sel ~= b.id then
+            ui.sel = b.id
+            B.sv.window.sel = b.id
+        end
         UI.Refresh()
         if UI.IsShown() then
             Anim.Sheen(ui.sheen, ui.cart, "Skillbound_TitleSheen")

@@ -4,7 +4,7 @@ local PBT = TeamShadowsManager
 
 PBT.name = "TeamShadowsManager"
 PBT.displayName = "Team Shadows Manager"
-PBT.version = "1.1.18"
+PBT.version = "1.1.20"
 PBT.savedVariableName = "TeamShadowsManagerSavedVariables"
 PBT.savedVariableVersion = 1
 
@@ -33,10 +33,12 @@ PBT.defaults = {
     useSamuraiTimers = true,
     showMechanicTimers = true,
     nahvPortalHpWarning = true,
+    bahseiRaidOptions = true,
     bahseiWallArrows = true,
+    bahseiGhostCounter = true,
     bahseiGhostCall = true,
     bahseiGhostReceive = true,
-    bahseiGhostTotal = 10,
+    bahseiGhostTotal = 24,
     bahseiGhostThreshold = 5,
     narrationDebug = false,
     practiceSeconds = 10,
@@ -274,6 +276,11 @@ PBT.timerBossDefinitions = {
     },
     sanitysEdge = {
         { key = "yaseyla", fr = "Yaseyla l'Exarchanique", en = "Exarchanic Yaseyla", aliases = { "yaseyla" } },
+    },
+    rockgrove = {
+        { key = "oaxiltso", fr = "Oaxiltso", en = "Oaxiltso", aliases = { "oaxiltso" } },
+        { key = "bahsei", fr = "Le Héraut des flammes Bahsei", en = "Flame-Herald Bahsei", aliases = { "bahsei", "le heraut des flammes bahsei", "flame-herald bahsei" } },
+        { key = "xalvakka", fr = "Xalvakka", en = "Xalvakka", aliases = { "xalvakka" } },
     },
 }
 

@@ -1,5 +1,5 @@
 -- =====================================================================
--- LibTeamShadows 1.3.2
+-- LibTeamShadows 1.3.3
 -- Author: teamfky
 -- Lightweight group communication + world markers for the Team Shadows
 -- addons, built on LibGroupBroadcast by sirinsidiator:
@@ -24,7 +24,7 @@ LibTeamShadows = LibTeamShadows or {}
 local LTS = LibTeamShadows
 
 LTS.name = "LibTeamShadows"
-LTS.version = "1.3.2"
+LTS.version = "1.3.3"
 
 -- =====================================================================
 -- LibGroupBroadcast PROTOCOL IDS

@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/luiisoliiver/Naga-Mapa-Completo__4839",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "luiisoliiver",
   "canonical_id": "esoui:4839",
   "category_id": "18",
@@ -75,7 +74,7 @@
     "NagaMapaCompleto"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4839/",
-  "fingerprint": "141711cd4a71f93cce73baa734ff9244bb1009a48ef811b4aeb7a97674c0858a",
+  "fingerprint": "e02170c3c3f87be757ca4bd707ca4d195471cc780eddf0a4991ccd2f4dd26783",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17414.png",
     "https://cdn-eso.mmoui.com/preview/pvw17413.png",
@@ -91,11 +90,11 @@
   "source_id": "4839",
   "source_url": "https://www.esoui.com/downloads/info4839-NagaMapaCompleto.html",
   "stats": {
-    "downloads": 36,
+    "downloads": 104,
     "favorites": 1,
-    "monthly_downloads": 33
+    "monthly_downloads": 98
   },
   "title": "Naga Mapa Completo",
-  "updated_at": 1789707997000,
-  "version": "2.8.9"
+  "updated_at": 1791506615000,
+  "version": "2.9.0"
 }

@@ -14,7 +14,7 @@ B.Apply = Apply
 
 local ACTOR = GAMEPLAY_ACTOR_CATEGORY_PLAYER
 local CP_COOLDOWN = 31          -- seconds between champion bar changes (the game's limit)
-local TICK_MS = 100
+local TICK_MS = 0                -- every frame (was 100 ms: each step cost at least that)
 
 local running                   -- the plan being worn: { build, steps, i, problems, opts }
 local cpReadyAt = 0
@@ -113,11 +113,12 @@ function Apply.CPUnlocked()
 end
 
 -- the stars of the build that aren't slotted now (only slots the build holds)
+-- slots that differ from the build; a slot the build left empty counts too (the star comes off)
 local function CPChanges(slots)
     local list = {}
     for i = 1, 12 do
-        local id = slots[i]
-        if id and GetSlotBoundId(i, HOTBAR_CATEGORY_CHAMPION) ~= id then list[#list + 1] = i end
+        local want = slots[i] or 0
+        if (GetSlotBoundId(i, HOTBAR_CATEGORY_CHAMPION) or 0) ~= want then list[#list + 1] = i end
     end
     return list
 end
@@ -367,11 +368,13 @@ local function PlanCP(build, plan)
     local changes = CPChanges(cp.slots or {})
     for _, i in ipairs(changes) do
         local id = cp.slots[i]
-        local name = B.Name(GetChampionSkillName(id))
-        if (GetNumPointsSpentOnChampionSkill(id) or 0) > 0 then
-            Change(plan, "cp", "ok", L("CHANGE_STAR", name))
+        if not id then
+            local bound = GetSlotBoundId(i, HOTBAR_CATEGORY_CHAMPION)
+            Change(plan, "cp", "ok", L("CHANGE_STAR_OFF", B.Name(GetChampionSkillName(bound))))
+        elseif (GetNumPointsSpentOnChampionSkill(id) or 0) > 0 then
+            Change(plan, "cp", "ok", L("CHANGE_STAR", B.Name(GetChampionSkillName(id))))
         else
-            Change(plan, "cp", "bad", L("CHANGE_STAR_NO_POINTS", name))
+            Change(plan, "cp", "bad", L("CHANGE_STAR_NO_POINTS", B.Name(GetChampionSkillName(id))))
         end
     end
     if #changes > 0 then plan.cpStep = { slots = cp.slots } end
@@ -522,8 +525,11 @@ end
 --   "wait", why     run again a bit later (step.waitMs), up to step.maxTries times
 --   "fail", why     note the problem, go on with the next step
 
+-- Speed (1.0.3): no pauses between steps any more. Every step that can be checked waits for the
+-- game to confirm it ("check"), so a pause added nothing but time; steps that finish at once run
+-- in the same frame (see Tick).
 local function Step(label, run, extra)
-    local s = { label = label, run = run, delay = 250 }
+    local s = { label = label, run = run, delay = 0 }
     for k, v in pairs(extra or {}) do s[k] = v end
     return s
 end
@@ -538,7 +544,7 @@ local function SheatheStep()
         step.check = ArePlayerWeaponsSheathed
         step.timeout = 2500
         return "check"
-    end, { delay = 150 })
+    end)
 end
 
 local function UnequipMythicStep(slot)
@@ -549,7 +555,39 @@ local function UnequipMythicStep(slot)
         CallSecureProtected("RequestMoveItem", BAG_WORN, slot, BAG_BACKPACK, free, 1)
         step.check = function() return GetItemLink(BAG_WORN, slot) == "" end
         return "check"
-    end, { delay = 300 })
+    end)
+end
+
+-- All armor / jewelry pieces that wait in the backpack are sent in ONE frame (the slow part used
+-- to be one piece after another). Only the safe ones: no weapons (two-handers and off-hands depend
+-- on each other), no mythics, nothing from the bank or from another worn slot. It waits until the
+-- game confirms them (max 2 s) and never fails: the normal one-by-one gear steps run right after
+-- and finish whatever didn't go on (a piece already worn is "done" at once).
+local function GearBatchStep(gearSteps)
+    return Step(L("PART_GEAR"), function(step)
+        local sent = {}
+        Items.MarkDirty()
+        local index = Items.Index()
+        for _, g in ipairs(gearSteps) do
+            if not g.poison and not g.mythic and not Items.WEAPON[g.slot] then
+                local e = index.byUid[g.uid]
+                if e and e.bag == BAG_BACKPACK then
+                    EquipItem(e.bag, e.slot, g.slot)
+                    sent[#sent + 1] = g
+                end
+            end
+        end
+        if #sent == 0 then return "done" end
+        step.check = function()
+            for _, g in ipairs(sent) do
+                if Items.Uid(BAG_WORN, g.slot) ~= g.uid then return false end
+            end
+            return true
+        end
+        step.timeout = 2000
+        step.soft = true   -- (timeout = go on; the one-by-one steps finish the rest)
+        return "check"
+    end)
 end
 
 local function GearStep(g)
@@ -581,7 +619,7 @@ local function GearStep(g)
         EquipItem(e.bag, e.slot, g.slot)
         step.check = function() return Items.Uid(BAG_WORN, g.slot) == g.uid end
         return "check"
-    end, { delay = 200, maxTries = 6, slot = g.slot })
+    end, { maxTries = 6, slot = g.slot })
 end
 
 local function SkillStep(sk)
@@ -599,12 +637,65 @@ local function SkillStep(sk)
         end
         hotbar:AssignSkillToSlot(sk.slot, skillData)
         return "done"
-    end, { delay = 80, cat = sk.cat, skillSlot = sk.slot })
+    end, { cat = sk.cat, skillSlot = sk.slot })
+end
+
+-- The skill steps above all run in the same frame (each only sends its request). This step then
+-- waits until the game shows every skill on its slot. Any slot that still isn't right after 1.5 s
+-- is sent again (twice at most); only then it counts as a problem.
+local function SkillCheckStep(skillSteps)
+    local function Wrong()
+        local list = {}
+        for _, sk in ipairs(skillSteps) do
+            local skillData, _, problem = Apply.FindSkill(sk.entry)
+            if skillData and problem ~= "missing" and problem ~= "notLearned" then
+                local hotbar = ACTION_BAR_ASSIGNMENT_MANAGER:GetHotbar(sk.cat)
+                if not SkillSlotted(hotbar, sk.slot, skillData, sk.entry) then
+                    list[#list + 1] = { sk = sk, data = skillData, hotbar = hotbar }
+                end
+            end
+        end
+        return list
+    end
+    return Step(L("PART_SKILLS"), function(step)
+        local wrong = Wrong()
+        if #wrong == 0 then return "done" end
+        step.resent = (step.resent or 0) + 1
+        if step.resent > 3 then
+            -- still wrong after two re-sends: one problem line per skill
+            local lines = {}
+            for _, w in ipairs(wrong) do
+                local result = w.hotbar:GetExpectedSkillSlotResult(w.sk.slot, w.data)
+                local why = result ~= HOT_BAR_RESULT_SUCCESS and GetString("SI_HOTBARRESULT", result) or ""
+                lines[#lines + 1] = L("SKILL_CANT_SLOT", w.sk.entry.name, why ~= "" and why or "?")
+            end
+            for k = 2, #lines do running.problems[#running.problems + 1] = lines[k] end
+            return "fail", lines[1]
+        end
+        if step.resent > 1 then
+            for _, w in ipairs(wrong) do
+                if w.hotbar:GetExpectedSkillSlotResult(w.sk.slot, w.data) == HOT_BAR_RESULT_SUCCESS then
+                    w.hotbar:AssignSkillToSlot(w.sk.slot, w.data)
+                end
+            end
+        end
+        step.check = function() return #Wrong() == 0 end
+        step.timeout = 1500
+        step.soft = "again"   -- (timeout = run this step again: it re-sends what's still wrong)
+        return "check"
+    end)
 end
 
 local function CPStep(cpStep, plan)
     return Step(L("PART_CP"), function(step)
         if #CPChanges(cpStep.slots) == 0 then return "done" end
+        -- the game's 30 s cooldown is running: the build counts as worn now, the stars follow on
+        -- their own when the cooldown is over (the switch used to wait for them)
+        if Apply.CPCooldownLeft() > 0 and not cpStep.later then
+            Apply.CPLater(cpStep)
+            if not running.opts.silent then B.Print(L("CP_LATER", math.ceil(Apply.CPCooldownLeft()))) end
+            return "done"
+        end
         if Apply.CPCooldownLeft() > 0 then
             step.waitMs, step.maxTries = 1000, 40
             running.cpWait = true
@@ -615,7 +706,11 @@ local function CPStep(cpStep, plan)
         local any = false
         for _, i in ipairs(CPChanges(cpStep.slots)) do
             local id = cpStep.slots[i]
-            if (GetNumPointsSpentOnChampionSkill(id) or 0) > 0 then
+            if not id then
+                -- the build has this slot empty: take the star off (the game's champion screen sends nil too)
+                AddHotbarSlotToChampionPurchaseRequest(i, nil)
+                any = true
+            elseif (GetNumPointsSpentOnChampionSkill(id) or 0) > 0 then
                 AddHotbarSlotToChampionPurchaseRequest(i, id)
                 any = true
             end
@@ -624,6 +719,12 @@ local function CPStep(cpStep, plan)
         if GetExpectedResultForChampionPurchaseRequest then
             local expected = GetExpectedResultForChampionPurchaseRequest()
             if expected == CHAMPION_PURCHASE_CHAMPION_BAR_ON_COOLDOWN then
+                -- (a cooldown Skillbound didn't start, e.g. you changed stars yourself)
+                if not cpStep.later then
+                    Apply.CPLater(cpStep, 5)
+                    if not running.opts.silent then B.Print(L("CP_LATER_SOON")) end
+                    return "done"
+                end
                 step.waitMs, step.maxTries = 2000, 40
                 return "wait"
             elseif expected ~= CHAMPION_PURCHASE_SUCCESS then
@@ -651,7 +752,7 @@ local function FoodStep(food)
         if Apply.OtherFoodRunning(food.id) then return "done" end   -- (checked again right before eating)
         Apply.EatFood(bag, slot, food.id, food.link or GetItemLink(bag, slot))
         return "done"
-    end, { delay = 500 })
+    end)
 end
 
 -- Quickslot wheel (1.0.0 fix): only ITEMS (potions, food...) can be put back, through the
@@ -675,7 +776,7 @@ local function QuickStep(qs)
         step.check = function() return QuickSlotted(qs.i, qs.q) end
         step.timeout = 1500
         return "check"
-    end, { delay = 120 })
+    end)
 end
 
 local function OutfitStep(o)
@@ -686,7 +787,7 @@ local function OutfitStep(o)
             EquipOutfit(ACTOR, o.index)
         end
         return "done"
-    end, { delay = 400 })
+    end)
 end
 
 local function TitleStep(index)
@@ -710,7 +811,7 @@ local function CompanionStep(cs)
             if not hotbar then return "fail", L("CHANGE_NO_COMPANION") end
             hotbar:AssignSkillToSlotByAbilityId(cs.slot, cs.skill.id)
             return "done"
-        end, { delay = 80 })
+        end)
     end
     return Step(L("PART_COMPANION"), function(step)
         if not HasActiveCompanion() then return "fail", L("CHANGE_NO_COMPANION") end
@@ -720,7 +821,7 @@ local function CompanionStep(cs)
         RequestEquipItem(e.bag, e.slot, BAG_COMPANION_WORN)
         step.check = function() return Items.Uid(BAG_COMPANION_WORN, cs.slot) == cs.uid end
         return "check"
-    end, { delay = 250 })
+    end)
 end
 
 -- the plan as a list of steps, in a safe order
@@ -729,6 +830,11 @@ local function MakeSteps(plan)
     local function Add(s) steps[#steps + 1] = s end
     -- steps whose items make the game play a sound (muted with the quiet switch)
     local function Noisy(s) s.noisy = true Add(s) end
+    -- skills first: they only send requests, all in the first frame (checked further down)
+    -- (the game chimes when a skill is slotted: muted too, only your click should be heard)
+    for _, sk in ipairs(plan.skillSteps) do Noisy(SkillStep(sk)) end
+    -- armor / jewelry from the backpack all at once (needs no sheathing)
+    if #plan.gearSteps > 0 then Noisy(GearBatchStep(plan.gearSteps)) end
     if plan.weaponsChange then Add(SheatheStep()) end
     -- a second mythic can't be worn: take the old one off first
     for _, g in ipairs(plan.gearSteps) do
@@ -738,15 +844,17 @@ local function MakeSteps(plan)
             break
         end
     end
+    -- one by one: weapons, poisons, mythics, bank pieces and whatever the batch couldn't do
     for _, g in ipairs(plan.gearSteps) do Noisy(GearStep(g)) end
-    for _, sk in ipairs(plan.skillSteps) do Add(SkillStep(sk)) end
-    if plan.cpStep then Add(CPStep(plan.cpStep, plan)) end
+    if #plan.skillSteps > 0 then Noisy(SkillCheckStep(plan.skillSteps)) end   -- (it may re-send skills)
     if plan.foodStep then Noisy(FoodStep(plan.foodStep)) end
     for _, qs in ipairs(plan.quickSteps) do Noisy(QuickStep(qs)) end
     if plan.outfitStep then Noisy(OutfitStep(plan.outfitStep)) end
     if plan.titleStep then Add(TitleStep(plan.titleStep)) end
     for _, id in ipairs(plan.collectSteps) do Noisy(CollectStep(id)) end
     for _, cs in ipairs(plan.companionSteps) do Noisy(CompanionStep(cs)) end
+    -- champion last: it may wait out the game's 30 s cooldown, and nothing else should wait with it
+    if plan.cpStep then Noisy(CPStep(plan.cpStep, plan)) end   -- (the game chimes on new stars too)
     return steps
 end
 
@@ -766,7 +874,7 @@ end
 -- kept in sv.soundMuted until restored, so a crash or /reloadui mid-switch can't leave you muted.
 -- Never muted while waiting out a fight (you'd lose the combat sounds).
 local AUDIO_KEYS = { "AUDIO_SETTING_SFX_VOLUME", "AUDIO_SETTING_UI_VOLUME" }
-local QUIET_START_MS = 200
+local QUIET_START_MS = 150   -- (the click is short; it was cut off when gear started in the click's frame)
 local unmuteAt   -- frame time to restore at (a short tail: the last item sound comes a moment later)
 
 local function Unmute()
@@ -805,10 +913,15 @@ end
 
 Apply.Unmute = Unmute
 
-local Finish
+local Finish, RunOne
 
-local function NextStep(r, delay)
+local function NextStep(r, delay, how)
     local step = r.steps[r.i]
+    -- timing log for /sb steps (time from the previous step's end to this one's)
+    local t = GetGameTimeMilliseconds()
+    r.log[#r.log + 1] = { label = tostring(step and step.label or "?"), ms = t - (r.lastT or r.startT),
+        how = how or (step and step.failed and "  (failed)" or "") }
+    r.lastT = t
     r.i = r.i + 1
     r.nextAt = Now() + (delay or 0)
     -- the window flashes the slot that just changed (step.slot = gear slot, step.cat + step.skillSlot = skill)
@@ -839,16 +952,30 @@ local function Tick()
         return
     end
     r.waiting = false
+    -- steps that finish at once (skills, pieces already on, title...) all run in this same frame
+    for _ = 1, 100 do
+        local before = r.i
+        RunOne(r)
+        if running ~= r or r.i == before or (r.nextAt and Now() < r.nextAt) then break end
+    end
+end
+
+RunOne = function(r)
     local now = Now()
-    if r.nextAt and now < r.nextAt then return end
     local step = r.steps[r.i]
     if not step then
-        Finish(r)
+        Finish(r)   -- (no waiting out the last step's pause)
         return
     end
-    -- quiet switch: muted right before an item step (the first step waits QUIET_START_MS, so your
-    -- click's own sound plays out), back on once no item step is left
-    if step.noisy then
+    if r.nextAt and now < r.nextAt then return end
+    -- quiet switch: muted right before an item step (the first one waits until QUIET_START_MS after
+    -- the start, so your click's own sound plays out), back on once no item step is left
+    if step.noisy and B.sv.quietSwap and not B.sv.soundMuted and now < r.quietAt then
+        r.nextAt = r.quietAt
+        return
+    end
+    -- (a step waiting out a cooldown isn't muted: your sound comes back while it waits)
+    if step.noisy and not step.waitMs then
         if not B.sv.soundMuted then Mute() end
         unmuteAt = nil
     elseif B.sv.soundMuted and not unmuteAt then
@@ -867,8 +994,12 @@ local function Tick()
             NextStep(r, step.delay)
         elseif now > step.deadline then
             step.state = nil
-            step.retried = (step.retried or 0) + 1
-            if step.retried > 1 then FailStep(r, step, L("STEP_FAILED", step.label)) end
+            if step.soft == true then
+                NextStep(r, step.delay, "  (timed out, finished one by one)")   -- (the batch: the one-by-one steps take over)
+            elseif step.soft ~= "again" then
+                step.retried = (step.retried or 0) + 1
+                if step.retried > 1 then FailStep(r, step, L("STEP_FAILED", step.label)) end
+            end
         end
         return
     end
@@ -898,6 +1029,10 @@ end
 
 Finish = function(r)
     running = nil
+    if not r.opts.silent then
+        r.log.name, r.log.total = tostring(r.build.name), GetGameTimeMilliseconds() - r.startT
+        Apply.lastLog = r.log
+    end
     B.EM:UnregisterForUpdate("Skillbound_Apply")
     UnmuteSoon()
     Items.MarkDirty()
@@ -961,15 +1096,42 @@ end
 
 function Apply.RunSteps(build, steps, opts)
     if running then Apply.Cancel() end
-    running = { build = build, steps = steps, i = 1, problems = {}, opts = opts or {} }
-    if B.sv.quietSwap and not B.sv.soundMuted and steps[1] and steps[1].noisy then running.nextAt = Now() + QUIET_START_MS end
+    running = { build = build, steps = steps, i = 1, problems = {}, opts = opts or {},
+        log = {}, startT = GetGameTimeMilliseconds(), quietAt = Now() + QUIET_START_MS }
     B.EM:RegisterForUpdate("Skillbound_Apply", TICK_MS, Tick)
     B.callbacks:FireCallbacks("ApplyProgress")
     Tick()
 end
 
+-- Champion stars that wait for the game's cooldown, after the rest of the build is on. Only the
+-- newest waits: wearing another build cancels it (that build brings its own stars, or none).
+local cpLaterToken = 0
+
+function Apply.CancelCPLater()
+    cpLaterToken = cpLaterToken + 1
+end
+
+function Apply.CPLater(cpStep, secs)
+    cpLaterToken = cpLaterToken + 1
+    local token = cpLaterToken
+    local function Try()
+        if token ~= cpLaterToken then return end
+        -- (another switch running, a fight, or the cooldown not over yet: look again in a second)
+        if running or not Ready() or Apply.CPCooldownLeft() > 0 then
+            B.Later(Try, 1000)
+            return
+        end
+        cpLaterToken = cpLaterToken + 1
+        local step = CPStep({ slots = cpStep.slots, later = true })
+        step.noisy = true   -- (muted: the stars going on later shouldn't chime either)
+        Apply.RunSteps({ name = L("PART_CP") }, { step }, { silent = true })
+    end
+    B.Later(Try, math.floor((secs or Apply.CPCooldownLeft()) * 1000) + 200)
+end
+
 function Apply.Run(plan, opts)
     opts = opts or {}
+    if not opts.silent then Apply.CancelCPLater() end
     local build = plan.build
     local steps = MakeSteps(plan)
     if #steps == 0 then

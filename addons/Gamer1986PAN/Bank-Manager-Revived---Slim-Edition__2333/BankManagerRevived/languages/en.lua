@@ -44,6 +44,23 @@ local lang = {
 	BMR_GUILD_LIST									= "Associated Guild Bank",
 	BMR_GUILD_LIST_TOOLTIP						= "Name of the Guild Bank linked to the rules defined under. BMR will push items into this guild bank if conditions meet your personnal choices",
 	
+	BMR_GLOBAL_ADDON_PROFILE						= "Global Addon Profile (auto reload when selected)",
+	BMR_GLOBAL_ADDON_PROFILE_TOOLTIP				= "Select the global BMR addon profile. The UI will reload after changing it. Default: <<1>>",
+	BMR_PROFILE_COUNT							= "Number of profiles",
+	BMR_PROFILE_COUNT_TOOLTIP					= "Controls how many BMR profiles are available. Profiles above this number are kept but hidden until the value is increased again.",
+
+	-- ScriptTracker
+	BMR_SCRIPTTRACKER							= "ScriptTracker / Scriptures",
+	BMR_SCRIPTTRACKER_DESC						= "Automatically deposit scripts already known by the current character and withdraw scripts the character does not know yet. BMR performs the actual item transfers.",
+	BMR_SCRIPTTRACKER_ENABLE						= "Enable automatic script management",
+	BMR_SCRIPTTRACKER_ENABLE_TOOLTIP				= "Uses ScriptTracker's current-character knowledge when the bank is opened.",
+	BMR_SCRIPTTRACKER_DEPOSIT_KNOWN				= "Deposit known scripts",
+	BMR_SCRIPTTRACKER_WITHDRAW_UNKNOWN			= "Withdraw unknown scripts",
+	BMR_SCRIPTTRACKER_ONE_ONLY					= "Withdraw only one copy per unknown script",
+	BMR_SCRIPTTRACKER_ONE_ONLY_TOOLTIP			= "If enabled, BMR takes at most one copy of each unknown script from the bank. A script already in the inventory is never withdrawn again.",
+	BMR_SCRIPTTRACKER_DEBUG						= "Enable ScriptTracker debug output",
+	BMR_SCRIPTTRACKER_DEBUG_TOOLTIP				= "Writes detailed ScriptTracker/BMR transfer diagnostics to the chat. Disabled by default.",
+
 	-- Profiles
 	BMR_PROFILES									= "Profiles",
 	BMR_PROFILE_LIST								= "Profile actually selected",

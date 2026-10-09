@@ -61,8 +61,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Tbudko's icons for Makos's ContentHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tbudko/Tbudko-s-icons-for-Makos-s-ContentHelper__4140) | Tbudko | PC / Mac | 1.1.0 |
 | [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Tea and Toast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tea-and-Toast__8394c641-1cb2-45f3-8b73-b6f424d6c630) | SugaComa | Console | — |
-| [TeamShadowBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowBuff__4673) | teamfky | PC / Mac | 1.1.9 |
-| [TeamShadowsManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowsManager__4670) | teamfky | PC / Mac | 1.1.18 |
+| [TeamShadowBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowBuff__4673) | teamfky | PC / Mac | 1.1.10 |
+| [TeamShadowsManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowsManager__4670) | teamfky | PC / Mac | 1.1.20 |
 | [TeilzeitLegende's Restock Style Materials and Auto Repair (Fixed)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jakki/TeilzeitLegende-s-Restock-Style-Materials-and-Auto-Repair-Fixed__3125) | Jakki | PC / Mac | 0.8.6.1 |
 | [Tel Var Counter (TelVar Logger)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mladen90/Tel-Var-Counter-TelVar-Logger__2737) | Mladen90 | PC / Mac | 1.1.0 |
 | [Tel Var Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/EHansonn/Tel-Var-Saver__3664) | EHansonn | PC / Mac | 1.9 |

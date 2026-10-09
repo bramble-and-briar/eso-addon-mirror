@@ -7,11 +7,16 @@ local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
 local isLoaded = false
 local isMenuOpen = false
 local buffRunning = false
+local setId = 781
+local setCount = 5 --5,2,3,1
+local isEquiped = false
+local callBackName = "callbackAeries"
 
 aeriesCryTracker = {}
 
 aeriesCryTracker.defaults = {
     trackAeries = true,
+    autoTrack = true,
     trackEagles = true,
     notify = false,
 	notifyStart = true,
@@ -23,10 +28,10 @@ aeriesCryTracker.defaults = {
 
 --check if libNotify is available
 local function isLibAvailable()
-    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" and type(LibNotify.getSet) == "function" then
         return true
     else 
-        return false
+		return false
     end
 end
 
@@ -137,7 +142,7 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
     end
 
     --display name
-    if aeriesCryTracker.savedVariables.trackEagles then
+    if aeriesCryTracker.savedVariables.trackEagles and aeriesCryTracker.savedVariables.trackAeries then
         if targetType == 3 then
             emtrackIcon:SetText(zo_strformat("<<1>>", cleanName(targetName)))
         else
@@ -174,12 +179,18 @@ local function onMenuOpened()
 end
 
 --when UI closes
+--replace this function
 local function onMenuClosed()
 	isMenuOpen = false
-    if aeriesCryTracker.savedVariables.trackAeries then
+    if aeriesCryTracker.savedVariables.trackAeries and isEquiped and aeriesCryTracker.savedVariables.autoTrack then
+        actrack:SetHidden(false)
+    elseif aeriesCryTracker.savedVariables.trackAeries and not aeriesCryTracker.savedVariables.autoTrack then
         actrack:SetHidden(false)
     end
-    if aeriesCryTracker.savedVariables.trackEagles then
+
+    if aeriesCryTracker.savedVariables.trackEagles and aeriesCryTracker.savedVariables.trackAeries and isEquiped and aeriesCryTracker.savedVariables.autoTrack then
+        emtrack:SetHidden(false)
+    elseif aeriesCryTracker.savedVariables.trackEagles and aeriesCryTracker.savedVariables.trackAeries and not aeriesCryTracker.savedVariables.autoTrack then
         emtrack:SetHidden(false)
     end
 end
@@ -209,6 +220,57 @@ end
 local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("aeriesProc", EVENT_EFFECT_CHANGED)
     EVENT_MANAGER:UnregisterForEvent("eaglesProc", EVENT_COMBAT_EVENT)
+end
+
+--query lib to check if set is equipped
+local function isSetEquiped(id, count)
+	if isLibAvailable() then
+		if LibNotify.getSet(appName, id, count) then
+			isEquiped = true
+			return true
+		else
+			isEquiped = false
+			return false
+		end
+    end
+end
+
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    if aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.autoTrack then
+        printMessage("Aerie's Cry set not found")
+        unRegisterAlerts()
+        actrack:SetHidden(true)
+        emtrack:SetHidden(true)
+    end
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+    if aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.autoTrack then
+        printMessage("Found Aerie's Cry set")
+        registerAlerts()
+        actrack:SetHidden(false)
+        emtrack:SetHidden(false)
+    end
+end
+
+--handle equipment change callbacks
+local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+
+    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
+        zo_callLater(function ()
+	if isSetEquiped(setId, setCount) and aeriesCryTracker.savedVariables.autoTrack and aeriesCryTracker.savedVariables.trackArch then startTrackingAuto() else stopTrackingAuto() end
+	end, 1000)
+    end
+
+end
+
+--request callbacks when gear items are equipped or unequipped
+local function enableCallbacksGear()
+    EVENT_MANAGER:RegisterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onEquipmentChanged)
+    EVENT_MANAGER:AddFilterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
 end
 
 --setup options menu
@@ -256,6 +318,18 @@ local function createOptions()
             default = aeriesCryTracker.defaults.trackAeries,
         },
         {
+            type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you are wearing all the pieces of the correct set and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return aeriesCryTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                aeriesCryTracker.savedVariables.autoTrack = value
+            end,
+            default = aeriesCryTracker.defaults.autoTrack,
+        },
+        {
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
@@ -286,7 +360,7 @@ local function createOptions()
         {
             type = "checkbox",
             name = "Track Eagle's Mark",
-            tooltip = "Displays text with the name of the target that has Eagle's Mark applied to them.",
+            tooltip = "Displays text with the name of the target that has Eagle's Mark applied to them.\nIn order to track the Eagle's Mark tracking for Aerie's Call must be enabled.",
             getFunc = function()
                 return aeriesCryTracker.savedVariables.trackEagles
             end,
@@ -369,22 +443,36 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-	--notify about new library
-	if not isLibAvailable() then
-		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
-		return
-	else
-		--notify that add-on has been loaded
-		zo_callLater(function() printMessage("add-on loaded") end, 500)
-	end
-
-	--load saved variables
+    --load saved variables
     aeriesCryTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("aeriesAddonVars", 1, "Settings", aeriesCryTracker.defaults, GetUnitName("player"))
 
-	--notify if tracking is disabled
-	if not aeriesCryTracker.savedVariables.trackAeries then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
+    --setup add on menu options
+    createOptions()
+        
+    --register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
+
+	--notify about new library
+	if not isLibAvailable() then
+		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 400)
+		return
+	elseif isLibAvailable() and aeriesCryTracker.savedVariables.trackAeries then
+		--notify that add-on has been loaded
+	    zo_callLater(function() printMessage("add-on loaded") end, 400)
 	end
+
+    --check if set is equipped
+    if not isSetEquiped(setId, setCount) and aeriesCryTracker.savedVariables.autoTrack and aeriesCryTracker.savedVariables.trackAeries then
+        --notify set not found
+        zo_callLater(function() printMessage("Aerie's Cry set not found") end, 600)
+    elseif isSetEquiped(setId, setCount) and aeriesCryTracker.savedVariables.autoTrack and aeriesCryTracker.savedVariables.trackAeries then
+        isEquiped = true
+        --notify set found
+        zo_callLater(function() printMessage("Found Aerie's Cry set") end, 600)
+    end
+
+    --double check if set is equipped without autotracking stipulation
+    if isSetEquiped(setId, setCount) then isEquiped = true end
 
     --setup text field areas
     actrack:SetMovable(true)
@@ -403,26 +491,31 @@ local function onAddOnLoaded(event, name)
 
     setAnchorStartupIconEagles(aeriesCryTracker.savedVariables.xAxisTextEagles, aeriesCryTracker.savedVariables.yAxisTextEagles)
 
-    --register for combat alerts if tracking is enabled for aeries call
-    if aeriesCryTracker.savedVariables.trackAeries then
+    --register for combat alerts if tracking is enabled
+    if aeriesCryTracker.savedVariables.trackAeries and not aeriesCryTracker.savedVariables.autoTrack then
         registerAlerts()
         actrack:SetHidden(false)
-    else
+    elseif aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.autoTrack and isEquiped then
+        registerAlerts()
+        actrack:SetHidden(false)
+    elseif aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.autoTrack and not isEquiped then
+        actrack:SetHidden(true)
+    elseif not aeriesCryTracker.savedVariables.trackAeries then
         actrack:SetHidden(true)
     end
 
-    --register for combat alerts if tracking is enabled for eagles mark
-    if aeriesCryTracker.savedVariables.trackEagles then
+    if aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.trackEagles and not aeriesCryTracker.savedVariables.autoTrack then
         emtrack:SetHidden(false)
-    else
+    elseif aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.trackEagles and aeriesCryTracker.savedVariables.autoTrack and isEquiped then
+        emtrack:SetHidden(false)
+    elseif aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.trackEagles and aeriesCryTracker.savedVariables.autoTrack and not isEquiped then
+        emtrack:SetHidden(true)
+    elseif not aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.trackEagles then
         emtrack:SetHidden(true)
     end
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-
-    --setup add on menu options
-    createOptions()
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

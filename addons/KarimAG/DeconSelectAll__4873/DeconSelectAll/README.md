@@ -1,9 +1,5 @@
 # Decon Select All
 
-> **AI disclosure:** the code was generated with an AI assistant (Anthropic Claude) under the author's direction, working from the official ESO UI source ([esoui](https://github.com/esoui/esoui)), and tested in-game by the author. Not every line has been audited by a human — bug reports welcome.
->
-> **Credits:** the "select all" concept and several safety rules exist in earlier add-ons whose ESOUI pages (not code) were reviewed while designing this one: [DeconstructAll](https://www.esoui.com/downloads/info3667-DeconstructAllgamepad.html) (awfuldead), [Deconstruction Assistant](https://www.esoui.com/downloads/info1718-DeconstructionAssistant.html) (CodeStripper), [IsJusta Decon Carried Items List](https://www.esoui.com/downloads/info2749-IsJustaDeconCarriedItemsList.html) (IsJustaGhost), [Lazy Deconstructor](https://www.esoui.com/downloads/info3449-LazyDeconstructor.html) (StorybookTerror), [Mass Deconstructor](https://www.esoui.com/downloads/info1118-MassDeconstructor.html) (ahmetertem, sinnereso), [DoItAll](https://www.esoui.com/downloads/info690-DoItAll.html) (Thenedus, Baertram). FCO ItemSaver protection is honoured through the public API of [FCO ItemSaver](https://www.esoui.com/downloads/info630-FCOItemSaver.html) (Baertram). No code was taken from any of them.
-
 ESO add-on (keyboard UI) that adds a **"Select all"** button to the deconstruction panels, so you no longer slot items one by one:
 
 * Blacksmithing / Clothing / Woodworking / Jewelry stations – **Deconstruction** and **Refinement** tabs
@@ -27,6 +23,7 @@ Everything currently listed in the panel's inventory list — so the game's own 
 | Ornate items (worth more sold) | skipped | `/dsa ornate` |
 | Items used by an Armory build | skipped | `/dsa armory` |
 | Quality above… | purple (gold skipped) | `/dsa quality 1-5` |
+| Traits you ticked in the "Traits to skip" list (Armor / Weapons / Jewelry) | none | settings panel, or `/dsa traits` + `/dsa trait <name>` |
 | Chat summary after each selection | on | `/dsa quiet` |
 
 If **LibAddonMenu-2.0** is installed, the same options are available in *Settings > Add-Ons > Decon Select All* (`/dsaoptions`). It is optional.
@@ -62,6 +59,16 @@ DeconSelectAll/
 └── README.md
 ```
 
+## Releasing (maintainer notes)
+
+Releases are pushed to ESOUI by the GitHub Action in `.github/workflows/release.yml` (uses [esoui-upload](https://github.com/m00nyONE/esoui-upload)).
+
+1. In one commit, bump `## Version` and `## AddOnVersion` in `DeconSelectAll.txt`, `DSA.version` in `DeconSelectAll.lua`, and add a `## X.Y.Z - date` section at the top of `CHANGELOG.md`. Keep `README_ESOUI.txt` (the ESOUI description) up to date — it replaces the page text on every release.
+2. Push, then *Actions → Release to ESOUI → Run workflow* (or push a tag `vX.Y.Z`). The action verifies the versions match, builds the zip, uploads it to ESOUI with the description and changelog, and creates a GitHub release with the zip attached.
+3. After a major game patch, update `GAME_VERSION` in the workflow and `## APIVersion` in the manifest.
+
+Requires the repository secret `ESOUI_API_KEY` (token from your ESOUI account settings).
+
 ## Licence
 
 MIT (see `LICENSE`). Not affiliated with ZeniMax Online Studios.
@@ -71,3 +78,9 @@ MIT (see `LICENSE`). Not affiliated with ZeniMax Online Studios.
 * Source: https://github.com/Karimag1/DeconSelectAll
 * Download / updates: ESOUI (search "Decon Select All") or Minion
 * Bug reports: open an issue on GitHub or comment on the ESOUI page
+
+## AI disclosure and credits
+
+**AI disclosure:** the code was generated with an AI assistant (Anthropic Claude) under the author's direction, working from the official ESO UI source ([esoui](https://github.com/esoui/esoui)), and tested in-game by the author. Not every line has been audited by a human — bug reports welcome.
+
+**Credits:** the "select all" concept and several safety rules exist in earlier add-ons whose ESOUI pages (not code) were reviewed while designing this one: [DeconstructAll](https://www.esoui.com/downloads/info3667-DeconstructAllgamepad.html) (awfuldead), [Deconstruction Assistant](https://www.esoui.com/downloads/info1718-DeconstructionAssistant.html) (CodeStripper), [IsJusta Decon Carried Items List](https://www.esoui.com/downloads/info2749-IsJustaDeconCarriedItemsList.html) (IsJustaGhost), [Lazy Deconstructor](https://www.esoui.com/downloads/info3449-LazyDeconstructor.html) (StorybookTerror), [Mass Deconstructor](https://www.esoui.com/downloads/info1118-MassDeconstructor.html) (ahmetertem, sinnereso), [DoItAll](https://www.esoui.com/downloads/info690-DoItAll.html) (Thenedus, Baertram). FCO ItemSaver protection is honoured through the public API of [FCO ItemSaver](https://www.esoui.com/downloads/info630-FCOItemSaver.html) (Baertram). No code was taken from any of them.

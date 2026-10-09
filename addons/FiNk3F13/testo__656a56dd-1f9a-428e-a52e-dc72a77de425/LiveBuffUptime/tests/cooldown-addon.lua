@@ -5,9 +5,16 @@ ACTION_RESULT_EFFECT_GAINED, ACTION_RESULT_DAMAGE, ACTION_RESULT_EFFECT_FADED = 
 function DoesUnitExist(tag) return tag == "player" or tag == "reticleover" end
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
+local function damage()
+    env.events.LiveBuffUptimeCombatTiming(nil, ACTION_RESULT_DAMAGE, false, nil, nil, nil,
+        "Caster", COMBAT_UNIT_TYPE_PLAYER, "Enemy", 4, 100)
+end
+local tick = env.events.tick
+env.events.tick = function() damage(); tick() end
 env.setClock(30)
 env.setCombat(true)
 env.events[EVENT_PLAYER_COMBAT_STATE](nil, true)
+damage()
 env.setBuffs("reticleover", { { 176815, 30, 37 } })
 env.setting("Effekt-ID").setFunction("106754")
 env.setting("Einheit").setFunction(nil, nil, { data = "reticleover" })
@@ -27,6 +34,7 @@ env.setClock(40)
 env.events[EVENT_PLAYER_COMBAT_STATE](nil, false)
 env.events[EVENT_PLAYER_COMBAT_STATE](nil, true)
 env.setBuffs("reticleover", { { 176815, 40, 47 } })
+damage()
 proc(COMBAT_UNIT_TYPE_PLAYER)
 env.setClock(42)
 proc(COMBAT_UNIT_TYPE_PLAYER)
@@ -79,6 +87,7 @@ end
 env.events[EVENT_COMBAT_EVENT](nil, ACTION_RESULT_EFFECT_GAINED, false, nil, nil, nil,
     "Healer", COMBAT_UNIT_TYPE_GROUP, "Other", COMBAT_UNIT_TYPE_GROUP, nil, nil, nil, nil, nil, nil, 135923)
 local groupWindow = env.controls.LiveBuffUptimeTracker2
+damage()
 env.setClock(72)
 env.setBuffs("group2", {})
 env.events.tick()

@@ -95,20 +95,23 @@ D.ARENAS = {
 
 -- ---------------------------------------------------------------------------
 -- XP grind spots. group: "solo", "any" (solo or group) or "duo" (2+ players).
+-- near: the closest wayshrine's name (start of it is enough); "Travel there" uses it
+-- when you know it. Without it the spot is looked up on the zone map, which fails
+-- until you've discovered the spot.
 -- ---------------------------------------------------------------------------
 D.GRIND_SPOTS = {
     {
-        name = "Blackrose Prison", zone = "Murkmire", group = "duo", dlc = "Murkmire", rank = 1,
+        name = "Blackrose Prison", zone = "Murkmire", near = "Blackrose Prison", group = "duo", dlc = "Murkmire", rank = 1,
         enemies = "Arena waves",
         how = "Clear the first four arena rounds, then leave and reset the instance. The fastest XP in the game, but needs at least 2 players.",
     },
     {
-        name = "Skyreach Catacombs", zone = "Craglorn", group = "duo", rank = 2,
+        name = "Skyreach Catacombs", zone = "Craglorn", near = "Skyreach", group = "duo", rank = 2,
         enemies = "Undead and cultists",
         how = "Instanced loop: run the circular route, then reset the instance after a full clear. Best with 2+ players.",
     },
     {
-        name = "Vile Manse", zone = "Reaper's March", group = "any", rank = 3,
+        name = "Vile Manse", zone = "Reaper's March", near = "Fort Grimwatch", group = "any", rank = 3,
         enemies = "Humans",
         how = "Two floors with a circular route on each. Humans drop gold and loot, so it doubles as a gold farm.",
     },
@@ -118,7 +121,7 @@ D.GRIND_SPOTS = {
         how = "Circular route through the public dungeon; bosses along the way add loot.",
     },
     {
-        name = "Spellscar", zone = "Craglorn", group = "solo", rank = 5,
+        name = "Spellscar", zone = "Craglorn", near = "Spellscar", group = "solo", rank = 5,
         enemies = "Mixed packs",
         how = "Large open area with many enemy groups. Pull big packs and AoE them down. Can be crowded.",
     },
@@ -128,17 +131,17 @@ D.GRIND_SPOTS = {
         how = "Circular route through the public dungeon.",
     },
     {
-        name = "Leftwheal Trading Post", zone = "West Weald", group = "any", dlc = "Gold Road", rank = 7,
+        name = "Leftwheal Trading Post", zone = "West Weald", near = "Centurion's Watch", group = "any", dlc = "Gold Road", rank = 7,
         enemies = "Humanoids",
         how = "Large circular route with plenty of humanoid packs.",
     },
     {
-        name = "Sentinel Docks", zone = "Alik'r Desert", group = "solo", rank = 8,
+        name = "Sentinel Docks", zone = "Alik'r Desert", near = "Sentinel", group = "solo", rank = 8,
         enemies = "Zombies",
         how = "North of Sentinel. Zombies respawn very fast; they also drop fleshfly larva (bait).",
     },
     {
-        name = "Verrant Morass", zone = "Greenshade", group = "solo", rank = 9,
+        name = "Verrant Morass", zone = "Greenshade", near = "Verrant Morass", group = "solo", rank = 9,
         enemies = "Feral Bosmer",
         how = "Open area with weak enemies you can pull together.",
     },

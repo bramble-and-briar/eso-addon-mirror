@@ -11,11 +11,16 @@ local isLoaded = false
 local isMenuOpen = false
 local trackingWretchedMajor = false
 local trackingWretchedMinor = false
+local setId = 610 
+local setCount = 5 --5,2,3,1
+local isEquiped = false
+local callBackName = "callbackWretch"
 
 wretchedVitalityTracker = {}
 
 wretchedVitalityTracker.defaults = {
     trackWretch = true,
+    autoTrack = true,
 	notify = true,
 	notifyStart = false,
     yAxisText = 720,
@@ -35,7 +40,7 @@ end
 
 --check if LibNotify is available
 local function isLibAvailable()
-    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" and type(LibNotify.getSet) == "function" then
         return true
     else 
 		return false
@@ -51,7 +56,9 @@ end
 --when UI closes
 local function onMenuClosed()
 	isMenuOpen = false
-    if wretchedVitalityTracker.savedVariables.trackWretch then
+    if wretchedVitalityTracker.savedVariables.trackWretch and isEquiped and wretchedVitalityTracker.savedVariables.autoTrack then
+        wvtrack:SetHidden(false)
+    elseif wretchedVitalityTracker.savedVariables.trackWretch and not wretchedVitalityTracker.savedVariables.autoTrack then
         wvtrack:SetHidden(false)
     end
 end
@@ -221,6 +228,54 @@ local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("wvProcMinor", EVENT_EFFECT_CHANGED)
 end
 
+--query lib to check if set is equipped
+local function isSetEquiped(id, count)
+	if isLibAvailable() then
+		if LibNotify.getSet(appName, id, count) then
+			isEquiped = true
+			return true
+		else
+			isEquiped = false
+			return false
+		end
+    end
+end
+
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    if wretchedVitalityTracker.savedVariables.trackWretch and wretchedVitalityTracker.savedVariables.autoTrack then
+        printMessage("Wretched Vitality set not found")
+        unRegisterAlerts()
+        wvtrack:SetHidden(true)
+    end
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+    if wretchedVitalityTracker.savedVariables.trackWretch and wretchedVitalityTracker.savedVariables.autoTrack then
+        printMessage("Found Wretched Vitality set")
+        registerAlerts()
+    end
+end
+
+--handle equipment change callbacks
+local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+
+    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
+        zo_callLater(function ()
+	if isSetEquiped(setId, setCount) and wretchedVitalityTracker.savedVariables.autoTrack and wretchedVitalityTracker.savedVariables.trackWretch then startTrackingAuto() else stopTrackingAuto() end
+	end, 1000)
+    end
+
+end
+
+--request callbacks when gear items are equipped or unequipped
+local function enableCallbacksGear()
+    EVENT_MANAGER:RegisterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onEquipmentChanged)
+    EVENT_MANAGER:AddFilterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+end
+
 --setup options menu
 local function createOptions()
 
@@ -263,6 +318,18 @@ local function createOptions()
                 end
             end,
             default = wretchedVitalityTracker.defaults.trackWretch,
+        },
+        {
+            type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you are wearing all the pieces of the correct set and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return wretchedVitalityTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                wretchedVitalityTracker.savedVariables.autoTrack = value
+            end,
+            default = wretchedVitalityTracker.defaults.autoTrack,
         },
         {
             type = "slider",
@@ -338,22 +405,36 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-	--notify about new library
-	if not isLibAvailable() then
-		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
-		return
-	else
-		--notify that add-on has been loaded
-		zo_callLater(function() printMessage("add-on loaded") end, 500)
-	end
-
-	--load saved variables
+    --load saved variables
     wretchedVitalityTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("wvAddonVars", 1, "Settings", wretchedVitalityTracker.defaults, GetUnitName("player"))
 
-	--notify if tracking is disabled
-	if not wretchedVitalityTracker.savedVariables.trackWretch then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
+    --setup add on menu options
+    createOptions()
+
+	--register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
+
+	--notify about new library
+	if not isLibAvailable() then
+		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 400)
+		return
+	elseif isLibAvailable() and wretchedVitalityTracker.savedVariables.trackWretch then
+		--notify that add-on has been loaded
+	    zo_callLater(function() printMessage("add-on loaded") end, 400)
 	end
+
+    --check if set is equipped
+    if not isSetEquiped(setId, setCount) and wretchedVitalityTracker.savedVariables.autoTrack and wretchedVitalityTracker.savedVariables.trackWretch then
+        --notify set not found
+        zo_callLater(function() printMessage("Wretched Vitality set not found") end, 600)
+    elseif isSetEquiped(setId, setCount) and wretchedVitalityTracker.savedVariables.autoTrack and wretchedVitalityTracker.savedVariables.trackWretch then
+        isEquiped = true
+        --notify set found
+        zo_callLater(function() printMessage("Found Wretched Vitality set") end, 600)
+    end
+
+    --double check if set is equipped without autotracking stipulation
+    if isSetEquiped(setId, setCount) then isEquiped = true end
 
     --setup text field areas
     wvtrack:SetMovable(true)
@@ -371,18 +452,20 @@ local function onAddOnLoaded(event, name)
     setAnchorStartupIcon(wretchedVitalityTracker.savedVariables.xAxisText, wretchedVitalityTracker.savedVariables.yAxisText)
 
     --register for combat alerts if tracking is enabled
-    if wretchedVitalityTracker.savedVariables.trackWretch then
+    if wretchedVitalityTracker.savedVariables.trackWretch and not wretchedVitalityTracker.savedVariables.autoTrack then
         registerAlerts()
         wvtrack:SetHidden(false)
-    else
+    elseif wretchedVitalityTracker.savedVariables.trackWretch and wretchedVitalityTracker.savedVariables.autoTrack and isEquiped then
+        registerAlerts()
+        wvtrack:SetHidden(false)
+    elseif wretchedVitalityTracker.savedVariables.trackWretch and wretchedVitalityTracker.savedVariables.autoTrack and not isEquiped then
+        wvtrack:SetHidden(true)
+    elseif not wretchedVitalityTracker.savedVariables.trackWretch then
         wvtrack:SetHidden(true)
     end
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-
-    --setup add on menu options
-    createOptions()
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

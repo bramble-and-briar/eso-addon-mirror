@@ -1,3 +1,7 @@
+1.0.8 — Camera direction on the map / Направление камеры на карте
+EN: The player arrow on the minimap and map overlay now follows the camera direction, including turns while standing still. Applies to every style; map position and other group members’ headings are unchanged.
+RU: Стрелка игрока на миникарте и оверлее теперь показывает направление камеры, включая поворот на месте. Работает во всех стилях; положение карты и направления остальных участников группы не меняются.
+
 1.0.7 — Diablo action bar / Панель навыков Diablo
 EN: Fixed quickslot drift after native button anchoring/style refreshes in Diablo. Enlarged the potion/quickslot and ultimate icons from 36 to 48 pixels and moved them closer to the five skill slots, with symmetric spacing and aligned centers.
 RU: Исправлено смещение зелья/быстрого доступа после штатного обновления положения и оформления кнопки в Diablo. Значки зелья и ультимативной способности увеличены с 36 до 48 пикселей и пододвинуты к пяти навыкам, с симметричными отступами и центрами на одной линии.

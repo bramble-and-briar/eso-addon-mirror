@@ -60,7 +60,7 @@ function TFCM.CreateSettingsMenu()
         type = "panel",
         name = "True Flag Capture Mover",
         displayName = "|c00FF00True Flag Capture Mover|r",
-        author = "Toudidef",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = "1.0.0",
         registerForRefresh = true,
     }

@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/g0thicicecream/Character-Homes__4654",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "g0thicicecream",
   "canonical_id": "esoui:4654",
   "category_id": "160",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -69,7 +74,7 @@
     "CharacterHomes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4654/",
-  "fingerprint": "d626eb9c76751e9f91f2c8ce3033ed483aab664583d81524cb94afb627c3f7a5",
+  "fingerprint": "378e16f32d0c1777d08006fe124b49cc61a1750492a5ebf60119b7522551bac4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16426.png",
     "https://cdn-eso.mmoui.com/preview/pvw16425.png"
@@ -80,11 +85,11 @@
   "source_id": "4654",
   "source_url": "https://www.esoui.com/downloads/info4654-CharacterHomes.html",
   "stats": {
-    "downloads": 136,
+    "downloads": 249,
     "favorites": 2,
-    "monthly_downloads": 72
+    "monthly_downloads": 75
   },
   "title": "Character Homes",
-  "updated_at": 1784471914000,
-  "version": "1.3.0"
+  "updated_at": 1791556172000,
+  "version": "1.3.1"
 }

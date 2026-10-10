@@ -18,7 +18,7 @@
     "DKCorrosiveAlert"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4444/",
-  "fingerprint": "4fe37fb4ec3d4d31812e20cd9ea003d223b9e0a35d38d98d149719e82dabfab1",
+  "fingerprint": "d6bb4d41d3a6375377b19433204426dee04d29e6d22a87d18b5e902640b0a2cd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15470.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4444",
   "source_url": "https://www.esoui.com/downloads/info4444-DKcorrosiveAlert.html",
   "stats": {
-    "downloads": 5465,
+    "downloads": 6204,
     "favorites": 3,
-    "monthly_downloads": 1665
+    "monthly_downloads": 2300
   },
   "title": "DKcorrosiveAlert",
-  "updated_at": 1790869886000,
-  "version": "1.07"
+  "updated_at": 1791562346000,
+  "version": "1.09"
 }

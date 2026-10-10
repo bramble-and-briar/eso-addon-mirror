@@ -56,4 +56,18 @@ function A:InitSettings()
             buttonText = S.loadButton,
             clickHandler = function() self:PressLoad(index) end})
     end
+
+    -- This add-on's own options. Not part of any set.
+    panel:AddSetting({type = L.ST_SECTION or L.ST_LABEL, label = S.optionsHeader})
+    panel:AddSetting({type = L.ST_CHECKBOX, label = S.combatHide, tooltip = S.combatHideTooltip,
+        default = self.defaults.combat.enabled,
+        getFunction = function() return self.sv.combat.enabled end,
+        setFunction = function(value) self:SetCombatOption("enabled", value) end})
+    for _, target in ipairs(self.combatTargets) do
+        local key = target.key
+        panel:AddSetting({type = L.ST_CHECKBOX, label = S["combat_" .. key], tooltip = S["combatTip_" .. key],
+            default = self.defaults.combat[key],
+            getFunction = function() return self.sv.combat[key] end,
+            setFunction = function(value) self:SetCombatOption(key, value) end})
+    end
 end

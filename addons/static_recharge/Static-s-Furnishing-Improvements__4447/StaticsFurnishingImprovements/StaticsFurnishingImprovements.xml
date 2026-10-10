@@ -194,7 +194,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)ServicesBg" centerColor="88CCEE" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="88CCEE" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -210,7 +210,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)ConservatoryBg" centerColor="44AA99" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="44AA99" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -226,7 +226,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)CourtyardBg" centerColor="AAFFC3" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="AAFFC3" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -242,7 +242,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)DiningBg" centerColor="888822" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="888822" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -258,7 +258,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)GalleryBg" centerColor="FFFAC8" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="FFFAC8" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -274,7 +274,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)HearthBg" centerColor="E69F00" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="E69F00" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -290,7 +290,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)LibraryBg" centerColor="FABED4" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="FABED4" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -306,7 +306,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)LightingBg" centerColor="CC79A7" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="CC79A7" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -322,7 +322,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)ParlorBg" centerColor="DCBEFF" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="DCBEFF" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -338,7 +338,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)StructuresBg" centerColor="957DAD" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="957DAD" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -354,7 +354,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)SuiteBg" centerColor="D6D2C4" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="D6D2C4" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -370,7 +370,7 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)UndercroftBg" centerColor="A9A9A9" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="A9A9A9" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -386,7 +386,23 @@
               </OnMouseExit>
               <Controls>
 
-                <Backdrop name="$(parent)WorkshopBg" centerColor="555555" inherits="SFIStorageSpaceBackdrop" />
+                <Backdrop name="$(parent)Bg" centerColor="555555" inherits="SFIStorageSpaceBackdrop" />
+
+              </Controls>
+            </Control>
+
+            <Control name="$(parent)Miscellaneous" inherits="SFIStorageSpaceContainer">
+              <Dimensions x="28" />
+              <Anchor point="LEFT" relativeTo="$(parent)Workshop" relativePoint="RIGHT" />
+              <OnMouseEnter>
+                ZO_Tooltips_ShowTextTooltip(self, TOP, "Miscellaneous")
+              </OnMouseEnter>
+              <OnMouseExit>
+                ZO_Tooltips_HideTextTooltip()
+              </OnMouseExit>
+              <Controls>
+
+                <Backdrop name="$(parent)Bg" centerColor="FFDB4D" inherits="SFIStorageSpaceBackdrop" />
 
               </Controls>
             </Control>
@@ -590,6 +606,21 @@
                 </Backdrop>
 
                 <Label name="$(parent)Category" text="Workshop" inherits="SFIStorageLegendCategory" />
+
+                <Label name="$(parent)Info" text="X (XXX%)" inherits="SFIStorageLegendInfo" />
+
+              </Controls>
+            </Control>
+
+            <Control name="$(parent)Miscellaneous" inherits="SFIStorageLegendContainer">
+              <Anchor point="TOPLEFT" relativeTo="$(parent)Undercroft" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0" />
+              <Controls>
+
+                <Backdrop name="$(parent)Swatch" centerColor="FFDB4D" inherits="SFIStorageLegendSwatch">
+                  <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                </Backdrop>
+
+                <Label name="$(parent)Category" text="Miscellaneous" inherits="SFIStorageLegendCategory" />
 
                 <Label name="$(parent)Info" text="X (XXX%)" inherits="SFIStorageLegendInfo" />
 

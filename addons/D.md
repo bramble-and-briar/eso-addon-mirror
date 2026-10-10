@@ -28,7 +28,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dark Mode](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Dark-Mode__148076b2-9d29-46c7-aff5-da6dad6bc20d) | Rogue0rbit | Console | — |
 | [Dark Mode ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rogue0rbit/Dark-Mode-ESO__34dd2c26-eade-48fc-a1d0-4838faaeae0e) | Rogue0rbit | Console | — |
 | [Darker Tamriel Tomes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Darker-Tamriel-Tomes__4523) | Masteroshi430 | PC / Mac | 2026.07.17 |
-| [Darker Tamriel Tomes for PerfectPixel (DarkTamrielTomesUI)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/Darker-Tamriel-Tomes-for-PerfectPixel-DarkTamrielTomesUI__4713) | Trobo | PC / Mac | 20260718 |
+| [Darker Tamriel Tomes for PerfectPixel (DarkTamrielTomesUI) & Total Points](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/Darker-Tamriel-Tomes-for-PerfectPixel-DarkTamrielTomesUI-Total-Points__4713) | Trobo | PC / Mac | 20261009 |
 | [DarkScrollsUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beholder/DarkScrollsUI__4532) | Beholder | PC / Mac | 0.1.3 |
 | [DarkUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/DarkUI__1576) | Sharlikran | PC / Mac | 2.76 |
 | [Darwin Award](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tombaa/Darwin-Award__3565) | tombaa | PC / Mac | 0.1 |
@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Divergent Tales](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ericstoesser/Divergent-Tales__4415) | ericstoesser | PC / Mac | 2.0.0 |
 | [Dizzy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PurpleFinch/Dizzy__4021) | PurpleFinch | PC / Mac | 1.23 |
 | [DK MASTERY TRACKER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/DK-MASTERY-TRACKER__4857) | its_wifey | PC / Mac | 1.0.4 |
-| [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.07 |
+| [DKcorrosiveAlert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lebiez/DKcorrosiveAlert__4444) | lebiez | PC / Mac | 1.09 |
 | [DLC Notice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrilledSpamSteaks/DLC-Notice__3603) | GrilledSpamSteaks | PC / Mac | 1.6 |
 | [DLC Yes No](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Takadol/DLC-Yes-No__4451) | Takadol | PC / Mac | 2.4 |
 | [DLJ's EXP Scroll Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/darkladyjupiter/DLJ-s-EXP-Scroll-Reminder__ee8ca2af-a359-45b8-98c7-8cb4edcd19d2) | darkladyjupiter | Console | — |

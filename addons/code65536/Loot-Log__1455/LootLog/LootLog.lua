@@ -39,6 +39,7 @@ LootLog = {
 
 		antiquityEnabled = true,
 		antiquityOnlyMotifs = false,
+		antiquityIgnorePartial = false,
 		antiquityFlagTradeable = true,
 		antiquityMapColors = {
 			fullCodex = 0x00FF66,
@@ -904,6 +905,14 @@ function LootLog.RegisterSettingsPanel( )
 				name = SI_LOOTLOG_SETTING_ONLYMOTIF,
 				getFunc = function() return LootLog.vars.antiquityOnlyMotifs end,
 				setFunc = function(enabled) LootLog.vars.antiquityOnlyMotifs = enabled end,
+				disabled = function() return not LootLog.vars.antiquityEnabled end,
+			},
+			--------------------
+			{
+				type = "checkbox",
+				name = SI_LOOTLOG_SETTING_NOPARTIAL,
+				getFunc = function() return LootLog.vars.antiquityIgnorePartial end,
+				setFunc = function(enabled) LootLog.vars.antiquityIgnorePartial = enabled end,
 				disabled = function() return not LootLog.vars.antiquityEnabled end,
 			},
 			--------------------

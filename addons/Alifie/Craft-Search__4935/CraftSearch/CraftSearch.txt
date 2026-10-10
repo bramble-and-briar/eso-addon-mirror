@@ -1,0 +1,7 @@
+## Title: Craft Search
+## Description: Adds a search box to the furnishing recipe list at every crafting station.
+## Author: teodor
+## Version: 1.0
+## APIVersion: 101050 101051
+
+CraftSearch.lua

@@ -36,7 +36,7 @@ function S.InitSettings()
         name = L("TITLE"),
         displayName = L("TITLE"),
         author = "|c00C8FFbrianmit|r",   -- cyan, like Command Codex
-        version = "1.0.1",
+        version = S.VERSION,
         registerForRefresh = true,
         registerForDefaults = true,
     })
@@ -68,6 +68,14 @@ function S.InitSettings()
 
         { type = "header", name = L("SET_HDR_LISTS") },
         Check("missingOnly", "SET_MISSING", "MISSING_ONLY_TT", false, S.SetMissingOnly),
+        {
+            type = "checkbox",
+            name = L("SET_TOOLTIP_LINES"),
+            tooltip = L("SET_TOOLTIP_LINES_TT"),
+            getFunc = function() return sv.tooltipLines ~= false end,
+            setFunc = function(v) sv.tooltipLines = v end,
+            default = true,
+        },
 
         { type = "header", name = L("SET_HDR_RUNS") },
         Check("runSummary", "SET_SUMMARY", "SET_SUMMARY_TT", true),

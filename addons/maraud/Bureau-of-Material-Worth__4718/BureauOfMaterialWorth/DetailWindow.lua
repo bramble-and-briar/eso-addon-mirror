@@ -21,36 +21,16 @@ local COLOR_WARN   = private.COLOR_WARN
 local COLOR_GAIN   = private.COLOR_GAIN
 local COLOR_LOSS   = private.COLOR_LOSS
 
--- Shared visual language (UI.lua). Every font, control tint, divider weight and
--- tooltip line in this file comes from here, so the material table cannot drift
--- away from the summary panel and the withdraw window the way it had.
+-- Shared fonts, spacing, control styling, and tooltip helpers.
 local UI = private.UI
 local FONT = UI.FONT
 local METRIC = UI.METRIC
 
--- The column headers are sort toggles, so their tone is set with SetColor rather
--- than an inline |c code (the hover handler brightens one to white, which an
--- embedded colour would fight). Derived from the palette's muted tone instead of
--- being written out as a triple, so header text and every other secondary label
--- are provably the same grey.
+-- Use SetColor rather than inline color codes so header hover can change tint.
 local HEADER_MUTED_R, HEADER_MUTED_G, HEADER_MUTED_B = UI.Tone("muted")
 
--- Cumulative-share column coloring. The figure marks the Pareto "knee": rows up
--- to CUM_CORE_THRESHOLD make up the bulk of the value (the stacks worth hauling),
--- everything past it is the long tail. We make that readable at a glance:
---   * 0 .. threshold  : ramp from a dim tone to a vivid hot one, so the core rows
---                       that build toward the knee read as "warm = keep". The
---                       endpoints are spread WIDE in brightness on purpose - a
---                       narrow ramp is invisible on small text over a dark panel,
---                       and the value distribution often bunches the core rows
---                       into the upper part of the range.
---   * past threshold  : NOT colored - it falls back to the muted grey of the rest
---                       of the secondary text, so the long tail recedes and the
---                       eye is drawn to the warm core. (A red tail would collide
---                       with the price-change column, where red means "price
---                       fell"; de-emphasis, not warning, is the right signal.)
--- Endpoints are normalized RGB triples; the ramp interpolates between CORE_LO and
--- CORE_HI.
+-- Warm cumulative-share ramp up to the threshold; mute the remaining tail.
+-- Red is reserved for falling prices, not low-value materials.
 local CUM_CORE_THRESHOLD = 80   -- percent; the Pareto cut between core and tail
 local CUM_CORE_LO  = { 0.50, 0.48, 0.42 }  -- dim warm grey: low % (top, most value)
 local CUM_CORE_HI  = { 1.00, 0.80, 0.20 }  -- vivid gold: approaching the threshold
@@ -61,9 +41,7 @@ local function RGBToHex(r, g, b)
         zo_round(r * 255), zo_round(g * 255), zo_round(b * 255))
 end
 
--- Pick the cumulative-share color for a given percent: a dim->vivid ramp across
--- the core (0..threshold), or COLOR_MUTED for the past-threshold tail so it reads
--- as plain de-emphasized text. Returns a hex string ready for Colorize.
+-- Return an inline hex color for the cumulative percentage.
 local function CumulativeColor(percent)
     if percent > CUM_CORE_THRESHOLD then
         return COLOR_MUTED
@@ -75,10 +53,7 @@ local function CumulativeColor(percent)
     return RGBToHex(r, g, b)
 end
 
--- The cumulative column's header text ("Cum. 80%"), with the threshold filled in
--- from CUM_CORE_THRESHOLD rather than hardcoded in the localized string. Both
--- places that set the header label call this, so changing the constant above
--- changes the header in every language at once.
+-- Keep the localized header's threshold in sync with the color ramp.
 local function CumulativeHeaderText()
     return stringformat(GetString(SI_BMW_DETAIL_COL_CUM), CUM_CORE_THRESHOLD)
 end
@@ -94,9 +69,7 @@ local ARROW_DOWN = "|t16:16:EsoUI/Art/Miscellaneous/list_sortDown.dds|t"
 -- Layout
 -- ---------------------------------------------------------------------------
 local WINDOW_WIDTH = 880
--- A free-floating window, so it takes the wider step of the shared spacing scale
--- (the narrow summary panel takes METRIC.PADDING). Every inset below is derived
--- from this, so the whole frame re-flows from the one token.
+-- Shared inset for floating windows.
 local PADDING      = METRIC.PADDING_WIDE
 local TITLE_HEIGHT = 26
 local CONTEXT_HEIGHT = 18
@@ -111,18 +84,10 @@ local FOOTER_HEIGHT = 18   -- summary line beneath the list (divider + this labe
 -- Single row data type id for the scroll list (we only have one kind of row).
 local ROW_TYPE_ID = 1
 
--- The row template's text columns, by name suffix (see DetailWindow.xml). The
--- markup declares their geometry only; this list is what SetupRow hands to
--- UI.ApplyRowFonts so all five carry the shared body face. Adding a column means
--- adding it in both places.
+-- Row-template text columns styled by UI.ApplyRowFonts; keep in sync with XML.
 local ROW_COLUMNS = { "Name", "Qty", "Value", "Cum", "Change", "Impact" }
 
--- Search debounce. GetMaterialsMatching walks every occupied slot and filters by
--- name, so running it on every keystroke micro-stutters on a large craft bag.
--- Instead a keystroke arms this timer and only the last one within the window
--- actually rebuilds the list -- the coalescing pattern the Valuation getter's
--- comment already assumes ("debounced by the caller"). Short enough to feel
--- instant, long enough to collapse a fast typist's burst into one rebuild.
+-- Debounce search edits so a burst of keystrokes rebuilds the current view once.
 local SEARCH_DEBOUNCE_MS = 150
 local SEARCH_TIMER_NAME = addon.name .. "_DetailSearchDebounce"
 
@@ -135,14 +100,8 @@ local REPLACE_SNAPSHOT_DIALOG = "BUREAU_OF_MATERIAL_WORTH_REPLACE_SNAPSHOT"
 local Colorize = private.Colorize
 local FormatGold = private.FormatGold
 
--- "How long ago" for the diff title, from a unix timestamp (GetTimeStamp) to a
--- short localized phrase. Note this works off the unix clock, NOT
--- GetGameTimeMilliseconds like Window's footer: the snapshot persists across
--- sessions, so its age must survive a restart. Unlike the footer (game-time, so
--- never more than a session old) this can span days, so it composes the largest
--- non-zero unit plus the next smaller one - "5d 3h", "3h 20m", "45m" - instead
--- of an unbounded hour count like "123h". The _AGO wrapper keeps word order
--- localizable.
+-- Snapshot age uses Unix time because its baseline survives UI sessions.
+-- Show at most two adjacent units, such as days/hours or hours/minutes.
 local function FormatSnapshotAge(stampSeconds)
     if not stampSeconds then
         return GetString(SI_BMW_TIME_NEVER)
@@ -196,7 +155,7 @@ local currentCategoryId  -- remembered so a refresh can rebuild the same view
 local currentCategoryName  -- remembered so the title can restore after a search
 local searchBox       -- the search editbox
 local searchHint      -- placeholder inside the search box
-local searchClearButton -- clears the whole-bag search without touching filters
+local searchClearButton -- clears the current view's query without touching filters
 local viewTabs = {}
 local snapshotStatusLabel -- compact persistent state of the saved comparison baseline
 local filterButtons = {} -- { all, priced, unpriced } price-coverage filter controls
@@ -209,19 +168,13 @@ local priceFilter = "all"  -- "all" | "priced" | "unpriced"
 local searchBackdrop
 local snapshotGroupLabel, rememberButton, clearButton, filterGroupLabel
 
--- Which list the window is showing. "category" is the normal per-category table
--- (with whole-bag search as a sub-state), "diff" is the snapshot comparison,
--- and "trend" is the trailing seven-day price-movement analysis.
+-- Material, snapshot/visit comparison, or price-dynamics view.
+-- Search filters the rows of the current view.
 local viewMode = "category"  -- "category" | "diff" | "trend"
 local diffSource = "snapshot"  -- "snapshot" | "visit"
 
--- Column sort state. The list is re-sorted in Populate() before it fills, so it
--- applies equally to a category view, the whole-bag search, and a live refresh.
--- Default to value-descending: the practical "what to sell right now" order, so
--- the stacks that make up most of the bag's worth sit at the top on open.
---   sortKey: "name" | "qty" | "value" | "cum" | "change" | "impact"
---   sortAsc: ascending when true. Numeric columns default to descending (biggest
---            first); the name column defaults to ascending (A->Z).
+-- Each view remembers its own sort state across navigation and refreshes.
+-- Keys: name, qty, value, cum, change, impact; numeric columns default descending.
 local sortKey = "value"
 local sortAsc = false
 local sortState = {
@@ -362,13 +315,8 @@ local function ApplySearchFilter(materials)
     return filtered
 end
 
--- Coalesce a burst of search keystrokes into a single rebuild. Each keystroke
--- re-arms the one-shot timer; only the last one within SEARCH_DEBOUNCE_MS fires,
--- and it calls Populate against the current searchQuery. Mirrors the coalescing
--- Valuation uses for its window refresh, and satisfies the "debounced by the
--- caller" contract on GetMaterialsMatching. Populate is an upvalue resolved by
--- the time this ever runs (Initialize, which wires the handler, runs after the
--- assignments below).
+-- Coalesce search edits into one Populate call against the current searchQuery.
+-- Populate is assigned before Initialize wires the search handler.
 local function QueueSearch()
     EVENT_MANAGER:UnregisterForUpdate(SEARCH_TIMER_NAME)
     EVENT_MANAGER:RegisterForUpdate(SEARCH_TIMER_NAME, SEARCH_DEBOUNCE_MS, function()
@@ -458,20 +406,15 @@ local function FormatSignedGold(amount)
     return arrow .. " " .. FormatGold(mathabs(amount), gain and COLOR_GAIN or COLOR_LOSS)
 end
 
--- Render the Qty / Value / Cumulative / Change columns for a normal material row
--- (category view or whole-bag search). Split out of SetupRow so the diff view can
--- repurpose the same four controls without threading a mode flag through each.
+-- Material-view columns; comparison and dynamics views reuse these controls.
 local function SetupMaterialColumns(rowControl, data)
     rowControl:GetNamedChild("Qty"):SetText(
         Colorize(COLOR_MUTED, ZO_LocalizeDecimalNumber(data.count or 0)))
 
     rowControl:GetNamedChild("Value"):SetText(FormatGold(data.gold))
 
-    -- Cumulative-share column: this row's running share of the displayed list's
-    -- total value, assigned in Populate after the sort. Read top-down on the
-    -- default value-descending view it answers "the top stacks down to here make
-    -- up N% of the bag's worth" - the Pareto "what to sell" cue. Unpriced rows
-    -- (and any view where the figure is meaningless) carry nil and show a dash.
+    -- Share is assigned by descending value rank, independently of display sort.
+    -- It refers to the filtered list, not necessarily the whole bag; nil shows a dash.
     local cumLabel = rowControl:GetNamedChild("Cum")
     if data.cumPercent ~= nil then
         cumLabel:SetText(Colorize(CumulativeColor(data.cumPercent),
@@ -995,8 +938,7 @@ local function InitializeWindow()
     headerBand:SetAnchor(TOPLEFT, windowControl, TOPLEFT, 0, 0)
 
     titleLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_DetailTitle", windowControl, CT_LABEL)
-    -- The section-heading step, not the title step: TITLE_HEIGHT is a 26px row
-    -- shared with the toolbar buttons, and the larger title face would clip in it.
+    -- Keep the font within the fixed title-row height.
     titleLabel:SetFont(FONT.heading)
     titleLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     titleLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -1020,9 +962,7 @@ local function InitializeWindow()
         ClearTooltip(InformationTooltip)
     end)
 
-    -- A persistent, muted scope line makes the active representation explicit:
-    -- category vs whole-bag search vs snapshot comparison. The title stays short
-    -- and scannable while this line carries result count, price filter, or age.
+    -- Current scope, filters, or comparison context below the title.
     contextLabel = WINDOW_MANAGER:CreateControl(addon.name .. "_DetailContext", windowControl, CT_LABEL)
     contextLabel:SetFont(FONT.small)
     contextLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
@@ -1041,16 +981,12 @@ local function InitializeWindow()
         DetailWindow.Hide()
     end)
 
-    -- Two distinct toolbar rows keep snapshot actions separate from list filters:
-    -- the first owns Remember / Changes / Clear, the second owns price coverage
-    -- filters and whole-bag search. TOOLBAR_GAP provides the vertical air between
-    -- each row and the surrounding controls.
+    -- First toolbar: view tabs and snapshot actions. Second: filters and search.
     local TOOLBAR_GAP = 6
     local snapshotToolbarY = PADDING + TITLE_HEIGHT + CONTEXT_HEIGHT + TOOLBAR_GAP
     local filterToolbarY = snapshotToolbarY + TITLE_HEIGHT + TOOLBAR_GAP
 
-    -- Search box (whole-bag). Typing here switches the list to materials matching
-    -- the query across every category; clearing it returns to the opened category.
+    -- Search narrows the current material, comparison, or dynamics view.
     local SEARCH_WIDTH = 200
     searchBackdrop = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_DetailSearchBg", windowControl, "ZO_DefaultBackdrop")
@@ -1091,12 +1027,9 @@ local function InitializeWindow()
     end)
 
     searchBox:SetHandler("OnTextChanged", function()
-        -- suppressSearchEvent guards against the SetText we issue on a category
-        -- open (which would otherwise re-trigger this and clobber the view).
+        -- Explicit reset handlers update the query themselves.
         if not suppressSearchEvent then
             searchQuery = searchBox:GetText() or ""
-            -- Debounce the (whole-bag) rebuild so a fast typist's burst collapses
-            -- into one Populate instead of one per keystroke; see QueueSearch.
             QueueSearch()
         end
         searchHint:SetHidden((searchBox:GetText() or "") ~= "")
@@ -1136,11 +1069,7 @@ local function InitializeWindow()
     end)
     searchClearButton:SetHidden(true)
 
-    -- Snapshot buttons on the left of the toolbar row. "Remember" freezes the
-    -- current composition; "Changes" switches to the diff view. ZO_DefaultButton's
-    -- virtual height (~30) is taller than the 26px row, so force the height. Each
-    -- gets a title+body hover tooltip (the headerCum idiom) since the
-    -- manual-snapshot model is not self-evident.
+    -- View tabs precede a separate group of snapshot actions.
     local BUTTON_WIDTH = 100
     local GROUP_LABEL_WIDTH = 62
     local GROUP_LABEL_GAP = 8
@@ -1207,25 +1136,20 @@ local function InitializeWindow()
         SI_BMW_DETAIL_BTN_REMEMBER_TOOLTIP_BODY)
     UI.ApplyButton(rememberButton)
 
-    -- "Clear" forgets the saved snapshot. Sits after "Changes" on the toolbar.
-    -- Because clearing is destructive and cannot be undone, it opens a confirmation
-    -- dialog. When the diff view is open, a confirmed clear refreshes it into the
-    -- "press Remember" empty state immediately.
+    -- Clear sits after Remember and confirms before deleting the comparison snapshot.
     clearButton = WINDOW_MANAGER:CreateControlFromVirtual(
         addon.name .. "_DetailClear", windowControl, "ZO_CloseButton")
     clearButton:SetDimensions(24, 24)
     clearButton:ClearAnchors()
     clearButton:SetAnchor(LEFT, rememberButton, RIGHT, 8, 0)
     clearButton:SetHandler("OnClicked", function()
-        -- Destructive and not undoable, so confirm before clearing. The dialog's
-        -- accept callback (registered below) does the actual clear + chat notice.
+        -- The registered dialog callback performs the deletion.
         ZO_Dialogs_ShowDialog(CLEAR_SNAPSHOT_DIALOG)
     end)
     WireButtonTooltip(clearButton, SI_BMW_DETAIL_BTN_CLEAR_TOOLTIP_TITLE,
         SI_BMW_DETAIL_BTN_CLEAR_TOOLTIP_BODY)
 
-    -- Keep the automatic baseline visible beside its controls instead of making
-    -- players infer it from a tooltip or from the Changes view.
+    -- Display the current snapshot's age beside its controls.
     snapshotStatusLabel = WINDOW_MANAGER:CreateControl(
         addon.name .. "_DetailSnapshotStatus", windowControl, CT_LABEL)
     snapshotStatusLabel:SetFont(FONT.small)
@@ -1237,9 +1161,7 @@ local function InitializeWindow()
     snapshotStatusLabel:SetDimensions(innerWidth - 348 - 16 - GROUP_LABEL_WIDTH
         - GROUP_LABEL_GAP - BUTTON_WIDTH - 8 - 24 - 8, TITLE_HEIGHT)
 
-    -- Price coverage filters live on their own row beside the search box. They
-    -- filter the current category/search view and are hidden for the snapshot
-    -- diff, where priced/unpriced has a different meaning.
+    -- Coverage filters apply only to the material view, not comparisons or dynamics.
     filterGroupLabel = WINDOW_MANAGER:CreateControl(
         addon.name .. "_DetailFilterGroupLabel", windowControl, CT_LABEL)
     filterGroupLabel:SetFont(FONT.small)
@@ -1516,7 +1438,6 @@ function FillList(materials)
     ZO_ScrollList_Clear(listControl)
 
     for i = 1, #materials do
-        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         -- ZO_ScrollList_CreateDataEntry mutates its data table and installs a
         -- dataEntry.data back-reference. Never pass a table owned by
         -- SavedVariables here: that would make the persisted graph cyclic and
@@ -1525,7 +1446,6 @@ function FillList(materials)
         --
         -- Bureau archive rule 47-B: the display office receives copies. Hand it
         -- an original and the user's drive is reassigned as unlimited stationery.
-        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         dataList[#dataList + 1] = ZO_ScrollList_CreateDataEntry(ROW_TYPE_ID, materials[i])
     end
 
@@ -1803,13 +1723,8 @@ local function UpdateFooter(materials)
     footerLabel:SetText(table.concat(parts, Colorize(COLOR_MUTED, "  ·  ")))
 end
 
--- Rebuild the scroll list for the current view. Four sources route through here:
--- the diff list (viewMode == "diff"), whole-bag search results (a query is
--- active), the current category, or the full Craft Bag coverage view. Centralized
--- so the search box, a category open, the diff buttons, coverage click, and live
--- refresh all share one path. Also sets the empty-state label to match the mode,
--- since FillList only toggles its
--- visibility, not its text.
+-- Fetch rows for the current mode, then apply coverage/search filters and sorting.
+-- Set the empty-state text here; FillList only controls its visibility.
 function Populate()
     local materials
     local emptyId
@@ -1871,8 +1786,7 @@ function Populate()
     UpdateSnapshotStatus()
 end
 
--- Keep the title in step with the view: the diff label while comparing, the
--- searched-across-bag label while a query is active, otherwise the category name.
+-- Choose the title for the current view and query.
 function UpdateTitle()
     if viewMode == "trend" then
         titleLabel:SetText(Colorize(COLOR_ACCENT, GetString(SI_BMW_PRICE_TREND_TITLE)))
@@ -1904,9 +1818,7 @@ function UpdateTitle()
     end
 end
 
--- Render the scope line directly below the title. It deliberately describes the
--- displayed rows after filters are applied, so the count always matches the list
--- rather than the broader category or search before narrowing.
+-- Describe the current mode and applied filters below the title.
 function UpdateContext()
     if viewMode == "trend" and searchQuery == "" then
         local threshold = private.GetPriceTrendThreshold and private.GetPriceTrendThreshold() or 20
@@ -1963,9 +1875,7 @@ function UpdateContext()
     end
 end
 
--- A baseline is normally created automatically on the first non-empty Craft
--- Bag open. Its age makes that ready-to-use comparison point visible at all
--- times, including after a manual Remember replacement.
+-- Show the current comparison snapshot's age, whether automatic or manually replaced.
 UpdateSnapshotStatus = function()
     if not snapshotStatusLabel then
         return
@@ -1981,12 +1891,8 @@ UpdateSnapshotStatus = function()
     end
 end
 
--- Re-label the four column headers, appending a sort arrow to the active one so
--- the player can see which column orders the list and in which direction. The
--- arrow textures match the price-change column's idiom (the UI font won't render
--- the Unicode triangles). Tone is driven by SetColor (not an inline |c code) so
--- the hover handlers can brighten a header without fighting an embedded color.
--- Called after any sort-state change and on each open.
+-- Set mode-specific column labels and mark the active sort direction.
+-- SetColor lets hover handlers change the header tint.
 function UpdateHeaders()
     local arrow = sortAsc and ARROW_UP or ARROW_DOWN
     local function apply(headerControl, text, key, sortable)
@@ -2054,9 +1960,7 @@ UpdateColumnLayout = function()
     end
 end
 
--- The active filter stays clickable, but a green frame makes selection explicit
--- without ESO's grey disabled treatment. In diff view filters are irrelevant, so
--- hide the controls instead of leaving inert UI.
+-- Keep the active coverage filter clickable; hide coverage controls outside materials.
 UpdatePriceFilterButtons = function()
     local hideFilters = viewMode ~= "category"
     for key, button in pairs(filterButtons) do
@@ -2101,13 +2005,19 @@ UpdatePriceFilterButtons = function()
     end
 end
 
--- Keep the toggle button's label in step with the mode: "Back" while the diff is
--- shown, "Changes" otherwise. The action and tooltip read viewMode at event time
--- (see Initialize), so only the label needs refreshing here.
+-- Highlight the tab for the current mode.
 local function UpdateViewTabs()
     for key, button in pairs(viewTabs) do
         UI.SelectButton(button, key == viewMode)
     end
+end
+
+local function RefreshView()
+    UpdateViewTabs()
+    UpdateColumnLayout()
+    UpdateHeaders()
+    UpdatePriceFilterButtons()
+    Populate()
 end
 
 function DetailWindow.Show(categoryId, categoryName)
@@ -2120,11 +2030,7 @@ function DetailWindow.Show(categoryId, categoryName)
     currentCategoryName = categoryName
     RestoreSortState()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
     ShowWindow()
 end
 
@@ -2140,18 +2046,11 @@ function DetailWindow.ShowAll()
     currentCategoryName = nil
     RestoreSortState()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
     ShowWindow()
 end
 
--- Return from the diff or price-dynamics view to the material list, restoring
--- the category that was open before (remembered in currentCategoryId). Reached
--- via the toolbar toggle, which reads "Back" outside category mode. Leaves the
--- window open; only the mode flips.
+-- The Materials tab restores the previous category without reopening the window.
 function DetailWindow.ShowMaterials()
     if not windowControl then
         return
@@ -2161,17 +2060,11 @@ function DetailWindow.ShowMaterials()
     diffSource = "snapshot"
     RestoreSortState()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
 end
 
--- Switch the window to the snapshot-diff view. Reachable from the "Changes"
--- button; when no snapshot exists Populate shows the "press Remember" prompt
--- rather than a list, so this is always safe to call. Reuses whatever category
--- context is loaded so leaving the diff (the "Back" toggle) restores it.
+-- Open the snapshot comparison; Populate handles a missing baseline.
+-- Preserve the category so the Materials tab can restore it.
 function DetailWindow.ShowDiff()
     if not windowControl then
         return
@@ -2181,11 +2074,7 @@ function DetailWindow.ShowDiff()
     diffSource = "snapshot"
     RestoreSortState()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
     ShowWindow()
 end
 
@@ -2201,11 +2090,7 @@ function DetailWindow.ShowVisitDiff()
     diffSource = "visit"
     RestoreSortState()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
     ShowWindow()
 end
 
@@ -2223,11 +2108,7 @@ function DetailWindow.ShowUnpriced()
     priceFilter = "unpriced"
     RestoreSortState()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
     ShowWindow()
 end
 
@@ -2237,16 +2118,11 @@ function DetailWindow.ShowPriceTrends()
     end
 
     viewMode = "trend"
-    -- Do not clear currentCategoryId/Name: Back must restore the category that
-    -- was open, not drop the player into the whole-bag list.
+    -- Preserve the category for the Materials tab.
     RestoreSortState()
     searchBox:LoseFocus()
 
-    UpdateViewTabs()
-    UpdateColumnLayout()
-    UpdateHeaders()
-    UpdatePriceFilterButtons()
-    Populate()
+    RefreshView()
     ShowWindow()
 end
 

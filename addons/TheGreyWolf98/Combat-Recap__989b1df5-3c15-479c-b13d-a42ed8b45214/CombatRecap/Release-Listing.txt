@@ -1,0 +1,20 @@
+OVERVIEW
+Know your fight. Review personal damage, effect uptime and weaving observations, then inspect the saved gear, skills, champion points and class masteries. No dependencies.
+
+DESCRIPTION
+Combat Recap puts your personal fight results into a compact, controller-friendly report.
+
+Review DPS, total damage, fight duration and critical hit rate, with an ability breakdown showing damage contribution, hit counts and maximum hits. Player effects appear in two columns with their recorded uptime, alongside a small light attack weaving summary.
+
+Select View Build to inspect the build captured at the start of that fight: equipped gear and enchantments, front and back skill bars, slotted champion points, Mundus and purchased class mastery skills. Later build changes do not alter the saved snapshot.
+
+Keeps your latest 20 fights per character on each server. Open /recap to view the latest report, or /recap help for commands.
+
+Controls: A opens the fight build; B returns or closes; X pages additional abilities or effects; Y selects the next saved fight.
+
+Damage totals include your character and pets. Group and companion damage are excluded. DPS uses the time between your first and last outgoing damage event, with a minimum of one second. Hit counts include damage ticks. Weaving input counts are observations, not confirmed landed attacks or a missed-weave score. Player effect uptime covers recorded effects, not target debuffs.
+
+No external libraries or addon dependencies required.
+
+VERSION NOTES
+First release: compact combat report, recorded player effect uptime, weaving observations and saved fight-start build view.

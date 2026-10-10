@@ -1,7 +1,7 @@
-## Title: |cFF69B4PB’s HudManager|r 1.0.2
+## Title: |cFF69B4PB’s HudManager|r 1.2.0
 ## Author: |cFF69B4PinkBanther|r
-## Description: Keeps the settings of the PB's HUD add-ons in three named sets and switches all of them at once. Save what every installed add-on is set to right now under a name, then load it later; loading writes the saved values back and reloads the UI so every add-on starts from them. Covers ResourceAndSkillBarCustomizer, Clock, ChatWindowCustomizer, CyrodiilAlert, MiniMap, NamePlateChanger and QuestTrackerFontChanger -- whichever of them are installed. Settings panel, or /pbhud.
-## Version: 1.0.2
+## Description: Keeps the settings of the PB's HUD add-ons in three named sets and switches all of them at once. Save what every installed add-on is set to right now under a name, then load it later; loading writes the saved values back and reloads the UI so every add-on starts from them. Covers ResourceAndSkillBarCustomizer, Clock, ChatWindowCustomizer, CyrodiilAlert, MiniMap, NamePlateChanger and QuestTrackerFontChanger -- whichever of them are installed. An option also hides the quest tracker, chat window, minimap, CyrodiilAlert, clock and compass while you are in combat. Settings panel, or /pbhud.
+## Version: 1.2.0
 ## APIVersion: 101050 101051
 ## OptionalDependsOn: LibHarvensAddonSettings>=20106 PBsConsoleHudCustomizer PBsClock PBsChatWindowCustomizer PBsCyrodiilAlert PBsMiniMap PBsNamePlateChanger PBsQuestTrackerFontChanger
 ## SavedVariables: PBsHudManager_Data
@@ -10,6 +10,7 @@ lang/strings.lua
 lang/$(language).lua
 
 Core.lua
+Combat.lua
 Settings.lua
 Main.lua
 

@@ -1,7 +1,7 @@
 ## Title: |c9B30FFArdy's OB Tracker|r
 ## Author: |cFF0800@giga'chad|r
-## Version: 1.4.0
-## AddOnVersion: 140
+## Version: 1.5.0
+## AddOnVersion: 150
 ## APIVersion: 101051 101052
 ## Description: Off Balance Helper. Requires LibAddonMenu-2.0.
 ## SavedVariables: ArdysOBTrackerSV

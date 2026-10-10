@@ -1,8 +1,8 @@
-ATLAS 1.0.0
+ATLAS 1.0.1
 by @TheGreyWolf98
 
 INSTALL / UPGRADE
-Use ESO's console add-on upload/install workflow with Atlas-1.0.0.zip.
+Use ESO's console add-on upload/install workflow with Atlas-1.0.1.zip.
 Select only this ZIP in the release form: previous file selections may
 accumulate. The archive contains one Atlas/Atlas.addon manifest.
 If upgrading from 0.1.5, reload UI after installing to clear its old input
@@ -65,3 +65,8 @@ Atlas does not poll private directional input functions.
 
 Source attribution and license notices are bundled. Release-Listing.txt
 contains the overview and description for the addon listing.
+
+1.0.1 VISIBILITY UPDATE
+All Atlas pins increased from 24 to 28. Survey sites use a parchment scroll
+with a red ring; treasure-map digs use a gold chest. Filters and locations
+are unchanged. Check icon visibility on Xbox before publishing the update.

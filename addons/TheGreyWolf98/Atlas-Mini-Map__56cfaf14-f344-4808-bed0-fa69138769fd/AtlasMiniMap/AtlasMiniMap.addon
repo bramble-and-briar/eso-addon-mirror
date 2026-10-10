@@ -1,0 +1,10 @@
+## Title: Atlas Mini Map
+## Author: @TheGreyWolf98
+## Description: Fixed north minimap with clock, FPS and latency.
+## APIVersion: 101050 101051
+## Version: 1.0.1
+## AddOnVersion: 4
+## IsLibrary: False
+## SavedVariables: TGWAtlasMiniMapSaved
+
+MiniMap.lua

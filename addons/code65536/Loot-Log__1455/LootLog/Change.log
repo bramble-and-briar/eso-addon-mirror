@@ -1,3 +1,8 @@
+Version 4.10.5 (2026/10/09)
+* Added an option, disabled by default, to ignore partially-completed antiquity
+  codex, so that treasure maps and tradeable leads with partially-completed
+  codex are treated the same as fully-completed
+
 Version 4.10.4 (2026/10/02)
 * Tradeable antiquity leads with incomplete codex will now be flagged in a
   manner similar to treasure maps with incomplete antiquity codex

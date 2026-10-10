@@ -6,6 +6,7 @@ ZoneCompletionMap.Settings = Settings
 Settings.DEFAULTS = {
     enabled = true,
     color = { r = 0.2, g = 0.9, b = 0.3, a = 0.35 },
+    invert = false,
     types = {}, -- [completionType] = false means disabled; missing means enabled
 }
 
@@ -17,7 +18,7 @@ function Settings.Init(sv, onChange)
         type = "panel",
         name = GetString(ZCM_PANEL_TITLE),
         author = "Domenikus",
-        version = "1.0.0",
+        version = "3.0.0",
         registerForDefaults = true,
     })
 
@@ -46,6 +47,17 @@ function Settings.Init(sv, onChange)
                 onChange()
             end,
             default = defaults.color,
+        },
+        {
+            type = "checkbox",
+            name = GetString(ZCM_INVERT),
+            tooltip = GetString(ZCM_INVERT_TOOLTIP),
+            getFunc = function() return sv.invert end,
+            setFunc = function(value)
+                sv.invert = value
+                onChange()
+            end,
+            default = defaults.invert,
         },
         {
             type = "header",

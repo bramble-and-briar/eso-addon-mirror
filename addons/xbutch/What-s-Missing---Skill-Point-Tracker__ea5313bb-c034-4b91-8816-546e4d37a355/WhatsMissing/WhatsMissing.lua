@@ -62,8 +62,14 @@ local function SPT_SimpleResetTable(origTable, value)
 	return newTable
 end
 
-local function SPT_UpdateInfoPanel(text)
+local function SPT_UpdateInfoPanel(text, title)
 	SPT_InfoPanel_Content:SetText(text or "")
+	if currentTab > 4 then
+		SPT_InfoPanel_Header:SetText(title or GS(currentTab == 5 and SPT_GUI_TAB_SKILLS or SPT_GUI_TAB_SCRIBING))
+		SPT_InfoPanel_Header:SetHeight(math.max(36, SPT_InfoPanel_Header:GetTextHeight()))
+	else
+		SPT_InfoPanel_Header:SetHeight(36)
+	end
 end
 
 local function SPT_GetCurrentList()
@@ -83,7 +89,7 @@ local function SPT_ActivateCurrentList()
 	if list then
 		list:Activate()
 		local targetData = list:GetTargetData()
-		SPT_UpdateInfoPanel(targetData and targetData.tooltipText or "")
+		SPT_UpdateInfoPanel(targetData and targetData.tooltipText or "", targetData and targetData.tooltipTitle)
 	end
 end
 
@@ -244,6 +250,40 @@ function SPT:SetProgressionGroupExpanded(module, groupId, expanded)
 	groups[module.stateKey][groupId] = expanded == true or nil
 end
 
+function SPT:FocusCurrentProgressionCharacter()
+	local ids, currentId = CharCache:GetSortedIds(), CharCache:GetCharId()
+	local first = 1
+	for index, id in ipairs(ids) do
+		if id == currentId then
+			first = math.min(index, math.max(1, #ids - 3))
+			break
+		end
+	end
+	for _, module in ipairs(progressionModules) do module.firstCharacter = first end
+end
+
+function SPT:ColorCompletedProgression(text, complete)
+	return complete and "|c51D878" .. text .. "|r" or text
+end
+
+function SPT:FormatProgressionCount(known, total, unknown)
+	local hasUnknown = (unknown or 0) > 0
+	local text = strF("%d/%d%s", known, total, hasUnknown and " ?" or "")
+	return self:ColorCompletedProgression(text, total > 0 and known == total and not hasUnknown)
+end
+
+function SPT:AbbreviateCharacterName(name)
+	local characters = {}
+	for character in name:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+		characters[#characters + 1] = character
+	end
+	if #characters > 13 then
+		local firstWord = name:match("^%s*(%S+)%s+%S")
+		if firstWord then return firstWord end
+	end
+	return table.concat(characters, "", 1, math.min(13, #characters))
+end
+
 function SPT:CreateProgressionTableView(module, sourceHeader, footer)
 	local ids = CharCache:GetSortedIds()
 	module.firstCharacter = math.max(1, math.min(module.firstCharacter or 1, math.max(1, #ids - 3)))
@@ -254,38 +294,71 @@ function SPT:CreateProgressionTableView(module, sourceHeader, footer)
 	for index = module.firstCharacter, last do
 		local id = ids[index]
 		view.characters[#view.characters + 1] = id
-		view.columns[#view.columns + 1] = CharCache.roster[id].name
+		view.columns[#view.columns + 1] = self:AbbreviateCharacterName(CharCache.roster[id].name)
+		if id == CharCache:GetCharId() then view.currentCharacterColumn = #view.columns end
 	end
 	return view
 end
 
-function SPT:AddProgressionTableCell(row, column, name, value, status)
-	row.cells[column] = value
-	row.info = row.info or { row.source }
-	row.info[#row.info + 1] = strF("%s: %s  |  %s", name, value, status)
-end
-
 function SPT:FinishProgressionTableView(view)
 	for _, row in ipairs(view.rows) do
-		row.tooltipText = row.info and table.concat(row.info, "\n") or row.source
+		row.tooltipTitle = row.tooltipTitle or view.infoTitle
+		row.tooltipText = row.info and table.concat(row.info, "\n") or row.tooltipText or row.source
 		row.info = nil
 	end
 	return view
 end
 
-function SPT:QueueProgressionSnapshot(module)
-	if not self.progressionReady or module.pending then return end
+local function HasScanBudget()
+	if GetTotalUserAddOnCPUTimeAvailableEachFrameMS and GetTotalUserAddOnCPUTimeUsedNowMS then
+		local available = GetTotalUserAddOnCPUTimeAvailableEachFrameMS()
+		if available > 0 then return GetTotalUserAddOnCPUTimeUsedNowMS() + 20 < available end
+	end
+	return true
+end
+
+function SPT:QueueProgressionSnapshot(module, changed)
+	if not self.progressionReady then return end
+	module.needsFinalCapture = module.needsFinalCapture or changed
+	if module.pending then
+		-- An event during a slice may have changed a line already read.
+		module.rescan = module.rescan or module.capturing
+		return
+	end
 	module.pending = true
-	-- One-shot event coalescing, not a recurring update loop.
-	zo_callLater(function()
-		module.pending = false
-		if not SPT.progressionReady then return end
-		module:Capture()
-		module:ReleaseDisplay()
-		if SPT.active and (SPT_GetProgressionModule() == module or (module == SPT.Scribing and currentTab == 1)) then
-			SPT:RenderCurrentTab()
+	local generation = module.generation
+	local capture = coroutine.create(function() module:Capture(coroutine.yield) end)
+	local function ContinueCapture()
+		if generation ~= module.generation or not SPT.progressionReady then return end
+		if not HasScanBudget() then zo_callLater(ContinueCapture, 50); return end
+		module.capturing = true
+		local started = GetGameTimeMilliseconds()
+		for item = 1, 8 do
+			local success, message = coroutine.resume(capture)
+			if not success then
+				module.pending, module.capturing = false, false
+				error(message)
+			end
+			if coroutine.status(capture) == "dead" then
+				module.pending, module.capturing = false, false
+				if module.rescan then
+					module.rescan = false
+					SPT:QueueProgressionSnapshot(module, module.needsFinalCapture)
+					return
+				end
+				module.needsFinalCapture = false
+				module:ReleaseDisplay()
+				if SPT.active and (SPT_GetProgressionModule() == module or (module == SPT.Scribing and currentTab == 1)) then
+					SPT:RenderCurrentTab()
+				end
+				return
+			end
+			if GetGameTimeMilliseconds() - started >= 4 or not HasScanBudget() then break end
 		end
-	end, 0)
+		zo_callLater(ContinueCapture, 16)
+	end
+	-- Let map/skill initialization settle before starting either snapshot.
+	zo_callLater(ContinueCapture, 100)
 end
 
 local function SPT_ReleaseProgressionDisplay()
@@ -297,7 +370,13 @@ local function SPT_ReleaseProgressionDisplay()
 	tabSelectedData[5], tabSelectedData[6] = nil, nil
 	SPT_GUI_Body_Progression_Title:SetText("")
 	SPT_GUI_Body_Progression_Columns_Source:SetText("")
-	for index = 1, 4 do GetControl("SPT_GUI_Body_Progression_Columns_Cell" .. index):SetText("") end
+	SPT_GUI_Body_Progression_Columns_AccountTotal:SetText("")
+	for index = 1, 4 do
+		local header = GetControl("SPT_GUI_Body_Progression_Columns_Cell" .. index)
+		header:SetText("")
+		header:SetFont("ZoFontGamepad22")
+		header:SetColor(1, 1, 1, 1)
+	end
 	SPT_GUI_Body_Progression_HorizontalScroll:SetHidden(true)
 	SPT_UpdateInfoPanel("")
 end
@@ -1060,20 +1139,24 @@ local function SPT_EnsureProgressionList()
 	progressionList:AddDataTemplate("SPT_ProgressionTemplate", function(control, data, selected)
 		control.data = data
 		local source = control:GetNamedChild("_Source")
-		source:SetText(data.source or "")
+		source:SetText(data.sourceName or data.source or "")
+		source:SetWidth(data.accountTotal and 150 or 250)
 		source:SetColor(data.groupId and 0.91 or 1, data.groupId and 0.87 or 1, data.groupId and 0.70 or 1, 1)
+		control:GetNamedChild("_AccountTotal"):SetText(data.accountTotal or "")
 		for index = 1, 4 do control:GetNamedChild("_Cell" .. index):SetText(data.cells[index] or "") end
 		local highlight = control:GetNamedChild("Highlight")
 		highlight:SetHidden(not (selected or tabSelectedData[currentTab] == data))
 	end, nil, nil, nil, function(control)
 		control.data = nil
 		control:GetNamedChild("_Source"):SetText("")
+		control:GetNamedChild("_Source"):SetWidth(250)
+		control:GetNamedChild("_AccountTotal"):SetText("")
 		for index = 1, 4 do control:GetNamedChild("_Cell" .. index):SetText("") end
 	end)
 	progressionList:SetOnTargetDataChangedCallback(function(list, data, _, _, index)
 		SPT_UpdateListSelectedOffset(list, index)
 		tabSelectedData[currentTab] = data
-		SPT_UpdateInfoPanel(data and data.tooltipText or "")
+		SPT_UpdateInfoPanel(data and data.tooltipText or "", data and data.tooltipTitle)
 		SPT_RefreshListVisuals(list)
 		KEYBIND_STRIP:UpdateKeybindButtonGroup(SPT.keybindDescriptors)
 	end)
@@ -1097,7 +1180,11 @@ local function SPT_RenderProgression()
 	SPT_GUI_Body_Progression_Title:SetText(view.title)
 	SPT_GUI_Body_Progression_Columns_Source:SetText(view.sourceHeader)
 	for index = 1, 4 do
-		GetControl("SPT_GUI_Body_Progression_Columns_Cell" .. index):SetText(view.columns[index] or "")
+		local header = GetControl("SPT_GUI_Body_Progression_Columns_Cell" .. index)
+		local current = index == view.currentCharacterColumn
+		header:SetText(view.columns[index] or "")
+		header:SetFont(current and "ZoFontGamepadBold22" or "ZoFontGamepad22")
+		header:SetColor(current and 0.91 or 1, current and 0.87 or 1, current and 0.70 or 1, 1)
 	end
 	progressionList:Clear()
 	for _, row in ipairs(view.rows) do progressionList:AddEntry("SPT_ProgressionTemplate", row) end
@@ -1397,6 +1484,7 @@ end
 
 local function ProcessScanSlice()
 	if not scan.running then return end
+	if not HasScanBudget() then zo_callLater(ProcessScanSlice, 50); return end
 	-- Frame time is fixed during a callback; game time advances while Lua runs.
 	-- Yield at work-unit boundaries, so 8 ms is a cooperative target, not a hard cap.
 	local deadline = GetGameTimeMilliseconds() + SCAN_BUDGET_MS
@@ -1435,7 +1523,7 @@ local function ProcessScanSlice()
 				pd.ZQ[zd.key] = pd.ZQ[zd.key] + ((GCQI(zd.quests[i]) ~= "") and 1 or 0)
 			end
 			pd.ZQTot = pd.ZQTot + pd.ZQ[zd.key]
-			if GetGameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1450,7 +1538,7 @@ local function ProcessScanSlice()
 			local d = gd[scan.index]
 			pd.GD[d.key] = GCQI(d.quest) ~= "" and 1 or 0
 			pd.GDTot = pd.GDTot + pd.GD[d.key]
-			if GetGameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1465,7 +1553,7 @@ local function ProcessScanSlice()
 			local d = pdd[scan.index]
 			pd.PD[d.key] = IAchC(d.achievement) and 1 or 0
 			pd.PDTot = pd.PDTot + pd.PD[d.key]
-			if GetGameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1494,7 +1582,7 @@ local function ProcessScanSlice()
 				end
 			end
 			pd.numSSTot = pd.numSSTot + pd.SS[zd.key]
-			if GetGameTimeMilliseconds() >= deadline then
+			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
 				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
 			end
 		end
@@ -1808,7 +1896,7 @@ function SPT:SetupValues()
 	local function SetupSeparator() end
 	local function OnTargetDataChanged(list, targetData)
 		-- (nothing extra on row change)
-		SPT_UpdateInfoPanel(targetData and targetData.tooltipText or "")
+		SPT_UpdateInfoPanel(targetData and targetData.tooltipText or "", targetData and targetData.tooltipTitle)
 		KEYBIND_STRIP:UpdateKeybindButtonGroup(SPT.keybindDescriptors)
 	end
 	for i = 1, 4 do
@@ -1925,6 +2013,7 @@ function SPT:SetupValues()
 	SPT.scene:RegisterCallback("StateChange", function(_, newState)
 		if newState == SCENE_SHOWING then
 			SPT.active = true
+			SPT:FocusCurrentProgressionCharacter()
 			KEYBIND_STRIP:AddKeybindButtonGroup(SPT.keybindDescriptors)
 			if scan.dirty and currentTab <= 4 then
 				SPT_ShowTabBody(false)
@@ -1968,7 +2057,9 @@ local function SPT_Initialized(eventCode, addonName)
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Progression", EVENT_PLAYER_DEACTIVATED, function()
 		-- Persist a last-frame learn/rank event before its deferred callback can be lost.
 		for _, module in ipairs(progressionModules) do
-			if module.pending then module:Capture() end
+			if module.needsFinalCapture then module:Capture() end
+			module.generation = (module.generation or 0) + 1
+			module.pending, module.capturing, module.rescan, module.needsFinalCapture = false, false, false, false
 		end
 		SPT.progressionReady = false
 	end)

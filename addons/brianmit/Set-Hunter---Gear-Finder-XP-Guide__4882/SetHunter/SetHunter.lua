@@ -5,6 +5,10 @@
 local ADDON_NAME = "SetHunter"
 SetHunter = SetHunter or {}
 local S = SetHunter
+-- bump together with "## Version" in SetHunter.txt (the settings page and the window's
+-- credit line show it)
+S.VERSION = "1.1.0"
+S.AUTHOR = "brianmit"
 local L = S.L
 local D = S.DATA
 
@@ -399,6 +403,19 @@ function S.WishTraitNames(setId)
     return table.concat(names, ", ")
 end
 
+-- Name of an item quality. Mythic items have their own display quality, which the old
+-- SI_ITEMQUALITY list has no name for (it came out empty, e.g. a blank "By quality"
+-- group); SI_ITEMDISPLAYQUALITY knows it. Our own name as the last resort.
+function S.QualityName(quality)
+    local name = SI_ITEMDISPLAYQUALITY and GetString("SI_ITEMDISPLAYQUALITY", quality) or ""
+    if name == "" then name = GetString("SI_ITEMQUALITY", quality) end
+    if name == "" then
+        local mythic = ITEM_DISPLAY_QUALITY_MYTHIC_OVERRIDE
+        name = (mythic and quality == mythic) and L("QUALITY_MYTHIC") or L("QUALITY_OTHER", quality)
+    end
+    return name
+end
+
 -- ---------------------------------------------------------------------------
 -- Wanted pieces on wishlist sets (a piece = a Set Collection slot, e.g. "Bow")
 -- ---------------------------------------------------------------------------
@@ -712,31 +729,247 @@ local function AnnounceWishlist()
 end
 
 -- ---------------------------------------------------------------------------
--- Travel: the location's own node (dungeon / trial entrance), else any known
--- wayshrine in that zone.
+-- Travel: the location's own node (dungeon / trial entrance), else the known
+-- wayshrine CLOSEST to the place: a grind spot ("Skyreach Catacombs" in
+-- Craglorn), a delve / public dungeon / undiscovered dungeon (its entrance on the
+-- zone map around it). The place is looked up on the zone's map: its points of
+-- interest, then the map's area labels. Only a whole zone (overland sets) has no
+-- place: then the wayshrine nearest to you if you're in that zone.
 -- ---------------------------------------------------------------------------
-function S.FindTravelNode(zoneId)
-    if not zoneId or zoneId <= 0 then return nil end
-    local wanted = Squash(GetZoneNameById(zoneId))
-    local zoneIndex = GetZoneIndex(zoneId)
-    local inZone
+local travelCache = {}   -- "zoneId|place" -> { node, how } (cleared when you find a wayshrine)
+S.travelCache = travelCache
+
+-- A known node named like the place: "Dungeon: Fungal Grotto I" for "Fungal Grotto I".
+local function NodeNamed(name)
+    local wanted = Squash(name)
+    if wanted == "" then return nil end
     for node = 1, GetNumFastTravelNodes() do
-        local known, nodeName, _, _, _, _, poiType = GetFastTravelNodeInfo(node)
+        local known, nodeName = GetFastTravelNodeInfo(node)
         if known then
             -- entrances can be named "Dungeon: Fungal Grotto I" / "Trial: ...": also try the part after ":"
             local afterColon = nodeName and nodeName:match(":%s*(.+)$")
             if Squash(nodeName) == wanted or (afterColon and Squash(afterColon) == wanted) then return node end
-            if not inZone and poiType == POI_TYPE_WAYSHRINE then
-                local nodeZoneIndex = GetFastTravelNodePOIIndicies(node)
-                if nodeZoneIndex == zoneIndex then inZone = node end
+        end
+    end
+end
+
+-- Known wayshrines of one zone (by the node's own POI zone, no map needed).
+local function ZoneWayshrines(zoneIndex)
+    local list = {}
+    for node = 1, GetNumFastTravelNodes() do
+        local known, _, _, _, _, _, poiType, _, locked = GetFastTravelNodeInfo(node)
+        if known and not locked and poiType == POI_TYPE_WAYSHRINE
+            and GetFastTravelNodePOIIndicies(node) == zoneIndex then
+            list[#list + 1] = node
+        end
+    end
+    return list
+end
+
+-- Opens zoneId's map (returns false if it can't, or the world map is open: we
+-- never move the map under the player's eyes).
+local function ShowZoneMap(zoneId)
+    if ZO_WorldMap_IsWorldMapShowing and ZO_WorldMap_IsWorldMapShowing() then return false end
+    if not GetMapIndexByZoneId then return false end
+    local mapIndex = GetMapIndexByZoneId(zoneId)
+    if not mapIndex then return false end
+    if SetMapToMapListIndex(mapIndex) == SET_MAP_RESULT_FAILED then return false end
+    return GetCurrentMapZoneIndex() == GetZoneIndex(zoneId)
+end
+
+local function RestoreMap()
+    if SetMapToPlayerLocation() == SET_MAP_RESULT_MAP_CHANGED then
+        CALLBACK_MANAGER:FireCallbacks("OnWorldMapChanged")
+    end
+end
+
+-- Where on the current map a place is: point of interest first, then area labels.
+-- Exact name first, then "contains" (e.g. "Old Orsinium" in a longer label).
+local function PlaceOnMap(zoneIndex, names)
+    local cands = {}
+    for i = 1, GetNumPOIs(zoneIndex) do
+        local x, y = GetPOIMapInfo(zoneIndex, i)
+        if x and (x ~= 0 or y ~= 0) then cands[#cands + 1] = { key = Squash(GetPOIInfo(zoneIndex, i)), x = x, y = y } end
+    end
+    if GetNumMapLocations and GetMapLocationTooltipHeader and GetMapLocationIcon then
+        for i = 1, GetNumMapLocations() do
+            local _, x, y = GetMapLocationIcon(i)
+            if x and (x ~= 0 or y ~= 0) then
+                cands[#cands + 1] = { key = Squash(GetMapLocationTooltipHeader(i)), x = x, y = y }
             end
         end
     end
-    if inZone then return inZone end
-    -- Dungeon not discovered yet: a wayshrine in the zone it sits in.
-    local parent = GetParentZoneId(zoneId)
-    if parent and parent ~= 0 and parent ~= zoneId then return S.FindTravelNode(parent) end
-    return nil
+    for _, exact in ipairs({ true, false }) do
+        for _, name in ipairs(names) do
+            local want = Squash(name)
+            if want ~= "" then
+                for _, c in ipairs(cands) do
+                    if c.key ~= "" and (c.key == want or (not exact and #want >= 5
+                        and (c.key:find(want, 1, true) or (#c.key >= 5 and want:find(c.key, 1, true))))) then
+                        return c.x, c.y
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- The known wayshrine of mapZoneId closest to a place on its map (names), or to
+-- you when names is empty and you're in that zone. Returns node, how.
+local function Closest(mapZoneId, names)
+    local zoneIndex = GetZoneIndex(mapZoneId)
+    local shrines = ZoneWayshrines(zoneIndex)
+    if #shrines == 0 then return nil end
+    if #shrines == 1 then return shrines[1], "only" end
+    if not ShowZoneMap(mapZoneId) then return shrines[1], "nomap" end
+    local px, py, how = nil, nil, nil
+    if #names > 0 then
+        px, py = PlaceOnMap(zoneIndex, names)
+        how = px and "place"
+    end
+    -- "closest to you" only for a whole zone: for a named place it sent players to
+    -- the wrong end of the zone (Skyreach Catacombs -> Shada's Tear)
+    if not px and #names == 0 and GetUnitZoneIndex("player") == zoneIndex then
+        px, py = GetMapPlayerPosition("player")
+        how = (px and (px ~= 0 or py ~= 0)) and "you" or nil
+    end
+    local best, bestD = shrines[1], nil
+    if how then
+        for _, node in ipairs(shrines) do
+            local _, _, x, y, _, _, _, shown = GetFastTravelNodeInfo(node)
+            if shown and x then
+                local d = (x - px) ^ 2 + (y - py) ^ 2
+                if not bestD or d < bestD then best, bestD = node, d end
+            end
+        end
+    end
+    RestoreMap()
+    return best, bestD and how or "first"
+end
+
+-- A known wayshrine of the zone whose name starts with `near` ("Skyreach" ->
+-- "Skyreach Wayshrine"), else one that contains it.
+local function ShrineNamed(zoneIndex, near)
+    local want = Squash(near)
+    if want == "" then return nil end
+    local contains
+    for _, node in ipairs(ZoneWayshrines(zoneIndex)) do
+        local key = Squash((select(2, GetFastTravelNodeInfo(node))))
+        if key:sub(1, #want) == want then return node end
+        if not contains and key:find(want, 1, true) then contains = node end
+    end
+    return contains
+end
+
+-- Last try when the place isn't on the map (not discovered yet): a wayshrine
+-- sharing a distinctive word with it ("Sentinel Docks" -> "Sentinel Wayshrine").
+local COMMON_WORDS = { ruins = true, docks = true, trading = true, catacombs = true, laboratory = true,
+    manse = true, morass = true, prison = true, necropolis = true, gorge = true, wheel = true, scar = true }
+local function ShrineByWord(zoneIndex, names)
+    for _, name in ipairs(names) do
+        for word in zo_strlower(zo_strformat("<<1>>", name)):gmatch("[%w']+") do
+            word = word:gsub("'s$", ""):gsub("[^%w]", "")
+            if #word >= 5 and not COMMON_WORDS[word] then
+                local node = ShrineNamed(zoneIndex, word)
+                if node then return node end
+            end
+        end
+    end
+end
+
+-- Grind spots name their nearest wayshrine by hand (spot.near): the place itself
+-- often isn't on the map until you've been there.
+local nearByPlace
+local function NearFor(place)
+    if not nearByPlace then
+        nearByPlace = {}
+        for _, spot in ipairs(S.DATA.GRIND_SPOTS or {}) do
+            if spot.near then nearByPlace[spot.name] = spot.near end
+        end
+    end
+    return place and nearByPlace[place]
+end
+
+-- place: a spot inside the zone (grind spots); "A / B" means either name.
+-- quick: only "is there any way to travel" (no map lookups; used while painting lists).
+function S.FindTravelNode(zoneId, place, quick)
+    if not zoneId or zoneId <= 0 then return nil end
+    local names = {}
+    if place then
+        for part in place:gmatch("[^/]+") do names[#names + 1] = zo_strtrim(part) end
+    else
+        names[1] = GetZoneNameById(zoneId)
+    end
+    -- the place's own node (dungeon / trial / arena entrance)
+    for _, name in ipairs(names) do
+        local own = NodeNamed(name)
+        if own then return own, "entrance" end
+    end
+    if not place then names = {} end
+    -- the zone with the wayshrines: this one, else the one around it (delve, dungeon, city)
+    local mapZone = zoneId
+    for _ = 1, 3 do
+        if #ZoneWayshrines(GetZoneIndex(mapZone)) > 0 then break end
+        local parent = GetParentZoneId(mapZone)
+        if not parent or parent == 0 or parent == mapZone then return nil end
+        names[#names + 1] = GetZoneNameById(mapZone)
+        mapZone = parent
+    end
+    if #ZoneWayshrines(GetZoneIndex(mapZone)) == 0 then return nil end
+    if quick then return true end
+    local near = NearFor(place)
+    if near then
+        local node = ShrineNamed(GetZoneIndex(mapZone), near)
+        if node then return node, "near" end
+    end
+    local key = zoneId .. "|" .. (place or "")
+    local hit = travelCache[key]
+    if hit and hit.how ~= "you" then return hit.node, hit.how end
+    local node, how = Closest(mapZone, names)
+    if (how == "first" or how == "nomap") and #names > 0 then
+        local byWord = ShrineByWord(GetZoneIndex(mapZone), names)
+        if byWord then node, how = byWord, "word" end
+    end
+    if node and how ~= "nomap" then travelCache[key] = { node = node, how = how } end
+    return node, how
+end
+
+-- /sethunter travelcheck: which wayshrine every grind spot and every place inside a
+-- zone (delve, dungeon, arena...) would travel to, and how it was picked.
+function S.TravelCheck()
+    ZO_ClearTable(travelCache)
+    local HOW = { entrance = "TC_HOW_ENTRANCE", only = "TC_HOW_ONLY", place = "TC_HOW_PLACE",
+                  you = "TC_HOW_YOU", first = "TC_HOW_FIRST", nomap = "TC_HOW_NOMAP",
+                  near = "TC_HOW_NEAR", word = "TC_HOW_WORD" }
+    local bad = 0
+    local function Line(name, zoneId, place)
+        local node, how = S.FindTravelNode(zoneId, place)
+        if not node then
+            S.Print(L("TC_LINE_NONE", name))
+            return
+        end
+        local _, nodeName = GetFastTravelNodeInfo(node)
+        local text = L(HOW[how] or "TC_HOW_FIRST")
+        if how == "first" or how == "nomap" then
+            bad = bad + 1
+            text = "|cE39A3B" .. text .. "|r"
+        end
+        S.Print(L("TC_LINE", name, zo_strformat("<<1>>", nodeName), text))
+    end
+    S.Print(L("TC_HDR_SPOTS"))
+    for _, spot in ipairs(S.DATA.GRIND_SPOTS) do
+        local zoneId = S.ZoneIdByName(spot.zone)
+        if zoneId then Line(spot.name, zoneId, spot.name) end
+    end
+    S.Print(L("TC_HDR_PLACES"))
+    for _, kind in ipairs({ "dungeon", "trial", "arena", "overland" }) do
+        for _, loc in ipairs(S.GetLocations(kind)) do
+            -- whole zones have no single place; only places inside a zone are checked
+            local zoneIndex = GetZoneIndex(loc.id)
+            if loc.id > 0 and #ZoneWayshrines(zoneIndex) == 0 then Line(loc.name, loc.id) end
+        end
+    end
+    S.Print(L("TC_DONE", bad))
 end
 
 -- trials and group arenas can't be done alone: a warning for tooltips and the travel dialog
@@ -748,12 +981,12 @@ function S.GroupNote(zoneId)
     return nil
 end
 
-function S.TravelTo(zoneId)
+function S.TravelTo(zoneId, place)
     if IsUnitInCombat("player") then
         S.Print(L("TRAVEL_COMBAT"))
         return
     end
-    local node = S.FindTravelNode(zoneId)
+    local node = S.FindTravelNode(zoneId, place)
     if not node then
         S.Print(L("TRAVEL_NONE", S.ZoneName(zoneId)))
         return
@@ -1046,6 +1279,8 @@ local function OnSlash(args)
         S.TestDrop()
     elseif sub == "testrun" then
         S.TestRunSummary()
+    elseif sub == "travelcheck" then
+        S.TravelCheck()
     elseif sub == "here" or sub == "wishlist" or sub == "xp" or sub == "items" then
         S.OpenView(sub == "xp" and "xp_spots" or sub)
     else
@@ -1079,6 +1314,8 @@ local function OnAddOnLoaded(_, name)
     if not SLASH_COMMANDS["/sh"] then SLASH_COMMANDS["/sh"] = OnSlash end
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    -- a newly found wayshrine can be closer than the one picked before
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_FAST_TRAVEL_NETWORK_UPDATED, function() ZO_ClearTable(travelCache) end)
     if EVENT_ITEM_SET_COLLECTION_UPDATED then
         EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ITEM_SET_COLLECTION_UPDATED, function(_, itemSetId, unlockedMask)
             RecordUnlocks(itemSetId, unlockedMask)
@@ -1092,6 +1329,7 @@ local function OnAddOnLoaded(_, name)
     S.InitRuns()
     S.InitXP()
     S.InitAlerts()
+    if S.InitTooltips then S.InitTooltips() end
     S.InitSettings()
 end
 

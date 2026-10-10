@@ -291,7 +291,11 @@
 				</Label>
 				<Label name="$(parent)_Cell1" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
 					<Dimensions x="135" y="36" />
-					<Anchor point="TOPLEFT" relativeTo="$(parent)_Source" relativePoint="TOPRIGHT" />
+					<Anchor point="TOPLEFT" offsetX="256" />
+				</Label>
+				<Label name="$(parent)_AccountTotal" font="ZoFontGamepad22" maxLineCount="1" horizontalAlignment="RIGHT" verticalAlignment="CENTER">
+					<Dimensions x="90" y="36" />
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)_Cell1" relativePoint="TOPLEFT" offsetX="-10" />
 				</Label>
 				<Label name="$(parent)_Cell2" font="ZoFontGamepad22" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER" verticalAlignment="CENTER">
 					<Dimensions x="135" y="36" />

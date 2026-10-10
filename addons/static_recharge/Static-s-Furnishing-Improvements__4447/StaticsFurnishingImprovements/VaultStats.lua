@@ -49,12 +49,15 @@ Description:	Initializes all of the variables and tables.
 function VaultStats:Initialize(Parent)
   self.Parent = Parent
   self.Categories = LibStatic:PairedListNew(
-    {"Services", "Conservatory", "Courtyard", "Dining", "Gallery", "Hearth", "Library", "Lighting", "Parlor", "Structures", "Suite", "Undercroft", "Workshop"},
-    {25, 12, 6, 5, 9, 8, 4, 11, 3, 13, 2, 7, 10}
+    {"Services", "Conservatory", "Courtyard", "Dining", "Gallery", "Hearth", "Library", "Lighting", "Parlor", "Structures", "Suite", "Undercroft", "Workshop", "Miscellaneous"},
+    {25, 12, 6, 5, 9, 8, 4, 11, 3, 13, 2, 7, 10, 14}
   )
   self.SinglesListPool = {}
   self.PairsListPool = {}
   self.eventSpace = "SFIVaultStats"
+
+  -- Session Variables
+  self.showing = false
 
   local function GetCategoryControls(parentControl)
     local controls = {}
@@ -102,6 +105,7 @@ function VaultStats:Initialize(Parent)
   self:AddVaultStatsKeybindButton()
   ZO_CreateStringId("SI_BINDING_NAME_SFI_Deposit_Same_From_House", "Vault Stats")
 
+  self:WindowSceneBinding()
   self:RestoreWindow()
 
 	self.initialized = true
@@ -179,21 +183,44 @@ Description:	Shows/Hides or Toggles the window.
 ------------------------------------------------------------------------------------------------]]--
 function VaultStats:ShowWindow(show)
   local Parent = self:GetParent()
-  local c = self.C
+  local scene = SM:GetCurrentScene()
+
   if show == nil then
-    c.Window:SetHidden(not c.Window:IsHidden())
+    self.showing = not self.showing
   else
-    c.Window:SetHidden(not show)
+    self.showing = show
   end
-  if c.Window:IsHidden() then
-    --SM:SetInUIMode(false)
-  else
-    self:UpdateStorageData()
-    if ZO_IsTableEmpty(Parent.SV.Data) then
-      Parent.Chat:Msg("No Furniture Vault data found. Please visit a house you own to update the data.")
-    end
+    
+  if self.showing then
+    self.C.Window:SetHidden(false)
     SM:SetInUIMode(true)
+  else
+    self.C.Window:SetHidden(true)
   end
+end
+
+
+--[[------------------------------------------------------------------------------------------------
+VaultStats:WindowSceneBinding()
+Inputs:				None                                
+Outputs:			None
+Description:	Binds the vault window to the required scenes.
+------------------------------------------------------------------------------------------------]]--
+function VaultStats:WindowSceneBinding()
+  local Parent = self:GetParent()
+  local c = self.C
+
+  Parent.Scenes.hud:RegisterCallback("StateChange", function(oldState, newState)
+    if newState == SCENE_SHOWING then
+      self:ShowWindow(false)
+    end
+  end)
+
+  Parent.Scenes.furnitureVaultScene:RegisterCallback("StateChange", function(oldState, newState)
+    if newState == SCENE_SHOWING and Parent.SV.vaultAutoShow then
+      self:ShowWindow(true)
+    end
+  end)
 end
 
 

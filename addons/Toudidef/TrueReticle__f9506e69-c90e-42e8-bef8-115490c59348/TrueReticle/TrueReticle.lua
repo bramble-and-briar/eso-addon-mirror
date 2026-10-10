@@ -127,7 +127,7 @@ function TrueReticle:InitializeSettingsMenu()
         type = "panel",
         name = "TrueReticle",
         displayName = "TrueReticle Settings",
-        author = "|cff5900To|r|cb56648u|r|c906c6cd|r|c6a7391i|r|c1581fcef|r",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = CURRENT_VERSION,
         slashCommand = "/truereticle",
         registerForRefresh = true,

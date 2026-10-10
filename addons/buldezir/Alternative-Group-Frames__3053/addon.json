@@ -8,8 +8,8 @@
   "category_id": "21",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3053",
@@ -18,7 +18,7 @@
     "AltGroupFrames"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3053/",
-  "fingerprint": "15aa48026f74d6e4c923da3633ae84361def88dc708928bd86f322524ba93e18",
+  "fingerprint": "d4c7fd509b4c5ca1a5415885558b151b03ad25addfe75a73d7a68104f52b0599",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10248.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "3053",
   "source_url": "https://www.esoui.com/downloads/info3053-AlternativeGroupFrames.html",
   "stats": {
-    "downloads": 33218,
+    "downloads": 34312,
     "favorites": 40,
-    "monthly_downloads": 1189
+    "monthly_downloads": 1383
   },
   "title": "Alternative Group Frames",
-  "updated_at": 1789635088000,
-  "version": "1.4.33"
+  "updated_at": 1791548001000,
+  "version": "1.4.38"
 }

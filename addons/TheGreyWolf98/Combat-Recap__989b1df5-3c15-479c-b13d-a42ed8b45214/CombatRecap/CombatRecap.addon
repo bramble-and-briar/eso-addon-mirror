@@ -1,0 +1,14 @@
+## Title: Combat Recap
+## Author: @TheGreyWolf98
+## Description: Personal combat summaries and light attack weaving observations.
+## APIVersion: 101050 101051
+## AddOnVersion: 8
+## Version: 1.0.1
+## IsLibrary: False
+## SavedVariables: CombatRecapSavedVariables
+
+Core.lua
+BuildData.lua
+Tracker.lua
+UI.lua
+Main.lua

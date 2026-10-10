@@ -3,6 +3,18 @@
 
 
 
+[color=#6FCB9F]Version: 4.8.004612[/color]
+[color=#8C8A82]Release date: 10.10.2026[/color]
+
+Maintenance release focused on simpler code and accurate developer comments, without changing features or saved-data formats.
+
+- Material Table: Consolidated the shared refresh sequence used by seven view-navigation functions, preserving their individual checks, state, sorting, focus handling, and window-opening behavior.
+- Valuation: Removed the unused legacy material-search function and its two local string helpers. Search continues to filter the active material, Changes, or Dynamics view.
+- Settings: Declared the final panel structure directly instead of regrouping controls by localized names. Control order, visible sections, defaults, callbacks, dependent-toggle behavior, and the density reload requirement are unchanged.
+- Code Comments: Corrected outdated descriptions of tabs, search scope, automatic snapshots, review baselines, price history, withdrawal monitoring, and layout. Shortened redundant explanations while retaining SavedVariables safety rules and protected-action requirements. Interface text and functionality are unchanged.
+
+
+
 [color=#6FCB9F]Version: 4.7.181736[/color]
 [color=#8C8A82]Release date: 06.10.2026[/color]
 

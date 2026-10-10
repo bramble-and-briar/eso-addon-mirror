@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Coorbin/Apostrophe-Name-Fix__4936",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Coorbin",
+  "canonical_id": "esoui:4936",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4936",
+  "deleted": false,
+  "directories": [
+    "ApostropheNameFix"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4936/",
+  "fingerprint": "256fc1f9f31f5efe2f630551e7c84f780336f73ba801ccf9091a9b1cbad78297",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17859.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4936",
+  "source_url": "https://www.esoui.com/downloads/info4936-ApostropheNameFix.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Apostrophe Name Fix",
+  "updated_at": 1791594528000,
+  "version": "0.2.0"
+}

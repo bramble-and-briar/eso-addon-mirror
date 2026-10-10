@@ -1,7 +1,7 @@
 ## Title: Gorethief Tracker
 ## Author: CodeWarrior82
 ## Description: Tracks the amount of Gorethief stacks you have.
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## OptionalDependsOn: LibNotify
 ## SavedVariables: gttAddonVars

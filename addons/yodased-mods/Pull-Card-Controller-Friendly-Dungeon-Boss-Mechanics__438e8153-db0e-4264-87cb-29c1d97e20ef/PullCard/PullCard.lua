@@ -2,7 +2,7 @@ PullCard = PullCard or {}
 local PC = PullCard
 
 PC.name = "PullCard"
-PC.version = "0.5.1"
+PC.version = "0.5.4"
 PC.window = nil
 PC.savedVars = nil
 PC.closeAtMs = 0
@@ -222,18 +222,34 @@ function PC:UpdateCountdown()
     self.window.timer:SetText(string.format("%ds", math.ceil(remainingMs / 1000)))
 end
 
+-- Long cards stay up long enough to read: ~3.5 words a second at TV distance.
+-- The Card display time setting is the minimum; capped so nothing lingers forever.
+local READING_WORDS_PER_SECOND = 3.5
+local MAX_DISPLAY_SECONDS = 60
+
+function PC:GetCardDisplaySeconds()
+    local words = 0
+    for _, label in ipairs({ self.window.body, self.window.role }) do
+        for _ in (label.pullCardText or ""):gmatch("%S+") do
+            words = words + 1
+        end
+    end
+    local readingSeconds = math.ceil(words / READING_WORDS_PER_SECOND)
+    return math.min(math.max(self:GetDisplaySeconds(), readingSeconds), MAX_DISPLAY_SECONDS)
+end
+
 function PC:OpenWindow()
     if not self.window then return end
     self.window:SetHidden(false)
+    self:Render()
 
-    self.closeAtMs = GetFrameTimeMilliseconds() + self:GetDisplaySeconds() * 1000
+    self.closeAtMs = GetFrameTimeMilliseconds() + self:GetCardDisplaySeconds() * 1000
     EVENT_MANAGER:UnregisterForUpdate(self.name .. "Countdown")
     EVENT_MANAGER:RegisterForUpdate(self.name .. "Countdown", 200, function()
         PC:UpdateCountdown()
     end)
 
     self:UpdateCountdown()
-    self:Render()
 end
 
 function PC:CloseWindow()
@@ -317,6 +333,13 @@ function PC:RefreshRound()
     self:OpenWindow()
 end
 
+-- Sets a card label's text and keeps our own copy: sizing and reading time use
+-- the copy, because reading text back from a label isn't reliable on console.
+function PC:SetCardText(label, text)
+    label.pullCardText = text or ""
+    label:SetText(label.pullCardText)
+end
+
 function PC:Render()
     if not self.window then return end
 
@@ -325,13 +348,13 @@ function PC:Render()
 
     if not bossName then
         self.window.title:SetText("PullCard")
-        self.window.body:SetText("No active boss detected.")
-        self.window.role:SetText("")
+        self:SetCardText(self.window.body, "No active boss detected.")
+        self:SetCardText(self.window.role, "")
     elseif data then
         local summary = data.summary or "Watch the encounter flow, protect your team, and execute one clean mechanic cycle."
         self.window.title:SetText((data.dungeon or "Dungeon") .. " — " .. (data.title or bossName))
         local mechanicsLabel = data.area and "MECHANICS" or "EVERYONE"
-        self.window.body:SetText("SUMMARY\n" .. summary .. "\n\n" .. mechanicsLabel .. "\n" .. (data.everyone or "No notes yet."))
+        self:SetCardText(self.window.body, "SUMMARY\n" .. summary .. "\n\n" .. mechanicsLabel .. "\n" .. (data.everyone or "No notes yet."))
 
         local sections = {}
         local roleText = self:GetPlayerRoleText(data)
@@ -340,26 +363,32 @@ function PC:Render()
         end
         if GetCurrentZoneDungeonDifficulty() == DUNGEON_DIFFICULTY_VETERAN then
             if data.hardmode then
-                table.insert(sections, "HARD MODE\n" .. data.hardmode)
+                local status = self:GetAchievementStatusText(data.hardmodeAchievement, data.dungeon):upper()
+                table.insert(sections, "HARD MODE" .. status .. "\n" .. data.hardmode)
             end
             for _, challenge in ipairs(data.challenges) do
-                table.insert(sections, "CHALLENGE\n" .. challenge.text)
+                local status = self:GetChallengeStatusText(challenge, data.dungeon):upper()
+                table.insert(sections, "CHALLENGE" .. status .. "\n" .. challenge.text)
             end
         end
-        self.window.role:SetText(table.concat(sections, "\n\n"))
+        self:SetCardText(self.window.role, table.concat(sections, "\n\n"))
     else
         self.window.title:SetText(bossName)
-        self.window.body:SetText("Boss detected, but no PullCard exists yet.")
-        self.window.role:SetText("")
+        self:SetCardText(self.window.body, "Boss detected, but no PullCard exists yet.")
+        self:SetCardText(self.window.role, "")
     end
 
     local debug = self:GetDebugText()
     if debug ~= "" then
-        self.window.debug:SetText(debug)
+        self:SetCardText(self.window.debug, debug)
         self.window.debug:SetHidden(false)
     else
+        self:SetCardText(self.window.debug, "")
         self.window.debug:SetHidden(true)
     end
+
+    -- Size the card to its text.
+    self:LayoutWindow()
 end
 
 function PC:Browse(delta)
@@ -493,15 +522,17 @@ function PC:RegisterConsoleMenu()
     local options = {
         {
             type = "button",
-            name = "Explain Boss to Group",
+            name = "Share Boss Strategy",
+            -- Read-only: opening chat from this menu locks the controller on
+            -- console, so sharing happens by typing /currentboss in chat.
             tooltip = function()
                 local text = PC:GetChatText()
                 if not text then
-                    return "No boss yet. Get near a boss, or open one from the menu below. Also available as /currentboss."
+                    return "No boss yet. Get near a boss, or open one from the menu below.\n\nTo share a strategy, type /currentboss in chat (Group channel), or /pullcard and part of a boss name."
                 end
-                return "Fills your chat box with this (you press send):\n\n" .. text .. "\n\nMake sure chat is on the Group channel. Also available by typing /currentboss."
+                return "To share this with your group, type /currentboss in chat on the Group channel and press send:\n\n" .. text
             end,
-            func = function() PC:PrefillGroupChat() end,
+            func = function() end,
         },
         {
             type = "submenu",
@@ -549,7 +580,7 @@ function PC:BuildSettingsOptions()
         {
             type = "slider",
             name = "Card display time (seconds)",
-            tooltip = "How long the PullCard stays on screen before closing.",
+            tooltip = "Minimum time the PullCard stays on screen. Longer cards automatically stay up longer so you can read them (up to 60 seconds).",
             min = 3,
             max = 60,
             step = 1,
@@ -606,6 +637,64 @@ function PC:BuildSettingsOptions()
     }
 end
 
+-- Achievements by name, built on first use from the game's achievement list,
+-- so the data only needs names (English client). Some names are shared between
+-- dungeons (e.g. "Speed Reader"), so each name keeps every match plus its
+-- description, and the dungeon named in the description picks the right one.
+function PC:GetAchievementIdByName(name, dungeonName)
+    if not self.achievementIds then
+        self.achievementIds = {}
+        pcall(function()
+            local function add(id)
+                local guard = 0
+                while id and id ~= 0 and guard < 20 do
+                    local achName, description = GetAchievementInfo(id)
+                    if achName and achName ~= "" then
+                        local key = NormalizeBossName(achName)
+                        self.achievementIds[key] = self.achievementIds[key] or {}
+                        table.insert(self.achievementIds[key], { id = id, description = NormalizeBossName(description) })
+                    end
+                    id = GetNextAchievementInLine and GetNextAchievementInLine(id) or nil
+                    guard = guard + 1
+                end
+            end
+            for top = 1, GetNumAchievementCategories() do
+                local _, numSub, numAch = GetAchievementCategoryInfo(top)
+                for i = 1, (numAch or 0) do add(GetAchievementId(top, nil, i)) end
+                for sub = 1, (numSub or 0) do
+                    local _, subNum = GetAchievementSubCategoryInfo(top, sub)
+                    for i = 1, (subNum or 0) do add(GetAchievementId(top, sub, i)) end
+                end
+            end
+        end)
+    end
+
+    local matches = self.achievementIds[NormalizeBossName(name)]
+    if not matches then return nil end
+    if #matches > 1 and dungeonName then
+        local wanted = NormalizeZoneName(dungeonName)
+        for _, match in ipairs(matches) do
+            if match.description:find(wanted, 1, true) then
+                return match.id
+            end
+        end
+    end
+    return matches[1].id
+end
+
+-- " (done)" / " (not done)" for a named achievement; "" when it can't be looked up.
+-- dungeonName picks the right one when several achievements share the name.
+function PC:GetAchievementStatusText(achievementName, dungeonName)
+    if not achievementName then return "" end
+    local id = self:GetAchievementIdByName(achievementName, dungeonName)
+    if not id then return "" end
+    return IsAchievementComplete(id) and " (done)" or " (not done)"
+end
+
+function PC:GetChallengeStatusText(challenge, dungeonName)
+    return self:GetAchievementStatusText(challenge.name, dungeonName)
+end
+
 local function FormatEncounterTooltip(encounter)
     local text = encounter.title .. "\n"
     if encounter.summary then
@@ -624,11 +713,12 @@ local function FormatEncounterTooltip(encounter)
         text = text .. "\n\nDPS: " .. encounter.dps
     end
     if encounter.hardmode then
-        text = text .. "\n\nHard Mode: " .. encounter.hardmode
+        local label = encounter.hardmodeAchievement and ("Hard Mode (" .. encounter.hardmodeAchievement .. ")") or "Hard Mode"
+        text = text .. "\n\n" .. label .. PC:GetAchievementStatusText(encounter.hardmodeAchievement, encounter.dungeon) .. ": " .. encounter.hardmode
     end
     for _, challenge in ipairs(encounter.challenges) do
         local label = challenge.name and ("Challenge (" .. challenge.name .. ")") or "Challenge"
-        text = text .. "\n\n" .. label .. ": " .. challenge.text
+        text = text .. "\n\n" .. label .. PC:GetChallengeStatusText(challenge, encounter.dungeon) .. ": " .. challenge.text
     end
     if encounter.tldr then
         text = text .. "\n\nQuick: " .. encounter.tldr
@@ -643,6 +733,82 @@ local function GetDungeonMenuLabel(dungeon)
     return dungeon.name
 end
 
+-- One-screen summary of a dungeon: bosses, hard mode, drops, challenge progress.
+local function FormatDungeonOverview(dungeon)
+    local lines = { GetDungeonMenuLabel(dungeon) }
+    if dungeon.location then
+        table.insert(lines, "Location: " .. dungeon.location)
+    end
+    table.insert(lines, "")
+
+    local bossLabel = dungeon.category == "solo" and "Rounds:" or "Bosses:"
+    table.insert(lines, bossLabel)
+    local hardmode
+    local done, known, total = 0, 0, 0
+    local counted = {}
+    -- Count each achievement once, even if it's on a boss and in the dungeon list.
+    local function count(name)
+        local key = NormalizeBossName(name)
+        if counted[key] then return end
+        counted[key] = true
+        total = total + 1
+        local status = PC:GetAchievementStatusText(name, dungeon.name)
+        if status ~= "" then
+            known = known + 1
+            if status == " (done)" then done = done + 1 end
+        end
+    end
+    for i, encounter in ipairs(dungeon.encounters) do
+        table.insert(lines, i .. ". " .. encounter.title)
+        hardmode = encounter.hardmode or hardmode
+        local names = {}
+        if encounter.hardmodeAchievement then table.insert(names, encounter.hardmodeAchievement) end
+        for _, challenge in ipairs(encounter.challenges) do
+            if challenge.name then table.insert(names, challenge.name) end
+        end
+        for _, name in ipairs(names) do count(name) end
+    end
+
+    if hardmode then
+        table.insert(lines, "")
+        table.insert(lines, "Hard mode: " .. hardmode)
+    end
+
+    if dungeon.sets then
+        table.insert(lines, "")
+        table.insert(lines, "Sets:")
+        for _, setName in ipairs(dungeon.sets) do
+            table.insert(lines, "- " .. setName)
+        end
+    end
+    if dungeon.monsterSet then
+        table.insert(lines, "")
+        table.insert(lines, "Monster set: " .. dungeon.monsterSet)
+        table.insert(lines, "- Mask: final boss on Veteran")
+        table.insert(lines, "- Shoulders: Undaunted")
+    end
+
+    if dungeon.achievements and #dungeon.achievements > 0 then
+        table.insert(lines, "")
+        table.insert(lines, "Achievements:")
+        for _, name in ipairs(dungeon.achievements) do
+            table.insert(lines, "- " .. name .. PC:GetAchievementStatusText(name, dungeon.name))
+            count(name)
+        end
+    end
+
+    if total > 0 then
+        table.insert(lines, "")
+        if known > 0 then
+            table.insert(lines, "Achievement progress: " .. done .. " of " .. known .. " done (includes boss challenges)")
+        else
+            table.insert(lines, "Achievement progress: not available")
+        end
+    end
+
+    return table.concat(lines, "\n")
+end
+
 function PC:BuildDungeonSubmenus(categoryKey)
     local dungeons = {}
     for _, dungeon in ipairs(PullCardData.dungeonOrder) do
@@ -654,13 +820,21 @@ function PC:BuildDungeonSubmenus(categoryKey)
 
     local submenus = {}
     for _, dungeon in ipairs(dungeons) do
-        -- Bosses stay in data (run) order.
-        local bossOptions = {}
+        -- Overview first, then bosses in data (run) order. Tooltips are
+        -- functions so achievement progress is current when highlighted.
+        local bossOptions = {
+            {
+                type = "button",
+                name = "Dungeon Overview",
+                tooltip = function() return FormatDungeonOverview(dungeon) end,
+                func = function() end,
+            },
+        }
         for _, encounter in ipairs(dungeon.encounters) do
             table.insert(bossOptions, {
                 type = "button",
                 name = encounter.title,
-                tooltip = FormatEncounterTooltip(encounter),
+                tooltip = function() return FormatEncounterTooltip(encounter) end,
                 func = function()
                     PC:SetBoss(encounter, nil, "manual")
                     PC:OpenWindow()
@@ -691,14 +865,79 @@ end
 local FONT_TITLE = "$(GAMEPAD_BOLD_FONT)|32|soft-shadow-thick"
 local FONT_BODY = "$(GAMEPAD_MEDIUM_FONT)|25|soft-shadow-thick"
 local FONT_SMALL = "$(GAMEPAD_MEDIUM_FONT)|20|soft-shadow-thick"
+-- Body sizes tried in order until the card fits on screen.
+local BODY_SIZES = { 25, 22, 20 }
+local function BodyFont(size)
+    return "$(GAMEPAD_MEDIUM_FONT)|" .. size .. "|soft-shadow-thick"
+end
+local CARD_WIDTH = 960
+local CARD_PADDING = 18
+local SECTION_GAP = 12
+local MAX_SCREEN_SHARE = 0.9
+local TEXT_WIDTH = CARD_WIDTH - 2 * CARD_PADDING
+
+-- Text height is estimated from the text itself (GetTextHeight reports a single
+-- line on console). Calibrated in-game: at 25pt ~86 characters fill 744 px,
+-- i.e. ~0.35 x font size per character; 0.40 errs toward extra space, never
+-- toward cutting text off. Line height ~1.3 x font size.
+local CHAR_WIDTH_FACTOR = 0.40
+local LINE_HEIGHT_FACTOR = 1.3
+
+local function CardText(label)
+    return label.pullCardText or ""
+end
+
+local function EstimateTextHeight(text, size)
+    if not text or text == "" then return 0 end
+    local charsPerLine = math.max(1, math.floor(TEXT_WIDTH / (size * CHAR_WIDTH_FACTOR)))
+    local lines = 0
+    for paragraph in (text .. "\n"):gmatch("(.-)\n") do
+        lines = lines + math.max(1, math.ceil(#paragraph / charsPerLine))
+    end
+    return math.ceil(lines * size * LINE_HEIGHT_FACTOR)
+end
+
+-- Fits the card's height to its text (so nothing is cut off), shrinking the
+-- body font if needed so it never runs off screen.
+function PC:LayoutWindow()
+    local w = self.window
+    if not w then return end
+
+    local maxHeight = GuiRoot:GetHeight() * MAX_SCREEN_SHARE
+    local titleH = math.ceil(32 * LINE_HEIGHT_FACTOR)
+    local debugH = w.debug:IsHidden() and 0 or EstimateTextHeight(CardText(w.debug), 20)
+    local debugBlock = debugH > 0 and (SECTION_GAP + debugH) or 0
+
+    local total, bodyH, roleH
+    for _, size in ipairs(BODY_SIZES) do
+        -- Never less than one line, so a section can't collapse to zero height.
+        bodyH = math.max(EstimateTextHeight(CardText(w.body), size), math.ceil(size * LINE_HEIGHT_FACTOR))
+        roleH = EstimateTextHeight(CardText(w.role), size)
+        total = CARD_PADDING + titleH + SECTION_GAP + bodyH + SECTION_GAP + roleH + debugBlock + CARD_PADDING
+        w.body:SetFont(BodyFont(size))
+        w.role:SetFont(BodyFont(size))
+        if total <= maxHeight then break end
+    end
+
+    -- Still too tall at the smallest font: the body gives up the overflow.
+    if total > maxHeight then
+        bodyH = math.max(bodyH - (total - maxHeight), 0)
+        total = maxHeight
+    end
+
+    w.body:SetHeight(bodyH)
+    w.role:SetHeight(roleH)
+    w.debug:SetHeight(debugH)
+    w:SetHeight(total)
+end
 
 function PC:CreateWindow()
     local wm = WINDOW_MANAGER
 
     local top = wm:CreateTopLevelWindow("PullCardWindow")
     self.window = top
-    top:SetDimensions(780, 700)
-    top:SetAnchor(CENTER, GuiRoot, CENTER, 0, 80)
+    top:SetDimensions(CARD_WIDTH, 400)
+    top:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     top:SetMovable(true)
     top:SetMouseEnabled(true)
     top:SetClampedToScreen(true)
@@ -715,13 +954,13 @@ function PC:CreateWindow()
     timer:SetFont(FONT_TITLE)
     timer:SetColor(0.8, 0.8, 0.8, 1)
     timer:SetDimensions(70, 40)
-    timer:SetAnchor(TOPRIGHT, top, TOPRIGHT, -18, 16)
+    timer:SetAnchor(TOPRIGHT, top, TOPRIGHT, -CARD_PADDING, CARD_PADDING)
     timer:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
     local title = wm:CreateControl(nil, top, CT_LABEL)
     top.title = title
     title:SetFont(FONT_TITLE)
-    title:SetAnchor(TOPLEFT, top, TOPLEFT, 18, 16)
+    title:SetAnchor(TOPLEFT, top, TOPLEFT, CARD_PADDING, CARD_PADDING)
     title:SetAnchor(TOPRIGHT, timer, TOPLEFT, -10, 0)
     title:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     title:SetText("PullCard")
@@ -729,24 +968,26 @@ function PC:CreateWindow()
     local body = wm:CreateControl(nil, top, CT_LABEL)
     top.body = body
     body:SetFont(FONT_BODY)
-    body:SetAnchor(TOPLEFT, title, BOTTOMLEFT, 0, 16)
-    body:SetAnchor(TOPRIGHT, title, BOTTOMRIGHT, 0, 16)
+    -- Full card width (under the timer too). Starts with a real height (a label
+    -- with no height draws as one unwrapped line); LayoutWindow resizes it.
+    body:SetAnchor(TOPLEFT, title, BOTTOMLEFT, 0, SECTION_GAP)
+    body:SetAnchor(TOPRIGHT, timer, BOTTOMRIGHT, 0, SECTION_GAP)
     body:SetHeight(250)
     body:SetVerticalAlignment(TEXT_ALIGN_TOP)
 
     local role = wm:CreateControl(nil, top, CT_LABEL)
     top.role = role
     role:SetFont(FONT_BODY)
-    role:SetAnchor(TOPLEFT, body, BOTTOMLEFT, 0, 10)
-    role:SetAnchor(TOPRIGHT, body, BOTTOMRIGHT, 0, 10)
-    role:SetHeight(240)
+    role:SetAnchor(TOPLEFT, body, BOTTOMLEFT, 0, SECTION_GAP)
+    role:SetAnchor(TOPRIGHT, body, BOTTOMRIGHT, 0, SECTION_GAP)
+    role:SetHeight(100)
     role:SetVerticalAlignment(TEXT_ALIGN_TOP)
 
     local debug = wm:CreateControl(nil, top, CT_LABEL)
     top.debug = debug
     debug:SetFont(FONT_SMALL)
-    debug:SetAnchor(TOPLEFT, role, BOTTOMLEFT, 0, 8)
-    debug:SetAnchor(TOPRIGHT, role, BOTTOMRIGHT, 0, 8)
+    debug:SetAnchor(TOPLEFT, role, BOTTOMLEFT, 0, SECTION_GAP)
+    debug:SetAnchor(TOPRIGHT, role, BOTTOMRIGHT, 0, SECTION_GAP)
     debug:SetHeight(100)
     debug:SetVerticalAlignment(TEXT_ALIGN_TOP)
 end
@@ -771,6 +1012,7 @@ function PC:Initialize()
             PC:RefreshRound()
         end, 500)
     end)
+
 
     -- Fires on subzone changes too: that's how solo-arena rounds are detected.
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ZONE_CHANGED, function()

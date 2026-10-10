@@ -12,41 +12,13 @@ local stringformat = string.format
 local HISTORY_CLEANUP_DIALOG = "BUREAU_OF_MATERIAL_WORTH_HISTORY_CLEANUP"
 local historyCleanupSummary
 
--- Default account-wide configuration. Kept deliberately small: this addon has
--- no gameplay-affecting state, only presentation/diagnostics.
---   debugMode             chat verbosity (mirrors the core's debugMode contract)
---   showCategoryBreakdown show per-profession subtotals under the grand total
---   showCategoryIcons     draw a profession icon left of each category name
---   colorScaleGold        tint gold figures by magnitude (dim -> hot) instead of flat gold
---   sortByValue           order category rows by descending value (vs profession order)
---   detailColumnMode      "basic" (name/qty/value) or "analytics" (adds cumulative share and price change)
---   deltaMode             footer-change baseline: "visit" (until manually viewed, persists) or "session" (until manually viewed or reloadui/logout)
---   showBackground        draw the panel's dark background fill
---   showBorder            draw the panel's border edge
---   windowWidth           panel width in px (see Window MIN/MAX/STEP bounds)
---   windowOffsetX/Y       fine-tune the window position relative to ZO_CraftBag
---   detailWindowLeft/Top  saved absolute position of the material detail window
---   withdrawWindowLeft/Top saved absolute position of the unified withdraw window
---   showInGuildStore      show the panel while the guild store is open (shifted clear of the store UI)
---   lastVisitGold         grand total at the last manually acknowledged visit baseline
---   lastVisitItems        item count at that baseline, retained for legacy-save migration
---   priceHistory          [itemId] = compact bounded series "price~time~source|..."
---   priceTrendThreshold   minimum absolute movement shown in the seven-day price trend view
---   priceTrendAlerts      compact per-item notification state for deduplication/cooldown
---   showValueHistory      draw the grand-total sparkline (Craft Bag value over time) in the footer
---   showProfile           show the @account handle + character name on the panel's title line
---   notificationMode      "off", "summary", "important", or "detailed" chat notification mode
---   valueHistory          ring buffer of grand-total samples; { head = <last index, 0 = empty>,
---                         entries = { { t = unix, gold, items }, ... } }. One point per UI
---                         session (login or /reloadui); later Craft Bag opens do not add
---                         another. See Valuation's RecordValuePoint/GetValueHistory.
---   snapshot              manual single snapshot of bag composition for the detail window's
---                         diff view; nil until "Remember" is pressed (then overwritten). Material
---                         entries are compact strings decoded by Valuation's CaptureSnapshot/GetDiffMaterials.
+-- Account/server-wide defaults for presentation, diagnostics, and bounded histories.
+-- priceHistory stores encoded price/time/source series per item; valueHistory is
+-- a ring buffer with one total-value sample per UI session. Valuation owns codecs.
+-- The comparison snapshot is created automatically after prices settle or manually
+-- with Remember; visit/session baselines advance when their changes are reviewed.
 local DEFAULT_SAVED_VARS = {
-    -- Silent by default (0=off), matching the core's shipping debugMode. A fresh
-    -- install must not print diagnostics into chat; the user raises this from the
-    -- settings panel or /bmw debug when reporting a problem.
+    -- Diagnostics are opt-in.
     debugMode = 0,
     showCategoryBreakdown = true,
     showCategoryIcons = true,
@@ -70,7 +42,6 @@ local DEFAULT_SAVED_VARS = {
     valueHistory = { head = 0, entries = {} },
 }
 
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 --
 -- SAVEDVARIABLES SAFETY INVARIANT
 -- ---------------------------------------------------------------------------
@@ -92,30 +63,22 @@ local DEFAULT_SAVED_VARS = {
 -- size explicitly bounded and store scalar/encoded copies rather than borrowed
 -- table references.
 --
--- Bureau archive incident 20-GB: one persistent record entered UI service.
--- The serializer converted the user's free disk space into paperwork. All of it.
+-- A prior persistence/UI cycle grew the save file to about 20 GB.
 --
--- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 local function GetSavedVarsOrDefaults()
     return private.savedVars or DEFAULT_SAVED_VARS
 end
 
 function Settings.GetSavedVars()
-    -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     -- This returns the live persistence root, not a defensive copy. Callers may
     -- read/write known fields, but must preserve the safety invariant above and
     -- must not hand any returned table to UI/framework code that can mutate it.
-    -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     return private.savedVars
 end
 
 function Settings.InitializeSavedVariables()
-    -- Per-server storage. A nil profile makes ZO_SavedVars fall back to the
-    -- "Default" bucket, which is shared across every megaserver, so NA/EU/PTS
-    -- would overwrite each other (and, worse, share one priceHistory even
-    -- though prices differ per server). Passing GetWorldName() as the profile
-    -- segregates the data per megaserver.
+    -- Separate settings and price histories by megaserver.
     local worldName = GetWorldName()
 
     -- Earlier versions saved everything under the shared "Default" profile.
@@ -135,9 +98,7 @@ function Settings.InitializeSavedVariables()
         worldName
     )
 
-    -- Adopt the persisted debug level as the live one on load, so the core's
-    -- debugMode reflects the saved choice (the slash command can still override
-    -- it at runtime).
+    -- Restore a valid persisted diagnostic level.
     local level = tonumber(private.savedVars.debugMode)
     if level and level >= 0 and level <= 4 then
         addon.debugMode = level
@@ -149,21 +110,7 @@ function Settings.InitializeSavedVariables()
     return private.savedVars
 end
 
--- Bring a saved windowWidth back inside the layout's supported range.
--- ---------------------------------------------------------------------------
--- Window.CurrentWidth() clamps defensively every time it reads the value, so a
--- bad save never broke the layout -- but it only clamped the *reading*, leaving
--- the out-of-range number in SavedVariables. The slider's getFunc reads the raw
--- save, so a width carried over from a build with different bounds (or edited by
--- hand) showed one number in the settings panel while the panel rendered
--- another, and the mismatch persisted until the user happened to drag the
--- slider. Normalizing once on load makes the saved value, the slider and the
--- rendered width agree from the first frame.
---
--- Also snaps to the slider's step so the stored value is one the slider can
--- actually represent, and repairs a non-numeric entry (a corrupt or
--- hand-edited save) by falling back to the default rather than leaving a string
--- where the layout expects a number.
+-- Repair, clamp, and snap the persisted width so the window and slider agree.
 function Settings.NormalizeWindowWidth()
     local sv = private.savedVars
     if not sv then
@@ -182,9 +129,7 @@ function Settings.NormalizeWindowWidth()
         return
     end
 
-    -- Snap to the step relative to the range's floor, so the snapped values line
-    -- up with the slider's own stops (min, min+step, ...) instead of multiples of
-    -- the step in absolute terms.
+    -- Slider steps are relative to the minimum, not absolute multiples.
     if step > 0 then
         width = minWidth + zo_round((width - minWidth) / step) * step
     end
@@ -315,9 +260,7 @@ function Settings.RegisterSettingsPanel()
     -- ---------------------------------------------------------------------------
     -- Single source of truth for the panel's read side
     -- ---------------------------------------------------------------------------
-    -- Every control's getFunc, the status dashboard, and the breakdown submenu's
-    -- gating all read these, so the three can never disagree. Defaults mirror
-    -- DEFAULT_SAVED_VARS (the same ~= false / == true sense the window uses).
+    -- Shared getters for controls, status text, and dependent toggle states.
     local function IsBreakdownOn()    return Settings.IsCategoryBreakdownEnabled() end
     local function IsIconsOn()        return GetSavedVarsOrDefaults().showCategoryIcons ~= false end
     local function IsColorScaleOn()   return GetSavedVarsOrDefaults().colorScaleGold ~= false end
@@ -333,9 +276,7 @@ function Settings.RegisterSettingsPanel()
     local function IsGuildStoreOn()   return GetSavedVarsOrDefaults().showInGuildStore ~= false end
     local function GetDeltaMode()     return GetSavedVarsOrDefaults().deltaMode or DEFAULT_SAVED_VARS.deltaMode end
 
-    -- The icon/color/sort controls only do anything while the breakdown is shown
-    -- (see Window.Update, which renders category rows solely inside that branch),
-    -- so they gate on this shared condition rather than going dim only globally.
+    -- Icon/color/sort controls are disabled when category rows are hidden.
     local function BreakdownDisabled()
         return not IsBreakdownOn()
     end
@@ -343,12 +284,7 @@ function Settings.RegisterSettingsPanel()
     -- ---------------------------------------------------------------------------
     -- Live status helpers (panel dashboard + breakdown submenu title tag)
     -- ---------------------------------------------------------------------------
-    -- LAM re-reads function-valued `text`/`name` on every setting change and on
-    -- panel open (registerForRefresh is set), so these read live each time. The
-    -- block reflects the saved configuration, not the live bag value: the
-    -- valuation only runs while the Craft Bag is open, so a value readout here
-    -- would be stale or zero. On = the shipped green, off = the muted label grey;
-    -- mode rows (order/baseline are not on/off) use the neutral label tone.
+    -- The refreshable dashboard describes saved settings, not live inventory value.
     local STATUS_COLOR_ON   = private.COLOR_ACCENT
     local STATUS_COLOR_OFF  = private.COLOR_MUTED
     local STATUS_COLOR_MODE = private.UI.HEX.brass
@@ -433,11 +369,6 @@ function Settings.RegisterSettingsPanel()
             width = "full",
         },
         {
-            type = "description",
-            text = GetString(SI_BMW_PANEL_OVERVIEW),
-            width = "full",
-        },
-        {
             -- Live at-a-glance dashboard. function-valued text so LAM refreshes it
             -- on panel open and after any setting change (registerForRefresh).
             type = "description",
@@ -471,144 +402,6 @@ function Settings.RegisterSettingsPanel()
             width = "full",
         },
         {
-            -- Category-breakdown cluster. The master "show breakdown" toggle plus
-            -- the three controls (icons, color, sort) that only do anything while
-            -- it is on, grouped in a submenu whose title carries a live [on]/[off]
-            -- tag. The dependent controls gate on BreakdownDisabled so they grey
-            -- out together when the breakdown is off.
-            type = "submenu",
-            reference = "BMWSettingsBreakdownGroup",
-            name = function()
-                return GetString(SI_BMW_SUBMENU_BREAKDOWN_NAME) .. "  " .. BoolTag(IsBreakdownOn())
-            end,
-            tooltip = GetString(SI_BMW_SUBMENU_BREAKDOWN_DESCRIPTION),
-            controls = {
-                {
-                    type = "description",
-                    text = GetString(SI_BMW_SUBMENU_BREAKDOWN_DESCRIPTION),
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BMW_SETTING_CATEGORY_BREAKDOWN_NAME),
-                    tooltip = GetString(SI_BMW_SETTING_CATEGORY_BREAKDOWN_TOOLTIP),
-                    getFunc = function() return IsBreakdownOn() end,
-                    setFunc = function(value)
-                        private.savedVars.showCategoryBreakdown = value
-                        if addon.Window then
-                            addon.Window.Update()
-                        end
-                    end,
-                    default = DEFAULT_SAVED_VARS.showCategoryBreakdown,
-                    width = "full",
-                    reference = "BMWSettingsCategoryBreakdown",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BMW_SETTING_CATEGORY_ICONS_NAME),
-                    tooltip = GetString(SI_BMW_SETTING_CATEGORY_ICONS_TOOLTIP),
-                    getFunc = function() return IsIconsOn() end,
-                    setFunc = function(value)
-                        private.savedVars.showCategoryIcons = value
-                        if addon.Window then
-                            addon.Window.Update()
-                        end
-                    end,
-                    default = DEFAULT_SAVED_VARS.showCategoryIcons,
-                    disabled = BreakdownDisabled,
-                    width = "full",
-                    reference = "BMWSettingsCategoryIcons",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BMW_SETTING_COLOR_SCALE_NAME),
-                    tooltip = GetString(SI_BMW_SETTING_COLOR_SCALE_TOOLTIP),
-                    getFunc = function() return IsColorScaleOn() end,
-                    setFunc = function(value)
-                        private.savedVars.colorScaleGold = value
-                        if addon.Window then
-                            addon.Window.Update()
-                        end
-                    end,
-                    default = DEFAULT_SAVED_VARS.colorScaleGold,
-                    disabled = BreakdownDisabled,
-                    width = "full",
-                    reference = "BMWSettingsColorScale",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BMW_SETTING_SORT_BY_VALUE_NAME),
-                    tooltip = GetString(SI_BMW_SETTING_SORT_BY_VALUE_TOOLTIP),
-                    getFunc = function() return IsSortByValueOn() end,
-                    setFunc = function(value)
-                        private.savedVars.sortByValue = value
-                        if addon.Window then
-                            addon.Window.Update()
-                        end
-                    end,
-                    default = DEFAULT_SAVED_VARS.sortByValue,
-                    disabled = BreakdownDisabled,
-                    width = "full",
-                    reference = "BMWSettingsSortByValue",
-                },
-            },
-        },
-        {
-            type = "dropdown",
-            name = GetString(SI_BMW_SETTING_DETAIL_COLUMNS_NAME),
-            tooltip = GetString(SI_BMW_SETTING_DETAIL_COLUMNS_TOOLTIP),
-            choices = {
-                GetString(SI_BMW_SETTING_DETAIL_COLUMNS_BASIC),
-                GetString(SI_BMW_SETTING_DETAIL_COLUMNS_ANALYTICS),
-            },
-            choicesValues = { "basic", "analytics" },
-            getFunc = GetDetailColumnMode,
-            setFunc = function(value)
-                private.savedVars.detailColumnMode = value
-                if addon.DetailWindow then
-                    addon.DetailWindow.ApplyColumnMode()
-                end
-            end,
-            default = DEFAULT_SAVED_VARS.detailColumnMode,
-            width = "full",
-        },
-        {
-            type = "slider",
-            name = GetString(SI_BMW_SETTING_PRICE_TREND_THRESHOLD_NAME),
-            tooltip = GetString(SI_BMW_SETTING_PRICE_TREND_THRESHOLD_TOOLTIP),
-            min = 5,
-            max = 100,
-            step = 5,
-            getFunc = GetPriceTrendThreshold,
-            setFunc = function(value)
-                private.savedVars.priceTrendThreshold = value
-                if addon.Window then
-                    addon.Window.Update()
-                end
-                if addon.DetailWindow then
-                    addon.DetailWindow.Refresh()
-                end
-            end,
-            default = DEFAULT_SAVED_VARS.priceTrendThreshold,
-            width = "full",
-        },
-        {
-            type = "dropdown",
-            name = GetString(SI_BMW_SETTING_DELTA_MODE_NAME),
-            tooltip = GetString(SI_BMW_SETTING_DELTA_MODE_TOOLTIP),
-            choices = { GetString(SI_BMW_SETTING_DELTA_MODE_VISIT), GetString(SI_BMW_SETTING_DELTA_MODE_SESSION) },
-            choicesValues = { "visit", "session" },
-            getFunc = function() return GetDeltaMode() end,
-            setFunc = function(value)
-                private.savedVars.deltaMode = value
-                if addon.Window then
-                    addon.Window.Update()
-                end
-            end,
-            default = DEFAULT_SAVED_VARS.deltaMode,
-            width = "full",
-        },
-        {
             type = "checkbox",
             name = GetString(SI_BMW_SETTING_BACKGROUND_NAME),
             tooltip = GetString(SI_BMW_SETTING_BACKGROUND_TOOLTIP),
@@ -638,20 +431,6 @@ function Settings.RegisterSettingsPanel()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BMW_SETTING_VALUE_HISTORY_NAME),
-            tooltip = GetString(SI_BMW_SETTING_VALUE_HISTORY_TOOLTIP),
-            getFunc = function() return IsValueHistoryOn() end,
-            setFunc = function(value)
-                private.savedVars.showValueHistory = value
-                if addon.Window then
-                    addon.Window.Update()
-                end
-            end,
-            default = DEFAULT_SAVED_VARS.showValueHistory,
-            width = "full",
-        },
-        {
-            type = "checkbox",
             name = GetString(SI_BMW_SETTING_PROFILE_NAME),
             tooltip = GetString(SI_BMW_SETTING_PROFILE_TOOLTIP),
             getFunc = function() return IsProfileOn() end,
@@ -662,38 +441,6 @@ function Settings.RegisterSettingsPanel()
                 end
             end,
             default = DEFAULT_SAVED_VARS.showProfile,
-            width = "full",
-        },
-        {
-            type = "dropdown",
-            name = GetString(SI_BMW_SETTING_NOTIFY_VISIT_NAME),
-            tooltip = GetString(SI_BMW_SETTING_NOTIFY_VISIT_TOOLTIP),
-            choices = {
-                GetString(SI_BMW_SETTING_NOTIFY_MODE_OFF),
-                GetString(SI_BMW_SETTING_NOTIFY_MODE_SUMMARY),
-                GetString(SI_BMW_SETTING_NOTIFY_MODE_IMPORTANT),
-                GetString(SI_BMW_SETTING_NOTIFY_MODE_DETAILED),
-            },
-            choicesValues = { "off", "summary", "important", "detailed" },
-            getFunc = GetNotificationMode,
-            setFunc = function(value)
-                private.savedVars.notificationMode = value
-            end,
-            default = DEFAULT_SAVED_VARS.notificationMode,
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = GetString(SI_BMW_SETTING_GUILD_STORE_NAME),
-            tooltip = GetString(SI_BMW_SETTING_GUILD_STORE_TOOLTIP),
-            getFunc = function() return IsGuildStoreOn() end,
-            setFunc = function(value)
-                private.savedVars.showInGuildStore = value
-                if addon.Window then
-                    addon.Window.Show()
-                end
-            end,
-            default = DEFAULT_SAVED_VARS.showInGuildStore,
             width = "full",
         },
         {
@@ -746,6 +493,208 @@ function Settings.RegisterSettingsPanel()
             end,
             default = DEFAULT_SAVED_VARS.windowOffsetY,
             width = "full",
+        },
+        {
+            type = "submenu",
+            name = GetString(SI_BMW_HEADER_TABLE),
+            controls = {
+                {
+                    -- Category-breakdown cluster. The master "show breakdown" toggle plus
+                    -- the three controls (icons, color, sort) that only do anything while
+                    -- it is on, grouped in a submenu whose title carries a live [on]/[off]
+                    -- tag. The dependent controls gate on BreakdownDisabled so they grey
+                    -- out together when the breakdown is off.
+                    type = "submenu",
+                    reference = "BMWSettingsBreakdownGroup",
+                    name = function()
+                        return GetString(SI_BMW_SUBMENU_BREAKDOWN_NAME) .. "  " .. BoolTag(IsBreakdownOn())
+                    end,
+                    tooltip = GetString(SI_BMW_SUBMENU_BREAKDOWN_DESCRIPTION),
+                    controls = {
+                        {
+                            type = "description",
+                            text = GetString(SI_BMW_SUBMENU_BREAKDOWN_DESCRIPTION),
+                            width = "full",
+                        },
+                        {
+                            type = "checkbox",
+                            name = GetString(SI_BMW_SETTING_CATEGORY_BREAKDOWN_NAME),
+                            tooltip = GetString(SI_BMW_SETTING_CATEGORY_BREAKDOWN_TOOLTIP),
+                            getFunc = function() return IsBreakdownOn() end,
+                            setFunc = function(value)
+                                private.savedVars.showCategoryBreakdown = value
+                                if addon.Window then
+                                    addon.Window.Update()
+                                end
+                            end,
+                            default = DEFAULT_SAVED_VARS.showCategoryBreakdown,
+                            width = "full",
+                            reference = "BMWSettingsCategoryBreakdown",
+                        },
+                        {
+                            type = "checkbox",
+                            name = GetString(SI_BMW_SETTING_CATEGORY_ICONS_NAME),
+                            tooltip = GetString(SI_BMW_SETTING_CATEGORY_ICONS_TOOLTIP),
+                            getFunc = function() return IsIconsOn() end,
+                            setFunc = function(value)
+                                private.savedVars.showCategoryIcons = value
+                                if addon.Window then
+                                    addon.Window.Update()
+                                end
+                            end,
+                            default = DEFAULT_SAVED_VARS.showCategoryIcons,
+                            disabled = BreakdownDisabled,
+                            width = "full",
+                            reference = "BMWSettingsCategoryIcons",
+                        },
+                        {
+                            type = "checkbox",
+                            name = GetString(SI_BMW_SETTING_COLOR_SCALE_NAME),
+                            tooltip = GetString(SI_BMW_SETTING_COLOR_SCALE_TOOLTIP),
+                            getFunc = function() return IsColorScaleOn() end,
+                            setFunc = function(value)
+                                private.savedVars.colorScaleGold = value
+                                if addon.Window then
+                                    addon.Window.Update()
+                                end
+                            end,
+                            default = DEFAULT_SAVED_VARS.colorScaleGold,
+                            disabled = BreakdownDisabled,
+                            width = "full",
+                            reference = "BMWSettingsColorScale",
+                        },
+                        {
+                            type = "checkbox",
+                            name = GetString(SI_BMW_SETTING_SORT_BY_VALUE_NAME),
+                            tooltip = GetString(SI_BMW_SETTING_SORT_BY_VALUE_TOOLTIP),
+                            getFunc = function() return IsSortByValueOn() end,
+                            setFunc = function(value)
+                                private.savedVars.sortByValue = value
+                                if addon.Window then
+                                    addon.Window.Update()
+                                end
+                            end,
+                            default = DEFAULT_SAVED_VARS.sortByValue,
+                            disabled = BreakdownDisabled,
+                            width = "full",
+                            reference = "BMWSettingsSortByValue",
+                        },
+                    },
+                },
+                {
+                    type = "dropdown",
+                    name = GetString(SI_BMW_SETTING_DETAIL_COLUMNS_NAME),
+                    tooltip = GetString(SI_BMW_SETTING_DETAIL_COLUMNS_TOOLTIP),
+                    choices = {
+                        GetString(SI_BMW_SETTING_DETAIL_COLUMNS_BASIC),
+                        GetString(SI_BMW_SETTING_DETAIL_COLUMNS_ANALYTICS),
+                    },
+                    choicesValues = { "basic", "analytics" },
+                    getFunc = GetDetailColumnMode,
+                    setFunc = function(value)
+                        private.savedVars.detailColumnMode = value
+                        if addon.DetailWindow then
+                            addon.DetailWindow.ApplyColumnMode()
+                        end
+                    end,
+                    default = DEFAULT_SAVED_VARS.detailColumnMode,
+                    width = "full",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = GetString(SI_BMW_HEADER_HISTORY),
+            controls = {
+                {
+                    type = "slider",
+                    name = GetString(SI_BMW_SETTING_PRICE_TREND_THRESHOLD_NAME),
+                    tooltip = GetString(SI_BMW_SETTING_PRICE_TREND_THRESHOLD_TOOLTIP),
+                    min = 5,
+                    max = 100,
+                    step = 5,
+                    getFunc = GetPriceTrendThreshold,
+                    setFunc = function(value)
+                        private.savedVars.priceTrendThreshold = value
+                        if addon.Window then
+                            addon.Window.Update()
+                        end
+                        if addon.DetailWindow then
+                            addon.DetailWindow.Refresh()
+                        end
+                    end,
+                    default = DEFAULT_SAVED_VARS.priceTrendThreshold,
+                    width = "full",
+                },
+                {
+                    type = "dropdown",
+                    name = GetString(SI_BMW_SETTING_DELTA_MODE_NAME),
+                    tooltip = GetString(SI_BMW_SETTING_DELTA_MODE_TOOLTIP),
+                    choices = { GetString(SI_BMW_SETTING_DELTA_MODE_VISIT), GetString(SI_BMW_SETTING_DELTA_MODE_SESSION) },
+                    choicesValues = { "visit", "session" },
+                    getFunc = function() return GetDeltaMode() end,
+                    setFunc = function(value)
+                        private.savedVars.deltaMode = value
+                        if addon.Window then
+                            addon.Window.Update()
+                        end
+                    end,
+                    default = DEFAULT_SAVED_VARS.deltaMode,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BMW_SETTING_VALUE_HISTORY_NAME),
+                    tooltip = GetString(SI_BMW_SETTING_VALUE_HISTORY_TOOLTIP),
+                    getFunc = function() return IsValueHistoryOn() end,
+                    setFunc = function(value)
+                        private.savedVars.showValueHistory = value
+                        if addon.Window then
+                            addon.Window.Update()
+                        end
+                    end,
+                    default = DEFAULT_SAVED_VARS.showValueHistory,
+                    width = "full",
+                },
+            },
+        },
+        {
+            type = "submenu",
+            name = GetString(SI_BMW_HEADER_NOTIFICATIONS),
+            controls = {
+                {
+                    type = "dropdown",
+                    name = GetString(SI_BMW_SETTING_NOTIFY_VISIT_NAME),
+                    tooltip = GetString(SI_BMW_SETTING_NOTIFY_VISIT_TOOLTIP),
+                    choices = {
+                        GetString(SI_BMW_SETTING_NOTIFY_MODE_OFF),
+                        GetString(SI_BMW_SETTING_NOTIFY_MODE_SUMMARY),
+                        GetString(SI_BMW_SETTING_NOTIFY_MODE_IMPORTANT),
+                        GetString(SI_BMW_SETTING_NOTIFY_MODE_DETAILED),
+                    },
+                    choicesValues = { "off", "summary", "important", "detailed" },
+                    getFunc = GetNotificationMode,
+                    setFunc = function(value)
+                        private.savedVars.notificationMode = value
+                    end,
+                    default = DEFAULT_SAVED_VARS.notificationMode,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BMW_SETTING_GUILD_STORE_NAME),
+                    tooltip = GetString(SI_BMW_SETTING_GUILD_STORE_TOOLTIP),
+                    getFunc = function() return IsGuildStoreOn() end,
+                    setFunc = function(value)
+                        private.savedVars.showInGuildStore = value
+                        if addon.Window then
+                            addon.Window.Show()
+                        end
+                    end,
+                    default = DEFAULT_SAVED_VARS.showInGuildStore,
+                    width = "full",
+                },
+            },
         },
         {
             type = "header",
@@ -811,65 +760,8 @@ function Settings.RegisterSettingsPanel()
         },
     }
 
-    local byName, diagnostics = {}, {}
-    local inDiagnostics = false
-    for index = 4, #optionsData do
-        local option = optionsData[index]
-        if option.type == "header" and option.name == GetString(SI_BMW_HEADER_DIAGNOSTICS) then
-            inDiagnostics = true
-        elseif inDiagnostics then
-            diagnostics[#diagnostics + 1] = option
-        elseif option.type ~= "header" then
-            byName[option.reference or option.name] = option
-        end
-    end
-    local sections = {
-        { title = SI_BMW_HEADER_DISPLAY, names = {
-            GetString(SI_BMW_SETTING_DENSITY_NAME), GetString(SI_BMW_SETTING_BACKGROUND_NAME),
-            GetString(SI_BMW_SETTING_BORDER_NAME), GetString(SI_BMW_SETTING_PROFILE_NAME),
-            GetString(SI_BMW_SETTING_WIDTH_NAME), GetString(SI_BMW_SETTING_OFFSET_X_NAME),
-            GetString(SI_BMW_SETTING_OFFSET_Y_NAME),
-        } },
-        { title = SI_BMW_HEADER_TABLE, names = {
-            "BMWSettingsBreakdownGroup", GetString(SI_BMW_SETTING_DETAIL_COLUMNS_NAME),
-        } },
-        { title = SI_BMW_HEADER_HISTORY, names = {
-            GetString(SI_BMW_SETTING_PRICE_TREND_THRESHOLD_NAME),
-            GetString(SI_BMW_SETTING_DELTA_MODE_NAME), GetString(SI_BMW_SETTING_VALUE_HISTORY_NAME),
-        } },
-        { title = SI_BMW_HEADER_NOTIFICATIONS, names = {
-            GetString(SI_BMW_SETTING_NOTIFY_VISIT_NAME), GetString(SI_BMW_SETTING_GUILD_STORE_NAME),
-        } },
-    }
-    local groupedOptions = { optionsData[1], optionsData[3] }
-    for index = 1, #sections do
-        local section = sections[index]
-        local controls = {}
-        for nameIndex = 1, #section.names do
-            controls[#controls + 1] = byName[section.names[nameIndex]]
-        end
-        if section.title == SI_BMW_HEADER_DISPLAY then
-            groupedOptions[#groupedOptions + 1] = {
-                type = "header", name = GetString(section.title), width = "full",
-            }
-            for controlIndex = 1, #controls do
-                groupedOptions[#groupedOptions + 1] = controls[controlIndex]
-            end
-        else
-            groupedOptions[#groupedOptions + 1] = {
-                type = "submenu", name = GetString(section.title), controls = controls,
-            }
-        end
-    end
-    groupedOptions[#groupedOptions + 1] = {
-        type = "header", name = GetString(SI_BMW_HEADER_DIAGNOSTICS), width = "full",
-    }
-    for index = 1, #diagnostics do
-        groupedOptions[#groupedOptions + 1] = diagnostics[index]
-    end
-
     local panel = lam:RegisterAddonPanel(panelIdentifier, panelData)
-    lam:RegisterOptionControls(panelIdentifier, groupedOptions)
+    lam:RegisterOptionControls(panelIdentifier, optionsData)
     Settings.panel = panel
 end
 

@@ -5,7 +5,7 @@
 				<Down>StaticsFurnishingImprovements:DepositSameFromHouseDialog()</Down>
 			</Action>
 			<Action name="SFI_Show_Vault_Stats">
-				<Down>StaticsFurnishingImprovements.VaultStats:ShowWindo()</Down>
+				<Down>StaticsFurnishingImprovements.VaultStats:ShowWindow()</Down>
 			</Action>
 		</Category>
 	</Layer>

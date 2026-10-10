@@ -24,13 +24,15 @@ local function Refresh()
     end
 
     local api = Completion.DefaultApi()
-    local completed = {}
+    local tinted = {}
     for _, blob in ipairs(BlobScanner.GetBlobs(GetCurrentMapId())) do
-        if Completion.IsZoneComplete(blob.zoneId, IsTypeEnabled, api) then
-            completed[#completed + 1] = blob
+        -- Zones without any tracked activity (nil) stay untinted in both modes.
+        local isComplete = Completion.IsZoneComplete(blob.zoneId, IsTypeEnabled, api)
+        if isComplete ~= nil and isComplete ~= sv.invert then
+            tinted[#tinted + 1] = blob
         end
     end
-    Overlay.Show(completed, sv.color)
+    Overlay.Show(tinted, sv.color)
 end
 
 local function PrintDebug()

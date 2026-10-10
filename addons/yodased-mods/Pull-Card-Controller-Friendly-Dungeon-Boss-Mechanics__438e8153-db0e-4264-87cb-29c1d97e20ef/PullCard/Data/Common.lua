@@ -67,6 +67,60 @@ function PullCardData.addBoss(name, ...)
     PullCardData.addShared({name}, ...)
 end
 
+-- Name of the achievement for beating a boss on hard mode, so the card can show
+-- whether the player has done it. Drops a duplicate challenge of the same name.
+function PullCardData.setHardModeAchievement(dungeonName, bossTitle, achievementName)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if not dungeon then return end
+    for _, encounter in ipairs(dungeon.encounters) do
+        if encounter.title == bossTitle then
+            encounter.hardmodeAchievement = achievementName
+            for i = #encounter.challenges, 1, -1 do
+                if encounter.challenges[i].name == achievementName then
+                    table.remove(encounter.challenges, i)
+                end
+            end
+            return
+        end
+    end
+end
+
+-- Adds (or replaces) a boss's hard mode text along with its achievement.
+function PullCardData.setHardMode(dungeonName, bossTitle, text, achievementName)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if not dungeon then return end
+    for _, encounter in ipairs(dungeon.encounters) do
+        if encounter.title == bossTitle then
+            encounter.hardmode = text
+            break
+        end
+    end
+    PullCardData.setHardModeAchievement(dungeonName, bossTitle, achievementName)
+end
+
+-- Dungeon-wide achievements (Veteran clear, hard mode, speed run, no death...),
+-- listed with done/not done in the Dungeon Overview.
+function PullCardData.setDungeonAchievements(dungeonName, names)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if not dungeon then return end
+    dungeon.achievements = names
+end
+
+-- Overland zone the dungeon's entrance is in.
+function PullCardData.setLocation(dungeonName, zone)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if dungeon then dungeon.location = zone end
+end
+
+-- What drops in a dungeon: its item sets and its monster set (mask from the
+-- final boss on Veteran, shoulders from the Undaunted).
+function PullCardData.setDrops(dungeonName, sets, monsterSet)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if not dungeon then return end
+    dungeon.sets = sets
+    dungeon.monsterSet = monsterSet
+end
+
 -- Solo arena round. Pops when the player enters `area` (the subzone/map name the
 -- game shows for that round) instead of when a boss frame appears. `area` may be
 -- a list when the game uses more than one name for a round. No role lines: solo

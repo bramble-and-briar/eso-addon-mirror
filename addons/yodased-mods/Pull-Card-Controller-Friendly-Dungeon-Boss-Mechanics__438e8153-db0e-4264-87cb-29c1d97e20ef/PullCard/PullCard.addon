@@ -1,8 +1,8 @@
 ## Title: PullCard
 ## Author: yodased
 ## Description: Boss mechanics on screen the moment you pull. Role-aware tips for every dungeon and arena, built for console.
-## Version: 0.5.2
-## AddOnVersion: 15
+## Version: 0.5.7
+## AddOnVersion: 18
 ## APIVersion: 101050 101051
 ## ConsoleDependsOn: LibConsoleMenu
 ## SavedVariables: PullCardSavedVars
@@ -13,4 +13,7 @@ Data/DLC.lua
 Data/Trials.lua
 Data/Arenas.lua
 Data/SoloArenas.lua
+Data/Drops.lua
+Data/HardModes.lua
+Data/Achievements.lua
 PullCard.lua

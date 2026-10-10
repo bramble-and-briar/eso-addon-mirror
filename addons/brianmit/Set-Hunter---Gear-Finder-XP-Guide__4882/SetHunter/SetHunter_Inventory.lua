@@ -53,7 +53,7 @@ local function BoostKeyFor(link)
 end
 
 -- Two lists for a bag:
---   set items:   { { link, n = count, b = bound, s = setId }, ... }
+--   set items:   { { link, n = count, b = bound, s = setId, f = FCOIS id }, ... }
 --   boost items: { { link, n = count, b = bound, k = boost key }, ... }
 local function ScanBag(bagId)
     local items, boosts = {}, {}
@@ -64,7 +64,8 @@ local function ScanBag(bagId)
             local count, bound = GetSlotStackSize(bagId, slot), IsItemBound(bagId, slot) or nil
             local hasSet, _, _, _, _, setId = GetItemLinkSetInfo(link, false)
             if hasSet and setId and setId > 0 then
-                items[#items + 1] = { link = link, n = count, b = bound, s = setId }
+                -- f: the id FCO ItemSaver keeps this piece's marks under (only with FCOIS)
+                items[#items + 1] = { link = link, n = count, b = bound, s = setId, f = S.FCO.IdFor(bagId, slot) }
             end
             local key = BoostKeyFor(link)
             if key then
@@ -191,7 +192,7 @@ local function BuildIndex()
                 link = item.link, count = item.n or 1, bound = item.b == true,
                 setId = item.s, boostKey = item.k, owner = info.owner, ownerId = info.ownerId,
                 where = where, how = how, whereKind = info.kind, t = info.t,
-                inMyBag = info.inMyBag,
+                inMyBag = info.inMyBag, fco = item.f,
             }
         end
     end
@@ -238,7 +239,8 @@ function S.FormatAgo(timestamp)
     if seconds < 60 then return L("AGO_NOW") end
     if seconds < 3600 then return L("AGO_MIN", zo_floor(seconds / 60)) end
     if seconds < 86400 then return L("AGO_HOUR", zo_floor(seconds / 3600)) end
-    return L("AGO_DAY", zo_floor(seconds / 86400))
+    local days = zo_floor(seconds / 86400)
+    return days == 1 and L("AGO_DAY_ONE") or L("AGO_DAY", days)
 end
 
 function S.GetOwnedIndex()
@@ -262,12 +264,13 @@ function S.GetCharacterScanList()
     local list, me = {}, GetCurrentCharacterId()
     local chars = S.sv.inv.chars
     for i = 1, GetNumCharacters() do
-        local name, _, _, _, _, _, id = GetCharacterInfo(i)
+        local name, _, _, classId, _, _, id = GetCharacterInfo(i)
         id = id and tostring(id)
         if name and id then
             local saved = chars[id]
             list[#list + 1] = {
                 id = id,
+                classId = classId,
                 name = zo_strformat("<<1>>", name),
                 scanned = saved ~= nil,
                 t = saved and saved.t,
@@ -307,7 +310,7 @@ function S.PieceInfo(entry)
     entry.info = {
         name = name,
         coloredName = GetItemQualityColor(quality):Colorize(name),
-        quality = GetString("SI_ITEMQUALITY", quality),
+        quality = S.QualityName(quality),
         trait = (trait and trait ~= ITEM_TRAIT_TYPE_NONE) and GetString("SI_ITEMTRAITTYPE", trait) or L("NO_TRAIT"),
         traitType = trait,
         slotKey = S.SlotKey(link),

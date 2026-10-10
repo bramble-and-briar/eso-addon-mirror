@@ -9,7 +9,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [UA Patch for Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w2unemdhysend/UA-Patch-for-Dolgubon-s-Lazy-Writ-Crafter__3441) | w2unemdhysend | PC / Mac | 1.0ua |
 | [UA Patch for Tamriel Trade Centre](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/w2unemdhysend/UA-Patch-for-Tamriel-Trade-Centre__3443) | w2unemdhysend | PC / Mac | 1.0ua |
 | [UESP Patreon Character Saver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Uesp/UESP-Patreon-Character-Saver__3190) | Uesp | PC / Mac | 0.11 |
-| [uespLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Uesp/uespLog__1257) | Uesp | PC / Mac | 3.30 |
+| [uespLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Uesp/uespLog__1257) | Uesp | PC / Mac | 3.31 |
 | [Uhryel's Ring of the Pale Order Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Irniben/Uhryel-s-Ring-of-the-Pale-Order-Reminder__3255) | Irniben | PC / Mac | 1.1.0 |
 | [UI Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/UI-Tweaks__4524) | atharti | PC / Mac | 2.5 |
 | [UL LootLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ulceratio/UL-LootLog__2606) | Ulceratio | PC / Mac | 0.1.1 |

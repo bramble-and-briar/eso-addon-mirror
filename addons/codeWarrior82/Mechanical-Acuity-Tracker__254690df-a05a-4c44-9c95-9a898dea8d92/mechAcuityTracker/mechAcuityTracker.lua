@@ -12,11 +12,16 @@ local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
 local iconTextBase = zo_iconTextFormat(picPathBase, 80, 80, " ")
 local isLoaded = false
 local isMenuOpen = false
+local setId = 353 
+local setCount = 5 --5,2,3,1
+local isEquiped = false
+local callBackName = "callbackMech"
 
 mechAcuityTracker = {}
 
 mechAcuityTracker.defaults = {
     trackMech = true,
+    autoTrack = true,
 	notify = true,
 	notifyStart = true,
     yAxisText = 930,
@@ -36,7 +41,7 @@ end
 
 --check if LibNotify is available
 local function isLibAvailable()
-    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" and type(LibNotify.getSet) == "function" then
         return true
     else 
 		return false
@@ -52,7 +57,9 @@ end
 --when UI closes
 local function onMenuClosed()
 	isMenuOpen = false
-    if mechAcuityTracker.savedVariables.trackMech then
+    if mechAcuityTracker.savedVariables.trackMech and isEquiped and mechAcuityTracker.savedVariables.autoTrack then
+        matrack:SetHidden(false)
+    elseif mechAcuityTracker.savedVariables.trackMech and not mechAcuityTracker.savedVariables.autoTrack then
         matrack:SetHidden(false)
     end
 end
@@ -199,6 +206,54 @@ local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("mechProc", EVENT_EFFECT_CHANGED)
 end
 
+--query lib to check if set is equipped
+local function isSetEquiped(id, count)
+	if isLibAvailable() then
+		if LibNotify.getSet(appName, id, count) then
+			isEquiped = true
+			return true
+		else
+			isEquiped = false
+			return false
+		end
+    end
+end
+
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    if mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack then
+        printMessage("Mechanical Acuity set not found")
+        unRegisterAlerts()
+        matrack:SetHidden(true)
+    end
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+    if mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack then
+        printMessage("Found Mechanical Acuity set")
+        registerAlerts()
+    end
+end
+
+--handle equipment change callbacks
+local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+
+    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
+        zo_callLater(function ()
+	if isSetEquiped(setId, setCount) and mechAcuityTracker.savedVariables.autoTrack and mechAcuityTracker.savedVariables.trackMech then startTrackingAuto() else stopTrackingAuto() end
+	end, 1000)
+    end
+
+end
+
+--request callbacks when gear items are equipped or unequipped
+local function enableCallbacksGear()
+    EVENT_MANAGER:RegisterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onEquipmentChanged)
+    EVENT_MANAGER:AddFilterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+end
+
 --setup options menu
 local function createOptions()
 
@@ -241,6 +296,18 @@ local function createOptions()
                 end
             end,
             default = mechAcuityTracker.defaults.trackMech,
+        },
+        {
+            type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you are wearing all the pieces of the correct set and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return mechAcuityTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                mechAcuityTracker.savedVariables.autoTrack = value
+            end,
+            default = mechAcuityTracker.defaults.autoTrack,
         },
         {
             type = "slider",
@@ -316,22 +383,36 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-	--notify about new library
-	if not isLibAvailable() then
-		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
-		return
-	else
-		--notify that add-on has been loaded
-		zo_callLater(function() printMessage("add-on loaded") end, 500)
-	end
-
-	--load saved variables
+    --load saved variables
     mechAcuityTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("mechAddonVars", 1, "Settings", mechAcuityTracker.defaults, GetUnitName("player"))
 
-	--notify if tracking is disabled
-	if not mechAcuityTracker.savedVariables.trackMech then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
+    --setup add on menu options
+    createOptions()
+	
+	--register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
+
+	--notify about new library
+	if not isLibAvailable() then
+		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 400)
+		return
+	elseif isLibAvailable() and mechAcuityTracker.savedVariables.trackMech then
+		--notify that add-on has been loaded
+	    zo_callLater(function() printMessage("add-on loaded") end, 400)
 	end
+
+    --check if set is equipped
+    if not isSetEquiped(setId, setCount) and mechAcuityTracker.savedVariables.autoTrack and mechAcuityTracker.savedVariables.trackMech then
+        --notify set not found
+        zo_callLater(function() printMessage("Mechanical Acuity set not found") end, 600)
+    elseif isSetEquiped(setId, setCount) and mechAcuityTracker.savedVariables.autoTrack and mechAcuityTracker.savedVariables.trackMech then
+        isEquiped = true
+        --notify set found
+        zo_callLater(function() printMessage("Found Mechanical Acuity set") end, 600)
+    end
+
+    --double check if set is equipped without autotracking stipulation
+    if isSetEquiped(setId, setCount) then isEquiped = true end
 
     --setup text field areas
     matrack:SetMovable(true)
@@ -349,18 +430,20 @@ local function onAddOnLoaded(event, name)
     setAnchorStartupIcon(mechAcuityTracker.savedVariables.xAxisText, mechAcuityTracker.savedVariables.yAxisText)
 
     --register for combat alerts if tracking is enabled
-    if mechAcuityTracker.savedVariables.trackMech then
+    if mechAcuityTracker.savedVariables.trackMech and not mechAcuityTracker.savedVariables.autoTrack then
         registerAlerts()
         matrack:SetHidden(false)
-    else
+    elseif mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack and isEquiped then
+        registerAlerts()
+        matrack:SetHidden(false)
+    elseif mechAcuityTracker.savedVariables.trackMech and mechAcuityTracker.savedVariables.autoTrack and not isEquiped then
+        matrack:SetHidden(true)
+    elseif not mechAcuityTracker.savedVariables.trackMech then
         matrack:SetHidden(true)
     end
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-
-    --setup add on menu options
-    createOptions()
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

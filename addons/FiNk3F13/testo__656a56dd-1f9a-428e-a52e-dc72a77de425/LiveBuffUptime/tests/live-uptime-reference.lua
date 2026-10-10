@@ -67,7 +67,7 @@ for iteration = 1, 100 do
     local data = expected.calculated.units[10].buffs[61771]
     near(LiveUptime.Calculate(fight, tracker).covered, data.groupUptime / 1000)
     tracker.config.buffSource = "own"
-    near(LiveUptime.Calculate(fight, tracker).covered, data.uptime / 1000)
+    near(LiveUptime.Calculate(fight, tracker).covered, data.groupUptime / 1000)
 end
 
 local fight, tracker = LiveUptime.New(0), { config = { unit = "group" }, state = { since = 0 } }
@@ -86,12 +86,12 @@ near(fight.ends, 12)
 local result = LiveUptime.Calculate(fight, tracker)
 near(result.covered, 9); near(result.duration, 14); near(result.percent, 900 / 14)
 tracker.config.buffSource = "own"
-near(LiveUptime.Calculate(fight, tracker).covered, 3)
+near(LiveUptime.Calculate(fight, tracker).covered, 9)
 LiveUptime.Finish(fight, { starttime = 3000, endtime = 11000, units = {
     [10] = { unitType = COMBAT_UNIT_TYPE_GROUP }, [11] = { unitType = COMBAT_UNIT_TYPE_GROUP },
 } }, function(ms) return ms / 1000 end)
 result = LiveUptime.Calculate(fight, tracker, nil, nil, true)
-near(result.covered, 2); near(result.duration, 12)
+near(result.covered, 7); near(result.duration, 12)
 assert(not fight.running and #result.members == 2)
 print("Live-Uptime compatibility: 100 randomized comparisons against installed CMX, source union, member windows, heals and summary bounds passed")
 return { processor = processor, oracle = oracle }

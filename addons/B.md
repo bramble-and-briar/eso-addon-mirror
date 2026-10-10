@@ -184,7 +184,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |
 | [Bureau of Acceptable Views](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Acceptable-Views__4720) | maraud | PC / Mac | 3.11.012748 |
-| [Bureau of Material Worth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Material-Worth__4718) | maraud | PC / Mac | 4.7.181736 |
+| [Bureau of Material Worth](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Material-Worth__4718) | maraud | PC / Mac | 4.8.004612 |
 | [Bureau of Private Dispatches](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Private-Dispatches__4796) | maraud | PC / Mac | 1.1.012551 |
 | [Burning Language Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/IBurningTV/Burning-Language-Selector__2869) | IBurningTV | PC / Mac | 1.2 |
 | [Burning Light Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Yaeg/Burning-Light-Tracker__4786) | Yaeg | PC / Mac | 1.2.1 |

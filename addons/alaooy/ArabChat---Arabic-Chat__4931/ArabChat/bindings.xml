@@ -1,0 +1,12 @@
+<Bindings>
+	<Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+		<Category name="ArabChat">
+			<Action name="ARABCHAT_TOGGLE">
+				<Down>ArabChat_Toggle()</Down>
+			</Action>
+			<Action name="ARABCHAT_SETTINGS">
+				<Down>ArabChat_ToggleSettings()</Down>
+			</Action>
+		</Category>
+	</Layer>
+</Bindings>

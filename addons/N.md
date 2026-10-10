@@ -88,7 +88,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Notebooks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Glen348/Notebooks__1105) | Glen348 | PC / Mac | Outdated |
 | [Notes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/Notes__1303) | Noobanidus | PC / Mac | 1.0.3 |
 | [NothingWasted Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haze068/NothingWasted-Tracker__4642) | haze068 | PC / Mac | 2.0 |
-| [Nowhere Vault: Secret Seeker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Nowhere-Vault-Secret-Seeker__4875) | its_wifey | PC / Mac | 1.0.1 |
+| [Nowhere Vault: Secret Seeker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Nowhere-Vault-Secret-Seeker__4875) | its_wifey | PC / Mac | 1.0.2 |
 | [NowhereKeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/NowhereKeys__4906) | tim99 | PC / Mac | 1.1 |
 | [NowTalking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/NowTalking__1300) | Noobanidus | PC / Mac | 1.0.3 |
 | [NQOL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/unacntble/NQOL__6987c48d-827e-4583-a5a7-6cb748174190) | unacntble | Console | — |

@@ -47,6 +47,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PeacefulCombat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zetheras/PeacefulCombat__3071) | zetheras | PC / Mac | 1.01 |
 | [PearlsTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/PearlsTracker__3523) | m00nyONE | PC / Mac | 1.1.0 |
 | [PenTest (Critical)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/PenTest-Critical__1933) | Solinur | PC / Mac | 27 |
+| [Per-Character Mount Randomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/Per-Character-Mount-Randomizer__66e37433-eec7-410c-8d64-001233195f18) | -Chin | Console | — |
 | [Perfect Pixel - Journal Quest Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoG/Perfect-Pixel---Journal-Quest-Log__3662) | FoG | PC / Mac | 1.0.0 |
 | [Perfect Rockgrove](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Perfect-Rockgrove__3238) | buldezir | PC / Mac | 1.0.7 |
 | [Perfect Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Perfect-Weave__2918) | andy.s | PC / Mac | 0.8 |
@@ -102,6 +103,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's CyrodiilAlert(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CyrodiilAlert-Beta__233a612c-6650-451b-80d8-b1862f95c90a) | PinkBanther | Console | — |
 | [PinkB's DiceExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension__c8c74e10-f091-4e38-b894-20bb194c9b87) | PinkBanther | Console | — |
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
+| [PinkB's GammaAdjuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster__612f9579-3c45-4ab4-84e0-6989fb59bd19) | PinkBanther | Console | — |
+| [PinkB's GammaAdjuster(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster-Beta__07ad2fa8-6b34-4021-bcb1-886119449ac1) | PinkBanther | Console | — |
 | [PinkB's HudManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager__9f445510-52db-43d8-bb0a-c6e497fce454) | PinkBanther | Console | — |
 | [PinkB's HudManager(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager-Beta__d761d228-adae-40b7-8320-6e4504e2d2ec) | PinkBanther | Console | — |
 | [PinkB's KillLog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-KillLog__ff4bafd1-1006-4f21-8d38-7a45f4527518) | PinkBanther | Console | — |

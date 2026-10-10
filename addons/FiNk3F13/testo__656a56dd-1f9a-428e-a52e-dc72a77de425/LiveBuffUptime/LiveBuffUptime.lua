@@ -18,6 +18,9 @@ local fightEndedAt
 local fightStartedAt, activeStartedAt, finalDuration
 local lastActiveAt
 local useLibCombat = false
+local LibCombat
+local libraryStatusReason
+local libraryFightClosed = false
 local abilityNameCache = {}
 local groupEffects = {}
 local unlocked = false
@@ -224,6 +227,7 @@ local function render(tracker, now, sceneVisible)
     local percent = 0
     if liveUptimeMode then
         tracker.liveUptimeResult = LiveUptime.Calculate(liveUptimeFight, tracker, liveUptimePlayerId, liveUptimeTargetId)
+        Audit.CheckFrozen(audit, tracker, liveUptimeFight, tracker.liveUptimeResult, now, liveUptimePlayerId, liveUptimeTargetId)
         percent = tracker.liveUptimeResult.percent
     elseif tracker.config.unit == "group" then
         percent = cooldownProfile(tracker.config) and tracker.config.excludeCooldown ~= false
@@ -279,23 +283,45 @@ local function queueCheck(tracker, group)
         if not liveUptimeFight or liveUptimeFight.running or not liveUptimeFight.starts or not liveUptimeFight.ends then return end
         local result = LiveUptime.Calculate(liveUptimeFight, tracker, liveUptimePlayerId, liveUptimeTargetId, true)
         settings.lastFights = settings.lastFights or {}
-        local record = { id = tracker.config.id, unit = tracker.config.unit, source = tracker.config.buffSource or "all",
+        local record = { id = tracker.config.id, unit = tracker.config.unit, source = "all_without_pets",
+            diagnosticVersion = 2, backend = LibCombat and LibCombat.name or "LibCombat",
+            fightStarts = liveUptimeFight.starts, fightEnds = liveUptimeFight.ends,
+            combatStartedAt = liveUptimeFight.combatstart, summaryReceivedAt = nowSeconds(),
+            diagnostics = liveUptimeFight.diagnostics, diagnosticsComplete = liveUptimeFight.diagnostics ~= nil,
+            excluded = result.excluded, exclusionsTruncated = result.exclusionsTruncated,
+            personalTime = tracker.config.personalTime or "combat",
             view = tracker.config.view or (tracker.config.unit == "reticleover" and "damageOut" or "healingOut"),
-            includePets = tracker.config.includePets == true, includeOverheal = tracker.config.includeOverheal == true,
+            includePets = false, includeOverheal = tracker.config.includeOverheal == true,
             metric = tracker.config.uptimeMetric or "time", normalCovered = result.normalCovered, stackCovered = result.stackCovered,
             timestamp = GetTimeStamp and GetTimeStamp() or nil, covered = result.covered, duration = result.duration,
             percent = result.percent, combatDuration = liveUptimeFight.ends - liveUptimeFight.starts, members = {}, truncated = result.truncated }
         for _, member in ipairs(result.members) do
             if #record.members >= 48 then break end
-            record.members[#record.members + 1] = { id = member.id, name = member.name, covered = member.covered, duration = member.duration }
+            local duration = member.duration or (member.ends - member.starts)
+            record.members[#record.members + 1] = { id = member.id, name = member.name, kind = member.kind,
+                placeholder = member.placeholder, covered = member.covered, normalCovered = member.normalCovered, duration = duration,
+                starts = member.starts, ends = member.ends, observedStarts = member.observedStarts, observedEnds = member.observedEnds }
+        end
+        record.unknownEffects = {}
+        local included = {}
+        for _, member in ipairs(result.members) do if member.id then included[member.id] = true end end
+        for _, entry in ipairs(liveUptimeFight.diagnostics and liveUptimeFight.diagnostics.unknownEffects or {}) do
+            local unit = liveUptimeFight.units[entry.recipient]
+            record.unknownEffects[#record.unknownEffects + 1] = { id = entry.id, recipient = entry.recipient,
+                name = unit and unit.name, kind = unit and unit.kind or entry.kind, count = entry.count,
+                gained = entry.gained, updated = entry.updated, faded = entry.faded,
+                first = entry.first, last = entry.last, trackedBuff = matches(tracker.config, entry.id) and true or false,
+                recipientIncluded = included[entry.recipient] == true }
         end
         if #settings.lastFights >= 12 then table.remove(settings.lastFights, 1) end
         settings.lastFights[#settings.lastFights + 1] = record
+        Audit.Freeze(tracker, liveUptimeFight, record, nowSeconds(), liveUptimePlayerId, liveUptimeTargetId)
         Audit.Queue(audit, { label = string.format("Live-Uptime ID %d %s %s %s %s", tracker.config.id, tracker.config.unit,
-            tracker.config.buffSource == "own" and "eigene Quelle" or "alle Quellen", record.view, record.metric),
+            "alle Quellen ohne Begleiter", record.view, record.metric),
             starts = liveUptimeFight.starts, ends = liveUptimeFight.ends, percent = tracker.displayPercent or 0,
             duration = result.duration, group = true, members = result.members, truncated = result.truncated,
-            weighted = tracker.config.uptimeMetric == "stacks" })
+            weighted = tracker.config.uptimeMetric == "stacks", selection = tracker.config.unit,
+            incomplete = not record.diagnosticsComplete })
         return
     end
     local starts = group and tracker.group.firstDamageAt or activeStartedAt or fightStartedAt
@@ -329,6 +355,8 @@ local function queueCheck(tracker, group)
 end
 
 local function createTracker(config)
+    config.includePets = nil
+    config.buffSource = nil
     local tracker = { config = config, state = Meter.New(nowSeconds()), immunityState = Meter.New(nowSeconds()), cooldownState = Meter.New(nowSeconds()), scope = Meter.NewScope(), group = Group.New(nowSeconds()) }
     local window = wm:CreateTopLevelWindow(NAME .. "Tracker" .. config.key)
     tracker.window = window
@@ -595,13 +623,27 @@ end
 
 local function resetMeasurements(at, preserveGroup)
     local now = type(at) == "number" and at or nowSeconds()
+    libraryFightClosed = false
     fightEndedAt = nil
     finalDuration = nil
     fightStartedAt = inCombat and now or nil
     activeStartedAt = nil
     lastActiveAt = nil
-    if liveUptimeMode then liveUptimeFight = LiveUptime.New(now); liveUptimeTargetId = nil end
+    if liveUptimeMode then
+        liveUptimeFight = LiveUptime.New(now)
+        liveUptimeTargetId = nil
+        if audit.enabled and inCombat then
+            liveUptimeFight.diagnostics = { startedTimestamp = GetTimeStamp and GetTimeStamp() or nil,
+                startedTime = GetTimeString and GetTimeString() or nil,
+                zone = GetPlayerActiveZoneName and GetPlayerActiveZoneName() or nil,
+                boss = GetUnitName and DoesUnitExist and DoesUnitExist("boss1") and GetUnitName("boss1") or nil }
+        end
+    end
     for _, tracker in ipairs(trackers) do
+        if tracker.freezeCheck and tracker.freezeCheck.record.freeze.violations == 0 then
+            tracker.freezeCheck.record.freeze.status = "beendet: neue Messung"
+        end
+        tracker.freezeCheck = nil
         tracker.state = Meter.New(now)
         tracker.immunityState = Meter.New(now)
         tracker.cooldownState = Meter.New(now)
@@ -763,11 +805,14 @@ refreshSettings = function(openSection, selectedLabel)
                 update()
                 zo_callLater(function() refreshSettings(config.key, "Einheit") end, 0)
             end }
-        descriptors[#descriptors + 1] = { type = lib.ST_DROPDOWN, label = "Buff-Quelle",
-            items = { { name = "Alle Quellen", data = "all" }, { name = "Nur ich und meine Begleiter", data = "own" } },
-            getFunction = function() return config.buffSource == "own" and "Nur ich und meine Begleiter" or "Alle Quellen" end,
-            setFunction = function(_, _, entry) config.buffSource = entry.data; update() end,
-            disable = function() return not liveUptimeMode end }
+        if config.unit == "player" then
+            descriptors[#descriptors + 1] = { type = lib.ST_DROPDOWN, label = "Persoenliche Bezugszeit",
+                items = { { name = "Aktive Kampfzeit", data = "combat" }, { name = "Einheitenzeit (Auswahl)", data = "unit" } },
+                tooltip = "Aktive Kampfzeit entspricht der persoenlichen Buff-Ansicht. Einheitenzeit ist fuer den Vergleich mit einer ausgewaehlten Einheit.",
+                getFunction = function() return config.personalTime == "unit" and "Einheitenzeit (Auswahl)" or "Aktive Kampfzeit" end,
+                setFunction = function(_, _, entry) config.personalTime = entry.data; update() end,
+                disable = function() return not liveUptimeMode end }
+        end
         local views = config.unit == "reticleover"
             and { { name = "Schaden ausgehend", data = "damageOut" }, { name = "Schaden eingehend", data = "damageIn" } }
             or { { name = "Heilung ausgehend", data = "healingOut" }, { name = "Heilung eingehend", data = "healingIn" } }
@@ -778,18 +823,13 @@ refreshSettings = function(openSection, selectedLabel)
                 return views[1].name
             end,
             setFunction = function(_, _, entry) config.view = entry.data; update() end,
-            disable = function() return not liveUptimeMode end }
-        if config.unit == "group" then
-            descriptors[#descriptors + 1] = { type = lib.ST_CHECKBOX, label = "Begleiter in Gruppenmessung",
-                getFunction = function() return config.includePets == true end,
-                setFunction = function(value) config.includePets = value; update() end,
-                disable = function() return not liveUptimeMode end }
-        end
+            disable = function() return not liveUptimeMode or (config.unit == "player" and config.personalTime ~= "unit") end }
         if config.unit ~= "reticleover" then
             descriptors[#descriptors + 1] = { type = lib.ST_CHECKBOX, label = "Ueberheilung als relevante Daten",
                 getFunction = function() return config.includeOverheal == true end,
                 setFunction = function(value) config.includeOverheal = value; update() end,
-                disable = function() return not liveUptimeMode or config.view == "healingIn" end }
+                disable = function() return not liveUptimeMode or config.view == "healingIn"
+                    or (config.unit == "player" and config.personalTime ~= "unit") end }
         end
         descriptors[#descriptors + 1] = { type = lib.ST_DROPDOWN, label = "Uptime-Auswertung",
             items = { { name = "Normale Buffzeit", data = "time" }, { name = "Stapelgewichtet", data = "stacks" } },
@@ -865,7 +905,7 @@ refreshSettings = function(openSection, selectedLabel)
 end
 
 local function libConstant(name)
-    return _G["LIBCOMBAT_" .. name] or (LibCombat and (LibCombat["LIBCOMBAT_" .. name] or LibCombat[name]))
+    return (LibCombat and (LibCombat["LIBCOMBAT_" .. name] or LibCombat[name])) or _G["LIBCOMBAT_" .. name]
 end
 
 local function libTime(timeMS)
@@ -877,10 +917,15 @@ local function startLibraryFight(time)
     if inCombat then return end
     inCombat = true
     resetMeasurements(time, true)
+    if LibCombat and LibCombat.GetTargetUnitId then liveUptimeTargetId = LibCombat.GetTargetUnitId() end
 end
 
 local function registerLibCombat()
     if useLibCombat then return end
+    local bridge = LiveBuffUptimeCombatBridge
+    local adapted
+    if bridge then adapted, libraryStatusReason = bridge.Create(_G.LibCombat2) end
+    LibCombat = adapted or _G.LibCombat
     if not LibCombat or type(LibCombat.RegisterForCombatEvent) ~= "function" then return end
     for _, name in ipairs({ "EVENT_MESSAGES", "EVENT_FIGHTSUMMARY", "EVENT_DAMAGE_OUT", "EVENT_DAMAGE_SELF",
         "EVENT_EFFECTS_IN", "MESSAGE_COMBATSTART" }) do
@@ -900,42 +945,78 @@ local function registerLibCombat()
             local eventName = name
             if string.find(name, "EFFECTS") then
                 LibCombat:RegisterForCombatEvent(NAME, libConstant(name), function(_, timeMS, unitId, id, changeType, _, stacks, sourceType, slot)
+                    if libraryFightClosed then
+                        if audit.enabled then LiveUptime.Note(liveUptimeFight, "lateEffects") end
+                        return
+                    end
                     if not inCombat or not liveUptimeFight or not unitId or not slot then return end
                     if changeType ~= EFFECT_RESULT_GAINED and changeType ~= EFFECT_RESULT_UPDATED and changeType ~= EFFECT_RESULT_FADED then return end
                     local time = libTime(timeMS)
+                    if audit.enabled then
+                        LiveUptime.Note(liveUptimeFight, "effectEvents")
+                        if LiveUptime.IsPet(sourceType) then LiveUptime.Note(liveUptimeFight, "petSourceEvents") end
+                    end
                     local unit = LiveUptime.Touch(liveUptimeFight, unitId, time)
+                    if LibCombat.GetUnitType and unit then unit.kind = LibCombat.GetUnitType(unitId) or unit.kind end
                     if not unit then return end
-                    if eventName == "EVENT_EFFECTS_IN" then
-                        liveUptimePlayerId, unit.player, unit.kind = unitId, true, COMBAT_UNIT_TYPE_PLAYER
+                    if eventName == "EVENT_EFFECTS_IN" and not LiveUptime.IsPet(unit.kind) then
+                        -- v1 EFFECTS_IN includes playerpet tags; it is not proof of player identity.
+                        if not liveUptimePlayerId then liveUptimePlayerId = unitId end
+                        if unitId == liveUptimePlayerId then unit.player, unit.kind = true, COMBAT_UNIT_TYPE_PLAYER end
                     elseif eventName == "EVENT_GROUPEFFECTS_IN" then
                         unit.kind = unit.kind or COMBAT_UNIT_TYPE_GROUP
                     end
                     LiveUptime.Kind(liveUptimeFight, unitId, unit.kind)
-                    local own = sourceType == COMBAT_UNIT_TYPE_PLAYER or sourceType == COMBAT_UNIT_TYPE_PLAYER_PET
-                    LiveUptime.Remember(unit, id, slot, changeType ~= EFFECT_RESULT_FADED, own, stacks)
+                    if audit.enabled and (sourceType == nil or sourceType == COMBAT_UNIT_TYPE_NONE) then
+                        Audit.RecordUnknown(liveUptimeFight, time, id, unitId, changeType, unit.kind)
+                    end
+                    if audit.enabled and LiveUptime.IsPet(unit.kind) then LiveUptime.Note(liveUptimeFight, "petRecipientEvents") end
+                    local own = sourceType == COMBAT_UNIT_TYPE_PLAYER
+                    LiveUptime.Remember(unit, id, slot, changeType ~= EFFECT_RESULT_FADED, own, stacks, sourceType)
                     for _, tracker in ipairs(enabledTrackers) do
                         if matches(tracker.config, id) then
-                            LiveUptime.Effect(liveUptimeFight, tracker, time, unitId, id, slot, changeType ~= EFFECT_RESULT_FADED, own, stacks)
+                            LiveUptime.Effect(liveUptimeFight, tracker, time, unitId, id, slot, changeType ~= EFFECT_RESULT_FADED, own, stacks, sourceType)
                         end
                     end
                 end)
             else
                 LibCombat:RegisterForCombatEvent(NAME, libConstant(name), function(_, timeMS, _, source, target, _, value, _, overflow)
+                    if libraryFightClosed then
+                        if audit.enabled then LiveUptime.Note(liveUptimeFight, "lateActions") end
+                        return
+                    end
                     local time = libTime(timeMS)
                     startLibraryFight(time)
-                    LiveUptime.Action(liveUptimeFight, eventName, time, source, target, value, overflow)
-                    if eventName == "EVENT_HEAL_SELF" or eventName == "EVENT_DAMAGE_SELF" then
-                        liveUptimePlayerId = target or source
+                    if audit.enabled then LiveUptime.Note(liveUptimeFight, "actionEvents") end
+                    if LibCombat.GetUnitType then
+                        LiveUptime.Kind(liveUptimeFight, source, LibCombat.GetUnitType(source))
+                        LiveUptime.Kind(liveUptimeFight, target, LibCombat.GetUnitType(target))
+                        liveUptimePlayerId = LibCombat.GetPlayerUnitId() or liveUptimePlayerId
                     end
+                    LiveUptime.Action(liveUptimeFight, eventName, time, source, target, value, overflow)
+                    -- SELF can involve pets as well; never infer player identity from its target.
                     activeStartedAt, lastActiveAt = liveUptimeFight.starts, liveUptimeFight.ends
                 end)
             end
         end
         LibCombat:RegisterForCombatEvent(NAME, libConstant("EVENT_FIGHTSUMMARY"), function(_, fight)
             if not inCombat or not fight or not liveUptimeFight then return end
+            if audit.enabled and liveUptimeFight.diagnostics then
+                local data = liveUptimeFight.diagnostics
+                data.observedActiveStarts, data.observedActiveEnds = liveUptimeFight.starts, liveUptimeFight.ends
+            end
             LiveUptime.Finish(liveUptimeFight, fight, libTime)
+            libraryFightClosed = true
+            local confirmedId = fight.playerid or (LibCombat.GetPlayerUnitId and LibCombat.GetPlayerUnitId())
+            if confirmedId then liveUptimePlayerId = confirmedId end
+            local current = liveUptimePlayerId and liveUptimeFight.units[liveUptimePlayerId]
+            if not confirmedId and (not current or current.kind ~= COMBAT_UNIT_TYPE_PLAYER) then
+                for id, unit in pairs(liveUptimeFight.units) do
+                    if unit.kind == COMBAT_UNIT_TYPE_PLAYER then liveUptimePlayerId = id; break end
+                end
+            end
             for id, unit in pairs(liveUptimeFight.units) do
-                if unit.kind == COMBAT_UNIT_TYPE_PLAYER then liveUptimePlayerId, unit.player = id, true end
+                unit.player = id == liveUptimePlayerId and not LiveUptime.IsPet(unit.kind)
             end
             fightStartedAt, activeStartedAt, fightEndedAt = liveUptimeFight.starts, liveUptimeFight.starts, liveUptimeFight.ends
             finalDuration = liveUptimeFight.starts and liveUptimeFight.ends and math.max(1, liveUptimeFight.ends - liveUptimeFight.starts) or nil
@@ -1110,6 +1191,7 @@ local function loaded(_, addonName)
     for _, config in ipairs(settings.trackers) do createTracker(config) end
     panel = LibHarvensAddonSettings:AddAddon(TITLE, { allowRefresh = true })
     registerLibCombat()
+    if not useLibCombat then d(TITLE .. ": LibCombat2 (Konsole) oder LibCombat (PC) fehlt bzw. ist inkompatibel. Nur Ersatzmessung aktiv.") end
     if useLibCombat and not liveUptimeMode then d(TITLE .. ": Ereignisbasierte Live-Uptime nicht verfuegbar; LibCombat aktualisieren. Ersatzmessung verwendet andere Messregeln.") end
     refreshSettings()
     if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
@@ -1144,14 +1226,22 @@ local function loaded(_, addonName)
     if EVENT_GROUP_UPDATE then
         EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GROUP_UPDATE, function() update(nil, true) end)
     end
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_EFFECT_CHANGED, function(_, changeType, slot, _, unitTag, starts, ends, _, icon, _, _, _, _, _, unitId, id, sourceType)
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_EFFECT_CHANGED, function(_, changeType, slot, _, unitTag, starts, ends, stacks, icon, _, effectType, _, _, unitName, unitId, id, sourceType)
         if type(unitTag) ~= "string" then return end
         if liveUptimeMode and unitId and liveUptimeFight then
             local kind = unitTag == "player" and COMBAT_UNIT_TYPE_PLAYER
                 or string.match(unitTag, "^group%d+$") and COMBAT_UNIT_TYPE_GROUP
+                or string.match(unitTag, "^playerpet%d+$") and COMBAT_UNIT_TYPE_PLAYER_PET
+                or unitTag == "companion" and COMBAT_UNIT_TYPE_PLAYER_COMPANION
+                or string.match(unitTag, "^group%d+companion$") and COMBAT_UNIT_TYPE_GROUP_COMPANION
             LiveUptime.Kind(liveUptimeFight, unitId, kind)
             if unitTag == "player" then liveUptimePlayerId = unitId end
             if unitTag == "reticleover" then liveUptimeTargetId = unitId end
+            if inCombat and not libraryFightClosed and LibCombat and LibCombat.RawEffect
+                and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
+                LibCombat.RawEffect(GetGameTimeMilliseconds(), unitId, id, changeType, effectType,
+                    math.max(1, stacks or 1), sourceType, slot, kind, unitName)
+            end
         end
         if debugCooldowns and (id == 167682 or id == 172992 or id == 145977 or id == 167681) then
             d(string.format("%s: Nunatak-Effekt | ID %d | Aenderung %s | Einheit %s | Quelle %s | Start %s | Ende %s",
@@ -1209,26 +1299,96 @@ local function loaded(_, addonName)
         Audit.Tick(audit)
     end)
     SLASH_COMMANDS["/lbu"] = function(command)
-        if command == "check on" or command == "check off" then
+        if command == "status" then
+            local v2 = _G.LibCombat2
+            d(string.format("%s Status: LibCombat2 %s Version %s | Anbindung %s | Live-Modus %s | Kampf %s",
+                TITLE, v2 and "geladen" or "fehlt", tostring(v2 and v2.version or "unbekannt"),
+                useLibCombat and (LibCombat.name or "LibCombat") or "nicht verbunden", liveUptimeMode and "ja" or "nein", inCombat and "ja" or "nein"))
+            if libraryStatusReason and not (LibCombat and LibCombat.GetStatus) then d("LibCombat2-Pruefung: " .. libraryStatusReason) end
+            if LibCombat and LibCombat.GetStatus then
+                local state = LibCombat.GetStatus()
+                d(string.format("LibCombat2: %d Registrierungen, %d abgelehnt | Start/Status %d | Schaden %d | Heilung %d | Effekte %d | Abschluss %d",
+                    state.registered, state.registrationFailures, state.state, state.damage, state.heal, state.effect, state.summary))
+                d(string.format("Weitergeleitet %d | Aktionen ohne eigene Zuordnung %d | Callback-Fehler %d | Spieler-ID %s",
+                    state.dispatched, state.unclassified, state.errors, tostring(liveUptimePlayerId)))
+                d(string.format("Direkte ESO-Effekte %d | Doppelmeldungen ignoriert %d | Einheiten-Limit %d",
+                    state.rawEffects, state.duplicateEffects, state.rawUnitsOmitted))
+                if state.effect == 0 and state.rawEffects == 0 and state.damage > 0 then
+                    d("WARN: Keine Effektmeldungen empfangen. Leere Buffdaten bestaetigen keine korrekte Uptime.")
+                end
+                if state.lastError then d("Letzter Bibliotheksfehler: " .. state.lastError) end
+            end
+            local result = enabledTrackers[1] and enabledTrackers[1].liveUptimeResult
+            d(string.format("Aktive Tracker %d | Erster Tracker: Buff %.2fs / Bezugszeit %.2fs", #enabledTrackers,
+                result and result.covered or 0, result and result.duration or 0))
+        elseif command == "check on" or command == "check off" then
             settings.checkUptime = command == "check on"
             Audit.SetEnabled(audit, settings.checkUptime)
             d(TITLE .. (settings.checkUptime and ": Selbstpruefung aktiv. Ergebnisse nach Kampfende." or ": Selbstpruefung aus."))
         elseif command == "check" or command == "check last" then
             Audit.ShowLast(audit)
-        elseif command == "report" then
+        elseif command == "report" or command == "report group" then
             local records = settings.lastFights or {}
             local record = records[#records]
-            for index = #records, 1, -1 do
-                if records[index].unit == "group" then record = records[index]; break end
+            if command == "report group" then
+                record = nil
+                for index = #records, 1, -1 do
+                    if records[index].unit == "group" then record = records[index]; break end
+                end
             end
             if not record then d(TITLE .. ": Noch kein gespeicherter Live-Uptime-Bericht. /lbu check on vor dem Kampf."); return end
             d(string.format("%s Live-Uptime-Bericht: ID %d %s %s | Kampf %.2fs | Buff %.2fs / Einheitenzeit %.2fs = %.1f%%",
-                TITLE, record.id, record.unit, record.source, record.combatDuration, record.covered, record.duration, record.percent))
+                TITLE, record.id, record.unit, record.source == "all_without_pets" and "alle Quellen ohne Begleiter" or record.source,
+                record.combatDuration, record.covered, record.duration, record.percent))
             d(string.format("Ansicht %s | Auswertung %s | Begleiter %s | Ueberheilung %s", record.view or "healingOut",
                 record.metric or "time", record.includePets and "ja" or "nein", record.includeOverheal and "ja" or "nein"))
+            if record.diagnosticVersion then
+                local data = record.diagnostics or {}
+                local date = data.startedTimestamp and GetDateStringFromTimestamp and GetDateStringFromTimestamp(data.startedTimestamp)
+                    or data.startedTimestamp and tostring(data.startedTimestamp) or "unbekannt"
+                d(string.format("Datenquelle %s | Beginn %s %s | Ort %s | Boss %s", record.backend or "unbekannt",
+                    date, data.startedTime or "", data.zone or "unbekannt", data.boss or "unbekannt"))
+                d(string.format("Aktive Zeit +%.2f bis +%.2fs | Zusammenfassung +%.2fs | Pruefdaten %s",
+                    record.fightStarts - record.combatStartedAt, record.fightEnds - record.combatStartedAt,
+                    record.summaryReceivedAt - record.combatStartedAt, record.diagnosticsComplete and "ab Messbeginn" or "unvollstaendig"))
+                d("Kampfabschluss: Bibliothekszusammenfassung; danach keine Ereignisse mehr in diesem Kampf.")
+                local freeze = record.freeze or {}
+                d(string.format("Abschluss %s (%d Kontrollen, %d Abweichungen) | Nachlauf verworfen: %d Aktionen, %d Effekte",
+                    freeze.status or "nicht geprueft", freeze.checks or 0, freeze.violations or 0, data.lateActions or 0, data.lateEffects or 0))
+                d(string.format("Ereignisse: %d Aktionen, %d Effekte | Begleiter-Geber %d / Empfaenger %d ausgeschlossen | Quelle unbekannt %d | Schreibversuche nach Ende %d",
+                    data.actionEvents or 0, data.effectEvents or 0, data.petSourceEvents or 0, data.petRecipientEvents or 0,
+                    data.unknownSourceEvents or 0, data.blockedMutations or 0))
+                if record.truncated or record.exclusionsTruncated then d("WARN: Einheitenbericht durch Prueflimit unvollstaendig.") end
+                if record.diagnosticVersion >= 2 then
+                    d(string.format("Unbekannte Quellen: %d Effekt/Empfaenger-Paare gespeichert; %d Meldungen wegen Detail-Limit ausgelassen.",
+                        #(record.unknownEffects or {}), data.unknownDetailsDropped or 0))
+                    for _, entry in ipairs(record.unknownEffects or {}) do
+                        d(string.format("Quelle unbekannt: Effekt %s | Einheit %s (ID %s, %s) | %d Meldungen (+%d/~%d/-%d) | +%.2f bis +%.2fs | Buff-ID relevant %s | Empfaenger in Auswertung %s",
+                            tostring(entry.id), entry.name or tostring(entry.recipient), tostring(entry.recipient), LiveUptime.TypeName(entry.kind),
+                            entry.count, entry.gained, entry.updated, entry.faded, entry.first - record.combatStartedAt,
+                            entry.last - record.combatStartedAt, entry.trackedBuff and "ja" or "nein", entry.recipientIncluded and "ja" or "nein"))
+                    end
+                elseif (data.unknownSourceEvents or 0) > 0 then
+                    d("Alter Bericht: unbekannte Quellen ohne Effekt-ID-/Empfaengerdetails.")
+                end
+            else d("Alter Bericht: keine Einheitentyp-/Abschlussdiagnose gespeichert.") end
+            if record.unit == "player" then
+                d("Persoenliche Bezugszeit: " .. (record.personalTime == "combat" and "Aktive Kampfzeit"
+                    or record.personalTime == "unit" and "Einheitenzeit (Auswahl)" or "Einheitenzeit (alter Bericht)"))
+            end
             for _, member in ipairs(record.members) do
                 d(string.format("Einheit %s: Buff %.2fs / Zeit %.2fs = %.1f%%", member.name or tostring(member.id), member.covered,
                     member.duration, member.duration > 0 and member.covered / member.duration * 100 or 0))
+                if record.diagnosticVersion then
+                    d(string.format("  Typ %s (%s) | Messfenster %s | Beobachtet %s%s", LiveUptime.TypeName(member.kind), tostring(member.kind),
+                        member.starts and string.format("+%.2f bis +%.2fs", member.starts - record.combatStartedAt, member.ends - record.combatStartedAt) or "keine Einheitenzeit",
+                        member.observedStarts and string.format("+%.2f bis +%.2fs", member.observedStarts - record.combatStartedAt, member.observedEnds - record.combatStartedAt) or "keine Daten",
+                        member.placeholder and " | WARN: Spieler nicht beobachtet" or ""))
+                end
+            end
+            for _, member in ipairs(record.excluded or {}) do
+                d(string.format("Nicht gezaehlt %s | Typ %s (%s) | %s", member.name or tostring(member.id),
+                    LiveUptime.TypeName(member.kind), tostring(member.kind), member.reason))
             end
         elseif command == "move" then
             setUnlocked(not unlocked)

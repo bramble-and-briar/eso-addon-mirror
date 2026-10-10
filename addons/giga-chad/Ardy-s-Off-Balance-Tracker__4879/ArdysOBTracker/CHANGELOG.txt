@@ -1,6 +1,18 @@
 Ardy's OB Tracker - Release Notes
 =================================
 
+v1.5.0  (2026-10-09)
+  - New crosshair readout: shows OB (with time left), IMMUNE (with time left)
+    or READY next to your crosshair for the enemy you're aiming at. Reads the
+    target's own effects, so it includes Off Balance applied by other players.
+    Movable, adjustable text size, READY can be hidden.
+  - New sound alerts (Settings > Sound alerts): "Ready again" when an enemy you
+    put Off Balance comes out of immunity (on by default), and "Off Balance
+    ending" 1.5 s before your Off Balance ends (off by default). Choice of
+    sounds; no alert when the enemy dies.
+  - The tracker row for the enemy under your crosshair is highlighted in gold.
+  - README now points to the settings page instead of chat commands.
+
 v1.4.0  (2026-09-29)
   - Tracker window text is now resizable (12-36, default 16) with the "Text
     size" slider in settings or /obt size <number>. The window resizes to fit.

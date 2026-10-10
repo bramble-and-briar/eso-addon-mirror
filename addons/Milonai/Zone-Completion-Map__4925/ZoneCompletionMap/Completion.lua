@@ -4,8 +4,8 @@ local Completion = {}
 ZoneCompletionMap.Completion = Completion
 
 -- A zone is complete when every enabled completion type that has at least one
--- activity in the zone is fully done. Zones where no enabled type has any
--- activity never count as complete.
+-- activity in the zone is fully done. Returns nil when no enabled type has any
+-- activity in the zone, so callers can tell "nothing to track" from "incomplete".
 function Completion.IsZoneComplete(zoneId, isTypeEnabled, api)
     local counted = false
     for _, completionType in ipairs(api.types) do
@@ -19,7 +19,10 @@ function Completion.IsZoneComplete(zoneId, isTypeEnabled, api)
             end
         end
     end
-    return counted
+    if not counted then
+        return nil
+    end
+    return true
 end
 
 function Completion.DefaultApi()

@@ -96,7 +96,7 @@ function TOPM.CreateSettingsMenu()
         type = "panel",
         name = "True Options Pannel Mover",
         displayName = "|cFFD700True Options Pannel Mover|r",
-        author = "Toudidef",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = "1.0.0",
         registerForRefresh = true,
     }

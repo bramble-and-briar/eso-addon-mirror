@@ -22,18 +22,18 @@
     "SetHunter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4882/",
-  "fingerprint": "ad9da1e72088eeb77fe5c4c9fcae43816f84b0df70f02e0ffacd754361a46f37",
+  "fingerprint": "566b2d1974eac5b0a809998b3e2cd0f9ab37412fad0997386de2b430d4b3e0f0",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17592.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17593.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17594.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17595.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17596.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17597.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17598.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17599.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17600.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17601.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17824.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17812.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17814.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17816.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17817.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17819.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17820.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17822.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17821.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17823.png"
   ],
   "platform": "pc",
   "published": true,
@@ -41,11 +41,11 @@
   "source_id": "4882",
   "source_url": "https://www.esoui.com/downloads/info4882-SetHunter-GearFinderXPGuide.html",
   "stats": {
-    "downloads": 56,
+    "downloads": 217,
     "favorites": 0,
-    "monthly_downloads": 49
+    "monthly_downloads": 198
   },
   "title": "Set Hunter - Gear Finder & XP Guide",
-  "updated_at": 1790626864000,
-  "version": "1.0.1"
+  "updated_at": 1791509241000,
+  "version": "1.1.0"
 }

@@ -178,6 +178,8 @@ function AlabuzyaUI.Minimap.ReadFrame()
     if columns<1 or rows<1 then return end
     local x,y,heading,shown=GetMapPlayerPosition('player')
     if not shown then return end
+    -- The player pip follows the view direction even while the body stands still.
+    if GetPlayerCameraHeading then heading=GetPlayerCameraHeading() end
     local context=MapKey()
     local changed=context~=key
     if changed or mapDirty then

@@ -19,6 +19,12 @@ function A:Command(input)
         end
         if command == "save" then self:Save(index, original) else self:Load(index) end
         Print(self.message)
+    elseif command == "combat" then
+        if not self:CombatCommand(rest) then
+            Print(S.help)
+            return
+        end
+        for _, line in ipairs(self:CombatLines()) do Print(line) end
     elseif command == "" or command == "list" or command == "status" then
         for _, line in ipairs(self:ListLines()) do Print(line) end
         if command == "" then Print(S.help) end
@@ -33,9 +39,13 @@ local function OnLoaded(_, name)
     A.sv = ZO_SavedVars:NewAccountWide("PBsHudManager_Data", 1, nil, A.defaults)
     A:Normalize()
     A:InitSettings()
+    A:InitCombat()
     SLASH_COMMANDS["/pbhud"] = function(input) A:Command(input) end
     EVENT_MANAGER:RegisterForEvent(A.name, EVENT_PLAYER_ACTIVATED, function()
         A:EnsureInitialSet()
+        -- A load screen resets the fight, and the controls may be new ones.
+        A:ReadCombatState()
+        A:ApplyCombat()
     end)
 end
 EVENT_MANAGER:RegisterForEvent(A.name, EVENT_ADD_ON_LOADED, OnLoaded)

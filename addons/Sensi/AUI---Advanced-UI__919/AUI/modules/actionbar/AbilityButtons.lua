@@ -416,9 +416,30 @@ local function ResetAllCooldowns()
 	end
 end	
 	
+local function RefreshSlotCooldownStates()
+	for slotId, _ in pairs(gAbilityButtonArray) do
+		if gAbilitySlotDataArray[gHotBarCategory][slotId] and gAbilitySlotDataArray[gHotBarCategory][slotId].isActive then
+			local remainTime = GetActionSlotEffectTimeRemaining(slotId, gHotBarCategory)
+			if remainTime == 0 then
+				gAbilitySlotDataArray[gHotBarCategory][slotId].isActive = false
+				gAbilitySlotDataArray[gHotBarCategory][slotId].duration = 0
+			end
+		end
+		if gLastHotBarCategory and gAbilitySlotDataArray[gLastHotBarCategory][slotId] and gAbilitySlotDataArray[gLastHotBarCategory][slotId].isActive then
+			local remainTime = GetActionSlotEffectTimeRemaining(slotId, gLastHotBarCategory)
+			if remainTime == 0 then
+				gAbilitySlotDataArray[gLastHotBarCategory][slotId].isActive = false
+				gAbilitySlotDataArray[gLastHotBarCategory][slotId].duration = 0
+			end
+		end
+	end
+end
+
 local function OnUnitDeathStateChanged(_eventCode, _unitTag, _isDead)
 	if _unitTag == AUI_PLAYER_UNIT_TAG then
 		ResetAllCooldowns()
+	elseif _isDead and string.find(_unitTag, "playerpet", 1, true) then
+		RefreshSlotCooldownStates()
 	end
 end
 	
@@ -480,6 +501,9 @@ function AUI.Actionbar.AbilityButtons.OnActionSlotEffectUpdated(_category, _slot
 		gAbilitySlotDataArray[_category][_slotId].duration = GetActionSlotEffectDuration(_slotId, _category)	
 		gAbilitySlotDataArray[_category][_slotId].endTime = (GetFrameTimeMilliseconds() + remainTime) / 1000
 		gAbilitySlotDataArray[_category][_slotId].isActive = true
+	elseif remainTime == 0 then
+		gAbilitySlotDataArray[_category][_slotId].isActive = false
+		gAbilitySlotDataArray[_category][_slotId].duration = 0
 	end	
 
 	gAbilitySlotDataArray[_category][_slotId].stackCount = GetActionSlotEffectStackCount(_slotId, _category)

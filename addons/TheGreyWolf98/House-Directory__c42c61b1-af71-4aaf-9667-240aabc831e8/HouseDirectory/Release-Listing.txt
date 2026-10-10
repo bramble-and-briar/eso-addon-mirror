@@ -1,0 +1,21 @@
+TITLE
+House Directory
+
+OVERVIEW
+Browse owned and unowned ESO homes, add personal notes, track furnishing space, travel or preview, and share your own houses in chat. No external libraries required.
+
+DESCRIPTION
+Your homes, organised. House Directory brings your ESO housing collection into one controller-friendly browser, with separate Owned and Unowned pages and collapsible Staple, Classic and Notable categories.
+
+Select a house to see its built-in preview picture, official name, personal nickname or storage note, and furnishing details. A warm gold-framed interface and capacity bar make it easy to browse your collection and check remaining space.
+
+Travel directly to an owned house, preview unowned houses including those not currently for sale where ESO permits, or prepare a link to your specific owned house in chat. No purchase controls and no automatic chat sending.
+
+Visit each owned house once to record furnishing usage. Standard furnishings show placed/total and free slots; selected-house details show all four furnishing categories. Saved counts are clearly labelled and refresh while you are inside your own house. Nicknames and snapshots are shared across your characters on the same server.
+
+Open with /houses. LB/RB changes Owned/Unowned; A expands/collapses categories; hold the D-pad to navigate; LT/RT pages; right-stick click edits an owned-house note; X travels or previews; Y prepares an owned-house chat link. Open chat normally to choose the channel and send your link.
+
+House links respect visitor permissions. Some house previews may be restricted by ESO. Custom notes belong to this addon and do not change the house's official ESO name. No external addon libraries required.
+
+VERSION NOTES
+1.0.0: First release. Owned/unowned catalogue, house categories and pictures, personal notes, furnishing snapshots and capacity bar, travel/preview and owned-house chat links.

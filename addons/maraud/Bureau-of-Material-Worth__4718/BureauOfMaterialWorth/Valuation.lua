@@ -6,9 +6,7 @@ local private = addon.private
 
 -- Hot-path global caching
 -- ---------------------------------------------------------------------------
--- The full rescan touches these once per slot across potentially hundreds of
--- slots; bind them to upvalues so the scan is upvalue reads, not _G hash
--- lookups. See the same rationale in BureauOfMaterialWorth.lua.
+-- Cache inventory and pricing functions used by slot scans.
 local GetSlotStackSize          = GetSlotStackSize
 local GetItemId                 = GetItemId
 local GetItemLink               = GetItemLink
@@ -17,14 +15,10 @@ local ZO_GetNextBagSlotIndex    = ZO_GetNextBagSlotIndex
 local GetNumBagFreeSlots        = GetNumBagFreeSlots
 local LibPrice                  = LibPrice
 
--- The player's normal inventory: the destination for craft-bag withdrawals and
--- the bag the backpack-capacity helper scans. Bound here alongside BAG_VIRTUAL
--- so the capacity scan is upvalue reads like the rest of the hot path.
+-- Backpack destination used by capacity checks.
 local BAG_BACKPACK              = BAG_BACKPACK
 
--- Display-field + price-history helpers, only touched lazily when the detail
--- window is opened (never on the per-slot scan path), but bound here for
--- consistency with the rest of the module.
+-- Cached display, time, and price-history helpers.
 local GetItemLinkName             = GetItemLinkName
 local GetItemLinkIcon             = GetItemLinkIcon
 local GetItemLinkFunctionalQuality = GetItemLinkFunctionalQuality
@@ -34,8 +28,6 @@ local zo_round                    = zo_round
 local mathabs                     = math.abs
 local zo_strformat                = zo_strformat
 local tablesort                   = table.sort
-local stringlower                 = string.lower
-local stringfind                  = string.find
 local stringformat                = string.format
 local stringgmatch                = string.gmatch
 local stringmatch                 = string.match
@@ -43,32 +35,17 @@ local tonumber                    = tonumber
 
 local BAG = BAG_VIRTUAL
 
--- A "classic" inventory stack is 200 identical items. The craft bag itself has
--- no such limit (one material = one unbounded slot), so we report two distinct
--- figures that must never be conflated:
---   slots  -- occupied craft-bag slots == number of distinct materials
---   stacks -- ceil(items / STACK_SIZE), how many 200-item stacks the volume is
--- The slot count is what the incremental aggregates track; the stack count is
--- derived from the item total at snapshot time (see GetSnapshot).
--- Declared once in the core as private.STACK_SIZE and shared with
--- WithdrawDialog, so the two modules can never disagree on what a full stack is.
+-- Craft Bag slots count distinct materials; classic stacks are a separate,
+-- derived count using the stack size shared with the withdrawal module.
 local STACK_SIZE = private.STACK_SIZE
 
 -- Price-history bookkeeping for the detail window's "price change" column.
 -- ---------------------------------------------------------------------------
--- We keep a compact series of price points per itemId in savedVars. The newest
--- point remains the baseline for the detail table's day-over-day change, while
--- the whole series supports seven-day trend analysis. Writes are session-gated:
--- the first LibPrice observation of a UI session (login or /reloadui) appends a
--- point even if the previous session was only minutes ago, and later lookups in
--- the same session (a bag reopen, or /bmw refresh) update that session's point
--- in place so the bounded series is not filled with near-duplicates. Opening,
--- sorting, or searching the table never writes history. The source key is stored
--- with every new point: switching from MM to TTC/ATT starts a fresh comparable
--- run instead of creating a false market spike. PRUNE_MAX_AGE_SECONDS drops
--- entries for materials not observed in a month; the per-item point count is
--- bounded separately. Points outside the seven-day analysis window are pruned
--- on load and on price writes, retaining the newest point as a price baseline.
+-- Encoded observations support the latest comparable price change and seven-day
+-- trends. Append on a new UI session or source change; otherwise update the last
+-- point. Row building never writes history, and source changes break comparison.
+-- Retain the latest baseline outside the trend window; drop materials unseen for
+-- PRUNE_MAX_AGE_SECONDS and cap each series at PRICE_HISTORY_MAX_POINTS.
 local PRUNE_MAX_AGE_SECONDS   = 30 * 24 * 60 * 60  -- 30 days
 local PRICE_TREND_WINDOW_SECONDS = 7 * 24 * 60 * 60
 -- Session-gated writes can land more than one point a day, so keep enough room
@@ -77,22 +54,12 @@ local PRICE_HISTORY_MAX_POINTS = 30
 
 -- Grand-total value history (the footer sparkline)
 -- ---------------------------------------------------------------------------
--- One sample of the whole-bag valuation is recorded per UI session (login or
--- /reloadui), into a fixed-size ring buffer in savedVars (valueHistory). The
--- ring is capacity-bounded so it can never grow without limit -- old samples are
--- overwritten in place rather than shifted, so a write is O(1) and there is
--- nothing to prune. Reopening the Craft Bag in the same session is a no-op, so
--- a 20-minute relog still adds a fresh point without filling the graph from
--- every bag visit.
+-- One total-value sample per UI session in a fixed-size ring buffer.
+-- Reopening the bag does not append; old samples are overwritten in place.
 local VALUE_HISTORY_CAPACITY = 90
 
--- SavedVariables are serialized as verbose Lua tables: one material with four
--- named fields consumes six or more lines. The Craft Bag commonly holds several
--- hundred materials, so the manual snapshot, visit baseline, and price history
--- used to dominate the save file. Compact entries retain the same data in one
--- string. Tilde cannot occur in ESO item links, remains readable in the saved
--- file, and %.17g round-trips Lua numbers without intentionally reducing price
--- precision.
+-- Encode persisted records as scalar strings to keep saves compact.
+-- %.17g preserves number precision; item links occupy the last record field.
 local SAVE_SEPARATOR = "~"
 local PRICE_POINT_SEPARATOR = "|"
 
@@ -625,12 +592,7 @@ local isBagVisible = false
 local INCREMENTAL_DRIFT_LIMIT = 250
 local incrementalApplies = 0
 
--- Append the current grand total to the value-history ring buffer. Called from
--- FinalizeVisit after the delta block, so grandGold/grandItems are the
--- just-computed figures. The first write of a UI session always appends, even
--- if the previous session was only minutes ago; later Craft Bag opens in the
--- same session are a no-op so the graph stays one sample per login. No-op
--- without savedVars (pre-init) so it is safe to call unguarded.
+-- Record the settled total once per UI session; no-op before SavedVariables exist.
 local function RecordValuePoint()
     if valueHistoryRecordedThisSession then
         return
@@ -661,9 +623,8 @@ local function RecordValuePoint()
     valueHistoryRecordedThisSession = true
 end
 
--- Capture only the data needed to explain the next visit delta. This is a
--- single rolling baseline, distinct from the user-owned snapshot: it is
--- replaced after every visit and therefore stays bounded by Craft Bag slots.
+-- Capture the stock baseline used by visit/session reports, separate from the
+-- comparison snapshot. It advances on acknowledgement, not every bag open.
 local function CaptureVisitBaseline()
     local materials = {}
     for itemId, current in pairs(currentMaterials) do
@@ -1381,19 +1342,9 @@ function Valuation.Initialize()
     EVENT_MANAGER:RegisterForEvent(addon.name, EVENT_INVENTORY_FULL_UPDATE, OnFullInventoryUpdate)
 end
 
--- Finalize the accumulated footer delta, emit the once-per-session chat line,
--- and record the value-history point. When
--- `pricesReadyForSnapshot` is true, also create the one-time automatic snapshot.
--- Split out of
--- OnCraftBagShown because all of these consume the just-computed grandGold: if the
--- first scan left slots unpriced (price source still importing after login), running
--- this immediately would bake an understated total into both the persisted baseline
--- (inflating the NEXT visit's delta) and the sparkline. Instead OnCraftBagShown defers
--- the call until prices have settled -- either right away when the first scan is fully
--- priced, or from the price self-heal once it heals the last slot or exhausts its
--- budget (and, as a backstop, on hide). Guarded to run at most once per open via
--- visitFinalizePending. (Assigns the forward-declared local above, so the
--- earlier StartPriceRetry can call it.)
+-- Finalize once per bag open after prices settle, or on hide as a fallback.
+-- Update the stock report, applicable notifications, and session value sample.
+-- Only the settled-price path may create the one-time automatic snapshot.
 function FinalizeVisit(pricesReadyForSnapshot)
     if not visitFinalizePending then
         return
@@ -1829,10 +1780,8 @@ end
 
 -- Detail-window data + price history
 -- ---------------------------------------------------------------------------
--- Everything below is touched ONLY when the user opens the per-category detail
--- window (a click), never on the per-slot scan path. It resolves the heavier
--- display fields (name/icon/quality) lazily from the item link and folds in a
--- price-change figure from the persisted baseline.
+-- Display rows resolve item metadata lazily. Price-history writes instead run
+-- after actual price lookups through UpdatePriceHistoryBaselines.
 
 -- Price changes captured when a price lookup refreshed a material. Keeping this
 -- transient result lets the UI show the just-observed change even though the
@@ -1937,8 +1886,8 @@ end
 
 -- Build one display row from a slot's cached info. Resolves the heavier display
 -- fields (name/icon/quality) and the price-growth figure lazily from the item
--- link; shared by GetCategoryMaterials and GetMaterialsMatching so the row shape
--- stays identical. See those functions for the returned field list.
+-- link; shared by GetCategoryMaterials and GetAllMaterials so the row shape
+-- stays identical. See GetCategoryMaterials for the returned field list.
 local function BuildMaterialRow(slotIndex, info)
     local itemLink = GetItemLink(BAG, slotIndex)
     local quality = GetItemLinkFunctionalQuality(itemLink)
@@ -2021,30 +1970,6 @@ function Valuation.GetAllMaterials()
 
     for slotIndex, info in pairs(slotInfo) do
         materials[#materials + 1] = BuildMaterialRow(slotIndex, info)
-    end
-
-    SortMaterialsByName(materials)
-    return materials
-end
-
--- Per-material rows across the WHOLE craft bag whose name contains `query`
--- (case-insensitive substring), for the detail window's search box. Same row
--- shape and sort as GetCategoryMaterials. An empty/nil query returns nothing, so
--- the caller can treat "no query" as "not searching" rather than "match all".
--- O(slots) with a name resolve per slot; runs once per keystroke (debounced by
--- the caller), never on the scan path.
-function Valuation.GetMaterialsMatching(query)
-    local materials = {}
-    if not query or query == "" then
-        return materials
-    end
-
-    local needle = stringlower(query)
-    for slotIndex, info in pairs(slotInfo) do
-        local name = GetMaterialDisplayName(info.itemId, GetItemLink(BAG, slotIndex))
-        if stringfind(stringlower(name), needle, 1, true) then
-            materials[#materials + 1] = BuildMaterialRow(slotIndex, info)
-        end
     end
 
     SortMaterialsByName(materials)

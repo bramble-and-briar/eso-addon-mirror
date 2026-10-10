@@ -200,6 +200,17 @@ function Settings:CreateSettingsPanel()
 		requiresReload = true,
 	}
 
+  i = i + 1
+	optionsData[i] = {
+		type = "checkbox",
+    name = "Automatically Show at Furniture Vault",
+    getFunc = function() return Parent.SV.vaultAutoShow end,
+    setFunc = function(value) Parent.SV.vaultAutoShow = value end,
+    width = "full",
+		default = Parent.Defaults.vaultAutoShow,
+    disabled = function() return not Parent.SV.vaultStatsEnabled end,
+	}
+
 	i = i + 1
 	optionsData[i] = {
     type = "button",

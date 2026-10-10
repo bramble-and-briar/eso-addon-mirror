@@ -1,7 +1,8 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/static_recharge/Static-s-Furnishing-Improvements__4447",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "static_recharge",
   "canonical_id": "esoui:4447",
   "category_id": "160",
@@ -17,7 +18,7 @@
     "StaticsFurnishingImprovements"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4447/",
-  "fingerprint": "2b10ef764beec9f798f0cdcd9f777534609353f8535e1dbc211f87a48c43aff6",
+  "fingerprint": "ca3ba9b1b462f563055aacdfb1fce008e50f73933649d5d50636cd9ad5714579",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15494.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "4447",
   "source_url": "https://www.esoui.com/downloads/info4447-StaticsFurnishingImprovements.html",
   "stats": {
-    "downloads": 170,
+    "downloads": 209,
     "favorites": 2,
-    "monthly_downloads": 15
+    "monthly_downloads": 20
   },
   "title": "Static's Furnishing Improvements",
-  "updated_at": 1773571666000,
-  "version": "1.0.2"
+  "updated_at": 1791594298000,
+  "version": "1.1.1"
 }

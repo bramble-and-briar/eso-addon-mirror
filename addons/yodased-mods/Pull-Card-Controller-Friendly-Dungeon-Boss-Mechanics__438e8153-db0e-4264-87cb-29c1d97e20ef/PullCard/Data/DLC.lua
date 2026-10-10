@@ -343,7 +343,8 @@ addBoss("Domihaus the Bloody-Horned", "Falkreath Hold", "Domihaus the Bloody-Hor
         },
     })
 
--- From Stonethorn on, every boss has its own hard mode via the Challenge Banner.
+-- Challenge Banner hard modes: final boss only in Castle Thorn and The Cauldron,
+-- every boss from Stone Garden / Black Drake Villa on.
 local BANNER_HM = "Raise the Challenge Banner (Veteran): more health and damage, plus extra mechanics."
 
 -- =============================================================================
@@ -845,13 +846,12 @@ addShared({"Nisaazda", "Grundwulf"}, "Moongrave Fane", "Grundwulf & Nisaazda", {
     "Focus-fire to stop Blood Ties.",
     "[Grundwulf] Focus fire; do the stone puzzle.",
     {
-        hardmode = "Veteran hard mode on the final fight.",
+        hardmode = "Use the Sangiin Hemo Helot during the fight: Grundwulf is empowered by dragon blood.",
         challenges = {
             { name = "Failed Transfusion", text = "Don't let Nisaazda use Blood Ties." },
             { name = "Shared Experience", text = "Each player moves the stone at most once." },
         },
     })
--- VERIFY: how Grundwulf's hard mode is triggered.
 
 -- =============================================================================
 -- Harrowstorm
@@ -1004,7 +1004,7 @@ addBoss("Dread Tindulra", "Castle Thorn", "Dread Tindulra", {"Tindulra"},
     "Fire damage.",
     "Kill broodlings.",
     "[Tindulra] Avoid fire; kill broodlings.",
-    { hardmode = BANNER_HM, challenges = { { name = "Hound Pound", text = "Kill broodlings 15+ meters apart." } } })
+    { challenges = { { name = "Hound Pound", text = "Kill broodlings 15+ meters apart." } } })
 
 addBoss("Blood Twilight", "Castle Thorn", "Blood Twilight", {},
     "Vampire with Dark Barrage and a teleport slam.",
@@ -1012,8 +1012,7 @@ addBoss("Blood Twilight", "Castle Thorn", "Blood Twilight", {},
     "Hold her; block the slam.",
     "Shadow Strike spikes.",
     "Burn.",
-    "[Blood Twilight] Block Shadow Strike; avoid barrage.",
-    { hardmode = BANNER_HM })
+    "[Blood Twilight] Block Shadow Strike; avoid barrage.")
 
 addBoss("Vaduroth", "Castle Thorn", "Vaduroth", {},
     "Storm boss with Crow's Feast and an explosive pull.",
@@ -1022,7 +1021,7 @@ addBoss("Vaduroth", "Castle Thorn", "Vaduroth", {},
     "Crow's Feast ticks heavily.",
     "Burn.",
     "[Vaduroth] Out of Crow's Feast; Discard targets move away.",
-    { hardmode = BANNER_HM, challenges = { { name = "Four by Four", text = "Each player bursts a corpse with the sickle." } } })
+    { challenges = { { name = "Four by Four", text = "Each player bursts a corpse with the sickle." } } })
 
 addBoss("Talfyg", "Castle Thorn", "Talfyg", {},
     "Blood mage with heavy swipes and AoE magic.",
@@ -1031,7 +1030,7 @@ addBoss("Talfyg", "Castle Thorn", "Talfyg", {},
     "Blood magic AoE.",
     "Burn.",
     "[Talfyg] Avoid swipes and blood AoE.",
-    { hardmode = BANNER_HM, challenges = { { name = "Let Sleeping Gargoyles Lie", text = "Don't kill the large Frozen Gargoyles." } } })
+    { challenges = { { name = "Let Sleeping Gargoyles Lie", text = "Don't kill the large Frozen Gargoyles." } } })
 
 addBoss("Lady Thorn", "Castle Thorn", "Lady Thorn", {},
     "Final vampire with batswarm and scatter phases.",
@@ -1123,7 +1122,7 @@ addBoss("Oxblood the Depraved", "The Cauldron", "Oxblood the Depraved", {"Oxbloo
     "Consume attacks.",
     "Kill globs.",
     "[Oxblood] Stop Gore Glob heals.",
-    { hardmode = BANNER_HM, challenges = { { name = "Glob Security", text = "Defeat without killing any Gore Globs." } } })
+    { challenges = { { name = "Glob Security", text = "Defeat without killing any Gore Globs." } } })
 
 addBoss("Taskmaster Viccia", "The Cauldron", "Taskmaster Viccia", {"Viccia"},
     "Xivilai with snares and traps.",
@@ -1132,7 +1131,7 @@ addBoss("Taskmaster Viccia", "The Cauldron", "Taskmaster Viccia", {"Viccia"},
     "Trap damage.",
     "Burn.",
     "[Viccia] Avoid traps.",
-    { hardmode = BANNER_HM, challenges = { { name = "Can't Catch Me!", text = "No one triggers a trap." } } })
+    { challenges = { { name = "Can't Catch Me!", text = "No one triggers a trap." } } })
 
 addBoss("Molten Guardian", "The Cauldron", "Molten Guardian", {},
     "Iron atronach with constant Magmatic Eruption.",
@@ -1140,8 +1139,7 @@ addBoss("Molten Guardian", "The Cauldron", "Molten Guardian", {},
     "Hold it.",
     "Eruption ticks.",
     "Burn.",
-    "[Molten Guardian] Avoid eruptions.",
-    { hardmode = BANNER_HM })
+    "[Molten Guardian] Avoid eruptions.")
 
 addBoss("Baron Zaudrus", "The Cauldron", "Baron Zaudrus", {"Zaudrus"},
     "Final havocrel on a ring arena with ash vents.",

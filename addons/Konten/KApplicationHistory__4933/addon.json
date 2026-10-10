@@ -1,0 +1,41 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Konten/KApplicationHistory__4933",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Konten",
+  "canonical_id": "esoui:4933",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4933",
+  "deleted": false,
+  "directories": [
+    "KApplicationHistory"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4933/",
+  "fingerprint": "b3aa7fded834b3cfead14ee65a258f52aa43a04deefdfa628892252f7a8fa2fd",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17839.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17840.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17841.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17848.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4933",
+  "source_url": "https://www.esoui.com/downloads/info4933-KApplicationHistory.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "KApplicationHistory",
+  "updated_at": 1791568324000,
+  "version": "1.0.1"
+}

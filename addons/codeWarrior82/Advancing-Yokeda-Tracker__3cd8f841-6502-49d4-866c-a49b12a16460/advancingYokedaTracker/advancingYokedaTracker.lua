@@ -208,7 +208,6 @@ local function startTrackingAuto()
     if advancingYokedaTracker.savedVariables.trackAdv and advancingYokedaTracker.savedVariables.autoTrack then
         printMessage("Found Advancing Yokeda set")
         registerAlerts()
-        advAddonText:SetHidden(false)
     end
 end
 
@@ -387,11 +386,6 @@ local function onAddOnLoadedAdv(event, name)
 
     --double check if set is equipped without autotracking stipulation
     if isSetEquiped(setId, setCount) then isEquiped = true end
-
-    --notify if tracking is disabled
-    if not advancingYokedaTracker.savedVariables.trackAdv then
-        zo_callLater(function() printMessage("tracking disabled") end, 800)
-    end
 
     --setup text field areas
     advAddonText:SetMovable(true)

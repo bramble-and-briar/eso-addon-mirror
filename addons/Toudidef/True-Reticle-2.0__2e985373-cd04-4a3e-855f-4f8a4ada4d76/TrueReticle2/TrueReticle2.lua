@@ -365,7 +365,7 @@ function TrueReticle:InitializeSettingsMenu()
         type = "panel",
         name = "TrueReticle2",
         displayName = "True Reticle 2.0",
-        author = "|cff5900Toudidef|r",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = "2.0.0",
         slashCommand = "/truereticle",
         registerForRefresh = true,

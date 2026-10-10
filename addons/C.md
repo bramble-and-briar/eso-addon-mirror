@@ -69,7 +69,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Character Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Achievements__3322) | silvereyes | PC / Mac | 1.0.2 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Character-Bound-Item-Hider__4922) | APH0N1C | PC / Mac | 2026.10.06.13.49 |
 | [Character Bound Item Hider](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Character-Bound-Item-Hider__49e5c9da-dc0d-4bf5-b60c-6e6e53784107) | APH0NlC | Console | — |
-| [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.3.0 |
+| [Character Homes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g0thicicecream/Character-Homes__4654) | g0thicicecream | PC / Mac | 1.3.1 |
 | [Character Knowledge (Research, Motif, Recipe, Furnishing Plan and Scribing Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Character-Knowledge-Research-Motif-Recipe-Furnishing-Plan-and-Scribing-Tracker__2938) | code65536 | PC / Mac | 3.1.3 |
 | [Character Zone Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Character-Zone-Tracker__3323) | silvereyes | PC / Mac | 1.3.0 |
 | [CharacterGearUI (for alone or PerfectPixel)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Trobo/CharacterGearUI-for-alone-or-PerfectPixel__4743) | Trobo | PC / Mac | 0.4.7 |
@@ -78,7 +78,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Chat Be Gone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Chat-Be-Gone__85e2f419-414a-48a9-ad3b-4b713c098ca2) | xPricee | Console | — |
 | [Chat Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Chat-Emotes__3658) | akamatsu02 | PC / Mac | 2.6 |
 | [Chat Input Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GetanoNero/Chat-Input-Viewer__4158) | GetanoNero | PC / Mac | 1.3.1 |
+| [Chat keeper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Chat-keeper__47608f50-4be4-46b1-833f-575274a7dbf2) | TheGreyWolf98 | Console | — |
 | [Chat Log Preserver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Chat-Log-Preserver__cebfe41b-3168-432c-a3cf-795bbe56e54e) | clubwratt | Console | — |
+| [Chat Palette](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Chat-Palette__3ecd8aa0-ce2c-4b41-b059-214dad8bac4f) | TheGreyWolf98 | Console | — |
 | [Chat Skipper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mYoda01/Chat-Skipper__5e1a067b-7af6-4752-bbb0-3de588e8587e) | mYoda01 | Console | — |
 | [Chat Tab Selector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Chat-Tab-Selector__1674) | Hoft | PC / Mac | 1.38 |
 | [Chat Window Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Chat-Window-Manager__1041) | Phinix | PC / Mac | 1.37 |
@@ -162,6 +164,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Combat Metronome (GCD Tracker) - beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/barny/Combat-Metronome-GCD-Tracker---beta__3987) | barny | PC / Mac | 1.7.7 - beta |
 | [Combat Music](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Combat-Music__2258) | CaptainBlagbird | PC / Mac | 1.0.1 |
 | [Combat Pet Cooldown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/scorpius2k1/Combat-Pet-Cooldown__3039) | scorpius2k1 | PC / Mac | 1.2 |
+| [Combat Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Combat-Recap__989b1df5-3c15-479c-b13d-a42ed8b45214) | TheGreyWolf98 | Console | — |
 | [Combat Reticle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aetheron/Combat-Reticle__660) | Aetheron | PC / Mac | 2.1.1 |
 | [Combat Reticle (by Aetheron, calia1120) - fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skawiaw/Combat-Reticle-by-Aetheron-calia1120---fix__3203) | skawiaw | PC / Mac | 2.1.1.1 |
 | [Combat Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yaasshaa/Combat-Tracker__4571) | yaasshaa | PC / Mac | 0.7 |
@@ -242,6 +245,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Craft Bag Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Craft-Bag-Extended__1419) | silvereyes | PC / Mac | 3.0.13 |
 | [Craft Bag Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/autocatalyst/Craft-Bag-Keybind__2474) | autocatalyst | PC / Mac | 1.0.5 |
 | [Craft Bag Monitor (CBM)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fonkin/Craft-Bag-Monitor-CBM__2101) | Fonkin | PC / Mac | 1.21 |
+| [Craft Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alifie/Craft-Search__4935) | Alifie | PC / Mac | 0.1 |
 | [CraftAutoLoot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/CraftAutoLoot__972) | Sharlikran | PC / Mac | 1.23 |
 | [CraftAutoLoot DE-Version \[Dragonhold Update\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MoonshinePK/CraftAutoLoot-DE-Version-Dragonhold-Update__1435) | MoonshinePK | PC / Mac | 2.1 |
 | [CraftAutoLoot+Key](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TePec/CraftAutoLoot-Key__1176) | TePec | PC / Mac | 1.3.3 |

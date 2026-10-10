@@ -1,0 +1,9 @@
+## Title: VaultTracker
+## APIVersion: 101046
+## AddOnVersion: 2
+## Author: Awh_Lina
+## Description: Track your vault cost, stacks, Vault Type!
+## DependsOn: LibAddonMenu-2.0
+## SavedVariables: VaultTrackerSettings
+VaultTracker.lua
+VaultTracker.xml

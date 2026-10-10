@@ -1,6 +1,6 @@
 local NVC = NowhereVaultSecretSeeker
 NVC.name = "NowhereVaultSecretSeeker"
-NVC.version = "1.0.0"
+NVC.version = "1.0.2"
 NVC.pinType = "NowhereVaultSecretSeekerPins"
 
 local MAIN_WIDTH = 410
@@ -33,10 +33,29 @@ local function CurrentRoom()
     return mapId, mapId and NVC.rooms[mapId] or nil
 end
 
+-- Keep each step on its own line, with explicit word wrapping to prevent
+-- CT_LABEL text from overflowing the checklist area on different UI scales.
+local function WrapGuideLine(text, limit)
+    local result = {}
+    local line = ""
+    for word in tostring(text or ""):gmatch("%S+") do
+        if line == "" then
+            line = word
+        elseif #line + 1 + #word <= limit then
+            line = line .. " " .. word
+        else
+            result[#result + 1] = line
+            line = word
+        end
+    end
+    if line ~= "" then result[#result + 1] = line end
+    return table.concat(result, "\n")
+end
+
 local function NumberedInstructions(lines)
     local out = {}
     for i, line in ipairs(lines or {}) do
-        out[#out + 1] = tostring(i) .. ". " .. tostring(line)
+        out[#out + 1] = WrapGuideLine(tostring(i) .. ". " .. tostring(line), 37)
     end
     return table.concat(out, "\n")
 end
@@ -134,17 +153,17 @@ function NVC:CreateUI()
 
     local prereq = wm:CreateControl(nil, w, CT_LABEL)
     prereq:SetFont("ZoFontGame")
-    prereq:SetWidth(INNER_WIDTH)
+    prereq:SetWidth(INNER_WIDTH - 8)
     prereq:SetColor(1, .72, .24, 1)
 
     local warning = wm:CreateControl(nil, w, CT_LABEL)
     warning:SetFont("ZoFontGameBold")
-    warning:SetWidth(INNER_WIDTH)
+    warning:SetWidth(INNER_WIDTH - 8)
     warning:SetColor(1, .35, .25, 1)
 
     local body = wm:CreateControl(nil, w, CT_LABEL)
     body:SetFont("ZoFontGame")
-    body:SetWidth(INNER_WIDTH)
+    body:SetWidth(INNER_WIDTH - 8)
     body:SetVerticalAlignment(TEXT_ALIGN_TOP)
 
     local foot = wm:CreateControl(nil, w, CT_LABEL)
@@ -203,7 +222,7 @@ function NVC:LayoutPanel()
         self.prereqLabel:ClearAnchors()
         self.prereqLabel:SetAnchor(TOPLEFT, w, TOPLEFT, PAD, y)
         local preText = self.prereqLabel:GetText()
-        local preH = MeasureLabelHeight(self.prereqLabel, preText, 48, 20, 20)
+        local preH = MeasureLabelHeight(self.prereqLabel, preText, 37, 23, 23)
         self.prereqLabel:SetHeight(preH)
         y = y + preH + 3
     end
@@ -212,7 +231,7 @@ function NVC:LayoutPanel()
         self.warningLabel:ClearAnchors()
         self.warningLabel:SetAnchor(TOPLEFT, w, TOPLEFT, PAD, y)
         local warnText = self.warningLabel:GetText()
-        local warnH = MeasureLabelHeight(self.warningLabel, warnText, 50, 21, 30)
+        local warnH = MeasureLabelHeight(self.warningLabel, warnText, 37, 23, 30)
         self.warningLabel:SetHeight(warnH)
         y = y + warnH + 3
     end
@@ -222,7 +241,7 @@ function NVC:LayoutPanel()
     local bodyText = self.bodyLabel:GetText()
     -- Slightly generous estimate on purpose: full instructions are more important
     -- than saving a few pixels of panel height.
-    local bodyH = MeasureLabelHeight(self.bodyLabel, bodyText, 46, 20, 20)
+    local bodyH = MeasureLabelHeight(self.bodyLabel, bodyText, 37, 23, 23)
     self.bodyLabel:SetHeight(bodyH)
     y = y + bodyH + 6
 
@@ -275,8 +294,8 @@ function NVC:UpdatePanel()
     if room.prerequisite then
         self.prereqLabel:SetHidden(false)
         self.prereqLabel:SetText(
-            "REQUIRES: " .. room.prerequisite ..
-            " — " .. tostring(room.prerequisiteSource or "earlier secret")
+            WrapGuideLine("REQUIRES: " .. room.prerequisite ..
+            " — " .. tostring(room.prerequisiteSource or "earlier secret"), 37)
         )
     else
         self.prereqLabel:SetHidden(true)
@@ -285,14 +304,14 @@ function NVC:UpdatePanel()
 
     if room.warning then
         self.warningLabel:SetHidden(false)
-        self.warningLabel:SetText("WARNING: " .. room.warning)
+        self.warningLabel:SetText(WrapGuideLine("WARNING: " .. room.warning, 37))
     else
         self.warningLabel:SetHidden(true)
         self.warningLabel:SetText("")
     end
 
     local bodyText = NumberedInstructions(room.instructions)
-    if room.hint then bodyText = bodyText .. "\n" .. room.hint end
+    if room.hint then bodyText = bodyText .. "\n" .. WrapGuideLine(room.hint, 37) end
     self.bodyLabel:SetText(bodyText)
     self:RefreshLayout()
 end

@@ -25,7 +25,7 @@ local OBM = ArdysOBTracker
 
 OBM.name    = "ArdysOBTracker"
 OBM.title   = "|c9B30FFArdy's OB Tracker|r"
-OBM.version = "1.4.0"
+OBM.version = "1.5.0"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -44,6 +44,17 @@ local SYNC_TIMEOUT_MS       = 1500  -- max wait for the game to confirm a marker
 local RETRY_WAIT_MS         = 1000  -- wait between removal retries if the game never confirms
 local MAX_REMOVE_ATTEMPTS   = 5
 local ACCIDENT_WINDOW_MS    = 3000  -- our marker seen on a groupmate this soon after placing = accident
+local EXPIRING_WARN_SECONDS = 1.5   -- "Off Balance about to end" warning
+local SOUND_THROTTLE_MS     = 700
+
+-- Sounds offered for alerts (key in the game's SOUNDS table -> label)
+local ALERT_SOUNDS = {
+    { key = "DUEL_START",         label = "Duel start" },
+    { key = "COUNTDOWN_TICK",     label = "Countdown tick" },
+    { key = "NEW_NOTIFICATION",   label = "Notification" },
+    { key = "QUEST_FOCUSED",      label = "Quest focused" },
+    { key = "ABILITY_READY",      label = "Ability ready" },
+}
 
 -- Order markers are handed out in
 local MARKER_ORDER = {
@@ -70,6 +81,16 @@ local defaults = {
     holdMs           = 300,
     trackImmunity    = true,
     fontSize         = 16,
+    highlightTarget  = true,
+    crosshairEnabled = true,
+    crosshairShowReady = true,
+    crosshairSize    = 22,
+    crosshairX       = 0,
+    crosshairY       = 80,
+    alertReady       = true,
+    alertReadySound  = "DUEL_START",
+    alertExpiring    = false,
+    alertExpiringSound = "COUNTDOWN_TICK",
     trackerEnabled   = true,
     trackerLocked    = false,
     trackerHideEmpty = true,
@@ -209,6 +230,48 @@ local function GetReticleDistanceMeters()
     if not tx or (tx == 0 and ty == 0 and tz == 0) then return nil end
     local dx, dy, dz = tx - px, ty - py, tz - pz
     return math.sqrt(dx * dx + dy * dy + dz * dz) / 100
+end
+
+local function FormatName(name)
+    return (name and name ~= "") and zo_strformat(SI_UNIT_NAME, name) or ""
+end
+
+-- Off Balance and immunity on the crosshair target, applied by anyone.
+local function GetReticleOBState(now)
+    local obEnd, immEnd
+    for i = 1, GetNumBuffs(RETICLE) do
+        local name, _, timeEnding, _, _, _, _, _, abilityType, _, abilityId = GetUnitBuffInfo(RETICLE, i)
+        if timeEnding and timeEnding > now then
+            if IsOffBalanceImmunity(name, abilityId) then
+                immEnd = math.max(immEnd or 0, timeEnding)
+            elseif IsOffBalance(name, abilityType) then
+                obEnd = math.max(obEnd or 0, timeEnding)
+            end
+        end
+    end
+    return obEnd, immEnd
+end
+
+-- Our own record for an enemy, matched by name (only if the name is unique).
+local function FindTrackedByName(name)
+    if name == "" then return nil end
+    local found
+    for _, info in pairs(OBM.tracked) do
+        if info.name == name then
+            if found then return nil end
+            found = info
+        end
+    end
+    return found
+end
+
+local lastSoundMs = {}
+local function PlayAlert(soundKey)
+    local nowMs = GetGameTimeMilliseconds()
+    if lastSoundMs[soundKey] and nowMs - lastSoundMs[soundKey] < SOUND_THROTTLE_MS then return end
+    lastSoundMs[soundKey] = nowMs
+    local sound = SOUNDS and SOUNDS[soundKey]
+    if sound then PlaySound(sound) end
 end
 
 local function IsOurMarker(markerType)
@@ -448,15 +511,18 @@ end
 ---------------------------------------------------------------------------
 
 local tracker = {}
+local ApplyReticleLayout -- defined with the crosshair readout below
 
 local function SaveTrackerPosition(control)
     OBM.sv.trackerX, OBM.sv.trackerY = control:GetLeft(), control:GetTop()
 end
 
 local function ApplyTrackerLock()
-    if not tracker.tlw then return end
-    tracker.tlw:SetMovable(not OBM.sv.trackerLocked)
-    tracker.tlw:SetMouseEnabled(not OBM.sv.trackerLocked)
+    if tracker.tlw then
+        tracker.tlw:SetMovable(not OBM.sv.trackerLocked)
+        tracker.tlw:SetMouseEnabled(not OBM.sv.trackerLocked)
+    end
+    if ApplyReticleLayout then ApplyReticleLayout() end
 end
 
 local MIN_FONT, MAX_FONT = 12, 36
@@ -545,6 +611,7 @@ end
 local function TrackerTick(now)
     local sv = OBM.sv
     local list = {}
+    local playReady, playExpiring = false, false
     for unitId, info in pairs(OBM.tracked) do
         -- Off Balance ended: switch to immunity (or drop the row).
         if not info.immune and info.endTime <= now then
@@ -556,11 +623,19 @@ local function TrackerTick(now)
         end
         local remaining = info.endTime - now
         if remaining <= 0 then
+            -- Immunity ran out (not a death - deaths are removed elsewhere).
+            if info.immune then playReady = true end
             OBM.tracked[unitId] = nil
         else
+            if not info.immune and not info.warned and remaining <= EXPIRING_WARN_SECONDS then
+                info.warned = true
+                playExpiring = true
+            end
             list[#list + 1] = { name = info.name, remaining = remaining, immune = info.immune }
         end
     end
+    if playReady and sv.alertReady and sv.trackImmunity then PlayAlert(sv.alertReadySound) end
+    if playExpiring and sv.alertExpiring then PlayAlert(sv.alertExpiringSound) end
     -- Off Balance rows first, then immunity rows; soonest to expire on top.
     table.sort(list, function(a, b)
         if a.immune ~= b.immune then return not a.immune end
@@ -573,14 +648,29 @@ local function TrackerTick(now)
     tracker.root:SetHidden(not show)
     if not show then return end
 
+    -- Enemy under the crosshair gets its row highlighted.
+    local targetName
+    if sv.highlightTarget and DoesUnitExist(RETICLE) and IsReticleEnemy() then
+        targetName = FormatName(GetUnitName(RETICLE))
+    end
+
     for i = 1, MAX_ROWS do
         local row, entry = tracker.rows[i], list[i]
+        local isTarget = entry and targetName and entry.name == targetName
         if entry and entry.immune then
-            row.name:SetText("|c888888" .. entry.name .. "|r")
+            if isTarget then
+                row.name:SetText("|cB8A050» " .. entry.name .. "|r")
+            else
+                row.name:SetText("|c888888" .. entry.name .. "|r")
+            end
             row.time:SetText(string.format("imm %ds", math.ceil(entry.remaining)))
             row.time:SetColor(0.6, 0.6, 0.6, 1)
         elseif entry then
-            row.name:SetText(entry.name)
+            if isTarget then
+                row.name:SetText("|cFFD700» " .. entry.name .. "|r")
+            else
+                row.name:SetText(entry.name)
+            end
             row.time:SetText(string.format("%.1fs", entry.remaining))
             if entry.remaining < 2 then
                 row.time:SetColor(1, 0.35, 0.2, 1)
@@ -598,17 +688,89 @@ local function TrackerTick(now)
 end
 
 ---------------------------------------------------------------------------
+-- 3) Crosshair readout: OB / IMMUNE / READY for the enemy you're aiming at
+---------------------------------------------------------------------------
+
+local reticleUI = {}
+
+local function SaveReticlePosition(control)
+    local cx, cy = control:GetCenter()
+    local gx, gy = GuiRoot:GetCenter()
+    OBM.sv.crosshairX, OBM.sv.crosshairY = math.floor(cx - gx), math.floor(cy - gy)
+end
+
+ApplyReticleLayout = function()
+    if not reticleUI.tlw then return end
+    local sv = OBM.sv
+    local size = zo_clamp(sv.crosshairSize or 22, 12, 48)
+    reticleUI.label:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thick", size))
+    reticleUI.tlw:SetDimensions(size * 8, size + 10)
+    reticleUI.tlw:ClearAnchors()
+    reticleUI.tlw:SetAnchor(CENTER, GuiRoot, CENTER, sv.crosshairX or 0, sv.crosshairY or 80)
+    reticleUI.tlw:SetMovable(not sv.trackerLocked)
+    reticleUI.tlw:SetMouseEnabled(not sv.trackerLocked)
+end
+
+local function CreateReticleReadout()
+    local tlw = WM:CreateTopLevelWindow("ArdysOBTrackerReticle")
+    tlw:SetClampedToScreen(true)
+    tlw:SetHandler("OnMoveStop", SaveReticlePosition)
+
+    local label = WM:CreateControl("$(parent)Label", tlw, CT_LABEL)
+    label:SetAnchorFill(tlw)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+
+    local fragment = ZO_HUDFadeSceneFragment:New(tlw)
+    HUD_SCENE:AddFragment(fragment)
+    HUD_UI_SCENE:AddFragment(fragment)
+
+    reticleUI.tlw, reticleUI.label = tlw, label
+    ApplyReticleLayout()
+end
+
+local function ReticleTick(now)
+    if not reticleUI.label then return end
+    local sv = OBM.sv
+    local text = ""
+    if sv.crosshairEnabled then
+        if not sv.trackerLocked then
+            text = "|c9B30FFOB 4.2s (drag me)|r" -- placeholder so it can be positioned
+        elseif DoesUnitExist(RETICLE) and IsReticleEnemy() then
+            local obEnd, immEnd = GetReticleOBState(now)
+            if not obEnd and not immEnd then
+                -- The game may not show these effects on every target; use our own records.
+                local info = FindTrackedByName(FormatName(GetUnitName(RETICLE)))
+                if info then
+                    if info.immune then immEnd = info.endTime else obEnd = info.endTime end
+                end
+            end
+            if obEnd then
+                text = string.format("|cFFA040OB %.1fs|r", obEnd - now)
+            elseif immEnd then
+                text = string.format("|c999999IMMUNE %ds|r", math.ceil(immEnd - now))
+            elseif sv.crosshairShowReady then
+                text = "|c40FF40READY|r"
+            end
+        end
+    end
+    reticleUI.label:SetText(text)
+end
+
+---------------------------------------------------------------------------
 -- Events
 ---------------------------------------------------------------------------
 
 local function OnUpdate()
     if not IsActive() then
         if tracker.root then tracker.root:SetHidden(true) end
+        if reticleUI.label then reticleUI.label:SetText("") end
         return
     end
     local nowMs, now = GetGameTimeMilliseconds(), GetFrameTimeSeconds()
     MarkerTick(nowMs, now)
     TrackerTick(now)
+    ReticleTick(now)
 end
 
 -- Fires for effects YOU apply (filtered by source), including on enemies
@@ -740,6 +902,7 @@ local function PrintHelp()
     Print("/obt max <1-8>           - how many markers to use")
     Print("/obt hold <ms>           - crosshair hold time before marking (default 300)")
     Print("/obt immunity on | off   - show Off Balance Immunity in the tracker")
+    Print("/obt crosshair on | off  - OB / IMMUNE / READY readout by your crosshair")
     Print("/obt clear               - remove the marker on your crosshair target")
     Print("/obt reset               - forget all marker records")
     Print("/obt status | debug")
@@ -770,6 +933,8 @@ local function OnSlash(text)
         sv.maxMarkers = zo_clamp(math.floor(tonumber(arg)), 1, 8); Print("Using up to %d markers.", sv.maxMarkers)
     elseif cmd == "hold" and tonumber(arg) then
         sv.holdMs = zo_clamp(math.floor(tonumber(arg)), 0, 2000); Print("Hold time set to %d ms.", sv.holdMs)
+    elseif cmd == "crosshair" and (arg == "on" or arg == "off") then
+        sv.crosshairEnabled = (arg == "on"); Print("Crosshair readout %s.", arg)
     elseif cmd == "immunity" and (arg == "on" or arg == "off") then
         sv.trackImmunity = (arg == "on"); Print("Immunity tracking %s.", arg)
     elseif cmd == "clear" then
@@ -794,6 +959,8 @@ local function BuildSettingsMenu()
     local LAM = LibAddonMenu2
     if not LAM then return end
     local sv = OBM.sv
+    local soundLabels, soundKeys = {}, {}
+    for i, entry in ipairs(ALERT_SOUNDS) do soundLabels[i], soundKeys[i] = entry.label, entry.key end
 
     LAM:RegisterAddonPanel(OBM.name .. "Panel", {
         type = "panel", name = OBM.title, author = "|cFF0800@giga'chad|r", version = OBM.version,
@@ -836,11 +1003,39 @@ local function BuildSettingsMenu()
         { type = "slider", name = "Text size", min = MIN_FONT, max = MAX_FONT, step = 1,
           tooltip = "Size of the text in the tracker window. The window grows or shrinks to fit.",
           getFunc = function() return sv.fontSize end, setFunc = function(v) SetFontSize(v) end, default = defaults.fontSize },
+        { type = "checkbox", name = "Highlight crosshair target",
+          tooltip = "The row for the enemy under your crosshair is shown in gold.",
+          getFunc = function() return sv.highlightTarget end, setFunc = function(v) sv.highlightTarget = v end, default = defaults.highlightTarget },
         { type = "checkbox", name = "Show Off Balance Immunity",
           tooltip = "After Off Balance ends, the row stays (grey) for the 15 s the target can't be set Off Balance again.",
           getFunc = function() return sv.trackImmunity end, setFunc = function(v) sv.trackImmunity = v end, default = defaults.trackImmunity },
         { type = "checkbox", name = "Hide when empty (while locked)",
           getFunc = function() return sv.trackerHideEmpty end, setFunc = function(v) sv.trackerHideEmpty = v end, default = defaults.trackerHideEmpty },
+        { type = "header", name = "Crosshair readout" },
+        { type = "description", text = "Shows OB, IMMUNE or READY next to your crosshair for the enemy you're aiming at. Turn off \"Lock position\" above to drag it where you want." },
+        { type = "checkbox", name = "Show crosshair readout",
+          getFunc = function() return sv.crosshairEnabled end, setFunc = function(v) sv.crosshairEnabled = v end, default = defaults.crosshairEnabled },
+        { type = "checkbox", name = "Show READY",
+          tooltip = "Show READY when the target has neither Off Balance nor immunity.",
+          getFunc = function() return sv.crosshairShowReady end, setFunc = function(v) sv.crosshairShowReady = v end, default = defaults.crosshairShowReady },
+        { type = "slider", name = "Readout text size", min = 12, max = 48, step = 1,
+          getFunc = function() return sv.crosshairSize end, setFunc = function(v) sv.crosshairSize = v; ApplyReticleLayout() end, default = defaults.crosshairSize },
+        { type = "button", name = "Reset position",
+          func = function() sv.crosshairX, sv.crosshairY = defaults.crosshairX, defaults.crosshairY; ApplyReticleLayout() end },
+        { type = "header", name = "Sound alerts" },
+        { type = "checkbox", name = "Ready again",
+          tooltip = "Play a sound when an enemy you put Off Balance comes out of immunity and can be set up again. Needs \"Show Off Balance Immunity\".",
+          getFunc = function() return sv.alertReady end, setFunc = function(v) sv.alertReady = v end, default = defaults.alertReady },
+        { type = "dropdown", name = "Ready sound", choices = soundLabels, choicesValues = soundKeys,
+          getFunc = function() return sv.alertReadySound end,
+          setFunc = function(v) sv.alertReadySound = v; PlayAlert(v) end, default = defaults.alertReadySound },
+        { type = "checkbox", name = "Off Balance ending",
+          tooltip = "Play a sound 1.5 s before your Off Balance on an enemy ends - last call to land your burst.",
+          getFunc = function() return sv.alertExpiring end, setFunc = function(v) sv.alertExpiring = v end, default = defaults.alertExpiring },
+        { type = "dropdown", name = "Ending sound", choices = soundLabels, choicesValues = soundKeys,
+          getFunc = function() return sv.alertExpiringSound end,
+          setFunc = function(v) sv.alertExpiringSound = v; PlayAlert(v) end, default = defaults.alertExpiringSound },
+        { type = "header", name = "Other" },
         { type = "checkbox", name = "Debug messages",
           getFunc = function() return sv.debug end, setFunc = function(v) sv.debug = v end, default = defaults.debug },
     })
@@ -860,6 +1055,7 @@ local function OnAddOnLoaded(_, addonName)
     OBM.sv = ZO_SavedVars:NewAccountWide("ArdysOBTrackerSV", 1, nil, defaults)
 
     CreateTracker()
+    CreateReticleReadout()
     RegisterEvents()
     BuildSettingsMenu()
 

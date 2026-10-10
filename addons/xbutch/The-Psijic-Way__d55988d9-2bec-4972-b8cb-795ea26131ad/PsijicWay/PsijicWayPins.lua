@@ -28,7 +28,16 @@ PsijicWay.internal = PsijicWay.internal or {}
 local MapPins = {
     pinManager = ZO_WorldMap_GetPinManager(),
     filters = {},
+    pendingRefreshes = {},
 }
+
+local function HasMapPinBudget()
+    if GetTotalUserAddOnCPUTimeAvailableEachFrameMS and GetTotalUserAddOnCPUTimeUsedNowMS then
+        local available = GetTotalUserAddOnCPUTimeAvailableEachFrameMS()
+        if available > 0 then return GetTotalUserAddOnCPUTimeUsedNowMS() + 20 < available end
+    end
+    return true
+end
 
 local function GetPinTypeId(pinType)
     if type(pinType) == "string" then
@@ -65,7 +74,7 @@ function MapPins:AddPinType(pinTypeString, addCallback, resizeCallback, layout, 
     end
 
     self.pinManager:SetCustomPinEnabled(pinTypeId, true)
-    self.pinManager:RefreshCustomPins(pinTypeId)
+    self:RefreshPins(pinTypeId)
     return pinTypeId
 end
 
@@ -87,7 +96,15 @@ end
 
 function MapPins:RefreshPins(pinType)
     local pinTypeId = GetPinTypeId(pinType)
-    self.pinManager:RefreshCustomPins(pinTypeId)
+    -- A nil native argument refreshes every addon's custom pins.
+    if not pinTypeId or not self.pinManager.customPins[pinTypeId] or self.pendingRefreshes[pinTypeId] then return end
+    self.pendingRefreshes[pinTypeId] = true
+    local function Refresh()
+        if not HasMapPinBudget() then zo_callLater(Refresh, 50); return end
+        self.pendingRefreshes[pinTypeId] = nil
+        self.pinManager:RefreshCustomPins(pinTypeId)
+    end
+    zo_callLater(Refresh, 50)
 end
 
 function MapPins:SetLayoutKey(pinType, key, value)
@@ -334,7 +351,15 @@ function MapPins:OnMapChanged()
 end
 
 CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
-    MapPins:OnMapChanged()
+    if MapPins.mapChangePending then return end
+    MapPins.mapChangePending = true
+    local function ApplyMapContext()
+        if not HasMapPinBudget() then zo_callLater(ApplyMapContext, 50); return end
+        MapPins.mapChangePending = false
+        -- Read the final map context after a burst of native/minimap callbacks.
+        MapPins:OnMapChanged()
+    end
+    zo_callLater(ApplyMapContext, 50)
 end)
 
 PsijicWay.internal.mapPins = MapPins

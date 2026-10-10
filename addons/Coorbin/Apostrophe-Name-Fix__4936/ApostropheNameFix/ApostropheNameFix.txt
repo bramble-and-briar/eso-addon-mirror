@@ -1,0 +1,8 @@
+## Title: Apostrophe Name Fix
+## Author: @Coorbin
+## Version: 0.2.0
+## AddOnVersion: 2
+## APIVersion: 101051
+## Description: Removes stray backslashes before apostrophes in unit names and refreshes the group roster.
+
+ApostropheNameFix.lua

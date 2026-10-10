@@ -1,11 +1,20 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/evainefaye/Smart-Chat-Messages__4482",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "evainefaye",
   "canonical_id": "esoui:4482",
   "category_id": "55",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    },
     {
       "name": "Season Zero",
       "version": "11.3.0"
@@ -17,14 +26,14 @@
     "SmartChatMsg"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4482/",
-  "fingerprint": "9f68339850899e25fedf5685717ce1ce62de9171cb1b779f3bc3abd2d36a397c",
+  "fingerprint": "5e736d91dd68735c3af48d8abbab329257985b09e6dc2e8727ec4ef51a5c0ecd",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw15633.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15632.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15635.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15634.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15631.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15636.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17857.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17854.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17855.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17856.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17858.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17853.png"
   ],
   "platform": "pc",
   "published": true,
@@ -32,11 +41,11 @@
   "source_id": "4482",
   "source_url": "https://www.esoui.com/downloads/info4482-SmartChatMessages.html",
   "stats": {
-    "downloads": 180,
+    "downloads": 225,
     "favorites": 0,
-    "monthly_downloads": 39
+    "monthly_downloads": 22
   },
   "title": "Smart Chat Messages",
-  "updated_at": 1775539375000,
-  "version": "1.9.1"
+  "updated_at": 1791584603000,
+  "version": "2.0.3"
 }

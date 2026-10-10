@@ -22,9 +22,7 @@ local COLOR_WARN     = private.COLOR_WARN
 local COLOR_GAIN     = private.COLOR_GAIN
 local COLOR_LOSS     = private.COLOR_LOSS
 
--- Shared visual language (UI.lua). Every font, control tint, divider weight and
--- tooltip line in this file comes from here, so the summary panel cannot drift
--- away from the detail and withdraw windows the way it had.
+-- Shared fonts, spacing, styling, and tooltip helpers.
 local UI = private.UI
 local FONT = UI.FONT
 local METRIC = UI.METRIC
@@ -32,15 +30,8 @@ local METRIC = UI.METRIC
 
 -- Layout constants
 -- ---------------------------------------------------------------------------
--- A slim panel anchored beside the craft bag. It sizes itself to its content:
--- a title, a prominent grand total, a subtitle, a divider, one row per non-empty
--- category, another divider, then a three-line footer. Category rows are two
--- columns (name left, gold right) so the figures line up.
---
--- The width is user-configurable (see Settings); DEFAULT_WINDOW_WIDTH is the
--- fallback when no value is saved, and MIN/MAX/STEP bound the slider. Every
--- width-dependent control reads CurrentWidth() so a width change can be
--- re-applied at runtime without recreating controls.
+-- Content-sized panel beside the Craft Bag, with optional categories and history.
+-- Width bounds are shared with Settings; ApplyWidth updates existing controls.
 local DEFAULT_WINDOW_WIDTH = 460
 local MIN_WINDOW_WIDTH = 460
 local MAX_WINDOW_WIDTH = 600
@@ -62,34 +53,19 @@ local HEADER_TO_DIVIDER_GAP = 1
 local FOOTER_ALPHA   = 0.82
 local HEADER_BAND_PAD = METRIC.BAND_PAD
 local LEADER_MARKER_WIDTH = 3
--- The top category's left tick: the brand accent at marker strength, both taken
--- from the shared layer rather than written out here, so the tick is provably the
--- same green as the header underline and the row hover behind it, and exactly as
--- strong as the ring around the active filter in the material table.
+-- Accent marker for the leading category; the header underline uses brass.
 local LEADER_MARKER_COLOR = { UI.Tone("accent") }
 LEADER_MARKER_COLOR[4] = UI.CHROME.ACCENT_MARK
 
 
--- Value-history area chart geometry. The chart is a filled silhouette: one
--- vertical bar per sample, drawn edge-to-edge (no gap) so the samples read as a
--- continuous shape rather than separate bars. Bars are CT_BACKDROP fills -- the
--- same primitive the window background uses -- because the UI font can't render
--- the Unicode block glyphs a text chart would need (see the arrow note above).
--- The whole fill is tinted by the series' overall direction (green when the
--- newest sample sits above the oldest, red when below), with the newest bar
--- brightened so "now" stands out. A head line above carries the current value +
--- trend arrow; a scale line below carries the series min and max. SPARK_MIN_BAR_H
--- keeps the lowest sample a visible sliver rather than nothing.
+-- Edge-to-edge bars form a value-history area strip with the newest sample highlighted.
+-- The header shows the latest value and trend; the scale shows the series range.
 local SPARK_HEIGHT     = 32  -- area-strip height in px (head line above, scale below)
 local SPARK_MIN_BAR_H  = 2   -- floor height so the minimum sample still draws
 local SPARK_SCALE_GAP  = 2   -- gap between the strip and the min/max scale line
 local SPARK_MARKER_WIDTH = 6
 local SPARK_MARKER_HEIGHT = 4
--- Area fill + "now" highlight, tinted by trend. Both tints are the palette's own
--- gain/loss tones (the same ones the delta figure beneath the chart is written
--- in), so the colour of the silhouette and the colour of the number it explains
--- are the same fact stated twice. History sits at a low alpha to read as an area
--- wash; "now" is nearly opaque so the newest sample stands out of it.
+-- Gain/loss tint follows the overall series direction; emphasize the latest sample.
 local SPARK_HISTORY_ALPHA = 0.28
 local SPARK_NOW_ALPHA     = 0.92
 local function SparkTint(tone, alpha)
@@ -109,10 +85,7 @@ Window.WIDTH_STEP = WINDOW_WIDTH_STEP
 
 local GOLD_ICON = private.GOLD_ICON
 
--- Guild-store selling fees live in the core (private.FEE_*), the single source of
--- truth shared with the detail window. Bound to locals here for the grand-total
--- "net if sold" hover's itemized listing/sales lines; see private.NetAfterFees
--- for the combined net figure.
+-- Shared fee estimates used by the grand-total tooltip.
 local FEE_LISTING_RATE = private.FEE_LISTING_RATE
 local FEE_SALES_RATE   = private.FEE_SALES_RATE
 
@@ -123,11 +96,7 @@ local FEE_SALES_RATE   = private.FEE_SALES_RATE
 local ARROW_UP = "|t16:16:EsoUI/Art/Miscellaneous/list_sortUp.dds|t"
 local ARROW_DOWN = "|t16:16:EsoUI/Art/Miscellaneous/list_sortDown.dds|t"
 
--- Per-category profession icons, keyed by the category ids in Valuation's
--- CATEGORY_DEFINITIONS. We use the game's "mapkey" crafting icons (the same set
--- the crafting-writ addons use), which are clean monochrome glyphs that read
--- well at small sizes. "other" is not a profession, so it gets the generic
--- craft-bag icon rather than being left blank.
+-- Profession icons keyed by Valuation's category IDs; Other uses the Craft Bag icon.
 local CATEGORY_ICONS = {
     blacksmithing = "esoui/art/icons/mapkey/mapkey_smithy.dds",
     clothier      = "esoui/art/icons/mapkey/mapkey_clothier.dds",
@@ -150,10 +119,7 @@ end
 
 local Colorize = private.Colorize
 
--- Magnitude tint for gold figures. Deliberately SUBTLE: every tier stays within
--- the gold family and only shifts brightness/warmth a touch, so larger amounts
--- read as a slightly richer gold rather than changing color outright (no red).
--- A value lands in the highest tier whose floor it meets.
+-- Choose the gold tint from the highest value threshold met.
 local GOLD_SCALE = {
     { floor = 10000000, color = "FFE9A0" },  -- 10M+  : bright warm gold
     { floor =  1000000, color = "F7DA63" },  -- 1M+   : rich gold
@@ -172,9 +138,7 @@ local function GoldScaleColor(amount)
     return COLOR_GOLD
 end
 
--- Format a gold amount with thousands separators + the gold icon, matching the
--- presentation used in LibPrice's own example output. An optional hex color
--- overrides the default gold tone (used by the magnitude color scale).
+-- Shared gold formatter with an optional magnitude-based color override.
 local FormatGold = private.FormatGold
 
 -- "How long ago" for the footer, from a game-time-ms stamp to a short localized
@@ -198,12 +162,7 @@ local function FormatTimeAgo(stampMs)
     end
 end
 
--- The account-and-character identity shown on the right of the title line. The
--- Craft Bag is account-wide, so the @account handle is the identity the bag
--- actually belongs to; the current character name is appended for a touch of
--- profile flavor. Both are stable for the session, so this is read once on the
--- first render and cached. GetDisplayName returns the "@handle"; GetUnitName
--- ("player") the character. A "·" joins them, matching the addon's separator.
+-- Cache account/character identity for the optional line below the total.
 local cachedProfileText
 local function GetProfileText()
     if cachedProfileText then
@@ -224,10 +183,10 @@ end
 local windowControl   -- top-level container
 local backdrop        -- background + border fill (toggled by appearance settings)
 local headerBand      -- accent wash + underline behind the identity block
-local profileLabel    -- "@account · Character" on the right of the title line
+local profileLabel    -- account/character identity below the total
 local totalLabel      -- prominent grand-total gold figure
 local subtitleLabel   -- "<n> slots · <n> stacks · <n> items"
-local versionNameLabel -- compact addon name at the bottom of the panel
+local versionNameLabel -- addon name in the top header
 local dividerTop      -- line under the header block
 local dividerBottom   -- line above the footer
 -- Footer rows are two-column (muted label left, value right), mirroring the
@@ -237,11 +196,7 @@ local footerPriceRefreshRow -- "Prices" -> "<ago>"
 local footerPricesRow   -- "Coverage" -> "<n>/<n> · <source>" (or a warning)
 local footerDeltaRow    -- "This visit"/"This session" -> "▲ <gold>" (hidden when none)
 local footerGuidanceRow -- one contextual next-step prompt below the footer
--- Value-history area chart: a caption label, a head line (current value + trend
--- arrow) on the right of the caption, a container holding pooled bar controls
--- that form the filled silhouette, and a scale line beneath carrying the series
--- min and max. Bars are created on demand and reused across renders (like the
--- category rows), so a refresh re-points them instead of churning controls.
+-- History labels and pooled bars; refreshes reuse controls rather than recreate them.
 local sparkCaption      -- muted "Value history" caption above the strip
 local sparkHeadLabel    -- current value + trend arrow, right-aligned on the caption row
 local sparkContainer    -- holds the filled strip; anchors the per-sample bars
@@ -250,10 +205,7 @@ local sparkBars = {}    -- pooled CT_BACKDROP bars, index 1..N
 local sparkNowMarker    -- compact cap on the newest history sample
 local rowPool         -- reusable category rows { container, name, gold, data }
 
--- Footer "updated X ago" should feel live even when nothing else changes, so a
--- low-frequency tick re-renders just the footer text while the window is shown.
--- It runs ONLY while visible and touches one label, so the cost is negligible
--- and there is nothing on the per-frame path.
+-- Refresh cached footer timestamps/state while visible, without rebuilding the list.
 local FOOTER_TICK_MS = 5000
 local FOOTER_TIMER_NAME = addon.name .. "_FooterTick"
 local PRICE_REFRESH_COMPLETE_HIGHLIGHT_MS = 5000

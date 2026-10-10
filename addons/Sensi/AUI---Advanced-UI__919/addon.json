@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Sensi/AUI---Advanced-UI__919",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Sensi",
   "canonical_id": "esoui:919",
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:919",
@@ -17,7 +18,7 @@
     "AUI"
   ],
   "download_url": "https://www.esoui.com/downloads/dl919/",
-  "fingerprint": "9011dcdcf863578ed869130bf3bb471d507bd98d23084fbba9bbf9be7e13054b",
+  "fingerprint": "7dda24feea99a35cdf1fed2e87bc4c9a213cc31ba78ed599ad3646e4ec7bcac8",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5540.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw2773.jpg",
@@ -38,11 +39,11 @@
   "source_id": "919",
   "source_url": "https://www.esoui.com/downloads/info919-AUI-AdvancedUI.html",
   "stats": {
-    "downloads": 5417516,
-    "favorites": 2641,
-    "monthly_downloads": 6136
+    "downloads": 5432663,
+    "favorites": 2649,
+    "monthly_downloads": 6866
   },
   "title": "AUI - Advanced UI",
-  "updated_at": 1774451220000,
-  "version": "3.992"
+  "updated_at": 1791546431000,
+  "version": "3.993"
 }

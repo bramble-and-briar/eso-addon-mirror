@@ -1,9 +1,10 @@
 ## Title: LiveBuffUptime
 ## APIVersion: 101051
-## Version: 1.5.0
+## Version: 1.6.2
 ## Author: FiNk3F13
 ## Description: Frei platzierbare Effekt-Icons mit Restzeit und Live-Uptime fuer Spieler und Ziel.
-## DependsOn: LibHarvensAddonSettings LibCombat
+## DependsOn: LibHarvensAddonSettings LibCombat2
+## OptionalDependsOn: LibCombat
 ## SavedVariables: LiveBuffUptime_SavedVariables
 
 Uptime.lua
@@ -13,4 +14,5 @@ Cooldowns.lua
 Diagnostics.lua
 StackUptime.lua
 LiveUptime.lua
+CombatBridge.lua
 LiveBuffUptime.lua

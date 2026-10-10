@@ -1,38 +1,10 @@
 <GuiXml>
     <Controls>
         <!--
-            Virtual controls for the per-category material detail window.
-
-            This is the addon's only XML: ESO's virtualized scroll list
-            (ZO_ScrollList) recycles a small set of row controls instantiated
-            from an XML template via CreateControlFromVirtual, so the row
-            template MUST be defined here rather than in code. The window frame,
-            title, headers and divider are still built in code (DetailWindow.lua)
-            to match the rest of the addon.
-
-            This file declares GEOMETRY ONLY: no fonts, no colours. Both are
-            part of the shared visual language in UI.lua, and a `font=` attribute
-            here would be a second place the type scale is decided from that no
-            reader of that module would think to check. The row columns are faced
-            by UI.ApplyRowFonts (FONT.body) from the list's setup function, and
-            the hover backdrop is tinted by UI.PaintRowFill. Add a column here
-            with its dimensions and anchors, then name it in the column list the
-            setup function passes to UI.ApplyRowFonts.
-
-
-            Column layout (left -> right), mirrored by the header labels built in
-            code so they line up:
-              Icon   28px  fixed, left
-              Name   flexible (fills the gap between Icon and Source)
-              Source 40px  compact price-source badge
-              Qty    70px  right-aligned, anchored left of Value
-              Value  150px right-aligned, anchored left of Cum
-              Cum    70px  right-aligned, anchored left of Change (cumulative
-                           share of the list's total value, for the "what to
-                           sell" Pareto read)
-              Change 90px  right-aligned, left of the contextual actions
-              Impact 130px Price dynamics only; uses the hidden action strip
-              Actions 48px two icon buttons revealed on hover: queue / withdraw
+                        Recycled material-list controls. Lua builds the window shell, applies
+                        shared styling, and overrides column layout for the active mode.
+                        Keep text-column names in sync with DetailWindow's ROW_COLUMNS.
+                        Row heights are set by UI.RowHeight for the selected density.
         -->
         <Control name="BureauOfMaterialWorth_DetailList" inherits="ZO_ScrollList" virtual="true" />
 
@@ -107,16 +79,8 @@
         </Control>
 
         <!--
-            Withdraw-queue list + row template (Part B). Same recycled-row
-            pattern as the detail list above, but the row is interactive: the Qty
-            column is an editable numeric box and there is a Remove button. The
-            row is taller (28px) so the editbox and button have room; its text is
-            faced from Lua like the detail row's. Column layout (left -> right):
-              Icon    24px  fixed, left
-              Name    flexible (Icon -> Qty)
-              Qty     64px  editable numeric, anchored left of Value
-              Value   120px right-aligned, anchored left of Remove
-              Remove  24px  button at the right edge
+                        Recycled queue rows with editable quantity and a remove action.
+                        WithdrawDialog applies styling and density-dependent row height.
         -->
         <Control name="BureauOfMaterialWorth_WithdrawQueueList" inherits="ZO_ScrollList" virtual="true" />
 

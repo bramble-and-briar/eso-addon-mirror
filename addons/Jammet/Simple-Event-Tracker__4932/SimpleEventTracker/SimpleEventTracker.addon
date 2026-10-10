@@ -1,0 +1,20 @@
+## Title: |cFFFF00Simple Event Tracker|r
+## Description: Announces the running event at login and tracks your daily Trade Bars. /sevti = event info, /sevt = trade bar status (both accept: done, undo, history, ui, quiet, help).
+## Author: Jammet / Claude AI assisted (based on Event Tracker by |cAA00FFKelinmiriel|r)
+## Version: 3.0.4
+## AddOnVersion: 3004
+## APIVersion: 101050 101051
+## SavedVariables: SimpleEventTrackerVars
+##
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+## Inc. or its affiliates. The Elder Scrolls(R) and related logos are registered
+## trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+## other countries. All rights reserved.
+##
+## THIS MATERIAL IS NOT MADE, GUARANTEED OR SUPPORTED
+## BY ZENIMAX OR ITS AFFILIATES.
+##
+## You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+SimpleEventTracker.xml
+SimpleEventTracker.lua

@@ -1,0 +1,5 @@
+;1.0.1
+Added a HUD icon to open the Show Logs window.
+
+;1.0.0
+Initial Release

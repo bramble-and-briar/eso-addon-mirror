@@ -1,7 +1,7 @@
 GuildTraderActivity = {
 	name = "GTA",
 	author = "@sinnereso",
-	version = "2026.10.03",
+	version = "2026.10.09",
 	svName = "GTAVars",
 	svVersion = 1,
 }
@@ -11,7 +11,7 @@ local SELECTED_GUILD_DATA
 local SELECTED_GUILD_IS_CURRENT
 local SELECTED_USER_DISPLAY_NAME
 
---/script local resetStamp, resetTime, previousStamp = GetLastKioskResetNEW() df(tostring(resetTime))
+--/script local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskResetNEW() df(tostring(resetTime))
 local function GetLastKioskResetOLD()
 	local utcReset = {["NA Megaserver"] = 19, ["EU Megaserver"] = 14, ["PTS"] = 19,}
 	local now = os.time()
@@ -30,9 +30,10 @@ local function GetLastKioskResetOLD()
 	local resetStamp = os.time({year = t.year, month = t.month, day = t.day, hour = t.hour, min = 0, sec = 0})
 	local resetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", resetStamp))
 	local previousStamp = (resetStamp - 604800)
+	local prevresetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", previousStamp))
 	--df("Last Reset: " .. tostring(os.date("%Y-%m-%d %H:%M:%S", resetStamp)) .. ", Stamp: " .. tostring(resetStamp) .. ", Timezone: (" .. tostring(offset) .. ")")
 	--if GuildTraderActivity.author == GetUnitDisplayName("player") then GetLastKioskResetNEW() end
-	return resetStamp, resetTime, previousStamp
+	return resetStamp, resetTime, previousStamp, prevresetTime
 end
 
 local function GetLastKioskReset()
@@ -44,7 +45,21 @@ local function GetLastKioskReset()
 	end
 	local previousStamp = (resetStamp - ONE_WEEK)
 	local resetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", resetStamp))
-	return resetStamp, resetTime, previousStamp
+	local prevresetTime = tostring(os.date("%Y-%m-%d %I:%M:%S %p", previousStamp))
+	return resetStamp, resetTime, previousStamp, prevresetTime
+end
+
+local function GuildTraderHistoryTrim()
+	local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
+	if GuildTraderActivity.savedVariables.cacheTrim and GuildTraderActivity.savedVariables.lastReset ~= resetStamp then
+		GuildTraderActivity.savedVariables.lastReset = resetStamp
+		for i = 1, GetNumGuilds() do
+			local guildId = GetGuildId(i)
+			local guildName = GetGuildName(guildId)
+			ClearGuildHistoryCache(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, (GetTimeStamp() - previousStamp))
+		end
+		df("|c6666FF[GTA]|r Trimmed guild trader history")
+	end
 end
 ---------------------------------------------
 --------- PERSONAL VIEW LAYOUT ROWS --
@@ -223,6 +238,36 @@ GTADisclaimer:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 GTADisclaimer:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 16), FONT_STYLE_SOFT_SHADOW_THIN)
 GTADisclaimer:SetColor(0.1, 0.1, 0.1, 0.9)
 GTADisclaimer:SetText ("")
+--CacheTrimButton
+local GTACacheTrimBox = WINDOW_MANAGER:CreateControlFromVirtual("GTACacheTrimBox", GTAMain, "ZO_CheckButton")
+GTACacheTrimBox:SetAnchor(LEFT, GTADisclaimer, RIGHT, 20, -2)
+ZO_CheckButton_SetLabelText(GTACacheTrimBox, "Cache Trim")
+--local GTACacheTrimBoxLabel = _G[GTACacheTrimBox:GetName() .. "Label"]
+local GTACacheTrimBoxLabel = GTACacheTrimBox.label
+GTACacheTrimBoxLabel:SetFont(string.format("%s|%d", "$(HANDWRITTEN_FONT)", 18), FONT_STYLE_SOFT_SHADOW_THIN)
+GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+--GTACacheTrimBoxLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+--GTACacheTrimBoxLabel:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
+GTACacheTrimBox:SetHandler("OnMouseEnter", function(self)
+	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	InitializeTooltip(InformationTooltip, self, BOTTOM, 0, 0)
+	SetTooltipText(InformationTooltip, "TRIM PREVIOUS IRRELEVANT DATA")
+end)
+GTACacheTrimBox:SetHandler("OnMouseExit", function(self)
+	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+	ClearTooltip(InformationTooltip)
+end)
+GTACacheTrimBoxLabel:SetHandler("OnMouseEnter", function(self)
+	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+end)
+GTACacheTrimBoxLabel:SetHandler("OnMouseExit", function(self)
+	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+end)
+local function OnCacheTrimBoxToggled(GTACacheTrimBox, checkedState)
+    GuildTraderActivity.savedVariables.cacheTrim = checkedState
+	GTACacheTrimBoxLabel:SetColor(0.1, 0.1, 0.1, 0.9)
+end
+ZO_CheckButton_SetToggleFunction(GTACacheTrimBox, OnCacheTrimBoxToggled)
 --CloseButton
 local GTACloseButton = WINDOW_MANAGER:CreateControl("GTACloseButton", GTAMain, CT_BUTTON)
 GTACloseButton:SetAnchor(TOPRIGHT, nil, TOPRIGHT, -20, 104)
@@ -245,6 +290,7 @@ GTACloseButton:SetHandler("OnMouseUp", function(self, button, upInside)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
+		GuildTraderHistoryTrim()
 		GTAMain:SetHidden(true)
 		--ZO_SceneManager_ToggleUIModeBinding()
 		SetGameCameraUIMode(false)
@@ -728,10 +774,10 @@ local CenterAlignedHeader = Label(combine(combine(defaultStyle, alignCenter), he
 
 local columnsForGuildList = {
 	Column('Rank',       30,  0, 		RankCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',   		   CenterAlignedHeader,  	SORTABLE),
-	Column('Name',      270,  0, LeftAlignedCell, 'Name |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	 	 LeftAlignedHeader,  	SORTABLE),
+	Column('Name',      270,  0, LeftAlignedCell, 'NAME |t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t',	 	 LeftAlignedHeader,  	SORTABLE),
 	Column('Sales',     140,  0,   	   SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t TRADED',			   SalesHeader, 	SORTABLE),
 	Column('Purch',     140,  0,  	   SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t BOUGHT', 			   SalesHeader,  	SORTABLE),
-	Column('Activity',  140,  0, 	   SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t Activity',      	   SalesHeader,  	SORTABLE),
+	Column('Activity',  140,  0, 	   SalesCell, '|t20:20:/esoui/art/buttons/scrollbox_downarrow_up.dds|t ACTIVITY',      	   SalesHeader,  	SORTABLE),
 	Column('Notes',      20, 10,        NoteCell, '|t20:20:/esoui/art/contacts/social_note_up.dds|t',                    CenterAlignedCell, NOT_SORTABLE),
 }
 
@@ -848,7 +894,7 @@ local function PopulateTraderActivity()
 	local prevAllPurchases = 0
 	local prevAllActivity = 0
 	if GetNumGuilds() > 0 then
-		local resetStamp, resetTime, previousStamp = GetLastKioskReset()
+		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 		for i = 1, GetNumGuilds() do
 			local guildId = GetGuildId(i)
 			local guildName = GetGuildName(guildId)
@@ -947,7 +993,7 @@ local function PopulateTraderActivity()
 		GTATotalPreviousSalesLabel:SetText ("TOTAL   -->   " .. tostring(ZO_LocalizeDecimalNumber(prevAllSales)))
 		GTATotalPreviousPurchaseLabel:SetText (tostring(ZO_LocalizeDecimalNumber(prevAllPurchases)))
 		GTATotalPreviousActivityLabel:SetText (tostring(ZO_LocalizeDecimalNumber(prevAllActivity)))
-		GTADisclaimer:SetText (("Based on cached data before and after " .. resetTime))
+		GTADisclaimer:SetText (("Based on cached data after " .. prevresetTime))
 	else
 		return
 	end
@@ -956,7 +1002,7 @@ end
 
 function GuildTraderActivity.CreateGuildList(data, isCurrent)
 	local CATEGORY = GUILD_HISTORY_EVENT_CATEGORY_TRADER
-	local resetStamp, resetTime, previousStamp = GetLastKioskReset()
+	local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 	local guildId = GetGuildId(data.index)
 	local guildName = data.name
 	SELECTED_GUILD_ID = guildId
@@ -1070,6 +1116,7 @@ function GuildTraderActivity.Toggle(mailCallback)
 		SetGameCameraUIMode(true)
 		MAIL_SEND:ClearFields()
 	elseif GTAMain:IsHidden() then
+		ZO_CheckButton_SetCheckState(GTACacheTrimBox, GuildTraderActivity.savedVariables.cacheTrim)
 		GTASelectedGuildView:SetHidden(true)
 		GTAPersonalView:SetHidden(false)
 		GuildTraderActivity.Refresh()
@@ -1080,34 +1127,51 @@ function GuildTraderActivity.Toggle(mailCallback)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_REMOVED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_RANK_CHANGED)
 		EVENT_MANAGER:UnregisterForEvent("GTA", EVENT_GUILD_MEMBER_NOTE_CHANGED)
+		GuildTraderHistoryTrim()
 		GTAMain:SetHidden(true)
 		SetGameCameraUIMode(false)
-	end
+	end	
 end
 --SCENE_MANAGER:Show("hud")--SCENE_MANAGER:Show("hudui")--ZO_SceneManager_ToggleUIModeBinding()
 SLASH_COMMANDS["/gta"] = function (option)
 	GuildTraderActivity.Toggle()
 end
 
+if GetUnitDisplayName("player") == GuildTraderActivity.author then
+	SLASH_COMMANDS["/gtatest"] = function (option)--<< TESTING
+		local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
+		for i = 1, GetNumGuilds() do
+			local guildId = GetGuildId(i)
+			local guildName = GetGuildName(guildId)
+			ClearGuildHistoryCache(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, (GetTimeStamp() - previousStamp))
+			df("TRIMMED TRADER HISTORY: " .. guildName)
+		end
+	end
+end
+
 local function AddOnLoaded(eventCode, addOnName)
 	if addOnName ~= "GTA" then return end
 	ZO_CreateStringId("SI_BINDING_NAME_TRADER_ACTIVITY_TOGGLE", "Trader Activity Toggle")
 	if LibHistoire and GetNumGuilds() > 0 then
+		LibHistoire_Settings.markGapsInHistory = false--<< TESTING
+		--SetSetting(SETTING_TYPE_USER_INTERFACE, UI_SETTING_GUILD_HISTORY_CACHE_MAX_NUMBER_OF_DAYS_TRADER, "15")--<< TESTING
 		LibHistoire:OnReady(function(lib)
+			local resetStamp, resetTime, previousStamp, prevresetTime = GetLastKioskReset()
 			for i = 1, GetNumGuilds() do
 				local guildId = GetGuildId(i)
 				local processor = lib:CreateGuildHistoryProcessor(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER, "GTA")
 				processor:SetEventCallback(function() end)
-				--local resetStamp, resetTime, previousStamp = GetLastKioskReset()--
-				--local startTime = processor:SetAfterEventTime(previousStamp)--
+				processor:SetAfterEventTime(previousStamp)
 				processor:Start()
-				processor:Stop()
+				--processor:Stop()
 			end
 		end)
 	end
 	--CreateLists()
 	local defaultAccountVars = {
 		activitySorting = "name",
+		lastReset = 0,
+		cacheTrim = false,
 	}
 	GuildTraderActivity.savedVariables = ZO_SavedVars:NewAccountWide( GuildTraderActivity.svName, GuildTraderActivity.svVersion, nil, defaultAccountVars )
 	--GuildTraderActivity.savedVariables.pvpLastReset = nil--<< SAVE

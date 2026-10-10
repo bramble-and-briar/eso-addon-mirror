@@ -127,6 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Castbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Simple-Castbar__3702) | Solinur | PC / Mac | 1.3.4 |
 | [Simple Combat Alerts Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Combat-Alerts-Revived__2581) | Baertram | PC / Mac | 1.2 |
 | [Simple Durability](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weolo/Simple-Durability__1165) | Weolo | PC / Mac | 4.4 |
+| [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.0.4 |
 | [Simple fix for Grim Focus Counter v1.6](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vays/Simple-fix-for-Grim-Focus-Counter-v1.6__4136) | vays | PC / Mac | 1.6.07 |
 | [Simple FPS & Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claise/Simple-FPS-Ping__ce31d856-17b4-4951-9802-820df96527e2) | Claise | Console | — |
 | [Simple Group Leave - /gl Sash command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Group-Leave---gl-Sash-command__654) | Baertram | PC / Mac | 0.6 100034 |
@@ -202,7 +203,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Slots Count](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lahouari/Slots-Count__3337) | lahouari | PC / Mac | 1.0.5 |
 | [SlowDialogs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shinni/SlowDialogs__66) | Shinni | PC / Mac | 1.13 |
 | [SlowDialogs - Custom Control Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tyx/SlowDialogs---Custom-Control-Patch__1767) | Tyx | PC / Mac | 1.1.3 |
-| [Smart Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Smart-Chat-Messages__4482) | evainefaye | PC / Mac | 1.9.1 |
+| [Smart Chat Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/evainefaye/Smart-Chat-Messages__4482) | evainefaye | PC / Mac | 2.0.3 |
 | [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__09511722-e9f3-4e32-b5f9-d04c0cbee9c4) | code65536 | Console | — |
 | [Smart Looter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Smart-Looter__2303) | code65536 | PC / Mac | 1.1.2 |
 | [Smart Node Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rockintrumpet/Smart-Node-Radar__923318b4-3671-40d4-93f3-49d2f9203093) | rockintrumpet | Console | — |
@@ -282,7 +283,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [STARS-KBM](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/STARS-KBM__4783) | SugaComa | PC / Mac | 0.6.11-KBM |
 | [Stash 'n Dash](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Downehr/Stash-n-Dash__4133) | Downehr | PC / Mac | 1.0.3 |
 | [Static's Already Taunted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Already-Taunted__3913) | static_recharge | PC / Mac | 2.0.1 |
-| [Static's Furnishing Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Furnishing-Improvements__4447) | static_recharge | PC / Mac | 1.0.2 |
+| [Static's Furnishing Improvements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Furnishing-Improvements__4447) | static_recharge | PC / Mac | 1.1.1 |
 | [Static's Letter Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Letter-Opener__4368) | static_recharge | PC / Mac | 1.1.0 |
 | [Static's Quickslot Profiles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Quickslot-Profiles__1775) | static_recharge | PC / Mac | 2.3.0 |
 | [Static's Recruiter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Static-s-Recruiter__3836) | static_recharge | PC / Mac | 3.0.3 |

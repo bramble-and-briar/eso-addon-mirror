@@ -1,4 +1,4 @@
-Ardy's OB Tracker  v1.4.0
+Ardy's OB Tracker  v1.5.0
 =========================
 
 INSTALL
@@ -19,5 +19,13 @@ WHAT IT DOES
              next target or removed when you look at them.
   Tracker  - A small window lists every enemy you have put Off Balance with a
              countdown. When Off Balance ends, the row turns grey and counts down
-             their 15 s Off Balance Immunity. Drag it where you want, then /obt lock.
-             Change the text size with /obt size <12-36> or the settings slider.
+             their 15 s Off Balance Immunity. The enemy under your crosshair is
+             highlighted in gold.
+  Readout  - Shows OB, IMMUNE or READY next to your crosshair for the enemy
+             you're aiming at, including Off Balance applied by other players.
+  Alerts   - Optional sounds when an enemy is ready to be set Off Balance again,
+             and just before your Off Balance on them ends.
+
+  Window position, text size, alerts and all other options are in
+  Settings > Add-Ons > Ardy's OB Tracker. Turn off "Lock position" to drag the
+  tracker window and the crosshair readout, then turn it back on.

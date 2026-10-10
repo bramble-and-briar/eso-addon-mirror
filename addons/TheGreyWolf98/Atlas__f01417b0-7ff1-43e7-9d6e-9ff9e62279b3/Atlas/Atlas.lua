@@ -6,7 +6,7 @@ A.layerCount=13
 A.options = {
     {key="skyshards", title="Skyshards", detail="Native skyshard locations supplied by ESO on the viewed map.", color={0.50,0.85,1}, texture="EsoUI/Art/MapPins/skyshard_seen.dds"},
     {key="lorebooks", title="Lorebooks", detail="Recorded Shalidor lorebooks across supported map floors.", color={0.65,0.55,1}, texture="EsoUI/Art/Icons/quest_book_001.dds"},
-    {key="treasure", title="Treasure-map digs", detail="Recorded treasure digs across supported zones.", color={1,0.78,0.30}, texture="EsoUI/Art/Icons/quest_treasuremap_001.dds"},
+    {key="treasure", title="Treasure-map digs", detail="Recorded treasure digs across supported zones.", color={1,1,1}, texture="Atlas/Textures/Treasure.dds"},
     {key="bosses", title="Interior bosses", detail="Recorded delve and public-dungeon bosses; group coverage is incomplete.", color={1,0.48,0.40}, texture="EsoUI/Art/Icons/poi/poi_groupboss_incomplete.dds"},
     {key="delves", title="Delves", detail="Native delve entrances, including undiscovered locations.", color={0.75,0.86,1}, texture="EsoUI/Art/Icons/poi/poi_groupboss_incomplete.dds", completionTypes={ZONE_COMPLETION_TYPE_DELVES,ZONE_COMPLETION_TYPE_GROUP_DELVES}},
     {key="worldBosses", title="World bosses", detail="Native world-boss locations on the viewed map.", color={1,0.48,0.40}, texture="EsoUI/Art/Icons/poi/poi_groupboss_incomplete.dds", completionTypes={ZONE_COMPLETION_TYPE_GROUP_BOSSES}},
@@ -16,7 +16,7 @@ A.options = {
     {key="strikingLocales", title="Striking locales", detail="Native landmarks, including undiscovered locations.", color={0.85,0.8,0.55}, texture="EsoUI/Art/Icons/poi/poi_groupboss_incomplete.dds", completionTypes={ZONE_COMPLETION_TYPE_STRIKING_LOCALES}},
     {key="mundus", title="Mundus stones", detail="Native Mundus stone sites, including undiscovered locations.", color={0.7,0.65,1}, texture="EsoUI/Art/Icons/poi/poi_groupboss_incomplete.dds", completionTypes={ZONE_COMPLETION_TYPE_MUNDUS_STONES}},
     {key="craftingStations", title="Set crafting stations", detail="Native set crafting sites, including undiscovered locations.", color={0.65,0.9,0.65}, texture="EsoUI/Art/Icons/poi/poi_groupboss_incomplete.dds", completionTypes={ZONE_COMPLETION_TYPE_SET_STATIONS}},
-    {key="surveys", title="Crafting surveys", detail="Survey report locations; enable the backpack filter to show only carried reports.", color={0.5,0.95,0.6}, texture="EsoUI/Art/Icons/quest_treasuremap_001.dds"},
+    {key="surveys", title="Crafting surveys", detail="Survey report locations; enable the backpack filter to show only carried reports.", color={1,1,1}, texture="Atlas/Textures/Survey.dds"},
     {key="hideCollected", title="Hide collected", detail="Hide acquired skyshards and known lorebooks on this character."},
     {key="carriedOnly", title="Carried maps / surveys only", detail="Only show digs and surveys whose map/report is in your backpack."},
 }
@@ -75,7 +75,7 @@ function A.Locations(key)
         for _,p in ipairs((key=="surveys" and ((A.surveysByMapId and GetCurrentMapId and A.surveysByMapId[GetCurrentMapId()]) or A.surveys[A.MapKey()] or {}) or ((A.treasureByMapId and GetCurrentMapId and A.treasureByMapId[GetCurrentMapId()]) or A.treasure[A.MapKey()])) or {}) do
             if not carried or carried[p[3]] then
                 local link=("|H1:item:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"):format(p[3])
-                local mapIcon=GetItemLinkInfo(link)
+                local mapIcon=key=="surveys" and "Atlas/Textures/Survey.dds" or "Atlas/Textures/Treasure.dds"
                 add(p[1],p[2],clean(GetItemLinkName(link)) or p[4],key=="surveys" and "Atlas | Survey site; report required to harvest" or "Atlas | Treasure-map dig; map required to dig",nil,mapIcon)
             end
         end
@@ -132,7 +132,7 @@ function A.RegisterPins()
         A.manager:AddCustomPin(typeName,function(manager)
             if not A.saved[key] then return end
             for _,p in ipairs(A.Locations(key)) do manager:CreatePin(A.pinTypes[key],p,p.x,p.y) end
-        end,nil,{level=55,size=24,texture=function(pin)
+        end,nil,{level=55,size=28,texture=function(pin)
             local _,p=pin:GetPinTypeAndTag()
             return p.texture and p.texture~="" and p.texture or o.texture
         end,tint=ZO_ColorDef:New(unpack(o.color))},

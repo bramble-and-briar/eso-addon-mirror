@@ -1,0 +1,10 @@
+## Title: KApplicationHistory
+## Description: Keeps a history of Group Finder applications & shows it inside the Group Finder
+## Author: |cFF9B15@Konten|r
+## Version: 1.0.1
+## APIVersion: 101051
+## SavedVariables: KApplicationHistory_SavedVars
+## DependsOn: LibAddonMenu-2.0
+; AI-Generated: Ðeveloped with the assistance of Google Gemini.
+
+KApplicationHistory.lua

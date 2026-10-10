@@ -1,0 +1,23 @@
+<GuiXml>
+    <Controls>
+        <!-- The gamepad mount list: the game's list screen layout (ZO_Gamepad_ParametricList_Screen)
+             in the right-hand panel instead of the left, so the preview has room on the left. -->
+        <TopLevelControl name="PerCharacterMountsGamepad" inherits="ZO_GamepadGrid_NavQuadrant_4_Anchors" hidden="true">
+            <Controls>
+                <Scroll name="$(parent)Mask" inherits="ZO_GamepadGrid_NavQuadrant_ContainerAnchors">
+                    <Controls>
+                        <Control name="$(parent)Container">
+                            <AnchorFill/>
+                            <Controls>
+                                <Control name="$(parent)HeaderContainer" inherits="ZO_GamepadScreenHeaderContainer">
+                                    <Anchor point="TOPLEFT"/>
+                                    <Anchor point="TOPRIGHT"/>
+                                </Control>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Scroll>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

@@ -1,0 +1,6 @@
+SafeAddString(SI_DTTUI_PAGE_FREE, "免费", 1)
+SafeAddString(SI_DTTUI_PAGE_PREMIUM, "高级", 1)
+SafeAddString(SI_DTTUI_ALL_FREE, "全部免费", 1)
+SafeAddString(SI_DTTUI_ALL_PREMIUM, "全部高级", 1)
+SafeAddString(SI_DTTUI_PAGE_TOTAL, "本页总计", 1)
+SafeAddString(SI_DTTUI_ALL_TOTAL, "所有页面", 1)

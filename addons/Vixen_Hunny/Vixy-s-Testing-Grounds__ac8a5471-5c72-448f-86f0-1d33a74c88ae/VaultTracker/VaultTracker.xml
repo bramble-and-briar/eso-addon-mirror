@@ -1,0 +1,27 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="VaultTrackerContainer" virtual="true" clampedToScreen="true" hidden="false" layer="0" level="2">
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="500" offsetY="520" />
+            <Controls>
+                <Label name="$(parent)CostLabel" font="/esoui/common/fonts/univers67.otf|21|soft-shadow-thick" color="FFFFFF" verticalAlignment="TOP" horizontalAlignment="TOP" text="0">
+                    <Anchor point="CENTER" relativeTo="$(parent)" offsetX="0" offsetY="300"/>
+                </Label>
+                <Label name="$(parent)StackLabel" font="/esoui/common/fonts/univers67.otf|21|soft-shadow-thick" color="FFFFFF" verticalAlignment="TOP" horizontalAlignment="TOP" text="0" hidden="true" >
+                <Anchor point="CENTER" relativeTo="$(parent)" offsetX="0" offsetY="320"/>
+                </Label>
+                <Texture name="$(parent)AbilityIcon" width="32" height="32" hidden="true">
+                    <Anchor point="RIGHT" relativeTo="$(parent)AbilityLabel" relativePoint="LEFT" offsetX="-4" offsetY="0"/>
+                </Texture>
+                <Label name="$(parent)AbilityLabel" font="/esoui/common/fonts/univers67.otf|21|soft-shadow-thick" color="FFFFFF" verticalAlignment="TOP" horizontalAlignment="TOP" text="0" hidden="true" >
+                <Anchor point="CENTER" relativeTo="$(parent)" offsetX="0" offsetY="370"/>
+                </Label>
+                <Label name="$(parent)NotifLabel" font="/esoui/common/fonts/univers67.otf|21|soft-shadow-thick" color="FFFFFF" verticalAlignment="TOP" horizontalAlignment="TOP" text="0" hidden="true" >
+                <Anchor point="CENTER" relativeTo="$(parent)" offsetX="0" offsetY="410"/>
+                </Label>
+                <Label name="$(parent)TimerLabel" font="/esoui/common/fonts/univers67.otf|21|soft-shadow-thick" color="FFFFFF" verticalAlignment="TOP" horizontalAlignment="TOP" text="0" hidden="true" >
+                <Anchor point="CENTER" relativeTo="$(parent)" offsetX="0" offsetY="440"/>
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

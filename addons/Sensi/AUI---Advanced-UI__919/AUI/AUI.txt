@@ -4,12 +4,12 @@
 ; States and/or other countries. All rights reserved.
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
-## Title: |c77ee02Advanced UI|r || Version: 3.992
+## Title: |c77ee02Advanced UI|r || Version: 3.993
 ## Author: |c87ddf2Sensi|r
-## APIVersion: 101049
-## Version: 3.992
+## APIVersion: 101051
+## Version: 3.993
 ## SavedVariables: AUI_Main AUI_Minimap AUI_Quests AUI_Attributes AUI_Templates AUI_Combat AUI_Buffs AUI_Skillbar AUI_Control_Mover
-## DependsOn: AUI_FightData LibAddonMenu-2.0>=31
+## DependsOn: AUI_FightData LibAddonMenu-2.0>=43
 
 Constants.lua
 Templates.xml

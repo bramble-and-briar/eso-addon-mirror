@@ -1,0 +1,51 @@
+Helping someone without Apostrophe Name Fix
+
+Option 1: travel without installing anything or running Lua
+The native command accepts an @account name, bypassing the bad character name.
+For example, while grouped with @wist-aria:
+
+/jumptogroupmember @wist-aria
+
+This attempts travel; it does not fix the name displayed in the roster. Normal
+travel restrictions still apply. /anf travel prepares this command for your own
+account, and /anf travel group7 prepares it for that group member. Group indices
+can change. The generated command uses your client's language; the example
+above is the English command.
+
+Option 2: temporary correction of all affected unit names
+On a PC/Mac client, paste the following as ONE line into your own chat entry
+and press Enter. It runs locally and lasts until logout or /reloadui. This does
+not require installing an addon, and does not itself travel or send a message.
+
+/script if not ANF_Temp and not SLASH_COMMANDS["/anf"] then ANF_Temp=true for _,k in ipairs({"GetRawUnitName","GetUnitName"}) do local f=_G[k] _G[k]=function(...) local s=f(...) return type(s)=="string" and(s:gsub(string.char(92).."+'","'"))or s end end end GROUP_LIST_MANAGER:RefreshData() UNIT_FRAMES:UpdateNames()
+
+It wraps the same two getters as the addon, preserves name descriptors, and
+refreshes the existing roster and unit-frame names immediately. Repeat pastes
+do not stack wrappers. If the full addon is already installed, use /anf on;
+the temporary script deliberately avoids layering another patch over it.
+To undo the temporary patch, /reloadui. If the full addon is enabled, it will
+apply its own patch again after reloading.
+
+/anf share prepares a short explanatory draft followed by this exact script.
+The recipient should copy only the /script portion. If their chat UI cannot
+copy received text, send it through Discord, a webpage, or another copyable
+channel. You can copy the prepared chat draft into another app before sending.
+On macOS use the normal system copy shortcut; on Windows use Ctrl+A/Ctrl+C.
+
+Option 3: persistent correction
+Share the addon ZIP or its public listing after you publish one. No public
+listing URL is hardcoded in this release. Recipients install it themselves.
+
+Limits
+One player's addon cannot patch another client's Lua or the server's stored
+name. Merely receiving the text does not run it. This addon never evaluates
+incoming chat, whispers, links, or group-addon payloads as Lua. Installing the
+addon only on the character whose name is affected will not fix other clients.
+The temporary script is for PC/Mac clients supporting /script; it is not a
+console workaround.
+
+Validation
+Persistent fix: verified live by the user on 2026-10-09, including two affected
+UI views and right-click group travel to Jei'son.
+Temporary fix and draft helpers: tested in Lua 5.1 mocks; recipient-side live
+testing is still needed before describing those additions as game-verified.

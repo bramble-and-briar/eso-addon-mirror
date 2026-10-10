@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/alaooy/ArabChat---Arabic-Chat__4931",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "alaooy",
+  "canonical_id": "esoui:4931",
+  "category_id": "55",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4931",
+  "deleted": false,
+  "directories": [
+    "ArabChat"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4931/",
+  "fingerprint": "5ede22c3292e2ef888df67f87c586f8e5381b8ae5470ca3878ad39b554e7b302",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17836.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17837.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4931",
+  "source_url": "https://www.esoui.com/downloads/info4931-ArabChat-ArabicChat.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 8
+  },
+  "title": "ArabChat - Arabic Chat",
+  "updated_at": 1791533671000,
+  "version": "1.2.2"
+}

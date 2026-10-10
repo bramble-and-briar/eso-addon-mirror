@@ -1,7 +1,7 @@
 ## Title: Aerie's Cry Tracker
 ## Author: CodeWarrior82
 ## Description: Tracks the buff and debuff from the Aerie's Cry set.
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## OptionalDependsOn: LibNotify
 ## SavedVariables: aeriesAddonVars

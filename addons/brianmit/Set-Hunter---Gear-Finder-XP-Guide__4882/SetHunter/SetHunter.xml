@@ -1,20 +1,25 @@
 <GuiXml>
     <Controls>
-        <!-- Section title in the tree (SETS, MY ITEMS, XP FARMING). -->
+        <!-- Group title in the tree (YOUR GOALS, BROWSE, PROGRESS...): small bronze
+             capitals with a faint bronze line running on to the right edge. -->
         <Control name="SetHunter_TreeHeader" virtual="true">
-            <Dimensions x="250" y="30" />
+            <Dimensions x="262" y="30" />
             <Controls>
-                <Label name="$(parent)Text" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="BOTTOM" maxLineCount="1">
-                    <Anchor point="TOPLEFT" offsetX="4" />
-                    <Anchor point="BOTTOMRIGHT" offsetY="-4" />
+                <Label name="$(parent)Text" font="$(BOLD_FONT)|12|soft-shadow-thin" color="C08A4E" maxLineCount="1">
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
                 </Label>
+                <Texture name="$(parent)Rule" color="C08A4E" alpha="0.3">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Text" relativePoint="BOTTOMRIGHT" offsetX="8" offsetY="-6" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-6" offsetY="-9" />
+                </Texture>
             </Controls>
         </Control>
 
         <!-- Category in the tree: arrow (expandable ones), icon, name, count on the right.
              Selected: soft gold highlight with a gold bar on the left. -->
         <Control name="SetHunter_Category" virtual="true" mouseEnabled="true">
-            <Dimensions x="250" y="30" />
+            <Dimensions x="262" y="30" />
             <OnMouseEnter>SetHunter.Category_OnMouseEnter(self)</OnMouseEnter>
             <OnMouseExit>SetHunter.Category_OnMouseExit(self)</OnMouseExit>
             <OnMouseUp>SetHunter.Category_OnMouseUp(self, button, upInside)</OnMouseUp>
@@ -36,7 +41,7 @@
                     <Anchor point="LEFT" offsetX="20" />
                 </Texture>
                 <Label name="$(parent)Count" font="ZoFontGameSmall" color="8F8B7A" verticalAlignment="CENTER" horizontalAlignment="RIGHT" maxLineCount="1">
-                    <Dimensions x="50" y="30" />
+                    <Dimensions x="36" y="30" />
                     <Anchor point="RIGHT" offsetX="-6" />
                 </Label>
                 <Label name="$(parent)Text" font="ZoFontHeader" color="C5C29E" verticalAlignment="CENTER" maxLineCount="1" wrapMode="ELLIPSIS">
@@ -48,7 +53,7 @@
 
         <!-- One location under a category (a dungeon, a trial, a zone), with its progress. -->
         <Control name="SetHunter_SubCategory" virtual="true" mouseEnabled="true">
-            <Dimensions x="250" y="26" />
+            <Dimensions x="262" y="26" />
             <OnMouseEnter>SetHunter.Category_OnMouseEnter(self)</OnMouseEnter>
             <OnMouseExit>SetHunter.Category_OnMouseExit(self)</OnMouseExit>
             <OnMouseUp>SetHunter.Category_OnMouseUp(self, button, upInside)</OnMouseUp>

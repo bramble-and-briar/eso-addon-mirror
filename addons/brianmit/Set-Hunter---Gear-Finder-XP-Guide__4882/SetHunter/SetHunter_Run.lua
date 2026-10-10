@@ -118,7 +118,11 @@ local function CreateSummary()
     K.MakeFadePanel(win, "SetHunter_RS")
     sw.win = win
 
-    local close = K.MakeTextButton("SetHunter_RSX", win, "x", "$(BOLD_FONT)|20|soft-shadow-thin", 24, L("CLOSE"), CloseSummary)
+    -- the x clicks like closing the main window (the Close button has the game's own click)
+    local close = K.MakeTextButton("SetHunter_RSX", win, "x", "$(BOLD_FONT)|20|soft-shadow-thin", 24, L("CLOSE"), function()
+        PlaySound(SOUNDS.DEFAULT_CLICK)
+        CloseSummary()
+    end)
     close:SetAnchor(TOPRIGHT, win, TOPRIGHT, -18, 10)
 
     sw.title = K.MakeLabel("SetHunter_RSTitle", win, "ZoFontWinH2", SW_W - 60, 36, C.selected)

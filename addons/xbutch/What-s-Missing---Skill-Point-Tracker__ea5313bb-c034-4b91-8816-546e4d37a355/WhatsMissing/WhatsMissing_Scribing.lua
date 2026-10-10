@@ -13,7 +13,7 @@ function Scribing:IsReady()
         and IsCraftedAbilityScriptUnlocked and GetCraftedAbilityScriptScribingSlot
 end
 
-function Scribing:Capture()
+function Scribing:Capture(checkpoint)
     if not self:IsReady() then return end
     local ids = SCRIBING_DATA_MANAGER:GetAllCraftedAbilityScriptIds()
     if #ids == 0 then return end -- Catalog not ready; retain any previous snapshot.
@@ -21,6 +21,7 @@ function Scribing:Capture()
     local parts = {}
     for _, id in ipairs(ids) do
         if IsCraftedAbilityScriptUnlocked(id) then parts[#parts + 1] = tostring(id) .. "," end
+        if checkpoint then checkpoint() end
     end
     SPT.CharCache:WriteProgressionSnapshot("scribingScripts", "1;" .. table.concat(parts))
 end
@@ -28,7 +29,7 @@ end
 function Scribing:Init()
     if EVENT_CRAFTED_ABILITY_SCRIPT_LOCK_STATE_CHANGED then
         EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Scribing", EVENT_CRAFTED_ABILITY_SCRIPT_LOCK_STATE_CHANGED,
-            function() SPT:QueueProgressionSnapshot(self) end)
+            function() SPT:QueueProgressionSnapshot(self, true) end)
     end
 end
 
@@ -120,7 +121,7 @@ local function SlotName(slot)
 end
 
 local function ScriptInfo(script)
-    local parts = { script.name .. "\n" .. SlotName(script.slot) }
+    local parts = { SlotName(script.slot) }
     local description = GetCraftedAbilityScriptGeneralDescription(script.id)
     if description and description ~= "" then parts[#parts + 1] = description end
     local hint = GetCraftedAbilityScriptAcquireHint(script.id)
@@ -172,46 +173,74 @@ function Scribing:BuildView()
     view.infoTitle = GetString(SPT_GUI_TAB_SCRIBING)
     if not catalog then
         view.rows[1] = { source = GetString(SPT_GUI_DATA_UNAVAILABLE), cells = {} }
-        return view
+        return SPT:FinishProgressionTableView(view)
     end
 
     for _, slot in ipairs(slots) do
         local expanded = SPT:IsProgressionGroupExpanded(self, slot)
         view.rows[#view.rows + 1] = { source = (expanded and "[-] " or "[+] ") .. SlotName(slot),
             groupId = slot, rowKey = "slot:" .. slot, cells = {},
-            tooltipText = SlotName(slot) .. "\n\n" .. GetString("SI_SCRIBINGSLOT_DESCRIPTION", slot)
+            tooltipTitle = view.infoTitle .. " - " .. SlotName(slot),
+            tooltipText = GetString("SI_SCRIBINGSLOT_DESCRIPTION", slot)
                 .. "\n\n" .. GetString(SPT_GUI_SCRIPT_GROUP_HELP) }
         if expanded then
             for _, script in ipairs(catalog) do
                 if script.slot == slot then
                     view.rows[#view.rows + 1] = { source = "  " .. script.name,
                         rowKey = "script:" .. script.id, script = script, cells = {},
+                        tooltipTitle = view.infoTitle .. " - " .. script.name,
                         tooltipText = ScriptInfo(script) }
                 end
             end
         end
     end
 
-    for column, id in ipairs(view.characters) do
+    -- Aggregate the full server roster one character at a time. Retain no
+    -- character-by-script matrix, and query live unlocks only once per build.
+    local roster = SPT.CharCache:GetSortedIds()
+    local visibleColumns, accountKnown = {}, {}
+    for column, id in ipairs(view.characters) do visibleColumns[id] = column end
+    local hasScriptRows = false
+    for _, row in ipairs(view.rows) do
+        if row.script then hasScriptRows = true; break end
+    end
+    for _, id in ipairs(hasScriptRows and roster or view.characters) do
         local unlocked = GetUnlocked(id, catalog)
-        for _, row in ipairs(view.rows) do
-            local text = indicators.unknown
-            if unlocked then
-                if row.groupId then
-                    local known, total = 0, 0
-                    for _, script in ipairs(catalog) do
-                        if script.slot == row.groupId then
-                            total = total + 1
-                            if unlocked[script.id] then known = known + 1 end
-                        end
-                    end
-                    text = string.format("%d/%d", known, total)
-                else
-                    text = unlocked[row.script.id] and indicators.known or indicators.missing
-                end
+        if hasScriptRows and unlocked then
+            for _, script in ipairs(catalog) do
+                if unlocked[script.id] then accountKnown[script.id] = (accountKnown[script.id] or 0) + 1 end
             end
-            row.cells[column] = text
+        end
+        local column = visibleColumns[id]
+        if column then
+            for _, row in ipairs(view.rows) do
+                local text = indicators.unknown
+                if unlocked then
+                    if row.groupId then
+                        local known, total = 0, 0
+                        for _, script in ipairs(catalog) do
+                            if script.slot == row.groupId then
+                                total = total + 1
+                                if unlocked[script.id] then known = known + 1 end
+                            end
+                        end
+                        text = SPT:FormatProgressionCount(known, total)
+                    else
+                        text = unlocked[row.script.id] and indicators.known or indicators.missing
+                    end
+                end
+                row.cells[column] = text
+            end
         end
     end
-    return view
+    for _, row in ipairs(view.rows) do
+        if row.script then
+            local known = accountKnown[row.script.id] or 0
+            local complete = #roster > 0 and known == #roster
+            row.sourceName = "  " .. SPT:ColorCompletedProgression(row.script.name, complete)
+            row.accountTotal = SPT:ColorCompletedProgression(string.format("[%d/%d]", known, #roster), complete)
+            row.source = row.sourceName .. " " .. row.accountTotal
+        end
+    end
+    return SPT:FinishProgressionTableView(view)
 end

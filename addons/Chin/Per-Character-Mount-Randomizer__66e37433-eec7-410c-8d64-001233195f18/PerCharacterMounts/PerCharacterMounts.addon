@@ -1,0 +1,10 @@
+## Title: |cD6B16APer-Character Mounts|r
+## Description: Every character gets |cF2DCA6its own favourite mounts|r for |t24:24:EsoUI/Art/Collections/Random_FavoriteMount.dds|t |cF2DCA6Random Favorite Mount|r, starting from a clean slate. Add or remove them in the settings menu.
+## Version: 1.4.6
+## AddOnVersion: 13
+## APIVersion: 101051
+## SavedVariables: PerCharacterMounts_SV PerCharacterMounts_Backup
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
+
+PerCharacterMounts.lua
+PerCharacterMounts.xml

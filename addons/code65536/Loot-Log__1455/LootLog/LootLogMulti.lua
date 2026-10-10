@@ -371,12 +371,12 @@ local function ShouldFlagAsTreasureMapWithLeadsOrTradeableLead( itemLink, contex
 		end
 	end
 
-	if (totalLore > 0 and ((isTreasureMap and (hasMotif or not LootLog.vars.antiquityOnlyMotifs)) or (not isTreasureMap and LootLog.vars.antiquityFlagTradeable and totalLoreAcquired < totalLore))) then
+	if (totalLore > 0 and ((isTreasureMap and (hasMotif or not LootLog.vars.antiquityOnlyMotifs)) or (not isTreasureMap and LootLog.vars.antiquityFlagTradeable))) then
 		local color
 		if (totalLoreAcquired >= totalLore) then
 			color = "fullCodex"
 		elseif (not neverFound) then
-			color = "incompleteCodex"
+			color = LootLog.vars.antiquityIgnorePartial and "fullCodex" or "incompleteCodex"
 		else
 			color = "neverFound"
 		end
@@ -388,6 +388,8 @@ local function ShouldFlagAsTreasureMapWithLeadsOrTradeableLead( itemLink, contex
 		else
 			icon = "motif"
 		end
+		-- Don't mark tradeable leads at all if they're full
+		if (not isTreasureMap and color == "fullCodex") then return false end
 		return true, LootLog.vars.antiquityMapColors[color], AntiquityIcons[icon], not neverFound
 	else
 		return false

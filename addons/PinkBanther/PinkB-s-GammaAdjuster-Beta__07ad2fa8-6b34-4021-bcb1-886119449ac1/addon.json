@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/PinkBanther/PinkB-s-GammaAdjuster-Beta__07ad2fa8-6b34-4021-bcb1-886119449ac1",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PinkBanther",
+  "canonical_id": "bethesda:07ad2fa8-6b34-4021-bcb1-886119449ac1",
+  "content_id": "07ad2fa8-6b34-4021-bcb1-886119449ac1",
+  "deleted": false,
+  "fingerprint": "10b7be8acdb8f2b5334a14467261819c117202ab777490868f6e4e4d5bff69b5",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "07ad2fa8-6b34-4021-bcb1-886119449ac1",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/07ad2fa8-6b34-4021-bcb1-886119449ac1",
+  "title": "PinkB's GammaAdjuster(Beta)"
+}

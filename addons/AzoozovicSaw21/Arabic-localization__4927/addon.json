@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/AzoozovicSaw21/ESO-Arabic-localization__4927",
+  "archive_path": "addons/AzoozovicSaw21/Arabic-localization__4927",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "AzoozovicSaw21",
@@ -20,7 +20,7 @@
     "gamedata"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4927/",
-  "fingerprint": "91947d68442e97c6bd42c21f0e035d4fb7f3c213c801453349504dadf2b92970",
+  "fingerprint": "3ef86545ed76e8cd9cb187342c06ac62eea426950e39c34582789182f01851b4",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17808.png",
     "https://cdn-eso.mmoui.com/preview/pvw17809.png",
@@ -29,24 +29,24 @@
   ],
   "omitted_files": [
     {
-      "bytes": 123641704,
+      "bytes": 123885529,
       "download_url": "https://www.esoui.com/downloads/dl4927/",
       "path": "gamedata/lang/ar.lang",
       "reason": "exceeds the mirror's 95 MiB per-file Git limit",
-      "sha256": "7bfcae3bca31080b75bbc100fc55a2370f8fb2cde13904cfcf4ece4ec1811d18"
+      "sha256": "ea0baf8d814cd6787cc30d7892783834a1f478ebe49a30d8e390ed08ac51962b"
     }
   ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "4927",
-  "source_url": "https://www.esoui.com/downloads/info4927-ESOArabiclocalization.html",
+  "source_url": "https://www.esoui.com/downloads/info4927-Arabiclocalization.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 27,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 24
   },
-  "title": "ESO Arabic localization",
-  "updated_at": 1791440573000,
-  "version": "2.0.0"
+  "title": "Arabic localization",
+  "updated_at": 1791584770000,
+  "version": "2.2.7"
 }

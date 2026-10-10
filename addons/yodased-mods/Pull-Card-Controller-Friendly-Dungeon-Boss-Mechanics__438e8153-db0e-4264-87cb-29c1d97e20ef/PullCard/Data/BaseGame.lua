@@ -187,12 +187,7 @@ addBoss("Vorenor Winterbourne", "Spindleclutch II", "Vorenor Winterbourne", {"Vo
     "Hold Vorenor away from captives and face him from the group.",
     "Keep the tank stable through the boss's self-heal windows.",
     "Burn Vorenor; do not splash captives if doing the achievement.",
-    "[Vorenor] Burn boss; spare captives for achievement.",
-    {
-        challenges = {
-            { text = "Don't kill any of the thralls he drains. Single-target only near captives; no AoE splash." },
-        },
-    })
+    "[Vorenor] Burn boss; spare captives for achievement.")
 
 -- The Banished Cells I
 addDungeon("The Banished Cells I", "base")
@@ -692,12 +687,7 @@ addBoss("Nerien'eth", "Crypt of Hearts II", "Nerien'eth", {"Nerieneth"},
     "Keep adds controlled and boss positioned when possible.",
     "Watch burst damage during blade/add phases.",
     "Kill required adds, then burn boss; save burst for clean windows.",
-    "[Nerien'eth] Avoid AoE; control adds; burn in clean windows.",
-    {
-        challenges = {
-            { text = "Have 3 ghosts up when he pulls the sword. Don't kill ghosts early." },
-        },
-    })
+    "[Nerien'eth] Avoid AoE; control adds; burn in clean windows.")
 
 -- City of Ash I
 addDungeon("City of Ash I", "base")

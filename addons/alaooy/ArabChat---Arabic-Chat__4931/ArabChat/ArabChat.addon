@@ -1,0 +1,13 @@
+## Title: ArabChat - Arabic Chat
+## Description: Arabic chat for ESO that works on its own (the game can stay in English). Type Arabic, and read Arabic messages with joined letters and right-to-left order. Includes a live preview line while typing.
+## Author: alaooy
+## Version: 1.2.2
+## AddOnVersion: 122
+## APIVersion: 101051 101050
+## SavedVariables: ArabChat_Variables
+## OptionalDependsOn: EsoAR LibAddonMenu-2.0>=43
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+
+arabic.lua
+ArabChat.lua
+bindings.xml

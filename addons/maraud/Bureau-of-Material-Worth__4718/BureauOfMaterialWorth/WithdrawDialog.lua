@@ -4,9 +4,7 @@ addon.WithdrawDialog = addon.WithdrawDialog or {}
 local WithdrawDialog = addon.WithdrawDialog
 local private = addon.private
 
--- Hot-path / inventory globals cached to upvalues, same rationale as the other
--- modules: the withdrawal stepper touches these every tick across a multi-stack
--- run, and the capacity scan walks the whole backpack.
+-- Cache globals used by capacity scans, click handlers, and arrival events.
 local GetString              = GetString
 local stringformat           = string.format
 local mathmin                = math.min
@@ -23,12 +21,8 @@ local ZO_GetNextBagSlotIndex = ZO_GetNextBagSlotIndex
 local BAG = BAG_VIRTUAL
 local BAG_BACKPACK = BAG_BACKPACK
 
--- A classic stack is 200 items. Used only for the preset captions ("1 stack" =
--- 200) and the queue's conservative slots-needed estimate; the move engine does
--- NOT chunk by this -- one RequestMoveItem moves the full quantity and the game
--- spreads any overflow across slots itself. Declared once in the core as
--- private.STACK_SIZE (Valuation binds the same value), so the stack size cannot
--- drift between the queue estimate here and the stack count in the panel.
+-- Shared stack size for presets, capacity checks, and move-slot reservations.
+-- Each job issues one full-quantity move, not a separate request per stack.
 local STACK_SIZE = private.STACK_SIZE
 
 -- Quantity presets offered as buttons. Raw item counts, ascending; the captions
@@ -36,22 +30,8 @@ local STACK_SIZE = private.STACK_SIZE
 -- list is the single source of truth -- add a preset by adding a number.
 local PRESETS = { 1, 10, 100, 200, 400, 2000, 4000 }
 
--- Default withdraw quantity proposed when a material is first opened or queued,
--- keyed by item quality (the same colour the game tints the name with). The idea:
--- cheap bulk mats default to a big grab, valuable mats to a small one, so a
--- careless click cannot dump a whole stack of something precious. The user can
--- always raise it (up to the available max) or type an exact value.
---
--- Keyed by ITEM_FUNCTIONAL_QUALITY_* (what Valuation passes as `quality`, from
--- GetItemLinkFunctionalQuality). Every ordinary tier proposes one full stack;
--- legendary (gold) mats -- kuta, rosin, chromium plating and friends -- propose a
--- single item, because they are the ones worth thousands each.
---
--- DEFAULT_QUANTITY_FALLBACK is deliberately the cautious end of that range, not
--- a stack: it covers a nil quality and any tier a future client adds, and
--- proposing too little is a harmless extra click while proposing too much can
--- dump a fortune into the backpack. Resolved through DefaultQuantityForQuality
--- so an unknown/nil quality is always safe.
+-- Default to one stack for ordinary qualities, one item for legendary materials.
+-- Unknown or missing quality also defaults to one item.
 local DEFAULT_QUANTITY_FALLBACK = 1
 local DEFAULT_QUANTITY_BY_QUALITY = {
     [ITEM_FUNCTIONAL_QUALITY_TRASH]     = STACK_SIZE, -- grey
@@ -74,10 +54,7 @@ local COLOR_ACCENT = private.COLOR_ACCENT
 local COLOR_MUTED  = private.COLOR_MUTED
 local COLOR_WARN   = private.COLOR_WARN
 
--- Shared visual language (UI.lua). This window's chrome, type scale, spacing,
--- dividers and progress meters all come from there, so the withdraw window is
--- the same surface as the summary panel and the material table rather than a
--- third near-black with its own fonts.
+-- Shared styling, spacing, and progress-meter helpers.
 local UI = private.UI
 local FONT = UI.FONT
 local METRIC = UI.METRIC
@@ -104,9 +81,7 @@ end
 -- Layout
 -- ---------------------------------------------------------------------------
 local POPUP_WIDTH   = 520
--- A free-floating window, so it takes the wider step of the shared spacing scale
--- (the narrow summary panel takes METRIC.PADDING), and its inter-block air and
--- button gutters come from the same scale -- the three windows breathe alike.
+-- Shared inset for floating windows.
 local PADDING       = METRIC.PADDING_WIDE
 local TITLE_HEIGHT  = 30
 local ICON_SIZE     = 32       -- the material icon beside the title
@@ -144,14 +119,8 @@ local function PresetCaption(count)
     return stringformat(GetString(key), stacks)
 end
 
--- A free backpack slot not already reserved by this run, or nil when none is
--- left. Because a multi-item queue issues all its moves in one synchronous click
--- (before any of them have actually filled their slot), FindFirstEmptySlotInBag
--- would hand back the SAME first empty slot to every move and they would all
--- collide -- only the first lands. So each job claims a distinct slot here and
--- records it in `reserved`, mirroring CraftBagExtended's EmptySlotTracker. The
--- game still distributes a single move's overflow (>200) across further slots on
--- its own; we only need to hand each job its own starting slot.
+-- Find an empty slot not already reserved by this run.
+-- IssueJob reserves the full overflow footprint before issuing any move.
 local function FindFreeBackpackSlot(reserved)
     local slotIndex = FindFirstEmptySlotInBag(BAG_BACKPACK)
     while slotIndex do
@@ -189,33 +158,13 @@ end
 
 -- Shared withdrawal engine
 -- ---------------------------------------------------------------------------
--- Both the single-material popup and the multi-material queue withdraw through
--- ONE engine. A run is a list of jobs:
---   jobs[i] = { itemId, slotIndex, qty }
--- The single popup builds a one-job list; the queue builds an N-job list.
---
--- IMPORTANT - why this is NOT a timer loop:
--- RequestMoveItem is a PROTECTED function. It must be called via
--- CallSecureProtected AND from a hardware-event callstack (a button click) -- it
--- does NOT work from a RegisterForUpdate timer or an event handler (their
--- callstacks are untrusted). So every move is issued synchronously, inside the
--- click handler that calls StartRun. One call per job moves that job's full
--- quantity; the engine spreads any overflow beyond 200 across backpack slots
--- itself, so there is no per-stack loop.
---
--- The arrival of the moved items is asynchronous, so the (honest) progress bar
--- is advanced by listening to EVENT_INVENTORY_SINGLE_SLOT_UPDATE on the backpack
--- (stack-count increases) until the requested total has landed, then the run
--- finishes. The listener is the only thing that outlives the click, and it is
--- self-cleaning: FinishRun unregisters it, as do Cancel / OnCraftBagHidden.
+-- Single and batch withdrawals use jobs shaped as { itemId, slotIndex, qty }.
+-- Protected moves must run synchronously in the trusted click callstack, not
+-- from a timer or inventory-event handler. Issue one move per job.
+-- Backpack arrival events advance progress against the issued quantity.
+-- FinishRun unregisters the watcher; hiding the popup does not cancel requests.
 local MOVE_EVENT_NAME = addon.name .. "_WithdrawMoveWatch"
--- Safety timeout: if the expected items never fully arrive (e.g. a move was
--- partially rejected), end the run anyway so the UI never stays "in progress"
--- forever. Re-armed on every arrival; fires when arrivals go quiet.
--- Deliberately generous: this is a stall backstop, not a deadline. The old 2s
--- budget could expire before the server acknowledged the very first move on a
--- laggy connection or a large multi-job queue, which ended the run at 0 moved
--- and reported nothing withdrawn while the items were still on their way.
+-- End stalled runs after arrivals go quiet; each arrival re-arms this timeout.
 local WATCH_TIMEOUT_MS = 8000
 local WATCH_TIMER_NAME = addon.name .. "_WithdrawWatchTimeout"
 
@@ -244,9 +193,7 @@ local function StopWatching()
 end
 
 local function FinishRun()
-    -- Idempotent: the quiet-timeout and the final arrival can both land in the
-    -- same frame, and OnCraftBagHidden/Cancel may also call in. Without this
-    -- guard the finish callback could fire twice and post two chat reports.
+    -- Guard against final-arrival and timeout paths invoking completion twice.
     if not isWithdrawing then
         StopWatching()
         return
@@ -286,11 +233,9 @@ local function OnBackpackSlotUpdate(eventCode, bagId, slotIndex, isNewItem, soun
         return
     end
 
-    -- Credit at most what this run still expects for that itemId. The handler
-    -- cannot distinguish our withdrawal from any other gain of the same material
-    -- (loot, a craft, a mail attachment, a purchase) that lands mid-run, so
-    -- bounding the credit per item keeps a coincidental arrival from completing
-    -- the run early and reporting a quantity that was never withdrawn.
+    -- Credit at most the outstanding quantity for this item. Inventory events
+    -- cannot distinguish this withdrawal from other gains of the same material;
+    -- the bound limits reporting but does not identify which request caused an arrival.
     local credit = mathmin(stackCountChange, outstanding)
     engineWatchItemIds[itemId] = outstanding - credit
     engineMoved = mathmin(engineMoved + credit, engineTotal)
@@ -704,11 +649,7 @@ function WithdrawDialog.IsShown()
     return popup and not popup:IsHidden()
 end
 
--- Height of the header wash: the identity block this window opens with (the
--- material icon and the title beside it) plus its top padding, closed by a little
--- air beneath so the accent underline does not crowd the text. The icon is the
--- taller of the two, so it -- not the title row -- sets the floor. Derived rather
--- than a constant, so a change to either carries the band with it.
+-- Fit the header band around the taller of the title and material icon.
 local function HeaderBandHeight()
     return PADDING + mathmax(TITLE_HEIGHT, ICON_SIZE) + METRIC.BAND_PAD
 end
@@ -1078,7 +1019,6 @@ local function PopulateQueueList()
     local dataList = ZO_ScrollList_GetDataList(queueList)
     ZO_ScrollList_Clear(queueList)
     for i = 1, #queue do
-        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         -- Scroll-list data is mutated with UI bookkeeping and a self-referential
         -- dataEntry.data path. Keep `queue` runtime-only and populate it with
         -- detached scalar copies in AddToQueue; never place SavedVariables-owned
@@ -1086,7 +1026,6 @@ local function PopulateQueueList()
         --
         -- Bureau archive rule 47-C: withdrawal forms are disposable. Refile a
         -- stamped queue row and the serializer buries the disk under paperwork.
-        -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         dataList[#dataList + 1] = ZO_ScrollList_CreateDataEntry(QUEUE_ROW_TYPE, queue[i])
     end
     ZO_ScrollList_Commit(queueList)
@@ -1486,8 +1425,7 @@ function WithdrawDialog.Refresh()
     end
 end
 
--- Hard teardown when the craft bag closes: stop any run and hide the unified
--- withdrawal window so nothing lingers and no stepper survives with the bag shut.
+-- Finish monitoring and hide on bag close; already-issued moves are not cancelled.
 function WithdrawDialog.OnCraftBagHidden()
     if isWithdrawing then
         FinishRun()

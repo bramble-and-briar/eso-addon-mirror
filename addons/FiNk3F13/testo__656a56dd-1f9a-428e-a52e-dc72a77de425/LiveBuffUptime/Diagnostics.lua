@@ -1,6 +1,32 @@
 LiveBuffUptimeDiagnostics = {}
 local Audit = LiveBuffUptimeDiagnostics
 local MAX_JOBS, MAX_OPERATIONS, SLICE = 12, 16384, 128
+local MAX_UNKNOWN = 24
+
+function Audit.RecordUnknown(fight, time, ability, recipient, change, kind)
+    local data = fight and fight.diagnostics
+    if not data then return end
+    data.unknownSourceEvents = (data.unknownSourceEvents or 0) + 1
+    data.unknownEffects = data.unknownEffects or {}
+    fight.unknownEffectIndex = fight.unknownEffectIndex or {}
+    local key = tostring(ability) .. ":" .. tostring(recipient)
+    local entry = fight.unknownEffectIndex[key]
+    if not entry then
+        if #data.unknownEffects >= MAX_UNKNOWN then
+            data.unknownDetailsDropped = (data.unknownDetailsDropped or 0) + 1
+            return
+        end
+        entry = { id = ability, recipient = recipient, kind = kind, first = time, last = time,
+            count = 0, gained = 0, updated = 0, faded = 0 }
+        data.unknownEffects[#data.unknownEffects + 1] = entry
+        fight.unknownEffectIndex[key] = entry
+    end
+    entry.count = entry.count + 1
+    entry.first, entry.last = math.min(entry.first, time), math.max(entry.last, time)
+    entry.kind = kind or entry.kind
+    local field = change == EFFECT_RESULT_GAINED and "gained" or change == EFFECT_RESULT_UPDATED and "updated" or "faded"
+    entry[field] = entry[field] + 1
+end
 
 local function finite(value)
     return type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -12,6 +38,7 @@ local function inspect(job)
         if #warnings < 4 then warnings[#warnings + 1] = message end
     end
     if job.truncated then warn("Mitglieder-Prueflimit erreicht; Ergebnis unvollstaendig") end
+    if job.incomplete then warn("Diagnose nicht ab Messbeginn aktiv") end
     local function charge()
         operations, slice = operations + 1, slice + 1
         if operations > MAX_OPERATIONS then error("Prueflimit erreicht; Ergebnis unvollstaendig", 0) end
@@ -46,6 +73,19 @@ local function inspect(job)
     end
     local function member(data)
         local starts, ends = data.starts or job.starts, data.ends or job.ends
+        if job.selection and data.placeholder then warn("Spieler nicht beobachtet; keine Einheitentyp-Pruefung") end
+        if job.selection and not data.placeholder then
+            if not finite(starts) or not finite(ends) or ends < starts then
+                warn("ungueltige Einheitenzeit")
+                starts, ends = job.starts, job.starts
+            elseif starts < job.starts - 0.001 or ends > job.ends + 0.001 then
+                warn("Einheitenzeit ausserhalb Kampf")
+            end
+            if LiveBuffUptimeEngine and LiveBuffUptimeEngine.IsPet(data.kind) then warn("Begleiter mitgezaehlt") end
+            if job.selection == "group" and data.kind ~= COMBAT_UNIT_TYPE_PLAYER and data.kind ~= COMBAT_UNIT_TYPE_GROUP then
+                warn("Nicht-Spieler in Gruppenmessung")
+            elseif data.kind == nil then warn("Einheitentyp unbekannt") end
+        end
         local covered, active = sum(data.intervals, starts, ends)
         if data.open then
             if not finite(data.open) then warn("ungueltiger offener Buff") else
@@ -74,7 +114,7 @@ local function inspect(job)
                 if instance.maxStacks > 0 then covered = covered + total / instance.maxStacks end
             end
         end
-        local duration = data.eligibility and sum(data.eligibility, starts, ends) or job.duration
+        local duration = data.duration or (data.eligibility and sum(data.eligibility, starts, ends) or job.duration)
         local excluded = 0
         if data.excluded then
             local blocked, intervals = sum(data.excluded, starts, ends)
@@ -89,6 +129,7 @@ local function inspect(job)
         end
         if not finite(duration) or duration < 0 then warn("ungueltige Kampfzeit"); duration = 0 end
         if not job.weighted and covered > duration + 0.001 then warn("Buffzeit groesser als Kampfzeit") end
+        if data.normalCovered and data.normalCovered > duration + 0.001 then warn("Normale Buffzeit groesser als Bezugszeit") end
         if excluded < -0.001 or excluded > duration + 0.001 then warn("ungueltiger Zeitabzug") end
         return covered, duration, excluded
     end
@@ -107,6 +148,43 @@ local function inspect(job)
     return string.format("%s %.1f%% (Buff %.2fs / Zeit %.2fs / Abzug %.2fs)%s",
         #warnings == 0 and "OK intern" or "WARN", percent, covered, duration, excluded,
         #warnings > 0 and " | " .. table.concat(warnings, "; ") or "")
+end
+
+local freezeFields = { "unit", "view", "personalTime", "uptimeMetric", "includeOverheal", "enabled" }
+
+function Audit.Freeze(tracker, fight, record, now, playerId, targetId)
+    local config = {}
+    for _, field in ipairs(freezeFields) do config[field] = tracker.config[field] end
+    record.freeze = { status = "wartet", checks = 0, violations = 0 }
+    tracker.freezeCheck = { fight = fight, record = record, config = config, nextAt = now + 1,
+        since = tracker.state.since, playerId = playerId, targetId = targetId,
+        starts = fight.starts, ends = fight.ends }
+end
+
+function Audit.CheckFrozen(audit, tracker, fight, result, now, playerId, targetId)
+    local check = tracker.freezeCheck
+    if not audit.enabled or not check or check.fight ~= fight or now < check.nextAt then return end
+    check.nextAt = now + 1
+    local changed = check.since ~= tracker.state.since or check.playerId ~= playerId
+        or (tracker.config.unit == "reticleover" and check.targetId ~= targetId)
+    for _, field in ipairs(freezeFields) do changed = changed or check.config[field] ~= tracker.config[field] end
+    if changed then
+        check.record.freeze.status = "beendet: Auswahl geaendert"
+        tracker.freezeCheck = nil
+        return
+    end
+    local state, record = check.record.freeze, check.record
+    state.checks = state.checks + 1
+    if fight.running or fight.starts ~= check.starts or fight.ends ~= check.ends
+        or not finite(result.covered) or not finite(result.duration) or not finite(result.percent)
+        or math.abs(result.covered - record.covered) > 0.001
+        or math.abs(result.duration - record.duration) > 0.001 or math.abs(result.percent - record.percent) > 0.001 then
+        state.violations = state.violations + 1
+        state.status = "WARN: Endwerte veraendert"
+        if state.violations == 1 then
+            pcall(audit.output, "LiveBuffUptime Check: WARN Endwerte nach Kampfabschluss veraendert (ID " .. record.id .. ").")
+        end
+    elseif state.violations == 0 then state.status = "OK unveraendert" end
 end
 
 function Audit.New(output)

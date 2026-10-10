@@ -1,0 +1,6 @@
+SafeAddString(SI_DTTUI_PAGE_FREE, "Бесплатно", 1)
+SafeAddString(SI_DTTUI_PAGE_PREMIUM, "Премиум", 1)
+SafeAddString(SI_DTTUI_ALL_FREE, "Бесплатно всего", 1)
+SafeAddString(SI_DTTUI_ALL_PREMIUM, "Премиум всего", 1)
+SafeAddString(SI_DTTUI_PAGE_TOTAL, "Итого страницы", 1)
+SafeAddString(SI_DTTUI_ALL_TOTAL, "Все страницы", 1)

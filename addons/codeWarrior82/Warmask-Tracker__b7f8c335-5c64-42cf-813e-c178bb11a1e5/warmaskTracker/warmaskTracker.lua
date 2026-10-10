@@ -3,6 +3,7 @@ local maskBuffID = 252050
 local maskDebuffID = 252048
 local markOfHircineID = 252048
 local timeRemaining = 0
+local timeRemainingDebuff = 0
 local picPath = GetAbilityIcon(markOfHircineID)
 local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
 local isLoaded = false
@@ -10,11 +11,16 @@ local isMenuOpen = false
 local needToNotify = true
 local needToNotifyStart = true
 local needToNotifyEnd = true
+local setId = 845 
+local setCount = 1 --5,2,3,1
+local isEquiped = false
+local callBackName = "callbackHunt"
 
 warmaskTracker = {}
 
 warmaskTracker.defaults = {
     trackWarmask = true,
+    autoTrack = true,
     trackWho = false,
     trackSelf = false,
 	notifyEnd = false,--ends
@@ -43,7 +49,7 @@ end
 
 --check if LibNotify is available
 local function isLibAvailable()
-    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" then
+    if LibNotify and type(LibNotify.notifyForAddonPlease) == "function" and type(LibNotify.getSet) == "function" then
         return true
     else 
 		return false
@@ -178,7 +184,7 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
 			if isLibAvailable() and warmaskTracker.savedVariables.notifyStart and needToNotifyStart then
 				needToNotifyEnd = true
 				needToNotifyStart = false
-				LibNotify.notifyForAddonPlease(appName, markOfHircineID, "Hircine's Mark Started")
+				LibNotify.notifyForAddonPlease(appName, markOfHircineID, "Hircine's Mark Started")--to do, doesn't notify started if re applying because it technically never finished
 			end
             processDebuff(targetType, targetName)
         end
@@ -245,6 +251,102 @@ local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("maskDebuff", EVENT_COMBAT_EVENT)
 end
 
+--when UI opens
+local function onMenuOpened()
+	isMenuOpen = true
+    if warmaskTracker.savedVariables.trackWarmask then
+        wmtAddonText:SetHidden(true)
+    end
+    if warmaskTracker.savedVariables.trackWho then
+        wmtAddonTextW:SetHidden(true)    
+    end
+    if warmaskTracker.savedVariables.trackSelf then
+        wmtAddonTextP:SetHidden(true)
+    end
+end
+
+--when UI closes
+local function onMenuClosed()
+	isMenuOpen = false
+    if warmaskTracker.savedVariables.trackWarmask and isEquiped and warmaskTracker.savedVariables.autoTrack then
+        wmtAddonText:SetHidden(false)
+    elseif warmaskTracker.savedVariables.trackWarmask and not warmaskTracker.savedVariables.autoTrack then
+        wmtAddonText:SetHidden(false)
+    end
+	
+	if warmaskTracker.savedVariables.trackWho and isEquiped and warmaskTracker.savedVariables.autoTrack then
+        wmtAddonTextW:SetHidden(false)
+    elseif warmaskTracker.savedVariables.trackWho and not warmaskTracker.savedVariables.autoTrack then
+        wmtAddonTextW:SetHidden(false)
+    end
+	
+	if warmaskTracker.savedVariables.trackSelf and isEquiped and warmaskTracker.savedVariables.autoTrack then
+        wmtAddonTextP:SetHidden(false)
+    elseif warmaskTracker.savedVariables.trackSelf and not warmaskTracker.savedVariables.autoTrack then
+        wmtAddonTextP:SetHidden(false)
+    end
+end
+
+local function onSceneStateChange(scene, oldState, newState)
+    if isLoaded then
+        local sceneName = SCENE_MANAGER:GetCurrentScene():GetName()
+
+        if sceneName == "hud" then
+            if  newState == SCENE_HIDING then onMenuOpened()
+            elseif  newState == SCENE_HIDDEN then onMenuClosed()
+            end
+        end
+    end
+end
+
+--query lib to check if set is equipped
+local function isSetEquiped(id, count)
+	if isLibAvailable() then
+		if LibNotify.getSet(appName, id, count) then
+			isEquiped = true
+			return true
+		else
+			isEquiped = false
+			return false
+		end
+    end
+end
+
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    if warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack then
+        printMessage("Huntsman's Warmask set not found")
+        unRegisterAlerts()
+        wmtAddonText:SetHidden(true)
+    end
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+    if warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack then
+        printMessage("Found Huntsman's Warmask set")
+        registerAlerts()
+    end
+end
+
+--handle equipment change callbacks
+local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+
+    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
+        zo_callLater(function ()
+	if isSetEquiped(setId, setCount) and warmaskTracker.savedVariables.autoTrack and warmaskTracker.savedVariables.trackWarmask then startTrackingAuto() else stopTrackingAuto() end
+	end, 1000)
+    end
+
+end
+
+--request callbacks when gear items are equipped or unequipped
+local function enableCallbacksGear()
+    EVENT_MANAGER:RegisterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, onEquipmentChanged)
+    EVENT_MANAGER:AddFilterForEvent(callBackName, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_WORN)
+end
+
 --setup options menu
 local function createOptions()
 
@@ -287,6 +389,18 @@ local function createOptions()
                 end
             end,
             default = warmaskTracker.defaults.trackWarmask,
+        },
+        {
+            type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you are wearing all the pieces of the correct set and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return warmaskTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                warmaskTracker.savedVariables.autoTrack = value
+            end,
+            default = warmaskTracker.defaults.autoTrack,
         },
         {
             type = "slider",
@@ -443,47 +557,6 @@ local function createOptions()
     LAM:RegisterOptionControls("Warmask Tracker", optionsData)
 end
 
---when UI opens
-local function onMenuOpened()
-	isMenuOpen = true
-    if warmaskTracker.savedVariables.trackWarmask then
-        wmtAddonText:SetHidden(true)
-    end
-    if warmaskTracker.savedVariables.trackWho then
-        wmtAddonTextW:SetHidden(true)    
-    end
-    if warmaskTracker.savedVariables.trackSelf then
-        wmtAddonTextP:SetHidden(true)
-    end
-end
-
---when UI closes
-local function onMenuClosed()
-	isMenuOpen = false
-    if warmaskTracker.savedVariables.trackWarmask then
-        wmtAddonText:SetHidden(false)
-    end
-    if warmaskTracker.savedVariables.trackWho then
-        wmtAddonTextW:SetHidden(false)
-    end
-    if warmaskTracker.savedVariables.trackSelf then
-        wmtAddonTextP:SetHidden(false)
-    end
-end
-
-
-local function onSceneStateChange(scene, oldState, newState)
-    if isLoaded then
-        local sceneName = SCENE_MANAGER:GetCurrentScene():GetName()
-
-        if sceneName == "hud" then
-            if  newState == SCENE_HIDING then onMenuOpened()
-            elseif  newState == SCENE_HIDDEN then onMenuClosed()
-            end
-        end
-    end
-end
-
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -495,23 +568,36 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-	--notify about new library
-	if not isLibAvailable() then
-		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
-		return
-	else
-		--notify that add-on has been loaded
-		zo_callLater(function() printMessage("add-on loaded") end, 500)
-	end
-
-	--load saved variables
+    --load saved variables
     warmaskTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("wmtAddonVars", 1, "Settings", warmaskTracker.defaults, GetUnitName("player"))
 
+    --setup add on menu options
+    createOptions()
 
-	--notify if tracking is disabled
-	if not warmaskTracker.savedVariables.trackWarmask then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
+	--register for callbacks when an equiped piece of gear is added or removed
+    enableCallbacksGear()
+
+    --notify about new library
+	if not isLibAvailable() then
+		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 400)
+		return
+	elseif isLibAvailable() and warmaskTracker.savedVariables.trackWarmask then
+		--notify that add-on has been loaded
+	    zo_callLater(function() printMessage("add-on loaded") end, 400)
 	end
+
+    --check if set is equipped
+    if not isSetEquiped(setId, setCount) and warmaskTracker.savedVariables.autoTrack and warmaskTracker.savedVariables.trackWarmask then
+        --notify set not found
+        zo_callLater(function() printMessage("Huntsman's Warmask set not found") end, 600)
+    elseif isSetEquiped(setId, setCount) and warmaskTracker.savedVariables.autoTrack and warmaskTracker.savedVariables.trackWarmask then
+        isEquiped = true
+        --notify set found
+        zo_callLater(function() printMessage("Found Huntsman's Warmask set") end, 600)
+    end
+
+    --double check if set is equipped without autotracking stipulation
+    if isSetEquiped(setId, setCount) then isEquiped = true end
 
     --organise on screen text
     wmtAddonText:SetMovable(true)
@@ -545,18 +631,20 @@ local function onAddOnLoaded(event, name)
     end
 
     --register for combat alerts if tracking is enabled
-    if warmaskTracker.savedVariables.trackWarmask then
+    if warmaskTracker.savedVariables.trackWarmask and not warmaskTracker.savedVariables.autoTrack then
         registerAlerts()
         wmtAddonText:SetHidden(false)
-    else
+    elseif warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack and isEquiped then
+        registerAlerts()
+        wmtAddonText:SetHidden(false)
+    elseif warmaskTracker.savedVariables.trackWarmask and warmaskTracker.savedVariables.autoTrack and not isEquiped then
+        wmtAddonText:SetHidden(true)
+    elseif not warmaskTracker.savedVariables.trackWarmask then
         wmtAddonText:SetHidden(true)
     end
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-
-    --setup add on menu options
-    createOptions()
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

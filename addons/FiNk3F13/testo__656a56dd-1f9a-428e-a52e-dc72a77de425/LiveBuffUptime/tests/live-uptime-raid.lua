@@ -32,7 +32,7 @@ for tick = 1, 15000 do
     end
 end
 tracker.config.buffSource = "own"
-assert(math.abs(LiveUptime.Calculate(fight, tracker).covered - ownExpected) < 0.00001)
+assert(math.abs(LiveUptime.Calculate(fight, tracker).covered - expected) < 0.00001)
 -- A fade delivered before its earlier gain must still close the eventual interval.
 local late = { config = { unit = "group" }, state = { since = 0 } }
 LiveUptime.Effect(fight, late, 10, 1, 61771, 8, false, true)

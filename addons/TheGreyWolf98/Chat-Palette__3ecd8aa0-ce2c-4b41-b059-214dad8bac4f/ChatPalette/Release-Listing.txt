@@ -1,0 +1,15 @@
+OVERVIEW
+Your chat colours, every character. Set channel colours with hex codes or presets and share them across your toons on the same server. No dependencies.
+
+DESCRIPTION
+Chat Palette keeps your chat colours consistent across your ESO characters, including newly created toons. Choose a channel, enter a six-digit hex code or apply a preset, and your saved colour reapplies when you log into another character on the same server.
+
+Customise Say, Yell, Zone, Group, incoming and outgoing whispers, Guild 1-5, Officers 1-5, Emotes and System messages. The controller-friendly menu displays the current hex value and an example message, with shared colours clearly marked.
+
+Only channels you change become shared overrides. Reset any channel individually to ESO's default. No external addon libraries required.
+
+Open /chatcolours, /chatcolors or /palette. D-pad selects a channel; A opens hex entry; LB/RB chooses a preset; X applies it; Y resets the selected channel; LT/RT changes page; B closes.
+
+Hex codes accept six digits with or without #, such as #FF3333. Colours affect your own chat display. Guild and officer colours follow guild slots, not guild names. Saved palettes are separate for each server. Check new messages after changing a colour, as existing messages may retain their previous appearance.
+
+Created by @TheGreyWolf98.

@@ -1,35 +1,28 @@
 ## Title: |c6FCB9FBureau|r of Material Worth
-## Version: 4.7.181736
-## AddOnVersion: 47
+## Version: 4.8.004612
+## AddOnVersion: 48
 ## APIVersion: 101051
 ## Author: |c6FCB9Fmeshlg|r @ArtieFox
 ## Description: Know what your Craft Bag is worth. Sums its market value (via LibPrice) with a per-profession breakdown and a clickable, scrollable material list.
 ## SavedVariables: BureauOfMaterialWorth_SavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43 LibPrice>=70530
 
-; ReleaseDate: 06.10.2026 | 4.7.181736
-; !!! On release, update exactly two places: the ## Version / ## AddOnVersion
-; lines above, and the `version` / `releaseDate` fields in
-; BureauOfMaterialWorth.lua. The footer label, the settings dashboard and the
-; chat banner all format those two fields at runtime, so the localized
-; SI_BMW_WINDOW_VERSION_DATE strings no longer carry a number and must NOT be
-; edited for a release (they hold only the wording and two %s placeholders).
+; ReleaseDate: 10.10.2026 | 4.8.004612
+; On release, update manifest version/date metadata and the core's version/date.
+; Localized release text contains placeholders, not duplicated version numbers.
 ; ---------------------------------------------------------------------------
 
 
 
-; Localization files are loaded in the following order, with later files overriding earlier ones. This allows for a default English localization to be provided, while still allowing users to create their own localizations without needing to copy the entire file.
+; Register English strings first, then apply the selected language's overrides.
 Localization/en.lua
 Localization/$(language).lua
 ; ---------------------------------------------------------------------------
 
-; The main addon files are loaded in the following order, with later files overriding earlier ones. This allows for a clear separation of concerns and modularity in the codebase.
+; Core and data modules load before their UI consumers.
 BureauOfMaterialWorth.lua
 Valuation.lua
-; UI.lua holds the shared visual language (palette-derived tints, type scale,
-; spacing, chrome builders, tooltip voice). It reads the core's palette, so it
-; loads after it -- and before every window file, which all style themselves
-; exclusively through it.
+; Shared styling loads after the core palette and before window modules.
 UI.lua
 Window.lua
 DetailWindow.xml

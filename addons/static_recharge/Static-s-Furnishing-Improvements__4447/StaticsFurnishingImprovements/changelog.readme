@@ -1,3 +1,10 @@
+1.1.1
+  - Fixed UI error with misc. category items
+
+1.1.0
+  - Adjusted how the vault stats window is shown and hidden
+  - Added a setting to auto show the vault stats window at the vault
+
 1.0.2
   - Fixed a UI error that would occur when items were removed from the furnishing vault and then Vault Stats tried to update
 
@@ -15,7 +22,7 @@
   - Updated for 49
 
 0.2.0
-  - Made the retrieveto menu show up during more editor scenes
+  - Made the retrieve to menu show up during more editor scenes
   - Added a function with keybind/slashcommand to store same items from house to furnishing vault
   - Added feature to be able to always send craftings stations to the furniture vault when retrieved
   - Added a settings menu

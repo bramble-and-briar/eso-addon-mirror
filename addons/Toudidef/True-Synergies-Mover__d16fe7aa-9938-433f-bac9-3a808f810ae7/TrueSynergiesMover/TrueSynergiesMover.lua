@@ -31,7 +31,7 @@ function TSM.CreateSettingsMenu()
         type = "panel",
         name = "True Synergies Mover",
         displayName = "|cFF0000True Synergies Mover|r",
-        author = "Toudidef",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = "1.0.0",
         registerForRefresh = true,
     }

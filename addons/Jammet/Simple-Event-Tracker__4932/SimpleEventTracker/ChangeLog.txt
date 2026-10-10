@@ -1,0 +1,20 @@
+Version 3.0.4
+- Code cleanup: removed leftover start-date handling and unused aliases, all helper functions are now local, and the file is shorter and easier to read. No behavior changes.
+
+Version 3.0.3
+- ESOUI rules check: the only global is now SimpleEventTracker (plus its frame and saved variables); uses the game's own trade bar icon (no copied files); saved data is kept per server (NA/EU/PTS); AI disclosure added to the README.
+
+Version 3.0.2
+- On-screen label now uses a smaller font and three lines: event name, time left, trade bar progress (no more truncation).
+- /sevti and /sevt now accept the same options (info, history, done, undo, ui, quiet, help), so "/sevti done" works.
+- Command names corrected everywhere (/sevti, /sevt). Credits: Jammet / Claude AI assisted; original Event Tracker by Kelinmiriel.
+
+Version 3.0.1
+- Fixed event detection: reads the game's public Events (promotional campaign) data instead of non-public announcement functions.
+- The login announcement is also written to chat, and waits until the game has sent its event data.
+
+Version 3.0.0
+- Compact rewrite, separate from the old Event Tracker (own folder, saved variables and commands).
+- Removed the static calendar, event-specific logic, collectible helpers, XP buffs, languages and dialogs.
+- /sevti shows the running (or most recent) event; /sevt shows today's trade bars, recent days and totals.
+- Minimal on-screen label while an event runs; login announcement with days left.

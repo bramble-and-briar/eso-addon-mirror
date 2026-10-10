@@ -4,15 +4,15 @@
 ; other countries. All rights reserved.
 ; https://account.elderscrollsonline.com/add-on-terms
 
-## APIVersion: 101050
+## APIVersion: 101051
 ## Title: Alternative Group Frames
 ## Author: |c943810BulDeZir|r, Glande-Pas
-## Version: 1.4.33
+## Version: 1.4.38
 ## AddOnVersion: 14
 ## SavedVariables: AltGroupFramesSavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43
-## OptionalDependsOn: PlayerRoleIndicator>=140
-## OptionalDependsOn: OdySupportIcons  # Does not define AddOnVersion
+## OptionalDependsOn: PlayerRoleIndicator>=140 OdySupportIcons
+# NB. Ody does not define AddOnVersion
 
 AltGroupFrames.lua
 AltGroupFramesSettings.lua

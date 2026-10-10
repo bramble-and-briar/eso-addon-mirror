@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Trobo/Darker-Tamriel-Tomes-for-PerfectPixel-DarkTamrielTomesUI-Total-Points__4713",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Trobo",
+  "canonical_id": "esoui:4713",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4713",
+  "deleted": false,
+  "directories": [
+    "DarkTamrielTomesUI"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4713/",
+  "fingerprint": "57b4803e33b9844832c808597b50708cfbbe263353c6904c3d3cfdf5d8078d2f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw16725.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17850.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16727.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16728.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17851.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16730.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16731.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17852.png",
+    "https://cdn-eso.mmoui.com/preview/pvw16733.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4713",
+  "source_url": "https://www.esoui.com/downloads/info4713-DarkerTamrielTomesforPerfectPixelDarkTamrielTomesUITotalPoints.html",
+  "stats": {
+    "downloads": 259,
+    "favorites": 2,
+    "monthly_downloads": 54
+  },
+  "title": "Darker Tamriel Tomes for PerfectPixel (DarkTamrielTomesUI) & Total Points",
+  "updated_at": 1791585413000,
+  "version": "20261009"
+}

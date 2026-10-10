@@ -1,0 +1,6 @@
+SafeAddString(SI_DTTUI_PAGE_FREE, "Gratis", 1)
+SafeAddString(SI_DTTUI_PAGE_PREMIUM, "Premium", 1)
+SafeAddString(SI_DTTUI_ALL_FREE, "Gratis total", 1)
+SafeAddString(SI_DTTUI_ALL_PREMIUM, "Premium total", 1)
+SafeAddString(SI_DTTUI_PAGE_TOTAL, "Total de página", 1)
+SafeAddString(SI_DTTUI_ALL_TOTAL, "Todas las páginas", 1)

@@ -244,7 +244,6 @@ local function startTrackingAuto()
     if archdruidTracker.savedVariables.trackArch and archdruidTracker.savedVariables.autoTrack then
         printMessage("Found Archdruid set")
         registerAlerts()
-        archAddonText:SetHidden(false)
     end
 
     if archdruidTracker.savedVariables.trackVuln then

@@ -1,6 +1,6 @@
 DKCorrosiveAlert = {}
 DKCorrosiveAlert.name = "DKCorrosiveAlert"
-DKCorrosiveAlert.version = "3.7"
+DKCorrosiveAlert.version = "3.9"
 
 local ADDON_NAME = DKCorrosiveAlert.name
 local COMBAT_EVENT_NAME = ADDON_NAME .. "_Combat"
@@ -9,9 +9,12 @@ local LOAD_EVENT_NAME = ADDON_NAME .. "_Loaded"
 
 local CORROSIVE_TICK_ABILITY_ID = 17879
 local ONSLAUGHT_ABILITY_ID = 83229
+local ROLL_DODGE_ABILITY_ID_1 = 32685
+local ROLL_DODGE_ABILITY_ID_2 = 32678
 
 local ALERT_DURATION_MS = 3000
 local ONSLAUGHT_DURATION_MS = 8000
+local ROLL_DODGE_DURATION_MS = 1000
 
 local defaults = {
     enabled = true,
@@ -30,6 +33,7 @@ local defaults = {
 
 local alertWindow = nil
 local alertLabel = nil
+local alertBackdrop = nil
 
 -- Corrosive
 local corrosiveEndTimeMs = 0
@@ -39,6 +43,10 @@ local activeCorrosiveSources = {}
 -- OnSlaught
 local onslaughtEndTimeMs = 0
 local onslaughtActive = false
+
+-- Fossilize
+local rollDodgeEndTimeMs = 0
+local rollDodgeActive = false
 
 local function GetNowMs()
     return GetFrameTimeMilliseconds()
@@ -77,6 +85,11 @@ local function UpdateDisplayedAlert()
         return
     end
 
+    -- Style par defaut des alertes
+    alertLabel:SetColor(1, 0.15, 0.15, 1)
+    alertBackdrop:SetCenterColor(0, 0, 0, 0.75)
+    alertBackdrop:SetEdgeColor(1, 0, 0, 1)
+
     -- Mode test prioritaire
     if DKCorrosiveAlert.savedVariables and DKCorrosiveAlert.savedVariables.showTestAlert then
         alertLabel:SetText("TEST ALERT")
@@ -87,7 +100,20 @@ local function UpdateDisplayedAlert()
     local now = GetNowMs()
     local corrosiveCount = GetActiveCorrosiveCount()
     local onslaughtStillActive = onslaughtActive and now < onslaughtEndTimeMs
+    local rollDodgeStillActive = rollDodgeActive and now < rollDodgeEndTimeMs
 
+    -- Fossilize interrompt temporairement les autres alertes.
+    if rollDodgeStillActive then
+        -- Fossilize : texte noir sur fond clair pour rester lisible
+        alertLabel:SetColor(0, 0, 0, 1)
+        alertBackdrop:SetCenterColor(1, 1, 1, 0.95)
+        alertBackdrop:SetEdgeColor(0, 0, 0, 1)
+        alertLabel:SetText("Fossilize")
+        alertWindow:SetHidden(false)
+        return
+    end
+
+    -- Reprendre les alertes encore actives après Fossilize.
     -- Priorité à Corrosive
     if corrosiveCount > 0 then
         if corrosiveCount <= 1 then
@@ -123,7 +149,12 @@ local function StopAllAlertsIfNeeded()
         onslaughtEndTimeMs = 0
     end
 
-    if not corrosiveActive and not onslaughtActive then
+    if rollDodgeActive and now >= rollDodgeEndTimeMs then
+        rollDodgeActive = false
+        rollDodgeEndTimeMs = 0
+    end
+
+    if not corrosiveActive and not onslaughtActive and not rollDodgeActive then
         EVENT_MANAGER:UnregisterForUpdate(TIMER_NAME)
     end
 end
@@ -162,6 +193,18 @@ local function StartOrRefreshOnslaughtAlert()
     end
 end
 
+local function StartOrRefreshRollDodgeAlert()
+    rollDodgeEndTimeMs = GetNowMs() + ROLL_DODGE_DURATION_MS
+    rollDodgeActive = true
+
+    EnsureUpdateLoop()
+    UpdateDisplayedAlert()
+
+    if DKCorrosiveAlert.savedVariables and DKCorrosiveAlert.savedVariables.soundAlert then
+        PlaySound(SOUNDS.ABILITY_MAJOR_BUFF)
+    end
+end
+
 local function IsDamageResult(result)
     return result == ACTION_RESULT_DAMAGE
         or result == ACTION_RESULT_CRITICAL_DAMAGE
@@ -181,6 +224,7 @@ local function CreateUI()
 
     local bg = WINDOW_MANAGER:CreateControl(nil, alertWindow, CT_BACKDROP)
     bg:SetAnchorFill(alertWindow)
+    alertBackdrop = bg
     bg:SetCenterColor(0, 0, 0, 0.75)
     bg:SetEdgeColor(1, 0, 0, 1)
     bg:SetEdgeTexture(nil, 2, 2, 2, 0)
@@ -223,6 +267,14 @@ local function OnCombatEvent(
     end
 
     if targetType ~= COMBAT_UNIT_TYPE_PLAYER then
+        return
+    end
+
+    -- Fossilize : ces deux IDs déclenchent l'alerte pendant 1 seconde.
+    -- Ce test est volontairement placé avant les filtres de dégâts,
+    -- car Fossilize n'est pas un événement de dégâts.
+    if abilityId == ROLL_DODGE_ABILITY_ID_1 or abilityId == ROLL_DODGE_ABILITY_ID_2 then
+        StartOrRefreshRollDodgeAlert()
         return
     end
 
@@ -289,6 +341,9 @@ function DKCorrosiveAlert:CreateSettings()
 
                     onslaughtEndTimeMs = 0
                     onslaughtActive = false
+
+                    rollDodgeEndTimeMs = 0
+                    rollDodgeActive = false
 
                     EVENT_MANAGER:UnregisterForUpdate(TIMER_NAME)
 

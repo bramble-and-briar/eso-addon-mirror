@@ -1,0 +1,29 @@
+2.2.7
+- Restored controller Crown Store balance layout. The Crown Store and quest
+  reward adapters now register independently on the same list setup method.
+- Repeated initialization does not add duplicate hooks.
+- Retains the corrected direct EsoAR/EsoUI/gamedata ZIP layout from 2.2.6.
+- Translation data, fonts, keyboard layouts and reward icon anchors unchanged.
+
+Validation: the test reproduces the skipped Crown Store callback in 2.2.5,
+then passes for 2.2.7, including repeat initialization and language/input gates.
+Native visual verification of the Crown Store row is still pending.
+
+2.2.6 - PC packaging fix
+- Removed the outer ESO_Arabic ZIP folder so automatic extraction places
+  EsoAR, EsoUI and gamedata directly inside AddOns.
+- Added recovery and safe removal instructions in English and Arabic.
+- Lua, XML, fonts and translation payloads are unchanged from 2.2.5.
+- Corrected installation passed the user's English character-load test.
+  Arabic after full restart remains pending verification.
+
+2.2.5
+- Includes the latest user-confirmed installed Arabic translation and layout fixes.
+- Corrected quest tutorial icon markup and several interaction and NPC translations.
+- Improved Orsinium crafting reward dialogue translations.
+- Updated quest reward header and gold layout.
+- Removed the reward icon anchor override that caused shaking and repeated UI errors.
+- Moved chat channel selectors to the right of the input field, including the separate controller chat screen.
+- Retains the prior keyboard, controller, font and translation fixes.
+
+Latest affected screens were confirmed working by the user. This is not a full-game QA certification.

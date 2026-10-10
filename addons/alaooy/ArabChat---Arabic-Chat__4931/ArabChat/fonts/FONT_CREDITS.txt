@@ -1,0 +1,16 @@
+NotoNaskhArabic.slug
+====================
+Arabic font used for the chat, in the game's .slug format.
+
+Font: Noto Naskh Arabic
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic)
+License: SIL Open Font License, Version 1.1. The full text is in OFL.txt in this folder.
+
+This .slug file is a Modified Version (a format conversion for ESO) of the original font.
+It was converted by the author of the EsoAR addon, who gave permission to include it in ArabChat.
+The font file stays under the OFL; the license text and copyright notice must stay with it.
+The font is not sold by itself.
+
+Do not add fonts that cannot be redistributed (for example Arial, Tahoma, Calibri).
+
+Tajawal Regular (.ttf): Copyright 2018 Boutros International (http://www.boutrosfonts.com). SIL OFL 1.1 (see OFL_Tajawal.txt).

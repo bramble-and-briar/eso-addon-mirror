@@ -8,8 +8,8 @@
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4875",
@@ -18,11 +18,12 @@
     "NowhereVaultSecretSeeker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4875/",
-  "fingerprint": "9aa824bc8db781896c709d8a2bbf02563d6c167c438cf506dd1e230ec92a22e5",
+  "fingerprint": "399372b957cb8937b2b3178021207f4496a20261f8eb0896ad014d7e6ef1928d",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17844.png",
     "https://cdn-eso.mmoui.com/preview/pvw17556.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17557.png",
     "https://cdn-eso.mmoui.com/preview/pvw17558.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17557.png",
     "https://cdn-eso.mmoui.com/preview/pvw17559.png"
   ],
   "platform": "pc",
@@ -31,11 +32,11 @@
   "source_id": "4875",
   "source_url": "https://www.esoui.com/downloads/info4875-NowhereVaultSecretSeeker.html",
   "stats": {
-    "downloads": 26,
-    "favorites": 3,
-    "monthly_downloads": 18
+    "downloads": 989,
+    "favorites": 4,
+    "monthly_downloads": 921
   },
   "title": "Nowhere Vault: Secret Seeker",
-  "updated_at": 1790453723000,
-  "version": "1.0.1"
+  "updated_at": 1791557091000,
+  "version": "1.0.2"
 }

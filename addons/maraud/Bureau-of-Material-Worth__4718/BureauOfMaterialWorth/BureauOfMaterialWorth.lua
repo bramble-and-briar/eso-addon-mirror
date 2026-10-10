@@ -2,28 +2,16 @@
 local ADDON_NAME = "BureauOfMaterialWorth"
 local SAVED_VARIABLES_NAME = "BureauOfMaterialWorth_SavedVariables"
 
--- Release identity. This table is the single runtime source of truth for the
--- version and release date: the footer label, the /bmw status dump and the
--- settings dashboard all format these two fields instead of carrying their own
--- copy of the text (previously the string was duplicated in both localizations
--- and drifted from the manifest). The manifest's `## Version` is the only other
--- place the number appears, because ESO exposes no API to read it back at
--- runtime -- keep the two in step when releasing.
+-- Runtime release identity; keep version/date metadata in sync with the manifest.
 BureauOfMaterialWorth = {
     name = ADDON_NAME,
     savedVariablesName = SAVED_VARIABLES_NAME,
-    version = "4.7.181736",
-    releaseDate = "06.10.2026",
-    -- 0=off, 1=errors, 2=warnings, 3=info, 4=verbose. Ships at 0: a release
-    -- build must stay silent in chat until the user opts into diagnostics via
-    -- the settings panel or /bmw debug.
+    version = "4.8.004612",
+    releaseDate = "10.10.2026",
+    -- Diagnostic levels: 0=off, 1=errors, 2=warnings, 3=info, 4=verbose.
     debugMode = 0,
 }
 
--- Local alias to the addon's global table. This file is the one that creates
--- the global, and every other module already binds `local addon = BureauOfMaterialWorth`;
--- keeping the same handle here makes the reference style consistent across files
--- and turns the repeated global lookups into cheap upvalue reads.
 local addon = BureauOfMaterialWorth
 
 local private = {}
@@ -31,12 +19,7 @@ addon.private = private
 
 -- Hot-path global caching
 -- ---------------------------------------------------------------------------
--- In Lua, every reference to a global is a hash lookup in _G. The craft-bag
--- scan touches the ESO inventory API and the standard library once per slot,
--- across potentially hundreds of slots, so those functions are bound to locals
--- (upvalues) once at load time. This turns repeated global lookups into cheap
--- upvalue reads without changing behaviour. Keep this block above the first
--- function definition so the closures below capture these locals.
+-- Cache globals used by logging, chat, and lifecycle handlers.
 local GetString     = GetString
 local d             = d
 local select        = select
@@ -98,10 +81,7 @@ end
 
 -- Debug logging system
 -- ---------------------------------------------------------------------------
--- Log levels are defined once here. The numeric values double as the
--- debugMode thresholds (emit when debugMode >= level), so this enum is the
--- single source of truth for both the public debugMode contract and the
--- generated Log* helpers below.
+-- Emit diagnostics when debugMode meets the level's threshold.
 local LOG_LEVEL = {
     ERROR = 1,
     WARN  = 2,
@@ -109,9 +89,7 @@ local LOG_LEVEL = {
     DEBUG = 4,
 }
 
--- String id per level. Kept as ids (not resolved strings) so GetString is
--- only ever called at log time -- this file stays independent of the
--- localization load order.
+-- Resolve localized level labels when logging; IDs must already be registered.
 local LOG_LEVEL_STRING_IDS = {
     [LOG_LEVEL.ERROR] = SI_BMW_LOG_LEVEL_ERROR,
     [LOG_LEVEL.WARN]  = SI_BMW_LOG_LEVEL_WARN,
@@ -129,10 +107,7 @@ local function Log(level, message, ...)
     d(CHAT_PREFIX .. prefix .. FormatLocalizedText(message, ...))
 end
 
--- Level-specific helpers (LogError/LogWarn/LogInfo/LogDebug) are generated
--- from LOG_LEVEL so adding a level needs no extra boilerplate. They are
--- forward-declared as locals first, so closures defined later in the file
--- capture them as upvalues and tooling still resolves each name.
+-- Generate level-specific helpers from the shared thresholds.
 local LogError, LogWarn, LogInfo, LogDebug
 do
     local generated = {}
@@ -145,39 +120,20 @@ do
     LogDebug = generated.DEBUG
 end
 
--- Shared helpers exposed to the other modules (Valuation/Window/Settings) via
--- the private table, so each module routes chat/log output through the same
--- localized, prefixed path instead of touching d() directly.
+-- Shared localized chat/log helpers.
 private.ChatInfo = ChatInfo
 private.ChatError = ChatError
 private.GetLocalizedBoolean = GetLocalizedBoolean
 private.GetDebugLevelName = GetDebugLevelName
 
--- A "classic" inventory stack is 200 identical items. The craft bag itself has
--- no such limit (one material = one unbounded virtual slot), but every figure
--- that talks about moving materials into the backpack does: the stack count in
--- the panel's subtitle, the free-capacity estimate, and the withdraw dialog's
--- slot arithmetic. Previously Valuation and WithdrawDialog each declared their
--- own `local STACK_SIZE = 200`, so a future ZOS change would have to be applied
--- twice; both now bind this one value.
+-- Shared classic-stack size for displayed counts and backpack-capacity arithmetic.
 private.STACK_SIZE = 200
 
--- Guild-store selling fees: the single source of truth for the "net if sold"
--- figures shown across the addon (the grand-total hover, the detail window's
--- category/row tooltips and footer summary). Two parts, confirmed against the
--- live game economy:
---   * listing fee : 1% of the listed price, charged up front when posting and
---                   NOT refunded even if the item never sells.
---   * sales tax   : 7%, taken by the trading house only on a sale.
--- A sold item therefore nets 92% of its listed price (the addon values stacks at
--- the market/list price LibPrice reports, so that is what the cut applies to).
--- Kept here, not per-module, so a future ZOS change is a one-line edit.
+-- Shared listing-fee and sales-tax rates used by net-value estimates.
 private.FEE_LISTING_RATE = 0.01
 private.FEE_SALES_RATE = 0.07
 
--- Gold left after both guild-store fees, given a gross (list-price) amount.
--- Subtracts each fee separately (rather than gross * 0.92) so a caller that also
--- itemizes the two fees gets figures that sum exactly to this net.
+-- Subtract fees separately so itemized amounts agree with the net estimate.
 function private.NetAfterFees(gross)
     gross = gross or 0
     return gross - gross * private.FEE_LISTING_RATE - gross * private.FEE_SALES_RATE

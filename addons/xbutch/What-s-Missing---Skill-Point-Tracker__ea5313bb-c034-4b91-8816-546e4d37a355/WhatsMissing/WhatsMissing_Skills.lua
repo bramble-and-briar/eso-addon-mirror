@@ -42,7 +42,7 @@ function Skills:IsReady()
     return SKILLS_DATA_MANAGER and SKILLS_DATA_MANAGER:IsDataReady()
 end
 
-function Skills:Capture()
+function Skills:Capture(checkpoint)
     if not self:IsReady() then return end
     local parts = {}
     for _, skillTypeData in SKILLS_DATA_MANAGER:SkillTypeIterator() do
@@ -51,6 +51,7 @@ function Skills:Capture()
             if not line:IsClassMastery() and CanGainRankXP(skillType, index, 1) then
                 parts[#parts + 1] = string.format("%d:%d,", line:GetId(), ReadState(skillType, index))
             end
+            if checkpoint then checkpoint() end
         end
     end
     if #parts == 0 then return end -- Never replace a good snapshot with uninitialized data.
@@ -61,6 +62,7 @@ end
 function Skills:Init()
     local function OnLineUpdated(line)
         if not SPT.progressionReady or line:IsClassMastery() then return end
+        if self.pending then SPT:QueueProgressionSnapshot(self, true); return end
         local entry = SPT.CharCache.roster[SPT.CharCache:GetCharId()]
         local snapshot = entry and entry.skillLines
         local skillType, index = line:GetIndices()
@@ -68,7 +70,7 @@ function Skills:Init()
         local previous = type(snapshot) == "string" and snapshot:match("[;,]" .. line:GetId() .. ":(%d+),")
         -- SkillLineUpdated includes XP events. Ignore those that leave our state unchanged.
         if tonumber(previous) ~= ReadState(skillType, index) then
-            SPT:QueueProgressionSnapshot(self)
+            SPT:QueueProgressionSnapshot(self, true)
         end
     end
     if SKILLS_DATA_MANAGER then
@@ -133,7 +135,7 @@ local function FormatRank(line, state, classId)
     local rank, discovered, active = UnpackState(state)
     local text = discovered and tostring(rank) or "--"
     if not active then text = text .. "*" end
-    return IsComplete(line, state) and "|cFFFFFF" .. text .. "|r" or "|cE8B864" .. text .. "|r"
+    return IsComplete(line, state) and SPT:ColorCompletedProgression(text, true) or "|cE8B864" .. text .. "|r"
 end
 
 local function GetStates(charId, catalog)
@@ -163,7 +165,7 @@ local function GetCounts(catalog, states, skillType, classId)
             end
         end
     end
-    return string.format("%d/%d%s", done, total, unknown > 0 and " ?" or "")
+    return SPT:FormatProgressionCount(done, total, unknown)
 end
 
 function Skills:BuildView()
@@ -172,37 +174,65 @@ function Skills:BuildView()
     view.infoTitle = GetString(SPT_GUI_TAB_SKILLS)
     if not catalog then
         view.rows[1] = { source = GetString(SPT_GUI_DATA_UNAVAILABLE), cells = {} }
-        return view
+        return SPT:FinishProgressionTableView(view)
     end
 
     for _, category in ipairs(categories) do
         local expanded = SPT:IsProgressionGroupExpanded(self, category)
         view.rows[#view.rows + 1] = { source = (expanded and "[-] " or "[+] ") .. GetCategoryName(category),
-            groupId = category, rowKey = "category:" .. category, cells = {} }
+            groupId = category, rowKey = "category:" .. category, cells = {},
+            tooltipTitle = view.infoTitle .. " - " .. GetCategoryName(category) }
         if expanded then
             for _, line in ipairs(catalog) do
                 if line.skillType == category then
                     view.rows[#view.rows + 1] = { source = "  " .. line.name,
                         rowKey = "line:" .. line.id, line = line, cells = {},
-                        info = { line.name, GetCategoryName(category), GetString(SPT_GUI_SKILLS_RANK_LEGEND) } }
+                        tooltipTitle = view.infoTitle .. " - " .. line.name }
                 end
             end
         end
     end
 
-    for column, id in ipairs(view.characters) do
+    local roster = SPT.CharCache:GetSortedIds()
+    local visibleColumns = {}
+    for column, id in ipairs(view.characters) do visibleColumns[id] = column end
+    for _, row in ipairs(view.rows) do
+        row.info = {}
+        row.maxedCharacters, row.applicableCharacters, row.unknownCharacters = 0, 0, 0
+    end
+    -- Decode one character at a time; retain only rows, totals, and compact text.
+    for _, id in ipairs(roster) do
         local entry = SPT.CharCache.roster[id]
         local states = GetStates(id, catalog)
         local classId = SPT.CharCache:GetClassId(id)
-        local status = SPT:GetProgressionStatus(id, "skillLines", states ~= nil)
+        local column = visibleColumns[id]
         for _, row in ipairs(view.rows) do
             local text
             if row.groupId then
                 text = states and GetCounts(catalog, states, row.groupId, classId) or "?"
             else
-                text = FormatRank(row.line, states and states[row.line.id], classId)
+                local state = states and states[row.line.id]
+                text = FormatRank(row.line, state, classId)
+                if state == nil then
+                    row.unknownCharacters = row.unknownCharacters + 1
+                elseif IsApplicable(row.line, state, classId) then
+                    row.applicableCharacters = row.applicableCharacters + 1
+                    if IsComplete(row.line, state) then row.maxedCharacters = row.maxedCharacters + 1 end
+                end
             end
-            SPT:AddProgressionTableCell(row, column, entry.name, text, status)
+            if column then row.cells[column] = text end
+            row.info[#row.info + 1] = entry.name .. ": " .. text
+        end
+    end
+    for _, row in ipairs(view.rows) do
+        if row.line then
+            local complete = row.applicableCharacters > 0 and row.maxedCharacters == row.applicableCharacters
+                and row.unknownCharacters == 0
+            row.sourceName = "  " .. SPT:ColorCompletedProgression(row.line.name, complete)
+            local total = string.format("[%d/%d]%s", row.maxedCharacters, row.applicableCharacters,
+                row.unknownCharacters > 0 and " ?" or "")
+            row.accountTotal = SPT:ColorCompletedProgression(total, complete)
+            row.source = row.sourceName .. " " .. row.accountTotal
         end
     end
     return SPT:FinishProgressionTableView(view)

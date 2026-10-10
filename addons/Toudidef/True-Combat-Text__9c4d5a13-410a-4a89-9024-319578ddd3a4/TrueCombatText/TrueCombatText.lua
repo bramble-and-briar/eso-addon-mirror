@@ -73,7 +73,7 @@ local function BuildSettingsMenu()
         type = "panel",
         name = "True Combat Text",
         displayName = "True Combat Text",
-        author = "|cff5900To|r|cb56648u|r|c906c6cd|r|c6a7391i|r|c1581fcef|r",
+        author = "|cff5900To|cb16754ud|c6374a8id|c1581fcef|r",
         version = TCT.version,
     }
 

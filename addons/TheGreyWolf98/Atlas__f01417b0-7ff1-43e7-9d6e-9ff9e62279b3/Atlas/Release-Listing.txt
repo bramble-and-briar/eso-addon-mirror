@@ -1,4 +1,4 @@
-ATLAS 1.0.0
+ATLAS 1.0.1
 by @TheGreyWolf98
 
 OVERVIEW

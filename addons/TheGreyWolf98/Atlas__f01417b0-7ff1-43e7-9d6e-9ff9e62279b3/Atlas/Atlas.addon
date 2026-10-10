@@ -1,7 +1,7 @@
 ## Title: Atlas
 ## Author: @TheGreyWolf98
-## Version: 1.0.0
-## AddOnVersion: 10000
+## Version: 1.0.1
+## AddOnVersion: 10001
 ## APIVersion: 101051
 ## SavedVariables: AtlasSaved
 ## Description: Controller-friendly survey, treasure, lorebook, boss and discovery map layers. Open with /atlas.

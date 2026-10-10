@@ -303,7 +303,7 @@ local function UpdateQuestTime(_timerEnd)
 end
 
 local function ShowQuestTimer(_timerEnd)
-	EVENT_MANAGER:RegisterForUpdate("AUI_Questtracker_Update_QuestTimer", 10, function() UpdateQuestTime(_timerEnd) end, 10)		
+	EVENT_MANAGER:RegisterForUpdate("AUI_Questtracker_Update_QuestTimer", 10, function() UpdateQuestTime(_timerEnd) end)		
 	AUI_Questtracker_LabelTime:SetHidden(true)		
 	AUI_Questtracker_LabelQuestRemainTime:SetHidden(false)
 end

@@ -5,12 +5,10 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: |c77ee02AUI FightData|r || Version: 1.00
-## APIVersion: 101049
+## APIVersion: 101051
 ## Author: |c87ddf2Sensi|r
 ## Version: 1.00
 ## IsLibrary: true
-## DependsOn:
-## OptionalDependsOn:
 ## SavedVariables: AUI_Fights
 
 AUI_FightData.lua

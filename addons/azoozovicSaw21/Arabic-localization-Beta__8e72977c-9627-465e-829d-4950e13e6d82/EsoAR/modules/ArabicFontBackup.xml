@@ -1,0 +1,22 @@
+<GuiXml>
+    <BackupFont originalFont="$(FTN47_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(TRAJAN_PRO_R_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(GAMEPAD_LIGHT_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(FTN57_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(GAMEPAD_MEDIUM_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(GAMEPAD_MEDIUM_FONT_LATIN)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(FTN87_FONT)" backupFont="EsoAR/fonts/ArabicUIBold.slug"/>
+    <BackupFont originalFont="$(HANDWRITTEN_BOLD_FONT)" backupFont="EsoAR/fonts/ArabicUIBold.slug"/>
+    <BackupFont originalFont="$(GAMEPAD_BOLD_FONT)" backupFont="EsoAR/fonts/ArabicUIBold.slug"/>
+    <BackupFont originalFont="$(PROSE_ANTIQUE_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(ANTIQUE_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(BOLD_FONT)" backupFont="EsoAR/fonts/ArabicUIBold.slug"/>
+    <BackupFont originalFont="$(HANDWRITTEN_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(UNIVERS67_FONT)" backupFont="EsoAR/fonts/ArabicUIBold.slug"/>
+    <BackupFont originalFont="$(UNIVERS55_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(CHAT_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(MEDIUM_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(STONE_TABLET_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(CONSOLAS_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+    <BackupFont originalFont="$(UNIVERS57_FONT)" backupFont="EsoAR/fonts/ArabicUI.slug"/>
+</GuiXml>

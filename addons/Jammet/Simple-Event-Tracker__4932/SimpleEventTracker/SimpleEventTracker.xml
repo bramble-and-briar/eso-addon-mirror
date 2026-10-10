@@ -1,0 +1,17 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="SimpleEventTrackerFrame" resizeToFitDescendents="true" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+			<OnMoveStop>SimpleEventTracker.OnMoveStop()</OnMoveStop>
+			<Controls>
+				<Texture name="$(parent)Icon">
+					<Anchor point="TOPLEFT" />
+					<Dimensions x="32" y="32" />
+				</Texture>
+				<Label name="$(parent)Label" font="ZoFontGameSmall" horizontalAlignment="LEFT" verticalAlignment="TOP">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" offsetX="4" />
+					<Dimensions x="260" y="52" />
+				</Label>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

@@ -1,5 +1,6 @@
-2026.10.03
-- Increased sig font size 2pts.
+2026.10.09
+- Moved trim function to the close event instead of upon opening.
+- Added trim informational tooltip.
 
 ** POSSIBLE FUTURE OPTIONS **
 

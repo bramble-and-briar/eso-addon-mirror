@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Alifie/Craft-Search__4935",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Alifie",
+  "canonical_id": "esoui:4935",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4935",
+  "deleted": false,
+  "directories": [
+    "CraftSearch"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4935/",
+  "fingerprint": "e3992c705f428aa046b714cc85f1d0bac85d942c0277f28bd683268152f08c79",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17849.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4935",
+  "source_url": "https://www.esoui.com/downloads/info4935-CraftSearch.html",
+  "stats": {
+    "downloads": 16,
+    "favorites": 1,
+    "monthly_downloads": 9
+  },
+  "title": "Craft Search",
+  "updated_at": 1791575022000,
+  "version": "0.1"
+}

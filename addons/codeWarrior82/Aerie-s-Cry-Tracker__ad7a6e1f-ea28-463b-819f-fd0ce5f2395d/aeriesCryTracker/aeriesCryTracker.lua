@@ -251,8 +251,6 @@ local function startTrackingAuto()
     if aeriesCryTracker.savedVariables.trackAeries and aeriesCryTracker.savedVariables.autoTrack then
         printMessage("Found Aerie's Cry set")
         registerAlerts()
-        actrack:SetHidden(false)
-        emtrack:SetHidden(false)
     end
 end
 
@@ -261,7 +259,7 @@ local function onEquipmentChanged(eventCode, bagId, slotIndex, isNewItem, itemSo
 
     if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then 
         zo_callLater(function ()
-	if isSetEquiped(setId, setCount) and aeriesCryTracker.savedVariables.autoTrack and aeriesCryTracker.savedVariables.trackArch then startTrackingAuto() else stopTrackingAuto() end
+	if isSetEquiped(setId, setCount) and aeriesCryTracker.savedVariables.autoTrack and aeriesCryTracker.savedVariables.trackAeries then startTrackingAuto() else stopTrackingAuto() end
 	end, 1000)
     end
 

@@ -18,7 +18,7 @@
     "ArdysOBTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4879/",
-  "fingerprint": "1177b67b78b42ed3d9422a66c0e844f2a355a5eda241cf173254e38d931d80e5",
+  "fingerprint": "2b034ca97618b2617d95e8a75655ae969a72bb73ca91235c3d9dacb3a6682629",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17569.png",
     "https://cdn-eso.mmoui.com/preview/pvw17570.png"
@@ -29,11 +29,11 @@
   "source_id": "4879",
   "source_url": "https://www.esoui.com/downloads/info4879-ArdysOffBalanceTracker.html",
   "stats": {
-    "downloads": 58,
-    "favorites": 1,
-    "monthly_downloads": 49
+    "downloads": 166,
+    "favorites": 2,
+    "monthly_downloads": 159
   },
   "title": "Ardy's Off Balance Tracker",
-  "updated_at": 1790702574000,
-  "version": "1.4.0"
+  "updated_at": 1791571850000,
+  "version": "1.5.0"
 }

@@ -14,19 +14,20 @@ Engine.Touch(fight, 3, 0, COMBAT_UNIT_TYPE_GROUP)
 Engine.Touch(fight, 3, 10)
 near(Engine.Calculate(fight, tracker).duration, 10)
 tracker.config.includePets = true
-near(Engine.Calculate(fight, tracker).duration, 20)
+near(Engine.Calculate(fight, tracker).duration, 10)
+assert(not fight.allies[2], "Pets must not enter the group candidate list")
 Engine.Action(fight, "EVENT_HEAL_OUT", 10, 1, 3, 0, 500)
-near(Engine.Calculate(fight, tracker).duration, 20)
+near(Engine.Calculate(fight, tracker).duration, 10)
 tracker.config.includeOverheal = true
-near(Engine.Calculate(fight, tracker).duration, 30)
-tracker.config.view = "healingIn"
 near(Engine.Calculate(fight, tracker).duration, 20)
+tracker.config.view = "healingIn"
+near(Engine.Calculate(fight, tracker).duration, 10)
 Engine.Action(fight, "EVENT_HEAL_IN", 10, 3, 1, 100)
-near(Engine.Calculate(fight, tracker).duration, 30)
+near(Engine.Calculate(fight, tracker).duration, 20)
 -- Any observed effect makes the unit nonempty, even when not the tracked buff.
 Engine.Remember(fight.units[3], 999, 4, true, false, 1)
 tracker.config.view, tracker.config.includeOverheal = "healingOut", false
-near(Engine.Calculate(fight, tracker).duration, 30)
+near(Engine.Calculate(fight, tracker).duration, 20)
 
 -- Compare changing stacks and concurrent slots against the installed reference processor.
 for iteration = 1, 50 do
@@ -57,7 +58,8 @@ for iteration = 1, 50 do
     for stacks, data in pairs(instance) do all, own, max = all + data.groupUptime, own + data.uptime, math.max(max, stacks) end
     near(Engine.Calculate(f, t).covered, all / max / 1000)
     t.config.buffSource = "own"
-    near(Engine.Calculate(f, t).covered, own / max / 1000)
+    near(Engine.Calculate(f, t).covered, all / max / 1000)
+    near(LiveBuffUptimeStacks.Total(t.liveUptimeUnits[10].stackInstances, "own", 0, 30), own / max / 1000)
 end
 -- A simple 1 -> 4 stack example has 100% normal time, but 62.5% weighted time.
 fight, tracker = Engine.New(0), { config = { unit = "group", uptimeMetric = "stacks" }, state = { since = 0 } }

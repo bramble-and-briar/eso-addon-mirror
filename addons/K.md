@@ -12,6 +12,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kaleido Container Insight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/grin3671/Kaleido-Container-Insight__4347) | grin3671 | PC / Mac | 1.0.4 |
 | [Kaljastus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Kaljastus__2038) | Ek1 | PC / Mac | 4.0-20180621 |
 | [KamiChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kamimark/KamiChat__3087) | kamimark | PC / Mac | 1.0.0 |
+| [KApplicationHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KApplicationHistory__4933) | Konten | PC / Mac | 1.0.1 |
 | [Katt's Crypt Icons for OdySupportIcons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DonjaZero/Katt-s-Crypt-Icons-for-OdySupportIcons__3818) | DonjaZero | PC / Mac | 1.7.2 |
 | [KDialogueHistory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KDialogueHistory__4919) | Konten | PC / Mac | 1.1.0 |
 | [KDStatTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/KDStatTracker__0f87c2f6-55c7-4450-b93b-d6395ac2004d) | Vixen_Hunny | Console | — |
@@ -51,6 +52,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kindler Beggar Liar Thief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Kindler-Beggar-Liar-Thief__4321) | sshogrin | PC / Mac | 1.2 |
 | [KInfo - Inventory INFO \[GERMAN / ENGLISH\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KostiK/KInfo---Inventory-INFO-GERMAN-ENGLISH__1489) | KostiK | PC / Mac | 1.4.5 |
 | [Kinras Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/helixanon/Kinras-Tracker__3229) | helixanon | PC / Mac | v0 |
+| [KMailMaterials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KMailMaterials__4934) | Konten | PC / Mac | 1.0.2 |
 | [KoMGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/KoMGuild__2656) | awfuldead | PC / Mac | 1.2.3b |
 | [KOTATSU' STATION JP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fujisanndei/KOTATSU-STATION-JP__3504) | fujisanndei | PC / Mac | 1.0 |
 | [KR Patch for Arkadius' Trade Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/whya5448/KR-Patch-for-Arkadius-Trade-Tools__2372) | whya5448 | PC / Mac | 1.0.3 |

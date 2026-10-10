@@ -5,11 +5,7 @@ local strings = {
     SI_BMW_PANEL_INTRO = "|cBCA779Guild Bureau|r\nCraft Bag valuation, material records, and withdrawals.",
     SI_BMW_PANEL_OVERVIEW = "|c8C8A82• Uses LibPrice (Master Merchant / Tamriel Trade Centre / Arkadius' Trade Tools)\n• Computes lazily, only while the Craft Bag is open\n• Updates incrementally as you deposit or withdraw materials|r",
 
-    -- Live at-a-glance status block at the top of the panel. It reflects the
-    -- current configuration (not the live bag value): the valuation only runs
-    -- while the Craft Bag is open, so a value readout here would be stale or
-    -- zero. On = green, off = muted grey; mode rows (order/baseline) use the
-    -- neutral label tone. Each row reads through the same getter as its control.
+    -- Status labels describe saved settings, not live inventory value.
     SI_BMW_STATUS_TITLE = "|cBCA779Current status|r",
     SI_BMW_STATUS_ON = "on",
     SI_BMW_STATUS_OFF = "off",
@@ -101,21 +97,14 @@ local strings = {
     SI_BMW_HISTORY_CLEANUP_UNAVAILABLE = "Price-history cleanup is unavailable because the valuation module is not loaded.",
 
     -- Window
-    -- Account/character label on the title line. %s = @account handle, %s =
-    -- character name. The Craft Bag is account-wide, so the handle leads.
+    -- Profile line below the total: %s = account handle, %s = character name.
     SI_BMW_PROFILE_ACCOUNT_CHAR = "%s · %s",
     -- %d = occupied slots (distinct materials), %s = classic 200-item stacks,
     -- %s = total item count.
     SI_BMW_WINDOW_SUBTITLE = "%d slots · %s stacks · %s items",
     SI_BMW_WINDOW_EMPTY = "Craft Bag is empty",
     SI_BMW_WINDOW_ADDON_NAME = "Bureau Of Material Worth",
-    -- Footer version line. %s = BureauOfMaterialWorth.version, %s =
-    -- BureauOfMaterialWorth.releaseDate, both formatted at render time. The
-    -- number and date used to be baked into this sentence in every localization,
-    -- which meant a release had to edit them in three places and they silently
-    -- drifted apart; the text now carries only the wording. The date is shown in
-    -- the canonical DD.MM.YYYY form the core stores rather than being re-spelled
-    -- per language, so there is exactly one date in the addon.
+    -- Release text: %s = runtime version, %s = runtime release date.
     SI_BMW_WINDOW_VERSION_DATE = "Addon version %s (%s)",
     -- Category row: the category's share of the grand total. %d = percent.
     SI_BMW_ROW_PERCENT = "%d%%",
@@ -170,12 +159,8 @@ local strings = {
     SI_BMW_DETAIL_COL_NAME = "Material",
     SI_BMW_DETAIL_COL_QTY = "Qty",
     SI_BMW_DETAIL_COL_VALUE = "Value",
-    -- Cumulative-share column: running % of the list's total value, read top-down
-    -- (the "what to sell" Pareto cue). Header kept short for the 70px column; the
-    -- hover tooltip on the header spells the meaning out in full.
-    -- %d = DetailWindow's CUM_CORE_THRESHOLD, the Pareto cut this column colors
-    -- up to. Formatted at render time so the header can never quote a threshold
-    -- the code no longer uses.
+    -- Cumulative share follows value rank, independently of display sort.
+    -- %d = DetailWindow's CUM_CORE_THRESHOLD.
     SI_BMW_DETAIL_COL_CUM = "Cum. %d%%",
     SI_BMW_DETAIL_CUM = "%d%%",
     SI_BMW_DETAIL_CUM_TOOLTIP_TITLE = "Cumulative share",
@@ -191,8 +176,7 @@ local strings = {
     SI_BMW_DETAIL_EMPTY_BAG = "No materials in the Craft Bag.",
     SI_BMW_DETAIL_EMPTY_SEARCH = "No materials match this search.",
     SI_BMW_DETAIL_EMPTY_FILTER = "No materials match this filter.",
-    -- Search box (whole craft bag) in the detail window. The title carries the
-    -- number of matches; %d = result count.
+    -- Search filters the current view; %d = result count.
     SI_BMW_DETAIL_SEARCH_HINT = "Search...",
     SI_BMW_DETAIL_SEARCH_TITLE = "Search results (%d)",
     SI_BMW_DETAIL_CONTEXT_CATEGORY = "%s · %d materials · %s",
@@ -246,24 +230,18 @@ local strings = {
     SI_BMW_DETAIL_FOOTER_GAINED = "Added: %d",
     SI_BMW_DETAIL_FOOTER_LOST = "Reduced: %d",
 
-    -- Snapshot + diff view (detail window). A one-time automatic baseline is
-    -- captured on the first non-empty bag open; Remember overwrites it with a
-    -- user-selected composition.
+    -- The one-time snapshot waits for settled prices; Remember can replace it.
     SI_BMW_DETAIL_BTN_REMEMBER = "Remember",
     SI_BMW_DETAIL_BTN_REMEMBER_TOOLTIP_TITLE = "Remember composition",
     SI_BMW_DETAIL_BTN_REMEMBER_TOOLTIP_BODY = "Save the Craft Bag's current contents as the snapshot. The addon creates one automatic baseline the first time a non-empty Craft Bag is opened; pressing this replaces it with a snapshot you chose.",
     SI_BMW_DETAIL_BTN_CHANGES = "Since snapshot",
     SI_BMW_DETAIL_BTN_CHANGES_TOOLTIP_TITLE = "Changes since snapshot",
     SI_BMW_DETAIL_BTN_CHANGES_TOOLTIP_BODY = "Show how the Craft Bag changed since its saved snapshot: which materials were added, removed, or changed in quantity, and the gold value of each move. A one-time baseline is created automatically when a non-empty Craft Bag is first opened; Remember replaces it at any time.",
-    -- Clears the saved snapshot so "Changes" has nothing to diff against until the
-    -- next "Remember". Confirmed because the snapshot is the only persisted
-    -- baseline and clearing it cannot be undone.
+    -- Clearing deletes the comparison snapshot, not the separate stock-report baseline.
     SI_BMW_DETAIL_BTN_CLEAR = "Clear",
     SI_BMW_DETAIL_BTN_CLEAR_TOOLTIP_TITLE = "Clear snapshot",
     SI_BMW_DETAIL_BTN_CLEAR_TOOLTIP_BODY = "Forget the saved snapshot. The changes view will show nothing until you press \"Remember\" to take a new one. There is only one snapshot, so this cannot be undone.",
-    -- Confirmation dialog shown before the snapshot is cleared, so a stray click
-    -- can't wipe the baseline. _CONFIRM is the accept button; cancel reuses the
-    -- standard dialog cancel.
+    -- Confirm before deleting the snapshot; _ACCEPT and _CANCEL are button labels.
     SI_BMW_DETAIL_CLEAR_CONFIRM_TITLE = "Clear snapshot?",
     SI_BMW_DETAIL_CLEAR_CONFIRM_BODY = "This forgets the saved snapshot. The changes view will show nothing until you press \"Remember\" again. There is only one snapshot, so this cannot be undone.",
     SI_BMW_DETAIL_CLEAR_CONFIRM_ACCEPT = "Clear",
@@ -272,8 +250,7 @@ local strings = {
     SI_BMW_DETAIL_REPLACE_CONFIRM_BODY = "A saved snapshot already exists. Replacing it resets the comparison baseline to the Craft Bag's current contents. Continue?",
     SI_BMW_DETAIL_REPLACE_CONFIRM_ACCEPT = "Replace",
     SI_BMW_DETAIL_REPLACE_CONFIRM_CANCEL = "Cancel",
-    -- Outside the category view the "Changes" button becomes a "Back" toggle
-    -- that returns to the material list from Changes or Price dynamics.
+    -- Legacy Back labels; current navigation uses view tabs.
     SI_BMW_DETAIL_BTN_BACK = "Back",
     SI_BMW_DETAIL_BTN_BACK_TOOLTIP_TITLE = "Back to materials",
     SI_BMW_DETAIL_BTN_BACK_TOOLTIP_BODY = "Return to the material list.",

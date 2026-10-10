@@ -1,0 +1,8 @@
+## Title: Chat Palette
+## Author: TheGreyWolf98
+## Version: 1.0.0
+## AddOnVersion: 2
+## APIVersion: 101050 101051
+## SavedVariables: TGWChatPaletteSaved
+## Description: Account-wide chat colours with hex entry. /chatcolours
+ChatPalette.lua

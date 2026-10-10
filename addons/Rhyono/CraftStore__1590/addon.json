@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Rhyono/CraftStore__1590",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Rhyono",
   "canonical_id": "esoui:1590",
   "category_id": "40",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1590",
@@ -17,7 +18,7 @@
     "CraftStoreFixedAndImproved"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1590/",
-  "fingerprint": "5155a63915e75c8d2d6cbe50fde69651a3815587b71dd54b5deccc58f41bc3e5",
+  "fingerprint": "a758cc3d21b364bf532fd22bfbd05195ad3e063a9d49793a97f902809cc11cbe",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw6774.png"
   ],
@@ -27,11 +28,11 @@
   "source_id": "1590",
   "source_url": "https://www.esoui.com/downloads/info1590-CraftStore.html",
   "stats": {
-    "downloads": 5214544,
-    "favorites": 1267,
-    "monthly_downloads": 28944
+    "downloads": 5238971,
+    "favorites": 1270,
+    "monthly_downloads": 12476
   },
   "title": "CraftStore",
-  "updated_at": 1783054365000,
-  "version": "3.05"
+  "updated_at": 1791518954000,
+  "version": "3.06"
 }

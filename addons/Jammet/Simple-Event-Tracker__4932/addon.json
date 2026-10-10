@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Jammet/Simple-Event-Tracker__4932",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Jammet",
+  "canonical_id": "esoui:4932",
+  "category_id": "27",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4932",
+  "deleted": false,
+  "directories": [
+    "SimpleEventTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4932/",
+  "fingerprint": "b8e49a2ae980a146c210083c79f55c08a55dee989cf361f407aae9ca21438ff5",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17838.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4932",
+  "source_url": "https://www.esoui.com/downloads/info4932-SimpleEventTracker.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 9
+  },
+  "title": "Simple Event Tracker",
+  "updated_at": 1791550983000,
+  "version": "3.0.4"
+}

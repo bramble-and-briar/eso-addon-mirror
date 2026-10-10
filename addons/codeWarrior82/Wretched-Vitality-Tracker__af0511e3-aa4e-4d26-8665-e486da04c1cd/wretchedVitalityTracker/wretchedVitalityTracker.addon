@@ -1,7 +1,7 @@
 ## Title: Wretched Vitality Tracker
 ## Author: CodeWarrior82
 ## Description: Tracks both Wretched Vitality buffs while they are active.
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## OptionalDependsOn: LibNotify
 ## SavedVariables: wvAddonVars

@@ -17,12 +17,13 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Harven's Bag Space (in the Loot Window)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Bag-Space-in-the-Loot-Window__619) | Harven | PC / Mac | 1.1e |
 | [Harven's Book Copy (to the system Clipboard)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Book-Copy-to-the-system-Clipboard__453) | Harven | PC / Mac | 1.3 |
 | [Harven's Chat Completion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Chat-Completion__555) | Harven | PC / Mac | 1.1n |
-| [Harven's Custom Map Pins (Markers)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Custom-Map-Pins-Markers__357) | Harven | PC / Mac | 3.4.0 |
+| [Harven's Custom Map Pins (Markers)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Custom-Map-Pins-Markers__357) | Harven | PC / Mac | 3.4.1 |
 | [Harven's Custom Map Pins World Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Harven-s-Custom-Map-Pins-World-Pins__4018) | votan | PC / Mac | 0.5.1 |
 | [Harven's Durability and Charges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Durability-and-Charges__506) | Harven | PC / Mac | 1.5.0 |
 | [Harven's Dwemer Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Dwemer-Clock__642) | Harven | PC / Mac | 1.3 |
 | [Harven's Experience Notify](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Experience-Notify__338) | Harven | PC / Mac | 3.7 |
 | [Harven's Extended Stats](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Extended-Stats__372) | Harven | PC / Mac | 1.2 |
+| [Harven's Extra Icons](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Harven-s-Extra-Icons__4939) | sshogrin | PC / Mac | 1.0.0 |
 | [Harven's FPP Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-FPP-Zoom__620) | Harven | PC / Mac | 1.2a |
 | [Harven's Horse Feed Confirmation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Horse-Feed-Confirmation__644) | Harven | PC / Mac | 1.2 |
 | [Harven's House Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-House-Hunter__621) | Harven | PC / Mac | 1.12.0 |

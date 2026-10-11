@@ -1748,6 +1748,9 @@ function LTM_UI:CreateCurrentDetailBox(parent, namePrefix, titleKey, options)
         extraTitle:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
         extraTitle:SetColor(0.82, 0.84, 0.88, 1.0)
         extraTitle:SetText("")
+        extraTitle:SetMaxLineCount(1)
+        extraTitle:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+        SetTextTooltip(extraTitle, "")
 
         title:SetAnchor(RIGHT, extraTitle, LEFT, -8, 0)
     else
@@ -1891,7 +1894,7 @@ function LTM_UI:CreateCardControl(index, cardId)
             CT_TEXTURE
         )
         transformIcon:ClearAnchors()
-        transformIcon:SetAnchor(TOPRIGHT, header, TOPRIGHT, -64 - ((transformIndex - 1) * 22), 11)
+        transformIcon:SetAnchor(TOPRIGHT, header, TOPRIGHT, -86 - ((transformIndex - 1) * 22), 11)
         transformIcon:SetDimensions(20, 20)
         transformIcon:SetMouseEnabled(true)
         SetTextTooltip(transformIcon, GetText("transform.settings.tooltip"))
@@ -1906,7 +1909,23 @@ function LTM_UI:CreateCardControl(index, cardId)
         card.transformIcons[#card.transformIcons + 1] = transformIcon
     end
 
+    local outfitIcon = WINDOW_MANAGER:CreateControl("$(parent)OutfitIcon", header, CT_TEXTURE)
+    outfitIcon:SetAnchor(TOPRIGHT, header, TOPRIGHT, -64, 11)
+    outfitIcon:SetDimensions(20, 20)
+    outfitIcon:SetTexture("EsoUI/Art/Collections/collections_tabIcon_outfitStyles_up.dds")
+    outfitIcon:SetMouseEnabled(true)
+    SetTextTooltip(outfitIcon, "")
+    outfitIcon:SetHandler("OnMouseUp", function(control, mouseButton, upInside)
+        if upInside == true and mouseButton == MOUSE_BUTTON_INDEX_LEFT then
+            LTM_UI:ShowCardOutfitMenu(cardId, control)
+        end
+    end)
+    SetControlDrawOrder(outfitIcon, DT_HIGH, DL_OVERLAY, 6)
+    card.outfitIcon = outfitIcon
+
     local titleLabel = CreateHeaderLabel(header, "$(parent)Title", "", "ZoFontWinH4")
+    titleLabel:SetMaxLineCount(1)
+    titleLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     titleLabel:SetColor(1.0, 1.0, 1.0, 1.0)
     card.titleLabel = titleLabel
     self:ApplyBuildCardHeaderLayout(card, false)

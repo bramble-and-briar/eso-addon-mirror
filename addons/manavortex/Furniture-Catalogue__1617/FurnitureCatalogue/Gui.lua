@@ -10,9 +10,62 @@ local otherTask = LibAsync:Create("FurnitureCatalogue_ToggleGui")
 local LFC = LibFurnitureCatalogue
 local api = LFC.API
 local src = api.GetSourceTypes()
+local getEntry = api.GetEntry
 local getItemLink = api.GetItemLink
 local getDBRevision = api.GetDBRevision
+local sourceFormat = FurC.SourceFormat
 local furcInternal = FurC.Internal
+
+-- Right-click additive Source picks: session-only,
+-- shared with Filter.lua's matchSourceDropdown() via FurC.AdditiveSources.
+FurC.AdditiveSources = FurC.AdditiveSources or {}
+local additiveSources = FurC.AdditiveSources
+-- Same green LSM uses by default for expandable+selectable rows (LibScrollableMenu_Highlight_Green, 00ff00),
+-- reused as the persistent (non-hover) label color for a right-click pick.
+local ADDITIVE_SOURCE_COLOR = ZO_ColorDef:New("00ff00")
+local ADDITIVE_SOURCE_ICON = "esoui/art/cadwell/check.dds"
+
+-- id -> the live GUI entry/item table for that Source tree node, so a rolled-up count
+-- can be written into its label after the fact. Rebuilt fresh each createSourceDropdown()
+-- call, since that clears and rebuilds the whole tree.
+local entryById = {}
+
+-- data.label is read as a plain string,
+-- so a live count means literally rewriting the label text and refreshing.
+local function refreshGroupLabel(id)
+  local entry = entryById[id]
+  if not entry or not entry.baseLabel then
+    return
+  end
+  local count = FurC.GetAdditiveSourceCount(id)
+  entry.label = count > 0 and (entry.baseLabel .. " (" .. count .. ")") or entry.baseLabel
+end
+
+-- Small tree (~8 grouping nodes) - cheaper and far more robust to just recompute every
+-- group's label on every toggle than to track exactly which ancestors changed.
+local function refreshAllGroupLabels()
+  for _, groupId in ipairs(FurC.GetSourceGroupIds()) do
+    refreshGroupLabel(groupId)
+  end
+end
+
+local function refreshAncestorPanels(control, comboBox)
+  local ancestor = control
+  while ancestor do
+    RefreshCustomScrollableMenu(ancestor, LSM_UPDATE_MODE_SUBMENU, comboBox)
+    local owner = ancestor.m_owner
+    ancestor = owner and owner.openingControl
+  end
+end
+
+local function toggleAdditiveSource(id, control, comboBox)
+  additiveSources[id] = not additiveSources[id] or nil
+  refreshAllGroupLabels()
+  RefreshCustomScrollableMenu(control, LSM_UPDATE_MODE_BOTH, comboBox)
+  refreshAncestorPanels(control, comboBox)
+  FurC.SetFilter()
+  FurC.UpdateGui()
+end
 
 -- LCK char list can change, we might have to manually update list if they don't show up
 function FurC.RefreshCharacterChoices()
@@ -65,11 +118,14 @@ function FurC.CenterFilterBars()
     end
     local centerX = math.max(minX, math.min((barW - filterW) / 2, maxX))
     FurC_QualityFilter:ClearAnchors()
-    FurC_QualityFilter:SetAnchor(LEFT, bar2, LEFT, centerX)
+    -- anchor to the dropdown itself (not bar2) so LEFT's implicit vertical-center
+    -- lines the icon row up with the dropdown's center, not bar2's taller box center
+    local dropdownOffsetX = FurC_DropdownSource:GetLeft() - bar2:GetLeft()
+    FurC_QualityFilter:SetAnchor(LEFT, FurC_DropdownSource, LEFT, centerX - dropdownOffsetX)
   end
 
   local bar3 = FurCGui_Header_Bar3
-  if bar3 and FurC_TypeFilter and FurC_DropdownCharacter and FurC_SearchBox and FurC_ShowRumours then
+  if bar3 and FurC_TypeFilter and FurC_DropdownCharacter and FurC_SearchBox then
     local leftEdge = FurC_DropdownCharacter:GetRight() - bar3:GetLeft()
     local rightEdge = FurC_SearchBox:GetLeft() - bar3:GetLeft()
     local filterW = FurC_TypeFilter:GetWidth()
@@ -90,7 +146,24 @@ function FurC.CenterFilterBars()
   end
 end
 
+-- matches maxLineCount on the Mats label in both slot templates
+local MATS_MAX_LINES = 2
+
+-- Prevent first line of a description from overlapping divider (it's offset when truncated). Instead it gets a box of exactly the lines it draws.
+local function fitMats(line)
+  local mats = line.mats
+  mats:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+  mats:SetHeight(line:GetHeight())
+  if mats:WasTruncated() then
+    mats:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    mats:SetHeight(MATS_MAX_LINES * mats:GetFontHeight())
+  end
+end
+
 local function updateLineVisibility()
+  local listOpts = { dateFormat = FurC.GetDateFormat() }
+  local selectedTypes = FurC.GetSelectedSourceTypes()
+
   local function fillLine(curLine, curData, lineIndex)
     if nil == curLine then
       return
@@ -110,8 +183,9 @@ local function updateLineVisibility()
       curLine.text:SetText("")
       curLine.mats:SetText("")
     else
-      local recipeArray = FurC.Find(curData.itemLink)
-      if FurC.showBlueprints and recipeArray and recipeArray.blueprint then
+      -- only the blueprint column needs the row, so the copy is not paid per redraw otherwise
+      local recipeArray = FurC.showBlueprints and getEntry(curData.itemLink)
+      if recipeArray and recipeArray.blueprint then
         curLine.itemLink = getItemLink(recipeArray.blueprint)
       else
         curLine.itemLink = curData.itemLink
@@ -122,8 +196,9 @@ local function updateLineVisibility()
       curLine.icon:SetAlpha(1)
       local text = string.gsub(curData.itemLink, "H1", "H0")
       curLine.text:SetText(((FurC.IsFavoriteById(curData.itemId) and "* ") or "") .. text)
-      local mats = FurC.GetItemDescription(curData.itemId, curData, nil, { dateFormat = FurC.GetDateFormat() })
+      local mats = sourceFormat.FormatListText(curData.itemId, curData, listOpts, selectedTypes)
       curLine.mats:SetText(mats)
+      fitMats(curLine)
     end
   end
 
@@ -227,6 +302,20 @@ local function ensureSortedIndex()
   return sortedIndex
 end
 
+---One row of the list: the stored row's fields plus what the list draws with
+---@param itemId integer
+---@param recipeArray FurCEntry stored row
+---@param itemLink string
+---@return table
+local function buildDisplayRow(itemId, recipeArray, itemLink)
+  local row = ZO_ShallowTableCopy(recipeArray)
+  row.itemId = itemId
+  row.itemLink = itemLink
+  row.itemName = GetItemLinkName(itemLink)
+  return row
+end
+FurC.BuildDisplayRow = buildDisplayRow
+
 local function updateScrollDataLinesData()
   local dataLines = {}
   local data = FurC.DB
@@ -237,12 +326,7 @@ local function updateScrollDataLinesData()
     if recipeArray and FurC.MatchFilter(itemId, recipeArray) then
       local itemLink = getItemLink(itemId)
       if itemLink then
-        local tempDataLine = ZO_ShallowTableCopy(recipeArray)
-        tempDataLine.itemId = itemId
-        tempDataLine.itemLink = itemLink
-        tempDataLine.blueprint = recipeArray.blueprint
-        tempDataLine.itemName = GetItemLinkName(itemLink)
-        dataLines[#dataLines + 1] = tempDataLine
+        dataLines[#dataLines + 1] = buildDisplayRow(itemId, recipeArray, itemLink)
       end
     end
   end
@@ -299,7 +383,8 @@ function FurC.SetLineHeight(applyTemplate)
   local matsFont = string.format("$(MEDIUM_FONT)|$(KB_%s)|soft-shadow-thin", size)
 
   local useTinyUi = FurC.GetTinyUi()
-  local lineHeight = size + (useTinyUi and 8 or 20)
+  local singleLineHeight = size + (useTinyUi and 8 or 20)
+  local lineHeight = singleLineHeight + size -- +1 font-size worth of room for the wrapped 2nd description line
 
   for i = 1, #FurCGui_ListHolder.lines do
     curLine = FurCGui_ListHolder.lines[i]
@@ -400,6 +485,27 @@ local function createGui()
     FurCGui_ListHolder_Slider:SetMinMax(0, #FurCGui_ListHolder.dataLines - FurCGui_ListHolder.maxLines)
 
     return FurCGui_ListHolder.lines
+  end
+
+  local function setupStaticTooltips()
+    local function wire(control, stringId, reAnchor)
+      control:SetHandler("OnMouseEnter", function(self)
+        FurC.GuiShowTooltip(self, GetString(stringId), reAnchor)
+      end)
+      control:SetHandler("OnMouseExit", function(self)
+        FurC.GuiHideTooltip(self)
+      end)
+    end
+
+    wire(FurCGui_Header_Bar1_Feedback, SI_FURC_TOOLTIP_DONATE)
+    wire(FurCGui_Header_Bar1_Settings, SI_FURC_TOOLTIP_SETTINGS)
+    wire(FurC_RecipeCount, SI_FURC_TOOLTIP_RECIPE_COUNT)
+    wire(FurCGui_Header_Bar1_Hide, SI_FURC_TOOLTIP_HIDE_WINDOW)
+    wire(FurCGui_Header_Bar1_Reload, SI_FURC_TOOLTIP_RESCAN)
+    wire(FurCGui_Header_Bar1_TemplateTiny, SI_FURC_TOOLTIP_TEMPLATE_TOGGLE)
+    wire(FurCGui_Header_Bar1_TemplateLarge, SI_FURC_TOOLTIP_TEMPLATE_TOGGLE)
+    wire(FurC_DropdownSource, SI_FURC_TOOLTIP_FILTER_SOURCE, true)
+    wire(FurC_DropdownVersion, SI_FURC_TOOLTIP_FILTER_VERSION, true)
   end
 
   local function createQualityFilters()
@@ -561,7 +667,7 @@ local function createGui()
 
     function OnItemSelect(control, choiceText, somethingElse)
       local dropdownName = tostring(control.m_name):gsub("FurC_Dropdown", "")
-      FurC.SetDropdownChoice(dropdownName, choiceText)
+      FurC.SetDropdownChoice(dropdownName, choiceText, somethingElse and somethingElse.furcId)
       HideTooltip()
       PlaySound(SOUNDS.POSITIVE_CLICK)
     end
@@ -573,18 +679,24 @@ local function createGui()
     end
 
     comboBox:ClearItems()
-    for key, val in pairs(validChoices) do
-      local entry = comboBox:CreateItemEntry(val, OnItemSelect)
-      local tooltipText = choicesTooltips and choicesTooltips[key]
-      if tooltipText then
-        comboBox:SetItemOnEnter(entry, function(entryControl)
-          showEntryTooltip(entryControl, tooltipText)
-        end)
-        comboBox:SetItemOnExit(entry, HideTooltip)
-      end
-      comboBox:AddItem(entry)
-      if val == FurC.GetDropdownChoiceTextual(dropdownName) then
-        comboBox:SetSelectedItem(val)
+    local craftingChildren = { [src.CRAFTING_KNOWN] = true, [src.CRAFTING_UNKNOWN] = true }
+    local keys = FurC.GetDropdownOrder(dropdownName, validChoices)
+    for _, key in ipairs(keys) do
+      local val = validChoices[key]
+      if not (dropdownName == "Source" and craftingChildren[key]) then
+        local entry = comboBox:CreateItemEntry(val, OnItemSelect)
+        entry.furcId = key
+        local tooltipText = choicesTooltips and choicesTooltips[key]
+        if tooltipText then
+          comboBox:SetItemOnEnter(entry, function(entryControl)
+            showEntryTooltip(entryControl, tooltipText)
+          end)
+          comboBox:SetItemOnExit(entry, HideTooltip)
+        end
+        comboBox:AddItem(entry)
+        if val == FurC.GetDropdownChoiceTextual(dropdownName) then
+          comboBox:SetSelectedItem(val)
+        end
       end
     end
 
@@ -605,13 +717,116 @@ local function createGui()
     return control
   end
 
+  local function buildSourceEntries(nodes, choices, tooltips, selectSource)
+    local entries = {}
+    for _, node in ipairs(nodes) do
+      local label = (node.id and choices[node.id]) or (node.stringId and GetString(node.stringId))
+      if label then
+        local entry = {
+          label = label,
+          tooltip = node.id and tooltips[node.id],
+        }
+        if node.children then
+          entry.entries = buildSourceEntries(node.children, choices, tooltips, selectSource)
+        end
+        if node.id then
+          local id = node.id
+          entry.baseLabel = label
+          entryById[id] = entry
+          entry.callback = function()
+            selectSource(label, id)
+          end
+          if id ~= src.NONE then
+            entry.contextMenuCallback = function(comboBox, control, data)
+              toggleAdditiveSource(id, control, comboBox)
+            end
+            entry.color = function()
+              return additiveSources[id] and ADDITIVE_SOURCE_COLOR or nil
+            end
+            entry.icon = function()
+              return additiveSources[id] and ADDITIVE_SOURCE_ICON or nil
+            end
+          end
+        end
+        entries[#entries + 1] = entry
+      end
+    end
+    return entries
+  end
+
+  local function createSourceDropdown()
+    local control = FurC_DropdownSource
+    local choices = FurC.DropdownData.ChoicesSource
+    local tooltips = FurC.DropdownData.TooltipsSource
+
+    control.comboBox = control.comboBox or ZO_ComboBox_ObjectFromContainer(control)
+    local comboBox = control.comboBox
+
+    if not control.LSMenuEnabled then
+      AddCustomScrollableComboBoxDropdownMenu(control:GetParent(), control)
+      control.LSMenuEnabled = true
+    end
+
+    local function selectSource(label, id)
+      for extraId in pairs(additiveSources) do
+        additiveSources[extraId] = nil
+      end
+      refreshAllGroupLabels()
+      FurC.SetDropdownChoice("Source", label, id)
+      FurC.UpdateDropdownChoice("Source")
+      PlaySound(SOUNDS.POSITIVE_CLICK)
+    end
+
+    entryById = {}
+    comboBox:SetSortsItems(false)
+    comboBox:ClearItems()
+
+    for _, node in ipairs(FurC.GetResolvedSourceTree()) do
+      local label = (node.id and choices[node.id]) or (node.stringId and GetString(node.stringId))
+      if label then
+        local item = comboBox:CreateItemEntry(label, node.id and function()
+          selectSource(label, node.id)
+        end)
+        item.furcId = node.id
+        item.tooltip = node.id and tooltips[node.id]
+        if node.id then
+          local id = node.id
+          item.baseLabel = label
+          entryById[id] = item
+          if id ~= src.NONE then
+            item.contextMenuCallback = function(comboBox, control, data)
+              toggleAdditiveSource(id, control, comboBox)
+            end
+            item.color = function()
+              return additiveSources[id] and ADDITIVE_SOURCE_COLOR or nil
+            end
+            item.icon = function()
+              return additiveSources[id] and ADDITIVE_SOURCE_ICON or nil
+            end
+          end
+        end
+        if node.children then
+          item.entries = buildSourceEntries(node.children, choices, tooltips, selectSource)
+        end
+        comboBox:AddItem(item)
+        if node.id and label == FurC.GetDropdownChoiceTextual("Source") then
+          comboBox:SetSelectedItem(label)
+        end
+      end
+    end
+
+    return control
+  end
+
   createInventoryScroll()
   createQualityFilters()
   createCraftingTypeFilters()
   createCategoryFilters()
-  createInventoryDropdown("Source")
+  createSourceDropdown()
+  FurC.UpdateDropdownChoice("Source")
   createInventoryDropdown("Version")
   createInventoryDropdown("Character")
+  setupStaticTooltips()
   FurC.RefreshCharacterDropdown = function()
     createInventoryDropdown("Character")
     -- keep the settings default char dropdown in sync
@@ -628,31 +843,6 @@ local function createGui()
   FurC.LoadFrameInfo()
   FurC.InitFilters()
   FurC.UpdateDropdowns()
-
-  -- reanchor it once
-  FurC.SetHideUIButton(src.RUMOUR, FurC.GetHideUIButton(src.RUMOUR))
-  FurC.UpdateHeader()
-end
-
-function FurC.UpdateHeader()
-  local hideRumourButton = FurC.GetHideUIButton(src.RUMOUR)
-  local showRumours = FurC.GetShowRumours()
-
-  FurC_ShowRumours:SetHidden(hideRumourButton)
-  FurC_ShowRumoursGlow:SetHidden(not showRumours or hideRumourButton)
-
-  if not hideRumourButton then
-    FurC_ShowRumours:SetState((showRumours and BSTATE_PRESSED) or BSTATE_NORMAL, false)
-  end
-
-  local hideCrownButton = FurC.GetHideUIButton(src.CROWN)
-
-  FurC_ShowCrowns:SetHidden(hideCrownButton)
-  if hideCrownButton then
-    return
-  end
-
-  FurC_ShowCrowns:SetState((FurC.GetShowCrownstore() and BSTATE_PRESSED) or BSTATE_NORMAL, false)
 end
 
 function FurnitureCatalogue_Toggle()

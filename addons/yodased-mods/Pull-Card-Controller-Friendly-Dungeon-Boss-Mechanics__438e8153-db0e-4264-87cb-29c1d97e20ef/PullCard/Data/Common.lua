@@ -57,6 +57,7 @@ function PullCardData.addShared(names, dungeonName, title, aliases, summary, eve
         dps = dps,
         tldr = tldr,
         hardmode = extra.hardmode,
+        menuLabel = extra.menuLabel, -- menu row text when it differs from the title (e.g. indented under a wing)
         challenges = extra.challenges or {},
     }
     table.insert(PullCardData.encounters, encounter)
@@ -104,6 +105,27 @@ function PullCardData.setDungeonAchievements(dungeonName, names)
     local dungeon = PullCardData.dungeons[dungeonName]
     if not dungeon then return end
     dungeon.achievements = names
+end
+
+-- General, instance-wide tips (e.g. sigils in solo arenas), shown at the top
+-- of the overview rather than on every round.
+function PullCardData.setNotes(dungeonName, text)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if dungeon then dungeon.notes = text end
+end
+
+-- Extra read-only menu row under the overview, for guide text too long for it.
+function PullCardData.addGuide(dungeonName, name, text)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if not dungeon then return end
+    dungeon.guides = dungeon.guides or {}
+    table.insert(dungeon.guides, { name = name, text = text })
+end
+
+-- Weapon sets (arenas): normal versions on Normal, Perfected on Veteran.
+function PullCardData.setWeapons(dungeonName, weapons)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if dungeon then dungeon.weapons = weapons end
 end
 
 -- Overland zone the dungeon's entrance is in.

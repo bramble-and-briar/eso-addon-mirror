@@ -96,6 +96,19 @@ local function inspect(job)
                 end
             end
         end
+        local function eligibleLength(first, last)
+            if not data.aliveWindows then return math.max(0, last - first) end
+            local total = 0
+            for _, window in ipairs(data.aliveWindows) do
+                charge()
+                total = total + math.max(0, math.min(last, window[2]) - math.max(first, window[1]))
+            end
+            return total
+        end
+        if data.aliveWindows then
+            covered = 0
+            for _, interval in ipairs(active) do covered = covered + eligibleLength(interval[1], interval[2]) end
+        end
         if data.weighted then
             covered = 0
             for _, instance in pairs(data.weighted) do
@@ -107,10 +120,10 @@ local function inspect(job)
                     if not finite(interval[4]) or interval[4] < 0 then warn("ungueltiger Stapelwert") else
                         prefix = prefix + (interval[2] - interval[1]) * interval[4]
                         if math.abs(interval[3] - prefix) > 0.001 then warn("abweichende Stapel-Zwischensumme") end
-                        total = total + math.max(0, math.min(ends, interval[2]) - math.max(starts, interval[1])) * interval[4]
+                        total = total + eligibleLength(math.max(starts, interval[1]), math.min(ends, interval[2])) * interval[4]
                     end
                 end
-                if weighted.starts then total = total + math.max(0, ends - math.max(starts, weighted.starts)) * weighted.weight end
+                if weighted.starts then total = total + eligibleLength(math.max(starts, weighted.starts), ends) * weighted.weight end
                 if instance.maxStacks > 0 then covered = covered + total / instance.maxStacks end
             end
         end

@@ -155,7 +155,8 @@ function UP.Debug.Refresh()
         ("plague=%s%s"):format(
             (UP.Plague and UP.Plague.IsActive and UP.Plague.IsActive())
                 and ("YES %.1fs left"):format((UP.Plague.RemainingMs(GetGameTimeMilliseconds()) or 0) / 1000)
-                or "no",
+                or ((UP.Plague and UP.Plague.IsHeldThroughDeath and UP.Plague.IsHeldThroughDeath())
+                    and "HELD (died plagued; clears on respawn)" or "no"),
             (UP.PlagueTint and UP.PlagueTint.IsPreviewActive and UP.PlagueTint.IsPreviewActive())
                 and "  +PREVIEW" or ""),
         ("dmgEvts=%d  activeDebuffs=%d  cand=%s"):format(

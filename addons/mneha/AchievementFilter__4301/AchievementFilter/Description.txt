@@ -46,6 +46,12 @@ All filters work together; you can combine several at once.
 [*]Options: All / Earned / Unearned.
 [*]Set to Unearned if you only want to see achievements you still have to complete.
 [/LIST]
+[*]Pinned status dropdown
+[LIST]
+[*]Options: Any pin status / Pinned only / Not pinned.
+[*]Filters by the achievement currently pinned on the HUD and combines with the other filters.
+[*]The selection is saved account-wide, follows pin/unpin changes automatically and resets to Any pin status with Clear.
+[/LIST]
 [*]Finished date presets
 [LIST]
 [*]Dropdown: Any time, Today, Last 7 days, Last 30 days, This month, Last month, This year, Last year, Older than 1 year, Custom range…
@@ -102,6 +108,12 @@ The main list shows achievements in a table with these columns:
 [/LIST]
 Mouse actions
 [LIST]
+[*]Right-click a row or its reward name
+[LIST]
+[*]Choose "Pin achievement" or "Unpin achievement" to track an unearned achievement on the HUD (Update 51). All context-menu actions use English, matching the add-on interface.
+[*]Use "Pinned only" in the pin-status dropdown to find the currently tracked achievement. Pinning another achievement replaces the previous selection, just like the standard UI. Achievement titles remain plain text without a pin icon.
+[*]You can also open the achievement in the standard Achievements window from this menu.
+[/LIST]
 [*]Left‑click a row
 [LIST]
 [*]Opens the standard in‑game Achievements window and focuses that achievement, so you can see its full description, criteria and rewards there.
@@ -124,6 +136,8 @@ Additional info
 [LIST]
 [*]A result counter shows how many achievements match your current filters.
 [*]A stats label shows completed achievements and earned points across all achievements (not just the filtered ones).
+[*]Progress, completion dates, result filters and totals update automatically when achievements change. Changes made while the window is closed appear when it is reopened.
+[*]Relative date filters such as Today are recalculated when opening or refreshing the list.
 [*]Settings (filters, sort column, sort direction) are saved account‑wide.
 [*]Requires: [B]LibCustomMenu[/B]
 [/LIST]

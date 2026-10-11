@@ -1,0 +1,9 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="kozy-eso BuildPort">
+            <Action name="KOZY_ESO_BUILDPORT_EXPORT">
+                <Down>KozyEsoBuildPort.Export()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

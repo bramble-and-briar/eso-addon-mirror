@@ -6,11 +6,14 @@ local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
 local isLoaded = false
 local isMenuOpen = false
 local trackingRiposte = false
+local riposteCp = 162
+local isEquiped = false
 
 riposteTracker = {}
 
 riposteTracker.defaults = {
     trackRip = true,
+    autoTrack = true,
 	notify = false,
 	notifyStart = true,
     yAxisText = 930,
@@ -37,6 +40,21 @@ local function isLibAvailable()
     end
 end
 
+local function checkCP(id)
+    for i = 1, 12 do
+        local skillId = GetSlotBoundId(i, HOTBAR_CATEGORY_CHAMPION)
+
+        if skillId and skillId > 0 then
+            local skillName = GetChampionSkillName(skillId)
+
+            if skillId == id then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 --when UI opens
 local function onMenuOpened()
 	isMenuOpen = true
@@ -46,7 +64,9 @@ end
 --when UI closes
 local function onMenuClosed()
 	isMenuOpen = false
-    if riposteTracker.savedVariables.trackRip then
+    if riposteTracker.savedVariables.trackRip and isEquiped and riposteTracker.savedVariables.autoTrack then
+        riptrack:SetHidden(false)
+    elseif riposteTracker.savedVariables.trackRip and not riposteTracker.savedVariables.autoTrack then
         riptrack:SetHidden(false)
     end
 end
@@ -152,6 +172,29 @@ local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("ripProc", EVENT_EFFECT_CHANGED)
 end
 
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then
+        printMessage("Riposte CP not found")
+        unRegisterAlerts()
+        riptrack:SetHidden(true)
+    end
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+    if riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack then
+        printMessage("Found Riposte CP")
+        registerAlerts()
+    end
+end
+
+--handle champion points being changed
+function riposteTracker.onChampionPurchaseResult(eventCode, result)
+    if checkCP(riposteCp) then isEquiped = true startTrackingAuto() else isEquiped = false stopTrackingAuto() end
+end
+
 --setup options menu
 local function createOptions()
 
@@ -194,6 +237,18 @@ local function createOptions()
                 end
             end,
             default = riposteTracker.defaults.trackRip,
+        },
+        {
+            type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you have the Riposte CP slotted and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return riposteTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                riposteTracker.savedVariables.autoTrack = value
+            end,
+            default = riposteTracker.defaults.autoTrack,
         },
         {
             type = "slider",
@@ -269,22 +324,29 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
-	--notify about new library
+    --load saved variables
+    riposteTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("ripAddonVars", 1, "Settings", riposteTracker.defaults, GetUnitName("player"))
+
+    --setup add on menu options
+    createOptions()
+
+    --notify about new library
 	if not isLibAvailable() then
 		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
 		return
-	else
+    elseif isLibAvailable() and riposteTracker.savedVariables.trackRip then
 		--notify that add-on has been loaded
 		zo_callLater(function() printMessage("add-on loaded") end, 500)
 	end
 
-	--load saved variables
-    riposteTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("ripAddonVars", 1, "Settings", riposteTracker.defaults, GetUnitName("player"))
-
-	--notify if tracking is disabled
-	if not riposteTracker.savedVariables.trackRip then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
-	end
+    zo_callLater(function ()
+        if checkCP(riposteCp) and riposteTracker.savedVariables.autoTrack and riposteTracker.savedVariables.trackRip then
+            isEquiped = true
+            printMessage("Found Riposte CP")
+        elseif not checkCP(riposteCp) and riposteTracker.savedVariables.autoTrack and riposteTracker.savedVariables.trackRip then
+            printMessage("Riposte CP not found")
+        end
+    end, 1000)
 
     --setup text field areas
     riptrack:SetMovable(true)
@@ -297,18 +359,25 @@ local function onAddOnLoaded(event, name)
     setAnchorStartupIcon(riposteTracker.savedVariables.xAxisText, riposteTracker.savedVariables.yAxisText)
 
     --register for combat alerts if tracking is enabled
-    if riposteTracker.savedVariables.trackRip then
-        registerAlerts()
-        riptrack:SetHidden(false)
-    else
-        riptrack:SetHidden(true)
-    end
+    zo_callLater(function ()
+        if riposteTracker.savedVariables.trackRip and not riposteTracker.savedVariables.autoTrack then
+            registerAlerts()
+            riptrack:SetHidden(false)
+        elseif riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack and isEquiped then
+            registerAlerts()
+            riptrack:SetHidden(false)
+        elseif riposteTracker.savedVariables.trackRip and riposteTracker.savedVariables.autoTrack and not isEquiped then
+            riptrack:SetHidden(true)
+        elseif not riposteTracker.trackRip.trackRip then
+            riptrack:SetHidden(true)
+        end
+    end, 1200)
+
+    --must keep these firing
+    EVENT_MANAGER:RegisterForEvent("callbackRiposte", EVENT_CHAMPION_PURCHASE_RESULT, riposteTracker.onChampionPurchaseResult)
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
-
-    --setup add on menu options
-    createOptions()
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

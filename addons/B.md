@@ -181,6 +181,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [BugCatcher Keybinds - Adds Custom Keybinds](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/BugCatcher-Keybinds---Adds-Custom-Keybinds__4621) | Duesentrieb | PC / Mac | 20260609-0001 |
 | [BugCatcher Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/BugCatcher-Updated__2566) | Shadowfen | PC / Mac | 043 |
 | [bugfixxxxx](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/bugfixxxxx__b057d22b-1ffd-455c-834a-af582e3e270a) | Vixen_Hunny | Console | — |
+| [BuildAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased-mods/BuildAdvisor__c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96) | yodased-mods | Console | — |
 | [Bulk buy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Bulk-buy__0ad00225-1c8b-4f4a-8e95-ca8986209a7f) | Copper0 | Console | — |
 | [Bunny's Dice Roller](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Bunny-s-Dice-Roller__2931) | TheBunnynator1001 | PC / Mac | 1.0.1.1a |
 | [Bureau of Acceptable Views](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/maraud/Bureau-of-Acceptable-Views__4720) | maraud | PC / Mac | 3.11.012748 |

@@ -1,0 +1,22 @@
+## Title: |c37D5FAValuesBars|r
+## Author: |c37FAC6Teniente.R|r
+## Version: 1.0.0
+## AddOnVersion: 2
+## APIVersion: 101051
+## SavedVariables: ValuesBars_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+## Description: Displays the current value, maximum and percentage on the health, magicka, stamina, target, boss and experience bars, plus the charge percentage of your Ultimate.
+
+Settings.lua
+Localization.lua
+lang/en.lua
+lang/$(language).lua
+Utils.lua
+Core.lua
+Preview.lua
+Menu.lua
+PlayerBars.lua
+Target.lua
+Boss.lua
+Experience.lua
+Ultimate.lua

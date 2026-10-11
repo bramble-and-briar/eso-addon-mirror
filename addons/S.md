@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Castbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Simple-Castbar__3702) | Solinur | PC / Mac | 1.3.4 |
 | [Simple Combat Alerts Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Combat-Alerts-Revived__2581) | Baertram | PC / Mac | 1.2 |
 | [Simple Durability](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weolo/Simple-Durability__1165) | Weolo | PC / Mac | 4.4 |
-| [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.0.4 |
+| [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.1.2 |
 | [Simple fix for Grim Focus Counter v1.6](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vays/Simple-fix-for-Grim-Focus-Counter-v1.6__4136) | vays | PC / Mac | 1.6.07 |
 | [Simple FPS & Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claise/Simple-FPS-Ping__ce31d856-17b4-4951-9802-820df96527e2) | Claise | Console | — |
 | [Simple Group Leave - /gl Sash command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Group-Leave---gl-Sash-command__654) | Baertram | PC / Mac | 0.6 100034 |
@@ -323,6 +323,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |
 | [Stylich](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/Stylich__4671) | s1by0z | PC / Mac | 1.2.2 |
 | [Sugas-Test-Zone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Sugas-Test-Zone__75cafaa0-706c-4f77-a94a-9a8b0e2868f2) | SugaComa | Console | — |
+| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 1.22 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__3656) | Lykeion | PC / Mac | 1.5 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__aa271fb4-3ce5-4584-ac5c-338617e92f62) | Lykeion+ | Console | — |
 | [SuMech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/burito/SuMech__3467) | burito | PC / Mac | cdaefe9dfe5ba5531fb6b0a6eb0c1757b7b246a1 |
@@ -352,3 +353,4 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Synergy Priority](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tmp/Synergy-Priority__4292) | tmp | PC / Mac | 1.1 |
 | [Synergy Priority](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Synergy-Priority__3f511a24-33c0-4c94-979a-97e0982dbb6b) | Vixen_Hunny | Console | — |
 | [Synergy Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Synergy-Toggle__2673) | ownedbynico | PC / Mac | 1.12.0 |
+| [SynergyImprover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/SynergyImprover__64ff6b45-1306-4375-8422-3ff52ef58d90) | j.hhh | Console | — |

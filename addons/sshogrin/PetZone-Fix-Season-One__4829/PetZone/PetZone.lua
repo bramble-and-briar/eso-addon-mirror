@@ -28,7 +28,7 @@ if PZ == nil then PZ = {} end
 local PetZone = PZ
 
 PetZone.addonVars = {}
-PetZone.addonVars.addonVersion		        = "3.4"
+PetZone.addonVars.addonVersion		        = "3.5.0"
 PetZone.addonVars.addonSavedVarsVersion	    = "0.01"
 PetZone.addonVars.addonName				    = "PetZone"
 PetZone.addonVars.addonNameMenu  		    = "PetZone"
@@ -57,22 +57,38 @@ PetZone.previousSubZone = nil
 --Request the update to the Pet change
 local function RequestPetUpdate()
     local callbackName = "PetZone_updatePetCollectible"
+    
     local function Update()
-        if GetCollectibleBlockReason(PetZone.DropdownPetValues[table.maxn(PetZone.DropdownPetValues)]) == 0 then
-			EVENT_MANAGER:UnregisterForUpdate(callbackName)
-			--Update the Pet collectible now
-			PetZone.ActivatePetForZone(nil, nil) 
---			d("updating...")
-		else
-			zo_callLater(Update, 1000)
---			d("delaying activation...")
-		end
-	end
-    --cancel previously scheduled update if any
+        -- Use standard length operator (#) instead of deprecated table.maxn
+        local maxIndex = #PetZone.DropdownPetValues
+        if maxIndex == 0 then
+            EVENT_MANAGER:UnregisterForUpdate(callbackName)
+            return
+        end
+        
+        local targetPetId = PetZone.DropdownPetValues[maxIndex]
+
+        -- Check if the collectible is currently blocked (common during PvP exit loading screens)
+        if GetCollectibleBlockReason(targetPetId) == 0 then
+            EVENT_MANAGER:UnregisterForUpdate(callbackName)
+            --Update the Pet collectible now
+            PetZone.ActivatePetForZone(nil, nil) 
+--          d("[PetZone] Pet update successful.")
+        else
+            -- SAFE RETRY: Unregister the interval update first to prevent exponential thread throttling
+            EVENT_MANAGER:UnregisterForUpdate(callbackName)
+            zo_callLater(Update, 1000)
+--          d("[PetZone] Collectible blocked. Retrying in 1000ms...")
+        end
+    end
+
+    -- Cancel any previously scheduled update to avoid race conditions
     EVENT_MANAGER:UnregisterForUpdate(callbackName)
-    --register a new one
+    -- Register the initial loop
     EVENT_MANAGER:RegisterForUpdate(callbackName, 1000, function() Update() end)
 end
+
+
 
 function PetZone.EventCollectibleUseResult(eventCode, CollectibleUsageBlockReason, isAttemptingActivation)
     if not PetZone.preventerVars.doNotChangePresetPet and isAttemptingActivation then

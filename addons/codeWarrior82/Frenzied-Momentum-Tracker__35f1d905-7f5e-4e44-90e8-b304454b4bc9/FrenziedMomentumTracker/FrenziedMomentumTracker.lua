@@ -372,7 +372,7 @@ local function onAddOnLoaded(event, name)
     end
 
     --double check if set is equipped without autotracking stipulation
-    if isSetEquiped(setId, setCount) then isEquiped = true end
+    if isSetEquiped(setId1, setCount) or isSetEquiped(setId2, setCount) then isEquiped = true end
 
     --setup text field areas
     fmtrack:SetMovable(true)

@@ -26,8 +26,29 @@
 -- WHAT "REMOVED EARLY" MEANS HERE. EVENT_EFFECT_CHANGED gives us FADED with
 -- no reason attached. We call it early when the FADED arrives with more than
 -- EARLY_FADE_MS of the debuff's own endTime still to run, and the player is not
--- dead (death also drops the debuff, without an explosion). The explosion
--- damage itself is the confirming signal and is collected either way.
+-- dead. The explosion damage itself is the confirming signal and is collected
+-- either way.
+--
+-- DEATH (0.4.2). Whether the carrier's death triggers the explosion could not
+-- be settled from sources on 2026-10-08: a 2021 patch added it, Necrom-era
+-- players said it was gone, a 2024 post says the server still runs an on-death
+-- event, and the live tooltip says only "removed early". So the tracker does
+-- not assume either way. EVENT_PLAYER_DEAD with a plague on us opens a report
+-- with cause "death" that is PRINTED ONLY IF explosion hits arrive within the
+-- collection window -- so if death does not explode, nothing is said, and if
+-- it does, the report says the trigger was your death rather than inventing a
+-- cleanse. A FADED that opened a cleanse report moments before the death is
+-- re-labelled the same way (DEATH_LINK_MS), because effects drop as you die
+-- and the two cannot be told apart from the victim's side.
+--
+-- TINT HELD THROUGH DEATH (0.4.2, author's request). If we die while plagued,
+-- the tint stays on the screen until EVENT_PLAYER_ALIVE, so the death screen
+-- still tells the player what was on them when they went down. This is a
+-- display hold only: `active` is cleared at death as before (the debuff is
+-- gone, no report logic changes), and a separate `heldThroughDeath` flag is
+-- the one extra input to publish(). Only OnAlive clears it -- not a FADED, not
+-- a Resync, not a full effect-list update -- because none of those mean
+-- "respawned".
 --
 -- WHO REMOVED IT -- KNOWN CLEANSES ONLY, NEVER A GUESS. ESOUIDocumentation.txt
 -- at 101051 lists no effect-applied / effect-removed combat result, and ZOS's
@@ -85,6 +106,7 @@ local BUFF_TYPE     = (type(BUFF_EFFECT_TYPE_BUFF)   == "number") and BUFF_EFFEC
 local EARLY_FADE_MS   = 750    -- FADED this far before endTime counts as removed early
 local REPORT_DELAY_MS = 1200   -- how long after fade/first hit to wait for the rest of the hits
 local ATTRIB_WINDOW_MS = 1500  -- how far back to look for the cleanse
+local DEATH_LINK_MS   = 600    -- a death this soon after a FADED means the fade WAS the death
 local RECENT_MAX      = 16     -- friendly-event ring size while a plague is active
 
 -- ---------------------------------------------------------------------------
@@ -228,6 +250,8 @@ local pending = nil
 -- Applier details that arrived (DoT tick) before the GAINED effect event.
 local staged = nil
 local isDead = false
+-- Display-only: we died with a plague on us and have not respawned yet.
+local heldThroughDeath = false
 local boomChannel = false   -- true when the ability-id-filtered registration is live
 
 local function pushRecent(entry)
@@ -235,13 +259,29 @@ local function pushRecent(entry)
     if #recent > RECENT_MAX then table.remove(recent, 1) end
 end
 
+-- Display name of the plague we died with, for the "You died with ..." note.
+-- Falls back to the set's name if the effect name never arrived.
+function UP.Plague.HeldPlagueName()
+    if not heldThroughDeath then return nil end
+    local lp = UP.Plague.lastPlague
+    local name = lp and abilityDisplay(lp.name) or ""
+    if name == "" then name = "a Plaguebreak plague" end
+    return name
+end
+
 local function publish()
-    if UP.PlagueTint and UP.PlagueTint.SetActive then
-        UP.PlagueTint.SetActive(active ~= nil)
+    if UP.PlagueTint then
+        if UP.PlagueTint.SetActive then
+            UP.PlagueTint.SetActive(active ~= nil or heldThroughDeath)
+        end
+        if UP.PlagueTint.SetDeathNote then
+            UP.PlagueTint.SetDeathNote(UP.Plague.HeldPlagueName())
+        end
     end
 end
 
 function UP.Plague.IsActive() return active ~= nil end
+function UP.Plague.IsHeldThroughDeath() return heldThroughDeath end
 
 function UP.Plague.RemainingMs(nowMs)
     if not active or not active.endMs or active.endMs <= 0 then return 0 end
@@ -253,6 +293,7 @@ end
 function UP.Plague.Snapshot()
     return {
         active   = active ~= nil,
+        held     = heldThroughDeath,
         endMs    = active and active.endMs or 0,
         applier  = active and active.applierName or nil,
         pending  = pending ~= nil,
@@ -323,11 +364,14 @@ function UP.Plague.BuildReport(p, nowMs)
     local lines = {}
     local plague = p.plague or {}
 
-    local head = "|c7FBF5F[Under Pressure] Plaguebreak exploded on you|r"
+    local byDeath = (p.cause == "death")
+    local head = byDeath
+        and "|c7FBF5F[Under Pressure] Plaguebreak exploded when you died|r"
+        or  "|c7FBF5F[Under Pressure] Plaguebreak exploded on you|r"
     local detail = {}
     if p.remainingMs then
-        detail[#detail + 1] = ("plague removed with %s left"):format(secs(p.remainingMs))
-    else
+        detail[#detail + 1] = (byDeath and "plague had %s left" or "plague removed with %s left"):format(secs(p.remainingMs))
+    elseif not byDeath then
         detail[#detail + 1] = "plague removal not seen as an effect change"
     end
     if plague.gainedMs and p.fadedMs then
@@ -339,7 +383,17 @@ function UP.Plague.BuildReport(p, nowMs)
     lines[#lines + 1] = head .. " -- " .. table.concat(detail, ", ") .. "."
 
     local who, conf = UP.Plague.Attribute(p)
-    lines[#lines + 1] = ("  Removed by: %s"):format(who)
+    if byDeath then
+        -- The death is the trigger. A cleanse seen in the same instant is
+        -- still worth naming, as a fact rather than a verdict.
+        if conf == "known" then
+            lines[#lines + 1] = ("  Trigger: your death (a cleanse was also seen: %s)"):format(who)
+        else
+            lines[#lines + 1] = "  Trigger: your death (no cleanse seen)"
+        end
+    else
+        lines[#lines + 1] = ("  Removed by: %s"):format(who)
+    end
 
     if p.hitCount > 0 then
         -- Order targets: you first, then by damage.
@@ -394,15 +448,21 @@ local function finalize()
     local p = pending
     if not p then return end
     pending = nil
+    -- Death with no explosion seen: either the set does not explode on death
+    -- on this build, or nothing reached this client. Either way there is
+    -- nothing true to say, so say nothing.
+    if p.cause == "death" and p.hitCount == 0 then return end
     local lines = UP.Plague.BuildReport(p, GetGameTimeMilliseconds())
     if UP.Debug and UP.Debug.Log then UP.Debug.Log("PLAGUE " .. (lines[1] or ""):gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")) end
     UP.Plague.Emit(lines)
 end
 
-local function startPending(nowMs)
+local function startPending(nowMs, cause)
     if pending then return pending end
     pending = {
         startedMs = nowMs,
+        cause     = cause or "cleanse",   -- "cleanse" | "death"
+        deathMs   = nil,
         fadedMs   = nil,
         remainingMs = nil,
         plague    = snapshotActive() or UP.Plague.lastPlague,
@@ -565,9 +625,50 @@ function UP.Plague.SetDead(dead)
     isDead = dead == true
 end
 
--- Death drops the debuff without an explosion. Clears the live plague but
--- deliberately NOT a pending report -- a burst that kills us is the one we
--- most want to read about.
+-- EVENT_PLAYER_DEAD with a plague on us. See the DEATH note in the header:
+-- opens (or re-labels) a report with cause "death" that prints only if
+-- explosion hits follow. Called from EventIngest.onPlayerDead in place of the
+-- SetDead(true) + Clear() pair that 0.4.0/0.4.1 used.
+function UP.Plague.OnDeath(nowMs)
+    isDead = true
+    if pending and not pending.deathMs then
+        pending.deathMs = nowMs
+        -- A FADED (or a first hit) opened this report moments ago and the
+        -- death arrived right behind it: the fade WAS the death.
+        if (nowMs - (pending.fadedMs or pending.startedMs)) <= DEATH_LINK_MS then
+            pending.cause = "death"
+        end
+    end
+    if active then
+        local remaining = (active.endMs and active.endMs > 0) and (active.endMs - nowMs) or 0
+        UP.Plague.lastPlague = snapshotActive()
+        if not pending then
+            local p = startPending(nowMs, "death")
+            p.fadedMs = nowMs
+            p.deathMs = nowMs
+            p.remainingMs = remaining > 0 and remaining or 0
+        end
+        active = nil
+        heldThroughDeath = true
+    end
+    staged = nil
+    if not pending then recent = {} end
+    publish()
+end
+
+-- EVENT_PLAYER_ALIVE. Ends the death hold on the tint and resumes normal
+-- tracking; a plague cannot survive a respawn, so nothing else is carried
+-- across. Called from EventIngest.onPlayerAlive.
+function UP.Plague.OnAlive()
+    isDead = false
+    heldThroughDeath = false
+    publish()
+end
+
+-- Drops the live plague without opening a report. Kept for callers that mean
+-- exactly that (tests, a future hard-off); death goes through OnDeath. A
+-- pending report is deliberately left alone -- a burst that kills us is the
+-- one we most want to read about.
 function UP.Plague.Clear()
     if active then UP.Plague.lastPlague = snapshotActive() end
     active = nil
@@ -623,6 +724,7 @@ end
 
 function UP.Plague.Init()
     active, pending, staged = nil, nil, nil
+    heldThroughDeath = false
     recent = {}
     local ok, detail = UP.Plague.VerifyIds()
     if ok == false then

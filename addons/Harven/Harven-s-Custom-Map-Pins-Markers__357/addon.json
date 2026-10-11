@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Harven/Harven-s-Custom-Map-Pins-Markers__357",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Harven",
   "canonical_id": "esoui:357",
   "category_id": "24",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
-    },
-    {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:357",
@@ -21,7 +18,7 @@
     "HarvensCustomMapPins"
   ],
   "download_url": "https://www.esoui.com/downloads/dl357/",
-  "fingerprint": "3cbab0aa8f87a3b04e81c36e2043fe70d2c484d11f019757b68045b8c33c896b",
+  "fingerprint": "1d137829688ea5816c144f45003723bad27f08c1056fee681e4886ab021a9958",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw1691.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw1892.jpg",
@@ -36,11 +33,11 @@
   "source_id": "357",
   "source_url": "https://www.esoui.com/downloads/info357-HarvensCustomMapPinsMarkers.html",
   "stats": {
-    "downloads": 251543,
-    "favorites": 425,
-    "monthly_downloads": 846
+    "downloads": 253877,
+    "favorites": 426,
+    "monthly_downloads": 1249
   },
   "title": "Harven's Custom Map Pins (Markers)",
-  "updated_at": 1772891688000,
-  "version": "3.4.0"
+  "updated_at": 1791635598000,
+  "version": "3.4.1"
 }

@@ -124,7 +124,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ministry of Normal Walks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Ministry-of-Normal-Walks__4022) | Kyzeragon | PC / Mac | 1.0.0 |
 | [Mirelda's CraftAutoLoot Upgrade](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-CraftAutoLoot-Upgrade__4299) | Mirelda | PC / Mac | 1.0 |
 | [Mirelda's QuickWheelAssist](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-QuickWheelAssist__3963) | Mirelda | PC / Mac | 1.0 |
-| [Mirelda's RogAllyPerformanceOptimization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-RogAllyPerformanceOptimization__3964) | Mirelda | PC / Mac | 1.21 |
+| [Mirelda's RogAllyPerformanceOptimization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mirelda/Mirelda-s-RogAllyPerformanceOptimization__3964) | Mirelda | PC / Mac | 1.22 |
 | [MirrorLand GuildHalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/t.vicson/MirrorLand-GuildHalls__3016) | t.vicson | PC / Mac | 2.0.0 |
 | [Missing Food/Drink Buff CSA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/Missing-Food-Drink-Buff-CSA__a8df6914-51e2-4059-8c77-a773a30bee81) | Dack.Janiels | Console | — |
 | [Missing Map Textures Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Missing-Map-Textures-Patch__1203) | CaptainBlagbird | PC / Mac | 1.2.13 |
@@ -149,6 +149,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [MotD Announcements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/RisTanA/MotD-Announcements__3557) | RisTanA | PC / Mac | 1.1 |
 | [Motif Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Motif-Tracker__e816c8fb-9db6-4e60-a241-6bee24b8f1b0) | Eldibabalo | Console | — |
 | [MotifHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MefBezTufel/MotifHelper__3193) | MefBezTufel | PC / Mac | 0.0.2 |
+| [Mount Shuffle - Random Favorite Mount per Character](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/Mount-Shuffle---Random-Favorite-Mount-per-Character__66e37433-eec7-410c-8d64-001233195f18) | -Chin | Console | — |
 | [MountTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/L_cky/MountTracker__4362) | L_cky | PC / Mac | 0.3.0 |
 | [Mousoboros](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/Mousoboros__4742) | Masteroshi430 | PC / Mac | 2026.08.07 |
 | [Movable Addon Memory](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Movable-Addon-Memory__acf1ef04-4ec0-400b-86c6-98b7dd9d2f72) | M0R | Console | — |
@@ -167,6 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
+| [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 2.5.0 |
 | [MundusMap Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marazota/MundusMap-Revived__3069) | Marazota | PC / Mac | 0.28 |
 | [Murder Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pineapple_aule/Murder-Hotkey__3155) | pineapple_aule | PC / Mac | 0.1 |
 | [Murf's Knickknacks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/Murf-s-Knickknacks__d38d1fe9-e738-4036-9d0d-baeaa4ebbe2e) | murphyx | Console | — |

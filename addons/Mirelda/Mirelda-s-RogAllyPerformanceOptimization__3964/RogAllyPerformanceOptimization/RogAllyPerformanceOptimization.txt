@@ -1,7 +1,7 @@
 ## Title: Mirelda's RogAllyPerformanceOptimization
 ## Author: Mirelda
 ## Version: 1.20
-## APIVersion: 101050 101051
+## APIVersion: 101051 101052
 ## Description: Dynamically balances visuals and performance, keeping your gameplay smooth and steady at 45 FPS, without noticeable changes to graphics quality. Perfectly tuned for ROG Ally and Ally X.
 ## SavedVariables: RogAllyPerformanceOptimization
 

@@ -101,16 +101,19 @@ local function IsHardLocked()
     return CallToArm.Guild and CallToArm.Guild.IsLocked and CallToArm.Guild.IsLocked() == true
 end
 
-local function IsConfiguredForSettings()
-    return IsLockEnabled()
-end
-
 local function GetScopeGuildId()
-    local gid = CallToArm.Guild.GetLockedGuildId and CallToArm.Guild.GetLockedGuildId() or 0
+    local lockActive = CallToArm.Guild.IsLockActive and CallToArm.Guild.IsLockActive() == true
+    local gid = lockActive and CallToArm.Guild.GetLockedGuildId and CallToArm.Guild.GetLockedGuildId() or 0
     if gid == 0 then
         gid = ActiveGuildId()
     end
     return gid
+end
+
+local function IsConfiguredForSettings()
+    -- The campaign lock protects identity only (guild + campaign).  All other
+    -- preferences must remain editable before, during and after a campaign.
+    return GetScopeGuildId() ~= 0
 end
 
 local function GetAutoDetectedCampaignId()
@@ -193,7 +196,18 @@ end
 local function CreateMainMenu()
     if UI._built.main then return end
 
-    local settings = LHAS:AddAddon("CallToArm", { allowDefaults = true, allowRefresh = true })
+    local settings = LHAS:AddAddon("CallToArm", {
+        allowDefaults = true,
+        allowRefresh = true,
+        -- Reset the saved-variable tree as one operation.  Letting LHAS reset
+        -- controls individually makes some console builds index the dynamic
+        -- campaign-dropdown item provider as if it were a table.
+        defaultsFunction = function()
+            if CallToArm.ResetSavedVars then
+                CallToArm.ResetSavedVars()
+            end
+        end,
+    })
     if not settings then return end
 
     UI._built.main = true
@@ -255,6 +269,9 @@ local function CreateMainMenu()
         label = "Select Home Campaign",
         tooltip = CampaignSelectTooltip,
         items = BuildCampaignItems,
+        -- The custom panel reset above owns this value.  This also protects
+        -- newer LHAS builds that support selective default-reset exclusion.
+        ignoreDefault = true,
         getFunction = function()
             local gid = ActiveGuildId()
             if gid == 0 then return "(none)" end
@@ -394,6 +411,22 @@ local function CreateMainMenu()
 
     settings:AddSetting({
         type = LHAS.ST_CHECKBOX,
+        label = "Campaign Alerts on Zone Change",
+        tooltip = "Also check Emperor Push, Throne Defense, War Begins and War Rages after changing zones. Alert Filters 1-5 and normal cooldowns still apply.",
+        default = true,
+        getFunction = function()
+            local cta = GetScopeCtaSettings()
+            return cta and cta.polling and cta.polling.onZoneChange == true
+        end,
+        setFunction = function(state)
+            local cta = GetScopeCtaSettings()
+            if cta and cta.polling then cta.polling.onZoneChange = (state == true) end
+        end,
+        disable = function() return not IsConfiguredForSettings() end,
+    })
+
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
         label = "Enable CTA Alerts",
         tooltip = "CTA is bound to the lock scope guild and campaign.",
         default = true,
@@ -436,6 +469,38 @@ local function CreateMainMenu()
         setFunction = function(state)
             local cta = GetScopeCtaSettings()
             if cta and cta.alerts then cta.alerts.dethrone = (state == true) end
+        end,
+        disable = function() return not IsConfiguredForSettings() end,
+    })
+
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
+        label = "CTA Alerts: War Begins",
+        tooltip = "Alert when any alliance population rises from empty to low.",
+        default = false,
+        getFunction = function()
+            local cta = GetScopeCtaSettings()
+            return cta and cta.alerts and cta.alerts.warBegins == true
+        end,
+        setFunction = function(state)
+            local cta = GetScopeCtaSettings()
+            if cta and cta.alerts then cta.alerts.warBegins = (state == true) end
+        end,
+        disable = function() return not IsConfiguredForSettings() end,
+    })
+
+    settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
+        label = "CTA Alerts: War Rages",
+        tooltip = "Alert when at least two alliances reach medium population or higher.",
+        default = false,
+        getFunction = function()
+            local cta = GetScopeCtaSettings()
+            return cta and cta.alerts and cta.alerts.warRages == true
+        end,
+        setFunction = function(state)
+            local cta = GetScopeCtaSettings()
+            if cta and cta.alerts then cta.alerts.warRages = (state == true) end
         end,
         disable = function() return not IsConfiguredForSettings() end,
     })
@@ -531,8 +596,24 @@ local function CreateMainMenu()
     })
 
     settings:AddSetting({
+        type = LHAS.ST_CHECKBOX,
+        label = "Population Alerts on Zone Change",
+        tooltip = "Also check the Campaign Population alert after changing zones. Alert Filters 1-5, the population interval and normal alert conditions still apply.",
+        default = true,
+        getFunction = function()
+            local cta = GetScopeCtaSettings()
+            return cta and cta.population and cta.population.onZoneChange == true
+        end,
+        setFunction = function(state)
+            local cta = GetScopeCtaSettings()
+            if cta and cta.population then cta.population.onZoneChange = (state == true) end
+        end,
+        disable = function() return not IsConfiguredForSettings() end,
+    })
+
+    settings:AddSetting({
         type = LHAS.ST_LABEL,
-        label = "|c88ccffAlert Filters|r",
+        label = "|c88ccffAlert Filters (1-5)|r",
     })
 
     settings:AddSetting({

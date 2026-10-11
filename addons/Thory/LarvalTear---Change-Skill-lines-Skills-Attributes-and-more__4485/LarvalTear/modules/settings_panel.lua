@@ -139,7 +139,9 @@ function SettingsPanel:Register()
             tooltip = Addon.GetStringText("SI_LTM_SETTINGS_IGNORE_COSTUMES_TOOLTIP"),
             getFunc = IsIgnoreCostumesEnabled,
             setFunc = function(value)
-                Addon:SetIgnoreCostumesEnabled(value == true)
+                if Addon:SetIgnoreCostumesEnabled(value == true) then
+                    CALLBACK_MANAGER:FireCallbacks("LTM_IgnoreCostumesChanged")
+                end
             end,
             default = false,
         },
@@ -294,8 +296,18 @@ function SettingsPanel:Register()
         },
     }
 
-    lam:RegisterAddonPanel(SETTINGS_PANEL_ID, panelData)
+    self.panel = lam:RegisterAddonPanel(SETTINGS_PANEL_ID, panelData)
     lam:RegisterOptionControls(SETTINGS_PANEL_ID, optionsTable)
     self.registered = true
+    return true
+end
+
+function SettingsPanel:Open()
+    local lam = GetLibAddonMenu()
+    if self.registered ~= true or self.panel == nil or lam == nil
+        or type(lam.OpenToPanel) ~= "function" then
+        return false, "settings_panel_unavailable"
+    end
+    lam:OpenToPanel(self.panel)
     return true
 end

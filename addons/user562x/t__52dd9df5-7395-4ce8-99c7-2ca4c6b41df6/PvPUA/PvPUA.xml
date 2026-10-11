@@ -1,0 +1,15 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="PvPUA_Death_Buttons" mouseEnabled="true" clampedToScreen="false" hidden="true" tier="0" layer="1" alpha="1" resizeToFitDescendents="true">
+            <Anchor point="BOTTOM" relativeTo="ZO_DeathAvAButtons" relativePoint="TOP" offsetY="-40"/>
+            <Controls>
+                <Control name="$(parent)Button1" inherits="ZO_KeybindButton">
+                    <Anchor point="TOPLEFT"/>
+                </Control>
+                <Control name="$(parent)Button2" inherits="ZO_KeybindButton">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Button1" relativePoint="TOPRIGHT" offsetX="40"/>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

@@ -46,6 +46,20 @@ local WEIGHT_NAMES = {
 local ROW_HIGHLIGHT_COLOR = { 1, 0.9, 0.3, 0.18 }
 local ROW_STRIPE_COLOR = { 1, 1, 1, 0.06 }
 local ROW_CLEAR_COLOR = { 0, 0, 0, 0 }
+
+-- The Off-Hand row is dimmed by this much while it is closed (see RefreshGrid),
+-- and offHandClosed (set there) tells the row label's tooltip whether to speak.
+local CLOSED_ROW_ALPHA = 0.45
+local offHandClosed = false
+
+-- Shown on the Off-Hand row's name and on its disabled Find checkbox.
+local OFF_HAND_CLOSED_TIP = "Needs a one-handed Main Hand. Equip one, or pick a one-handed weapon type on the Main Hand row."
+
+-- Invisible control laid over the Off-Hand Find checkbox. A disabled button may
+-- not deliver mouse events, so this catches the hover instead; it is mouse-
+-- enabled only while Off-Hand is closed (set in RefreshGrid), so it never
+-- blocks the checkbox when it is usable.
+local offHandCheckboxCover = nil
 local BLANK_TEXT_COLOR = { 0.6, 0.6, 0.6, 1 }
 
 local function SelectComboValue(combo, value)
@@ -102,7 +116,7 @@ local function PopulateTypeCombo(combo, slotDef)
     if slotDef.category == "armor" then
         options = CompanionGearHunter.Data.WEIGHT_OPTIONS
     elseif slotDef.category == "weapon" then
-        options = CompanionGearHunter.Data.WEAPON_TYPE_OPTIONS
+        options = CompanionGearHunter.Data.GetWeaponTypeOptions(slotDef.key)
     end
 
     if options then
@@ -299,24 +313,29 @@ function CompanionGearHunter.RefreshGrid()
     RefreshCompanionRole()
     BlankAllSlotsCombos()
 
-    -- Shared with CompanionGearHunter_Data.lua's matching/upgrade logic
-    -- (GetCandidateSlotKeysForCompanion) so the grid and the tooltip
-    -- signals always agree on which companions currently have no
-    -- Off-Hand slot to speak of.
-    local hideOffHand = selectedCompanionId and CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(selectedCompanionId)
+    -- Same facts the matching/upgrade logic in CompanionGearHunter_Data.lua
+    -- uses. The Off-Hand row is always shown, but it is only usable while the
+    -- companion's effective Main Hand is one-handed (Data.IsOffHandAvailable:
+    -- a one-handed type wanted on the Main Hand row, else what is equipped).
+    -- While closed it is greyed out and unticked and its stored picks are
+    -- ignored; its equipped columns read "-" while a two-hander is worn
+    -- (GetCachedEquippedLink returns nothing for it).
+    local twoHanded = selectedCompanionId and CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(selectedCompanionId)
+    offHandClosed = selectedCompanionId ~= nil and not CompanionGearHunter.Data.IsOffHandAvailable(selectedCompanionId)
+    if offHandCheckboxCover then
+        offHandCheckboxCover:SetMouseEnabled(offHandClosed)
+    end
 
     for i, rowInfo in ipairs(rows) do
         local row = rowInfo.control
         local slotDef = rowInfo.slotDef
 
-        if slotDef.key == "OffHand" and hideOffHand then
-            row:SetHidden(true)
-        else
+        do
             row:SetHidden(false)
 
             local slotLabel = slotDef.label
-            if slotDef.key == "MainHand" and hideOffHand then
-                slotLabel = "Two-Handed"
+            if slotDef.key == "MainHand" and twoHanded then
+                slotLabel = "2-Handed"
             end
             row:GetNamedChild("Slot"):SetText(slotLabel)
 
@@ -349,9 +368,17 @@ function CompanionGearHunter.RefreshGrid()
             -- why it moved to window-close instead of running on every
             -- live edit.
             local wishlistEntry = selectedCompanionId and CompanionGearHunter.Data.GetWishlistEntry(selectedCompanionId, slotDef.key) or {}
-            local isActive = wishlistEntry.enabled == true
+            local rowClosed = slotDef.key == "OffHand" and offHandClosed
+            local isActive = wishlistEntry.enabled == true and not rowClosed
 
-            ZO_CheckButton_SetCheckState(row:GetNamedChild("WantEnabled"), isActive)
+            local wantEnabledButton = row:GetNamedChild("WantEnabled")
+            ZO_CheckButton_SetCheckState(wantEnabledButton, isActive)
+            if rowClosed then
+                ZO_CheckButton_Disable(wantEnabledButton)
+            else
+                ZO_CheckButton_Enable(wantEnabledButton)
+            end
+            row:SetAlpha(rowClosed and CLOSED_ROW_ALPHA or 1)
 
             for _, combo in ipairs({ rowInfo.wantType, rowInfo.wantTrait, rowInfo.wantQuality }) do
                 combo:SetEnabled(isActive)
@@ -532,6 +559,30 @@ local function OnAddOnLoaded(eventCode, addOnName)
         PopulateQualityCombo(wantQuality, slotDef)
 
         rows[i] = { control = rowControl, slotDef = slotDef, wantType = wantType, wantTrait = wantTrait, wantQuality = wantQuality }
+
+        -- The Off-Hand row's name and its Find checkbox explain why it is
+        -- greyed out, while it is.
+        if slotDef.key == "OffHand" then
+            local function ShowClosedTip(control)
+                if offHandClosed then
+                    ZO_Tooltips_ShowTextTooltip(control, TOP, OFF_HAND_CLOSED_TIP)
+                end
+            end
+            local function HideClosedTip()
+                ZO_Tooltips_HideTextTooltip()
+            end
+
+            local slotLabel = rowControl:GetNamedChild("Slot")
+            slotLabel:SetMouseEnabled(true)
+            slotLabel:SetHandler("OnMouseEnter", ShowClosedTip)
+            slotLabel:SetHandler("OnMouseExit", HideClosedTip)
+
+            offHandCheckboxCover = WINDOW_MANAGER:CreateControl(nil, rowControl, CT_CONTROL)
+            offHandCheckboxCover:SetAnchorFill(rowControl:GetNamedChild("WantEnabled"))
+            offHandCheckboxCover:SetMouseEnabled(false)
+            offHandCheckboxCover:SetHandler("OnMouseEnter", ShowClosedTip)
+            offHandCheckboxCover:SetHandler("OnMouseExit", HideClosedTip)
+        end
     end
 
     SetUpAllSlotsRow()

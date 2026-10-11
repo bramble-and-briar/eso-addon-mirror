@@ -11,7 +11,6 @@ local query = LFC.Internal.Query
 
 local resolveRecipe = LFC.Internal.Build.ResolveRecipe
 local furnishingCategory = LFC.Internal.Build.FurnishingCategory
-local isInjected = LFC.Internal.Compat.IsInjected
 local CRAFTING = LFC.Internal.Constants.ItemSources.CRAFTING
 
 local getItemId, getItemLink = fmt.GetItemId, fmt.GetItemLink
@@ -20,10 +19,7 @@ local stripTxt = fmt.stripTxt
 local stringKeys = LFC.Internal.StringKeys
 
 -- value -> name (readable source name instead of id)
-local SOURCE_NAME = {}
-for name, value in pairs(LFC.Internal.Constants.ItemSources) do
-  SOURCE_NAME[value] = name
-end
+local SOURCE_NAME = LFC.Internal.Constants.SourceNames
 
 ---@param value integer source type value
 ---@return string
@@ -65,7 +61,7 @@ local PREFIX = "|c72DB00LFC|r: "
 
 -- Markup the chat window will not render
 local CHAT_STRIP = {
-  "|u%d+:%d+.+|u",
+  "|u%d+:%d+.-|u",
 }
 
 ---Chat-safe single line: item links and colours survive, the rest does not. Turns newlines into spaces
@@ -206,7 +202,7 @@ function COMMANDS.raw(rest)
 
   -- The row stores only what the game cannot answer, so this one asks the game for the rest
   local flags = {
-    "origin=" .. sourceName(entry.origin),
+    "primary=" .. sourceName(query.OriginOf(entry)),
     "version=" .. versionLabel(entry.version),
     "cat=" .. categoryLabel(furnishingCategory(itemId)),
   }
@@ -219,38 +215,38 @@ function COMMANDS.raw(rest)
   end
   say(table.concat(flags, " "))
 
-  local names, compat = {}, {}
+  local names = {}
   for source in pairs(entry.sources) do
-    local target = isInjected(entry.compatSources, source) and compat or names
-    target[#target + 1] = sourceName(source)
+    names[#names + 1] = sourceName(source)
   end
   table.sort(names)
-  table.sort(compat)
-  local sources = "sources=" .. table.concat(names, ",")
-  if #compat > 0 then
-    sources = sources .. " compat=" .. table.concat(compat, ",")
-  end
-  say(sources)
+  say("sources=" .. table.concat(names, ","))
 
   for index, record in ipairs(api.GetSourceDetails(itemId)) do
     local parts = { string.format("[%d] type=%s", index, sourceName(record.source.type)) }
-    -- place sits beside location on purpose: a record carries one or the other
-    for _, field in ipairs({ "vendor", "place", "note", "achievement", "event" }) do
+    for _, field in ipairs({ "vendor", "note", "achievement", "collectible", "event" }) do
       local value = idWithKey(record.source[field])
       if value then
         parts[#parts + 1] = field .. "=" .. value
       end
     end
-    if record.source.location then
-      -- strip zone names of their grammar control chars
-      local zone = zo_strformat("<<1>>", GetZoneNameById(record.source.location))
-      parts[#parts + 1] = string.format("location=%d(%s)", record.source.location, zone)
+    -- one entry per place the source covers (a zone and a place inside it share one entry)
+    for _, placement in ipairs(record.source.locations or {}) do
+      if placement.location then
+        -- strip zone names of their grammar control chars
+        local zone = zo_strformat("<<1>>", GetZoneNameById(placement.location))
+        parts[#parts + 1] = string.format("location=%d(%s)", placement.location, zone)
+      end
+      local place = idWithKey(placement.place)
+      if place then
+        parts[#parts + 1] = "place=" .. place
+      end
     end
     if record.cost then
       parts[#parts + 1] = string.format("cost=%s/%s", tostring(record.cost.amount), tostring(record.cost.currency))
     end
-    if record.availability and record.availability.lastSeen then
-      parts[#parts + 1] = "lastSeen=" .. tostring(record.availability.lastSeen)
+    if record.lastSeen then
+      parts[#parts + 1] = "lastSeen=" .. tostring(record.lastSeen)
     end
     say(table.concat(parts, " "))
   end

@@ -18,7 +18,7 @@
     "SimpleEventTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4932/",
-  "fingerprint": "b8e49a2ae980a146c210083c79f55c08a55dee989cf361f407aae9ca21438ff5",
+  "fingerprint": "3437f3f4ceb01b9d59bfda35408fcfc75114b0a02ad9cb794cab83f9e87b9861",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17838.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4932",
   "source_url": "https://www.esoui.com/downloads/info4932-SimpleEventTracker.html",
   "stats": {
-    "downloads": 9,
+    "downloads": 21,
     "favorites": 0,
-    "monthly_downloads": 9
+    "monthly_downloads": 15
   },
   "title": "Simple Event Tracker",
-  "updated_at": 1791550983000,
-  "version": "3.0.4"
+  "updated_at": 1791708849000,
+  "version": "3.1.2"
 }

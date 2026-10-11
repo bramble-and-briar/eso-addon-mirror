@@ -1,3 +1,11 @@
+;2.0.1
+Fixed Save/Clear buttons in Application History.
+
+;2.0.0
+Replaced the HUD icon with icons anchored to the Group Finder panels.
+Listing Templates and Application History now share the same top-right position, with only the relevant icon and list shown.
+Fixed listing refresh after creating a template and incorrect difficulty saving.
+
 ;1.0.1
 Added a HUD icon to open the Show Logs window.
 

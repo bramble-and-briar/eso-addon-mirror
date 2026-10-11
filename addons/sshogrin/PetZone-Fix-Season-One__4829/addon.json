@@ -18,7 +18,7 @@
     "PetZone"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4829/",
-  "fingerprint": "8b2fba697d212b0e49505932934e0388aac29e73cd72d5935c752278ef2c3fd7",
+  "fingerprint": "fcedec0a941fd8885dfec3a33c6422e1ae436cae15ef60a53b5ef18b5090266b",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4829",
   "source_url": "https://www.esoui.com/downloads/info4829-PetZoneFixSeasonOne.html",
   "stats": {
-    "downloads": 2,
+    "downloads": 62,
     "favorites": 0,
-    "monthly_downloads": 1
+    "monthly_downloads": 61
   },
   "title": "PetZone (Fix:Season One)",
-  "updated_at": 1789150327000,
-  "version": "3.4"
+  "updated_at": 1791670771000,
+  "version": "3.5.0"
 }

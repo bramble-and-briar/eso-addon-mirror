@@ -1,0 +1,67 @@
+<GuiXml>
+    <Controls>
+        <!-- Only the controls are declared here; sizes and positions are set in DungeonSetTracker.lua. -->
+
+        <!-- Dungeon panel (HUD): one line per set, name and progress bar (the bar is added in Lua) -->
+        <Control name="DungeonSetTracker_PanelLine" virtual="true">
+            <Controls>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT"/>
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Dungeon panel (HUD), shown by a HUD fragment while inside a known dungeon -->
+        <TopLevelControl name="DungeonSetTrackerPanel" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop" alpha="0.85"/>
+                <Label name="$(parent)Title" font="ZoFontWinH4" wrapMode="ELLIPSIS" maxLineCount="1" modifyTextType="UPPERCASE" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"/>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Set chart, styled like the game's Sets collection: set name, progress bar, one slot per piece -->
+        <Label name="DungeonSetTracker_ChartLabel" font="ZoFontWinH4" wrapMode="ELLIPSIS" maxLineCount="2" verticalAlignment="CENTER" virtual="true"/>
+        <Control name="DungeonSetTracker_ChartCell" virtual="true">
+            <Controls>
+                <Texture name="$(parent)Icon" layer="CONTROLS">
+                    <Anchor point="TOPLEFT" offsetX="3" offsetY="3"/>
+                    <Anchor point="BOTTOMRIGHT" offsetX="-3" offsetY="-3"/>
+                </Texture>
+                <Texture name="$(parent)Frame" textureFile="EsoUI/Art/ActionBar/abilityFrame64_up.dds" layer="OVERLAY">
+                    <AnchorFill/>
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Shown at a fixed place while a dungeon is hovered in the keyboard Group & Activity Finder -->
+        <TopLevelControl name="DungeonSetTrackerChart" hidden="true" tier="HIGH" clampedToScreen="true">
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop"/>
+                <Label name="$(parent)Title" font="ZoFontWinH2" wrapMode="ELLIPSIS" maxLineCount="1" modifyTextType="UPPERCASE" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"/>
+                <Texture name="$(parent)Divider" inherits="ZO_HorizontalDivider"/>
+                <!-- Sets of the dungeon; scaled down as a whole when there are more than fit -->
+                <Control name="$(parent)Content"/>
+                <!-- Legend: a piece in color "collected", as a silhouette "missing", the veteran icon when shown -->
+                <Control name="$(parent)Legend">
+                    <Controls>
+                        <Control name="$(parent)Have" inherits="DungeonSetTracker_ChartCell">
+                            <Anchor point="LEFT"/>
+                        </Control>
+                        <Label name="$(parent)HaveText" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                            <Anchor point="LEFT" relativeTo="$(parent)Have" relativePoint="RIGHT" offsetX="6"/>
+                        </Label>
+                        <Control name="$(parent)Missing" inherits="DungeonSetTracker_ChartCell">
+                            <Anchor point="LEFT" relativeTo="$(parent)HaveText" relativePoint="RIGHT" offsetX="20"/>
+                        </Control>
+                        <Label name="$(parent)MissingText" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                            <Anchor point="LEFT" relativeTo="$(parent)Missing" relativePoint="RIGHT" offsetX="6"/>
+                        </Label>
+                        <Label name="$(parent)Veteran" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" hidden="true">
+                            <Anchor point="LEFT" relativeTo="$(parent)MissingText" relativePoint="RIGHT" offsetX="20"/>
+                        </Label>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

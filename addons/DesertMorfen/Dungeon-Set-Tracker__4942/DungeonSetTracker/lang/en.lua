@@ -1,0 +1,67 @@
+DungeonSetTracker = DungeonSetTracker or {}
+
+-- English is always loaded first and is the fallback for every other client language.
+-- Translators: copy this list into lang/<language>.lua and translate the texts; keep the %s / %d codes.
+DungeonSetTracker.L = {
+    TITLE = "Dungeon Set Tracker",  -- the addon's name, the same in every language
+
+    -- Set chart
+    ALL_COLLECTED = "All sets of this dungeon are collected.",
+    LEGEND_HAVE = "Collected",
+    LEGEND_MISSING = "Missing",
+    LEGEND_VETERAN_ONLY = "Veteran only",
+
+    -- Chat
+    CHAT_ENTER = "%s: %s pieces collected",
+    CHAT_NEW_PIECE = "New piece: %s (%s %s)",
+    CHAT_TOTAL = "%d dungeons: %s pieces collected",
+    CHAT_PANEL_ON = "Dungeon panel turned on.",
+    CHAT_PANEL_OFF = "Dungeon panel turned off.",
+    CHAT_HELP = "Commands: /dst - settings, /dst panel - dungeon panel on/off, /dst total - progress over all dungeons",
+    CHAT_NO_SETTINGS = "The settings need the library LibAddonMenu-2.0.",
+    CHAT_FINDER_MISSING = "The Dungeon Finder could not be found, the set chart is not available.",
+
+    -- Settings
+    SETTINGS_INTRO = "Settings are saved per server (NA, EU, PTS).",
+    SETTINGS_FINDER = "Set chart in the Dungeon Finder",
+    SETTINGS_FINDER_DESC = "Group & Activity Finder > Specific Dungeons: hover a dungeon to see every piece of its sets. Keyboard and mouse interface only.",
+    SETTINGS_FINDER_TOOLTIP = "Show set chart",
+    SETTINGS_FINDER_TOOLTIP_TT = "While you hover a dungeon, a chart shows every piece of its sets: in color with a green frame if you have it, as a silhouette if you don't.",
+    SETTINGS_TIP_POSITION = "Position",
+    SETTINGS_TIP_POSITION_TT = "Where the chart appears: at an edge of the screen, or next to the game's dungeon preview.",
+    SETTINGS_POS_LEFT = "Left edge of the screen",
+    SETTINGS_POS_RIGHT = "Right edge of the screen",
+    SETTINGS_POS_PREVIEW = "Next to the dungeon preview",
+    SETTINGS_TIP_OFFSET_X = "Distance from the screen edge",
+    SETTINGS_TIP_OFFSET_X_TT = "Not used for the position next to the dungeon preview.",
+    SETTINGS_TIP_OFFSET_Y = "Vertical position",
+    SETTINGS_TIP_OFFSET_Y_TT = "0 is the middle of the screen.",
+    SETTINGS_TIP_SCALE = "Size (%)",
+    SETTINGS_TIP_SCALE_TT = "The chart is never made larger than the screen.",
+    SETTINGS_TIP_BG = "Background opacity (%)",
+    SETTINGS_TIP_BG_TT = "Opacity of the chart's background.",
+    SETTINGS_TIP_HIDE_COMPLETED = "Hide fully collected sets",
+    SETTINGS_TIP_HIDE_COMPLETED_TT = "Only sets with missing pieces are shown. The total at the top still counts every set.",
+    SETTINGS_TIP_LEGEND = "Show legend",
+    SETTINGS_TIP_LEGEND_TT = "Explains the icons at the bottom of the chart.",
+    SETTINGS_TIP_PREVIEW = "Preview",
+    SETTINGS_TIP_PREVIEW_TT = "Shows the chart for a few seconds, with the dungeon that has the most sets.",
+    SETTINGS_TIP_RESET = "Reset chart position and size",
+    SETTINGS_TIP_RESET_TT = "Position, distance, vertical position, size and background back to their defaults.",
+    SETTINGS_PANEL = "Dungeon panel",
+    SETTINGS_SHOW_PANEL = "Show panel inside dungeons",
+    SETTINGS_SHOW_PANEL_TT = "A small panel with this dungeon's sets and your progress. Shown only on the HUD, hidden in menus.",
+    SETTINGS_LOCK_PANEL = "Lock panel",
+    SETTINGS_LOCK_PANEL_TT = "When unlocked, drag the panel with the mouse (with the cursor shown).",
+    SETTINGS_PANEL_SCALE = "Panel size (%)",
+    SETTINGS_PANEL_SCALE_TT = "Size of the dungeon panel.",
+    SETTINGS_PANEL_HIDE_COMPLETED = "Hide completed sets in the panel",
+    SETTINGS_PANEL_HIDE_COMPLETED_TT = "Only sets with missing pieces are listed.",
+    SETTINGS_RESET_PANEL = "Reset panel position",
+    SETTINGS_RESET_PANEL_TT = "Moves the panel back to the right edge of the screen.",
+    SETTINGS_CHAT = "Chat",
+    SETTINGS_CHAT_ENTER = "Summary when entering a dungeon",
+    SETTINGS_CHAT_ENTER_TT = "Lists the sets with missing pieces once per visit (not again after /reloadui within 30 minutes).",
+    SETTINGS_CHAT_NEW_PIECE = "Message for new pieces inside dungeons",
+    SETTINGS_CHAT_NEW_PIECE_TT = "With the item link. Only for pieces of the dungeon you are in; the game itself also announces new collection pieces.",
+}

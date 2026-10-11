@@ -1,6 +1,5 @@
-2026.10.05
-- Minor tweak to prevent the possibility of the total listing value from showing anywhere but the listing tab if you changed tabs very quickly.
-- Minor tweak to missing bank item chat output.
+2026.10.10
+- Fixed /tp home function. Forgot to add it when I rewrote it recently.
 ** POSSIBLE FUTURE OPTIONS **
 - Auto com res?
 

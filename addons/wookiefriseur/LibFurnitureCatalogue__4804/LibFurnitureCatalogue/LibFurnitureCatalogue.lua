@@ -1,6 +1,6 @@
 -- LibFurnitureCatalogue - Furniture Catalogue database library, startup file
 
-local MAJOR, MINOR = "LibFurnitureCatalogue", 1001000 -- AUTOREPLACED with AddOnVersion
+local MAJOR, MINOR = "LibFurnitureCatalogue", 1002000 -- AUTOREPLACED with AddOnVersion
 
 -- set up key maps for "id -> SI_" (used in locale files)
 local lib = _G[MAJOR] or {}
@@ -33,23 +33,13 @@ lib.Internal = lib.Internal or {} -- internal use only
 ---"NOT PROMISED" = delivered but not subject to change
 ---
 ---A stored row holds only infos that the game cannot tell us directly: sources, update version, blueprint of an item.
----
---- `origin` is derived from `sources` and the two category fields from the item itself, through one metatable shared by every row (it is the primary source as compatibility attribute)
----
----GetEntry copies the row and puts `origin` onto the copy (copy iterates with `pairs` and `pairs` cannot see derived fields)
----
---- The category fields are not added, use GetFurnitureCategories, or game functions
 ---@class FurCEntry
 ---@field id integer the itemId this entry is stored under
----@field sources table<FurCItemSource, boolean> every source this item has, plus the ones a fine-grained source was carved from
----@field origin FurCItemSource NOT PROMISED, top-ranked source, derived from `sources`
+---@field sources integer bitmask of every source this item has, plus the ones a fine-grained source was carved from. GetEntry hands out the `[id] = true` set instead; on the stored row it is a mask, bit positions following the enum
 ---@field version integer game version when the item was added
 ---@field blueprint integer|nil blueprint itemId, when craftable
 ---@field furnCategory integer NOT PROMISED, derived. Furniture category id (0 = no category). Absent from a copy
 ---@field furnSubcategory integer NOT PROMISED, derived. Furniture subcategory id. Absent from a copy
----@field recipeListIndex integer|nil NOT PROMISED. Set only on rows the recipe scan found, pairs with recipeIndex
----@field recipeIndex integer|nil NOT PROMISED. Set only on rows the recipe scan found, pairs with recipeListIndex
----@field compatSources integer|nil NOT PROMISED, deprecated. Bitmask of the `sources` members that exist only for deprecated calls, absent when nothing was injected. Use Internal.Compat.IsInjected to check
 
 -- Runtime furniture database, built per session by the scanner: DB[itemId] = FurCEntry
 ---@type table<integer, FurCEntry>

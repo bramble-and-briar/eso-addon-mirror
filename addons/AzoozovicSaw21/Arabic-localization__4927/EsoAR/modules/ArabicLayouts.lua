@@ -33,6 +33,14 @@ if EVENT_MANAGER then
     EVENT_MANAGER:RegisterForUpdate("ESOArabicLayoutRefresh", 30, R.FlushLayoutRefreshes)
 end
 local function child(c, name) return c and c.GetNamedChild and c:GetNamedChild(name) end
+-- Tooltip pools measure their labels synchronously. A label previously found
+-- by discovery must stop receiving queued refreshes once the tooltip owns it.
+function R.ReleaseLabelBinding(c)
+    local b = bound[c]
+    if b then c.SetText = b.original end
+    bound[c], pending[c] = nil, nil
+    R.Manage(c)
+end
 local function hook(object, key, before, after)
     if not object or type(object[key]) ~= "function" then return end
     local marker = "esoArabic131_" .. key

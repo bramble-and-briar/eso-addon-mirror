@@ -65,6 +65,15 @@ setDrops("Lep Seclusa", {"Fledgling's Nest", "Noxious Boulder", "Heroic Unity"},
 setDrops("Black Gem Foundry", {"Black Foundry Steel", "Lustrous Soulwell", "Vykand's Soulfury"}, "Black Gem Monstrosity")
 setDrops("Naj-Caldeesh", {"Stonehulk Domination", "Tools of the Trapmaster", "Xanmeer Spellweaver"}, "Bar-Sakka")
 
+-- Solo arenas: armor sets from round/wing chests, weapons from the final boss.
+setDrops("Maelstrom Arena", {"Elemental Succession", "Glorious Defender", "Hunt Leader", "Para Bellum", "Permafrost", "Winterborn"})
+PullCardData.setWeapons("Maelstrom Arena", {"Crushing Wall", "Cruel Flurry", "Merciless Charge", "Precise Regeneration", "Rampaging Slash", "Thunderous Volley"})
+setDrops("Vateshran Hollows", {"Explosive Rebuke", "Hex Siphon", "Pestilent Host"})
+PullCardData.setWeapons("Vateshran Hollows", {"Executioner's Blade", "Force Overflow", "Frenzied Momentum", "Point-Blank Snipe", "Void Bash", "Wrath of Elements"})
+
+PullCardData.setLocation("Maelstrom Arena", "Wrothgar")
+PullCardData.setLocation("Vateshran Hollows", "The Reach")
+
 -- Where each dungeon's entrance is. Source: UESP Group Dungeons.
 local setLocation = PullCardData.setLocation
 local LOCATIONS = {

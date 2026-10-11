@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/mettaleggroll/CorpseTracker__4941",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "mettaleggroll",
+  "canonical_id": "esoui:4941",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4941",
+  "deleted": false,
+  "directories": [
+    "CorpseTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4941/",
+  "fingerprint": "b9de5f498bf66f19b97b3d80008b9fab6a05c5b9c8694f74e6c3f322173276a7",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17926.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17927.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4941",
+  "source_url": "https://www.esoui.com/downloads/info4941-CorpseTracker.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "CorpseTracker",
+  "updated_at": 1791705985000,
+  "version": "0.3.4"
+}

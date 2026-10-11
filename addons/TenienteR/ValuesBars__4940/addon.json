@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/TenienteR/ValuesBars__4940",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "TenienteR",
+  "canonical_id": "esoui:4940",
+  "category_id": "21",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4940",
+  "deleted": false,
+  "directories": [
+    "ValuesBars"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4940/",
+  "fingerprint": "1150e1cb46d4febbb7509fc6063dfb246713a87407a9c48a5548390527c6b9fc",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17907.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17908.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17909.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17910.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17911.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17912.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17913.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17914.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17915.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17916.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4940",
+  "source_url": "https://www.esoui.com/downloads/info4940-ValuesBars.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "ValuesBars",
+  "updated_at": 1791680172000,
+  "version": "1.0.0"
+}

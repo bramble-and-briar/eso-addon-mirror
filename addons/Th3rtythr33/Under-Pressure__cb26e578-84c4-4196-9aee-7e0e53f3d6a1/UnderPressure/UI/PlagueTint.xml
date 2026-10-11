@@ -23,6 +23,29 @@
 
     <Controls>
         <!--
+            "You died with Plague Carrier" (0.4.2).
+
+            A VIRTUAL label, instantiated by UI/PlagueTint.lua with
+            CreateControlFromVirtual as a CHILD of ZO_DeathRecap, the way
+            Deathnote parents its graph pane (see Deathnote/UI/Layout.lua for
+            the full reasoning). Parenting makes visibility the recap's
+            problem: it appears and fades with the recap, hides behind menus
+            with it, and goes away when the player closes the recap. Our own
+            SetHidden on top of that says whether we died plagued at all.
+
+            Anchored from Lua to the TOP of whichever recap background is
+            visible (GamepadBackground on console), not in XML, because the
+            background that carries the visible art is chosen by ZOS's platform
+            template at runtime.
+
+            FONT: a named gamepad font, re-applied through UP.Fonts at init.
+            Colour is set in Lua (smoky green, matching the tint).
+        -->
+        <Label name="UP_PlagueDeathNote" virtual="true" font="ZoFontGamepadBold34" horizontalAlignment="CENTER" verticalAlignment="BOTTOM" wrapMode="ELLIPSIS" hidden="true">
+            <Dimensions y="44"/>
+        </Label>
+
+        <!--
             Full-screen Plaguebreak tint.
 
             Anchored to GuiRoot on both corners so it fills whatever the screen

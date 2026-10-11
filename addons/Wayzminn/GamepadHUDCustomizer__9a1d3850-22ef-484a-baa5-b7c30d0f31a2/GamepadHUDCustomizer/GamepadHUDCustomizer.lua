@@ -6,7 +6,7 @@ local L = ADDON.L
 ADDON.name = "GamepadHUDCustomizer"
 ADDON.displayName = L.ADDON_NAME
 ADDON.author = "Wayzmin + OpenAI"
-ADDON.version = "0.3.2"
+ADDON.version = "0.3.4"
 ADDON.savedVarName = "GamepadHUDCustomizer_SV"
 
 local DEFAULTS = {
@@ -48,6 +48,14 @@ local DEFAULTS = {
 }
 
 local BLANK_TEXTURE = "/esoui/art/icons/blank.dds"
+
+-- Real console clients enforce a stricter secure/private API boundary than PC.
+-- In particular, add-on code cannot safely drive SetSetting-based refreshes from
+-- an insecure callback. Keep the HUD customization cross-platform, but gate the
+-- Nameplate hard-refresh workaround to PC/Mac where those calls are permitted.
+local function IsNativeConsoleUI()
+    return IsConsoleUI and IsConsoleUI() or false
+end
 
 -- Only gamepad-specific texture paths are redirected.
 -- Shared keyboard/nameplate texture paths are deliberately not touched.
@@ -576,31 +584,152 @@ end
 -- Nameplate refresh workaround
 -- --------------------------------------------------------------------------
 
+-- A fast off/on toggle is not enough when another add-on leaves the nameplate
+-- manager in a stale state. Reproduce the manual Settings workaround more
+-- faithfully: snapshot the relevant health-bar settings, leave the master
+-- switch off long enough for controls to tear down, restore it, then re-assert
+-- the child settings on the following UI update.
+local NAMEPLATE_REFRESH_MASTER_OFF_MS = 400
+local NAMEPLATE_REFRESH_CHILD_RESTORE_MS = 150
+local NAMEPLATE_REFRESH_AUTO_DELAY_MS = 300
+
+local NAMEPLATE_HEALTHBAR_SETTING_NAMES = {
+    "NAMEPLATE_TYPE_ALL_HEALTHBARS",
+    "NAMEPLATE_TYPE_ENEMY_NPC_HEALTHBARS",
+    "NAMEPLATE_TYPE_ENEMY_PLAYER_HEALTHBARS",
+    "NAMEPLATE_TYPE_FRIENDLY_NPC_HEALTHBARS",
+    "NAMEPLATE_TYPE_FRIENDLY_PLAYER_HEALTHBARS",
+    "NAMEPLATE_TYPE_PLAYER_HEALTHBAR",
+    "NAMEPLATE_TYPE_TARGET_HEALTHBAR",
+}
+
+local function CaptureNameplateHealthbarSettings()
+    local snapshot = {}
+
+    for _, constantName in ipairs(NAMEPLATE_HEALTHBAR_SETTING_NAMES) do
+        local settingId = _G[constantName]
+        if settingId ~= nil then
+            local value = GetSetting(SETTING_TYPE_NAMEPLATES, settingId)
+            if value ~= nil then
+                snapshot[#snapshot + 1] = {
+                    id = settingId,
+                    value = value,
+                    isMaster = constantName == "NAMEPLATE_TYPE_ALL_HEALTHBARS",
+                }
+            end
+        end
+    end
+
+    return snapshot
+end
+
+local function GetSnapshotMasterValue(snapshot)
+    for _, entry in ipairs(snapshot) do
+        if entry.isMaster then
+            return entry.value
+        end
+    end
+    return nil
+end
+
 local function RefreshNameplatesNow()
     if not ADDON.sv or ADDON.sv.refreshNameplatesMode == "off" then
+        ADDON.pendingNameplateRefresh = false
+        return false
+    end
+
+    -- Console add-ons run as insecure code and cannot safely toggle these
+    -- protected/private settings. The stock Settings screen can do it because
+    -- its handlers are secure; our add-on cannot reproduce that path.
+    if IsNativeConsoleUI() then
+        ADDON.pendingNameplateRefresh = false
+        ADDON.nameplateRefreshAgain = false
+        if L.NAMEPLATE_REFRESH_CONSOLE_UNAVAILABLE then
+            d(L.NAMEPLATE_REFRESH_CONSOLE_UNAVAILABLE)
+        end
+        return false
+    end
+
+    if ADDON.nameplateRefreshInProgress then
+        ADDON.nameplateRefreshAgain = true
         return false
     end
 
     if IsUnitInCombat and IsUnitInCombat("player") then
+        if not ADDON.pendingNameplateRefresh then
+            d(L.CE6C35CGAMEPAD_HUD_CUSTOMIZER_R_NAMEPLATE_REFRESH_QUEUE)
+        end
         ADDON.pendingNameplateRefresh = true
-        d(L.CE6C35CGAMEPAD_HUD_CUSTOMIZER_R_NAMEPLATE_REFRESH_QUEUE)
         return false
     end
 
+    local snapshot = CaptureNameplateHealthbarSettings()
+    local originalMasterValue = GetSnapshotMasterValue(snapshot)
+    if originalMasterValue == nil then
+        return false
+    end
+
+    -- If the user intentionally disabled all health bars, do not briefly enable
+    -- them as part of a refresh. There is no visible health-bar state to repair.
     if not GetSetting_Bool(SETTING_TYPE_NAMEPLATES, NAMEPLATE_TYPE_ALL_HEALTHBARS) then
-        -- If health bars are intentionally disabled, there is nothing useful to refresh.
+        ADDON.pendingNameplateRefresh = false
         return false
     end
 
     ADDON.pendingNameplateRefresh = false
-    local originalValue = GetSetting(SETTING_TYPE_NAMEPLATES, NAMEPLATE_TYPE_ALL_HEALTHBARS)
+    ADDON.nameplateRefreshInProgress = true
+    ADDON.nameplateRefreshAgain = false
 
     SetSetting(SETTING_TYPE_NAMEPLATES, NAMEPLATE_TYPE_ALL_HEALTHBARS, "false")
+
     zo_callLater(function()
-        SetSetting(SETTING_TYPE_NAMEPLATES, NAMEPLATE_TYPE_ALL_HEALTHBARS, originalValue)
-    end, 75)
+        -- Always restore the master setting once teardown has started, even if
+        -- combat begins during the delay. Leaving it disabled would be worse.
+        SetSetting(SETTING_TYPE_NAMEPLATES, NAMEPLATE_TYPE_ALL_HEALTHBARS, originalMasterValue)
+
+        zo_callLater(function()
+            -- Re-assert child settings after the master switch has rebuilt the
+            -- nameplate state. This is the part a 75 ms toggle was missing.
+            for _, entry in ipairs(snapshot) do
+                if not entry.isMaster then
+                    SetSetting(SETTING_TYPE_NAMEPLATES, entry.id, entry.value)
+                end
+            end
+
+            -- Re-assert the master last as well. Setting the same value is safe
+            -- and makes the final state explicit if another callback touched it.
+            SetSetting(SETTING_TYPE_NAMEPLATES, NAMEPLATE_TYPE_ALL_HEALTHBARS, originalMasterValue)
+
+            ADDON.nameplateRefreshInProgress = false
+
+            if ADDON.nameplateRefreshAgain then
+                ADDON.nameplateRefreshAgain = false
+                zo_callLater(RefreshNameplatesNow, NAMEPLATE_REFRESH_AUTO_DELAY_MS)
+            end
+        end, NAMEPLATE_REFRESH_CHILD_RESTORE_MS)
+    end, NAMEPLATE_REFRESH_MASTER_OFF_MS)
 
     return true
+end
+
+local function ScheduleNameplateRefresh(delayMs)
+    if IsNativeConsoleUI() then
+        return
+    end
+
+    if not ADDON.sv or ADDON.sv.refreshNameplatesMode ~= "auto" then
+        return
+    end
+
+    ADDON.nameplateRefreshScheduleToken = (ADDON.nameplateRefreshScheduleToken or 0) + 1
+    local token = ADDON.nameplateRefreshScheduleToken
+
+    zo_callLater(function()
+        if token ~= ADDON.nameplateRefreshScheduleToken then
+            return
+        end
+        RefreshNameplatesNow()
+    end, delayMs or NAMEPLATE_REFRESH_AUTO_DELAY_MS)
 end
 
 -- --------------------------------------------------------------------------
@@ -1325,14 +1454,14 @@ local function RegisterSettings()
     end
 
     CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
-        if not ADDON.settingsPanel or panel ~= ADDON.settingsPanel then
-            return
+        -- Preview overlays belong to our own panel, but Auto nameplate refresh
+        -- intentionally reacts to ANY LAM panel closing. Another add-on may be
+        -- the one that left ESO's nameplate state stale.
+        if ADDON.settingsPanel and panel == ADDON.settingsPanel then
+            HideAllPreviews()
         end
 
-        HideAllPreviews()
-        if ADDON.sv and ADDON.sv.refreshNameplatesMode == "auto" then
-            zo_callLater(RefreshNameplatesNow, 150)
-        end
+        ScheduleNameplateRefresh(NAMEPLATE_REFRESH_AUTO_DELAY_MS)
     end)
 
     local controllerChoices = {
@@ -1947,7 +2076,9 @@ local function RegisterSettings()
         {
             type = "dropdown",
             name = L.HEALTH_BAR_NAME_REFRESH,
-            tooltip = L.WORK_AROUND_MISSING_NAMEPLATE_HEALTH_BARS_AFTER_UI_CHAN,
+            tooltip = IsNativeConsoleUI()
+                and L.NAMEPLATE_REFRESH_CONSOLE_TOOLTIP
+                or L.WORK_AROUND_MISSING_NAMEPLATE_HEALTH_BARS_AFTER_UI_CHAN,
             choices = {
                 L.OFF,
                 L.MANUAL_ONLY,
@@ -1966,17 +2097,22 @@ local function RegisterSettings()
                 ADDON.sv.refreshNameplatesMode = value
             end,
             default = DEFAULTS.refreshNameplatesMode,
+            disabled = function()
+                return IsNativeConsoleUI()
+            end,
             width = "full",
         },
         {
             type = "button",
             name = L.REFRESH_NAMEPLATES_NOW,
-            tooltip = L.BRIEFLY_TOGGLE_THE_BUILT_IN_ALL_HEALTH_BARS_SETTING_AND,
+            tooltip = IsNativeConsoleUI()
+                and L.NAMEPLATE_REFRESH_CONSOLE_TOOLTIP
+                or L.BRIEFLY_TOGGLE_THE_BUILT_IN_ALL_HEALTH_BARS_SETTING_AND,
             func = function()
                 RefreshNameplatesNow()
             end,
             disabled = function()
-                return ADDON.sv.refreshNameplatesMode == "off"
+                return IsNativeConsoleUI() or ADDON.sv.refreshNameplatesMode == "off"
             end,
             width = "half",
         },
@@ -2135,6 +2271,13 @@ local function Initialize()
         and ADDON.sv.controllerStyle ~= "dualsense" then
         ADDON.sv.controllerStyle = DEFAULTS.controllerStyle
     end
+
+    if IsNativeConsoleUI() then
+        ADDON.pendingNameplateRefresh = false
+        ADDON.nameplateRefreshInProgress = false
+        ADDON.nameplateRefreshAgain = false
+    end
+
     ApplyControllerButtonTextures()
 
     EnsurePreviewRoot()

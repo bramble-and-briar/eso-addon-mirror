@@ -1,0 +1,19 @@
+## Title: Advanced Crux Tracker
+## Author: @|c40FF00ExoY|r94 (PC/EU), j.hhh
+## Description: Advanced Crux Tracker for Console/Gamepad UI with symbolic, numeric and timer tracking.
+## APIVersion: 101050
+## Version: 2.1.0-console9
+## SavedVariables: AdvancedCruxTrackerSavedVariables
+
+## DependsOn: LibAddonMenu-2.0>=43
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+; The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+; in the United States and/or other countries. All rights reserved.
+;
+; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+
+lang/en.lua
+lang/$(language).lua
+
+AdvancedCruxTracker.lua

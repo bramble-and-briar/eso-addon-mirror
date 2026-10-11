@@ -1,0 +1,32 @@
+OVERVIEW
+Keep the conversation going when you switch characters or reload your UI.
+Chat Keeper saves recent player chat, adds optional timestamps and lets you
+move the native HUD chat box to a more comfortable position—all with a
+transparent background and controller-friendly settings.
+
+DESCRIPTION
+Chat Keeper keeps a shared chat history across your characters on the same
+account and server, making it easier to pick up a conversation after a toon
+swap or UI reload.
+
+Features
+- Saves supported player conversations, including guild, group and whispers.
+- Keeps the latest 100 messages, with automatic expiry after 48 hours.
+- Restores 25–100 recent messages after a quick login or UI reload.
+- Skips automatic replay after 30 minutes away; retained history stays viewable.
+- Optional timestamps in 12-hour or 24-hour format.
+- Move native HUD chat horizontally or vertically to suit your interface.
+- Transparent HUD with no custom artwork or background panels.
+- Controller-friendly settings and a paged history viewer.
+- No external addon libraries required.
+
+Type /chatkeeper for settings or /chatkeeper history to browse saved chat.
+Use /chatkeeper reset to restore the original HUD position.
+
+Saved messages are restored locally and marked [Saved]; they are never sent
+to anyone. Saved links become plain text, while new live messages retain
+normal ESO links. Chat Keeper only records messages received while running;
+it cannot capture conversations while you are offline. Replayed messages use
+local system lines rather than their original channel filters.
+
+By @TheGreyWolf98

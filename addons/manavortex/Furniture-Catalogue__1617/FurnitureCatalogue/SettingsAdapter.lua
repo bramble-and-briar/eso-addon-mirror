@@ -19,46 +19,6 @@ function FurC.SetEnableDebug(value)
   end
 end
 
-function FurC.GetHideRumourRecipes()
-  return FurC.settings["hideDoubtfuls"]
-end
-
-function FurC.SetHideRumourRecipes(value)
-  FurC.settings["hideDoubtfuls"] = value
-  FurC.UpdateDropdowns()
-  FurC.UpdateGui()
-end
-
-function FurC.GetHideCrownStoreItems()
-  return FurC.settings["hideCrownstore"]
-end
-
-function FurC.SetHideCrownStoreItems(value)
-  FurC.settings["hideCrownstore"] = value
-  FurC.UpdateDropdowns()
-  FurC.UpdateGui()
-end
-
-function FurC.GetHideUIButton(buttonIdentifier)
-  return FurC.settings.hideUiButtons[buttonIdentifier]
-end
-
-function FurC.SetHideUIButton(buttonIdentifier, value)
-  FurC.settings.hideUiButtons[buttonIdentifier] = value
-  FurC.UpdateHeader()
-  if not buttonIdentifier == src.RUMOUR then
-    return
-  end
-
-  -- reanchor crownstore button
-  FurC_ShowCrowns:ClearAnchors()
-  if value then
-    FurC_ShowCrowns:SetAnchor(RIGHT, FurC_Search, RIGHT, 3, 3)
-  else
-    FurC_ShowCrowns:SetAnchor(RIGHT, FurC_ShowRumours, LEFT, 8, 0)
-  end
-end
-
 function FurC.GetFilterAllOnText()
   return FurC.settings["filterAllOnText"]
 end
@@ -99,15 +59,6 @@ end
 
 function FurC.SetFilterAllOnTextNoBooks(value)
   FurC.settings["filterAllOnTextNoBooks"] = value
-  FurC.UpdateGui()
-end
-
-function FurC.GetFilterAllOnTextNoCrown()
-  return FurC.settings["filterAllOnTextNoCrown"]
-end
-
-function FurC.SetFilterAllOnTextNoCrown(value)
-  FurC.settings["filterAllOnTextNoCrown"] = value
   FurC.UpdateGui()
 end
 
@@ -297,10 +248,6 @@ do
   end
 end
 
----------------------------
--------- /Tooltip ---------
----------------------------
-
 -- Legacy SavedVars cleanup control
 function FurC.BuildMigrationControls()
   local function statusText()
@@ -347,11 +294,10 @@ end
 
 function FurC.SetShowIconOnLeft(value)
   FurC.settings["showIconOnLeft"] = value
+  if FurC.RefreshIconAnchors then
+    FurC.RefreshIconAnchors()
+  end
 end
-
----------------------------
------- /IconDisplay -------
----------------------------
 
 ---------------------------
 --------- Filters ---------
@@ -474,36 +420,6 @@ function FurC.SetHideBooks(value)
   FurC.UpdateGui()
 end
 
-function FurC.GetMergeLuxuryAndSales()
-  return FurC.settings["mergeLuxuryAndSales"]
-end
-
-function FurC.SetMergeLuxuryAndSales(value)
-  FurC.settings["mergeLuxuryAndSales"] = value
-  FurC.UpdateGui()
-end
-
-function FurC.GetShowRumours()
-  return FurC.settings["showRumours"]
-end
-
-function FurC.SetShowRumours(value)
-  FurC.settings["showRumours"] = value
-  FurC_ShowRumours:SetState((value and BSTATE_PRESSED) or BSTATE_DISABLED, false)
-  FurC_ShowRumoursGlow:SetHidden(not value)
-  FurC.UpdateGui()
-end
-
-function FurC.GetShowCrownstore()
-  return FurC.settings["showCrowns"]
-end
-
-function FurC.SetShowCrownstore(value)
-  FurC.settings["showCrowns"] = value
-  FurC_ShowCrowns:SetState((value and BSTATE_PRESSED) or BSTATE_DISABLED, false)
-  FurC.UpdateGui()
-end
-
 ---------------------------
 --------- Dropdown --------
 ---------------------------
@@ -530,8 +446,9 @@ local function getDropdownIndex(dropdownName, value)
       return listKey
     end
   end
-  dropdown[#dropdown + 1] = value
-  return #dropdown
+  local newKey = #dropdown + 1
+  dropdown[newKey] = value
+  return newKey
 end
 
 local dropdownData = FurC.DropdownData
@@ -547,10 +464,7 @@ function FurC.SetDropdownChoice(dropdownName, textValue, dropdownIndex)
 
   FurC.DropdownChoices[dropdownName] = dropdownIndex
 
-  if
-    dropdownName == "Source"
-    and (dropdownIndex == src.CRAFTING or dropdownIndex == src.CRAFTING_KNOWN or dropdownIndex == src.CRAFTING_UNKNOWN)
-  then
+  if dropdownName == "Source" and (FurC.GetSourceFamilyRoot(dropdownIndex) == src.CRAFTING) then
     FurC.DropdownChoices["Character"] = FurC.GetDefaultDropdownChoice("Character")
     FurC_DropdownCharacter:GetNamedChild("SelectedItemText"):SetText(FurC.GetDropdownChoiceTextual("Character"))
   end
@@ -568,7 +482,7 @@ function FurC.ApplyDefaultCharacter()
     FurC.RefreshCharacterChoices() -- ensure the list reflects current LCK state
   end
   local source = FurC.GetDropdownChoice("Source")
-  if source ~= src.CRAFTING and source ~= src.CRAFTING_KNOWN and source ~= src.CRAFTING_UNKNOWN then
+  if FurC.GetSourceFamilyRoot(source) ~= src.CRAFTING then
     return
   end
   if FurC.GetDropdownChoice("Character") ~= 1 then
@@ -626,6 +540,28 @@ end
 
 function FurC.SetResetDropdownChoice(value)
   FurC.settings["resetDropdownChoice"] = value
+end
+
+---Keys of a dropdown's choices in display order: versions newest first (ids grow with each release), anything else by id
+---@param dropdownName string
+---@param choices table<integer, string>
+---@return integer[]
+function FurC.GetDropdownOrder(dropdownName, choices)
+  local keys = {}
+  for key in pairs(choices) do
+    keys[#keys + 1] = key
+  end
+  local noVersion = LFC.API.GetDataVersions().NONE
+  table.sort(keys, function(a, b)
+    if dropdownName ~= "Version" then
+      return a < b
+    end
+    if a == noVersion or b == noVersion then
+      return a == noVersion
+    end
+    return a > b
+  end)
+  return keys
 end
 
 function FurC.GetDropdownChoiceTextual(dropdownName)
@@ -711,11 +647,6 @@ function FurC.SetFilterFurnSubcategory(subcategoryId)
   FurC.SetFilter()
   FurC.UpdateGui()
 end
-
----------------------------
--------- /Dropdown --------
--------- /Filters  --------
----------------------------
 
 function FurC.GetUseInventoryIcons()
   return FurC.settings["useInventoryIcons"]

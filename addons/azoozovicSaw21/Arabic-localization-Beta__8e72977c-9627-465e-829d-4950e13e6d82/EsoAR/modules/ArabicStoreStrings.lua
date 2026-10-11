@@ -1,6 +1,5 @@
 -- Targeted Arabic store strings; no font or layout mutation.
-if not (ESOArabicSavedVariables and ESOArabicSavedVariables.legacyArabicStringRecoveryPending)
-    and type(ESO_ARABIC_IS_ACTIVE) == "function" and ESO_ARABIC_IS_ACTIVE() then
+if GetCVar("language.2") == "ar" then
     if SI_ACHIEVEMENT_SEARCH_EDIT_DEFAULT then SafeAddString(SI_ACHIEVEMENT_SEARCH_EDIT_DEFAULT, "ﺚﺤﺑ", 1) end
     if SI_ACTIVE_PREVIEW_END_PREVIEW_ACTION then SafeAddString(SI_ACTIVE_PREVIEW_END_PREVIEW_ACTION, "ﺔﻨﻳﺎﻌﻤﻟﺍ ﺀﺎﻬﻧﺇ", 1) end
     if SI_ANTIQUITY_BACK_TO_JOURNAL then SafeAddString(SI_ANTIQUITY_BACK_TO_JOURNAL, "ﻉﻮﺟﺭ", 1) end

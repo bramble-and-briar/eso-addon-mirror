@@ -182,40 +182,58 @@ local function BuildSavedAttributeSummary(attributes)
     )
 end
 
-local function ResolveOutfitName(outfitState)
-    local outfitIndex = type(outfitState) == "table" and tonumber(outfitState.equippedOutfitIndex) or nil
-    local outfitName = type(outfitState) == "table" and outfitState.equippedOutfitName or nil
-
-    if type(outfitName) == "string" and outfitName ~= "" then
-        return NormalizeDisplayText(outfitName)
+local function GetUnlockedOutfitCount()
+    local count = SafeCall(GetNumUnlockedOutfits, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if type(count) == "number" and count >= 0 and count % 1 == 0 then
+        return count
     end
-
-    if type(outfitIndex) == "number" and outfitIndex > 0 then
-        if type(GetOutfitName) == "function" then
-            local liveName = SafeCall(GetOutfitName, GAMEPLAY_ACTOR_CATEGORY_PLAYER, outfitIndex)
-            if type(liveName) == "string" and liveName ~= "" then
-                return NormalizeDisplayText(liveName)
-            end
-        end
-
-        return string.format("%s %d", GetStringValue("SI_LTM_COMMON_OUTFIT", "Outfit"), outfitIndex)
-    end
-
-    return GetStringValue("SI_LTM_COMMON_NONE", "None")
+    return nil
 end
 
-local function CaptureCurrentOutfitState()
-    if type(GetEquippedOutfitIndex) ~= "function" then
-        return {
-            equippedOutfitIndex = nil,
-        }
+local function ResolveOutfitName(outfitState, unlockedCount, concise)
+    if outfitState == nil then
+        if concise then
+            return GetStringValue("SI_LTM_OUTFIT_NONE_SHORT", "None")
+        end
+        return GetStringValue("SI_LTM_OUTFIT_NONE", "None (leave unchanged)")
     end
+    if type(outfitState) ~= "table" then
+        return GetStringValue("SI_LTM_COMMON_UNKNOWN", "Unknown")
+    end
+    if outfitState.mode == "default" and outfitState.equippedOutfitIndex == nil then
+        if concise then
+            return GetStringValue("SI_LTM_OUTFIT_DEFAULT_SHORT", "Default")
+        end
+        return GetStringValue("SI_LTM_OUTFIT_DEFAULT", "Default (remove outfit)")
+    end
+    local outfitIndex = outfitState.equippedOutfitIndex
+    if outfitState.mode ~= nil or type(outfitIndex) ~= "number" or outfitIndex < 1 or outfitIndex % 1 ~= 0 then
+        return GetStringValue("SI_LTM_COMMON_UNKNOWN", "Unknown")
+    end
+    local label = string.format("%s %d", GetStringValue("SI_LTM_COMMON_OUTFIT", "Outfit"), outfitIndex)
+    local count = unlockedCount
+    if count == nil then
+        count = GetUnlockedOutfitCount()
+    end
+    if count == nil then
+        return label .. " (" .. GetStringValue("SI_LTM_COMMON_UNKNOWN", "Unknown") .. ")"
+    end
+    if outfitIndex > count then
+        return label .. " (" .. GetStringValue("SI_LTM_OUTFIT_UNAVAILABLE", "Unavailable") .. ")"
+    end
+    local name = SafeCall(GetOutfitName, GAMEPLAY_ACTOR_CATEGORY_PLAYER, outfitIndex)
+    if type(name) == "string" and name ~= "" then
+        return NormalizeDisplayText(name)
+    end
+    return label
+end
 
-    local outfitIndex = SafeCall(GetEquippedOutfitIndex, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-
-    return {
-        equippedOutfitIndex = outfitIndex,
-    }
+local function ResolveCurrentOutfitName()
+    local outfit, err = LTM_BUILD_STORE:CaptureCurrentOutfitForBuild()
+    if err ~= nil then
+        return GetStringValue("SI_LTM_COMMON_UNKNOWN", "Unknown")
+    end
+    return ResolveOutfitName(outfit, nil, true)
 end
 
 local function ResolveSavedEquipmentItemName(itemLink)
@@ -1054,7 +1072,7 @@ local function BuildEmptyTargetStateSummary()
         targetAvailable = false,
         targetBuildSource = nil,
         targetBuildName = nil,
-        outfitName = GetStringValue("SI_LTM_COMMON_NONE", "None"),
+        outfitName = GetStringValue("SI_LTM_OUTFIT_NONE_SHORT", "None"),
         role = nil,
         classMasteryState = BuildSavedClassMasteryState(nil),
     }
@@ -1298,6 +1316,8 @@ function LTM_UI_DISPATCH:GetCardSummary(cardId)
         cardId = cardId,
         cardName = GetBuildDisplayName(cardId, build),
         role = NormalizeRoleState(build.role),
+        outfitSaved = build.outfit ~= nil,
+        outfitName = ResolveOutfitName(build.outfit),
         subclassCount = type(subclassIds) == "table" and #subclassIds or 0,
         attributes = {
             health = attributes.health or 0,
@@ -1349,6 +1369,49 @@ function LTM_UI_DISPATCH:GetCardDetailState(cardId)
         skillBars = BuildSavedSkillBarState(build.skills, build.equipment),
         transformEntries = LTM_TRANSFORM_SKILLS:GetDisplayEntries(build.transforms),
     }
+end
+
+function LTM_UI_DISPATCH:SetCardOutfit(cardId, outfit)
+    return LTM_BUILD_STORE:SetBuildOutfit(cardId, outfit)
+end
+
+function LTM_UI_DISPATCH:OpenAddonSettings()
+    return Addon.Modules.SettingsPanel:Open()
+end
+
+function LTM_UI_DISPATCH:GetCardOutfitOptions(cardId)
+    local build = self:GetBuildById(cardId)
+    if type(build) ~= "table" then
+        return nil, "build_not_found"
+    end
+    local saved = build.outfit
+    local options = {
+        { label = ResolveOutfitName(nil), selected = saved == nil },
+        { label = ResolveOutfitName({ mode = "default" }), outfit = { mode = "default" },
+            selected = type(saved) == "table" and saved.mode == "default" and saved.equippedOutfitIndex == nil },
+    }
+    local count = GetUnlockedOutfitCount()
+    if count == nil then
+        return options, "outfit_count_unavailable"
+    end
+    for index = 1, count do
+        local outfit = { equippedOutfitIndex = index }
+        options[#options + 1] = {
+            label = ResolveOutfitName(outfit, count),
+            outfit = outfit,
+            selected = type(saved) == "table" and saved.mode == nil and saved.equippedOutfitIndex == index,
+        }
+    end
+    local savedIndex = type(saved) == "table" and saved.equippedOutfitIndex or nil
+    if type(saved) == "table" and saved.mode == nil and type(savedIndex) == "number"
+        and savedIndex >= 1 and savedIndex % 1 == 0 and savedIndex > count then
+        options[#options + 1] = {
+            label = ResolveOutfitName(saved, count),
+            selected = true,
+            enabled = false,
+        }
+    end
+    return options
 end
 
 function LTM_UI_DISPATCH:SetCardTransformApply(cardId, kind, enabled)
@@ -1603,7 +1666,7 @@ function LTM_UI_DISPATCH:RefreshCurrentSnapshot()
         effectState = BuildCurrentEffectState(),
         equipmentState = BuildCurrentEquipmentState(),
         championState = BuildCurrentChampionState(),
-        outfitName = ResolveOutfitName(CaptureCurrentOutfitState()),
+        outfitName = ResolveCurrentOutfitName(),
         role = CaptureCurrentRoleState(),
         classMasteryState = BuildSavedClassMasteryState(classMasteryState),
         transformEntries = LTM_TRANSFORM_SKILLS:GetCurrentDisplayEntries(),
@@ -1637,7 +1700,7 @@ function LTM_UI_DISPATCH:GetTargetStateSummary(cardId)
         targetAvailable = true,
         targetBuildSource = source,
         targetBuildName = build.displayName or build.name or build.id,
-        outfitName = ResolveOutfitName(build.outfit),
+        outfitName = ResolveOutfitName(build.outfit, nil, true),
         role = NormalizeRoleState(build.role),
         classMasteryState = BuildSavedClassMasteryState(build.classMastery),
         transformEntries = LTM_TRANSFORM_SKILLS:GetDisplayEntries(build.transforms),

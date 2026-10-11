@@ -7,7 +7,7 @@ CompanionGearHunter.savedVariablesVersion = 1
 -- Keep in sync with ## Version in CompanionGearHunter.txt on every real
 -- release bump (see CompanionRoster's own versioning policy: bump only when
 -- actually cutting a release, not on every commit).
-CompanionGearHunter.version = "1.0.0"
+CompanionGearHunter.version = "1.1.1"
 
 CompanionGearHunter.Data = {}
 
@@ -129,6 +129,35 @@ for value, weaponTypeName in pairs(WEAPON_TYPE_NAMES) do
 end
 table.sort(CompanionGearHunter.Data.WEAPON_TYPE_OPTIONS, function(a, b) return a.name < b.name end)
 
+-- What an Off-Hand can hold: a shield or a one-handed weapon (dual wield).
+-- Bows, staves and the two-handed types never go there.
+local OFF_HAND_WEAPON_TYPES = {
+    [WEAPONTYPE_AXE] = true,
+    [WEAPONTYPE_DAGGER] = true,
+    [WEAPONTYPE_HAMMER] = true,
+    [WEAPONTYPE_SHIELD] = true,
+    [WEAPONTYPE_SWORD] = true,
+}
+
+-- The weapon-type choices for one weapon slot's "Type" dropdown: Off-Hand gets
+-- only the types above; Main Hand gets everything except Shield, which can't
+-- be held in the main hand.
+function CompanionGearHunter.Data.GetWeaponTypeOptions(slotKey)
+    local options = {}
+    for _, option in ipairs(CompanionGearHunter.Data.WEAPON_TYPE_OPTIONS) do
+        local allowed
+        if slotKey == "OffHand" then
+            allowed = OFF_HAND_WEAPON_TYPES[option.value] == true
+        else
+            allowed = option.value ~= WEAPONTYPE_SHIELD
+        end
+        if allowed then
+            table.insert(options, option)
+        end
+    end
+    return options
+end
+
 -- Quality floor options - deliberately skips ITEM_FUNCTIONAL_QUALITY_TRASH
 -- (never relevant to gear worth hunting for). Confirmed via real source
 -- (retraitstation_reconstruct_keyboard.lua) that these are a contiguous,
@@ -215,10 +244,11 @@ end
 -- Weight only exists on armor, so "subType" skips weapons and jewelry. A real
 -- value also ticks Find on the slots it touches (otherwise it would be stored
 -- where no one can see it); "Any" (nil) just resets the field and leaves Find
--- alone, so it works as an undo. A hidden Off-Hand is skipped so nothing is
--- changed out of sight.
+-- alone, so it works as an undo. Off-Hand is skipped while it is closed (see
+-- IsOffHandAvailable), so a bulk pick never quietly starts hunting an off-hand
+-- the companion can't use.
 function CompanionGearHunter.Data.ApplyToAllSlots(companionId, field, value)
-    local skipOffHand = CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
+    local skipOffHand = not CompanionGearHunter.Data.IsOffHandAvailable(companionId)
 
     for _, slotDef in ipairs(CompanionGearHunter.Data.SLOTS) do
         local applies = not (slotDef.key == "OffHand" and skipOffHand)
@@ -240,8 +270,8 @@ function CompanionGearHunter.Data.ApplyToAllSlots(companionId, field, value)
     end
 end
 
--- Wipes the whole page for one companion (every slot, hidden Off-Hand
--- included); other companions are untouched.
+-- Wipes the whole page for one companion (every slot, Off-Hand included);
+-- other companions are untouched.
 function CompanionGearHunter.Data.ClearCompanionWishlist(companionId)
     savedVars.wishlist[companionId] = nil
 end
@@ -268,11 +298,11 @@ local EQUIP_TYPE_TO_SLOT_KEYS = {
 }
 
 -- Weapon types that occupy both hands - a companion wielding one of these
--- has no Off-Hand slot at all (same as the game's own paperdoll hiding
--- that slot; CompanionGearHunter_UI.lua's grid hides the row the same way).
--- Shared here (not just in the UI file) because matching/upgrade-checking
--- needs the same fact: never suggest an Off-Hand item for a companion who
--- physically can't equip one right now.
+-- has no Off-Hand item right now (the game's own paperdoll hides that slot).
+-- Shared here (not just in the UI file) because upgrade-checking, the bulk
+-- "All slots" edit and the equipped-gear lookup need the same fact: never
+-- suggest an Off-Hand item for a companion who physically can't equip one
+-- right now. The grid still shows the Off-Hand row, so it can be hunted for.
 local TWO_HANDED_WEAPON_TYPES = {
     [WEAPONTYPE_TWO_HANDED_AXE] = true,
     [WEAPONTYPE_TWO_HANDED_HAMMER] = true,
@@ -285,7 +315,11 @@ local TWO_HANDED_WEAPON_TYPES = {
 }
 
 -- Whether this companion's cached Main Hand weapon currently occupies both
--- hands - if so, they have no Off-Hand slot to suggest anything for.
+-- hands - if so, their Off-Hand is empty right now (see
+-- GetCachedEquippedLink), upgrade suggestions skip it, and "All slots" leaves
+-- it alone. The Off-Hand row itself is still shown and can still be hunted
+-- for (a one-handed weapon plus Off-Hand is a build the companion could switch
+-- to).
 function CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
     local mainHandLink = CompanionGearHunter.Data.GetCachedEquippedLink(companionId, "MainHand")
     if mainHandLink == nil then
@@ -294,15 +328,41 @@ function CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
     return TWO_HANDED_WEAPON_TYPES[GetItemLinkWeaponType(mainHandLink)] == true
 end
 
--- Candidate slot keys for a companion right now - same as
--- EQUIP_TYPE_TO_SLOT_KEYS[equipType], except Off-Hand is dropped for any
--- companion currently wielding a two-handed weapon (see above).
+-- Whether the Off-Hand row can be used for a companion: only when their
+-- effective Main Hand is one-handed. If the Main Hand row is ticked with a
+-- specific weapon type, that wanted type decides (a one-handed type opens it, a
+-- two-handed type closes it - this is how a sword-and-shield build is planned
+-- for a companion who wields a staff today); otherwise whatever is equipped
+-- decides. While it is closed the stored Off-Hand picks are kept but ignored by
+-- matching, the dropdown star and the "All slots" bulk edit, and the grid
+-- greys the row out.
+function CompanionGearHunter.Data.IsOffHandAvailable(companionId)
+    local mainHandWish = CompanionGearHunter.Data.GetWishlistEntry(companionId, "MainHand")
+    if mainHandWish.enabled == true and mainHandWish.subType ~= nil then
+        return TWO_HANDED_WEAPON_TYPES[mainHandWish.subType] ~= true
+    end
+    return not CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
+end
+
+-- Candidate slots for an UPGRADE suggestion - same as
+-- EQUIP_TYPE_TO_SLOT_KEYS[equipType], except Off-Hand is dropped when EITHER
+-- the companion currently wields a two-handed weapon (see above) OR the
+-- Off-Hand row is closed (IsOffHandAvailable: the Main Hand row is hunting a
+-- two-hander, or a two-hander is equipped). Both are needed: with a two-hander
+-- worn there is no equipped off-hand to compare against, and an empty slot
+-- counts as an upgrade for anything, which would flag every shield - even when
+-- the player has planned a one-handed build (Off-Hand open but still empty);
+-- and a closed Off-Hand must never produce a suggestion at all (a companion
+-- with nothing recorded in hand, hunting a staff, was flagged for every mace).
+-- Wishlist matching does NOT use this - an Off-Hand row the player ticked
+-- Find on is honored whenever it is open.
 local function GetCandidateSlotKeysForCompanion(equipType, companionId)
     local slotKeys = EQUIP_TYPE_TO_SLOT_KEYS[equipType]
     if slotKeys == nil then
         return nil
     end
-    if not CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId) then
+    if not CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
+        and CompanionGearHunter.Data.IsOffHandAvailable(companionId) then
         return slotKeys
     end
 
@@ -376,15 +436,16 @@ function CompanionGearHunter.Data.FindWishlistMatches(itemLink)
     end
 
     for _, companion in ipairs(CompanionGearHunter.Data.GetAllCompanions()) do
-        -- Per-companion, not computed once above the loop - a one-handed
-        -- weapon's candidate slots depend on whether *this* companion
-        -- currently has an Off-Hand slot at all (see
-        -- GetCandidateSlotKeysForCompanion - a two-handed weapon leaves
-        -- none, same as the grid hiding that row).
-        local slotKeys = GetCandidateSlotKeysForCompanion(info.equipType, companion.id)
+        -- Every slot this equip type could go in. Only slots the player ticked
+        -- Find on can match, and Off-Hand only counts while it is open for this
+        -- companion (see IsOffHandAvailable) - a planned one-handed build counts
+        -- even while a two-hander is worn. Upgrade suggestions are separate and
+        -- skip Off-Hand for a two-hander wearer (GetCandidateSlotKeysForCompanion).
+        local offHandOpen = CompanionGearHunter.Data.IsOffHandAvailable(companion.id)
+        local slotKeys = EQUIP_TYPE_TO_SLOT_KEYS[info.equipType]
         for _, slotKey in ipairs(slotKeys) do
             local wishlistEntry = CompanionGearHunter.Data.GetWishlistEntry(companion.id, slotKey)
-            if wishlistEntry.enabled == true and MatchesWishlistFields(info, wishlistEntry) then
+            if wishlistEntry.enabled == true and (slotKey ~= "OffHand" or offHandOpen) and MatchesWishlistFields(info, wishlistEntry) then
                 table.insert(matches, { companionId = companion.id, slotKey = slotKey })
             end
         end
@@ -409,15 +470,29 @@ end
 -- been cached for them (see RecordActiveCompanionEquipment) - if a
 -- companion's gear has never been observed, there's no real basis to call
 -- anything an upgrade for them, so they're skipped rather than guessed at.
--- On/off setting for FindUpgradeOpportunities below - defaults to enabled,
--- toggled from the checkbox next to the companion dropdown in the grid
--- window ("Find Gear Quality Upgrades").
+-- Master on/off setting for FindUpgradeOpportunities below - defaults to
+-- enabled, toggled by "Find Gear Quality Upgrades" in the settings panel's
+-- Gear Quality Upgrades section. While it is off, upgrades are ignored for
+-- every companion, whatever their own setting below says.
 function CompanionGearHunter.Data.GetUpgradeSuggestionsEnabled()
     return savedVars.upgradeSuggestionsEnabled ~= false
 end
 
 function CompanionGearHunter.Data.SetUpgradeSuggestionsEnabled(value)
     savedVars.upgradeSuggestionsEnabled = value
+end
+
+-- Per-companion upgrade switch, only consulted while the master setting above
+-- is on. Everyone is ON by default, including companions added to the game
+-- later, so only the companions turned OFF are stored.
+function CompanionGearHunter.Data.GetUpgradeEnabledForCompanion(companionId)
+    local disabled = savedVars.upgradeDisabledCompanions
+    return not (disabled and disabled[companionId])
+end
+
+function CompanionGearHunter.Data.SetUpgradeEnabledForCompanion(companionId, value)
+    savedVars.upgradeDisabledCompanions = savedVars.upgradeDisabledCompanions or {}
+    savedVars.upgradeDisabledCompanions[companionId] = (value == false) and true or nil
 end
 
 function CompanionGearHunter.Data.FindUpgradeOpportunities(itemLink)
@@ -442,7 +517,7 @@ function CompanionGearHunter.Data.FindUpgradeOpportunities(itemLink)
     end
 
     for _, companion in ipairs(CompanionGearHunter.Data.GetAllCompanions()) do
-        if savedVars.equipped[companion.id] ~= nil then
+        if savedVars.equipped[companion.id] ~= nil and CompanionGearHunter.Data.GetUpgradeEnabledForCompanion(companion.id) then
             -- Per-companion, not computed once above the loop - see the
             -- matching note in FindWishlistMatches above.
             local slotKeys = GetCandidateSlotKeysForCompanion(info.equipType, companion.id)
@@ -588,19 +663,17 @@ function CompanionGearHunter.Data.GetMarkerColorHex(kind)
 end
 
 -- Whether a companion has at least one "Find" row still being hunted - i.e.
--- enabled and not already satisfied by what's cached as equipped. A stale
--- Off-Hand entry for a companion now using a two-handed weapon is ignored,
--- since that row is hidden in the grid and can't be acted on.
+-- enabled and not already satisfied by what's cached as equipped. A ticked
+-- Off-Hand row counts only while Off-Hand is open for this companion (see
+-- IsOffHandAvailable); stored picks on a closed Off-Hand are ignored.
 function CompanionGearHunter.Data.HasActiveHunt(companionId)
-    local twoHanded = CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId)
+    local offHandOpen = CompanionGearHunter.Data.IsOffHandAvailable(companionId)
     for _, slotDef in ipairs(CompanionGearHunter.Data.SLOTS) do
-        if not (slotDef.key == "OffHand" and twoHanded) then
-            local wishlistEntry = CompanionGearHunter.Data.GetWishlistEntry(companionId, slotDef.key)
-            if wishlistEntry.enabled == true then
-                local info = CompanionGearHunter.Data.DecodeItemLink(CompanionGearHunter.Data.GetCachedEquippedLink(companionId, slotDef.key))
-                if not CompanionGearHunter.Data.DoesInfoSatisfyWishlist(info, wishlistEntry) then
-                    return true
-                end
+        local wishlistEntry = CompanionGearHunter.Data.GetWishlistEntry(companionId, slotDef.key)
+        if wishlistEntry.enabled == true and (slotDef.key ~= "OffHand" or offHandOpen) then
+            local info = CompanionGearHunter.Data.DecodeItemLink(CompanionGearHunter.Data.GetCachedEquippedLink(companionId, slotDef.key))
+            if not CompanionGearHunter.Data.DoesInfoSatisfyWishlist(info, wishlistEntry) then
+                return true
             end
         end
     end
@@ -642,6 +715,13 @@ end
 -- and so the tooltip can link the exact item later if wanted.
 
 function CompanionGearHunter.Data.GetCachedEquippedLink(companionId, slotKey)
+    -- A two-handed weapon fills both hands, so the Off-Hand reads as empty
+    -- whatever an older recording left in the cache. Checked on Main Hand only
+    -- (slotKey ~= "OffHand"), so this can't recurse.
+    if slotKey == "OffHand" and CompanionGearHunter.Data.IsCompanionUsingTwoHandedWeapon(companionId) then
+        return nil
+    end
+
     local companionCache = savedVars.equipped[companionId]
     local link = companionCache and companionCache[slotKey]
     if link == false or link == nil then
@@ -719,7 +799,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
 
     -- GetWorldName() namespaces by server, same reasoning as CompanionRoster:
     -- avoids mixing data from two different servers under one @account.
-    local defaults = { wishlist = {}, equipped = {}, upgradeSuggestionsEnabled = true, chatTaggingEnabled = true, markerColors = {}, tooltipPrefix = "FCGH:", slashCommand = "/fcgh" }
+    local defaults = { wishlist = {}, equipped = {}, upgradeSuggestionsEnabled = true, upgradeDisabledCompanions = {}, chatTaggingEnabled = true, markerColors = {}, tooltipPrefix = "FCGH:", slashCommand = "/fcgh" }
     savedVars = ZO_SavedVars:NewAccountWide("CompanionGearHunter_SavedVariables", CompanionGearHunter.savedVariablesVersion, GetWorldName(), defaults)
 
     EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Data", EVENT_COMPANION_ACTIVATED, OnCompanionActivated)

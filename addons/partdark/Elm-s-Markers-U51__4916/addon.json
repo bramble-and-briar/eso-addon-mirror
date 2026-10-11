@@ -18,9 +18,10 @@
     "ElmsMarkers"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4916/",
-  "fingerprint": "5d9adc1eff3e260894b03284dfe9e2f4dacd1d2e9a0b89c352ac25b1819d766e",
+  "fingerprint": "370e8e7b420d870572e3f7825e565e77b972d9a872d9a4afb737dc3b6266edf2",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17719.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17719.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17935.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -28,11 +29,11 @@
   "source_id": "4916",
   "source_url": "https://www.esoui.com/downloads/info4916-ElmsMarkersU51.html",
   "stats": {
-    "downloads": 3,
+    "downloads": 107,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 98
   },
   "title": "Elm's Markers U51",
-  "updated_at": 1791186944000,
-  "version": "4.0"
+  "updated_at": 1791716497000,
+  "version": "5.1"
 }

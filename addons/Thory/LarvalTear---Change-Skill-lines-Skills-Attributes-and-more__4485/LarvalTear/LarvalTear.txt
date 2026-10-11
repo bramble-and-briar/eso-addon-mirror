@@ -1,8 +1,8 @@
 ## Title: LarvalTear
 ## Author: Thory'JP
-## Version: 1.5.0.2
-## AddOnVersion: 1502
-## APIVersion: 101050
+## Version: 1.5.0.3
+## AddOnVersion: 1503
+## APIVersion: 101051 101050
 ## DependsOn: LibDebugLogger>=268 LibAddonMenu-2.0>=42 LibFoodDrinkBuff>=19
 ## SavedVariables: LarvalTear
 ## Description: Change skill lines, skills, attributes, gear, CP, and more.

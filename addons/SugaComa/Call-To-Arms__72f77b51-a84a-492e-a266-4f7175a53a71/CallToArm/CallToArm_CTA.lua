@@ -371,6 +371,9 @@ local function EnsureByGuild(gid)
         cta.enabled = cta.enabled == true
         cta.polling = cta.polling or { intervalSeconds = 1800 }
         cta.polling.intervalSeconds = tonumber(cta.polling.intervalSeconds) or 1800
+        if cta.polling.onZoneChange == nil then
+            cta.polling.onZoneChange = true
+        end
         cta.doNotDisturb = cta.doNotDisturb or {
             enabled = true,
             suppressInTrials = true,
@@ -432,6 +435,9 @@ local function EnsureByGuild(gid)
         cta.cooldown = cta.cooldown or { seconds = 1800 }
         cta.population = cta.population or { intervalSeconds = 1800 }
         cta.population.intervalSeconds = tonumber(cta.population.intervalSeconds) or 1800
+        if cta.population.onZoneChange == nil then
+            cta.population.onZoneChange = true
+        end
         cta.activity = cta.activity or {
             overland = true,
             groupDungeons = false,
@@ -471,16 +477,14 @@ local function GetRepresentedGuildId()
         return CALLTOARM.Guild.GetLockedGuildId()
     end
     if not CALLTOARM.SV or not CALLTOARM.SV.cta then return 0 end
-    local gid = tonumber(CALLTOARM.SV.cta.representedGuildId) or 0
-    if gid == 0 and CALLTOARM.Guild and CALLTOARM.Guild.GetLockedGuildId then
-        gid = tonumber(CALLTOARM.Guild.GetLockedGuildId()) or 0
-        if gid ~= 0 then
-            CALLTOARM.SV.cta.representedGuildId = gid
-        end
-    end
-    if gid == 0 and CALLTOARM.Guild and CALLTOARM.Guild.GetSelectedGuildId then
+    -- Outside an active lock, the current menu selection is authoritative.
+    -- Keeping the old representedGuildId first caused debug/natural unlocks to
+    -- continue polling the previously locked guild after a selection change.
+    local gid = 0
+    if CALLTOARM.Guild and CALLTOARM.Guild.GetSelectedGuildId then
         gid = tonumber(CALLTOARM.Guild.GetSelectedGuildId()) or 0
     end
+    CALLTOARM.SV.cta.representedGuildId = gid
     return gid
 end
 
@@ -610,31 +614,6 @@ local function IsInInfiniteArchive()
     if not inInstance then return false end
     local displayType = GetZoneDisplayTypeSafe()
     return displayType == ZONE_DISPLAY_TYPE_ENDLESS_DUNGEON
-end
-
-local function ShouldSuppressForActivity(settings)
-    if not settings or not settings.doNotDisturb or settings.doNotDisturb.enabled == false then
-        return false
-    end
-    local mode = settings.doNotDisturb.mode or "none"
-    if mode == "none" then return false end
-    if mode == "peace" then
-        return IsInTrial() or IsInVeteranDungeon() or IsInGroupArena() or IsInSoloActivity() or IsInInfiniteArchive()
-    end
-    if mode == "deserter" then
-        return IsInTrial() or IsInVeteranDungeon() or IsInGroupArena()
-    end
-    if mode == "battle" then
-        return IsInTrial() or IsInVeteranDungeon()
-    end
-    if mode == "mercenary" then
-        return IsInTrial()
-    end
-    if mode == "trial" then return IsInTrial() end
-    if mode == "vet" then return IsInVeteranDungeon() end
-    if mode == "solo" then return IsInSoloActivity() end
-    if mode == "archive" then return IsInInfiniteArchive() end
-    return false
 end
 
 local function GetCampaignQueryType(campaignId)
@@ -1297,27 +1276,21 @@ function CTA.DebugDump(gid, campaignId)
     DebugCTA("CTA Debug: ----")
     DebugCTA(string.format("CTA Debug: guildId=%s campaignId=%s alliance=%s", tostring(gid), tostring(campaignId), tostring(GetGuildAlliance(gid))))
     DebugCTA(string.format("CTA Debug: zoneDisplayType=%s inInstance=%s inAvA=%s", tostring(displayType), tostring(inInstance), tostring(inAvA)))
-    DebugCTA(string.format("CTA Debug: enabled=%s cooldown=%s popInterval=%s", tostring(settings.enabled), tostring(settings.cooldown and settings.cooldown.seconds), tostring(settings.population and settings.population.intervalSeconds)))
+    DebugCTA(string.format(
+        "CTA Debug: enabled=%s cooldown=%s campaignInterval=%s campaignZone=%s popInterval=%s popZone=%s",
+        tostring(settings.enabled),
+        tostring(settings.cooldown and settings.cooldown.seconds),
+        tostring(settings.polling and settings.polling.intervalSeconds),
+        tostring(settings.polling and settings.polling.onZoneChange),
+        tostring(settings.population and settings.population.intervalSeconds),
+        tostring(settings.population and settings.population.onZoneChange)
+    ))
     DebugCTA(string.format("CTA Debug: alerts empPush=%s dethrone=%s warBegins=%s warRages=%s population=%s", tostring(settings.alerts and settings.alerts.empPush), tostring(settings.alerts and settings.alerts.dethrone), tostring(settings.alerts and settings.alerts.warBegins), tostring(settings.alerts and settings.alerts.warRages), tostring(settings.alerts and settings.alerts.population)))
     DebugCTA(string.format("CTA Debug: activity overland=%s groupDungeons=%s trials=%s arenasArchive=%s pvpOther=%s", tostring(settings.activity and settings.activity.overland), tostring(settings.activity and settings.activity.groupDungeons), tostring(settings.activity and settings.activity.trials), tostring(settings.activity and settings.activity.arenasArchive), tostring(settings.activity and settings.activity.pvpOther)))
-    DebugCTA(string.format("CTA Debug: DND mode=%s fireOnceHome=%s", tostring(settings.doNotDisturb and settings.doNotDisturb.mode), tostring(settings.doNotDisturb and settings.doNotDisturb.fireOnceWhileInHomeCampaign)))
     DebugCTA("CTA Debug: ----")
 end
 
-function CTA.UpdateHomeCampaignPresence(settings, inHomeCampaign)
-    local presence = settings.state.homeCampaignPresence
-    if inHomeCampaign then
-        if not presence.wasInHomeCampaign then
-            presence.wasInHomeCampaign = true
-            presence.firedOnceWhileInHomeCampaign = false
-        end
-    else
-        presence.wasInHomeCampaign = false
-        presence.firedOnceWhileInHomeCampaign = false
-    end
-end
-
-function CTA.RunPoll()
+function CTA.RunPoll(options)
     local gid = GetRepresentedGuildId()
     if gid == 0 then
         DebugCTA("CTA Poll: no represented/locked guild.")
@@ -1352,7 +1325,7 @@ function CTA.RunPoll()
     end
     EnsureCampaignHistoryScope(settings, campaignId)
 
-    if ShouldSuppressForActivity(settings) or not IsActivityAllowed(settings, campaignId) then
+    if not IsActivityAllowed(settings, campaignId) then
         local displayType = GetZoneDisplayTypeSafe() or -1
         local inInstance = IsInInstance and IsInInstance() == true
         local inAvA = IsPlayerInAvAWorld and IsPlayerInAvAWorld() == true
@@ -1363,31 +1336,21 @@ function CTA.RunPoll()
 
     QueryLeaderboardIfNeeded(campaignId, guildAlliance)
 
-    local inAvA = IsPlayerInAvAWorld and IsPlayerInAvAWorld()
-    local inHomeCampaign = false
-    if inAvA and GetCurrentCampaignId then
-        inHomeCampaign = (GetCurrentCampaignId() == campaignId)
-    end
-
-    CTA.UpdateHomeCampaignPresence(settings, inHomeCampaign)
-
-    if inHomeCampaign and settings.doNotDisturb and settings.doNotDisturb.fireOnceWhileInHomeCampaign then
-        if settings.state.homeCampaignPresence.firedOnceWhileInHomeCampaign then
-            return
-        end
-    end
-
     local forcePopulation = CTA._forcePopulationOnce == true
     CTA._forcePopulationOnce = false
 
+    local checkCampaignAlerts = options == nil or options.campaign ~= false
+    local checkPopulationAlert = options == nil or options.population ~= false
     local fired = false
-    fired = CheckEmperorPush(gid, settings, campaignId, guildAlliance) or fired
-    fired = CheckDethrone(gid, settings, campaignId, guildAlliance) or fired
-    -- These alert modes were already implemented and configurable but were not
-    -- included in the polling chain, so they could never fire during normal use.
-    fired = CheckWarBegins(gid, settings, campaignId, guildAlliance) or fired
-    fired = CheckWarRages(gid, settings, campaignId, guildAlliance) or fired
-    fired = CheckPopulationAlert(gid, settings, campaignId, guildAlliance, forcePopulation) or fired
+    if checkCampaignAlerts then
+        fired = CheckEmperorPush(gid, settings, campaignId, guildAlliance) or fired
+        fired = CheckDethrone(gid, settings, campaignId, guildAlliance) or fired
+        fired = CheckWarBegins(gid, settings, campaignId, guildAlliance) or fired
+        fired = CheckWarRages(gid, settings, campaignId, guildAlliance) or fired
+    end
+    if checkPopulationAlert then
+        fired = CheckPopulationAlert(gid, settings, campaignId, guildAlliance, forcePopulation) or fired
+    end
 
     if not fired then
         CTA._debugNoFireCount = (CTA._debugNoFireCount or 0) + 1
@@ -1396,9 +1359,6 @@ function CTA.RunPoll()
         end
     end
 
-    if fired and inHomeCampaign and settings.doNotDisturb and settings.doNotDisturb.fireOnceWhileInHomeCampaign then
-        settings.state.homeCampaignPresence.firedOnceWhileInHomeCampaign = true
-    end
     CTA._debugBypassCooldownActive = false
 end
 
@@ -1483,10 +1443,18 @@ local function FinishRequest()
         return
     end
     if job.manual then ShowBriefing(job) end
-    if job.automatic then CTA.RunPoll() end
+    if job.automatic then CTA.RunPoll(job.automaticOptions) end
 end
 
-local function StartRequest(manual)
+local function NormalizeAutomaticOptions(options)
+    if options == nil then return { campaign = true, population = true } end
+    return {
+        campaign = options.campaign == true,
+        population = options.population == true,
+    }
+end
+
+local function StartRequest(manual, automaticOptions)
     local gid = GetRepresentedGuildId()
     if not IsEligibleForCTA(gid) then
         if manual then BriefingLine("Select a guild you belong to before requesting a briefing.") end
@@ -1504,10 +1472,22 @@ local function StartRequest(manual)
             BriefingLine("A campaign check is already pending; the briefing will follow shortly.")
         elseif CTA._pendingRequest.guildId == gid and CTA._pendingRequest.campaignId == campaignId then
             CTA._pendingRequest.automatic = true
+            local incoming = NormalizeAutomaticOptions(automaticOptions)
+            local pending = CTA._pendingRequest.automaticOptions or { campaign = false, population = false }
+            pending.campaign = pending.campaign or incoming.campaign
+            pending.population = pending.population or incoming.population
+            CTA._pendingRequest.automaticOptions = pending
         end
         return
     end
-    CTA._pendingRequest = { guildId=gid, campaignId=campaignId, alliance=alliance, manual=manual, automatic=not manual }
+    CTA._pendingRequest = {
+        guildId = gid,
+        campaignId = campaignId,
+        alliance = alliance,
+        manual = manual,
+        automatic = not manual,
+        automaticOptions = manual and nil or NormalizeAutomaticOptions(automaticOptions),
+    }
     if manual then BriefingLine("Requesting campaign information.") end
     EnsureCampaignDataFeed(false)
     QueryLeaderboardIfNeeded(campaignId, alliance)
@@ -1529,7 +1509,7 @@ local function OnUpdate()
     if now < CTA._nextPollAt then return end
     CTA._nextPollAt = now + math.max(60, tonumber(settings.polling.intervalSeconds) or 1800)
     local campaignId = CTA.ResolveCampaign(gid)
-    if ShouldSuppressForActivity(settings) or not IsActivityAllowed(settings, campaignId) then return end
+    if not IsActivityAllowed(settings, campaignId) then return end
     StartRequest(false)
 end
 
@@ -1571,12 +1551,18 @@ function CTA.Init()
         if IsEligibleForCTA(gid) then
             local settings = GetGuildCtaSettings(gid)
             local campaignId = CTA.ResolveCampaign(gid)
-            CTA.UpdateHomeCampaignPresence(settings, IsPlayerInAvAWorld() and GetCurrentCampaignId() == campaignId)
-            -- Zone entry is an extra check, not a reset of the periodic schedule.
-            -- RunPoll rechecks filters at delivery and retains each alert's cooldown.
-            if settings.enabled and not ShouldSuppressForActivity(settings)
+            local zoneOptions = {
+                campaign = settings.polling and settings.polling.onZoneChange == true,
+                population = settings.population and settings.population.onZoneChange == true,
+            }
+            -- Zone entry is optional and does not reset either periodic schedule.
+            -- RunPoll rechecks Alert Filters 1-5 and normal alert cooldowns.
+            if settings.enabled and (zoneOptions.campaign or zoneOptions.population)
                 and IsActivityAllowed(settings, campaignId) then
-                StartRequest(false)
+                DebugCTA(string.format("CTA Zone: campaign=%s population=%s", tostring(zoneOptions.campaign), tostring(zoneOptions.population)))
+                StartRequest(false, zoneOptions)
+            elseif settings.enabled and not zoneOptions.campaign and not zoneOptions.population then
+                DebugCTA("CTA Zone: zone-change checks disabled.")
             end
         end
     end)

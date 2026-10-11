@@ -7,7 +7,7 @@ this.name = "FurnitureCatalogue"
 this.author = "manavortex"
 this.tag = "FurC"
 
-this.version = 7000000 -- will be AUTOREPLACED with AddonVersion
+this.version = 8000001 -- will be AUTOREPLACED with AddonVersion
 
 this.CharacterName = nil
 this.website = "https://www.esoui.com/downloads/fileinfo.php?id=1617"
@@ -15,7 +15,7 @@ this.settings = {}
 
 local LFC = LibFurnitureCatalogue
 local src = LFC.API.GetSourceTypes()
-local ver = LFC.Internal.Constants.Versioning
+local ver = LFC.API.GetDataVersions()
 
 -- data from LibFurnitureCatalogue
 this.AchievementVendors = this.AchievementVendors or {}
@@ -35,7 +35,6 @@ this.Antiquities = this.Antiquities or {}
 
 local defaults = {
   hideMats = true,
-  dontScanTradingHouse = false,
   enableDebug = false,
   skipInitialScan = true,
 
@@ -71,17 +70,20 @@ local defaults = {
   tooltipHiddenSources = {},
 
   hideBooks = true,
-  hideDoubtfuls = true,
-  hideCrownstore = true,
-  hideRumourEntry = false,
-  hideCrownStoreEntry = false,
-  wipeDatabase = false,
-
-  hideUiButtons = {
-    FURC_RUMOUR = false,
-    FURC_CROWN = false,
-  },
 }
+
+-- Filter selections FC defines itself (no LFC behind it)
+-- Negative, so a source from lib never collides with it
+this.SourceFilters = {
+  CROWN_STORE = -1,
+  ALLIANCE_POINTS = -2,
+  ACHIEVEMENT = -3,
+  HOME_GOODS = -4,
+  CURRENCY = -5,
+  GOLD_COAST_BAZAAR = -6,
+  IMPRESARIO = -7,
+}
+local filter = this.SourceFilters
 
 local sourceIndicesKeys = {}
 local function getSourceIndicesKeys()
@@ -90,23 +92,37 @@ local function getSourceIndicesKeys()
   sourceIndicesKeys[src.CRAFTING] = "craft_all"
   sourceIndicesKeys[src.CRAFTING_KNOWN] = "craft_known"
   sourceIndicesKeys[src.CRAFTING_UNKNOWN] = "craft_unknown"
-  sourceIndicesKeys[src.VENDOR] = "purch_gold"
-  sourceIndicesKeys[src.PVP] = "purch_ap"
-  sourceIndicesKeys[src.BAZAAR] = "purch_tbars"
-  sourceIndicesKeys[src.TELVAR] = "purch_telvar"
-  -- sourceIndicesKeys[src.TOMES] = "purch_tomepoints"
   sourceIndicesKeys[src.WRIT_VENDOR] = "writ_vendor"
+  sourceIndicesKeys[src.VENDOR] = "purch_gold"
+  sourceIndicesKeys[filter.ACHIEVEMENT] = "purch_gold_achievement"
+  sourceIndicesKeys[filter.HOME_GOODS] = "purch_gold_homegoods"
+  sourceIndicesKeys[src.PVP] = "purch_ap"
+  sourceIndicesKeys[filter.ALLIANCE_POINTS] = "purch_ap_only"
+  sourceIndicesKeys[src.BAZAAR] = "purch_tbars"
+  sourceIndicesKeys[filter.GOLD_COAST_BAZAAR] = "purch_tbars_goldcoast"
+  sourceIndicesKeys[filter.IMPRESARIO] = "purch_tbars_impresario"
+  sourceIndicesKeys[src.TELVAR] = "purch_telvar"
+  sourceIndicesKeys[src.TOMES] = "purch_tomepoints"
+  sourceIndicesKeys[filter.CURRENCY] = "currency"
   sourceIndicesKeys[src.CROWN] = "crownstore"
+  sourceIndicesKeys[filter.CROWN_STORE] = "crown_store"
+  sourceIndicesKeys[src.EDITOR] = "housing_editor"
   sourceIndicesKeys[src.ANTIQUITY] = "antiquity"
   sourceIndicesKeys[src.RUMOUR] = "rumour"
   sourceIndicesKeys[src.LUXURY] = "luxury"
   sourceIndicesKeys[src.OTHER] = "other"
   --sourceIndicesKeys[src.ROLIS]            = "ROLIS"
-  --sourceIndicesKeys[src.DROP]             = "DROP"
+  sourceIndicesKeys[src.DROP] = "DROP"
   sourceIndicesKeys[src.JUSTICE] = "justice"
   sourceIndicesKeys[src.FISHING] = "fishing"
   --sourceIndicesKeys[src.GUILDSTORE]       = "GUILDSTORE"
-  --sourceIndicesKeys[src.FESTIVAL_DROP]    = "FESTIVAL_DROP"
+  sourceIndicesKeys[src.DUNGEON] = "dungeon"
+  sourceIndicesKeys[src.HARVEST] = "harvest"
+  sourceIndicesKeys[src.CHEST] = "chests"
+  sourceIndicesKeys[src.QUEST] = "quest"
+  sourceIndicesKeys[src.PICKPOCKET] = "pickpocket"
+  sourceIndicesKeys[src.STEAL_CONTAINER] = "container"
+  sourceIndicesKeys[src.FESTIVAL_DROP] = "event"
 
   return sourceIndicesKeys
 end
@@ -119,23 +135,38 @@ local function getChoicesSource()
   choicesSource[src.CRAFTING] = GetString(SI_FURC_FILTER_SRC_CRAFTING)
   choicesSource[src.CRAFTING_KNOWN] = GetString(SI_FURC_FILTER_SRC_CRAFTING_KNOWN)
   choicesSource[src.CRAFTING_UNKNOWN] = GetString(SI_FURC_FILTER_SRC_CRAFTING_UNKNOWN)
+  choicesSource[src.WRIT_VENDOR] = GetString(SI_FURC_FILTER_SRC_SOLD_WRIT)
   choicesSource[src.VENDOR] = GetString(SI_FURC_FILTER_SRC_SOLD_GOLD)
-  choicesSource[src.PVP] = GetString(SI_FURC_FILTER_SRC_SOLD_AP)
+  choicesSource[filter.ACHIEVEMENT] = GetString(SI_FURC_FILTER_SRC_ACHIEVEMENT)
+  choicesSource[filter.HOME_GOODS] = GetString(SI_FURC_FILTER_SRC_HOME_GOODS)
+  choicesSource[src.PVP] = GetString(SI_FURC_FILTER_SRC_PVP)
+  choicesSource[filter.ALLIANCE_POINTS] = GetString(SI_FURC_FILTER_SRC_SOLD_AP)
   choicesSource[src.TELVAR] = GetString(SI_FURC_FILTER_SRC_SOLD_TELVAR)
   choicesSource[src.BAZAAR] = GetString(SI_FURC_FILTER_SRC_SOLD_TBARS)
-  -- choicesSource[src.TOMES] = GetString(SI_FURC_FILTER_SRC_SOLD_TOMEPOINTS)
-  choicesSource[src.WRIT_VENDOR] = GetString(SI_FURC_FILTER_SRC_SOLD_WRIT)
-  choicesSource[src.CROWN] = GetString(SI_FURC_FILTER_SRC_CROWN)
+  choicesSource[filter.GOLD_COAST_BAZAAR] = GetString(SI_FURC_FILTER_SRC_GOLD_COAST_BAZAAR)
+  choicesSource[filter.IMPRESARIO] = GetString(SI_FURC_FILTER_SRC_IMPRESARIO)
+  choicesSource[src.TOMES] = GetString(SI_FURC_FILTER_SRC_SOLD_TOMEPOINTS)
+  choicesSource[filter.CURRENCY] = GetString(SI_FURC_FILTER_SRC_CURRENCY)
+  choicesSource[src.CROWN] = GetString(SI_FURC_FILTER_SRC_CROWNS)
+  -- SI_..._SRC_CROWN = crown store, SI_..._SRC_CROWNS = currency above it
+  choicesSource[filter.CROWN_STORE] = GetString(SI_FURC_FILTER_SRC_CROWN)
+  choicesSource[src.EDITOR] = GetString(SI_FURC_FILTER_SRC_EDITOR)
   choicesSource[src.ANTIQUITY] = GetString(SI_FURC_FILTER_SRC_ANTIQUITY)
   choicesSource[src.RUMOUR] = GetString(SI_FURC_FILTER_SRC_RUMOUR)
   choicesSource[src.LUXURY] = GetString(SI_FURC_FILTER_SRC_LUX)
   choicesSource[src.OTHER] = GetString(SI_FURC_FILTER_SRC_OTHER)
   --choicesSource[src.ROLIS]            = "ROLIS"
-  --choicesSource[src.DROP]             = "DROP"
+  choicesSource[src.DROP] = GetString(SI_FURC_FILTER_SRC_DROP)
   choicesSource[src.JUSTICE] = GetString(SI_FURC_FILTER_SRC_JUSTICE)
   choicesSource[src.FISHING] = GetString(SI_FURC_FILTER_SRC_FISHING)
   --choicesSource[src.GUILDSTORE]       = "GUILDSTORE"
-  --choicesSource[src.FESTIVAL_DROP]    = "FESTIVAL_DROP"
+  choicesSource[src.FESTIVAL_DROP] = GetString(SI_FURC_FILTER_SRC_EVENT) -- Event
+  choicesSource[src.DUNGEON] = GetString(SI_FURC_FILTER_SRC_DUNGEON)
+  choicesSource[src.HARVEST] = GetString(SI_FURC_FILTER_SRC_HARVEST)
+  choicesSource[src.CHEST] = GetString(SI_FURC_FILTER_SRC_CHEST)
+  choicesSource[src.QUEST] = GetString(SI_FURC_FILTER_SRC_QUEST)
+  choicesSource[src.PICKPOCKET] = GetString(SI_FURC_FILTER_SRC_PICKPOCKET)
+  choicesSource[src.STEAL_CONTAINER] = GetString(SI_FURC_FILTER_SRC_CONTAINER)
 
   return choicesSource
 end
@@ -146,70 +177,41 @@ local function getTooltipsSource()
   tooltipsSource[src.NONE] = GetString(SI_FURC_FILTER_SRC_NONE_TT)
   tooltipsSource[src.FAVE] = GetString(SI_FURC_FILTER_SRC_FAVE_TT)
   tooltipsSource[src.CRAFTING] = GetString(SI_FURC_FILTER_SRC_CRAFTING_TT)
-  tooltipsSource[src.CRAFTING_KNOWN] = GetString(SI_FURC_FILTER_SRC_CRAFTING_KNOWN_TT)
-  tooltipsSource[src.CRAFTING_UNKNOWN] = GetString(SI_FURC_FILTER_SRC_CRAFTING_UNKNOWN_TT)
-  tooltipsSource[src.VENDOR] = GetString(SI_FURC_FILTER_SRC_SOLD_GOLD_TT)
-  tooltipsSource[src.PVP] = GetString(SI_FURC_FILTER_SRC_SOLD_AP_TT)
-  tooltipsSource[src.TELVAR] = GetString(SI_FURC_FILTER_SRC_SOLD_TELVAR_TT)
-  tooltipsSource[src.BAZAAR] = GetString(SI_FURC_FILTER_SRC_SOLD_TBARS_TT)
-  -- tooltipsSource[src.TOMES] = GetString(SI_FURC_FILTER_SRC_SOLD_TOMEPOINTS_TT)
-  tooltipsSource[src.CROWN] = GetString(SI_FURC_FILTER_SRC_CROWN_TT)
-  tooltipsSource[src.ANTIQUITY] = GetString(SI_FURC_FILTER_SRC_ANTIQUITY_TT)
   tooltipsSource[src.WRIT_VENDOR] = GetString(SI_FURC_FILTER_SRC_SOLD_WRIT_TT)
+  tooltipsSource[src.TOMES] = GetString(SI_FURC_FILTER_SRC_SOLD_TOMEPOINTS_TT)
+  tooltipsSource[filter.CURRENCY] = GetString(SI_FURC_FILTER_SRC_CURRENCY_TT)
   tooltipsSource[src.RUMOUR] = GetString(SI_FURC_FILTER_SRC_RUMOUR_TT)
   tooltipsSource[src.LUXURY] = GetString(SI_FURC_FILTER_SRC_LUX_TT)
   tooltipsSource[src.OTHER] = GetString(SI_FURC_FILTER_SRC_OTHER_TT)
   --tooltipsSource[src.ROLIS]            = "ROLIS"
-  --tooltipsSource[src.DROP]             = "DROP"
+  tooltipsSource[src.DROP] = GetString(SI_FURC_FILTER_SRC_DROP_TT)
   tooltipsSource[src.JUSTICE] = GetString(SI_FURC_FILTER_SRC_JUSTICE_TT)
-  tooltipsSource[src.FISHING] = GetString(SI_FURC_FILTER_SRC_FISHING_TT)
   --tooltipsSource[src.GUILDSTORE]       = "GUILDSTORE"
-  --tooltipsSource[src.FESTIVAL_DROP]    = "FESTIVAL_DROP"
 
   return tooltipsSource
 end
 this.GetTooltipsSource = getTooltipsSource
 
--- Display order of source filter choices
-local sourceChoiceValues = {
-  src.NONE,
-  src.FAVE,
-  src.CRAFTING,
-  src.CRAFTING_KNOWN,
-  src.CRAFTING_UNKNOWN,
-  src.VENDOR,
-  src.PVP,
-  src.TELVAR,
-  src.BAZAAR,
-  src.WRIT_VENDOR,
-  src.CROWN,
-  src.ANTIQUITY,
-  src.RUMOUR,
-  src.LUXURY,
-  src.JUSTICE,
-  src.FISHING,
-  src.OTHER,
-}
-
 ---LAM does not like NonContiguous, so we go gapless
 ---@return string[] choices parallel to GetChoicesSourceValues()
 local function getChoicesSourceList()
   local texts = getChoicesSource()
+  local values = this.GetChoicesSourceValues()
   local list = {}
-  for i = 1, #sourceChoiceValues do
-    list[i] = texts[sourceChoiceValues[i]]
+  for i = 1, #values do
+    list[i] = texts[values[i]]
   end
   return list
 end
 this.GetChoicesSourceList = getChoicesSourceList
 
----Source ids for LAM choicesValues
+---Source ids for choicesValues, display order is declared in SourceTabs.lua
 ---@return integer[] choicesValues
 function this.GetChoicesSourceValues()
-  return sourceChoiceValues
+  return FurC.GetSourceOrder()
 end
 
--- TODO #REFACTOR Just auto generate those from Constants.Versioning ¯\_(ツ)_/¯
+-- TODO #REFACTOR Just auto generate those from the published version keys ¯\_(ツ)_/¯
 
 -- [UPGRADING GAME VERSIONS, PTS compatibility]
 this.DropdownData = {
@@ -252,8 +254,8 @@ this.DropdownData = {
     [ver.SHADOWS] = GetString(SI_FURC_FILTER_VERSION_SHADOWS),
     [ver.WORMS2] = GetString(SI_FURC_FILTER_VERSION_WORMS2),
     [ver.ZERO] = GetString(SI_FURC_FILTER_VERSION_ZERO),
-    [ver.ZERO2] = GetString(SI_FURC_FILTER_VERSION_ZERO2),
     [ver.THIEVES] = GetString(SI_FURC_FILTER_VERSION_THIEVES),
+    [ver.ECHOES] = GetString(SI_FURC_FILTER_VERSION_ECHOES),
   },
 
   TooltipsVersion = {
@@ -295,8 +297,8 @@ this.DropdownData = {
     [ver.SHADOWS] = GetString(SI_FURC_FILTER_VERSION_SHADOWS_TT),
     [ver.WORMS2] = GetString(SI_FURC_FILTER_VERSION_WORMS2_TT),
     [ver.ZERO] = GetString(SI_FURC_FILTER_VERSION_ZERO_TT),
-    [ver.ZERO2] = GetString(SI_FURC_FILTER_VERSION_ZERO2_TT),
     [ver.THIEVES] = GetString(SI_FURC_FILTER_VERSION_THIEVES_TT),
+    [ver.ECHOES] = GetString(SI_FURC_FILTER_VERSION_ECHOES_TT),
   },
 
   ChoicesCharacter = {

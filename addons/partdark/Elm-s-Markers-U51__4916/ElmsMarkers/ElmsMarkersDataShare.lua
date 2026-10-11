@@ -513,9 +513,7 @@ function ElmsMarkers.ReplaceZoneMarkers(zone, newMarkers)
   -- Remove existing icons of the zone.
   if ElmsMarkers.placedIcons[zone] then
     for k, v in pairs(ElmsMarkers.placedIcons[zone]) do
-      if v and OSI and OSI.DiscardPositionIcon then
-        OSI.DiscardPositionIcon(v)
-      end
+      ElmsMarkers.Render.DiscardPositionIcon(v)
     end
   end
   ElmsMarkers.placedIcons[zone] = {}
@@ -541,13 +539,13 @@ end
 
 function ElmsMarkers.PlaceRendezvousAt(location, isLeader)
   if not isLeader and not ElmsMarkers.savedVars.optIntoCommands then return end
-  if not OSI or not OSI.CreatePositionIcon then return end
+  if not ElmsMarkers.Render.IsAvailable() then return end
   local zone, wX, wY, wZ, iconId = unpack(location)
   local texture = ElmsMarkers.iconData[iconId]
   -- local zone, wX, wY, wZ = GetUnitRawWorldPosition( "player" )
 
   local iconSize = ElmsMarkers.savedVars.selectedIconSize / 64.0
-  local iconPlacement = OSI.CreatePositionIcon( wX, wY, wZ, texture, iconSize * OSI.GetIconSize(), {1,1,1}, 2.5, function( data )
+  local iconPlacement = ElmsMarkers.Render.CreatePositionIcon( wX, wY, wZ, texture, iconSize * ElmsMarkers.Render.GetIconSize(), {1,1,1}, 2.5, function( data )
       data.offset = 1 + 1 * math.sin( GetGameTimeMilliseconds() / 1000 * 7 )
     end
   )
@@ -555,8 +553,8 @@ function ElmsMarkers.PlaceRendezvousAt(location, isLeader)
   ElmsMarkers.UI.announcementBannerLabel:SetText("[Elms Markers] REGROUP!")
   ElmsMarkers.UI.announcementBanner:SetHidden(false)
 
-  zo_callLater(function() 
-    OSI.DiscardPositionIcon(iconPlacement)
+  zo_callLater(function()
+    ElmsMarkers.Render.DiscardPositionIcon(iconPlacement)
     ElmsMarkers.UI.announcementBannerLabel:SetText("[Elms Markers] Sample text")
     ElmsMarkers.UI.announcementBanner:SetHidden(true)
     end
@@ -625,7 +623,7 @@ function ElmsMarkers.RemoveExactMarkerAt(location)
 
   for k, v in pairs(ElmsMarkers.placedIcons[zone]) do
     if v.x == wX and v.y == wY and v.z == wZ then
-      OSI.DiscardPositionIcon(v)
+      ElmsMarkers.Render.DiscardPositionIcon(v)
       ElmsMarkers.placedIcons[zone][k] = nil
     end
   end

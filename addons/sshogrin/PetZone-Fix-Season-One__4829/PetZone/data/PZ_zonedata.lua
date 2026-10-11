@@ -963,3 +963,10 @@ PetZone.ZoneData["westweald"] =  { -- Gold Coast
     ["u42_skingrad_base"] = "Skingrad",
     ["westwealdoverland_base"] = "Westweald Overland",
 }
+
+PetZone.ZoneData["solstice"] =  { -- Seasons of the Worm Cult Pt 1 & 2
+    [PZ_ZONE_ID_STRING] = 1502,
+    ["u46_sunport_base"] = "Sunport",
+    ["solsticeoverland_base"] = "Solstice Overland",
+}
+

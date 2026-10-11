@@ -11,6 +11,8 @@ local g_pinIndex = 0
 
 local g_groupPins = {}
 local g_bgObjectivePins = {}
+local g_dragonPins = {}
+local g_lastActiveDolmenPins = {}
 local g_customPinsList = {}
 
 local g_currentPinZoneId = 0
@@ -24,12 +26,14 @@ local g_pingControls = {}
 
 local function ClearOldZonePins()
     local currentZone = select(1, GetUnitWorldPosition("player")) or 0
-    local currentMapTile = GetMapTileTexture and GetMapTileTexture(1) or ""
 
-    if g_currentPinZoneId ~= currentZone or (currentMapTile ~= "" and g_currentPinMapTile ~= currentMapTile) then
+    -- Очищаем метки ТОЛЬКО если персонаж РЕАЛЬНО телепортировался в другую зону,
+    -- а не если игрок просто отдалил большую карту до Тамриэля или Нирна!
+    if g_currentPinZoneId ~= currentZone and currentZone > 0 then
         g_currentPinZoneId = currentZone
-        g_currentPinMapTile = currentMapTile
         g_customPinsList = {}
+        for _, pin in pairs(g_dragonPins) do pin:SetHidden(true) end
+        ZO_ClearTable(g_dragonPins)
     end
 end
 
@@ -95,6 +99,9 @@ function pins.Reset()
         pin:SetHidden(true)
     end
     for _, pin in pairs(g_groupPins) do
+        pin:SetHidden(true)
+    end
+    for _, pin in pairs(g_dragonPins) do
         pin:SetHidden(true)
     end
     ZO_ClearTable(g_activePins)
@@ -262,6 +269,15 @@ function pins.UpdateRotation(playerX, playerY, cosHeading, sinHeading, container
             pingCtrl:SetAnchor(CENTER, NecroCat_MapContainer, CENTER, zo_round((cosHeading * ix) - (sinHeading * iy)), zo_round((sinHeading * ix) + (cosHeading * iy)))
         end
     end
+    for _, dragonCtrl in pairs(g_dragonPins) do
+        if dragonCtrl and not dragonCtrl:IsHidden() and dragonCtrl.normX then
+            local ix = (dragonCtrl.normX * containerSize) - playerX
+            local iy = (dragonCtrl.normY * containerSize) - playerY
+            dragonCtrl:ClearAnchors()
+            dragonCtrl:SetAnchor(CENTER, NecroCat_MapContainer, CENTER, zo_round((cosHeading * ix) - (sinHeading * iy)), zo_round((sinHeading * ix) + (cosHeading * iy)))
+        end
+    end
+
 end
 
 -- =========================================================================
@@ -406,7 +422,8 @@ function pins.RefreshWayshrines()
 end
 
 function pins.RefreshLocations()
-    if GetMapContentType() == MAP_CONTENT_DUNGEON or GetCurrentZoneHouseId() ~= 0 then return end
+    -- Глушим только дома игроков (в убежищах воров и локациях рисуем всё!)
+    if GetCurrentZoneHouseId() ~= 0 then return end
 
     local numLocations = GetNumMapLocations and GetNumMapLocations() or 0
     for i = 1, numLocations do
@@ -414,7 +431,7 @@ function pins.RefreshLocations()
             local icon, normX, normY = GetMapLocationIcon(i)
             if icon and icon ~= "" and normX > 0 and normY > 0 then
                 local name = GetMapLocationTooltipHeader(i)
-                pins.CreatePin(icon, normX, normY, name, 20)
+                pins.CreatePin(icon, normX, normY, name, 22, nil, MAP_PIN_TYPE_LOCATION)
             end
         end
     end
@@ -436,7 +453,8 @@ function pins.RefreshPOIs()
             local layout = ZO_MapPin.PIN_DATA[poiPinType]
             local tex = layout.texture
             if type(tex) == "function" then
-                local ok, res = pcall(tex, { m_PinType = poiPinType })
+                local mockPoi = setmetatable({ m_PinType = poiPinType }, { __index = ZO_MapPin })
+                local ok, res = pcall(tex, mockPoi)
                 if ok and type(res) == "string" then icon = res end
             elseif type(tex) == "string" then
                 icon = tex
@@ -953,6 +971,8 @@ local function HandleCustomPinCreation(pinType, pinTag, xLoc, yLoc)
     if ZO_MapPin and ZO_MapPin.POI_PIN_TYPES and ZO_MapPin.POI_PIN_TYPES[pinType] then return end
     if ZO_MapPin and ZO_MapPin.FAST_TRAVEL_WAYSHRINE_PIN_TYPES and ZO_MapPin.FAST_TRAVEL_WAYSHRINE_PIN_TYPES[pinType] then return end
     if pinType == MAP_PIN_TYPE_LOCATION then return end
+    -- Глушим создание штрихкода для меток 233 (мы зажигаем сам Дольмен синим!)
+    if pinType == 233 or (ZO_MapPin and ZO_MapPin.WORLD_EVENT_POI_PIN_TYPES and ZO_MapPin.WORLD_EVENT_POI_PIN_TYPES[pinType]) then return end
 
     local lmp = LibMapPins
     if lmp and lmp.IsEnabled and pinType and lmp:IsEnabled(pinType) == false then return end
@@ -964,12 +984,14 @@ local function HandleCustomPinCreation(pinType, pinTag, xLoc, yLoc)
     if layout then
         local icon = layout.texture or layout[1]
         if type(icon) == "function" then
-            local ok, res = pcall(icon, { m_PinType = pinType, m_PinTag = pinTag })
+            local mockPin = setmetatable({ m_PinType = pinType, m_PinTag = pinTag }, { __index = ZO_MapPin })
+            local ok, res = pcall(icon, mockPin)
             if ok and type(res) == "string" then icon = res else icon = nil end
         end
 
         if icon and icon ~= "" then
-            local size = 18
+            -- Если у события свой размер (у дракона 64) — масштабируем аккуратно под миникарту
+            local size = (layout.size and layout.size >= 32) and 32 or (layout.size or 20)
             local tooltipCreator = layout.tooltip
             local tint = layout.tint
             if type(tint) == "function" then
@@ -1028,6 +1050,129 @@ function pins.RefreshSavedCustomPins()
 end
 
 -- =========================================================================
+-- 8.1. МИРОВЫЕ СОБЫТИЯ (Драконы Эльсвейра + Активные Якоря и Дольмены)
+-- =========================================================================
+function pins.RefreshWorldEvents()
+    -- Железобетонная защита: если таблицы еще нет, создаем её на лету
+    g_dragonPins = g_dragonPins or {}
+    g_lastActiveDolmenPins = g_lastActiveDolmenPins or {}
+
+    for _, pin in pairs(g_dragonPins) do
+        pin:SetHidden(true)
+    end
+
+    local containerSize = NecroCat_MapContainer:GetWidth()
+    local doesRotate = minimap.settings and minimap.settings.rotate
+
+    local pNormX, pNormY = GetMapPlayerPosition("player")
+    local playerX = (pNormX or 0) * containerSize
+    local playerY = (pNormY or 0) * containerSize
+    local heading = GetPlayerCameraHeading() or 0
+    local cosH = math.cos(heading)
+    local sinH = math.sin(heading)
+
+    local userBaseSize = (minimap.settings and minimap.settings.pinSize) or 20
+    local dragonSize = zo_round(46 * (userBaseSize / 20))
+    local eventPoiSize = zo_round(40 * (userBaseSize / 20))
+
+    -- 2. Автономный опрос летающих драконов
+    for i = 1, 16 do
+        local tag = "worldevent" .. i
+        if DoesUnitExist(tag) and not IsUnitDead(tag) then
+            local x, y, _, isInCurrentMap = GetMapPlayerPosition(tag)
+            if isInCurrentMap and x and y and x > 0 and y > 0 and x < 1 and y < 1 then
+                local pin = g_dragonPins[tag]
+
+                local isInCombat = IsUnitInCombat(tag)
+                local iconFile = isInCombat and "EsoUI/Art/Icons/WorldEventUnits/dragon_fly_combat.dds" or "EsoUI/Art/Icons/WorldEventUnits/dragon_fly.dds"
+                local dragonName = isInCombat and "|cff3333[В БОЮ] Дракон|r" or "|cff9900Летящий дракон|r"
+
+                if not pin then
+                    local ctrlName = "NCMM_DragonPin_" .. tag
+                    pin = GetControl(ctrlName) or CreateControl(ctrlName, NecroCat_MapContainer, CT_TEXTURE)
+                    pin:SetDrawTier(DT_HIGH)
+                    pin:SetDrawLayer(DL_OVERLAY)
+                    pin:SetDrawLevel(26)
+                    pin:SetMouseEnabled(true)
+                    pin:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+                    g_dragonPins[tag] = pin
+                end
+
+                pin:SetDimensions(dragonSize, dragonSize)
+                pin:SetHandler("OnMouseEnter", function(self)
+                    InitializeTooltip(InformationTooltip, self, TOP, 0, -5)
+                    SetTooltipText(InformationTooltip, dragonName)
+                end)
+
+                pin:SetTexture(iconFile)
+                pin:SetTextureCoords(0, 1, 0, 1)
+
+                if isInCombat then
+                    pin:SetColor(1, 0.35, 0.1, 1)
+                else
+                    pin:SetColor(1, 1, 1, 1)
+                end
+
+                pin.normX = x
+                pin.normY = y
+                pin:ClearAnchors()
+
+                if doesRotate then
+                    local ix = (x * containerSize) - playerX
+                    local iy = (y * containerSize) - playerY
+                    pin:SetAnchor(CENTER, NecroCat_MapContainer, CENTER, zo_round((cosH * ix) - (sinH * iy)), zo_round((sinH * ix) + (cosH * iy)))
+                else
+                    pin:SetAnchor(CENTER, NecroCat_MapContainer, TOPLEFT, x * containerSize, y * containerSize)
+                end
+                pin:SetHidden(false)
+            end
+        end
+    end
+
+    -- 3. Сбрасываем ранее активные Дольмены в нормальный цвет и размер
+    local normalPoiSize = zo_round(22 * (userBaseSize / 20))
+    for _, oldPin in ipairs(g_lastActiveDolmenPins) do
+        oldPin:SetColor(1, 1, 1, 1)
+        oldPin:SetDimensions(normalPoiSize, normalPoiSize)
+        oldPin:SetDrawLevel(2)
+        if oldPin.originalName then
+            oldPin.pinText = oldPin.originalName
+            oldPin.originalName = nil
+        end
+    end
+    g_lastActiveDolmenPins = {}
+
+    -- 4. Автоматически зажигаем синим активные Дольмены
+    local pinManager = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
+    if pinManager and pinManager.m_Active then
+        local wePoiTypes = ZO_MapPin and ZO_MapPin.WORLD_EVENT_POI_PIN_TYPES or {}
+        local activeDolmenSize = zo_round(32 * (userBaseSize / 20))
+
+        for _, mapPin in pairs(pinManager.m_Active) do
+            if type(mapPin) == "table" and mapPin.GetPinType and wePoiTypes[mapPin:GetPinType()] then
+                local ax, ay = mapPin:GetNormalizedPosition()
+                if ax and ay and ax > 0 and ay > 0 then
+                    for _, activePin in ipairs(g_activePins) do
+                        if activePin.normX and activePin.normY then
+                            if math.abs(activePin.normX - ax) < 0.002 and math.abs(activePin.normY - ay) < 0.002 then
+                                if not activePin.originalName then
+                                    activePin.originalName = activePin.pinText
+                                end
+                                activePin:SetColor(0.1, 0.9, 1.0, 1) -- Неоново-голубой цвет Хладной Гавани!
+                                activePin:SetDimensions(activeDolmenSize, activeDolmenSize)
+                                activePin:SetDrawLevel(28)
+                                activePin.pinText = "|c00ffff[АКТИВЕН] " .. (activePin.originalName or "Темный Якорь") .. "|r"
+                                table.insert(g_lastActiveDolmenPins, activePin)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- =========================================================================
 -- 9. ГЛАВНЫЙ СИНХРОНИЗАТОР
 -- =========================================================================
 function pins.RefreshAll()
@@ -1038,6 +1183,8 @@ function pins.RefreshAll()
     if pins.RefreshSkyshards then pins.RefreshSkyshards() end
     if pins.RefreshQuests then pins.RefreshQuests() end
     if pins.RefreshAntiquities then pins.RefreshAntiquities() end
+    if pins.RefreshWorldEvents then pins.RefreshWorldEvents() end
+    
     
     local lmp = LibMapPins
     if lmp and lmp.RefreshPins then
@@ -1051,6 +1198,29 @@ function pins.RefreshAll()
 end
 
 EVENT_MANAGER:RegisterForUpdate("NecroCat_Minimap_GroupUpdate", 100, pins.UpdateGroupPinsRealtime)
+
+-- Живой фоновый трекер полета и боя драконов (раз в полсекунды)
+local function UpdateDragonsRealtime()
+    if not NecroCat_Minimap_MainWindow or NecroCat_Minimap_MainWindow:IsHidden() then return end
+    if not (minimap.settings and minimap.settings.enabled) then return end
+    if ZO_WorldMap_IsWorldMapShowing() then return end
+
+    local pinManager = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
+    if pinManager then
+        if pinManager.UpdateMovingPins then
+            pinManager:UpdateMovingPins()
+        end
+        if pinManager.UpdateSymbolicPins then
+            pinManager:UpdateSymbolicPins()
+        end
+    end
+
+    if pins.RefreshWorldEvents then
+        pins.RefreshWorldEvents()
+    end
+end
+
+EVENT_MANAGER:RegisterForUpdate("NecroCat_Minimap_DragonUpdate", 500, UpdateDragonsRealtime)
 
 EVENT_MANAGER:RegisterForEvent("NecroCat_Minimap_InventoryUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function(_, bagId)
     if bagId == BAG_BACKPACK then

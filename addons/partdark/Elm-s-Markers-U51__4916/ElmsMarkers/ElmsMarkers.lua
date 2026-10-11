@@ -6,7 +6,10 @@ function ElmsMarkers.OnAddOnLoaded( eventCode, addonName )
 	EVENT_MANAGER:UnregisterForEvent(ElmsMarkers.name, EVENT_ADD_ON_LOADED)
 
 	ElmsMarkers.savedVars = ZO_SavedVars:NewCharacterIdSettings("ElmsMarkersSavedVariables", ElmsMarkers.variableVersion, nil, ElmsMarkers.defaults, nil, GetWorldName())
-  SLASH_COMMANDS["/elms"] = ElmsMarkers.HandleCommandInput
+	 SLASH_COMMANDS["/elms"] = ElmsMarkers.HandleCommandInput
+
+	 -- Select the icon renderer (LibImplex preferred, OdySupportIcons fallback).
+	 ElmsMarkers.Render.Initialize()
 
   ZO_CreateStringId("SI_BINDING_NAME_EM_PLACE_MARKER", "Place Marker")
   ZO_CreateStringId("SI_BINDING_NAME_EM_REMOVE_MARKER", "Remove Marker")
@@ -66,6 +69,13 @@ function ElmsMarkers.HandleCommandInput(args)
     if(location) then
       CHAT_SYSTEM:AddMessage("[ElmsMarkers] Removed marker at " .. location[2] .. ", " .. location[3] .. ", " .. location[4])
     end
+  elseif args == "render" then
+    local r = ElmsMarkers.Render
+    CHAT_SYSTEM:AddMessage("[ElmsMarkers] Current icon renderer: " .. tostring(r.backend))
+    CHAT_SYSTEM:AddMessage("[ElmsMarkers] Own (built-in) renderer available: " .. tostring(r.IsOwnAvailable()))
+    CHAT_SYSTEM:AddMessage("[ElmsMarkers] LibImplex (v2 API) available: " .. tostring(r.IsLibImplexAvailable()))
+    CHAT_SYSTEM:AddMessage("[ElmsMarkers] OdySupportIcons available: " .. tostring(r.IsOdySupportIconsAvailable()))
+    CHAT_SYSTEM:AddMessage("[ElmsMarkers] Preferred renderer (setting): " .. tostring(ElmsMarkers.savedVars.preferredRenderer))
   end
 end
 
@@ -84,7 +94,7 @@ function ElmsMarkers.PlacePositionIcons(positions, zoneId)
   if not ElmsMarkers.placedIcons[zoneId] then
     ElmsMarkers.placedIcons[zoneId] = {}
   end
-  if OSI and OSI.CreatePositionIcon then
+  if ElmsMarkers.Render.IsAvailable() then
     for i, iconLocation in pairs(positions) do
       if iconLocation then
         ElmsMarkers.DoPlaceIcon(zoneId, iconLocation[1], iconLocation[2], iconLocation[3], ElmsMarkers.iconData[iconLocation[4]])
@@ -96,9 +106,7 @@ end
 function ElmsMarkers.RemovePositionIcons(zoneId)
   if ElmsMarkers.placedIcons[zoneId] then 
     for k, v in pairs(ElmsMarkers.placedIcons[zoneId]) do
-      if OSI and OSI.DiscardPositionIcon then
-        OSI.DiscardPositionIcon(v)
-      end
+      ElmsMarkers.Render.DiscardPositionIcon(v)
     end
   end
   ElmsMarkers.placedIcons[zoneId] = nil
@@ -110,7 +118,7 @@ function ElmsMarkers.PlaceAtMe()
 end
 
 function ElmsMarkers.PlaceAtLocation(location)
-  if not OSI or not OSI.CreatePositionIcon then return end
+  if not ElmsMarkers.Render.IsAvailable() then return end
   local zone, wX, wY, wZ, iconId = unpack(location)
   local zonePositions = ElmsMarkers.savedVars.positions[zone]
   if not zonePositions then
@@ -133,7 +141,7 @@ function ElmsMarkers.RemoveNearMe()
 end
 
 function ElmsMarkers.RemoveNearestMarker(location) 
-  if not OSI or not OSI.DiscardPositionIcon then return end
+  if not ElmsMarkers.Render.IsAvailable() then return end
   local zone, wX, wY, wZ = unpack(location)
   local zoneIcons = ElmsMarkers.placedIcons[zone]
   if(not zoneIcons) then return end
@@ -151,7 +159,7 @@ function ElmsMarkers.RemoveNearestMarker(location)
   end
 
   if closestMarker then
-    OSI.DiscardPositionIcon(closestMarker)
+    ElmsMarkers.Render.DiscardPositionIcon(closestMarker)
     ElmsMarkers.placedIcons[zone][closestMarkerIndex] = nil
 
     for k,v in pairs(ElmsMarkers.savedVars.positions[zone]) do
@@ -168,11 +176,11 @@ function ElmsMarkers.RemoveNearestMarker(location)
 end
 
 function ElmsMarkers.ClearZone()
-  if not OSI or not OSI.DiscardPositionIcon then return end
+  if not ElmsMarkers.Render.IsAvailable() then return end
   local zone = GetUnitRawWorldPosition( "player" )
 
   for k, v in pairs(ElmsMarkers.placedIcons[zone]) do
-    OSI.DiscardPositionIcon(v)
+    ElmsMarkers.Render.DiscardPositionIcon(v)
   end
 
   ElmsMarkers.placedIcons[zone] = nil
@@ -182,7 +190,7 @@ end
 
 function ElmsMarkers.DoPlaceIcon(zone, x, y, z, texture)
   local iconSize = ElmsMarkers.savedVars.selectedIconSize / 64.0
-  table.insert(ElmsMarkers.placedIcons[zone], OSI.CreatePositionIcon( x, y, z, texture, iconSize * OSI.GetIconSize()))
+  table.insert(ElmsMarkers.placedIcons[zone], ElmsMarkers.Render.CreatePositionIcon( x, y, z, texture, iconSize * ElmsMarkers.Render.GetIconSize()))
 end
 
 function ElmsMarkers.CreateConfigString()

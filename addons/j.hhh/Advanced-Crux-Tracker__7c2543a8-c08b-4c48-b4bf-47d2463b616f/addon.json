@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/j.hhh/Crux-Tracker__7c2543a8-c08b-4c48-b4bf-47d2463b616f",
+  "archive_path": "addons/j.hhh/Advanced-Crux-Tracker__7c2543a8-c08b-4c48-b4bf-47d2463b616f",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "j.hhh",
   "canonical_id": "bethesda:7c2543a8-c08b-4c48-b4bf-47d2463b616f",
   "content_id": "7c2543a8-c08b-4c48-b4bf-47d2463b616f",
   "deleted": false,
-  "fingerprint": "dd829dc0323f573fca9b9048efc2c5bd9792febaba2b39ffe9c9e13678f7a126",
+  "fingerprint": "b5e1ac5d8de363c6aefae857dd2c955dfa71a74011fcf45b8ac646af10c29eff",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "7c2543a8-c08b-4c48-b4bf-47d2463b616f",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/7c2543a8-c08b-4c48-b4bf-47d2463b616f",
-  "title": "Crux Tracker"
+  "title": "Advanced Crux Tracker"
 }

@@ -8,10 +8,7 @@ local writing = setmetatable({}, {__mode = "k"})
 local processing = setmetatable({}, {__mode = "k"})
 local busy = false
 local config = { keyboardScale = 1.18, gamepadScale = 1.0, keyboardMinimum = 22, gamepadMinimum = 26 }
-local function active()
-    if type(ESO_ARABIC_IS_ACTIVE) == "function" then return ESO_ARABIC_IS_ACTIVE() end
-    return GetCVar("Language.2") == "ar"
-end
+local function active() return GetCVar("Language.2") == "ar" end
 R.IsActive = active
 R.Metrics = {rendered = 0, measured = 0, discovered = 0, maxBatchMs = 0}
 local function call(c, method, ...)
@@ -323,6 +320,7 @@ local function installGamepadTooltips()
     ZO_TooltipSection.esoArabicInstalled = true
     local original = ZO_TooltipSection.AddCustomLabelInternal
     ZO_TooltipSection.AddCustomLabelInternal = function(self, label, customFunction, ...)
+        if R.ReleaseLabelBinding then R.ReleaseLabelBinding(label) end
         local width = self:GetWidthProperty(...)
         if width == "auto" or (width == nil and not self:IsVertical()) then
             width = 0
@@ -331,6 +329,17 @@ local function installGamepadTooltips()
         end
         local height = self:GetHeightProperty(...)
         if type(height) ~= "number" or height <= 0 then height = nil end
+        local measuredStyle = {}
+        local fixedRow = self.GetProperty and self:GetProperty("esoArabicFixedRow", ...)
+        local fixedAlignment = fixedRow and self:GetProperty("horizontalAlignment", ...)
+        -- Nested Skills headings can have neither an explicit width nor an
+        -- initialized inner dimension. Treat that as auto width, and pass the
+        -- same numeric value to native measurement instead of comparing nil
+        -- or using the previous width of a pooled label.
+        if type(width) ~= "number" then
+            width = 0
+            if active() then measuredStyle.width = 0 end
+        end
         local function prepareLabel(c, ...)
             customFunction(c, ...)
             -- These pooled labels must finish reflowing before the native
@@ -339,16 +348,34 @@ local function installGamepadTooltips()
             managed[c] = true
             if active() then
                 c:SetWidth(width)
+                if self:IsVertical() and width > 0 then
+                    -- Unknown alchemy traits contain only digits and '?', so
+                    -- the Arabic-letter gate alone cannot right-align them.
+                    c:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+                end
+                if height == nil then c:SetMaxLineCount(0) end
                 local path, size = fontInfo(c)
                 process(c, {managed = true, width = width, autoWidth = width == 0,
-                    size = math.max(26, math.min(size or 30, 32)), minimum = 24,
-                    height = height, flow = height == nil, reflowVisual = IsInGamepadPreferredMode(), force = true,
+                    size = fixedRow and size or math.max(26, math.min(size or 30, 32)), minimum = fixedRow and size or 24,
+                    height = height, single = fixedRow, flow = height == nil, reflowVisual = not fixedRow and IsInGamepadPreferredMode(), force = true,
                     align = TEXT_ALIGN_RIGHT})
+                if fixedRow then
+                    c:SetHorizontalAlignment(fixedAlignment or TEXT_ALIGN_LEFT)
+                    c:SetMaxLineCount(1)
+                end
+                if self:IsVertical() and height == nil and R.HasArabic(c:GetText()) then
+                    local _, breaks = c:GetText():gsub("\n", "")
+                    measuredStyle.height = math.max(c:GetTextHeight(),
+                        (breaks + 1) * c:GetFontHeight())
+                end
+                -- Keep the native pool's font cache honest after applying the
+                -- Arabic face; otherwise a reused label can skip its font reset.
+                c.fontString = effectiveFont(c)
             else
                 restore(c, states[c])
             end
         end
-        return original(self, label, prepareLabel, ...)
+        return original(self, label, prepareLabel, measuredStyle, ...)
     end
 end
 
@@ -541,9 +568,7 @@ if SLASH_COMMANDS then
         d("ESO Arabic 1.3.2: " .. count .. " visible labels exceed the available space.")
     end
     SLASH_COMMANDS["/arstatus"] = function()
-        d("ESO Arabic 2.2.6 | active=" .. tostring(active()) .. " | client-language=" .. tostring(GetCVar("language.2") or "unknown")
-            .. " | translated UI IDs=" .. tostring(ESOArabicSavedVariables and ESOArabicSavedVariables.clientStringEntries or 0)
-            .. " | rendered=" .. R.Metrics.rendered .. " | measurements=" .. R.Metrics.measured
-            .. " | max discovery batch ms=" .. R.Metrics.maxBatchMs)
+        d("ESO Arabic 1.3.2 | active=" .. tostring(active()) .. " | rendered=" .. R.Metrics.rendered
+            .. " | measurements=" .. R.Metrics.measured .. " | max discovery batch ms=" .. R.Metrics.maxBatchMs)
     end
 end

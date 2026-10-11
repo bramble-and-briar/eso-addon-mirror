@@ -1,3 +1,5 @@
+1.2.1: Replaced the pin icon in achievement titles with a separate saved pin-status filter (Any pin status / Pinned only / Not pinned). The filter follows tracker changes and resets with Clear. Standardized all achievement context-menu actions to English, matching the add-on UI. In-game validation of these changes pending.
+1.2.0: Update 51 API support; right-click achievements to pin/unpin them on the HUD, with a pin marker in the results. Automatically refresh progress, completion dates, filters and totals after achievement changes. Refresh relative date ranges when reopening or updating the list. Fixed add-on load event cleanup. In-game validation pending.
 1.1.3: Added hover descriptions, criteria text, completion stats, and wider table layout.
 1.1.2: Update 50 API bump; verified achievement reorganization and added duplicate achievement ID protection.
 1.1.1: Additional information added.

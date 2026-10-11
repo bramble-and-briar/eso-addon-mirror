@@ -1,4 +1,4 @@
-ChatKeeper={VERSION='0.1.1',MAX_MESSAGES=500,MAX_BYTES=262144}
+ChatKeeper={VERSION='1.0.0',MAX_MESSAGES=100,MAX_BYTES=262144}
 local K=ChatKeeper
 local defaults={history={},timestamps=true,hour24=true,offsetY=-40,offsetX=0,restore=true,restoreCount=100}
 local unpackArgs=unpack or table.unpack
@@ -45,6 +45,11 @@ function K:ChannelName(channel)
  return read(GetDynamicChatChannelName,channel) or 'Chat'
 end
 function K:Trim()
+ local now=read(GetTimeStamp) or 0
+ for i=#self.saved.history,1,-1 do
+  local m=self.saved.history[i]
+  if not m.epoch or now-m.epoch>172800 then table.remove(self.saved.history,i) end
+ end
  local bytes=0
  for _,m in ipairs(self.saved.history) do bytes=bytes+#(m.text or '')+#(m.sender or '')+#(m.channelName or '')+64 end
  while #self.saved.history>self.MAX_MESSAGES or bytes>self.MAX_BYTES do
@@ -58,7 +63,7 @@ function K:Capture(channel,from,text,customer,display)
  if category and read(IsChannelCategoryCommunicationRestricted,category) then return end
  local sender=self.Plain(display and display~='' and display or from)
  local body=self.Plain(text);if body=='' then return end
- self.saved.history[#self.saved.history+1]={channel=channel,category=category,channelName=self:ChannelName(channel),sender=sender,text=body,time=read(GetTimeString) or '',date=read(GetDate) or 0}
+ self.saved.history[#self.saved.history+1]={channel=channel,category=category,channelName=self:ChannelName(channel),sender=sender,text=body,time=read(GetTimeString) or '',date=read(GetDate) or 0,epoch=read(GetTimeStamp) or 0}
  self:Trim()
 end
 function K:Line(m,restored)
@@ -74,7 +79,7 @@ function K:Restore()
  if self.restored or not self.saved.restore then return true end
  if not CHAT_ROUTER or type(CHAT_ROUTER.AddSystemMessage)~='function' then return false end
  self.restored=true
- local history=self.restoreSnapshot or {};local first=math.max(1,#history-self.saved.restoreCount+1)
+ local history=self.restoreSnapshot or {};if self.replayExpired then history={} end;local first=math.max(1,#history-self.saved.restoreCount+1)
  for i=first,#history do
   local m=history[i]
   if not m.category or not read(IsChannelCategoryCommunicationRestricted,m.category) then
@@ -134,15 +139,16 @@ end
 local function label(parent,x,y,w,h)
  local l=WINDOW_MANAGER:CreateControl(nil,parent,CT_LABEL);l:SetAnchor(TOPLEFT,parent,TOPLEFT,x,y);l:SetDimensions(w,h);l:SetFont('ZoFontGamepad18');l:SetColor(.9,.9,.9,1);return l
 end
-local options={{key='offsetY',name='Chat vertical offset',step=5,min=-400,max=200},{key='offsetX',name='Chat horizontal offset',step=5,min=-400,max=400},{key='timestamps',name='Timestamps'},{key='hour24',name='24-hour format'},{key='restore',name='Restore recent chat'},{key='restoreCount',name='Messages restored',step=25,min=25,max=500}}
+local options={{key='offsetY',name='Chat vertical offset',step=5,min=-400,max=200},{key='offsetX',name='Chat horizontal offset',step=5,min=-400,max=400},{key='timestamps',name='Timestamps'},{key='hour24',name='24-hour format'},{key='restore',name='Restore recent chat'},{key='restoreCount',name='Messages restored',step=25,min=25,max=100}}
 function K:Refresh()
  if self.window and GuiRoot.GetWidth then self.window:SetScale(math.min(1,GuiRoot:GetWidth()/1100,GuiRoot:GetHeight()/820)) end
- self.heading:SetText(self.view=='history' and ('CHAT KEEPER | '..#self.saved.history..' saved messages') or 'CHAT KEEPER | 0.1.1 TESTER')
+ self.heading:SetText(self.view=='history' and ('CHAT KEEPER | '..#self.saved.history..' saved messages') or ('CHAT KEEPER | '..self.VERSION))
  for _,l in ipairs(self.labels) do l:SetText('') end
  if self.view=='history' then
   local count=#self.saved.history;self.pages=math.max(1,math.ceil(count/10));self.page=clamp(self.page,1,self.pages)
   local first=math.max(1,count-self.page*10+1);local last=count-(self.page-1)*10
   for i=first,last do self.labels[i-first+1]:SetText(self:Line(self.saved.history[i],false)) end
+  if count==0 then self.labels[1]:SetText('No saved conversations yet.') end
   self.footer:SetText('Page '..self.page..'/'..self.pages..' | X: older | Y: newer | A: settings\nSaved text only. Send replies through normal ESO chat.')
  else
   for i,o in ipairs(options) do
@@ -153,6 +159,7 @@ function K:Refresh()
  end
 end
 function K:Open(view)
+ self:Trim()
  if IsUnitInCombat('player') then d('Chat Keeper: open after combat.');return end
  if not self.window then
   local w=WINDOW_MANAGER:CreateTopLevelWindow('TGWChatKeeperWindow');self.window=w;w:SetAnchor(CENTER,GuiRoot,CENTER,0,0);w:SetDimensions(1060,780);w:SetHidden(true)
@@ -173,7 +180,7 @@ function K:Open(view)
    self:Offset();self:Refresh()
   end
   self.keys={alignment=KEYBIND_STRIP_ALIGN_LEFT,
-   {name='History / settings',keybind='UI_SHORTCUT_PRIMARY',callback=function() stop();self.view=self.view=='history' and 'settings' or 'history';self.page=1;self:Refresh() end},
+   {name='History / settings',keybind='UI_SHORTCUT_PRIMARY',callback=function() stop();self.view=self.view=='history' and 'settings' or 'history';self.page=1;self:Refresh();KEYBIND_STRIP:UpdateKeybindButtonGroup(self.keys) end},
    {name=function() return self.view=='history' and 'Older' or 'Decrease / toggle' end,keybind='UI_SHORTCUT_SECONDARY',callback=function() change(-1) end},
    {name=function() return self.view=='history' and 'Newer' or 'Increase / toggle' end,keybind='UI_SHORTCUT_TERTIARY',callback=function() change(1) end},
    {keybind='UI_SHORTCUT_INPUT_UP',handlesKeyUp=true,callback=function(up) move(-1,up) end},
@@ -191,7 +198,11 @@ EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Load',EVENT_ADD_ON_LOADED,function
  K.saved=ZO_SavedVars:NewAccountWide('TGWChatKeeperSaved',1,nil,defaults,GetWorldName())
  K.saved.history=type(K.saved.history)=='table' and K.saved.history or {}
  K.saved.offsetY=clamp(tonumber(K.saved.offsetY) or -40,-400,200);K.saved.offsetX=clamp(tonumber(K.saved.offsetX) or 0,-400,400)
- K.saved.restoreCount=clamp(tonumber(K.saved.restoreCount) or 100,25,500)
+ K.saved.restoreCount=clamp(tonumber(K.saved.restoreCount) or 100,25,100)
+ for _,key in ipairs({'background','fillArtwork','artOpacity','panelOpacity','loadingArtwork','centeredFlagV1'}) do K.saved[key]=nil end
+ local now=read(GetTimeStamp) or 0
+ K.replayExpired=not K.saved.lastSeen or now-K.saved.lastSeen>=1800
+ K.saved.lastSeen=now
  K:Trim();K.restoreSnapshot={};for i,m in ipairs(K.saved.history) do K.restoreSnapshot[i]=m end
  K:InstallTimestamps()
  EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Chat',EVENT_CHAT_MESSAGE_CHANNEL,function(_,...) K:Capture(...) end)
@@ -199,6 +210,8 @@ EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Load',EVENT_ADD_ON_LOADED,function
   zo_callLater(function() K:InstallTimestamps();K:Offset();K:Restore() end,1000)
  end)
  EVENT_MANAGER:RegisterForUpdate('TGWChatKeeper_Position',500,function() K:Offset() end)
+ EVENT_MANAGER:RegisterForUpdate('TGWChatKeeper_Seen',60000,function() K.saved.lastSeen=read(GetTimeStamp) or 0;K:Trim() end)
+ EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Leaving',EVENT_PLAYER_DEACTIVATED,function() K.saved.lastSeen=read(GetTimeStamp) or 0 end)
  SLASH_COMMANDS['/chatkeeper']=function(arg)
   arg=(arg or ''):lower():match('^%s*(.-)%s*$')
   if arg=='clear confirm' then K.saved.history={};K.restoreSnapshot={};K:Trim();d('Chat Keeper: saved history cleared.')
@@ -207,5 +220,5 @@ EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Load',EVENT_ADD_ON_LOADED,function
   elseif arg=='reset' then K.saved.offsetY=0;K.saved.offsetX=0;K:Offset();d('Chat Keeper: native chat position restored.')
   else K:Open('settings') end
  end
- d('Chat Keeper 0.1.1 tester loaded. /chatkeeper for settings.')
+ d('Chat Keeper '..K.VERSION..' loaded. /chatkeeper for settings.')
 end)

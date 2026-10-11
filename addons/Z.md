@@ -9,6 +9,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Zadrot Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NOGARUKA/Zadrot-Companion__3094) | NOGARUKA | PC / Mac | 2 |
 | [Zadrot FPS](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NOGARUKA/Zadrot-FPS__3091) | NOGARUKA | PC / Mac | 2 |
 | [Zai's Dungeon Finder Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ZaiZah/Zai-s-Dungeon-Finder-Tools__4151) | ZaiZah | PC / Mac | 07.12.2025 |
+| [Zaji](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Zaji__ee217f7c-81b5-40dc-beb5-a6a184260d9d) | TheGreyWolf98 | Console | — |
 | [ZAM Stats Exp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Seerah/ZAM-Stats-Exp__21) | Seerah | PC / Mac | 1.0.7 |
 | [ZAM Stats Quests](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Seerah/ZAM-Stats-Quests__22) | Seerah | PC / Mac | 1.0.6 |
 | [ZeebsOffTaunt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zbzszzzt123/ZeebsOffTaunt__3756) | zbzszzzt123 | PC / Mac | 1.0 |

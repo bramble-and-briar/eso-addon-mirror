@@ -1,0 +1,11 @@
+## Title: |c8b5cf6kozy-eso|r BuildPort
+## Author: |c8b5cf6Kozy|r
+## Version: 0.10.2
+## AddOnVersion: 1002
+## Description: Type /kozyexport to open your current gear, skills, passives and more in the kozy-eso.com Build Editor.
+## APIVersion: 101051 101052
+## DependsOn: LibAddonMenu-2.0>=32
+## SavedVariables: KozyEsoBuildPort_SV
+
+Passives.lua
+KozyEsoBuildPort.lua

@@ -1,8 +1,8 @@
 ## Title: |cFFFF00Simple Event Tracker|r
-## Description: Announces the running event at login and tracks your daily Trade Bars. /sevti = event info, /sevt = trade bar status (both accept: done, undo, history, ui, quiet, help).
+## Description: Tracks your daily Trade Bars and tells you when an event is running. /sevti = event info, /sevt = trade bar status (both accept: done, undo, history, event, pause, ui, help). /sevtsize 1-5 = label text size.
 ## Author: Jammet / Claude AI assisted (based on Event Tracker by |cAA00FFKelinmiriel|r)
-## Version: 3.0.4
-## AddOnVersion: 3004
+## Version: 3.1.2
+## AddOnVersion: 3102
 ## APIVersion: 101050 101051
 ## SavedVariables: SimpleEventTrackerVars
 ##

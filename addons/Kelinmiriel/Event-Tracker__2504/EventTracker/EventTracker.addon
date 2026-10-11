@@ -1,9 +1,9 @@
-## Title: |cFFFF00Event Tracker |c00CCFFZeal of Zenithar|r v2.420
+## Title: |cFFFF00Event Tracker |c00CCFFHigh Seas|r v2.430
 ## Description: Helps track Event Tickets so you don't miss any.
 ## Author: |cAA00FFKelinmiriel|r
-## Version: 2.420
-## AddOnVersion: 2420
-## APIVersion: 101050 101051
+## Version: 2.430
+## AddOnVersion: 2430
+## APIVersion: 101051
 ## SavedVariables: EventTrackerVars EventTrackerShared
 ## OptionalDependsOn: LibSlashCommander
 ##
@@ -37,6 +37,7 @@ EVTUserInterface.lua
 EventTracker.xml
 
 ; Recent changes:
+; Version 2.430 (2026/10/10) High Seas
 ; Version 2.420 (2026/06/24) Zeal of Zenithar; U51 API for next PTS
 ; Version 2.412 (2026/04/13) Zeal of Zenithar on PTS
 ; Version 2.411 (2026/04/09) Should now skip bars dropped from Twitch, Tome purchases, etc.

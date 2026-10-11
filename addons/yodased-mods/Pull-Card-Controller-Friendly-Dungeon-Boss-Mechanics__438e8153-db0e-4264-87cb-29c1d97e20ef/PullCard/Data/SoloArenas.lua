@@ -6,6 +6,16 @@ local addRound = PullCardData.addRound
 
 -- Maelstrom Arena
 addDungeon("Maelstrom Arena", "solo", { group = "Orsinium", zoneId = 677 })
+PullCardData.setNotes("Maelstrom Arena",
+    "SIGILS: Each wave spawns new sigils. Walk over one to use it:\n"
+        .. "- Power: more damage\n"
+        .. "- Defense: take less damage\n"
+        .. "- Healing: heals you\n"
+        .. "- Haste: move faster\n"
+        .. "They're your lifeline as a solo player. Grab Healing or Defense when you're in trouble, "
+        .. "and save Power for minibosses and the round boss instead of trash.\n\n"
+        .. "ROUNDS: Nine rounds, each ending in a boss, and each harder than the last. "
+        .. "Kill priority targets (healers, ranged, summoners) before tunneling big enemies.")
 
 -- =========================================================
 -- ROUND 1 - VALE OF THE SURREAL
@@ -137,5 +147,166 @@ addRound("Maelstrom Arena", "Theater of Despair", "Round 9: Theater of Despair",
     {
         challenges = {
             { name = "Maelstrom Arena: Perfect Run", text = "Complete Veteran in one attempt without dying or leaving." },
+        },
+    })
+
+-- =========================================================
+-- VATESHRAN HOLLOWS
+-- =========================================================
+-- Menu: Arena Overview, then each wing card with its bosses listed under it.
+-- Wing cards pop on entering the wing; boss cards pop when the boss appears.
+-- Sources: UESP, xynodegaming.com "All About Mechanics" guide; role orders from in-game experience.
+-- VERIFY: wing area names (check Location Info in each wing).
+local addBoss = PullCardData.addBoss
+local addShared = PullCardData.addShared
+local VH = "Vateshran Hollows"
+
+addDungeon(VH, "solo", { group = "Markarth" })
+PullCardData.dungeons[VH].listLabel = "Wings and bosses:"
+PullCardData.setNotes(VH,
+    "WINGS: Green = Hunter's Grotto, Red = The Brimstone Den, Blue = The Wounding. Do them in any order; "
+        .. "enemies get stronger with each wing you finish. Champion's Circle (Maebroogha) opens after all three.\n\n"
+        .. "WING ORDER MATTERS: it decides which secret bosses and resource bonuses you get. See 'Wing Order & Bonuses' below before you start.\n\n"
+        .. "CHECKPOINTS: Beating a boss sets your respawn point in that wing.\n\n"
+        .. "SIGILS: Sigils sit right in the middle of the paths and walking through one uses it. They help, but if you want "
+        .. "'Strength from Within' (no sigils in combat) or 'The Vateshran's Chosen' (no sigils at all, under 45 min, no deaths), walk AROUND them.")
+
+PullCardData.addGuide(VH, "Wing Order & Bonuses",
+    "HOW THE BONUSES WORK: Finishing a wing gives you a travel tool. Each tool opens hidden paths in ONE other wing, "
+        .. "leading to that wing's secret boss and its Essence (a big max-resource bonus):\n"
+        .. "- Green gives the Grappling Bow -> opens Blue's secrets: Xobutar + Essence of Mysticism (Magicka)\n"
+        .. "- Red gives Brimstone Orbs -> opens Green's secrets: Leptfire Keeper + Essence of Endurance (Stamina)\n"
+        .. "- Blue gives Wounding Portals -> opens Red's secrets: Mynar Metron + Essence of Fortitude (Health)\n"
+        .. "So a wing's secrets only open if you did the right wing BEFORE it. Any order gets you two Essences at most.\n\n"
+        .. "WHICH ORDER FOR YOUR ROLE:\n"
+        .. "- Magicka DPS: Green -> Blue -> Red = Magicka + Health\n"
+        .. "- Stamina DPS: Blue -> Red -> Green = Stamina + Health\n"
+        .. "- Tank: Red -> Green -> Blue = Magicka + Stamina\n"
+        .. "DPS want their main resource plus Health; they don't need the opposite resource. "
+        .. "Tanks usually already have plenty of health and resistances, so they take both resources instead.\n\n"
+        .. "ESSENCES: +5000 max to that resource, plus +1000 for each of its 5 Remnants (up to +10000). "
+        .. "Remnants are glowing orbs tucked into hidden side areas (the Magicka ones are purple). "
+        .. "Look off the main path once you have the right tool.\n\n"
+        .. "SECRET BOSS REWARDS: Leptfire Keeper: grappling interrupts nearby enemies. Mynar Metron: heavy attacking fire orbs deals AoE damage. "
+        .. "Xobutar: he follows you through portals and fights.")
+
+-- Hunter's Grotto (Green) ---------------------------------------------------
+addRound(VH, "Hunter's Grotto", "Hunter's Grotto (Green)",
+    "Hircine's wing: Shade of the Grove, secret Leptfire Keeper, then Rahdgarak.",
+    "SECRETS HERE: Leptfire Keeper, the Essence of Endurance (+Stamina) and its 5 Remnants are behind lava paths. "
+        .. "You need Brimstone Orbs, so do The Brimstone Den (Red) before this wing.\n\n"
+        .. "Interrupt Reach Channelers and spriggans; their channels are what kill you here.",
+    "[Grotto] Interrupt channelers/spriggans. Leptfire needs Red done first.",
+    { menuLabel = "HUNTER'S GROTTO (Green)" })
+
+addBoss("Shade of the Grove", VH, "Shade of the Grove", {},
+    "Three enemies sharing one health bar.",
+    "Hit only the target that isn't immune. Interrupt the spriggan beam curse. Block or dodge heavy attacks and the cone spray; "
+        .. "move out of the spreading stomp. Kill the wolves.\n\nEXECUTE: all three wake up at once.",
+    nil, nil, nil,
+    "[Shade] Hit the non-immune one; interrupt spriggan beam; all 3 wake at execute.",
+    { menuLabel = "- Shade of the Grove" })
+
+addBoss("Leptfire Keeper", VH, "Leptfire Keeper (secret)", {"Leptfire"},
+    "Secret boss that jumps between platforms. Needs Brimstone Orbs (Red wing done first).",
+    "Follow him with the grapple. Keep heals up through the flame spin. Block the spit/cleave cone to avoid knockback. "
+        .. "Stay out of fire spray AoEs; block heavy attacks.\n\nREWARD: your grapples interrupt nearby enemies.",
+    nil, nil, nil,
+    "[Leptfire] Grapple after him; block cone; heal through spin.",
+    { menuLabel = "- Leptfire Keeper (secret)" })
+
+addBoss("Rahdgarak", VH, "Rahdgarak", {},
+    "Wing boss on fire and frost platforms.",
+    "Fight him on the platform OPPOSITE his current element buff. Interrupt all four platform mages. Block or dodge heavies; "
+        .. "move out of his charge; block when he lands from his jump slam. Kill adds. Keep resources for CC breaks.",
+    nil, nil, nil,
+    "[Rahdgarak] Opposite-element platform; interrupt all 4 mages; block the slam.",
+    { menuLabel = "- Rahdgarak" })
+
+-- The Brimstone Den (Red) ---------------------------------------------------
+addRound(VH, "The Brimstone Den", "The Brimstone Den (Red)",
+    "Mehrunes Dagon's wing: Magma Queen, secret Mynar Metron, then The Pyrelord.",
+    "SECRETS HERE: Mynar Metron, the Essence of Fortitude (+Health) and its 5 Remnants are reached through Wounding Portals. "
+        .. "Do The Wounding (Blue) before this wing.\n\n"
+        .. "Grab Brimstone Orbs for fire immunity before crossing lava.",
+    "[Brimstone] Orbs before lava. Mynar needs Blue done first.",
+    { menuLabel = "THE BRIMSTONE DEN (Red)" })
+
+addBoss("Magma Queen", VH, "Magma Queen", {},
+    "Mostly stationary boss; the adds are the real fight.",
+    "Kill scamp portal adds first (7+ can spawn). Kill Iron Atronachs, then use their rocks on the geysers to stun the boss. "
+        .. "Avoid fire lines. At low health fire walls appear: clear adds first.",
+    nil, nil, nil,
+    "[Magma Queen] Scamps first; atronach rocks -> geyser stun.",
+    { menuLabel = "- Magma Queen" })
+
+addBoss("Mynar Metron", VH, "Mynar Metron (secret)", {"Mynar"},
+    "Secret boss in a lava arena. Needs Wounding Portals (Blue wing done first).",
+    "Grab the firewalking buff to cross lava (it's on a timer). Dodge the random meteors from his lava spit channel; "
+        .. "find the gaps in burst lava AoEs.\n\nREWARD: heavy attacking fire orbs deals AoE damage.",
+    nil, nil, nil,
+    "[Mynar] Firewalking buff for lava; dodge meteors.",
+    { menuLabel = "- Mynar Metron (secret)" })
+
+addBoss("The Pyrelord", VH, "The Pyrelord", {"Pyrelord"},
+    "Repeating cycle: breath, spin, breath, floor stab.",
+    "Get behind him for the frontal breath. Follow or stay ranged through the spin. Grab the protection orb when the floor turns to lava. "
+        .. "Put out the three corner fires or he enrages. Colossi spawn around 70% and 30%: kill them.",
+    nil, nil, nil,
+    "[Pyrelord] Behind for breath; orb for lava floor; put out 3 corner fires.",
+    { menuLabel = "- The Pyrelord" })
+
+-- The Wounding (Blue) -------------------------------------------------------
+addRound(VH, "The Wounding", "The Wounding (Blue)",
+    "Molag Bal's wing: Zakuryn and the Flesh Abomination, secret Xobutar, then Iozuzzunth.",
+    "SECRETS HERE: Xobutar, the Essence of Mysticism (+Magicka) and its 5 purple Remnants are up grapple points. "
+        .. "You need the Grappling Bow, so do Hunter's Grotto (Green) before this wing.\n\n"
+        .. "WATCHERS: After the Zakuryn & Flesh Abomination fight, you continue through a Wounding Portal path. "
+        .. "Watchers patrol it, and if one spots you you're sent back to the start of the path. "
+        .. "Wait out of their sight and slip past when they look away. You only have about 20 seconds to reach the end, so don't dawdle either.\n\n"
+        .. "Wounding Portals take you upstairs on a timer: do the job and get out.",
+    "[Wounding] Portals are timed. Xobutar needs Green done first.",
+    { menuLabel = "THE WOUNDING (Blue)" })
+
+addShared({"Zakuryn the Sculptor", "Flesh Abomination"}, VH, "Zakuryn & Flesh Abomination", {"Zakuryn"},
+    "Two bosses: balance damage between them.",
+    "If one dies first, the other enrages and heals past 50%. Interrupt Zakuryn's staff channel. "
+        .. "When Zakuryn bubbles himself, stack them so the Abomination's ground smash breaks the shield and stuns both, then get out of the smash. "
+        .. "Kill banekin; avoid lightning splashes and ground AoEs; restack after teleports.",
+    nil, nil, nil,
+    "[Zakuryn] Even damage on both; smash breaks his bubble; interrupt staff.",
+    { menuLabel = "- Zakuryn & Flesh Abomination" })
+
+addBoss("Xobutar of His Deep Graces", VH, "Xobutar (secret)", {"Xobutar"},
+    "Secret boss with two gates of spirit adds. Needs the Grappling Bow (Green wing done first).",
+    "Gate 1: keep moving off the lich crystals. Gate 2: kill the totems fast or he heals. "
+        .. "After his pull-in, get out before the spreading AoE.\n\nREWARD: he follows you through portals and helps fight.",
+    nil, nil, nil,
+    "[Xobutar] Keep moving; kill totems; escape after the pull.",
+    { menuLabel = "- Xobutar (secret)" })
+
+addBoss("Iozuzzunth", VH, "Iozuzzunth", {},
+    "Stationary boss: ignore him and handle eyes and Watchers.",
+    "Kill each spawning eye first (it raises your damage taken); aim his fire wave at the eye. "
+        .. "When Watchers appear, take the portal upstairs and kill them in time, dodging their spins. Avoid meteor AoEs.",
+    nil, nil, nil,
+    "[Iozuzzunth] Eyes first; portal up for Watchers.",
+    { menuLabel = "- Iozuzzunth" })
+
+-- Champion's Circle (final) -------------------------------------------------
+addRound(VH, "Champion's Circle", "Champion's Circle (Maebroogha)",
+    "Final arena after all three wings: Maebroogha the Void Lich. The adds are the fight, not the boss.",
+    "PHASE 1: Kill void archers/mages fast. In her 'yoga pose' find the gaps in the circular AoEs. Step out of the frontal triangle; move when she teleports to you.\n\n"
+        .. "SHADE WALL: A ring of linked shades walks to the center. Focus ONE shade and kill it to break out.\n\n"
+        .. "AT 10%: Huge explosion. Grapple to one of three points (each usable once) to enter a void portal and fight a mini Zakuryn, Rahdgarak or Pyrelord. "
+        .. "She heals meanwhile, and you come back with that portal's mechanic added. Repeat until all three portals are done.\n\n"
+        .. "SHADE COLOSSI: Respawn at 90/70/50/30%; kill them.\n\n"
+        .. "FINAL PHASE: No enrage; clear adds and finish her.",
+    "[Maebroogha] Adds first; kill ONE shade in the wall; at 10% grapple into a portal x3.",
+    {
+        menuLabel = "CHAMPION'S CIRCLE (Maebroogha)",
+        challenges = {
+            { name = "Unbroken Vigor", text = "Complete Veteran without dying." },
+            { name = "Strength from Within", text = "No sigil use during combat." },
         },
     })

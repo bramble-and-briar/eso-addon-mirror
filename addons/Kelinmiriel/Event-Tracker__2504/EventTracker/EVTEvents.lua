@@ -681,6 +681,10 @@ function EVT.FindQuest(eventCode, isCompleted, journalIndex, questName, zoneInde
 -- To find quest IDs for new events: GetQuestName(ID)
 -- /script for i=100,20000 do questname=GetQuestName(i) if questname=="" then df("%s %s",i,questname) end end
 
+-- 2.430 High Seas
+		[7470] = "High Seas", -- "Raising the Riotous Redress"	("Baron-Captain Olsien Guy Mard")
+		[7475] = "High Seas", -- "Bounty of the Abecean Sea"	("Riotous Redress Logbook")
+
 -- 2.390 Heart's Week (new event for Feb 2026; apparently annual) - most tickets from loot, but also 4 quests
 -- Questgiver Kuzam-jo (in all supported languages)
 		[7372] = "Heart's Week", -- "Heartsick Follies"
@@ -863,7 +867,11 @@ function EVT.QuestTickets()
 		["Druid Aishabeh"]		= 0,	-- 2 Galen Volcanic Vent dailies
 ]]
 
--- 2.390
+-- 2.430 High Seas
+		["Baron-Captain Olsien Guy Mard"] = 0,	-- "Raising the Riotous Redress"
+		["Riotous Redress Logbook"]	= 0,	-- "Bounty of the Abecean Sea"
+
+-- 2.390 Heart's Day'
 		["Kuzam-jo"]	= 0,
 
 -- 1.98 Zeal of Zenithar
@@ -1081,6 +1089,10 @@ function EVT.QuestTickets()
 
 		["Imminent Hazard"]			= "Druid Aishabeh",	-- Galen Volcanic Vent daily
 ]]
+
+-- 2.430 High Seas
+		["Raising the Riotous Redress"]	= "Baron-Captain Olsien Guy Mard",
+		["Bounty of the Abecean Sea"]	= "Riotous Redress Logbook",
 
 -- 2.390 Heart's Week
 		["Heartsick Follies"]			= "Kuzam-jo",

@@ -1,10 +1,11 @@
 RidinDirty = {
 	name = "RidinDirty",
 	author = "@sinnereso",
-	version = "2026.10.05",
+	version = "2026.10.10",
 	svName = "RidinDirtyVars",
 	svVersion = 1,
 	tradeTable = {},
+	craftTable = {},
 }
 local RD = RidinDirty
 local rdLogo = "|c6666FF[RD]|r "
@@ -42,20 +43,6 @@ local function InAlphaList(name)
 	}
 	for _, userName in ipairs(names) do
 		if userName == name then return true end
-	end
-	return false
-end
---/script df(tostring(DistanceToUnit("group1")))--player--companion--reticleover--reticleovertarget--groupX--groupXcompanion--playerpetX
-local function DistanceToUnit(unitID)
-	local _, selfX, selfY, selfH = GetUnitWorldPosition("player")
-	local _, targetX, targetY, targetH = GetUnitWorldPosition(unitID)
-	local nDistance = zo_distance3D(targetX, targetY, targetH, selfX, selfY, selfH) / 100
-	return nDistance
-end
-
-local function HasWritQuest()
-	for quest = 1, MAX_JOURNAL_QUESTS do
-		if GetJournalQuestType(quest) == QUEST_TYPE_CRAFTING then return true end
 	end
 	return false
 end
@@ -102,6 +89,14 @@ local function GetLastDailyReset()
 	return lastReset
 end
 
+--/script df(tostring(DistanceToUnit("group1")))--player--companion--reticleover--reticleovertarget--groupX--groupXcompanion--playerpetX
+local function DistanceToUnit(unitID)
+	local _, selfX, selfY, selfH = GetUnitWorldPosition("player")
+	local _, targetX, targetY, targetH = GetUnitWorldPosition(unitID)
+	local nDistance = zo_distance3D(targetX, targetY, targetH, selfX, selfY, selfH) / 100
+	return nDistance
+end
+
 local function GetPassengerName()
 	local displayNamePref = nil
 	for iD = 1, GetGroupSize() do
@@ -130,56 +125,6 @@ local function PassengerStateChange(eventCode, isMounted)
 		hasPassenger = true CENTER_SCREEN_ANNOUNCE:AddMessage( 0, CSA_CATEGORY_SMALL_TEXT, "New_Mail", ("|cC99912" .. tostring(GetPassengerName()) .. " is RidinDirty|r"), nil, nil, nil, nil, nil, 5000, nil)
 	end
 	if mountedState == MOUNTED_STATE_MOUNT_RIDER and hasEnabledGroupMount then zo_callLater(function() PassengerStateChange() end, 1000) end
-end
-
-local function SaveBankMemory()
-	ZO_ClearTable(RidinDirty.savedVariables["Banked Memory"])
-	RidinDirty.bankedMemory["version"] = 1
-	for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
-		itemId = GetItemId(BAG_BANK, slotIndex)
-		itemLink = GetItemLink(BAG_BANK, slotIndex, LINK_STYLE_BRACKETS)
-		if itemId ~= nil and itemId ~= 0 then RidinDirty.bankedMemory[itemId] = itemLink end
-	end
-	if IsESOPlusSubscriber() then
-		for slotIndex = 0, GetBagSize(BAG_SUBSCRIBER_BANK) - 1 do
-			itemId = GetItemId(BAG_SUBSCRIBER_BANK, slotIndex)
-			itemLink = GetItemLink(BAG_SUBSCRIBER_BANK, slotIndex, LINK_STYLE_BRACKETS)
-			if itemId ~= nil and itemId ~= 0 then RidinDirty.bankedMemory[itemId] = itemLink end
-		end
-	end
-	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Bank memory saved.")
-end
-
-local function pvpAddonFilter(addon)
-	local addons = {
-	"merTorchbug",
-	"Zgoo",
-	"TextureIt",
-	"SoundBoard",
-	"HarvestMap",
-	"LibMainMenu-2.0",
-	"NodeDetection",
-	}
-	for _, name in ipairs(addons) do
-		if name == addon then return true end
-	end
-	return false
-end
-
-local function PvPAddonSave()
-	local addOnManager = GetAddOnManager()
-	local numAddOns = addOnManager:GetNumAddOns()
-	ZO_ClearTable(RidinDirty.savedVariables["Addon Memory"])
-	RidinDirty.addonMemory["version"] = 1
-	for addonIndex = 1, numAddOns do
-		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-		if GetUnitDisplayName("player") == RidinDirty.author then
-			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
-		else
-			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) then RidinDirty.addonMemory[addonIndex] = addonName end
-		end
-	end
-	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Performance mode addons saved."))
 end
 --if RidinDirty.savedVariables.autoRecharge then zo_callLater(function() BrokenGearCheck() end, 2000) end--<< RUN AUTO RECHARGE IF ENABLED
 local function BrokenGearCheck()
@@ -511,6 +456,56 @@ local function SettingsPanelCharacterList()
 	return charList
 end
 
+local function SaveBankMemory()
+	ZO_ClearTable(RidinDirty.savedVariables["Banked Memory"])
+	RidinDirty.bankedMemory["version"] = 1
+	for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
+		itemId = GetItemId(BAG_BANK, slotIndex)
+		itemLink = GetItemLink(BAG_BANK, slotIndex, LINK_STYLE_BRACKETS)
+		if itemId ~= nil and itemId ~= 0 then RidinDirty.bankedMemory[itemId] = itemLink end
+	end
+	if IsESOPlusSubscriber() then
+		for slotIndex = 0, GetBagSize(BAG_SUBSCRIBER_BANK) - 1 do
+			itemId = GetItemId(BAG_SUBSCRIBER_BANK, slotIndex)
+			itemLink = GetItemLink(BAG_SUBSCRIBER_BANK, slotIndex, LINK_STYLE_BRACKETS)
+			if itemId ~= nil and itemId ~= 0 then RidinDirty.bankedMemory[itemId] = itemLink end
+		end
+	end
+	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", "Bank memory saved.")
+end
+
+local function pvpAddonFilter(addon)
+	local addons = {
+	"merTorchbug",
+	"Zgoo",
+	"TextureIt",
+	"SoundBoard",
+	"HarvestMap",
+	"LibMainMenu-2.0",
+	"NodeDetection",
+	}
+	for _, name in ipairs(addons) do
+		if name == addon then return true end
+	end
+	return false
+end
+
+local function PvPAddonSave()
+	local addOnManager = GetAddOnManager()
+	local numAddOns = addOnManager:GetNumAddOns()
+	ZO_ClearTable(RidinDirty.savedVariables["Addon Memory"])
+	RidinDirty.addonMemory["version"] = 1
+	for addonIndex = 1, numAddOns do
+		local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
+		if GetUnitDisplayName("player") == RidinDirty.author then
+			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
+		else
+			if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) then RidinDirty.addonMemory[addonIndex] = addonName end
+		end
+	end
+	ZO_Alert(UI_ALERT_CATEGORY_ALERT, "PlayerAction_NotEnoughMoney", ("Performance mode addons saved."))
+end
+
 local function RDInitializeControls()
 	local panelName = "RidinDirtySettingsPanel"
 	local panelData = {
@@ -536,7 +531,7 @@ local function RDInitializeControls()
 	},
 	{
 		type = "checkbox",
-		name = "/tp home (outside = on, inside = off)",
+		name = "/tp home (inside = off, outside = on)",
 		getFunc = function() return RidinDirty.savedVariables.travelOutside end,
 		setFunc = function(value) RidinDirty.savedVariables.travelOutside = (value) end,
 		width = "half",
@@ -983,6 +978,13 @@ local function RDInitializeControls()
 		setFunc = function(value) RidinDirty.CombatReticleToggle(value) end,
 	},
 	{
+		type = "checkbox",
+		name = "Furnishing Craft Search",
+		tooltip = "Adds a search field for furnishing crafting",
+		getFunc = function() return RidinDirty.savedVariables.craftingSearch end,
+		setFunc = function(value) RidinDirty.CraftingSearchToggle(value) end,
+	},
+	{
 		type = "header",
 		name = "|c999900SLASH FUNCTIONS|r",
 		width = "full",
@@ -1170,6 +1172,18 @@ local function RDInitializeControls()
 	RidinDirty.ArmoryLock:SetHidden(true)
 	RidinDirty.ArmoryLock:SetAlpha(0)
 	
+	-- Furnishing Crafting Search Box --
+	--local filters = PROVISIONER.provisioningFiltersControl
+	--local menuDivider = PROVISIONER.control:GetNamedChild("MenuBarDivider")
+	RidinDirty.CraftSearchBox = CreateControlFromVirtual("CraftSearchBox", PROVISIONER.provisioningFiltersControl, "ZO_InventorySearchTemplate")
+	RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48)
+	RidinDirty.CraftSearchBox:SetWidth(160)
+	RidinDirty.CraftBoxSearch = RidinDirty.CraftSearchBox:GetNamedChild("Box")
+	RidinDirty.CraftBoxSearch:SetHandler("OnTextChanged", function() PROVISIONER:DirtyRecipeList() end)
+	RidinDirty.CraftBoxSearch:SetHandler("OnEnter", function(self) self:LoseFocus() end)
+	RidinDirty.CraftSearchBox:SetHidden(true)
+	--CraftingTabChanged(PROVISIONER)
+	
 	-- Apply Fragments --
 	local hudscene = SCENE_MANAGER:GetScene("hud")
 	local traderscene = SCENE_MANAGER:GetScene("tradinghouse")
@@ -1323,12 +1337,10 @@ function RidinDirty.TeleportHomeQueueOn()
 	RidinDirty.HourGlass.label:SetText (rdLogo .. "Travel Home Combat Queued")
 	RidinDirty.HourGlass:SetAlpha(1)
 	RidinDirty.HourGlass.animation:PlayForward()
-	if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-		if GetUnitGender("player") == GENDER_MALE then
-			if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and IsCollectibleUnlocked(9863) then DoCommand("/ritualcasting") end
-		else
-			if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and IsCollectibleUnlocked(9004) then DoCommand("/dayoflights") end
-		end
+	if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and GetUnitGender("player") == GENDER_MALE then
+		if IsCollectibleUnlocked(9863) then DoCommand("/ritualcasting") end
+	else
+		if IsCollectibleUnlocked(9004) then DoCommand("/dayoflights") end
 	end
 end
 
@@ -1453,12 +1465,10 @@ function RidinDirty.TeleportPlayerQueueOn(playerName)
 	RidinDirty.HourGlass.label:SetText (rdLogo .. "Travel To " .. playerName .. " Combat Queued")
 	RidinDirty.HourGlass:SetAlpha(1)
 	RidinDirty.HourGlass.animation:PlayForward()
-	if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-		if GetUnitGender("player") == GENDER_MALE then
-			if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and IsCollectibleUnlocked(9863) then DoCommand("/ritualcasting") end
-		else
-			if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and IsCollectibleUnlocked(9004) then DoCommand("/dayoflights") end
-		end
+	if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and GetUnitGender("player") == GENDER_MALE then
+		if IsCollectibleUnlocked(9863) then DoCommand("/ritualcasting") end
+	else
+		if IsCollectibleUnlocked(9004) then DoCommand("/dayoflights") end
 	end
 end
 
@@ -1601,12 +1611,10 @@ function RidinDirty.TeleportZoneQueueOn(value1, value2)
 	RidinDirty.HourGlass.label:SetText (rdLogo .. "Travel To " .. teleportTarget .. " Combat Queued")
 	RidinDirty.HourGlass:SetAlpha(1)
 	RidinDirty.HourGlass.animation:PlayForward()
-	if InAlphaList(GetUnitDisplayName("player")) then--<< TESTING
-		if GetUnitGender("player") == GENDER_MALE then
-			if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and IsCollectibleUnlocked(9863) then DoCommand("/ritualcasting") end
-		else
-			if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and IsCollectibleUnlocked(9004) then DoCommand("/dayoflights") end
-		end
+	if SCENE_MANAGER:GetCurrentScene() == HUD_SCENE and GetUnitGender("player") == GENDER_MALE then
+		if IsCollectibleUnlocked(9863) then DoCommand("/ritualcasting") end
+	else
+		if IsCollectibleUnlocked(9004) then DoCommand("/dayoflights") end
 	end
 end
 
@@ -1745,6 +1753,13 @@ local function DepositCurrency(eventCode, bagId)
 	if RidinDirty.savedVariables.checkBankMemory then
 		CheckBankMemory()
 	end
+end
+
+local function HasWritQuest()
+	for quest = 1, MAX_JOURNAL_QUESTS do
+		if GetJournalQuestType(quest) == QUEST_TYPE_CRAFTING then return true end
+	end
+	return false
 end
 
 local function BankManager(eventCode, bagId)
@@ -3033,6 +3048,42 @@ function RidinDirty.CombatReticleToggle(toggle)
 	end
 end
 ---------------------------------------------
+--------- FURNISHING CRAFTING SEARCH BAR --
+---------------------------------------------
+local function CraftingTabChanged(provisioner)
+	local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
+	if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42) else RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
+	RidinDirty.CraftSearchBox:SetHidden(not show)
+end
+
+function RidinDirty.CraftingSearchToggle(toggle)
+	if toggle then
+		RidinDirty.savedVariables.craftingSearch = toggle
+		RidinDirty.CraftSearchBox:SetHidden(false)
+		ZO_PostHook(ZO_Provisioner, "OnTabFilterChanged", function(provisioner)
+			local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
+			if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42) else RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
+			RidinDirty.CraftSearchBox:SetHidden(not show)
+		end)
+		ZO_PreHook(ZO_Provisioner, "RefreshRecipeList", function()
+			for _, list in pairs(PROVISIONER_MANAGER:GetRecipeListData(GetCraftingInteractionType())) do
+				for _, recipe in ipairs(list.recipes) do
+					RidinDirty.craftTable[recipe.resultItemId] = zo_strlower(recipe.name)
+				end
+			end
+		end)
+		ZO_PreHook(ZO_Provisioner, "DoesRecipePassFilter", function(self, ...)
+			local text = zo_strlower(RidinDirty.CraftBoxSearch:GetText())
+			if text == "" or self.filterType ~= PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then return false end
+			local resultItemId = select(10, ...)
+			return not (RidinDirty.craftTable[resultItemId] or ""):find(text, 1, true)
+		end)
+	else
+		RidinDirty.savedVariables.craftingSearch = toggle
+		ReloadUI()
+	end
+end
+---------------------------------------------
 --------- LEAVE GROUP & EXIT INSTANCE --
 ---------------------------------------------
 function RidinDirty.GroupLeave()
@@ -3063,23 +3114,19 @@ end
 ---------------------------------------------
 --------- SLASH COMMANDS --
 ---------------------------------------------
-if not Teleport and not EasyTravel then-- Compatibility
-	SLASH_COMMANDS["/tp"] = function (option)
-		if (option == nil or option == "") then df(rdLogo .. " /tp partialzonename => overland zones")
-			df(rdLogo .. " /tp home => your primary residence")
-				df(rdLogo .. " /tp exact@name partialhousename => player houses") return end
-		if string.lower(option) == "home" then RidinDirty.TravelToHome() return end
-		local options = {}
-		local searchResult = { string.match(option, "^(%S*)%s*(%S*)$") }
-		for i, v in pairs(searchResult) do
-			if (v ~= nil and v ~= "") then
-				options[i] = v
-			end
+if not Teleport and not EasyTravel then
+	SLASH_COMMANDS["/tp"] = function (options)
+		local word = {}
+		for words in string.gmatch(options, "%S+") do
+			table.insert(word, words)
+			if #word == 2 then break end
 		end
-		if options[1] ~= nil and not string.find(options[1], "^(@)") and options[2] == nil then
-			RidinDirty.Teleport(options[1])
-		elseif options[1] ~= nil and string.find(options[1], "^(@)") and options[1] ~= GetUnitDisplayName("player") and options[2] ~= nil and GetHouseID(options[2]) then
-			RidinDirty.Teleport(options[1], options[2])
+		if word[1] ~= nil and string.lower(word[1]) == "home" and word[2] == nil then
+			RidinDirty.TravelToHome()
+		elseif word[1] ~= nil and not string.find(word[1], "^(@)") and word[2] == nil then
+			RidinDirty.Teleport(word[1])
+		elseif word[1] ~= nil and string.find(word[1], "^(@)") and word[1] ~= GetUnitDisplayName("player") and word[2] ~= nil and GetHouseID(word[2]) then
+			RidinDirty.Teleport(word[1], word[2])
 		else
 			df(rdLogo .. " /tp partialzonename => overland zones") df(rdLogo .. " /tp exact@name partialhousename => player houses")
 		end
@@ -3123,7 +3170,7 @@ function RidinDirty.RDBopTradeable()
 		end
 	end
 	if links == "" then
-		RidinDirty.tradeTable = {} df(rdLogo .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
+		ZO_ClearTable(RidinDirty.tradeTable) df(rdLogo .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
 		RidinDirty.TradeLinkWait("bops")
@@ -3145,7 +3192,7 @@ function RidinDirty.RDUnboundSets()
 		end
 	end
 	if links == "" then
-		RidinDirty.tradeTable = {} df(rdLogo .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
+		ZO_ClearTable(RidinDirty.tradeTable) df(rdLogo .. "*Linking complete*") CHAT_SYSTEM.textEntry:GetEditControl():LoseFocus()
 	else
 		StartChatInput(links, CHAT_CHANNEL_PARTY)
 		RidinDirty.TradeLinkWait("sets")
@@ -3246,7 +3293,6 @@ if InAlphaList(GetUnitDisplayName("player")) then
 		local numAddOns = addOnManager:GetNumAddOns()
 		for addonIndex = 1, numAddOns do
 			local addonName, addonTitle, addonAuthor, addonDescription, isEnabled, addonState, isOutOfDate, isLibrary = addOnManager:GetAddOnInfo(addonIndex)
-			--if ((isEnabled and addonState == 2) or (addonName == "RidinDirty")) and not pvpAddonFilter(addonName) then RidinDirty.addonMemory[addonIndex] = addonName end
 			df(tostring(addonName))
 		end
 	end
@@ -3301,6 +3347,27 @@ local function RDInitializeSettings()
 		EVENT_MANAGER:RegisterForEvent("RidinDirty", EVENT_PLAYER_COMBAT_STATE, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatDeath", EVENT_PLAYER_DEAD, CombatState)
 		EVENT_MANAGER:RegisterForEvent("RDCombatAlive", EVENT_PLAYER_ALIVE, CombatState)
+	end
+	if RidinDirty.savedVariables.craftingSearch then
+		RidinDirty.CraftSearchBox:SetHidden(false)
+		ZO_PostHook(ZO_Provisioner, "OnTabFilterChanged", function(provisioner)
+			local show = provisioner.filterType == PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING
+			if SCENE_MANAGER:GetCurrentScene() == PROVISIONER_SCENE then RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, -20, -42) else RidinDirty.CraftSearchBox:SetAnchor(TOPLEFT, PROVISIONER.control:GetNamedChild("MenuBarDivider"), BOTTOMLEFT, 20, -48) end
+			RidinDirty.CraftSearchBox:SetHidden(not show)
+		end)
+		ZO_PreHook(ZO_Provisioner, "RefreshRecipeList", function()
+			for _, list in pairs(PROVISIONER_MANAGER:GetRecipeListData(GetCraftingInteractionType())) do
+				for _, recipe in ipairs(list.recipes) do
+					RidinDirty.craftTable[recipe.resultItemId] = zo_strlower(recipe.name)
+				end
+			end
+		end)
+		ZO_PreHook(ZO_Provisioner, "DoesRecipePassFilter", function(self, ...)
+			local text = zo_strlower(RidinDirty.CraftBoxSearch:GetText())
+			if text == "" or self.filterType ~= PROVISIONER_SPECIAL_INGREDIENT_TYPE_FURNISHING then return false end
+			local resultItemId = select(10, ...)
+			return not (RidinDirty.craftTable[resultItemId] or ""):find(text, 1, true)
+		end)
 	end
 	if RidinDirty.savedVariables.withdrawOne then
 		local primary = LibCustomMenu.CATEGORY_PRIMARY
@@ -3502,8 +3569,9 @@ local function AddOnLoaded(eventCode, addOnName)
 		lockArmory = false,
 		stackAttributes = false,
 		companionRapport = false,
-		combatReticle = false,
 		autoQueue = false,
+		combatReticle = false,
+		craftingSearch = false,
 	}
 	local defaultCharVars = {
 		charClass = GetUnitClass("player"),
@@ -3520,7 +3588,7 @@ local function AddOnLoaded(eventCode, addOnName)
 	RidinDirty.junkMemory = ZO_SavedVars:NewAccountWide( RidinDirty.svName, RidinDirty.svVersion, "Junk Memory", defaultJunkVars )
 	RidinDirty.addonMemory = ZO_SavedVars:NewAccountWide( RidinDirty.svName, RidinDirty.svVersion, "Addon Memory", defaultAddonVars )
 	RidinDirty.bankedMemory = ZO_SavedVars:NewAccountWide( RidinDirty.svName, RidinDirty.svVersion, "Banked Memory", defaultBankedVars )
-	--RidinDirty.savedVariables.lowStack = nil--<< SAVE
+	--RidinDirty.savedVariables.travelHome = nil--<< SAVE
 	--RidinDirty.charVariables.veterancyPoints = nil--<< SAVE
 	--RidinDirty.charVariables.veterancyRank = nil--<< SAVE
 	RDInitializeControls()

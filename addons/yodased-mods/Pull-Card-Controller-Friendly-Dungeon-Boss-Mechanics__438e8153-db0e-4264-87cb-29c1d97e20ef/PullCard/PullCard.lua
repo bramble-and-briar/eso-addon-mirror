@@ -41,6 +41,11 @@ local function NormalizeZoneName(name)
     return (NormalizeBossName(name):gsub("^the ", ""))
 end
 
+-- Solo-arena cards (rounds, wings, their bosses) say MECHANICS, not EVERYONE.
+local function IsSoloEncounter(encounter)
+    return encounter.area ~= nil or (encounter.dungeonInfo ~= nil and encounter.dungeonInfo.category == "solo")
+end
+
 local function GetEncounters()
     return (PullCardData and PullCardData.encounters) or {}
 end
@@ -353,8 +358,14 @@ function PC:Render()
     elseif data then
         local summary = data.summary or "Watch the encounter flow, protect your team, and execute one clean mechanic cycle."
         self.window.title:SetText((data.dungeon or "Dungeon") .. " — " .. (data.title or bossName))
-        local mechanicsLabel = data.area and "MECHANICS" or "EVERYONE"
-        self:SetCardText(self.window.body, "SUMMARY\n" .. summary .. "\n\n" .. mechanicsLabel .. "\n" .. (data.everyone or "No notes yet."))
+        local mechanicsLabel = IsSoloEncounter(data) and "MECHANICS" or "EVERYONE"
+        local body = "SUMMARY\n" .. summary .. "\n\n" .. mechanicsLabel .. "\n" .. (data.everyone or "No notes yet.")
+        if data.tldr and data.tldr ~= "" then
+            -- Quick tip first; the "[Boss]" tag is for chat, the title already says it.
+            local quick = data.tldr:gsub("^%[[^%]]*%]%s*", "")
+            body = "QUICK\n" .. quick .. "\n\n" .. body
+        end
+        self:SetCardText(self.window.body, body)
 
         local sections = {}
         local roleText = self:GetPlayerRoleText(data)
@@ -697,11 +708,15 @@ end
 
 local function FormatEncounterTooltip(encounter)
     local text = encounter.title .. "\n"
+    -- Quick tip first: long descriptions get cut off at the bottom on console.
+    if encounter.tldr then
+        text = text .. "\nQuick: " .. encounter.tldr .. "\n"
+    end
     if encounter.summary then
         text = text .. "\nSummary: " .. encounter.summary
     end
     if encounter.everyone then
-        text = text .. "\n\nEveryone: " .. encounter.everyone
+        text = text .. "\n\n" .. (IsSoloEncounter(encounter) and "Mechanics: " or "Everyone: ") .. encounter.everyone
     end
     if encounter.tank then
         text = text .. "\n\nTank: " .. encounter.tank
@@ -719,9 +734,6 @@ local function FormatEncounterTooltip(encounter)
     for _, challenge in ipairs(encounter.challenges) do
         local label = challenge.name and ("Challenge (" .. challenge.name .. ")") or "Challenge"
         text = text .. "\n\n" .. label .. PC:GetChallengeStatusText(challenge, encounter.dungeon) .. ": " .. challenge.text
-    end
-    if encounter.tldr then
-        text = text .. "\n\nQuick: " .. encounter.tldr
     end
     return text
 end
@@ -741,7 +753,14 @@ local function FormatDungeonOverview(dungeon)
     end
     table.insert(lines, "")
 
-    local bossLabel = dungeon.category == "solo" and "Rounds:" or "Bosses:"
+    -- General tips first (e.g. solo-arena sigils): they apply to every round.
+    if dungeon.notes then
+        table.insert(lines, "Tips:")
+        table.insert(lines, dungeon.notes)
+        table.insert(lines, "")
+    end
+
+    local bossLabel = dungeon.listLabel or (dungeon.category == "solo" and "Rounds:" or "Bosses:")
     table.insert(lines, bossLabel)
     local hardmode
     local done, known, total = 0, 0, 0
@@ -759,7 +778,7 @@ local function FormatDungeonOverview(dungeon)
         end
     end
     for i, encounter in ipairs(dungeon.encounters) do
-        table.insert(lines, i .. ". " .. encounter.title)
+        table.insert(lines, encounter.menuLabel or (i .. ". " .. encounter.title))
         hardmode = encounter.hardmode or hardmode
         local names = {}
         if encounter.hardmodeAchievement then table.insert(names, encounter.hardmodeAchievement) end
@@ -776,8 +795,15 @@ local function FormatDungeonOverview(dungeon)
 
     if dungeon.sets then
         table.insert(lines, "")
-        table.insert(lines, "Sets:")
+        table.insert(lines, dungeon.weapons and "Armor sets:" or "Sets:")
         for _, setName in ipairs(dungeon.sets) do
+            table.insert(lines, "- " .. setName)
+        end
+    end
+    if dungeon.weapons then
+        table.insert(lines, "")
+        table.insert(lines, "Weapons (final boss; Perfected on Veteran):")
+        for _, setName in ipairs(dungeon.weapons) do
             table.insert(lines, "- " .. setName)
         end
     end
@@ -825,15 +851,25 @@ function PC:BuildDungeonSubmenus(categoryKey)
         local bossOptions = {
             {
                 type = "button",
-                name = "Dungeon Overview",
+                name = (dungeon.category == "arena" or dungeon.category == "solo") and "Arena Overview" or "Dungeon Overview",
                 tooltip = function() return FormatDungeonOverview(dungeon) end,
                 func = function() end,
             },
         }
+        -- Extra read-only guide rows (e.g. Vateshran's wing order), kept out of
+        -- the overview so long text doesn't get cut off.
+        for _, guide in ipairs(dungeon.guides or {}) do
+            table.insert(bossOptions, {
+                type = "button",
+                name = guide.name,
+                tooltip = guide.text,
+                func = function() end,
+            })
+        end
         for _, encounter in ipairs(dungeon.encounters) do
             table.insert(bossOptions, {
                 type = "button",
-                name = encounter.title,
+                name = encounter.menuLabel or encounter.title,
                 tooltip = function() return FormatEncounterTooltip(encounter) end,
                 func = function()
                     PC:SetBoss(encounter, nil, "manual")

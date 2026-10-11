@@ -3,17 +3,24 @@
 ; registered trademarks or trademarks of ZeniMax Media Inc. in the United
 ; States and/or other countries. All rights reserved.
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
+;
+; Original idea by bitrock, who kindly allowed this modernized version.
+; The improved code of this add-on - including its individual parts - may be
+; used for non-commercial purposes provided you notify the author on ESOUI.
+; No confirmation is required - a notification is enough.
 
 ## Title: ElmsMarkers
-## Description: Create, manage, and share markers on your 3D world map.
+## Description: Create, manage, and share markers on your 3D world map. Original idea by bitrock, who kindly allowed this modernized version.
 ## Author: bitrock
-## Version: 4.0
+## Version: 5.1
 ## APIVersion: 101051
 ## SavedVariables: ElmsMarkersSavedVariables
-## DependsOn: LibAddonMenu-2.0 OdySupportIcons LibGroupBroadcast
+## DependsOn: LibAddonMenu-2.0 LibGroupBroadcast>=95
+## OptionalDependsOn: LibImplex OdySupportIcons
 
 
 ElmsMarkersData.lua
+ElmsMarkersRender.lua
 ElmsMarkers.lua
 ElmsMarkersMenu.lua
 ElmsMarkersDataShare.lua

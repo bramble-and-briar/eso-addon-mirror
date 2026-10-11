@@ -1,0 +1,45 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/ladransa/Mundus-Gate__4937",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "ladransa",
+  "canonical_id": "esoui:4937",
+  "category_id": "24",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4937",
+  "deleted": false,
+  "directories": [
+    "MundusGate"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4937/",
+  "fingerprint": "d03e18ffc5166b7af9c1ac278cad1232c81a8812941d954ce5620c9c47465d85",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17923.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17922.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17861.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17862.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17863.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17864.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17865.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17866.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4937",
+  "source_url": "https://www.esoui.com/downloads/info4937-MundusGate.html",
+  "stats": {
+    "downloads": 13,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "Mundus Gate",
+  "updated_at": 1791709140000,
+  "version": "2.5.0"
+}

@@ -87,6 +87,97 @@ local function tunSet(key, value)
     end
 end
 
+-- ---------------------------------------------------------------------------
+-- TTD section "Defaults" button (0.4.2)
+-- ---------------------------------------------------------------------------
+-- The five sliders in the TTD thresholds section, in page order, with the
+-- format each slider itself uses so the tooltip and the dialog print the same
+-- figures the sliders do. Read from UP.Defaults at draw time, never typed.
+local TTD_KEYS = {
+    { key = "red_three_ttd",            label = "Three triangles (lethal) below", fmt = "%.1fs" },
+    { key = "red_two_ttd",              label = "Two triangles below",            fmt = "%.1fs" },
+    { key = "red_one_ttd",              label = "One triangle below",             fmt = "%.1fs" },
+    { key = "yellow_filled_ttd",        label = "Filled yellow circle below",     fmt = "%.1fs" },
+    { key = "recent_pressure_window_s", label = "Recent-pressure window",         fmt = "%.0fs" },
+}
+
+local function ttdDefaultLines()
+    local D = UP.Defaults
+    local lines = {}
+    for _, e in ipairs(TTD_KEYS) do
+        lines[#lines + 1] = ("%s: %s"):format(e.label, (e.fmt):format(D[e.key]))
+    end
+    return table.concat(lines, "\n")
+end
+
+-- Clears the five stored overrides rather than writing the default values in.
+-- The visible result is identical (every getter falls back to UP.Defaults), and
+-- it is strictly better for the player: a later retune of UP.Defaults then
+-- reaches them, exactly as it reaches anyone who never touched a slider (see
+-- "Defaults vs. saved overrides" in Docs/UnderPressure-Reference.md). Writing
+-- the numbers in would freeze today's defaults into their file for ever.
+local function applyTtdDefaults()
+    for _, e in ipairs(TTD_KEYS) do
+        tunSet(e.key, nil)
+    end
+    -- Redraw the sliders on the page the player is looking at. LHAS's
+    -- UpdateControls re-runs every getter for the current section and
+    -- refreshes the list; its own Reset-to-Defaults path does the same.
+    local panel = UP.Settings.panel
+    if panel and panel.UpdateControls then
+        pcall(panel.UpdateControls, panel)
+    end
+end
+
+local TTD_DEFAULTS_DIALOG = "UNDERPRESSURE_TTD_DEFAULTS"
+
+-- Mirrors LibHarvensAddonSettings' own "LibHarvensAddonSettings_Defaults"
+-- dialog (gamepadInfo BASIC, two buttons) and EasyMark's account-wide switch
+-- dialog, both of which run on console. mainText is a function so the figures
+-- are read from UP.Defaults when the dialog opens.
+local function registerTtdDefaultsDialog()
+    if type(ZO_Dialogs_RegisterCustomDialog) ~= "function" then return end
+    ZO_Dialogs_RegisterCustomDialog(TTD_DEFAULTS_DIALOG,
+    {
+        canQueue = true,
+        gamepadInfo =
+        {
+            dialogType = GAMEPAD_DIALOGS.BASIC,
+        },
+        title =
+        {
+            text = "Under Pressure: TTD thresholds",
+        },
+        mainText =
+        {
+            text = function()
+                return "Are you sure you want to set these settings to the default settings?\n\n"
+                    .. ttdDefaultLines()
+            end,
+        },
+        buttons =
+        {
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = "Reset",
+                callback = function() applyTtdDefaults() end,
+            },
+            {
+                keybind = "DIALOG_NEGATIVE",
+                text = "Cancel",
+            },
+        },
+    })
+end
+
+local function showTtdDefaultsDialog()
+    if type(ZO_Dialogs_ShowPlatformDialog) == "function" then
+        ZO_Dialogs_ShowPlatformDialog(TTD_DEFAULTS_DIALOG)
+    elseif type(ZO_Dialogs_ShowGamepadDialog) == "function" then
+        ZO_Dialogs_ShowGamepadDialog(TTD_DEFAULTS_DIALOG)
+    end
+end
+
 -- Built at Init() rather than at file scope. The LAM version read
 -- UP.Fonts.MIN_SIZE/MAX_SIZE and UP.Defaults while this file was being PARSED,
 -- which made the manifest's load order load-bearing in a way nothing announced.
@@ -274,7 +365,7 @@ local function buildOptions()
         },
         {
             type = LHAS.ST_LABEL,
-            label = "While a Plaguebreak plague is on you, the screen takes a smoky green tint. If the plague is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw.",
+            label = "While a Plaguebreak plague is on you, the screen takes a smoky green tint; if you die with it on you, the tint stays until you respawn and a note above the Death Recap says what you died with. If the plague is removed early and explodes, a chat message reports who removed it, what with, and the explosion damage this client saw.",
         },
         {
             -- Independent of the Threat Indicator master toggle, like the ring.
@@ -369,6 +460,22 @@ local function buildOptions()
             setFunction = function(v) tunSet("recent_pressure_window_s", v) end,
             default = D.recent_pressure_window_s,
         },
+        {
+            -- Section-scoped reset (0.4.2). The tooltip is the point: it shows
+            -- the five current defaults beside the sliders without touching
+            -- anything, and it is a function so it reads UP.Defaults when the
+            -- row is selected. Pressing A opens a confirmation dialog; only
+            -- the dialog's Reset button writes. Distinct from LHAS's own
+            -- Reset-to-Defaults keybind, which resets every section at once.
+            type = LHAS.ST_BUTTON, label = "Defaults",
+            buttonText = "Reset",
+            tooltip = function()
+                return "Current defaults for this section:\n\n" .. ttdDefaultLines()
+                    .. "\n\nPress to set all five sliders back to these values. You will be asked to confirm. "
+                    .. "Only this section is affected."
+            end,
+            clickHandler = function() showTtdDefaultsDialog() end,
+        },
 
         -- The "Pressure weighting" section was removed in 0.2.9: nine sliders for
         -- the window weights, burst multiplier, debuff risk-bonus weight, pressure
@@ -424,6 +531,11 @@ local function buildOptions()
     }
 end
 
+-- Exposed for Tools/tests/underpressure_settings.lua. Not used by the add-on.
+UP.Settings._ttdDefaultLines  = ttdDefaultLines
+UP.Settings._applyTtdDefaults = applyTtdDefaults
+UP.Settings._TTD_DIALOG       = TTD_DEFAULTS_DIALOG
+
 function UP.Settings.Init()
     LHAS = LibHarvensAddonSettings
 
@@ -459,4 +571,7 @@ function UP.Settings.Init()
     panel:AddSettings(buildOptions())
 
     UP.Settings.panel = panel
+
+    -- Confirmation dialog for the TTD section's Defaults button (0.4.2).
+    registerTtdDefaultsDialog()
 end

@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/yodased-mods/BuildAdvisor__c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "yodased-mods",
+  "canonical_id": "bethesda:c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96",
+  "content_id": "c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96",
+  "deleted": false,
+  "fingerprint": "a171e3d77023edea19ac046daab39da7e2d940efa5b3253149cfefcbe049e541",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/c0db4e1c-b7ae-4821-b7e8-4a8cfed56e96",
+  "title": "BuildAdvisor"
+}

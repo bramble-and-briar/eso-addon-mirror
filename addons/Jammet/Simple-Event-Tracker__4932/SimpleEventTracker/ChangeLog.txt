@@ -1,3 +1,35 @@
+Version 3.1.2
+- Entering an event no longer uses the pipe symbol. The prompt is now a small window with separate boxes for the name, days, hours and minutes left. It only opens when you ask for it (command, widget button or right-click menu).
+- One-line form: /sevt event Jubilee 5d 4h (the time goes last; d/h/m, "2 days", "12 hours").
+
+Version 3.1.1
+- Right-clicking the widget opens the game's context menu: set up event, clear event, trade bar history, hide widget, cancel.
+
+Version 3.1.0
+- When an event is detected, the on-screen widget now shows a "Start Event Tracking" button (besides the alert and chat message). It opens the prompt for the event's name and time left.
+- /sevt event clear disregards the current event, including the bars still being collected for it; the next new event is announced again.
+- New /sevt pause: stops looking for events (no alert, widget or announcement) until you type it again. Replaces /sevt quiet.
+- Help page rewritten: ordered by importance (manage the event first, options last), typed commands in gold, descriptions in beige.
+- README rewritten as a getting-started guide.
+
+Version 3.0.9
+- No more interrupting: a newly detected event is announced with a small alert at the top of the screen and a short chat message offering /sevt event. The prompt now opens only when you ask for it.
+
+Version 3.0.8
+- Removed the loading-time migration code (old event data cleanup and carrying over the last collection).
+
+Version 3.0.7
+- Code cleanup: simpler event-detail parsing (one function instead of a special case), sizes set only in code instead of twice, clearer comments. No behavior changes.
+
+Version 3.0.6
+- Event detection reworked. The game exposes no event data (the Golden Pursuits data used before does not match events), so an event now counts as running while you keep collecting trade bars.
+- When one is detected you are asked once for its name and time left, pre-filled from an active Golden Pursuit when there is one. /sevt event [Name | 5d 4h] enters or changes it later; /sevt event clear forgets it.
+- Event name, time left, the label and the login announcement come from those details. Without them the addon shows "Event" without a name.
+- Removed all pcall wrappers so that errors show up instead of being hidden.
+
+Version 3.0.5
+- New command /sevtsize 1-5 sets the label text size (1 = largest, 5 = smallest). 3 is the size the addon started with, 4 (default) the size of 3.0.x.
+
 Version 3.0.4
 - Code cleanup: removed leftover start-date handling and unused aliases, all helper functions are now local, and the file is shorter and easier to read. No behavior changes.
 

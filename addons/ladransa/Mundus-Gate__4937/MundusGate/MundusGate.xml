@@ -1,0 +1,833 @@
+<GuiXml>
+    <Controls>
+
+        <!-- =========================================================
+             Плитка: квадрат с заливкой, бликом, рамкой и значком.
+             Раскрашивается из Lua функцией Style.PaintTile.
+             ========================================================= -->
+        <Control name="MundusGate_Tile" virtual="true">
+            <Dimensions x="56" y="56" />
+            <Controls>
+                <Texture name="$(parent)Glow" textureFile="EsoUI/Art/Quickslots/quickslot_highlight_blob.dds"
+                         blendMode="ADD" alpha="0" level="1">
+                    <Dimensions x="112" y="112" />
+                    <Anchor point="CENTER" />
+                </Texture>
+                <Texture name="$(parent)Fill" color="FF101114" level="2">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Shine" color="00FFFFFF" level="3">
+                    <Dimensions y="24" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+                </Texture>
+                <Texture name="$(parent)Shade" color="00000000" level="3">
+                    <Dimensions y="24" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+                <Texture name="$(parent)Icon" level="4">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="CENTER" />
+                </Texture>
+                <Texture name="$(parent)BorderTop" color="FFFFFFFF" level="5">
+                    <Dimensions y="1" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+                </Texture>
+                <Texture name="$(parent)BorderBottom" color="FFFFFFFF" level="5">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+                <Texture name="$(parent)BorderLeft" color="FFFFFFFF" level="5">
+                    <Dimensions x="1" />
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="BOTTOMLEFT" />
+                </Texture>
+                <Texture name="$(parent)BorderRight" color="FFFFFFFF" level="5">
+                    <Dimensions x="1" />
+                    <Anchor point="TOPRIGHT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+                <Label name="$(parent)Label" font="ZoFontGameShadow" color="E6E6E6" horizontalAlignment="CENTER"
+                       wrapMode="ELLIPSIS" maxLineCount="1" hidden="true" level="5">
+                    <Dimensions x="96" />
+                    <Anchor point="TOP" relativePoint="BOTTOM" offsetY="3" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Кнопка на экране -->
+        <Control name="MundusGate_HudButton" inherits="MundusGate_Tile" mouseEnabled="true"
+                 movable="true" clampedToScreen="true" virtual="true">
+            <OnMouseEnter>MundusGate.Buttons:OnMouseEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.Buttons:OnMouseExit(self)</OnMouseExit>
+            <OnMouseDown>MundusGate.Buttons:OnMouseDown(self, button)</OnMouseDown>
+            <OnMouseUp>MundusGate.Buttons:OnMouseUp(self, button, upInside)</OnMouseUp>
+            <OnMoveStop>MundusGate.Buttons:OnMoveStop(self)</OnMoveStop>
+        </Control>
+
+
+        <!-- Строка в списке редактора кнопок / колеса -->
+        <Control name="MundusGate_SlotRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="230" y="52" />
+            <OnMouseEnter>MundusGate.SlotEditor.OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.SlotEditor.OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then MundusGate.SlotEditor.OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="18FFFFFF" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Selected" color="285DC1E8" hidden="true">
+                    <AnchorFill />
+                </Texture>
+                <Control name="$(parent)Tile" inherits="MundusGate_Tile">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="LEFT" offsetX="6" />
+                </Control>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Tile" relativePoint="TOPRIGHT" offsetX="10" offsetY="1" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" color="8A8A8A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Tile" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="-1" />
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Окно выбора места: заголовок локации и строка места -->
+        <Control name="MundusGate_PickerHeader" virtual="true">
+            <Dimensions x="400" y="30" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
+                </Label>
+                <Texture name="$(parent)Line" color="40E6D9A8">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+        <Control name="MundusGate_PickerRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="400" y="30" />
+            <OnMouseEnter>MundusGate.PlacePicker:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.PlacePicker:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then MundusGate.PlacePicker:OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="335DC1E8" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Info" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Строка места в окне колеса: её можно перетащить на колесо -->
+        <Control name="MundusGate_DragRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="30" />
+            <OnMouseEnter>MundusGate.WheelEditor:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.WheelEditor:OnRowExit(self)</OnMouseExit>
+            <OnDragStart>MundusGate.WheelEditor:OnRowDragStart(self, button)</OnDragStart>
+            <OnMouseUp>MundusGate.WheelEditor:OnRowMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="335DC1E8" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Info" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Строка сетки значков (ячейки создаются из Lua) -->
+        <Control name="MundusGate_IconRow" virtual="true">
+            <Dimensions x="520" y="52" />
+        </Control>
+
+        <!-- Содержимое окна редактора кнопок / колеса -->
+        <Control name="MundusGate_SlotEditorBody" virtual="true">
+            <AnchorFill />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                </Button>
+
+                <!-- Список слева -->
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Dimensions x="256" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="56" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-120" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="4" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+                <Button name="$(parent)Add" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" relativePoint="BOTTOMLEFT" offsetY="8" />
+                </Button>
+                <Button name="$(parent)Remove" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)ListBg" relativePoint="BOTTOMRIGHT" offsetY="8" />
+                </Button>
+                <Button name="$(parent)Up" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Add" relativePoint="BOTTOMLEFT" offsetY="6" />
+                </Button>
+                <Button name="$(parent)Down" inherits="ZO_DefaultButton">
+                    <Dimensions x="125" y="28" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Remove" relativePoint="BOTTOMRIGHT" offsetY="6" />
+                </Button>
+
+                <!-- Пусто -->
+                <Label name="$(parent)Empty" font="ZoFontGame" color="A0A0A0" horizontalAlignment="CENTER"
+                       verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" offsetX="290" offsetY="56" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-120" />
+                </Label>
+
+                <!-- Свойства справа -->
+                <Control name="$(parent)Details">
+                    <Anchor point="TOPLEFT" offsetX="292" offsetY="58" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-40" />
+                    <Controls>
+                        <Control name="$(parent)Preview" inherits="MundusGate_Tile">
+                            <Anchor point="CENTER" relativePoint="TOPLEFT" offsetX="48" offsetY="48" />
+                        </Control>
+                        <Label name="$(parent)PlaceName" font="ZoFontWinH3" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <Anchor point="TOPLEFT" offsetX="116" offsetY="0" />
+                            <Anchor point="TOPRIGHT" offsetY="0" />
+                        </Label>
+                        <Label name="$(parent)PlaceInfo" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <Anchor point="TOPLEFT" offsetX="116" offsetY="34" />
+                            <Anchor point="TOPRIGHT" offsetY="34" />
+                        </Label>
+                        <Label name="$(parent)PlacePrice" font="ZoFontGame">
+                            <Anchor point="TOPLEFT" offsetX="116" offsetY="54" />
+                        </Label>
+                        <Button name="$(parent)PickPlace" inherits="ZO_DefaultButton">
+                            <Dimensions x="190" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="112" offsetY="80" />
+                        </Button>
+                        <Button name="$(parent)RenamePlace" inherits="ZO_DefaultButton">
+                            <Dimensions x="140" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="308" offsetY="80" />
+                        </Button>
+
+                        <!-- Значок -->
+                        <Label name="$(parent)IconCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                            <Anchor point="TOPLEFT" offsetY="124" />
+                        </Label>
+                        <Control name="$(parent)IconPreview" inherits="MundusGate_Tile">
+                            <Dimensions x="44" y="44" />
+                            <Anchor point="TOPLEFT" offsetY="148" />
+                        </Control>
+                        <Button name="$(parent)PickIcon" inherits="ZO_DefaultButton">
+                            <Dimensions x="170" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="56" offsetY="156" />
+                        </Button>
+                        <Button name="$(parent)ResetIcon" inherits="ZO_DefaultButton">
+                            <Dimensions x="170" y="28" />
+                            <Anchor point="TOPLEFT" offsetX="232" offsetY="156" />
+                        </Button>
+
+                        <!-- Цвет -->
+                        <Label name="$(parent)ColorCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                            <Anchor point="TOPLEFT" offsetY="206" />
+                        </Label>
+                        <Control name="$(parent)ColorSwatch" inherits="MundusGate_Tile" mouseEnabled="true">
+                            <Dimensions x="44" y="44" />
+                            <Anchor point="TOPLEFT" offsetY="230" />
+                        </Control>
+                        <Control name="$(parent)Palette">
+                            <Dimensions x="384" y="26" />
+                            <Anchor point="TOPLEFT" offsetX="56" offsetY="239" />
+                        </Control>
+                        <Button name="$(parent)Tint" inherits="ZO_CheckButton">
+                            <Anchor point="TOPLEFT" offsetY="292" />
+                        </Button>
+
+                        <!-- Только для кнопок -->
+                        <Control name="$(parent)ButtonOptions">
+                            <Anchor point="TOPLEFT" offsetY="326" />
+                            <Anchor point="BOTTOMRIGHT" />
+                            <Controls>
+                                <Label name="$(parent)SizeCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                    <Anchor point="TOPLEFT" offsetY="4" />
+                                </Label>
+                                <Button name="$(parent)SizeMinus" inherits="ZO_DefaultButton">
+                                    <Dimensions x="40" y="28" />
+                                    <Anchor point="TOPLEFT" offsetX="110" />
+                                </Button>
+                                <Label name="$(parent)SizeValue" font="ZoFontWinH4" color="FFFFFF" horizontalAlignment="CENTER">
+                                    <Dimensions x="50" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)SizeMinus" relativePoint="RIGHT" />
+                                </Label>
+                                <Button name="$(parent)SizePlus" inherits="ZO_DefaultButton">
+                                    <Dimensions x="40" y="28" />
+                                    <Anchor point="LEFT" relativeTo="$(parent)SizeValue" relativePoint="RIGHT" />
+                                </Button>
+                                <Button name="$(parent)ShowLabel" inherits="ZO_CheckButton">
+                                    <Anchor point="TOPLEFT" offsetY="44" />
+                                </Button>
+                                <Button name="$(parent)Visible" inherits="ZO_CheckButton">
+                                    <Anchor point="TOPLEFT" offsetY="74" />
+                                </Button>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <Dimensions x="728" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </Control>
+        <!-- =========================================================
+             Шаблоны строк (virtual): из них ZO_ScrollList создаёт строки
+             ========================================================= -->
+
+        <!-- Заголовок локации в быстром меню -->
+        <Control name="MundusGate_MenuHeader" virtual="true">
+            <Dimensions x="400" y="26" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
+                </Label>
+                <Texture name="$(parent)Line" color="40E6D9A8">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Строка места в быстром меню: иконка, название, цена -->
+        <Control name="MundusGate_MenuRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="400" y="30" />
+            <OnMouseEnter>MundusGate.Menu:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.Menu:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then MundusGate.Menu:OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="33C5A75E" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" offsetX="4" />
+                </Texture>
+                <Label name="$(parent)Price" font="ZoFontGame" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-6" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Price" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Текст «список пуст» (общий для меню и редактора) -->
+        <Control name="MundusGate_Empty" virtual="true">
+            <Dimensions x="400" y="80" />
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontGame" color="A0A0A0"
+                       horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" offsetX="10" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Заголовок локации в редакторе (щелчок = отметить/снять всё) -->
+        <Control name="MundusGate_EditorHeader" virtual="true" mouseEnabled="true">
+            <Dimensions x="500" y="32" />
+            <OnMouseEnter>MundusGate.Settings:OnHeaderEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.Settings:OnHeaderExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then MundusGate.Settings:OnHeaderClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinH4" color="E6D9A8">
+                    <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
+                </Label>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="A0A0A0">
+                    <Anchor point="BOTTOMRIGHT" offsetX="-8" offsetY="-5" />
+                </Label>
+                <Texture name="$(parent)Line" color="40E6D9A8">
+                    <Dimensions y="1" />
+                    <Anchor point="BOTTOMLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Строка места в редакторе: галочка, иконка, название, тип/статус -->
+        <Control name="MundusGate_EditorRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="500" y="30" />
+            <OnMouseEnter>MundusGate.Settings:OnRowEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.Settings:OnRowExit(self)</OnMouseExit>
+            <OnMouseUp>
+                if upInside then MundusGate.Settings:OnRowClicked(self, button) end
+            </OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Highlight" color="22FFFFFF" alpha="0">
+                    <AnchorFill />
+                </Texture>
+                <Button name="$(parent)Check" inherits="ZO_CheckButton">
+                    <Anchor point="LEFT" offsetX="6" />
+                </Button>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="26" y="26" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Check" relativePoint="RIGHT" offsetX="8" />
+                </Texture>
+                <Label name="$(parent)Info" font="ZoFontGameSmall" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-8" />
+                </Label>
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Info" relativePoint="LEFT" offsetX="-10" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- =========================================================
+             Окно быстрого меню
+             ========================================================= -->
+        <TopLevelControl name="MundusGateWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="440" y="300" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <OnMoveStop>MundusGate.Menu:OnMoveStop()</OnMoveStop>
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>MundusGate.Menu:Hide()</OnClicked>
+                </Button>
+
+                <Button name="$(parent)Edit">
+                    <Dimensions x="32" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Close" relativePoint="LEFT" offsetX="-6" />
+                    <Textures normal="EsoUI/Art/Buttons/edit_up.dds" pressed="EsoUI/Art/Buttons/edit_down.dds"
+                              mouseOver="EsoUI/Art/Buttons/edit_over.dds" />
+                    <OnClicked>MundusGate.Menu:OnEditClicked()</OnClicked>
+                </Button>
+
+                <Label name="$(parent)Status" font="ZoFontGameSmall">
+                    <Dimensions x="408" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="4" />
+                </Label>
+
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" offsetX="12" offsetY="66" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-34" />
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-10" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Окно «Мои места»
+             ========================================================= -->
+        <TopLevelControl name="MundusGateEditorWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="660" y="700" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <OnMoveStop>MundusGate.Settings:OnMoveStop()</OnMoveStop>
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>MundusGate.Settings:Hide()</OnClicked>
+                </Button>
+
+                <!-- Подписи над полями -->
+                <Label name="$(parent)SearchCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
+                </Label>
+                <Label name="$(parent)ZoneCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <Anchor point="TOPLEFT" offsetX="296" offsetY="52" />
+                </Label>
+                <Label name="$(parent)TypeCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <Anchor point="TOPLEFT" offsetX="496" offsetY="52" />
+                </Label>
+
+                <!-- Поиск, локация, тип -->
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Dimensions x="270" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="72" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Control name="$(parent)Zone" inherits="ZO_ComboBox">
+                    <Dimensions x="190" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="296" offsetY="72" />
+                </Control>
+                <Control name="$(parent)Type" inherits="ZO_ComboBox">
+                    <Dimensions x="148" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="496" offsetY="72" />
+                </Control>
+
+                <!-- Фильтры, счётчик, «Снять все» -->
+                <Button name="$(parent)OnlyFav" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="118" />
+                </Button>
+                <Button name="$(parent)OnlyOpen" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="210" offsetY="118" />
+                </Button>
+                <Button name="$(parent)Clear" inherits="ZO_DefaultButton">
+                    <Dimensions x="140" y="28" />
+                    <Anchor point="TOPRIGHT" offsetX="-16" offsetY="110" />
+                </Button>
+                <Label name="$(parent)Counter" font="ZoFontGame" color="FFFFFF">
+                    <Anchor point="RIGHT" relativeTo="$(parent)Clear" relativePoint="LEFT" offsetX="-12" />
+                </Label>
+
+                <!-- Список мест -->
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="150" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-40" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="6" offsetY="6" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-6" offsetY="-6" />
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- =========================================================
+             Слой кнопок на экране
+             ========================================================= -->
+        <TopLevelControl name="MundusGateHud">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Container">
+                    <AnchorFill />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+
+        <!-- Редактор кнопок и редактор колеса -->
+        <TopLevelControl name="MundusGateButtonsWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="760" y="600" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Control name="$(parent)Body" inherits="MundusGate_SlotEditorBody" />
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Окно «Колесо: быстрое перемещение» -->
+        <TopLevelControl name="MundusGateWheelWindow" hidden="true" mouseEnabled="true"
+                         movable="true" clampedToScreen="true">
+            <Dimensions x="1120" y="640" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>MundusGate.WheelEditor:Hide()</OnClicked>
+                </Button>
+
+                <!-- Места -->
+                <Label name="$(parent)PlacesCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
+                </Label>
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Dimensions x="330" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="76" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)OnlyFav" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="116" />
+                </Button>
+                <Button name="$(parent)OnlyOpen" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="196" offsetY="116" />
+                </Button>
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Dimensions x="330" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="144" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-40" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="4" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+
+                <!-- Колесо: ячейки создаются из Lua -->
+                <Control name="$(parent)WheelArea" mouseEnabled="true">
+                    <Dimensions x="512" y="512" />
+                    <Anchor point="TOPLEFT" offsetX="362" offsetY="52" />
+                    <Controls>
+                        <Texture name="$(parent)Background" textureFile="EsoUI/Art/HUD/radialMenu_bg_unselected.dds" alpha="0.85">
+                            <Dimensions x="512" y="512" />
+                            <Anchor point="CENTER" />
+                        </Texture>
+                        <Label name="$(parent)CenterName" font="ZoFontWinH3" color="FFFFFF" horizontalAlignment="CENTER"
+                               wrapMode="ELLIPSIS" maxLineCount="2">
+                            <Dimensions x="210" />
+                            <Anchor point="BOTTOM" relativePoint="CENTER" offsetY="4" />
+                        </Label>
+                        <Label name="$(parent)CenterInfo" font="ZoFontGameSmall" color="9A9A9A" horizontalAlignment="CENTER"
+                               wrapMode="ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="210" />
+                            <Anchor point="TOP" relativePoint="CENTER" offsetY="10" />
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <!-- Свойства выбранной ячейки -->
+                <Control name="$(parent)Details">
+                    <Dimensions x="214" />
+                    <Anchor point="TOPLEFT" offsetX="890" offsetY="60" />
+                    <Anchor point="BOTTOMLEFT" offsetX="890" offsetY="-40" />
+                    <Controls>
+                        <Control name="$(parent)Preview" inherits="MundusGate_Tile">
+                            <Dimensions x="64" y="64" />
+                            <Anchor point="TOPLEFT" />
+                        </Control>
+                        <Label name="$(parent)Name" font="ZoFontWinH4" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="2">
+                            <Dimensions x="214" />
+                            <Anchor point="TOPLEFT" offsetY="74" />
+                        </Label>
+                        <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <Dimensions x="214" />
+                            <Anchor point="TOPLEFT" offsetY="126" />
+                        </Label>
+                        <Label name="$(parent)Empty" font="ZoFontGame" color="A0A0A0">
+                            <Dimensions x="214" />
+                            <Anchor point="TOPLEFT" offsetY="160" />
+                        </Label>
+                        <Control name="$(parent)Controls">
+                            <Anchor point="TOPLEFT" offsetY="156" />
+                            <Anchor point="BOTTOMRIGHT" />
+                            <Controls>
+                                <Button name="$(parent)PickIcon" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" />
+                                </Button>
+                                <Button name="$(parent)ResetIcon" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" offsetY="34" />
+                                </Button>
+                                <Label name="$(parent)ColorCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                    <Anchor point="TOPLEFT" offsetY="78" />
+                                </Label>
+                                <Control name="$(parent)ColorSwatch" inherits="MundusGate_Tile" mouseEnabled="true">
+                                    <Dimensions x="40" y="40" />
+                                    <Anchor point="TOPLEFT" offsetY="102" />
+                                </Control>
+                                <Control name="$(parent)Palette">
+                                    <Dimensions x="162" y="49" />
+                                    <Anchor point="TOPLEFT" offsetX="52" offsetY="98" />
+                                </Control>
+                                <Button name="$(parent)Tint" inherits="ZO_CheckButton">
+                                    <Anchor point="TOPLEFT" offsetY="162" />
+                                </Button>
+                                <Button name="$(parent)Rename" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" offsetY="200" />
+                                </Button>
+                                <Button name="$(parent)Clear" inherits="ZO_DefaultButton">
+                                    <Dimensions x="214" y="28" />
+                                    <Anchor point="TOPLEFT" offsetY="236" />
+                                </Button>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <Dimensions x="1088" />
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Значок под курсором при перетаскивании -->
+        <TopLevelControl name="MundusGateDragIcon" hidden="true" tier="HIGH" layer="OVERLAY">
+            <Dimensions x="52" y="52" />
+            <Controls>
+                <Control name="$(parent)Tile" inherits="MundusGate_Tile">
+                    <Dimensions x="52" y="52" />
+                    <Anchor point="CENTER" />
+                </Control>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Выбор места -->
+        <TopLevelControl name="MundusGatePlacePicker" hidden="true" mouseEnabled="true" movable="true"
+                         clampedToScreen="true" tier="HIGH">
+            <Dimensions x="520" y="620" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>MundusGate.PlacePicker:Close()</OnClicked>
+                </Button>
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
+                    <Anchor point="TOPRIGHT" offsetX="-16" offsetY="52" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)OnlyOpen" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="94" />
+                </Button>
+                <Button name="$(parent)OnlyFav" inherits="ZO_CheckButton">
+                    <Anchor point="TOPLEFT" offsetX="220" offsetY="94" />
+                </Button>
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="124" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-40" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="4" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <!-- Выбор значка -->
+        <TopLevelControl name="MundusGateIconPicker" hidden="true" mouseEnabled="true" movable="true"
+                         clampedToScreen="true" tier="HIGH">
+            <Dimensions x="600" y="640" />
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" />
+            <Controls>
+                <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
+                </Label>
+                <Button name="$(parent)Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-10" offsetY="14" />
+                    <OnClicked>MundusGate.IconPicker:Close()</OnClicked>
+                </Button>
+                <Button name="$(parent)Tab1" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="50" />
+                </Button>
+                <Button name="$(parent)Tab2" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Tab1" relativePoint="RIGHT" offsetX="6" />
+                </Button>
+                <Button name="$(parent)Tab3" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Tab2" relativePoint="RIGHT" offsetX="6" />
+                </Button>
+                <Button name="$(parent)Tab4" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="LEFT" relativeTo="$(parent)Tab3" relativePoint="RIGHT" offsetX="6" />
+                </Button>
+                <Texture name="$(parent)TabIndicator" color="FF5DC1E8">
+                    <Dimensions y="2" />
+                </Texture>
+                <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="90" />
+                    <Anchor point="TOPRIGHT" offsetX="-120" offsetY="90" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Label name="$(parent)Count" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="RIGHT">
+                    <Anchor point="TOPRIGHT" offsetX="-18" offsetY="96" />
+                </Label>
+                <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="128" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-88" />
+                </Backdrop>
+                <Control name="$(parent)List" inherits="ZO_ScrollList">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ListBg" offsetX="8" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
+                </Control>
+                <Label name="$(parent)PathCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-56" />
+                </Label>
+                <Backdrop name="$(parent)PathBg" inherits="ZO_EditBackdrop">
+                    <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-16" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-160" offsetY="-16" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop" />
+                    </Controls>
+                </Backdrop>
+                <Button name="$(parent)Apply" inherits="ZO_DefaultButton">
+                    <Dimensions x="136" y="28" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="-16" offsetY="-16" />
+                </Button>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

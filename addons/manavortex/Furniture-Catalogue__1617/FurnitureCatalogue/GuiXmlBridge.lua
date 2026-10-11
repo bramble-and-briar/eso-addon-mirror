@@ -31,8 +31,8 @@ function FurC.SaveFrameInfo(calledFrom)
   FurC.CenterFilterBars()
 end
 
-function FurC.OnResizeStop()
-  FurC.SaveFrameInfo()
+function FurC.OnResizeStop(calledFrom)
+  FurC.SaveFrameInfo(calledFrom)
   FurC.UpdateLineVisibility()
   FurC.UpdateInventoryScroll()
 end
@@ -73,6 +73,12 @@ function FurC.GUIButtonRefreshOnMouseUp(control, mouseButton)
   end
 end
 
+function FurC.GUIButtonSettingsOnMouseUp()
+  if LAM and FurC.OptionsPanel then
+    LAM:OpenToPanel(FurC.OptionsPanel)
+  end
+end
+
 function FurC.GuiShowTooltip(control, tooltiptext, reAnchor)
   if reAnchor then
     InitializeTooltip(InformationTooltip, control, TOPRIGHT, -10, 0, TOPLEFT)
@@ -84,13 +90,6 @@ end
 
 function FurC.GuiHideTooltip(control)
   ClearTooltip(InformationTooltip)
-end
-
-function FurC.GetRumourTooltip()
-  return GetString((FurC.GetShowRumours() and SI_FURC_FILTER_RUMOUR_HIDE_TT) or SI_FURC_SHOW_RUMOUR_TT)
-end
-function FurC.GetCrownTooltip()
-  return GetString((FurC.GetShowCrownstore() and SI_FURC_FILTER_CROWN_HIDE_TT) or SI_FURC_SHOW_CROWN_TT)
 end
 
 function FurC.GuiOnSearchBoxClick(control, mouseButton, doubleClick)

@@ -203,6 +203,7 @@ local defaults = {
         writs = "always loot",
         survey = "always loot",
         treasureMaps = "always loot",
+        antiquityLeads = "always loot",
         leads = "always loot",
         skillScrolls = "always loot",
         soulGems = "always loot",
@@ -1223,6 +1224,7 @@ function Settings.Initialize(args)
                     name = zo_strformat(GetString(MSAL_AUTO_UNBOX), GetString(SI_ITEMTYPE75)),
                     tooltip = zo_strformat(GetString(MSAL_AUTO_UNBOX),
                         GetString(SI_SPECIALIZEDITEMTYPE2750) .. " / " .. GetString(SI_SPECIALIZEDITEMTYPE101) ..
+                            GetString(MSAL_SPACE) .. " / " .. GetString(SI_ANTIQUITY_LEAD_TOOLTIP_TAG) ..
                             GetString(MSAL_SPACE) .. GetString(SI_ITEMTYPE18)),
                     getFunc = function()
                         return db.autoUnboxUnopened
@@ -1856,7 +1858,7 @@ function Settings.Initialize(args)
                 },
                 {
                     type = "dropdown",
-                    name = GetString(SI_ITEMTYPE73),
+                    name = GetString(SI_ITEMTYPE73) .. " & " .. GetString(SI_ITEMTYPE72),
                     choices = booleanChoices,
                     choicesValues = booleanChoicesValues,
                     getFunc = function()
@@ -1917,7 +1919,8 @@ function Settings.Initialize(args)
                     GetString(SI_ITEMTYPE75), 
                     GetString(SI_SPECIALIZEDITEMTYPE2750), 
                     GetString(SI_SPECIALIZEDITEMTYPE101), 
-                    GetString(SI_SPECIALIZEDITEMTYPE100)),
+                    GetString(SI_SPECIALIZEDITEMTYPE100),
+                    GetString(SI_ANTIQUITY_LEAD_TOOLTIP_TAG)),
                     choices = unopenedChoices,
                     choicesValues = unopenedChoicesValues,
                     getFunc = function()
@@ -1980,6 +1983,23 @@ function Settings.Initialize(args)
                 },
                 {
                     type = "dropdown",
+                    name = "/ " .. GetString(SI_ITEMTYPE75) .. GetString(MSAL_SPACE) ..
+                        GetString(SI_ANTIQUITY_LEAD_TOOLTIP_TAG),
+                    choices = booleanChoices,
+                    choicesValues = booleanChoicesValues,
+                    getFunc = function()
+                        return db.filters.antiquityLeads
+                    end,
+                    setFunc = function(value)
+                        db.filters.antiquityLeads = value
+                    end,
+                    default = defaults.filters.antiquityLeads,
+                    disabled = function()
+                        return not (db.filters.unopened == "type based")
+                    end
+                },
+                {
+                    type = "dropdown",
                     name = GetString(SI_ITEM_FORMAT_STR_QUEST_ITEM),
                     choices = booleanChoices,
                     choicesValues = booleanChoicesValues,
@@ -2032,7 +2052,7 @@ function Settings.Initialize(args)
                 },
                 {
                     type = "dropdown",
-                    name = GetString(SI_GAMEPAD_VENDOR_ANTIQUITY_LEAD_GROUP_HEADER),
+                    name = GetString(SI_ANTIQUITY_LEAD_TOOLTIP_TAG),
                     choices = booleanChoices,
                     choicesValues = booleanChoicesValues,
                     getFunc = function()
@@ -2247,7 +2267,7 @@ function Settings.Initialize(args)
             end,
             default = defaults.filters.thirdParty
         }
-        local scriptIndex = findControlIndex(miscSettingsIndex, GetString(SI_ITEMTYPE73))
+        local scriptIndex = findControlIndex(miscSettingsIndex, GetString(SI_ITEMTYPE73) .. " & " .. GetString(SI_ITEMTYPE72))
         table.insert(optionsData[miscSettingsIndex].controls, scriptIndex, {
             type = "header",
             name = "|c999999 / " .. GetString(MSAL_LOW_VALUE_MISC) .. "|r",

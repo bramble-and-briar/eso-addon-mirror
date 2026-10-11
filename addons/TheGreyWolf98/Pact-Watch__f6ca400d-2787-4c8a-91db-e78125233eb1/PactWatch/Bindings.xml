@@ -1,0 +1,8 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Pact Watch">
+            <Action name="PACTWATCH_TOGGLE"><Down>PactWatch:ToggleWindow()</Down></Action>
+            <Action name="PACTWATCH_HUD"><Down>PactWatch:ToggleHUD()</Down></Action>
+        </Category>
+    </Layer>
+</Bindings>

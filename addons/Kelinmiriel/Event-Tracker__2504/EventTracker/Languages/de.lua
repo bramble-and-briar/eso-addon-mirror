@@ -73,7 +73,8 @@ local strings = {
 	
 	
 	PTS_EVENT_INFO_WITCHES = "PTS: 21.-28.Juli 2025; Live: Oktober, 2025. 2 Scheine/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",
-	EVT_EVENT_INFO_WITCHES = "23.Okt.-5.Nov. 2025, 2 Scheine/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",
+	EVT_EVENT_INFO_WITCHES = "21.Okt.-4.Nov. 2026, 300 Handelsbarren täglich/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",
+--	EVT_EVENT_INFO_WITCHES = "23.Okt.-5.Nov. 2025, 2 Scheine/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",
 --	EVT_EVENT_INFO_WITCHES = "Oktober 2025, 2 Scheine/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",
 	--	EVT_EVENT_INFO_WITCHES = "Oktober 2023, 2 Scheine/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",
 --	Trinkt das Gebräu der Hexenmutter für den XP-Bonus.",
@@ -90,11 +91,13 @@ local strings = {
 --	EVT_EVENT_INFO_ZEAL_OF_ZENITHAR = "30.June bis 2.Juli.2024. (39 Scheine) 3 Scheine täglich (pro Konto und Server) für das Einreichen der täglichen Quest 'Ehrliche Arbeit' (Fasaria beim Schrein von Zenithar, westl.v. Belkarth, Kargstein). UM EINEN TAG VERLÄNGERT",
 --	EVT_EVENT_INFO_ZEAL_OF_ZENITHAR = "27.Juli bis 9.Aug.2023. (42 Scheine) 2 Scheine täglich (pro Konto und Server) für das Einreichen der täglichen Quest 'Ehrliche Arbeit' (Fasaria beim Schrein von Zenithar, westl.v. Belkarth, Kargstein). UM EINEN TAG VERLÄNGERT",
 	
-	
--- *************** NON-ANNUAL EVENTS	
-
 -- 2.341 "Heart's Week"
 	EVT_EVENT_INFO_HEARTS_WEEK = "11.-18.Feb. 2026. 2 Scheine, once/day/acct: Completing a Heart's Week quest; or IN A GROUP OR WITH COMPANION ACTIVE! Archive, Delve, or World boss; Looting a treasure chest; Pickpocketing. Chance of tickets: Incursion boss, Harvest node. DBL XP for COMPANIONS",
+
+
+-- *************** NON-ANNUAL EVENTS
+-- 2.430 "High Seas"
+	EVT_EVENT_INFO_HIGH_SEAS = "30.Sept-14.Okt 2026. 300 trade bars, once/day/acct: Completing the daily quest 'Bounty of the Abecean Sea', or the starter quest 'Raising the Riotous Redress'.",
 -- 2.240 "Pan-Tamriel"
 	EVT_EVENT_INFO_DAEDRIC_WAR = "20.Nov-2.Dec 2025. (26 Scheine) 2 tickets/day/account, from zone DAILY or trial WEEKLY quest: 1 Morrowind/HoF OR Clockwork City/AS; PLUS 1 Summerset/CR.",
 	EVT_EVENT_INFO_PAN_TAMRIEL = "23.Jan-4.Feb 2025. (39 Scheine) 3 Scheine/Tag/Konto: Weltboss oder Endboss öffentliche Verliese, Endbosse von Gewölben, Dunkle Risse, Dolmen, Drachen usw., Verliese, Arenen oder Prüfungen.",

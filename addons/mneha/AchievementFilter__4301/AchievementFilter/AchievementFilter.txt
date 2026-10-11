@@ -1,8 +1,8 @@
 ## Title: AchievementFilter
 ## Author: mneha1987
-## Version: 1.1.3
-## APIVersion: 101050
-## Description: Standalone achievement browser with advanced filters (reward type, source, points, earned state, text, date range) and sortable columns.
+## Version: 1.2.1
+## APIVersion: 101051
+## Description: Standalone achievement browser with advanced filters, sortable columns, live progress updates and HUD achievement pinning.
 ## SavedVariables: AchievementFilter_SavedVariables
 ## DependsOn: LibCustomMenu>=730
 

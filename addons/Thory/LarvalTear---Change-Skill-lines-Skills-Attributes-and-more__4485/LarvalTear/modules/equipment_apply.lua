@@ -22,37 +22,31 @@ local function SplitEquipmentConfig(config)
 end
 
 local function ApplyOutfitSelection(outfitConfig)
+    if outfitConfig == nil then
+        return true, nil, { status = "noop", reason = "outfit_not_saved" }
+    end
     if type(outfitConfig) ~= "table" then
-        return true, nil, {
-            status = "noop",
-            reason = "outfit_not_saved",
-        }
+        return false, "outfit_config_invalid", nil
     end
 
+    local isDefault = outfitConfig.mode == "default" and outfitConfig.equippedOutfitIndex == nil
+    local targetIndex = outfitConfig.equippedOutfitIndex
+    if not isDefault and (outfitConfig.mode ~= nil or type(targetIndex) ~= "number"
+        or targetIndex < 1 or targetIndex % 1 ~= 0) then
+        return false, "outfit_config_invalid", nil
+    end
     if type(GetEquippedOutfitIndex) ~= "function" then
         return false, "outfit_api_unavailable", nil
     end
-
-    local targetIndex = tonumber(outfitConfig.equippedOutfitIndex)
-    local currentIndex = GetEquippedOutfitIndex(GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-    if targetIndex == nil or targetIndex <= 0 then
-        return true, nil, {
-            status = "noop",
-            reason = "outfit_not_requested",
-            currentOutfitIndex = currentIndex,
-        }
-    end
-
-    if currentIndex == targetIndex then
-        return true, nil, {
-            status = "matched",
-            equippedOutfitIndex = currentIndex,
-        }
-    end
-
-    if type(GetNumOutfits) == "function" then
-        local maxOutfits = GetNumOutfits(GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-        if type(maxOutfits) == "number" and (targetIndex < 1 or targetIndex > maxOutfits) then
+    if not isDefault then
+        if type(GetNumUnlockedOutfits) ~= "function" then
+            return false, "outfit_api_unavailable", nil
+        end
+        local countOk, maxOutfits = pcall(GetNumUnlockedOutfits, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        if not countOk or type(maxOutfits) ~= "number" or maxOutfits < 0 or maxOutfits % 1 ~= 0 then
+            return false, "outfit_count_unavailable", nil
+        end
+        if targetIndex > maxOutfits then
             return false, "outfit_index_unavailable", {
                 equippedOutfitIndex = targetIndex,
                 maxOutfits = maxOutfits,
@@ -60,27 +54,44 @@ local function ApplyOutfitSelection(outfitConfig)
         end
     end
 
-    if type(EquipOutfit) ~= "function" then
-        return false, "outfit_equip_unavailable", nil
+    local currentOk, currentIndex = pcall(GetEquippedOutfitIndex, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if not currentOk then
+        return false, "outfit_capture_failed", nil
+    end
+    if currentIndex == targetIndex then
+        return true, nil, { status = "matched", equippedOutfitIndex = currentIndex }
     end
 
-    local ok, err = pcall(EquipOutfit, GAMEPLAY_ACTOR_CATEGORY_PLAYER, targetIndex)
+    local request = EquipOutfit
+    if isDefault then
+        request = UnequipOutfit
+    end
+    if type(request) ~= "function" then
+        return false, isDefault and "outfit_unequip_unavailable" or "outfit_equip_unavailable", nil
+    end
+    local ok, err
+    if isDefault then
+        ok, err = pcall(request, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    else
+        ok, err = pcall(request, GAMEPLAY_ACTOR_CATEGORY_PLAYER, targetIndex)
+    end
     if not ok then
-        return false, err or "outfit_equip_failed", nil
-    end
-
-    local appliedIndex = GetEquippedOutfitIndex(GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-    local matched = appliedIndex == targetIndex
-
-    if not matched then
-        return false, "outfit_verify_failed", {
-            equippedOutfitIndex = targetIndex,
-            currentOutfitIndex = appliedIndex,
+        return false, isDefault and "outfit_unequip_failed" or "outfit_equip_failed", {
+            apiError = tostring(err),
         }
     end
 
+    -- Preserve the existing immediate verification and Equipment failure contract.
+    local verifyOk, appliedIndex = pcall(GetEquippedOutfitIndex, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if not verifyOk or appliedIndex ~= targetIndex then
+        return false, "outfit_verify_failed", {
+            mode = outfitConfig.mode,
+            equippedOutfitIndex = targetIndex,
+            currentOutfitIndex = verifyOk and appliedIndex or nil,
+        }
+    end
     return true, nil, {
-        status = "equipped",
+        status = isDefault and "unequipped" or "equipped",
         equippedOutfitIndex = appliedIndex,
     }
 end
@@ -229,7 +240,10 @@ function LTM_EQUIPMENT_APPLY:FinishDeferredApply(context, success, err, summary)
         return
     end
 
-    self:Log("Equipment apply failed", "error=" .. tostring(err))
+    local outfitSummary = type(summary) == "table" and summary.outfit or nil
+    self:Log("Equipment apply failed", "error=" .. tostring(err),
+        type(outfitSummary) == "table" and outfitSummary.apiError
+            and ("apiError=" .. outfitSummary.apiError) or nil)
     self:NotifyPipelineContinuation(context, false, err or EQUIPMENT_APPLY_E_CHANGE_FAILED)
 end
 

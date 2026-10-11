@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Mundus Gate">
+            <Action name="QUICKTRAVELMENU_TOGGLE">
+                <Down>MundusGate.Toggle()</Down>
+            </Action>
+            <Action name="QUICKTRAVELMENU_LOCK">
+                <Down>MundusGate.Buttons:SetLocked(not MundusGate.sv.buttonsLocked)</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

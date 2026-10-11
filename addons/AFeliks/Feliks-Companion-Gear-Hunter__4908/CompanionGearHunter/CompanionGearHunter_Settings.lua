@@ -223,18 +223,6 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "checkbox",
-            name = "Find Gear Quality Upgrades",
-            tooltip = "When checked, browsing a companion item that's a higher quality than what a companion currently has equipped in a slot you aren't actively hunting for (\"Find\" unchecked) marks that item and adds a note to its tooltip. Weight/type and trait must match what's equipped - only the quality is an upgrade.",
-            getFunc = function() return CompanionGearHunter.Data.GetUpgradeSuggestionsEnabled() end,
-            setFunc = function(value)
-                CompanionGearHunter.Data.SetUpgradeSuggestionsEnabled(value)
-                RefreshMarkers()
-            end,
-            default = true,
-            width = "full",
-        },
-        {
-            type = "checkbox",
             name = "Tag Gear in Chat",
             tooltip = "When checked, companion gear item links in chat (any channel, including your own messages) get a companion icon in front of them, in the wanted or upgrade color below. Hover the link for details. Edits the line in place - no extra chat lines.",
             getFunc = function() return CompanionGearHunter.Data.GetChatTaggingEnabled() end,
@@ -276,19 +264,65 @@ local function OnAddOnLoaded(eventCode, addOnName)
             maxChars = 20,
             width = "half",
         },
-        {
-            type = "header",
-            name = "Colors",
-            width = "full",
-        },
-        {
-            type = "description",
-            text = "The color of the icons shown on items in your bags, banks, guild stores, trades and mail, in chat, and next to companions in the window. Dark colors are not suggested.",
-            width = "full",
-        },
-        ColorRowOption(COLOR_ROWS[1]),
-        ColorRowOption(COLOR_ROWS[2]),
     }
+
+    -- Gear Quality Upgrades: the master switch, then one checkbox per companion.
+    -- The master wins - while it is off, upgrades are ignored for everyone and
+    -- the companion boxes are greyed out (their choices are kept). Built here,
+    -- at load, from the full companion list, same as CompanionRoster's per-
+    -- companion Role dropdowns.
+    table.insert(optionsTable, {
+        type = "header",
+        name = "Gear Quality Upgrades",
+        width = "full",
+    })
+    table.insert(optionsTable, {
+        type = "checkbox",
+        name = "Find Gear Quality Upgrades",
+        tooltip = "When checked, browsing a companion item that's a higher quality than what a companion currently has equipped in a slot you aren't actively hunting for (\"Find\" unchecked) marks that item and adds a note to its tooltip. Weight/type and trait must match what's equipped - only the quality is an upgrade. When unchecked, no companion gets upgrade suggestions, whatever is set below.",
+        getFunc = function() return CompanionGearHunter.Data.GetUpgradeSuggestionsEnabled() end,
+        setFunc = function(value)
+            CompanionGearHunter.Data.SetUpgradeSuggestionsEnabled(value)
+            RefreshMarkers()
+        end,
+        default = true,
+        width = "full",
+    })
+    table.insert(optionsTable, {
+        type = "description",
+        text = "Upgrade suggestions are only shown for the companions checked below. Items matching your wishlist are not affected.",
+        width = "full",
+    })
+    for _, companion in ipairs(CompanionGearHunter.Data.GetAllCompanions()) do
+        local companionId = companion.id
+        table.insert(optionsTable, {
+            type = "checkbox",
+            name = companion.name,
+            tooltip = "Suggest quality upgrades for " .. companion.name .. ".",
+            getFunc = function() return CompanionGearHunter.Data.GetUpgradeEnabledForCompanion(companionId) end,
+            setFunc = function(value)
+                CompanionGearHunter.Data.SetUpgradeEnabledForCompanion(companionId, value)
+                RefreshMarkers()
+            end,
+            disabled = function() return not CompanionGearHunter.Data.GetUpgradeSuggestionsEnabled() end,
+            default = true,
+            width = "half",
+        })
+    end
+
+    table.insert(optionsTable, {
+        type = "header",
+        name = "Colors",
+        width = "full",
+    })
+    table.insert(optionsTable, {
+        type = "description",
+        text = "The color of the icons shown on items in your bags, banks, guild stores, trades and mail, in chat, and next to companions in the window. Dark colors are not suggested.",
+        width = "full",
+    })
+    table.insert(optionsTable, ColorRowOption(COLOR_ROWS[1]))
+    table.insert(optionsTable, ColorRowOption(COLOR_ROWS[2]))
+
     LAM:RegisterOptionControls("CompanionGearHunter_Options", optionsTable)
 end
 

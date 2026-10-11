@@ -8,14 +8,17 @@ local this = FurC.SearchIndex
 
 local LFC = LibFurnitureCatalogue
 local getItemLink = LFC.API.GetItemLink
-local loc = LFC.Internal.Constants.Locations
-local npc = LFC.Internal.Constants.NPC
+local GetString = GetString
+local GetZoneNameById = GetZoneNameById
 
 local lower = LocaleAwareToLower
-local stripTxt = LFC.Internal.Format.stripTxt
-local STRIP_CONTROL = LFC.Internal.Format.STRIP_CONTROL
+local stripTxt = FurC.SourceFormat.Strip
+local STRIP_CONTROL = FurC.SourceFormat.STRIP_CONTROL
 local concat = table.concat
 local find = string.find
+
+-- container tables that still have to be managed and indexed by us (so it is searchable)
+local CONTAINER_TABLES = { "BookCollections", "FurnishingFolios" }
 
 -- lowercase built per string, not per row
 local loweredCache = {}
@@ -29,10 +32,6 @@ local function lowered(text)
     loweredCache[text] = cached
   end
   return (#cached > 0 and cached) or nil
-end
-
-local function isItemLink(text)
-  return type(text) == "string" and nil ~= find(text, "|H", 1, true)
 end
 
 ---Achievement name for an id, lowercased, resolved once per id
@@ -96,117 +95,45 @@ local function newBuilder()
   return add, buckets
 end
 
--- Ach: [version][zone][vendor]
--- PvP: [version][vendor][location]
-local function addVendorTables(add)
-  for _, versionData in pairs(FurC.AchievementVendors or {}) do
-    for zoneName, zoneData in pairs(versionData) do
-      for vendorName, vendorData in pairs(zoneData) do
-        for itemId, entry in pairs(vendorData) do
-          add(itemId, zoneName)
-          add(itemId, vendorName)
-          if type(entry) == "table" then
-            add(itemId, getAchievementName(entry.achievement))
-          end
-        end
-      end
-    end
-  end
-
-  for _, versionData in pairs(FurC.PVP or {}) do
-    for vendorName, vendorData in pairs(versionData) do
-      for locationName, locationData in pairs(vendorData) do
-        for itemId, entry in pairs(locationData) do
-          add(itemId, vendorName)
-          add(itemId, locationName)
-          if type(entry) == "table" then
-            add(itemId, getAchievementName(entry.achievement))
-          end
-        end
-      end
-    end
-  end
-
-  for _, versionData in pairs(FurC.LuxuryFurnisher or {}) do
-    for itemId in pairs(versionData) do
-      add(itemId, npc.LUXF)
-      add(itemId, loc.COLDH)
-    end
-  end
-end
-
--- Master Writ stock stored as blueprint id, has to be resolved
-local function addWritVendors(add)
-  local function addVendorTable(versionedTable, vendorName)
-    for _, versionData in pairs(versionedTable or {}) do
-      for id, entry in pairs(versionData) do
-        local itemId = FurC.DBQuery.ResolveRecipe(id)
-        if nil ~= itemId then
-          add(itemId, vendorName)
-          add(itemId, loc.ANY_CAPITAL)
-          if type(entry) == "table" then
-            add(itemId, getAchievementName(entry.info))
-          end
-        end
-      end
-    end
-  end
-  addVendorTable(FurC.Rolis, npc.ROLIS)
-  addVendorTable(FurC.Faustina, npc.FAUSTINA)
-end
-
-local function addFolios(add)
-  for folioId, folioData in pairs(FurC.FurnishingFolios or {}) do
-    if folioData.contents then
-      local folioName = getItemName(folioId)
-      for _, contentId in ipairs(folioData.contents) do
-        local itemId = FurC.DBQuery.ResolveRecipe(contentId)
-        if nil ~= itemId then
-          add(itemId, folioName)
-          add(itemId, folioData.vendor)
-          add(itemId, folioData.location)
-        end
-      end
-    end
-  end
-end
-
-local function addBookCollections(add)
-  for containerId, collection in pairs(FurC.BookCollections or {}) do
-    local containerName = getItemName(containerId)
-    for _, bookId in ipairs(collection.contents) do
-      add(bookId, containerName)
-    end
-  end
-end
-
-local function addEvents(add)
-  for _, versionData in pairs(FurC.EventItems or {}) do
-    for eventName, sources in pairs(versionData) do
-      for sourceName, items in pairs(sources) do
-        if type(items) == "table" then
-          -- we expect NPC name or a container link
-          local sourceTerm = (isItemLink(sourceName) and getItemName(sourceName)) or sourceName
-          for itemId in pairs(items) do
-            add(itemId, eventName)
-            add(itemId, sourceTerm)
-          end
-        else
-          -- No container/coffer level: sourceName IS the itemId (e.g. environment drops)
-          add(sourceName, eventName)
-        end
-      end
-    end
-  end
-end
-
 local function build()
   local add, buckets = newBuilder()
-  addVendorTables(add)
-  addWritVendors(add)
-  addFolios(add)
-  addBookCollections(add)
-  addEvents(add)
+  for _, itemId in ipairs(LFC.API.GetItemIds()) do
+    for _, record in ipairs(LFC.API.GetSourceDetails(itemId)) do
+      local source = record.source
+      for _, field in ipairs({ "vendor", "event", "bundle", "itemPack" }) do
+        if source[field] then
+          add(itemId, GetString(source[field]))
+        end
+      end
+      for _, placement in ipairs(source.locations or {}) do
+        if placement.location then
+          add(itemId, GetZoneNameById(placement.location))
+        end
+        if placement.place then
+          add(itemId, GetString(placement.place))
+        end
+      end
+      add(itemId, getAchievementName(source.achievement))
+      add(itemId, getItemName(source.partOf))
+      add(itemId, getItemName(source.container))
+      for _, pack in ipairs(source.packs or {}) do
+        add(itemId, getItemName(pack))
+      end
+      if source.crate then
+        add(itemId, GetCrownCrateName(source.crate))
+      end
+    end
+  end
+
+  -- A container's name is a search term for everything it holds. Books already name their container through part_of. Folios only hold recipes, whose source records don't name the folio, we have to supply that name
+  for _, name in ipairs(CONTAINER_TABLES) do
+    for containerId, container in pairs(FurC[name] or {}) do
+      local containerName = getItemName(containerId)
+      for _, contentId in ipairs(container.contents or {}) do
+        add(FurC.DBQuery.ResolveRecipe(contentId), containerName)
+      end
+    end
+  end
 
   terms = {}
   for itemId, bucket in pairs(buckets) do

@@ -20,20 +20,26 @@
     "gamedata"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4927/",
-  "fingerprint": "3ef86545ed76e8cd9cb187342c06ac62eea426950e39c34582789182f01851b4",
+  "fingerprint": "dc1f943889429d870d32c2c617dcd5cbcde3bdc05c36ba4eb746067d619d4668",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17808.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17809.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17811.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17810.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17882.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17886.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17881.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17879.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17880.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17883.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17884.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17887.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17888.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17889.png"
   ],
   "omitted_files": [
     {
-      "bytes": 123885529,
+      "bytes": 123962198,
       "download_url": "https://www.esoui.com/downloads/dl4927/",
       "path": "gamedata/lang/ar.lang",
       "reason": "exceeds the mirror's 95 MiB per-file Git limit",
-      "sha256": "ea0baf8d814cd6787cc30d7892783834a1f478ebe49a30d8e390ed08ac51962b"
+      "sha256": "c73226c6d8177e9d8a3eba9a499782acc9601b5ef8aa38839fdcc8e6b2219bef"
     }
   ],
   "platform": "pc",
@@ -42,11 +48,11 @@
   "source_id": "4927",
   "source_url": "https://www.esoui.com/downloads/info4927-Arabiclocalization.html",
   "stats": {
-    "downloads": 27,
+    "downloads": 61,
     "favorites": 0,
-    "monthly_downloads": 24
+    "monthly_downloads": 58
   },
   "title": "Arabic localization",
-  "updated_at": 1791584770000,
-  "version": "2.2.7"
+  "updated_at": 1791676671000,
+  "version": "2.3.5"
 }

@@ -1,80 +1,94 @@
 -- Public API: LibFurnitureCatalogue.API
 --
--- Start here. The whole surface is on the API table from load; OnReady tells you when the DB behind it is populated:
+-- Looking up furniture without writing an AddOn? Use slash commands:
+--    `/lfc 203600` shows sources and materials
+--    `/lfc raw 203600` shows more data
+--    (you can also use item links instead of ids)
 --
---   local LFC = LibFurnitureCatalogue.API
---   LFC.OnReady(function()
---     myAddon:BuildWhateverNeedsTheDB()
---   end)
+-- Using the library in an AddOn
+-- Add `## DependsOn: LibFurnitureCatalogue` to your manifest, then in your Lua file:
+--    local LFC = LibFurnitureCatalogue.API
+--    LFC.OnReady(function()
+--      d("Catalogue ready: " .. LFC.GetEntryCount() .. " furnishings")
+--    end)
 --
--- One OnReady is enough: wrap the first use so you don't query an empty DB, then reach LFC from anywhere
+-- Every example below assumes you named your variable `LFC` too like in the example above. Run item queries after `IsReady()` returns true (or inside `OnReady`)
 --
--- Returns:
--- Every call hands out a fresh copy, yours to keep and to mutate. State and Events are the exceptions: one shared table each, read-only
--- Mostly ids. Resolve them with GetZoneNameById, GetString, etc.
--- Numeric source and version values shift between releases, so if you need to persist references in your addon, use the string keys / enums
+-- Choosing the answer you need
+-- GetEntry describes a furnishing: its id, source types, update and recipe
+-- GetSourceDetails describes each way to obtain it: vendor, place, cost, etc
+-- A furnishing sold in several ways has several source records. A blueprint lookup resolves to the furnishing it makes
 --
--- Before the DB is ready:
--- Any endpoint below that reads the DB starts the build, and none of them wait for it: the build is async
--- An early call answers nil / false / {} / 0, which might look the same like "item not found"
--- Use IsReady, or do the work from OnReady and it should be all there
+-- Reading the results
+-- Optional fields can be nil (absent). Check for nil before using them.
+-- A list uses numeric positions: `for _, value in ipairs(list) do ... end`
+-- A set uses ids as keys: `entry.sources[src.PVP]` is true when that source exists
+-- A map associates keys with values, for example ingredient link with a quantity
+-- GetEntry and vocabulary lookups return editable copies
+-- Treat source records, State and Events as read-only or you might break them accidentally (copy or use ZO_DeepTableCopy if you want to edit them)
 --
--- Shapes:
---  a list is 1..n (order means nothing unless the endpoint says otherwise)
---  a set is [id] = true
---  a map names its own key
+-- Most fields contain ids rather than display text
+-- The field comments below name the matching ESO function (for example, a vendor string id uses `zo_strformat("<<C:1>>", GetString(vendorId))` for a capitalised display name)
+-- Compare source/update ids using GetSourceTypes/GetDataVersions. If you need to save them, use the string keys, because the numeric values can change
 --
--- [FC] markers show what FurnitureCatalogue itself uses internally
+-- Waiting for data
+-- OnReady starts loading if needed and calls your function once data is ready
+-- IsReady only checks, it does not start loading
+-- GetState distinguishes uninitialized, building, ready and failed
+-- Loading can fail:
+-- OnReady returns false if the library is already failed,  SCAN_FAILED reports a later failure
+-- Queries made before we're ready may return empty or incomplete results. Recheck readiness during rebuilds.
 --
--- Lifecycle
---   State                 the values GetState returns
---   Events           [FC] event names RegisterCallback takes
---   RegisterCallback [FC] subscribe to an event
---   UnregisterCallback    drop such a subscription
---   OnReady               run one callback once the DB is complete
---   IsReady               ask instead of waiting: can I query yet, yes or no
---   GetState              which of the four states, and why it failed if it did
---   GetDBRevision    [FC] opaque change counter, compare for equality to invalidate caches
---   GetVersion            library's AddOnVersion
+-- Function overview
 --
--- Item identity - pure link/id conversion, no DB, works before OnReady
---   GetItemId        [FC] link or id -> id, nil when it's neither. A number counts only above 9999
---   GetItemLink      [FC] id or link -> link, empty str when it's neither. Just builds from the number without looking it up: It trusts you
+-- Readiness and changes
+--   OnReady               run a function once the catalogue is ready
+--   IsReady               check whether complete data is available now
+--   GetState              get the loading state and any build error
+--   State                 constants for comparing the result of GetState
+--   RegisterCallback      run a function when a lifecycle event happens
+--   UnregisterCallback    stop listening for an event
+--   Events                event names for RegisterCallback
+--   GetDBRevision         change counter for checking cached results
+--   GetVersion            installed library's AddOnVersion
 --
--- One item
---   Has                   is this item in the DB
---   GetEntry              record copy. Promised: sources, origin, version, blueprint. Anything else on it is subject to change
---   GetSourceDetails      one record per source, ranked, with cost and availability (the structured and slow answer)
---   GetIngredients        what a craftable item is made of (empty table if not craftable)
+-- Find an item
+--   Has                   check whether a lookup returns a catalogue entry
+--   GetEntry              get one furnishing's entry, or nil
+--   GetSourceDetails      get the ways to obtain it, in the library's preferred order
+--   GetContainer          get a container kind and its known contents, or nil
+--   GetIngredients        get ingredient links and quantities
+--   GetItemId             convert a link to an item id
+--   GetItemLink           build a link from an id (does not check whether the item exists)
 --
--- The whole DB
---   GetItemIds            every item id, in no useful order
---   GetEntryCount         just asks how many, without building that list
+-- Browse and interpret data
+--   GetItemIds            list catalogue item ids
+--   GetEntryCount         count catalogue entries
+--   GetSourceTypes        source key -> numeric id, for comparisons
+--   GetSourceTypeInfo     source id -> stable key and English description
+--   GetDataVersions       game update key -> numeric id
+--   GetDataVersionKeys    update id -> canonical key
+--   GetFurnitureCategories  furnishing category id -> name
 --
--- Vocabularies - so nobody transcribes an enum
---   GetSourceTypes   [FC] source key -> id, for comparing
---   GetSourceTypeInfo     id -> stable key and English label, for exporting
---   GetDataVersions       update key -> id, for comparing
---   GetDataVersionKeys    id -> the one canonical update key (LATEST is an alias and does not come back out)
---   GetFurnitureCategories  the client's furnishing category ids, names, parents and display order
+-- Older calls: supported for migration, avoid in new code
+--   GetSources            old GetSourceDetails, cost is a list
+--   GetItemDescription    basic source text, use GetSourceDetails for your own display
+--   GetMiscItemPrice      old price lookup, use GetSourceDetails
+--   FURC_* globals        old constants, use GetSourceTypes and GetDataVersions
 --
--- Deprecated - we'll call the guards if you keep using those
---   GetSources            old name and shape of GetSourceDetails, where cost is a list (LibPrice currently needs it)
---   SourceType            shared source enum table. Use GetSourceTypes for a copy of your own
---   GetItemDescription [FC] rendered source text (moves to FC). Use GetSourceDetails instead
---   GetMiscItemPrice      a price extracted back out of formatted string. Use GetSourceDetails
---   FurC.Find        [FC] mutable internal row, and {} on a miss, where GetEntry copies and returns nil. Not the same call, so switching to GetEntry is not a rename
---   FurC.GetItemId        flat alias
---   FurC.GetItemLink      flat alias
---   FurC.GetIngredients   flat alias
---   FurC.GetItemDescription [FC]  flat alias
---   FurC.GetMats     [FC] renders the ingredient list as a string. No namespaced
---                         twin, so moving off it means calling GetIngredients
---                         and formatting the map yourself, not just re-spelling
---   FURC_* globals        source and version enums under their old names in Constants.lua. Use GetSourceTypes and GetDataVersions
+-- Removed
+--   SourceType            replaced by GetSourceTypes, which returns a copy
 --
--- Not public: everything under LibFurnitureCatalogue.Internal
-
+-- Old FurC calls: compatibility only
+--   FurC.Find             returns `{}`, replace with GetEntry, which returns nil on a miss
+--   FurC.GetItemDescription returns `""`, use GetSourceDetails to build a description
+--   FurC.GetIngredients   returns `{}`, replace with GetIngredients
+--   FurC.GetMats          returns `""`, use GetIngredients and format the quantities
+--   FurC.GetItemId        forwards to GetItemId
+--   FurC.GetItemLink      forwards to GetItemLink
+--
+-- LibFurnitureCatalogue.Internal is not public API
+--
 local LFC = LibFurnitureCatalogue
 local api = LFC.API
 local internal = LFC.Internal
@@ -84,17 +98,17 @@ local state = lifecycle.State
 local fmt, query = internal.Format, internal.Query
 local getItemId, getItemLink = fmt.GetItemId, fmt.GetItemLink
 local find, getSourceRecords = query.Find, query.GetSourceRecords
-local originOf = query.OriginOf
 local getIngredients, getItemDescription = query.GetIngredients, query.GetItemDescription
 local getMiscItemPrice = query.GetMiscItemPrice
 local ensureDB = internal.Build.EnsureDB
+local sourceSet = internal.Build.SourceSet
 
 -- ---------------------------------------------------------------------------
 -- Lifecycle
 -- ---------------------------------------------------------------------------
 
 ---The values GetState returns
----Read-only: every AddOn gets this same table, so a write to it hits all of them
+---(shared: do not modify this table, other AddOns use it too)
 ---@type table<string, LFCDBState>
 api.State = {
   UNINITIALIZED = state.UNINITIALIZED,
@@ -104,7 +118,7 @@ api.State = {
 }
 
 ---Event names RegisterCallback takes
----Read-only: every AddOn gets this same table, so a write to it hits all of them
+---(shared: do not modify this table, other AddOns use it too)
 ---Copied from Constants.lua, which declares it because of load order
 ---@type table<string, string>
 api.Events = ZO_ShallowTableCopy(internal.Constants.ApiEvents)
@@ -184,7 +198,11 @@ function internal.PublishReady(revision)
   local waiters = lifecycle.readyWaiters
   lifecycle.readyWaiters = {}
   for callback, queued in pairs(waiters) do
-    invokeCallback("OnReady", callback, type(queued) == "table" and queued.arg or nil, revision)
+    local arg
+    if type(queued) == "table" then
+      arg = queued.arg
+    end
+    invokeCallback("OnReady", callback, arg, revision)
   end
 end
 
@@ -192,29 +210,30 @@ end
 -- // END: INTERNAL HELPERS, NOT PART OF THE API //
 --  ==============================================
 
----Register a persistent lifecycle callback
----The callback receives the event's payload and nothing else:
----   `()`: SCAN_STARTED
----   `(revision)`: SCAN_COMPLETE
----   `(errorString)`: SCAN_FAILED
----SCAN_COMPLETE fires after every successful build, the first one included. For a one-shot, use OnReady
+---Run a function whenever a catalogue lifecycle event occurs
 ---
----Registering the same callback and arg multiple times adds just one registration but still answers true, so one UnregisterCallback removes what looked like two
----@param eventName string one of LibFurnitureCatalogue.API.Events
----@param callback function
----@param arg? any prepended to the payload, so the callback sees `(arg, ...)`
----@return boolean registered false only when the event name or the callback is not one
+---SCAN_STARTED passes no arguments
+---SCAN_COMPLETE passes the new revision
+---SCAN_FAILED passes an error string
+---
+
+--- Registering does not start a build, use OnReady for the initial result.
+---Registering the same function and optional arg again does not add a duplicate
+---@param eventName string one of API.Events
+---@param callback function called when the event occurs
+---@param arg? any when supplied, passed before the event arguments
+---@return boolean registered false for an unknown event or a non-function callback
 ---```lua
----local LFC = LibFurnitureCatalogue.API
----
----local function onScanComplete(revision) end
----LFC.RegisterCallback(LFC.Events.SCAN_COMPLETE, onScanComplete) --> true
----LFC.RegisterCallback(LFC.Events.SCAN_COMPLETE, onScanComplete) --> true, still registered once
----
------ arg comes first, the payload follows it
----local function onScanCompleteFor(self, revision) self:Rebuild(revision) end
----LFC.RegisterCallback(LFC.Events.SCAN_COMPLETE, onScanCompleteFor, myAddon) --> true
+---local function showCount()
+---  d("Catalogue: " .. LFC.GetEntryCount() .. " items")
+---end
+---LFC.RegisterCallback(LFC.Events.SCAN_COMPLETE, showCount)
+---LFC.RegisterCallback(LFC.Events.SCAN_FAILED, function(message)
+---  d("Catalogue could not load: " .. tostring(message))
+---end)
+---LFC.OnReady(showCount)
 ---```
+---If OnReady starts a build, showCount may run for both initial readiness and SCAN_COMPLETE. A display refresh can safely run twice, avoid duplicate writes
 function api.RegisterCallback(eventName, callback, arg)
   local registry = callbackRegistry(eventName)
   if not registry or type(callback) ~= "function" then
@@ -226,15 +245,17 @@ function api.RegisterCallback(eventName, callback, arg)
   return true
 end
 
----Unregister a persistent lifecycle callback
----Matches on the pair it was registered with, so pass the same `arg` again.
+---Stop running a previously registered event handler.
+---Pass the same function and optional arg used with RegisterCallback
 ---@param eventName string one of API.Events
----@param callback function
+---@param callback function the original function
 ---@param arg? any optional argument used during registration
----@return boolean removed
+---@return boolean removed false if no matching registration exists
 ---```lua
----LFC.UnregisterCallback(LFC.Events.SCAN_COMPLETE, onScanComplete) --> true
----LFC.UnregisterCallback(LFC.Events.SCAN_COMPLETE, onScanComplete) --> false, already gone
+---local function showCount() d(LFC.GetEntryCount()) end
+---LFC.RegisterCallback(LFC.Events.SCAN_COMPLETE, showCount)
+---LFC.UnregisterCallback(LFC.Events.SCAN_COMPLETE, showCount) -- true
+---LFC.UnregisterCallback(LFC.Events.SCAN_COMPLETE, showCount) -- false: already removed
 ---```
 function api.UnregisterCallback(eventName, callback, arg)
   local registry = callbackRegistry(eventName)
@@ -249,20 +270,22 @@ function api.UnregisterCallback(eventName, callback, arg)
   return true
 end
 
----Run once after a complete DB snapshot is available
----Calls immediately when already ready, otherwise starts the lazy build and waits.
----For every later rebuild, use RegisterCallback
+---Run a function once the catalogue is ready to query.
+---Runs immediately if ready. Otherwise starts loading if necessary and queues the function. It does not run again after a later rebuild (use RegisterCallback for that).
+--- While waiting, registering the same function again replaces its arg
 ---@param callback fun(revision: integer)
----@param arg? any prepended to the payload, so the callback sees `(arg, revision)`. Same shape RegisterCallback takes
----@return boolean accepted false when the last build failed, so the callback would never run. Check GetState, or watch SCAN_FAILED
+---@param arg? any when supplied, callback receives (arg, revision)
+---@return boolean accepted false for a non-function callback or an already failed build (true just tells the call was accepted)
 ---```lua
----LFC.OnReady(function(revision)
----  d(LFC.GetEntryCount() .. " items at revision " .. revision)
----end) --> true
----
------ method-style, without a closure
----LFC.OnReady(function(self, revision) self:Build(revision) end, myAddon) --> true
+---local accepted = LFC.OnReady(function()
+---  d("Catalogue ready: " .. LFC.GetEntryCount() .. " items")
+---end)
+---if not accepted then
+---  local status, message = LFC.GetState()
+---  d("Catalogue: " .. status .. " " .. tostring(message or ""))
+---end
 ---```
+---Subscribe to SCAN_FAILED if you also need to report a failure after this call
 function api.OnReady(callback, arg)
   if type(callback) ~= "function" then
     return false
@@ -283,8 +306,8 @@ function api.OnReady(callback, arg)
   return true
 end
 
----Can the DB be queried right now?
----(does not start a build, `OnReady` does)
+---Is a complete catalogue available right now?
+---This only checks readiness (use OnReady to start loading and wait for it)
 ---@return boolean ready true while a complete DB snapshot is available
 ---```lua
 ---LFC.IsReady() --> true
@@ -299,19 +322,23 @@ end
 ---```lua
 ---local state, err = LFC.GetState()
 ---
----state --> "ready", compare against LFC.State.READY
----err   --> nil, or the build error while state is LFC.State.FAILED
+---if state == LFC.State.FAILED then
+---  d("Catalogue could not load: " .. tostring(err))
+---end
 ---```
 function api.GetState()
   return lifecycle.current, lifecycle.error
 end
 
----Change counter
----Increments once per build or rescan, and once more when a query first completes a blueprint row (mostly useful for cache-invalidation)
+---A number that changes when the catalogue changes (used for cache invalidation).
+---Just compare for equality, the size of the difference has no meaning.
+---Use this when reusing cached query results (rebuilds and newly resolved recipes can change it)
 ---@return integer revision
 ---```lua
----if LFC.GetDBRevision() ~= myCachedRevision then
----  myCache, myCachedRevision = {}, LFC.GetDBRevision()
+---local cachedRevision = LFC.GetDBRevision()
+----- Later, before reusing a cached result:
+---if cachedRevision ~= LFC.GetDBRevision() then
+---  d("Catalogue changed, query again")
 ---end
 ---```
 function api.GetDBRevision()
@@ -322,7 +349,7 @@ end
 ---For a game update version see GetDataVersions, for a DB revision see GetDBRevision
 ---@return integer libVersion the manifest's AddOnVersion
 ---```lua
----if LFC.GetVersion() >= myMinimumVersion then end
+---d("Library AddOnVersion: " .. LFC.GetVersion())
 ---```
 function api.GetVersion()
   return LFC.version
@@ -332,9 +359,8 @@ end
 -- Item identity
 -- ---------------------------------------------------------------------------
 
----Resolve an item link or numeric id to a numeric item id
----A number only counts as an id above 9999; below that you get nil, because no
----furnishing lives down there and a small number is far more likely a mistake
+---Resolve an item link or numeric id to a numeric item id.
+---The function does not check whether an item exists
 ---@param itemOrLink string|integer
 ---@return integer? id nil on empty/invalid
 ---```lua
@@ -346,11 +372,8 @@ function api.GetItemId(itemOrLink)
   return getItemId(itemOrLink)
 end
 
----Build item link from id, or pass through an existing link
----Link is directly built from the number, not looked up, so any number above 0 gets a link
---- "Empty string on invalid" means malformed input
----
----This one accepts anything above 0 and GetItemId only recognises a number above 9999
+---Build an item link from a positive id, or return an existing valid item link.
+---A generated link does not prove the item exists or belongs in the catalogue
 ---@param itemOrLink string|integer
 ---@return string link empty string on invalid
 ---```lua
@@ -365,42 +388,41 @@ end
 -- One item
 -- ---------------------------------------------------------------------------
 
----Is this item in the DB
+---Does this lookup return a catalogue entry?
+---Wait for readiness before treating false as a missing entry.
+---Resolving a new blueprint can create a runtime entry, so true does not prove it was in the DB from the start.
 ---@param itemOrLink string|integer
 ---@return boolean found
 ---```lua
----LFC.Has(134686)   --> true
+---LFC.Has(203600)   --> true
 ---LFC.Has(99123456) --> false
 ---```
 function api.Has(itemOrLink)
   return next(find(itemOrLink)) ~= nil
 end
 
----Snapshot of one DB entry
----
+---One furnishing entry, returned as a copy
 ---@param itemOrLink string|integer item link, blueprint link, or itemId
 ---@return FurCEntry? entry deep copy, nil when the item is not in the DB
----@see LibFurnitureCatalogue.API.GetSourceDetails for vendor, price and version per source
+---@see LibFurnitureCatalogue.API.GetSourceDetails for vendors, prices and locations
 ---
----`sources` carries backwards compatibility members.
---- Some sources were split into finer ones and the coarse one is added back so nothing breaks:
----   fine-grained DUNGEON also answers to the coarse DROP. `compatSources` is the subset that exists only for that reason, treat it as deprecated.
---- It is a bitmask, absent when nothing was injected, and the bit positions follow the enum, so they move when the enum does (don't store bitmasks, they change)
---- Real sources are the ones GetSourceDetails returns a record for, which is exactly `sources` minus the injected members
----
----Every call deep-copies the row, so hold the result rather than calling it per frame
+---`id` identifies the furnishing, including when you pass its blueprint.
+---`sources` is a set of source ids.
+---`version` is an update id when known.
+---`blueprint` is a recipe item id when known by the DB.
+---These are the supported fields, other implementation fields may change.
 ---```lua
 ---local src = LFC.GetSourceTypes()
 ---local entry = LFC.GetEntry(203600)
----
----entry.origin  --> 6, top-ranked source, see GetSourceTypes
----entry.version --> 32, see GetDataVersions
----
------ sources is a SET of source types, so membership is just 1 lookup
----entry.sources --> { [6] = true, [7] = true, [13] = true }
----entry.sources[src.PVP] --> true
----
----LFC.GetEntry(99123456) --> nil
+---if entry then
+---  if entry.sources[src.PVP] then d("Has a PvP source") end
+---  if entry.version then
+---    d("Catalogue update: " .. tostring(LFC.GetDataVersionKeys()[entry.version]))
+---  end
+---  if entry.blueprint then d("Recipe item ID: " .. entry.blueprint) end
+---else
+---  d("No catalogue entry found")
+---end
 ---```
 function api.GetEntry(itemOrLink)
   local entry = find(itemOrLink)
@@ -408,84 +430,133 @@ function api.GetEntry(itemOrLink)
     return nil
   end
   local copy = ZO_DeepTableCopy(entry)
-  -- Compatibility, origin is derived on the stored row
-  copy.origin = originOf(entry)
+  -- The row holds `sources` as a bitmask to keep ~8500 subtables out of the database
+  copy.sources = sourceSet(entry.sources)
   return copy
 end
 
+---One place a source covers: a game zone, somewhere the game has no zone for, or a place inside a zone
+---@class LFCPlacement
+---@field location integer|nil game zone id, resolve with GetZoneNameById
+---@field place integer|nil locale string id, resolve with GetString then zo_strformat
+---@field note string|nil additional directions within the placement
+
 ---Where one source of an item comes from
+---
+---Optional fields describe this particular source, not every way to get the item.
+---houses, packs and locations are always lists (even when they contain only one value)
+---
+---Id `0` means "has a requirement, but we cannot name it" (`achievement`, `crate` and `quest`)
 ---@class LFCSourceOrigin
 ---@field type integer source type, see GetSourceTypes
 ---@field vendor integer|nil locale string id, resolve with GetString
----@field location integer|nil game zone id, resolve with GetZoneNameById
----@field place integer|nil locale string id for somewhere the game has no zone for, resolve with GetString
----@field note (integer|string)|nil qualifies location or place. Locale string id or a bare literal
----@field achievement integer|nil achievement id
+---@field locations LFCPlacement[]|nil places this source covers, best-known first
+---@field note (integer|string|table)|nil adds details to a source. Locale string id, a bare literal, structured table, or a list of alternatives
+---@field category integer|nil locale string id describing this source, resolve with GetString
+---@field achievement integer|nil achievement id. `0` when it requires an achievement but the id is unknown
+---@field quest integer|nil quest id, resolve with GetQuestName. `0` when a quest is required but the id is unknown
+---@field skillLine integer|nil skill line id, resolve with GetSkillLineNameById (on a vendor source, identifies its skill-line requirement)
+---@field skillRank integer|nil required rank in that skill line, when recorded
 ---@field event integer|nil locale string id, resolve with GetString
+---@field crate integer|nil crown crate id, resolve with GetCrownCrateName. `0` when it's a crate but the id is unknown and we have no name
+---@field packs integer[]|nil item ids of the furnishing packs it is part of
+---@field bundle integer|nil locale string id of a Crown Store bundle that does not have an item id, resolve with GetString
+---@field itemPack integer|nil locale string id of a Tamriel Tomes item pack, resolve with GetString
+---@field houses integer[]|nil collectible ids of the houses it comes furnished with, resolve with GetCollectibleName
+---@field collectible integer|nil collectible id the furnishing comes with (resolve with `GetCollectibleName`)
+---@field partOf integer|nil item id of the container, folio or collection the item is bought as part of
+---@field container integer|nil item id of the container it is found in
+---@field containerKind (integer|integer[])|nil locale string id(s) naming a kind of container, resolve with GetString
+---@field npcClass (integer|integer[])|nil monster social class string id(s), the game's own, resolve with GetString
+---@field leads true|nil the antiquity is assembled from several leads; the player's codex has the count
+---@field rarity integer|nil locale string id naming how rare the source is, resolve with GetString
 
----What one source costs. A source taking two currencies is modelled as two sources, not two costs
+---One recorded price. Each source record has at most one currency/amount pair (separate price options are represented by separate source records)
 ---@class LFCSourceCost
 ---@field currency integer ESO currency constant
 ---@field amount integer
 
----When one source was current (`lastSeen` is set on luxury furnisher records only)
----@class LFCSourceAvailability
----@field version integer game version, see GetDataVersions
----@field lastSeen string|nil YYYY-MM-DD
-
----One source of one item: where it comes from, what it costs, when it was current
+---One source of one item: where it comes from, what it costs, when it was last seen
+---
+---Example shape: one writ-vendor offer for the Scribing Altar (203600).
+---Read current values with GetSourceDetails:
+---```lua
+---local exampleRecord = { source = {
+---    type = LFC.GetSourceTypes().ROLIS,
+---    vendor = SI_FURC_TRADERS_FAUSTINA, -- "Faustina Curio"
+---    achievement = 3985, -- "Inheritor of the Scholarium"
+---    locations = { {place = SI_FURC_LOC_ANY_CAPITAL} } -- "any capital city", no zoneId names it
+---  },
+---  cost = { currency = CURT_WRIT_VOUCHERS, amount = 800 }
+---}
+---```
 ---@class LFCSourceRecord
 ---@field source LFCSourceOrigin
----@field cost LFCSourceCost|nil nil when the source has no price
----@field availability LFCSourceAvailability
+---@field cost LFCSourceCost|nil recorded price (nil means no price is provided, not that it's free)
+---@field lastSeen string|nil YYYY-MM-DD, luxury furnisher records only
 
----Every source of an item, one record per source, ranked best-first (slow)
----
----Resolve at render time. Compare against `SI_FURC_*`
----
----A record normally carries `location` or `place`, not both. Prefer `location` when it has both
+---The recorded ways to obtain an item, in the library's preferred order.
+---Treat these as read-only (some nested lists/notes share library data).
+---Use ZO_DeepTableCopy(record) if you need to edit it for your AddOn.
+---Each record describes one source or offer. The order is just preference, not a ranking.
+---Check optional fields before resolving their ids with ESO functions.
+---A placement with both location and place describes a place inside that zone.
 ---@param itemOrLink string|integer item link, blueprint link, or itemId
----@return LFCSourceRecord[] records empty only when the item is not in the DB. Every stored item has at least one source
+---@return LFCSourceRecord[] records empty when no sources are available
 ---```lua
----local src = LFC.GetSourceTypes()
----
------ 203600 has three: vendor, writ vendor and pvp
 ---for _, record in ipairs(LFC.GetSourceDetails(203600)) do
----  record.source.type              --> 6, then 13, then 7
----  GetString(record.source.vendor) --> "Faustina Curio" on the writ vendor one
----  record.availability.version     --> 32, see GetDataVersions
----
----  -- a zone, or place (somewhere the game has no zone for)
----  GetZoneNameById(record.source.location) --> "Wrothgar", nil on the writ vendor one
----  GetString(record.source.place)          --> "in any capital city" on that one
----
+---  local source = record.source
+---  if source.vendor then
+---    d(zo_strformat("<<C:1>>", GetString(source.vendor)))
+---  end
+---  for _, placement in ipairs(source.locations or {}) do
+---    if placement.location then
+---      d(zo_strformat("<<C:1>>", GetZoneNameById(placement.location)))
+---    end
+---    if placement.place then
+---      d(zo_strformat("<<C:1>>", GetString(placement.place)))
+---    end
+---  end
 ---  if record.cost then
----    record.cost.currency --> 12, then 4, then 2
----    record.cost.amount   --> 30000, then 800, then 1000000
+---    d(record.cost.amount .. " " .. GetCurrencyName(record.cost.currency, false, false))
 ---  end
 ---end
----
------ just checking membership? the entry answers it in one lookup
----LFC.GetEntry(203600).sources[src.PVP] --> true
 ---```
+---If you only need to test a source type, GetEntry().sources is the smaller answer.
 function api.GetSourceDetails(itemOrLink)
   return getSourceRecords(itemOrLink)
 end
 
----Ingredient list for a recipe
----@param itemOrLink string|integer item link, blueprint link, or itemId. Ignored when recipeArray is given
----@param recipeArray? FurCEntry entry from GetEntry; looked up when omitted
----@return table<string, integer> ingredients map of ingredient link -> quantity
+---@class LFCContainer
+---@field kind string "books" or "folio"
+---@field contents integer[] item ids, including blueprint ids for folios; sorted and returned as a copy
+
+---Known contents of a container. Read its price and vendor with GetSourceDetails. A content record names its parent in source.partOf
+---@param itemOrLink integer|string container id or link
+---@return LFCContainer|nil container nil when no contents are recorded
 ---```lua
----local mats = LFC.GetIngredients(itemId, LFC.GetEntry(itemId))
----
------ keyed by ingredient LINK not by item id (it's what the game gives us)
--- quantity in pairs(mats) do
----  d(quantity .. "x " .. GetItemLinkName(ingredientLink)) --> "6x Rough Oak"
+---local collection = LFC.GetContainer(145596)
+---if collection then
+---  for _, id in ipairs(collection.contents) do d(LFC.GetItemLink(id)) end
 ---end
----
------ not craftable gives an empty table, never nil. Test it with next()
----if next(mats) == nil then d("nothing to craft") end
+---```
+function api.GetContainer(itemOrLink)
+  ensureDB()
+  local id = getItemId(itemOrLink)
+  return id and internal.Generated and internal.Generated.Container(id) or nil
+end
+
+---Ingredient links and required quantities for a craftable furnishing.
+---Quantities come from recipe data. Without an entry argument, this first looks up the item in the catalogue, so follow the normal readiness rules. With an entry argument, it reads that entry's recipe directly.
+---@param itemOrLink string|integer furnishing or blueprint link/id, ignored when recipeArray is supplied
+---@param recipeArray? FurCEntry entry from GetEntry, looked up when omitted
+---@return table<string, integer> ingredients ingredient link -> quantity, empty if no ingredients can be resolved
+---```lua
+---local materials = LFC.GetIngredients(118991) -- recipe: High Elf Stool, Curved
+---for ingredientLink, quantity in pairs(materials) do
+---  d(quantity .. "x " .. zo_strformat("<<C:1>>", GetItemLinkName(ingredientLink)))
+---end
+---if next(materials) == nil then d("No crafting ingredients found") end
 ---```
 function api.GetIngredients(itemOrLink, recipeArray)
   return getIngredients(itemOrLink, recipeArray)
@@ -496,12 +567,14 @@ end
 -- ---------------------------------------------------------------------------
 
 ---Snapshot of every item id in the DB
----Built by walking a table, so the order is whatever Lua felt like. Sort it yourself if you need one
+---No guaranteed order. Sort the returned list when you need a predictable order.
 ---
----Starts the build async, so first call after load returns an empty list (check IsReady, or ask from OnReady)
+---Starts loading if needed, but does not wait. Results may be incomplete until ready.
 ---@return integer[] itemIds
 ---```lua
----#LFC.GetItemIds() --> 8528
+---local ids = LFC.GetItemIds()
+---table.sort(ids)
+---for _, id in ipairs(ids) do d(id) end
 ---```
 function api.GetItemIds()
   ensureDB()
@@ -518,10 +591,10 @@ end
 local countRevision, countMemo
 ---How many items are in the DB, without building the id list
 ---
----Starts the build, does not wait for it, and answers 0 until it finishes: Check IsReady first
+---Starts loading if needed, but does not wait. Check IsReady before displaying the count.
 ---@return integer count
 ---```lua
----LFC.GetEntryCount() --> 8528
+---if LFC.IsReady() then d(LFC.GetEntryCount() .. " catalogue entries") end
 ---```
 function api.GetEntryCount()
   ensureDB()
@@ -546,96 +619,82 @@ end
 -- Use these constants and never the raw number values (the values can change)
 -- ---------------------------------------------------------------------------
 
----Source key -> id, the forward direction
----This is the library's whole vocabulary, and a few of its values are filter state.
---- Use values from GetSourceDetails if you want only real sources
+---Source names mapped to their numeric ids.
+---Includes filtering constants as well as source types. GetSourceDetails tells you which source types actually apply to an item.
 ---@return table<string, integer> sourceTypes
 ---```lua
 ---local src = LFC.GetSourceTypes()
 ---
----src.CROWN --> 9
----src.DROP  --> 14
+---local crownSourceId = src.CROWN
+---local dropSourceId = src.DROP
+----- Compare against these values, do not hardcode their current numbers
 ---```
 function api.GetSourceTypes()
   return ZO_ShallowTableCopy(internal.Constants.ItemSources)
 end
 
----Source id -> stable key and English label, the reverse direction of GetSourceTypes
----Build an export or a filter from this instead of transcribing the enum
----
----Every value gets an entry, so a filter built from this one gets the whole vocabulary (including filter sources that are not real sources).
---- Use values from GetSourceDetails if you want only real sources
+---Source ids mapped to stable keys and English descriptions.
+---Useful for exports, logs and interpreting GetEntry().sources. Includes the same filtering constants as GetSourceTypes (labels are always English, they are not UI strings)
 ---@return table<integer, { key: string, label: string }> sourceTypeInfo
 ---```lua
 ---local info = LFC.GetSourceTypeInfo()
----
----info[11].key   --> "LUXURY", stable across releases and languages
----info[11].label --> "Luxury Furnisher", always English, for exports and logs
----
------ label is not a UI string, just an untranslated help explaining what the value is (name sources in your own words)
+---local luxury = info[LFC.GetSourceTypes().LUXURY]
+---d(luxury.key)   -- "LUXURY": suitable for a saved setting
+---d(luxury.label) -- "Luxury Furnisher": English description
 ---```
 function api.GetSourceTypeInfo()
   local constants = internal.Constants
   local labels = constants.SourceLabels
   local info = {}
-  for key, value in pairs(constants.ItemSources) do
+  for value, key in pairs(constants.SourceNames) do
     info[value] = { key = key, label = labels[value] or key }
   end
   return info
 end
 
----Update key -> id, the forward direction
+---Game update names mapped to the numeric ids used in entry.version
 ---@return table<string, integer> versions
 ---```lua
 ---local ver = LFC.GetDataVersions()
 ---
----ver.HOMESTEAD --> 2
----ver.LATEST    --> 39
+---local homesteadId = ver.HOMESTEAD
+---local latestId = ver.LATEST -- latest update known to this installed data set
 ---```
 function api.GetDataVersions()
   return ZO_ShallowTableCopy(internal.Constants.Versioning)
 end
 
----Update id -> the one canonical key, the reverse direction of GetDataVersions
----LATEST is an alias, so it shares a value with the update it points at and never comes back out
+---Update ids mapped to their names.
+---LATEST is an alias for a particular update and changes. This lookup returns the update's own name
 ---@return table<integer, string> versionKeys
 ---```lua
 ---local versions, keys = LFC.GetDataVersions(), LFC.GetDataVersionKeys()
----
----versions.ALTMER --> 7
----keys[7]         --> "ALTMER"
----
----versions.LATEST       --> 39, the same value as THIEVES
----keys[versions.LATEST] --> "THIEVES", the update, never "LATEST"
+---d(keys[versions.ALTMER]) -- "ALTMER"
+---d(keys[versions.LATEST]) -- current update key, never "LATEST"
 ---```
 function api.GetDataVersionKeys()
   return ZO_ShallowTableCopy(internal.Constants.VersionNames)
 end
 
 local categoryMemo
----Game client's furnishing categories and subcategories in one id space
----`name` is the client's localised label, `parent` is 0 for a top-level category, and category 0 means the game knows no furnishing for that item
+---The game's furnishing categories and subcategories, keyed by category id.
+---Names use the client's language.
+---parent is 0 for top-level categories, otherwise it identifies the containing category.
+---order is the game's display order
 ---
----Not a per-item lookup: an item's own category comes from the game, and the library does not store it
---- `GetItemLinkFurnitureDataId` then
----`GetFurnitureDataCategoryInfo` is the builtin route
----
----Read from the client once and kept for the session, so the names are in the language the client was started in
+--- The returned table is copied, the underlying names are cached per session.
+---This lists categories, not the items in each one. Use the ESO API to find an item's category, as below. A furniture data id of 0 means no furnishing data.
 ---@return table<integer, { name: string, parent: integer, order: integer }> categories
 ---```lua
 ---local categories = LFC.GetFurnitureCategories()
----local dataId = GetItemLinkFurnitureDataId(LFC.GetItemLink(120385))
----local categoryId, subcategoryId = GetFurnitureDataCategoryInfo(dataId)
----
----categoryId                      --> 4
----subcategoryId                   --> 62
----categories[4]                   --> { name = "Library", parent = 0, order = 3 }
----categories[62].parent           --> 4
----
------ right: an id comparison, same answer in every language
----if categoryId == 4 then end
------ wrong: breaks on a German client
----if categories[categoryId].name == "Library" then end
+---local dataId = GetItemLinkFurnitureDataId(LFC.GetItemLink(134686))
+---if dataId ~= 0 then
+---  local categoryId, subcategoryId = GetFurnitureDataCategoryInfo(dataId)
+---  for _, id in ipairs({categoryId, subcategoryId}) do
+---    local category = categories[id]
+---    if category then d(zo_strformat("<<C:1>>", category.name)) end
+---  end
+---end
 ---```
 function api.GetFurnitureCategories()
   if not categoryMemo then
@@ -671,24 +730,23 @@ end
 -- We'll call the guards if you keep using those for too long
 -- ---------------------------------------------------------------------------
 
----Human-readable description for a primary source
----Pretty descriptions will move to the main AddOn
+---Basic description of an item's preferred source.
+---Just for legacy callers. Use GetSourceDetails when building a new display.
 ---@deprecated Use GetSourceDetails and render the records yourself
 ---@param recipeKey string|integer item link or id
 ---@param recipeArray? FurCEntry looked up via GetEntry when omitted
 ---@param stripColor? boolean strip colour control characters
----@param opts? { dateFormat?: string } render options, for instance luxury date format
+---@param opts? { dateFormat?: string } ignored
 ---@return string description localised, empty when the item is not in the DB
 ---```lua
----LFC.GetItemDescription(134686, LFC.GetEntry(134686), true)
------>  "|H1:item:134686:...|h|h 2,000"
+---d(LFC.GetItemDescription(223880, LFC.GetEntry(223880), true))
 ---```
 function api.GetItemDescription(recipeKey, recipeArray, stripColor, opts)
-  return getItemDescription(recipeKey, recipeArray, stripColor, opts)
+  return getItemDescription(recipeKey, recipeArray, stripColor)
 end
 
----Temporary compatibility bridge for prices hidden in baked strings
----Goes away once the DB carries prices structurally and GetSourceDetails answers for every source
+---Temporary compatibility bridge for prices hidden in baked strings.
+---Just for legacy callers. New code should read record.cost from GetSourceDetails.
 ---@deprecated Use GetSourceDetails, which gives a stable price per source
 ---@param itemId integer
 ---@param version integer
@@ -696,19 +754,20 @@ end
 ---@return integer? currency ESO currency constant
 ---@return integer? amount
 ---```lua
----local currency, amount = LFC.GetMiscItemPrice(134686, 6, LFC.GetSourceTypes().CROWN)
----
----currency --> 7, CURT_CROWNS
----amount   --> 2000
----
----LFC.GetMiscItemPrice(99123456, 1, LFC.GetSourceTypes().CROWN) --> nil
+---local entry = LFC.GetEntry(134686)
+---if entry and entry.version then
+---  local currency, amount = LFC.GetMiscItemPrice(entry.id, entry.version, LFC.GetSourceTypes().CROWN)
+---  if currency and amount then
+---    d(amount .. " " .. GetCurrencyName(currency, false, false))
+---  end
+---end
 ---```
 function api.GetMiscItemPrice(itemId, version, source)
   return getMiscItemPrice(itemId, version, source)
 end
 
 ---Old name and record shape of GetSourceDetails
----@deprecated Use GetSourceDetails instead. That one names the field `cost` and leaves it nil when a source has no price. The old one always hands back a table and puts the price at `cost[1]`
+---@deprecated Use GetSourceDetails: its cost is one table or nil. This older call uses cost[1], or an empty cost list.
 ---@param itemOrLink string|integer
 ---@return LFCSourceRecord[] records
 function api.GetSources(itemOrLink)
@@ -719,30 +778,55 @@ function api.GetSources(itemOrLink)
   return records
 end
 
----Source enum table
----@deprecated Use GetSourceTypes(), which hands out a fresh copy. This one is
----shared, so treat it as read-only.
-api.SourceType = api.GetSourceTypes()
+-- Any deprecated enum globals are in Constants.lua, all marked
 
--- Legacy flat aliases for third-party AddOns
--- The deprecated enum globals are in Constants.lua, all marked
+-- ---------------------------------------------------------------------------
+-- Legacy FurC entry points
+-- So the names stay callable and answer the miss value of their old contract. No data comes back through FurC any more, migrate to the API above for that!
+---------------------------------------------------------------------------
 
+FurC = FurC or {}
+
+local legacyNoted = {}
+local function noteLegacyCall(name, replacement)
+  if legacyNoted[name] then
+    return
+  end
+  legacyNoted[name] = true
+  internal.GetLogger():Warn("FurC.%s no longer answers, use LibFurnitureCatalogue.API.%s", name, replacement)
+end
+
+---@deprecated Use GetEntry
+---@return table entry always empty
+function FurC.Find()
+  noteLegacyCall("Find", "GetEntry")
+  return {}
+end
+
+---@deprecated Use GetItemDescription
+---@return string description always empty
+function FurC.GetItemDescription()
+  noteLegacyCall("GetItemDescription", "GetItemDescription")
+  return ""
+end
+
+---@deprecated Use GetIngredients
+---@return table ingredients always empty
+function FurC.GetIngredients()
+  noteLegacyCall("GetIngredients", "GetIngredients")
+  return {}
+end
+
+---@deprecated Use GetIngredients, and format the map yourself
+---@return string mats always empty
+function FurC.GetMats()
+  noteLegacyCall("GetMats", "GetIngredients")
+  return ""
+end
+
+-- no DB behind these two
 ---@deprecated Use LibFurnitureCatalogue.API.GetItemId
 FurC.GetItemId = api.GetItemId
 
 ---@deprecated Use LibFurnitureCatalogue.API.GetItemLink
 FurC.GetItemLink = api.GetItemLink
-
----@deprecated Use LibFurnitureCatalogue.API.GetIngredients
-FurC.GetIngredients = api.GetIngredients
-
----@deprecated Uses the deprecated LibFurnitureCatalogue.API.GetItemDescription, which leaves when it moves to main AddOn
-FurC.GetItemDescription = api.GetItemDescription
-
----@deprecated Use LibFurnitureCatalogue.API.GetEntry. Unlike GetEntry, this
----returns the mutable internal row and an empty table on a miss.
-FurC.Find = internal.Query.Find
-
----@deprecated Use LibFurnitureCatalogue.API.GetIngredients and format the
----ingredient map in the consumer.
-FurC.GetMats = internal.Query.GetMats

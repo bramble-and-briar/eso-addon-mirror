@@ -646,6 +646,31 @@ RenderTabContent = function(tabId)
             currentY
         )
 
+        currentY = CreateCheckbox(scrollChild, GetString(SI_NC_LAM_SHOW_VIVEC),
+            function() return NC.savedVars and NC.savedVars.showVivecIcon end,
+            function(v) 
+                if NC.savedVars then 
+                    NC.savedVars.showVivecIcon = v 
+                    if NC.VivecIcon then NC.VivecIcon:SetHidden(not v) end
+                end
+            end,
+            currentY
+        )
+
+        currentY = CreateSlider(scrollChild, GetString(SI_NC_LAM_VIVEC_X), 0, 800, 1,
+            function() return (NC.savedVars and NC.savedVars.vivecXCoord) or 204 end,
+            function(v) 
+                if NC.savedVars then 
+                    NC.savedVars.vivecXCoord = v 
+                    if NC.VivecIcon and ZO_ChatWindow then 
+                        NC.VivecIcon:ClearAnchors()
+                        NC.VivecIcon:SetAnchor(TOPRIGHT, ZO_ChatWindow, TOPRIGHT, -v, 10)
+                    end
+                end
+            end,
+            currentY
+        )
+
     elseif tabId == 5 then
         -- =====================================================
         -- РАЗДЕЛ 5: УВЕДОМЛЕНИЯ И УДОБСТВА

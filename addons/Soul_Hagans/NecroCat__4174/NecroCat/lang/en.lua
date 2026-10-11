@@ -73,6 +73,7 @@ ZO_CreateStringId("SI_NC_TT_GUILDHALL",              "|c66f2ffNecro cat's Guildh
 ZO_CreateStringId("SI_NC_TT_GUILDHALL_LMB",          "|c00FF00LMB:|r Teleport to Guildhall")
 ZO_CreateStringId("SI_NC_TT_GUILDHALL_RMB",          "|c66f2ffRMB:|r Addon Settings")
 ZO_CreateStringId("SI_NC_TT_NOTE",                   "|c66f2ffSend note to yourself (Whisper)|r")
+ZO_CreateStringId("SI_NC_TT_VIVEC",                  "|c66f2ffTeleport to Vivec City|r")
 ZO_CreateStringId("SI_NC_TT_KICK_TITLE",             "|c66f2ffNecroCat: Group Cleanup|r")
 ZO_CreateStringId("SI_NC_TT_KICK_DESC",              "Kick all players from group except those added to |c00FF00Favorites|r.")
 ZO_CreateStringId("SI_NC_TT_BUFF_PERMANENT",         "|c00FF00Permanent Effect|r")
@@ -218,6 +219,8 @@ ZO_CreateStringId("SI_NC_LAM_SHOW_CASTLE",           "Show Guildhall teleport ic
 ZO_CreateStringId("SI_NC_LAM_CASTLE_X",              "Guildhall Icon Position (X)")
 ZO_CreateStringId("SI_NC_LAM_SHOW_NOTE",             "Show Notepad (Self Whisper) icon")
 ZO_CreateStringId("SI_NC_LAM_NOTE_X",                "Notepad Icon Position (X)")
+ZO_CreateStringId("SI_NC_LAM_SHOW_VIVEC",            "Show teleport to Vivec icon")
+ZO_CreateStringId("SI_NC_LAM_VIVEC_X",               "Vivec icon position (X)")
 
 -- SUBMENU 5: Notifications & QoL
 ZO_CreateStringId("SI_NC_LAM_SUB5",                  "|c66f2ff5. Notifications & QoL|r")

@@ -1,9 +1,9 @@
 ## Title: Chat Keeper
 ## Author: @TheGreyWolf98
-## Description: Saved conversations, timestamps and a small HUD chat offset. Console tester.
+## Description: Saved conversations, timestamps and a small HUD chat offset.
 ## APIVersion: 101050 101051
-## Version: 0.1.1
-## AddOnVersion: 2
+## Version: 1.0.0
+## AddOnVersion: 11
 ## IsLibrary: False
 ## SavedVariables: TGWChatKeeperSaved
 

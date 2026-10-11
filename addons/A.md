@@ -27,11 +27,11 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Achievement Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Achievement-Finder__1607) | Rhyono | PC / Mac | 1.23 |
 | [Achievement Updates](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DavidJCobb/Achievement-Updates__2476) | DavidJCobb | PC / Mac | 1.0.0 |
 | [AchievementDateFormatter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/justinsane16/AchievementDateFormatter__4668) | justinsane16 | PC / Mac | 1.1 |
-| [AchievementFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mneha/AchievementFilter__4301) | mneha | PC / Mac | 1.1.3 |
+| [AchievementFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mneha/AchievementFilter__4301) | mneha | PC / Mac | 1.2.1 |
 | [AchievementInfo](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Asto/AchievementInfo__350) | Asto | PC / Mac | 4.17 |
 | [Action Bar Labels](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CMDRMitchcraft/Action-Bar-Labels__4348) | CMDRMitchcraft | PC / Mac | 1.0 |
 | [Action Bar Skill Styles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Anthonysc/Action-Bar-Skill-Styles__3928) | Anthonysc | PC / Mac | 0.0.4 |
-| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.166 |
+| [Action Duration Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cloudor/Action-Duration-Reminder__1536) | cloudor | PC / Mac | 3.167 |
 | [Action Duration Reminder ES by Kroon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KKroon/Action-Duration-Reminder-ES-by-Kroon__3706) | KKroon | PC / Mac | 3.96 |
 | [Activity Finder Plus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FirewoodDoge/Activity-Finder-Plus__4676) | FirewoodDoge | PC / Mac | 1.0.2 |
 | [Acuity](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Acuity__1950) | Wheels | PC / Mac | 2.4 |
@@ -65,6 +65,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Advanced Autoloot - Update/Proofing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Slater2715/Advanced-Autoloot---Update-Proofing__835) | Slater2715 | PC / Mac | 1.3b |
 | [Advanced AutoLoot Renewed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SilverWF/Advanced-AutoLoot-Renewed__1020) | SilverWF | PC / Mac | 1.9.8 |
 | [Advanced AutoLoot Renewed - Fix for Gold Road](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/polysoft/Advanced-AutoLoot-Renewed---Fix-for-Gold-Road__3915) | polysoft | PC / Mac | 1.9.9 |
+| [Advanced Crux Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Advanced-Crux-Tracker__7c2543a8-c08b-4c48-b4bf-47d2463b616f) | j.hhh | Console | — |
 | [Advanced Disable Controller UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lionas/Advanced-Disable-Controller-UI__1433) | Lionas | PC / Mac | 1.5.3 |
 | [Advanced Filters - Arena sets filter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notnear/Advanced-Filters---Arena-sets-filter__3607) | notnear | PC / Mac | 1.1.1 |
 | [Advanced Filters - Bound items/Item Set Collection filter plugin](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Advanced-Filters---Bound-items-Item-Set-Collection-filter-plugin__1385) | Baertram | PC / Mac | 1.25 |
@@ -227,7 +228,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ar2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/Ar2__52bf209f-b1c3-4253-adfc-ba6e95b85072) | Lofand | Console | — |
 | [ArabChat - Arabic Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabChat---Arabic-Chat__4931) | alaooy | PC / Mac | 1.2.2 |
 | [arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic__c8823ab9-749b-4180-ad52-c15b1363d974) | Lofand | Console | — |
-| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.2.7 |
+| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.5 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
 | [Arcanist Crux Job Gauge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ViciousTomato/Arcanist-Crux-Job-Gauge__3661) | ViciousTomato | PC / Mac | 1.1 |

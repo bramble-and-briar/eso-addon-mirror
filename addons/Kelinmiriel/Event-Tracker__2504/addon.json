@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Kelinmiriel/Event-Tracker__2504",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Kelinmiriel",
   "canonical_id": "esoui:2504",
   "category_id": "27",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2504",
@@ -17,7 +18,7 @@
     "EventTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2504/",
-  "fingerprint": "bf0c63bf7ad38f1e29a94b0f3985946c96c6090239d88802687cc5e13441f716",
+  "fingerprint": "cd44f8f736239fbda63e81c71b6bfdb26dfeb9346cddb4b5511585823e62a6ee",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9098.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw9099.jpg",
@@ -32,11 +33,11 @@
   "source_id": "2504",
   "source_url": "https://www.esoui.com/downloads/info2504-EventTracker.html",
   "stats": {
-    "downloads": 252370,
-    "favorites": 127,
-    "monthly_downloads": 893
+    "downloads": 253615,
+    "favorites": 129,
+    "monthly_downloads": 399
   },
   "title": "Event Tracker",
-  "updated_at": 1782359595000,
-  "version": "2.420"
+  "updated_at": 1791701384000,
+  "version": "2.430"
 }

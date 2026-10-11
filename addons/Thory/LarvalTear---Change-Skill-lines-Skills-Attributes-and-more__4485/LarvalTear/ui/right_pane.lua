@@ -340,7 +340,9 @@ function LTM_UI:RefreshRightPanePanel()
     self:RefreshCurrentChampionList(summary.championState)
 
     if self.currentEquipmentOutfitLabel then
-        SetLabelText(self.currentEquipmentOutfitLabel, BuildRightPaneOutfitDisplayText(summary.outfitName))
+        local outfitText = BuildRightPaneOutfitDisplayText(summary.outfitName)
+        SetLabelText(self.currentEquipmentOutfitLabel, outfitText)
+        self.currentEquipmentOutfitLabel.ltmTooltipText = outfitText
     end
     self:RefreshEquipmentFetchButton(summary)
     self:RefreshRightPaneRoleIcon(summary)

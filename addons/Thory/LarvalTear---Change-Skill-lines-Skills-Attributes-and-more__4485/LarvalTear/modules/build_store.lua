@@ -1110,12 +1110,18 @@ end
 
 function LTM_BUILD_STORE:CaptureCurrentOutfitForBuild()
     if type(GetEquippedOutfitIndex) ~= "function" then
-        return nil
+        return nil, "outfit_api_unavailable"
     end
 
-    local outfitIndex = Util:SafeCall(GetEquippedOutfitIndex, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-    if type(outfitIndex) ~= "number" then
-        return nil
+    local ok, outfitIndex = pcall(GetEquippedOutfitIndex, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if not ok then
+        return nil, "outfit_capture_failed"
+    end
+    if outfitIndex == nil then
+        return { mode = "default" }
+    end
+    if type(outfitIndex) ~= "number" or outfitIndex < 1 or outfitIndex % 1 ~= 0 then
+        return nil, "outfit_capture_invalid"
     end
 
     return {
@@ -1951,6 +1957,50 @@ function LTM_BUILD_STORE:GetPreferredBuildById(buildId)
     return nil, nil
 end
 
+function LTM_BUILD_STORE:SetBuildOutfit(buildId, outfit)
+    if type(buildId) ~= "string" or buildId == "" then
+        return nil, "build_id_missing"
+    end
+    local selection = nil
+    if outfit ~= nil then
+        if type(outfit) ~= "table" then
+            return nil, "outfit_config_invalid"
+        end
+        if outfit.mode == "default" and outfit.equippedOutfitIndex == nil then
+            selection = { mode = "default" }
+        elseif outfit.mode == nil and type(outfit.equippedOutfitIndex) == "number"
+            and outfit.equippedOutfitIndex >= 1 and outfit.equippedOutfitIndex % 1 == 0 then
+            if type(GetNumUnlockedOutfits) ~= "function" then
+                return nil, "outfit_api_unavailable"
+            end
+            local ok, count = pcall(GetNumUnlockedOutfits, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+            if not ok or type(count) ~= "number" or count < 0 or count % 1 ~= 0 then
+                return nil, "outfit_count_unavailable"
+            end
+            if outfit.equippedOutfitIndex > count then
+                return nil, "outfit_index_unavailable"
+            end
+            selection = { equippedOutfitIndex = outfit.equippedOutfitIndex }
+        else
+            return nil, "outfit_config_invalid"
+        end
+    end
+
+    local page, _, persistentBuild = FindPersistentBuildLocationById(self, buildId, nil, true)
+    if type(persistentBuild) ~= "table" then
+        return nil, "build_not_found"
+    end
+    local build = DecodeBuildForRuntime(persistentBuild)
+    build.outfit = selection
+    build.metadata = type(build.metadata) == "table" and build.metadata or {}
+    build.metadata.updatedAt = ResolveTimestamp()
+    if type(StoreBuildForPersist(page, buildId, build)) ~= "table" then
+        return nil, "build_persist_encode_failed"
+    end
+    self:RefreshRuntimeCache(self:GetCurrentCharacterKey(), "set_build_outfit")
+    return build
+end
+
 function LTM_BUILD_STORE:SetBuildTransformApply(buildId, kind, enabled)
     if type(buildId) ~= "string" or buildId == "" then
         return nil, "build_id_missing"
@@ -2548,8 +2598,12 @@ function LTM_BUILD_STORE:OverwriteBuildByIdFromCurrentSnapshotType(buildId, over
         existingBuild.skills = skills
         existingBuild.activeSnapshot = activeSnapshot
     elseif overwriteType == "equipment" then
+        local outfit, outfitErr = self:CaptureCurrentOutfitForBuild()
+        if type(outfit) ~= "table" then
+            return nil, outfitErr
+        end
         existingBuild.equipment = self:CaptureCurrentEquipmentForBuild()
-        existingBuild.outfit = self:CaptureCurrentOutfitForBuild()
+        existingBuild.outfit = outfit
     elseif overwriteType == "cp" then
         existingBuild.championPoints = self:CaptureCurrentChampionPointsForBuild()
     elseif overwriteType == "passives" then
@@ -2692,7 +2746,10 @@ function LTM_BUILD_STORE:BuildFromCurrentSnapshot()
     end
 
     local equipmentState = self:CaptureCurrentEquipmentForBuild()
-    local outfitState = self:CaptureCurrentOutfitForBuild()
+    local outfitState, outfitErr = self:CaptureCurrentOutfitForBuild()
+    if type(outfitState) ~= "table" then
+        return nil, outfitErr
+    end
     local championPointState = self:CaptureCurrentChampionPointsForBuild()
     local classMasteryState = self:CaptureCurrentClassMasteryForBuild()
     local roleState = LTM_ROLE_STATE:CaptureCurrentRoleState()

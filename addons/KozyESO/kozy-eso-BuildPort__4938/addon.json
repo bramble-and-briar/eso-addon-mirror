@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/KozyESO/kozy-eso-BuildPort__4938",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "KozyESO",
+  "canonical_id": "esoui:4938",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4938",
+  "deleted": false,
+  "directories": [
+    "KozyEsoBuildPort"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4938/",
+  "fingerprint": "d2eff4e332f4ac4d25917d594791d358ee9106e87c67992315c0a57d75f55a5f",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4938",
+  "source_url": "https://www.esoui.com/downloads/info4938-kozy-esoBuildPort.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 1
+  },
+  "title": "kozy-eso BuildPort",
+  "updated_at": 1791650290000,
+  "version": "0.10.2"
+}

@@ -1,0 +1,21 @@
+## Title: Corpse Tracker
+## Description: Necromancer corpse count and expiry estimate. Includes optional diagnostics.
+## Author: @mettaleggroll and Codex
+## Version: 0.3.4
+## APIVersion: 101051
+## DependsOn: LibAddonMenu-2.0
+## SavedVariables: CorpseTrackerSaved
+
+Engine.lua
+Localization.lua
+Locales/en.lua
+Locales/ru.lua
+Locales/de.lua
+Locales/fr.lua
+Locales/es.lua
+Locales/jp.lua
+Locales/zh.lua
+Locales/br.lua
+Abilities.lua
+Settings.lua
+CorpseTracker.lua

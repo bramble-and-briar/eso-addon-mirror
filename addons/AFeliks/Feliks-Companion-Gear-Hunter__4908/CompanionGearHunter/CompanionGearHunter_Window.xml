@@ -245,7 +245,7 @@
                             <Dimensions x="80" />
                             <Anchor point="LEFT" offsetX="10" />
                             <OnMouseEnter>
-                                ZO_Tooltips_ShowTextTooltip(self, TOP, "Set a value on every slot of this companion at once. Type only affects armor; picking Any resets that column.")
+                                ZO_Tooltips_ShowTextTooltip(self, TOP, "Set a value on every slot of this companion at once. Type only affects armor; picking Any resets that column. Off-Hand is skipped while it is greyed out (no one-handed Main Hand).")
                             </OnMouseEnter>
                             <OnMouseExit>
                                 ZO_Tooltips_HideTextTooltip()
@@ -328,8 +328,7 @@
 
                 <!-- Anchored below Row12, flush with its own right-bleed
                      edge, rather than to the window's fixed bottom/right -
-                     Row12 keeps its layout position even when hidden
-                     (Off-Hand, for a two-handed weapon), and this way the
+                     Row12 (Off-Hand) is always shown now, and this way the
                      footer can't end up positioned past the window's own
                      edge no matter how the row width changes later. -->
                 <Label name="$(parent)Footer" font="ZoFontGameSmall" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true">

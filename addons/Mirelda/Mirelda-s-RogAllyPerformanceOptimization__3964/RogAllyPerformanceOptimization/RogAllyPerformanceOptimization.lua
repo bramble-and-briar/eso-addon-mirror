@@ -1,6 +1,6 @@
 -- RogAllyPerformanceOptimization
--- Version: v1.21 (2026-04-20)
--- Note: Added pause-aware tuning, total/effective stats, old stats migration, and Stage-1-only FSR upgrade gating.
+-- Version: v1.22 (2026-08-03)
+-- Note: Added 60fps-specific static quality settings for screen-space reflections, planar reflections, grass, character resolution, and shadows; fixed view-distance restoration and pause/resume handling for energy saving, UI mode, loading screens, and focus loss; added compact independent passive diagnostics with delayed FSR readback for downgrades that remain capped near 30 FPS; aligned idle tracking with actual player movement instead of exact world-coordinate changes or combat state.
 
 local UserSettingsModifier = {name = "RogAllyPerformanceOptimization"}
 
@@ -22,12 +22,17 @@ local function BuildPerformanceProfile(values)
         fpsStabilized = values[4],
         minFrameTime2 = values[5],
         backgroundFpsLimit = values[6],
+        screenSpaceWaterReflectionQuality = values[7],
+        planarWaterReflectionQuality = values[8],
+        clutter2DQuality = values[9],
+        characterResolution = values[10],
+        shadowQuality = values[11],
     }
 end
 
 local PerformanceModeValues = {
-    ["45fps"] = {43.30, 41.00, 36.00, 0.70, "0.02222222", "45"},
-    ["60fps"] = {55.75, 53.00, 43.00, 2.75, "0.01666667", "60"}
+    ["45fps"] = {43.30, 41.00, 36.00, 0.70, "0.02222222", "45", "2", "2", "3", "0", "3"},
+    ["60fps"] = {55.75, 53.00, 43.00, 2.75, "0.01666667", "60", "4", "3", "4", "3", "4"}
 }
 
 local function ResolvePerformanceProfile(modeName)
@@ -163,7 +168,6 @@ local powerSavingIdleThreshold = 270000
 local powerSavingFpsMin = 27
 local powerSavingFpsMax = 33
 local lastActivityTime = 0
-local lastPosX, lastPosY, lastPosZ = nil, nil, nil
 
 -- Adaptive graphics configuration - available levels for each setting
 local AdaptiveSettings = {
@@ -217,11 +221,57 @@ local pauseReasons = {
     loading = true,
     ui = false,
     unfocused = false,
+    powerSavingProbe = false,
     powerSaving = false,
 }
 
 -- ESO power saving mode runtime state
 local isPowerSavingModeActive = false
+local powerSavingDetector = {
+    state = "normal",
+    probeTicks = 0,
+    probeHits = 0,
+    exitMisses = 0,
+    probeSampleCount = 5,
+    probeHitThreshold = 3,
+    exitMissThreshold = 3,
+    exitFpsMax = 35,
+}
+
+-- Passive diagnostic state. It observes actual addon-driven FSR downgrades
+-- without sharing or modifying the tuning FPS buffer.
+local energyDiagConfig = {
+    sampleIntervalMs = 300,
+    sampleCapacity = 36,
+    preWindowMs = 3000,
+    confirmationTimeoutMs = 1000,
+    settleMs = 1500,
+    postWindowMs = 3000,
+    decisionGraceMs = 600,
+    minSamples = 8,
+    minFps = 27,
+    maxFps = 33,
+    minHitRatio = 0.80,
+    maxAverageGain = 1.0,
+    chainWindowMs = 90000,
+    listPageSize = 10,
+}
+
+local energyDiag = {
+    enabled = true,
+    observerStarted = false,
+    times = {},
+    values = {},
+    nextSample = 1,
+    token = 0,
+    pending = nil,
+    chain = nil,
+    contextSerial = 0,
+    cleanSerial = 0,
+    lastObservedFsrCode = nil,
+    lastMainTickTime = 0,
+    lastActivityReason = "addon-load",
+}
 
 -- Minimum warning configuration
 local lastMinimumWarningTime = 0
@@ -300,20 +350,12 @@ local function GetSmoothedFps()
 end
 
 ------------------------------------------------------------
--- Player activity tracking - update last active time based on movement/combat
+-- Player activity tracking - update last active time only from actual movement
 ------------------------------------------------------------
 local function UpdatePlayerActivity()
-    local now = GetGameTimeMilliseconds()
-
-    if IsUnitInCombat("player") then
-        lastActivityTime = now
-        return
-    end
-
-    local x, y, z = GetUnitWorldPosition("player")
-    if lastPosX == nil or x ~= lastPosX or y ~= lastPosY or z ~= lastPosZ then
-        lastActivityTime = now
-        lastPosX, lastPosY, lastPosZ = x, y, z
+    if IsPlayerMoving() then
+        lastActivityTime = GetGameTimeMilliseconds()
+        energyDiag.lastActivityReason = "player-moving"
     end
 end
 
@@ -570,7 +612,8 @@ end
 -- Pause helpers and statistics flushing
 ------------------------------------------------------------
 local function IsRapoPaused()
-    return pauseReasons.loading or pauseReasons.ui or pauseReasons.unfocused or pauseReasons.powerSaving
+    return pauseReasons.loading or pauseReasons.ui or pauseReasons.unfocused
+        or pauseReasons.powerSavingProbe or pauseReasons.powerSaving
 end
 
 local function IsRapoPausedForExternalState()
@@ -657,32 +700,508 @@ function UserSettingsModifier:SetPauseReason(reason, value)
 
     self:FlushStatsToNow()
     pauseReasons[reason] = value and true or false
+    energyDiag.contextSerial = energyDiag.contextSerial + 1
+
+    -- An external pause breaks the continuity of FPS-based wake evidence,
+    -- even if it begins and ends between two 300ms monitoring ticks.
+    if pauseReasons[reason]
+        and (reason == "loading" or reason == "ui" or reason == "unfocused")
+        and powerSavingDetector.state == "active" then
+        powerSavingDetector.exitMisses = 0
+    end
 
     DebugLog(string.format("Pause reason changed: %s=%s", tostring(reason), tostring(pauseReasons[reason])))
 end
 
 ------------------------------------------------------------
--- Power saving detection - infer client power saving mode from idle & FPS
+-- Power saving detection - confirm entry and debounce exit around ~30 FPS
 ------------------------------------------------------------
-function UserSettingsModifier:IsInPowerSavingMode(fps)
-    -- Never treat as power saving while in combat
-    if IsUnitInCombat("player") then
-        return false
+function UserSettingsModifier:CancelPowerSavingProbe()
+    if powerSavingDetector.state ~= "probe" then
+        return
     end
 
-    -- Power saving FPS window around ~30 FPS
-    if fps < powerSavingFpsMin or fps > powerSavingFpsMax then
-        return false
-    end
+    powerSavingDetector.state = "normal"
+    powerSavingDetector.probeTicks = 0
+    powerSavingDetector.probeHits = 0
+    powerSavingDetector.exitMisses = 0
+    self:SetPauseReason("powerSavingProbe", false)
+    DebugLog("ESO energy saving probe canceled by an external pause state")
+end
 
+function UserSettingsModifier:UpdatePowerSavingState(fps)
     local now = GetGameTimeMilliseconds()
-    local idle = now - lastActivityTime
+    local idleEnough = (now - lastActivityTime) >= powerSavingIdleThreshold
+    local fpsMatchesIdleCap = fps >= powerSavingFpsMin and fps <= powerSavingFpsMax
+    local fpsShowsWake = fps > powerSavingDetector.exitFpsMax
 
-    if idle >= powerSavingIdleThreshold then
+    -- Actual player movement is a definitive exit signal.
+    if not idleEnough then
+        local wasActive = isPowerSavingModeActive
+
+        powerSavingDetector.state = "normal"
+        powerSavingDetector.probeTicks = 0
+        powerSavingDetector.probeHits = 0
+        powerSavingDetector.exitMisses = 0
+        isPowerSavingModeActive = false
+
+        -- Reset both detector-owned reasons; SetPauseReason is idempotent, and
+        -- no Lua event can interleave while this synchronous reset is running.
+        self:SetPauseReason("powerSaving", false)
+        self:SetPauseReason("powerSavingProbe", false)
+
+        if wasActive then
+            d("[RAPO] Leaving ESO energy saving mode: auto-tuning resumed.")
+            DebugLog("ESO energy saving mode ended after player movement, auto-tuning resumed")
+        end
+        return
+    end
+
+    if powerSavingDetector.state == "normal" then
+        if fpsMatchesIdleCap then
+            powerSavingDetector.state = "probe"
+            powerSavingDetector.probeTicks = 1
+            powerSavingDetector.probeHits = 1
+            powerSavingDetector.exitMisses = 0
+            self:SetPauseReason("powerSavingProbe", true)
+            DebugLog("ESO energy saving probe started; automatic tuning frozen during confirmation")
+        end
+        return
+    end
+
+    if powerSavingDetector.state == "probe" then
+        powerSavingDetector.probeTicks = powerSavingDetector.probeTicks + 1
+        if fpsMatchesIdleCap then
+            powerSavingDetector.probeHits = powerSavingDetector.probeHits + 1
+        end
+
+        if powerSavingDetector.probeTicks >= powerSavingDetector.probeSampleCount then
+            if powerSavingDetector.probeHits >= powerSavingDetector.probeHitThreshold then
+                powerSavingDetector.state = "active"
+                powerSavingDetector.exitMisses = 0
+                isPowerSavingModeActive = true
+
+                -- Set the confirmed reason before clearing the probe reason so
+                -- automatic tuning remains continuously paused.
+                self:SetPauseReason("powerSaving", true)
+                self:SetPauseReason("powerSavingProbe", false)
+
+                d("[RAPO] Entering ESO energy saving mode: auto-tuning suspended.")
+                DebugLog("ESO energy saving mode confirmed (idle & FPS at or below the 30 FPS cap), auto-tuning suspended")
+            else
+                powerSavingDetector.state = "normal"
+                powerSavingDetector.probeTicks = 0
+                powerSavingDetector.probeHits = 0
+                powerSavingDetector.exitMisses = 0
+                self:SetPauseReason("powerSavingProbe", false)
+                DebugLog("ESO energy saving probe rejected; FPS pattern was not sustained")
+            end
+        end
+        return
+    end
+
+    -- Once confirmed, only sustained FPS above the idle cap is evidence of a
+    -- wake-up. Lower FPS may be a heavy scene or hitch and must stay paused.
+    if fpsShowsWake then
+        powerSavingDetector.exitMisses = powerSavingDetector.exitMisses + 1
+    else
+        powerSavingDetector.exitMisses = 0
+    end
+
+    if powerSavingDetector.exitMisses >= powerSavingDetector.exitMissThreshold then
+        powerSavingDetector.state = "normal"
+        powerSavingDetector.probeTicks = 0
+        powerSavingDetector.probeHits = 0
+        powerSavingDetector.exitMisses = 0
+        isPowerSavingModeActive = false
+        self:SetPauseReason("powerSaving", false)
+
+        d("[RAPO] Leaving ESO energy saving mode: auto-tuning resumed.")
+        DebugLog("ESO energy saving mode ended after sustained FPS recovery, auto-tuning resumed")
+    end
+end
+
+------------------------------------------------------------
+-- Passive energy diagnostics - FSR downgrade pre/post evidence
+------------------------------------------------------------
+function UserSettingsModifier:GetEnergyDiagnosticStore()
+    if not RAPO_SavedVariables then
+        return nil
+    end
+
+    local store = RAPO_SavedVariables.fsrEnergyDiagnostics
+    if type(store) ~= "table" then
+        store = {schemaVersion = 1, nextId = 1, reports = {}}
+        RAPO_SavedVariables.fsrEnergyDiagnostics = store
+    end
+
+    store.nextId = tonumber(store.nextId) or 1
+    store.reports = type(store.reports) == "table" and store.reports or {}
+    return store
+end
+
+function UserSettingsModifier:FormatEnergyDiagnosticId(id, store)
+    store = store or self:GetEnergyDiagnosticStore()
+    local maxId = store and math.max(0, (tonumber(store.nextId) or 1) - 1) or 0
+    if store then
+        for _, report in ipairs(store.reports) do
+            maxId = math.max(maxId, tonumber(report.id) or 0)
+        end
+    end
+
+    local width = math.max(1, #tostring(math.floor(maxId)))
+    return string.format("%0" .. tostring(width) .. "d", tonumber(id) or 0)
+end
+
+function UserSettingsModifier:ResetEnergyDiagnostic(actualCode)
+    energyDiag.token = energyDiag.token + 1
+    energyDiag.pending = nil
+    energyDiag.times = {}
+    energyDiag.values = {}
+    energyDiag.nextSample = 1
+    energyDiag.cleanSerial = energyDiag.contextSerial
+    energyDiag.lastObservedFsrCode = actualCode
+        or GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE)
+
+    energyDiag.chain = nil
+end
+
+function UserSettingsModifier:IsEnergyDiagnosticBlocked()
+    if pauseReasons.loading or pauseReasons.ui or pauseReasons.unfocused
+        or pauseReasons.powerSavingProbe or pauseReasons.powerSaving
+        or IsUnitInCombat("player") then
+        return true
+    end
+
+    if IsPlayerActivated and not IsPlayerActivated() then
+        return true
+    end
+    if IsGameCameraUIModeActive and IsGameCameraUIModeActive() then
+        return true
+    end
+    if DoesGameHaveFocus and not DoesGameHaveFocus() then
         return true
     end
 
     return false
+end
+
+function UserSettingsModifier:PushEnergyDiagnosticSample(now, fps)
+    if type(fps) ~= "number" or fps <= 5 or fps > 200 then
+        return
+    end
+
+    local slot = energyDiag.nextSample
+    energyDiag.times[slot] = now
+    energyDiag.values[slot] = fps
+    energyDiag.nextSample = (slot % energyDiagConfig.sampleCapacity) + 1
+end
+
+function UserSettingsModifier:GetEnergyDiagnosticStats(startTime, endTime)
+    local samples, hits, total = 0, 0, 0
+
+    for i = 1, energyDiagConfig.sampleCapacity do
+        local sampleTime = energyDiag.times[i]
+        local fps = energyDiag.values[i]
+        if sampleTime and fps and sampleTime >= startTime and sampleTime < endTime then
+            samples = samples + 1
+            total = total + fps
+            if fps >= energyDiagConfig.minFps and fps <= energyDiagConfig.maxFps then
+                hits = hits + 1
+            end
+        end
+    end
+
+    return {
+        samples = samples,
+        hits = hits,
+        average = samples > 0 and (total / samples) or 0,
+    }
+end
+
+function UserSettingsModifier:IsEnergyDiagnosticWindowStable(stats)
+    return stats.samples >= energyDiagConfig.minSamples
+        and (stats.hits / stats.samples) >= energyDiagConfig.minHitRatio
+        and stats.average >= energyDiagConfig.minFps
+        and stats.average <= energyDiagConfig.maxFps
+end
+
+function UserSettingsModifier:CaptureEnergyDiagnosticEvidence(now)
+    return {
+        idleAgeMs = now - lastActivityTime,
+        activityReason = energyDiag.lastActivityReason,
+        mainTickAgeMs = energyDiag.lastMainTickTime > 0
+            and (now - energyDiag.lastMainTickTime) or -1,
+        detectorState = powerSavingDetector.state,
+        probeTicks = powerSavingDetector.probeTicks,
+        probeHits = powerSavingDetector.probeHits,
+        activeFlag = isPowerSavingModeActive,
+        pauseFlags = (pauseReasons.loading and "1" or "0")
+            .. (pauseReasons.ui and "1" or "0")
+            .. (pauseReasons.unfocused and "1" or "0")
+            .. (pauseReasons.powerSavingProbe and "1" or "0")
+            .. (pauseReasons.powerSaving and "1" or "0")
+            .. (IsUnitInCombat("player") and "1" or "0"),
+    }
+end
+
+function UserSettingsModifier:FindEnergyDiagnosticReport(id)
+    local store = self:GetEnergyDiagnosticStore()
+    if not store then
+        return nil, nil
+    end
+
+    id = tonumber(id)
+    for index, report in ipairs(store.reports) do
+        if type(report) == "table" and tonumber(report.id) == id then
+            return report, index
+        end
+    end
+
+    return nil, nil
+end
+
+function UserSettingsModifier:BeginEnergyDiagnostic(oldIndex, newIndex, oldCode, newCode)
+    if not energyDiag.enabled or newIndex <= oldIndex then
+        return nil
+    end
+
+    local actualCode = GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE)
+    local now = GetGameTimeMilliseconds()
+    if energyDiag.pending then
+        self:UpdateEnergyDiagnostic(now, GetFramerate())
+    end
+
+    if energyDiag.pending or energyDiag.contextSerial ~= energyDiag.cleanSerial
+        or self:IsEnergyDiagnosticBlocked() or actualCode ~= oldCode then
+        self:ResetEnergyDiagnostic(actualCode)
+        return nil
+    end
+
+    local pre = self:GetEnergyDiagnosticStats(now - energyDiagConfig.preWindowMs, now)
+    if not self:IsEnergyDiagnosticWindowStable(pre) then
+        self:ResetEnergyDiagnostic(actualCode)
+        return nil
+    end
+
+    energyDiag.token = energyDiag.token + 1
+    energyDiag.pending = {
+        token = energyDiag.token,
+        oldIndex = oldIndex,
+        newIndex = newIndex,
+        oldCode = oldCode,
+        newCode = newCode,
+        pre = pre,
+        switchEvidence = self:CaptureEnergyDiagnosticEvidence(now),
+    }
+    return energyDiag.token
+end
+
+function UserSettingsModifier:ConfirmEnergyDiagnostic(pending, now, actualCode)
+    pending.confirmedAt = now
+    pending.settleEnd = now + energyDiagConfig.settleMs
+    pending.postEnd = pending.settleEnd + energyDiagConfig.postWindowMs
+    energyDiag.lastObservedFsrCode = actualCode
+end
+
+function UserSettingsModifier:CompleteEnergyDiagnostic(token)
+    local pending = energyDiag.pending
+    if not pending or pending.token ~= token then
+        return
+    end
+
+    local actualCode = GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE)
+    local now = GetGameTimeMilliseconds()
+    pending.confirmationDeadline = now + energyDiagConfig.confirmationTimeoutMs
+    if actualCode == pending.newCode then
+        self:ConfirmEnergyDiagnostic(pending, now, actualCode)
+    elseif actualCode and actualCode ~= "" and actualCode ~= pending.oldCode then
+        self:ResetEnergyDiagnostic(actualCode)
+    end
+end
+
+function UserSettingsModifier:SaveEnergyDiagnostic(pending, post, now)
+    local store = self:GetEnergyDiagnosticStore()
+    if not store then
+        self:ResetEnergyDiagnostic(pending.newCode)
+        return
+    end
+
+    local event = {
+        fromCode = pending.oldCode,
+        toCode = pending.newCode,
+        actualCode = GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE),
+        preAverage = pending.pre.average,
+        preHits = pending.pre.hits,
+        preSamples = pending.pre.samples,
+        postAverage = post.average,
+        postHits = post.hits,
+        postSamples = post.samples,
+        switch = pending.switchEvidence,
+        after = self:CaptureEnergyDiagnosticEvidence(now),
+    }
+
+    local chain = energyDiag.chain
+    local report = nil
+    if chain and now - chain.completedAtMs <= energyDiagConfig.chainWindowMs
+        and chain.newIndex == pending.oldIndex and chain.newCode == pending.oldCode then
+        report = self:FindEnergyDiagnosticReport(chain.reportId)
+    end
+
+    if report and report.schema == "fsr-cap-v1" then
+        table.insert(report.events, event)
+        report.confidence = "high"
+    else
+        local dateText = GetDate and tostring(GetDate()) or "unknown-date"
+        local timeText = GetTimeString and tostring(GetTimeString()) or "unknown-time"
+        local year, month, day = dateText:match("^(%d%d%d%d)(%d%d)(%d%d)$")
+        if year then
+            dateText = string.format("%s-%s-%s", year, month, day)
+        end
+        report = {
+            schema = "fsr-cap-v1",
+            id = store.nextId,
+            stamp = dateText .. " " .. timeText,
+            world = GetWorldName and tostring(GetWorldName()) or "unknown",
+            mode = activePerformanceModeName,
+            status = "mismatch",
+            confidence = "possible",
+            events = {event},
+        }
+        store.nextId = store.nextId + 1
+        table.insert(store.reports, report)
+    end
+
+    energyDiag.chain = {
+        reportId = report.id,
+        completedAtMs = now,
+        newIndex = pending.newIndex,
+        newCode = pending.newCode,
+    }
+    energyDiag.pending = nil
+
+    local oldName = fsrModeNameMap[pending.oldCode] or pending.oldCode
+    local newName = fsrModeNameMap[pending.newCode] or pending.newCode
+    local reportId = self:FormatEnergyDiagnosticId(report.id, store)
+    d(string.format(
+        "[RAPO][Diag] Saved #%s: FSR %s -> %s, FPS %.2f -> %.2f (%s 30 FPS-cap mismatch).",
+        reportId,
+        oldName,
+        newName,
+        pending.pre.average,
+        post.average,
+        report.confidence
+    ))
+end
+
+function UserSettingsModifier:UpdateEnergyDiagnostic(now, rawFps)
+    if not energyDiag.enabled then
+        return
+    end
+
+    local actualCode = GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE)
+
+    if energyDiag.contextSerial ~= energyDiag.cleanSerial then
+        self:ResetEnergyDiagnostic(actualCode)
+    end
+
+    if self:IsEnergyDiagnosticBlocked() then
+        if energyDiag.pending or energyDiag.chain or energyDiag.times[1] then
+            self:ResetEnergyDiagnostic(actualCode)
+        end
+        return
+    end
+
+    local pending = energyDiag.pending
+    if not pending then
+        if energyDiag.lastObservedFsrCode and actualCode ~= energyDiag.lastObservedFsrCode then
+            self:ResetEnergyDiagnostic(actualCode)
+        end
+        energyDiag.lastObservedFsrCode = actualCode
+        self:PushEnergyDiagnosticSample(now, rawFps)
+        return
+    end
+
+    if not pending.confirmedAt then
+        if now > pending.confirmationDeadline then
+            self:ResetEnergyDiagnostic(actualCode)
+            return
+        end
+
+        if actualCode == pending.newCode then
+            self:ConfirmEnergyDiagnostic(pending, now, actualCode)
+        elseif actualCode and actualCode ~= "" and actualCode ~= pending.oldCode then
+            self:ResetEnergyDiagnostic(actualCode)
+            return
+        end
+
+        self:PushEnergyDiagnosticSample(now, rawFps)
+        return
+    end
+
+    if actualCode ~= pending.newCode or not pending.postEnd then
+        self:ResetEnergyDiagnostic(actualCode)
+        return
+    end
+
+    energyDiag.lastObservedFsrCode = actualCode
+
+    if not pending.post then
+        self:PushEnergyDiagnosticSample(now, rawFps)
+        if now < pending.postEnd then
+            return
+        end
+
+        local post = self:GetEnergyDiagnosticStats(pending.settleEnd, pending.postEnd)
+        local averageGain = post.average - pending.pre.average
+        if not self:IsEnergyDiagnosticWindowStable(post)
+            or averageGain > energyDiagConfig.maxAverageGain then
+            self:ResetEnergyDiagnostic(actualCode)
+            return
+        end
+
+        -- Freeze the fixed post window, then give the main detector one tick
+        -- to react before concluding that its pause path failed.
+        pending.post = post
+        pending.decisionDeadline = pending.postEnd + energyDiagConfig.decisionGraceMs
+    end
+
+    if energyDiag.lastMainTickTime >= pending.postEnd
+        or now >= pending.decisionDeadline then
+        self:SaveEnergyDiagnostic(pending, pending.post, now)
+    end
+end
+
+function UserSettingsModifier:RunEnergyDiagnosticTick(now, rawFps)
+    if not energyDiag.enabled then
+        return
+    end
+
+    local ok, err = pcall(self.UpdateEnergyDiagnostic, self, now, rawFps)
+    if not ok then
+        self:DisableEnergyDiagnostic("runtime", err)
+    end
+end
+
+function UserSettingsModifier:DisableEnergyDiagnostic(phase, err)
+    EVENT_MANAGER:UnregisterForUpdate(self.name .. "EnergyDiag")
+    energyDiag.enabled = false
+    energyDiag.observerStarted = false
+    energyDiag.pending = nil
+    energyDiag.chain = nil
+    DebugLog("Passive energy diagnostic disabled after " .. tostring(phase) .. " error: " .. tostring(err))
+end
+
+function UserSettingsModifier:StartEnergyDiagnosticObserver()
+    if energyDiag.observerStarted or not energyDiag.enabled then
+        return
+    end
+
+    energyDiag.observerStarted = true
+    EVENT_MANAGER:RegisterForUpdate(self.name .. "EnergyDiag", energyDiagConfig.sampleIntervalMs, function()
+        self:RunEnergyDiagnosticTick(GetGameTimeMilliseconds(), GetFramerate())
+    end)
+    DebugLog("Independent passive energy diagnostic observer started")
 end
 
 ------------------------------------------------------------
@@ -949,11 +1468,23 @@ function UserSettingsModifier:ScheduleFsrReenable(defaultCode)
             return
         end
 
+        -- The delayed intent may be stale after a pause. Do not overwrite a
+        -- valid FSR mode the player selected while the callback was frozen.
+        local currentCode = GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE)
+        if currentCode and currentCode ~= "" and currentCode ~= "0" then
+            fsrWorkaroundPending = false
+            DebugLog("FSR_MODE workaround canceled because FSR is no longer off: " .. tostring(currentCode))
+            return
+        end
+
         -- Mark as internal change so sync logic knows this is addon-driven
         fsrChangeInProgress = true
 
         -- Restore a supported FSR mode through the graphics setting system
         SetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE, defaultCode)
+
+        -- This is a recovery write, not an automatic downgrade candidate.
+        pcall(self.ResetEnergyDiagnostic, self, defaultCode)
 
         ResetFsrAutomationState(true)
 
@@ -1000,7 +1531,7 @@ function UserSettingsModifier:SyncCurrentIndicesFromGame()
     -- Player turned FSR off manually (FSR_MODE=0)
     if fsrValue == "0" then
         if not fsrWorkaroundPending then
-            d("[RAPO] FSR off is not supported on handheld. Resetting to Quality for performance stability.")
+            d("[RAPO] FSR off is not supported on handheld. Quality restoration scheduled for performance stability.")
             DebugLog("Detected FSR_MODE=0 (off). Scheduling workaround to restore default FSR mode.")
             -- Schedule delayed re-enable to avoid rendering issues
             self:ScheduleFsrReenable("3")
@@ -1024,6 +1555,9 @@ function UserSettingsModifier:SyncCurrentIndicesFromGame()
             -- Possible external change observed by sync layer
             local oldCode = lastKnownFsrValue
             if oldCode ~= fsrValue then
+                -- Manual/startup changes break passive diagnostic continuity.
+                pcall(self.ResetEnergyDiagnostic, self, fsrValue)
+
                 local oldName = fsrModeNameMap[oldCode] or oldCode or "Unknown"
                 local newName = fsrModeNameMap[fsrValue] or fsrValue
 
@@ -1323,9 +1857,26 @@ local function ApplyFsrIndexChange(newIndex)
     local oldIndex = currentIndex.FSR_MODE or 0
     local oldCode = AdaptiveSettings.FSR_MODE[oldIndex]
     local oldName = oldCode and (fsrModeNameMap[oldCode] or oldCode) or nil
+    local newCode = AdaptiveSettings.FSR_MODE[newIndex]
+    local diagnosticToken = nil
+
+    if energyDiag.enabled and newIndex > oldIndex then
+        local ok, result = pcall(
+            UserSettingsModifier.BeginEnergyDiagnostic,
+            UserSettingsModifier,
+            oldIndex,
+            newIndex,
+            oldCode,
+            newCode
+        )
+        if ok then
+            diagnosticToken = result
+        else
+            UserSettingsModifier:DisableEnergyDiagnostic("prepare", result)
+        end
+    end
 
     currentIndex.FSR_MODE = newIndex
-    local newCode = AdaptiveSettings.FSR_MODE[currentIndex.FSR_MODE]
     local newName = fsrModeNameMap[newCode] or newCode
 
     -- Mark as internal change so SyncCurrentIndicesFromGame will treat this as addon-driven
@@ -1333,6 +1884,19 @@ local function ApplyFsrIndexChange(newIndex)
 
     -- Use the official graphics setting to switch FSR mode
     SetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE, newCode)
+
+    if diagnosticToken then
+        local ok, err = pcall(
+            UserSettingsModifier.CompleteEnergyDiagnostic,
+            UserSettingsModifier,
+            diagnosticToken
+        )
+        if not ok then
+            UserSettingsModifier:DisableEnergyDiagnostic("completion", err)
+        end
+    elseif energyDiag.enabled and newIndex < oldIndex then
+        pcall(UserSettingsModifier.ResetEnergyDiagnostic, UserSettingsModifier, newCode)
+    end
 
     -- Reset all automation state so the new FSR mode becomes the fresh baseline
     ResetFsrAutomationState(true)
@@ -1877,7 +2441,7 @@ function UserSettingsModifier:ApplyStaticSettings()
         ["MinFrameTime.2"] = activePerformanceProfile.minFrameTime2,
         ["PFX_GLOBAL_MAXIMUM"] = "768",
         ["PFX_SUPPRESS_DISTANCE"] = "35",
-        ["CHARACTER_RESOLUTION"] = "0",
+        ["CHARACTER_RESOLUTION"] = activePerformanceProfile.characterResolution,
         ["ANTIALIASING_TYPE"] = "2",
         ["AntiAliasingSettingUpgraded"] = "1",
         ["OCCLUSION_CULLING_ENABLED"] = "1",
@@ -1890,12 +2454,12 @@ function UserSettingsModifier:ApplyStaticSettings()
         ["SUB_SAMPLING"] = "2",
         -- NOTE: Do not set FSR_MODE via CVar here anymore
         ["WaterReflectionSettingUpgraded"] = "1",
-        ["PLANAR_WATER_REFLECTION_QUALITY"] = "2",
-        ["SCREENSPACE_WATER_REFLECTION_QUALITY"] = "2",
+        ["PLANAR_WATER_REFLECTION_QUALITY"] = activePerformanceProfile.planarWaterReflectionQuality,
+        ["SCREENSPACE_WATER_REFLECTION_QUALITY"] = activePerformanceProfile.screenSpaceWaterReflectionQuality,
         ["REFLECTION_QUALITY"] = "0",
         ["PARTICLE_DENSITY"] = "1",
         ["HIGH_RESOLUTION_SHADOWS"] = "0",
-        ["SHADOWS"] = "3",
+        ["SHADOWS"] = activePerformanceProfile.shadowQuality,
         ["CHARACTER_LIGHTING"] = "0",
         ["TerrainShadowsEnabled"] = "0",
         ["GPUSmoothingFrames"] = "10",
@@ -1912,7 +2476,7 @@ function UserSettingsModifier:ApplyStaticSettings()
         ["DETAIL_MAPS"] = "1",
         ["NORMAL_MAPS"] = "1",
         ["SPECULAR_MAPS"] = "1",
-        ["CLUTTER_2D_QUALITY"] = "3",
+        ["CLUTTER_2D_QUALITY"] = activePerformanceProfile.clutter2DQuality,
         ["CLUTTER_2D"] = "1",
         ["WATER_FOAM"] = "2",
         ["RENDERTHREAD"] = "1",
@@ -2033,7 +2597,8 @@ function UserSettingsModifier:GraduallyRestoreViewDistance()
     restoreCompleteElapsedMs = 0
 
     local restoreIndex = currentIndex.VIEW_DISTANCE
-    local stableFpsCounter = 0
+    local belowTargetFpsCounter = 0
+    local hasRestoredAnyStep = false
     local restoreActiveDurationMs = 0
     local lastRestoreStepTime = GetGameTimeMilliseconds()
     local belowTargetFpsDuration = 0
@@ -2093,46 +2658,47 @@ function UserSettingsModifier:GraduallyRestoreViewDistance()
         end
 
         if restoreIndex > 1 then
-            -- Track stability: three consecutive good samples trigger one step up in view distance
-            if fps >= targetFps - fps_stabilized then
-                stableFpsCounter = stableFpsCounter + 1
-            elseif fps < targetFps - fps_stabilized then
-                -- Track how long FPS stays below the target during restoration;
-                -- this will later be used to decide whether to bump the FSR counter
-                belowTargetFpsDuration = belowTargetFpsDuration + stepDelayMs
+            -- After restoration has started, require three consecutive below-target
+            -- samples before treating the restored view distance as the performance limit.
+            if hasRestoredAnyStep then
+                if fps < targetFps - fps_stabilized then
+                    belowTargetFpsCounter = belowTargetFpsCounter + 1
 
-                -- If we already had a period of stable FPS but then dropped,
-                -- end restoration early and keep the current view distance
-                if stableFpsCounter >= 3 then
-                    DebugLog("Unable to maintain stable FPS, ending view distance restoration early")
-                    currentIndex.VIEW_DISTANCE = restoreIndex
-                    StopRestoration(false, currentTime)
+                    -- Track how long FPS stays below the target during restoration;
+                    -- this will later be used to decide whether to bump the FSR counter
+                    belowTargetFpsDuration = belowTargetFpsDuration + stepDelayMs
 
-                    -- If restoration failed very quickly, slightly bump the FSR counter
-                    if restoreDuration >= 800 and restoreDuration <= 4000 then
-                        fsrCounter = fsrCounter + 2
-                        DebugLog("Restoration duration too short, FSR counter increased to: " .. fsrCounter)
+                    if belowTargetFpsCounter >= 3 then
+                        DebugLog("View distance restoration reached the performance limit, returning to normal adjustments")
+                        currentIndex.VIEW_DISTANCE = restoreIndex
+                        StopRestoration(false, currentTime)
+
+                        -- If restoration failed very quickly, slightly bump the FSR counter
+                        if restoreDuration >= 800 and restoreDuration <= 4000 then
+                            fsrCounter = fsrCounter + 2
+                            DebugLog("Restoration duration too short, FSR counter increased to: " .. fsrCounter)
+                        end
+
+                        -- If most of the restoration time was spent below the target FPS, also bump the FSR counter
+                        if restoreDuration > 0 and belowTargetFpsDuration >= restoreDuration * 0.8 then
+                            fsrCounter = fsrCounter + 1
+                            DebugLog("FPS below target for more than 80% of restoration, FSR counter increased to: " .. fsrCounter)
+                        end
+
+                        self:AdjustNonCombatSettings(fps)
+                        return
                     end
-
-                    -- If most of the restoration time was spent below the target FPS, also bump the FSR counter
-                    if restoreDuration > 0 and belowTargetFpsDuration >= restoreDuration * 0.8 then
-                        fsrCounter = fsrCounter + 1
-                        DebugLog("FPS below target for more than 80% of restoration, FSR counter increased to: " .. fsrCounter)
-                    end
-
-                    self:AdjustNonCombatSettings(fps)
-                    return
+                else
+                    belowTargetFpsCounter = 0
                 end
             end
 
-            -- Once FPS has been stable long enough, move one step toward the highest view distance
+            -- Continue restoring one level per step until the performance limit is confirmed
             -- (we no longer log each individual step to reduce log spam)
-            if stableFpsCounter >= 3 then
-                restoreIndex = restoreIndex - 1
-                SetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_VIEW_DISTANCE, AdaptiveSettings.viewDistanceLevels[restoreIndex])
-                currentIndex.VIEW_DISTANCE = restoreIndex
-                stableFpsCounter = 0
-            end
+            restoreIndex = restoreIndex - 1
+            SetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_VIEW_DISTANCE, AdaptiveSettings.viewDistanceLevels[restoreIndex])
+            currentIndex.VIEW_DISTANCE = restoreIndex
+            hasRestoredAnyStep = true
 
             zo_callLater(StepRestore, stepDelayMs)
         else
@@ -2161,6 +2727,10 @@ end
 -- Main adjustment logic (non-combat) - lower/raise graphics outside combat
 ------------------------------------------------------------
 function UserSettingsModifier:AdjustNonCombatSettings(fps)
+    if IsRapoPaused() then
+        return
+    end
+
     -- Keep internal indices consistent with actual game settings
     self:SyncCurrentIndicesFromGame()
 
@@ -2262,6 +2832,10 @@ end
 -- Main adjustment logic (combat) - enforce minimum view distance and tune FX
 ------------------------------------------------------------
 function UserSettingsModifier:AdjustCombatSettings(fps)
+    if IsRapoPaused() then
+        return
+    end
+
     -- Keep internal indices consistent with actual game settings
     self:SyncCurrentIndicesFromGame()
 
@@ -2363,6 +2937,23 @@ function UserSettingsModifier:HandleCombatEnd()
 end
 
 ------------------------------------------------------------
+-- External pause reconciliation - event driven with runtime read-back fallback
+------------------------------------------------------------
+function UserSettingsModifier:ReconcileExternalPauseReasons()
+    if IsPlayerActivated then
+        self:SetPauseReason("loading", not IsPlayerActivated())
+    end
+
+    if IsGameCameraUIModeActive then
+        self:SetPauseReason("ui", IsGameCameraUIModeActive())
+    end
+
+    if DoesGameHaveFocus then
+        self:SetPauseReason("unfocused", not DoesGameHaveFocus())
+    end
+end
+
+------------------------------------------------------------
 -- Monitoring loop - FPS sampling, power saving check, route to adjustors
 ------------------------------------------------------------
 function UserSettingsModifier:StartMonitoring()
@@ -2380,6 +2971,7 @@ function UserSettingsModifier:StartMonitoring()
     -- Listen for combat state changes
     EVENT_MANAGER:RegisterForEvent(self.name .. "CombatStateChange", EVENT_PLAYER_COMBAT_STATE, function(_, inCombat)
         self:FlushStatsToNow()
+        energyDiag.contextSerial = energyDiag.contextSerial + 1
         DebugLog("Combat state change, inCombat: " .. tostring(inCombat))
         combatEnded = not inCombat
 
@@ -2392,32 +2984,28 @@ function UserSettingsModifier:StartMonitoring()
 
     -- Main FPS monitoring loop
     EVENT_MANAGER:RegisterForUpdate(self.name .. "FPS", checkInterval, function()
+        local now = GetGameTimeMilliseconds()
         self:FlushStatsToNow()
+
+        -- Events remain the immediate path, while read-back prevents a missed
+        -- exit event from leaving an external pause reason stuck forever.
+        self:ReconcileExternalPauseReasons()
 
         -- External pause states fully suspend automatic tuning and FPS sampling.
         if IsRapoPausedForExternalState() then
+            self:CancelPowerSavingProbe()
+            if powerSavingDetector.state == "active" then
+                powerSavingDetector.exitMisses = 0
+            end
             return
         end
 
         local rawFps = GetFramerate()
         UpdatePlayerActivity()
 
-        -- ESO power saving mode detection & notifications. This uses raw FPS so tuning samples stay clean.
-        local wasPowerSaving = isPowerSavingModeActive
-        local inPowerSaving = self:IsInPowerSavingMode(rawFps)
-
-        if inPowerSaving ~= wasPowerSaving then
-            isPowerSavingModeActive = inPowerSaving
-            self:SetPauseReason("powerSaving", inPowerSaving)
-
-            if inPowerSaving then
-                d("[RAPO] Entering ESO energy saving mode: auto-tuning suspended.")
-                DebugLog("ESO energy saving mode detected (idle & ~30 FPS), auto-tuning suspended")
-            else
-                d("[RAPO] Leaving ESO energy saving mode: auto-tuning resumed.")
-                DebugLog("ESO energy saving mode ended, auto-tuning resumed")
-            end
-        end
+        -- Keep energy-saving samples separate from the tuning FPS buffer.
+        self:UpdatePowerSavingState(rawFps)
+        energyDiag.lastMainTickTime = now
 
         if IsRapoPaused() then
             return
@@ -2467,6 +3055,8 @@ function UserSettingsModifier:RegisterPauseEvents()
     EVENT_MANAGER:RegisterForEvent(self.name .. "PauseFocus", EVENT_GAME_FOCUS_CHANGED, function(_, hasFocus)
         self:SetPauseReason("unfocused", not hasFocus)
     end)
+
+    self:ReconcileExternalPauseReasons()
 end
 
 ------------------------------------------------------------
@@ -2486,6 +3076,11 @@ function UserSettingsModifier:OnLoad(event, addonName)
                 active = "45fps",
                 pending = nil,
             },
+            fsrEnergyDiagnostics = {
+                schemaVersion = 1,
+                nextId = 1,
+                reports = {},
+            },
         })
     end
 
@@ -2495,6 +3090,7 @@ function UserSettingsModifier:OnLoad(event, addonName)
         active = "45fps",
         pending = nil,
     }
+    self:GetEnergyDiagnosticStore()
 
     if not ResolvePerformanceProfile(RAPO_SavedVariables.modes.active) then
         RAPO_SavedVariables.modes.active = "45fps"
@@ -2513,11 +3109,19 @@ function UserSettingsModifier:OnLoad(event, addonName)
 
     addonLoadTime = GetGameTimeMilliseconds()
     lastActivityTime = addonLoadTime
+    energyDiag.lastActivityReason = "addon-load"
 
     -- Initialize lastKnownFsrValue from current CVar at load time
     local initialFsr = GetSetting(SETTING_TYPE_GRAPHICS, GRAPHICS_SETTING_FSR_MODE)
     if initialFsr and initialFsr ~= "" then
         lastKnownFsrValue = initialFsr
+    end
+    energyDiag.enabled = true
+    energyDiag.observerStarted = false
+    self:ResetEnergyDiagnostic(initialFsr)
+    local observerOk, observerError = pcall(self.StartEnergyDiagnosticObserver, self)
+    if not observerOk then
+        self:DisableEnergyDiagnostic("startup", observerError)
     end
 
     DebugLog(string.format("Active performance mode loaded: %s", activePerformanceModeName))
@@ -2550,8 +3154,170 @@ EVENT_MANAGER:RegisterForEvent(UserSettingsModifier.name, EVENT_ADD_ON_LOADED, f
     UserSettingsModifier:OnLoad(event, addonName)
 end)
 
+function UserSettingsModifier:OutputEnergyDiagnostics(arguments)
+    local store = self:GetEnergyDiagnosticStore()
+    if not store then
+        d("[RAPO][Diag] SavedVariables are not ready.")
+        return
+    end
+
+    arguments = (arguments or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    local command, value = arguments:match("^(%S+)%s*(.-)$")
+    command = command and command:lower() or ""
+
+    if command == "" then
+        local phase = "waiting"
+        if energyDiag.enabled and energyDiag.observerStarted then
+            phase = "watching"
+            if energyDiag.pending then
+                local now = GetGameTimeMilliseconds()
+                if not energyDiag.pending.confirmedAt then
+                    phase = "readback"
+                else
+                    phase = now < energyDiag.pending.settleEnd and "settling" or "post"
+                end
+            end
+        elseif not energyDiag.enabled then
+            phase = "disabled"
+        end
+
+        local latest = store.reports[#store.reports]
+        local latestText = latest and string.format(
+            "#%s %s %s",
+            self:FormatEnergyDiagnosticId(latest.id, store),
+            tostring(latest.stamp or "unknown"),
+            tostring(latest.confidence or "unknown")
+        ) or "none"
+
+        d(string.format(
+            "[RAPO][Diag] watcher=%s phase=%s saved=%d latest=%s; use list [page], show <id>, clear <id|all>.",
+            tostring(energyDiag.enabled and energyDiag.observerStarted),
+            phase,
+            #store.reports,
+            latestText
+        ))
+        return
+    end
+
+    if command == "list" then
+        if #store.reports == 0 then
+            d("[RAPO][Diag] saved=0")
+            return
+        end
+
+        local page = tonumber(value) or 1
+        local totalPages = math.ceil(#store.reports / energyDiagConfig.listPageSize)
+        if page < 1 or page > totalPages or page ~= math.floor(page) then
+            d(string.format("[RAPO][Diag] page %s out of range (1-%d).", tostring(value), totalPages))
+            return
+        end
+
+        d(string.format("[RAPO][Diag] page %d/%d, newest first:", page, totalPages))
+        local first = #store.reports - ((page - 1) * energyDiagConfig.listPageSize)
+        local last = math.max(1, first - energyDiagConfig.listPageSize + 1)
+        for index = first, last, -1 do
+            local report = store.reports[index]
+            d(string.format(
+                "#%s | %s",
+                self:FormatEnergyDiagnosticId(report.id, store),
+                tostring(report.stamp or "unknown")
+            ))
+        end
+        return
+    end
+
+    if command == "show" then
+        local report = self:FindEnergyDiagnosticReport(value)
+        if not report then
+            d("[RAPO][Diag] Unknown report id. Use /rapo diag list first.")
+            return
+        end
+
+        local reportId = self:FormatEnergyDiagnosticId(report.id, store)
+        d(string.format(
+            "[RAPO][Diag #%s] %s status=%s confidence=%s mode=%s events=%d",
+            reportId,
+            tostring(report.stamp),
+            tostring(report.status),
+            tostring(report.confidence),
+            tostring(report.mode),
+            #report.events
+        ))
+
+        for sequence, event in ipairs(report.events) do
+            local fromName = fsrModeNameMap[event.fromCode] or event.fromCode
+            local toName = fsrModeNameMap[event.toCode] or event.toCode
+            local gain = (event.postAverage or 0) - (event.preAverage or 0)
+            local switch = event.switch or {}
+            local after = event.after or {}
+            local switchMainAge = (switch.mainTickAgeMs or -1) >= 0
+                and string.format("%.1fs", switch.mainTickAgeMs / 1000) or "never"
+            local afterMainAge = (after.mainTickAgeMs or -1) >= 0
+                and string.format("%.1fs", after.mainTickAgeMs / 1000) or "never"
+            d(string.format(
+                "[RAPO][Diag #%s.%d] %s>%s pre=%.2f[%d/%d] post=%.2f[%d/%d] gain=%+.2f idle=%.1f>%.1fs activity=%s>%s main=%s>%s detector=%s:%d/%d/%s>%s:%d/%d/%s flags=%s>%s",
+                reportId,
+                sequence,
+                tostring(fromName),
+                tostring(toName),
+                event.preAverage or 0,
+                event.preHits or 0,
+                event.preSamples or 0,
+                event.postAverage or 0,
+                event.postHits or 0,
+                event.postSamples or 0,
+                gain,
+                (switch.idleAgeMs or 0) / 1000,
+                (after.idleAgeMs or 0) / 1000,
+                tostring(switch.activityReason or "unknown"),
+                tostring(after.activityReason or "unknown"),
+                switchMainAge,
+                afterMainAge,
+                tostring(switch.detectorState or "unknown"),
+                switch.probeHits or 0,
+                switch.probeTicks or 0,
+                tostring(switch.activeFlag),
+                tostring(after.detectorState or "unknown"),
+                after.probeHits or 0,
+                after.probeTicks or 0,
+                tostring(after.activeFlag),
+                tostring(switch.pauseFlags or "??????"),
+                tostring(after.pauseFlags or "??????")
+            ))
+        end
+        return
+    end
+
+    if command == "clear" then
+        if value == "all" then
+            store.reports = {}
+            energyDiag.chain = nil
+            d("[RAPO][Diag] All saved reports cleared.")
+            return
+        end
+
+        local report, index = self:FindEnergyDiagnosticReport(value)
+        if not report then
+            d("[RAPO][Diag] Unknown report id. Use /rapo diag list first.")
+            return
+        end
+
+        table.remove(store.reports, index)
+        if energyDiag.chain and energyDiag.chain.reportId == report.id then
+            energyDiag.chain = nil
+        end
+        d(string.format(
+            "[RAPO][Diag] Report #%s cleared.",
+            self:FormatEnergyDiagnosticId(report.id, store)
+        ))
+        return
+    end
+
+    d("[RAPO][Diag] Usage: /rapo diag | list [page] | show <id> | clear <id|all>")
+end
+
 local function OutputRapoUsage()
-    d("[RAPO] Usage: /rapo stats | /rapo debug | /rapo mode [name] | /rapo confirm | /rapo cancel")
+    d("[RAPO] Usage: /rapo stats | /rapo debug | /rapo diag [list/show/clear] | /rapo mode [name] | /rapo confirm | /rapo cancel")
 end
 
 local function ToggleDebugLogging()
@@ -2662,6 +3428,11 @@ SLASH_COMMANDS["/rapo"] = function(arg)
 
     if command == "debug" then
         ToggleDebugLogging()
+        return
+    end
+
+    if command == "diag" then
+        UserSettingsModifier:OutputEnergyDiagnostics(rest)
         return
     end
 

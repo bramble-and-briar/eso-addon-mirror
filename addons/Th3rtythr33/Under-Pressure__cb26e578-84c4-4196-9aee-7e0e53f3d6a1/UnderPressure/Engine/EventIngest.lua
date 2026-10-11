@@ -289,12 +289,11 @@ local function onPlayerDead(eventCode)
     -- Effects clear on death, but FADED events for them are not guaranteed to
     -- arrive. Clearing explicitly means the ring cannot survive a death.
     if UP.Silence and UP.Silence.Clear then UP.Silence.Clear() end
-    -- Same for the plague tint. SetDead first so a FADED that does arrive is
-    -- read as death, not as an early removal; Clear keeps any pending report.
-    if UP.Plague then
-        if UP.Plague.SetDead then UP.Plague.SetDead(true) end
-        if UP.Plague.Clear then UP.Plague.Clear() end
-    end
+    -- Plague: death may itself be the trigger (see PlagueTracker's DEATH
+    -- note), so this opens a death-cause report that prints only if explosion
+    -- hits follow, and drops the tint. A FADED arriving after this is read as
+    -- the death, not as a cleanse.
+    if UP.Plague and UP.Plague.OnDeath then UP.Plague.OnDeath(now()) end
     -- Stop the 10 Hz tick from doing any work while dead. Health reads 0 the
     -- whole time, so left running it would just recompute TTD=0 (RED_THREE)
     -- every 100ms for no one to see -- the indicator is already hidden by
@@ -328,7 +327,8 @@ local function onPlayerAlive(eventCode)
     -- they resurrect with, for as long as that window has left to run.
     if UP.Engine and UP.Engine.Reset then UP.Engine.Reset() end
     if UP.Engine and UP.Engine.SetDead then UP.Engine.SetDead(false) end
-    if UP.Plague and UP.Plague.SetDead then UP.Plague.SetDead(false) end
+    -- Ends the plague tint's death hold (0.4.2) and clears the dead flag.
+    if UP.Plague and UP.Plague.OnAlive then UP.Plague.OnAlive() end
 
     -- EVENT_PLAYER_COMBAT_STATE only fires on a CHANGE (see the load-time
     -- seeding in UnderPressure.lua for the same reasoning). Re-querying here

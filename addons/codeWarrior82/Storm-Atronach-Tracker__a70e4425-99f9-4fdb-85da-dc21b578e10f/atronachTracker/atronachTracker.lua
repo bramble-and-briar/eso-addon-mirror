@@ -11,11 +11,18 @@ local iconText = zo_iconTextFormat(picPath, 80, 80, " ")
 local isLoaded = false
 local isMenuOpen = false
 local isTracking = false
+--storm atro hotbar skill ids
+local atroBase = 23634
+local atroGreat = 23492
+local atroSummon = 23495
+local isEquiped = false
+local ultimateSlot = 8
 
 atronachTracker = {}
 
 atronachTracker.defaults = {
     trackAtro = true,
+    autoTrack = true,
 	notifyStart = true,
     yAxisText = 930,
     xAxisText = 1300
@@ -50,7 +57,9 @@ end
 --when UI closes
 local function onMenuClosed()
 	isMenuOpen = false
-    if atronachTracker.savedVariables.trackAtro then
+    if atronachTracker.savedVariables.trackAtro and isEquiped and atronachTracker.savedVariables.autoTrack then
+        satrack:SetHidden(false)
+    elseif atronachTracker.savedVariables.trackAtro and not atronachTracker.savedVariables.autoTrack then
         satrack:SetHidden(false)
     end
 end
@@ -206,6 +215,18 @@ local function createOptions()
             default = atronachTracker.defaults.trackAtro,
         },
         {
+            type = "checkbox",
+            name = "Auto Track",
+            tooltip = "The Add-on will automatically detect if you have the correct Ultimate ability equipped and enable/disable tracking.\nFor auto track to work the tracking option above must be enabled.",
+            getFunc = function()
+                return atronachTracker.savedVariables.autoTrack
+            end,
+            setFunc = function(value)
+                atronachTracker.savedVariables.autoTrack = value
+            end,
+            default = atronachTracker.defaults.autoTrack,
+        },
+        {
             type = "slider",
             name = "Icon and Text x Position",
             tooltip = "Adjust the left and right position of the on screen icon and timer text.",
@@ -256,6 +277,52 @@ local function createOptions()
     LAM:RegisterOptionControls("Storm Atronach Tracker", optionsData)
 end
 
+--stop tracking if set is not equipped
+local function stopTrackingAuto()
+
+    if atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack then
+        printMessage("Atronach Ultimate not found")
+        unRegisterAlerts()
+        satrack:SetHidden(true)
+    end
+end
+
+--start tracking if set is not equipped
+local function startTrackingAuto()
+    if atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack then
+        printMessage("Found Atronach Ultimate")
+        registerAlerts()
+    end
+end
+
+--check if skill is equipped
+local function checkSkills()
+    --hotbarCategory = HOTBAR_CATEGORY_PRIMARY / HOTBAR_CATEGORY_BACKUP
+    --index is 1 and 2 are heavy attack and bash, 3 through 7 are skills, 8 is ulti
+
+    --read front and back bar ulti slots
+    local slottedAbilityIdFront = GetSlotBoundId(ultimateSlot, HOTBAR_CATEGORY_PRIMARY)
+    local slottedAbilityIdBack = GetSlotBoundId(ultimateSlot, HOTBAR_CATEGORY_BACKUP)
+
+    --printMessage("skill id front - " .. tostring(slottedAbilityIdFront))
+    --printMessage("skill id back - " .. tostring(slottedAbilityIdBack))
+
+    --determine if ability is slotted on front or back bar
+    if slottedAbilityIdFront == atroBase or slottedAbilityIdBack == atroBase then
+        isEquiped = true
+        return true
+    elseif slottedAbilityIdFront == atroGreat or slottedAbilityIdBack == atroGreat then
+        isEquiped = true
+        return true
+    elseif slottedAbilityIdFront == atroSummon or slottedAbilityIdBack == atroSummon then
+        isEquiped = true
+        return true
+    else
+        isEquiped = false
+        return false
+    end
+end
+
 --an addon has loaded
 local function onAddOnLoaded(event, name)
 
@@ -267,22 +334,29 @@ local function onAddOnLoaded(event, name)
     --unregister for notifications of add-on loaded
     EVENT_MANAGER:UnregisterForEvent(appName, EVENT_ADD_ON_LOADED)
 
+    --load saved variables
+    atronachTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("atAddonVars", 1, "Settings", atronachTracker.defaults, GetUnitName("player"))
+
+    --setup add on menu options
+    createOptions()
+
 	--notify about new library
 	if not isLibAvailable() then
 		zo_callLater(function() printMessage("add-on Disabled") printMessage("Please install LibNotify from the browse add-ons menu") end, 500)
 		return
-	else
+    elseif isLibAvailable() and atronachTracker.savedVariables.trackAtro then
 		--notify that add-on has been loaded
 		zo_callLater(function() printMessage("add-on loaded") end, 500)
 	end
 
-	--load saved variables
-    atronachTracker.savedVariables = ZO_SavedVars:NewCharacterIdSettings("atAddonVars", 1, "Settings", atronachTracker.defaults, GetUnitName("player"))
-
-	--notify if tracking is disabled
-	if not atronachTracker.savedVariables.trackAtro then
-		zo_callLater(function() printMessage("tracking disabled") end, 600)
-	end
+    --check if set is equipped
+    if not checkSkills() and atronachTracker.savedVariables.autoTrack and atronachTracker.savedVariables.trackAtro then
+        --notify set not found
+        zo_callLater(function() printMessage("Atronach Ultimate not found") end, 600)
+    elseif checkSkills() and atronachTracker.savedVariables.autoTrack and atronachTracker.savedVariables.trackAtro then
+        --notify set found
+        zo_callLater(function() printMessage("Found Atronach Ultimate") end, 600)
+    end
 
     --setup text field areas
     satrack:SetMovable(true)
@@ -298,18 +372,27 @@ local function onAddOnLoaded(event, name)
     setAnchorStartupIcon(atronachTracker.savedVariables.xAxisText, atronachTracker.savedVariables.yAxisText)
 
     --register for combat alerts if tracking is enabled
-    if atronachTracker.savedVariables.trackAtro then
+    if atronachTracker.savedVariables.trackAtro and not atronachTracker.savedVariables.autoTrack then
         registerAlerts()
         satrack:SetHidden(false)
-    else
+    elseif atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack and isEquiped then
+        registerAlerts()
+        satrack:SetHidden(false)
+    elseif atronachTracker.savedVariables.trackAtro and atronachTracker.savedVariables.autoTrack and not isEquiped then
+        satrack:SetHidden(true)
+    elseif not atronachTracker.savedVariables.trackAtro then
         satrack:SetHidden(true)
     end
 
     --register for notifications of menu or map opening
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", onSceneStateChange)
 
-    --setup add on menu options
-    createOptions()
+    --register for a callback when a skill is change, removed or updated, then check for relevent ulti
+    ACTION_BAR_ASSIGNMENT_MANAGER:RegisterCallback("SlotUpdated", function(actionSlotIndex, hotbarCategory, isChangedByPlayer)
+        if isChangedByPlayer then
+            zo_callLater(function () if checkSkills() then startTrackingAuto() else stopTrackingAuto() end end, 200)
+        end
+    end)
 
     --set is loaded boolean for use later, to stop scene change hiding tracker icon at first load in
     zo_callLater(function () isLoaded = true end, 2000)

@@ -8,6 +8,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | --- | --- | --- | --- |
 | [P11's Slash Hotkeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/P11-s-Slash-Hotkeys__4747) | Phobus11 | PC / Mac | 102 |
 | [PacketByte Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/packetloss404/PacketByte-Exporter__96620ecb-ccf7-4298-9215-636f4075695b) | packetloss404 | Console | — |
+| [Pact Watch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Pact-Watch__f6ca400d-2787-4c8a-91db-e78125233eb1) | TheGreyWolf98 | Console | — |
 | [PadMerchant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mcdonnelldean/PadMerchant__1616) | mcdonnelldean | PC / Mac | 2.0 |
 | [PadUI Reload](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ckau/PadUI-Reload__1596) | Ckau | PC / Mac | 2.3.3 |
 | [PairsWellWithCheese](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saranicole1980/PairsWellWithCheese__b57202fe-9b3a-4021-ad86-f2db8dfe0c5e) | saranicole1980 | Console | — |
@@ -47,7 +48,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PeacefulCombat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zetheras/PeacefulCombat__3071) | zetheras | PC / Mac | 1.01 |
 | [PearlsTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/PearlsTracker__3523) | m00nyONE | PC / Mac | 1.1.0 |
 | [PenTest (Critical)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/PenTest-Critical__1933) | Solinur | PC / Mac | 27 |
-| [Per-Character Mount Randomizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Chin/Per-Character-Mount-Randomizer__66e37433-eec7-410c-8d64-001233195f18) | -Chin | Console | — |
 | [Perfect Pixel - Journal Quest Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FoG/Perfect-Pixel---Journal-Quest-Log__3662) | FoG | PC / Mac | 1.0.0 |
 | [Perfect Rockgrove](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Perfect-Rockgrove__3238) | buldezir | PC / Mac | 1.0.7 |
 | [Perfect Weave](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Perfect-Weave__2918) | andy.s | PC / Mac | 0.8 |
@@ -72,7 +72,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pet Health Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ace-r/Pet-Health-Bars__2246) | Ace'r | PC / Mac | 1.1 |
 | [PetKennel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ziggr/PetKennel__2428) | ziggr | PC / Mac | 5.1.5 |
 | [PetZone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Brotanks/PetZone__2415) | Brotanks | PC / Mac | 3.3 |
-| [PetZone (Fix:Season One)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/PetZone-Fix-Season-One__4829) | sshogrin | PC / Mac | 3.4 |
+| [PetZone (Fix:Season One)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/PetZone-Fix-Season-One__4829) | sshogrin | PC / Mac | 3.5.0 |
 | [PhaeroX Container Magic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PhaeroX/PhaeroX-Container-Magic__2003) | PhaeroX | PC / Mac | 1.0.5 |
 | [PhaeroX Friends](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PhaeroX/PhaeroX-Friends__2285) | PhaeroX | PC / Mac | 1.0.4 |
 | [PhaeroX Info Panel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PhaeroX/PhaeroX-Info-Panel__1656) | PhaeroX | PC / Mac | 1.0.17 |

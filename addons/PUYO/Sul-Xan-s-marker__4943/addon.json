@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/PUYO/Sul-Xan-s-marker__4943",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PUYO",
+  "canonical_id": "esoui:4943",
+  "category_id": "22",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4943",
+  "deleted": false,
+  "directories": [
+    "SulXansMarker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4943/",
+  "fingerprint": "1bfd600a8314ccac1079cce713a7ee3b2d910d95ef7904eb983f20f45f6d3a72",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17933.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4943",
+  "source_url": "https://www.esoui.com/downloads/info4943-Sul-Xansmarker.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Sul-Xan's marker",
+  "updated_at": 1791715893000,
+  "version": "1.22"
+}

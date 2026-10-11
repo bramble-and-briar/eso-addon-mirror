@@ -18,7 +18,7 @@
     "InsatiableHungerBlocker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4628/",
-  "fingerprint": "68a25a0ceddc1be79883cb23e4f23aa6a58ebf1d6c17b787561693d45e5db948",
+  "fingerprint": "bfe5acd346d2c1297a8bba9f82931383bb16fda7d0bb2ae4c72d445ce1082625",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16290.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4628",
   "source_url": "https://www.esoui.com/downloads/info4628-InsatiableHungerBlocker.html",
   "stats": {
-    "downloads": 691,
+    "downloads": 878,
     "favorites": 0,
-    "monthly_downloads": 252
+    "monthly_downloads": 76
   },
   "title": "Insatiable Hunger Blocker",
-  "updated_at": 1786997005000,
-  "version": "1.13"
+  "updated_at": 1791660780000,
+  "version": "1.14"
 }

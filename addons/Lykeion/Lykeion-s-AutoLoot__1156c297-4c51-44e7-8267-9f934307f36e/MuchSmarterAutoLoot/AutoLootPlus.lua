@@ -1,7 +1,7 @@
 MuchSmarterAutoLoot = MuchSmarterAutoLoot or {}
 local MSAL = MuchSmarterAutoLoot
-MSAL.version = "8.3.8"
-MSAL.addonVersion = 80308
+MSAL.version = "8.3.9"
+MSAL.addonVersion = 80309
 MSAL.author = "Lykeion"
 
 local MSAL_NEVER_3RD_PARTY_WARNING = "msal_never_3rd_party_warning"
@@ -50,6 +50,7 @@ local disposeLogLines = {}
 local currentNotLootedNameList = {}
 local lastNotLootedNameList = {}
 local unwantedNameList = {}
+local lootHandledNameList = {}
 local unwantedLootIdList = {}
 local autoDeconStation = nil
 local autoDeconScanned = false
@@ -60,6 +61,9 @@ local chatlogFlushEpoch = 0
 local nonLootDisposedBuffer = {}
 local nonLootReceivedBuffer = {}
 local nonLootFlushEpoch = 0
+local disposeLogFlushPending = false
+local isDisposedUpdateListening = false
+local disposeListenerEpoch = 0
 local lootWindowShortcutButton
 local TSCApi = nil
 
@@ -228,7 +232,7 @@ end
 
 local function OpenSettingsPanel()
     if ZO_IsConsoleOrGameCoreUI() then
-        -- do nothing, since LAM2 is not supported on console
+        -- do nothing, since LAM2 shortcut is not supported on console
     else
         LAM2:OpenToPanel(MSAL.SettingsPanel)
     end
@@ -269,13 +273,6 @@ local function FlushChatlogBuffer()
     chatlogBuffer = {}
 end
 
-local function addDisposeLog(action, entry)
-    if not disposeLogLines[action] then
-        disposeLogLines[action] = {}
-    end
-    table.insert(disposeLogLines[action], entry)
-end
-
 local function ChatboxLog(str)
     table.insert(chatlogBuffer, str)
     chatlogFlushEpoch = chatlogFlushEpoch + 1
@@ -286,6 +283,55 @@ local function ChatboxLog(str)
             FlushChatlogBuffer()
         end
     end, GetLatency())
+end
+
+local function FlushDisposeLogLines()
+    if next(disposeLogLines) == nil then
+        return
+    end
+    local parts = {}
+    for action, lines in pairs(disposeLogLines) do
+        local logParts, quantity = {}, {}
+        for _, line in ipairs(lines) do
+            quantity[line] = (quantity[line] or 0) + 1
+        end
+        for _, line in ipairs(lines) do
+            if quantity[line] then
+                if quantity[line] > 1 then
+                    table.insert(logParts, line .. " * " .. quantity[line])
+                else
+                    table.insert(logParts, line)
+                end
+                quantity[line] = nil
+            end
+        end
+        if action ~= "" then
+            table.insert(parts, action .. GetString(MSAL_SPACE) .. table.concat(logParts, GetString(SI_LIST_COMMA_SEPARATOR)))
+        else
+            table.insert(parts, table.concat(logParts, GetString(SI_LIST_COMMA_SEPARATOR)))
+        end
+    end
+    ChatboxLog(table.concat(parts, GetString(SI_LIST_PERIOD_SEPARATOR)))
+    disposeLogLines = {}
+end
+
+local function scheduleDisposeLogFlush()
+    if disposeLogFlushPending then
+        return
+    end
+    disposeLogFlushPending = true
+    zo_callLater(function()
+        disposeLogFlushPending = false
+        FlushDisposeLogLines()
+    end, GetLatency() + 200)
+end
+
+local function addDisposeLog(action, entry)
+    if not disposeLogLines[action] then
+        disposeLogLines[action] = {}
+    end
+    table.insert(disposeLogLines[action], entry)
+    scheduleDisposeLogFlush()
 end
 
 local function FlushNonLootBuffer()
@@ -877,10 +923,22 @@ local function OnInventoryUpdate(_, bagId, slotId, _, _, _, _)
         end
     end
 
+    -- the current loot pass already logged every item it took; let it own those
+    local handledByLootDisposer = false
+    if isDisposedUpdateListening then
+        local itemName = string.lower(GetItemName(bagId, slotId))
+        for i = 1, #lootHandledNameList do
+            if lootHandledNameList[i] == itemName then
+                handledByLootDisposer = true
+                break
+            end
+        end
+    end
+
     if not itemOnList(link, WLIST_JUNK_TOKEN) and
         not itemOnList(link, WLIST_TOKEN) and
         not db.legacyMode and (isWritsRewardContainerLooting or not IsLootActive()) and
-        not isCrafted
+        not isCrafted and not handledByLootDisposer
         -- and GetItemCreatorName(bagId, slotId) == GetUnitName("player")
             then
         local wouldNotLoot = isWritsRewardContainerLooting and itemOnList(link, BLIST_TOKEN)
@@ -1468,6 +1526,13 @@ local function ShouldLootIntricate(filterType, link, quality, isJewelry)
     return false
 end
 
+-- unopened antiquity leads carry no distinct item type, so they are recognised by their name
+local function IsUnopenedAntiquityLead(link)
+    local tag = GetString(SI_ANTIQUITY_LEAD_TOOLTIP_TAG)
+    -- an empty tag would make find match every name
+    return tag ~= "" and string.find(string.lower(GetItemLinkName(link)), string.lower(tag), 1, true) ~= nil
+end
+
 local function ShouldLootUnopened(filterType, link)
     if (filterType == "always loot") then
         return true
@@ -1479,6 +1544,9 @@ local function ShouldLootUnopened(filterType, link)
         local itemType = GetItemLinkItemType(link)
         local itemId = GetItemLinkItemId(link)
 
+        if (IsUnopenedAntiquityLead(link) and db.filters.antiquityLeads == "always loot") then
+            return true
+        end
         if (ArrayHasItem(unknownSurveyIds, itemId) and db.filters.survey == "always loot") then
             return true
         end
@@ -2045,7 +2113,7 @@ function MSAL.FilterItem(link, isQuest, lootType)
         if ShouldLootUnopened(db.filters.unopened, link) then
             return "unopened", "unopened container"
         end
-    elseif itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT then
+    elseif itemType == ITEMTYPE_CRAFTED_ABILITY or itemType == ITEMTYPE_CRAFTED_ABILITY_SCRIPT then
         if ShouldLootNormal(db.filters.scribing, itemType) then
             return "scribing", "crafted ability script"
         end
@@ -2203,7 +2271,6 @@ end
 
 local function OnLootUpdated()
     chatlogSuffix = nil
-    disposeLogLines = {}
     if (db.enabled == false) then
         return
     end
@@ -2379,6 +2446,7 @@ local function OnLootUpdated()
             end
         end
 
+        table.insert(lootHandledNameList, string.lower(name))
         if lootedAs then
             if quality >= db.printLootThreshold and not deferTreasureLog then
                 if lootedAs == "stackable junk" or lootedAs == "on whitelist junk" then
@@ -2488,36 +2556,17 @@ local function OnLootUpdated()
             REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
         EVENT_MANAGER:AddFilterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
             REGISTER_FILTER_INVENTORY_UPDATE_REASON, INVENTORY_UPDATE_REASON_DEFAULT)
+        isDisposedUpdateListening = true
+        disposeListenerEpoch = disposeListenerEpoch + 1
+        local listenerEpoch = disposeListenerEpoch
         zo_callLater(function()
-            EVENT_MANAGER:UnregisterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-            -- can't use # here since it's a dictionary D:
-            if next(disposeLogLines) ~= nil then
-                local parts = {}
-                for action, lines in pairs(disposeLogLines) do
-                    local logParts, quantity = {}, {}
-                    for _, line in ipairs(lines) do
-                        quantity[line] = (quantity[line] or 0) + 1
-                    end
-                    for _, line in ipairs(lines) do
-                        if quantity[line] then
-                            if quantity[line] > 1 then
-                                table.insert(logParts, line .. " * " .. quantity[line])
-                            else
-                                table.insert(logParts, line)
-                            end
-                            quantity[line] = nil
-                        end
-                    end
-                    if action ~= "" then
-                        table.insert(parts, action .. GetString(MSAL_SPACE) ..
-                            table.concat(logParts, GetString(SI_LIST_COMMA_SEPARATOR)))
-                    else
-                        table.insert(parts, table.concat(logParts, GetString(SI_LIST_COMMA_SEPARATOR)))
-                    end
-                end
-                ChatboxLog(table.concat(parts, GetString(SI_LIST_PERIOD_SEPARATOR)))
-                disposeLogLines = {}
+            -- a later loot re-arms the listener, so an old timer must not take it down
+            if disposeListenerEpoch ~= listenerEpoch then
+                return
             end
+            EVENT_MANAGER:UnregisterForEvent("MSAL_DISPOSED_UPDATE", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+            isDisposedUpdateListening = false
+            lootHandledNameList = {}
         end, GetLatency() + 200)
 
         EVENT_MANAGER:UnregisterForEvent("MSAL_LOOT_UPDATED", EVENT_LOOT_UPDATED)
@@ -4676,7 +4725,7 @@ function MSAL.testProcess(itemlinks)
             if filterKey then
                 verdict = "filter: " .. filterKey .. " (" .. filterCategory .. ")"
             else
-                verdict = "未命中"
+                verdict = "missed"
             end
         end
 

@@ -1,0 +1,28 @@
+## Title: Build Advisor
+## Description: Examines your gear, stats, mundus and champion points and recommends changes for your role and activity
+## Author: yodased
+## Version: 0.1.6
+## AddOnVersion: 5
+## APIVersion: 101050 101051
+## ConsoleDependsOn: LibConsoleMenu
+## SavedVariables: BuildAdvisorSaved
+
+Core.lua
+Data/Builds.lua
+Data/GearSources.lua
+Data/Activities.lua
+Data/Targets/Common.lua
+Data/Targets/Solo.lua
+Data/Targets/FourManPug.lua
+Data/Targets/FourManOrganized.lua
+Data/Targets/FourManTrifecta.lua
+Data/Targets/TwelveManPug.lua
+Data/Targets/TwelveManOrganized.lua
+Data/Targets/TwelveManScore.lua
+Data/Targets/PvP.lua
+Data/Tags.lua
+Systems/CharacterScanner.lua
+Systems/GearTracker.lua
+Systems/Advisor.lua
+UI/Popup.lua
+UI/Menu.lua

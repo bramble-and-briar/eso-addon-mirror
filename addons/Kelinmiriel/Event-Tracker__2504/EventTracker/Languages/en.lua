@@ -77,9 +77,10 @@ local strings = {
 --	EVT_EVENT_INFO_JESTER = "March 26-April 2, 2020 (24 tickets). Collect all 3 tickets once per day per account from turning in your first Jester's daily quest.",
 
 -- 7/24-31/24; 7/21-28/25
-	PTS_EVENT_INFO_WITCHES = "PTS: July 21-28; Live: October, 2025. 2 tickets, once/day/acct: Delve, world, archive, event or pub dungeon boss; FINAL boss of dark fissure, incursion, dungeon, arena, or trial. PASSIVE DOUBLE XP!!",
+	PTS_EVENT_INFO_WITCHES = "PTS: July 21-28, 2025 (none in 2026); Live: October, 2025. 2 tickets, once/day/acct: Delve, world, archive, event or pub dungeon boss; FINAL boss of dark fissure, incursion, dungeon, arena, or trial. PASSIVE DOUBLE XP!!",
 --	PTS_EVENT_INFO_WITCHES = "PTS: July 21-28; Live: October, 2025. 2 tickets, once/day/acct: World or pub dungeon boss; FINAL boss of delve, dark fissure, dolmen/dragon/etc, dungeon, arena, or trial. DOUBLE XP PASSIVE NOW!!",
-	EVT_EVENT_INFO_WITCHES = "Oct. 23-Nov. 5, 2025. 2 tickets, once/day/acct: Delve, world, archive, event or pub dungeon boss; FINAL boss of dark fissure, incursion, dungeon, arena, or trial. PASSIVE DOUBLE XP!!",
+	EVT_EVENT_INFO_WITCHES = "Oct. 21-Nov. 4, 2026. 300 trade bars, once/day/acct: Delve, world, archive, event or pub dungeon boss; FINAL boss of dark fissure, incursion, dungeon, arena, or trial. PASSIVE DOUBLE XP!!",
+--	EVT_EVENT_INFO_WITCHES = "Oct. 23-Nov. 5, 2025. 2 tickets, once/day/acct: Delve, world, archive, event or pub dungeon boss; FINAL boss of dark fissure, incursion, dungeon, arena, or trial. PASSIVE DOUBLE XP!!",
 --	EVT_EVENT_INFO_WITCHES = "Oct. 24-Nov. 6, 2024 (28 tickets). 2 tickets, once/day/acct: World or pub dungeon boss; FINAL boss of delve, dark fissure, dolmen/dragon/etc, dungeon, arena, or trial. DOUBLE XP PASSIVE NOW!!",
 --	EVT_EVENT_INFO_WITCHES = "Oct. 26-Nov. 7, 2023 (26 tickets). 2 tickets, once/day/acct: World or pub dungeon boss; FINAL boss of delve, dark fissure, dolmen/dragon/etc, dungeon, arena, or trial. DOUBLE XP PASSIVE NOW!!",
 --	EVT_EVENT_INFO_WITCHES = "Oct. 20-Nov. 2, 2022 (28 tickets). 2 tickets, once/day/acct: World or pub dungeon boss; FINAL boss of delve, dark fissure, dolmen/dragon/etc, dungeon, arena, or trial. ALWAYS LOOT BODIES/REWARD CHESTS! Use Witchmother's TOOL for xp!",
@@ -98,10 +99,13 @@ local strings = {
 --	EVT_EVENT_INFO_ZEAL_OF_ZENITHAR = "June 20-July 2, 2024 (39 tickets). 3 tickets per day per account, from completing the Honest Toil quest (W of Belkarth, Craglorn).",
 --	EVT_EVENT_INFO_ZEAL_OF_ZENITHAR = "July 27-Aug. 9, 2023 (42 tickets). 3 tickets per day per account, from completing the Honest Toil quest (W of Belkarth, Craglorn).",
 
-
--- *************** NON-ANNUAL EVENTS
 -- 2.341 "Heart's Week"
 	EVT_EVENT_INFO_HEARTS_WEEK = "February 11-18, 2026. 2 tickets, once/day/acct: Completing a Heart's Week quest; or IN A GROUP OR WITH COMPANION ACTIVE! Archive, Delve, or World boss; Looting a treasure chest; Pickpocketing. Chance of tickets: Incursion boss, Harvest node. DBL XP for COMPANIONS",
+
+
+-- *************** NON-ANNUAL EVENTS
+-- 2.430 "High Seas"
+	EVT_EVENT_INFO_HIGH_SEAS = "Sept. 30-Oct. 14, 2026. 300 trade bars, once/day/acct: Completing the daily quest 'Bounty of the Abecean Sea', or the starter quest 'Raising the Riotous Redress'.",
 -- 2.360 Brought back
 	EVT_EVENT_INFO_DAEDRIC_WAR = "Nov. 20-Dec. 2, 2025. (26 tickets) 2 tickets/day/account, from zone DAILY or trial WEEKLY quest: 1 Morrowind/HoF OR Clockwork City/AS; PLUS 1 Summerset/CR.",
 	-- 2.240 "Pan-Tamriel"

@@ -23,7 +23,51 @@ function LiveUptime.Note(fight, key)
 end
 
 function LiveUptime.New(now)
-    return { combatstart = now, units = {}, allies = {}, kinds = {}, running = true }
+    return { combatstart = now, units = {}, allies = {}, kinds = {}, running = true,
+        encounterEnds = now, aliveIntervals = {}, aliveSince = now }
+end
+
+function LiveUptime.EncounterDamage(fight, time)
+    if fight and fight.running and time >= fight.combatstart then
+        fight.encounterEnds = math.max(fight.encounterEnds, time)
+    end
+end
+
+function LiveUptime.PlayerAlive(fight, time, alive)
+    if not fight or not fight.running then return false end
+    time = math.max(fight.combatstart, time)
+    if alive == (fight.aliveSince ~= nil) then return false end
+    if alive then fight.aliveSince = time
+    else
+        fight.aliveIntervals[#fight.aliveIntervals + 1] = { fight.aliveSince, time }
+        fight.aliveSince = nil
+    end
+    return true
+end
+
+function LiveUptime.PersonalBasis(fight, config)
+    if config.personalTime == "unit" then return "unit" end
+    return (config.personalTime ~= "auto" and config.personalTime) or (fight and fight.personalBasis) or "combat"
+end
+
+local function aliveDuration(fight, starts, ends)
+    local total = 0
+    for _, interval in ipairs(fight.aliveIntervals) do
+        total = total + math.max(0, math.min(ends, interval[2]) - math.max(starts, interval[1]))
+    end
+    if fight.aliveSince then total = total + math.max(0, ends - math.max(starts, fight.aliveSince)) end
+    return total
+end
+
+local function aliveWindows(fight, starts, ends)
+    local windows = {}
+    local function add(first, last)
+        first, last = math.max(starts, first), math.min(ends, last)
+        if last > first then windows[#windows + 1] = { first, last } end
+    end
+    for _, interval in ipairs(fight.aliveIntervals) do add(interval[1], interval[2]) end
+    if fight.aliveSince then add(fight.aliveSince, ends) end
+    return windows
 end
 
 function LiveUptime.Kind(fight, id, kind)
@@ -54,6 +98,7 @@ end
 
 function LiveUptime.Action(fight, event, time, source, target, value, overflow)
     if not fight.running then LiveUptime.Note(fight, "blockedMutations"); return end
+    if string.find(event, "DAMAGE", 1, true) then LiveUptime.EncounterDamage(fight, time) end
     local outgoing = event == "EVENT_DAMAGE_OUT" or event == "EVENT_HEAL_OUT"
     if outgoing or event == "EVENT_HEAL_SELF" then
         fight.starts = math.min(fight.starts or time, time)
@@ -185,12 +230,18 @@ end
 
 function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
     local result = { covered = 0, normalCovered = 0, stackCovered = 0, duration = 0, percent = 0, members = {} }
-    if not fight or not fight.starts or not fight.ends then return result end
-    local first = math.max(fight.starts, tracker.state.since)
-    local personal = tracker.config.unit == "player" and tracker.config.personalTime ~= "unit"
+    if not fight then return result end
+    local basis = LiveUptime.PersonalBasis(fight, tracker.config)
+    local alive = tracker.config.unit == "player" and basis == "alive"
+    local fightStarts, fightEnds = alive and fight.combatstart or fight.starts, alive and fight.encounterEnds or fight.ends
+    if not fightStarts or not fightEnds then return result end
+    result.starts, result.ends, result.personalTime = fightStarts, fightEnds, basis
+    local first = math.max(fightStarts, tracker.state.since)
+    local personal = tracker.config.unit == "player" and basis ~= "unit"
     if personal then
-        result.duration = math.max(1, (fight.personalDuration or (fight.ends - fight.starts))
-            - math.max(0, first - fight.starts))
+        result.duration = alive and aliveDuration(fight, first, fightEnds)
+            or math.max(1, (fight.personalDuration or (fightEnds - fightStarts))
+                - math.max(0, first - fightStarts))
     end
     local units = fight.allies
     if tracker.config.unit ~= "group" then
@@ -200,20 +251,26 @@ function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
     for id, unit in pairs(units) do
         if (personal and not unit.offline and not LiveUptime.IsPet(unit.kind))
             or (not personal and selected(tracker.config, id, unit, playerId, targetId)) then
-            local starts, ends = math.max(first, unit.starts), math.min(fight.ends, unit.ends)
+            local starts, ends = math.max(first, unit.starts), math.min(fightEnds, unit.ends)
             if personal then
                 starts = first
                 -- The personal panel uses the fight clock, not the unit-selection denominator.
                 -- Open effects are finalized by CM at the unit's last recorded event.
-                ends = fight.running and fight.ends or math.min(fight.ends, unit.ends)
+                ends = (alive or fight.running) and fightEnds or math.min(fightEnds, unit.ends)
             end
             if ends > starts then
                 local data = tracker.liveUptimeUnits and tracker.liveUptimeUnits[id]
                 local scope = data and data.all
-                local covered = scope and Meter.IntervalTotal(scope.intervals, starts, ends) or 0
-                if scope and scope.starts then covered = covered + math.max(0, ends - math.max(starts, scope.starts)) end
+                local windows = alive and aliveWindows(fight, starts, ends) or { { starts, ends } }
+                local covered, stackCovered = 0, 0
+                for _, window in ipairs(windows) do
+                    local first, last = window[1], window[2]
+                    local total = scope and Meter.IntervalTotal(scope.intervals, first, last) or 0
+                    if scope and scope.starts then total = total + math.max(0, last - math.max(first, scope.starts)) end
+                    covered = covered + total
+                    stackCovered = stackCovered + (Stacks and Stacks.Total(data and data.stackInstances, "all", first, last) or total)
+                end
                 local normalCovered = covered
-                local stackCovered = Stacks and Stacks.Total(data and data.stackInstances, "all", starts, ends) or covered
                 if tracker.config.uptimeMetric == "stacks" then covered = stackCovered end
                 result.normalCovered, result.stackCovered = result.normalCovered + normalCovered, result.stackCovered + stackCovered
                 result.covered = result.covered + covered
@@ -223,7 +280,7 @@ function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
                         observedStarts = unit.starts, observedEnds = unit.ends, normalCovered = normalCovered,
                         duration = personal and result.duration or ends - starts,
                         starts = starts, ends = ends, intervals = scope and scope.intervals or {},
-                        open = scope and scope.starts, eligibility = { { starts, ends } } }
+                        open = scope and scope.starts, eligibility = windows, aliveWindows = alive and windows or nil }
                     if tracker.config.uptimeMetric == "stacks" then
                         result.members[#result.members].weighted = data and data.stackInstances or {}
                         result.members[#result.members].source = "all"

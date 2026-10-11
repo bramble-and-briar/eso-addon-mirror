@@ -1,0 +1,9 @@
+## Title: Synergy Improver
+## Author: SkullElf / Console adaptation
+## Version: 1.2-console
+## AddOnVersion: 120
+## APIVersion: 101050 101051
+## Description: BetterSynergy adaptation. Console/Gamepad only. Hides synergy text while keeping the synergy icon and controller keybind visible, with configurable position and scale.
+## SavedVariables: SynergyImproverSavedVars
+
+SynergyImprover.lua

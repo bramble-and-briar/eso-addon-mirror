@@ -444,6 +444,7 @@ if WORLD_MAP_SCENE then
         if newState == SCENE_HIDDEN and minimap.settings and minimap.settings.enabled then
             zo_callLater(function()
                 SetMapToPlayerLocation()
+                if ZO_WorldMap_UpdateMap then ZO_WorldMap_UpdateMap() end -- ВОССТАНАВЛИВАЕТ МЕТКИ ПОСЛЕ ЗУМА НА ТАМРИЭЛЬ
                 g_lastRefreshTime = 0
                 minimap.ApplyLayout()
                 minimap.RefreshMap()

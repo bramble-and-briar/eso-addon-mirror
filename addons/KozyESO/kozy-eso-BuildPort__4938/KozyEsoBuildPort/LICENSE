@@ -1,0 +1,17 @@
+Copyright (c) 2026 Kozy. All rights reserved.
+
+This repository is public so that the site can be read, not so that it can be reused.
+
+You may view the source and fork it on GitHub as GitHub's Terms of Service allow. Apart from that,
+no permission is granted to copy, modify, publish, redistribute or sell the code, the design, the
+guides, the build write-ups or the addon (addon/KozyEsoBuildPort) without written permission from the
+author.
+
+Exceptions, which keep their own terms (see THIRD_PARTY.md):
+  - Game data in src/content, src/data and data/ that comes from UESP (CC BY-SA 2.5): you may reuse
+    it under that license, with attribution to UESP and sharing under the same terms.
+  - Third-party libraries, fonts and icons, under their own licenses.
+  - The Elder Scrolls Online names, skills, sets and artwork belong to ZeniMax Media Inc.
+    This project is not affiliated with or endorsed by ZeniMax or Bethesda.
+
+This notice is a plain statement of the author's intent, not legal advice.

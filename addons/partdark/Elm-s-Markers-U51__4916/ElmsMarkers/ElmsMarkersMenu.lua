@@ -21,12 +21,17 @@ function ElmsMarkers.buildMenu()
 			name = "Enabled",
 			tooltip = "Toggles the UI",
 			default = ElmsMarkers.defaults.enabled,
-			getFunc = function() 
+			getFunc = function()
 				return ElmsMarkers.savedVars.enabled
 			end,
 			setFunc = function(value)
 				ElmsMarkers.savedVars.enabled = value
 				ElmsMarkers.CheckActivation()
+			end,
+			disabled = function()
+				-- Without a renderer (neither LibImplex nor OdySupportIcons installed)
+				-- the addon cannot show any markers, so it cannot be enabled.
+				return not ElmsMarkers.Render.IsAvailable()
 			end,
 		},
 		{
@@ -51,6 +56,21 @@ function ElmsMarkers.buildMenu()
 				ElmsMarkers.savedVars.selectedIconSize = value
 				ElmsMarkers.CheckActivation()
 			end,
+		},
+		{
+			type = "dropdown",
+			name = "Icon Renderer",
+			tooltip = "Chooses the 3D icon renderer. 'Own (built-in)' uses the world space API with no external libraries (priority choice). LibImplex and OdySupportIcons are optional alternatives - if the chosen one is not installed, the built-in renderer is used. Changing requires /reloadui.",
+			choices = { "Own (built-in)", "LibImplex", "OdySupportIcons" },
+			choicesValues = { "own", "libimplex", "osi" },
+			default = ElmsMarkers.defaults.preferredRenderer,
+			getFunc = function()
+				return ElmsMarkers.savedVars.preferredRenderer
+			end,
+			setFunc = function(value)
+				ElmsMarkers.savedVars.preferredRenderer = value
+			end,
+			requiresReload = true,
 		},
 		{
 			type = "header",

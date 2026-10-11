@@ -1,10 +1,10 @@
 ## Title: Gamepad HUD Customizer
 ## Author: Wayzmin + OpenAI
-## Version: 0.3.2
-## AddOnVersion: 302
+## Version: 0.3.4
+## AddOnVersion: 304
 ## APIVersion: 101050 101051
-## Description: Customize gamepad HUD bars, prompts, button icons and health glow, with previews and nameplate refresh.
-## Description-ru: Настройка полос и подсказок HUD геймпада, значков кнопок и свечения здоровья, с предпросмотром и обновлением полос над персонажами.
+## Description: Customize gamepad HUD bars, prompts, button icons and health glow, with previews and PC/Mac nameplate refresh.
+## Description-ru: Настройка HUD геймпада, значков кнопок и эффектов, с предпросмотром и обновлением Nameplates на PC/Mac.
 ## SavedVariables: GamepadHUDCustomizer_SV
 ## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
 

@@ -33,6 +33,14 @@ if EVENT_MANAGER then
     EVENT_MANAGER:RegisterForUpdate("ESOArabicLayoutRefresh", 30, R.FlushLayoutRefreshes)
 end
 local function child(c, name) return c and c.GetNamedChild and c:GetNamedChild(name) end
+-- Tooltip pools measure their labels synchronously. A label previously found
+-- by discovery must stop receiving queued refreshes once the tooltip owns it.
+function R.ReleaseLabelBinding(c)
+    local b = bound[c]
+    if b then c.SetText = b.original end
+    bound[c], pending[c] = nil, nil
+    R.Manage(c)
+end
 local function hook(object, key, before, after)
     if not object or type(object[key]) ~= "function" then return end
     local marker = "esoArabic131_" .. key
@@ -198,9 +206,7 @@ end
 local function discoveredOptions(c)
     local name = (c:GetName() or ""):lower()
     local single = name:find("keybind", 1, true) or name:find("button", 1, true)
-    local text = c:GetText()
-    local visualLines = IsInGamepadPreferredMode() and type(text) == "string" and text:find("\n", 1, true) ~= nil
-    local opts = {flow = not single, single = single, align = TEXT_ALIGN_RIGHT, reflowVisual = visualLines}
+    local opts = {flow = not single, single = single, align = TEXT_ALIGN_RIGHT}
     if name:find("gamemenu", 1, true) then
         opts.flow, opts.single = false, true
         opts.size, opts.minimum, opts.height = 22, 16, 28

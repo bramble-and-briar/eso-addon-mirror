@@ -2,6 +2,7 @@ local strings = {
 	SI_PBSCHATASSISTANT_CHANNEL_LABEL = "Channel: %s",
 	SI_PBSCHATASSISTANT_OFFICER_SUFFIX = " (Officer)",
 	SI_PBSCHATASSISTANT_TAB_LABEL = "Tab: %s",
+	SI_PBSCHATASSISTANT_GROUP_TAB = "Group",
 	SI_PBSCHATASSISTANT_TAB_VISIBLE = "Show the active tab name",
 	SI_PBSCHATASSISTANT_TAB_VISIBLE_TOOLTIP = "Shows the currently selected chat tab name on the HUD. Turning this off does not disable tab switching or outgoing-channel synchronization.",
 	SI_PBSCHATASSISTANT_TABSTRIP_X = "Active tab name: across",

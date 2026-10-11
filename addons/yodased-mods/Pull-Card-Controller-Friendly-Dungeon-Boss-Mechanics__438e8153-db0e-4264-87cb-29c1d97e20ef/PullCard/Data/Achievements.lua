@@ -39,6 +39,13 @@ vet("Volenfell", "Volenfell")
 vet("Wayrest Sewers I", "Wayrest Sewers I")
 vet("Wayrest Sewers II", "Wayrest Sewers II")
 
+-- Arenas (esodecoded.com/achievements/arenas)
+ach("Maelstrom Arena", { "Maelstrom Arena Conqueror", "Maelstrom Arena: Perfect Run", "Maelstrom Arena Champion" })
+ach("Vateshran Hollows", { "Vateshran Hollows Conqueror", "Unbroken Vigor", "Hollows Hustler", "Strength from Within",
+    "The Vateshran's Chosen", "Seeker of the Hollows", "Scattered Spirits" })
+ach("Dragonstar Arena", { "Dragonstar Arena Conqueror", "Dragonstar Arena Champion" })
+ach("Blackrose Prison", { "Blackrose Prison Conqueror", "Unchained and Undying", "Gauntlet Gallop", "God of the Gauntlet" })
+
 -- DLC: Veteran clear, speed run, no death, trifecta (hard mode + speed + no death).
 -- Source: esodecoded.com/achievements/dlc-dungeons (datamined).
 local function dlc(dungeonName, names) ach(dungeonName, names) end

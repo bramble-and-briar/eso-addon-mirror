@@ -1,7 +1,12 @@
--- Simple Event Tracker: shows the running ESO event and tracks the account's daily Trade Bars.
+-- Simple Event Tracker: tracks the account's daily Trade Bars and tells you when an event is running.
 -- Credits: original Event Tracker by Kelinmiriel; this rewrite by Jammet / Claude AI assisted.
 --   /sevti  event info + today's bars        /sevt  trade bar status, recent days, totals
---   Both take the same options; see "/sevt help".
+--   Both take the same options; see "/sevt help".  /sevtsize 1-5 sets the label text size.
+--
+-- The game exposes no event data, so an event counts as running while trade bars keep being collected.
+-- When one is detected, the player is told once and offered to enter its name and time left (/sevt event
+-- opens a prompt pre-filled from an active Golden Pursuit), which enables the event name, days left and
+-- the login announcement. Nothing is ever forced on the player.
 
 SimpleEventTracker = SimpleEventTracker or {}   -- the addon's only global table (XML and key bindings call into it)
 local SET = SimpleEventTracker
@@ -10,29 +15,35 @@ local NAME       = "SimpleEventTracker"
 local HOUR, DAY  = 3600, 86400
 local KEEP_DAYS  = 60          -- day records kept in the saved variables
 local SATCHEL_ID = 224673      -- "Trade Bar Satchel"
-local STALE_SECS = 30 * HOUR   -- an event without a known end counts as running this long after its last bars
+local RECENT     = 30 * HOUR   -- trade bars collected this recently mean an event is running
+local UNNAMED    = "Event"     -- name used while an event is detected but its details are unknown
 
 local defaults = {
-	days  = {},   -- { t = start, e = end (= next reset), bars = n, done = bool, ev = event name }
-	total = 0,    -- all trade bars collected while tracked
-	last  = {},   -- most recent event: name, desc, endT, seen
-	wait  = {},   -- start of the day of each satchel looted but not yet opened
-	ui    = { hidden = false },
-	quiet = false,
+	days       = {},   -- { t = start, e = end (= next reset), bars = n, done = bool, ev = event name }
+	total      = 0,    -- all trade bars collected while tracked
+	event      = {},   -- the player's event details: name, endT (nil = until the bars stop), setAt
+	lastBars   = 0,    -- when trade bars were last collected
+	streakStart = 0,   -- when the current run of daily collections began
+	asked      = "",   -- which situation the player was already asked about
+	wait       = {},   -- start of the day of each satchel looted but not yet opened
+	ui         = { hidden = false, size = 4 },   -- size: 1 (largest) .. 5 (smallest)
+	paused     = false, -- the player turned event tracking off (/sevt pause)
+	dismissed  = 0,     -- streakStart of a run of collections the player told us to disregard
 }
 
-local db, label, fragment
-local running  = {}     -- events the game lists as running now, soonest end first
-local apiReady = false  -- the game has sent its campaign list this session
-local pendingAnnounce, delayElapsed = false, false
+local db, label, icon, startButton, fragment
 
 local updateUI, announce   -- defined further down
 
 ---------------------------------------------------------------------------
 -- helpers
 ---------------------------------------------------------------------------
+local function chat(text)
+	CHAT_ROUTER:AddSystemMessage(text)
+end
+
 local function say(text)
-	CHAT_ROUTER:AddSystemMessage("|c00CCFF[SET]|r " .. text)
+	chat("|c00CCFF[SET]|r " .. text)
 end
 
 local function dur(s)
@@ -44,8 +55,7 @@ local function dur(s)
 end
 
 local function dateStr(ts, short)
-	local ok, s = pcall(os.date, short and "%d.%m" or "%d.%m.%Y", ts)
-	return ok and s or GetDateStringFromTimestamp(ts)
+	return os.date(short and "%d.%m" or "%d.%m.%Y", ts)
 end
 
 local function plural(n, one, many)
@@ -77,64 +87,137 @@ local function today(create)
 end
 
 ---------------------------------------------------------------------------
--- event info: the game's promotional event campaigns (the Events tab)
+-- event detection and details
 ---------------------------------------------------------------------------
-local function readCampaigns()
-	local ok, list = pcall(function()
-		local out = {}
-		for i = 1, GetNumActivePromotionalEventCampaigns() do
-			local key = GetActivePromotionalEventCampaignKey(i)
-			if not (IsReturningPlayerPromotionalEventsCampaign(key) or IsLowLevelPlayerPromotionalEventsCampaign(key)) then
-				local id = GetPromotionalEventCampaignInfo(key)
-				out[#out + 1] = {
-					name   = zo_strformat("<<1>>", GetPromotionalEventCampaignDisplayName(id)),
-					desc   = zo_strformat("<<1>>", GetPromotionalEventCampaignDescription(id)),
-					remain = GetSecondsRemainingInPromotionalEventCampaign(key),
-				}
-			end
-		end
-		return out
-	end)
-	return ok and list or nil
+-- Trade bars arrived recently, and after the end of any event the player recorded.
+local function inferred()
+	if db.paused or db.dismissed == db.streakStart then return false end
+	local t = db.lastBars
+	if GetTimeStamp() - t >= RECENT then return false end
+	return not (db.event.endT and t <= db.event.endT)
 end
 
 -- The current or most recent event, and whether it is running right now.
 local function getEvent()
-	if running[1] then return running[1], true end
-	local l = db.last
-	if not l.name then return nil, false end
-	if l.endT then return l, GetTimeStamp() < l.endT end
-	return l, GetTimeStamp() - (l.seen or 0) < STALE_SECS
+	if db.paused then return nil, false end
+	local e, now = db.event, GetTimeStamp()
+	if e.endT and now < e.endT then return e, true end
+	-- details without an end date, given during this run of collections: running until the bars stop
+	local open = e.name and not e.endT and e.setAt >= db.streakStart
+	if open and now - math.max(db.lastBars, e.setAt) < RECENT then return e, true end
+	if inferred() then return { name = UNNAMED }, true end
+	return e.name and e or nil, false
 end
 
-local function refreshEvents()
-	local now = GetTimeStamp()
-	local list = readCampaigns()
-	if list then
-		running = {}
-		for _, c in ipairs(list) do
-			if c.remain and c.remain > 0 then
-				c.endT = now + c.remain
-				running[#running + 1] = c
-			end
-		end
-		table.sort(running, function(a, b) return a.endT < b.endT end)
-		if running[1] then
-			local r = running[1]
-			db.last = { name = r.name, desc = r.desc, endT = r.endT, seen = now }
-		elseif apiReady and db.last.endT and db.last.endT > now then
-			db.last.endT = now   -- the game no longer lists it: it ended early
+-- An event is running but the player hasn't told us which one (or the recorded one is over).
+local function needsDetails()
+	if not inferred() then return false end
+	local e = db.event
+	if e.endT then return GetTimeStamp() >= e.endT end
+	return not (e.setAt and e.setAt >= db.streakStart)
+end
+
+-- Best guess from the active Golden Pursuit. Pursuits don't always match an event, so it is only a suggestion.
+local function suggestion()
+	local name, remain
+	for i = 1, GetNumActivePromotionalEventCampaigns() do
+		local key = GetActivePromotionalEventCampaignKey(i)
+		local left = GetSecondsRemainingInPromotionalEventCampaign(key)
+		local personal = IsReturningPlayerPromotionalEventsCampaign(key) or IsLowLevelPlayerPromotionalEventsCampaign(key)
+		if left > 0 and not personal and (not remain or left < remain) then
+			local campaignId = GetPromotionalEventCampaignInfo(key)
+			name, remain = zo_strformat("<<1>>", GetPromotionalEventCampaignDisplayName(campaignId)), left
 		end
 	end
+	return name, remain
+end
 
+local UNITS = { d = DAY, day = DAY, days = DAY, h = HOUR, hr = HOUR, hrs = HOUR, hour = HOUR, hours = HOUR,
+	m = 60, min = 60, mins = 60, minute = 60, minutes = 60 }
+
+-- "Name 5d 4h" -> name, seconds left. The time is the number+unit groups (d/h/m, days, hours, minutes) at the
+-- end of the text, the rest is the name. Either part may be missing (nil). A lone number alone means days.
+local function parseDetails(text)
+	local rest, secs = text:match("^%s*(.-)%s*$"), 0
+	while true do
+		local head, n, unit = rest:match("^(.-)%s*(%d+)%s*(%a+)$")
+		local mult = unit and UNITS[unit:lower()]
+		if not mult then break end
+		secs, rest = secs + tonumber(n) * mult, head
+	end
+	if secs == 0 and rest:match("^%d+$") then secs, rest = tonumber(rest) * DAY, "" end
+	return rest ~= "" and rest or nil, secs > 0 and secs or nil
+end
+
+local function saveEvent(name, secs)
+	name = name or db.event.name or UNNAMED   -- no name given: keep the current one
+	local now = GetTimeStamp()
+	db.event = { name = name, endT = secs and now + secs or nil, setAt = now }
+	for _, d in ipairs(db.days) do   -- name the days already collected during this run
+		if d.ev == UNNAMED and d.e > db.streakStart then d.ev = name end
+	end
+	say(string.format("Event saved: |cFFD700%s|r%s", name, secs and (" - " .. dur(secs) .. " left.") or "."))
+	updateUI()
+end
+
+-- The entry window (SimpleEventTrackerEdit in the XML): name plus days, hours and minutes left. It is filled in
+-- from the recorded event or the Golden Pursuit suggestion, and only ever opened by the player's own action.
+local editWin, editFragment
+
+local function editBox(part)
+	return editWin:GetNamedChild(part):GetNamedChild("Edit")
+end
+
+local function closePrompt()
+	SCENE_MANAGER:GetScene("hudui"):RemoveFragment(editFragment)
+end
+
+local function openPrompt()
+	local e, name, secs = db.event, "", 0
+	if e.name and e.endT and e.endT > GetTimeStamp() then
+		name, secs = e.name, e.endT - GetTimeStamp()
+	else
+		local sName, remain = suggestion()
+		if sName then name, secs = sName, remain or 0 end
+	end
+	editBox("Name"):SetText(name)
+	editBox("Days"):SetText(secs >= DAY and tostring(math.floor(secs / DAY)) or "")
+	editBox("Hours"):SetText(secs >= HOUR and tostring(math.floor(secs % DAY / HOUR)) or "")
+	editBox("Minutes"):SetText(secs > 0 and tostring(math.floor(secs % HOUR / 60)) or "")
+	SCENE_MANAGER:GetScene("hudui"):AddFragment(editFragment)
+	SCENE_MANAGER:SetInUIMode(true)
+	editBox("Name"):TakeFocus()
+end
+
+function SET.EditSave()
+	local name = editBox("Name"):GetText():match("^%s*(.-)%s*$")
+	local secs = (tonumber(editBox("Days"):GetText()) or 0) * DAY + (tonumber(editBox("Hours"):GetText()) or 0) * HOUR
+		+ (tonumber(editBox("Minutes"):GetText()) or 0) * 60
+	closePrompt()
+	saveEvent(name ~= "" and name or nil, secs > 0 and secs or nil)
+end
+
+function SET.EditCancel()
+	closePrompt()
+end
+
+-- Once per detected event (a new run of collections, or the end of a recorded event): a small alert at the top
+-- of the screen plus a friendly chat line offering the prompt. Returns true if it told the player.
+local function offerDetails()
+	if not needsDetails() then return false end
+	local key = db.streakStart .. ":" .. (db.event.endT or 0)
+	if db.asked == key then return false end
+	db.asked = key
+	ZO_Alert(UI_ALERT_CATEGORY_ALERT, SOUNDS.NONE, "<<1>>", "Simple Event Tracker: new event found!")
+	say("Looks like a new event is on! Click |cFFD700Start Event Tracking|r on the widget or type |cFFD700/sevt event|r to add its name and time left.")
+	return true
+end
+
+local function refresh()
 	local ev, on = getEvent()
 	local d = today(false)
 	if d and on and not d.ev then d.ev = ev.name end
 	updateUI()
-	if pendingAnnounce and delayElapsed and on then
-		pendingAnnounce = false
-		announce(ev)
-	end
 end
 
 ---------------------------------------------------------------------------
@@ -144,14 +227,11 @@ local function collected(amount)
 	local d = today()
 	if not d then return end
 
-	local ev, on = getEvent()
-	if not on then   -- bars arrived while the game lists no event
-		db.last = { name = "Unknown event", seen = GetTimeStamp() }
-		ev = db.last
-	elseif not ev.endT then
-		ev.seen = GetTimeStamp()
-	end
-	d.ev = d.ev or ev.name
+	local now = GetTimeStamp()
+	if now - db.lastBars >= RECENT then db.streakStart = now end
+	db.lastBars = now
+	local ev = getEvent()
+	d.ev = d.ev or (ev and ev.name)
 
 	local first = not d.done
 	d.done = true
@@ -159,10 +239,11 @@ local function collected(amount)
 		d.bars = d.bars + amount
 		db.total = db.total + amount
 	end
-	if first or (amount and amount > 0) then
+	if not db.paused and (first or (amount and amount > 0)) then
 		say("|c00FF00Trade bars collected|r" .. (d.bars > 0 and string.format(" (%d today)", d.bars) or "") .. " - done for today.")
 	end
 	updateUI()
+	offerDetails()
 end
 
 -- A looted Trade Bar Satchel is the day's collection; its bars arrive when it is opened.
@@ -208,7 +289,7 @@ end
 local function totalsLine()
 	local ev = getEvent()
 	local out = ""
-	if ev then
+	if ev and ev.name ~= UNNAMED then
 		local bars, days = 0, 0
 		for _, d in ipairs(db.days) do
 			if d.ev == ev.name and d.done then bars, days = bars + d.bars, days + 1 end
@@ -247,38 +328,47 @@ local function historyLines(n)
 	return out
 end
 
-local function eventBlock(ev, on)
-	say(string.format("|cFFD700%s|r  %s", ev.name, on and "|c00FF00RUNNING|r" or "|cAAAAAAnot running|r"))
-	if ev.desc and ev.desc ~= "" then
-		say(#ev.desc > 350 and (ev.desc:sub(1, 347) .. "...") or ev.desc)
+local function showInfo()
+	if db.paused then
+		say("Event tracking is paused. Type |cFFD700/sevt pause|r to resume.")
+		return
 	end
+	local ev, on = getEvent()
+	if not ev then
+		say("No event detected. One is detected when you collect trade bars; you can also enter it with |cFFD700/sevt event|r.")
+		return
+	end
+	say(string.format("|cFFD700%s|r  %s", ev.name, on and "|c00FF00RUNNING|r" or "|cAAAAAAnot running|r"))
 	if ev.endT then
 		local now = GetTimeStamp()
 		say("End " .. dateStr(ev.endT) .. "  -  " ..
 			(on and ("|cFFFF00" .. dur(ev.endT - now) .. " left|r") or ("ended " .. dur(now - ev.endT) .. " ago")))
+	elseif on then
+		say((ev.name == UNNAMED and "Name and time left" or "Time left") .. " unknown: enter them with |cFFD700/sevt event|r.")
 	end
-end
-
-local function showInfo()
-	refreshEvents()
-	if #running > 1 then
-		for _, ev in ipairs(running) do eventBlock(ev, true) end
-	else
-		local ev, on = getEvent()
-		if ev then eventBlock(ev, on) else say("No event known yet. The game may not have sent its event list; try again in a minute.") end
-	end
-	if select(2, getEvent()) then say(todayLine()) end
+	if on then say(todayLine()) end
 end
 
 local function showStatus(days)
 	say(todayLine())
-	for _, line in ipairs(historyLines(days)) do CHAT_ROUTER:AddSystemMessage(line) end
+	for _, line in ipairs(historyLines(days)) do chat(line) end
 	say(totalsLine())
 end
 
 ---------------------------------------------------------------------------
 -- on-screen label (only while an event is running)
 ---------------------------------------------------------------------------
+-- Label font sizes by setting. 4 is the default; 3 is the size the addon started with.
+local FONT_SIZES = { 26, 22, 18, 13, 11 }   -- 1 = largest ... 5 = smallest
+
+local function applySize()
+	local size = FONT_SIZES[db.ui.size] or FONT_SIZES[4]
+	local line = math.floor(size * 1.25)
+	label:SetFont(string.format("$(BOLD_FONT)|%d|soft-shadow-thin", size))
+	label:SetDimensions(size * 20, line * 3 + 4)
+	icon:SetDimensions(math.min(56, line * 2), math.min(56, line * 2))
+end
+
 local shown = false
 local function setShown(want)
 	if want == shown then return end
@@ -307,7 +397,24 @@ function updateUI()
 		ev.endT and ("|cAAAAAA" .. dur(ev.endT - now) .. " left|r") or "|cAAAAAAevent running|r",
 		bars,
 	}, "\n"))
+	startButton:SetHidden(not needsDetails())
 	setShown(true)
+end
+
+function SET.StartTracking()   -- the widget's "Start Event Tracking" button
+	openPrompt()
+end
+
+-- Right-click menu on the widget (the game's own context menu). Cancel just closes it.
+function SET.OnMouseUp(button, upInside)
+	if not (upInside and button == MOUSE_BUTTON_INDEX_RIGHT) then return end
+	ClearMenu()
+	AddMenuItem("Set up event...", function() SET.StartTracking() end)
+	AddMenuItem("Clear event", function() SET.ClearEvent() end)
+	AddMenuItem("Trade bar history", function() showStatus(14) end)
+	AddMenuItem("Hide widget", function() SET.ToggleUI() end)
+	AddMenuItem("Cancel", function() end)
+	ShowMenu(SimpleEventTrackerFrame)
 end
 
 function SET.ToggleUI()
@@ -334,27 +441,43 @@ function announce(ev)
 	local d = today()
 	if d then parts[#parts + 1] = d.done and "trade bars collected" or "trade bars NOT collected yet" end
 
-	local title, text = ev.name .. " is active!", table.concat(parts, " - ")
+	local title = ev.name == UNNAMED and "An event is active!" or (ev.name .. " is active!")
+	local text = table.concat(parts, " - ")
 	say("|cFFD700" .. title .. "|r " .. text)
-	pcall(function()
-		local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, SOUNDS.LEVEL_UP)
-		params:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
-		params:SetText(title, text)
-		CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
-	end)
+
+	local params = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT, SOUNDS.LEVEL_UP)
+	params:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_DISPLAY_ANNOUNCEMENT)
+	params:SetText(title, text)
+	CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
 end
 
 ---------------------------------------------------------------------------
 -- slash commands
 ---------------------------------------------------------------------------
-local HELP = {
-	"|cFFD700/sevti|r  event info: name, description, time left, today's bars",
-	"|cFFD700/sevt|r  trade bars: today, last 7 days, totals",
-	"Both commands accept the same options:",
-	"  |cFFD700info|r  event info    |cFFD700history|r [days]  longer history (max 30)",
-	"  |cFFD700done|r [bars]  mark today collected    |cFFD700undo|r  clear today's record",
-	"  |cFFD700ui|r  show/hide the label    |cFFD700quiet|r  toggle the login announcement",
-}
+local CMD, TXT, HEAD = "|cFFD700", "|cC5C29F", "|cFFFFFF"   -- typed commands gold, descriptions beige, headings white
+
+local function cmdLine(cmd, desc)
+	chat("  " .. CMD .. cmd .. "|r  " .. TXT .. desc .. "|r")
+end
+
+local function showHelp()
+	say(HEAD .. "Commands|r " .. TXT .. "(/sevt and /sevti take the same options)|r")
+	chat(HEAD .. "Manage the event|r")
+	cmdLine("/sevt event", "enter the event's name and time left")
+	cmdLine("/sevt event Name 5d 4h", "the same in one line (time is optional)")
+	cmdLine("/sevt event clear", "disregard the current event")
+	cmdLine("/sevt pause", "stop looking for events / start again")
+	chat(HEAD .. "Look things up|r")
+	cmdLine("/sevti", "the event: name, time left, today's bars")
+	cmdLine("/sevt", "trade bars: today, last 7 days, totals")
+	cmdLine("/sevt history 14", "longer history (up to 30 days)")
+	chat(HEAD .. "Correct a day|r")
+	cmdLine("/sevt done 20", "mark today collected (bars optional)")
+	cmdLine("/sevt undo", "clear today's record")
+	chat(HEAD .. "Options|r")
+	cmdLine("/sevt ui", "show/hide the on-screen widget")
+	cmdLine("/sevtsize 1-5", "widget text size (1 largest, 5 smallest)")
+end
 
 local function markDone(amount)
 	local d = today()
@@ -373,6 +496,23 @@ local function undoToday()
 	updateUI()
 end
 
+function SET.ClearEvent()
+	db.event = {}
+	db.dismissed = db.streakStart   -- also ignore the bars still being collected for this event
+	say("Event disregarded. A new one is announced when the next event begins.")
+	updateUI()
+end
+
+local function setEvent(arg)
+	if arg == "" then
+		openPrompt()
+	elseif arg:lower() == "clear" then
+		SET.ClearEvent()
+	else
+		saveEvent(parseDetails(arg))
+	end
+end
+
 local function handle(default, text)
 	local cmd, arg = (text or ""):match("^%s*(%S*)%s*(.-)%s*$")
 	cmd = cmd:lower()
@@ -383,12 +523,26 @@ local function handle(default, text)
 	elseif cmd == "history" then showStatus(math.min(30, math.max(1, tonumber(arg) or 14)))
 	elseif cmd == "done" then markDone(tonumber(arg))
 	elseif cmd == "undo" then undoToday()
+	elseif cmd == "event" then setEvent(arg)
 	elseif cmd == "ui" then SET.ToggleUI()
-	elseif cmd == "quiet" then
-		db.quiet = not db.quiet
-		say("Login announcement " .. (db.quiet and "off." or "on."))
+	elseif cmd == "pause" then
+		db.paused = not db.paused
+		say(db.paused and "Event tracking paused: no event announcements or widget. Type |cFFD700/sevt pause|r to resume."
+			or "Event tracking resumed.")
+		refresh()
 	else
-		for _, line in ipairs(HELP) do say(line) end
+		showHelp()
+	end
+end
+
+local function setSize(text)
+	local n = tonumber(text)
+	if n and n == math.floor(n) and n >= 1 and n <= 5 then
+		db.ui.size = n
+		applySize()
+		say(string.format("Label size %d of 5 (1 = largest, 5 = smallest).%s", n, shown and "" or " The label is only visible while an event is running."))
+	else
+		say(string.format("Label size is %d. Use |cFFD700/sevtsize|r 1-5  (1 = largest, 5 = smallest).", db.ui.size))
 	end
 end
 
@@ -397,12 +551,12 @@ end
 ---------------------------------------------------------------------------
 local function onActivated()
 	EVENT_MANAGER:UnregisterForEvent(NAME .. "Activated", EVENT_PLAYER_ACTIVATED)
-	pendingAnnounce = not db.quiet
 	today()
-	refreshEvents()
-	zo_callLater(function()   -- give the game a moment to send its event data
-		delayElapsed = true
-		refreshEvents()       -- announces now if an event is known; otherwise as soon as the data arrives
+	refresh()
+	zo_callLater(function()   -- let the game finish loading before announcing or asking
+		refresh()
+		local ev, on = getEvent()
+		if not offerDetails() and on then announce(ev) end
 	end, 5000)
 end
 
@@ -416,22 +570,32 @@ local function onAddOnLoaded(_, addon)
 	frame:ClearAnchors()
 	frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, db.ui.left or 20, db.ui.top or 160)
 	label = frame:GetNamedChild("Label")
-	local ok, icon = pcall(ZO_Currency_GetKeyboardCurrencyIcon, CURT_TRADE_BARS)   -- the game's own trade bar icon
-	if ok and icon then frame:GetNamedChild("Icon"):SetTexture(icon) end
+	icon = frame:GetNamedChild("Icon")
+	startButton = frame:GetNamedChild("Start")
+	startButton:SetText("Start Event Tracking")
+	icon:SetTexture(ZO_Currency_GetKeyboardCurrencyIcon(CURT_TRADE_BARS))   -- the game's own trade bar icon
+	applySize()
 	fragment = ZO_HUDFadeSceneFragment:New(frame)
 
+	editWin = SimpleEventTrackerEdit
+	editFragment = ZO_SimpleSceneFragment:New(editWin)
+	editWin:GetNamedChild("Title"):SetText("Simple Event Tracker")
+	editWin:GetNamedChild("NameLabel"):SetText("Event name")
+	editWin:GetNamedChild("TimeLabel"):SetText("Time left (leave empty if unknown)")
+	editWin:GetNamedChild("DaysLabel"):SetText("days")
+	editWin:GetNamedChild("HoursLabel"):SetText("hours")
+	editWin:GetNamedChild("MinutesLabel"):SetText("minutes")
+	editWin:GetNamedChild("Save"):SetText("Save")
+	editWin:GetNamedChild("Cancel"):SetText("Cancel")
 	ZO_CreateStringId("SI_BINDING_NAME_SIMPLEEVENTTRACKER_TOGGLE_UI", "Show/hide Simple Event Tracker label")
 	SLASH_COMMANDS["/sevti"] = function(text) handle("info", text) end
 	SLASH_COMMANDS["/sevt"]  = function(text) handle("status", text) end
+	SLASH_COMMANDS["/sevtsize"] = setSize
 
 	EVENT_MANAGER:RegisterForEvent(NAME .. "Loot", EVENT_LOOT_RECEIVED, onLoot)
 	EVENT_MANAGER:RegisterForEvent(NAME .. "Currency", EVENT_CURRENCY_UPDATE, onCurrency)
-	EVENT_MANAGER:RegisterForEvent(NAME .. "Campaigns", EVENT_PROMOTIONAL_EVENTS_CAMPAIGNS_UPDATED, function()
-		apiReady = true
-		refreshEvents()
-	end)
 	EVENT_MANAGER:RegisterForEvent(NAME .. "Activated", EVENT_PLAYER_ACTIVATED, onActivated)
-	EVENT_MANAGER:RegisterForUpdate(NAME .. "UI", 30 * 1000, updateUI)
+	EVENT_MANAGER:RegisterForUpdate(NAME .. "UI", 30 * 1000, refresh)
 end
 
 EVENT_MANAGER:RegisterForEvent(NAME, EVENT_ADD_ON_LOADED, onAddOnLoaded)

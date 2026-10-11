@@ -1,3 +1,70 @@
+2.2.12-balance4: Hide replaced pooled currency pairs, restore them on native reuse, preserve fixed-row font sizing through tooltip processing.
+2.2.12-balance3: Explicit muted-gold currency captions, 20px captions to contain long names on one line. Keep numeric column and pooled-row source recovery unchanged.
+2.2.12-balance2: Widen currency amount column and use 22px numeric text; restore native off-white currency names and white values. Preserve narration-based pooled-row repair.
+2.2.12-outfit1: Remove global CreateControlFromVirtual wrapper introduced for LootDrop labels. Preserve native XML handler trust and all translations. Live double-click outfit preview verification pending.
+2.2.12-text3: Replaced 1428 source-matched collection descriptions containing English fragments. Preserved color controls, commands and paragraph boundaries. All other language records and UI modules unchanged from text2. Live visual verification pending.
+2.2.12-text2: Source-matched collections, interaction and privateer name corrections; champion icon argument repaired; Arabic LootDrop notifications/chat integration. Layouts unchanged. Live visual verification pending.
+2.2.12-balance1: Currency amounts/icons and names use independent native tooltip columns. Retains complete narration source instead of reading potentially stale pooled labels. No persistent binding on stat/value pairs. 100 reuse cycles passed in mocks; native gameplay verification pending. Includes enemies1 translations and xp1.
+2.2.12-enemies1: Audited all 78,648 unit-name records. Translated reviewed creature/enemy types and bosses consistently across grammar variants, preserving suffixes. See translation ledger and remaining unclassified NPC/internal actor report. UI unchanged from 2.2.12-xp1. Native visual verification pending.
+2.2.12-xp1: User-requested 2.2.12 base. Native 400px XP bar and fill direction. Separate Arabic caption and numeric earned / required (percent) line. Native in-game verification pending.
+ESO Arabic 2.2.12 - targeted controller layouts
+Antiquity logbook names and counters have separate columns. All native skill preview rows use the existing compact Skills typography. Veterancy rank labels have a bounded two-line area above rewards. Character XP and enlightenment bars fill from right to left. Item stack-count groups flow from right to left. Currency names appear on the right, with amounts and currency icons on the left. Currency row anchors are restored before pooled controls are reused. 233 automated checks passed; native gameplay screenshots remain pending. Translation data and fonts are unchanged from 2.2.11.
+
+ESO Arabic 2.2.11
+Unifies reviewed crafting resources across inventory and world interaction records, including Honey and Nightshade and lush resource nodes. Corrects companion equipment types and shared equipment/set naming. Preserves NPC names, dialogue, books, grammar suffixes and all UI code/fonts. Restart ESO after installation. Native gameplay verification pending. Named unique equipment and existing set-name translations are not claimed to be fully linguistically reviewed.
+
+ESO Arabic 2.2.10
+Uniform 26px social-list text for Arabic, Latin names and levels. Corrected quick-chat labels, selected emote names and category labels. The Rift: ذا ريفت; Reaper's March: ريبرز مارش. Retains the 2.2.9 Skills nil-width fix and earlier crafting/chat/Crown adapters. Restart ESO after installation. In-game visual validation pending.
+
+ESO Arabic 2.2.9 - Controller Skills hotfix
+
+Fixes the repeated ArabicRTL.lua:341 number/nil comparison that prevented
+controller Skills previews from rendering. Nested tooltip headings with no
+explicit or inherited width now use auto width consistently for Arabic text
+layout and ESO's native measurement.
+
+Controller Skills names now fit a single line within the available native row
+width, preserving the space reserved for skill icons, locks and keybinds.
+Skills points and Skyshards use separate columns with captions above values;
+the title, advisor subtitle and action bar also have separate vertical space.
+
+The exact failure was reproduced on 2.2.8. 223 regression checks pass on 2.2.9,
+including missing, explicit, inherited and percentage widths, pooled labels,
+crafting, chat and Crown Store adapters. In-game confirmation remains pending.
+
+All translation files and fonts are byte-for-byte identical to 2.2.8. Runtime
+changes are limited to ArabicRTL.lua, ArabicGamepadLayouts.lua and the version
+manifest. Existing crafting, chat and Crown Store adapters are retained.
+The ZIP retains direct EsoAR, EsoUI and gamedata roots with no ESO_Arabic wrapper.
+Console hardware gameplay is untested. Do not publish the faulty 2.2.8 package.
+
+After replacing the Lua hotfix on PC, use /reloadui or restart ESO to load it.
+
+ESO Arabic 2.2.8
+
+- Corrected 5,998 unique game-language records and 116 UI strings.
+- Reviewed core crafting materials, equipment naming, research text and skill
+  descriptions across blacksmithing, clothing, woodworking, jewelry crafting,
+  alchemy, enchanting and provisioning. Removed duplicate alternate material
+  names and repaired mixed English/Arabic crafted equipment names.
+- Ta is now named تا only in its rune context; ordinary thank-you dialogue is
+  preserved. Boots are translated as footwear, and Rubedite as الروبيديت.
+- Controller research trait/state columns and headings have separate space.
+  Tooltip sections measure wrapped Arabic text before laying out later rows.
+- Alchemy output descriptions and unknown trait lists use corrected RTL layout.
+- Controller chat channel/input and dropdown follow the right-side channel.
+  Arabic/English log text uses consistent sizing; sender/message fields remain
+  separated. Slash commands remain valid commands, including /ar and /en.
+- Quest reward icons/names use stable anchors. Retains the independent Crown
+  Store callback fix and direct EsoAR/EsoUI/gamedata installation layout.
+
+Validation: 203 Lua 5.1/rendering regression checks passed;
+all 1,193,400 LANG records checked against the baseline and reviewed changes;
+UI IDs, manifest references, Lua syntax, XML, ZIP CRC and runtime hashes checked.
+Native game appearance and gameplay on this exact update still need testing.
+This review does not certify every individual recipe, furnishing or lore text.
+Console hardware gameplay has not been tested. These files are not published.
+
 2.2.7
 - Restored controller Crown Store balance layout. The Crown Store and quest
   reward adapters now register independently on the same list setup method.

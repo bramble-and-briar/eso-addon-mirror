@@ -1,8 +1,8 @@
-## Title: ESO Arabic 2.2.6 Console Safe
+## Title: ESO Arabic 2.3.5
 ## APIVersion: 101050 101051
-## Version: 2.2.6
+## Version: 2.3.5
 ## Author: AzoozovicSaw21
-## Description: !ﻊﺘﻤﺘﺳﺍ .ﺔﻴﺑﺮﻌﻟﺍ ﺔﻐﻠﻟﺍ ﻰﻟﺇ ﺔﻴﻤﺳﺭ ﺮﻴﻏ ﺔﻤﺟﺮﺗ
+## Description: ﺔﻳﺰﻴﻠﺠﻧﻻﺍ ﻰﻟﺍ ﺔﻐﻟ ﺮﻴﻐﺘﻟ  /en   ﺔﻴﺑﺮﻌﻟﺍ ﻰﻟﺍ ﺔﻐﻟ ﺮﻴﻐﺘﻟ /ar   ﺔﻴﻤﺳﺭ ﺮﻴﻏ ﺔﻤﺟﺮﺗ
 ## SavedVariables: ESOArabicSavedVariables
 ##
 EsoAR.lua
@@ -13,7 +13,6 @@ modules/ArabicRTL.lua
 modules/ArabicLayouts.lua
 modules/ArabicGamepadLayouts.lua
 modules/ArabicCompatibility.lua
-modules/ArabicClientStrings.lua
 modules/ArabicStoreStrings.lua
 modules/ArabicTestPanel.lua
 modules/ArabicFontBackup.xml

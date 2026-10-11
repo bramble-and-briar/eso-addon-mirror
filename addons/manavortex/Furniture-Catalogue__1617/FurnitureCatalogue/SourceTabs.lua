@@ -1,0 +1,312 @@
+-- Source-tab tree: top-level tabs, optionally with child tabs that only
+-- apply within their parent. Selecting a parent with children still just
+-- sets ddSource to the parent's own id.
+
+local LFC = LibFurnitureCatalogue
+local src = LFC.API.GetSourceTypes()
+
+local SOURCE_TREE = {
+  { id = src.NONE },
+  { id = src.FAVE },
+  {
+    id = src.CRAFTING,
+    children = {
+      { id = src.CRAFTING_KNOWN },
+      { id = src.CRAFTING_UNKNOWN },
+    },
+  },
+  { id = src.WRIT_VENDOR },
+  {
+    id = FurC.SourceFilters.CURRENCY,
+    children = {
+      {
+        id = src.CROWN,
+        children = {
+          { id = FurC.SourceFilters.CROWN_STORE },
+          { id = src.EDITOR },
+        },
+      },
+      {
+        id = src.VENDOR,
+        children = {
+          { id = FurC.SourceFilters.ACHIEVEMENT },
+          { id = FurC.SourceFilters.HOME_GOODS },
+          { id = src.LUXURY },
+        },
+      },
+      {
+        id = src.PVP,
+        children = {
+          { id = FurC.SourceFilters.ALLIANCE_POINTS },
+          { id = src.TELVAR },
+        },
+      },
+      { id = src.TOMES },
+      {
+        id = src.BAZAAR,
+        children = {
+          { id = FurC.SourceFilters.GOLD_COAST_BAZAAR },
+          { id = FurC.SourceFilters.IMPRESARIO },
+        },
+      },
+    },
+  },
+  {
+    id = src.OTHER,
+    children = {
+      { id = src.FISHING },
+      { id = src.ANTIQUITY },
+      {
+        id = src.JUSTICE,
+        children = {
+          { id = src.PICKPOCKET },
+          { id = src.STEAL_CONTAINER },
+        },
+      },
+      { id = src.DUNGEON },
+      { id = src.HARVEST },
+      { id = src.FESTIVAL_DROP },
+      { id = src.CHEST },
+      { id = src.QUEST },
+      { id = src.DROP },
+    },
+    catchAll = true, -- still adopts anything genuinely unplaced (e.g. GUILDSTORE)
+  },
+  { id = src.RUMOUR },
+}
+
+FurC.SourceTree = SOURCE_TREE
+
+-- Resolved view of the tree (with OTHER auto-filled)
+local resolved, familyRoot, nodeById, flatOrder
+local subtreeIds, groupIds -- id -> {self + all descendant ids}; flat list of ids that have children
+local ancestorsOf -- id -> {self, parent, grandparent, ..., root}, for "parent pick covers this leaf" checks
+local builtFrom
+local warnedUnlabelled = false
+
+---Sources not used in a node, but with a label
+---@param placed table<integer, boolean>
+---@param choices table<integer, string>
+---@return table[] children
+local function collectUngrouped(placed, choices)
+  local ungrouped, unlabelled = {}, {}
+  for _, id in pairs(src) do
+    if id ~= src.IGNORED and id ~= src.HOME_GOODS and id ~= src.ACHIEVEMENT and not placed[id] then
+      if choices[id] then
+        ungrouped[#ungrouped + 1] = { id = id }
+      else
+        unlabelled[#unlabelled + 1] = id
+      end
+    end
+  end
+
+  -- Alphabetical by label
+  table.sort(ungrouped, function(a, b)
+    return choices[a.id] < choices[b.id]
+  end)
+
+  if #unlabelled > 0 and not warnedUnlabelled then
+    warnedUnlabelled = true
+    table.sort(unlabelled)
+    FurC.Logger:Debug(
+      "SourceTabs: %d source(s) have no label and cannot be shown: %s",
+      #unlabelled,
+      table.concat(unlabelled, ", ")
+    )
+  end
+
+  return ungrouped
+end
+
+local function indexNode(node, rootId, parentChain)
+  rootId = rootId or node.id
+  local subtree = {}
+  local ownChain = parentChain
+  if node.id then
+    familyRoot[node.id] = rootId
+    nodeById[node.id] = node
+    flatOrder[#flatOrder + 1] = node.id
+    subtree[#subtree + 1] = node.id
+    -- this id, then everything already accumulated above it
+    ownChain = { node.id }
+    for _, ancestorId in ipairs(parentChain or {}) do
+      ownChain[#ownChain + 1] = ancestorId
+    end
+    ancestorsOf[node.id] = ownChain
+  end
+  for _, child in ipairs(node.children or {}) do
+    local childIds = indexNode(child, rootId, ownChain)
+    for _, id in ipairs(childIds) do
+      subtree[#subtree + 1] = id
+    end
+  end
+  if node.id then
+    subtreeIds[node.id] = subtree
+    if node.children then
+      groupIds[#groupIds + 1] = node.id
+    end
+  end
+  return subtree
+end
+
+---@return table[] tree resolved copy, catch-all children filled in
+local function getResolvedTree()
+  local choices = FurC.DropdownData.ChoicesSource or {}
+  if resolved and builtFrom == choices then
+    return resolved
+  end
+
+  -- Everything the tree accounts for, so catch-all can subtract
+  local placed = {}
+  local function markPlaced(node)
+    if node.id then
+      placed[node.id] = true
+    end
+    for _, child in ipairs(node.children or {}) do
+      markPlaced(child)
+    end
+  end
+  for _, node in ipairs(SOURCE_TREE) do
+    markPlaced(node)
+  end
+
+  resolved, familyRoot, nodeById, flatOrder = {}, {}, {}, {}
+  subtreeIds, groupIds, ancestorsOf = {}, {}, {}
+  builtFrom = choices
+
+  for _, node in ipairs(SOURCE_TREE) do
+    local copy = { id = node.id, stringId = node.stringId, children = node.children }
+    if node.catchAll then
+      local found = collectUngrouped(placed, choices)
+      if #found > 0 then
+        copy.children = copy.children or {}
+        for _, child in ipairs(found) do
+          copy.children[#copy.children + 1] = child
+        end
+      end
+    end
+    resolved[#resolved + 1] = copy
+    indexNode(copy)
+  end
+
+  return resolved
+end
+FurC.GetResolvedSourceTree = getResolvedTree
+
+---Display order of selectable sources, parents before children
+---@return integer[] order
+function FurC.GetSourceOrder()
+  getResolvedTree()
+  return flatOrder
+end
+
+---@param srcId integer any ddSource value
+---@return integer? rootId the top-level tab it belongs to, nil if untracked
+function FurC.GetSourceFamilyRoot(srcId)
+  getResolvedTree()
+  return familyRoot[srcId]
+end
+
+function FurC.GetSourceTreeNode(srcId)
+  getResolvedTree()
+  return nodeById[srcId]
+end
+
+---Every node id that has children (i.e. can show a rolled-up right-click count)
+---@return integer[] ids
+function FurC.GetSourceGroupIds()
+  getResolvedTree()
+  return groupIds
+end
+
+---True if srcId itself, or any of its ancestors, is a right-click additive pick -
+---i.e. whether this specific node is functionally included in the current filter,
+---whether or not it was the one actually clicked.
+---@param srcId integer
+---@return boolean covered
+function FurC.IsSourceCovered(srcId)
+  getResolvedTree()
+  local additive = FurC.AdditiveSources
+  if not additive then
+    return false
+  end
+  local chain = ancestorsOf[srcId]
+  if not chain then
+    return additive[srcId] == true
+  end
+  for _, ancestorId in ipairs(chain) do
+    if additive[ancestorId] then
+      return true
+    end
+  end
+  return false
+end
+
+---Count of leaf descendants within a node's own subtree that are covered (see
+---IsSourceCovered) - i.e. picking a parent directly counts as picking all its
+---children. Only leaves are counted; an intermediate group is never its own unit.
+---@param srcId integer
+---@return integer count
+function FurC.GetAdditiveSourceCount(srcId)
+  getResolvedTree()
+  local ids = subtreeIds[srcId]
+  if not ids then
+    return 0
+  end
+  local n = 0
+  for _, id in ipairs(ids) do
+    local node = nodeById[id]
+    if node and not node.children and FurC.IsSourceCovered(id) then
+      n = n + 1
+    end
+  end
+  return n
+end
+
+-- Tabs that are not a library source, by the record type they stand for
+-- TODO: unify this stuff, so we don't have to map it
+local TYPE_OF_TAB = {
+  [src.CRAFTING_KNOWN] = src.CRAFTING,
+  [src.CRAFTING_UNKNOWN] = src.CRAFTING,
+  [src.WRIT_VENDOR] = src.ROLIS,
+  [FurC.SourceFilters.CROWN_STORE] = src.CROWN,
+  [FurC.SourceFilters.ACHIEVEMENT] = src.ACHIEVEMENT,
+  [FurC.SourceFilters.HOME_GOODS] = src.HOME_GOODS,
+  [FurC.SourceFilters.ALLIANCE_POINTS] = src.PVP,
+  [src.TELVAR] = src.PVP,
+  [FurC.SourceFilters.GOLD_COAST_BAZAAR] = src.BAZAAR,
+  [FurC.SourceFilters.IMPRESARIO] = src.FESTIVAL_DROP,
+}
+
+---Record types the Source selection and its right-click picks stand for, a parent tab covering its children
+---@return table<integer, true> types empty for "All" and Favourites
+function FurC.GetSelectedSourceTypes()
+  getResolvedTree()
+  local types = {}
+  local function add(id)
+    if id == src.NONE or id == src.FAVE then
+      return
+    end
+    for _, covered in ipairs(subtreeIds[id] or { id }) do
+      types[TYPE_OF_TAB[covered] or covered] = true
+    end
+  end
+  add(FurC.GetDropdownChoice("Source"))
+  for id in pairs(FurC.AdditiveSources or {}) do
+    add(id)
+  end
+  return types
+end
+
+-- Crafting-profession row: visible under these top-level families.
+local CRAFT_BUTTON_FAMILIES = {
+  [src.NONE] = true,
+  [src.CRAFTING] = true,
+  [src.FAVE] = true,
+}
+
+---@param ddSource integer current Source selection
+function FurC.ShouldShowCraftingTypeButtons(ddSource)
+  local root = FurC.GetSourceFamilyRoot(ddSource) or ddSource
+  return CRAFT_BUTTON_FAMILIES[root] == true
+end

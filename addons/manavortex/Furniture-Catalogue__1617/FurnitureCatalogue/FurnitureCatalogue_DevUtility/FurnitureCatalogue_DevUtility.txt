@@ -5,7 +5,7 @@
 ## AddonVersion: 2002000
 ## APIVersion: 101050 101051
 ## DependsOn: FurnitureCatalogue
-## OptionalDependsOn: sidTools LibDebugLogger DebugLogViewer Taneth>=31
+## OptionalDependsOn: LibDebugLogger DebugLogViewer Taneth>=31
 ## SavedVariables: FurCDev_SavedVariables
 
 Bindings.xml
@@ -15,25 +15,40 @@ startup.lua
 Internal.lua
 Public.lua
 GUI.lua
+Probe.lua
 Benchmark.lua
+test/RowShape.lua
+Consumers.lua
 
-Datamine.lua
 Dump.lua
-DumpFurniture_sidTools.lua
-
-Custom.lua
+Datamine.lua
 
 test/setup.lua
 test/contract_libprice.lua
 test/contract_api.lua
+test/contract_lib_chat.lua
+test/contract_lib_ignored.lua
+test/contract_lib_misc_item_sources.lua
+test/contract_lib_vendor_keys.lua
+test/contract_lib_recipe_sources.lua
+test/contract_lib_row_shape.lua
+test/contract_lib_vocabulary.lua
+test/contract_lib_record_shape.lua
+test/contract_source_format.lua
+test/contract_source_places.lua
 test/contract_furnitureshoppinglist.lua
+test/unit_benchmark.lua
 test/unit_utils.lua
 test/unit_db_upsert.lua
 test/unit_recipe_keys.lua
 test/unit_search_index.lua
+test/unit_source_filter.lua
+test/unit_list_rows.lua
+test/unit_names_dump.lua
 test/unit_favorites.lua
 test/unit_knowledge.lua
 test/unit_tooltip_sources.lua
 test/unit_migration.lua
 test/unit_context_menu.lua
 test/unit_lib_namespaces.lua
+test/unit_consumers.lua

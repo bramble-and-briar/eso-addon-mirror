@@ -30,7 +30,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ElderScrollsOfAlts 1.00.53.beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Echomap/ElderScrollsOfAlts-1.00.53.beta__3969) | Echomap | PC / Mac | 1.00.53.beta |
 | [ElderTurks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MahlukatGuluGulu/ElderTurks__2468) | MahlukatGuluGulu | PC / Mac | 1.4.3 |
 | [Elm's Markers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bitrock/Elm-s-Markers__3395) | bitrock | PC / Mac | 3.1.0 |
-| [Elm's Markers U51](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/Elm-s-Markers-U51__4916) | partdark | PC / Mac | 4.0 |
+| [Elm's Markers U51](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/Elm-s-Markers-U51__4916) | partdark | PC / Mac | 5.1 |
 | [Elsweyr Mural Mender](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Elsweyr-Mural-Mender__2367) | Kyoma | PC / Mac | 1.2 |
 | [Emacs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/Emacs__1046) | Ayantir | PC / Mac | 9002e72 |
 | [Emomento](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Werewolf-Finds-Dragon/Emomento__1955) | Werewolf Finds Dragon | PC / Mac | 005-100022 |
@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Event Ticket Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ibex.rc/Event-Ticket-Notifier__2787) | ibex.rc | PC / Mac | 12 |
 | [Event Tickets (Clockwork City Event)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/Event-Tickets-Clockwork-City-Event__2174) | kafeijao | PC / Mac | 2.0 |
 | [Event Tickets Warning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smaxx/Event-Tickets-Warning__3307) | Smaxx | PC / Mac | 1.0.1 |
-| [Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelinmiriel/Event-Tracker__2504) | Kelinmiriel | PC / Mac | 2.420 |
+| [Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kelinmiriel/Event-Tracker__2504) | Kelinmiriel | PC / Mac | 2.430 |
 | [EventBuffReminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/bluebuiy/EventBuffReminder__2993) | bluebuiy | PC / Mac | 4 |
 | [Eventor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ek1/Eventor__2793) | Ek1 | PC / Mac | 1049.260402 |
 | [EWPFinder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/EWPFinder__bf9cbf1c-54ac-48f3-b489-a2aeda4996e8) | Vixen_Hunny | Console | — |

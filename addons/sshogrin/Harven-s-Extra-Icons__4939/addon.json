@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/sshogrin/Harven-s-Extra-Icons__4939",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "sshogrin",
+  "canonical_id": "esoui:4939",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4939",
+  "deleted": false,
+  "directories": [
+    "HarvensExtraIcons"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4939/",
+  "fingerprint": "74ac4508d591faf478ff1470bf2ff9541c6049918cb9a9f99b01c3a6771cfa20",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4939",
+  "source_url": "https://www.esoui.com/downloads/info4939-HarvensExtraIcons.html",
+  "stats": {
+    "downloads": 22,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Harven's Extra Icons",
+  "updated_at": 1791671129000,
+  "version": "1.0.0"
+}

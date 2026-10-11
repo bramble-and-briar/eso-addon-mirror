@@ -4841,8 +4841,10 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
     NC.savedVars = ZO_SavedVars:NewAccountWide("NecroCat_SV", 1, nil, {
         vrxCoord        = 136,
         noteXCoord      = 170,
+        vivecXCoord     = 204,
         showIcon        = true,
         showNoteIcon    = false,
+        showVivecIcon   = false,
         guildHomeVisibility = 1,
         pinned          = {},
         whisperAlert    = false,
@@ -5080,6 +5082,20 @@ function NC.OnAddOnLoaded(eventCode, addOnName)
         SetTooltipText(InformationTooltip, GetString(SI_NC_TT_NOTE))
     end)
     NC.NoteIcon:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
+    
+    NC.VivecIcon = WINDOW_MANAGER:CreateControl("NecroCatVivecTeleport", ZO_ChatWindow, CT_BUTTON)
+    NC.VivecIcon:SetDimensions(25, 25)
+    NC.VivecIcon:SetNormalTexture("EsoUI/Art/Icons/poi/poi_wayshrine_complete.dds")
+    NC.VivecIcon:SetHidden(not NC.savedVars.showVivecIcon)
+    NC.VivecIcon:SetAnchor(TOPRIGHT, ZO_ChatWindow, TOPRIGHT, -NC.savedVars.vivecXCoord, 10)
+    NC.VivecIcon:SetHandler("OnClicked", function()
+        NC.TeleportToVivec()
+    end)
+    NC.VivecIcon:SetHandler("OnMouseEnter", function(ctrl)
+        InitializeTooltip(InformationTooltip, ctrl, TOP, 0, 5)
+        SetTooltipText(InformationTooltip, GetString(SI_NC_TT_VIVEC))
+    end)
+    NC.VivecIcon:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
     
     NC.isReady = false
     zo_callLater(function() NC.isReady = true end, 5000) 

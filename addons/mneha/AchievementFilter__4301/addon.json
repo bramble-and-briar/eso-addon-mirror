@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/mneha/AchievementFilter__4301",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "mneha",
   "canonical_id": "esoui:4301",
   "category_id": "18",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4301",
@@ -17,7 +18,7 @@
     "AchievementFilter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4301/",
-  "fingerprint": "506bea0a8cfdc0b38455f7be34912b1214bebe3f45ae6a99a20684c579a6b3c1",
+  "fingerprint": "e26240250c3b5083ac52a8728c13c5eb6fe3e42a5995796ec38693fb5f02ab2b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14782.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw14783.jpg",
@@ -32,11 +33,11 @@
   "source_id": "4301",
   "source_url": "https://www.esoui.com/downloads/info4301-AchievementFilter.html",
   "stats": {
-    "downloads": 1000,
+    "downloads": 1140,
     "favorites": 7,
-    "monthly_downloads": 166
+    "monthly_downloads": 65
   },
   "title": "AchievementFilter",
-  "updated_at": 1783527455000,
-  "version": "1.1.3"
+  "updated_at": 1791663260000,
+  "version": "1.2.1"
 }

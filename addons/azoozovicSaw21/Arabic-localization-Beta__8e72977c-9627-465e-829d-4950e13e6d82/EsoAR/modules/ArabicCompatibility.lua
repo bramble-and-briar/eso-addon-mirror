@@ -1,10 +1,6 @@
 -- Optional integrations. No third-party addon files or global language values
 -- are changed. Localized guild trader names get a separate cache per language.
 local R = ESO_ARABIC_TEXT
-local function effectiveLanguage()
-    if R.IsActive and R.IsActive() then return "ar" end
-    return GetCVar("Language.2")
-end
 
 function R.SelectGuildStoreLanguage(data, language)
     if type(data) ~= "table" then return false end
@@ -29,7 +25,7 @@ local function installGuildStore()
     api.esoArabic131 = true
     local initialize = api.InitializeGuildStoreList
     api.InitializeGuildStoreList = function(data, ...)
-        R.SelectGuildStoreLanguage(data, effectiveLanguage())
+        R.SelectGuildStoreLanguage(data, GetCVar("Language.2"))
         return initialize(data, ...)
     end
 end
@@ -42,7 +38,7 @@ function R.RecoverGuildStore()
     local key = GetWorldName() .. GetDisplayName()
     local data = AwesomeGuildStore_Data[key]
     local current = data and data.guildStoreList
-    local language = effectiveLanguage()
+    local language = GetCVar("Language.2")
     if not data or not data.guildTraderListEnabled or not current or not current.language or current.language == language then return end
     if language ~= "ar" and current.language ~= "ar" and not data.esoArabicGuildStoreLanguages then return end
     api.esoArabicRecoveryAttempted = true
@@ -102,3 +98,46 @@ EVENT_MANAGER:RegisterForEvent("ESOArabicCompatibility", EVENT_PLAYER_ACTIVATED,
     R.InstallCompatibility()
     R.RecoverGuildStore()
 end)
+
+local lootStrings = {
+    Gold = "ذهب", Experience = "نقاط خبرة", AlliancePoints = "نقاط التحالف",
+    VeterancyPoints = "نقاط المخضرمين", TelvarStones = "أحجار تل فار",
+    WritVouchers = "قسائم التكليفات", UndauntedKeys = "مفاتيح الشجعان",
+    TransmuteCrystals = "بلورات التحويل", EventTickets = "تذاكر الفعاليات",
+    Endeavor = "أختام المساعي", Endless = "الثروات الأرشيفية", Fragment = "الشظايا الإمبراطورية",
+    TomePoints = "نقاط المجلد", TomePointCaches = "حزم نقاط المجلد",
+    TomeTokens = "رموز المجلد المميزة", TradeBars = "سبائك التجارة",
+    CompanionXP = "خبرة الرفيق", CompanionRapport = "الألفة مع الرفيق", Rapport = "الألفة",
+    LevelPsijic = "المستوى", CAchievement = "اكتمل!", AProgress = "التقدم:",
+    Loot = "الغنائم", Achievements = "الإنجازات", SkillDisplay = "المهارات",
+    Everything = "جميع المكاسب غير العينية", SelectPreview = "اختر وضع المعاينة",
+    ValueNone = " (لا توجد بيانات)", Companions = "الرفاق", Currencies = "العملات",
+    CraftXP = "خبرة الحرف", FenceXP = "خبرة تصريف المسروقات", GuildReputation = "سمعة النقابة",
+}
+local lootOriginals = setmetatable({}, {__mode = "k"})
+local function installLootDrop()
+    if not LootDrop_Strings or type(LootDrop_Strings.GetLanguage) ~= "function" then return end
+    -- LootDrop retains this table locally. Update its values, never replace it
+    -- or modify its files/SavedVariables. Both popup and chat read these keys.
+    local strings = LootDrop_Strings:GetLanguage()
+    if type(strings) ~= "table" then return end
+    local originals = lootOriginals[strings]
+    if not originals then
+        originals = {}; lootOriginals[strings] = originals
+        for key in pairs(lootStrings) do originals[key] = strings[key] end
+    end
+    for key, value in pairs(lootStrings) do
+        if originals[key] then
+            strings[key] = R.IsActive() and R.Compose(R.ShapeLogical(value)) or originals[key]
+        end
+    end
+    -- Never wrap native control creation: XML interaction handlers must retain
+    -- their secure origin. Arabic label discovery handles LootDrop labels.
+
+end
+R.InstallLootDropArabic = installLootDrop
+EVENT_MANAGER:RegisterForEvent("ESOArabicLootDrop", EVENT_ADD_ON_LOADED, function(_, name)
+    if name == "LootDrop" then installLootDrop() end
+end)
+EVENT_MANAGER:RegisterForEvent("ESOArabicLootDropReady", EVENT_PLAYER_ACTIVATED, installLootDrop)
+installLootDrop()

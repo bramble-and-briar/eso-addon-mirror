@@ -24,7 +24,7 @@ env.setCombat(false); env.setClock(30)
 env.setBuffs("player", {})
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "group", scale = 1, x = 0, y = 0 },
-    { key = 2, id = 61771, unit = "player", scale = 1, x = 0, y = 48 } }
+    { key = 2, id = 61771, unit = "player", personalTime = "combat", scale = 1, x = 0, y = 48 } }
 saved.checkUptime = true
 ZO_SavedVars.NewAccountWide = function() return saved end
 dofile("LiveBuffUptime.lua")

@@ -1,18 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Mirelda/Mirelda-s-RogAllyPerformanceOptimization__3964",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Mirelda",
   "canonical_id": "esoui:3964",
   "category_id": "159",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3964",
@@ -21,7 +18,7 @@
     "RogAllyPerformanceOptimization"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3964/",
-  "fingerprint": "cbe018dd489f11e9356b7664c6236863de38b89d166391432db7158f3348edf7",
+  "fingerprint": "410a5303213c6b293364b48826adbb7702cab72140a37a88ee9e67189224ca45",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13443.jpg"
   ],
@@ -31,11 +28,11 @@
   "source_id": "3964",
   "source_url": "https://www.esoui.com/downloads/info3964-MireldasRogAllyPerformanceOptimization.html",
   "stats": {
-    "downloads": 1907,
+    "downloads": 1986,
     "favorites": 0,
-    "monthly_downloads": 48
+    "monthly_downloads": 31
   },
   "title": "Mirelda's RogAllyPerformanceOptimization",
-  "updated_at": 1780904332000,
-  "version": "1.21"
+  "updated_at": 1791637240000,
+  "version": "1.22"
 }

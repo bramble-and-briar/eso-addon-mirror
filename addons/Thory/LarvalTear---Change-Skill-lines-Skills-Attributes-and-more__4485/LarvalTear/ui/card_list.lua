@@ -73,6 +73,44 @@ local function SaveCardFoodLink(cardId, foodCardId)
     RefreshArmoryPanelsAfterCardLinkChange()
 end
 
+function LTM_UI:ShowCardOutfitMenu(cardId, control)
+    local options, err = LTM_UI_DISPATCH:GetCardOutfitOptions(cardId)
+    if err ~= nil then
+        self:LogActionError("common.outfit", err)
+    end
+    if options == nil then
+        return
+    end
+    self:CloseActionMenus()
+    ClearTooltip(InformationTooltip)
+    ClearMenu()
+    for _, option in ipairs(options) do
+        local selection = option.outfit
+        local label = option.selected and GetText("outfit.selected", { name = option.label }) or option.label
+        AddMenuItem(label, function()
+            if option.enabled == false then
+                return
+            end
+            local _, saveErr = LTM_UI_DISPATCH:SetCardOutfit(cardId, selection)
+            if saveErr ~= nil then
+                LTM_UI:LogActionError("common.save", saveErr)
+            end
+            RefreshArmoryPanelsAfterCardLinkChange()
+        end, nil, nil, nil, nil, nil, nil, nil, nil, nil, option.enabled)
+    end
+    if Addon:IsIgnoreCostumesEnabled() then
+        AddMenuItem(GetText("outfit.open_settings"), function()
+            local opened, openErr = LTM_UI_DISPATCH:OpenAddonSettings()
+            if not opened then
+                LTM_UI:LogActionError("outfit.open_settings", openErr)
+                return
+            end
+            LTM_UI:HideMainWindow()
+        end)
+    end
+    ShowMenu(control)
+end
+
 local function GetSkillSettingsSummaryText(summary)
     local sourceKey = type(summary) == "table" and summary.skillSettingsUseOverride == true
         and "card.skill_settings.source.build" or "card.skill_settings.source.global"
@@ -137,7 +175,7 @@ function LTM_UI:ApplyBuildCardHeaderLayout(cardControl, hasRole)
 
     cardControl.titleLabel:ClearAnchors()
     cardControl.titleLabel:SetAnchor(TOPLEFT, cardControl.cardHeader, TOPLEFT, titleLeft, 12)
-    cardControl.titleLabel:SetAnchor(TOPRIGHT, cardControl.cardHeader, TOPRIGHT, -112, 12)
+    cardControl.titleLabel:SetAnchor(TOPRIGHT, cardControl.cardHeader, TOPRIGHT, -134, 12)
 
     cardControl.roleIcon:ClearAnchors()
     cardControl.roleIcon:SetAnchor(
@@ -530,7 +568,17 @@ function LTM_UI:RefreshCardList(forceSnapshot)
         return
     end
 
+    if self.outfitSettingsCallbackRegistered ~= true then
+        CALLBACK_MANAGER:RegisterCallback("LTM_IgnoreCostumesChanged", function()
+            if LTM_UI.window and not LTM_UI.window:IsHidden() and LTM_UI:IsArmoryStationTabActive() then
+                LTM_UI:RefreshCardList()
+            end
+        end)
+        self.outfitSettingsCallbackRegistered = true
+    end
+
     local cardEntries = self:GetCardEntries()
+    local ignoreCostumes = Addon:IsIgnoreCostumesEnabled()
 
     self:EnsureCardSelection(cardEntries)
 
@@ -572,6 +620,19 @@ function LTM_UI:RefreshCardList(forceSnapshot)
         )
         SetLabelText(cardControl.ordinalLabel, BuildOrdinalText(entry.ordinal or index))
         self:RefreshCardRoleIcon(cardControl, summary)
+        if cardControl.outfitIcon then
+            local saved = type(summary) == "table" and summary.outfitSaved == true and not ignoreCostumes
+            cardControl.outfitIcon:SetDesaturation(saved and 0 or 1)
+            local brightness = saved and 1 or 0.38
+            cardControl.outfitIcon:SetColor(brightness, brightness, brightness, 1)
+            cardControl.outfitIcon.ltmTooltipText = GetText("outfit.tooltip", {
+                name = type(summary) == "table" and summary.outfitName or GetText("common.unknown"),
+            })
+            if ignoreCostumes then
+                cardControl.outfitIcon.ltmTooltipText = cardControl.outfitIcon.ltmTooltipText
+                    .. "\n" .. GetText("outfit.ignore_costumes")
+            end
+        end
         self:RefreshTransformIcons(
             cardControl.transformIcons,
             type(summary) == "table" and summary.transformEntries or nil,

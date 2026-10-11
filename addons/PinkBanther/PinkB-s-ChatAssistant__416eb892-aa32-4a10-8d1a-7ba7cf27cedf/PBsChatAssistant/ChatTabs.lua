@@ -1,4 +1,4 @@
--- Chat tabs: the normal tab, plus one per guild.
+-- Chat tabs: the normal tab, a group tab, and one per guild.
 --
 -- Console chat ships with a single tab and no way to add one. The parts are all there and are
 -- shared rather than keyboard-only: SharedChatContainer:AddWindow makes a tab, HandleTabClick
@@ -70,6 +70,29 @@ local function GuildIndexForChannel(channelId)
 		end
 	end
 	return nil
+end
+
+-- The group tab is named from a string of this add-on's own, not from anything the client
+-- supplies, so it follows the UI language. The name it was created under is kept in the saved
+-- settings, which is how a tab made in one language is found and renamed in another instead of
+-- being left behind beside a new one.
+local function GroupTabName()
+	local name = type(GetString) == "function" and SI_PBSCHATASSISTANT_GROUP_TAB
+		and GetString(SI_PBSCHATASSISTANT_GROUP_TAB)
+	if type(name) == "string" and name ~= "" then
+		return name
+	end
+	return "Group"
+end
+
+local function IsPartyChannel(channelId)
+	return channelId ~= nil and CHAT_CHANNEL_PARTY ~= nil and channelId == CHAT_CHANNEL_PARTY
+end
+
+-- Channels that have a tab of their own. Everything else belongs to the normal tab, which is what
+-- "the channel to go back to" means when the normal tab is selected again.
+local function IsDedicatedChannel(channelId)
+	return GuildIndexForChannel(channelId) ~= nil or IsPartyChannel(channelId)
 end
 
 -- Which guilds the player is in, by slot, with the names the tabs are called after.
@@ -208,6 +231,9 @@ function tabs:Reconcile()
 		return
 	end
 
+	-- Before the guilds, so a fresh install lays the tabs out in the order they are walked.
+	self:EnsureGroupTab(container)
+
 	addon.sv.guildTabNames = addon.sv.guildTabNames or {}
 	local known = addon.sv.guildTabNames
 	local seen = {}
@@ -261,6 +287,48 @@ function tabs:Reconcile()
 	self:RefreshStrip(container)
 end
 
+function tabs:GroupTabIndex(container)
+	local name = (addon.sv and addon.sv.groupTabName) or GroupTabName()
+	return FindTabByName(container, name)
+end
+
+-- The group tab: party chat and nothing else, the same shape as a guild tab.
+--
+-- It exists whether or not the player is in a group. A tab that came and went with the group
+-- would lose its history every time the group disbanded, and would change the order the chord
+-- walks the tabs in from one press to the next.
+function tabs:EnsureGroupTab(container)
+	if not CHAT_CATEGORY_PARTY then
+		return nil
+	end
+
+	local name = GroupTabName()
+	local previous = addon.sv.groupTabName
+	local tabIndex = FindTabByName(container, name)
+	if previous and previous ~= name then
+		local previousIndex = FindTabByName(container, previous)
+		if tabIndex then
+			RemoveAllTabsNamed(container, previous)
+			tabIndex = FindTabByName(container, name)
+		elseif previousIndex then
+			container:SetTabName(previousIndex, name)
+			tabIndex = previousIndex
+		end
+	end
+
+	if not tabIndex then
+		container:AddWindow(name)
+		tabIndex = FindTabByName(container, name)
+	end
+
+	if tabIndex then
+		tabIndex = RemoveDuplicateTabsNamed(container, name, tabIndex)
+		addon.sv.groupTabName = name
+		self:RouteGuildTab(container, tabIndex, CHAT_CATEGORY_PARTY, nil)
+	end
+	return tabIndex
+end
+
 function tabs:ScheduleReconcile()
 	if self.reconcilePending then
 		return
@@ -287,6 +355,12 @@ function tabs:RemoveAll()
 			container:RemoveWindow(tabIndex)
 		end
 		known[guildId] = nil
+	end
+
+	-- Party chat was never taken out of the normal tab, so removing the group tab loses nothing.
+	if addon.sv.groupTabName then
+		RemoveAllTabsNamed(container, addon.sv.groupTabName)
+		addon.sv.groupTabName = nil
 	end
 
 	for index = 1, 5 do
@@ -444,19 +518,19 @@ end
 
 function tabs:NormalChannel(chat)
 	local current = chat and chat.currentChannel
-	if current and not GuildIndexForChannel(current) then
+	if current and not IsDedicatedChannel(current) then
 		self.normalChannel = current
 		return current
 	end
 
 	local configured = addon.sv and addon.sv.defaultChannel
-	if self.normalChannel and not GuildIndexForChannel(self.normalChannel) then
+	if self.normalChannel and not IsDedicatedChannel(self.normalChannel) then
 		return self.normalChannel
-	elseif configured and configured ~= 0 and not GuildIndexForChannel(configured) then
+	elseif configured and configured ~= 0 and not IsDedicatedChannel(configured) then
 		return configured
 	elseif chat and type(chat.GetDefaultChatChannel) == "function" then
 		local channelId = chat:GetDefaultChatChannel()
-		if channelId and not GuildIndexForChannel(channelId) then
+		if channelId and not IsDedicatedChannel(channelId) then
 			return channelId
 		end
 	end
@@ -487,6 +561,19 @@ function tabs:SetOutgoingChannelForTab(container, index)
 		return false
 	end
 
+	-- The group tab sends to party chat. Selecting it while not in a group is allowed: the client
+	-- defers that channel's requirement to the moment a message is sent, and says so then.
+	if index == self:GroupTabIndex(container) then
+		if not CHAT_CHANNEL_PARTY then
+			return false
+		end
+		if chat.currentChannel and not IsDedicatedChannel(chat.currentChannel) then
+			self.normalChannel = chat.currentChannel
+		end
+		self:SetChatChannel(chat, CHAT_CHANNEL_PARTY)
+		return true
+	end
+
 	local name = container:GetTabName(index)
 	for guildIndex = 1, 5 do
 		local guildId = GetGuildId and GetGuildId(guildIndex)
@@ -494,7 +581,7 @@ function tabs:SetOutgoingChannelForTab(container, index)
 		if guildName and guildName == name then
 			local channelId = GuildChannel(guildIndex)
 			if channelId and chat and type(chat.SetChannel) == "function" then
-				if chat.currentChannel and not GuildIndexForChannel(chat.currentChannel) then
+				if chat.currentChannel and not IsDedicatedChannel(chat.currentChannel) then
 					self.normalChannel = chat.currentChannel
 				end
 				self:SetChatChannel(chat, channelId)
@@ -584,6 +671,14 @@ end
 function tabs:IndicatorColour(container, index)
 	if index == 1 then
 		return 1, 1, 1, 1
+	end
+
+	if index == self:GroupTabIndex(container) and CHAT_CATEGORY_PARTY
+		and type(GetChatCategoryColor) == "function" then
+		local r, g, b = GetChatCategoryColor(CHAT_CATEGORY_PARTY)
+		if r then
+			return r, g, b, 1
+		end
 	end
 
 	local name = container:GetTabName(index)
@@ -726,6 +821,17 @@ function tabs:SelectTabForChannel(channelId)
 		return false
 	end
 
+	if IsPartyChannel(channelId) then
+		local groupIndex = self:GroupTabIndex(container)
+		if not groupIndex then
+			self:Reconcile()
+			groupIndex = self:GroupTabIndex(container)
+		end
+		if groupIndex then
+			return self:SelectTab(groupIndex, false, false)
+		end
+	end
+
 	local guildIndex = GuildIndexForChannel(channelId)
 	if not guildIndex then
 		self.normalChannel = channelId
@@ -742,6 +848,33 @@ function tabs:SelectTabForChannel(channelId)
 	return tabIndex and self:SelectTab(tabIndex, false, false) or false
 end
 
+-- The order the chord walks the tabs in: normal, group, then the guilds by guild slot.
+--
+-- Decided here rather than by where the tabs physically sit. A tab is appended when it is created,
+-- so anyone who already had guild tabs gets the group tab at the far end, and the client keeps its
+-- per-tab filter settings by position, which makes moving a tab a way to scramble them. Walking a
+-- list of our own gives the asked-for order whatever order they were made in. Tabs this add-on did
+-- not make come last, in the order they stand.
+function tabs:CycleOrder(container)
+	local order, used = { 1 }, { [1] = true }
+	local function Add(tabIndex)
+		if tabIndex and container.windows[tabIndex] and not used[tabIndex] then
+			used[tabIndex] = true
+			order[#order + 1] = tabIndex
+		end
+	end
+
+	Add(self:GroupTabIndex(container))
+	for guildIndex = 1, 5 do
+		local name = GuildTabName(guildIndex)
+		Add(name and FindTabByName(container, name))
+	end
+	for tabIndex = 2, #container.windows do
+		Add(tabIndex)
+	end
+	return order
+end
+
 function tabs:Cycle(step)
 	local container = GetContainer()
 	if not container then
@@ -753,8 +886,17 @@ function tabs:Cycle(step)
 		return false
 	end
 
+	local order = self:CycleOrder(container)
 	local current = self:GetActiveIndex(container)
-	local nextIndex = ((current - 1 + step) % count) + 1
+	local position = 1
+	for index, tabIndex in ipairs(order) do
+		if tabIndex == current then
+			position = index
+			break
+		end
+	end
+
+	local nextIndex = order[((position - 1 + step) % #order) + 1]
 	-- The indicator itself reports the new tab. Avoid adding a second announcement to normal chat.
 	return self:SelectTab(nextIndex, false)
 end

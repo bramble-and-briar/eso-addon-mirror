@@ -1,0 +1,14 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax Media
+; Inc. or its affiliates. The Elder Scrolls and related logos are registered
+; trademarks or trademarks of ZeniMax Media Inc. in the United States and/or
+; other countries. All rights reserved.
+; https://account.elderscrollsonline.com/add-on-terms
+
+## Title: |c2046e5Harven's Custom Map Pins - Extra Icons Extension|r
+## Author: |c2046e5sshogrin|r
+## APIVersion: 101051
+## Version: 1.0.0
+## DependsOn: HarvensCustomMapPins
+
+Icons.lua
+HarvensExtraIcons.lua

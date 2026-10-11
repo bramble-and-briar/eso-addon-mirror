@@ -1,0 +1,17 @@
+## Title: Dungeon Set Tracker
+## Author: @DesertMorfen
+## Version: 1.0.0
+## AddOnVersion: 10000
+## APIVersion: 101051
+## SavedVariables: DungeonSetTrackerSV
+## OptionalDependsOn: LibAddonMenu-2.0>=43 LibSets
+## Description: Shows in the Dungeon Finder which pieces of each dungeon's sets you have collected.
+
+lang/en.lua
+lang/$(language).lua
+DungeonSetTracker.lua
+DungeonSetTracker.xml
+
+# This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates.
+# The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc.
+# in the United States and/or other countries. All rights reserved.

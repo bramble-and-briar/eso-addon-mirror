@@ -16,6 +16,8 @@ local hungerSkillId = 33208
 local feedingFreezySkillId = 58775
 local lastActiveTime = 0
 local isCombatActive = false
+local reviveUntil = 0
+local wasPositivelyActive = false
 local db
 local SV_NAME = "InsatiableHungerBlocker_SV"
 local defaults = {
@@ -31,11 +33,23 @@ local function ShouldHide()
     return hasSynergy and iconFilename == hungerIconFilename and (not db.dungeonOnly or IsUnitInDungeon("player"))
 end
 
+local function IsPositivelyActive()
+    return IsUnitDeadOrReincarnating("player") or IsUnitSwimming("player") or GetGameTimeMilliseconds() < reviveUntil
+end
+
 local function OnCombatEvent(_, result, _, _, _, _, _, _, targetName)
     if IsUnitInCombat("player") and targetName ~= GetRawUnitName("player") and
        (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) then
         lastActiveTime = GetGameTimeMilliseconds()
     end
+end
+
+local function OnSoulGemResurrectionStart(_, duration)
+    reviveUntil = GetGameTimeMilliseconds() + (duration or db.timeout)
+end
+
+local function OnSoulGemResurrectionEnd()
+    reviveUntil = 0
 end
 
 local function RestoreInsatiableHungeSynergyrInfo()
@@ -52,6 +66,12 @@ end
 
 local function CombatIdleCheck()
     local now = GetGameTimeMilliseconds()
+    local positivelyActive = IsPositivelyActive()
+    if positivelyActive or wasPositivelyActive then
+        lastActiveTime = now
+    end
+    wasPositivelyActive = positivelyActive
+
     local isActivating = (now - lastActiveTime) < db.timeout
 
     if isCombatActive ~= isActivating then
@@ -68,10 +88,17 @@ end
 
 local function OnCombatStateChange(_, inCombat)
     if inCombat then
+        wasPositivelyActive = IsPositivelyActive()
+        if wasPositivelyActive then
+            lastActiveTime = GetGameTimeMilliseconds()
+        end
         isCombatActive = (GetGameTimeMilliseconds() - lastActiveTime) < db.timeout
+        RestoreInsatiableHungeSynergyrInfo()
         EVENT_MANAGER:RegisterForUpdate(addonName, db.timeout / 2, CombatIdleCheck)
     else
         isCombatActive = false
+        reviveUntil = 0
+        wasPositivelyActive = false
         lastActiveTime = 0
         EVENT_MANAGER:UnregisterForUpdate(addonName)
         RestoreInsatiableHungeSynergyrInfo()
@@ -92,6 +119,10 @@ local function OnPlayerInit()
     end
     EVENT_MANAGER:RegisterForEvent(addonName, EVENT_PLAYER_COMBAT_STATE, OnCombatStateChange)
     EVENT_MANAGER:RegisterForEvent(addonName, EVENT_COMBAT_EVENT, OnCombatEvent)
+    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_START_SOUL_GEM_RESURRECTION,
+        OnSoulGemResurrectionStart)
+    EVENT_MANAGER:RegisterForEvent(addonName, EVENT_END_SOUL_GEM_RESURRECTION,
+        OnSoulGemResurrectionEnd)
     EVENT_MANAGER:AddFilterForEvent(addonName, EVENT_COMBAT_EVENT,
         REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, COMBAT_UNIT_TYPE_PLAYER,
         REGISTER_FILTER_IS_ERROR, false)
@@ -136,9 +167,9 @@ local function CreateMenu()
     local panelData = {
         type = "panel",
         name = "Insatiable Hunger Blocker",
-        displayName = "|c215895Insatiable Hunger |cCC922FBlocker|r",
+        displayName = "|c2e5c8cI|r|c355e88n|r|c3d6183s|r|c44637fa|r|c4b667bt|r|c526877i|r|c5a6a72a|r|c616d6eb|r|c686f6al|r|c6f7266e|r |c777461H|r|c7e775du|r|c857959n|r|c8d7b54g|r|c947e50e|r|c9b804cr|r |ca28348B|r|caa8543l|r|cb1873fo|r|cb88a3bc|r|cbf8c37k|r|cc78f32e|r|cce912er|r",
         author = "|c215895Lykeion|r",
-        version = "|ccc922f1.13|r",
+        version = "|ccc922f1.14|r",
         slashCommand = "/ihb",
         registerForRefresh = true,
         registerForDefaults = true,
@@ -147,7 +178,7 @@ local function CreateMenu()
     local optionsData = {
         {
             type = "description",
-            text = GetString(IHB_MENU_DESCRIPTION),
+            text = "|c999999" .. GetString(IHB_MENU_DESCRIPTION) .. "|r",
         },
         {
             type = "slider",

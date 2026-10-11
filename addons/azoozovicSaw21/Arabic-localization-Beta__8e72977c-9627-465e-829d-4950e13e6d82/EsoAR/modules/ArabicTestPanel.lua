@@ -2,7 +2,7 @@
 local R = ESO_ARABIC_TEXT
 local panel, labels
 local function show()
-    if not R.IsActive() then d("Enable Arabic add-on mode with /ar first."); return end
+    if GetCVar("Language.2") ~= "ar" then d("Select Arabic with /ar first."); return end
     if panel and not panel:IsHidden() then panel:SetHidden(true); return end
     if not panel then
         panel = WINDOW_MANAGER:CreateTopLevelWindow("ESOArabicTestPanel")

@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/DesertMorfen/Dungeon-Set-Tracker__4942",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "DesertMorfen",
+  "canonical_id": "esoui:4942",
+  "category_id": "26",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4942",
+  "deleted": false,
+  "directories": [
+    "DungeonSetTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4942/",
+  "fingerprint": "871ec359ce00b2f93239b9c5c34d8f7d4b2b690b29090a976d494eb8b570d696",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17930.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17928.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17929.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4942",
+  "source_url": "https://www.esoui.com/downloads/info4942-DungeonSetTracker.html",
+  "stats": {
+    "downloads": 12,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Dungeon Set Tracker",
+  "updated_at": 1791710972000,
+  "version": "1.0.0"
+}

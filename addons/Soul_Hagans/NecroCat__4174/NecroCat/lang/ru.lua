@@ -73,6 +73,7 @@ ZO_CreateStringId("SI_NC_TT_GUILDHALL",              "|c66f2ffNecro cat's Guildh
 ZO_CreateStringId("SI_NC_TT_GUILDHALL_LMB",          "|c00FF00ЛКМ:|r Телепорт в гильдхолл")
 ZO_CreateStringId("SI_NC_TT_GUILDHALL_RMB",          "|c66f2ffПКМ:|r Настройки аддона")
 ZO_CreateStringId("SI_NC_TT_NOTE",                   "|c66f2ffНаписать себе в личку (Заметка)|r")
+ZO_CreateStringId("SI_NC_TT_VIVEC",                  "|c66f2ffТелепорт в город Вивек|r")
 ZO_CreateStringId("SI_NC_TT_KICK_TITLE",             "|c66f2ffNecroCat: Очистка группы|r")
 ZO_CreateStringId("SI_NC_TT_KICK_DESC",              "Исключить из группы всех игроков, кроме добавленных в |c00FF00Избранное|r.")
 ZO_CreateStringId("SI_NC_TT_BUFF_PERMANENT",         "|c00FF00Постоянный эффект|r")
@@ -218,6 +219,8 @@ ZO_CreateStringId("SI_NC_LAM_SHOW_CASTLE",           "Показывать ик�
 ZO_CreateStringId("SI_NC_LAM_CASTLE_X",              "Позиция иконки телепорта")
 ZO_CreateStringId("SI_NC_LAM_SHOW_NOTE",             "Показывать блокнот (шепот себе)")
 ZO_CreateStringId("SI_NC_LAM_NOTE_X",                "Позиция блокнота")
+ZO_CreateStringId("SI_NC_LAM_SHOW_VIVEC",            "Показывать телепорт в Вивек")
+ZO_CreateStringId("SI_NC_LAM_VIVEC_X",               "Позиция иконки Вивека")
 
 -- ВКЛАДКА 5: Уведомления и удобства
 ZO_CreateStringId("SI_NC_LAM_SUB5",                  "|c66f2ff5. Уведомления и Удобства|r")

@@ -1,9 +1,10 @@
 -- Added: --EVENTUPDATE tag to mark places in all .lua files that need to be updated or at least checked with every event update.
-local Latest_Version = 2.420
+local Latest_Version = 2.430
 
 -- ****** Line 1100 ****** Remember to change the collectibles for each event as appropriate!
 -- 3220 If version increased by more than 0.12, pop up info box. Adjust according to whether there's new info
 
+-- 2.430 High Seas; Witches
 -- 2.420 Zeal of Zenithar; U50; U51 for PTS
 -- 2.412 Zeal of Zenithar on PTS
 -- 2.411 Should now avoid Trade Bars dropped from other sources such as Twitch or Tome purchases.
@@ -227,24 +228,6 @@ EVT_UPCOMING_INFO = "Oct: Witches(3) XP!; Daedric War (2); Dec: New Life(3) XP!.
 ]]
 
 
--- 2.250 Witches 10/24-11/6/24 (EST)
---[[ 2.350 10/23-11/5/25 (EST)
-EVT_EVENT_START = MonthCode["5A"] + EVT_ONE_DAY*23
-EVT_EVENT_END   = MonthCode["5B"] + EVT_ONE_DAY*5 -- EST
-EVT_NEXT_EVENT  = "Witches"
-EVT_EVENT_DETAILS = {
-	["Name"] = "Witches",
-	["T_Types_1"] = "Witches",
-	["T_Types_2"] = "not used",
-	["T_Tickets"] = {2,0,0,0,},
-	["T_ToDo"] = {1,0,0,},
-}
-
-EVT_EVENT_INFO_BEGIN = "Check Crown Store for FREE starter quest."
-EVT_EVENT_INFO_BOX = "There's a chance of additional boxes from any boss, even the little daedric incursions that pop up all over. LOOT ALL BODIES AND REWARD CHESTS!"
-EVT_UPCOMING_INFO = "Nov: Daedric War(2). Dec: New Life(3)*. Jan: Whitestrake's Mayhem(3). Feb: Heart's Week(2). March: Jester's(3)*. April: Anniversary(3)*. (number)=Tickets per day, per account. *=DBL XP"
-]]
-
 -- 2.351 11/20-12/2/25; PTS 9/29-10/6/25
 --[[ Lock code around 3100 in init; also in Sign-on
 EVT_EVENT_START = MonthCode["5B"] + EVT_ONE_DAY*20
@@ -363,7 +346,7 @@ EVT_UPCOMING_INFO = "June: Zeal of Zenithar (300 bars/acct/day); then Oct: Witch
 ]]
 
 -- Zeal of Zenithar 6/26-7/8/25 (PTS 4/21-28)
--- 2.420 Zeal of Zenithar 6/24-7/8/26 (PTS 4/13-20)
+--[[ 2.420 Zeal of Zenithar 6/24-7/8/26 (PTS 4/13-20)
 EVT_EVENT_START = MonthCode["66"] + EVT_ONE_DAY*24
 EVT_EVENT_END   = MonthCode["67"] + EVT_ONE_DAY*8
 EVT_NEXT_EVENT  = "Zeal of Zenithar"
@@ -374,10 +357,45 @@ EVT_EVENT_DETAILS = {
 	["T_Tickets"] = {300,0,0,0,},
 	["T_ToDo"] = {1,0,0,},
 }
-EVT_EVENT_INFO_BEGIN = "(opt.) Pick up the FREE quest in the Crown Store to start (it doesn't cost anything.) Go to the new Festival Grounds west of Belkarth in Craglorn."
+EVT_EVENT_INFO_BEGIN = "(opt.) Pick up the FREE quest in the Crown Store to start (it doesn't cost anything.) Go to the Festival Grounds west of Belkarth in Craglorn."
 EVT_EVENT_INFO_BOX = "Get purple boxes from daily crafting writs (1 total) and master (1 per discipline) (per day per acct); world bosses/world events/arenas/possibly stealing, while in party with ONLINE NEARBY guild members."
 EVT_UPCOMING_INFO = "Aug, Nov: Mayhem (no bars); Oct: Witches(300). (number)=Trade Bars per day, per account."
+]]
 
+-- 2.430 High Seas 9/30-10/14/26 (PTS 8/3-10)
+EVT_EVENT_START = MonthCode["69"] + EVT_ONE_DAY*30
+EVT_EVENT_END   = MonthCode["6A"] + EVT_ONE_DAY*14
+EVT_NEXT_EVENT  = "High Seas"
+EVT_EVENT_DETAILS = {
+	["Name"] = "High Seas",
+	["T_Types_1"] = "High Seas",
+	["T_Types_2"] = "none",
+	["T_Tickets"] = {300,0,0,0,},
+	["T_ToDo"] = {1,0,0,},
+}
+EVT_EVENT_INFO_BEGIN = "(opt.) Pick up the FREE quest in the Crown Store to start (it doesn't cost anything.) Find Baron-Captain Olsien Guy Mard west of Anvil in the Gold Coast; complete the 'Raising the Riotous Redress' quest to unlock dailies."
+EVT_EVENT_INFO_BOX = "Get purple boxes from repeating Olsien Guy Mard's High Seas quest on additional characters."
+EVT_UPCOMING_INFO = "Oct: Witches(300; DOUBLE XP); Nov: Mayhem (NO TRADE BARS); Dec: New Life(300; DOUBLE XP). (number)=Trade Bars per day, per account."
+
+
+-- 2.250 Witches 10/24-11/6/24 (EST)
+-- 2.350 10/23-11/5/25 (EST)
+--[[ 2.430 10/21-11/4/26 (EST) NO PTS
+EVT_EVENT_START = MonthCode["6A"] + EVT_ONE_DAY*21
+EVT_EVENT_END   = MonthCode["6B"] + EVT_ONE_DAY*4 -- EST
+EVT_NEXT_EVENT  = "Witches"
+EVT_EVENT_DETAILS = {
+["Name"] = "Witches",
+["T_Types_1"] = "Witches",
+["T_Types_2"] = "not used",
+["T_Tickets"] = {2,0,0,0,},
+["T_ToDo"] = {1,0,0,},
+}
+
+EVT_EVENT_INFO_BEGIN = "Check Crown Store for FREE starter quest."
+EVT_EVENT_INFO_BOX = "There's a chance of additional boxes from any boss, even the little daedric incursions that pop up all over. LOOT ALL BODIES AND REWARD CHESTS!"
+EVT_UPCOMING_INFO = "Nov: Mayhem (NO TRADE BARS). Dec: New Life(300)*. Feb: Heart's Week(200). March: Jester's(300)*. April: Anniversary(300)*. (number)=Tickets per day, per account. *=DBL XP"
+]]
 
 
 -- PTS events around line 2900
@@ -563,10 +581,13 @@ function EVT.EventInfo(SendToChat,WhichEvent)
 -- Special events
 -- ALSO FIX AROUND LINE 1000
 -- 2.240 New events
+		["High Seas"] = GetString(EVT_EVENT_INFO_HIGH_SEAS) .. " |H1:help:636|h|h",	-- 2.430 added "High Seas"
+
+-- 2.240 New events
 		["Heart's Week"] = GetString(EVT_EVENT_INFO_HEARTS_WEEK) .. " |H1:help:603|h|h",	-- 2.350 added "Heart's Week"
 
 -- 2.240 New events
-		["Pan-Tamriel"] = GetString(EVT_EVENT_INFO_PAN_TAMRIEL),	-- .. " |H1:help:579|h|h",	-- 2.240 added "Pan-Tamriel Celebration"
+		["Pan-Tamriel"] = GetString(EVT_EVENT_INFO_PAN_TAMRIEL) .. " |H1:help:579|h|h",	-- 2.240 added "Pan-Tamriel Celebration"
 		["Bretons"] = GetString(EVT_EVENT_INFO_BRETONS),	-- .. " |H1:help:578|h|h",	-- 2.240 added "Legacy of the Bretons"
 		["West Weald"] = GetString(EVT_EVENT_INFO_WEST_WEALD),	-- .. " |H1:help:576|h|h",	-- 2.240 added "Fallen Leaves of the West Weald"
 		["Guilds & Glory"] = GetString(EVT_EVENT_INFO_GUILDS),	-- .. " |H1:help:526|h|h",	-- 2.020 added "Guilds and Glory Celebration"
@@ -576,7 +597,7 @@ function EVT.EventInfo(SendToChat,WhichEvent)
 		["Oblivion"] = GetString(EVT_EVENT_INFO_OBLIVION),	-- .. " |H1:help:527|h|h",	-- 2.020 added "Gates of Oblivion Celebration"
 
 -- 2.000 All help files removed from PTS except Zenithar and Telvanni
-		["Daedric War"] = GetString(EVT_EVENT_INFO_DAEDRIC_WAR) .. " |H1:help:466|h|h",	-- 1.65 added; 2.350 re-added
+		["Daedric War"] = GetString(EVT_EVENT_INFO_DAEDRIC_WAR), -- .. " |H1:help:466|h|h",	-- 1.65 added; 2.350 re-added
 
 -- 1.83 Season of the Dragon -- 1.87
 		["Dragon"] = GetString(EVT_EVENT_INFO_DRAGON),		-- .. " |H1:help:499|h[Season of the Dragon]|h ",	-- Help file still not available as of 1.83, but decided to put it in anyway
@@ -604,13 +625,12 @@ function EVT.EventInfo(SendToChat,WhichEvent)
 --		["Dragonguard"] = GetString(EVT_EVENT_INFO_DRAGONGUARD),
 	}
 
--- 2.240 New events
+--[[ 2.240 New events
 	if GetAPIVersion() < 101048 then
-		EVT_Event_Info["Pan-Tamriel"] = GetString(EVT_EVENT_INFO_PAN_TAMRIEL) .. " |H1:help:579|h|h"	-- 2.240 added "Pan-Tamriel Celebration"
 		EVT_Event_Info["Bretons"] = GetString(EVT_EVENT_INFO_BRETONS) .. " |H1:help:578|h|h"	-- 2.240 added "Legacy of the Bretons"
-		EVT_Event_Info["Daedric War"] = GetString(EVT_EVENT_INFO_DAEDRIC_WAR)	-- .. " |H1:help:466|h|h",	-- 1.65 added; 2.350 re-added
 		EVT_Event_Info["Heart's Week"] = GetString(EVT_EVENT_INFO_HEARTS_WEEK)	-- .. " |H1:help:603|h|h",	-- 2.350 added "Heart's Week"
 	end
+]]
 
 --[[ 2.220
 	if GetAPIVersion() == 101039 then
@@ -1113,16 +1133,20 @@ local function ShowCollectibles()
 	["Zeal of Zenithar"] = {2,3},
 	["july event"] = {3,1},
 	["august event"] = {3,2},
-	["sept event"] = {3,3},
+	["High Seas"] = {3,3},
 	["Witches"] = {4,1},
-	["Daedric War"] = {4,2},
+	["nov event"] = {4,2},
 	["New Life"] = {4,3},
 	}
+
 
 	if CycleLookup[LookupEvent]~=nil then
 		WhichQuarter = CycleLookup[LookupEvent][1]
 		WhichMonthInQuarter = CycleLookup[LookupEvent][2]
 	end
+
+	-- 2.430 Collectibles disabled until I have time to update it properly.
+	if EVT.vars.Current_Event == "High Seas" then return end
 
 --[[ Heart's Week fragments: (10 tickets each)
 Crimson Bat Statuette
@@ -1450,13 +1474,15 @@ function EVT.HandleEVTInfoChat(SpecificEvent,tochat)
 		EVT.EventInfo(tochat,"Witches")
 	elseif(SpecificEvent == "zea" or SpecificEvent == "zen") then	-- 1.77 "zea" or "zen" for Zeal of Zenithar
 		EVT.EventInfo(tochat,"Zeal of Zenithar")
+	elseif(SpecificEvent == "hea") then	-- 2.350 (Heart's Week)
+		EVT.EventInfo(tochat,"Heart's Week")
 
 -- *************** NOT YET DEPRECATED EVENTS
 -- Also fix around line 1800 (EVT.RegisterSlashCommands)
 	elseif(SpecificEvent == "dae" or SpecificEvent == "dea") then	-- 1.53, 2.350 "dae" or "dea" for people who can't type/spell (Daedric War)
 		EVT.EventInfo(tochat,"Daedric War")
-	elseif(SpecificEvent == "hea") then	-- 2.350 (Heart's Week)
-		EVT.EventInfo(tochat,"Heart's Week")
+	elseif(SpecificEvent == "sea") then	-- 2.430 (High Seas)
+		EVT.EventInfo(tochat,"High Seas")
 
 -- *************** DEPRECATED EVENTS
 	elseif(SpecificEvent == "tam") then				-- 2.240 Pan-Tamriel Celebration
@@ -2219,12 +2245,13 @@ function EVT.RegisterSlashCommands()
 		["lif"] = "New Life",
 		["zea"] = "Zeal of Zenithar",		-- 1.77, 2.000
 		["zen"] = "Zeal of Zenithar",		-- 1.77, 2.000
+		["hea"] = "Heart's Week",		-- 2.350
 
 -- *************** NOT YET DEPRECATED EVENTS
-		["hea"] = "Heart's Week",		-- 2.350
 		["dae"] = "Daedric War",		-- 1.53; brought back 2.350
 		["dea"] = "Daedric War",		-- 1.53 (for people who can't type/spell "Daedric")
 		["tam"] = "Pan-Tamriel Celebration",	-- 2.240
+		["sea"] = "High Seas",		-- 2.430
 
 -- *************** DEPRECATED EVENTS
 -- 2.350		["bre"] = "Legacy of the Bretons",	-- 2.240
@@ -2855,6 +2882,21 @@ function EVT.Initialize()
 		if EVT_EVENT_END < EVT.FindCurrentTime() then
 
 
+-- 2.430 10/21-11/4/26 (EST) NO PTS
+EVT_EVENT_START = MonthCode["6A"] + EVT_ONE_DAY*21
+EVT_EVENT_END   = MonthCode["6B"] + EVT_ONE_DAY*4 -- EST
+EVT_NEXT_EVENT  = "Witches"
+EVT_EVENT_DETAILS = {
+["Name"] = "Witches",
+["T_Types_1"] = "Witches",
+["T_Types_2"] = "not used",
+["T_Tickets"] = {2,0,0,0,},
+["T_ToDo"] = {1,0,0,},
+}
+
+EVT_EVENT_INFO_BEGIN = "Check Crown Store for FREE starter quest."
+EVT_EVENT_INFO_BOX = "There's a chance of additional boxes from any boss, even the little daedric incursions that pop up all over. LOOT ALL BODIES AND REWARD CHESTS!"
+EVT_UPCOMING_INFO = "Nov: Mayhem (NO TRADE BARS). Dec: New Life(300)*. Feb: Heart's Week(200). March: Jester's(300)*. April: Anniversary(300)*. (number)=Tickets per day, per account. *=DBL XP"
 
 
 
@@ -2983,11 +3025,12 @@ function EVT.Initialize()
 
 -- StorybookTerror found the function for Total_Tickets, so correct them
 -- Warning message if numbers don't match. 1.95 Added "/evt done" to message
--- 2.400
+--[[ 2.430 Removed warning
 	if EVT.vars.Total_Tickets ~= GetCurrencyAmount(CURT_TRADE_BARS, CURRENCY_LOCATION_ACCOUNT) then
 		CHAT_ROUTER:AddSystemMessage("|cFF0000WARNING!|r [EVT]: Number of trade bars has changed. (You may have gotten trade bars that weren't recorded.)")
 		CHAT_ROUTER:AddSystemMessage("|cFFFFFFThis will fix itself after the next reset; or use|r |cFFD700/evt done|r |cFFFFFFto change trade bars manually.|r")
 	end
+]]
 
 -- 2.400 Replace CURT_EVENT_TICKETS with CURT_TRADE_BARS
 	EVT.vars.Total_Tickets  = GetCurrencyAmount(CURT_TRADE_BARS, CURRENCY_LOCATION_ACCOUNT)
@@ -3224,7 +3267,7 @@ function EVT.Initialize()
 --	end
 
 -- 2.390 Initialize this to zero to force the new popup info box to come up
-	if EVT.vars.EVT_version+0.40 < Latest_Version then
+	if EVT.vars.EVT_version+1.40 < Latest_Version then
 		EVT.settings.InfoBox = 0
 	end
 

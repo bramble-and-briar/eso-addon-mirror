@@ -226,6 +226,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CoordsAndHeading Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-Patch__2875) | Jord56 | PC / Mac | 1.0.1 |
 | [CoordsAndHeading Patch 1.0.2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-Patch-1.0.2__2876) | Jord56 | PC / Mac | 1.0.2 |
 | [Coral Aerie Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Coral-Aerie-Helper__3554) | branddi | PC / Mac | 1.0.2 |
+| [CorpseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mettaleggroll/CorpseTracker__4941) | mettaleggroll | PC / Mac | 0.3.4 |
 | [Cosmetic Cupboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AnotherORC/Cosmetic-Cupboard__3329) | AnotherORC | PC / Mac | v3.4.1 |
 | [Cost Calculator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Cost-Calculator__2530) | TheBunnynator1001 | PC / Mac | 1.0.0 |
 | [Countess Quester](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aarfie/Countess-Quester__2379) | Aarfie | PC / Mac | 1.3 |
@@ -289,7 +290,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CrutchAlerts Extensions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/CrutchAlerts-Extensions__4693) | Kyzeragon | PC / Mac | 0.3.0 |
 | [CrutchAlerts-KR](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ricci-Curvature/CrutchAlerts-KR__4517) | Ricci Curvature | PC / Mac | 1.0.0 |
 | [Crux Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/g4rr3t/Crux-Counter__3639) | g4rr3t | PC / Mac | 1.3.0 |
-| [Crux Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Crux-Tracker__7c2543a8-c08b-4c48-b4bf-47d2463b616f) | j.hhh | Console | — |
 | [CruxTracker-2.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/CruxTracker-2.0__aef7e9f0-ed11-4b67-99f7-c500cdc0b343) | akbosser | Console | — |
 | [Cruxweaver](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/helixanon/Cruxweaver__3781) | helixanon | PC / Mac | 1.0.2 |
 | [Crystal Fragments Proc](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Supplier/Crystal-Fragments-Proc__2441) | Supplier | PC / Mac | 1.5 |

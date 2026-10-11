@@ -1,5 +1,6 @@
 local AF = {}
 AF.name = "AchievementFilter"
+AF.refreshDelayMs = 100
 
 AF.REWARD_KEYS = { "TITLE", "DYE", "ITEM", "COLLECTIBLE", "TRIBUTE" }
 AF.LABELS = {
@@ -12,6 +13,9 @@ AF.LABELS = {
     FILTERS = "Reward filters",
     CLEAR = "Clear",
     HEADER = "Filter by reward",
+    OPEN_ACHIEVEMENT = "Open achievement",
+    PIN_ACHIEVEMENT = "Pin achievement",
+    UNPIN_ACHIEVEMENT = "Unpin achievement",
 }
 
 ZO_CreateStringId("SI_BINDING_NAME_ACHIEVEMENT_FILTER_TOGGLE", "Toggle Window")
@@ -21,6 +25,7 @@ AF.defaults = {
     selectedSources = {},
     selectedPoints = {},  -- multi-select OR: if empty, show all
     earnedFilter = "ALL", -- ALL|EARNED|UNEARNED
+    pinnedFilter = "ALL", -- ALL|PINNED|UNPINNED
     pointsMin = nil,
     pointsMax = nil,
     searchTitle = "",
@@ -176,6 +181,58 @@ function AF:ShowPointsMenu(anchor)
 
     AddCustomMenuItem("Clear", function() self:ClearPointsFilters() end, MENU_ADD_OPTION_LABEL)
     ShowMenu(anchor)
+end
+
+function AF:CanTrackAchievements()
+    return type(GetTrackedAchievement) == "function" and type(SetTrackedAchievement) == "function"
+end
+
+function AF:SetAchievementPinned(id, pinned)
+    if not self:CanTrackAchievements() then return end
+
+    if pinned then
+        -- Check current game state: the achievement may have completed while the menu was open.
+        if IsAchievementComplete(id) then return end
+        SetTrackedAchievement(id)
+        if HUD_TRACKER_MANAGER and HUD_TRACKER_MANAGER.SetAssistedAspiration and ZO_HUD_TRACKER_ASPIRATION then
+            HUD_TRACKER_MANAGER:SetAssistedAspiration(ZO_HUD_TRACKER_ASPIRATION.ACHIEVEMENT)
+        end
+    elseif GetTrackedAchievement() == id then
+        -- Do not unpin a different achievement selected after this menu was opened.
+        SetTrackedAchievement(0)
+    end
+    self:QueueRefresh()
+end
+
+function AF:OpenAchievement(id)
+    if ACHIEVEMENTS and ACHIEVEMENTS.ShowAchievement then
+        -- The standard UI also handles opening its scene and selecting the correct line stage.
+        ACHIEVEMENTS:ShowAchievement(id)
+    end
+end
+
+function AF:ShowAchievementMenu(anchor, id)
+    ClearMenu()
+    AddCustomMenuItem(self.LABELS.OPEN_ACHIEVEMENT, function() self:OpenAchievement(id) end, MENU_ADD_OPTION_LABEL)
+
+    if self:CanTrackAchievements() then
+        local isPinned = GetTrackedAchievement() == id
+        if isPinned or not IsAchievementComplete(id) then
+            -- Keep all actions in the add-on's UI language, independent of the game's language.
+            local label = isPinned and self.LABELS.UNPIN_ACHIEVEMENT or self.LABELS.PIN_ACHIEVEMENT
+            AddCustomMenuItem(label, function() self:SetAchievementPinned(id, not isPinned) end, MENU_ADD_OPTION_LABEL)
+        end
+    end
+    ShowMenu(anchor)
+end
+
+function AF:OnRowMouseUp(anchor, data, button, upInside)
+    if not upInside or not data then return end
+    if button == MOUSE_BUTTON_INDEX_LEFT then
+        self:OpenAchievement(data.id)
+    elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+        self:ShowAchievementMenu(anchor, data.id)
+    end
 end
 
 -- Simple case-insensitive contains helper
@@ -396,7 +453,7 @@ function AF:CreatePanelUI()
     filters:SetAnchor(TOPRIGHT, wnd, TOPRIGHT, -16, 50)
     filters:SetHeight(110)
 
-    -- Row 1: Reward types button, Earned dropdown, Clear button
+    -- Row 1: Reward, earned, pinned, points and date filters, plus Clear.
     local rewardBtn = CreateControlFromVirtual("$(parent)RewardBtn", filters, "ZO_DefaultButton")
     rewardBtn:SetDimensions(160, 26)
     rewardBtn:SetAnchor(TOPLEFT, filters, TOPLEFT, 0, 0)
@@ -424,10 +481,29 @@ function AF:CreatePanelUI()
     MakeEarnedItem("Earned", "EARNED")
     MakeEarnedItem("Unearned", "UNEARNED")
 
+    local pinnedBoxContainer = CreateControlFromVirtual("$(parent)Pinned", filters, "ZO_ComboBox")
+    pinnedBoxContainer:SetDimensions(180, 26)
+    pinnedBoxContainer:SetAnchor(TOPLEFT, earnedBoxContainer, TOPRIGHT, 8, 0)
+    local pinnedCombo = ZO_ComboBox_ObjectFromContainer(pinnedBoxContainer)
+    pinnedCombo:SetSortsItems(false)
+    local function MakePinnedItem(text, key)
+        local entry = ZO_ComboBox:CreateItemEntry(text, function()
+            self.saved.pinnedFilter = key
+            self:RefreshResults()
+        end)
+        pinnedCombo:AddItem(entry)
+        if (self.saved.pinnedFilter or "ALL") == key then
+            pinnedCombo:SelectItem(entry)
+        end
+    end
+    MakePinnedItem("Any pin status", "ALL")
+    MakePinnedItem("Pinned only", "PINNED")
+    MakePinnedItem("Not pinned", "UNPINNED")
+
     -- Points filter button
     local pointsBtn = CreateControlFromVirtual("$(parent)PointsBtn", filters, "ZO_DefaultButton")
     pointsBtn:SetDimensions(140, 26)
-    pointsBtn:SetAnchor(TOPLEFT, earnedBoxContainer, TOPRIGHT, 8, 0)
+    pointsBtn:SetAnchor(TOPLEFT, pinnedBoxContainer, TOPRIGHT, 8, 0)
     pointsBtn:SetText("Points")
     pointsBtn:SetHandler("OnClicked", function(btn)
         self:ShowPointsMenu(btn)
@@ -443,6 +519,7 @@ function AF:CreatePanelUI()
         ZO_ClearTable(self.saved.selectedRewards)
         ZO_ClearTable(self.saved.selectedPoints)
         self.saved.earnedFilter = "ALL"
+        self.saved.pinnedFilter = "ALL"
         self.saved.searchTitle = ""
         self.saved.searchDescription = ""
         self.saved.searchSource = ""
@@ -457,6 +534,7 @@ function AF:CreatePanelUI()
         if self.ui.descEdit then self.ui.descEdit:SetText("") end
         if self.ui.rewardEdit then self.ui.rewardEdit:SetText("") end
         if earnedCombo then earnedCombo:SelectItemByIndex(1) end
+        if pinnedCombo then pinnedCombo:SelectItemByIndex(1) end
         if self.ui.finishedCombo then self.ui.finishedCombo:SelectItemByIndex(1) end
         if self.ui.customDateFromEdit then
             self.ui.customDateFromEdit:SetText("")
@@ -707,7 +785,8 @@ function AF:CreatePanelUI()
     descriptionLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     descriptionLabel:SetAnchor(TOPLEFT, descriptionPanel, TOPLEFT, 8, 6)
     descriptionLabel:SetAnchor(BOTTOMRIGHT, descriptionPanel, BOTTOMRIGHT, -8, -6)
-    descriptionLabel:SetText("")
+    local rowHint = "Left-click to open an achievement. Right-click to pin or unpin it on the HUD."
+    descriptionLabel:SetText(rowHint)
 
     -- Results table list
     local list = CreateControlFromVirtual("$(parent)List", wnd, "ZO_ScrollList")
@@ -731,7 +810,7 @@ function AF:CreatePanelUI()
             descriptionLabel:SetText(data.description or "")
         elseif self.ui.hoveredRow == control then
             self.ui.hoveredRow = nil
-            descriptionLabel:SetText("")
+            descriptionLabel:SetText(rowHint)
         end
     end
 
@@ -773,14 +852,9 @@ function AF:CreatePanelUI()
                 end
             end)
 
-            -- Keep click behaviour when clicking directly on the reward name
+            -- Both mouse actions also work directly on the reward name.
             rname:SetHandler("OnMouseUp", function(ctrl, button, upInside)
-                if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
-                    if MAIN_MENU_KEYBOARD then MAIN_MENU_KEYBOARD:ShowScene("achievements") end
-                    if ACHIEVEMENTS and ACHIEVEMENTS.ShowAchievement then
-                        ACHIEVEMENTS:ShowAchievement(data.id)
-                    end
-                end
+                self:OnRowMouseUp(ctrl, control.data, button, upInside)
             end)
         end
         local pts = control:GetNamedChild("Points"); if pts then pts:SetText(tostring(data.points or "")) end
@@ -796,12 +870,7 @@ function AF:CreatePanelUI()
             end
         end)
         control:SetHandler("OnMouseUp", function(ctrl, button, upInside)
-            if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
-                if MAIN_MENU_KEYBOARD then MAIN_MENU_KEYBOARD:ShowScene("achievements") end
-                if ACHIEVEMENTS and ACHIEVEMENTS.ShowAchievement then
-                    ACHIEVEMENTS:ShowAchievement(ctrl.data.id)
-                end
-            end
+            self:OnRowMouseUp(ctrl, ctrl.data, button, upInside)
         end)
         if MouseIsOver(control) then
             SetRowHover(control, data, true)
@@ -814,6 +883,7 @@ function AF:CreatePanelUI()
     self.ui.filters = filters
     self.ui.rewardBtn = rewardBtn
     self.ui.earnedCombo = earnedCombo
+    self.ui.pinnedCombo = pinnedCombo
     self.ui.finishedCombo = finishedCombo
     self.ui.customDateFromBg = customDateFromBg
     self.ui.customDateFromEdit = customDateFromEdit
@@ -827,6 +897,7 @@ function AF:CreatePanelUI()
     self.ui.totalPointsLabel = totalPointsLabel
     self.ui.descriptionPanel = descriptionPanel
     self.ui.descriptionLabel = descriptionLabel
+    self.ui.rowHint = rowHint
     self.ui.list = list
 
     -- Apply the saved "Finished" preset and update custom range UI
@@ -1228,7 +1299,12 @@ function AF:OnCustomDateTextChanged(edit, isFrom)
     end
 end
 
-function AF:PassesPanelFilters(entry)
+function AF:PassesPanelFilters(entry, trackedId)
+    -- The tracker ID is read once per refresh, so all rows use the same current state.
+    local isPinned = entry.id == trackedId
+    if self.saved.pinnedFilter == "PINNED" and not isPinned then return false end
+    if self.saved.pinnedFilter == "UNPINNED" and isPinned then return false end
+
     -- Earned filter
     if self.saved.earnedFilter == "EARNED" and not entry.completed then return false end
     if self.saved.earnedFilter == "UNEARNED" and entry.completed then return false end
@@ -1335,22 +1411,27 @@ end
 
 function AF:RefreshResults()
     if not self.ui.list then return end
+    -- Relative date filters follow the current day, including when reopening after midnight.
+    if self.saved.finishedPreset ~= "CUSTOM" then
+        self.saved.dateFrom, self.saved.dateTo = AF_ComputePresetDateRange(self.saved.finishedPreset)
+    end
     self:EnsureMasterList()
 
     -- Clear list before repopulating to ensure rows are rebuilt
     ZO_ScrollList_Clear(self.ui.list)
     self.ui.hoveredRow = nil
     if self.ui.descriptionLabel then
-        self.ui.descriptionLabel:SetText("")
+        self.ui.descriptionLabel:SetText(self.ui.rowHint or "")
     end
 
     local dataList = ZO_ScrollList_GetDataList(self.ui.list)
     ZO_ClearNumericallyIndexedTable(dataList)
 
     -- Collect filtered entries first so we can apply sorting
+    local trackedId = self:CanTrackAchievements() and GetTrackedAchievement() or 0
     local filtered = {}
     for _, entry in ipairs(self.masterList) do
-        if self:PassesPanelFilters(entry) then
+        if self:PassesPanelFilters(entry, trackedId) then
             table.insert(filtered, entry)
         end
     end
@@ -1396,9 +1477,33 @@ function AF:ShowWindow()
     end
 end
 
+function AF:IsWindowShowing()
+    return self.ui.window and not self.ui.window:IsHidden()
+end
+
+function AF:QueueRefresh()
+    if self.refreshQueued or not self:IsWindowShowing() then return end
+    self.refreshQueued = true
+    local updateName = self.name .. "_Refresh"
+    -- One refresh per burst of criteria, award and tracking events.
+    EVENT_MANAGER:RegisterForUpdate(updateName, self.refreshDelayMs, function()
+        EVENT_MANAGER:UnregisterForUpdate(updateName)
+        self.refreshQueued = false
+        if self:IsWindowShowing() then self:RefreshResults() end
+    end)
+end
+
 function AF:OnAchievementUpdated(id)
-    self.rewardIndex[id] = nil
-    self.lineRewardCache[GetBaseId(id)] = nil
+    if id and id > 0 then
+        self.rewardIndex[id] = nil
+        self.lineRewardCache[GetBaseId(id)] = nil
+    else
+        ZO_ClearTable(self.rewardIndex)
+        ZO_ClearTable(self.lineRewardCache)
+    end
+    -- Invalidate while hidden as well, so the next opening uses current progress and totals.
+    self.masterList = nil
+    self:QueueRefresh()
 end
 
 function AF:OnPlayerActivated()
@@ -1406,6 +1511,15 @@ function AF:OnPlayerActivated()
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_PLAYER_ACTIVATED)
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ACHIEVEMENT_UPDATED,
         function(_, achievementId) self:OnAchievementUpdated(achievementId) end)
+    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ACHIEVEMENT_AWARDED,
+        function(_, name, points, achievementId) self:OnAchievementUpdated(achievementId) end)
+    EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ACHIEVEMENTS_UPDATED,
+        function() self:OnAchievementUpdated() end)
+    if EVENT_ACHIEVEMENT_TRACKING_UPDATE then
+        EVENT_MANAGER:RegisterForEvent(self.name, EVENT_ACHIEVEMENT_TRACKING_UPDATE,
+            function() self:QueueRefresh() end)
+    end
+    self:OnAchievementUpdated()
 end
 
 function AF:OnAddOnLoaded(event, addonName)
@@ -1422,7 +1536,7 @@ function AF:OnAddOnLoaded(event, addonName)
     EVENT_MANAGER:UnregisterForEvent(self.name, EVENT_ADD_ON_LOADED)
 end
 
-EVENT_MANAGER:RegisterForEvent("AchievementFilter_OnLoaded", EVENT_ADD_ON_LOADED, function(...) AF:OnAddOnLoaded(...) end)
+EVENT_MANAGER:RegisterForEvent(AF.name, EVENT_ADD_ON_LOADED, function(...) AF:OnAddOnLoaded(...) end)
 
 function AchievementFilter_Toggle()
     if AF.scene and AF.scene:IsShowing() then

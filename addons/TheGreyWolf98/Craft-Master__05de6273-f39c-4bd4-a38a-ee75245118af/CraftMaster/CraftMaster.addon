@@ -1,0 +1,11 @@
+## Title: Craft Master
+## Description: Standalone crafting knowledge, housing catalogue and main-crafter tooltips.
+## Author: @TheGreyWolf98
+## Version: 1.0.4
+## APIVersion: 101051
+## SavedVariables: CraftMasterSavedVariables
+
+CraftMasterCatalog.lua
+CraftMaster.lua
+CraftMasterUI.lua
+Bindings.xml

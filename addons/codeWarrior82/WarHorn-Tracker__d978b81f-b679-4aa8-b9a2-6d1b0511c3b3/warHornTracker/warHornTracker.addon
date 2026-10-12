@@ -1,7 +1,7 @@
 ## Title: Warhorn Tracker
 ## Author: CodeWarrior82
 ## Description: Tracks both buffs from the Warhorn ultimate
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## OptionalDependsOn: LibNotify
 ## SavedVariables: whtAddonVars

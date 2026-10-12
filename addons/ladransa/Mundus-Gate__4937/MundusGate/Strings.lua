@@ -131,6 +131,81 @@ local RU = {
     OPT_FREE_GUILD_TT = "То же для членов всех ваших гильдий.",
     OPT_FREE_GROUP       = "Бесплатно через группу (на карте)",
     OPT_FREE_GROUP_TT    = "На карте мира святилище, ближайшее к члену вашей группы, помечается «Бесплатно», и при щелчке можно бесплатно переместиться к нему. Это работает только для группы: только у её членов игра знает точное положение.",
+
+    -- Бесплатный путь: прыжок к игроку → взаимодействие со святилищем → сразу на место
+    ROUTE_PRICE          = "Бесплатно",
+    ROUTE_SHORT          = "через игрока и святилище",
+    ROUTE_TOOLTIP        = "Бесплатный путь: перемещение к другу или согильдийцу, затем взаимодействие со святилищем — и вы сразу в «<<1>>».",
+    ROUTE_TOOLTIP_COST   = "Обычная стоимость: <<1>> (ПКМ — заплатить и переместиться сразу)",
+    CTX_ROUTE_FREE       = "Бесплатно через игрока",
+    MAP_ROUTE_FREE       = "Бесплатно: через игрока и святилище",
+    CTX_PAY_NOW          = "Заплатить <<1>> и переместиться сразу",
+    DIALOG_ROUTE_TEXT    = "Переместиться в «<<1>>» бесплатно?\n\n1. Вы переместитесь к святилищу рядом с другом или согильдийцем.\n2. Повзаимодействуйте со святилищем — и сразу окажетесь в «<<1>>».\n\nОбычная стоимость: <<2>>",
+    DIALOG_ROUTE_CONFIRM = "Бесплатно",
+    ROUTE_NOBODY         = "Нет друзей и согильдийцев в сети, к которым можно переместиться",
+    ROUTE_FAILED         = "Бесплатный путь отменён: не удалось переместиться ни к одному игроку",
+    ROUTE_HINT_JUMPING   = "Перемещение к игроку… Затем повзаимодействуйте со святилищем — и сразу в «<<1>>»",
+    ROUTE_HINT_PRESS_E   = "Повзаимодействуйте со святилищем «<<1>>» — и сразу в «<<2>>»",
+    ROUTE_HINT_WALK      = "Ближайшее святилище — «<<1>>». Подойдите и повзаимодействуйте с ним — и сразу в «<<2>>»",
+    ROUTE_HINT_ANY       = "Повзаимодействуйте с любым святилищем — и сразу в «<<1>>»",
+    ROUTE_HINT_CANCEL    = "Крестик или /qtm отмена — отменить · осталось <<1>> мин.",
+    ROUTE_ARRIVED        = "Вы уже у «<<1>>»",
+    ROUTE_GO             = "Бесплатное перемещение в «<<1>>»…",
+    ROUTE_CANCELLED      = "Бесплатный путь в «<<1>>» отменён",
+    ROUTE_EXPIRED        = "Бесплатный путь в «<<1>>» отменён: прошло 5 минут",
+    CHAT_NO_ROUTE        = "Mundus Gate: бесплатного пути сейчас нет",
+    OPT_ROUTE            = "Платные места — бесплатно через игрока",
+    ROUTE_HINT_TITLE     = "Mundus Gate · бесплатный путь",
+    HEADER_ROUTE         = "Бесплатный путь через игрока",
+    ROUTE_DESC           = "Платное место можно посетить бесплатно: аддон переместит вас к святилищу рядом с другом или согильдийцем (подойдёт любой в сети, кроме тех, кто в подземелье, доме или Сиродиле), а после взаимодействия со святилищем — сразу в нужное место. Выберите, где это делать вместо оплаты. Заплатить и переместиться сразу всегда можно через ПКМ.",
+    OPT_ROUTE_MENU       = "В быстром меню",
+    OPT_ROUTE_MENU_TT    = "Щелчок по платному месту в быстром меню — бесплатный путь через игрока.",
+    OPT_ROUTE_BUTTONS    = "На кнопках на экране",
+    OPT_ROUTE_BUTTONS_TT = "Нажатие на кнопку с платным местом — бесплатный путь через игрока.",
+    OPT_ROUTE_WHEEL      = "В колесе быстрого доступа",
+    OPT_ROUTE_WHEEL_TT   = "Выбор платного места в колесе — бесплатный путь через игрока.",
+    OPT_ROUTE_MAP        = "На карте мира",
+    OPT_ROUTE_MAP_TT     = "Щелчок по платному святилищу на карте сразу запускает бесплатный путь через игрока. Остальные действия (заплатить, добавить в Mundus Gate) — Shift + щелчок.",
+    MAP_TOOLTIP_ROUTE    = "Бесплатно — через игрока и святилище",
+    MAP_TOOLTIP_ROUTE_COST = "Обычная стоимость: <<1>> · Shift + щелчок — другие действия",
+    OPT_ROUTE_TT         = "Вместо оплаты аддон переместит вас к святилищу рядом с другом или согильдийцем, а после взаимодействия со святилищем — сразу в нужное место. Два экрана загрузки вместо золота.",
+    -- Панель на карте мира
+    PANEL_TAB_ZONE       = "Завершение области",
+    PANEL_TAB_GATE       = "Mundus Gate",
+    PANEL_ZONE_EMPTY     = "Для этой карты нет данных\nо завершении области.",
+    PANEL_SAVED          = "Сэкономлено: <<1>>",
+    PANEL_SAVED_TT       = "Столько золота вы не потратили благодаря бесплатным перемещениям через игроков: бесплатный путь (прыжок к игроку → святилище) и святилища рядом с членами группы на карте.\n\nТаких перемещений: <<1>>",
+    PANEL_OPTIONS        = "Все настройки аддона",
+    PANEL_ADD            = "Добавить место",
+    PANEL_SEARCH         = "Поиск по моим местам…",
+    PANEL_NO_PLACES      = "Мест пока нет.\nНажмите «+» вверху или щёлкните святилище на карте.",
+    PANEL_BACK           = "Мои места",
+    PANEL_EDIT           = "Настроить",
+    PANEL_TRAVEL         = "Переместиться",
+    PANEL_LOOK           = "Значок и цвет",
+    PANEL_ICON           = "Сменить значок",
+    PANEL_ICON_RESET     = "Значок места",
+    PANEL_TINT           = "Окрасить значок в цвет",
+    PANEL_WHEEL          = "Колесо быстрого доступа",
+    PANEL_WHEEL_IN       = "В ячейке <<1>>",
+    PANEL_WHEEL_NONE     = "Не в колесе",
+    PANEL_WHEEL_HELP     = "Щёлкните ячейку — место встанет в неё. Повторный щелчок — убрать из колеса.",
+    PANEL_WHEEL_TT_MINE  = "Ячейка <<1>>: «<<2>>»\nЩелчок — убрать из колеса",
+    PANEL_WHEEL_TT_OTHER = "Ячейка <<1>>: «<<2>>»\nЩелчок — поставить сюда «<<3>>»",
+    PANEL_WHEEL_TT_EMPTY = "Ячейка <<1>> пуста\nЩелчок — поставить сюда «<<2>>»",
+    PANEL_BUTTON         = "Кнопка на экране",
+    PANEL_BUTTON_NONE    = "Кнопки на экране нет",
+    PANEL_BUTTON_ON      = "Кнопка вынесена на экран",
+    PANEL_BUTTON_HAS     = "Кнопок на экране: <<1>>",
+    PANEL_BUTTON_ADD     = "Вынести на экран",
+    PANEL_BUTTON_REMOVE  = "Убрать с экрана",
+    PANEL_SIZE           = "Размер",
+    PANEL_SHOW_LABEL     = "Подпись под кнопкой",
+    PANEL_BUTTON_HELP    = "Кнопка видна на основном экране. Нажимать и перетаскивать её можно в режиме курсора (клавиша «.»).",
+    PANEL_BADGE_WHEEL    = "колесо <<1>>",
+    PANEL_BADGE_BUTTON   = "кнопка",
+    OPT_MAP_PANEL        = "Панель у карты мира",
+    OPT_MAP_PANEL_TT     = "Слева от карты мира — панель с двумя вкладками: «Завершение области» (панель игры) и «Mundus Gate»: ваши места, их значок и цвет, ячейка колеса, кнопка на экране и сэкономленное золото. Если выключить, панель игры вернётся на обычное место.",
     OPT_AT_WAYSHRINE     = "Меню у святилища",
     OPT_AT_WAYSHRINE_TT  = "Когда вы активируете святилище, ваши места сразу показываются рядом с картой. Отсюда перемещение в них бесплатное. Клавиша меню у святилища тоже открывает его поверх карты.",
     OPT_CONFIRM_TT       = "Показывать окно с ценой перед перемещением к святилищу.",
@@ -232,6 +307,14 @@ local RU = {
     ICONS_TAB_COLLECTIBLES = "Коллекции",
 
     -- Клавиши
+    LANG_BUTTON_TT       = "Язык аддона: <<1>>",
+    LANG_AUTO            = "Авто — язык игры (<<1>>)",
+    LANG_TITLE           = "Язык аддона",
+    LANG_RELOAD_TEXT     = "Переключить Mundus Gate на язык «<<1>>»?\nИнтерфейс перезагрузится.",
+    LANG_FONT_WARNING    = "Внимание: эти символы отображаются правильно, только если сама игра на этом языке.",
+    LANG_RELOAD          = "Перезагрузить",
+    OPT_LANGUAGE         = "Язык аддона",
+    OPT_LANGUAGE_TT      = "По умолчанию аддон использует язык игры. При смене языка интерфейс перезагрузится.",
     BINDING_TOGGLE       = "Открыть меню перемещений",
     BINDING_LOCK         = "Закрепить / открепить кнопки",
 }
@@ -357,6 +440,81 @@ local EN = {
     OPT_FREE_GUILD_TT = "The same for members of all your guilds.",
     OPT_FREE_GROUP       = "Free via group (world map)",
     OPT_FREE_GROUP_TT    = "On the world map, the wayshrine closest to a group member is marked Free, and clicking it lets you travel there for free. Works only for your group: the game knows the exact position only of group members.",
+
+    -- Free route: jump to a player → interact with a wayshrine → straight to the place
+    ROUTE_PRICE          = "Free",
+    ROUTE_SHORT          = "via a player and a wayshrine",
+    ROUTE_TOOLTIP        = "Free route: travel to a friend or guildmate, then interact with a wayshrine — and you go straight to <<1>>.",
+    ROUTE_TOOLTIP_COST   = "Usual cost: <<1>> (RMB — pay and travel right away)",
+    CTX_ROUTE_FREE       = "Free via a player",
+    MAP_ROUTE_FREE       = "Free: via a player and a wayshrine",
+    CTX_PAY_NOW          = "Pay <<1>> and travel right away",
+    DIALOG_ROUTE_TEXT    = "Travel to <<1>> for free?\n\n1. You travel to the wayshrine near a friend or guildmate.\n2. Interact with a wayshrine — and you go straight to <<1>>.\n\nUsual cost: <<2>>",
+    DIALOG_ROUTE_CONFIRM = "Free",
+    ROUTE_NOBODY         = "No friends or guildmates online to travel to",
+    ROUTE_FAILED         = "Free route cancelled: could not travel to any player",
+    ROUTE_HINT_JUMPING   = "Travelling to a player… Then interact with a wayshrine to go straight to <<1>>",
+    ROUTE_HINT_PRESS_E   = "Interact with the wayshrine <<1>> to go straight to <<2>>",
+    ROUTE_HINT_WALK      = "Nearest wayshrine: <<1>>. Walk up and interact with it to go straight to <<2>>",
+    ROUTE_HINT_ANY       = "Interact with any wayshrine to go straight to <<1>>",
+    ROUTE_HINT_CANCEL    = "Close button or /qtm cancel to cancel · <<1>> min left",
+    ROUTE_ARRIVED        = "You are already at <<1>>",
+    ROUTE_GO             = "Free travel to <<1>>…",
+    ROUTE_CANCELLED      = "Free route to <<1>> cancelled",
+    ROUTE_EXPIRED        = "Free route to <<1>> cancelled: 5 minutes have passed",
+    CHAT_NO_ROUTE        = "Mundus Gate: no free route is active",
+    OPT_ROUTE            = "Paid places — free via a player",
+    ROUTE_HINT_TITLE     = "Mundus Gate · free route",
+    HEADER_ROUTE         = "Free route via a player",
+    ROUTE_DESC           = "A paid place can be reached for free: the add-on takes you to the wayshrine near a friend or guildmate (anyone online except those in a dungeon, house or Cyrodiil), and after you interact with a wayshrine — straight to the place you chose. Choose where to do this instead of paying. You can always pay and travel right away with a right-click.",
+    OPT_ROUTE_MENU       = "In the quick menu",
+    OPT_ROUTE_MENU_TT    = "Clicking a paid place in the quick menu uses the free route via a player.",
+    OPT_ROUTE_BUTTONS    = "On on-screen buttons",
+    OPT_ROUTE_BUTTONS_TT = "Pressing a button with a paid place uses the free route via a player.",
+    OPT_ROUTE_WHEEL      = "In the quickslot wheel",
+    OPT_ROUTE_WHEEL_TT   = "Choosing a paid place in the wheel uses the free route via a player.",
+    OPT_ROUTE_MAP        = "On the world map",
+    OPT_ROUTE_MAP_TT     = "Clicking a paid wayshrine on the map starts the free route via a player right away. Other actions (pay, add to Mundus Gate) — Shift + click.",
+    MAP_TOOLTIP_ROUTE    = "Free — via a player and a wayshrine",
+    MAP_TOOLTIP_ROUTE_COST = "Usual cost: <<1>> · Shift + click — other actions",
+    OPT_ROUTE_TT         = "Instead of paying, the add-on takes you to the wayshrine near a friend or guildmate, and after you interact with a wayshrine — straight to the place you chose. Two loading screens instead of gold.",
+    -- World map panel
+    PANEL_TAB_ZONE       = "Area Completion",
+    PANEL_TAB_GATE       = "Mundus Gate",
+    PANEL_ZONE_EMPTY     = "This map has no\narea completion data.",
+    PANEL_SAVED          = "Saved: <<1>>",
+    PANEL_SAVED_TT       = "Gold you did not spend thanks to free travel via players: the free route (jump to a player → wayshrine) and wayshrines next to group members on the map.\n\nSuch trips: <<1>>",
+    PANEL_OPTIONS        = "All add-on settings",
+    PANEL_ADD            = "Add a place",
+    PANEL_SEARCH         = "Search my places…",
+    PANEL_NO_PLACES      = "No places yet.\nPress + at the top or click a wayshrine on the map.",
+    PANEL_BACK           = "My places",
+    PANEL_EDIT           = "Set up",
+    PANEL_TRAVEL         = "Travel",
+    PANEL_LOOK           = "Icon and colour",
+    PANEL_ICON           = "Change icon",
+    PANEL_ICON_RESET     = "Place icon",
+    PANEL_TINT           = "Tint the icon",
+    PANEL_WHEEL          = "Quickslot wheel",
+    PANEL_WHEEL_IN       = "In slot <<1>>",
+    PANEL_WHEEL_NONE     = "Not on the wheel",
+    PANEL_WHEEL_HELP     = "Click a slot to put the place there. Click it again to remove it from the wheel.",
+    PANEL_WHEEL_TT_MINE  = "Slot <<1>>: <<2>>\nClick to remove from the wheel",
+    PANEL_WHEEL_TT_OTHER = "Slot <<1>>: <<2>>\nClick to put <<3>> here",
+    PANEL_WHEEL_TT_EMPTY = "Slot <<1>> is empty\nClick to put <<2>> here",
+    PANEL_BUTTON         = "On-screen button",
+    PANEL_BUTTON_NONE    = "No on-screen button",
+    PANEL_BUTTON_ON      = "The button is on screen",
+    PANEL_BUTTON_HAS     = "Buttons on screen: <<1>>",
+    PANEL_BUTTON_ADD     = "Put on screen",
+    PANEL_BUTTON_REMOVE  = "Remove from screen",
+    PANEL_SIZE           = "Size",
+    PANEL_SHOW_LABEL     = "Label under the button",
+    PANEL_BUTTON_HELP    = "The button is shown on the main screen. Click and drag it in cursor mode (the . key).",
+    PANEL_BADGE_WHEEL    = "wheel <<1>>",
+    PANEL_BADGE_BUTTON   = "button",
+    OPT_MAP_PANEL        = "Panel next to the world map",
+    OPT_MAP_PANEL_TT     = "A panel to the left of the world map with two tabs: Area Completion (the game's panel) and Mundus Gate: your places, their icon and colour, wheel slot, on-screen button and saved gold. When off, the game's panel returns to its usual place.",
     OPT_AT_WAYSHRINE     = "Menu at wayshrines",
     OPT_AT_WAYSHRINE_TT  = "When you activate a wayshrine, your places appear next to the map. Travel from there is free. The menu key also opens it on top of the map while at a wayshrine.",
     OPT_CONFIRM_TT       = "Show a dialog with the cost before travelling to a wayshrine.",
@@ -451,21 +609,93 @@ local EN = {
     ICONS_TAB_GLYPHS     = "Symbols",
     ICONS_TAB_COLLECTIBLES = "Collections",
 
+    LANG_BUTTON_TT       = "Add-on language: <<1>>",
+    LANG_AUTO            = "Auto — game language (<<1>>)",
+    LANG_TITLE           = "Add-on language",
+    LANG_RELOAD_TEXT     = "Switch Mundus Gate to <<1>>?\nThe interface will reload.",
+    LANG_FONT_WARNING    = "Note: these characters display correctly only when the game itself is in this language.",
+    LANG_RELOAD          = "Reload",
+    OPT_LANGUAGE         = "Add-on language",
+    OPT_LANGUAGE_TT      = "By default the add-on uses your game language. Changing it reloads the interface.",
     BINDING_TOGGLE       = "Open travel menu",
     BINDING_LOCK         = "Lock / unlock buttons",
 }
 
 -- Язык клиента игры: "ru" — русский (официальный или RuESO)
-local language = GetCVar("Language.2") or "en"
-MundusGate.language = language
-MundusGate.L = (language == "ru") and RU or EN
+---------------------------------------------------------------------------
+-- Языки.
+-- Английский и русский — здесь; остальные — в папке lang (каждый файл
+-- добавляет свою таблицу в MundusGate.LANG). Язык выбирается по языку игры
+-- или вручную (кнопка с кодом языка на панели у карты, настройки аддона).
+-- Если в переводе нет какой-то строки, берётся английская.
+---------------------------------------------------------------------------
+MundusGate.LANG = { en = EN, ru = RU }
 
--- Если в русском не хватает строки — берём английскую
-if MundusGate.L == RU then
-    setmetatable(RU, { __index = EN })
+-- Порядок в меню выбора и самоназвания языков
+MundusGate.LANGUAGES = {
+    { code = "en", name = "English" },
+    { code = "de", name = "Deutsch" },
+    { code = "fr", name = "Français" },
+    { code = "es", name = "Español" },
+    { code = "pt", name = "Português" },
+    { code = "pl", name = "Polski" },
+    { code = "ru", name = "Русский" },
+    { code = "zh", name = "简体中文" },
+    { code = "jp", name = "日本語" },
+}
+
+-- Языки, для которых нужен шрифт с иероглифами: в клиенте на другом языке
+-- игра может не показать эти символы
+MundusGate.CJK_LANGUAGES = { zh = true, jp = true }
+
+-- Другие коды, которыми клиент или неофициальные переводы обозначают те же языки
+local ALIASES = { br = "pt", ["pt-br"] = "pt", ptbr = "pt", ja = "jp", cn = "zh", ["zh-cn"] = "zh" }
+
+function MundusGate.GetClientLanguage()
+    local code = string.lower(GetCVar("Language.2") or "en")
+    return ALIASES[code] or code
 end
 
--- Названия действий в меню «Управление»
-local L = MundusGate.L
-ZO_CreateStringId("SI_BINDING_NAME_QUICKTRAVELMENU_TOGGLE", L.BINDING_TOGGLE)
-ZO_CreateStringId("SI_BINDING_NAME_QUICKTRAVELMENU_LOCK", L.BINDING_LOCK)
+-- preference: "auto" (или nil) — по языку игры, иначе код языка
+function MundusGate.ResolveLanguage(preference)
+    if preference and preference ~= "auto" and MundusGate.LANG[preference] then
+        return preference
+    end
+    local client = MundusGate.GetClientLanguage()
+    if MundusGate.LANG[client] then return client end
+    return "en"
+end
+
+function MundusGate.GetLanguageName(code)
+    for _, info in ipairs(MundusGate.LANGUAGES) do
+        if info.code == code then return info.name end
+    end
+    return code
+end
+
+local current
+
+function MundusGate.SetLanguage(code)
+    MundusGate.language = code
+    current = MundusGate.LANG[code] or EN
+end
+
+-- MundusGate.L — общая таблица строк для всех файлов: ищет строку в текущем
+-- языке, а если её там нет — в английском
+MundusGate.L = setmetatable({}, {
+    __index = function(_, key)
+        if not current then MundusGate.SetLanguage(MundusGate.ResolveLanguage()) end
+        local value = current[key]
+        if value == nil then value = EN[key] end
+        return value
+    end,
+})
+
+-- Названия действий в меню «Управление» (уточняются после загрузки настроек)
+function MundusGate.RegisterBindingNames()
+    local L = MundusGate.L
+    ZO_CreateStringId("SI_BINDING_NAME_QUICKTRAVELMENU_TOGGLE", L.BINDING_TOGGLE)
+    ZO_CreateStringId("SI_BINDING_NAME_QUICKTRAVELMENU_LOCK", L.BINDING_LOCK)
+end
+ZO_CreateStringId("SI_BINDING_NAME_QUICKTRAVELMENU_TOGGLE", EN.BINDING_TOGGLE)
+ZO_CreateStringId("SI_BINDING_NAME_QUICKTRAVELMENU_LOCK", EN.BINDING_LOCK)

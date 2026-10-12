@@ -13,11 +13,22 @@ local TAB_ICON_ALPHA_ACTIVE = 1
 local TAB_ICON_ALPHA_INACTIVE = 0.45
 local TAB_ICON_ALPHA_HOVER = 0.8
 
+local COLOR_TRACKED = { 0.34, 0.71, 0.91, 1 }
+local COLOR_QUEUED = { 0.94, 0.89, 0.26, 1 }
+local COLOR_CLAIMABLE = { 0.20, 0.78, 0.60, 1 }
+local COLOR_PROGRESS = { 0.90, 0.62, 0.00, 1 }
+local COLOR_COMPLETED = { 0.62, 0.62, 0.62, 1 }
+local COLOR_OPEN = { 0.82, 0.82, 0.82, 1 }
+
 local COMPACT_WINDOW_WIDTH = 420
 local COMPACT_TOP_HEIGHT = 94
 local COMPACT_BOTTOM_MARGIN = 14
 local TOME_ROW_HEIGHT = 38
 local TOME_COMPACT_ROW_HEIGHT = 55
+local TOME_LIST_BASE_HEIGHT = 152
+local TOME_COMPACT_LIST_BASE_HEIGHT = 124
+local TOME_MIN_VISIBLE_ROWS = 3
+local TOME_MAX_VISIBLE_ROWS = 6
 
 local function showTooltip(control, text)
     InitializeTooltip(InformationTooltip, control, TOP, 0, -4, BOTTOM)
@@ -29,18 +40,7 @@ local function hideTooltip()
 end
 
 local function getTomeRewardText(index)
-    local reward = ""
-
-    for rewardIndex = 1, GetNumTimedActivityRewards(index) do
-        local rewardId, quantity = GetTimedActivityRewardInfo(index, rewardIndex)
-        local rewardType = GetRewardType(rewardId)
-
-        if rewardType == REWARD_ENTRY_TYPE_ADD_CURRENCY then
-            local currencyType = GetAddCurrencyRewardInfo(rewardId)
-            local currencyIcon = GetCurrencyLootKeyboardIcon(currencyType)
-            reward = string.format("%s+%s |t15:15:%s|t", reward, quantity, currencyIcon)
-        end
-    end
+    local reward = Hermes.GetTomeRewards(index)
 
     if reward == "" then
         return "-"
@@ -101,13 +101,32 @@ local function canShowRerollUnavailable(entry, rerollsLeft, canAffordGoldReroll)
     return not entry.canClaim and not entry.canReroll
 end
 
-local function rerollTome(index)
-    return RerollTimedActivity(index)
+local function createTabIndicator(tab)
+    local indicator = WINDOW_MANAGER:CreateControl(nil, tab, CT_BACKDROP)
+    indicator:SetAnchor(TOP, tab, BOTTOM, 0, 1)
+    indicator:SetDimensions(32, 2)
+    indicator:SetCenterColor(1, 0.82, 0.40, 0.90)
+    indicator:SetEdgeColor(0, 0, 0, 0)
+    indicator:SetHidden(true)
+
+    return indicator
 end
 
 local function sortTomeEntries(left, right)
     if left.isFullyCompleted ~= right.isFullyCompleted then
         return not left.isFullyCompleted
+    end
+
+    if left.isTracked ~= right.isTracked then
+        return left.isTracked
+    end
+
+    if left.isMarked ~= right.isMarked then
+        return left.isMarked
+    end
+
+    if left.isMarked then
+        return left.queuePosition < right.queuePosition
     end
 
     local leftInProgress = not left.isFullyCompleted and left.progress > 0
@@ -126,16 +145,22 @@ local function applyRowBgColor(control, hovered)
     local data = control.data
     if hovered then
         if data.isTracked then
-            control.bg:SetCenterColor(0.28, 0.42, 0.65, 0.50)
+            control.bg:SetCenterColor(0.00, 0.45, 0.70, 0.50)
         elseif data.canClaim then
-            control.bg:SetCenterColor(0.25, 0.55, 0.25, 0.50)
+            control.bg:SetCenterColor(0.00, 0.62, 0.45, 0.40)
+        elseif data.isMarked then
+            control.bg:SetCenterColor(0.94, 0.89, 0.26, 0.20)
         else
-            control.bg:SetCenterColor(1, 1, 1, 0.06)
+            control.bg:SetCenterColor(1, 1, 1, 0.09)
         end
     elseif data.isTracked then
-        control.bg:SetCenterColor(0.20, 0.32, 0.52, 0.35)
+        control.bg:SetCenterColor(0.00, 0.45, 0.70, 0.35)
     elseif data.canClaim then
-        control.bg:SetCenterColor(0.15, 0.45, 0.15, 0.35)
+        control.bg:SetCenterColor(0.00, 0.62, 0.45, 0.25)
+    elseif data.isMarked then
+        control.bg:SetCenterColor(0.94, 0.89, 0.26, 0.08)
+    elseif data.isStriped then
+        control.bg:SetCenterColor(1, 1, 1, 0.035)
     else
         control.bg:SetCenterColor(0, 0, 0, 0)
     end
@@ -187,7 +212,11 @@ local function refreshTrackButtonVisual(control)
 
     if data.isTracked then
         control.trackButtonIcon:SetTexture(res.IconTomeTrackOn)
-        control.trackButtonIcon:SetColor(0.70, 0.85, 1, 1)
+        control.trackButtonIcon:SetColor(unpack(COLOR_TRACKED))
+        control.trackButtonIcon:SetAlpha(1)
+    elseif data.isMarked then
+        control.trackButtonIcon:SetTexture(res.IconTomeTrackOn)
+        control.trackButtonIcon:SetColor(unpack(COLOR_QUEUED))
         control.trackButtonIcon:SetAlpha(1)
     else
         control.trackButtonIcon:SetTexture(res.IconTomeTrackOff)
@@ -239,9 +268,9 @@ local function refreshProgressBar(control, data)
     end
 
     if data.canClaim then
-        control.progressFill:SetCenterColor(0.40, 0.88, 0.40, 1)
+        control.progressFill:SetCenterColor(unpack(COLOR_CLAIMABLE))
     else
-        control.progressFill:SetCenterColor(1, 0.72, 0.25, 1)
+        control.progressFill:SetCenterColor(unpack(COLOR_PROGRESS))
     end
 
     if data.maxProgress > 0 then
@@ -285,7 +314,7 @@ local function getTomeProgressText(data)
     end
 
     if data.runText ~= "" then
-        progressText = string.format("%s - %s", progressText, data.runText)
+        progressText = string.format("%s |c8A8A8A(%s)|r", progressText, data.runText)
     end
 
     return progressText
@@ -322,6 +351,10 @@ local function setupTrackAndActionHandlers(control)
         control.trackButtonIcon:SetAlpha(1)
         if data.isTracked then
             showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_UNTRACK"))
+        elseif data.isMarked then
+            showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_UNMARK"))
+        elseif Hermes:IsTrackedTomeQueued() then
+            showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_MARK"))
         else
             showTooltip(button, Hermes.GetDefaultLocaleString("TOME_WINDOW_BUTTON_TRACK"))
         end
@@ -342,12 +375,7 @@ local function setupTrackAndActionHandlers(control)
             return
         end
 
-        if data.isTracked then
-            ClearTrackedTimedActivity()
-        else
-            TrackTimedActivity(data.index)
-        end
-
+        Hermes:ToggleTomeQueue(data)
         Hermes:RefreshTomeWindow()
     end)
 
@@ -378,7 +406,7 @@ local function setupTrackAndActionHandlers(control)
     control.actionButton:SetHandler("OnClicked", function()
         local data = control.data
         if data.canReroll then
-            rerollTome(data.index)
+            RerollTimedActivity(data.index)
         end
     end)
 end
@@ -408,7 +436,7 @@ local function setupTomeRow(control, data)
         control.progressBG = control:GetNamedChild("ProgressBG")
         control.progressFill = control:GetNamedChild("ProgressFill")
 
-        control.progressBG:SetCenterColor(0.55, 0.10, 0.10, 0.65)
+        control.progressBG:SetCenterColor(0.32, 0.32, 0.32, 0.55)
         control.progressBG:SetEdgeColor(0, 0, 0, 0)
         control.progressFill:SetEdgeColor(0, 0, 0, 0)
 
@@ -423,17 +451,17 @@ local function setupTomeRow(control, data)
     control.rewardLabel:SetText(data.reward)
 
     if data.isFullyCompleted then
-        control.nameLabel:SetColor(0.62, 0.62, 0.62, 1)
-        control.progressLabel:SetColor(0.62, 0.62, 0.62, 1)
+        control.nameLabel:SetColor(unpack(COLOR_COMPLETED))
+        control.progressLabel:SetColor(unpack(COLOR_COMPLETED))
     elseif data.canClaim then
         control.nameLabel:SetColor(1, 1, 1, 1)
-        control.progressLabel:SetColor(0.40, 0.88, 0.40, 1)
+        control.progressLabel:SetColor(unpack(COLOR_CLAIMABLE))
     elseif data.progress > 0 then
         control.nameLabel:SetColor(1, 1, 1, 1)
-        control.progressLabel:SetColor(1, 0.72, 0.25, 1)
+        control.progressLabel:SetColor(unpack(COLOR_PROGRESS))
     else
         control.nameLabel:SetColor(1, 1, 1, 1)
-        control.progressLabel:SetColor(0.82, 0.82, 0.82, 1)
+        control.progressLabel:SetColor(unpack(COLOR_OPEN))
     end
 
     control.rewardLabel:SetColor(0.78, 0.78, 0.78, 1)
@@ -470,7 +498,7 @@ local function setupTomeCompactEntry(control, data)
         control.progressBG = control:GetNamedChild("ProgressBG")
         control.progressFill = control:GetNamedChild("ProgressFill")
 
-        control.progressBG:SetCenterColor(0.55, 0.10, 0.10, 0.65)
+        control.progressBG:SetCenterColor(0.32, 0.32, 0.32, 0.55)
         control.progressBG:SetEdgeColor(0, 0, 0, 0)
         control.progressFill:SetEdgeColor(0, 0, 0, 0)
 
@@ -490,17 +518,17 @@ local function setupTomeCompactEntry(control, data)
     control.detailsLabel:SetText(detailsText)
 
     if data.isFullyCompleted then
-        control.nameLabel:SetColor(0.62, 0.62, 0.62, 1)
-        control.detailsLabel:SetColor(0.62, 0.62, 0.62, 1)
+        control.nameLabel:SetColor(unpack(COLOR_COMPLETED))
+        control.detailsLabel:SetColor(unpack(COLOR_COMPLETED))
     elseif data.canClaim then
         control.nameLabel:SetColor(1, 1, 1, 1)
-        control.detailsLabel:SetColor(0.40, 0.88, 0.40, 1)
+        control.detailsLabel:SetColor(unpack(COLOR_CLAIMABLE))
     elseif data.progress > 0 then
         control.nameLabel:SetColor(1, 1, 1, 1)
-        control.detailsLabel:SetColor(1, 0.72, 0.25, 1)
+        control.detailsLabel:SetColor(unpack(COLOR_PROGRESS))
     else
         control.nameLabel:SetColor(1, 1, 1, 1)
-        control.detailsLabel:SetColor(0.78, 0.78, 0.78, 1)
+        control.detailsLabel:SetColor(unpack(COLOR_OPEN))
     end
 
     refreshTrackButtonVisual(control)
@@ -509,10 +537,7 @@ local function setupTomeCompactEntry(control, data)
 end
 
 function Hermes:RestoreTomeWindowPosition()
-    local control = self.tomeWindow and self.tomeWindow.control
-    if not control then
-        return
-    end
+    local control = self.tomeWindow.control
 
     if self.db.tomeWindowX ~= nil and self.db.tomeWindowY ~= nil then
         control:ClearAnchors()
@@ -521,10 +546,7 @@ function Hermes:RestoreTomeWindowPosition()
 end
 
 function Hermes:SaveTomeWindowPosition()
-    local control = self.tomeWindow and self.tomeWindow.control
-    if not control then
-        return
-    end
+    local control = self.tomeWindow.control
 
     self.db.tomeWindowX = zo_floor(control:GetLeft())
     self.db.tomeWindowY = zo_floor(control:GetTop())
@@ -623,10 +645,6 @@ function Hermes:IsTomeWindowCompactMode()
 end
 
 function Hermes:ApplyTomeWindowLayout()
-    if not self.tomeWindow then
-        return
-    end
-
     local window = self.tomeWindow
     local control = window.control
     local listBg = control:GetNamedChild("ListBG")
@@ -636,12 +654,12 @@ function Hermes:ApplyTomeWindowLayout()
 
         window.pointsLabel:ClearAnchors()
         window.pointsLabel:SetAnchor(TOP, control, TOP, 0, 40)
-        window.pointsLabel:SetDimensions(120, 20)
+        window.pointsLabel:SetDimensions(160, 20)
         window.pointsLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
         window.pointsValue:ClearAnchors()
         window.pointsValue:SetAnchor(TOP, control, TOP, 0, 56)
-        window.pointsValue:SetDimensions(120, 20)
+        window.pointsValue:SetDimensions(160, 20)
         window.pointsValue:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
         window.timeRemainingLabel:ClearAnchors()
@@ -672,13 +690,13 @@ function Hermes:ApplyTomeWindowLayout()
         control:SetDimensions(716, 352)
 
         window.pointsLabel:ClearAnchors()
-        window.pointsLabel:SetAnchor(TOPRIGHT, control, TOPRIGHT, -248, 40)
-        window.pointsLabel:SetDimensions(120, 20)
+        window.pointsLabel:SetAnchor(TOPRIGHT, control, TOPRIGHT, -228, 40)
+        window.pointsLabel:SetDimensions(160, 20)
         window.pointsLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
         window.pointsValue:ClearAnchors()
-        window.pointsValue:SetAnchor(TOPRIGHT, control, TOPRIGHT, -248, 56)
-        window.pointsValue:SetDimensions(120, 20)
+        window.pointsValue:SetAnchor(TOPRIGHT, control, TOPRIGHT, -228, 56)
+        window.pointsValue:SetDimensions(160, 20)
         window.pointsValue:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
         window.timeRemainingLabel:ClearAnchors()
@@ -714,10 +732,6 @@ function Hermes:ApplyTomeWindowLayout()
 end
 
 function Hermes:UpdateTomeWindowPoints()
-    if not self.tomeWindow then
-        return
-    end
-
     local points = self:GetTomePointsTotal()
     local icon = GetCurrencyLootKeyboardIcon(TOME_POINTS_CURRENCY_TYPE)
 
@@ -758,10 +772,6 @@ function Hermes:GetTomeTypeTimeRemainingText(activityType)
 end
 
 function Hermes:UpdateTomeWindowTimeRemaining()
-    if not self.tomeWindow then
-        return
-    end
-
     if not IsTimedActivitySystemAvailable() then
         self.tomeWindow.pointsLabel:SetText("")
         self.tomeWindow.pointsValue:SetText("")
@@ -795,10 +805,6 @@ function Hermes:StopTomeWindowTimeRemainingUpdate()
 end
 
 function Hermes:ShowTomeWindow()
-    if not self.tomeWindow then
-        return
-    end
-
     local window = self.tomeWindow
 
     if window.isEnabled then
@@ -812,10 +818,6 @@ function Hermes:ShowTomeWindow()
 end
 
 function Hermes:HideTomeWindow()
-    if not self.tomeWindow then
-        return
-    end
-
     local window = self.tomeWindow
 
     if not window.isEnabled then
@@ -873,15 +875,15 @@ function Hermes:InitializeTomeIcon()
 
     self:RestoreTomeIconPosition()
 
-    moveHandle:SetHandler("OnMouseEnter", function(self)
+    moveHandle:SetHandler("OnMouseEnter", function(handle)
         WINDOW_MANAGER:SetMouseCursor(12)
-        self:SetAlpha(1)
+        handle:SetAlpha(1)
     end)
 
-    moveHandle:SetHandler("OnMouseExit", function(self)
+    moveHandle:SetHandler("OnMouseExit", function(handle)
         if not tomeIcon.isDragging then
             WINDOW_MANAGER:SetMouseCursor(0)
-            self:SetAlpha(0)
+            handle:SetAlpha(0)
         end
     end)
 
@@ -892,19 +894,19 @@ function Hermes:InitializeTomeIcon()
         end
     end)
 
-    moveHandle:SetHandler("OnMouseUp", function(self, buttonIndex)
+    moveHandle:SetHandler("OnMouseUp", function(handle, buttonIndex)
         if buttonIndex == MOUSE_BUTTON_INDEX_LEFT then
             tomeIcon.isDragging = false
             WINDOW_MANAGER:SetMouseCursor(12)
-            self:SetAlpha(1)
-            self:StopMovingOrResizing()
+            handle:SetAlpha(1)
+            handle:StopMovingOrResizing()
         end
     end)
 
-    moveHandle:SetHandler("OnMoveStop", function(self)
+    moveHandle:SetHandler("OnMoveStop", function(handle)
         tomeIcon.isDragging = false
         WINDOW_MANAGER:SetMouseCursor(0)
-        self:SetAlpha(0)
+        handle:SetAlpha(0)
         Hermes:SaveTomeIconPosition()
     end)
 
@@ -945,6 +947,8 @@ function Hermes:InitializeTomeWindow()
         seasonalTab = control:GetNamedChild("SeasonalTab"),
         weeklyTabIcon = control:GetNamedChild("WeeklyTab"):GetNamedChild("Icon"),
         seasonalTabIcon = control:GetNamedChild("SeasonalTab"):GetNamedChild("Icon"),
+        weeklyTabIndicator = createTabIndicator(control:GetNamedChild("WeeklyTab")),
+        seasonalTabIndicator = createTabIndicator(control:GetNamedChild("SeasonalTab")),
         claimAllButton = claimAllButton,
         viewModeButton = viewModeButton,
         viewModeButtonIcon = viewModeButtonIcon,
@@ -1006,6 +1010,8 @@ function Hermes:InitializeTomeWindow()
             end
         end)
     end
+
+    self:SetupGuideHelp(control:GetNamedChild("Help"), "TOMES_TRACK", self.GetDefaultLocaleString("TOME_WINDOW_HELP"))
 
     if viewModeButton then
         viewModeButton:SetHandler("OnMouseEnter", function()
@@ -1121,8 +1127,13 @@ function Hermes:InitializeTomeWindow()
 
     EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindowRerollPriceReset", EVENT_TIMED_ACTIVITIES_REROLL_PRICE_RESET, requestRefresh)
 
-    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindowRerollResult", EVENT_TIMED_ACTIVITY_REROLL_RESULT, function(_, result, index)
-        requestRefresh()
+    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeWindowRerollResult", EVENT_TIMED_ACTIVITY_REROLL_RESULT, requestRefresh)
+
+    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeQueue", EVENT_TIMED_ACTIVITY_PROGRESS_UPDATED, function()
+        self:UpdateTomeQueue()
+    end)
+    EVENT_MANAGER:RegisterForEvent(self.name .. "TomeQueue", EVENT_TIMED_ACTIVITIES_UPDATED, function()
+        self:UpdateTomeQueue()
     end)
 
     self:UpdateTomeTabState()
@@ -1137,7 +1148,7 @@ function Hermes:InitializeTomeWindow()
 end
 
 function Hermes:RefreshTomeWindowIfVisible()
-    if self.tomeWindow and self.tomeWindow.isEnabled and not self.tomeWindow.control:IsHidden() then
+    if self.tomeWindow.isEnabled and not self.tomeWindow.control:IsHidden() then
         self:UpdateTomeWindowTimeRemaining()
         self:RefreshTomeWindow()
     end
@@ -1156,11 +1167,11 @@ function Hermes:SetTomeWindowFilter(filterKey)
 end
 
 function Hermes:UpdateTomeTabState()
-    if not self.tomeWindow then
-        return
-    end
+    local isWeekly = self.tomeWindow.currentFilter == "weekly"
+    self.tomeWindow.weeklyTabIndicator:SetHidden(not isWeekly)
+    self.tomeWindow.seasonalTabIndicator:SetHidden(isWeekly)
 
-    if self.tomeWindow.currentFilter == "weekly" then
+    if isWeekly then
         self.tomeWindow.weeklyTabIcon:SetAlpha(TAB_ICON_ALPHA_ACTIVE)
         self.tomeWindow.seasonalTabIcon:SetAlpha(TAB_ICON_ALPHA_INACTIVE)
     else
@@ -1184,6 +1195,11 @@ function Hermes:BuildTomeWindowEntries()
     local canUseGoldReroll = rerollsLeft <= 0 and goldRerollCost ~= nil and goldRerollCost > 0
     local canAffordGoldReroll = canUseGoldReroll and self:CanAffordTomeGoldReroll(goldRerollCost)
     local seasonEndTimeS = nil
+    local queuePositions = {}
+
+    for position, activityId in ipairs(self.db.tomeQueue) do
+        queuePositions[activityId] = position
+    end
 
     if activityType == TIMED_ACTIVITY_TYPE_SEASONAL then
         seasonEndTimeS = GetActiveTamrielTomeSeasonEndTimeS()
@@ -1191,7 +1207,7 @@ function Hermes:BuildTomeWindowEntries()
 
     for index = 1, numTimedActivities do
         if GetTimedActivityType(index) == activityType then
-            local name = GetTimedActivityName(index)
+            local name = GetTimedActivityName(index):gsub("|t[^:|]+:[^:|]+:", "|t100%%:100%%:")
             local progress = GetTimedActivityProgress(index)
             local maxProgress = GetTimedActivityMaxProgress(index)
             local numTimesClaimed = GetTimedActivityNumTimesClaimed(index)
@@ -1225,8 +1241,14 @@ function Hermes:BuildTomeWindowEntries()
                 end
             end
 
+            local activityId = GetTimedActivityId(index)
+            local isTracked = trackedIndex == index and canTrack
+
             local entry = {
                 index = index,
+                activityId = activityId,
+                queuePosition = queuePositions[activityId],
+                isMarked = queuePositions[activityId] ~= nil and not isTracked,
                 activityType = activityType,
                 name = name,
                 progress = progress,
@@ -1241,7 +1263,7 @@ function Hermes:BuildTomeWindowEntries()
                 isCycleClaimed = isCycleClaimed,
                 canClaim = canClaim,
                 canTrack = canTrack,
-                isTracked = trackedIndex == index and canTrack,
+                isTracked = isTracked,
                 rerollsLeft = rerollsLeft,
                 goldRerollCost = canUseGoldReroll and goldRerollCost or nil,
             }
@@ -1255,6 +1277,10 @@ function Hermes:BuildTomeWindowEntries()
     end
 
     table.sort(entries, sortTomeEntries)
+
+    for i, entry in ipairs(entries) do
+        entry.isStriped = i % 2 == 0
+    end
 
     return entries
 end
@@ -1285,16 +1311,99 @@ function Hermes:RefreshTomeWindowCompact(entries)
     ZO_ScrollList_Commit(window.compactList)
 end
 
-function Hermes:RefreshTomeWindow()
-    if not self.tomeWindow then
+local function isTomeTrackable(index)
+    local progress = GetTimedActivityProgress(index)
+    local maxProgress = GetTimedActivityMaxProgress(index)
+    local numTimesClaimed = GetTimedActivityNumTimesClaimed(index)
+    local totalNumTimesClaimable = GetTimedActivityTotalNumTimesClaimable(index)
+
+    if maxProgress > 0 and progress >= maxProgress then
+        return false
+    end
+
+    return totalNumTimesClaimable == 0 or numTimesClaimed < totalNumTimesClaimable
+end
+
+local function findTomeIndex(activityId)
+    for index = 1, GetNumTimedActivities() do
+        if GetTimedActivityId(index) == activityId then
+            return index
+        end
+    end
+end
+
+function Hermes:IsTrackedTomeQueued()
+    local trackedIndex = GetTrackedTimedActivityInfo()
+    if not trackedIndex then
+        return false
+    end
+
+    return ZO_IsElementInNumericallyIndexedTable(self.db.tomeQueue, GetTimedActivityId(trackedIndex))
+end
+
+function Hermes:ToggleTomeQueue(data)
+    local queue = self.db.tomeQueue
+
+    if data.isTracked or data.isMarked then
+        ZO_RemoveFirstElementFromNumericallyIndexedTable(queue, data.activityId)
+
+        if data.isTracked then
+            ClearTrackedTimedActivity()
+        end
+    elseif self:IsTrackedTomeQueued() then
+        table.insert(queue, data.activityId)
+    else
+        table.insert(queue, 1, data.activityId)
+        TrackTimedActivity(data.index)
+    end
+
+    self:UpdateTomeQueue()
+end
+
+function Hermes:UpdateTomeQueue()
+    if not IsTimedActivitySystemAvailable() or GetNumTimedActivities() == 0 then
         return
     end
 
+    local queue = self.db.tomeQueue
+
+    for position = #queue, 1, -1 do
+        local index = findTomeIndex(queue[position])
+
+        if not index or not isTomeTrackable(index) then
+            table.remove(queue, position)
+        end
+    end
+
+    local trackedIndex = GetTrackedTimedActivityInfo()
+
+    if trackedIndex and not isTomeTrackable(trackedIndex) then
+        ClearTrackedTimedActivity()
+        trackedIndex = nil
+    end
+
+    if not trackedIndex and queue[1] then
+        TrackTimedActivity(findTomeIndex(queue[1]))
+    end
+end
+
+function Hermes:UpdateTomeWindowHeight(numEntries)
+    local rows = zo_clamp(numEntries, TOME_MIN_VISIBLE_ROWS, TOME_MAX_VISIBLE_ROWS)
+
+    if self:IsTomeWindowCompactMode() then
+        self.tomeWindow.control:SetHeight(TOME_COMPACT_LIST_BASE_HEIGHT + rows * TOME_COMPACT_ROW_HEIGHT)
+    else
+        self.tomeWindow.control:SetHeight(TOME_LIST_BASE_HEIGHT + rows * TOME_ROW_HEIGHT)
+    end
+end
+
+function Hermes:RefreshTomeWindow()
     local window = self.tomeWindow
 
     if not IsTimedActivitySystemAvailable() then
         window.entries = {}
         window.emptyLabel:SetText(self.GetDefaultLocaleString("TOME_WINDOW_EMPTY"))
+        self:UpdateTomeWindowHeight(0)
 
         if self:IsTomeWindowCompactMode() then
             local scrollData = ZO_ScrollList_GetDataList(window.compactList)
@@ -1310,8 +1419,11 @@ function Hermes:RefreshTomeWindow()
         return
     end
 
+    self:UpdateTomeQueue()
+
     local entries = self:BuildTomeWindowEntries()
     window.entries = entries
+    self:UpdateTomeWindowHeight(#entries)
 
     if self.db.autoTrackTomes then
         local trackedIndex = select(1, GetTrackedTimedActivityInfo())
@@ -1346,10 +1458,6 @@ function Hermes:RefreshTomeWindow()
 end
 
 function Hermes:ToggleTomeWindow()
-    if not self.tomeWindow then
-        return
-    end
-
     if self.tomeWindow.isEnabled then
         self:HideTomeWindow()
     else
@@ -1357,4 +1465,4 @@ function Hermes:ToggleTomeWindow()
     end
 end
 
-ZO_CreateStringId("SI_BINDING_NAME_AA_TOME_WINDOW", Hermes.GetDefaultLocaleString("BINDING_OPEN_TOMES_WINDOW"))
+ZO_CreateStringId("SI_BINDING_NAME_HERMES_TOME_WINDOW", Hermes.GetDefaultLocaleString("BINDING_OPEN_TOMES_WINDOW"))

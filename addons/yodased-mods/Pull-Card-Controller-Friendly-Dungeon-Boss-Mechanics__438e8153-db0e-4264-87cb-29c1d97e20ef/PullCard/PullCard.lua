@@ -132,9 +132,61 @@ function PC:GetDetectedBossNames()
 end
 
 -- Returns (encounter, rawName). encounter is nil when the boss has no card.
+-- Combination cards (e.g. a miniboss joining the final boss in hard mode) win
+-- when all their bosses are on screen together. Most specific first; one that
+-- already popped (cooldown) gives way to the next, so each join pops once.
+function PC:GetDetectedCombo(found)
+    local present = {}
+    for _, name in ipairs(found) do
+        present[NormalizeBossName(name)] = true
+    end
+
+    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+    local zoneName = NormalizeZoneName(GetUnitZone("player"))
+    local matches = {}
+    for _, dungeon in ipairs(PullCardData.dungeonOrder) do
+        if dungeon.combos and IsPlayerInDungeon(dungeon, zoneId, zoneName) then
+            for _, combo in ipairs(dungeon.combos) do
+                -- Each requirement is a name, or a list of acceptable spellings.
+                local all = true
+                for _, required in ipairs(combo.requires) do
+                    local options = type(required) == "table" and required or { required }
+                    local found = false
+                    for _, option in ipairs(options) do
+                        if present[NormalizeBossName(option)] then
+                            found = true
+                            break
+                        end
+                    end
+                    if not found then
+                        all = false
+                        break
+                    end
+                end
+                if all then table.insert(matches, combo) end
+            end
+        end
+    end
+
+    table.sort(matches, function(a, b) return #a.requires > #b.requires end)
+    for _, combo in ipairs(matches) do
+        if not self:IsOnRepeatCooldown(combo) then
+            return combo
+        end
+    end
+    -- All already shown: still return one (it won't re-pop) so the single-boss
+    -- cards of a combo's members don't pop mid-fight instead.
+    return matches[1]
+end
+
 function PC:GetBestDetectedBoss()
     local found = self:GetDetectedBossNames()
     self.detectedBossNames = found
+
+    local combo = self:GetDetectedCombo(found)
+    if combo then
+        return combo, combo.title
+    end
 
     for _, name in ipairs(found) do
         local encounter = self:ResolveEncounter(name)
@@ -187,7 +239,8 @@ function PC:SetBoss(encounter, rawName, source)
     self.currentBossName = encounter and encounter.title or rawName
     self.currentBossData = encounter
     self.currentSource = source or "unknown"
-    if encounter then
+    -- "Before you start" intro cards aren't a boss strategy to share in chat.
+    if encounter and not encounter.sectionLabel then
         self.chatBoss = encounter
     end
 
@@ -326,6 +379,25 @@ function PC:ResolveRound()
     return nil
 end
 
+-- On zoning into an instance that has a "Before you start" card, show it once
+-- (same re-show cooldown as boss cards). Returns true if it popped.
+function PC:RefreshIntro()
+    if not self:IsAutoPopupEnabled() or not self:IsInGroupDungeon() then return false end
+
+    local zoneId = GetZoneId(GetUnitZoneIndex("player"))
+    local zoneName = NormalizeZoneName(GetUnitZone("player"))
+    for _, dungeon in ipairs(PullCardData.dungeonOrder) do
+        if dungeon.intro and IsPlayerInDungeon(dungeon, zoneId, zoneName) then
+            if self:IsOnRepeatCooldown(dungeon.intro) then return false end
+            self.lastAutoShownAt[dungeon.intro] = GetFrameTimeSeconds()
+            self:SetBoss(dungeon.intro, nil, "intro")
+            self:OpenWindow()
+            return true
+        end
+    end
+    return false
+end
+
 function PC:RefreshRound()
     local encounter = self:ResolveRound()
     if not encounter then return end
@@ -358,7 +430,7 @@ function PC:Render()
     elseif data then
         local summary = data.summary or "Watch the encounter flow, protect your team, and execute one clean mechanic cycle."
         self.window.title:SetText((data.dungeon or "Dungeon") .. " — " .. (data.title or bossName))
-        local mechanicsLabel = IsSoloEncounter(data) and "MECHANICS" or "EVERYONE"
+        local mechanicsLabel = data.sectionLabel or (IsSoloEncounter(data) and "MECHANICS" or "EVERYONE")
         local body = "SUMMARY\n" .. summary .. "\n\n" .. mechanicsLabel .. "\n" .. (data.everyone or "No notes yet.")
         if data.tldr and data.tldr ~= "" then
             -- Quick tip first; the "[Boss]" tag is for chat, the title already says it.
@@ -851,7 +923,9 @@ function PC:BuildDungeonSubmenus(categoryKey)
         local bossOptions = {
             {
                 type = "button",
-                name = (dungeon.category == "arena" or dungeon.category == "solo") and "Arena Overview" or "Dungeon Overview",
+                name = (dungeon.category == "trial" and "Trial Overview")
+                    or ((dungeon.category == "arena" or dungeon.category == "solo") and "Arena Overview")
+                    or "Dungeon Overview",
                 tooltip = function() return FormatDungeonOverview(dungeon) end,
                 func = function() end,
             },
@@ -1045,7 +1119,9 @@ function PC:Initialize()
     EVENT_MANAGER:RegisterForEvent(self.name, EVENT_PLAYER_ACTIVATED, function()
         zo_callLater(function()
             PC:RefreshAuto()
-            PC:RefreshRound()
+            if not PC:RefreshIntro() then
+                PC:RefreshRound()
+            end
         end, 500)
     end)
 

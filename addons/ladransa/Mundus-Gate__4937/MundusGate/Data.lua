@@ -23,15 +23,19 @@ Data.TYPE_LIST = {
     Data.TYPE_ARENA, Data.TYPE_HOUSE, Data.TYPE_PLAYER_HOUSE, Data.TYPE_OTHER,
 }
 
-Data.TYPE_NAMES = {
-    [Data.TYPE_WAYSHRINE] = L.TYPE_WAYSHRINE,
-    [Data.TYPE_DUNGEON]   = L.TYPE_DUNGEON,
-    [Data.TYPE_TRIAL]     = L.TYPE_TRIAL,
-    [Data.TYPE_ARENA]     = L.TYPE_ARENA,
-    [Data.TYPE_HOUSE]     = L.TYPE_HOUSE,
-    [Data.TYPE_OTHER]     = L.TYPE_OTHER,
-    [Data.TYPE_PLAYER_HOUSE] = L.TYPE_PLAYER_HOUSE,
+-- Названия типов берутся в момент показа — так они всегда на выбранном языке
+local TYPE_KEYS = {
+    [Data.TYPE_WAYSHRINE] = "TYPE_WAYSHRINE",
+    [Data.TYPE_DUNGEON]   = "TYPE_DUNGEON",
+    [Data.TYPE_TRIAL]     = "TYPE_TRIAL",
+    [Data.TYPE_ARENA]     = "TYPE_ARENA",
+    [Data.TYPE_HOUSE]     = "TYPE_HOUSE",
+    [Data.TYPE_OTHER]     = "TYPE_OTHER",
+    [Data.TYPE_PLAYER_HOUSE] = "TYPE_PLAYER_HOUSE",
 }
+Data.TYPE_NAMES = setmetatable({}, {
+    __index = function(_, typeId) return TYPE_KEYS[typeId] and L[TYPE_KEYS[typeId]] or "" end,
+})
 
 local lower = zo_strlower or string.lower
 
@@ -97,8 +101,7 @@ function Data:Initialize()
             {
                 text     = L.DIALOG_PLAYER_CONFIRM,
                 callback = function(dialog)
-                    QTM.Presence:Jump(dialog.data.entry)
-                    QTM.Menu:Hide()
+                    Data:JumpToPlayer(dialog.data.entry, dialog.data.savedCost)
                 end,
             },
             { text = SI_DIALOG_CANCEL },
@@ -229,7 +232,7 @@ end
 
 -- Сбросить кэш (например, после добавления дома игрока)
 function Data:Invalidate()
-    self.nodes, self.byIndex, self.zones = nil, nil, nil
+    self.nodes, self.byIndex, self.zones, self.wayshrineZones = nil, nil, nil, nil
 end
 
 ---------------------------------------------------------------------------
@@ -317,6 +320,73 @@ end
 function Data:GetZones()
     self:EnsureBuilt()
     return self.zones
+end
+
+---------------------------------------------------------------------------
+-- Вид места: значок, цвет и окраска значка.
+-- Настраивается один раз (на панели карты или в редакторах кнопок и колеса)
+-- и общий для всего: новые кнопки и ячейки колеса берут его сами, а при
+-- изменении он сразу переносится на все кнопки и ячейки этого места.
+---------------------------------------------------------------------------
+local function CopyLook(from, to)
+    to.icon  = from.icon
+    to.color = QTM.Style.CopyColor(from.color)
+    to.tint  = from.tint == true
+end
+
+function Data:GetPlaceStyle(key)
+    return key ~= nil and QTM.sv.placeStyles[key] or nil
+end
+
+-- Вид места для отрисовки (всегда таблица)
+function Data:GetPlaceLook(key)
+    local style = self:GetPlaceStyle(key)
+    return {
+        icon  = style and style.icon or nil,
+        color = style and style.color or QTM.Style.DEFAULT_COLOR,
+        tint  = style and style.tint or false,
+    }
+end
+
+function Data:SetPlaceStyle(key, look)
+    if key == nil then return end
+    local sv = QTM.sv
+    local style = {}
+    CopyLook(look, style)
+    sv.placeStyles[key] = style
+    for _, item in ipairs(sv.buttons) do
+        if item.nodeIndex == key then CopyLook(style, item) end
+    end
+    for index = 1, (ACTION_BAR_UTILITY_BAR_SIZE or 8) do
+        local slot = sv.wheelSlots[index]
+        if slot and slot.nodeIndex == key then CopyLook(style, slot) end
+    end
+    if QTM.Buttons and QTM.Buttons.controls then QTM.Buttons:RefreshAll() end
+end
+
+-- Кнопку или ячейку колеса изменили в редакторе — запоминаем вид для места
+function Data:SavePlaceStyleFrom(item)
+    if item and item.nodeIndex ~= nil then self:SetPlaceStyle(item.nodeIndex, item) end
+end
+
+-- Кнопке или ячейке назначили место — берём сохранённый вид места, если он есть
+function Data:ApplyPlaceStyle(item)
+    local style = item and self:GetPlaceStyle(item.nodeIndex)
+    if style then CopyLook(style, item) end
+    return item
+end
+
+-- Локации, где есть святилища (открытый мир): прыжок к игроку там ставит у святилища
+function Data:GetWayshrineZones()
+    self:EnsureBuilt()
+    if not self.wayshrineZones then
+        local zones = {}
+        for _, node in ipairs(self.nodes) do
+            if node.type == Data.TYPE_WAYSHRINE and node.zoneId then zones[node.zoneId] = true end
+        end
+        self.wayshrineZones = zones
+    end
+    return self.wayshrineZones
 end
 
 ---------------------------------------------------------------------------
@@ -441,17 +511,38 @@ function Data:GetBlockReason(isHouse, viaPlayer)
 end
 
 -- Что мешает переместиться в это место прямо сейчас
-function Data:GetNodeBlockReason(node)
+-- (для бесплатного пути перезарядка перемещения не важна)
+-- source — откуда перемещение: "Menu", "Buttons", "Wheel" или "Map"
+function Data:GetNodeBlockReason(node, source)
+    if QTM.Route and QTM.Route:WillUse(node, source) then
+        return self:GetBlockReason(false, true)
+    end
     return self:GetBlockReason(self:IsHouse(node))
 end
 
--- Строка о цене для подсказок: «Стоимость: 480»
-function Data:GetPriceLine(node)
-    return L.PRICE_LABEL .. " " .. self:GetPriceInfo(node)
+-- Цена, которую видит игрок: с учётом бесплатного пути через игрока.
+-- Возвращает: text, affordable, isFree, isRoute
+function Data:GetDisplayPrice(node, source)
+    if QTM.Route and QTM.Route:WillUse(node, source) then
+        return L.ROUTE_PRICE, true, true, true
+    end
+    local text, affordable, isFree = self:GetPriceInfo(node)
+    return text, affordable, isFree, false
 end
 
--- Бесплатно к ближайшему к другу или согильдийцу святилищу
-function Data:TravelToPlayer(entry, zoneName)
+-- Строка о цене для подсказок: «Стоимость: 480»
+function Data:GetPriceLine(node, source)
+    local text, _, _, isRoute = self:GetDisplayPrice(node, source)
+    if isRoute then
+        return L.PRICE_LABEL .. " |c5DC1E8" .. text .. "|r |c9A9A9A(" .. L.ROUTE_SHORT .. ")|r\n|c9A9A9A"
+            .. zo_strformat(L.ROUTE_TOOLTIP_COST, (self:GetPriceInfo(node))) .. "|r"
+    end
+    return L.PRICE_LABEL .. " " .. text
+end
+
+-- Бесплатно к ближайшему к другу или согильдийцу святилищу.
+-- savedCost — цена святилища, которую игрок не заплатит (для счётчика; если известна)
+function Data:TravelToPlayer(entry, zoneName, savedCost)
     if not entry then return nil end
     local block = self:GetBlockReason(false, true)
     if block then
@@ -459,24 +550,39 @@ function Data:TravelToPlayer(entry, zoneName)
         return nil
     end
     if QTM.sv.confirmTravel then
-        ZO_Dialogs_ShowDialog("MUNDUSGATE_CONFIRM_PLAYER", { entry = entry }, {
+        ZO_Dialogs_ShowDialog("MUNDUSGATE_CONFIRM_PLAYER", { entry = entry, savedCost = savedCost }, {
             mainTextParams = { entry.displayName, QTM.Presence:DescribeKind(entry), zoneName or entry.zoneName or "" },
         })
         return "dialog"
     end
-    QTM.Presence:Jump(entry)
+    self:JumpToPlayer(entry, savedCost)
     return "started"
+end
+
+function Data:JumpToPlayer(entry, savedCost)
+    QTM.Presence:Jump(entry, {
+        onLoading = savedCost and function() QTM.AddSavedGold(savedCost) end or nil,
+    })
+    QTM.Menu:Hide()
+    if not SCENE_MANAGER:IsShowing("hud") then SCENE_MANAGER:ShowBaseScene() end
 end
 
 ---------------------------------------------------------------------------
 -- Перемещение
 -- Возвращает: "started" — перемещение началось, "dialog" — ждём подтверждения, nil — отказ
+-- payNow — заплатить и переместиться сразу, даже если можно бесплатным путём
+-- source — откуда нажали ("Menu", "Buttons", "Wheel"): у каждого своя настройка
 ---------------------------------------------------------------------------
-function Data:Travel(node)
+function Data:Travel(node, payNow, source)
     local available, reason = self:GetNodeStatus(node)
     if not available then
         Alert(reason)
         return nil
+    end
+
+    -- Платное место: бесплатно через игрока и святилище
+    if not payNow and QTM.Route:WillUse(node, source) then
+        return QTM.Route:Request(node)
     end
 
     local isHouse = self:IsHouse(node)

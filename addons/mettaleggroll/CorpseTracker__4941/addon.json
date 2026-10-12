@@ -18,7 +18,7 @@
     "CorpseTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4941/",
-  "fingerprint": "b9de5f498bf66f19b97b3d80008b9fab6a05c5b9c8694f74e6c3f322173276a7",
+  "fingerprint": "ed981f41ba661876d7c46f129e8ca1b472f060ff7abe36cc850a7510994d6127",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17926.png",
     "https://cdn-eso.mmoui.com/preview/pvw17927.png"
@@ -29,11 +29,11 @@
   "source_id": "4941",
   "source_url": "https://www.esoui.com/downloads/info4941-CorpseTracker.html",
   "stats": {
-    "downloads": 0,
+    "downloads": 14,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 9
   },
   "title": "CorpseTracker",
-  "updated_at": 1791705985000,
-  "version": "0.3.4"
+  "updated_at": 1791732777000,
+  "version": "0.3.6"
 }

@@ -18,7 +18,7 @@
     "LootDrop"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2660/",
-  "fingerprint": "c918c0e7e07232e236990d8c27e16caf1692b723b25409ab4a65544e2d697a3d",
+  "fingerprint": "bab330337255556bb629caf0f20a8be40a832faa333541bb36d9cabe8eea930e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11402.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw11450.jpg",
@@ -36,11 +36,11 @@
   "source_id": "2660",
   "source_url": "https://www.esoui.com/downloads/info2660-LootDropReborn.html",
   "stats": {
-    "downloads": 194655,
-    "favorites": 180,
-    "monthly_downloads": 1138
+    "downloads": 199372,
+    "favorites": 183,
+    "monthly_downloads": 1200
   },
   "title": "LootDrop Reborn",
-  "updated_at": 1786056508000,
-  "version": "4.64"
+  "updated_at": 1791745851000,
+  "version": "4.65"
 }

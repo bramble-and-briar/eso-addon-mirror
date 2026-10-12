@@ -5,7 +5,7 @@ screen instead of fading away, and decides what it is drawn over, in The Elder S
 console.
 
 - **Author:** PinkBanther
-- **Version:** 1.3.1
+- **Version:** 1.3.2
 - **Optional:** `LibHarvensAddonSettings` >= 20106 (for the settings panel; the chat commands
   work without it)
 
@@ -69,12 +69,23 @@ The console chat minimises itself 20 seconds after the last message: the message
 background fades to nothing until something new arrives. **Keep the window on screen** stops
 that, for as long as you are on the HUD.
 
-The **input line is not affected** — it still appears only when you start typing, which is what
-the game does. Switching the option off hands the window back to the game's own 20-second timer
-rather than minimising it here, so it disappears the way it always did.
+The **input line** (its frame and the channel name) is part of the window, as it is in the game
+while the chat is active: it is up when the window is up. Switching the option off hands the
+window back to the game's own 20-second timer rather than minimising it here, so it disappears
+the way it always did.
 
 A menu still minimises the chat, because the game does that itself through
-`MINIMIZE_CHAT_FRAGMENT`; the window is back up by the time the HUD is.
+`MINIMIZE_CHAT_FRAGMENT`; the game maximises it again on the way out, and so does this add-on if
+that has not happened by the time the HUD is back.
+
+#### PBsChatAssistant's Enter key
+
+The window is brought back with the game's own `Maximize()`, never by writing the state the game
+keeps for itself. That matters to anything that reads `GAMEPAD_CHAT_SYSTEM.isMinimized`:
+PBsChatAssistant maximises only when it is true, and otherwise just fades the container in,
+which does not show the input frame. **1.1.0 – 1.3.1** forced the flag back to false after a menu
+while the input frame was still hidden, so Enter opened an input box nobody could see, and the
+HUD tracker column stayed anchored to the chat bubble. Fixed in 1.3.2.
 
 ### Menus
 
@@ -126,8 +137,9 @@ are 140 and alerts 145.
 
 ## How it works
 
-Nothing in the chat is hooked, wrapped or called. The add-on only **writes to controls and
-fields**, and lets the chat carry on running its own code:
+Nothing in the chat is hooked or wrapped. The add-on **writes to controls and fields**, calls
+three of the chat's own methods that do nothing but a write or a state change the game would make
+itself, and lets the chat carry on running its own code:
 
 - **Position and size** are the anchor and dimensions of the chat's top-level control,
   `ZO_GamepadTextChat`. The message area is anchored to its top left and the input line to its
@@ -143,14 +155,20 @@ fields**, and lets the chat carry on running its own code:
   `RefreshVisibility` has hidden it — on the HUD fragment's state change, on a scene change, and
   once more a frame later, because the fragment that minimises the chat belongs to the same
   transition and nothing says which of the two runs first.
-- **Keeping the window up** is the one place a chat function is called:
-  `ZO_GamepadChatSystem:StartVisibilityTimer`, whose whole body is
-  `g_expirationTime = GetFrameTimeSeconds() + 20`. It writes a number, creates no closure and
-  touches no screen. Pushed every ten seconds while the option is on, which is what stops the
-  client's own `Minimize` ever running; the message area and the background's alpha are plain
-  control writes that undo a minimise that already happened. Switching the option off calls
-  `RefreshVisibility`, whose whole body is `control:SetHidden(self:IsHidden())`, so the window
-  goes back where the client's own rules say it belongs rather than where this add-on guesses.
+- **Keeping the window up** calls:
+  - `ZO_GamepadChatSystem:StartVisibilityTimer`, whose whole body is
+    `g_expirationTime = GetFrameTimeSeconds() + 20`. It writes a number, creates no closure and
+    touches no screen. Pushed every ten seconds while the option is on, which is what stops the
+    client's own `Minimize` ever running;
+  - `ZO_GamepadChatSystem:Maximize`, on the HUD only and only when the chat reports itself
+    minimised (at login, or after a menu), so the input line, the state and everything that
+    listens to the state come up together. PBsChatAssistant calls the same method;
+  - `RefreshVisibility` when the option is switched off, whose whole body is
+    `control:SetHidden(self:IsHidden())`, so the window goes back where the client's own rules
+    say it belongs rather than where this add-on guesses.
+
+  In a menu, with the window wanted there, only the message area and the background's alpha are
+  written. The state the game keeps (`isMinimized`) is never written.
 
 The chat is where every message the player sends goes through the client's own code, and an
 add-on frame near that code is how private-function errors start — see FINDINGS.md.
@@ -189,9 +207,8 @@ Reset puts the element's own anchor back exactly as the client had it.
 ## What it does not touch
 
 - **The input line's text size** — see above.
-- **The input line's visibility** — the game hides its box and channel name while the chat is
-  minimised, and that is left alone: a permanently visible input line reads as though you were
-  typing.
+- **The state the game keeps for itself** — `isMinimized` and the rest are never written, only
+  changed by calling the game's own `Maximize()`.
 - **Whether the chat is shown on the HUD** — the game's setting under Settings > Social. The
   add-on can read it but `SetSetting` is private.
 - **The keyboard chat** on PC, which already has its own move, resize and text size.

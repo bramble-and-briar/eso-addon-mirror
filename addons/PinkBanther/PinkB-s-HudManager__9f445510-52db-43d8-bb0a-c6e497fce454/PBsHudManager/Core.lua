@@ -1,13 +1,15 @@
 local S = PBS_HUD_MANAGER_STRINGS
 
 PBS_HUD_MANAGER = {
-    name = "PBsHudManager", baseTitle = "PB’s HudManager", author = "PinkBanther", version = "1.2.0",
+    name = "PBsHudManager", baseTitle = "PB’s HudManager", author = "PinkBanther", version = "1.3.0",
     slotCount = 3, nameMaxChars = 24, confirmMs = 10000, reloadDelayMs = 600,
     -- `combat` is the option that hides parts of the HUD while the player is in combat. It is this
     -- add-on's own setting and is not part of any set: a set switches the other add-ons.
     defaults = { initialized = false, slots = {},
         combat = { enabled = false, quest = true, chat = true, minimap = true, alert = true, clock = true,
-            compass = true } },
+            compass = true, extra = true },
+        -- The names of the other add-ons' HUD parts the player chose to hide in combat.
+        hudParts = {} },
 }
 local A = PBS_HUD_MANAGER
 
@@ -253,6 +255,7 @@ function A:Normalize()
         end
     end
     sv.initialized = sv.initialized == true
+    self:NormalizeParts()
     if type(sv.combat) ~= "table" then sv.combat = {} end
     for key, default in pairs(self.defaults.combat) do
         if type(sv.combat[key]) ~= "boolean" then sv.combat[key] = default end

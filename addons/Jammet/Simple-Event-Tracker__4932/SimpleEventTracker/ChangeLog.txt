@@ -1,3 +1,7 @@
+Version 3.1.3
+- The manifest is now SimpleEventTracker.txt (PC-only addon), so it no longer loads under console-flow emulation.
+- The addon description now starts with the AI disclosure.
+
 Version 3.1.2
 - Entering an event no longer uses the pipe symbol. The prompt is now a small window with separate boxes for the name, days, hours and minutes left. It only opens when you ask for it (command, widget button or right-click menu).
 - One-line form: /sevt event Jubilee 5d 4h (the time goes last; d/h/m, "2 days", "12 hours").

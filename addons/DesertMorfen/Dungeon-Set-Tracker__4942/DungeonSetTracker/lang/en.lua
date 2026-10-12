@@ -10,6 +10,8 @@ DungeonSetTracker.L = {
     LEGEND_HAVE = "Collected",
     LEGEND_MISSING = "Missing",
     LEGEND_VETERAN_ONLY = "Veteran only",
+    LEGEND_PERFECTED = "Perfected",
+    HINT_KEEP_OPEN = "Hold Shift to keep this window open, then point at a piece to see it.",
 
     -- Chat
     CHAT_ENTER = "%s: %s pieces collected",
@@ -19,7 +21,6 @@ DungeonSetTracker.L = {
     CHAT_PANEL_OFF = "Dungeon panel turned off.",
     CHAT_HELP = "Commands: /dst - settings, /dst panel - dungeon panel on/off, /dst total - progress over all dungeons",
     CHAT_NO_SETTINGS = "The settings need the library LibAddonMenu-2.0.",
-    CHAT_FINDER_MISSING = "The Dungeon Finder could not be found, the set chart is not available.",
 
     -- Settings
     SETTINGS_INTRO = "Settings are saved per server (NA, EU, PTS).",
@@ -27,6 +28,10 @@ DungeonSetTracker.L = {
     SETTINGS_FINDER_DESC = "Group & Activity Finder > Specific Dungeons: hover a dungeon to see every piece of its sets. Keyboard and mouse interface only.",
     SETTINGS_FINDER_TOOLTIP = "Show set chart",
     SETTINGS_FINDER_TOOLTIP_TT = "While you hover a dungeon, a chart shows every piece of its sets: in color with a green frame if you have it, as a silhouette if you don't.",
+    SETTINGS_MAP_TOOLTIP = "Also on the world map",
+    SETTINGS_MAP_TOOLTIP_TT = "Hover a dungeon, trial or arena on the world map to see the same chart. The settings below apply to both.",
+    SETTINGS_MAP_ZONE = "Zone sets icon on the map",
+    SETTINGS_MAP_ZONE_TT = "On the map of an open zone, an icon in the top left corner shows the zone's sets when you point at it. Not on the maps of dungeons, trials, arenas and other places with their own sets.",
     SETTINGS_TIP_POSITION = "Position",
     SETTINGS_TIP_POSITION_TT = "Where the chart appears: at an edge of the screen, or next to the game's dungeon preview.",
     SETTINGS_POS_LEFT = "Left edge of the screen",

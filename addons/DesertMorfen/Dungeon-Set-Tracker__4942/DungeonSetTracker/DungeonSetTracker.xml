@@ -20,7 +20,7 @@
         </TopLevelControl>
 
         <!-- Set chart, styled like the game's Sets collection: set name, progress bar, one slot per piece -->
-        <Label name="DungeonSetTracker_ChartLabel" font="ZoFontWinH4" wrapMode="ELLIPSIS" maxLineCount="2" verticalAlignment="CENTER" virtual="true"/>
+        <Label name="DungeonSetTracker_ChartLabel" font="ZoFontWinH5" wrapMode="ELLIPSIS" maxLineCount="2" verticalAlignment="CENTER" virtual="true"/>
         <Control name="DungeonSetTracker_ChartCell" virtual="true">
             <Controls>
                 <Texture name="$(parent)Icon" layer="CONTROLS">
@@ -33,13 +33,21 @@
             </Controls>
         </Control>
 
-        <!-- Shown at a fixed place while a dungeon is hovered in the keyboard Group & Activity Finder -->
-        <TopLevelControl name="DungeonSetTrackerChart" hidden="true" tier="HIGH" clampedToScreen="true">
+        <!-- Icon on the map of an open zone; pointing at it shows the zone's sets (created and placed in Lua) -->
+        <Button name="DungeonSetTracker_ZoneButton" virtual="true" tier="HIGH" mouseEnabled="true">
+            <Textures normal="EsoUI/Art/Collections/collections_tabIcon_itemSets_up.dds"
+                      mouseOver="EsoUI/Art/Collections/collections_tabIcon_itemSets_over.dds"
+                      pressed="EsoUI/Art/Collections/collections_tabIcon_itemSets_down.dds"/>
+        </Button>
+
+        <!-- Shown at a fixed place while a dungeon is hovered in the keyboard Group & Activity Finder or on the map.
+             Takes the mouse, so the map's pins under it don't react while the mouse is on the chart. -->
+        <TopLevelControl name="DungeonSetTrackerChart" hidden="true" tier="HIGH" clampedToScreen="true" mouseEnabled="true">
             <Controls>
                 <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop"/>
                 <Label name="$(parent)Title" font="ZoFontWinH2" wrapMode="ELLIPSIS" maxLineCount="1" modifyTextType="UPPERCASE" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"/>
                 <Texture name="$(parent)Divider" inherits="ZO_HorizontalDivider"/>
-                <!-- Sets of the dungeon; scaled down as a whole when there are more than fit -->
+                <!-- Sets of the dungeon; taller for places with many sets -->
                 <Control name="$(parent)Content"/>
                 <!-- Legend: a piece in color "collected", as a silhouette "missing", the veteran icon when shown -->
                 <Control name="$(parent)Legend">
@@ -56,11 +64,18 @@
                         <Label name="$(parent)MissingText" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
                             <Anchor point="LEFT" relativeTo="$(parent)Missing" relativePoint="RIGHT" offsetX="6"/>
                         </Label>
-                        <Label name="$(parent)Veteran" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" hidden="true">
+                        <Control name="$(parent)Perfected" inherits="DungeonSetTracker_ChartCell" hidden="true">
                             <Anchor point="LEFT" relativeTo="$(parent)MissingText" relativePoint="RIGHT" offsetX="20"/>
+                        </Control>
+                        <Label name="$(parent)PerfectedText" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" hidden="true">
+                            <Anchor point="LEFT" relativeTo="$(parent)Perfected" relativePoint="RIGHT" offsetX="6"/>
                         </Label>
+                        <!-- anchored in Lua: after "perfected" when shown, otherwise after "missing" -->
+                        <Label name="$(parent)Veteran" font="ZoFontGameSmall" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" hidden="true"/>
                     </Controls>
                 </Control>
+                <!-- How to keep the chart open to point at its pieces -->
+                <Label name="$(parent)Hint" font="ZoFontGameSmall" wrapMode="ELLIPSIS" maxLineCount="2" verticalAlignment="CENTER" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_DISABLED"/>
             </Controls>
         </TopLevelControl>
     </Controls>

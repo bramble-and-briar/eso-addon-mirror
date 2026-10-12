@@ -1,5 +1,5 @@
 local CT = CorpseTracker
-local unpack = unpack or table.unpack
+local LAM = LibAddonMenu2
 
 -- Query actual slotted morphs on both bars; base skill is a fallback only.
 function CT.ReadSkillRange(family)
@@ -30,7 +30,6 @@ function CT.ReadSkillRange(family)
 end
 
 function CT.RegisterSettings()
-    local LAM = LibAddonMenu2
     if not LAM then return false end
     local function Set(key)
         return function(value)
@@ -62,10 +61,14 @@ function CT.RegisterSettings()
         end
         return option
     end
+    local languageChoices, languageValues = { CT.T("AUTOMATIC") }, { "auto" }
+    for i, code in ipairs(CT.languageCodes) do
+        languageChoices[#languageChoices + 1] = CT.languageNames[i]
+        languageValues[#languageValues + 1] = code
+    end
     local options = {
         { type = "dropdown", name = Label("LANGUAGE"), tooltip = Label("LANG_TIP"),
-            choices = { CT.T("AUTOMATIC"), unpack(CT.languageNames) },
-            choicesValues = { "auto", unpack(CT.languageCodes) },
+            choices = languageChoices, choicesValues = languageValues,
             getFunc = Get("language"), setFunc = function(value) CT.saved.language = value end,
             default = "auto", requiresReload = true, reference = "CorpseTrackerOption_language" },
         { type = "dropdown", name = Label("SOURCES"), tooltip = Label("SOURCES_TIP"),

@@ -25,7 +25,7 @@ function VB.InitMenu()
         name = VB.name,
         displayName = VB.name,
         author = "|c37FAC6Teniente.R|r",
-        version = "1.0.0",
+        version = VB.version,
         registerForRefresh = true,
         registerForDefaults = true,
     }

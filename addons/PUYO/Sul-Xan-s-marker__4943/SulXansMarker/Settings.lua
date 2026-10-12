@@ -70,6 +70,22 @@ function PSM.CreateSettings()
     },
     {
       type = "checkbox",
+      name = "位置が全く取れない時は表示しない",
+      tooltip = "OFF(標準): 位置が取れない時は、画面上に ↓ と残り秒数を表示します。\nON: 何も表示しません。",
+      getFunc = function() return sv.hideWhenNoPos end,
+      setFunc = function(v) sv.hideWhenNoPos = v end,
+      default = df.hideWhenNoPos,
+    },
+    {
+      type = "checkbox",
+      name = "不確かな時、他の候補の矢印も表示",
+      tooltip = "OFF(標準): 矢印は常に1つだけ表示します。\nON: 種類の違う敵が同時に倒れた時、他の敵の位置にもオレンジの矢印を追加で表示します。",
+      getFunc = function() return sv.showCandidates end,
+      setFunc = function(v) sv.showCandidates = v end,
+      default = df.showCandidates,
+    },
+    {
+      type = "checkbox",
       name = "アイコンを上下に動かす",
       getFunc = function() return sv.bob end,
       setFunc = function(v) sv.bob = v end,

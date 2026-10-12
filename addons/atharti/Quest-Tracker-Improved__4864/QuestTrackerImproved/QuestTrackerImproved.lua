@@ -49,8 +49,47 @@ local defaultSV = {
 	hintDescSize = 15,
 	hintDescStyle = "soft-shadow-thin",
 	hintDescColor = { r = 0, g = 0.7607843280, b = 0.7215686440, a = 1 },
+	
+	----
+	
+	dynamicEventsHeaderFont = "$(ANTIQUE_FONT)",
+	dynamicEventsHeaderSize = 18,
+	dynamicEventsHeaderStyle = "soft-shadow-thin",
+	dynamicEventsHeaderColor = { r = 1, g = 0.8392156959, b = 0.3294117749, a = 1 },
 
-	width = 252,
+	dynamicEventsSubLabelFont = "$(ANTIQUE_FONT)",
+	dynamicEventsSubLabelSize = 16,
+	dynamicEventsSubLabelStyle = "soft-shadow-thin",
+	dynamicEventsSubLabelColor = { r = 1, g = 1, b = 1, a = 1 },
+	
+	----
+	
+	houseHeaderFont = "$(ANTIQUE_FONT)",
+	houseHeaderSize = 18,
+	houseHeaderStyle = "soft-shadow-thin",
+	houseHeaderColor = { r = 0.7725490332, g = 0.7607843280, b = 0.6196078658, a = 1 },
+
+	houseSubLabelFont = "$(BOLD_FONT)",
+	houseSubLabelSize = 16,
+	houseSubLabelStyle = "soft-shadow-thin",
+	houseSubLabelColor = { r = 1, g = 1, b = 1, a = 1 },
+
+	housePopulationFont = "$(BOLD_FONT)",
+	housePopulationSize = 14,
+	housePopulationStyle = "soft-shadow-thin",
+	housePopulationColor = { r = 1, g = 1, b = 1, a = 1 },
+
+	houseTagsFont = "$(ANTIQUE_FONT)",
+	houseTagsSize = 16,
+	houseTagsStyle = "soft-shadow-thin",
+	houseTagsColor = { r = 0.5450980663, g = 0.5490196347, b = 0.5215686560, a = 1 },
+
+	houseWidth = 350,
+	
+	dynamicEventsWidth = 240,
+	dynamicEventsIconSize = 32,
+
+	width = 240,
 	iconSize = 32,
 	
 	hidePursuits = false,
@@ -331,6 +370,37 @@ function QTI.DetachQuestTracker()
 	end
 end
 
+function QTI.AnchorSharedTrackersUnderQuest()
+	local questPanel = FOCUSED_QUEST_TRACKER:GetTrackerControl()
+
+	local function Anchor()
+		ZO_HUDTrackers:ClearAnchors()
+
+		if #FOCUSED_QUEST_TRACKER.tracked > 0 then
+			ZO_HUDTrackers:SetAnchor(TOPRIGHT, questPanel, BOTTOMRIGHT, 0, 10)
+		else
+			ZO_HUDTrackers:SetAnchor(TOPRIGHT, questPanel, TOPLEFT, 0, 0)
+		end
+	end
+
+	Anchor()
+
+	ZO_PostHook(HUD_TRACKER_MANAGER, "RefreshLayout", function()
+		Anchor()
+		QTI.ZeroFirstTrackerPadding()
+	end)
+end
+
+function QTI.ZeroFirstTrackerPadding()
+	for _, trackerData in ipairs(HUD_TRACKER_MANAGER.trackers) do
+		local control = trackerData.control
+		if not control:IsHidden() and control:GetParent() == HUD_TRACKER_MANAGER.scrollChild then
+			control:SetAnchor(TOPRIGHT, nil, TOPRIGHT, -2, 0)
+			return
+		end
+	end
+end
+
 function QTI.ResizePanel()
 	ZO_FocusedQuestTrackerPanel:SetWidth(QTI.SV.width)
 end
@@ -358,6 +428,9 @@ function QTI.OnAddOnLoaded(_, addOnName)
 	QTI.ResizePanel()
 	QTI.RefreshHeaderIcons()
 	QTI.ApplyTreeIndent()
+	
+	QTI.HookDynamicEventsTracker()
+	QTI.HookHouseTracker()
 	
 	if QTI.SV.hidePursuits then
 		TIMED_ACTIVITY_TRACKER:GetFragment():SetHiddenForReason("QTI", true)

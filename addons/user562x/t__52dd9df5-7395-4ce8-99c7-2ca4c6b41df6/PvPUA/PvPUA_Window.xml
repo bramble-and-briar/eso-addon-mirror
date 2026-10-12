@@ -1,0 +1,230 @@
+<GuiXml>
+    <Controls>
+        <Control name="PvPUA_WindowCategoryRow" virtual="true">
+            <Dimensions x="353" y="58" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_GamepadWhiteOutlineThin">
+                    <AnchorFill />
+                </Backdrop>
+                <Texture name="$(parent)RowIcon">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="12" offsetY="0" />
+                    <Dimensions x="38" y="38" />
+                </Texture>
+                <Label name="$(parent)Label" font="ZoFontGamepad27" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="62" offsetY="0" />
+                    <Dimensions x="279" y="58" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="PvPUA_WindowRow" virtual="true">
+            <Dimensions x="922" y="62" />
+            <Controls>
+                <Backdrop name="$(parent)Bg" inherits="ZO_GamepadWhiteOutlineThin">
+                    <AnchorFill />
+                </Backdrop>
+                <Texture name="$(parent)RowIcon" hidden="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="14" offsetY="0" />
+                    <Dimensions x="38" y="38" />
+                </Texture>
+                <Label name="$(parent)Label" font="ZoFontGamepad27" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="20" offsetY="0" />
+                    <Dimensions x="470" y="62" />
+                </Label>
+                <Texture name="$(parent)Chevron" textureFile="EsoUI/Art/Buttons/Gamepad/gp_menu_rightArrow.dds" hidden="true">
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-18" offsetY="0" />
+                    <Dimensions x="32" y="32" />
+                </Texture>
+                <Control name="$(parent)Value">
+                    <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-16" offsetY="0" />
+                    <Dimensions x="400" y="62" />
+                    <Controls>
+                        <Texture name="$(parent)Left" textureFile="EsoUI/Art/Buttons/Gamepad/gp_spinnerLR.dds" hidden="true">
+                            <TextureCoords left="1" right="0" top="0" bottom="1" />
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                            <Dimensions x="20" y="40" />
+                        </Texture>
+                        <Texture name="$(parent)Right" textureFile="EsoUI/Art/Buttons/Gamepad/gp_spinnerLR.dds" hidden="true">
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="0" offsetY="0" />
+                            <Dimensions x="20" y="40" />
+                        </Texture>
+                        <Label name="$(parent)Text" font="ZoFontGamepad27" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER" horizontalAlignment="CENTER" hidden="true">
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="30" offsetY="0" />
+                            <Dimensions x="340" y="62" />
+                        </Label>
+                        <Backdrop name="$(parent)Track" hidden="true">
+                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="36" offsetY="0" />
+                            <Dimensions x="240" y="12" />
+                            <Controls>
+                                <Backdrop name="$(parent)Fill">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                                    <Dimensions x="1" y="12" />
+                                </Backdrop>
+                            </Controls>
+                        </Backdrop>
+                        <Label name="$(parent)Number" font="ZoFontGamepad27" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="CENTER" horizontalAlignment="RIGHT" hidden="true">
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-28" offsetY="0" />
+                            <Dimensions x="86" y="62" />
+                        </Label>
+                        <Backdrop name="$(parent)Swatch" inherits="ZO_GamepadWhiteOutlineThin" hidden="true">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+                            <Dimensions x="96" y="36" />
+                        </Backdrop>
+                        <Texture name="$(parent)Preview" hidden="true">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="0" offsetY="0" />
+                            <Dimensions x="48" y="48" />
+                        </Texture>
+                    </Controls>
+                </Control>
+            </Controls>
+        </Control>
+
+        <TopLevelControl name="PvPUA_WindowRoot" hidden="true" mouseEnabled="false" clampedToScreen="true" tier="LOW" layer="BACKGROUND">
+            <AnchorFill />
+            <Controls>
+                <Control name="$(parent)Frame">
+                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="34" />
+                    <Dimensions x="1792" y="876" />
+                    <Controls>
+                        <Backdrop name="$(parent)Header" inherits="ZO_GamepadWhiteOutlineThick">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="0" />
+                            <Dimensions x="1792" y="98" />
+                            <Controls>
+                                <Label name="$(parent)Title" font="ZoFontGamepad42" color="FFFFFF" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)" relativePoint="TOP" offsetX="0" offsetY="12" />
+                                </Label>
+                                <Label name="$(parent)Version" font="ZoFontGamepad22" color="BFC7D6" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)Title" relativePoint="BOTTOM" offsetX="0" offsetY="2" />
+                                </Label>
+                                <Label name="$(parent)AuthorTitle" font="ZoFontGamepad22" color="BFC7D6" text="Author" horizontalAlignment="RIGHT">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-24" offsetY="18" />
+                                </Label>
+                                <Label name="$(parent)Author" font="ZoFontGamepad27" color="FFFFFF" horizontalAlignment="RIGHT">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)AuthorTitle" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="4" />
+                                </Label>
+                            </Controls>
+                        </Backdrop>
+
+                        <Backdrop name="$(parent)StripDC">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="10" />
+                            <Dimensions x="597" y="4" />
+                        </Backdrop>
+                        <Backdrop name="$(parent)StripAD">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripDC" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
+                            <Dimensions x="597" y="4" />
+                        </Backdrop>
+                        <Backdrop name="$(parent)StripEP">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)StripAD" relativePoint="TOPRIGHT" offsetX="0" offsetY="0" />
+                            <Dimensions x="598" y="4" />
+                        </Backdrop>
+
+                        <Backdrop name="$(parent)Categories" inherits="ZO_GamepadWhiteOutlineThick">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="0" offsetY="124" />
+                            <Dimensions x="385" y="760" />
+                            <Controls>
+                                <Label name="$(parent)Title" font="ZoFontGamepad27" color="FFFFFF" text="Categories" horizontalAlignment="CENTER">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
+                                    <Dimensions x="337" />
+                                </Label>
+                                <Control name="$(parent)List">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="-8" offsetY="12" />
+                                    <Dimensions x="353" y="680" />
+                                </Control>
+                                <Texture name="$(parent)UpArrow" textureFile="EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds" hidden="true">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-16" offsetY="14" />
+                                    <Dimensions x="28" y="28" />
+                                </Texture>
+                                <Texture name="$(parent)DownArrow" textureFile="EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds" hidden="true">
+                                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-16" offsetY="-8" />
+                                    <Dimensions x="28" y="28" />
+                                </Texture>
+                            </Controls>
+                        </Backdrop>
+
+                        <Backdrop name="$(parent)Settings" inherits="ZO_GamepadWhiteOutlineThick">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Categories" relativePoint="TOPRIGHT" offsetX="26" offsetY="0" />
+                            <Dimensions x="970" y="760" />
+                            <Controls>
+                                <Label name="$(parent)Title" font="ZoFontGamepad27" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1" horizontalAlignment="CENTER">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="64" offsetY="16" />
+                                    <Dimensions x="842" />
+                                </Label>
+                                <Control name="$(parent)List">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="-40" offsetY="12" />
+                                    <Dimensions x="922" y="680" />
+                                </Control>
+                                <Texture name="$(parent)UpArrow" textureFile="EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds" hidden="true">
+                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-16" offsetY="14" />
+                                    <Dimensions x="28" y="28" />
+                                </Texture>
+                                <Texture name="$(parent)DownArrow" textureFile="EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds" hidden="true">
+                                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-16" offsetY="-8" />
+                                    <Dimensions x="28" y="28" />
+                                </Texture>
+                            </Controls>
+                        </Backdrop>
+
+                        <Backdrop name="$(parent)Details" inherits="ZO_GamepadWhiteOutlineThick">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Settings" relativePoint="TOPRIGHT" offsetX="26" offsetY="0" />
+                            <Dimensions x="385" y="760" />
+                            <Controls>
+                                <Label name="$(parent)Title" font="ZoFontGamepad27" color="FFFFFF" text="Details" horizontalAlignment="CENTER">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="24" offsetY="16" />
+                                    <Dimensions x="337" />
+                                </Label>
+                                <Label name="$(parent)Name" font="ZoFontGamepad34" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="2" verticalAlignment="TOP" horizontalAlignment="CENTER">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="22" />
+                                    <Dimensions x="337" />
+                                </Label>
+                                <Label name="$(parent)Number" font="ZoFontGamepad34" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="TOP" horizontalAlignment="LEFT" hidden="true">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="22" />
+                                </Label>
+                                <Texture name="$(parent)Preview" hidden="true">
+                                    <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
+                                    <Dimensions x="128" y="128" />
+                                </Texture>
+                                <Backdrop name="$(parent)Swatch" inherits="ZO_GamepadWhiteOutlineThin" hidden="true">
+                                    <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
+                                    <Dimensions x="160" y="64" />
+                                </Backdrop>
+                                <Control name="$(parent)Bar" hidden="true">
+                                    <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
+                                    <Dimensions x="337" y="40" />
+                                    <Controls>
+                                        <Texture name="$(parent)Icon">
+                                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="0" offsetY="0" />
+                                            <Dimensions x="40" y="40" />
+                                        </Texture>
+                                        <Backdrop name="$(parent)Bg">
+                                            <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="6" offsetY="0" />
+                                            <Dimensions x="291" y="26" />
+                                        </Backdrop>
+                                        <StatusBar name="$(parent)Fill">
+                                            <Anchor point="TOPLEFT" relativeTo="$(parent)Bg" relativePoint="TOPLEFT" offsetX="1" offsetY="1" />
+                                            <Dimensions x="289" y="24" />
+                                        </StatusBar>
+                                        <Label name="$(parent)Left" verticalAlignment="CENTER" horizontalAlignment="LEFT">
+                                            <Anchor point="LEFT" relativeTo="$(parent)Bg" relativePoint="LEFT" offsetX="6" offsetY="0" />
+                                            <Dimensions x="150" y="26" />
+                                        </Label>
+                                        <Label name="$(parent)Right" verticalAlignment="CENTER" horizontalAlignment="RIGHT">
+                                            <Anchor point="RIGHT" relativeTo="$(parent)Bg" relativePoint="RIGHT" offsetX="-6" offsetY="0" />
+                                            <Dimensions x="200" y="26" />
+                                        </Label>
+                                    </Controls>
+                                </Control>
+                                <Label name="$(parent)Sample" font="ZoFontGamepad34" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1" verticalAlignment="TOP" horizontalAlignment="CENTER" hidden="true">
+                                    <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
+                                </Label>
+                                <Label name="$(parent)Body" font="ZoFontGamepad25" color="D9E0EB" wrapMode="WORD" verticalAlignment="TOP" horizontalAlignment="CENTER">
+                                    <Anchor point="TOP" relativeTo="$(parent)Name" relativePoint="BOTTOM" offsetX="0" offsetY="18" />
+                                    <Dimensions x="337" />
+                                </Label>
+                            </Controls>
+                        </Backdrop>
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

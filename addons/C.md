@@ -104,7 +104,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ChromaConfig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/otac0n/ChromaConfig__3361) | otac0n | PC / Mac | 1.1 |
 | [Chronic Collector](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/Chronic-Collector__2178) | Kyoma | PC / Mac | 1.2 |
 | [Chronicles of the Universe Guildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Standdarddeviations/Chronicles-of-the-Universe-Guildhall__3463) | Standdarddeviations | PC / Mac | 1.12 |
-| [Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Chronos---Clock__3325) | Niwasaka | PC / Mac | 1.3.2 |
+| [Chronos - Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Chronos---Clock__3325) | Niwasaka | PC / Mac | 1.4.0 |
 | [Cinematic Dialogue - Immersive Interactions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YFNatey/Cinematic-Dialogue---Immersive-Interactions__86e3ebb8-3678-4256-b065-83832daa4159) | YFNatey | Console | — |
 | [Circonians BuffTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/circonian/Circonians-BuffTracker__1221) | circonian | PC / Mac | 1.8 |
 | [Circonians EmoteIt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uladz/Circonians-EmoteIt__1011) | uladz | PC / Mac | 0.9 |
@@ -226,7 +226,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CoordsAndHeading Patch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-Patch__2875) | Jord56 | PC / Mac | 1.0.1 |
 | [CoordsAndHeading Patch 1.0.2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jord56/CoordsAndHeading-Patch-1.0.2__2876) | Jord56 | PC / Mac | 1.0.2 |
 | [Coral Aerie Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/branddi/Coral-Aerie-Helper__3554) | branddi | PC / Mac | 1.0.2 |
-| [CorpseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mettaleggroll/CorpseTracker__4941) | mettaleggroll | PC / Mac | 0.3.4 |
+| [CorpseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mettaleggroll/CorpseTracker__4941) | mettaleggroll | PC / Mac | 0.3.6 |
 | [Cosmetic Cupboard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AnotherORC/Cosmetic-Cupboard__3329) | AnotherORC | PC / Mac | v3.4.1 |
 | [Cost Calculator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheBunnynator1001/Cost-Calculator__2530) | TheBunnynator1001 | PC / Mac | 1.0.0 |
 | [Countess Quester](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aarfie/Countess-Quester__2379) | Aarfie | PC / Mac | 1.3 |
@@ -246,6 +246,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Craft Bag Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/silvereyes/Craft-Bag-Extended__1419) | silvereyes | PC / Mac | 3.0.13 |
 | [Craft Bag Keybind](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/autocatalyst/Craft-Bag-Keybind__2474) | autocatalyst | PC / Mac | 1.0.5 |
 | [Craft Bag Monitor (CBM)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fonkin/Craft-Bag-Monitor-CBM__2101) | Fonkin | PC / Mac | 1.21 |
+| [Craft Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Craft-Master__05de6273-f39c-4bd4-a38a-ee75245118af) | TheGreyWolf98 | Console | — |
 | [Craft Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alifie/Craft-Search__4935) | Alifie | PC / Mac | 0.1 |
 | [CraftAutoLoot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/CraftAutoLoot__972) | Sharlikran | PC / Mac | 1.23 |
 | [CraftAutoLoot DE-Version \[Dragonhold Update\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MoonshinePK/CraftAutoLoot-DE-Version-Dragonhold-Update__1435) | MoonshinePK | PC / Mac | 2.1 |

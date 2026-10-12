@@ -1,6 +1,6 @@
 HermesMediaRes = {
 
-    Ccolor1 = "|c008000", --green
+    Ccolor1 = "|c008000",
 
     IconCheck = "|t15:15:/esoui/art/miscellaneous/check.dds|t",
 

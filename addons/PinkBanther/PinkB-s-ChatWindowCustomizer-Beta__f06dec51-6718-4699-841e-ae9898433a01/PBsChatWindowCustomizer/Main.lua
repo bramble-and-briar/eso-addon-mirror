@@ -36,13 +36,16 @@
 --                    players who want to read chat with a menu open.
 --   staying up       the chat minimises itself 20 seconds after the last message. The expiry
 --                    behind that is a file-local only StartVisibilityTimer writes, so keeping
---                    it in the future stops the minimise; the message area and the
---                    background's alpha put right what an earlier minimise did.
+--                    it in the future stops the minimise; on the HUD the client's own Maximize
+--                    brings the window up again where one has already happened. The client's
+--                    isMinimized is never written -- see "Keeping the window on screen".
 --
--- All of it is writes to controls and fields, with two exceptions -- StartVisibilityTimer and
--- RefreshVisibility, each of which is one assignment or one SetHidden and nothing else. Nothing in the chat is hooked or wrapped, and
--- no chat code is called: the chat is the one piece of UI where every message the player sends
--- goes through the client's own closures, and an add-on frame anywhere near those is how a
+-- All of it is writes to controls and fields, with three exceptions -- StartVisibilityTimer and
+-- RefreshVisibility, each of which is one assignment or one SetHidden and nothing else, and
+-- Maximize, which PBsChatAssistant already calls from add-on code and which is only called on the
+-- HUD, when the chat reports itself minimised. Nothing in the chat is hooked or wrapped, and
+-- no other chat code is called: the chat is the one piece of UI where every message the player
+-- sends goes through the client's own closures, and an add-on frame anywhere near those is how a
 -- private-function error is born. See FINDINGS.md, "Why nothing is hooked".
 --
 -- Nothing is written while the settings still equal the game's own. The window's place and size
@@ -922,10 +925,32 @@ end
 -- the one chat call this add-on makes: it writes a number, creates no closure and touches no
 -- screen. Nothing else in the client reads or clears it.
 --
--- Two writes put right what a minimise that already happened did -- the message area is shown
--- again and the background's alpha restored. The input line is deliberately left alone: the game
--- hides its box and channel name while minimised, and a permanently visible input line reads as
--- though the player were typing.
+-- What is left of a minimise that already happened -- at login, where the game ends
+-- LoadChatFromSettings with Minimize(), or in a menu, where MINIMIZE_CHAT_FRAGMENT minimises it --
+-- is put right differently on the HUD and off it:
+--
+--   on the HUD   the client's own ZO_GamepadChatSystem:Maximize() runs. It shows the message area,
+--                the input line's frame and channel label, fades the background and the entry
+--                in, clears isMinimized and fires "GamepadChatSystemStateChanged" -- which is
+--                what the HUD tracker column listens to when it decides whether to stack above
+--                the chat window or above the little chat bubble. Everything that reads the
+--                state afterwards finds it true to what is on screen.
+--   in a menu    only the controls: the message area shown and the background's alpha put back,
+--                and only when the player asked for the window in menus. The client's idea of
+--                "minimised" is left as it is.
+--
+-- isMinimized is NEVER written by this add-on. 1.1.0 - 1.3.1 set it to false after re-showing
+-- the message area "so the client agrees with what is on screen", and that is what broke
+-- PBsChatAssistant's Enter key (reported on a PS5): the client had minimised the chat when a menu
+-- opened -- hiding the input frame and the channel label -- and the flag was then forced back to
+-- false, so on the way out MINIMIZE_CHAT_FRAGMENT (which maximises only `if self.wasChatMaximized
+-- and chatSystem:IsMinimized()`) did nothing, and PBsChatAssistant (which maximises only `if
+-- chat.isMinimized`, and otherwise merely fades the container in) did nothing either. The input
+-- frame stayed hidden: a box with focus and nothing to see. The same lie left the tracker column
+-- anchored to the bubble, because the state callback had last fired with "minimised".
+--
+-- The input line is therefore part of the window now, as it is in the game: visible while the
+-- window is up, hidden when it is minimised.
 --
 -- Switching the option off pushes the expiry one last time instead of minimising the window
 -- ourselves, so the game's own timer takes it from there and minimises it as it always would.
@@ -1006,13 +1031,7 @@ function addon:ApplyVisibility()
 		return true
 	end
 
-	local windowContainer, background = self:VisibilityControls(chat)
-
 	if not self.visibilityWritten then
-		self.originalVisibility = {
-			hidden = windowContainer and windowContainer:IsHidden(),
-			alpha = background and type(background.GetAlpha) == "function" and background:GetAlpha() or nil,
-		}
 		if EVENT_MANAGER and type(EVENT_MANAGER.RegisterForUpdate) == "function" then
 			EVENT_MANAGER:RegisterForUpdate(self.name .. "Visible", VISIBILITY_PUSH_MS, function()
 				addon:KeepVisible()
@@ -1023,6 +1042,13 @@ function addon:ApplyVisibility()
 
 	self:KeepVisible()
 	return true
+end
+
+-- Whether the HUD is on screen, by the rule the client uses for the chat window itself
+-- (ZO_GamepadChatSystem:IsHidden): HUD_FRAGMENT showing, which includes the frame it is coming in.
+function addon:HudOnScreen()
+	local fragment = HUD_FRAGMENT
+	return type(fragment) == "table" and type(fragment.IsShowing) == "function" and fragment:IsShowing() == true
 end
 
 -- Pushes the expiry and puts right anything a minimise got in first with. Runs every ten
@@ -1042,6 +1068,21 @@ function addon:KeepVisible()
 		self:Write("visibility", chat.control.SetHidden, chat.control, false)
 	end
 
+	if self:HudOnScreen() then
+		-- The client's own way up, so the input line, the background, the state and everything
+		-- listening to the state come with it.
+		if chat.isMinimized == true and type(chat.Maximize) == "function" then
+			self:Write("maximize", chat.Maximize, chat)
+		end
+		return
+	end
+
+	-- A menu. Nothing is written here unless the window is wanted in menus, and then only the
+	-- controls -- the state is the client's, and it is what puts everything back on the way out.
+	if not self:ShowInMenus() then
+		return
+	end
+
 	local windowContainer, background = self:VisibilityControls(chat)
 	if windowContainer and windowContainer:IsHidden() then
 		self:Write("message area", windowContainer.SetHidden, windowContainer, false)
@@ -1058,11 +1099,6 @@ function addon:KeepVisible()
 			self:Write("background", background.SetAlpha, background, 1)
 		end
 	end
-
-	-- The client's own idea of the state, so its next Minimize / Maximize agrees with what is on
-	-- screen: MINIMIZE_CHAT_FRAGMENT reads it when a menu opens and maximises again on the way
-	-- out, and the new-message notification is only for a window that cannot be seen.
-	chat.isMinimized = false
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -1597,6 +1633,13 @@ function addon:PrintStatus()
 			windowContainer and tostring(not windowContainer:IsHidden()) or "?",
 			ok and string.format("%.2f", alpha) or "?")
 		Line("  chat on HUD (the game's own setting)=%s", tostring(chat.hudEnabled))
+		local textEntry = chat.textEntry
+		if textEntry and textEntry.editBg and textEntry.channelLabel then
+			Line("  input line: frame=%s label=%s open=%s  (hudOnScreen=%s)",
+				tostring(not textEntry.editBg:IsHidden()), tostring(not textEntry.channelLabel:IsHidden()),
+				tostring(type(textEntry.IsOpen) == "function" and textEntry:IsOpen() or textEntry.open),
+				tostring(self:HudOnScreen()))
+		end
 	end
 
 	Line("  text: size=%d default=%d setting=%s differs=%s written=%s", self:FontSize(), self:DefaultFontSize(),

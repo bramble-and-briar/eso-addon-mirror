@@ -98,7 +98,7 @@ function SlotEditor:Initialize(window, adapter)
     pickIcon:SetHandler("OnClicked", function() self:PickIcon() end)
     local resetIcon = details:GetNamedChild("ResetIcon")
     resetIcon:SetText(L.SLOT_RESET_ICON)
-    resetIcon:SetHandler("OnClicked", function() self:Change(function(item) item.icon = nil end) end)
+    resetIcon:SetHandler("OnClicked", function() self:Change(function(item) item.icon = nil end, "look") end)
 
     details:GetNamedChild("ColorCaption"):SetText(L.SLOT_COLOR)
     local swatch = details:GetNamedChild("ColorSwatch")
@@ -121,7 +121,7 @@ function SlotEditor:Initialize(window, adapter)
     local tint = details:GetNamedChild("Tint")
     ZO_CheckButton_SetLabelText(tint, L.SLOT_TINT)
     ZO_CheckButton_SetToggleFunction(tint, function(_, checked)
-        self:Change(function(item) item.tint = checked end)
+        self:Change(function(item) item.tint = checked end, "look")
     end)
     self.tintCheck = tint
 
@@ -363,10 +363,17 @@ function SlotEditor:RefreshDetails()
 end
 
 -- Изменить выбранный элемент и обновить всё, что от него зависит
-function SlotEditor:Change(mutator)
+-- kind: "look" — изменили значок или цвет (запоминаем для места),
+--       "place" — назначили другое место (берём его сохранённый вид)
+function SlotEditor:Change(mutator, kind)
     local item = self:GetSelected()
     if not item then return end
     mutator(item)
+    if kind == "look" then
+        Data:SavePlaceStyleFrom(item)
+    elseif kind == "place" then
+        Data:ApplyPlaceStyle(item)
+    end
     self.adapter.OnChanged(item)
     ZO_ScrollList_RefreshVisible(self.list)
     self:RefreshDetails()
@@ -382,7 +389,7 @@ function SlotEditor:PickPlace()
     if not self:GetSelected() then return end
     QTM.IconPicker:Close()
     QTM.PlacePicker:Open(function(nodeIndex)
-        self:Change(function(item) item.nodeIndex = nodeIndex end)
+        self:Change(function(item) item.nodeIndex = nodeIndex end, "place")
     end)
 end
 
@@ -391,7 +398,7 @@ function SlotEditor:PickIcon()
     if not item then return end
     QTM.PlacePicker:Close()
     QTM.IconPicker:Open({ color = item.color, tint = item.tint }, function(path)
-        self:Change(function(target) target.icon = path end)
+        self:Change(function(target) target.icon = path end, "look")
     end)
 end
 
@@ -409,7 +416,7 @@ function SlotEditor:PickColor()
     if not item then return end
     local c = item.color or Style.DEFAULT_COLOR
     SYSTEMS:GetObject("colorPicker"):Show(function(r, g, b)
-        self:Change(function(target) target.color = { r = r, g = g, b = b } end)
+        self:Change(function(target) target.color = { r = r, g = g, b = b } end, "look")
     end, c.r, c.g, c.b)
 end
 
@@ -425,7 +432,7 @@ function SlotEditor:CreatePalette(container)
         swatch:SetHandler("OnMouseUp", function(c, button, upInside)
             if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
                 PlaySound(SOUNDS.DEFAULT_CLICK)
-                self:Change(function(item) item.color = Style.CopyColor(c.color) end)
+                self:Change(function(item) item.color = Style.CopyColor(c.color) end, "look")
             end
         end)
         self.swatches[index] = swatch

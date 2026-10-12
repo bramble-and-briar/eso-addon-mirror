@@ -1,6 +1,6 @@
 local Chronos = _G['Chronos']
 
-local ChronosClockFragment = ZO_SimpleSceneFragment:New(ChronosClock)
+local ChronosClockFragment = ZO_HUDFadeSceneFragment:New(ChronosClock)
 local LMP = LibMediaProvider
 LMP:Register("background", "ESO Status", "EsoUI/art/performance/statusmetermunge.dds")
 
@@ -30,7 +30,7 @@ end
 function Chronos:UpdateClockStyle()
     local font = LMP:Fetch("font", self.db.clockTextFont)
     local fontStr = string.format("%s|%d|%s", font, self.db.clockFontSize, self.db.clockFontOutline)
-    local timeZonefontStr = string.format("%s|%d|%s", font, math.max(self.db.clockFontSize - self.db.clockUTCDelta, 4), self.db.clockFontOutline)
+    local timeZonefontStr = string.format("%s|%d|%s", font, self.db.clockUTCFontSize, self.db.clockFontOutline)
     local texture = LMP:Fetch("background", self.db.clockBackground)
 
     if self.db.showClockBG == true then
@@ -53,11 +53,11 @@ function Chronos:UpdateClockStyle()
     ChronosClockText:ClearAnchors()
     if self.db.showClockUTC then
         ChronosClockTimeZoneText:SetFont(timeZonefontStr)
-        local r, g, b = self:ConvHexToRGB(self.db.clockUTCColor)
-        ChronosClockTimeZoneText:SetColor(r, g, b, 1)
+        local ur, ug, ub = self:ConvHexToRGB(self.db.clockUTCColor)
+        ChronosClockTimeZoneText:SetColor(ur, ug, ub, 1)
 
         kaese, nacho = ChronosClockTimeZoneText:GetTextDimensions()
-        ChronosClockText:SetAnchor(CENTER, ChronosClock, CENTER, 0, -8)
+        ChronosClockText:SetAnchor(CENTER, ChronosClock, CENTER, 0, -nacho / 2)
     else
         ChronosClockText:SetAnchor(CENTER, ChronosClock, CENTER, 0, 0)
     end
@@ -65,19 +65,25 @@ function Chronos:UpdateClockStyle()
     ChronosClock:SetDimensions(math.max(width, kaese) + 40, height + nacho + 18)
 end
 
-function Chronos:UpdateAnchors(panelOpen)
-    panelOpen = panelOpen or false
+function Chronos:SetClockPreview(previewOpen)
+    self.clockPreview = previewOpen
+    self:UpdateAnchors()
+end
 
+function Chronos:UpdateAnchors()
     ChronosClock:ClearAnchors()
-    if panelOpen then
+    if self.clockPreview then
         ChronosClock:SetAnchor(LEFT, LAMAddonSettingsWindow, RIGHT, 50, 0)
-    elseif self.db.clockOffset == nil then
-        ChronosClock:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, 0, 0)
+        ChronosClock:SetHidden(not self.db.showClock)
     else
-        ChronosClock:SetAnchor(CENTER, GuiRoot, TOPLEFT, self.db.clockOffset.x, self.db.clockOffset.y)
+        if self.db.clockOffset == nil then
+            ChronosClock:SetAnchor(BOTTOMRIGHT, GuiRoot, BOTTOMRIGHT, 0, 0)
+        else
+            ChronosClock:SetAnchor(CENTER, GuiRoot, TOPLEFT, self.db.clockOffset.x, self.db.clockOffset.y)
+        end
+        ChronosClock:SetHidden(not ChronosClockFragment:IsShowing())
     end
-    ChronosClock:SetMovable(not panelOpen)
-    ChronosClock:SetHidden(not self.db.showClock)
+    ChronosClock:SetMovable(not self.clockPreview)
 end
 
 function Chronos:InitClock()
@@ -93,16 +99,22 @@ function Chronos:InitClock()
             self:UpdateTime()
         end)
 
-        self:UpdateAnchors()
-        self:UpdateClockStyle()
         self:UpdateTimeZone()
         self:UpdateTime()
+        self:UpdateClockStyle()
 
         zo_callLater(function()
             Chronos:UpdateClockStyle()
         end, 500)
-    else
-        ChronosClock:SetHidden(true)
+    end
+
+    self:UpdateAnchors()
+end
+
+function Chronos:MigrateUTCFontSize()
+    if self.db.clockUTCDelta ~= nil then
+        self.db.clockUTCFontSize = math.max(self.db.clockFontSize - self.db.clockUTCDelta, 6)
+        self.db.clockUTCDelta = nil
     end
 end
 

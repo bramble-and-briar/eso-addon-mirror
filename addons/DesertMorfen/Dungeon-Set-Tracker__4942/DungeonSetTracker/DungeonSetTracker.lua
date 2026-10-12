@@ -1,11 +1,11 @@
--- DungeonSetTracker: while you hover a dungeon in the Dungeon Finder, shows which pieces of its sets you have
--- collected. Also an optional HUD panel inside dungeons and optional chat messages. It only reads the game's own
--- set collection data and displays it; it never acts for you.
+-- DungeonSetTracker: while you hover a dungeon in the Dungeon Finder, or a dungeon, trial or arena on the world map,
+-- shows which pieces of its sets you have collected; on the map of an open zone an icon shows the zone's sets. Also an optional HUD panel inside dungeons and optional chat
+-- messages. It only reads the game's own set collection data and displays it; it never acts for you.
 
 DungeonSetTracker = DungeonSetTracker or {}
 local DST = DungeonSetTracker
 DST.name = "DungeonSetTracker"
-DST.version = "1.0.0"
+DST.version = "1.1.0"
 local L = DST.L
 
 local SV_VERSION = 1
@@ -14,6 +14,8 @@ local SUMMARY_REPEAT_SECONDS = 30 * 60  -- no second chat summary for the same d
 -- Saved setting names are kept from earlier versions (e.g. "finderTooltip", "tipSide") so no migration is needed.
 local defaults = {
     finderTooltip = true,       -- set chart while hovering dungeons in the Dungeon Finder
+    mapTooltip = true,          -- set chart while hovering dungeons, trials and arenas on the world map
+    mapZoneButton = true,       -- icon on the map of an open zone that shows the zone's sets
     tipSide = "left",           -- "left" / "right" screen edge, or "preview": next to the game's dungeon preview
     tipOffsetX = 40,
     tipOffsetY = 0,
@@ -32,10 +34,12 @@ local defaults = {
 
 local sv
 local ui = {}
-local dungeons              -- { { category, id, name, key, sets = { setData, ... } }, ... } in Sets book order
+-- "Dungeons" here also means trials and arenas; isDungeon is true only for the dungeons of the Dungeon Finder.
+local dungeons              -- { { category, id, name, key, isDungeon, sets = { setData, ... } }, ... } in book order
 local dungeonsByKey         -- [normalized name] = dungeon entry
 local dungeonsBySetId       -- [itemSetId] = dungeon entry
 local dungeonsProvisional   -- true when built without Dungeon Finder data, rebuilt on next use
+local finderZoneIds         -- [normalized zone name] = zoneId of each Dungeon Finder dungeon
 local currentDungeon        -- entry for the dungeon the player is in, or nil
 local currentZoneId         -- zone the player is in
 
@@ -105,10 +109,10 @@ end
 
 -- Every Sets book category that directly holds sets is one dungeon (its monster set included). Dungeon sets are
 -- spread over several top-level categories ("Dungeons", "DLC Dungeons", but also trials, arenas...), with dungeons
--- possibly nested in groups. A top-level category is used when it contains dungeons of the Dungeon Finder, so
--- trials and arenas are left out, and no category id or localized name is hardcoded.
+-- possibly nested in groups. A top-level category that contains dungeons of the Dungeon Finder holds dungeons; the
+-- others hold trials and arenas. No category id or localized name is hardcoded.
 local function BuildDungeons()
-    dungeons, dungeonsByKey, dungeonsBySetId = {}, {}, {}
+    dungeons, dungeonsByKey, dungeonsBySetId, finderZoneIds = {}, {}, {}, {}
     local manager = ITEM_SET_COLLECTIONS_DATA_MANAGER
 
     local topVotes, tops = {}, {}
@@ -154,9 +158,7 @@ local function BuildDungeons()
                 Walk(subcategory)
             end
         end
-        for _, subcategory in top:SubcategoryIterator() do
-            Walk(subcategory)
-        end
+        Walk(top)
         entriesByTop[top], keysByTop[top] = entries, keyMap
     end
 
@@ -165,6 +167,10 @@ local function BuildDungeons()
         for index = 1, GetNumActivitiesByType(activityType) do
             local zoneId = GetActivityZoneId(GetActivityIdByTypeAndIndex(activityType, index))
             local zoneName = zoneId and zoneId ~= 0 and GetZoneNameById(zoneId)
+            local zoneKey = NormalizeName(zoneName)
+            if zoneKey then
+                finderZoneIds[zoneKey] = zoneId
+            end
             for _, top in ipairs(tops) do
                 if not useTop[top] and LookupByName(keysByTop[top], zoneName) then
                     useTop[top] = true
@@ -186,11 +192,14 @@ local function BuildDungeons()
     end
 
     for _, top in ipairs(tops) do
-        if useTop[top] then
+        -- Trials and arenas only once the dungeons are known for sure.
+        if useTop[top] or not dungeonsProvisional then
             for _, entry in ipairs(entriesByTop[top]) do
+                entry.isDungeon = useTop[top] or false
                 -- Two categories with the same name are treated as one dungeon, so no set is lost.
                 local existing = entry.key and dungeonsByKey[entry.key]
                 if existing then
+                    existing.isDungeon = existing.isDungeon or entry.isDungeon
                     for _, setData in ipairs(entry.sets) do
                         table.insert(existing.sets, setData)
                     end
@@ -204,6 +213,23 @@ local function BuildDungeons()
                 for _, setData in ipairs(entry.sets) do
                     dungeonsBySetId[setData:GetId()] = owner
                 end
+            end
+        end
+    end
+
+    -- A place may also have its sets in subcategories with other names (the Infinite Archive): its top-level
+    -- category's name then finds all of them. Only looked up by name, not listed with the dungeons.
+    if not dungeonsProvisional then
+        for _, top in ipairs(tops) do
+            local key = NormalizeName(top:GetName())
+            if not useTop[top] and key and not dungeonsByKey[key] then
+                local entry = { category = top, id = top:GetId(), name = top:GetFormattedName(), key = key, isDungeon = false, sets = {} }
+                for _, subEntry in ipairs(entriesByTop[top]) do
+                    for _, setData in ipairs(subEntry.sets) do
+                        table.insert(entry.sets, setData)
+                    end
+                end
+                dungeonsByKey[key] = entry
             end
         end
     end
@@ -226,9 +252,12 @@ local function FindDungeonByZoneId(zoneId)
     return FindDungeonByName(GetZoneNameById(zoneId))
 end
 
+-- A dungeon counts only inside an instance; trials and arenas are found by their zone name alone.
 local function FindCurrentDungeon(zoneId)
-    if not IsUnitInDungeon("player") then return nil end
-    return FindDungeonByZoneId(zoneId) or FindDungeonByName(GetUnitZone("player"))
+    local dungeon = FindDungeonByZoneId(zoneId) or FindDungeonByName(GetUnitZone("player"))
+    if dungeon and (IsUnitInDungeon("player") or not dungeon.isDungeon) then
+        return dungeon
+    end
 end
 
 -- Both parts of a two-part dungeon share one Sets book category, but each part has its own monster set. With the
@@ -236,12 +265,11 @@ end
 -- Other sets are always kept, and without LibSets (or without data for a set, e.g. while LibSets is still scanning
 -- right after login) nothing is filtered; the next hover then shows the filtered result.
 local function MonsterSetDropsInZone(setData, zoneId)
-    local libSets = LibSets
-    if not (zoneId and libSets and libSets.GetZoneIds) or setData:GetSetType() ~= ITEM_SET_TYPE_MONSTER then
+    if not (zoneId and LibSets) or setData:GetSetType() ~= ITEM_SET_TYPE_MONSTER then
         return true
     end
-    local ok, zoneIds = pcall(libSets.GetZoneIds, setData:GetId())
-    if not ok or type(zoneIds) ~= "table" or next(zoneIds) == nil then
+    local zoneIds = LibSets.GetZoneIds(setData:GetId())
+    if ZO_IsTableEmpty(zoneIds) then
         return true
     end
     for _, dropZoneId in pairs(zoneIds) do
@@ -264,6 +292,70 @@ local function GetZoneSets(dungeon, zoneId)
         return dungeon.sets
     end
     return sets
+end
+
+---------------------------------------------------------------------------
+-- Zone sets: the overland sets of an open zone (they drop all over the zone: delves, public dungeons, world
+-- bosses, chests), shown by an icon on the zone's map
+---------------------------------------------------------------------------
+
+local zonesByKey            -- [normalized Sets book category name] = zone entry, for categories of overland sets
+local zonesByZoneId = {}    -- [zoneId] = zone entry already found for a map
+
+local function BuildZones()
+    zonesByKey = {}
+    for _, setData in ITEM_SET_COLLECTIONS_DATA_MANAGER:ItemSetCollectionIterator() do
+        if setData:GetSetType() == ITEM_SET_TYPE_WORLD then
+            local category = setData:GetCategoryData()
+            local key = NormalizeName(category:GetName())
+            if key then
+                local entry = zonesByKey[key]
+                if not entry then
+                    entry = { category = category, id = category:GetId(), name = category:GetFormattedName(), key = key, sets = {} }
+                    zonesByKey[key] = entry
+                end
+                table.insert(entry.sets, setData)
+            end
+        end
+    end
+end
+
+-- When no category has the zone's name (e.g. one named after its chapter), LibSets tells where overland sets drop.
+local function FindZoneSetsWithLibSets(zoneId, zoneName)
+    if not LibSets then return nil end
+    local entry = { id = zoneId, name = zo_strformat(SI_ZONE_NAME, zoneName), sets = {} }
+    for _, setData in ITEM_SET_COLLECTIONS_DATA_MANAGER:ItemSetCollectionIterator() do
+        if setData:GetSetType() == ITEM_SET_TYPE_WORLD then
+            for _, dropZoneId in pairs(LibSets.GetZoneIds(setData:GetId()) or {}) do
+                if dropZoneId == zoneId then
+                    table.insert(entry.sets, setData)
+                    break
+                end
+            end
+        end
+    end
+    if #entry.sets > 0 then
+        return entry
+    end
+end
+
+-- The zone of the map shown, if it is an open zone with overland sets. Not for the world map, nor for the maps of
+-- dungeons, delves, trials, arenas and the like: those have their own sets or none.
+local function FindMapZone()
+    local mapType = GetMapType()
+    if mapType == MAPTYPE_WORLD or mapType == MAPTYPE_COSMIC or GetMapContentType() == MAP_CONTENT_DUNGEON then
+        return nil
+    end
+    local zoneId = GetZoneId(GetCurrentMapZoneIndex())
+    if zoneId == 0 then return nil end
+    if not zonesByZoneId[zoneId] then
+        if not zonesByKey then
+            BuildZones()
+        end
+        local zoneName = GetZoneNameById(zoneId)
+        zonesByZoneId[zoneId] = LookupByName(zonesByKey, zoneName) or FindZoneSetsWithLibSets(zoneId, zoneName)
+    end
+    return zonesByZoneId[zoneId]
 end
 
 local function SumPieces(sets)
@@ -409,16 +501,19 @@ local SET_BAR_HEIGHT = 18
 local SET_GAP = 14
 local COLUMN_GAP = 20
 local GRID_WIDTH = ICONS_PER_ROW * CELL_STEP
--- Fixed window size: room for two rows of sets (four sets). With more sets only the content is scaled down
--- to fit; with fewer the rest of the window stays empty. The legend always sits at the bottom.
+-- Window size: room for two rows of sets (four sets); with fewer the rest of the window stays empty, so nothing
+-- moves between dungeons. Places with more sets (arenas, trials) get a taller window with icons of the same size.
+-- The legend always sits at the bottom.
 local CONTENT_TOP = TIP_PADDING + TITLE_HEIGHT
 local CONTENT_HEIGHT = 2 * (HEADER_HEIGHT + 5 * CELL_STEP) + SET_GAP
 local LEGEND_AREA = 34
+local HINT_HEIGHT = 36          -- the Shift hint under the legend, up to two lines
 local TIP_WIDTH = 2 * TIP_PADDING + NUM_COLUMNS * GRID_WIDTH + (NUM_COLUMNS - 1) * COLUMN_GAP
-local TIP_HEIGHT = CONTENT_TOP + CONTENT_HEIGHT + LEGEND_AREA + TIP_PADDING
+local TIP_HEIGHT = CONTENT_TOP + CONTENT_HEIGHT + LEGEND_AREA + HINT_HEIGHT + TIP_PADDING
 local PREVIEW_DURATION_MS = 4000
 local PREVIEW_GAP = 10          -- distance from the game's dungeon preview in the "next to the preview" position
 local FADE_IN_MS = 120
+local KEEP_CHECK_MS = 100       -- while Shift keeps the chart open: how often to check whether it can hide
 local ARMOR_ROWS =
 {
     [EQUIPMENT_FILTER_TYPE_LIGHT] = 1,
@@ -438,6 +533,8 @@ local OTHER_ORDER =
 }
 local COLLECTED_FRAME = ZO_ColorDef:New(0.35, 0.9, 0.35, 1)
 local MISSING_FRAME = ZO_ColorDef:New(0.55, 0.55, 0.55, 1)
+local PERFECTED_FRAME = ZO_ColorDef:New(0.95, 0.75, 0.25, 1)
+local PERFECTED_MISSING_FRAME = ZO_ColorDef:New(0.6, 0.48, 0.2, 1)
 local FALLBACK_ICON = "EsoUI/Art/Icons/crafing_universal_item.dds"
 
 -- Rows of icons for one set: { { pieceData, ... }, ... }, armor rows first, then the rest wrapped at 7.
@@ -476,8 +573,36 @@ local function LayoutPieces(setData)
     return rows
 end
 
-local function SetCell(cell, icon, collected)
-    cell.frame:SetColor((collected and COLLECTED_FRAME or MISSING_FRAME):UnpackRGBA())
+-- A set and its perfected version (arenas, trials) form one block: the set's rows, then the perfected rows.
+-- Returns { { setData, perfected = setData or nil, unlocked, total }, ... } in the order of the sets.
+local function GroupPerfectedSets(sets)
+    local blocks, blocksBySetId = {}, {}
+    for _, setData in ipairs(sets) do
+        local block = { setData = setData, unlocked = setData:GetNumUnlockedPieces(), total = setData:GetNumPieces() }
+        table.insert(blocks, block)
+        blocksBySetId[setData:GetId()] = block
+    end
+    local grouped = {}
+    for _, block in ipairs(blocks) do
+        local base = blocksBySetId[block.setData:GetUnperfectedSetId()]
+        if base then
+            base.perfected = block.setData
+            base.unlocked, base.total = base.unlocked + block.unlocked, base.total + block.total
+        else
+            table.insert(grouped, block)
+        end
+    end
+    return grouped
+end
+
+local function SetCell(cell, icon, collected, perfected)
+    local frame
+    if perfected then
+        frame = collected and PERFECTED_FRAME or PERFECTED_MISSING_FRAME
+    else
+        frame = collected and COLLECTED_FRAME or MISSING_FRAME
+    end
+    cell.frame:SetColor(frame:UnpackRGBA())
     cell.icon:SetTexture(icon)
     -- Same look as an uncollected piece in the game's Sets collection.
     ZO_SetDefaultIconSilhouette(cell.icon, not collected)
@@ -490,6 +615,28 @@ local function InitCell(cell)
     return cell
 end
 
+-- Pointing at a piece shows it like the game's Sets collection does. The mouse reaches the chart while Shift keeps
+-- it open.
+local function OnCellMouseEnter(cell)
+    if not cell.pieceData then return end
+    ClearTooltip(ItemTooltip)
+    if cell:GetCenter() < GuiRoot:GetWidth() / 2 then
+        InitializeTooltip(ItemTooltip, cell, LEFT, 5, 0, RIGHT)
+    else
+        InitializeTooltip(ItemTooltip, cell, RIGHT, -5, 0, LEFT)
+    end
+    local HIDE_TRAIT = true
+    ItemTooltip:SetItemSetCollectionPieceLink(cell.pieceData:GetItemLink(), HIDE_TRAIT)
+    ui.pieceTooltipShown = true
+end
+
+local function OnCellMouseExit()
+    if ui.pieceTooltipShown then
+        ClearTooltip(ItemTooltip)
+        ui.pieceTooltipShown = false
+    end
+end
+
 local function AcquireChartControl(list, index, template, suffix)
     local control = list[index]
     if not control then
@@ -500,6 +647,9 @@ local function AcquireChartControl(list, index, template, suffix)
             control = CreateControlFromVirtual("$(parent)" .. suffix, content, template, index)
             if template == "DungeonSetTracker_ChartCell" then
                 InitCell(control)
+                control:SetMouseEnabled(true)
+                control:SetHandler("OnMouseEnter", OnCellMouseEnter)
+                control:SetHandler("OnMouseExit", OnCellMouseExit)
             end
         end
         list[index] = control
@@ -514,10 +664,10 @@ local function HideUnused(list, used)
     end
 end
 
-local function PlaceChart(chart)
+local function PlaceChart(chart, height)
     chart:ClearAnchors()
     local preview = ZO_ActivityFinderTemplateTooltip_Keyboard
-    if sv.tipSide == "preview" and preview and not preview:IsHidden() then
+    if sv.tipSide == "preview" and not preview:IsHidden() then
         -- Next to the game's dungeon preview (its frame reaches 2px further left); the vertical position setting
         -- still applies, the distance setting does not.
         chart:SetAnchor(TOPRIGHT, preview, TOPLEFT, -2 - PREVIEW_GAP, sv.tipOffsetY)
@@ -528,7 +678,7 @@ local function PlaceChart(chart)
     end
     -- The chosen size, but never larger than the screen.
     local scale = sv.tipScale / 100
-    scale = zo_min(scale, (GuiRoot:GetHeight() - 20) / TIP_HEIGHT, (GuiRoot:GetWidth() - 20) / TIP_WIDTH)
+    scale = zo_min(scale, (GuiRoot:GetHeight() - 20) / height, (GuiRoot:GetWidth() - 20) / TIP_WIDTH)
     chart:SetScale(scale)
 end
 
@@ -552,13 +702,10 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
     end
 
     local allSets = GetZoneSets(dungeon, zoneId)
-    local sets = allSets
-    if sv.tipHideCompleted then
-        sets = {}
-        for _, setData in ipairs(allSets) do
-            if setData:GetNumUnlockedPieces() < setData:GetNumPieces() then
-                table.insert(sets, setData)
-            end
+    local blocks = {}
+    for _, block in ipairs(GroupPerfectedSets(allSets)) do
+        if not (sv.tipHideCompleted and block.unlocked >= block.total) then
+            table.insert(blocks, block)
         end
     end
 
@@ -570,21 +717,22 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
     end
     SetProgress(chart.totalBar, SumPieces(allSets))
 
-    local markedVeteran = false
+    local markedVeteran, markedPerfected = false, false
     local y = 0
     local rowHeight = 0
-    for rowStart = 1, #sets, NUM_COLUMNS do
+    for rowStart = 1, #blocks, NUM_COLUMNS do
         if rowStart > 1 then
             y = y + rowHeight + SET_GAP
         end
         -- Every set header has the same fixed height, with name and progress bar centered in it, so names,
         -- bars and icons always stay at the same place whatever the length of the names.
-        local rowSets = {}
+        local rowBlocks = {}
         for column = 0, NUM_COLUMNS - 1 do
-            local setData = sets[rowStart + column]
-            if setData then
+            local block = blocks[rowStart + column]
+            if block then
+                local setData = block.setData
                 local x = TIP_PADDING + column * (GRID_WIDTH + COLUMN_GAP)
-                local su, st = setData:GetNumUnlockedPieces(), setData:GetNumPieces()
+                local su, st = block.unlocked, block.total
                 local name = setData:GetFormattedName()
                 if isNormalDifficulty and setData:GetSetType() == ITEM_SET_TYPE_MONSTER then
                     name = zo_iconTextFormat(ZO_GetVeteranIcon(), 20, 20, name)
@@ -596,39 +744,53 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
                 bar:ClearAnchors()
                 bar:SetAnchor(TOPRIGHT, content, TOPLEFT, x + GRID_WIDTH - 4, y + (HEADER_HEIGHT - 4 - SET_BAR_HEIGHT) / 2)
                 SetProgress(bar, su, st)
-                table.insert(rowSets, { setData = setData, x = x })
+                table.insert(rowBlocks, { block = block, x = x })
             end
         end
 
         rowHeight = 0
-        for _, entry in ipairs(rowSets) do
-            local rows = LayoutPieces(entry.setData)
-            for rowIndex, pieces in ipairs(rows) do
+        for _, entry in ipairs(rowBlocks) do
+            local rows = {}
+            for _, pieces in ipairs(LayoutPieces(entry.block.setData)) do
+                table.insert(rows, { pieces = pieces })
+            end
+            if entry.block.perfected then
+                for _, pieces in ipairs(LayoutPieces(entry.block.perfected)) do
+                    table.insert(rows, { pieces = pieces, perfected = true })
+                end
+                markedPerfected = true
+            end
+            for rowIndex, row in ipairs(rows) do
                 local cellY = y + HEADER_HEIGHT + (rowIndex - 1) * CELL_STEP
-                for i, pieceData in ipairs(pieces) do
+                for i, pieceData in ipairs(row.pieces) do
                     numCells = numCells + 1
                     local cell = AcquireChartControl(chart.cells, numCells, "DungeonSetTracker_ChartCell", "Cell")
                     cell:ClearAnchors()
                     cell:SetAnchor(TOPLEFT, content, TOPLEFT, entry.x + (i - 1) * CELL_STEP, cellY)
-                    SetCell(cell, pieceData:GetIcon(), pieceData:IsUnlocked())
+                    cell.pieceData = pieceData
+                    SetCell(cell, pieceData:GetIcon(), pieceData:IsUnlocked(), row.perfected)
                 end
             end
             rowHeight = zo_max(rowHeight, HEADER_HEIGHT + #rows * CELL_STEP)
         end
     end
-    if #sets == 0 then
+    if #blocks == 0 then
         AddLabel(L.ALL_COLLECTED, ZO_SUCCEEDED_TEXT, TIP_PADDING, y, TIP_WIDTH - 2 * TIP_PADDING)
         rowHeight = HEADER_HEIGHT
     end
     HideUnused(chart.labels, numLabels)
     HideUnused(chart.cells, numCells)
     HideUnused(chart.bars, numBars)
-    -- More sets than the fixed window holds: scale the content down, the window keeps its size.
-    content:SetScale(zo_min(1, CONTENT_HEIGHT / zo_max(y + rowHeight, 1)))
+    -- More sets than the window holds: the window grows (PlaceChart keeps it within the screen).
+    local contentHeight = zo_max(CONTENT_HEIGHT, y + rowHeight)
+    local height = TIP_HEIGHT + contentHeight - CONTENT_HEIGHT
+    content:SetHeight(contentHeight)
+    chart:SetHeight(height)
 
     -- Legend with a real piece of this dungeon: in color for "collected", as a silhouette for "missing".
     local legend = chart.legend
     legend:SetHidden(not sv.tipShowLegend)
+    chart.hint:SetHidden(not sv.tipShowLegend)
     local sampleIcon = FALLBACK_ICON
     if dungeon.sets[1] then
         for _, pieceData in dungeon.sets[1]:PieceIterator() do
@@ -638,27 +800,72 @@ local function ShowSetChart(dungeon, zoneId, isNormalDifficulty)
     end
     SetCell(legend.have, sampleIcon, true)
     SetCell(legend.missing, sampleIcon, false)
+    SetCell(legend.perfected, sampleIcon, true, true)
+    legend.perfected:SetHidden(not markedPerfected)
+    legend.perfectedText:SetHidden(not markedPerfected)
     legend.veteran:SetHidden(not markedVeteran)
+    legend.veteran:ClearAnchors()
+    legend.veteran:SetAnchor(LEFT, markedPerfected and legend.perfectedText or legend.missingText, RIGHT, 20, 0)
 
     chart.bg:SetAlpha(sv.tipBgAlpha / 100)
-    PlaceChart(chart)
+    PlaceChart(chart, height)
     if chart:IsHidden() then
         chart.fade:FadeIn(0, FADE_IN_MS)
     end
 end
 
+-- Shift keeps a chart shown by hovering open after the dungeon is no longer hovered, so the mouse can reach it.
+local KEEP_UPDATE_NAME = DST.name .. "KeepChart"
+local hoverActive = false   -- the Dungeon Finder entry or map pin that showed the chart is still hovered
+
 local function HideSetChart()
     local chart = ui.chart
-    if chart then
-        chart.fade:Stop()
-        chart:SetHidden(true)
-        chart.shown = nil
+    EVENT_MANAGER:UnregisterForUpdate(KEEP_UPDATE_NAME)
+    hoverActive = false
+    OnCellMouseExit()
+    chart.fade:Stop()
+    chart:SetHidden(true)
+    chart.shown = nil
+    chart.source = nil  -- what showed the chart: "finder", "map", "zone" or "preview"
+end
+
+local function IsChartKept()
+    return IsShiftKeyDown() or MouseIsOver(ui.chart)
+end
+
+-- A chart kept open with Shift (or with the mouse on it) is not replaced by other dungeons the mouse passes.
+local function IsChartFrozen()
+    local source = ui.chart.source
+    return (source == "finder" or source == "map" or source == "zone") and IsChartKept()
+end
+
+local function CheckKeptChart()
+    if not (hoverActive or IsChartKept()) then
+        HideSetChart()
     end
+end
+
+-- The hovered dungeon is left: the chart hides, unless Shift or the mouse on the chart keeps it open.
+local function ReleaseSetChart()
+    hoverActive = false
+    if ui.chart:IsHidden() then return end
+    if IsChartKept() then
+        EVENT_MANAGER:RegisterForUpdate(KEEP_UPDATE_NAME, KEEP_CHECK_MS, CheckKeptChart)
+    else
+        HideSetChart()
+    end
+end
+
+local function ShowHoveredChart(dungeon, zoneId, isNormalDifficulty, source)
+    EVENT_MANAGER:UnregisterForUpdate(KEEP_UPDATE_NAME)
+    ShowSetChart(dungeon, zoneId, isNormalDifficulty)
+    ui.chart.source = source
+    hoverActive = true
 end
 
 local function RefreshSetChart()
     local chart = ui.chart
-    if chart and chart.shown and not chart:IsHidden() then
+    if chart.shown and not chart:IsHidden() then
         ShowSetChart(chart.shown.dungeon, chart.shown.zoneId, chart.shown.isNormalDifficulty)
     end
 end
@@ -667,7 +874,7 @@ end
 -- so every part of the chart is visible.
 local previewToken = 0
 local function PreviewSetChart()
-    if not sv.finderTooltip then
+    if not (sv.finderTooltip or sv.mapTooltip or sv.mapZoneButton) then
         HideSetChart()
         return
     end
@@ -679,6 +886,7 @@ local function PreviewSetChart()
     end
     if not example then return end
     ShowSetChart(example)
+    ui.chart.source = "preview"
     previewToken = previewToken + 1
     local token = previewToken
     zo_callLater(function()
@@ -689,19 +897,125 @@ local function PreviewSetChart()
 end
 
 local function OnFinderEntryMouseEnter(control)
+    if IsChartFrozen() then return end
     HideSetChart()
     if not sv.finderTooltip then return end
-    local data = control and control.node and control.node.data
-    -- Only single activities have a zone; "random dungeon" entries (activity sets) have none.
-    if not (data and data.IsSpecificEntryType and data:IsSpecificEntryType() and data.GetZoneId) then
+    local data = control.node.data
+    -- Only single activities have one zone; "random dungeon" entries (activity sets) are left out.
+    if not data:IsSpecificEntryType() then
         return
     end
     local zoneId = data:GetZoneId()
     local dungeon = FindDungeonByZoneId(zoneId) or FindDungeonByName(data:GetRawName())
     if dungeon then
-        local isNormal = data.GetActivityType and data:GetActivityType() == LFG_ACTIVITY_DUNGEON
-        ShowSetChart(dungeon, zoneId, isNormal)
+        local isNormal = data:GetActivityType() == LFG_ACTIVITY_DUNGEON
+        ShowHoveredChart(dungeon, zoneId, isNormal, "finder")
     end
+end
+
+-- World map: dungeons, trials and arenas are fast travel nodes, or points of interest before they are discovered.
+-- Matched by name like the Dungeon Finder; the result per pin name is kept until the list is rebuilt.
+local mapPinDungeons = {}   -- [pin name] = dungeon entry, or false
+
+local function GetMapPinName(pin)
+    if pin:IsFastTravelWayShrine() then
+        local _, name = GetFastTravelNodeInfo(pin:GetFastTravelNodeIndex())
+        return name
+    elseif pin:IsPOI() then
+        return (GetPOIInfo(pin:GetPOIZoneIndex(), pin:GetPOIIndex()))
+    end
+end
+
+-- Pin names have a prefix: "Dungeon: Fungal Grotto I", "Подземелье: пещеры Глубокой Тени I". Returns the part after
+-- the first colon (also the full-width "：" of Japanese and Chinese), or nil when there is none.
+local function StripMapPinPrefix(name)
+    return name:match("^.-:%s*(.+)$") or name:match("^.-\239\188\154%s*(.+)$")
+end
+
+local function FindMapPinDungeon(pin)
+    local name = GetMapPinName(pin)
+    if not name or name == "" then return nil end
+    local entry = mapPinDungeons[name]
+    if entry == nil then
+        local placeName = name
+        local dungeon = FindDungeonByName(name)
+        if not dungeon then
+            placeName = StripMapPinPrefix(name)
+            dungeon = placeName and FindDungeonByName(placeName)
+        end
+        -- Part I and II of a two-part dungeon are separate pins: the zone id selects the part's monster set.
+        entry = dungeon and { dungeon = dungeon, zoneId = finderZoneIds[NormalizeName(placeName)] } or false
+        if not dungeonsProvisional then
+            mapPinDungeons[name] = entry
+        end
+    end
+    if entry then
+        return entry.dungeon, entry.zoneId
+    end
+end
+
+-- Called by the world map after it laid out the tooltip for the pins under the mouse.
+local function OnMapPinTooltipsUpdated()
+    if not sv.mapTooltip or IsInGamepadPreferredMode() then return end
+    local chart = ui.chart
+    for _, pin in ipairs(WORLD_MAP_MANAGER:GetFoundTooltipMouseOverPins()) do
+        local dungeon, zoneId = FindMapPinDungeon(pin)
+        if dungeon then
+            if chart.source == "map" and chart.shown.dungeon == dungeon and chart.shown.zoneId == zoneId then
+                EVENT_MANAGER:UnregisterForUpdate(KEEP_UPDATE_NAME)
+                hoverActive = true
+            elseif not IsChartFrozen() then
+                ShowHoveredChart(dungeon, zoneId, nil, "map")
+            end
+            return
+        end
+    end
+    if chart.source == "map" then
+        ReleaseSetChart()
+    end
+end
+
+local function OnMapTooltipHidden()
+    if ui.chart.source == "map" then
+        ReleaseSetChart()
+    end
+end
+
+-- Icon in the top left corner of an open zone's map: pointing at it shows the zone's sets.
+local ZONE_BUTTON_SIZE = 40
+local mapZone               -- zone entry of the map shown, while the icon is shown
+
+local function RefreshZoneButton()
+    mapZone = sv.mapZoneButton and not IsInGamepadPreferredMode() and FindMapZone() or nil
+    ui.zoneButton:SetHidden(not mapZone)
+end
+
+local function OnZoneButtonMouseEnter()
+    if mapZone and not IsChartFrozen() then
+        HideSetChart()
+        ShowHoveredChart(mapZone, nil, nil, "zone")
+    end
+end
+
+local function OnZoneButtonMouseExit()
+    if ui.chart.source == "zone" then
+        ReleaseSetChart()
+    end
+end
+
+local function CreateZoneButton()
+    local button = CreateControlFromVirtual("DungeonSetTrackerZoneButton", ZO_WorldMap, "DungeonSetTracker_ZoneButton")
+    ui.zoneButton = button
+    button:SetDimensions(ZONE_BUTTON_SIZE, ZONE_BUTTON_SIZE)
+    button:SetAnchor(TOPLEFT, ZO_WorldMapScroll, TOPLEFT, 8, 8)
+    button:SetHandler("OnMouseEnter", OnZoneButtonMouseEnter)
+    button:SetHandler("OnMouseExit", OnZoneButtonMouseExit)
+    CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", RefreshZoneButton)
+    WORLD_MAP_SCENE:RegisterCallback("StateChange", function(_, newState)
+        if newState == SCENE_SHOWING then
+            RefreshZoneButton()
+        end
+    end)
 end
 
 local function CreateSetChart()
@@ -721,31 +1035,41 @@ local function CreateSetChart()
     divider:SetAnchor(TOPRIGHT, chart.totalBar, BOTTOMRIGHT, TIP_PADDING, 6)
 
     chart.content = chart:GetNamedChild("Content")
-    chart.content:SetAnchor(TOP, chart, TOP, 0, CONTENT_TOP)  -- scaled down content stays centered
+    chart.content:SetAnchor(TOP, chart, TOP, 0, CONTENT_TOP)
     chart.content:SetDimensions(TIP_WIDTH, CONTENT_HEIGHT)
     chart.labels, chart.cells, chart.bars = {}, {}, {}
+
+    chart.hint = chart:GetNamedChild("Hint")
+    chart.hint:SetDimensions(TIP_WIDTH - 2 * TIP_PADDING, HINT_HEIGHT)
+    chart.hint:SetAnchor(BOTTOMLEFT, chart, BOTTOMLEFT, TIP_PADDING, -TIP_PADDING)
+    chart.hint:SetText(L.HINT_KEEP_OPEN)
 
     local legend = chart:GetNamedChild("Legend")
     chart.legend = legend
     legend:SetDimensions(TIP_WIDTH - 2 * TIP_PADDING, LEGEND_AREA - 10)
-    legend:SetAnchor(BOTTOMLEFT, chart, BOTTOMLEFT, TIP_PADDING, -TIP_PADDING)
+    legend:SetAnchor(BOTTOMLEFT, chart.hint, TOPLEFT, 0, 0)
     legend.have = InitCell(legend:GetNamedChild("Have"))
     legend.missing = InitCell(legend:GetNamedChild("Missing"))
+    legend.perfected = InitCell(legend:GetNamedChild("Perfected"))
     legend.have:SetDimensions(22, 22)
     legend.missing:SetDimensions(22, 22)
+    legend.perfected:SetDimensions(22, 22)
     legend:GetNamedChild("HaveText"):SetText(L.LEGEND_HAVE)
-    legend:GetNamedChild("MissingText"):SetText(L.LEGEND_MISSING)
+    legend.missingText = legend:GetNamedChild("MissingText")
+    legend.missingText:SetText(L.LEGEND_MISSING)
+    legend.perfectedText = legend:GetNamedChild("PerfectedText")
+    legend.perfectedText:SetText(L.LEGEND_PERFECTED)
     legend.veteran = legend:GetNamedChild("Veteran")
     legend.veteran:SetText(zo_iconTextFormat(ZO_GetVeteranIcon(), 20, 20, L.LEGEND_VETERAN_ONLY))
 
     -- The keyboard Activity Finder calls these when the mouse enters/leaves a list entry.
     -- Post-hooks only add our own chart; the game's behaviour and preview are not changed.
-    -- Not on consoles: there is only the gamepad Activity Finder.
-    if ZO_ActivityFinderTemplate_Keyboard and not IsConsoleUI() then
-        ZO_PostHook(ZO_ActivityFinderTemplate_Keyboard, "ShowActivityTooltip", OnFinderEntryMouseEnter)
-        ZO_PostHook(ZO_ActivityFinderTemplate_Keyboard, "HideActivityTooltip", HideSetChart)
-        ui.finderHooked = true
-    end
+    ZO_PostHook(ZO_ActivityFinderTemplate_Keyboard, "ShowActivityTooltip", OnFinderEntryMouseEnter)
+    ZO_PostHook(ZO_ActivityFinderTemplate_Keyboard, "HideActivityTooltip", ReleaseSetChart)
+    -- The world map lays out the keyboard tooltip of the pins under the mouse; its own tooltip is not changed.
+    ZO_PostHook(WORLD_MAP_MANAGER, "UpdatePinTooltips", OnMapPinTooltipsUpdated)
+    CALLBACK_MANAGER:RegisterCallback("OnHideWorldMapTooltip", OnMapTooltipHidden)
+    CreateZoneButton()
     -- Safety net: closing a menu (e.g. with Esc) while a dungeon is hovered never leaves the chart on screen.
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, _, newState)
         if newState == SCENE_HIDING then
@@ -783,26 +1107,25 @@ end
 
 local function PrintTotal()
     local unlocked, total = 0, 0
+    local count = 0
     for _, dungeon in ipairs(GetDungeons()) do
-        local u, t = SumPieces(dungeon.sets)
-        unlocked, total = unlocked + u, total + t
+        if dungeon.isDungeon then
+            local u, t = SumPieces(dungeon.sets)
+            unlocked, total, count = unlocked + u, total + t, count + 1
+        end
     end
-    Print(L.CHAT_TOTAL, #GetDungeons(), FormatCount(unlocked, total))
+    Print(L.CHAT_TOTAL, count, FormatCount(unlocked, total))
 end
 
 ---------------------------------------------------------------------------
 -- Events
 ---------------------------------------------------------------------------
 
+local dungeonsRequested = false
+
 local function OnPlayerActivated()
-    if DST.loadErrors then
-        for _, err in ipairs(DST.loadErrors) do
-            Print("|cFF4444error|r %s", err)
-        end
-        if ui.chart and not ui.finderHooked and not IsConsoleUI() then
-            Print("%s", L.CHAT_FINDER_MISSING)
-        end
-        DST.loadErrors = nil
+    if not dungeonsRequested then
+        dungeonsRequested = true
         -- Build the dungeon list now rather than on the first hover.
         zo_callLater(GetDungeons, 2000)
     end
@@ -828,11 +1151,9 @@ local function OnSlotsJustUnlocked(slotsJustUnlocked)
         -- Compared by category id: the dungeon list may have been rebuilt since currentDungeon was found.
         if dungeon and dungeon.id == currentDungeon.id then
             local setData = ITEM_SET_COLLECTIONS_DATA_MANAGER:GetItemSetCollectionData(unlocked.itemSetId)
-            local pieceData = setData and setData:GetPieceDataBySlot(unlocked.slot)
-            if pieceData then
-                Print(L.CHAT_NEW_PIECE, pieceData:GetItemLink(), setData:GetFormattedName(),
-                    FormatCount(setData:GetNumUnlockedPieces(), setData:GetNumPieces()))
-            end
+            local pieceData = setData:GetPieceDataBySlot(unlocked.slot)
+            Print(L.CHAT_NEW_PIECE, pieceData:GetItemLink(), setData:GetFormattedName(),
+                FormatCount(setData:GetNumUnlockedPieces(), setData:GetNumPieces()))
         end
     end
 end
@@ -864,7 +1185,7 @@ local function CreateSettings()
     -- Slider ranges follow the screen, so every value moves the chart.
     local maxOffsetX = zo_max(0, zo_floor((GuiRoot:GetWidth() - TIP_WIDTH) / 10) * 10)
     local maxOffsetY = zo_max(0, zo_floor((GuiRoot:GetHeight() - TIP_HEIGHT) / 20) * 10)
-    local function chartOff() return not sv.finderTooltip end
+    local function chartOff() return not (sv.finderTooltip or sv.mapTooltip or sv.mapZoneButton) end
     local function Checkbox(key, name, tooltip, onChange, disabled)
         return {
             type = "checkbox", name = name, tooltip = tooltip, disabled = disabled,
@@ -890,6 +1211,10 @@ local function CreateSettings()
         Checkbox("finderTooltip", L.SETTINGS_FINDER_TOOLTIP, L.SETTINGS_FINDER_TOOLTIP_TT, function(value)
             if not value then HideSetChart() end
         end),
+        Checkbox("mapTooltip", L.SETTINGS_MAP_TOOLTIP, L.SETTINGS_MAP_TOOLTIP_TT, function(value)
+            if not value then HideSetChart() end
+        end),
+        Checkbox("mapZoneButton", L.SETTINGS_MAP_ZONE, L.SETTINGS_MAP_ZONE_TT, RefreshZoneButton),
         {
             type = "dropdown",
             name = L.SETTINGS_TIP_POSITION,
@@ -951,6 +1276,11 @@ local function OnSlashCommand(args)
     end
 end
 
+local function RegisterSetCollectionsCallbacks()
+    ITEM_SET_COLLECTIONS_DATA_MANAGER:RegisterCallback("CollectionsUpdated", OnCollectionsUpdated)
+    ITEM_SET_COLLECTIONS_DATA_MANAGER:RegisterCallback("SlotsJustUnlocked", OnSlotsJustUnlocked)
+end
+
 local function OnAddOnLoaded(_, addOnName)
     if addOnName ~= DST.name then return end
     EVENT_MANAGER:UnregisterForEvent(DST.name, EVENT_ADD_ON_LOADED)
@@ -960,23 +1290,10 @@ local function OnAddOnLoaded(_, addOnName)
     SLASH_COMMANDS["/dst"] = OnSlashCommand
     EVENT_MANAGER:RegisterForEvent(DST.name, EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
 
-    -- Each part starts on its own, so one failing part doesn't take the others down. Errors are shown in chat
-    -- once the player is in the world.
-    local errors = {}
-    local function Try(partName, func)
-        local ok, err = pcall(func)
-        if not ok then
-            table.insert(errors, partName .. ": " .. tostring(err))
-        end
-    end
-    Try("panel", CreatePanel)
-    Try("chart", CreateSetChart)
-    Try("settings", CreateSettings)
-    Try("events", function()
-        ITEM_SET_COLLECTIONS_DATA_MANAGER:RegisterCallback("CollectionsUpdated", OnCollectionsUpdated)
-        ITEM_SET_COLLECTIONS_DATA_MANAGER:RegisterCallback("SlotsJustUnlocked", OnSlotsJustUnlocked)
-    end)
-    DST.loadErrors = errors
+    CreatePanel()
+    CreateSetChart()
+    CreateSettings()
+    RegisterSetCollectionsCallbacks()
 end
 
 EVENT_MANAGER:RegisterForEvent(DST.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

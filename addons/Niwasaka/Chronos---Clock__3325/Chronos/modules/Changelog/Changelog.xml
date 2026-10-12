@@ -1,0 +1,51 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="Chronos_Changelog" mouseEnabled="true" movable="true" clampedToScreen="true"
+                         hidden="true" tier="2" layer="1">
+            <Dimensions x="700" y="500"/>
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetY="-120"/>
+            <Controls>
+
+                <Backdrop name="$(parent)_Background" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill/>
+                </Backdrop>
+
+                <Label name="$(parent)_Title" font="ZoFontWinH2" wrapMode="ELLIPSIS" verticalAlignment="TOP">
+                    <Anchor relativeTo="$(parent)" relativePoint="TOPLEFT" point="TOPLEFT" offsetX="5" offsetY="5"/>
+                </Label>
+                <Label name="$(parent)_About" font="ZoFontGame" wrapMode="ELLIPSIS">
+                    <Anchor relativeTo="$(parent)" relativePoint="TOPLEFT" point="TOPLEFT" offsetX="10" offsetY="40"/>
+                </Label>
+                <Texture name="$(parent)_TopDivider" inherits="ZO_HorizontalDivider">
+                    <Dimensions x="800" y="4"/>
+                    <Anchor point="TOP" offsetY="68" />
+                </Texture>
+
+                <Button name="$(parent)_Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetY="3" offsetX="-6"/>
+                    <OnClicked>
+                        Chronos:ToggleChangelog(false)
+                    </OnClicked>
+                </Button>
+
+                <Control name="$(parent)_Container" inherits="ZO_ScrollContainer">
+                    <OnInitialized>
+                        ZO_Scroll_Initialize(self)
+                    </OnInitialized>
+                    <Dimensions x="695" y="420"/>
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="6"
+                            offsetY="490"/>
+                </Control>
+
+                <Label name="$(parent)_Text" font="ZoFontGame" wrapMode="ELLIPSIS">
+                    <Dimensions x="670"/>
+                    <OnInitialized>
+                        self:SetParent(GetControl("Chronos_Changelog_ContainerScrollChild"))
+                        self:SetAnchor(TOPLEFT, Chronos_Changelog_ContainerScrollChild, TOPLEFT, 4, 4)
+                    </OnInitialized>
+                </Label>
+
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

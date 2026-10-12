@@ -4,9 +4,9 @@ Hermes = {
     addonName = "Hermes",
     displayName = "Hermes",
     author = "Niwasaka",
-    website = "",
+    website = "https://www.esoui.com/downloads/fileinfo.php?id=3499",
     slashCommand = "/hermes",
-    version = "1.5.2",
+    version = "1.6.0",
     guildIndex = 0,
 
     defaults = {
@@ -32,6 +32,11 @@ Hermes = {
         tomeWindowBackgroundAlpha = 100,
         tomeIconUIX = 0,
         tomeIconUIY = 900,
+        tomeQueue = {},
+        changelogX = nil,
+        changelogY = nil,
+        guideX = nil,
+        guideY = nil,
     },
 
     panel = nil,
@@ -46,6 +51,7 @@ function Hermes:Initialize()
     self:InitializeTomeAlerts()
     self:InitializeTomeWindow()
     self:InitializeTomeIcon()
+    self:InitializeGuide()
     self:SetChatHook()
     self:ChangelogScreen()
 

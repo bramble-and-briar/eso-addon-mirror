@@ -15,9 +15,16 @@ Skill lines that receive XP during your session are dynamically added to the dis
 [*]Real-time XP gain flash notifications (+XP shown briefly on gain)
 [*]Morph indicator when an ability is ready to morph
 [*]Dynamic skill line tracking — skill lines auto-appear when they receive XP
+[*]Pin skill lines — pinned lines always show (saved per character) and are unpinned automatically once maxed
 [*]Draggable, position-saving HUD widget
 [*]Detailed tooltips with XP values on hover
 [/LIST]
+
+
+[SIZE="5"]Pinning skill lines[/SIZE]
+
+Open the Skills window and select a skill line — click the pin icon next to its name to pin or unpin it. Pinned lines are marked with a pin in the skill line list.
+You can also right-click a skill line bar in the SkillExp display to pin or unpin it. Pinned lines are listed first and stay after reload; when a pinned line reaches max rank the pin is removed.
 
 
 [SIZE="5"]Hotkey[/SIZE]

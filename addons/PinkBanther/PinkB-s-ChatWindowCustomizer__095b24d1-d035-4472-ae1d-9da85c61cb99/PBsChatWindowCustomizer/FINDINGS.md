@@ -84,7 +84,7 @@ The setting has no event. The add-on remembers the setting value its font was ap
 compares on every HUD show (`HUD_FRAGMENT` → `SCENE_FRAGMENT_SHOWN`); if the player changed the
 setting in the meantime, the game has just put its own font back, and ours goes on again.
 
-## 5. The input line is left alone
+## 5. The input line's text size is left alone
 
 `TextEntry:SetFont` sets the edit box and the channel label, and the game's `SetFontSize` does
 change both. But the input line is a fixed 30 high (`ZO_ChatWindowTopLevelTemplate`) inside a
@@ -171,13 +171,42 @@ add-on frame anywhere that matters (§6), and it is the only way to reach a file
 every ten seconds against a twenty-second expiry, the client's `Minimize` never runs.
 
 A minimise that already happened -- at login (`LoadChatFromSettings` ends with `Minimize`), or
-from a menu -- is undone with control writes: the message area shown, and the background's alpha
-put back to 1, stopping the `ZO_AlphaAnimation` first if it is still fading. `chat.isMinimized`
-is set to false as data so the client agrees with what is on screen: `MINIMIZE_CHAT_FRAGMENT`
-reads it when a menu opens and maximises again on the way out, and
-`ZO_GamepadChatSystem:StartNewChatNotification` is only for a window that cannot be seen.
+from a menu -- is undone differently on the HUD and off it (1.3.2):
 
-The input line is deliberately left as the game has it.
+* **On the HUD**, by the client's own `ZO_GamepadChatSystem:Maximize()`. It shows the message
+  area, `textEntry.editBg` and `textEntry.channelLabel` (the input frame and the channel name),
+  fades the background and the entry in, sets `isMinimized = false`, and fires
+  `"GamepadChatSystemStateChanged"`. `PBsChatAssistant` already calls it from add-on code on a
+  PS5, and nothing in its path is marked private or protected in the API dump; it creates no
+  closure (`ZO_AlphaAnimation` hands its animation the file-local `OnAnimationStopped`).
+* **In a menu**, by control writes only -- the message area shown and the background's alpha put
+  back, stopping the `ZO_AlphaAnimation` first if it is still fading -- and only when the player
+  asked for the window in menus. The state is the client's.
+
+**`chat.isMinimized` is never written.** 1.1.0 - 1.3.1 set it to false after re-showing the
+message area, "so the client agrees with what is on screen". Reported on a PS5 as
+PBsChatAssistant's Enter key opening no visible input box after a menu, and the cause is exactly
+that line:
+
+1. A menu opens. `MINIMIZE_CHAT_FRAGMENT:Show` minimises the chat (`wasChatMaximized = true`):
+   `editBg` and `channelLabel` hidden, `isMinimized = true`.
+2. Our ten-second push, or the HUD-fragment callback, re-shows the message area and background
+   and writes `isMinimized = false`.
+3. The menu closes. `MINIMIZE_CHAT_FRAGMENT:Hide` runs `if self.wasChatMaximized and
+   chatSystem:IsMinimized() then chatSystem:Maximize()` -- the second half is now false, so
+   nothing maximises.
+4. The player presses Enter. PBsChatAssistant's `OpenChatEntry` opens the entry, then
+   `if chat.isMinimized then chat:Maximize() elseif chat.primaryContainer then
+   chat.primaryContainer:FadeIn() end` -- the flag is false, so it only fades the container in.
+   The entry is open and focused with `editBg` and `channelLabel` still hidden: no box, and no
+   IME for the platform to show it for.
+
+The same lie left the HUD tracker column anchored to the chat bubble, because
+`ZO_HUDTracker_Manager:OnAnchorStateChanged` reads `IsMinimized()` in the state callback, which
+had last fired with "minimised".
+
+The input line is part of the window from 1.3.2 -- the frame and channel name are shown whenever
+the window is up, as the game shows them while the chat is active.
 
 Switching the option off pushes the expiry one last time rather than minimising the window here,
 so the client's own timer minimises it in its own way.
@@ -320,6 +349,11 @@ be needed), and `GamepadChatContainer:StartDraggingTab` / `StopDraggingTab`, now
    §6b.
 6. **Does the text survive changing Small / Medium / Large?** Set a size here, change the game's
    setting, return to the HUD. The chat must come back at the add-on's size.
+6b. **(1.3.2) Does PBsChatAssistant's Enter key open a visible box after a menu?** With "keep the
+   window on screen" on: open the map or a menu, close it, press Enter. Then `/pbchatwin status`:
+   the `input line: frame=... label=... open=...` line must read `true true true` and
+   `minimized=false`. If it is `false false true`, something other than this add-on's flag
+   write is leaving the frame hidden.
 7. **Does the window really stay up?** Switch on "keep the window on screen" and leave the
    character standing for a minute without a message arriving. If it minimises anyway, the
    expiry is being written from somewhere this add-on cannot see, and `/pbchatwin status` prints

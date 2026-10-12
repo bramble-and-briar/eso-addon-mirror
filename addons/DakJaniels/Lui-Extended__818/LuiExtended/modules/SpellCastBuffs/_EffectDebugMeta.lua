@@ -232,77 +232,74 @@ local buffEffectTypeNames =
     [BUFF_EFFECT_TYPE_DEBUFF] = "DEBUFF",
 }
 
--- BuffType labels (API order). Numeric keys match P51 BuffType meta values so dual-API
--- load never nil-indexes when *_DEPRECATED / VEXATION globals are absent (U50) or
--- when un-suffixed SORCERY/PROPHECY globals are absent (U51).
 local buffTypeNames =
 {
-    [0] = "NONE",                         -- BUFF_TYPE_NONE
-    [1] = "MINOR_BRUTALITY",               -- BUFF_TYPE_MINOR_BRUTALITY
-    [2] = "MAJOR_BRUTALITY",               -- BUFF_TYPE_MAJOR_BRUTALITY
-    [3] = "MINOR_SAVAGERY",                -- BUFF_TYPE_MINOR_SAVAGERY
-    [4] = "MAJOR_SAVAGERY",                -- BUFF_TYPE_MAJOR_SAVAGERY
-    [5] = "MINOR_SORCERY_DEPRECATED",      -- BUFF_TYPE_MINOR_SORCERY_DEPRECATED (U50: MINOR_SORCERY)
-    [6] = "MAJOR_SORCERY_DEPRECATED",      -- BUFF_TYPE_MAJOR_SORCERY_DEPRECATED (U50: MAJOR_SORCERY)
-    [7] = "MINOR_PROPHECY_DEPRECATED",     -- BUFF_TYPE_MINOR_PROPHECY_DEPRECATED (U50: MINOR_PROPHECY)
-    [8] = "MAJOR_PROPHECY_DEPRECATED",     -- BUFF_TYPE_MAJOR_PROPHECY_DEPRECATED (U50: MAJOR_PROPHECY)
-    [9] = "MINOR_RESOLVE",                 -- BUFF_TYPE_MINOR_RESOLVE
-    [10] = "MAJOR_RESOLVE",                -- BUFF_TYPE_MAJOR_RESOLVE
-    [11] = "MINOR_BRITTLE",                -- BUFF_TYPE_MINOR_BRITTLE
-    [12] = "MAJOR_BRITTLE",                -- BUFF_TYPE_MAJOR_BRITTLE
-    [13] = "MINOR_FORTITUDE",              -- BUFF_TYPE_MINOR_FORTITUDE
-    [14] = "MAJOR_FORTITUDE",              -- BUFF_TYPE_MAJOR_FORTITUDE
-    [15] = "MINOR_ENDURANCE",              -- BUFF_TYPE_MINOR_ENDURANCE
-    [16] = "MAJOR_ENDURANCE",              -- BUFF_TYPE_MAJOR_ENDURANCE
-    [17] = "MINOR_INTELLECT",              -- BUFF_TYPE_MINOR_INTELLECT
-    [18] = "MAJOR_INTELLECT",              -- BUFF_TYPE_MAJOR_INTELLECT
-    [19] = "MINOR_HEROISM",                -- BUFF_TYPE_MINOR_HEROISM
-    [20] = "MAJOR_HEROISM",                -- BUFF_TYPE_MAJOR_HEROISM
-    [21] = "MINOR_MENDING",                -- BUFF_TYPE_MINOR_MENDING
-    [22] = "MAJOR_MENDING",                -- BUFF_TYPE_MAJOR_MENDING
-    [23] = "MINOR_VITALITY",               -- BUFF_TYPE_MINOR_VITALITY
-    [24] = "MAJOR_VITALITY",               -- BUFF_TYPE_MAJOR_VITALITY
-    [25] = "MINOR_EVASION",                -- BUFF_TYPE_MINOR_EVASION
-    [26] = "MAJOR_EVASION",                -- BUFF_TYPE_MAJOR_EVASION
-    [27] = "MINOR_PROTECTION",             -- BUFF_TYPE_MINOR_PROTECTION
-    [28] = "MAJOR_PROTECTION",             -- BUFF_TYPE_MAJOR_PROTECTION
-    [29] = "MINOR_MAIM",                   -- BUFF_TYPE_MINOR_MAIM
-    [30] = "MAJOR_MAIM",                   -- BUFF_TYPE_MAJOR_MAIM
-    [31] = "MINOR_DEFILE",                 -- BUFF_TYPE_MINOR_DEFILE
-    [32] = "MAJOR_DEFILE",                 -- BUFF_TYPE_MAJOR_DEFILE
-    [33] = "MINOR_MANGLE",                 -- BUFF_TYPE_MINOR_MANGLE
-    [34] = "MAJOR_MANGLE",                 -- BUFF_TYPE_MAJOR_MANGLE
-    [35] = "MINOR_EXPEDITION",             -- BUFF_TYPE_MINOR_EXPEDITION
-    [36] = "MAJOR_EXPEDITION",             -- BUFF_TYPE_MAJOR_EXPEDITION
-    [37] = "EMPOWER",                      -- BUFF_TYPE_EMPOWER
-    [38] = "MINOR_COWARDICE",              -- BUFF_TYPE_MINOR_COWARDICE
-    [39] = "MAJOR_COWARDICE",              -- BUFF_TYPE_MAJOR_COWARDICE
-    [40] = "MINOR_BREACH",                 -- BUFF_TYPE_MINOR_BREACH
-    [41] = "MAJOR_BREACH",                 -- BUFF_TYPE_MAJOR_BREACH
-    [42] = "MINOR_BERSERK",                -- BUFF_TYPE_MINOR_BERSERK
-    [43] = "MAJOR_BERSERK",                -- BUFF_TYPE_MAJOR_BERSERK
-    [44] = "MINOR_FORCE",                  -- BUFF_TYPE_MINOR_FORCE
-    [45] = "MAJOR_FORCE",                  -- BUFF_TYPE_MAJOR_FORCE
-    [46] = "MINOR_SLAYER",                 -- BUFF_TYPE_MINOR_SLAYER
-    [47] = "MAJOR_SLAYER",                 -- BUFF_TYPE_MAJOR_SLAYER
-    [48] = "MINOR_COURAGE",                -- BUFF_TYPE_MINOR_COURAGE
-    [49] = "MAJOR_COURAGE",                -- BUFF_TYPE_MAJOR_COURAGE
-    [50] = "MINOR_TOUGHNESS",              -- BUFF_TYPE_MINOR_TOUGHNESS
-    [51] = "MINOR_AEGIS",                  -- BUFF_TYPE_MINOR_AEGIS
-    [52] = "MAJOR_AEGIS",                  -- BUFF_TYPE_MAJOR_AEGIS
-    [53] = "DEPRECATED_0",                 -- BUFF_TYPE_DEPRECATED_0
-    [54] = "GALLOP",                       -- BUFF_TYPE_GALLOP
-    [55] = "MINOR_ENERVATION",             -- BUFF_TYPE_MINOR_ENERVATION
-    [56] = "MINOR_UNCERTAINTY",            -- BUFF_TYPE_MINOR_UNCERTAINTY
-    [57] = "MINOR_LIFESTEAL",              -- BUFF_TYPE_MINOR_LIFESTEAL
-    [58] = "MINOR_MAGICKASTEAL",           -- BUFF_TYPE_MINOR_MAGICKASTEAL
-    [59] = "DEPRECATED_INCREASE_ULT_COST", -- BUFF_TYPE_DEPRECATED_INCREASE_ULT_COST
-    [60] = "MINOR_VULNERABILITY",          -- BUFF_TYPE_MINOR_VULNERABILITY
-    [61] = "MAJOR_VULNERABILITY",          -- BUFF_TYPE_MAJOR_VULNERABILITY
-    [62] = "MINOR_TIMIDITY",               -- BUFF_TYPE_MINOR_TIMIDITY
-    [63] = "MAJOR_TIMIDITY",               -- BUFF_TYPE_MAJOR_TIMIDITY
-    [64] = "MINOR_VEXATION",               -- BUFF_TYPE_MINOR_VEXATION (P51)
-    [65] = "MAJOR_VEXATION",               -- BUFF_TYPE_MAJOR_VEXATION (P51)
+    [BUFF_TYPE_NONE] = "NONE",
+    [BUFF_TYPE_MINOR_BRUTALITY] = "MINOR_BRUTALITY",
+    [BUFF_TYPE_MAJOR_BRUTALITY] = "MAJOR_BRUTALITY",
+    [BUFF_TYPE_MINOR_SAVAGERY] = "MINOR_SAVAGERY",
+    [BUFF_TYPE_MAJOR_SAVAGERY] = "MAJOR_SAVAGERY",
+    [BUFF_TYPE_MINOR_SORCERY_DEPRECATED] = "MINOR_SORCERY_DEPRECATED",
+    [BUFF_TYPE_MAJOR_SORCERY_DEPRECATED] = "MAJOR_SORCERY_DEPRECATED",
+    [BUFF_TYPE_MINOR_PROPHECY_DEPRECATED] = "MINOR_PROPHECY_DEPRECATED",
+    [BUFF_TYPE_MAJOR_PROPHECY_DEPRECATED] = "MAJOR_PROPHECY_DEPRECATED",
+    [BUFF_TYPE_MINOR_RESOLVE] = "MINOR_RESOLVE",
+    [BUFF_TYPE_MAJOR_RESOLVE] = "MAJOR_RESOLVE",
+    [BUFF_TYPE_MINOR_BRITTLE] = "MINOR_BRITTLE",
+    [BUFF_TYPE_MAJOR_BRITTLE] = "MAJOR_BRITTLE",
+    [BUFF_TYPE_MINOR_FORTITUDE] = "MINOR_FORTITUDE",
+    [BUFF_TYPE_MAJOR_FORTITUDE] = "MAJOR_FORTITUDE",
+    [BUFF_TYPE_MINOR_ENDURANCE] = "MINOR_ENDURANCE",
+    [BUFF_TYPE_MAJOR_ENDURANCE] = "MAJOR_ENDURANCE",
+    [BUFF_TYPE_MINOR_INTELLECT] = "MINOR_INTELLECT",
+    [BUFF_TYPE_MAJOR_INTELLECT] = "MAJOR_INTELLECT",
+    [BUFF_TYPE_MINOR_HEROISM] = "MINOR_HEROISM",
+    [BUFF_TYPE_MAJOR_HEROISM] = "MAJOR_HEROISM",
+    [BUFF_TYPE_MINOR_MENDING] = "MINOR_MENDING",
+    [BUFF_TYPE_MAJOR_MENDING] = "MAJOR_MENDING",
+    [BUFF_TYPE_MINOR_VITALITY] = "MINOR_VITALITY",
+    [BUFF_TYPE_MAJOR_VITALITY] = "MAJOR_VITALITY",
+    [BUFF_TYPE_MINOR_EVASION] = "MINOR_EVASION",
+    [BUFF_TYPE_MAJOR_EVASION] = "MAJOR_EVASION",
+    [BUFF_TYPE_MINOR_PROTECTION] = "MINOR_PROTECTION",
+    [BUFF_TYPE_MAJOR_PROTECTION] = "MAJOR_PROTECTION",
+    [BUFF_TYPE_MINOR_MAIM] = "MINOR_MAIM",
+    [BUFF_TYPE_MAJOR_MAIM] = "MAJOR_MAIM",
+    [BUFF_TYPE_MINOR_DEFILE] = "MINOR_DEFILE",
+    [BUFF_TYPE_MAJOR_DEFILE] = "MAJOR_DEFILE",
+    [BUFF_TYPE_MINOR_MANGLE] = "MINOR_MANGLE",
+    [BUFF_TYPE_MAJOR_MANGLE] = "MAJOR_MANGLE",
+    [BUFF_TYPE_MINOR_EXPEDITION] = "MINOR_EXPEDITION",
+    [BUFF_TYPE_MAJOR_EXPEDITION] = "MAJOR_EXPEDITION",
+    [BUFF_TYPE_EMPOWER] = "EMPOWER",
+    [BUFF_TYPE_MINOR_COWARDICE] = "MINOR_COWARDICE",
+    [BUFF_TYPE_MAJOR_COWARDICE] = "MAJOR_COWARDICE",
+    [BUFF_TYPE_MINOR_BREACH] = "MINOR_BREACH",
+    [BUFF_TYPE_MAJOR_BREACH] = "MAJOR_BREACH",
+    [BUFF_TYPE_MINOR_BERSERK] = "MINOR_BERSERK",
+    [BUFF_TYPE_MAJOR_BERSERK] = "MAJOR_BERSERK",
+    [BUFF_TYPE_MINOR_FORCE] = "MINOR_FORCE",
+    [BUFF_TYPE_MAJOR_FORCE] = "MAJOR_FORCE",
+    [BUFF_TYPE_MINOR_SLAYER] = "MINOR_SLAYER",
+    [BUFF_TYPE_MAJOR_SLAYER] = "MAJOR_SLAYER",
+    [BUFF_TYPE_MINOR_COURAGE] = "MINOR_COURAGE",
+    [BUFF_TYPE_MAJOR_COURAGE] = "MAJOR_COURAGE",
+    [BUFF_TYPE_MINOR_TOUGHNESS] = "MINOR_TOUGHNESS",
+    [BUFF_TYPE_MINOR_AEGIS] = "MINOR_AEGIS",
+    [BUFF_TYPE_MAJOR_AEGIS] = "MAJOR_AEGIS",
+    [BUFF_TYPE_DEPRECATED_0] = "DEPRECATED_0",
+    [BUFF_TYPE_GALLOP] = "GALLOP",
+    [BUFF_TYPE_MINOR_ENERVATION] = "MINOR_ENERVATION",
+    [BUFF_TYPE_MINOR_UNCERTAINTY] = "MINOR_UNCERTAINTY",
+    [BUFF_TYPE_MINOR_LIFESTEAL] = "MINOR_LIFESTEAL",
+    [BUFF_TYPE_MINOR_MAGICKASTEAL] = "MINOR_MAGICKASTEAL",
+    [BUFF_TYPE_DEPRECATED_INCREASE_ULT_COST] = "DEPRECATED_INCREASE_ULT_COST",
+    [BUFF_TYPE_MINOR_VULNERABILITY] = "MINOR_VULNERABILITY",
+    [BUFF_TYPE_MAJOR_VULNERABILITY] = "MAJOR_VULNERABILITY",
+    [BUFF_TYPE_MINOR_TIMIDITY] = "MINOR_TIMIDITY",
+    [BUFF_TYPE_MAJOR_TIMIDITY] = "MAJOR_TIMIDITY",
+    [BUFF_TYPE_MINOR_VEXATION] = "MINOR_VEXATION",
+    [BUFF_TYPE_MAJOR_VEXATION] = "MAJOR_VEXATION",
 }
 
 local mundusStoneTypeNames =
@@ -879,7 +876,7 @@ local function addUnitBuffTimingLines(meta, control, unitTag, addLine)
     end
 
     if control.duration and control.duration > 0 then
-        addLine("LUIE Duration (internal)", formatSeconds(control.duration / 1000))
+        addLine("LUIE Duration (internal)", formatSeconds(control.duration * 0.001))
     end
 
     if meta and meta.buffListIndex and isMundusStoneBuffIndex(unitTag, meta.buffListIndex) then
@@ -914,7 +911,7 @@ local function addBuffAbilityApiDebugLines(abilityId, unitTag, addLine)
 
     local durationMs = GetAbilityDuration(abilityId, nil, unitTag)
     if durationMs and durationMs > 0 then
-        addLine("GetAbilityDuration (def)", string.format("%s ms (%.2fs)", tostring(durationMs), durationMs / 1000))
+        addLine("GetAbilityDuration (def)", string.format("%s ms (%.2fs)", tostring(durationMs), durationMs * 0.001))
     end
 
     local cooldownMs = GetAbilityCooldown(abilityId, unitTag)
@@ -952,7 +949,7 @@ local function GetDebugMetaRemainingValueLabelPool()
     if not debugMetaRemainingValueLabelPool then
         local pool = ZO_ControlPool:New("ZO_TooltipLabel", GuiRoot, "LUIE_SCB_DebugMetaRemaining")
         pool:SetCustomFactoryBehavior(function (label)
-            label:SetFont("ZoFontWinT1")
+            label:SetFont(LUIE.Font.GetTooltipDetailFont())
             label:SetColor(1, 1, 1, 1)
             label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
             label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -982,7 +979,7 @@ end
 --- @param liveRemainingCtx SCBBuffDebugMetaLiveRemainingCtx|nil
 --- @return integer nextHeaderLineIndex
 local function appendDebugMetaLineToTooltip(tooltip, label, value, headerLineIndex, liveRemainingCtx)
-    tooltip:AddHeaderLine(label, "ZoFontWinT1", headerLineIndex, TOOLTIP_HEADER_SIDE_LEFT, ZO_NORMAL_TEXT:UnpackRGB())
+    tooltip:AddHeaderLine(label, LUIE.Font.GetTooltipDetailFont(), headerLineIndex, TOOLTIP_HEADER_SIDE_LEFT, ZO_NORMAL_TEXT:UnpackRGB())
     local valueText = tostring(value)
     if label == "API Remaining" and liveRemainingCtx then
         local valueLabel, poolKey = acquireLiveRemainingValueLabel()
@@ -1000,7 +997,7 @@ local function appendDebugMetaLineToTooltip(tooltip, label, value, headerLineInd
             valueLabelPoolKey = poolKey,
         }
     else
-        tooltip:AddHeaderLine(valueText, "ZoFontWinT1", headerLineIndex, TOOLTIP_HEADER_SIDE_RIGHT, 1, 1, 1)
+        tooltip:AddHeaderLine(valueText, LUIE.Font.GetTooltipDetailFont(), headerLineIndex, TOOLTIP_HEADER_SIDE_RIGHT, 1, 1, 1)
     end
     return headerLineIndex + 1
 end
@@ -1122,8 +1119,8 @@ local function calculateBuffIconQuadrant(control)
     local middleX = (left + right) / (2 * scale)
     local middleY = (top + bottom) / (2 * scale)
     local screenWidth, screenHeight = GuiRoot:GetDimensions()
-    local screenMidX = screenWidth / 2
-    local screenMidY = screenHeight / 2
+    local screenMidX = screenWidth * 0.5
+    local screenMidY = screenHeight * 0.5
 
     if middleX >= screenMidX and middleY < screenMidY then
         return QUAD_TOPRIGHT
@@ -1216,6 +1213,7 @@ local function flushDebugMetaTooltips(debugLines, buffControl, detailsLine, live
     local overflowKey = buildDebugMetaOverflowContentKey(debugLines)
     local overflowLinesStart = primaryCount + 1
 
+    SpellCastBuffs.RaiseBuffTooltipWindow(overflow)
     applyDebugOverflowTooltipWidth(overflow, InformationTooltip)
 
     if overflowKey == debugMetaOverflowContentKey and not overflow:IsHidden() then
@@ -1229,7 +1227,7 @@ local function flushDebugMetaTooltips(debugLines, buffControl, detailsLine, live
     if overflow.ClearLines then
         overflow:ClearLines()
     end
-    overflow:AddLine("Debug meta (continued)", "ZoFontWinT1", ZO_NORMAL_TEXT:UnpackRGB())
+    overflow:AddLine("Debug meta (continued)", LUIE.Font.GetTooltipDetailFont(), ZO_NORMAL_TEXT:UnpackRGB())
     overflow:SetVerticalPadding(2)
 
     appendDebugMetaLineRangeToTooltip(overflow, debugLines, overflowLinesStart, numLines, 1, liveRemainingCtx)

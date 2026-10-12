@@ -1,102 +1,106 @@
--- UI strings only; never used to identify abilities or units.
-CorpseTracker.locales.zh = {
-    AUTOMATIC = "自动",
-    LANGUAGE = "界面语言",
-    LANG_TIP = "自动：使用受支持的客户端语言，否则使用英语。手动更改后需 /reloadui。",
-    SHOW = "显示计数器",
-    SHOW_TIP = "仅在游戏HUD中显示；打开菜单时隐藏。",
-    DEBUG = "调试模式",
-    DEBUG_TIP = "记录时进行额外的单位观察，并在扩展模式下用黄色标记不确定性。不会改变显示、计数模式或记录状态。",
-    SOURCES = "尸体来源",
-    SOURCES_TIP = "全部已追踪来源包括自己的骷髅召唤物和自定义规则，并非世界中的所有尸体。",
-    PRIMARY = "自己的BB＋骷髅头",
-    ALL = "全部已追踪来源",
-    RANGE = "距离筛选",
-    RANGE_TIP = "按ID读取技能参数。Yard仅表示玩家距离上限，不确认范围命中或视线。API数据不可用时暂停距离筛选。",
-    RANGE_SIPHON = "Siphon：技能距离",
-    RANGE_YARD = "Yard：施放距离＋半径",
-    RANGE_MANUAL = "自定义距离",
-    RANGE_NONE = "不限制距离",
-    MANUAL_RANGE = "自定义距离（米）",
-    UNKNOWN = "计入位置未知的尸体",
-    UNKNOWN_TIP = "开启：将位置未知的尸体计入估计数。关闭：距离筛选生效时只计入已定位且在范围内的尸体。未知不等于不存在。",
-    LOCK = "锁定位置",
-    LOCK_TIP = "未锁定时可拖动。右键在两种模式中均可切换来源。",
-    SIZE = "方框大小",
-    COUNT_MODE = "计数模式",
-    COUNT_TIP = "轻量模式统计已追踪的生成、消耗和到期事件，不检查距离。扩展模式增加实验性的距离和消耗估算。",
-    LIGHT = "轻量",
-    EXTENDED = "扩展（实验性）",
-    VIEW = "计数器显示",
-    VIEW_TIP = "Light 模式仅使用方形计数器。详细面板仅在扩展模式中可用；记录与显示形式独立。",
-    COMPACT = "方形",
-    DETAILED = "详细面板",
-    LIGHT_INFO = "估算已追踪的生成、消耗和到期事件。不检查距离。",
-    DIAGNOSTICS = "诊断",
-    RELOAD_REMINDER = "已加载版本：v%s。替换插件文件后，请先执行 /reloadui，再开始新测试。停止记录后，请执行 /reloadui 或退出游戏，将日志保存到磁盘。",
-    NEWTEST = "开始新的诊断测试",
-    NEWTEST_TIP = "清除以前的诊断数据，并在当前显示模式下开始记录；保留当前尸体并记录其初始状态。",
-    CLEARLOG = "仅清除日志",
-    CLEARLOG_TIP = "不重置计数器，也不更改记录模式。",
-    CAPTURE = "记录诊断日志",
-    CAPTURE_TIP = "两种显示模式都可记录，最多2500个事件。关闭后停止记录并保留日志。执行 /reloadui 或退出游戏以保存文件。",
-    RADIUS = "诊断半径（米）",
-    RADIUS_TIP = "距离筛选关闭时用于诊断，不限制主计数。",
-    BANNER_UNAVAILABLE = "不计入旗帜生成的尸体",
-    BANNER_TIP = "旗帜数据仅用于诊断，不会增加计数器中的尸体数量。",
-    PHYSICAL = "假定仅为实体尸体",
-    PHYSICAL_TIP = "仅为诊断假设，不能证明消耗了哪个尸体。",
-    TTL = "%s：估计存续时间（秒）",
-    TTL_TIP = "仅影响新记录。此时间为可用性的估计值。",
-    SOURCE_BB = "BB",
-    SOURCE_SKULL = "骷髅头",
-    SOURCE_ARCHER = "弓手／法师",
-    SOURCE_BANNER = "旗帜",
-    CORPSES = "尸体",
-    POSSIBLE = "[可能 %d–%d]",
-    SOURCE_BUTTON = "来源：%s（点击切换）",
-    BREAKDOWN = "BB %d | 骷髅头 %d | 其他 %d（全部）",
-    LOCATED = "%.0f米：范围内 %d ＋位置未知 %d",
-    API_MISSING = "API：无已验证的计数",
-    CANDIDATE = "候选值",
-    API_SAMPLE = "%s：%d / %.0f米（%.1f秒前%s）",
-    STALE = "，已过时",
-    BANNER_SAMPLE = "旗帜227113：%d?（%.1f秒前）",
-    BANNER_MISSING = "旗帜227113：无样本",
-    SESSION = "会话：＋%d / 使用 %d / 已过期 %d",
-    YARD_STATS = "Yard %d / 未确认 %d | 未追踪 %d | 未匹配 %d",
-    TTL_EXPIRES = "下次过期 %.1f秒",
-    TTL_EMPTY = "无选定记录",
-    TTL_ESTIMATE = "存续时间估计；%s%s",
-    RECORDING = "；记录中",
-    BOUNDS_BROAD = "选择未知；范围已扩大",
-    CHOICE_UNKNOWN = "消耗目标／可用性未验证",
-    RANGE_OFF = "距离限制：关闭",
-    RANGE_AVAILABLE = "%s：%.1f米 | 范围外 %d | 未知：%s",
-    RANGE_UNAVAILABLE = "距离不可用：未应用筛选",
-    INCLUDED = "计入",
-    EXCLUDED = "排除",
-    TOOLTIP_COUNTS = "估计 %d；可能 %d–%d；位置未知 %d",
-    TOOLTIP_RANGE = "距离：%.1f米（%s）",
-    TOOLTIP_HINT = "数字：估算的尸体数量。~：预计到期剩余秒数。?：剩余数量可能为零。",
-    ENABLED = "开启",
-    DISABLED = "关闭",
-    AMBIGUOUS = "关闭（不确定）",
-    CHAT_DEPENDENCY = "请安装并启用LibAddonMenu-2.0以打开设置。",
-    CHAT_CAPTURE = "诊断记录：%s",
-    CHAT_CLEARED = "诊断日志已清除。",
-    CHAT_RESET = "尸体记录已重置。",
-    CHAT_RADIUS = "诊断半径：%.1f米",
-    CHAT_SOURCES = "来源：%s",
-    CHAT_TTL = "仅更改新记录的存续时间。",
-    CHAT_PHYSICAL = "实体尸体假设：%s",
-    CHAT_VARIANTS = "已解析%d个技能变体并保存到诊断。",
-    CHAT_RULE = "已添加ID %s的规则；使用前请校准。",
-    CHAT_API = "API %d；已禁用全局函数搜索。",
-    CHAT_SLOT = "%d：%s [%d]，可用=%s 目标错误=%s 距离错误=%s 消耗错误=%s",
-    CHAT_STATUS1 = "来源=%s 估计=%d 可能=%d–%d；BB=%d 骷髅头=%d 其他=%d",
-    CHAT_STATUS2 = "生成=%d 使用=%d 未追踪=%d 过期=%d 未匹配=%d 不确定=%d；记录=%d",
-    CHAT_STATUS3 = "Yard 施放=%d 消耗=%d 未确认=%d",
-    CHAT_READY = "v%s 实验版。/crpst settings — 设置；/crpst test — 新测试。",
-    COMMANDS = "命令（参数保持英文）：",
-}
+-- ESO String ID translation, applied after the saved language is selected.
+local CT = CorpseTracker
+local SafeAddString = SafeAddString
+
+CT.RegisterTranslation("zh", function()
+    local ids = CT.stringIds
+    SafeAddString(ids.AUTOMATIC, "自动", 2)
+    SafeAddString(ids.LANGUAGE, "界面语言", 2)
+    SafeAddString(ids.LANG_TIP, "自动使用客户端语言；不支持时使用英语。手动选择的语言仅用于此插件。更改后需要 /reloadui。", 2)
+    SafeAddString(ids.SHOW, "显示计数器", 2)
+    SafeAddString(ids.SHOW_TIP, "仅在游戏HUD中显示；打开菜单时隐藏。", 2)
+    SafeAddString(ids.DEBUG, "调试模式", 2)
+    SafeAddString(ids.DEBUG_TIP, "记录时进行额外的单位观察，并在扩展模式下用黄色标记不确定性。不会改变显示、计数模式或记录状态。", 2)
+    SafeAddString(ids.SOURCES, "尸体来源", 2)
+    SafeAddString(ids.SOURCES_TIP, "全部已追踪来源包括自己的骷髅召唤物和自定义规则，并非世界中的所有尸体。", 2)
+    SafeAddString(ids.PRIMARY, "自己的BB＋骷髅头", 2)
+    SafeAddString(ids.ALL, "全部已追踪来源", 2)
+    SafeAddString(ids.RANGE, "距离筛选", 2)
+    SafeAddString(ids.RANGE_TIP, "按ID读取技能参数。Yard仅表示玩家距离上限，不确认范围命中或视线。API数据不可用时暂停距离筛选。", 2)
+    SafeAddString(ids.RANGE_SIPHON, "Siphon：技能距离", 2)
+    SafeAddString(ids.RANGE_YARD, "Yard：施放距离＋半径", 2)
+    SafeAddString(ids.RANGE_MANUAL, "自定义距离", 2)
+    SafeAddString(ids.RANGE_NONE, "不限制距离", 2)
+    SafeAddString(ids.MANUAL_RANGE, "自定义距离（米）", 2)
+    SafeAddString(ids.UNKNOWN, "计入位置未知的尸体", 2)
+    SafeAddString(ids.UNKNOWN_TIP, "开启：将位置未知的尸体计入估计数。关闭：距离筛选生效时只计入已定位且在范围内的尸体。未知不等于不存在。", 2)
+    SafeAddString(ids.LOCK, "锁定位置", 2)
+    SafeAddString(ids.LOCK_TIP, "未锁定时可拖动。右键在两种模式中均可切换来源。", 2)
+    SafeAddString(ids.SIZE, "方框大小", 2)
+    SafeAddString(ids.COUNT_MODE, "计数模式", 2)
+    SafeAddString(ids.COUNT_TIP, "轻量模式统计已追踪的生成、消耗和到期事件，不检查距离。扩展模式增加实验性的距离和消耗估算。", 2)
+    SafeAddString(ids.LIGHT, "轻量", 2)
+    SafeAddString(ids.EXTENDED, "扩展（实验性）", 2)
+    SafeAddString(ids.VIEW, "计数器显示", 2)
+    SafeAddString(ids.VIEW_TIP, "Light 模式仅使用方形计数器。详细面板仅在扩展模式中可用；记录与显示形式独立。", 2)
+    SafeAddString(ids.COMPACT, "方形", 2)
+    SafeAddString(ids.DETAILED, "详细面板", 2)
+    SafeAddString(ids.LIGHT_INFO, "估算已追踪的生成、消耗和到期事件。不检查距离。", 2)
+    SafeAddString(ids.DIAGNOSTICS, "诊断", 2)
+    SafeAddString(ids.RELOAD_REMINDER, "已加载版本：v<<1>>。替换插件文件后，请先执行 /reloadui，再开始新测试。停止记录后，请执行 /reloadui 或退出游戏，将日志保存到磁盘。", 2)
+    SafeAddString(ids.NEWTEST, "开始新的诊断测试", 2)
+    SafeAddString(ids.NEWTEST_TIP, "清除以前的诊断数据，并在当前显示模式下开始记录；保留当前尸体并记录其初始状态。", 2)
+    SafeAddString(ids.CLEARLOG, "仅清除日志", 2)
+    SafeAddString(ids.CLEARLOG_TIP, "不重置计数器，也不更改记录模式。", 2)
+    SafeAddString(ids.CAPTURE, "记录诊断日志", 2)
+    SafeAddString(ids.CAPTURE_TIP, "两种显示模式都可记录，最多2500个事件。关闭后停止记录并保留日志。执行 /reloadui 或退出游戏以保存文件。", 2)
+    SafeAddString(ids.RADIUS, "诊断半径（米）", 2)
+    SafeAddString(ids.RADIUS_TIP, "距离筛选关闭时用于诊断，不限制主计数。", 2)
+    SafeAddString(ids.BANNER_UNAVAILABLE, "不计入旗帜生成的尸体", 2)
+    SafeAddString(ids.BANNER_TIP, "旗帜数据仅用于诊断，不会增加计数器中的尸体数量。", 2)
+    SafeAddString(ids.PHYSICAL, "假定仅为实体尸体", 2)
+    SafeAddString(ids.PHYSICAL_TIP, "仅为诊断假设，不能证明消耗了哪个尸体。", 2)
+    SafeAddString(ids.TTL, "<<1>>：估计存续时间（秒）", 2)
+    SafeAddString(ids.TTL_TIP, "仅影响新记录。此时间为可用性的估计值。", 2)
+    SafeAddString(ids.SOURCE_BB, "BB", 2)
+    SafeAddString(ids.SOURCE_SKULL, "骷髅头", 2)
+    SafeAddString(ids.SOURCE_ARCHER, "弓手／法师", 2)
+    SafeAddString(ids.SOURCE_BANNER, "旗帜", 2)
+    SafeAddString(ids.CORPSES, "尸体", 2)
+    SafeAddString(ids.POSSIBLE, "[可能 <<F:1>>–<<F:2>>]", 2)
+    SafeAddString(ids.SOURCE_BUTTON, "来源：<<1>>（点击切换）", 2)
+    SafeAddString(ids.BREAKDOWN, "BB <<F:1>> || 骷髅头 <<F:2>> || 其他 <<F:3>>（全部）", 2)
+    SafeAddString(ids.LOCATED, "<<F:1>>米：范围内 <<F:2>> ＋位置未知 <<F:3>>", 2)
+    SafeAddString(ids.API_MISSING, "API：无已验证的计数", 2)
+    SafeAddString(ids.CANDIDATE, "候选值", 2)
+    SafeAddString(ids.API_SAMPLE, "<<1>>：<<F:2>> / <<F:3>>米（<<f:4>>秒前<<5>>）", 2)
+    SafeAddString(ids.STALE, "，已过时", 2)
+    SafeAddString(ids.BANNER_SAMPLE, "旗帜227113：<<F:1>>?（<<f:2>>秒前）", 2)
+    SafeAddString(ids.BANNER_MISSING, "旗帜227113：无样本", 2)
+    SafeAddString(ids.SESSION, "会话：＋<<F:1>> / 使用 <<F:2>> / 已过期 <<F:3>>", 2)
+    SafeAddString(ids.YARD_STATS, "Yard <<F:1>> / 未确认 <<F:2>> || 未追踪 <<F:3>> || 未匹配 <<F:4>>", 2)
+    SafeAddString(ids.TTL_EXPIRES, "下次过期 <<f:1>>秒", 2)
+    SafeAddString(ids.TTL_EMPTY, "无选定记录", 2)
+    SafeAddString(ids.TTL_ESTIMATE, "存续时间估计；<<1>><<2>>", 2)
+    SafeAddString(ids.RECORDING, "；记录中", 2)
+    SafeAddString(ids.BOUNDS_BROAD, "选择未知；范围已扩大", 2)
+    SafeAddString(ids.CHOICE_UNKNOWN, "消耗目标／可用性未验证", 2)
+    SafeAddString(ids.RANGE_OFF, "距离限制：关闭", 2)
+    SafeAddString(ids.RANGE_AVAILABLE, "<<1>>：<<f:2>>米 || 范围外 <<F:3>> || 未知：<<4>>", 2)
+    SafeAddString(ids.RANGE_UNAVAILABLE, "距离不可用：未应用筛选", 2)
+    SafeAddString(ids.INCLUDED, "计入", 2)
+    SafeAddString(ids.EXCLUDED, "排除", 2)
+    SafeAddString(ids.TOOLTIP_COUNTS, "估计 <<F:1>>；可能 <<F:2>>–<<F:3>>；位置未知 <<F:4>>", 2)
+    SafeAddString(ids.TOOLTIP_RANGE, "距离：<<f:1>>米（<<2>>）", 2)
+    SafeAddString(ids.TOOLTIP_HINT, "数字：估算的尸体数量。~：预计到期剩余秒数。?：剩余数量可能为零。", 2)
+    SafeAddString(ids.ENABLED, "开启", 2)
+    SafeAddString(ids.DISABLED, "关闭", 2)
+    SafeAddString(ids.AMBIGUOUS, "关闭（不确定）", 2)
+    SafeAddString(ids.CHAT_DEPENDENCY, "请安装并启用LibAddonMenu-2.0以打开设置。", 2)
+    SafeAddString(ids.CHAT_CAPTURE, "诊断记录：<<1>>", 2)
+    SafeAddString(ids.CHAT_CLEARED, "诊断日志已清除。", 2)
+    SafeAddString(ids.CHAT_RESET, "尸体记录已重置。", 2)
+    SafeAddString(ids.CHAT_RADIUS, "诊断半径：<<f:1>>米", 2)
+    SafeAddString(ids.CHAT_SOURCES, "来源：<<1>>", 2)
+    SafeAddString(ids.CHAT_TTL, "仅更改新记录的存续时间。", 2)
+    SafeAddString(ids.CHAT_PHYSICAL, "实体尸体假设：<<1>>", 2)
+    SafeAddString(ids.CHAT_VARIANTS, "已解析<<F:1>>个技能变体并保存到诊断。", 2)
+    SafeAddString(ids.CHAT_RULE, "已添加ID <<1>>的规则；使用前请校准。", 2)
+    SafeAddString(ids.CHAT_API, "API <<1>>；已禁用全局函数搜索。", 2)
+    SafeAddString(ids.CHAT_SLOT, "<<1>>：<<2>> [<<3>>]，可用=<<4>> 目标错误=<<5>> 距离错误=<<6>> 消耗错误=<<7>>", 2)
+    SafeAddString(ids.CHAT_STATUS1, "来源=<<1>> 估计=<<F:2>> 可能=<<F:3>>–<<F:4>>；BB=<<F:5>> 骷髅头=<<F:6>> 其他=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS2, "生成=<<F:1>> 使用=<<F:2>> 未追踪=<<F:3>> 过期=<<F:4>> 未匹配=<<F:5>> 不确定=<<F:6>>；记录=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS3, "Yard 施放=<<F:1>> 消耗=<<F:2>> 未确认=<<F:3>>", 2)
+    SafeAddString(ids.CHAT_READY, "v<<1>> 实验版。/crpst settings — 设置；/crpst test — 新测试。", 2)
+    SafeAddString(ids.COMMANDS, "命令（参数保持英文）：", 2)
+end)

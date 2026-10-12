@@ -57,26 +57,30 @@ function Skills:Capture(checkpoint)
     if #parts == 0 then return end -- Never replace a good snapshot with uninitialized data.
     table.sort(parts)
     SPT.CharCache:WriteProgressionSnapshot("skillLines", "1;" .. table.concat(parts))
+    return true
 end
 
 function Skills:Init()
-    local function OnLineUpdated(line)
-        if not SPT.progressionReady or line:IsClassMastery() then return end
-        if self.pending then SPT:QueueProgressionSnapshot(self, true); return end
-        local entry = SPT.CharCache.roster[SPT.CharCache:GetCharId()]
-        local snapshot = entry and entry.skillLines
-        local skillType, index = line:GetIndices()
-        if not CanGainRankXP(skillType, index, 1) then return end
-        local previous = type(snapshot) == "string" and snapshot:match("[;,]" .. line:GetId() .. ":(%d+),")
-        -- SkillLineUpdated includes XP events. Ignore those that leave our state unchanged.
-        if tonumber(previous) ~= ReadState(skillType, index) then
-            SPT:QueueProgressionSnapshot(self, true)
-        end
+    -- Do not append addon callbacks to the manager's expensive full-refresh chain.
+    -- Closed-window notifications only invalidate the saved-state cache.
+    local function OnProgressionChanged()
+        SPT:QueueProgressionSnapshot(self)
     end
-    if SKILLS_DATA_MANAGER then
-        SKILLS_DATA_MANAGER:RegisterCallback("FullSystemUpdated", function() SPT:QueueProgressionSnapshot(self) end)
-        SKILLS_DATA_MANAGER:RegisterCallback("SkillLineAdded", OnLineUpdated)
-        SKILLS_DATA_MANAGER:RegisterCallback("SkillLineUpdated", OnLineUpdated)
+    EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Skills", EVENT_SKILL_RANK_UPDATE, OnProgressionChanged)
+    EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Skills", EVENT_SKILL_LINE_ADDED, OnProgressionChanged)
+    -- XP-only notifications do not change the serialized rank/discovery state.
+end
+
+function Skills:SetActive(active)
+    local namespace = SPT.AddonName .. "Skills"
+    if active then
+        -- Full refreshes were deliberately not observed while the window was closed.
+        -- Revalidate committed state on opening, including respec/subclass changes.
+        self.dirty = true
+        EVENT_MANAGER:RegisterForEvent(namespace, EVENT_SKILLS_FULL_UPDATE,
+            function() SPT:QueueProgressionSnapshot(self) end)
+    else
+        EVENT_MANAGER:UnregisterForEvent(namespace, EVENT_SKILLS_FULL_UPDATE)
     end
 end
 

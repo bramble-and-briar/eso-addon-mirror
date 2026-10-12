@@ -392,11 +392,23 @@ local function DebugGroup()
     UnitFrames.OnLeaderUpdate(nil, "SmallGroup1")
 end
 
-local function DebugRaid()
+--- /luiufraid [6|9]: with a team size argument the raid preview pretends to be in a Big Team Battles battleground of
+--- that size (UnitFrames.GetBattlegroundRaidTeamSize honours debugBattlegroundTeamSizeOverride), so the
+--- RaidLayoutBattleground shapes can be checked outside a match. No argument = regular 12 player layout.
+--- @param arg string|nil
+local function DebugRaid(arg)
     local first = UnitFrames.CustomFrames["RaidGroup1"]
     if not first then
         NotifyMissing("RaidGroup")
         return
+    end
+    local trimmedArg = (type(arg) == "string" and arg:match("^%s*(.-)%s*$")) or ""
+    local battlegroundTeamSize = tonumber(trimmedArg)
+    if battlegroundTeamSize and battlegroundTeamSize > STANDARD_GROUP_SIZE_THRESHOLD and battlegroundTeamSize <= 12 then
+        UnitFrames.debugBattlegroundTeamSizeOverride = battlegroundTeamSize
+        LUIE.ChatOutput:AddSystemMessage(string.format("[LUIE] Raid preview: battleground layout for a %d player team. Run /luiufraid without a number to go back to the 12 player layout.", battlegroundTeamSize))
+    else
+        UnitFrames.debugBattlegroundTeamSizeOverride = nil
     end
     ApplyPositions()
     UnitFrames.CustomFramesApplyLayoutRaid(false, true)
@@ -533,6 +545,8 @@ local function DisableAllPreviews()
         UnitFrames.CustomPetUpdate()
     end
 
+    -- Drop any /luiufraid 6|9 battleground team size override before the live group state is restored
+    UnitFrames.debugBattlegroundTeamSizeOverride = nil
     if (UnitFrames.CustomFrames["SmallGroup1"] or UnitFrames.CustomFrames["RaidGroup1"]) and UnitFrames.CustomFramesGroupUpdate then
         UnitFrames.CustomFramesGroupUpdate()
     end
@@ -599,35 +613,38 @@ local function geometrySVForCategory(category)
     if not sv then return nil end
     if category == "raid" then
         local iconOption = sv.RaidIconOptions or 1
-        -- Mirrors applyIconSettings: iconOption == 1 means no icon (offset 10),
-        -- otherwise role/class icon is shown and the name is inset further (offset 27).
-        local offset = (iconOption == 1) and 10 or 27
+        -- Minimum gutter only. A wider health or dead label reserves more at runtime.
+        -- Inset 5 with no icon, 22 with a class/role/leader icon, plus the 5px right anchor and 4px gap.
+        local leftInset = (iconOption == 1) and 5 or 22
+        local minimumReserve = (sv.RaidNameClip or 0) + 5 + 4
         return
         {
             barWidth = sv.RaidBarWidth,
             clip = sv.RaidNameClip,
             iconOption = iconOption,
-            expectedNameWidth = zo_max(0, sv.RaidBarWidth - sv.RaidNameClip - offset),
+            expectedNameWidth = zo_max(0, sv.RaidBarWidth - leftInset - minimumReserve),
         }
     elseif category == "pet" then
+        local minimumReserve = (sv.PetNameClip or 0) + 5 + 4
         return
         {
             barWidth = sv.PetWidth,
             clip = sv.PetNameClip,
-            expectedNameWidth = zo_max(0, sv.PetWidth - sv.PetNameClip - 10),
+            expectedNameWidth = zo_max(0, sv.PetWidth - 5 - minimumReserve),
         }
     elseif category == "companion" then
+        local minimumReserve = (sv.CompanionNameClip or 0) + 5 + 4
         return
         {
             barWidth = sv.CompanionWidth,
             clip = sv.CompanionNameClip,
-            expectedNameWidth = zo_max(0, sv.CompanionWidth - sv.CompanionNameClip - 10),
+            expectedNameWidth = zo_max(0, sv.CompanionWidth - 5 - minimumReserve),
         }
     elseif category == "boss" then
         return
         {
             barWidth = sv.BossBarWidth,
-            expectedNameWidth = zo_max(0, sv.BossBarWidth - 50),
+            expectedNameWidth = zo_max(0, sv.BossBarWidth - 5 - 9),
         }
     end
     return nil

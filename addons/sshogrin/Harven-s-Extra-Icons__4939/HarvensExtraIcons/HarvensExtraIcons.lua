@@ -1,3 +1,6 @@
+HarvensExtraIcons = HarvensExtraIcons or {}
+HarvensExtraIcons.name = "HarvensExtraIcons"
+
 local function ForceImmediateInjection()
     -- Ensure both the Harven list and our custom list exist
     if not HarvensCustomMapPinsIconList then HarvensCustomMapPinsIconList = {} end
@@ -30,3 +33,4 @@ if HarvensCustomMapPins and HarvensCustomMapPins.InitializeSettings then
         return originalInit(self, ...)
     end
 end
+

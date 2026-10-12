@@ -30,6 +30,7 @@ local MapPins = {
     filters = {},
     pendingRefreshes = {},
 }
+local filterContexts = { "pve", "pvp", "imperialPvP", "battleground" }
 
 local function HasMapPinBudget()
     if GetTotalUserAddOnCPUTimeAvailableEachFrameMS and GetTotalUserAddOnCPUTimeUsedNowMS then
@@ -157,19 +158,9 @@ function MapPins:SetEnabled(pinType, state)
     local needsRefresh = self.pinManager:IsCustomPinEnabled(pinTypeId) ~= enabled
     local filter = self.filters[pinTypeId]
     if filter then
-        local mapFilterType = GetMapFilterType()
-        local checkbox
-        if mapFilterType == MAP_FILTER_TYPE_STANDARD then
-            checkbox = filter.pve
-        elseif mapFilterType == MAP_FILTER_TYPE_AVA_CYRODIIL then
-            checkbox = filter.pvp
-        elseif mapFilterType == MAP_FILTER_TYPE_AVA_IMPERIAL then
-            checkbox = filter.imperialPvP
-        elseif mapFilterType == MAP_FILTER_TYPE_BATTLEGROUND then
-            checkbox = filter.battleground
-        end
-        if checkbox then
-            ZO_CheckButton_SetCheckState(checkbox, enabled)
+        -- This addon shares one saved filter across all map contexts.
+        for _, context in ipairs(filterContexts) do
+            if filter[context] then ZO_CheckButton_SetCheckState(filter[context], enabled) end
         end
     end
 
@@ -179,7 +170,7 @@ function MapPins:SetEnabled(pinType, state)
     end
 end
 
-function MapPins:AddPinFilter(pinType, checkboxText, separate, savedVars, pveKey, pvpKey, imperialPvpKey, battlegroundKey)
+function MapPins:AddPinFilter(pinType, checkboxText, savedVars, savedKey)
     local pinTypeId, pinTypeString = GetPinTypeIdAndString(pinType)
     if not pinTypeId or not pinTypeString or self.filters[pinTypeId] then
         return
@@ -190,16 +181,7 @@ function MapPins:AddPinFilter(pinType, checkboxText, separate, savedVars, pveKey
 
     if type(savedVars) == "table" then
         filter.vars = savedVars
-        filter.pveKey = pveKey or pinTypeString
-        if separate then
-            filter.pvpKey = pvpKey or pinTypeString .. "_pvp"
-            filter.imperialPvPKey = imperialPvpKey or pinTypeString .. "_imperialPvP"
-            filter.battlegroundKey = battlegroundKey or pinTypeString .. "_battleground"
-        else
-            filter.pvpKey = filter.pveKey
-            filter.imperialPvPKey = filter.pveKey
-            filter.battlegroundKey = filter.pveKey
-        end
+        filter.savedKey = savedKey or pinTypeString
     end
 
     if type(checkboxText) ~= "string" then
@@ -221,34 +203,22 @@ function MapPins:AddPinFilter(pinType, checkboxText, separate, savedVars, pveKey
     filter.imperialPvP = AddCheckbox(WORLD_MAP_FILTERS and WORLD_MAP_FILTERS.imperialPvPPanel)
     filter.battleground = AddCheckbox(WORLD_MAP_FILTERS and WORLD_MAP_FILTERS.battlegroundPanel)
 
-    local function ConfigureCheckbox(control, key)
+    local function ConfigureCheckbox(control)
         if not control then
             return
         end
         ZO_CheckButton_SetToggleFunction(control, function(_, state)
-            if filter.vars and key then
-                filter.vars[key] = state
+            if filter.vars then
+                filter.vars[filter.savedKey] = state
             end
             self:SetEnabled(pinTypeId, state)
         end)
     end
 
-    ConfigureCheckbox(filter.pve, filter.pveKey)
-    ConfigureCheckbox(filter.pvp, filter.pvpKey)
-    ConfigureCheckbox(filter.imperialPvP, filter.imperialPvPKey)
-    ConfigureCheckbox(filter.battleground, filter.battlegroundKey)
+    for _, context in ipairs(filterContexts) do ConfigureCheckbox(filter[context]) end
 
     if filter.vars then
-        local mapFilterType = GetMapFilterType()
-        local key = filter.pveKey
-        if mapFilterType == MAP_FILTER_TYPE_AVA_CYRODIIL then
-            key = filter.pvpKey
-        elseif mapFilterType == MAP_FILTER_TYPE_AVA_IMPERIAL then
-            key = filter.imperialPvPKey
-        elseif mapFilterType == MAP_FILTER_TYPE_BATTLEGROUND then
-            key = filter.battlegroundKey
-        end
-        self:SetEnabled(pinTypeId, filter.vars[key])
+        self:SetEnabled(pinTypeId, filter.vars[filter.savedKey])
     else
         for _, control in pairs({
             filter.pve,
@@ -316,50 +286,7 @@ function MapPins:GetZoneAndSubzone(alternative, stripUIMap, keepMapNumber)
     return zone, subzone
 end
 
-function MapPins:OnMapChanged()
-    local context
-    local mapFilterType = GetMapFilterType()
-    if mapFilterType == MAP_FILTER_TYPE_STANDARD then
-        context = "pve"
-    elseif mapFilterType == MAP_FILTER_TYPE_AVA_CYRODIIL then
-        context = "pvp"
-    elseif mapFilterType == MAP_FILTER_TYPE_AVA_IMPERIAL then
-        context = "imperialPvP"
-    elseif mapFilterType == MAP_FILTER_TYPE_BATTLEGROUND then
-        context = "battleground"
-    end
-    if not context then
-        return
-    end
-
-    if self.context == context then
-        return
-    end
-    self.context = context
-
-    local filterKey = context .. "Key"
-    for pinTypeId, filter in pairs(self.filters) do
-        if filter.vars then
-            self:SetEnabled(pinTypeId, filter.vars[filter[filterKey]])
-        else
-            local control = filter[context]
-            if control then
-                ZO_CheckButton_SetCheckState(control, self:IsEnabled(pinTypeId))
-            end
-        end
-    end
-end
-
-CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", function()
-    if MapPins.mapChangePending then return end
-    MapPins.mapChangePending = true
-    local function ApplyMapContext()
-        if not HasMapPinBudget() then zo_callLater(ApplyMapContext, 50); return end
-        MapPins.mapChangePending = false
-        -- Read the final map context after a burst of native/minimap callbacks.
-        MapPins:OnMapChanged()
-    end
-    zo_callLater(ApplyMapContext, 50)
-end)
+-- Native custom-pin layout callbacks already follow map changes. With one shared
+-- filter there is no context-specific state to update in OnWorldMapChanged.
 
 PsijicWay.internal.mapPins = MapPins

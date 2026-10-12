@@ -12,6 +12,7 @@ local TYPE_ROW        = 2
 local TYPE_EMPTY      = 3
 local TYPE_PLAYER     = 4    -- «Святилище рядом с @игрок — Бесплатно»
 local PLAYER_ICON     = "/esoui/art/icons/mapkey/mapkey_groupmember.dds"
+local ROUTE_COLOR     = ZO_ColorDef:New("5DC1E8")   -- «Бесплатно» через игрока и святилище
 local HEADER_HEIGHT   = 26
 local ROW_HEIGHT      = 30
 local EMPTY_HEIGHT    = 80
@@ -159,7 +160,7 @@ function Menu:Refresh()
                 AddPlayerRow(node, false)
             end
 
-            local priceText, affordable, isFree = Data:GetPriceInfo(node)
+            local priceText, affordable, isFree, isRoute = Data:GetDisplayPrice(node, "Menu")
             dataList[#dataList + 1] = ZO_ScrollList_CreateDataEntry(TYPE_ROW, {
                 node       = node,
                 available  = available,
@@ -167,6 +168,7 @@ function Menu:Refresh()
                 priceText  = priceText,
                 affordable = affordable,
                 isFree     = isFree,
+                isRoute    = isRoute,
             })
             contentHeight = contentHeight + ROW_HEIGHT
         end
@@ -267,7 +269,9 @@ function Menu:SetupRow(control, data)
         icon:SetDesaturation(0)
         SetColor(name, ZO_HIGHLIGHT_TEXT)
         price:SetText(data.priceText)
-        if data.isFree then
+        if data.isRoute then
+            price:SetColor(ROUTE_COLOR:UnpackRGBA())
+        elseif data.isFree then
             SetColor(price, ZO_SUCCEEDED_TEXT)
         elseif data.affordable then
             SetColor(price, ZO_NORMAL_TEXT)
@@ -305,6 +309,9 @@ function Menu:OnRowEnter(control)
     end
     if not data.available and data.reason then
         tip = tip .. "\n|cFF6060" .. data.reason .. "|r"
+    elseif data.isRoute then
+        tip = tip .. "\n|c5DC1E8" .. zo_strformat(L.ROUTE_TOOLTIP, data.node.name) .. "|r\n|c9A9A9A"
+            .. zo_strformat(L.ROUTE_TOOLTIP_COST, (Data:GetPriceInfo(data.node))) .. "|r"
     end
     ZO_Tooltips_ShowTextTooltip(control, RIGHT, tip)
 end
@@ -314,8 +321,8 @@ function Menu:OnRowExit(control)
     ZO_Tooltips_HideTextTooltip()
 end
 
-function Menu:TravelTo(node)
-    local result = Data:Travel(node)
+function Menu:TravelTo(node, payNow)
+    local result = Data:Travel(node, payNow, "Menu")
     if result == "started" then
         self:Hide()
     end
@@ -342,6 +349,14 @@ function Menu:OnRowClicked(control, button)
         ClearMenu()
         if data.available then
             AddMenuItem(L.CTX_TRAVEL, function() self:TravelTo(node) end)
+            -- Бесплатный путь включён — можно заплатить и сразу; выключен — можно бесплатно
+            if QTM.Route:WillUse(node, "Menu") then
+                AddMenuItem(zo_strformat(L.CTX_PAY_NOW, (Data:GetPriceInfo(node))), function() self:TravelTo(node, true) end)
+            elseif QTM.Route:CanRoute(node) then
+                AddMenuItem(L.CTX_ROUTE_FREE, function()
+                    if QTM.Route:Request(node) == "started" then self:Hide() end
+                end)
+            end
         end
         AddMenuItem(L.CTX_RENAME, function() Data:ShowRenameDialog(node) end)
         AddMenuItem(L.CTX_ADD_BUTTON, function()

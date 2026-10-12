@@ -1,102 +1,106 @@
--- UI strings only; never used to identify abilities or units.
-CorpseTracker.locales.jp = {
-    AUTOMATIC = "自動",
-    LANGUAGE = "表示言語",
-    LANG_TIP = "自動：対応するクライアント言語を使用し、それ以外は英語。手動変更後は /reloadui。",
-    SHOW = "カウンターを表示",
-    SHOW_TIP = "ゲームHUDのみ表示。メニューでは非表示。",
-    DEBUG = "デバッグモード",
-    DEBUG_TIP = "記録中の追加ユニット観察と、拡張モードでの不確実性の黄色表示。表示、計数モード、記録の状態は変えません。",
-    SOURCES = "死体の生成元",
-    SOURCES_TIP = "全追跡対象には自分のスケルトン召喚とルールを含みます。世界中の死体すべてではありません。",
-    PRIMARY = "自分のBB＋スカル",
-    ALL = "全追跡対象",
-    RANGE = "距離フィルター",
-    RANGE_TIP = "IDでスキルの値を取得します。Yardはプレイヤーからの距離上限のみで、範囲内命中や視線を保証しません。APIデータがない場合は距離制限を適用しません。",
-    RANGE_SIPHON = "Siphon：スキル射程",
-    RANGE_YARD = "Yard：設置距離＋半径",
-    RANGE_MANUAL = "距離を指定",
-    RANGE_NONE = "距離制限なし",
-    MANUAL_RANGE = "指定距離（m）",
-    UNKNOWN = "位置不明の死体を含める",
-    UNKNOWN_TIP = "有効：位置不明の死体を推定数に含めます。無効：距離制限中は位置が判明した射程内の死体のみ数えます。不明は不存在を意味しません。",
-    LOCK = "位置を固定",
-    LOCK_TIP = "固定解除中はドラッグで移動できます。右クリックで両モードの生成元を切り替えます。",
-    SIZE = "四角のサイズ",
-    COUNT_MODE = "計数モード",
-    COUNT_TIP = "軽量モードは距離を確認せず、記録した生成・消費・寿命切れを集計します。拡張モードは実験的な距離と消費の推定を追加します。",
-    LIGHT = "軽量",
-    EXTENDED = "拡張（実験的）",
-    VIEW = "カウンター表示",
-    VIEW_TIP = "Lightでは四角いカウンターのみ使用できます。詳細パネルは拡張モードで利用できます。記録は表示形式とは独立しています。",
-    COMPACT = "四角",
-    DETAILED = "詳細パネル",
-    LIGHT_INFO = "記録した生成・消費・寿命切れの推定値です。距離は確認しません。",
-    DIAGNOSTICS = "診断",
-    RELOAD_REMINDER = "読み込み済みバージョン: v%s。アドオンのファイルを更新したら、新しいテストを始める前に /reloadui を実行してください。記録を停止した後は、/reloadui を実行するかゲームを終了してログをディスクに保存してください。",
-    NEWTEST = "新しい診断テストを開始",
-    NEWTEST_TIP = "以前の診断データを消去し、現在の表示モードで記録を開始します。現在の死体を保持し、その初期状態を記録します。",
-    CLEARLOG = "ログのみ消去",
-    CLEARLOG_TIP = "カウンターや記録モードは変更しません。",
-    CAPTURE = "診断ログを記録",
-    CAPTURE_TIP = "どちらの表示モードでも最大2500イベントを記録します。無効にすると記録を停止し、ログを保持します。保存するには /reloadui を実行するか、ゲームを終了してください。",
-    RADIUS = "診断半径（m）",
-    RADIUS_TIP = "距離制限なしの診断に使用。メインの数値を制限しません。",
-    BANNER_UNAVAILABLE = "バナーの死体は数えません",
-    BANNER_TIP = "バナーの値は診断専用で、死体数には追加されません。",
-    PHYSICAL = "物理的な死体のみと仮定",
-    PHYSICAL_TIP = "診断用の仮定であり、消費された死体を証明しません。",
-    TTL = "%s：推定存続時間（秒）",
-    TTL_TIP = "新しい記録のみ。利用可能時間の推定値です。",
-    SOURCE_BB = "BB",
-    SOURCE_SKULL = "スカル",
-    SOURCE_ARCHER = "アーチャー／メイジ",
-    SOURCE_BANNER = "バナー",
-    CORPSES = "死体",
-    POSSIBLE = "[候補 %d–%d]",
-    SOURCE_BUTTON = "生成元：%s（クリックで切替）",
-    BREAKDOWN = "BB %d | スカル %d | その他 %d（全対象）",
-    LOCATED = "%.0fm：範囲内 %d ＋位置不明 %d",
-    API_MISSING = "API：確認済みの個数なし",
-    CANDIDATE = "候補",
-    API_SAMPLE = "%s：%d / %.0fm（%.1f秒前%s）",
-    STALE = "、古い値",
-    BANNER_SAMPLE = "バナー227113：%d?（%.1f秒前）",
-    BANNER_MISSING = "バナー227113：サンプルなし",
-    SESSION = "セッション：＋%d / 使用 %d / 期限切れ %d",
-    YARD_STATS = "Yard %d / 未確認 %d | 未追跡 %d | 未対応 %d",
-    TTL_EXPIRES = "次の期限切れ %.1f秒",
-    TTL_EMPTY = "選択対象なし",
-    TTL_ESTIMATE = "存続時間の推定；%s%s",
-    RECORDING = "；記録中",
-    BOUNDS_BROAD = "選択不明；推定幅を拡大",
-    CHOICE_UNKNOWN = "消費対象／利用可能性は未確認",
-    RANGE_OFF = "距離制限：無効",
-    RANGE_AVAILABLE = "%s：%.1fm | 範囲外 %d | 不明：%s",
-    RANGE_UNAVAILABLE = "射程不明：距離制限なし",
-    INCLUDED = "含む",
-    EXCLUDED = "除外",
-    TOOLTIP_COUNTS = "推定 %d；候補 %d–%d；位置不明 %d",
-    TOOLTIP_RANGE = "射程：%.1fm（%s）",
-    TOOLTIP_HINT = "数字：死体の推定数。~：寿命切れまでの推定秒数。?：残りが0の可能性があります。",
-    ENABLED = "有効",
-    DISABLED = "無効",
-    AMBIGUOUS = "無効（不確実）",
-    CHAT_DEPENDENCY = "設定を開くにはLibAddonMenu-2.0を導入して有効化してください。",
-    CHAT_CAPTURE = "診断記録：%s",
-    CHAT_CLEARED = "診断ログを消去しました。",
-    CHAT_RESET = "死体台帳をリセットしました。",
-    CHAT_RADIUS = "診断半径：%.1fm",
-    CHAT_SOURCES = "生成元：%s",
-    CHAT_TTL = "新しい記録の存続時間のみ変更しました。",
-    CHAT_PHYSICAL = "物理的な死体の仮定：%s",
-    CHAT_VARIANTS = "%d個のスキル派生を取得し、診断に保存しました。",
-    CHAT_RULE = "ID %sのルールを追加しました。使用前に検証してください。",
-    CHAT_API = "API %d；グローバル関数の検索は無効。",
-    CHAT_SLOT = "%d：%s [%d]、使用可=%s 対象エラー=%s 射程=%s コスト=%s",
-    CHAT_STATUS1 = "生成元=%s 推定=%d 候補=%d–%d；BB=%d スカル=%d その他=%d",
-    CHAT_STATUS2 = "生成=%d 使用=%d 未追跡=%d 期限切れ=%d 未対応=%d 不確実=%d；記録=%d",
-    CHAT_STATUS3 = "Yard 詠唱=%d 消費=%d 未確認=%d",
-    CHAT_READY = "v%s 実験版。/crpst settings — 設定；/crpst test — 新しいテスト。",
-    COMMANDS = "コマンド（引数は英語のまま）：",
-}
+-- ESO String ID translation, applied after the saved language is selected.
+local CT = CorpseTracker
+local SafeAddString = SafeAddString
+
+CT.RegisterTranslation("jp", function()
+    local ids = CT.stringIds
+    SafeAddString(ids.AUTOMATIC, "自動", 2)
+    SafeAddString(ids.LANGUAGE, "表示言語", 2)
+    SafeAddString(ids.LANG_TIP, "自動はクライアントの言語を使用し、未対応の場合は英語になります。選択した言語はこのアドオンにのみ適用されます。変更後は /reloadui が必要です。", 2)
+    SafeAddString(ids.SHOW, "カウンターを表示", 2)
+    SafeAddString(ids.SHOW_TIP, "ゲームHUDのみ表示。メニューでは非表示。", 2)
+    SafeAddString(ids.DEBUG, "デバッグモード", 2)
+    SafeAddString(ids.DEBUG_TIP, "記録中の追加ユニット観察と、拡張モードでの不確実性の黄色表示。表示、計数モード、記録の状態は変えません。", 2)
+    SafeAddString(ids.SOURCES, "死体の生成元", 2)
+    SafeAddString(ids.SOURCES_TIP, "全追跡対象には自分のスケルトン召喚とルールを含みます。世界中の死体すべてではありません。", 2)
+    SafeAddString(ids.PRIMARY, "自分のBB＋スカル", 2)
+    SafeAddString(ids.ALL, "全追跡対象", 2)
+    SafeAddString(ids.RANGE, "距離フィルター", 2)
+    SafeAddString(ids.RANGE_TIP, "IDでスキルの値を取得します。Yardはプレイヤーからの距離上限のみで、範囲内命中や視線を保証しません。APIデータがない場合は距離制限を適用しません。", 2)
+    SafeAddString(ids.RANGE_SIPHON, "Siphon：スキル射程", 2)
+    SafeAddString(ids.RANGE_YARD, "Yard：設置距離＋半径", 2)
+    SafeAddString(ids.RANGE_MANUAL, "距離を指定", 2)
+    SafeAddString(ids.RANGE_NONE, "距離制限なし", 2)
+    SafeAddString(ids.MANUAL_RANGE, "指定距離（m）", 2)
+    SafeAddString(ids.UNKNOWN, "位置不明の死体を含める", 2)
+    SafeAddString(ids.UNKNOWN_TIP, "有効：位置不明の死体を推定数に含めます。無効：距離制限中は位置が判明した射程内の死体のみ数えます。不明は不存在を意味しません。", 2)
+    SafeAddString(ids.LOCK, "位置を固定", 2)
+    SafeAddString(ids.LOCK_TIP, "固定解除中はドラッグで移動できます。右クリックで両モードの生成元を切り替えます。", 2)
+    SafeAddString(ids.SIZE, "四角のサイズ", 2)
+    SafeAddString(ids.COUNT_MODE, "計数モード", 2)
+    SafeAddString(ids.COUNT_TIP, "軽量モードは距離を確認せず、記録した生成・消費・寿命切れを集計します。拡張モードは実験的な距離と消費の推定を追加します。", 2)
+    SafeAddString(ids.LIGHT, "軽量", 2)
+    SafeAddString(ids.EXTENDED, "拡張（実験的）", 2)
+    SafeAddString(ids.VIEW, "カウンター表示", 2)
+    SafeAddString(ids.VIEW_TIP, "Lightでは四角いカウンターのみ使用できます。詳細パネルは拡張モードで利用できます。記録は表示形式とは独立しています。", 2)
+    SafeAddString(ids.COMPACT, "四角", 2)
+    SafeAddString(ids.DETAILED, "詳細パネル", 2)
+    SafeAddString(ids.LIGHT_INFO, "記録した生成・消費・寿命切れの推定値です。距離は確認しません。", 2)
+    SafeAddString(ids.DIAGNOSTICS, "診断", 2)
+    SafeAddString(ids.RELOAD_REMINDER, "読み込み済みバージョン: v<<1>>。アドオンのファイルを更新したら、新しいテストを始める前に /reloadui を実行してください。記録を停止した後は、/reloadui を実行するかゲームを終了してログをディスクに保存してください。", 2)
+    SafeAddString(ids.NEWTEST, "新しい診断テストを開始", 2)
+    SafeAddString(ids.NEWTEST_TIP, "以前の診断データを消去し、現在の表示モードで記録を開始します。現在の死体を保持し、その初期状態を記録します。", 2)
+    SafeAddString(ids.CLEARLOG, "ログのみ消去", 2)
+    SafeAddString(ids.CLEARLOG_TIP, "カウンターや記録モードは変更しません。", 2)
+    SafeAddString(ids.CAPTURE, "診断ログを記録", 2)
+    SafeAddString(ids.CAPTURE_TIP, "どちらの表示モードでも最大2500イベントを記録します。無効にすると記録を停止し、ログを保持します。保存するには /reloadui を実行するか、ゲームを終了してください。", 2)
+    SafeAddString(ids.RADIUS, "診断半径（m）", 2)
+    SafeAddString(ids.RADIUS_TIP, "距離制限なしの診断に使用。メインの数値を制限しません。", 2)
+    SafeAddString(ids.BANNER_UNAVAILABLE, "バナーの死体は数えません", 2)
+    SafeAddString(ids.BANNER_TIP, "バナーの値は診断専用で、死体数には追加されません。", 2)
+    SafeAddString(ids.PHYSICAL, "物理的な死体のみと仮定", 2)
+    SafeAddString(ids.PHYSICAL_TIP, "診断用の仮定であり、消費された死体を証明しません。", 2)
+    SafeAddString(ids.TTL, "<<1>>：推定存続時間（秒）", 2)
+    SafeAddString(ids.TTL_TIP, "新しい記録のみ。利用可能時間の推定値です。", 2)
+    SafeAddString(ids.SOURCE_BB, "BB", 2)
+    SafeAddString(ids.SOURCE_SKULL, "スカル", 2)
+    SafeAddString(ids.SOURCE_ARCHER, "アーチャー／メイジ", 2)
+    SafeAddString(ids.SOURCE_BANNER, "バナー", 2)
+    SafeAddString(ids.CORPSES, "死体", 2)
+    SafeAddString(ids.POSSIBLE, "[候補 <<F:1>>–<<F:2>>]", 2)
+    SafeAddString(ids.SOURCE_BUTTON, "生成元：<<1>>（クリックで切替）", 2)
+    SafeAddString(ids.BREAKDOWN, "BB <<F:1>> || スカル <<F:2>> || その他 <<F:3>>（全対象）", 2)
+    SafeAddString(ids.LOCATED, "<<F:1>>m：範囲内 <<F:2>> ＋位置不明 <<F:3>>", 2)
+    SafeAddString(ids.API_MISSING, "API：確認済みの個数なし", 2)
+    SafeAddString(ids.CANDIDATE, "候補", 2)
+    SafeAddString(ids.API_SAMPLE, "<<1>>：<<F:2>> / <<F:3>>m（<<f:4>>秒前<<5>>）", 2)
+    SafeAddString(ids.STALE, "、古い値", 2)
+    SafeAddString(ids.BANNER_SAMPLE, "バナー227113：<<F:1>>?（<<f:2>>秒前）", 2)
+    SafeAddString(ids.BANNER_MISSING, "バナー227113：サンプルなし", 2)
+    SafeAddString(ids.SESSION, "セッション：＋<<F:1>> / 使用 <<F:2>> / 期限切れ <<F:3>>", 2)
+    SafeAddString(ids.YARD_STATS, "Yard <<F:1>> / 未確認 <<F:2>> || 未追跡 <<F:3>> || 未対応 <<F:4>>", 2)
+    SafeAddString(ids.TTL_EXPIRES, "次の期限切れ <<f:1>>秒", 2)
+    SafeAddString(ids.TTL_EMPTY, "選択対象なし", 2)
+    SafeAddString(ids.TTL_ESTIMATE, "存続時間の推定；<<1>><<2>>", 2)
+    SafeAddString(ids.RECORDING, "；記録中", 2)
+    SafeAddString(ids.BOUNDS_BROAD, "選択不明；推定幅を拡大", 2)
+    SafeAddString(ids.CHOICE_UNKNOWN, "消費対象／利用可能性は未確認", 2)
+    SafeAddString(ids.RANGE_OFF, "距離制限：無効", 2)
+    SafeAddString(ids.RANGE_AVAILABLE, "<<1>>：<<f:2>>m || 範囲外 <<F:3>> || 不明：<<4>>", 2)
+    SafeAddString(ids.RANGE_UNAVAILABLE, "射程不明：距離制限なし", 2)
+    SafeAddString(ids.INCLUDED, "含む", 2)
+    SafeAddString(ids.EXCLUDED, "除外", 2)
+    SafeAddString(ids.TOOLTIP_COUNTS, "推定 <<F:1>>；候補 <<F:2>>–<<F:3>>；位置不明 <<F:4>>", 2)
+    SafeAddString(ids.TOOLTIP_RANGE, "射程：<<f:1>>m（<<2>>）", 2)
+    SafeAddString(ids.TOOLTIP_HINT, "数字：死体の推定数。~：寿命切れまでの推定秒数。?：残りが0の可能性があります。", 2)
+    SafeAddString(ids.ENABLED, "有効", 2)
+    SafeAddString(ids.DISABLED, "無効", 2)
+    SafeAddString(ids.AMBIGUOUS, "無効（不確実）", 2)
+    SafeAddString(ids.CHAT_DEPENDENCY, "設定を開くにはLibAddonMenu-2.0を導入して有効化してください。", 2)
+    SafeAddString(ids.CHAT_CAPTURE, "診断記録：<<1>>", 2)
+    SafeAddString(ids.CHAT_CLEARED, "診断ログを消去しました。", 2)
+    SafeAddString(ids.CHAT_RESET, "死体台帳をリセットしました。", 2)
+    SafeAddString(ids.CHAT_RADIUS, "診断半径：<<f:1>>m", 2)
+    SafeAddString(ids.CHAT_SOURCES, "生成元：<<1>>", 2)
+    SafeAddString(ids.CHAT_TTL, "新しい記録の存続時間のみ変更しました。", 2)
+    SafeAddString(ids.CHAT_PHYSICAL, "物理的な死体の仮定：<<1>>", 2)
+    SafeAddString(ids.CHAT_VARIANTS, "<<F:1>>個のスキル派生を取得し、診断に保存しました。", 2)
+    SafeAddString(ids.CHAT_RULE, "ID <<1>>のルールを追加しました。使用前に検証してください。", 2)
+    SafeAddString(ids.CHAT_API, "API <<1>>；グローバル関数の検索は無効。", 2)
+    SafeAddString(ids.CHAT_SLOT, "<<1>>：<<2>> [<<3>>]、使用可=<<4>> 対象エラー=<<5>> 射程=<<6>> コスト=<<7>>", 2)
+    SafeAddString(ids.CHAT_STATUS1, "生成元=<<1>> 推定=<<F:2>> 候補=<<F:3>>–<<F:4>>；BB=<<F:5>> スカル=<<F:6>> その他=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS2, "生成=<<F:1>> 使用=<<F:2>> 未追跡=<<F:3>> 期限切れ=<<F:4>> 未対応=<<F:5>> 不確実=<<F:6>>；記録=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS3, "Yard 詠唱=<<F:1>> 消費=<<F:2>> 未確認=<<F:3>>", 2)
+    SafeAddString(ids.CHAT_READY, "v<<1>> 実験版。/crpst settings — 設定；/crpst test — 新しいテスト。", 2)
+    SafeAddString(ids.COMMANDS, "コマンド（引数は英語のまま）：", 2)
+end)

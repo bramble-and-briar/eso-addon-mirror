@@ -1,0 +1,7 @@
+## Title: ArabicHelper
+## APIVersion: 101051 101050
+## SavedVariables: ArabicHelperSavedVariables
+
+Bindings.xml
+arabic.lua
+ArabicHelper.lua

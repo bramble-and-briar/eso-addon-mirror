@@ -1,4 +1,4 @@
-ChatKeeper={VERSION='1.0.0',MAX_MESSAGES=100,MAX_BYTES=262144}
+ChatKeeper={VERSION='1.0.1',MAX_MESSAGES=100,MAX_BYTES=262144,OFFLINE_TIMEOUT=1800}
 local K=ChatKeeper
 local defaults={history={},timestamps=true,hour24=true,offsetY=-40,offsetX=0,restore=true,restoreCount=100}
 local unpackArgs=unpack or table.unpack
@@ -45,10 +45,9 @@ function K:ChannelName(channel)
  return read(GetDynamicChatChannelName,channel) or 'Chat'
 end
 function K:Trim()
- local now=read(GetTimeStamp) or 0
  for i=#self.saved.history,1,-1 do
   local m=self.saved.history[i]
-  if not m.epoch or now-m.epoch>172800 then table.remove(self.saved.history,i) end
+  if not m.epoch then table.remove(self.saved.history,i) end
  end
  local bytes=0
  for _,m in ipairs(self.saved.history) do bytes=bytes+#(m.text or '')+#(m.sender or '')+#(m.channelName or '')+64 end
@@ -56,6 +55,35 @@ function K:Trim()
   local m=table.remove(self.saved.history,1);bytes=bytes-#(m.text or '')-#(m.sender or '')-#(m.channelName or '')-64
  end
  self.bytes=bytes
+end
+function K:ClearHistory()
+ self.saved.history={}
+ self.restoreSnapshot={}
+ self:Trim()
+end
+function K:ExpireOffline(now)
+ local last=tonumber(self.saved.lastSeen)
+ if not last or last<=0 or now<last or now-last>=self.OFFLINE_TIMEOUT then
+  self:ClearHistory()
+  self.replayExpired=true
+  return true
+ end
+ return false
+end
+function K:BeginOnline()
+ local now=read(GetTimeStamp) or 0
+ self:ExpireOffline(now)
+ self.saved.lastSeen=now
+ self.online=true
+ EVENT_MANAGER:UnregisterForUpdate('TGWChatKeeper_Seen')
+ EVENT_MANAGER:RegisterForUpdate('TGWChatKeeper_Seen',60000,function()
+  if self.online then self.saved.lastSeen=read(GetTimeStamp) or 0;self:Trim() end
+ end)
+end
+function K:EndOnline()
+ self.saved.lastSeen=read(GetTimeStamp) or 0
+ self.online=false
+ EVENT_MANAGER:UnregisterForUpdate('TGWChatKeeper_Seen')
 end
 function K:Capture(channel,from,text,customer,display)
  if customer or not self:Allowed(channel) then return end
@@ -201,20 +229,27 @@ EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Load',EVENT_ADD_ON_LOADED,function
  K.saved.restoreCount=clamp(tonumber(K.saved.restoreCount) or 100,25,100)
  for _,key in ipairs({'background','fillArtwork','artOpacity','panelOpacity','loadingArtwork','centeredFlagV1'}) do K.saved[key]=nil end
  local now=read(GetTimeStamp) or 0
- K.replayExpired=not K.saved.lastSeen or now-K.saved.lastSeen>=1800
+ -- Old versions retained expired sessions and then touched lastSeen again.
+ -- Clear that ambiguous backlog once; preserve all positioning/preferences.
+ if K.saved.sessionExpiryVersion~=1 then
+  K:ClearHistory();K.saved.sessionExpiryVersion=1;K.replayExpired=true
+ else
+  K:ExpireOffline(now)
+ end
  K.saved.lastSeen=now
+ K.online=false
  K:Trim();K.restoreSnapshot={};for i,m in ipairs(K.saved.history) do K.restoreSnapshot[i]=m end
  K:InstallTimestamps()
  EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Chat',EVENT_CHAT_MESSAGE_CHANNEL,function(_,...) K:Capture(...) end)
  EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Active',EVENT_PLAYER_ACTIVATED,function()
+  K:BeginOnline()
   zo_callLater(function() K:InstallTimestamps();K:Offset();K:Restore() end,1000)
  end)
  EVENT_MANAGER:RegisterForUpdate('TGWChatKeeper_Position',500,function() K:Offset() end)
- EVENT_MANAGER:RegisterForUpdate('TGWChatKeeper_Seen',60000,function() K.saved.lastSeen=read(GetTimeStamp) or 0;K:Trim() end)
- EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Leaving',EVENT_PLAYER_DEACTIVATED,function() K.saved.lastSeen=read(GetTimeStamp) or 0 end)
+ EVENT_MANAGER:RegisterForEvent('TGWChatKeeper_Leaving',EVENT_PLAYER_DEACTIVATED,function() K:EndOnline() end)
  SLASH_COMMANDS['/chatkeeper']=function(arg)
   arg=(arg or ''):lower():match('^%s*(.-)%s*$')
-  if arg=='clear confirm' then K.saved.history={};K.restoreSnapshot={};K:Trim();d('Chat Keeper: saved history cleared.')
+  if arg=='clear confirm' then K:ClearHistory();d('Chat Keeper: saved history cleared.')
   elseif arg=='clear' then d('Chat Keeper: /chatkeeper clear confirm deletes this server\'s saved conversations.')
   elseif arg=='history' then K:Open('history')
   elseif arg=='reset' then K.saved.offsetY=0;K.saved.offsetX=0;K:Offset();d('Chat Keeper: native chat position restored.')

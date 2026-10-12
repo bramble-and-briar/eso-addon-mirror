@@ -261,7 +261,15 @@ function Hermes:InitializeMenu()
             type = "button",
             name = Hermes.GetDefaultLocaleString("SETTINGS_BUTTON_CHANGELOG"),
             func = function()
-                Hermes_Changelog:SetHidden(false)
+                Hermes:ToggleChangelog(true)
+            end,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = Hermes.GetDefaultLocaleString("SETTINGS_SHOW_GUIDEBUTTON"),
+            func = function()
+                Hermes:ToggleGuide(true)
             end,
             width = "half",
         },

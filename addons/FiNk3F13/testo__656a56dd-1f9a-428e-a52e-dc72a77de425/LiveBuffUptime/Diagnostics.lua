@@ -1,5 +1,69 @@
 LiveBuffUptimeDiagnostics = {}
 local Audit = LiveBuffUptimeDiagnostics
+
+function Audit.NewPerformance(clock)
+    return { enabled = false, clock = clock, buckets = {}, depth = 0, total = 0,
+        frames = 0, frameMS = 0, maxFrameMS = 0, slowFrames = 0 }
+end
+
+function Audit.PerformanceEnabled(perf, enabled)
+    perf.enabled = enabled
+    if enabled then
+        perf.buckets, perf.depth, perf.total = {}, 0, 0
+        perf.frames, perf.frameMS, perf.maxFrameMS, perf.slowFrames = 0, 0, 0, 0
+        perf.started = perf.clock()
+        perf.stopped = nil
+    end
+end
+
+function Audit.Profile(perf, label, callback)
+    return function(...)
+        if not perf.enabled then return callback(...) end
+        local started = perf.clock()
+        local outer = perf.depth == 0
+        perf.depth = perf.depth + 1
+        local ok, reason = pcall(callback, ...)
+        perf.depth = perf.depth - 1
+        local elapsed = math.max(0, perf.clock() - started)
+        local bucket = perf.buckets[label]
+        if not bucket then
+            bucket = { count = 0, total = 0, max = 0, slow = 0, errors = 0 }
+            perf.buckets[label] = bucket
+        end
+        bucket.count, bucket.total = bucket.count + 1, bucket.total + elapsed
+        bucket.max = math.max(bucket.max, elapsed)
+        if elapsed >= 5 then bucket.slow = bucket.slow + 1 end
+        if not ok then bucket.errors = bucket.errors + 1 end
+        -- Nested callbacks appear in their category, but only once in the overall total.
+        if outer then perf.total = perf.total + elapsed end
+        if not ok then error(reason, 0) end
+    end
+end
+
+function Audit.PerformanceFrame(perf, seconds)
+    if not perf.enabled or not seconds or seconds <= 0 then return end
+    local ms = seconds * 1000
+    perf.frames, perf.frameMS = perf.frames + 1, perf.frameMS + ms
+    perf.maxFrameMS = math.max(perf.maxFrameMS, ms)
+    if ms >= 50 then perf.slowFrames = perf.slowFrames + 1 end
+end
+
+function Audit.ShowPerformance(perf, output)
+    local duration = perf.started and math.max(0, (perf.stopped or perf.clock()) - perf.started) or 0
+    output(string.format("LiveBuffUptime Performance: %s | %.1fs | gemessene Addon-Arbeit %.2fms (%.2f%% der Messzeit)",
+        perf.enabled and "aktiv" or "aus", duration / 1000, perf.total,
+        duration > 0 and perf.total / duration * 100 or 0))
+    for _, label in ipairs({ "Live-Update", "ESO-Ereignisse", "Bibliotheks-Ereignisse", "Verschieben" }) do
+        local b = perf.buckets[label]
+        if b then output(string.format("%s: %d Aufrufe | Mittel %.3fms | Max %.2fms | ab 5ms: %d | Fehler: %d",
+            label, b.count, b.total / b.count, b.max, b.slow, b.errors)) end
+    end
+    if perf.frames > 0 then
+        output(string.format("Bildzeiten: Mittel %.2fms (~%.1f FPS) | Max %.2fms | ab 50ms: %d",
+            perf.frameMS / perf.frames, perf.frames * 1000 / perf.frameMS, perf.maxFrameMS, perf.slowFrames))
+    end
+    output("Nur unsere Callback-Laufzeiten, keine gesamte LibCombat-/Spiel-/GPU-Zeit. FPS-Ursache nicht automatisch bewiesen; Vergleich mit deaktiviertem Addon noetig.")
+end
 local MAX_JOBS, MAX_OPERATIONS, SLICE = 12, 16384, 128
 local MAX_UNKNOWN = 24
 

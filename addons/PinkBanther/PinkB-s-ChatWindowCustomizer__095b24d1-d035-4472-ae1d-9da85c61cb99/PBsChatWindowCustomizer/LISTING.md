@@ -57,7 +57,7 @@ the HUD, and be drawn under or over the rest of the interface. A preview frame s
 
 ・ウィンドウを常に表示する
 　ゲーム本体は最後の発言から20秒でチャットを最小化しますが、オンにするとHUD表示中は
-　出続けます。入力欄は今までどおり、入力を始めたときだけ表示されます。
+　出続けます。入力欄も、チャットが動いている間にゲーム本体が出している状態と同じく表示されます。
 　オフに戻すと、ゲーム本体の20秒のタイマーに任せます。
 ・メニュー中も表示する
 　ゲーム本体はHUD上にしかチャットを描画しませんが、オンにするとマップやインベントリ
@@ -121,7 +121,7 @@ Small, Medium or Large. This add-on makes all of that adjustable.
 ■ Showing
 
 - Keep the window on screen: the game minimises the chat 20 seconds after the last message; with
-  this on it stays up while you are on the HUD. The input line is unaffected. Switching it off
+  this on it stays up while you are on the HUD, input line included. Switching it off
   hands the window back to the game's own timer.
 - Show it in menus too: the game draws the chat on the HUD only; with this on it stays up in the
   map, the inventory and any other menu, for reading (not typing). Keeping the window on screen

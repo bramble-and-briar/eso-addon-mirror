@@ -5,10 +5,11 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: Hermes
-## APIVersion: 101050
+## APIVersion: 101051
 ## Author: Niwasaka
 
-## Version: 1.5.2
+## Version: 1.6.0
+## AddOnVersion: 10600
 ## Description: Hermes adds quick chat-based teleport options, a compact Tamriel Tome helper, and a few extra utility features. Required libraries: LibAddonMenu-2.0, LibCustomMenu.
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
 ## SavedVariables: HermesSavedVars
@@ -17,6 +18,7 @@ data/media.lua
 
 modules/Changelog/Changelog.xml
 modules/Tomes/TomesWindow.xml
+modules/Guide/Guide.xml
 
 Hermes.lua
 Util.lua
@@ -24,6 +26,7 @@ Localization.lua
 Settings.lua
 modules/Teleport.lua
 modules/Changelog/Changelog.lua
+modules/Guide/Guide.lua
 modules/Tomes/TomesChat.lua
 modules/Tomes/TomesWindow.lua
 

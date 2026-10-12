@@ -22,7 +22,7 @@
     "LuiData"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4373/",
-  "fingerprint": "dfaeca7d1f0852f82d91d237af0ca6c47cb9eb4812f53112ba00b567fa83038f",
+  "fingerprint": "71ff54d95d8fee7a3023504ea5bc4f382c0512cd2337a7487127aaf05ee04e05",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -30,11 +30,11 @@
   "source_id": "4373",
   "source_url": "https://www.esoui.com/downloads/info4373-LuiData.html",
   "stats": {
-    "downloads": 132639,
+    "downloads": 138497,
     "favorites": 39,
-    "monthly_downloads": 8725
+    "monthly_downloads": 13433
   },
   "title": "LuiData",
-  "updated_at": 1790879837000,
-  "version": "7.2.2.9"
+  "updated_at": 1791747708000,
+  "version": "7.2.3.0"
 }

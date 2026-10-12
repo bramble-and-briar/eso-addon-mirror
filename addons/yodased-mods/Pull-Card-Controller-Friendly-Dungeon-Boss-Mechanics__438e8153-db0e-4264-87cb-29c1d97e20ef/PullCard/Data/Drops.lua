@@ -71,6 +71,24 @@ PullCardData.setWeapons("Maelstrom Arena", {"Crushing Wall", "Cruel Flurry", "Me
 setDrops("Vateshran Hollows", {"Explosive Rebuke", "Hex Siphon", "Pestilent Host"})
 PullCardData.setWeapons("Vateshran Hollows", {"Executioner's Blade", "Force Overflow", "Frenzied Momentum", "Point-Blank Snipe", "Void Bash", "Wrath of Elements"})
 
+-- Trials (UESP Dungeon Sets).
+setDrops("Aetherian Archive", {"Defending Warrior", "Healing Mage", "Infallible Mage", "Quick Serpent"})
+setDrops("Hel Ra Citadel", {"Berserking Warrior", "Destructive Mage", "Eternal Warrior", "Poisonous Serpent"})
+setDrops("Sanctum Ophidia", {"Immortal Warrior", "Twice-Fanged Serpent", "Vicious Serpent", "Wise Mage"})
+setDrops("Maw of Lorkhaj", {"Lunar Bastion", "Moondancer", "Roar of Alkosh", "Twilight Remedy"})
+PullCardData.setLocation("Maw of Lorkhaj", "Reaper's March")
+setDrops("Halls of Fabrication", {"Automated Defense", "Inventor's Guard", "Master Architect", "War Machine"})
+PullCardData.setLocation("Halls of Fabrication", "Vvardenfell (Azura's Coast)")
+PullCardData.setWeapons("Asylum Sanctorium", {"Chaotic Whirlwind", "Concentrated Force", "Defensive Position", "Disciplined Slash", "Piercing Spray", "Timeless Blessing"})
+PullCardData.setLocation("Asylum Sanctorium", "Clockwork City")
+setDrops("Cloudrest", {"Aegis of Galenwe", "Arms of Relequen", "Mantle of Siroria", "Vestment of Olorime"})
+PullCardData.setLocation("Cloudrest", "Summerset")
+setDrops("Sunspire", {"Claw of Yolnahkriin", "Eye of Nahviintaas", "False God's Devotion", "Tooth of Lokkestiiz"})
+PullCardData.setLocation("Sunspire", "Northern Elsweyr")
+PullCardData.setLocation("Aetherian Archive", "Craglorn")
+PullCardData.setLocation("Hel Ra Citadel", "Craglorn")
+PullCardData.setLocation("Sanctum Ophidia", "Craglorn")
+
 PullCardData.setLocation("Maelstrom Arena", "Wrothgar")
 PullCardData.setLocation("Vateshran Hollows", "The Reach")
 

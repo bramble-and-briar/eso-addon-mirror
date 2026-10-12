@@ -39,14 +39,27 @@
                     </Controls>
                 </Button>
 
+                <Label name="$(parent)Help"
+                       font="ZoFontWinH3"
+                       color="8A8A8A"
+                       text="?"
+                       horizontalAlignment="CENTER"
+                       verticalAlignment="CENTER"
+                       mouseEnabled="true">
+                    <Anchor point="RIGHT"
+                            relativeTo="$(parent)ViewMode"
+                            relativePoint="LEFT"
+                            offsetX="-4"/>
+                    <Dimensions x="18" y="24"/>
+                </Label>
+
                 <Button name="$(parent)ClaimAll"
                         inherits="ZO_DefaultButton"
                         mouseEnabled="true">
-                    <Anchor point="TOPRIGHT"
-                            relativeTo="$(parent)ViewMode"
-                            relativePoint="TOPLEFT"
-                            offsetX="-8"
-                            offsetY="0"/>
+                    <Anchor point="RIGHT"
+                            relativeTo="$(parent)Help"
+                            relativePoint="LEFT"
+                            offsetX="-8"/>
                     <Dimensions x="86" y="24"/>
                 </Button>
 
@@ -54,15 +67,15 @@
                        font="ZoFontWinT2"
                        color="B8B8B8"
                        horizontalAlignment="RIGHT">
-                    <Anchor point="TOPRIGHT" offsetX="-248" offsetY="40"/>
-                    <Dimensions x="120" y="20"/>
+                    <Anchor point="TOPRIGHT" offsetX="-228" offsetY="40"/>
+                    <Dimensions x="160" y="20"/>
                 </Label>
 
                 <Label name="$(parent)PointsValue"
                        font="ZoFontGameBold"
                        horizontalAlignment="RIGHT">
-                    <Anchor point="TOPRIGHT" offsetX="-248" offsetY="56"/>
-                    <Dimensions x="120" y="20"/>
+                    <Anchor point="TOPRIGHT" offsetX="-228" offsetY="56"/>
+                    <Dimensions x="160" y="20"/>
                 </Label>
 
                 <Label name="$(parent)TimeRemainingLabel"

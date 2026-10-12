@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/alaooy/ArabicHelper__4946",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "alaooy",
+  "canonical_id": "esoui:4946",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4946",
+  "deleted": false,
+  "directories": [
+    "ArabicHelper"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4946/",
+  "fingerprint": "3de9a50385d0db73f0676a4049eb4297da4f353fe72958d4e78fa27bc0c98a4e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17951.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17952.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4946",
+  "source_url": "https://www.esoui.com/downloads/info4946-ArabicHelper.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "ArabicHelper",
+  "updated_at": 1791790461000,
+  "version": "1.0.0"
+}

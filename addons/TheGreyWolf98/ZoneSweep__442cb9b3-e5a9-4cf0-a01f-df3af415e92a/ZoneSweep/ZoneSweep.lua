@@ -1,5 +1,8 @@
--- ZoneSweep 0.4.0: controller checklist release candidate.
+-- ZoneSweep 0.5.1: large-text checklist and clearer status colours.
 local NAME="ZoneSweep"
+local VERSION="0.5.1"
+local PAGE_ROWS=13
+local PANEL_WIDTH,PANEL_HEIGHT=1800,1000
 local ui, snapshot, db
 local traceEnabled=false
 local trace={}
@@ -76,25 +79,41 @@ local function CreateWindow()
  if ui then return end
  local wm=WINDOW_MANAGER
  local window=wm:CreateTopLevelWindow("ZoneSweepWindow")
- window:SetDimensions(1120,820);window:SetAnchor(CENTER,GuiRoot,CENTER,0,0);window:SetHidden(true);window:SetMouseEnabled(true)
- local w,h=GuiRoot:GetDimensions();window:SetScale(math.min(1,w/1180,h/900))
- local bg=wm:CreateControl(nil,window,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.012,.012,.018,1);bg:SetEdgeColor(.38,.07,.065,1)
+ window:SetDimensions(PANEL_WIDTH,PANEL_HEIGHT);window:SetAnchor(CENTER,GuiRoot,CENTER,0,-10);window:SetHidden(true);window:SetMouseEnabled(true)
+ local function Resize()
+  local w,h=GuiRoot:GetDimensions();window:SetScale(math.min(1,w*.94/PANEL_WIDTH,h*.88/PANEL_HEIGHT))
+ end
+ Resize();window:RegisterForEvent(EVENT_SCREEN_RESIZED,Resize)
+ local bg=wm:CreateControl(nil,window,CT_BACKDROP);bg:SetAnchorFill();bg:SetCenterColor(.018,.023,.035,1);bg:SetEdgeColor(.85,.19,.22,1);bg:SetEdgeTexture(nil,1,1,3)
  local function Label(x,y,width,height,font)
   local label=wm:CreateControl(nil,window,CT_LABEL);label:SetAnchor(TOPLEFT,window,TOPLEFT,x,y);label:SetDimensions(width,height);label:SetFont(font);label:SetColor(.85,.85,.88,1);return label
  end
- local title=Label(35,20,1050,45,"ZoFontGamepad34")
- local summary=Label(35,75,1050,70,"ZoFontGamepad22")
- local heading=Label(35,157,1050,38,"ZoFontGamepad27");heading:SetColor(.85,.3,.28,1)
- local lines={}
- for i=1,16 do lines[i]=Label(35,207+(i-1)*28,1050,28,"ZoFontGamepad22");lines[i]:SetMaxLineCount(1)end
- local footer=Label(35,701,1050,45,"ZoFontGamepad22")
- local credit=Label(35,760,1050,30,"ZoFontGamepad22");credit:SetText("by @TheGreyWolf98  |  ZoneSweep 0.4.0");credit:SetColor(.57,.24,.23,1)
+ local title=Label(30,14,1740,72,"$(BOLD_FONT)|56|soft-shadow-thin");title:SetColor(1,.3,.34,1);title:SetMaxLineCount(1);title:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ local summary=Label(30,86,1740,52,"$(BOLD_FONT)|36|soft-shadow-thin");summary:SetMaxLineCount(1);summary:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ local heading=Label(30,142,880,52,"$(BOLD_FONT)|40|soft-shadow-thin");heading:SetColor(1,.78,.3,1);heading:SetMaxLineCount(1);heading:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+ local characterHeader=Label(940,142,430,52,"$(BOLD_FONT)|36|soft-shadow-thin");characterHeader:SetColor(1,.78,.3,1)
+ local accountHeader=Label(1420,142,340,52,"$(BOLD_FONT)|36|soft-shadow-thin");accountHeader:SetColor(.45,.8,1,1)
+ local lines,rowPanels,characterCounts,accountCounts={},{},{},{}
+ for i=1,PAGE_ROWS do
+  local y=200+(i-1)*54
+  local panel=wm:CreateControl(nil,window,CT_BACKDROP);panel:SetAnchor(TOPLEFT,window,TOPLEFT,22,y);panel:SetDimensions(1756,53)
+  panel:SetCenterColor(.04,.05,.075,1);panel:SetEdgeColor(.18,.22,.29,1);panel:SetEdgeTexture(nil,1,1,1);panel:SetMouseEnabled(false)
+  rowPanels[i]=panel
+  lines[i]=Label(38,y,890,53,"$(BOLD_FONT)|44|soft-shadow-thin");lines[i]:SetMaxLineCount(1);lines[i]:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+  characterCounts[i]=Label(940,y,430,53,"$(BOLD_FONT)|44|soft-shadow-thin");characterCounts[i]:SetMaxLineCount(1)
+  accountCounts[i]=Label(1420,y,340,53,"$(BOLD_FONT)|44|soft-shadow-thin");accountCounts[i]:SetMaxLineCount(1);accountCounts[i]:SetColor(.45,.8,1,1)
+ end
+ local footer=Label(30,912,1740,44,"$(BOLD_FONT)|32|soft-shadow-thin");footer:SetMaxLineCount(1)
+ local credit=Label(30,960,1740,38,"$(BOLD_FONT)|28|soft-shadow-thin");credit:SetText("by @TheGreyWolf98  |  ZoneSweep "..VERSION);credit:SetColor(.68,.76,.87,1)
  ui={window=window,category=0,page=1,onlyMissing=true,selected=1}
  local keys
  local function Render()
   title:SetText("ZoneSweep  |  "..snapshot.name)
-  summary:SetText(snapshot.character.."  |  Character checklist + separate account totals\nRecorded = saved for this toon. Unknown = no personal record; account ticks are not imported.")
+  summary:SetText(snapshot.character.."  |  Character progress")
   local rows={};ui.visibleActivities={}
+  local overview=not ui.help and not ui.debug and ui.category==0
+  characterHeader:SetHidden(not overview);accountHeader:SetHidden(not overview)
+  characterHeader:SetText("Character");accountHeader:SetText("Account")
   local entry=snapshot.categories[ui.category]
   if ui.help then
    heading:SetText("How to use ZoneSweep")
@@ -118,10 +137,11 @@ local function CreateWindow()
    rows[#rows+1]="Capture enabled. Fight a boss or world event, then reopen /zs debug."
    for _,line in ipairs(trace)do rows[#rows+1]=line end
   elseif entry then
-   heading:SetText(entry.name.."  "..entry.done.." / "..entry.total..(entry.accountDone and " recorded  |  Account "..entry.accountDone.." / "..entry.total or ""))
+   heading:SetText(entry.name.."  "..entry.done.." / "..entry.total..(entry.accountDone and " recorded" or ""))
+   if entry.accountDone then summary:SetText(snapshot.character.."  |  Account total: "..entry.accountDone.." / "..entry.total)end
    for _,activity in ipairs(entry.activities)do
     if not ui.onlyMissing or not activity.done then
-     local status=activity.unknown and "[Unknown]  " or activity.record and "[Recorded]  " or activity.done and "[Done]  " or "[To do]  "
+     local status=activity.unknown and "|cFFC34D[Unknown]|r  " or activity.record and "|c65F0A0[Recorded]|r  " or activity.done and "|c65F0A0[Done]|r  " or "|cFF8585[To do]|r  "
      rows[#rows+1]=status..activity.name
      ui.visibleActivities[#rows]=activity
     end
@@ -129,19 +149,33 @@ local function CreateWindow()
    if #rows==0 then rows[1]=#entry.activities==0 and "ESO provides a total only for this category; see the count above." or "No unfinished activities reported." end
   else
    heading:SetText("Current-zone checklist")
-   for _,c in ipairs(snapshot.categories)do rows[#rows+1]=c.name.."    "..c.done.." / "..c.total..(c.accountDone and " recorded; history unknown  |  Account "..c.accountDone.." / "..c.total or "") end
+   for _,c in ipairs(snapshot.categories)do
+    rows[#rows+1]=c.name
+   end
    if #rows==0 then rows[1]="No zone-guide activities available in this location. Try an overland zone."end
   end
   ui.rowCount=#rows
   local selectable=not ui.help and not ui.debug and ((not entry and #snapshot.categories>0) or (entry and entry.accountDone and #ui.visibleActivities>0))
-  local pages=math.max(1,math.ceil(#rows/16));ui.page=math.max(1,math.min(ui.page,pages));ui.pages=pages
+  local pages=math.max(1,math.ceil(#rows/PAGE_ROWS));ui.page=math.max(1,math.min(ui.page,pages));ui.pages=pages
   ui.selected=math.max(1,math.min(ui.selected,#rows))
   for i,label in ipairs(lines)do
-   local index=(ui.page-1)*16+i
+   local index=(ui.page-1)*PAGE_ROWS+i
    label:SetText(rows[index] and ((selectable and index==ui.selected and "> " or "")..rows[index]) or "")
-   label:SetColor(selectable and index==ui.selected and .95 or .85,selectable and index==ui.selected and .4 or .85,selectable and index==ui.selected and .35 or .88,1)
+   label:SetDimensions(overview and 890 or 1720,53)
+   label:SetColor(.95,.97,1,1)
+   local category=overview and snapshot.categories[index]
+   characterCounts[i]:SetHidden(not category);accountCounts[i]:SetHidden(not category)
+   if category then
+    local colour=category.done>=category.total and "65F0A0" or "FFC34D"
+    characterCounts[i]:SetText("|c"..colour..category.done.." / "..category.total.."|r"..(category.accountDone and " recorded" or ""))
+    accountCounts[i]:SetText(category.accountDone and category.accountDone.." / "..category.total or "—")
+   end
+   rowPanels[i]:SetHidden(rows[index]==nil)
+   local selected=selectable and index==ui.selected
+   rowPanels[i]:SetCenterColor(selected and .18 or .04,selected and .09 or .05,selected and .12 or .075,1)
+   rowPanels[i]:SetEdgeColor(selected and 1 or .18,selected and .65 or .22,selected and .28 or .29,1)
   end
-  footer:SetText("Page "..ui.page.." / "..pages.."  |  LT/RT: pages  |  LB/RB: categories  |  /zs help: instructions\n"..(selectable and (entry and "D-pad: select  |  A: tick/clear  |  " or "D-pad: select  |  A: open category  |  ") or "")..(entry and "X: "..(ui.onlyMissing and "show all" or "unfinished only").."  |  " or "").."Y: refresh  |  B: close")
+  footer:SetText(overview and "Recorded = this character's saved history  |  No record = unknown  |  /zs help" or "Page "..ui.page.." / "..pages.."  |  /zs help")
   if keys and KEYBIND_STRIP.UpdateKeybindButtonGroup and SCENE_MANAGER:IsShowing("zonesweep")then KEYBIND_STRIP:UpdateKeybindButtonGroup(keys)end
  end
  ui.refresh=function()snapshot=ReadZone();ui.category=math.min(ui.category,#snapshot.categories);Render()end
@@ -152,7 +186,7 @@ local function CreateWindow()
   if entry and not entry.accountDone then return end
   local count=entry and #ui.visibleActivities or #snapshot.categories
   ui.selected=math.max(1,math.min(ui.selected+delta,count))
-  ui.page=math.max(1,math.ceil(ui.selected/16));Render()
+  ui.page=math.max(1,math.ceil(ui.selected/PAGE_ROWS));Render()
  end
  local function Mark()
   if ui.debug or ui.help then return end
@@ -174,8 +208,8 @@ local function CreateWindow()
   {name="Next category",keybind="UI_SHORTCUT_RIGHT_SHOULDER",callback=function()Cycle(1)end},
   {name=function()return ui.onlyMissing and "Show all" or "Unfinished only"end,visible=function()return not ui.help and not ui.debug and ui.category>0 end,keybind="UI_SHORTCUT_SECONDARY",callback=function()if ui.debug or ui.help or ui.category==0 then return end;ui.onlyMissing=not ui.onlyMissing;ui.page=1;ui.selected=1;Render()end},
   {name="Refresh",keybind="UI_SHORTCUT_TERTIARY",callback=function()ui.page=1;ui.refresh()end},
-  {name="Previous page",enabled=function()return ui.page>1 end,keybind="UI_SHORTCUT_LEFT_TRIGGER",callback=function()ui.page=ui.page-1;Render();ui.selected=(ui.page-1)*16+1;Render()end},
-  {name="Next page",enabled=function()return ui.page<ui.pages end,keybind="UI_SHORTCUT_RIGHT_TRIGGER",callback=function()ui.page=ui.page+1;Render();ui.selected=(ui.page-1)*16+1;Render()end},
+  {name="Previous page",enabled=function()return ui.page>1 end,keybind="UI_SHORTCUT_LEFT_TRIGGER",callback=function()ui.page=ui.page-1;Render();ui.selected=(ui.page-1)*PAGE_ROWS+1;Render()end},
+  {name="Next page",enabled=function()return ui.page<ui.pages end,keybind="UI_SHORTCUT_RIGHT_TRIGGER",callback=function()ui.page=ui.page+1;Render();ui.selected=(ui.page-1)*PAGE_ROWS+1;Render()end},
   {name="Close",keybind="UI_SHORTCUT_NEGATIVE",callback=function()SCENE_MANAGER:Hide("zonesweep")end},
   {name=function()return ui.category==0 and "Open category" or "Tick / Clear"end,visible=CanSelect,keybind="UI_SHORTCUT_PRIMARY",callback=Mark},
   {visible=CanSelect,keybind="UI_SHORTCUT_INPUT_UP",callback=function()Move(-1)end},
@@ -185,7 +219,7 @@ local function CreateWindow()
  scene:AddFragmentGroup(IsInGamepadPreferredMode()and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW or FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
  scene:AddFragment(ZO_FadeSceneFragment:New(window))
  scene:RegisterCallback("StateChange",function(_,state)
-  if state==SCENE_SHOWN then KEYBIND_STRIP:AddKeybindButtonGroup(keys)
+  if state==SCENE_SHOWN then Resize();KEYBIND_STRIP:AddKeybindButtonGroup(keys)
   elseif state==SCENE_HIDING then KEYBIND_STRIP:RemoveKeybindButtonGroup(keys)end
  end)
 end

@@ -17,18 +17,26 @@ LibCombat2 = {
         return true
     end,
     GetPlayerUnitId = function() return 1 end,
+    GetUnitIdByTag = function(tag) return tag == "player" and 1 or tag == "group2" and 10 end,
     GetUnitById = function(id) return { GetUnitType = function() return kinds[id] end } end,
 }
+function GetGroupSize() return 2 end
+function GetGroupUnitTagByIndex(index) return index == 1 and "player" or "group2" end
+function GetUnitDisplayName(tag) return tag end
+local exists = DoesUnitExist
+function DoesUnitExist(tag) return tag == "group2" or exists(tag) end
+env.setBuffs("group2", {})
 function GetGameTimeMilliseconds() return GetFrameTimeSeconds() * 1000 + 100000 end
 env.setCombat(false); env.setClock(30)
 env.setBuffs("player", {})
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "group", scale = 1, x = 0, y = 0 },
     { key = 2, id = 61771, unit = "player", personalTime = "combat", scale = 1, x = 0, y = 48 } }
-saved.checkUptime = true
 ZO_SavedVars.NewAccountWide = function() return saved end
+local captured = dofile("tests/support/capture.lua")()
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
+saved.trackers[2].personalTime = "combat"
 assert(registrations == 5)
 local function send(event, time, ...)
     env.setClock(time)
@@ -45,32 +53,24 @@ send(4, 35, 1, 61771, EFFECT_RESULT_FADED, 1, 1, COMBAT_UNIT_TYPE_PLAYER, 1)
 send(4, 36, 10, 61771, EFFECT_RESULT_FADED, 1, 1, COMBAT_UNIT_TYPE_GROUP, 1)
 send(3, 40, 1, 1, 10, 123, 500, 1, 0)
 env.events.tick()
-assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "63.6 %")
+assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "100.0 %")
 assert(env.controls.LiveBuffUptimeTracker2.labels[2].text == "37.5 %")
 send(2, 45, 1, 99, 1, 123, 500, 1, 0)
 send(2, 46, 1, 10, 99, 123, 500, 1, 0)
 env.events.tick()
-assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "63.6 %", "Incoming/group damage must not extend own active clock")
+assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "34.4 %", "Incoming/group damage extends group encounter time")
 env.setClock(60)
 callbacks[51](51, { info = { combatStart = 130000, combatEnd = 160000 }, unitIds = { player = 1 },
     damageDone = { [1] = { startTime = 132000, endTime = 132000 } },
     healingDone = { [1] = { startTime = 140000, endTime = 140000 } },
     units = { [1] = { unitType = 1 }, [10] = { unitType = 3 }, [99] = { unitType = 4 } } })
 for index = 1, 30 do env.events.tick() end
-assert(saved.lastFights[1].combatDuration == 8 and saved.lastFights[1].duration == 11)
-assert(saved.lastFights[2].percent == 37.5)
-assert(#saved.lastCheck.last == 2)
+assert(captured[1].combatDuration == 16 and captured[1].duration == 32)
+assert(captured[2].percent == 37.5)
 send(2, 61, 1, 1, 99, 123, 500, 1, 0)
 send(4, 61, 10, 61771, EFFECT_RESULT_GAINED, 1, 1, COMBAT_UNIT_TYPE_GROUP, 1)
 env.events.tick()
-assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "63.6 %", "Late v2 events must not reopen the fight")
-assert(saved.lastFights[1].diagnostics.lateActions == 1 and saved.lastFights[1].diagnostics.lateEffects == 1)
-assert(saved.lastFights[1].freeze.checks == 1 and saved.lastFights[1].freeze.violations == 0)
-assert(saved.lastFights[1].backend == "LibCombat2")
-assert(#saved.lastFights[1].unknownEffects == 2 and saved.lastFights[1].diagnostics.unknownSourceEvents == 2)
-assert(saved.lastFights[1].unknownEffects[1].trackedBuff and saved.lastFights[1].unknownEffects[1].recipientIncluded)
-assert(not saved.lastFights[1].unknownEffects[2].trackedBuff and not saved.lastFights[1].unknownEffects[2].recipientIncluded)
-assert(saved.lastFights[1].unknownEffects[1].recipient == 10 and saved.lastFights[1].unknownEffects[1].updated == 1)
+assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "34.4 %", "Late v2 events must not reopen the fight")
 send(1, 65, LIBCOMBAT_MESSAGE_COMBATSTART)
 send(2, 65, 1, 1, 99, 123, 500, 1, 0)
 send(3, 66, 1, 1, 10, 123, 500, 1, 0)

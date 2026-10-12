@@ -11,9 +11,10 @@ swap or UI reload.
 
 Features
 - Saves supported player conversations, including guild, group and whispers.
-- Keeps the latest 100 messages, with automatic expiry after 48 hours.
+- Keeps the latest 100 messages during your current session.
 - Restores 25–100 recent messages after a quick login or UI reload.
-- Skips automatic replay after 30 minutes away; retained history stays viewable.
+- Clears saved chat after 30 minutes offline, so yesterday's conversations do not return.
+- Quiet periods while online do not expire your conversation.
 - Optional timestamps in 12-hour or 24-hour format.
 - Move native HUD chat horizontally or vertically to suit your interface.
 - Transparent HUD with no custom artwork or background panels.
@@ -30,3 +31,7 @@ it cannot capture conversations while you are offline. Replayed messages use
 local system lines rather than their original channel filters.
 
 By @TheGreyWolf98
+
+1.0.1 UPDATE
+Fixed stale chat returning on later reloads after a long absence. The upgrade
+clears the old saved backlog once while preserving your chat preferences.

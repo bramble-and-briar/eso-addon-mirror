@@ -11,7 +11,6 @@ local DEFAULTS = {
     positionX = 128,
     positionY = 128,
     gamepadMoveSpeed = 420,
-    onlyShowBuffFood = false,
     buffScale = 100,
 }
 
@@ -101,7 +100,7 @@ local function BuildOptionalLAMMenu()
         name = "Simple Long Buffs",
         displayName = "Simple Long Buffs",
         author = "JH Console Port",
-        version = "console.2",
+        version = "console.3",
         registerForRefresh = true,
     })
 
@@ -111,17 +110,6 @@ local function BuildOptionalLAMMenu()
             name = "Toggle move mode",
             tooltip = "Turns movement mode on/off. While enabled, move the buff display with the left stick. Turning it off saves the position.",
             func = function() ToggleGamepadMoveMode() end,
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = "ONLY SHOW BUFFFOOD",
-            tooltip = "Only shows long-duration food/drink-style buffs. Permanent buffs such as Mundus effects are hidden.",
-            getFunc = function() return SLB_SV.onlyShowBuffFood == true end,
-            setFunc = function(value)
-                SLB_SV.onlyShowBuffFood = value
-                RequestSavedVariablesSave()
-            end,
             width = "full",
         },
         {
@@ -231,12 +219,71 @@ function UnitBuffTrackerStyle:UpdateContainer(containerObject)
         local permanent = IsAbilityPermanent(abilityId)
         local abilityDuration = GetAbilityDuration(abilityId) or 0
 
-        -- Console-friendly Buff Food filter. Food/drink buffs are temporary,
-        -- long-duration effects; permanent effects (Mundus, collectibles, etc.)
-        -- are intentionally excluded when this option is enabled.
-        local isLongBuff = permanent or abilityDuration >= 600000
-        local isBuffFoodCandidate = (not permanent) and abilityDuration >= 1800000
-        local shouldShow = isLongBuff and (not SLB_SV.onlyShowBuffFood or isBuffFoodCandidate)
+        -- Show only the buffs this console HUD is meant to track:
+        --   1) food / drink buffs
+        --   2) Experience gain consumable buffs
+        --   3) Alliance Rank / Alliance Skill gain consumable buffs
+        --   4) Vampire Stage
+        --
+        -- Food/drink detection is intentionally local. There is no global ESO API
+        -- function named GetActiveFoodBuff; several addons implement that helper
+        -- themselves. Long, removable self buffs with no cost/range/cast time and
+        -- a real ability description match ESO food/drink effects reliably.
+        local _, _, _, _, _, _, _, _, _, _, _, canClickOff = GetUnitBuffInfo(unitTag, i)
+
+        local function IsFoodOrDrinkAbility(id)
+            if not id or not DoesAbilityExist(id) then return false end
+            if not canClickOff then return false end
+            if (GetAbilityDuration(id) or 0) < 600000 then return false end
+            if GetAbilityTargetDescription(id) ~= GetString(SI_TARGETTYPE2) then return false end
+            if GetAbilityEffectDescription(id) ~= "" then return false end
+            if (GetAbilityRadius(id) or 0) > 0 or (GetAbilityAngleDistance(id) or 0) > 0 then return false end
+            if (GetAbilityCost(id) or 0) > 0 then return false end
+            local channeled, castTime = GetAbilityCastInfo(id)
+            if channeled or (castTime or 0) > 0 then return false end
+            local minRangeCM, maxRangeCM = GetAbilityRange(id)
+            if (minRangeCM or 0) > 0 or (maxRangeCM or 0) > 0 then return false end
+            if (GetAbilityDescription(id) or "") == "" then return false end
+            return true
+        end
+
+        local abilityDescription = GetAbilityDescription and (GetAbilityDescription(abilityId) or "") or ""
+        local searchable = string.lower((buffName or "") .. " " .. abilityDescription)
+
+        -- Known XP consumable buff IDs seen across Ambrosia, Crown/Gold Coast
+        -- scrolls and event XP effects. Name/description matching remains as a
+        -- fallback so new variants can work without another update.
+        local xpBuffIds = {
+            [85501]=true, [85503]=true, [86755]=true, [88445]=true,
+            [89683]=true, [91369]=true,
+        }
+        local isExperienceBuff = xpBuffIds[abilityId] == true or
+            string.find(searchable, "increased experience", 1, true) ~= nil or
+            string.find(searchable, "experience point", 1, true) ~= nil or
+            string.find(searchable, "experience gain", 1, true) ~= nil or
+            string.find(searchable, "erfahrungs", 1, true) ~= nil
+
+        -- War Tortes / Alliance War scrolls use an Alliance Skill Gain-style
+        -- buff name. German fallbacks cover the corresponding localized wording.
+        local isAlliancePointBuff =
+            string.find(searchable, "alliance skill gain", 1, true) ~= nil or
+            string.find(searchable, "alliance rank", 1, true) ~= nil or
+            string.find(searchable, "alliance war skill", 1, true) ~= nil or
+            string.find(searchable, "allianzrang", 1, true) ~= nil or
+            string.find(searchable, "allianzkrieg", 1, true) ~= nil or
+            string.find(searchable, "allianzfertigkeit", 1, true) ~= nil
+
+        local isVampireStage =
+            string.find(searchable, "vampirism stage", 1, true) ~= nil or
+            string.find(searchable, "vampire stage", 1, true) ~= nil or
+            string.find(searchable, "vampirstufe", 1, true) ~= nil or
+            string.find(searchable, "vampirismus stufe", 1, true) ~= nil
+
+        -- The generic long-consumable signature catches food/drink. XP/AP are
+        -- separately whitelisted by ID/name, and Vampire Stage is permanent.
+        local isFoodBuff = IsFoodOrDrinkAbility(abilityId) and not isExperienceBuff and not isAlliancePointBuff
+        local shouldShow = (effectType == BUFF_EFFECT_TYPE_BUFF) and
+            (isFoodBuff or isExperienceBuff or isAlliancePointBuff or isVampireStage)
 
         if shouldShow then
             local data = {

@@ -1,11 +1,16 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/awamani/LeadFilter__4469",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "awamani",
   "canonical_id": "esoui:4469",
   "category_id": "159",
   "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
     {
       "name": "Season Zero Pt.2",
       "version": "12.0.0"
@@ -25,7 +30,7 @@
     "LeadFilter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4469/",
-  "fingerprint": "92c745dec444f2067ed2732058db355f307dfc2bf36da0e939d2ab89ae0a047f",
+  "fingerprint": "8c57d8242c6bb03934c1ea3b0ddd7c0d83d3705211a50b965a4299adf2f730ed",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15542.png",
     "https://cdn-eso.mmoui.com/preview/pvw15543.png"
@@ -36,11 +41,11 @@
   "source_id": "4469",
   "source_url": "https://www.esoui.com/downloads/info4469-LeadFilter.html",
   "stats": {
-    "downloads": 286,
+    "downloads": 371,
     "favorites": 1,
-    "monthly_downloads": 103
+    "monthly_downloads": 42
   },
   "title": "LeadFilter",
-  "updated_at": 1783370902000,
-  "version": "1.2.0"
+  "updated_at": 1791746170000,
+  "version": "1.2.1"
 }

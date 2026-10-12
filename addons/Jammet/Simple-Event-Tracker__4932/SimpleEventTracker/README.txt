@@ -49,4 +49,4 @@ Options
 Notes
 - Bars from other sources that arrive as a satchel (e.g. Twitch drops) count too; use /sevt undo to correct.
 - Days you were not logged in show as "-" in the history.
-- Update "## APIVersion" in SimpleEventTracker.addon after each major game patch.
+- Update "## APIVersion" in SimpleEventTracker.txt after each major game patch.

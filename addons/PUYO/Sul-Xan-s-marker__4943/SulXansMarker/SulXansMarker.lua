@@ -9,7 +9,7 @@ SulXansMarker = SulXansMarker or {}
 local PSM = SulXansMarker
 
 PSM.name    = "SulXansMarker"
-PSM.version = "1.22"
+PSM.version = "1.28"
 
 local EM  = EVENT_MANAGER
 local LCA = LibCombatAlerts
@@ -26,6 +26,8 @@ local MAX_RAY_CM          = 8000  -- 照準から求める位置の最大距離(
 
 PSM.defaults = {
   extraSetNames = {},
+  hideWhenNoPos = false,  -- 位置が全く取れない時は何も表示しない(OFF なら画面上の ↓ と残り秒数を出す)
+  showCandidates = false, -- 種類の違う敵が同時に倒れた時、他の候補の矢印(オレンジ)も出す。OFF なら矢印は常に1つ
   enabled      = true,
   use3D        = true,   -- ワールド空間(魂の位置)に表示
   size3D       = 150,    -- cm
@@ -314,6 +316,22 @@ local function RayDist(r, x, y, z, rx, ry, rz)
   return math.sqrt(px * px + py * py + pz * pz)
 end
 
+-- 診断用: この名前の各個体の「体力%」と、体力が 0 になった時刻と死亡イベントの時刻差
+local function SegDiag(e, deathTime)
+  local parts = {}
+  local t = now()
+  for _, sg in ipairs(e.segs) do
+    if #sg.list > 0 and t - sg.last <= DEAD_WINDOW_MS then
+      local pct = (sg.hpMax and sg.hpMax > 0) and zo_floor(sg.hp * 100 / sg.hpMax) or -1
+      local dd = ""
+      if sg.deadAt and deathTime then dd = string.format("@%+dms", sg.deadAt - deathTime)
+      elseif sg.deadAt then dd = "@dead" end
+      parts[#parts + 1] = string.format("%d%%%s", pct, dd)
+    end
+  end
+  return table.concat(parts, "/")
+end
+
 -- 戻り値: { x, y, z }, 説明文, 不確かか  /  失敗時は nil, 理由
 local function Triangulate(name, deathTime)
   local e = name and rays[name]
@@ -362,7 +380,7 @@ local function Triangulate(name, deathTime)
   local pos = { x + rx, y + ry - AIM_PLANE_HEIGHT_CM, z + rz }
   return pos, string.format("tri(n=%d,base=%dcm,res=%dcm,dist=%dm,last=%dcm,proj=%dcm,trim=%d,%s%d)",
     n, zo_floor(baseline), zo_floor(resid), zo_floor(dist / 100), zo_floor(lastOff), zo_floor(shift), trimmed,
-    isDead and "dead/" or "alive/", cands), doubtful
+    isDead and "dead/" or "alive/", cands) .. " segs=" .. SegDiag(e, deathTime), doubtful
 end
 
 -- 古い記録を定期的に捨てる(同じゾーンに長くいても、メモリが増え続けないように)
@@ -705,8 +723,9 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
   -- 魂のドロップは GAINED_DURATION(hitValue = 持続時間 約6000ms)。
   -- 直前に来る GAINED(hitValue=1)は持続時間が入っていないので使わない。
   if PSM.logEnabled then
-    d(string.format("[Sul-Xan's marker] soul event: result=%s hit=%s target=%s(type %s) unitId src=%s tgt=%s",
-      tostring(result), tostring(hitValue), tostring(NormalizeName(targetName)), tostring(targetType),
+    -- 魂のイベントの対象は自分自身なので、キャラクター名はログに出さない(ログを人に見せても名前が出ないように)
+    d(string.format("[Sul-Xan's marker] soul event: result=%s hit=%s targetType=%s unitId src=%s tgt=%s",
+      tostring(result), tostring(hitValue), tostring(targetType),
       tostring(sourceUnitId), tostring(targetUnitId)))
   end
   if result ~= ACTION_RESULT_EFFECT_GAINED_DURATION then
@@ -740,14 +759,23 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
 
   zo_callLater(function()
     PSM.pending = false
+    -- 待っている間にスルザンを外した場合は、何も出さない(完全停止)
+    if not PSM.active then return end
     local pos, src = earlyPos, earlySrc
 
     -- ドロップとほぼ同時に倒された敵の名前が分かれば、その敵の位置を優先する
+    -- 種類の違う敵が同時に倒れていた場合は、最初に倒れた敵を採用する
+    local chosen
+    for _, dd in ipairs(recentDeaths) do
+      if dd.time >= t - DEATH_BEFORE_MS then chosen = dd; break end
+    end
+    if not chosen and lastDeath and lastDeath.time >= t - DEATH_BEFORE_MS then chosen = lastDeath end
+
     local targetName = snap and snap.name
-    if lastDeath and lastDeath.time >= t - DEATH_BEFORE_MS then
-      targetName = lastDeath.name
-      local sample = samples[lastDeath.name]
-      if snap and snap.name == lastDeath.name then
+    if chosen then
+      targetName = chosen.name
+      local sample = samples[chosen.name]
+      if snap and snap.name == chosen.name then
         pos, src = snap.pos, "death+snap(" .. tostring(snap.src) .. ")"
       elseif sample and now() - sample[4] <= SAMPLE_KEEP_MS then
         pos, src = { sample[1], sample[2], sample[3] }, "death+name(" .. tostring(sample[5]) .. ")"
@@ -758,7 +786,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
     local e = targetName and rays[targetName]
     local triPos, triInfo, doubtful
     if e and now() - e.last <= SAMPLE_KEEP_MS then
-      triPos, triInfo, doubtful = Triangulate(targetName, (lastDeath and lastDeath.name == targetName) and lastDeath.time or nil)
+      triPos, triInfo, doubtful = Triangulate(targetName, (chosen and chosen.name == targetName) and chosen.time or nil)
     else
       triInfo = "no-recent-rays"
     end
@@ -782,13 +810,13 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       d(string.format("[Sul-Xan's marker] soul drop: hit=%s pos=%s src=%s death=%s sameNameDeaths=%d otherDeaths=%d idMatch=%s uncertain=%s",
         tostring(hitValue),
         pos and string.format("%d,%d,%d", pos[1], pos[2], pos[3]) or "nil", tostring(src),
-        lastDeath and lastDeath.name or "nil", sameNameDeaths, otherDeaths, tostring(idMatch), tostring(uncertain)))
+        chosen and chosen.name or "nil", sameNameDeaths, otherDeaths, tostring(idMatch), tostring(uncertain)))
     end
 
     -- 種類の違う敵が同時に倒れていた場合は、魂がどれから出たか分からないので、
     -- そちらの位置も候補として(オレンジで)出す。新しい死亡から最大2種類まで。
     local extras, seen = {}, { [targetName or ""] = true }
-    if otherDeaths > 0 then
+    if otherDeaths > 0 and PSM.sv.showCandidates then
       for i = #recentDeaths, 1, -1 do
         local dd = recentDeaths[i]
         if dd.time >= t - DEATH_BEFORE_MS and not seen[dd.name] and #extras < MAX_EXTRA_CANDIDATES then
@@ -817,22 +845,33 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       end
     end
 
-    -- 三角測量できず、水平面との交点(推測)が遠すぎる時は、とんでもない場所に出さない
+    -- 三角測量できず、水平面との交点(推測)が遠すぎる時は、表示しない
+    local tooFar = false
     if pos and not triPos then
       local px, _, pz = ReadPos("player")
       if px then
         local dist = math.sqrt((pos[1] - px) ^ 2 + (pos[3] - pz) ^ 2)
         if dist > FALLBACK_MAX_CM then
           if PSM.logEnabled then
-            d(string.format("[Sul-Xan's marker] 推測位置が遠すぎる(%dm)ので画面表示にします", zo_floor(dist / 100)))
+            d(string.format("[Sul-Xan's marker] 推測位置が遠すぎる(%dm)ので表示しません", zo_floor(dist / 100)))
           end
           pos = nil
+          tooFar = true
         end
       end
     end
     if not pos and #extras > 0 then
       pos = table.remove(extras, 1)
       uncertain = true
+    end
+    if not pos and tooFar then
+      PSM.lastDrop = nil
+      return   -- 位置が遠すぎる時は、何も表示しない
+    end
+    if not pos and PSM.sv.hideWhenNoPos then
+      PSM.lastDrop = nil
+      if PSM.logEnabled then d("[Sul-Xan's marker] 位置が取れないので表示しません(設定)") end
+      return
     end
 
     local all = {}
@@ -894,7 +933,12 @@ local function OnEnemyDied(_, result, _, _, _, _, _, sourceType, targetName, tar
   end
 
   if PSM.logEnabled then
-    d(string.format("[Sul-Xan's marker] enemy died: %s (result=%s, unitId=%s)", name, tostring(result), tostring(targetUnitId)))
+    local rn = ReticleName()
+    local okp, hp, hpMax = pcall(GetUnitPower, "reticleover", COMBAT_MECHANIC_FLAGS_HEALTH)
+    local hpText = (okp and hp and hpMax and hpMax > 0) and string.format("%d%%", zo_floor(hp * 100 / hpMax)) or "-"
+    d(string.format("[Sul-Xan's marker] enemy died: %s (result=%s, unitId=%s) reticle=%s(%s)%s",
+      name, tostring(result), tostring(targetUnitId), tostring(rn), hpText,
+      (rn and rn ~= name) and (" rawName=" .. tostring(targetName)) or ""))
   end
 end
 
@@ -1061,7 +1105,7 @@ local function PrintDebug()
   p("3D markers: " .. tostring(#markers))
   p("装備判定: " .. (PSM.active and "スルザン装備あり(動作中)" or "スルザン装備なし(停止中)"))
   for name, n in pairs(CollectEquippedSets()) do
-    p(string.format("  装備中セット: %s x%d%s", name, n, SetNameMatches(name) and "  <- 一致" or ""))
+    p(string.format("  装備中セット: %s x%d%s", (zo_strformat(SI_UNIT_NAME, name)), n, SetNameMatches(name) and "  <- 一致" or ""))
   end
 end
 

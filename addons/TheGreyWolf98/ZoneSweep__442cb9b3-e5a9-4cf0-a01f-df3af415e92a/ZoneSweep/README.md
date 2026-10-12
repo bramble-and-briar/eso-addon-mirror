@@ -1,8 +1,18 @@
-# ZoneSweep 0.4.0
+# ZoneSweep 0.5.1
 
 By @TheGreyWolf98. Current-zone checklist for ESO, with controller navigation.
 
 Type `/zs` or `/zonesweep` to open. Type `/zs help` for instructions.
+
+## Readability update
+
+- All 13 overview categories fit on one screen with compact rows and 44-pixel main text.
+- Character and account counts occupy separate columns.
+- Wide responsive panel leaves room for native controller prompts; duplicate controls text removed.
+- Green completed counts, amber incomplete counts, blue account counts, and a clear selected row.
+- Existing character records and tracking preserved. Activity lists page above 13 entries.
+
+Final displayed size depends on ESO UI scale/resolution. Xbox visual verification is still required.
 
 - Overview: D-pad selects a category; A opens it. LB/RB cycles categories.
 - X switches all / unfinished activities on category lists.

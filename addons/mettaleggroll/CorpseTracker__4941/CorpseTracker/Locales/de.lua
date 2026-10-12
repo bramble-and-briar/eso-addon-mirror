@@ -1,102 +1,106 @@
--- UI strings only; never used to identify abilities or units.
-CorpseTracker.locales.de = {
-    AUTOMATIC = "Automatisch",
-    LANGUAGE = "Sprache der Oberfläche",
-    LANG_TIP = "Auto: unterstützte Clientsprache, sonst Englisch. Manuelle Änderungen benötigen /reloadui.",
-    SHOW = "Zähler anzeigen",
-    SHOW_TIP = "Nur im Spiel-HUD sichtbar; in Menüs ausgeblendet.",
-    DEBUG = "Debugmodus",
-    DEBUG_TIP = "Zusätzliche Einheitenbeobachtungen während der Aufzeichnung und gelbe Unsicherheitsanzeige im erweiterten Modus. Ändert weder Anzeige, Zählmodus noch Aufzeichnung.",
-    SOURCES = "Leichenquellen",
-    SOURCES_TIP = "Alle erfassten Quellen umfassen eigene Skelettbeschwörungen und Regeln, nicht sämtliche Leichen der Welt.",
-    PRIMARY = "Eigene BB + Schädel",
-    ALL = "Alle erfassten Quellen",
-    RANGE = "Reichweitenfilter",
-    RANGE_TIP = "Liest Fertigkeitswerte per ID. Yard begrenzt nur die Entfernung zum Spieler; Treffer und Sichtlinie sind unbestätigt. Ohne API-Daten wird nicht gefiltert.",
-    RANGE_SIPHON = "Siphon: Fertigkeitsreichweite",
-    RANGE_YARD = "Yard: Zielreichweite + Radius",
-    RANGE_MANUAL = "Eigene Reichweite",
-    RANGE_NONE = "Ohne Begrenzung",
-    MANUAL_RANGE = "Eigene Reichweite, m",
-    UNKNOWN = "Unbekannte Positionen mitzählen",
-    UNKNOWN_TIP = "Ein: unbekannte Positionen werden geschätzt mitgezählt. Aus: bei aktivem Filter nur bekannte Positionen in Reichweite. Unbekannt bedeutet nicht abwesend.",
-    LOCK = "Position sperren",
-    LOCK_TIP = "Entsperrt: durch Ziehen verschieben. Rechtsklick wechselt die Quellen in beiden Modi.",
-    SIZE = "Quadratgröße",
-    COUNT_MODE = "Zählmodus",
-    COUNT_TIP = "Einfach zählt erfasste Erzeugungen, Verbräuche und Abläufe ohne Entfernungsprüfung. Erweitert ergänzt experimentelle Reichweiten- und Verbrauchsschätzungen.",
-    LIGHT = "Einfach",
-    EXTENDED = "Erweitert (experimentell)",
-    VIEW = "Anzeige des Zählers",
-    VIEW_TIP = "Light verwendet immer das Quadrat. Das ausführliche Fenster ist im erweiterten Modus verfügbar; die Aufzeichnung ist unabhängig von der Anzeige.",
-    COMPACT = "Quadrat",
-    DETAILED = "Ausführliches Fenster",
-    LIGHT_INFO = "Schätzung erfasster Erzeugungen, Verbräuche und Abläufe. Keine Entfernungsprüfung.",
-    DIAGNOSTICS = "Diagnose",
-    RELOAD_REMINDER = "Geladene Version: v%s. Nach dem Ersetzen der Addon-Dateien vor einem neuen Test /reloadui ausführen. Nach dem Beenden der Aufzeichnung /reloadui ausführen oder das Spiel verlassen, um das Protokoll auf der Festplatte zu speichern.",
-    NEWTEST = "Neuen Diagnosetest starten",
-    NEWTEST_TIP = "Löscht die bisherigen Diagnosedaten und startet eine Aufzeichnung im aktuellen Anzeigemodus; aktive Leichen und ihr Anfangszustand bleiben erhalten.",
-    CLEARLOG = "Nur Protokoll leeren",
-    CLEARLOG_TIP = "Setzt weder den Zähler noch den Aufzeichnungsmodus zurück.",
-    CAPTURE = "Diagnoseprotokoll aufzeichnen",
-    CAPTURE_TIP = "Zeichnet in beiden Anzeigemodi bis zu 2500 Ereignisse auf. Ausschalten stoppt die Aufzeichnung und behält das Protokoll. Zum Speichern /reloadui ausführen oder das Spiel beenden.",
-    RADIUS = "Diagnoseradius, m",
-    RADIUS_TIP = "Wird ohne Reichweitenfilter verwendet; begrenzt die Hauptzahl nicht.",
-    BANNER_UNAVAILABLE = "Bannerleichen werden nicht gezählt",
-    BANNER_TIP = "Bannerwerte dienen nur der Diagnose und fügen dem Zähler keine Leichen hinzu.",
-    PHYSICAL = "Nur physische Leichen annehmen",
-    PHYSICAL_TIP = "Eine Diagnoseannahme, kein Nachweis der verbrauchten Leiche.",
-    TTL = "%s: geschätzte Lebensdauer, s",
-    TTL_TIP = "Nur neue Einträge. Die Dauer schätzt die Verfügbarkeit.",
-    SOURCE_BB = "BB",
-    SOURCE_SKULL = "Schädel",
-    SOURCE_ARCHER = "Bogenschütze / Magier",
-    SOURCE_BANNER = "Banner",
-    CORPSES = "LEICHEN",
-    POSSIBLE = "[%d–%d möglich]",
-    SOURCE_BUTTON = "Quellen: %s (zum Wechseln klicken)",
-    BREAKDOWN = "BB %d | Schädel %d | Sonstige %d (alle)",
-    LOCATED = "%.0fm: %d im Radius + %d Position unbekannt",
-    API_MISSING = "API: keine bestätigte Anzahl",
-    CANDIDATE = "Kandidat",
-    API_SAMPLE = "%s: %d / %.0fm (vor %.1fs%s)",
-    STALE = ", veraltet",
-    BANNER_SAMPLE = "Banner 227113: %d? (vor %.1fs)",
-    BANNER_MISSING = "Banner 227113: keine Messung",
-    SESSION = "Sitzung: +%d / Nutzungen %d / abgelaufen %d",
-    YARD_STATS = "Yard %d / %d unbestätigt | Nicht erfasst %d | Ohne Zuordnung %d",
-    TTL_EXPIRES = "nächster Ablauf %.1fs",
-    TTL_EMPTY = "keine ausgewählten Einträge",
-    TTL_ESTIMATE = "Geschätzte Dauer; %s%s",
-    RECORDING = "; Aufzeichnung",
-    BOUNDS_BROAD = "Auswahl unbekannt; Grenzen erweitert",
-    CHOICE_UNKNOWN = "Verbrauchte Leiche / Verfügbarkeit unbestätigt",
-    RANGE_OFF = "Reichweite: AUS",
-    RANGE_AVAILABLE = "%s: %.1fm | außerhalb %d | unbekannt: %s",
-    RANGE_UNAVAILABLE = "Reichweite unbekannt: kein Filter",
-    INCLUDED = "mitgezählt",
-    EXCLUDED = "ausgeschlossen",
-    TOOLTIP_COUNTS = "Schätzung %d; möglich %d–%d; Position unbekannt %d",
-    TOOLTIP_RANGE = "Reichweite: %.1fm (%s)",
-    TOOLTIP_HINT = "Zahl: geschätzte Leichenanzahl. ~: geschätzte Sekunden bis zum Ablauf. ?: der Rest kann null sein.",
-    ENABLED = "EIN",
-    DISABLED = "AUS",
-    AMBIGUOUS = "AUS (mehrdeutig)",
-    CHAT_DEPENDENCY = "LibAddonMenu-2.0 für die Einstellungen installieren und aktivieren.",
-    CHAT_CAPTURE = "Diagnoseaufzeichnung: %s",
-    CHAT_CLEARED = "Diagnoseprotokoll geleert.",
-    CHAT_RESET = "Leichenjournal zurückgesetzt.",
-    CHAT_RADIUS = "Diagnoseradius: %.1fm",
-    CHAT_SOURCES = "Quellen: %s",
-    CHAT_TTL = "Dauer nur für neue Einträge geändert.",
-    CHAT_PHYSICAL = "Annahme physischer Leichen: %s",
-    CHAT_VARIANTS = "%d Fertigkeitsvarianten ermittelt; in Diagnose gespeichert.",
-    CHAT_RULE = "Regel für ID %s erstellt; vor Nutzung kalibrieren.",
-    CHAT_API = "API %d; globale Funktionssuche deaktiviert.",
-    CHAT_SLOT = "%d: %s [%d], nutzbar=%s Zielfehler=%s Reichweitenfehler=%s Kostenfehler=%s",
-    CHAT_STATUS1 = "Quellen=%s Schätzung=%d möglich=%d–%d; BB=%d Schädel=%d Sonstige=%d",
-    CHAT_STATUS2 = "Erzeugt=%d Nutzungen=%d nichtErfasst=%d abgelaufen=%d ohneZuordnung=%d mehrdeutig=%d; Einträge=%d",
-    CHAT_STATUS3 = "Yard Anwendungen=%d verbraucht=%d unbestätigt=%d",
-    CHAT_READY = "v%s experimentell. /crpst settings — Einstellungen; /crpst test — neuer Test.",
-    COMMANDS = "Befehle (Argumente bleiben Englisch):",
-}
+-- ESO String ID translation, applied after the saved language is selected.
+local CT = CorpseTracker
+local SafeAddString = SafeAddString
+
+CT.RegisterTranslation("de", function()
+    local ids = CT.stringIds
+    SafeAddString(ids.AUTOMATIC, "Automatisch", 2)
+    SafeAddString(ids.LANGUAGE, "Sprache der Oberfläche", 2)
+    SafeAddString(ids.LANG_TIP, "Automatisch nutzt die Clientsprache, sonst Englisch. Eine Sprachwahl gilt nur für dieses Add-on. Änderungen erfordern /reloadui.", 2)
+    SafeAddString(ids.SHOW, "Zähler anzeigen", 2)
+    SafeAddString(ids.SHOW_TIP, "Nur im Spiel-HUD sichtbar; in Menüs ausgeblendet.", 2)
+    SafeAddString(ids.DEBUG, "Debugmodus", 2)
+    SafeAddString(ids.DEBUG_TIP, "Zusätzliche Einheitenbeobachtungen während der Aufzeichnung und gelbe Unsicherheitsanzeige im erweiterten Modus. Ändert weder Anzeige, Zählmodus noch Aufzeichnung.", 2)
+    SafeAddString(ids.SOURCES, "Leichenquellen", 2)
+    SafeAddString(ids.SOURCES_TIP, "Alle erfassten Quellen umfassen eigene Skelettbeschwörungen und Regeln, nicht sämtliche Leichen der Welt.", 2)
+    SafeAddString(ids.PRIMARY, "Eigene BB + Schädel", 2)
+    SafeAddString(ids.ALL, "Alle erfassten Quellen", 2)
+    SafeAddString(ids.RANGE, "Reichweitenfilter", 2)
+    SafeAddString(ids.RANGE_TIP, "Liest Fertigkeitswerte per ID. Yard begrenzt nur die Entfernung zum Spieler; Treffer und Sichtlinie sind unbestätigt. Ohne API-Daten wird nicht gefiltert.", 2)
+    SafeAddString(ids.RANGE_SIPHON, "Siphon: Fertigkeitsreichweite", 2)
+    SafeAddString(ids.RANGE_YARD, "Yard: Zielreichweite + Radius", 2)
+    SafeAddString(ids.RANGE_MANUAL, "Eigene Reichweite", 2)
+    SafeAddString(ids.RANGE_NONE, "Ohne Begrenzung", 2)
+    SafeAddString(ids.MANUAL_RANGE, "Eigene Reichweite, m", 2)
+    SafeAddString(ids.UNKNOWN, "Unbekannte Positionen mitzählen", 2)
+    SafeAddString(ids.UNKNOWN_TIP, "Ein: unbekannte Positionen werden geschätzt mitgezählt. Aus: bei aktivem Filter nur bekannte Positionen in Reichweite. Unbekannt bedeutet nicht abwesend.", 2)
+    SafeAddString(ids.LOCK, "Position sperren", 2)
+    SafeAddString(ids.LOCK_TIP, "Entsperrt: durch Ziehen verschieben. Rechtsklick wechselt die Quellen in beiden Modi.", 2)
+    SafeAddString(ids.SIZE, "Quadratgröße", 2)
+    SafeAddString(ids.COUNT_MODE, "Zählmodus", 2)
+    SafeAddString(ids.COUNT_TIP, "Einfach zählt erfasste Erzeugungen, Verbräuche und Abläufe ohne Entfernungsprüfung. Erweitert ergänzt experimentelle Reichweiten- und Verbrauchsschätzungen.", 2)
+    SafeAddString(ids.LIGHT, "Einfach", 2)
+    SafeAddString(ids.EXTENDED, "Erweitert (experimentell)", 2)
+    SafeAddString(ids.VIEW, "Anzeige des Zählers", 2)
+    SafeAddString(ids.VIEW_TIP, "Light verwendet immer das Quadrat. Das ausführliche Fenster ist im erweiterten Modus verfügbar; die Aufzeichnung ist unabhängig von der Anzeige.", 2)
+    SafeAddString(ids.COMPACT, "Quadrat", 2)
+    SafeAddString(ids.DETAILED, "Ausführliches Fenster", 2)
+    SafeAddString(ids.LIGHT_INFO, "Schätzung erfasster Erzeugungen, Verbräuche und Abläufe. Keine Entfernungsprüfung.", 2)
+    SafeAddString(ids.DIAGNOSTICS, "Diagnose", 2)
+    SafeAddString(ids.RELOAD_REMINDER, "Geladene Version: v<<1>>. Nach dem Ersetzen der Addon-Dateien vor einem neuen Test /reloadui ausführen. Nach dem Beenden der Aufzeichnung /reloadui ausführen oder das Spiel verlassen, um das Protokoll auf der Festplatte zu speichern.", 2)
+    SafeAddString(ids.NEWTEST, "Neuen Diagnosetest starten", 2)
+    SafeAddString(ids.NEWTEST_TIP, "Löscht die bisherigen Diagnosedaten und startet eine Aufzeichnung im aktuellen Anzeigemodus; aktive Leichen und ihr Anfangszustand bleiben erhalten.", 2)
+    SafeAddString(ids.CLEARLOG, "Nur Protokoll leeren", 2)
+    SafeAddString(ids.CLEARLOG_TIP, "Setzt weder den Zähler noch den Aufzeichnungsmodus zurück.", 2)
+    SafeAddString(ids.CAPTURE, "Diagnoseprotokoll aufzeichnen", 2)
+    SafeAddString(ids.CAPTURE_TIP, "Zeichnet in beiden Anzeigemodi bis zu 2500 Ereignisse auf. Ausschalten stoppt die Aufzeichnung und behält das Protokoll. Zum Speichern /reloadui ausführen oder das Spiel beenden.", 2)
+    SafeAddString(ids.RADIUS, "Diagnoseradius, m", 2)
+    SafeAddString(ids.RADIUS_TIP, "Wird ohne Reichweitenfilter verwendet; begrenzt die Hauptzahl nicht.", 2)
+    SafeAddString(ids.BANNER_UNAVAILABLE, "Bannerleichen werden nicht gezählt", 2)
+    SafeAddString(ids.BANNER_TIP, "Bannerwerte dienen nur der Diagnose und fügen dem Zähler keine Leichen hinzu.", 2)
+    SafeAddString(ids.PHYSICAL, "Nur physische Leichen annehmen", 2)
+    SafeAddString(ids.PHYSICAL_TIP, "Eine Diagnoseannahme, kein Nachweis der verbrauchten Leiche.", 2)
+    SafeAddString(ids.TTL, "<<1>>: geschätzte Lebensdauer, s", 2)
+    SafeAddString(ids.TTL_TIP, "Nur neue Einträge. Die Dauer schätzt die Verfügbarkeit.", 2)
+    SafeAddString(ids.SOURCE_BB, "BB", 2)
+    SafeAddString(ids.SOURCE_SKULL, "Schädel", 2)
+    SafeAddString(ids.SOURCE_ARCHER, "Bogenschütze / Magier", 2)
+    SafeAddString(ids.SOURCE_BANNER, "Banner", 2)
+    SafeAddString(ids.CORPSES, "LEICHEN", 2)
+    SafeAddString(ids.POSSIBLE, "[<<F:1>>–<<F:2>> möglich]", 2)
+    SafeAddString(ids.SOURCE_BUTTON, "Quellen: <<1>> (zum Wechseln klicken)", 2)
+    SafeAddString(ids.BREAKDOWN, "BB <<F:1>> || Schädel <<F:2>> || Sonstige <<F:3>> (alle)", 2)
+    SafeAddString(ids.LOCATED, "<<F:1>>m: <<F:2>> im Radius + <<F:3>> Position unbekannt", 2)
+    SafeAddString(ids.API_MISSING, "API: keine bestätigte Anzahl", 2)
+    SafeAddString(ids.CANDIDATE, "Kandidat", 2)
+    SafeAddString(ids.API_SAMPLE, "<<1>>: <<F:2>> / <<F:3>>m (vor <<f:4>>s<<5>>)", 2)
+    SafeAddString(ids.STALE, ", veraltet", 2)
+    SafeAddString(ids.BANNER_SAMPLE, "Banner 227113: <<F:1>>? (vor <<f:2>>s)", 2)
+    SafeAddString(ids.BANNER_MISSING, "Banner 227113: keine Messung", 2)
+    SafeAddString(ids.SESSION, "Sitzung: +<<F:1>> / Nutzungen <<F:2>> / abgelaufen <<F:3>>", 2)
+    SafeAddString(ids.YARD_STATS, "Yard <<F:1>> / <<F:2>> unbestätigt || Nicht erfasst <<F:3>> || Ohne Zuordnung <<F:4>>", 2)
+    SafeAddString(ids.TTL_EXPIRES, "nächster Ablauf <<f:1>>s", 2)
+    SafeAddString(ids.TTL_EMPTY, "keine ausgewählten Einträge", 2)
+    SafeAddString(ids.TTL_ESTIMATE, "Geschätzte Dauer; <<1>><<2>>", 2)
+    SafeAddString(ids.RECORDING, "; Aufzeichnung", 2)
+    SafeAddString(ids.BOUNDS_BROAD, "Auswahl unbekannt; Grenzen erweitert", 2)
+    SafeAddString(ids.CHOICE_UNKNOWN, "Verbrauchte Leiche / Verfügbarkeit unbestätigt", 2)
+    SafeAddString(ids.RANGE_OFF, "Reichweite: AUS", 2)
+    SafeAddString(ids.RANGE_AVAILABLE, "<<1>>: <<f:2>>m || außerhalb <<F:3>> || unbekannt: <<4>>", 2)
+    SafeAddString(ids.RANGE_UNAVAILABLE, "Reichweite unbekannt: kein Filter", 2)
+    SafeAddString(ids.INCLUDED, "mitgezählt", 2)
+    SafeAddString(ids.EXCLUDED, "ausgeschlossen", 2)
+    SafeAddString(ids.TOOLTIP_COUNTS, "Schätzung <<F:1>>; möglich <<F:2>>–<<F:3>>; Position unbekannt <<F:4>>", 2)
+    SafeAddString(ids.TOOLTIP_RANGE, "Reichweite: <<f:1>>m (<<2>>)", 2)
+    SafeAddString(ids.TOOLTIP_HINT, "Zahl: geschätzte Leichenanzahl. ~: geschätzte Sekunden bis zum Ablauf. ?: der Rest kann null sein.", 2)
+    SafeAddString(ids.ENABLED, "EIN", 2)
+    SafeAddString(ids.DISABLED, "AUS", 2)
+    SafeAddString(ids.AMBIGUOUS, "AUS (mehrdeutig)", 2)
+    SafeAddString(ids.CHAT_DEPENDENCY, "LibAddonMenu-2.0 für die Einstellungen installieren und aktivieren.", 2)
+    SafeAddString(ids.CHAT_CAPTURE, "Diagnoseaufzeichnung: <<1>>", 2)
+    SafeAddString(ids.CHAT_CLEARED, "Diagnoseprotokoll geleert.", 2)
+    SafeAddString(ids.CHAT_RESET, "Leichenjournal zurückgesetzt.", 2)
+    SafeAddString(ids.CHAT_RADIUS, "Diagnoseradius: <<f:1>>m", 2)
+    SafeAddString(ids.CHAT_SOURCES, "Quellen: <<1>>", 2)
+    SafeAddString(ids.CHAT_TTL, "Dauer nur für neue Einträge geändert.", 2)
+    SafeAddString(ids.CHAT_PHYSICAL, "Annahme physischer Leichen: <<1>>", 2)
+    SafeAddString(ids.CHAT_VARIANTS, "<<F:1>> Fertigkeitsvarianten ermittelt; in Diagnose gespeichert.", 2)
+    SafeAddString(ids.CHAT_RULE, "Regel für ID <<1>> erstellt; vor Nutzung kalibrieren.", 2)
+    SafeAddString(ids.CHAT_API, "API <<1>>; globale Funktionssuche deaktiviert.", 2)
+    SafeAddString(ids.CHAT_SLOT, "<<1>>: <<2>> [<<3>>], nutzbar=<<4>> Zielfehler=<<5>> Reichweitenfehler=<<6>> Kostenfehler=<<7>>", 2)
+    SafeAddString(ids.CHAT_STATUS1, "Quellen=<<1>> Schätzung=<<F:2>> möglich=<<F:3>>–<<F:4>>; BB=<<F:5>> Schädel=<<F:6>> Sonstige=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS2, "Erzeugt=<<F:1>> Nutzungen=<<F:2>> nichtErfasst=<<F:3>> abgelaufen=<<F:4>> ohneZuordnung=<<F:5>> mehrdeutig=<<F:6>>; Einträge=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS3, "Yard Anwendungen=<<F:1>> verbraucht=<<F:2>> unbestätigt=<<F:3>>", 2)
+    SafeAddString(ids.CHAT_READY, "v<<1>> experimentell. /crpst settings — Einstellungen; /crpst test — neuer Test.", 2)
+    SafeAddString(ids.COMMANDS, "Befehle (Argumente bleiben Englisch):", 2)
+end)

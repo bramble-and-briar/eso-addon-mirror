@@ -5,9 +5,9 @@ local calculateConstraints = SharedChatContainer.CalculateConstraints
 
 function Hermes:SetChatHook()
     function SharedChatContainer.CalculateConstraints(...)
-        local self = ...
+        local container = ...
         local w, h = GuiRoot:GetDimensions()
-        self.system.maxContainerWidth, self.system.maxContainerHeight = w * 0.95, h * 0.95
+        container.system.maxContainerWidth, container.system.maxContainerHeight = w * 0.95, h * 0.95
         return calculateConstraints(...)
     end
 end

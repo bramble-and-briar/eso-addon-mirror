@@ -27,7 +27,6 @@ end
 local player = env.controls.LiveBuffUptimeTracker1
 local target = env.controls.LiveBuffUptimeTracker2
 local group = env.controls.LiveBuffUptimeTracker3
-SLASH_COMMANDS["/lbu"]("check on")
 local function activity(result, source, targetType)
     env.events.LiveBuffUptimeCombatTiming(nil, result or ACTION_RESULT_DAMAGE, false, nil, nil, nil,
         "Source", source or COMBAT_UNIT_TYPE_GROUP, "Target", targetType or 4, 100)
@@ -86,14 +85,6 @@ assert(group.labels[2].text == "25.0 %")
 
 env.setClock(160)
 for _ = 1, 20 do env.events.tick() end
-local reports = 0
-for _, message in ipairs(env.messages) do
-    if message:find("Check: ID", 1, true) then
-        reports = reports + 1
-        assert(message:find("OK intern", 1, true), "Raw/player/target/group self-check returned a warning: " .. message)
-    end
-end
-assert(reports == 3, "Raw combat end must submit player, target and group reports")
 for _, person in pairs(people) do person.combat = true end
 effects(160, 180)
 env.events[EVENT_PLAYER_COMBAT_STATE](nil, true)

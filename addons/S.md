@@ -127,7 +127,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Castbar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solinur/Simple-Castbar__3702) | Solinur | PC / Mac | 1.3.4 |
 | [Simple Combat Alerts Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Combat-Alerts-Revived__2581) | Baertram | PC / Mac | 1.2 |
 | [Simple Durability](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Weolo/Simple-Durability__1165) | Weolo | PC / Mac | 4.4 |
-| [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.1.2 |
+| [Simple Event Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jammet/Simple-Event-Tracker__4932) | Jammet | PC / Mac | 3.1.3 |
 | [Simple fix for Grim Focus Counter v1.6](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/vays/Simple-fix-for-Grim-Focus-Counter-v1.6__4136) | vays | PC / Mac | 1.6.07 |
 | [Simple FPS & Ping](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Claise/Simple-FPS-Ping__ce31d856-17b4-4951-9802-820df96527e2) | Claise | Console | — |
 | [Simple Group Leave - /gl Sash command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/Simple-Group-Leave---gl-Sash-command__654) | Baertram | PC / Mac | 0.6 100034 |
@@ -147,7 +147,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleClock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sunoo/SimpleClock__1017) | Sunoo | PC / Mac | 1.2 |
 | [Simpleclock Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Simpleclock-Console__765c8914-fa3a-4662-8b55-9edead0f309a) | j.hhh | Console | — |
 | [SimpleDailyCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/SimpleDailyCraft__3844) | MelanAster | PC / Mac | 0.93 |
-| [SimpleDailyCraft 0.94 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.94-U51-FIX__4898) | VotMyID | PC / Mac | 0.94 |
+| [SimpleDailyCraft 0.96 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.96-U51-FIX__4898) | VotMyID | PC / Mac | 0.96 |
+| [SimpleDailyCraft 0.97 (0.96 + New Alchemy Regs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/SimpleDailyCraft-0.97-0.96-New-Alchemy-Regs__4945) | sinnereso | PC / Mac | 0.97 |
 | [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101042 |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
 | [SimplePlayTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrumpyEthilin/SimplePlayTime__4452) | GrumpyEthilin | PC / Mac | 1.1.3 |
@@ -170,7 +171,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Skill Style Cycler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyzeragon/Skill-Style-Cycler__4014) | Kyzeragon | PC / Mac | 1.4.3 |
 | [Skill Styles Icon Pack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Skill-Styles-Icon-Pack__4178) | wicked_prophet | PC / Mac | 2.0 |
 | [Skillbound - Skills & Build Presets](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Skillbound---Skills-Build-Presets__4911) | brianmit | PC / Mac | 1.0.3 |
-| [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.0 |
+| [SkillExp](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awamani/SkillExp__4445) | awamani | PC / Mac | 1.1.1 |
 | [SkillTags](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/HeiKyoma/SkillTags__4446) | HeiKyoma | PC / Mac | 1.2 |
 | [Skylike Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptTatsu/Skylike-Dialog__1852) | CaptTatsu | PC / Mac | 1.5 |
 | [Skyrim Merchant Marines Guildhall teleport button](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Doomzday/Skyrim-Merchant-Marines-Guildhall-teleport-button__3847) | Doomzday | PC / Mac | 1.0 |
@@ -323,7 +324,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |
 | [Stylich](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/Stylich__4671) | s1by0z | PC / Mac | 1.2.2 |
 | [Sugas-Test-Zone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Sugas-Test-Zone__75cafaa0-706c-4f77-a94a-9a8b0e2868f2) | SugaComa | Console | — |
-| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 1.22 |
+| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 1.25 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__3656) | Lykeion | PC / Mac | 1.5 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__aa271fb4-3ce5-4584-ac5c-338617e92f62) | Lykeion+ | Console | — |
 | [SuMech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/burito/SuMech__3467) | burito | PC / Mac | cdaefe9dfe5ba5531fb6b0a6eb0c1757b7b246a1 |

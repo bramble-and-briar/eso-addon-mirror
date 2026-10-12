@@ -1,17 +1,17 @@
-﻿## Title: Lui Extended
+## Title: Lui Extended
 ## Author: @dack_janiels[PC]
 ## LegacyAuthors: ArtOfShred, psypanda, Saenic & SpellBuilder
 ## APIVersion: 101051 101052
-## Version: 7.2.6.9
-## AddOnVersion: 7269
+## Version: 7.2.7.0
+## AddOnVersion: 7270
 ## Description: Provides UnitFrames, InfoPanel, Combat Text & Info, Buff & Debuff Tracking, Chat Announcements, Slash Commands, and MiniMap.
-## DependsOn: LuiMedia>=7133 LuiData>=7229
+## DependsOn: LuiMedia>=7133 LuiData>=7230
 ## PCDependsOn: LibAddonMenu-2.0>=43
 ## ConsoleDependsOn: LibHarvensAddonSettings>=20109 LibConsoleDialogs
 ## OptionalDependsOn: LibChatMessage>=118 pChat>=10006050 CombatMetrics>=10705 CrutchAlerts>=20502
 ## OptionalDependsOn: LibGroupResources>=91 LibGroupCombatStats>=20251011 LibGroupPotionCooldowns>=20250727
 ## OptionalDependsOn: LibDebugLogger>=268 DebugLogViewer>=697 DolgubonsLazyWritCreator>=4038 LibLazyCrafting>=4028
-## OptionalDependsOn: LootLog>=408040 Taneth LibCombat LibCombat2 LibSlashCommander
+## OptionalDependsOn: LootLog>=408040 Taneth LibCombat LibCombat2 LibSlashCommander HarvestMap LibMapPins-1.0
 ## SavedVariables: LUIESV ACACUpdateCheckDisabled ACACUC_LuiExtended LUIE_UnitFrames_SV LUIE_CombatText_SV LUIE_ChatAnnouncements_SV LUIE_SpellCastBuffs_SV
 ## SavedVariables: LUIE_ActionBar_SV LUIE_InfoPanel_SV LUIE_SlashCommands_SV LUIE_CombatInfo_SV LUIE_MiniMap_SV
 
@@ -85,6 +85,7 @@ frontend/fontdefs_gamepad.xml
 
 # Frontend
 frontend/AbilityAlerts.xml
+frontend/ActionBar.xml
 frontend/CombatText.xml
 frontend/CrowdControlTracker.xml
 frontend/InfoPanel.xml
@@ -118,6 +119,7 @@ modules/ChatAnnouncements/QuestCounterFilters.lua
 modules/ChatAnnouncements/ChatAnnouncementsNightMarketDisplay.lua
 modules/ChatAnnouncements/ChatAnnouncementsHighSeasDisplay.lua
 modules/ChatAnnouncements/ChatAnnouncementsDynamicEncounterDisplay.lua
+modules/ChatAnnouncements/ChatAnnouncementsCatalogDisplay.lua
 modules/ChatAnnouncements/hooks/_HookShared.lua
 modules/ChatAnnouncements/hooks/Hooks_Inventory.lua
 modules/ChatAnnouncements/hooks/Hooks_Lorebooks.lua
@@ -135,6 +137,7 @@ modules/ChatAnnouncements/hooks/Hooks_Achievement.lua
 modules/ChatAnnouncements/hooks/Hooks_Antiquities.lua
 modules/ChatAnnouncements/hooks/Hooks_Misc.lua
 modules/ChatAnnouncements/hooks/Hooks_Vengeance.lua
+modules/ChatAnnouncements/hooks/Hooks_Companion.lua
 modules/ChatAnnouncements/hooks/Hooks_CsaCallbacks.lua
 modules/ChatAnnouncements/ChatAnnouncementsHooks.lua
 modules/ChatAnnouncements/ChatAnnouncementsSocialRouter.lua
@@ -199,24 +202,16 @@ modules/InfoPanel/InfoPanel.lua
 
 # Modules - MiniMap
 modules/MiniMap/_Namespace.lua
-modules/MiniMap/_FilterController.lua
-modules/MiniMap/_NativeWorldMapContainer.lua
-modules/MiniMap/_VisibilityController.lua
-modules/MiniMap/_ZoomContext.lua
-modules/MiniMap/_ChromeController.lua
-modules/MiniMap/_InfoPanelIntegration.lua
-modules/MiniMap/_PublicAPI.lua
-modules/MiniMap/_PinDimensions.lua
-modules/MiniMap/_HudScene.lua
-modules/MiniMap/_View.lua
-modules/MiniMap/_MapController.lua
-modules/MiniMap/_MiniMapMapController.lua
-modules/MiniMap/_PinController.lua
-modules/MiniMap/_PinMirrorStateMachine.lua
-modules/MiniMap/_MapEventController.lua
-modules/MiniMap/_InputController.lua
-modules/MiniMap/_HudMapPinInteraction.lua
-modules/MiniMap/_Runtime.lua
+modules/MiniMap/MiniMap_PanAndZoom.lua
+modules/MiniMap/MiniMap_TileLayer.lua
+modules/MiniMap/MiniMap_PinLayer.lua
+modules/MiniMap/MiniMap_PlayerPip.lua
+modules/MiniMap/MiniMap_StateMachines.lua
+modules/MiniMap/MiniMap_Frame.lua
+modules/MiniMap/MiniMap_Input.lua
+modules/MiniMap/MiniMap_Visibility.lua
+modules/MiniMap/MiniMap_Integrations.lua
+modules/MiniMap/MiniMap_Manager.lua
 modules/MiniMap/MiniMap.lua
 frontend/MiniMap.xml
 
@@ -337,7 +332,6 @@ console/dialogs/BlacklistDialog.xml
 console/dialogs/BlacklistDialog.lua
 
 # Changelog - PC only
-pc/frontend/ChangelogTemplates.xml
 pc/frontend/Changelog.xml
 pc/Changelog.lua
 

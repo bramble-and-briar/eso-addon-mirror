@@ -18,7 +18,7 @@
     "DungeonSetTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4942/",
-  "fingerprint": "871ec359ce00b2f93239b9c5c34d8f7d4b2b690b29090a976d494eb8b570d696",
+  "fingerprint": "be4372b765120a084f56f968906408b7445079b2aba62a5e36a68e1bdce24917",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17930.png",
     "https://cdn-eso.mmoui.com/preview/pvw17928.png",
@@ -30,11 +30,11 @@
   "source_id": "4942",
   "source_url": "https://www.esoui.com/downloads/info4942-DungeonSetTracker.html",
   "stats": {
-    "downloads": 12,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 32,
+    "favorites": 1,
+    "monthly_downloads": 30
   },
   "title": "Dungeon Set Tracker",
-  "updated_at": 1791710972000,
-  "version": "1.0.0"
+  "updated_at": 1791735907000,
+  "version": "1.1.0"
 }

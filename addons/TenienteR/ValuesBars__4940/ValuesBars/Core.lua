@@ -245,12 +245,37 @@ end
 -- Arranque (se ejecuta cuando ya se cargaron todos los archivos del addon)
 ---------------------------------------------------------------------------
 
+-- Hasta la 1.0.0 los ajustes se guardaban bajo el perfil "Default", compartido por todos los
+-- servidores (NA, EU, PTS). Desde la 1.0.1 cada servidor tiene su propio perfil (GetWorldName()).
+-- Si el servidor actual aún no tiene ajustes, se copian los antiguos una sola vez. Los antiguos
+-- no se borran, así otro servidor también puede migrarlos.
+local function MigrateLegacySavedVars(svName, world)
+    local raw = _G[svName]
+    if type(raw) ~= "table" then return end
+
+    local account = GetDisplayName()
+    local legacy = raw.Default and raw.Default[account] and raw.Default[account]["$AccountWide"]
+    if type(legacy) ~= "table" then return end
+
+    raw[world] = raw[world] or {}
+    raw[world][account] = raw[world][account] or {}
+    if raw[world][account]["$AccountWide"] == nil then
+        raw[world][account]["$AccountWide"] = ZO_DeepTableCopy(legacy)
+    end
+end
+
 local function OnAddOnLoaded(_, addonName)
-    if addonName ~= VB.name then return end
+    if addonName ~= VB.name and addonName ~= VB.name .. "Dev" then return end
     EVENT_MANAGER:UnregisterForEvent(VB.name, EVENT_ADD_ON_LOADED)
 
+    -- La versión de desarrollo (carpeta ValuesBarsDev) usa su propia variable para no mezclar
+    -- sus ajustes con los de la versión instalada.
+    local svName = (addonName == VB.name) and "ValuesBars_SV" or "ValuesBarsDev_SV"
+    local world = GetWorldName()
+    MigrateLegacySavedVars(svName, world)
+
     ---@diagnostic disable-next-line: undefined-field
-    VB.sv = ZO_SavedVars:NewAccountWide("ValuesBars_SV", VB.svVersion, nil, VB.defaults)
+    VB.sv = ZO_SavedVars:NewAccountWide(svName, VB.svVersion, nil, VB.defaults, world)
 
     CreateLabels()
     VB.ApplyPosition()

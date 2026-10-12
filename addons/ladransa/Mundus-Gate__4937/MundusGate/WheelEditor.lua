@@ -542,10 +542,12 @@ function WheelEditor:RefreshDetails()
     end
 end
 
+-- Изменение значка или цвета запоминается для места (и переносится на его кнопки)
 function WheelEditor:Change(mutator)
     local slot = self:GetSelectedSlot()
     if not slot then return end
     mutator(slot)
+    Data:SavePlaceStyleFrom(slot)
     self:RefreshWheel()
 end
 

@@ -1,0 +1,10 @@
+# Changelog
+
+## 1.0.1
+
+- Fixed: settings are now saved per megaserver (NA, EU, PTS) instead of being shared between them. Your existing settings are migrated automatically the first time you log in on each megaserver.
+- Added AI disclosure and credits to the add-on description and README.
+
+## 1.0.0
+
+- Initial release.

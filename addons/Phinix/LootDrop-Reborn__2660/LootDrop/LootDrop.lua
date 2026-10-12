@@ -9,7 +9,7 @@
 --Localization-----------------------------------------------------------------
 local L = LootDrop_Strings:GetLanguage()
 --Local constants--------------------------------------------------------------
-local ADDON_VERSION						= "4.64"
+local ADDON_VERSION						= "4.65"
 local ADDON_NAME						= "LootDrop"
 local LootDrop_sDefRushmik          	= "|cD3B830Rushmik|r"
 local LootDrop_sDefPawkette         	= "|cFF66CCPawkette|r"
@@ -9574,11 +9574,11 @@ function LootDrop:OnVPUpdate( rewardTrackType, rewardTrackId, previousRank, curr
 	local isPreview = (preview ~= nil and preview == "preview") and true or false
 
   local seasonId = GetCurrentVeterancySeasonId()
-	local currentVPRank = GetUnitVeterancyRank("player")
+	local currentVPRank =  GetUnitVeterancyRank("player")
 	local rankProgVP, rankMaxVP
 	local currentVP
 	local levelProgress
-	local rankIcon = GetVeterancyRankIcon(currentVPRank, seasonId)
+	local rankIcon = GetVeterancyRankIcon(math.min(currentVPRank,100), seasonId)
 
 	if isPreview then
 		rankProgVP, rankMaxVP = currentExperience , GetTotalProgressAtRewardTrackTier(GetRewardTrackIdFromReferenceTrackId(rewardTrackType, GetActiveReferenceTrackIdsForRewardTrackType(rewardTrackType)), currentVPRank)

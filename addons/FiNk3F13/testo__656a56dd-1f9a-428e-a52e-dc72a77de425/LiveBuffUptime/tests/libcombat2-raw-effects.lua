@@ -13,13 +13,19 @@ LibCombat2 = {
     end,
 }
 function GetGameTimeMilliseconds() return GetFrameTimeSeconds() * 1000 + 100000 end
+function GetGroupSize() return 2 end
+function GetGroupUnitTagByIndex(index) return index == 1 and "player" or "group1" end
+function GetUnitDisplayName(tag) return tag end
+local exists = DoesUnitExist
+function DoesUnitExist(tag) return tag == "group1" or exists(tag) end
+env.setBuffs("group1", {})
 env.setCombat(false); env.setClock(30)
 env.setBuffs("player", {})
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "group", view = "healingIn", scale = 1, x = 0, y = 0 },
     { key = 2, id = 39077, unit = "reticleover", view = "damageOut", scale = 1, x = 0, y = 48 } }
-saved.checkUptime = true
 ZO_SavedVars.NewAccountWide = function() return saved end
+local captured = dofile("tests/support/capture.lua")()
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
 local function send(event, time, ...)
@@ -41,21 +47,21 @@ raw(35, "playerpet1", 20, 61771, 3)
 raw(35, "reticleover", 99, 39077, 3)
 send(2, 40, 1, 1, 99, 123, 500, 1, 0)
 env.events.tick()
-assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "100.0 %")
+assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "25.0 %")
 assert(env.controls.LiveBuffUptimeTracker2.labels[2].text == "50.0 %")
 env.setClock(41)
 callbacks[51](51, { unitIds = { player = 1 }, units = { [1] = { unitType = 1 }, [99] = { unitType = 4 } } })
 for index = 1, 30 do env.events.tick() end
-assert(saved.lastFights[1].percent == 100 and #saved.lastFights[1].members == 1,
+assert(captured[1].percent == 25 and #captured[1].members == 2,
     "Raw-observed group players missing from v2 summary must remain included; pets must not")
-assert(saved.lastFights[2].percent == 50)
+assert(captured[2].percent == 50)
 local from = #env.messages + 1
 SLASH_COMMANDS["/lbu"]("status")
 local status = table.concat(env.messages, "\n", from)
 assert(status:find("Effekte 0", 1, true) and status:find("Direkte ESO-Effekte 6", 1, true), status)
 raw(42, "group1", 10, 61771, 1)
 env.events.tick()
-assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "100.0 %", "Raw events must not reopen a finished fight")
+assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "25.0 %", "Raw events must not reopen a finished fight")
 
 -- When both paths work, the same notifications must be forwarded once.
 send(1, 50, 1)
@@ -68,7 +74,7 @@ send(2, 60, 1, 1, 99, 123, 500, 1, 0)
 env.setClock(61)
 callbacks[51](51, { unitIds = { player = 1 }, units = { [1] = { unitType = 1 }, [99] = { unitType = 4 } } })
 for index = 1, 30 do env.events.tick() end
-assert(saved.lastFights[3].percent == 100 and saved.lastFights[3].diagnostics.effectEvents == 2)
+assert(captured[3].percent == 25)
 from = #env.messages + 1
 SLASH_COMMANDS["/lbu"]("status")
 assert(table.concat(env.messages, "\n", from):find("Doppelmeldungen ignoriert 2", 1, true))

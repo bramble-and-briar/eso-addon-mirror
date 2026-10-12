@@ -12,7 +12,7 @@
 --- @field SpellCastBuffs LUIE.SpellCastBuffs
 --- @field name string The addon name
 --- @field log_to_chat boolean Whether to output logs to chat
---- @field logger LibDebugLogger The logger instance
+--- @field logger LDL_Logger The logger instance from `LibDebugLogger.Create`
 --- @field author string The addon author
 --- @field version string The addon version
 --- @field SVName string SavedVariables name
@@ -27,8 +27,8 @@ LUIE = {}
 LUIE.__index = LUIE
 LUIE.tag = "LUIE"
 LUIE.name = "LuiExtended"
-LUIE.version = "7.2.6.5"
-LUIE.addonVersion = 7265
+LUIE.version = "7.2.7.0"
+LUIE.addonVersion = 7270
 LUIE.author = "@dack_janiels[PC]"
 LUIE.legacyAuthors = "ArtOfShred, psypanda, Saenic & SpellBuilder"
 LUIE.website = "https://www.esoui.com/downloads/info818-LuiExtended.html"
@@ -113,29 +113,28 @@ end
 --- Applies console/PC-correct fonts to all mover coord + preview labels (XML defaults + runtime-created controls).
 function LUIE.RefreshMoverOverlayFonts()
     for i = 1, #MOVER_OVERLAY_TLW_NAMES do
-        local tlw = _G[MOVER_OVERLAY_TLW_NAMES[i]]
+        local tlw = rawget(_G, MOVER_OVERLAY_TLW_NAMES[i])
         if tlw then
             ApplyMoverPreviewControlFonts(tlw.preview)
             ApplyMoverPreviewControlFonts(tlw:GetNamedChild("_Preview"))
         end
     end
 
-    local alertFrame = _G["LUIE_AlertFrame"]
+    local alertFrame = rawget(_G, "LUIE_AlertFrame")
     if alertFrame then
         ApplyMoverPreviewControlFonts(alertFrame:GetNamedChild("_Preview"))
     end
 
     for _, panelName in ipairs({ "LUIE_CombatText_Incoming", "LUIE_CombatText_Outgoing" }) do
-        local panel = _G[panelName]
+        local panel = rawget(_G, panelName)
         if panel then
             ApplyMoverPreviewControlFonts(panel:GetNamedChild("_Preview"))
         end
     end
 
-    local castBar = _G["LUIE_ACTIONBAR_CASTBAR_TLC"]
-    if castBar and castBar.preview then
-        LUIE.ApplyFramePreviewLabelFont(castBar.previewLabel)
-        LUIE.ApplyPositionLabelFont(castBar.preview.anchorLabel)
+    local castBar = rawget(_G, "LUIE_ACTIONBAR_CASTBAR_TLC")
+    if castBar then
+        ApplyMoverPreviewControlFonts(castBar:GetNamedChild("_Preview"))
     end
 
     local spellCastBuffs = LUIE.SpellCastBuffs
@@ -210,6 +209,8 @@ LUIE.OtherAddonCompatability =
     isWritCreatorEnabled = false,
     isLibCombatEnabled = false,
     isLibSlashCommanderEnabled = false,
+    isHarvestMapEnabled = false,
+    isLoreLibraryEnabled = false,
 }
 -- -----------------------------------------------------------------------------
 -- Default Settings
@@ -278,7 +279,7 @@ LUIE.Defaults =
         ChatTab = { [1] = true, [2] = true, [3] = true, [4] = true, [5] = true },
         TimeStamp = false,
         TimeStampFormat = "HH:m:s",
-        TimeStampColor = { 143 / 255, 143 / 255, 143 / 255 },
+        TimeStampColor = { 0.56, 0.56, 0.56 },
         LcmUseLuiExtendedTimestampFormat = true,
         Social =
         {
@@ -387,8 +388,8 @@ local DEVS = readonlytable
         },
         ["@dack_janiels"] =
         {
-            enabled = false,
-            debug = false,
+            enabled = true,
+            debug = true,
         },
         ["@dack_janiels.luie"] =
         {

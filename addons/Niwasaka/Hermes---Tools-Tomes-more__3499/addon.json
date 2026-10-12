@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Niwasaka/Hermes---Tools-Tomes-more__3499",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Niwasaka",
   "canonical_id": "esoui:3499",
   "category_id": "95",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3499",
@@ -17,17 +18,15 @@
     "Hermes"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3499/",
-  "fingerprint": "4e4ec48acd1ef9b8fab874c9144aa5347015422f437638268eb48f61aec15948",
+  "fingerprint": "9504fb091c6820d33565f1cdd05c76cd7559dbf8d6e0e4ea28431dd4cb642e10",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw16285.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15903.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15904.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15902.png",
-    "https://cdn-eso.mmoui.com/preview/pvw16165.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15638.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15415.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15639.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15700.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17946.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17947.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17950.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17949.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17948.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15700.png",
+    "https://cdn-eso.mmoui.com/preview/pvw15415.png"
   ],
   "platform": "pc",
   "published": true,
@@ -35,11 +34,11 @@
   "source_id": "3499",
   "source_url": "https://www.esoui.com/downloads/info3499-Hermes-ToolsTomesmore.html",
   "stats": {
-    "downloads": 3208,
+    "downloads": 3285,
     "favorites": 2,
-    "monthly_downloads": 36
+    "monthly_downloads": 43
   },
   "title": "Hermes - Tools, Tomes & more",
-  "updated_at": 1781043610000,
-  "version": "1.5.2"
+  "updated_at": 1791742622000,
+  "version": "1.6.0"
 }

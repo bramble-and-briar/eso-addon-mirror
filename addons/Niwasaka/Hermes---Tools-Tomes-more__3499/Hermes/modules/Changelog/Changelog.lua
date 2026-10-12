@@ -2,18 +2,25 @@ local Hermes = _G['Hermes']
 local zo_strformat = zo_strformat
 
 function Hermes:ToggleChangelog(visible)
-    local CHG_OFFSET_Y = -120
-
-    Hermes_Changelog:ClearAnchors()
-    Hermes_Changelog:SetAnchor(CENTER, GuiRoot, CENTER, 0, CHG_OFFSET_Y)
-
     Hermes_Changelog:SetHidden(not visible)
 end
 
-function Hermes:ChangelogScreen()
-    if not self.db.showChangelog then
-        return
+local function initializeChangelogWindow(self)
+    Hermes_Changelog:SetHandler("OnMoveStop", function()
+        self.db.changelogX = zo_floor(Hermes_Changelog:GetLeft())
+        self.db.changelogY = zo_floor(Hermes_Changelog:GetTop())
+    end)
+
+    if self.db.changelogX ~= nil and self.db.changelogY ~= nil then
+        Hermes_Changelog:ClearAnchors()
+        Hermes_Changelog:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, self.db.changelogX, self.db.changelogY)
     end
+
+    self:CreateGuideHelp(Hermes_Changelog, Hermes_Changelog_Close, "START_UPDATES")
+end
+
+function Hermes:ChangelogScreen()
+    initializeChangelogWindow(self)
 
     local messages = self.GetDefaultLocaleString("changelog_message") or {}
     local changelog = table.concat(messages, "\n")
@@ -29,12 +36,14 @@ function Hermes:ChangelogScreen()
         changelog = string.gsub(changelog, pattern, replacement)
     end
 
-    Hermes_Changelog_Title:SetText(zo_strformat(self.GetDefaultLocaleString("CHANGELOG_TITLE"), self.name))
+    Hermes_Changelog_Title:SetText(zo_strformat(self.GetDefaultLocaleString("CHANGELOG_TITLE"), self.addonName))
     Hermes_Changelog_About:SetText(zo_strformat(self.GetDefaultLocaleString("CHANGELOG_FROM"), self.version, self.author))
     Hermes_Changelog_Text:SetText(changelog)
 
-    local shouldShow = (self.db.welcomeVersion ~= self.version)
-    self:ToggleChangelog(shouldShow)
+    if not self.db.showChangelog then
+        return
+    end
 
+    self:ToggleChangelog(self.db.welcomeVersion ~= self.version)
     self.db.welcomeVersion = self.version
 end

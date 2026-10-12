@@ -1,102 +1,106 @@
--- UI strings only; never used to identify abilities or units.
-CorpseTracker.locales.br = {
-    AUTOMATIC = "Automático",
-    LANGUAGE = "Idioma da interface",
-    LANG_TIP = "Auto: idioma do cliente se disponível; caso contrário, inglês. Alterações manuais exigem /reloadui.",
-    SHOW = "Mostrar contador",
-    SHOW_TIP = "Visível apenas no HUD; oculto nos menus.",
-    DEBUG = "Modo de depuração",
-    DEBUG_TIP = "Observações adicionais de unidades durante a gravação e destaque amarelo de incerteza no modo avançado. Não altera a exibição, a contagem nem a gravação.",
-    SOURCES = "Fontes de cadáveres",
-    SOURCES_TIP = "Todas as fontes rastreadas incluem suas invocações esqueléticas e regras, não todos os cadáveres do mundo.",
-    PRIMARY = "Seus BB + caveira",
-    ALL = "Todas as fontes rastreadas",
-    RANGE = "Filtro de alcance",
-    RANGE_TIP = "Lê os parâmetros por ID. Yard indica apenas o limite de distância do personagem, sem confirmar a área atingida ou linha de visão. Sem dados da API, o filtro é suspenso.",
-    RANGE_SIPHON = "Siphon: alcance da habilidade",
-    RANGE_YARD = "Yard: alcance de colocação + raio",
-    RANGE_MANUAL = "Alcance personalizado",
-    RANGE_NONE = "Sem limite de alcance",
-    MANUAL_RANGE = "Alcance personalizado, m",
-    UNKNOWN = "Incluir posições desconhecidas",
-    UNKNOWN_TIP = "Ativado: inclui posições desconhecidas na estimativa. Desativado: com filtro ativo, conta apenas posições conhecidas dentro do alcance. Desconhecido não significa ausente.",
-    LOCK = "Fixar posição",
-    LOCK_TIP = "Sem bloqueio: arraste para mover. Clique direito alterna as fontes nos dois modos.",
-    SIZE = "Tamanho do quadrado",
-    COUNT_MODE = "Modo de contagem",
-    COUNT_TIP = "Leve conta criações, consumos e expirações registrados sem verificar distância. Avançado adiciona estimativas experimentais de alcance e consumo.",
-    LIGHT = "Leve",
-    EXTENDED = "Avançado (experimental)",
-    VIEW = "Exibição do contador",
-    VIEW_TIP = "Light sempre usa o quadrado. O painel detalhado está disponível no modo ampliado; a gravação independe da exibição.",
-    COMPACT = "Quadrado",
-    DETAILED = "Painel detalhado",
-    LIGHT_INFO = "Estimativa de criações, consumos e expirações registrados. A distância não é verificada.",
-    DIAGNOSTICS = "Diagnóstico",
-    RELOAD_REMINDER = "Versão carregada: v%s. Após substituir os arquivos do addon, execute /reloadui antes de iniciar um novo teste. Após parar a gravação, execute /reloadui ou saia do jogo para salvar o registro em disco.",
-    NEWTEST = "Iniciar novo teste de diagnóstico",
-    NEWTEST_TIP = "Apaga os diagnósticos anteriores e inicia a gravação no modo de exibição atual; mantém os cadáveres ativos e registra seu estado inicial.",
-    CLEARLOG = "Limpar apenas o registro",
-    CLEARLOG_TIP = "Não reinicia o contador nem altera o modo de gravação.",
-    CAPTURE = "Gravar registro de diagnóstico",
-    CAPTURE_TIP = "Grava nos dois modos de exibição, até 2500 eventos. Desativar interrompe a gravação e mantém o registro. Para salvar, use /reloadui ou saia do jogo.",
-    RADIUS = "Raio de diagnóstico, m",
-    RADIUS_TIP = "Usado sem filtro de alcance; não limita o número principal.",
-    BANNER_UNAVAILABLE = "Cadáveres do estandarte não são contados",
-    BANNER_TIP = "Os valores do estandarte servem apenas para diagnóstico e não adicionam cadáveres ao contador.",
-    PHYSICAL = "Supor apenas cadáveres físicos",
-    PHYSICAL_TIP = "Suposição de diagnóstico, não prova de qual cadáver foi consumido.",
-    TTL = "%s: duração estimada, s",
-    TTL_TIP = "Apenas novas entradas. A duração estima a disponibilidade.",
-    SOURCE_BB = "BB",
-    SOURCE_SKULL = "Caveira",
-    SOURCE_ARCHER = "Arqueiro / mago",
-    SOURCE_BANNER = "Estandarte",
-    CORPSES = "CADÁVERES",
-    POSSIBLE = "[%d–%d possíveis]",
-    SOURCE_BUTTON = "Fontes: %s (clique para alternar)",
-    BREAKDOWN = "BB %d | Caveira %d | Outros %d (todos)",
-    LOCATED = "%.0fm: %d localizados + %d sem posição",
-    API_MISSING = "API: sem contagem verificada",
-    CANDIDATE = "Candidato",
-    API_SAMPLE = "%s: %d / %.0fm (há %.1fs%s)",
-    STALE = ", antigo",
-    BANNER_SAMPLE = "Estandarte 227113: %d? (há %.1fs)",
-    BANNER_MISSING = "Estandarte 227113: sem amostra",
-    SESSION = "Sessão: +%d / usos %d / expirados %d",
-    YARD_STATS = "Yard %d / %d não confirmados | Não rastreados %d | Sem associação %d",
-    TTL_EXPIRES = "próxima expiração %.1fs",
-    TTL_EMPTY = "sem entradas selecionadas",
-    TTL_ESTIMATE = "Duração estimada; %s%s",
-    RECORDING = "; gravando",
-    BOUNDS_BROAD = "Escolha desconhecida; limites ampliados",
-    CHOICE_UNKNOWN = "Cadáver consumido / disponibilidade não verificados",
-    RANGE_OFF = "Alcance: desativado",
-    RANGE_AVAILABLE = "%s: %.1fm | fora %d | desconhecidos: %s",
-    RANGE_UNAVAILABLE = "Alcance indisponível: filtro suspenso",
-    INCLUDED = "incluídos",
-    EXCLUDED = "excluídos",
-    TOOLTIP_COUNTS = "Estimativa %d; possíveis %d–%d; posições desconhecidas %d",
-    TOOLTIP_RANGE = "Alcance: %.1fm (%s)",
-    TOOLTIP_HINT = "Número: quantidade estimada de cadáveres. ~: segundos estimados até expirar. ?: o restante pode ser zero.",
-    ENABLED = "ATIVADO",
-    DISABLED = "DESATIVADO",
-    AMBIGUOUS = "DESATIVADO (ambíguo)",
-    CHAT_DEPENDENCY = "Instale e ative LibAddonMenu-2.0 para abrir as configurações.",
-    CHAT_CAPTURE = "Gravação de diagnóstico: %s",
-    CHAT_CLEARED = "Registro de diagnóstico limpo.",
-    CHAT_RESET = "Registro de cadáveres reiniciado.",
-    CHAT_RADIUS = "Raio de diagnóstico: %.1fm",
-    CHAT_SOURCES = "Fontes: %s",
-    CHAT_TTL = "Duração alterada apenas para novas entradas.",
-    CHAT_PHYSICAL = "Suposição de cadáveres físicos: %s",
-    CHAT_VARIANTS = "%d variantes de habilidade identificadas e salvas.",
-    CHAT_RULE = "Regra adicionada para ID %s; calibre antes de usar.",
-    CHAT_API = "API %d; busca de funções globais desativada.",
-    CHAT_SLOT = "%d: %s [%d], utilizável=%s erroAlvo=%s alcance=%s custo=%s",
-    CHAT_STATUS1 = "Fontes=%s estimativa=%d possíveis=%d–%d; BB=%d Caveira=%d Outros=%d",
-    CHAT_STATUS2 = "Criados=%d usos=%d nãoRastreados=%d expirados=%d semAssociação=%d ambíguos=%d; registros=%d",
-    CHAT_STATUS3 = "Yard usos=%d consumidos=%d nãoConfirmados=%d",
-    CHAT_READY = "v%s experimental. /crpst settings — configurações; /crpst test — novo teste.",
-    COMMANDS = "Comandos (argumentos em inglês):",
-}
+-- ESO String ID translation, applied after the saved language is selected.
+local CT = CorpseTracker
+local SafeAddString = SafeAddString
+
+CT.RegisterTranslation("br", function()
+    local ids = CT.stringIds
+    SafeAddString(ids.AUTOMATIC, "Automático", 2)
+    SafeAddString(ids.LANGUAGE, "Idioma da interface", 2)
+    SafeAddString(ids.LANG_TIP, "Automático usa o idioma do cliente, com inglês como alternativa. A escolha de idioma afeta apenas este addon. Alterações exigem /reloadui.", 2)
+    SafeAddString(ids.SHOW, "Mostrar contador", 2)
+    SafeAddString(ids.SHOW_TIP, "Visível apenas no HUD; oculto nos menus.", 2)
+    SafeAddString(ids.DEBUG, "Modo de depuração", 2)
+    SafeAddString(ids.DEBUG_TIP, "Observações adicionais de unidades durante a gravação e destaque amarelo de incerteza no modo avançado. Não altera a exibição, a contagem nem a gravação.", 2)
+    SafeAddString(ids.SOURCES, "Fontes de cadáveres", 2)
+    SafeAddString(ids.SOURCES_TIP, "Todas as fontes rastreadas incluem suas invocações esqueléticas e regras, não todos os cadáveres do mundo.", 2)
+    SafeAddString(ids.PRIMARY, "Seus BB + caveira", 2)
+    SafeAddString(ids.ALL, "Todas as fontes rastreadas", 2)
+    SafeAddString(ids.RANGE, "Filtro de alcance", 2)
+    SafeAddString(ids.RANGE_TIP, "Lê os parâmetros por ID. Yard indica apenas o limite de distância do personagem, sem confirmar a área atingida ou linha de visão. Sem dados da API, o filtro é suspenso.", 2)
+    SafeAddString(ids.RANGE_SIPHON, "Siphon: alcance da habilidade", 2)
+    SafeAddString(ids.RANGE_YARD, "Yard: alcance de colocação + raio", 2)
+    SafeAddString(ids.RANGE_MANUAL, "Alcance personalizado", 2)
+    SafeAddString(ids.RANGE_NONE, "Sem limite de alcance", 2)
+    SafeAddString(ids.MANUAL_RANGE, "Alcance personalizado, m", 2)
+    SafeAddString(ids.UNKNOWN, "Incluir posições desconhecidas", 2)
+    SafeAddString(ids.UNKNOWN_TIP, "Ativado: inclui posições desconhecidas na estimativa. Desativado: com filtro ativo, conta apenas posições conhecidas dentro do alcance. Desconhecido não significa ausente.", 2)
+    SafeAddString(ids.LOCK, "Fixar posição", 2)
+    SafeAddString(ids.LOCK_TIP, "Sem bloqueio: arraste para mover. Clique direito alterna as fontes nos dois modos.", 2)
+    SafeAddString(ids.SIZE, "Tamanho do quadrado", 2)
+    SafeAddString(ids.COUNT_MODE, "Modo de contagem", 2)
+    SafeAddString(ids.COUNT_TIP, "Leve conta criações, consumos e expirações registrados sem verificar distância. Avançado adiciona estimativas experimentais de alcance e consumo.", 2)
+    SafeAddString(ids.LIGHT, "Leve", 2)
+    SafeAddString(ids.EXTENDED, "Avançado (experimental)", 2)
+    SafeAddString(ids.VIEW, "Exibição do contador", 2)
+    SafeAddString(ids.VIEW_TIP, "Light sempre usa o quadrado. O painel detalhado está disponível no modo ampliado; a gravação independe da exibição.", 2)
+    SafeAddString(ids.COMPACT, "Quadrado", 2)
+    SafeAddString(ids.DETAILED, "Painel detalhado", 2)
+    SafeAddString(ids.LIGHT_INFO, "Estimativa de criações, consumos e expirações registrados. A distância não é verificada.", 2)
+    SafeAddString(ids.DIAGNOSTICS, "Diagnóstico", 2)
+    SafeAddString(ids.RELOAD_REMINDER, "Versão carregada: v<<1>>. Após substituir os arquivos do addon, execute /reloadui antes de iniciar um novo teste. Após parar a gravação, execute /reloadui ou saia do jogo para salvar o registro em disco.", 2)
+    SafeAddString(ids.NEWTEST, "Iniciar novo teste de diagnóstico", 2)
+    SafeAddString(ids.NEWTEST_TIP, "Apaga os diagnósticos anteriores e inicia a gravação no modo de exibição atual; mantém os cadáveres ativos e registra seu estado inicial.", 2)
+    SafeAddString(ids.CLEARLOG, "Limpar apenas o registro", 2)
+    SafeAddString(ids.CLEARLOG_TIP, "Não reinicia o contador nem altera o modo de gravação.", 2)
+    SafeAddString(ids.CAPTURE, "Gravar registro de diagnóstico", 2)
+    SafeAddString(ids.CAPTURE_TIP, "Grava nos dois modos de exibição, até 2500 eventos. Desativar interrompe a gravação e mantém o registro. Para salvar, use /reloadui ou saia do jogo.", 2)
+    SafeAddString(ids.RADIUS, "Raio de diagnóstico, m", 2)
+    SafeAddString(ids.RADIUS_TIP, "Usado sem filtro de alcance; não limita o número principal.", 2)
+    SafeAddString(ids.BANNER_UNAVAILABLE, "Cadáveres do estandarte não são contados", 2)
+    SafeAddString(ids.BANNER_TIP, "Os valores do estandarte servem apenas para diagnóstico e não adicionam cadáveres ao contador.", 2)
+    SafeAddString(ids.PHYSICAL, "Supor apenas cadáveres físicos", 2)
+    SafeAddString(ids.PHYSICAL_TIP, "Suposição de diagnóstico, não prova de qual cadáver foi consumido.", 2)
+    SafeAddString(ids.TTL, "<<1>>: duração estimada, s", 2)
+    SafeAddString(ids.TTL_TIP, "Apenas novas entradas. A duração estima a disponibilidade.", 2)
+    SafeAddString(ids.SOURCE_BB, "BB", 2)
+    SafeAddString(ids.SOURCE_SKULL, "Caveira", 2)
+    SafeAddString(ids.SOURCE_ARCHER, "Arqueiro / mago", 2)
+    SafeAddString(ids.SOURCE_BANNER, "Estandarte", 2)
+    SafeAddString(ids.CORPSES, "CADÁVERES", 2)
+    SafeAddString(ids.POSSIBLE, "[<<F:1>>–<<F:2>> possíveis]", 2)
+    SafeAddString(ids.SOURCE_BUTTON, "Fontes: <<1>> (clique para alternar)", 2)
+    SafeAddString(ids.BREAKDOWN, "BB <<F:1>> || Caveira <<F:2>> || Outros <<F:3>> (todos)", 2)
+    SafeAddString(ids.LOCATED, "<<F:1>>m: <<F:2>> localizados + <<F:3>> sem posição", 2)
+    SafeAddString(ids.API_MISSING, "API: sem contagem verificada", 2)
+    SafeAddString(ids.CANDIDATE, "Candidato", 2)
+    SafeAddString(ids.API_SAMPLE, "<<1>>: <<F:2>> / <<F:3>>m (há <<f:4>>s<<5>>)", 2)
+    SafeAddString(ids.STALE, ", antigo", 2)
+    SafeAddString(ids.BANNER_SAMPLE, "Estandarte 227113: <<F:1>>? (há <<f:2>>s)", 2)
+    SafeAddString(ids.BANNER_MISSING, "Estandarte 227113: sem amostra", 2)
+    SafeAddString(ids.SESSION, "Sessão: +<<F:1>> / usos <<F:2>> / expirados <<F:3>>", 2)
+    SafeAddString(ids.YARD_STATS, "Yard <<F:1>> / <<F:2>> não confirmados || Não rastreados <<F:3>> || Sem associação <<F:4>>", 2)
+    SafeAddString(ids.TTL_EXPIRES, "próxima expiração <<f:1>>s", 2)
+    SafeAddString(ids.TTL_EMPTY, "sem entradas selecionadas", 2)
+    SafeAddString(ids.TTL_ESTIMATE, "Duração estimada; <<1>><<2>>", 2)
+    SafeAddString(ids.RECORDING, "; gravando", 2)
+    SafeAddString(ids.BOUNDS_BROAD, "Escolha desconhecida; limites ampliados", 2)
+    SafeAddString(ids.CHOICE_UNKNOWN, "Cadáver consumido / disponibilidade não verificados", 2)
+    SafeAddString(ids.RANGE_OFF, "Alcance: desativado", 2)
+    SafeAddString(ids.RANGE_AVAILABLE, "<<1>>: <<f:2>>m || fora <<F:3>> || desconhecidos: <<4>>", 2)
+    SafeAddString(ids.RANGE_UNAVAILABLE, "Alcance indisponível: filtro suspenso", 2)
+    SafeAddString(ids.INCLUDED, "incluídos", 2)
+    SafeAddString(ids.EXCLUDED, "excluídos", 2)
+    SafeAddString(ids.TOOLTIP_COUNTS, "Estimativa <<F:1>>; possíveis <<F:2>>–<<F:3>>; posições desconhecidas <<F:4>>", 2)
+    SafeAddString(ids.TOOLTIP_RANGE, "Alcance: <<f:1>>m (<<2>>)", 2)
+    SafeAddString(ids.TOOLTIP_HINT, "Número: quantidade estimada de cadáveres. ~: segundos estimados até expirar. ?: o restante pode ser zero.", 2)
+    SafeAddString(ids.ENABLED, "ATIVADO", 2)
+    SafeAddString(ids.DISABLED, "DESATIVADO", 2)
+    SafeAddString(ids.AMBIGUOUS, "DESATIVADO (ambíguo)", 2)
+    SafeAddString(ids.CHAT_DEPENDENCY, "Instale e ative LibAddonMenu-2.0 para abrir as configurações.", 2)
+    SafeAddString(ids.CHAT_CAPTURE, "Gravação de diagnóstico: <<1>>", 2)
+    SafeAddString(ids.CHAT_CLEARED, "Registro de diagnóstico limpo.", 2)
+    SafeAddString(ids.CHAT_RESET, "Registro de cadáveres reiniciado.", 2)
+    SafeAddString(ids.CHAT_RADIUS, "Raio de diagnóstico: <<f:1>>m", 2)
+    SafeAddString(ids.CHAT_SOURCES, "Fontes: <<1>>", 2)
+    SafeAddString(ids.CHAT_TTL, "Duração alterada apenas para novas entradas.", 2)
+    SafeAddString(ids.CHAT_PHYSICAL, "Suposição de cadáveres físicos: <<1>>", 2)
+    SafeAddString(ids.CHAT_VARIANTS, "<<F:1>> variantes de habilidade identificadas e salvas.", 2)
+    SafeAddString(ids.CHAT_RULE, "Regra adicionada para ID <<1>>; calibre antes de usar.", 2)
+    SafeAddString(ids.CHAT_API, "API <<1>>; busca de funções globais desativada.", 2)
+    SafeAddString(ids.CHAT_SLOT, "<<1>>: <<2>> [<<3>>], utilizável=<<4>> erroAlvo=<<5>> alcance=<<6>> custo=<<7>>", 2)
+    SafeAddString(ids.CHAT_STATUS1, "Fontes=<<1>> estimativa=<<F:2>> possíveis=<<F:3>>–<<F:4>>; BB=<<F:5>> Caveira=<<F:6>> Outros=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS2, "Criados=<<F:1>> usos=<<F:2>> nãoRastreados=<<F:3>> expirados=<<F:4>> semAssociação=<<F:5>> ambíguos=<<F:6>>; registros=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS3, "Yard usos=<<F:1>> consumidos=<<F:2>> nãoConfirmados=<<F:3>>", 2)
+    SafeAddString(ids.CHAT_READY, "v<<1>> experimental. /crpst settings — configurações; /crpst test — novo teste.", 2)
+    SafeAddString(ids.COMMANDS, "Comandos (argumentos em inglês):", 2)
+end)

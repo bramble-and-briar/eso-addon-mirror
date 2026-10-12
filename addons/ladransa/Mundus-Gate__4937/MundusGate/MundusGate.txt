@@ -1,16 +1,24 @@
 ## Title: |c5DC1E8Mundus Gate|r
-## Description: Fast travel your way: a quick travel menu, on-screen travel buttons, a travel page in the quickslot wheel and friends' houses. RU / EN.
+## Description: Fast travel your way — and for free: a quick travel menu, on-screen travel buttons, a quickslot wheel page and a world map panel. EN / DE / FR / ES / PT / PL / RU / ZH / JP.
 ## Author: ladransa
-## Version: 2.5.0
-## AddOnVersion: 20500
+## Version: 2.9.0
+## AddOnVersion: 20900
 ## APIVersion: 101050 101051
-## SavedVariables: MundusGate_SavedVariables QuickTravelMenu_SavedVariables
-## DependsOn: LibAddonMenu-2.0>=32
+## SavedVariables: MundusGate_SavedVariables
+## DependsOn: LibAddonMenu-2.0>=43
 
 Strings.lua
+lang/de.lua
+lang/fr.lua
+lang/es.lua
+lang/pt.lua
+lang/pl.lua
+lang/zh.lua
+lang/jp.lua
 MundusGate.lua
 Data.lua
 Presence.lua
+Route.lua
 Style.lua
 Icons.lua
 Menu.lua
@@ -21,6 +29,7 @@ SlotEditor.lua
 WheelEditor.lua
 Settings.lua
 MapIntegration.lua
+MapPanel.lua
 SocialIntegration.lua
 
 MundusGate.xml

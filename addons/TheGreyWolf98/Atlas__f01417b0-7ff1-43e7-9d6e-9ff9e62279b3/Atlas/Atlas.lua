@@ -1,7 +1,7 @@
 local A = Atlas
-A.version = "1.0.0"
+A.version = "1.0.3"
 ZO_CreateStringId("SI_BINDING_NAME_ATLAS_OPEN","Open Atlas")
-A.defaults = {skyshards=true, lorebooks=true, treasure=true, bosses=true, delves=true, worldBosses=true, publicDungeons=true, events=true, wayshrines=true, strikingLocales=true, mundus=true, craftingStations=true, surveys=true, hideCollected=true, carriedOnly=false}
+A.defaults = {skyshards=true, lorebooks=true, treasure=true, bosses=true, delves=true, worldBosses=true, publicDungeons=true, events=true, wayshrines=true, strikingLocales=true, mundus=true, craftingStations=true, surveys=true, hideCollected=true, carriedOnly=false, neonColours=true, largerPins=false}
 A.layerCount=13
 A.options = {
     {key="skyshards", title="Skyshards", detail="Native skyshard locations supplied by ESO on the viewed map.", color={0.50,0.85,1}, texture="EsoUI/Art/MapPins/skyshard_seen.dds"},
@@ -19,7 +19,34 @@ A.options = {
     {key="surveys", title="Crafting surveys", detail="Survey report locations; enable the backpack filter to show only carried reports.", color={1,1,1}, texture="Atlas/Textures/Survey.dds"},
     {key="hideCollected", title="Hide collected", detail="Hide acquired skyshards and known lorebooks on this character."},
     {key="carriedOnly", title="Carried maps / surveys only", detail="Only show digs and surveys whose map/report is in your backpack."},
+    {key="neonColours", title="Neon colours", detail="Bright coloured rings around Atlas symbols; turn off for the original palette."},
+    {key="largerPins", title="Larger pins", detail="Increase Atlas symbols from 28 to 42 and enlarge their neon rings."},
 }
+
+-- The ring is monochrome so tint colours stay bright even when an icon's own
+-- texture is gold, red or blue. Original symbols remain readable inside it.
+A.neonPalette = {
+    skyshards={0,1,1}, lorebooks={1,0.15,1}, treasure={1,1,0},
+    bosses={1,0.15,0.15}, delves={0.15,0.65,1}, worldBosses={1,0.35,0},
+    publicDungeons={0.65,0.3,1}, events={1,0.65,0}, wayshrines={0.2,1,0.6},
+    strikingLocales={1,1,1}, mundus={1,0.25,0.65}, craftingStations={0.45,1,0},
+    surveys={0,1,0.2},
+}
+
+function A.OptionColour(option)
+    return A.saved and A.saved.neonColours and A.neonPalette[option.key] or option.color
+end
+
+function A.UpdatePinStyles()
+    if not A.layouts then return end
+    for i=1,A.layerCount do
+        local o=A.options[i]
+        local layout=A.layouts[o.key]
+        layout.size=A.saved.largerPins and 42 or 28
+        layout.tint:SetRGB(unpack(A.saved.neonColours and {1,1,1} or o.color))
+        A.ringLayouts[o.key].size=A.saved.largerPins and 64 or 46
+    end
+end
 
 function A.MapKey()
     local path = GetMapTileTexture(1) or ""
@@ -125,30 +152,49 @@ end
 function A.RegisterPins()
     A.manager=ZO_WorldMap_GetPinManager()
     A.pinTypes={}
+    A.ringTypes={}
+    A.layouts={}
+    A.ringLayouts={}
     for i=1,A.layerCount do
         local o=A.options[i]
         local key=o.key
         local typeName="ATLAS_PIN_"..key:upper()
+        local ringName="ATLAS_RING_"..key:upper()
+        local ringLayout={level=54,size=46,texture="Atlas/Textures/NeonRing.dds",tint=ZO_ColorDef:New(unpack(A.neonPalette[key]))}
+        A.ringLayouts[key]=ringLayout
+        -- Decorative rings intentionally have no tooltip creator.
+        A.manager:AddCustomPin(ringName,function(manager)
+            if not A.saved[key] or not A.saved.neonColours then return end
+            for _,p in ipairs(A.Locations(key)) do manager:CreatePin(A.ringTypes[key],p,p.x,p.y) end
+        end,nil,ringLayout)
+        A.ringTypes[key]=_G[ringName]
+        A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours)
+        local layout={level=55,size=28,texture=function(pin)
+            local _,p=pin:GetPinTypeAndTag()
+            return p.texture and p.texture~="" and p.texture or o.texture
+        end,tint=ZO_ColorDef:New(unpack(o.color))}
+        A.layouts[key]=layout
         A.manager:AddCustomPin(typeName,function(manager)
             if not A.saved[key] then return end
             for _,p in ipairs(A.Locations(key)) do manager:CreatePin(A.pinTypes[key],p,p.x,p.y) end
-        end,nil,{level=55,size=28,texture=function(pin)
-            local _,p=pin:GetPinTypeAndTag()
-            return p.texture and p.texture~="" and p.texture or o.texture
-        end,tint=ZO_ColorDef:New(unpack(o.color))},
+        end,nil,layout,
         -- Both ESO tooltip sorters compare category IDs with native numeric IDs.
         {tooltip=ZO_MAP_TOOLTIP_MODE.INFORMATION,creator=tooltip,categoryId=ZO_MapPin.PIN_ORDERS.DESTINATIONS,entryName=function(pin) local _,p=pin:GetPinTypeAndTag(); return p.title end})
         A.pinTypes[key]=_G[typeName]
         A.manager:SetCustomPinEnabled(A.pinTypes[key],A.saved[key])
     end
+    A.UpdatePinStyles()
 end
 
 function A.Refresh()
     if not A.manager then return end
+    A.UpdatePinStyles()
     for i=1,A.layerCount do
         local key=A.options[i].key
         A.manager:SetCustomPinEnabled(A.pinTypes[key],A.saved[key])
         A.manager:RefreshCustomPins(A.pinTypes[key])
+        A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours)
+        A.manager:RefreshCustomPins(A.ringTypes[key])
     end
     if A.Paint then A.Paint() end
 end
@@ -194,7 +240,11 @@ local function loaded(_,name)
             A.Refresh()
         else A.Open() end
     end
-    for _,event in ipairs({EVENT_PLAYER_ACTIVATED,EVENT_SKYSHARDS_UPDATED,EVENT_LORE_BOOK_LEARNED}) do
+    -- Refresh custom POI textures/tooltips after discovery and completion,
+    -- using the same 150ms debounce as collection events so API state can settle.
+    for _,event in ipairs({EVENT_PLAYER_ACTIVATED,EVENT_SKYSHARDS_UPDATED,EVENT_LORE_BOOK_LEARNED,
+        EVENT_POI_DISCOVERED,EVENT_POI_UPDATED,EVENT_POIS_INITIALIZED,
+        EVENT_OBJECTIVE_COMPLETED,EVENT_FAST_TRAVEL_NETWORK_UPDATED}) do
         EVENT_MANAGER:RegisterForEvent("Atlas",event,A.QueueRefresh)
     end
     EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(_,bag)

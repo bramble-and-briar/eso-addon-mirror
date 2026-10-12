@@ -8,29 +8,15 @@ local function getDstOffset()
     return isDst() and 1 or 0
 end
 
-local function getLocalUtcOffsetHours()
-    local offset = os.date("%z")
-    local sign, hours, minutes = offset:match("([+-])(%d%d)(%d%d)")
-
-    hours = tonumber(hours) or 0
-    minutes = tonumber(minutes) or 0
-
-    local result = hours + (minutes / 60)
-    if sign == "-" then
-        result = -result
-    end
-
-    return result
-end
-
-local function getUtc()
-    local utcDate = os.date("!*t")
-    utcDate.isdst = isDst()
-    return os.time(utcDate)
+local function getStandardUtcOffsetHours()
+    local now = GetTimeStamp()
+    local utcDate = os.date("!*t", now)
+    utcDate.isdst = false
+    return os.difftime(now, os.time(utcDate)) / 3600
 end
 
 function Chronos:GetTimeZone()
-    return getLocalUtcOffsetHours() - getDstOffset()
+    return getStandardUtcOffsetHours()
 end
 
 function Chronos:GetTimeOffset()
@@ -38,7 +24,7 @@ function Chronos:GetTimeOffset()
 end
 
 function Chronos:GetTimeString()
-    return os.date("%H:%M", getUtc() + self:GetTimeOffset())
+    return os.date("!%H:%M", GetTimeStamp() + self:GetTimeOffset())
 end
 
 function Chronos:CreateTimeZoneLookup()

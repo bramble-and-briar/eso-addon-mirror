@@ -33,8 +33,18 @@ end
 -- Сбор списка
 ---------------------------------------------------------------------------
 -- Добавить игрока в список локации; друзья идут раньше согильдийцев
-local function Add(byZone, seen, zoneId, entry)
+-- Можно ли вообще прыгнуть к игроку в этой локации (не закрытое DLC, не
+-- одиночная арена и т.п.). Ответ игры кэшируется на время одной сборки.
+local function CanJumpInto(zoneId, cache)
+    if cache[zoneId] == nil then
+        cache[zoneId] = not CanJumpToPlayerInZone or CanJumpToPlayerInZone(zoneId) == true
+    end
+    return cache[zoneId]
+end
+
+local function Add(byZone, seen, zoneId, entry, jumpCache)
     if not zoneId or zoneId == 0 or seen[entry.displayName] then return end
+    if not CanJumpInto(zoneId, jumpCache) then return end
     seen[entry.displayName] = true
     entry.zoneId = zoneId
     local list = byZone[zoneId]
@@ -46,7 +56,7 @@ local function Add(byZone, seen, zoneId, entry)
 end
 
 function Presence:Rebuild()
-    local byZone, seen = {}, {}
+    local byZone, seen, jumpCache = {}, {}, {}
     local me = GetDisplayName()
     seen[me] = true
     local sv = QTM.sv
@@ -62,7 +72,7 @@ function Presence:Rebuild()
                         characterName = characterName,
                         zoneName = zoneName,
                         kind = Presence.KIND_FRIEND,
-                    })
+                    }, jumpCache)
                 end
             end
         end
@@ -83,7 +93,7 @@ function Presence:Rebuild()
                             zoneName = zoneName,
                             kind = Presence.KIND_GUILD,
                             guildName = guildName,
-                        })
+                        }, jumpCache)
                     end
                 end
             end
@@ -180,6 +190,21 @@ local MAX_ATTEMPTS     = 3
 local MOUNT_RETRY_MS   = 1500
 local PENDING_TIMEOUT  = 10000
 
+-- Ошибки, при которых пробовать другого игрока бессмысленно: дело в вас, а не в нём
+-- (бой, арест, место, откуда нельзя уйти, слишком частые запросы).
+-- При любой другой ошибке (игрок в групповом подземелье, в доме, в закрытой
+-- локации, ушёл из игры…) аддон пробует следующего.
+local STOP_RESULTS = {}
+for _, name in ipairs({ "SOCIAL_RESULT_NO_JUMP_IN_COMBAT", "SOCIAL_RESULT_JUMPS_EXIT_DISABLED",
+                        "SOCIAL_RESULT_BEING_ARRESTED", "SOCIAL_RESULT_RATE_LIMIT_EXCEEDED",
+                        "SOCIAL_RESULT_NO_ERROR" }) do
+    if _G[name] ~= nil then STOP_RESULTS[_G[name]] = true end
+end
+
+local function CanTryAnother(errorCode)
+    return errorCode ~= nil and not STOP_RESULTS[errorCode]
+end
+
 local function SendJump(entry)
     if entry.kind == Presence.KIND_FRIEND then
         JumpToFriend(entry.displayName)
@@ -190,14 +215,44 @@ local function SendJump(entry)
     end
 end
 
-function Presence:Jump(entry)
+-- Перемещение к игроку.
+-- opts (необязательно):
+--   candidates  — свой список игроков для повторных попыток (по умолчанию — все
+--                 друзья и согильдийцы в той же локации);
+--   maxAttempts — сколько игроков пробовать;
+--   onLoading   — вызывается, когда началась загрузка (перемещение удалось);
+--   onFail      — вызывается, если не удалось ни к кому (вместо обычного сообщения).
+function Presence:Jump(entry, opts)
+    opts = opts or {}
+    local pending = {
+        zoneId      = entry.zoneId,
+        zoneName    = entry.zoneName,
+        tried       = {},
+        attempts    = 0,
+        candidates  = opts.candidates,
+        maxAttempts = opts.maxAttempts or MAX_ATTEMPTS,
+        onLoading   = opts.onLoading,
+        onFail      = opts.onFail,
+    }
+    self.pending = pending
+    self:Attempt(pending, entry)
+end
+
+-- Не получилось совсем: сообщаем тому, кто просил, или пишем сами
+local function Fail(self, pending, errorCode)
+    pending.finished = true
+    if self.pending == pending then self.pending = nil end
+    if pending.onFail then
+        pending.onFail(errorCode)
+    elseif CanTryAnother(errorCode) and pending.entry.kind ~= Presence.KIND_GROUP then
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+            zo_strformat(L.ALERT_JUMP_NONE, pending.zoneName or pending.entry.zoneName or ""))
+    end
+end
+
+function Presence:Attempt(pending, entry)
     if CancelCast then CancelCast() end  -- на всякий случай прерываем каст, как BeamMeUp
 
-    local pending = self.pending
-    if not pending or pending.zoneId ~= entry.zoneId or pending.finished then
-        pending = { zoneId = entry.zoneId, zoneName = entry.zoneName, tried = {}, attempts = 0 }
-        self.pending = pending
-    end
     pending.entry     = entry
     pending.attempts  = pending.attempts + 1
     pending.startedAt = GetFrameTimeMilliseconds()
@@ -217,19 +272,12 @@ function Presence:Jump(entry)
         end, MOUNT_RETRY_MS)
     end
 
-    -- Если ничего не произошло, через время забываем о попытке
+    -- Если ничего не произошло (ни загрузки, ни ошибки), через время сдаёмся
     zo_callLater(function()
-        if self.pending == pending and pending.token == token then
-            self.pending = nil
+        if self.pending == pending and pending.token == token and not pending.finished then
+            Fail(self, pending, nil)
         end
     end, PENDING_TIMEOUT)
-end
-
--- Ошибки, при которых имеет смысл попробовать другого игрока
-local RETRY_RESULTS = {}
-for _, name in ipairs({ "SOCIAL_RESULT_NO_LOCATION", "SOCIAL_RESULT_CHARACTER_NOT_FOUND",
-                        "SOCIAL_RESULT_ACCOUNT_OFFLINE", "SOCIAL_RESULT_CANT_JUMP_INVALID_TARGET" }) do
-    if _G[name] ~= nil then RETRY_RESULTS[_G[name]] = true end
 end
 
 function Presence:OnSocialError(errorCode)
@@ -241,36 +289,43 @@ function Presence:OnSocialError(errorCode)
     end
 
     -- Члена группы не подменяем другим игроком: на карте выбрано конкретное святилище
-    local canRetry = RETRY_RESULTS[errorCode] and pending.entry.kind ~= Presence.KIND_GROUP
-        and pending.attempts < MAX_ATTEMPTS
+    local canRetry = CanTryAnother(errorCode) and pending.entry.kind ~= Presence.KIND_GROUP
+        and pending.attempts < pending.maxAttempts
     if canRetry then
-        -- Список мог устареть — пересобираем и ищем того, кого ещё не пробовали
-        self:Rebuild()
-        local list = self.byZone[pending.zoneId] or {}
+        local list = pending.candidates
+        if not list then
+            -- Список мог устареть — пересобираем и ищем того, кого ещё не пробовали
+            self:Rebuild()
+            list = self.byZone[pending.zoneId] or {}
+        end
         for _, candidate in ipairs(list) do
             if not pending.tried[candidate.displayName] then
                 ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil,
                     zo_strformat(L.ALERT_JUMP_RETRY, pending.entry.displayName, candidate.displayName))
-                self:Jump(candidate)
+                self:Attempt(pending, candidate)
                 return
             end
         end
     end
 
-    pending.finished = true
-    self.pending = nil
-    if RETRY_RESULTS[errorCode] and pending.entry.kind ~= Presence.KIND_GROUP then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
-            zo_strformat(L.ALERT_JUMP_NONE, pending.zoneName or pending.entry.zoneName or ""))
-    end
+    Fail(self, pending, errorCode)
 end
 
 -- Началась загрузка — перемещение удалось
 function Presence:OnPlayerDeactivated()
-    if self.pending then
-        self.pending.finished = true
+    local pending = self.pending
+    if pending then
+        pending.finished = true
         self.pending = nil
+        if pending.onLoading then pending.onLoading() end
     end
+end
+
+-- Есть ли сейчас хоть кто-то, к кому можно переместиться
+function Presence:HasAnyone()
+    if not self:IsEnabled() then return false end
+    self:EnsureFresh()
+    return next(self.byZone) ~= nil
 end
 
 ---------------------------------------------------------------------------
@@ -291,7 +346,7 @@ function Presence:NearestWayshrineOnMap(x, y)
             end
         end
     end
-    return bestIndex
+    return bestIndex, bestDistance and math.sqrt(bestDistance) or nil
 end
 
 -- Член группы, ближайшее святилище к которому — именно это (или nil)

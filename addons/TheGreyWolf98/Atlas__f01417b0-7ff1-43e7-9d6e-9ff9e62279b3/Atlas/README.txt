@@ -1,8 +1,8 @@
-ATLAS 1.0.1
+ATLAS 1.0.3
 by @TheGreyWolf98
 
 INSTALL / UPGRADE
-Use ESO's console add-on upload/install workflow with Atlas-1.0.1.zip.
+Use ESO's console add-on upload/install workflow with Atlas-1.0.3.zip.
 Select only this ZIP in the release form: previous file selections may
 accumulate. The archive contains one Atlas/Atlas.addon manifest.
 If upgrading from 0.1.5, reload UI after installing to clear its old input
@@ -28,7 +28,7 @@ LAYERS / FILTERS
 Thirteen layers: skyshards, Shalidor lorebooks, treasure-map digs, interior
 bosses, delves, world bosses, public-dungeon entrances, dolmens/world events,
 wayshrines, striking locales, Mundus stones, set crafting stations, surveys.
-All fifteen switches fit on one panel. Counts apply to the viewed map.
+All seventeen switches fit on one panel. Counts apply to the viewed map.
 Hide collected follows the current character's skyshards and known books.
 Boss pins stay visible; account achievements are not character clear records.
 Carried maps / surveys only checks this character's backpack, excluding
@@ -57,10 +57,10 @@ name for missing or misplaced pins.
 VALIDATION
 Based on the console-tested 0.1.6 build: Galen carried-map filtering and
 Gorne public-dungeon boss pins were confirmed in-game by the tester.
-Lua syntax, manifest paths, XML bindings and simulated ESO integration pass,
-including D-pad selection, scene-hide callback cleanup, saved settings,
-backpack/collection filters, coordinate bounds and map changes. Both actual
-ESO tooltip sorters and the native keybind dispatcher were exercised.
+For 1.0.2, local checks cover both palettes, both pin sizes, immediate
+refresh, layer filtering, decorative tooltip exclusion and all 17 switches
+in D-pad navigation. API layout/tint handling was checked against ESO UI
+source. These checks do not establish Xbox appearance or CPU performance.
 Atlas does not poll private directional input functions.
 
 Source attribution and license notices are bundled. Release-Listing.txt
@@ -70,3 +70,20 @@ contains the overview and description for the addon listing.
 All Atlas pins increased from 24 to 28. Survey sites use a parchment scroll
 with a red ring; treasure-map digs use a gold chest. Filters and locations
 are unchanged. Check icon visibility on Xbox before publishing the update.
+
+1.0.2 VISIBILITY OPTIONS
+Neon colours adds vivid coloured rings around the existing symbols. It is
+enabled by default on upgrade; switch it off to restore the original palette.
+Larger pins increases symbols from 28 to 42 (50% larger), with matching rings.
+It defaults off. Both switches are in /atlas and apply immediately. Settings
+are account-wide. Layer/filter preferences are preserved. Only Atlas pins
+are resized; native ESO pins and other addons are independent.
+The panel now holds all 17 switches in two columns of up to nine rows.
+Neon rings are decorative and do not add duplicate tooltip entries.
+Local checks cover both palettes, sizes, refreshes, and navigation.
+Confirm colour visibility and size on Xbox before replacing the public build.
+
+1.0.3 LIVE DISCOVERY FIX
+Location discovery, POI updates, objective completion and wayshrine unlocks
+now trigger a debounced pin refresh. No movement or UI reload required.
+Existing settings, neon colours and larger-pin switch are preserved.

@@ -1,5 +1,21 @@
 local CT = CorpseTracker
 local EM = EVENT_MANAGER
+local WM = WINDOW_MANAGER
+local SV = ZO_SavedVars
+local root = GuiRoot
+local slashCommands = SLASH_COMMANDS
+local hudScene, hudUIScene = HUD_SCENE, HUD_UI_SCENE
+local sceneFragment = ZO_SimpleSceneFragment
+local LAM = LibAddonMenu2
+local tooltip = InformationTooltip
+local format = string.format
+local FormatDecimal = ZO_FastFormatDecimalNumber
+local CommaDelimitNumber = ZO_CommaDelimitNumber
+-- Replace this addon's own callbacks safely on reinitialization.
+local function RegisterEvent(event, callback)
+    EM:UnregisterForEvent(CT.name, event)
+    EM:RegisterForEvent(CT.name, event, callback)
+end
 local MAX_LOG_ROWS = 2500
 local defaults = {
     x = 480, y = 340, locked = false,
@@ -58,7 +74,7 @@ local function NormalizeSaved()
     end
     if saved.rangeMode ~= "siphon" and saved.rangeMode ~= "yard" and
             saved.rangeMode ~= "manual" and saved.rangeMode ~= "none" then saved.rangeMode = "siphon" end
-    if saved.language ~= "auto" and not CT.locales[saved.language] then saved.language = "auto" end
+    if saved.language ~= "auto" and not CT.IsLanguageSupported(saved.language) then saved.language = "auto" end
     if type(saved.rules) ~= "table" then saved.rules = {} end
     for id, rule in pairs(saved.rules) do
         local number = tonumber(id)
@@ -330,7 +346,7 @@ local function Refresh()
         lastLabelUncertain = uncertain
     end
     if CT.saved.displayMode ~= "detailed" then
-        SetTextIfChanged(label, tostring(c.total))
+        SetTextIfChanged(label, FormatDecimal(CommaDelimitNumber(c.total)))
         local showTimer = c.total > 0 and c.nextExpiry ~= nil and c.nextExpiry > 0
         local showQuestion = zeroRisk == true
         if timerShown ~= showTimer or questionShown ~= showQuestion then
@@ -351,7 +367,7 @@ local function Refresh()
         -- so a living entry never displays 0.0 before its expiry.
         local tenth = showTimer and math.max(1, math.ceil(c.nextExpiry * 10 - 0.000001)) or 0
         if lastTimerTenth ~= tenth then
-            SetTextIfChanged(timer, showTimer and string.format("~%.1f", tenth / 10) or "")
+            SetTextIfChanged(timer, showTimer and "~" .. FormatDecimal(format("%.1f", tenth / 10)) or "")
             lastTimerTenth = tenth
         end
         return
@@ -363,13 +379,13 @@ local function Refresh()
     if direct then
         local age = now - direct.at
         probe = CT.T("API_SAMPLE", direct.verified and "API" or CT.T("CANDIDATE"),
-            direct.count, direct.radius, age, age > 6 and CT.T("STALE") or "")
+            direct.count, format("%.0f", direct.radius), age, age > 6 and CT.T("STALE") or "")
     end
     local raw = rawBanner and CT.T("BANNER_SAMPLE", rawBanner.count, now - rawBanner.at) or CT.T("BANNER_MISSING")
     local expiry = c.nextExpiry and CT.T("TTL_EXPIRES", c.nextExpiry) or CT.T("TTL_EMPTY")
     if c.light then
         SetTextIfChanged(label, table.concat({
-            CT.T("CORPSES") .. " ~" .. c.total .. (zeroRisk and " ?" or "") .. " | " .. mode,
+            CT.T("CORPSES") .. " ~" .. FormatDecimal(CommaDelimitNumber(c.total)) .. (zeroRisk and " ?" or "") .. " || " .. mode,
             CT.T("LIGHT_INFO"), CT.T("BREAKDOWN", c.breakdown.bb, c.breakdown.skull, c.breakdown.other),
             CT.T("SESSION", CT.ledger.created, CT.ledger.consumed, CT.ledger.expired),
             CT.T("YARD_STATS", yardConsumed, yardUnconfirmed, CT.ledger.untrackedConsumed, CT.ledger.unmatched),
@@ -382,9 +398,9 @@ local function Refresh()
             filter.range, c.outside, CT.T(filter.includeUnknown and "INCLUDED" or "EXCLUDED")) or
             CT.T("RANGE_UNAVAILABLE"))
     SetTextIfChanged(label, table.concat({
-        CT.T("CORPSES") .. " ~" .. c.total .. (zeroRisk and " ?" or "") .. range .. " | " .. mode,
+        CT.T("CORPSES") .. " ~" .. FormatDecimal(CommaDelimitNumber(c.total)) .. (zeroRisk and " ?" or "") .. range .. " || " .. mode,
         CT.T("BREAKDOWN", c.breakdown.bb, c.breakdown.skull, c.breakdown.other),
-        CT.T("LOCATED", filter.enabled and filter.range or CT.saved.radius, c.inside, c.unknown),
+        CT.T("LOCATED", format("%.0f", filter.enabled and filter.range or CT.saved.radius), c.inside, c.unknown),
         probe, raw, CT.T("SESSION", CT.ledger.created, CT.ledger.consumed, CT.ledger.expired),
         CT.T("YARD_STATS", yardConsumed, yardUnconfirmed, CT.ledger.untrackedConsumed, CT.ledger.unmatched),
         CT.T("TTL_ESTIMATE", expiry, CT.saved.capture and CT.T("RECORDING") or ""),
@@ -474,14 +490,6 @@ end
 
 local function CombatEvent(_, result, isError, abilityName, _, _, sourceName,
         sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, abilityId)
-    -- Independent evidence for the enemy-corpse investigation. Death is not
-    -- proof of a reusable corpse or its lifetime, so it never adds a body.
-    if CT.saved.capture and not isError and
-            (result == ACTION_RESULT_DIED or result == ACTION_RESULT_DIED_XP) then
-        Record("death", { result = result, target = targetId, targetType = targetType,
-            targetName = targetName, source = sourceId, sourceType = sourceType,
-            ability = abilityId, positionEstimate = nil })
-    end
     local family = CT.AbilityFamily(abilityId)
     -- 117860 shares Yard's name but occurs without a new cast in live logs.
     local yardEffect = CT.IsYardActivation(abilityId)
@@ -618,6 +626,71 @@ local function EffectChanged(_, change, _, name, tag, beginTime, endTime, stacks
     end
 end
 
+-- Each ability and source needs its own event namespace: repeated filters of
+-- the same type overwrite one another rather than providing an OR condition.
+local filteredAbilityIds = CT.filteredAbilityIds or {}
+CT.filteredAbilityIds = filteredAbilityIds
+local function AbilityNamespace(id, sourceType)
+    return CT.name .. (sourceType and "_Combat_" or "_Effect_") .. id ..
+        (sourceType and "_" .. sourceType or "")
+end
+
+local function UnregisterAbility(id)
+    EM:UnregisterForEvent(AbilityNamespace(id), EVENT_EFFECT_CHANGED)
+    EM:UnregisterForEvent(AbilityNamespace(id, COMBAT_UNIT_TYPE_PLAYER), EVENT_COMBAT_EVENT)
+    EM:UnregisterForEvent(AbilityNamespace(id, COMBAT_UNIT_TYPE_PLAYER_PET), EVENT_COMBAT_EVENT)
+end
+
+for id in pairs(filteredAbilityIds) do
+    UnregisterAbility(id)
+    filteredAbilityIds[id] = nil
+end
+
+function CT.UpdateAbilityEventFilters()
+    local wanted = {}
+    for id in pairs(watch) do wanted[id] = true end
+    for _, variant in ipairs(CT.variants) do wanted[variant.ability] = true end
+    for id in pairs(CT.saved.rules) do wanted[tonumber(id)] = true end
+    for id in pairs(filteredAbilityIds) do
+        if not wanted[id] then UnregisterAbility(id); filteredAbilityIds[id] = nil end
+    end
+    for id in pairs(wanted) do
+        if not filteredAbilityIds[id] then
+            local effectName = AbilityNamespace(id)
+            EM:RegisterForEvent(effectName, EVENT_EFFECT_CHANGED, EffectChanged)
+            EM:AddFilterForEvent(effectName, EVENT_EFFECT_CHANGED,
+                REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_UNIT_TAG_PREFIX, "player")
+            for _, sourceType in ipairs({ COMBAT_UNIT_TYPE_PLAYER, COMBAT_UNIT_TYPE_PLAYER_PET }) do
+                local name = AbilityNamespace(id, sourceType)
+                EM:RegisterForEvent(name, EVENT_COMBAT_EVENT, CombatEvent)
+                EM:AddFilterForEvent(name, EVENT_COMBAT_EVENT,
+                    REGISTER_FILTER_ABILITY_ID, id, REGISTER_FILTER_SOURCE_COMBAT_UNIT_TYPE, sourceType)
+            end
+            filteredAbilityIds[id] = true
+        end
+    end
+end
+
+local function RecordDeath(_, result, _, _, _, _, _, sourceType, targetName,
+        targetType, _, _, _, _, sourceId, targetId, abilityId)
+    -- Death is diagnostic evidence, never proof of an available corpse.
+    Record("death", { result = result, target = targetId, targetType = targetType,
+        targetName = targetName, source = sourceId, sourceType = sourceType,
+        ability = abilityId, positionEstimate = nil })
+end
+
+local function UpdateDeathEventFilters()
+    for _, result in ipairs({ ACTION_RESULT_DIED, ACTION_RESULT_DIED_XP }) do
+        local name = CT.name .. "_Death_" .. result
+        EM:UnregisterForEvent(name, EVENT_COMBAT_EVENT)
+        if CT.saved.capture then
+            EM:RegisterForEvent(name, EVENT_COMBAT_EVENT, RecordDeath)
+            EM:AddFilterForEvent(name, EVENT_COMBAT_EVENT,
+                REGISTER_FILTER_COMBAT_RESULT, result, REGISTER_FILTER_IS_ERROR, false)
+        end
+    end
+end
+
 local function SaveCombatSummary(reason)
     FlushSiphon(true)
     ExpireYard()
@@ -690,6 +763,7 @@ end
 
 function CT.ClearDiagnostics()
     CT.saved.capture = false
+    UpdateDeathEventFilters()
     CT.saved.log, rowSerial = {}, 0
     CT.saved.variants, CT.saved.apiProbe, CT.saved.lastCombat = nil, nil, nil
     CT.saved.diagnosticStartedAt = nil
@@ -701,6 +775,7 @@ function CT.StartDiagnostics(reason, append)
     -- Capture resumes append a new state snapshot; only a new test clears it.
     if not append then CT.ClearDiagnostics() end
     CT.saved.capture = true
+    UpdateDeathEventFilters()
     CT.saved.diagnosticStartedAt = Now()
     unitStates = {}
     CT.ledger:Expire(Now())
@@ -720,6 +795,7 @@ function CT.StartDiagnostics(reason, append)
         sourceMode = CT.saved.sourceMode, rangeMode = CT.saved.rangeMode,
         debugMode = CT.saved.debugMode, displayMode = CT.saved.displayMode, countMode = CT.saved.countMode })
     CT.DiscoverAbilities()
+    CT.UpdateAbilityEventFilters()
     CT.saved.variants = CT.variants
     Record("variants", { abilities = CT.variants })
     DumpAPI(true)
@@ -755,6 +831,7 @@ function CT.SetCapture(enabled)
         CT.StartDiagnostics("capture_enabled", true)
     elseif not enabled then
         CT.saved.capture = false
+        UpdateDeathEventFilters()
         unitStates = {}
     end
     Refresh()
@@ -766,7 +843,7 @@ local function Command(text)
     for a in text:gmatch("%S+") do args[#args + 1] = a end
     local cmd = args[1] or "help"
     if cmd == "settings" then
-        if LibAddonMenu2 and CT.settingsPanel then LibAddonMenu2:OpenToPanel(CT.settingsPanel)
+        if LAM and CT.settingsPanel then LAM:OpenToPanel(CT.settingsPanel)
         else Say(CT.T("CHAT_DEPENDENCY")) end
     elseif cmd == "debug" then
         CT.SetDebugMode(args[2] == "on")
@@ -787,7 +864,7 @@ local function Command(text)
         CT.saved.radius = math.min(100, tonumber(args[2])); Say(CT.T("CHAT_RADIUS", CT.saved.radius))
     elseif cmd == "sources" then
         if args[2] and args[2] ~= "primary" and args[2] ~= "all" then
-            Say("/crpst sources primary|all; /crpst sources"); return
+            Say("/crpst sources primary||all; /crpst sources"); return
         end
         CT.saved.sourceMode = args[2] or (CT.saved.sourceMode == "primary" and "all" or "primary")
         Record("source_mode", { mode = CT.saved.sourceMode })
@@ -807,6 +884,7 @@ local function Command(text)
     elseif cmd == "slots" then Slots()
     elseif cmd == "variants" then
         CT.DiscoverAbilities()
+        CT.UpdateAbilityEventFilters()
         if CT.saved.capture then CT.saved.variants = CT.variants end
         Record("variants", { abilities = CT.variants })
         Say(CT.T("CHAT_VARIANTS", #CT.variants))
@@ -820,11 +898,14 @@ local function Command(text)
         CT.saved.rules[id] = { kind = args[2], phase = args[4],
             ttl = math.max(1, math.min(60, tonumber(args[5]))),
             amount = math.max(1, math.min(10, math.floor(tonumber(args[5])))) }
+        CT.UpdateAbilityEventFilters()
         Say(CT.T("CHAT_RULE", id))
-    elseif cmd == "unrule" and args[2] then CT.saved.rules[args[2]] = nil
+    elseif cmd == "unrule" and args[2] then
+        CT.saved.rules[args[2]] = nil
+        CT.UpdateAbilityEventFilters()
     elseif cmd == "status" then
         local c = CurrentCount()
-        Say("v" .. CT.version .. " | " .. CT.T("CHAT_STATUS1",
+        Say("v" .. CT.version .. " || " .. CT.T("CHAT_STATUS1",
             CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL"), c.total, c.minimum, c.maximum,
             c.breakdown.bb, c.breakdown.skull, c.breakdown.other))
         Say(CT.T("CHAT_STATUS2",
@@ -834,16 +915,16 @@ local function Command(text)
         Say(CT.T("CHAT_STATUS3", yardCasts, yardConsumed, yardUnconfirmed))
     else
         Say(CT.T("COMMANDS"))
-        Say("/crpst settings; view compact|detailed; mode light|extended; debug on|off; test; capture on|off; probe; slots; variants; reset; status; clearlog; lock|unlock")
-        Say("/crpst sources primary|all; radius N; ttl bb|archer|banner|skull N; physical on|off")
-        Say("/crpst rule create|consume ID gained|updated|faded TTL_OR_AMOUNT; unrule ID")
+        Say("/crpst settings; view compact||detailed; mode light||extended; debug on||off; test; capture on||off; probe; slots; variants; reset; status; clearlog; lock||unlock")
+        Say("/crpst sources primary||all; radius N; ttl bb||archer||banner||skull N; physical on||off")
+        Say("/crpst rule create||consume ID gained||updated||faded TTL_OR_AMOUNT; unrule ID")
     end
 end
 
 local function Initialize(_, addonName)
     if addonName ~= CT.name then return end
     EM:UnregisterForEvent(CT.name, EVENT_ADD_ON_LOADED)
-    CT.saved = ZO_SavedVars:NewAccountWide("CorpseTrackerSaved", 1, nil, defaults, GetWorldName())
+    CT.saved = SV:NewAccountWide("CorpseTrackerSaved", 1, nil, defaults, GetWorldName())
     CT.DiscoverAbilities()
     NormalizeSaved()
     CT.saved.visible = nil -- Retire the old Show counter setting, including hidden profiles.
@@ -876,19 +957,20 @@ local function Initialize(_, addonName)
     end
     local resumeCapture = CT.saved.capture
     CT.saved.capture = false
+    UpdateDeathEventFilters()
     CT.SelectLanguage(CT.saved.language)
     CT.saved.addonVersion = CT.version
     CT.ledger = CT.NewLedger(CT.saved.countMode)
     SeedWaste()
     inCombat = IsUnitInCombat("player")
-    frame = WINDOW_MANAGER:CreateControl("CorpseTrackerWindow", GuiRoot, CT_TOPLEVELCONTROL)
+    frame = WM:CreateControl("CorpseTrackerWindow", root, CT_TOPLEVELCONTROL)
     frame:SetHidden(true)
-    CT.hudFragment = ZO_SimpleSceneFragment:New(frame)
+    CT.hudFragment = sceneFragment:New(frame)
     CT.hudFragment:SetConditional(function() return true end)
-    HUD_SCENE:AddFragment(CT.hudFragment)
-    HUD_UI_SCENE:AddFragment(CT.hudFragment)
+    hudScene:AddFragment(CT.hudFragment)
+    hudUIScene:AddFragment(CT.hudFragment)
     frame:SetDimensions(660, 360)
-    frame:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, CT.saved.x, CT.saved.y)
+    frame:SetAnchor(TOPLEFT, root, TOPLEFT, CT.saved.x, CT.saved.y)
     frame:SetMouseEnabled(not CT.saved.locked)
     frame:SetMovable(not CT.saved.locked)
     frame:SetClampedToScreen(true)
@@ -899,45 +981,45 @@ local function Initialize(_, addonName)
         if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then Command("sources") end
     end)
     frame:SetHandler("OnMouseEnter", function(self)
-        if not InformationTooltip or not InitializeTooltip then return end
-        InitializeTooltip(InformationTooltip, self, RIGHT, 8, 0)
-        InformationTooltip:AddLine("Corpse Tracker — " .. CT.T(CT.saved.countMode == "light" and "LIGHT" or "EXTENDED"))
-        InformationTooltip:AddLine(CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL"))
-        InformationTooltip:AddLine(CT.T("TOOLTIP_HINT"))
+        if not tooltip or not InitializeTooltip then return end
+        InitializeTooltip(tooltip, self, RIGHT, 8, 0)
+        tooltip:AddLine("Corpse Tracker — " .. CT.T(CT.saved.countMode == "light" and "LIGHT" or "EXTENDED"))
+        tooltip:AddLine(CT.T(CT.saved.sourceMode == "primary" and "PRIMARY" or "ALL"))
+        tooltip:AddLine(CT.T("TOOLTIP_HINT"))
     end)
     frame:SetHandler("OnMouseExit", function()
-        if InformationTooltip and ClearTooltip then ClearTooltip(InformationTooltip) end
+        if tooltip and ClearTooltip then ClearTooltip(tooltip) end
     end)
-    background = WINDOW_MANAGER:CreateControl("CorpseTrackerBackground", frame, CT_BACKDROP)
+    background = WM:CreateControl("CorpseTrackerBackground", frame, CT_BACKDROP)
     background:SetAnchorFill(frame)
     background:SetCenterColor(0.02, 0.02, 0.02, 0.8)
     background:SetEdgeColor(0.65, 0.75, 0.7, 1)
     background:SetEdgeTexture("", 1, 1, 0, 0)
     background:SetMouseEnabled(false)
     background:SetDrawLayer(DL_BACKGROUND)
-    icon = WINDOW_MANAGER:CreateControl("CorpseTrackerIcon", frame, CT_TEXTURE)
+    icon = WM:CreateControl("CorpseTrackerIcon", frame, CT_TEXTURE)
     icon:SetAnchor(TOPLEFT, frame, TOPLEFT, 3, 3)
     -- Custom corpse artwork; this texture is cosmetic only.
     icon:SetTexture("CorpseTracker/Textures/corpse.dds")
     icon:SetAlpha(0.55)
     icon:SetDrawLayer(DL_CONTROLS)
     icon:SetMouseEnabled(false)
-    label = WINDOW_MANAGER:CreateControl("CorpseTrackerText", frame, CT_LABEL)
+    label = WM:CreateControl("CorpseTrackerText", frame, CT_LABEL)
     label:SetDrawLayer(DL_TEXT)
     label:SetMouseEnabled(false)
     label:SetAnchor(TOPLEFT, frame, TOPLEFT, 0, 0)
     label:SetDimensions(660, 326)
     label:SetFont("ZoFontGame")
     label:SetColor(0.8, 1, 0.9, 1)
-    timer = WINDOW_MANAGER:CreateControl("CorpseTrackerTimer", frame, CT_LABEL)
+    timer = WM:CreateControl("CorpseTrackerTimer", frame, CT_LABEL)
     timer:SetDrawLayer(DL_TEXT)
     timer:SetMouseEnabled(false)
     timer:SetHidden(true)
-    question = WINDOW_MANAGER:CreateControl("CorpseTrackerQuestion", frame, CT_LABEL)
+    question = WM:CreateControl("CorpseTrackerQuestion", frame, CT_LABEL)
     question:SetDrawLayer(DL_TEXT)
     question:SetMouseEnabled(false)
     question:SetHidden(true)
-    sourceButton = WINDOW_MANAGER:CreateControl("CorpseTrackerSources", frame, CT_BUTTON)
+    sourceButton = WM:CreateControl("CorpseTrackerSources", frame, CT_BUTTON)
     sourceButton:SetAnchor(TOPLEFT, frame, TOPLEFT, 0, 326)
     sourceButton:SetDimensions(660, 26)
     sourceButton:SetFont("ZoFontGame")
@@ -948,9 +1030,8 @@ local function Initialize(_, addonName)
     sourceButton:SetEnabled(true)
     sourceButton:SetHandler("OnClicked", function() Command("sources") end)
     frame:SetHandler("OnShow", function() Refresh() end)
-    EM:RegisterForEvent(CT.name, EVENT_COMBAT_EVENT, CombatEvent)
-    EM:RegisterForEvent(CT.name, EVENT_EFFECT_CHANGED, EffectChanged)
-    EM:RegisterForEvent(CT.name, EVENT_PLAYER_COMBAT_STATE, function(_, active)
+    CT.UpdateAbilityEventFilters()
+    RegisterEvent(EVENT_PLAYER_COMBAT_STATE, function(_, active)
         if active == inCombat then return end
         inCombat = active
         Record("combat_state", { active = active })
@@ -958,20 +1039,21 @@ local function Initialize(_, addonName)
             SaveCombatSummary("combat_end")
         end
     end)
-    EM:RegisterForEvent(CT.name, EVENT_PLAYER_ACTIVATED, function()
+    RegisterEvent(EVENT_PLAYER_ACTIVATED, function()
         Reset("player_activated"); CT.DiscoverAbilities(); knownUnits = {}; inCombat = IsUnitInCombat("player")
+        CT.UpdateAbilityEventFilters()
     end)
-    EM:RegisterForEvent(CT.name, EVENT_UNIT_CREATED, function(_, tag)
+    RegisterEvent(EVENT_UNIT_CREATED, function(_, tag)
         knownUnits[tag] = true; unitStates[tag] = nil; unitBindings[tag] = nil; InspectUnit(tag)
     end)
-    EM:RegisterForEvent(CT.name, EVENT_UNIT_DESTROYED, function(_, tag)
+    RegisterEvent(EVENT_UNIT_DESTROYED, function(_, tag)
         Record("unit_destroyed", { tag = tag })
         knownUnits[tag], unitStates[tag], unitBindings[tag] = nil, nil, nil
     end)
-    EM:RegisterForEvent(CT.name, EVENT_UNIT_DEATH_STATE_CHANGED, function(_, tag)
+    RegisterEvent(EVENT_UNIT_DEATH_STATE_CHANGED, function(_, tag)
         knownUnits[tag] = true; InspectUnit(tag)
     end)
-    EM:RegisterForEvent(CT.name, EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
+    RegisterEvent(EVENT_ACTION_SLOT_ABILITY_USED, function(_, slot)
         local id = GetSlotBoundId(slot)
         Record("skill_used", { slot = slot, ability = id })
         if id == 117850 or CT.AbilityFamily(id) == "yard" then ArmYard() end
@@ -989,10 +1071,10 @@ local function Initialize(_, addonName)
         end
         Refresh()
     end)
-    SLASH_COMMANDS["/crpst"] = Command
+    slashCommands["/crpst"] = Command
     CT.ApplySettings()
     CT.RegisterSettings()
     if resumeCapture then CT.StartDiagnostics("reload", true); Refresh() end
 end
 
-EM:RegisterForEvent(CT.name, EVENT_ADD_ON_LOADED, Initialize)
+RegisterEvent(EVENT_ADD_ON_LOADED, Initialize)

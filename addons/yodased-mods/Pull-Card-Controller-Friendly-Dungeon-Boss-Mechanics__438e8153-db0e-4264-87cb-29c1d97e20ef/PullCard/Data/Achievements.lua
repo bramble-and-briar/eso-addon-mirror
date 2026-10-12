@@ -39,6 +39,21 @@ vet("Volenfell", "Volenfell")
 vet("Wayrest Sewers I", "Wayrest Sewers I")
 vet("Wayrest Sewers II", "Wayrest Sewers II")
 
+-- Trials (esodecoded.com/achievements/trials). Hard mode achievements are on the final boss.
+ach("Aetherian Archive", { "Aetherian Archive Conqueror", "Time Trial: Aetherian Archive" })
+ach("Hel Ra Citadel", { "Hel Ra Citadel Conqueror", "Time Trial: Hel Ra Citadel", "Hel Ra Citadel: The War Horn" })
+ach("Sanctum Ophidia", { "Sanctum Ophidia Conqueror", "Time Trial: Sanctum Ophidia", "Sanctum Ophidia: Feeding Pit" })
+ach("Maw of Lorkhaj", { "Maw of Lorkhaj Conqueror", "Time Trial: Maw of Lorkhaj", "Maw of Lorkhaj: Spotless Triumph",
+    "Maw of Lorkhaj: Two-Moons Dance", "Maw of Lorkhaj: Stainless Souls", "Maw of Lorkhaj: Void Avoided",
+    "Maw of Lorkhaj: Fang Focused", "Maw of Lorkhaj: Moons' Champion" })
+ach("Halls of Fabrication", { "Halls of Fabrication Conqueror", "Time Trial: Halls of Fabrication", "Well-Oiled Machine",
+    "Stress Tested", "Like Clockwork", "Dynamo" })
+ach("Asylum Sanctorium", { "Asylum Sanctorium Conqueror", "Swift Mercy", "Sanctified", "Perfect Purification",
+    "Beatific Beatdown", "Asylum Sanctorium Redeemer" })
+ach("Cloudrest", { "Cloudrest Conqueror", "Speedy Sload Slayer", "Surviving the Shadows", "The Path to Alaxon",
+    "A Sload and Her Shadow", "Three's Deadly Company", "Cloudrest Savior" })
+ach("Sunspire", { "Sunspire Conqueror", "Sunspire Sprinter", "Dragonsbane", "Godslayer of Sunspire", "Sunspire Dragonbreak" })
+
 -- Arenas (esodecoded.com/achievements/arenas)
 ach("Maelstrom Arena", { "Maelstrom Arena Conqueror", "Maelstrom Arena: Perfect Run", "Maelstrom Arena Champion" })
 ach("Vateshran Hollows", { "Vateshran Hollows Conqueror", "Unbroken Vigor", "Hollows Hustler", "Strength from Within",

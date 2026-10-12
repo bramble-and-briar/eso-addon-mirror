@@ -61,6 +61,30 @@ function Settings:InitializeSettingsPanel()
     }
     self.panel = LAM:RegisterAddonPanel(PANEL_NAME, panelData)
 
+    -- Языки для выпадающего списка: «Авто» и все языки по их самоназванию
+    local languageNames = { zo_strformat(L.LANG_AUTO, QTM.GetLanguageName(QTM.ResolveLanguage("auto"))) }
+    local languageCodes = { "auto" }
+    for _, info in ipairs(QTM.LANGUAGES) do
+        languageNames[#languageNames + 1] = info.name
+        languageCodes[#languageCodes + 1] = info.code
+    end
+
+    local function RouteOption(source, name, tooltip)
+        local key = "route" .. source
+        return {
+            type    = "checkbox",
+            name    = name,
+            tooltip = tooltip,
+            width   = "half",
+            getFunc = function() return sv[key] end,
+            setFunc = function(value)
+                sv[key] = value
+                if QTM.RefreshTravelState then QTM.RefreshTravelState() end
+            end,
+            default = defaults[key],
+        }
+    end
+
     local options = {
         { type = "description", text = L.SETTINGS_DESC },
 
@@ -76,6 +100,25 @@ function Settings:InitializeSettingsPanel()
             setFunc = function(value) sv.mapEntry = value end,
             default = defaults.mapEntry,
         },
+        {
+            type    = "checkbox",
+            name    = L.OPT_MAP_PANEL,
+            tooltip = L.OPT_MAP_PANEL_TT,
+            getFunc = function() return sv.mapPanel end,
+            setFunc = function(value)
+                sv.mapPanel = value
+                QTM.MapPanel:UpdateVisibility()
+            end,
+            default = defaults.mapPanel,
+        },
+
+        -- Бесплатный путь через игрока: своя галочка для каждого способа
+        { type = "header", name = L.HEADER_ROUTE },
+        { type = "description", text = L.ROUTE_DESC },
+        RouteOption("Menu", L.OPT_ROUTE_MENU, L.OPT_ROUTE_MENU_TT),
+        RouteOption("Buttons", L.OPT_ROUTE_BUTTONS, L.OPT_ROUTE_BUTTONS_TT),
+        RouteOption("Wheel", L.OPT_ROUTE_WHEEL, L.OPT_ROUTE_WHEEL_TT),
+        RouteOption("Map", L.OPT_ROUTE_MAP, L.OPT_ROUTE_MAP_TT),
 
         -- Кнопки на экране
         { type = "header", name = L.HEADER_BUTTONS },
@@ -188,6 +231,7 @@ function Settings:InitializeSettingsPanel()
             setFunc = function(value) sv.freeViaGroup = value end,
             default = defaults.freeViaGroup,
         },
+
         {
             type    = "checkbox",
             name    = L.OPT_CONFIRM,
@@ -221,6 +265,19 @@ function Settings:InitializeSettingsPanel()
             default = L.HOUSE_INSIDE,
         },
 
+        {
+            type    = "dropdown",
+            name    = L.OPT_LANGUAGE,
+            tooltip = L.OPT_LANGUAGE_TT,
+            choices = languageNames,
+            choicesValues = languageCodes,
+            getFunc = function() return sv.language or "auto" end,
+            setFunc = function(value)
+                if value ~= (sv.language or "auto") then QTM.MapPanel:ConfirmLanguage(value) end
+            end,
+            default = "auto",
+        },
+
         -- Поддержка и обратная связь
         { type = "header", name = L.HEADER_SUPPORT },
         { type = "description", text = zo_strformat(L.SUPPORT_DESC, QTM.contact) },
@@ -246,6 +303,13 @@ end
 -- Письмо автору: открывается окно почты игры с адресатом и темой.
 -- Золото и предметы прикладываются в этом же окне, как в обычном письме.
 ---------------------------------------------------------------------------
+-- Открыть страницу настроек аддона (кнопка-шестерёнка на панели карты)
+function Settings:OpenPanel()
+    if LibAddonMenu2 and self.panel then
+        LibAddonMenu2:OpenToPanel(self.panel)
+    end
+end
+
 function Settings:ComposeMail(subject, body)
     local to = QTM.contact
     subject = zo_strformat(subject, QTM.version)

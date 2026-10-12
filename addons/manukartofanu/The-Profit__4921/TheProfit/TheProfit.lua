@@ -4,7 +4,7 @@ local TP = TheProfit
 local EM = EVENT_MANAGER
 
 TP.name = "TheProfit"
-TP.version = "1.0.0"
+TP.version = "1.0.1"
 TP.processors = {}
 TP.currentPurchaseKey = nil
 TP.purchaseCandidate = nil
@@ -71,9 +71,11 @@ local defaults = {
     windowLeft = 180,
     windowTop = 120,
     backgroundOpacity = 94,
-    personalSaleColor = { r = 0.91, g = 0.77, b = 0.42, a = 170 / 255 },
+    personalSaleColor = { r = 0.035, g = 0.095, b = 0.055, a = 0.78 },
     openWithMail = false,
     openWithStore = false,
+    showSimpleFilterInAGS = true,
+    agsFilterType = "simple",
     selectedItem = nil,
     trackedItems = {},
     trackedItemOrder = {},
@@ -170,12 +172,16 @@ local strings = {
         backgroundOpacity = "Window background opacity",
         backgroundOpacityTooltip = "Controls how strongly the world behind The Profit is darkened. Changes apply immediately.",
         personalSaleColor = "Personal sale highlight",
-        personalSaleColorTooltip = "Color and opacity used to mark your own sales in Item. At 0% opacity, the row looks like a regular sale.",
+        personalSaleColorTooltip = "Color and opacity used to mark your own sales in Item, All Deals, and Stats.",
         settingsHeader = "Automatic display",
         openWithMail = "Open with mail",
         openWithMailTooltip = "Automatically show The Profit when opening the mailbox.",
         openWithStore = "Open with guild store",
         openWithStoreTooltip = "Automatically show The Profit when entering a guild store.",
+        showSimpleFilterInAGS = "Show Filter in AGS",
+        agsFilterType = "AGS filter type",
+        agsFilterTypeTooltip = "Which filter to show in AwesomeGuildStore. Changing this reloads the UI.",
+        showSimpleFilterInAGSTooltip = "Adds the simple filter to AwesomeGuildStore: the discount from the TTC suggested price, shown as a percentage and split into gray, green, blue, purple and gold. Requires TTC. Changing this reloads the UI.",
         guild = "GUILD",
         selected = "Now tracking %s",
         help1 = "The Profit commands:",
@@ -276,12 +282,16 @@ local strings = {
         backgroundOpacity = "Непрозрачность фона окна",
         backgroundOpacityTooltip = "Определяет, насколько сильно затемняется мир за окном The Profit. Изменение применяется сразу.",
         personalSaleColor = "Подсветка личных продаж",
-        personalSaleColorTooltip = "Цвет и прозрачность подсветки ваших продаж в карточке предмета. При прозрачности 0% строка выглядит как обычная продажа.",
+        personalSaleColorTooltip = "Цвет и прозрачность подсветки ваших продаж в карточке предмета, All Deals и Stats.",
         settingsHeader = "Автоматическое открытие",
         openWithMail = "Открывать с почтой",
         openWithMailTooltip = "Автоматически показывать The Profit при открытии почтового ящика.",
         openWithStore = "Открывать с гильдейским магазином",
         openWithStoreTooltip = "Автоматически показывать The Profit при входе в гильдейский магазин.",
+        showSimpleFilterInAGS = "Показывать фильтр в AGS",
+        agsFilterType = "Тип фильтра AGS",
+        agsFilterTypeTooltip = "Какой фильтр показывать в AwesomeGuildStore. Изменение перезагружает интерфейс.",
+        showSimpleFilterInAGSTooltip = "Добавляет в AwesomeGuildStore простой фильтр: скидка от рекомендованной цены TTC в процентах, разбитая на серый, зелёный, синий, фиолетовый и золотой. Нужен TTC. Изменение перезагружает интерфейс.",
         guild = "ГИЛЬДИЯ",
         selected = "Теперь отслеживается %s",
         help1 = "Команды The Profit:",
@@ -1122,6 +1132,15 @@ end
 
 local function SetProfitColor(controlName, value)
     SetProfitControlColor(TP.window and TP.window:GetNamedChild(controlName), value)
+end
+
+local function SetPersonalSaleBackground(background, isPersonal)
+    if not background then return end
+    if isPersonal then
+        background:SetCenterColor(TP.GetPersonalSaleColor())
+    else
+        background:SetCenterColor(0.045, 0.049, 0.059, 0.72)
+    end
 end
 
 local function ColorizeProfitText(text, value)
@@ -2572,12 +2591,16 @@ local function RefreshGuildHistoryUI()
     )
 
     local rows = view:GetNamedChild("Rows")
+    local playerDisplayName = NormalizeHistoryPlayer(GetDisplayName())
     for index = 1, GUILD_HISTORY_VISIBLE_ROWS do
         local row = rows:GetNamedChild("Row" .. index)
         local entry = entries[scrollOffset + index]
         row:SetHidden(entry == nil)
         row.itemLink = entry and entry.itemLink or nil
         if entry then
+            SetPersonalSaleBackground(
+                row:GetNamedChild("Background"),
+                entry.sellerNormalized ~= "" and entry.sellerNormalized == playerDisplayName)
             local itemIcon = row:GetNamedChild("Icon")
             local itemLabel = row:GetNamedChild("Item")
             local iconTexture = entry.itemLink and IsItemLink(entry.itemLink)
@@ -2712,12 +2735,7 @@ local function RefreshWeeklyAnalyticsUI()
         if entry then
             local isPlayer = entry.isPlayer == true
                 or NormalizeHistoryPlayer(entry.seller) == playerDisplayName
-            local background = row:GetNamedChild("Background")
-            background:SetCenterColor(
-                isPlayer and 0.035 or 0.045,
-                isPlayer and 0.095 or 0.049,
-                isPlayer and 0.055 or 0.059,
-                isPlayer and 0.78 or 0.72)
+            SetPersonalSaleBackground(row:GetNamedChild("Background"), isPlayer)
             row:GetNamedChild("Seller"):SetText(entry.seller)
             row:GetNamedChild("Guild"):SetText(entry.guildName)
             row:GetNamedChild("Sales"):SetText(ZO_CommaDelimitNumber(math.floor(entry.sales + 0.5)))
@@ -2935,16 +2953,11 @@ local function RefreshMarketSaleRow(row, entry)
     local personalMarker = row:GetNamedChild("PersonalMarker")
     if entry.isPersonal then
         local r, g, b, a = TP.GetPersonalSaleColor()
-        local targetR, targetG, targetB = r * 0.22, g * 0.22, b * 0.22
-        background:SetCenterColor(
-            0.045 + (targetR - 0.045) * a,
-            0.049 + (targetG - 0.049) * a,
-            0.059 + (targetB - 0.059) * a,
-            0.72 + (0.88 - 0.72) * a)
+        SetPersonalSaleBackground(background, true)
         personalMarker:SetCenterColor(r, g, b, a)
         personalMarker:SetHidden(false)
     else
-        background:SetCenterColor(0.045, 0.049, 0.059, 0.72)
+        SetPersonalSaleBackground(background, false)
         personalMarker:SetHidden(true)
     end
     row:GetNamedChild("Guild"):SetText(entry.guildName)
@@ -3173,6 +3186,12 @@ function TP.SetupSettings()
         registerForDefaults = true,
     })
 
+    local filterTypeNames, filterTypeValues = {}, {}
+    for _, filterType in ipairs(TP.agsFilterTypes or {}) do
+        filterTypeNames[#filterTypeNames + 1] = filterType.name
+        filterTypeValues[#filterTypeValues + 1] = filterType.value
+    end
+
     LAM:RegisterOptionControls(panelName, {
         {
             type = "header",
@@ -3235,6 +3254,27 @@ function TP.SetupSettings()
                 TP.ApplySceneSettings()
             end,
             default = defaults.openWithStore,
+        },
+        {
+            type = "checkbox",
+            name = TP.T("showSimpleFilterInAGS"),
+            tooltip = TP.T("showSimpleFilterInAGSTooltip"),
+            getFunc = function() return TP.SV.showSimpleFilterInAGS == true end,
+            setFunc = function(value) TP.SV.showSimpleFilterInAGS = value end,
+            requiresReload = true,
+            default = defaults.showSimpleFilterInAGS,
+        },
+        {
+            type = "dropdown",
+            name = TP.T("agsFilterType"),
+            tooltip = TP.T("agsFilterTypeTooltip"),
+            choices = filterTypeNames,
+            choicesValues = filterTypeValues,
+            getFunc = function() return TP.GetAGSFilterType() end,
+            setFunc = function(value) TP.SV.agsFilterType = value end,
+            disabled = function() return TP.SV.showSimpleFilterInAGS ~= true or #filterTypeValues < 2 end,
+            requiresReload = true,
+            default = defaults.agsFilterType,
         },
     })
 end
@@ -4354,6 +4394,7 @@ local function OnAddOnLoaded(_, addonName)
     InitializeWindowPosition()
     TP.ApplyAppearanceSettings()
     TP.SetupSettings()
+    TP.SetupAGSFilter()
     TP.ApplySceneSettings()
     TP.SetupPurchaseTracking()
     TP.SetupListingTracking()

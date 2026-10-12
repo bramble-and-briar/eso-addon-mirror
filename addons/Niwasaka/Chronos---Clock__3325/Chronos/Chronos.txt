@@ -5,16 +5,18 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## Title: Chronos
-## APIVersion: 101050
+## APIVersion: 101051
 ## Author: Niwasaka
 
-## Version: 1.3.2
+## Version: 1.4.0
+## AddOnVersion: 10400
 ## Description: Chronos adds a small clock to your HUD with timezone and UTC support. Required libraries: LibAddonMenu-2.0, LibMediaProvider.
-## DependsOn: LibAddonMenu-2.0>=43 LibMediaProvider>=37
+## DependsOn: LibAddonMenu-2.0>=43 LibMediaProvider>=39
 ## SavedVariables: ChronosSavedVars
 
 Chronos.xml
-modules/Changelog.xml
+modules/Changelog/Changelog.xml
+modules/Guide/Guide.xml
 
 Init.lua
 
@@ -25,4 +27,5 @@ Localization.lua
 Timezone.lua
 Settings.lua
 Utils.lua
-modules/Changelog.lua
+modules/Guide/Guide.lua
+modules/Changelog/Changelog.lua

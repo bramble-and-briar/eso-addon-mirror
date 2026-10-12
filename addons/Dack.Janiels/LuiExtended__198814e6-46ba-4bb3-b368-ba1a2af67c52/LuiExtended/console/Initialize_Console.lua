@@ -66,6 +66,8 @@ local function OnAddOnLoaded(eventId, addonName)
     LUIE.OtherAddonCompatability.isFancyActionBarPlusEnabled = LUIE.IsItEnabled("FancyActionBar\43")
     LUIE.OtherAddonCompatability.isWritCreatorEnabled = LUIE.IsItEnabled("DolgubonsLazyWritCreator")
     LUIE.OtherAddonCompatability.isLibCombatEnabled = LUIE.IsItEnabled("LibCombat2")
+    LUIE.OtherAddonCompatability.isHarvestMapEnabled = LUIE.IsItEnabled("HarvestMap")
+    LUIE.OtherAddonCompatability.isLoreLibraryEnabled = LUIE.IsItEnabled("LoreLibrary")
     -- -----------------------------------------------------------------------------
     -- Toggle Alert Frame Visibility if needed
     LUIE.SetupAlertFrameVisibility()

@@ -1,0 +1,25 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="SDCTopLevel" mouseEnabled="true" movable="true" clampedToScreen="true" tier="HIGH" hidden="true">
+			<Dimensions x="300" y="48" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="0" offsetY="0" />
+			<OnMouseUp> SimpleDailyCraft.WindowPosition() </OnMouseUp>
+			<Controls>
+			
+				<Backdrop name="$(parent)_BG" inherits="ZO_DefaultBackdrop">
+					<AnchorFill/>
+					<OnInitialized>
+						self:SetEdgeTexture("/esoui/art/chatwindow/chat_bg_edge.dds", 256, 128, 16)
+						self:SetCenterTexture("/esoui/art/chatwindow/chat_bg_center.dds")
+						self:SetInsets(16, 16, -16, -16)
+					</OnInitialized>
+				</Backdrop>
+
+				<Label name = "$(parent)_Label" font="$(BOLD_FONT)|$(KB_20)|soft-shadow-thick" color = "FFFFFF" verticalAlignment = "CENTER" horizontalAlignment = "CENTER" inheritAlpha="true">
+					<Anchor point = "CENTER" relativeTo = "$(parent)" relativePoint = "CENTER" offsetX = "0" offsetY = "0" />
+				</Label>
+			
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

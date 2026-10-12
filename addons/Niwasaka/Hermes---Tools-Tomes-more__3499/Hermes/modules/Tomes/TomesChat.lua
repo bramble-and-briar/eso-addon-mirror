@@ -4,7 +4,7 @@ local res = HermesMediaRes
 
 local pendingClaims = {}
 
-local function getTomeRewards(index)
+function Hermes.GetTomeRewards(index)
     local reward = ""
 
     for rewardIndex = 1, GetNumTimedActivityRewards(index) do
@@ -43,7 +43,7 @@ local function printTomeProgress(index, currentProgress)
 
     local name = GetTimedActivityName(index)
     local maxProgress = GetTimedActivityMaxProgress(index)
-    local reward = getTomeRewards(index)
+    local reward = Hermes.GetTomeRewards(index)
     local runText = getTomeRunText(index)
     local messageComplete = ""
     local message
@@ -74,7 +74,7 @@ local function printTomeProgress(index, currentProgress)
         end
     end
 
-    local message = color .. " " .. name .. " [" .. progressText .. runText .. "]" .. messageComplete .. "|r"
+    message = color .. " " .. name .. " [" .. progressText .. runText .. "]" .. messageComplete .. "|r"
 
     if Hermes.db.locationTomeAlert == 0 then
         CHAT_ROUTER:AddSystemMessage(message)

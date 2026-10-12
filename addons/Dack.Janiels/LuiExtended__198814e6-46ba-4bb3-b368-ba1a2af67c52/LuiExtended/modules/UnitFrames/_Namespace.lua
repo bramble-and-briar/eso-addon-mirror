@@ -57,6 +57,9 @@ UnitFrames.AvaCustFrames = {}
 --- @class UnitFrames.RegenStripControl : TextureControl
 --- @field animation AnimationObjectTranslate
 --- @field timeline AnimationTimeline
+--- @field regenDistanceMult number translate distance as a fraction of the bar width (Shared.ResizeRegenAnimation)
+--- @field regenOffsetXMult number translate start X as a fraction of the bar width (Shared.ResizeRegenAnimation)
+--- @field regenOffsetY number anchor Y offset reused when the translate offsets are recomputed
 
 --- Default frame power entry (label + color, optional threshold for target).
 --- @class UnitFrames.DefaultFramePowerEntry
@@ -106,6 +109,25 @@ UnitFrames.debugBossThresholdPreviewActive = nil
 UnitFrames.targetUnitFrame = nil -- Reference to default UI target unit frame
 UnitFrames.playerDisplayName = GetUnitDisplayName("player")
 UnitFrames.Enabled = false
+UnitFrames.RAID_LEVEL_DISPLAY_NONE = 1
+UnitFrames.RAID_LEVEL_DISPLAY_NUMBER = 2
+UnitFrames.RAID_LEVEL_DISPLAY_ICON = 3
+-- Raid member XML template (chosen at build time in LUIE.CustomFramesBuildRaidGroup; requires /reloadui to switch).
+UnitFrames.RAID_FRAME_TEMPLATE_COMPACT = "Compact"
+UnitFrames.RAID_FRAME_TEMPLATE_EXPANDED = "Expanded"
+-- RaidLayoutBattleground shapes (Big Team Battles 6v6v6 / 9v9): the slot count N follows GetBattlegroundTeamSize,
+-- so one setting gives 1x9 / 3x3 / 9x1 in a 9v9 and 1x6 / 3x2 / 6x1 in a 6v6v6 (UnitFrames.GetActiveRaidLayout).
+UnitFrames.RAID_LAYOUT_BATTLEGROUND_COLUMN = "column" -- 1 x N
+UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID = "grid"     -- 3 x ceil(N / 3)
+UnitFrames.RAID_LAYOUT_BATTLEGROUND_ROW = "row"       -- N x 1
+
+--- True when the raid frames use the expanded (two-row) member template.
+--- @return boolean
+function UnitFrames.IsRaidExpandedTemplate()
+    local sv = UnitFrames.SV
+    return sv ~= nil and sv.RaidFrameTemplate == UnitFrames.RAID_FRAME_TEMPLATE_EXPANDED
+end
+
 UnitFrames.Defaults =
 {
     QuickHideDead = false,
@@ -214,22 +236,22 @@ UnitFrames.Defaults =
     BossIncAlpha = 85,
     PlayerOocAlphaPower = true,
     TargetOocAlphaPower = true,
-    CustomColourHealth = { 202 / 255, 20 / 255, 0, 1 },
-    CustomColourShield = { 1, 192 / 255, 0, 1 },
-    CustomColourTrauma = { 90 / 255, 0, 99 / 255, 1 },
-    CustomColourMagicka = { 0, 83 / 255, 209 / 255, 1 },
-    CustomColourStamina = { 28 / 255, 177 / 255, 0, 1 },
-    CustomColourInvulnerable = { 95 / 255, 70 / 255, 60 / 255, 1 },
-    CustomColourDPS = { 130 / 255, 99 / 255, 65 / 255, 1 },
-    CustomColourHealer = { 117 / 255, 077 / 255, 135 / 255, 1 },
-    CustomColourTank = { 133 / 255, 018 / 255, 013 / 255, 1 },
-    CustomColourDragonknight = { 255 / 255, 125 / 255, 35 / 255, 1 },
-    CustomColourNightblade = { 255 / 255, 51 / 255, 49 / 255, 1 },
-    CustomColourSorcerer = { 75 / 255, 83 / 255, 247 / 255, 1 },
-    CustomColourTemplar = { 255 / 255, 240 / 255, 95 / 255, 1 },
-    CustomColourWarden = { 136 / 255, 245 / 255, 125 / 255, 1 },
-    CustomColourNecromancer = { 97 / 255, 37 / 255, 201 / 255, 1 },
-    CustomColourArcanist = { 90 / 255, 240 / 255, 80 / 255, 1 },
+    CustomColourHealth = { 0.79, 0.08, 0, 1 },
+    CustomColourShield = { 1, 0.75, 0, 1 },
+    CustomColourTrauma = { 0.35, 0, 0.39, 1 },
+    CustomColourMagicka = { 0, 0.33, 0.82, 1 },
+    CustomColourStamina = { 0.11, 0.69, 0, 1 },
+    CustomColourInvulnerable = { 0.37, 0.27, 0.24, 1 },
+    CustomColourDPS = { 0.51, 0.39, 0.25, 1 },
+    CustomColourHealer = { 0.46, 0.30, 0.53, 1 },
+    CustomColourTank = { 0.52, 0.07, 0.05, 1 },
+    CustomColourDragonknight = { 1.00, 0.49, 0.14, 1 },
+    CustomColourNightblade = { 1.00, 0.20, 0.19, 1 },
+    CustomColourSorcerer = { 0.29, 0.33, 0.97, 1 },
+    CustomColourTemplar = { 1.00, 0.94, 0.37, 1 },
+    CustomColourWarden = { 0.53, 0.96, 0.49, 1 },
+    CustomColourNecromancer = { 0.38, 0.15, 0.79, 1 },
+    CustomColourArcanist = { 0.35, 0.94, 0.31, 1 },
     CustomShieldBarSeparate = false,
     CustomShieldBarHeight = 8,
     CustomShieldBarFull = false,
@@ -303,6 +325,7 @@ UnitFrames.Defaults =
     GroupShowOverlandDifficulty = false,
     RaidShowVeterancyRank = false,
     RaidShowOverlandDifficulty = false,
+    RaidLevelDisplay = UnitFrames.RAID_LEVEL_DISPLAY_NONE,
     CustomFramesGroup = true,
     GroupExcludePlayer = false,
     GroupBarWidth = 260,
@@ -313,6 +336,10 @@ UnitFrames.Defaults =
     RaidBarWidth = 220,
     RaidBarHeight = 30,
     RaidLayout = "1 x 12",
+    -- Used instead of RaidLayout while in a Big Team Battles battleground (6v6v6 / 9v9); a RAID_LAYOUT_BATTLEGROUND_*
+    -- shape. Pre-U51 "1 x 9" / "3 x 3" / "9 x 1" values are migrated by UnitFrames.GetBattlegroundRaidLayoutShape.
+    RaidLayoutBattleground = UnitFrames.RAID_LAYOUT_BATTLEGROUND_GRID,
+    RaidFrameTemplate = UnitFrames.RAID_FRAME_TEMPLATE_COMPACT,
     RoleIconSmallGroup = true,
     ColorRoleGroup = true,
     ColorRoleRaid = true,
@@ -346,11 +373,11 @@ UnitFrames.Defaults =
     AdjustMagickaVPos = 0,
     FrameColorReaction = false,
     FrameColorClass = false,
-    CustomColourPlayer = { 178 / 255, 178 / 255, 1, 1 },
+    CustomColourPlayer = { 0.70, 0.70, 1, 1 },
     CustomColourFriendly = { 0, 1, 0, 1 },
     CustomColourHostile = { 1, 0, 0, 1 },
-    CustomColourNeutral = { 150 / 255, 150 / 255, 150 / 255, 1 },
-    CustomColourGuard = { 95 / 255, 70 / 255, 60 / 255, 1 },
+    CustomColourNeutral = { 0.59, 0.59, 0.59, 1 },
+    CustomColourGuard = { 0.37, 0.27, 0.24, 1 },
     CustomColourCompanionFrame = { 0, 1, 0, 1 },
     LowResourceHealth = 25,
     LowResourceStamina = 25,
@@ -361,7 +388,7 @@ UnitFrames.Defaults =
     ReverseResourceBars = false,
     CustomFramesPet = true,
     CustomFormatPet = "Current (Percentage%)",
-    CustomColourPet = { 202 / 255, 20 / 255, 0, 1 },
+    CustomColourPet = { 0.79, 0.08, 0, 1 },
     PetHeight = 30,
     PetWidth = 220,
     PetUseClassColor = false,
@@ -376,7 +403,7 @@ UnitFrames.Defaults =
     PetNameClip = 88,
     CustomFramesCompanion = true,
     CustomFormatCompanion = "Current (Percentage%)",
-    CustomColourCompanion = { 202 / 255, 20 / 255, 0, 1 },
+    CustomColourCompanion = { 0.79, 0.08, 0, 1 },
     CompanionHeight = 30,
     CompanionWidth = 220,
     CompanionUseClassColor = false,
@@ -414,6 +441,7 @@ UnitFrames.Defaults =
     GroupResources =
     {
         enabled = false,
+        showOnRaidFrames = true, -- false keeps the bars on the 4 player group frames only (compact and Expanded raid frames)
         staminaFirst = false,
         hideResourceBarsToggle = true,
         hideResourceBarsTimeout = 120,
@@ -441,6 +469,7 @@ UnitFrames.Defaults =
     GroupCombatStats =
     {
         enabled = false,
+        showOnRaidFrames = true, -- false keeps ultimates / DPS / HPS on the 4 player group frames only
         showUltimate = true,
         showDPS = true,
         showHPS = true,
@@ -448,8 +477,8 @@ UnitFrames.Defaults =
         ultIconGroupSize = 28,
         ultIconGroupOffsetX = 4,
         ultIconGroupOffsetY = 0,
-        -- Raid (12 player) settings
-        ultIconRaidSize = 22,
+        -- Raid (12 player) settings (only used by the Expanded raid frame template)
+        ultIconRaidSize = 16,
         ultIconRaidOffsetX = 3,
         ultIconRaidOffsetY = 0,
     },
@@ -458,13 +487,14 @@ UnitFrames.Defaults =
     GroupPotionCooldowns =
     {
         enabled = false,
+        showOnRaidFrames = true, -- false keeps the potion slot on the 4 player group frames only
         showRemainingTime = true,
         -- Group (4 player) settings
         potionIconGroupSize = 24,
         potionIconGroupOffsetX = 4,
         potionIconGroupOffsetY = 0,
-        -- Raid (12 player) settings
-        potionIconRaidSize = 20,
+        -- Raid (12 player) settings (only used by the Expanded raid frame template)
+        potionIconRaidSize = 16,
         potionIconRaidOffsetX = 3,
         potionIconRaidOffsetY = 0,
     },
@@ -473,12 +503,14 @@ UnitFrames.Defaults =
     GroupFoodDrinkBuff =
     {
         enabled = false,
+        showOnRaidFrames = true, -- false keeps the food/drink slot on the 4 player group frames only
         showNoBuff = false,
         showRemainingTime = true,
         useCustomIcons = false,
         iconSizeGroup = 24,
         iconOffsetXGroup = 4,
         iconOffsetYGroup = 0,
+        iconSizeRaid = 16, -- Expanded raid template bottom-row slot (matches ultIconRaidSize / potionIconRaidSize)
     },
 }
 
@@ -510,6 +542,7 @@ UnitFrames.SV = {}
 --- @field labelTwo Control|nil
 --- @field shield StatusBarControl|nil
 --- @field shieldbackdrop BackdropControl|nil
+--- @field shieldLayers StatusBarControl[]|nil
 --- @field trauma StatusBarControl|nil
 --- @field invulnerable Control|nil
 --- @field invulnerableInlay Control|nil
@@ -532,6 +565,7 @@ UnitFrames.SV = {}
 --- @field format string|nil
 
 --- @class UnitFrames.CustomFrameResourceRow : UnitFrames.CustomFramePowerEntry
+--- @alias LUIE_PositionableTopLevelWindow LUIE_UF_PlayerFrame_Template 
 
 --- Per-unit custom frame root (TLW, buff anchors, and numeric COMBAT_MECHANIC_FLAGS_* power rows).
 --- @class UnitFrames.CustomFrameUnitEntry : LUIE_CustomFrameObject

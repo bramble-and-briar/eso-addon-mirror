@@ -69,6 +69,7 @@ function Buttons:Add(nodeIndex)
         x         = x,
         y         = y,
     }
+    Data:ApplyPlaceStyle(item)
     sv.buttons[#sv.buttons + 1] = item
     self:Refresh(item)
     return item
@@ -115,7 +116,7 @@ function Buttons:GetState(item)
         return node, false, false
     end
     local available = Data:GetNodeStatus(node)
-    local blocked = available and Data:GetNodeBlockReason(node) ~= nil
+    local blocked = available and Data:GetNodeBlockReason(node, "Buttons") ~= nil
     return node, available, blocked
 end
 
@@ -185,11 +186,11 @@ function Buttons:OnMouseEnter(control)
         lines[#lines + 1] = "|cFFFFFF" .. node.name .. "|r"
         lines[#lines + 1] = "|c9A9A9A" .. node.zoneName .. " · " .. Data.TYPE_NAMES[node.type] .. "|r"
         if available then
-            local block = Data:GetNodeBlockReason(node)
+            local block = Data:GetNodeBlockReason(node, "Buttons")
             if block then
                 lines[#lines + 1] = "|cFF6060" .. block .. "|r"
             else
-                lines[#lines + 1] = Data:GetPriceLine(node)
+                lines[#lines + 1] = Data:GetPriceLine(node, "Buttons")
             end
         else
             local _, reason = Data:GetNodeStatus(node)
@@ -252,13 +253,20 @@ function Buttons:OnMouseUp(control, button, upInside)
             return
         end
         PlaySound(SOUNDS.DEFAULT_CLICK)
-        Data:Travel(node)
+        Data:Travel(node, false, "Buttons")
     elseif button == MOUSE_BUTTON_INDEX_RIGHT then
         ZO_Tooltips_HideTextTooltip()
         ClearMenu()
         AddMenuItem(L.BUTTON_CTX_EDIT, function() QTM.ButtonsEditor:Show(item.id) end)
         local node = item.nodeIndex and Data:GetNode(item.nodeIndex)
         if node then
+            if Data:GetNodeStatus(node) then
+                if QTM.Route:WillUse(node, "Buttons") then
+                    AddMenuItem(zo_strformat(L.CTX_PAY_NOW, (Data:GetPriceInfo(node))), function() Data:Travel(node, true, "Buttons") end)
+                elseif QTM.Route:CanRoute(node) then
+                    AddMenuItem(L.CTX_ROUTE_FREE, function() QTM.Route:Request(node) end)
+                end
+            end
             AddMenuItem(L.BUTTON_CTX_RENAME, function() Data:ShowRenameDialog(node) end)
         end
         if QTM.sv.buttonsLocked then

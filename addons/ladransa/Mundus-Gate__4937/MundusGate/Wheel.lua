@@ -22,7 +22,6 @@ Wheel.MAX_SLOTS = ACTION_BAR_UTILITY_BAR_SIZE or 8
 -- Номер «категории» для нашей страницы колеса. Такой категории в игре нет,
 -- поэтому для неё игровые функции слотов не вызываются.
 local TRAVEL_HOTBAR_CATEGORY = 1000
-ZO_CreateStringId("SI_HOTBARCATEGORY" .. TRAVEL_HOTBAR_CATEGORY, L.WHEEL_CATEGORY)
 
 ---------------------------------------------------------------------------
 -- Ячейки колеса: sv.wheelSlots[1..8], пустая ячейка = nil.
@@ -37,19 +36,21 @@ function Wheel:GetSlot(index)
     return QTM.sv.wheelSlots[index]
 end
 
-function Wheel:NewSlot(nodeIndex, template)
+-- Новая ячейка всегда выглядит как место: его сохранённый вид или вид по умолчанию
+function Wheel:NewSlot(nodeIndex)
+    local look = Data:GetPlaceLook(nodeIndex)
     return {
         nodeIndex = nodeIndex,
-        icon      = nil,
-        color     = Style.CopyColor(template and template.color or Style.DEFAULT_COLOR),
-        tint      = template and template.tint or false,
+        icon      = look.icon,
+        color     = Style.CopyColor(look.color),
+        tint      = look.tint == true,
     }
 end
 
--- Положить место в ячейку (старое место в ней заменяется, цвет сохраняется)
+-- Положить место в ячейку (старое место в ней заменяется)
 function Wheel:SetSlot(index, nodeIndex)
     local slots = QTM.sv.wheelSlots
-    slots[index] = Wheel:NewSlot(nodeIndex, slots[index])
+    slots[index] = Wheel:NewSlot(nodeIndex)
     return slots[index]
 end
 
@@ -105,11 +106,12 @@ end
 local function EntryName(node, available, reason)
     local status
     if available then
-        local block = Data:GetNodeBlockReason(node)
+        local block = Data:GetNodeBlockReason(node, "Wheel")
         if block then
             status = "|cFF6060" .. block .. "|r"
         else
-            status = Data:GetPriceInfo(node)
+            local text, _, _, isRoute = Data:GetDisplayPrice(node, "Wheel")
+            status = isRoute and ("|c5DC1E8" .. text .. "|r |c9A9A9A(" .. L.ROUTE_SHORT .. ")|r") or text
         end
     else
         status = "|cFF6060" .. (reason or "") .. "|r"
@@ -194,7 +196,7 @@ local function Install(wheel)
                 local available, reason = Data:GetNodeStatus(node)
                 local icon = Style.ResolveIcon(slot, node)
                 self.menu:AddEntry(EntryName(node, available, reason), icon, icon,
-                    function() Data:Travel(node) end,
+                    function() Data:Travel(node, false, "Wheel") end,
                     { slotNum = slotNum, name = node.name, qtmSlot = slot, qtmNode = node, qtmAvailable = available })
             else
                 self.menu:AddEntry(ZO_UTILITY_SLOT_EMPTY_STRING, ZO_UTILITY_SLOT_EMPTY_TEXTURE,
@@ -245,6 +247,8 @@ local function Install(wheel)
 end
 
 function Wheel:Initialize()
+    -- Название страницы в колесе (на выбранном языке)
+    ZO_CreateStringId("SI_HOTBARCATEGORY" .. TRAVEL_HOTBAR_CATEGORY, L.WHEEL_CATEGORY)
     Install(UTILITY_WHEEL_KEYBOARD)
     Install(UTILITY_WHEEL_GAMEPAD)
 end

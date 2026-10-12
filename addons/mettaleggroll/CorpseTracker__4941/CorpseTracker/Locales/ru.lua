@@ -1,102 +1,106 @@
--- UI strings only; never used to identify abilities or units.
-CorpseTracker.locales.ru = {
-    AUTOMATIC = "Автоматически",
-    LANGUAGE = "Язык интерфейса",
-    LANG_TIP = "Авто: язык клиента из восьми поддерживаемых, иначе английский. Ручная смена требует /reloadui.",
-    SHOW = "Показывать счётчик",
-    SHOW_TIP = "Только в игровом HUD; скрывается в меню.",
-    DEBUG = "Режим отладки",
-    DEBUG_TIP = "Дополнительные наблюдения юнитов при записи и жёлтая подсветка неопределённости в расширенном режиме. Не меняет вид окна, подсчёт или запись.",
-    SOURCES = "Источники корпов",
-    SOURCES_TIP = "Все отслеживаемые: также свои скелетные призывы и правила, а не все корпы мира.",
-    PRIMARY = "Свои ББ + череп",
-    ALL = "Все отслеживаемые",
-    RANGE = "Ограничение дальности",
-    RANGE_TIP = "Параметры скилла читаются по ID. Yard — лишь предел от персонажа, не подтверждение попадания или видимости. Если API не дал данные, фильтр не применяется.",
-    RANGE_SIPHON = "Siphon: дальность скилла",
-    RANGE_YARD = "Yard: установка + радиус",
-    RANGE_MANUAL = "Своя дальность",
-    RANGE_NONE = "Без ограничения",
-    MANUAL_RANGE = "Своя дальность, м",
-    UNKNOWN = "Учитывать неизвестную позицию",
-    UNKNOWN_TIP = "Вкл.: неизвестные позиции входят в оценку. Выкл.: при активном фильтре считаются только корпы с известной позицией в дальности. Неизвестный не значит отсутствующий.",
-    LOCK = "Закрепить положение",
-    LOCK_TIP = "Без закрепления можно перетаскивать. ПКМ переключает источники в обоих режимах.",
-    SIZE = "Размер квадрата",
-    COUNT_MODE = "Режим подсчёта",
-    COUNT_TIP = "Лёгкий считает отслеживаемые создания, расходы и истечение без проверки расстояния. Расширенный добавляет экспериментальные оценки дальности и расхода.",
-    LIGHT = "Лёгкий",
-    EXTENDED = "Расширенный (экспериментальный)",
-    VIEW = "Вид счётчика",
-    VIEW_TIP = "В Light доступен только квадрат. Подробная панель доступна в расширенном режиме; запись не зависит от вида окна.",
-    COMPACT = "Квадрат",
-    DETAILED = "Подробная панель",
-    LIGHT_INFO = "Оценка созданных, поглощённых и исчезнувших корпов. Расстояние не проверяется.",
-    DIAGNOSTICS = "Диагностика",
-    RELOAD_REMINDER = "Загружена версия: v%s. После замены файлов аддона выполни /reloadui перед новым тестом. После остановки записи выполни /reloadui или выйди из игры, чтобы сохранить лог на диск.",
-    NEWTEST = "Начать новый диагностический тест",
-    NEWTEST_TIP = "Очищает предыдущую диагностику и начинает запись в текущем виде окна; сохраняет активные корпы и их начальный снимок.",
-    CLEARLOG = "Очистить только лог",
-    CLEARLOG_TIP = "Не сбрасывает счётчик и не меняет режим записи.",
-    CAPTURE = "Записывать лог",
-    CAPTURE_TIP = "Запись доступна в обоих видах окна, до 2500 событий. Выключение останавливает запись и сохраняет лог. Для сохранения файла выполни /reloadui или выйди из игры.",
-    RADIUS = "Диагностический радиус, м",
-    RADIUS_TIP = "Используется без фильтра дальности; не ограничивает главное число.",
-    BANNER_UNAVAILABLE = "Корпы баннера не учитываются",
-    BANNER_TIP = "Показания баннера служат только для диагностики и не добавляют корпы в счётчик.",
-    PHYSICAL = "Предположение: физические корпы",
-    PHYSICAL_TIP = "Пометка для диагностики, не доказательство выбора поглощённого корпа.",
-    TTL = "%s: оценка времени жизни, с",
-    TTL_TIP = "Только новые записи. Срок — оценка доступности.",
-    SOURCE_BB = "ББ",
-    SOURCE_SKULL = "Череп",
-    SOURCE_ARCHER = "Лучник / маг",
-    SOURCE_BANNER = "Баннер",
-    CORPSES = "КОРПЫ",
-    POSSIBLE = "[%d–%d возможно]",
-    SOURCE_BUTTON = "Источники: %s (нажми для смены)",
-    BREAKDOWN = "ББ %d | Череп %d | Прочие %d (все)",
-    LOCATED = "%.0fм: %d в радиусе + %d неизвестных",
-    API_MISSING = "API: нет проверенного счётчика",
-    CANDIDATE = "Кандидат",
-    API_SAMPLE = "%s: %d / %.0fм (%.1fс назад%s)",
-    STALE = ", устарело",
-    BANNER_SAMPLE = "Баннер 227113: %d? (%.1fс назад)",
-    BANNER_MISSING = "Баннер 227113: нет замера",
-    SESSION = "Сессия: +%d / применений %d / истекло %d",
-    YARD_STATS = "Yard %d / %d без подтверждения | Неучтённые %d | Без пары %d",
-    TTL_EXPIRES = "следующее истечение %.1fс",
-    TTL_EMPTY = "нет выбранных записей",
-    TTL_ESTIMATE = "Оценка срока; %s%s",
-    RECORDING = "; запись",
-    BOUNDS_BROAD = "Выбор неизвестен; диапазон расширен",
-    CHOICE_UNKNOWN = "Выбор тела / доступность не подтверждены",
-    RANGE_OFF = "Дальность: без ограничения",
-    RANGE_AVAILABLE = "%s: %.1fм | вне %d | неизвестные: %s",
-    RANGE_UNAVAILABLE = "Дальность недоступна: фильтр не применяется",
-    INCLUDED = "учитываются",
-    EXCLUDED = "исключены",
-    TOOLTIP_COUNTS = "Оценка %d; возможно %d–%d; неизвестных позиций %d",
-    TOOLTIP_RANGE = "Дальность: %.1fм (%s)",
-    TOOLTIP_HINT = "Число: оценка количества корпов. ~: примерное время до исчезновения, в секундах. ?: остаток может быть нулём.",
-    ENABLED = "ВКЛ",
-    DISABLED = "ВЫКЛ",
-    AMBIGUOUS = "ВЫКЛ (неоднозначно)",
-    CHAT_DEPENDENCY = "Установи и включи LibAddonMenu-2.0 для настроек.",
-    CHAT_CAPTURE = "Запись диагностики: %s",
-    CHAT_CLEARED = "Диагностический лог очищен.",
-    CHAT_RESET = "Журнал корпов сброшен.",
-    CHAT_RADIUS = "Диагностический радиус: %.1fм",
-    CHAT_SOURCES = "Источники: %s",
-    CHAT_TTL = "Срок изменён только для новых записей.",
-    CHAT_PHYSICAL = "Предположение о физических корпах: %s",
-    CHAT_VARIANTS = "Разрешено вариантов навыков: %d; сохранены в диагностике.",
-    CHAT_RULE = "Правило для ID %s добавлено; нужна калибровка.",
-    CHAT_API = "API %d; поиск глобальных функций отключён.",
-    CHAT_SLOT = "%d: %s [%d], доступен=%s ошибкаЦели=%s дальности=%s стоимости=%s",
-    CHAT_STATUS1 = "Источники=%s оценка=%d возможно=%d–%d; ББ=%d Череп=%d Прочие=%d",
-    CHAT_STATUS2 = "Создано=%d применений=%d неучтённых=%d истекло=%d безПары=%d неоднозначных=%d; записей=%d",
-    CHAT_STATUS3 = "Yard кастов=%d поглощений=%d неподтверждённых=%d",
-    CHAT_READY = "v%s экспериментальная. /crpst settings — настройки; /crpst test — новый тест.",
-    COMMANDS = "Команды (аргументы остаются английскими):",
-}
+-- ESO String ID translation, applied after the saved language is selected.
+local CT = CorpseTracker
+local SafeAddString = SafeAddString
+
+CT.RegisterTranslation("ru", function()
+    local ids = CT.stringIds
+    SafeAddString(ids.AUTOMATIC, "Автоматически", 2)
+    SafeAddString(ids.LANGUAGE, "Язык интерфейса", 2)
+    SafeAddString(ids.LANG_TIP, "Автоматически: язык клиента, иначе английский. Выбор языка меняет только интерфейс аддона. После смены нужен /reloadui.", 2)
+    SafeAddString(ids.SHOW, "Показывать счётчик", 2)
+    SafeAddString(ids.SHOW_TIP, "Только в игровом HUD; скрывается в меню.", 2)
+    SafeAddString(ids.DEBUG, "Режим отладки", 2)
+    SafeAddString(ids.DEBUG_TIP, "Дополнительные наблюдения юнитов при записи и жёлтая подсветка неопределённости в расширенном режиме. Не меняет вид окна, подсчёт или запись.", 2)
+    SafeAddString(ids.SOURCES, "Источники корпов", 2)
+    SafeAddString(ids.SOURCES_TIP, "Все отслеживаемые: также свои скелетные призывы и правила, а не все корпы мира.", 2)
+    SafeAddString(ids.PRIMARY, "Свои ББ + череп", 2)
+    SafeAddString(ids.ALL, "Все отслеживаемые", 2)
+    SafeAddString(ids.RANGE, "Ограничение дальности", 2)
+    SafeAddString(ids.RANGE_TIP, "Параметры скилла читаются по ID. Yard — лишь предел от персонажа, не подтверждение попадания или видимости. Если API не дал данные, фильтр не применяется.", 2)
+    SafeAddString(ids.RANGE_SIPHON, "Siphon: дальность скилла", 2)
+    SafeAddString(ids.RANGE_YARD, "Yard: установка + радиус", 2)
+    SafeAddString(ids.RANGE_MANUAL, "Своя дальность", 2)
+    SafeAddString(ids.RANGE_NONE, "Без ограничения", 2)
+    SafeAddString(ids.MANUAL_RANGE, "Своя дальность, м", 2)
+    SafeAddString(ids.UNKNOWN, "Учитывать неизвестную позицию", 2)
+    SafeAddString(ids.UNKNOWN_TIP, "Вкл.: неизвестные позиции входят в оценку. Выкл.: при активном фильтре считаются только корпы с известной позицией в дальности. Неизвестный не значит отсутствующий.", 2)
+    SafeAddString(ids.LOCK, "Закрепить положение", 2)
+    SafeAddString(ids.LOCK_TIP, "Без закрепления можно перетаскивать. ПКМ переключает источники в обоих режимах.", 2)
+    SafeAddString(ids.SIZE, "Размер квадрата", 2)
+    SafeAddString(ids.COUNT_MODE, "Режим подсчёта", 2)
+    SafeAddString(ids.COUNT_TIP, "Лёгкий считает отслеживаемые создания, расходы и истечение без проверки расстояния. Расширенный добавляет экспериментальные оценки дальности и расхода.", 2)
+    SafeAddString(ids.LIGHT, "Лёгкий", 2)
+    SafeAddString(ids.EXTENDED, "Расширенный (экспериментальный)", 2)
+    SafeAddString(ids.VIEW, "Вид счётчика", 2)
+    SafeAddString(ids.VIEW_TIP, "В Light доступен только квадрат. Подробная панель доступна в расширенном режиме; запись не зависит от вида окна.", 2)
+    SafeAddString(ids.COMPACT, "Квадрат", 2)
+    SafeAddString(ids.DETAILED, "Подробная панель", 2)
+    SafeAddString(ids.LIGHT_INFO, "Оценка созданных, поглощённых и исчезнувших корпов. Расстояние не проверяется.", 2)
+    SafeAddString(ids.DIAGNOSTICS, "Диагностика", 2)
+    SafeAddString(ids.RELOAD_REMINDER, "Загружена версия: v<<1>>. После замены файлов аддона выполни /reloadui перед новым тестом. После остановки записи выполни /reloadui или выйди из игры, чтобы сохранить лог на диск.", 2)
+    SafeAddString(ids.NEWTEST, "Начать новый диагностический тест", 2)
+    SafeAddString(ids.NEWTEST_TIP, "Очищает предыдущую диагностику и начинает запись в текущем виде окна; сохраняет активные корпы и их начальный снимок.", 2)
+    SafeAddString(ids.CLEARLOG, "Очистить только лог", 2)
+    SafeAddString(ids.CLEARLOG_TIP, "Не сбрасывает счётчик и не меняет режим записи.", 2)
+    SafeAddString(ids.CAPTURE, "Записывать лог", 2)
+    SafeAddString(ids.CAPTURE_TIP, "Запись доступна в обоих видах окна, до 2500 событий. Выключение останавливает запись и сохраняет лог. Для сохранения файла выполни /reloadui или выйди из игры.", 2)
+    SafeAddString(ids.RADIUS, "Диагностический радиус, м", 2)
+    SafeAddString(ids.RADIUS_TIP, "Используется без фильтра дальности; не ограничивает главное число.", 2)
+    SafeAddString(ids.BANNER_UNAVAILABLE, "Корпы баннера не учитываются", 2)
+    SafeAddString(ids.BANNER_TIP, "Показания баннера служат только для диагностики и не добавляют корпы в счётчик.", 2)
+    SafeAddString(ids.PHYSICAL, "Предположение: физические корпы", 2)
+    SafeAddString(ids.PHYSICAL_TIP, "Пометка для диагностики, не доказательство выбора поглощённого корпа.", 2)
+    SafeAddString(ids.TTL, "<<1>>: оценка времени жизни, с", 2)
+    SafeAddString(ids.TTL_TIP, "Только новые записи. Срок — оценка доступности.", 2)
+    SafeAddString(ids.SOURCE_BB, "ББ", 2)
+    SafeAddString(ids.SOURCE_SKULL, "Череп", 2)
+    SafeAddString(ids.SOURCE_ARCHER, "Лучник / маг", 2)
+    SafeAddString(ids.SOURCE_BANNER, "Баннер", 2)
+    SafeAddString(ids.CORPSES, "КОРПЫ", 2)
+    SafeAddString(ids.POSSIBLE, "[<<F:1>>–<<F:2>> возможно]", 2)
+    SafeAddString(ids.SOURCE_BUTTON, "Источники: <<1>> (нажми для смены)", 2)
+    SafeAddString(ids.BREAKDOWN, "ББ <<F:1>> || Череп <<F:2>> || Прочие <<F:3>> (все)", 2)
+    SafeAddString(ids.LOCATED, "<<F:1>>м: <<F:2>> в радиусе + <<F:3>> неизвестных", 2)
+    SafeAddString(ids.API_MISSING, "API: нет проверенного счётчика", 2)
+    SafeAddString(ids.CANDIDATE, "Кандидат", 2)
+    SafeAddString(ids.API_SAMPLE, "<<1>>: <<F:2>> / <<F:3>>м (<<f:4>>с назад<<5>>)", 2)
+    SafeAddString(ids.STALE, ", устарело", 2)
+    SafeAddString(ids.BANNER_SAMPLE, "Баннер 227113: <<F:1>>? (<<f:2>>с назад)", 2)
+    SafeAddString(ids.BANNER_MISSING, "Баннер 227113: нет замера", 2)
+    SafeAddString(ids.SESSION, "Сессия: +<<F:1>> / применений <<F:2>> / истекло <<F:3>>", 2)
+    SafeAddString(ids.YARD_STATS, "Yard <<F:1>> / <<F:2>> без подтверждения || Неучтённые <<F:3>> || Без пары <<F:4>>", 2)
+    SafeAddString(ids.TTL_EXPIRES, "следующее истечение <<f:1>>с", 2)
+    SafeAddString(ids.TTL_EMPTY, "нет выбранных записей", 2)
+    SafeAddString(ids.TTL_ESTIMATE, "Оценка срока; <<1>><<2>>", 2)
+    SafeAddString(ids.RECORDING, "; запись", 2)
+    SafeAddString(ids.BOUNDS_BROAD, "Выбор неизвестен; диапазон расширен", 2)
+    SafeAddString(ids.CHOICE_UNKNOWN, "Выбор тела / доступность не подтверждены", 2)
+    SafeAddString(ids.RANGE_OFF, "Дальность: без ограничения", 2)
+    SafeAddString(ids.RANGE_AVAILABLE, "<<1>>: <<f:2>>м || вне <<F:3>> || неизвестные: <<4>>", 2)
+    SafeAddString(ids.RANGE_UNAVAILABLE, "Дальность недоступна: фильтр не применяется", 2)
+    SafeAddString(ids.INCLUDED, "учитываются", 2)
+    SafeAddString(ids.EXCLUDED, "исключены", 2)
+    SafeAddString(ids.TOOLTIP_COUNTS, "Оценка <<F:1>>; возможно <<F:2>>–<<F:3>>; неизвестных позиций <<F:4>>", 2)
+    SafeAddString(ids.TOOLTIP_RANGE, "Дальность: <<f:1>>м (<<2>>)", 2)
+    SafeAddString(ids.TOOLTIP_HINT, "Число: оценка количества корпов. ~: примерное время до исчезновения, в секундах. ?: остаток может быть нулём.", 2)
+    SafeAddString(ids.ENABLED, "ВКЛ", 2)
+    SafeAddString(ids.DISABLED, "ВЫКЛ", 2)
+    SafeAddString(ids.AMBIGUOUS, "ВЫКЛ (неоднозначно)", 2)
+    SafeAddString(ids.CHAT_DEPENDENCY, "Установи и включи LibAddonMenu-2.0 для настроек.", 2)
+    SafeAddString(ids.CHAT_CAPTURE, "Запись диагностики: <<1>>", 2)
+    SafeAddString(ids.CHAT_CLEARED, "Диагностический лог очищен.", 2)
+    SafeAddString(ids.CHAT_RESET, "Журнал корпов сброшен.", 2)
+    SafeAddString(ids.CHAT_RADIUS, "Диагностический радиус: <<f:1>>м", 2)
+    SafeAddString(ids.CHAT_SOURCES, "Источники: <<1>>", 2)
+    SafeAddString(ids.CHAT_TTL, "Срок изменён только для новых записей.", 2)
+    SafeAddString(ids.CHAT_PHYSICAL, "Предположение о физических корпах: <<1>>", 2)
+    SafeAddString(ids.CHAT_VARIANTS, "Разрешено вариантов навыков: <<F:1>>; сохранены в диагностике.", 2)
+    SafeAddString(ids.CHAT_RULE, "Правило для ID <<1>> добавлено; нужна калибровка.", 2)
+    SafeAddString(ids.CHAT_API, "API <<1>>; поиск глобальных функций отключён.", 2)
+    SafeAddString(ids.CHAT_SLOT, "<<1>>: <<2>> [<<3>>], доступен=<<4>> ошибкаЦели=<<5>> дальности=<<6>> стоимости=<<7>>", 2)
+    SafeAddString(ids.CHAT_STATUS1, "Источники=<<1>> оценка=<<F:2>> возможно=<<F:3>>–<<F:4>>; ББ=<<F:5>> Череп=<<F:6>> Прочие=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS2, "Создано=<<F:1>> применений=<<F:2>> неучтённых=<<F:3>> истекло=<<F:4>> безПары=<<F:5>> неоднозначных=<<F:6>>; записей=<<F:7>>", 2)
+    SafeAddString(ids.CHAT_STATUS3, "Yard кастов=<<F:1>> поглощений=<<F:2>> неподтверждённых=<<F:3>>", 2)
+    SafeAddString(ids.CHAT_READY, "v<<1>> экспериментальная. /crpst settings — настройки; /crpst test — новый тест.", 2)
+    SafeAddString(ids.COMMANDS, "Команды (аргументы остаются английскими):", 2)
+end)

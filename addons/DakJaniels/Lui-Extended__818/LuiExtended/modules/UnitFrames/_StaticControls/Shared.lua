@@ -270,22 +270,87 @@ function FrameObject:ShouldShowVeterancyRankOnFrame()
     return false
 end
 
+--- Veterancy rank icon for a unit's rank. Ranks past the season's rank count (repeatable ranks) have no icon of
+--- their own, so the rank is clamped to the last rank the same way ZOS does (EsoUI UnitFrames.lua
+--- ZO_UnitFrame:UpdateLevel: `if unitLevel >= ZO_VETERANCY_MANAGER:GetNumRanks() then ... New(GetNumRanks())`).
+--- @param veterancyRank integer
+--- @return string|nil iconPath
+function FrameObject.GetVeterancyRankIconPath(veterancyRank)
+    if not GetVeterancyRankIcon or veterancyRank == nil then
+        return nil
+    end
+    local rankForIcon = veterancyRank
+    if ZO_VETERANCY_MANAGER and ZO_VETERANCY_MANAGER.GetNumRanks then
+        local numRanks = ZO_VETERANCY_MANAGER:GetNumRanks()
+        if numRanks and numRanks > 0 and rankForIcon > numRanks then
+            rankForIcon = numRanks
+        end
+    end
+    local seasonId = GetCurrentVeterancySeasonId and GetCurrentVeterancySeasonId() or nil
+    return GetVeterancyRankIcon(rankForIcon, seasonId)
+end
+
 --- @param nameText string
 --- @return string
 function FrameObject:ApplyVeterancyRankNameIconForRaid(nameText)
     if nameText == nil or nameText == "" or not FrameObject.ShouldShowVeterancyRankOnFrame(self) then
         return nameText
     end
-    if not GetVeterancyRankIcon then
-        return nameText
-    end
     local veterancyRank = GetUnitVeterancyRank(self.unitTag)
-    local seasonId = GetCurrentVeterancySeasonId and GetCurrentVeterancySeasonId() or nil
-    local iconPath = GetVeterancyRankIcon(veterancyRank, seasonId)
+    local iconPath = FrameObject.GetVeterancyRankIconPath(veterancyRank)
     if not iconPath then
         return nameText
     end
     return zo_iconFormat(iconPath, COMPACT_NAME_ICON_SIZE, COMPACT_NAME_ICON_SIZE) .. " " .. tostring(veterancyRank) .. " " .. nameText
+end
+
+--- Prefix level or champion points on a raid name. Veterancy rank replaces this prefix.
+--- @param nameText string
+--- @return string
+function FrameObject:ApplyLevelOrChampionPointsNameForRaid(nameText)
+    if nameText == nil or nameText == "" then
+        return nameText
+    end
+    local displayMode = UnitFrames.SV.RaidLevelDisplay
+    if displayMode ~= UnitFrames.RAID_LEVEL_DISPLAY_NUMBER and displayMode ~= UnitFrames.RAID_LEVEL_DISPLAY_ICON then
+        return nameText
+    end
+    if FrameObject.ShouldShowVeterancyRankOnFrame(self) then
+        return nameText
+    end
+    if not self.isPlayer or not self.unitTag or not IsUnitOnline(self.unitTag) then
+        return nameText
+    end
+    local level = GetUnitLevel(self.unitTag)
+    local championPoints = 0
+    if self.isChampion then
+        championPoints = GetUnitChampionPoints(self.unitTag)
+    end
+    local levelString
+    if displayMode == UnitFrames.RAID_LEVEL_DISPLAY_ICON then
+        if self.isChampion and championPoints > 0 then
+            levelString = ZO_GetLevelOrChampionPointsString(level, championPoints, COMPACT_NAME_ICON_SIZE)
+        else
+            levelString = ZO_GetLevelOrChampionPointsStringNoIcon(level, championPoints)
+            if levelString ~= "" then
+                local iconPath
+                if IsInGamepadPreferredMode() then
+                    iconPath = ZO_GetGamepadDungeonDifficultyIcon(DUNGEON_DIFFICULTY_NORMAL)
+                else
+                    iconPath = ZO_GetKeyboardDungeonDifficultyIcon(DUNGEON_DIFFICULTY_NORMAL)
+                end
+                if iconPath then
+                    levelString = zo_iconFormat(iconPath, COMPACT_NAME_ICON_SIZE, COMPACT_NAME_ICON_SIZE) .. levelString
+                end
+            end
+        end
+    else
+        levelString = ZO_GetLevelOrChampionPointsStringNoIcon(level, championPoints)
+    end
+    if levelString == nil or levelString == "" then
+        return nameText
+    end
+    return levelString .. " " .. nameText
 end
 
 function UnitFrames.ScheduleReticleoverOverlandStaticRefresh()
@@ -321,18 +386,33 @@ function FrameObject:GetStaticControlDisplayOption()
     return UnitFrames.SV.DisplayOptionsGroupRaid
 end
 
+--- Player name for a display-method index. 1 = @UserID, 2 = character name, 3 = both, 4 = platform name.
+--- Empty platform names fall back to the crossplay @UserID, matching ZO_TryGetPlatformDisplayNameForUnitTag.
+--- @param unitTag string
+--- @param displayOption integer
+--- @return string
+function UnitFrames.GetPlayerDisplayNameText(unitTag, displayOption)
+    if not IsUnitPlayer(unitTag) then
+        return GetUnitName(unitTag)
+    end
+    if displayOption == 3 then
+        return GetUnitName(unitTag) .. " " .. GetUnitDisplayName(unitTag)
+    elseif displayOption == 1 then
+        return GetUnitDisplayName(unitTag)
+    elseif displayOption == 4 then
+        local platformDisplayName = GetUnitPlatformDisplayName(unitTag)
+        if platformDisplayName ~= nil and platformDisplayName ~= "" then
+            return platformDisplayName
+        end
+        return GetUnitDisplayName(unitTag)
+    end
+    return GetUnitName(unitTag)
+end
+
 --- @param displayOption integer
 --- @return string
 function FrameObject:BuildBaseStaticControlNameText(displayOption)
-    if self.isPlayer then
-        if displayOption == 3 then
-            return GetUnitName(self.unitTag) .. " " .. GetUnitDisplayName(self.unitTag)
-        elseif displayOption == 1 then
-            return GetUnitDisplayName(self.unitTag)
-        end
-        return GetUnitName(self.unitTag)
-    end
-    return GetUnitName(self.unitTag)
+    return UnitFrames.GetPlayerDisplayNameText(self.unitTag, displayOption)
 end
 
 --- @param nameText string
@@ -570,10 +650,7 @@ function FrameObject:UpdateStaticControlLevelRow()
             else
                 levelText = tostring(veterancyRank)
             end
-            if GetVeterancyRankIcon then
-                local seasonId = GetCurrentVeterancySeasonId and GetCurrentVeterancySeasonId() or nil
-                iconPath = GetVeterancyRankIcon(veterancyRank, seasonId)
-            end
+            iconPath = FrameObject.GetVeterancyRankIconPath(veterancyRank)
         elseif self.isChampion then
             if IsInGamepadPreferredMode() then
                 iconPath = ZO_GetGamepadChampionPointsIcon()
@@ -717,7 +794,7 @@ function FrameObject:UpdateStaticControlDeadAndGroupAlpha()
         end
     end
     if self.unitTag and "group" == (zo_strsub(self.unitTag, 0, 5)) and self.control then
-        self.control:SetAlpha(IsUnitInGroupSupportRange(self.unitTag) and (UnitFrames.SV.GroupAlpha * 0.01) or (UnitFrames.SV.GroupAlpha * 0.01) / 2)
+        self.control:SetAlpha(IsUnitInGroupSupportRange(self.unitTag) and (UnitFrames.SV.GroupAlpha * 0.01) or (UnitFrames.SV.GroupAlpha * 0.01) * 0.5)
     end
 end
 
@@ -731,6 +808,7 @@ function FrameObject:UpdateStaticControlNameLabel(frameCategory)
     nameText = FrameObject.ApplyStaticControlTargetMarkerToName(self, nameText, frameCategory)
     if frameCategory == "raid" then
         nameText = FrameObject.ApplyVeterancyRankNameIconForRaid(self, nameText)
+        nameText = FrameObject.ApplyLevelOrChampionPointsNameForRaid(self, nameText)
         nameText = FrameObject.ApplyStaticControlOverlandToName(self, nameText, frameCategory)
     else
         nameText = FrameObject.ApplyStaticControlOverlandToName(self, nameText, frameCategory)

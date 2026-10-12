@@ -74,7 +74,7 @@ function QTI.RegisterSettings()
 			step = 1,
 			getFunc = function() return QTI.SV.iconSize end,
 			setFunc = function(value) QTI.SV.iconSize = value; QTI.RefreshAll() end,
-		},	
+		},
 		{
 			type = "checkbox",
 			name = "Hide Pinned Golden Pursuits",
@@ -294,6 +294,348 @@ function QTI.RegisterSettings()
 			getFunc = function() return QTI.SV.hintDescStyle end,
 			setFunc = function(value) QTI.SV.hintDescStyle = value; QTI.RefreshAll() end,
 			width = "half",
+		},
+--DynamicEvents
+		{
+			type = "submenu",
+			name = "|t30:30:/esoui/art/icons/mapkey/mapkey_dynamic_world_event.dds|t Dynamic Encounters",
+			tooltip = "Styling for the Dynamic Encounters tracker.",
+			controls = {
+				{
+					type = "slider",
+					name = "Width",
+					tooltip = "Total width of the dynamic events tracker.",
+					min = 100,
+					max = 600,
+					step = 1,
+					getFunc = function() return QTI.SV.dynamicEventsWidth end,
+					setFunc = function(value)
+						QTI.SV.dynamicEventsWidth = value
+						QTI.ResizeDynamicEventsPanel()
+					end,
+				},
+				{
+					type = "slider",
+					name = "Icon Size",
+					tooltip = "Size of the dynamic event icon shown next to the header.",
+					min = 8,
+					max = 48,
+					step = 1,
+					getFunc = function() return QTI.SV.dynamicEventsIconSize end,
+					setFunc = function(value)
+						QTI.SV.dynamicEventsIconSize = value
+						QTI.ApplyDynamicEventsAlignment()
+					end,
+				},
+				{
+					type = "divider",
+				},
+				{
+					type = "dropdown",
+					name = "Header Font",
+					tooltip = "Font used for the dynamic event step name.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.dynamicEventsHeaderFont end,
+					setFunc = function(value) QTI.SV.dynamicEventsHeaderFont = value; QTI.ApplyDynamicEventsStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Header Size",
+					tooltip = "Size of the dynamic event step name.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.dynamicEventsHeaderSize end,
+					setFunc = function(value) QTI.SV.dynamicEventsHeaderSize = value; QTI.ApplyDynamicEventsStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Header Color",
+					tooltip = "Text color of the dynamic event step name.",
+					getFunc = function()
+						local c = QTI.SV.dynamicEventsHeaderColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.dynamicEventsHeaderColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyDynamicEventsStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Header Style",
+					tooltip = "Text style of the dynamic event step name.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.dynamicEventsHeaderStyle end,
+					setFunc = function(value) QTI.SV.dynamicEventsHeaderStyle = value; QTI.ApplyDynamicEventsStyle() end,
+					width = "half",
+				},
+				{
+					type = "divider",
+				},
+				{
+					type = "dropdown",
+					name = "Description Font",
+					tooltip = "Font used for the dynamic event step description.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.dynamicEventsSubLabelFont end,
+					setFunc = function(value) QTI.SV.dynamicEventsSubLabelFont = value; QTI.ApplyDynamicEventsStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Description Size",
+					tooltip = "Size of the dynamic event step description.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.dynamicEventsSubLabelSize end,
+					setFunc = function(value) QTI.SV.dynamicEventsSubLabelSize = value; QTI.ApplyDynamicEventsStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Description Color",
+					tooltip = "Text color of the dynamic event step description.",
+					getFunc = function()
+						local c = QTI.SV.dynamicEventsSubLabelColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.dynamicEventsSubLabelColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyDynamicEventsStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Description Style",
+					tooltip = "Text style of the dynamic event step description.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.dynamicEventsSubLabelStyle end,
+					setFunc = function(value) QTI.SV.dynamicEventsSubLabelStyle = value; QTI.ApplyDynamicEventsStyle() end,
+					width = "half",
+				},
+			},
+		},
+		{
+			type = "submenu",
+			name = "|t30:30:/esoui/art/icons/mapkey/mapkey_housing.dds|t Housing",
+			tooltip = "Styling for the housing tracker (house name, owner, population, tags).",
+			controls = {
+				{
+					type = "slider",
+					name = "Width",
+					tooltip = "Total width of the housing tracker.",
+					min = 100,
+					max = 600,
+					step = 1,
+					getFunc = function() return QTI.SV.houseWidth end,
+					setFunc = function(value)
+						QTI.SV.houseWidth = value
+						QTI.ResizeHousePanel()
+					end,
+				},
+				{
+					type = "divider",
+				},
+				{
+					type = "dropdown",
+					name = "House Name Font",
+					tooltip = "Font used for the house name.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.houseHeaderFont end,
+					setFunc = function(value) QTI.SV.houseHeaderFont = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "House Name Size",
+					tooltip = "Size of the house name font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.houseHeaderSize end,
+					setFunc = function(value) QTI.SV.houseHeaderSize = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "House Name Color",
+					tooltip = "Text color of the house name.",
+					getFunc = function()
+						local c = QTI.SV.houseHeaderColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.houseHeaderColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyHouseStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "House Name Style",
+					tooltip = "Text style of the house name.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.houseHeaderStyle end,
+					setFunc = function(value) QTI.SV.houseHeaderStyle = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "divider",
+				},
+				{
+					type = "dropdown",
+					name = "Description Font",
+					tooltip = "Font used for the nickname and owner lines.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.houseSubLabelFont end,
+					setFunc = function(value) QTI.SV.houseSubLabelFont = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Description Size",
+					tooltip = "Size of the nickname and owner font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.houseSubLabelSize end,
+					setFunc = function(value) QTI.SV.houseSubLabelSize = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Description Color",
+					tooltip = "Text color of the nickname and owner lines.",
+					getFunc = function()
+						local c = QTI.SV.houseSubLabelColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.houseSubLabelColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyHouseStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Description Style",
+					tooltip = "Text style of the nickname and owner lines.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.houseSubLabelStyle end,
+					setFunc = function(value) QTI.SV.houseSubLabelStyle = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "divider",
+				},
+				{
+					type = "dropdown",
+					name = "Population Font",
+					tooltip = "Font used for the population line.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.housePopulationFont end,
+					setFunc = function(value) QTI.SV.housePopulationFont = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Population Size",
+					tooltip = "Size of the population font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.housePopulationSize end,
+					setFunc = function(value) QTI.SV.housePopulationSize = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Population Color",
+					tooltip = "Text color of the population line.",
+					getFunc = function()
+						local c = QTI.SV.housePopulationColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.housePopulationColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyHouseStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Population Style",
+					tooltip = "Text style of the population line.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.housePopulationStyle end,
+					setFunc = function(value) QTI.SV.housePopulationStyle = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "divider",
+				},
+				{
+					type = "dropdown",
+					name = "Tags Font",
+					tooltip = "Font used for the tags line.",
+					choices = FONT_CHOICES,
+					choicesValues = FONT_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.houseTagsFont end,
+					setFunc = function(value) QTI.SV.houseTagsFont = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "slider",
+					name = "Tags Size",
+					tooltip = "Size of the tags font.",
+					min = 8,
+					max = 40,
+					step = 1,
+					getFunc = function() return QTI.SV.houseTagsSize end,
+					setFunc = function(value) QTI.SV.houseTagsSize = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+				{
+					type = "colorpicker",
+					name = "Tags Color",
+					tooltip = "Text color of the tags line.",
+					getFunc = function()
+						local c = QTI.SV.houseTagsColor
+						return c.r, c.g, c.b, c.a
+					end,
+					setFunc = function(r, g, b, a)
+						QTI.SV.houseTagsColor = { r = r, g = g, b = b, a = a }
+						QTI.ApplyHouseStyle()
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = "Tags Style",
+					tooltip = "Text style of the tags line.",
+					choices = STYLE_CHOICES,
+					choicesValues = STYLE_CHOICES_VALUES,
+					getFunc = function() return QTI.SV.houseTagsStyle end,
+					setFunc = function(value) QTI.SV.houseTagsStyle = value; QTI.ApplyHouseStyle() end,
+					width = "half",
+				},
+			},
 		},
 	}
 

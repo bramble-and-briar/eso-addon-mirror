@@ -1,88 +1,61 @@
-Corpse Tracker 0.3.4
+AI disclosure: Developed by @mettaleggroll with assistance from
+ChatGPT (Codex), including AI-generated Lua code and translations.
+The counter artwork was created using AI image generation.
 
-Light-mode testing release for ESO PC/Mac. Estimates tracked Necromancer
-corpses from creation, consumption and expiry events. Recognition uses
-ability and unit IDs, independently of the interface language.
+Corpse Tracker 0.3.6
+
+Public beta for ESO PC/Mac. Shows an estimated count of your Necromancer
+corpses from selected tracked sources.
 
 Install or update
 
-1. Install and enable LibAddonMenu-2.0 separately.
+1. Install and enable LibAddonMenu-2.0 (AddOnVersion 43 or newer) separately.
 2. Extract CorpseTracker into Documents/Elder Scrolls Online/live/AddOns/.
-   The manifest must be at AddOns/CorpseTracker/CorpseTracker.txt.
-3. On update, replace the existing files; do not install another named copy
-   or copy addon files into SavedVariables.
-4. Enable Corpse Tracker and run /reloadui.
-5. /crpst status must show v0.3.4. Settings also show the installed version.
+   The correct path is AddOns/CorpseTracker/CorpseTracker.txt.
+3. On update, replace the files in the existing folder. Keep only one copy
+   of the addon; do not copy addon files into SavedVariables.
+4. Enable Corpse Tracker. After installation or a manifest/dependency update,
+   restart ESO, or log out to character selection and log in again.
 
-Open settings via /crpst settings or the game's Addons settings page.
-A new install defaults to Square, Light, Your BB + Skull, with diagnostics
-and recording off. Upgrades retain existing preferences: use /crpst mode light
-if you previously selected Extended.
+Use
 
-Display
+Open settings with /crpst settings or Esc > Settings > Addons > Corpse Tracker.
+New installations use Light mode and Your BB + Skull sources.
 
-- Large number: estimated corpses from the selected tracked sources.
-- ~4.2: estimated seconds until the nearest remaining expiry; hidden at zero.
-- White ?: the displayed remainder may already be empty because an unknown
-  consumption choice and expiry events could have removed every tracked corpse.
-  Uncertain identity alone does not show it if a survivor is guaranteed by the
-  tracked events and assumed lifetimes.
+- Large number: estimated corpses from the selected sources.
+- ~4.2 or ~4,2: seconds until the nearest estimated corpse expiry.
+- White ?: the displayed remainder may already be empty.
 
-Drag to move; right-click changes sources. Lock Position prevents dragging.
-The display hides in menus, inventory and map while counting continues.
-There are no sounds or automatic chat messages.
+Drag the square to move it; right-click to switch sources.
+Lock Position prevents dragging. The square hides in menus while counting
+continues. Updates keep your settings; /crpst mode light selects Light mode.
+Language follows the client or can be chosen manually in settings.
+Run /reloadui after changing the language.
 
-Scope and limitations
+Sources and limitations
 
-Your BB + Skull tracks BB explosions and enhanced skull casts that create
-corpses. A BB button press or jump is not a creation event. All tracked also
-includes recognized skeletal summons and diagnostic rules; it does not mean
-all corpses in the world. Enemy deaths, allies and Banner creations are not
-added to the counter.
+Your BB + Skull counts BB explosions and corpse-creating enhanced skulls.
+All tracked also includes recognized skeletal summons and diagnostic rules.
+Enemy deaths, allies and Banner creations are not counted.
 
-Siphon uses exact target IDs. Those IDs can correct several earlier Yard
-assumptions. Yard requires a separate consumption witness from Nothing Wasted
-or Corpseburster. A cast, a damage tick or a synergy alone never causes an
-extra decrement. Without a witness, Yard does not decrement the counter.
+Light mode does not check distance, obstacles, Yard placement or actual
+skill availability. Counts and lifetimes are estimates; a positive count
+does not guarantee a corpse can be used.
 
-Light does not check distance, Yard placement, obstacles or actual skill
-availability. Untracked bodies can be used by Yard; without a target ID its
-choice is an estimate. Default estimated lifetimes are 5 seconds for BB and
-skull, and 10 seconds after a skeletal summon ends. Diagnostic changes apply
-only to future entries.
+Report a counting problem
 
-Languages and diagnostics
+1. Run /crpst test to start a new recording. This clears previous diagnostics
+   and keeps active corpses. Enabling debugging is optional.
+2. Reproduce the problem, run /crpst capture off, then /reloadui to save.
+3. Provide Documents/Elder Scrolls Online/live/SavedVariables/CorpseTracker.lua.
+   A short video and Encounter.log can help if available.
 
-Auto selects English, Russian, German, French, Spanish, Japanese, Chinese or
-Brazilian Portuguese from the client language; other languages fall back to
-English. Manual language changes require /reloadui.
+Release changes: CHANGELOG.txt.
 
-Diagnostics contains Extended experimental mode, range controls, lifetime
-estimates, debugging, recording and the Extended display selector. Light always
-uses the square; switching to Light returns to it automatically. Ordinary
-settings contain sources, language, position lock and size.
+ZeniMax notice
 
-After replacing addon files, run /reloadui before starting a new test.
-For a counting issue, check /crpst status, then use Start a new diagnostic
-test under Diagnostics or /crpst test. This clears previous diagnostics and
-starts a recording in the current display, preserving active corpses.
-Debugging is optional. Stop recording and run /reloadui, then provide
-SavedVariables/CorpseTracker.lua. Video and Encounter.log can help resolve
-physical availability and placement.
-
-The manifest's ## SavedVariables: CorpseTrackerSaved declares the table
-inside the saved file. The file itself is named CorpseTracker.lua, located in
-Documents/Elder Scrolls Online/live/SavedVariables/, and starts with
-CorpseTrackerSaved =.
-
-/crpst capture on|off resumes/stops recording; /crpst clearlog clears only
-the log; /crpst reset clears the corpse ledger. Logs retain the last 2500
-records and are separate per megaserver. A stopped recording is preserved.
-
-Accounting and timer checks run every 200 ms. Text and colour are written only
-when changed; the timer is formatted only when its displayed tenth changes.
-The hidden HUD skips periodic text, colour and layout writes, then immediately
-renders current data when shown. Consumption and expiry continue in menus at
-the same cadence. Light without debug recording reads no world positions or
-skill ranges and builds no alternative ledger worlds. Timer ticks are not
-logged. In-game FPS/CPU costs have not been measured.
+This Add-on is not created by, affiliated with, or sponsored by,
+ZeniMax Media Inc. or its affiliates.
+The Elder Scrolls® and related logos are registered trademarks or trademarks
+of ZeniMax Media Inc. in the United States and/or other countries.
+All rights reserved.

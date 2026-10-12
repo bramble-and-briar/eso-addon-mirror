@@ -18,7 +18,7 @@
     "HarvensCustomMapPins"
   ],
   "download_url": "https://www.esoui.com/downloads/dl357/",
-  "fingerprint": "1d137829688ea5816c144f45003723bad27f08c1056fee681e4886ab021a9958",
+  "fingerprint": "29a29598e5ee531e07e982f36fd8028a74b757faa17ad3e0095e065f352134a9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw1691.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw1892.jpg",
@@ -33,11 +33,11 @@
   "source_id": "357",
   "source_url": "https://www.esoui.com/downloads/info357-HarvensCustomMapPinsMarkers.html",
   "stats": {
-    "downloads": 253877,
+    "downloads": 254918,
     "favorites": 426,
-    "monthly_downloads": 1249
+    "monthly_downloads": 2295
   },
   "title": "Harven's Custom Map Pins (Markers)",
-  "updated_at": 1791635598000,
-  "version": "3.4.1"
+  "updated_at": 1791724270000,
+  "version": "3.4.2"
 }

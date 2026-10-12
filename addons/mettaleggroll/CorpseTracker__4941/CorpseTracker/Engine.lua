@@ -1,7 +1,8 @@
 -- Pure Lua ledger. Every entry is an estimate unless its creation, lifetime,
 -- identity, and consumption have all been independently verified.
-CorpseTracker = { name = "CorpseTracker", version = "0.3.4" }
+CorpseTracker = CorpseTracker or {}
 local CT = CorpseTracker
+CT.name, CT.version = "CorpseTracker", "0.3.6"
 local Ledger = {}
 Ledger.__index = Ledger
 

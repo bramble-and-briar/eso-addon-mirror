@@ -1,0 +1,102 @@
+<GuiXml>
+    <Controls>
+
+        <Button name="Chronos_GuideRow" virtual="true" mouseEnabled="true">
+            <Dimensions x="226" y="24"/>
+
+            <OnMouseEnter>
+                Chronos:OnGuideRowHover(self, true)
+            </OnMouseEnter>
+
+            <OnMouseExit>
+                Chronos:OnGuideRowHover(self, false)
+            </OnMouseExit>
+
+            <Controls>
+                <Label name="$(parent)Text" font="ZoFontWinT1" verticalAlignment="CENTER"
+                       wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" offsetX="10"/>
+                    <Dimensions x="210" y="22"/>
+                </Label>
+            </Controls>
+        </Button>
+
+        <TopLevelControl name="Chronos_Guide" mouseEnabled="true" movable="true"
+                         clampedToScreen="true" hidden="true" tier="2" layer="1">
+            <Dimensions x="860" y="600"/>
+            <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetY="-60"/>
+
+            <Controls>
+                <Backdrop name="$(parent)_Background" inherits="ZO_DefaultBackdrop">
+                    <AnchorFill/>
+                </Backdrop>
+
+                <Label name="$(parent)_Title" font="ZoFontWinH2" verticalAlignment="TOP">
+                    <Anchor point="TOPLEFT" offsetX="14" offsetY="10"/>
+                </Label>
+
+                <Button name="$(parent)_Close" inherits="ZO_CloseButton">
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="8"/>
+                </Button>
+
+                <Backdrop name="$(parent)_TopicsBG" inherits="ZO_DefaultBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="14" offsetY="66"/>
+                    <Dimensions x="250" y="478"/>
+                </Backdrop>
+
+                <Control name="$(parent)_Topics" inherits="ZO_ScrollContainer">
+                    <OnInitialized>
+                        ZO_Scroll_Initialize(self)
+                    </OnInitialized>
+                    <Dimensions x="236" y="466"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_TopicsBG" relativePoint="TOPLEFT"
+                            offsetX="6" offsetY="6"/>
+                </Control>
+
+                <Backdrop name="$(parent)_TextBG" inherits="ZO_DefaultBackdrop">
+                    <Anchor point="TOPLEFT" offsetX="274" offsetY="66"/>
+                    <Dimensions x="572" y="478"/>
+                </Backdrop>
+
+                <Label name="$(parent)_EntryTitle" font="ZoFontWinH2"
+                       color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"
+                       wrapMode="ELLIPSIS" verticalAlignment="CENTER">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_TextBG" relativePoint="TOPLEFT"
+                            offsetX="16" offsetY="10"/>
+                    <Dimensions x="540" y="30"/>
+                </Label>
+
+                <Texture name="$(parent)_EntryDivider" textureFile="EsoUI/Art/Miscellaneous/horizontalDivider.dds">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_TextBG" relativePoint="TOPLEFT"
+                            offsetX="10" offsetY="44"/>
+                    <Dimensions x="552" y="4"/>
+                </Texture>
+
+                <Control name="$(parent)_Container" inherits="ZO_ScrollContainer">
+                    <OnInitialized>
+                        ZO_Scroll_Initialize(self)
+                    </OnInitialized>
+                    <Dimensions x="558" y="418"/>
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_TextBG" relativePoint="TOPLEFT"
+                            offsetX="6" offsetY="54"/>
+                </Control>
+
+                <Label name="$(parent)_Text" font="ZoFontGame" verticalAlignment="TOP">
+                    <Dimensions x="522"/>
+                    <OnInitialized>
+                        self:SetParent(GetControl("Chronos_Guide_ContainerScrollChild"))
+                        self:SetAnchor(TOPLEFT, Chronos_Guide_ContainerScrollChild, TOPLEFT, 8, 8)
+                    </OnInitialized>
+                </Label>
+
+                <Button name="$(parent)_Settings" inherits="ZO_DefaultButton" mouseEnabled="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)_TopicsBG" relativePoint="BOTTOMLEFT"
+                            offsetX="0" offsetY="10"/>
+                    <Dimensions x="250" y="28"/>
+                </Button>
+
+            </Controls>
+        </TopLevelControl>
+
+    </Controls>
+</GuiXml>

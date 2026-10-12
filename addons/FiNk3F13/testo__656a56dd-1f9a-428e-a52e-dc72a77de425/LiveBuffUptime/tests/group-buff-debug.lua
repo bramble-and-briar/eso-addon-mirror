@@ -1,0 +1,33 @@
+local setup = dofile("tests/group-effect-timers.lua")
+local env = setup.env
+env.setClock(600)
+SLASH_COMMANDS["/lbu"]("buffdebug group 61771")
+assert(LiveBuffUptimeBuffDebug.IsGroup())
+setup.begin(600)
+local from = #env.messages
+for id = 1, 6 do setup.raw(600, id, EFFECT_RESULT_GAINED, 620) end
+setup.damage(700)
+assert(#env.messages == from, "Group recording must be quiet")
+SLASH_COMMANDS["/lbu"]("buffdebug group 61771")
+local report = table.concat(env.messages, "\n", from + 1)
+assert(report:find("12 Mitglieder", 1, true))
+assert(report:find("player: Buff 20.00s / Lebendzeit 100.00s = 20.00% | ESO erhalten 1", 1, true))
+assert(report:find("group6: Buff 20.00s / Lebendzeit 100.00s = 20.00% | ESO erhalten 1", 1, true))
+assert(report:find("group12: Buff 0.00s / Lebendzeit 100.00s = 0.00% | ESO erhalten 0", 1, true), "Never-buffed members must be included")
+assert(report:find("SUMME: 120.00s / 1200.00s = 10.0000% | HUD 10.0000% | Differenz 0.000000", 1, true))
+assert(LiveBuffUptimeBuffDebug.active, "Query must keep recording")
+env.setClock(701)
+setup.callbacks[51](51, { unitIds = { player = 1 }, units = {} })
+SLASH_COMMANDS["/lbu"]("buffdebug off")
+assert(not LiveBuffUptimeBuffDebug.active)
+setup.begin(800)
+setup.damage(900)
+from = #env.messages
+SLASH_COMMANDS["/lbu"]("buffdebug report")
+assert(table.concat(env.messages, "\n", from + 1):find("SUMME: 120.00s / 1200.00s", 1, true), "Stopped group report must survive a new fight")
+env.setClock(901)
+SLASH_COMMANDS["/lbu"]("buffdebug group 61771")
+from = #env.messages
+SLASH_COMMANDS["/lbu"]("buffdebug group 61771")
+assert(table.concat(env.messages, "\n", from + 1):find("Debug nach Kampfbeginn gestartet", 1, true))
+print("Group buff debug: 12 names, individual ESO counters, zero-buff members, independent interval sums, HUD agreement, ongoing queries, late-start warning and frozen report passed")

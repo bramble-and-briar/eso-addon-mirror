@@ -24,12 +24,13 @@ function Scribing:Capture(checkpoint)
         if checkpoint then checkpoint() end
     end
     SPT.CharCache:WriteProgressionSnapshot("scribingScripts", "1;" .. table.concat(parts))
+    return true
 end
 
 function Scribing:Init()
     if EVENT_CRAFTED_ABILITY_SCRIPT_LOCK_STATE_CHANGED then
         EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Scribing", EVENT_CRAFTED_ABILITY_SCRIPT_LOCK_STATE_CHANGED,
-            function() SPT:QueueProgressionSnapshot(self, true) end)
+            function() SPT:QueueProgressionSnapshot(self) end)
     end
 end
 

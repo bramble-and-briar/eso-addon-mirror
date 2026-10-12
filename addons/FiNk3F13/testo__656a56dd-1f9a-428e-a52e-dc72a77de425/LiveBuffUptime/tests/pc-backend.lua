@@ -21,8 +21,8 @@ LibCombat2 = {
 env.setClock(30); env.setCombat(false); env.setBuffs("player", {})
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "player", personalTime = "auto", scale = 1, x = 0, y = 0 } }
-saved.checkUptime = true
 ZO_SavedVars.NewAccountWide = function() return saved end
+local captured = dofile("tests/support/capture.lua")()
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
 local function send(name, time, ...)
@@ -40,5 +40,5 @@ callbacks[LIBCOMBAT_EVENT_FIGHTSUMMARY](nil, { starttime = 132000, endtime = 140
     units = { [1] = { unitType = 1 }, [99] = { unitType = 4 } } })
 for index = 1, 30 do env.events.tick() end
 assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "37.5 %")
-assert(saved.lastFights[1].personalTime == "combat" and saved.lastFights[1].backend == "LibCombat")
+assert(captured[1].personalTime == "combat")
 print("PC backend: LibCombat preference with both libraries installed and automatic CMX personal denominator passed")

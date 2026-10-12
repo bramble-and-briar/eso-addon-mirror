@@ -20,11 +20,14 @@ function A:Command(input)
         if command == "save" then self:Save(index, original) else self:Load(index) end
         Print(self.message)
     elseif command == "combat" then
-        if not self:CombatCommand(rest) then
+        -- What follows the word, in the case it was typed in: a part's name is case-sensitive.
+        local typed = (input or ""):match("^%s*%S+%s*(.-)%s*$") or ""
+        local ok, lines = self:CombatCommand(rest, typed)
+        if not ok then
             Print(S.help)
             return
         end
-        for _, line in ipairs(self:CombatLines()) do Print(line) end
+        for _, line in ipairs(lines or self:CombatLines()) do Print(line) end
     elseif command == "" or command == "list" or command == "status" then
         for _, line in ipairs(self:ListLines()) do Print(line) end
         if command == "" then Print(S.help) end
@@ -46,6 +49,7 @@ local function OnLoaded(_, name)
         -- A load screen resets the fight, and the controls may be new ones.
         A:ReadCombatState()
         A:ApplyCombat()
+        A:ScheduleLoginScan()
     end)
 end
 EVENT_MANAGER:RegisterForEvent(A.name, EVENT_ADD_ON_LOADED, OnLoaded)

@@ -10,3 +10,8 @@ function Chronos:ConvHexToRGB(colorString)
     local b = tonumber(string.sub(colorString, 5, 6), 16) or 255
     return r / 255, g / 255, b / 255
 end
+
+function Chronos:GetDefaultColor(key)
+    local r, g, b = self:ConvHexToRGB(self.defaults[key])
+    return { r = r, g = g, b = b }
+end

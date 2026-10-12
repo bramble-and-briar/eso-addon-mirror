@@ -411,6 +411,33 @@ ChatAnnouncements.Defaults =
         ExperienceColorName = { 0.75, 0.75, 0.75, 1 },
     },
 
+    -- Companion
+    Companion =
+    {
+        LevelUpCA = false,
+        LevelUpCSA = false,
+        LevelUpAlert = false,
+        LevelUpIcon = true,
+
+        RapportCA = false,
+        RapportCSA = false,
+        RapportAlert = false,
+
+        SkillLineCA = false,
+        SkillLineCSA = false,
+        SkillLineAlert = false,
+
+        SkillUnlockCA = false,
+        SkillUnlockCSA = false,
+        SkillUnlockAlert = false,
+
+        SkillXpCA = false,
+        SkillXpAlert = false,
+        SkillXpIcon = false,
+        SkillXpProgress = false,
+        SkillXpFilter = 0,
+    },
+
     -- Skills
     Skills =
     {
@@ -504,7 +531,7 @@ ChatAnnouncements.Defaults =
         CurrencyCrownsName = GetString(LUIE_STRING_CA_CURRENCY_CROWN),
         CurrencyCrownsShowTotal = false,
         CurrencyCrownGemsChange = false,
-        CurrencyCrownGemsColor = { 244 / 255, 56 / 255, 247 / 255, 1 },
+        CurrencyCrownGemsColor = { 0.96, 0.22, 0.97, 1 },
         CurrencyCrownGemsName = GetString(LUIE_STRING_CA_CURRENCY_CROWN_GEM),
         CurrencyCrownGemsShowTotal = false,
         CurrencySealsChange = true,
@@ -532,7 +559,7 @@ ChatAnnouncements.Defaults =
         CurrencyTomeChallengeRerollsName = GetString(LUIE_STRING_CA_CURRENCY_TOME_CHALLENGE_REROLLS),
         CurrencyTomeChallengeRerollsShowTotal = false,
         CurrencyOutfitTokenChange = true,
-        CurrencyOutfitTokenColor = { 255 / 255, 225 / 255, 125 / 255, 1 },
+        CurrencyOutfitTokenColor = { 1.00, 0.88, 0.49, 1 },
         CurrencyOutfitTokenName = GetString(LUIE_STRING_CA_CURRENCY_OUTFIT_TOKENS),
         CurrencyOutfitTokenShowTotal = false,
         CurrencyUndauntedChange = true,
@@ -961,6 +988,44 @@ ChatAnnouncements.ContextMessageDefaultStringIds =
     CurrencyMessageDisguiseRemove = LUIE_STRING_CA_CURRENCY_MESSAGE_DISGUISE_REMOVE,
     CurrencyMessageDisguiseDestroy = LUIE_STRING_CA_CURRENCY_MESSAGE_DISGUISE_DESTROY,
 }
+
+local displayAnnouncementZoneDefaults =
+{
+    "TrialHelRa",
+    "TrialAetherianArchive",
+    "TrialSanctumOphidia",
+    "TrialMawOfLorkhaj",
+    "TrialHallsOfFabrication",
+    "TrialSunspire",
+    "TrialRockgrove",
+    "TrialDreadsailReef",
+    "TrialSanitysEdge",
+    "TrialOsseinCage",
+    "DungeonVateshranHollows",
+    "DungeonBlackDrakeVilla",
+    "DungeonCoralAerie",
+    "DungeonShipwrightsRegret",
+    "DungeonEarthenRootEnclave",
+    "DungeonGravenDeep",
+    "DungeonBalSunnar",
+    "DungeonScrivenersHall",
+    "DungeonBedlamVeil",
+    "DungeonExiledRedoubt",
+    "CharacterSystems",
+    "TributeTutorial",
+    "InstrumentDisplayed",
+    "IndrikEvent",
+    "AntiquityDiscovery",
+}
+for displayAnnouncementIndex = 1, #displayAnnouncementZoneDefaults do
+    local settingsKey = displayAnnouncementZoneDefaults[displayAnnouncementIndex]
+    ChatAnnouncements.Defaults.DisplayAnnouncements[settingsKey] =
+    {
+        CA = false,
+        CSA = true,
+        Alert = false,
+    }
+end
 
 --- Pre–guild-name context strings still present in saved vars (treat as default, not custom).
 --- @type table<integer|string, string[]>

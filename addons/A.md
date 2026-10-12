@@ -231,6 +231,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.5 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
+| [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.0.0 |
 | [Arcanist Crux Job Gauge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ViciousTomato/Arcanist-Crux-Job-Gauge__3661) | ViciousTomato | PC / Mac | 1.1 |
 | [Arcanist Mastery Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/its_wifey/Arcanist-Mastery-Tracker__4823) | its_wifey | PC / Mac | 1.6 |
 | [Arcanum Artis GuildHall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Arcanum-Artis-GuildHall__3013) | Niwasaka | PC / Mac | 1.22.0 |

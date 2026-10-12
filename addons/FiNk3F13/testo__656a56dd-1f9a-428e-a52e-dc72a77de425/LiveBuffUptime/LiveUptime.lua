@@ -70,6 +70,46 @@ local function aliveWindows(fight, starts, ends)
     return windows
 end
 
+function LiveUptime.GroupMember(fight, key, id, time, eligible, name)
+    if not fight or not fight.running then return end
+    fight.groupMembers = fight.groupMembers or {}
+    local member = fight.groupMembers[key]
+    if not member then
+        member = { id = id, name = name, starts = time, ends = time, aliveIntervals = {} }
+        fight.groupMembers[key] = member
+    end
+    member.id, member.name, member.ends = id or member.id, name or member.name, time
+    if eligible ~= (member.aliveSince ~= nil) then
+        if eligible then member.aliveSince = time
+        else
+            member.aliveIntervals[#member.aliveIntervals + 1] = { member.aliveSince, time }
+            member.aliveSince = nil
+        end
+    end
+    return member
+end
+
+-- A roster snapshot may precede the first authoritative unit-ID event.
+function LiveUptime.MergeUnits(snapshot, events)
+    if not snapshot then return events end
+    if not events then return snapshot end
+    local merged = { all = Meter.NewScope(), own = Meter.NewScope(), slots = {} }
+    for _, source in ipairs({ snapshot, events }) do
+        for _, scope in ipairs({ "all", "own" }) do
+            for _, event in ipairs(source[scope].events) do
+                Meter.ScopeEvent(merged[scope], event.slot, event.time, event.active)
+            end
+        end
+        for ability, instance in pairs(source.stackInstances or {}) do
+            for _, event in ipairs(instance.events) do
+                Stacks.Event(merged, ability, event.slot, event.time, event.gained, event.own, event.stacks)
+            end
+        end
+    end
+    for slot in pairs(merged.all.slots) do merged.slots[slot] = events.slots[slot] or snapshot.slots[slot] end
+    return merged
+end
+
 function LiveUptime.Kind(fight, id, kind)
     if not fight.running then LiveUptime.Note(fight, "blockedMutations"); return end
     if not id or not kind then return end
@@ -122,9 +162,14 @@ function LiveUptime.Action(fight, event, time, source, target, value, overflow)
     if event == "EVENT_HEAL_SELF" then activity(target, "healingOut") end
 end
 
-function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own, stacks, sourceType)
+function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own, stacks, sourceType, expires)
+    local debug = LiveBuffUptimeBuffDebug
+    local reason = LiveUptime.IsPet(sourceType) and "abgewiesen: Begleiterquelle" or nil
     local recipient = LiveUptime.Touch(fight, id, time)
-    if not recipient then return end
+    if not recipient then
+        if debug and debug.active then debug.Processed(fight, tracker, time, id, ability, slot, false, "abgewiesen: Kampf geschlossen/keine Einheit") end
+        return
+    end
     recipient.hasEffects = true
     -- A rejected replacement must close an earlier eligible application in this slot.
     if LiveUptime.IsPet(sourceType) then gained, stacks = false, nil end
@@ -137,6 +182,15 @@ function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own,
     if Stacks then Stacks.Event(unit, ability, slot, time, gained, own, stacks) end
     -- Effect slots, not source IDs or ability aliases, identify simultaneous applications.
     local previous = unit.slots[slot]
+    if previous and previous.expires and previous.expires <= time then
+        Meter.ScopeEvent(unit.all, slot, previous.expires, false)
+        Meter.ScopeEvent(unit.own, slot, previous.expires, false)
+        if Stacks then Stacks.Event(unit, previous.ability, slot, previous.expires, false, previous.own) end
+        unit.slots[slot], previous = nil, nil
+    end
+    if gained and expires and expires > 0 and expires <= time then
+        gained, reason = false, "abgewiesen: bereits abgelaufen"
+    end
     if gained then
         if previous and previous.ability ~= ability then
             Meter.ScopeEvent(unit.all, slot, time, false)
@@ -144,12 +198,36 @@ function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own,
             previous = nil
         end
         unit.slots[slot] = previous or { ability = ability, own = own }
+        if expires ~= nil then unit.slots[slot].expires = expires > 0 and expires or nil end
+        local remembered = recipient.effects and recipient.effects[slot]
+        if tracker.config and tracker.config.unit == "group" and expires ~= nil and remembered and remembered.ability == ability then
+            remembered.groupExpires = expires > 0 and expires or nil
+        end
         Meter.ScopeEvent(unit.all, slot, time, true)
         if unit.slots[slot].own then Meter.ScopeEvent(unit.own, slot, time, true) end
     else
         unit.slots[slot] = nil
         Meter.ScopeEvent(unit.all, slot, time, false)
         Meter.ScopeEvent(unit.own, slot, time, false)
+    end
+    if debug and debug.active then debug.Processed(fight, tracker, time, id, ability, slot, gained, reason) end
+end
+
+function LiveUptime.Expire(fight, tracker, time)
+    if not fight or not fight.running or tracker.config.unit ~= "group" then return end
+    for id, unit in pairs(tracker.liveUptimeUnits or {}) do
+        local expired
+        for slot, effect in pairs(unit.slots) do
+            if effect.expires and effect.expires <= time then
+                expired = expired or {}
+                expired[#expired + 1] = { slot = slot, ability = effect.ability, time = effect.expires }
+            end
+        end
+        if expired then
+            for _, effect in ipairs(expired) do
+                LiveUptime.Effect(fight, tracker, effect.time, id, effect.ability, effect.slot, false, false, 1)
+            end
+        end
     end
 end
 
@@ -174,13 +252,15 @@ function LiveUptime.Seed(fight, tracker, now, matches)
     if not fight or not fight.running then return end
     for id, unit in pairs(fight.units) do
         for slot, effect in pairs(unit.effects or {}) do
-            if matches(tracker.config, effect.ability) then
+            if matches(tracker.config, effect.ability)
+                and not (tracker.config.unit == "group" and effect.groupExpires and effect.groupExpires <= now) then
                 local data = tracker.liveUptimeUnits[id]
                 if not data then
                     data = { all = Meter.NewScope(), own = Meter.NewScope(), slots = {} }
                     tracker.liveUptimeUnits[id] = data
                 end
-                data.slots[slot] = effect
+                data.slots[slot] = { ability = effect.ability, own = effect.own,
+                    expires = tracker.config.unit == "group" and effect.groupExpires or nil }
                 Meter.ScopeEvent(data.all, slot, now, true)
                 if effect.own then Meter.ScopeEvent(data.own, slot, now, true) end
                 if Stacks then Stacks.Event(data, effect.ability, slot, now, true, effect.own, effect.stacks) end
@@ -231,9 +311,12 @@ end
 function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
     local result = { covered = 0, normalCovered = 0, stackCovered = 0, duration = 0, percent = 0, members = {} }
     if not fight then return result end
+    LiveUptime.Expire(fight, tracker, fight.encounterEnds)
     local basis = LiveUptime.PersonalBasis(fight, tracker.config)
+    local groupAlive = tracker.config.unit == "group" and fight.groupMembers ~= nil
     local alive = tracker.config.unit == "player" and basis == "alive"
-    local fightStarts, fightEnds = alive and fight.combatstart or fight.starts, alive and fight.encounterEnds or fight.ends
+    local fightStarts, fightEnds = (alive or groupAlive) and fight.combatstart or fight.starts,
+        (alive or groupAlive) and fight.encounterEnds or fight.ends
     if not fightStarts or not fightEnds then return result end
     result.starts, result.ends, result.personalTime = fightStarts, fightEnds, basis
     local first = math.max(fightStarts, tracker.state.since)
@@ -244,14 +327,17 @@ function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
                 - math.max(0, first - fightStarts))
     end
     local units = fight.allies
+    if groupAlive then units = fight.groupMembers end
     if tracker.config.unit ~= "group" then
         local id = tracker.config.unit == "player" and playerId or targetId
         units = id and fight.units[id] and { [id] = fight.units[id] } or {}
     end
     for id, unit in pairs(units) do
-        if (personal and not unit.offline and not LiveUptime.IsPet(unit.kind))
+        local dataId = groupAlive and (unit.id or id) or id
+        if groupAlive or (personal and not unit.offline and not LiveUptime.IsPet(unit.kind))
             or (not personal and selected(tracker.config, id, unit, playerId, targetId)) then
             local starts, ends = math.max(first, unit.starts), math.min(fightEnds, unit.ends)
+            if groupAlive then ends = fightEnds end
             if personal then
                 starts = first
                 -- The personal panel uses the fight clock, not the unit-selection denominator.
@@ -259,9 +345,11 @@ function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
                 ends = (alive or fight.running) and fightEnds or math.min(fightEnds, unit.ends)
             end
             if ends > starts then
-                local data = tracker.liveUptimeUnits and tracker.liveUptimeUnits[id]
+                local data = tracker.liveUptimeUnits and tracker.liveUptimeUnits[dataId]
                 local scope = data and data.all
-                local windows = alive and aliveWindows(fight, starts, ends) or { { starts, ends } }
+                local windows = (alive or groupAlive) and aliveWindows(groupAlive and unit or fight, starts, ends)
+                    or { { starts, ends } }
+                local memberDuration = groupAlive and aliveDuration(unit, starts, ends) or ends - starts
                 local covered, stackCovered = 0, 0
                 for _, window in ipairs(windows) do
                     local first, last = window[1], window[2]
@@ -274,13 +362,14 @@ function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
                 if tracker.config.uptimeMetric == "stacks" then covered = stackCovered end
                 result.normalCovered, result.stackCovered = result.normalCovered + normalCovered, result.stackCovered + stackCovered
                 result.covered = result.covered + covered
-                if not personal then result.duration = result.duration + ends - starts end
+                if not personal then result.duration = result.duration + memberDuration end
                 if report and #result.members < 48 then
-                    result.members[#result.members + 1] = { id = id, name = unit.name, kind = unit.kind, covered = covered,
+                    result.members[#result.members + 1] = { id = dataId, name = unit.name,
+                        kind = groupAlive and COMBAT_UNIT_TYPE_GROUP or unit.kind, covered = covered,
                         observedStarts = unit.starts, observedEnds = unit.ends, normalCovered = normalCovered,
-                        duration = personal and result.duration or ends - starts,
+                        duration = personal and result.duration or memberDuration,
                         starts = starts, ends = ends, intervals = scope and scope.intervals or {},
-                        open = scope and scope.starts, eligibility = windows, aliveWindows = alive and windows or nil }
+                        open = scope and scope.starts, eligibility = windows, aliveWindows = (alive or groupAlive) and windows or nil }
                     if tracker.config.uptimeMetric == "stacks" then
                         result.members[#result.members].weighted = data and data.stackInstances or {}
                         result.members[#result.members].source = "all"

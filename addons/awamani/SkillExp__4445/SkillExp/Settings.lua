@@ -9,6 +9,7 @@ local function SettingsInit()
         showSkillLines = true,
         trackSkillLineXP = true,
         hideNonLevelable = false,
+        pinnedSkillLines = {}, -- skillLineId -> true
     }
 
     SkillExp.accountData = ZO_SavedVars:NewAccountWide("SkillExp_Data", 1, nil, accountDefaults)

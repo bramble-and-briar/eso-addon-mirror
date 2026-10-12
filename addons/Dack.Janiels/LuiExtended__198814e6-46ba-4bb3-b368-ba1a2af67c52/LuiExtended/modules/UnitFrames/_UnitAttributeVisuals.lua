@@ -370,6 +370,12 @@ function UnitFrames.UpdateAttribute(unitTag, powerType, attributeFrame, powerVal
         if attributeFrame[label] then
             local format = tostring(attributeFrame[label].format or UnitFrames.SV.Format)
             local str = format
+            local shieldLayerCount = 0
+            if unitTag == "player" and powerType == COMBAT_MECHANIC_FLAGS_HEALTH then
+                shieldLayerCount = LUIE.PlayerDamageShieldLayers.GetActiveLayerCount()
+            end
+            local shieldLayerText = shieldLayerCount > 0 and ("x" .. tostring(shieldLayerCount)) or ""
+            str = StringOnlyGSUB(str, "xLayers", shieldLayerText)
             str = StringOnlyGSUB(str, "Percentage", tostring(pct))
             str = StringOnlyGSUB(str, "Max", FormatNumber(powerEffectiveMax))
             str = StringOnlyGSUB(str, "Current", FormatNumber(powerValue))
@@ -402,6 +408,13 @@ function UnitFrames.UpdateAttribute(unitTag, powerType, attributeFrame, powerVal
                 local isLow = pct < (attributeFrame.threshold or UnitFrames.defaultThreshold)
                 attributeFrame[label]:SetColor(unpack(isLow and { 1, 0.25, 0.38, 1 } or attributeFrame.color or { 1, 1, 1, 1 }))
             end
+        end
+    end
+
+    if powerType == COMBAT_MECHANIC_FLAGS_HEALTH and UnitFrames.CustomFrames then
+        local customFrame = UnitFrames.CustomFrames[unitTag]
+        if customFrame and attributeFrame == customFrame[COMBAT_MECHANIC_FLAGS_HEALTH] then
+            UnitFrames.RefreshCompactNameClip(customFrame)
         end
     end
 

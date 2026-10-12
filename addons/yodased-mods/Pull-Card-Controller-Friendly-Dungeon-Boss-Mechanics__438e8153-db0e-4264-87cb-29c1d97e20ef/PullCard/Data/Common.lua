@@ -68,6 +68,18 @@ function PullCardData.addBoss(name, ...)
     PullCardData.addShared({name}, ...)
 end
 
+-- Combination card: pops only when ALL of `requires` are on screen together
+-- (e.g. a miniboss joining the final boss in hard mode), taking priority over
+-- the single-boss cards. Not matched by name on its own.
+function PullCardData.addCombo(requires, dungeonName, title, summary, everyone, tank, healer, dps, tldr, extra)
+    PullCardData.addShared({}, dungeonName, title, {}, summary, everyone, tank, healer, dps, tldr, extra)
+    local encounter = PullCardData.encounters[#PullCardData.encounters]
+    encounter.requires = requires
+    local dungeon = PullCardData.dungeons[dungeonName]
+    dungeon.combos = dungeon.combos or {}
+    table.insert(dungeon.combos, encounter)
+end
+
 -- Name of the achievement for beating a boss on hard mode, so the card can show
 -- whether the player has done it. Drops a duplicate challenge of the same name.
 function PullCardData.setHardModeAchievement(dungeonName, bossTitle, achievementName)
@@ -112,6 +124,25 @@ end
 function PullCardData.setNotes(dungeonName, text)
     local dungeon = PullCardData.dungeons[dungeonName]
     if dungeon then dungeon.notes = text end
+end
+
+-- "Before you start" card that pops when you zone into the instance: the key
+-- points, plus a pointer to the full walkthrough rows in the menu.
+function PullCardData.setIntro(dungeonName, keyPoints)
+    local dungeon = PullCardData.dungeons[dungeonName]
+    if not dungeon then return end
+    dungeon.intro = {
+        title = "Before you start",
+        dungeon = dungeonName,
+        dungeonInfo = dungeon,
+        summary = "Full walkthroughs: PullCard menu > "
+            .. (dungeon.category == "trial" and "Trials" or "Solo Arenas") .. " > " .. dungeonName .. ".",
+        everyone = keyPoints,
+        sectionLabel = "KEY POINTS",
+        challenges = {},
+        aliases = {},
+        names = {},
+    }
 end
 
 -- Extra read-only menu row under the overview, for guide text too long for it.

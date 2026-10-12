@@ -6,7 +6,7 @@
 
 ## Title: |cFEE854LootDrop|r |cFF9900Reborn|r
 ## Description: LootDrop graphically displays information of looted items by stacking it in a transparent frame.
-## Version: 4.64
+## Version: 4.65
 ## Author: |c66ccffPhinix|r, |cFF66CCPawkette|r, et al.
 ## APIVersion: 101050 101051
 ## DependsOn: LibAnimation-1.0>=023 LibMediaProvider-1.0>=13 LibAddonMenu-2.0>=31

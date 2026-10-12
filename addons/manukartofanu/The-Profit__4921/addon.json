@@ -18,7 +18,7 @@
     "TheProfit"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4921/",
-  "fingerprint": "c69538e3324332858ed9e6fb4fb973a4faf696e18d357321740c5d65447d6930",
+  "fingerprint": "549251b8d1259ebfe25728d7519d43b0b755b16d2cb36670b20d8341709246cc",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17774.png",
     "https://cdn-eso.mmoui.com/preview/pvw17775.png",
@@ -31,11 +31,11 @@
   "source_id": "4921",
   "source_url": "https://www.esoui.com/downloads/info4921-TheProfit.html",
   "stats": {
-    "downloads": 13,
-    "favorites": 1,
-    "monthly_downloads": 2
+    "downloads": 53,
+    "favorites": 2,
+    "monthly_downloads": 41
   },
   "title": "The Profit",
-  "updated_at": 1791329924000,
-  "version": "1.0.0"
+  "updated_at": 1791762814000,
+  "version": "1.0.1"
 }

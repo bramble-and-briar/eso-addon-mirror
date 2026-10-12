@@ -8,6 +8,7 @@ ValuesBars = ValuesBars or {}
 local VB = ValuesBars
 
 VB.name = "ValuesBars"
+VB.version = "1.0.1" -- mantener igual que ## Version en ValuesBars.txt
 VB.svVersion = 14 -- subir solo si cambia la estructura de las SavedVariables
 
 VB.defaults = {

@@ -143,10 +143,8 @@ env.setClock(116)
 nunatakProc("Other", COMBAT_UNIT_TYPE_GROUP)
 env.events.tick()
 assert(nunatakWindow.labels[1].text == "--", "Other players' Nunatak must not start a personal cooldown")
-SLASH_COMMANDS["/lbu"]("debug")
 nunatakProc("Me", 0)
 assert(nunatakWindow.labels[1].text == "15.0")
-SLASH_COMMANDS["/lbu"]("debug")
 local removeNunatak
 for _, descriptor in ipairs(env.panel.descriptors) do
     if descriptor.label == "Tracker entfernen" then removeNunatak = descriptor end
@@ -203,4 +201,4 @@ assert(specialWindow.labels[1].text == "13.0", "Critical follow-up ticks must no
 env.setClock(167)
 nunatakTick(COMBAT_UNIT_TYPE_PLAYER, ACTION_RESULT_DOT_TICK_CRITICAL)
 assert(specialWindow.labels[1].text == "15.0", "Own critical periodic damage must also start cooldown")
-print("Cooldown addon: source filtering, Roaring recipients, separated Nunatak proc/stacks/debuff, effect events and debug passed")
+print("Cooldown addon: source filtering, Roaring recipients, separated Nunatak proc/stacks/debuff, effect events passed")

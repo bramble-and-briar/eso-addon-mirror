@@ -973,6 +973,10 @@ local function HandleCustomPinCreation(pinType, pinTag, xLoc, yLoc)
     if pinType == MAP_PIN_TYPE_LOCATION then return end
     -- Глушим создание штрихкода для меток 233 (мы зажигаем сам Дольмен синим!)
     if pinType == 233 or (ZO_MapPin and ZO_MapPin.WORLD_EVENT_POI_PIN_TYPES and ZO_MapPin.WORLD_EVENT_POI_PIN_TYPES[pinType]) then return end
+    -- ЗАПРЕЩАЕМ КЛОНИРОВАНИЕ СОПАРТИЙЦЕВ И ИГРОКОВ (ими управляет только живой трекер!):
+    if pinType == MAP_PIN_TYPE_GROUP or pinType == MAP_PIN_TYPE_PLAYER then return end
+    if ZO_MapPin and ZO_MapPin.GROUP_PIN_TYPES and ZO_MapPin.GROUP_PIN_TYPES[pinType] then return end
+    if ZO_MapPin and ZO_MapPin.UNIT_PIN_TYPES and ZO_MapPin.UNIT_PIN_TYPES[pinType] then return end
 
     local lmp = LibMapPins
     if lmp and lmp.IsEnabled and pinType and lmp:IsEnabled(pinType) == false then return end

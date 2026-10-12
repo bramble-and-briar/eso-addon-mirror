@@ -2,7 +2,6 @@ local Chronos = _G['Chronos']
 
 local LAM2 = LibAddonMenu2
 local LMP = LibMediaProvider
-local panelOpen = false
 
 local outlineStyles = { 'none', 'outline', 'thin-outline', 'thick-outline', 'shadow', 'soft-shadow-thin', 'soft-shadow-thick' }
 
@@ -34,11 +33,8 @@ function Chronos:InitMenu()
             setFunc = function(value)
                 self.db.showClock = value
                 self:InitClock()
-                if value == true then
-                    Chronos:UpdateAnchors(true)
-                end
             end,
-            default = self.db.showClock,
+            default = self.defaults.showClock,
         },
         {
             type = "colorpicker",
@@ -52,7 +48,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock
-            end
+            end,
+            default = self:GetDefaultColor("clockFontColor"),
         },
         {
             type = "dropdown",
@@ -67,7 +64,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock
-            end
+            end,
+            default = self.defaults.clockTextFont,
         },
         {
             type = "checkbox",
@@ -79,7 +77,10 @@ function Chronos:InitMenu()
                 self.db.showClockBG = value
                 self:UpdateClockStyle()
             end,
-            default = self.db.showClockBG,
+            disabled = function()
+                return not self.db.showClock
+            end,
+            default = self.defaults.showClockBG,
         },
         {
             type = "dropdown",
@@ -94,7 +95,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock or not self.db.showClockBG
-            end
+            end,
+            default = self.defaults.clockBackground,
         },
         {
             type = "colorpicker",
@@ -109,7 +111,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock or not self.db.showClockBG
-            end
+            end,
+            default = self:GetDefaultColor("clockBackgroundColor"),
         },
         {
             type = "slider",
@@ -125,7 +128,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock or not self.db.showClockBG
-            end
+            end,
+            default = self.defaults.clockBackgroundAlpha,
         },
         {
             type = "slider",
@@ -141,7 +145,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock
-            end
+            end,
+            default = self.defaults.clockFontSize,
         },
         {
             type = "dropdown",
@@ -156,7 +161,8 @@ function Chronos:InitMenu()
             end,
             disabled = function()
                 return not self.db.showClock
-            end
+            end,
+            default = self.defaults.clockFontOutline,
         },
         {
             type = "checkbox",
@@ -167,7 +173,7 @@ function Chronos:InitMenu()
             setFunc = function(value)
                 self.db.showChangelog = value
             end,
-            default = self.db.showChangelog,
+            default = self.defaults.showChangelog,
         },
         {
             type = "submenu",
@@ -175,62 +181,6 @@ function Chronos:InitMenu()
             tooltip = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_TIMEZONE_HEADER_TOOLTIP"),
             width = "full",
             controls = {
-                {
-                    type = "checkbox",
-                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_DST"),
-                    getFunc = function()
-                        return self.db.clockDst
-                    end,
-                    setFunc = function(value)
-                        self.db.clockDst = value
-                        self:UpdateTimeZone()
-                        self:UpdateTime()
-                    end,
-                    default = self.db.showClock,
-                },
-                {
-                    type = "checkbox",
-                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_SHOW_UTC"),
-                    getFunc = function()
-                        return self.db.showClockUTC
-                    end,
-                    setFunc = function(value)
-                        self.db.showClockUTC = value
-                        self:UpdateTimeZone()
-                        self:UpdateClockStyle()
-                    end,
-                    default = self.db.showClockUTC,
-                },
-                {
-                    type = "colorpicker",
-                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_COLOR"),
-                    getFunc = function()
-                        return self:ConvHexToRGB(self.db.clockUTCColor)
-                    end,
-                    setFunc = function(r, g, b)
-                        self.db.clockUTCColor = self:ConvRGBToHex(r, g, b)
-                        self:UpdateClockStyle()
-                    end,
-                    disabled = function()
-                        return not self.db.showClockUTC
-                    end
-                },
-                {
-                    type = "slider",
-                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_TIMEZONE_FONTRATIO"),
-                    min = 0,
-                    max = 20,
-                    getFunc = function()
-                        return self.db.clockUTCDelta
-                    end,
-                    setFunc = function(value)
-                        self.db.clockUTCDelta = value
-                        self:UpdateClockStyle()
-                    end,
-                    disabled = function()
-                        return not self.db.showClockUTC
-                    end
-                },
                 {
                     type = "dropdown",
                     name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_TIMEZONES_LIST"),
@@ -243,11 +193,67 @@ function Chronos:InitMenu()
                         self.db.timeZoneIndex = self:GetIndexFromTimeZone(value)
                         self:UpdateTimeZone()
                         self:UpdateTime()
+                        self:UpdateClockStyle()
                     end,
-                    --default = TimeZonesLookup[self.db.clockTimezone],
+                    default = self.timeZoneLookup[self:GetIndexFromOffset(self:GetTimeZone())],
+                },
+                {
+                    type = "checkbox",
+                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_DST"),
+                    getFunc = function()
+                        return self.db.clockDst
+                    end,
+                    setFunc = function(value)
+                        self.db.clockDst = value
+                        self:UpdateTimeZone()
+                        self:UpdateTime()
+                    end,
+                    default = self.defaults.clockDst,
+                },
+                {
+                    type = "checkbox",
+                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_SHOW_UTC"),
+                    getFunc = function()
+                        return self.db.showClockUTC
+                    end,
+                    setFunc = function(value)
+                        self.db.showClockUTC = value
+                        self:UpdateTimeZone()
+                        self:UpdateClockStyle()
+                    end,
+                    default = self.defaults.showClockUTC,
+                },
+                {
+                    type = "colorpicker",
+                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_UTC_COLOR"),
+                    getFunc = function()
+                        return self:ConvHexToRGB(self.db.clockUTCColor)
+                    end,
+                    setFunc = function(r, g, b)
+                        self.db.clockUTCColor = self:ConvRGBToHex(r, g, b)
+                        self:UpdateClockStyle()
+                    end,
                     disabled = function()
                         return not self.db.showClockUTC
-                    end
+                    end,
+                    default = self:GetDefaultColor("clockUTCColor"),
+                },
+                {
+                    type = "slider",
+                    name = Chronos.GetDefaultLocaleString("SETTINGS_CLOCK_UTC_FONTSIZE"),
+                    min = 6,
+                    max = 32,
+                    getFunc = function()
+                        return self.db.clockUTCFontSize
+                    end,
+                    setFunc = function(value)
+                        self.db.clockUTCFontSize = value
+                        self:UpdateClockStyle()
+                    end,
+                    disabled = function()
+                        return not self.db.showClockUTC
+                    end,
+                    default = self.defaults.clockUTCFontSize,
                 },
             }
         },
@@ -255,7 +261,15 @@ function Chronos:InitMenu()
             type = "button",
             name = Chronos.GetDefaultLocaleString("SETTINGS_SHOW_CHANGELOGBUTTON"),
             func = function()
-                Chronos_Changelog:SetHidden(false)
+                self:ToggleChangelog(true)
+            end,
+            width = "half",
+        },
+        {
+            type = "button",
+            name = Chronos.GetDefaultLocaleString("SETTINGS_SHOW_GUIDEBUTTON"),
+            func = function()
+                self:ToggleGuide(true)
             end,
             width = "half",
         },
@@ -264,18 +278,15 @@ function Chronos:InitMenu()
     self.panel = LAM2:RegisterAddonPanel(self.addonName .. "Options", panelData)
     LAM2:RegisterOptionControls(self.addonName .. "Options", optionsTable)
 
-    local function panelShown(currentPanel)
-        if currentPanel == self.panel then
-            panelOpen = true
-            Chronos:UpdateAnchors(panelOpen)
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", function(panel)
+        if panel == self.panel then
+            self:SetClockPreview(true)
         end
-    end
+    end)
 
-    local function panelHidden()
-        panelOpen = false
-        Chronos:UpdateAnchors(panelOpen)
-    end
-
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelOpened", panelShown)
-    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", panelHidden)
+    CALLBACK_MANAGER:RegisterCallback("LAM-PanelClosed", function(panel)
+        if panel == self.panel then
+            self:SetClockPreview(false)
+        end
+    end)
 end

@@ -17,6 +17,20 @@ local function SetColor(label, color)
     label:SetColor(color:UnpackRGBA())
 end
 
+-- Окно выбора открывается рядом с другим окном (dock) — вплотную справа, на той же
+-- высоте; без dock — в обычном месте по центру
+local DOCK_GAP = 8
+local function Place(window, dock, defaultHeight)
+    window:ClearAnchors()
+    if dock then
+        window:SetAnchor(TOPLEFT, dock, TOPRIGHT, DOCK_GAP, 0)
+        window:SetAnchor(BOTTOMLEFT, dock, BOTTOMRIGHT, DOCK_GAP, 0)
+    else
+        window:SetAnchor(CENTER, GuiRoot, CENTER, 140, 0)
+        window:SetHeight(defaultHeight)
+    end
+end
+
 ---------------------------------------------------------------------------
 -- Выбор места
 ---------------------------------------------------------------------------
@@ -70,8 +84,9 @@ function PlacePicker:Initialize()
         function(control, data) QTM.Menu:SetupEmpty(control, data, list) end)
 end
 
-function PlacePicker:Open(callback)
+function PlacePicker:Open(callback, dock)
     self.callback = callback
+    Place(self.window, dock, 620)
     self.window:SetHidden(false)
     self.search:SetText("")
     self:Refresh()
@@ -216,9 +231,10 @@ function IconPicker:Initialize()
 end
 
 -- look = { color = {r,g,b}, tint = bool } — чтобы значки сразу показывались как на кнопке
-function IconPicker:Open(look, callback)
+function IconPicker:Open(look, callback, dock)
     self.look = look or {}
     self.callback = callback
+    Place(self.window, dock, 640)
     self.window:SetHidden(false)
     self.pathBox:SetText("")
     self.search:SetText("")

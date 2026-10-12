@@ -8,8 +8,14 @@
 ## OptionalDependsOn: LibGroupBroadcast
 
 PvPUA.xml
-PvPUA_Settings.xml
-PvPUA_Settings.lua
+PvPUA_Window.xml
+PvPUA_Window.lua
 PvPUA.lua
-PvPUA_MainMenu.lua
+PvPUA_Appearance.lua
+PvPUA_Alerts.lua
+PvPUA_APChat.lua
+PvPUA_AutoInvite.lua
+PvPUA_Ranks.lua
+PvPUA_Icon.lua
+PvPUA_Settings.lua
 bindings.xml

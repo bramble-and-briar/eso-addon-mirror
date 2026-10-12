@@ -1,7 +1,7 @@
 ## Title: |c37D5FAValuesBars|r
 ## Author: |c37FAC6Teniente.R|r
-## Version: 1.0.0
-## AddOnVersion: 2
+## Version: 1.0.1
+## AddOnVersion: 3
 ## APIVersion: 101051
 ## SavedVariables: ValuesBars_SV
 ## OptionalDependsOn: LibAddonMenu-2.0

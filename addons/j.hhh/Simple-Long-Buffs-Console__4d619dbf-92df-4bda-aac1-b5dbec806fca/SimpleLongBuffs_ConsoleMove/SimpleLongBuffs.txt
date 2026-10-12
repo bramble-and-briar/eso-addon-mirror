@@ -8,9 +8,9 @@
 ## APIVersion: 101050 101051
 ## SavedVariables: SimpleLongBuffsData
 ## Title: Simple Long Buffs
-## Description: Just simple long/permanent buffs at right-bottom
+## Description: Shows only active food/drink, Experience gain, Alliance Point gain and Vampire Stage buffs.
 ## Author: |c943810BulDeZir|r
-## Version: 1.2-console
+## Version: 1.5-console
 
 SimpleLongBuffs.lua
 SimpleLongBuffs.xml

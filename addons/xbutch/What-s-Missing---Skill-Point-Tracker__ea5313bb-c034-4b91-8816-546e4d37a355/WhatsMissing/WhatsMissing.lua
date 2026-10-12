@@ -15,6 +15,7 @@ local currentTab = 1
 local tabGamepadLists = {}
 local tabSelectedData = {}
 local scan
+local SPT_StartScan
 local progressionList
 local progressionModules = { SPT.Skills, SPT.Scribing }
 
@@ -96,7 +97,7 @@ end
 -- Scan state machine
 local SCAN_BUDGET_MS = 8
 local SCAN_DELAY_MS  = 5
-scan = { running = false, dirty = true, phase = 0, index = 0 }
+scan = { running = false, dirty = true, phase = 0, index = 0, generation = 0 }
 
 
 --------------------------------------------------------------------
@@ -317,9 +318,9 @@ local function HasScanBudget()
 	return true
 end
 
-function SPT:QueueProgressionSnapshot(module, changed)
-	if not self.progressionReady then return end
-	module.needsFinalCapture = module.needsFinalCapture or changed
+function SPT:QueueProgressionSnapshot(module)
+	module.dirty = true
+	if not self.progressionReady or not self.active then return end
 	if module.pending then
 		-- An event during a slice may have changed a line already read.
 		module.rescan = module.rescan or module.capturing
@@ -327,9 +328,9 @@ function SPT:QueueProgressionSnapshot(module, changed)
 	end
 	module.pending = true
 	local generation = module.generation
-	local capture = coroutine.create(function() module:Capture(coroutine.yield) end)
+	local capture = coroutine.create(function() return module:Capture(coroutine.yield) end)
 	local function ContinueCapture()
-		if generation ~= module.generation or not SPT.progressionReady then return end
+		if generation ~= module.generation or not SPT.progressionReady or not SPT.active then return end
 		if not HasScanBudget() then zo_callLater(ContinueCapture, 50); return end
 		module.capturing = true
 		local started = GetGameTimeMilliseconds()
@@ -343,10 +344,10 @@ function SPT:QueueProgressionSnapshot(module, changed)
 				module.pending, module.capturing = false, false
 				if module.rescan then
 					module.rescan = false
-					SPT:QueueProgressionSnapshot(module, module.needsFinalCapture)
+					SPT:QueueProgressionSnapshot(module)
 					return
 				end
-				module.needsFinalCapture = false
+				module.dirty = not message
 				module:ReleaseDisplay()
 				if SPT.active and (SPT_GetProgressionModule() == module or (module == SPT.Scribing and currentTab == 1)) then
 					SPT:RenderCurrentTab()
@@ -357,8 +358,20 @@ function SPT:QueueProgressionSnapshot(module, changed)
 		end
 		zo_callLater(ContinueCapture, 16)
 	end
-	-- Let map/skill initialization settle before starting either snapshot.
+	-- Opening the window requests work; no captures are scheduled while closed.
 	zo_callLater(ContinueCapture, 100)
+end
+
+local function SPT_CancelWindowWork()
+	for _, module in ipairs(progressionModules) do
+		if module.pending then module.dirty = true end
+		module.generation = (module.generation or 0) + 1
+		module.pending, module.capturing, module.rescan = false, false, false
+	end
+	SPT.Skills:SetActive(false)
+	if scan.running then scan.dirty = true end
+	scan.running = false
+	scan.generation = scan.generation + 1
 end
 
 local function SPT_ReleaseProgressionDisplay()
@@ -1442,6 +1455,11 @@ local function SPT_GetTotSkillPoints()
 end
 
 local function SPT_FinalizeScan()
+	if scan.rescan then
+		scan.running = false
+		SPT_StartScan()
+		return
+	end
 	local pd = SPT.ptsData
 
 	-- Fix Wailing Prison skyshard (earned but not marked acquired when quest was skipped)
@@ -1482,9 +1500,10 @@ local function SPT_FinalizeScan()
 	end
 end
 
-local function ProcessScanSlice()
-	if not scan.running then return end
-	if not HasScanBudget() then zo_callLater(ProcessScanSlice, 50); return end
+local function ProcessScanSlice(generation)
+	if generation ~= scan.generation or not scan.running or not SPT.active then return end
+	local function ContinueScan() ProcessScanSlice(generation) end
+	if not HasScanBudget() then zo_callLater(ContinueScan, 50); return end
 	-- Frame time is fixed during a callback; game time advances while Lua runs.
 	-- Yield at work-unit boundaries, so 8 ms is a cooperative target, not a hard cap.
 	local deadline = GetGameTimeMilliseconds() + SCAN_BUDGET_MS
@@ -1509,7 +1528,7 @@ local function ProcessScanSlice()
 			SPT.settings.TUT) and 1 or 0
 		pd.EndlArch = (GCQI(SPT.data.EA[1]) ~= "") and 1 or 0
 		scan.phase = 2; scan.index = 0
-		zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
+		zo_callLater(ContinueScan, SCAN_DELAY_MS); return
 	end
 
 	-- Phase 2: Zone quests (SQS)
@@ -1524,7 +1543,7 @@ local function ProcessScanSlice()
 			end
 			pd.ZQTot = pd.ZQTot + pd.ZQ[zd.key]
 			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
-				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
+				zo_callLater(ContinueScan, SCAN_DELAY_MS); return
 			end
 		end
 		scan.phase = 3; scan.index = 0
@@ -1539,7 +1558,7 @@ local function ProcessScanSlice()
 			pd.GD[d.key] = GCQI(d.quest) ~= "" and 1 or 0
 			pd.GDTot = pd.GDTot + pd.GD[d.key]
 			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
-				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
+				zo_callLater(ContinueScan, SCAN_DELAY_MS); return
 			end
 		end
 		scan.phase = 4; scan.index = 0
@@ -1554,7 +1573,7 @@ local function ProcessScanSlice()
 			pd.PD[d.key] = IAchC(d.achievement) and 1 or 0
 			pd.PDTot = pd.PDTot + pd.PD[d.key]
 			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
-				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
+				zo_callLater(ContinueScan, SCAN_DELAY_MS); return
 			end
 		end
 		scan.phase = 5; scan.index = 0
@@ -1583,7 +1602,7 @@ local function ProcessScanSlice()
 			end
 			pd.numSSTot = pd.numSSTot + pd.SS[zd.key]
 			if GetGameTimeMilliseconds() >= deadline or not HasScanBudget() then
-				zo_callLater(ProcessScanSlice, SCAN_DELAY_MS); return
+				zo_callLater(ContinueScan, SCAN_DELAY_MS); return
 			end
 		end
 	end
@@ -1591,13 +1610,16 @@ local function ProcessScanSlice()
 	SPT_FinalizeScan()
 end
 
-local function SPT_StartScan()
-	if scan.running then return end
+SPT_StartScan = function()
+	if scan.running or not SPT.active then return end
 	SPT.ptsData = SPT_SimpleResetTable(SPT.ptsData, 0)
 	scan.running = true
 	scan.phase   = 1
 	scan.index   = 0
-	zo_callLater(ProcessScanSlice, 0)
+	scan.rescan  = false
+	scan.generation = scan.generation + 1
+	local generation = scan.generation
+	zo_callLater(function() ProcessScanSlice(generation) end, 0)
 end
 
 function SPT:RefreshSkillPoints()
@@ -1606,6 +1628,7 @@ end
 
 local function SPT_MarkDirty()
 	scan.dirty = true
+	if scan.running then scan.rescan = true; return end
 	if SPT.active and currentTab <= 4 then
 		SPT_ShowTabBody(false)
 		SPT_StartScan()
@@ -2013,6 +2036,10 @@ function SPT:SetupValues()
 	SPT.scene:RegisterCallback("StateChange", function(_, newState)
 		if newState == SCENE_SHOWING then
 			SPT.active = true
+			SPT.Skills:SetActive(true)
+			for _, module in ipairs(progressionModules) do
+				if module.dirty ~= false then SPT:QueueProgressionSnapshot(module) end
+			end
 			SPT:FocusCurrentProgressionCharacter()
 			KEYBIND_STRIP:AddKeybindButtonGroup(SPT.keybindDescriptors)
 			if scan.dirty and currentTab <= 4 then
@@ -2024,6 +2051,7 @@ function SPT:SetupValues()
 			end
 		elseif newState == SCENE_HIDDEN then
 			SPT.active = false
+			SPT_CancelWindowWork()
 			SPT_DeactivateCurrentList()
 			SPT_ReleaseProgressionDisplay()
 			KEYBIND_STRIP:RemoveKeybindButtonGroup(SPT.keybindDescriptors)
@@ -2052,16 +2080,13 @@ local function SPT_Initialized(eventCode, addonName)
 	for _, module in ipairs(progressionModules) do module:Init() end
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Progression", EVENT_PLAYER_ACTIVATED, function()
 		SPT.progressionReady = true
-		for _, module in ipairs(progressionModules) do SPT:QueueProgressionSnapshot(module) end
+		-- A zone transition invalidates data without scheduling any native reads.
+		for _, module in ipairs(progressionModules) do module.dirty = true end
 	end)
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName .. "Progression", EVENT_PLAYER_DEACTIVATED, function()
-		-- Persist a last-frame learn/rank event before its deferred callback can be lost.
-		for _, module in ipairs(progressionModules) do
-			if module.needsFinalCapture then module:Capture() end
-			module.generation = (module.generation or 0) + 1
-			module.pending, module.capturing, module.rescan, module.needsFinalCapture = false, false, false, false
-		end
 		SPT.progressionReady = false
+		SPT_CancelWindowWork()
+		if SPT.active then SCENE_MANAGER:Hide("SPT_Scene") end
 	end)
 
 	EVENT_MANAGER:RegisterForEvent(SPT.AddonName, EVENT_SKILL_POINTS_CHANGED,  function() SPT_MarkDirty() end)

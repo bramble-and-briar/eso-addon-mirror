@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/sinnereso/SimpleDailyCraft-0.97-0.96-New-Alchemy-Regs__4945",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "sinnereso",
+  "canonical_id": "esoui:4945",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4945",
+  "deleted": false,
+  "directories": [
+    "SimpleDailyCraft"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4945/",
+  "fingerprint": "8f987355d52a8462e14be88b64601861945acaad783e00998294329e23ced631",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4945",
+  "source_url": "https://www.esoui.com/downloads/info4945-SimpleDailyCraft0.970.96NewAlchemyRegs.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "SimpleDailyCraft 0.97 (0.96 + New Alchemy Regs)",
+  "updated_at": 1791788279000,
+  "version": "0.97"
+}

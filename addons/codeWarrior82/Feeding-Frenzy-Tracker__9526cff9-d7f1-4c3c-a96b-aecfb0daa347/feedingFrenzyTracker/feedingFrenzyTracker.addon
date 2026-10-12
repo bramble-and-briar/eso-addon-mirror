@@ -1,7 +1,7 @@
 ## Title: Feeding Frenzy Tracker
 ## Author: CodeWarrior82
 ## Description: Tracks the Synergy Cooldown of Feeding Frenzy
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## OptionalDependsOn: LibNotify
 ## SavedVariables: feedAddonVars

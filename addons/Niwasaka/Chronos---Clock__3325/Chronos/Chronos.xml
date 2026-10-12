@@ -1,6 +1,6 @@
 <GuiXml>
     <Controls>
-        <TopLevelControl name="ChronosClock" mouseEnabled="true" movable="true" clampedToScreen="true">
+        <TopLevelControl name="ChronosClock" mouseEnabled="true" movable="true" clampedToScreen="true" hidden="true">
             <Dimensions x="128" y="64"/>
             <OnMoveStop>Chronos:SaveClockPosition()</OnMoveStop>
             <Controls>
@@ -14,7 +14,7 @@
                 </Label>
                 <Label name="$(parent)TimeZoneText" font="ZoFontWinT2" color="FFFFFF" wrapMode="TRUNCATE"
                        verticalAlignment="CENTER" horizontalAlignment="CENTER">
-                    <Anchor point="CENTER" relativeTo="$(parent)Text" relativePoint="BOTTOM" offsetX="0" offsetY="3"/>
+                    <Anchor point="TOP" relativeTo="$(parent)Text" relativePoint="BOTTOM" offsetX="0" offsetY="0"/>
                 </Label>
             </Controls>
         </TopLevelControl>

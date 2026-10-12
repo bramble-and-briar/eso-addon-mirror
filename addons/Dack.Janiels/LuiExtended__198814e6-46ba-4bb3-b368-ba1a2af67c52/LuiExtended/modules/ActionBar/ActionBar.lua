@@ -109,7 +109,7 @@ end
 --- @param remain integer
 --- @return string
 local function FormatDurationSeconds(remain)
-    return string_format((ActionBar.SV.BarMillis and ((remain < ActionBar.SV.BarMillisThreshold * 1000) or ActionBar.SV.BarMillisAboveTen)) and "%.1f" or "%.1d", remain / 1000)
+    return string_format((ActionBar.SV.BarMillis and ((remain < ActionBar.SV.BarMillisThreshold * 1000) or ActionBar.SV.BarMillisAboveTen)) and "%.1f" or "%.1d", remain * 0.001)
 end
 
 --- Forward declarations (OnAbilityUsed is defined above these helpers).
@@ -146,6 +146,10 @@ local g_barCombatTrack = {}                -- Track ids registered via BarHighli
 local g_barCombatStackMax = {}             -- Max stacks (Effects.BarHighlightStack) for combatTrack highlights
 --- @type {[integer]:integer}
 local g_barConsumeStackOnCast = {}         -- Bound id -> track id (Effects.BarHighlightStackConsume)
+--- @type {[integer]:integer}
+local g_barConsumeStackOnDamage = {}       -- Damage ability id -> charge track id (Effects.BarHighlightStackConsumeOnDamage)
+--- @type {[integer]:boolean}
+local g_barStackResetOnGainDuration = {}   -- Charge track ids that restart at max stacks on EFFECT_GAINED_DURATION
 --- @type {[integer]:integer}
 local g_barStackSpendAllOnCast = {}        -- Slotted id -> track id (Effects.BarHighlightStackSpendAllOnCast)
 --- @type {[integer]: "keep"|"clear"}
@@ -629,9 +633,10 @@ local function GetActionButtonCooldownInfo(button)
 
     local remain, duration, global, globalSlotType = GetSlotCooldownInfo(physicalSlot, hotbarCategory)
 
-    if ActionBar.SV.GlobalShowGCD and isLuiBackbarSlot then
+    -- Active-bar GCD replaces an empty or global backbar cooldown. A real backbar cooldown keeps its own timer.
+    if ActionBar.SV.GlobalShowGCD and isLuiBackbarSlot and (duration == 0 or global) then
         local remainActive, durationActive, globalActive, globalSlotTypeActive = GetSlotCooldownInfo(physicalSlot, g_hotbarCategory)
-        if durationActive > 0 and globalActive and (duration == 0 or global) then
+        if durationActive > 0 and globalActive then
             remain, duration, global, globalSlotType = remainActive, durationActive, globalActive, globalSlotTypeActive
         end
     end
@@ -655,29 +660,71 @@ function ActionBar.UpdateActivationHighlightForButton(button)
 end
 
 -- -----------------------------------------------------------------------------
+-- Named handler matches vanilla "CooldownUpdate" on both platforms. Keyboard radial runs from StartCooldown.
+local vanillaActionButtonApplyStyle = ActionButton.ApplyStyle
+local COOLDOWN_UPDATE_HANDLER_NAME = "CooldownUpdate"
+
+--- @param slotControl Control
+local function OnActionButtonCooldownUpdate(slotControl)
+    local actionButton = slotControl.luiActionButton
+    if actionButton then
+        actionButton:RefreshCooldown()
+    end
+end
+
+--- Install or clear the named per-frame handler while a cooldown is showing.
+--- @param actionButton ActionButton
+local function SyncCooldownUpdateHandler(actionButton)
+    if not actionButton or not actionButton.slot then
+        return
+    end
+    local slotControl = actionButton.slot
+    if actionButton.showingCooldown then
+        slotControl.luiActionButton = actionButton
+        slotControl:SetHandler("OnUpdate", OnActionButtonCooldownUpdate, COOLDOWN_UPDATE_HANDLER_NAME)
+    else
+        slotControl:SetHandler("OnUpdate", nil, COOLDOWN_UPDATE_HANDLER_NAME)
+    end
+end
+
+-- -----------------------------------------------------------------------------
 -- Hook to update GCD support
 --- Hooks ActionButton UpdateUsable/UpdateCooldown for global GCD display.
 function ActionBar.HookGCD()
+    ActionBar.SyncCooldownUpdateHandler = SyncCooldownUpdateHandler
+
     ---
     --- @param self ActionButton
+    --- @param template string
     --- @diagnostic disable-next-line: duplicate-set-field
-    function ActionButton:RefreshCooldown()
-        local physicalSlot, hotbarCategory, remain, duration = GetActionButtonCooldownInfo(self)
-        local percentComplete = duration > 0 and (1 - remain / duration) or 1
-
-        if IsInGamepadPreferredMode() then
-            self:SetCooldownPercentComplete(percentComplete)
-            self:UpdateUsable()
-        end
-
-        self.icon.percentComplete = percentComplete
+    function ActionButton:ApplyStyle(template)
+        vanillaActionButtonApplyStyle(self, template)
+        SyncCooldownUpdateHandler(self)
     end
 
     ---
     --- @param self ActionButton
     --- @diagnostic disable-next-line: duplicate-set-field
-    function ActionButton:UpdateUsable()
-        local slotnum, hotbarCategory, _, duration = GetActionButtonCooldownInfo(self)
+    function ActionButton:RefreshCooldown()
+        local slotnum, hotbarCategory, remain, duration = GetActionButtonCooldownInfo(self)
+        local percentComplete = duration > 0 and (1 - remain / duration) or 1
+
+        self:SetCooldownPercentComplete(percentComplete)
+        self.icon.percentComplete = percentComplete
+        self:UpdateUsable(slotnum, hotbarCategory, duration)
+    end
+
+    ---
+    --- @param self ActionButton
+    --- @param slotnum integer|nil Resolved physical slot. When nil, cooldown info is resolved here.
+    --- @param hotbarCategory HotBarCategory|nil
+    --- @param cooldownDuration integer|nil
+    --- @diagnostic disable-next-line: duplicate-set-field
+    function ActionButton:UpdateUsable(slotnum, hotbarCategory, cooldownDuration)
+        local duration = cooldownDuration
+        if slotnum == nil then
+            slotnum, hotbarCategory, _, duration = GetActionButtonCooldownInfo(self)
+        end
         local isGamepad = IsInGamepadPreferredMode()
         local isShowingCooldown = self.showingCooldown
         local isKeyboardUltimateSlot = not isGamepad and self.slot.slotNum == ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
@@ -716,6 +763,8 @@ function ActionBar.HookGCD()
         self.cooldown:SetHidden(not showCooldown)
 
         if showCooldown then
+            local percentComplete = duration > 0 and (1 - remain / duration) or 1
+            self.icon.percentComplete = percentComplete
             -- For items with a long CD we need to be sure not to hide the countdown radial timer, so if the duration is the 1 sec GCD, then we don't turn off the cooldown animation.
             if not IsSlotItemConsumable(slotnum, hotbarCategory) or duration > 1000 or ActionBar.SV.GlobalPotion then
                 self.cooldown:StartCooldown(remain, duration, CooldownMethod[ActionBar.SV.GlobalMethod], nil, NO_LEADING_EDGE)
@@ -733,9 +782,6 @@ function ActionBar.HookGCD()
                     self.cooldown:SetHidden(false)
                 end
 
-                self.slot:SetHandler("OnUpdate", function ()
-                    self:RefreshCooldown()
-                end)
                 if updateChromaQuickslot then
                     ZO_RZCHROMA_EFFECTS:RemoveKeybindActionEffect("ACTION_BUTTON_9")
                 end
@@ -765,7 +811,6 @@ function ActionBar.HookGCD()
                 end
             end
             self.icon.percentComplete = 1
-            self.slot:SetHandler("OnUpdate", nil)
             self.cooldown:ResetCooldown()
         end
 
@@ -794,6 +839,7 @@ function ActionBar.HookGCD()
 
         self.isGlobalCooldown = global
         self:UpdateUsable()
+        SyncCooldownUpdateHandler(self)
     end
 
     Backbar.OnActionUpdateCooldowns()
@@ -901,6 +947,8 @@ function ActionBar.UpdateBarHighlightTables()
     g_barCombatTrack = {}
     g_barCombatStackMax = {}
     g_barConsumeStackOnCast = {}
+    g_barConsumeStackOnDamage = {}
+    g_barStackResetOnGainDuration = {}
     g_barCombatStackZeroEffect = {}
     g_barCombatEventRemap = {}
     g_barCombatTrackRemainOnSlotted = {}
@@ -979,6 +1027,12 @@ function ActionBar.UpdateBarHighlightTables()
         end
         for slottedAbilityId, combatTrackAbilityId in pairs(Effects.BarHighlightStackConsume) do
             g_barConsumeStackOnCast[slottedAbilityId] = combatTrackAbilityId
+        end
+        if Effects.BarHighlightStackConsumeOnDamage then
+            for damageAbilityId, trackAbilityId in pairs(Effects.BarHighlightStackConsumeOnDamage) do
+                g_barConsumeStackOnDamage[damageAbilityId] = trackAbilityId
+                g_barStackResetOnGainDuration[trackAbilityId] = true
+            end
         end
         g_barStackSpendAllOnCast = {}
         local spendAllTracks = {}
@@ -1467,7 +1521,7 @@ function ActionBar.OnUpdate(currentTimeMS)
                 text = zo_floor(remain / 60000) .. "m"
             elseif remain > 60000 then
                 local minutesPart = zo_floor(remain / 60000)
-                local secondsPart = remain / 1000 - 60 * minutesPart
+                local secondsPart = remain * 0.001 - 60 * minutesPart
                 text = minutesPart .. ":" .. string_format("%.2d", secondsPart)
             else
                 text = string_format(ActionBar.SV.PotionTimerMillis and "%.1f" or "%.1d", 0.001 * remain)
@@ -1920,7 +1974,7 @@ function ActionBar.BarHighlightSwap(abilityId)
     if duration > 0 then
         local fakeDuration = GetUpdatedAbilityDuration(duration) - GetUpdatedAbilityDuration(durationMod)
         local timeStarted = GetGameTimeSeconds()
-        local timeEnding = timeStarted + (fakeDuration / 1000)
+        local timeEnding = timeStarted + (fakeDuration * 0.001)
         ActionBar.OnEffectChanged(EFFECT_RESULT_GAINED, nil, nil, unitTag, timeStarted, timeEnding, 0, nil, nil, 1, ABILITY_TYPE_BONUS, 0, nil, nil, abilityId, 1, true, nil)
         return
     end
@@ -2901,6 +2955,14 @@ function ActionBar.OnCombatEventBar(result, isError, abilityName, abilityGraphic
     local combatAbilityId = abilityId
     local barAbilityId = g_barCombatEventRemap[abilityId] or abilityId
 
+    if not isError and sourceType == COMBAT_UNIT_TYPE_PLAYER
+    and (result == ACTION_RESULT_DAMAGE or result == ACTION_RESULT_CRITICAL_DAMAGE) then
+        local chargeTrackAbilityId = g_barConsumeStackOnDamage[abilityId]
+        if chargeTrackAbilityId then
+            DecrementBarHighlightCombatStack(chargeTrackAbilityId)
+        end
+    end
+
     if sourceType == COMBAT_UNIT_TYPE_PLAYER and targetType == COMBAT_UNIT_TYPE_PLAYER then
         g_toggledSlotsPlayer[barAbilityId] = true
     end
@@ -2961,7 +3023,8 @@ function ActionBar.OnCombatEventBar(result, isError, abilityName, abilityGraphic
                         local durationStacks = buffOnlyTrack and ResolveBarHighlightStacks(barAbilityId, "player", nil)
                         if not buffOnlyTrack or (durationStacks and durationStacks > 0) then
                             g_toggledSlotsRemain[barAbilityId] = currentTimeMS + hitValue
-                            if not g_toggledSlotsStack[barAbilityId] then
+                            local resetStacksOnGainDuration = g_barStackResetOnGainDuration[barAbilityId]
+                            if resetStacksOnGainDuration or not g_toggledSlotsStack[barAbilityId] then
                                 if buffOnlyTrack then
                                     g_toggledSlotsStack[barAbilityId] = durationStacks
                                 else

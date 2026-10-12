@@ -27,6 +27,12 @@ local A, S = PBS_HUD_MANAGER, PBS_HUD_MANAGER_STRINGS
 
 local TICK_MS = 1000
 local SCENE_SETTLE_MS = 150
+-- How long after the HUD is back the other add-ons' windows are looked at, and how often at most.
+local SCAN_SETTLE_MS = 500
+local SCAN_INTERVAL_MS = 30000
+local SCAN_AFTER_LOGIN_MS = 4000
+A.maxParts = 20
+local MAX_LISTED = 60
 
 local function add(list, control)
     if control == nil then return end
@@ -34,6 +40,33 @@ local function add(list, control)
         if known == control then return end
     end
     list[#list + 1] = control
+end
+
+-- The chat systems there are: the gamepad one, and whichever CHAT_SYSTEM is (the same object on
+-- console).
+function A:ChatSystems()
+    local list = {}
+    if type(GAMEPAD_CHAT_SYSTEM) == "table" then add(list, GAMEPAD_CHAT_SYSTEM) end
+    if type(CHAT_SYSTEM) == "table" then add(list, CHAT_SYSTEM) end
+    return list
+end
+
+-- A text entry that says it is open and does not have the focus is the stuck state the game's
+-- own source describes. The game closes it with CloseTextEntry, as it does when the chat mode
+-- changes, and so does this, once, when the chat is let go of. Left alone when the on-screen
+-- keyboard is up, where the edit box need not report a focus of its own.
+function A:ResyncChat()
+    if type(IsVirtualKeyboardOnScreen) == "function" and IsVirtualKeyboardOnScreen() then return end
+    for _, system in ipairs(self:ChatSystems()) do
+        local entry = system.textEntry
+        if type(entry) == "table" and entry.open == true and type(system.CloseTextEntry) == "function"
+            and type(entry.GetEditControl) == "function" then
+            local ok, edit = pcall(entry.GetEditControl, entry)
+            if ok and edit and type(edit.HasFocus) == "function" and not edit:HasFocus() then
+                pcall(system.CloseTextEntry, system, true)
+            end
+        end
+    end
 end
 
 -- Each target is one option, and the controls it hides, looked up when they are needed: some of
@@ -50,9 +83,36 @@ A.combatTargets = {
         return list
     end },
     { key = "chat", controls = function()
+        -- The parts of the chat that can be seen -- the messages, the background, the new-message
+        -- mark -- and NOT the chat's own top-level control, nor its text entry.
+        --
+        -- The game's chat says in its own source that a text entry started while the chat window
+        -- is hidden cannot take focus and is left stuck open, after which it will not open again
+        -- until something closes it. Hiding the whole chat for a fight does exactly that to a
+        -- player who presses the chat button in it, and the fight's end does not undo it. It also
+        -- stops the chat's own timer, which runs on that control's OnUpdate. With the top-level
+        -- control left alone both go on working, and the text entry, which fades in only when it
+        -- is used, is left to the game.
         local list = {}
-        if type(GAMEPAD_CHAT_SYSTEM) == "table" then add(list, GAMEPAD_CHAT_SYSTEM.control) end
-        if type(CHAT_SYSTEM) == "table" then add(list, CHAT_SYSTEM.control) end
+        for _, system in ipairs(A:ChatSystems()) do
+            local before = #list
+            if type(system.containers) == "table" then
+                for _, container in ipairs(system.containers) do
+                    if type(container) == "table" then add(list, container.windowContainer) end
+                end
+            end
+            if #list == before and type(system.primaryContainer) == "table" then
+                add(list, system.primaryContainer.windowContainer)
+            end
+            local control = system.control
+            if control and type(control.GetNamedChild) == "function" then
+                local ok, background = pcall(control.GetNamedChild, control, "Bg")
+                if ok then add(list, background) end
+            end
+            add(list, system.chatBubble)
+            -- A chat that shows none of those: better the whole control than nothing.
+            if #list == before then add(list, control) end
+        end
         return list
     end },
     { key = "minimap", minimap = true },
@@ -86,6 +146,12 @@ A.combatTargets = {
         add(list, rawget(_G, "ZO_Compass"))
         local frame = rawget(_G, "COMPASS_FRAME")
         if type(frame) == "table" then add(list, frame.control) end
+        return list
+    end },
+    { key = "extra", controls = function()
+        -- The parts of other add-ons that the player chose from the list, by name.
+        local list = {}
+        for _, name in ipairs(A.sv.hudParts) do add(list, A:ControlByName(name)) end
         return list
     end },
 }
@@ -171,16 +237,37 @@ end
 -- minimap's add-on putting its map back when the full map is closed.
 function A:ApplyCombat()
     local active = self:CombatActive()
+    -- A control can belong to more than one target (a part the player chose that is also the clock's):
+    -- it is hidden if any of them says so, decided once, so two targets never take it back and forth.
+    local order, wanted, known = {}, {}, {}
     for _, target in ipairs(self.combatTargets) do
         local on = active and self.sv.combat[target.key] == true
+        if target.key == "chat" then
+            local wasOn = self.chatHidden == true
+            self.chatHidden = on
+            if wasOn and not on then self.resyncChatAfter = true end
+        end
         if target.minimap then
             self:VetoMinimap(on)
         else
             for _, control in ipairs(target.controls()) do
-                -- Only guarded or fallback controls need telling when it goes off.
-                if on or control.pbsGuard or self.fallback[control] then self:VetoControl(control, on) end
+                if not known[control] then
+                    known[control] = true
+                    order[#order + 1] = control
+                end
+                if on then wanted[control] = true end
             end
         end
+    end
+    for _, control in ipairs(order) do
+        local on = wanted[control] == true
+        -- Only guarded or fallback controls need telling when it goes off.
+        if on or control.pbsGuard or self.fallback[control] then self:VetoControl(control, on) end
+    end
+    -- After the controls are back, so the text entry is looked at in the state the player sees.
+    if self.resyncChatAfter then
+        self.resyncChatAfter = false
+        self:ResyncChat()
     end
     if active and not self.combatTicking then
         self.combatTicking = true
@@ -212,11 +299,20 @@ function A:InitCombat()
     for _, scene in ipairs({ HUD_SCENE, HUD_UI_SCENE }) do
         if scene then
             scene:RegisterCallback("StateChange", function(_, newState)
-                if newState == SCENE_SHOWN and self:CombatActive() then
+                if newState ~= SCENE_SHOWN then return end
+                if self:CombatActive() then
                     if zo_callLater then
                         zo_callLater(function() self:ApplyCombat() end, SCENE_SETTLE_MS)
                     else
                         self:ApplyCombat()
+                    end
+                end
+                -- The HUD itself, not the HUD with the cursor up.
+                if scene == HUD_SCENE and self:ScanWanted() then
+                    if zo_callLater then
+                        zo_callLater(function() self:OnHudShown() end, SCAN_SETTLE_MS)
+                    else
+                        self:OnHudShown()
                     end
                 end
             end)
@@ -245,15 +341,28 @@ function A:CombatLines()
     return lines
 end
 
--- /pbhud combat [on | off | <target> on | off]
-function A:CombatCommand(rest)
+-- /pbhud combat [on | off | <target> on | off | add <name> | remove <name> | parts | scan]
+-- `typed` is what was typed after the command's first word, in its own case: control names are
+-- case-sensitive. Returns whether it understood, and the lines to print if not the status.
+function A:CombatCommand(rest, typed)
     local first, second = rest:match("^(%S*)%s*(%S*)")
     local function flag(word)
         if word == "on" then return true end
         if word == "off" then return false end
         return nil
     end
-    if first == "" then
+    if first == "add" or first == "remove" then
+        local name = (typed or ""):match("^%S+%s+(.-)%s*$") or ""
+        if name == "" then return false end
+        if first == "add" then self:AddPart(name) else self:RemovePart(name) end
+        return true, { self.message }
+    elseif first == "parts" then
+        return true, self:PartsLines()
+    elseif first == "scan" then
+        -- From the chat, the HUD is what is on screen, so this sees what a scan should see.
+        local found = self:ScanNow()
+        return true, { self:Format(S.partsScanned, { found = found, count = #self:CandidateNames() }) }
+    elseif first == "" then
         -- just the status
     elseif flag(first) ~= nil then
         self:SetCombatOption("enabled", flag(first))
@@ -266,4 +375,236 @@ function A:CombatCommand(rest)
         self:SetCombatOption(first, flag(second))
     end
     return true
+end
+
+-- ---------------------------------------------------------------------------------------
+-- The parts of other add-ons, chosen from a list
+--
+-- Other add-ons cannot be told what to hide, so their parts are found on the screen and the
+-- player picks the ones to hide. Three limits shape it, and none can be got round from here:
+--
+--   * A part is found by its name, among the windows that sit directly on the screen (GuiRoot's
+--     children). One that another part holds -- FancyActionBar+ draws on the game's action bar --
+--     is not found, and hiding what holds it would hide the game's own bar with it.
+--   * Nothing says which add-on a part belongs to; the name is all there is. Parts without a
+--     name, or with one made up each time, cannot be chosen: there is nothing to keep.
+--   * The settings panel is a menu, and a menu hides the HUD. So the screen is looked at while
+--     the HUD is up -- once after the login, and again when it comes back, at most every half
+--     minute -- and the panel offers what was seen. What a scan sees is only what was showing.
+--
+-- The game's own parts (ZO_...) are never offered and never accepted: the ones worth hiding are
+-- the targets above, and the rest are not for an add-on to take away.
+-- ---------------------------------------------------------------------------------------
+
+A.partDraft = {}
+
+function A:IsGamePart(name)
+    return name:sub(1, 3) == "ZO_" or name == self.name
+end
+
+-- A name that can be kept: text, trimmed, and not absurdly long. nil otherwise.
+function A:ValidPartName(name)
+    if type(name) ~= "string" then return nil end
+    name = (name:gsub("^%s+", ""):gsub("%s+$", ""))
+    if name == "" or #name > 120 then return nil end
+    return name
+end
+
+-- Called when the saved settings are loaded: what came back from the file may be in any shape.
+function A:NormalizeParts()
+    local clean, known = {}, {}
+    if type(self.sv.hudParts) == "table" then
+        for _, name in ipairs(self.sv.hudParts) do
+            local valid = self:ValidPartName(name)
+            if valid and not self:IsGamePart(valid) and not known[valid] and #clean < self.maxParts then
+                known[valid] = true
+                clean[#clean + 1] = valid
+            end
+        end
+    end
+    self.sv.hudParts = clean
+end
+
+-- The control a name stands for, or nil. Anything that has a name is a global too, so the name
+-- alone finds it; GetControl is asked first because it is what the client means by it.
+function A:ControlByName(name)
+    local control
+    if type(GetControl) == "function" then
+        local ok, found = pcall(GetControl, name)
+        if ok then control = found end
+    end
+    if control == nil then control = rawget(_G, name) end
+    return control
+end
+
+-- Looks at what sits on the screen and remembers the names of the parts that are showing, other
+-- than the game's own. Remembered, not replaced: a part that was up a minute ago and is not now
+-- is still the same part. Returns how many were not known before.
+function A:ScanNow()
+    self.lastScan = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    self.scanRequested = false
+    self.hudSeen = self.hudSeen or {}
+    local found = 0
+    local ok = pcall(function()
+        for index = 1, GuiRoot:GetNumChildren() do
+            local child = GuiRoot:GetChild(index)
+            if child and type(child.GetName) == "function" and type(child.IsHidden) == "function" then
+                local name = child:GetName()
+                if type(name) == "string" and name ~= "" and not self:IsGamePart(name)
+                    and not self.hudSeen[name] and not child:IsHidden() then
+                    self.hudSeen[name] = true
+                    found = found + 1
+                end
+            end
+        end
+    end)
+    self.scanned = ok
+    return found
+end
+
+-- Whether now is a time to look: not in a fight (what the option hides would not be seen), and
+-- not more often than every half minute unless the player asked.
+function A:ScanWanted()
+    if self:CombatActive() then return false end
+    if self.scanRequested or not self.lastScan then return true end
+    local now = GetGameTimeMilliseconds and GetGameTimeMilliseconds() or 0
+    return now - self.lastScan >= SCAN_INTERVAL_MS
+end
+
+function A:OnHudShown()
+    if self:ScanWanted() then self:ScanNow() end
+end
+
+-- Once everything has loaded and the HUD is up.
+function A:ScheduleLoginScan()
+    if not zo_callLater then return end
+    zo_callLater(function()
+        self.scanRequested = true
+        self:OnHudShown()
+    end, SCAN_AFTER_LOGIN_MS)
+end
+
+-- What has been seen and not chosen, in order.
+function A:CandidateNames()
+    local chosen, names = {}, {}
+    for _, name in ipairs(self.sv.hudParts) do chosen[name] = true end
+    for name in pairs(self.hudSeen or {}) do
+        if not chosen[name] then names[#names + 1] = name end
+    end
+    table.sort(names)
+    return names
+end
+
+-- The rows of the two lists in the panel. Never empty: the library picks a row by its name, so an
+-- empty list gets a placeholder that stands for nothing.
+function A:CandidateItems()
+    local items = {}
+    for index, name in ipairs(self:CandidateNames()) do
+        if index > MAX_LISTED then break end
+        items[#items + 1] = { name = name, data = name }
+    end
+    if #items == 0 then items[1] = { name = S.partsNone, data = nil } end
+    return items
+end
+
+function A:ChosenItems()
+    local items = {}
+    for _, name in ipairs(self.sv.hudParts) do items[#items + 1] = { name = name, data = name } end
+    if #items == 0 then items[1] = { name = S.partsNoneChosen, data = nil } end
+    return items
+end
+
+-- The row a dropdown shows: the one picked, or the first, which is what it shows until a pick.
+function A:SelectedItem(items, picked)
+    for _, item in ipairs(items) do
+        if item.data ~= nil and item.data == picked then return item end
+    end
+    return items[1]
+end
+
+function A:AddPart(name)
+    local clean = self:ValidPartName(name)
+    if not clean then
+        self:Say(S.partsNothingSelected)
+        return false
+    end
+    if self:IsGamePart(clean) then
+        self:Say(self:Format(S.partsRefused, { name = clean }))
+        return false
+    end
+    for _, known in ipairs(self.sv.hudParts) do
+        if known == clean then
+            self:Say(self:Format(S.partsAlready, { name = clean }))
+            return false
+        end
+    end
+    if #self.sv.hudParts >= self.maxParts then
+        self:Say(self:Format(S.partsFull, { max = self.maxParts }))
+        return false
+    end
+    self.sv.hudParts[#self.sv.hudParts + 1] = clean
+    self.partDraft.candidate = nil
+    self:ApplyCombat()
+    local there = self:ControlByName(clean) ~= nil
+    self:Say(self:Format(there and S.partsAdded or S.partsAddedMissing, { name = clean }))
+    return true
+end
+
+function A:RemovePart(name)
+    local clean = self:ValidPartName(name)
+    local list = self.sv.hudParts
+    local at
+    for index, known in ipairs(list) do
+        if known == clean then at = index end
+    end
+    if not at then
+        self:Say(clean and self:Format(S.partsNotChosen, { name = clean }) or S.partsNothingSelected)
+        return false
+    end
+    table.remove(list, at)
+    self.partDraft.chosen = nil
+    -- No longer in any list, so the tick would not find it: let it go here, in the middle of a fight
+    -- too, and then let the targets that still want it have it again.
+    local control = self:ControlByName(clean)
+    if control and type(control.IsHidden) == "function" and (control.pbsGuard or self.fallback[control]) then
+        self:VetoControl(control, false)
+    end
+    self:ApplyCombat()
+    self:Say(self:Format(S.partsRemoved, { name = clean }))
+    return true
+end
+
+-- The buttons of the panel.
+function A:PressAddPart()
+    local item = self:SelectedItem(self:CandidateItems(), self.partDraft.candidate)
+    return self:AddPart(item and item.data)
+end
+
+function A:PressRemovePart()
+    local item = self:SelectedItem(self:ChosenItems(), self.partDraft.chosen)
+    return self:RemovePart(item and item.data)
+end
+
+function A:PressRescan()
+    self.scanRequested = true
+    self:Say(S.partsRescanQueued)
+end
+
+function A:PartsStatus()
+    if not self.scanned then return S.partsNotScanned end
+    return self:Format(S.partsStatus, { found = #self:CandidateNames(), chosen = #self.sv.hudParts })
+end
+
+function A:PartsLines()
+    local function join(list) return #list > 0 and table.concat(list, ", ") or "-" end
+    local chosen, found = {}, {}
+    for _, name in ipairs(self.sv.hudParts) do chosen[#chosen + 1] = name end
+    for index, name in ipairs(self:CandidateNames()) do
+        if index > MAX_LISTED then break end
+        found[#found + 1] = name
+    end
+    return {
+        self:Format(S.partsListChosen, { list = join(chosen) }),
+        self:Format(S.partsListFound, { list = join(found) }),
+    }
 end

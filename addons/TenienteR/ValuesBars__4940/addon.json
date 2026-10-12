@@ -18,7 +18,7 @@
     "ValuesBars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4940/",
-  "fingerprint": "1150e1cb46d4febbb7509fc6063dfb246713a87407a9c48a5548390527c6b9fc",
+  "fingerprint": "b7b5191c8053a4f46f09e42fb1abd428d566f3e3759db4e1919a073becce1446",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17907.png",
     "https://cdn-eso.mmoui.com/preview/pvw17908.png",
@@ -37,11 +37,11 @@
   "source_id": "4940",
   "source_url": "https://www.esoui.com/downloads/info4940-ValuesBars.html",
   "stats": {
-    "downloads": 5,
+    "downloads": 23,
     "favorites": 0,
-    "monthly_downloads": 0
+    "monthly_downloads": 13
   },
   "title": "ValuesBars",
-  "updated_at": 1791680172000,
-  "version": "1.0.0"
+  "updated_at": 1791744959000,
+  "version": "1.0.1"
 }

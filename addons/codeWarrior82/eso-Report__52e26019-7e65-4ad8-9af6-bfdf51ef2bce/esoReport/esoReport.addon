@@ -1,7 +1,7 @@
 ## Title: ESO Report
 ## Author: CodeWarrior82
 ## Description: A basic addon that just reports combat events.
-## APIVersion: 101050
+## APIVersion: 101051
 ## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## SavedVariables: esoRepAddonVars
 

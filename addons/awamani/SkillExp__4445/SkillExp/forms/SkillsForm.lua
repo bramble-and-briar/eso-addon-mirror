@@ -87,6 +87,9 @@ local SL_ROW_HEIGHT = 22
 local SL_ROW_GAP = -2
 local MAX_SKILL_LINES = 12
 
+local PIN_TEXTURE = "EsoUI/Art/Buttons/Gamepad/gp_trackingPin.dds"
+local PIN_SIZE = 18
+
 local RANK_NUMERAL = {
     [0] = "",
     "I",
@@ -232,11 +235,70 @@ local function GetSkillLineInfo(skillType, skillLineIndex)
         rank = rank,
         progress = progress,
         isMaxed = isMaxed,
+        isActive = isActive,
         isNonLevelable = isNonLevelable,
         tooltip = tooltipText,
         currentXP = currentXP,
+        skillLineId = skillLineId,
+        isPinned = SkillExp.config.pinnedSkillLines[skillLineId] == true,
         key = skillType .. "_" .. skillLineIndex
      }
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Pinned skill lines (saved per character, removed once the line is maxed)
+-- ─────────────────────────────────────────────────────────────────────────────
+function SkillExp_IsSkillLinePinned(skillLineId)
+    return SkillExp.config.pinnedSkillLines[skillLineId] == true
+end
+
+-- Only discovered, active, non-maxed skill lines can be pinned
+function SkillExp_CanPinSkillLine(skillLineId)
+    local skillType, skillLineIndex = GetSkillLineIndicesFromSkillLineId(skillLineId)
+    if not skillType then
+        return false
+    end
+    local info = GetSkillLineInfo(skillType, skillLineIndex)
+    return info ~= nil and not info.isNonLevelable
+end
+
+function SkillExp_ToggleSkillLinePin(skillLineId)
+    local pinned = SkillExp.config.pinnedSkillLines
+    if pinned[skillLineId] then
+        pinned[skillLineId] = nil
+    elseif SkillExp_CanPinSkillLine(skillLineId) then
+        pinned[skillLineId] = true
+    else
+        return
+    end
+    CALLBACK_MANAGER:FireCallbacks("OnSkillExpPinsChanged")
+end
+
+-- Returns true if the pin was removed
+local function UnpinIfMaxed(skillType, skillLineIndex)
+    local skillLineId = GetSkillLineId(skillType, skillLineIndex)
+    if not SkillExp_IsSkillLinePinned(skillLineId) then
+        return false
+    end
+    local info = GetSkillLineInfo(skillType, skillLineIndex)
+    if info and info.isActive and info.isMaxed then
+        SkillExp.config.pinnedSkillLines[skillLineId] = nil
+        return true
+    end
+    return false
+end
+
+local function PruneMaxedPins()
+    local removed = false
+    for skillLineId in pairs(SkillExp.config.pinnedSkillLines) do
+        local skillType, skillLineIndex = GetSkillLineIndicesFromSkillLineId(skillLineId)
+        if skillType and UnpinIfMaxed(skillType, skillLineIndex) then
+            removed = true
+        end
+    end
+    if removed then
+        CALLBACK_MANAGER:FireCallbacks("OnSkillExpPinsChanged")
+    end
 end
 
 local function CollectUniqueSkillLines()
@@ -267,6 +329,21 @@ local function CollectUniqueSkillLines()
     processSlots(HOTBAR_CATEGORY_PRIMARY)
     processSlots(HOTBAR_CATEGORY_BACKUP)
 
+    -- Include pinned skill lines
+    for skillLineId in pairs(SkillExp.config.pinnedSkillLines) do
+        local skillType, skillLineIndex = GetSkillLineIndicesFromSkillLineId(skillLineId)
+        if skillType then
+            local key = skillType .. "_" .. skillLineIndex
+            if not seen[key] then
+                seen[key] = true
+                local info = GetSkillLineInfo(skillType, skillLineIndex)
+                if info and not (SkillExp.config.hideNonLevelable and info.isNonLevelable) then
+                    table.insert(lines, info)
+                end
+            end
+        end
+    end
+
     -- Include skill lines that received XP this session
     if SkillExp.config.trackSkillLineXP then
         for key, entry in pairs(trackedSkillLines) do
@@ -282,8 +359,12 @@ local function CollectUniqueSkillLines()
         trackedSkillLines = {}
     end
 
+    -- Pinned lines first so they are never cut off by MAX_SKILL_LINES
     table.sort(
         lines, function(a, b)
+            if a.isPinned ~= b.isPinned then
+                return a.isPinned
+            end
             return a.name < b.name
         end)
     return lines
@@ -422,6 +503,14 @@ local function CreateSkillLineRow(name, parent, index)
         "OnMouseExit", function()
             ZO_Tooltips_HideTextTooltip()
         end)
+    -- Right-click toggles pin
+    row:SetHandler(
+        "OnMouseUp", function(self, button, upInside)
+            if upInside and button == MOUSE_BUTTON_INDEX_RIGHT and self.skillLineId then
+                ZO_Tooltips_HideTextTooltip()
+                SkillExp_ToggleSkillLinePin(self.skillLineId)
+            end
+        end)
 
     local flashLabel = WINDOW_MANAGER:CreateControl(name .. "Flash", row, CT_LABEL)
     flashLabel:SetFont("$(BOLD_FONT)|14|soft-shadow-thick")
@@ -430,6 +519,14 @@ local function CreateSkillLineRow(name, parent, index)
     flashLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     flashLabel:SetHidden(true)
 
+    -- Pin icon (inside bar, right edge)
+    local pinIcon = WINDOW_MANAGER:CreateControl(name .. "Pin", row, CT_TEXTURE)
+    pinIcon:SetTexture(PIN_TEXTURE)
+    pinIcon:SetDimensions(PIN_SIZE, PIN_SIZE)
+    pinIcon:SetAnchor(RIGHT, bar, RIGHT, -2, 0)
+    pinIcon:SetDrawLayer(DL_OVERLAY)
+    pinIcon:SetHidden(true)
+
     return {
         control = row,
         bar = bar,
@@ -437,6 +534,7 @@ local function CreateSkillLineRow(name, parent, index)
         rankLabel = rankLabel,
         pctLabel = pctLabel,
         flashLabel = flashLabel,
+        pinIcon = pinIcon,
         index = index,
         lastXP = nil,
         flashCallId = nil
@@ -588,6 +686,8 @@ local function ApplyLayout()
             if i <= visibleSkillLineCount then
                 local info = lines[i]
                 slRow.label:SetText(info.name)
+                slRow.label:SetDimensionConstraints(0, 0, BAR_WIDTH - 10 - (info.isPinned and PIN_SIZE or 0), SL_ROW_HEIGHT)
+                slRow.pinIcon:SetHidden(not info.isPinned)
                 slRow.rankLabel:SetText(tostring(info.rank))
                 if info.isMaxed then
                     slRow.bar:SetColor(unpack(COLOR_SKILL_LINE_MAX))
@@ -602,7 +702,14 @@ local function ApplyLayout()
                 else
                     slRow.pctLabel:SetText(math.floor(info.progress * 100) .. "%")
                 end
-                slRow.control.tooltipText = info.tooltip
+                if info.isPinned then
+                    slRow.control.tooltipText = info.tooltip .. "\n|c888888Right-click to unpin|r"
+                elseif not info.isNonLevelable then
+                    slRow.control.tooltipText = info.tooltip .. "\n|c888888Right-click to pin|r"
+                else
+                    slRow.control.tooltipText = info.tooltip
+                end
+                slRow.control.skillLineId = info.skillLineId
 
                 -- XP flash
                 if not info.isMaxed and info.currentXP and slRow.lastXP and slRow.lineKey == info.key and info.currentXP > slRow.lastXP then
@@ -630,6 +737,7 @@ local function ApplyLayout()
             else
                 slRow.lineKey = nil
                 slRow.lastXP = nil
+                slRow.control.skillLineId = nil
             end
         end
         y = y - SL_ROW_GAP
@@ -803,12 +911,27 @@ local function CreateSkillsForm()
 
     -- Settings changed → refresh visibility of percent labels
     CALLBACK_MANAGER:RegisterCallback("OnSkillExpSettingChanged", RefreshAll)
+    CALLBACK_MANAGER:RegisterCallback("OnSkillExpPinsChanged", RefreshAll)
+
+    -- Skill data is reliable only after activation; drop pins of lines that maxed meanwhile
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_PinPrune", EVENT_PLAYER_ACTIVATED, PruneMaxedPins)
+
+    local function OnSkillLineChanged(skillType, skillLineIndex)
+        if UnpinIfMaxed(skillType, skillLineIndex) then
+            CALLBACK_MANAGER:FireCallbacks("OnSkillExpPinsChanged")
+        else
+            RefreshAll()
+        end
+    end
 
     -- Core events (proven to work — registered FIRST)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_SlotUpdate", EVENT_ACTION_SLOT_UPDATED, RefreshAll)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_HotbarsUpdate", EVENT_ACTION_SLOTS_ALL_HOTBARS_UPDATED, RefreshAll)
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_WeaponSwap", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, ResetAndRefresh)
-    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_SkillRank", EVENT_SKILL_RANK_UPDATE, RefreshAll)
+    EVENT_MANAGER:RegisterForEvent(
+        ADDON_NAME .. "_SkillRank", EVENT_SKILL_RANK_UPDATE, function(eventCode, skillType, skillLineIndex)
+            OnSkillLineChanged(skillType, skillLineIndex)
+        end)
     EVENT_MANAGER:RegisterForEvent(
         ADDON_NAME .. "_SkillXP", EVENT_SKILL_XP_UPDATE, function(eventCode, skillType, skillLineIndex, reason, rank, previousXP, currentXP)
             if SkillExp.config.trackSkillLineXP then
@@ -818,7 +941,7 @@ local function CreateSkillsForm()
                     skillLineIndex = skillLineIndex
                  }
             end
-            RefreshAll()
+            OnSkillLineChanged(skillType, skillLineIndex)
         end)
 
     -- Ability progression XP update (rank I→IV per ability)

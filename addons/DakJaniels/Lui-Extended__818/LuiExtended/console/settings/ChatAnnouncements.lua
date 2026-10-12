@@ -5392,10 +5392,347 @@ function ChatAnnouncements.CreateConsoleSettings()
             end
         }
 
+    end)
+
+    -- Build Companion Announcements Section
+    buildSectionSettings("Companion", function (settings)
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_CONSOLE_SECTION_CA_COMPANION),
+        }
+
         settings[#settings + 1] =
         {
             type = LHAS.ST_LABEL,
             label = GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Companion.LevelUpCA
+            end,
+            setFunction = function (value)
+                Settings.Companion.LevelUpCA = value
+            end,
+            default = Defaults.Companion.LevelUpCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Companion.LevelUpCSA
+            end,
+            setFunction = function (value)
+                Settings.Companion.LevelUpCSA = value
+            end,
+            default = Defaults.Companion.LevelUpCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Companion.LevelUpAlert
+            end,
+            setFunction = function (value)
+                Settings.Companion.LevelUpAlert = value
+            end,
+            default = Defaults.Companion.LevelUpAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL_ICON),
+            tooltip = GetString(LUIE_STRING_LAM_CA_COMPANION_LEVEL_ICON_TP),
+            getFunction = function ()
+                return Settings.Companion.LevelUpIcon
+            end,
+            setFunction = function (value)
+                Settings.Companion.LevelUpIcon = value
+            end,
+            default = Defaults.Companion.LevelUpIcon,
+            disable = function ()
+                return not ((Settings.Companion.LevelUpCA or Settings.Companion.LevelUpCSA or Settings.Companion.LevelUpAlert) and LUIE.SV.ChatAnnouncements_Enable)
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Companion.RapportCA
+            end,
+            setFunction = function (value)
+                Settings.Companion.RapportCA = value
+            end,
+            default = Defaults.Companion.RapportCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Companion.RapportCSA
+            end,
+            setFunction = function (value)
+                Settings.Companion.RapportCSA = value
+            end,
+            default = Defaults.Companion.RapportCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_RAPPORT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Companion.RapportAlert
+            end,
+            setFunction = function (value)
+                Settings.Companion.RapportAlert = value
+            end,
+            default = Defaults.Companion.RapportAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_LINE), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_LINE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Companion.SkillLineCA
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillLineCA = value
+            end,
+            default = Defaults.Companion.SkillLineCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_LINE), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_LINE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Companion.SkillLineCSA
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillLineCSA = value
+            end,
+            default = Defaults.Companion.SkillLineCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_LINE), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_LINE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Companion.SkillLineAlert
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillLineAlert = value
+            end,
+            default = Defaults.Companion.SkillLineAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_UNLOCK), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_UNLOCK_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Companion.SkillUnlockCA
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillUnlockCA = value
+            end,
+            default = Defaults.Companion.SkillUnlockCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_UNLOCK), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_UNLOCK_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Companion.SkillUnlockCSA
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillUnlockCSA = value
+            end,
+            default = Defaults.Companion.SkillUnlockCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_UNLOCK), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_UNLOCK_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Companion.SkillUnlockAlert
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillUnlockAlert = value
+            end,
+            default = Defaults.Companion.SkillUnlockAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Companion.SkillXpCA
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillXpCA = value
+            end,
+            default = Defaults.Companion.SkillXpCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Companion.SkillXpAlert
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillXpAlert = value
+            end,
+            default = Defaults.Companion.SkillXpAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_ICON),
+            tooltip = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_ICON_TP),
+            getFunction = function ()
+                return Settings.Companion.SkillXpIcon
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillXpIcon = value
+            end,
+            default = Defaults.Companion.SkillXpIcon,
+            disable = function ()
+                return not (Settings.Companion.SkillXpCA and LUIE.SV.ChatAnnouncements_Enable)
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_PROGRESS),
+            tooltip = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_PROGRESS_TP),
+            getFunction = function ()
+                return Settings.Companion.SkillXpProgress
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillXpProgress = value
+            end,
+            default = Defaults.Companion.SkillXpProgress,
+            disable = function ()
+                return not ((Settings.Companion.SkillXpCA or Settings.Companion.SkillXpAlert) and LUIE.SV.ChatAnnouncements_Enable)
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_SLIDER,
+            label = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_FILTER),
+            tooltip = GetString(LUIE_STRING_LAM_CA_COMPANION_SKILL_XP_FILTER_TP),
+            min = 0,
+            max = 5000,
+            step = 50,
+            getFunction = function ()
+                return Settings.Companion.SkillXpFilter
+            end,
+            setFunction = function (value)
+                Settings.Companion.SkillXpFilter = value
+            end,
+            default = Defaults.Companion.SkillXpFilter,
+            disable = function ()
+                return not ((Settings.Companion.SkillXpCA or Settings.Companion.SkillXpAlert) and LUIE.SV.ChatAnnouncements_Enable)
+            end
         }
     end)
 
@@ -6868,6 +7205,159 @@ function ChatAnnouncements.CreateConsoleSettings()
                 Settings.Quests.QuestLocCompleteAlert = value
             end,
             default = Defaults.Quests.QuestLocCompleteAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ACCEPT), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ACCEPT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Quests.QuestAcceptCA
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestAcceptCA = value
+            end,
+            default = Defaults.Quests.QuestAcceptCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ACCEPT), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ACCEPT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Quests.QuestAcceptCSA
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestAcceptCSA = value
+            end,
+            default = Defaults.Quests.QuestAcceptCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ACCEPT), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ACCEPT_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Quests.QuestAcceptAlert
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestAcceptAlert = value
+            end,
+            default = Defaults.Quests.QuestAcceptAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_COMPLETE), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_COMPLETE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Quests.QuestCompleteCA
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestCompleteCA = value
+            end,
+            default = Defaults.Quests.QuestCompleteCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_COMPLETE), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_COMPLETE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Quests.QuestCompleteCSA
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestCompleteCSA = value
+            end,
+            default = Defaults.Quests.QuestCompleteCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_COMPLETE), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_COMPLETE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Quests.QuestCompleteAlert
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestCompleteAlert = value
+            end,
+            default = Defaults.Quests.QuestCompleteAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ABANDON), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ABANDON_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Quests.QuestAbandonCA
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestAbandonCA = value
+            end,
+            default = Defaults.Quests.QuestAbandonCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ABANDON), GetString(LUIE_STRING_LAM_CA_SHARED_CSA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ABANDON_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CSA)),
+            getFunction = function ()
+                return Settings.Quests.QuestAbandonCSA
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestAbandonCSA = value
+            end,
+            default = Defaults.Quests.QuestAbandonCSA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ABANDON), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_QUEST_ABANDON_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Quests.QuestAbandonAlert
+            end,
+            setFunction = function (value)
+                Settings.Quests.QuestAbandonAlert = value
+            end,
+            default = Defaults.Quests.QuestAbandonAlert,
             disable = function ()
                 return not LUIE.SV.ChatAnnouncements_Enable
             end
@@ -8853,6 +9343,10 @@ function ChatAnnouncements.CreateConsoleSettings()
             end
         }
 
+        AddDisplayAnnouncementCheckbox("ArenaDragonstar", LUIE_STRING_LAM_CA_DISPLAY_ARENA_DRAGONSTAR, LUIE_STRING_LAM_CA_DISPLAY_ARENA_DRAGONSTAR_TP, "CA")
+        AddDisplayAnnouncementCheckbox("ArenaDragonstar", LUIE_STRING_LAM_CA_DISPLAY_ARENA_DRAGONSTAR, LUIE_STRING_LAM_CA_DISPLAY_ARENA_DRAGONSTAR_TP, "CSA")
+        AddDisplayAnnouncementCheckbox("ArenaDragonstar", LUIE_STRING_LAM_CA_DISPLAY_ARENA_DRAGONSTAR, LUIE_STRING_LAM_CA_DISPLAY_ARENA_DRAGONSTAR_TP, "Alert")
+
         settings[#settings + 1] =
         {
             type = LHAS.ST_LABEL,
@@ -8960,6 +9454,64 @@ function ChatAnnouncements.CreateConsoleSettings()
                 return not LUIE.SV.ChatAnnouncements_Enable
             end
         }
+
+        local dungeonDisplaySections =
+        {
+            { svKey = "DungeonVateshranHollows",    label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_VATESHRAN_HOLLOWS,     tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_VATESHRAN_HOLLOWS_TP },
+            { svKey = "DungeonBlackDrakeVilla",     label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_BLACK_DRAKE_VILLA,    tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_BLACK_DRAKE_VILLA_TP },
+            { svKey = "DungeonCoralAerie",          label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_CORAL_AERIE,          tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_CORAL_AERIE_TP },
+            { svKey = "DungeonShipwrightsRegret",   label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_SHIPWRIGHTS_REGRET,   tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_SHIPWRIGHTS_REGRET_TP },
+            { svKey = "DungeonEarthenRootEnclave",  label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_EARTHEN_ROOT_ENCLAVE, tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_EARTHEN_ROOT_ENCLAVE_TP },
+            { svKey = "DungeonGravenDeep",          label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_GRAVEN_DEEP,          tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_GRAVEN_DEEP_TP },
+            { svKey = "DungeonBalSunnar",           label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_BAL_SUNNAR,           tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_BAL_SUNNAR_TP },
+            { svKey = "DungeonScrivenersHall",      label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_SCRIVENERS_HALL,      tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_SCRIVENERS_HALL_TP },
+            { svKey = "DungeonBedlamVeil",          label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_BEDLAM_VEIL,          tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_BEDLAM_VEIL_TP },
+            { svKey = "DungeonExiledRedoubt",       label = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_EXILED_REDOUBT,       tooltip = LUIE_STRING_LAM_CA_DISPLAY_DUNGEON_EXILED_REDOUBT_TP },
+        }
+        for sectionIndex, section in ipairs(dungeonDisplaySections) do
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "CA")
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "CSA")
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "Alert")
+        end
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_DISPLAY_HEADER_TRIAL)
+        }
+
+        local trialDisplaySections =
+        {
+            { svKey = "TrialHelRa",                label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_HEL_RA,                 tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_HEL_RA_TP },
+            { svKey = "TrialAetherianArchive",     label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_AETHERIAN_ARCHIVE,      tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_AETHERIAN_ARCHIVE_TP },
+            { svKey = "TrialSanctumOphidia",       label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_SANCTUM_OPHIDIA,        tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_SANCTUM_OPHIDIA_TP },
+            { svKey = "TrialMawOfLorkhaj",         label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_MAW_OF_LORKHAJ,         tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_MAW_OF_LORKHAJ_TP },
+            { svKey = "TrialHallsOfFabrication",   label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_HALLS_OF_FABRICATION,   tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_HALLS_OF_FABRICATION_TP },
+            { svKey = "TrialSunspire",             label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_SUNSPIRE,               tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_SUNSPIRE_TP },
+            { svKey = "TrialRockgrove",            label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_ROCKGROVE,              tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_ROCKGROVE_TP },
+            { svKey = "TrialDreadsailReef",        label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_DREADSAIL_REEF,         tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_DREADSAIL_REEF_TP },
+            { svKey = "TrialSanitysEdge",          label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_SANITYS_EDGE,           tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_SANITYS_EDGE_TP },
+            { svKey = "TrialOsseinCage",           label = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_OSSEIN_CAGE,            tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIAL_OSSEIN_CAGE_TP },
+        }
+        for sectionIndex, section in ipairs(trialDisplaySections) do
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "CA")
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "CSA")
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "Alert")
+        end
+
+        local catalogDisplaySections =
+        {
+            { svKey = "CharacterSystems",   label = LUIE_STRING_LAM_CA_DISPLAY_CHARACTER_SYSTEMS,   tooltip = LUIE_STRING_LAM_CA_DISPLAY_CHARACTER_SYSTEMS_TP },
+            { svKey = "TributeTutorial",    label = LUIE_STRING_LAM_CA_DISPLAY_TRIBUTE_TUTORIAL,    tooltip = LUIE_STRING_LAM_CA_DISPLAY_TRIBUTE_TUTORIAL_TP },
+            { svKey = "InstrumentDisplayed", label = LUIE_STRING_LAM_CA_DISPLAY_INSTRUMENT,         tooltip = LUIE_STRING_LAM_CA_DISPLAY_INSTRUMENT_TP },
+            { svKey = "IndrikEvent",        label = LUIE_STRING_LAM_CA_DISPLAY_INDRIK,              tooltip = LUIE_STRING_LAM_CA_DISPLAY_INDRIK_TP },
+            { svKey = "AntiquityDiscovery", label = LUIE_STRING_LAM_CA_DISPLAY_ANTIQUITY_DISCOVERY, tooltip = LUIE_STRING_LAM_CA_DISPLAY_ANTIQUITY_DISCOVERY_TP },
+        }
+        for sectionIndex, section in ipairs(catalogDisplaySections) do
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "CA")
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "CSA")
+            AddDisplayAnnouncementCheckbox(section.svKey, section.label, section.tooltip, "Alert")
+        end
     end)
 
     -- Build Miscellaneous Announcements Section
@@ -9402,6 +9954,166 @@ function ChatAnnouncements.CreateConsoleSettings()
         settings[#settings + 1] =
         {
             type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_HOME_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_HOME), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_HOME_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Notify.SlashHomeCA
+            end,
+            setFunction = function (value)
+                Settings.Notify.SlashHomeCA = value
+            end,
+            default = Defaults.Notify.SlashHomeCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_HOME), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_HOME_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Notify.SlashHomeAlert
+            end,
+            setFunction = function (value)
+                Settings.Notify.SlashHomeAlert = value
+            end,
+            default = Defaults.Notify.SlashHomeAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_CAMPAIGN_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_CAMPAIGN), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_CAMPAIGN_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Notify.SlashCampaignCA
+            end,
+            setFunction = function (value)
+                Settings.Notify.SlashCampaignCA = value
+            end,
+            default = Defaults.Notify.SlashCampaignCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_CAMPAIGN), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SLASH_CAMPAIGN_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Notify.SlashCampaignAlert
+            end,
+            setFunction = function (value)
+                Settings.Notify.SlashCampaignAlert = value
+            end,
+            default = Defaults.Notify.SlashCampaignAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_NOTIFY_CAMPAIGN_QUEUE_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_CAMPAIGN_QUEUE), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_CAMPAIGN_QUEUE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Notify.CampaignQueueCA
+            end,
+            setFunction = function (value)
+                Settings.Notify.CampaignQueueCA = value
+            end,
+            default = Defaults.Notify.CampaignQueueCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_CAMPAIGN_QUEUE), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_CAMPAIGN_QUEUE_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Notify.CampaignQueueAlert
+            end,
+            setFunction = function (value)
+                Settings.Notify.CampaignQueueAlert = value
+            end,
+            default = Defaults.Notify.CampaignQueueAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_NOTIFY_OUTFIT_EQUIP_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_OUTFIT_EQUIP), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_OUTFIT_EQUIP_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Notify.OutfitEquipCA
+            end,
+            setFunction = function (value)
+                Settings.Notify.OutfitEquipCA = value
+            end,
+            default = Defaults.Notify.OutfitEquipCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_OUTFIT_EQUIP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_OUTFIT_EQUIP_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Notify.OutfitEquipAlert
+            end,
+            setFunction = function (value)
+                Settings.Notify.OutfitEquipAlert = value
+            end,
+            default = Defaults.Notify.OutfitEquipAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
             label = GetString(LUIE_STRING_LAM_CA_NOTIFY_ARMORY_BUILD_HEADER)
         }
 
@@ -9475,6 +10187,12 @@ function ChatAnnouncements.CreateConsoleSettings()
 
         settings[#settings + 1] =
         {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_NOTIFY_CHALLENGE_DIFFICULTY_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
             type = LHAS.ST_CHECKBOX,
             label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_CHALLENGE_DIFFICULTY), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
             tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_CHALLENGE_DIFFICULTY_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
@@ -9502,6 +10220,46 @@ function ChatAnnouncements.CreateConsoleSettings()
                 Settings.Notify.ChallengeDifficultyAlert = value
             end,
             default = Defaults.Notify.ChallengeDifficultyAlert,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_LABEL,
+            label = GetString(LUIE_STRING_LAM_CA_NOTIFY_SOCIAL_ERROR_HEADER)
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SOCIAL_ERROR), GetString(LUIE_STRING_LAM_CA_SHARED_CA_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SOCIAL_ERROR_TP), GetString(LUIE_STRING_LAM_CA_SHARED_CA)),
+            getFunction = function ()
+                return Settings.Notify.SocialErrorCA
+            end,
+            setFunction = function (value)
+                Settings.Notify.SocialErrorCA = value
+            end,
+            default = Defaults.Notify.SocialErrorCA,
+            disable = function ()
+                return not LUIE.SV.ChatAnnouncements_Enable
+            end
+        }
+
+        settings[#settings + 1] =
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SOCIAL_ERROR), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT_SHORT)),
+            tooltip = zo_strformat(GetString(LUIE_STRING_LAM_CA_NOTIFY_SOCIAL_ERROR_TP), GetString(LUIE_STRING_LAM_CA_SHARED_ALERT)),
+            getFunction = function ()
+                return Settings.Notify.SocialErrorAlert
+            end,
+            setFunction = function (value)
+                Settings.Notify.SocialErrorAlert = value
+            end,
+            default = Defaults.Notify.SocialErrorAlert,
             disable = function ()
                 return not LUIE.SV.ChatAnnouncements_Enable
             end
@@ -9588,12 +10346,13 @@ function ChatAnnouncements.CreateConsoleSettings()
                 }
             end,
             getFunction = function ()
-                return Settings.Notify.TimedActivityProgressScope or Defaults.Notify.TimedActivityProgressScope
+                return SettingsAPI:LHASDropdownGetData(Settings.Notify.TimedActivityProgressScope or Defaults.Notify.TimedActivityProgressScope)
             end,
             setFunction = function (combobox, value, item)
                 Settings.Notify.TimedActivityProgressScope = item.data
             end,
-            default = Defaults.Notify.TimedActivityProgressScope,
+            -- Numeric scroll index. A string here is passed to ZO_HorizontalScrollList:SetSelectedIndex and multiplied.
+            default = 0,
             disable = function ()
                 return not LUIE.SV.ChatAnnouncements_Enable or not IsTimedActivitySystemAvailable()
             end
@@ -9613,12 +10372,13 @@ function ChatAnnouncements.CreateConsoleSettings()
                 }
             end,
             getFunction = function ()
-                return Settings.Notify.TimedActivityProgressFrequency or Defaults.Notify.TimedActivityProgressFrequency
+                return SettingsAPI:LHASDropdownGetData(Settings.Notify.TimedActivityProgressFrequency or Defaults.Notify.TimedActivityProgressFrequency)
             end,
             setFunction = function (combobox, value, item)
                 Settings.Notify.TimedActivityProgressFrequency = item.data
             end,
-            default = Defaults.Notify.TimedActivityProgressFrequency,
+            -- Numeric scroll index. A string here is passed to ZO_HorizontalScrollList:SetSelectedIndex and multiplied.
+            default = 0,
             disable = function ()
                 return not LUIE.SV.ChatAnnouncements_Enable or not IsTimedActivitySystemAvailable()
             end
@@ -9734,6 +10494,7 @@ function ChatAnnouncements.CreateConsoleSettings()
     SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_LOOT_HEADER), sectionGroups["Loot"])
     SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_CURRENCY_CONTEXT_MENU), sectionGroups["SharedCurrencyLoot"])
     SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_EXP_HEADER), sectionGroups["Experience"])
+    SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_COMPANION_HEADER), sectionGroups["Companion"])
     SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_COLLECTIBLE_HEADER), sectionGroups["Collectible"])
     SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_ANTIQUITY_HEADER), sectionGroups["Antiquities"])
     SettingsAPI:AppendSection(allSettings, GetString(LUIE_STRING_LAM_CA_ACHIEVE_HEADER), sectionGroups["Achievements"])

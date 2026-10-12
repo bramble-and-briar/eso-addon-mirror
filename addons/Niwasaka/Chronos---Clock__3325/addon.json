@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/Niwasaka/Chronos---Clock__3325",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "Niwasaka",
   "canonical_id": "esoui:3325",
   "category_id": "17",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:3325",
@@ -17,10 +18,11 @@
     "Chronos"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3325/",
-  "fingerprint": "99ec1d35689451504839ffeddd3fb5e3cc2cc3462f8f617985bdb1c8840fbec0",
+  "fingerprint": "d43650a5c046062b6f1220cfd793de171d16c4faabfb860bba338cd8337b1998",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw16287.png",
-    "https://cdn-eso.mmoui.com/preview/pvw15417.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17944.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17945.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17943.png"
   ],
   "platform": "pc",
   "published": true,
@@ -28,11 +30,11 @@
   "source_id": "3325",
   "source_url": "https://www.esoui.com/downloads/info3325-Chronos-Clock.html",
   "stats": {
-    "downloads": 8698,
+    "downloads": 8900,
     "favorites": 8,
-    "monthly_downloads": 86
+    "monthly_downloads": 70
   },
   "title": "Chronos - Clock",
-  "updated_at": 1781125284000,
-  "version": "1.3.2"
+  "updated_at": 1791739854000,
+  "version": "1.4.0"
 }

@@ -282,9 +282,12 @@ function Icons:GetTab(tab)
     return self:GetCollectibles()
 end
 
-Icons.TAB_NAMES = {
-    [Icons.TAB_PLACES]       = L.ICONS_TAB_PLACES,
-    [Icons.TAB_EMBLEMS]      = L.ICONS_TAB_EMBLEMS,
-    [Icons.TAB_GLYPHS]       = L.ICONS_TAB_GLYPHS,
-    [Icons.TAB_COLLECTIBLES] = L.ICONS_TAB_COLLECTIBLES,
+local TAB_KEYS = {
+    [Icons.TAB_PLACES]       = "ICONS_TAB_PLACES",
+    [Icons.TAB_EMBLEMS]      = "ICONS_TAB_EMBLEMS",
+    [Icons.TAB_GLYPHS]       = "ICONS_TAB_GLYPHS",
+    [Icons.TAB_COLLECTIBLES] = "ICONS_TAB_COLLECTIBLES",
 }
+Icons.TAB_NAMES = setmetatable({}, {
+    __index = function(_, tab) return TAB_KEYS[tab] and L[TAB_KEYS[tab]] or "" end,
+})

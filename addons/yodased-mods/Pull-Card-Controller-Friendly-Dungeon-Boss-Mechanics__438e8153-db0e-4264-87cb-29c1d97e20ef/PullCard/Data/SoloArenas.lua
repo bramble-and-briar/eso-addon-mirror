@@ -171,6 +171,12 @@ PullCardData.setNotes(VH,
         .. "SIGILS: Sigils sit right in the middle of the paths and walking through one uses it. They help, but if you want "
         .. "'Strength from Within' (no sigils in combat) or 'The Vateshran's Chosen' (no sigils at all, under 45 min, no deaths), walk AROUND them.")
 
+PullCardData.setIntro(VH,
+    "- PICK YOUR WING ORDER NOW: it decides your bonuses. Magicka DPS: Green > Blue > Red. Stamina DPS: Blue > Red > Green. Tank: Red > Green > Blue.\n"
+        .. "- Each wing hides a secret boss and an Essence, reachable with a tool from a wing done earlier. Look for hidden side paths and glowing Remnants (purple = Magicka).\n"
+        .. "- The Wounding: after Zakuryn, Watchers on the portal path send you back to the start if they see you.\n"
+        .. "- Going for 'Strength from Within'? Walk AROUND the sigils on the paths.")
+
 PullCardData.addGuide(VH, "Wing Order & Bonuses",
     "HOW THE BONUSES WORK: Finishing a wing gives you a travel tool. Each tool opens hidden paths in ONE other wing, "
         .. "leading to that wing's secret boss and its Essence (a big max-resource bonus):\n"

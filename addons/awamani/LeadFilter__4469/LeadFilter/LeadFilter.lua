@@ -3,15 +3,40 @@ local ADDON_NAME = "LeadFilter"
 -- State
 local activeQualityFilter = nil
 local filterButton = nil
-local hideCompleted = false
-local hideCompletedButton = nil
+local activeHideFilter = nil
+local hideButton = nil
 local currentCategoryData = nil
 local selectedFilterName = nil -- initialized after GetString is available
 
--- Filter that removes any antiquity already recovered at least once (in the codex)
-local function HideCompletedFilter(antiquityData)
-    return not antiquityData:HasRecovered()
-end
+-- Hide filter definitions. Each filterFn returns true for leads to keep.
+-- Mythic fragments are separate antiquities, so each fragment is checked on its own.
+local HIDE_FILTERS = {
+    {
+        name = "Off",
+        filterFn = nil
+    },
+    {
+        -- Hides any antiquity recovered at least once
+        name = "Dug Up Once",
+        filterFn = function(antiquityData)
+            return not antiquityData:HasRecovered()
+        end
+    },
+    {
+        -- Hides any antiquity whose codex entries are all unlocked, i.e. digging it
+        -- again gives no new codex progress. An antiquity with no codex entries
+        -- counts as complete once it has been recovered.
+        name = "Codex Complete",
+        filterFn = function(antiquityData)
+            local numLoreEntries = antiquityData:GetNumLoreEntries()
+            if numLoreEntries == 0 then
+                return not antiquityData:HasRecovered()
+            end
+            return antiquityData:GetNumUnlockedLoreEntries() < numLoreEntries
+        end
+    }
+}
+local selectedHideName = HIDE_FILTERS[1].name
 
 -- Lead type filter definitions (built lazily so GetString is available)
 -- From data dump: q=3 (blue furnishings), q=4 (purple furnishings + mythic set fragments)
@@ -55,7 +80,7 @@ end
 -- Note: self may be a ZO_EntryData wrapper, so compare by ID not identity
 local origAntiquityIterator = ZO_AntiquityFilterCategory.AntiquityIterator
 ZO_AntiquityFilterCategory.AntiquityIterator = function(self, filterFunctions)
-    if activeQualityFilter or hideCompleted then
+    if activeQualityFilter or activeHideFilter then
         local categoryId = self:GetId()
         local isScryable = categoryId == ZO_SCRYABLE_ANTIQUITY_CURRENT_ZONE_SUBCATEGORY_ID or categoryId ==
                                ZO_SCRYABLE_ANTIQUITY_ALL_LEADS_SUBCATEGORY_ID
@@ -69,8 +94,8 @@ ZO_AntiquityFilterCategory.AntiquityIterator = function(self, filterFunctions)
             if activeQualityFilter then
                 newFilters[#newFilters + 1] = activeQualityFilter
             end
-            if hideCompleted then
-                newFilters[#newFilters + 1] = HideCompletedFilter
+            if activeHideFilter then
+                newFilters[#newFilters + 1] = activeHideFilter
             end
             return origAntiquityIterator(self, newFilters)
         end
@@ -135,20 +160,28 @@ local function CreateFilterButton(journal)
 
     filterButton = btn
 
-    -- "Hide Completed" toggle: hides any lead already recovered at least once.
+    -- "Hide" menu: hides leads already dug up or with a complete codex.
     -- Stacked directly under the Lead Type label.
-    local toggle = CreateHoverLabel("LeadFilterHideCompletedButton", categoryInset)
-    toggle:SetText("Hide Completed: " .. (hideCompleted and "On" or "Off"))
-    toggle:SetAnchor(TOPRIGHT, btn, BOTTOMRIGHT, 0, 4)
+    local hideBtn = CreateHoverLabel("LeadFilterHideButton", categoryInset)
+    hideBtn:SetText("Hide: " .. selectedHideName)
+    hideBtn:SetAnchor(TOPRIGHT, btn, BOTTOMRIGHT, 0, 4)
 
-    toggle:SetHandler(
+    hideBtn:SetHandler(
         "OnMouseDown", function(self)
-            hideCompleted = not hideCompleted
-            self:SetText("Hide Completed: " .. (hideCompleted and "On" or "Off"))
-            RebuildTiles()
+            ClearMenu()
+            for _, filterInfo in ipairs(HIDE_FILTERS) do
+                AddMenuItem(
+                    filterInfo.name, function()
+                        activeHideFilter = filterInfo.filterFn
+                        selectedHideName = filterInfo.name
+                        self:SetText("Hide: " .. filterInfo.name)
+                        RebuildTiles()
+                    end)
+            end
+            ShowMenu(self)
         end)
 
-    hideCompletedButton = toggle
+    hideButton = hideBtn
 end
 
 local function OnAddonLoaded(_, addonName)
@@ -161,7 +194,7 @@ local function OnAddonLoaded(_, addonName)
     ZO_PostHook(ZO_AntiquityJournal_Keyboard, "ResetCategoryTiles", function(self, shouldHideProgressBar)
         if filterButton then
             filterButton:SetHidden(not shouldHideProgressBar)
-            hideCompletedButton:SetHidden(not shouldHideProgressBar)
+            hideButton:SetHidden(not shouldHideProgressBar)
             if shouldHideProgressBar then
                 self.contentList:ClearAnchors()
                 self.contentList:SetAnchor(BOTTOMRIGHT, nil, nil, -10, -75)

@@ -12,8 +12,8 @@ env.setCombat(false); env.setClock(30)
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "player", scale = 1, x = 0, y = 0 },
     { key = 2, id = 61771, unit = "group", scale = 1, x = 0, y = 48 } }
-saved.checkUptime = true
 ZO_SavedVars.NewAccountWide = function() return saved end
+local captured = dofile("tests/support/capture.lua")()
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
 local function send(name, time, ...)
@@ -35,10 +35,10 @@ callbacks[LIBCOMBAT_EVENT_FIGHTSUMMARY](LIBCOMBAT_EVENT_FIGHTSUMMARY, { starttim
     playerid = 1, units = { [1] = { unitType = 1, name = "Player" }, [20] = { unitType = 2, name = "Bear" },
         [21] = { unitType = 2, name = "Blastbones" }, [99] = { unitType = 4 } } })
 for index = 1, 30 do env.events.tick() end
-assert(saved.lastFights[1].percent == 50 and saved.lastFights[1].members[1].id == 1)
-assert(saved.lastFights[2].percent == 50 and #saved.lastFights[2].members == 1)
+assert(captured[1].percent == 50 and captured[1].members[1].id == 1)
+assert(captured[2].percent == 75 and #captured[2].members == 1)
 local pets = 0
-for _, unit in ipairs(saved.lastFights[2].excluded) do
+for _, unit in ipairs(captured[2].excluded) do
     if unit.id == 20 or unit.id == 21 then
         assert(unit.kind == 2 and unit.reason == "Begleiter ausgeschlossen")
         pets = pets + 1
@@ -56,6 +56,6 @@ send("EVENT_EFFECTS_IN", 56, 1, 61771, EFFECT_RESULT_FADED, 1, 1, COMBAT_UNIT_TY
 send("EVENT_HEAL_OUT", 60, 1, 1, 1, 123, 100)
 callbacks[LIBCOMBAT_EVENT_FIGHTSUMMARY](LIBCOMBAT_EVENT_FIGHTSUMMARY, { starttime = 152000, endtime = 160000,
     playerid = 1, units = { [1] = { unitType = 1, name = "Player" }, [20] = { unitType = 2, name = "Bear" }, [99] = { unitType = 4 } } })
-assert(saved.lastFights[#saved.lastFights - 1].members[1].id == 1)
-assert(saved.lastFights[#saved.lastFights - 1].percent == 50)
+assert(captured[#captured - 1].members[1].id == 1)
+assert(captured[#captured - 1].percent == 50)
 print("Player/pet identity: v1 EFFECTS_IN pet tags, SELF targets, summary player ID, pet types and group exclusion passed")

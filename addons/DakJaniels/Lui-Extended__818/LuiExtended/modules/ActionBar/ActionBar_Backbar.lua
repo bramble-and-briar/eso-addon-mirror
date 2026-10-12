@@ -336,7 +336,7 @@ function Backbar.SetupBackbarDragDropHandlers(button)
                         end
                     end
                     CallSecureProtected("ClearSlot", actionBarSlotIndex, hotbarCategory)
-                end)
+                end, MENU_ADD_OPTION_LABEL, LUIE.Font.GetContextMenuFont())
                 ShowMenu(control)
             end
         elseif mouseButton == MOUSE_BUTTON_INDEX_LEFT and GetCursorContentType() ~= MOUSE_CONTENT_EMPTY then
@@ -500,6 +500,9 @@ local function ApplyStyle(self, template)
 
     self:SetCooldownEdgeState(self.showingCooldown)
     self:UpdateUsable()
+    if ActionBar.SyncCooldownUpdateHandler then
+        ActionBar.SyncCooldownUpdateHandler(self)
+    end
 end
 
 -- Called on initialization and when swapping in and out of Gamepad mode

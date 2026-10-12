@@ -64,6 +64,7 @@ function Bridge.Create(lib)
     end
     api.GetPlayerUnitId = lib.GetPlayerUnitId
     if lib.GetUnitIdByTag then
+        api.GetUnitIdByTag = lib.GetUnitIdByTag
         function api.GetTargetUnitId() return lib.GetUnitIdByTag("reticleover") end
     end
     local function emit(name, ...)

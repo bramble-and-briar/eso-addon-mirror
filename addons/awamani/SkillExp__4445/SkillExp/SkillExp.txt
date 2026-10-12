@@ -1,6 +1,6 @@
 ## Title: SkillExp
-## APIVersion: 101048 101049
-## Version: 1.1.0
+## APIVersion: 101049 101050
+## Version: 1.1.1
 ## Author: Dude
 ## SavedVariables: SkillExp_Data
 ## Description: Skill experience tracker
@@ -12,5 +12,6 @@ Bindings.xml
 Components.lua
 Settings.lua
 forms/SkillsForm.lua
+forms/SkillsWindowPin.lua
 
 SkillExp.lua

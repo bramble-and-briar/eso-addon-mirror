@@ -1,7 +1,7 @@
 ## Title: Sul-Xan's marker
 ## Author: PUYO
-## Version: 1.22
-## AddOnVersion: 122
+## Version: 1.28
+## AddOnVersion: 128
 ## APIVersion: 101050
 ## Description: Sul-Xan's Torment の魂がドロップした位置に ↓ を表示します。
 ## SavedVariables: SulXansMarkerVars

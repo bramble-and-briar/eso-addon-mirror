@@ -19,10 +19,12 @@ env.setClock(30); env.setCombat(false); env.setBuffs("player", {})
 local saved = env.saved()
 saved.trackers = { { key = 1, id = 61771, unit = "player", scale = 1, x = 0, y = 0 },
     { key = 2, id = 61771, unit = "player", personalTime = "combat", scale = 1, x = 0, y = 48 } }
-saved.checkUptime = true
 ZO_SavedVars.NewAccountWide = function() return saved end
+local captured = dofile("tests/support/capture.lua")()
 dofile("LiveBuffUptime.lua")
 env.events[EVENT_ADD_ON_LOADED](nil, "LiveBuffUptime")
+-- Exercise the internal CMX branch without exposing a calculation selector.
+saved.trackers[2].personalTime = "combat"
 local function send(event, time, ...)
     env.setClock(time); callbacks[event](event, GetGameTimeMilliseconds(), ...)
 end
@@ -37,7 +39,7 @@ local function near(a, b) assert(math.abs(a - b) < 0.00001, tostring(a) .. " ~= 
 send(1, 30, 1); damage(32); buff(33, 1); buff(36, 3); damage(40, 10)
 send(3, 45, 1, 1, 10, 123, 500, 1, 0)
 finish(46)
-local alive, cmx = saved.lastFights[1], saved.lastFights[2]
+local alive, cmx = captured[1], captured[2]
 near(alive.covered, 3); near(alive.duration, 10); near(alive.percent, 30)
 near(cmx.covered, 3); near(cmx.duration, 13); near(cmx.percent, 3 / 13 * 100)
 assert(alive.personalTime == "alive" and cmx.personalTime == "combat")
@@ -52,18 +54,17 @@ env.setClock(110); dead = false
 env.events[EVENT_UNIT_DEATH_STATE_CHANGED](nil, "player", false)
 env.setBuffs("player", {})
 damage(115); buff(119, 3); damage(120, 10); finish(121)
-alive = saved.lastFights[3]
+alive = captured[3]
 near(alive.covered, 13); near(alive.duration, 14); near(alive.percent, 13 / 14 * 100)
 assert(env.controls.LiveBuffUptimeTracker1.labels[2].text == "92.9 %")
-for _, line in ipairs(saved.lastCheck.last) do assert(not line:find("WARN", 1, true), line) end
 
 dead = true
 send(1, 200, 1); damage(200); buff(201, 1); damage(210, 10); finish(211)
-alive = saved.lastFights[5]
+alive = captured[5]
 near(alive.covered, 0); near(alive.duration, 0); near(alive.percent, 0)
 dead = false
 send(1, 220, 1); damage(220); buff(222, 1); buff(226, 3); damage(230, 10); finish(231)
-alive = saved.lastFights[7]
+alive = captured[7]
 near(alive.covered, 4); near(alive.duration, 10); near(alive.percent, 40)
 -- The independent audit must also intersect open/weighted intervals with alive windows.
 local engine = LiveBuffUptimeEngine

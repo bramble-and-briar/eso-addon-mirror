@@ -2,8 +2,8 @@
 ## Author: @TheGreyWolf98
 ## Description: Saved conversations, timestamps and a small HUD chat offset.
 ## APIVersion: 101050 101051
-## Version: 1.0.0
-## AddOnVersion: 11
+## Version: 1.0.1
+## AddOnVersion: 12
 ## IsLibrary: False
 ## SavedVariables: TGWChatKeeperSaved
 

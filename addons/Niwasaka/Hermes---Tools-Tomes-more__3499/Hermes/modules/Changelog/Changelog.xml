@@ -10,7 +10,7 @@
                     <AnchorFill/>
                 </Backdrop>
 
-                <Label name="$(parent)_Title" font="ZoFontWindowTitle" wrapMode="ELLIPSIS" verticalAlignment="TOP">
+                <Label name="$(parent)_Title" font="ZoFontWinH2" wrapMode="ELLIPSIS" verticalAlignment="TOP">
                     <Anchor relativeTo="$(parent)" relativePoint="TOPLEFT" point="TOPLEFT" offsetX="5" offsetY="5"/>
                 </Label>
                 <Label name="$(parent)_About" font="ZoFontGame" wrapMode="ELLIPSIS">

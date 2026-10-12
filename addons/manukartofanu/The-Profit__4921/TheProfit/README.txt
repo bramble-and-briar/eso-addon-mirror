@@ -12,6 +12,20 @@ Copyright (c) 2026 manukartofanu. All rights reserved.
 Redistribution, modification, re-uploading, sale, monetization, and creation of
 derivative works are prohibited without prior written permission. See LICENSE.
 
+Dependencies
+------------
+
+The following libraries and addons must be installed and enabled:
+
+* LibHistoire
+* LibAsync
+* LibCustomMenu
+* LibAddonMenu-2.0
+* Tamriel Trade Centre
+
+AwesomeGuildStore is optional. When it is installed, The Profit can add a margin
+filter and deal indicators to its search results.
+
 Usage
 -----
 
@@ -19,6 +33,8 @@ Usage
 * Use /theprofit to open or close the ledger.
 * Track up to ten items and switch the active item by clicking its table row.
 * The add-on settings can open the ledger automatically with mail or guild stores.
+* When AwesomeGuildStore is installed, choose the Simple or Proficient margin
+  filter under Settings > Addons > The Profit. Changing the filter reloads the UI.
 * Hover the active item for a quick tooltip, or left-click it to open ESO's
   persistent item popup with information added by other addons.
 * The addon records purchases itself and imports personal sales from every guild
@@ -32,6 +48,23 @@ be removed without notice.
 
 Purchases are recorded when they are submitted through ESO's guild store,
 including purchases made through AwesomeGuildStore when it is installed.
+
+AwesomeGuildStore filters
+-------------------------
+
+The optional AwesomeGuildStore integration uses Tamriel Trade Centre prices and
+adds a colored deal indicator to guild-store result rows.
+
+Simple compares each listing's unit price with the TTC suggested price. It shows
+the discount percentage and groups results into five ranges: below 1%, 1%-15%,
+15%-40%, 40%-90%, and 90% or more.
+
+Proficient uses five selectable deal categories. It marks especially deep TTC
+discounts with minimum absolute-profit thresholds, accepts a 25% return only
+when the TTC price has enough supporting sales, and marks a tracked item as BUY
+when The Profit's market model considers it ready to purchase. That model uses
+recent LibHistoire sales, liquidity, current tracked stock, price trend, and
+volatility. Listings without enough data remain in Other.
 
 Active listings are captured when an item is posted, but are saved only after
 ESO confirms the request. Whenever the current guild's listing page is loaded,

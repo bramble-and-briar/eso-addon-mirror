@@ -1,4 +1,4 @@
-ATLAS 1.0.1
+ATLAS 1.0.3
 by @TheGreyWolf98
 
 OVERVIEW
@@ -21,7 +21,7 @@ screen. Atlas combines thirteen individually switchable map layers:
 
 Open /atlas and use the D-pad to select a feature, A to toggle, Y to refresh
 and B to close. PlayStation uses ESO's corresponding button prompts.
-All fifteen feature/filter switches fit on one panel; settings are shared
+All seventeen feature/filter/visibility switches fit on one panel; settings are shared
 across your characters. PC users can also click the feature rows.
 
 Hide collected removes acquired skyshards and known lorebooks for the current
@@ -43,3 +43,14 @@ Event markers show locations, not live spawn alerts. Wayshrine markers do
 not unlock travel. Side-quest start markers are not included.
 
 No external addon libraries are required.
+
+NEW IN 1.0.2
+Neon colours: bright coloured rings help pins stand out while retaining
+their original symbols. Toggle off for the classic palette.
+Larger pins: choose standard (28) or 50% larger (42) Atlas symbols.
+Both options apply immediately from /atlas and save across characters.
+
+1.0.3 LIVE DISCOVERY FIX
+Location discovery, POI updates, objective completion and wayshrine unlocks
+now trigger a debounced pin refresh. No movement or UI reload required.
+Existing settings, neon colours and larger-pin switch are preserved.

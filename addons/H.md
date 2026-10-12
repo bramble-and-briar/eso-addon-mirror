@@ -17,7 +17,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Harven's Bag Space (in the Loot Window)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Bag-Space-in-the-Loot-Window__619) | Harven | PC / Mac | 1.1e |
 | [Harven's Book Copy (to the system Clipboard)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Book-Copy-to-the-system-Clipboard__453) | Harven | PC / Mac | 1.3 |
 | [Harven's Chat Completion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Chat-Completion__555) | Harven | PC / Mac | 1.1n |
-| [Harven's Custom Map Pins (Markers)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Custom-Map-Pins-Markers__357) | Harven | PC / Mac | 3.4.1 |
+| [Harven's Custom Map Pins (Markers)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Custom-Map-Pins-Markers__357) | Harven | PC / Mac | 3.4.2 |
 | [Harven's Custom Map Pins World Pins](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/Harven-s-Custom-Map-Pins-World-Pins__4018) | votan | PC / Mac | 0.5.1 |
 | [Harven's Durability and Charges](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Durability-and-Charges__506) | Harven | PC / Mac | 1.5.0 |
 | [Harven's Dwemer Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Harven/Harven-s-Dwemer-Clock__642) | Harven | PC / Mac | 1.3 |
@@ -72,7 +72,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Helmet Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptainBlagbird/Helmet-Toggle__792) | CaptainBlagbird | PC / Mac | 1.5.16 |
 | [Helmet Toggle, Dragon Bones](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/glorinand/Helmet-Toggle-Dragon-Bones__1915) | glorinand | PC / Mac | v. 1.1 |
 | [HelmetPal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fallinintheblak/HelmetPal__1872) | fallinintheblak | PC / Mac | 0.3 |
-| [Hermes - Tools, Tomes & more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Hermes---Tools-Tomes-more__3499) | Niwasaka | PC / Mac | 1.5.2 |
+| [Hermes - Tools, Tomes & more](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Niwasaka/Hermes---Tools-Tomes-more__3499) | Niwasaka | PC / Mac | 1.6.0 |
 | [Hero's Compass](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/Hero-s-Compass__282169ec-5b28-4744-bed7-c866d07adb4a) | murphyx | Console | — |
 | [Heroism Potions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saenic/Heroism-Potions__3568) | Saenic | PC / Mac | 1.0.1 |
 | [Hidden Rolls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Akardra/Hidden-Rolls__3197) | Akardra | PC / Mac | 1.00 |

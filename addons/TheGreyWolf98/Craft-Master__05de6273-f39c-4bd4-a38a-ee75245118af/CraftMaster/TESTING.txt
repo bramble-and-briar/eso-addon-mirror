@@ -1,0 +1,116 @@
+CRAFT MASTER 1.0.4 - CONSOLE TEST
+by @TheGreyWolf98
+
+No external add-on dependencies. Does not use LibCharacterKnowledge or LibAsync.
+
+FIRST SETUP
+1. For this test, disable 702's Craft Completionist List. Disable its libraries
+   too if no other enabled add-ons require them.
+2. Log into the character you want as your main crafter.
+3. Type /cm main. This selects the current character as your main crafter.
+4. Allow the background scan to finish. A chat message confirms completion.
+   Scanning pauses during combat. /cm status reports its progress.
+5. Open /cm or /craftmaster. Log other characters in to record their knowledge.
+   Logging another character in never changes your chosen main crafter.
+
+BROWSER
+Housing is the default tab. With no search entered, use ESO's housing
+categories at the left. Selecting a category reveals its subcategories.
+Type rug to search all housing categories. Clear the text to return to the
+chosen category. Recipes and Motifs are separate tabs.
+
+All / Learned / Missing / Not checked filters use the character being viewed.
+Plan/result names use quality colours: white, green, blue, purple and gold.
+The Character control changes whose knowledge you browse. Set as main changes
+the character used in trader and inventory tooltips.
+
+CONTROLLER
+The physical left stick moves only up/down within the left category column.
+A selects the highlighted category, then the cursor stays in that column.
+There is no navigation into the header or results pane.
+X: cycle All / Learned / Missing / Not checked.
+Y: cycle the recorded character being viewed.
+Hold X: search using the game's keyboard.
+LT: switch Housing / Recipes / Motifs tabs.
+RT: set the currently viewed character as your main crafter.
+LB/RB: page through results. B: close.
+Other characters appear after they have logged in and completed a scan.
+
+TRADER / INVENTORY
+A gamepad recipe, furnishing-plan or recognised crafting-motif tooltip gets a
+main-crafter line above the native item information:
+  green tick + name + Learned
+  red cross + name + Missing
+  grey name + Not checked
+This is the chosen main crafter's saved knowledge, not the active alt's.
+Other native item tooltip information still describes the active character.
+
+LEARNING AND SCANS
+Every character scans automatically once per login. /cm scan refreshes the
+current character manually. Learning a recipe updates the record immediately;
+learning a crafting motif triggers a background refresh. Scan batches are
+capped at 18 steps and 2 ms every 50 ms, and pause during combat.
+An interrupted first scan is unverified rather than falsely marked missing.
+Saved knowledge persists across reloads and is separated by account/server.
+
+WHAT 'LEARNED' MEANS
+The character has learned the plan/recipe. This does not certify that they have
+all materials, crafting passives or the correct station available right now.
+A bundled 4,015-record UESP recipe/plan index is checked using plan item links,
+including plans omitted from the console's learned-only recipe lists. Invalid
+IDs are skipped. Valid plans encountered later are retained for future scans.
+Purchased-only furnishings and collectibles are not recipe entries. Catalogue
+coverage is limited to the bundled index plus game-enumerated/observed plans.
+Motif catalogue detection in this first build is for the English client and
+uses the game's Crafting Motifs lore records. Unmatched book tooltips remain
+Not checked rather than guessing.
+
+TEST CHECKLIST
+- On the main crafter, confirm /cm main and a completed scan.
+- Search rug: confirm both learned and missing plans appear in All.
+- Compare Learned and Missing against a few plans you know for certain.
+- Browse Library/Courtyard etc, and verify category/subcategory results.
+- Swap toon: a trader plan your main knows must remain green even if the alt
+  does not know it. A plan the main lacks must remain red if the alt knows it.
+- Browse the alt's knowledge without changing the main trader character.
+- Learn a plan on the main, then swap toon and inspect it again.
+- Reload UI: main selection and scans should remain saved.
+- Check controller search, tabs, scrolling, closing and font legibility.
+- Report any Lua error exactly, plus the toon, item and action that triggered it.
+
+VALIDATION
+Lua source and mocked API behaviour have been checked for scan/combat handling,
+known/missing states, character selection, trader status, search, categories,
+learning events, reload persistence and controller navigation.
+No live ESO/Xbox session was available during development. Treat this ZIP as a
+first console test; gamepad layout, tooltip placement, catalogue coverage and
+actual CPU/memory use require testing in game.
+
+1.0.1 FIX
+Removed invalid SecurePostHook calls on native tooltip userdata. The gamepad
+main-crafter heading remains hooked through the Lua ZO_Tooltip class.
+
+1.0.2 FIX
+Navigation uses the physical left stick only. D-pad and keyboard directional
+polling are excluded because the console D-pad path calls private IsKeyDown.
+Use the left stick and on-screen keybind buttons for this test.
+
+1.0.3 FIX
+Push the UI shortcut action layer after the blocking gamepad menu layer,
+so X Filter, Y Character, A Select, B Back and the shoulder buttons reach
+the keybind strip callbacks. Character selection requires at least two
+characters to have logged in and recorded their knowledge.
+
+1.0.4 FIXES
+Added a bundled data-only UESP recipe/plan index and direct item-link knowledge
+checks. Missing furnishing plans no longer depend on console recipe lists
+including unknown entries. No external library dependency was added.
+An alt's learned-only list can no longer erase shared catalogue entries.
+The left stick navigates only the category column. Selecting a category keeps
+the cursor there. Tabs and main-crafter selection have LT/RT button actions.
+
+AFTER UPDATING
+Reload UI on the main crafter and allow the new scan to finish. /cm scan also
+starts it manually. The old snapshot did not contain missing-plan checks, so
+existing characters need a new scan before their Missing filter is complete.
+Test rug with All, Learned and Missing after the scan-complete message.

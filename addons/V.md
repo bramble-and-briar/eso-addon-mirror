@@ -8,7 +8,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | --- | --- | --- | --- |
 | [Valknarr Theme](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/valknarr/Valknarr-Theme__08a203b9-7317-4950-aefa-26260d7908f8) | valknarr | Console | — |
 | [Valknarr UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/valknarr/Valknarr-UI__2d43e3ed-9017-4e93-95f0-125ddf2d99fa) | valknarr | Console | — |
-| [ValuesBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TenienteR/ValuesBars__4940) | TenienteR | PC / Mac | 1.0.0 |
+| [ValuesBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TenienteR/ValuesBars__4940) | TenienteR | PC / Mac | 1.0.1 |
 | [Vampire Info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/notrix/Vampire-Info__377) | notrix | PC / Mac | 4 |
 | [Vampire's Woe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phinix/Vampire-s-Woe__1375) | Phinix | PC / Mac | 1.28 |
 | [VampireStageReminder_v2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/VampireStageReminder_v2__80e0a510-1882-45f4-9e0a-8ed6cdff9032) | SugaComa | Console | — |

@@ -7,7 +7,7 @@ BOT.Name = "PsijicWay"
 BOT.addOnName = "PsijicWay"
 BOT.addOnDisplayName = "The Psijic Way"
 BOT.author = "@XBUTCH"
-BOT.version = "1.51.02"
+BOT.version = "1.51.03"
 BOT.defaults = {
    filters = true,
    pinSize = 32,
@@ -357,7 +357,7 @@ local function OnLoad(eventCode, addonName)
    pinLayoutData.size = BOT.savedVars.pinSize
    pinTypeId1 = LMP:AddPinType(PIN_TYPE, pinTypeAddCallback, pinTypeOnResizeCallback, pinLayoutData, pinTooltipCreator)
    BOT.pinType = pinTypeId1
-   LMP:AddPinFilter(pinTypeId1, "The Psijic Way", nil, BOT.SV, "filters")
+   LMP:AddPinFilter(pinTypeId1, "The Psijic Way", BOT.SV, "filters")
    LMP:SetClickHandlers(PIN_TYPE, clickHandler)
    LMP:SetPinFilterHidden(pinTypeId1, "pvp", true)
    LMP:SetPinFilterHidden(pinTypeId1, "imperialPvP", true)

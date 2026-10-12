@@ -15,7 +15,7 @@ An add-on for **The Elder Scrolls Online** that shows the numbers the default UI
 
 ## Installation
 
-1. Download the latest release and extract it so the folder is named `ValuesBars`.
+1. Download the [latest release](https://www.esoui.com/downloads/info4940-ValuesBars.html) and extract it so the folder is named `ValuesBars`.
 2. Move the folder to your add-ons directory:
    - **Windows:** `Documents\Elder Scrolls Online\live\AddOns\`
    - **macOS:** `~/Documents/Elder Scrolls Online/live/AddOns/`
@@ -44,9 +44,23 @@ All texts live in `lang/`. To add a language:
 
 No other file needs to change. Any key missing from a translation shows the English text.
 
+## Saved settings
+
+Settings are saved per account and per megaserver (NA, EU, PTS), so changing them on one server does not affect the others.
+
 ## Compatibility
 
 Built for API version `101051`.
+
+## Credits
+
+- Thanks to **@Barfot** (in-game name).
+- **Azurah**, a similar add-on that also shows values on the default bars, as a reference.
+- [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) for the settings menu.
+
+## AI disclosure
+
+This add-on was developed with the assistance of AI (Claude, by Anthropic). The code, the translations and the documentation were drafted with it, and the author reviewed and tested everything in-game. The English texts were also reviewed by a human reviewer.
 
 ## License
 

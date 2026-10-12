@@ -57,6 +57,31 @@ function A:InitSettings()
             clickHandler = function() self:PressLoad(index) end})
     end
 
+    -- The parts of other add-ons, picked from what the HUD showed when it was last looked at.
+    panel:AddSetting({type = L.ST_SECTION or L.ST_LABEL, label = S.partsHeader})
+    panel:AddSetting({type = L.ST_LABEL, label = S.partsNote})
+    panel:AddSetting({type = L.ST_LABEL, label = function() return self:PartsStatus() end})
+    if L.ST_DROPDOWN and L.ST_BUTTON then
+        -- Items are a function so the lists are rebuilt each time the panel refreshes, and there is no
+        -- default: the library's reset indexes items as a table.
+        panel:AddSetting({type = L.ST_DROPDOWN, label = S.partsFoundLabel, tooltip = S.partsFoundTooltip,
+            ignoreDefault = true,
+            items = function() return self:CandidateItems() end,
+            getFunction = function() return self:SelectedItem(self:CandidateItems(), self.partDraft.candidate).name end,
+            setFunction = function(_, _, item) self.partDraft.candidate = item and item.data or nil end})
+        panel:AddSetting({type = L.ST_BUTTON, label = S.partsAddLabel, tooltip = S.partsAddTooltip,
+            buttonText = S.partsAddButton, clickHandler = function() self:PressAddPart() end})
+        panel:AddSetting({type = L.ST_DROPDOWN, label = S.partsChosenLabel, tooltip = S.partsChosenTooltip,
+            ignoreDefault = true,
+            items = function() return self:ChosenItems() end,
+            getFunction = function() return self:SelectedItem(self:ChosenItems(), self.partDraft.chosen).name end,
+            setFunction = function(_, _, item) self.partDraft.chosen = item and item.data or nil end})
+        panel:AddSetting({type = L.ST_BUTTON, label = S.partsRemoveLabel, buttonText = S.partsRemoveButton,
+            clickHandler = function() self:PressRemovePart() end})
+        panel:AddSetting({type = L.ST_BUTTON, label = S.partsRescanLabel, tooltip = S.partsRescanTooltip,
+            buttonText = S.partsRescanButton, clickHandler = function() self:PressRescan() end})
+    end
+
     -- This add-on's own options. Not part of any set.
     panel:AddSetting({type = L.ST_SECTION or L.ST_LABEL, label = S.optionsHeader})
     panel:AddSetting({type = L.ST_CHECKBOX, label = S.combatHide, tooltip = S.combatHideTooltip,

@@ -1,0 +1,36 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/VotMyID/Chat-Command-Exit__4944",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "VotMyID",
+  "canonical_id": "esoui:4944",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4944",
+  "deleted": false,
+  "directories": [
+    "ChatCommandExit"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4944/",
+  "fingerprint": "744ff1f7849e48a72f11e604caf5df0b731808695edb4580f0f7d4c30e7dfd6e",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4944",
+  "source_url": "https://www.esoui.com/downloads/info4944-ChatCommandExit.html",
+  "stats": {
+    "downloads": 11,
+    "favorites": 0,
+    "monthly_downloads": 10
+  },
+  "title": "Chat Command Exit",
+  "updated_at": 1791738215000,
+  "version": "1.1.4"
+}

@@ -9,7 +9,7 @@ SulXansMarker = SulXansMarker or {}
 local PSM = SulXansMarker
 
 PSM.name    = "SulXansMarker"
-PSM.version = "1.28"
+PSM.version = "1.3"
 
 local EM  = EVENT_MANAGER
 local LCA = LibCombatAlerts
@@ -26,6 +26,11 @@ local MAX_RAY_CM          = 8000  -- 照準から求める位置の最大距離(
 
 PSM.defaults = {
   extraSetNames = {},
+  weightTau = 1.5,        -- 新しい線の重視度: 線の重みの減衰時間(秒)。小さいほど新しい線だけを重く見る
+  language = "auto",      -- "auto" / "ja" / "en": メッセージと設定画面の言語
+  extWindow = 4,          -- 敵が動いていない(線の食い違いが小さい)時だけ使う、長い範囲の線の上限(秒)。4 なら使わない
+  maxShowDist = 36,       -- 三角測量できず推測した位置を表示する最大距離(m)
+  useGround = true,       -- 地面の高さを三角測量の追加条件として使う(奥行きの補強)
   hideWhenNoPos = false,  -- 位置が全く取れない時は何も表示しない(OFF なら画面上の ↓ と残り秒数を出す)
   showCandidates = false, -- 種類の違う敵が同時に倒れた時、他の候補の矢印(オレンジ)も出す。OFF なら矢印は常に1つ
   enabled      = true,
@@ -52,24 +57,82 @@ local UPDATE_NAME = PSM.name .. "_Update"
 local SAMPLE_NAME = PSM.name .. "_Sample"
 local now = GetGameTimeMilliseconds
 
+-- 日本語クライアントなら日本語、それ以外は英語のメッセージを返す
+-- 言語の判定: CVar(大文字小文字の両方を試す) と、ゲームの文字列に日本語が含まれるかの両方で調べる。
+-- /sulxan lang ja|en|auto で手動指定もできる(PSM.sv.language)。
+local detectedJa = false   -- 日本語と分かったら true で固定。false の間は呼ぶたびに調べ直す(日本語化アドオンの読み込みが遅れる場合があるため)
+local function HasKana(v) return type(v) == "string" and v:find("\227[\129-\131]") ~= nil end  -- ひらがな・カタカナ(UTF-8 の E3 81〜83)
+
+-- 言語の手がかりを一覧にする。戻り値: 日本語か, 診断用の文字列一覧
+local function ProbeLanguage()
+  local ja, lines = false, {}
+  local function add(label, v, isJa)
+    lines[#lines + 1] = label .. "=" .. tostring(v) .. (isJa and " (ja)" or "")
+    if isJa then ja = true end
+  end
+  if GetCVar then
+    for _, key in ipairs({ "language.2", "Language.2" }) do
+      local ok, v = pcall(GetCVar, key)
+      local lv = (ok and type(v) == "string") and v:lower() or nil
+      add(key, ok and v or "err", lv == "ja" or lv == "jp")
+    end
+  end
+  if GetString then
+    for _, key in ipairs({ "SI_DIALOG_CANCEL", "SI_DIALOG_ACCEPT", "SI_DIALOG_YES", "SI_DIALOG_NO", "SI_DIALOG_CONFIRM", "SI_DIALOG_CLOSE" }) do
+      local id = _G[key]
+      if id then
+        local ok, v = pcall(GetString, id)
+        add(key, ok and v or "err", ok and HasKana(v))
+      end
+    end
+  end
+  if GetAbilityName then
+    for _, id in ipairs({ 157738, 154737 }) do
+      local ok, v = pcall(GetAbilityName, id)
+      add("ability" .. id, ok and v or "err", ok and HasKana(v))
+    end
+  end
+  if GetPlayerLocationName then
+    local ok, v = pcall(GetPlayerLocationName)
+    add("location", ok and v or "err", ok and HasKana(v))
+  end
+  return ja, lines
+end
+
+local function DetectJa()
+  if detectedJa then return true end
+  local ja = ProbeLanguage()
+  if ja then detectedJa = true end
+  return ja
+end
+function PSM.IsJa()
+  local o = PSM.sv and PSM.sv.language
+  if o == "ja" then return true elseif o == "en" then return false end
+  return DetectJa()
+end
+local function L(ja, en) if PSM.IsJa() then return ja end return en end
+
 local ui                 -- 画面表示用コントロール
 local canvas              -- LibCombatAlerts のワールド描画
 local markers = {}        -- 表示中の矢印の一覧 { {id, numId, pos, numSec}, ... }(候補が複数のとき複数個)
 local lastPos            -- 直近に照準していた敵の位置 { x, y, z, time, src }
 local samples = {}       -- 敵の名前ごとの、最後に照準していた位置 { x, y, z, time, src }
 local lastDeath          -- 直近に倒した敵 { name, time }
+local friendlyNames = {}  -- 照準したことのある味方NPC・ペット等の名前 -> time(敵として扱わない)
 local recentDeaths = {}  -- 直近の死亡の一覧 { name, time, unitId }
 local SAMPLE_KEEP_MS   = 30000
 local DROP_DELAY_MS     = 250   -- 魂イベントの後、死亡イベントを待つ時間
 local GROUND_DY_KEEP_MS    = 60000 -- 高さの差を覚えておく時間
 local GROUND_DY_LIMIT_CM   = 1500  -- 高さの差として採用する上限(±)
-local FALLBACK_MAX_CM      = 3000  -- 水平面との交点(推測)がこれより遠い時は、ワールド表示にせず画面表示にする
+-- 水平面との交点(推測)が maxShowDist(m) より遠い時は、ワールド表示にせず何も出さない(設定で変更可。標準 36m)
 local MAX_EXTRA_CANDIDATES = 2  -- 同時に倒れた別種の敵の候補を、主な矢印のほかに最大いくつ出すか
 local DEATH_BEFORE_MS   = 300   -- 魂イベントのこの時間前以降の死亡を「今倒した敵」とみなす
 
 -- ----------------------------------------------------------------------------
 -- 位置の取得
 -- ----------------------------------------------------------------------------
+
+local IGNORE_MAX_HP = 1  -- 最大体力がこれ以下(=体力1)の相手は、敵として扱わない
 
 local function ReadPos(unitTag)
   local _, x, y, z = GetUnitRawWorldPosition(unitTag)
@@ -82,7 +145,11 @@ local function IsHostileTarget()
   if not DoesUnitExist("reticleover") or IsUnitPlayer("reticleover") then
     return false
   end
-  if GetUnitReaction("reticleover") == UNIT_REACTION_HOSTILE then
+  local reaction = GetUnitReaction("reticleover")
+  -- 最大体力が1の相手(小動物など)は、魂の対象になる敵ではないので対象外
+  local okp, _, hpMax = pcall(GetUnitPower, "reticleover", COMBAT_MECHANIC_FLAGS_HEALTH)
+  if okp and hpMax and hpMax > 0 and hpMax <= IGNORE_MAX_HP then return false end
+  if reaction == UNIT_REACTION_HOSTILE then
     return true
   end
   return IsUnitAttackable ~= nil and IsUnitAttackable("reticleover") == true
@@ -147,19 +214,32 @@ end
 -- 地形に関係なく位置が決まる。動きが足りない時は使わず、水平面との交点にもどす。
 
 local rays = {}              -- 名前 -> { last, segs = { {list = { {t, ox,oy,oz, fx,fy,fz}, ... }, hp, hpMax, last}, ... } }
-local MAX_RAYS        = 100
-local RAY_WINDOW_MS   = 4000 -- 直近この時間(4秒)の線だけ使う
+local MAX_RAYS        = 170  -- 長い範囲(最大8秒)の線を保存できる本数
+local RAY_WINDOW_MS   = 4000 -- 通常はこの時間(4秒)の線を使う。敵が動いていない時は extWindow まで延ばす
+local RES_EXT_MAX_CM  = 40   -- 線の食い違いがこれ以下の時だけ、長い範囲の線を使う(敵が止まっている確認)
+local EXT_TAU_FACTOR  = 4    -- 長い範囲を使う時は、重みの減衰時間をこの倍にして古い線も生かす
 local MIN_RAYS        = 6
 local MIN_BASELINE_CM = 100  -- 線の位置のばらつき(横方向)の最小値
 local WEIGHT_TAU_MS    = 1500 -- 線の重み exp(-経過/τ): 最新の線ほど重く、古い線ほど軽く扱う
 local HP_JUMP_RATIO     = 0.03 -- 体力がこれ以上増えたら別個体とみなす(最大体力に対する割合)
-local LAST_RAY_OFF_CM  = 200  -- 最新の線が交点からこれ以上離れていたら「不確か」
+local LAST_RAY_OFF_CM  = 100  -- 最新の線が交点からこれ以上離れていたら「不確か」
 local MAX_RESIDUAL_CM = 120  -- 交点と各線の平均距離がこれ以上なら不採用(敵が動いた等)
+local GROUND_W_KNOWN    = 0.30 -- 地面の条件の強さ(線の重みの合計に対する割合): 高さの差が分かっている時
+local GROUND_W_UNKNOWN  = 0.10 -- 同: 高さの差が未知の時(平地と仮定するので弱め)
+local GROUND_USE_DERR_CM  = 300  -- 奥行き誤差の見積もりがこれ以上の時だけ、地面の条件を使う
+local GROUND_DERR_FACTOR  = 0.6  -- 地面の条件を使った時の、奥行き誤差の見積もりの補正
+local RES_WARN_CM      = 70   -- 交点と各線の平均距離がこれ以上なら「不確か」(敵が動いた・別の個体の線が混ざった疑い)
+local AIM_NOISE_RAD     = 0.015 -- 照準のぶれ(ラジアン)。奥行き誤差の見積もりに使う
+local DEPTH_ERR_WARN_CM = 450   -- 奥行き誤差の見積もりがこれ以上なら「不確か」(オレンジ)
+local DEPTH_ERR_MAX_CM  = 1000  -- これ以上なら三角測量を採用しない(線がほぼ平行で、奥行きが当てにならない)
+local TRI_FAR_WARN_CM   = 4000  -- 三角測量の結果がこれより遠ければ「不確か」
+local TRI_DY_WARN_CM    = 800   -- 自分との高さの差がこれ以上なら「不確か」
 
 -- 線の一覧 l から最小二乗の交点を求める。
 -- 戻り値: x, y, z, rx, ry, rz, baseline, resid  (x,y,z は最新の原点 r を基準にした相対座標)
 --         失敗時は nil, 理由
-local function Solve(l)
+local function Solve(l, gyWorld, gwRatio, tauMs)
+  tauMs = tauMs or WEIGHT_TAU_MS
   local n = #l
   if n < MIN_RAYS then return nil, "few-rays(" .. n .. ")" end
 
@@ -187,7 +267,7 @@ local function Solve(l)
   local wsum = 0
   for i = 1, n do
     local r = l[i]
-    local w = math.exp(-(tLast - r[1]) / WEIGHT_TAU_MS)
+    local w = math.exp(-(tLast - r[1]) / tauMs)
     wsum = wsum + w
     local ox, oy, oz = r[2] - rx, r[3] - ry, r[4] - rz
     local fx, fy, fz = r[5], r[6], r[7]
@@ -200,6 +280,14 @@ local function Solve(l)
     b3 = b3 + m13 * ox + m23 * oy + m33 * oz
   end
 
+  -- 地面の高さ(敵の胸の高さの水平面)を、弱い追加条件として加える。
+  -- 線がほぼ平行で奥行きが決まらない時に、交点が遠くへ飛ぶのを抑える。
+  if gyWorld and gwRatio and gwRatio > 0 then
+    local gw = gwRatio * wsum
+    a22 = a22 + gw
+    b2 = b2 + gw * (gyWorld - ry)
+  end
+
   local det = a11 * (a22 * a33 - a23 * a23) - a12 * (a12 * a33 - a23 * a13) + a13 * (a12 * a23 - a22 * a13)
   if math.abs(det) < 1e-6 * wsum * wsum * wsum then return nil, "singular" end
 
@@ -210,7 +298,7 @@ local function Solve(l)
   local resid = 0
   for i = 1, n do
     local r = l[i]
-    local w = math.exp(-(tLast - r[1]) / WEIGHT_TAU_MS)
+    local w = math.exp(-(tLast - r[1]) / tauMs)
     local dx, dy, dz = x - (r[2] - rx), y - (r[3] - ry), z - (r[4] - rz)
     local dot = dx * r[5] + dy * r[6] + dz * r[7]
     local px, py, pz = dx - dot * r[5], dy - dot * r[6], dz - dot * r[7]
@@ -259,7 +347,7 @@ local function RecordRay(name)
 
   if not seg then
     if #e.segs > 0 and PSM.logEnabled then
-      d(string.format("[Sul-Xan's marker] 別の個体に照準が移りました (%s 体力 %d)", name, hp))
+      d(string.format(L("[Sul-Xan's marker] 別の個体に照準が移りました (%s 体力 %d)", "[Sul-Xan's marker] Aim switched to another individual (%s hp %d)"), name, hp))
     end
     seg = { list = {}, hp = hp, hpMax = hpMax, last = t, isNew = true }
     e.segs[#e.segs + 1] = seg
@@ -283,7 +371,8 @@ local function RecordRay(name)
 
   local l = seg.list
   l[#l + 1] = { t, ox, oy, oz, fx, fy, fz }
-  while #l > 0 and (#l > MAX_RAYS or l[1][1] < t - RAY_WINDOW_MS) do
+  local keepMs = math.max(RAY_WINDOW_MS, ((PSM.sv and PSM.sv.extWindow) or 4) * 1000)
+  while #l > 0 and (#l > MAX_RAYS or l[1][1] < t - keepMs) do
     table.remove(l, 1)
   end
 end
@@ -338,10 +427,58 @@ local function Triangulate(name, deathTime)
   if not e then return nil, "no-rays" end
   local seg, isDead, cands = ChooseSegment(e, deathTime)
   if not seg then return nil, "no-recent-rays" end
-  local l, n = seg.list, #seg.list
+  -- 通常は直近4秒の線を使う(長い範囲の線は、あとで敵が止まっていると確認できた時だけ使う)
+  local full = seg.list
+  local tLastRay = full[#full][1]
+  local l = {}
+  for _, r in ipairs(full) do
+    if r[1] >= tLastRay - RAY_WINDOW_MS then l[#l + 1] = r end
+  end
+  local n = #l
+  local tauMs = ((PSM.sv.weightTau or 1.5) * 1000)
 
-  local x, y, z, rx, ry, rz, baseline, resid = Solve(l)
-  if not x then return nil, y end   -- 失敗時 y に理由が入る
+  -- 地面の高さの条件: 直近の三角測量で高さの差が分かっていれば強め、未知(平地と仮定)なら弱めにする
+  local gyWorld, gwRatio
+  if PSM.sv.useGround ~= false then
+    local _, _, gpy = GetUnitRawWorldPosition("player")
+    if gpy then
+      local known = PSM.groundDy and PSM.groundDyTime and now() - PSM.groundDyTime <= GROUND_DY_KEEP_MS
+      gyWorld = gpy + (known and PSM.groundDy or 0) + AIM_PLANE_HEIGHT_CM
+      gwRatio = known and GROUND_W_KNOWN or GROUND_W_UNKNOWN
+    end
+  end
+
+  -- まず地面の条件なしで解く。奥行きの誤差の見積もりが大きい(線がほぼ平行)時だけ、
+  -- 地面の条件を加えて解き直す(奥行きが十分決まる時は、坂などで悪影響が出ないよう使わない)
+  local usedGround = false
+  local function SolveAuto(list, tauOverride)
+    local tau = tauOverride or tauMs
+    local a1, a2, a3, a4, a5, a6, a7, a8 = Solve(list, nil, nil, tau)
+    if a1 and gyWorld then
+      local dd = math.sqrt(a1 * a1 + a2 * a2 + a3 * a3)
+      if dd * dd * AIM_NOISE_RAD / a7 > GROUND_USE_DERR_CM then
+        local b1, b2, b3, b4, b5, b6, b7, b8 = Solve(list, gyWorld, gwRatio, tau)
+        if b1 then usedGround = true; return b1, b2, b3, b4, b5, b6, b7, b8 end
+      end
+    end
+    return a1, a2, a3, a4, a5, a6, a7, a8
+  end
+
+  local x, y, z, rx, ry, rz, baseline, resid = SolveAuto(l)
+  local extUsed = false
+  if not x then
+    -- 横移動が小さくて失敗した時も、長い範囲の線なら動きが足りることがある(敵が止まっていれば)
+    local reason = y
+    if string.find(tostring(reason), "small-baseline", 1, true) and ((PSM.sv.extWindow or 4) > 4) and #full > n + 5 then
+      local x2, y2, z2, rx2, ry2, rz2, b2, r2 = SolveAuto(full, tauMs * EXT_TAU_FACTOR)
+      if x2 and r2 <= RES_EXT_MAX_CM then
+        x, y, z, rx, ry, rz, baseline, resid = x2, y2, z2, rx2, ry2, rz2, b2, r2
+        l, n = full, #full
+        extUsed = true
+      end
+    end
+    if not x then return nil, reason end   -- 失敗時 reason に理由が入る
+  end
 
   -- 誤差が大きい時は、外れた線(別の個体や、照準のぶれ)を除いてもう一度解く
   local trimmed = 0
@@ -352,21 +489,40 @@ local function Triangulate(name, deathTime)
       if RayDist(l[i], x, y, z, rx, ry, rz) <= lim then keep[#keep + 1] = l[i] end
     end
     if #keep < MIN_RAYS or #keep == n then return nil, "large-residual(" .. zo_floor(resid) .. ")" end
-    local x2, y2, z2, rx2, ry2, rz2, b2, r2 = Solve(keep)
+    local x2, y2, z2, rx2, ry2, rz2, b2, r2 = SolveAuto(keep)
     if not x2 or r2 > MAX_RESIDUAL_CM then return nil, "large-residual(" .. zo_floor(resid) .. ")" end
     trimmed = n - #keep
     l, n = keep, #keep
     x, y, z, rx, ry, rz, baseline, resid = x2, y2, z2, rx2, ry2, rz2, b2, r2
   end
 
+  -- 敵が止まっている(線の食い違いが小さい)と確認できた時だけ、長い範囲の線も使う
+  if not extUsed and ((PSM.sv.extWindow or 4) > 4) and trimmed == 0 and resid <= RES_EXT_MAX_CM and #full > n + 5 then
+    local ugBefore = usedGround
+    local x2, y2, z2, rx2, ry2, rz2, b2, r2 = SolveAuto(full, tauMs * EXT_TAU_FACTOR)
+    if x2 and r2 <= math.max(RES_EXT_MAX_CM, resid * 1.3) then
+      x, y, z, rx, ry, rz, baseline, resid = x2, y2, z2, rx2, ry2, rz2, b2, r2
+      l, n = full, #full
+    else
+      usedGround = ugBefore
+    end
+  end
+
   -- 妥当性チェック: カメラからの距離
   local dist = math.sqrt(x * x + y * y + z * z)
   if dist < 150 or dist > MAX_RAY_CM then return nil, "bad-distance(" .. zo_floor(dist) .. ")" end
+
+  -- 奥行きの誤差の見積もり: 距離が遠く、自分の横移動(基線長)が小さいほど大きい
+  -- (線がほぼ平行だと、交点が遠くへ大きくずれる)
+  local depthErr = dist * dist * AIM_NOISE_RAD / baseline
+  if usedGround then depthErr = depthErr * GROUND_DERR_FACTOR end  -- 地面の条件で奥行きが補強された分
+  if depthErr > DEPTH_ERR_MAX_CM then return nil, "depth-uncertain(" .. zo_floor(depthErr) .. ")" end
 
   -- 最新の線(死亡直前に狙っていた先)が交点から離れていれば、別の敵を追っている疑いがある
   local lastOff = RayDist(seg.list[#seg.list], x, y, z, rx, ry, rz)
   -- 倒れた個体を体力で確認できない時も不確か
   local doubtful = trimmed > 0 or lastOff > LAST_RAY_OFF_CM or not isDead
+                  or depthErr > DEPTH_ERR_WARN_CM or dist > TRI_FAR_WARN_CM or resid > RES_WARN_CM
 
   -- 照準は敵の胸あたりに当たっている想定なので、足元の高さに下げる
   -- 敵が動いていても、最新の線(=死亡の直前に照準していた先)の上には必ずいる。
@@ -378,8 +534,11 @@ local function Triangulate(name, deathTime)
   x, y, z = ref[5] * k, ref[6] * k, ref[7] * k
 
   local pos = { x + rx, y + ry - AIM_PLANE_HEIGHT_CM, z + rz }
-  return pos, string.format("tri(n=%d,base=%dcm,res=%dcm,dist=%dm,last=%dcm,proj=%dcm,trim=%d,%s%d)",
-    n, zo_floor(baseline), zo_floor(resid), zo_floor(dist / 100), zo_floor(lastOff), zo_floor(shift), trimmed,
+  -- 自分との高さの差が大きすぎる位置も不確か
+  local _, _, ppy = GetUnitRawWorldPosition("player")
+  if ppy and math.abs(pos[2] - ppy) > TRI_DY_WARN_CM then doubtful = true end
+  return pos, string.format("tri(n=%d,base=%dcm,res=%dcm,dist=%dm,derr=%dcm,last=%dcm,proj=%dcm,trim=%d,win=%.1fs,gnd=%s,%s%d)",
+    n, zo_floor(baseline), zo_floor(resid), zo_floor(dist / 100), zo_floor(depthErr), zo_floor(lastOff), zo_floor(shift), trimmed, (l[n][1] - l[1][1]) / 1000, usedGround and (gwRatio >= GROUND_W_KNOWN and "known" or "flat") or "off",
     isDead and "dead/" or "alive/", cands) .. " segs=" .. SegDiag(e, deathTime), doubtful
 end
 
@@ -393,6 +552,9 @@ local function PurgeOld()
   for name, e in pairs(rays) do
     if t - e.last > SAMPLE_KEEP_MS then rays[name] = nil end
   end
+  for name, ft in pairs(friendlyNames) do
+    if t - ft > SAMPLE_KEEP_MS then friendlyNames[name] = nil end
+  end
 end
 
 local function SampleTarget()
@@ -404,15 +566,17 @@ local function SampleTarget()
 
   if IsHostileTarget() then
     local x, y, z, src = GetTargetPos()
+    local name = ReticleName()
     if x then
-      local t = now()
-      lastPos = { x, y, z, t, src }
-      local name = ReticleName()
-      if name then
-        samples[name] = lastPos
-        RecordRay(name)
-      end
+      lastPos = { x, y, z, now(), src }
+      if name then samples[name] = lastPos end
     end
+    -- 照準の線は、水平面との交点が取れない時(敵が自分より高い位置にいて上向きに照準している時)も記録する
+    if name then RecordRay(name) end
+  elseif DoesUnitExist("reticleover") and not IsUnitPlayer("reticleover") then
+    -- 敵ではないNPC・ペット等: 死亡イベントで敵と間違えないよう名前を覚える
+    local fname = ReticleName()
+    if fname then friendlyNames[fname] = now() end
   end
 end
 
@@ -829,7 +993,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
           if ep then
             extras[#extras + 1] = ep
             if PSM.logEnabled then
-              d(string.format("[Sul-Xan's marker] 候補を追加: %s (%s)", dd.name, tostring(einfo or "sample")))
+              d(string.format(L("[Sul-Xan's marker] 候補を追加: %s (%s)", "[Sul-Xan's marker] Candidate added: %s (%s)"), dd.name, tostring(einfo or "sample")))
             end
           end
         end
@@ -851,9 +1015,9 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
       local px, _, pz = ReadPos("player")
       if px then
         local dist = math.sqrt((pos[1] - px) ^ 2 + (pos[3] - pz) ^ 2)
-        if dist > FALLBACK_MAX_CM then
+        if dist > (PSM.sv.maxShowDist or 36) * 100 then
           if PSM.logEnabled then
-            d(string.format("[Sul-Xan's marker] 推測位置が遠すぎる(%dm)ので表示しません", zo_floor(dist / 100)))
+            d(string.format(L("[Sul-Xan's marker] 推測位置が遠すぎる(%dm)ので表示しません", "[Sul-Xan's marker] Estimated position too far (%d m); not shown"), zo_floor(dist / 100)))
           end
           pos = nil
           tooFar = true
@@ -870,7 +1034,7 @@ local function OnSoulDrop(_, result, _, _, _, _, sourceName, sourceType, targetN
     end
     if not pos and PSM.sv.hideWhenNoPos then
       PSM.lastDrop = nil
-      if PSM.logEnabled then d("[Sul-Xan's marker] 位置が取れないので表示しません(設定)") end
+      if PSM.logEnabled then d(L("[Sul-Xan's marker] 位置が取れないので表示しません(設定)", "[Sul-Xan's marker] No position available; not shown (setting)")) end
       return
     end
 
@@ -901,7 +1065,7 @@ local function OnSoulPickup(_, result, _, _, _, _, _, sourceType, _, _, hitValue
         local dh = math.sqrt(dx * dx + dz * dz)
         if dh < bestDh then best, bestIdx, bestDh = cp, i, dh end
       end
-      d(string.format("[Sul-Xan's marker] 拾得: 最も近い矢印(%d/%d番目)との差 水平%dcm 高さ%+dcm (%s / 同名死亡%d / 不確か=%s)",
+      d(string.format(L("[Sul-Xan's marker] 拾得: 最も近い矢印(%d/%d番目)との差 水平%dcm 高さ%+dcm (%s / 同名死亡%d / 不確か=%s)", "[Sul-Xan's marker] Pickup: nearest arrow (%d/%d) off by horizontal %dcm height %+dcm (%s / same-name deaths %d / uncertain=%s)"),
         bestIdx, #(ld.all or { ld.pos }), zo_floor(bestDh), zo_floor(py - best[2]), (tostring(ld.src):gsub("%(.*", "")),
         ld.sameNameDeaths or 0, tostring(ld.uncertain)))
     end
@@ -923,6 +1087,9 @@ local function OnEnemyDied(_, result, _, _, _, _, _, sourceType, targetName, tar
   if NOT_ENEMY_TYPES[targetType] then return end
   local name = NormalizeName(targetName)
   if not name then return end
+  if not detectedJa and HasKana(name) then detectedJa = true end  -- 敵の名前が日本語なら、日本語クライアントとみなす
+  -- 味方NPC・ペット等として照準した名前で、敵として照準した記録がなければ無視する
+  if friendlyNames[name] and not samples[name] and not rays[name] then return end
   local t = now()
   lastDeath = { name = name, time = t }
 
@@ -948,6 +1115,7 @@ local function ResetState()
   recentDeaths = {}
   samples = {}
   rays = {}
+  friendlyNames = {}
 end
 
 -- 戦闘イベントと照準サンプリングの登録 / 解除 (装備していない間は完全に止める)
@@ -1050,7 +1218,7 @@ function PSM.UpdateActive()
   PSM.active = on
   if on then RegisterCombat() else UnregisterCombat() end
   if PSM.logEnabled then
-    d("[Sul-Xan's marker] " .. (on and "スルザン装備を検出: 動作開始" or "スルザン装備なし: 完全停止"))
+    d("[Sul-Xan's marker] " .. (on and L("スルザン装備を検出: 動作開始", "Sul-Xan's Torment detected: started") or L("スルザン装備なし: 完全停止", "Sul-Xan's Torment not worn: fully stopped")))
   end
 end
 
@@ -1103,9 +1271,9 @@ local function PrintDebug()
   p(string.format("map pos (player): %s, %s", tostring(nx), tostring(ny)))
   p("reticle name: " .. tostring(ReticleName()) .. " / last death: " .. (lastDeath and (lastDeath.name .. string.format(" (%.1fs ago)", (now() - lastDeath.time) / 1000)) or "nil"))
   p("3D markers: " .. tostring(#markers))
-  p("装備判定: " .. (PSM.active and "スルザン装備あり(動作中)" or "スルザン装備なし(停止中)"))
+  p(L("装備判定: ", "Equipment check: ") .. (PSM.active and L("スルザン装備あり(動作中)", "set worn (active)") or L("スルザン装備なし(停止中)", "set not worn (stopped)")))
   for name, n in pairs(CollectEquippedSets()) do
-    p(string.format("  装備中セット: %s x%d%s", (zo_strformat(SI_UNIT_NAME, name)), n, SetNameMatches(name) and "  <- 一致" or ""))
+    p(string.format(L("  装備中セット: %s x%d%s", "  Worn set: %s x%d%s"), (zo_strformat(SI_UNIT_NAME, name)), n, SetNameMatches(name) and L("  <- 一致", "  <- match") or ""))
   end
 end
 
@@ -1119,7 +1287,17 @@ local function OnAddOnLoaded(_, addonName)
   PSM.ApplyLayout()
   PSM.RegisterEvents()
 
-  if PSM.CreateSettings then PSM.CreateSettings() end
+  -- 設定画面は、日本語化アドオンなどの読み込みが終わった後(最初のゾーン読み込み後)に作る
+  if PSM.CreateSettings then
+    local settingsCreated = false
+    local function MakeSettings()
+      if settingsCreated then return end
+      settingsCreated = true
+      EM:UnregisterForEvent(PSM.name .. "_SettingsInit", EVENT_PLAYER_ACTIVATED)
+      PSM.CreateSettings()
+    end
+    EM:RegisterForEvent(PSM.name .. "_SettingsInit", EVENT_PLAYER_ACTIVATED, MakeSettings)
+  end
 
   local function OnSlashCommand(arg)
     arg = (arg or ""):lower()
@@ -1127,10 +1305,10 @@ local function OnAddOnLoaded(_, addonName)
       PSM.Test()
     elseif arg == "unlock" then
       PSM.SetUnlocked(true)
-      d("[Sul-Xan's marker] 移動モード ON: アイコンをドラッグして移動。終わったら /sulxan lock")
+      d(L("[Sul-Xan's marker] 移動モード ON: アイコンをドラッグして移動。終わったら /sulxan lock", "[Sul-Xan's marker] Move mode ON: drag the icon. Type /sulxan lock when done"))
     elseif arg == "lock" then
       PSM.SetUnlocked(false)
-      d("[Sul-Xan's marker] 位置を固定しました")
+      d(L("[Sul-Xan's marker] 位置を固定しました", "[Sul-Xan's marker] Position locked"))
     elseif arg == "debug" then
       PrintDebug()
     elseif arg == "sets" then
@@ -1138,18 +1316,28 @@ local function OnAddOnLoaded(_, addonName)
     elseif arg:sub(1, 7) == "setname" then
       local nm = arg:sub(9)
       if nm == "" then
-        d("[Sul-Xan's marker] 使い方: /sulxan setname セット名の一部  (/sulxan sets で装備中のセット名を確認)")
+        d(L("[Sul-Xan's marker] 使い方: /sulxan setname セット名の一部  (/sulxan sets で装備中のセット名を確認)", "[Sul-Xan's marker] Usage: /sulxan setname <part of set name>  (use /sulxan sets to see worn set names)"))
       else
         PSM.sv.extraSetNames = PSM.sv.extraSetNames or {}
         table.insert(PSM.sv.extraSetNames, nm)
-        d("[Sul-Xan's marker] セット名を追加: " .. nm)
+        d(L("[Sul-Xan's marker] セット名を追加: ", "[Sul-Xan's marker] Set name added: ") .. nm)
         PSM.UpdateActive()
+      end
+    elseif arg:sub(1, 4) == "lang" then
+      local v = arg:sub(6)
+      if v == "ja" or v == "en" or v == "auto" then
+        PSM.sv.language = v
+        d("[Sul-Xan's marker] language = " .. v .. L("  (設定画面は /reloadui 後に反映)", "  (settings menu changes after /reloadui)"))
+      else
+        d("[Sul-Xan's marker] /sulxan lang ja | en | auto   (current: " .. tostring(PSM.sv.language) .. ", detected: " .. (DetectJa() and "ja" or "en") .. ")")
+        local _, lines = ProbeLanguage()
+        d("[Sul-Xan's marker] probes: " .. table.concat(lines, ", "))
       end
     elseif arg == "log" then
       PSM.logEnabled = not PSM.logEnabled
-      d("[Sul-Xan's marker] ログ " .. (PSM.logEnabled and "ON" or "OFF"))
+      d(L("[Sul-Xan's marker] ログ ", "[Sul-Xan's marker] Log ") .. (PSM.logEnabled and "ON" or "OFF"))
     else
-      d("[Sul-Xan's marker] /sulxan test | unlock | lock | debug | sets | setname <名前> | log")
+      d("[Sul-Xan's marker] /sulxan test | unlock | lock | debug | sets | setname <name> | lang | log")
     end
   end
 

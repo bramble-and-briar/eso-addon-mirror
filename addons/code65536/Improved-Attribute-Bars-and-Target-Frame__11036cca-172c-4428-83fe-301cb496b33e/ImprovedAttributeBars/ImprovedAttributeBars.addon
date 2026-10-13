@@ -6,8 +6,9 @@
 
 ## Title: Improved Attribute Bars and Target Frame
 ## Author: @code65536
-## Version: 1.2.0
-## AddOnVersion: 102000
+## Version: 1.3.0
+## AddOnVersion: 103000
 ## APIVersion: 101051
+## SavedVariables: ImprovedAttributeBarsSavedVariables
 
 ImprovedAttributeBars.lua

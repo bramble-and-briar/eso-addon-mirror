@@ -371,8 +371,8 @@ CMA.researchLineIndexEquipTypeMap = {
     [EQUIP_TYPE_LEGS] = 12,
     [EQUIP_TYPE_SHOULDERS] = 13,
     [EQUIP_TYPE_WAIST] = 14,
-    [EQUIP_TYPE_NECK] = 1,
-    [EQUIP_TYPE_RING] = 2,
+    [EQUIP_TYPE_RING] = 1,
+    [EQUIP_TYPE_NECK] = 2,
     [EQUIP_TYPE_OFF_HAND] = 6
 }
 

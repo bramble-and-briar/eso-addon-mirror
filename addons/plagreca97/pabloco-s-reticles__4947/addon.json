@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/plagreca97/pabloco-s-reticles__4947",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "plagreca97",
+  "canonical_id": "esoui:4947",
+  "category_id": "25",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4947",
+  "deleted": false,
+  "directories": [
+    "PablocosReticles"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4947/",
+  "fingerprint": "c460032263e4e56626a34b3c4cdc6ffa370d29f07fa1bf5f5ea3f70c0b017965",
+  "images": [],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4947",
+  "source_url": "https://www.esoui.com/downloads/info4947-pablocosreticles.html",
+  "stats": {
+    "downloads": 21,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "pabloco's reticles",
+  "updated_at": 1791832451000,
+  "version": "1.0.0"
+}

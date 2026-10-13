@@ -285,7 +285,7 @@ function MapPanel:PaintLanguageButton(hover)
     local label = button:GetNamedChild("Text")
     label:SetText(string.upper(QTM.language or "en"))
     label:SetColor(GOLD[1], GOLD[2], GOLD[3], 1)
-    button:GetNamedChild("Bg"):SetColor(GOLD[1], GOLD[2], GOLD[3], hover and 0.22 or 0.10)
+    self.panel:GetNamedChild("LangBg"):SetColor(GOLD[1], GOLD[2], GOLD[3], hover and 0.22 or 0.10)
 end
 
 function MapPanel:OnLanguageEnter(button)

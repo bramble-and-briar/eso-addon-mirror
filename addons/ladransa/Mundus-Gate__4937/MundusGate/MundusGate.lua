@@ -3,7 +3,7 @@ local QTM = MundusGate
 local L   = QTM.L
 
 QTM.name    = "MundusGate"
-QTM.version = "2.9.0"
+QTM.version = "3.1.0"
 QTM.author  = "ladransa"
 QTM.contact = "@Watter_Mellon322"   -- кому приходят донаты и отзывы
 
@@ -26,9 +26,19 @@ QTM.defaults = {
     routeButtons    = true,    -- кнопки на экране
     routeWheel      = true,    -- колесо быстрого доступа
     routeMap        = true,    -- карта мира
+    routeQuest      = true,    -- перемещение к заданию
     placeStyles     = {},      -- [ключ места] = { icon, color, tint } — вид места для кнопок и колеса
     mapPanel        = true,    -- панель Mundus Gate на карте мира
     mapPanelTab     = "gate",  -- открытая вкладка панели: "gate" (Mundus Gate) или "zone" (Завершение области)
+    infoPanel       = true,    -- своя панель справа от карты (задания, фильтры, локации, дома, обозначения)
+    infoTab         = "quests",-- открытая вкладка правой панели
+    zoomBar         = true,    -- свой ползунок масштаба внизу карты
+    questTracker    = true,    -- панель заданий Mundus Gate на экране
+    hideGameTracker = true,    -- прятать стандартную панель заданий игры, пока включена своя
+    trackerLocked   = false,   -- панель заданий нельзя перетаскивать
+    questPins       = {},      -- закреплённые пункты: "q:<id задания>", "p:<кампания>:<номер>", "t:<id>"
+    questCollapsed  = {},      -- свёрнутые разделы вкладки «Задания»
+    questDoneOpen   = {},      -- развёрнутые группы «Выполнено» (стремления, фолиант)
     goldSaved       = 0,       -- сколько золота сэкономлено бесплатными перемещениями через игроков
     freeTrips       = 0,       -- сколько таких перемещений
     window          = {},      -- позиция окна меню
@@ -177,6 +187,12 @@ local function OnAddOnLoaded(_, addonName)
     QTM.Settings:Initialize()
     QTM.MapIntegration:Initialize()
     QTM.MapPanel:Initialize()
+    QTM.Quests:Initialize()
+    QTM.QuestDrag:Initialize()
+    QTM.QuestTravel:Initialize()
+    QTM.ZoomBar:Initialize()
+    QTM.InfoPanel:Initialize()
+    QTM.QuestTracker:Initialize()
     QTM.SocialIntegration:Initialize()
 
     local em = EVENT_MANAGER

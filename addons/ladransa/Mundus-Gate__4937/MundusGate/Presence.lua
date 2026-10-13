@@ -334,11 +334,12 @@ end
 -- них можно найти ближайшее святилище — туда и перенесёт игра.
 ---------------------------------------------------------------------------
 -- Ближайшее к точке (x, y) святилище на открытой сейчас карте
-function Presence:NearestWayshrineOnMap(x, y)
+-- knownOnly — только открытые святилища (для перемещения к заданию)
+function Presence:NearestWayshrineOnMap(x, y, knownOnly)
     local bestIndex, bestDistance
     for nodeIndex = 1, GetNumFastTravelNodes() do
-        local _, _, nx, ny, _, _, poiType, isShownInCurrentMap = GetFastTravelNodeInfo(nodeIndex)
-        if isShownInCurrentMap and poiType == POI_TYPE_WAYSHRINE then
+        local known, _, nx, ny, _, _, poiType, isShownInCurrentMap, locked = GetFastTravelNodeInfo(nodeIndex)
+        if isShownInCurrentMap and poiType == POI_TYPE_WAYSHRINE and (not knownOnly or (known and not locked)) then
             local dx, dy = nx - x, ny - y
             local distance = dx * dx + dy * dy
             if not bestDistance or distance < bestDistance then

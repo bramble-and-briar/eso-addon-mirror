@@ -10,7 +10,7 @@ local UI        = {}
 KAH.History, KAH.Templates, KAH.GF = History, Templates, GF
 
 local ADDON_NAME    = "KApplicationHistory"
-local ADDON_VERSION = "2.0.1"
+local ADDON_VERSION = "2.0.2"
 local ADDON_AUTHOR  = "|cFF9B15@Konten|r"
 local SV_NAME       = "KApplicationHistory_SV"
 local SV_VERSION    = 1
@@ -1881,6 +1881,108 @@ function Templates.GetLAMOptions()
     }
 end
 
+local PromptNote = { label = nil, bg = nil, cachedEntry = nil, cachedText = nil }
+
+local function isGroupFinderPrompt(incomingEntry)
+    if not incomingEntry then return false end
+    local fmt = incomingEntry.messageFormat
+    return fmt ~= nil
+        and (fmt == SI_PLAYER_TO_PLAYER_INCOMING_GROUP_FINDER_APPLICATION
+          or fmt == SI_PLAYER_TO_PLAYER_INCOMING_GROUP_FINDER_APPLICATION_CHAMPION)
+end
+
+local function findApplicationNote(incomingEntry)
+    local wanted = clean(incomingEntry.displayName)
+    if wanted == "" then return nil end
+
+    local id, guard = GetNextGroupListingApplicationCharacterId(nil), 0
+    while id and guard < 200 do
+        guard = guard + 1
+        local displayName = GetGroupListingApplicationInfoByCharacterId(id)
+        if clean(displayName) == wanted then
+            local note = GetGroupListingApplicationNoteByCharacterId(id)
+            if note and note ~= "" then return note end
+            return nil
+        end
+        id = GetNextGroupListingApplicationCharacterId(id)
+    end
+
+    for _, entry in pairs(History.pending) do
+        if entry.displayName == wanted and entry.note and entry.note ~= "" then
+            return entry.note
+        end
+    end
+    return nil
+end
+
+local function getPromptNoteLabel(p2p)
+    if PromptNote.label then return PromptNote.label end
+
+    local bg = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "PromptNoteBG", p2p.container, CT_BACKDROP)
+    bg:SetCenterColor(0, 0, 0, 0.5)
+    bg:SetEdgeColor(0, 0, 0, 0.5)
+    bg:SetEdgeTexture("KApplicationHistory/textures/centerscreen_floating_edge.dds", 256, 256, 8)
+    bg:SetCenterTexture("KApplicationHistory/textures/centerscreen_floating_center.dds")
+    bg:SetInsets(8, 8, -8, -8)
+    bg:SetIntegralWrapping(true)
+    bg:SetHidden(true)
+    PromptNote.bg = bg
+
+    local label = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "PromptNote", p2p.container, CT_LABEL)
+    label:SetFont("ZoInteractionPrompt")
+    label:SetColor(ZO_NORMAL_TEXT:UnpackRGBA())
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    label:SetDimensions(860, 100)
+    label:SetAnchor(TOP, p2p.actionArea, BOTTOM, 0, 12)
+    label:SetHidden(true)
+
+    PromptNote.label = label
+    return label
+end
+
+local function hookApplicationPrompt()
+    if not ZO_PostHook or not ZO_PreHook or not ZO_PlayerToPlayer then return end
+
+    ZO_PreHook(ZO_PlayerToPlayer, "OnUpdate", function()
+        if PromptNote.label then PromptNote.label:SetHidden(true) end
+        if PromptNote.bg then PromptNote.bg:SetHidden(true) end
+        return false
+    end)
+
+    ZO_PostHook(ZO_PlayerToPlayer, "TryShowingResponseLabel", function(self)
+        if not History.sv or History.sv.showPromptNote == false then return end
+
+        local incomingEntry = self.incomingQueue and self.incomingQueue[1]
+        if not isGroupFinderPrompt(incomingEntry) then return end
+
+        if PromptNote.cachedEntry ~= incomingEntry then
+            PromptNote.cachedEntry = incomingEntry
+            PromptNote.cachedText  = findApplicationNote(incomingEntry)
+        end
+
+        local text = PromptNote.cachedText
+        if text then text = "::[ " .. text .. " ]::" end
+        if not text then
+            PromptNote.cachedEntry = nil
+            text = "::[ no message ]::"
+        end
+
+        local label = getPromptNoteLabel(self)
+        label:SetText(text)
+        label:SetHidden(false)
+
+        -- size the background to the text (+ padding) and center it behind the label
+        local textW, textH = label:GetTextDimensions()
+        local bg = PromptNote.bg
+        bg:ClearAnchors()
+        bg:SetDimensions(textW + 48, textH + 20)
+        bg:SetAnchor(TOP, label, TOP, 0, -10)
+        bg:SetHidden(false)
+    end)
+end
+
 local function setupSettingsMenu()
     local LAM = LibAddonMenu2
     if not LAM then return end
@@ -1903,6 +2005,14 @@ local function setupSettingsMenu()
             tooltip = "Show the APPLICATION HISTORY list inside the Group & Activity Finder. You can also use the icon at the top right of the Group Finder (it appears while you have a listing).",
             getFunc = function() return not History.sv.embeddedHidden end,
             setFunc = function(value) History.SetEmbeddedHidden(not value) end,
+            default = true,
+        },
+        {
+            type = "checkbox",
+            name = "Show application message on the join prompt",
+            tooltip = "Show the message the applicant typed under the \"has applied to join your group\" Accept / Decline prompt.",
+            getFunc = function() return History.sv.showPromptNote ~= false end,
+            setFunc = function(value) History.sv.showPromptNote = value end,
             default = true,
         },
     }
@@ -1973,6 +2083,7 @@ local function onAddonLoaded(_, addonName)
     History.sv = ZO_SavedVars:NewAccountWide(SV_NAME, SV_VERSION, "Data", {
         history        = {},
         embeddedHidden = false,
+        showPromptNote = true,
     })
     KAH.SV = History.sv
     importOldSavedVars(History.sv, "KApplicationHistory_SavedVars", "Data")
@@ -1983,6 +2094,7 @@ local function onAddonLoaded(_, addonName)
 
     restoreOpenApplications()
     hookResolveApplication()
+    hookApplicationPrompt()
     registerHistoryEvents()
 
     EVENT_MANAGER:RegisterForUpdate(NS_UPDATE, UPDATE_MS, onUpdate)

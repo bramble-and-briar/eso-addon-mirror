@@ -56,6 +56,7 @@ end
 function CM:CycleTab()
     self.tab = self.tab % #TABS + 1
     self.category, self.selected, self.page, self.categorySelected, self.expandedCategory = nil, 1, 1, 1, nil
+    self.focus = "categories"
     self:Refresh()
 end
 function CM:Categories()
@@ -98,7 +99,7 @@ function CM:Matches(e, query)
                 if e.category then return false end
             elseif e.category ~= self.category and e.subcategory ~= self.category then return false end
         elseif self.tab == 2 then
-            if GetItemLinkItemType(self:Link(e.resultId)) ~= self.category then return false end
+            if (e.resultType or GetItemLinkItemType(e.resultLink or self:Link(e.resultId))) ~= self.category then return false end
         end
     end
     local known = self:Knowledge(e.key, self.viewCharacter)
@@ -107,12 +108,61 @@ function CM:Matches(e, query)
     if self.filter == 4 then return known == nil end
     return true
 end
+function CM:MotifGroup(entry)
+    local number, tail = entry.name:match("[Cc]rafting [Mm]otif%s+(%d+):%s*(.+)")
+    if not number then return entry.key, entry.name, nil, entry.name end
+    local chapter = tail:match("%s+(%S+)$")
+    local chapters = {Axes=true, Belts=true, Boots=true, Bows=true, Chests=true,
+        Daggers=true, Gloves=true, Helmets=true, Legs=true, Maces=true,
+        Shields=true, Shoulders=true, Staves=true, Swords=true, Style=true}
+    local style = tail
+    if chapters[chapter] then style = tail:sub(1, #tail - #chapter - 1)
+    else chapter = tail end
+    if chapter == "Style" then chapter = "Full style book" end
+    return "group:" .. number, "Motif " .. number .. ": " .. style, tonumber(number), chapter
+end
 function CM:BuildResults()
     local results, query = {}, self:Lower(self.search:GetText()):match("^%s*(.-)%s*$")
-    for _, entry in pairs(self.sv.catalog) do
-        if self:Matches(entry, query) then results[#results + 1] = entry end
+    if self.tab == 3 then
+        self.expandedMotifs = self.expandedMotifs or {}
+        local groups = {}
+        for _, entry in pairs(self.sv.catalog) do
+            if entry.kind == "motifs" then
+                local key, name, number, chapter = self:MotifGroup(entry)
+                local g = groups[key]
+                if not g then
+                    g = {key=key, name=name, number=number, isGroup=true, kind="motifs",
+                        quality=4, children={}, total=0, learned=0, missing=0, unchecked=0}
+                    groups[key] = g
+                end
+                entry.chapterName = chapter
+                g.total = g.total + 1
+                local known = self:Knowledge(entry.key, self.viewCharacter)
+                if known == true then g.learned = g.learned + 1
+                elseif known == false then g.missing = g.missing + 1
+                else g.unchecked = g.unchecked + 1 end
+                if self:Matches(entry, query) then g.children[#g.children+1] = entry end
+            end
+        end
+        local ordered = {}
+        for _, g in pairs(groups) do if #g.children > 0 then ordered[#ordered+1] = g end end
+        table.sort(ordered, function(a,b)
+            if a.number and b.number and a.number ~= b.number then return a.number < b.number end
+            return a.name < b.name
+        end)
+        for _, g in ipairs(ordered) do
+            table.sort(g.children, function(a,b) return a.chapterName < b.chapterName end)
+            results[#results+1] = g
+            if self.expandedMotifs[g.key] then
+                for _, child in ipairs(g.children) do results[#results+1] = child end
+            end
+        end
+    else
+        for _, entry in pairs(self.sv.catalog) do
+            if self:Matches(entry, query) then results[#results + 1] = entry end
+        end
+        table.sort(results, function(a, b) return a.name < b.name end)
     end
-    table.sort(results, function(a, b) return a.name < b.name end)
     self.results = results
     self.selected = math.max(1, math.min(self.selected, #results))
     self.page = math.floor((self.selected - 1) / self.rowCount) + 1
@@ -135,7 +185,7 @@ function CM:Refresh(rebuild)
     self:UpdateSummary()
     self.filterLabel:SetText("Filter: " .. FILTERS[self.filter])
     self.tabLabel:SetText(TABS[self.tab])
-    self.focusLabel:SetText("Categories [left stick]")
+    self.focusLabel:SetText(self.focus == "results" and "Results [left stick]" or "Categories [left stick]")
     self.pages:SetText(#self.results .. " results  |  Page " .. self.page .. "/" .. math.max(1, math.ceil(#self.results / self.rowCount)))
     local offset = math.max(0, self.categorySelected - self.rowCount)
     for i, row in ipairs(self.categoryRows) do
@@ -143,7 +193,7 @@ function CM:Refresh(rebuild)
         row.index = offset + i
         row.control:SetHidden(cat == nil)
         if cat then
-            local selected = row.index == self.categorySelected
+            local selected = self.focus == "categories" and row.index == self.categorySelected
             row.background:SetCenterColor(selected and .16 or .06, selected and .25 or .09, selected and .34 or .13, 1)
             row.text:SetText((self.category == cat.id and "|c80c8ff> " or "") .. cat.name .. "|r")
         end
@@ -154,9 +204,13 @@ function CM:Refresh(rebuild)
         row.index = index
         row.control:SetHidden(e == nil)
         if e then
-            row.background:SetCenterColor(index == self.selected and .16 or .055, index == self.selected and .24 or .075, index == self.selected and .32 or .105, 1)
-            row.text:SetText("|c" .. (QUALITY[e.quality] or "eeeeee") .. e.name .. "|r")
-            row.status:SetText(self:Status(e.key, self.viewCharacter, false))
+            row.background:SetCenterColor(self.focus == "results" and index == self.selected and .16 or .055, self.focus == "results" and index == self.selected and .24 or .075, self.focus == "results" and index == self.selected and .32 or .105, 1)
+            local displayName = e.name
+            if e.isGroup then displayName = (self.expandedMotifs[e.key] and "[-] " or "[+] ") .. e.name
+            elseif self.tab == 3 then displayName = "    " .. (e.chapterName or e.name) end
+            row.text:SetText("|c" .. (QUALITY[e.quality] or "eeeeee") .. displayName .. "|r")
+            if e.isGroup then row.status:SetText(e.learned .. "/" .. e.total)
+            else row.status:SetText(self:Status(e.key, self.viewCharacter, false)) end
         end
     end
     self:UpdateDetail()
@@ -166,6 +220,10 @@ function CM:UpdateDetail()
     if not e then
         self.detail:SetText(self.scanning and "Building the catalogue. Scanning pauses during combat."
             or "No matches. Try All, clear the search, or log in the crafter and use /cm scan.")
+        return
+    end
+    if e.isGroup then
+        self.detail:SetText(e.name .. "\n" .. e.learned .. " learned / " .. e.missing .. " missing / " .. e.unchecked .. " not checked.  A: expand/collapse chapters.")
         return
     end
     local location = ""
@@ -185,16 +243,30 @@ function CM:UpdateDetail()
     self.detail:SetText(text)
 end
 function CM:MoveSelection(delta)
-    self.categorySelected = math.max(1, math.min(#self.categories, self.categorySelected + delta))
+    if self.focus == "results" then
+        self.selected = math.max(1, math.min(#self.results, self.selected + delta))
+    else self.categorySelected = math.max(1, math.min(#self.categories, self.categorySelected + delta)) end
     self:Refresh(false)
 end
 function CM:Page(delta)
     local lastPage = math.max(1, math.ceil(#self.results / self.rowCount))
     local page = math.max(1, math.min(lastPage, self.page + delta))
     self.selected = (page - 1) * self.rowCount + 1
+    self.focus = "results"
     self:Refresh(false)
 end
 function CM:Select()
+    if self.focus == "results" then
+        local entry = self.results[self.selected]
+        if entry and entry.isGroup then
+            local key = entry.key
+            self.expandedMotifs[key] = not self.expandedMotifs[key]
+            self:Refresh()
+            for i, e in ipairs(self.results) do if e.key == key then self.selected = i; break end end
+            self:Refresh(false)
+        else self:ShowSelectedDetail() end
+        return
+    end
     local cat = self.categories[self.categorySelected]
     if not cat then return end
     self.category, self.selected = cat.id, 1
@@ -213,22 +285,24 @@ function CM:ShowSelectedDetail()
     if e.kind == "motifs" then
         self:Message(e.name .. " - " .. self:Status(e.key, self.viewCharacter, false))
     elseif GAMEPAD_TOOLTIPS and IsInGamepadPreferredMode() then
-        GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_RIGHT_TOOLTIP, self:Link(e.resultId))
+        GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_RIGHT_TOOLTIP, e.resultLink or self:Link(e.resultId))
     elseif PopupTooltip then
         InitializeTooltip(PopupTooltip, self.window, RIGHT, 12, 0, LEFT)
-        PopupTooltip:SetLink(self:Link(e.resultId))
+        PopupTooltip:SetLink(e.resultLink or self:Link(e.resultId))
     end
 end
 function CM:UpdateDirectionalInput()
     if self.search:HasFocus() then return end
     local now = GetFrameTimeMilliseconds()
-    -- Only the physical left stick is queried. Its navigation stays in categories.
-    local _, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK_NO_KEYBOARD)
+    local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK_NO_KEYBOARD)
     DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK)
-    if math.abs(y) < .35 then self.nextInput = 0; return end
+    if math.abs(x) < .35 and math.abs(y) < .35 then self.nextInput = 0; return end
     if now < (self.nextInput or 0) then return end
     self.nextInput = now + 180
-    self:MoveSelection(y > 0 and -1 or 1)
+    if math.abs(x) > math.abs(y) then
+        self.focus = x > 0 and "results" or "categories"
+        self:Refresh(false)
+    else self:MoveSelection(y > 0 and -1 or 1) end
 end
 function CM:SearchFocus()
     self.search:TakeFocus()
@@ -237,14 +311,15 @@ function CM:CreateWindow()
     self.tab, self.filter, self.selected, self.page, self.categorySelected = 1, 1, 1, 1, 1
     self.focus = "categories"
     local w = math.min(1450, GuiRoot:GetWidth() - 80)
-    local h = math.min(870, GuiRoot:GetHeight() - 90)
+    local h = math.min(870, GuiRoot:GetHeight() - 180)
     local left, gap = 300, 18
     local listX, listY = left + gap + 20, 228
     self.rowCount = math.max(4, math.floor((h - listY - 168) / ROW))
     local panel = WM:CreateTopLevelWindow("CraftMasterWindow")
     self.window = panel
     panel:SetDimensions(w, h)
-    panel:SetAnchor(CENTER, GuiRoot, CENTER)
+    -- Reserve the lower screen for ESO's controller button strip.
+    panel:SetAnchor(CENTER, GuiRoot, CENTER, 0, -60)
     panel:SetHidden(true)
     panel:SetMouseEnabled(true)
     backdrop(panel, 0, 0, w, h, .025, .035, .055, .98)
@@ -316,24 +391,24 @@ function CM:CreateWindow()
         result.text:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
         result.status = label(result.control, "", width - 155, 0, 145, ROW - 3)
         result.control:SetHandler("OnClicked", function()
-            self.selected = result.index; self:Refresh(false)
+            self.selected = result.index; self.focus = "results"; self:Refresh(false)
         end)
         self.resultRows[i] = result
     end
     local detailY = listY + self.rowCount * ROW + 7
     self.detail = label(panel, "", 24, detailY, w - 48, 112, "$(MEDIUM_FONT)|24|soft-shadow-thin")
     self.detail:SetVerticalAlignment(TEXT_ALIGN_TOP)
-    label(panel, "Stick: categories  |  A: choose  |  LT: tab  |  RT: set main  |  LB/RB: pages", 24, h - 35, w - 48, 30, "$(MEDIUM_FONT)|21|soft-shadow-thin")
+    label(panel, "Stick left/right: categories/results  |  A: select  |  LT: change section  |  LB/RB: pages", 24, h - 35, w - 48, 30, "$(MEDIUM_FONT)|21|soft-shadow-thin")
     panel:SetHandler("OnMouseWheel", function(_, delta) self:MoveSelection(-delta) end)
     self.keybinds = {
         alignment = KEYBIND_STRIP_ALIGN_CENTER,
-        { name = "Category", keybind = "UI_SHORTCUT_PRIMARY", callback = function() self:Select() end },
+        { name = "Select", keybind = "UI_SHORTCUT_PRIMARY", callback = function() self:Select() end },
         { name = "Filter", keybind = "UI_SHORTCUT_SECONDARY", callback = function() self:CycleFilter() end },
         { name = "Character", keybind = "UI_SHORTCUT_TERTIARY", callback = function() self:CycleCharacter() end },
         { name = "Search", keybind = "UI_SHORTCUT_QUATERNARY", callback = function() self:SearchFocus() end },
         { name = "Prev", keybind = "UI_SHORTCUT_LEFT_SHOULDER", callback = function() self:Page(-1) end },
         { name = "Next", keybind = "UI_SHORTCUT_RIGHT_SHOULDER", callback = function() self:Page(1) end },
-        { name = "Tab", keybind = "UI_SHORTCUT_LEFT_TRIGGER", callback = function() self:CycleTab() end },
+        { name = "Housing / Recipes / Motifs", keybind = "UI_SHORTCUT_LEFT_TRIGGER", callback = function() self:CycleTab() end },
         { name = "Set main", keybind = "UI_SHORTCUT_RIGHT_TRIGGER", callback = function() self:SetMain(self.viewCharacter) end },
         { name = "Back", keybind = "UI_SHORTCUT_NEGATIVE", callback = function() SCENE_MANAGER:HideCurrentScene() end },
     }

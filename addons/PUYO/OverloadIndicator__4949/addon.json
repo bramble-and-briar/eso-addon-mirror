@@ -1,0 +1,39 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/PUYO/OverloadIndicator__4949",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PUYO",
+  "canonical_id": "esoui:4949",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4949",
+  "deleted": false,
+  "directories": [
+    "OverloadIndicator"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4949/",
+  "fingerprint": "551c6105672d9f74bd2dae0b5e8d2a6b4e61e711d3758915ee72884406302b2b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17959.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17960.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4949",
+  "source_url": "https://www.esoui.com/downloads/info4949-OverloadIndicator.html",
+  "stats": {
+    "downloads": 1,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "OverloadIndicator",
+  "updated_at": 1791879530000,
+  "version": "1.8.2"
+}

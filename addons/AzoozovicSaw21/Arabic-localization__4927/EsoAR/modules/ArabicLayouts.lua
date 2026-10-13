@@ -138,13 +138,126 @@ local function dialogueOptions(c)
         face = REGULAR, flow = height == nil, height = height, unlimited = isBody,
         reflowVisual = true, align = TEXT_ALIGN_RIGHT}
 end
+-- Mirror only the interaction selection decoration, not the whole UI tree.
+local function mirrorDialogueHighlight(control, depth)
+    if not control or depth > 2 then return end
+    if control.GetType and control:GetType() == CT_TEXTURE and control.GetTextureCoords then
+        local coords = control.esoArabicOriginalCoords
+        if not coords then
+            coords = {control:GetTextureCoords()}
+            if #coords == 4 then control.esoArabicOriginalCoords = coords end
+        end
+        if coords and #coords == 4 then
+            if R.IsActive() then control:SetTextureCoords(coords[2], coords[1], coords[3], coords[4])
+            else control:SetTextureCoords(unpack(coords)) end
+        end
+    end
+    if control.GetNumChildren then
+        for i = 1, control:GetNumChildren() do mirrorDialogueHighlight(control:GetChild(i), depth + 1) end
+    end
+end
+-- Keep the native dialogue width; only mirror its decorations and option origin.
+local function keyboardPanel(self, lastOption)
+    local root = self.control
+    local divider = child(root, "Divider")
+    local options = child(root, "PlayerAreaOptions")
+    if not divider or not options then return end
+    local names = {"PlayerAreaOptions", "ReplayAudio", "TopBG", "BottomBG", "VerticalSeparator"}
+    if not self.esoArabicPanel11 then
+        self.esoArabicPanel11 = {}
+        for _, name in ipairs(names) do
+            local c = child(root, name)
+            if c then
+                local saved = {anchors = {}}
+                for i = 0, c:GetNumAnchors() - 1 do
+                    local valid, p, target, relative, x, y = c:GetAnchor(i)
+                    if valid then saved.anchors[#saved.anchors + 1] = {p, target, relative, x, y} end
+                end
+                if c.GetTextureCoords then saved.coords = {c:GetTextureCoords()} end
+                self.esoArabicPanel11[name] = saved
+            end
+        end
+    end
+    if not R.IsActive() then
+        if self.esoArabicPanel11Active then
+            for name, saved in pairs(self.esoArabicPanel11) do
+                local c = child(root, name)
+                c:ClearAnchors()
+                for _, anchor in ipairs(saved.anchors) do c:SetAnchor(unpack(anchor)) end
+                if saved.coords then c:SetTextureCoords(unpack(saved.coords)) end
+            end
+            options:SetResizeToFitDescendents(true)
+            self.esoArabicPanel11Active = false
+        end
+        return
+    end
+    self.esoArabicPanel11Active = true
+    -- A right-anchored child must not determine its parent's width.
+    options:SetResizeToFitDescendents(false)
+    options:SetWidth(divider:GetWidth())
+    options:ClearAnchors()
+    options:SetAnchor(TOPRIGHT, child(root, "PlayerArea"), TOPRIGHT, 0, 0)
+    local audio = child(root, "ReplayAudio")
+    audio:ClearAnchors()
+    audio:SetAnchor(TOPRIGHT, child(root, "TargetArea"), BOTTOMRIGHT, 0, 5)
+    local top, bottom = child(root, "TopBG"), child(root, "BottomBG")
+    top:ClearAnchors()
+    top:SetAnchor(TOPRIGHT, child(root, "TargetAreaTitle"), TOPRIGHT, 10, -120)
+    top:SetAnchor(BOTTOMLEFT, divider, LEFT, -10, 0)
+    if lastOption then self.esoArabicLastOption11 = lastOption end
+    lastOption = self.esoArabicLastOption11
+    if lastOption then
+        bottom:ClearAnchors()
+        bottom:SetAnchor(TOPLEFT, divider, LEFT, -10, 0)
+        bottom:SetAnchor(BOTTOMRIGHT, lastOption, BOTTOMRIGHT, 40, 120)
+    end
+    for _, name in ipairs({"TopBG", "BottomBG", "VerticalSeparator"}) do
+        local c, saved = child(root, name), self.esoArabicPanel11[name]
+        if saved and saved.coords then
+            local t = saved.coords
+            c:SetTextureCoords(t[2], t[1], t[3], t[4])
+        end
+    end
+    local separator = child(root, "VerticalSeparator")
+    separator:ClearAnchors()
+    separator:SetAnchor(TOPLEFT, top, TOPRIGHT, 0, 0)
+    separator:SetAnchor(BOTTOMLEFT, bottom, BOTTOMRIGHT, 0, 0)
+end
+
 local function bindKeyboard(self)
+    keyboardPanel(self)
+    mirrorDialogueHighlight(_G.ZO_InteractWindowPlayerAreaHighlight, 0)
     R.BindLabel(child(self.control, "TargetAreaBodyText"), dialogueOptions)
-    for _, c in ipairs(self.optionControls or {}) do R.BindLabel(c, dialogueOptions) end
+    for index, c in ipairs(self.optionControls or {}) do
+        R.BindLabel(c, dialogueOptions)
+        if not c.esoArabicOriginalAnchor7 then
+            local valid, point, target, relative, x, y = c:GetAnchor(0)
+            if valid then c.esoArabicOriginalAnchor7 = {point, target, relative, x, y} end
+        end
+        if R.IsActive() then
+            c:ClearAnchors()
+            if index == 1 then c:SetAnchor(TOPRIGHT, c:GetParent(), TOPRIGHT, -30, 0)
+            else c:SetAnchor(TOPRIGHT, self.optionControls[index - 1], BOTTOMRIGHT, 0, 8) end
+        elseif c.esoArabicOriginalAnchor7 then
+            c:ClearAnchors(); c:SetAnchor(unpack(c.esoArabicOriginalAnchor7))
+        end
+        local icon = child(c, "Icon")
+        if icon then
+            icon:ClearAnchors()
+            if R.IsActive() then icon:SetAnchor(LEFT, c, RIGHT, 5, 0)
+            else icon:SetAnchor(RIGHT, c, LEFT, -5, 0) end
+        end
+    end
 end
 local function bindGamepad(self)
     R.BindLabel(self.textControl, dialogueOptions)
     local list = self.itemList
+    if list then
+        mirrorDialogueHighlight(list.selectionHighlightControl, 0)
+        -- The native TOP/CENTER anchors position rows inside the clipping area.
+        -- RTL belongs inside each row; moving the row to the center point's
+        -- right edge displaces half its width outside the visible list.
+    end
     if list and list.dataTypes then
         for name, info in pairs(list.dataTypes) do
             if (name == "ZO_ChatterOption_Gamepad" or name == "ZO_InteractWindow_GamepadBodyTextItem") and not info.esoArabic131 then
@@ -155,7 +268,23 @@ local function bindGamepad(self)
                     local refresh = R.BindLabel(label, dialogueOptions)
                     original(control, ...)
                     if refresh then refresh() end
-                    if name == "ZO_ChatterOption_Gamepad" and label then control:SetHeight(label:GetTextHeight()) end
+                    if name == "ZO_ChatterOption_Gamepad" and label then
+                        local icon = child(control, "Icon")
+                        if R.IsActive() then
+                            label:ClearAnchors()
+                            label:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 0)
+                            label:SetAnchor(TOPRIGHT, control, TOPRIGHT, icon and not icon:IsHidden() and -44 or 0, 0)
+                            if icon then
+                                icon:ClearAnchors()
+                                icon:SetAnchor(TOPRIGHT, control, TOPRIGHT, 0, 3)
+                            end
+                            if refresh then refresh() end
+                        elseif icon then
+                            icon:ClearAnchors()
+                            icon:SetAnchor(TOPLEFT, control, TOPLEFT, 0, 3)
+                        end
+                        control:SetHeight(label:GetTextHeight())
+                    end
                 end
             end
         end
@@ -511,7 +640,134 @@ function R.BindDiscoveredControl(c)
     R.BindLabel(c, name:match("Data[1-4]Header$") and headerOptions or discoveredOptions)
 end
 
+-- Map lists use fixed native row spacing. Bind before their setup measures text.
+local function bindMapLists13()
+    if not ZO_ScrollList_GetDataTypeTable then return end
+    local specs = {
+        {WORLD_MAP_HOUSES, 2, {"Name", "Location"}, 24},
+        {WORLD_MAP_HOUSES, 1, {"Label"}, 26},
+        {WORLD_MAP_ANTIQUITIES_KEYBOARD, 2, {"Label"}, 26},
+        {WORLD_MAP_LOCATIONS, 1, {"Location"}, 22},
+        {WORLD_MAP_ANTIQUITIES_KEYBOARD, 1, {"Name"}, 26},
+    }
+    for _, spec in ipairs(specs) do
+        local owner, id, names, height = unpack(spec)
+        if owner and owner.list then
+            local dt = ZO_ScrollList_GetDataTypeTable(owner.list, id)
+            if dt and not dt.esoArabicMap13 then
+                dt.esoArabicMap13 = true
+                local original = dt.setupCallback
+                dt.setupCallback = function(row, data, ...)
+                    for _, name in ipairs(names) do
+                        local c = (name == "Name" and row.nameLabel) or child(row, name)
+                        if c then
+                            R.BindLabel(c, function(label)
+                                -- Measure against the fixed row, never the auto-sized text itself.
+                                -- Otherwise shrinking changes the next available width.
+                                local width = math.max(120, row:GetWidth() - 24)
+                                return {single = true, flow = false, width = width,
+                                    size = height - 2, minimum = 14, height = height,
+                                    reflowVisual = true, align = TEXT_ALIGN_RIGHT}
+                            end)
+                        end
+                    end
+                    local result = original(row, data, ...)
+                    if R.IsActive() and row.progressIconMetaPool and row.nameLabel then
+                        local icons = {}
+                        for _, icon in pairs(row.progressIconMetaPool:GetActiveObjects()) do icons[#icons+1]=icon end
+                        table.sort(icons,function(a,b)return a:GetLeft()<b:GetLeft() end)
+                        local previous
+                        for _, icon in ipairs(icons) do
+                            icon:ClearAnchors()
+                            if previous then icon:SetAnchor(TOPRIGHT,previous,TOPLEFT,-2,0)
+                            else icon:SetAnchor(TOPRIGHT,row.nameLabel,BOTTOMRIGHT,0,2) end
+                            previous=icon
+                        end
+                    end
+                    return result
+                end
+            end
+        end
+    end
+end
+
+
+-- Keep collection announcement artwork adjacent to the Arabic caption.
+local function collectionIcon15(self)
+    local label, icon = self.smallCombinedText, self.smallCombinedIcon
+    if not R.IsActive() or not label or not icon or icon:IsHidden() or not R.HasArabic(label:GetText()) then return end
+    local refresh = R.BindLabel(label, {single=true, flow=false, width=math.max(120,label:GetWidth()-80), size=IsInGamepadPreferredMode() and 36 or 26, minimum=20, reflowVisual=true, align=TEXT_ALIGN_RIGHT})
+    if refresh then refresh() end
+    icon:ClearAnchors()
+    icon:SetAnchor(LEFT,label,RIGHT,10,0)
+end
+local function mapQuest15(self, row)
+    if not row or not R.IsActive() then return end
+    local label, icon = child(row,"Name"), child(row,"AssistedIcon")
+    if not label then return end
+    label:ClearAnchors()
+    label:SetAnchor(TOPRIGHT,row,TOPRIGHT,-28,0)
+    local refresh=R.BindLabel(label,{width=math.max(120,row:GetWidth()-28),size=22,minimum=18,flow=true,reflowVisual=true,align=TEXT_ALIGN_RIGHT})
+    if refresh then refresh() end
+    if icon then icon:ClearAnchors();icon:SetAnchor(TOPRIGHT,row,TOPRIGHT,0,0) end
+    row:SetHeight(math.max(24,label:GetTextHeight()))
+end
+
+-- Preserve semantic effect rows before gamepad tooltip reflow joins visual lines.
+-- This getter is shared by keyboard and controller difficulty views.
+local function installDifficultySpacing()
+    if R.difficultySpacingInstalled or type(GetOverlandDifficultyEffects) ~= "function" then return end
+    R.difficultySpacingInstalled = true
+    local original = GetOverlandDifficultyEffects
+    GetOverlandDifficultyEffects = function(...)
+        local text = original(...)
+        if not R.IsActive() or not R.HasArabic(text) then return text end
+        return (text:gsub("\r\n", "\n"):gsub("\n+", "\n\n"))
+    end
+end
+
+-- Keyboard-only difficulty panel: native background ends before the effects.
+local function keyboardDifficultyLayout(self)
+    if not R.IsActive() or IsInGamepadPreferredMode() then return end
+    local panel, label = self.control, self.difficultyEffectsLabel
+    if not panel or not label then return end
+    local width = math.max(100, panel:GetWidth() - 64)
+    label:ClearAnchors()
+    label:SetAnchor(TOPRIGHT, panel:GetNamedChild("MainSectionDivider"), BOTTOMRIGHT, -32, 8)
+    label:SetWidth(width)
+    local refresh = R.BindLabel(label, {width=width, size=22, minimum=22,
+        flow=true, unlimited=true, reflowVisual=false, align=TEXT_ALIGN_RIGHT})
+    local text = GetOverlandDifficultyEffects(self.pendingDifficulty)
+    -- Compact keyboard rows; retain one blank line between penalties and bonuses.
+    local lines, previousRed = {}, false
+    for line in text:gmatch("[^\r\n]+") do
+        local lower = line:lower()
+        if previousRed and lower:find("|c2adc22",1,true) then lines[#lines+1] = "" end
+        lines[#lines+1] = line
+        previousRed = lower:find("|cff1919",1,true) ~= nil
+    end
+    label:SetText(table.concat(lines,"\n"))
+    if refresh then refresh() end
+    local bg = panel:GetNamedChild("BG")
+    if bg then
+        bg:ClearAnchors()
+        bg:SetAnchor(TOPLEFT,panel,TOPLEFT,0,0)
+        bg:SetAnchor(BOTTOMRIGHT,label,BOTTOMRIGHT,32,24)
+    end
+end
+
 function R.InstallLayouts()
+    hook(ZO_ChallengeDifficultyScreen_Keyboard,"RefreshText",nil,keyboardDifficultyLayout)
+    if ZO_CHALLENGE_DIFFICULTY_KEYBOARD then keyboardDifficultyLayout(ZO_CHALLENGE_DIFFICULTY_KEYBOARD) end
+    installDifficultySpacing()
+    hook(ZO_CenterScreenAnnouncementLargeLine,"SetIcon",nil,collectionIcon15)
+    hook(ZO_CenterScreenAnnouncementLargeLine,"ApplyPlatformStyle",nil,collectionIcon15)
+    hook(ZO_CenterScreenAnnouncementLargeLine,"SetSmallCombinedText",nil,collectionIcon15)
+    hook(WORLD_MAP_QUESTS,"SetupQuestHeader",nil,mapQuest15)
+    bindMapLists13()
+    hook(ZO_MapHouses_Keyboard, "RefreshHouseList", bindMapLists13)
+    hook(ZO_MapAntiquities_Keyboard, "RefreshList", bindMapLists13)
+    hook(WORLD_MAP_LOCATIONS, "UpdateSelectedMap", bindMapLists13)
     -- Both chat systems share TextEntry, but maintain their own controls.
     local function alignEntry(entry)
         if not R.IsActive() then return end
@@ -540,21 +796,31 @@ function R.InstallLayouts()
     end
 
     local function fitCompanionName(self)
-        if self.unitTag ~= "companion" or not R.IsActive() or IsInGamepadPreferredMode() then return end
+        if self.unitTag ~= "companion" or not R.IsActive() then return end
         local label = self.nameLabel
         if not label or not R.HasArabic(label:GetText()) then return end
         -- Frame instances have generated names; identify the unit, not its
         -- virtual template name. Keep the caption inside the health bar edges.
         local refresh = R.BindLabel(label, function(c)
             c:ClearAnchors()
-            c:SetAnchor(TOPLEFT, self.frame, TOPLEFT, 36, 17)
-            c:SetWidth(170)
+            local gp = IsInGamepadPreferredMode()
+            local bar = self.healthBar and self.healthBar.barControls and self.healthBar.barControls[1]
+            local width = gp and 306 or 170
+            if bar and bar:GetWidth() > 0 then
+                width = math.max(40, bar:GetWidth() - 4)
+                c:SetDimensionConstraints(0, 0, 0, 0)
+                c:SetAnchor(BOTTOMRIGHT, bar, TOPRIGHT, -2, -4)
+            else
+                c:SetAnchor(TOPLEFT, self.frame, TOPLEFT, gp and 0 or 35, gp and 1 or 19)
+            end
+            c:SetWidth(width)
             c:SetMaxLineCount(1)
-            return {single = true, autoWidth = false, width = 170, height = 22,
-                size = 18, minimum = 12, align = TEXT_ALIGN_RIGHT}
+            return {single = true, autoWidth = false, width = width, height = gp and 32 or 22,
+                size = gp and 26 or 18, minimum = 12, align = TEXT_ALIGN_RIGHT}
         end)
         if refresh then refresh() end
     end
+    hook(ZO_UnitFrameObject, "ApplyVisualStyle", nil, fitCompanionName)
     hook(ZO_UnitFrameObject, "UpdateName", nil, fitCompanionName)
     hook(ZO_UnitFrameObject, "SetTextIndented", nil, fitCompanionName)
     local function refreshRaceClass(self)
@@ -607,6 +873,8 @@ function R.InstallLayouts()
         end)
     end
     hook(_G, "ZO_GamepadGenericHeader_RefreshData", bindHeader, bindHeader)
+    hook(ZO_Interaction, "OnScreenResized", nil, keyboardPanel)
+    hook(ZO_Interaction, "AnchorBottomBG", nil, keyboardPanel)
     hook(ZO_Interaction, "ResetInteraction", bindKeyboard)
     hook(ZO_Interaction, "PopulateChatterOption", bindKeyboard)
     hook(ZO_GamepadInteraction, "ResetInteraction", bindGamepad)
@@ -633,12 +901,58 @@ function R.InstallLayouts()
         local previous = self.previousSubtitle
         local showSpeaker = not (previous and previous:GetSpeakerName() == speaker
             and previous:GetStartTime() + previous:GetDisplayLength() + 5 >= GetFrameTimeSeconds())
-        local text = R.Prepare(message)
+        local text = R.JoinVisualLines(R.Prepare(message))
         if showSpeaker then
             text = "|cffffff" .. text .. "|r :" .. R.Prepare(zo_strformat("<<t:1>>", speaker))
         end
         self.messageText:SetText(text)
         self.messageBackground:SetWidth(self.messageText:GetTextWidth())
+    end)
+    -- DLC panels combine an auto-width heading and a native baseline anchor.
+    -- Give both columns explicit widths before wrapping the quest description.
+    hook(ZO_GamepadCollectionsBook, "RefreshDLCTooltip", nil, function(self, collectibleData)
+        if not R.IsActive() then return end
+        local panel = self.infoPanelControl
+        if not panel then return end
+        local title = panel.nameControl
+        local container = title and title:GetParent()
+        if not container then return end
+        local width = container:GetWidth()
+        if width <= 0 then return end
+        for _, item in ipairs({{title, 30}, {panel.descriptionControl, 26},
+            {panel.questAcceptDescription, 26}, {panel.questAcceptIndicator, 24}}) do
+            local c = item[1]
+            if c then
+                c:SetWidth(width)
+                local refresh = R.BindLabel(c, {width = width, autoWidth = false,
+                    flow = true, unlimited = true, reflowVisual = true,
+                    size = item[2], minimum = 22, align = TEXT_ALIGN_RIGHT})
+                if refresh then refresh() end
+            end
+        end
+        local header = child(container, "QuestStatusHeader")
+        local value = panel.questStatusControl
+        if header and value then
+            local state = collectibleData:GetCollectibleAssociatedQuestState()
+            local accepted = state == COLLECTIBLE_ASSOCIATED_QUEST_STATE_ACCEPTED or state == COLLECTIBLE_ASSOCIATED_QUEST_STATE_COMPLETED
+            value:SetText(zo_strformat("(<<2>>) <<1>>", collectibleData:GetQuestName(),
+                GetString(accepted and SI_DLC_BOOK_QUEST_STATUS_ACCEPTED or SI_DLC_BOOK_QUEST_STATUS_NOT_ACCEPTED)))
+            header:ClearAnchors()
+            header:SetAnchor(TOPRIGHT, title, BOTTOMRIGHT, 0, 8)
+            header:SetWidth(90)
+            value:ClearAnchors()
+            value:SetAnchor(TOPRIGHT, header, TOPLEFT, -10, 0)
+            value:SetWidth(math.max(100, width - 100))
+            local refresh = R.BindLabel(value, {width = math.max(100, width - 100),
+                single = true, size = 24, minimum = 18, reflowVisual = true})
+            if refresh then refresh() end
+            local scroll = child(container, "ScrollSection")
+            if scroll then
+                scroll:ClearAnchors()
+                scroll:SetAnchor(TOPLEFT, container, TOPLEFT, 0, title:GetBottom() - container:GetTop() + 70)
+                scroll:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+            end
+        end
     end)
     for _, screen in ipairs({LoadingScreen, GamepadLoadingScreen}) do
         if screen and screen.zoneDescription then
@@ -672,4 +986,262 @@ function R.InstallLayouts()
         visit(control, 0)
     end)
     if R.InstallGamepadLayouts then R.InstallGamepadLayouts() end
+end
+
+-- Timed activity labels retain native vertical anchors and update handlers.
+local challengeAlignmentInstalled = false
+function R.InstallChallengeAlignment()
+    if challengeAlignmentInstalled or not SecurePostHook or not ZO_TimedActivities_Shared then return end
+    challengeAlignmentInstalled = true
+    SecurePostHook(ZO_TimedActivities_Shared, "RefreshTimeRemaining", function(_, label)
+        if not R.IsActive() or not label or label:IsHidden() then return end
+        local parent = label:GetParent()
+        local name = parent and parent:GetNamedChild("Name")
+        local title = parent and parent:GetNamedChild("Title")
+        local reference = IsInGamepadPreferredMode() and name or title
+        if not reference then return end
+        -- Set width without moving the left anchor: the controller claim row
+        -- depends on that anchor. Right alignment then follows the title edge.
+        local width = reference:GetWidth()
+        if width and width > 0 then
+            label:SetWidth(width)
+            label:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+        end
+    end)
+    if ZO_TimedActivitiesList_Gamepad then
+        SecurePostHook(ZO_TimedActivitiesList_Gamepad, "RefreshTimeRemaining", function(self)
+            if not R.IsActive() then return end
+            local header, value = self.timeRemainingHeaderLabel, self.timeRemainingLabel
+            if not header or not value then return end
+            header:ClearAnchors()
+            header:SetAnchor(BOTTOMRIGHT, self.control, TOPRIGHT, -40, 100)
+            value:ClearAnchors()
+            value:SetAnchor(BOTTOMRIGHT, header, BOTTOMLEFT, -16, 0)
+        end)
+    end
+end
+
+-- BEGIN REVIEWED SEASON ADAPTERS
+do
+local seasonNames = {
+    {"<<1[ﺮﺼﻨﻋ/ﺮﺻﺎﻨﻋ]>> <<F:1>> ﻕﺮﺳﺍ", "اسرق <<F:1>> <<1[عنصر/عناصر]>>"},
+    {"<<1[ﺔﻤﻬﻣ/ﻡﺎﻬﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مهمة/مهام]>>"},
+    {"ﻲﻣﻮﻴﻟﺍ ﻝﻮﺧﺪﻟﺍ ﻞﻴﺠﺴﺗ", "تسجيل الدخول اليومي"},
+    {"<<1[ﻲﻧﻭﺭ ﺮﺠﺣ/ﺔﻴﻧﻭﺭ ﺭﺎﺠﺣﺃ]>> <<1>> ﻦﻣ ﺩﺭﺍﻮﻤﻟﺍ ﻊﻤﺟﺍ", "اجمع الموارد من <<1>> <<1[حجر روني/أحجار رونية]>>"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_groupInstance.dds|t ﺔﻴﻋﺎﻤﺟ <<1[ﺔﻧﺍﺰﻧﺯ/ﺕﺎﻧﺍﺰﻧﺯ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[زنزانة جماعية/زنزانات جماعية]>> |t32:32:EsoUI/Art/Icons/mapKey/mapKey_groupInstance.dds|t"},
+    {"<<1[ﺔﻴﻜﻴﻣﺎﻨﻳﺩ ﺔﻬﺟﺍﻮﻣ/ﺔﻴﻜﻴﻣﺎﻨﻳﺩ ﺕﺎﻬﺟﺍﻮﻣ]>> ﻭﺃ <<1[ﺡﺎﻴﺘﺟﺍ/ﺕﺎﺣﺎﻴﺘﺟﺍ]>> <<F:1>> ﻞﻤﻛﺃ", "أكمل <<F:1>> <<1[اجتياح/اجتياحات]>> أو <<1[مواجهة ديناميكية/مواجهات ديناميكية]>>"},
+    {"ﺔﻴﻓﺮﺣ ﺓﺭﺎﻬﻣ ﻱﺃ ﻡﺍﺪﺨﺘﺳﺎﺑ <<1[ﺮﺼﻨﻋ/ﺮﺻﺎﻨﻋ]>> <<1>> ﻊﻨﺻﺍ", "اصنع <<1>> <<1[عنصر/عناصر]>> باستخدام أي مهارة حرفية"},
+    {"ﺕﺎﺑﺎﻘﻨﻠﻟ ﺔﻴﻣﻮﻳ <<1[ﺔﻤﻬﻣ/ﻡﺎﻬﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مهمة يومية/مهام يومية]>> للنقابات"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_dynamic_world_event.dds|t ﺔﻴﻜﻴﻣﺎﻨﻳﺩ <<1[ﺔﻬﺟﺍﻮﻣ/ﺕﺎﻬﺟﺍﻮﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مواجهة ديناميكية/مواجهات ديناميكية]>> |t32:32:EsoUI/Art/Icons/mapKey/mapKey_dynamic_world_event.dds|t"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_portal.dds|t ﺡﻮﺘﻔﻤﻟﺍ ﻢﻟﺎﻌﻟﺍ ﻲﻓ <<1[ﺡﺎﻴﺘﺟﺍ/ﺕﺎﺣﺎﻴﺘﺟﺍ]>> <<1>> ـﻝ ﺪَّﺼﺗ", "تصدَّ لـ <<1>> <<1[اجتياح/اجتياحات]>> في العالم المفتوح |t32:32:EsoUI/Art/Icons/mapKey/mapKey_portal.dds|t"},
+    {"ﺐﻫﺫ ﺔﻌﻄﻗ <<1>> ﻞﺑﺎﻘﻣ ﺕﺎﻗﻭﺮﺴﻤﻟﺍ ﻊﺑِ", "بِع المسروقات مقابل <<1>> قطعة ذهب"},
+    {"ﺭﺍﺮﺣﺍ ﻦﻴﺋﺍﺪّﻌﻟﺍ ﺪﻳﺮﺒﻟ <<1[ﺔﻣﺪﺧ ﺔﻤﻬﻣ/ﺔﻣﺪﺧ ﻡﺎﻬﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مهمة خدمة/مهام خدمة]>> لبريد العدّائين الأحرار"},
+    {"ﺔﺒﻴﺠﻌﻟﺍ ﻥﺎﻜﻣﻟﺍ ﺢﻴﺗﺎﻔﻣ ﻦﻣ <<F:1>> ﻊﻤﺟﺍ", "اجمع <<F:1>> من مفاتيح اللامكان العجيبة"},
+    {"ﺎﻬﺟﺭﺎﺧﻭ ﺍﺮﺒﻣﻮﻨﻴﻠﻏ ﻲﻓ ﺔﻴﻋﺎﻤﺟ <<1[ﺔﻧﺍﺰﻧﺯ/ﺕﺎﻧﺍﺰﻧﺯ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[زنزانة جماعية/زنزانات جماعية]>> في غلينومبرا وخارجها"},
+    {"ﺹﻮﺼﻠﻟﺍ ﺔﺑﺎﻘﻧ ﻲﻓ ﺩﺍﺩﺮﺘﺳﺍ ﺔﺣﻮﻟ ﻦﻣ <<1[ﺔﻤﻬﻣ/ﻡﺎﻬﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مهمة/مهام]>> من لوحة الاسترداد في نقابة اللصوص"},
+    {"<<1[ﺔﻧﺰﺧ/ﻦﺋﺍﺰﺧ]>> <<1>> ﺐﻬﻧﺍ", "انهب <<1>> <<1[خزنة/خزائن]>>"},
+    {"ﺭﺎﺤﺒﻟﺍ ﻲﻟﺎﻋﺃ ﺔﻴﻟﺎﻌﻓ ﺀﺎﻨﺛﺃ ﻲﺴﻴﺑﺃ ﺮﺤﺑ ﻲﻓ <<1[ﻭﺪﻋ/ﺀﺍﺪﻋﺃ]>> <<F:1>> ﻞﺘﻗﺍ", "اقتل <<F:1>> <<1[عدو/أعداء]>> في بحر أبيسي أثناء فعالية أعالي البحار"},
+    {"<<1[ﺔﻋﺎﺷﺇ/ﺕﺎﻋﺎﺷﺇ]>> <<1>> ﻲﻓ ﻖﻴﻘﺤﺘﻟﺍ ﻞﻤﻛﺃ", "أكمل التحقيق في <<1>> <<1[إشاعة/إشاعات]>>"},
+    {"ﻝﻮﻓﺮﺟﺍﺩ ﺹﻮﺼﻟ ﺔﺑﺎﻘﻨﻟ <<1[ﺔﻤﻬﻣ/ﻡﺎﻬﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مهمة/مهام]>> لنقابة لصوص داجرفول"},
+    {"ﺙﺍﺭﻮﻏﻮﻴﺸﻟ <<1[ﺔﻤﻬﻣ/ﻡﺎﻬﻣ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[مهمة/مهام]>> لشيوغوراث"},
+    {"ﺹﻮﺼﻠﻟﺍ ﺔﺑﺎﻘﻧ ﻝﺰﻨﻣ ﻦﻣ <<1[ﺀﺰﺟ/ﺀﺍﺰﺟﺃ]>> <<1>> ﻰﻠﻋ ﺮﺜﻋﺍ", "اعثر على <<1>> <<1[جزء/أجزاء]>> من منزل نقابة اللصوص"},
+    {"ﻒﺠﺗﺮﻤﻟﺍ ﺥﻮﻜﻟﺍ ﻲﻓ ﺙﻮﻧ ﻰﻟﺇ ﺙﺪﺤﺗ", "تحدث إلى نوث في الكوخ المرتجف"},
+    {"ﺙﺍﺭﻮﻏﻮﻴﺷ ﻉِﺪﺘﺳﺍ", "استدعِ شيوغوراث"},
+    {"ﻰﺗﻮﻤﻟﺍ ﺔﻋﺎﻗ ﻲﻓ <<1[ﻱﺭﺪﻳﺩ ﺫﺮﺟ/ﺔﻳﺭﺪﻳﺩ ﻥﺍﺫﺮﺟ]>> <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> <<1[جرذ ديدري/جرذان ديدرية]>> في قاعة الموتى"},
+    {"<<1[ﻕﻤﻋ ﻱﺭﺪﻳﺩ ﺫﺮﺟ/ﺔﻗﻤﻋ ﺔﻳﺭﺪﻳﺩ ﻥﺍﺫﺮﺟ]>> <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> <<1[جرذ ديدري عملاق/جرذان ديدرية عملاقة]>>"},
+    {"ﺖﺳﺮﻳﺍﻭ ﻕﻮﺳ ﻒﺸﻜﺘﺳﺍ", "استكشف سوق وايرست"},
+    {"ﻦﻓﺎﻬﻣﺭﻮﺘﺳ ﻲﻓ <<1[ﺐﻫﺎﻧ/ﻦﻴﺒﻫﺎﻧ]>> <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> <<1[ناهب/ناهبين]>> في ستورمهافن"},
+    {"ﺐﻬﻨﻟﺍ ﻚﻠﻣ ﻦﻳﺮﻟﺪﻧﺇ ﺏﻮﺠﺘﺳﺍ", "استجوب إندلرين ملك النهب"},
+    {"ﻝﺩﺎﻨﻟﺍﻭ ﺔﻧﺎﺤﻟﺍ ﺐﺣﺎﺻ ﻰﻟﺇ ﺙﺪﺤﺗ", "تحدث إلى صاحب الحانة والنادل"},
+    {"ﻙﻮﺛﻭﺃ ﺄﺒﺨﻣ ﻲﻓ ﻖﻘﺣ", "حقق في مخبأ أوثوك"},
+    {"ﻞﻴﺸﻣﻮﺗ ﻪﻛﺮﺗ ﻱﺬﻟﺍ ﻥﻮﻨﺠﻟﺍ ﺏﺭﺩ ﻊﺒﺗﺍ", "اتبع درب الجنون الذي تركه تومشيل"},
+    {"ﻲﻛﺍﺯ ﻡﺰﻫﺍ", "اهزم لازاكي"},
+    {"ﺙﺍﺭﻮﻏﻮﻴﺷ ﺎﺼﻋ ﺪﻌﺘﺳﺍ", "استعد عصا شيوغوراث"},
+    {"ﺙﺍﺭﻮﻏﻮﻴﺷ ﺓﻮﻗ ﺕﺍﺭﺬﺷ ﺺﺘﻣﺍ", "امتص شذرات قوة شيوغوراث"},
+    {"ﻥﺎﻜﻣﻟﺍ ﻮﺒﻗ ﻲﻓ <<1[ﺔﻓﺮﻏ/ﻑﺮﻏ]>> <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> <<1[غرفة/غرف]>> في قبو اللامكان"},
+    {"<<1[ﻱﺮﺛﺃ ﻞﻴﻟﺩ/ﺔﻳﺮﺛﺃ ﺔﻟﺩﺃ]>> <<1>> ﻰﻠﻋ ﻞﺼﺣﺍ", "احصل على <<1>> <<1[دليل أثري/أدلة أثرية]>>"},
+    {"ﺐﻴﻘﻨﺗ ﻊﻗﻮﻣ ﻦﻣ <<1[ﺔﻴﻓﺎﺿﺍ ﻢﺋﺎﻨﻐﻟﺍ]>> ﻦﻣ <<1>> ﻰﻠﻋ ﻞﺼﺣﺍ", "احصل على <<1>> من <<1[الغنائم الإضافية]>> من موقع تنقيب"},
+    {"ﺩﻮﺘﻴﻟﻮﺳ ﻲﻓ »ﻦﻴﻳﺮﺛﺍ ﺔﻘﻠﺣ« ﺔﻤﻬﻣ ﻞﻤﻛﺃ", "أكمل مهمة «حلقة الأثريين» في سوليتود"},
+    {"<<1[ﺭﺎﺛﺍ ﺔﻋﻮﺳﻮﻣ ﺕﺠﺳ]>> ﻦﻣ <<1>> ﻲﻓ ﺎﻣًﺪﻘﺗ ﺯﺮﺣﺃ", "أحرز تقدمًا في <<1>> من <<1[سجلات موسوعة الآثار]>>"},
+    {"<<1[ﺓﺮﻣ/ﺕﺍﺮﻣ]>> <<1>> ﻱﺮﺛﺍ ﻦﻴﻋ ﻡﺪﺨﺘﺳﺍ", "استخدم عين الأثري <<1>> <<1[مرة/مرات]>>"},
+    {"ﺭﺎﺤﺒﻟﺍ ﻲﻟﺎﻋﺃ ﻰﻟﺇ <<1[ﺔﻠﺣﺭ/ﺕﺣﺭ]>> <<1>> ﻲﻓ ﺮﺤﺒﻟﺍ ﺖﺤﺗ ﺰﻨﻜﻟﺍ ﻰﻠﻋ ﻞﺼﺣﺍ", "احصل على الكنز تحت البحر في <<1>> <<1[رحلة/رحلات]>> إلى أعالي البحار"},
+    {"»ﺲﻳﺭﺪﻳﺭ ﺲﺗﻮﻳﺍﺭ ﻊﻓﺭ« ﺔﻤﻬﻣ ﻞﻤﻛﺃ", "أكمل مهمة «رفع رايوتس ريدريس»"},
+    {"<<1[ﺓﺮﻣ/ﺕﺍﺮﻣ]>> <<1>> ﻲﺴﻴﺑﺃ ﺮﺤﺑ ﻲﻓ ﺔﺤﻟﺎﻤﻟﺍ ﻩﺎﻴﻤﻟﺎﺑ ﺪﻴﺼﻟﺍ ﻖﻃﺎﻨﻣ ﻦﻣ ﺪﻄﺻﺍ", "اصطد من مناطق الصيد بالمياه المالحة في بحر أبيسي <<1>> <<1[مرة/مرات]>>"},
+    {"<<1[ﻞﻤﻘﻟﺍ ﻲﺴﻣﺎﻫ ﻞﻄﺑ/ﻞﻤﻘﻟﺍ ﻲﺴﻣﺎﻫ ﻝﺎﻄﺑﺃ]>> <<1>> ﻡﺰﻫﺍ", "اهزم <<1>> <<1[بطل هامسي القمل/أبطال هامسي القمل]>>"},
+    {"<<1[ﺓﺮﻐﺛ/ﺕﺍﺮﻐﺛ]>> <<1>> ﺢﻠﺻﺃ", "أصلح <<1>> <<1[ثغرة/ثغرات]>>"},
+    {"<<1[ﺓﺮﻣ/ﺕﺍﺮﻣ]>> <<1>> ﺭﺎﺼﺤﻟﺍ ﺔﺤﻠﺳﺃ ﻖﻠﻃﺃ", "أطلق أسلحة الحصار <<1>> <<1[مرة/مرات]>>"},
+    {"ﺔﻳﺩﺎﻌﻣ ﺔﻨﻴﻔﺳ ﻕﺮﻏﺃ", "أغرق سفينة معادية"},
+    {"ﺔﻳﺮﻤﻳﻭﺪﻟﺍ ﺹﻮﻐﻟﺍ ﺓﺮﺠﺣ ﻡﺍﺪﺨﺘﺳﺎﺑ ﻲﺴﻴﺑﺃ ﺮﺤﺑ ﻕﺎﻤﻋﺃ ﻒﺸﻜﺘﺳﺍ", "استكشف أعماق بحر أبيسي باستخدام حجرة الغوص الدويمرية"},
+    {"ﺔﺑﺮﺤﻟﺎﺑ ﺍﻭًﺪﻋ ﺐﺻﺃ", "أصب عدوًا بالحربة"},
+    {"<<1[ﺓﺮﻣ/ﺕﺍﺮﻣ]>> <<1>> ﻖﺋﺎﻋ ﺔﻟﺍﺯ ﺔﺑﺮﺤﻟﺍ ﻡﺪﺨﺘﺳﺍ", "استخدم الحربة لإزالة عائق <<1>> <<1[مرة/مرات]>>"},
+    {"<<1[ﻲﻧﺎﺟﺮﻣ ﻞﺣﻭ ﻥﺎﻃﺮﺳ/ﺔﻴﻧﺎﺟﺮﻣ ﻞﺣﻭ ﺕﺎﻧﺎﻃﺮﺳ]>> <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> <<1[سرطان وحل مرجاني/سرطانات وحل مرجانية]>>"},
+    {"ﻲﺴﻴﺑﺃ ﺮﺤﺑ ﻕﺎﻤﻋﺃ ﻑﺎﺸﻜﺘﺳﺍ ﺀﺎﻨﺛﺃ ﺍﺮﻏﺎﻴﻟﺍ ﻦﻣ <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> من الياغرا أثناء استكشاف أعماق بحر أبيسي"},
+    {"ﻉﺎﻤّﻄﻟﺍ ﺐﻠﺨﻤﻟﺍ ،ﻙﺍﺮﻐﻛﻛ ﻡﺰﻫﺍ", "اهزم كلاكغراك، المخلب الطمّاع"},
+    {"ﻖﻟﺄﺘﻤﻟﺍ ﻝﺯﺎﺑﻭ ﻅﻮﻈﺤﻤﻟﺍ ﺶﺘﻳﺮﻏ ،ﺏﺎﻌﺸﻟﺍ ﻲﺳﺭﺎﺣ ﻞﺘﻗﺍ", "اقتل حارسي الشعاب، غريتش المحظوظ وبازل المتألق"},
+    {"ﺭﺎﺤﺒﻟﺍ ﻲﻟﺎﻋﺃ ﺐﻋﺭ ،ﺭﺎﻤﻳﺰﻠﻳﺮﻛ ﻡﺰﻫﺍ", "اهزم كريلزيمار، رعب أعالي البحار"},
+    {"<<1[ﺓﺮﻣ/ﺕﺍﺮﻣ]>> <<1>> ﺪﻴﺼﻟﺎﺑ ﻢﺋﺎﻌﻟﺍ ﻡﺎﻄﺤﻟﺍ ﻦﻣ ﺯﻮﻨﻜﻟﺍ ﻞﺸﺘﻧﺍ", "انتشل الكنوز من الحطام العائم بالصيد <<1>> <<1[مرة/مرات]>>"},
+    {"ﺲﻳﺭﺪﻳﺭ ﺲﺗﻮﻳﺍﺭ ﺔﻨﻴﻔﺳ ﻰﻠﻋ ﺱﺮﺠﻟﺍ ﻉﺮﻗﺍ", "اقرع الجرس على سفينة رايوتس ريدريس"},
+    {"ﻡﻋﺍ ﻊﻴﻤﺟ ﻝﻮﻄﺳﺃ ﻲﻓ ﻥﺎﻄﺒﻘﻟﺍ ﻥﻭﺭﺎﺒﻟﺍ ،ﺩﺭﺎﻣ ﻱﺎﻏ ﻦﻴﻴﺴﻟﻭﺃ ﻰﻟﺇ ﺙﺪﺤﺗ", "تحدث إلى أولسيين غاي مارد، البارون القبطان في أسطول جميع الأعلام"},
+    {"ﻥﺎﻜﻣﻟﺍ ﻮﺒﻗ ﻰﻘﺘﻠﻣ ﻞﺧﺩﺍ", "ادخل ملتقى قبو اللامكان"},
+    {"ﺭﺍﺮﺳﺍ ﺡﺎﻨﺟ ﻲﻓ ﻱﺪﺤﺘﻟﺍ ﻑﺮﻏ ﻦﻣ <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> من غرف التحدي في جناح الأسرار"},
+    {"ﻱﺮﻤﻘﻟﺍ ﺭﺎﺴﻤﻟﺍ ﺡﺎﻨﺟ ﻲﻓ ﻱﺪﺤﺘﻟﺍ ﻑﺮﻏ ﻦﻣ <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> من غرف التحدي في جناح المسار القمري"},
+    {"ﺔﻧﻮﻌﻠﻤﻟﺍ ﺔﻌﻠﻘﻟﺍ ﺡﺎﻨﺟ ﻲﻓ ﻱﺪﺤﺘﻟﺍ ﻑﺮﻏ ﻦﻣ <<1>> ﻞﻤﻛﺃ", "أكمل <<1>> من غرف التحدي في جناح القلعة الملعونة"},
+    {"ﻥﺎﻜﻣﻟﺍ ﻮﺒﻗ ﻲﻓ ﺊﺑﺎﺨﻤﻟﺍ ﻑﺮﻏ ﻦﻣ <<1>> ﻞﺧﺩﺍ", "ادخل <<1>> من غرف المخابئ في قبو اللامكان"},
+    {"<<1[ﻥﺎﻜﻣﻟﺍ ﻕﻭﺪﻨﺻ/ﻥﺎﻜﻣﻟﺍ ﻖﻳﺩﺎﻨﺻ]>> <<F:1>> ﺢﺘﻓﺍ", "افتح <<F:1>> <<1[صندوق اللامكان/صناديق اللامكان]>>"},
+    {"ﺔﻳﺮﻄﻔﻟﺍ ﺓﻮﻬﻟﺍ ﻱﺪﺤﺗ ﺔﻓﺮﻏ ﻞﻤﻛﺃ", "أكمل غرفة تحدي الهوة الفطرية"},
+    {"ﻪﻣﺰﻫﺍﻭ ﺐﻗﺍﺮﻤﻟﺍ ﺶﺣﻮﻟﺍ ﻉِﺪﺘﺳﺍ", "استدعِ الوحش المراقب واهزمه"},
+    {"ﺔﻤﺘﻌﻤﻟﺍ ﺓﺭﺎﻐﻤﻟﺍ ﻱﺪﺤﺗ ﺔﻓﺮﻏ ﻦﻣ ﺞُﻧﺍ", "انجُ من غرفة تحدي المغارة المعتمة"},
+    {"ﺔﻣﺎﺴﻟﺍ ﻡﺍ ﻡﺰﻫﺍ", "اهزم الأم السامة"},
+    {"ﺮﻤﻘﻟﺎﺑ ﺓﺀﺎﻀﻤﻟﺍ ﺭﺰﺠﻟﺍ ﻲﻓ ﺭﻮﺴﺠﻟﺍ ﻦﻣ <<1>> ﻞﻌّﻓ", "فعّل <<1>> من الجسور في الجزر المضاءة بالقمر"},
+    {"ﻖﻔﺸﻟﺍ ﺔﻫﺎﺘﻣ ﻲﻓ ﻍﺍﺮﻔﻟﺍ ﻲﻧﺎﻏﺃ ﻦﻣ <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> من أغاني الفراغ في متاهة الشفق"},
+    {"ﺐﺋﺎﺠﻌﻟﺍ ﺽﺮﻌﻣ ﻱﺪﺤﺗ ﺔﻓﺮﻏ ﻲﻓ ﺔﺒﻳﺮﻐﻟﺍ ﻒﺤﺘﻟﺍ ﻦﻣ <<1>> ﻰﻠﻋ ﺮﺜﻋﺍ", "اعثر على <<1>> من التحف الغريبة في غرفة تحدي معرض العجائب"},
+    {"!ﺓﺎﺷﺮﻔﻟﺍ ﻉِﺪﺘﺳﺍ", "استدعِ الفرشاة!"},
+    {"ﻕﺭﺎﻐﻟﺍ ﺀﺎﻨﻔﻟﺍ ﻲﻓ ﺔﻔﺻﺎﻌﻟﺍ ﺕﺍﺭﻮﻠﺑ ﻦﻣ <<1>> ﻞﻄّﻋ", "عطّل <<1>> من بلورات العاصفة في الفناء الغارق"},
+    {"ﺔﻔﺻﺎﻌﻟﺍ ﻢﻃﺍﻮﻃ ﻦﻣ <<1>> ﺢﻠﺻﺃ", "أصلح <<1>> من طواطم العاصفة"},
+    {"ﺀﺎﺴﺤﻟﺍ ﻲﻓ ﻞﺣﻮﻟﺍ ﺕﺎﻨﺋﺎﻛ ﻦﻣ <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> من كائنات الوحل في الحساء"},
+    {"ﻥﻮﻜﺴﻤﻟﺍ ﺏﺍﺩﺮﺴﻟﺍ ﻞﺧﺍﺩ ﺀﺎﺴﺤﻟﺍ ﻲﻓ ﻞﺣﻮﻟﺍ ﺕﺎﻨﺋﺎﻛ ﻦﻣ <<1>> ﻞﺘﻗﺍ", "اقتل <<1>> من كائنات الوحل في الحساء داخل السرداب المسكون"},
+    {"ﺯﻮﻨﻜﻟﺍ ﻥﺰﺨﻣ ﻲﻓ <<[ﻕﻭﺪﻨﺻ/ﻖﻳﺩﺎﻨﺻ]>> <<F:1>> ﺢﺘﻓﺍ", "افتح <<F:1>> <<[صندوق/صناديق]>> في مخزن الكنوز"},
+    {"ﻦﻣﺰﻟﺍ ﺔﺳﺍﺮﺣ ﻡﺎﺘﺧﺃ ﻦﻣ <<1>> ﻊﻤﺟﺍ", "اجمع <<1>> من أختام حراسة الزمن"},
+    {"ﺩﺍﻮﻤﻟﺍ ﻊﻤﺟﻭ ﺺﻨﻘﻟﺍﻭ ﺪﻴﺼﻟﺎﺑ <<1[ﺩﺭﻮﻣ/ﺩﺭﺍﻮﻣ]>> <<F:1>> ﻊﻤﺟﺍ", "اجمع <<F:1>> <<1[مورد/موارد]>> بالصيد والقنص وجمع المواد"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_groupInstance.dds|t ﺔﻴﻋﺎﻤﺟ <<1[ﺔﻧﺍﺰﻧﺯ/ﺕﺎﻧﺍﺰﻧﺯ]>> <<F:1>> ﻞﻤﻛﺃ", "أكمل <<F:1>> <<1[زنزانة جماعية/زنزانات جماعية]>> |t32:32:EsoUI/Art/Icons/mapKey/mapKey_groupInstance.dds|t"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_solo_dungeon.dds|t ﺔﻳﺩﺮﻓ <<1[ﺔﻧﺍﺰﻧﺯ/ﺕﺎﻧﺍﺰﻧﺯ]>> <<F:1>> ﻞﻤﻛﺃ", "أكمل <<F:1>> <<1[زنزانة فردية/زنزانات فردية]>> |t32:32:EsoUI/Art/Icons/mapKey/mapKey_solo_dungeon.dds|t"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_raidDungeon.dds|t <<1[ﺔﻨﺤﻣ/ﻦﺤﻣ]>> <<F:1>> ﻞﻤﻛﺃ", "أكمل <<F:1>> <<1[محنة/محن]>> |t32:32:EsoUI/Art/Icons/mapKey/mapKey_raidDungeon.dds|t"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_groupBoss.dds|t ﺡﻮﺘﻔﻤﻟﺍ ﻢﻟﺎﻌﻟﺍ ﻲﻓ <<1[ﻢﻴﻋﺯ/ﺀﺎﻤﻋﺯ]>> <<F:1>> ﻞﺘﻗﺍ", "اقتل <<F:1>> <<1[زعيم/زعماء]>> في العالم المفتوح |t32:32:EsoUI/Art/Icons/mapKey/mapKey_groupBoss.dds|t"},
+    {"|t32:32:EsoUI/Art/Icons/mapKey/mapKey_dungeon.dds|t ﺔﻣﺎﻌﻟﺍ ﺕﺎﻧﺍﺰﻧﺰﻟﺍ ﻲﻓ <<1[ﻢﻴﻋﺯ/ﺀﺎﻤﻋﺯ]>> <<F:1>> ﻞﺘﻗﺍ", "اقتل <<F:1>> <<1[زعيم/زعماء]>> في الزنزانات العامة |t32:32:EsoUI/Art/Icons/mapKey/mapKey_dungeon.dds|t"},
+    {"ﺔﻴﻋﺎﻤﺟﻭ ﺔﻳﺩﺮﻓ <<1[ﺔﻧﺍﺰﻧﺯ/ﺕﺎﻧﺍﺰﻧﺯ]>> <<F:1>> ﻞﻤﻛﺃ", "أكمل <<F:1>> <<1[زنزانة فردية وجماعية/زنزانات فردية وجماعية]>>"},
+    {"ﺕﺍﺮﺣﺎﺴﻟﺍ ﻥﺎﺟﺮﻬﻣ ﺀﺎﻨﺛﺃ <<1[ﻢﺋﺎﻨﻏ ﺔﻤﺠﻤﺟ/ﻢﺋﺎﻨﻏ ﻢﺟﺎﻤﺟ]>> <<1>> ﻰﻠﻋ ﻞﺼﺣﺍ", "احصل على <<1>> <<1[جمجمة غنائم/جماجم غنائم]>> أثناء مهرجان الساحرات"},
+    {"ﺶﺘﻳﺮﻛﺑﻭ ﺶﺘﻳﺭ ﺍﺫﻭ ﻡﺮﻳﺎﻜﺳ ﺏﺮﻏ ﻲﻓ <<1[ﻭﺪﻋ/ﺀﺍﺪﻋﺃ]>> <<F:1>> ﻞﺘﻗﺍ", "اقتل <<F:1>> <<1[عدو/أعداء]>> في غرب سكايرم وذا ريتش وبلاكريتش"},
+    {"ﺓﺪﻳﺪﺠﻟﺍ ﺓﺎﻴﺤﻟﺍ ﻥﺎﺟﺮﻬﻣ ﻦﻣ <<1[ﻕﻭﺪﻨﺻ/ﻖﻳﺩﺎﻨﺻ]>> <<1>> ﻰﻠﻋ ﻞﺼﺣﺍ", "احصل على <<1>> <<1[صندوق/صناديق]>> من مهرجان الحياة الجديدة"},
+    {"|t32:32:EsoUI/Art/Icons/POI/POI_portal_complete.dds|t ﺮﻴﻜﻴﻟﺃ ﺀﺍﺮﺤﺻ ﻲﻓ <<1[ﺔﻤﻠﻈﻣ ﺓﺎﺳﺮﻣ/ﺔﻤﻠﻈﻣ ﻲﺳﺍﺮﻣ]>> <<F:1>> ﺮﻣّﺩ", "دمّر <<F:1>> <<1[مرساة مظلمة/مراسي مظلمة]>> في صحراء أليكير |t32:32:EsoUI/Art/Icons/POI/POI_portal_complete.dds|t"},
+    {"ﺮﻴﻜﻴﻟﺃ ﺀﺍﺮﺤﺻ ﻲﻓ ﻞﻨﻴﺘﻨﺳ ﻰﻟﺇ ﺮﻓﺎﺳ", "سافر إلى سنتينل في صحراء أليكير"},
+}
+local seasonDuals = {
+    ["عنصر"] = "عنصرين",
+    ["مهمة"] = "مهمتين",
+    ["حجر روني"] = "حجرين رونيين",
+    ["زنزانة"] = "زنزانتين",
+    ["اجتياح"] = "اجتياحين",
+    ["مواجهة ديناميكية"] = "مواجهتين ديناميكيتين",
+    ["مواجهة"] = "مواجهتين",
+    ["مهمة خدمة"] = "مهمتي خدمة",
+    ["خزنة"] = "خزنتين",
+    ["عدو"] = "عدوين",
+    ["إشاعة"] = "إشاعتين",
+    ["جزء"] = "جزأين",
+    ["جرذ ديدري"] = "جرذين ديدريين",
+    ["جرذ ديدري عملاق"] = "جرذين ديدريين عملاقين",
+    ["ناهب"] = "ناهبين",
+    ["غرفة"] = "غرفتين",
+    ["دليل أثري"] = "دليلين أثريين",
+    ["مرة"] = "مرتين",
+    ["رحلة"] = "رحلتين",
+    ["بطل هامسي القمل"] = "بطلين من هامسي القمل",
+    ["ثغرة"] = "ثغرتين",
+    ["سرطان وحل مرجاني"] = "سرطاني وحل مرجانيين",
+    ["صندوق اللامكان"] = "صندوقين من اللامكان",
+    ["صندوق"] = "صندوقين",
+    ["مورد"] = "موردين",
+    ["محنة"] = "محنتين",
+    ["زعيم"] = "زعيمين",
+    ["جمجمة غنائم"] = "جمجمتي غنائم",
+    ["مرساة مظلمة"] = "مرساتين مظلمتين",
+    ["زنزانة جماعية"] = "زنزانتين جماعيتين",
+    ["زنزانة فردية"] = "زنزانتين فرديتين",
+    ["زنزانة فردية وجماعية"] = "زنزانتين فرديتين أو جماعيتين",
+    ["مهمة يومية"] = "مهمتين يوميتين",
+}
+-- Exact reviewed native names only; unrelated activities retain native output.
+-- No persistent cache, control-tree scanning, or global string-format override.
+local accusatives = {
+    ["عنصر"] = "عنصرًا", ["عدو"] = "عدوًا", ["جزء"] = "جزءًا",
+    ["حجر روني"] = "حجرًا رونيًا", ["جرذ ديدري"] = "جرذًا ديدريًا",
+    ["جرذ ديدري عملاق"] = "جرذًا ديدريًا عملاقًا", ["ناهب"] = "ناهبًا",
+    ["دليل أثري"] = "دليلًا أثريًا", ["بطل هامسي القمل"] = "بطلًا من هامسي القمل",
+    ["سرطان وحل مرجاني"] = "سرطان وحل مرجانيًا", ["صندوق اللامكان"] = "صندوقًا من اللامكان",
+    ["صندوق"] = "صندوقًا", ["مورد"] = "موردًا", ["زعيم"] = "زعيمًا", ["اجتياح"] = "اجتياحًا",
+}
+local function counted(singular, plural, n)
+    if n == 2 then return seasonDuals[singular] or singular end
+    if n >= 11 then return accusatives[singular] or singular end
+    return n >= 3 and n <= 10 and plural or singular
+end
+function R.ResolveSeasonTitle(logical, n)
+    local number = tostring(n)
+    local formatted = number:reverse():gsub('(%d%d%d)', '%1,'):reverse():gsub('^,', '')
+    local result = logical
+    local function phrase(modifier, singular, plural)
+        local noun = counted(singular, plural, n)
+        if n == 1 or n == 2 then return noun end
+        return (modifier == 'F:' and formatted or number) .. ' ' .. noun
+    end
+    result = result:gsub('<<F:1>> <<1%[([^/]+)/([^%]]+)%]>>', function(a,b) return phrase('F:',a,b) end)
+    result = result:gsub('<<1>> <<1%[([^/]+)/([^%]]+)%]>>', function(a,b) return phrase('',a,b) end)
+    result = result:gsub('<<F:1>> <<%[([^/]+)/([^%]]+)%]>>', function(a,b) return phrase('F:',a,b) end)
+    result = result:gsub('<<1%[([^/]+)/([^%]]+)%]>>', function(a,b) return counted(a,b,n) end)
+    result = result:gsub('<<1%[([^%]]+)%]>>', '%1')
+    result = result:gsub('<<F:1>>', formatted):gsub('<<1>>', number)
+    if n == 1 then
+        result = result:gsub('اقتل عدو ', 'اقتل عدوًا '):gsub('اسرق عنصر$', 'اسرق عنصرًا')
+    end
+    return result
+end
+local grammarInstalled = false
+function R.InstallSeasonGrammar()
+    if grammarInstalled or not ZO_TimedActivityData or not ZO_TimedActivityData.GetName then return end
+    grammarInstalled = true
+    local original = ZO_TimedActivityData.GetName
+    -- Only sixteen target counts are retained; discarded when the UI reloads.
+    local lookups, order = {}, {}
+    ZO_TimedActivityData.GetName = function(self, ...)
+        local native = original(self, ...)
+        if not R.IsActive() then return native end
+        local n = self:GetMaxProgress()
+        if type(n) ~= 'number' or n < 1 or n ~= math.floor(n) then return native end
+        local lookup = lookups[n]
+        if not lookup then
+            lookup = {}
+            for _, row in ipairs(seasonNames) do
+                local key = zo_strformat(row[1], n)
+                local logical = R.ResolveSeasonTitle(row[2], n)
+                if not logical:find('<<', 1, true) then lookup[key] = R.ShapeLogical(logical) end
+            end
+            if #order == 16 then lookups[table.remove(order, 1)] = nil end
+            order[#order + 1], lookups[n] = n, lookup
+        end
+        return lookup[native] or native
+    end
+end
+
+end
+
+do
+-- Source: ZO_TimedActivityTile_Keyboard.LayoutPlatform and its 720x130 template.
+local seasonInstalled = false
+function R.InstallSeasonLayouts()
+    if seasonInstalled or not SecurePostHook or not ZO_TimedActivityTile_Keyboard then return end
+    seasonInstalled = true
+    SecurePostHook(ZO_TimedActivityTile_Keyboard, "LayoutPlatform", function(self)
+        if not R.IsActive() or IsInGamepadPreferredMode() then return end
+        local control = self.control
+        if not control then return end
+        local width = control:GetWidth() - 32
+        if width <= 0 then return end
+        local function place(label, y, height, labelWidth, alignment, size)
+            if not label then return end
+            label:ClearAnchors()
+            label:SetAnchor(TOPLEFT, control, TOPLEFT, 16, y)
+            label:SetDimensions(labelWidth, height)
+            local refresh = R.BindLabel(label, {width = labelWidth, height = height,
+                size = size, minimum = 14, flow = false, multiline = true,
+                reflowVisual = true, align = alignment})
+            if refresh then refresh() end
+            label:SetHeight(height)
+            label:SetMaxLineCount(height > 30 and 2 or 1)
+        end
+        place(self.titleLabel, 8, 44, width, TEXT_ALIGN_RIGHT, 22)
+        place(self.timeRemainingLabel, 56, 22, width, TEXT_ALIGN_RIGHT, 18)
+        place(self.claimedLabel, 82, 20, width * 0.65, TEXT_ALIGN_LEFT, 18)
+    end)
+end
+
 end

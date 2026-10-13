@@ -1,0 +1,7 @@
+## Title: Chat Command Exit
+## Description: [AI-assisted code] Adds chat commands to leave a group and/or exit a dungeon/trial. Commands: /groupout, /dangeout, /dungeonout, /gdtout. No dependencies.
+## Author: VotMyID
+## Version: 1.1.4
+## AddOnVersion: 2
+## APIVersion: 101051
+ChatCommandExit.lua

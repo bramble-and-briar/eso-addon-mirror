@@ -3,21 +3,24 @@ local appName = "necroTracker"
 local isLoaded = false
 local BlastbonesSkillId = 117691
 local nothingWastedSkillId = 263461
+local blastBonesTravelId = 117718
 local isMenuOpen = false
 local colourStartupText
 local colourStartupNumber
-local colourSet
+local colourSetText
+local colourSetNumber
+local blastbonesCastTime = nil
+local trackBlast = false
 
 necroTracker = {}
 
 necroTracker.defaults = {
     trackNecro = true,
-    yAxisText = 550,
-    xAxisText = 450,
-    textColor = { 0, 1, 0, 1 },
-    numberColor = { 1, 0, 0, 1 }
+    yAxisText = 600,
+    xAxisText = 400,
+    textColor = { 0.247, 0.129, 1, 1 },--{ 0, 1, 0, 1 } red
+    numberColor = { 1, 0.573, 0, 1 }--{ 1, 0, 0, 1 } green
 }
-
 
 --print message to chat box
 local function printMessage(msg)
@@ -71,12 +74,35 @@ local function setAnchor(x, y)
     necroText:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, x, y)
 end
 
+--track blastbones timer
+local function startBlastbonesTimer()
+    blastbonesCastTime = GetGameTimeSeconds()
 
+    EVENT_MANAGER:UnregisterForUpdate("NecroTracker_Blastbones_Update")
 
+    if trackBlast then
+        EVENT_MANAGER:RegisterForUpdate("NecroTracker_Blastbones_Update", 100,
+            function()
+                if not blastbonesCastTime then
+                    EVENT_MANAGER:UnregisterForUpdate("NecroTracker_Blastbones_Update")
+                    return
+                end
 
+                local elapsed = GetGameTimeSeconds() - blastbonesCastTime
 
+                necroTextBlastNum:SetText(string.format("%.1f", elapsed))
+            end
+        )
+    else
+        necroTextBlastNum:SetText("Ready")
+    end
+end
 
-
+local function stopBlastbonesTimer()
+    blastbonesCastTime = nil
+    EVENT_MANAGER:UnregisterForUpdate("NecroTracker_Blastbones_Update")
+    necroTextBlastNum:SetText("Ready")
+end
 
 --handle combat notifications
 local function combatReport(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName,
@@ -92,42 +118,60 @@ local function combatReport(eventCode, result, isError, abilityName, abilityGrap
         return
     end
 
-    if abilityId ~= BlastbonesSkillId then
-        return
+    if abilityId == BlastbonesSkillId and result == 2240 then
+        trackBlast = true
+        startBlastbonesTimer()
     end
-
-    --all good, start timer ?
 end
 
---handle effect changes
-local function effectReport(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, 
+--handle effect changes nothing wasted
+local function effectReportNW(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, 
     effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
 
-    --(changeType)	 -- 1 is gained, 2 is gone, 3 is update
-	--(effectType)	 -- 1 is debuff, 0 is buff
-    printMessage(" ")
-    printMessage("effectReport")
-    if changeType == 1 then
-        printMessage("gained effect")
-    elseif changeType == 2 then
-        printMessage("lost effect")
-    elseif changeType == 3 then
-        printMessage("effect update")
-    else
-        printMessage(zo_strformat("changeType- <<1>>", changeType))
+    if abilityID == nothingWastedSkillId then
+        if changeType == 1 then
+            --display stacks, gained effect
+            necroTextWasteNum:SetText(tostring(stackCount))
+        elseif changeType == 2 then
+            --stop tracking clear timer, lost effect
+            necroTextWasteNum:SetText("")
+        elseif changeType == 3 then
+            --display stacks, effect updated
+            necroTextWasteNum:SetText(tostring(stackCount))
+        end
     end
+end
 
-    printMessage(zo_strformat("effectName- <<1>>", effectName))
-    printMessage(zo_strformat("unitName- <<1>>", unitName))
-    printMessage(zo_strformat("stackCount- " ..stackCount))
-    printMessage(zo_strformat("abilityID- <<1>>", abilityID))
-    printMessage(" ")
+--handle effect changes blastbones
+local function effectReportBB(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType, 
+    effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
+
+    --printMessage(string.format(
+    --   "BB EFFECT | eventCode=%s | changeType=%s | effectSlot=%s | effectName=%s | unitTag=%s | beginTime=%s | endTime=%s | stackCount=%s | iconName=%s | buffType=%s | effectType=%s | abilityType=%s | statusEffectType=%s | unitName=%s | unitID=%s | abilityID=%s",
+    --    tostring(eventCode), tostring(changeType), tostring(effectSlot), tostring(effectName), tostring(unitTag), tostring(beginTime),
+    --    tostring(endTime), tostring(stackCount), tostring(iconName), tostring(buffType),tostring(effectType),
+    --    tostring(abilityType), tostring(statusEffectType), tostring(unitName), tostring(unitID), tostring(abilityID)))
+
+
+    if abilityID == blastBonesTravelId then
+            if changeType == 1 then
+                --blastbones is running
+            elseif changeType == 2 then
+                --blastbones has hit and is ready to use
+                trackBlast = false
+                stopBlastbonesTimer()
+            end
+    end
 end
 
 --register for notifications 
 local function registerAlerts()
-    EVENT_MANAGER:RegisterForEvent("effectReport", EVENT_EFFECT_CHANGED, effectReport)
-    EVENT_MANAGER:AddFilterForEvent("effectReport", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, nothingWastedSkillId)
+    EVENT_MANAGER:RegisterForEvent("effectReport1", EVENT_EFFECT_CHANGED, effectReportNW)
+    EVENT_MANAGER:AddFilterForEvent("effectReport1", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, nothingWastedSkillId)
+
+    EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReportBB)
+    EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, blastBonesTravelId)
+
     EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
     EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, BlastbonesSkillId)
 end
@@ -135,6 +179,7 @@ end
 --unregister for notifications
 local function unRegisterAlerts()
     EVENT_MANAGER:UnregisterForEvent("effectReport", EVENT_EFFECT_CHANGED)
+    EVENT_MANAGER:UnregisterForEvent("effectReport2", EVENT_EFFECT_CHANGED)
     EVENT_MANAGER:UnregisterForEvent("combatReport", EVENT_COMBAT_EVENT)
 end
 
@@ -166,8 +211,8 @@ local function createOptions()
         },
         {
             type = "checkbox",
-            name = "Track Buff",
-            tooltip = "Displays a timer while the Huntsman's Warmask buff is active.",
+            name = "Track Buffs",
+            tooltip = "Displays a tracker for Blighted Blastbones, Nothing Wasted and how many Corpses are available.",
             getFunc = function()
                 return necroTracker.savedVariables.trackNecro
             end,
@@ -219,10 +264,30 @@ local function createOptions()
             end,
             setFunc = function (r, g, b, a)
                 necroTracker.savedVariables.textColor = { r, g, b, a }
-                colourSet = ZO_ColorDef:New(unpack(necroTracker.savedVariables.textColor))
-                necroTextBlast:SetColor(colourSet:UnpackRGBA())
-                necroTextWaste:SetColor(colourSet:UnpackRGBA())
-                necroTextCorpse:SetColor(colourSet:UnpackRGBA())
+                colourSetText = ZO_ColorDef:New(unpack(necroTracker.savedVariables.textColor))
+                necroTextBlast:SetColor(colourSetText:UnpackRGBA())
+                necroTextWaste:SetColor(colourSetText:UnpackRGBA())
+                necroTextCorpse:SetColor(colourSetText:UnpackRGBA())
+                --printMessage("text colour: " .. colourSetText:ToHex())
+                --printMessage("text colour: { " .. r .. ", " .. g .. ", " .. b .. ", " .. a .. " }")
+            end,
+        },
+        {
+            type = "colorpicker",
+            name = "Number colour",
+            tooltip = "Change the colour of the notification numbers.",
+            default = ZO_ColorDef:New(unpack(necroTracker.defaults.numberColor)),
+            getFunc = function ()
+                return unpack(necroTracker.savedVariables.numberColor)
+            end,
+            setFunc = function (r, g, b, a)
+                necroTracker.savedVariables.numberColor = { r, g, b, a }
+                colourSetNumber = ZO_ColorDef:New(unpack(necroTracker.savedVariables.numberColor))
+                necroTextBlastNum:SetColor(colourSetNumber:UnpackRGBA())
+                necroTextWasteNum:SetColor(colourSetNumber:UnpackRGBA())
+                necroTextCorpseNum:SetColor(colourSetNumber:UnpackRGBA())
+                --printMessage("num colour: " .. colourSetNumber:ToHex())
+                --printMessage("num colour: { " .. r .. ", " .. g .. ", " .. b .. ", " .. a .. " }")
             end,
         },
         {
@@ -234,7 +299,6 @@ local function createOptions()
                 zo_callLater(function () if isMenuOpen == true then necroText:SetHidden(true) end end, 2000)
              end,
         },
-        --numbers colour
         {
             type = "divider",
             height = 0,
@@ -260,21 +324,34 @@ local function libLoaded(event, name)
     createOptions()
 
     colourStartupText = ZO_ColorDef:New(unpack(necroTracker.savedVariables.textColor))
+    colourStartupNumber = ZO_ColorDef:New(unpack(necroTracker.savedVariables.numberColor))
 
     --setup text fields
     necroText:SetMovable(true)
 
-    necroTextBlast:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
+    necroTextBlast:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextBlast:SetText("Blastbones: ")
     necroTextBlast:SetColor(colourStartupText:UnpackRGBA())
 
-    necroTextWaste:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
+    necroTextWaste:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextWaste:SetText("Nothing Wasted: ")
     necroTextWaste:SetColor(colourStartupText:UnpackRGBA())
 
-    necroTextCorpse:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
+    necroTextCorpse:SetFont("$(GAMEPAD_BOLD_FONT)|$(GP_54)|soft-shadow-thick")
     necroTextCorpse:SetText("Corpses: ")
     necroTextCorpse:SetColor(colourStartupText:UnpackRGBA())
+
+    necroTextBlastNum:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
+    necroTextBlastNum:SetText("Ready")
+    necroTextBlastNum:SetColor(colourStartupNumber:UnpackRGBA())
+
+    necroTextWasteNum:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
+    necroTextWasteNum:SetText("")
+    necroTextWasteNum:SetColor(colourStartupNumber:UnpackRGBA())
+
+    necroTextCorpseNum:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
+    necroTextCorpseNum:SetText("")
+    necroTextCorpseNum:SetColor(colourStartupNumber:UnpackRGBA())
 
     setAnchorStartup(necroTracker.savedVariables.xAxisText, necroTracker.savedVariables.yAxisText)
 

@@ -1,5 +1,5 @@
 -- Craft Master: no external libraries. All scans use the game's event manager.
-CraftMaster = { name = "CraftMaster", version = "1.0.4" }
+CraftMaster = { name = "CraftMaster", version = "1.0.7" }
 local CM = CraftMaster
 local EM = EVENT_MANAGER
 local GREEN, RED, GREY = "66ee88", "ff7777", "b7bec9"
@@ -10,20 +10,29 @@ function CM:Clean(text)
     return zo_strformat(SI_TOOLTIP_ITEM_NAME, text)
 end
 function CM:Lower(text) return string.lower(self:Clean(text)) end
-function CM:Link(id)
-    return string.format("|H1:item:%d:1:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", id)
+function CM:Link(id, subtype, level)
+    -- ESO requires 21 numeric item-data fields, including scaling at field 20.
+    return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:10000:0|h|h", id, subtype or 1, level or 1)
 end
 function CM:RecipeKey(list, index)
     local _, _, _, _, _, _, _, resultId = GetRecipeInfo(list, index)
+    local link = GetRecipeResultItemLink(list, index, LINK_STYLE_DEFAULT)
+    if link and link ~= "" then
+        local actualId = GetItemLinkItemId(link)
+        if actualId and actualId > 0 then resultId = actualId end
+    end
     if resultId and resultId > 0 then return "r:" .. resultId end
-    return nil
 end
 function CM:ReadRecipe(list, index, pending)
     local known, name, _, _, _, _, station, resultId = GetRecipeInfo(list, index)
     if not resultId or resultId <= 0 or not name or name == "" then return end
-    local key = "r:" .. resultId
     local link = GetRecipeResultItemLink(list, index, LINK_STYLE_DEFAULT)
-    if not link or link == "" then link = self:Link(resultId) end
+    if not link or link == "" then link = self:Link(resultId)
+    else
+        local actualId = GetItemLinkItemId(link)
+        if actualId and actualId > 0 then resultId = actualId end
+    end
+    local key = "r:" .. resultId
     local _, icon, _, _, quality = GetRecipeResultItemInfo(list, index)
     quality = quality or GetItemLinkDisplayQuality(link) or 1
     local cat, sub
@@ -40,37 +49,55 @@ function CM:ReadRecipe(list, index, pending)
     e.category, e.subcategory = furniture and cat or nil, furniture and sub or nil
     e.list, e.index, e.quality, e.icon = list, index, quality, icon
     e.station = station
+    e.resultType, e.resultLink = GetItemLinkItemType(link), link
     self.sv.catalog[key] = e
     self.searchNames[key] = self:Lower(e.name)
     if type(known) == "boolean" then pending[key] = known end
     return e
 end
+function CM:ResolvePlanRow(row)
+    -- Verify both sides of the ID pair against native item types. Never infer
+    -- recipe-vs-result identity from the order used by an external index.
+    local candidates = {row[2], row[1]}
+    for _, variant in ipairs({{1,1}, {0,0}, {5,1}}) do
+        for _, id in ipairs(candidates) do
+            local link = self:Link(id, variant[1], variant[2])
+            if GetItemLinkItemType(link) == ITEMTYPE_RECIPE then
+                local result = GetItemLinkRecipeResultItemLink(link, LINK_STYLE_DEFAULT)
+                local fallbackResultId = id == row[1] and row[2] or row[1]
+                if not result or result == "" then result = self:Link(fallbackResultId) end
+                local resultId = GetItemLinkItemId(result)
+                if resultId and resultId > 0 then return link, id, result, resultId end
+            end
+        end
+    end
+end
 function CM:ReadCatalogPlan(row, pending)
-    local resultId, planId, quality, fallbackCategory, fallbackName = row[1], row[2], row[3], row[4], row[5]
-    local planLink = self:Link(planId)
-    -- Ignore stale/unavailable IDs instead of showing invented missing items.
-    if GetItemLinkItemType(planLink) ~= ITEMTYPE_RECIPE then return end
-    local resultLink = GetItemLinkRecipeResultItemLink(planLink, LINK_STYLE_DEFAULT)
-    if not resultLink or resultLink == "" then resultLink = self:Link(resultId) end
-    local actualId = GetItemLinkItemId(resultLink)
-    if actualId and actualId > 0 then resultId = actualId end
+    local planLink, planId, resultLink, resultId = self:ResolvePlanRow(row)
+    if not planLink then self.scanSkippedPlans = (self.scanSkippedPlans or 0) + 1; return end
+    local quality, fallbackCategory, fallbackName = row[3], row[4], row[5]
     local key = "r:" .. resultId
     local name = self:Clean(GetItemLinkName(resultLink))
     if name == "" then name = fallbackName or self:Clean(GetItemLinkName(planLink)) end
     if not name or name == "" then return end
+    local resultType = GetItemLinkItemType(resultLink)
     local cat, sub
     local dataId = GetItemLinkFurnitureDataId(resultLink)
     if dataId and dataId > 0 then cat, sub = GetFurnitureDataCategoryInfo(dataId) end
-    local furniture = IsItemLinkFurnitureRecipe(planLink)
+    local furniture = resultType == ITEMTYPE_FURNISHING or (cat and cat > 0)
+    if IsItemLinkFurnitureRecipe then furniture = furniture or IsItemLinkFurnitureRecipe(planLink) end
+    if not furniture and self.categoryByName[self:Lower(fallbackCategory)] then furniture = true end
     if furniture and not cat then cat = self.categoryByName[self:Lower(fallbackCategory)] end
     local e = self.sv.catalog[key] or {}
     e.key, e.resultId, e.planId, e.name = key, resultId, planId, name
     e.kind = furniture and "housing" or "recipes"
+    e.resultType, e.resultLink = resultType, resultLink
     e.category, e.subcategory = cat, sub
     e.quality = quality or GetItemLinkDisplayQuality(planLink) or 1
     self.sv.catalog[key], self.searchNames[key] = e, self:Lower(name)
     local known = IsItemLinkRecipeKnown(planLink)
     if type(known) == "boolean" and pending[key] ~= true then pending[key] = known end
+    self.scanValidPlans = (self.scanValidPlans or 0) + 1
     return e
 end
 function CM:MotifCollections()
@@ -116,6 +143,7 @@ function CM:StartScan()
     if not self.sv.main then self.sv.main = id end
     if not self.viewCharacter then self.viewCharacter = self.sv.main end
     self.scanning, self.scanCount, self.scanErrors = true, 0, 0
+    self.scanValidPlans, self.scanSkippedPlans = 0, 0
     self.scanCharacter = id
     local list, index, loreJob, book, planIndex = 1, 1, 1, 1, 1
     local phase, pending = "recipes", {}
@@ -172,12 +200,14 @@ function CM:StartScan()
                     -- Keep prior observations on partial/error scans; never invent missing states.
                     for key, value in pairs(pending) do character.knowledge[key] = value end
                     character.lastScan, character.api = GetTimeStamp(), GetAPIVersion()
-                    character.complete = self.scanErrors == 0
+                    character.complete = self.scanErrors == 0 and (#planJobs == 0 or self.scanValidPlans > 0)
+                    character.validPlans, character.skippedPlans, character.scanErrors = self.scanValidPlans, self.scanSkippedPlans, self.scanErrors
                     self.scanning, self.pendingKnowledge = false, nil
                     -- An alt's known-only recipe list is never a reason to remove
                     -- the main crafter's catalogue or anyone else's saved knowledge.
                     self:RefreshIfVisible()
                     self:Message("Scan saved for " .. character.name .. " (" .. self.scanCount .. " records"
+                        .. "; " .. self.scanValidPlans .. " plans checked, " .. self.scanSkippedPlans .. " skipped"
                         .. (self.scanErrors > 0 and "; " .. self.scanErrors .. " errors" or "") .. ").")
                     if self.rescanNeeded then
                         self.rescanNeeded = false
@@ -211,17 +241,17 @@ end
 function CM:KeyFromItemLink(link)
     local itemType = GetItemLinkItemType(link)
     if itemType == ITEMTYPE_RECIPE then
-        local list, index = GetItemLinkGrantedRecipeIndices(link)
-        if list and index then
-            local key = self:RecipeKey(list, index)
-            if key and self.sv.catalog[key] then self.sv.catalog[key].planId = GetItemLinkItemId(link) end
-            if key then return key end
-        end
         local result = GetItemLinkRecipeResultItemLink(link, LINK_STYLE_DEFAULT)
         if result and result ~= "" then
             local id = GetItemLinkItemId(result)
-            if id and id > 0 then return "r:" .. id end
+            if id and id > 0 then
+                local key = "r:" .. id
+                if self.sv.catalog[key] then self.sv.catalog[key].planId = GetItemLinkItemId(link) end
+                return key
+            end
         end
+        local list, index = GetItemLinkGrantedRecipeIndices(link)
+        if list and index then return self:RecipeKey(list, index) end
     elseif itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         return self.motifByTitle[self:Lower(GetItemLinkBookTitle(link))]
     end
@@ -278,8 +308,9 @@ function CM:Slash(text)
     elseif command == "scan" then self:StartScan()
     elseif command == "status" then
         local c = self.sv.characters[self.sv.main]
-        self:Message("Main: " .. (c and c.name or "none") .. "; catalogued: " .. self:CatalogCount()
-            .. "; scan: " .. (self.scanning and "running (" .. self.scanCount .. ")" or "idle") .. ".")
+        self:Message("v" .. self.version .. "; Main: " .. (c and c.name or "none") .. "; catalogued: " .. self:CatalogCount()
+            .. "; scan: " .. (self.scanning and "running (" .. self.scanCount .. ")" or "idle") .. "; plans checked: " .. (c and c.validPlans or 0) .. "; skipped: " .. (c and c.skippedPlans or 0)
+            .. "; errors: " .. (c and c.scanErrors or 0) .. ".")
     else
         self:Toggle()
         if text ~= "" and self.window and not self.window:IsHidden() then self.search:SetText(text) end
@@ -289,6 +320,20 @@ function CM:CatalogCount() local n = 0; for _ in pairs(self.sv.catalog) do n = n
 function CM:Initialize()
     self.sv = ZO_SavedVars:NewAccountWide("CraftMasterSavedVariables", 1, GetWorldName(),
         { characters = {}, catalog = {} })
+    if self.sv.catalogRevision ~= 2 then
+        -- Discard only recipe catalogue/snapshots built with unverified IDs.
+        -- Preserve characters, chosen main and their motif records.
+        for key, entry in pairs(self.sv.catalog) do
+            if entry.kind ~= "motifs" then self.sv.catalog[key] = nil end
+        end
+        for _, c in pairs(self.sv.characters) do
+            for key in pairs(c.knowledge) do
+                if key:sub(1,2) == "r:" then c.knowledge[key] = nil end
+            end
+            c.complete, c.lastScan, c.validPlans, c.skippedPlans, c.scanErrors = false, nil, nil, nil, nil
+        end
+        self.sv.catalogRevision = 2
+    end
     self.searchNames, self.motifByTitle = {}, {}
     for key, e in pairs(self.sv.catalog) do
         self.searchNames[key] = self:Lower(e.name)

@@ -1760,7 +1760,7 @@
 [SI_EULATYPE_READCHECK3] = ".ﺎﻬﻤﻬﻓﺃﻭ ﺎﻬﺗﺃﺮﻗ ﺪﻘﻟ"
 [SI_EULA_BUTTON_AGREE] = "ﻞﺒﻗﺃ"
 [SI_EULA_BUTTON_DISAGREE] = "ﺾﻓﺭﺃ"
-[SI_EVENT_ANNOUNCEMENT_TIME] = "<<X:1>> :ﻲﻘﺒﺘﻤﻟﺍ ﺖﻗﻮﻟﺍ"
+[SI_EVENT_ANNOUNCEMENT_TIME] = "|ar<<X:1>> :ﻲﻘﺒﺘﻤﻟﺍ ﺖﻗﻮﻟﺍ"
 [SI_EXIT_BUTTON] = "ﺝﻭﺮﺨﻟﺍ"
 [SI_EXTRA_INFO_SERVICE_TOKENS_HEADER] = "ﺔﻣﺪﺨﻟﺍ ﺯﻮﻣﺭ"
 [SI_FAILED_LOAD] = "؟ﻯﺮﺧﺃ ﺓﺮﻣ ﺔﻟﻭﺎﺤﻤﻟﺍ ﺪﻳﺮﺗ ﻞﻫ .ﺢﻴﺤﺻ ﻞﻜﺸﺑ ﻪﻌﻓﺭ ﻥﺎﻜﻣﺎﺑ ﻦﻜﻳ ﻢﻟ ﻲﺋﺎﻘﻠﺘﻟﺍ ﻆﻔﺤﻟﺍ ﻒﻠﻣ"

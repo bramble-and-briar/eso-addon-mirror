@@ -105,7 +105,7 @@ local lootStrings = {
     WritVouchers = "قسائم التكليفات", UndauntedKeys = "مفاتيح الشجعان",
     TransmuteCrystals = "بلورات التحويل", EventTickets = "تذاكر الفعاليات",
     Endeavor = "أختام المساعي", Endless = "الثروات الأرشيفية", Fragment = "الشظايا الإمبراطورية",
-    TomePoints = "نقاط المجلد", TomePointCaches = "حزم نقاط المجلد",
+    TomePoints = "نقاط المجلد", TomePointCaches = "صناديق نقاط المجلد",
     TomeTokens = "رموز المجلد المميزة", TradeBars = "سبائك التجارة",
     CompanionXP = "خبرة الرفيق", CompanionRapport = "الألفة مع الرفيق", Rapport = "الألفة",
     LevelPsijic = "المستوى", CAchievement = "اكتمل!", AProgress = "التقدم:",
@@ -141,3 +141,98 @@ EVENT_MANAGER:RegisterForEvent("ESOArabicLootDrop", EVENT_ADD_ON_LOADED, functio
 end)
 EVENT_MANAGER:RegisterForEvent("ESOArabicLootDropReady", EVENT_PLAYER_ACTIVATED, installLootDrop)
 installLootDrop()
+
+-- AwesomeGuildStore keyboard result rows have two separate one-line labels.
+-- Keep this adapter local to AGS; never change its saved searches or prices.
+do
+    local strings = {
+        ["Sort By"] = "ترتيب حسب", ["Unit Price"] = "سعر الوحدة",
+        ["Price Range"] = "نطاق السعر", ["Level Range"] = "نطاق المستوى",
+        ["Quality Range"] = "نطاق الجودة", ["Text Search"] = "البحث بالنص",
+        ["Unit Price Range"] = "نطاق سعر الوحدة", ["Recipe Knowledge"] = "معرفة الوصفة",
+        ["Recipe Type"] = "نوع الوصفة", ["Seller Name"] = "اسم البائع",
+        ["Seller:|cffffff <<1>>"] = "البائع: |cffffff<<1>>|r",
+    }
+    local function label(control, width, size, autoWidth)
+        if not control then return end
+        local refresh = R.BindLabel(control, {single = true, flow = false,
+            width = width, size = size, minimum = 14, height = 24,
+            autoWidth = autoWidth, reflowVisual = true})
+        control:SetMaxLineCount(1)
+        if refresh then refresh() end
+    end
+    local function rowLayout(row)
+        if not R.IsActive() then return end
+        label(row:GetNamedChild("Name"), 310, 20, false)
+        local seller = row.sellerName
+        if seller then
+            seller:SetWidth(300)
+            label(seller, 300, 16, false)
+        end
+        label(row:GetNamedChild("TimeRemaining"), 65, 18, false)
+    end
+    local function resultList(self)
+        if not self.list or not self.list.list then return end
+        for _, id in ipairs({1, 3}) do
+            local dataType = ZO_ScrollList_GetDataTypeTable(self.list.list, id)
+            if dataType and not dataType.esoArabicAGS5 then
+                dataType.esoArabicAGS5 = true
+                local original = dataType.setupCallback
+                dataType.setupCallback = function(row, data, ...)
+                    original(row, data, ...)
+                    rowLayout(row)
+                end
+            end
+        end
+    end
+    local function headers(self, wrapper)
+        if not R.IsActive() then return end
+        local container = wrapper.tradingHouse.searchSortHeaders.headerContainer
+        for key, text in pairs({Price = "الإجمالي", PricePerUnit = "للوحدة", TimeRemaining = "المدة"}) do
+            local header = container:GetNamedChild(key)
+            local name = header and header:GetNamedChild("Name")
+            if name then
+                label(name, nil, 18, true)
+                name:SetText(R.Compose(R.ShapeLogical(text)))
+            end
+        end
+    end
+    function R.InstallGuildStoreRows()
+        local ags = AwesomeGuildStore
+        if not ags or not ags.class then return end
+        -- Captured gettext closures still call this dictionary method. Gate it
+        -- on Arabic activation rather than overwriting the third-party dictionary.
+        if LibGetText then
+            local dictionary = LibGetText("AwesomeGuildStore")
+            if not dictionary.esoArabicAGS5 then
+                dictionary.esoArabicAGS5 = true
+                local original = dictionary.GetText
+                dictionary.GetText = function(self, text, ...)
+                    if R.IsActive() and strings[text] then
+                        local translated = R.Compose(R.ShapeLogical(strings[text]))
+                        if select("#", ...) > 0 then return zo_strformat(translated, ...) end
+                        return translated
+                    end
+                    return original(self, text, ...)
+                end
+            end
+        end
+        local class = ags.class.SearchResultListWrapper
+        if class and not class.esoArabicAGS5 then
+            class.esoArabicAGS5 = true
+            SecurePostHook(class, "InitializeResultList", resultList)
+            SecurePostHook(class, "InitializeSortHeaders", headers)
+        end
+        local fragment = ags.class.FilterFragment
+        if fragment and not fragment.esoArabicAGS5 then
+            fragment.esoArabicAGS5 = true
+            SecurePostHook(fragment, "SetLabelText", function(self)
+                if R.IsActive() then label(self.label, 300, 20, false) end
+            end)
+        end
+        local wrapper = ags.internal and ags.internal.tradingHouse
+        local existing = wrapper and wrapper.searchTab and wrapper.searchTab.searchResultList
+        if existing then resultList(existing); headers(existing, wrapper) end
+    end
+    EVENT_MANAGER:RegisterForEvent("ESOArabicGuildStoreRows", EVENT_PLAYER_ACTIVATED, R.InstallGuildStoreRows)
+end

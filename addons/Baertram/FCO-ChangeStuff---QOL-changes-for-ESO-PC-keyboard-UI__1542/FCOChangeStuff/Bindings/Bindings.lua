@@ -1,0 +1,10 @@
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_ADDON_SETTINGS_MENU", "AddOns")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_MAP_PLAYER_PIN_PING_PONG", "Map: Player pin ping pong")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_TOGGLE_SETTINGS_COMPASS_QUEST_GIVERS", "Settings: Compass quest givers")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_TOGGLE_AUDIO_MUTE_SFX", "Mute/restore audio SFX")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_TOGGLE_GROUP_ELECTION_AUTO_DECLINE", "Toggle Auto decline (group elections)")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_SWITCH_BANK_PANEL", "Switch bank panel (deposit/withdraw)")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_TOGGLE_SETTINGS_INNOCENT_ATTACK", "Toggle innocent attack")
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_TOGGLE_TOGGLE_PROM_EVENT_TRACKER", "Toggle golden pursuits UI")
+
+ZO_CreateStringId("SI_BINDING_NAME_FCOCS_TOGGLE_SYSTEM", "ESC key behavior")

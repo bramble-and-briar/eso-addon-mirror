@@ -5,22 +5,27 @@ local NAME = "ImprovedAttributeBars"
 -- Utilities
 --------------------------------------------------------------------------------
 
-local function FormatValues( current, maximum, shield, trauma, delimited )
+local function FormatValues( delimited, current, maximum, shield, trauma )
 	if (maximum and maximum > 0) then
 		local percent = zo_floor(100 * current / maximum)
 		if (delimited) then
-			return zo_strformat("<<F:1>> / <<F:2>> (<<3>>%)", current, maximum, percent)
-		elseif (shield or trauma) then
-			return string.format(
-				"%d%s%s / %d (%d%%)",
+			return LocalizeString(
+				"<<F:1>><<2>><<3>> / <<F:4>> (<<5>>%)",
 				current,
-				(shield or 0) > 0 and string.format(" [+%d]", shield) or "",
-				(trauma or 0) > 0 and string.format(" [-%d]", trauma) or "",
+				(shield and shield > 0) and LocalizeString(" [+<<F:1>>]", shield) or "",
+				(trauma and trauma > 0) and LocalizeString(" [-<<F:1>>]", trauma) or "",
 				maximum,
 				percent
 			)
 		else
-			return string.format("%d / %d (%d%%)", current, maximum, percent)
+			return string.format(
+				"%d%s%s / %d (%d%%)",
+				current,
+				(shield and shield > 0) and string.format(" [+%d]", shield) or "",
+				(trauma and trauma > 0) and string.format(" [-%d]", trauma) or "",
+				maximum,
+				percent
+			)
 		end
 	else
 		return ""
@@ -44,6 +49,26 @@ end
 
 
 --------------------------------------------------------------------------------
+-- Settings
+--------------------------------------------------------------------------------
+
+local SV
+
+local function InitializeSettings( )
+	SV = ImprovedAttributeBarsSavedVariables or { }
+
+	SLASH_COMMANDS["/iab"] = function( param )
+		param = zo_strtrim(zo_strlower(param))
+		if (param ~= "") then
+			SV[param] = not SV[param] or nil
+			ImprovedAttributeBarsSavedVariables = SV
+			CHAT_ROUTER:AddSystemMessage(string.format("%s: %s", param, GetString(SV[param] and SI_CHECK_BUTTON_ON or SI_CHECK_BUTTON_OFF)))
+		end
+	end
+end
+
+
+--------------------------------------------------------------------------------
 -- Attribute Bars
 -- /ingame/playerattributebars/playerattributebars.lua
 --------------------------------------------------------------------------------
@@ -58,7 +83,7 @@ local function HookAttributeBars( )
 
 	local hookFunc = function( self, current, maximum )
 		if (self.control.resourceNumbersLabel) then
-			self.control.resourceNumbersLabel:SetText(FormatValues(current, maximum, self.iabShield, self.iabTrauma))
+			self.control.resourceNumbersLabel:SetText(FormatValues(SV.delimall, current, maximum, self.iabShield, self.iabTrauma))
 		end
 		return true
 	end
@@ -134,7 +159,7 @@ local function HookTargetFrame( )
 		numbersLabel:SetDrawLevel(10)
 
 		ZO_PreHook(bar, "UpdateText", function( self )
-			numbersLabel:SetText(FormatValues(self.currentValue, self.maxValue, GetCurrentShieldAndTrauma(unitTag)))
+			numbersLabel:SetText(FormatValues(true, self.currentValue, self.maxValue, GetCurrentShieldAndTrauma(unitTag)))
 			return true
 		end)
 
@@ -163,7 +188,7 @@ local function HookTargetFrame( )
 		local shieldModule = GetShieldModule(targetFrame)
 
 		SecurePostHook(targetFrame, "UpdateUnitReaction", function( self )
-			local override = reactionOverrides[GetUnitReaction(unitTag)]
+			local override = not SV.nocolors and reactionOverrides[GetUnitReaction(unitTag)] or nil
 			if (bar.barType) then
 				bar:SetColor(bar.barType, override)
 			end
@@ -213,7 +238,7 @@ local function HookBossBar( )
 			totalHealth = totalHealth + bossEntry.health
 			totalMaxHealth = totalMaxHealth + bossEntry.maxHealth
 		end
-		self.healthText:SetText(FormatValues(totalHealth, totalMaxHealth, nil, nil, true))
+		self.healthText:SetText(FormatValues(true, totalHealth, totalMaxHealth))
 	end)
 	BOSS_BAR:RefreshBossHealthBar()
 end
@@ -224,6 +249,7 @@ end
 --------------------------------------------------------------------------------
 
 EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, function( )
+	InitializeSettings()
 	HookAttributeBars()
 	HookTargetFrame()
 	HookBossBar()

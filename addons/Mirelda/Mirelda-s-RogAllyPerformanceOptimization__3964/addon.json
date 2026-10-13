@@ -18,7 +18,7 @@
     "RogAllyPerformanceOptimization"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3964/",
-  "fingerprint": "410a5303213c6b293364b48826adbb7702cab72140a37a88ee9e67189224ca45",
+  "fingerprint": "7a887ac8d7ab999ecdb8990db2367d0787fe79ec6de7572d25b6793c75714c8e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw13443.jpg"
   ],
@@ -28,11 +28,11 @@
   "source_id": "3964",
   "source_url": "https://www.esoui.com/downloads/info3964-MireldasRogAllyPerformanceOptimization.html",
   "stats": {
-    "downloads": 1986,
+    "downloads": 1999,
     "favorites": 0,
-    "monthly_downloads": 31
+    "monthly_downloads": 40
   },
   "title": "Mirelda's RogAllyPerformanceOptimization",
-  "updated_at": 1791637240000,
+  "updated_at": 1791836310000,
   "version": "1.22"
 }

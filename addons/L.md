@@ -279,6 +279,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibTextFormat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/saranicole1980/LibTextFormat__cec7b602-5dc0-4af0-a949-cd5483dc7329) | saranicole1980 | Console | — |
 | [LibTextFormat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/thisbeaurielle/LibTextFormat__4380) | thisbeaurielle | PC / Mac | 0.1.9 |
 | [LibTrack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/LibTrack__081ea199-9758-4f43-b194-ba2df6ad9562) | codeWarrior82 | Console | — |
+| [LibTrack](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/LibTrack__bd83501c-9afa-4af7-b2da-d23bd3b627ed) | codeWarrior82 | Console | — |
 | [LibTraitResearch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Delte/LibTraitResearch__deb4d4a9-52ea-4c0d-b446-dbcf31a7d437) | Delte | Console | — |
 | [LibTraitResearch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/olegbl/LibTraitResearch__3264) | olegbl | PC / Mac | 1.05 |
 | [LibTreasure](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer1986PAN/LibTreasure__3227) | Gamer1986PAN | PC / Mac | 24 |
@@ -362,9 +363,9 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lucent Citadel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SlipperySoap/Lucent-Citadel__3879) | SlipperySoap | PC / Mac | 1.4.3 |
 | [Lucent Citadel Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wondernuts/Lucent-Citadel-Helper__3897) | Wondernuts | PC / Mac | 0.7.0 |
 | [Luck Meter: Critical Strikes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Luck-Meter-Critical-Strikes__3222) | Psiioniic | PC / Mac | 0.3.1 |
-| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.0 |
+| [Lui Extended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Lui-Extended__818) | DakJaniels | PC / Mac | 7.2.7.1 |
 | [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiData__9bb39b20-896b-4b23-a901-0c9d110edac7) | Dack.Janiels | Console | — |
-| [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.3.0 |
+| [LuiData](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/LuiData__4373) | DakJaniels | PC / Mac | 7.2.3.1 |
 | [LuiExecuteIcon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExecuteIcon__7121f08a-1fe7-4a77-b582-ad1815dcb6e6) | Dack.Janiels | Console | — |
 | [LuiExtended](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dack.Janiels/LuiExtended__198814e6-46ba-4bb3-b368-ba1a2af67c52) | Dack.Janiels | Console | — |
 | [LuiginoMP's Adventurer Toolkit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiginomp/LuiginoMP-s-Adventurer-Toolkit__3417) | luiginomp | PC / Mac | 1.5 |

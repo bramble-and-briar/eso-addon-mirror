@@ -119,6 +119,76 @@ function Settings:InitializeSettingsPanel()
         RouteOption("Buttons", L.OPT_ROUTE_BUTTONS, L.OPT_ROUTE_BUTTONS_TT),
         RouteOption("Wheel", L.OPT_ROUTE_WHEEL, L.OPT_ROUTE_WHEEL_TT),
         RouteOption("Map", L.OPT_ROUTE_MAP, L.OPT_ROUTE_MAP_TT),
+        RouteOption("Quest", L.OPT_ROUTE_QUEST, L.OPT_ROUTE_QUEST_TT),
+
+        -- Карта мира и задания
+        { type = "header", name = L.HEADER_QUESTS },
+        { type = "description", text = L.QUESTS_DESC },
+        {
+            type    = "checkbox",
+            name    = L.OPT_INFO_PANEL,
+            tooltip = L.OPT_INFO_PANEL_TT,
+            getFunc = function() return sv.infoPanel end,
+            setFunc = function(value)
+                sv.infoPanel = value
+                QTM.InfoPanel:UpdateVisibility()
+            end,
+            default = defaults.infoPanel,
+        },
+        {
+            type    = "checkbox",
+            name    = L.OPT_ZOOM_BAR,
+            tooltip = L.OPT_ZOOM_BAR_TT,
+            getFunc = function() return sv.zoomBar end,
+            setFunc = function(value)
+                sv.zoomBar = value
+                QTM.ZoomBar:Apply()
+            end,
+            default = defaults.zoomBar,
+        },
+        {
+            type    = "checkbox",
+            name    = L.OPT_TRACKER,
+            tooltip = L.OPT_TRACKER_TT,
+            getFunc = function() return sv.questTracker end,
+            setFunc = function(value)
+                sv.questTracker = value
+                QTM.QuestTracker:ApplySettings()
+            end,
+            default = defaults.questTracker,
+        },
+        {
+            type     = "checkbox",
+            name     = L.OPT_HIDE_GAME_TRACKER,
+            tooltip  = L.OPT_HIDE_GAME_TRACKER_TT,
+            getFunc  = function() return sv.hideGameTracker end,
+            setFunc  = function(value)
+                sv.hideGameTracker = value
+                QTM.QuestTracker:ApplySettings()
+            end,
+            disabled = function() return not sv.questTracker end,
+            default  = defaults.hideGameTracker,
+        },
+        {
+            type     = "checkbox",
+            name     = L.OPT_TRACKER_LOCKED,
+            tooltip  = L.OPT_TRACKER_LOCKED_TT,
+            getFunc  = function() return sv.trackerLocked end,
+            setFunc  = function(value)
+                sv.trackerLocked = value
+                QTM.QuestTracker:ApplySettings()
+            end,
+            disabled = function() return not sv.questTracker end,
+            width    = "half",
+            default  = defaults.trackerLocked,
+        },
+        {
+            type     = "button",
+            name     = L.OPT_TRACKER_RESET,
+            func     = function() QTM.QuestTracker:ResetPosition() end,
+            disabled = function() return not sv.questTracker end,
+            width    = "half",
+        },
 
         -- Кнопки на экране
         { type = "header", name = L.HEADER_BUTTONS },

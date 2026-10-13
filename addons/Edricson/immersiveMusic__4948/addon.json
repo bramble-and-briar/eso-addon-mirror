@@ -1,0 +1,40 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/Edricson/immersiveMusic__4948",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "Edricson",
+  "canonical_id": "esoui:4948",
+  "category_id": "114",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4948",
+  "deleted": false,
+  "directories": [
+    "ImmersiveMusic"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4948/",
+  "fingerprint": "2b9a2735dfad9a43fe1fc5e53a4e3aea07c8fc347afc6139821eadb6b94098b9",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17965.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17966.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4948",
+  "source_url": "https://www.esoui.com/downloads/info4948-immersiveMusic.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "immersiveMusic",
+  "updated_at": 1791893353000,
+  "version": "2.0.1"
+}

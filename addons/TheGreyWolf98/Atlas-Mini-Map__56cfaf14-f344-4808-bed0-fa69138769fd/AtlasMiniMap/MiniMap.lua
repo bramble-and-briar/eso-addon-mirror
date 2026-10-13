@@ -1,5 +1,7 @@
 AtlasMiniMap = {}
 local M=AtlasMiniMap
+local PIN_SIZE,PLAYER_SIZE,WAYPOINT_SIZE=26,28,32
+local HEADER_HEIGHT,MAP_TOP,WINDOW_EXTRA=42,46,104
 local defaults={enabled=true,size=300,zoom=3,x=0.79,y=0.08,clock=true,hour24=true,fps=true,latency=true,atlas=true}
 local function read(fn,...)
  if type(fn)~='function' then return nil end
@@ -32,12 +34,14 @@ function M:Layout()
  local s=self.saved;local size=s.size
  self.window:ClearAnchors();self.window:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT,
  clamp(s.x*GuiRoot:GetWidth(),0,math.max(0,GuiRoot:GetWidth()-size-8)),
- clamp(s.y*GuiRoot:GetHeight(),0,math.max(0,GuiRoot:GetHeight()-size-60)))
- self.window:SetDimensions(size+8,size+60);self.bg:SetDimensions(size+8,size+60)
- self.map:SetDimensions(size,size);self.header:SetDimensions(size,26)
- self.clock:ClearAnchors();self.clock:SetAnchor(TOP,self.window,TOP,0,4);self.clock:SetDimensions(size-140,26);self.clock:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
- self.latency:ClearAnchors();self.latency:SetAnchor(TOPRIGHT,self.window,TOPRIGHT,-9,4)
- self.zone:SetDimensions(size-30,24);self.zone:ClearAnchors();self.zone:SetAnchor(TOPLEFT,self.window,TOPLEFT,9,size+34)
+ clamp(s.y*GuiRoot:GetHeight(),0,math.max(0,GuiRoot:GetHeight()-size-WINDOW_EXTRA)))
+ self.window:SetDimensions(size+8,size+WINDOW_EXTRA);self.bg:SetDimensions(size+8,size+WINDOW_EXTRA)
+ self.map:SetDimensions(size,size);self.header:SetDimensions(size,HEADER_HEIGHT)
+ self.map:ClearAnchors();self.map:SetAnchor(TOPLEFT,self.window,TOPLEFT,4,MAP_TOP)
+ self.clock:ClearAnchors();self.clock:SetAnchor(TOP,self.window,TOP,0,4);self.clock:SetDimensions(size-18,42);self.clock:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+ self.latency:ClearAnchors();self.latency:SetAnchor(TOPRIGHT,self.window,TOPRIGHT,-9,size+MAP_TOP+28)
+ self.fps:ClearAnchors();self.fps:SetAnchor(TOPLEFT,self.window,TOPLEFT,9,size+MAP_TOP+28)
+ self.zone:SetDimensions(size-30,24);self.zone:ClearAnchors();self.zone:SetAnchor(TOPLEFT,self.window,TOPLEFT,9,size+MAP_TOP+4)
  self.north:ClearAnchors();self.north:SetAnchor(TOPRIGHT,self.map,TOPRIGHT,-4,3)
 end
 function M:Initialize()
@@ -46,19 +50,30 @@ function M:Initialize()
  self.header=solid(w,4,4,300,26,.10,.045,.045)
  self.map=control(w,CT_CONTROL,4,30,300,300)
  self.mapBG=solid(self.map,0,0,300,300,.018,.018,.025);self.mapBG:SetAnchorFill(self.map)
- self.clock=label(w,75,4,150,26);self.fps=label(w,9,4,70,26);self.latency=label(w,230,4,70,26)
+ self.clock=label(w,9,4,282,44);self.clock:SetFont('ZoFontGamepad36');self.fps=label(w,9,4,70,26);self.latency=label(w,230,4,70,26)
  self.latency:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
  self.zone=label(w,9,334,270,24);self.north=label(self.map,275,3,20,24);self.north:SetText('N');self.north:SetColor(1,.7,.4,1)
- self.tiles={};self.pins={};self.points={}
- self.player=control(self.map,CT_TEXTURE,0,0,22,22);self.player:SetTexture('EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds');self.player:SetDrawLevel(20)
+ self.tiles={};self.pins={};self.points={};self.digSites={};self.digPolygons={}
+ self.waypoint=control(self.map,CT_TEXTURE,0,0,WAYPOINT_SIZE,WAYPOINT_SIZE)
+ self.waypoint:SetTexture('EsoUI/Art/MapPins/UI_Worldmap_pin_customDestination_white.dds')
+ self.waypoint:SetColor(.3,.85,1,1);self.waypoint:SetDrawLevel(22);self.waypoint:SetHidden(true)
+ self.player=control(self.map,CT_TEXTURE,0,0,PLAYER_SIZE,PLAYER_SIZE);self.player:SetTexture('EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds');self.player:SetDrawLevel(20)
  self.north:SetDrawLevel(25)
  self:Layout()
  EVENT_MANAGER:RegisterForUpdate('TGWAtlasMiniMap_Move',100,function() self:Tick() end)
  EVENT_MANAGER:RegisterForUpdate('TGWAtlasMiniMap_Header',1000,function() self:Header() end)
- CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged',function() self.dirty=true end)
- EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Zone',EVENT_PLAYER_ACTIVATED,function() self.active=true;self.dirty=true end)
+ CALLBACK_MANAGER:RegisterCallback('OnWorldMapChanged',function() self.dirty=true;self.digDirty=true end)
+ EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Zone',EVENT_PLAYER_ACTIVATED,function() self.active=true;self.dirty=true;self.digDirty=true end)
  EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Off',EVENT_PLAYER_DEACTIVATED,function() self.active=false;self.window:SetHidden(true) end)
- self.active=true;self.dirty=true;self:Header()
+ local function digChanged() self.digDirty=true end
+ for _,event in ipairs({EVENT_ANTIQUITY_DIG_SITES_UPDATED,EVENT_REVEAL_ANTIQUITY_DIG_SITES_ON_MAP,EVENT_ANTIQUITY_DIGGING_ANTIQUITY_UNEARTHED}) do
+  if type(event)=='number' then EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Dig'..event,event,digChanged) end
+ end
+ local function questsChanged() self.dirty=true end
+ for _,event in pairs({EVENT_QUEST_ADDED,EVENT_QUEST_REMOVED,EVENT_QUEST_ADVANCED,EVENT_QUEST_CONDITION_COUNTER_CHANGED,EVENT_QUEST_POSITION_REQUEST_COMPLETE,EVENT_QUEST_LIST_UPDATED}) do
+  if type(event)=='number' then EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Quest'..event,event,questsChanged) end
+ end
+ self.active=true;self.dirty=true;self.digDirty=true;self:Header()
 end
 function M:Header()
  local s=self.saved;self.clock:SetText(s.clock and self.Clock(read(GetTimeString) or '',s.hour24) or '')
@@ -67,11 +82,50 @@ function M:Header()
  self.latency:SetText(type(ping)=='number' and ping>=0 and string.format('%d ms',math.floor(ping+.5)) or '')
 end
 function M:RefreshPoints()
- self.points={}
+ self.points={};local seen={}
  local function add(x,y,texture,color)
   if #self.points>=512 then return end
-  if type(x)=='number' and type(y)=='number' and x>=0 and x<=1 and y>=0 and y<=1 and texture and texture~='' then
-   self.points[#self.points+1]={x=x,y=y,texture=texture,color=color}
+  if type(x)=='number' and type(y)=='number' and x>=0 and x<=1 and y>=0 and y<=1 and type(texture)=='string' and texture~='' then
+   local key=texture..':'..math.floor(x*100000+.5)..':'..math.floor(y*100000+.5)
+   if not seen[key] then
+    seen[key]=true;self.points[#self.points+1]={x=x,y=y,texture=texture,color=color}
+   end
+  end
+ end
+ -- Services (including traders) are map locations, not zone POIs.
+ -- Always include native sources, even when optional Atlas layers are enabled.
+ for i=1,read(GetNumMapLocations) or 0 do
+  if read(IsMapLocationVisible,i) then
+   local icon,x,y=read(GetMapLocationIcon,i);add(x,y,icon)
+  end
+ end
+ local breadcrumbs=WORLD_MAP_QUEST_BREADCRUMBS
+ if breadcrumbs and ZO_MapPin then
+  for quest=1,MAX_JOURNAL_QUESTS or 25 do
+   if read(IsValidQuestIndex,quest) then
+    local steps=read(breadcrumbs.GetSteps,breadcrumbs,quest)
+    for _,conditions in pairs(steps or {}) do
+     for _,p in pairs(conditions) do
+      if p.insideCurrentMapWorld then
+       -- Reuse ESO's quest/breadcrumb icon selection without creating or
+       -- modifying native pins or requesting protected quest assistance.
+       local proxy={m_PinTag={isBreadcrumb=p.isBreadcrumb},GetPinType=function() return p.pinType end}
+       local icon=read(ZO_MapPin.GetQuestIcon,proxy)
+       add(p.xLoc,p.yLoc,icon)
+       if QUEST_PIN_STATE_HAS_ADDITIONAL_SYMBOLIC_POSITION and p.symbolicState==QUEST_PIN_STATE_HAS_ADDITIONAL_SYMBOLIC_POSITION then
+        add(p.additionalSymbolicLocX,p.additionalSymbolicLocY,icon)
+       end
+      end
+     end
+    end
+   end
+  end
+ end
+ local zone=read(GetCurrentMapZoneIndex)
+ if type(zone)=='number' and zone>0 then
+  for i=1,read(GetNumPOIs,zone) or 0 do
+   local ok,x,y,_,icon,onMap=pcall(GetPOIMapInfo,zone,i)
+   if ok and onMap then add(x,y,icon) end
   end
  end
  local A=Atlas
@@ -82,17 +136,102 @@ function M:RefreshPoints()
     for _,p in ipairs(points or {}) do add(p.x,p.y,p.texture or o.texture,o.color) end
    end
   end
- else
-  local zone=read(GetCurrentMapZoneIndex)
-  if type(zone)=='number' and zone>0 then
-   for i=1,read(GetNumPOIs,zone) or 0 do
-    -- POI map info: x, y, pin type, icon, shown on map.
-    local ok,x,y,_,icon,onMap=pcall(GetPOIMapInfo,zone,i)
-    if ok and onMap then add(x,y,icon) end
+ end
+ self.lastPoints=GetFrameTimeMilliseconds()
+end
+-- Clip dig-site polygons to the current minimap crop. No full-map controls
+-- are moved, reparented or asked to reveal hidden excavation locations.
+function M.ClipPolygon(points,left,top,span)
+ local poly={}
+ for _,p in ipairs(points) do poly[#poly+1]={x=(p.x-left)/span,y=(p.y-top)/span} end
+ local function clip(input,axis,boundary,keepAbove)
+  local output={};if #input==0 then return output end
+  local previous=input[#input]
+  local function inside(p) return keepAbove and p[axis]>=boundary or not keepAbove and p[axis]<=boundary end
+  for _,current in ipairs(input) do
+   local a,b=inside(previous),inside(current)
+   if a~=b then
+    local t=(boundary-previous[axis])/(current[axis]-previous[axis])
+    output[#output+1]={x=previous.x+t*(current.x-previous.x),y=previous.y+t*(current.y-previous.y)}
+   end
+   if b then output[#output+1]=current end
+   previous=current
+  end
+  return output
+ end
+ poly=clip(poly,'x',0,true);poly=clip(poly,'x',1,false)
+ poly=clip(poly,'y',0,true);poly=clip(poly,'y',1,false)
+ return poly
+end
+function M:RefreshDigSites()
+ local sites,seen={},{}
+ for i=1,math.min(read(GetNumInProgressAntiquities) or 0,32) do
+  for j=1,math.min(read(GetNumDigSitesForInProgressAntiquity,i) or 0,32) do
+   local id=read(GetInProgressAntiquityDigSiteId,i,j)
+   if id and not seen[id] and #sites<32 then
+    seen[id]=true
+    local x,y,shown=read(GetDigSiteNormalizedCenterPosition,id)
+    if shown and type(x)=='number' and type(y)=='number' then
+     local ok,border=pcall(function() return {GetDigSiteNormalizedBorderPoints(id)} end)
+     local points={}
+     if ok then
+      for n=1,math.min(#border,128),2 do
+       if type(border[n])=='number' and type(border[n+1])=='number' then points[#points+1]={x=border[n],y=border[n+1]} end
+      end
+     end
+     if #points>=3 then sites[#sites+1]={id=id,points=points,tracked=read(IsDigSiteAssociatedWithTrackedAntiquity,id)==true} end
+    end
    end
   end
  end
- self.lastPoints=GetFrameTimeMilliseconds()
+ self.digSites=sites;self.lastDigSites=GetFrameTimeMilliseconds();self.digDirty=false
+end
+function M:DrawDigSites(left,top,span,size)
+ local used=0
+ for _,site in ipairs(self.digSites) do
+  local points=self.ClipPolygon(site.points,left,top,span)
+  if #points>=3 then
+   used=used+1;local polygon=self.digPolygons[used]
+   if not polygon then
+    polygon=WINDOW_MANAGER:CreateControlFromVirtual('TGWAtlasMiniMapDigArea'..used,self.map,'ZO_PinPolygonBlob')
+    polygon:SetMouseEnabled(false);polygon:SetDrawTier(DT_MEDIUM);polygon:SetDrawLayer(DL_CONTROLS);polygon:SetDrawLevel(3)
+    self.digPolygons[used]=polygon
+   end
+   polygon:ClearAnchors();polygon:SetAnchor(TOPLEFT,self.map,TOPLEFT,0,0);polygon:SetDimensions(size,size)
+   polygon:ClearPoints()
+   for _,p in ipairs(points) do polygon:AddPoint(clamp(p.x,0,1),clamp(p.y,0,1)) end
+   -- Clipping preserves the native border order used by ZO_PinPolygonBlob.
+   polygon:SetPointLayout(POLYGON_POINT_LAYOUT_COUNTER_CLOCKWISE)
+   -- Match the main map's dig-site colours, opacity and textured 3px border.
+   local center=site.tracked and ZO_MAP_PIN_TRACKED_DIG_SITE_COLOR or ZO_MAP_PIN_DIG_SITE_COLOR
+   local r,g,b=read(center and center.UnpackRGB,center)
+   if not r then r,g,b=1,.85,.45 end
+   local border=ZO_MAP_PIN_DIG_SITE_BORDER_COLOR
+   local br,bg,bb,ba=read(border and border.UnpackRGBA,border)
+   if not br then br,bg,bb,ba=1,1,1,1 end
+   polygon:SetCenterColor(r,g,b,.39);polygon:SetBorderColor(br,bg,bb,ba);polygon:SetBorderThickness(3,3,1)
+   polygon:SetHidden(false)
+  end
+ end
+ for i=used+1,#self.digPolygons do self.digPolygons[i]:SetHidden(true) end
+end
+function M:DrawWaypoint(left,top,span,size)
+ local x,y=read(GetMapPlayerWaypoint)
+ if type(x)~='number' or type(y)~='number' or x<0 or x>1 or y<0 or y>1 or (x==0 and y==0) then self.waypoint:SetHidden(true);return end
+ local px,py=(x-left)/span,(y-top)/span
+ local margin=(WAYPOINT_SIZE/2+2)/size
+ if px<margin or px>1-margin or py<margin or py>1-margin then
+  local dx,dy=px-.5,py-.5
+  local scale=(.5-margin)/math.max(math.abs(dx),math.abs(dy))
+  px,py=.5+dx*scale,.5+dy*scale
+  self.waypoint:SetTexture('EsoUI/Art/MapPins/UI-WorldMapPlayerPip.dds')
+  local angle=math.atan2 and math.atan2(dx,-dy) or math.atan(dx,-dy)
+  self.waypoint:SetTextureRotation(angle)
+ else
+  self.waypoint:SetTexture('EsoUI/Art/MapPins/UI_Worldmap_pin_customDestination_white.dds')
+  self.waypoint:SetTextureRotation(0)
+ end
+ self.waypoint:ClearAnchors();self.waypoint:SetAnchor(CENTER,self.map,TOPLEFT,px*size,py*size);self.waypoint:SetHidden(false)
 end
 function M:Draw(x,y,heading)
  local size=self.saved.size;local span=1/self.saved.zoom
@@ -119,17 +258,20 @@ function M:Draw(x,y,heading)
   end end
  end
  for i=used+1,#self.tiles do self.tiles[i]:SetHidden(true) end
+ self:DrawDigSites(left,top,span,size)
  used=0
  for _,p in ipairs(self.points) do
   local px,py=(p.x-left)/span,(p.y-top)/span
-  if px>=.03 and px<=.97 and py>=.03 and py<=.97 then
+  local margin=(PIN_SIZE/2+1)/size
+  if px>=margin and px<=1-margin and py>=margin and py<=1-margin then
    used=used+1;local pin=self.pins[used]
-   if not pin then pin=control(self.map,CT_TEXTURE,0,0,18,18);pin:SetDrawLevel(10);self.pins[used]=pin end
+   if not pin then pin=control(self.map,CT_TEXTURE,0,0,PIN_SIZE,PIN_SIZE);pin:SetDrawLevel(10);self.pins[used]=pin end
    pin:ClearAnchors();pin:SetAnchor(CENTER,self.map,TOPLEFT,px*size,py*size);pin:SetTexture(p.texture)
    local c=p.color or {1,1,1};pin:SetColor(c[1],c[2],c[3],1);pin:SetHidden(false)
   end
  end
  for i=used+1,#self.pins do self.pins[i]:SetHidden(true) end
+ self:DrawWaypoint(left,top,span,size)
  self.player:ClearAnchors();self.player:SetAnchor(CENTER,self.map,CENTER,0,0);self.player:SetTextureRotation(heading or 0)
  self.zone:SetText(GetMapName() or '')
 end
@@ -143,9 +285,10 @@ function M:Tick()
  if not self.lastMapCheck or now-self.lastMapCheck>=1000 then
   self.lastMapCheck=now
   local result=read(SetMapToPlayerLocation)
-  if result==SET_MAP_RESULT_MAP_CHANGED then CALLBACK_MANAGER:FireCallbacks('OnWorldMapChanged');self.dirty=true end
+  if result==SET_MAP_RESULT_MAP_CHANGED then CALLBACK_MANAGER:FireCallbacks('OnWorldMapChanged');self.dirty=true;self.digDirty=true end
  end
  if self.dirty or not self.lastPoints or now-self.lastPoints>=5000 then self:RefreshPoints();self.dirty=false end
+ if self.digDirty or not self.lastDigSites or now-self.lastDigSites>=2000 then self:RefreshDigSites() end
  local x,y,heading=GetMapPlayerPosition('player')
  if type(x)~='number' or type(y)~='number' or x<0 or x>1 or y<0 or y>1 or (x==0 and y==0) then self.window:SetHidden(true);return end
  self:Draw(x,y,heading)
@@ -156,7 +299,7 @@ function M:Settings()
  if not self.settingsWindow then
   local w=WINDOW_MANAGER:CreateTopLevelWindow('TGWAtlasMiniMapSettings');self.settingsWindow=w;w:SetDimensions(620,640);w:SetAnchor(CENTER,GuiRoot,CENTER,-180,0);w:SetHidden(true)
   solid(w,0,0,620,640,.025,.027,.035)
-  label(w,26,20,568,32):SetText('ATLAS MINI MAP | 1.0.1')
+  label(w,26,20,568,32):SetText('ATLAS MINI MAP | 1.0.3')
   label(w,26,58,568,45):SetText('Stick / D-pad: select   X: decrease   Y: increase')
   self.settingLabels={};for i=1,#options do self.settingLabels[i]=label(w,26,115+(i-1)*40,568,35) end
   label(w,26,545,568,65):SetText('RB: reset defaults\nClock uses the time supplied by ESO.')
@@ -214,5 +357,5 @@ EVENT_MANAGER:RegisterForEvent('TGWAtlasMiniMap_Load',EVENT_ADD_ON_LOADED,functi
   elseif arg=='reset' then for k,v in pairs(defaults) do M.saved[k]=v end;M.dirty=true;M:Layout();M:Header()
   else M:Settings() end
  end
- d('Atlas Mini Map 1.0.1 loaded. /minimap for settings.')
+ d('Atlas Mini Map 1.0.3 loaded. /minimap for settings.')
 end)

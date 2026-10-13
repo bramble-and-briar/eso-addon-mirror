@@ -61,5 +61,6 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Overcrit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Psiioniic/Overcrit__3243) | Psiioniic | PC / Mac | 0.3.2 |
 | [Overland Challenger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/frooke/Overland-Challenger__4247) | frooke | PC / Mac | 1.1.0 |
 | [Overload Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/Overload-Timer__2018) | Wheels | PC / Mac | 1.2 |
+| [OverloadIndicator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/OverloadIndicator__4949) | PUYO | PC / Mac | 1.8.2 |
 | [Overview - Show your Build](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Graham/Overview---Show-your-Build__1778) | Graham | PC / Mac | 1.5 |
 | [OwoSpeak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/OwoSpeak__4375) | DakJaniels | PC / Mac | 1.1 |

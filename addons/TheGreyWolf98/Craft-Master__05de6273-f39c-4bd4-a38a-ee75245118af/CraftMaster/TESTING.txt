@@ -1,4 +1,4 @@
-CRAFT MASTER 1.0.4 - CONSOLE TEST
+CRAFT MASTER 1.0.7 - CONSOLE TEST
 by @TheGreyWolf98
 
 No external add-on dependencies. Does not use LibCharacterKnowledge or LibAsync.
@@ -25,9 +25,11 @@ The Character control changes whose knowledge you browse. Set as main changes
 the character used in trader and inventory tooltips.
 
 CONTROLLER
-The physical left stick moves only up/down within the left category column.
-A selects the highlighted category, then the cursor stays in that column.
-There is no navigation into the header or results pane.
+The physical left stick moves between two panes only.
+Left/right switches Categories / Results; up/down moves in that pane.
+Up at the top never enters the header. Header controls use buttons only.
+A selects a category in Categories. In Results it opens item details or
+expands/collapses a motif style. Scrolling results crosses pages automatically.
 X: cycle All / Learned / Missing / Not checked.
 Y: cycle the recorded character being viewed.
 Hold X: search using the game's keyboard.
@@ -35,6 +37,9 @@ LT: switch Housing / Recipes / Motifs tabs.
 RT: set the currently viewed character as your main crafter.
 LB/RB: page through results. B: close.
 Other characters appear after they have logged in and completed a scan.
+Motifs appear as numbered style rows such as Motif 32: Abah's Watch. Select a
+style in Results and press A to expand its chapters. The row count shows how
+many tracked chapters/records are learned; details show missing/not-checked.
 
 TRADER / INVENTORY
 A gamepad recipe, furnishing-plan or recognised crafting-motif tooltip gets a
@@ -114,3 +119,40 @@ Reload UI on the main crafter and allow the new scan to finish. /cm scan also
 starts it manually. The old snapshot did not contain missing-plan checks, so
 existing characters need a new scan before their Missing filter is complete.
 Test rug with All, Learned and Missing after the scan-complete message.
+
+1.0.5 FIXES
+The bundled index now validates both IDs in each pair against native recipe
+item types, with alternate link variants where needed. The crafted item's
+actual result link is used for identity and Food/Drink classification.
+Trader comparisons also prefer the plan's native crafted-result link.
+Old recipe snapshots are rebuilt to remove unverified ID mappings. Characters,
+main-crafter selection and motif knowledge are preserved. Log each character
+in again to rebuild that character's recipe knowledge.
+
+The completed scan reports plans checked, skipped IDs and errors. /cm status
+includes these totals and the loaded version. This helps diagnose an empty
+catalogue rather than silently treating skipped plan IDs as a successful scan.
+After updating, log/reload on the main crafter and wait for scan completion.
+Test Recipes > Food and Recipes > Drink with All and Learned; test housing
+Missing as well. If a view stays empty, capture the /cm status output.
+
+1.0.6 FIXES
+Corrected generated ESO item links from 20 to the required 21 numeric fields,
+including the scaling field. This fixes the specific failure where all 4,015
+bundled plan records were skipped while game-generated learned links worked.
+Regression checks now reject the malformed link used by previous builds.
+Restored left-stick movement between categories and results, with automatic
+paging when the selection crosses a page boundary. Header focus is excluded.
+Added expandable numbered motif-style groups with filtered chapter lists.
+
+AFTER THIS UPDATE
+Reload UI on the main crafter and wait for the scan-complete message. The scan
+should now report a positive plans-checked count rather than 0 checked / 4,015
+skipped. Test housing Missing and Food/Drink Missing, then motif expansion.
+Characters last scanned by an older build need logging in/rescanning to record
+missing-plan knowledge. Your main-crafter selection remains saved.
+
+1.0.7 UI FIXES
+- Window moved above the controller button bar with extra screen clearance.
+- LT label now reads Housing / Recipes / Motifs; help says change section.
+- Existing navigation, catalogue and saved knowledge are retained.

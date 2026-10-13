@@ -416,15 +416,15 @@ end
 function R.FormatDuration(seconds, limit)
     local left = math.max(0, math.floor(tonumber(seconds) or 0))
     local units = {
-        {86400, "يوم", "أيام"}, {3600, "ساعة", "ساعات"},
-        {60, "دقيقة", "دقائق"}, {1, "ثانية", "ثوان"},
+        {86400, "يوم", "أيام", "يومان"}, {3600, "ساعة", "ساعات", "ساعتان"},
+        {60, "دقيقة", "دقائق", "دقيقتان"}, {1, "ثانية", "ثوانٍ", "ثانيتان"},
     }
     local parts = {}
     for _, unit in ipairs(units) do
         local n = math.floor(left / unit[1]); left = left % unit[1]
         if n > 0 or (#parts == 0 and unit[1] == 1) then
             local word = (n >= 3 and n <= 10) and unit[3] or unit[2]
-            parts[#parts + 1] = tostring(n) .. " " .. word
+            parts[#parts + 1] = n == 2 and unit[4] or (tostring(n) .. " " .. word)
             if #parts >= (limit or 2) then break end
         end
     end
@@ -535,6 +535,9 @@ local function initialize()
     end
     installBooks(); installGamepadTooltips(); installTime()
     if R.InstallLayouts then R.InstallLayouts() end
+    if R.InstallChallengeAlignment then R.InstallChallengeAlignment() end
+    if R.InstallSeasonGrammar then R.InstallSeasonGrammar() end
+    if R.InstallSeasonLayouts then R.InstallSeasonLayouts() end
     if R.InstallCompatibility then R.InstallCompatibility() end
     for _, name in ipairs({"InformationTooltip", "ItemTooltip", "PopupTooltip", "ComparativeTooltip1", "ComparativeTooltip2", "AchievementTooltip", "SkillTooltip", "AbilityTooltip"}) do installNativeTooltip(_G[name]) end
     getProbe()

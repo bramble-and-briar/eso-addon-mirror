@@ -1,22 +1,15 @@
-OVERVIEW
-A compact north-up minimap with a digital clock, FPS and latency. Adjust its position, size and zoom, with optional Atlas pin support. No dependencies.
+Atlas Mini Map 1.0.3
+by @TheGreyWolf98
 
-DESCRIPTION
-Keep your bearings with Atlas Mini Map: a compact, fixed north minimap that follows your character while the player arrow shows your direction.
+Readable north-up minimap with large clock, FPS, latency, native services,
+journal quest icons, optional Atlas pins, waypoints and antiquity search areas.
+Adjust size, position and zoom through /minimap. No external libraries.
 
-A slim top border displays a digital clock, FPS and latency, with the current map name underneath. Choose a 12- or 24-hour clock and toggle each reading individually.
+UPDATE 1.0.3
+Compact clock header directly above the map; FPS and latency moved to footer.
+Added native service/trader and journal quest/breadcrumb icons. Native icons
+now remain enabled alongside Atlas layers, with duplicate icons removed.
+Dig areas match the main map's colours, shading and textured border.
 
-Adjust the map size, zoom and screen position using a controller-friendly settings menu. Your preferences are saved account-wide on each server.
-
-Atlas Mini Map works on its own with native points of interest. If Atlas is installed and Atlas layers are enabled, it uses your enabled Atlas layers and respects Atlas's collected-item and carried-map filters. Atlas is optional; no external libraries or addon dependencies are required.
-
-Open /minimap for settings. Use the stick or D-pad up/down to select an option, X/Y to adjust, RB to restore defaults and B to close. Use /minimap toggle to show or hide the minimap, or /minimap reset to restore its default settings and position.
-
-The minimap hides during other menus and loading, and pauses while you browse the full map. It uses ESO's supplied clock and performance readings; unavailable readings stay hidden. New map textures may briefly load after travelling.
-
-Version 1.0 supports native points of interest and optional Atlas locations. Quest pins, group markers and custom pins from other addons are not included. The map remains north-up; rotating-map mode is not included.
-
-VERSION NOTES
-First release: adjustable north-up minimap, digital clock, FPS and latency, controller settings and optional Atlas layers.
-
-1.0.1: fixes blank backgrounds on large zone maps by rendering viewport-intersecting tiles instead of rejecting maps over 64 total tiles.
+Scrying overlays show only search areas exposed by ESO on the current map.
+Group markers and arbitrary third-party custom pins are not included.

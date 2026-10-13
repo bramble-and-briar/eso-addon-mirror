@@ -2,7 +2,7 @@
 ## Author: CodeWarrior82
 ## Description: Tracks Blighted Blastbones, Nothing Wasted and Corpses
 ## APIVersion: 101051
-## DependsOn: LibAddonMenu-2.0 LibChatMessage
+## DependsOn: LibAddonMenu-2.0>=42 LibChatMessage
 ## SavedVariables: necroTrackerSaveVars
 
 necroTracker.lua

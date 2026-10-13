@@ -1,0 +1,31 @@
+<GuiXml>
+        <Controls>
+            <Button name="FCOCS_VerticalScroll_ToTop_Template" inherits="ZO_ScrollUpButton" virtual="true">
+                <Dimensions x="ZO_SCROLL_BAR_WIDTH" y="10"/>
+                <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Up" relativePoint="TOPLEFT" offsetX="0" offsetY="0"/>
+                <OnMouseEnter>
+                    ZO_VerticalScrollbarBase_OnMouseEnter(self:GetParent())
+                </OnMouseEnter>
+                <OnMouseExit>
+                    ZO_VerticalScrollbarBase_OnMouseExit(self:GetParent())
+                </OnMouseExit>
+                <OnClicked>
+                    FCOCS.ScrollScrollList(self, true)
+                </OnClicked>
+            </Button>
+
+            <Button name="FCOCS_VerticalScroll_ToBottom_Template" inherits="ZO_ScrollDownButton" virtual="true">
+                <Dimensions x="ZO_SCROLL_BAR_WIDTH" y="10"/>
+                <Anchor point="TOPLEFT" relativeTo="$(parent)Down" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="0"/>
+                <OnMouseEnter>
+                    ZO_VerticalScrollbarBase_OnMouseEnter(self:GetParent())
+                </OnMouseEnter>
+                <OnMouseExit>
+                    ZO_VerticalScrollbarBase_OnMouseExit(self:GetParent())
+                </OnMouseExit>
+                <OnClicked>
+                    FCOCS.ScrollScrollList(self, false)
+                </OnClicked>
+            </Button>
+        </Controls>
+</GuiXml>

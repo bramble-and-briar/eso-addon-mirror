@@ -1,0 +1,9 @@
+## Title: |c99CCEFOverload Indicator|r
+## Author: PUYO
+## Version: 1.8.2
+## APIVersion: 101050
+## SavedVariables: OverloadIndicator_SV
+## OptionalDependsOn: LibAddonMenu-2.0
+## Description: Shows Sorcerer's Overload ultimate ON/OFF by lighting up or dimming its icon, with an optional low-ultimate warning. Created with AI assistance (Claude by Anthropic).
+
+OverloadIndicator.lua

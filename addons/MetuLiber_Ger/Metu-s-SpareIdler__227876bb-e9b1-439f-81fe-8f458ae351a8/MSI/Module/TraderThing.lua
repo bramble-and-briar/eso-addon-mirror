@@ -165,7 +165,7 @@ local function IsCraftingContainer(str)
     return false
 end
 local function OnLootUpdatedThrottled()
-	EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
+	--EVENT_MANAGER:UnregisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED)
     lootActivityTimestamp = GetGameTimeMilliseconds()
     local currentTime = GetGameTimeMilliseconds()
 	local currencyInfo = LOOT_SHARED:GetLootCurrencyInformation()
@@ -382,9 +382,9 @@ local function unboxQueuedContainer()
 						else
 							MSI.Print("c", zo_strformat(GetString(MSI_MOD_USED_USEITEM_CHTLINE), item.getLink))
 						end
-						zo_callLater(function()
-							EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
-						end, 200 + GetLatency())
+						-- zo_callLater(function()
+							-- EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
+						-- end, 200 + GetLatency())
 					end
 				end
 			end, (i - 1) * (1000 + GetLatency()))
@@ -694,7 +694,7 @@ function MSI.InitModTraderThing()
 	end
 	local function RegModuleEvents()
 		UnRegModuleEvents()
-		--EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", LOOT, EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
+		EVENT_MANAGER:RegisterForEvent(MSI.Name.."LootUpdate", EVENT_LOOT_UPDATED, OnLootUpdatedThrottled)
 		EVENT_MANAGER:RegisterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, InventoryUpdate)
 		EVENT_MANAGER:AddFilterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, true)
 		EVENT_MANAGER:AddFilterForEvent(MSI.Name.."SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_BACKPACK)

@@ -228,7 +228,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ar2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/Ar2__52bf209f-b1c3-4253-adfc-ba6e95b85072) | Lofand | Console | — |
 | [ArabChat - Arabic Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabChat---Arabic-Chat__4931) | alaooy | PC / Mac | 1.2.2 |
 | [arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic__c8823ab9-749b-4180-ad52-c15b1363d974) | Lofand | Console | — |
-| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.5 |
+| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.6 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
 | [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.0.0 |

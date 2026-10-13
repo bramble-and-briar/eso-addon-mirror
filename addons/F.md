@@ -35,7 +35,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [FCM Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/d2allgr/FCM-Quest-Tracker__2810) | d2allgr | PC / Mac | 1.5.5.26 |
 | [FCM Quest Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertDwellers/FCM-Quest-Tracker__1717) | DesertDwellers | PC / Mac | 1.5.5.25 |
 | [FCO Accessibility](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Accessibility__3586) | Baertram | PC / Mac | 2.3 |
-| [FCO ChangeStuff - QOL changes for ESO](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO__1542) | Baertram | PC / Mac | 0.5.96 |
+| [FCO ChangeStuff - QOL changes for ESO (PC keyboard UI)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO-PC-keyboard-UI__1542) | Baertram | PC / Mac | 0.5.96 |
 | [FCO ChatTabBrain (Automatic chat tab&message channel switch)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-ChatTabBrain-Automatic-chat-tab-message-channel-switch__696) | Baertram | PC / Mac | 0.4.8 |
 | [FCO Companion](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-Companion__3044) | Baertram | PC / Mac | 0.18 |
 | [FCO CraftFilter (Filter bank/inventory/craftbag items at crafting tables & Favorites)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Baertram/FCO-CraftFilter-Filter-bank-inventory-craftbag-items-at-crafting-tables-Favorite__1104) | Baertram | PC / Mac | 0.6.9 |

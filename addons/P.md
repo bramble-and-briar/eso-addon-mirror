@@ -7,6 +7,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
 | [P11's Slash Hotkeys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/P11-s-Slash-Hotkeys__4747) | Phobus11 | PC / Mac | 102 |
+| [pabloco's reticles](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/plagreca97/pabloco-s-reticles__4947) | plagreca97 | PC / Mac | 1.0.0 |
 | [PacketByte Exporter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/packetloss404/PacketByte-Exporter__96620ecb-ccf7-4298-9215-636f4075695b) | packetloss404 | Console | — |
 | [Pact Watch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Pact-Watch__f6ca400d-2787-4c8a-91db-e78125233eb1) | TheGreyWolf98 | Console | — |
 | [PadMerchant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mcdonnelldean/PadMerchant__1616) | mcdonnelldean | PC / Mac | 2.0 |

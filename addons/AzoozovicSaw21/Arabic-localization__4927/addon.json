@@ -20,7 +20,7 @@
     "gamedata"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4927/",
-  "fingerprint": "dc1f943889429d870d32c2c617dcd5cbcde3bdc05c36ba4eb746067d619d4668",
+  "fingerprint": "708ae6e8d0bc2ac98c76733dbc5f77f18b7a7fc4e19d386b6a5fdf3dfe1d1216",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17882.png",
     "https://cdn-eso.mmoui.com/preview/pvw17886.png",
@@ -35,11 +35,11 @@
   ],
   "omitted_files": [
     {
-      "bytes": 123962198,
+      "bytes": 123965768,
       "download_url": "https://www.esoui.com/downloads/dl4927/",
       "path": "gamedata/lang/ar.lang",
       "reason": "exceeds the mirror's 95 MiB per-file Git limit",
-      "sha256": "c73226c6d8177e9d8a3eba9a499782acc9601b5ef8aa38839fdcc8e6b2219bef"
+      "sha256": "dd90070cb3dba4ac60cfa73da6b032d3e8a5b77d6ecc9d0ea69f6f468d2c5215"
     }
   ],
   "platform": "pc",
@@ -48,11 +48,11 @@
   "source_id": "4927",
   "source_url": "https://www.esoui.com/downloads/info4927-Arabiclocalization.html",
   "stats": {
-    "downloads": 61,
+    "downloads": 80,
     "favorites": 0,
-    "monthly_downloads": 58
+    "monthly_downloads": 78
   },
   "title": "Arabic localization",
-  "updated_at": 1791676671000,
-  "version": "2.3.5"
+  "updated_at": 1791871722000,
+  "version": "2.3.6"
 }

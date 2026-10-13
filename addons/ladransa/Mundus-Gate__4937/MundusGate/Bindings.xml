@@ -4,6 +4,9 @@
             <Action name="QUICKTRAVELMENU_TOGGLE">
                 <Down>MundusGate.Toggle()</Down>
             </Action>
+            <Action name="QUICKTRAVELMENU_QUEST">
+                <Down>MundusGate.QuestTravel:TravelMain()</Down>
+            </Action>
             <Action name="QUICKTRAVELMENU_LOCK">
                 <Down>MundusGate.Buttons:SetLocked(not MundusGate.sv.buttonsLocked)</Down>
             </Action>

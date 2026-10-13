@@ -1,0 +1,27 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Restyle Helper">
+            <Action name="RESTYLEHELPER_RANDOM_ALL">
+                <Down>RestyleHelper.Randomize("all")</Down>
+            </Action>
+            <Action name="RESTYLEHELPER_RANDOM_STYLE">
+                <Down>RestyleHelper.Randomize("style")</Down>
+            </Action>
+            <Action name="RESTYLEHELPER_RANDOM_DYE">
+                <Down>RestyleHelper.Randomize("dye")</Down>
+            </Action>
+            <Action name="RESTYLEHELPER_DYE_ORDER">
+                <Down>RestyleHelper.ShuffleDyeOrder()</Down>
+            </Action>
+            <Action name="RESTYLEHELPER_DYE_CHAOS">
+                <Down>RestyleHelper.Randomize("chaos")</Down>
+            </Action>
+            <Action name="RESTYLEHELPER_UNDO">
+                <Down>RestyleHelper.Undo()</Down>
+            </Action>
+            <Action name="RESTYLEHELPER_TOGGLE">
+                <Down>RestyleHelper.TogglePanel()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

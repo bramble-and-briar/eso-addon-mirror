@@ -1,3 +1,6 @@
+;2.0.2
+The applicant's message is now shown in the HUD "has applied to join your group" notification, below Accept/Decline.
+
 ;2.0.1
 Fixed Save/Clear buttons in Application History.
 

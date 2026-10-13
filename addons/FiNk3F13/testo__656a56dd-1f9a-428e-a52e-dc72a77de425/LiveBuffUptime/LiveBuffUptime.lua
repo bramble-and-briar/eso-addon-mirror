@@ -18,6 +18,16 @@ local useLibCombat = false
 local LibCombat
 local Performance = LiveBuffUptimePerformance
 local BuffDebug = LiveBuffUptimeBuffDebug
+local function beginBuffDebug(time)
+    if not BuffDebug or not BuffDebug.active then return end
+    BuffDebug.BeginFight(time)
+    if not BuffDebug.IsGroup() then
+        for index = 1, GetNumBuffs("player") do
+            local _, _, ends, slot, _, _, _, _, _, _, ability = GetUnitBuffInfo("player", index)
+            if ability then BuffDebug.Snapshot(ability, ends, slot) end
+        end
+    end
+end
 local function measured(category, callback)
     return Performance and Performance.Wrap(category, callback) or callback
 end
@@ -660,11 +670,13 @@ local function combatChanged(_, value)
     if value then
         inCombat = true
         resetMeasurements(nil, true)
+        beginBuffDebug(nowSeconds())
     else
         update()
         fightEndedAt = lastActiveAt or (not EVENT_COMBAT_EVENT and nowSeconds())
         inCombat = false
         update()
+        if BuffDebug and BuffDebug.active then BuffDebug.EndFight(fightEndedAt or nowSeconds()) end
     end
 end
 
@@ -876,6 +888,7 @@ local function startLibraryFight(time)
     if inCombat then return end
     inCombat = true
     resetMeasurements(time, true)
+    beginBuffDebug(time)
     if LibCombat and LibCombat.GetTargetUnitId then liveUptimeTargetId = LibCombat.GetTargetUnitId() end
 end
 
@@ -995,6 +1008,9 @@ local function registerLibCombat()
             finalDuration = liveUptimeFight.starts and liveUptimeFight.ends and math.max(1, liveUptimeFight.ends - liveUptimeFight.starts) or nil
             inCombat = false
             update()
+            if BuffDebug and BuffDebug.active then
+                BuffDebug.EndFight(liveUptimeFight.encounterEnds or liveUptimeFight.ends or nowSeconds())
+            end
         end)
         return
     end
@@ -1037,6 +1053,7 @@ local function registerLibCombat()
         if not starts or not ends or ends <= starts then
             inCombat = false
             resetMeasurements(nil, true)
+            if BuffDebug and BuffDebug.active then BuffDebug.EndFight(nowSeconds()) end
             return
         end
         update()
@@ -1045,6 +1062,7 @@ local function registerLibCombat()
         for _, tracker in ipairs(enabledTrackers) do tracker.scope = Meter.RebuildScope(tracker.scope) end
         inCombat = false
         update()
+        if BuffDebug and BuffDebug.active then BuffDebug.EndFight(ends or nowSeconds()) end
     end)
 end
 
@@ -1433,10 +1451,7 @@ local function loaded(_, addonName)
                     end
                     return false
                 end, quickId ~= nil or groupDebugId ~= nil, groupProvider)
-            for index = 1, groupDebugId and 0 or GetNumBuffs("player") do
-                local _, _, ends, slot, _, _, _, _, _, _, ability = GetUnitBuffInfo("player", index)
-                if ability then BuffDebug.Snapshot(ability, ends, slot) end
-            end
+            if inCombat then beginBuffDebug(nowSeconds()) end
         elseif (command == "buffdebug stop" or command == "buffdebug off") and BuffDebug then
             BuffDebug.Stop()
         elseif command == "buffdebug report" and BuffDebug then

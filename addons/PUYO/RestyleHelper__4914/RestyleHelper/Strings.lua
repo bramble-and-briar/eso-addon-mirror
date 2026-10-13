@@ -1,0 +1,257 @@
+RestyleHelper = RestyleHelper or {}
+
+local JA = {
+    TITLE               = "Restyle Helper",
+    SHARE_TITLE         = "Restyle Helper - 共有 / プリセット",
+
+    -- パネル
+    BTN_RANDOM_ALL      = "全ランダム",
+    BTN_RANDOM_STYLE    = "スタイルのみ",
+    BTN_RANDOM_DYE      = "色のみ(3色)",
+    BTN_RANDOM_THEME    = "スタイル統一",
+    BTN_UNDO            = "元に戻す",
+    BTN_DYE_ORDER       = "配色シャッフル",
+    BTN_DYE_CHAOS       = "全色バラバラ",
+    BTN_CHEST_TO_ALL    = "胴体のスタイルを全身へ",
+    BTN_SHARE           = "共有 / プリセット",
+    BTN_FAVORITES       = "お気に入り",
+    OPT_FAVORITES_ONLY  = "ランダムはお気に入りスタイルから",
+    FAV_TITLE           = "Restyle Helper - お気に入りスタイル",
+    FAV_EMPTY           = "お気に入りはまだありません。\nスタイル一覧で右クリック →「お気に入りに追加」",
+    FAV_BTN_WEAR        = "着せる",
+    FAV_BTN_ALL         = "全身",
+    FAV_BTN_REMOVE      = "×",
+    FAV_PAGE            = "%d / %d ページ (%d 件)",
+    MENU_FAV_ADD        = "★ お気に入りに追加",
+    MENU_FAV_REMOVE     = "☆ お気に入りから外す",
+    MSG_FAV_ADDED       = "「%s」をお気に入りに追加しました。",
+    MSG_FAV_REMOVED     = "「%s」をお気に入りから外しました。",
+    MSG_FAV_APPLIED     = "「%s」を%sに設定しました。",
+    MSG_FAV_LOCKED      = "「%s」は未所持のため着せられません。",
+    MSG_PREVIEW_HINT    = "キャラクターの見た目は、服飾台のスロット一覧(防具アイコンや染料枠)にマウスを乗せると反映されます。",
+    MSG_DUPLICATE       = "|cFF6666警告|r: 別フォルダ「%s」の Restyle Helper も有効です。古い版が動いてエラーの原因になるため、そのフォルダを AddOns から削除してください。",
+    HDR_LOCK            = "ロック (ランダム対象外)",
+    HDR_OPTIONS         = "オプション",
+    OPT_WEAPON_STYLE    = "武器にもスタイル変更を適用",
+    OPT_WEAPON_DYE      = "武器にも配色変更を適用",
+    OPT_UNIFY_WEIGHT    = "防具の重さ(軽/中/重)を統一",
+    OPT_LOCK_DYES       = "ロック中のスロットは色も固定",
+    OPT_ORDER_PER_SLOT  = "配色シャッフルを部位ごとに変える",
+
+    -- 右クリックメニュー
+    MENU_APPLY_ALL      = "このスタイルを全身に適用",
+    MENU_APPLY_ALL_LOCK = "このスタイルを全身に適用 (ロック中を除く)",
+
+    -- 共有ウィンドウ
+    LBL_PRESETS         = "保存済みプリセット",
+    LBL_NAME            = "名前",
+    LBL_STRING          = "共有テキスト (Ctrl+A → Ctrl+C でコピーして Discord 等へ / 受け取ったメッセージは丸ごと Ctrl+V)",
+    BTN_APPLY           = "適用",
+    BTN_TO_CHAT         = "チャットに貼る",
+    BTN_SHOW_STRING     = "Discord用に表示",
+    BTN_INSPECT         = "内容確認",
+    BTN_DELETE          = "削除",
+    BTN_SAVE_CURRENT    = "現在の服飾を保存",
+    BTN_EXPORT          = "現在の服飾をDiscord用に",
+    BTN_IMPORT_APPLY    = "貼り付けて適用",
+    BTN_IMPORT_SAVE     = "貼り付けて保存",
+    NO_PRESET           = "(プリセットなし)",
+
+    -- メッセージ
+    MSG_NO_OUTFIT       = "編集中の衣装が見つかりません。服飾台で「衣装」スロットを開いてください。",
+    MSG_RANDOM_DONE     = "ランダム化しました (スタイル %d / 色 %d スロット)。確定は服飾台の「適用」で行ってください。",
+    MSG_NO_DYES         = "解放済みの染料がありません。",
+    MSG_THEME           = "スタイル統一: %s",
+    MSG_THEME_NONE      = "スタイル統一にできるスタイルが見つかりませんでした。",
+    MSG_UNDO_DONE       = "1つ前の状態に戻しました。",
+    MSG_UNDO_EMPTY      = "元に戻せる履歴がありません。",
+    MSG_STYLE_NOINFO    = "このスタイルは一括適用に対応していません。",
+    MSG_APPLY_ALL_DONE  = "「%s」を %d スロットに適用しました。",
+    MSG_APPLY_ALL_HIDDEN= "揃わないため非表示にした部位: %s",
+    MSG_THEME_INCOMPLETE= "このスタイルで揃わなかった部位: %s",
+    COVER_TITLE         = "スタイルの適用状況",
+    COVER_NONE          = "(未適用)",
+    COVER_LEGEND        = "○適用 △重さ違い ×揃わず(非表示にした部位も×)",
+    CHK_FAV_ONLY        = "お気に入りのみ",
+    OPT_THEME_MIN       = "スタイル統一の最小部位数: %d",
+    STATS_LINE1         = "[集計] 衣装スタイル %d 件 / 所持 %d 件 / スタイル分類なし %d 件",
+    STATS_LINE2         = "[集計] 分類されたスタイル %d 種 / うち所持ピースがある %d 種",
+    STATS_LINE3         = "[集計] 防具の部位カバー数別(7/6/5/4/3/2/1部位): %d / %d / %d / %d / %d / %d / %d 種",
+    OPT_HIDE_MISSING    = "揃わない部位は非表示にする",
+    MSG_APPLY_ALL_MISS  = "未所持/対応なし: %s",
+    MSG_APPLY_ALL_WEIGHT= "重さ違いで代用: %s",
+    MSG_CHEST_EMPTY     = "胴体スロットにスタイルが設定されていません。",
+    MSG_EXPORTED        = "共有テキストを作成しました。Ctrl+A → Ctrl+C でコピーし、Discord 等に貼り付けてください。",
+    MSG_PRESET_SAVED    = "プリセット「%s」を保存しました。",
+    MSG_PRESET_DELETED  = "プリセット「%s」を削除しました。",
+    MSG_PRESET_APPLIED  = "「%s」を適用しました (%d スロット)。確定は服飾台の「適用」で行ってください。",
+    MSG_PRESET_MISS     = "未所持のためスキップしたスタイル: %s",
+    MSG_PRESET_DYE_MISS = "未解放のため変更しなかった染料: %d 箇所",
+    MSG_PARSE_ERROR     = "共有コード (RSH1:…) が見つかりませんでした。",
+    MSG_SELECT_PRESET   = "プリセットを選択してください。",
+    MSG_LINK_TOO_LONG   = "チャットの文字数制限を超えるため、「Discord用に表示」のテキストで共有してください。",
+    MSG_LINK_RECEIVED   = "共有された服飾「%s」を読み込みました。「貼り付けて適用」で試着できます。",
+    MSG_NOT_AT_STATION  = "服飾台で使用してください (確認のみ可能)。",
+    MSG_INSPECT_HEADER  = "―― %s ――",
+    MSG_HELP            = "/rsh : パネル表示切替 / /rsh share : 共有 / /rsh fav : お気に入り / /rsh stats : 集計 / /rsh random|style|dye|theme|chaos|order / /rsh undo",
+
+    STYLE_NONE          = "(スタイルなし)",
+
+    -- ゲーム外共有テキスト
+    EXT_HEADER          = "**【ESO 服飾】%s**  (Restyle Helper)",
+    EXT_NONAME          = "無題",
+    EXT_LINE            = "%s: %s ／ 染料: %s",
+    EXT_HOWTO           = "▼ 試すには: Restyle Helper の共有ウィンドウにこのメッセージを丸ごと貼り付け",
+    UNKNOWN             = "不明",
+    DEFAULT_PRESET_NAME = "プリセット %d",
+
+    -- キー設定
+    BIND_RANDOM_ALL     = "全ランダム",
+    BIND_RANDOM_STYLE   = "スタイルのみランダム",
+    BIND_RANDOM_DYE     = "色のみランダム",
+    BIND_UNDO           = "元に戻す",
+    BIND_TOGGLE         = "パネル表示切替",
+    BIND_DYE_ORDER      = "配色シャッフル",
+    BIND_DYE_CHAOS      = "全色バラバラ",
+    MSG_ORDER_DONE      = "配色の順番を入れ替えました (%d スロット / 色はそのまま)。",
+    MSG_ORDER_NONE      = "入れ替えられる配色がありません (3色とも同じ、または未染色)。",
+
+    -- v1.10
+    BTN_COLORS          = "色の設定 (系統 / 必須色)",
+    COLORS_TITLE        = "Restyle Helper - 色の設定",
+    COLORS_FAMILY_HDR   = "使う色の系統 (未選択=すべて)",
+    COLORS_REQUIRED_HDR = "左クリック: 必ず使う / 右クリック: 使わない",
+    COLORS_REQUIRED_CNT = "必須:%d 除外:%d",
+    COLORS_CLEAR_EXC    = "除外色をクリア",
+    COLORS_CLEAR        = "必須色をクリア",
+    COLORS_NO_FAMILY    = "系統の指定をクリア",
+    COLORS_PAGE         = "%d / %d ページ",
+    FAM_red = "赤", FAM_orange = "オレンジ", FAM_yellow = "黄", FAM_green = "緑", FAM_blue = "青",
+    FAM_purple = "紫", FAM_pink = "ピンク", FAM_brown = "茶", FAM_black = "黒", FAM_white = "白", FAM_grey = "灰",
+    MSG_CHANNEL_LOCK_ON = "染料枠をロックしました (ランダム/シャッフルで固定)。",
+    MSG_CHANNEL_LOCK_OFF= "染料枠のロックを解除しました。",
+    HINT_CHANNEL_LOCK   = "Ctrl+クリック: 染料枠ロック",
+    HINT_CHANNEL_LOCK_LONG = "染料枠を Ctrl+クリック\nでロック (ランダム対象外)",
+    MSG_CHAT_ON         = "チャット表示: ON",
+    MSG_CHAT_OFF        = "チャット表示: OFF",
+    MSG_PRESET_SAVED2   = "プリセットを保存しました: %s",
+    OWNED_NO            = "(未所持)",
+    COVER_HIDDEN_MARK   = "×", COVER_M_OK = "○", COVER_M_SUB = "△", COVER_M_MISS = "×",
+    AUTO_NAME           = "(自動名)",
+    OPT_SHARE_MSGS      = "共有の読み込み/内容確認の結果を表示",
+}
+
+local EN = {
+    SHARE_TITLE = "Restyle Helper - Share / Presets",
+    BTN_RANDOM_ALL = "Randomize All", BTN_RANDOM_STYLE = "Styles Only", BTN_RANDOM_DYE = "Dyes Only (3)",
+    BTN_RANDOM_THEME = "Unify Style", BTN_UNDO = "Undo", BTN_DYE_ORDER = "Shuffle Dye Order",
+    BTN_DYE_CHAOS = "All Different Dyes", BTN_CHEST_TO_ALL = "Chest Style to All",
+    BTN_SHARE = "Share / Presets", BTN_FAVORITES = "Favorites",
+    OPT_FAVORITES_ONLY = "Randomize from favorites",
+    FAV_TITLE = "Restyle Helper - Favorite Styles",
+    FAV_EMPTY = "No favorites yet.\nRight-click a style -> \"Add to Favorites\"",
+    FAV_BTN_WEAR = "Wear", FAV_BTN_ALL = "All", FAV_BTN_REMOVE = "x",
+    FAV_PAGE = "Page %d / %d (%d items)",
+    MENU_FAV_ADD = "* Add to Favorites", MENU_FAV_REMOVE = "* Remove from Favorites",
+    MSG_FAV_ADDED = "Added \"%s\" to favorites.", MSG_FAV_REMOVED = "Removed \"%s\" from favorites.",
+    MSG_FAV_APPLIED = "Set \"%s\" on %s.", MSG_FAV_LOCKED = "\"%s\" is not unlocked.",
+    MSG_DUPLICATE = "|cFF6666Warning|r: another copy of Restyle Helper (\"%s\") is enabled. Delete the old folder from AddOns.",
+    HDR_LOCK = "Locks (excluded from random)", HDR_OPTIONS = "Options",
+    OPT_WEAPON_STYLE = "Apply style changes to weapons", OPT_WEAPON_DYE = "Apply dye changes to weapons",
+    OPT_UNIFY_WEIGHT = "Use one armor weight", OPT_LOCK_DYES = "Locked slots keep their dyes",
+    OPT_ORDER_PER_SLOT = "Shuffle order per slot",
+    MENU_APPLY_ALL = "Apply this style to all slots", MENU_APPLY_ALL_LOCK = "Apply this style to all (skip locked)",
+    LBL_PRESETS = "Saved presets", LBL_NAME = "Name",
+    LBL_STRING = "Share text (Ctrl+A, Ctrl+C to copy for Discord etc. / paste a received message with Ctrl+V)",
+    BTN_APPLY = "Apply", BTN_TO_CHAT = "Post to chat", BTN_SHOW_STRING = "Show for Discord",
+    BTN_INSPECT = "Inspect", BTN_DELETE = "Delete", BTN_SAVE_CURRENT = "Save current outfit",
+    BTN_EXPORT = "Current outfit for Discord", BTN_IMPORT_APPLY = "Paste & apply", BTN_IMPORT_SAVE = "Paste & save",
+    NO_PRESET = "(no presets)",
+    MSG_NO_OUTFIT = "No outfit being edited. Open the Outfit slot at the outfit station.",
+    MSG_RANDOM_DONE = "Randomized (styles %d / dyed slots %d). Press Apply at the station to confirm.",
+    MSG_NO_DYES = "No unlocked dyes.", MSG_THEME = "Unified style: %s",
+    MSG_THEME_NONE = "No suitable style found to unify.",
+    MSG_UNDO_DONE = "Reverted to the previous state.", MSG_UNDO_EMPTY = "Nothing to undo.",
+    MSG_STYLE_NOINFO = "This style cannot be applied to all slots.",
+    MSG_APPLY_ALL_DONE = "Applied \"%s\" to %d slots.", MSG_APPLY_ALL_HIDDEN = "Hidden (not in style): %s",
+    MSG_THEME_INCOMPLETE = "Slots this style does not cover: %s",
+    COVER_TITLE = "Style coverage", COVER_NONE = "(none)", COVER_LEGEND = "O applied  ~ other weight  x missing / hidden",
+    CHK_FAV_ONLY = "Favorites only", OPT_THEME_MIN = "Unify: minimum slots covered: %d",
+    STATS_LINE1 = "[Stats] outfit styles %d / owned %d / unclassified %d",
+    STATS_LINE2 = "[Stats] classified styles %d / with owned pieces %d",
+    STATS_LINE3 = "[Stats] styles by armor slots covered (7/6/5/4/3/2/1): %d / %d / %d / %d / %d / %d / %d",
+    OPT_HIDE_MISSING = "Hide slots the style lacks",
+    MSG_APPLY_ALL_MISS = "Not owned / not available: %s", MSG_APPLY_ALL_WEIGHT = "Substituted another weight: %s",
+    MSG_CHEST_EMPTY = "The chest slot has no style.",
+    MSG_EXPORTED = "Share text created. Ctrl+A, Ctrl+C to copy and paste it into Discord etc.",
+    MSG_PRESET_SAVED = "Saved preset \"%s\".", MSG_PRESET_DELETED = "Deleted preset \"%s\".",
+    MSG_PRESET_APPLIED = "Applied \"%s\" (%d slots). Press Apply at the station to confirm.",
+    MSG_PRESET_MISS = "Skipped (not owned): %s", MSG_PRESET_DYE_MISS = "Dyes not changed (locked): %d",
+    MSG_PARSE_ERROR = "No share code (RSH1:...) found.", MSG_SELECT_PRESET = "Select a preset.",
+    MSG_LINK_TOO_LONG = "Too long for chat. Use the \"Show for Discord\" text instead.",
+    MSG_LINK_RECEIVED = "Loaded shared outfit \"%s\". Use \"Paste & apply\" to try it on.",
+    MSG_NOT_AT_STATION = "Use this at an outfit station (inspect only).", MSG_INSPECT_HEADER = "-- %s --",
+    MSG_HELP = "/rsh : toggle panel / share / fav / stats / save <name> / chat / random|style|dye|theme|chaos|order / undo",
+    STYLE_NONE = "(no style)",
+    EXT_HEADER = "**[ESO Outfit] %s**  (Restyle Helper)", EXT_NONAME = "Untitled",
+    EXT_LINE = "%s: %s / Dyes: %s",
+    EXT_HOWTO = "> To try it: paste this whole message into the Restyle Helper share window",
+    UNKNOWN = "Unknown", DEFAULT_PRESET_NAME = "Preset %d",
+    BIND_RANDOM_ALL = "Randomize All", BIND_RANDOM_STYLE = "Randomize Styles", BIND_RANDOM_DYE = "Randomize Dyes",
+    BIND_UNDO = "Undo", BIND_TOGGLE = "Toggle Panel", BIND_DYE_ORDER = "Shuffle Dye Order", BIND_DYE_CHAOS = "All Different Dyes",
+    MSG_ORDER_DONE = "Shuffled dye order (%d slots, same colors).",
+    MSG_ORDER_NONE = "Nothing to shuffle (all three dyes equal or undyed).",
+    BTN_COLORS = "Colors (families / required)", COLORS_TITLE = "Restyle Helper - Colors",
+    COLORS_FAMILY_HDR = "Color families to use (none = all)", COLORS_REQUIRED_HDR = "Left-click: always use / Right-click: never use", COLORS_CLEAR_EXC = "Clear excluded",
+    COLORS_REQUIRED_CNT = "Required:%d Excluded:%d", COLORS_CLEAR = "Clear required", COLORS_NO_FAMILY = "Clear families",
+    COLORS_PAGE = "Page %d / %d",
+    FAM_red = "Red", FAM_orange = "Orange", FAM_yellow = "Yellow", FAM_green = "Green", FAM_blue = "Blue",
+    FAM_purple = "Purple", FAM_pink = "Pink", FAM_brown = "Brown", FAM_black = "Black", FAM_white = "White", FAM_grey = "Grey",
+    MSG_CHANNEL_LOCK_ON = "Dye channel locked (kept by randomize/shuffle).", MSG_CHANNEL_LOCK_OFF = "Dye channel unlocked.",
+    HINT_CHANNEL_LOCK = "Ctrl+Click: lock dye channel",
+    HINT_CHANNEL_LOCK_LONG = "Ctrl+Click a dye swatch\nto lock it (kept by random)",
+    MSG_CHAT_ON = "Chat messages: ON", MSG_CHAT_OFF = "Chat messages: OFF",
+    MSG_PRESET_SAVED2 = "Saved preset: %s", OWNED_NO = "(not owned)", COVER_HIDDEN_MARK = "×", COVER_M_OK = "O", COVER_M_SUB = "~", COVER_M_MISS = "x", AUTO_NAME = "(auto)", OPT_SHARE_MSGS = "Show share import / inspect results",
+}
+
+local EN_SLOTS = { head = "Head", shoulders = "Shoulders", chest = "Chest", hands = "Hands", waist = "Waist", legs = "Legs", feet = "Feet" }
+
+-- 言語選択: 日本語クライアント以外は英語。英語に無いキーは日本語のまま
+local lang = (GetCVar and GetCVar("language.2")) or "en"
+lang = string.lower(tostring(lang))
+local useJa = (lang == "ja" or lang == "jp")
+RestyleHelper.isJa = useJa
+RestyleHelper.L = {}
+do
+    local L = RestyleHelper.L
+    for k, v in pairs(JA) do L[k] = v end
+    if not useJa then for k, v in pairs(EN) do L[k] = v end end
+end
+
+local JA_SLOTS = {
+    [OUTFIT_SLOT_HEAD or -1]      = "頭",
+    [OUTFIT_SLOT_SHOULDERS or -2] = "肩",
+    [OUTFIT_SLOT_CHEST or -3]     = "胴体",
+    [OUTFIT_SLOT_HANDS or -4]     = "手",
+    [OUTFIT_SLOT_WAIST or -5]     = "ベルト",
+    [OUTFIT_SLOT_LEGS or -6]      = "脚",
+    [OUTFIT_SLOT_FEET or -7]      = "足",
+}
+
+if not useJa then
+    for slot, key in pairs({ [OUTFIT_SLOT_HEAD or -1] = "head", [OUTFIT_SLOT_SHOULDERS or -2] = "shoulders", [OUTFIT_SLOT_CHEST or -3] = "chest", [OUTFIT_SLOT_HANDS or -4] = "hands", [OUTFIT_SLOT_WAIST or -5] = "waist", [OUTFIT_SLOT_LEGS or -6] = "legs", [OUTFIT_SLOT_FEET or -7] = "feet" }) do
+        JA_SLOTS[slot] = EN_SLOTS[key]
+    end
+end
+RestyleHelper.SLOT_NAMES = JA_SLOTS
+
+do
+    local L = RestyleHelper.L
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_RANDOM_ALL",   L.BIND_RANDOM_ALL)
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_RANDOM_STYLE", L.BIND_RANDOM_STYLE)
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_RANDOM_DYE",   L.BIND_RANDOM_DYE)
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_UNDO",         L.BIND_UNDO)
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_TOGGLE",       L.BIND_TOGGLE)
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_DYE_ORDER",    L.BIND_DYE_ORDER)
+    ZO_CreateStringId("SI_BINDING_NAME_RESTYLEHELPER_DYE_CHAOS",    L.BIND_DYE_CHAOS)
+end

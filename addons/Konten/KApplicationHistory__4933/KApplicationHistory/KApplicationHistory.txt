@@ -1,7 +1,7 @@
 ## Title: KApplicationHistory
 ## Description: Keeps a history of Group Finder applications & saves your Group Finder listings as templates you can recreate with one click.
 ## Author: |cFF9B15@Konten|r
-## Version: 2.0.1
+## Version: 2.0.2
 ## APIVersion: 101051
 ## SavedVariables: KApplicationHistory_SV
 ## DependsOn: LibAddonMenu-2.0

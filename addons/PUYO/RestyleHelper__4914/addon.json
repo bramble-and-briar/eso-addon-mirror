@@ -1,0 +1,46 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/PUYO/RestyleHelper__4914",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PUYO",
+  "canonical_id": "esoui:4914",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4914",
+  "deleted": false,
+  "directories": [
+    "RestyleHelper"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4914/",
+  "fingerprint": "f30a7a73c8e56ba464a90334128d039217a3791bbc7ced5b3a900957c1e443e8",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17752.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17724.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17734.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17725.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17722.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17726.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17733.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17711.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17729.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4914",
+  "source_url": "https://www.esoui.com/downloads/info4914-RestyleHelper.html",
+  "stats": {
+    "downloads": 29,
+    "favorites": 0,
+    "monthly_downloads": 29
+  },
+  "title": "RestyleHelper",
+  "updated_at": 1791808293000,
+  "version": "1.13.2"
+}

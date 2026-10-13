@@ -1,0 +1,12 @@
+## Title: pabloco's reticles
+## Description: Replace the stock reticle with an animated one that reacts to light attacks and blocking, for keyboard and gamepad. Eleven designs, ten colorways, per-character and per-Armory-build settings. Settings: /pabloco
+## APIVersion: 101050 101051
+## Author: pabloco825
+## Version: 1.0.0
+## AddOnVersion: 100
+## DependsOn: LibAddonMenu-2.0
+## SavedVariables: PablocosReticlesSavedVars
+
+TexSizes.lua
+Reticles.lua
+PablocosReticles.lua

@@ -1,22 +1,39 @@
-Atlas Mini Map 1.0.1
-By @TheGreyWolf98
+ATLAS MINI MAP 1.0.3
+by @TheGreyWolf98
 
-Keep your bearings with Atlas Mini Map: a compact, fixed north minimap that follows your character while the player arrow shows your direction.
+INSTALL
+Replace the existing AtlasMiniMap folder with the folder in this archive.
+Reload UI. Saved settings are retained. /minimap opens controller settings.
+/minimap toggle toggles visibility; /minimap reset restores defaults.
+No external libraries required; optional Atlas layers remain supported.
 
-A slim top border displays a digital clock, FPS and latency, with the current map name underneath. Choose a 12- or 24-hour clock and toggle each reading individually.
+CHANGES
+- Large clock in a compact 42px header directly against the map.
+- FPS and latency moved below the map, beneath the zone name.
+- Native service/trader icons and journal quest/breadcrumb icons added.
+- Native POIs and services stay visible when Atlas layers are enabled.
+- Duplicate icons at the same position are removed.
+- Dig areas use ESO's main-map colours, 39% shading and textured 3px border.
+- Larger pins and waypoint/edge arrows retained from 1.0.2.
+- Author consistently @TheGreyWolf98.
 
-Adjust the map size, zoom and screen position using a controller-friendly settings menu. Your preferences are saved account-wide on each server.
+Scrying overlays use only revealed search-area borders on the current map;
+they do not reveal the exact excavation spot. Quest icons use ESO's journal
+quest location cache and update when quest positions change. Group markers
+and arbitrary third-party custom pins are not included. Atlas's extra ring
+styling is not copied. The full map remains independent and north-up.
 
-Atlas Mini Map works on its own with native points of interest. If Atlas is installed and Atlas layers are enabled, it uses your enabled Atlas layers and respects Atlas's collected-item and carried-map filters. Atlas is optional; no external libraries or addon dependencies are required.
+CHECK IN GAME
+1. Check 12/24-hour clock at the smallest and largest map sizes.
+2. Visit Vivec City: check trader, bank and other visible service icons.
+3. Track a quest: check objective and doorway markers on the current map.
+4. Toggle Atlas layers: native services and quests should stay present.
+5. Scry an antiquity: compare area shading and outline with the main map.
+6. Place/clear a waypoint; check nearby marker and distant edge arrow.
+7. Open/close the full map; finish a dig; check refresh and isolation.
 
-Open /minimap for settings. Use the stick or D-pad up/down to select an option, X/Y to adjust, RB to restore defaults and B to close. Use /minimap toggle to show or hide the minimap, or /minimap reset to restore its default settings and position.
-
-The minimap hides during other menus and loading, and pauses while you browse the full map. It uses ESO's supplied clock and performance readings; unavailable readings stay hidden. New map textures may briefly load after travelling.
-
-Version 1.0 supports native points of interest and optional Atlas locations. Quest pins, group markers and custom pins from other addons are not included. The map remains north-up; rotating-map mode is not included.
-
-Updating from the tester retains your saved settings.
-
-Player movement updates ten times per second, performance labels once per second, and locations refresh every five seconds or on map changes. At most 512 locations are cached. No map textures or travel history are stored in saved variables.
-
-1.0.1: fixes blank backgrounds on large zone maps by rendering viewport-intersecting tiles instead of rejecting maps over 64 total tiles.
+VALIDATION
+Mocked UI/API tests passed for compact layout and screen bounds, combined
+service/quest/POI/Atlas sources, deduplication, quest refresh, native dig styles,
+clipping, excavation cleanup, waypoint changes and full-map isolation.
+Xbox visual and live API behaviour still require in-game testing.

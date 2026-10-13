@@ -18,10 +18,11 @@
     "KApplicationHistory"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4933/",
-  "fingerprint": "08e91b0e6081b90d5fb23a30ead641b840bce841bfcb9bae8a879818ce96b14a",
+  "fingerprint": "db5bf4392978f16a285254eadaf68475ecf96c6d48d7894832c57f36f32f1aa3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17878.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17877.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw17877.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17957.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -29,11 +30,11 @@
   "source_id": "4933",
   "source_url": "https://www.esoui.com/downloads/info4933-KApplicationHistory.html",
   "stats": {
-    "downloads": 11,
+    "downloads": 20,
     "favorites": 0,
-    "monthly_downloads": 10
+    "monthly_downloads": 18
   },
   "title": "KApplicationHistory",
-  "updated_at": 1791669698000,
-  "version": "2.0.1"
+  "updated_at": 1791837453000,
+  "version": "2.0.2"
 }

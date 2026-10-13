@@ -1,6 +1,6 @@
 -- BuffDebuffBar+ by BLKx777
 -- Console-only ESO addon. No chat commands.
--- v1.2.4: declares SavedVariables and Save Position forces persistence through reload.
+-- v1.2.5: adds visible stack count numbers inside buff/debuff icons.
 
 buffdebuffbarplus = buffdebuffbarplus or {}
 
@@ -8,7 +8,7 @@ local ADDON = buffdebuffbarplus
 ADDON.name = "buffdebuffbarplus"
 ADDON.title = "buffdebuffbarplus"
 ADDON.author = "BLKx777"
-ADDON.version = "1.2.4"
+ADDON.version = "1.2.5"
 ADDON.settingsRegistered = false
 ADDON.effects = {}
 ADDON.sortedEffects = {}
@@ -23,6 +23,7 @@ local defaults = {
     splitIconsPerRow = 6,
     rowSpacing = 4,
     durationTextScale = 125,
+    stackCountTextScale = 135,
 
     combinedX = 0,
     combinedY = -190,
@@ -110,9 +111,20 @@ local function MakeSlot(parent, name, index)
     icon:SetDimensions(30, 30)
     icon:SetAnchor(CENTER, bg, CENTER, 0, 0)
 
-    local count = WINDOW_MANAGER:CreateControl(name .. "Count", bg, CT_LABEL)
-    count:SetFont("ZoFontGameSmall")
-    count:SetAnchor(BOTTOMRIGHT, bg, BOTTOMRIGHT, -1, -1)
+    local countBg = WINDOW_MANAGER:CreateControl(name .. "CountBg", bg, CT_BACKDROP)
+    countBg:SetDimensions(18, 18)
+    countBg:SetAnchor(TOPRIGHT, bg, TOPRIGHT, -1, 1)
+    countBg:SetCenterColor(0, 0, 0, 0.72)
+    countBg:SetEdgeColor(0, 0, 0, 1)
+    countBg:SetEdgeTexture(nil, 1, 1, 1)
+    countBg:SetHidden(true)
+
+    local count = WINDOW_MANAGER:CreateControl(name .. "Count", countBg, CT_LABEL)
+    count:SetFont("$(BOLD_FONT)|16|soft-shadow-thick")
+    count:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    count:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    count:SetDimensions(18, 18)
+    count:SetAnchor(CENTER, countBg, CENTER, 0, 0)
     count:SetColor(1, 1, 1, 1)
 
     local time = WINDOW_MANAGER:CreateControl(name .. "Time", slot, CT_LABEL)
@@ -125,6 +137,7 @@ local function MakeSlot(parent, name, index)
 
     slot.bg = bg
     slot.icon = icon
+    slot.countBg = countBg
     slot.count = count
     slot.time = time
     return slot
@@ -197,6 +210,9 @@ function ADDON:UpdateTracker(control, list, preview, maxIcons)
     local rowSpacing = sv.rowSpacing or 4
     local durationFontSize = math.max(10, math.floor(14 * ((sv.durationTextScale or 125) / 100)))
     local durationFont = "$(BOLD_FONT)|" .. tostring(durationFontSize) .. "|soft-shadow-thick"
+    local stackFontSize = math.max(10, math.floor(12 * ((sv.stackCountTextScale or 135) / 100)))
+    local stackFont = "$(BOLD_FONT)|" .. tostring(stackFontSize) .. "|soft-shadow-thick"
+    local stackBoxSize = math.max(18, stackFontSize + 8)
     local slotSpacingX = 42
     local slotSpacingY = math.max(62, 42 + durationFontSize + rowSpacing)
     local now = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
@@ -225,17 +241,29 @@ function ADDON:UpdateTracker(control, list, preview, maxIcons)
 
         if shouldShowEffect then
             slot.icon:SetTexture(effect.icon or "/esoui/art/icons/icon_missing.dds")
-            slot.count:SetText((effect.stackCount and effect.stackCount > 1) and tostring(effect.stackCount) or "")
+            local stackCount = tonumber(effect.stackCount) or 0
+            local showStack = stackCount > 1
+            slot.countBg:SetDimensions(stackBoxSize, stackBoxSize)
+            slot.count:SetDimensions(stackBoxSize, stackBoxSize)
+            slot.count:SetFont(stackFont)
+            slot.count:SetText(showStack and tostring(stackCount) or "")
+            slot.countBg:SetHidden(not showStack)
             slot.time:SetFont(durationFont)
             slot.time:SetText(FormatTime((effect.endTime or 0) - now))
             slot:SetHidden(false)
         elseif shouldShowPreview then
             slot.icon:SetTexture("/esoui/art/icons/ability_mage_065.dds")
-            slot.count:SetText(i == 3 and "2" or "")
+            local previewStack = (i == 3 and "2") or (i == 5 and "4") or ""
+            slot.countBg:SetDimensions(stackBoxSize, stackBoxSize)
+            slot.count:SetDimensions(stackBoxSize, stackBoxSize)
+            slot.count:SetFont(stackFont)
+            slot.count:SetText(previewStack)
+            slot.countBg:SetHidden(previewStack == "")
             slot.time:SetFont(durationFont)
             slot.time:SetText(tostring(7 + i) .. "s")
             slot:SetHidden(false)
         else
+            if slot.countBg then slot.countBg:SetHidden(true) end
             slot:SetHidden(true)
         end
     end
@@ -453,6 +481,7 @@ function ADDON:SaveCurrentPosition(forceReload)
     sv.splitIconsPerRow = tonumber(sv.splitIconsPerRow) or defaults.splitIconsPerRow
     sv.rowSpacing = tonumber(sv.rowSpacing) or defaults.rowSpacing
     sv.durationTextScale = tonumber(sv.durationTextScale) or defaults.durationTextScale
+    sv.stackCountTextScale = tonumber(sv.stackCountTextScale) or defaults.stackCountTextScale
 
     sv.positionSaved = true
 
@@ -480,7 +509,8 @@ function ADDON:RegisterSettings()
     AddSlider(panel, "Combined Maximum Icons", "Maximum icons shown in combined mode.", "maxIcons", 4, 16)
     AddSlider(panel, "Split Icons Per Row", "In split mode, buffs and debuffs wrap after this many icons per row. Default is 6.", "splitIconsPerRow", 3, 10)
     AddSlider(panel, "Row Spacing", "Vertical spacing between adaptive buff/debuff rows. Lower values create a tighter stack.", "rowSpacing", -8, 30)
-    AddSlider(panel, "Duration Text Size", "Resize the timer text under each icon. This now scales reasonably with the tracker size slider. Default is 125%.", "durationTextScale", 75, 250)
+    AddSlider(panel, "Duration Text Size", "Resize the timer text under each icon. This scales with the tracker size slider. Default is 125%.", "durationTextScale", 75, 250)
+    AddSlider(panel, "Stack Count Text Size", "Resize the stack number shown inside icons when a buff or debuff has multiple stacks. Default is 135%.", "stackCountTextScale", 75, 250)
 
     AddSection(panel, "Combined Mode")
     AddCheckbox(panel, "Combined Preview", "Show a test combined bar even without active effects.", "combinedPreview", function() return SV().splitMode end)
@@ -549,6 +579,11 @@ function ADDON:OnAddOnLoaded(eventCode, addonName)
         self.saved.durationTextScale = defaults.durationTextScale
     elseif (self.saved.durationTextScale or defaults.durationTextScale) < 75 then
         self.saved.durationTextScale = defaults.durationTextScale
+    end
+    if (self.saved.stackCountTextScale or defaults.stackCountTextScale) > 250 then
+        self.saved.stackCountTextScale = defaults.stackCountTextScale
+    elseif (self.saved.stackCountTextScale or defaults.stackCountTextScale) < 75 then
+        self.saved.stackCountTextScale = defaults.stackCountTextScale
     end
 
     -- v1.1.3 migration: old default row spacing was too open for split rows.

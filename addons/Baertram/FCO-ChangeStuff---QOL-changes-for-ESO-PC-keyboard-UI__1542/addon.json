@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO__1542",
+  "archive_path": "addons/Baertram/FCO-ChangeStuff---QOL-changes-for-ESO-PC-keyboard-UI__1542",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "Baertram",
@@ -74,7 +74,7 @@
     "FCOChangeStuff"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1542/",
-  "fingerprint": "35d299eb3af59cf1d0dd9e9b7ca72c5db3b6465df58530ca55aea041afaae1a5",
+  "fingerprint": "7747d1c68599387a9ce4611141e53d2bf0e60ce00c23e0388f2cee146052eb4f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw5019.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw12339.png",
@@ -87,13 +87,13 @@
   "published": true,
   "source": "esoui",
   "source_id": "1542",
-  "source_url": "https://www.esoui.com/downloads/info1542-FCOChangeStuff-QOLchangesforESO.html",
+  "source_url": "https://www.esoui.com/downloads/info1542-FCOChangeStuff-QOLchangesforESOPCkeyboardUI.html",
   "stats": {
-    "downloads": 40762,
+    "downloads": 40959,
     "favorites": 71,
-    "monthly_downloads": 191
+    "monthly_downloads": 423
   },
-  "title": "FCO ChangeStuff - QOL changes for ESO",
+  "title": "FCO ChangeStuff - QOL changes for ESO (PC keyboard UI)",
   "updated_at": 1791040786000,
   "version": "0.5.96"
 }

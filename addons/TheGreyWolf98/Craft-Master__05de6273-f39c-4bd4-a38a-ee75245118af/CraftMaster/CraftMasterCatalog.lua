@@ -1,6 +1,7 @@
 -- Craft Master bundled recipe/plan catalogue. Data only; no library code.
 -- Source: UESP esoRecipeData51.php (MIT, Dave Humphrey); see CATALOGUE-LICENSE.txt.
--- Each row: result item ID, plan/recipe item ID, quality, category, fallback name.
+-- Each row: item-ID pair, quality, category, fallback name. Native recipe types
+-- and result links verify which ID is the plan and which is the crafted item.
 CraftMasterCatalog = {
     {28281, 45913, 2, "Fruit Dishes", "Banana Surprise"},
     {28289, 45915, 2, "Meat Dishes", "Roast Venison"},

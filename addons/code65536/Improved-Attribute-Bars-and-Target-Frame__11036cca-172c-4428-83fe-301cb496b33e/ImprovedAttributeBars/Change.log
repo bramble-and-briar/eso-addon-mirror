@@ -1,3 +1,9 @@
+Version 1.3.0 (2026/10/12)
+* The target frame will now use delimited numbers, similar to the boss bar;
+  player attribute bars remain undelimited by default because it's only 5 digits
+* Added a slash command to make the attribute bars delimited: /iab delimall
+* Added a slash command to turn off target frame reaction colors: /iab nocolors
+
 Version 1.2.0 (2026/10/05)
 * The target frame health bar will now use unit reaction colors for all units
   (instead of just for neutral and friendly NPCs) to ensure that the target

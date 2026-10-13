@@ -55,7 +55,7 @@ function Route:CanRoute(node)
 end
 
 -- Настройка «через игрока» для способа перемещения
-Route.SOURCES = { "Menu", "Buttons", "Wheel", "Map" }
+Route.SOURCES = { "Menu", "Buttons", "Wheel", "Map", "Quest" }
 
 function Route:IsEnabledFor(source)
     return source ~= nil and QTM.sv["route" .. source] == true

@@ -76,6 +76,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [CharacterMarkdown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/solaegis/CharacterMarkdown__4279) | solaegis | PC / Mac | 2.3.0 |
 | [CharCount](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/CharCount__2773) | Coorbin | PC / Mac | 1.1 |
 | [Chat Be Gone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xPricee/Chat-Be-Gone__85e2f419-414a-48a9-ad3b-4b713c098ca2) | xPricee | Console | — |
+| [Chat Command Exit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/Chat-Command-Exit__4944) | VotMyID | PC / Mac | 1.1.4 |
 | [Chat Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akamatsu02/Chat-Emotes__3658) | akamatsu02 | PC / Mac | 2.6 |
 | [Chat Input Viewer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GetanoNero/Chat-Input-Viewer__4158) | GetanoNero | PC / Mac | 1.3.1 |
 | [Chat keeper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Chat-keeper__47608f50-4be4-46b1-833f-575274a7dbf2) | TheGreyWolf98 | Console | — |

@@ -317,12 +317,12 @@ function TruePvPRatio:UpdateUI()
         end
     end
 
-    -- Tri strict : Veterans (>= 1500 kills) d'abord, puis ratio decroissant, puis kills, puis nom
+    -- Tri strict : Veterans (>= 500 kills) d'abord, puis ratio decroissant, puis kills, puis nom
     table.sort(sortedChars, function(a, b) 
         local aKills = tonumber(a.data.kills) or 0
         local bKills = tonumber(b.data.kills) or 0
-        local isAVeteran = (aKills >= 1500)
-        local isBVeteran = (bKills >= 1500)
+        local isAVeteran = (aKills >= 500)
+        local isBVeteran = (bKills >= 500)
 
         if isAVeteran ~= isBVeteran then
             return isAVeteran

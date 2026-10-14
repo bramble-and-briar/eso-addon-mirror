@@ -27,9 +27,17 @@ LUIE = {}
 LUIE.__index = LUIE
 LUIE.tag = "LUIE"
 LUIE.name = "LuiExtended"
-LUIE.version = "7.2.7.1"
-LUIE.addonVersion = 7271
-LUIE.author = "@dack_janiels[PC]"
+LUIE.version = "7.2.7.3"
+LUIE.addonVersion = 7273
+
+local platform = GetUIPlatform()
+if platform == UI_PLATFORM_XBOX or IsGameCoreUI() then
+    LUIE.author = "Dack5855"
+else
+    LUIE.author = "@dack_janiels[PC]"
+end
+
+
 LUIE.legacyAuthors = "ArtOfShred, psypanda, Saenic & SpellBuilder"
 LUIE.website = "https://www.esoui.com/downloads/info818-LuiExtended.html"
 LUIE.github = "https://github.com/DakJaniels/LuiExtended"
@@ -197,21 +205,6 @@ LUIE.ModuleSavedVarNamespaceKeys =
 -- -----------------------------------------------------------------------------
 -- Components
 LUIE.Components = {}
--- -----------------------------------------------------------------------------
--- Table to hold cached values so we don't have to ask addon manager each time we run a function.
-LUIE.OtherAddonCompatability =
-{
-    isCombatMetricsEnabled = false,
-    isActionDurationReminderEnabled = false,
-    isCrutchAlertsEnabled = false,
-    isFancyActionBarEnabled = false,
-    isFancyActionBarPlusEnabled = false,
-    isWritCreatorEnabled = false,
-    isLibCombatEnabled = false,
-    isLibSlashCommanderEnabled = false,
-    isHarvestMapEnabled = false,
-    isLoreLibraryEnabled = false,
-}
 -- -----------------------------------------------------------------------------
 -- Default Settings
 --- @class LUIE_ChatOutputSocialDefaults

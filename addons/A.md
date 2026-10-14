@@ -192,12 +192,12 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Alternative Boss Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Boss-Bar__3052) | buldezir | PC / Mac | 1.0.19 |
 | [Alternative Boss Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Boss-Bar__ab71c694-e122-4792-9268-fe2c2595f986) | j.hhh | Console | — |
 | [Alternative Buffs/Debuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Buffs-Debuffs__3875) | buldezir | PC / Mac | 1.0.3 |
-| [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.4.38 |
+| [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Group-Frames__3053) | buldezir | PC / Mac | 1.5.39 |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Alternative-Group-Frames__21f64968-c492-4b43-82ff-b7b1f25c7500) | Copper0 | Console | — |
 | [Alternative Group Frames](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Alternative-Group-Frames__a020fed1-e58d-4c59-8ec5-6fb71e8ee9cc) | j.hhh | Console | — |
 | [Always Logging](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eurymachos/Always-Logging__4081) | Eurymachos | PC / Mac | v3.1.12.1.0 |
 | [AlwaysCompass: Never Get Lost Again](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/AlwaysCompass-Never-Get-Lost-Again__4107) | Mouton | PC / Mac | 0.0.2 |
-| [AlwaysExpandedAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/AlwaysExpandedAttributeBars__2979) | partdark | PC / Mac | 3.1b-n |
+| [AlwaysExpandedAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/partdark/AlwaysExpandedAttributeBars__2979) | partdark | PC / Mac | 4.0 |
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__3929) | Lykeion | PC / Mac | 3.14 |
 | [Am I Blocking+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Am-I-Blocking__e1710013-83a1-4e50-941a-5464d85d587c) | Lykeion+ | Console | — |
 | [Am I Blocking?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Qcell/Am-I-Blocking__2920) | Qcell | PC / Mac | 2.7 |
@@ -296,7 +296,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AT Finisher (Finish Him !!!) - Ascending Tide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/AT-Finisher-Finish-Him---Ascending-Tide__1979) | Rhyono | PC / Mac | 1.1.8 |
 | [ATHGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/cptnn3m0/ATHGuild__2738) | cptnn3m0 | PC / Mac | 0.0.19 |
 | [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Atlas__f01417b0-7ff1-43e7-9d6e-9ff9e62279b3) | TheGreyWolf98 | Console | — |
-| [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Atlas__4845) | Torfason | PC / Mac | 2.0.0 |
+| [Atlas](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Atlas__4845) | Torfason | PC / Mac | 2.1.0 |
 | [Atlas - Mounts (WIP)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitsarugi/Atlas---Mounts-WIP__1502) | Mitsarugi | PC / Mac | 0.1a |
 | [Atlas Mini Map](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Atlas-Mini-Map__56cfaf14-f344-4808-bed0-fa69138769fd) | TheGreyWolf98 | Console | — |
 | [Atronach refresh](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Risers/Atronach-refresh__2607) | Risers | PC / Mac | 1.0.0 |
@@ -314,7 +314,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Abandon Not Killing Spree Contracts](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Furious_Sniper/Auto-Abandon-Not-Killing-Spree-Contracts__4481) | Furious_Sniper | PC / Mac | 1.1 |
 | [Auto Accept Duel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GhostGat/Auto-Accept-Duel__3468) | GhostGat | PC / Mac | 1.0 |
 | [Auto Banish Pets/Assistants/Companions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Auto-Banish-Pets-Assistants-Companions__3099) | tdenc | PC / Mac | 0.8.0 |
-| [Auto Category - Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Auto-Category---Revised__2300) | Shadowfen | PC / Mac | 4.6.18 |
+| [Auto Category - Revised](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Auto-Category---Revised__2300) | Shadowfen | PC / Mac | 4.7 |
 | [Auto Category - Revised plugin for CraftStore FoA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/rufusredbeard/Auto-Category---Revised-plugin-for-CraftStore-FoA__2535) | rufusredbeard | PC / Mac | 2.17 |
 | [Auto Category - Revised plugin for Research Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saenic/Auto-Category---Revised-plugin-for-Research-Assistant__2742) | Saenic | PC / Mac | 1.0 |
 | [Auto Complete](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Complete__e1ed5f61-10b6-43bf-baaf-3da81a8c26a3) | Dolgubon | Console | — |
@@ -392,6 +392,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Awesome Info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stormknight/Awesome-Info__192) | Stormknight | PC / Mac | 2.13 |
 | [AwesomeGuildStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/AwesomeGuildStore__28cfc719-5113-4b1f-aab6-570be159ab81) | sirinsidiator | Console | — |
 | [AwesomeGuildStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/AwesomeGuildStore__695) | sirinsidiator | PC / Mac | 1.7.8 |
+| [AwesomeLeadFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Arglgargl/AwesomeLeadFilter__4950) | Arglgargl | PC / Mac | 0.0.2 |
 | [Ayleid Wells](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Verling/Ayleid-Wells__3287) | Verling | PC / Mac | 1.0.6 |
 | [Azura Guild Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aerilita/Azura-Guild-Messages__3244) | Aerilita | PC / Mac | 0.513 |
 | [Azurah - Interface Enhanced](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kith/Azurah---Interface-Enhanced__602) | Kith | PC / Mac | 2.4.47 |

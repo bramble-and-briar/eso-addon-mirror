@@ -21,11 +21,14 @@ local SHARE_SIZE = 26
 local SHARE_COLS = 3
 local SHARE_ROW_GAP = 4
 local SHARE_MIN_FREE = 60
-local EFF_BOTTOM = 369
-local STAND_H = 90
+local EFF_BOTTOM = 335
+local STAND_H = 70
 local SHARE_KEYS = { "dmg", "heal", "kills", "taken", "obj", "medals" }
 local RINGS_H = SHARE_ROW_GAP + 2 * (SHARE_SIZE + SHARE_ROW_GAP)
 local MINI_GAP = 10
+local RADAR_MIN = 110
+local MINI_OUTER_MIN = 130
+local function gold_line() return { K.COLOR.gold[1], K.COLOR.gold[2], K.COLOR.gold[3], 0.22 } end
 local flag_col_spec, caps_count = U.flag_col_spec, U.caps_count
 local Donut = BGMeter.Plot.donut
 local SHARE_TRACK = { 0.50, 0.50, 0.56, 0.28 }
@@ -152,13 +155,8 @@ local function build_haul(win)
     p.vetDelta:SetAnchor(TOPLEFT, p.track.container, BOTTOMLEFT, 0, 8)
     p.vetDelta:SetDimensions(INNER, 16)
 
-    p.season = P.label(p.container, S.FONT.small, K.COLOR.text_dim)
-    U.clamp_line(p.season)
-    p.season:SetAnchor(TOPLEFT, p.vetDelta, BOTTOMLEFT, 0, 4)
-    p.season:SetDimensions(INNER, 16)
-
-    p.div1 = P.rect(p.container, { 1, 1, 1, 0.10 })
-    p.div1:SetAnchor(TOPLEFT, p.season, BOTTOMLEFT, 0, 8)
+    p.div1 = P.rect(p.container, gold_line())
+    p.div1:SetAnchor(TOPLEFT, p.vetDelta, BOTTOMLEFT, 0, 8)
     p.div1:SetDimensions(INNER, 1)
 
     local VAL_W = 74
@@ -185,7 +183,10 @@ local function build_haul(win)
     p.medalLabel = P.label(p.container, S.FONT.row, K.COLOR.text_dim)
     U.clamp_line(p.medalLabel)
     p.medalLabel:SetText("Medals")
-    p.medalLabel:SetAnchor(TOPLEFT, p.cp.icon, BOTTOMLEFT, 0, 8)
+    p.div2 = P.rect(p.container, gold_line())
+    p.div2:SetAnchor(TOPLEFT, p.cp.icon, BOTTOMLEFT, 0, 8)
+    p.div2:SetDimensions(INNER, 1)
+    p.medalLabel:SetAnchor(TOPLEFT, p.div2, BOTTOMLEFT, 0, 8)
     p.medalLabel:SetDimensions(INNER, 18)
     p.medalIcons = {}
     p.medalBadges = {}
@@ -209,11 +210,9 @@ local function build_haul(win)
     p.medalMore = P.label(p.container, S.FONT.small, K.COLOR.medal)
     p.medalMore:SetAnchor(TOPLEFT, p.medalLabel, BOTTOMLEFT, 0, 6 + 2 * MEDAL_STEP)
 
-    p.eff = P.label(p.container, S.FONT.small, K.COLOR.accent)
-    U.clamp_line(p.eff)
-    p.eff:SetAnchor(TOPLEFT, p.medalLabel, BOTTOMLEFT, 0, 24 + 2 * MEDAL_STEP)
-    p.eff:SetDimensions(INNER, 16)
-    p.eff:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    p.div3 = P.rect(p.container, gold_line())
+    p.div3:SetAnchor(TOPLEFT, p.medalLabel, BOTTOMLEFT, 0, 14 + 2 * MEDAL_STEP)
+    p.div3:SetDimensions(INNER, 1)
 
     p.share = {}
     local cellW = math.floor(INNER / SHARE_COLS)
@@ -222,7 +221,7 @@ local function build_haul(win)
         local col = (i - 1) % SHARE_COLS
         local row = math.floor((i - 1) / SHARE_COLS)
         s.donut = Donut.new("BGMeterShare" .. key, p.container, SHARE_SIZE, { track = SHARE_TRACK })
-        s.donut:control():SetAnchor(TOPLEFT, p.eff, BOTTOMLEFT, col * cellW, SHARE_ROW_GAP + row * (SHARE_SIZE + SHARE_ROW_GAP))
+        s.donut:control():SetAnchor(TOPLEFT, p.div3, BOTTOMLEFT, col * cellW, SHARE_ROW_GAP + row * (SHARE_SIZE + SHARE_ROW_GAP))
         s.pct = P.label(p.container, S.FONT.small, K.COLOR.text)
         U.clamp_line(s.pct)
         s.pct:SetAnchor(TOPLEFT, s.donut:control(), TOPRIGHT, 4, 0)
@@ -236,26 +235,45 @@ local function build_haul(win)
         p.share[key] = s
     end
 
-    p.sep = P.rect(p.container, { 1, 1, 1, 0.10 })
+    p.div4 = P.rect(p.container, gold_line())
+    p.div4:SetAnchor(TOPLEFT, p.div3, BOTTOMLEFT, 0, RINGS_H + 6)
+    p.div4:SetDimensions(INNER, 1)
+    p.div4:SetHidden(true)
+
+    p.radar = BGMeter.UI.radar.new(p.container, "haul.profile")
+    p.radar:layout(INNER, RADAR_MIN)
+    p.radar.root:SetHidden(true)
+    p.radarSide = RADAR_MIN
+    p.archetype = P.label(p.container, S.FONT.row, K.COLOR.gold)
+    U.clamp_line(p.archetype)
+    p.archetype:SetDimensions(INNER, 18)
+    p.archetype:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    p.archetype:SetHidden(true)
+    W.tip_dynamic(p.archetype)
+    p.profileFor, p.profile, p.profileHover = nil, nil, nil
+
+    p.sep = P.rect(p.container, gold_line())
     p.sep:SetAnchor(BOTTOMLEFT, p.container, BOTTOMLEFT, PAD, -STAND_H)
     p.sep:SetDimensions(INNER, 1)
 
     p.standHeading = P.label(p.container, S.FONT.small, K.COLOR.text_dim)
     p.standHeading:SetText("COMPETITIVE STANDING")
-    p.standHeading:SetAnchor(TOPLEFT, p.sep, BOTTOMLEFT, 0, 10)
+    p.standHeading:SetAnchor(TOPLEFT, p.sep, BOTTOMLEFT, 0, 8)
     p.standHeading:SetDimensions(INNER, 16)
     p.standHeading:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
     p.standRank = P.label(p.container, S.FONT.big, K.COLOR.text)
-    p.standRank:SetAnchor(TOP, p.standHeading, BOTTOM, 0, 4)
-    p.standRank:SetDimensions(INNER, 30)
-    p.standRank:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    p.standRank:SetAnchor(TOPLEFT, p.standHeading, BOTTOMLEFT, 0, 2)
+    p.standRank:SetDimensions(math.floor(INNER * 0.5) - 5, 30)
+    p.standRank:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    p.standRank:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 
     p.standSub = P.label(p.container, S.FONT.small, K.COLOR.text_dim)
     U.clamp_line(p.standSub)
-    p.standSub:SetAnchor(TOP, p.standRank, BOTTOM, 0, 2)
-    p.standSub:SetDimensions(INNER, 18)
-    p.standSub:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    p.standSub:SetAnchor(TOPLEFT, p.standRank, TOPRIGHT, 10, 0)
+    p.standSub:SetDimensions(INNER - math.floor(INNER * 0.5) - 5, 30)
+    p.standSub:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    p.standSub:SetVerticalAlignment(TEXT_ALIGN_CENTER)
 
     W.tip_static(hit_proxy(p.ap.icon), "Alliance Points earned this match")
     W.tip_static(hit_proxy(p.xp.icon), "Experience earned this match")
@@ -332,11 +350,82 @@ function SEC.haul_share(m, lr)
     return true
 end
 
+local function standing_visible(m)
+    if not Prefs.get("show_standing") then return false end
+    local casual = (m.competitive == false)
+        or (m.competitive == nil and m.teamSize == nil and #m.battle > 10)
+    if casual then
+        local sess = BGMeter.Session
+        return sess ~= nil and sess.matches > 0
+    end
+    return true
+end
+
+local function haul_profile_body(p, top)
+    local Profile = BGMeter.Profile
+    local data = p.profile
+    local idx = data and ((p.profileHover and Profile.index_of(data, p.profileHover)) or data.me) or nil
+    if not idx then
+        p.radar:clear()
+        p.radar.root:SetHidden(true)
+        p.archetype:SetHidden(true)
+        return false
+    end
+    local pl = data.players[idx]
+    local tm = data.teams[pl.team]
+    local names = p.axisNames or {}
+    p.axisNames = names
+    for a = 1, #data.axes do names[a] = Profile.NAMES[data.axes[a]] end
+    for a = #data.axes + 1, #names do names[a] = nil end
+    local col = S.team_color(pl.team)
+    p.radar.root:ClearAnchors()
+    p.radar.root:SetAnchor(TOPLEFT, p.container, TOPLEFT, 16, top)
+    p.radar.root:SetHidden(false)
+    p.radar:set_axes(names)
+    p.radar:clear_series()
+    if tm then p.radar:set_series(1, tm.v, K.COLOR.gold, { width = 1, alpha = 0.75 }) end
+    p.radar:set_series(2, pl.v, col, { fan = true, width = 2 })
+    local c = Profile.classify(pl.v, data.axes, data.n)
+    if c.kind == "pair" then p.radar:set_emphasis(c.top, c.with)
+    elseif c.kind == "single" then p.radar:set_emphasis(c.top, nil)
+    else p.radar:set_emphasis(nil, nil) end
+    p.radar:render()
+    local label = c.name:upper()
+    W.tips[p.archetype] = Profile.meaning(c.name)
+    p.archetype:ClearAnchors()
+    p.archetype:SetAnchor(TOPLEFT, p.container, TOPLEFT, 16, top + (p.radarSide or RADAR_MIN) + 2)
+    set_text(p.archetype, label)
+    S.color(p.archetype, pl.row.isLocal and K.COLOR.gold or col)
+    p.archetype:SetHidden(false)
+    return true
+end
+
+local function haul_profile(p, top)
+    return BGMeter.Prof.span("haul:profile", haul_profile_body, p, top)
+end
+
+function U.profile_hover(prow)
+    local p = W.haul
+    if not (p and p.profile) or p.container:IsHidden() then return end
+    if p.profileHover == prow then return end
+    p.profileHover = prow
+    if not p.radarTop then return end
+    haul_profile(p, p.radarTop)
+end
+
+function U.profile_state()
+    local p = W.haul
+    if not p then return nil end
+    return { shown = not p.radar.root:IsHidden(), label = p.archetype:GetText(), axes = p.radar:axis_count(),
+             lines = p.radar:count(), hover = p.profileHover ~= nil, top = p.radarTop, side = p.radarSide, mini = p.miniAvail,
+             tip = W.tips[p.archetype] }
+end
+
 function SEC.haul(m, animate)
     local p, h = W.haul, m.haul
     local rec = m.records or {}
     local vet = h.vetEnd or h.vetStart
-    local vetControls = { p.vetIcon, p.vetIconHit, p.vetTitle, p.vetTier, p.track.container, p.vetDelta, p.season }
+    local vetControls = { p.vetIcon, p.vetIconHit, p.vetTitle, p.vetTier, p.track.container, p.vetDelta }
 
     if not Prefs.get("show_veterancy") then
         hide_all(vetControls, true)
@@ -367,7 +456,6 @@ function SEC.haul(m, animate)
         else
             set_text(p.vetDelta, "")
         end
-        set_text(p.season, vet.seasonName or "")
         local endsTxt = (vet.secondsLeft and vet.secondsLeft > 0)
             and ("\nseason ends in " .. F.countdown(vet.secondsLeft)) or ""
         W.tips[p.vetIconHit] = string.format("%s%s\n%s%s",
@@ -379,7 +467,7 @@ function SEC.haul(m, animate)
         hide_all(vetControls, false)
         p.vetIcon:SetHidden(true)
         set_text(p.vetTitle, "Veterancy"); set_text(p.vetTier, "(no season data)")
-        Bar.set_hidden(p.track, true); set_text(p.vetDelta, ""); set_text(p.season, "")
+        Bar.set_hidden(p.track, true); set_text(p.vetDelta, "")
         W.tips[p.vetIconHit] = nil
     end
 
@@ -418,25 +506,35 @@ function SEC.haul(m, animate)
     end
     set_text(p.medalMore, (#ids > #p.medalIcons) and ("+" .. (#ids - #p.medalIcons)) or "")
 
-    set_text(p.eff, string.format("%s AP/min  ·  %s AP/kill", F.commas(h.apPerMin), F.commas(h.apPerKill)))
     local rings = SEC.haul_share(m, lr)
+    p.div4:SetHidden(not rings)
+    local contH = (W.cur_h or L.window_h) - L.header_h - L.footer_h
+    local inner = L.haul_w - 32
+    local top = EFF_BOTTOM + (rings and (RINGS_H + 7) or 0) + MINI_GAP
+    local bottom = standing_visible(m) and STAND_H or 0
+    if p.profileFor ~= m then
+        p.profileFor, p.profileHover = m, nil
+        p.profile = BGMeter.Profile.compute(m)
+    end
+    local room = contH - bottom - top - MINI_GAP
+    local side = room - 18 - MINI_GAP - MINI_OUTER_MIN
+    if side > inner then side = inner end
+    if side < RADAR_MIN then side = RADAR_MIN end
+    p.radarSide = side
+    p.radar:layout(inner, side)
+    p.radarTop = top
+    if haul_profile(p, top) then top = top + side + 18 + MINI_GAP end
+    p.miniAvail = contH - bottom - top - MINI_GAP
     if BGMeter.UI.map then
-        local contH = (W.cur_h or L.window_h) - L.header_h - L.footer_h
-        local top = EFF_BOTTOM + (rings and RINGS_H or 0) + MINI_GAP
-        local avail = contH - STAND_H - top - MINI_GAP
-        BGMeter.UI.map.mini_update(m, p.container, 16, top, avail)
+        local outer = math.min(p.miniAvail, inner)
+        local x = 16 + math.floor((inner - outer) / 2)
+        BGMeter.UI.map.mini_update(m, p.container, x, top, p.miniAvail)
     end
 
     local standControls = { p.sep, p.standHeading, p.standRank, p.standSub }
     local casual = (m.competitive == false)
         or (m.competitive == nil and m.teamSize == nil and #m.battle > 10)
     if not Prefs.get("show_standing") then hide_all(standControls, true); return end
-    local effBottom = p.eff:GetBottom() or 0
-    local sepTop = p.sep:GetTop() or 0
-    if effBottom > 0 and sepTop > 0 and effBottom + 6 > sepTop then
-        hide_all(standControls, true)
-        return
-    end
 
     if casual then
         local sess = BGMeter.Session
@@ -448,8 +546,8 @@ function SEC.haul(m, animate)
         if sess.wins > sess.losses then col = K.COLOR.heal
         elseif sess.losses > sess.wins then col = K.COLOR.accent end
         S.color(p.standRank, col)
-        set_text(p.standSub, string.format("%s AP  ·  %d %s tonight",
-            F.commas(sess.ap), sess.matches, sess.matches == 1 and "match" or "matches"))
+        set_text(p.standSub, string.format("%s AP", F.commas(sess.ap)))
+        S.color(p.standSub, K.COLOR.text_dim)
         W.tips[p.standRank] = string.format(
             "This play session (since login)\n%d wins, %d losses\n%s AP  ·  %s XP earned",
             sess.wins, sess.losses, F.commas(sess.ap), F.commas(sess.xp))
@@ -461,7 +559,7 @@ function SEC.haul(m, animate)
     local st = m.standing
     if not st then
         set_text(p.standRank, "..."); S.color(p.standRank, K.COLOR.text_dim)
-        set_text(p.standSub, "loading leaderboard...")
+        set_text(p.standSub, "loading"); S.color(p.standSub, K.COLOR.text_dim)
         W.tips[p.standRank] = "Competitive leaderboard standing"
     elseif st.rank and st.rank > 0 then
         set_text(p.standRank, "#" .. F.commas(st.rank))
@@ -473,12 +571,16 @@ function SEC.haul(m, animate)
         if rec.rank then move = F.icon(ICON_STAR, 16) .. " |cf2cc55best!|r   " .. move end
         S.color(p.standRank, rec.rank and K.COLOR.gold or rankCol)
         if rec.rank and animate then pop(p.standRank) end
-        local sub = move .. "rating " .. F.commas(st.score)
+        local sub = F.commas(st.score)
+        local subCol = K.COLOR.text_dim
         if st.scoreDelta and st.scoreDelta ~= 0 then
-            sub = sub .. string.format(" (%s%s)", st.scoreDelta > 0 and "+" or "", F.commas(st.scoreDelta))
+            sub = sub .. string.format("  %s%s", st.scoreDelta > 0 and "+" or "", F.commas(st.scoreDelta))
+            subCol = st.scoreDelta > 0 and K.COLOR.heal or K.COLOR.accent
         end
         set_text(p.standSub, sub)
+        S.color(p.standSub, subCol)
         local tip = "Competitive leaderboard standing\n"
+        if rec.rank then tip = tip .. "personal best rank\n" end
         if st.rankDelta > 0 then tip = tip .. string.format("up %d since your last match", st.rankDelta)
         elseif st.rankDelta < 0 then tip = tip .. string.format("down %d since your last match", -st.rankDelta)
         elseif st.prevRank == 0 then tip = tip .. "your first ranked match"
@@ -488,7 +590,7 @@ function SEC.haul(m, animate)
         W.tips[p.standRank] = tip
     else
         set_text(p.standRank, "unranked"); S.color(p.standRank, K.COLOR.text_dim)
-        set_text(p.standSub, st.impacts and "no leaderboard entry yet" or "this match did not affect rank")
+        set_text(p.standSub, st.impacts and "no entry yet" or "not ranked"); S.color(p.standSub, K.COLOR.text_dim)
         W.tips[p.standRank] = "Competitive leaderboard standing\nplay a ranked battleground to appear"
     end
 end

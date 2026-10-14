@@ -1,8 +1,8 @@
 ## Title: Murf's Knickknacks
 ## Author: Murfiex
-## APIVersion: 101050 101051
+## APIVersion: 101051
 ## Description: Miscellaneous QoL improvements
-## Version: 0.4.4
+## Version: 0.4.5
 ## SavedVariables: MurfKnickknacks_SavedVars
 ## DependsOn: LibHarvensAddonSettings
 

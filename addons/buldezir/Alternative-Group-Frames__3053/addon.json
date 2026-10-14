@@ -18,7 +18,7 @@
     "AltGroupFrames"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3053/",
-  "fingerprint": "d4c7fd509b4c5ca1a5415885558b151b03ad25addfe75a73d7a68104f52b0599",
+  "fingerprint": "a827ba9deb477b6e7c82fe1bc6083fada281d8a60859e1d1ab78fa76e2b80fb1",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10248.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "3053",
   "source_url": "https://www.esoui.com/downloads/info3053-AlternativeGroupFrames.html",
   "stats": {
-    "downloads": 34312,
+    "downloads": 34712,
     "favorites": 40,
-    "monthly_downloads": 1383
+    "monthly_downloads": 1688
   },
   "title": "Alternative Group Frames",
-  "updated_at": 1791548001000,
-  "version": "1.4.38"
+  "updated_at": 1791916744000,
+  "version": "1.5.39"
 }

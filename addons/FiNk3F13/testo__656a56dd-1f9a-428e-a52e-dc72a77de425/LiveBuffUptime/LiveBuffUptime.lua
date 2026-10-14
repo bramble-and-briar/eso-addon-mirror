@@ -13,11 +13,13 @@ local enabledTrackers = {}
 local inCombat = false
 local fightEndedAt
 local fightStartedAt, activeStartedAt, finalDuration
+local fightRole
 local lastActiveAt
 local useLibCombat = false
 local LibCombat
 local Performance = LiveBuffUptimePerformance
 local BuffDebug = LiveBuffUptimeBuffDebug
+local BuffReports = LiveBuffUptimeReports
 local function beginBuffDebug(time)
     if not BuffDebug or not BuffDebug.active then return end
     BuffDebug.BeginFight(time)
@@ -50,11 +52,15 @@ local draftUnit = "player"
 local refreshSettings, update, setUnlocked, selectTracker
 local seedGroupTimers
 local defaults = { combatOnly = false, nextKey = 1, trackers = {} }
-local unitNames = { player = "Auf mir", reticleover = "Auf dem Gegner", group = "Auf der Gruppe" }
+local unitNames = { player = "Auf mir", reticleover = "Auf dem Gegner", group = "Auf der Gruppe", dds = "Nur DDs" }
 local unitItems = {
     { name = unitNames.player, data = "player" },
     { name = unitNames.group, data = "group" },
+    { name = unitNames.dds, data = "dds" },
 }
+local function unitLabel(config)
+    return unitNames[config.unit == "group" and config.groupRole == "damage" and "dds" or config.unit]
+end
 local OFF_BALANCE_ID, OFF_BALANCE_IMMUNITY_ID = 39077, 134599
 
 local function refreshEnabledTrackers()
@@ -158,14 +164,19 @@ local function groupRoster()
     local roster = {}
     local playerZone = GetUnitZoneIndex and GetUnitZoneIndex("player")
     local count = GetGroupSize and GetGroupSize() or 0
+    if IsUnitGrouped and not IsUnitGrouped("player") then count = 0 end
     for index = 1, math.max(1, count) do
         local tag = count == 0 and "player" or (GetGroupUnitTagByIndex and GetGroupUnitTagByIndex(index) or "group" .. index)
         if tag and DoesUnitExist(tag) then
             local online = not IsUnitOnline or IsUnitOnline(tag)
             local sameZone = not GetUnitZoneIndex or GetUnitZoneIndex(tag) == playerZone
             local dead = IsUnitDeadOrReincarnating and IsUnitDeadOrReincarnating(tag) or IsUnitDead(tag)
+            local isPlayer = tag == "player" or (AreUnitsEqual and AreUnitsEqual(tag, "player"))
+            local role = isPlayer and GetSelectedLFGRole and GetSelectedLFGRole()
+                or GetGroupMemberSelectedRole and GetGroupMemberSelectedRole(tag)
+            if role ~= LFG_ROLE_DPS and role ~= LFG_ROLE_TANK and role ~= LFG_ROLE_HEAL then role = nil end
             roster[#roster + 1] = { tag = tag, key = groupMemberKey(tag), eligible = online and sameZone and not dead,
-                inCombat = online and sameZone and IsUnitInCombat(tag) }
+                inCombat = online and sameZone and IsUnitInCombat(tag), role = role, dead = dead, available = online and sameZone }
         end
     end
     return roster
@@ -202,6 +213,7 @@ local function syncGroupRoster(roster, now)
         local member = LiveUptime.GroupMember(liveUptimeFight, entry.key, id, now, entry.eligible,
             GetUnitName and GetUnitName(entry.tag) or entry.key)
         member.isPlayer = entry.tag == "player" or (AreUnitsEqual and AreUnitsEqual(entry.tag, "player")) or false
+        member.role = member.role or entry.role
         local dataId = member.id or entry.key
         if wasAlive ~= entry.eligible then
             for _, tracker in ipairs(enabledTrackers) do
@@ -404,7 +416,7 @@ local function createTracker(config)
     window:SetHandler("OnMoveStop", function() savePosition(tracker) end)
     window:SetHandler("OnMouseEnter", function(control)
         InitializeTooltip(InformationTooltip, control, BOTTOM, 0, -8)
-        local text = displayName(config.id) .. " | " .. unitNames[config.unit] .. " | ID " .. config.id
+        local text = displayName(config.id) .. " | " .. unitLabel(config) .. " | ID " .. config.id
         if config.unit == "group" then
             text = text .. string.format("\nAktiv: %d/%d | Restzeit: kuerzeste aktive Anwendung", tracker.group.activeMembers or 0, tracker.group.eligibleMembers or 0)
         end
@@ -478,6 +490,10 @@ update = function(targetChanged, sampleOnly)
             break
         end
     end
+    if BuffReports and inCombat then
+        local dead = IsUnitDeadOrReincarnating and IsUnitDeadOrReincarnating("player") or IsUnitDead("player")
+        BuffReports.ObserveDeathRoster(roster, now, groupMemberKey("player"), dead)
+    end
     for _, tracker in ipairs(enabledTrackers) do
         local unit = tracker.config.unit
         local effect
@@ -492,7 +508,8 @@ update = function(targetChanged, sampleOnly)
                 if member.eligible and excluded and (not tracker.cooldown or excluded.ends < tracker.cooldown.ends) then
                     tracker.cooldown = excluded
                 end
-                observations[#observations + 1] = { key = member.key, eligible = member.eligible,
+                observations[#observations + 1] = { key = member.key, eligible = member.eligible
+                    and (tracker.config.groupRole ~= "damage" or (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS)),
                     effect = findEffect(tracker.config, snapshots[member.tag]), excluded = excluded }
             end
             local window
@@ -502,7 +519,20 @@ update = function(targetChanged, sampleOnly)
                 end
                 window = { starts = tracker.group.firstDamageAt or now, ends = tracker.group.lastDamageAt or now }
             end
+            -- Solo fallback uses the same action window as the personal tracker.
+            if not liveUptimeMode and #roster == 1 and (roster[1].tag == "player"
+                or (AreUnitsEqual and AreUnitsEqual(roster[1].tag, "player"))
+                or roster[1].key == groupMemberKey("player")) then
+                local first = math.max(tracker.state.since, activeStartedAt or fightStartedAt or tracker.state.since)
+                local last = inCombat and (lastActiveAt or (not EVENT_COMBAT_EVENT and not useLibCombat and now)) or fightEndedAt
+                window = { starts = first, ends = last or first }
+            end
             effect = Group.Update(tracker.group, observations, now, groupCombat, window, sampleOnly or liveUptimeMode)
+            if not liveUptimeMode then tracker.group.measurementWindow = window end
+            for _, member in ipairs(roster) do
+                local recorded = tracker.group.members[member.key]
+                if recorded then recorded.role = recorded.role or member.role end
+            end
             tracker.state.active = effect ~= nil
             tracker.state.expires = effect and effect.ends or 0
         else
@@ -640,6 +670,8 @@ end
 local function resetMeasurements(at, preserveGroup)
     if LibCombat and LibCombat.CancelPending then LibCombat.CancelPending() end
     local now = type(at) == "number" and at or nowSeconds()
+    fightRole = GetSelectedLFGRole and GetSelectedLFGRole()
+    if BuffReports then BuffReports.BeginEncounter(now, inCombat, groupMemberKey("player")) end
     libraryFightClosed = false
     fightEndedAt = nil
     finalDuration = nil
@@ -648,6 +680,7 @@ local function resetMeasurements(at, preserveGroup)
     lastActiveAt = nil
     if liveUptimeMode then
         liveUptimeFight = LiveUptime.New(now)
+        liveUptimeFight.personalRole = fightRole
         liveUptimeFight.personalBasis = LibCombat and LibCombat.name == "LibCombat2" and "alive" or "combat"
         if IsUnitDead and IsUnitDead("player") then LiveUptime.PlayerAlive(liveUptimeFight, now, false) end
         liveUptimeTargetId = nil
@@ -664,6 +697,15 @@ local function resetMeasurements(at, preserveGroup)
     update()
 end
 
+local function captureFallbackReport()
+    if BuffReports then
+        BuffReports.CaptureFallback(enabledTrackers, activeStartedAt or fightStartedAt, fightEndedAt,
+            finalDuration, useLibCombat, displayName, groupRoster(), function(tracker)
+                return cooldownProfile(tracker.config) and tracker.config.excludeCooldown ~= false
+            end, fightRole)
+    end
+end
+
 local function combatChanged(_, value)
     if useLibCombat then return end
     if value == inCombat then return end
@@ -676,6 +718,7 @@ local function combatChanged(_, value)
         fightEndedAt = lastActiveAt or (not EVENT_COMBAT_EVENT and nowSeconds())
         inCombat = false
         update()
+        captureFallbackReport()
         if BuffDebug and BuffDebug.active then BuffDebug.EndFight(fightEndedAt or nowSeconds()) end
     end
 end
@@ -695,14 +738,16 @@ local function addTracker()
         return
     end
     for _, config in ipairs(settings.trackers) do
-        if matches(config, id) and config.unit == draftUnit then
+        if matches(config, id) and config.unit == (draftUnit == "dds" and "group" or draftUnit)
+            and (config.groupRole == "damage") == (draftUnit == "dds") then
             d(TITLE .. ": Dieser Effekt wird fuer diese Einheit bereits angezeigt.")
             return
         end
     end
     local count = #settings.trackers
     local config = {
-        key = settings.nextKey, id = id, unit = draftUnit, scale = 1,
+        key = settings.nextKey, id = id, unit = draftUnit == "dds" and "group" or draftUnit,
+        groupRole = draftUnit == "dds" and "damage" or nil, scale = 1,
         x = math.max(0, (GuiRoot:GetWidth() - 164) / 2),
         y = math.max(0, math.min(GuiRoot:GetHeight() - 48, 300 + count * 56)),
     }
@@ -744,6 +789,11 @@ refreshSettings = function(openSection, selectedLabel)
     end
     local sectionIndexes = {}
     local descriptors = {
+        { type = lib.ST_BUTTON, label = "Kampfstatistiken", buttonText = "Kampfbericht oeffnen",
+          clickHandler = function()
+              if unlocked then setUnlocked(false) end
+              if BuffReports then BuffReports.Open() end
+          end },
         { type = lib.ST_CHECKBOX, label = "Nur im Kampf anzeigen",
           getFunction = function() return settings.combatOnly end,
           setFunction = function(value) settings.combatOnly = value; update() end },
@@ -764,7 +814,7 @@ refreshSettings = function(openSection, selectedLabel)
         local tracker = item
         local config = tracker.config
         descriptors[#descriptors + 1] = { type = lib.ST_SECTION,
-            label = displayName(config.id) .. " (" .. config.id .. ") - " .. unitNames[config.unit] }
+            label = displayName(config.id) .. " (" .. config.id .. ") - " .. unitLabel(config) }
         sectionIndexes[config.key] = #descriptors
         descriptors[#descriptors + 1] = { type = lib.ST_CHECKBOX, label = "Buff aktiv",
             getFunction = function() return config.enabled ~= false end,
@@ -793,10 +843,11 @@ refreshSettings = function(openSection, selectedLabel)
                 selectTracker(tracker); setUnlocked(true)
             end }
         descriptors[#descriptors + 1] = { type = lib.ST_DROPDOWN, label = "Einheit", items = unitItems,
-            tooltip = "Auf mir: persoenliche Uptime. Auf der Gruppe: Buffzeit aller Mitglieder geteilt durch ihre Lebendzeit.",
-            getFunction = function() return unitNames[config.unit] end,
+            tooltip = "Auf mir: persoenlich. Gruppe: alle Mitglieder. Nur DDs: Spieler mit ausgewaehlter Schadensrolle, auch ohne Buff.",
+            getFunction = function() return unitLabel(config) end,
             setFunction = function(_, _, entry)
-                config.unit = entry.data
+                config.unit = entry.data == "dds" and "group" or entry.data
+                config.groupRole = entry.data == "dds" and "damage" or nil
                 config.view = nil
                 tracker.state = Meter.New(nowSeconds())
                 tracker.immunityState = Meter.New(nowSeconds())
@@ -1008,6 +1059,7 @@ local function registerLibCombat()
             finalDuration = liveUptimeFight.starts and liveUptimeFight.ends and math.max(1, liveUptimeFight.ends - liveUptimeFight.starts) or nil
             inCombat = false
             update()
+            if BuffReports then BuffReports.Capture(liveUptimeFight, enabledTrackers, liveUptimePlayerId, liveUptimeTargetId, displayName) end
             if BuffDebug and BuffDebug.active then
                 BuffDebug.EndFight(liveUptimeFight.encounterEnds or liveUptimeFight.ends or nowSeconds())
             end
@@ -1062,6 +1114,7 @@ local function registerLibCombat()
         for _, tracker in ipairs(enabledTrackers) do tracker.scope = Meter.RebuildScope(tracker.scope) end
         inCombat = false
         update()
+        captureFallbackReport()
         if BuffDebug and BuffDebug.active then BuffDebug.EndFight(ends or nowSeconds()) end
     end)
 end
@@ -1117,10 +1170,11 @@ local function groupCombatEffect(result, ability, targetId, sourceType, hitValue
     end
 end
 
-local function combatActivity(_, result, isError, _, _, _, _, sourceType, _, targetType, hitValue, _, _, _, sourceId, targetId, ability)
+local function combatActivity(_, result, isError, _, _, _, _, sourceType, targetName, targetType, hitValue, _, _, _, sourceId, targetId, ability)
     if liveUptimeMode then
         if isError or not inCombat or not liveUptimeFight then return end
         if damageResults[result] then LiveUptime.EncounterDamage(liveUptimeFight, nowSeconds()) end
+        if damageResults[result] and BuffReports then BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue) end
         LiveUptime.Kind(liveUptimeFight, sourceId, sourceType)
         LiveUptime.Kind(liveUptimeFight, targetId, targetType)
         if sourceType == COMBAT_UNIT_TYPE_PLAYER then liveUptimePlayerId = sourceId or liveUptimePlayerId end
@@ -1148,6 +1202,7 @@ local function combatActivity(_, result, isError, _, _, _, _, sourceType, _, tar
             tracker.group.lastDamageAt = now
         end
     end
+    if inCombat and BuffReports then BuffReports.RecordDamage(sourceType, targetType, targetId, targetName, hitValue) end
 end
 
 local function isOwnProc(sourceName, sourceType)
@@ -1195,6 +1250,7 @@ local function loaded(_, addonName)
     if addonName ~= NAME then return end
     EVENT_MANAGER:UnregisterForEvent(NAME, EVENT_ADD_ON_LOADED)
     settings = ZO_SavedVars:NewAccountWide("LiveBuffUptime_SavedVariables", 1, nil, defaults)
+    if BuffReports then BuffReports.Init(settings) end
     settings.fps = nil
     settings.checkUptime, settings.lastCheck, settings.lastFights = nil, nil, nil
     createMoveUI()
@@ -1232,6 +1288,10 @@ local function loaded(_, addonName)
     end)
     if EVENT_UNIT_DEATH_STATE_CHANGED then
         registerESOEvent(NAME, EVENT_UNIT_DEATH_STATE_CHANGED, function(_, tag, dead)
+            if BuffReports and type(tag) == "string" and (tag == "player" or tag:match("^group%d+$")
+                or (AreUnitsEqual and AreUnitsEqual(tag, "player"))) then
+                BuffReports.ObserveDeath(groupMemberKey(tag), nowSeconds(), dead)
+            end
             if liveUptimeMode and inCombat and (tag == "player" or (AreUnitsEqual and AreUnitsEqual(tag, "player"))) then
                 local now = nowSeconds()
                 if LiveUptime.PlayerAlive(liveUptimeFight, now, not dead) then
@@ -1272,6 +1332,20 @@ local function loaded(_, addonName)
     end
     registerESOEvent(NAME, EVENT_EFFECT_CHANGED, function(_, changeType, slot, _, unitTag, starts, ends, stacks, icon, _, effectType, _, _, unitName, unitId, id, sourceType)
         if type(unitTag) ~= "string" then return end
+        if BuffReports and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF
+            and (unitTag:match("^boss%d+$") or (unitTag == "reticleover" and GetUnitReaction
+                and UNIT_REACTION_HOSTILE ~= nil and GetUnitReaction(unitTag) == UNIT_REACTION_HOSTILE))
+            and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
+            for _, tracker in ipairs(enabledTrackers) do
+                if matches(tracker.config, id) then
+                    local now = nowSeconds()
+                    BuffReports.RecordDebuff(tracker.config.id, unitId, unitName, slot,
+                        starts and starts > 0 and changeType == EFFECT_RESULT_GAINED and math.min(starts, now) or now,
+                        ends, changeType ~= EFFECT_RESULT_FADED)
+                    break
+                end
+            end
+        end
         if BuffDebug and BuffDebug.active and (unitTag == "player" or (AreUnitsEqual and AreUnitsEqual(unitTag, "player"))
             or (BuffDebug.IsGroup() and string.match(unitTag, "^group%d+$"))) then
             local count = 0
@@ -1377,7 +1451,10 @@ local function loaded(_, addonName)
         local groupDebugId = command:match("^buffdebug group%s+(%d+)$")
         local quickId = command:match("^buffdebug%s+(%d+)$")
         local debugId = command:match("^buffdebug start%s+(%d+)$")
-        if (command == "buffdebug start" or debugId or quickId or groupDebugId) and BuffDebug then
+        if command == "uptime" and BuffReports then
+            if unlocked then setUnlocked(false) end
+            BuffReports.Open()
+        elseif (command == "buffdebug start" or debugId or quickId or groupDebugId) and BuffDebug then
             local id = tonumber(groupDebugId or quickId or debugId)
             if not id then
                 for _, tracker in ipairs(enabledTrackers) do
@@ -1411,6 +1488,7 @@ local function loaded(_, addonName)
                             if result.truncated then return nil, "Einzelbericht unvollstaendig; keine verlaessliche Summenpruefung moeglich." end
                             local members = {}
                             for key, member in pairs(liveUptimeFight.groupMembers) do
+                                if tracker.config.groupRole ~= "damage" or (LFG_ROLE_DPS ~= nil and member.role == LFG_ROLE_DPS) then
                                 local covered, duration = 0, 0
                                 for _, row in ipairs(result.members) do
                                     if row.id == (member.id or key) then
@@ -1433,6 +1511,7 @@ local function loaded(_, addonName)
                                     end
                                 end
                                 members[#members + 1] = { key = key, name = member.name or key, covered = covered, duration = duration }
+                                end
                             end
                             table.sort(members, function(a, b) return a.name < b.name end)
                             return { members = members, starts = result.starts or liveUptimeFight.combatstart,

@@ -11,6 +11,8 @@ local L = GetString
 
 local ZOS_addSystemMsg = CHAT_SYSTEM.AddMessage
 
+local logDebug = TT.logDebug
+
 -- -----------------------------
 -- send debug messages to chat if enabled
 local TTmsg = SF.addonChatter:New(TT.name)
@@ -18,19 +20,13 @@ local debugmode=false
 TTmsg:disableDebug()
 
 local function dbg(...)	
-	-- [ [
-	if not TT.logger then 
-		TT.logger = LibDebugLogger:Create("ThievesTools")
-		TT.logger:SetEnabled(true)
-	end
-	if TTmsg:isDebugEnabled() then
-		TT.logger:Info(...)
-	end
-	-- ] ]
-
+	TT.logDebug(...)
 	-- mostly because I hate to type
 	TTmsg:debugMsg(...)
 end
+
+local AUTO_LOOT_OFF = "0"
+local AUTO_LOOT_ON = "1"
 
 local tempHideBar = false
 local message_dest = 0		-- set this to 3 to turn off message on screen and in chat
@@ -39,13 +35,15 @@ local function slashToggleDebug()
 	-- have a local debugmode variable instead of just using TTmsg:toggleDebug()
 	-- (the addonChatter keeps track of its own state without outside assistance)
 	-- just so that I can print to chat that I am enabling or disabling debug mode.
-	if( debugmode == false ) then
+	if debugmode == false then
 		debugmode = true
 		TTmsg:enableDebug()
 		TTmsg:systemMessage("Enabling debug")
+		TT.logDebug("Enabling debug")
 
 	else
 		TTmsg:systemMessage("Disabling debug")
+		TT.logDebug("Disabling debug")
 		debugmode = false
 		TTmsg:disableDebug()
 	end
@@ -164,10 +162,10 @@ TT.options = {}
 TT.delaying = false
 TT.quality = { [0] = 0, 0, 0, 0, 0, 0 }
 
-TT.dshow = { }
+TT.dshow = { }		-- runtime flags indicating whether each control is currently permitted to be shown.
 TT.bounty = GetFullBountyPayoffAmount()
 TT.bounty_start = 0
-if( TT.bounty > 0 ) then TT.bounty_start = GetTimeStamp() end
+if TT.bounty > 0 then TT.bounty_start = GetTimeStamp() end
 
 TT.last_fence_d = 0
 
@@ -237,22 +235,27 @@ local evtmgr = SF.EvtMgr:New("ThiefTools")
 	item handler functions that can be assigned to itemtypes
 --]]
 local function ignoreIt(hotItem)
-	TTmsg:debugMsg(SF.str("Ignoring ",hotItem.name," IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType))
+	logDebug("Ignoring ",hotItem.name," IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType)
 	-- do nothing with it
 end
 
 local function fenceIt(hotItem)
-	TTmsg:debugMsg(SF.str("Fencing ",hotItem.name," IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType))
-	TT.fenceCount = math.max(0, TT.fenceCount + hotItem.stackCount)
-	TT.totalQual  = math.max(0, TT.totalQual + (hotItem.quality * hotItem.stackCount))
-	local sellPrice = hotItem.stackSellPrice
-	if( hotItem.stackCount < 0 ) then
-		TT.totalValue = TT.totalValue - sellPrice
+	logDebug("Fencing ",hotItem.name," IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType)
 
-	else
-		TT.totalValue = TT.totalValue + sellPrice
-	end
-	TT.quality[hotItem.quality] = math.max(0, SF.nilDefault(TT.quality[hotItem.quality], 0) + hotItem.stackCount)
+	local stackCount = hotItem.stackCount
+	local quality = hotItem.quality
+	local sellPrice = hotItem.stackSellPrice
+
+	TT.fenceCount = math.max(0, TT.fenceCount + stackCount)
+	TT.totalQual  = math.max(0, TT.totalQual + (quality * stackCount))
+    if stackCount < 0 then
+        TT.totalValue = TT.totalValue - sellPrice
+    else
+        TT.totalValue = TT.totalValue + sellPrice
+    end
+	if TT.totalValue < 0 then TT.totalValue = 0 end
+	TT.quality[quality] = math.max(0,
+		SF.nilDefault(TT.quality[quality], 0) + stackCount)
 end
 
 --[[
@@ -262,13 +265,14 @@ end
     To decrement, pass in a negative stackCount.
 ]]
 local function launderIt(hotItem)
-	TTmsg:debugMsg(SF.str("Laundering ",hotItem.name," IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType))
-    TT.launderCount = math.max(0, TT.launderCount + hotItem.stackCount)
+	logDebug("Laundering ",hotItem.name," IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType)
+	local stackCount = hotItem.stackCount 
+	TT.launderCount = math.max(0, TT.launderCount + stackCount)
 end
 
 -- stash it in junk (or not)
 local function junkIt(hotItem, isJunk)
-	TTmsg:debugMsg("Junking",hotItem.name,"IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType)
+	logDebug("Junking",hotItem.name,"IT=",hotItem.itemType,"  SIT=",hotItem.specializedItemType,"  ET=",hotItem.equipType)
     isJunk = SF.nilDefault(isJunk, true)
     if TT.options.chartt.enableJunking == false or TT.tempDisableJunking == true  then
         return
@@ -276,18 +280,18 @@ local function junkIt(hotItem, isJunk)
     if CanItemBeMarkedAsJunk(hotItem.bagId, hotItem.slotIndex) == false then
         return
     end
-    if( isJunk == true ) then
-		-- never auto-junk legendary items!
-		if type(TT.options.filter.never_junk_quality) == "string" then
-			TT.options.filter.never_junk_quality = 5
+    if isJunk == true then
+		local quality = hotItem.quality or nil
+		local neverJunkQuality =		-- never auto-junk legendary items!
+			tonumber(TT.options.filter.never_junk_quality) or 5
+		if quality == nil then
+			return
 		end
-		if hotItem ~= nil and hotItem.quality ~= nil then
-			if hotItem.quality >= TT.options.filter.never_junk_quality  then return end
+		if quality >= neverJunkQuality then
+			return
+		end
 
-		else
-			hotItem.quality = 5
-		end
-        SetItemIsJunk(hotItem.bagId, hotItem.slotIndex, isJunk)
+		SetItemIsJunk(hotItem.bagId, hotItem.slotIndex, isJunk)
 		hotItem.isJunk = true
 
 	else
@@ -304,14 +308,13 @@ end
     and the quality of the item.
 ]]
 local function incrFence( hotItem )
-    TTmsg:debugMsg(hotItem.name..": incrFence    "..hotItem.sellPrice)
+    logDebug(hotItem.name, ": incrFence    ", hotItem.sellPrice)
     -- only increment if the value is greater than the threshold setting
     --local index = hotItem.slotIndex
-    if( hotItem.sellPrice >= TT.options.filter.ignscale) then
-        --TTmsg:debugMsg("index "..index..": itemValue "..itemValue.." is >= "..TT.options.filter.ignscale)
+    if hotItem.sellPrice >= TT.options.filter.ignscale then
         fenceIt(hotItem)
 
-    elseif( TT.options.filter.autojunkbelow == true) then
+    elseif TT.options.filter.autojunkbelow == true then
         junkIt(hotItem)
     end
 end
@@ -319,8 +322,8 @@ end
 -- special handler for ITEMTYPE_FOOD so that we can distinguish (and junk)
 -- spoiled food from regular food.
 local function foodHandler( hotItem )
-	--TTmsg:debugMsg(hotItem.name..": foodHandler")
-	if( hotItem.sellPrice == 0) then
+	logDebug(hotItem.name, ": foodHandler")
+	if hotItem.sellPrice == 0 then
 		junkIt(hotItem)
 	end
   incrFence(hotItem)
@@ -329,7 +332,7 @@ end
 --[[
 	end of item handler functions
 ------------------------------------------------------------------------
-]]
+--]]
 
 -- Setup for the ItemTypeHandler prototype
 local ItemTypeHandler = ThiefTools_ItemTypeHandler
@@ -360,7 +363,7 @@ function TT.setOptionsScope()
     TT.options.display = TT.savedAW.display
 	SF.defaultMissing(TT.options.display,displayTable)
 
-    if( scope.isFilterAW ) then
+    if scope.isFilterAW then
         TT.options.filter = TT.savedAW.filter
 
     else
@@ -368,7 +371,8 @@ function TT.setOptionsScope()
     end
 	SF.defaultMissing(TT.options.filter,filterTable)
 
-    if( scope.isBarAW ) then
+	-- TT.options.dshow — configuration indicating whether each control has a dynamic visibility settings condition.
+    if scope.isBarAW then
         TT.options.show = TT.savedAW.show
         TT.options.dshow = TT.savedAW.dshow
 
@@ -379,7 +383,7 @@ function TT.setOptionsScope()
 	SF.defaultMissing(TT.options.show,barTable)
 	SF.defaultMissing(TT.options.dshow,dynamicTable)
 
-    if( scope.isWarnAW ) then
+    if scope.isWarnAW  then
         TT.options.warns = TT.savedAW.warns
 
     else
@@ -389,39 +393,40 @@ function TT.setOptionsScope()
 
 end
 
---[[
-local hiddenStates = {
-    [STEALTH_STATE_HIDDEN] = true,	-- =3
-    [STEALTH_STATE_STEALTH] = true,	-- =4
-    [STEALTH_STATE_HIDDEN_ALMOST_DETECTED] = true, 	-- =5
-    [STEALTH_STATE_STEALTH_ALMOST_DETECTED] = true,	-- =6
-    [STEALTH_STATE_NONE] = false,	-- =0
-    [STEALTH_STATE_DETECTED] = false,	-- =1
-}
+--[[ h5. StealthState (hiddenStates)
+		* STEALTH_STATE_HIDDEN = true
+		* STEALTH_STATE_STEALTH = true
+		* STEALTH_STATE_HIDDEN_ALMOST_DETECTED = true
+		* STEALTH_STATE_STEALTH_ALMOST_DETECTED = true
+		* STEALTH_STATE_DETECTED = false
+		* STEALTH_STATE_NONE = false
+		* STEALTH_STATE_HIDING
 --]]
 -- handler for EVENT_STEALTH_STATE_CHANGED
 local function onStealthChanged(iEventCode, sUnitTag, iStealthState)
-	if (sUnitTag ~= "player") then return end
+	if sUnitTag ~= "player" then return end
 
     local tmsg = SF.GetIconized(L(TT_ANNOUNCE_BE_CAREFUL), color.bronze)
-    if (iStealthState == STEALTH_STATE_HIDDEN_ALMOST_DETECTED
-            or iStealthState == STEALTH_STATE_STEALTH_ALMOST_DETECTED ) then
+    if iStealthState == STEALTH_STATE_HIDDEN_ALMOST_DETECTED
+            or iStealthState == STEALTH_STATE_STEALTH_ALMOST_DETECTED  then
         TT:ShowMessage(tmsg, message_dest)
     end
-	if( TT.options.chartt == nil ) then return end
-	if( TT.options.chartt.autoSteal ~= true ) then return end
+	if TT.options.chartt == nil  then return end
+	if TT.options.chartt.autoSteal ~= true  then return end
 
-    local grabby = { ["look"] = "0", ["take"] = "1" }
-	local isAutoLootEnabled = GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN)
-	if( iStealthState == STEALTH_STATE_NONE or iStealthState == STEALTH_STATE_DETECTED ) then
+    local isAutoLootEnabled = GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN)
+	if iStealthState == STEALTH_STATE_NONE or iStealthState == STEALTH_STATE_DETECTED  then
 		-- not sneaking (or we've been seen!)
-		if (isAutoLootEnabled == grabby.take) then
+		if isAutoLootEnabled == AUTO_LOOT_ON then
 			-- we're not sneaking so disable auto-steal
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.look)
+			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, AUTO_LOOT_OFF)
 		end
+
 	else
 		-- we are sneaking so enable auto-steal
-		SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.take)
+		if isAutoLootEnabled == AUTO_LOOT_OFF then 
+			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, AUTO_LOOT_ON)
+		end
 	end
 end
 
@@ -429,83 +434,82 @@ end
 -- specializedHandlerMap is a table of handlers keyed with the SPECIALIZED_ITEMTYPEs
 -- if some SPECIALIZED_ITEMTYPEs are not specified it will use the primary instead
 local function set_item_handlers(types, primaryfunc, secondaryfunc, specializedHandlerMap)
-	if( types == nil ) then return end
+	if types == nil then return end
 
 	-- make sure we have values
-	local specializedHandler = SF.nilDefault(specializedHandlerMap,  {})
+	local specializedHandler = specializedHandlerMap or {}
 
 	-- for each of the ITEMTYPEs passed in, set up the handler set
 	for _,v in pairs(types) do
-		TT.ItemHandlers[v] = SF.nilDefault(TT.ItemHandlers[v], ItemTypeHandler:New(v))
+		local handler = TT.ItemHandlers[v]
+		if handler == nil then
+			handler = ItemTypeHandler:New(v)
+			TT.ItemHandlers[v] = handler
+		end
+		handler:setPrimary(primaryfunc)
+		handler:setSecondary(secondaryfunc)
 
-		TT.ItemHandlers[v].primary = primaryfunc
-		TT.ItemHandlers[v].secondary = secondaryfunc
 		for skey,shdlr in pairs(specializedHandler) do
 			-- because we don't have handler name strings available here
 			-- to pass in, we have to have already set them up in
 			-- ItemTypeHandler.namelist.
-			TT.ItemHandlers[v]:setAlternate( skey, shdlr )
+			handler:setAlternate(skey, shdlr)
 		end
 	end
 end
 
 -- set the primary handlers for the list of EQUIP_TYPEs in types
 local function set_equip_handlers(types, primaryfunc)
-	if( types == nil ) then return end
-
-	--TTmsg:debugMsg("Setting equipment handler choices")
-	--TTmsg:debugMsg("handler: ", ItemTypeHandler.namelist[primaryfunc])
+	if types == nil then return end
 
 	-- for each of the EQUIP_TYPEs passed in, set up the handler set
 	for _,v in pairs(types) do
-		--TTmsg:debugMsg("v: ",v)
-		TT.EquipHandlers[v] = SF.nilDefault(TT.EquipHandlers[v], ItemTypeHandler:New(v))
-		--TTmsg:debugMsg("Type: ",v,"  handler: ", ItemTypeHandler.namelist[primaryfunc])
+		TT.EquipHandlers[v] = TT.EquipHandlers[v] or ItemTypeHandler:New(v)
 		TT.EquipHandlers[v].primary = primaryfunc
 	end
 end
 
---[[
-    Pick the appropriate handler for an itemtype based on the
+--[[ Pick the appropriate handler for an itemtype based on the
     option passed in (one of "Fence", "Launder", "Junk", or "Ignore").
     Return the chosen handler function.
 ]]
 local function pick_handler(opt)
-    if(opt == "Mode_Fence") then
+    if opt == "Mode_Fence" then
         return incrFence
-    elseif(opt == "Mode_Launder") then
+
+	elseif opt == "Mode_Launder" then
         return launderIt
-    elseif(opt == "Mode_Junk") then
+
+    elseif opt == "Mode_Junk" then
         return junkIt
+
     else
         return ignoreIt  -- ignore
     end
 end
 
---[[
-    Set the handlers for all of the itemtypes that we allow separate settings
+--[[ Set the handlers for all of the itemtypes that we allow separate settings
     for on the option page. Pass in the table of filter settings. Add entries
     into our ItemHandler table for each of the itemtypes we care about.
     Setting a handler function to nil means ignore that itemtype (alternatively
 	you can set the handler function to ignoreIt).
 ]]
 function TT.set_recipe_handler(filters)
-	SF.nilDefault(filters, TT.options.filter)
+	filters = filters or TT.options.filter
 	local types = {ITEMTYPE_RECIPE}
 	local furnprime = pick_handler(filters.dest_furn_recipe)	-- this will be the default
 	--[[
 	-- furnishing recipe subtypes
-	local furnishing_subtypes = {
 		SPECIALIZED_ITEMTYPE_RECIPE_ALCHEMY_FORMULA_FURNISHING,
 		SPECIALIZED_ITEMTYPE_RECIPE_BLACKSMITHING_DIAGRAM_FURNISHING,
 		SPECIALIZED_ITEMTYPE_RECIPE_CLOTHIER_PATTERN_FURNISHING,
 		SPECIALIZED_ITEMTYPE_RECIPE_ENCHANTING_SCHEMATIC_FURNISHING,
 		SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_DESIGN_FURNISHING,
 		SPECIALIZED_ITEMTYPE_RECIPE_WOODWORKING_BLUEPRINT_FURNISHING,
-	}
 	--]]
 
 	local provfunc = pick_handler(filters.dest_prov_recipe)
+
 	-- provisioning recipe subtypes
 	local consumable_subtypes = {
 		[SPECIALIZED_ITEMTYPE_RECIPE_PROVISIONING_STANDARD_DRINK]=provfunc,
@@ -666,26 +670,26 @@ function TT.set_handlers(filters)
 end
 
 local function fmt_time(t)
-    local ss = t % 60
-    local mm = (t % 3600) - ss
-    local hh = (t % 86400) - mm
-    local dd = t - hh
+    t = math.max(0, math.floor(t))
 
-    mm = mm/60
-    hh = hh/3600
-    dd = dd/86400
-
-    if(dd >= 1) then
+    if t >= 86400 then
+        local dd = math.floor(t / 86400)
+        local hh = math.floor((t % 86400) / 3600)
         return string.format("%02dd%02dh", dd, hh)
-    elseif(hh >= 1) then
+
+    elseif t >= 3600 then
+        local hh = math.floor(t / 3600)
+        local mm = math.floor((t % 3600) / 60)
         return string.format("%02d:%02d", hh, mm)
+
     else
+        local mm = math.floor(t / 60)
+        local ss = t % 60
         return string.format("%02d:%02d", mm, ss)
     end
 end
 
---[[
-    Zero all of our counters
+--[[ Zero all of our counters
 --]]
 local function zeroStats()
    TT.recipeCount = 0
@@ -703,39 +707,39 @@ local function zeroStats()
    end
 end
 
---[[
-    Add the contents of a slot to our counts
+--[[ Add the contents of a slot to our counts
 	(Relies on ScanStolenGoods having created a hotSheet)
 --]]
 local function incrGoodsFromSlot(bagId, index)
 
 	local hotItem = TT.hotSheet:getItem(index)
-    if( TT.options.filter.nojunk == true and hotItem.isJunk == true ) then return end
+	if not hotItem then return end
+    if TT.options.filter.nojunk == true and hotItem.isJunk == true then return end
 
 	--hotItem:Display()
 	local stackCount = hotItem.stackCount
 
-	if( hotItem.equipType ~= nil and hotItem.equipType ~= 0 ) then
-		TTmsg:debugMsg("Found non-nil EQUIP_TYPE ",hotItem.equipType)
+	if hotItem.equipType ~= nil and hotItem.equipType ~= 0  then
+		logDebug("Found non-nil EQUIP_TYPE ", hotItem.equipType)
 		local ehandlerSet = TT.EquipHandlers[hotItem.equipType]
-		if(ehandlerSet ~= nil) then
-			TTmsg:debugMsg("Found EQUIP_TYPE item handler for "..hotItem.name)
-			TTmsg:debugMsg(ItemTypeHandler.namelist[ehandlerSet:getEffectivePrimary()])
+		if ehandlerSet ~= nil then
+			logDebug("Found EQUIP_TYPE item handler for ", hotItem.name)
+			logDebug(ItemTypeHandler.namelist[ehandlerSet:getEffectivePrimary()])
 			ehandlerSet:effectiveEquip(hotItem)
 			return
 		end
 	end
 
 	local handlerSet = TT.ItemHandlers[hotItem.itemType]
-	if(handlerSet) then
-		TTmsg:debugMsg("Found ITEMTYPE item handler")
-		TTmsg:debugMsg(handlerSet:getHandlerName(handlerSet:getEffectivePrimary()))
+	if handlerSet then
+		logDebug("Found ITEMTYPE item handler")
+		logDebug(handlerSet:getHandlerName(handlerSet:getEffectivePrimary()))
 		handlerSet:effectivePrimary(hotItem)
-        if(handlerSet.special) then
+        if handlerSet.special then
             handlerSet.special(stackCount)
         end
     else
-		TTmsg:debugMsg("No handler found - fence it")
+		logDebug("No handler found - fence it")
         -- anything without a handler is counted as fence-able
         incrFence(hotItem)
     end
@@ -745,68 +749,52 @@ end
 function TT:ScanStolenGoods()
     local bagId = BAG_BACKPACK
     local bagSlots = GetBagSize(bagId)
-    TT.hotSheet:empty()
-	TTmsg:debugMsg("bagSlots = "..bagSlots)
+	local hotSheet = TT.hotSheet
+
+    hotSheet:empty()
+	logDebug("bagSlots = ", bagSlots)
     for index = 1, bagSlots do
-		isHot = IsItemStolen(bagId, index)
-		if( isHot == true ) then
-			TTmsg:debugMsg("HotItem - "..bagId.."  "..index)
+		local isHot = IsItemStolen(bagId, index)
+		if isHot == true then
+			logDebug("HotItem - ", bagId, "  ", index)
 			local slot = HotItem:New(bagId, index)
-			--slot:Display()
-			TT.hotSheet:addItem(slot)
+			hotSheet:addItem(slot)
 		end
     end
 end
 
 function TT:CalcStolenGoods()
-	if(TT.delaying == true) then return; end
+	if TT.delaying == true then return; end
 
 	zeroStats()
 	TT:ScanStolenGoods()
     local bagId = BAG_BACKPACK
     for k,v in pairs(TT.hotSheet.itemList) do
-        if( v.stolen == true ) then -- should always be true
+        if v.stolen == true then -- should always be true
             incrGoodsFromSlot(bagId, k)
         end
     end
 end
 
+local delayedCalcUpdateName = TT.name .. "DelayedCalc"
+
 function TT:DelayedCalcStolenGoods(dur)
-    if(TT.delaying == true) then return end
+    if TT.delaying == true then return end
     TT.delaying = true
-    dur = SF.nilDefault(dur, 250)
-    EVENT_MANAGER:RegisterForUpdate(TT.name.."DelayedCalc", dur,
+    dur = dur or 250
+    evtmgr:registerUpdateEvt(delayedCalcUpdateName, dur,
       function()
-        EVENT_MANAGER:UnregisterForUpdate(TT.name.."DelayedCalc")
-		--dbg("doing delayed calc")
-        TT.delaying = false
+        evtmgr:unregUpdateEvt(delayedCalcUpdateName)
+		TT.delaying = false
         TT:CalcStolenGoods()
         TT:checkFenceSlotsWarning(INVENTORY_BACKPACK)
+        TT:UpdateControls()		-- because of delay, control visibility might change
         TT:UpdateDisplay()
-        TT:UpdateControls()
    end)
 end
 
-function TT.SavePosition()
-   local x, y
-   local win = TT.window
-
-   y = win:GetTop()
-   x = win:GetLeft()
-
-   if (x < 0 ) then x = 0 end
-   if( y < 0 ) then y = 0 end
-   TT.options.display.offsetx = x
-   TT.options.display.offsety = y
-end
-
-function TT:ResetPosition()
-   TT.options.display.offsetx = 0
-   TT.options.display.offsety = 0
-end
-
 function TT:lockWindow()
-    if(TT.options.display.locked == true) then
+    if TT.options.display.locked == true then
         TT.window:SetMovable(false)
     else
         TT.window:SetMovable(true)
@@ -814,7 +802,7 @@ function TT:lockWindow()
 end
 
 function TT:hideMeter()
-    if(TT.options.display.hideMeter == true) then
+    if TT.options.display.hideMeter == true then
         ZO_HUDInfamyMeter:SetHidden(true)
     else
         ZO_HUDInfamyMeter:SetHidden(false)
@@ -913,7 +901,7 @@ local function getCurrentZoneType()
 
 
     if IsPlayerInRaid() or IsPlayerInRaidStagingArea() then return zoneType.TRIAL end
-    
+
 
     local isInDungeon = (IsUnitInDungeon("player") or GetMapContentType() == MAP_CONTENT_DUNGEON) or false
 
@@ -947,142 +935,108 @@ local function isNotJusticeArea()
 	local currentZoneId = GetZoneId(GetCurrentMapZoneIndex())
     local tw = SCENE_MANAGER:GetCurrentScene():GetName()
     local currentZoneType = getCurrentZoneType()
+	local display = TT.options.display
 	if IsPlayerInAvAWorld() or IsActiveWorldBattleground() then
 		shouldhide = true
-	elseif currentZoneType == zoneType.IA and TT.options.display.hide_on_IA then
+
+	elseif currentZoneType == zoneType.IA and display.hide_on_IA then
 		shouldhide = true
-	elseif currentZoneType == zoneType.GROUPDUNGEON and TT.options.display.hide_on_Dung then
+
+	elseif currentZoneType == zoneType.GROUPDUNGEON and display.hide_on_Dung then
 		shouldhide = true
-	elseif currentZoneType == zoneType.TRIAL and TT.options.display.hide_on_Trial then
+
+	elseif currentZoneType == zoneType.TRIAL and display.hide_on_Trial then
 		shouldhide = true
-	elseif currentZoneType == zoneType.ARENA and TT.options.display.hide_on_Arena then
+
+	elseif currentZoneType == zoneType.ARENA and display.hide_on_Arena then
 		shouldhide = true
-	elseif currentZoneType == zoneType.DELVE and TT.options.display.hide_on_PublicDungeon then
+
+	elseif currentZoneType == zoneType.DELVE and display.hide_on_PublicDungeon then
 		shouldhide = true
 	end
 	return shouldhide
 end
 
-function TT:UpdateDisplay()
-    local w = TT.window
-	local shouldhide = false
+--[[ Determines whether the ThiefTools belt should be displayed.
+
+Returns:
+    true  if the belt should be visible
+    false if the belt should be hidden
+--]]
+function TT:ShouldDisplayBelt()
+    local options = TT.options
+    local display = options.display
+
+    if isNotJusticeArea() then return false end
+
     local tw = SCENE_MANAGER:GetCurrentScene():GetName()
-	shouldhide = isNotJusticeArea()
-	if not shouldhide then
-		if (tw ~= "hudui"  and tw ~= "hud" and TT.options.display.hide_on_menu == true) then
-			shouldhide = true
-		else
-			if( TT.options.chartt.not_thief == true ) then
-				shouldhide = true
+    if tw ~= "hudui" and tw ~= "hud" and display.hide_on_menu == true then
+        return false
+    end
 
-			elseif( tempHideBar == true ) then
-				shouldhide = true
+    if options.chartt.not_thief == true then return false end
+    if tempHideBar == true then return false end
+    if display.hidden == true then return false end
 
-			else
-				shouldhide = TT.options.display.hidden
-			end
-		end
-	end
-	if w then
-		w:SetHidden(shouldhide)
-
-		local totalSells, sellsUsed, sellsReset = GetFenceSellTransactionInfo()
-		local totalLaunders, laundersUsed, laundersReset = GetFenceLaunderTransactionInfo()
-		local sellsLeft = totalSells - sellsUsed
-		local laundersLeft = totalLaunders - laundersUsed
-		local totFenceValue = TT.totalValue
-		local aveFenceValue = totFenceValue/TT.fenceCount
-
-		w.l_sellsleft:SetText(string.format("%d/%d", TT.fenceCount, sellsLeft))
-		if(TT.options.show.LaundersLeft) then
-			w.l_laundersleft:SetText(string.format("%d/%d", TT.launderCount, laundersLeft))
-		else
-			w.l_laundersleft:SetText("")
-		end
-
-		w.l_value:SetText(string.format("%d", totFenceValue))
-
-		w.l_bounty:SetText(string.format("%d", GetReducedBountyPayoffAmount()))
-
-		if(TT.fenceCount < 1) then
-			w.l_average:SetText(string.format("%.2f", 0))
-			w.l_estimate:SetText(string.format("%d", 0))
-			w.l_quality:SetText(string.format("%.2f", 0))
-
-			for i = 0,5 do
-				w.bar[i]:SetHeight(0)
-			end
-		else
-			w.l_average:SetText(string.format("%.2f", aveFenceValue))
-			w.l_estimate:SetText(string.format("%d", math.floor(aveFenceValue) * sellsLeft))
-			w.l_quality:SetText(string.format("%.2f", TT.totalQual/TT.fenceCount))
-		end -- Text Labels
-
-		for i = 0,5 do
-			if(TT.quality[i] and TT.quality[i] > 0) then
-				local percent = TT.quality[i] / TT.fenceCount
-				w.bar[i]:SetHeight(math.max(1, percent * 14))
-			else
-				w.bar[i]:SetHeight(0)
-			end
-		end
-	end
+    return true
 end
 
 -- used by bindings.xml
 function TT:toggle()
    local sbar = TT.window
 
-   if(sbar:IsHidden() == true) then
+   if sbar:IsHidden() == true then
       TT:CalcStolenGoods()
       TT:UpdateDisplay()
    end
 
-   TT.options.display.hidden = not sbar:IsHidden()
-   sbar:SetHidden(TT.options.display.hidden)
+   local display = TT.options.display
+   display.hidden = not sbar:IsHidden()
+   sbar:SetHidden(display.hidden)
 end
 
 -- used by bindings.xml
 function TT:lockWindow1()
-    if(TT.options.display.locked == true) then
+	local display = TT.options.display
+    if display.locked == true then
         TT.window:SetMovable(true)
-        TT.options.display.locked = false
+        display.locked = false
         TTmsg:systemMessage(L(TT_MSG_UNLOCKED))
         TT.SavePosition()
+
     else
         TT.window:SetMovable(false)
-        TT.options.display.locked = true
+        display.locked = true
         TTmsg:systemMessage(L(TT_MSG_LOCKED))
         TT.SavePosition()
     end
 end
 
 function TT:checkFreeSlotsWarning(bagId)
-    if( TT.options.warns.slotsleft > 0) then
+    if TT.options.warns.slotsleft > 0 then
         local slotsleft = GetNumBagFreeSlots(bagId)
         local fmsg = SF.str(L(TT_FREE_SLOTS_LEFT)," ",slotsleft)
-        if( slotsleft == 0 ) then
+        if slotsleft == 0 then
             TT.ShowMessage(SF.GetIconized(fmsg, color.red), message_dest)
-        else
-            if( slotsleft <= TT.options.warns.slotsleft ) then
+
+        elseif slotsleft <= TT.options.warns.slotsleft then
                 TT.ShowMessage(fmsg, message_dest)
-            end
         end
     end
 end
 
 local lastfencelevel = -1
 function TT:checkFenceSlotsWarning(bagId)
-    if( TT.options.warns.fenceleft and (TT.options.warns.fenceleft > 0)) then
+	local warns = TT.options.warns
+    if warns.fenceleft and (warns.fenceleft > 0) then
         local sellsLeft = FENCE_MANAGER.totalSells - FENCE_MANAGER.sellsUsed - TT.fenceCount
         local floored = math.max(0,sellsLeft)
-        if( floored == lastfencelevel ) then return end
-        if( floored == 0 ) then
+        if floored == lastfencelevel then return end
+        if floored == 0 then
             TT.ShowMessage("|c"..color.red.." "..L(TT_FENCE_SLOTS_LEFT).." "..floored.."|r", message_dest)
-        else
-            if( sellsLeft <= TT.options.warns.fenceleft ) then
-                TT.ShowMessage(L(TT_FENCE_SLOTS_LEFT).." "..sellsLeft, message_dest)
-            end
+
+        elseif sellsLeft <= warns.fenceleft then
+            TT.ShowMessage(L(TT_FENCE_SLOTS_LEFT).." "..sellsLeft, message_dest)
         end
         lastfencelevel = floored
     end
@@ -1092,18 +1046,18 @@ end
 -- Announce the given Message to: 0=both, 1=Chat, 2=Box, 3=No messages ever)
 -- (0 depends on what is set in settings)
 function TT.ShowMessage(sText, ChatOrBox)
-	if( ChatOrBox == 3 or  message_dest == 3 or sText == nil or sText == "") then return end
+	if ChatOrBox == 3 or  message_dest == 3 or sText == nil or sText == "" then return end
 
-    if( type(sText) == 'number' ) then
+    if type(sText) == 'number' then
         sText = L(sText)
     end
-    if( type(sText) ~= 'string') then return end
+    if type(sText) ~= 'string' then return end
 
 	-- info goes to MessageBox, to chat or both
-	if( ChatOrBox == 0  or ChatOrBox == 2 ) then
+	if ChatOrBox == 0  or ChatOrBox == 2 then
 		ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, sText)
 	end
-	if( ChatOrBox == nil or ChatOrBox == 0  or ChatOrBox == 1 ) then
+	if ChatOrBox == nil or ChatOrBox == 0  or ChatOrBox == 1 then
 		TTmsg:systemMessage(sText)
 	end
 end
@@ -1112,52 +1066,49 @@ end
 -- [[ Event handlers ]]
 -- handler for EVENT_ACTION_LAYER_PUSHED and EVENT_ACTION_LAYER_POPPED
 local function onLayerChange(evc, index, active)
-    if(TT.options.display.hide_on_menu == false) then return end
+	local display = TT.options.display
+    if display.hide_on_menu == false then return end
 
-    TT.window:SetHidden((active ~= 2))
+	TT.window:SetHidden(not TT:ShouldDisplayBelt())
 end
 
 local lastLaundered = {}
 local function onSlotUpdate(evCode, bagId, slotIndex, isNewItem, 
 	itemSoundCategory, updateReason,  stackCountChange)
 
-    --if(bagId ~= INVENTORY_BACKPACK) then  return end
     if updateReason ~= INVENTORY_UPDATE_REASON_DEFAULT then return end
     if IsUnderArrest() then return end
 
 	local itm = HotItem:New(bagId,slotIndex)
-	itm.IsJunk = IsItemJunk(bagId, slotIndex)
+	itm.isJunk = IsItemJunk(bagId, slotIndex)
     if isNewItem and itm.stolen then
         TT.hotSheet:addItem(itm)
     end
 	lastLaundered = {}
-	if isNewItem == false and itm.IsJunk and stackCountChange >= 0 and itm.stolen == false then
+	if isNewItem == false and itm.isJunk and stackCountChange >= 0 and itm.stolen == false then
 		lastLaundered.bagId = bagId
 		lastLaundered.slotIndex = slotIndex
 	end
 
-    if(TT.delaying == true) then
-		--dbg("Delaying")
+    if TT.delaying == true  then
 		return
 	end
 
-    if(isNewItem == true) then
-		--dbg("checking free slots")
-        TT:checkFreeSlotsWarning(bagId)
+    if isNewItem == true  then
+		TT:checkFreeSlotsWarning(bagId)
     end
 
    -- All right, we've got some bag management going on, so don't
    -- update every time.
-   --dbg("set up for delayed")
    TT:DelayedCalcStolenGoods(250)
 end
 
 -- handler for EVENT_LOOT_RECEIVED
 local function onLoot(evc, receiver, name, count, isc, itemtype, isself, ispicked)
-	dbg("name=",name,"count=",count,
-				"itype=",itemtype,"isself=",SF.bool2str(isself),
-				"ispicked=",SF.bool2str(ispicked))
-    if(not isself) then return end
+	logDebug("name=", name, " count=", count,
+				" itype=", itemtype, " isself=", SF.bool2str(isself),
+				" ispicked=", SF.bool2str(ispicked))
+    if not isself  then return end
 
     -- No way to tell if the item was stolen!  IsItemLinkStolen()
     -- doesn't return true.  Doing this in onSlotUpdate() means we
@@ -1167,11 +1118,11 @@ end
 
 -- handler for EVENT_ITEM_LAUNDER_RESULT
 local function onLaunder(evc, res)
-    if(res ~= ITEM_LAUNDER_RESULT_SUCCESS) then return end
+    if res ~= ITEM_LAUNDER_RESULT_SUCCESS then return end
 
 	if TT.options.filter.unjunk and not ZO_IsTableEmpty(lastLaundered)  then
-		TT.logger:Debug(SF.str("moving out of junk - bag ", lastLaundered.bagId,
-			" slot ", lastLaundered.slotIndex))
+		logDebug("moving out of junk - bag ", lastLaundered.bagId,
+			" slot ", lastLaundered.slotIndex)
 		SetItemIsJunk(lastLaundered.bagId, lastLaundered.slotIndex, false)
 		lastLaundered={}
 	end
@@ -1181,10 +1132,10 @@ end
 
 -- handler for EVENT_OPEN_FENCE and EVENT_CLOSE_STORE
 local function onFence(status)
-    if(status) then
+    if status then
         TT.isFencing = true
 
-    elseif(TT.isFencing == true) then
+	elseif TT.isFencing == true then
         TT.isFencing = false
         TT:UpdateDisplay()
 		TT:UpdateControls()
@@ -1202,8 +1153,8 @@ end
 
 -- handler for EVENT_SELL_RECEIPT
 local function onSold(evc, itemlink, count, money)
-    if(not TT.isFencing) then return end
-    if(TT.isFencing == false) then return end
+    if not TT.isFencing then return end
+    if TT.isFencing == false then return end
 
     -- There's no way to tell if the itemlink is junk,
     -- so we can't tell whether to (un)track it or not
@@ -1213,13 +1164,13 @@ end
 
 -- Stolen item is removed from inventory
 local function onRemoved(bagId, slotIndex, slot)
-    if( slot.stolen == false ) then return end
+    if slot.stolen == false then return end
 
 	if lastLaundered.slotIndex == slotIndex then
 		lastLaundered = {}
 	end
 	local item = TT.hotSheet:getItem(slotIndex)
-	if( not item ) then return end
+	if not item then return end
 
 	item.stackCount = -1 * item.stackCount
     incrGoodsFromSlot(bagId, slotIndex)
@@ -1229,13 +1180,12 @@ local function onRemoved(bagId, slotIndex, slot)
 	TT:UpdateControls()
 end
 
---[[
-	bounty calculation and updating
+--[[ bounty calculation and updating
 --]]
 local function resetBountyWatch()
     TT.bounty = GetFullBountyPayoffAmount()
 
-    if(TT.bounty == 0) then
+    if TT.bounty == 0 then
         TT.bounty_start = 0
         TT.window.l_bountytimer:SetText("00:00")
     else
@@ -1244,18 +1194,18 @@ local function resetBountyWatch()
 end
 
 local function bountyCheck(now, drift)
-    if(TT.bounty_start == 0) then return end
+    if TT.bounty_start == 0 then return end
 
     local bounty = GetFullBountyPayoffAmount()
 	local sec = GetSecondsUntilBountyDecaysToZero()
-    if(sec < 0) then
+    if sec < 0 then
       TT.window.l_bountytimer:SetText("00:00")
     else
       TT.window.l_bountytimer:SetText(SF.secondsToClock(sec))
     end
 	TT:UpdateDisplay()
 	TT:DynamicBountyCheck()
-    if(TT.options.display.hideMeter == true) then
+    if TT.options.display.hideMeter == true then
         ZO_HUDInfamyMeter:SetHidden(true)
     else
         ZO_HUDInfamyMeter:SetHidden(false)
@@ -1263,13 +1213,14 @@ local function bountyCheck(now, drift)
 end
 
 function TT:DynamicBountyCheck()
-	TT.dshow.Bounty = false
-	TT.dshow.BountyTimer = false
+	local dshow = TT.dshow
+	dshow.Bounty = false
+	dshow.BountyTimer = false
 
-	value = GetBounty()
-	if(value ~= 0) then
-		TT.dshow.Bounty = true
-		TT.dshow.BountyTimer = true
+	local value = GetBounty()
+	if value ~= 0 then
+		dshow.Bounty = true
+		dshow.BountyTimer = true
 	end
 
 	TT:UpdateDisplay()
@@ -1290,10 +1241,10 @@ local function fenceCheck(now, drift)
 end
 
 local function clemencyCheck(now, drift)
-    --if(TT.clemency_start == 0) then return end
+    --if TT.clemency_start == 0 then return end
 
     local sec = GetTimeToClemencyResetInSeconds()
-    if(sec <= 0) then
+    if sec <= 0 then
       TT.window.l_clemencytimer:SetText("00:00")
     else
       TT.window.l_clemencytimer:SetText(SF.secondsToClock(sec))
@@ -1322,174 +1273,39 @@ local function setupTimer()
    EVENT_MANAGER:RegisterForUpdate(TT.name.."OnTick", 5000, onTick)
 end
 
---[[
-    Create an addon-unique name for "x"
-]]
-local function unqx(x,ctl)
-    return SF.str(TT.name, SF.nilDefault(ctl, "Window"), SF.nilDefault(x,"") )
-end
+--[[ Registers a callback for inventory scene state changes to temporarily disable
+	automatic junking while the inventory is open.
 
---[[
-    Make the control(s) for an icon/label pair for the
-    status bar.
+	When the inventory scene begins showing, sets TT.tempDisableJunking to true.
+	When the scene begins hiding, resets TT.tempDisableJunking to false.
 
-	ex.    {"Kill", 0, 8, "0", "/esoui/art/floatingmarkers/darkbrotherhood_target.dds", rgb.red},
-]]
-local function make_control(name, rel, lrel, offset, str, dds)
-   local w = TT.window
-   dbg("making control for "..name)
+	This prevents automatic junking from running while the player is viewing the
+	inventory. The flag is reset when the inventory scene starts hiding, rather
+	than waiting until the scene is fully hidden.
 
-   local make_icon = function(name, rel, offset, dds)
-		dbg("making icon for "..name)
-		local icon = WM:CreateControl(unqx(name,"Icon"), w.bg, CT_TEXTURE)
-		icon:SetTexture(dds)
-		icon:SetDimensions(24,24)
-
-		if(rel) then
-			icon:SetAnchor(LEFT, rel, RIGHT, offset, 0)
-		else
-			icon:SetAnchor(LEFT, w.bg, LEFT, offset, 0)
-		end
-
-        return icon
-   end
-
-   local make_label = function(name, rel, offset, str)
-		dbg("making label for "..name)
-		local label = WM:CreateControl(unqx(name,"Label"), w.bg, CT_LABEL)
-		label:SetFont("ZoFontGame")
-
-		if(rel) then
-			label:SetAnchor(LEFT, rel, RIGHT, offset, 0)
-		else
-			label:SetAnchor(LEFT, w.bg, LEFT, offset, 0)
-		end
-
-		label:SetText(str)
-		label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-		label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-		return label
-   end
-
-
-
-   local icon = make_icon(name, rel, offset * TT.options.display.scale, dds)
-   local label = make_label(name, icon, math.min(lrel, TT.options.display.scale*lrel), str)
-
-   name = string.lower(name)
-
-   w["icon_"..name] = icon
-   w["l_"..name] = label
-
-   return label
-end
-
---[[
-    Make the quality bars of stolen items for the status bar
-]]
-local function make_bars(rel)
-   local w = TT.window
-   local last_bar = rel
-   local rgb = SF.rgb
-
-   local make_bar = function(name, rgbc, offsetx, offsety)
-      local bar = WM:CreateControl(unqx("Bar"..name), w.bg, CT_TEXTURE)
-      bar:SetAnchor(BOTTOMLEFT, last_bar, BOTTOMRIGHT, 4+(SF.nilDefault(offsetx, 0)), (SF.nilDefault(offsety, 0)))
-      bar:SetDimensions(8, 0)
-      bar:SetColor(SF_Color.UnpackRGBA(rgbc))
-      last_bar = bar
-      return bar
-   end
-   
-   w.bar = {}
-   w.bar[0] = make_bar("0", rgb.junk, 4, -4) -- Grey   / Junk
-   w.bar[1] = make_bar("1", rgb.normal)      -- White  / Normal
-   w.bar[2] = make_bar("2", rgb.fine)        -- Green  / Fine
-   w.bar[3] = make_bar("3", rgb.superior)    -- Blue   / Superior
-   w.bar[4] = make_bar("4", rgb.epic)        -- Purple / Epic
-   w.bar[5] = make_bar("5", rgb.legendary)   -- Yellow / Legendary
-end
-
-local rgb = SF.rgb
--- esoui/art/icons/mapkey/mapkey_darkbrotherhood.dds
--- esoui/art/floatingmarkers/darkbrotherhood_target.dds
--- esoui/art/loot/loot_finesseitem.dds
--- esoui/art/icons/item_generic_coinbag.dds
--- esoui/art/icons/item_generic_coinbag_empty.dds
--- esoui/art/tooltips/icon_bag.dds
-
-local controls = {
-   {"Kill",        0,   8, " ",       "/esoui/art/floatingmarkers/darkbrotherhood_target.dds",
-				rgb.red},		--kill innocents icon
-   {"Loot",        10,  4, " ",        "/esoui/art/icons/item_generic_coinbag.dds", 
-				rgb.bronze},		--autoloot icon
-   {"Value",       10,  8, "00000",    "/esoui/art/tutorial/guildstore_sell_tabicon_up.dds", 
-				rgb.gold},
-   {"SellsLeft",   10,  4, "000/000",  "/esoui/art/inventory/inventory_stolenitem_icon.dds",
-				rgb.purple},
-   {"LaundersLeft",10,  4, "000/000",  "/esoui/art/vendor/vendor_tabicon_sell_down.dds",
-				rgb.red},
-   {"FenceTimer",  10,  4, "00:00",    "/esoui/art/miscellaneous/gamepad/gp_icon_timer32.dds",
-				rgb.bronze},
-   {"BountyTimer", 10,  4, "00:00",    "/esoui/art/miscellaneous/gamepad/gp_icon_timer32.dds",
-				rgb.red},
-   {"Bounty",      10,  8, "000",      "/esoui/art/currency/currency_gold.dds", 
-				rgb.red},
-   {"ClemencyTimer",10, 4, "00:00",    "/esoui/art/miscellaneous/gamepad/gp_icon_timer32.dds",
-				rgb.fine},
-   {"Average",     10,  6, "000.00",   "/esoui/art/crafting/smithing_tabicon_improve_up.dds",
-				rgb.superior},
-   {"Estimate",    10,  6, "00000",    "/esoui/art/vendor/vendor_tabicon_sell_down.dds",
-				rgb.legendary},
-   {"Quality",     10,  8, "0.00",     "/esoui/art/crafting/smithing_tabicon_improve_up.dds",
-				rgb.normal},
-}
-
--- set the color for the autoloot icon
-local function colorAutoLootIcon()
-	local autoLootLine = controls[2]
-	if TT.options.chartt.autoSteal then  -- TT autoSteal
-		autoLootLine[6] = rgb.bronze
-
-	elseif TTFAS_isEnabled and TTFAS_isEnabled() then
-		autoLootLine[6] = rgb.superior
-
-	else
-		autoLootLine[6] = rgb.junk
-	end
-end
-
-local function shouldShowAutoSteal()
-	-- control 2 - Auto Steal (Loot)
-	if TT.options.chartt.autoSteal then
-		TT.dshow.Loot = true
-
-	elseif TTFAS_isEnabled and TTFAS_isEnabled() then
-		TT.dshow.Loot = true
-
-	else
-		TT.dshow.Loot = false
-	end
-	colorAutoLootIcon()
-end
-
+	Note:
+		This callback directly resets the flag on the inventory scene's hiding
+		transition. If other UI scenes can also temporarily disable junking,
+		consider tracking those states separately to avoid re-enabling junking
+		while another scene still requires it to remain disabled.
+--]]
 local InventoryScene = SCENE_MANAGER.scenes.inventory
 InventoryScene:RegisterCallback("StateChange", function(oldState, newState)
-    -- states: hiding, showing, shown, hidden
-    if( newState == "showing" ) then
-        -- disable autojunking for now
-        TT.tempDisableJunking = true
+		-- states: hiding, showing, shown, hidden
+		if newState == "showing" then
+			-- disable autojunking for now
+			TT.tempDisableJunking = true
 
-    elseif( newState == "hiding" ) then
-        -- reenable autojunking
-        TT.tempDisableJunking = false
-    end
-end)
+		elseif newState == "hiding" then
+			-- reenable autojunking
+			TT.tempDisableJunking = false
+		end
+	end)
 
 function TT:ToggleSafeInnocents()
     local mood = { ["aggressive"] = "0", ["passive"] = "1" }
 	local safeInnocents = GetSetting(SETTING_TYPE_COMBAT, COMBAT_SETTING_PREVENT_ATTACKING_INNOCENTS)
-	if (safeInnocents == mood.aggressive) then
+	if safeInnocents == mood.aggressive  then
 		SetSetting(SETTING_TYPE_COMBAT, COMBAT_SETTING_PREVENT_ATTACKING_INNOCENTS, mood.passive)
         TT.ShowMessage(TT_SAFE_INNOCENTS,TT.options.warns.message_dest)
 		TT.dshow["Kill"] = false
@@ -1510,77 +1326,66 @@ end
 function TT.DisableAutoSteal()
 	local chartt = TT.options.chartt
 	if chartt.autoSteal == nil then
-		dbg("TT.DisableAutoSteal: autoSteal was nil - setting to false")
+		logDebug("TT.DisableAutoSteal: autoSteal was nil - setting to false")
 		chartt.autoSteal = false
 	end
-	local grabby = { ["look"] = "0", ["take"] = "1" }
 	local isAutoLootEnabled = GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN)
 	if chartt.autoSteal then
-		dbg("TT.DisableAutoSteal: autoSteal was true - setting to false")
+		logDebug("TT.DisableAutoSteal: autoSteal was true - setting to false")
 		chartt.autoSteal = false
-		shouldShowAutoSteal()
-		if isAutoLootEnabled == grabby.take then
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.look)
+		TT.shouldShowAutoSteal()
+		if isAutoLootEnabled == AUTO_LOOT_ON then
+			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, AUTO_LOOT_OFF)
 		end
 		TT.ShowMessage(TT_AUTOSTEAL_OFF, message_dest)
 	end
-	dbg("TT.DisableAutoSteal: updating display and controls")
+	logDebug("TT.DisableAutoSteal: updating display and controls")
 	TT:UpdateDisplay()
 	TT:UpdateControls()
 end
 
 function TT.EnableAutoSteal()
 	if TT.options.chartt.autoSteal == nil then
-		dbg("TT.EnableAutoSteal: autoSteal was nil - setting to false")
+		logDebug("TT.EnableAutoSteal: autoSteal was nil - setting to false")
 		TT.options.chartt.autoSteal = false
 	end
-	local grabby = { ["look"] = "0", ["take"] = "1" }
-	local isAutoLootEnabled = GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN)
+	if TTFAS and TTFAS_isEnabled() then
+		TTFAS_Disable()
+		TTmsg:systemMessage(L(TT_TTFAS_OFF))
+	end
+
 	if TT.options.chartt.autoSteal == false then
-		dbg("TT.EnableAutoSteal: autoSteal was false - setting to true")
+		logDebug("TT.EnableAutoSteal: autoSteal was false - setting to true")
 		TT.options.chartt.autoSteal = true
-		shouldShowAutoSteal()
+		TT.shouldShowAutoSteal()
 		TT.ShowMessage(TT_AUTOSTEAL_ON, message_dest)
 		if GetUnitStealthState("player") == STEALTH_STATE_NONE then
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.look)
+			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, AUTO_LOOT_OFF)
 
 		else
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.take)
+			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, AUTO_LOOT_ON)
 		end
 	end
-	dbg("TT.EnableAutoSteal: updating display and controls")
+	logDebug("TT.EnableAutoSteal: updating display and controls")
 	TT:UpdateDisplay()
 	TT:UpdateControls()
 end
 
 function TT:ToggleAutoSteal()
 	if TT.options.chartt.autoSteal == nil then
-		dbg("TT:ToggleAutoSteal: autoSteal was nil - setting to false")
+		logDebug("TT:ToggleAutoSteal: autoSteal was nil - setting to false")
 		TT.options.chartt.autoSteal = false
 	end
-	local grabby = { ["look"] = "0", ["take"] = "1" }
+	local isAutoLootEnabled = GetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN)
 	if TT.options.chartt.autoSteal == true then
-		dbg("TT:ToggleAutoSteal: autoSteal was true - setting to false")
-		TT.options.chartt.autoSteal = false
-		TT.dshow.Loot = false
-		if isAutoLootEnabled == grabby.take then
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.look)
-		end
-		TT.ShowMessage(L(TT_AUTOSTEAL_OFF), message_dest)
+		logDebug("TT:ToggleAutoSteal: autoSteal was true - setting to false")
+		TT.DisableAutoSteal()
 
 	else
-		dbg("TT:ToggleAutoSteal: autoSteal - setting to true")
-		TT.options.chartt.autoSteal = true
-		TT.dshow.Loot = true
-		TT.ShowMessage(TT_AUTOSTEAL_ON, message_dest)
-		if GetUnitStealthState("player") == STEALTH_STATE_NONE then
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.look)
-
-		else
-			SetSetting(SETTING_TYPE_LOOT, LOOT_SETTING_AUTO_LOOT_STOLEN, grabby.take)
-		end
+		logDebug("TT:ToggleAutoSteal: autoSteal - setting to true")
+		TT.EnableAutoSteal()
 	end
-	dbg("TT:ToggleAutoSteal: updating display and controls")
+	logDebug("TT:ToggleAutoSteal: updating display and controls")
 	TT:UpdateDisplay()
 	TT:UpdateControls()
 end
@@ -1596,120 +1401,6 @@ function TT:toggleAutoJunk()
     end
 end
 
-
---[[
-    Update our Thief Status Bar
-]]
-function TT:UpdateControls()
-	local win = TT.window
-	if not win then return end
-	--dbg("calling UpdateControls")
-	local last
-
-	-- control 1 - Attack Innocents (Kill)
-	do
-		local mood = { ["aggressive"] = "0", ["passive"] = "1" }
-		local safeInnocents = GetSetting(SETTING_TYPE_COMBAT, COMBAT_SETTING_PREVENT_ATTACKING_INNOCENTS)
-		if( safeInnocents == mood.aggressive ) then
-			TT.dshow.Kill = true
-
-		else
-			TT.dshow.Kill = false
-		end
-	end
-
-	-- control 2 - Auto Steal (Loot)
-	shouldShowAutoSteal()
-
-	local name, icon, label
-    for i,v in ipairs(controls) do
-        name = string.lower(v[1])
-		dbg("updating control "..name)
-        icon = win["icon_"..name]
-        label = win["l_"..name]
-
-		--dbg("updating control "..name)
-		--dbg("options.dshow["..v[1].."]="..SF.bool2str(TT.options.dshow[v[1]]))
-		--dbg("dshow["..v[1].."]="..SF.bool2str(TT.dshow[v[1]]))
-		--dbg("options.show["..v[1].."]="..SF.bool2str(TT.options.show[v[1]]))
-
-        if(not TT.options.dshow[v[1]] and TT.options.show[v[1]]) or
-                (TT.options.dshow[v[1]] and TT.dshow[v[1]] and TT.options.show[v[1]]) then
-			--d("option 1")
-            label:SetParent(win.bg)
-            label:ClearAnchors()
-
-			if icon then
-				icon:SetParent(win.bg)
-				icon:ClearAnchors()
-			end
-
-		    -- controls 3 -  #controls
-            local text = ""
-            if i > 2 then
-				text = label:GetText()
-				label:SetText(v[4])
-
-            else
-				label:SetText(" ")
-			end
-
-			label:SetDimensionConstraints((label:GetTextWidth() * 
-						math.min(1.0,TT.options.display.scale)) + 8, 
-					0, 0, 0)
-			label:SetText(text)
-
-			label:SetDimensionConstraints(0,0,0,0)
-			label:SetWidth(0)
-
-			if icon then
-				if v[6] then
-					icon:SetColor(SF_Color.UnpackRGBA(v[6]))
-				end
-
-				if last then
-					icon:SetAnchor(LEFT, last, RIGHT, v[2]*TT.options.display.scale, 0)
-
-				else
-					icon:SetAnchor(LEFT, win.bg, LEFT, TT.options.display.border, 0)
-				end
-			end
-			label:SetAnchor(LEFT, icon, RIGHT, v[3], 0)
-			last = label
-
-		else
-			--dbg("do not show (nil)")
-			if icon then icon:SetParent(nil) end
-			label:SetParent(nil)
-		end
-	end
-
-	-- quality bars
-    if(TT.options.show.QualityBars == true) then
-        for i = 0,5 do
-            win.bar[i]:SetParent(win.bg)
-        end
-
-        win.bar[0]:ClearAnchors()
-        win.bar[0]:SetAnchor(BOTTOMLEFT, last, BOTTOMRIGHT,
-                8*TT.options.display.scale/2, -4*TT.options.display.scale)
-    else
-        for i = 0,5 do
-            win.bar[i]:SetParent(nil)
-        end
-    end
-
-	-- background
-    if(TT.options.show.Background == true) then
-        win.bg:SetCenterColor(0, 0, 0, 1)
-        win.bg:SetEdgeColor(0, 0, 0, 1)
-
-    else
-        win.bg:SetCenterColor(0, 0, 0, 0)
-        win.bg:SetEdgeColor(0, 0, 0, 0)
-    end
-
-end
 
 -- handler for EVENT_RETICLE_HIDDEN_UPDATE
 local function onReticleHidden()
@@ -1745,61 +1436,12 @@ function TT.UnregisterEvents()
     SHARED_INVENTORY:UnregisterCallback("SlotRemoved", onRemoved)
 end
 
--- Build ThiefTools Bar
-function TT:BuildUI()
-    local w = WM:CreateTopLevelWindow(unqx())
-    local border = TT.options.display.border
-    local a = TOPLEFT
-
-   -- Toplevel
-   local shouldhide = TT.options.display.hidden
-    if( TT.options.chartt.not_thief == true ) then
-        shouldhide = true
-    end
-	w:SetHidden(shouldhide)
-    w:SetMovable(true)
-    w:SetMouseEnabled(true)
-    w:SetClampedToScreen(true)
-    w:SetClampedToScreenInsets(4, 4, -4, -4)
-    w:SetAnchor(a, GuiRoot, a, TT.options.display.offsetx, TT.options.display.offsety)
-    w:SetHandler("OnMoveStop", TT.SavePosition)
-
-    w:SetResizeToFitDescendents(true)
-    TT.window = w
-
-    -- Background
-    w.bg = WM:CreateControl(unqx("BG"), w, CT_BACKDROP)
-    w.bg:SetEdgeTexture("/esoui/art/chatwindow/chat_bg_edge.dds", 256, 256, border)
-    w.bg:SetCenterTexture("/esoui/art/chatwindow/chat_bg_center.dds")
-    w.bg:SetInsets(border, border, -border, -border)
-    w.bg:SetAnchor(BOTTOMLEFT, w, BOTTOMLEFT, 0, 0)
-    w.bg:SetResizeToFitDescendents(true)
-    w.bg:SetResizeToFitPadding(border*2, border)
-
-   -- Controls
-   dbg("BuildUI - making controls")
-   local last
-   for _, v in ipairs(controls) do
-      last = make_control(v[1], last, v[2], v[3], v[4], v[5])
-   end
-   make_bars(last)
-   clemencyCheck()
-   TT:CalcStolenGoods()
-   TT:UpdateControls()
-   TT:UpdateDisplay()
-   w:SetScale(TT.options.display.scale)
-
-   TT.RegisterEvents()
-
-   setupTimer()
-   TT:lockWindow()
-end
 
 function TT:TimeToFenceReset(t)
    -- Seems to reset at 3am utc
    local fence_start = 10800
 
-   t = SF.nilDefault(t, GetTimeStamp())
+   t = t or GetTimeStamp()
 
    local one_day = (24*60*60)
    local d = one_day - ((t - fence_start) % one_day)
@@ -1810,12 +1452,6 @@ end
 
 -- Things to do when zone changes...
 local function onPlayerActivated()
-	--local shouldhideZone = false
-    --local tw = SCENE_MANAGER:GetCurrentScene():GetName()
-	--if IsPlayerInAvAWorld() or IsActiveWorldBattleground() or tw == "Infinite Archive" or (tw ~= "hudui"  and tw ~= "hud" and TT.options.display.hide_on_menu == true) then
-	--	shouldhideZone = true
-	--end
-	
 	TT:UpdateDisplay()
 end
 
@@ -1824,13 +1460,17 @@ local function onPlayerActivatedOnce()
     TT.set_handlers(TT.options.filter)
 
     TT:BuildUI()
+	clemencyCheck()
+	TT.RegisterEvents()
+	setupTimer()
+
     TT:checkFreeSlotsWarning(BAG_BACKPACK)
     TT:checkFenceSlotsWarning(BAG_BACKPACK)
 	evtmgr:registerEvt(EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 end
 
 local function onLoaded(ev, addon)
-    if(addon ~= TT.name) then return end
+    if addon ~= TT.name then return end
     evtmgr:unregEvt(EVENT_ADD_ON_LOADED)
 
     TT.savedAW = ZO_SavedVars:NewAccountWide("ThiefToolsVars", 3, GetWorldName(), TT.DefaultAW)
@@ -1841,6 +1481,10 @@ local function onLoaded(ev, addon)
 end
 
 evtmgr:registerEvt(EVENT_ADD_ON_LOADED, onLoaded)
+
+-- --------------------------------------------------------
+-- Slash commands
+-- --------------------------------------------------------
 
 local function slashHelp()
 	if TTmsg == nil then return end
@@ -1865,10 +1509,10 @@ end
 SLASH_COMMANDS["/thieftools"] = function()
 	local sysmsg = function (cmd, desc)
 		cmd = SF.ColorText(cmd, SF.hex.teal)
-		if( type(desc) == "number" ) then
+		if  type(desc) == "number" then
 			desc = L(desc)
 		end
-		desc = SF.ColorText(" = "..SF.str(desc), TTmsg.normalcolor)
+		desc = SF.ColorText(SF.str(" = ", desc), TTmsg.normalcolor)
 		local msg = SF.dstr( " ", TTmsg.prefix, cmd, desc )
 		ZOS_addSystemMsg(msg);
 	end
@@ -1887,21 +1531,21 @@ SLASH_COMMANDS["/tt"] = function()
     if tempHideBar == true then TTmsg:systemMessage(L(TT_CHAT_NOT_RUNNING));return end
 	local win = TT.window
 
-   if(win:IsHidden()) then
+   if win:IsHidden() then
 		TT:CalcStolenGoods()
 		TT:UpdateDisplay()
 		TT:UpdateControls()
    end
 
    TT.options.display.hidden = not win:IsHidden()
-   win:SetHidden(TT.options.display.hidden)
+   win:SetHidden(not TT:ShouldDisplayBelt())
 end
 
 SLASH_COMMANDS["/tt.lock"] = function()
     if tempHideBar == true then TTmsg:systemMessage(L(TT_CHAT_NOT_RUNNING));return end
 
     local lockwin = TT.options.display.locked
-    if(lockwin == true) then
+    if lockwin == true then
         TT.window:SetMovable(true)
         TT.options.display.locked = false
         TTmsg:systemMessage(L(TT_MSG_UNLOCKED))
@@ -1918,7 +1562,7 @@ end
 SLASH_COMMANDS["/tt.meter"] = function()
     if tempHideBar == true then TTmsg:systemMessage(L(TT_CHAT_NOT_RUNNING));return end
 
-    if(TT.options.display.hideMeter == true) then
+    if TT.options.display.hideMeter == true then
         ZO_HUDInfamyMeter:SetHidden(false)
         TT.options.display.hideMeter = false
 		
@@ -1929,8 +1573,7 @@ SLASH_COMMANDS["/tt.meter"] = function()
 end
 
 SLASH_COMMANDS["/tt.resetbar"] = function()
-    --if tempHideBar == true then TTmsg:systemMessage(L(TT_CHAT_NOT_RUNNING));return end
-	local win = TT.window
+    local win = TT.window
 
 	TT.options.chartt.not_thief = false
 	ZO_HUDInfamyMeter:SetHidden(true)
@@ -1939,7 +1582,7 @@ SLASH_COMMANDS["/tt.resetbar"] = function()
 	TT.options.display.locked = false
 	TT.options.display.hidden = false
 
-	win:SetHidden(false)
+	win:SetHidden(not TT:ShouldDisplayBelt())
 	TT:ResetPosition()
 	TT.SavePosition()
     win:SetMovable(true)
@@ -2037,6 +1680,7 @@ SLASH_COMMANDS["/tt.fas"] = function()
 		TTFAS_Disable() -- this also runs TT.DisableAutoSteal
 		TTmsg:systemMessage(L(TT_TTFAS_OFF))
 	end
+	TT:UpdateDisplay()
 end
 
 -- --------------------------------------------------------
@@ -2055,7 +1699,7 @@ SLASH_COMMANDS["/tt.stop"] = function()
         TTmsg:systemMessage(L(TT_STOPPING))
 
 		tempHideBar = true
-        TT.window:SetHidden(true)
+		TT.window:SetHidden(not TT:ShouldDisplayBelt())
         TT.UnregisterEvents()
 
     else

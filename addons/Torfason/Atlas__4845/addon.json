@@ -22,11 +22,14 @@
     "Atlas"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4845/",
-  "fingerprint": "5db9a2412b4a7e2f3dcd76dd0cdd7b89e94726370adaac2c7a4d6b35433e08d7",
+  "fingerprint": "2fc0562a27a8744b44519f5cc5e6164763ad771923bc47b33d2a8caa4f86be84",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17659.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17409.png",
-    "https://cdn-eso.mmoui.com/preview/pvw17408.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17977.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17975.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17974.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17976.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17973.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17972.png"
   ],
   "platform": "pc",
   "published": true,
@@ -34,11 +37,11 @@
   "source_id": "4845",
   "source_url": "https://www.esoui.com/downloads/info4845-Atlas.html",
   "stats": {
-    "downloads": 129,
+    "downloads": 196,
     "favorites": 2,
-    "monthly_downloads": 100
+    "monthly_downloads": 192
   },
   "title": "Atlas",
-  "updated_at": 1790972996000,
-  "version": "2.0.0"
+  "updated_at": 1791910642000,
+  "version": "2.1.0"
 }

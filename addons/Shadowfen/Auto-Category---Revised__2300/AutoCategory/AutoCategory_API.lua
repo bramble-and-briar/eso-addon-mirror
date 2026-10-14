@@ -164,8 +164,8 @@ function AutoCategory:MatchCategoryRules( bagId, slotIndex, specialType )
 
 	-- localized aliases
 	local setCategoryCollapsed = AutoCategory.SetCategoryCollapsed
-	local getRuleByName = AutoCategory.GetRuleByName
 	local isCategoryCollapsed = AutoCategory.IsCategoryCollapsed
+	local getRuleByName = AutoCategory.GetRuleByName
 	local compiledRules = AutoCategory.compiledRules
 
 	for i = 1, #bag.rules do

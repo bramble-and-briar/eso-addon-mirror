@@ -10,7 +10,7 @@ QTM.ZoomBar = ZoomBar
 
 local NUM_TICKS   = 11
 local BOTTOM_GAP  = 8
-local GOLD = { 0.90, 0.85, 0.66 }
+local GOLD = QTM.Style.GOLD
 
 function ZoomBar:IsEnabled()
     return QTM.sv.zoomBar ~= false
@@ -34,7 +34,7 @@ function ZoomBar:Initialize()
 
     -- Как часть карты: тонкая полоса и деления в цвет интерфейса игры, без своей рамки
     self.line:SetColor(1, 1, 1, 0.22)
-    self.fill:SetColor(GOLD[1], GOLD[2], GOLD[3], 0.75)
+    self:ApplyTheme()
 
     -- Деления: 11 ступеней масштаба, как у ползунка игры
     self.ticks = {}
@@ -50,6 +50,10 @@ function ZoomBar:Initialize()
     control:SetHandler("OnUpdate", function() self:Update() end)
 
     self:Apply()
+end
+
+function ZoomBar:ApplyTheme()
+    if self.fill then self.fill:SetColor(GOLD[1], GOLD[2], GOLD[3], 0.75) end
 end
 
 -- Свой ползунок вместо стандартного (или наоборот, если выключено)

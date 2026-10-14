@@ -1,6 +1,6 @@
 DKCorrosiveAlert = {}
 DKCorrosiveAlert.name = "DKCorrosiveAlert"
-DKCorrosiveAlert.version = "3.9"
+DKCorrosiveAlert.version = "4.0"
 
 local ADDON_NAME = DKCorrosiveAlert.name
 local COMBAT_EVENT_NAME = ADDON_NAME .. "_Combat"
@@ -50,6 +50,21 @@ local rollDodgeActive = false
 
 local function GetNowMs()
     return GetFrameTimeMilliseconds()
+end
+
+-- Ne pas confondre immunite au stun et immunite aux immobilisations.
+local function IsPlayerStunImmune()
+    local nowSeconds = GetNowMs() / 1000
+    for buffIndex = 1, GetNumBuffs("player") do
+        local _, _, endTime, _, _, _, _, _, abilityType, statusEffectType =
+            GetUnitBuffInfo("player", buffIndex)
+        if abilityType == ABILITY_TYPE_IMMUNITY
+            and statusEffectType == STATUS_EFFECT_TYPE_STUN
+            and (endTime == 0 or endTime > nowSeconds) then
+            return true
+        end
+    end
+    return false
 end
 
 local function GetActiveCorrosiveCount()
@@ -103,7 +118,7 @@ local function UpdateDisplayedAlert()
     local rollDodgeStillActive = rollDodgeActive and now < rollDodgeEndTimeMs
 
     -- Fossilize interrompt temporairement les autres alertes.
-    if rollDodgeStillActive then
+    if rollDodgeStillActive and not IsPlayerStunImmune() then
         -- Fossilize : texte noir sur fond clair pour rester lisible
         alertLabel:SetColor(0, 0, 0, 1)
         alertBackdrop:SetCenterColor(1, 1, 1, 0.95)
@@ -149,7 +164,7 @@ local function StopAllAlertsIfNeeded()
         onslaughtEndTimeMs = 0
     end
 
-    if rollDodgeActive and now >= rollDodgeEndTimeMs then
+    if rollDodgeActive and (now >= rollDodgeEndTimeMs or IsPlayerStunImmune()) then
         rollDodgeActive = false
         rollDodgeEndTimeMs = 0
     end
@@ -194,6 +209,10 @@ local function StartOrRefreshOnslaughtAlert()
 end
 
 local function StartOrRefreshRollDodgeAlert()
+    if IsPlayerStunImmune() then
+        return
+    end
+
     rollDodgeEndTimeMs = GetNowMs() + ROLL_DODGE_DURATION_MS
     rollDodgeActive = true
 
@@ -274,6 +293,9 @@ local function OnCombatEvent(
     -- Ce test est volontairement placé avant les filtres de dégâts,
     -- car Fossilize n'est pas un événement de dégâts.
     if abilityId == ROLL_DODGE_ABILITY_ID_1 or abilityId == ROLL_DODGE_ABILITY_ID_2 then
+        if result == ACTION_RESULT_IMMUNE then
+            return
+        end
         StartOrRefreshRollDodgeAlert()
         return
     end

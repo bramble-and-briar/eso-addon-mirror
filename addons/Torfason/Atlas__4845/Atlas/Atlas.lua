@@ -1,12 +1,12 @@
 AtlasAddon = AtlasAddon or {}
 local AE = AtlasAddon
 
--- Atlas folgt automatisch der ESO-Clientsprache. Englisch dient als Fallback.
+-- Vor dem Laden der SavedVariables gilt voruebergehend die ESO-Sprache.
 AE:SetLanguage("auto")
 local T = AE.T
 
 AE.name = "Atlas"
-AE.version = "2.0.0"
+AE.version = "2.1.0"
 AE.savedVersion = 1
 AE.dataFormat = 2
 AE.gridSize = 48
@@ -16,6 +16,7 @@ AE.blockCount = math.ceil(AE.totalCells / AE.bitsPerNumber)
 AE.textureRoot = "Atlas/textures/"
 
 AE.defaultsSettings = {
+    language = "auto",
     enabled = true,
     style = "pergament",
     opacity = 1.0,
@@ -739,13 +740,39 @@ function AE:RevealCurrentMapFully()
     self:Msg(T.CURRENT_MAP_REVEALED)
 end
 
-function AE:ClearCurrentMap()
-    local key = self:GetCurrentMapPath()
-    if not key then self:Msg(T.NO_MAP) return end
-    self.progress.maps[key] = nil
+-- Called only by the explicit confirmation dialog. We delete the map that
+-- was selected when the dialog opened, never an unrelated map shown later.
+function AE:ClearConfirmedMap(mapKey, expectedArchiveMap, archiveName)
+    if type(mapKey) ~= "string" or mapKey == "" then return false end
+    if not self.progress or type(self.progress.maps) ~= "table" then return false end
+
+    local savedMap = self.progress.maps[mapKey]
+    if not savedMap then return false end
+    -- Archive deletes must still point to precisely the same map table that
+    -- was selected when the confirmation opened. A replaced entry is safe.
+    if expectedArchiveMap and savedMap ~= expectedArchiveMap then return false end
+
+    self.progress.maps[mapKey] = nil
     self.legacyTECache = nil
+    self.lastMapKey = nil
     self:RefreshOverlay(true)
-    self:Msg(T.CURRENT_MAP_CLEARED)
+    if expectedArchiveMap then
+        if self.RefreshArchiveList then self:RefreshArchiveList() end
+        self:Msg(string.format(T.ARCHIVE_MAP_CLEARED, archiveName or mapKey))
+    else
+        self:Msg(T.CURRENT_MAP_CLEARED)
+    end
+    return true
+end
+
+-- All public forget routes (settings AND chat command) require confirmation.
+function AE:ClearCurrentMap()
+    if self.ConfirmClearCurrentMap then
+        self:ConfirmClearCurrentMap()
+    else
+        -- Never delete data if a confirmation dialog is unavailable.
+        self:Msg(T.CONFIRM_CLEAR_UNAVAILABLE)
+    end
 end
 
 function AE:CountMapCells(map)
@@ -941,7 +968,7 @@ function AE:Initialize()
     self.settings = ZO_SavedVars:NewAccountWide("Atlas_SavedVars", self.savedVersion, "Einstellungen", self.defaultsSettings, worldName)
     self.progress = ZO_SavedVars:NewCharacterIdSettings("Atlas_SavedVars", self.savedVersion, "Fortschritt", self.defaultsProgress, worldName)
     self:MigrateLegacyDefaultProfileToWorld(legacySettings, legacyProgress)
-    self:SetLanguage("auto")
+    self:SetAddonLanguage(self.settings.language or "auto")
     self:MigrateOwnSavedData()
 
     self:EnsureOverlay()

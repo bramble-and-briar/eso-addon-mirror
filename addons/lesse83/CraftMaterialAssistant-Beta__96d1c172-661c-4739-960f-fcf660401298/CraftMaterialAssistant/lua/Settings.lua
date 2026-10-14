@@ -7,6 +7,13 @@ function CMA:CreateSettingsMenu()
         self:SendChatMessage("Missing dependency LibAddonMenu-2.0")
         return
     end
+    -- deserialize the stored custom item rules string
+    self.customItemRuleTable = self:deserializeCustomItemRuleTable(self.db.serializedCustomItemRules)
+    self:updateItemRulesDropdown(nil)
+
+    local customRuleName = ""
+    local customRuleItemId = ""
+    local customRuleAction = "Ignore"
 
     local panelData = {
         type = "panel",
@@ -88,8 +95,7 @@ function CMA:CreateSettingsMenu()
                     maxChars = 5,
                     getFunc = function() return self.db.initialDelayInMs end,
                     setFunc = function(v) self.db.initialDelayInMs = v end,
-                    disabled = function() return (not self.db.enableAddon) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) end
                 }
             }
         },
@@ -103,8 +109,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Blacksmithing materials.",
                     getFunc = function() return self.db.bankBlacksmithing end,
                     setFunc = function(v) self.db.bankBlacksmithing = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "dropdown",
@@ -113,8 +118,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdBlacksmithing end,
                     setFunc = function(v) self.db.bankQualityThresholdBlacksmithing = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankBlacksmithing) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankBlacksmithing) end
                 },
                 {
                     type = "slider",
@@ -123,8 +127,7 @@ function CMA:CreateSettingsMenu()
                     min = 1, max = 11, step = 1,
                     getFunc = function() return self.db.bankTierThresholdBlacksmithing end,
                     setFunc = function(v) self.db.bankTierThresholdBlacksmithing = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankBlacksmithing) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankBlacksmithing) end
                 }
             }
         },
@@ -138,8 +141,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Clothing materials.",
                     getFunc = function() return self.db.bankClothing end,
                     setFunc = function(v) self.db.bankClothing = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "dropdown",
@@ -148,8 +150,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdClothing end,
                     setFunc = function(v) self.db.bankQualityThresholdClothing = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankClothing) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankClothing) end
                 },
                 {
                     type = "slider",
@@ -158,8 +159,7 @@ function CMA:CreateSettingsMenu()
                     min = 1, max = 11, step = 1,
                     getFunc = function() return self.db.bankTierThresholdClothing end,
                     setFunc = function(v) self.db.bankTierThresholdClothing = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankClothing) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankClothing) end
                 }
             }
         },
@@ -173,8 +173,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Woodworking materials.",
                     getFunc = function() return self.db.bankWoodworking end,
                     setFunc = function(v) self.db.bankWoodworking = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "dropdown",
@@ -183,8 +182,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdWoodworking end,
                     setFunc = function(v) self.db.bankQualityThresholdWoodworking = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankWoodworking) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankWoodworking) end
                 },
                 {
                     type = "slider",
@@ -193,8 +191,7 @@ function CMA:CreateSettingsMenu()
                     min = 1, max = 11, step = 1,
                     getFunc = function() return self.db.bankTierThresholdWoodworking end,
                     setFunc = function(v) self.db.bankTierThresholdWoodworking = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankWoodworking) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankWoodworking) end
                 }
             }
         },
@@ -208,8 +205,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Jewelry materials.",
                     getFunc = function() return self.db.bankJewelry end,
                     setFunc = function(v) self.db.bankJewelry = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "checkbox",
@@ -217,8 +213,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Pulverized items (Raw Jewelry Traits)",
                     getFunc = function() return self.db.bankRawJewelryTraits end,
                     setFunc = function(v) self.db.bankRawJewelryTraits = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankJewelry) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankJewelry) end
                 },
                 {
                     type = "dropdown",
@@ -227,8 +222,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdJewelry end,
                     setFunc = function(v) self.db.bankQualityThresholdJewelry = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankJewelry) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankJewelry) end
                 },
                 {
                     type = "slider",
@@ -237,8 +231,7 @@ function CMA:CreateSettingsMenu()
                     min = 1, max = 6, step = 1,
                     getFunc = function() return self.db.bankTierThresholdJewelry end,
                     setFunc = function(v) self.db.bankTierThresholdJewelry = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankJewelry) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankJewelry) end
                 }
             }
         },
@@ -252,8 +245,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Enchanting materials.",
                     getFunc = function() return self.db.bankEnchanting end,
                     setFunc = function(v) self.db.bankEnchanting = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "dropdown",
@@ -262,8 +254,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdEnchanting end,
                     setFunc = function(v) self.db.bankQualityThresholdEnchanting = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankEnchanting) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankEnchanting) end
                 },
                 {
                     type = "slider",
@@ -272,8 +263,7 @@ function CMA:CreateSettingsMenu()
                     min = 1, max = 11, step = 1,
                     getFunc = function() return self.db.bankImprovementThresholdPotencyRunes end,
                     setFunc = function(v) self.db.bankImprovementThresholdPotencyRunes = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankEnchanting) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankEnchanting) end
                 },
                 {
                     type = "checkbox",
@@ -281,8 +271,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Essence Runes.",
                     getFunc = function() return self.db.bankEssenceRunes end,
                     setFunc = function(v) self.db.bankEssenceRunes = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankEnchanting) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankEnchanting) end
                 }
             }
         },
@@ -296,8 +285,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Alchemy materials.",
                     getFunc = function() return self.db.bankAlchemy end,
                     setFunc = function(v) self.db.bankAlchemy = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "slider",
@@ -306,8 +294,7 @@ function CMA:CreateSettingsMenu()
                     min = 1, max = 9, step = 1,
                     getFunc = function() return self.db.bankProficiencyThresholdAlchemyBases end,
                     setFunc = function(v) self.db.bankProficiencyThresholdAlchemyBases = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankAlchemy) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankAlchemy) end
                 },
                 {
                     type = "checkbox",
@@ -315,8 +302,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Alchemy Reagents.",
                     getFunc = function() return self.db.bankAlchemyReagents end,
                     setFunc = function(v) self.db.bankAlchemyReagents = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankAlchemy) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankAlchemy) end
                 }
             }
         },
@@ -330,8 +316,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Provisioning materials.",
                     getFunc = function() return self.db.bankProvisioning end,
                     setFunc = function(v) self.db.bankProvisioning = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "checkbox",
@@ -339,8 +324,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Keep Ingredients needed by top-level Daily Writs.",
                     getFunc = function() return self.db.bankProvisioningKeepWritIngredients end,
                     setFunc = function(v) self.db.bankProvisioningKeepWritIngredients = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end
                 },
                 {
                     type = "checkbox",
@@ -348,8 +332,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Keep other Ingredients (those not needed by top-level Daily Writs).",
                     getFunc = function() return self.db.bankProvisioningKeepOtherIngredients end,
                     setFunc = function(v) self.db.bankProvisioningKeepOtherIngredients = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end
                 },
                 {
                     type = "dropdown",
@@ -358,8 +341,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdProvisioning end,
                     setFunc = function(v) self.db.bankQualityThresholdProvisioning = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end
                 },
 
                 {
@@ -368,8 +350,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Sell known Provisioning Recipes which do not meet the defined quality threshold.",
                     getFunc = function() return self.db.bankProvisioningSellKnownRecipe end,
                     setFunc = function(v) self.db.bankProvisioningSellKnownRecipe = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) end
                 },
                 {
                     type = "dropdown",
@@ -378,8 +359,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.qualityDropdownChoices,
                     getFunc = function() return self.db.bankQualityThresholdProvisioningRecipe end,
                     setFunc = function(v) self.db.bankQualityThresholdProvisioningRecipe = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) or (not self.db.bankProvisioningSellKnownRecipe) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankProvisioning) or (not self.db.bankProvisioningSellKnownRecipe) end
                 }
 
             }
@@ -394,8 +374,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Enable banking of Blacksmithing materials.",
                     getFunc = function() return self.db.bankScribingMaterials end,
                     setFunc = function(v) self.db.bankScribingMaterials = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "dropdown",
@@ -404,8 +383,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankInk end,
                     setFunc = function(v) self.db.bankInk = v end,
-                    disabled = function() return (not self.db.enableAddon) or not(self.db.bankScribingMaterials) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.bankScribingMaterials) end
                 },
                 {
                     type = "checkbox",
@@ -413,8 +391,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "REQUIRES LibCharacterKnowledge!\n\nBanks Scripts as long as they are learnable and there are not enough copies for all characters.\n\nOtherwise markes the script as trash to be auto vendored.\n\nAlso writes a chat message who is able to learn it.",
                     getFunc = function() return self.db.bankUnknownScripts end,
                     setFunc = function(v) self.db.bankUnknownScripts = v end,
-                    disabled = function() return not (self.db.enableAddon) or not(self.db.bankScribingMaterials) end,
-                    width = "half"
+                    disabled = function() return not (self.db.enableAddon) or not(self.db.bankScribingMaterials) end
                 },
                  {
                     type = "dropdown",
@@ -423,8 +400,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankUnboundScripts end,
                     setFunc = function(v) self.db.bankUnboundScripts = v end,
-                    disabled = function() return (not self.db.enableAddon) or not(self.db.bankScribingMaterials) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.bankScribingMaterials) end
                 },
             }
         },
@@ -439,8 +415,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankStyleMaterials end,
                     setFunc = function(v) self.db.bankStyleMaterials = v end,
-                    disabled = function() return (not self.db.enableAddon) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) end
                 },
                 {
                     type = "checkbox",
@@ -448,8 +423,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Limit the banked amount of each Style Material by the number entered in the text control below.",
                     getFunc = function() return self.db.limitStyleMaterialByCount end,
                     setFunc = function(v) self.db.limitStyleMaterialByCount = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankStyleMaterials) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankStyleMaterials) end
                 },
                 {
                     type = "editbox",
@@ -459,8 +433,7 @@ function CMA:CreateSettingsMenu()
                     maxChars = 5,
                     getFunc = function() return self.db.bankMinimumNumberStyleMaterial end,
                     setFunc = function(v) self.db.bankMinimumNumberStyleMaterial = v end,
-                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankStyleMaterials) or (not self.db.limitStyleMaterialByCount) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (not self.db.bankStyleMaterials) or (not self.db.limitStyleMaterialByCount) end
                 }
             }
         },
@@ -475,8 +448,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankTraitMaterials end,
                     setFunc = function(v) self.db.bankTraitMaterials = v end,
-                    disabled = function() return (not self.db.enableAddon) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) end
                 },
                 {
                     type = "checkbox",
@@ -484,8 +456,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "Limit the banked amount of each Trait Material by the number entered in the text control below.",
                     getFunc = function() return self.db.limitTraitMaterialByCount end,
                     setFunc = function(v) self.db.limitTraitMaterialByCount = v end,
-                    disabled = function() return (not self.db.enableAddon) or (self.db.bankTraitMaterials ~= "Bank") end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (self.db.bankTraitMaterials ~= "Bank") end
                 },
                 {
                     type = "editbox",
@@ -495,8 +466,7 @@ function CMA:CreateSettingsMenu()
                     maxChars = 5,
                     getFunc = function() return self.db.bankMinimumNumberTraitMaterial end,
                     setFunc = function(v) self.db.bankMinimumNumberTraitMaterial = v end,
-                    disabled = function() return (not self.db.enableAddon) or (self.db.bankTraitMaterials ~= "Bank") or (not self.db.limitTraitMaterialByCount) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or (self.db.bankTraitMaterials ~= "Bank") or (not self.db.limitTraitMaterialByCount) end
                 }
             }
         },
@@ -511,8 +481,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankFurnishingMaterials end,
                     setFunc = function(v) self.db.bankFurnishingMaterials = v end,
-                    disabled = function() return (not self.db.enableAddon) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) end
                 },
                 {
                     type = "dropdown",
@@ -521,8 +490,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankBait end,
                     setFunc = function(v) self.db.bankBait = v end,
-                    disabled = function() return (not self.db.enableAddon) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) end
                 },
                 {
                     type = "dropdown",
@@ -531,8 +499,7 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.bankRawMaterials end,
                     setFunc = function(v) self.db.bankRawMaterials = v end,
-                    disabled = function() return (not self.db.enableAddon) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) end
                 }
             }
         },
@@ -546,8 +513,7 @@ function CMA:CreateSettingsMenu()
                     tooltip = "REQUIRES LibCharacterKnowledge!\n\nEnable banking of UNLOCKED gear having unknown, researchable Traits.\n\nAlso writes a chat message who is able to learn it.",
                     getFunc = function() return self.db.bankResearchableItems end,
                     setFunc = function(v) self.db.bankResearchableItems = v end,
-                    disabled = function() return not self.db.enableAddon end,
-                    width = "half"
+                    disabled = function() return not self.db.enableAddon end
                 },
                 {
                     type = "dropdown",
@@ -556,9 +522,104 @@ function CMA:CreateSettingsMenu()
                     choices = self.simpleMaterialChoices,
                     getFunc = function() return self.db.actionKnownTraitItems end,
                     setFunc = function(v) self.db.actionKnownTraitItems = v end,
-                    disabled = function() return (not self.db.enableAddon) or not(self.db.bankResearchableItems) end,
-                    width = "half"
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.bankResearchableItems) end
                 }
+            }
+        },
+        {
+            type = "submenu",
+            name = "Custom Rules",
+            controls = {
+                {
+                    type = "description",
+                    title = "How it works",
+                    text = "The dropdown shows all rules which are active (having highest priority).\nEach rule targets an item by its ItemId and sets if you want to 'Bank', 'Sell' or 'Ignore' the item.\n\n|cff0000IMPORTANT: Due to restrictions updates are only visible after an UI Reload|r."
+                },
+                {
+                    type = "checkbox",
+                    name = "Enable custom rules",
+                    tooltip = "Master toggle to turn on / off all custom rules.",
+                    getFunc = function() return self.db.activateCustomRules end,
+                    setFunc = function(v) self.db.activateCustomRules = v end,
+                    disabled = function() return not self.db.enableAddon end
+                },
+                {
+                    type = "dropdown",
+                    name = "All Active Rules",
+                    tooltip = "Here you can see all the currently active rules.\n\nThey are highest priority and thus are carried out before all the other rules.\n\n|cff0000Newly added or removed Rules are only visible after an UI Reload|r",
+                    choices = self.customItemRuleDropdownNames,
+                    choicesValues = self.customItemRuleDropdownValues,
+                    getFunc = function() return self.customItemRuleSelection end,
+                    setFunc = function(v) self.customItemRuleSelection = v end,
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end,
+                    reference = "CustomRulesDropdownControl"
+                },
+                {
+                    type = "button",
+                    name = "Remove Selected Item",
+                    tooltip = "Upon triggering remove the currently active Rule in the 'All Active Rules' dropdown is deleted.\n\n|cff0000Afterwards it needs an UI Reload to be be reflected in the dropdown|r",
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) or self.customItemRuleSelection == nil end,
+                    func = function() self:CustomItemRuleRemove(self.customItemRuleSelection, CustomRulesDropdownControl) end
+                },
+                {
+                    type = "header",
+                    name = "Add New Item Rule",
+                    tooltip = "If you want to add a rule, fill out the forms below and click 'Add Item Rule'."
+                },
+                {
+                    type = "editbox",
+                    name = "Shown Name",
+                    tooltip = "The name of the rule shown in the dropdown.\n\nIts basically only used as a reminder which item it is. The operation itself targets the ItemId entered below.\n\nThe field is limited to 20 characters and must not contain '.', ':' or ';'.",
+                    getFunc = function() return customRuleName end,
+                    setFunc = function(v) customRuleName = v end,
+                    maxChars = 20,
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end,
+                    isMultiline = false
+                },
+                {
+                    type = "editbox",
+                    name = "Item ID",
+                    tooltip = "The unique ESO Item ID.\n\nIf you do not know the Item ID, click the 'List Inventory (Chat)' button below, to print your current inventory in the chat - there you'll find the correct id (if the item is present in your bag).\n\nThe input must be a number.",
+                    getFunc = function() return customRuleItemId end,
+                    setFunc = function(v) customRuleItemId = v end,
+                    maxChars = 6,
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end,
+                    isMultiline = false
+                },
+                {
+                    type = "dropdown",
+                    name = "Assigned Action",
+                    tooltip = "Bank: Move to the bank.\nSell: Mark as junk to be sold at the vendor.\nIgnore: Don't do anything.",
+                    choices = self.simpleMaterialChoices,
+                    getFunc = function() return customRuleAction end,
+                    setFunc = function(v) customRuleAction = v end,
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end
+                },
+                {
+                    type = "button",
+                    name = "Add Item Rule",
+                    tooltip = "Adds a rule for the entered Name, Item ID and Action.\n\n|cff0000The rule will only be visible after an UI Reload|r",
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) or (customRuleAction == "" or customRuleItemId == "" or customRuleName == "") end,
+                    func = function() customRuleName, customRuleItemId, customRuleAction = self:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleAction, CustomRulesDropdownControl) end
+                },
+                {
+                    type = "header",
+                    name = "Other options"
+                },
+                {
+                    type = "button",
+                    name = "List Inventory (Chat)",
+                    tooltip = "Lists all items currently present in the inventory bag. By doing so you can search for the proper Item Id of the item you want the rule to be for.",
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end,
+                    func = function() self:CustomItemRuleListItems(self.sourceBag) end
+                },
+                {
+                    type = "button",
+                    name = "Reload UI",
+                    tooltip = "After adding and removing Item Rules the dropdown is not automatically updated. Therfor you need to reload your UI in order to see any changes.",
+                    disabled = function() return (not self.db.enableAddon) or not(self.db.activateCustomRules) end,
+                    func = function() self:CustomItemRuleReloadUI() end
+                },
             }
         },
     }

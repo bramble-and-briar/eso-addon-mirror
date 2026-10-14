@@ -182,10 +182,11 @@ function UIT.SetCameraZoom()
 		local zoom = tonumber(GetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE))
 		if zoom <= ZOOM_FPV then
 			SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, savedZoom)
-		elseif not IsZoomLimited() then
+		elseif IsZoomLimited() then
 			savedZoom = zoom
-			origToggleGameCameraFirstPerson(...)
+			SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, ZOOM_FPV)
 		else
+			savedZoom = zoom
 			origToggleGameCameraFirstPerson(...)
 		end
 	end
@@ -213,10 +214,6 @@ function UIT.SetCameraZoom()
 			SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, zoom + ZOOM_STEP)
 		end
 	end
-
-	EM:RegisterForEvent(UIT.name .. "_CameraZoom", EVENT_PLAYER_ACTIVATED, function()
-		SetSetting(SETTING_TYPE_CAMERA, CAMERA_SETTING_DISTANCE, savedZoom)
-	end)
 end
 -- =========================================================
 function UIT.SetHideStealth()

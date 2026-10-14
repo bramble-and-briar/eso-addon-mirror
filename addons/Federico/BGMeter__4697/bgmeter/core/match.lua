@@ -56,6 +56,11 @@ function Match.new_row()
         defPts      = 0,
         carried     = 0,
         carrierKills = 0,
+        capKillAtt  = 0,
+        capKillDef  = 0,
+        carrierDmg  = 0,
+        carrierHeal = 0,
+        defHeal     = 0,
         lives       = nil,
         medals      = 0,
     }

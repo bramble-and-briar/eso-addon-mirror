@@ -119,3 +119,109 @@ function CMA:GetBestFitMapSlot(bag, itemId, stackSizeToDeposit)
         return nil
     end
 end
+
+-- Helpers for custom item rules --------------------------------------------------------------------------------
+
+-- serialize a table as string
+function CMA:serializeCustomItemRuleTable(t)
+    local serialized = {}
+    for k, v in pairs(t) do
+        table.insert(serialized, tostring(k) .. ":" .. tostring(v[1]) .. "." .. tostring(v[2]) .. "." .. tostring(v[3]))
+    end
+    return table.concat(serialized, ";")
+end
+
+-- deserialize a string as table
+function CMA:deserializeCustomItemRuleTable(serializedString)
+    local t = {}
+    -- Look for key:value blocks split by semicolons
+    for pair in string.gmatch(serializedString, "[^;]+") do
+        local key, val = string.match(pair, "([^:]+):([^:]+)")
+        if key and val then
+            local val1, val2, val3 = string.match(val, "([^.]+).([^.]+).([^.]+)")
+            if val1 and val2 and val3 then
+                t[key] = {val1, val2, val3}
+            end
+        end
+    end
+    return t
+end
+
+function CMA:updateItemRulesDropdown(selection)
+    -- reset the names and values of the dropdown
+    for k, v in pairs(self.customItemRuleTable) do
+        table.insert(self.customItemRuleDropdownNames, v[1] .. " (" .. v[3] .. ")")
+        table.insert(self.customItemRuleDropdownValues, v[2])
+        self.customItemRuleSelection = selection
+    end
+end
+
+-- add a custom rule to the persisted rules table
+function CMA:CustomItemRuleAdd(customRuleName, customRuleItemId, customRuleAction)
+    -- ensure that the data is present (=non empty)
+    if
+        customRuleName == nil or customRuleName == "" or string.find(customRuleName, ".", 1, true) or string.find(customRuleName, ":", 1, true) or string.find(customRuleName, ";", 1, true) or
+        customRuleItemId == nil or customRuleItemId == "" or not tonumber(customRuleItemId) or
+        customRuleAction == nil or customRuleAction == "" or string.find(customRuleAction, ".", 1, true) or string.find(customRuleAction, ":", 1, true) or string.find(customRuleAction, ";", 1, true)
+    then
+        -- fields are empty, return values as they are
+        self:SendChatMessage("Failed to add custom rule: At least one field (Name, ItemId, Action) is empty or contains ';' or '.' or ':'.")
+        return customRuleName, customRuleItemId, customRuleAction
+    end
+    if self.customItemRuleTable[customRuleItemId] then
+        -- already present, update the values
+        self.customItemRuleTable[customRuleItemId][1] = customRuleName
+        self.customItemRuleTable[customRuleItemId][2] = customRuleItemId
+        self.customItemRuleTable[customRuleItemId][3] = customRuleAction
+    else
+        -- not present, add them
+        self.customItemRuleTable[customRuleItemId] = {customRuleName, customRuleItemId, customRuleAction}
+    end
+    -- rebuild the dropdown 
+    self:updateItemRulesDropdown(customRuleItemId)
+    -- serialize the table
+    self.db.serializedCustomItemRules = self:serializeCustomItemRuleTable(self.customItemRuleTable)
+    -- if it was successful clear the fields
+    return "", "", ""
+end
+
+-- remove the rule having customRuleItemId from the persisted rules table
+function CMA:CustomItemRuleRemove(customRuleItemId)
+        -- ensure that the data is present (=non empty)
+    if
+        customRuleItemId == nil or customRuleItemId == ""
+    then
+        -- fields are empty, return values as they are
+        self:SendChatMessage("Failed to remove custom rule: Nothing selected")
+        return nil
+    end
+    -- iterate over the items (backwards due to index reshifting when removing) and remove item if if ItemId matches the element
+    if self.customItemRuleTable[customRuleItemId] then
+        self.customItemRuleTable[customRuleItemId] = nil
+        -- rebuild the dropdown 
+        self:updateItemRulesDropdown(customRuleItemId)
+        -- serialize the table
+        self.db.serializedCustomItemRules = self:serializeCustomItemRuleTable(self.customItemRuleTable)
+    else
+        self:SendChatMessage("Failed to remove custom rule: " .. tostring(customRuleItemId))
+    end
+end
+
+function CMA:CustomItemRuleListItems(bag)
+    self:SendChatMessage("-- ItemIds of items in bag (Name: ItemId) --")
+    -- iterate through the bag and get the items
+    local slot = ZO_GetNextBagSlotIndex(bag)
+    while slot do
+        if HasItemInSlot(bag, slot) then
+            local itemLink = GetItemLink(bag, slot)
+            local itemId = GetItemId(bag, slot)
+            self:SendChatMessage(itemLink .. ": " .. itemId)
+        end
+        -- go on with the next slot, if available
+        slot = ZO_GetNextBagSlotIndex(bag, slot)
+    end
+end
+
+function CMA:CustomItemRuleReloadUI()
+    ReloadUI()
+end

@@ -37,7 +37,7 @@ AutoCategory.predefinedRules =  {
 		["pred"] = 1,
     },
     {
-        ["rule"] = "level() > 1 and cp() < 160 and type(\"armor\", \"weapon\")",
+        ["rule"] = "level() >= 1 and cp() < 160 and type(\"armor\", \"weapon\")",
         ["tag"] = L(SI_AC_DEFAULT_TAG_GEARS),
         ["name"] = L(SI_AC_DEFAULT_CATEGORY_LOW_LEVEL),
         ["description"] = L(SI_AC_DEFAULT_CATEGORY_LOW_LEVEL_DESC),
@@ -950,11 +950,21 @@ AutoCategory.defaultAcctBagSettings = {
 AutoCategory.defaultCharSettings = {
 	bags = {}, 
     collapses = AutoCategory.defaultCollapses,
+	collapseExpiry = {},
+	general = {
+		SHOW_MESSAGE_WHEN_TOGGLE = false,
+		SHOW_CATEGORY_ITEM_COUNT = true,
+		SHOW_CATEGORY_COLLAPSE_ICON = true,
+		SAVE_CATEGORY_COLLAPSE_STATUS = false,
+		SHOW_CATEGORY_SET_TITLE = true,
+    	CATEGORY_COLLAPSE_EXPIRY_SECONDS = 7 * 24 * 60 * 60,
+	},
 }
 
 AutoCategory.defaultAcctSettings = {
 	bags = {},
 	collapses = AutoCategory.defaultCollapses,
+	collapseExpiry = {},
 	appearance = {
 		["CATEGORY_FONT_NAME"] = "Univers 67",
 		["CATEGORY_FONT_STYLE"] = "soft-shadow-thin",
@@ -976,11 +986,12 @@ AutoCategory.defaultAcctSettings = {
 		["CATEGORY_HEADER_HEIGHT"] = 52, 
 	},
 	general = {
-		["SHOW_MESSAGE_WHEN_TOGGLE"] = false,
-		["SHOW_CATEGORY_ITEM_COUNT"] = true,
-		["SHOW_CATEGORY_COLLAPSE_ICON"] = true,
-		["SAVE_CATEGORY_COLLAPSE_STATUS"] = false,
-		["SHOW_CATEGORY_SET_TITLE"] = true,
+		SHOW_MESSAGE_WHEN_TOGGLE = false,
+		SHOW_CATEGORY_ITEM_COUNT = true,
+		SHOW_CATEGORY_COLLAPSE_ICON = true,
+		SAVE_CATEGORY_COLLAPSE_STATUS = false,
+		SHOW_CATEGORY_SET_TITLE = true,
+    	CATEGORY_COLLAPSE_EXPIRY_SECONDS = 7 * 24 * 60 * 60,
 	},
 }
 	

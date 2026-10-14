@@ -1,34 +1,71 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/manyrabidrats/InventoryUpkeep__1045",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "manyrabidrats",
   "canonical_id": "esoui:1045",
   "category_id": "20",
   "compatibility": [
     {
-      "name": "Waking Flame",
-      "version": "7.1.5"
+      "name": "Season One",
+      "version": "12.1.0"
     },
     {
-      "name": "Blackwood",
-      "version": "7.0.5"
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
     },
     {
-      "name": "Flames of Ambition",
-      "version": "6.3.5"
+      "name": "Season Zero",
+      "version": "11.3.0"
     },
     {
-      "name": "Markarth",
-      "version": "6.2.5"
+      "name": "Seasons of the Worm Cult Pt2",
+      "version": "11.2.0"
     },
     {
-      "name": "Stonethorn",
-      "version": "6.1.5"
+      "name": "Feast of Shadows",
+      "version": "11.1.0"
     },
     {
-      "name": "Greymoor",
-      "version": "6.0.5"
+      "name": " Seasons of the Worm Cult Pt1",
+      "version": "11.0.0"
+    },
+    {
+      "name": "Fallen Banners",
+      "version": "10.3.5"
+    },
+    {
+      "name": "Update 44",
+      "version": "10.2.0"
+    },
+    {
+      "name": "Update 43",
+      "version": "10.1.0"
+    },
+    {
+      "name": "Gold Road",
+      "version": "10.0.0"
+    },
+    {
+      "name": "Scions of Ithelia",
+      "version": "9.3.0"
+    },
+    {
+      "name": "Endless Archive",
+      "version": "9.2.5"
+    },
+    {
+      "name": "base-game patch",
+      "version": "9.1.5"
+    },
+    {
+      "name": "Necrom",
+      "version": "9.0.0"
+    },
+    {
+      "name": "Scribes of Fate",
+      "version": "8.3.5"
     }
   ],
   "content_id": "esoui:1045",
@@ -37,7 +74,7 @@
     "InventoryUpkeep"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1045/",
-  "fingerprint": "6d064538e99b674f66f5f0ccbadee231d729a72b5ac6a35b3decec6d32e94bcc",
+  "fingerprint": "67daab2c7cf77cc29774c062d4bc9948d7b541e8e2046cae4ad1b5de9540e016",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw3216.png",
     "https://cdn-eso.mmoui.com/preview/pvw3217.png",
@@ -49,11 +86,11 @@
   "source_id": "1045",
   "source_url": "https://www.esoui.com/downloads/info1045-InventoryUpkeep.html",
   "stats": {
-    "downloads": 9096,
+    "downloads": 9132,
     "favorites": 15,
-    "monthly_downloads": 16
+    "monthly_downloads": 14
   },
   "title": "InventoryUpkeep",
-  "updated_at": 1632071748000,
-  "version": "1.7.0.0"
+  "updated_at": 1791944901000,
+  "version": "1.8.0.0"
 }

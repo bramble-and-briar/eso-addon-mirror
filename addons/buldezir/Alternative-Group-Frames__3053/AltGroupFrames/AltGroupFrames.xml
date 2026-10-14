@@ -50,7 +50,7 @@
             </Controls>
         </Control>
 
-        <TopLevelControl name="ALTGF_UnitFrames" mouseEnabled="true" movable="false" clampedToScreen="true">
+        <TopLevelControl name="ALTGF_UnitFrames" mouseEnabled="false" movable="false" clampedToScreen="true">
             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="5" offsetY="5" />
 
             <OnMoveStop>self.m_object:SaveLoc()</OnMoveStop>

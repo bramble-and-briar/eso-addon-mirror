@@ -60,7 +60,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Taz's Chat Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tazmyr/Taz-s-Chat-Notifier__2764) | Tazmyr | PC / Mac | 1.28 |
 | [TBag Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kafeijao/TBag-Counter__1976) | kafeijao | PC / Mac | 0.4 |
 | [Tbudko's icons for Makos's ContentHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tbudko/Tbudko-s-icons-for-Makos-s-ContentHelper__4140) | Tbudko | PC / Mac | 1.1.0 |
-| [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.09.28 |
+| [TDAddon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/TDAddon__4194) | Masteroshi430 | PC / Mac | 2026.10.14 |
 | [Tea and Toast](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Tea-and-Toast__8394c641-1cb2-45f3-8b73-b6f424d6c630) | SugaComa | Console | — |
 | [TeamShadowBuff](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowBuff__4673) | teamfky | PC / Mac | 1.1.10 |
 | [TeamShadowsManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/teamfky/TeamShadowsManager__4670) | teamfky | PC / Mac | 1.1.20 |
@@ -115,7 +115,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TheElderSporesOnline](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/reishi_spores/TheElderSporesOnline__4386) | reishi_spores | PC / Mac | 2.2.1 |
 | [ThemeUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KA3ZUS/ThemeUI__3734) | KA3ZUS | PC / Mac | 0.1.1 |
 | [TheShining - AoE & Target Glow Brightness](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Odylon/TheShining---AoE-Target-Glow-Brightness__3081) | Odylon | PC / Mac | 1.0.1 |
-| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.4.4 |
+| [Thief Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools__1721) | Shadowfen | PC / Mac | 3.5 |
 | [Thief Tools - Filtered AutoSteal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Thief-Tools---Filtered-AutoSteal__3752) | Shadowfen | PC / Mac | 1.3.10 |
 | [Thief Tools Stolen Item Counter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/linuxhell/Thief-Tools-Stolen-Item-Counter__4813) | linuxhell | PC / Mac | 4.0.0 |
 | [ThiefHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Upyachka/ThiefHelper__1473) | Upyachka | PC / Mac | 1.1_1 |

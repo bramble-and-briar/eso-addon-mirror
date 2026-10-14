@@ -18,7 +18,7 @@
     "VEQ"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3228/",
-  "fingerprint": "a76a74a52afcb96291be475aaf5beb5e8ec1503230f09ffe3c6c942f6c795b68",
+  "fingerprint": "e580e9451ffcb85ca863c55e0d525cd6652afddcbb8313d07ffcbab75b61d5c9",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw11147.png",
     "https://cdn-eso.mmoui.com/preview/pvw14291.png",
@@ -55,11 +55,11 @@
   "source_id": "3228",
   "source_url": "https://www.esoui.com/downloads/info3228-VestigesEpicQuest.html",
   "stats": {
-    "downloads": 159906,
+    "downloads": 160654,
     "favorites": 146,
-    "monthly_downloads": 938
+    "monthly_downloads": 1541
   },
   "title": "Vestige's Epic Quest",
-  "updated_at": 1790682605000,
-  "version": "2026.09.29"
+  "updated_at": 1791960405000,
+  "version": "2026.10.14"
 }

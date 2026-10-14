@@ -1,4 +1,4 @@
--- ItemHound 0.8.0. Backpack, bank, Craft Bag and housing storage test; no external libraries.
+-- ItemHound 0.8.1. Backpack, bank, Craft Bag and housing storage test; no external libraries.
 local NAME = "ItemHound"
 local db, character, scanning
 local generation = 0
@@ -476,15 +476,31 @@ local function CreateWindow()
                 label:SetText(loc and (loc.name .. ": " .. FormatAmount(loc.amount)) or (wallet and j==1 and count==0 and "No matching balances." or ""))
             end
         end
-        footer:SetText(wallet and "LB/RB: Items / Wallet    |    Search: currency or character    |    Shared balances counted once" or "Page " .. ui.page .. " / " .. pages .. "    |    LB/RB: Items / Wallet    |    Empty item search: scan dashboard")
+        footer:SetText(wallet and "LB/RB: Items / Wallet    |    Search: currency or character    |    Shared balances counted once" or "Page " .. ui.page .. " / " .. pages .. "    |    Stick: pages    |    LB/RB: Items / Wallet")
     end
     ui.render=Render
+    function ui:UpdateDirectionalInput()
+        if not self.inputActive or self.tab=="wallet" or edit:HasFocus() then return end
+        -- This device reads the stick without ESO's private keyboard fallback.
+        local x,y=DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK_NO_KEYBOARD)
+        if math.abs(x)<.55 and math.abs(y)<.55 then
+            self.nextStick=0;self.stickHeld=false;return
+        end
+        DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK)
+        local now=GetFrameTimeMilliseconds()
+        if now<(self.nextStick or 0) then return end
+        local delta=math.abs(y)>=math.abs(x) and (y>0 and -1 or 1) or (x>0 and 1 or -1)
+        local pages=math.max(1,math.ceil(#self.rows/4))
+        local nextPage=math.max(1,math.min(self.page+delta,pages))
+        self.nextStick=now+(self.stickHeld and 200 or 350);self.stickHeld=true
+        if nextPage~=self.page then self.page=nextPage;Render() end
+    end
     ui.refresh=function()
         if ui.tab=="wallet" then ui.rows,ui.description,ui.panels=WalletResults(edit:GetText()) else ui.rows,ui.description=Results(edit:GetText()) end
         summary:SetText(ui.description);Render()
     end
     ui.setTab=function(tab)
-        ui.tab=tab;ui.page=1;edit:SetText("");ui.refresh()
+        ui.tab=tab;ui.page=1;ui.nextStick=0;ui.stickHeld=false;edit:SetText("");ui.refresh()
     end
     local tabButtons={}
     local function TabButton(name,x,tab)
@@ -507,9 +523,17 @@ local function CreateWindow()
     local scene=ZO_Scene:New("itemhound",SCENE_MANAGER)
     scene:AddFragment(ZO_FadeSceneFragment:New(window))
     scene:AddFragmentGroup(IsInGamepadPreferredMode() and FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW or FRAGMENT_GROUP.MOUSE_DRIVEN_UI_WINDOW)
+    if UI_SHORTCUTS_ACTION_LAYER_FRAGMENT then scene:AddFragment(UI_SHORTCUTS_ACTION_LAYER_FRAGMENT) end
     scene:RegisterCallback("StateChange",function(_,state)
-        if state==SCENE_SHOWN then KEYBIND_STRIP:AddKeybindButtonGroup(keys)
-        elseif state==SCENE_HIDING then edit:LoseFocus();KEYBIND_STRIP:RemoveKeybindButtonGroup(keys) end
+        if state==SCENE_SHOWN then
+            KEYBIND_STRIP:AddKeybindButtonGroup(keys)
+            ui.nextStick=0;ui.stickHeld=false;ui.inputActive=true
+            if IsInGamepadPreferredMode() then DIRECTIONAL_INPUT:Activate(ui,window) end
+        elseif state==SCENE_HIDING or state==SCENE_HIDDEN then
+            ui.inputActive=false
+            DIRECTIONAL_INPUT:Deactivate(ui)
+            edit:LoseFocus();KEYBIND_STRIP:RemoveKeybindButtonGroup(keys)
+        end
     end)
     edit:SetHandler("OnTextChanged",function()
         ui.epoch=ui.epoch+1;local epoch=ui.epoch

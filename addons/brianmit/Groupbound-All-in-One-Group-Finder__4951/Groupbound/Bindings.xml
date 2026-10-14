@@ -1,0 +1,21 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="Groupbound">
+            <Action name="GROUPBOUND_WINDOW">
+                <Down>Groupbound.UI.Toggle()</Down>
+            </Action>
+            <Action name="GROUPBOUND_ALERT">
+                <Down>Groupbound.HUD.OpenLastAlert()</Down>
+            </Action>
+            <Action name="GROUPBOUND_POST">
+                <Down>Groupbound.UI.Show() Groupbound.UI.ShowPost()</Down>
+            </Action>
+            <Action name="GROUPBOUND_HUD">
+                <Down>Groupbound.ToggleHud()</Down>
+            </Action>
+            <Action name="GROUPBOUND_RELIST">
+                <Down>Groupbound.Finder.Relist()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

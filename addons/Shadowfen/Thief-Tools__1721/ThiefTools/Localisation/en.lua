@@ -82,7 +82,7 @@ ThiefTools_localization_strings["en"] = {
 	TT_NEVER_JUNK_NAME = "Never auto-junk quality",
 	TT_AUTO_UNJUNK = "Move laundered items out of junk",
 	TT_AUTO_UNJUNK_TT = "You spent money to launder it. You probably don't want to accidentally throw it away.",
-    
+
     TT_FILTERS_HEADER = "Stolen Item Filters",
     TT_FILTER_DESC = "Choose if you want stolen items counted as fence-able, launder-able, or simply ignored. Categories of items not listed here are set as fence-able (as long as they are at least the minimum value).",
     TT_PROV_RECIPE_NAME = "Food & Drink Recipes",
@@ -148,7 +148,7 @@ ThiefTools_localization_strings["en"] = {
     TT_WARNINGS_NAME = "Warning Announcements",
     TT_WARNINGS_AWNAME = "Warning Announcements (AW)",
     TT_WARNINGS = "Options to display warnings. (Setting them to zero turns them off.)",
-    
+
     TT_FENCESLOTS_NAME = "Fence Quota warning",
     TT_FENCESLOTS = "Warn (in chat) that you have stolen enough to meet todays Fence quota.",
     TT_FENCE_SLOTS_LEFT="Estimated Fence sells left: ",
@@ -156,8 +156,8 @@ ThiefTools_localization_strings["en"] = {
     TT_SLOTSLEFT_NAME = "Backpack free space warning",
     TT_SLOTSLEFT = "Put warning in chat when you have this number (or less) of free slots left in your backpack.",
     TT_FREE_SLOTS_LEFT ="Free slots left: ",
-    
-    
+
+
     --Text for command list on chat (Help)
     TT_CHAT_THIEFTOOLS_COMMANDS = "Thief Tools commands:",
     TT_CHAT_THIEFTOOLS_LISTCOMMANDS = "List all chat commands",
@@ -188,7 +188,7 @@ ThiefTools_localization_strings["en"] = {
 
     TT_MSG_LOCKED = "ThiefTools Status Bar Locked",
     TT_MSG_UNLOCKED = "ThiefTools Status Bar Unlocked",
-    
+
     -- Text for messages
     TT_SAFE_INNOCENTS = "Attacking innocents is prevented",
     TT_UNSAFE_INNOCENTS = "Attacking innocents is allowed",
@@ -203,7 +203,7 @@ ThiefTools_localization_strings["en"] = {
     TT_ALREADY_STOPPED = "ThiefTools is already stopped",
     TT_STARTING = "Starting ThiefTools",
     TT_ALREADY_RUNNING = "ThiefTools is already running",
-	
+
 	-- Text for key binds
 	TT_BINDING_TOGGLE="Toggle Display Bar",
 	TT_BINDING_KILL_TOGGLE="Toggle Kill Innocents",
@@ -211,4 +211,21 @@ ThiefTools_localization_strings["en"] = {
 	TT_BINDING_AUTOJUNK_TOGGLE="Toggle Auto-Junk, stolen",
 	TT_BINDING_LOCK_TOGGLE="Toggle Position Lock",
 	TT_BINDING_METER_TOGGLE="Toggle Bounty Meter",
+
+    -- Text for belt tooltips
+    TT_BELT_KILL = "Attack innocents",
+    TT_BELT_NOKILL = "Attack innocents DISABLED",
+    TT_BELT_AUTOLOOT = "Automatic stealing",
+    TT_BELT_FAS_AUTOLOOT = "Filtered Automatic stealing",
+    TT_BELT_NOAUTOLOOT = "No automatic stealing",
+    TT_BELT_VALUE = "Total value of stolen items",
+    TT_BELT_FENCE_REMAINS = "Fence transactions remaining",
+    TT_BELT_LAUNDER_REMAINS = "Launder transactions remaining",
+    TT_BELT_FENCE_TIMER = "Fence timer",
+    TT_BELT_BOUNTY_TIMER = "Bounty timer",
+    TT_BELT_CURRENT_BOUNTY = "Current bounty",
+    TT_BELT_CLEMENCY_TIMER = "Clemency availability",
+    TT_BELT_AVE_VALUE = "Average item value",
+    TT_BELT_EST_VALUE = "Estimated total value",
+    TT_BELT_QUALITY = "Item quality summary",
 }

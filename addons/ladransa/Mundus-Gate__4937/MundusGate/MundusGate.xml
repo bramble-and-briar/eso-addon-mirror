@@ -82,6 +82,7 @@
                     <AnchorFill />
                 </Texture>
                 <Texture name="$(parent)Selected" color="285DC1E8" hidden="true">
+                    <OnInitialized>MundusGate.Style.Themed(self, "accent", 0.16)</OnInitialized>
                     <AnchorFill />
                 </Texture>
                 <Control name="$(parent)Tile" inherits="MundusGate_Tile">
@@ -93,6 +94,7 @@
                     <Anchor point="RIGHT" offsetX="-6" />
                 </Label>
                 <Label name="$(parent)Info" font="ZoFontGameSmall" color="8A8A8A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)Tile" relativePoint="BOTTOMRIGHT" offsetX="10" offsetY="-1" />
                     <Anchor point="RIGHT" offsetX="-6" />
                 </Label>
@@ -104,9 +106,11 @@
             <Dimensions x="400" y="30" />
             <Controls>
                 <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
                 </Label>
                 <Texture name="$(parent)Line" color="40E6D9A8">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title", 0.25)</OnInitialized>
                     <Dimensions y="1" />
                     <Anchor point="BOTTOMLEFT" />
                     <Anchor point="BOTTOMRIGHT" />
@@ -122,6 +126,7 @@
             </OnMouseUp>
             <Controls>
                 <Texture name="$(parent)Highlight" color="335DC1E8" alpha="0">
+                    <OnInitialized>MundusGate.Style.Themed(self, "accent", 0.2)</OnInitialized>
                     <AnchorFill />
                 </Texture>
                 <Texture name="$(parent)Icon">
@@ -147,6 +152,7 @@
             <OnMouseUp>MundusGate.WheelEditor:OnRowMouseUp(self, button, upInside)</OnMouseUp>
             <Controls>
                 <Texture name="$(parent)Highlight" color="335DC1E8" alpha="0">
+                    <OnInitialized>MundusGate.Style.Themed(self, "accent", 0.2)</OnInitialized>
                     <AnchorFill />
                 </Texture>
                 <Texture name="$(parent)Icon">
@@ -227,18 +233,21 @@
                     <Textures normal="EsoUI/Art/Buttons/edit_up.dds" pressed="EsoUI/Art/Buttons/edit_down.dds"
                               mouseOver="EsoUI/Art/Buttons/edit_over.dds" />
                     <OnClicked>MundusGate.MapPanel:Rename()</OnClicked>
-                    <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, TOP, MundusGate.L.CTX_RENAME)</OnMouseEnter>
+                    <OnMouseEnter>MundusGate.ShowTip("windows", self, TOP, MundusGate.L.CTX_RENAME)</OnMouseEnter>
                     <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                 </Button>
                 <Label name="$(parent)Name" font="ZoFontWinH4" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="78" offsetY="2" />
                     <Anchor point="TOPRIGHT" offsetX="-34" offsetY="2" />
                 </Label>
                 <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="78" offsetY="30" />
                     <Anchor point="TOPRIGHT" offsetY="30" />
                 </Label>
                 <Label name="$(parent)Price" font="ZoFontGameSmall" color="C5C29E" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="78" offsetY="48" />
                     <Anchor point="TOPRIGHT" offsetY="48" />
                 </Label>
@@ -250,6 +259,7 @@
 
                 <!-- Значок и цвет -->
                 <Label name="$(parent)LookCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="128" />
                 </Label>
                 <Texture name="$(parent)LookLine">
@@ -277,6 +287,7 @@
 
                 <!-- Колесо -->
                 <Label name="$(parent)WheelCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="276" />
                 </Label>
                 <Texture name="$(parent)WheelLine">
@@ -285,6 +296,7 @@
                     <Anchor point="TOPRIGHT" offsetY="298" />
                 </Texture>
                 <Label name="$(parent)WheelStatus" font="ZoFontGame" color="5DC1E8" horizontalAlignment="CENTER">
+                    <OnInitialized>MundusGate.Style.Themed(self, "accent")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="308" />
                     <Anchor point="TOPRIGHT" offsetY="308" />
                 </Label>
@@ -293,18 +305,21 @@
                     <Anchor point="TOP" offsetY="334" />
                     <Controls>
                         <Label name="$(parent)Center" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="CENTER">
+                            <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                             <Dimensions x="80" />
                             <Anchor point="CENTER" />
                         </Label>
                     </Controls>
                 </Control>
                 <Label name="$(parent)WheelHelp" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="CENTER">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="518" />
                     <Anchor point="TOPRIGHT" offsetY="518" />
                 </Label>
 
                 <!-- Кнопка на экране -->
                 <Label name="$(parent)ButtonCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="576" />
                 </Label>
                 <Texture name="$(parent)ButtonLine">
@@ -313,6 +328,7 @@
                     <Anchor point="TOPRIGHT" offsetY="598" />
                 </Texture>
                 <Label name="$(parent)ButtonStatus" font="ZoFontGame" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="610" />
                     <Anchor point="TOPRIGHT" offsetY="610" />
                 </Label>
@@ -322,6 +338,7 @@
                     <OnClicked>MundusGate.MapPanel:ToggleButton()</OnClicked>
                 </Button>
                 <Label name="$(parent)SizeCaption" font="ZoFontGame" color="C5C29E">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="688" />
                 </Label>
                 <Button name="$(parent)SizePlus">
@@ -332,6 +349,7 @@
                     <OnClicked>MundusGate.MapPanel:ChangeButtonSize(4)</OnClicked>
                 </Button>
                 <Label name="$(parent)SizeValue" font="ZoFontGame" color="FFFFFF" horizontalAlignment="CENTER">
+                    <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                     <Dimensions x="44" />
                     <Anchor point="RIGHT" relativeTo="$(parent)SizePlus" relativePoint="LEFT" />
                 </Label>
@@ -346,6 +364,7 @@
                     <Anchor point="TOPLEFT" offsetY="726" />
                 </Button>
                 <Label name="$(parent)ButtonHelp" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetY="758" />
                     <Anchor point="TOPRIGHT" offsetY="758" />
                 </Label>
@@ -362,9 +381,11 @@
             <AnchorFill />
             <Controls>
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                     <AnchorFill />
                 </Backdrop>
                 <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
@@ -414,10 +435,12 @@
                             <Anchor point="CENTER" relativePoint="TOPLEFT" offsetX="48" offsetY="48" />
                         </Control>
                         <Label name="$(parent)PlaceName" font="ZoFontWinH3" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                             <Anchor point="TOPLEFT" offsetX="116" offsetY="0" />
                             <Anchor point="TOPRIGHT" offsetY="0" />
                         </Label>
                         <Label name="$(parent)PlaceInfo" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                             <Anchor point="TOPLEFT" offsetX="116" offsetY="34" />
                             <Anchor point="TOPRIGHT" offsetY="34" />
                         </Label>
@@ -435,6 +458,7 @@
 
                         <!-- Значок -->
                         <Label name="$(parent)IconCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                            <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                             <Anchor point="TOPLEFT" offsetY="124" />
                         </Label>
                         <Control name="$(parent)IconPreview" inherits="MundusGate_Tile">
@@ -452,6 +476,7 @@
 
                         <!-- Цвет -->
                         <Label name="$(parent)ColorCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                            <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                             <Anchor point="TOPLEFT" offsetY="206" />
                         </Label>
                         <Control name="$(parent)ColorSwatch" inherits="MundusGate_Tile" mouseEnabled="true">
@@ -472,6 +497,7 @@
                             <Anchor point="BOTTOMRIGHT" />
                             <Controls>
                                 <Label name="$(parent)SizeCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                                     <Anchor point="TOPLEFT" offsetY="4" />
                                 </Label>
                                 <Button name="$(parent)SizeMinus" inherits="ZO_DefaultButton">
@@ -479,6 +505,7 @@
                                     <Anchor point="TOPLEFT" offsetX="110" />
                                 </Button>
                                 <Label name="$(parent)SizeValue" font="ZoFontWinH4" color="FFFFFF" horizontalAlignment="CENTER">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                                     <Dimensions x="50" />
                                     <Anchor point="LEFT" relativeTo="$(parent)SizeMinus" relativePoint="RIGHT" />
                                 </Label>
@@ -498,6 +525,7 @@
                 </Control>
 
                 <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Dimensions x="728" />
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
                 </Label>
@@ -512,9 +540,11 @@
             <Dimensions x="400" y="26" />
             <Controls>
                 <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
                 </Label>
                 <Texture name="$(parent)Line" color="40E6D9A8">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title", 0.25)</OnInitialized>
                     <Dimensions y="1" />
                     <Anchor point="BOTTOMLEFT" />
                     <Anchor point="BOTTOMRIGHT" />
@@ -570,12 +600,15 @@
             </OnMouseUp>
             <Controls>
                 <Label name="$(parent)Text" font="ZoFontWinH4" color="E6D9A8">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="6" offsetY="-3" />
                 </Label>
                 <Label name="$(parent)Count" font="ZoFontGameSmall" color="A0A0A0">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="BOTTOMRIGHT" offsetX="-8" offsetY="-5" />
                 </Label>
                 <Texture name="$(parent)Line" color="40E6D9A8">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title", 0.25)</OnInitialized>
                     <Dimensions y="1" />
                     <Anchor point="BOTTOMLEFT" />
                     <Anchor point="BOTTOMRIGHT" />
@@ -622,10 +655,12 @@
             <OnMoveStop>MundusGate.Menu:OnMoveStop()</OnMoveStop>
             <Controls>
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                     <AnchorFill />
                 </Backdrop>
 
                 <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
                 </Label>
 
@@ -653,6 +688,7 @@
                 </Control>
 
                 <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-10" />
                 </Label>
             </Controls>
@@ -668,10 +704,12 @@
             <OnMoveStop>MundusGate.Settings:OnMoveStop()</OnMoveStop>
             <Controls>
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                     <AnchorFill />
                 </Backdrop>
 
                 <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
@@ -681,12 +719,15 @@
 
                 <!-- Подписи над полями -->
                 <Label name="$(parent)SearchCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
                 </Label>
                 <Label name="$(parent)ZoneCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="296" offsetY="52" />
                 </Label>
                 <Label name="$(parent)TypeCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="496" offsetY="52" />
                 </Label>
 
@@ -719,6 +760,7 @@
                     <Anchor point="TOPRIGHT" offsetX="-16" offsetY="110" />
                 </Button>
                 <Label name="$(parent)Counter" font="ZoFontGame" color="FFFFFF">
+                    <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                     <Anchor point="RIGHT" relativeTo="$(parent)Clear" relativePoint="LEFT" offsetX="-12" />
                 </Label>
 
@@ -733,6 +775,7 @@
                 </Control>
 
                 <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
                 </Label>
             </Controls>
@@ -750,12 +793,14 @@
                     <Anchor point="TOP" relativeTo="GuiRoot" relativePoint="TOP" offsetY="140" />
                     <Controls>
                         <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                            <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                             <AnchorFill />
                         </Backdrop>
                         <Control name="$(parent)Tile" inherits="MundusGate_Tile">
                             <Anchor point="TOPLEFT" offsetX="16" offsetY="16" />
                         </Control>
                         <Label name="$(parent)Title" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                            <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                             <Anchor point="TOPLEFT" offsetX="74" offsetY="12" />
                         </Label>
                         <Button name="$(parent)Close" inherits="ZO_CloseButton">
@@ -763,10 +808,12 @@
                             <OnClicked>MundusGate.Route:OnHintClicked(MOUSE_BUTTON_INDEX_LEFT)</OnClicked>
                         </Button>
                         <Label name="$(parent)Text" font="ZoFontGame" color="FFFFFF">
+                            <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                             <Dimensions x="410" />
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="4" />
                         </Label>
                         <Label name="$(parent)Sub" font="ZoFontGameSmall" color="8A8A8A">
+                            <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                             <Dimensions x="410" />
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Text" relativePoint="BOTTOMLEFT" offsetY="4" />
                         </Label>
@@ -805,9 +852,11 @@
             <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" />
             <Controls>
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                     <AnchorFill />
                 </Backdrop>
                 <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
@@ -817,6 +866,7 @@
 
                 <!-- Места -->
                 <Label name="$(parent)PlacesCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="52" />
                 </Label>
                 <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
@@ -875,14 +925,17 @@
                             <Anchor point="TOPLEFT" />
                         </Control>
                         <Label name="$(parent)Name" font="ZoFontWinH4" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="2">
+                            <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                             <Dimensions x="214" />
                             <Anchor point="TOPLEFT" offsetY="74" />
                         </Label>
                         <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                             <Dimensions x="214" />
                             <Anchor point="TOPLEFT" offsetY="126" />
                         </Label>
                         <Label name="$(parent)Empty" font="ZoFontGame" color="A0A0A0">
+                            <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                             <Dimensions x="214" />
                             <Anchor point="TOPLEFT" offsetY="160" />
                         </Label>
@@ -899,6 +952,7 @@
                                     <Anchor point="TOPLEFT" offsetY="34" />
                                 </Button>
                                 <Label name="$(parent)ColorCaption" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                                     <Anchor point="TOPLEFT" offsetY="78" />
                                 </Label>
                                 <Control name="$(parent)ColorSwatch" inherits="MundusGate_Tile" mouseEnabled="true">
@@ -926,6 +980,7 @@
                 </Control>
 
                 <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Dimensions x="1088" />
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
                 </Label>
@@ -950,9 +1005,11 @@
             <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" />
             <Controls>
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                     <AnchorFill />
                 </Backdrop>
                 <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
@@ -981,6 +1038,7 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
                 </Control>
                 <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8A8A8A">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-12" />
                 </Label>
             </Controls>
@@ -993,9 +1051,11 @@
             <Anchor point="CENTER" relativeTo="GuiRoot" relativePoint="CENTER" offsetX="140" />
             <Controls>
                 <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                    <OnInitialized>MundusGate.Style.Themed(self, "window")</OnInitialized>
                     <AnchorFill />
                 </Backdrop>
                 <Label name="$(parent)Title" font="ZoFontWinH3" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="16" offsetY="12" />
                 </Label>
                 <Button name="$(parent)Close" inherits="ZO_CloseButton">
@@ -1019,6 +1079,7 @@
                     <Anchor point="LEFT" relativeTo="$(parent)Tab3" relativePoint="RIGHT" offsetX="6" />
                 </Button>
                 <Texture name="$(parent)TabIndicator" color="FF5DC1E8">
+                    <OnInitialized>MundusGate.Style.Themed(self, "accent")</OnInitialized>
                     <Dimensions y="2" />
                 </Texture>
                 <Backdrop name="$(parent)SearchBg" inherits="ZO_EditBackdrop">
@@ -1029,6 +1090,7 @@
                     </Controls>
                 </Backdrop>
                 <Label name="$(parent)Count" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="RIGHT">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="TOPRIGHT" offsetX="-18" offsetY="96" />
                 </Label>
                 <Backdrop name="$(parent)ListBg" inherits="ZO_InsetBackdrop">
@@ -1040,6 +1102,7 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListBg" offsetX="-4" offsetY="-4" />
                 </Control>
                 <Label name="$(parent)PathCaption" font="ZoFontGameSmall" color="C5C29E">
+                    <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="16" offsetY="-56" />
                 </Label>
                 <Backdrop name="$(parent)PathBg" inherits="ZO_EditBackdrop">
@@ -1070,6 +1133,7 @@
                     <Anchor point="LEFT" relativeTo="GuiRoot" relativePoint="LEFT" offsetX="20" />
                     <Controls>
                         <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                            <OnInitialized>MundusGate.Style.Themed(self, "panel")</OnInitialized>
                             <AnchorFill />
                         </Backdrop>
 
@@ -1134,7 +1198,7 @@
                                     <Textures normal="EsoUI/Art/ChatWindow/chat_options_up.dds" pressed="EsoUI/Art/ChatWindow/chat_options_down.dds"
                                               mouseOver="EsoUI/Art/ChatWindow/chat_options_over.dds" />
                                     <OnClicked>MundusGate.Settings:OpenPanel()</OnClicked>
-                                    <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, MundusGate.L.PANEL_OPTIONS)</OnMouseEnter>
+                                    <OnMouseEnter>MundusGate.ShowTip("mapPanel", self, BOTTOM, MundusGate.L.PANEL_OPTIONS)</OnMouseEnter>
                                     <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                                 </Button>
                                 <Button name="$(parent)Add">
@@ -1143,10 +1207,11 @@
                                     <Textures normal="EsoUI/Art/Buttons/plus_up.dds" pressed="EsoUI/Art/Buttons/plus_down.dds"
                                               mouseOver="EsoUI/Art/Buttons/plus_over.dds" />
                                     <OnClicked>MundusGate.MapPanel:AddPlace()</OnClicked>
-                                    <OnMouseEnter>ZO_Tooltips_ShowTextTooltip(self, BOTTOM, MundusGate.L.PANEL_ADD)</OnMouseEnter>
+                                    <OnMouseEnter>MundusGate.ShowTip("mapPanel", self, BOTTOM, MundusGate.L.PANEL_ADD)</OnMouseEnter>
                                     <OnMouseExit>ZO_Tooltips_HideTextTooltip()</OnMouseExit>
                                 </Button>
                                 <Label name="$(parent)Saved" font="ZoFontGame" color="E6D9A8" wrapMode="ELLIPSIS" maxLineCount="1">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                                     <Anchor point="LEFT" />
                                     <Anchor point="RIGHT" relativeTo="$(parent)Add" relativePoint="LEFT" offsetX="-8" />
                                 </Label>
@@ -1159,6 +1224,7 @@
                             <Anchor point="BOTTOMRIGHT" offsetX="-12" offsetY="-12" />
                             <Controls>
                                 <Label name="$(parent)Empty" font="ZoFontGame" color="8A8A8A" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                                     <AnchorFill />
                                 </Label>
                             </Controls>
@@ -1199,6 +1265,7 @@
                                             <Anchor point="LEFT" offsetX="-6" />
                                         </Texture>
                                         <Label name="$(parent)Text" font="ZoFontWinH5" color="C5C29E" modifyTextType="UPPERCASE">
+                                            <OnInitialized>MundusGate.Style.Themed(self, "caption")</OnInitialized>
                                             <Anchor point="LEFT" offsetX="24" />
                                         </Label>
                                     </Controls>
@@ -1308,9 +1375,11 @@
                     <Anchor point="BOTTOMLEFT" offsetX="18" offsetY="-4" />
                 </Texture>
                 <Label name="$(parent)Count" font="ZoFontGameSmall" color="8A8A8A" horizontalAlignment="RIGHT">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="BOTTOMRIGHT" offsetX="-6" offsetY="-6" />
                 </Label>
                 <Label name="$(parent)Text" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="46" offsetY="-6" />
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Count" relativePoint="BOTTOMLEFT" offsetX="-8" />
                 </Label>
@@ -1332,6 +1401,7 @@
                     <Anchor point="BOTTOMLEFT" offsetX="4" offsetY="-2" />
                 </Texture>
                 <Label name="$(parent)Text" font="ZoFontGameSmall" color="8FB7C9" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "group")</OnInitialized>
                     <Anchor point="BOTTOMLEFT" offsetX="8" offsetY="-3" />
                     <Anchor point="BOTTOMRIGHT" offsetX="-6" offsetY="-3" />
                 </Label>
@@ -1382,6 +1452,7 @@
                     <Anchor point="TOPRIGHT" offsetX="-88" offsetY="6" />
                 </Label>
                 <Label name="$(parent)Info" font="ZoFontGameSmall" color="9A9A9A" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="48" offsetY="29" />
                     <Anchor point="TOPRIGHT" offsetX="-88" offsetY="29" />
                 </Label>
@@ -1405,6 +1476,7 @@
                     <Anchor point="RIGHT" relativeTo="GuiRoot" relativePoint="RIGHT" offsetX="-20" />
                     <Controls>
                         <Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop">
+                            <OnInitialized>MundusGate.Style.Themed(self, "panel")</OnInitialized>
                             <AnchorFill />
                         </Backdrop>
                         <Control name="$(parent)Tabs">
@@ -1421,6 +1493,7 @@
                             <Dimensions x="28" y="2" />
                         </Texture>
                         <Label name="$(parent)Title" font="ZoFontWinH4" color="E6D9A8" modifyTextType="UPPERCASE" wrapMode="ELLIPSIS" maxLineCount="1">
+                            <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                             <Anchor point="TOPLEFT" offsetX="16" offsetY="58" />
                             <Anchor point="TOPRIGHT" offsetX="-12" offsetY="58" />
                         </Label>
@@ -1449,10 +1522,12 @@
                                     <Anchor point="TOPLEFT" offsetX="10" offsetY="10" />
                                 </Texture>
                                 <Label name="$(parent)Title" font="ZoFontGameBold" color="E6D9A8" wrapMode="ELLIPSIS" maxLineCount="1">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                                     <Anchor point="TOPLEFT" offsetX="52" offsetY="6" />
                                     <Anchor point="TOPRIGHT" offsetX="-8" offsetY="6" />
                                 </Label>
                                 <Label name="$(parent)Info" font="ZoFontGameSmall" color="C8C8C8">
+                                    <OnInitialized>MundusGate.Style.Themed(self, "detail")</OnInitialized>
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)Title" relativePoint="BOTTOMLEFT" offsetY="2" />
                                     <Anchor point="TOPRIGHT" relativeTo="$(parent)Title" relativePoint="BOTTOMRIGHT" offsetY="2" />
                                 </Label>
@@ -1527,6 +1602,7 @@
                     <Anchor point="TOPLEFT" offsetX="38" offsetY="5" />
                 </Label>
                 <Label name="$(parent)Lines" font="ZoFontGameSmall" color="C8C8C8">
+                    <OnInitialized>MundusGate.Style.Themed(self, "detail")</OnInitialized>
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="BOTTOMLEFT" offsetY="1" />
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)Name" relativePoint="BOTTOMRIGHT" offsetY="1" />
                 </Label>
@@ -1537,6 +1613,58 @@
                     <Dimensions x="1" y="3" />
                     <Anchor point="LEFT" relativeTo="$(parent)BarBg" relativePoint="LEFT" />
                 </Texture>
+            </Controls>
+        </Control>
+
+        <!-- Простая панель заданий: раздел (локация, стремления, фолиант) — щелчок сворачивает -->
+        <Control name="MundusGate_TrackerSimpleHeader" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="26" />
+            <OnMouseEnter>MundusGate.QuestTracker:OnHeaderEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.QuestTracker:OnHeaderExit(self)</OnMouseExit>
+            <OnDragStart>MundusGate.QuestTracker:OnHeaderDragStart(self, button)</OnDragStart>
+            <OnMouseUp>MundusGate.QuestTracker:OnHeaderMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Arrow" textureFile="EsoUI/Art/Buttons/tree_open_up.dds">
+                    <Dimensions x="18" y="18" />
+                    <Anchor point="LEFT" offsetX="0" />
+                </Texture>
+                <Label name="$(parent)Count" font="ZoFontGameShadow" horizontalAlignment="RIGHT">
+                    <Anchor point="RIGHT" offsetX="-4" />
+                </Label>
+                <Label name="$(parent)Text" font="ZoFontWinH4" modifyTextType="UPPERCASE" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <Anchor point="LEFT" offsetX="20" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Count" relativePoint="LEFT" offsetX="-6" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <!-- Простая панель заданий: задание без карточки — значок, название и условия -->
+        <Control name="MundusGate_TrackerSimpleEntry" virtual="true" mouseEnabled="true">
+            <Dimensions x="300" y="26" />
+            <OnMouseEnter>MundusGate.QuestTracker:OnEntryEnter(self)</OnMouseEnter>
+            <OnMouseExit>MundusGate.QuestTracker:OnEntryExit(self)</OnMouseExit>
+            <OnDragStart>MundusGate.QuestTracker:OnEntryDragStart(self, button)</OnDragStart>
+            <OnMouseUp>MundusGate.QuestTracker:OnEntryMouseUp(self, button, upInside)</OnMouseUp>
+            <Controls>
+                <Texture name="$(parent)Bg">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Icon">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="TOPLEFT" offsetX="14" offsetY="1" />
+                </Texture>
+                <Button name="$(parent)Travel" inherits="MundusGate_QuestButton">
+                    <Anchor point="TOPRIGHT" offsetX="-2" offsetY="0" />
+                    <OnClicked>MundusGate.QuestTracker:OnTravelClicked(self:GetParent())</OnClicked>
+                    <OnMouseEnter>MundusGate.QuestTracker:OnTravelEnter(self)</OnMouseEnter>
+                    <OnMouseExit>MundusGate.QuestTracker:OnTravelExit(self)</OnMouseExit>
+                </Button>
+                <Label name="$(parent)Name" font="ZoFontWinH5">
+                    <Anchor point="TOPLEFT" offsetX="40" offsetY="2" />
+                </Label>
+                <Label name="$(parent)Lines" font="ZoFontGameShadow">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Name" relativePoint="BOTTOMLEFT" offsetX="14" offsetY="1" />
+                </Label>
             </Controls>
         </Control>
 
@@ -1560,11 +1688,26 @@
                     <Anchor point="TOPLEFT" offsetX="8" offsetY="5" />
                 </Texture>
                 <Label name="$(parent)Title" font="ZoFontWinH5" color="E6D9A8" modifyTextType="UPPERCASE">
+                    <OnInitialized>MundusGate.Style.Themed(self, "title")</OnInitialized>
                     <Anchor point="TOPLEFT" offsetX="32" offsetY="6" />
                 </Label>
                 <Label name="$(parent)Hint" font="ZoFontGameSmall" color="7A7A7A" horizontalAlignment="RIGHT">
+                    <OnInitialized>MundusGate.Style.Themed(self, "info")</OnInitialized>
                     <Anchor point="TOPRIGHT" offsetX="-10" offsetY="8" />
                 </Label>
+                <!-- Замок: закрепить панель или разрешить перетаскивать -->
+                <Button name="$(parent)Lock">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="TOPRIGHT" offsetX="-6" offsetY="4" />
+                    <OnClicked>MundusGate.QuestTracker:ToggleLock()</OnClicked>
+                    <OnMouseEnter>MundusGate.QuestTracker:OnLockEnter(self)</OnMouseEnter>
+                    <OnMouseExit>MundusGate.QuestTracker:OnLockExit(self)</OnMouseExit>
+                    <Controls>
+                        <Texture name="$(parent)Icon">
+                            <AnchorFill />
+                        </Texture>
+                    </Controls>
+                </Button>
                 <Control name="$(parent)Entries">
                     <Anchor point="TOPLEFT" offsetX="6" offsetY="30" />
                     <Anchor point="TOPRIGHT" offsetX="-6" offsetY="30" />
@@ -1589,6 +1732,7 @@
                     <Anchor point="LEFT" offsetX="9" />
                 </Texture>
                 <Label name="$(parent)Name" font="ZoFontGame" color="FFFFFF" wrapMode="ELLIPSIS" maxLineCount="1">
+                    <OnInitialized>MundusGate.Style.Themed(self, "text")</OnInitialized>
                     <Anchor point="LEFT" offsetX="40" />
                     <Anchor point="RIGHT" offsetX="-8" />
                 </Label>

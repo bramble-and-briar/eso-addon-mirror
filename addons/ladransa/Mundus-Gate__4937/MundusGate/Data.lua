@@ -15,12 +15,13 @@ Data.TYPE_ARENA     = 4
 Data.TYPE_HOUSE     = 5
 Data.TYPE_OTHER     = 6
 Data.TYPE_PLAYER_HOUSE = 7   -- дом другого игрока (добавлен из списка друзей, гильдии или группы)
+Data.TYPE_GUILD = 8          -- гильдейский торговец и гильдхолл (ключи "trader:<guildId>", "hall:<guildId>")
 
 Data.PLAYER_HOUSE_ICON = "/esoui/art/icons/mapkey/mapkey_housing.dds"
 
 Data.TYPE_LIST = {
     Data.TYPE_WAYSHRINE, Data.TYPE_DUNGEON, Data.TYPE_TRIAL,
-    Data.TYPE_ARENA, Data.TYPE_HOUSE, Data.TYPE_PLAYER_HOUSE, Data.TYPE_OTHER,
+    Data.TYPE_ARENA, Data.TYPE_HOUSE, Data.TYPE_PLAYER_HOUSE, Data.TYPE_GUILD, Data.TYPE_OTHER,
 }
 
 -- Названия типов берутся в момент показа — так они всегда на выбранном языке
@@ -32,6 +33,7 @@ local TYPE_KEYS = {
     [Data.TYPE_HOUSE]     = "TYPE_HOUSE",
     [Data.TYPE_OTHER]     = "TYPE_OTHER",
     [Data.TYPE_PLAYER_HOUSE] = "TYPE_PLAYER_HOUSE",
+    [Data.TYPE_GUILD]     = "TYPE_GUILD",
 }
 Data.TYPE_NAMES = setmetatable({}, {
     __index = function(_, typeId) return TYPE_KEYS[typeId] and L[TYPE_KEYS[typeId]] or "" end,
@@ -189,6 +191,19 @@ function Data:BuildNodes()
         end
     end
 
+    -- Гильдии: торговец и гильдхолл каждой гильдии (см. Guild.lua)
+    if QTM.Guild then
+        for _, node in ipairs(QTM.Guild:MakeNodes()) do
+            self:ApplyCustomName(node)
+            nodes[#nodes + 1] = node
+            byIndex[node.nodeIndex] = node
+            if not zoneSeen[node.zoneName] then
+                zoneSeen[node.zoneName] = true
+                zones[#zones + 1] = node.zoneName
+            end
+        end
+    end
+
     table.sort(nodes, CompareByZone)
     table.sort(zones)
 
@@ -297,7 +312,15 @@ end
 
 -- Перемещение в дом: свой дом или дом другого игрока
 function Data:IsHouse(node)
-    return node.type == Data.TYPE_HOUSE or node.type == Data.TYPE_PLAYER_HOUSE
+    return node.type == Data.TYPE_HOUSE or node.type == Data.TYPE_PLAYER_HOUSE or node.isPlayerHouse == true
+end
+
+-- Куда на самом деле ведёт место: у гильдейского торговца — святилище рядом с ним
+function Data:Resolve(node)
+    if node and node.isGuildTrader then
+        return QTM.Guild:GetTraderWayshrine(node.guildId)
+    end
+    return node
 end
 
 function Data:EnsureBuilt()
@@ -448,6 +471,7 @@ end
 -- Можно ли в принципе попасть в это место (открыто ли оно).
 -- Возвращает: available, reasonText
 function Data:GetNodeStatus(node)
+    if node.isGuildTrader or node.isGuildHall then return QTM.Guild:GetStatus(node) end
     if node.isPlayerHouse then return true end
     local known, _, _, _, icon, _, _, _, linkedCollectibleIsLocked = GetFastTravelNodeInfo(node.nodeIndex)
     if icon and icon ~= "" then node.icon = icon end
@@ -466,6 +490,11 @@ end
 
 -- Цена перемещения к самому месту. Возвращает: text, affordable, isFree
 function Data:GetPriceInfo(node)
+    if node.isGuildTrader then
+        local target = self:Resolve(node)
+        if not target then return "—", false, false end
+        node = target
+    end
     if self:IsHouse(node) then
         return L.FREE, true, true
     end
@@ -514,6 +543,7 @@ end
 -- (для бесплатного пути перезарядка перемещения не важна)
 -- source — откуда перемещение: "Menu", "Buttons", "Wheel" или "Map"
 function Data:GetNodeBlockReason(node, source)
+    node = self:Resolve(node) or node
     if QTM.Route and QTM.Route:WillUse(node, source) then
         return self:GetBlockReason(false, true)
     end
@@ -523,6 +553,7 @@ end
 -- Цена, которую видит игрок: с учётом бесплатного пути через игрока.
 -- Возвращает: text, affordable, isFree, isRoute
 function Data:GetDisplayPrice(node, source)
+    node = self:Resolve(node) or node
     if QTM.Route and QTM.Route:WillUse(node, source) then
         return L.ROUTE_PRICE, true, true, true
     end
@@ -534,7 +565,7 @@ end
 function Data:GetPriceLine(node, source)
     local text, _, _, isRoute = self:GetDisplayPrice(node, source)
     if isRoute then
-        return L.PRICE_LABEL .. " |c5DC1E8" .. text .. "|r |c9A9A9A(" .. L.ROUTE_SHORT .. ")|r\n|c9A9A9A"
+        return L.PRICE_LABEL .. " |c" .. QTM.Style.Hex(QTM.Style.ICE) .. text .. "|r |c9A9A9A(" .. L.ROUTE_SHORT .. ")|r\n|c9A9A9A"
             .. zo_strformat(L.ROUTE_TOOLTIP_COST, (self:GetPriceInfo(node))) .. "|r"
     end
     return L.PRICE_LABEL .. " " .. text
@@ -580,6 +611,12 @@ function Data:Travel(node, payNow, source)
         return nil
     end
 
+    -- Гильдейский торговец — это святилище рядом с ним
+    if node.isGuildTrader then
+        node = self:Resolve(node)
+        if not node then return nil end
+    end
+
     -- Платное место: бесплатно через игрока и святилище
     if not payNow and QTM.Route:WillUse(node, source) then
         return QTM.Route:Request(node)
@@ -590,6 +627,10 @@ function Data:Travel(node, payNow, source)
     if block then
         Alert(block)
         return nil
+    end
+
+    if node.isGuildHall then
+        return QTM.Guild:JumpToHall(node.guildId)
     end
 
     if node.isPlayerHouse then

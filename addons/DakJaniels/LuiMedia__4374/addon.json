@@ -1,22 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/DakJaniels/LuiMedia__4374",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "DakJaniels",
   "canonical_id": "esoui:4374",
   "category_id": "53",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
-    },
-    {
-      "name": "Seasons of the Worm Cult Pt2",
-      "version": "11.2.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4374",
@@ -25,7 +18,7 @@
     "LuiMedia"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4374/",
-  "fingerprint": "b060a30527c1e019a8a611128ae940ce1eb42795806f76d1ff8f1f05e4caf28d",
+  "fingerprint": "47665471b7fd8764a4e62ce91acd37b7fdeed63ffd38c836e04d56e98fdb57f1",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -33,11 +26,11 @@
   "source_id": "4374",
   "source_url": "https://www.esoui.com/downloads/info4374-LuiMedia.html",
   "stats": {
-    "downloads": 48547,
-    "favorites": 36,
-    "monthly_downloads": 4138
+    "downloads": 57784,
+    "favorites": 39,
+    "monthly_downloads": 3645
   },
   "title": "LuiMedia",
-  "updated_at": 1778095372000,
-  "version": "7.1.3.3"
+  "updated_at": 1791916415000,
+  "version": "7.1.3.4"
 }

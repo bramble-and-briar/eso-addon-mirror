@@ -11,8 +11,8 @@ AutoCategory_localization_strings["de"] = {
     SI_AC_BAGTYPE_SHOWNAME_CRAFTSTATION = "Handwerksstation",
     SI_AC_BAGTYPE_SHOWNAME_HOUSEBANK = "Lagertruhen",
     SI_AC_BAGTYPE_TOOLTIP_GUILDBANK = "Gilden Bank",
-    SI_AC_BAGTYPE_TOOLTIP_CRAFTBAG = "Craft Bag",
-    SI_AC_BAGTYPE_TOOLTIP_CRAFTSTATION, "Verwerten/Verbessern an Handwerksstationen",
+    SI_AC_BAGTYPE_TOOLTIP_CRAFTBAG = "Handwerksbeutel",
+    SI_AC_BAGTYPE_TOOLTIP_CRAFTSTATION = "Verwerten/Verbessern an Handwerksstationen",
     
     SI_AC_ALIGNMENT_LEFT = "Links",
     SI_AC_ALIGNMENT_CENTER = "Mitte",
@@ -103,6 +103,7 @@ AutoCategory_localization_strings["de"] = {
     SI_AC_MENU_EC_BUTTON_RELOAD_UI = "Reload UI",
     SI_AC_MENU_SUBMENU_GENERAL_SETTING = "|c0066FF[Generelle Einstellungen]|r",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE = "Zeige Nachricht beim Anzeige-Wechsel",
+    SI_AC_MENU_GS_HEADER_CATEGORY = "Kategorieanzeige:",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE_TOOLTIP = "Zeigt eine Nachricht im Chat an wenn dieses Addon AN/AUS geschaltet wird.",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT = "Zeige Gegenstand Anzahl je Kategorie",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT_TOOLTIP = "Zeigt eine Zahl mit der Anzahl der aktuellen Gegenstände in der Kategorie, hinter dem Namen der Kategorie, an.",
@@ -116,7 +117,9 @@ AutoCategory_localization_strings["de"] = {
     SI_AC_MENU_BS_CHECKBOX_CATEGORY_HIDDEN_TOOLTIP = "Wenn diese Option aktiviert wird: Die hier drüber ausgewählte Kombination aus Inventar und Kategorie wird nicht angezeigt (inklusive aller zugeordneten Gegenstände!)",
     SI_AC_MENU_BS_CHECKBOX_UNGROUPED_CATEGORY_HIDDEN = "Verstecke ungruppierte Kategorie",
     SI_AC_MENU_BS_CHECKBOX_UNGROUPED_CATEGORY_HIDDEN_TOOLTIP = "Wenn diese Option aktiviert wird: Es werden alle ungruppierten Gegenstände (nicht einer Kategorie zugeordnet) versteckt. Du findest diese dann nicht in deinem Inventar!",
-    
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY = "Ablaufzeit für eingeklappte Kategorien",
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY_TOOLTIP = "Wie lange eingeklappte Kategorien gespeichert bleiben, nachdem sie aus deinen Taschen verschwunden sind.",
+
     SI_AC_DEFAULT_TAG_GEARS = "Ausrüstung",
     SI_AC_DEFAULT_TAG_GENERAL_ITEMS = "Generelle Gegenstände",
     SI_AC_DEFAULT_TAG_MATERIALS = "Material",

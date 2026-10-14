@@ -226,7 +226,7 @@ function WheelEditor:OnSlotEnter(tile)
     self:PaintSlot(tile.slotIndex)
     self:RefreshCenter(tile.slotIndex)
     if not self.drag then
-        ZO_Tooltips_ShowTextTooltip(tile, TOP, Wheel:GetSlot(tile.slotIndex) and L.WHEEL_SLOT_TT or L.WHEEL_SLOT_EMPTY_TT)
+        QTM.ShowTip("windows", tile, TOP, Wheel:GetSlot(tile.slotIndex) and L.WHEEL_SLOT_TT or L.WHEEL_SLOT_EMPTY_TT)
     end
 end
 
@@ -399,7 +399,7 @@ end
 function WheelEditor:OnRowEnter(control)
     control:GetNamedChild("Highlight"):SetAlpha(1)
     if not self.drag and control.data then
-        ZO_Tooltips_ShowTextTooltip(control, RIGHT, L.WHEEL_ROW_TT)
+        QTM.ShowTip("windows", control, RIGHT, L.WHEEL_ROW_TT)
     end
 end
 
@@ -462,7 +462,7 @@ function WheelEditor:InitializeDetails(details)
     swatch:SetHandler("OnMouseEnter", function(c)
         c.isHover = true
         self:PaintColors()
-        ZO_Tooltips_ShowTextTooltip(c, TOP, L.SLOT_COLOR_TT)
+        QTM.ShowTip("windows", c, TOP, L.SLOT_COLOR_TT)
     end)
     swatch:SetHandler("OnMouseExit", function(c)
         c.isHover = false

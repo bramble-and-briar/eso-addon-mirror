@@ -2110,7 +2110,14 @@ local function CleanUpMisc()
     LastCustomPinIndex = 0
     FyrMM.Reloading = false
 
-    FyrMM.InitialPreload()
+    if FyrMM.ReloadPending then
+        -- a map change happened while we were cleaning up: reload again for the new micro-zone
+        -- instead of preloading a map that is already outdated
+        FyrMM.ReloadPending = false
+        zo_callLater(FyrMM.Reload, 100) -- zo_callLater ok
+    else
+        FyrMM.InitialPreload()
+    end
 
 
     if FyrMM.DebugMode then
@@ -2171,7 +2178,7 @@ function FyrMM.RemoveCustomPin(p)
         end
     end
 	
-	if p.Key ~= nil and p.m_PinType ~= nil and not ZO_IsTableEmpty(CustomPinKeyIndex) then
+	if p.Key ~= nil and p.m_PinType ~= nil and CustomPinKeyIndex[p.m_PinType] then
 		CustomPinKeyIndex[p.m_PinType][p.Key] = nil
 	end
 
@@ -2268,6 +2275,10 @@ local function CleanUpPins()
 
     if ZO_IsTableEmpty(PinsList) then
         FyrMM.Reloading = false
+        if FyrMM.ReloadPending then
+            FyrMM.ReloadPending = false
+            zo_callLater(FyrMM.Reload, 100) -- zo_callLater ok
+        end
         return
     end
 
@@ -2281,10 +2292,10 @@ local function CleanUpPins()
 
     EVENT_MANAGER:RegisterForUpdate("FyrMiniMapCleanupPinsTask", delay, function()
         local count = 0
-        local isCustomPin = false
         cui = cui + 1
         local gameTime = GetGameTimeMilliseconds()
         for index, pin in pairs(PinsList) do
+            local isCustomPin = false -- reset per pin (was leaking across the whole chunk)
             count = count + 1
 
             if count >= chunk then
@@ -4100,6 +4111,7 @@ end
 
 local function DelayedReload()
     if FyrMM.Reloading then
+        FyrMM.ReloadPending = true -- remember the request instead of dropping it (micro-zoning during cleanup)
         return
     end
     zo_callLater(FyrMM.Reload, 100) -- zo_callLater ok 
@@ -4976,6 +4988,7 @@ function FyrMM.Reload()
         CALLBACK_MANAGER:FireCallbacks("FyrMMDebug", "FyrMM.Reload Start:")
     end
     FyrMM.Reloading = true
+    FyrMM.ReloadPending = false
     CancelUpdates()
     CustomPinsCopying = false
     FyrMM.LastReload = GetFrameTimeMilliseconds()
@@ -5972,28 +5985,39 @@ local function GetPinTexture(pinType, control)
     return questPinTextures[pinType]
 end
 
+-- 14/10/2026 fix: a pin control is "in use" while its m_PinType is set (RemoveCustomPin clears it).
+-- Previously CustomPins() reset LastCustomPinIndex to 0 on every pass, so pins inserted later
+-- (a pin type refreshed after a map change, new survey/treasure pins...) were handed Pin1, Pin2...
+-- even when those controls were already displaying other pins, silently overwriting them.
+local function GetCustomPinControl(index)
+    local p = GetControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(index))
+    if p == nil then
+        p = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(index), Fyr_MM_Scroll_Map_Pins, CT_TEXTURE)
+        p:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
+        p:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
+    end
+    return p
+end
+
 local function GetCustomPin()
     local p
-    if ZO_IsTableEmpty(FreeCustomPinIndex) then
-        LastCustomPinIndex = LastCustomPinIndex + 1
-        p = GetControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(LastCustomPinIndex))
-        if p == nil then
-            p = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(LastCustomPinIndex), Fyr_MM_Scroll_Map_Pins, CT_TEXTURE)
-            p:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-            p:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-        end
-        p.Index = LastCustomPinIndex
-        return p
-    else
-        for i, n in pairs(FreeCustomPinIndex) do
-            p = GetControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(n))
-            if p == nil then
-                p = WINDOW_MANAGER:CreateControl("Fyr_MM_Scroll_Map_Pins_Pin" .. tostring(n), Fyr_MM_Scroll_Map_Pins, CT_TEXTURE)
-                p:SetHandler("OnMouseEnter", FyrMM.PinOnMouseEnter)
-                p:SetHandler("OnMouseExit", FyrMM.PinOnMouseExit)
-            end
+
+    -- 1. reuse a freed slot, but only if its control is really free
+    for i, n in pairs(FreeCustomPinIndex) do
+        FreeCustomPinIndex[i] = nil
+        p = GetCustomPinControl(n)
+        if p.m_PinType == nil then
             p.Index = n
-            FreeCustomPinIndex[i] = nil
+            return p
+        end
+    end
+
+    -- 2. otherwise take the next slot whose control is not displaying another pin
+    while true do
+        LastCustomPinIndex = LastCustomPinIndex + 1
+        p = GetCustomPinControl(LastCustomPinIndex)
+        if p.m_PinType == nil then
+            p.Index = LastCustomPinIndex
             return p
         end
     end
@@ -6319,7 +6343,18 @@ function FyrMM.CustomPins()
     end
 
     FyrMM.CustomPinCount = 0 -- mandatory
-	LastCustomPinIndex = 0 -- mandatory
+
+    -- 14/10/2026 fix: do not restart slot allocation from 0 while pins are already displayed;
+    -- start after the highest control index currently owned by a list entry.
+    LastCustomPinIndex = 0
+    for _, entries in pairs(FyrMM.CustomPinList) do
+        for _, entry in pairs(entries) do
+            local owned = entry.pin
+            if owned and owned.Index and owned.Index > LastCustomPinIndex then
+                LastCustomPinIndex = owned.Index
+            end
+        end
+    end
 
 	
     local function ProcessPin(t, n, i, v)
@@ -10352,16 +10387,22 @@ function FyrMM.UpdateCustomPinGroup(pinType)
 
             
             for i, n in pairs(FyrMM.CustomPinList[pinType]) do
+                -- 14/10/2026 fix: only remove a control that still belongs to this pin type, so a stale
+                -- reference can never wipe a pin of another type that reused the same control
                 if n.pin then
                     local pin = GetControl(n.pin:GetName())
                     -- d("method 1: removing pin "..n.pin:GetName())
-                    FyrMM.RemoveCustomPin(pin)
+                    if pin and pin.m_PinType == pinType then
+                        FyrMM.RemoveCustomPin(pin)
+                    end
                 else
                     local Index = n.Index or i
-                    if CustomPinKeyIndex[pinType] then
+                    if CustomPinKeyIndex[pinType] and CustomPinKeyIndex[pinType][Index] then
                         local pin = GetControl("Fyr_MM_Scroll_Map_Pins_Pin"..tostring(CustomPinKeyIndex[pinType][Index]))
                         -- d("method 2: removing pin Fyr_MM_Scroll_Map_Pins_Pin"..tostring(CustomPinKeyIndex[pinType][Index]))
-                        FyrMM.RemoveCustomPin(pin)
+                        if pin and pin.m_PinType == pinType then
+                            FyrMM.RemoveCustomPin(pin)
+                        end
                     end
                 end
             end

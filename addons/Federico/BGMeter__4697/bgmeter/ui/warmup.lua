@@ -42,9 +42,16 @@ local TARGETS = {
     { "icon_pool",      "map.icons",     64,   1, "map" },
     { "hit_pool",       "map.hits",      64,   2, "map" },
     { "heat_pool",      "map.heat",      1024, 1, "map" },
+    { "line_pool",      "haul.profile.lines", 90, 1, "haul" },
+    { "dot_pool",       "haul.profile.dots",  6,  1, "haul" },
 }
 
 local function pool_of(t)
+    if t[5] == "haul" then
+        local W = BGMeter.UI.window
+        local radar = W and W.haul and W.haul.radar
+        return radar and radar[t[1]] or nil
+    end
     if t[5] == "map" then
         local MapUI = BGMeter.UI.map
         local mc = MapUI and MapUI.controls and MapUI.controls()

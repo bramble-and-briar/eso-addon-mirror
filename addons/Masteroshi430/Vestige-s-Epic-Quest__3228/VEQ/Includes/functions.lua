@@ -178,6 +178,10 @@ end
 function VEQ.CombatState()
 
   if not IsPlayerActivated() then return end
+
+  if VEQ.SavedVars.HideInCombatOption then
+     VEQ.CheckMode()
+  end
   
   if not VEQ.SavedVars.Poison then
      if VEQ.MiniQuestList then
@@ -218,7 +222,7 @@ function VEQ.CombatState()
              if not VEQ.MiniQuestList[14] then
                       VEQ.LoadMiniQuestsInfo(14, 14,VEQ.mylanguage.lang_out_of_poison, VEQ.mylanguage.lang_craft_some_poison, VEQ.mylanguage.lang_alchemy_station, "esoui/art/tradinghouse/gamepad/gp_tradinghouse_materials_potions_poisonsolvent.dds")
                 VEQ.DisplayFocusedMiniQuest()
-                   end           
+             end 
       end
     
   end

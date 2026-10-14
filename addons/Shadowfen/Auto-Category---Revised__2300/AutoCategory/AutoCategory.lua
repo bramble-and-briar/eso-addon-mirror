@@ -256,10 +256,8 @@ function AutoCat.UpdateCurrentSavedVars()
 	table.sort(RulesW.ruleList, RuleSortingFunction)
 
     local compiled, damaged = RulesW:CompileAll()
-	logDebug("[AutoCategory] Compiled rules: ", compiled, " damaged rules: ", damaged)
+	logDebug("Compiled rules: ", compiled, " damaged rules: ", damaged)
 
-	AutoCat.PruneCollapse(charSaved)
-	AutoCat.PruneCollapse(acctSaved)
 	-- bags/collapses might or might not be acct wide
     if not charSaved.accountWide then
         saved.bags = charSaved.bags
@@ -272,62 +270,6 @@ function AutoCat.UpdateCurrentSavedVars()
     AutoCat.cacheInitialize()
 end
 
--- -----------------------------------------------------------
--- Manage collapses
--- -----------------------------------------------------------
-function AutoCat.LoadCollapse()
-	if not saved.general["SAVE_CATEGORY_COLLAPSE_STATUS"] then
-        --init
-        return AutoCat.ResetCollapse(saved)
-    end
-end
-
-function AutoCat.PruneCollapse(vars)
-    if not vars or not vars.collapses then return end
-
-    for _, bagcol in pairs(vars.collapses) do
-        if bagcol then
-            for k in pairs(bagcol) do
-                if bagcol[k] == false then bagcol[k] = nil end
-            end
-        end
-    end
-end
-
-function AutoCat.ResetCollapse(vars)
-    if not vars or not vars.collapses then return end
-
-    for _, bagcol in pairs(vars.collapses) do
-        if bagcol then
-            for k in pairs(bagcol) do
-                bagcol[k] = nil
-            end
-        end
-    end
-end
-
--- Determine if the specified category of the particular bag is collapsed or not
-function AutoCat.IsCategoryCollapsed(bagTypeId, categoryName)
-    if bagTypeId == nil or categoryName == nil then
-        return false
-    end
-    local saved = AutoCat.saved
-    
-    local collapsetbl = saved.collapses[bagTypeId]
-    return collapsetbl and collapsetbl[categoryName] or false
-end
-
-function AutoCat.SetCategoryCollapsed(bagTypeId, categoryName, collapsed)
-	if bagTypeId == nil or categoryName == nil then
-        return
-    end
-	--if collapsed == false then collapsed = nil end -- breaks Collapse All if used
-	local saved = AutoCat.saved
-
-    saved.collapses[bagTypeId] = SF.safeTable(saved.collapses[bagTypeId])
-    local collapsetbl = saved.collapses[bagTypeId]
-    collapsetbl[categoryName] = collapsed
-end
 
 -- create local alias for references in this function
 local setCategoryCollapsed = AutoCat.SetCategoryCollapsed
@@ -353,8 +295,8 @@ function AutoCat.ResetToDefaults()
 	charSaved.bags = SF.safeClearTable(charSaved.bags)
     ZO_DeepTableCopy(AutoCat.defaultSettings.bags, charSaved.bags)
 
-    AutoCat.ResetCollapse(acctSaved)
-    AutoCat.ResetCollapse(charSaved)
+    AutoCat.ResetCollapse(acctSaved.collapses)
+    AutoCat.ResetCollapse(charSaved.collapses)
 
 	acctSaved.appearance = SF.safeClearTable(acctSaved.appearance)
     ZO_DeepTableCopy(AutoCat.defaultAcctSettings.appearance,
@@ -844,8 +786,14 @@ local function loadSavedVars()
 	if isEmpty(AutoCat.acctSaved.bags) then 
 		defaultMissing(AutoCat.acctSaved.bags, AutoCat.defaultAcctBagSettings.bags)
 	end
+	if isEmpty(AutoCat.acctSaved.general) then 
+		defaultMissing(AutoCat.acctSaved.general, AutoCat.defaultAcctBagSettings.general)
+	end
 	if isEmpty(AutoCat.charSaved.bags) then
 		defaultMissing(AutoCat.charSaved.bags, AutoCat.defaultAcctBagSettings.bags)
+	end
+	if isEmpty(AutoCat.charSaved.general) then 
+		defaultMissing(AutoCat.charSaved.general, AutoCat.defaultAcctBagSettings.general)
 	end
 
 	-- There are no char-level variables for AutoCatRules!
@@ -1132,6 +1080,7 @@ function AC_ItemRowHeader_OnShowContextMenu(header)
 	-- add either single Expand or Collapse to menu as appropriate for category state
     local collapsed = AutoCat.IsCategoryCollapsed(bagTypeId, cateName)
     if collapsed then
+		-- currently collapsed so add Expand to the context menu
         AddMenuItem(
             L(SI_CONTEXT_MENU_EXPAND),
             function()
@@ -1141,6 +1090,7 @@ function AC_ItemRowHeader_OnShowContextMenu(header)
         )
 
     else
+		-- currently expanded so add Collapse to the context menu
         AddMenuItem(
             L(SI_CONTEXT_MENU_COLLAPSE),
             function()
@@ -1154,9 +1104,7 @@ function AC_ItemRowHeader_OnShowContextMenu(header)
     AddMenuItem(
         L(SI_CONTEXT_MENU_EXPAND_ALL),
         function()
-            for k, _ in pairs(AutoCat.saved.collapses[bagTypeId]) do
-				setCategoryCollapsed(bagTypeId,k,false)
-            end
+            AutoCat:ExpandAllCategories(bagTypeId)
             AutoCat.RefreshCurrentList()
         end
     )
@@ -1165,12 +1113,8 @@ function AC_ItemRowHeader_OnShowContextMenu(header)
     AddMenuItem(
         L(SI_CONTEXT_MENU_COLLAPSE_ALL),
         function()
-			local collapseTbl = AutoCat.saved.collapses[bagTypeId]
-            for k, v in pairs(collapseTbl) do
-				setCategoryCollapsed(bagTypeId, k, true)
-            end
-			setCategoryCollapsed(bagTypeId, AutoCat.saved.appearance["CATEGORY_OTHER_TEXT"], true)
-            AutoCat.RefreshCurrentList()
+			AutoCat:CollapseAllCategories(bagTypeId)
+			AutoCat.RefreshCurrentList()
         end
     )
     ShowMenu()

@@ -1,0 +1,19 @@
+ITEMHOUND 0.8.1
+by @TheGreyWolf98
+
+Replace the existing ItemHound folder and reload UI. Saved item and wallet
+records are preserved. Existing commands and trigger paging remain available.
+
+Left stick up/down or left/right changes result pages. Hold to repeat; release
+for immediate direction change. Paging pauses while editing search text and
+in the Wallet tab. Input is released when the window closes. Paging renders
+cached results rather than repeating the inventory search on every movement.
+
+Creator credit standardised to @TheGreyWolf98.
+No additional libraries, price database or background scan added.
+TSC price integration is not included: the current provider API must be
+verified before its recommended price can be displayed reliably.
+
+Validation: simulated page movement/repeat, focus protection, page bounds,
+wallet isolation, safe controller device and scene cleanup passed.
+Check the same controls on Xbox after updating.

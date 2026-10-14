@@ -143,6 +143,7 @@ AutoCategory_localization_strings["en"] = {
     SI_AC_MENU_SUBMENU_GENERAL_SETTING = "|c0066FF[General Setting]|r",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE = "Show Message When Toggle",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE_TOOLTIP = "Will show a message in chat when toggling this add-on.",
+    SI_AC_MENU_GS_HEADER_CATEGORY = "Category Display:",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT = "Show Category Items Count",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT_TOOLTIP = "Add a number to show how many items in the category after the category's name",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_COLLAPSE_ICON = "Show Category Collapse Icon",
@@ -151,6 +152,8 @@ AutoCategory_localization_strings["en"] = {
     SI_AC_MENU_GS_CHECKBOX_SAVE_CATEGORY_COLLAPSE_STATUS_TOOLTIP = "Will keep the categories collapsed/expanded as they are after quit/log out.",
 	SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE = "Show 'Set(name)' for autosets",
 	SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE_TOOLTIP = "Show 'Set(name)' instead of 'name' in inventory for autosets",
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY = "Category Collapse Expiry", 
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY_TOOLTIP = "How long to remember collapsed categories after they disappear from your bags.",
 
     -- Gamepad Settings strings
     SI_AC_MENU_SUBMENU_GAMEPAD_SETTING = "|c0066FF[Gamepad Settings]|r |c65000b(Gamepad-only)|r",

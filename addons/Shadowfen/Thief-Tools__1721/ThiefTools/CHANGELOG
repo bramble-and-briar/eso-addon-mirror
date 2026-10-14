@@ -1,3 +1,11 @@
+[COLOR="DeepSkyBlue"]3.5 (58)[/COLOR]:
+[LIST]
+[*] Added tooltips that appear when hovering over the icons/labels on the ThiefTools belt.
+[*] Fixed /tt.as and /tt.fas toggles for turning on/off ThiefTools (TT) autostealing (as) or filtered autostealing (fas) (when ThiefTools Filtered AutoStealing addon is installed). Note: Turning on filtered autostealing automatically turns off TT autostealing and vice versa.
+[*] Revised the ThiefTools belt/bar creation and display.
+[*] Code cleaning, optimizations and miscellaneous fixes.
+[/LIST]
+
 [COLOR="DeepSkyBlue"]3.4.4 (57)[/COLOR]:
 [LIST]
 [*] API bump.

@@ -1011,6 +1011,7 @@ function UnitFramesManager:SaveSize()
 end
 
 function UnitFramesManager:UnlockUI(movable)
+	self.control:SetMouseEnabled(movable)
 	self.control:SetMovable(movable)
 	self.control:SetResizeHandleSize(movable and 5 or 0)
 	self.borderControl:SetEdgeColor(0.75, 0.75, 0.75, movable and 1. or 0.)

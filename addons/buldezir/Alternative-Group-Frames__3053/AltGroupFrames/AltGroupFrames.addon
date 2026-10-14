@@ -7,8 +7,8 @@
 ## APIVersion: 101051
 ## Title: Alternative Group Frames
 ## Author: |c943810BulDeZir|r, Glande-Pas
-## Version: 1.4.38
-## AddOnVersion: 14
+## Version: 1.5.39
+## AddOnVersion: 15
 ## SavedVariables: AltGroupFramesSavedVariables
 ## DependsOn: LibAddonMenu-2.0>=43
 ## OptionalDependsOn: PlayerRoleIndicator>=140 OdySupportIcons

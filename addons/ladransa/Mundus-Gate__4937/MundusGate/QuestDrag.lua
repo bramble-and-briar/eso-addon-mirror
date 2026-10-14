@@ -13,8 +13,8 @@ local QTM = MundusGate
 local QuestDrag = {}
 QTM.QuestDrag = QuestDrag
 
-local ICE  = { 0.36, 0.76, 0.91 }
-local GOLD = { 0.90, 0.85, 0.66 }
+local ICE  = QTM.Style.ICE
+local GOLD = QTM.Style.GOLD
 
 function QuestDrag:Initialize()
     local control = MundusGateQuestDrag
@@ -24,8 +24,12 @@ function QuestDrag:Initialize()
     self.line  = MundusGateQuestDropLine
     self.lineFill = self.line:GetNamedChild("Fill")
     control:GetNamedChild("Bg"):SetColor(0.05, 0.05, 0.06, 0.92)
-    control:GetNamedChild("Stripe"):SetColor(GOLD[1], GOLD[2], GOLD[3], 1)
+    self:ApplyTheme()
     control:SetHandler("OnUpdate", function() self:Update() end)
+end
+
+function QuestDrag:ApplyTheme()
+    if self.control then self.control:GetNamedChild("Stripe"):SetColor(GOLD[1], GOLD[2], GOLD[3], 1) end
 end
 
 function QuestDrag:IsDragging()

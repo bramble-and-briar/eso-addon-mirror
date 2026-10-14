@@ -84,11 +84,12 @@ function PlacePicker:Initialize()
         function(control, data) QTM.Menu:SetupEmpty(control, data, list) end)
 end
 
-function PlacePicker:Open(callback, dock)
+-- query — что сразу вписать в поиск (например, город гильдейского торговца)
+function PlacePicker:Open(callback, dock, query)
     self.callback = callback
     Place(self.window, dock, 620)
     self.window:SetHidden(false)
-    self.search:SetText("")
+    self.search:SetText(query or "")
     self:Refresh()
 end
 
@@ -319,7 +320,7 @@ end
 function IconPicker:OnCellEnter(cell)
     if not cell.entry then return end
     self:PaintCell(cell, true)
-    ZO_Tooltips_ShowTextTooltip(cell, TOP, cell.entry.name .. "\n|c7A7A7A" .. cell.entry.icon .. "|r")
+    QTM.ShowTip("windows", cell, TOP, cell.entry.name .. "\n|c7A7A7A" .. cell.entry.icon .. "|r")
 end
 
 function IconPicker:OnCellExit(cell)

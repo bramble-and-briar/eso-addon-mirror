@@ -10,10 +10,6 @@
     {
       "name": "Season One",
       "version": "12.1.0"
-    },
-    {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
     }
   ],
   "content_id": "esoui:818",
@@ -22,7 +18,7 @@
     "LuiExtended"
   ],
   "download_url": "https://www.esoui.com/downloads/dl818/",
-  "fingerprint": "cce6bc4a93c4e7a99dd2fac84250649c1c6c193df042279586f2531cb6562817",
+  "fingerprint": "584aed15d5dd75f1599574b262e095cebea6155cc18bc78efa12581f77ac95d3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10179.png",
     "https://cdn-eso.mmoui.com/preview/pvw10199.png",
@@ -41,11 +37,11 @@
   "source_id": "818",
   "source_url": "https://www.esoui.com/downloads/info818-LuiExtended.html",
   "stats": {
-    "downloads": 3102563,
+    "downloads": 3105085,
     "favorites": 1127,
-    "monthly_downloads": 23539
+    "monthly_downloads": 26144
   },
   "title": "Lui Extended",
-  "updated_at": 1791837845000,
-  "version": "7.2.7.1"
+  "updated_at": 1791916475000,
+  "version": "7.2.7.3"
 }

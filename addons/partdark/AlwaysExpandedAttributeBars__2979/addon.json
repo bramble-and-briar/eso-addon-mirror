@@ -26,10 +26,12 @@
     "AlwaysExpandedAttributeBars"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2979/",
-  "fingerprint": "13174b05c6b59e3590b26727c2d7b996fbb0d41dc043a77eb664800019046050",
+  "fingerprint": "5c084908e6a216bae1047f9bdf6d6bfe68f99abebd69a03706afed67bfbe6dbd",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw10063.png",
-    "https://cdn-eso.mmoui.com/preview/pvw14075.png"
+    "https://cdn-eso.mmoui.com/preview/pvw17961.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17962.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw17964.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -37,11 +39,11 @@
   "source_id": "2979",
   "source_url": "https://www.esoui.com/downloads/info2979-AlwaysExpandedAttributeBars.html",
   "stats": {
-    "downloads": 19546,
+    "downloads": 19750,
     "favorites": 12,
-    "monthly_downloads": 93
+    "monthly_downloads": 271
   },
   "title": "AlwaysExpandedAttributeBars",
-  "updated_at": 1791125996000,
-  "version": "3.1b-n"
+  "updated_at": 1791895818000,
+  "version": "4.0"
 }

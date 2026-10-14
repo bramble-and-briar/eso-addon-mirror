@@ -334,8 +334,9 @@ function LiveUptime.Calculate(fight, tracker, playerId, targetId, report)
     end
     for id, unit in pairs(units) do
         local dataId = groupAlive and (unit.id or id) or id
-        if groupAlive or (personal and not unit.offline and not LiveUptime.IsPet(unit.kind))
-            or (not personal and selected(tracker.config, id, unit, playerId, targetId)) then
+        if (not groupAlive or tracker.config.groupRole ~= "damage" or (LFG_ROLE_DPS ~= nil and unit.role == LFG_ROLE_DPS))
+            and (groupAlive or (personal and not unit.offline and not LiveUptime.IsPet(unit.kind))
+            or (not personal and selected(tracker.config, id, unit, playerId, targetId))) then
             local starts, ends = math.max(first, unit.starts), math.min(fightEnds, unit.ends)
             if groupAlive then ends = fightEnds end
             if personal then

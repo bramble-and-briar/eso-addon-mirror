@@ -6,6 +6,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 
 | Add-on | Author | Platform | Version |
 | --- | --- | --- | --- |
+| [H8 Ball](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/absolventR3M/H8-Ball__615c0033-710a-411c-83a1-a3a45bf8d4cb) | absolventR3M | Console | — |
 | [Halls of Fabrication Status Panel jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tdenc/Halls-of-Fabrication-Status-Panel-jpFix__2977) | tdenc | PC / Mac | 1.4.3.5 |
 | [Hammerfell Name Change](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mattiellosa/Hammerfell-Name-Change__1801) | mattiellosa | PC / Mac | 1.1.2 |
 | [HARDCORE](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wrynch/HARDCORE__4480) | Wrynch | PC / Mac | 1.5.0 |

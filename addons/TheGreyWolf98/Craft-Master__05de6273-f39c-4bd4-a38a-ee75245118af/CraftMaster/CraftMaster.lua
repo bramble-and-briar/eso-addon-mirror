@@ -1,5 +1,5 @@
 -- Craft Master: no external libraries. All scans use the game's event manager.
-CraftMaster = { name = "CraftMaster", version = "1.0.7" }
+CraftMaster = { name = "CraftMaster", version = "1.0.11" }
 local CM = CraftMaster
 local EM = EVENT_MANAGER
 local GREEN, RED, GREY = "66ee88", "ff7777", "b7bec9"
@@ -137,35 +137,38 @@ function CM:CurrentCharacter()
     c.name = self:Clean(GetUnitName("player"))
     return id, c
 end
-function CM:StartScan()
+function CM:StartScan(announce, motifsOnly)
     if self.scanning then return end
     local id, character = self:CurrentCharacter()
     if not self.sv.main then self.sv.main = id end
     if not self.viewCharacter then self.viewCharacter = self.sv.main end
     self.scanning, self.scanCount, self.scanErrors = true, 0, 0
     self.scanValidPlans, self.scanSkippedPlans = 0, 0
-    self.scanCharacter = id
+    self.scanCharacter, self.scanMotifsOnly = id, motifsOnly == true
+    self.sessionScannedCharacters = self.sessionScannedCharacters or {}
     local list, index, loreJob, book, planIndex = 1, 1, 1, 1, 1
-    local phase, pending = "recipes", {}
+    local phase, pending = motifsOnly and "motifs" or "recipes", {}
     self.pendingKnowledge = pending
-    self.categoryByName = {}
-    for i = 1, GetNumFurnitureCategories() do
-        local categoryId = GetFurnitureCategoryId(i)
-        self.categoryByName[self:Lower(GetFurnitureCategoryInfo(categoryId))] = categoryId
-    end
     local planJobs, planSeen = {}, {}
-    for _, row in ipairs(CraftMasterCatalog or {}) do
-        planJobs[#planJobs + 1] = row
-        planSeen[row[2]] = true
-    end
-    -- Retain plans encountered after this catalogue version was released.
-    for _, e in pairs(self.sv.catalog) do
-        if e.planId and not planSeen[e.planId] then
-            planJobs[#planJobs + 1] = {e.resultId, e.planId, e.quality, "", e.name}
+    if not motifsOnly then
+        self.categoryByName = {}
+        for i = 1, GetNumFurnitureCategories() do
+            local categoryId = GetFurnitureCategoryId(i)
+            self.categoryByName[self:Lower(GetFurnitureCategoryInfo(categoryId))] = categoryId
+        end
+        for _, row in ipairs(CraftMasterCatalog or {}) do
+            planJobs[#planJobs + 1] = row
+            planSeen[row[2]] = true
+        end
+        -- Retain plans encountered after this catalogue version was released.
+        for _, e in pairs(self.sv.catalog) do
+            if e.planId and not planSeen[e.planId] then
+                planJobs[#planJobs + 1] = {e.resultId, e.planId, e.quality, "", e.name}
+            end
         end
     end
     local jobs = self:MotifCollections()
-    local numLists = GetNumRecipeLists()
+    local numLists = not motifsOnly and GetNumRecipeLists() or 0
     local numInList = numLists > 0 and select(2, GetRecipeListInfo(1)) or 0
     EM:RegisterForUpdate(self.name .. "Scan", 50, function()
         if IsUnitInCombat("player") then return end
@@ -199,19 +202,27 @@ function CM:StartScan()
                     EM:UnregisterForUpdate(self.name .. "Scan")
                     -- Keep prior observations on partial/error scans; never invent missing states.
                     for key, value in pairs(pending) do character.knowledge[key] = value end
-                    character.lastScan, character.api = GetTimeStamp(), GetAPIVersion()
-                    character.complete = self.scanErrors == 0 and (#planJobs == 0 or self.scanValidPlans > 0)
-                    character.validPlans, character.skippedPlans, character.scanErrors = self.scanValidPlans, self.scanSkippedPlans, self.scanErrors
+                    if not motifsOnly then
+                        character.lastScan, character.api = GetTimeStamp(), GetAPIVersion()
+                        character.complete = self.scanErrors == 0 and (#planJobs == 0 or self.scanValidPlans > 0)
+                        character.validPlans, character.skippedPlans, character.scanErrors = self.scanValidPlans, self.scanSkippedPlans, self.scanErrors
+                        self.sessionScannedCharacters[id] = true
+                    end
                     self.scanning, self.pendingKnowledge = false, nil
                     -- An alt's known-only recipe list is never a reason to remove
                     -- the main crafter's catalogue or anyone else's saved knowledge.
                     self:RefreshIfVisible()
-                    self:Message("Scan saved for " .. character.name .. " (" .. self.scanCount .. " records"
-                        .. "; " .. self.scanValidPlans .. " plans checked, " .. self.scanSkippedPlans .. " skipped"
-                        .. (self.scanErrors > 0 and "; " .. self.scanErrors .. " errors" or "") .. ").")
+                    if announce then
+                        self:Message("Scan saved for " .. character.name .. " (" .. self.scanCount .. " records"
+                            .. "; " .. self.scanValidPlans .. " plans checked, " .. self.scanSkippedPlans .. " skipped"
+                            .. (self.scanErrors > 0 and "; " .. self.scanErrors .. " errors" or "") .. ").")
+                    end
                     if self.rescanNeeded then
                         self.rescanNeeded = false
-                        zo_callLater(function() self:StartScan() end, 500)
+                        zo_callLater(function()
+                            if self.activated ~= false then self:StartScan(false, true)
+                            else self.motifRefreshNeeded = true end
+                        end, 500)
                     end
                     return
                 elseif book > job.count then loreJob, book = loreJob + 1, 1
@@ -305,7 +316,7 @@ function CM:Slash(text)
             end
             self:Message("Log that character in first, or use /cm main on the crafter.")
         end
-    elseif command == "scan" then self:StartScan()
+    elseif command == "scan" then self:StartScan(true)
     elseif command == "status" then
         local c = self.sv.characters[self.sv.main]
         self:Message("v" .. self.version .. "; Main: " .. (c and c.name or "none") .. "; catalogued: " .. self:CatalogCount()
@@ -345,9 +356,19 @@ function CM:Initialize()
     SLASH_COMMANDS["/craftmaster"] = SLASH_COMMANDS["/cm"]
     ZO_CreateStringId("SI_BINDING_NAME_CRAFT_MASTER_TOGGLE", "Open Craft Master")
     EM:RegisterForEvent(self.name, EVENT_PLAYER_ACTIVATED, function()
-        if not self.activated then self.activated = true; self:StartScan() end
+        self.activated = true
+        local id = tostring(GetCurrentCharacterId())
+        if not (self.sessionScannedCharacters and self.sessionScannedCharacters[id]) then
+            self.motifRefreshNeeded = false
+            self:StartScan()
+        elseif self.motifRefreshNeeded then
+            self.motifRefreshNeeded = false
+            self:StartScan(false, true)
+        end
     end)
     EM:RegisterForEvent(self.name, EVENT_PLAYER_DEACTIVATED, function()
+        if self.scanning and self.scanMotifsOnly or self.rescanNeeded then self.motifRefreshNeeded = true end
+        self.rescanNeeded = false
         EM:UnregisterForUpdate(self.name .. "Scan")
         self.scanning, self.activated, self.pendingKnowledge = false, false, nil
     end)
@@ -358,8 +379,9 @@ function CM:Initialize()
         self:RefreshIfVisible()
     end)
     EM:RegisterForEvent(self.name, EVENT_STYLE_LEARNED, function()
-        -- A scan is rare here and picks up every chapter granted by a whole book.
-        if not self.scanning then self:StartScan() else self.rescanNeeded = true end
+        -- Whole books can grant multiple chapters. Refresh only the motif
+        -- collections; never recheck thousands of furnishing/food plans here.
+        if not self.scanning then self:StartScan(false, true) else self.rescanNeeded = true end
     end)
 end
 EM:RegisterForEvent(CM.name, EVENT_ADD_ON_LOADED, function(_, name)

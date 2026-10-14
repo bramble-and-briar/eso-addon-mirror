@@ -236,6 +236,8 @@ function CM:UpdateDetail()
         end
     end
     local text = e.name .. "  -  " .. self:Status(e.key, self.viewCharacter, true)
+    local planType = self:PlanType(e)
+    if planType then location = planType .. (location ~= "" and "  |  " .. location or "") end
     if location ~= "" then text = text .. "\n" .. location end
     if e.kind ~= "motifs" then
         text = text .. "\nLearned status records the plan; materials and crafting passives still apply."
@@ -264,7 +266,7 @@ function CM:Select()
             self:Refresh()
             for i, e in ipairs(self.results) do if e.key == key then self.selected = i; break end end
             self:Refresh(false)
-        else self:ShowSelectedDetail() end
+        else self:OpenItemActions() end
         return
     end
     local cat = self.categories[self.categorySelected]
@@ -291,8 +293,188 @@ function CM:ShowSelectedDetail()
         PopupTooltip:SetLink(e.resultLink or self:Link(e.resultId))
     end
 end
+function CM:SelectedItemLinks(e)
+    if not e or e.isGroup or e.kind == "motifs" then return end
+    local result = e.resultLink or (e.resultId and self:Link(e.resultId))
+    local plan
+    if e.planId then
+        for _,variant in ipairs({{1,1},{0,0},{5,1}}) do
+            local candidate = self:Link(e.planId,variant[1],variant[2])
+            if GetItemLinkItemType(candidate) == ITEMTYPE_RECIPE then plan = candidate; break end
+        end
+    end
+    return result, plan
+end
+function CM:PlanType(e)
+    local _, plan = self:SelectedItemLinks(e)
+    if not plan then return end
+    local name = self:Clean(GetItemLinkName(plan))
+    return name:match("^([^:]+):")
+end
+function CM:CloseItemActions(leaving)
+    if not self.itemActionsOpen then return end
+    self.itemActionsOpen = false
+    self.itemActions:SetHidden(true)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.itemActionKeys)
+    if not leaving then KEYBIND_STRIP:AddKeybindButtonGroup(self.keybinds) end
+end
+function CM:OpenItemActions()
+    local e = self.results[self.selected]
+    if not e or e.isGroup then return end
+    if e.kind == "motifs" then self:ShowSelectedDetail(); return end
+    if not self.itemActions then
+        local w = WM:CreateControl(nil, self.window, CT_CONTROL)
+        w:SetDimensions(610, 250); w:SetAnchor(CENTER, self.window, CENTER)
+        w:SetMouseEnabled(true); w:SetDrawTier(DT_HIGH); w:SetDrawLevel(100)
+        backdrop(w, 0, 0, 610, 250, .025, .035, .055, 1)
+        self.itemActions = w
+        self.itemActionTitle = label(w, "", 24, 14, 562, 64)
+        self.itemActionTitle:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+        button(w, "Preview furnishing", 24, 88, 562, function() self:PreviewSelectedItem() end)
+        button(w, "Link", 24, 138, 562, function() self:DraftItemLink() end)
+        button(w, "Back", 24, 188, 562, function() self:CloseItemActions() end)
+        self.itemActionKeys = {
+            alignment = KEYBIND_STRIP_ALIGN_CENTER,
+            {name="Preview",keybind="UI_SHORTCUT_PRIMARY",callback=function() self:PreviewSelectedItem() end},
+            {name="Link",keybind="UI_SHORTCUT_SECONDARY",callback=function() self:DraftItemLink() end},
+            {name="Back",keybind="UI_SHORTCUT_NEGATIVE",callback=function() self:CloseItemActions() end},
+        }
+    end
+    self.itemActionTitle:SetText(e.name .. (self:PlanType(e) and "  |  " .. self:PlanType(e) or ""))
+    self.itemActionsOpen = true; self.itemActions:SetHidden(false)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybinds)
+    KEYBIND_STRIP:AddKeybindButtonGroup(self.itemActionKeys)
+end
+function CM:DraftItemLink()
+    local e = self.results[self.selected]
+    local _, link = self:SelectedItemLinks(e)
+    if not link then self:Message("No verified plan link for this entry."); return end
+    local chat = ZO_GetChatSystem and ZO_GetChatSystem()
+    if not chat or type(chat.StartTextEntry) ~= "function" or (IsChatSystemAvailableForCurrentPlatform and not IsChatSystemAvailableForCurrentPlatform()) then
+        self:Message("Chat is unavailable here."); return
+    end
+    local entry = chat.textEntry
+    if entry and entry.GetText and entry:GetText() ~= "" then
+        self:Message("Send or clear your existing chat draft first."); return
+    end
+    local name = self:Clean(GetItemLinkName(link))
+    if name == "" then name = e.name end
+    local data = link:match("|H%d+:item:([^|]+)|h")
+    if not data or not ZO_LinkHandler_CreateLink then self:Message("Cannot format this plan's chat link."); return end
+    local fields = {}; for field in data:gmatch("[^:]+") do fields[#fields + 1] = field end
+    link = ZO_LinkHandler_CreateLink(name, nil, ITEM_LINK_TYPE or "item", (unpack or table.unpack)(fields))
+    self:CloseItemActions(true)
+    SCENE_MANAGER:ShowBaseScene()
+    zo_callLater(function()
+        -- StartChatInput uses the gamepad default path, which calls private
+        -- SetSetting even when the HUD is already enabled. The fourth argument
+        -- skips that path; native text-entry Open still focuses the edit box.
+        if chat.textEntry and chat.textEntry.GetText and chat.textEntry:GetText() ~= "" then
+            self:Message("Your existing chat draft was kept."); return
+        end
+        -- Native item linking inserts markup into the focused edit control;
+        -- SetText passes the encoded link straight to the console keyboard.
+        chat:StartTextEntry("", nil, nil, true)
+        if chat.textEntry and chat.textEntry.InsertText then chat.textEntry:InsertText(link)
+        else self:Message("Chat link insertion is unavailable here.") end
+    end, 250)
+end
+function CM:StopItemPreview()
+    EVENT_MANAGER:UnregisterForUpdate(self.name .. "PreviewReady")
+    EVENT_MANAGER:UnregisterForUpdate(self.name .. "PreviewCheck")
+    self.previewSceneShown = false
+    if self.previewModeOwned then
+        if EndItemPreviewSpin then EndItemPreviewSpin() end
+        EndCurrentItemPreview(); DisablePreviewMode()
+        self.previewModeOwned = false
+    end
+    self.previewLink = nil; self.previewSpinning = false
+end
+function CM:ApplyItemPreview()
+    if not self.previewModeOwned or not self.previewSceneShown or not GetPreviewModeEnabled() then return end
+    EVENT_MANAGER:UnregisterForUpdate(self.name .. "PreviewReady")
+    SetPreviewDynamicFramingOpening(GuiRoot:GetWidth(), GuiRoot:GetHeight() - 180, -.4)
+    SetPreviewInEmptyWorld(math.rad(135), math.rad(45))
+    local ok = pcall(function()
+        PreviewItemLink(self.previewLink, 1)
+        -- PreviewItemLink queues a collection element. ESO's native preview
+        -- system commits it separately; without this the scene stays empty.
+        ApplyChangesToPreviewCollectionShown()
+    end)
+    if not ok then
+        self:Message("ESO could not preview this furnishing here.")
+        SCENE_MANAGER:PopScenes(1)
+    elseif IsCurrentlyPreviewing then
+        EVENT_MANAGER:RegisterForUpdate(self.name .. "PreviewCheck",1500,function()
+            EVENT_MANAGER:UnregisterForUpdate(self.name .. "PreviewCheck")
+            if self.previewModeOwned and not IsCurrentlyPreviewing() then
+                self:Message("ESO did not start this furnishing preview; returned to catalogue.")
+                SCENE_MANAGER:PopScenes(1)
+            end
+        end)
+    end
+end
+function CM:PreviewSelectedItem()
+    local e = self.results[self.selected]
+    local link = self:SelectedItemLinks(e)
+    if not e or e.kind ~= "housing" or not link or type(CanItemLinkBePreviewed) ~= "function" or not CanItemLinkBePreviewed(link) then
+        self:Message("ESO does not offer a furnishing preview for this entry."); return
+    end
+    if IsUnitInCombat("player") or GetPreviewModeEnabled() then
+        self:Message("Close the current preview or leave combat before previewing."); return
+    end
+    if not self.previewScene then
+        local w = WM:CreateTopLevelWindow("CraftMasterPreview")
+        w:SetDimensions(GuiRoot:GetWidth(), GuiRoot:GetHeight()); w:SetAnchor(CENTER, GuiRoot, CENTER); w:SetHidden(true)
+        self.previewTitle = label(w, "", 40, 30, GuiRoot:GetWidth() - 80, 60, TITLE_FONT)
+        local scene = ZO_Scene:New("craftMasterPreview", SCENE_MANAGER)
+        self.previewScene = scene
+        scene:AddFragment(ZO_SimpleSceneFragment:New(w))
+        -- The native preview camera only renders the collection while the
+        -- player-framing camera is active. Release it when the scene hides.
+        if FRAME_TARGET_CENTERED_FRAGMENT then scene:AddFragment(FRAME_TARGET_CENTERED_FRAGMENT) end
+        if FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT then scene:AddFragment(FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT) end
+        if GAMEPAD_UI_MODE_FRAGMENT then scene:AddFragment(GAMEPAD_UI_MODE_FRAGMENT) end
+        if KEYBIND_STRIP_GAMEPAD_FRAGMENT then scene:AddFragment(KEYBIND_STRIP_GAMEPAD_FRAGMENT) end
+        if KEYBIND_STRIP_GAMEPAD_BACKDROP_FRAGMENT then scene:AddFragment(KEYBIND_STRIP_GAMEPAD_BACKDROP_FRAGMENT) end
+        if UI_SHORTCUTS_ACTION_LAYER_FRAGMENT then scene:AddFragment(UI_SHORTCUTS_ACTION_LAYER_FRAGMENT) end
+        self.previewKeys = {
+            alignment=KEYBIND_STRIP_ALIGN_CENTER,
+            {name="Rotate / stop",keybind="UI_SHORTCUT_LEFT_SHOULDER",callback=function()
+                if not self.previewModeOwned or not GetPreviewModeEnabled() then return end
+                self.previewSpinning = not self.previewSpinning
+                if self.previewSpinning then BeginItemPreviewSpin() else EndItemPreviewSpin() end
+            end},
+            {name="Back to catalogue",keybind="UI_SHORTCUT_NEGATIVE",callback=function() SCENE_MANAGER:PopScenes(1) end},
+        }
+        scene:RegisterCallback("StateChange",function(_,state)
+            if state == SCENE_SHOWING then
+                KEYBIND_STRIP:AddKeybindButtonGroup(self.previewKeys)
+                self.previewSceneShown = false
+                self.previewModeOwned = true; EnablePreviewMode(false)
+                local started = GetFrameTimeMilliseconds()
+                EVENT_MANAGER:RegisterForUpdate(self.name .. "PreviewReady",100,function()
+                    if self.previewSceneShown and GetPreviewModeEnabled() then self:ApplyItemPreview()
+                    elseif GetFrameTimeMilliseconds() - started > 5000 then
+                        self:Message("Preview could not start here. Try again outside combat or an interaction.")
+                        SCENE_MANAGER:PopScenes(1)
+                    end
+                end)
+            elseif state == SCENE_SHOWN then
+                self.previewSceneShown = true
+            elseif state == SCENE_HIDING then
+                self:StopItemPreview()
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.previewKeys)
+            end
+        end)
+    end
+    self:CloseItemActions()
+    self.previewLink = link; self.previewTitle:SetText(e.name)
+    self.returningFromPreview = true
+    SCENE_MANAGER:Push("craftMasterPreview")
+end
 function CM:UpdateDirectionalInput()
-    if self.search:HasFocus() then return end
+    if self.itemActionsOpen or self.search:HasFocus() then return end
     local now = GetFrameTimeMilliseconds()
     local x, y = DIRECTIONAL_INPUT:GetXY(ZO_DI_LEFT_STICK_NO_KEYBOARD)
     DIRECTIONAL_INPUT:Consume(ZO_DI_LEFT_STICK)
@@ -428,11 +610,13 @@ function CM:CreateWindow()
     if UI_SHORTCUTS_ACTION_LAYER_FRAGMENT then scene:AddFragment(UI_SHORTCUTS_ACTION_LAYER_FRAGMENT) end
     scene:RegisterCallback("StateChange", function(_, state)
         if state == SCENE_SHOWING then
-            self.viewCharacter = self.sv.main or self.viewCharacter
+            if not self.returningFromPreview then self.viewCharacter = self.sv.main or self.viewCharacter end
+            self.returningFromPreview = false
             self:Refresh()
             KEYBIND_STRIP:AddKeybindButtonGroup(self.keybinds)
             DIRECTIONAL_INPUT:Activate(self, panel)
         elseif state == SCENE_HIDING then
+            self:CloseItemActions(true)
             search:LoseFocus()
             DIRECTIONAL_INPUT:Deactivate(self)
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybinds)

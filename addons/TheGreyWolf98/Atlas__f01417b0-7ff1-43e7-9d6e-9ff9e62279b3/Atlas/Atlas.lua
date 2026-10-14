@@ -1,7 +1,7 @@
 local A = Atlas
-A.version = "1.0.3"
+A.version = "1.0.2"
 ZO_CreateStringId("SI_BINDING_NAME_ATLAS_OPEN","Open Atlas")
-A.defaults = {skyshards=true, lorebooks=true, treasure=true, bosses=true, delves=true, worldBosses=true, publicDungeons=true, events=true, wayshrines=true, strikingLocales=true, mundus=true, craftingStations=true, surveys=true, hideCollected=true, carriedOnly=false, neonColours=true, largerPins=false}
+A.defaults = {skyshards=true, lorebooks=true, treasure=true, bosses=true, delves=true, worldBosses=true, publicDungeons=true, events=true, wayshrines=true, strikingLocales=true, mundus=true, craftingStations=true, surveys=true, hideCollected=true, carriedOnly=false}
 A.layerCount=13
 A.options = {
     {key="skyshards", title="Skyshards", detail="Native skyshard locations supplied by ESO on the viewed map.", color={0.50,0.85,1}, texture="EsoUI/Art/MapPins/skyshard_seen.dds"},
@@ -19,34 +19,7 @@ A.options = {
     {key="surveys", title="Crafting surveys", detail="Survey report locations; enable the backpack filter to show only carried reports.", color={1,1,1}, texture="Atlas/Textures/Survey.dds"},
     {key="hideCollected", title="Hide collected", detail="Hide acquired skyshards and known lorebooks on this character."},
     {key="carriedOnly", title="Carried maps / surveys only", detail="Only show digs and surveys whose map/report is in your backpack."},
-    {key="neonColours", title="Neon colours", detail="Bright coloured rings around Atlas symbols; turn off for the original palette."},
-    {key="largerPins", title="Larger pins", detail="Increase Atlas symbols from 28 to 42 and enlarge their neon rings."},
 }
-
--- The ring is monochrome so tint colours stay bright even when an icon's own
--- texture is gold, red or blue. Original symbols remain readable inside it.
-A.neonPalette = {
-    skyshards={0,1,1}, lorebooks={1,0.15,1}, treasure={1,1,0},
-    bosses={1,0.15,0.15}, delves={0.15,0.65,1}, worldBosses={1,0.35,0},
-    publicDungeons={0.65,0.3,1}, events={1,0.65,0}, wayshrines={0.2,1,0.6},
-    strikingLocales={1,1,1}, mundus={1,0.25,0.65}, craftingStations={0.45,1,0},
-    surveys={0,1,0.2},
-}
-
-function A.OptionColour(option)
-    return A.saved and A.saved.neonColours and A.neonPalette[option.key] or option.color
-end
-
-function A.UpdatePinStyles()
-    if not A.layouts then return end
-    for i=1,A.layerCount do
-        local o=A.options[i]
-        local layout=A.layouts[o.key]
-        layout.size=A.saved.largerPins and 42 or 28
-        layout.tint:SetRGB(unpack(A.saved.neonColours and {1,1,1} or o.color))
-        A.ringLayouts[o.key].size=A.saved.largerPins and 64 or 46
-    end
-end
 
 function A.MapKey()
     local path = GetMapTileTexture(1) or ""
@@ -61,17 +34,28 @@ local function valid(x,y)
     return type(x)=="number" and type(y)=="number" and x==x and y==y and x>=0 and x<=1 and y>=0 and y<=1
 end
 
+local function checkpoint()
+    if A.inWorker then coroutine.yield() end
+end
 function A.CarriedMaps()
+    if A.carriedCache then return A.carriedCache end
+    if A.inWorker then
+        while A.carriedBuilding and not A.carriedCache do checkpoint() end
+        if A.carriedCache then return A.carriedCache end
+    end
+    A.carriedBuilding=true
     local items = {}
     for slot=0,GetBagSize(BAG_BACKPACK)-1 do
+        checkpoint()
         local id = GetItemId(BAG_BACKPACK,slot)
         if id and id>0 then items[id]=true end
     end
+    A.carriedCache=items;A.carriedBuilding=false
     return items
 end
 
 -- No map-changing calls: coordinates always refer to the currently viewed map.
-function A.Locations(key)
+function A.BuildLocations(key)
     local result = {}
     local function add(x,y,title,description,known,texture)
         if valid(x,y) then
@@ -81,6 +65,7 @@ function A.Locations(key)
     if key=="skyshards" then
         if not GetNumSkyshards or not GetNormalizedPositionForSkyshardId then return result end
         for index=1,GetNumSkyshards() do
+            checkpoint()
             local id=GetSkyshardId(index)
             local x,y,onMap=GetNormalizedPositionForSkyshardId(id)
             if onMap then
@@ -92,6 +77,7 @@ function A.Locations(key)
         end
     elseif key=="lorebooks" then
         for _,p in ipairs((A.booksByMapId and GetCurrentMapId and A.booksByMapId[GetCurrentMapId()]) or A.books[A.MapKey()] or {}) do
+            checkpoint()
             local name,bookIcon,known=GetLoreBookInfo(1,p[3],p[4])
             if not (A.saved.hideCollected and known) then
                 add(p[1],p[2],clean(name) or "Lorebook",known and "Atlas | Known Shalidor book" or "Atlas | Shalidor book; recorded location",known,bookIcon)
@@ -100,6 +86,7 @@ function A.Locations(key)
     elseif key=="treasure" or key=="surveys" then
         local carried=A.saved.carriedOnly and A.CarriedMaps() or nil
         for _,p in ipairs((key=="surveys" and ((A.surveysByMapId and GetCurrentMapId and A.surveysByMapId[GetCurrentMapId()]) or A.surveys[A.MapKey()] or {}) or ((A.treasureByMapId and GetCurrentMapId and A.treasureByMapId[GetCurrentMapId()]) or A.treasure[A.MapKey()])) or {}) do
+            checkpoint()
             if not carried or carried[p[3]] then
                 local link=("|H1:item:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"):format(p[3])
                 local mapIcon=key=="surveys" and "Atlas/Textures/Survey.dds" or "Atlas/Textures/Treasure.dds"
@@ -108,6 +95,7 @@ function A.Locations(key)
         end
     elseif key=="bosses" then
         for _,p in ipairs(A.bosses[A.MapKey()] or {}) do
+            checkpoint()
             local name=p.name
             if not name then name=p[4] and GetAchievementCriterion(p[3],p[4]) or GetAchievementInfo(p[3]) end
             add(p[1],p[2],clean(name) or "Dungeon boss","Atlas | "..(p.kind or "Public-dungeon boss"))
@@ -119,6 +107,7 @@ function A.Locations(key)
             local zoneIndex=GetCurrentMapZoneIndex()
             if zoneIndex and zoneIndex>0 then
                 for poi=1,GetNumPOIs(zoneIndex) do
+                    checkpoint()
                     local completionType=GetPOIZoneCompletionType(zoneIndex,poi)
                     local matches=false
                     for _,t in ipairs(option.completionTypes) do if completionType==t then matches=true; break end end
@@ -134,6 +123,84 @@ function A.Locations(key)
         end
     end
     return result
+end
+
+-- A single shared worker limits candidate checks AND native pin creation.
+-- Keep only the viewed map's cache; no growing per-zone saved data.
+function A.MapSignature()
+    return tostring(GetCurrentMapId and GetCurrentMapId() or "")..":"..(GetMapTileTexture(1) or "")
+end
+function A.CheckMap()
+    local signature=A.MapSignature()
+    if A.workMap~=signature then
+        A.workMap=signature;A.cache={};A.jobs={};A.refreshLayers={};A.carriedCache=nil;A.carriedBuilding=false
+    end
+    return signature
+end
+function A.ScheduleLayer(key,manager)
+    local signature=A.CheckMap()
+    if not manager and A.jobs[key] then return end
+    A.jobs[key]={run=coroutine.create(function()
+        local points=A.cache[key]
+        if not points then points=A.BuildLocations(key);A.cache[key]=points end
+        if manager then
+            for _,point in ipairs(points) do
+                checkpoint()
+                if A.saved[key] and A.workMap==signature then
+                    manager:CreatePin(A.pinTypes[key],point,point.x,point.y)
+                end
+            end
+        end
+    end)}
+    A.StartWorker()
+end
+function A.Locations(key)
+    A.CheckMap()
+    if not A.cache[key] then A.ScheduleLayer(key) end
+    return A.cache[key] or {}
+end
+function A.StartWorker()
+    if A.workerActive then return end
+    A.workerActive=true
+    EVENT_MANAGER:RegisterForUpdate("AtlasWork",50,function()
+        A.CheckMap()
+        if IsUnitInCombat and IsUnitInCombat("player") then return end
+        local started=GetGameTimeMilliseconds()
+        local layer=next(A.refreshLayers)
+        if layer then
+            A.refreshLayers[layer]=nil
+            A.manager:RefreshCustomPins(A.pinTypes[layer])
+            -- Even native layer removal gets its own tick.
+            return
+        end
+        local steps=0
+        while steps<12 and GetGameTimeMilliseconds()-started<2 do
+            -- Round-robin avoids a large skyshard list starving other layers.
+            local selected
+            for offset=1,A.layerCount do
+                local index=((A.workerCursor or 0)+offset-1)%A.layerCount+1
+                local key=A.options[index].key
+                if A.jobs[key] then selected=key;A.workerCursor=index;break end
+            end
+            if not selected then break end
+            local job=A.jobs[selected]
+            A.inWorker=true
+            local ok=coroutine.resume(job.run)
+            A.inWorker=false;steps=steps+1
+            if not ok or coroutine.status(job.run)=="dead" then
+                A.jobs[selected]=nil
+                if not ok then
+                    A.lastWorkError=selected
+                    if selected=="treasure" or selected=="surveys" then A.carriedBuilding=false end
+                end
+                A.paintPending=true
+            end
+        end
+        if A.paintPending and A.Paint then A.paintPending=false;A.Paint() end
+        if not next(A.jobs) and not next(A.refreshLayers) then
+            EVENT_MANAGER:UnregisterForUpdate("AtlasWork");A.workerActive=false
+        end
+    end)
 end
 
 local function tooltip(pin)
@@ -152,58 +219,53 @@ end
 function A.RegisterPins()
     A.manager=ZO_WorldMap_GetPinManager()
     A.pinTypes={}
-    A.ringTypes={}
-    A.layouts={}
-    A.ringLayouts={}
     for i=1,A.layerCount do
         local o=A.options[i]
         local key=o.key
         local typeName="ATLAS_PIN_"..key:upper()
-        local ringName="ATLAS_RING_"..key:upper()
-        local ringLayout={level=54,size=46,texture="Atlas/Textures/NeonRing.dds",tint=ZO_ColorDef:New(unpack(A.neonPalette[key]))}
-        A.ringLayouts[key]=ringLayout
-        -- Decorative rings intentionally have no tooltip creator.
-        A.manager:AddCustomPin(ringName,function(manager)
-            if not A.saved[key] or not A.saved.neonColours then return end
-            for _,p in ipairs(A.Locations(key)) do manager:CreatePin(A.ringTypes[key],p,p.x,p.y) end
-        end,nil,ringLayout)
-        A.ringTypes[key]=_G[ringName]
-        A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours)
-        local layout={level=55,size=28,texture=function(pin)
-            local _,p=pin:GetPinTypeAndTag()
-            return p.texture and p.texture~="" and p.texture or o.texture
-        end,tint=ZO_ColorDef:New(unpack(o.color))}
-        A.layouts[key]=layout
         A.manager:AddCustomPin(typeName,function(manager)
             if not A.saved[key] then return end
-            for _,p in ipairs(A.Locations(key)) do manager:CreatePin(A.pinTypes[key],p,p.x,p.y) end
-        end,nil,layout,
+            A.ScheduleLayer(key,manager)
+        end,nil,{level=55,size=28,texture=function(pin)
+            local _,p=pin:GetPinTypeAndTag()
+            return p.texture and p.texture~="" and p.texture or o.texture
+        end,tint=ZO_ColorDef:New(unpack(o.color))},
         -- Both ESO tooltip sorters compare category IDs with native numeric IDs.
         {tooltip=ZO_MAP_TOOLTIP_MODE.INFORMATION,creator=tooltip,categoryId=ZO_MapPin.PIN_ORDERS.DESTINATIONS,entryName=function(pin) local _,p=pin:GetPinTypeAndTag(); return p.title end})
         A.pinTypes[key]=_G[typeName]
         A.manager:SetCustomPinEnabled(A.pinTypes[key],A.saved[key])
     end
-    A.UpdatePinStyles()
 end
 
-function A.Refresh()
+function A.Refresh(keys)
     if not A.manager then return end
-    A.UpdatePinStyles()
+    A.CheckMap()
+    local affected={}
+    if type(keys)=="table" then for _,key in ipairs(keys) do affected[key]=true end
+    else for i=1,A.layerCount do affected[A.options[i].key]=true end end
     for i=1,A.layerCount do
         local key=A.options[i].key
-        A.manager:SetCustomPinEnabled(A.pinTypes[key],A.saved[key])
-        A.manager:RefreshCustomPins(A.pinTypes[key])
-        A.manager:SetCustomPinEnabled(A.ringTypes[key],A.saved[key] and A.saved.neonColours)
-        A.manager:RefreshCustomPins(A.ringTypes[key])
+        if affected[key] then
+            A.cache[key]=nil;A.jobs[key]=nil;A.refreshLayers[key]=true
+            A.manager:SetCustomPinEnabled(A.pinTypes[key],A.saved[key])
+        end
     end
+    if affected.treasure or affected.surveys then A.carriedCache=nil;A.carriedBuilding=false end
+    A.StartWorker()
     if A.Paint then A.Paint() end
 end
-
-function A.QueueRefresh()
-    EVENT_MANAGER:UnregisterForUpdate("AtlasRefresh")
-    EVENT_MANAGER:RegisterForUpdate("AtlasRefresh",150,function()
+function A.QueueRefresh(keys)
+    A.queuedLayers=A.queuedLayers or {}
+    if type(keys)=="table" then for _,key in ipairs(keys) do A.queuedLayers[key]=true end
+    else for i=1,A.layerCount do A.queuedLayers[A.options[i].key]=true end end
+    -- Coalesce bursts without postponing refresh indefinitely.
+    if A.refreshQueued then return end
+    A.refreshQueued=true
+    EVENT_MANAGER:RegisterForUpdate("AtlasRefresh",300,function()
         EVENT_MANAGER:UnregisterForUpdate("AtlasRefresh")
-        A.Refresh()
+        A.refreshQueued=false
+        local list={};for key in pairs(A.queuedLayers) do list[#list+1]=key end
+        A.queuedLayers={};A.Refresh(list)
     end)
 end
 
@@ -211,7 +273,9 @@ function A.Toggle(index)
     A.selected=index or A.selected or 1
     local key=A.options[A.selected].key
     A.saved[key]=not A.saved[key]
-    A.Refresh()
+    if A.selected<=A.layerCount then A.Refresh({key})
+    elseif key=="carriedOnly" then A.Refresh({"treasure","surveys"})
+    else A.Refresh({"skyshards","lorebooks"}) end
 end
 
 function A.NextOption()
@@ -240,15 +304,13 @@ local function loaded(_,name)
             A.Refresh()
         else A.Open() end
     end
-    -- Refresh custom POI textures/tooltips after discovery and completion,
-    -- using the same 150ms debounce as collection events so API state can settle.
-    for _,event in ipairs({EVENT_PLAYER_ACTIVATED,EVENT_SKYSHARDS_UPDATED,EVENT_LORE_BOOK_LEARNED,
-        EVENT_POI_DISCOVERED,EVENT_POI_UPDATED,EVENT_POIS_INITIALIZED,
-        EVENT_OBJECTIVE_COMPLETED,EVENT_FAST_TRAVEL_NETWORK_UPDATED}) do
-        EVENT_MANAGER:RegisterForEvent("Atlas",event,A.QueueRefresh)
-    end
+    EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_PLAYER_ACTIVATED,function() A.QueueRefresh() end)
+    EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_SKYSHARDS_UPDATED,function() A.QueueRefresh({"skyshards"}) end)
+    EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_LORE_BOOK_LEARNED,function() A.QueueRefresh({"lorebooks"}) end)
+    local discoveryKeys={"delves","worldBosses","publicDungeons","events","wayshrines","strikingLocales","mundus","craftingStations"}
+    if EVENT_POI_UPDATED then EVENT_MANAGER:RegisterForEvent("AtlasDiscovery",EVENT_POI_UPDATED,function() A.QueueRefresh(discoveryKeys) end) end
     EVENT_MANAGER:RegisterForEvent("Atlas",EVENT_INVENTORY_SINGLE_SLOT_UPDATE,function(_,bag)
-        if A.saved.carriedOnly and bag==BAG_BACKPACK then A.QueueRefresh() end
+        if A.saved.carriedOnly and bag==BAG_BACKPACK then A.QueueRefresh({"treasure","surveys"}) end
     end)
     A.Refresh()
 end

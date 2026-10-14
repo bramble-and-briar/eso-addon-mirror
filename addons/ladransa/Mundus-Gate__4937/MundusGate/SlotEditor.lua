@@ -109,7 +109,7 @@ function SlotEditor:Initialize(window, adapter)
     swatch:SetHandler("OnMouseEnter", function(c)
         c.isHover = true
         self:PaintSwatch()
-        ZO_Tooltips_ShowTextTooltip(c, TOP, L.SLOT_COLOR_TT)
+        QTM.ShowTip("windows", c, TOP, L.SLOT_COLOR_TT)
     end)
     swatch:SetHandler("OnMouseExit", function(c)
         c.isHover = false

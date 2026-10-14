@@ -17,6 +17,7 @@ local eventManager = GetEventManager()
 
 -- -----------------------------------------------------------------------------
 -- Platform / saved vars
+-- pChat.db fields stay live reads. Addon enablement is cached in LUIE.IsItEnabled.
 -- -----------------------------------------------------------------------------
 
 local function IsPChatAvailable()
@@ -739,7 +740,7 @@ function LUIE_ChatOutput:WouldDeliverToPrimaryTab(chatOutputSettings, tabIndex)
     if not primaryContainer or not primaryContainer.windows or tabIndex < 1 or tabIndex > #primaryContainer.windows then
         return false
     end
-    if LUIE.OtherAddonCompatability.isCombatMetricsEnabled then
+    if LUIE.IsItEnabled("CombatMetrics") then
         local CMX = CMX
         local db = CMX.db
         if not db then return false end

@@ -123,6 +123,7 @@ AutoCategory_localization_strings["fr"] = {
     SI_AC_MENU_SUBMENU_GENERAL_SETTING = "|c0066FF[Paramètres généraux]|r",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE = "Afficher le message d'activation",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE_TOOLTIP = "Affiche un message dans le Tchat lors de l'activation de cet addon.",
+    SI_AC_MENU_GS_HEADER_CATEGORY = "Affichage des catégories :",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT = "Afficher le nombre d'objets",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT_TOOLTIP = "Ajoute un nombre après le nom de la catégorie pour montrer combien il y a d'objets dedans.",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_COLLAPSE_ICON = "Afficher l'icône de réduction",
@@ -131,6 +132,8 @@ AutoCategory_localization_strings["fr"] = {
     SI_AC_MENU_GS_CHECKBOX_SAVE_CATEGORY_COLLAPSE_STATUS_TOOLTIP = "Cela gardera les catégories réduites ou développées telles qu'elles sont après avoir quitté ou déconnecté.",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE = "Afficher au format 'Ensemble (nom)'",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE_TOOLTIP = "Affiche au format 'Ensemble (nom)' au lieu de 'nom' dans le sac pour les ensembles automatiques.",
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY = "Durée de mémorisation des catégories réduites", 
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY_TOOLTIP = "Durée pendant laquelle les catégories réduites restent mémorisées après avoir disparu de vos sacs.",
 
     SI_AC_MENU_SUBMENU_IMPORT_EXPORT = "|c0066FF[Importer et Exporter]|r",
     SI_AC_MENU_HEADER_ACCOUNT_WIDE_SETTING = "Paramètres communs au compte",
@@ -141,6 +144,7 @@ AutoCategory_localization_strings["fr"] = {
     SI_AC_MENU_GMS_CHECKBOX_ENABLE_GAMEPAD_TOOLTIP = "Les catégories et les règles seront appliquées aux sacs de la manette.",
     SI_AC_MENU_GMS_CHECKBOX_EXTENDED_GAMEPAD_SUPPLIES = "Activer la catégorie Équipements étendue",
     SI_AC_MENU_GMS_CHECKBOX_EXTENDED_GAMEPAD_SUPPLIES_TOOLTIP = "La catégorie Équipements contiendra tous les objets du sac. Les catégories par défaut de matériaux, de mobilier et d'objets insérables seront masquées.",
+
 
     SI_AC_DEFAULT_TAG_GEARS= "Équipements",
     SI_AC_DEFAULT_TAG_GENERAL_ITEMS= "Objets généraux",

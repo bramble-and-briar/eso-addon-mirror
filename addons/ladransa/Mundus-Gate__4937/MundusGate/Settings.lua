@@ -69,272 +69,109 @@ function Settings:InitializeSettingsPanel()
         languageCodes[#languageCodes + 1] = info.code
     end
 
-    local function RouteOption(source, name, tooltip)
-        local key = "route" .. source
-        return {
+    local Style = QTM.Style
+
+    local function Checkbox(key, name, tooltip, onChange, extra)
+        local option = {
             type    = "checkbox",
             name    = name,
             tooltip = tooltip,
-            width   = "half",
             getFunc = function() return sv[key] end,
             setFunc = function(value)
                 sv[key] = value
-                if QTM.RefreshTravelState then QTM.RefreshTravelState() end
+                if onChange then onChange(value) end
             end,
             default = defaults[key],
         }
+        for field, value in pairs(extra or {}) do option[field] = value end
+        return option
     end
+
+    local function RouteOption(source, name, tooltip)
+        return Checkbox("route" .. source, name, tooltip, function()
+            if QTM.RefreshTravelState then QTM.RefreshTravelState() end
+        end, { width = "half" })
+    end
+
+    -- Оформление: цвет и непрозрачность в процентах. Любая правка — «своя» тема.
+    local function ColorOption(key, name, tooltip)
+        local default = Style.THEME_DEFAULTS[key]
+        return {
+            type    = "colorpicker",
+            name    = name,
+            tooltip = tooltip,
+            width   = "half",
+            getFunc = function() return Style.GetThemeColor(key) end,
+            setFunc = function(r, g, b)
+                sv.themePreset = "custom"
+                Style.SetThemeColor(key, r, g, b)
+            end,
+            default = { r = default.r, g = default.g, b = default.b },
+        }
+    end
+
+    local function AlphaOption(key, name, tooltip, extra)
+        local option = {
+            type    = "slider",
+            name    = name,
+            tooltip = tooltip,
+            min     = 0,
+            max     = 100,
+            step    = 5,
+            getFunc = function() return zo_round((Style.GetThemeValue(key) or 1) * 100) end,
+            setFunc = function(value)
+                sv.themePreset = "custom"
+                Style.SetThemeValue(key, value / 100)
+            end,
+            default = zo_round(Style.THEME_DEFAULTS[key] * 100),
+        }
+        for field, value in pairs(extra or {}) do option[field] = value end
+        return option
+    end
+
+    local presetNames, presetKeys = {}, {}
+    for _, preset in ipairs(Style.THEME_PRESETS) do
+        presetNames[#presetNames + 1] = L["THEME_" .. string.upper(preset.key)]
+        presetKeys[#presetKeys + 1] = preset.key
+    end
+    presetNames[#presetNames + 1] = L.THEME_CUSTOM
+    presetKeys[#presetKeys + 1] = "custom"
+
+    local function RefreshPresence()
+        QTM.Presence:MarkDirty()
+        QTM.Presence.lastBuild = nil
+    end
+
+    local function TrackerDisabled() return not sv.questTracker end
+
+    -- Подсказки при наведении: отдельно для каждой части аддона
+    local function TipOption(category)
+        local key = string.upper(category)
+        return {
+            type    = "checkbox",
+            name    = L["OPT_TIPS_" .. key],
+            tooltip = L["OPT_TIPS_" .. key .. "_TT"],
+            width   = "half",
+            getFunc = function() return QTM.TipsEnabled(category) end,
+            setFunc = function(value)
+                if category == "buttons" then
+                    sv.buttonsTooltips = value
+                else
+                    sv.tooltips[category] = value
+                end
+                if not value then ZO_Tooltips_HideTextTooltip() end
+            end,
+            default = true,
+        }
+    end
+
+    local function RebuildPreview() QTM.Preview:Rebuild() end
 
     local options = {
         { type = "description", text = L.SETTINGS_DESC },
 
-        -- Мои места
-        { type = "header", name = L.HEADER_PLACES },
-        { type = "description", text = L.PLACES_DESC },
-        { type = "button", name = L.OPT_OPEN_EDITOR, width = "half", func = function() self:Show() end },
-        {
-            type    = "checkbox",
-            name    = L.OPT_MAP_ENTRY,
-            tooltip = L.OPT_MAP_ENTRY_TT,
-            getFunc = function() return sv.mapEntry end,
-            setFunc = function(value) sv.mapEntry = value end,
-            default = defaults.mapEntry,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_MAP_PANEL,
-            tooltip = L.OPT_MAP_PANEL_TT,
-            getFunc = function() return sv.mapPanel end,
-            setFunc = function(value)
-                sv.mapPanel = value
-                QTM.MapPanel:UpdateVisibility()
-            end,
-            default = defaults.mapPanel,
-        },
-
-        -- Бесплатный путь через игрока: своя галочка для каждого способа
-        { type = "header", name = L.HEADER_ROUTE },
-        { type = "description", text = L.ROUTE_DESC },
-        RouteOption("Menu", L.OPT_ROUTE_MENU, L.OPT_ROUTE_MENU_TT),
-        RouteOption("Buttons", L.OPT_ROUTE_BUTTONS, L.OPT_ROUTE_BUTTONS_TT),
-        RouteOption("Wheel", L.OPT_ROUTE_WHEEL, L.OPT_ROUTE_WHEEL_TT),
-        RouteOption("Map", L.OPT_ROUTE_MAP, L.OPT_ROUTE_MAP_TT),
-        RouteOption("Quest", L.OPT_ROUTE_QUEST, L.OPT_ROUTE_QUEST_TT),
-
-        -- Карта мира и задания
-        { type = "header", name = L.HEADER_QUESTS },
-        { type = "description", text = L.QUESTS_DESC },
-        {
-            type    = "checkbox",
-            name    = L.OPT_INFO_PANEL,
-            tooltip = L.OPT_INFO_PANEL_TT,
-            getFunc = function() return sv.infoPanel end,
-            setFunc = function(value)
-                sv.infoPanel = value
-                QTM.InfoPanel:UpdateVisibility()
-            end,
-            default = defaults.infoPanel,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_ZOOM_BAR,
-            tooltip = L.OPT_ZOOM_BAR_TT,
-            getFunc = function() return sv.zoomBar end,
-            setFunc = function(value)
-                sv.zoomBar = value
-                QTM.ZoomBar:Apply()
-            end,
-            default = defaults.zoomBar,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_TRACKER,
-            tooltip = L.OPT_TRACKER_TT,
-            getFunc = function() return sv.questTracker end,
-            setFunc = function(value)
-                sv.questTracker = value
-                QTM.QuestTracker:ApplySettings()
-            end,
-            default = defaults.questTracker,
-        },
-        {
-            type     = "checkbox",
-            name     = L.OPT_HIDE_GAME_TRACKER,
-            tooltip  = L.OPT_HIDE_GAME_TRACKER_TT,
-            getFunc  = function() return sv.hideGameTracker end,
-            setFunc  = function(value)
-                sv.hideGameTracker = value
-                QTM.QuestTracker:ApplySettings()
-            end,
-            disabled = function() return not sv.questTracker end,
-            default  = defaults.hideGameTracker,
-        },
-        {
-            type     = "checkbox",
-            name     = L.OPT_TRACKER_LOCKED,
-            tooltip  = L.OPT_TRACKER_LOCKED_TT,
-            getFunc  = function() return sv.trackerLocked end,
-            setFunc  = function(value)
-                sv.trackerLocked = value
-                QTM.QuestTracker:ApplySettings()
-            end,
-            disabled = function() return not sv.questTracker end,
-            width    = "half",
-            default  = defaults.trackerLocked,
-        },
-        {
-            type     = "button",
-            name     = L.OPT_TRACKER_RESET,
-            func     = function() QTM.QuestTracker:ResetPosition() end,
-            disabled = function() return not sv.questTracker end,
-            width    = "half",
-        },
-
-        -- Кнопки на экране
-        { type = "header", name = L.HEADER_BUTTONS },
-        { type = "description", text = L.BUTTONS_DESC },
-        {
-            type  = "button",
-            name  = L.OPT_ADD_BUTTON,
-            width = "half",
-            func  = function()
-                local item = QTM.Buttons:Add(nil)
-                QTM.ButtonsEditor:Show(item.id)
-            end,
-        },
-        {
-            type  = "button",
-            name  = L.OPT_OPEN_BUTTONS,
-            width = "half",
-            func  = function() QTM.ButtonsEditor:Show() end,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_BUTTONS_VISIBLE,
-            getFunc = function() return sv.buttonsVisible end,
-            setFunc = function(value)
-                sv.buttonsVisible = value
-                QTM.Buttons:UpdateVisibility()
-            end,
-            default = defaults.buttonsVisible,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_BUTTONS_LOCKED,
-            tooltip = L.OPT_BUTTONS_LOCKED_TT,
-            getFunc = function() return sv.buttonsLocked end,
-            setFunc = function(value) QTM.Buttons:SetLocked(value) end,
-            default = defaults.buttonsLocked,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_BUTTONS_TOOLTIPS,
-            tooltip = L.OPT_BUTTONS_TOOLTIPS_TT,
-            getFunc = function() return sv.buttonsTooltips end,
-            setFunc = function(value) sv.buttonsTooltips = value end,
-            default = defaults.buttonsTooltips,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_BUTTONS_COMBAT,
-            getFunc = function() return sv.buttonsHideInCombat end,
-            setFunc = function(value)
-                sv.buttonsHideInCombat = value
-                QTM.Buttons:UpdateVisibility()
-            end,
-            default = defaults.buttonsHideInCombat,
-        },
-
-        -- Колесо
-        { type = "header", name = L.HEADER_WHEEL },
-        { type = "description", text = L.WHEEL_DESC },
-        { type = "button", name = L.OPT_OPEN_WHEEL, width = "half", func = function() QTM.WheelEditor:Show() end },
-        {
-            type    = "checkbox",
-            name    = L.OPT_WHEEL_ENABLED,
-            tooltip = L.OPT_WHEEL_ENABLED_TT,
-            getFunc = function() return sv.utilityWheelEnabled end,
-            setFunc = function(value) sv.utilityWheelEnabled = value end,
-            default = defaults.utilityWheelEnabled,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_WHEEL_START,
-            tooltip = L.OPT_WHEEL_START_TT,
-            getFunc = function() return sv.utilityWheelStartOnTravel end,
-            setFunc = function(value) sv.utilityWheelStartOnTravel = value end,
-            default = defaults.utilityWheelStartOnTravel,
-            disabled = function() return not sv.utilityWheelEnabled end,
-        },
-
         -- Основное
         { type = "header", name = L.HEADER_GENERAL },
-        {
-            type    = "checkbox",
-            name    = L.OPT_AT_WAYSHRINE,
-            tooltip = L.OPT_AT_WAYSHRINE_TT,
-            getFunc = function() return sv.showAtWayshrine end,
-            setFunc = function(value) sv.showAtWayshrine = value end,
-            default = defaults.showAtWayshrine,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_FREE_FRIENDS,
-            tooltip = L.OPT_FREE_FRIENDS_TT,
-            getFunc = function() return sv.freeViaFriends end,
-            setFunc = function(value) sv.freeViaFriends = value; QTM.Presence:MarkDirty(); QTM.Presence.lastBuild = nil end,
-            default = defaults.freeViaFriends,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_FREE_GUILD,
-            tooltip = L.OPT_FREE_GUILD_TT,
-            getFunc = function() return sv.freeViaGuild end,
-            setFunc = function(value) sv.freeViaGuild = value; QTM.Presence:MarkDirty(); QTM.Presence.lastBuild = nil end,
-            default = defaults.freeViaGuild,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_FREE_GROUP,
-            tooltip = L.OPT_FREE_GROUP_TT,
-            getFunc = function() return sv.freeViaGroup end,
-            setFunc = function(value) sv.freeViaGroup = value end,
-            default = defaults.freeViaGroup,
-        },
-
-        {
-            type    = "checkbox",
-            name    = L.OPT_CONFIRM,
-            tooltip = L.OPT_CONFIRM_TT,
-            getFunc = function() return sv.confirmTravel end,
-            setFunc = function(value) sv.confirmTravel = value end,
-            default = defaults.confirmTravel,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_GROUP,
-            tooltip = L.OPT_GROUP_TT,
-            getFunc = function() return sv.groupByZone end,
-            setFunc = function(value) sv.groupByZone = value end,
-            default = defaults.groupByZone,
-        },
-        {
-            type    = "checkbox",
-            name    = L.OPT_SHOW_UNAVAIL,
-            tooltip = L.OPT_SHOW_UNAVAIL_TT,
-            getFunc = function() return sv.showUnavailable end,
-            setFunc = function(value) sv.showUnavailable = value end,
-            default = defaults.showUnavailable,
-        },
-        {
-            type    = "dropdown",
-            name    = L.OPT_HOUSE,
-            choices = { L.HOUSE_INSIDE, L.HOUSE_OUTSIDE },
-            getFunc = function() return sv.houseOutside and L.HOUSE_OUTSIDE or L.HOUSE_INSIDE end,
-            setFunc = function(value) sv.houseOutside = (value == L.HOUSE_OUTSIDE) end,
-            default = L.HOUSE_INSIDE,
-        },
-
         {
             type    = "dropdown",
             name    = L.OPT_LANGUAGE,
@@ -347,6 +184,179 @@ function Settings:InitializeSettingsPanel()
             end,
             default = "auto",
         },
+        Checkbox("confirmTravel", L.OPT_CONFIRM, L.OPT_CONFIRM_TT),
+        {
+            type    = "dropdown",
+            name    = L.OPT_HOUSE,
+            choices = { L.HOUSE_INSIDE, L.HOUSE_OUTSIDE },
+            getFunc = function() return sv.houseOutside and L.HOUSE_OUTSIDE or L.HOUSE_INSIDE end,
+            setFunc = function(value) sv.houseOutside = (value == L.HOUSE_OUTSIDE) end,
+            default = L.HOUSE_INSIDE,
+        },
+
+        -- Мои места и быстрое меню
+        { type = "header", name = L.HEADER_PLACES },
+        { type = "description", text = L.PLACES_DESC },
+        { type = "button", name = L.OPT_OPEN_EDITOR, width = "half", func = function() self:Show() end },
+        Checkbox("groupByZone", L.OPT_GROUP, L.OPT_GROUP_TT),
+        Checkbox("showUnavailable", L.OPT_SHOW_UNAVAIL, L.OPT_SHOW_UNAVAIL_TT),
+
+        -- Бесплатные перемещения: через игроков и бесплатный путь в платные места
+        { type = "header", name = L.HEADER_FREE },
+        Checkbox("freeViaFriends", L.OPT_FREE_FRIENDS, L.OPT_FREE_FRIENDS_TT, RefreshPresence),
+        Checkbox("freeViaGuild", L.OPT_FREE_GUILD, L.OPT_FREE_GUILD_TT, RefreshPresence),
+        Checkbox("freeViaGroup", L.OPT_FREE_GROUP, L.OPT_FREE_GROUP_TT),
+        { type = "description", title = L.HEADER_ROUTE, text = L.ROUTE_DESC },
+        RouteOption("Menu", L.OPT_ROUTE_MENU, L.OPT_ROUTE_MENU_TT),
+        RouteOption("Buttons", L.OPT_ROUTE_BUTTONS, L.OPT_ROUTE_BUTTONS_TT),
+        RouteOption("Wheel", L.OPT_ROUTE_WHEEL, L.OPT_ROUTE_WHEEL_TT),
+        RouteOption("Map", L.OPT_ROUTE_MAP, L.OPT_ROUTE_MAP_TT),
+        RouteOption("Quest", L.OPT_ROUTE_QUEST, L.OPT_ROUTE_QUEST_TT),
+
+        -- Карта мира
+        { type = "header", name = L.HEADER_MAP },
+        { type = "description", text = L.MAP_DESC },
+        Checkbox("mapPanel", L.OPT_MAP_PANEL, L.OPT_MAP_PANEL_TT, function() QTM.MapPanel:UpdateVisibility(); RebuildPreview() end),
+        Checkbox("infoPanel", L.OPT_INFO_PANEL, L.OPT_INFO_PANEL_TT, function() QTM.InfoPanel:UpdateVisibility(); RebuildPreview() end),
+        Checkbox("zoomBar", L.OPT_ZOOM_BAR, L.OPT_ZOOM_BAR_TT, function() QTM.ZoomBar:Apply() end),
+        Checkbox("mapEntry", L.OPT_MAP_ENTRY, L.OPT_MAP_ENTRY_TT),
+
+        -- Панель заданий на экране
+        { type = "header", name = L.HEADER_TRACKER },
+        Checkbox("questTracker", L.OPT_TRACKER, L.OPT_TRACKER_TT, function() QTM.QuestTracker:ApplySettings(); RebuildPreview() end),
+        {
+            type     = "dropdown",
+            name     = L.OPT_TRACKER_STYLE,
+            tooltip  = L.OPT_TRACKER_STYLE_TT,
+            choices  = { L.TRACKER_STYLE_FULL, L.TRACKER_STYLE_SIMPLE },
+            choicesValues = { "full", "simple" },
+            getFunc  = function() return sv.trackerStyle == "simple" and "simple" or "full" end,
+            setFunc  = function(value)
+                sv.trackerStyle = value
+                QTM.QuestTracker:ApplySettings()
+                RebuildPreview()
+            end,
+            disabled = TrackerDisabled,
+            default  = defaults.trackerStyle,
+        },
+        Checkbox("trackerShowAll", L.OPT_TRACKER_SHOW_ALL, L.OPT_TRACKER_SHOW_ALL_TT,
+            function() QTM.QuestTracker:Refresh(); RebuildPreview() end,
+            { disabled = function() return not sv.questTracker or sv.trackerStyle ~= "simple" end }),
+        Checkbox("hideGameTracker", L.OPT_HIDE_GAME_TRACKER, L.OPT_HIDE_GAME_TRACKER_TT,
+            function() QTM.QuestTracker:ApplySettings() end, { disabled = TrackerDisabled }),
+        Checkbox("trackerLocked", L.OPT_TRACKER_LOCKED, L.OPT_TRACKER_LOCKED_TT,
+            function() QTM.QuestTracker:ApplySettings() end, { disabled = TrackerDisabled, width = "half" }),
+        {
+            type     = "button",
+            name     = L.OPT_TRACKER_RESET,
+            func     = function() QTM.QuestTracker:ResetPosition() end,
+            disabled = TrackerDisabled,
+            width    = "half",
+        },
+
+        -- Кнопки на экране
+        { type = "header", name = L.HEADER_BUTTONS },
+        { type = "description", text = L.BUTTONS_DESC },
+        { type = "button", name = L.OPT_OPEN_BUTTONS, width = "half", func = function() QTM.ButtonsEditor:Show() end },
+        Checkbox("buttonsVisible", L.OPT_BUTTONS_VISIBLE, nil, function() QTM.Buttons:UpdateVisibility() end),
+        {
+            type    = "checkbox",
+            name    = L.OPT_BUTTONS_LOCKED,
+            tooltip = L.OPT_BUTTONS_LOCKED_TT,
+            getFunc = function() return sv.buttonsLocked end,
+            setFunc = function(value) QTM.Buttons:SetLocked(value) end,
+            default = defaults.buttonsLocked,
+        },
+        Checkbox("buttonsHideInCombat", L.OPT_BUTTONS_COMBAT, nil, function() QTM.Buttons:UpdateVisibility() end),
+        AlphaOption("buttonsAlpha", L.OPT_ALPHA_BUTTONS),
+
+        -- Колесо
+        { type = "header", name = L.HEADER_WHEEL },
+        { type = "description", text = L.WHEEL_DESC },
+        { type = "button", name = L.OPT_OPEN_WHEEL, width = "half", func = function() QTM.WheelEditor:Show() end },
+        Checkbox("utilityWheelEnabled", L.OPT_WHEEL_ENABLED, L.OPT_WHEEL_ENABLED_TT),
+        Checkbox("utilityWheelStartOnTravel", L.OPT_WHEEL_START, L.OPT_WHEEL_START_TT, nil,
+            { disabled = function() return not sv.utilityWheelEnabled end }),
+
+        -- Оформление: цвета и прозрачность
+        { type = "header", name = L.HEADER_LOOK },
+        { type = "description", text = L.LOOK_DESC },
+        Checkbox("settingsPreview", L.OPT_SETTINGS_PREVIEW, L.OPT_SETTINGS_PREVIEW_TT, function(value)
+            if value then QTM.Preview:Show() else QTM.Preview:Hide() end
+        end),
+        {
+            type    = "dropdown",
+            name    = L.OPT_THEME_PRESET,
+            tooltip = L.OPT_THEME_PRESET_TT,
+            choices = presetNames,
+            choicesValues = presetKeys,
+            width   = "half",
+            getFunc = function() return sv.themePreset or "default" end,
+            setFunc = function(value)
+                if value ~= "custom" then Style.ApplyPreset(value) else sv.themePreset = "custom" end
+            end,
+            default = "default",
+        },
+        {
+            type  = "button",
+            name  = L.OPT_THEME_RESET,
+            width = "half",
+            func  = function()
+                sv.themePreset = "default"
+                Style.ResetTheme()
+            end,
+        },
+        ColorOption("accent", L.OPT_COLOR_ACCENT, L.OPT_COLOR_ACCENT_TT),
+        ColorOption("title", L.OPT_COLOR_TITLE, L.OPT_COLOR_TITLE_TT),
+        ColorOption("text", L.OPT_COLOR_TEXT, L.OPT_COLOR_TEXT_TT),
+        ColorOption("muted", L.OPT_COLOR_MUTED, L.OPT_COLOR_MUTED_TT),
+        ColorOption("panelTint", L.OPT_COLOR_PANEL, L.OPT_COLOR_PANEL_TT),
+        AlphaOption("panelAlpha", L.OPT_ALPHA_PANEL, L.OPT_ALPHA_PANEL_TT),
+        AlphaOption("windowAlpha", L.OPT_ALPHA_WINDOW, L.OPT_ALPHA_WINDOW_TT),
+        AlphaOption("rowAlpha", L.OPT_ALPHA_ROWS, L.OPT_ALPHA_ROWS_TT),
+        { type = "description", title = L.LOOK_KINDS, text = L.LOOK_KINDS_DESC },
+        ColorOption("quest", L.OPT_COLOR_QUEST),
+        ColorOption("pursuit", L.OPT_COLOR_PURSUIT),
+        ColorOption("tome", L.OPT_COLOR_TOME),
+        { type = "description", title = L.HEADER_TRACKER, text = L.LOOK_TRACKER_DESC },
+        ColorOption("trackerBg", L.OPT_COLOR_TRACKER_BG),
+        {
+            type    = "slider",
+            name    = L.OPT_ALPHA_TRACKER_BG,
+            tooltip = L.OPT_ALPHA_TRACKER_BG_TT,
+            min     = 0,
+            max     = 100,
+            step    = 5,
+            -- У подробной и простой панели своё значение: настраивается то, что выбрано сейчас
+            getFunc = function()
+                local key = sv.trackerStyle == "simple" and "trackerSimpleBgAlpha" or "trackerBgAlpha"
+                return zo_round((Style.GetThemeValue(key) or 0) * 100)
+            end,
+            setFunc = function(value)
+                local key = sv.trackerStyle == "simple" and "trackerSimpleBgAlpha" or "trackerBgAlpha"
+                sv.themePreset = "custom"
+                Style.SetThemeValue(key, value / 100)
+            end,
+            default = function()
+                local key = sv.trackerStyle == "simple" and "trackerSimpleBgAlpha" or "trackerBgAlpha"
+                return zo_round(Style.THEME_DEFAULTS[key] * 100)
+            end,
+        },
+        AlphaOption("trackerCardAlpha", L.OPT_ALPHA_TRACKER_CARDS, L.OPT_ALPHA_TRACKER_CARDS_TT,
+            { disabled = function() return sv.trackerStyle == "simple" end }),
+        AlphaOption("trackerAlpha", L.OPT_ALPHA_TRACKER, L.OPT_ALPHA_TRACKER_TT),
+
+        -- Подсказки при наведении
+        { type = "header", name = L.HEADER_TIPS },
+        { type = "description", text = L.TIPS_DESC },
+        TipOption("menu"),
+        TipOption("buttons"),
+        TipOption("mapPanel"),
+        TipOption("mapPins"),
+        TipOption("infoPanel"),
+        TipOption("tracker"),
+        TipOption("guild"),
+        TipOption("windows"),
 
         -- Поддержка и обратная связь
         { type = "header", name = L.HEADER_SUPPORT },
@@ -682,7 +692,7 @@ function Settings:OnRowClicked(control, button)
 end
 
 function Settings:OnHeaderEnter(control)
-    ZO_Tooltips_ShowTextTooltip(control, TOP, L.EDITOR_HEADER_TT)
+    QTM.ShowTip("windows", control, TOP, L.EDITOR_HEADER_TT)
 end
 
 function Settings:OnHeaderExit()

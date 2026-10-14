@@ -39,9 +39,12 @@ local LAYOUT_EVERY_MS = 500
 local ZONE_HIDE_REASON = "MundusGateTab"
 
 -- Приглушённые цвета панели
-local GOLD   = { 0.90, 0.85, 0.66 }
-local ICE    = { 0.36, 0.76, 0.91 }
-local MUTED  = { 0.54, 0.54, 0.54 }
+local GOLD   = Style.GOLD
+local ICE    = Style.ICE
+local MUTED  = Style.MUTED
+local TEXT   = Style.TEXT
+local INFO   = Style.INFO
+local GROUP  = Style.GROUP
 
 local lower = zo_strlower or string.lower
 
@@ -206,9 +209,58 @@ function MapPanel:InitializeEditor(editor)
 end
 
 ---------------------------------------------------------------------------
+-- Предпросмотр рядом с настройками аддона: панель (вкладка Mundus Gate,
+-- список мест) показывается в заданном месте поверх меню
+---------------------------------------------------------------------------
+function MapPanel:SetPreview(enabled, right, top, width, height)
+    if not self.panel then return end
+    local root, panel = self.root, self.panel
+    if enabled then
+        if not self:IsEnabled() then return end
+        self.preview = { tab = QTM.sv.mapPanelTab, view = self.view, tier = root:GetDrawTier() }
+        QTM.sv.mapPanelTab = "gate"
+        self.view = "list"
+        root:SetDrawTier(DT_HIGH)
+        root:SetHidden(false)
+        panel:SetHidden(false)
+        panel:ClearAnchors()
+        panel:SetAnchor(TOPRIGHT, GuiRoot, TOPLEFT, right, top)
+        panel:SetDimensions(width, height)
+        self:LayoutTabs(width)
+        self:LayoutEditor(width)
+        self:ApplyTab()
+        self:RefreshGate()
+        return
+    end
+    local preview = self.preview
+    if not preview then return end
+    self.preview = nil
+    QTM.sv.mapPanelTab = preview.tab
+    self.view = preview.view
+    root:SetDrawTier(preview.tier)
+    root:SetHidden(true)   -- с картой панель снова покажет её фрагмент
+    self.layoutKey = nil
+    self:UpdateVisibility()
+end
+
+function MapPanel:RefreshPreview()
+    if self.preview then self:ApplyTab(); self:RefreshGate() end
+end
+
+-- Сменилась цветовая тема: перекрасить то, что красится один раз
+function MapPanel:OnThemeChanged()
+    if not self.panel then return end
+    self.tabIndicator:SetColor(ICE[1], ICE[2], ICE[3], 1)
+    self:PaintLanguageButton(false)
+    self:ApplyTab()
+    self:RefreshIfShown()
+end
+
+---------------------------------------------------------------------------
 -- Размер и положение: вплотную к левому краю окна карты, по его высоте
 ---------------------------------------------------------------------------
 function MapPanel:Layout()
+    if self.preview then return end
     local panel = self.panel
     local map = ZO_WorldMap
     if not map or not map.GetLeft then return end
@@ -290,7 +342,7 @@ end
 
 function MapPanel:OnLanguageEnter(button)
     self:PaintLanguageButton(true)
-    ZO_Tooltips_ShowTextTooltip(button, BOTTOM, zo_strformat(L.LANG_BUTTON_TT, QTM.GetLanguageName(QTM.language)))
+    QTM.ShowTip("mapPanel", button, BOTTOM, zo_strformat(L.LANG_BUTTON_TT, QTM.GetLanguageName(QTM.language)))
 end
 
 function MapPanel:OnLanguageExit()
@@ -302,7 +354,7 @@ function MapPanel:ShowLanguageMenu(button)
     ZO_Tooltips_HideTextTooltip()
     local selected = QTM.sv.language or "auto"
     local function Item(code, text)
-        if code == selected then text = "|c5DC1E8» " .. text .. "|r" end
+        if code == selected then text = "|c" .. QTM.Style.Hex(QTM.Style.ICE) .. "» " .. text .. "|r" end
         AddMenuItem(text, function() self:ConfirmLanguage(code) end)
     end
     ClearMenu()
@@ -476,7 +528,7 @@ function MapPanel:UpdateCounter()
 end
 
 function MapPanel:OnSavedEnter(control)
-    ZO_Tooltips_ShowTextTooltip(control, BOTTOM, zo_strformat(L.PANEL_SAVED_TT, QTM.sv.freeTrips or 0))
+    QTM.ShowTip("mapPanel", control, BOTTOM, zo_strformat(L.PANEL_SAVED_TT, QTM.sv.freeTrips or 0))
 end
 
 function MapPanel:ShowList()
@@ -565,7 +617,7 @@ function MapPanel:PaintRow(control)
     -- Фон строки чуть окрашен в цвет места, чётные строки немного светлее
     local strength = control.isHover and 0.22 or ((data.index or 1) % 2 == 0 and 0.12 or 0.08)
     local r, g, b = Style.Darken(color, strength)
-    control:GetNamedChild("Bg"):SetColor(r, g, b, control.isHover and 0.95 or 0.75)
+    control:GetNamedChild("Bg"):SetColor(r, g, b, Style.RowAlpha(control.isHover))
     control:GetNamedChild("Stripe"):SetColor(color.r, color.g, color.b, control.isHover and 1 or 0.7)
 end
 
@@ -580,13 +632,13 @@ function MapPanel:SetupRow(control, data)
     local name = control:GetNamedChild("Name")
     name:SetText(node.name)
     if data.available then
-        name:SetColor(1, 1, 1, 1)
+        name:SetColor(TEXT[1], TEXT[2], TEXT[3], 1)
     else
         name:SetColor(MUTED[1], MUTED[2], MUTED[3], 1)
     end
     local info = control:GetNamedChild("Info")
     info:SetText(node.zoneName .. "  ·  " .. Data.TYPE_NAMES[node.type])
-    info:SetColor(0.60, 0.60, 0.60, 1)
+    info:SetColor(INFO[1], INFO[2], INFO[3], 1)
 
     -- Метки и ширина текста: текст никогда не заходит под метки
     local slots, buttons = self:GetUsage(node.nodeIndex)
@@ -694,7 +746,7 @@ function MapPanel:RefreshDetails()
     else
         local price, _, _, isRoute = Data:GetDisplayPrice(node, "Map")
         if isRoute then
-            price = "|c5DC1E8" .. price .. "|r |c8A8A8A(" .. L.ROUTE_SHORT .. ")|r"
+            price = "|c" .. QTM.Style.Hex(QTM.Style.ICE) .. "" .. price .. "|r |c8A8A8A(" .. L.ROUTE_SHORT .. ")|r"
         end
         self.detailPrice:SetText(L.PRICE_LABEL .. " " .. price)
     end
@@ -825,7 +877,7 @@ function MapPanel:OnWheelEnter(tile)
     else
         text = zo_strformat(L.PANEL_WHEEL_TT_EMPTY, tile.slotIndex, node.name)
     end
-    ZO_Tooltips_ShowTextTooltip(tile, TOP, text)
+    QTM.ShowTip("mapPanel", tile, TOP, text)
 end
 
 function MapPanel:OnWheelExit(tile)

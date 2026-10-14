@@ -126,6 +126,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Group Think](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aldanga/Group-Think__1997) | Aldanga | PC / Mac | 1.2.0 |
 | [Group UI Mover](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gamer_sa22/Group-UI-Mover__4b9ce0b1-712c-4e43-9b41-d913d2772634) | Gamer_sa22 | Console | — |
 | [Group User ID](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarva/Group-User-ID__2589) | Jarva | PC / Mac | 2026.07.09 |
+| [Groupbound – All-in-One Group Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/brianmit/Groupbound-All-in-One-Group-Finder__4951) | brianmit | PC / Mac | 1.0.0 |
 | [GroupBuffTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Tenshiraito/GroupBuffTracker__4120) | Tenshiraito | PC / Mac | 2.8 |
 | [GroupEncore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/GroupEncore__6a072e95-965d-4368-9c0f-196d198ad5dd) | SugaComa | Console | — |
 | [GroupFinder+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/GroupFinder__4338) | atharti | PC / Mac | 6.5 |

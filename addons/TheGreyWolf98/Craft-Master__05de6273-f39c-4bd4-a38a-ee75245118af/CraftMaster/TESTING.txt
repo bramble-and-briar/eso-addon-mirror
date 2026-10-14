@@ -1,4 +1,4 @@
-CRAFT MASTER 1.0.7 - CONSOLE TEST
+CRAFT MASTER 1.0.11 - CONSOLE TEST
 by @TheGreyWolf98
 
 No external add-on dependencies. Does not use LibCharacterKnowledge or LibAsync.
@@ -156,3 +156,68 @@ missing-plan knowledge. Your main-crafter selection remains saved.
 - Window moved above the controller button bar with extra screen clearance.
 - LT label now reads Housing / Recipes / Motifs; help says change section.
 - Existing navigation, catalogue and saved knowledge are retained.
+
+1.0.9 ITEM ACTIONS - XBOX TEST
+Select a furnishing result with A to open two actions:
+- A / Preview: native 3D furnishing preview.
+- X / Link: put the actual plan into an unsent chat draft.
+- B / Back: dismiss the menu.
+In preview, LB toggles rotation and B returns to the catalogue.
+Plan types remain beside the selected item's housing category.
+
+FIXES AFTER XBOX FEEDBACK
+- Removed the Ask crafter action and automatic request wording.
+- Link uses native StartTextEntry with dontShowHUDWindow=true, avoiding the
+  default StartChatInput path's private SetSetting call on consoles.
+- Preview commits the queued furnishing with the same collection-display
+  call used by ESO's native item preview system.
+- Existing chat drafts are checked before and after the scene transition.
+
+No messages are sent automatically. Choose the channel and send the link.
+A verified plan ID is required; absent IDs report unavailable. Preview uses
+only ESO's renderer, and runs on demand with cleanup on exit. No libraries,
+image assets or additional database. No furnishing preview for food/motifs.
+
+CHECK ON XBOX
+1. A on a missing furnishing: confirm only Preview and Link actions.
+2. Preview a rug and large furnishing; verify model, LB rotation and B return.
+3. Repeat preview several times; verify camera and viewed character return.
+4. X / Link: verify clickable plan in chat, without UI error or automatic send.
+5. Type existing chat text and attempt Link: existing text must be kept.
+6. Confirm plan type and missing/learned filters remain correct.
+
+Validation: mocked collection commit, readiness, preview cleanup, two-action
+menu, correct plan links, safe chat arguments, channel preservation and draft
+protection passed. Live Xbox preview and chat keyboard still require testing.
+
+1.0.10 CONTROLLER PREVIEW / CHAT RETEST
+- Named links built by ESO's ZO_LinkHandler_CreateLink helper with native
+  bracket style. Chat opens empty through the safe console path, then the
+  link is inserted using native textEntry:InsertText instead of SetText.
+- Preview scene includes the native centered-target and preview-camera
+  fragments. Models are queued and committed only after SCENE_SHOWN.
+- A short active-preview check returns to the catalogue if ESO reports no
+  model. All readiness/check timers are removed when preview ends.
+- Two-action Preview / Link menu, plan types and saved knowledge retained.
+
+Check on Xbox: compare the plan's displayed link name in chat and confirm it
+opens the correct tooltip; preview a rug and large furnishing, then B back.
+No automatic sending. Live Xbox display is not confirmed by mocked checks.
+
+1.0.11 QUIET LOGIN SCANS
+- Full automatic scan once per character in each Lua login/UI-reload session.
+- Completed scan survives player deactivation/activation during travel.
+- An unfinished initial scan restarts after loading so knowledge is complete.
+- Automatic scans and motif updates produce no completion chat messages.
+- Learning a recipe updates only that recipe; learning a style refreshes only
+  motif collections, without rechecking the furnishing/food catalogue.
+- /cm scan still forces a full scan and reports its requested completion.
+- Existing snapshots, catalogue, preview/link actions and selected main retained.
+
+Check on Xbox: login, wait for initial scan, travel through several wayshrines,
+enter/leave a house and dungeon. No repeated full scan or completion messages.
+Learn a plan/motif and verify knowledge updates. /cm scan remains available.
+A UI reload starts a new session and permits one quiet automatic scan.
+
+Validation: travel cycles, interrupted initial-scan recovery, quiet automatic
+completion, motif-only refresh, explicit manual rescan and alt scan passed.

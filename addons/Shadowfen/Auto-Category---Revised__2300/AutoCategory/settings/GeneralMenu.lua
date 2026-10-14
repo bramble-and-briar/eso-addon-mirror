@@ -1,4 +1,4 @@
-
+local description = AC_UI.description
 
         -- General Settings
 AC_UI.GeneralMenu = {
@@ -15,7 +15,8 @@ AC_UI.GeneralMenu = {
             getFunc = function() return AutoCategory.saved.general["SHOW_MESSAGE_WHEN_TOGGLE"] end,
             setFunc = function(value) AutoCategory.saved.general["SHOW_MESSAGE_WHEN_TOGGLE"] = value end,
         },
-
+        AC_UI.divider(),
+        description("|cf3b600"..GetString(SI_AC_MENU_GS_HEADER_CATEGORY).."|r"),
         -- Show category item count
         {
             type = "checkbox",
@@ -38,7 +39,7 @@ AC_UI.GeneralMenu = {
             getFunc = function() return AutoCategory.saved.general["SHOW_CATEGORY_SET_TITLE"] end,
             setFunc = function(value)
                 AutoCategory.saved.general["SHOW_CATEGORY_SET_TITLE"] = value
-                AutoCategory.ResetCollapse(AutoCategory.saved)
+                AutoCategory.ResetCollapse(AutoCategory.saved.collapses)
             end,
         },
         AC_UI.divider(),
@@ -64,6 +65,40 @@ AC_UI.GeneralMenu = {
             getFunc = function() return AutoCategory.saved.general["SAVE_CATEGORY_COLLAPSE_STATUS"] end,
             setFunc = function(value) AutoCategory.saved.general["SAVE_CATEGORY_COLLAPSE_STATUS"] = value end,
             disabled = function() return AutoCategory.saved.general["SHOW_CATEGORY_COLLAPSE_ICON"] == false end,
+        },
+        AC_UI.divider(),
+        -- Save category collapse expiry
+        {
+            type = "dropdown",
+            name = SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY,
+            tooltip = SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY_TOOLTIP,
+            choices = {
+                "1 day",
+                "7 days",
+                "30 days",
+                "90 days",
+                "Never",
+            },
+            choicesValues = {
+                86400,
+                604800,
+                2592000,
+                7776000,
+                "never",
+            },
+            getFunc = function()
+                local duration = AutoCategory.saved.general["CATEGORY_COLLAPSE_EXPIRY_SECONDS"]
+                if duration == "never" then
+                    return "never"
+                end
+
+                return duration or 604800
+            end,
+            setFunc = function(value)
+                AutoCategory.saved.general["CATEGORY_COLLAPSE_EXPIRY_SECONDS"] = value
+                AutoCategory.OnCollapseExpiryDurationChanged()
+            end,
+            default = 604800,   -- 7 days
         },
 
     }

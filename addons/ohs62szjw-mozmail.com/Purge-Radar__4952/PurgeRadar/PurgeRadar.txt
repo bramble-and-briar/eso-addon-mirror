@@ -1,0 +1,10 @@
+## Title: PurgeRadar
+## APIVersion: 101044
+## Version: 1.2.0
+## Author: SuperSecretTech
+## Description: Displays a green icon above group members and changes OneFrame health bar colors based on purge range.
+## DependsOn: LibFloatingIcons LibAddonMenu-2.0
+## OptionalDependsOn: OneFrame
+## SavedVariables: PurgeRadarSavedVars
+
+PurgeRadar.lua

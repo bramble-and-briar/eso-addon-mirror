@@ -1,0 +1,49 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/brianmit/Groupbound-All-in-One-Group-Finder__4951",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "brianmit",
+  "canonical_id": "esoui:4951",
+  "category_id": "95",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    },
+    {
+      "name": "Season Zero Pt.2",
+      "version": "12.0.0"
+    }
+  ],
+  "content_id": "esoui:4951",
+  "deleted": false,
+  "directories": [
+    "Groupbound"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4951/",
+  "fingerprint": "807048f32f87f45597de6f5a60dab13781af6e24aa092593e0c44299f997ffa9",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17987.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17982.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17983.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17984.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17988.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17989.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17986.png",
+    "https://cdn-eso.mmoui.com/preview/pvw17985.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4951",
+  "source_url": "https://www.esoui.com/downloads/info4951-GroupboundAll-in-OneGroupFinder.html",
+  "stats": {
+    "downloads": 0,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "Groupbound \u2013 All-in-One Group Finder",
+  "updated_at": 1791947278000,
+  "version": "1.0.0"
+}

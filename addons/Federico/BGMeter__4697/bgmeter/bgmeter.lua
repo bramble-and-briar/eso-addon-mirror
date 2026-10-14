@@ -398,12 +398,44 @@ local function cmd_report()
     BGMeter.UI.export.show_text(table.concat(lines, "\n"))
 end
 
+local function cmd_trackers()
+    local CZ = BGMeter.zenimax.constants
+    local midx = (BGMeter.UI.window.current and BGMeter.UI.window.current()) or 1
+    local m = BGMeter.History.get(midx) or BGMeter.History.most_recent()
+    local lines = {}
+    if not m then
+        lines[1] = "trackers: no stored match"
+        BGMeter.UI.export.show_text(lines[1])
+        return
+    end
+    local fields = { "caps", "defPts", "carried", "carrierKills", "capKillAtt", "capKillDef", "carrierDmg", "carrierHeal", "defHeal" }
+    lines[#lines + 1] = string.format("trackers: %s  %s  rows=%d", tostring(m.name), tostring(CZ.GAME_TYPE_LABEL[m.gameType] or m.gameType), #m.battle)
+    lines[#lines + 1] = "name team k/d " .. table.concat(fields, " ")
+    local fresh = false
+    for _, r in ipairs(m.battle) do
+        local vals = {}
+        for i, f in ipairs(fields) do
+            vals[i] = tostring(r[f] or 0)
+            if i >= 5 and (r[f] or 0) > 0 then fresh = true end
+        end
+        lines[#lines + 1] = string.format("%s %s %d/%d %s%s", tostring(r.displayName or r.charName or "?"), tostring(r.team),
+            r.kills or 0, r.deaths or 0, table.concat(vals, " "), r.isLocal and " <- you" or "")
+    end
+    lines[#lines + 1] = fresh and "new trackers: populated" or "new trackers: all zero"
+    BGMeter.UI.export.show_text(table.concat(lines, "\n"))
+end
+
 local function on_slash(args)
     args = (args or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
     local Log = BGMeter.Log
 
     if args == "vet" then
         BGMeter.UI.export.show_text(table.concat(BGMeter.Veterancy.raw_lines(), "\n"))
+        return
+    end
+
+    if args == "trackers" then
+        cmd_trackers()
         return
     end
 

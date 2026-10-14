@@ -1,7 +1,7 @@
 local AEAB = AEAB or {}
 AEAB.name = "AlwaysExpandedAttributeBars"
-AEAB.version = "3.1b u51"
-AEAB.APPLY_DELAY_MS = 1000 -- Delay before applying settings after player activation
+AEAB.version = "4.0 u51"
+AEAB.APPLY_DELAY_MS = 50 -- Delay before applying settings after player activation
 
 -- Available font faces and shadow/outline styles
 local FONT_FACES = {
@@ -44,6 +44,8 @@ AEAB.defaults = {
     useCustomMagickaColor = false, -- Use custom color for magicka bar
     useCustomStaminaColor = false, -- Use custom color for stamina bar
     useCustomShieldColor = false,  -- Use custom color for shield
+   -- playerBarGradient = 'red',     -- Player health bar gradient: 'red' (stock) or 'blue'
+    blueForFriendlyPlayers = false, -- Target bar: friendly players get the light blue color instead of the standard red
     
     -- Font settings
     fontFace = "$(MEDIUM_FONT)",   -- Default font face
@@ -51,8 +53,12 @@ AEAB.defaults = {
     fontStyle = "soft-shadow-thick", -- Default font style (shadow/outline)
     
     -- Bar size settings
-    barWidth = 323,                -- Default bar width (matches the original expanded size)
-    barHeight = 25,                -- Default bar height
+    barWidth = 323,                -- Legacy bar width (fallback when the separate sizes are not set)
+    barHeight = 25,                -- Legacy bar height (fallback when the separate sizes are not set)
+    healthBarWidth = 323,          -- Health bar width
+    healthBarHeight = 25,          -- Health bar height
+    resourceBarWidth = 323,        -- Stamina/Magicka bar width
+    resourceBarHeight = 25,        -- Stamina/Magicka bar height
     barGap = 112,                  -- Gap between health and magicka/stamina bars
     repositionBarsOnResize = false, -- Keep the bars centered/evenly spaced on width change (off by default)
 
@@ -61,14 +67,47 @@ AEAB.defaults = {
 
     -- Target attribute bars module
     enableTargetBarsResizer = false,  -- Resize target unit frame attribute bars (module disabled by default)
+    targetBarWidth = 360,             -- Target bar width
+    targetBarHeight = 18,             -- Target bar height
+    targetBarColorByReaction = false, -- Color the target bar by reaction (enemy/neutral/ally/player/self)
+    targetEnemyColor = {0.9, 0.2, 0.16, 1},     -- Target bar color: enemy
+    targetNeutralColor = {0.87, 0.63, 0.25, 1}, -- Target bar color: neutral
+    targetAllyColor = {0.42, 0.68, 0.24, 1},    -- Target bar color: ally
+    targetPlayerColor = {1.0, 1.0, 1.0, 1},     -- Target bar color: yourself
+    targetPlayerCharacterColor = {0.36, 0.58, 0.93, 1}, -- Target bar color: other player characters
+    targetColorSource = "custom",      -- Target color source: "custom" (picked colors) or "game" (game reaction colors)
+
+    -- Unit frame numbers module (sub-addon, modeled after ImprovedAttributeBars)
+    enableUnitNumbersModule = false,          -- Sub-addon: full numbers for player bars and the boss bar (requires reload)
+    playerNumberStyle = 'currentmaxpercent',  -- Player bar numbers: 'currentmax', 'currentmaxpercent', 'current', 'percent'
+    numbersShowShield = true,                 -- Show damage absorption ([+N]) on the health bar
+    numbersShowTrauma = true,                 -- Show heal absorption ([-N]) on the health bar
+    bossShowNumbers = true,                   -- Show full numbers on the boss health bar
+    bossNumberStyle = 'currentmaxpercent',    -- Boss bar numbers: 'currentmax', 'currentmaxpercent', 'current', 'percent'
+    targetShowNumbers = true,                 -- Show full numbers on the target health bar
+    targetNumberStyle = 'currentmaxpercent',  -- Target bar numbers: 'currentmax', 'currentmaxpercent', 'current', 'percent'
+    numberSeparator = '',                     -- Thousands separator: '' (none), ',', '.', ' ', "'"
+    bossNumberSeparator = '',                 -- Boss bar thousands separator: '' (none), ',', '.', ' ', "'"
+    xpBarShowNumbers = true,                  -- Show current / required XP (percent) on the level bar
+    targetFontFace = "$(BOLD_FONT)",          -- Target frame font face
+    targetFontSize = 17,                      -- Target frame font size
+    targetFontStyle = "soft-shadow-thick",    -- Target frame font style
+
+    -- Static size / layout behavior
+    staticBarSize = true,                     -- Change the player bars to a static (always expanded) size
+    showTargetEliteBrackets = true,           -- Show the elite/boss difficulty brackets on the target frame
 }
-
-
 
 -- Initialize settings
 function AEAB:Initialize()
-    -- Load saved variables
+    -- Load saved variables. This must happen on EVENT_ADD_ON_LOADED (not at
+    -- module level) so the saved variables file is guaranteed to be loaded.
     self.savedVars = ZO_SavedVars:NewAccountWide("AEABSavedVars", 1, nil, self.defaults)
+
+    -- Apply the static bar template (conditional on the staticBarSize setting)
+    if AEAB.ApplyStaticTemplate then
+        pcall(AEAB.ApplyStaticTemplate)
+    end
 
     -- Create the settings menu FIRST so an unrelated failure can never hide it
     local ok, err = pcall(function() self:CreateSettingsMenu() end)
@@ -114,6 +153,20 @@ function AEAB:ApplySettings()
             end
         end
         
+        -- Apply the selected gradient to the player health bar (red = stock, blue)
+        if isHealth then
+            local gradientKey = (self.savedVars.playerBarGradient == 'blue') and COMBAT_MECHANIC_FLAGS_MAGICKA or COMBAT_MECHANIC_FLAGS_HEALTH
+            local gradient = ZO_POWER_BAR_GRADIENT_COLORS[gradientKey]
+            if gradient then
+                local barLeft = barControl:GetNamedChild("BarLeft")
+                local barRight = barControl:GetNamedChild("BarRight")
+                if barLeft and barRight then
+                    ZO_StatusBar_SetGradientColor(barLeft, gradient)
+                    ZO_StatusBar_SetGradientColor(barRight, gradient)
+                end
+            end
+        end
+
         -- Apply color only if custom colors are enabled
         if useCustomColor then
             if isHealth then
@@ -139,8 +192,8 @@ function AEAB:ApplySettings()
     ApplyBarSettings(ZO_PlayerAttributeMagicka, self.savedVars.useCustomMagickaColor, self.savedVars.magickaColor, false)
     ApplyBarSettings(ZO_PlayerAttributeStamina, self.savedVars.useCustomStaminaColor, self.savedVars.staminaColor, false)
     
-    -- Apply custom bar dimensions
-    if AEAB.ApplyDimensions then
+    -- Apply custom bar dimensions (only when the static size is enabled)
+    if self.savedVars.staticBarSize ~= false and AEAB.ApplyDimensions then
         local ok, err = pcall(AEAB.ApplyDimensions, AEAB)
         if not ok then
             d("[AEAB] ApplyDimensions error: " .. tostring(err))
@@ -167,11 +220,19 @@ function AEAB:ApplyDimensions()
     local sv = self.savedVars
     if not sv then return end
 
-    local width = sv.barWidth or self.defaults.barWidth
-    local height = sv.barHeight or self.defaults.barHeight
+    -- Separate sizes: health bar vs. stamina/magicka bars.
+    -- Falls back to the legacy barWidth/barHeight when the new values are absent.
+    local function Num(value, fallback, default)
+        if type(value) == "number" then return value end
+        if type(fallback) == "number" then return fallback end
+        return default
+    end
+
+    local healthWidth    = Num(sv.healthBarWidth, sv.barWidth, 323)
+    local healthHeight   = Num(sv.healthBarHeight, sv.barHeight, 25)
+    local resourceWidth  = Num(sv.resourceBarWidth, sv.barWidth, 323)
+    local resourceHeight = Num(sv.resourceBarHeight, sv.barHeight, 25)
     local gap = sv.barGap or self.defaults.barGap
-    if type(width) ~= "number" then width = 323 end
-    if type(height) ~= "number" then height = 25 end
     if type(gap) ~= "number" then gap = 112 end
 
     local health = ZO_PlayerAttributeHealth
@@ -181,7 +242,7 @@ function AEAB:ApplyDimensions()
     -- NOTE: ESO controls support AT MOST TWO anchors per control.
     -- Every control below is therefore set up with exactly two anchors.
 
-    local function StretchChildren(container)
+    local function StretchChildren(container, width, height)
         if not container then return end
 
         container:SetDimensions(width, height)
@@ -258,9 +319,9 @@ function AEAB:ApplyDimensions()
         StretchCap(frameRight, "right")
     end
 
-    StretchChildren(health)
-    StretchChildren(magicka)
-    StretchChildren(stamina)
+    StretchChildren(health, healthWidth, healthHeight)
+    StretchChildren(magicka, resourceWidth, resourceHeight)
+    StretchChildren(stamina, resourceWidth, resourceHeight)
 
     -- Optionally keep the three bars centered and evenly spaced for any width.
     -- Disabled by default so the player can position the bars with the game's
@@ -324,13 +385,29 @@ function AEAB:CreateSettingsMenu()
             name = "Health Color",
             tooltip = "Set the color of the health bar",
             getFunc = function() return unpack(self.savedVars.healthColor) end,
-            setFunc = function(r, g, b, a) 
+            setFunc = function(r, g, b, a)
                 self.savedVars.healthColor = {r, g, b, a}
                 self:ApplySettings()
             end,
             width = "full",
             disabled = function() return not self.savedVars.useCustomHealthColor end,
         },
+    --[[    {
+            type = "dropdown",
+            name = "Health Bar Gradient",
+            tooltip = "Choose the gradient tint of the player health bar: red (stock) or blue",
+            choices = { "Red", "Blue" },
+            getFunc = function()
+                if self.savedVars.playerBarGradient == 'blue' then return "Blue" end
+                return "Red"
+            end,
+            setFunc = function(value)
+                self.savedVars.playerBarGradient = (value == "Blue") and 'blue' or 'red'
+                self:ApplySettings()
+            end,
+            width = "full",
+        },
+        ]]
         {
             type = "header",
             name = "Magicka Bar Colors",
@@ -417,35 +494,71 @@ function AEAB:CreateSettingsMenu()
         },
         {
             type = "header",
-            name = "Bar Size",
+            name = "Health Bar Size",
         },
         {
             type = "slider",
-            name = "Bar Width",
-            tooltip = "Set the width of the attribute bars (applies immediately)",
+            name = "Health Bar Width",
+            tooltip = "Set the width of the health bar (applies immediately)",
             min = 200,
             max = 600,
             step = 1,
-            getFunc = function() return self.savedVars.barWidth end,
+            getFunc = function() return self.savedVars.healthBarWidth or self.savedVars.barWidth end,
             setFunc = function(value)
-                self.savedVars.barWidth = value
+                self.savedVars.healthBarWidth = value
                 self:ApplySettings()
             end,
             width = "full",
+            disabled = function() return self.savedVars.staticBarSize == false end,
         },
         {
             type = "slider",
-            name = "Bar Height",
-            tooltip = "Set the height of the attribute bars (applies immediately)",
+            name = "Health Bar Height",
+            tooltip = "Set the height of the health bar (applies immediately)",
             min = 10,
             max = 45,
             step = 1,
-            getFunc = function() return self.savedVars.barHeight end,
+            getFunc = function() return self.savedVars.healthBarHeight or self.savedVars.barHeight end,
             setFunc = function(value)
-                self.savedVars.barHeight = value
+                self.savedVars.healthBarHeight = value
                 self:ApplySettings()
             end,
             width = "full",
+            disabled = function() return self.savedVars.staticBarSize == false end,
+        },
+        {
+            type = "header",
+            name = "Stamina / Magicka Bar Size",
+        },
+        {
+            type = "slider",
+            name = "Stamina/Magicka Bar Width",
+            tooltip = "Set the width of the stamina and magicka bars (applies immediately)",
+            min = 200,
+            max = 600,
+            step = 1,
+            getFunc = function() return self.savedVars.resourceBarWidth or self.savedVars.barWidth end,
+            setFunc = function(value)
+                self.savedVars.resourceBarWidth = value
+                self:ApplySettings()
+            end,
+            width = "full",
+            disabled = function() return self.savedVars.staticBarSize == false end,
+        },
+        {
+            type = "slider",
+            name = "Stamina/Magicka Bar Height",
+            tooltip = "Set the height of the stamina and magicka bars (applies immediately)",
+            min = 10,
+            max = 45,
+            step = 1,
+            getFunc = function() return self.savedVars.resourceBarHeight or self.savedVars.barHeight end,
+            setFunc = function(value)
+                self.savedVars.resourceBarHeight = value
+                self:ApplySettings()
+            end,
+            width = "full",
+            disabled = function() return self.savedVars.staticBarSize == false end,
         },
         {
             type = "checkbox",
@@ -455,6 +568,32 @@ function AEAB:CreateSettingsMenu()
             setFunc = function(value)
                 self.savedVars.repositionBarsOnResize = value
                 self:ApplySettings()
+            end,
+            requiresReload = true,
+            width = "full",
+        },
+        {
+            type = "slider",
+            name = "Bar Gap",
+            tooltip = "Gap between the health bar and the magicka/stamina bars when Auto-Space Attribute Bars is enabled",
+            min = 0,
+            max = 400,
+            step = 1,
+            getFunc = function() return self.savedVars.barGap or 112 end,
+            setFunc = function(value)
+                self.savedVars.barGap = value
+                self:ApplySettings()
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.repositionBarsOnResize end,
+        },
+        {
+            type = "checkbox",
+            name = "Static Bar Size",
+            tooltip = "When enabled (default), the attribute bars are changed to a static, always-expanded size using the width and height settings. When disabled, the bars keep the game's default size and shrink/expand behavior. A reload is required",
+            getFunc = function() return self.savedVars.staticBarSize ~= false end,
+            setFunc = function(value)
+                self.savedVars.staticBarSize = value
             end,
             requiresReload = true,
             width = "full",
@@ -534,6 +673,435 @@ function AEAB:CreateSettingsMenu()
             width = "full",
         },
         {
+            type = "checkbox",
+            name = "Show Elite Difficulty Brackets",
+            tooltip = "When enabled (default), the glowing difficulty brackets appear around the target frame when targeting an elite or boss enemy. Disable to hide them. A reload is required",
+            getFunc = function() return self.savedVars.showTargetEliteBrackets ~= false end,
+            setFunc = function(value)
+                self.savedVars.showTargetEliteBrackets = value
+            end,
+            requiresReload = true,
+            width = "full",
+            disabled = function() return not self.savedVars.enableTargetBarsResizer end,
+        },
+        {
+            type = "slider",
+            name = "Target Bar Width",
+            tooltip = "Set the width of the target health bar (applies immediately)",
+            min = 200,
+            max = 600,
+            step = 1,
+            getFunc = function() return self.savedVars.targetBarWidth end,
+            setFunc = function(value)
+                self.savedVars.targetBarWidth = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyDimensions then m.ApplyDimensions() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableTargetBarsResizer end,
+        },
+        {
+            type = "slider",
+            name = "Target Bar Height",
+            tooltip = "Set the height of the target health bar (applies immediately)",
+            min = 10,
+            max = 45,
+            step = 1,
+            getFunc = function() return self.savedVars.targetBarHeight end,
+            setFunc = function(value)
+                self.savedVars.targetBarHeight = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyDimensions then m.ApplyDimensions() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableTargetBarsResizer end,
+        },
+        {
+            type = "checkbox",
+            name = "Color Target Bar By Reaction",
+            tooltip = "When enabled, the target health bar is colored depending on the target: enemy, neutral, ally, or yourself. The color applies when you target something",
+            getFunc = function() return self.savedVars.targetBarColorByReaction end,
+            setFunc = function(value)
+                self.savedVars.targetBarColorByReaction = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m then
+                    if value and m.ApplyReactionColor then m.ApplyReactionColor() end
+                    if not value then
+                        if m.RestoreReactionColor then m.RestoreReactionColor() end
+                        if m.ApplyGradient then m.ApplyGradient() end
+                    end
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "dropdown",
+            name = "Target Bar Color Source",
+            tooltip = "Custom Colors: use the colors picked below. Game Reaction Colors: use the game's standard reaction colors with the gradient style",
+            choices = { "Custom Colors", "Game Reaction Colors" },
+            getFunc = function()
+                if self.savedVars.targetColorSource == "game" then return "Game Reaction Colors" end
+                return "Custom Colors"
+            end,
+            setFunc = function(value)
+                self.savedVars.targetColorSource = (value == "Game Reaction Colors") and "game" or "custom"
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyReactionColor then m.ApplyReactionColor() end
+            end,
+            width = "full",
+        },
+        {
+            type = "colorpicker",
+            name = "Enemy Target Color",
+            tooltip = "Target bar color while targeting an enemy",
+            getFunc = function() return unpack(self.savedVars.targetEnemyColor) end,
+            setFunc = function(r, g, b, a)
+                self.savedVars.targetEnemyColor = {r, g, b, a}
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyReactionColor then m.ApplyReactionColor() end
+            end,
+            width = "half",
+            disabled = function() return self.savedVars.targetColorSource ~= "custom" or not self.savedVars.targetBarColorByReaction end,
+        },
+        {
+            type = "colorpicker",
+            name = "Neutral Target Color",
+            tooltip = "Target bar color while targeting a neutral unit",
+            getFunc = function() return unpack(self.savedVars.targetNeutralColor) end,
+            setFunc = function(r, g, b, a)
+                self.savedVars.targetNeutralColor = {r, g, b, a}
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyReactionColor then m.ApplyReactionColor() end
+            end,
+            width = "half",
+            disabled = function() return self.savedVars.targetColorSource ~= "custom" or not self.savedVars.targetBarColorByReaction end,
+        },
+        {
+            type = "colorpicker",
+            name = "Ally Target Color",
+            tooltip = "Target bar color while targeting an ally (friendly NPC or player)",
+            getFunc = function() return unpack(self.savedVars.targetAllyColor) end,
+            setFunc = function(r, g, b, a)
+                self.savedVars.targetAllyColor = {r, g, b, a}
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyReactionColor then m.ApplyReactionColor() end
+            end,
+            width = "half",
+            disabled = function() return self.savedVars.targetColorSource ~= "custom" or not self.savedVars.targetBarColorByReaction end,
+        },
+        {
+            type = "colorpicker",
+            name = "Player (Self) Target Color",
+            tooltip = "Target bar color while targeting yourself",
+            getFunc = function() return unpack(self.savedVars.targetPlayerColor) end,
+            setFunc = function(r, g, b, a)
+                self.savedVars.targetPlayerColor = {r, g, b, a}
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyReactionColor then m.ApplyReactionColor() end
+            end,
+            width = "half",
+            disabled = function() return self.savedVars.targetColorSource ~= "custom" or not self.savedVars.targetBarColorByReaction end,
+        },
+        {
+            type = "colorpicker",
+            name = "Player Character Target Color",
+            tooltip = "Target bar color while targeting another player character (overrides the ally/enemy colors for players)",
+            getFunc = function() return unpack(self.savedVars.targetPlayerCharacterColor) end,
+            setFunc = function(r, g, b, a)
+                self.savedVars.targetPlayerCharacterColor = {r, g, b, a}
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyReactionColor then m.ApplyReactionColor() end
+            end,
+            width = "half",
+            disabled = function() return self.savedVars.targetColorSource ~= "custom" or not self.savedVars.targetBarColorByReaction end,
+        },
+        {
+            type = "checkbox",
+            name = "Blue Color for Friendly Players",
+            tooltip = "When enabled, the target health bar uses the white-blue color (the game's reaction color for friendly players, a light blue gradient) when targeting a friendly player, instead of the standard red gradient. This option is the single control for friendly players: enabled = light-blue, disabled = standard red gradient, regardless of the Color Target Bar By Reaction setting",
+            getFunc = function() return self.savedVars.blueForFriendlyPlayers end,
+            setFunc = function(value)
+                self.savedVars.blueForFriendlyPlayers = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m then
+                    if m.ApplyReactionColor then m.ApplyReactionColor() end
+                    if m.ApplyGradient then m.ApplyGradient() end
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "header",
+            name = "Target Font",
+        },
+        {
+            type = "dropdown",
+            name = "Target Font Face",
+            tooltip = "Select the font face for the target frame texts (name, level, caption and numbers). Requires Resize Target Attribute Bars to be enabled",
+            choices = FONT_FACES,
+            getFunc = function() return self.savedVars.targetFontFace end,
+            setFunc = function(value)
+                self.savedVars.targetFontFace = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyFont then m.ApplyFont() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableTargetBarsResizer end,
+        },
+        {
+            type = "slider",
+            name = "Target Font Size",
+            tooltip = "Set the font size for the target frame texts",
+            min = 10,
+            max = 30,
+            step = 1,
+            getFunc = function() return self.savedVars.targetFontSize end,
+            setFunc = function(value)
+                self.savedVars.targetFontSize = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyFont then m.ApplyFont() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableTargetBarsResizer end,
+        },
+        {
+            type = "dropdown",
+            name = "Target Font Style",
+            tooltip = "Select the shadow/outline style for the target frame texts",
+            choices = FONT_STYLES,
+            getFunc = function() return self.savedVars.targetFontStyle end,
+            setFunc = function(value)
+                self.savedVars.targetFontStyle = value
+                local m = AEAB.modules and AEAB.modules.targetBarsResizer
+                if m and m.ApplyFont then m.ApplyFont() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableTargetBarsResizer end,
+        },
+        {
+            type = "header",
+            name = "Unit Frame Numbers",
+        },
+        {
+            type = "checkbox",
+            name = "Enable Unit Frame Numbers",
+            tooltip = "Sub-addon: full numbers (current / max / percent) on the player attribute bars and the boss health bar, with damage absorption ([+N]) and heal absorption ([-N]) display.",
+            getFunc = function() return self.savedVars.enableUnitNumbersModule end,
+            setFunc = function(value)
+                self.savedVars.enableUnitNumbersModule = value
+            end,
+            requiresReload = true,
+            width = "full",
+        },
+        {
+            type = "dropdown",
+            name = "Player Bar Number Format",
+            tooltip = "Number format for the player health / magicka / stamina bars",
+            choices = { "Current / Max", "Current / Max (Percent)", "Current", "Percent" },
+            getFunc = function()
+                if self.savedVars.playerNumberStyle == 'currentmax' then return "Current / Max" end
+                if self.savedVars.playerNumberStyle == 'current' then return "Current" end
+                if self.savedVars.playerNumberStyle == 'percent' then return "Percent" end
+                return "Current / Max (Percent)"
+            end,
+            setFunc = function(value)
+                if value == "Current / Max" then
+                    self.savedVars.playerNumberStyle = 'currentmax'
+                elseif value == "Current" then
+                    self.savedVars.playerNumberStyle = 'current'
+                elseif value == "Percent" then
+                    self.savedVars.playerNumberStyle = 'percent'
+                else
+                    self.savedVars.playerNumberStyle = 'currentmaxpercent'
+                end
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "checkbox",
+            name = "Show Damage Absorption",
+            tooltip = "Append [+N] - the amount absorbed by shields - to the health bar numbers",
+            getFunc = function() return self.savedVars.numbersShowShield end,
+            setFunc = function(value)
+                self.savedVars.numbersShowShield = value
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "checkbox",
+            name = "Show Heal Absorption",
+            tooltip = "Append [-N] - the healing absorbed by Trauma - to the health bar numbers",
+            getFunc = function() return self.savedVars.numbersShowTrauma end,
+            setFunc = function(value)
+                self.savedVars.numbersShowTrauma = value
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "checkbox",
+            name = "Show Target Bar Numbers",
+            tooltip = "Show full numbers on the target health bar",
+            getFunc = function() return self.savedVars.targetShowNumbers end,
+            setFunc = function(value)
+                self.savedVars.targetShowNumbers = value
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "dropdown",
+            name = "Target Bar Number Format",
+            tooltip = "Number format for the target health bar",
+            choices = { "Current / Max", "Current / Max (Percent)", "Current", "Percent" },
+            getFunc = function()
+                if self.savedVars.targetNumberStyle == 'currentmax' then return "Current / Max" end
+                if self.savedVars.targetNumberStyle == 'current' then return "Current" end
+                if self.savedVars.targetNumberStyle == 'percent' then return "Percent" end
+                return "Current / Max (Percent)"
+            end,
+            setFunc = function(value)
+                if value == "Current / Max" then
+                    self.savedVars.targetNumberStyle = 'currentmax'
+                elseif value == "Current" then
+                    self.savedVars.targetNumberStyle = 'current'
+                elseif value == "Percent" then
+                    self.savedVars.targetNumberStyle = 'percent'
+                else
+                    self.savedVars.targetNumberStyle = 'currentmaxpercent'
+                end
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "checkbox",
+            name = "Show Boss Bar Numbers",
+            tooltip = "Show full numbers on the boss health bar",
+            getFunc = function() return self.savedVars.bossShowNumbers end,
+            setFunc = function(value)
+                self.savedVars.bossShowNumbers = value
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "checkbox",
+            name = "Show XP Numbers on Level Bar",
+            tooltip = "Show the current / required XP (percent) inside the player level bar, in the same format as the attribute bars",
+            getFunc = function() return self.savedVars.xpBarShowNumbers end,
+            setFunc = function(value)
+                self.savedVars.xpBarShowNumbers = value
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "dropdown",
+            name = "Boss Bar Number Format",
+            tooltip = "Number format for the boss health bar",
+            choices = { "Current / Max", "Current / Max (Percent)", "Current", "Percent" },
+            getFunc = function()
+                if self.savedVars.bossNumberStyle == 'currentmax' then return "Current / Max" end
+                if self.savedVars.bossNumberStyle == 'current' then return "Current" end
+                if self.savedVars.bossNumberStyle == 'percent' then return "Percent" end
+                return "Current / Max (Percent)"
+            end,
+            setFunc = function(value)
+                if value == "Current / Max" then
+                    self.savedVars.bossNumberStyle = 'currentmax'
+                elseif value == "Current" then
+                    self.savedVars.bossNumberStyle = 'current'
+                elseif value == "Percent" then
+                    self.savedVars.bossNumberStyle = 'percent'
+                else
+                    self.savedVars.bossNumberStyle = 'currentmaxpercent'
+                end
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "dropdown",
+            name = "Boss Bar Thousands Separator",
+            tooltip = "Separator inserted between every 3 digits on the boss health bar: 27856 -> 27,856 or 12345678 -> 12.345.678. Use the global separator below for the player and target bars",
+            choices = { "None", "Comma ( , )", "Period ( . )", "Space", "Apostrophe ( ' )" },
+            getFunc = function()
+                local sep = self.savedVars.bossNumberSeparator
+                if sep == "," then return "Comma ( , )" end
+                if sep == "." then return "Period ( . )" end
+                if sep == " " then return "Space" end
+                if sep == "'" then return "Apostrophe ( ' )" end
+                return "None"
+            end,
+            setFunc = function(value)
+                if value == "Comma ( , )" then
+                    self.savedVars.bossNumberSeparator = ","
+                elseif value == "Period ( . )" then
+                    self.savedVars.bossNumberSeparator = "."
+                elseif value == "Space" then
+                    self.savedVars.bossNumberSeparator = " "
+                elseif value == "Apostrophe ( ' )" then
+                    self.savedVars.bossNumberSeparator = "'"
+                else
+                    self.savedVars.bossNumberSeparator = ""
+                end
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
+            type = "dropdown",
+            name = "Thousands Separator",
+            tooltip = "Separator inserted between every 3 digits in the player and target bar numbers: 27856 -> 27,856 or 12345678 -> 12.345.678",
+            choices = { "None", "Comma ( , )", "Period ( . )", "Space", "Apostrophe ( ' )" },
+            getFunc = function()
+                local sep = self.savedVars.numberSeparator
+                if sep == "," then return "Comma ( , )" end
+                if sep == "." then return "Period ( . )" end
+                if sep == " " then return "Space" end
+                if sep == "'" then return "Apostrophe ( ' )" end
+                return "None"
+            end,
+            setFunc = function(value)
+                if value == "Comma ( , )" then
+                    self.savedVars.numberSeparator = ","
+                elseif value == "Period ( . )" then
+                    self.savedVars.numberSeparator = "."
+                elseif value == "Space" then
+                    self.savedVars.numberSeparator = " "
+                elseif value == "Apostrophe ( ' )" then
+                    self.savedVars.numberSeparator = "'"
+                else
+                    self.savedVars.numberSeparator = ""
+                end
+                local m = AEAB.modules and AEAB.modules.unitNumbers
+                if m and m.Refresh then m.Refresh() end
+            end,
+            width = "full",
+            disabled = function() return not self.savedVars.enableUnitNumbersModule end,
+        },
+        {
             type = "button",
             name = "Reset All Settings",
             tooltip = "Reset all settings to default",
@@ -551,10 +1119,41 @@ function AEAB:CreateSettingsMenu()
                 self.savedVars.fontStyle = "soft-shadow-thick"
                 self.savedVars.barWidth = self.defaults.barWidth
                 self.savedVars.barHeight = self.defaults.barHeight
+                self.savedVars.healthBarWidth = self.defaults.healthBarWidth
+                self.savedVars.healthBarHeight = self.defaults.healthBarHeight
+                self.savedVars.resourceBarWidth = self.defaults.resourceBarWidth
+                self.savedVars.resourceBarHeight = self.defaults.resourceBarHeight
                 self.savedVars.barGap = self.defaults.barGap
                 self.savedVars.repositionBarsOnResize = false
                 self.savedVars.disableMaxResourceChangeEffects = false
                 self.savedVars.enableTargetBarsResizer = false
+                self.savedVars.targetBarWidth = self.defaults.targetBarWidth
+                self.savedVars.targetBarHeight = self.defaults.targetBarHeight
+                self.savedVars.targetBarColorByReaction = false
+                self.savedVars.targetEnemyColor = ZO_DeepTableCopy(self.defaults.targetEnemyColor)
+                self.savedVars.targetNeutralColor = ZO_DeepTableCopy(self.defaults.targetNeutralColor)
+                self.savedVars.targetAllyColor = ZO_DeepTableCopy(self.defaults.targetAllyColor)
+                self.savedVars.targetPlayerColor = ZO_DeepTableCopy(self.defaults.targetPlayerColor)
+                self.savedVars.targetPlayerCharacterColor = ZO_DeepTableCopy(self.defaults.targetPlayerCharacterColor)
+                self.savedVars.targetColorSource = self.defaults.targetColorSource
+                self.savedVars.enableUnitNumbersModule = false
+                self.savedVars.playerNumberStyle = self.defaults.playerNumberStyle
+                self.savedVars.numbersShowShield = self.defaults.numbersShowShield
+                self.savedVars.numbersShowTrauma = self.defaults.numbersShowTrauma
+                self.savedVars.bossShowNumbers = self.defaults.bossShowNumbers
+                self.savedVars.bossNumberStyle = self.defaults.bossNumberStyle
+                self.savedVars.targetShowNumbers = self.defaults.targetShowNumbers
+                self.savedVars.targetNumberStyle = self.defaults.targetNumberStyle
+                self.savedVars.numberSeparator = self.defaults.numberSeparator
+                self.savedVars.bossNumberSeparator = self.defaults.bossNumberSeparator
+                self.savedVars.xpBarShowNumbers = self.defaults.xpBarShowNumbers
+                self.savedVars.targetFontFace = self.defaults.targetFontFace
+                self.savedVars.targetFontSize = self.defaults.targetFontSize
+                self.savedVars.targetFontStyle = self.defaults.targetFontStyle
+                self.savedVars.playerBarGradient = self.defaults.playerBarGradient
+                self.savedVars.blueForFriendlyPlayers = self.defaults.blueForFriendlyPlayers
+                self.savedVars.staticBarSize = self.defaults.staticBarSize
+                self.savedVars.showTargetEliteBrackets = self.defaults.showTargetEliteBrackets
                 self:ApplySettings()
             end,
             requiresReload = true,

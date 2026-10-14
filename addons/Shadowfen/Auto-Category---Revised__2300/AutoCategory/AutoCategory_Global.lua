@@ -14,7 +14,7 @@ local SF = LibSFUtils
  
 AutoCategory = {
     name = "AutoCategory",
-    version = SF.colors.gold("4.6.18"),
+    version = SF.colors.gold("4.7"),
     settingName = "AutoCategory",
     settingDisplayName = SF.colors.gold("AutoCategory - Revised"),
     author = SF.colors.purple("Shadowfen, crafty35, RockingDice, Friday_the13_rus"),
@@ -28,6 +28,7 @@ AutoCategory = {
     rules = {},	--  [#] rule {rkey, name, tag, description, rule, pred, damaged, err}
     ARW = {},
     BulkMode = false,
+    categoryState = {}
 }
 
 -- Create the delayed instantiation logger functor and utility functions for AutoCategory.

@@ -47,6 +47,7 @@ end
 
 -- Без учёта настроек: место платное, открыто, и есть к кому переместиться
 function Route:CanRoute(node)
+    node = Data:Resolve(node)
     if not node or node.isPlayerHouse or Data:IsHouse(node) then return false end
     if QTM.atWayshrine then return false end
     if not Data:GetNodeStatus(node) then return false end
@@ -101,6 +102,8 @@ end
 -- Возвращает: "started", "dialog" или nil (отказ) — как Data:Travel
 ---------------------------------------------------------------------------
 function Route:Request(node)
+    node = Data:Resolve(node)
+    if not node then return nil end
     local block = Data:GetBlockReason(false, true)
     if block then
         Data.Alert(block)

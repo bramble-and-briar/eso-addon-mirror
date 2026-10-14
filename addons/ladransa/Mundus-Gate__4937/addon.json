@@ -18,7 +18,7 @@
     "MundusGate"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4937/",
-  "fingerprint": "c7858b2881ee2b5983d937f28be99c3e17b3fc52b1b4aab0ea3646c81abb958f",
+  "fingerprint": "cc72e5757fe54707012414f5b50bca84dcb01e3ded72ded72cc7b87a9d46b3f6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17861.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17940.jpg",
@@ -35,11 +35,11 @@
   "source_id": "4937",
   "source_url": "https://www.esoui.com/downloads/info4937-MundusGate.html",
   "stats": {
-    "downloads": 70,
+    "downloads": 94,
     "favorites": 0,
-    "monthly_downloads": 38
+    "monthly_downloads": 85
   },
   "title": "Mundus Gate",
-  "updated_at": 1791826097000,
-  "version": "3.1.0"
+  "updated_at": 1791912978000,
+  "version": "3.3.1"
 }

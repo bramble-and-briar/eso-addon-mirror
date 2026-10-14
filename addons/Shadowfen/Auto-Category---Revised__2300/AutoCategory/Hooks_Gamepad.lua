@@ -1,5 +1,5 @@
 --local SF = LibSFUtils
---local AC = AutoCategory
+local AutoCat = AutoCategory
 
 --
 -- ref to ingame/crafting/gamepad/gamepadcraftinginventory.lua
@@ -20,16 +20,14 @@ local function AutoCategory_ItemSortComparator(left, right)
 end
 
 local function ZO_GamepadInventoryList_AddSlotDataToTable(self, slotsTable, inventoryType, slotIndex)
-    local itemFilterFunction = self.itemFilterFunction
-    local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         local itemData = slotData
         local matched, categoryName, categoryPriority, showPriority = AutoCategory:MatchCategoryRules(itemData.bagId, itemData.slotIndex)
         if not matched then
-            itemData.bestItemTypeName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-            itemData.bestGamepadItemCategoryName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-            itemData.sortPriorityName = string.format("%04d%s", 9999 , categoryName) 
+            itemData.bestItemTypeName = AutoCat.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
+            itemData.bestGamepadItemCategoryName = itemData.bestItemTypeName
+            itemData.sortPriorityName = "9999" .. itemData.bestItemTypeName
 
         else
             itemData.bestItemTypeName = categoryName
@@ -52,11 +50,12 @@ local function gci_AddSlotDataToTable1(self, slotsTable, inventoryType, slotInde
             -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
             --slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
 
-            local matched, categoryName, categoryPriority, showPriority = AutoCategory:MatchCategoryRules(slotData.bagId, slotData.slotIndex)
+            local matched, categoryName, categoryPriority, showPriority = AutoCat:MatchCategoryRules(slotData.bagId, slotData.slotIndex)
             if not matched then
-                slotData.bestItemTypeName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-                slotData.bestGamepadItemCategoryName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-                slotData.sortPriorityName = string.format("%04d%s", 9999 , categoryName) 
+				local otherName = AutoCat.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
+                slotData.bestItemTypeName = otherName
+                slotData.bestGamepadItemCategoryName = otherName
+                slotData.sortPriorityName = "9999" .. otherName
 
             else
                 slotData.bestItemTypeName = categoryName
@@ -70,17 +69,10 @@ local function gci_AddSlotDataToTable1(self, slotsTable, inventoryType, slotInde
 end
 
 
---[[ Original code; RockingDice, et.al.
-function AutoCategory.HookGamepadInventory()	
-	ZO_GamepadInventoryList.AddSlotDataToTable = ZO_GamepadInventoryList_AddSlotDataToTable
-	ZO_GamepadInventoryList.sortFunction = AutoCategory_ItemSortComparator
-end
---]]
-
 -- New code; Friday-The13-rus
-function AutoCategory.HookGamepadInventory()
-    local saved = AutoCategory.saved
-    local hookmgr = AutoCategory.hookmgr
+function AutoCat.HookGamepadInventory()
+    local saved = AutoCat.saved
+    local hookmgr = AutoCat.hookmgr
 
 	ZO_GamepadInventoryList.AddSlotDataToTable = ZO_GamepadInventoryList_AddSlotDataToTable
 	ZO_GamepadInventoryList.sortFunction = AutoCategory_ItemSortComparator
@@ -167,11 +159,12 @@ function AutoCategory.HookGamepadInventory()
 				filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(comparator, BAG_BACKPACK, BAG_WORN)
 			end
 			for _, slotData in pairs(filteredDataTable) do
-				local matched, categoryName, categoryPriority, showPriority = AutoCategory:MatchCategoryRules(slotData.bagId, slotData.slotIndex)
+				local matched, categoryName, categoryPriority, showPriority = AutoCat:MatchCategoryRules(slotData.bagId, slotData.slotIndex)
 				if not matched then
-					slotData.bestItemTypeName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-					slotData.bestItemCategoryName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-					slotData.sortPriorityName = string.format("%04d%s", 9999 , categoryName) 
+					local otherName = AutoCat.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
+					slotData.bestItemTypeName = otherName
+					slotData.bestItemCategoryName = otherName
+					slotData.sortPriorityName = "9999" .. otherName
 
 				else
 					slotData.bestItemTypeName = categoryName
@@ -183,7 +176,8 @@ function AutoCategory.HookGamepadInventory()
 		end
 
 		local lastBestItemCategoryName
-		for i, itemData in pairs(filteredDataTable) do
+		--for i, itemData in pairs(filteredDataTable) do
+		for _, itemData in ipairs(filteredDataTable) do
 			local entryData = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
 			entryData:InitializeInventoryVisualData(itemData)
 
@@ -426,13 +420,17 @@ function AutoCategory.HookGamepadInventory()
 		local targetCategoryData = self.categoryList:GetTargetData()
 		if saved.general["EXTENDED_GAMEPAD_SUPPLIES"] == true and IsSuppliesCategory(targetCategoryData) then
 			local selectedItemData = self.currentlySelectedData
+			if not selectedItemData then
+				GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+				return true
+			end
 			local equipSlot = ZO_Character_GetEquipSlotForEquipType(selectedItemData.equipType)
 			if not equipSlot then
 				GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
 				return true
 			end
 			local equipSlotHasItem = select(2, GetEquippedItemInfo(equipSlot))
-			if selectedItemData and (not equipSlotHasItem or self.savedVars.useStatComparisonTooltip) then
+			if not equipSlotHasItem or self.savedVars.useStatComparisonTooltip then
 				GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_RIGHT_TOOLTIP, selectedItemData.bagId, selectedItemData.slotIndex, equipSlot)
 				GAMEPAD_TOOLTIPS:SetStatusLabelText(GAMEPAD_RIGHT_TOOLTIP, GetString(SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE))
 
@@ -446,10 +444,12 @@ function AutoCategory.HookGamepadInventory()
 end
 
 local function gci_AddFilteredDataToList(self, filteredDataTable)
-    table.sort(filteredDataTable, AutoCategory_ItemSortComparator) -- this is different
+	-- Sort by AutoCategory so category headers are grouped correctly.
+    table.sort(filteredDataTable, AutoCategory_ItemSortComparator)
 
     local lastBestItemCategoryName
-    for i, itemData in pairs(filteredDataTable) do
+    --for i, itemData in pairs(filteredDataTable) do
+	for _, itemData in ipairs(filteredDataTable) do
         if itemData.bestItemCategoryName ~= lastBestItemCategoryName then
             lastBestItemCategoryName = itemData.bestItemCategoryName
             itemData:SetHeader(zo_strformat(SI_GAMEPAD_CRAFTING_INVENTORY_HEADER, lastBestItemCategoryName))
@@ -470,11 +470,12 @@ local function gci_GenerateCraftingInventoryEntryData(self, bagId, slotIndex, st
     newData:InitializeCraftingInventoryVisualData(bagId, slotIndex, stackCount, customSortData, self.customBestItemCategoryNameFunction, slotData)
     --Auto Category Modify[
     if slotData then
-        local matched, categoryName, categoryPriority, showPriority = AutoCategory:MatchCategoryRules(slotData.bagId, slotData.slotIndex, AC_BAG_TYPE_CRAFTSTATION)
+        local matched, categoryName, categoryPriority, showPriority = AutoCat:MatchCategoryRules(slotData.bagId, slotData.slotIndex, AC_BAG_TYPE_CRAFTSTATION)
         if not matched then
-            newData.bestItemTypeName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-            newData.bestItemCategoryName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-            newData.sortPriorityName = string.format("%04d%s", 9999 , categoryName) 
+			local otherName = AutoCat.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
+            newData.bestItemTypeName = otherName
+            newData.bestItemCategoryName = otherName
+            newData.sortPriorityName = "9999" .. otherName
 
         else
             newData.bestItemTypeName = categoryName
@@ -482,7 +483,7 @@ local function gci_GenerateCraftingInventoryEntryData(self, bagId, slotIndex, st
             newData.sortPriorityName = string.format("%04d%s", 1000 - showPriority , categoryName) 
         end
     end
-    --Auto Category Modify]
+    --Auto Category Modification
     ZO_InventorySlot_SetType(newData, self.baseSlotType)
 
     if self.customExtraDataFunction then
@@ -492,14 +493,14 @@ local function gci_GenerateCraftingInventoryEntryData(self, bagId, slotIndex, st
     return newData
 end
 
-function AutoCategory.HookGamepadCraftStation()
+function AutoCat.HookGamepadCraftStation()
 --API 100021
 	ZGCI.AddFilteredDataToList = gci_AddFilteredDataToList
 	ZGCI.GenerateCraftingInventoryEntryData = gci_GenerateCraftingInventoryEntryData
 --API 100021
 end
 
-function AutoCategory.HookGamepadTradeInventory() 
+function AutoCat.HookGamepadTradeInventory() 
 	local originalFunction = ZO_GamepadTradeWindow.InitializeInventoryList	
 
 	ZO_GamepadTradeWindow.InitializeInventoryList = function(self) 
@@ -509,39 +510,38 @@ function AutoCategory.HookGamepadTradeInventory()
 	end
 end
 
-function AutoCategory.HookGamepadStore(list)
-	--change item 
-	local originalUpdateFunc = list.updateFunc
-	list.updateFunc = function( ... )
-		local filteredDataTable = originalUpdateFunc(...)
-		--add new fields to item data
-		local tempDataTable = {}
-		for i = 1, #filteredDataTable  do
-			local itemData = filteredDataTable[i]
-			--use custom categories
+function AutoCat.HookGamepadStore(list)
+    local originalUpdateFunc = list.updateFunc
 
-			local matched, categoryName, categoryPriority, showPriority = AutoCategory:MatchCategoryRules(itemData.bagId, itemData.slotIndex)
-			if not matched then
-	            itemData.bestItemTypeName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-	            itemData.bestGamepadItemCategoryName = AutoCategory.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
-	            itemData.sortPriorityName = string.format("%04d%s", 9999 , categoryName) 
+    list.updateFunc = function(...)
+        local filteredDataTable = originalUpdateFunc(...)
 
-			else
-				itemData.bestItemTypeName = categoryName
-				itemData.bestGamepadItemCategoryName = categoryName
-				itemData.sortPriorityName = string.format("%04d%s", 1000 - showPriority , categoryName) 
-			end
+        for i = 1, #filteredDataTable do
+            local itemData = filteredDataTable[i]
 
-	        table.insert(tempDataTable, itemData)
-		end
-		filteredDataTable = tempDataTable
-		return filteredDataTable
-	end
+            local matched, categoryName, _, showPriority =
+                AutoCat:MatchCategoryRules(itemData.bagId, itemData.slotIndex)
 
-	list.sortFunc = AutoCategory_ItemSortComparator
+            if not matched then
+                local otherName = AutoCat.acctSaved.appearance["CATEGORY_OTHER_TEXT"]
+                itemData.bestItemTypeName = otherName
+                itemData.bestGamepadItemCategoryName = otherName
+                itemData.sortPriorityName = "9999" .. otherName
+            else
+                itemData.bestItemTypeName = categoryName
+                itemData.bestGamepadItemCategoryName = categoryName
+                itemData.sortPriorityName =
+                    string.format("%04d%s", 1000 - showPriority, categoryName)
+            end
+        end
+
+        return filteredDataTable
+    end
+
+    list.sortFunc = AutoCategory_ItemSortComparator
 end
 
-function AutoCategory.HookGamepadBanking()
+function AutoCat.HookGamepadBanking()
 	local oldSortParamsFunction = ZO_BankingCommon_Gamepad.GetCurrentSortParams
 	ZO_BankingCommon_Gamepad.GetCurrentSortParams = function (...)
 		local sortKey, sortOptions, sortOrder = oldSortParamsFunction(...)
@@ -552,12 +552,12 @@ function AutoCategory.HookGamepadBanking()
 	end
 end
 
-function AutoCategory.HookGamepadMode() 
-  	AutoCategory.HookGamepadInventory()
-  	AutoCategory.HookGamepadCraftStation()
-  	AutoCategory.HookGamepadStore(STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list)
-	AutoCategory.HookGamepadStore(STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list)
-	AutoCategory.HookGamepadStore(STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list)
-  	AutoCategory.HookGamepadTradeInventory()
-	AutoCategory.HookGamepadBanking()
+function AutoCat.HookGamepadMode() 
+  	AutoCat.HookGamepadInventory()
+  	AutoCat.HookGamepadCraftStation()
+  	AutoCat.HookGamepadStore(STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL].list)
+	AutoCat.HookGamepadStore(STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_SELL_STOLEN].list)
+	AutoCat.HookGamepadStore(STORE_WINDOW_GAMEPAD.components[ZO_MODE_STORE_LAUNDER].list)
+  	AutoCat.HookGamepadTradeInventory()
+	AutoCat.HookGamepadBanking()
 end

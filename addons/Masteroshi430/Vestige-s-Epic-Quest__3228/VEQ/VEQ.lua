@@ -337,9 +337,9 @@ function VEQ.AddNewContent(qindex, qstep, qtext, mytype, qzone, qfocusedzoneval,
 	-- Generate a new box if not exist one
 	VEQ.AddNewUIBox()
  
-	VEQ.box[VEQ.boxmarker]:SetDimensionConstraints(VEQ.SavedVars.BgWidth,-1,VEQ.SavedVars.BgWidth,-1)
+	VEQ.box[VEQ.boxmarker]:SetDimensionConstraints(VEQ.SavedVars.BgWidth, -1, VEQ.SavedVars.BgWidth, -1)
 	VEQ.icon[VEQ.boxmarker]:SetHidden(true)
-	VEQ.textbox[VEQ.boxmarker]:SetDimensionConstraints(VEQ.SavedVars.BgWidth-VEQ.SavedVars.TextPadding,-1,VEQ.SavedVars.BgWidth-VEQ.SavedVars.TextPadding,-1)
+	VEQ.textbox[VEQ.boxmarker]:SetDimensionConstraints(VEQ.SavedVars.BgWidth-VEQ.SavedVars.TextPadding, -1 ,VEQ.SavedVars.BgWidth-VEQ.SavedVars.TextPadding, -1)
 	VEQ.textbox[VEQ.boxmarker]:SetFont(("%s|%s|%s"):format(LMP:Fetch('font', VEQ.SavedVars.TextFont), VEQ.SavedVars.TextSize, VEQ.SavedVars.TextStyle))
  
     local qname = GetJournalQuestName(qindex)
@@ -386,6 +386,7 @@ function VEQ.AddNewContent(qindex, qstep, qtext, mytype, qzone, qfocusedzoneval,
   else
       qjournaltext = ""
   end
+
  
 	if mytype == 2 then 
 		VEQ.textbox[VEQ.boxmarker]:SetText(string.format("%s%s%s", qjournaltext, zo_iconFormatInheritColor("/esoui/art/miscellaneous/gamepad/gp_bullet.dds",10,10), qtext))
@@ -835,7 +836,7 @@ function VEQ.DisplayFocusedMiniQuest()
 			
        -- background texture
 			 if VEQ.textbox[VEQ.boxmarker-1] then
-	        VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+65, (VEQ.textbox[VEQ.boxmarker-1]:GetBottom()-VEQ.main:GetTop())+150) 
+	        VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+(VEQ.main:GetWidth()/5), (VEQ.textbox[VEQ.boxmarker-1]:GetBottom()-VEQ.main:GetTop())+200)
        end
  
 			 BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.textbox[VEQ.boxmarker-1], BOTTOMLEFT, 0, 40) -- move battlegrounds UI at the bottom of VEQ
@@ -1115,7 +1116,7 @@ function VEQ.DisplayFocusedMiniQuest()
 			VEQ.objMiniQuestmarker:SetAnchor(CENTER,VEQ.objMiniQuestmarkerBox,CENTER,0,0)
  
  		  -- background texture 
-		  VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+65, (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop())+200)
+		  VEQ.bgtx:SetDimensions(VEQ.main:GetWidth()+(VEQ.main:GetWidth()/5), (VEQ.objMiniQuestmarkerBox:GetBottom()-VEQ.main:GetTop()) + 250)
 		
 			BATTLEGROUND_HUD_FRAGMENT.control:SetAnchor(TOPLEFT, VEQ.objMiniQuestmarkerBox, BOTTOMLEFT, 0, 80) -- move battlegrounds UI at the bottom of VEQ
 			if ZO_EndDunHUDTracker then
@@ -1493,10 +1494,8 @@ function VEQ.Init(eventCode, addOnName)
 		-- Create the UI boxes
 		-- Main Box
 		VEQ.main = GetControl("VEQ main")
-		VEQ.main:ClearAnchors()
-		--VEQ.main:SetDimensions(200,40)
+    VEQ.main:SetDimensionConstraints(VEQ.SavedVars.BgWidth+10, 500 ,VEQ.SavedVars.BgWidth+10, 500)
 		VEQ.main:SetDrawLayer(1)
-		VEQ.main:SetResizeToFitDescendents(true)
 		VEQ.main:SetAlpha(1)
     
     HUD_MANAGER:RegisterKeyboardElement(VEQ.main, "Vestige's Epic Quest", { defaultAnchor = ZO_Anchor:New(TOPLEFT, nil, TOPLEFT, 200, 200) }, COMPASS_OPTIONS) -- for Keyboard UI 
@@ -1507,16 +1506,15 @@ function VEQ.Init(eventCode, addOnName)
 		VEQ.bg = WM:CreateControl(nil, VEQ.main, CT_STATUSBAR)
 		VEQ.bg:ClearAnchors()
 		VEQ.bg:SetAnchor(TOPLEFT, VEQ.main, TOPLEFT, 0, 0)
-		--VEQ.bg:SetDimensions(200,40)
+    VEQ.bg:SetAnchorFill(VEQ.main) 
 		VEQ.bg:SetDrawLayer(1)
-		VEQ.bg:SetResizeToFitDescendents(true)
 		VEQ.bg:SetDimensionConstraints(VEQ.SavedVars.BgWidth,-1,VEQ.SavedVars.BgWidth,-1)
 		
 
 		-- Journal Infos (number of quests / max quests)
-		VEQ.boxinfos = WM:CreateControl(nil, VEQ.bg , CT_LABEL)
+		VEQ.boxinfos = WM:CreateControl(nil, VEQ.bg , CT_LABEL) 
 		VEQ.boxinfos:ClearAnchors()
-		VEQ.boxinfos:SetAnchor(TOPRIGHT,VEQ.bg,TOPRIGHT,0,0) --VEQ.boxinfos:SetAnchor(TOPRIGHT,VEQ.bg,TOPRIGHT,-5,0)
+		VEQ.boxinfos:SetAnchor(TOPRIGHT, VEQ.bg, TOPRIGHT,0,0) 
 		--VEQ.boxinfos:SetDimensions(40,40)
 		VEQ.boxinfos:SetDrawLayer(4)
 		VEQ.boxinfos:SetMouseEnabled(true)
@@ -1566,8 +1564,8 @@ function VEQ.Init(eventCode, addOnName)
 		-- Backgroud texture
     VEQ.bgtx = WM:CreateControl(nil, VEQ.main, CT_TEXTURE)
     VEQ.bgtx:ClearAnchors()
-    VEQ.bgtx:SetExcludeFromResizeToFitExtents(true) 
-    VEQ.bgtx:SetAnchor(TOPLEFT, VEQ.main, TOPLEFT, -60, -60)
+    VEQ.bgtx:SetExcludeFromResizeToFitExtents(true)
+    VEQ.bgtx:SetAnchor(TOPLEFT, VEQ.main, TOPLEFT, -50, -60)
     VEQ.bgtx:SetDrawTier(0)
     VEQ.bgtx:SetDrawLayer(0)
     VEQ.bgtx:SetDrawLevel(0)

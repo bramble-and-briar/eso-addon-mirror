@@ -159,6 +159,7 @@ function Buttons:UpdateVisibility()
     local sv = QTM.sv
     local hide = not sv.buttonsVisible or (sv.buttonsHideInCombat and IsUnitInCombat("player"))
     self.container:SetHidden(hide)
+    self.container:SetAlpha(QTM.Style.T.buttonsAlpha or 1)
 end
 
 function Buttons:SetLocked(locked)
@@ -202,7 +203,7 @@ function Buttons:OnMouseEnter(control)
     lines[#lines + 1] = "|c7A7A7A" .. (QTM.sv.buttonsLocked and L.BUTTON_HINT_LOCKED or L.BUTTON_HINT) .. "|r"
 
     local side = (control:GetCenter() > GuiRoot:GetWidth() / 2) and LEFT or RIGHT
-    ZO_Tooltips_ShowTextTooltip(control, side, table.concat(lines, "\n"))
+    QTM.ShowTip("buttons", control, side, table.concat(lines, "\n"))
 end
 
 function Buttons:OnMouseExit(control)

@@ -203,5 +203,22 @@ ThiefTools_localization_strings["ru"] = {
 	TT_BINDING_AUTOSTEAL_TOGGLE="Вкл./Выкл Авто-кражу",
 	TT_BINDING_AUTOJUNK_TOGGLE="Вкл./Выкл Авто-пометку мусора",
 	TT_BINDING_LOCK_TOGGLE="Вкл./Выкл блокировку позиции",
-	TT_BINDING_METER_TOGGLE="Вкл./Выкл Счетчик Штрафа",    
+	TT_BINDING_METER_TOGGLE="Вкл./Выкл Счетчик Штрафа",
+
+    -- Text for belt tooltips
+    TT_BELT_KILL = "Атака невиновных",
+    TT_BELT_NOKILL = "Атака невиновных отключена",
+    TT_BELT_AUTOLOOT = "Автоматическое воровство",
+    TT_BELT_FAS_AUTOLOOT = "Фильтруемое автоматическое воровство",
+    TT_BELT_NOAUTOLOOT = "Автоматическое воровство отключено",
+    TT_BELT_VALUE = "Общая стоимость краденых предметов",
+    TT_BELT_FENCE_REMAINS = "Оставшиеся сделки со скупщиком",
+    TT_BELT_LAUNDER_REMAINS = "Оставшиеся сделки по отмыванию краденого",
+    TT_BELT_FENCE_TIMER = "Время до сброса лимита скупщика",
+    TT_BELT_BOUNTY_TIMER = "Время до исчезновения награды за голову",
+    TT_BELT_CURRENT_BOUNTY = "Текущая награда за голову",
+    TT_BELT_CLEMENCY_TIMER = "Доступность помилования",
+    TT_BELT_AVE_VALUE = "Средняя стоимость предмета",
+    TT_BELT_EST_VALUE = "Расчётная общая стоимость",
+    TT_BELT_QUALITY = "Распределение предметов по качеству",
 }

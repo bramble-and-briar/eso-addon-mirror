@@ -1,4 +1,4 @@
-local u="MurfKnickknacks"
+local l="MurfKnickknacks"
 local k="Murf's\194\160Knickknacks"
 local g="MurfKnickknacks_SavedVars"
 local q=2
@@ -21,6 +21,9 @@ multiIconSpeed=1,
 newIconShow=true,
 transmuteShow=true,
 guildMailHide={[1]=false,[2]=false,[3]=false,[4]=false,[5]=false},
+hideLeads="off",
+hideCodexEntries=false,
+antiquarianEye="prompt",
 }
 local function s(e)
 return e[1]==1 and e[2]==1 and e[3]==1
@@ -47,13 +50,13 @@ else
 EsoStrings[SI_COMPASS_PIN_LONG_DISTANCE_FORMATTER]="<<1>>km"
 end
 end
-local f
-local y
-local function m(t)
+local w
+local p
+local function y(t)
 if t=="show"then
-if not f then return end
-COMPASS_FRAME.RefreshVisible=f
-COMPASS_FRAME.SetCompassHidden=y
+if not w then return end
+COMPASS_FRAME.RefreshVisible=w
+COMPASS_FRAME.SetCompassHidden=p
 COMPASS_FRAME:RefreshVisible()
 return
 elseif t=="hide"then
@@ -84,7 +87,7 @@ end
 end
 COMPASS_FRAME:RefreshVisible()
 end
-local function p()
+local function b()
 if TRADING_HOUSE_SEARCH==nil or GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS==nil then return end
 TRADING_HOUSE_SEARCH:ChangeSort(TRADING_HOUSE_SORT_TYPE_TIME,ZO_SORT_ORDER_DOWN)
 local e=GAMEPAD_TRADING_HOUSE_BROWSE_RESULTS.sortHeaderGroup
@@ -116,14 +119,14 @@ o.mapMin=i
 o.mapMax=t
 o:RefreshZoom()
 end
-a.AddZoomDeltaGamepad=function(t,a,s)
-local o=2
-local i=2*e.mapZoomSpeed
-local n=t.targetNormalizedZoom or t.currentNormalizedZoom
+a.AddZoomDeltaGamepad=function(t,a,n)
+local s=2
+local o=2*e.mapZoomSpeed
+local i=t.targetNormalizedZoom or t.currentNormalizedZoom
 local e=t.mapMax-t.mapMin
-local o=a*zo_max(i,e/o)
+local o=a*zo_max(o,e/s)
 local e=e>0 and(o/e)or 0
-local e=zo_clamp(n+s*e,0,1)
+local e=zo_clamp(i+n*e,0,1)
 t:SetLockedNormalizedZoom(e,ZO_WorldMapScroll:GetCenter())
 if a>0 and t.canZoomInFurther then
 PlaySound(SOUNDS.MAP_ZOOM_IN)
@@ -140,7 +143,7 @@ e:SetMapZoomMinMax(e.mapMin,e.mapMax)
 end
 end
 local a
-local function r()
+local function u()
 if not a then
 a=ZO_GetPlatformDisplayNameIcon
 end
@@ -152,11 +155,12 @@ end
 end
 local o
 local a
-local l
-local w="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_can_learn.dds"
-local b="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_locked_set_piece.dds"
-local j="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_retrait_icon.dds"
-local v="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_reconstruct_icon.dds"
+local r
+local m
+local j="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_can_learn.dds"
+local v="EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_locked_set_piece.dds"
+local f="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_retrait_icon.dds"
+local x="EsoUI/Art/Inventory/Gamepad/gp_inventory_trait_reconstruct_icon.dds"
 local function c()
 local o=ZO_MultiIconAnimation_OnStop
 function ZO_MultiIconAnimation_OnStop(t)
@@ -175,31 +179,35 @@ o=ZO_MultiIcon_Initialize
 end
 ZO_MultiIcon_Initialize=function(t)
 o(t)
-if not l then
-l=t.AddIcon
+if not m then
+m=t.AddIcon
 end
 t.AddIcon=function(o,t,a,i)
-if t==w then
+if t==j then
 if not e.canLearnShow then return end
 a=ZO_ColorDef:New(e.canLearnColor[1],e.canLearnColor[2],e.canLearnColor[3],1)
-elseif t==b then
+elseif t==v then
 if not e.lockedSetShow then return end
 a=ZO_ColorDef:New(e.lockedSetColor[1],e.lockedSetColor[2],e.lockedSetColor[3],1)
-elseif t==j then
+elseif t==f then
 if not e.transmuteShow then return end
-elseif t==v then
+elseif t==x then
 if not e.transmuteShow then return end
 end
-l(o,t,a,i)
+m(o,t,a,i)
 end
 end
 end
-local function l()
+local function f()
 if not a then
 a=ZO_GamepadEntryData.IsNew
 end
+if not r then
+r=ZO_GamepadEntryData.CanLevel
+end
 if e.newIconShow then
 ZO_GamepadEntryData.IsNew=a
+ZO_GamepadEntryData.CanLevel=r
 else
 ZO_GamepadEntryData.IsNew=function(e)
 if e.text==GetString(SI_MAIN_MENU_SOCIAL)or e.text==GetString(SI_SOCIAL_MENU_MAIL)then
@@ -208,11 +216,11 @@ else
 return false
 end
 end
-end
 ZO_GamepadEntryData.CanLevel=function(e)return false end
 end
+end
 local a
-local function w()
+local function v()
 if a then return end
 a=MAIL_MANAGER.HasDeletedGuildMail
 MAIL_MANAGER.HasDeletedGuildMail=function(i,t)
@@ -224,6 +232,51 @@ return a(i,t)
 end
 end
 end
+local a
+local function r()
+if not a then
+a=DoesAntiquityPassVisibilityRequirements
+end
+if e.hideLeads=="off"and not e.hideCodexEntries then
+DoesAntiquityPassVisibilityRequirements=a
+else
+DoesAntiquityPassVisibilityRequirements=function(t)
+if ZO_IsAntiquityScryableSubcategory(ANTIQUITY_JOURNAL_GAMEPAD:GetCurrentSubcategoryData())then
+if e.hideLeads=="previously discovered"then
+return GetNumAntiquitiesRecovered(t)==0
+elseif e.hideLeads=="full codex"then
+return GetNumAntiquityLoreEntriesAcquired(t)<GetNumAntiquityLoreEntries(t)
+end
+else
+if e.hideCodexEntries then
+return GetNumAntiquityLoreEntriesAcquired(t)<GetNumAntiquityLoreEntries(t)
+end
+end
+return a(t)
+end
+end
+end
+local a
+local function m()
+local t=ZO_COLLECTIBLE_DATA_MANAGER:GetCollectibleDataById(GetAntiquityScryingToolCollectibleId())
+if not a then
+a=t.GetCooldownAndDurationMs
+end
+if e.antiquarianEye=="prompt"then
+t.GetCooldownAndDurationMs=a
+else
+t.GetCooldownAndDurationMs=function(o)
+local t,a=a(o)
+if t<=0 then
+t=1
+if e.antiquarianEye=="when available"and IsGameCameraActive()and not IsGameCameraUIModeActive()then
+o:Use()
+end
+end
+return t,a
+end
+end
+end
 local o={
 ["Compass"]={"bossBar","nearDistanceShow","nearDistanceColor","farDistanceShow","farDistanceColor"},
 ["Guild Store"]={"guildStoreTimeSort"},
@@ -231,31 +284,39 @@ local o={
 ["Icon Tweaks"]={"platformShow","canLearnShow","canLearnColor","lockedSetShow","lockedSetColor",
 "multiIconSpeed","newIconShow","transmuteShow"},
 ["Guild Mail"]={"guildMailHide"},
+["Antiquities"]={"hideLeads","hideCodexEntries","antiquarianEye"},
 }
-local function b()
+local function x()
 local a=LibHarvensAddonSettings.list.currentSection
 local a=a and a.labelText
 local o=o[a]
 if not o then return end
-for o,a in ipairs(o)do e[a]=t[a]end
+for o,a in ipairs(o)do
+local t=t[a]
+if type(t)=="table"then t=ZO_ShallowTableCopy(t)end
+e[a]=t
+end
 if a=="Compass"then
-m(e.bossBar)
+y(e.bossBar)
 n()
 elseif a=="Map Zoom"then
 h()
 elseif a=="Icon Tweaks"then
-r()
+u()
 i()
 c()
-l()
+f()
+elseif a=="Antiquities"then
+r()
+m()
 end
 end
-local function v()
+local function j()
 local a=LibHarvensAddonSettings
 local o=a:AddAddon(k,{
 allowDefaults=true,
 allowRefresh=true,
-defaultsFunction=b,
+defaultsFunction=x,
 })
 o:AddSetting({
 type=a.ST_SECTION,
@@ -273,7 +334,7 @@ return e.bossBar
 end,
 setFunction=function(a,a,t)
 e.bossBar=t.data
-m(t.data)
+y(t.data)
 end,
 })
 o:AddSetting({
@@ -300,8 +361,8 @@ type=a.ST_COLOR,
 label="Text Color (Near)",
 tooltip="Color of the distance on the compass when a target is nearby.",
 setFunction=function(...)
-local a,o,t=...
-e.nearDistanceColor={a,o,t}
+local t,o,a=...
+e.nearDistanceColor={t,o,a}
 n()
 end,
 default=t.nearDistanceColor,
@@ -331,8 +392,8 @@ type=a.ST_COLOR,
 label="Text Color (Far)",
 tooltip="Color of the distance on the compass when a target is far away.",
 setFunction=function(...)
-local o,a,t=...
-e.farDistanceColor={o,a,t}
+local a,o,t=...
+e.farDistanceColor={a,o,t}
 n()
 end,
 default=t.farDistanceColor,
@@ -357,7 +418,7 @@ return e.guildStoreTimeSort
 end,
 setFunction=function(t)
 e.guildStoreTimeSort=t
-if t then p()end
+if t then b()end
 end,
 })
 o:AddSetting({
@@ -408,7 +469,7 @@ default=t.platformShow,
 ignoreDefault=true,
 setFunction=function(t)
 e.platformShow=t
-r()
+u()
 end,
 getFunction=function()
 return e.platformShow
@@ -433,8 +494,8 @@ type=a.ST_COLOR,
 label="Color (Can Learn)",
 tooltip="Color of the icon for items that can be learned. Changes will be applied on next login.",
 setFunction=function(...)
-local t,a,o=...
-e.canLearnColor={t,a,o}
+local a,t,o=...
+e.canLearnColor={a,t,o}
 i()
 end,
 default=t.canLearnColor,
@@ -463,8 +524,8 @@ type=a.ST_COLOR,
 label="Color (Uncollected Gear)",
 tooltip="Color of the icon for gear that can be added to your sets collection. Changes will be applied on next login.",
 setFunction=function(...)
-local o,a,t=...
-e.lockedSetColor={o,a,t}
+local a,o,t=...
+e.lockedSetColor={a,o,t}
 i()
 end,
 default=t.lockedSetColor,
@@ -480,9 +541,9 @@ label="Apply Classic colors",
 tooltip="Use classic colors for the above icons.",
 buttonText="Apply",
 clickHandler=function(t,t)
-local a,o,t=ZO_SUCCEEDED_TEXT:UnpackRGBA()
-e.canLearnColor={a,o,t}
-e.lockedSetColor={a,o,t}
+local t,o,a=ZO_SUCCEEDED_TEXT:UnpackRGBA()
+e.canLearnColor={t,o,a}
+e.lockedSetColor={t,o,a}
 i()
 end,
 })
@@ -510,7 +571,7 @@ default=t.newIconShow,
 ignoreDefault=true,
 setFunction=function(t)
 e.newIconShow=t
-l()
+f()
 end,
 getFunction=function()return e.newIconShow end,
 })
@@ -546,31 +607,81 @@ default=t.guildMailHide[i],
 ignoreDefault=true,
 setFunction=function(t)
 e.guildMailHide[i]=t
-w()
+v()
 end,
 getFunction=function()
 return e.guildMailHide[i]
 end,
 })
 end
+o:AddSetting({
+type=a.ST_SECTION,
+label="Antiquities",
+})
+o:AddSetting({
+type=a.ST_DROPDOWN,
+label="Hide Leads",
+tooltip="Hide antiquity leads that you don't want to scry.",
+default=t.hideLeads,
+ignoreDefault=true,
+items={{name="off",data="off"},{name="previously discovered",data="previously discovered"},{name="full codex",data="full codex"}},
+getFunction=function()
+return e.hideLeads
+end,
+setFunction=function(a,a,t)
+e.hideLeads=t.data
+r()
+end,
+})
+o:AddSetting({
+type=a.ST_CHECKBOX,
+label="Hide Full Codex Entries",
+tooltip="Hide codex entries that are already complete.",
+default=t.hideCodexEntries,
+ignoreDefault=true,
+getFunction=function()
+return e.hideCodexEntries
+end,
+setFunction=function(t)
+e.hideCodexEntries=t
+r()
+end,
+})
+o:AddSetting({
+type=a.ST_DROPDOWN,
+label="Antiquarian's Eye",
+tooltip="Hide the prompt when entering a dig site. Optionally while exploring, use the eye when available.",
+default=t.antiquarianEye,
+ignoreDefault=true,
+items={{name="prompt",data="prompt"},{name="no prompt",data="no prompt"},{name="when available",data="when available"}},
+getFunction=function()
+return e.antiquarianEye
+end,
+setFunction=function(a,a,t)
+e.antiquarianEye=t.data
+m()
+end,
+})
 end
 local function a(o,a)
-if a~=u then return end
-EVENT_MANAGER:UnregisterForEvent(u,EVENT_ADD_ON_LOADED)
-f=COMPASS_FRAME.RefreshVisible
-y=COMPASS_FRAME.SetCompassHidden
+if a~=l then return end
+EVENT_MANAGER:UnregisterForEvent(l,EVENT_ADD_ON_LOADED)
+w=COMPASS_FRAME.RefreshVisible
+p=COMPASS_FRAME.SetCompassHidden
 e=ZO_SavedVars:NewAccountWide(g,q,GetWorldName(),t)
-v()
-if e.bossBar~=t.bossBar then m(e.bossBar)end
+j()
+if e.bossBar~=t.bossBar then y(e.bossBar)end
 if not(e.nearDistanceShow and e.farDistanceShow
 and s(e.nearDistanceColor)
 and s(e.farDistanceColor))then n()end
-if e.guildStoreTimeSort~=t.guildStoreTimeSort then p()end
+if e.guildStoreTimeSort~=t.guildStoreTimeSort then b()end
 if e.mapZoomFactor~=t.mapZoomFactor or e.mapZoomSpeed~=t.mapZoomSpeed then h()end
-if e.platformShow~=t.platformShow then r()end
+if e.platformShow~=t.platformShow then u()end
 if not(e.canLearnShow==t.canLearnShow and s(e.canLearnColor)and e.lockedSetShow==t.lockedSetShow and s(e.lockedSetColor)and e.transmuteShow==t.transmuteShow)then i()end
 if e.multiIconSpeed~=t.multiIconSpeed then c()end
-if e.newIconShow~=t.newIconShow then l()end
-if not ZO_AreNumericallyIndexedTablesEqual(e.guildMailHide,t.guildMailHide)then w()end
+if e.newIconShow~=t.newIconShow then f()end
+if not ZO_AreNumericallyIndexedTablesEqual(e.guildMailHide,t.guildMailHide)then v()end
+if e.hideLeads~=t.hideLeads or e.hideCodexEntries~=t.hideCodexEntries then r()end
+if e.antiquarianEye~=t.antiquarianEye then m()end
 end
-EVENT_MANAGER:RegisterForEvent(u,EVENT_ADD_ON_LOADED,a)
+EVENT_MANAGER:RegisterForEvent(l,EVENT_ADD_ON_LOADED,a)

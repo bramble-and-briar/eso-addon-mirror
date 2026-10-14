@@ -5,13 +5,26 @@ function CMA:DetermineItemAction(bag, slotIndex)
     local itemType, specializedItemType = GetItemType(bag, slotIndex)
 
     -- TODO: Turn on for Item-Identification
-    local i = GetItemLink(bag, slotIndex)
-    local id = GetItemLinkItemId(itemLink)
-    self:SendChatMessage(i)
-    self:SendChatMessage("id: " .. id)
-    self:SendChatMessage("itemType: " .. itemType)
-    if specializedItemType ~= null then
-        self:SendChatMessage("specializedItemType: " .. specializedItemType)
+    -- local i = GetItemLink(bag, slotIndex)
+    -- local id = GetItemLinkItemId(i)
+    -- self:SendChatMessage(i)
+    -- self:SendChatMessage("id: " .. id)
+    -- self:SendChatMessage("itemType: " .. itemType)
+    -- if specializedItemType ~= null then
+    --     self:SendChatMessage("specializedItemType: " .. specializedItemType)
+    -- end
+
+    -- check if customized rules is active
+    if self.db.activateCustomRules then
+       -- get the item id of the current item
+        local itemId = GetItemId(bag, slotIndex)
+        -- iterate over all rules in the custom rules table
+        for k, v in pairs(self.customItemRuleTable) do
+            if tonumber(k) == itemId then
+                -- item found in table, return the persisted action
+                return self.simpleMaterialDecisionMap[v[3]]
+            end
+        end
     end
 
     -- handle the categories only having an on|off state

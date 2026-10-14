@@ -51,6 +51,7 @@ local function current_round()
 end
 
 local function read_score(i, stype, round)
+    if stype == nil then return 0 end
     local A = BGMeter.zenimax.api
     local v = safe(A.get_entry_cumulative, i, stype, round)
     if v == nil then v = safe(A.get_entry_score, i, stype, round) end
@@ -125,6 +126,11 @@ function Capture.read_battle(m)
         row.defPts      = read_score(i, C.SCORE_TRACKER_TYPE_CAPTURE_DEFENSE_POINTS, round)
         row.carried     = read_score(i, C.SCORE_TRACKER_TYPE_FLAG_CARRIED_TIME, round)
         row.carrierKills = read_score(i, C.SCORE_TRACKER_TYPE_KILLED_FLAG_CARRIER, round)
+        row.capKillAtt  = read_score(i, C.SCORE_TRACKER_TYPE_CAPTURE_KILLED_ATTACKER, round)
+        row.capKillDef  = read_score(i, C.SCORE_TRACKER_TYPE_CAPTURE_KILLED_DEFENDER, round)
+        row.carrierDmg  = read_score(i, C.SCORE_TRACKER_TYPE_DAMAGED_FLAG_CARRIER, round)
+        row.carrierHeal = read_score(i, C.SCORE_TRACKER_TYPE_HEALED_FLAG_CARRIER, round)
+        row.defHeal     = read_score(i, C.SCORE_TRACKER_TYPE_HEALING_DEFENDERS, round)
         row.medals, row.medalIds, row.medalCounts = count_entry_medals(i, round)
         m.battle[#m.battle + 1] = row
     end

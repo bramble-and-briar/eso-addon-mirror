@@ -18,7 +18,7 @@
     "MiniMap"
   ],
   "download_url": "https://www.esoui.com/downloads/dl3384/",
-  "fingerprint": "76fb1fe608a79d7e3cee9ded7921c9c7e3e1127020ab540c8d27fd3c9e8d5669",
+  "fingerprint": "52435cdded9c0ab092692ec0a834e11f1b1e642f2f1eea43ce08eb263839c54f",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw12275.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw11995.jpg",
@@ -37,11 +37,11 @@
   "source_id": "3384",
   "source_url": "https://www.esoui.com/downloads/info3384-MiniMapbyFyrakinMasteroshi430sbranch.html",
   "stats": {
-    "downloads": 1435703,
-    "favorites": 426,
-    "monthly_downloads": 5694
+    "downloads": 1440706,
+    "favorites": 428,
+    "monthly_downloads": 8755
   },
   "title": "MiniMap by Fyrakin [Masteroshi430's branch]",
-  "updated_at": 1790582766000,
-  "version": "2026.09.28"
+  "updated_at": 1791960239000,
+  "version": "2026.10.14"
 }

@@ -18,7 +18,7 @@
     "UITweaks"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4524/",
-  "fingerprint": "5abdfd262c35f9575327490240c80494e316f3a8d42e077df4faacd10e57338a",
+  "fingerprint": "e0404ba0ba2648eda8f44499d06fc274d6e7b343f1120538fb1dde67b7ca4a3b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17778.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4524",
   "source_url": "https://www.esoui.com/downloads/info4524-UITweaks.html",
   "stats": {
-    "downloads": 939,
+    "downloads": 1017,
     "favorites": 4,
-    "monthly_downloads": 128
+    "monthly_downloads": 187
   },
   "title": "UI Tweaks",
-  "updated_at": 1791362838000,
-  "version": "2.5"
+  "updated_at": 1791947107000,
+  "version": "2.6"
 }

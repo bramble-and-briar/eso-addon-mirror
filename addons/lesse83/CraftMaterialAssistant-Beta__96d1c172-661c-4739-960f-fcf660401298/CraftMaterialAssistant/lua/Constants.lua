@@ -1,6 +1,6 @@
 CraftMaterialAssistant = CraftMaterialAssistant or {
     name = "CraftMaterialAssistant",
-    version = "1.0.3",
+    version = "1.0.6",
     savedVarsName = "CraftMaterialAssistantSavedVars",
     variableVersion = 1
 }
@@ -66,6 +66,8 @@ CMA.savedVarsDefaults = {
     actionKnownTraitItems = "Sell",
     initialDelayInMs = 3000,
     autoSellJunk = true,
+    activateCustomRules = false,
+    serializedCustomItemRules = "{}",
     -- quality thresholds
     bankQualityThresholdBlacksmithing = "Grey",
     bankQualityThresholdClothing = "Grey",
@@ -138,6 +140,18 @@ CMA.targetBag = BAG_BANK
 
 -- the source bag (for now only the characters backpack)
 CMA.sourceBag = BAG_BACKPACK
+
+-- the list of custom item rules
+CMA.customItemRuleTable = {}
+
+-- the list of custom item rule names displayed in the setting dropdown
+CMA.customItemRuleDropdownNames = {}
+
+-- the list of custom item rule values used as dropdown value
+CMA.customItemRuleDropdownValues = {}
+
+-- the active selection in the custom item rules settings dropdown 
+CMA.customItemRuleSelection = nil
 
 -- Blacksmithing Material Tiers indexed by ItemId
 CMA.blacksmithingTierInfo = "\nTier 1: Gear Level 1\nTier 2: Gear Level 16\nTier 3: Gear Level 26\nTier 4: Gear Level 36\nTier 5: Gear Level 46\nTier 6: Gear Level CP10\nTier 7: Gear Level CP40\nTier 8: Gear Level CP70\nTier 9: Gear Level CP90\nTier 10: Gear Level CP150\n11: Bank none"
@@ -328,7 +342,7 @@ CMA.provisioningTopLevelWritIngredientsMap = {
     [27048] = { name = "Metheglin"},
     [27052] = { name = "Ginger"},
     [34329] = { name = "Barley"},
-    [27055] = { name = "Ginkgo"}
+    [34346] = { name = "Ginkgo"}
 }
 
 -- traitType index lookup map
@@ -371,8 +385,9 @@ CMA.researchLineIndexEquipTypeMap = {
     [EQUIP_TYPE_LEGS] = 12,
     [EQUIP_TYPE_SHOULDERS] = 13,
     [EQUIP_TYPE_WAIST] = 14,
-    [EQUIP_TYPE_NECK] = 1,
-    [EQUIP_TYPE_RING] = 2
+    [EQUIP_TYPE_RING] = 1,
+    [EQUIP_TYPE_NECK] = 2,
+    [EQUIP_TYPE_OFF_HAND] = 6
 }
 
 -- mapping weaponType to research line index
@@ -388,5 +403,6 @@ CMA.researchLineIndexWeaponTypeMap = {
     [WEAPONTYPE_FIRE_STAFF] = 2,
     [WEAPONTYPE_FROST_STAFF] = 3,
     [WEAPONTYPE_LIGHTNING_STAFF] = 4,
-    [WEAPONTYPE_HEALING_STAFF] = 5
+    [WEAPONTYPE_HEALING_STAFF] = 5,
+    [WEAPONTYPE_SHIELD] = 6
 }

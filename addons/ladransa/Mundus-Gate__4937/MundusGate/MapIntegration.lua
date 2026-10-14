@@ -143,7 +143,7 @@ function MapIntegration:InstallTooltip()
 
     local original = tooltip.AppendWayshrineTooltip
     tooltip.AppendWayshrineTooltip = function(self, pin)
-        local addLines = not IsInGamepadPreferredMode() and CostReplacement(pin)
+        local addLines = not IsInGamepadPreferredMode() and QTM.TipsEnabled("mapPins") and CostReplacement(pin)
         if not addLines then
             return original(self, pin)
         end

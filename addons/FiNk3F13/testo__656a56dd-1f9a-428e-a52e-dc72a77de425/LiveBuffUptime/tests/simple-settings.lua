@@ -16,8 +16,9 @@ for _, setting in ipairs(env.panel.descriptors) do
     assert(not removed[setting.label], setting.label)
     if setting.label == "Einheit" then
         selectors = selectors + 1
-        assert(#setting.items == 2)
+        assert(#setting.items == 3)
         assert(setting.items[1].data == "player" and setting.items[2].data == "group")
+        assert(setting.items[3].data == "dds")
     end
 end
 assert(selectors == 3)

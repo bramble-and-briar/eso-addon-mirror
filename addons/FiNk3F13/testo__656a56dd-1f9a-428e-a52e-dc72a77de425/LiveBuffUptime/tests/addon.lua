@@ -1,6 +1,7 @@
 local clock = 0
 if not LiveBuffUptimePerformance then dofile("Performance.lua") end
 if not LiveBuffUptimeBuffDebug then dofile("BuffDebug.lua") end
+if not LiveBuffUptimeReports then dofile("BuffReports.lua") end
 local combat = false
 local targetExists = false
 local buffs = { player = {}, reticleover = {} }

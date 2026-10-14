@@ -142,6 +142,7 @@ AutoCategory_localization_strings["ru"] = {
     SI_AC_MENU_SUBMENU_GENERAL_SETTING = "|c0066FF[Основные настройки]|r",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE = "Показывать сообщение при включении/выключении",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE_TOOLTIP = "Будет показывать сообщение в чате при включении/выключении аддона.",
+    SI_AC_MENU_GS_HEADER_CATEGORY = "Отображение категорий:",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT = "Показывать количество предметов в категории",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT_TOOLTIP = "Показывает количество предметов в категории после названия категории",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_COLLAPSE_ICON = "Показывать иконку сворачивания категории",
@@ -150,6 +151,8 @@ AutoCategory_localization_strings["ru"] = {
     SI_AC_MENU_GS_CHECKBOX_SAVE_CATEGORY_COLLAPSE_STATUS_TOOLTIP = "Сохраняет состояние категорий свернуто/развернуто после выхода или закрытия игры.",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE = "Показывать 'Комплект(название)' для автокомплектов",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE_TOOLTIP = "Показывает 'Комплект(название)' вместо 'название' в инвентаре для автокомплектов",
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY = "Срок хранения состояния свёрнутых категорий", 
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY_TOOLTIP = "Как долго помнить свёрнутые категории после того, как они исчезнут из ваших сумок.",
 
     -- Gamepad Settings strings
     SI_AC_MENU_SUBMENU_GAMEPAD_SETTING = "|c0066FF[Настройки для геймпада]|r |c65000b(Только для геймпада)|r",

@@ -33,8 +33,8 @@ local FLAG_ICONS = {
     caps    = "EsoUI/Art/MapPins/battlegrounds_capturePoint_pin_neutral.dds",
     carried = "esoui/art/icons/mapkey/mapkey_bg_murderball.dds",
 }
-local HEADER_ICON = 24
-local ROWS_TOP = 30
+local HEADER_ICON = 26
+local ROWS_TOP = 32
 local Grid = BGMeter.UI.Grid
 local caps_shown = false
 local FACE_ICON = "EsoUI/Art/Help/help_tabIcon_overview_up.dds"
@@ -57,7 +57,7 @@ end
 
 local INDEX_X, ICON_X, NAME_X = 6, 24, 50
 local BAR_X, BAR_RIGHT = 50, 6
-local GRID_TOP = 26
+local GRID_TOP = 28
 
 local function tint(icon, color)
     icon:SetColor(color[1], color[2], color[3], 1)
@@ -459,12 +459,14 @@ function W._make_row(parent)
             BGMeter.Log.debug("row enter: %s", tostring(row.prow and (row.prow.displayName or row.prow.charName) or "?"))
         end
         P.set_rect_color(row.highlight, { 1, 1, 1, K.ALPHA.row_hover })
+        if U.profile_hover then U.profile_hover(row.prow) end
         if row.face and U.card_show then
             U.card_show(row.container, BOTTOM, Faces.brief(row.face))
         end
     end)
     row.container:SetHandler("OnMouseExit", function()
         P.set_rect_color(row.highlight, row.baseHL or { 0, 0, 0, 0 })
+        if U.profile_hover then U.profile_hover(nil) end
         if row.face and U.card_hide then U.card_hide() end
     end)
     return row

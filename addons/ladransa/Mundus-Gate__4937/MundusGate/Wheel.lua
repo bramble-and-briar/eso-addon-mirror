@@ -111,7 +111,7 @@ local function EntryName(node, available, reason)
             status = "|cFF6060" .. block .. "|r"
         else
             local text, _, _, isRoute = Data:GetDisplayPrice(node, "Wheel")
-            status = isRoute and ("|c5DC1E8" .. text .. "|r |c9A9A9A(" .. L.ROUTE_SHORT .. ")|r") or text
+            status = isRoute and ("|c" .. QTM.Style.Hex(QTM.Style.ICE) .. "" .. text .. "|r |c9A9A9A(" .. L.ROUTE_SHORT .. ")|r") or text
         end
     else
         status = "|cFF6060" .. (reason or "") .. "|r"

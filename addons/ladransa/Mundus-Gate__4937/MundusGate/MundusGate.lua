@@ -3,7 +3,7 @@ local QTM = MundusGate
 local L   = QTM.L
 
 QTM.name    = "MundusGate"
-QTM.version = "3.1.0"
+QTM.version = "3.3.1"
 QTM.author  = "ladransa"
 QTM.contact = "@Watter_Mellon322"   -- кому приходят донаты и отзывы
 
@@ -17,7 +17,6 @@ QTM.defaults = {
     showUnavailable = true,
     houseOutside    = false,
     mapEntry        = true,
-    showAtWayshrine = true,    -- открывать меню поверх карты у святилища
     freeViaFriends  = true,    -- бесплатно через друга в нужной локации
     freeViaGuild    = true,    -- бесплатно через согильдийца в нужной локации
     freeViaGroup    = true,    -- на карте: бесплатно у святилища рядом с членом группы
@@ -36,6 +35,15 @@ QTM.defaults = {
     questTracker    = true,    -- панель заданий Mundus Gate на экране
     hideGameTracker = true,    -- прятать стандартную панель заданий игры, пока включена своя
     trackerLocked   = false,   -- панель заданий нельзя перетаскивать
+    trackerStyle    = "full",  -- вид панели заданий: "full" (карточки) или "simple" (как у игры)
+    trackerShowAll  = false,   -- простая панель: все задания журнала, а не только главное и закреплённые
+    trackerCollapsed = {},     -- свёрнутые разделы простой панели заданий
+    theme           = {},      -- цветовая тема: только изменённые значения (см. Style.THEME_DEFAULTS)
+    themePreset     = "default",
+    settingsPreview = true,    -- показывать панели рядом с настройками аддона, пока они открыты
+    tooltips        = {},      -- [раздел] = false — подсказки при наведении в этом разделе выключены
+    guildHalls      = {},      -- [guildId] = { owner = "@игрок", houseId = номер дома или nil }
+    traderShrines   = {},      -- [название торговца] = nodeIndex святилища, выбранного вручную
     questPins       = {},      -- закреплённые пункты: "q:<id задания>", "p:<кампания>:<номер>", "t:<id>"
     questCollapsed  = {},      -- свёрнутые разделы вкладки «Задания»
     questDoneOpen   = {},      -- развёрнутые группы «Выполнено» (стремления, фолиант)
@@ -62,6 +70,20 @@ QTM.defaults = {
 -- Стоит ли игрок прямо сейчас у святилища (тогда перемещение бесплатное)
 QTM.atWayshrine        = false
 QTM.wayshrineNodeIndex = nil
+
+-- Подсказки при наведении: у каждого раздела своя галочка в настройках.
+-- category: "menu", "buttons", "mapPanel", "mapPins", "infoPanel", "tracker", "windows", "guild"
+function QTM.TipsEnabled(category)
+    local sv = QTM.sv
+    if not sv then return true end
+    if category == "buttons" then return sv.buttonsTooltips ~= false end
+    return type(sv.tooltips) ~= "table" or sv.tooltips[category] ~= false
+end
+
+function QTM.ShowTip(category, control, anchor, text)
+    if not QTM.TipsEnabled(category) then return end
+    ZO_Tooltips_ShowTextTooltip(control, anchor, text)
+end
 
 -- Перерисовать всё, где видны названия мест
 function QTM.RefreshAllViews()
@@ -102,10 +124,8 @@ local function OnFastTravelStart(_, nodeIndex)
     -- Активный бесплатный путь: сразу отправляем в нужное место
     if QTM.Route:OnWayshrine(nodeIndex) then return end
     RefreshTravelState()
-    -- Сразу показываем свои места рядом с картой: отсюда перемещение бесплатное
-    if QTM.sv.showAtWayshrine then
-        QTM.Menu:ShowOverlay()
-    end
+    -- Своё меню поверх карты само не открывается: места и так видны на панели
+    -- слева от карты. Клавиша меню у святилища по-прежнему открывает его.
 end
 
 local function OnFastTravelEnd()
@@ -173,6 +193,7 @@ local function OnAddOnLoaded(_, addonName)
     -- Язык: выбранный в настройках или язык игры
     QTM.SetLanguage(QTM.ResolveLanguage(QTM.sv.language))
     QTM.RegisterBindingNames()
+    QTM.Style.ApplyTheme()
 
     QTM.Data:Initialize()
     QTM.Presence:Initialize()
@@ -193,6 +214,8 @@ local function OnAddOnLoaded(_, addonName)
     QTM.ZoomBar:Initialize()
     QTM.InfoPanel:Initialize()
     QTM.QuestTracker:Initialize()
+    QTM.Guild:Initialize()
+    QTM.Preview:Initialize()
     QTM.SocialIntegration:Initialize()
 
     local em = EVENT_MANAGER

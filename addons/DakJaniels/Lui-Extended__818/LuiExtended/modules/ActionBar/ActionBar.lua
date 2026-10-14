@@ -15,8 +15,6 @@ local Data = LuiData.Data
 local Effects = Data.Effects
 local Abilities = Data.Abilities
 local Castbar = Data.CastBarTable
-local OtherAddonCompatability = LUIE.OtherAddonCompatability
-
 local pairs = pairs
 local ChatOutput = LUIE.ChatOutput
 local GetSlotTrueBoundId = LUIE.GetSlotTrueBoundId
@@ -56,7 +54,7 @@ local PROC_SOUND_THRESHOLDS = ActionBar.PROC_SOUND_THRESHOLDS
 local ACTION_BUTTON_BORDERS = ActionBar.ACTION_BUTTON_BORDERS
 local BOUNCE_DURATION_MS = ActionBar.BOUNCE_DURATION_MS
 
-local isFancyActionBarEnabled = OtherAddonCompatability.isFancyActionBarPlusEnabled or LUIE.IsItEnabled("FancyActionBar\43") or LUIE.IsItEnabled("FancyActionBar")
+local isFancyActionBarEnabled = LUIE.IsItEnabled("FancyActionBar\43") or LUIE.IsItEnabled("FancyActionBar")
 
 local g_ultimateCost = 0    -- Cost of ultimate Ability in Slot
 local g_ultimateCurrent = 0 -- Current ultimate value
@@ -1777,9 +1775,24 @@ local function ForEachNativeActionButton(buttonCallback)
     end
 end
 
+--- True only after this session hid the native widgets. Fallback off must not write showTimer every update.
+--- FancyActionBar+ syncActionButton keeps showTimer false; restoring it turns the game timer back on.
+local g_nativeActionButtonTimersHidden = false
+
 local function ApplyNativeActionButtonTimerVisibility()
-    local applyFunction = GameFallbackTimersAreEnabled() and HideNativeActionButtonTimer or RestoreNativeActionButtonTimer
-    ForEachNativeActionButton(applyFunction)
+    if isFancyActionBarEnabled then
+        return
+    end
+    if GameFallbackTimersAreEnabled() then
+        ForEachNativeActionButton(HideNativeActionButtonTimer)
+        g_nativeActionButtonTimersHidden = true
+        return
+    end
+    if not g_nativeActionButtonTimersHidden then
+        return
+    end
+    g_nativeActionButtonTimersHidden = false
+    ForEachNativeActionButton(RestoreNativeActionButtonTimer)
 end
 
 local g_nativeActionButtonTimerHooksReady = false

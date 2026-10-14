@@ -1,3 +1,14 @@
+[COLOR="DeepSkyBlue"] 4.7 (160)[/COLOR]:
+[LIST]
+[*] Introduced the ability to periodically clean out the unused category headings by setting a time when unused categories will expire. The expires duration is set in the AutoCategory Settings->General section. When you change the "Category collapse expiry", expiration limits for all existing headers for collapsed categories will be changed to the new value. You can set the expiry to "never" to keep the original behaviour. The ability to expire saved headers provides the ability to clear out unused information in order to reduce the size of the Saved Variables foor a character. When a category header is expanded, the expiration limit is removed. When the category header is collapsed again, the expiration limit is restarted. You must log in to each character in order to set expirations and remove expired categories for that character.
+[*] Corrected the definition of the predefined "Lower Level" rule to properly include level 1 gear.
+[/LIST]
+
+[COLOR="DeepSkyBlue"] 4.6.19 (159)[/COLOR]:
+[LIST]
+[*] Revised storage of collapse/expand marks so that they are thrown away when the category leaves the inventory/banks/etc. When new categories are added, they are added as collapsed. "Expand All" and "Collapse All" still work. :-)
+[/LIST]
+
 [COLOR="DeepSkyBlue"] 4.6.18 (158)[/COLOR]:
 [LIST]
 [*] Fixed "Collapse All" so that it works again.

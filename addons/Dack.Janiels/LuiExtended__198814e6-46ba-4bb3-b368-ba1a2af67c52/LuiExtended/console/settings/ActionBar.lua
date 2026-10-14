@@ -654,6 +654,20 @@ function ActionBar.CreateConsoleSettings()
 
         settings[#settings + 1] =
         {
+            type = LHAS.ST_CHECKBOX,
+            label = GetString(LUIE_STRING_LAM_AB_BAR_GAME_FALLBACK),
+            tooltip = GetString(LUIE_STRING_LAM_AB_BAR_GAME_FALLBACK_TP),
+            getFunction = function () return Settings.BarGameFallbackTimers end,
+            setFunction = function (value)
+                Settings.BarGameFallbackTimers = value
+                ActionBar.UpdateGameFallbackTimers(GetGameTimeMilliseconds())
+            end,
+            default = Defaults.BarGameFallbackTimers,
+            disable = function () return not (LUIE.SV.ActionBar_Enabled and Settings.ShowToggled and Settings.BarShowLabel) end
+        }
+
+        settings[#settings + 1] =
+        {
             type = LHAS.ST_SLIDER,
             label = GetString(LUIE_STRING_LAM_AB_SHARED_POSITION),
             tooltip = GetString(LUIE_STRING_LAM_AB_SHARED_POSITION_TP),
@@ -1334,7 +1348,7 @@ function ActionBar.CreateConsoleSettings()
             end,
             default = Defaults.CastBarWeaveHelper,
             disable = function ()
-                return castBarOptionDisabled() or not LUIE.OtherAddonCompatability.isLibCombatEnabled
+                return castBarOptionDisabled() or not LUIE.IsItEnabled("LibCombat2")
             end,
         }
 
@@ -1350,7 +1364,7 @@ function ActionBar.CreateConsoleSettings()
             setFunction = function (value) Settings.CastBarWeaveThresholdMs = value end,
             default = Defaults.CastBarWeaveThresholdMs,
             disable = function ()
-                return castBarOptionDisabled() or not Settings.CastBarWeaveHelper or not LUIE.OtherAddonCompatability.isLibCombatEnabled
+                return castBarOptionDisabled() or not Settings.CastBarWeaveHelper or not LUIE.IsItEnabled("LibCombat2")
             end,
         }
 

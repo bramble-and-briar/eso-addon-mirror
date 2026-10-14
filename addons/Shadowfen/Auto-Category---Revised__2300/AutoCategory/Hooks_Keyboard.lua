@@ -71,30 +71,31 @@ local function NilOrLessThan(value1, value2)
 	elseif type(value1) == "boolean" then
 		return not value1
     end
-	return value1 < value2
+
+    return value1 < value2
 end
 
 -- ---------------------------------------------------
 -- Category Header functions
 
--- currently fetched fontface
+-- Currently fetched header font face.
 local header_face = nil
 
 -- Invalidate the cached header font face.
 --
 -- The next request for the header font face will fetch it again
--- from LMP. This is needed when the user changes the desired
--- header font face in the settings.
+-- from LMP using the current font setting. This is needed when
+-- the user changes the desired header font face in the settings.
 function AutoCategory.resetface()
 	header_face = nil
 end
 
--- Return the currently fetched fontface.
--- If there is not one, fetch a new one based on
--- the current setting.
+-- Return the cached header font face.
+-- If no font face has been cached, fetch one using the current
+-- font setting and cache it for subsequent requests.
 --
--- By doing this, we are no longer fetching the font
--- every single time that we create a category header.
+-- This avoids fetching the font every time a category header
+-- is created.
 local function getHeaderFace()
     if header_face ~= nil then
         return header_face
@@ -110,9 +111,9 @@ local function setup_InventoryItemRowHeader(rowControl, slot, overrideOptions)
 	--aliases
 	local acctSaved = AutoCategory.acctSaved
 	local saved = AutoCategory.saved
+	local appearance = acctSaved.appearance
 
 	-- Set header font and alignment.
-	local appearance = acctSaved.appearance
 	local headerLabel = rowControl:GetNamedChild("HeaderName")
 	headerLabel:SetHorizontalAlignment(appearance["CATEGORY_FONT_ALIGNMENT"])
 	headerLabel:SetFont(string.format('%s|%d|%s',
@@ -149,7 +150,7 @@ local function setup_InventoryItemRowHeader(rowControl, slot, overrideOptions)
 	else
 		local bagSettings = saved.bags[bagTypeId]
 		if bagSettings and bagSettings.isUngroupedHidden and
-				cateName == saved.appearance["CATEGORY_OTHER_TEXT"] then
+				cateName == appearance["CATEGORY_OTHER_TEXT"] then
 			headerColor = "HIDDEN_CATEGORY_FONT_COLOR"
 		end
 	end
@@ -279,8 +280,8 @@ local function isCollapsed(itemEntry)
     return AutoCategory.IsCategoryCollapsed(bagTypeId, data.AC_categoryName)
 end
 
--- Note that an item will always match either a defined rule or "OTHER" (when it does not match a defined rule)
--- so every itemEntry will "match" something as long as it is not a header item itself
+-- Every non-header item is assigned a category. Items that do not
+-- match a defined rule are assigned to the OTHER category.
 local function runRulesOnEntry(itemEntry, specialType)
 	--only match on items(not headers)
 	if itemEntry.typeId == CATEGORY_HEADER then return end
@@ -401,8 +402,8 @@ local function detectItemChanges(itemEntry, needReload)
 		return true
 	end
 
-	if forceRuleReloadByUniqueIDs[data.uniqueID] then
-		forceRuleReloadByUniqueIDs[data.uniqueID] = nil
+	if forceRuleReloadByUniqueIDs[data.uniqueId] then
+		forceRuleReloadByUniqueIDs[data.uniqueId] = nil
 		data.AC_lastUpdateTime = currentTime
 		return true
 	end
@@ -465,7 +466,6 @@ local function createNewScrollData(scrollData)
         if not isHiddenEntry(itemEntry) then
             if itemEntry.typeId ~= CATEGORY_HEADER
                 and not isCollapsed(itemEntry)
-
             then
                 newScrollData[#newScrollData + 1] = itemEntry
             end
@@ -501,6 +501,22 @@ local function createNewScrollData(scrollData)
             -- the count stored on the header.
             catInfo.AC_catCount = data.AC_catCount
         end
+    end
+
+    -----------------------------------------------------------------------
+    -- Reconcile collapse state with the categories currently present.
+    --
+    -- All entries in this scrollData belong to the same bag/inventory.
+    -----------------------------------------------------------------------
+    local bagId
+
+    for _, catInfo in pairs(cnsd_categoryList) do
+        bagId = catInfo.AC_bagTypeId
+        break
+    end
+
+    if bagId ~= nil then
+        AutoCategory.UpdateCategoryState(bagId, cnsd_categoryList)
     end
 
     -- Append category headers.
@@ -630,41 +646,18 @@ local function prehookCraftSort(self)
 	return false
 end
 
---[[ this only works if pendingUpdates uses os.clock() instead of true in updateHook()
-local updateCounter = 0
-local CLEANUP_THRESHOLD = 50
-local callLater         -- the calllater object for controlling single-shot start/stop/destroy
-
--- clear out pending entries that are older than 15 seconds - they are hung
---
-local function cleanupPendingUpdates()
-    updateCounter = updateCounter + 1
-    if updateCounter < CLEANUP_THRESHOLD then return end
-    
-    updateCounter = 0
-
-    -- Clean old entries from pendingUpdates
-    local currentTime = os.clock()
-    local cleaned = 0
-    for uid, timestamp in pairs(pendingUpdates) do
-        -- If entry is older than 15 seconds, remove it
-        if currentTime - timestamp > 15 then
-            pendingUpdates[uid] = nil
-            cleaned = cleaned + 1
-        end
-    end
-end
---]]
-
-
 local function updateHook(zo_inventory)
+    local forceReload = forceRuleReloadByUniqueIDs
+
     for uid in pairs(pendingUpdates) do
-        forceRuleReloadByUniqueIDs[uid] = true
+        forceReload[uid] = true
     end
+
     pendingUpdates = SF.safeClearTable(pendingUpdates)
 
     rebuildScrollData(zo_inventory)
 end
+
 
 
 -- prehook parameters, not the event parameters
@@ -674,7 +667,7 @@ local function onInventorySlotUpdated(self, bagId, slotIndex)
 	
     local uid = GetItemUniqueId(bagId, slotIndex)
     if uid then
-        pendingUpdates[uid] = true 		-- os.clock()
+        pendingUpdates[uid] = true 		-- GetFrameTimeMilliseconds()
     end
 end
 
@@ -718,7 +711,6 @@ function AutoCategory.HookKeyboardMode()
 
     pendingUpdates = SF.safeClearTable(pendingUpdates)
     callLater = SF.CallLater:NewSingle(updateHook, 50):Start()
-
 end
 
 function AutoCategory.UnHookKeyboardMode()

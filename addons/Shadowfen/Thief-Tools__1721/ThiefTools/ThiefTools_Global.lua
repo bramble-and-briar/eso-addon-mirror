@@ -2,7 +2,7 @@ local SF = LibSFUtils
  
 ThiefTools = {
     name = "ThiefTools",
-    version = "3.4.4",
+    version = "3.5",
 	author = "Shadowfen",
     displayName = "Thief Tools",
 }
@@ -21,4 +21,4 @@ ThiefTools_Logger, ThiefTools.logDebug, ThiefTools.logWouldDebug =
     addon operation. Turning it on does however provide lots and lots of debug logging.
     Never leave this uncommented when releasing!!
 --]]
-ThiefTools_Logger():SetDebug(true)
+--ThiefTools_Logger():SetDebug(true)

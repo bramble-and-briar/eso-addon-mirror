@@ -34,16 +34,15 @@ local SYNC_EVERY_MS   = 150
 -- и при открытии карты игра ничего из своих вкладок не включает
 local QUESTS_SENTINEL = "MundusGateQuests"
 
-local GOLD   = { 0.90, 0.85, 0.66 }
-local ICE    = { 0.36, 0.76, 0.91 }
-local MUTED  = { 0.54, 0.54, 0.54 }
+local GOLD   = Style.GOLD
+local ICE    = Style.ICE
+local MUTED  = Style.MUTED
+local TEXT   = Style.TEXT
+local INFO   = Style.INFO
+local GROUP  = Style.GROUP
 
 -- Цвет полоски у пункта: задания — золото, стремления — янтарь, фолиант — сирень
-local KIND_COLORS = {
-    q = { r = 0.86, g = 0.74, b = 0.42 },
-    p = { r = 0.95, g = 0.62, b = 0.25 },
-    t = { r = 0.60, g = 0.62, b = 0.98 },
-}
+local KIND_COLORS = Style.KIND_COLORS
 InfoPanel.KIND_COLORS = KIND_COLORS
 
 local ICON_TRAVEL = "EsoUI/Art/ZoneStories/completionTypeIcon_wayshrine.dds"
@@ -189,6 +188,7 @@ end
 -- Размер и положение: вплотную к правому краю окна карты, по его высоте
 ---------------------------------------------------------------------------
 function InfoPanel:Layout()
+    if self.preview then return end
     local panel = self.panel
     local map = ZO_WorldMap
     if not map or not map.GetRight then return end
@@ -371,7 +371,7 @@ end
 function InfoPanel:OnTabEnter(button)
     button.isHover = true
     self:PaintTabs()
-    ZO_Tooltips_ShowTextTooltip(button, BOTTOM, L[button.def.text])
+    QTM.ShowTip("infoPanel", button, BOTTOM, L[button.def.text])
 end
 
 function InfoPanel:OnTabExit(button)
@@ -447,6 +447,51 @@ function InfoPanel:SyncFromGame()
 end
 
 ---------------------------------------------------------------------------
+-- Предпросмотр рядом с настройками аддона: вкладка «Задания» в заданном
+-- месте поверх меню (вкладки игры без карты не показываются)
+---------------------------------------------------------------------------
+function InfoPanel:SetPreview(enabled, right, top, width, height)
+    if not self.panel then return end
+    local root, panel = self.root, self.panel
+    if enabled then
+        if not self:IsEnabled() then return end
+        self.preview = { tab = self.tab, tier = root:GetDrawTier() }
+        self.tab = "quests"
+        root:SetDrawTier(DT_HIGH)
+        root:SetHidden(false)
+        panel:SetHidden(false)
+        panel:ClearAnchors()
+        panel:SetAnchor(TOPRIGHT, GuiRoot, TOPLEFT, right, top)
+        panel:SetDimensions(width, height)
+        self:LayoutTabs()
+        self.questsView:SetHidden(false)
+        self:PaintTabs()
+        self:RefreshQuests()
+        return
+    end
+    local preview = self.preview
+    if not preview then return end
+    self.preview = nil
+    self.tab = preview.tab
+    root:SetDrawTier(preview.tier)
+    root:SetHidden(true)   -- с картой панель снова покажет её фрагмент
+    self.layoutKey = nil
+end
+
+function InfoPanel:RefreshPreview()
+    if self.preview then self:PaintTabs(); self:RefreshQuests() end
+end
+
+-- Сменилась цветовая тема: перекрасить то, что красится один раз
+function InfoPanel:OnThemeChanged()
+    if not self.panel then return end
+    self.tabIndicator:SetColor(ICE[1], ICE[2], ICE[3], 1)
+    self.status:GetNamedChild("Stripe"):SetColor(ICE[1], ICE[2], ICE[3], 1)
+    self:PaintTabs()
+    if self:IsShown() then self:Refresh() end
+end
+
+---------------------------------------------------------------------------
 -- Оформление вкладок игры в стиле аддона: строки — карточки на тёмном фоне,
 -- заголовки — золотом
 ---------------------------------------------------------------------------
@@ -484,7 +529,7 @@ local function SkinRow(list, control, color, highlight)
     local bg, stripe = EnsureCard(control)
     local even = (control.index or 1) % 2 == 0
     local r, g, b = Style.Darken(color, even and 0.12 or 0.08)
-    bg:SetColor(r, g, b, 0.75)
+    bg:SetColor(r, g, b, Style.RowAlpha(false))
     bg:SetHidden(false)
     stripe:SetColor(color.r, color.g, color.b, highlight and 1 or 0.45)
     stripe:SetHidden(false)
@@ -495,8 +540,8 @@ local function HideCard(control)
     if control.mgStripe then control.mgStripe:SetHidden(true) end
 end
 
-local SKIN_ICE  = { r = ICE[1], g = ICE[2], b = ICE[3] }
-local SKIN_GOLD = { r = GOLD[1], g = GOLD[2], b = GOLD[3] }
+local SKIN_ICE  = Style.ICE_RGB
+local SKIN_GOLD = Style.GOLD_RGB
 
 -- Обернуть отрисовку строк списка игры: сначала игра, потом наше оформление
 local function WrapList(list, skin)
@@ -907,7 +952,7 @@ function InfoPanel:SetupGroup(control, data)
     elseif data.hint then
         label:SetColor(MUTED[1], MUTED[2], MUTED[3], 1)
     else
-        label:SetColor(0.56, 0.72, 0.79, 1)
+        label:SetColor(GROUP[1], GROUP[2], GROUP[3], 1)
     end
     label:ClearAnchors()
     local x = data.doneToggle and 26 or 8
@@ -924,7 +969,7 @@ end
 function InfoPanel:OnSectionEnter(control)
     control.isHover = true
     control:GetNamedChild("Line"):SetColor(1, 1, 1, 0.3)
-    ZO_Tooltips_ShowTextTooltip(control, LEFT, control.data and control.data.collapsed and L.QUEST_EXPAND or L.QUEST_COLLAPSE)
+    QTM.ShowTip("infoPanel", control, LEFT, control.data and control.data.collapsed and L.QUEST_EXPAND or L.QUEST_COLLAPSE)
 end
 
 function InfoPanel:OnSectionExit(control)
@@ -960,7 +1005,7 @@ function InfoPanel:PaintRow(control)
     if item.complete then color = { r = 0.45, g = 0.45, b = 0.47 } end
     local strength = control.isHover and 0.22 or (item.isMain and 0.18 or ((data.index or 1) % 2 == 0 and 0.12 or 0.08))
     local r, g, b = Style.Darken(color, strength)
-    control:GetNamedChild("Bg"):SetColor(r, g, b, control.isHover and 0.95 or 0.75)
+    control:GetNamedChild("Bg"):SetColor(r, g, b, Style.RowAlpha(control.isHover))
     control:GetNamedChild("Stripe"):SetColor(color.r, color.g, color.b, (control.isHover or item.isMain) and 1 or 0.6)
 end
 
@@ -982,7 +1027,7 @@ function InfoPanel:SetupRow(control, data)
     elseif item.isMain then
         name:SetColor(GOLD[1], GOLD[2], GOLD[3], 1)
     else
-        name:SetColor(1, 1, 1, 1)
+        name:SetColor(TEXT[1], TEXT[2], TEXT[3], 1)
     end
 
     local info = control:GetNamedChild("Info")
@@ -990,7 +1035,7 @@ function InfoPanel:SetupRow(control, data)
     if item.claimable then
         info:SetColor(0.45, 0.85, 0.45, 1)
     else
-        info:SetColor(0.60, 0.60, 0.60, 1)
+        info:SetColor(INFO[1], INFO[2], INFO[3], 1)
     end
 
     -- Полоса прогресса у стремлений и фолианта
@@ -1026,12 +1071,12 @@ end
 function InfoPanel.BuildItemTooltip(item)
     local parts = { item.name }
     if item.kind == QTM.Quests.KIND_QUEST then
-        if item.zone then parts[#parts + 1] = "|c8FB7C9" .. item.zone .. "|r" end
+        if item.zone then parts[#parts + 1] = "|c" .. QTM.Style.Hex(QTM.Style.GROUP) .. "" .. item.zone .. "|r" end
         local lines = item.lines or {}
         if #lines == 0 and item.stepText and item.stepText ~= "" then lines = { item.stepText } end
         for _, line in ipairs(lines) do parts[#parts + 1] = "• " .. line end
         if item.canTravel then
-            parts[#parts + 1] = "|c5DC1E8" .. L.QUEST_CAN_TRAVEL .. "|r"
+            parts[#parts + 1] = "|c" .. QTM.Style.Hex(QTM.Style.ICE) .. "" .. L.QUEST_CAN_TRAVEL .. "|r"
         else
             parts[#parts + 1] = "|c8A8A8A" .. L.QUEST_NO_TRAVEL .. "|r"
         end
@@ -1050,7 +1095,7 @@ function InfoPanel:OnRowEnter(control)
     if control.data then
         local text = InfoPanel.BuildItemTooltip(control.data.item)
         local hint = control.data.item.kind == QTM.Quests.KIND_QUEST and L.QUEST_ROW_HINT or L.QUEST_ROW_HINT_ACTIVITY
-        ZO_Tooltips_ShowTextTooltip(control, LEFT, text .. "\n\n|c8A8A8A" .. hint .. "|r")
+        QTM.ShowTip("infoPanel", control, LEFT, text .. "\n\n|c8A8A8A" .. hint .. "|r")
     end
 end
 
@@ -1125,7 +1170,7 @@ function InfoPanel:OnButtonEnter(button, kind)
         PaintIconButton(button, item.isMain, GOLD, true)
     end
     if kind == "travel" then button:GetNamedChild("Icon"):SetColor(1, 1, 1, 1) end
-    ZO_Tooltips_ShowTextTooltip(button, LEFT, text)
+    QTM.ShowTip("infoPanel", button, LEFT, text)
 end
 
 function InfoPanel:OnButtonExit(button)

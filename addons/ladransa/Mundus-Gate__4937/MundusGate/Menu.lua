@@ -12,7 +12,6 @@ local TYPE_ROW        = 2
 local TYPE_EMPTY      = 3
 local TYPE_PLAYER     = 4    -- «Святилище рядом с @игрок — Бесплатно»
 local PLAYER_ICON     = "/esoui/art/icons/mapkey/mapkey_groupmember.dds"
-local ROUTE_COLOR     = ZO_ColorDef:New("5DC1E8")   -- «Бесплатно» через игрока и святилище
 local HEADER_HEIGHT   = 26
 local ROW_HEIGHT      = 30
 local EMPTY_HEIGHT    = 80
@@ -270,7 +269,7 @@ function Menu:SetupRow(control, data)
         SetColor(name, ZO_HIGHLIGHT_TEXT)
         price:SetText(data.priceText)
         if data.isRoute then
-            price:SetColor(ROUTE_COLOR:UnpackRGBA())
+            price:SetColor(QTM.Style.ICE[1], QTM.Style.ICE[2], QTM.Style.ICE[3], 1)
         elseif data.isFree then
             SetColor(price, ZO_SUCCEEDED_TEXT)
         elseif data.affordable then
@@ -297,7 +296,7 @@ function Menu:OnRowEnter(control)
     if data.playerRow then
         control:GetNamedChild("Highlight"):SetAlpha(1)
         local details = QTM.Presence:DescribeNearPlayer(data.zoneId) or ""
-        ZO_Tooltips_ShowTextTooltip(control, RIGHT, data.zoneName .. "\n" .. details)
+        QTM.ShowTip("menu", control, RIGHT, data.zoneName .. "\n" .. details)
         return
     end
     if data.available then
@@ -310,10 +309,10 @@ function Menu:OnRowEnter(control)
     if not data.available and data.reason then
         tip = tip .. "\n|cFF6060" .. data.reason .. "|r"
     elseif data.isRoute then
-        tip = tip .. "\n|c5DC1E8" .. zo_strformat(L.ROUTE_TOOLTIP, data.node.name) .. "|r\n|c9A9A9A"
+        tip = tip .. "\n|c" .. QTM.Style.Hex(QTM.Style.ICE) .. "" .. zo_strformat(L.ROUTE_TOOLTIP, data.node.name) .. "|r\n|c9A9A9A"
             .. zo_strformat(L.ROUTE_TOOLTIP_COST, (Data:GetPriceInfo(data.node))) .. "|r"
     end
-    ZO_Tooltips_ShowTextTooltip(control, RIGHT, tip)
+    QTM.ShowTip("menu", control, RIGHT, tip)
 end
 
 function Menu:OnRowExit(control)
@@ -373,7 +372,7 @@ function Menu:OnRowClicked(control, button)
             self:Refresh()
             QTM.Settings:RefreshEditor()
         end)
-        if node.isPlayerHouse then
+        if node.isPlayerHouse and not node.isGuildHall then
             AddMenuItem(L.CTX_FORGET_PLAYER_HOUSE, function()
                 Data:RemovePlayerHouse(node.displayName)
                 QTM.Buttons:RefreshAll()

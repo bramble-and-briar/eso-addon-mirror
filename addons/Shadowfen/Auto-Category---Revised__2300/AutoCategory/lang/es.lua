@@ -126,6 +126,7 @@ AutoCategory_localization_strings["es"] = {
 
     SI_AC_MENU_SUBMENU_GENERAL_SETTING = "|c0066FF[Ajustes generales]|r",
 	SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE = "Mostrar mensaje al alternar",
+    SI_AC_MENU_GS_HEADER_CATEGORY = "Visualización de Categorías:",
     SI_AC_MENU_GS_CHECKBOX_SHOW_MESSAGE_WHEN_TOGGLE_TOOLTIP = "Mostrará un mensaje en el chat al alternar este complemento.",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT = "Mostrar recuento de elementos de categoría",
     SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_ITEM_COUNT_TOOLTIP = "Agrega un número para mostrar cuántos elementos en la categoría después del nombre de la categoría",
@@ -135,6 +136,8 @@ AutoCategory_localization_strings["es"] = {
     SI_AC_MENU_GS_CHECKBOX_SAVE_CATEGORY_COLLAPSE_STATUS_TOOLTIP = "Mantendrá las categorías contraídas / expandidas como están después de salir / cerrar sesión.",
 	SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE = "Mostrar 'Set(name)' para autosets",
 	SI_AC_MENU_GS_CHECKBOX_SHOW_CATEGORY_SET_TITLE_TOOLTIP = "Mostrar 'Set(name)' en lugar de 'nombre' en el inventario para autosets",
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY = "Tiempo de expiración de las categorías contraídas",
+    SI_AC_MENU_GS_DROPDOWN_CATEGORY_COLLAPSE_EXPIRY_TOOLTIP = "Durante cuánto tiempo se recordarán las categorías contraídas después de que desaparezcan de tus bolsas.",
 
     SI_AC_MENU_SUBMENU_IMPORT_EXPORT = "|c0066FF[Importar y Exportar]|r",
     SI_AC_MENU_HEADER_ACCOUNT_WIDE_SETTING = "Configuración de toda la cuenta",

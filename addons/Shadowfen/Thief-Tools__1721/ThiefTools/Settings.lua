@@ -99,7 +99,7 @@ local filtersMenu = {   -- Stolen Items filters
 			type = "checkbox",
 			name = TT_JUNK_INSTEAD_NAME,
 			tooltip = TT_JUNK_INSTEAD,
-			disable = function() if(TT.options.filter.ignscale == 0) then return true end; return false end,
+			disable = function() if TT.options.filter.ignscale == 0 then return true end; return false end,
 			getFunc = function() return TT.options.filter.autojunkbelow end,
 			setFunc = function(x)
 				TT.options.filter.autojunkbelow = x
@@ -546,7 +546,7 @@ local barMenu = {   -- Status Bar display settings
 			setFunc = function(x)
 				TT.options.dshow.Bounty = x
 				TT.options.dshow.BountyTimer = x
-				if(x) then
+				if x then
 					TT:DynamicBountyCheck()
 				else
 					TT:UpdateControls()
@@ -729,7 +729,7 @@ local displayMenu = {   -- Display Submenu
 			getFunc = function() return TT.options.display.hide_on_PublicDungeon end,
 			setFunc = function(x)
 				TT.options.display.hide_on_PublicDungeon = x
-				--TT.window:SetHidden(x)
+				TT.window:SetHidden(x)
 			end
 		},  -- end checkbox
 	},  -- end controls
@@ -750,7 +750,8 @@ local charSection = {
             local w = TT.window
 
             TT.options.display.hidden = value
-            w:SetHidden(not value)
+            --w:SetHidden(not value)
+			w:SetHidden(value)
 
 			TT:CalcStolenGoods()
 			TT:UpdateDisplay()
@@ -771,14 +772,15 @@ local optionsTable = {
             TT.options.chartt.not_thief = value 
             local w = TT.window
 
-            if(not value) then
-              TT:CalcStolenGoods()
-              TT:UpdateDisplay()
+            if not value then
+				TT:CalcStolenGoods()
+				TT:UpdateDisplay()
 				TT:UpdateControls()
             end
 
             TT.options.display.hidden = not value
-            w:SetHidden(value)
+            --w:SetHidden(value)
+			w:SetHidden(value)
         end,
         tooltip = L(TT_NOT_THIEF_TT),
         width = "full", -- or "half" (optional)

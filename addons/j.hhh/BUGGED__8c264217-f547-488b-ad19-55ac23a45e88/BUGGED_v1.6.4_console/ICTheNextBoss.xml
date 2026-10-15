@@ -1,0 +1,61 @@
+<GuiXml>
+	<Controls>
+		<TopLevelControl name="ICTTimeTable" mouseEnabled="false" movable="false" clampedToScreen="true">
+            <OnMouseDown>
+                if ICT.savedVariables and ICT.savedVariables.panelMover and button == 1 then self:StartMoving() end
+            </OnMouseDown>
+            <OnMouseUp>
+                if ICT.savedVariables and ICT.savedVariables.panelMover and button == 1 then self:StopMovingOrResizing() end
+            </OnMouseUp>
+			<Dimensions x="870" y="330" />
+			<OnMoveStop>
+				ICT.onTableMove()
+			</OnMoveStop>
+			<Controls>
+				<Backdrop name="$(parent)BG" inherits="ZO_DefaultBackdrop" alpha="0.6"/>
+				<Label name="ICTDistricLabel" font="ZoFontGamepad34" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="BOTTOM" horizontalAlignment="LEFT" text="">
+					<Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="20" offsetY="16" />
+				</Label>
+                <Label name="ICTFlagLabel" font="ZoFontGamepad34" inheritAlpha="false" color="FFFFFF"
+                    wrapMode="TRUNCATE" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT" text="">
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-20" offsetY="16" />
+                </Label>
+				<Label name="ICTTimerLabel" font="ZoFontGamepad34" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="BOTTOM" horizontalAlignment="RIGHT" text="">
+					<Anchor point="TOPRIGHT" relativeTo="$(parent)" offsetX="-220" offsetY="16" />
+				</Label>
+			</Controls>
+		</TopLevelControl>
+		<TopLevelControl name="ICTMapTimers" movable="false" clampedToScreen="true" hidden="true">
+			<Dimensions x="800" y="800" />
+			<Anchor point="CENTER" relativeTo="GuiRoot" />
+			<Controls>
+				<Label name="ICTMemorialDistrictLabel" font="ZoFontWinH3" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="0">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="-5" offsetY="-80" />
+				</Label>
+				<Label name="ICTArenaDistrictLabel" font="ZoFontWinH3" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="0">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="85" offsetY="-30" />
+				</Label>
+				<Label name="ICTArboretumDistrictLabel" font="ZoFontWinH3" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="0">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="80" offsetY="65" />
+				</Label>
+				<Label name="ICTTempleDistrictLabel" font="ZoFontWinH3" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="0">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="-5" offsetY="115" />
+				</Label>
+				<Label name="ICTNoblesDistrictLabel" font="ZoFontWinH3" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="0">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="-90" offsetY="65" />
+				</Label>
+				<Label name="ICTElvenGardensDistrictLabel" font="ZoFontWinH3" inheritAlpha="false" color="FFFFFF"
+					wrapMode="TRUNCATE" verticalAlignment="CENTER" horizontalAlignment="CENTER" text="0">
+					<Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" offsetX="-90" offsetY="-35" />
+				</Label>
+			</Controls>
+		</TopLevelControl>
+	</Controls>
+</GuiXml>

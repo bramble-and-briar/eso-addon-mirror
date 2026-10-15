@@ -172,7 +172,7 @@ function rChatData.initCache(maxage)
     if not rChatData.cache then
         rChatData.cache = { Entries = {}, lineNumber = 1, }
     end
-    local cache = rChatData.cache
+    cache = rChatData.cache
     if not cache.Entries then
         cache.Entries = {}
         cache.lineNumber = 1

@@ -61,7 +61,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ravSpeed (updated)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/shira/ravSpeed-updated__2840) | shira | PC / Mac | 1.3.1 |
 | [RAWR Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheYcUtS/RAWR-Guild-Hall__2930) | TheYcUtS | PC / Mac | 1.2 |
 | [RawrGuildhall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sityDJVEN25/RawrGuildhall__3362) | sityDJVEN25 | PC / Mac | 1.0 |
-| [rChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/rChat__2500) | Shadowfen | PC / Mac | 2.0.6 |
+| [rChat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/rChat__2500) | Shadowfen | PC / Mac | 2.0.7 |
 | [RdK Group Tool](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sordrak/RdK-Group-Tool__2475) | Sordrak | PC / Mac | 2.2.2 |
 | [RdK Group Tool Patcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/RdK-Group-Tool-Patcher__2512) | Phuein | PC / Mac | 1.02 |
 | [Ready Check Randomiser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/calexus1986/Ready-Check-Randomiser__2477) | calexus1986 | PC / Mac | 1.4 |

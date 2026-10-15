@@ -1,0 +1,32 @@
+MY UI - LAM KONSOLE DEBUG TEST (FIX 2)
+====================================
+
+1. ZIP hochladen/installieren und Spiel/Interface neu laden.
+2. Oeffne Einstellungen -> Addons -> My UI.
+3. Der Debugger erscheint nach dem Weltbeitritt fuer 20 Sekunden.
+   Mit /myuidebug werden zusaetzliche Meldungen in den Chat geschrieben.
+4. Die Erfolgsdiagnose meldet nun die Anzahl tatsaechlich registrierter
+   Einstellungszeilen und nicht bloss einen Panel-Namen.
+5. Wenn das Menue weiterhin 'Unavailable' anzeigt, sende einen Screenshot
+   vom Debugger bzw. /myuidebug-Chattext.
+
+WAS BEHOBEN WURDE:
+- Auf Konsole gibt LAM:RegisterAddonPanel() absichtlich nil zurueck.
+  Die alte Version brach hier ab und uebersprang ALLE Einstellungsoptionen.
+- Die neue Version fuehrt RegisterOptionControls trotz nil aus und prueft,
+  ob das Konsolen-Backend die tatsaechlichen Zeilen registriert hat.
+- Wenn LibHarvensAddonSettings fehlt, benennt der Debugger jetzt die
+  zusaetzlich benoetigte Konsolenbibliothek.
+
+WICHTIG FUER KONSOLE:
+- Installiere/aktiviere LibAddonMenu-2.0 sowie LibVotans (intern
+  LibHarvensAddonSettings), wenn der Debugger sie als fehlend meldet.
+- Bei Bethesda.net wird die Konsolenbibliothek als LibVotans gefuehrt;
+  in .addon-Abhaengigkeiten heisst sie LibHarvensAddonSettings.
+- Bei Verwendung des ESO-Uploader/Bethesda-Modportals ggf. die
+  Bibliothek LibVotans dort als Abhaengigkeit pflegen.
+- Die manifestbezogenen Abhaengigkeiten sind OPTIONAL, damit der
+  Debugger auch mit fehlenden Bibliotheken laden und berichten kann.
+- Bestehende SavedVariables werden absichtlich beibehalten.
+- Die ZIP ist statisch und mit simulierten LAM-Varianten getestet;
+  ein echter Konsolentest bleibt erforderlich.

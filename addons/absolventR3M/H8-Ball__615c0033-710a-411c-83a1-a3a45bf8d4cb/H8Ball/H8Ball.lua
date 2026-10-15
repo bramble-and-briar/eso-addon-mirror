@@ -1,5 +1,7 @@
 local ADDON_NAME = "H8Ball"
-local TEXT_COLOR = "E6E0FF" -- very pale lavender, close to white
+local VERSION = "1.1.0"
+local AUTHOR = "absolventR3M"
+local TEXT_COLOR = "D7DDFC" -- pale blue-lavender
 local DIAG_COLOR = "9A9A9A" -- grey status lines
 
 local CATEGORIES = {
@@ -92,21 +94,51 @@ end
 local CHAT_MENU_SCENE = "gamepadChatMenu"
 local pendingText = nil
 
-local function FillChatPageBox(text)
+-- Send sometimes refuses text an add-on put in the box. Lua shares one copy of
+-- identical strings, so if this add-on ever builds the full message, the Send
+-- button can read back that same (add-on-made) copy and be refused; whether
+-- it is depends on garbage-collector timing. So the full message is never
+-- built here: the prefix and the answer go in as two pieces and the game
+-- joins them. Never focus the box from add-on code (it can wedge console
+-- text input), and never keep the answer alive in a timer.
+local PREFIX = "[H8 Ball] "
+
+local function FillChatPageBox(answer)
     local edit = CHAT_MENU_GAMEPAD and CHAT_MENU_GAMEPAD.textEdit
     if not edit then return false, "Chat page text box not found" end
-    -- SetText alone: the page's own text-changed handler refreshes the Send
-    -- button, and the game re-checks it on every press anyway.
-    local ok, err = pcall(edit.SetText, edit, text)
+    local ok, err = pcall(function()
+        edit:SetText("")
+        edit:InsertText(PREFIX)
+        edit:InsertText(answer)
+    end)
     if not ok then return false, tostring(err) end
     return true
 end
 
+-- The game marks any function created while add-on code is running as
+-- untrusted for the rest of the session. The Chat page builds its Send button
+-- the first time it opens, so if an add-on is what opens it first, Send is
+-- refused all session (even for typed messages). This checks for that state.
+local function IsSendBlocked()
+    local page = CHAT_MENU_GAMEPAD
+    local desc = page and page.textInputAreaKeybindDescriptor
+    if not (desc and IsTrustedFunction) then return false end
+    for _, button in ipairs(desc) do
+        if type(button) == "table" and type(button.callback) == "function" then
+            local ok, trusted = pcall(IsTrustedFunction, button.callback)
+            if ok and trusted == false then return true end
+        end
+    end
+    return false
+end
+
 local function ReportFill(ok, err)
-    if ok then
-        Diag("Pasted. Press Send. If the game refuses, press A, confirm the keyboard, then Send.")
-    else
+    if not ok then
         Diag("Could not paste: " .. tostring(err))
+    elseif IsSendBlocked() then
+        Diag("Send is blocked this session. Reload UI, open Text Chat once, then shake again.")
+    else
+        Diag("Press X to send. Press A to edit.")
     end
 end
 
@@ -120,7 +152,6 @@ local function OnChatPageStateChange(oldState, newState)
 end
 
 local function PasteIntoChat(text)
-    local line = "[H8 Ball] " .. text
     if not (SCENE_MANAGER and SCENE_MANAGER.IsShowing and zo_callLater) then
         Diag("Could not paste: chat page API missing")
         return
@@ -129,23 +160,30 @@ local function PasteIntoChat(text)
     if SCENE_MANAGER:IsShowing(CHAT_MENU_SCENE) then
         -- Typed /h8ball on the Chat page: we are running inside its Send button,
         -- which empties the box right after us. Fill it one frame later.
-        zo_callLater(function() ReportFill(FillChatPageBox(line)) end, 1)
+        zo_callLater(function() ReportFill(FillChatPageBox(text)) end, 1)
         return
     end
 
-    -- From the wheel or the HUD chat bar: fill the box now (nothing clears it
-    -- while the page opens), open the Chat page the way ZOS opens top-level
-    -- pages from gameplay (Show), and confirm once it is shown.
-    pendingText = line
-    FillChatPageBox(line)
+    -- From the wheel: the Chat page's first open each session must be the
+    -- player's own, or its Send button is created as add-on code (see above).
+    if not (CHAT_MENU_GAMEPAD and CHAT_MENU_GAMEPAD.initialized) then
+        Diag("Open Text Chat once (Main Menu > Text Chat), then shake again.")
+        return
+    end
+    -- Fill the box now (nothing clears it while the page opens), open the
+    -- Chat page the way ZOS opens top-level pages from gameplay (Show), and
+    -- confirm once it is shown.
+    pendingText = text
+    FillChatPageBox(text)
     local ok, err = pcall(SCENE_MANAGER.Show, SCENE_MANAGER, CHAT_MENU_SCENE)
     if not ok then
         pendingText = nil
         Diag("Could not open the Chat page: " .. tostring(err))
         return
     end
+    -- Timeout holds no text, only a check that the page opened.
     zo_callLater(function()
-        if pendingText == line then
+        if pendingText ~= nil then
             pendingText = nil
             Diag("Chat page did not open within 3 seconds.")
         end
@@ -158,21 +196,53 @@ local function Shake()
     PasteIntoChat(text)
 end
 
+-- Instructions panel under Settings > Add-Ons (LibHarvensAddonSettings is
+-- already loaded on console because LibRadialMenu needs it). Labels are one
+-- line on console; longer notes go in the tooltip shown when selected.
+local function AddSettingsPanel()
+    local lib = LibHarvensAddonSettings
+    if not (lib and lib.AddAddon and lib.ST_LABEL and lib.ST_SECTION) then return end
+    local panel = lib:AddAddon("H8 Ball")
+    panel.version = VERSION
+    panel.author = AUTHOR
+    local LABEL, SECTION = lib.ST_LABEL, lib.ST_SECTION
+    panel:AddSettings({
+        { type = SECTION, label = "General" },
+        { type = LABEL, label = "How to use",
+          tooltip = "Shake from the addon quickslot wheel, or type /h8ball in Text Chat. The answer shows in your chat window and is placed in the Text Chat box on the channel you last used. If you have not opened chat yet, H8 Ball will remind you to do this instead to prevent a UI error. Make sure you choose the right chat channel! If whispering a player, first type /whisper NAME and enter, then shake. Press X to send. Press A to edit or delete." },
+        { type = LABEL, label = "Wheel setup",
+          tooltip = "Hit start and go to the addons menu. Open LibRadialMenu settings. Ensure the wheel location is set to a value between 1 and 6. Pick a slot, choose Shake the H8 Ball. Hit start to close the menu. Open your quickslot wheel by pressing up on the d-pad. Browse to Addon Entries using LT or RT, then shake! See \"how to use\" if this is your first time." },
+    })
+end
+
 local function OnAddOnLoaded(_, addonName)
     if addonName ~= ADDON_NAME then return end
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
     SLASH_COMMANDS["/h8ball"] = Shake
 
-    local chatPage = SCENE_MANAGER and SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(CHAT_MENU_SCENE)
-    if chatPage then
-        chatPage:RegisterCallback("StateChange", OnChatPageStateChange)
-    end
-
+    -- Wheel entry first: nothing below may stop this from registering.
     LibRadialMenu:RegisterAddon(ADDON_NAME, "H8 Ball")
     LibRadialMenu:RegisterEntry(ADDON_NAME, "Shake the H8 Ball", "shake",
         "EsoUI/Art/MapPins/battlegrounds_murderball_neutral.dds", Shake,
         "You know you want to.")
+
+    local okPanel, errPanel = pcall(AddSettingsPanel)
+    if not okPanel then
+        pcall(Diag, "Settings panel failed at load: " .. tostring(errPanel))
+    end
+
+    -- Chat page hookup (used by the wheel path). Guarded so a problem here
+    -- can never hide the wheel entry; it just reports itself.
+    local ok, err = pcall(function()
+        local chatPage = SCENE_MANAGER and SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(CHAT_MENU_SCENE)
+        if chatPage then
+            chatPage:RegisterCallback("StateChange", OnChatPageStateChange)
+        end
+    end)
+    if not ok then
+        pcall(Diag, "Chat page hookup failed at load: " .. tostring(err))
+    end
 end
 
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, OnAddOnLoaded)

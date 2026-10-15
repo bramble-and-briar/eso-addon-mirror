@@ -1,14 +1,15 @@
 {
+  "archive_format": "zip",
   "archive_path": "addons/GlandePas/Log-NPC-Dialog__4509",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archived": false,
+  "archived": true,
   "author": "GlandePas",
   "canonical_id": "esoui:4509",
   "category_id": "21",
   "compatibility": [
     {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:4509",
@@ -17,7 +18,7 @@
     "LogNPCDialog"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4509/",
-  "fingerprint": "3677729bd9591578c8597d2d559caea43c3599f827983ffd85b95300414affe5",
+  "fingerprint": "51814821b72b834530052d697e1c82cb4a44eb3b0a68ac5ffbf3a1d530883ac6",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -25,11 +26,11 @@
   "source_id": "4509",
   "source_url": "https://www.esoui.com/downloads/info4509-LogNPCDialog.html",
   "stats": {
-    "downloads": 150,
-    "favorites": 0,
-    "monthly_downloads": 20
+    "downloads": 220,
+    "favorites": 1,
+    "monthly_downloads": 34
   },
   "title": "Log NPC Dialog",
-  "updated_at": 1775901074000,
-  "version": "1"
+  "updated_at": 1792013774000,
+  "version": "2"
 }

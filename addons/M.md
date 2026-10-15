@@ -168,7 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
-| [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.3.1 |
+| [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.0 |
 | [MundusMap Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marazota/MundusMap-Revived__3069) | Marazota | PC / Mac | 0.28 |
 | [Murder Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pineapple_aule/Murder-Hotkey__3155) | pineapple_aule | PC / Mac | 0.1 |
 | [Murf's Knickknacks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/Murf-s-Knickknacks__d38d1fe9-e738-4036-9d0d-baeaa4ebbe2e) | murphyx | Console | — |

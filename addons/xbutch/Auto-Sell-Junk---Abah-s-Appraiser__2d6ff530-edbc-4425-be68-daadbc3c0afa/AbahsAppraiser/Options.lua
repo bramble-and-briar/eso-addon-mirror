@@ -113,6 +113,20 @@ local optionsData = {
 
 	{
 		type = "header",
+		name = "Deconstruction",
+		width = "full"
+	},
+	{
+		type = "checkbox",
+		name = "Auto-select eligible items for deconstruction",
+		tooltip = "When enabled, selects unlocked blacksmithing, clothing, and woodworking items at any deconstruction assistant or in a crafting station's Deconstruct view, once per visit. Player-crafted items are always excluded to protect daily writs. Requires unlocked Meticulous Disassembly and the item's extraction passive at maximum rank. Respects the current inventory filters. You still deconstruct manually. Hold Y / Triangle to Select eligible even when this option is disabled, if that shortcut is available.",
+		getFunc = function() return addon.savedVars.asjAutoSelectDeconstruction end,
+		setFunc = function(v) addon.savedVars.asjAutoSelectDeconstruction = v end,
+		default = defaults.asjAutoSelectDeconstruction
+	},
+
+	{
+		type = "header",
 		name = "Potions & Poisons",
 		width = "full"
 	},

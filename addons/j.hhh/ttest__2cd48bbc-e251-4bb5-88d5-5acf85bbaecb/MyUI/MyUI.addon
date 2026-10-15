@@ -1,0 +1,63 @@
+## Title: My UI
+## Description: My UI - LAM-only settings interface.
+## Author: Satuve, j.hhh
+## Version: 1.9.26
+## APIVersion: 101050 101051
+## SavedVariables: SATUVE_XBOX_UI_VARS SATUVE_XBOX_UI_REPORTS SATUVE_XBOX_UI_CP_CHAR
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibStub LibDebugLogger
+
+; My UI is a modified adaptation of Bandits User Interface.
+;
+; Permission is hereby granted, free of charge, to any person obtaining a copy
+; of this software and associated documentation files (the "Software"), to deal
+; in the Software without restriction, including without limitation the rights
+; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+; copies of the Software, and to permit persons to whom the Software is
+; furnished to do so, subject to the following conditions:
+;
+; The above copyright notice and this permission notice shall be included in
+; all copies or substantial portions of the Software.
+;
+; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+MyUI_Debug.lua
+SXUI_Compatibility.lua
+BUI_Vars.lua
+BUI_Controls.lua
+BUI_Combat.lua
+BUI_Events.lua
+BUI_Frames.lua
+BUI_Curved.lua
+BUI_Menu.lua
+SXUI_GamepadOptions.xml
+SXUI_LAMBridge.lua
+SXUI_GamepadQuickNav.lua
+BUI_Settings.lua
+BUI_Player.lua
+BUI_Statistics.lua
+BUI_Statistics_Gamepad.lua
+BUI_Regrouper.lua
+BUI_Reticle.lua
+BUI_Buffs.lua
+proctemplate.xml
+BUI_Actions.lua
+BUI_MiniMap.lua
+BUI_QuickSlots.lua
+BUI_StatShare.lua
+BUI_OnScreen.lua
+BUI_Log.lua
+BUI_Themes.lua
+BUI_HealerHelper.lua
+BUI_Automation.lua
+BUI_Panel.lua
+BUI_CustomBar.lua
+BUI_Meters.lua
+BUI_Markers.lua
+SXUI_ChampionPriority.lua
+SXUI_FrameEditor.lua
+BUI_Initialize.lua
+
+lang\en.lua
+lang\$(language).lua
+
+bindings.xml

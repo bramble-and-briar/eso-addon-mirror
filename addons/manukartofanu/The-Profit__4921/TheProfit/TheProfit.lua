@@ -4,7 +4,10 @@ local TP = TheProfit
 local EM = EVENT_MANAGER
 
 TP.name = "TheProfit"
-TP.version = "1.0.1"
+TP.version = "1.1.0"
+-- Events for optional modules: TrackedItemAdded(itemKey), TrackedItemRemoved(itemKey),
+-- MarketDataLoaded().
+TP.callbacks = ZO_CallbackObject:New()
 TP.processors = {}
 TP.currentPurchaseKey = nil
 TP.purchaseCandidate = nil
@@ -59,6 +62,9 @@ local SUMMARY_CACHE_TTL = 60
 local ANALYTICS_REFRESH_COOLDOWN_MS = 60 * 1000
 local GUILD_HISTORY_REFRESH_COOLDOWN_MS = 60 * 1000
 local SALES_SYNC_OVERLAP_SECONDS = 5 * 60
+TP.AGS_HINT_FONT_SIZE_MIN = 10
+TP.AGS_HINT_FONT_SIZE_MAX = 24
+TP.AGS_HINT_FONT_SIZE_DEFAULT = 16
 local analyticsLoadGeneration = 0
 local analyticsProcessorsPending = {}
 local analyticsProcessorSetupInProgress = false
@@ -76,6 +82,7 @@ local defaults = {
     openWithStore = false,
     showSimpleFilterInAGS = true,
     agsFilterType = "simple",
+    agsHintFontSize = TP.AGS_HINT_FONT_SIZE_DEFAULT,
     selectedItem = nil,
     trackedItems = {},
     trackedItemOrder = {},
@@ -181,12 +188,15 @@ local strings = {
         showSimpleFilterInAGS = "Show Filter in AGS",
         agsFilterType = "AGS filter type",
         agsFilterTypeTooltip = "Which filter to show in AwesomeGuildStore. Changing this reloads the UI.",
+        agsHintFontSize = "AGS hint font size",
+        agsHintFontSizeTooltip = "Size of The Profit's colored percentage or BUY hint in AwesomeGuildStore result rows.",
         showSimpleFilterInAGSTooltip = "Adds the simple filter to AwesomeGuildStore: the discount from the TTC suggested price, shown as a percentage and split into gray, green, blue, purple and gold. Requires TTC. Changing this reloads the UI.",
         guild = "GUILD",
         selected = "Now tracking %s",
         help1 = "The Profit commands:",
         help2 = "/theprofit — open or close the ledger",
         help3 = "/theprofit track [item link] — select an item",
+        ttcPriceTableStale = "The TTC price table is more than 3 days old, so TTC-based estimates are hidden. Update it with the TTC client and reload the UI.",
         missingLink = "Add an item link after /theprofit track",
         removeItem = "Stop Tracking in The Profit",
         portfolioFull = "The portfolio already contains 10 items. Remove one before adding another.",
@@ -291,12 +301,15 @@ local strings = {
         showSimpleFilterInAGS = "Показывать фильтр в AGS",
         agsFilterType = "Тип фильтра AGS",
         agsFilterTypeTooltip = "Какой фильтр показывать в AwesomeGuildStore. Изменение перезагружает интерфейс.",
+        agsHintFontSize = "Размер шрифта подсказки в AGS",
+        agsHintFontSizeTooltip = "Размер цветного процента или надписи BUY от The Profit в строках результатов AwesomeGuildStore.",
         showSimpleFilterInAGSTooltip = "Добавляет в AwesomeGuildStore простой фильтр: скидка от рекомендованной цены TTC в процентах, разбитая на серый, зелёный, синий, фиолетовый и золотой. Нужен TTC. Изменение перезагружает интерфейс.",
         guild = "ГИЛЬДИЯ",
         selected = "Теперь отслеживается %s",
         help1 = "Команды The Profit:",
         help2 = "/theprofit — открыть или закрыть окно",
         help3 = "/theprofit track [ссылка на предмет] — выбрать предмет",
+        ttcPriceTableStale = "Таблица цен TTC старше 3 дней, поэтому оценки по TTC скрыты. Обновите её через клиент TTC и перезагрузите интерфейс.",
         missingLink = "Добавьте ссылку на предмет после /theprofit track",
         removeItem = "Прекратить отслеживание в The Profit",
         portfolioFull = "В портфеле уже 10 позиций. Уберите одну перед добавлением новой.",
@@ -703,6 +716,7 @@ function TP.SetTrackedItem(itemLink)
     if isNew then
         TP.historyRangeRetries = {}
         if TP.libReady then TP.RestartSalesProcessors() end
+        TP.callbacks:FireCallbacks("TrackedItemAdded", key)
     end
 
     if oldKey ~= key then
@@ -744,6 +758,7 @@ function TP.RemoveSelectedItem()
     TP.currentPurchaseKey = nil
     InvalidateAllSummaries()
     RequestPrioritySave()
+    TP.callbacks:FireCallbacks("TrackedItemRemoved", key)
     TP.RefreshUI()
 end
 
@@ -1635,6 +1650,7 @@ local function FormatQuantityAtPrice(quantity, unitPrice)
         ZO_CommaDelimitNumber(math.floor((tonumber(quantity) or 0) + 0.5)),
         ZO_CommaDelimitNumber(math.floor((tonumber(unitPrice) or 0) + 0.5)))
 end
+TP.FormatQuantityAtPrice = FormatQuantityAtPrice
 
 local function GetTransactionItemDisplay(record)
     local itemLink = record and record.itemLink
@@ -3192,7 +3208,7 @@ function TP.SetupSettings()
         filterTypeValues[#filterTypeValues + 1] = filterType.value
     end
 
-    LAM:RegisterOptionControls(panelName, {
+    local options = {
         {
             type = "header",
             name = TP.T("appearanceHeader"),
@@ -3276,7 +3292,30 @@ function TP.SetupSettings()
             requiresReload = true,
             default = defaults.agsFilterType,
         },
-    })
+        {
+            type = "slider",
+            name = TP.T("agsHintFontSize"),
+            tooltip = TP.T("agsHintFontSizeTooltip"),
+            min = TP.AGS_HINT_FONT_SIZE_MIN,
+            max = TP.AGS_HINT_FONT_SIZE_MAX,
+            step = 1,
+            decimals = 0,
+            clampInput = true,
+            getFunc = function()
+                return tonumber(TP.SV.agsHintFontSize) or defaults.agsHintFontSize
+            end,
+            setFunc = function(value)
+                TP.SV.agsHintFontSize = zo_round(value)
+            end,
+            disabled = function() return TP.SV.showSimpleFilterInAGS ~= true end,
+            default = defaults.agsHintFontSize,
+        },
+    }
+
+    for _, control in ipairs(TP.GetGroupOptionControls and TP.GetGroupOptionControls() or {}) do
+        options[#options + 1] = control
+    end
+    LAM:RegisterOptionControls(panelName, options)
 end
 
 local function SnapshotPurchase(slotIndex)
@@ -3303,6 +3342,16 @@ end
 
 local function GetPurchaseKey(purchase)
     return tostring(purchase.guildId or 0) .. ":" .. tostring(purchase.id or "unknown") .. ":" .. tostring(purchase.price or 0)
+end
+
+-- True when this guild store lot was bought by the player and the purchase was not rejected.
+function TP.IsLotPurchased(guildId, itemUniqueId, price)
+    local purchase = TP.SV.purchases[GetPurchaseKey({
+        guildId = guildId,
+        id = SafeId64ToString(itemUniqueId),
+        price = price,
+    })]
+    return purchase ~= nil and purchase.status ~= "failed"
 end
 
 function TP.RecordSubmittedPurchase()
@@ -4034,6 +4083,7 @@ local function TryBuildInitialHistorySnapshots(generation)
             RequestPrioritySave()
         end
         TP.RefreshUI()
+        TP.callbacks:FireCallbacks("MarketDataLoaded")
     end
 
     if not TP.runtime.guildHistorySnapshot then
@@ -4050,11 +4100,12 @@ local function TryBuildInitialHistorySnapshots(generation)
         if analyticsLoadIncludesFullHistory then TP.fullGuildHistoryLoaded = true end
         RequestPrioritySave()
         TP.RefreshUI()
+        TP.callbacks:FireCallbacks("MarketDataLoaded")
     end
 end
 
 function TP.SetupGuildSalesProcessor(guildId, guildName, analyticsGeneration, loadFullHistory)
-    if not TP.libReady then return end
+    if not TP.libReady or not IsTradingGuildSelected(guildId) then return end
     salesBulkLoadActive = true
 
     local existing = TP.processors[guildId]
@@ -4120,12 +4171,8 @@ function TP.SetupSalesProcessors()
         TP.runtime.weeklyAnalyticsCache = nil
     end
     TP.RefreshUI()
-    for i = 1, GetNumGuilds() do
-        local guildId = GetGuildId(i)
-        local guildName = GetGuildName(guildId)
-        if guildName ~= "" then
-            TP.SetupGuildSalesProcessor(guildId, guildName, generation, loadFullHistory)
-        end
+    for _, guild in ipairs(GetSelectedTradingGuilds()) do
+        TP.SetupGuildSalesProcessor(guild.id, guild.name, generation, loadFullHistory)
     end
     analyticsProcessorSetupInProgress = false
     TryBuildInitialHistorySnapshots(generation)
@@ -4150,13 +4197,9 @@ MaybeStartSalesProcessors = function(generation)
         or not salesReadinessWaiting then return end
 
     local allReady = libHistoireRequestsStarted
-    for i = 1, GetNumGuilds() do
-        local guildId = GetGuildId(i)
-        local guildName = GetGuildName(guildId)
-        if guildName ~= "" then
-            RegisterSalesReadiness(guildId)
-            if not IsLibHistoireGuildReady(guildId) then allReady = false end
-        end
+    for _, guild in ipairs(GetSelectedTradingGuilds()) do
+        RegisterSalesReadiness(guild.id)
+        if not IsLibHistoireGuildReady(guild.id) then allReady = false end
     end
 
     if not allReady then return end
@@ -4188,7 +4231,7 @@ function TP.EnsureFullGuildHistoryLoaded()
 end
 
 local function MarkGuildRangeLost(guildId, category)
-    if category ~= GUILD_HISTORY_EVENT_CATEGORY_TRADER then return end
+    if category ~= GUILD_HISTORY_EVENT_CATEGORY_TRADER or not IsTradingGuildSelected(guildId) then return end
     TP.historyRangeRetries[guildId] = true
     TP.processors[guildId] = nil
     analyticsProcessorsPending[tostring(guildId)] = analyticsLoadGeneration
@@ -4203,7 +4246,7 @@ local function OnLibHistoireCategoryLinked(guildId, category)
     end
 
     if category ~= GUILD_HISTORY_EVENT_CATEGORY_TRADER then return end
-    if TP.historyRangeRetries[guildId] and salesProcessorsStarted then
+    if IsTradingGuildSelected(guildId) and TP.historyRangeRetries[guildId] and salesProcessorsStarted then
         TP.historyRangeRetries[guildId] = nil
         local guildName = GetGuildName(guildId)
         if guildName ~= "" then TP.SetupGuildSalesProcessor(guildId, guildName) end
@@ -4330,6 +4373,8 @@ local function HandleSlashCommand(arguments)
         d(TP.T("help1"))
         d(TP.T("help2"))
         d(TP.T("help3"))
+    elseif command == "group" and TP.PrintGroupSharing then
+        TP.PrintGroupSharing()
     else
         TP.ToggleWindow()
     end
@@ -4393,6 +4438,8 @@ local function OnAddOnLoaded(_, addonName)
 
     InitializeWindowPosition()
     TP.ApplyAppearanceSettings()
+    if TP.SetupGroupHud then TP.SetupGroupHud() end
+    if TP.SetupGroupSharing then TP.SetupGroupSharing() end
     TP.SetupSettings()
     TP.SetupAGSFilter()
     TP.ApplySceneSettings()

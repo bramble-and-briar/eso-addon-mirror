@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="Death">
+        <Category>
+            <Action name="PVPUA_RESPAWN_AT_CAMP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER" rebindable="false">
+                <Down>PvPUA_Death_ButtonsButton1:OnClicked()</Down>
+            </Action>
+            <Action name="PVPUA_RESPAWN_AT_KEEP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER" rebindable="false">
+                <Down>PvPUA_Death_ButtonsButton2:OnClicked()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

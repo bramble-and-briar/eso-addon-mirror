@@ -2,9 +2,15 @@ H8 Ball
 Author: absolventR3M
 
 Shake the H8 Ball. You know you want to. Your answer shows up in your
-chat window and is pasted into the Chat page's text box, set to the
-channel you last used. Press Send to share it, or back out to keep it
-to yourself. Shaking from the wheel opens the Chat page for you.
+chat window and is placed in the Chat page's text box, set to the
+channel you last used. Shaking from the wheel opens the Chat page.
+
+TO SHARE IT: press X to send. Press A to edit.
+
+FIRST SHAKE EACH SESSION: open Text Chat yourself once (Main Menu >
+Text Chat) before shaking from the wheel. If an add-on is the first
+thing to open Text Chat, the game blocks its Send button until you
+Reload UI. H8 Ball will refuse to open it and remind you.
 
 REQUIRES
   LibRadialMenu (version 9 or newer)

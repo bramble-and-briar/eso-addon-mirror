@@ -1,5 +1,7 @@
 local appName = "LibTrack"
 local corpsesAvailable = 0
+local lastZoneId = GetZoneId(GetCurrentMapZoneIndex())
+local trackingEmbrace = false
 
 LibTrack = {}
 
@@ -7,6 +9,12 @@ LibTrack = {}
 local function printMessage(msg)
 	local chat = LibChatMessage(appName, "MA")
 	chat:Print(msg)
+end
+
+--clean player names
+local function cleanName(str)
+    if not str then return "" end
+    return str:sub(1, -4)
 end
 
 
@@ -41,7 +49,7 @@ local function trackBoneArmor(changeType, abilityId)
     end
 
     -- Only process the initial gained event.
-    if changeType ~= EFFECT_RESULT_GAINED then
+    if changeType ~= 1 then
         return
     end
 
@@ -65,7 +73,6 @@ local function trackBoneArmor(changeType, abilityId)
 
     corpsesAvailable = corpsesAvailable + 1
 
-    --printMessage("Bone Armor corpse counted")
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
 end
 -----------------------------------------------------------------------------------------------------end bone armor
@@ -92,7 +99,6 @@ local function expireSpiritMenderCorpses(now)
             table.remove(spiritMenderCorpses, i)
 
             corpsesAvailable = math.max(0, corpsesAvailable - 1)
-            --printMessage("Spirit Mender corpse expired")
             libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
         end
     end
@@ -102,14 +108,12 @@ local function addSpiritMenderCorpse(now)
     expireSpiritMenderCorpses(now)
 
     if #spiritMenderCorpses >= SPIRIT_MENDER_MAX_CORPSES then
-        --printMessage("Spirit Mender corpse limit reached")
         libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
         return
     end
 
     table.insert(spiritMenderCorpses, now)
     corpsesAvailable = corpsesAvailable + 1
-    --printMessage("Spirit Mender corpse counted")
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
 end
 
@@ -121,7 +125,7 @@ local function trackSpiritMender(changeType, effectSlot, abilityId)
     local now = GetGameTimeMilliseconds()
     expireSpiritMenderCorpses(now)
 
-    if changeType == EFFECT_RESULT_GAINED then
+    if changeType == 1 then
         local threshold = 8000
 
         if abilityId == 118840 then
@@ -133,7 +137,7 @@ local function trackSpiritMender(changeType, effectSlot, abilityId)
             threshold = threshold,
         }
 
-    elseif changeType == EFFECT_RESULT_FADED then
+    elseif changeType == 2 then
         local summon = spiritMenderSummons[effectSlot]
 
         if not summon then
@@ -145,7 +149,6 @@ local function trackSpiritMender(changeType, effectSlot, abilityId)
         if elapsed >= summon.threshold then
             addSpiritMenderCorpse(now)
         else
-            --printMessage("Spirit Mender ended before corpse threshold")
             libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
         end
 
@@ -165,40 +168,26 @@ local skeletalMageAbilities = {
 }
 
 local SKELETAL_MAGE_MIN_DURATION = 10000
-local SKELETAL_MAGE_CORPSE_LIFETIME = 10000
 
 local skeletalMageSummons = {}
-local skeletalMageCorpses = {}
 
-local function expireSkeletalMageCorpses(now)
-    for i = #skeletalMageCorpses, 1, -1 do
-        if now - skeletalMageCorpses[i] >= SKELETAL_MAGE_CORPSE_LIFETIME then
-            table.remove(skeletalMageCorpses, i)
-            corpsesAvailable = math.max(0, corpsesAvailable - 1)
-        end
-    end
-end
-
-local function addSkeletalMageCorpse(now)
-    table.insert(skeletalMageCorpses, now)
+local function addSkeletalMageCorpse()
     corpsesAvailable = corpsesAvailable + 1
     libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
-    printMessage("Skeletal Mage corpse counted")
 end
 
 local function trackSkeletalMage(changeType, effectSlot, abilityId)
     if not skeletalMageAbilities[abilityId] then return end
 
     local now = GetGameTimeMilliseconds()
-    expireSkeletalMageCorpses(now)
 
-    if changeType == EFFECT_RESULT_GAINED then
+    if changeType == 1 then
         skeletalMageSummons[effectSlot] = {
             abilityId = abilityId,
             startTime = now,
         }
 
-    elseif changeType == EFFECT_RESULT_FADED then
+    elseif changeType == 2 then
         local summon = skeletalMageSummons[effectSlot]
 
         if summon then
@@ -206,31 +195,145 @@ local function trackSkeletalMage(changeType, effectSlot, abilityId)
 
             if duration >= SKELETAL_MAGE_MIN_DURATION
                 and IsUnitInCombat("player") then
-                addSkeletalMageCorpse(now)
+                addSkeletalMageCorpse()
             end
 
             skeletalMageSummons[effectSlot] = nil
         end
     end
 end
-
-
 -----------------------------------------------------------------------------------------------------end skeletal mage
 
 
+-----------------------------------------------------------------------------------------------------start sacrificial bones
+local sacrificialBonesAbilityIds = { 114863, 117750, 117718 }
+
+local sacrificialBonesAbilities = {
+    [114863] = true, -- Sacrificial Bones
+    [117750] = true, -- Grave Lord's Sacrifice
+    [117718] = true, -- Blighted Blastbones travel effect
+}
+
+local sacrificialBonesCorpseAvailable = false
+
+local function trackSacrificialBones(changeType, abilityId)
+    if not sacrificialBonesAbilities[abilityId] then
+        return
+    end
+
+    -- Corpse is created when the explosion occurs or Blastbones hits.
+    if changeType ~= 2 then
+        return
+    end
+
+    -- Only count corpses created in combat.
+    if not IsUnitInCombat("player") then
+        return
+    end
+
+    -- A new corpse replaces this group's previous corpse.
+    if sacrificialBonesCorpseAvailable then
+        return
+    end
+
+    sacrificialBonesCorpseAvailable = true
+    corpsesAvailable = corpsesAvailable + 1
+
+    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+end
+-----------------------------------------------------------------------------------------------------end sacrificial bones
 
 
+-----------------------------------------------------------------------------------------------------start flame skull
+local flameSkullAbilityIds = { 114131, 117625, 117638 }
+
+local flameSkullAbilities = {
+    [114131] = true, -- Flame Skull
+    [117625] = true, -- Venom Skull
+    [117638] = true, -- Ricochet Skull
+}
+
+local flameSkullCastCount = 0
+local venomSkullIgnoreNextChangeType3 = false
+
+local function trackFlameSkull(changeType, abilityId, stackCount)
+    if not flameSkullAbilities[abilityId] then return end
+
+    if changeType == 1 then
+        flameSkullCastCount = 1
+        venomSkullIgnoreNextChangeType3 = false
+        return
+    end
+
+    if abilityId == 117625 and changeType == 3 then
+        if venomSkullIgnoreNextChangeType3 then
+            venomSkullIgnoreNextChangeType3 = false
+        else
+            flameSkullCastCount = flameSkullCastCount + 1
+            venomSkullIgnoreNextChangeType3 = true
+        end
+
+        if stackCount == 2 then
+            flameSkullCastCount = 2
+        elseif stackCount == 3 then
+            flameSkullCastCount = 3
+        end
+
+        return
+    end
+
+    if (abilityId == 114131 or abilityId == 117638)
+        and changeType == 3 then
+        flameSkullCastCount = flameSkullCastCount + 1
+
+        if stackCount == 2 then
+            flameSkullCastCount = 2
+        end
+
+        return
+    end
+
+    if changeType == 2 then
+        local thirdCast = false
+
+        if abilityId == 117625 then
+            thirdCast =
+                (flameSkullCastCount == 3 and stackCount == 3)
+                or stackCount == 2
+        else
+            thirdCast =
+                flameSkullCastCount == 2 and stackCount == 2
+        end
+
+        flameSkullCastCount = 0
+        venomSkullIgnoreNextChangeType3 = false
+
+        if thirdCast then
+            zo_callLater(function()
+                if IsUnitInCombat("player") then
+                    corpsesAvailable = corpsesAvailable + 1
+                    libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+                    printMessage("Flame Skull corpse counted")
+                else
+                    printMessage("Flame Skull proc: still out of combat")
+                end
+            end, 1200)
+        end
+    end
+end
+-----------------------------------------------------------------------------------------------------end flame skull
 
 
-
-
-
-
-
-
-
-
-
+-----------------------------------------------------------------------------------------------------start veil's forfeit
+-- Veil's Forfeit
+local function trackVeilsForfeit(changeType, unitTag)
+    if changeType == 1 and unitTag == "player" then
+        corpsesAvailable = corpsesAvailable + 1
+        libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+        printMessage("Veil's Forfeit corpse counted")
+    end
+end
+-----------------------------------------------------------------------------------------------------stop veil's forfeit
 
 
 
@@ -243,6 +346,11 @@ end
 local function effectReport(eventCode, changeType, effectSlot, effectName, unitTag, beginTime, endTime, stackCount, iconName, buffType,
     effectType, abilityType, statusEffectType, unitName, unitID, abilityID)
 
+    --add if not player stipulation to not track other players necro skills
+    --printMessage("abilityID: " .. tostring(abilityID))
+    --printMessage("changeType: " .. tostring(changeType))
+    --printMessage("stackCount: " .. tostring(stackCount))
+
     --spirit mender and morphs
     if abilityID == 115710 or abilityID == 118912 or abilityID == 118840 then
         trackSpiritMender(changeType, effectSlot, abilityID)
@@ -252,47 +360,61 @@ local function effectReport(eventCode, changeType, effectSlot, effectName, unitT
     --skeltal mage and morphs
     elseif abilityID == 114317 or abilityID == 118726 or abilityID == 118680 then
         trackSkeletalMage(changeType, effectSlot, abilityID)
+    --sacrificial bones and morphs    
+    elseif abilityID == 114863 or abilityID == 117750 or abilityID == 117718 then
+        trackSacrificialBones(changeType, abilityID)
+    --flame skull and morphs
+    elseif abilityID == 114131 or abilityID == 117625 or abilityID == 117638 then
+        trackFlameSkull(changeType, abilityID, stackCount)
+    --veil's forfeit
+    elseif abilityID == 263555 then
+        trackVeilsForfeit(changeType, unitTag)
     end
+
 
 --[[
     printMessage(string.format(
-       "effectReportBB | changeType=%s | effectSlot=%s | effectName=%s | unitTag=%s | beginTime=%s | endTime=%s | stackCount=%s | buffType=%s | effectType=%s | abilityType=%s | statusEffectType=%s | unitName=%s | unitID=%s",
-        tostring(changeType), tostring(effectSlot), tostring(effectName), tostring(unitTag), tostring(beginTime),
-        tostring(endTime), tostring(stackCount), tostring(buffType),tostring(effectType),
+       "effectReport | changeType=%s | effectName=%s | unitTag=%s | stackCount=%s | buffType=%s | effectType=%s | abilityID=%s | abilityType=%s | statusEffectType=%s | unitName=%s | unitID=%s",
+        tostring(changeType), tostring(effectName), tostring(unitTag), tostring(stackCount), tostring(buffType),tostring(effectType),tostring(abilityID),
         tostring(abilityType), tostring(statusEffectType), tostring(unitName), tostring(unitID)))
 
-    if changeType == 1 then
-        printMessage("Spirit Mender spawned")
-    elseif changeType == 2 then
-        printMessage("Spirit Mender faded")
-    elseif changeType == 3 then
-        printMessage("Spirit Mender updated")
-    else
-        printMessage("changeType unknown")
-    end
+
 ]]
 end
-
-
-
-
-
 
 --handle combat events
 local function combatReport(eventCode, result, isError, abilityName, abilityGraphic, abilityActionSlotType, sourceName,
     sourceType, targetName, targetType, hitValue, powerType, damageType, log, sourceUnitId, targetUnitId, abilityId, overflow)
 
+    --if error return
     if isError then
         return
     end
 
+    --if not player cast skill return
+    local nameTmp = GetUnitName("player")
+    if nameTmp ~= cleanName(sourceName) then
+        return
+    end
+
+    --if abilityId is ghostly embrace 3rd hit
+    if abilityId == 143946 and not trackingEmbrace then
+        trackingEmbrace = true
+        corpsesAvailable = corpsesAvailable + 1
+        libTrackTextLabelMain:SetText("Corpses: " .. corpsesAvailable)
+        zo_callLater(function () trackingEmbrace = false end, 1000)
+    end
+
+
+--[[
+
     local msg = string.format(
-        "combatReport | Event: %s | Result: %s | Ability: %s | AbilityID: %s | Source: %s | Target: %s | HitValue: %s | PowerType: %s | DamageType: %s | SourceID: %s | TargetID: %s",
+        "combatReport | Event: %s | Result: %s | Ability: %s | AbilityId: %s | Source: %s | Target: %s | HitValue: %s | PowerType: %s | DamageType: %s | SourceID: %s | TargetID: %s",
         tostring(eventCode), tostring(result), tostring(abilityName), tostring(abilityId), tostring(sourceName), tostring(targetName),
         tostring(hitValue), tostring(powerType), tostring(damageType), tostring(sourceUnitId), tostring(targetUnitId))
-
     printMessage(msg)
 
+]]
 end
 
 --reset corpse count
@@ -301,11 +423,20 @@ local function resetCorpseCount()
     libTrackTextLabelMain:SetText("Corpses: 0")
 end
 
+--reset flame,venom and ricochet skull tracking
+local function resetFlameSkullTracking()
+    flameSkullCastCount = 0
+    venomSkullIgnoreNextChangeType3 = false
+end
+
 --reset corpse tracking
 local function resetCorpseTracking()
+
+    --clear Sacrificial Bones tracking
+    sacrificialBonesCorpseAvailable = false
+
     --clear Skeletal Mage tracking
     skeletalMageSummons = {}
-    skeletalMageCorpses = {}
 
     --clear Spirit Mender tracking
     spiritMenderSummons = {}
@@ -315,13 +446,23 @@ local function resetCorpseTracking()
     boneArmorCorpses = {}
     lastBoneArmorCorpseTime = nil
 
-    printMessage("Corpse tracking reset")
+    --printMessage(tostring(sacrificialBonesCorpseAvailable))
+    --printMessage("Corpse tracking reset")
 end
 
 --reset corpse tracking after login, /reloadui, or zone loading
 local function onPlayerActivated(eventCode, initial)
+
+    --reset counters
     resetCorpseCount()
     resetCorpseTracking()
+
+    --reset flame skull if zone change
+    local currentZoneId = GetZoneId(GetCurrentMapZoneIndex())
+    if currentZoneId ~= lastZoneId then
+        resetFlameSkullTracking()
+        lastZoneId = currentZoneId
+    end
 end
 
 --reset corpse tracking when combat ends
@@ -341,7 +482,6 @@ local function libLoaded(event, name)
 
     libTrackText:SetMovable(true)
     libTrackTextLabelMain:SetFont("$(GAMEPAD_MEDIUM_FONT)|$(GP_54)|soft-shadow-thick")
-
     libTrackTextLabelMain:SetText("Corpses: 0")
 
     --register for spirit guardian and morphs effect events
@@ -365,16 +505,42 @@ local function libLoaded(event, name)
         EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
     end
 
+    --register for sacrificial bones and morphs effect events
+    for _, abilityId in ipairs(sacrificialBonesAbilityIds) do
+        local eventName = "NecroTrackerSacrificialBones" .. abilityId
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, effectReport)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
+    end
+
+    --register for flame skull and morphs effect events
+    for _, abilityId in ipairs(flameSkullAbilityIds) do
+        local eventName = "NecroTrackerFlameSkull" .. abilityId
+        EVENT_MANAGER:RegisterForEvent(eventName, EVENT_EFFECT_CHANGED, effectReport)
+        EVENT_MANAGER:AddFilterForEvent(eventName, EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, abilityId)
+    end
+
+    --register for ghostly embrace notifications
+    EVENT_MANAGER:RegisterForEvent("NecroTrackerGhostlyEmbrace143946", EVENT_COMBAT_EVENT, combatReport)
+    EVENT_MANAGER:AddFilterForEvent("NecroTrackerGhostlyEmbrace143946", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 143946)--ghostly embrace, abilityId of 3rd area if it hits target
+
+    --register for veil's forfeit notifications 
+    EVENT_MANAGER:RegisterForEvent("NecroTrackerVeilsForfeit263555", EVENT_EFFECT_CHANGED, effectReport)
+    EVENT_MANAGER:AddFilterForEvent("NecroTrackerVeilsForfeit263555", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 263555)--veil's forfeit, abilityId
+
     --register for in / out combat notifications
     EVENT_MANAGER:RegisterForEvent( "NecroTrackerCombatReset", EVENT_PLAYER_COMBAT_STATE, onCombatStateChanged)
 
     --register for player loading in notifications
     EVENT_MANAGER:RegisterForEvent("NecroTrackerResetOnActivation", EVENT_PLAYER_ACTIVATED, onPlayerActivated)
 
+
+
+
+
     --EVENT_MANAGER:RegisterForEvent("effectReport2", EVENT_EFFECT_CHANGED, effectReport)
-    --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 114317)
+    --EVENT_MANAGER:AddFilterForEvent("effectReport2", EVENT_EFFECT_CHANGED, REGISTER_FILTER_ABILITY_ID, 263555)
     --EVENT_MANAGER:RegisterForEvent("combatReport", EVENT_COMBAT_EVENT, combatReport)
-    --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 114317)
+    --EVENT_MANAGER:AddFilterForEvent("combatReport", EVENT_COMBAT_EVENT, REGISTER_FILTER_ABILITY_ID, 143946)
 
 end
 

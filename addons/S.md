@@ -324,7 +324,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |
 | [Stylich](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/Stylich__4671) | s1by0z | PC / Mac | 1.2.2 |
 | [Sugas-Test-Zone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Sugas-Test-Zone__75cafaa0-706c-4f77-a94a-9a8b0e2868f2) | SugaComa | Console | — |
-| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 1.3 |
+| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 2.5.18 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__3656) | Lykeion | PC / Mac | 1.5 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__aa271fb4-3ce5-4584-ac5c-338617e92f62) | Lykeion+ | Console | — |
 | [SuMech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/burito/SuMech__3467) | burito | PC / Mac | cdaefe9dfe5ba5531fb6b0a6eb0c1757b7b246a1 |

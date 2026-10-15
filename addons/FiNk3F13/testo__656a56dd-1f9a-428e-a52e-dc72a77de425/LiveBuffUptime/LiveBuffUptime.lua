@@ -1332,6 +1332,18 @@ local function loaded(_, addonName)
     end
     registerESOEvent(NAME, EVENT_EFFECT_CHANGED, function(_, changeType, slot, _, unitTag, starts, ends, stacks, icon, _, effectType, _, _, unitName, unitId, id, sourceType)
         if type(unitTag) ~= "string" then return end
+        if BuffReports and (unitTag == "player" or unitTag:match("^group%d+$"))
+            and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
+            for _, tracker in ipairs(enabledTrackers) do
+                if matches(tracker.config, id) then
+                    BuffReports.RecordBuffReceipt(tracker.config.id, groupMemberKey(unitTag), slot, changeType, starts, nowSeconds(), ends)
+                    break
+                end
+            end
+        end
+        if BuffReports and unitTag:match("^boss%d+$") and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED) then
+            BuffReports.ObserveBoss(unitTag, unitId, unitName)
+        end
         if BuffReports and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF
             and (unitTag:match("^boss%d+$") or (unitTag == "reticleover" and GetUnitReaction
                 and UNIT_REACTION_HOSTILE ~= nil and GetUnitReaction(unitTag) == UNIT_REACTION_HOSTILE))

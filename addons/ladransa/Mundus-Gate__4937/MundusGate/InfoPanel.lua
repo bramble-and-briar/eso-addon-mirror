@@ -115,6 +115,35 @@ function InfoPanel:Initialize()
         self.tabButtons[def.key] = button
     end
 
+    -- Справа вверху: режим панели заданий на экране — все задания журнала (T)
+    -- или только выбранные здесь
+    local mode = WINDOW_MANAGER:CreateControl(panel:GetName() .. "TrackerMode", panel, CT_BUTTON)
+    mode:SetDimensions(30, 30)
+    mode:SetAnchor(TOPRIGHT, panel, TOPRIGHT, -12, 11)
+    mode:SetMouseEnabled(true)
+    local modeBg = WINDOW_MANAGER:CreateControl(mode:GetName() .. "Bg", mode, CT_TEXTURE)
+    modeBg:SetAnchorFill(mode)
+    local modeIcon = WINDOW_MANAGER:CreateControl(mode:GetName() .. "Icon", mode, CT_TEXTURE)
+    modeIcon:SetDimensions(22, 22)
+    modeIcon:SetAnchor(CENTER, mode, CENTER, 0, 0)
+    modeIcon:SetTexture("EsoUI/Art/Compass/quest_icon_assisted.dds")
+    mode.bg, mode.icon = modeBg, modeIcon
+    mode:SetHandler("OnClicked", function() QTM.QuestTracker:ToggleMode() end)
+    mode:SetHandler("OnMouseEnter", function(c)
+        c.isHover = true
+        self:PaintModeButton()
+        local selected = QTM.QuestTracker:IsSelectedMode()
+        QTM.ShowTip("infoPanel", c, BOTTOM, (selected and L.TRACKER_MODE_SELECTED_TT or L.TRACKER_MODE_JOURNAL_TT)
+            .. "\n|c8A8A8A" .. L.TRACKER_MODE_HINT .. "|r")
+    end)
+    mode:SetHandler("OnMouseExit", function(c)
+        c.isHover = false
+        self:PaintModeButton()
+        ZO_Tooltips_HideTextTooltip()
+    end)
+    self.modeButton = mode
+    self:PaintModeButton()
+
     -- Поиск группы (внизу панели)
     self.status = panel:GetNamedChild("Status")
     self.status:GetNamedChild("Bg"):SetColor(0.08, 0.12, 0.14, 0.85)
@@ -188,7 +217,7 @@ end
 -- Размер и положение: вплотную к правому краю окна карты, по его высоте
 ---------------------------------------------------------------------------
 function InfoPanel:Layout()
-    if self.preview then return end
+    if self.previewState then return end
     local panel = self.panel
     local map = ZO_WorldMap
     if not map or not map.GetRight then return end
@@ -255,6 +284,7 @@ end
 
 function InfoPanel:Refresh()
     self:UpdateVisibility()
+    self:PaintModeButton()
     if not self:IsEnabled() then return end
     self.layoutKey = nil
     self:Layout()
@@ -455,7 +485,7 @@ function InfoPanel:SetPreview(enabled, right, top, width, height)
     local root, panel = self.root, self.panel
     if enabled then
         if not self:IsEnabled() then return end
-        self.preview = { tab = self.tab, tier = root:GetDrawTier() }
+        self.previewState = { tab = self.tab, tier = root:GetDrawTier() }
         self.tab = "quests"
         root:SetDrawTier(DT_HIGH)
         root:SetHidden(false)
@@ -469,9 +499,9 @@ function InfoPanel:SetPreview(enabled, right, top, width, height)
         self:RefreshQuests()
         return
     end
-    local preview = self.preview
+    local preview = self.previewState
     if not preview then return end
-    self.preview = nil
+    self.previewState = nil
     self.tab = preview.tab
     root:SetDrawTier(preview.tier)
     root:SetHidden(true)   -- с картой панель снова покажет её фрагмент
@@ -479,12 +509,29 @@ function InfoPanel:SetPreview(enabled, right, top, width, height)
 end
 
 function InfoPanel:RefreshPreview()
-    if self.preview then self:PaintTabs(); self:RefreshQuests() end
+    if self.previewState then self:PaintTabs(); self:RefreshQuests() end
 end
 
 -- Сменилась цветовая тема: перекрасить то, что красится один раз
+-- Кнопка режима: включённый «только выбранные» подсвечен цветом темы
+function InfoPanel:PaintModeButton()
+    local button = self.modeButton
+    if not button then return end
+    button:SetHidden(not QTM.QuestTracker:IsEnabled())
+    local on = QTM.QuestTracker:IsSelectedMode()
+    if on then
+        button.icon:SetColor(ICE[1], ICE[2], ICE[3], 1)
+        button.bg:SetColor(ICE[1], ICE[2], ICE[3], button.isHover and 0.45 or 0.3)
+    else
+        local value = button.isHover and 1 or 0.6
+        button.icon:SetColor(value, value, value, 1)
+        button.bg:SetColor(1, 1, 1, button.isHover and 0.12 or 0)
+    end
+end
+
 function InfoPanel:OnThemeChanged()
     if not self.panel then return end
+    self:PaintModeButton()
     self.tabIndicator:SetColor(ICE[1], ICE[2], ICE[3], 1)
     self.status:GetNamedChild("Stripe"):SetColor(ICE[1], ICE[2], ICE[3], 1)
     self:PaintTabs()

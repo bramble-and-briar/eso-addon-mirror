@@ -15,10 +15,10 @@
   "content_id": "esoui:4952",
   "deleted": false,
   "directories": [
-    "PurgeRadar"
+    "Purge Radar"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4952/",
-  "fingerprint": "de767a1a19154182870b8b508b3fe3ee6ede3b0b646ff1bbc91cbd80527f72a9",
+  "fingerprint": "7d30556f061f058a614ee284f59b6748ea61435992ff6774bb9e847b459561c3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17990.jpg"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4952",
   "source_url": "https://www.esoui.com/downloads/info4952-PurgeRadar.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 13,
+    "favorites": 1,
+    "monthly_downloads": 12
   },
   "title": "Purge Radar",
-  "updated_at": 1791960149000,
-  "version": "1.4.1"
+  "updated_at": 1791974801000,
+  "version": "1.4.2"
 }

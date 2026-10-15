@@ -18,7 +18,7 @@
     "TDAddon"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4194/",
-  "fingerprint": "af76138b9272994adb518d267ff1e7f9dd0a87bb8cf784d6a751b515665c79db",
+  "fingerprint": "d260018ba3ee808e71234794bfaf04edb66eac9697a05a997b59965a134a5586",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14343.jpg"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4194",
   "source_url": "https://www.esoui.com/downloads/info4194-TDAddon.html",
   "stats": {
-    "downloads": 2678,
+    "downloads": 2770,
     "favorites": 2,
-    "monthly_downloads": 117
+    "monthly_downloads": 186
   },
   "title": "TDAddon",
-  "updated_at": 1790582846000,
-  "version": "2026.09.28"
+  "updated_at": 1791962649000,
+  "version": "2026.10.14"
 }

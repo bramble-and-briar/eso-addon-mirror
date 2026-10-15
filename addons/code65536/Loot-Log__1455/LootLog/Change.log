@@ -1,3 +1,8 @@
+Version 4.10.6 (2026/10/14)
+* Added "+1" text to the Found counter for antiquity lead tooltips if the lead
+  has been acquired but not yet excavated; this will make it easier to see if a
+  tradeable antiquity lead is already in the journal
+
 Version 4.10.5 (2026/10/09)
 * Added an option, disabled by default, to ignore partially-completed antiquity
   codex, so that treasure maps and tradeable leads with partially-completed

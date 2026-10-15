@@ -8,8 +8,8 @@
   "category_id": "95",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:2703",
@@ -18,7 +18,7 @@
     "PlayerRoleIndicator"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2703/",
-  "fingerprint": "88fba243be338b4cce4ff832444ae725ea9d4fded03b125ef67501f47fc6ae5c",
+  "fingerprint": "c15c6e27a6d8e14f501b57103ad445bc229e615243acb68407dcf6c6961fd698",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw9197.png",
     "https://cdn-eso.mmoui.com/preview/pvw9195.png",
@@ -30,11 +30,11 @@
   "source_id": "2703",
   "source_url": "https://www.esoui.com/downloads/info2703-PlayerRoleIndicator.html",
   "stats": {
-    "downloads": 65540,
+    "downloads": 68244,
     "favorites": 86,
-    "monthly_downloads": 877
+    "monthly_downloads": 2869
   },
   "title": "Player Role Indicator",
-  "updated_at": 1789596549000,
-  "version": "1.4.0.27"
+  "updated_at": 1791999969000,
+  "version": "1.4.1.32"
 }

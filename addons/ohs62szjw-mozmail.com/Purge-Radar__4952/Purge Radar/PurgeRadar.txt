@@ -1,0 +1,11 @@
+## Title: PurgeRadar
+## APIVersion: 101051
+## Version: 1.4.2
+## Author: SuperSecretTech
+## SavedVariables: PurgeRadarSavedVars
+## Description: Displays functional indicators on raid frames when players require cleansing or priority healing checks.
+
+# CRITIQUE RESOLVED: Enforced version checking using >= operator for modern standard practices
+## DependsOn: LibAddonMenu-2.0>=43 LibFloatingIcons
+
+PurgeRadar.lua

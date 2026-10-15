@@ -20,6 +20,9 @@ MasterThief.defaultSettings = {
     announceInChat = true,
     playLootSound = true,
     autoSellFences = true,
+    autoDestroyGreens = false,
+    autoDestroyBlues = false,
+    autoDestroyPurples = false,
     fontSize = 11,
     posX = 60,
     posY = 100,
@@ -346,23 +349,23 @@ function MasterThief.OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNew)
         local isLockpick = (itemType == ITEMTYPE_TOOL) or string_find(link, "item:44874") or string_match(string_lower(itemName), "lockpick")
         
         local isProtectedMaterial = (itemType == ITEMTYPE_CRAFTING_MAT_ADDITIVE or 
-                                     itemType == ITEMTYPE_WEAPON_TRAIT_MAT or 
-                                     itemType == ITEMTYPE_ARMOR_TRAIT_MAT or 
-                                     itemType == ITEMTYPE_ENCHANTING_RUNE or 
-                                     itemType == ITEMTYPE_BLACKSMITHING_BOOSTER or 
-                                     itemType == ITEMTYPE_CLOTHIER_BOOSTER or 
-                                     itemType == ITEMTYPE_WOODWORKING_BOOSTER or 
-                                     itemType == ITEMTYPE_JEWELRYCRAFTING_BOOSTER or 
-                                     itemType == ITEMTYPE_JEWELRYCRAFTING_MAT or 
-                                     itemType == ITEMTYPE_INGREDIENT or 
-                                     itemType == ITEMTYPE_POTION or 
-                                     itemType == ITEMTYPE_POISON or
-                                     itemType == ITEMTYPE_STYLE_MATERIAL or
-                                     itemType == ITEMTYPE_TOOL or
-                                     itemType == ITEMTYPE_RACIAL_STYLE_MOTIF or
-                                     itemType == ITEMTYPE_RECIPE or
-                                     itemType == ITEMTYPE_FURNISHING or
-                                     isLockpick)
+                                   itemType == ITEMTYPE_WEAPON_TRAIT_MAT or 
+                                   itemType == ITEMTYPE_ARMOR_TRAIT_MAT or 
+                                   itemType == ITEMTYPE_ENCHANTING_RUNE or 
+                                   itemType == ITEMTYPE_BLACKSMITHING_BOOSTER or 
+                                   itemType == ITEMTYPE_CLOTHIER_BOOSTER or 
+                                   itemType == ITEMTYPE_WOODWORKING_BOOSTER or 
+                                   itemType == ITEMTYPE_JEWELRYCRAFTING_BOOSTER or 
+                                   itemType == ITEMTYPE_JEWELRYCRAFTING_MAT or 
+                                   itemType == ITEMTYPE_INGREDIENT or 
+                                   itemType == ITEMTYPE_POTION or 
+                                   itemType == ITEMTYPE_POISON or
+                                   itemType == ITEMTYPE_STYLE_MATERIAL or
+                                   itemType == ITEMTYPE_TOOL or
+                                   itemType == ITEMTYPE_RACIAL_STYLE_MOTIF or
+                                   itemType == ITEMTYPE_RECIPE or
+                                   itemType == ITEMTYPE_FURNISHING or
+                                   isLockpick)
 
         local isGear = (itemType == ITEMTYPE_WEAPON or 
                         itemType == ITEMTYPE_ARMOR or 
@@ -376,15 +379,29 @@ function MasterThief.OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNew)
             end
         end
 
+        -- Read exact current boolean settings
+        local destroyGreens = (MasterThief.savedVars.autoDestroyGreens == true)
+        local destroyBlues = (MasterThief.savedVars.autoDestroyBlues == true)
+        local destroyPurples = (MasterThief.savedVars.autoDestroyPurples == true)
+
         local shouldDestroyJunk = (not isQuestItem and not isProtectedMaterial and isStolen and quality <= 1)
         local shouldDestroyGear = (not isQuestItem and isStolen and isGear)
+        local shouldDestroyGreen = (not isQuestItem and not isProtectedMaterial and isStolen and quality == 2 and destroyGreens)
+        local shouldDestroyBlue = (not isQuestItem and not isProtectedMaterial and isStolen and quality == 3 and destroyBlues)
+        local shouldDestroyPurple = (not isQuestItem and not isProtectedMaterial and isStolen and quality >= 4 and destroyPurples)
 
-        if shouldDestroyJunk or shouldDestroyGear then
+        if shouldDestroyJunk or shouldDestroyGear or shouldDestroyGreen or shouldDestroyBlue or shouldDestroyPurple then
             local stats = MasterThief.GetActiveCharacterStats()
             stats.whiteJunkDestroyed = (tonumber(stats.whiteJunkDestroyed) or 0) + stackCount
             
             if MasterThief.savedVars.announceInChat then
-                local destroyTypeLabel = shouldDestroyGear and "Destroyed Stolen Gear" or "Destroyed Stolen Junk"
+                local destroyTypeLabel = "Destroyed Stolen Item"
+                if shouldDestroyGear then destroyTypeLabel = "Destroyed Stolen Gear"
+                elseif shouldDestroyGreen then destroyTypeLabel = "Destroyed Stolen Green"
+                elseif shouldDestroyBlue then destroyTypeLabel = "Destroyed Stolen Blue"
+                elseif shouldDestroyPurple then destroyTypeLabel = "Destroyed Stolen Purple"
+                elseif shouldDestroyJunk then destroyTypeLabel = "Destroyed Stolen Junk" end
+                
                 CHAT_ROUTER:AddSystemMessage(string_format("|cFF6666[MasterThief] %s:|r %s", destroyTypeLabel, link))
             end
             
@@ -532,6 +549,34 @@ function MasterThief.CreateSettingsPanel()
             getFunc = function() return MasterThief.savedVars.autoSellFences end,
             setFunc = function(value) MasterThief.savedVars.autoSellFences = value end,
             default = MasterThief.defaultSettings.autoSellFences,
+        },
+        {
+            type = "header",
+            name = "|cFF6666Auto-Destroy Specific Rarity Toggles|r",
+        },
+        {
+            type = "checkbox",
+            name = "|c2DC800Auto-Destroy Stolen Greens|r",
+            tooltip = "Automatically delete stolen green items on pick-up.",
+            getFunc = function() return (MasterThief.savedVars.autoDestroyGreens == true) end,
+            setFunc = function(value) MasterThief.savedVars.autoDestroyGreens = (value == true) end,
+            default = MasterThief.defaultSettings.autoDestroyGreens,
+        },
+        {
+            type = "checkbox",
+            name = "|c3A92FFAuto-Destroy Stolen Blues|r",
+            tooltip = "Automatically delete stolen blue items on pick-up.",
+            getFunc = function() return (MasterThief.savedVars.autoDestroyBlues == true) end,
+            setFunc = function(value) MasterThief.savedVars.autoDestroyBlues = (value == true) end,
+            default = MasterThief.defaultSettings.autoDestroyBlues,
+        },
+        {
+            type = "checkbox",
+            name = "|cA335EEAuto-Destroy Stolen Purples|r",
+            tooltip = "Automatically delete stolen purple items on pick-up.",
+            getFunc = function() return (MasterThief.savedVars.autoDestroyPurples == true) end,
+            setFunc = function(value) MasterThief.savedVars.autoDestroyPurples = (value == true) end,
+            default = MasterThief.defaultSettings.autoDestroyPurples,
         },
         {
             type = "checkbox",

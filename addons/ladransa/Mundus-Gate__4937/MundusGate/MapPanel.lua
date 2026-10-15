@@ -217,7 +217,7 @@ function MapPanel:SetPreview(enabled, right, top, width, height)
     local root, panel = self.root, self.panel
     if enabled then
         if not self:IsEnabled() then return end
-        self.preview = { tab = QTM.sv.mapPanelTab, view = self.view, tier = root:GetDrawTier() }
+        self.previewState = { tab = QTM.sv.mapPanelTab, view = self.view, tier = root:GetDrawTier() }
         QTM.sv.mapPanelTab = "gate"
         self.view = "list"
         root:SetDrawTier(DT_HIGH)
@@ -232,9 +232,9 @@ function MapPanel:SetPreview(enabled, right, top, width, height)
         self:RefreshGate()
         return
     end
-    local preview = self.preview
+    local preview = self.previewState
     if not preview then return end
-    self.preview = nil
+    self.previewState = nil
     QTM.sv.mapPanelTab = preview.tab
     self.view = preview.view
     root:SetDrawTier(preview.tier)
@@ -244,7 +244,7 @@ function MapPanel:SetPreview(enabled, right, top, width, height)
 end
 
 function MapPanel:RefreshPreview()
-    if self.preview then self:ApplyTab(); self:RefreshGate() end
+    if self.previewState then self:ApplyTab(); self:RefreshGate() end
 end
 
 -- Сменилась цветовая тема: перекрасить то, что красится один раз
@@ -260,7 +260,7 @@ end
 -- Размер и положение: вплотную к левому краю окна карты, по его высоте
 ---------------------------------------------------------------------------
 function MapPanel:Layout()
-    if self.preview then return end
+    if self.previewState then return end
     local panel = self.panel
     local map = ZO_WorldMap
     if not map or not map.GetLeft then return end

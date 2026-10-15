@@ -11,19 +11,16 @@ local function SayInMonsterChannel(who, what)
 end
 
 local function OverloadSelectChatterOption()
-	--	Mouse function (but Keyboard “SelectChatterOptionByIndex” triggers it)
-	local OriginalHandleChatterOptionClicked = INTERACTION.HandleChatterOptionClicked
-	function INTERACTION:HandleChatterOptionClicked(label)
+	--	Shared by keyboard (INTERACTION) and gamepad (GAMEPAD_INTERACTION) windows
+	--	Keyboard “SelectChatterOptionByIndex” and gamepad list selection both trigger it
+	ZO_PreHook(ZO_SharedInteraction, "HandleChatterOptionClicked", function(self, label)
 		if not (label.enabled and label.optionIndex) then return end
 		local text = label.optionText
 		-- if text == nil or not(text) or text == "" then
 			-- text = label:GetText() -- With all formatting, icon and number
 		-- end
 		SayInMonsterChannel(ZO_HIGHLIGHT_TEXT:Colorize(GetUnitName("player")), ZO_HIGHLIGHT_TEXT:Colorize(text))
-
-		--	Run original
-		OriginalHandleChatterOptionClicked(INTERACTION, label)
-	end
+	end)
 end
 
 local function OnDialog()

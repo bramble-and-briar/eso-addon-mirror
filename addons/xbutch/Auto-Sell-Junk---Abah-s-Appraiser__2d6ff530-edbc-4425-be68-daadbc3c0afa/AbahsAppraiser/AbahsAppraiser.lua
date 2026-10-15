@@ -3,12 +3,14 @@ if not ASJ then ASJ = {} end
 
 ASJ.addOnName = "AbahsAppraiser"
 ASJ.addOnDisplayName = "Auto mark/sell junk"
-ASJ.version = "1.51.05"
+ASJ.version = "1.51.06"
 ASJ.author = "xbutch"
 local C = ASJ.Config
 
 ASJ.defaults = {
 	asjStore = true,
+	-- Select items only; the player still performs deconstruction.
+	asjAutoSelectDeconstruction = false,
 	-- Trash items
 	asjTrash = true,
 	-- Collectibles

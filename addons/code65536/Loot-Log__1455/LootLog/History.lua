@@ -178,7 +178,7 @@ function LootLogList:BuildMasterList( )
 			local entry = LootLog.Unpack(group[i])
 
 			local set = entry[6] % LootLog.flags.set == 0
-			local setName = set and zo_strformat(" <<C:1>>", select(2, GetItemLinkSetInfo(entry[2]))) or ""
+			local setName = set and LocalizeString(" <<C:1>>", select(2, GetItemLinkSetInfo(entry[2]))) or ""
 
 			table.insert(self.masterList, {
 				type = SORT_TYPE,

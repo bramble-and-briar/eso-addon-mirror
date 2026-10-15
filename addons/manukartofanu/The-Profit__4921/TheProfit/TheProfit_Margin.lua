@@ -277,14 +277,16 @@ local function GetMarketModel(itemKey, summary)
     return model
 end
 
-local function EvaluateModel(model, summary, unitPrice, quantity)
-    if not model.available then return false, model.reason end
+-- Returns the listing price the model can sell this stock plus quantity at, and the
+-- sell-through horizon in days; or nil and the reason when there is no safe price.
+local function GetListingPrice(model, summary, quantity)
+    if not model.available then return nil, model.reason end
 
     local market = summary.market
     local stock = math.max(0, tonumber(summary.stock) or 0)
     local horizon = (stock + quantity) / (MARKET_SHARE * model.dailyVolume)
     if horizon > MAX_HORIZON_DAYS then
-        return false, string.format("sell-through %.1f days > %.1f", horizon, MAX_HORIZON_DAYS)
+        return nil, string.format("sell-through %.1f days > %.1f", horizon, MAX_HORIZON_DAYS)
     end
 
     local trend = 0
@@ -300,9 +302,16 @@ local function EvaluateModel(model, summary, unitPrice, quantity)
     local dailyVariance = model.levelVariance + (model.averageVariance + trendVariance) / horizon
 
     local margin = FindRequiredMargin(trend, dailyVariance, horizon)
-    if not margin then return false, string.format("no safe listing price in %.1f days", horizon) end
+    if not margin then return nil, string.format("no safe listing price in %.1f days", horizon) end
 
-    local listingPrice = market.trimmedMean * math.exp(-margin)
+    return market.trimmedMean * math.exp(-margin), horizon
+end
+
+local function EvaluateModel(model, summary, unitPrice, quantity)
+    local listingPrice, horizon = GetListingPrice(model, summary, quantity)
+    if not listingPrice then return false, horizon end
+
+    local market = summary.market
     local roi = listingPrice * NET_SALE_RATE / unitPrice - 1
     local description = string.format("ROI %.1f%% listing at %.0f%% of market in %.1f days",
         roi * 100, listingPrice / market.trimmedMean * 100, horizon)
@@ -337,4 +346,18 @@ function TP.EvaluatePurchase(itemLink, unitPrice, quantity)
         return SCORE_SIMPLE, reason
     end
     return SCORE_SKIP, reason
+end
+
+-- Highest unit price at which EvaluatePurchase returns a buy for a single piece, or
+-- nil when the model has no forecast for the item.
+function TP.GetMaxPurchasePrice(itemKey)
+    if not itemKey or not TP.SV or not TP.SV.trackedItems or not TP.SV.trackedItems[itemKey] then return nil end
+
+    local summary = TP.CalculateSummary(itemKey)
+    local market = summary.market
+    if not market or not market.available or (market.trimmedMean or 0) <= 0 then return nil end
+
+    local listingPrice = GetListingPrice(GetMarketModel(itemKey, summary), summary, 1)
+    if not listingPrice then return nil end
+    return listingPrice * NET_SALE_RATE / (1 + TARGET_ROI)
 end

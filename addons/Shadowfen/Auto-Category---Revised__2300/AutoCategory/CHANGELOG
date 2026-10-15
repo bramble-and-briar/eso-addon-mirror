@@ -1,3 +1,8 @@
+[COLOR="DeepSkyBlue"] 4.7.1 (161)[/COLOR]:
+[LIST]
+[*] Removed debugging that was accidentally left in.
+[/LIST]
+
 [COLOR="DeepSkyBlue"] 4.7 (160)[/COLOR]:
 [LIST]
 [*] Introduced the ability to periodically clean out the unused category headings by setting a time when unused categories will expire. The expires duration is set in the AutoCategory Settings->General section. When you change the "Category collapse expiry", expiration limits for all existing headers for collapsed categories will be changed to the new value. You can set the expiry to "never" to keep the original behaviour. The ability to expire saved headers provides the ability to clear out unused information in order to reduce the size of the Saved Variables foor a character. When a category header is expanded, the expiration limit is removed. When the category header is collapsed again, the expiration limit is restarted. You must log in to each character in order to set expirations and remove expired categories for that character.

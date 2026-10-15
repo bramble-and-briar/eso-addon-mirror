@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/Lykeion/Insatiable-Hunger-Blocker__42a55498-b21a-4657-86ba-bdb954f7a09d",
+  "archive_path": "addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "Lykeion+",
   "canonical_id": "bethesda:42a55498-b21a-4657-86ba-bdb954f7a09d",
   "content_id": "42a55498-b21a-4657-86ba-bdb954f7a09d",
   "deleted": false,
-  "fingerprint": "03fc92eeddfde1ecfd0d6a7e7b5473a4a93959c33e5fb4a2d98297de05e0cb95",
+  "fingerprint": "93e65aac2fa2fc4bdc0cecf5f444373b54faf453c2e9b78f1f60334c2284097d",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "42a55498-b21a-4657-86ba-bdb954f7a09d",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/42a55498-b21a-4657-86ba-bdb954f7a09d",
-  "title": "Insatiable Hunger Blocker"
+  "title": "Lykeion's Aware Wolf"
 }

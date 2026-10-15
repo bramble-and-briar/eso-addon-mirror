@@ -106,7 +106,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [The Elder Bar Reloaded](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/The-Elder-Bar-Reloaded__3075) | SimonIllyan | PC / Mac | 12.1.3 |
 | [The Elder Cam](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldrni/The-Elder-Cam__2237) | Eldrni | PC / Mac | 1.2.1 |
 | [The Librarium](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Librarium__2729) | Alianym | PC / Mac | 2.32 |
-| [The Profit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukartofanu/The-Profit__4921) | manukartofanu | PC / Mac | 1.0.1 |
+| [The Profit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukartofanu/The-Profit__4921) | manukartofanu | PC / Mac | 1.1.0 |
 | [The Psijic Way](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/The-Psijic-Way__d55988d9-2bec-4972-b8cb-795ea26131ad) | xbutch | Console | — |
 | [The Questing Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Questing-Guide__2612) | Alianym | PC / Mac | 0.72 |
 | [The Soulless of Tamriel - Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neomazu/The-Soulless-of-Tamriel---Guild-Hall__3604) | Neomazu | PC / Mac | 1.1 |
@@ -224,6 +224,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [TTCPrice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/TTCPrice__4539) | NPViral | PC / Mac | 1.4 |
 | [TTCTooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/TTCTooltip__4508) | GlandePas | PC / Mac | 1 |
 | [TTDungeon (ToolTip for Dungeons)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koro.Sensei/TTDungeon-ToolTip-for-Dungeons__4042) | Koro.Sensei | PC / Mac | 2.0 |
+| [ttest](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/ttest__2cd48bbc-e251-4bb5-88d5-5acf85bbaecb) | j.hhh | Console | — |
 | [TTMP: Merge](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirAndy/TTMP-Merge__1437) | SirAndy | PC / Mac | 3.5.0 |
 | [TTMP: Saved Variables](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirAndy/TTMP-Saved-Variables__1436) | SirAndy | PC / Mac | 1.6.0 |
 | [TTMP: Saved Variables](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SirAndy/TTMP-Saved-Variables__1531) | SirAndy | PC / Mac | 3.5.0 |

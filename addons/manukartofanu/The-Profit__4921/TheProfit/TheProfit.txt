@@ -2,15 +2,20 @@
 ## Description: Portfolio profit tracking and personal guild-trade history.
 ## APIVersion: 101051
 ## Author: manukartofanu
-## Version: 1.0.1
-## AddOnVersion: 10001
+## Version: 1.1.0
+## AddOnVersion: 10100
 ## DependsOn: LibHistoire>=1103 LibAsync LibCustomMenu>=730 LibAddonMenu-2.0>=43 TamrielTradeCentre
-## OptionalDependsOn: AwesomeGuildStore>=3282
+## OptionalDependsOn: AwesomeGuildStore>=3282 LibGroupBroadcast>=95
 ## SavedVariables: TheProfitSavedVariables
 
 TheProfit.lua
 TheProfit_Margin.lua
 AGS_Integration/Filter.lua
 AGS_Integration/FilterProficient.lua
+Group/HudMessage.lua
+Group/Comm.lua
+Group/Finder.lua
+Group/Deals.lua
+Group/DealsWindow.lua
 TheProfit_UI.xml
 Bindings.xml

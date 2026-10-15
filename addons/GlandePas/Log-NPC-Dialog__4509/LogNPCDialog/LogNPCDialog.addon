@@ -1,8 +1,8 @@
 ## Title: Log NPC Dialog
 ## Author: Glande-Pas (forked from N'Tak'Dialog)
-## APIVersion: 101049
-## AddOnVersion: 1
-## Version: 1
+## APIVersion: 101051
+## AddOnVersion: 2
+## Version: 2
 ## IsLibrary: false
 
 LogNPCDialog.lua

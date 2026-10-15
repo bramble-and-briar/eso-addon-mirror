@@ -1,0 +1,18 @@
+<GuiXml>
+    <Controls>
+        <!--
+            These rows inherit ESO/LibGamepad visuals, but SXUI_LAMBridge.lua
+            installs addon-owned input handlers for them. This keeps custom BUI
+            settings out of ZO_Options -> SetSettingFromControl -> SetSetting.
+        -->
+        <Control name="SatuveXboxUI_OptionsCheckboxRow"
+                 inherits="ZO_GamepadOptionsCheckboxRow"
+                 virtual="true"/>
+        <Control name="SatuveXboxUI_OptionsFiniteListRow"
+                 inherits="ZO_GamepadOptionsHorizontalListRow"
+                 virtual="true"/>
+        <Control name="SatuveXboxUI_OptionsSliderRow"
+                 inherits="LibGamepad_SliderRow"
+                 virtual="true"/>
+    </Controls>
+</GuiXml>

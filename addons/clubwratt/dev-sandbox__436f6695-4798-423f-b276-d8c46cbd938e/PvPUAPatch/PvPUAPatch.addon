@@ -1,0 +1,14 @@
+## Title: |c4F81BDP|r|cC2AA49v|r|cDE5B4EP|r |cFF8800UA!|r (Patch)
+## Author: user|c4F81BD5|r|cC2AA496|r|cDE5B4E2|r
+## Version: 5.2.0
+## Description: Tells you when something is under attack in Cyrodiil & IC & more. Patch: removes the alliance credit text. All credit to user562.
+## APIVersion: 101048 101049 101050 101051
+## SavedVariables: PvPUA_SavedVars PvPUA_CharVars
+## DependsOn: LibConsoleMenu AAAConsoleUIShim
+## OptionalDependsOn: LibGroupBroadcast
+## DevId: 436f6695-4798-423f-b276-d8c46cbd938e
+
+PvPUA.xml
+PvPUA.lua
+PvPUA_MainMenu.lua
+bindings.xml

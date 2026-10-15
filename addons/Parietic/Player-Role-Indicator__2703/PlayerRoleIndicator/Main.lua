@@ -517,7 +517,7 @@ function PRI.ShowNote(event, unitTag, isDead)
 
 	local name = PRI.savedVariables.noteUseAccountName and displayName or GetUnitName(unitTag)
 	local colour = isDead and role.sv.colourDead or role.sv.colourAlive
-	local text = string.format(idDead and "%s has died" or "%s has been resurrected", name)
+	local text = string.format(isDead and "%s has died" or "%s has been resurrected", name)
 	local texturePath = PRI.savedVariables.noteUseIcon and role.sv.texturePath or ""
 
 	label:SetId(noteId)

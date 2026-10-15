@@ -14,7 +14,7 @@ local SF = LibSFUtils
  
 AutoCategory = {
     name = "AutoCategory",
-    version = SF.colors.gold("4.7"),
+    version = SF.colors.gold("4.7.1"),
     settingName = "AutoCategory",
     settingDisplayName = SF.colors.gold("AutoCategory - Revised"),
     author = SF.colors.purple("Shadowfen, crafty35, RockingDice, Friday_the13_rus"),
@@ -39,7 +39,7 @@ AutoCat_Logger, AutoCategory.logDebug, AutoCategory.logWouldDebug =
     addon operation. Turning it on does however provide lots and lots of debug logging.
     Never leave this uncommented when releasing!!
 --]]
-AutoCat_Logger():SetDebug(true)
+--AutoCat_Logger():SetDebug(true)
 
 -- Namespace for the AutoCategory user interface elements
 AC_UI = {}

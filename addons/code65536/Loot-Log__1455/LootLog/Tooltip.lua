@@ -12,7 +12,7 @@ function LootLog.AddAntiquityTooltipExtension( tooltip, antiquityId, showLocatio
 
 	local extension = LEJ.TooltipExtensionInitialize(
 		true,
-		zo_strformat(SI_ANTIQUITY_TIMES_ACQUIRED, GetNumAntiquitiesRecovered(antiquityId)),
+		zo_strformat(SI_ANTIQUITY_TIMES_ACQUIRED, GetNumAntiquitiesRecovered(antiquityId)) .. (DoesAntiquityHaveLead(antiquityId) and " + 1" or ""),
 		zo_strformat(SI_ANTIQUITY_CODEX_ENTRIES_FOUND, GetNumAntiquityLoreEntriesAcquired(antiquityId), GetNumAntiquityLoreEntries(antiquityId)):gsub("|c%w%w%w%w%w%w", ""):gsub("|r", ""),
 		"Antiquity"
 	)

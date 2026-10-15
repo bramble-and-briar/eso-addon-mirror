@@ -326,14 +326,14 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LockpickNotifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rednas/LockpickNotifier__3085) | Rednas | PC / Mac | 1.6 |
 | [Locksmith](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MrPikPik/Locksmith__3531) | MrPikPik | PC / Mac | 1.0 |
 | [Log Board](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Log-Board__4256) | M0R | PC / Mac | 1.0.4 |
-| [Log NPC Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Log-NPC-Dialog__4509) | GlandePas | PC / Mac | 1 |
+| [Log NPC Dialog](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GlandePas/Log-NPC-Dialog__4509) | GlandePas | PC / Mac | 2 |
 | [Log Window (Clean Chat)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mladen90/Log-Window-Clean-Chat__3206) | Mladen90 | PC / Mac | 1.0.0 |
 | [LogToggler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Flamebuckler/LogToggler__4192) | Flamebuckler | PC / Mac | 0.2.1 |
 | [Lokkestiiz Atronach Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Gordias/Lokkestiiz-Atronach-Timer__2418) | Gordias | PC / Mac | 1.01 |
 | [LongPressCtrlToInteract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LongPressCtrlToInteract__3273) | Masteroshi430 | PC / Mac | 2026.07.19 |
 | [Looping Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/YayRP/Looping-Emotes__973) | YayRP | PC / Mac | 1.0.1 |
 | [Loot Alert](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Thyreos/Loot-Alert__2059) | Thyreos | PC / Mac | 1.0.2 |
-| [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Loot-Log__1455) | code65536 | PC / Mac | 4.10.5 |
+| [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Loot-Log__1455) | code65536 | PC / Mac | 4.10.6 |
 | [Loot Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ReliktKoala/Loot-Log__d527acdc-07b2-453a-9519-d34261e02e5c) | ReliktKoala | Console | — |
 | [Loot Reader](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saleand/Loot-Reader__4327) | Saleand | PC / Mac | 0.3 |
 | [Loot Sanitizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/grin3671/Loot-Sanitizer__4189) | grin3671 | PC / Mac | 0.20.0 |
@@ -384,6 +384,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LycanMeter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/LycanMeter__3839) | Masteroshi430 | PC / Mac | 2026.09.28 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__3367) | Lykeion | PC / Mac | 8.3.9 |
 | [Lykeion's AutoLoot+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-AutoLoot__1156c297-4c51-44e7-8267-9f934307f36e) | Lykeion+ | Console | — |
+| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__4628) | Lykeion | PC / Mac | 2.1 |
+| [Lykeion's Aware Wolf](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Aware-Wolf__42a55498-b21a-4657-86ba-bdb954f7a09d) | Lykeion+ | Console | — |
 | [Lykeion's Group Banisher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Group-Banisher__3967) | Lykeion | PC / Mac | 1.3 |
 | [Lykeion's Home Sweet Home - Dedicated keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-keybinding-jumping-to-Sugar-Bowl-Suite__3517) | Lykeion | PC / Mac | 1.0.2 |
 | [Lykeion's Home Sweet Home - Dedicated Slash Command & Keybinding jumping to Sugar Bowl Suite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Lykeion-s-Home-Sweet-Home---Dedicated-Slash-Command-Keybinding-jumping-to-Sugar__339e95fd-5cd9-46ec-b4b1-3512364698e0) | Lykeion+ | Console | — |

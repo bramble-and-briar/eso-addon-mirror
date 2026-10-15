@@ -9,6 +9,12 @@ local TEXT_WIDTH = 50
 local TEXT_OFFSET_X = 55
 local MAX_CACHED_PRICES = 20000
 
+local function GetHintFont()
+    local size = tonumber(TP.SV and TP.SV.agsHintFontSize) or TP.AGS_HINT_FONT_SIZE_DEFAULT
+    size = zo_round(math.max(TP.AGS_HINT_FONT_SIZE_MIN, math.min(TP.AGS_HINT_FONT_SIZE_MAX, size)))
+    return string.format("$(BOLD_FONT)|%d|soft-shadow-thin", size)
+end
+
 -- Category ids double as the stored filter values, so they must stay stable.
 local GRAY, GREEN, BLUE, PURPLE, GOLD = 0, 1, 2, 3, 4
 local CATEGORY_ORDER = { GRAY, GREEN, BLUE, PURPLE, GOLD }
@@ -40,11 +46,35 @@ local function ClearPriceCache()
     priceInfoCount = 0
 end
 
+-- TTC itself calls its table outdated after three days. The timestamp covers the
+-- whole table, so it is read when the store opens instead of per link. A stale
+-- table counts as no TTC data: rows stay empty and filter as gray.
+local STALE_AFTER_SECONDS = 3 * (ZO_ONE_DAY_IN_SECONDS or 86400)
+local priceTableStale = nil
+local staleWarningShown = false
+
+local function IsPriceTableStale()
+    local priceTable = TamrielTradeCentrePrice and TamrielTradeCentrePrice.PriceTable
+    local timeStamp = priceTable and tonumber(priceTable.TimeStamp)
+    return timeStamp ~= nil and GetTimeStamp() - timeStamp > STALE_AFTER_SECONDS
+end
+
+local function OnStoreOpened()
+    ClearPriceCache()
+    priceTableStale = IsPriceTableStale()
+    if priceTableStale and not staleWarningShown then
+        staleWarningShown = true
+        d("|cE7C56AThe Profit:|r " .. TP.T("ttcPriceTableStale"))
+    end
+end
+
 local function GetPriceInfo(itemLink)
     local cached = priceInfoCache[itemLink]
     if cached ~= nil then return cached or nil end
 
-    local info = TamrielTradeCentrePrice and TamrielTradeCentrePrice:GetPriceInfo(itemLink) or false
+    if priceTableStale == nil then priceTableStale = IsPriceTableStale() end
+    local info = not priceTableStale and TamrielTradeCentrePrice
+        and TamrielTradeCentrePrice:GetPriceInfo(itemLink) or false
 
     if priceInfoCount >= MAX_CACHED_PRICES then ClearPriceCache() end
     priceInfoCache[itemLink] = info
@@ -101,7 +131,6 @@ local function CreateTextControl(rowControl)
     -- a fixed offset from it gives every row the same column, whatever the price.
     local text = rowControl:CreateControl(rowControl:GetName() .. "TheProfitSimple", CT_LABEL)
     text:SetDimensions(TEXT_WIDTH, timeControl:GetHeight())
-    text:SetFont(timeControl:GetFont())
     text:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     text:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     text:SetMaxLineCount(1)
@@ -113,6 +142,7 @@ end
 local function UpdateTextControl(rowControl, itemData)
     local text = rowControl.theProfitSimple or CreateTextControl(rowControl)
     if not text then return end
+    text:SetFont(GetHintFont())
 
     -- Looked up on each call: the Proficient type replaces the evaluation.
     local category, percent = TP.SimpleMargin.Evaluate(itemData)
@@ -244,5 +274,5 @@ function TP.SetupAGSFilter()
         end)
     end
     AGS:RegisterCallback(AGS.callback.AFTER_INITIAL_SETUP, RegisterResultRowRenderer)
-    EVENT_MANAGER:RegisterForEvent(TP.name .. "AGSPrices", EVENT_OPEN_TRADING_HOUSE, ClearPriceCache)
+    EVENT_MANAGER:RegisterForEvent(TP.name .. "AGSPrices", EVENT_OPEN_TRADING_HOUSE, OnStoreOpened)
 end

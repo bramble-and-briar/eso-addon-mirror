@@ -829,7 +829,11 @@ local function TooltipTradeableLeadItemHook(self, itemLink)
 	local antiquityId = GetAntiquityIdFromItemLink(itemLink)
 	if not antiquityId then return end
 	if not units[antiquityId] then UpdateAntiquityRecord(antiquityId) end
-	AppendACSectionToTooltip(self, CreateLeadToolip(antiquityId))
+	local lines = CreateLeadToolip(antiquityId)
+	if #lines == 0 then return end
+	local active = DoesAntiquityHaveLead(antiquityId) and AC.TOOLTIP_YES or AC.TOOLTIP_NO
+	table.insert(lines, 1, zo_strformat(AC.TOOLTIP_LEAD_ACTIVE, active))
+	AppendACSectionToTooltip(self, lines)
 end
 
 local function TooltipClearedHook(self)

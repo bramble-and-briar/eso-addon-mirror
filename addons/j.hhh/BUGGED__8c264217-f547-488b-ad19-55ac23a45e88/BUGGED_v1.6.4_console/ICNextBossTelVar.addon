@@ -1,0 +1,20 @@
+## Title: BUGGED
+## Author: j.hhh
+## Version: 1.6.4-console
+## Description: Unknown
+## APIVersion: 101050 101051 101052 101053 101054
+## DependsOn: LibAddonMenu-2.0
+## SavedVariables: ICTSV
+
+; ICTheNextBoss by Potato787; TelvarSaver banking by Ehansonn.
+; LAM needs the console-compatible version (LibHarvensAddonSettings bridge).
+lang/en.lua
+lang/$(language).lua
+ICTheNextBoss.xml
+ICTheNextBoss.lua
+ICTheNextBossData.lua
+ICFlagStatus.lua
+ICTheNextBossGui.lua
+ICBossGroup.lua
+ICTheNextBossMenu.lua
+TelVarBank.lua

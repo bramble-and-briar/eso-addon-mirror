@@ -219,6 +219,7 @@ function Settings:InitializeSettingsPanel()
         Checkbox("mapPanel", L.OPT_MAP_PANEL, L.OPT_MAP_PANEL_TT, function() QTM.MapPanel:UpdateVisibility(); RebuildPreview() end),
         Checkbox("infoPanel", L.OPT_INFO_PANEL, L.OPT_INFO_PANEL_TT, function() QTM.InfoPanel:UpdateVisibility(); RebuildPreview() end),
         Checkbox("zoomBar", L.OPT_ZOOM_BAR, L.OPT_ZOOM_BAR_TT, function() QTM.ZoomBar:Apply() end),
+        Checkbox("mapSearch", L.OPT_MAP_SEARCH, L.OPT_MAP_SEARCH_TT, function() QTM.MapSearch:Apply() end),
         Checkbox("mapEntry", L.OPT_MAP_ENTRY, L.OPT_MAP_ENTRY_TT),
 
         -- Панель заданий на экране
@@ -239,9 +240,17 @@ function Settings:InitializeSettingsPanel()
             disabled = TrackerDisabled,
             default  = defaults.trackerStyle,
         },
-        Checkbox("trackerShowAll", L.OPT_TRACKER_SHOW_ALL, L.OPT_TRACKER_SHOW_ALL_TT,
-            function() QTM.QuestTracker:Refresh(); RebuildPreview() end,
-            { disabled = function() return not sv.questTracker or sv.trackerStyle ~= "simple" end }),
+        {
+            type     = "dropdown",
+            name     = L.OPT_TRACKER_MODE,
+            tooltip  = L.OPT_TRACKER_MODE_TT,
+            choices  = { L.TRACKER_MODE_JOURNAL, L.TRACKER_MODE_SELECTED },
+            choicesValues = { "journal", "selected" },
+            getFunc  = function() return sv.trackerMode == "selected" and "selected" or "journal" end,
+            setFunc  = function(value) QTM.QuestTracker:SetMode(value); RebuildPreview() end,
+            disabled = TrackerDisabled,
+            default  = "journal",
+        },
         Checkbox("hideGameTracker", L.OPT_HIDE_GAME_TRACKER, L.OPT_HIDE_GAME_TRACKER_TT,
             function() QTM.QuestTracker:ApplySettings() end, { disabled = TrackerDisabled }),
         Checkbox("trackerLocked", L.OPT_TRACKER_LOCKED, L.OPT_TRACKER_LOCKED_TT,

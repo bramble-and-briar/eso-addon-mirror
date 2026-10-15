@@ -1,5 +1,14 @@
 -- Панель заданий на экране: главное задание и закреплённые.
 --
+-- Два режима (кнопка в правом верхнем углу панели заданий у карты):
+--   • «журнал» — текущее задание игры (клавиша T переключает его по всем
+--     заданиям журнала) и закреплённые, которые видны всегда. В простом виде —
+--     как панель игры: заголовки всех локаций журнала видны всегда, развёрнута
+--     только локация текущего задания; T разворачивает следующую, щелчок по
+--     заголовку делает её задание текущим;
+--   • «выбранные» — только задания, выбранные (закреплённые) в меню карты.
+-- Смена задания — с плавным развёртыванием панели.
+--
 -- Два вида (настройка «Вид панели заданий»):
 --   • подробная — карточки: главное сверху, крупнее и со всеми условиями,
 --     закреплённые ниже, по одному условию;
@@ -28,6 +37,8 @@ local MAX_MAIN_LINES = 4
 local SIMPLE_LINES   = 2     -- условий у остальных заданий в простой панели
 local SIMPLE_GAP     = 3
 local SIMPLE_TOP     = 6     -- отступ сверху у простой панели (шапки нет)
+local ANIM_MS        = 320   -- плавное развёртывание при смене заданий
+local ANIM_SLIDE     = 8     -- новое задание въезжает сверху на столько пикселей
 local ICON_LOCKED    = "EsoUI/Art/Miscellaneous/locked_up.dds"
 local ICON_UNLOCKED  = "EsoUI/Art/Miscellaneous/unlocked_up.dds"
 local GOLD   = QTM.Style.GOLD
@@ -80,21 +91,21 @@ function QuestTracker:RestorePosition()
 end
 
 function QuestTracker:SavePosition()
-    if self.preview then return end
+    if self.previewState then return end
     QTM.sv.trackerPos = { x = self.control:GetLeft(), y = self.control:GetTop() }
 end
 
 function QuestTracker:GetWidth()
-    if self.preview then return self.preview.width end
+    if self.previewState then return self.previewState.width end
     return zo_clamp(tonumber(QTM.sv.trackerWidth) or DEFAULT_WIDTH, MIN_WIDTH, MAX_WIDTH)
 end
 
 -- Привязать панель за левый верхний угол к сохранённому месту
 function QuestTracker:PinTopLeft()
     local control = self.control
-    if self.preview then
+    if self.previewState then
         control:ClearAnchors()
-        control:SetAnchor(TOPRIGHT, GuiRoot, TOPLEFT, self.preview.right, self.preview.top)
+        control:SetAnchor(TOPRIGHT, GuiRoot, TOPLEFT, self.previewState.right, self.previewState.top)
         return
     end
     local pos = QTM.sv.trackerPos
@@ -112,7 +123,7 @@ function QuestTracker:SetPreview(enabled, right, top, width)
     local control = self.control
     if not control then return top end
     if enabled then
-        self.preview = { right = right, top = top, width = width }
+        self.previewState = { right = right, top = top, width = width }
         self.previewTier = self.previewTier or control:GetDrawTier()
         control:SetDrawTier(DT_HIGH)
         control:SetMovable(false)
@@ -122,8 +133,8 @@ function QuestTracker:SetPreview(enabled, right, top, width)
         control:SetHidden(not shown)
         return shown and (top + control:GetHeight()) or top
     end
-    if not self.preview then return top end
-    self.preview = nil
+    if not self.previewState then return top end
+    self.previewState = nil
     if self.previewTier then control:SetDrawTier(self.previewTier) end
     self.previewTier = nil
     control:SetHidden(true)   -- на экране игры панель снова покажет её фрагмент
@@ -160,8 +171,8 @@ function QuestTracker:ApplySettings()
     local sv = QTM.sv
     local enabled = self:IsEnabled()
     local locked = sv.trackerLocked == true
-    self.control:SetMovable(not locked and not self.preview)
-    self.control:SetResizeHandleSize((locked or self.preview) and 0 or RESIZE_HANDLE)
+    self.control:SetMovable(not locked and not self.previewState)
+    self.control:SetResizeHandleSize((locked or self.previewState) and 0 or RESIZE_HANDLE)
     self.fragment:SetHiddenForReason("Disabled", not enabled)
 
     local hideGame = enabled and sv.hideGameTracker ~= false
@@ -259,8 +270,30 @@ local function IsDoneActivity(item)
     return item.complete and item.kind ~= QTM.Quests.KIND_QUEST
 end
 
--- Что показывать: главное и закреплённые (выполненные стремления и задания фолианта — нет).
--- Простая панель по желанию показывает все задания журнала.
+function QuestTracker:IsSelectedMode()
+    return QTM.sv.trackerMode == "selected"
+end
+
+-- Переключить режим: все задания журнала (T) или только выбранные на карте
+function QuestTracker:SetMode(mode)
+    QTM.sv.trackerMode = mode == "selected" and "selected" or "journal"
+    self:Refresh()
+    if QTM.InfoPanel and QTM.InfoPanel.PaintModeButton then QTM.InfoPanel:PaintModeButton() end
+end
+
+-- Простой вид в режиме журнала: локации-заголовки, развёрнута одна
+function QuestTracker:IsAccordion()
+    return self:IsSimple() and not self:IsSelectedMode()
+end
+
+function QuestTracker:ToggleMode()
+    self:SetMode(self:IsSelectedMode() and "journal" or "selected")
+    PlaySound(SOUNDS.DEFAULT_CLICK)
+end
+
+-- Что показывать (выполненные стремления и задания фолианта — нет):
+--   журнал — текущее задание (T листает журнал) и закреплённые;
+--   выбранные — только закреплённые в меню карты.
 function QuestTracker:GetItems()
     local all = QTM.Quests:GetAll()
     local items = {}
@@ -272,35 +305,50 @@ function QuestTracker:GetItems()
         end
     end
     local main = all.mainKey and all.byKey[all.mainKey]
-    if main then
+    if main and not self:IsSelectedMode() then
         items[1] = main
         added[main.key] = true
     end
     for _, key in ipairs(QTM.Quests:GetPins()) do
         Add(all.byKey[key])
     end
-    if self:IsSimple() and QTM.sv.trackerShowAll then
-        for _, item in ipairs(all.quests) do Add(item) end
+    -- Простой вид, журнал: заголовки всех локаций журнала в порядке журнала,
+    -- чтобы при T локации не прыгали; стремления и фолиант — в конце
+    if self:IsAccordion() then
+        local ordered, seen = {}, {}
+        for _, item in ipairs(all.quests) do
+            if not IsDoneActivity(item) then ordered[#ordered + 1] = item; seen[item.key] = true end
+        end
+        for _, item in ipairs(items) do
+            if not seen[item.key] then ordered[#ordered + 1] = item end
+        end
+        return ordered
     end
     return items
 end
 
 function QuestTracker:Refresh()
     if not self.control then return end
+    -- Что было видно до обновления: для плавного развёртывания
+    local oldKeys, oldHeight = self.shownKeys, self.control:GetHeight()
+    local wasShown = oldKeys ~= nil and not self.control:IsHidden()
+    self:StopAnimation()
+    self.shownKeys = nil
     self.pool:ReleaseAllObjects()
     self.simplePool:ReleaseAllObjects()
     self.headerPool:ReleaseAllObjects()
     self.entries = {}
+    self.animControls = {}
     if not self:IsEnabled() then
         self.fragment:SetHiddenForReason("Empty", true)
-        if self.preview then self.control:SetHidden(true) end
+        if self.previewState then self.control:SetHidden(true) end
         return
     end
 
     local items = self:GetItems()
     self.fragment:SetHiddenForReason("Empty", #items == 0)
     if #items == 0 then
-        if self.preview then self.control:SetHidden(true) end
+        if self.previewState then self.control:SetHidden(true) end
         return
     end
 
@@ -319,8 +367,87 @@ function QuestTracker:Refresh()
     self:PinTopLeft()
     self.control:SetDimensionConstraints(MIN_WIDTH, height, MAX_WIDTH, height)
     self.control:SetDimensions(trackerWidth, height)
-    if self.preview then self.control:SetHidden(false) end
+    if self.previewState then self.control:SetHidden(false) end
+
+    -- Задания сменились (T, закрепили, режим) — плавно развернуть
+    local keys, fresh, changed = {}, {}, false
+    for _, entry in ipairs(self.entries) do
+        keys[entry.item.key] = true
+        if not (oldKeys and oldKeys[entry.item.key]) then fresh[#fresh + 1] = entry; changed = true end
+    end
+    for key in pairs(oldKeys or {}) do
+        if not keys[key] then changed = true end
+    end
+    self.shownKeys = keys
+    if wasShown and changed and not self.previewState and oldHeight and oldHeight > 0 then
+        self:StartAnimation(oldHeight, height, fresh)
+    end
     self.hint:SetText(#items > 1 and zo_strformat(L.TRACKER_PINNED, #items - (items[1].isMain and 1 or 0)) or "")
+end
+
+---------------------------------------------------------------------------
+-- Плавное развёртывание: высота панели плавно меняется, задания открываются
+-- сверху вниз по мере роста, новое задание проявляется и чуть съезжает вниз
+---------------------------------------------------------------------------
+local ANIM_UPDATE = "MundusGateTrackerAnim"
+
+function QuestTracker:StartAnimation(fromHeight, toHeight, fresh)
+    local controls = {}
+    for _, control in ipairs(self.animControls or {}) do controls[#controls + 1] = control end
+    for _, entry in ipairs(self.entries) do controls[#controls + 1] = entry end
+    local isFresh = {}
+    for _, entry in ipairs(fresh) do isFresh[entry] = true end
+    self.anim = {
+        start    = GetFrameTimeMilliseconds(),
+        from     = fromHeight,
+        to       = toHeight,
+        controls = controls,
+        fresh    = isFresh,
+        top      = self:IsSimple() and SIMPLE_TOP or 30,
+    }
+    self:StepAnimation()
+    EVENT_MANAGER:RegisterForUpdate(ANIM_UPDATE, 0, function() self:StepAnimation() end)
+end
+
+function QuestTracker:StepAnimation()
+    local anim = self.anim
+    if not anim then return end
+    local progress = zo_clamp((GetFrameTimeMilliseconds() - anim.start) / ANIM_MS, 0, 1)
+    local eased = 1 - (1 - progress) * (1 - progress) * (1 - progress)
+    local height = anim.from + (anim.to - anim.from) * eased
+    local width = self.control:GetWidth()
+    self.control:SetDimensionConstraints(MIN_WIDTH, height, MAX_WIDTH, height)
+    self.control:SetDimensions(width, height)
+
+    for _, control in ipairs(anim.controls) do
+        local y = control.mgY or 0
+        local controlHeight = zo_max(control:GetHeight(), 1)
+        -- видно столько, сколько уже поместилось в растущую панель
+        local reveal = zo_clamp((height - anim.top - y) / controlHeight, 0, 1)
+        local offset = 0
+        if anim.fresh[control] then
+            reveal = reveal * eased
+            offset = -ANIM_SLIDE * (1 - eased)
+        end
+        control:SetAlpha(reveal)
+        control:ClearAnchors()
+        control:SetAnchor(TOPLEFT, self.entriesArea, TOPLEFT, 0, y + offset)
+    end
+    if progress >= 1 then self:StopAnimation() end
+end
+
+function QuestTracker:StopAnimation()
+    local anim = self.anim
+    if not anim then return end
+    self.anim = nil
+    EVENT_MANAGER:UnregisterForUpdate(ANIM_UPDATE)
+    for _, control in ipairs(anim.controls) do
+        control:SetAlpha(1)
+        control:ClearAnchors()
+        control:SetAnchor(TOPLEFT, self.entriesArea, TOPLEFT, 0, control.mgY or 0)
+    end
+    self.control:SetDimensionConstraints(MIN_WIDTH, anim.to, MAX_WIDTH, anim.to)
+    self.control:SetDimensions(self.control:GetWidth(), anim.to)
 end
 
 local function DropOnEntry(target)
@@ -338,6 +465,7 @@ function QuestTracker:BuildFull(items, width)
         entry:SetWidth(width)
         entry:ClearAnchors()
         entry:SetAnchor(TOPLEFT, self.entriesArea, TOPLEFT, 0, y)
+        entry.mgY = y
         self:SetupEntry(entry, item, index == 1 and item.isMain)
         self.entries[#self.entries + 1] = entry
         y = y + entry:GetHeight() + ENTRY_GAP
@@ -379,15 +507,49 @@ function QuestTracker:BuildSimple(items, width)
         list[#list + 1] = item
     end
 
+    -- Текущее задание сменилось (T) — временно свёрнутые снова раскрываются
+    local accordion = self:IsAccordion()
+    local mainKey
+    for _, item in ipairs(items) do
+        if item.isMain then mainKey = item.key break end
+    end
+    if mainKey ~= self.lastMainKey then
+        self.lastMainKey = mainKey
+        self.tempCollapsed, self.tempExpanded = {}, {}
+    end
+    self.tempCollapsed = self.tempCollapsed or {}
+    self.tempExpanded = self.tempExpanded or {}
+
     local y = 0
     for _, name in ipairs(order) do
-        local list = groups[name]
-        local collapsed = self:IsGroupCollapsed(name)
+        local all = groups[name]
+        local list, collapsed = all, self:IsGroupCollapsed(name)
+        local groupHasMain = false
+        if accordion then
+            -- Развёрнута только локация текущего задания: в ней все её задания
+            -- одной строкой, условия — только у текущего. Остальные локации
+            -- свёрнуты (и с закреплёнными тоже); щелчком любую можно развернуть
+            -- до следующего переключения задания (T)
+            local hasMain = false
+            for _, item in ipairs(all) do
+                if item.isMain then hasMain = true end
+            end
+            if hasMain then
+                collapsed = self.tempCollapsed[name] == true
+            else
+                collapsed = not self.tempExpanded[name]
+            end
+            groupHasMain = hasMain
+        end
         local header = self.headerPool:AcquireObject()
         header.groupName = name
+        header.groupItems = all
+        header.hasMain = groupHasMain
         header:SetWidth(width)
         header:ClearAnchors()
         header:SetAnchor(TOPLEFT, self.entriesArea, TOPLEFT, 0, y)
+        header.mgY = y
+        self.animControls[#self.animControls + 1] = header
         self:SetupHeader(header, name, #list, collapsed)
         y = y + header:GetHeight()
         if not collapsed then
@@ -398,7 +560,8 @@ function QuestTracker:BuildSimple(items, width)
                 entry:SetWidth(width)
                 entry:ClearAnchors()
                 entry:SetAnchor(TOPLEFT, self.entriesArea, TOPLEFT, 0, y)
-                self:SetupSimpleEntry(entry, item, item.isMain)
+                entry.mgY = y
+                self:SetupSimpleEntry(entry, item, item.isMain, accordion and not item.isMain)
                 self.entries[#self.entries + 1] = entry
                 y = y + entry:GetHeight() + SIMPLE_GAP
             end
@@ -438,7 +601,9 @@ local function ConditionLines(item, isMain, limit)
     return lines
 end
 
-function QuestTracker:SetupSimpleEntry(entry, item, isMain)
+-- nameOnly — только название, без условий (простая панель в режиме журнала:
+-- подробности видны у текущего задания)
+function QuestTracker:SetupSimpleEntry(entry, item, isMain, nameOnly)
     entry.isMain = isMain
     entry.isSimple = true
     local icon = entry:GetNamedChild("Icon")
@@ -457,7 +622,7 @@ function QuestTracker:SetupSimpleEntry(entry, item, isMain)
     end
     local nameHeight = zo_max(name:GetTextHeight() or 0, 22)
 
-    local lines = ConditionLines(item, isMain, SIMPLE_LINES)
+    local lines = nameOnly and {} or ConditionLines(item, isMain, SIMPLE_LINES)
     local linesLabel = entry:GetNamedChild("Lines")
     linesLabel:ClearAnchors()
     linesLabel:SetAnchor(TOPLEFT, entry, TOPLEFT, 54, 2 + nameHeight + 1)
@@ -573,7 +738,7 @@ end
 
 -- Простая панель без шапки: перетаскивание за заголовок раздела двигает всю панель
 function QuestTracker:OnHeaderDragStart(header, button)
-    if button ~= MOUSE_BUTTON_INDEX_LEFT or QTM.sv.trackerLocked or self.preview then return end
+    if button ~= MOUSE_BUTTON_INDEX_LEFT or QTM.sv.trackerLocked or self.previewState then return end
     ZO_Tooltips_HideTextTooltip()
     self.movingByHeader = true
     self.control:StartMoving()
@@ -593,6 +758,25 @@ end
 function QuestTracker:OnHeaderClicked(header, button)
     if button ~= MOUSE_BUTTON_INDEX_LEFT or not header.groupName then return end
     ZO_Tooltips_HideTextTooltip()
+    if self:IsAccordion() then
+        local name = header.groupName
+        local first = header.groupItems and header.groupItems[1]
+        if header.hasMain then
+            -- Локация текущего задания: свернуть или развернуть
+            self.tempCollapsed[name] = not self.tempCollapsed[name] or nil
+        elseif header.collapsed and first and first.kind == QTM.Quests.KIND_QUEST then
+            -- Свёрнутая локация: её задание становится текущим и разворачивается
+            PlaySound(SOUNDS.QUEST_FOCUSED)
+            QTM.Quests:SetMain(first)
+            return
+        else
+            -- Стремления, фолиант: просто развернуть или свернуть
+            self.tempExpanded[name] = not self.tempExpanded[name] or nil
+        end
+        PlaySound(SOUNDS.DEFAULT_CLICK)
+        self:Refresh()
+        return
+    end
     self:ToggleGroup(header.groupName)
 end
 

@@ -1,0 +1,35 @@
+
+Version 1.0.1-xbox
+- Added legacy POWERTYPE_* compatibility aliases for the Xbox-server PC API.
+- Fixed startup error in BUI_Player.lua line 9 (table index is nil).
+- Added zero-safe player power, shield and trauma percentage calculations.
+Bandits UI – Xbox-PC compatibility test build
+
+Basis: Bandits User Interface 4.436
+Build: xboxpc1
+
+Änderungen:
+- Fehlenden Manifest-Eintrag BUI_Custom.lua entfernt, der das Laden verhindern konnte.
+- Quickslot-Cooldown: falsche Variable _slot korrigiert.
+- Quickslot Drag-and-Drop für Questgegenstände korrigiert.
+- Unbeabsichtigte globale Quickslot-Variable lokalisiert.
+- Regrouper: falsche Groß-/Kleinschreibung bei GroupMembers korrigiert.
+- Regrouper: LastGroupMember auf LastGroupMembers korrigiert.
+- Polnische Sprachdatei überschreibt nicht mehr die englische Lokalisierung.
+- Gruppenleiter-Befehle der Custom Bar wieder aktiviert.
+
+Installation:
+1. Vorhandenen BanditsUserInterface-Ordner sichern oder löschen.
+2. Den Ordner BanditsUserInterface aus dieser ZIP in deinen AddOns-Ordner kopieren.
+3. Im Charaktermenü „Veraltete Erweiterungen erlauben“ einschalten, falls ESO dies verlangt.
+4. Spiel starten und auftretende Lua-Fehler vollständig kopieren oder fotografieren.
+
+Hinweis:
+Diese Fassung ist eine Kompatibilitäts-Testversion. Ohne Laufzeittest auf deinem konkreten Xbox-PC-Client kann nicht garantiert werden, dass jede Funktion dessen API unterstützt.
+
+1.0.7-xbox
+- Prevented BUI_Menu.lua startup crash when KEYBOARD_OPTIONS is unavailable.
+- Added a safe fallback settings panel ID.
+- Guarded settings panel registration and game menu access.
+
+1.0.13: Increased global settings/menu fonts, menu row heights, side-panel icon size, and minimum unit-frame fonts/heights for readability.

@@ -335,16 +335,16 @@ function rChat_Internals.produceDisplayString(entry, ndx, displayT, colorT)
     local text = displayT.text
     if text then
         if type(text) == "string" then
-            --displayS[#displayS+1] = rcol .. text .. "|r"
-            displayS[#displayS+1] = text
+            displayS[#displayS+1] = rcol .. text .. "|r"
+            --displayS[#displayS+1] = text
         elseif type(text) == "table" then
             for _,v in ipairs(text) do
                 if v[2] == RC_SEGTYPE_MENTION and mcol then
                     displayS[#displayS+1] = v[1]
                     --displayS[#displayS+1] = mcol .. v[1] .. "|r"
                 else
-                    displayS[#displayS+1] = v[1]
-                    --displayS[#displayS+1] = rcol .. v[1] .. "|r"
+                    --displayS[#displayS+1] = v[1]
+                    displayS[#displayS+1] = rcol .. v[1] .. "|r"
                 end
             end
         end

@@ -3,7 +3,7 @@ TDAddon.name = "TDAddon"
 -- Reused color constants (avoid allocating a new ZO_ColorDef per group member on every UI refresh)
 TDAddon.GreenColor = ZO_ColorDef:New("2FC821")
 TDAddon.RedColor = ZO_ColorDef:New("FF0000")
-TDAddon.version = "2026.09.28"
+TDAddon.version = "2026.10.14"
 TDAddon.defaults = {
   UltiWindowSelfPoint = CENTER, 
   UltiWindowAnchPoint = CENTER,
@@ -148,7 +148,7 @@ function TDAddon.CreateMenu()
 	                width = "full"
 			},
 			[12] = { type = "description",
-		            title = "|c5282BD|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAuto accept campaign queue\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tForward camp respawn timer\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAuto share ultimates\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAlternate synergy ready sounds\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tShare best quests to new group member\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAnti Cyrodiil keep door double click/tap\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tResurrect Soulgem Icons\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tPassenger Hop keybind (hop on the back of a multi rider mount)\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tRevive at closest Forward Camp keybind\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tRevive at Closest Keep in range keybind|r", 
+		            title = "|c5282BD|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAuto accept campaign queue\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tForward camp respawn timer\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAuto share ultimates\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAlternate synergy ready sounds\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tShare best quests to new group member\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAnti Cyrodiil keep door double click/tap\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tResurrect Soulgem Icons\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tPassenger Hop keybind (hop on the back of a multi rider mount)\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tRevive at closest Forward Camp keybind\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tRevive at Closest Keep in range keybind\n|t32:32:/esoui/art/miscellaneous/check_icon_32.dds|tAuto respawn in Battlegrounds|r", 
 					width = "half"
 			},
 			[13] = { type = "description",
@@ -1730,12 +1730,14 @@ function TDAddon.CheckEverySecond()
   if not TDAddon.isInGuild then
 		   return
 	end
-    local FrameTimeMilliseconds = GetFrameTimeMilliseconds()
-    local timeStamp = GetTimeStamp()
-    TDAddon.lastUltimateLoop = TDAddon.lastUltimateLoop or FrameTimeMilliseconds
+  
+  local FrameTimeMilliseconds = GetFrameTimeMilliseconds()
+  local timeStamp = GetTimeStamp()
+  TDAddon.lastUltimateLoop = TDAddon.lastUltimateLoop or FrameTimeMilliseconds
 	
   local isInCampaign = IsInCampaign()
 	local grouped = IsUnitGrouped("player")
+  local isDead = IsUnitDead("player")
 	local sendDataWhileInvisible = LibGroupBroadcast_Data and LibGroupBroadcast_Data[GetDisplayName()] and LibGroupBroadcast_Data[GetDisplayName()]["sendDataWhileInvisible"]
 	local notSendingUltimates = GetPlayerStatus() == PLAYER_STATUS_OFFLINE and not sendDataWhileInvisible
 	
@@ -1761,7 +1763,7 @@ function TDAddon.CheckEverySecond()
   end
   
   -- respawn
-  if isInCampaign and IsUnitDead("player") then
+  if isInCampaign and isDead then
      TDAddon.GetClosestForwardCamp()
      TDAddon.GetClosestKeep()
      
@@ -1817,6 +1819,12 @@ function TDAddon.CheckEverySecond()
      end
   
   end
+  
+  -- Revive (battleground)
+  if IsActiveWorldBattleground() and isDead and not IsQueuedForCyclicRespawn() then
+     JoinRespawnQueue()
+  end
+
 	
   local logEnabled = IsEncounterLogEnabled()
 	-- autoshare interesting Cyro quests to new group members + auto enable encounterlog

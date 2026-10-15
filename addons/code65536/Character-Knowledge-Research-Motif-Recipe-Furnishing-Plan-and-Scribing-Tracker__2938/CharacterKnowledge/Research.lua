@@ -636,8 +636,8 @@ function CharacterKnowledgeList:ResearchRefresh( )
 
 				if (CharacterKnowledge.vars.showOthersInResearchGrid) then
 					for _, character in ipairs(LCK.GetSmithingResearchStatusForCharacters(craftingSkillType, researchLineIndex, traitIndex, self.server, nil, CharacterKnowledge.vars.singleAccount and self.account or nil)) do
-						if (character.id == CharacterKnowledge.charId) then
-							knownledge = character.knowledge
+						if (character.id == self.charId) then
+							knowledge = character.knowledge
 							remaining = character.remaining
 						else
 							if (character.knowledge == LCK.KNOWLEDGE_KNOWN or character.remaining) then

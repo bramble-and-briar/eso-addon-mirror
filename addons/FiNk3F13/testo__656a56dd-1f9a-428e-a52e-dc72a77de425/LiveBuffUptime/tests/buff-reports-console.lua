@@ -29,6 +29,7 @@ assert(name.y + name.height <= death.y and death.y + death.height <= env.control
 assert(death.x == name.x and death.width == name.width, "Deaths must stay under the player name")
 assert(name.x + name.width < env.controls.LiveBuffUptimeReportCovered1.x, "Names must not collide with buff times")
 assert(env.controls.LiveBuffUptimeReportPercent1.x + env.controls.LiveBuffUptimeReportPercent1.width <= details.width)
+assert(24 + details.width * details.scale <= 840 - 48, "A right-hand safety margin must keep values inside the background")
 assert(lastRow.y + lastRow.height < env.controls.LiveBuffUptimeReportTotal.y, "Summary must not overlap the last player")
 assert(env.controls.LiveBuffUptimeReportPercent1.parent == details)
 assert(env.controls.LiveBuffUptimeReportPercent1.text:find("%%"), "Console report must show member uptime")
@@ -57,6 +58,15 @@ assert(details.hidden, "Closing the scene must also hide the independent details
 SLASH_COMMANDS["/lbu"]("uptime")
 assert(nativeList.active)
 assert(not details.hidden, "Reopening must restore report details")
+LiveBuffUptimeReports.Close()
+-- Console safe-zone backgrounds need not equal two nominal quadrant widths.
+ZO_SharedGamepadNavQuadrant_2_Background.GetLeft = function() return 100 end
+ZO_SharedGamepadNavQuadrant_2_3_Background = { GetRight = function() return 820 end }
+SLASH_COMMANDS["/lbu"]("uptime")
+local percent = env.controls.LiveBuffUptimeReportPercent1
+assert(100 + 24 + (percent.x + percent.width) * details.scale <= 820 - 48,
+    "Percentage labels must fit the actual right edge, including console safe-zone padding")
+assert(env.controls.LiveBuffUptimeReportPercent12 and not env.controls.LiveBuffUptimeReportPercent13)
 LiveBuffUptimeReports.Close()
 local file = assert(io.open("BuffReports.xml", "r"))
 local xml = file:read("*a"); file:close()

@@ -5,9 +5,9 @@
 ## Title: Player role indicator
 ## Description: A simple addon that adds role indicators above grouped players and notifies grouped player deaths + resurrections.
 ## Author: Parietic, Glande-Pas
-## APIVersion: 101050
-## AddOnVersion: 140
-## Version: 1.4.0.27
+## APIVersion: 101051
+## AddOnVersion: 141
+## Version: 1.4.1.32
 ## DependsOn: LibAddonMenu-2.0>=43 LibCustomMenu>=730
 ## SavedVariables: PlayerRoleIndicatorVars
 
@@ -16,6 +16,9 @@ Main.lua
 PlayerRoleIndicator.xml
 
 ##Change log:
+##Version 1.4.1:
+##- Fix isDead typo showing resurrect notification on death, caught by GStheMighty
+##
 ##Version 1.4.0:
 ##- Rewrote Icon placement using native 3D render-space API to improve performance
 ##- Icons and notifications created on demand (control pool) to lighten load time work

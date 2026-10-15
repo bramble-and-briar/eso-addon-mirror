@@ -5,10 +5,11 @@
 
 ## Title: H8 Ball
 ## Author: absolventR3M
-## Version: 2.4.1
-## AddOnVersion: 11
+## Version: 1.1.0
+## AddOnVersion: 23
 ## APIVersion: 101050 101051
-## Description: Shake the H8 Ball. You know you want to.
+## Description: Shake the H8 Ball. You know you want to. Wheel entry via LibRadialMenu, or /h8ball in Text Chat. Instructions: Settings > Add-Ons > H8 Ball.
 ## DependsOn: LibRadialMenu>=9
+## OptionalDependsOn: LibHarvensAddonSettings
 
 H8Ball.lua

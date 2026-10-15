@@ -3,7 +3,7 @@ local QTM = MundusGate
 local L   = QTM.L
 
 QTM.name    = "MundusGate"
-QTM.version = "3.3.1"
+QTM.version = "3.5.0"
 QTM.author  = "ladransa"
 QTM.contact = "@Watter_Mellon322"   -- кому приходят донаты и отзывы
 
@@ -32,11 +32,12 @@ QTM.defaults = {
     infoPanel       = true,    -- своя панель справа от карты (задания, фильтры, локации, дома, обозначения)
     infoTab         = "quests",-- открытая вкладка правой панели
     zoomBar         = true,    -- свой ползунок масштаба внизу карты
+    mapSearch       = true,    -- поиск мест под картой
     questTracker    = true,    -- панель заданий Mundus Gate на экране
     hideGameTracker = true,    -- прятать стандартную панель заданий игры, пока включена своя
     trackerLocked   = false,   -- панель заданий нельзя перетаскивать
     trackerStyle    = "full",  -- вид панели заданий: "full" (карточки) или "simple" (как у игры)
-    trackerShowAll  = false,   -- простая панель: все задания журнала, а не только главное и закреплённые
+    trackerMode     = "journal", -- "journal": текущее задание (T) и закреплённые; "selected": только выбранные на карте
     trackerCollapsed = {},     -- свёрнутые разделы простой панели заданий
     theme           = {},      -- цветовая тема: только изменённые значения (см. Style.THEME_DEFAULTS)
     themePreset     = "default",
@@ -212,6 +213,7 @@ local function OnAddOnLoaded(_, addonName)
     QTM.QuestDrag:Initialize()
     QTM.QuestTravel:Initialize()
     QTM.ZoomBar:Initialize()
+    QTM.MapSearch:Initialize()
     QTM.InfoPanel:Initialize()
     QTM.QuestTracker:Initialize()
     QTM.Guild:Initialize()

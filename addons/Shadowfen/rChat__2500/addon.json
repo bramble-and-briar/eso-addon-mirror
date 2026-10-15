@@ -74,7 +74,7 @@
     "rChat"
   ],
   "download_url": "https://www.esoui.com/downloads/dl2500/",
-  "fingerprint": "1c349c44a12df21524ed636aae6221ad81c2d115c2e40871d9b207930ada4309",
+  "fingerprint": "b54d5d4d1cd52053dfca51cd8fa0ee57fbe21860c74ed850bfa9c1593920095e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw8568.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw8569.jpg",
@@ -93,11 +93,11 @@
   "source_id": "2500",
   "source_url": "https://www.esoui.com/downloads/info2500-rChat.html",
   "stats": {
-    "downloads": 81145,
-    "favorites": 88,
-    "monthly_downloads": 283
+    "downloads": 81576,
+    "favorites": 86,
+    "monthly_downloads": 671
   },
   "title": "rChat",
-  "updated_at": 1790620496000,
-  "version": "2.0.6"
+  "updated_at": 1792033300000,
+  "version": "2.0.7"
 }

@@ -10,7 +10,11 @@ local category, listCategory = "buffs", nil
 local enemyEffects, activeEnemyEffects = {}, {}
 local selectedZone, listZone, selectionIndices = nil, nil, {}
 local encounterTargets, encounterLocation, encounterBoss = {}, nil, nil
+local encounterBossNames, bossCandidates, bossCheckedAt = {}, {}, nil
 local encounterDeaths, encounterRunning, encounterPlayerKey = {}, false, nil
+local encounterReceipts = {}
+local activeReceipts = {}
+local receiptFades = {}
 local selectionChosen, deleteDialogRegistered = false, false
 local deletePending
 local deleteDialogName = "LiveBuffUptimeDeleteFight"
@@ -25,7 +29,7 @@ local function decimal(value, format)
 end
 
 local function displayTitle(report)
-    local name = report and (report.enemyName or report.title or report.zone) or "Kampf"
+    local name = report and (report.encounterLabel or report.enemyName or report.title or report.zone) or "Kampf"
     return zo_strformat("<<C:1>>", name or "Kampf")
 end
 
@@ -39,12 +43,72 @@ local function zoneTitle(report)
 end
 
 local function enemyTitle(report)
-    return zo_strformat("<<C:1>>", report.enemyName or report.title or "Gegner unbekannt")
+    return zo_strformat("<<C:1>>", report.encounterLabel or report.enemyName or report.title or "Gegner unbekannt")
+end
+
+local function refreshBossCandidates()
+    local now = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
+    if bossCheckedAt and now - bossCheckedAt < 0.5 then return end
+    bossCheckedAt = now
+    if not DoesUnitExist or not GetUnitName then return end
+    for index = 1, 6 do
+        local tag = "boss" .. index
+        if DoesUnitExist(tag) and (not IsUnitDead or not IsUnitDead(tag)) then
+            local name = GetUnitName(tag)
+            if name and name ~= "" then bossCandidates[zo_strformat("<<C:1>>", name)] = true end
+        end
+    end
+end
+
+function Reports.ObserveBoss(tag, id, name)
+    if not encounterRunning or not tag or not tag:match("^boss%d+$") then return end
+    if not name or name == "" then name = GetUnitName and GetUnitName(tag) end
+    if not name or name == "" then return end
+    name = zo_strformat("<<C:1>>", name)
+    encounterBossNames[name] = true
+end
+
+local function encounterLabel(report)
+    if #report.bossNames > 0 then return table.concat(report.bossNames, ", ") end
+    local byName, names = {}, {}
+    for _, target in ipairs(report.enemies) do
+        local group = byName[target.name]
+        if not group then
+            group = { name = target.name, count = 0, damage = 0 }
+            byName[target.name] = group
+            names[#names + 1] = group
+        end
+        group.count, group.damage = group.count + 1, group.damage + target.damage
+    end
+    table.sort(names, function(a, b) if a.damage == b.damage then return a.name < b.name end; return a.damage > b.damage end)
+    local labels = {}
+    for index = 1, math.min(2, #names) do
+        local group = names[index]
+        if index == 1 or group.damage >= names[1].damage / 2 then
+            local name = group.count > 1 and string.format("%d x %s", group.count, group.name) or group.name
+            if #labels == 0 or #(table.concat(labels, ", ") .. ", " .. name) <= 60 then labels[#labels + 1] = name end
+        end
+    end
+    return #labels > 0 and ("Gegnergruppe: " .. table.concat(labels, ", ")) or "Gegner unbekannt"
 end
 
 function Reports.BeginEncounter(now, running, playerKey)
     encounterTargets, encounterBoss = {}, nil
+    encounterBossNames, bossCandidates, bossCheckedAt = {}, {}, nil
+    refreshBossCandidates()
     encounterDeaths, encounterRunning = {}, running ~= false
+    encounterReceipts = {}
+    for id, buff in pairs(activeReceipts) do
+        for key, slots in pairs(buff) do
+            for slot, effect in pairs(slots) do if effect.expires <= now then slots[slot] = nil end end
+            if not next(slots) then buff[key] = nil end
+        end
+        if not next(buff) then activeReceipts[id] = nil end
+    end
+    for id, fades in pairs(receiptFades) do
+        for key, fade in pairs(fades) do if now - fade.time > 0.05 then fades[key] = nil end end
+        if not next(fades) then receiptFades[id] = nil end
+    end
     encounterPlayerKey = playerKey
     enemyEffects = {}
     for key, effect in pairs(activeEnemyEffects) do
@@ -58,6 +122,55 @@ function Reports.BeginEncounter(now, running, playerKey)
             if DoesUnitExist("boss" .. index) then
                 local name = GetUnitName("boss" .. index)
                 if name and name ~= "" then encounterBoss = zo_strformat("<<C:1>>", name); break end
+            end
+        end
+    end
+end
+
+function Reports.RecordBuffReceipt(id, key, slot, change, starts, time, ends)
+    if not id or not key or not slot then return end
+    local activeBuff = activeReceipts[id]
+    if not activeBuff then activeBuff = {}; activeReceipts[id] = activeBuff end
+    local activeMember = activeBuff[key]
+    if not activeMember then activeMember = {}; activeBuff[key] = activeMember end
+    local previous = activeMember[slot]
+    local wasActive = false
+    for _, effect in pairs(activeMember) do
+        if effect.expires > time then wasActive = true; break end
+    end
+    local fades = receiptFades[id]
+    if not fades then fades = {}; receiptFades[id] = fades end
+    local faded = fades[key]
+    -- Some replacements arrive as FADED + GAINED in the same event burst.
+    local replaced = faded and time >= faded.time and time - faded.time <= 0.05 and faded.expires > time
+    local duplicate = change == EFFECT_RESULT_GAINED and previous and previous.starts == starts and previous.expires == ends
+    local renewed = change == EFFECT_RESULT_UPDATED and previous and previous.expires > time
+        and ends and ends > previous.expires
+    if change == EFFECT_RESULT_GAINED and not duplicate then renewed = wasActive or replaced end
+    if change == EFFECT_RESULT_FADED then
+        if previous and previous.expires > time then fades[key] = {time = time, expires = previous.expires} end
+        activeMember[slot] = nil
+    elseif ends and ends > time then
+        activeMember[slot] = {expires = ends, starts = starts}
+        if change == EFFECT_RESULT_GAINED then fades[key] = nil end
+    else activeMember[slot] = nil end
+    if not encounterRunning then return end
+    local buff = encounterReceipts[id]
+    if not buff then buff = {}; encounterReceipts[id] = buff end
+    local member = buff[key]
+    if not member then member = { slots = {}, times = {}, renewals = {} }; buff[key] = member end
+    if renewed then
+        if #member.renewals < 2048 then member.renewals[#member.renewals + 1] = time
+        else member.renewalsTruncated = true end
+    end
+    if change == EFFECT_RESULT_FADED then member.slots[slot] = nil
+    elseif change == EFFECT_RESULT_GAINED then
+        local signature = starts and starts > 0 and starts or true
+        if not duplicate and member.slots[slot] ~= signature then
+            member.slots[slot] = signature
+            if not renewed then
+                if #member.times < 2048 then member.times[#member.times + 1] = time
+                else member.truncated = true end
             end
         end
     end
@@ -164,6 +277,8 @@ function Reports.RecordDamage(sourceType, targetType, targetId, targetName, dama
     end
     if targetName and targetName ~= "" then entry.name = zo_strformat("<<C:1>>", targetName) end
     entry.damage = entry.damage + damage
+    refreshBossCandidates()
+    if entry.name and bossCandidates[entry.name] then encounterBossNames[entry.name] = true end
 end
 
 local function attachEncounter(report)
@@ -174,6 +289,10 @@ local function attachEncounter(report)
     end
     table.sort(report.enemies, function(a, b) if a.damage == b.damage then return a.name < b.name end; return a.damage > b.damage end)
     report.enemyName = report.enemies[1] and report.enemies[1].name or encounterBoss or report.title
+    report.bossNames = {}
+    for name in pairs(encounterBossNames) do report.bossNames[#report.bossNames + 1] = name end
+    table.sort(report.bossNames)
+    report.encounterLabel = encounterLabel(report)
     report.debuffs = {}
     local duration = math.max(0, report.ended - report.started)
     for id, effect in pairs(enemyEffects) do
@@ -203,7 +322,20 @@ local function attachEncounter(report)
     table.sort(report.debuffs, function(a, b) return a.name < b.name end)
     for _, buff in ipairs(report.buffs) do
         for _, row in ipairs(buff.members) do
-            local data = encounterDeaths[row.deathKey or (buff.unit == "player" and encounterPlayerKey) or row.account]
+            local key = row.deathKey or (buff.unit == "player" and encounterPlayerKey) or row.account
+            local data = encounterDeaths[key]
+            local receipts = encounterReceipts[buff.id] and encounterReceipts[buff.id][key]
+            row.received, row.renewed = 0, 0
+            if receipts then
+                for _, time in ipairs(receipts.times) do
+                    if time >= report.started and time <= report.ended then row.received = row.received + 1 end
+                end
+                if receipts.truncated then row.received = nil end
+                for _, time in ipairs(receipts.renewals) do
+                    if time >= report.started and time <= report.ended then row.renewed = row.renewed + 1 end
+                end
+                if receipts.renewalsTruncated then row.renewed = nil end
+            end
             if data then
                 row.deaths, row.deadTime = 0, 0
                 for _, time in ipairs(data.transitions) do
@@ -472,11 +604,6 @@ function Reports.Refresh()
                         local duration = math.max(0, (record.ended or 0) - (record.started or 0))
                         if entry.AddSubLabel then entry:AddSubLabel(string.format("%s  |  %d:%s", record.clock or "",
                             math.floor(duration / 60), decimal(duration % 60, "%04.1f"))) end
-                        if entry.AddSubLabel and record.enemies and #record.enemies > 1 then
-                            local names = {}
-                            for _, target in ipairs(record.enemies) do names[#names + 1] = target.name end
-                            entry:AddSubLabel(table.concat(names, ", "))
-                        end
                         nativeList:AddEntry("ZO_GamepadMenuEntryTemplate", entry)
                         selectionIndices[#selectionIndices + 1] = index
                     end
@@ -506,6 +633,7 @@ function Reports.Refresh()
     controls.heading:SetText(debuffs and "Debuff-Uptime" or "Buff-Uptime")
     controls.subject:SetText(debuffs and "Gegner" or "Spieler")
     controls.coverage:SetText(debuffs and "Debuffzeit" or "Buffzeit")
+    controls.receiptHeading:SetHidden(debuffs)
     selected = math.max(1, math.min(selected, #buffs))
     local buff = buffs[selected]
     local members = buff and buff.members or {}
@@ -542,11 +670,18 @@ function Reports.Refresh()
         row.duration:SetText(member and (counted and (decimal(member.duration) .. " s") or "-") or "")
         row.percent:SetText(member and (counted and (decimal(member.duration > 0 and member.covered / member.duration * 100 or 0, "%.1f") .. " %") or "-") or "")
         row.percent:SetColor(member and member.covered > 0 and 0.55 or 0.9, member and member.covered > 0 and 0.95 or 0.65, 0.65, 1)
+        row.buffIcon:SetHidden(not member or debuffs)
+        if member and buff and not debuffs then row.buffIcon:SetTexture(GetAbilityIcon(buff.id)) end
+        row.received:SetText(not debuffs and member and string.format("%s / %s",
+            member.received ~= nil and tostring(member.received) or "-",
+            member.renewed ~= nil and tostring(member.renewed) or "-") or "")
     end
     controls.total:SetText(buff and string.format("%s  %s %%", debuffs and "Debuff-Uptime" or buff.groupRole == "damage" and "DD-Uptime"
         or buff.unit == "group" and "Gruppen-Uptime" or "Persoenliche Uptime", decimal(buff.percent, "%.1f")) or "")
     controls.times:SetText(buff and string.format("%s %s s  /  Bezugszeit %s s", debuffs and "Debuffzeit" or "Buffzeit", decimal(buff.covered), decimal(buff.duration)) or "")
-    controls.page:SetText(string.format("Seite %d / %d", page, pages))
+    local pageText = debuffs and "Seite 2 / 2" or "Seite 1 / 2"
+    if pages > 1 then pageText = pageText .. string.format("\n%s %d / %d", debuffs and "Gegner" or "Spieler", page, pages) end
+    controls.page:SetText(pageText)
     controls.warning:SetText(buff and buff.truncated and "Einzelwerte unvollstaendig" or "")
     if opened and keybinds and KEYBIND_STRIP and KEYBIND_STRIP.UpdateKeybindButtonGroup then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(keybinds)
@@ -813,12 +948,16 @@ local function createWindow()
     controls.buff = label(window, "LiveBuffUptimeReportBuff", 28, 82, 740, 44, "ZoFontGamepad42")
     controls.selection = label(window, nil, 820, 82, 100, 44, "ZoFontGamepad34")
     controls.basis = label(window, nil, 28, 126, 720, 30, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
-    local columns = { { "Spieler", 36, 400 }, { "Buffzeit", 438, 160 }, { "Bezugszeit", 618, 150 }, { "Uptime", 782, 150 } }
+    local columns = { { "Spieler", 36, 308 }, { "Buffzeit", 362, 150 }, { "Bezugszeit", 528, 150 }, { "Uptime", 694, 150 } }
     for index, column in ipairs(columns) do
         local control = label(window, nil, column[2], 158, column[3], 38, "ZoFontGamepad34")
         control:SetText(column[1])
         if index == 1 then controls.subject = control elseif index == 2 then controls.coverage = control end
     end
+    controls.receiptHeading = label(window, "LiveBuffUptimeReportReceiptHeading", 854, 150, 80, 44, "ZoFontGamepad18")
+    controls.receiptHeading:SetText("Erhalten /\nErneuert")
+    controls.receiptHeading:SetMaxLineCount(2)
+    controls.receiptHeading:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     controls.rows = {}
     for index = 1, ROWS do
         local y = 204 + (index - 1) * 70
@@ -826,18 +965,28 @@ local function createWindow()
         row.roleIcon = wm:CreateControl("LiveBuffUptimeReportRoleIcon" .. index, window, CT_TEXTURE)
         row.roleIcon:SetAnchor(TOPLEFT, window, TOPLEFT, 36, y + 6)
         row.roleIcon:SetDimensions(54, 54)
-        row.name = label(window, "LiveBuffUptimeReportName" .. index, 100, y, 320, 42, "ZoFontGamepad42")
-        row.death = label(window, "LiveBuffUptimeReportDeaths" .. index, 100, y + 42, 320, 28, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
+        row.name = label(window, "LiveBuffUptimeReportName" .. index, 100, y, 244, 42, "ZoFontGamepad42")
+        row.death = label(window, "LiveBuffUptimeReportDeaths" .. index, 100, y + 42, 244, 28, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
         row.role = label(window, "LiveBuffUptimeReportRole" .. index, 356, y, 80, 70, "ZoFontGamepad27", { 0.64, 0.72, 0.7, 1 })
         row.role:SetHidden(true)
-        row.covered = label(window, "LiveBuffUptimeReportCovered" .. index, 438, y, 160, 70, "ZoFontGamepad54")
-        row.duration = label(window, nil, 618, y, 150, 70, "ZoFontGamepad54")
-        row.percent = label(window, "LiveBuffUptimeReportPercent" .. index, 782, y, 150, 70, "ZoFontGamepad54")
+        row.covered = label(window, "LiveBuffUptimeReportCovered" .. index, 362, y, 150, 70, "ZoFontGamepad54")
+        row.duration = label(window, nil, 528, y, 150, 70, "ZoFontGamepad54")
+        row.percent = label(window, "LiveBuffUptimeReportPercent" .. index, 694, y, 150, 70, "ZoFontGamepad54")
+        row.buffIcon = wm:CreateControl("LiveBuffUptimeReportBuffIcon" .. index, window, CT_TEXTURE)
+        row.buffIcon:SetAnchor(TOPLEFT, window, TOPLEFT, 875, y + 10)
+        row.buffIcon:SetDimensions(38, 38)
+        row.received = label(window, "LiveBuffUptimeReportReceived" .. index, 854, y + 48, 80, 22, "ZoFontGamepad22")
+        row.received:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        for _, value in ipairs({row.covered, row.duration, row.percent}) do
+            value:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+            value:SetMaxLineCount(1)
+        end
         controls.rows[index] = row
     end
     controls.total = label(window, "LiveBuffUptimeReportTotal", 36, 1054, 580, 42, "ZoFontGamepad42", { 0.55, 0.95, 0.7, 1 })
     controls.times = label(window, nil, 36, 1096, 650, 30, "ZoFontGamepad27")
-    controls.page = label(window, nil, 708, 1096, 224, 30, "ZoFontGamepad27")
+    controls.page = label(window, "LiveBuffUptimeReportPage", 708, 1084, 224, 44, "ZoFontGamepad22")
+    controls.page:SetMaxLineCount(2)
     controls.warning = label(window, nil, 650, 1054, 282, 28, "ZoFontGamepad22", { 1, 0.7, 0.4, 1 })
     keybinds = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -882,7 +1031,12 @@ function Reports.Open()
         local quadrant = ZO_SharedGamepadNavQuadrant_2_Background
         local width = quadrant and quadrant:GetWidth() * 2 or GuiRoot:GetWidth() * 0.74
         local height = quadrant and quadrant:GetHeight() or GuiRoot:GetHeight()
-        detailWindow:SetScale(math.min(1, (width - 48) / 960, (height - 24) / 1130))
+        local background = ZO_SharedGamepadNavQuadrant_2_3_Background or ZO_SharedGamepadNavQuadrant_3_Background
+        local left = quadrant and quadrant.GetLeft and quadrant:GetLeft()
+        local right = background and background.GetRight and background:GetRight()
+        -- Native backgrounds can be narrower than two nominal quadrant widths.
+        if type(left) == "number" and type(right) == "number" and right > left then width = math.min(width, right - left) end
+        detailWindow:SetScale(math.min(1, (width - 72) / 960, (height - 24) / 1130))
     end
     if scene and SCENE_MANAGER.Push then SCENE_MANAGER:Push(sceneName) end
     if SCENE_MANAGER and SCENE_MANAGER.SetInUIMode then SCENE_MANAGER:SetInUIMode(true) end

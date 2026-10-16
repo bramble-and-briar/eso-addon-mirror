@@ -25,9 +25,6 @@ ZO_CreateStringId("SI_BINDING_NAME_TOGGLE_COMPASS",					"Brújula Activado/Desac
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REINVITE",				"Volver a invitar al grupo")
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REGROUP",				"Reagrupar")
 --QuickSlots
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_NEXT",				"Siguiente ranura rápida")
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_PREV",				"Ranura rápida anterior")
-for i	=1,8 do ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_"..i,	"Ranura rápida "..i) end
 for i	=1,6 do ZO_CreateStringId("SI_BINDING_NAME_BUI_CUSTOMSLOT_"..i,	"Ranura personalizada "..i) end
 --Automation
 ZO_CreateStringId("SI_KEYBIND_STRIP_FILLET_FISH","Filetear todos los peces")

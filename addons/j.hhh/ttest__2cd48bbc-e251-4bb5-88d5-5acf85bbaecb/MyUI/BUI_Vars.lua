@@ -22,7 +22,6 @@ BUI	={
 	Player				={},
 	Group				={},
 	Target				={},
-	QuickSlots			={},
 	Reticle				={},
 	Log					={},
 	OnScreen			={Message={},Group={}},
@@ -99,9 +98,9 @@ BUI	={
 		--ActionSlot
 		ActionSlots			=true,
 		--QuickSlots
-		QuickSlots			=true,
+		QuickSlots			=false,
 		QuickSlotsShow		=4,
-		QuickSlotsInventory	=true,
+		QuickSlotsInventory	=false,
 		DisableHelpAnnounce =false,
 		UpdateTime			=200,
 	},

@@ -1,11 +1,11 @@
 {
   "files": [
     {
-      "bytes": 123965768,
+      "bytes": 123953157,
       "download_url": "https://www.esoui.com/downloads/dl4927/",
       "path": "gamedata/lang/ar.lang",
       "reason": "exceeds the mirror's 95 MiB per-file Git limit",
-      "sha256": "dd90070cb3dba4ac60cfa73da6b032d3e8a5b77d6ecc9d0ea69f6f468d2c5215"
+      "sha256": "2b3ab2cc7f718be44d11caea319987b7838eed6f01ffbd5ffb3dc98e4a3216b4"
     }
   ]
 }

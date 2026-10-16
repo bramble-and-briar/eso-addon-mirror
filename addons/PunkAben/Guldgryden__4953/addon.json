@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/PunkAben/Guldgryden__4953",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "PunkAben",
+  "canonical_id": "esoui:4953",
+  "category_id": "40",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4953",
+  "deleted": false,
+  "directories": [
+    "Guldgryden"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4953/",
+  "fingerprint": "fa82e4141839bc98cdfb8e672b1ec04f39cd1ba68cd0c107db658e2e5412bf28",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17995.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4953",
+  "source_url": "https://www.esoui.com/downloads/info4953-Guldgryden.html",
+  "stats": {
+    "downloads": 14,
+    "favorites": 0,
+    "monthly_downloads": 13
+  },
+  "title": "Guldgryden",
+  "updated_at": 1792057302000,
+  "version": "0.5.1"
+}

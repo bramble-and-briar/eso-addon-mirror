@@ -117,7 +117,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Miner mini game](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Miner-mini-game__2457) | Hoft | PC / Mac | 1.5 |
 | [Mini Clock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/hatsune681/Mini-Clock__1197) | hatsune681 | PC / Mac | 7.101035 |
 | [MiniBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LumpyLemon/MiniBars__3121) | LumpyLemon | PC / Mac | 0.3 |
-| [MiniMap by Fyrakin \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/MiniMap-by-Fyrakin-Masteroshi430-s-branch__3384) | Masteroshi430 | PC / Mac | 2026.10.14 |
+| [MiniMap by Fyrakin \[Masteroshi430's branch\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Masteroshi430/MiniMap-by-Fyrakin-Masteroshi430-s-branch__3384) | Masteroshi430 | PC / Mac | 2026.10.15 |
 | [MiniMap Map API refences](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fyrakin/MiniMap-Map-API-refences__1131) | Fyrakin | PC / Mac | 1.0 |
 | [MiniMap_jpFix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/2ch/MiniMap_jpFix__1397) | 2ch | PC / Mac | 3.00.1 |
 | [MiniStats – Post-Combat Summary](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PossEU/MiniStats-Post-Combat-Summary__4222) | PossEU | PC / Mac | 0.1.0 |
@@ -168,7 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Muffin’s Set & Recipe Tracker for Gamepad](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Muffins714/Muffin-s-Set-Recipe-Tracker-for-Gamepad__4090) | Muffins714 | PC / Mac | 1.6.1 |
 | [Multi Class Ability Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cerbin/Multi-Class-Ability-Tracker__4831) | Cerbin | PC / Mac | 0.1.1 |
 | [Mundus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/probo11/Mundus__2698) | probo11 | PC / Mac | 5.0 |
-| [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.0 |
+| [Mundus Gate](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ladransa/Mundus-Gate__4937) | ladransa | PC / Mac | 3.5.1 |
 | [MundusMap Revived](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marazota/MundusMap-Revived__3069) | Marazota | PC / Mac | 0.28 |
 | [Murder Hotkey](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pineapple_aule/Murder-Hotkey__3155) | pineapple_aule | PC / Mac | 0.1 |
 | [Murf's Knickknacks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/murphyx/Murf-s-Knickknacks__d38d1fe9-e738-4036-9d0d-baeaa4ebbe2e) | murphyx | Console | — |

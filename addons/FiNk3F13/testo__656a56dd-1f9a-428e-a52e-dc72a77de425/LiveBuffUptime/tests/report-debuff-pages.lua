@@ -14,7 +14,8 @@ reports.RecordDebuff(39077, 900, "Boss", 1, 106, 105, false)
 reports.RecordDebuff(39077, 901, "Nicht angegriffen", 1, 100, 110, true)
 local tracker = { config = { id = 61771, unit = "group" }, displayPercent = 25,
     group = { members = {} } }
-reports.CaptureFallback({tracker}, 100, 110, 10, false, function() return "Buff" end, {}, function() return false end)
+local enemyTracker = { config = { id = 39077, unit = "reticleover" } }
+reports.CaptureFallback({tracker, enemyTracker}, 100, 110, 10, false, function() return "Buff" end, {}, function() return false end)
 local report = env.saved().lastUptimeReport
 assert(#report.debuffs == 1 and #report.debuffs[1].members == 1)
 local debuff = report.debuffs[1]
@@ -52,7 +53,7 @@ reports.RecordDebuff(39077, 900, "Boss", 1, 201, 208, true)
 reports.BeginEncounter(203, true, "player")
 reports.RecordDamage(COMBAT_UNIT_TYPE_PLAYER, 999, 900, "Boss", 100)
 reports.RecordDebuff(39077, 900, "Boss", 1, 205, 210, true)
-reports.CaptureFallback({tracker}, 203, 213, 10, false, function() return "Buff" end, {}, function() return false end)
+reports.CaptureFallback({tracker, enemyTracker}, 203, 213, 10, false, function() return "Buff" end, {}, function() return false end)
 assert(env.saved().lastUptimeReport.debuffs[1].covered == 7)
 assert(report.buffs[1].percent == 25, "The previous fight must stay frozen")
 -- Exercise the addon's ESO hook: only a configured debuff on a hostile enemy enters the report.

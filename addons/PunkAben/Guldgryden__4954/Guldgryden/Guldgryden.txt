@@ -1,0 +1,9 @@
+## Title: Guldgryden
+## Description: AI-assisted code: parts of this addon were created with AI assistance and reviewed with the author. Turns surplus Provisioning ingredients into gold at NPC merchants.
+## Author: Punk & Nova
+## Version: 0.5.2
+## APIVersion: 101051
+## SavedVariables: GuldgrydenSaved
+## OptionalDependsOn: LibAddonMenu-2.0
+Core.lua
+Guldgryden.lua

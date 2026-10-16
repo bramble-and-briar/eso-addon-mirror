@@ -5,7 +5,7 @@
 SatuveXboxUI = SatuveXboxUI or {}
 SatuveXboxUI.name = "MyUI"
 SatuveXboxUI.displayName = "My UI"
-SatuveXboxUI.version = "1.9.26"
+SatuveXboxUI.version = "1.9.28"
 SatuveXboxUI.actionBarGap = 35
 
 -- Compatibility aliases for clients that no longer expose the legacy

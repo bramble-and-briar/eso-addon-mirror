@@ -42,7 +42,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Empyrean Dice](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manaphoenix/Empyrean-Dice__1891) | manaphoenix | PC / Mac | 4.2 |
 | [Enchant Maker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/facit/Enchant-Maker__544) | facit | PC / Mac | 2.1.6 |
 | [Enchant Maker+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fenixs/Enchant-Maker__2707) | Fenixs | PC / Mac | 1.1.7b-2 |
-| [Enchant+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Enchant__4800) | atharti | PC / Mac | 1.0 |
+| [Enchant+](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Enchant__4800) | atharti | PC / Mac | 1.1 |
 | [Enchanted Quality](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Enchanted-Quality__1635) | Rhyono | PC / Mac | 1.35.1 |
 | [Encounter Toggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Turbo1/Encounter-Toggle__2842) | Turbo1 | PC / Mac | 1.1 |
 | [Endeavor Assistant](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AshTech/Endeavor-Assistant__3936) | AshTech | PC / Mac | 1.2 |

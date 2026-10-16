@@ -359,7 +359,6 @@ function BUI.Themes_Setup(change)
 		if BUI.init.Frames then BUI.Frames:Initialize() end
 		if BUI.init.Actions then BUI.Actions.ChangeTheme() end
 		if BUI.Vars.PlayerBuffs or BUI.Vars.TargetBuffs or BUI.Vars.EnableCustomBuffs or BUI.Vars.EnableWidgets then BUI.Buffs:Initialize() end
-		if BUI.Vars.QuickSlots then BUI.QuickSlots.Update(true) end
 		BUI.CustomBarUpdate(true)
 	end
 

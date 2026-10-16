@@ -15,9 +15,6 @@ ZO_CreateStringId("SI_BINDING_NAME_SHOW_LOG",				"Показать записи 
 ZO_CreateStringId("SI_BINDING_NAME_TOGGLE_MINIMAP",			"Включить/Выключить Миникарту")
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REINVITE",		"Собрать запомненную группу")
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REGROUP",		"Пересобрать группу")
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_NEXT",		"Следующий слот")
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_PREV",		"Предыдущий слот")
-for i=1,8 do ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_"..i,	"Быстрый слот "..i) end
 for i=1,6 do ZO_CreateStringId("SI_BINDING_NAME_BUI_CUSTOMSLOT_"..i,	"Пользовательский слот "..i) end
 
 BUI.Localization.ru={

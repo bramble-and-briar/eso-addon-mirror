@@ -7,6 +7,7 @@ D.messages = D.messages or {}
 D.errors = D.errors or {}
 D.loaded = false
 D.panelName = "BUI_BanditUI"
+D.build = "Recovery Safe / 1.9.28"
 
 local function AddMessage(line)
     local entries = D.messages
@@ -79,21 +80,20 @@ local function State()
     if not (bridge.panels and bridge.panels[D.panelName]) then
         return false, "LAM-Panel fehlt trotz FinalizeGrouped"
     end
-    local count = bridge.groupedOptionCount and bridge.groupedOptionCount[D.panelName] or 0
-    if count < 1 then
-        return false, "LAM-Panel ohne registrierte Einstellungen (0 Eintraege)"
+    if bridge.mode == "lam-console" then
+        local count = bridge.groupedOptionCount and bridge.groupedOptionCount[D.panelName] or 0
+        if count == 0 then return false, "Konsolen-Panel ohne Einstellungen" end
+        return true, "Konsolen-Einstellungen registriert: " .. tostring(count)
     end
-    return true, "'My UI': " .. tostring(count) .. " Menueeintraege registriert (" .. tostring(bridge.mode) .. ")"
+    return true, "LAM-Panel 'My UI' erfolgreich registriert"
 end
 
 function D.Report()
     local ok, summary = State()
     Print((ok and "OK: " or "PROBLEM: ") .. summary)
-    Print("Technischer Add-on-Name: MyUI | Anzeigename: My UI")
+    Print("Version " .. D.build .. " | Technischer Name MyUI | Anzeige My UI")
     local bui = rawget(_G, "BUI")
-    Print("BUI.name=" .. tostring(bui and bui.name) .. ", LibAddonMenu=" .. (FindLAM() and "geladen" or "FEHLT"))
-    local console = type(IsKeyboardUISupported) == "function" and not IsKeyboardUISupported()
-    Print("Plattform=" .. (console and "Konsole" or "PC/unklar") .. ", LibHarvensAddonSettings (LibVotans)=" .. (rawget(_G, "LibHarvensAddonSettings") and "geladen" or "FEHLT"))
+    Print("BUI.name=" .. tostring(bui and bui.name) .. ", LibAddonMenu=" .. (FindLAM() and "geladen" or "FEHLT") .. ", LibHarvensAddonSettings=" .. (rawget(_G, "LibHarvensAddonSettings") and "geladen" or "FEHLT"))
     local init = bui and bui.Initialization
     if init then
         local order = {"saved variables", "root UI", "player UI", "combat UI", "action bars and frames", "menus and integrations"}
@@ -116,7 +116,7 @@ function D.Report()
         Print("Bridge: mode=" .. tostring(bridge.mode) .. ", sections=" .. sectionCount
             .. ", finalized=" .. tostring(bridge.groupedFinalized and bridge.groupedFinalized[D.panelName])
             .. ", panel=" .. tostring(bridge.panels and bridge.panels[D.panelName] ~= nil)
-            .. ", eintraege=" .. tostring(bridge.groupedOptionCount and bridge.groupedOptionCount[D.panelName] or 0))
+            .. ", zeilen=" .. tostring(bridge.groupedOptionCount and bridge.groupedOptionCount[D.panelName] or 0))
     end
     for i = math.max(1, #D.messages - 10), #D.messages do
         Print(D.messages[i])
@@ -144,7 +144,7 @@ local function Overlay()
     local success, status = State()
     local bui = rawget(_G, "BUI")
     D.label:SetColor(success and 0.3 or 1, success and 1 or 0.65, 0.4, 1)
-    D.label:SetText("MY UI DEBUG: " .. (success and "OK" or "FEHLER")
+    D.label:SetText("MY UI " .. D.build .. " DEBUG: " .. (success and "OK" or "FEHLER")
         .. "\n" .. status
         .. "\nAdd-on: " .. tostring(bui and bui.name or "BUI fehlt")
         .. " | LAM: " .. (FindLAM() and "geladen" or "FEHLT")

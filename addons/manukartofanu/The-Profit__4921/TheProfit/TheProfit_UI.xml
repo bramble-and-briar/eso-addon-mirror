@@ -198,8 +198,7 @@
                     <Dimensions x="266" y="27" />
                     <OnMouseEnter>TheProfit.ShowGridItemTooltip(self)</OnMouseEnter>
                     <OnMouseExit>TheProfit.HideGridItemTooltip()</OnMouseExit>
-                    <OnMouseUp>TheProfit.SelectStockItem(self:GetParent(), button, upInside)</OnMouseUp>
-                    <OnLinkMouseUp>ZO_LinkHandler_OnLinkMouseUp(linkText, button, self)</OnLinkMouseUp>
+                    <OnMouseUp>TheProfit.SelectStockItem(self:GetParent(), button, upInside); TheProfit.OpenGridItemLink(self, button, upInside)</OnMouseUp>
                     <OnMouseWheel>TheProfit.ScrollStockItems(delta)</OnMouseWheel>
                 </Label>
                 <Label name="$(parent)Stock" font="ZoFontGame" color="E7C56A" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="316" /><Dimensions x="90" y="27" /></Label>

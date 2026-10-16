@@ -214,7 +214,7 @@ function LiveUptime.Effect(fight, tracker, time, id, ability, slot, gained, own,
 end
 
 function LiveUptime.Expire(fight, tracker, time)
-    if not fight or not fight.running or tracker.config.unit ~= "group" then return end
+    if not fight or not fight.running or (tracker.config.unit ~= "group" and tracker.config.unit ~= "reticleover") then return end
     for id, unit in pairs(tracker.liveUptimeUnits or {}) do
         local expired
         for slot, effect in pairs(unit.slots) do

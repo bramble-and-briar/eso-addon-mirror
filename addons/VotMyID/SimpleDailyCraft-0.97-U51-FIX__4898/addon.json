@@ -1,6 +1,6 @@
 {
   "archive_format": "zip",
-  "archive_path": "addons/VotMyID/SimpleDailyCraft-0.96-U51-FIX__4898",
+  "archive_path": "addons/VotMyID/SimpleDailyCraft-0.97-U51-FIX__4898",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "VotMyID",
@@ -18,19 +18,19 @@
     "SimpleDailyCraft"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4898/",
-  "fingerprint": "8c15d94293f7f4215f4fc0ce61ca2d6f5ea655544a539d65a26b38d6ccdd70e9",
+  "fingerprint": "04ae9435242d6eee3d4cf7abbd4013c8061f7bc8b89354758f2d52f7e15d0db3",
   "images": [],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "4898",
-  "source_url": "https://www.esoui.com/downloads/info4898-SimpleDailyCraft0.96U51FIX.html",
+  "source_url": "https://www.esoui.com/downloads/info4898-SimpleDailyCraft0.97U51FIX.html",
   "stats": {
-    "downloads": 151,
+    "downloads": 268,
     "favorites": 0,
-    "monthly_downloads": 138
+    "monthly_downloads": 245
   },
-  "title": "SimpleDailyCraft 0.96 \u2014 U51 FIX",
-  "updated_at": 1791770347000,
-  "version": "0.96"
+  "title": "SimpleDailyCraft 0.97 \u2014 U51 FIX",
+  "updated_at": 1792082154000,
+  "version": "0.97"
 }

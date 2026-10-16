@@ -102,6 +102,7 @@ local function CreateMerchantOtherProfile()
     return {
         emptySoulGemsEnabled = false,
         undauntedPlunderEnabled = false,
+        treasuresEnabled = false,
         trashEnabled = false,
         monsterTrophiesEnabled = false,
         fishingBaitEnabled = false,

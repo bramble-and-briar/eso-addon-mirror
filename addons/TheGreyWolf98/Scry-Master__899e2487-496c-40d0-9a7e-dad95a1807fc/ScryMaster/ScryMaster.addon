@@ -1,0 +1,9 @@
+## Title: Scry Master
+## Description: Zone antiquity checklist, expandable mythics and sets, excavation history and codex completion. Controller-friendly large text.
+## Author: @TheGreyWolf98
+## Version: 1.0.1
+## APIVersion: 101051
+
+ScryMaster.lua
+ScryMasterUI.lua
+Bindings.xml

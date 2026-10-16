@@ -33,6 +33,8 @@ local strings = {
     SI_CCMW_GLYPH_UNKNOWN = "Glyph Not Recognized",
     SI_CCMW_ASPECT_IMPROVEMENT = "Aspect Improvement",
     SI_CCMW_REAGENTS = "Reagents",
+    SI_CCMW_REAGENTS_OK = "Reagents in Stock",
+    SI_CCMW_REAGENTS_MISSING = "Reagents Missing",
     SI_CCMW_REAGENTS_NONE = "No Reagent Combination Found",
     SI_CCMW_THIRD_SLOT = "Third Reagent Slot",
 

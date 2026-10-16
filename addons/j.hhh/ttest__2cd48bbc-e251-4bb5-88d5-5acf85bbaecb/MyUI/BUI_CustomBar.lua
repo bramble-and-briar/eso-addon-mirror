@@ -171,7 +171,7 @@ local function Menu_Init()
 
 	-- Controller/LAM version of the Custom Bar settings.  Keep every setting in
 	-- the single Bandit UI panel so the gamepad menu is one vertical column.
-	if BUI.SettingsBridge and BUI.SettingsBridge.AddGroupedSection then
+	if false and BUI.SettingsBridge and BUI.SettingsBridge.AddGroupedSection then
 		local LamOptions={}
 		table.insert(LamOptions,{
 			type="checkbox", name="CustomBar",

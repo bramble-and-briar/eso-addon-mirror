@@ -18,6 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Lazy Confirm (and delete)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Confirm-and-delete__8fbbe7ae-8178-4e35-9755-3cafefd42095) | Dolgubon | Console | — |
 | [Lazy Confirm (And Delete)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Confirm-And-Delete__2359) | Dolgubon | PC / Mac | 1.0.3 |
 | [Lazy Crafting Certification](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/robert.labrie/Lazy-Crafting-Certification__3787) | robert.labrie | PC / Mac | 1.0.0 |
+| [Lazy Crown](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/absolventR3M/Lazy-Crown__a0257a7b-725f-4051-91ee-a686c0c70fc2) | absolventR3M | Console | — |
 | [Lazy Deconstructor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/StorybookTerror/Lazy-Deconstructor__3449) | StorybookTerror | PC / Mac | 0.6.1 |
 | [Lazy Enchanting Restock Queue](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Lazy-Enchanting-Restock-Queue__4392) | TwinLamps | PC / Mac | 1.2 |
 | [Lazy Horse Trainer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Lazy-Horse-Trainer__dd337340-e6c9-4835-8e50-ba68c7e949e4) | Dolgubon | Console | — |

@@ -7,6 +7,7 @@ local function CreateDefaults()
     return {
         emptySoulGemsEnabled = false,
         undauntedPlunderEnabled = false,
+        treasuresEnabled = false,
         trashEnabled = false,
         monsterTrophiesEnabled = false,
         fishingBaitEnabled = false,
@@ -30,6 +31,14 @@ merchant.RegisterCategory("other", function(profile, bagId, slotIndex, itemLink)
     if
         profile.undauntedPlunderEnabled
         and GetItemLinkItemId(itemLink) == UNDAUNTED_PLUNDER_ITEM_ID
+    then
+        return true
+    end
+
+    if
+        profile.treasuresEnabled
+        and itemType == ITEMTYPE_TREASURE
+        and GetItemLinkItemId(itemLink) ~= UNDAUNTED_PLUNDER_ITEM_ID
     then
         return true
     end

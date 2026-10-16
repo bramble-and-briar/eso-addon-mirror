@@ -832,10 +832,10 @@ function FyrMM.TooltipExit()
     ClearTooltip(InformationTooltip)
 end
 
--- function FyrMM.PinToggle(value)
-    -- MM_SetLockResizing(value)
-    -- MM_RefreshPanel()
--- end
+function FyrMM.PinToggle(value)
+    MM_SetLockResizing(value)
+    MM_RefreshPanel()
+end
 
 function FyrMM.OpenSettingsPanel()
     FyrMM.LAM:OpenToPanel(FyrMM.CPL)
@@ -6153,7 +6153,7 @@ function FyrMM.InsertCustomPin(p, key)
             pin.Key = key 
             pin.tint = p.tint
             CustomPinCrossReference[pin.mpin] = pin
-			pin.created = GetFrameTimeMilliseconds()
+		      	pin.created = GetFrameTimeMilliseconds()
             -- pin.GetPinTypeAndTag = function(self) return self.m_PinType, self.m_PinTag end
 
             if FyrMM.SV.autoResizePin and CurrentMap.MapId ~= 16 and CurrentMap.MapId ~= 660 and CurrentMap.MapContentType ~= MAP_CONTENT_BATTLEGROUND then
@@ -6270,7 +6270,8 @@ function FyrMM.InsertCustomPin(p, key)
                 if p.m_PinTag.IsAvailableQuest or p.m_PinTag.isZoneStory or ZO_MapPin.SUGGESTION_PIN_TYPES[p.m_PinType] then
                     pin.m_PinTag.IsAvailableQuest = true
                     pin.IsAvailableQuest = true
-                    if ZO_MapPin.SUGGESTION_PIN_TYPES[p.m_PinType] and IsZoneStoryComplete(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap()) == false then
+                    local mapType = GetMapType()
+                    if ZO_MapPin.SUGGESTION_PIN_TYPES[p.m_PinType] and IsZoneStoryComplete(ZO_ExplorationUtils_GetZoneStoryZoneIdForCurrentMap()) == false and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_SUBZONE) then
                         pin.m_PinTag.isZoneStory = true
                         local _, _, activityId = GetTrackedZoneStoryActivityInfo()
                         pin.m_PinTag.activityId = activityId
@@ -6282,8 +6283,8 @@ function FyrMM.InsertCustomPin(p, key)
                         local properType, pinTexture, size = FyrMM.GetQuestPinInfo(p.m_PinType, false, false, p.radius)
                         local areaPin = pin
                         areaPin:SetTexture(pinTexture)
-						local mWidth, mHeight = Fyr_MM_Scroll_Map:GetDimensions()
-						size = mHeight * p.radius * 2
+					            	local mWidth, mHeight = Fyr_MM_Scroll_Map:GetDimensions()
+				            		size = mHeight * p.radius * 2
                         areaPin:SetDimensions(size, size)
                         local color = ZO_MAP_PIN_NORMAL_COLOR
                         areaPin:SetColor(color:UnpackRGBA())

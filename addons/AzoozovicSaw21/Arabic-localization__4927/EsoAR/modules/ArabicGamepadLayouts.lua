@@ -10,6 +10,15 @@ local function after(object, method, fn, adapterId)
     local key = "esoArabicGamepad_" .. method .. (adapterId and ("_" .. adapterId) or "")
     if object[key] then return end
     object[key] = true
+    -- Never wrap the shared list setup: housing invokes private market APIs.
+    if method == "RunSetupOnControl" then
+        if SecurePostHook then
+            SecurePostHook(object, method, function(self, ...)
+                if active() then fn(self, ...) end
+            end)
+        end
+        return
+    end
     local original = object[method]
     object[method] = function(self, ...)
         local result = original(self, ...)
@@ -260,7 +269,75 @@ local function guildInfo(self)
     local size = self.sizeLabelPair
     if size and size.header then fit(size.header, 165, 20, 30) end
 end
+
+-- Armory overview headers are pooled. Reserve separate RTL caption/value
+-- columns and restore the native geometry on every acquisition.
+local function installArmoryOverview()
+    local class = ZO_ArmoryBuildOverview_Gamepad
+    if not class or class.esoArabicSeparatedColumns then return end
+    class.esoArabicSeparatedColumns = true
+    local acquire = class.AcquireHeaderControl
+    class.AcquireHeaderControl = function(self, ...)
+        local row = acquire(self, ...)
+        for _, name in ipairs({"Stat", "Value"}) do
+            local label = child(row, name)
+            if label then
+                if not label.esoArabicArmoryNative then
+                    local saved = {font = label:GetFont(), width = label:GetWidth(), height = label:GetHeight(), align = label:GetHorizontalAlignment(), anchors = {}}
+                    for i = 0, label:GetNumAnchors() - 1 do
+                        local valid, point, target, relative, x, y = label:GetAnchor(i)
+                        if valid then table.insert(saved.anchors, {point, target, relative, x, y}) end
+                    end
+                    label.esoArabicArmoryNative = saved
+                end
+                R.ReleaseLabelBinding(label)
+                local saved = label.esoArabicArmoryNative
+                label:ClearAnchors()
+                label:SetDimensions(saved.width, saved.height)
+                label:SetFont(saved.font)
+                label:SetHorizontalAlignment(saved.align)
+                for _, anchor in ipairs(saved.anchors) do label:SetAnchor(unpack(anchor)) end
+                if name == "Value" then label:SetHidden(true) end
+            end
+        end
+        return row
+    end
+    local add = class.AddStatValuePair
+    class.AddStatValuePair = function(self, ...)
+        local row = add(self, ...)
+        if active() then
+            -- The native row can extend past the scroll viewport after its 50px indent.
+            -- Limit both columns to the actual visible space, with a right inset.
+            local width = math.min(395, self.scrollContainer:GetRight() - row:GetLeft() - 24)
+            width = math.max(220, width)
+            local gap = 20
+            local valueWidth = math.floor((width - gap) * 0.48)
+            local statWidth = width - gap - valueWidth
+            for _, spec in ipairs({{"Stat", statWidth, BOTTOMRIGHT, TEXT_ALIGN_RIGHT, 24}, {"Value", valueWidth, BOTTOMLEFT, TEXT_ALIGN_LEFT, 32}}) do
+                local label = child(row, spec[1])
+                label:ClearAnchors()
+                if spec[1] == "Stat" then
+                    label:SetAnchor(BOTTOMLEFT, row, BOTTOMLEFT, valueWidth + gap, -2)
+                else
+                    label:SetAnchor(BOTTOMLEFT, row, BOTTOMLEFT, 0, -2)
+                end
+                label:SetDimensions(spec[2], 44)
+                label:SetMaxLineCount(1)
+                label:SetHorizontalAlignment(spec[4])
+                local fontSize = spec[5]
+                repeat
+                    label:SetFont("EsoAR/fonts/ArabicUI.slug|" .. fontSize .. "|soft-shadow-thin")
+                    if label:GetTextWidth() <= spec[2] or fontSize <= 16 then break end
+                    fontSize = fontSize - 1
+                until false
+            end
+        end
+        return row
+    end
+end
+
 function R.InstallGamepadLayouts()
+    installArmoryOverview()
     after(ZO_GuildBrowser_GuildList_Gamepad, "SetupRow", guildResult, "guildResult")
     after(ZO_GuildBrowser_GuildInfo_Gamepad, "RefreshInfoPanel", guildInfo, "guildInfo")
     after(ZO_PromotionalEventActivity_Entry_Gamepad, "SetActivityData", pursuitRow, "pursuitRow")
@@ -617,6 +694,21 @@ function R.InstallGamepadLayouts()
             icon:SetDimensions(26, 26)
         end
     end)
+    after(ZO_ParametricScrollList, "RunSetupOnControl", function(list, c, index)
+        local data = list:GetDataForDataIndex(index)
+        local edit = c.editBoxControl
+        if not edit then return end
+        if (data and data.nameField) or (edit.GetDefaultText and edit:GetDefaultText() == ZO_GetInviteInstructions()) then
+            edit.esoArabicInviteOriginalFont = edit.esoArabicInviteOriginalFont or edit:GetFont()
+            -- Leave typed player identifiers and native anchors untouched.
+            -- The 34px native placeholder exceeded the narrow invitation field.
+            local width = edit:GetWidth()
+            local size = math.max(16, math.min(24, math.floor(width / 18)))
+            edit:SetFont("EsoAR/fonts/ArabicUI.slug|" .. size .. "|soft-shadow-thin")
+        elseif edit.esoArabicInviteOriginalFont then
+            edit:SetFont(edit.esoArabicInviteOriginalFont)
+        end
+    end, "inviteNameField")
     after(ZO_ParametricScrollList, "RunSetupOnControl", function(_, c)
         local balance, amount, icon = child(c, "Balance"), child(c, "RemainingCrowns"), child(c, "CurrencyIcon")
         local label = child(c, "Label")

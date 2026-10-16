@@ -235,7 +235,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Pull Card: Controller Friendly Dungeon Boss Mechanics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased-mods/Pull-Card-Controller-Friendly-Dungeon-Boss-Mechanics__438e8153-db0e-4264-87cb-29c1d97e20ef) | yodased-mods | Console | — |
 | [Puma](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Puma__5fcc6401-3a36-427e-acd5-9611fb589e78) | Vixen_Hunny | Console | — |
 | [PurchaseTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/be.ste/PurchaseTracker__2891) | be.ste | PC / Mac | 1.0.0 |
-| [Purge Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ohs62szjw-mozmail.com/Purge-Radar__4952) | ohs62szjw@mozmail.com | PC / Mac | 1.4.2 |
+| [Purge Radar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ohs62szjw-mozmail.com/Purge-Radar__4952) | ohs62szjw@mozmail.com | PC / Mac | 1.4.3 |
 | [Purge Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Purge-Tracker__1803) | code65536 | PC / Mac | 1.3.2 |
 | [PUt](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/user562x/PUt__8f749129-7ffe-4951-a1f9-bf3ac664788f) | user562x | Console | — |
 | [PvDoor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/PvDoor__3098) | skineh | PC / Mac | 1.0.2 |

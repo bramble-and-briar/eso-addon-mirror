@@ -1,0 +1,10 @@
+## Title: NoireJin's Reticle
+## Description: Adds a simple, recolorable dot to the center of the screen.
+## Author: NoireJin
+## Version: 1.7.1
+## APIVersion: 101048 101049
+## DependsOn: LibAddonMenu-2.0
+## SavedVariables: NoireJinsReticleSV
+
+NoireJinsReticle.xml
+NoireJinsReticle.lua

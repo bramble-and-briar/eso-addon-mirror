@@ -2,9 +2,11 @@
 --
 -- Every master writ tooltip is drawn by ZO_Tooltip:LayoutMasterWritItem, whether the writ is in the bags,
 -- the bank, a guild trader, the mail or a chat link, so that is the one place we hook:
---   * The overall status (CRAFTABLE) goes at the right end of the top row, the row with the bag count above
---     "Quest Starter". The game builds that row in AddTopLinesToTopSection and hands it to the top section with
---     AddSectionEvenIfEmpty; we add our line just before that hand-over.
+--   * The overall status (CRAFTABLE) goes at the right end of the "Quest Starter" row. The game adds that line to the
+--     top section in AddTypeSlotUniqueLine; we put it in a row of its own with the status beside it. If that line
+--     can't be found, the status goes at the right end of the row above, with the bag count: the game builds that
+--     row in AddTopLinesToTopSection and hands it to the top section with AddSectionEvenIfEmpty, and we add our line
+--     just before that hand-over.
 --   * The individual checks go in a section at the bottom, after the game's own text.
 --
 -- ZO_Tooltip copies its functions into each tooltip when the tooltip is first set up, so we hook ZO_Tooltip itself
@@ -48,8 +50,17 @@ local STATUS_STYLE = {
     [Result.STATUS_UNKNOWN] = { fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_2, uppercase = true },
 }
 
--- Below this width the status isn't pushed right; it just follows the bag count like any other line.
+-- Below this width the status isn't pushed right; it just follows the line before it like any other line.
 local MIN_STATUS_WIDTH = 200
+
+-- The row holding "Quest Starter" and the status, laid out left to right like the game's bag count row
+-- (topSubsectionItemDetails in tooltipstyles.lua). Its lines take the top section's font and colour.
+local STATUS_ROW_STYLE = {
+    layoutPrimaryDirection = "right",
+    layoutSecondaryDirection = "up",
+    widthPercent = 100,
+    childSpacing = 15,
+}
 
 local LINE_SPACING = 4   -- Between lines in a group (the section's childSpacing).
 local GROUP_SPACING = 30 -- Above the first line of a new group.
@@ -92,8 +103,14 @@ local STATE_COLOR = {
     [Result.STATE_INFO] = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1,
 }
 
+-- The alchemy reagents to use are listed one per line under the reagents line, in smaller text. Their label is
+-- coloured like any other; the names of the reagents in stock are yellow, and a missing one reads "name: have/need"
+-- like any missing item.
+local REAGENT_COLOR = ZO_ColorDef:New("FFDD44")
+
 -- Lines are grouped, with a gap between groups: what you know (motif, or runes, reagents or recipe), then trait and
--- set, then skills, then materials. Lines in the same group sit together.
+-- set, then skills, then materials. Lines in the same group sit together. Requirements already met (green) come
+-- last, together, with no gaps between them, so what is missing is read first.
 local CATEGORY_GROUP = {
     [Result.CATEGORY_GENERAL] = 0,
     [Result.CATEGORY_MOTIF] = 1,
@@ -111,9 +128,13 @@ local VALUE_ON_NEW_LINE = {
     [Result.CATEGORY_MOTIF] = true,
 }
 
-local function CheckStyle(state, startsGroup)
+local function IsReagentList(check)
+    return check.category == Result.CATEGORY_REAGENTS
+end
+
+local function CheckStyle(check, startsGroup)
     return {
-        fontColorField = STATE_COLOR[state],
+        fontColorField = STATE_COLOR[check.state],
         newLineX = TEXT_INDENT,
         customSpacing = startsGroup and GROUP_SPACING or nil,
     }
@@ -126,6 +147,16 @@ local DETAIL_LIST_STYLE = {
 }
 
 local DETAIL_STYLE = { fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3 }
+
+-- About three quarters of the size of the other lines (GP_27).
+local REAGENT_LIST_STYLE = {
+    childSpacing = 0,
+    widthPercent = 100,
+    paddingLeft = TEXT_INDENT,
+    fontSize = "$(GP_20)",
+}
+
+local REAGENT_STYLE = { fontColor = REAGENT_COLOR }
 
 ---------------------------------------------------------------------------------------------------
 -- Drawing
@@ -189,31 +220,47 @@ local function AddStatusLine(row, result)
     row:AddLine(Tooltip.GetStatusText(result), style)
 end
 
+local function AddCheckLine(section, check, startsGroup)
+    -- The plain text is given as narration so screen narration doesn't read out the icon and colour markup.
+    section:AddLineWithCustomNarration(Tooltip.FormatCheck(check), check.text, CheckStyle(check, startsGroup))
+    if #check.details > 0 then
+        local isReagentList = IsReagentList(check)
+        local detailList = section:AcquireSection(isReagentList and REAGENT_LIST_STYLE or DETAIL_LIST_STYLE)
+        for _, detail in ipairs(check.details) do
+            -- A reagent with a count is missing; the others are in stock.
+            local detailStyle = (isReagentList and not detail.value) and REAGENT_STYLE or DETAIL_STYLE
+            detailList:AddLineWithCustomNarration(Tooltip.FormatLabelValue(detail.label, detail.value), detail.text,
+                detailStyle)
+        end
+        section:AddSection(detailList)
+    end
+end
+
 local function AddDetailsSection(tooltip, result)
-    local section = tooltip:AcquireSection(DETAILS_SECTION_STYLE)
-    local previousGroup
+    local unmet, met = {}, {}
     for _, check in ipairs(result.checks) do
         if Settings.IsStateShown(check.state) then
-            local group = CATEGORY_GROUP[check.category] or 0
-            local startsGroup = previousGroup ~= nil and group ~= previousGroup
-            if not previousGroup then
-                -- The divider goes in only when there is at least one line to show under it.
-                local divider = tooltip:AcquireSection(DIVIDER_SECTION_STYLE)
-                divider:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, DIVIDER_STYLE)
-                tooltip:AddSection(divider)
-            end
-            previousGroup = group
-            -- The plain text is given as narration so screen narration doesn't read out the icon and colour markup.
-            section:AddLineWithCustomNarration(Tooltip.FormatCheck(check), check.text, CheckStyle(check.state, startsGroup))
-            if #check.details > 0 then
-                local detailList = section:AcquireSection(DETAIL_LIST_STYLE)
-                for _, detail in ipairs(check.details) do
-                    detailList:AddLineWithCustomNarration(Tooltip.FormatLabelValue(detail.label, detail.value),
-                        detail.text, DETAIL_STYLE)
-                end
-                section:AddSection(detailList)
-            end
+            table.insert(check.state == Result.STATE_PASS and met or unmet, check)
         end
+    end
+    -- The divider goes in only when there is at least one line to show under it.
+    if #unmet == 0 and #met == 0 then
+        return
+    end
+    local divider = tooltip:AcquireSection(DIVIDER_SECTION_STYLE)
+    divider:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, DIVIDER_STYLE)
+    tooltip:AddSection(divider)
+
+    local section = tooltip:AcquireSection(DETAILS_SECTION_STYLE)
+    local previousGroup
+    for _, check in ipairs(unmet) do
+        local group = CATEGORY_GROUP[check.category] or 0
+        AddCheckLine(section, check, previousGroup ~= nil and group ~= previousGroup)
+        previousGroup = group
+    end
+    -- The met requirements form one block: a gap above it, none inside it.
+    for index, check in ipairs(met) do
+        AddCheckLine(section, check, index == 1 and #unmet > 0)
     end
     tooltip:AddSection(section)
 end
@@ -222,19 +269,60 @@ end
 -- Hooks
 ---------------------------------------------------------------------------------------------------
 
--- The top section waiting for our status line, and its own AddSectionEvenIfEmpty, so it can always be put back.
--- Sections are pooled and reused for other items, so a leftover wrapper would print our status on them.
+-- The top section waiting for our status line, and its own AddLine or AddSectionEvenIfEmpty, so they can always be
+-- put back. Sections are pooled and reused for other items, so a leftover wrapper would print our status on them.
+local pendingLineSection, pendingLineOriginal
 local pendingSection, pendingOriginal
+-- The top section whose "Quest Starter" row got the status, so the bag count row doesn't get it too.
+local statusPlacedIn
 
 local function RestorePendingSection()
+    if pendingLineSection then
+        pendingLineSection.AddLine = pendingLineOriginal
+        pendingLineSection, pendingLineOriginal = nil, nil
+    end
     if pendingSection then
         pendingSection.AddSectionEvenIfEmpty = pendingOriginal
         pendingSection, pendingOriginal = nil, nil
     end
 end
 
+-- The game adds "Quest Starter" to the top section as a line of its own (AddTypeSlotUniqueLine, itemtooltips.lua).
+-- For a master writ, that one line goes in a row with the status beside it instead.
+local function OnAddTypeSlotUniqueLine(_, itemLink, _, section, text1, text2)
+    RestorePendingSection()
+    statusPlacedIn = nil
+    if not section or text2 ~= nil or text1 ~= GetString(SI_ITEM_FORMAT_STR_QUEST_STARTER_ITEM) then
+        return
+    end
+    local result = Evaluator.Evaluate(itemLink)
+    if not result then
+        return
+    end
+
+    local lineText = zo_strformat(SI_ITEM_FORMAT_STR_TEXT1, text1)
+    local original = section.AddLine
+    pendingLineSection, pendingLineOriginal = section, original
+    section.AddLine = function(topSection, text, ...)
+        if text ~= lineText then
+            return original(topSection, text, ...)
+        end
+        RestorePendingSection()
+        local row = topSection:AcquireSection(STATUS_ROW_STYLE)
+        row:AddLine(text, ...)
+        AddStatusLine(row, result)
+        topSection:AddSection(row)
+        statusPlacedIn = topSection
+    end
+end
+
 local function OnAddTopLinesToTopSection(_, topSection, itemLink)
     RestorePendingSection()
+    local placed = statusPlacedIn == topSection
+    statusPlacedIn = nil
+    if placed then
+        return
+    end
     local result = Evaluator.Evaluate(itemLink)
     if not result then
         return
@@ -251,6 +339,7 @@ end
 
 local function OnLayoutMasterWritItem(tooltip, itemLink)
     RestorePendingSection()
+    statusPlacedIn = nil
     local result = Evaluator.Evaluate(itemLink)
     if result then
         AddDetailsSection(tooltip, result)
@@ -268,9 +357,18 @@ local function HookTooltipObject(tooltipObject)
     if tooltipObject ~= ZO_Tooltip and tooltipObject.LayoutMasterWritItem == ZO_Tooltip.LayoutMasterWritItem then
         return
     end
+    -- Without it, the status simply goes on the bag count row.
+    if type(tooltipObject.AddTypeSlotUniqueLine) == "function" then
+        ZO_PreHook(tooltipObject, "AddTypeSlotUniqueLine", OnAddTypeSlotUniqueLine)
+    end
     ZO_PreHook(tooltipObject, "AddTopLinesToTopSection", OnAddTopLinesToTopSection)
-    -- SecurePostHook keeps our code from tainting the game's own call; ZO_PostHook is the plain Lua fallback.
-    local PostHook = SecurePostHook or ZO_PostHook
+    -- SecurePostHook keeps our code from tainting the game's own call, but it only takes a table. A tooltip the game
+    -- has already set up is a control (userdata), which stopped the add-on loading on console in 1.0, so those get
+    -- ZO_PostHook, the plain Lua hook.
+    local PostHook = ZO_PostHook
+    if SecurePostHook and type(tooltipObject) == "table" then
+        PostHook = SecurePostHook
+    end
     PostHook(tooltipObject, "LayoutMasterWritItem", OnLayoutMasterWritItem)
 end
 

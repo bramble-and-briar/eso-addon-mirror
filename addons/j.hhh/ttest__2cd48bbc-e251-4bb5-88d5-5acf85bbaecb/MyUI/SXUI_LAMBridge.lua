@@ -911,55 +911,32 @@ function Bridge.FinalizeGrouped(panelName)
     panelData.displayName = "My UI"
     panelData.author = "Satuve, j.hhh"
     if MyUIDebug then MyUIDebug.Note("LAM", "Registriere Panel " .. tostring(panelName) .. " mit " .. tostring(#controls) .. " Gruppen") end
-    -- On ESO console, LAM:RegisterAddonPanel deliberately returns nil. It
-    -- registers the panel via LibHarvensAddonSettings instead of creating a
-    -- keyboard-control userdata. Do NOT stop here: the option controls still
-    -- have to be registered, or the game's menu shows "Unavailable".
+    -- On console, LAM returns nil even when the registration is successful.
+    -- Never skip option controls merely because the keyboard panel is nil.
     local isConsole = type(IsKeyboardUISupported) == "function" and not IsKeyboardUISupported()
-    Bridge.groupedControls[panelName] = controls
     local panel = lam:RegisterAddonPanel(panelName, panelData)
     if not panel and not isConsole then
-        if MyUIDebug then MyUIDebug.Note("LAM", "FEHLER: Keyboard-Panel ist nil") end
+        if MyUIDebug then MyUIDebug.Note("LAM", "PC-Panel nicht erstellt") end
         return false
-    end
-    if isConsole and MyUIDebug then
-        MyUIDebug.Note("LAM", "Konsolenmodus: nil von RegisterAddonPanel ist normal")
     end
     lam:RegisterOptionControls(panelName, controls)
 
-    local backend, optionCount
-    if isConsole then
-        -- The official LAM console adapter stores the settings and converted
-        -- rows in LHASConversion. Check these instead of checking 'panel'.
-        local conversion = lam.LHASConversion
-        local registered = conversion and conversion.settingTables and conversion.settingTables[panelName]
-        local converted = conversion and conversion.optionControls and conversion.optionControls[panelName]
-        if not registered then
-            if MyUIDebug then
-                MyUIDebug.Note("LAM", "FEHLER: Keine Konsolen-Settings gefunden. LibHarvensAddonSettings/LibVotans installiert und aktiv?")
-            end
-            return false
-        end
-        optionCount = converted and converted.indexed and #converted.indexed or 0
-        if optionCount == 0 then
-            if MyUIDebug then MyUIDebug.Note("LAM", "FEHLER: Konsole hat 0 bearbeitbare/anzeigbare Eintraege") end
-            return false
-        end
-        backend = "lam-console"
-        -- Keep the console settings handle for debugging only. LAM's
-        -- OpenToPanel requires a real keyboard panel and must not use it.
-        Bridge.panels[panelName] = registered
-    else
-        backend = "lam"
-        Bridge.panels[panelName] = panel
-        Bridge.firstPanel = Bridge.firstPanel or panel
-        optionCount = #controls
-    end
-    Bridge.mode = backend
+    local conversion = isConsole and lam.LHASConversion or nil
+    local registered = conversion and conversion.settingTables and conversion.settingTables[panelName]
+    local converted = conversion and conversion.optionControls and conversion.optionControls[panelName]
+    local rowCount = isConsole and (converted and converted.indexed and #converted.indexed or 0) or #controls
     Bridge.groupedOptionCount = Bridge.groupedOptionCount or {}
-    Bridge.groupedOptionCount[panelName] = optionCount
+    Bridge.groupedOptionCount[panelName] = rowCount
+    Bridge.panels[panelName] = panel or registered
+    if panel then Bridge.firstPanel = Bridge.firstPanel or panel end
+    Bridge.mode = isConsole and "lam-console" or "lam"
+    if isConsole and (not registered or rowCount == 0) then
+        -- This error affects the settings only: HUD init is separately guarded.
+        if MyUIDebug then MyUIDebug.Note("LAM", "Konsolen-Backend: Panel=" .. tostring(registered ~= nil) .. ", Zeilen=" .. tostring(rowCount) .. ". LibVotans/LibHarvensAddonSettings pruefen") end
+        return false
+    end
     Bridge.groupedFinalized[panelName] = true
-    if MyUIDebug then MyUIDebug.Note("LAM", "My UI: " .. tostring(optionCount) .. " Eintraege registriert (" .. backend .. ")") end
+    if MyUIDebug then MyUIDebug.Note("LAM", "My UI: " .. tostring(rowCount) .. " Einstellungszeilen registriert") end
     return true
 end
 
@@ -979,14 +956,11 @@ function Bridge.Register(panelName, panelData, options)
         panelCopy.registerForRefresh = true
         panelCopy.registerForDefaults = true
 
-        local isConsole = type(IsKeyboardUISupported) == "function" and not IsKeyboardUISupported()
         local panel = lam:RegisterAddonPanel(panelName, panelCopy)
         lam:RegisterOptionControls(panelName, ConvertOptions(options))
-        local registered = isConsole and lam.LHASConversion and lam.LHASConversion.settingTables
-            and lam.LHASConversion.settingTables[panelName] or nil
-        Bridge.panels[panelName] = panel or registered
-        if panel then Bridge.firstPanel = Bridge.firstPanel or panel end
-        return panel or registered, isConsole and "lam-console" or "lam"
+        Bridge.panels[panelName] = panel
+        Bridge.firstPanel = Bridge.firstPanel or panel
+        return panel, "lam"
     end
 
     return nil, "lam-unavailable"
@@ -1002,5 +976,5 @@ function Bridge.Open()
 end
 
 function Bridge.UsingLAM()
-    return Bridge.mode == "lam" or Bridge.mode == "lam-console"
+    return Bridge.mode == "lam"
 end

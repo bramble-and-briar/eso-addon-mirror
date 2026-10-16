@@ -25,9 +25,6 @@ ZO_CreateStringId("SI_BINDING_NAME_TOGGLE_COMPASS",							"Boussole Activé/Dés
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REINVITE",						"Réinviter en groupe")
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REGROUP",						"Regrouper")
 --QuickSlots
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_NEXT",						"Emplacement rapide suivant")
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_PREV",						"Emplacement rapide précédent")
-for i =1,8 do ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_"..i,		"Emplacement rapide "..i) end
 for i =1,6 do ZO_CreateStringId("SI_BINDING_NAME_BUI_CUSTOMSLOT_"..i,		"Emplacement personnalisé "..i) end
 --Automation
 ZO_CreateStringId("SI_KEYBIND_STRIP_FILLET_FISH",							"Ouvrir tous les poissons")

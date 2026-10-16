@@ -25,9 +25,6 @@ ZO_CreateStringId("SI_BINDING_NAME_TOGGLE_COMPASS",			"Compass ON/OFF")
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REINVITE",		"Reinvite group")
 ZO_CreateStringId("SI_BINDING_NAME_REGROUPER_REGROUP",		"Regroup")
 --QuickSlots
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_NEXT",		"Quick Slot next")
-ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_PREV",		"Quick Slot prev")
-for i	=1,8 do ZO_CreateStringId("SI_BINDING_NAME_BUI_QUICKSLOT_"..i,	"Quick Slot "..i) end
 for i	=1,6 do ZO_CreateStringId("SI_BINDING_NAME_BUI_CUSTOMSLOT_"..i,	"Custom Slot "..i) end
 --Automation
 ZO_CreateStringId("SI_KEYBIND_STRIP_FILLET_FISH","Fillet all fish")

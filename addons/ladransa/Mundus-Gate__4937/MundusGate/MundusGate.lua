@@ -3,7 +3,7 @@ local QTM = MundusGate
 local L   = QTM.L
 
 QTM.name    = "MundusGate"
-QTM.version = "3.5.0"
+QTM.version = "3.5.1"
 QTM.author  = "ladransa"
 QTM.contact = "@Watter_Mellon322"   -- кому приходят донаты и отзывы
 

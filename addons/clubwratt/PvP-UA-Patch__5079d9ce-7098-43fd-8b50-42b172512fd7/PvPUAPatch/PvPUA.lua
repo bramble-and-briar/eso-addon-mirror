@@ -12,6 +12,7 @@ PvPUA.config.flagWidth = 40
 PvPUA.config.flagHeight = 8
 PvPUA.config.flagFlipWidth = 40
 PvPUA.config.underAttackForWidth = 50
+PvPUA.config.killsWidth = 75
 PvPUA.config.width = 430
 PvPUA.config.siegeWidth = 30
 PvPUA.config.entryHeight = 32
@@ -55,7 +56,12 @@ PvPUA.config.iconOutline = false
 --------------------------------------------------
 PvPUA.constants = {}
 PvPUA.constants.updateInterval = 1000
+-- How long an item stays on the list after the last activity (UA! flag dropped, last siege weapon
+-- gone, last kill-marker change). Upstream value; briefly 60000 in 5.3.0, reverted in 5.3.1.
 PvPUA.constants.siegeTimeout = 5000
+-- Kill tally (see "Kill Tally" section). Normalized map units on the Cyrodiil/IC zone map.
+PvPUA.constants.killAttachRadius = 0.04   -- a kill marker belongs to the nearest tracked location within this
+PvPUA.constants.killMatchRadius  = 0.008  -- two snapshots this close apart are the same marker
 PvPUA.constants.resourceType = { FARM = 1, MINE = 2, LUMBER = 3 }
 PvPUA.constants.flipTimes = { KEEP = 20000, OUTPOST = 20000, RESOURCE = 20000 }
 
@@ -82,7 +88,7 @@ PvPUA.constants.emperorKeeps = {
 }
 
 PvPUA.constants.userIcons = {
-    ["@user562"]         = { texture = "PvPUAPatch/Textures/icon_panda.dds", alpha = 0.65 },
+    ["@user562"]         = { texture = "PvPUAPatch/Textures/icon_panda.dds" },
     ["@sir gilson7"]     = { texture = "PvPUAPatch/Textures/icon_werewolf.dds", heightOffset = 1.0 },
     ["@get em nala"]     = { texture = "PvPUAPatch/Textures/icon_hedgehog.dds" },
     ["@suzyqboston3383"] = { texture = "PvPUAPatch/Textures/icon_trinity.dds", heightOffset = 1.0 },
@@ -96,19 +102,32 @@ PvPUA.constants.userIcons = {
 PvPUA.constants.ICON_NONE    = 1
 PvPUA.constants.ICON_DEFAULT = 2
 
-PvPUA.constants.iconChoices = {
-    { name = "None",       texture = "EsoUI/Art/Buttons/decline_up.dds", none = true },
-    { name = "Default",    isDefault = true },
-    { name = "Kiss",       texture = "PvPUAPatch/Textures/icon_kiss.dds" },
-    { name = "Troll Blob", texture = "PvPUAPatch/Textures/icon_trollblob.dds" },
-    { name = "Trollface",  texture = "PvPUAPatch/Textures/icon_trollface.dds" },
-    { name = "Butterfly",  texture = "PvPUAPatch/Textures/icon_butterfly.dds" },
-    { name = "Hi",         texture = "PvPUAPatch/Textures/icon_hi.dds" },
-    { name = "Crown",      texture = "PvPUAPatch/Textures/icon_crown.dds" },
-    { name = "Arrow",      texture = "PvPUAPatch/Textures/icon_arrow.dds" },
+PvPUA.constants.iconCategories = {
+    { id = "other",     name = "Other" },
+    { id = "alliances", name = "Alliances" },
+    { id = "symbols",   name = "Symbols" },
+    { id = "memes",     name = "Memes" },
 }
 
-PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, listSize = "Default", uiScale = 1.0, barMode = "AP", iconShowSelf = true, iconShowOthers = true, iconShowSmallGroupFrames = true, iconShowLargeGroupFrames = true, showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0 }
+PvPUA.constants.iconChoices = {
+    { name = "None",       category = "other",     texture = "EsoUI/Art/Buttons/decline_up.dds", none = true },
+    { name = "Default",    category = "other",     isDefault = true },
+    { name = "Kiss",       category = "memes",     texture = "PvPUAPatch/Textures/icon_kiss.dds" },
+    { name = "Troll Blob", category = "memes",     texture = "PvPUAPatch/Textures/icon_trollblob.dds" },
+    { name = "Trollface",  category = "memes",     texture = "PvPUAPatch/Textures/icon_trollface.dds" },
+    { name = "Butterfly",  category = "other",     texture = "PvPUAPatch/Textures/icon_butterfly.dds" },
+    { name = "Hi",         category = "other",     texture = "PvPUAPatch/Textures/icon_hi.dds" },
+    { name = "Crown",      category = "symbols",   texture = "PvPUAPatch/Textures/icon_crown.dds" },
+    { name = "Arrow",      category = "symbols",   texture = "PvPUAPatch/Textures/icon_arrow.dds" },
+    { name = "DC Banner",  category = "alliances", texture = "PvPUAPatch/Textures/icon_dc_banner.dds" },
+    { name = "DC Shield",  category = "alliances", texture = "PvPUAPatch/Textures/icon_dc_shield.dds" },
+    { name = "AD Banner",  category = "alliances", texture = "PvPUAPatch/Textures/icon_ad_banner.dds" },
+    { name = "AD Shield",  category = "alliances", texture = "PvPUAPatch/Textures/icon_ad_shield.dds" },
+    { name = "EP Banner",  category = "alliances", texture = "PvPUAPatch/Textures/icon_ep_banner.dds" },
+    { name = "EP Shield",  category = "alliances", texture = "PvPUAPatch/Textures/icon_ep_shield.dds" },
+}
+
+PvPUA.defaults = { posX = 100, posY = 450, timerColor = { r = 1, g = 1, b = 1, a = 1 }, enableAPChat = true, consolidateAPChat = false, consolidateRepairDelay = 5, consolidateCombatDelay = 10, alertsEnabled = false, alertLifespan = 10, font = "EsoUI/Common/Fonts/FTN57.otf", backdropStyle = "Alliance", backdropColor = { r = 0, g = 0, b = 0, a = 1 }, listSize = "Default", uiScale = 1.0, barMode = "AP", iconShowSelf = true, iconShowOthers = true, iconShowSmallGroupFrames = true, iconShowLargeGroupFrames = true, showMilegates = true, showBridges = true, showTowns = true, showResources = true, showScrollCarriers = true, showVolendrungRow = true, showListInMenus = false, showListWhileSieging = false, showListWhileDead = true, showListDeadRepair = false, listCap = 0, showKillTally = true }
 
 PvPUA.capChoices = {
     { name = "All", value = 0  },
@@ -138,6 +157,9 @@ PvPUA.registeredCyroEvents = false
 PvPUA.creditCycle = 0
 
 PvPUA.session = { killingBlows = 0, deaths = 0 }
+
+-- Kill tally working state: last kill-marker snapshot + cached location positions (per map id).
+PvPUA.killTally = { snapshot = {}, positions = nil, positionsMapId = nil }
 
 --------------------------------------------------
 -- Alliance Hex
@@ -195,6 +217,9 @@ PI.SIZE_STEP   = 5
 PI.HEIGHT_MIN  = -1.0
 PI.HEIGHT_MAX  = 3.0
 PI.HEIGHT_STEP = 0.1
+PI.OPACITY_MIN  = 20
+PI.OPACITY_MAX  = 100
+PI.OPACITY_STEP = 5
 
 local ICON_MARKER_DATA = {
     scaleX = 2,
@@ -319,10 +344,15 @@ local function PIListEntry(nameLower)
     return info
 end
 
+local function PIRoundOpacity(v)
+    v = zo_clamp(tonumber(v) or 100, PI.OPACITY_MIN, PI.OPACITY_MAX)
+    return math.floor(v / PI.OPACITY_STEP + 0.5) * PI.OPACITY_STEP
+end
+
 local function PIListStyle(nameLower)
     local info = PIListEntry(nameLower)
     if not info or not info.texture then return nil end
-    return PvPUA.constants.ICON_DEFAULT, math.floor((info.scale or 1) * 100 + 0.5), info.heightOffset or 0
+    return PvPUA.constants.ICON_DEFAULT, math.floor((info.scale or 1) * 100 + 0.5), info.heightOffset or 0, PIRoundOpacity((info.alpha or 1) * 100)
 end
 
 local function PIIconTexture(iconIndex, nameLower)
@@ -331,7 +361,7 @@ local function PIIconTexture(iconIndex, nameLower)
     if icon.isDefault then
         local info = nameLower and PIListEntry(nameLower)
         if not info or not info.texture then return nil end
-        return info.texture, info.alpha or 1.0
+        return info.texture, 1.0
     end
     return icon.texture, icon.alpha or 1.0
 end
@@ -363,13 +393,55 @@ local function PIIsChoiceAllowedForMe(index)
     return true
 end
 
-function PI.BuildPickerChoices()
+function PI.GetCategoryChoices()
+    local list = {}
+    for i, category in ipairs(PvPUA.constants.iconCategories) do
+        list[i] = { name = category.name, value = category.id }
+    end
+    return list
+end
+
+function PI.GetIconCategory(index)
+    local icon = index and PvPUA.constants.iconChoices[index]
+    return icon and icon.category or PvPUA.constants.iconCategories[1].id
+end
+
+function PI.GetFirstIconInCategory(categoryId)
+    for i, icon in ipairs(PvPUA.constants.iconChoices) do
+        if icon.category == categoryId and PIIsChoiceAllowedForMe(i) then return i end
+    end
+    return nil
+end
+
+function PI.GetMyCategory()
+    return PI.GetIconCategory(PI.GetMyIcon())
+end
+
+function PI.RefreshIconMenu()
+    zo_callLater(function()
+        local lcm = rawget(_G, "LibConsoleMenu")
+        if lcm and lcm.list and lcm.list.RefreshVisible then
+            pcall(lcm.list.RefreshVisible, lcm.list)
+        end
+    end, 1)
+end
+
+function PI.SetMyCategory(categoryId)
+    if categoryId == PI.GetMyCategory() then return end
+    local first = PI.GetFirstIconInCategory(categoryId)
+    if not first then return end
+    PI.SetMyIcon(first)
+    PI.RefreshIconMenu()
+end
+
+function PI.BuildPickerChoices(categoryId)
+    categoryId = categoryId or PI.GetMyCategory()
     PI.pickerToIndex = {}
     PI.indexToPicker = {}
     local textures = {}
     local me = PIMyNameLower()
     for i, icon in ipairs(PvPUA.constants.iconChoices) do
-        if PIIsChoiceAllowedForMe(i) then
+        if icon.category == categoryId and PIIsChoiceAllowedForMe(i) then
             local texture = icon.texture
             if icon.isDefault then texture = PIIconTexture(i, me) end
             textures[#textures + 1] = texture
@@ -381,23 +453,23 @@ function PI.BuildPickerChoices()
 end
 
 function PI.GetMyPickerIndex()
-    if not PI.indexToPicker then PI.BuildPickerChoices() end
+    PI.BuildPickerChoices()
     return PI.indexToPicker[PI.GetMyIcon()] or 1
 end
 
 function PI.SetMyPickerIndex(pickerIndex)
-    if not PI.pickerToIndex then PI.BuildPickerChoices() end
+    PI.BuildPickerChoices()
     local index = PI.pickerToIndex[tonumber(pickerIndex) or 1]
     if index then PI.SetMyIcon(index) end
 end
 
 function PI.GetMyDefaults()
     local me = PIMyNameLower()
-    local iconIndex, sizePct, height
+    local iconIndex, sizePct, height, opacity
     if me then
-        iconIndex, sizePct, height = PIListStyle(me)
+        iconIndex, sizePct, height, opacity = PIListStyle(me)
     end
-    return iconIndex or PvPUA.constants.ICON_NONE, PIRoundSize(sizePct or 100), PIRoundHeight(height or 0)
+    return iconIndex or PvPUA.constants.ICON_NONE, PIRoundSize(sizePct or 100), PIRoundHeight(height or 0), PIRoundOpacity(opacity or 100)
 end
 
 function PI.GetMyIcon()
@@ -444,13 +516,25 @@ function PI.SetMyHeight(v)
     PI.OnMyStyleChanged(750)
 end
 
+function PI.GetMyOpacity()
+    local cv = PvPUA.charVariables
+    if cv and cv.iconOpacity ~= nil then return PIRoundOpacity(cv.iconOpacity) end
+    local _, _, _, defaultOpacity = PI.GetMyDefaults()
+    return defaultOpacity
+end
+
+function PI.SetMyOpacity(v)
+    PvPUA.charVariables.iconOpacity = PIRoundOpacity(v)
+    PI.OnMyStyleChanged(750)
+end
+
 local function PIResolve(unit, nameLower)
     if unit == "player" then
-        return PI.GetMyIcon(), PI.GetMySize(), PI.GetMyHeight()
+        return PI.GetMyIcon(), PI.GetMySize(), PI.GetMyHeight(), PI.GetMyOpacity()
     end
     local r = PI.remote[nameLower]
     if r then
-        return r.icon, r.size, r.height
+        return r.icon, r.size, r.height, r.opacity
     end
     return PIListStyle(nameLower)
 end
@@ -472,12 +556,12 @@ end
 local PI_SEEN = {}
 
 local function PIShowUnit(unit, nameLower)
-    local iconIndex, sizePct, height = PIResolve(unit, nameLower)
+    local iconIndex, sizePct, height, opacity = PIResolve(unit, nameLower)
     local texture, alpha = PIIconTexture(iconIndex, nameLower)
     if not texture then return end
 
     local marker = PIGetMarker(nameLower)
-    marker:applyStyle(texture, alpha, sizePct, height)
+    marker:applyStyle(texture, alpha * (opacity or 100) / 100, sizePct, height)
     if not marker.enabled then
         marker:enable()
         marker:show()
@@ -563,6 +647,14 @@ local function PIDecodeHeight(steps)
     return PIRoundHeight(PI.HEIGHT_MIN + (tonumber(steps) or 10) * PI.HEIGHT_STEP)
 end
 
+local function PIEncodeOpacity(v)
+    return zo_clamp(math.floor((PIRoundOpacity(v) - PI.OPACITY_MIN) / PI.OPACITY_STEP + 0.5), 0, 31)
+end
+
+local function PIDecodeOpacity(steps)
+    return PIRoundOpacity(PI.OPACITY_MIN + (tonumber(steps) or 16) * PI.OPACITY_STEP)
+end
+
 function PI.Broadcast(request)
     if not PI.protocol or not IsUnitGrouped("player") then return end
     if not PvPUA.savedVariables or not PvPUA.charVariables then return end
@@ -570,6 +662,7 @@ function PI.Broadcast(request)
         icon    = PI.GetMyIcon(),
         size    = PIEncodeSize(PI.GetMySize()),
         height  = PIEncodeHeight(PI.GetMyHeight()),
+        opacity = PIEncodeOpacity(PI.GetMyOpacity()),
         request = request == true,
     })
 end
@@ -622,6 +715,7 @@ local function PIOnIconData(unitTag, data)
         icon   = iconIndex,
         size   = PIDecodeSize(data.size),
         height = PIDecodeHeight(data.height),
+        opacity = PIDecodeOpacity(data.opacity),
     }
     PI.ScheduleGroupRefresh()
 end
@@ -645,6 +739,7 @@ function PI.InitNetwork()
     protocol:AddField(LGB.CreateNumericField("icon",   { minValue = 0, maxValue = 63, trimValues = true }))
     protocol:AddField(LGB.CreateNumericField("size",   { minValue = 0, maxValue = 63, trimValues = true }))
     protocol:AddField(LGB.CreateNumericField("height", { minValue = 0, maxValue = 63, trimValues = true }))
+    protocol:AddField(LGB.CreateNumericField("opacity", { minValue = 0, maxValue = 31, trimValues = true }))
     protocol:AddField(LGB.CreateFlagField("request", { defaultValue = false }))
     protocol:OnData(PIOnIconData)
     protocol:Finalize({ isRelevantInCombat = true, replaceQueuedMessages = true })
@@ -685,8 +780,10 @@ local function PIGetGroupFrameIconInfo(unitTag, frameStyle)
     end
 
     local nameLower = string.lower(displayName)
-    local iconIndex = PIResolve(unit, nameLower)
-    return PIIconTexture(iconIndex, nameLower)
+    local iconIndex, _, _, opacity = PIResolve(unit, nameLower)
+    local texture, alpha = PIIconTexture(iconIndex, nameLower)
+    if not texture then return nil end
+    return texture, alpha * (opacity or 100) / 100
 end
 
 local function PIUpdateGroupFrameIcon(frame)
@@ -1063,6 +1160,7 @@ end
 
 function PvPUA:InitState(hadVolendrung)
     local gameTime = GetGameTimeMilliseconds()
+    self:KillTallyResetState()
 
     if IsInICCampaign() then
         self.state.resources = {}
@@ -1073,6 +1171,7 @@ function PvPUA:InitState(hadVolendrung)
         self.homeKeepIds = {}
         self:InitDistricts(gameTime)
         self:AddObjectives()
+        self:KillTallyRestore()
         return
     end
 
@@ -1083,6 +1182,7 @@ function PvPUA:InitState(hadVolendrung)
     self:InitVillages(gameTime)
     self:InitDestructibles(gameTime)
     self:AddObjectives()
+    self:KillTallyRestore()
     self:ScanForVolendrung()
     self:ScanForScrolls()
     if self.volendrung == nil and hadVolendrung then
@@ -1874,6 +1974,333 @@ local function FireKeepUA(keepId, name, owningAlliance)
     PvPUA:HKPush(keepId, string.format("|c%s%s|r |cFF8C00UA!|r", nameHex, name))
 end
 
+--------------------------------------------------
+-- Kill Tally
+--------------------------------------------------
+-- Accumulates the game's "Battle Victories" kill markers into the list items they sit on, for as
+-- long as each item has been on the list (same lifetime as the UA! timer). Kill markers carry no
+-- id and every replacement marker restarts at 0, so we keep a positional snapshot and add deltas.
+--
+--   CyroUpdateLoop / EVENT_KILL_LOCATIONS_UPDATED
+--     └─ KillTallyUpdate: read markers ─ match to last snapshot by position ─ credit deltas
+--   UpdateItem (per item, every tick)
+--     └─ KillTallySync: joined the list? ─ seed from markers already on the item
+--                       left the list?   ─ drop the tally (a UA! timer reset alone does not)
+--
+-- Patch: kill-marker activity also puts a location ON the list. A marker that appears at, or whose
+-- count rises at, a keep / outpost / town / resource / district stamps item.lastKillSeen; UpdateItem
+-- treats the item as interesting for siegeTimeout after that stamp, exactly like a dropped UA! flag.
+-- The first scan after a fresh init is a baseline (markers already on the map don't count as
+-- activity); after /reloadui the saved snapshot + lastKillSeen are restored instead.
+local KT_ALLIANCES = { ALLIANCE_DAGGERFALL_COVENANT, ALLIANCE_ALDMERI_DOMINION, ALLIANCE_EBONHEART_PACT }
+
+-- Kill markers on bridges / milegates don't make them interesting (they're mid-field, not objectives).
+local function KTKillsMakeInteresting(self, item)
+    return item ~= nil and item.id ~= nil and self.state.destructibles[item.id] == nil
+end
+
+local function KTZeroCounts()
+    local counts = {}
+    for i = 1, #KT_ALLIANCES do counts[KT_ALLIANCES[i]] = 0 end
+    return counts
+end
+
+-- Marker and keep coordinates are relative to the *current* map. Only sample on the AvA zone map so
+-- the attach radius means the same thing every time (sub-maps / other zones are simply skipped).
+local function KTOnAvAZoneMap()
+    if not (GetMapContentType and GetMapType) then return true end
+    local ok, result = pcall(function()
+        return GetMapContentType() == MAP_CONTENT_AVA and GetMapType() == MAPTYPE_ZONE
+    end)
+    return ok and result == true
+end
+
+function PvPUA:KillTallyEnabled()
+    return self.savedVariables == nil or self.savedVariables.showKillTally ~= false
+end
+
+function PvPUA:KillTallyResetState()
+    self.killTally = { snapshot = {}, positions = nil, positionsMapId = nil, pending = nil, baselined = false }
+end
+
+--------------------------------------------------
+-- Kill Tally persistence (survive /reloadui mid-siege)
+--------------------------------------------------
+-- Every update writes a compact copy of the marker snapshot and the live tallies to SavedVars
+-- (keyed by campaign). InitState restores it if it's the same campaign and fresh enough; the UA!
+-- timer (interestingSince) is restored alongside so the timer and the tally stay in step.
+local KT_RESTORE_MAX_AGE_S = 15 * 60
+
+local function KTItemById(self, keepId)
+    local groups = { self.state.resources, self.state.keeps, self.state.outposts,
+                     self.state.villages, self.state.destructibles, self.state.districts }
+    for g = 1, #groups do
+        local item = groups[g] and groups[g][keepId]
+        if item then return item end
+    end
+    return nil
+end
+
+function PvPUA:KillTallySave()
+    local sv = self.savedVariables
+    if not sv then return end
+    local snapshot = self.killTally.snapshot
+    local markers = {}
+    for i = 1, #snapshot do
+        local m = snapshot[i]
+        markers[i] = { x = m.x, y = m.y, c = m.counts, k = m.item and m.item.id or nil }
+    end
+    local tallies = {}
+    local kills = {}
+    local gameTime = GetGameTimeMilliseconds()
+    local wallNow = GetTimeStamp()
+    local groups = { self.state.resources, self.state.keeps, self.state.outposts,
+                     self.state.villages, self.state.destructibles, self.state.districts }
+    for g = 1, #groups do
+        for keepId, item in pairs(groups[g] or {}) do
+            local t = item.killTally
+            if t and item.interestingSince then
+                tallies[keepId] = { c = t.counts, wallSince = wallNow - (gameTime - item.interestingSince) / 1000 }
+            end
+            -- Patch: last kill-marker activity, as a wall-clock stamp so it survives a reload.
+            if item.lastKillSeen and item.lastKillSeen + PvPUA.constants.siegeTimeout > gameTime then
+                kills[keepId] = wallNow - (gameTime - item.lastKillSeen) / 1000
+            end
+        end
+    end
+    sv.killTallyState = {
+        campaignId = GetCurrentCampaignId and GetCurrentCampaignId() or 0,
+        savedAt    = wallNow,
+        markers    = markers,
+        tallies    = tallies,
+        kills      = kills,
+    }
+end
+
+-- Called from InitState after the item tables exist. Restores the snapshot (so the first update
+-- only credits deltas) and stages the saved tallies in `pending`; KillTallySync consumes them on
+-- the first tick for items that are back on the list, then KillTallyUpdate discards the rest.
+function PvPUA:KillTallyRestore()
+    local sv = self.savedVariables
+    local saved = sv and sv.killTallyState
+    if not saved then return end
+    local wallNow = GetTimeStamp()
+    local campaignId = GetCurrentCampaignId and GetCurrentCampaignId() or 0
+    if saved.campaignId ~= campaignId or wallNow - (saved.savedAt or 0) > KT_RESTORE_MAX_AGE_S then
+        sv.killTallyState = nil
+        return
+    end
+    local snapshot = {}
+    for i = 1, #(saved.markers or {}) do
+        local m = saved.markers[i]
+        local counts = KTZeroCounts()
+        for a = 1, #KT_ALLIANCES do counts[KT_ALLIANCES[a]] = (m.c and m.c[KT_ALLIANCES[a]]) or 0 end
+        snapshot[#snapshot + 1] = { x = m.x, y = m.y, counts = counts, item = m.k and KTItemById(self, m.k) or nil }
+    end
+    self.killTally.snapshot = snapshot
+    self.killTally.baselined = true -- the restored snapshot is the baseline; new markers are real activity
+    local gameTime = GetGameTimeMilliseconds()
+    local pending = {}
+    for keepId, t in pairs(saved.tallies or {}) do
+        local counts = KTZeroCounts()
+        for a = 1, #KT_ALLIANCES do counts[KT_ALLIANCES[a]] = (t.c and t.c[KT_ALLIANCES[a]]) or 0 end
+        local sinceGame = gameTime - math.max(0, wallNow - (t.wallSince or wallNow)) * 1000
+        pending[keepId] = { counts = counts, since = sinceGame }
+    end
+    self.killTally.pending = pending
+    -- Patch: put the kill-activity stamps straight back on the items so a kill-only entry comes
+    -- back after a reload (UpdateItem reads lastKillSeen on the first tick).
+    for keepId, wallLast in pairs(saved.kills or {}) do
+        local item = KTItemById(self, keepId)
+        if item then
+            item.lastKillSeen = gameTime - math.max(0, wallNow - wallLast) * 1000
+        end
+    end
+end
+
+-- Normalized map positions of every tracked keep-type item, cached per map id.
+function PvPUA:KillTallyPositions()
+    local kt = self.killTally
+    local mapId = GetCurrentMapId and GetCurrentMapId() or 0
+    if kt.positions and kt.positionsMapId == mapId then return kt.positions end
+    local positions = {}
+    local groups = { self.state.resources, self.state.keeps, self.state.outposts,
+                     self.state.villages, self.state.destructibles, self.state.districts }
+    for g = 1, #groups do
+        for keepId, item in pairs(groups[g] or {}) do
+            local _, nx, ny = GetKeepPinInfo(keepId, BGQUERY_LOCAL)
+            if nx and ny and not (nx == 0 and ny == 0) then
+                positions[#positions + 1] = { x = nx, y = ny, item = item }
+            end
+        end
+    end
+    kt.positions = positions
+    kt.positionsMapId = mapId
+    return positions
+end
+
+function PvPUA:KillTallyNearestItem(x, y)
+    local best, bestDist
+    local positions = self:KillTallyPositions()
+    local maxDist = PvPUA.constants.killAttachRadius
+    for i = 1, #positions do
+        local p = positions[i]
+        local dist = zo_distance(x, y, p.x, p.y)
+        if dist <= maxDist and (bestDist == nil or dist < bestDist) then
+            best, bestDist = p.item, dist
+        end
+    end
+    return best
+end
+
+local function KTReadMarkers()
+    local markers = {}
+    local n = (GetNumKillLocations and GetKillLocationPinInfo and GetNumKillLocationAllianceKills)
+              and GetNumKillLocations() or 0
+    for i = 1, n do
+        local pinType, nx, ny = GetKillLocationPinInfo(i)
+        if pinType ~= MAP_PIN_TYPE_INVALID and nx and ny and not (nx == 0 and ny == 0) then
+            local counts = KTZeroCounts()
+            for a = 1, #KT_ALLIANCES do
+                local alliance = KT_ALLIANCES[a]
+                counts[alliance] = GetNumKillLocationAllianceKills(i, alliance) or 0
+            end
+            markers[#markers + 1] = { x = nx, y = ny, counts = counts }
+        end
+    end
+    return markers
+end
+
+-- Closest unconsumed marker from the previous snapshot within the match radius, or nil.
+local function KTFindPrevious(previous, marker)
+    local best, bestDist
+    local maxDist = PvPUA.constants.killMatchRadius
+    for i = 1, #previous do
+        local p = previous[i]
+        if not p.consumed then
+            local dist = zo_distance(marker.x, marker.y, p.x, p.y)
+            if dist <= maxDist and (bestDist == nil or dist < bestDist) then
+                best, bestDist = p, dist
+            end
+        end
+    end
+    if best then best.consumed = true end
+    return best
+end
+
+-- Diff the live kill markers against the last snapshot and credit the deltas to flagged items.
+-- A count that went *down* means the game replaced the marker, so the new marker's whole count
+-- is fresh kills. Markers that vanished were already counted. Markers on items that aren't on the
+-- list are ignored here; they get picked up by KillTallySeed when the item flags.
+function PvPUA:KillTallyUpdate()
+    -- Patch: always scan (the kill-activity list entries don't depend on the tally column);
+    -- the Kill Tally toggle only hides the column (KillTallyText).
+    if not self.initializedItems then return end
+    if not KTOnAvAZoneMap() then return end
+    local kt = self.killTally
+    local previous = kt.snapshot
+    local markers = KTReadMarkers()
+    local gameTime = GetGameTimeMilliseconds()
+    -- Patch: markers already on the map at a fresh init are history, not activity.
+    local countAsActivity = kt.baselined
+    for i = 1, #markers do
+        local m = markers[i]
+        local prev = KTFindPrevious(previous, m)
+        m.item = (prev and prev.item) or self:KillTallyNearestItem(m.x, m.y)
+        local item = m.item
+        local tally = item and item.killTally
+        local activity = prev == nil -- a brand-new marker is activity even at 0 kills
+        for a = 1, #KT_ALLIANCES do
+            local alliance = KT_ALLIANCES[a]
+            local now = m.counts[alliance]
+            local delta = prev and (now - (prev.counts[alliance] or 0)) or now
+            if delta < 0 then delta = now end
+            if delta > 0 then
+                activity = true
+                if tally and item.interestingSince ~= nil then
+                    tally.counts[alliance] = tally.counts[alliance] + delta
+                    tally.dirty = true
+                end
+            end
+        end
+        if activity and countAsActivity and KTKillsMakeInteresting(self, item) then
+            item.lastKillSeen = gameTime
+        end
+    end
+    kt.snapshot = markers
+    kt.baselined = true
+    kt.lastUpdateMs = gameTime
+    kt.pending = nil -- anything not reclaimed on the first tick is stale
+    self:KillTallySave()
+end
+
+-- Event handler: coalesce bursts; the 1s tick is the backstop anyway.
+local KT_EVENT_MIN_INTERVAL_MS = 250
+function PvPUA:KillTallyOnEvent()
+    local last = self.killTally and self.killTally.lastUpdateMs or 0
+    if GetGameTimeMilliseconds() - last < KT_EVENT_MIN_INTERVAL_MS then return end
+    self:KillTallyUpdate()
+end
+
+-- Start an item's tally when it joins the list: zero it, then count in every marker already
+-- attached to the item so a fight that was running before the flag went up is included.
+function PvPUA:KillTallySeed(item)
+    local tally = { counts = KTZeroCounts(), dirty = true }
+    local snapshot = self.killTally.snapshot
+    for i = 1, #snapshot do
+        local m = snapshot[i]
+        if m.item == nil then m.item = self:KillTallyNearestItem(m.x, m.y) end
+        if m.item == item then
+            for a = 1, #KT_ALLIANCES do
+                local alliance = KT_ALLIANCES[a]
+                tally.counts[alliance] = tally.counts[alliance] + (m.counts[alliance] or 0)
+            end
+        end
+    end
+    item.killTally = tally
+end
+
+-- Called for every item each tick. The tally lives exactly as long as the item is on the list
+-- (interestingSince ~= nil); it does NOT restart when upstream resets the UA! timer on a reflag.
+function PvPUA:KillTallySync(item)
+    if item.interestingSince == nil then
+        item.killTally = nil
+        return
+    end
+    if item.killTally ~= nil then return end
+    -- Back on the list right after a reload: resume the saved tally and timer instead of
+    -- reseeding (the restored snapshot already accounts for the markers on this item).
+    local pending = self.killTally.pending
+    local saved = pending and item.id and pending[item.id]
+    if saved then
+        pending[item.id] = nil
+        item.interestingSince = saved.since
+        item.killTally = { counts = saved.counts, dirty = true }
+        return
+    end
+    self:KillTallySeed(item)
+end
+
+function PvPUA:KillTallyText(item)
+    if not self:KillTallyEnabled() then return "" end
+    local tally = item and item.killTally
+    if not tally or item.isScrollCarrier then return "" end
+    if tally.text and not tally.dirty then return tally.text end
+    -- Only alliances with kills; a 0 is noise.
+    local parts = {}
+    for a = 1, #KT_ALLIANCES do
+        local alliance = KT_ALLIANCES[a]
+        local n = tally.counts[alliance] or 0
+        if n > 0 then
+            local c = GetColorForAlliance(alliance)
+            parts[#parts + 1] = ColorText(tostring(n), c.r, c.g, c.b)
+        end
+    end
+    tally.text = table.concat(parts, " ")
+    tally.dirty = false
+    return tally.text
+end
+
 function PvPUA:UpdateItem(items, gameTime)
     local itemsOfInterest = {}
     for key, item in pairs(items) do
@@ -1936,6 +2363,17 @@ function PvPUA:UpdateItem(items, gameTime)
                 item.lastSiegeWeaponSeen = nil
             end
         end
+        -- Patch: recent kill-marker activity (see "Kill Tally") keeps a keep / outpost / town /
+        -- resource / district on the list for siegeTimeout, same as a dropped UA! flag.
+        if item.lastKillSeen ~= nil then
+            if item.lastKillSeen + PvPUA.constants.siegeTimeout > gameTime then
+                itemOfInterest = true
+                if item.interestingSince == nil then item.interestingSince = gameTime end
+                item.underAttackFor = gameTime - item.interestingSince
+            else
+                item.lastKillSeen = nil
+            end
+        end
         if item.keepType == KEEPTYPE_BRIDGE or item.keepType == KEEPTYPE_MILEGATE then
             item.isPassable = IsKeepPassable(key, BGQUERY_LOCAL)
             item.directionalAccess = GetKeepDirectionalAccess(key, BGQUERY_LOCAL)
@@ -1958,6 +2396,7 @@ function PvPUA:UpdateItem(items, gameTime)
         else
             item.interestingSince = nil
         end
+        self:KillTallySync(item)
     end
     return itemsOfInterest
 end
@@ -2175,6 +2614,15 @@ local function CreateEntryControl(parent)
     control.underAttackFor:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     control.underAttackFor:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 
+    -- Kill tally column: "DC AD EP" battle-victory counts, left of the UA! timer.
+    control.kills = wm:CreateControl(nil, control, CT_LABEL)
+    control.kills:SetAnchor(TOPRIGHT, control, TOPRIGHT, -PvPUA.config.underAttackForWidth - 4, 0)
+    control.kills:SetDimensions(PvPUA.config.killsWidth, PvPUA.config.entryHeight)
+    control.kills:SetFont(controlFont)
+    control.kills:SetWrapMode(ELLIPSIS)
+    control.kills:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    control.kills:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+
     return control
 end
 
@@ -2197,9 +2645,10 @@ end
 function PvPUA:ApplyListSize()
     self.config.entryHeight         = 34
     self.config.nameWidth           = 180
-    self.config.width               = 510
     self.config.siegeWidth          = 38
     self.config.underAttackForWidth = 65
+    self.config.killsWidth          = 85
+    self.config.width               = 510 + self.config.killsWidth + 4
     self.config.flagFlipWidth       = 60
     self:InvalidateFontCache()
 end
@@ -3035,6 +3484,10 @@ function PvPUA:UpdateEntries(itemsOfInterest)
         control.underAttackFor:SetText(FormatUnderAttackTime(underAttackFor / 1000))
         local tr, tg, tb = GetTimerColor()
         control.underAttackFor:SetColor(tr, tg, tb, 1)
+        if control.kills then
+            control.kills:SetFont(font)
+            control.kills:SetText(self:KillTallyText(item))
+        end
 
         local objectives = item.objectives
         control.progress.bar1:ClearAnchors()
@@ -3456,6 +3909,10 @@ function PvPUA:CyroUpdateLoop()
         addItems(self:UpdateItem(self.state.villages, gameTime))
         addItems(self:UpdateItem(self.state.destructibles, gameTime))
         addItems(self:UpdateItem(self.state.districts, gameTime))
+        -- Runs after UpdateItem: an item that flagged this tick seeds from the previous snapshot,
+        -- then this tick's delta brings it up to date. Deltas already credited by the event
+        -- handler are zero here.
+        self:KillTallyUpdate()
         if self.initializedZone ~= "IC" then
             self:RefreshScrolls()
             self:UpdateScrollCounts()
@@ -3602,6 +4059,10 @@ function PvPUA:ZoneCheck()
                 function(...) PvPUA:OnArtifactScrollStateChanged(...) end)
             EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_ArtifactCtrl", EVENT_ARTIFACT_CONTROL_STATE,
                 function(...) PvPUA:OnArtifactControlState(...) end)
+            if EVENT_KILL_LOCATIONS_UPDATED then
+                EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_KillTally", EVENT_KILL_LOCATIONS_UPDATED,
+                    function() pcall(function() PvPUA:KillTallyOnEvent() end) end)
+            end
             if EVENT_REWARD_TRACK_PROGRESS_GAINED then
                 EVENT_MANAGER:RegisterForEvent(PvPUA.name .. "_VetTrack", EVENT_REWARD_TRACK_PROGRESS_GAINED,
                     function(_, trackType)
@@ -3626,6 +4087,9 @@ function PvPUA:ZoneCheck()
             EVENT_MANAGER:UnregisterForEvent(PvPUA.name, EVENT_DAEDRIC_ARTIFACT_OBJECTIVE_STATE_CHANGED)
             EVENT_MANAGER:UnregisterForEvent(PvPUA.name, EVENT_ARTIFACT_SCROLL_STATE_CHANGED)
             EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_ArtifactCtrl", EVENT_ARTIFACT_CONTROL_STATE)
+            if EVENT_KILL_LOCATIONS_UPDATED then
+                EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_KillTally", EVENT_KILL_LOCATIONS_UPDATED)
+            end
             if EVENT_REWARD_TRACK_PROGRESS_GAINED then
                 EVENT_MANAGER:UnregisterForEvent(PvPUA.name .. "_VetTrack", EVENT_REWARD_TRACK_PROGRESS_GAINED)
             end
@@ -5768,8 +6232,9 @@ function PvPUA:CreateSettings()
     self:AIRefreshGuildChoices()
 
     local screenW, screenH = ScreenBounds()
-    local myIconDefault, mySizeDefault, myHeightDefault = PI.GetMyDefaults()
-    local myPickerChoices = PI.BuildPickerChoices()
+    local myIconDefault, mySizeDefault, myHeightDefault, myOpacityDefault = PI.GetMyDefaults()
+    local myCategoryDefault = PI.GetIconCategory(myIconDefault)
+    PI.BuildPickerChoices(myCategoryDefault)
     local myPickerDefault = PI.indexToPicker[myIconDefault] or 1
 
     local addonCategory = MOD_BROWSER_CATEGORY_TYPE_PVP
@@ -5790,7 +6255,7 @@ function PvPUA:CreateSettings()
     local menu = LibConsoleMenu:CreateAddonMenu("PvPUA", {
         title          = "PvP UA!",
         author         = "user562",
-        version        = "5",
+        version        = "5.1",
         category       = addonCategory,
         enableDefaults = true,
         enableReset    = true,
@@ -5887,6 +6352,11 @@ function PvPUA:CreateSettings()
           default = 0,
           getFunc = function() return self.savedVariables.listCap end,
           setFunc = function(val) self.savedVariables.listCap = val end },
+        { type = "toggle", name = "Kill Tally", preset = "YES_NO",
+          tooltip = "Shows DC / AD / EP battle victories at each flagged location since it went on the list.",
+          default = PvPUA.defaults.showKillTally,
+          getFunc = function() return self.savedVariables.showKillTally ~= false end,
+          setFunc = function(v) self.savedVariables.showKillTally = v == true end },
         { type = "dropdown", name = "Rank Display",
           choices = { "AP Progress Bar", "Veterancy Progress Bar" },
           getFunc = function()
@@ -6098,9 +6568,15 @@ function PvPUA:CreateSettings()
           name = "|c" .. DC_HEX .. "Icon|r",
           icon = "EsoUI/Art/Options/Gamepad/gp_options_nameplates.dds",
           options = {
+        { type = "selector",
+          name = "Category",
+          choices = PI.GetCategoryChoices(),
+          default = myCategoryDefault,
+          getFunc = function() return PI.GetMyCategory() end,
+          setFunc = function(categoryId) PI.SetMyCategory(categoryId) end },
         { type = "iconpicker",
           name = "Icon",
-          choices = myPickerChoices,
+          choices = function() return PI.BuildPickerChoices() end,
           default = myPickerDefault,
           getFunc = function() return PI.GetMyPickerIndex() end,
           setFunc = function(index) PI.SetMyPickerIndex(index) end },
@@ -6112,6 +6588,10 @@ function PvPUA:CreateSettings()
           default = myHeightDefault,
           getFunc = function() return PI.GetMyHeight() end,
           setFunc = function(v) PI.SetMyHeight(v) end },
+        { type = "slider", name = "Opacity", min = PI.OPACITY_MIN, max = PI.OPACITY_MAX, step = PI.OPACITY_STEP,
+          default = myOpacityDefault,
+          getFunc = function() return PI.GetMyOpacity() end,
+          setFunc = function(v) PI.SetMyOpacity(v) end },
         { type = "checklist",
           name = "Show",
           noSelectionText = "None",

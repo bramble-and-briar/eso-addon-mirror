@@ -4,7 +4,7 @@
 
 CanCraftMasterWrit = {
     name = "CanCraftMasterWrit",
-    version = "1.0", -- Keep in step with ## Version in CanCraftMasterWrit.addon.
+    version = "1.1.0", -- Keep in step with ## Version in CanCraftMasterWrit.addon.
     author = "xSuperSlayan",
     checks = {},       -- Craft-specific evaluators, keyed by writ kind (see src/checks).
     debug = false,

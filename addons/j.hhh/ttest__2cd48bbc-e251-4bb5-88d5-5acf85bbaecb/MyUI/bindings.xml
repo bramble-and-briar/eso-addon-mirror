@@ -28,38 +28,6 @@
 				<Down>BUI.ShowLog()</Down>
 			</Action>
 		</Category>
-		<Category name="|c4B8BFESatuve|r Xbox UI Quick slots">
-			<Action name="BUI_QUICKSLOT_1">
-				<Down>BUI.QuickSlots.SelectQuickSlot(1)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_2">
-				<Down>BUI.QuickSlots.SelectQuickSlot(2)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_3">
-				<Down>BUI.QuickSlots.SelectQuickSlot(3)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_4">
-				<Down>BUI.QuickSlots.SelectQuickSlot(4)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_5">
-				<Down>BUI.QuickSlots.SelectQuickSlot(5)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_6">
-				<Down>BUI.QuickSlots.SelectQuickSlot(6)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_7">
-				<Down>BUI.QuickSlots.SelectQuickSlot(7)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_8">
-				<Down>BUI.QuickSlots.SelectQuickSlot(8)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_NEXT">
-				<Down>BUI.QuickSlots.SelectQuickSlotNext(1)</Down>
-			</Action>
-			<Action name="BUI_QUICKSLOT_PREV">
-				<Down>BUI.QuickSlots.SelectQuickSlotNext(-1)</Down>
-			</Action>
-		</Category>
 		<Category name="|c4B8BFESatuve|r Xbox UI Custom slots">
 			<Action name="BUI_CUSTOMSLOT_1">
 				<Down>BUI.UseCustomSlot(1)</Down>

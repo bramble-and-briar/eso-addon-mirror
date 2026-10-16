@@ -79,6 +79,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Node Runner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Node-Runner__5da3c77f-9566-4904-9300-ed2e31d03f07) | SugaComa | Console | — |
 | [NoGrass](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Azibura/NoGrass__3853) | Azibura | PC / Mac | 1.0.2 |
 | [NoInnerLight](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jarva/NoInnerLight__2791) | Jarva | PC / Mac | 1.0.2 |
+| [NoireJin's reticle weapom swap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NoireJin/NoireJin-s-reticle-weapom-swap__4955) | NoireJin | PC / Mac | 1.7.1 |
 | [NoJumpToLeader](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Verling/NoJumpToLeader__3675) | Verling | PC / Mac | 1.0.6 |
 | [NoMoreCarries](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drako-Ei/NoMoreCarries__2702) | Drako-Ei | PC / Mac | 1.1 |
 | [NoMoreOzezan](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Geldis/NoMoreOzezan__3622) | Geldis | PC / Mac | 1.0 |

@@ -5,6 +5,18 @@ A lightweight personal trade ledger for The Elder Scrolls Online.
 
 This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 
+Version 1.1.1
+-------------
+
+* Track, Select, and Open actions from an item's context menu now open the Price
+  view for that item.
+* Untracked items offer "Show Sales in My Guilds", which opens All Deals with an
+  item-name search without adding the item to the portfolio.
+* An empty All Deals search now clearly says that no sales of the item were found
+  in the configured guilds and highlights the message separately from loading.
+* Truncated item links in Stock now retain the same mouse actions and context menu
+  as fully visible item links.
+
 License
 -------
 
@@ -33,6 +45,8 @@ Usage
 -----
 
 * Right-click an item or item link and choose "Track in The Profit".
+* For an untracked item, choose "Show Sales in My Guilds" to open All Deals
+  filtered by that item's name without adding it to the portfolio.
 * Use /theprofit to open or close the ledger.
 * Track up to ten items and switch the active item by clicking its table row.
 * The add-on settings can open the ledger automatically with mail or guild stores.

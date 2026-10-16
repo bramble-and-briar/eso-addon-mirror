@@ -1,6 +1,6 @@
 RodZillaTraderStats = {}
 RodZillaTraderStats.name = "RodZillaTraderStats"
-RodZillaTraderStats.version = "0.1.6"
+RodZillaTraderStats.version = "0.1.7"
 
 local RZTS = RodZillaTraderStats
 
@@ -479,9 +479,73 @@ function RZTS.RegisterLinkedCallback()
     end)
 end
 
+-- FOUND 2026-10-15, real hardware: this used to be `linkedTraderGuilds[guildId] == true or
+-- <live gapless check>` -- a permanent latch that, once CATEGORY_LINKED fired for this guild
+-- even once, meant every later call treated it as still up to date WITHOUT re-checking,
+-- forever, for the rest of the session. That's unsafe: if LibHistoire's cache falls behind
+-- again later (confirmed happening here -- heavy Guild History browsing kicked off a
+-- background backfill, visible as "queued" bouncing up and down in the status text), Refresh
+-- would call StartScan() into a category LibHistoire is actively still extending underneath
+-- it. Confirmed via a real "no events processed and not at the end - something went wrong"
+-- error from LibHistoire's own GuildHistoryProcessingRequest:EnsureIterationIsComplete (no
+-- frame of ours in that stack -- same class of bug as the 2026-10-12 LibAsync crash this
+-- guild-gate was already built to prevent, just a different race getting through it).
+--
+-- Fixed by checking the LIVE gapless state every time (never stale) and only falling back to
+-- the permanent latch for the one case it actually needs to cover -- a guild with zero trader
+-- events ever, where GetOldestGuildHistoryEventIndexForUpToDateEventsWithoutGaps can never
+-- return non-nil (there's no oldest event to anchor a gapless range against) and would
+-- otherwise wait forever. Even that fallback re-checks GetNumGuildHistoryEvents live rather
+-- than trusting the latch blindly, so a guild's first-ever sale can't get stuck behind it.
+-- FOUND 2026-10-15, real guild: a scan can legitimately reach StopReason.LAST_CACHED_EVENT_
+-- REACHED ("nothing more cached to deliver") while LibHistoire's own managed cache is still
+-- well behind the present -- confirmed on a guild where the newest cached event was 6 days
+-- stale despite the scan reporting done. Without this, the panel would just say "up to date
+-- (0 sales)" for a week that genuinely had sales, indistinguishable from this add-on being
+-- broken. See RZTS.BuildDoneStatus below, which this feeds.
 local function IsTraderHistoryUpToDate(guildId)
+    if GetOldestGuildHistoryEventIndexForUpToDateEventsWithoutGaps(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER) ~= nil then
+        return true
+    end
     return RZTS.linkedTraderGuilds[guildId] == true
-        or GetOldestGuildHistoryEventIndexForUpToDateEventsWithoutGaps(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER) ~= nil
+        and GetNumGuildHistoryEvents(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER) == 0
+end
+
+-- Confirmed by the developer 2026-10-15, real guild: manually scrolling through a guild's
+-- Trader History in the base game's own Guild window visibly speeds up LibHistoire's catch-up
+-- -- its own in-game status indicator went from broken-up/multi-colored to solid green while
+-- doing this. So "not something this add-on can speed up" (the old wording) wasn't quite
+-- right -- there IS something the player can do, just not something this add-on can trigger
+-- on their behalf. Shared by both status messages that can show while LibHistoire is behind
+-- (this one and WaitUntilReady's below) so the wording can't drift between them.
+local CATCHING_UP_TIP = "Scrolling through this guild's Trader History in-game (Guild -> History) " ..
+    "helps LibHistoire catch up faster."
+
+-- categoryCache:IsManagedRangeConnectedToPresent() is a LibHistoire internal, not part of its
+-- public api.lua -- reached via processor.categoryCache the same way LibHistoire's own
+-- GuildHistoryProcessingRequest.lua does, and the same way its CacheStatusBar.lua decides
+-- what color to paint its cache-progress bar. Not documented/guaranteed, so pcall-wrapped
+-- defensively, same reasoning as the existing GetPendingEventMetrics pcall in StartScan
+-- below (LibHistoire's own code, could change or throw under conditions we can't predict) --
+-- on any failure, this just falls back to the plain "up to date" message rather than erroring.
+function RZTS.BuildDoneStatus(stats, processor)
+    local ok, connectedToPresent = pcall(function()
+        return processor.categoryCache and processor.categoryCache:IsManagedRangeConnectedToPresent()
+    end)
+    if not ok or connectedToPresent then
+        return string.format("up to date (%d sales)", stats.salesSoFar)
+    end
+
+    -- Not connected to present: this scan's "done" is real (nothing more cached to deliver
+    -- right now), but LibHistoire's cache itself hasn't caught up to the present yet -- say so
+    -- explicitly, with the newest sale this scan actually saw, instead of a plain "up to date"
+    -- that would read as this add-on having missed real sales.
+    local throughText = (stats.newestEventSeen and stats.newestEventSeen > 0)
+        and ("through " .. FormatDate(stats.newestEventSeen, "%m/%d"))
+        or "no sales cached yet"
+    return string.format(
+        "%d sales (%s) -- LibHistoire is still fetching this guild's more recent trader history. %s",
+        stats.salesSoFar, throughText, CATCHING_UP_TIP)
 end
 
 function RZTS.ComputeTraderStats()
@@ -574,6 +638,10 @@ function RZTS.ComputeTraderStats()
             stats.overallSellers[seller] = (stats.overallSellers[seller] or 0) + info.price
 
             stats.salesSoFar = stats.salesSoFar + 1
+            -- Newest event this scan actually saw, across every bucket -- independent of
+            -- LibHistoire's own bookkeeping. Used by BuildDoneStatus below to tell "caught up"
+            -- from "LibHistoire's cache just hasn't reached the present yet."
+            stats.newestEventSeen = math.max(stats.newestEventSeen or 0, info.timestampS)
         end)
         processor:SetOnStopCallback(function(reason)
             if RZTS.traderStats ~= stats then return end
@@ -585,7 +653,7 @@ function RZTS.ComputeTraderStats()
                 -- coming on this processor to possibly change the rankings -- so finalize
                 -- it down to just what's displayed and let the rest be freed.
                 stats.phase = "done"
-                stats.status = string.format("up to date (%d sales)", stats.salesSoFar)
+                stats.status = RZTS.BuildDoneStatus(stats, processor)
                 RZTS.FinalizeSellerStats(stats)
                 Publish()
             elseif reason ~= LibHistoire.StopReason.MANUAL_STOP then
@@ -637,8 +705,8 @@ function RZTS.ComputeTraderStats()
             StartScan()
         else
             stats.phase = "waiting"
-            stats.status = "LibHistoire is still loading this guild's trader history in the background " ..
-                "(not something this add-on can speed up). Check back in a few minutes."
+            stats.status = "LibHistoire is still loading this guild's trader history in the background. " ..
+                CATCHING_UP_TIP .. " Otherwise, check back in a few minutes."
             Publish()
             zo_callLater(WaitUntilReady, 5000)
         end

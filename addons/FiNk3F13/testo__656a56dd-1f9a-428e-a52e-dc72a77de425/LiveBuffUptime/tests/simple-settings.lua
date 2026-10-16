@@ -16,9 +16,10 @@ for _, setting in ipairs(env.panel.descriptors) do
     assert(not removed[setting.label], setting.label)
     if setting.label == "Einheit" then
         selectors = selectors + 1
-        assert(#setting.items == 3)
+        assert(#setting.items == 4)
         assert(setting.items[1].data == "player" and setting.items[2].data == "group")
         assert(setting.items[3].data == "dds")
+        assert(setting.items[4].data == "reticleover")
     end
 end
 assert(selectors == 3)
@@ -28,4 +29,4 @@ for _, tracker in ipairs(saved.trackers) do
 end
 assert(saved.trackers[1].x == 123 and saved.trackers[1].y == 234 and saved.trackers[1].scale == 1.2)
 assert(saved.trackers[1].unit == "player" and saved.trackers[2].unit == "group")
-print("Simple settings: only self/group selection, removed calculation controls, migrated defaults and preserved positions passed")
+print("Simple settings: self/group/DD/enemy selection, removed calculation controls, migrated defaults and preserved positions passed")

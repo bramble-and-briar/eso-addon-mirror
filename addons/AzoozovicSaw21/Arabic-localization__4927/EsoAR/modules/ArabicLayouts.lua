@@ -46,6 +46,12 @@ local function hook(object, key, before, after)
     local marker = "esoArabic131_" .. key
     if object[marker] then return end
     object[marker] = true
+    -- Housing market setup calls private APIs: preserve the native call stack.
+    if key == "RunSetupOnControl" then
+        assert(not before, "RunSetupOnControl must remain a post-hook")
+        if SecurePostHook and after then SecurePostHook(object, key, after) end
+        return
+    end
     local original = object[key]
     object[key] = function(self, ...)
         if before then before(self, ...) end

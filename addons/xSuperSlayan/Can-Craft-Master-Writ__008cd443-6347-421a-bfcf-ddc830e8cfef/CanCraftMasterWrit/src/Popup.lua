@@ -1,6 +1,6 @@
 -- The pop-ups in the middle of the screen:
 --   * What's New: the add-on's name, version and highlights from ReleaseNotes.lua. It shows once, the first time a
---     player logs in after updating to a version listed there, then fades out after a few seconds. Release Notes in
+--     player logs in after updating to a version listed there, then fades out after ten seconds. Release Notes in
 --     the settings menu and /ccmw new show it again.
 --   * Feedback: a QR code for the bug report and question form in Support.lua, shown from Feedback in the settings
 --     menu for long enough to scan it with a phone.
@@ -15,7 +15,7 @@ local Util = addon.Util
 local Popup = {}
 addon.Popup = Popup
 
-local WHATS_NEW_SECONDS = 3 -- How long What's New stays on screen.
+local WHATS_NEW_SECONDS = 10 -- How long What's New stays on screen: long enough to read five highlights.
 local FEEDBACK_SECONDS = 15 -- How long the Feedback QR code stays on screen: long enough to scan it with a phone.
 local LOGIN_DELAY_MS = 2000 -- Waits for the loading screen to fade before showing What's New.
 local FADE_MS = 500

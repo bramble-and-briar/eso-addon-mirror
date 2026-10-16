@@ -4,7 +4,7 @@ local TP = TheProfit
 local EM = EVENT_MANAGER
 
 TP.name = "TheProfit"
-TP.version = "1.1.0"
+TP.version = "1.1.1"
 -- Events for optional modules: TrackedItemAdded(itemKey), TrackedItemRemoved(itemKey),
 -- MarketDataLoaded().
 TP.callbacks = ZO_CallbackObject:New()
@@ -110,6 +110,7 @@ local strings = {
         menuSelect = "Select in The Profit",
         menuOpen = "Open The Profit",
         menuShowPrice = "Show Price",
+        menuShowGuildSales = "Show Sales in My Guilds",
         projectedProfit = "PROJECTED ITEM PROFIT",
         returnRate = "ROI",
         forecastPrice = "FORECAST PRICE",
@@ -147,7 +148,7 @@ local strings = {
         historyRefresh = "Refresh",
         historyWaitingForLibHistoire = "Guild history is not ready yet. Waiting for LibHistoire…",
         historyLoading = "Loading guild history…",
-        historyEmpty = "No guild-trade events match these filters.",
+        historyEmpty = "No sales of this item were found in your guilds.",
         analyticsCurrentWeek = "Current week",
         analyticsPreviousWeek = "Previous week",
         analyticsMy = "My",
@@ -223,6 +224,7 @@ local strings = {
         menuSelect = "Выбрать в The Profit",
         menuOpen = "Открыть The Profit",
         menuShowPrice = "Показать цену",
+        menuShowGuildSales = "Показать продажи в моих гильдиях",
         projectedProfit = "ПРОГНОЗНАЯ ПРИБЫЛЬ ПРЕДМЕТА",
         returnRate = "ROI",
         forecastPrice = "РАСЧЁТНАЯ ЦЕНА",
@@ -260,7 +262,7 @@ local strings = {
         historyRefresh = "Обновить",
         historyWaitingForLibHistoire = "История ещё не готова. Ожидаем LibHistoire…",
         historyLoading = "Загрузка истории гильдий…",
-        historyEmpty = "Нет событий гильдейской торговли по выбранным фильтрам.",
+        historyEmpty = "Продаж этого предмета из ваших гильдий не найдено",
         analyticsCurrentWeek = "Текущая неделя",
         analyticsPreviousWeek = "Прошлая неделя",
         analyticsMy = "Мои",
@@ -2645,8 +2647,12 @@ local function RefreshGuildHistoryUI()
     if not historyReady then
         empty:SetText(TP.T(TP.historyLoadingStarted
             and "historyLoading" or "historyWaitingForLibHistoire"))
+        empty:SetFont("ZoFontGame")
+        empty:SetColor(0.47, 0.49, 0.53, 1)
     else
         empty:SetText(TP.T("historyEmpty"))
+        empty:SetFont("ZoFontGameBold")
+        empty:SetColor(0.95, 0.45, 0.42, 1)
     end
     empty:SetHidden(historyReady and #entries > 0)
 end
@@ -4331,18 +4337,50 @@ end
 local function AddTrackMenuItem(itemLink)
     if not IsItemLink(itemLink) then return end
     local itemKey = TP.GetItemKey(itemLink)
+    local isTracked = IsTrackedKey(itemKey)
     local label
     if MatchesSelectedItem(itemLink) then
         label = TP.T("menuOpen")
-    elseif IsTrackedKey(itemKey) then
+    elseif isTracked then
         label = TP.T("menuSelect")
     else
         label = TP.T("menuTrack")
     end
     AddCustomMenuItem(label, function()
         if not MatchesSelectedItem(itemLink) then TP.SetTrackedItem(itemLink) end
+        TP.SetView("item")
         if TP.window then TP.window:SetHidden(false) end
     end)
+
+    if not isTracked then
+        AddCustomMenuItem(TP.T("menuShowGuildSales"), function()
+            local itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink))
+            if not itemName or itemName == "" then return end
+
+            TP.guildHistoryGuildId = nil
+            TP.guildHistoryItemQuery = itemName
+            TP.guildHistorySellerQuery = ""
+            TP.guildHistoryBuyerQuery = ""
+            TP.guildHistoryScrollOffset = 0
+            TP.guildHistoryFiltersDirty = true
+
+            if TP.window then
+                local textFilters = {
+                    GuildHistoryViewTopFiltersItemSearchBox = itemName,
+                    GuildHistoryViewPlayerFiltersSellerSearchBox = "",
+                    GuildHistoryViewPlayerFiltersBuyerSearchBox = "",
+                }
+                for controlName, value in pairs(textFilters) do
+                    local control = TP.window:GetNamedChild(controlName)
+                    if control then control:SetText(value) end
+                end
+            end
+
+            TP.SetView("guildHistory")
+            if TP.window then TP.window:SetHidden(false) end
+            TP.RefreshUI()
+        end)
+    end
 end
 
 function TP.SetupContextMenus()

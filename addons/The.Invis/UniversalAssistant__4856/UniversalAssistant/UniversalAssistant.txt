@@ -1,7 +1,7 @@
 ## APIVersion: 101051
 ## Title: Universal Assistant
 ## Author: @The.Invis
-## Version: 1.0.1
+## Version: 1.0.2
 ## AddOnVersion: 2
 ## Description: Banking, merchant, deconstruction, repair, recharge, and research assistance after player-initiated interactions.
 ## SavedVariables: UAssistantSavedVariables

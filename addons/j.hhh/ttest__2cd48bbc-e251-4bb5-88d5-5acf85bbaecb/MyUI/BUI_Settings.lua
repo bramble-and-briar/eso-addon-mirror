@@ -108,7 +108,8 @@ local function MenuOptions_Init()	--Menu options
 	MenuOptions["MenuMisc"]={
 	--Reposition Elements
 	{	type		="button",
-		name		="Move",
+		name		="Move Frames",
+		tooltip		="Use the original controller frame editor. Test cautiously.",
 		func		=function() BUI.Menu.MoveFrames(true) end,
 		reference	="BUI_MenuButton_Move",
 	},
@@ -174,29 +175,6 @@ local function MenuOptions_Init()	--Menu options
 		name		="ActionSlots",
 		getFunc	=function() return BUI.Vars.ActionSlots end,
 		setFunc	=function(value) BUI.Vars.ActionSlots=value BUI.Themes_Setup() end,
-	},
-	--QuickSlots
-	{	type		="header",
-		name		="QuickSlotsHeader",
-	},
-	{	type		="checkbox",
-		name		="QuickSlots",
-		getFunc	=function() return BUI.Vars.QuickSlots end,
-		setFunc	=function(value) BUI.Vars.QuickSlots=value BUI.QuickSlots:Initialize() end,
-	},
-	{	type		="checkbox",
-		name		="QuickSlotsInventory",
-		getFunc	=function() return BUI.Vars.QuickSlotsInventory end,
-		setFunc	=function(value) BUI.Vars.QuickSlotsInventory=value BUI.QuickSlots:Initialize() end,
-	},
-	--QuickSlots number
-	{	type		="slider",
-		name		="QuickSlotsShow",
-		min		=3,
-		max		=8,
-		step		=1,
-		getFunc	=function() return BUI.Vars.QuickSlotsShow end,
-		setFunc	=function(value) BUI.Vars.QuickSlotsShow=value BUI.QuickSlots.Update() end,
 	},
 	--Misc
 	{	type		="header",
@@ -2080,6 +2058,7 @@ function BUI.Menu.Initialize()
 	-- menu is kept unchanged as the fallback when LAM is not installed.
 	local prepared={}
 	for index,data in pairs(MenuOptions) do
+		if index ~= "MenuAttackersFrames" and index ~= "MenuMeters" then
 		local Options={}
 		for i=1, #data do
 			if not data[i].advanced or AdvancedMenu then
@@ -2104,6 +2083,7 @@ function BUI.Menu.Initialize()
 			options=Options,
 			order=tonumber(string.match(MenuNumber[index] or "999", "%d+")) or 999,
 		})
+		end -- hidden LAM categories
 	end
 
 	table.sort(prepared,function(a,b)

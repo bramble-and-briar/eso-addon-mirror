@@ -112,7 +112,12 @@ local BOX_WIDTH = ZO_GAMEPAD_CONTENT_WIDTH
 local BOX_TITLE_FONT = "$(GAMEPAD_BOLD_FONT)|$(GP_27)|soft-shadow-thick"
 local BOX_BODY_FONT = "$(GAMEPAD_MEDIUM_FONT)|$(GP_22)|soft-shadow-thin"
 local BOX_SPACING = 8
-local BOX_TOP_GAP = 40    -- Between the header's "By:" line and the box.
+-- The box sits between the header's "By:" line and the first supporter row, centred, at least this far from each.
+-- The QR code shrinks to fit that space (the full size didn't fit, and the row covered the code in 1.0.1), in whole
+-- tens, so a row that moves a little doesn't redraw it each time, but never below the smallest size.
+local BOX_GAP = 12
+local MIN_QR_SIZE = 120
+local QR_SIZE_STEP = 10
 local BOX_BOTTOM_GAP = 24 -- Between the box and the first row, if the header can't be found.
 local WATCH_NAME = "CanCraftMasterWritSupportBox"
 local WATCH_INTERVAL_MS = 100
@@ -142,23 +147,51 @@ local function GetSupportBox()
     box:SetHidden(true)
     box:SetWidth(BOX_WIDTH)
     box:SetResizeToFitDescendents(true)
-    local title = AddBoxLabel(box, "Title", BOX_TITLE_FONT, box)
-    title:SetText(Util.FallGradient(GetString(SI_CCMW_POPUP_SUPPORT_TITLE)))
+    box.title = AddBoxLabel(box, "Title", BOX_TITLE_FONT, box)
+    box.title:SetText(Util.FallGradient(GetString(SI_CCMW_POPUP_SUPPORT_TITLE)))
     local background = WINDOW_MANAGER:CreateControl(box:GetName() .. "QRBackground", box, CT_BACKDROP)
-    background:SetDimensions(QR_SIZE + 2 * QR_MARGIN, QR_SIZE + 2 * QR_MARGIN)
-    background:SetAnchor(TOP, title, BOTTOM, 0, BOX_SPACING)
+    background:SetAnchor(TOP, box.title, BOTTOM, 0, BOX_SPACING)
     background:SetCenterColor(1, 1, 1, 1)
     background:SetEdgeColor(1, 1, 1, 0)
-    local qrCode = WINDOW_MANAGER:CreateControl(box:GetName() .. "QRCode", background, CT_TEXTURE)
-    qrCode:SetDimensions(QR_SIZE, QR_SIZE)
-    qrCode:SetAnchor(CENTER, background, CENTER, 0, 0)
-    if LibQRCode then
-        LibQRCode.DrawQRCode(qrCode, Popup.GetDonationLink())
-    end
-    local caption = AddBoxLabel(box, "Caption", BOX_BODY_FONT, background)
-    caption:SetText(GetString(SI_CCMW_POPUP_SUPPORT_SCAN))
+    box.qrBackground = background
+    box.qrCode = WINDOW_MANAGER:CreateControl(box:GetName() .. "QRCode", background, CT_TEXTURE)
+    box.qrCode:SetAnchor(CENTER, background, CENTER, 0, 0)
+    box.caption = AddBoxLabel(box, "Caption", BOX_BODY_FONT, background)
+    box.caption:SetText(GetString(SI_CCMW_POPUP_SUPPORT_SCAN))
     supportBox = box
     return box
+end
+
+-- Draws the box's QR code at a size, on its white square. LibQRCode works out the code's squares from the texture's
+-- size when it draws, so a new size means drawing the code again.
+local function SetQRCodeSize(box, size)
+    if box.qrSize == size then
+        return
+    end
+    box.qrSize = size
+    box.qrBackground:SetDimensions(size + 2 * QR_MARGIN, size + 2 * QR_MARGIN)
+    box.qrCode:SetDimensions(size, size)
+    if LibQRCode then
+        LibQRCode.DrawQRCode(box.qrCode, Popup.GetDonationLink())
+    end
+end
+
+-- Returns the box's height with a QR code of the given size.
+local function GetBoxHeight(box, qrSize)
+    return box.title:GetTextHeight() + BOX_SPACING + qrSize + 2 * QR_MARGIN + BOX_SPACING + box.caption:GetTextHeight()
+end
+
+-- Returns the biggest QR code size that leaves the box BOX_GAP from the header and the row, and the gap above the
+-- box that centres it, or nil if the two aren't laid out yet.
+local function FitSupportBox(box, message, row)
+    local messageBottom, rowTop = message:GetBottom(), row:GetTop()
+    if type(messageBottom) ~= "number" or type(rowTop) ~= "number" or rowTop <= messageBottom then
+        return nil
+    end
+    local space = rowTop - messageBottom
+    local qrSize = zo_floor((space - 2 * BOX_GAP - GetBoxHeight(box, 0)) / QR_SIZE_STEP) * QR_SIZE_STEP
+    qrSize = zo_clamp(qrSize, MIN_QR_SIZE, QR_SIZE)
+    return qrSize, zo_max(0, zo_floor((space - GetBoxHeight(box, qrSize)) / 2))
 end
 
 -- The header line under the add-on's name and version ("By: xSuperSlayan"), from the game's gamepad header.
@@ -168,10 +201,22 @@ local function GetHeaderMessage()
     return header and header:GetNamedChild("Message") or nil
 end
 
+-- Anchors the box once, or again when the place changes.
+local function AnchorSupportBox(parent, point, relativeTo, relativePoint, offsetY)
+    if supportBox.anchoredTo == relativeTo and supportBox.anchorOffset == offsetY then
+        return
+    end
+    supportBox:ClearAnchors()
+    supportBox:SetParent(parent)
+    supportBox:SetAnchor(point, relativeTo, relativePoint, 0, offsetY)
+    supportBox.anchoredTo, supportBox.anchorOffset = relativeTo, offsetY
+end
+
 -- Shows the box while the Support page is open, and hides it otherwise. The list keeps its selected row about halfway
 -- down the screen, and the first supporter row is selected on this page, so the space above it is free: the box goes
--- there, under the header. Runs whenever LHAS rebuilds its list and, while the settings are on screen, every tenth of
--- a second, since list rows are pooled controls that can change as the list moves.
+-- there, between the header and that row, with the QR code sized to fit. Runs whenever LHAS rebuilds its list and,
+-- while the settings are on screen, every tenth of a second, since list rows are pooled controls that can change as
+-- the list moves.
 local function UpdateSupportBox()
     if not supportBox then
         return
@@ -184,17 +229,17 @@ local function UpdateSupportBox()
         return
     end
     local message = GetHeaderMessage()
-    local anchorTo = message or row
-    if supportBox.anchoredTo ~= anchorTo then
-        supportBox:ClearAnchors()
-        if message then
-            supportBox:SetParent(message:GetOwningWindow())
-            supportBox:SetAnchor(TOP, message, BOTTOM, 0, BOX_TOP_GAP)
-        else
-            supportBox:SetParent(row:GetParent())
-            supportBox:SetAnchor(BOTTOM, row, TOP, 0, -BOX_BOTTOM_GAP)
+    if message then
+        local qrSize, offsetY = FitSupportBox(supportBox, message, row)
+        if not qrSize then
+            supportBox:SetHidden(true)
+            return
         end
-        supportBox.anchoredTo = anchorTo
+        SetQRCodeSize(supportBox, qrSize)
+        AnchorSupportBox(message:GetOwningWindow(), TOP, message, BOTTOM, offsetY)
+    else
+        SetQRCodeSize(supportBox, QR_SIZE)
+        AnchorSupportBox(row:GetParent(), BOTTOM, row, TOP, -BOX_BOTTOM_GAP)
     end
     supportBox:SetHidden(false)
 end
@@ -253,10 +298,11 @@ end
 -- The main list. LHAS draws a page row (ST_SECTION) left-aligned and always white, with an arrow, and a button
 -- centred and grey until selected, with an empty row needed between the two kinds; with icons the rows didn't line
 -- up. So the four rows are LHAS buttons that this file adds to LHAS's list itself, with one of the game's own list row
--- templates: centred, in a bigger font than LHAS's rows, grey until selected and white when selected, as the game's
--- menus do. LHAS still handles everything else: selecting a row runs its clickHandler, and the side panel shows its
--- tooltip. If LHAS's list ever lacks what this needs, the rows fall back to LHAS's own buttons.
-local MAIN_ROW_TEMPLATE = "ZO_GamepadFullWidthLabelEntryTemplate"
+-- templates (common/gamepad/zo_gamepadtemplatescommon.xml): left-aligned, in a bigger font than LHAS's rows, grey
+-- until selected and white when selected, as the game's menus do. LHAS still handles everything else: selecting a row
+-- runs its clickHandler, and the side panel shows its tooltip. If LHAS's list ever lacks what this needs, the rows
+-- fall back to LHAS's own buttons.
+local MAIN_ROW_TEMPLATE = "ZO_GamepadFullWidthLeftLabelEntryTemplate"
 local MAIN_ROW_POOL = "CanCraftMasterWritMenuRow"
 local MAIN_ROW_FONT = "ZoFontGamepad42" -- LHAS's rows use ZoFontGamepad34.
 
@@ -308,6 +354,90 @@ local function UpdateMainRow(setting)
 end
 
 local function DrawNothing()
+end
+
+-- The Requirement Filters rows are LHAS's checkbox rows, the game's ZO_GamepadOptionsCheckboxRow
+-- (pregameandingame/zo_options/gamepad/zo_options_gamepad.xml): the name centred in ZoFontGamepad34, with ON and OFF
+-- centred under it. Ours are drawn smaller, with the name from the left and ON and OFF at the right end of the same
+-- line. The row's GetHeight, which the list spaces rows by, then counts the name's line only. LHAS calls SetEnabled on
+-- each row as its list draws it, so that is where ours are restyled. The row controls are pooled and shared with
+-- every other add-on's LHAS settings, so each restyled row gets its own look back before LHAS builds any page.
+local FILTER_NAME_FONT = "ZoFontGamepad27" -- The size of ON and OFF beside it.
+local FILTER_ON_OFF_GAP = 16
+
+-- Restyled row controls, each with what it looked like before.
+local restyledRows = {}
+
+local function SaveAnchor(control)
+    local isValid, point, relativeTo, relativePoint, offsetX, offsetY = control:GetAnchor(0)
+    if isValid then
+        return { point, relativeTo, relativePoint, offsetX, offsetY }
+    end
+end
+
+local function RestoreAnchor(control, anchor)
+    if anchor then
+        control:ClearAnchors()
+        control:SetAnchor(unpack(anchor))
+    end
+end
+
+local function RestyleFilterRow(control)
+    local name, on, off = control:GetNamedChild("Name"), control:GetNamedChild("On"), control:GetNamedChild("Off")
+    if not (name and on and off) then
+        return
+    end
+    if not restyledRows[control] then
+        restyledRows[control] = {
+            font = name:GetFont(),
+            alignment = name:GetHorizontalAlignment(),
+            onAnchor = SaveAnchor(on),
+            offAnchor = SaveAnchor(off),
+            getHeight = control.GetHeight,
+        }
+    end
+    name:SetFont(FILTER_NAME_FONT)
+    name:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    -- The name spans the row, so its right end is the row's.
+    off:ClearAnchors()
+    off:SetAnchor(RIGHT, name, RIGHT, 0, 0)
+    on:ClearAnchors()
+    on:SetAnchor(RIGHT, off, LEFT, -FILTER_ON_OFF_GAP, 0)
+    control.GetHeight = function()
+        return zo_max(name:GetTextHeight(), on:GetTextHeight())
+    end
+end
+
+local function RestoreRestyledRows()
+    for control, original in pairs(restyledRows) do
+        local name = control:GetNamedChild("Name")
+        if original.font and original.font ~= "" then
+            name:SetFont(original.font)
+        end
+        if original.alignment then
+            name:SetHorizontalAlignment(original.alignment)
+        end
+        RestoreAnchor(control:GetNamedChild("On"), original.onAnchor)
+        RestoreAnchor(control:GetNamedChild("Off"), original.offAnchor)
+        control.GetHeight = original.getHeight
+    end
+    ZO_ClearTable(restyledRows)
+end
+
+-- Replaces a filter row's SetEnabled, which LHAS's list calls each time it draws the row.
+local function SetFilterRowEnabled(setting, ...)
+    if setting.control then
+        RestyleFilterRow(setting.control)
+    end
+    return LibHarvensAddonSettings.AddonSettingsControl.SetEnabled(setting, ...)
+end
+
+local filterRowsHooked = false
+local function HookFilterRows(LHAS)
+    if not filterRowsHooked then
+        filterRowsHooked = true
+        ZO_PreHook(LHAS.AddonSettings, "CreateControls", RestoreRestyledRows)
+    end
 end
 
 -- Opens a page the way LHAS's own page rows do (their Activate in its Settings.lua).
@@ -403,6 +533,10 @@ local function BuildConsoleMenu(LHAS)
         settings[index].CreateControl = AddMainRow
         settings[index].UpdateControl = UpdateMainRow
     end
+    for index = filtersIndex + 1, #settings do
+        settings[index].SetEnabled = SetFilterRowEnabled
+    end
+    HookFilterRows(LHAS)
     -- The pages' own rows would repeat the main list's Supporters and Requirement Filters, so they draw nothing.
     supportSection, filtersSection = settings[supportIndex], settings[filtersIndex]
     supportSection.CreateControl = DrawNothing

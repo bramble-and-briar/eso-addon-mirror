@@ -1063,6 +1063,7 @@ local function CreateOtherControls()
     local undauntedPlunderLink = CreateItemLink(UNDAUNTED_PLUNDER_ITEM_ID)
     local undauntedPlunderName = GetLocalizedItemName(undauntedPlunderLink)
     local undauntedPlunderIconName = CreateIconName(undauntedPlunderLink, undauntedPlunderName)
+    local treasureName = zo_strformat("<<C:1>>", GetString("SI_ITEMTYPE", ITEMTYPE_TREASURE))
     local trashName = zo_strformat("<<C:1>>", GetString("SI_ITEMTYPE", ITEMTYPE_TRASH))
     local monsterTrophyName = zo_strformat(
         "<<C:1>>",
@@ -1082,6 +1083,13 @@ local function CreateOtherControls()
             "undauntedPlunderEnabled",
             string.format(L("UNDAUNTED_PLUNDER_ENABLE"), undauntedPlunderIconName),
             string.format(L("UNDAUNTED_PLUNDER_ENABLE_TOOLTIP"), undauntedPlunderName),
+            true
+        ),
+        CreateCheckbox(
+            profile,
+            "treasuresEnabled",
+            string.format(L("TREASURES_ENABLE"), treasureName),
+            string.format(L("TREASURES_ENABLE_TOOLTIP"), treasureName),
             true
         ),
         CreateCheckbox(

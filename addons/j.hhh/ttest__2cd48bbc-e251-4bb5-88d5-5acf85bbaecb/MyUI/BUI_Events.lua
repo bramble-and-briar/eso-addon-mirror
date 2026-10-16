@@ -784,7 +784,6 @@ function BUI.RegisterEvents(playerAlreadyActivated)
 			if BUI.init.Actions then BUI.Actions.Initialize() end
 			if BUI.init.Frames then BUI.Frames.ZO_Frame_reposition() end
 			BUI.Themes_Setup()
-			if BUI.Vars.QuickSlots then BUI.QuickSlots.Update() end
 			BUI.CustomBarUpdate()
 		end)
 	end)

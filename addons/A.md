@@ -228,7 +228,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ar2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/Ar2__52bf209f-b1c3-4253-adfc-ba6e95b85072) | Lofand | Console | — |
 | [ArabChat - Arabic Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabChat---Arabic-Chat__4931) | alaooy | PC / Mac | 1.2.2 |
 | [arabic](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic__c8823ab9-749b-4180-ad52-c15b1363d974) | Lofand | Console | — |
-| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.6 |
+| [Arabic localization](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AzoozovicSaw21/Arabic-localization__4927) | AzoozovicSaw21 | PC / Mac | 2.3.7 |
 | [Arabic localization Beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/azoozovicSaw21/Arabic-localization-Beta__8e72977c-9627-465e-829d-4950e13e6d82) | azoozovicSaw21 | Console | — |
 | [arabic new text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/arabic-new-text__6ca61801-549f-44fd-b20a-9b655530c6bc) | Lofand | Console | — |
 | [ArabicHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabicHelper__4946) | alaooy | PC / Mac | 1.0.0 |
@@ -248,7 +248,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ArchiveAdvisor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/NPViral/ArchiveAdvisor__4787) | NPViral | PC / Mac | 1.0.1 |
 | [ArcTech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTech__fd28ddff-8837-4702-8beb-110fee70b432) | Scribe_Rob | Console | — |
 | [ArcTechv2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scribe_Rob/ArcTechv2__798e2650-33dc-48bb-80c5-8c09cabc36b5) | Scribe_Rob | Console | — |
-| [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.5.0 |
+| [Ardy's Off Balance Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/giga-chad/Ardy-s-Off-Balance-Tracker__4879) | giga'chad | PC / Mac | 1.6.1 |
 | [Are We Mounted](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DaWeedle/Are-We-Mounted__4134) | DaWeedle | PC / Mac | 1.0.0 |
 | [Are we there yet?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mitaa/Are-we-there-yet__2682) | Mitaa | PC / Mac | 0.6.4 |
 | [AreYouSlow?](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Th3rtythr33/AreYouSlow__11615176-cc74-452d-a5b3-cd3fe5272a2a) | Th3rtythr33 | Console | — |

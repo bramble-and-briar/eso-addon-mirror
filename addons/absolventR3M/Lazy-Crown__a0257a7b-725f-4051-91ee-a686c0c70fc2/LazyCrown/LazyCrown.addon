@@ -1,0 +1,20 @@
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+
+## Title: Lazy Crown
+## Author: absolventR3M
+## Version: 0.1.1
+## AddOnVersion: 3
+## APIVersion: 101050 101051
+## Description: Too lazy to lead? In Cyrodiil, Lazy Crown randomly picks your next keep, resource, town or outpost to take, or a keep or outpost to defend, keeps a scoreboard, and comes with personalities. Wheel entries via LibRadialMenu, or /lazycrown in Text Chat. Instructions: Main Menu > Add-Ons > Lazy Crown.
+## DependsOn: LibRadialMenu>=9
+## OptionalDependsOn: LibHarvensAddonSettings LibGroupCombatStats
+## SavedVariables: LazyCrownSV
+
+LazyCrown.lua
+QuestData.lua
+Personalities.lua
+Group.lua
+Travel.lua

@@ -1,6 +1,6 @@
 UAssistant = {
     addonName = "UniversalAssistant",
-    version = "1.0.1",
+    version = "1.0.2",
     Localization = {
         defaultLanguage = "en",
         languages = {},

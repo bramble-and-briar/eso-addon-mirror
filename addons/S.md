@@ -45,6 +45,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Scroll List Example](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/pills/Scroll-List-Example__569) | pills | PC / Mac | 2.0.3 |
 | [Scrollkeeper Guild Tools](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wolfstar/Scrollkeeper-Guild-Tools__4423) | wolfstar | PC / Mac | 1.4 |
 | [Scrooge McDuck](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mcouture/Scrooge-McDuck__1144) | mcouture | PC / Mac | 1.1 |
+| [Scry Master](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheGreyWolf98/Scry-Master__899e2487-496c-40d0-9a7e-dad95a1807fc) | TheGreyWolf98 | Console | — |
 | [ScrySpy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScrySpy__2647) | Sharlikran | PC / Mac | 1.44 |
 | [ScuttleBuddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sharlikran/ScuttleBuddy__2719) | Sharlikran | PC / Mac | 1.14 |
 | [Seamstress](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Seamstress__8bc4c7c2-ee0d-488d-a3b5-ecab07912f95) | SugaComa | Console | — |
@@ -147,8 +148,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [SimpleClock](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sunoo/SimpleClock__1017) | Sunoo | PC / Mac | 1.2 |
 | [Simpleclock Console](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Simpleclock-Console__765c8914-fa3a-4662-8b55-9edead0f309a) | j.hhh | Console | — |
 | [SimpleDailyCraft](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MelanAster/SimpleDailyCraft__3844) | MelanAster | PC / Mac | 0.93 |
-| [SimpleDailyCraft 0.96 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.96-U51-FIX__4898) | VotMyID | PC / Mac | 0.96 |
 | [SimpleDailyCraft 0.97 (0.96 + New Alchemy Regs)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sinnereso/SimpleDailyCraft-0.97-0.96-New-Alchemy-Regs__4945) | sinnereso | PC / Mac | 0.97 |
+| [SimpleDailyCraft 0.97 — U51 FIX](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VotMyID/SimpleDailyCraft-0.97-U51-FIX__4898) | VotMyID | PC / Mac | 0.97 |
 | [SimpleDPS Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AndrewRossProjects/SimpleDPS-Meter__2849) | AndrewRossProjects | PC / Mac | 4.1.101042 |
 | [SimpleHelmetToggle](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DeanGrey/SimpleHelmetToggle__374) | DeanGrey | PC / Mac | 0.4d |
 | [SimplePlayTime](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/GrumpyEthilin/SimplePlayTime__4452) | GrumpyEthilin | PC / Mac | 1.1.3 |

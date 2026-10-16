@@ -402,7 +402,7 @@ local function CompleteProcess()
         StackBankContents()
     end
 
-    if GetSettings().stackBackpackOnOpen then
+    if autoBanking.interactionKind ~= "guild" and GetSettings().stackBackpackOnOpen then
         StackBag(BAG_BACKPACK)
     end
 

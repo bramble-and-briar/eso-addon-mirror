@@ -109,22 +109,37 @@ local function CheckIngredients(result, writ, recipeLink, recipeListIndex, recip
             local _, _, requiredQuantity = GetRecipeIngredientItemInfo(recipeListIndex, recipeIndex, ingredientIndex)
             table.insert(materials, {
                 link = GetRecipeIngredientItemLink(recipeListIndex, recipeIndex, ingredientIndex, LINK_STYLE_DEFAULT),
-                needed = requiredQuantity * crafts,
+                perCraft = requiredQuantity,
             })
         end
     elseif recipeLink then
-        -- Without the recipe list the game only counts the backpack and bank.
+        -- The recipe item lists its ingredients whether or not the recipe is known, as on the recipe's own tooltip.
         for ingredientIndex = 1, GetItemLinkRecipeNumIngredients(recipeLink) do
             local name, owned, requiredQuantity = GetItemLinkRecipeIngredientInfo(recipeLink, ingredientIndex)
-            table.insert(materials, {
-                name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name),
-                owned = owned,
-                needed = requiredQuantity * crafts,
-            })
+            local link = GetItemLinkRecipeIngredientItemLink(recipeLink, ingredientIndex, LINK_STYLE_DEFAULT)
+            if link ~= "" then
+                table.insert(materials, { link = link, perCraft = requiredQuantity })
+            else
+                -- Without the ingredient's link, only the game's own count is left: backpack and bank, no craft bag.
+                table.insert(materials, {
+                    name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name),
+                    owned = owned,
+                    perCraft = requiredQuantity,
+                })
+            end
         end
     end
 
-    if #materials > 0 then
+    -- An amount the game didn't give must never read as "in stock".
+    local amountsKnown = #materials > 0
+    for _, material in ipairs(materials) do
+        if not material.perCraft or material.perCraft <= 0 or (material.link == "" and not material.name) then
+            amountsKnown = false
+        end
+        material.needed = (material.perCraft or 0) * crafts
+    end
+
+    if amountsKnown then
         result:AddMaterials(materials)
     else
         result:Unknown(Result.CATEGORY_MATERIALS, GetString(SI_CCMW_MATERIAL_AMOUNT_UNKNOWN), Util.ItemName(dishLink))
@@ -138,5 +153,11 @@ function Provisioning.Evaluate(writ, result)
 
     CheckRecipeKnown(result, recipeLink, recipeListIndex, recipeIndex, dishLink)
     CheckSkills(result, recipeLink, recipeListIndex, recipeIndex)
+
+    -- The recipe list gives no ingredient amounts for a recipe the character doesn't know (such a writ read
+    -- "Materials in Stock" without the ingredients), so those are read from the recipe item instead.
+    if recipeListIndex and not GetRecipeInfo(recipeListIndex, recipeIndex) then
+        recipeListIndex, recipeIndex = nil, nil
+    end
     CheckIngredients(result, writ, recipeLink, recipeListIndex, recipeIndex, dishLink)
 end

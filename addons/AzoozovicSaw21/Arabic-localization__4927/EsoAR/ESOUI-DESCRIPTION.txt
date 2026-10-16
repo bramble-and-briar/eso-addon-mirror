@@ -1,0 +1,29 @@
+AI disclosure: OpenAI Codex/ChatGPT was used to generate and revise parts of this addon's code and to assist with debugging and Arabic translation corrections. Automated checks have been performed, but complete in-game correctness, performance and compatibility have not been verified.
+
+ESO Arabic — PC edition
+Author: AzoozovicSaw21
+
+Unofficial Arabic localization for The Elder Scrolls Online on PC. Includes Arabic language resources, Arabic fonts, and Arabic text shaping/layout support for supported keyboard and controller UI controls. This is not a console upload package.
+
+Dependencies: No required external addon libraries. Optional compatibility support for AwesomeGuildStore and LootDrop; these addons and LibGetText are not bundled.
+
+Installation: Extract the three folders EsoAR, EsoUI and gamedata directly into your active live/AddOns folder. Preserve the directory structure. When upgrading from the .addon edition, move only EsoAR/EsoAR.addon to a backup location outside AddOns; this PC package uses EsoAR/EsoAR.txt. Keep SavedVariables and other addons. Do not delete the shared EsoUI or gamedata folders.
+Enable ESO Arabic. /ar selects Arabic and /en selects English. Restart ESO after installing language files. Switch to English before uninstalling the language pack.
+
+Included formats: .lua and .xml provide addon logic and font definitions; .slug files are converted fonts; .lang and .str files contain game/client localization; language companion .lua files are retained from the existing release. No executables, DLLs, installers or external clients are bundled.
+
+Limitations: Arabic coverage and RTL layout are incomplete. Some native/internal UI text, including excavation/scrying prompts, remains English. This revision addresses publishing format and redundant string guards; it does not claim to fix those remaining gameplay UI issues. New game content requires updated translation data. No future-update or full-compatibility guarantee is made.
+
+Credits and attribution
+
+ESO Arabic project author and maintainer: AzoozovicSaw21.
+OpenAI Codex/ChatGPT assisted with code generation, debugging, packaging and translation corrections. AI assistance does not establish that all code or translations have been verified in game.
+
+Fonts: Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic).
+ArabicUI.slug and ArabicUIBold.slug are modified/converted Noto Sans Arabic fonts, internally renamed ESO Arabic Visual. Changes include fixed weights, visual-order shaping adjustments and private-use lam-alef aliases. The complete SIL Open Font License 1.1 is included at fonts/OFL-NotoSansArabic.txt and applies to these fonts.
+
+The Elder Scrolls Online, its original text, interface definitions and related intellectual property belong to ZeniMax Online Studios/Bethesda and their respective owners. This is an unofficial fan localization, not an official translation or endorsement. Game-derived language resources are not claimed as original project assets.
+ESOUI API documentation and the ZOS interface source were used as implementation references: https://wiki.esoui.com/ and https://github.com/esoui/esoui
+Thanks to Baertram for ESOUI publishing and SafeAddString review feedback.
+
+Optional compatibility targets: AwesomeGuildStore, LootDrop and LibGetText; credit belongs to their respective authors. These projects are not bundled and are not required dependencies. Compatibility support does not imply their endorsement.

@@ -1,6 +1,6 @@
 -- Alchemy master writs: 16 potions or poisons with three required effects.
 -- Finds every three-reagent combination that makes exactly those effects, picks the one the character has the
--- most of, then checks Solvent Proficiency, the third reagent slot and the solvent and reagents in stock.
+-- most of, then checks the reagents in stock, Solvent Proficiency, the third reagent slot and the solvent in stock.
 -- Same approach as Dolgubon's Lazy Writ Crafter (alchemy.lua), written independently.
 
 local addon = CanCraftMasterWrit
@@ -138,11 +138,27 @@ function Alchemy.Evaluate(writ, result)
     local combinations = Alchemy.FindCombinations(writ.effects)
     local combination = PickCombination(combinations, crafts)
     if combination then
-        local names = {}
+        -- One reagent per line under the label: the name alone when there is enough of it, otherwise "name: have/need"
+        -- like any missing item. Reagents are materials, so with the Materials filter off only the names are given.
+        local countReagents = addon.Settings.IsCategoryChecked(Result.CATEGORY_MATERIALS)
+        local reagents, anyMissing = {}, false
         for _, reagentId in ipairs(combination) do
-            table.insert(names, Util.ItemName(Util.ItemLink(reagentId)))
+            local link = Util.ItemLink(reagentId)
+            local owned = Util.CountOwned(link)
+            if countReagents and owned < crafts then
+                anyMissing = true
+                table.insert(reagents, Result.Detail(Util.ItemName(link), Result.Count(owned, crafts)))
+            else
+                table.insert(reagents, Result.Detail(Util.ItemName(link)))
+            end
         end
-        result:Info(Result.CATEGORY_REAGENTS, GetString(SI_CCMW_REAGENTS), table.concat(names, " + "))
+        if not countReagents then
+            result:Info(Result.CATEGORY_REAGENTS, GetString(SI_CCMW_REAGENTS), nil, reagents)
+        elseif anyMissing then
+            result:Fail(Result.CATEGORY_REAGENTS, GetString(SI_CCMW_REAGENTS_MISSING), nil, reagents)
+        else
+            result:Pass(Result.CATEGORY_REAGENTS, GetString(SI_CCMW_REAGENTS_OK), nil, reagents)
+        end
     else
         result:Unknown(Result.CATEGORY_REAGENTS, GetString(SI_CCMW_REAGENTS_NONE))
     end
@@ -160,9 +176,6 @@ function Alchemy.Evaluate(writ, result)
         },
     })
 
-    local materials = { { link = solventLink, needed = crafts } }
-    for _, reagentId in ipairs(combination or {}) do
-        table.insert(materials, { link = Util.ItemLink(reagentId), needed = crafts })
-    end
-    result:AddMaterials(materials)
+    -- The reagents are counted on their own line above.
+    result:AddMaterials({ { link = solventLink, needed = crafts } })
 end

@@ -20,6 +20,7 @@ local LibCombat
 local Performance = LiveBuffUptimePerformance
 local BuffDebug = LiveBuffUptimeBuffDebug
 local BuffReports = LiveBuffUptimeReports
+local GroupPanels = LiveBuffUptimeGroupPanels
 local function beginBuffDebug(time)
     if not BuffDebug or not BuffDebug.active then return end
     BuffDebug.BeginFight(time)
@@ -45,6 +46,7 @@ local abilityNameCache = {}
 local groupEffects = {}
 local unlocked = false
 local moveOverlay, selectedTracker
+local selectedPanelKey
 local previousUIMode, previousCameraMode, lastMoveInputAt, moveLastX, moveLastY
 local moveDragging = false
 local draftId = ""
@@ -57,6 +59,7 @@ local unitItems = {
     { name = unitNames.player, data = "player" },
     { name = unitNames.group, data = "group" },
     { name = unitNames.dds, data = "dds" },
+    { name = unitNames.reticleover, data = "reticleover" },
 }
 local function unitLabel(config)
     return unitNames[config.unit == "group" and config.groupRole == "damage" and "dds" or config.unit]
@@ -115,6 +118,14 @@ local function findEffect(config, effects)
     return result
 end
 
+local function enemyEffectTag(unitTag, unitId)
+    if unitTag:match("^boss%d+$") then return true end
+    if unitTag == "" then return BuffReports and BuffReports.IsEnemy(unitId) end
+    if unitTag ~= "reticleover" or AreUnitsCurrentlyAllied("player", unitTag) then return false end
+    if IsUnitAttackable and IsUnitAttackable(unitTag) then return true end
+    return GetUnitReaction and UNIT_REACTION_HOSTILE ~= nil and GetUnitReaction(unitTag) == UNIT_REACTION_HOSTILE
+end
+
 local function readEffects(unitTag, now)
     local effects = {}
     if not DoesUnitExist(unitTag) then return effects end
@@ -138,6 +149,7 @@ end
 
 local function seedPrebuff(tracker, now)
     tracker.prebuff, tracker.prebuffExpires = nil, nil
+    tracker.finalDebuffResult = nil
     if liveUptimeMode then
         if tracker.config.enabled ~= false then
             LiveUptime.Seed(liveUptimeFight, tracker, now, matches)
@@ -335,7 +347,22 @@ local function render(tracker, now, sceneVisible)
     end
     local percent = 0
     if liveUptimeMode then
-        tracker.liveUptimeResult = LiveUptime.Calculate(liveUptimeFight, tracker, liveUptimePlayerId, liveUptimeTargetId)
+        local targetId = liveUptimeTargetId
+        if tracker.config.unit == "reticleover" then
+            if liveUptimeFight and liveUptimeFight.running and targetId then tracker.lastLiveTargetId = targetId end
+            -- PC LibCombat has no target lookup; reticle loss must not discard a confirmed enemy's data.
+            if liveUptimeFight and not liveUptimeFight.running then targetId = tracker.lastLiveTargetId or targetId
+            else targetId = targetId or tracker.lastLiveTargetId end
+        end
+        tracker.liveUptimeResult = LiveUptime.Calculate(liveUptimeFight, tracker, liveUptimePlayerId, targetId)
+        if tracker.config.unit == "reticleover" and BuffReports and liveUptimeFight then
+            local shared = BuffReports.DebuffResult(tracker.config.id, targetId,
+                liveUptimeFight.combatstart, liveUptimeFight.encounterEnds)
+            if shared then tracker.liveUptimeResult = shared end
+        end
+        if tracker.config.unit == "reticleover" and tracker.finalDebuffResult then
+            tracker.liveUptimeResult = tracker.finalDebuffResult
+        end
         percent = tracker.liveUptimeResult.percent
     elseif tracker.config.unit == "group" then
         percent = cooldownProfile(tracker.config) and tracker.config.excludeCooldown ~= false
@@ -382,7 +409,8 @@ local function render(tracker, now, sceneVisible)
     tracker.border:SetEdgeColor(selectedTracker == tracker and 0.35 or 1, 1, selectedTracker == tracker and 0.55 or 1, 0.85)
     local showCombat = tracker.config.unit == "group" and tracker.group.running or inCombat
     if sceneVisible == nil then sceneVisible = hudVisible() end
-    tracker.window:SetHidden(not (unlocked or (sceneVisible and (not settings.combatOnly or showCombat))))
+    tracker.window:SetHidden(not ((tracker.config.showHud ~= false or moving)
+        and (unlocked or (sceneVisible and (not settings.combatOnly or showCombat)))))
 end
 
 local function createTracker(config)
@@ -463,7 +491,7 @@ local function createTracker(config)
     tracker.coverage:SetColor(0.85, 0.9, 0.95, 1)
     tracker.coverage:SetHidden(true)
     position(tracker)
-    window:SetHidden(config.enabled == false)
+    window:SetHidden(config.enabled == false or config.showHud == false)
     trackers[#trackers + 1] = tracker
     refreshEnabledTrackers()
     return tracker
@@ -471,6 +499,11 @@ end
 
 update = function(targetChanged, sampleOnly)
     local now = nowSeconds()
+    if liveUptimeMode and LibCombat and LibCombat.GetTargetUnitId then
+        local targetId = LibCombat.GetTargetUnitId()
+        if targetId then liveUptimeTargetId = targetId
+        elseif DoesUnitExist and not DoesUnitExist("reticleover") then liveUptimeTargetId = nil end
+    end
     local snapshots = {}
     local roster, groupCombat
     for _, tracker in ipairs(enabledTrackers) do
@@ -569,6 +602,62 @@ update = function(targetChanged, sampleOnly)
             render(tracker, now)
         end
     end
+    if GroupPanels and not sampleOnly then
+        local panelMembers, enemyMembers, enemyEffects, panelGroupCombat
+        for _, tracker in ipairs(trackers) do
+            if GroupPanels.Enabled(tracker) then
+                if tracker.config.groupPanel.target == "enemies" then
+                    if not enemyMembers then
+                        enemyMembers, enemyEffects = {}, {}
+                        local tags = {"boss1", "boss2", "boss3", "boss4", "boss5", "boss6", "reticleover"}
+                        for _, tag in ipairs(tags) do
+                            local duplicate = false
+                            for _, member in ipairs(enemyMembers) do
+                                if AreUnitsEqual and AreUnitsEqual(tag, member.tag) then duplicate = true; break end
+                            end
+                            if not duplicate and DoesUnitExist(tag) and not AreUnitsCurrentlyAllied("player", tag) then
+                                enemyMembers[#enemyMembers + 1] = { tag = tag, name = zo_strformat("<<C:1>>", GetUnitName(tag)),
+                                    available = true, dead = IsUnitDead(tag) }
+                                enemyEffects[tag] = readEffects(tag, now)
+                            end
+                        end
+                    end
+                elseif not panelMembers then
+                    panelMembers = {}
+                    roster = roster or groupRoster()
+                    for _, member in ipairs(roster) do
+                        panelGroupCombat = panelGroupCombat or member.inCombat
+                        local isSelf = member.tag == "player" or (AreUnitsEqual and AreUnitsEqual(member.tag, "player"))
+                        local distant = member.available and not isSelf and IsUnitInGroupSupportRange
+                            and IsUnitInGroupSupportRange(member.tag) == false or false
+                        panelMembers[#panelMembers + 1] = { tag = member.tag, key = member.key, role = member.role, dead = member.dead,
+                            available = member.available, distant = distant, name = (GetUnitDisplayName and GetUnitDisplayName(member.tag))
+                                or (GetUnitName and GetUnitName(member.tag)) or member.key }
+                        if not snapshots[member.tag] then snapshots[member.tag] = readGroupEffects(member, now) end
+                    end
+                end
+            end
+        end
+        for _, tracker in ipairs(trackers) do
+            local enemies = tracker.config.groupPanel and tracker.config.groupPanel.target == "enemies"
+            local function panelEffect(config, effects, member)
+                local effect = findEffect(config, effects)
+                if effect or enemies or not liveUptimeMode or not inCombat or libraryFightClosed then return effect end
+                local recipient = liveUptimeFight and liveUptimeFight.groupMembers and liveUptimeFight.groupMembers[member.key]
+                local data = recipient and tracker.liveUptimeUnits and tracker.liveUptimeUnits[recipient.id or member.key]
+                for _, slot in pairs(data and data.slots or {}) do
+                    if matches(config, slot.ability) and (not slot.expires or slot.expires > now) then
+                        if not effect then effect = {starts = now, ends = slot.expires or 0}
+                        else effect.ends = (effect.ends == 0 or not slot.expires) and 0 or math.max(effect.ends, slot.expires) end
+                    end
+                end
+                return effect
+            end
+            GroupPanels.Render(tracker, (enemies and enemyMembers or panelMembers) or {}, enemies and enemyEffects or snapshots, now,
+                hudVisible() and (not settings.combatOnly or inCombat or groupCombat or panelGroupCombat),
+                unlocked and selectedTracker == tracker.groupPanel, panelEffect, displayName(tracker.config.id))
+        end
+    end
 end
 
 selectTracker = function(tracker)
@@ -596,8 +685,8 @@ local function moveUpdate()
     local stickY = GetGamepadRightStickY and GetGamepadRightStickY(GAMEPAD_INCLUDE_DEADZONE) or 0
     local config = selectedTracker.config
     if not moveDragging and (math.abs(stickX) >= 0.05 or math.abs(stickY) >= 0.05) then
-        config.x = math.max(0, math.min(math.max(0, GuiRoot:GetWidth() - 164 * config.scale), x + stickX * 22))
-        config.y = math.max(0, math.min(math.max(0, GuiRoot:GetHeight() - 48 * config.scale), y - stickY * 22))
+        config.x = math.max(0, math.min(math.max(0, GuiRoot:GetWidth() - frame:GetWidth() * config.scale), x + stickX * 22))
+        config.y = math.max(0, math.min(math.max(0, GuiRoot:GetHeight() - frame:GetHeight() * config.scale), y - stickY * 22))
         position(selectedTracker)
         savePosition(selectedTracker)
         lastMoveInputAt = now
@@ -646,7 +735,8 @@ setUnlocked = function(value)
             previousCameraMode = IsGameCameraUIModeActive and IsGameCameraUIModeActive() or false
             SetGameCameraUIMode(true)
         end
-        selectedTracker = selectedTracker and selectedTracker.config.enabled ~= false and selectedTracker or enabledTrackers[1]
+        selectedTracker = selectedTracker and selectedTracker.config.enabled ~= false
+            and (not selectedTracker.owner or selectedTracker.owner.config.enabled ~= false) and selectedTracker or enabledTrackers[1]
         lastMoveInputAt = nowSeconds()
         moveLastX, moveLastY = selectedTracker.window:GetLeft(), selectedTracker.window:GetTop()
         moveDragging = false
@@ -654,6 +744,7 @@ setUnlocked = function(value)
     end
     moveOverlay:SetHidden(not value)
     if not value then
+        if selectedTracker then selectedTracker.window:StopMovingOrResizing(); savePosition(selectedTracker) end
         for _, tracker in ipairs(trackers) do
             tracker.window:StopMovingOrResizing()
             savePosition(tracker)
@@ -692,6 +783,8 @@ local function resetMeasurements(at, preserveGroup)
         if not preserveGroup then tracker.group = Group.New(now) end
         tracker.scope = Meter.NewScope()
         tracker.liveUptimeUnits = {}
+        tracker.lastLiveTargetId = nil
+        tracker.finalDebuffResult = nil
         seedPrebuff(tracker, now)
     end
     update()
@@ -760,6 +853,10 @@ local function addTracker()
 end
 
 local function removeTracker(tracker)
+    if tracker.groupPanel then
+        if unlocked and selectedTracker == tracker.groupPanel then setUnlocked(false) end
+        tracker.groupPanel.window:SetHidden(true)
+    end
     tracker.window:StopMovingOrResizing()
     tracker.window:SetHidden(true)
     tracker.window:SetMouseEnabled(false)
@@ -772,7 +869,7 @@ local function removeTracker(tracker)
         end
     end
     refreshEnabledTrackers()
-    if selectedTracker == tracker then selectTracker(enabledTrackers[1]) end
+    if selectedTracker == tracker or selectedTracker == tracker.groupPanel then selectTracker(enabledTrackers[1]) end
     if #enabledTrackers == 0 and unlocked then setUnlocked(false) end
     zo_callLater(refreshSettings, 0)
 end
@@ -807,8 +904,72 @@ refreshSettings = function(openSection, selectedLabel)
           setFunction = function(_, _, item) draftUnit = item.data end },
         { type = lib.ST_BUTTON, label = "Tracker hinzufuegen", buttonText = "Hinzufuegen", clickHandler = addTracker },
     }
+    if GroupPanels then
+        local items = {}
+        for _, tracker in ipairs(trackers) do
+            items[#items + 1] = { name = displayName(tracker.config.id) .. " (" .. tracker.config.id .. ") - " .. unitLabel(tracker.config),
+                data = tracker.config.key }
+        end
+        local function chosen()
+            for _, tracker in ipairs(trackers) do if tracker.config.key == selectedPanelKey then return tracker end end
+            return trackers[1]
+        end
+        local function config()
+            local tracker = chosen()
+            return tracker and GroupPanels.Config(tracker)
+        end
+        local function disabled() local tracker = chosen(); return not tracker or tracker.config.enabled == false end
+        local function panelDisabled() return disabled() or not config().enabled end
+        local panelSettings = {
+            { type = lib.ST_SECTION, label = "Group Panel" },
+            { type = lib.ST_DROPDOWN, label = "Panel-Tracker", items = items, disable = function() return #items == 0 end,
+                getFunction = function()
+                    local tracker = chosen()
+                    for _, item in ipairs(items) do if tracker and item.data == tracker.config.key then return item.name end end
+                    return "Kein Tracker"
+                end,
+                setFunction = function(_, _, item)
+                    if unlocked and selectedTracker and selectedTracker.owner then setUnlocked(false) end
+                    selectedPanelKey = item.data
+                    update()
+                    zo_callLater(function() refreshSettings("groupPanel") end, 0)
+                end },
+            { type = lib.ST_CHECKBOX, label = "Gruppenpanel anzeigen", disable = disabled,
+                getFunction = function() return config() and config().enabled or false end,
+                setFunction = function(value)
+                    local tracker = chosen()
+                    if not tracker then return end
+                    if unlocked and selectedTracker == tracker.groupPanel then setUnlocked(false) end
+                    config().enabled = value and true or false
+                    update()
+                end },
+            { type = lib.ST_DROPDOWN, label = "Panel-Ziel", disable = disabled,
+                items = {{name = "Gruppe", data = "group"}, {name = "Gegner", data = "enemies"}},
+                getFunction = function() return config() and config().target == "enemies" and "Gegner" or "Gruppe" end,
+                setFunction = function(_, _, item) if config() then config().target = item.data; update() end end },
+            { type = lib.ST_BUTTON, label = "Group Panel Move UI", buttonText = "Panel verschieben", disable = panelDisabled,
+                clickHandler = function()
+                    local tracker = chosen()
+                    if not tracker or panelDisabled() then return end
+                    local proxy = GroupPanels.Create(tracker, displayName(tracker.config.id))
+                    selectTracker(proxy); setUnlocked(true)
+                end },
+            { type = lib.ST_SLIDER, label = "Panelgroesse", min = 0.5, max = 2, step = 0.05, disable = panelDisabled,
+                getFunction = function() return config() and config().scale or 1 end,
+                setFunction = function(value)
+                    local tracker = chosen()
+                    if not tracker then return end
+                    config().scale = value
+                    position(GroupPanels.Create(tracker, displayName(tracker.config.id)))
+                    update()
+                end },
+        }
+        for index, descriptor in ipairs(panelSettings) do table.insert(descriptors, index + 2, descriptor) end
+    end
     for index, descriptor in ipairs(descriptors) do
-        if descriptor.type == lib.ST_SECTION then sectionIndexes.new = index end
+        if descriptor.type == lib.ST_SECTION then
+            if descriptor.label == "Group Panel" then sectionIndexes.groupPanel = index else sectionIndexes.new = index end
+        end
     end
     for _, item in ipairs(trackers) do
         local tracker = item
@@ -819,7 +980,7 @@ refreshSettings = function(openSection, selectedLabel)
         descriptors[#descriptors + 1] = { type = lib.ST_CHECKBOX, label = "Buff aktiv",
             getFunction = function() return config.enabled ~= false end,
             setFunction = function(value)
-                if selectedTracker == tracker and unlocked then setUnlocked(false) end
+                if (selectedTracker == tracker or selectedTracker == tracker.groupPanel) and unlocked then setUnlocked(false) end
                 config.enabled = value and true or false
                 tracker.state = Meter.New(nowSeconds())
                 tracker.immunityState = Meter.New(nowSeconds())
@@ -829,11 +990,23 @@ refreshSettings = function(openSection, selectedLabel)
                 tracker.liveUptimeUnits = {}
                 seedPrebuff(tracker, nowSeconds())
                 refreshEnabledTrackers()
-                tracker.window:SetHidden(config.enabled == false)
+                tracker.window:SetHidden(config.enabled == false or config.showHud == false)
                 tracker.window:SetMouseEnabled(false)
                 if selectedTracker == tracker and not config.enabled then selectedTracker = enabledTrackers[1] end
                 update()
             end }
+        descriptors[#descriptors + 1] = { type = lib.ST_CHECKBOX, label = "Im HUD anzeigen",
+            tooltip = "Nur die Bildschirmanzeige. Der aktive Tracker wird auch ohne HUD weiter gemessen.",
+            getFunction = function() return config.showHud ~= false end,
+            setFunction = function(value)
+                if selectedTracker == tracker and unlocked then setUnlocked(false) end
+                config.showHud = value and true or false
+                update()
+            end }
+        descriptors[#descriptors + 1] = { type = lib.ST_CHECKBOX, label = "In Kampfstatistiken anzeigen",
+            tooltip = "Diesen aktiven Tracker in zukuenftige Kampfberichte aufnehmen. Unabhaengig von der HUD-Anzeige.",
+            getFunction = function() return config.showInReports ~= false end,
+            setFunction = function(value) config.showInReports = value and true or false end }
         descriptors[#descriptors + 1] = { type = lib.ST_BUTTON, label = "Move UI",
             buttonText = "Icon verschieben",
             tooltip = "Diesen Tracker verschieben. Endet nach 3 Sekunden ohne Bewegung.",
@@ -843,7 +1016,7 @@ refreshSettings = function(openSection, selectedLabel)
                 selectTracker(tracker); setUnlocked(true)
             end }
         descriptors[#descriptors + 1] = { type = lib.ST_DROPDOWN, label = "Einheit", items = unitItems,
-            tooltip = "Auf mir: persoenlich. Gruppe: alle Mitglieder. Nur DDs: Spieler mit ausgewaehlter Schadensrolle, auch ohne Buff.",
+            tooltip = "Auf mir: persoenlich. Gruppe: alle Mitglieder. Nur DDs: Schadensrolle, auch ohne Buff. Auf dem Gegner: anvisierter feindlicher Gegner.",
             getFunction = function() return unitLabel(config) end,
             setFunction = function(_, _, entry)
                 config.unit = entry.data == "dds" and "group" or entry.data
@@ -976,7 +1149,7 @@ local function registerLibCombat()
         for _, name in ipairs(liveUptimeEvents) do
             local eventName = name
             if string.find(name, "EFFECTS") then
-                registerCombatEvent(NAME, libConstant(name), function(_, timeMS, unitId, id, changeType, _, stacks, sourceType, slot)
+                registerCombatEvent(NAME, libConstant(name), function(_, timeMS, unitId, id, changeType, effectType, stacks, sourceType, slot)
                     if libraryFightClosed then
                         return
                     end
@@ -1001,6 +1174,8 @@ local function registerLibCombat()
                     end
                     local own = sourceType == COMBAT_UNIT_TYPE_PLAYER
                     LiveUptime.Remember(unit, id, slot, changeType ~= EFFECT_RESULT_FADED, own, stacks, sourceType)
+                    local reported = false
+                    local debugged = false
                     for _, tracker in ipairs(enabledTrackers) do
                         local groupDead = false
                         if tracker.config.unit == "group" then
@@ -1010,7 +1185,23 @@ local function registerLibCombat()
                         end
                         if matches(tracker.config, id) and not groupDead and not (unitId == liveUptimePlayerId and not liveUptimeFight.aliveSince
                             and tracker.config.unit == "player" and LiveUptime.PersonalBasis(liveUptimeFight, tracker.config) == "alive") then
+                            if not debugged and LiveBuffUptimeEnemyDebug and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF then
+                                local accepted = (eventName == "EVENT_EFFECTS_OUT" or eventName == "EVENT_GROUPEFFECTS_OUT")
+                                    and not unit.player and unit.kind ~= COMBAT_UNIT_TYPE_PLAYER and unit.kind ~= COMBAT_UNIT_TYPE_GROUP
+                                    and not LiveUptime.IsPet(unit.kind)
+                                LiveBuffUptimeEnemyDebug.Effect(tracker.config.id, unitId, time, changeType, slot, nil,
+                                    LibCombat.name or "LibCombat", eventName, accepted)
+                                debugged = true
+                            end
                             LiveUptime.Effect(liveUptimeFight, tracker, time, unitId, id, slot, changeType ~= EFFECT_RESULT_FADED, own, stacks, sourceType)
+                            if not reported and BuffReports and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF
+                                and (eventName == "EVENT_EFFECTS_OUT" or eventName == "EVENT_GROUPEFFECTS_OUT")
+                                and not unit.player and unit.kind ~= COMBAT_UNIT_TYPE_PLAYER and unit.kind ~= COMBAT_UNIT_TYPE_GROUP
+                                and not LiveUptime.IsPet(unit.kind) then
+                                -- Effects may precede damage; the final report filters to confirmed enemy IDs.
+                                BuffReports.RecordDebuff(tracker.config.id, unitId, unit.name, slot, time, nil, changeType ~= EFFECT_RESULT_FADED)
+                                reported = true
+                            end
                         end
                     end
                 end)
@@ -1059,7 +1250,30 @@ local function registerLibCombat()
             finalDuration = liveUptimeFight.starts and liveUptimeFight.ends and math.max(1, liveUptimeFight.ends - liveUptimeFight.starts) or nil
             inCombat = false
             update()
-            if BuffReports then BuffReports.Capture(liveUptimeFight, enabledTrackers, liveUptimePlayerId, liveUptimeTargetId, displayName) end
+            local report = BuffReports and BuffReports.Capture(liveUptimeFight, enabledTrackers, liveUptimePlayerId, liveUptimeTargetId, displayName)
+            for _, tracker in ipairs(enabledTrackers) do
+                if tracker.config.unit == "reticleover" then
+                    local targetId = tracker.lastLiveTargetId or liveUptimeTargetId
+                    local result = tracker.liveUptimeResult
+                    for _, debuff in ipairs(report and report.debuffs or {}) do
+                        if debuff.id == tracker.config.id then
+                            for _, member in ipairs(debuff.members) do
+                                if member.id == targetId then
+                                    result = {covered = member.covered, duration = member.duration,
+                                        percent = member.duration > 0 and member.covered / member.duration * 100 or 0}
+                                    break
+                                end
+                            end
+                            break
+                        end
+                    end
+                    if result then
+                        tracker.finalDebuffResult = {covered = result.covered, duration = result.duration, percent = result.percent,
+                            targetId = targetId, starts = report and report.started, ends = report and report.ended, members = {}}
+                    end
+                end
+            end
+            update()
             if BuffDebug and BuffDebug.active then
                 BuffDebug.EndFight(liveUptimeFight.encounterEnds or liveUptimeFight.ends or nowSeconds())
             end
@@ -1265,7 +1479,12 @@ local function loaded(_, addonName)
             if not scene or not scene.GetName then return end
             if state == SCENE_SHOWING or state == SCENE_SHOWN or state == "showing" or state == "shown" then
                 local name = scene:GetName()
-                for _, tracker in ipairs(trackers) do render(tracker, nowSeconds(), name == "hud" or name == "hudui") end
+                for _, tracker in ipairs(trackers) do
+                    render(tracker, nowSeconds(), name == "hud" or name == "hudui")
+                    if tracker.groupPanel and name ~= "hud" and name ~= "hudui" and not tracker.groupPanel.moving then
+                        tracker.groupPanel.window:SetHidden(true)
+                    end
+                end
             end
         end)
     end
@@ -1283,7 +1502,9 @@ local function loaded(_, addonName)
         end
     end
     registerESOEvent(NAME, EVENT_RETICLE_TARGET_CHANGED, function()
-        if liveUptimeMode then liveUptimeTargetId = nil end
+        if liveUptimeMode then
+            liveUptimeTargetId = LibCombat and LibCombat.GetTargetUnitId and LibCombat.GetTargetUnitId() or nil
+        end
         update(true, true)
     end)
     if EVENT_UNIT_DEATH_STATE_CHANGED then
@@ -1331,7 +1552,19 @@ local function loaded(_, addonName)
         registerESOEvent(NAME, EVENT_GROUP_UPDATE, function() update(nil, true) end)
     end
     registerESOEvent(NAME, EVENT_EFFECT_CHANGED, function(_, changeType, slot, _, unitTag, starts, ends, stacks, icon, _, effectType, _, _, unitName, unitId, id, sourceType)
-        if type(unitTag) ~= "string" then return end
+        if type(unitTag) ~= "string" then unitTag = "" end
+        if LiveBuffUptimeEnemyDebug and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF
+            and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
+            for _, tracker in ipairs(enabledTrackers) do
+                if matches(tracker.config, id) then
+                    local accepted = enemyEffectTag(unitTag, unitId)
+                    if not accepted and unitTag == "" then accepted = "pending" end
+                    LiveBuffUptimeEnemyDebug.Effect(tracker.config.id, unitId, nowSeconds(), changeType, slot, ends,
+                        "ESO", unitTag, accepted)
+                    break
+                end
+            end
+        end
         if BuffReports and (unitTag == "player" or unitTag:match("^group%d+$"))
             and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
             for _, tracker in ipairs(enabledTrackers) do
@@ -1345,12 +1578,12 @@ local function loaded(_, addonName)
             BuffReports.ObserveBoss(unitTag, unitId, unitName)
         end
         if BuffReports and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF
-            and (unitTag:match("^boss%d+$") or (unitTag == "reticleover" and GetUnitReaction
-                and UNIT_REACTION_HOSTILE ~= nil and GetUnitReaction(unitTag) == UNIT_REACTION_HOSTILE))
+            and (enemyEffectTag(unitTag, unitId) or unitTag == "")
             and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
             for _, tracker in ipairs(enabledTrackers) do
                 if matches(tracker.config, id) then
                     local now = nowSeconds()
+                    -- Anonymous IDs remain provisional until the report confirms them through damage.
                     BuffReports.RecordDebuff(tracker.config.id, unitId, unitName, slot,
                         starts and starts > 0 and changeType == EFFECT_RESULT_GAINED and math.min(starts, now) or now,
                         ends, changeType ~= EFFECT_RESULT_FADED)
@@ -1378,11 +1611,37 @@ local function loaded(_, addonName)
                 or string.match(unitTag, "^group%d+companion$") and COMBAT_UNIT_TYPE_GROUP_COMPANION
             LiveUptime.Kind(liveUptimeFight, unitId, kind)
             if unitTag == "player" then liveUptimePlayerId = unitId end
-            if unitTag == "reticleover" then liveUptimeTargetId = unitId end
+            if unitTag == "reticleover" or (unitTag:match("^boss%d+$") and AreUnitsEqual
+                and AreUnitsEqual(unitTag, "reticleover")) then
+                liveUptimeTargetId = unitId
+                if inCombat and not libraryFightClosed then
+                    for _, tracker in ipairs(enabledTrackers) do
+                        if tracker.config.unit == "reticleover" then tracker.lastLiveTargetId = unitId end
+                    end
+                end
+            end
             if inCombat and not libraryFightClosed and LibCombat and LibCombat.RawEffect
                 and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
                 LibCombat.RawEffect(GetGameTimeMilliseconds(), unitId, id, changeType, effectType,
                     math.max(1, stacks or 1), sourceType, slot, kind, unitName)
+            end
+        end
+        if liveUptimeMode and inCombat and not libraryFightClosed and liveUptimeFight and liveUptimeFight.running
+            and unitId and slot and BUFF_EFFECT_TYPE_DEBUFF ~= nil and effectType == BUFF_EFFECT_TYPE_DEBUFF
+            and enemyEffectTag(unitTag, unitId)
+            and (changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FADED) then
+            -- The PC library need not forward native target effects. Use the same slot to merge both paths.
+            local now = nowSeconds()
+            for _, tracker in ipairs(enabledTrackers) do
+                if tracker.config.unit == "reticleover" and matches(tracker.config, id) then
+                    local recipient = LiveUptime.Touch(liveUptimeFight, unitId, now, COMBAT_UNIT_TYPE_OTHER)
+                    if recipient then
+                        LiveUptime.Remember(recipient, id, slot, changeType ~= EFFECT_RESULT_FADED,
+                            isOwnProc(nil, sourceType), stacks, sourceType)
+                        LiveUptime.Effect(liveUptimeFight, tracker, now, unitId, id, slot,
+                            changeType ~= EFFECT_RESULT_FADED, isOwnProc(nil, sourceType), stacks, sourceType, ends)
+                    end
+                end
             end
         end
         if changeType == EFFECT_RESULT_GAINED or (id == 167682 and changeType == EFFECT_RESULT_UPDATED) then
@@ -1439,7 +1698,8 @@ local function loaded(_, addonName)
             end
             if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED then
                 for _, tracker in ipairs(enabledTrackers) do
-                    if tracker.config.unit == "group" and matches(tracker.config, id) then
+                    if (tracker.config.unit == "group" or (GroupPanels and GroupPanels.Enabled(tracker)
+                        and tracker.config.groupPanel.target ~= "enemies")) and matches(tracker.config, id) then
                         relevantGroupEffect = true
                         groupEffects[key] = cached or {}
                         groupEffects[key][slot] = { id = id, starts = starts or nowSeconds(), ends = ends or 0, icon = icon }
@@ -1460,10 +1720,14 @@ local function loaded(_, addonName)
         update()
     end))
     SLASH_COMMANDS["/lbu"] = function(command)
+        local enemyDebugId, enemyDebugTarget = command:match("^debuffdebug%s+(%d+)%s+(%d+)$")
+        enemyDebugId = enemyDebugId or command:match("^debuffdebug%s+(%d+)$")
         local groupDebugId = command:match("^buffdebug group%s+(%d+)$")
         local quickId = command:match("^buffdebug%s+(%d+)$")
         local debugId = command:match("^buffdebug start%s+(%d+)$")
-        if command == "uptime" and BuffReports then
+        if enemyDebugId and LiveBuffUptimeEnemyDebug then
+            LiveBuffUptimeEnemyDebug.Report(tonumber(enemyDebugId), tonumber(enemyDebugTarget))
+        elseif command == "uptime" and BuffReports then
             if unlocked then setUnlocked(false) end
             BuffReports.Open()
         elseif (command == "buffdebug start" or debugId or quickId or groupDebugId) and BuffDebug then
@@ -1583,6 +1847,32 @@ local function loaded(_, addonName)
             if enabledTrackers[1] and enabledTrackers[1].config.unit == "player" then
                 d("Persoenliche Messbasis: " .. (result and result.personalTime == "alive" and "Lebendzeit (BattleScrolls)"
                     or result and result.personalTime == "unit" and "Einheitenzeit" or "Aktive Kampfzeit (CMX)"))
+            end
+            local targetEffects
+            for _, tracker in ipairs(enabledTrackers) do
+                if tracker.config.unit == "reticleover" then
+                    targetEffects = targetEffects or readEffects("reticleover", nowSeconds())
+                    local effect = findEffect(tracker.config, targetEffects)
+                    local live = tracker.liveUptimeResult
+                    local targetId = liveUptimeTargetId or tracker.lastLiveTargetId
+                    local unit = liveUptimeFight and liveUptimeFight.units[targetId]
+                    d(string.format("Debuff-Diagnose ID %d: ESO-Timer %s | HUD %.1f%% | Ziel-ID %s (%s) | Zieleinheit %s",
+                        tracker.config.id, effect and string.format("%.2fs", math.max(0, effect.ends - nowSeconds())) or "fehlt",
+                        tracker.displayPercent or 0, tostring(targetId), type(targetId), unit and "vorhanden" or "fehlt"))
+                    d(string.format("Debuff-Live: Buff %.3fs / Bezug %.3fs | Kampf %s bis %s | geschlossen %s",
+                        live and live.covered or 0, live and live.duration or 0,
+                        tostring(liveUptimeFight and liveUptimeFight.starts), tostring(liveUptimeFight and liveUptimeFight.ends),
+                        libraryFightClosed and "ja" or "nein"))
+                    local entries, count = {}, 0
+                    for id, data in pairs(tracker.liveUptimeUnits or {}) do
+                        count = count + 1
+                        if #entries < 6 then
+                            entries[#entries + 1] = string.format("%s (%s): %d Intervalle, offen %s", tostring(id), type(id),
+                                #data.all.intervals, tostring(data.all.starts))
+                        end
+                    end
+                    d(string.format("Debuff-Effektdaten: %d Einheiten | %s", count, #entries > 0 and table.concat(entries, " | ") or "keine"))
+                end
             end
         elseif command == "move" then
             setUnlocked(not unlocked)

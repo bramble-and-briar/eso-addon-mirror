@@ -240,34 +240,37 @@ end
 -- слово, которое есть в каждом четвёртом названии, ничего не различает
 function Guild:GetWayshrineWords()
     local nodes = Data:GetNodes()
-    if self.matchNodes == nodes then return self.wayshrineWords end
-    self.matchNodes, self.matchCache = nodes, {}
+    if self.matchNodes == nodes and self.wayshrineWords then return self.wayshrineWords end
+    -- Кэш поиска сбрасывается сразу; места запоминаются только в конце, чтобы
+    -- при сбое список собрался заново, а не остался пустым
+    self.matchCache = {}
 
     local entries, seen, total = {}, {}, 0
     for _, node in ipairs(nodes) do
         if node.type == Data.TYPE_WAYSHRINE then
             total = total + 1
-            local words = Words(node.originalName)
-            entries[#entries + 1] = { nodeIndex = node.nodeIndex, words = words }
-            for _, word in ipairs(words) do
+            local words, keys = Words(node.originalName), {}
+            for index, word in ipairs(words) do
                 local key = table.concat(word)
+                keys[index] = key
                 seen[key] = (seen[key] or 0) + 1
             end
+            entries[#entries + 1] = { nodeIndex = node.nodeIndex, words = words, keys = keys }
         end
     end
-    local limit = zo_max(3, total / 4)
+    local limit = zo_max(3, total / 4) or 3
     self.commonWords = {}
     for key, count in pairs(seen) do
         if count > limit then self.commonWords[key] = true end
     end
     for _, entry in ipairs(entries) do
         local distinct = {}
-        for _, word in ipairs(entry.words) do
-            if seen[table.concat(word)] <= limit then distinct[#distinct + 1] = word end
+        for index, word in ipairs(entry.words) do
+            if (seen[entry.keys[index]] or 0) <= limit then distinct[#distinct + 1] = word end
         end
-        entry.words = distinct
+        entry.words, entry.keys = distinct, nil
     end
-    self.wayshrineWords = entries
+    self.wayshrineWords, self.matchNodes = entries, nodes
     return entries
 end
 
@@ -593,13 +596,34 @@ function Guild:GetTraderWayshrine(guildId)
     local kiosk = self:GetKioskName(guildId)
     if not kiosk then return nil, L.REASON_NO_TRADER end
 
-    self:GetWayshrineWords()   -- сбрасывает кэш, если места пересобраны
+    pcall(self.GetWayshrineWords, self)   -- сбрасывает кэш, если места пересобраны
+    self.matchCache = self.matchCache or {}
     local cacheKey = "trader:" .. kiosk
     local cached = self.matchCache[cacheKey]
     local nodeIndex, source = QTM.sv.traderShrines[kiosk], "manual"
     if not nodeIndex and cached ~= nil then
         nodeIndex, source = cached and cached.nodeIndex, cached and cached.source
     elseif not nodeIndex then
+        -- Автопоиск не должен ломать интерфейс: при ошибке — «не найдено»,
+        -- святилище можно выбрать вручную
+        local ok, foundIndex, foundSource = pcall(self.SearchTraderWayshrine, self, guildId, kiosk)
+        if ok then
+            nodeIndex, source = foundIndex, foundSource
+        else
+            nodeIndex = nil
+            self.lastSearchError = foundIndex
+        end
+        self.matchCache[cacheKey] = nodeIndex and { nodeIndex = nodeIndex, source = source } or false
+    end
+    local node = nodeIndex and Data:GetNode(nodeIndex)
+    if not node then return nil, L.REASON_TRADER_UNKNOWN end
+    return node, source
+end
+
+-- Автопоиск святилища торговца (nodeIndex, откуда взято)
+function Guild:SearchTraderWayshrine(guildId, kiosk)
+    local nodeIndex, source
+    do
         local words, town = self:GetKioskTownWords(kiosk)
         nodeIndex, source = self:FindWayshrineByStem(town), "stem"
         if not nodeIndex then nodeIndex, source = self:FindWayshrineByTown(words), "town" end
@@ -611,11 +635,8 @@ function Guild:GetTraderWayshrine(guildId)
             nodeIndex = self:FindWayshrine(TraderLines(about)) or self:FindWayshrine(about)
             source = "description"
         end
-        self.matchCache[cacheKey] = nodeIndex and { nodeIndex = nodeIndex, source = source } or false
     end
-    local node = nodeIndex and Data:GetNode(nodeIndex)
-    if not node then return nil, L.REASON_TRADER_UNKNOWN end
-    return node, source
+    return nodeIndex, source
 end
 
 -- Выбор святилища торговца вручную (один раз — запоминается для этого торговца).
@@ -836,6 +857,7 @@ function Guild:Report(guildId, reason)
         local similar = self:SimilarNames(words, 5)
         out(zo_strformat(L.GUILD_DIAG_SIMILAR, wayshrines, #similar > 0 and table.concat(similar, "; ") or "-"))
         self:ReportBytes(out, town, words)
+        if self.lastSearchError then out("Mundus Gate debug: " .. tostring(self.lastSearchError)) end
     end
 end
 

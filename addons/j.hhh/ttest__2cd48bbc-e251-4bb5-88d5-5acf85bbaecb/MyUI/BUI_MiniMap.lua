@@ -239,7 +239,7 @@ function Mini.Settings_Init()
   end},
  }
  local panelName="9.  |t32:32:/esoui/art/icons/achievements_indexicon_exploration_up.dds|t"..BUI.Loc("MinimapHeader")
- if BUI.SettingsBridge and BUI.SettingsBridge.AddGroupedSection then
+ if false and BUI.SettingsBridge and BUI.SettingsBridge.AddGroupedSection then
   BUI.SettingsBridge.AddGroupedSection("BUI_BanditUI",{id="Minimap",name=panelName,order=9,options=options})
  end
  BUI.Menu.RegisterPanel("BUI_MenuMinimap",{type="panel",name=panelName})

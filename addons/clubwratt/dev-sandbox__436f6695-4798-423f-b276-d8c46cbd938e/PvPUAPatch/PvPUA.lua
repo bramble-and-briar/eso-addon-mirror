@@ -56,7 +56,10 @@ PvPUA.config.iconOutline = false
 --------------------------------------------------
 PvPUA.constants = {}
 PvPUA.constants.updateInterval = 1000
-PvPUA.constants.siegeTimeout = 5000
+-- Patch: how long an item stays on the list after the last activity (UA! flag dropped, last siege
+-- weapon gone, last kill-marker change). A reflag inside this window keeps the UA! timer running
+-- instead of restarting it. Upstream uses 5000.
+PvPUA.constants.siegeTimeout = 60000
 -- Kill tally (see "Kill Tally" section). Normalized map units on the Cyrodiil/IC zone map.
 PvPUA.constants.killAttachRadius = 0.04   -- a kill marker belongs to the nearest tracked location within this
 PvPUA.constants.killMatchRadius  = 0.008  -- two snapshots this close apart are the same marker
@@ -1982,9 +1985,20 @@ end
 --   CyroUpdateLoop / EVENT_KILL_LOCATIONS_UPDATED
 --     └─ KillTallyUpdate: read markers ─ match to last snapshot by position ─ credit deltas
 --   UpdateItem (per item, every tick)
---     └─ KillTallySync: interestingSince changed? ─ reseed from markers already on the item
---                       interestingSince nil?     ─ drop the tally
+--     └─ KillTallySync: joined the list? ─ seed from markers already on the item
+--                       left the list?   ─ drop the tally (a UA! timer reset alone does not)
+--
+-- Patch: kill-marker activity also puts a location ON the list. A marker that appears at, or whose
+-- count rises at, a keep / outpost / town / resource / district stamps item.lastKillSeen; UpdateItem
+-- treats the item as interesting for siegeTimeout after that stamp, exactly like a dropped UA! flag.
+-- The first scan after a fresh init is a baseline (markers already on the map don't count as
+-- activity); after /reloadui the saved snapshot + lastKillSeen are restored instead.
 local KT_ALLIANCES = { ALLIANCE_DAGGERFALL_COVENANT, ALLIANCE_ALDMERI_DOMINION, ALLIANCE_EBONHEART_PACT }
+
+-- Kill markers on bridges / milegates don't make them interesting (they're mid-field, not objectives).
+local function KTKillsMakeInteresting(self, item)
+    return item ~= nil and item.id ~= nil and self.state.destructibles[item.id] == nil
+end
 
 local function KTZeroCounts()
     local counts = {}
@@ -2007,7 +2021,7 @@ function PvPUA:KillTallyEnabled()
 end
 
 function PvPUA:KillTallyResetState()
-    self.killTally = { snapshot = {}, positions = nil, positionsMapId = nil, pending = nil }
+    self.killTally = { snapshot = {}, positions = nil, positionsMapId = nil, pending = nil, baselined = false }
 end
 
 --------------------------------------------------
@@ -2038,6 +2052,7 @@ function PvPUA:KillTallySave()
         markers[i] = { x = m.x, y = m.y, c = m.counts, k = m.item and m.item.id or nil }
     end
     local tallies = {}
+    local kills = {}
     local gameTime = GetGameTimeMilliseconds()
     local wallNow = GetTimeStamp()
     local groups = { self.state.resources, self.state.keeps, self.state.outposts,
@@ -2048,6 +2063,10 @@ function PvPUA:KillTallySave()
             if t and item.interestingSince then
                 tallies[keepId] = { c = t.counts, wallSince = wallNow - (gameTime - item.interestingSince) / 1000 }
             end
+            -- Patch: last kill-marker activity, as a wall-clock stamp so it survives a reload.
+            if item.lastKillSeen and item.lastKillSeen + PvPUA.constants.siegeTimeout > gameTime then
+                kills[keepId] = wallNow - (gameTime - item.lastKillSeen) / 1000
+            end
         end
     end
     sv.killTallyState = {
@@ -2055,6 +2074,7 @@ function PvPUA:KillTallySave()
         savedAt    = wallNow,
         markers    = markers,
         tallies    = tallies,
+        kills      = kills,
     }
 end
 
@@ -2079,6 +2099,7 @@ function PvPUA:KillTallyRestore()
         snapshot[#snapshot + 1] = { x = m.x, y = m.y, counts = counts, item = m.k and KTItemById(self, m.k) or nil }
     end
     self.killTally.snapshot = snapshot
+    self.killTally.baselined = true -- the restored snapshot is the baseline; new markers are real activity
     local gameTime = GetGameTimeMilliseconds()
     local pending = {}
     for keepId, t in pairs(saved.tallies or {}) do
@@ -2088,6 +2109,14 @@ function PvPUA:KillTallyRestore()
         pending[keepId] = { counts = counts, since = sinceGame }
     end
     self.killTally.pending = pending
+    -- Patch: put the kill-activity stamps straight back on the items so a kill-only entry comes
+    -- back after a reload (UpdateItem reads lastKillSeen on the first tick).
+    for keepId, wallLast in pairs(saved.kills or {}) do
+        local item = KTItemById(self, keepId)
+        if item then
+            item.lastKillSeen = gameTime - math.max(0, wallNow - wallLast) * 1000
+        end
+    end
 end
 
 -- Normalized map positions of every tracked keep-type item, cached per map id.
@@ -2165,32 +2194,43 @@ end
 -- is fresh kills. Markers that vanished were already counted. Markers on items that aren't on the
 -- list are ignored here; they get picked up by KillTallySeed when the item flags.
 function PvPUA:KillTallyUpdate()
-    if not self.initializedItems or not self:KillTallyEnabled() then return end
+    -- Patch: always scan (the kill-activity list entries don't depend on the tally column);
+    -- the Kill Tally toggle only hides the column (KillTallyText).
+    if not self.initializedItems then return end
     if not KTOnAvAZoneMap() then return end
     local kt = self.killTally
     local previous = kt.snapshot
     local markers = KTReadMarkers()
+    local gameTime = GetGameTimeMilliseconds()
+    -- Patch: markers already on the map at a fresh init are history, not activity.
+    local countAsActivity = kt.baselined
     for i = 1, #markers do
         local m = markers[i]
         local prev = KTFindPrevious(previous, m)
         m.item = (prev and prev.item) or self:KillTallyNearestItem(m.x, m.y)
         local item = m.item
         local tally = item and item.killTally
-        if tally and item.interestingSince ~= nil then
-            for a = 1, #KT_ALLIANCES do
-                local alliance = KT_ALLIANCES[a]
-                local now = m.counts[alliance]
-                local delta = prev and (now - (prev.counts[alliance] or 0)) or now
-                if delta < 0 then delta = now end
-                if delta > 0 then
+        local activity = prev == nil -- a brand-new marker is activity even at 0 kills
+        for a = 1, #KT_ALLIANCES do
+            local alliance = KT_ALLIANCES[a]
+            local now = m.counts[alliance]
+            local delta = prev and (now - (prev.counts[alliance] or 0)) or now
+            if delta < 0 then delta = now end
+            if delta > 0 then
+                activity = true
+                if tally and item.interestingSince ~= nil then
                     tally.counts[alliance] = tally.counts[alliance] + delta
                     tally.dirty = true
                 end
             end
         end
+        if activity and countAsActivity and KTKillsMakeInteresting(self, item) then
+            item.lastKillSeen = gameTime
+        end
     end
     kt.snapshot = markers
-    kt.lastUpdateMs = GetGameTimeMilliseconds()
+    kt.baselined = true
+    kt.lastUpdateMs = gameTime
     kt.pending = nil -- anything not reclaimed on the first tick is stale
     self:KillTallySave()
 end
@@ -2203,10 +2243,10 @@ function PvPUA:KillTallyOnEvent()
     self:KillTallyUpdate()
 end
 
--- (Re)start an item's tally: zero it, then count in every marker already attached to the item
--- so a fight that was running before the flag went up is included from the start.
+-- Start an item's tally when it joins the list: zero it, then count in every marker already
+-- attached to the item so a fight that was running before the flag went up is included.
 function PvPUA:KillTallySeed(item)
-    local tally = { since = item.interestingSince, counts = KTZeroCounts(), dirty = true }
+    local tally = { counts = KTZeroCounts(), dirty = true }
     local snapshot = self.killTally.snapshot
     for i = 1, #snapshot do
         local m = snapshot[i]
@@ -2221,28 +2261,25 @@ function PvPUA:KillTallySeed(item)
     item.killTally = tally
 end
 
--- Called for every item each tick; keeps the tally's lifetime locked to interestingSince.
+-- Called for every item each tick. The tally lives exactly as long as the item is on the list
+-- (interestingSince ~= nil); it does NOT restart when upstream resets the UA! timer on a reflag.
 function PvPUA:KillTallySync(item)
     if item.interestingSince == nil then
         item.killTally = nil
         return
     end
-    local tally = item.killTally
-    if tally == nil then
-        -- Back on the list right after a reload: resume the saved tally and timer instead of
-        -- reseeding (the restored snapshot already accounts for the markers on this item).
-        local pending = self.killTally.pending
-        local saved = pending and item.id and pending[item.id]
-        if saved then
-            pending[item.id] = nil
-            item.interestingSince = saved.since
-            item.killTally = { since = saved.since, counts = saved.counts, dirty = true }
-            return
-        end
+    if item.killTally ~= nil then return end
+    -- Back on the list right after a reload: resume the saved tally and timer instead of
+    -- reseeding (the restored snapshot already accounts for the markers on this item).
+    local pending = self.killTally.pending
+    local saved = pending and item.id and pending[item.id]
+    if saved then
+        pending[item.id] = nil
+        item.interestingSince = saved.since
+        item.killTally = { counts = saved.counts, dirty = true }
+        return
     end
-    if tally == nil or tally.since ~= item.interestingSince then
-        self:KillTallySeed(item)
-    end
+    self:KillTallySeed(item)
 end
 
 function PvPUA:KillTallyText(item)
@@ -2325,6 +2362,17 @@ function PvPUA:UpdateItem(items, gameTime)
                 item.underAttackFor = gameTime - item.interestingSince
             else
                 item.lastSiegeWeaponSeen = nil
+            end
+        end
+        -- Patch: recent kill-marker activity (see "Kill Tally") keeps a keep / outpost / town /
+        -- resource / district on the list for siegeTimeout, same as a dropped UA! flag.
+        if item.lastKillSeen ~= nil then
+            if item.lastKillSeen + PvPUA.constants.siegeTimeout > gameTime then
+                itemOfInterest = true
+                if item.interestingSince == nil then item.interestingSince = gameTime end
+                item.underAttackFor = gameTime - item.interestingSince
+            else
+                item.lastKillSeen = nil
             end
         end
         if item.keepType == KEEPTYPE_BRIDGE or item.keepType == KEEPTYPE_MILEGATE then

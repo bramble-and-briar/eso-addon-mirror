@@ -1,10 +1,10 @@
 ## Title: My UI
 ## Description: My UI - LAM-only settings interface.
 ## Author: Satuve, j.hhh
-## Version: 1.9.26
+## Version: 1.9.28
 ## APIVersion: 101050 101051
 ## SavedVariables: SATUVE_XBOX_UI_VARS SATUVE_XBOX_UI_REPORTS SATUVE_XBOX_UI_CP_CHAR
-## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibStub LibDebugLogger
+## OptionalDependsOn: LibAddonMenu-2.0 LibStub LibDebugLogger
 
 ; My UI is a modified adaptation of Bandits User Interface.
 ;
@@ -42,7 +42,6 @@ BUI_Buffs.lua
 proctemplate.xml
 BUI_Actions.lua
 BUI_MiniMap.lua
-BUI_QuickSlots.lua
 BUI_StatShare.lua
 BUI_OnScreen.lua
 BUI_Log.lua
@@ -55,6 +54,7 @@ BUI_Meters.lua
 BUI_Markers.lua
 SXUI_ChampionPriority.lua
 SXUI_FrameEditor.lua
+SXUI_MoveDiagnostics.lua
 BUI_Initialize.lua
 
 lang\en.lua

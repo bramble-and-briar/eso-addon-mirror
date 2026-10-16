@@ -47,7 +47,7 @@ setup.callbacks[51](51, { unitIds = { player = 1 }, units = {} })
 report = saved.lastUptimeReport
 assert(#report.buffs[2].members == 12 and report.buffs[2].covered == 400 and report.buffs[2].duration == 800)
 local dropdown = env.setting("Einheit")
-assert(#dropdown.items == 3)
+assert(#dropdown.items == 4 and dropdown.items[4].data == "reticleover")
 -- No role data is not proof that a member is a damage dealer.
 function GetGroupMemberSelectedRole() return nil end
 setup.begin(1400)

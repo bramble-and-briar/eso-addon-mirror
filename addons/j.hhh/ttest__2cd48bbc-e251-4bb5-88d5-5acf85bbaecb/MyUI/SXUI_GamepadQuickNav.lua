@@ -4,10 +4,10 @@
 -- actions use native KEYBIND_STRIP callbacks; add-on code never calls
 -- DIRECTIONAL_INPUT or IsKeyDown, which are protected by ESO's secure UI.
 
-SatuveXboxUI = SatuveXboxUI or {}
-SatuveXboxUI.SidebarGamepad = SatuveXboxUI.SidebarGamepad or {}
-SatuveXboxUI.GamepadQuickNav = SatuveXboxUI.SidebarGamepad -- compatibility
-local QuickNav = SatuveXboxUI.SidebarGamepad
+MyUI = MyUI or {}
+MyUI.SidebarGamepad = MyUI.SidebarGamepad or {}
+MyUI.GamepadQuickNav = MyUI.SidebarGamepad -- compatibility
+local QuickNav = MyUI.SidebarGamepad
 
 QuickNav.enabled = true
 QuickNav.active = false

@@ -1,7 +1,7 @@
 ## Title: |cFFD700Companion's Containers|r
-## APIVersion: 101050
+## APIVersion: 101051
 ## Description: Automatically open companions containers.
-## Version: 1.8
+## Version: 1.9
 ## Author: |cFFD700@Atharti|r
 
 CompanionsContainers.lua

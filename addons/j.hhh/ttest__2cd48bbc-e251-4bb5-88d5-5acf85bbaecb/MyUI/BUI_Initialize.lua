@@ -8,7 +8,7 @@ local function OnUIError(eventCode,errorString)
 		--d(errorString)
 		ZO_UIErrors_HideCurrent()
 	elseif not BUI.Vars.DeveloperMode and string.match(errorString,BUI.name) then
-		local ver=tostring((SatuveXboxUI and SatuveXboxUI.version) or BUI.Version)
+		local ver=tostring((MyUI and MyUI.version) or BUI.Version)
 		ZO_UIErrorsTextEdit:SetText(BUI.DisplayName.." v:"..ver.."\n"..errorString)
 		ZO_UIErrorsTextEdit:SetCursorPosition(1)
 	end
@@ -278,7 +278,7 @@ local function Initialize(eventCode, addOnName)
 	InitLog("ADD_ON_LOADED")
 
 	-- Track the first activation without doing permanent work in that event.
-	local lifecycleEvent="SatuveXboxUI_InitLifecycle"
+	local lifecycleEvent="MyUI_InitLifecycle"
 	EVENT_MANAGER:UnregisterForEvent(lifecycleEvent,EVENT_PLAYER_ACTIVATED)
 	EVENT_MANAGER:RegisterForEvent(lifecycleEvent,EVENT_PLAYER_ACTIVATED,function()
 		Initialization.playerActivated=true

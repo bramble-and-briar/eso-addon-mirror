@@ -106,7 +106,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [The Elder Bar Reloaded](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SimonIllyan/The-Elder-Bar-Reloaded__3075) | SimonIllyan | PC / Mac | 12.1.3 |
 | [The Elder Cam](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldrni/The-Elder-Cam__2237) | Eldrni | PC / Mac | 1.2.1 |
 | [The Librarium](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Librarium__2729) | Alianym | PC / Mac | 2.32 |
-| [The Profit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukartofanu/The-Profit__4921) | manukartofanu | PC / Mac | 1.1.1 |
+| [The Profit](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/manukartofanu/The-Profit__4921) | manukartofanu | PC / Mac | 1.1.2 |
 | [The Psijic Way](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xbutch/The-Psijic-Way__d55988d9-2bec-4972-b8cb-795ea26131ad) | xbutch | Console | — |
 | [The Questing Guide](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/The-Questing-Guide__2612) | Alianym | PC / Mac | 0.72 |
 | [The Soulless of Tamriel - Guild Hall](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Neomazu/The-Soulless-of-Tamriel---Guild-Hall__3604) | Neomazu | PC / Mac | 1.1 |
@@ -153,7 +153,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [ToggleStatus](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/ToggleStatus__2954) | Wheels | PC / Mac | 2.1 |
 | [TOM - Tamriel Online Messenger - Reborn](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/P5ych3/TOM---Tamriel-Online-Messenger---Reborn__3428) | P5ych3 | PC / Mac | 6.4.3 |
 | [TOM Guild's Addon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Splat/TOM-Guild-s-Addon__3703) | Splat | PC / Mac | 2.70 |
-| [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.0 |
+| [Tomes Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Tomes-Tracker__4488) | atharti | PC / Mac | 3.1 |
 | [Tooltip Resizer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ifridius/Tooltip-Resizer__4409) | ifridius | PC / Mac | 2.2 |
 | [Tooltipruhe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Tooltipruhe__4865) | Torfason | PC / Mac | 2.0.0 |
 | [ToonCurrencies](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Noobanidus/ToonCurrencies__1282) | Noobanidus | PC / Mac | 3.0.0 |

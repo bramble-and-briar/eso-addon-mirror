@@ -86,7 +86,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Hide Scrying Tooltips](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Beacze/Hide-Scrying-Tooltips__4782) | Beacze | PC / Mac | 1.0.1 |
 | [Hide Smugger Fee](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kawamonkey/Hide-Smugger-Fee__3000) | kawamonkey | PC / Mac | 1.0 |
 | [Hide Some Things](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Zinival/Hide-Some-Things__1574) | Zinival | PC / Mac | 1.2 |
-| [Hide Targetframe by JH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Hide-Targetframe-by-JH__b1bf0d35-ce24-4850-a553-507da6b0e5e5) | j.hhh | Console | — |
+| [Hide Targetframe](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/j.hhh/Hide-Targetframe__b1bf0d35-ce24-4850-a553-507da6b0e5e5) | j.hhh | Console | — |
 | [Hide UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mgsnakes/Hide-UI__4083) | mgsnakes | PC / Mac | 1.0 |
 | [Hide Weapon Swap Icon](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/chavovaldez/Hide-Weapon-Swap-Icon__1572) | chavovaldez | PC / Mac | 1.0 |
 | [HideChatMiniBar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Saint-Ange/HideChatMiniBar__3672) | Saint-Ange | PC / Mac | 1.1.1 |

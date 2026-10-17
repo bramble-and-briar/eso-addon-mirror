@@ -3,6 +3,16 @@
 
 
 
+[color=#6FCB9F]Version: 3.12.232154[/color]
+
+Internal simplification with no intended changes to camera behavior.
+
+- Unified zoom-in and zoom-out handling while preserving limits, remembered distance, diagnostics, and deferred saving.
+- Shared preset-state map normalization and updates without changing saved settings or defaults.
+- Shared horizontal and vertical offset-hold bookkeeping while preserving keybind behavior.
+- Added focused Lua 5.1 regression checks for zoom, preset settings, and offset holds.
+
+
 [color=#6FCB9F]Version: 3.11.012748[/color]
 
 Camera-toggle reliability and manual-zoom preservation fixes.

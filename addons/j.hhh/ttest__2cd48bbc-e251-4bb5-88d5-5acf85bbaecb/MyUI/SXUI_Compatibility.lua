@@ -2,11 +2,11 @@
 -- Maintainer: Satuve
 -- Original interface foundation: Bandits User Interface by secretrob and Hoft.
 
-SatuveXboxUI = SatuveXboxUI or {}
-SatuveXboxUI.name = "MyUI"
-SatuveXboxUI.displayName = "My UI"
-SatuveXboxUI.version = "1.9.28"
-SatuveXboxUI.actionBarGap = 35
+MyUI = MyUI or {}
+MyUI.name = "MyUI"
+MyUI.displayName = "My UI"
+MyUI.version = "1.9.28"
+MyUI.actionBarGap = 35
 
 -- Compatibility aliases for clients that no longer expose the legacy
 -- POWERTYPE_* constants. GetUnitPower now uses CombatMechanicFlags.
@@ -47,14 +47,13 @@ end
 
 -- The Xbox-server PC client is used with mouse and keyboard. Keep keyboard UI
 -- preferred and expose a small status command without changing combat logic.
-function SatuveXboxUI.IsKeyboardClient()
+function MyUI.IsKeyboardClient()
     return not IsInGamepadPreferredMode()
 end
 
 local function PrintStatus()
-    local mode = SatuveXboxUI.IsKeyboardClient() and "Maus/Tastatur" or "Gamepad"
-    d(string.format("|c4B8BFE%s|r %s – Eingabemodus: %s", SatuveXboxUI.displayName, SatuveXboxUI.version, mode))
+    local mode = MyUI.IsKeyboardClient() and "Maus/Tastatur" or "Gamepad"
+    d(string.format("|c4B8BFE%s|r %s – Eingabemodus: %s", MyUI.displayName, MyUI.version, mode))
 end
 
-SLASH_COMMANDS["/sxui"] = PrintStatus
-SLASH_COMMANDS["/satuveui"] = PrintStatus
+SLASH_COMMANDS["/myui"] = PrintStatus

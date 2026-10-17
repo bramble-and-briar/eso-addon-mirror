@@ -1,0 +1,11 @@
+## Title: SimpleUltimateTracker
+## Author: Kaewro
+## Version: 1.0.2
+## AddOnVersion: 102
+## APIVersion: 101051 101052
+## SavedVariables: SimpleUltimateTrackerSV
+## DependsOn: LibAddonMenu-2.0>=43
+## Description: Shows current / required ultimate inside the ultimate slot, plus the other bar's ultimate icon (with values) above it. Type /sut help for the commands.
+
+Data.lua
+SimpleUltimateTracker.lua

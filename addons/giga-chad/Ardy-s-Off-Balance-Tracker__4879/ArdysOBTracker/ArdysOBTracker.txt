@@ -1,11 +1,11 @@
 ## Title: |c9B30FFArdy's OB Tracker|r
 ## Author: |cFF0800@giga'chad|r
-## Version: 1.5.0
-## AddOnVersion: 150
+## Version: 1.6.1
+## AddOnVersion: 161
 ## APIVersion: 101051 101052
 ## Description: Off Balance Helper. Requires LibAddonMenu-2.0.
 ## SavedVariables: ArdysOBTrackerSV
-## DependsOn: LibAddonMenu-2.0>=32
+## DependsOn: LibAddonMenu-2.0>=43
 
 ArdysOBTracker.lua
 Bindings.xml

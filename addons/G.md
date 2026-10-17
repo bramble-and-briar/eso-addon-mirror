@@ -73,7 +73,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Gold Rush — Sales & Pricing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Gold-Rush-Sales-Pricing__4685) | atharti | PC / Mac | 2.5 |
 | [Gold!](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TheSpyridon/Gold__1551) | TheSpyridon | PC / Mac | Alpha 0.6.3 |
 | [Golden Light Guild Hall Portal](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lerozain/Golden-Light-Guild-Hall-Portal__3389) | Lerozain | PC / Mac | 1.1 |
-| [Golden Pursuits Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Golden-Pursuits-Tracker__4276) | atharti | PC / Mac | 1.7 |
+| [Golden Pursuits Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Golden-Pursuits-Tracker__4276) | atharti | PC / Mac | 1.8 |
 | [GoldTracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/drecho0426/GoldTracker__4257) | drecho0426 | PC / Mac | 1.0 |
 | [Gorethief Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Gorethief-Tracker__6077d87d-fafc-431b-9380-f25348d7b430) | codeWarrior82 | Console | — |
 | [Goron Dev](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/goron_spice/Goron-Dev__4ff8232a-3b96-4a66-8401-dad48e8b5301) | goron_spice | Console | — |
@@ -112,7 +112,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Group Keys](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Group-Keys__4580) | M0R | PC / Mac | 1.0 |
 | [Group Kill Feed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Group-Kill-Feed__e281d0bf-a7b6-4b0c-b4ff-78e38a6ed2f6) | SugaComa | Console | — |
 | [Group Kill Feed (only tested on console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Group-Kill-Feed-only-tested-on-console__4285) | SugaComa | PC / Mac | 1.3.5 |
-| [Group Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Group-Log__4316) | atharti | PC / Mac | 2.1 |
+| [Group Log](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Group-Log__4316) | atharti | PC / Mac | 2.2 |
 | [Group Loot](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Temeez/Group-Loot__1027) | Temeez | PC / Mac | 0.9.7 |
 | [Group Loot Notifier](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hoft/Group-Loot-Notifier__1618) | Hoft | PC / Mac | 2.17 |
 | [Group Mementos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PvPenny/Group-Mementos__4766) | PvPenny | PC / Mac | 2.3.3 |

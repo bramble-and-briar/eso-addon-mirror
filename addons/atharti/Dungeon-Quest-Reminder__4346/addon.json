@@ -18,7 +18,7 @@
     "DungeonQuestReminder"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4346/",
-  "fingerprint": "e7f9624189d900b8039839f9b8f278f23e1e0e567656b23a4c4458b98dc0ba24",
+  "fingerprint": "971a5345b3f42d3a8275429ba20b726fe60dddcbe636801343d127d726728bd6",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15041.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4346",
   "source_url": "https://www.esoui.com/downloads/info4346-DungeonQuestReminder.html",
   "stats": {
-    "downloads": 801,
+    "downloads": 929,
     "favorites": 1,
-    "monthly_downloads": 43
+    "monthly_downloads": 68
   },
   "title": "Dungeon Quest Reminder",
-  "updated_at": 1788538667000,
-  "version": "1.6"
+  "updated_at": 1792156636000,
+  "version": "1.7"
 }

@@ -1,6 +1,7 @@
 -- The import window and its wizard (#477, #478, #479, #480): Paste > Review > Missing
--- gear > Flex > Write > The plan, with Missing gear only when the plan has pieces to
--- create and Flex only when the payload carries flex slots. While an import is in
+-- gear > Flex > Skill placements > Write > The plan, with Missing gear only when the plan
+-- has pieces to create, Flex only when the payload carries flex slots, and Skill
+-- placements only when a skill has no saved slot on a bar it is on. While an import is in
 -- progress `/btv` opens the plan, with Edit picks (Missing gear / Flex from the stored
 -- payload, then Write, then the plan again) and New import; Past imports lives behind
 -- the Paste step.
@@ -17,6 +18,7 @@ local BTV = BTVTools
 local WW = WizardsWardrobe
 
 local GOLD, ERR, WARN, DIM, DONE, IDLE = "C5C29E", "FF7070", "F8FF70", "9A9A9A", "A9A68C", "5C5C5C"
+local GREEN = "2DC50E" -- a placed skill's name
 local WARN_TEXTURE = "/esoui/art/miscellaneous/eso_icon_warning.dds"
 
 BTV.wizard = {}
@@ -254,6 +256,130 @@ local function BuildPrompt()
 	return prompt
 end
 
+-- A Step tip: the prompt's look (its own top-level, dim, box, gold title) with one button.
+local function BuildTip()
+	local tip = WINDOW_MANAGER:CreateTopLevelWindow( "BTVToolsWindowTip" )
+	tip:SetAnchorFill( GuiRoot )
+	tip:SetDrawTier( DT_HIGH )
+	tip:SetMouseEnabled( true )
+	tip:SetHidden( true )
+	local dim = WINDOW_MANAGER:CreateControl( "BTVToolsWindowTipDim", tip, CT_BACKDROP )
+	dim:SetCenterColor( 0, 0, 0, 0.7 )
+	dim:SetEdgeColor( 0, 0, 0, 0 )
+	dim:SetEdgeTexture( "", 1, 1, 1 )
+	dim:SetAnchorFill( tip )
+	dim:SetMouseEnabled( true )
+	local box = WINDOW_MANAGER:CreateControl( "BTVToolsWindowTipBox", tip, CT_BACKDROP )
+	box:SetCenterColor( 0.04, 0.04, 0.04, 0.97 )
+	box:SetEdgeColor( 0.47, 0.46, 0.41, 1 )
+	box:SetEdgeTexture( "", 1, 1, 1 )
+	box:SetDimensions( 500, 300 )
+	box:SetAnchor( CENTER, tip, CENTER, 0, 0 )
+	tip.title = Label( "BTVToolsWindowTipTitle", tip, "ZoFontWinH1" )
+	tip.title:SetAnchor( TOP, box, TOP, 0, 18 )
+	tip.body = Label( "BTVToolsWindowTipBody", tip )
+	tip.body:SetAnchor( TOP, tip.title, BOTTOM, 0, 12 )
+	tip.body:SetWidth( 440 )
+	tip.hint = Label( "BTVToolsWindowTipHint", tip )
+	tip.hint:SetAnchor( TOPLEFT, tip.body, BOTTOMLEFT, 0, 14 )
+	tip.hint:SetWidth( 440 )
+	tip.ok = Button( "BTVToolsWindowTipOk", tip, "Got it", function() Wizard.NextTip() end )
+	tip.ok:SetAnchor( BOTTOM, box, BOTTOM, 0, -14 )
+	tip.ok:SetDimensions( 130, 28 )
+	return tip
+end
+
+-- ---- Skill placements: our own drag, since the game cursor only carries purchased skills ----
+
+-- The slot box under the mouse, by rectangle: the drag icon itself takes no mouse.
+local function SlotUnderMouse()
+	local x, y = GetUIMousePosition()
+	for slot, box in pairs( ui.placeBoxes ) do
+		if x >= box:GetLeft() and x <= box:GetRight() and y >= box:GetTop() and y <= box:GetBottom() then return slot end
+	end
+end
+
+-- Press a skill to pick it up. Let go over a slot box and it lands there (a drag); let go
+-- anywhere else and it stays held until a slot is clicked (click, then click).
+local function OnSkillDown( control, button )
+	if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+	Wizard.pressFresh = Wizard.held == nil
+	if Wizard.pressFresh then Wizard.Hold( control.skill, control.from ) end
+end
+
+local function OnSkillUp( control, button )
+	if button == MOUSE_BUTTON_INDEX_RIGHT then Wizard.Hold( nil ) return end
+	if button ~= MOUSE_BUTTON_INDEX_LEFT or not Wizard.held then return end
+	local slot = SlotUnderMouse()
+	if Wizard.pressFresh then
+		if slot and slot ~= Wizard.held.from then Wizard.Place( slot ) end
+	elseif slot then
+		Wizard.Place( slot )
+	else
+		Wizard.Hold( control.skill, control.from )
+	end
+end
+
+-- A skill to drag: a plain CT_CONTROL takes the mouse, its art only paints (the rail box lesson).
+local function SkillControl( name, parent, size )
+	local control = WINDOW_MANAGER:CreateControl( name, parent, CT_CONTROL )
+	control:SetMouseEnabled( true )
+	control:SetHandler( "OnMouseDown", OnSkillDown )
+	control:SetHandler( "OnMouseUp", OnSkillUp )
+	control:SetHandler( "OnMouseEnter", function( self )
+		local skill = self.skill
+		if skill then
+			ZO_Tooltips_ShowTextTooltip( self, TOP, GetAbilityName( skill.id ) .. ( skill.tag and ( skill.bar == 0 and " (front bar)" or " (back bar)" ) or "" ) )
+		end
+	end )
+	control:SetHandler( "OnMouseExit", function() ZO_Tooltips_HideTextTooltip() end )
+	control.art = WINDOW_MANAGER:CreateControl( name .. "Art", control, CT_TEXTURE )
+	control.art:SetDimensions( size, size )
+	control.art:SetAnchor( LEFT, control, LEFT, 0, 0 )
+	return control
+end
+
+-- One of the five slots, like a WW bar. A slot holds many skills, small icons side by side.
+local function BuildPlaceBox( slot )
+	local name = "BTVToolsWindowPlaceBox" .. slot
+	local box = WINDOW_MANAGER:CreateControl( name, ui.placementPane, CT_CONTROL )
+	local paint = WINDOW_MANAGER:CreateControl( name .. "BG", box, CT_BACKDROP )
+	paint:SetCenterColor( 1, 1, 1, 0.045 )
+	paint:SetEdgeColor( 0.29, 0.29, 0.26, 1 )
+	paint:SetEdgeTexture( "", 1, 1, 1 )
+	paint:SetAnchorFill( box )
+	box:SetDimensions( 148, 200 )
+	box:SetAnchor( TOPLEFT, ui.placementPane, TOPLEFT, ( slot - 3 ) * 158, 0 )
+	box:SetMouseEnabled( true )
+	box:SetHandler( "OnMouseUp", function( self, button )
+		if button == MOUSE_BUTTON_INDEX_LEFT and Wizard.held then Wizard.Place( self.slot ) end
+	end )
+	box.slot = slot
+	box.name = Label( name .. "Name", box, "ZoFontWinH4" )
+	box.name:SetAnchor( TOPLEFT, box, TOPLEFT, 8, 5 )
+	box.name:SetText( TierHead( "Slot " .. ( slot - 2 ) ) )
+	box.mark = WarningMark( name .. "Mark", box )
+	box.mark:SetAnchor( TOPRIGHT, box, TOPRIGHT, -4, 4 )
+	box.icons = {}
+	return box
+end
+
+-- The icon that follows the mouse while a skill is held.
+local function BuildDrag()
+	local drag = WINDOW_MANAGER:CreateTopLevelWindow( "BTVToolsWindowDrag" )
+	drag:SetDimensions( 40, 40 )
+	drag:SetDrawTier( DT_HIGH )
+	drag:SetHidden( true )
+	drag.art = WINDOW_MANAGER:CreateControl( "BTVToolsWindowDragArt", drag, CT_TEXTURE )
+	drag.art:SetAnchorFill( drag )
+	drag:SetHandler( "OnUpdate", function( self )
+		local x, y = GetUIMousePosition()
+		self:ClearAnchors()
+		self:SetAnchor( CENTER, GuiRoot, TOPLEFT, x, y )
+	end )
+	return drag
+end
+
 local function BuildWindow()
 	if ui then return end
 	ui = { railBoxes = {}, cells = {} }
@@ -299,6 +425,13 @@ local function BuildWindow()
 	ui.sub:SetWidth( 800 )
 	ui.steps = Label( "BTVToolsWindowSteps", window, "ZoFontGameBold" )
 	ui.steps:SetAnchor( TOP, ui.sub, BOTTOM, 0, 6 )
+	-- WW's own help icon (its transfer dialog), replaying this screen's Step tips.
+	ui.help = WINDOW_MANAGER:CreateControl( "BTVToolsWindowHelp", window, CT_BUTTON )
+	ui.help:SetDimensions( 24, 24 )
+	ui.help:SetAnchor( LEFT, ui.steps, RIGHT, 8, 0 )
+	ui.help:SetNormalTexture( "/esoui/art/menubar/menubar_help_up.dds" )
+	ui.help:SetMouseOverTexture( "/esoui/art/menubar/menubar_help_over.dds" )
+	ui.help:SetHandler( "OnClicked", function() Wizard.ReplayTips() end )
 
 	local divider = WINDOW_MANAGER:CreateControl( "BTVToolsWindowDivider", window, CT_TEXTURE )
 	divider:SetTexture( "/esoui/art/miscellaneous/centerscreen_topdivider.dds" )
@@ -392,6 +525,27 @@ local function BuildWindow()
 	ui.flexPane = flex
 	ui.flexRows = {}
 
+	-- ---- Skill placements: five slot boxes, the skills to place under them, then the buttons ----
+	local placement = WINDOW_MANAGER:CreateControl( "BTVToolsWindowPlacement", window, CT_CONTROL )
+	placement:SetDimensions( 780, 440 )
+	placement:SetAnchor( TOPLEFT, window, TOPLEFT, 30, 112 )
+	ui.placementPane = placement
+	ui.placeBoxes = {}
+	for slot = 3, 7 do ui.placeBoxes[ slot ] = BuildPlaceBox( slot ) end
+	ui.placeList = WINDOW_MANAGER:CreateControlFromVirtual( "BTVToolsWindowPlaceList", placement, "ZO_ScrollContainer" )
+	ui.placeList:SetDimensions( 780, 190 )
+	ui.placeList:SetAnchor( TOPLEFT, placement, TOPLEFT, 0, 210 )
+	ui.placeRows = {}
+	ui.placeFill = Button( "BTVToolsWindowPlaceFill", placement, "Fill from my bars", function() Wizard.FillFromBars() end )
+	ui.placeFill:SetAnchor( BOTTOMLEFT, placement, BOTTOMLEFT, 0, 0 )
+	ui.placeSkip = Button( "BTVToolsWindowPlaceSkip", placement, "Skip", function() Wizard.SkipPlacements() end )
+	ui.placeSkip:SetAnchor( LEFT, ui.placeFill, RIGHT, 12, 0 )
+	ui.placeNever = Button( "BTVToolsWindowPlaceNever", placement, "Never ask", function() Wizard.NeverAsk() end )
+	ui.placeNever:SetAnchor( LEFT, ui.placeSkip, RIGHT, 12, 0 )
+	ui.placeForget = Button( "BTVToolsWindowPlaceForget", placement, "Forget all", function() Wizard.AskForget() end )
+	ui.placeForget:SetAnchor( LEFT, ui.placeFill, RIGHT, 12, 0 )
+	ui.drag = BuildDrag()
+
 	-- ---- The plan and Past imports (#480): one list of rows, a check mark per line ----
 	local list = WINDOW_MANAGER:CreateControlFromVirtual( "BTVToolsWindowList", window, "ZO_ScrollContainer" )
 	list:SetDimensions( 780, 440 )
@@ -414,6 +568,7 @@ local function BuildWindow()
 	ui.move:SetAnchor( RIGHT, ui.next, LEFT, -12, 0 )
 
 	ui.prompt = BuildPrompt()
+	ui.tip = BuildTip()
 end
 
 -- ----------------------------------------------------------------- rendering
@@ -431,14 +586,55 @@ local function HasMissing()
 	return missing ~= nil and #missing.gaps > 0
 end
 
--- The steps this import walks, in order: the two optional ones only when they have
+-- The Skill placements step's state, one screen for both bars (owner, 2026-10-15).
+-- `entries` lists a skill once per bar it sits on with no saved slot there, tagged FB / BB
+-- when it sits on both bars in this import; `picks[ bar ][ key ]` is what was dropped, saved
+-- on Next. `/btv placements` (`placementOnly`) lists nothing and draws every saved skill.
+local TAG = { [ 0 ] = "FB", [ 1 ] = "BB" }
+local function NewPlacing()
+	local saved = BTV.svAccount.placements
+	local placing = { entries = {}, listed = { [ 0 ] = {}, [ 1 ] = {} }, picks = { [ 0 ] = {}, [ 1 ] = {} } }
+	if Wizard.placementOnly then return placing end
+	placing.bars, placing.writes = BTV.PlacementSkills( Wizard.analysis )
+	-- Skills in first-seen order, front bar first, so a skill's FB and BB sit together.
+	local on, order = { [ 0 ] = {}, [ 1 ] = {} }, {}
+	for bar = 0, 1 do
+		for _, skill in ipairs( placing.bars[ bar ] ) do
+			if not on[ 0 ][ skill.key ] and not on[ 1 ][ skill.key ] then table.insert( order, skill.key ) end
+			on[ bar ][ skill.key ] = skill
+		end
+	end
+	placing.both = {}
+	for _, key in ipairs( order ) do
+		placing.both[ key ] = on[ 0 ][ key ] ~= nil and on[ 1 ][ key ] ~= nil
+		for bar = 0, 1 do
+			local skill = on[ bar ][ key ]
+			if skill and not ( saved[ key ] and saved[ key ][ bar ] ) then
+				table.insert( placing.entries, { key = key, id = skill.id, bar = bar, tag = placing.both[ key ] and TAG[ bar ] or nil } )
+				placing.listed[ bar ][ key ] = true
+			end
+		end
+	end
+	return placing
+end
+
+-- Kept while the step is open, or Fill from my bars could make it vanish under the player.
+local function HasPlacement()
+	if Wizard.placementOnly or Wizard.placing then return true end
+	return Wizard.analysis ~= nil and BTV.Setting( "usePlacements" ) and #NewPlacing().entries > 0
+end
+
+-- The steps this import walks, in order: the optional ones only when they have
 -- something to ask. "write" is the Next button on the step before the plan, never a
 -- pane. Edit picks (#480) skips Paste and Review: the payload comes from the record.
-local STEP_WORD = { paste = "Paste", review = "Review", missing = "Plan missing gear", flex = "Flex", write = "Write", plan = "The plan" }
+local STEP_WORD = { paste = "Paste", review = "Review", missing = "Plan missing gear", flex = "Flex",
+	placement = "Skill placements", write = "Write", plan = "The plan" }
 local function Steps()
+	if Wizard.placementOnly then return { "placement" } end
 	local steps = Wizard.editing and {} or { "paste", "review" }
 	if HasMissing() then table.insert( steps, "missing" ) end
 	if HasFlex() then table.insert( steps, "flex" ) end
+	if HasPlacement() then table.insert( steps, "placement" ) end
 	table.insert( steps, "write" )
 	table.insert( steps, "plan" )
 	return steps
@@ -538,7 +734,7 @@ local function EntryText( review )
 	local lines = {}
 	for _, line in ipairs( review.extra ) do table.insert( lines, line ) end
 	table.insert( lines, string.format(
-		"|c%sHover a mark for the miss tier. Skills and CP are written unchanged.|r", DIM ) )
+		"|c%sHover a mark for the miss tier. Skills are written with your flex picks and skill placements. CP is written as the roster has it.|r", DIM ) )
 	return table.concat( lines, "\n" )
 end
 
@@ -611,7 +807,84 @@ local function NextLabel()
 	local following = steps[ StepIndex( steps, Wizard.step ) + 1 ]
 	if following == "missing" then return "Next: plan missing gear" end
 	if following == "flex" then return "Next: flex picks" end
+	if following == "placement" then return "Next: skill placements" end
 	return WriteLabel( Wizard.analysis )
+end
+
+-- ---- Step tips (docs/plans/2026-10-14-ww-addon-step-tips.md) ----
+
+-- The owner's wording; **x** is drawn gold.
+local TIPS = {
+	paste = { "PASTE", "Open the roster link and press **WW export** at the top (or **WW Export** in the sidebar on your own roster). Pick your name, press **Copy WW payload**, and paste it here." },
+	review = { "REVIEW", "The addon finds the best combination of gear you already own to match the roster. This shows where every piece is located: on you, in the bank, on another character, or in a coffer." },
+	missing = { "PLAN MISSING GEAR", "Pieces that can't be found anywhere on your account need to be obtained to match the roster. Here you choose how to get each one: craft, reconstruct, buy or farm." },
+	flex = { "FLEX", "Some skill slots are open as flex. Pick one skill and it fills every setup with that slot." },
+	placement = { "SKILL PLACEMENTS", "Drag each skill onto the slot you want it in, or click it and then click a slot. The addon remembers, and puts it in that slot in every setup it writes, for every roster. Already have your bars the way you like? Press **Fill from my bars**." },
+	plan = { "THE PLAN", "Your setups are saved, and this is your to-do list to gather all the gear. Boxes tick themselves as gear lands in your inventory. The addon doesn't walk you to the right places: you still go to the bank, coffers, crafting and transmute stations yourself to get the gear." },
+	crafting = { "CRAFTING", "You could turn on **Auto craft and reconstruct** in the settings, then walk up to the right station and the addon makes the correct gear for you. It's experimental and spends real mats, so check the item on the roster first." },
+	bank = { "BANK", "Withdraw the pieces this build needs, or turn on **Auto deposit/withdraw** in the settings and the addon does it for you when you open the bank. Gear on another character? Deposit it there, then withdraw it on the right character." },
+}
+
+-- Keyed by the step that really comes next; "plan" goes on the plan screen's last tip
+-- before Bank, "bank" on Bank.
+local TIP_HINTS = {
+	review = "Next: see where all your gear is.",
+	missing = "Next: pick how to get the gear you don't own.",
+	flex = "Next: pick skills for the open slots.",
+	placement = "Next: pick a slot for each new skill.",
+	write = "Next: press Write to save your setups to Wizard's Wardrobe.",
+	plan = "Next: open your bank to grab your gear.",
+	bank = "Once every box is ticked, you're done.",
+}
+
+local function HasCraftLine()
+	for _, group in ipairs( Wizard.plan and Wizard.plan.groups or {} ) do
+		if group.kind == "craft" or group.kind == "reconstruct" then return true end
+	end
+	return false
+end
+
+-- The tips this screen has, in order. Bank only once Fetch/Deposit shows, unless it is
+-- the "?" asking.
+local function ScreenTips( replay )
+	local step = Wizard.step
+	if step ~= "plan" then return TIPS[ step ] and { step } or {} end
+	local keys = { "plan" }
+	if HasCraftLine() then table.insert( keys, "crafting" ) end
+	if replay or ( Wizard.moves and #Wizard.moves.items > 0 ) then table.insert( keys, "bank" ) end
+	return keys
+end
+
+-- Queues this screen's unseen tips (never over a prompt) and shows the first. A tip is
+-- seen once it is on screen.
+local function RenderTip()
+	if Wizard.tipStep ~= Wizard.step then Wizard.tips = nil end
+	local seen = BTV.svAccount.tipsSeen
+	if not Wizard.tips and not Wizard.prompt then
+		local fresh = {}
+		for _, key in ipairs( ScreenTips() ) do
+			if not seen[ key ] then table.insert( fresh, key ) end
+		end
+		if #fresh > 0 then Wizard.tips, Wizard.tipStep = fresh, Wizard.step end
+	end
+	ui.help:SetHidden( #ScreenTips( true ) == 0 )
+	local key = Wizard.tips and Wizard.tips[ 1 ]
+	ui.tip:SetHidden( key == nil )
+	if not key then return end
+	seen[ key ] = true
+	local hint
+	if key == "bank" then
+		hint = TIP_HINTS.bank
+	elseif key == "crafting" or ( key == "plan" and Wizard.tips[ 2 ] ~= "crafting" ) then
+		hint = TIP_HINTS.plan
+	elseif key ~= "plan" then
+		local steps = Steps()
+		hint = TIP_HINTS[ steps[ StepIndex( steps, key ) + 1 ] ]
+	end
+	ui.tip.title:SetText( TIPS[ key ][ 1 ] )
+	ui.tip.body:SetText( ( TIPS[ key ][ 2 ]:gsub( "%*%*(.-)%*%*", "|c" .. GOLD .. "%1|r" ) ) )
+	ui.tip.hint:SetText( hint and ( "|c" .. DIM .. hint .. "|r" ) or "" )
+	ui.tip.ok:SetText( #Wizard.tips > 1 and "Next" or "Got it" )
 end
 
 -- ---- The Missing gear step (#479) ----
@@ -657,6 +930,9 @@ local function PathText( block, path, picked, missing )
 			if not gap.cand.facts.canCraft then short = short + 1 end
 		end
 		detail = "at a " .. BTV.SetLabel( block.setId ) .. " station"
+		local station = block.gaps[ 1 ].cand.facts.station
+		if station then detail = detail .. " in " .. station end
+		detail = detail .. " (or a Grand Master station that has it)"
 		local crafter = block.crafter
 		if crafter then
 			detail = detail .. ", on " .. ( crafter.here and "this character" or crafter.name )
@@ -868,6 +1144,153 @@ local function RenderFlex()
 	for index = #rows + 1, #ui.flexRows do ui.flexRows[ index ]:SetHidden( true ) end
 end
 
+-- ---- The Skill placements step (docs/plans/2026-10-15-skill-placement-one-screen.md) ----
+
+-- A skill's own slot on a bar: a drop on this screen or its saved slot, the newer of the
+-- two, so Fill from my bars beats earlier drops and later drops beat it.
+local function OwnSlot( placing, bar, key )
+	local pick = placing.picks[ bar ][ key ]
+	local own = BTV.svAccount.placements[ key ] and BTV.svAccount.placements[ key ][ bar ]
+	if pick and not ( own and own.seq > pick.seq ) then return pick.slot, pick.seq end
+	if own then return own.slot, own.seq end
+end
+
+-- Where a skill sits on a bar. A listed one with no slot of its own there follows its other
+-- bar: BB follows FB until it is moved itself (owner, 2026-10-15).
+local function SlotOf( placing, bar, key )
+	local slot, seq = OwnSlot( placing, bar, key )
+	if slot or not placing.listed[ bar ][ key ] then return slot, seq end
+	return OwnSlot( placing, 1 - bar, key )
+end
+
+-- Next: every drop, and every listed skill sitting where its other bar put it, becomes a
+-- saved slot for its own bar.
+local function SavePlacing( placing )
+	for bar = 0, 1 do
+		for key, pick in pairs( placing.picks[ bar ] ) do
+			local own = BTV.svAccount.placements[ key ] and BTV.svAccount.placements[ key ][ bar ]
+			if not ( own and own.seq > pick.seq ) then BTV.SavePlacement( pick.id, bar, pick.slot, pick.seq ) end
+		end
+	end
+	local saved = BTV.svAccount.placements
+	for _, entry in ipairs( placing.entries ) do
+		local slot, seq = SlotOf( placing, entry.bar, entry.key )
+		if slot and not ( saved[ entry.key ] and saved[ entry.key ][ entry.bar ] ) then BTV.SavePlacement( entry.id, entry.bar, slot, seq ) end
+	end
+	placing.picks = { [ 0 ] = {}, [ 1 ] = {} }
+end
+
+-- What the boxes draw, one per skill per bar: this import's, or under /btv placements every
+-- saved one, read live so Fill from my bars shows at once. Tagged like the list.
+local function BoxSkills( placing )
+	local skills = {}
+	if placing.bars then
+		for bar = 0, 1 do
+			for _, skill in ipairs( placing.bars[ bar ] ) do
+				table.insert( skills, { key = skill.key, id = skill.id, bar = bar, tag = placing.both[ skill.key ] and TAG[ bar ] or nil } )
+			end
+		end
+		return skills
+	end
+	for key, skill in pairs( BTV.svAccount.placements ) do
+		for bar = 0, 1 do
+			if skill[ bar ] then
+				table.insert( skills, { key = key, id = skill.id, bar = bar, tag = ( skill[ 0 ] and skill[ 1 ] ) and TAG[ bar ] or nil } )
+			end
+		end
+	end
+	return skills
+end
+
+local function TagText( tag )
+	return tag and ( "  |c" .. DIM .. tag .. "|r" ) or ""
+end
+
+local function BuildPlaceRow( index )
+	local parent = ui.placeList:GetNamedChild( "ScrollChild" ) or ui.placeList
+	local row = SkillControl( "BTVToolsWindowPlaceRow" .. index, parent, 28 )
+	row:SetDimensions( 380, 30 )
+	row:SetAnchor( TOPLEFT, parent, TOPLEFT, ( ( index - 1 ) % 2 ) * 390, 4 + math.floor( ( index - 1 ) / 2 ) * 32 )
+	row.label = Label( "BTVToolsWindowPlaceRow" .. index .. "Label", row )
+	row.label:SetAnchor( LEFT, row, LEFT, 36, 0 )
+	table.insert( ui.placeRows, row )
+	return row
+end
+
+local function BuildBoxIcon( box, slot, i )
+	local name = "BTVToolsWindowPlaceBox" .. slot .. "Icon" .. i
+	local icon = SkillControl( name, box, 26 )
+	icon:SetDimensions( 26, 26 )
+	-- ponytail: 5 to a row, 6 rows, so 30 skills to a slot before they spill out; scroll the box if anyone gets there
+	icon:SetAnchor( TOPLEFT, box, TOPLEFT, 6 + ( ( i - 1 ) % 5 ) * 28, 30 + math.floor( ( i - 1 ) / 5 ) * 28 )
+	icon.tag = Label( name .. "Tag", icon, "ZoFontGameSmall" )
+	icon.tag:SetAnchor( BOTTOMRIGHT, icon, BOTTOMRIGHT, 0, 2 )
+	box.icons[ i ] = icon
+	return icon
+end
+
+local function RenderPlacement()
+	local placing = Wizard.placing
+	local inSlot = {}
+	for slot = 3, 7 do inSlot[ slot ] = {} end
+	for _, skill in ipairs( BoxSkills( placing ) ) do
+		local slot, seq = SlotOf( placing, skill.bar, skill.key )
+		if slot then
+			skill.seq = seq
+			table.insert( inSlot[ slot ], skill )
+		end
+	end
+	for slot = 3, 7 do
+		local box, skills = ui.placeBoxes[ slot ], inSlot[ slot ]
+		table.sort( skills, function( a, b )
+			if a.seq ~= b.seq then return a.seq < b.seq end
+			return a.bar < b.bar
+		end )
+		for i, skill in ipairs( skills ) do
+			local icon = box.icons[ i ] or BuildBoxIcon( box, slot, i )
+			icon:SetHidden( false )
+			icon.skill, icon.from = skill, slot
+			icon.art:SetTexture( GetAbilityIcon( skill.id ) )
+			icon.tag:SetText( skill.tag or "" )
+		end
+		for i = #skills + 1, #box.icons do box.icons[ i ]:SetHidden( true ) end
+		-- Two skills in one slot that share a bar in a setup of this import: only one fits.
+		local tips = {}
+		for i = 1, #skills do
+			for j = i + 1, #skills do
+				local a, b, count = skills[ i ], skills[ j ], 0
+				if a.bar == b.bar then
+					for _, write in ipairs( placing.writes or {} ) do
+						if write[ a.bar ][ a.key ] and write[ a.bar ][ b.key ] then count = count + 1 end
+					end
+				end
+				if count > 0 then
+					table.insert( tips, string.format( "%s and %s share a %s bar in %d setup%s. The one placed last gets slot %d.",
+						GetAbilityName( a.id ), GetAbilityName( b.id ), a.bar == 0 and "front" or "back",
+						count, count == 1 and "" or "s", slot - 2 ) )
+				end
+			end
+		end
+		box.mark:SetHidden( #tips == 0 )
+		box.mark.tip = table.concat( tips, "\n" )
+	end
+
+	for index, entry in ipairs( placing.entries ) do
+		local row = ui.placeRows[ index ] or BuildPlaceRow( index )
+		local placed = SlotOf( placing, entry.bar, entry.key ) ~= nil
+		row:SetHidden( false )
+		row.skill, row.from = entry, nil
+		row:SetMouseEnabled( not placed )
+		row.art:SetHidden( placed )
+		row.art:SetTexture( GetAbilityIcon( entry.id ) )
+		row.label:SetText( "|c" .. ( placed and GREEN or GOLD ) .. GetAbilityName( entry.id ) .. "|r" .. TagText( entry.tag ) )
+	end
+	for index = #placing.entries + 1, #ui.placeRows do ui.placeRows[ index ]:SetHidden( true ) end
+	ui.placeSkip:SetHidden( Wizard.placementOnly == true )
+	ui.placeNever:SetHidden( Wizard.placementOnly == true )
+	ui.placeForget:SetHidden( not Wizard.placementOnly )
+end
+
 -- ---- The plan and Past imports (#480) ----
 
 local function BuildListRow( index )
@@ -1063,16 +1486,28 @@ local function CanEdit()
 		and ( #( record.missing or {} ) > 0 or next( record.flex or {} ) ~= nil )
 end
 
+-- While the match or a re-plan runs (Busy), the summary line says how far it got.
+local function BusyLine()
+	return string.format( "|c%sMatching your gear... %d%%|r", GOLD, math.floor( ( Wizard.busy or 0 ) * 100 ) )
+end
+
 Render = function()
 	local step = Wizard.step
+	if step == "placement" then
+		Wizard.placing = Wizard.placing or NewPlacing()
+	else
+		Wizard.Hold( nil )
+	end
 	ui.steps:SetText( step == "history" and TierHead( "Past imports" ) or StepsLine() )
 	ui.pastePane:SetHidden( step ~= "paste" )
 	ui.reviewPane:SetHidden( step ~= "review" )
 	ui.missingPane:SetHidden( step ~= "missing" )
 	ui.flexPane:SetHidden( step ~= "flex" )
+	ui.placementPane:SetHidden( step ~= "placement" )
 	ui.listPane:SetHidden( step ~= "plan" and step ~= "history" )
 	ui.prompt:SetHidden( not Wizard.prompt )
-	ui.back:SetHidden( step == nil or ( step == "paste" and #BTV.svAccount.history == 0 ) or ( step == "plan" and not CanEdit() ) )
+	ui.back:SetHidden( step == nil or ( step == "paste" and #BTV.svAccount.history == 0 ) or ( step == "plan" and not CanEdit() )
+		or ( step == "placement" and Wizard.placementOnly ) )
 	ui.next:SetHidden( step == "history" )
 	ui.back:SetText( step == "paste" and "Past imports" or ( step == "plan" and "Edit picks" or "Back" ) )
 	Wizard.moves = step == "plan" and BTV.Moves( Wizard.plan ) or nil
@@ -1122,9 +1557,30 @@ Render = function()
 	elseif step == "flex" then
 		local analysis = Wizard.analysis
 		ui.sub:SetText( string.format( "|c%sPick each flex skill. One pick fills every setup it appears in.|r", DIM ) )
-		ui.next:SetText( WriteLabel( analysis ) )
+		ui.next:SetText( NextLabel() )
 		ui.summary:SetText( string.format( "|c%s%s|r", DIM, analysis.pageName ) )
 		RenderFlex()
+	elseif step == "placement" then
+		local placing = Wizard.placing
+		if Wizard.placementOnly then
+			ui.sub:SetText( string.format( "|c%sEvery skill you've saved. Drag one to another slot to move it. FB is front bar, BB is back bar.|r", DIM ) )
+			ui.next:SetText( "Save" )
+			local count = 0
+			for _ in pairs( BTV.svAccount.placements ) do count = count + 1 end
+			ui.summary:SetText( "|c" .. DIM .. ( count > 0 and string.format( "%d skill%s saved", count, count == 1 and "" or "s" )
+				or "Nothing saved yet. Press Fill from my bars, or place skills on your next import." ) .. "|r" )
+		else
+			ui.sub:SetText( string.format( "|c%sDrag each skill onto the slot you want it in, or click it and then click a slot. FB is front bar, BB is back bar.|r", DIM ) )
+			ui.next:SetText( NextLabel() )
+			local left = 0
+			for _, entry in ipairs( placing.entries ) do
+				if not SlotOf( placing, entry.bar, entry.key ) then left = left + 1 end
+			end
+			ui.summary:SetText( "|c" .. DIM .. ( left > 0
+				and string.format( "%d skill%s still to place. Unplaced skills keep the leader's order.", left, left == 1 and "" or "s" )
+				or "Every skill has a slot." ) .. "|r" )
+		end
+		RenderPlacement()
 	elseif step == "review" then
 		local analysis = Wizard.analysis
 		local summary = analysis.summary
@@ -1164,6 +1620,13 @@ Render = function()
 		ui.prompt.create:SetHidden( true )
 		ui.prompt.check:SetHidden( true )
 		ui.prompt.checkLabel:SetHidden( true )
+	elseif Wizard.prompt == "forget" then
+		ui.prompt.title:SetText( "FORGET ALL SKILL PLACEMENTS" )
+		ui.prompt.body:SetText( string.format( "Every saved slot, front bar and back bar, is cleared.\n\n|c%sSetups already written stay as they are.|r", DIM ) )
+		ui.prompt.overwrite:SetText( "Forget all" )
+		ui.prompt.create:SetHidden( true )
+		ui.prompt.check:SetHidden( true )
+		ui.prompt.checkLabel:SetHidden( true )
 	elseif Wizard.prompt then
 		local analysis = Wizard.analysis
 		-- A name match, so no claim about who made the page: a hand-made page under this
@@ -1181,6 +1644,26 @@ Render = function()
 		ui.prompt.check:SetTexture( Wizard.dontAsk
 			and "/esoui/art/buttons/checkbox_checked.dds" or "/esoui/art/buttons/checkbox_unchecked.dds" )
 	end
+	-- Next and Back wait for the work in progress (Busy).
+	ui.next:SetEnabled( not Wizard.busy )
+	ui.back:SetEnabled( not Wizard.busy )
+	if Wizard.busy then ui.summary:SetText( BusyLine() ) end
+	RenderTip()
+end
+
+-- The match and every re-plan run a slice per frame (BTV.RunSliced): in one go, a big
+-- roster held the game long enough for the server to drop the player (error 303,
+-- 2026-10-15). `Wizard.busy` is how far it got, nil when nothing runs.
+local function Busy( work, done )
+	Wizard.busy = 0
+	Render()
+	BTV.RunSliced( work, function( progress )
+		Wizard.busy = progress
+		ui.summary:SetText( BusyLine() )
+	end, function( ... )
+		Wizard.busy = nil
+		done( ... )
+	end )
 end
 
 -- -------------------------------------------------------------------- wizard
@@ -1198,6 +1681,8 @@ local function Show()
 	Render()
 	if ui.window:IsHidden() then
 		ui.window:SetHidden( false )
+		-- The cursor comes up with the window, so /btv from chat is clickable at once.
+		SetGameCameraUIMode( true )
 		PlaySound( SOUNDS.DEFAULT_WINDOW_OPEN )
 	end
 end
@@ -1209,8 +1694,12 @@ function Wizard.Open()
 	Wizard.step = "paste"
 	Wizard.analysis, Wizard.error, Wizard.prompt, Wizard.plan = nil, nil, nil, nil
 	Wizard.editing, Wizard.warned = false, false
+	Wizard.placementOnly, Wizard.placing = false, nil
 	Wizard.selected, Wizard.showPlaced, Wizard.dontAsk = "all", false, false
 	Wizard.zoneTag = "GEN"
+	Wizard.parts = nil
+	-- A match still running from before is dropped, not finished into the new import.
+	if Wizard.busy then BTV.CancelSliced() Wizard.busy = nil end
 	ui.paste:SetText( "" )
 	Show()
 end
@@ -1231,6 +1720,7 @@ function Wizard.OpenPlan( plan )
 	end
 	Wizard.plan, Wizard.analysis = plan, nil
 	Wizard.step, Wizard.prompt, Wizard.editing = "plan", nil, false
+	Wizard.placementOnly, Wizard.placing = false, nil
 	Show()
 end
 
@@ -1249,61 +1739,108 @@ end
 -- Write, then the plan. The record is matched again here, the one place that still
 -- costs a full match, so the picks shown are the ones the record holds.
 function Wizard.EditPicks()
-	if not CanEdit() then return end
-	local analysis, why = BTV.RestoreAnalysis( BTV.GetRecord() )
-	if not analysis then
-		d( "|c7B68EE[BTV]|r " .. why )
-		return
-	end
-	Wizard.analysis = analysis
-	Wizard.analysis.editing = true
-	Wizard.editing, Wizard.warned, Wizard.dontAsk = true, false, false
-	Wizard.step = Steps()[ 1 ]
-	Render()
-	PlaySound( SOUNDS.TABLET_PAGE_TURN )
+	if not CanEdit() or Wizard.busy then return end
+	local record = BTV.GetRecord()
+	Busy( function() return BTV.RestoreAnalysis( record ) end, function( analysis, why )
+		if not analysis then
+			d( "|c7B68EE[BTV]|r " .. why )
+			Render()
+			return
+		end
+		Wizard.analysis = analysis
+		Wizard.analysis.editing = true
+		Wizard.editing, Wizard.warned, Wizard.dontAsk = true, false, false
+		Wizard.placementOnly, Wizard.placing = false, nil
+		Wizard.step = Steps()[ 1 ]
+		Render()
+		PlaySound( SOUNDS.TABLET_PAGE_TURN )
+	end )
 end
 
 function Wizard.Close()
+	if Wizard.busy then BTV.CancelSliced() Wizard.busy = nil end
 	ui.window:SetHidden( true )
 	Wizard.autoOpened = false
 	-- Its own top-level now, so it no longer hides with its former parent.
 	ui.prompt:SetHidden( true )
-	Wizard.step, Wizard.prompt = nil, nil
+	ui.tip:SetHidden( true )
+	Wizard.Hold( nil )
+	Wizard.step, Wizard.prompt, Wizard.tips = nil, nil, nil
 	PlaySound( SOUNDS.DEFAULT_WINDOW_CLOSE )
+end
+
+-- What the paste is: the box, or the joined parts once every part is in. A roster too
+-- long for the game's paste box (about 29,900 characters) comes from the site as parts
+-- tagged "BTV:k/N:", pasted one after the other. The second return is the first part
+-- still missing.
+function Wizard.PasteText()
+	local parts = Wizard.parts
+	if not parts then return ui.paste:GetText() end
+	for k = 1, parts.n do
+		if not parts[ k ] then return nil, k end
+	end
+	return table.concat( parts, "", 1, parts.n )
 end
 
 -- The target page name and the re-paste-replaces reminder, live as the box fills (#477).
 function Wizard.OnPasteChanged()
-	local text = ui.paste:GetText()
-	local pageName = BTV.PeekPageName( text )
-	if pageName then
+	local box = ui.paste:GetText()
+	local k, n, chunk = box:match( "^BTV:(%d+)/(%d+):(.*)$" )
+	k, n = tonumber( k ), tonumber( n )
+	-- A real split is a handful of parts; a garbage tag must not set up millions to count.
+	if k and k >= 1 and k <= n and n <= 50 then
+		-- A part from another split (another N) starts over; the same part twice replaces it.
+		if not Wizard.parts or Wizard.parts.n ~= n then Wizard.parts = { n = n } end
+		Wizard.parts[ k ] = chunk
+		ui.paste:SetText( "" )
+	elseif box ~= "" then
+		-- Anything else pasted is a whole roster of its own.
+		Wizard.parts = nil
+	end
+
+	local text, missing = Wizard.PasteText()
+	local pageName = text and BTV.PeekPageName( text )
+	if missing then
+		local held = 0
+		for i = 1, Wizard.parts.n do if Wizard.parts[ i ] then held = held + 1 end end
+		ui.pageLine:SetText( string.format( "|c%s%d of %d parts received.|r Paste part %d.", GOLD, held, Wizard.parts.n, missing ) )
+	elseif pageName then
 		ui.pageLine:SetText( string.format( "One page per player: |c%s%s|r. Pasting again replaces it.", GOLD, pageName ) )
 	else
 		ui.pageLine:SetText( "|c" .. DIM .. "One page per player, named BTV <roster> <you>. Pasting again replaces it.|r" )
 	end
-	local needsZone = pageName ~= nil and BTV.PeekNeedsZone( text )
+	local needsZone = pageName and BTV.PeekNeedsZone( text ) or false
 	ui.zoneLine:SetHidden( not needsZone )
 	ui.zone:SetHidden( not needsZone )
 	if needsZone then ShowChoice( ui.zone, Wizard.zoneTag ) end
 end
 
 function Wizard.Next()
-	if Wizard.step ~= "paste" then return end
-	local analysis, why = BTV.Analyze( ui.paste:GetText(), Wizard.zoneTag )
-	if not analysis then
-		Wizard.error = why
+	if Wizard.step ~= "paste" or Wizard.busy then return end
+	local text, missing = Wizard.PasteText()
+	if missing then
+		Wizard.error = string.format( "|cFF7070paste part %d of %d first.|r", missing, Wizard.parts.n )
 		Render()
 		return
 	end
-	Wizard.analysis, Wizard.error = analysis, nil
-	Wizard.step, Wizard.selected = "review", "all"
-	Render()
-	PlaySound( SOUNDS.TABLET_PAGE_TURN )
+	local zoneTag = Wizard.zoneTag
+	Busy( function() return BTV.Analyze( text, zoneTag ) end, function( analysis, why )
+		if not analysis then
+			Wizard.error = why
+			Render()
+			return
+		end
+		Wizard.analysis, Wizard.error = analysis, nil
+		Wizard.step, Wizard.selected = "review", "all"
+		Render()
+		PlaySound( SOUNDS.TABLET_PAGE_TURN )
+	end )
 end
 
 -- Back and Next walk Steps() (#479): the optional steps only exist when they have
 -- something to ask, and the last step's Next always writes.
 function Wizard.Back()
+	if Wizard.busy then return end
 	local step = Wizard.step
 	if step == "paste" then
 		if #BTV.svAccount.history > 0 then Wizard.OpenHistory() end
@@ -1318,6 +1855,8 @@ function Wizard.Back()
 	local steps = Steps()
 	local index = StepIndex( steps, step )
 	if step == nil then return end
+	-- Leaving the step backwards: it is worked out afresh next time.
+	Wizard.placing = nil
 	if index <= 1 then
 		-- Edit picks starts past Paste and Review: Back from its first step is the plan.
 		if Wizard.editing then Wizard.OpenPlan( Wizard.plan ) end
@@ -1328,6 +1867,7 @@ function Wizard.Back()
 end
 
 function Wizard.Continue()
+	if Wizard.busy then return end
 	if Wizard.step == "paste" then
 		Wizard.Next()
 		return
@@ -1336,6 +1876,13 @@ function Wizard.Continue()
 		return
 	elseif Wizard.step == "history" or Wizard.step == nil then
 		return
+	elseif Wizard.step == "placement" then
+		-- Next saves, then writes, or under /btv placements closes.
+		SavePlacing( Wizard.placing )
+		if Wizard.placementOnly then
+			Wizard.Close()
+			return
+		end
 	end
 	local steps = Steps()
 	local following = steps[ StepIndex( steps, Wizard.step ) + 1 ]
@@ -1355,11 +1902,63 @@ function Wizard.PickFlex( block, index )
 	Render()
 end
 
+-- ---- The Skill placements step's controls ----
+
+-- `/btv placements`: the same screen over every saved skill, asking about none.
+function Wizard.OpenPlacements()
+	BuildWindow()
+	Wizard.analysis, Wizard.plan, Wizard.prompt, Wizard.editing = nil, nil, nil, false
+	Wizard.placementOnly, Wizard.placing = true, nil
+	Wizard.step = "placement"
+	Show()
+end
+
+-- The skill on the mouse ({ key, id, bar }), or none; `from` is the slot it was lifted from.
+function Wizard.Hold( skill, from )
+	Wizard.held = skill and { key = skill.key, id = skill.id, bar = skill.bar, from = from } or nil
+	if not ui then return end
+	ui.drag:SetHidden( Wizard.held == nil )
+	if skill then ui.drag.art:SetTexture( GetAbilityIcon( skill.id ) ) end
+end
+
+-- The held skill dropped in a slot (3..7) of its own bar. Saved on Next.
+function Wizard.Place( slot )
+	local held, placing = Wizard.held, Wizard.placing
+	Wizard.Hold( nil )
+	if not held or not placing then return end
+	placing.picks[ held.bar ][ held.key ] = { slot = slot, seq = BTV.NextPlacementSeq(), id = held.id }
+	Render()
+end
+
+function Wizard.FillFromBars()
+	BTV.RememberBars()
+	Render()
+end
+
+-- Write with nothing saved from this step: skills with no slot keep the leader's order.
+function Wizard.SkipPlacements()
+	Wizard.Hold( nil )
+	Wizard.Write()
+end
+
+function Wizard.NeverAsk()
+	BTV.SetSetting( "usePlacements", false )
+	Wizard.SkipPlacements()
+end
+
+function Wizard.AskForget()
+	Wizard.prompt = "forget"
+	Render()
+end
+
 -- The Missing gear step's controls (#479). A pick re-plans with every other pick kept,
 -- so the plan can never be illegal; quality is display only until the queues.
 function Wizard.PickMissing( gap, index )
-	BTV.PickMissing( Wizard.analysis, gap, index )
-	Render()
+	if Wizard.busy then return end
+	Busy( function() BTV.PickMissing( Wizard.analysis, gap, index ) end, function( _, why )
+		if why then d( "|c7B68EE[BTV]|r " .. why ) end
+		Render()
+	end )
 end
 
 function Wizard.PickPath( setId, path )
@@ -1402,6 +2001,22 @@ end
 
 function Wizard.TogglePlaced()
 	Wizard.showPlaced = not Wizard.showPlaced
+	Render()
+end
+
+-- "Got it" / "Next" on a Step tip.
+function Wizard.NextTip()
+	table.remove( Wizard.tips, 1 )
+	if #Wizard.tips == 0 then Wizard.tips = nil end
+	Render()
+end
+
+-- The "?": every tip this screen has, seen or not.
+function Wizard.ReplayTips()
+	if Wizard.prompt then return end
+	local keys = ScreenTips( true )
+	if #keys == 0 then return end
+	Wizard.tips, Wizard.tipStep = keys, Wizard.step
 	Render()
 end
 
@@ -1452,6 +2067,12 @@ function Wizard.Resolve( choice, dontAskAgain )
 		Render()
 		return
 	end
+	if kind == "forget" then
+		BTV.svAccount.placements = {}
+		Wizard.placing = nil
+		Render()
+		return
+	end
 	if kind == "replace" then
 		-- Warned once; Write runs its second gate now.
 		Wizard.Write()
@@ -1480,6 +2101,8 @@ function BTV.OpenWindow( view, auto )
 	local wasHidden = ui == nil or ui.window:IsHidden()
 	if view == "plan" and BTV.GetRecord() then
 		Wizard.OpenPlan()
+	elseif view == "placements" then
+		Wizard.OpenPlacements()
 	else
 		Wizard.Open()
 	end

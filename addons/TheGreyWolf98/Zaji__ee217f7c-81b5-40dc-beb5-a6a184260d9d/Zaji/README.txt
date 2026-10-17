@@ -1,12 +1,29 @@
-Zaji 1.0.1 - Personal command key
-By @TheGreyWolf98
+ZAJI 1.0.2
+by @TheGreyWolf98
 
-Type /zaji to see the main commands for all 12 TGW addons.
-Press B to close. Opens outside combat. No dependencies or saved data.
-This is a reference window; commands are typed in normal chat.
-Installing Zaji does not install any of the listed addons.
+Type /zaji to open the addon command key. Type the listed command in chat
+to open its addon. This is a reference key; it does not install other addons.
 
-Suggested listing: Personal command reference for our addon collection.
-Not intended as a standalone gameplay addon.
+CHANGES
+- Added Craft Master (/cm) and Scry Master (/sm).
+- All 14 entries sorted alphabetically.
+- A brief description beneath every addon name.
+- Large addon/command text, highlighted commands and row separators.
+- Seven reusable rows keep the list compact and scrollable.
 
-1.0.1: Larger 27-point row text, closer columns and horizontal row dividers.
+SCROLLING
+Left stick up/down: scroll one entry; hold to repeat.
+D-pad up/down: scroll one entry.
+LB/RB: move up/down one page.
+Mouse wheel: scroll one entry. B: close.
+The visible entry range appears at the top right. Scrolling stops at either end.
+The position is kept while Zaji remains loaded; reopening does not reset it.
+
+No external libraries, saved variables or background scans added.
+Install by replacing the existing Zaji folder and reloading UI.
+
+Verified against native Scry Master slash registrations: /sm and /scrymaster.
+Validation: alphabetical coverage, all entries reachable, page bounds,
+stick repeat/release, D-pad, mouse wheel, safe input device, scene cleanup
+and scaling to 720p passed in mocked UI/API checks. Xbox visual/controller
+behaviour should be checked in game.

@@ -560,20 +560,11 @@ local function AfterHoldChanged()
     ScheduleHide()
 end
 
-local function SetHorizontalHold(direction, down)
+local function SetAxisHold(axis, direction, down)
     if down then
-        hold.horizontal = direction
-    elseif hold.horizontal == direction then
-        hold.horizontal = 0
-    end
-    AfterHoldChanged()
-end
-
-local function SetVerticalHold(direction, down)
-    if down then
-        hold.vertical = direction
-    elseif hold.vertical == direction then
-        hold.vertical = 0
+        hold[axis] = direction
+    elseif hold[axis] == direction then
+        hold[axis] = 0
     end
     AfterHoldChanged()
 end
@@ -594,11 +585,11 @@ function OffsetNudge.StartHorizontal(direction)
         RejectWithoutHome()
         return
     end
-    SetHorizontalHold(direction, true)
+    SetAxisHold("horizontal", direction, true)
 end
 
 function OffsetNudge.StopHorizontal(direction)
-    SetHorizontalHold(direction, false)
+    SetAxisHold("horizontal", direction, false)
 end
 
 function OffsetNudge.StartVertical(direction)
@@ -606,11 +597,11 @@ function OffsetNudge.StartVertical(direction)
         RejectWithoutHome()
         return
     end
-    SetVerticalHold(direction, true)
+    SetAxisHold("vertical", direction, true)
 end
 
 function OffsetNudge.StopVertical(direction)
-    SetVerticalHold(direction, false)
+    SetAxisHold("vertical", direction, false)
 end
 
 function OffsetNudge.Recenter()

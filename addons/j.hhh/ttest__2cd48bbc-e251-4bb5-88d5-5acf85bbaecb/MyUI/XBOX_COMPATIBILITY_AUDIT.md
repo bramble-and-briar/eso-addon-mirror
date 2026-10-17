@@ -10,7 +10,7 @@ Automated verification covers Lua syntax plus mocked controller, frame-editor, m
 
 ## Required installation rule
 
-SatuveXboxUI is a replacement for Bandits User Interface. Do not enable both add-ons together. They share the global `BUI` table, `BUI_*` controls, event/update namespaces, slash commands, and keybinding action names. Whichever add-on loads later can overwrite the other's runtime state.
+MyUI is a replacement for Bandits User Interface. Do not enable both add-ons together. They share the global `BUI` table, `BUI_*` controls, event/update namespaces, slash commands, and keybinding action names. Whichever add-on loads later can overwrite the other's runtime state.
 
 `LibGamepad` AddOnVersion 107 (1.0.7) or newer is required. `LibGamepadContextMenuBridge` is unrelated and does not satisfy the dependency.
 

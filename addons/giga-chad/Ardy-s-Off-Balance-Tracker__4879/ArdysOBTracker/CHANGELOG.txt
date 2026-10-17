@@ -1,6 +1,31 @@
 Ardy's OB Tracker - Release Notes
 =================================
 
+v1.6.1  (2026-10-15)
+  - Settings are now saved per server (NA, EU, PTS) instead of one shared copy.
+    Your existing settings are carried over automatically the first time you
+    log in to each server.
+  - Dependency check updated to LibAddonMenu-2.0 version 43 or newer.
+  - Removed an unneeded LibAddonMenu check (the add-on only loads when
+    LibAddonMenu-2.0 is installed).
+
+v1.6.0  (2026-10-15)
+  - Auto-correct misplaced markers: after placing a marker, the add-on checks
+    that the enemy you aimed at actually received it. If lag sent it to
+    someone else (such as an ally who drifted under your crosshair), the same
+    marker is placed on the right enemy again, which pulls it off whoever had
+    it. Works for allies outside your group too.
+  - If you've already looked away, the marker is moved back the next time you
+    aim at that enemy player. Markers that land on groupmates are still
+    detected right away and reused on your next target.
+  - New setting: "Auto-correct misplaced markers" (on by default).
+
+v1.5.1  (2026-10-15)
+  - New "Name display" setting for the tracker window: Character name (default)
+    or ESO @ID. A player's @ID is learned the first time they are under your
+    crosshair; until then their character name is shown. NPCs always show
+    their name.
+
 v1.5.0  (2026-10-09)
   - New crosshair readout: shows OB (with time left), IMMUNE (with time left)
     or READY next to your crosshair for the enemy you're aiming at. Reads the

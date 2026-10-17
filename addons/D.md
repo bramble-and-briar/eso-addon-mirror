@@ -11,7 +11,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Daily Alchemy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Daily-Alchemy__1899) | Marify | PC / Mac | 1.5.2 |
 | [Daily Crabs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/A5ha/Daily-Crabs__4350) | A5ha | PC / Mac | 3 |
 | [Daily Craft Status](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/czerepx/Daily-Craft-Status__2510) | czerepx | PC / Mac | 0.2.16 |
-| [Daily Deeds — Currency Trackers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Daily-Deeds-Currency-Trackers__4504) | atharti | PC / Mac | 1.5 |
+| [Daily Deeds — Currency Trackers](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Daily-Deeds-Currency-Trackers__4504) | atharti | PC / Mac | 1.6 |
 | [Daily Mail](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Hyborem/Daily-Mail__4406) | Hyborem | PC / Mac | v.1.1.2 |
 | [Daily Pledge Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DerpyNoodle/Daily-Pledge-Manager__4336) | DerpyNoodle | PC / Mac | 1.2.9 |
 | [Daily Provisioning](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Marify/Daily-Provisioning__1901) | Marify | PC / Mac | 1.5.3 |
@@ -172,7 +172,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dungeon Boss Pull Cards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/yodased/Dungeon-Boss-Pull-Cards__4793) | yodased | PC / Mac | 0.20.0 |
 | [Dungeon Champions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Scott123/Dungeon-Champions__2023) | Scott123 | PC / Mac | 1.0.16 |
 | [Dungeon Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tomkolp/Dungeon-Helper__1956) | tomkolp | PC / Mac | 1.0.3 |
-| [Dungeon Quest Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Dungeon-Quest-Reminder__4346) | atharti | PC / Mac | 1.6 |
+| [Dungeon Quest Reminder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Dungeon-Quest-Reminder__4346) | atharti | PC / Mac | 1.7 |
 | [Dungeon Queue 4 Stickerbook](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tim99/Dungeon-Queue-4-Stickerbook__3254) | tim99 | PC / Mac | 1.2.8 |
 | [Dungeon Set Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DesertMorfen/Dungeon-Set-Tracker__4942) | DesertMorfen | PC / Mac | 1.1.0 |
 | [Dungeon Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Dungeon-Tracker__75746296-2f24-4d95-8fb5-1954d00fc1d6) | Eldibabalo | Console | — |

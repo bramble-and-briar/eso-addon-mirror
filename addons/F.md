@@ -58,7 +58,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Featured pledges in the Dungeon Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stefanoo/Featured-pledges-in-the-Dungeon-Finder__4555) | Stefanoo | PC / Mac | 130 |
 | [Feeding Frenzy Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/codeWarrior82/Feeding-Frenzy-Tracker__9526cff9-d7f1-4c3c-a96b-aecfb0daa347) | codeWarrior82 | Console | — |
 | [Feliks' Achievement Peek](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Achievement-Peek__4930) | AFeliks | PC / Mac | 1.0.0 |
-| [Feliks' Companion Gear Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Gear-Hunter__4908) | AFeliks | PC / Mac | 1.1.1 |
+| [Feliks' Companion Gear Hunter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Gear-Hunter__4908) | AFeliks | PC / Mac | 1.2.0 |
 | [Feliks' Companion Roster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/AFeliks/Feliks-Companion-Roster__4862) | AFeliks | PC / Mac | 2.3.0 |
 | [Fighting Display - Shows Fighting! when in combat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Fighting-Display---Shows-Fighting-when-in-combat__4246) | Duesentrieb | PC / Mac | 20250909-1138 |
 | [Filtered Loot Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MycroftJr/Filtered-Loot-Tracker__3932) | MycroftJr | PC / Mac | 1.0.0 |

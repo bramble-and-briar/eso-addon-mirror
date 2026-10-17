@@ -978,7 +978,7 @@ function BUI.Frames.StabilizePlayerPosition()
 	local anchor=BUI.Vars.FrameHorisontal and BUI.Vars.BUI_HPlayerFrame or BUI.Vars.BUI_PlayerFrame
 	if type(anchor)~="table" then return end
 	local parent=SatuveUI or GuiRoot
-	local gap=(SatuveXboxUI and SatuveXboxUI.actionBarGap) or 35
+	local gap=(MyUI and MyUI.actionBarGap) or 35
 	local point=anchor[1] or BOTTOM
 	local relativePoint=anchor[2] or point
 	local x=tonumber(anchor[3]) or 0

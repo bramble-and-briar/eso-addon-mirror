@@ -5,13 +5,13 @@
             installs addon-owned input handlers for them. This keeps custom BUI
             settings out of ZO_Options -> SetSettingFromControl -> SetSetting.
         -->
-        <Control name="SatuveXboxUI_OptionsCheckboxRow"
+        <Control name="MyUI_OptionsCheckboxRow"
                  inherits="ZO_GamepadOptionsCheckboxRow"
                  virtual="true"/>
-        <Control name="SatuveXboxUI_OptionsFiniteListRow"
+        <Control name="MyUI_OptionsFiniteListRow"
                  inherits="ZO_GamepadOptionsHorizontalListRow"
                  virtual="true"/>
-        <Control name="SatuveXboxUI_OptionsSliderRow"
+        <Control name="MyUI_OptionsSliderRow"
                  inherits="LibGamepad_SliderRow"
                  virtual="true"/>
     </Controls>

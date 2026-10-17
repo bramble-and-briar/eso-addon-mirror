@@ -1,7 +1,7 @@
 ## Title: |cFFD700Dungeon Quest Reminder|r
 ## Author: |cFFD700@Atharti|r
-## Version: 1.6
-## APIVersion: 101050
+## Version: 1.7
+## APIVersion: 101051
 ## Description: Shows popup once activity is completed so you never forget to release the quest.
 
 DungeonQuestReminder.lua

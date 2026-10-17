@@ -75,31 +75,31 @@
                 <Texture name="$(parent)Icon"><Dimensions x="22" y="22" /><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /></Texture>
                 <Label name="$(parent)Item" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS" linkEnabled="true">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="36" />
-                    <Dimensions x="227" y="31" />
+                    <Dimensions x="184" y="31" />
                 </Label>
                 <Control name="$(parent)ItemHitbox" mouseEnabled="true">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" />
-                    <Dimensions x="255" y="31" />
+                    <Dimensions x="212" y="31" />
                     <OnMouseEnter>TheProfit.ShowGridItemTooltip(self)</OnMouseEnter>
                     <OnMouseExit>TheProfit.HideGridItemTooltip()</OnMouseExit>
                     <OnMouseUp>TheProfit.OpenGridItemLink(self, button, upInside)</OnMouseUp>
                     <OnMouseWheel>TheProfit.ScrollLedger(delta)</OnMouseWheel>
                 </Control>
                 <Label name="$(parent)PurchaseWhen" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
-                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="386" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="351" />
                     <Dimensions x="82" y="31" />
                 </Label>
                 <Label name="$(parent)Bought" font="ZoFontGame" color="E7C56A" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
-                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="273" />
-                    <Dimensions x="105" y="31" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="228" />
+                    <Dimensions x="115" y="31" />
                 </Label>
                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="568" />
                     <Dimensions x="80" y="31" />
                 </Label>
                 <Label name="$(parent)Sold" font="ZoFontGame" color="7DD98A" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS">
-                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="478" />
-                    <Dimensions x="82" y="31" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="443" />
+                    <Dimensions x="115" y="31" />
                 </Label>
             </Controls>
         </Control>
@@ -142,20 +142,20 @@
                 <Texture name="$(parent)Icon"><Dimensions x="22" y="22" /><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /></Texture>
                 <Label name="$(parent)Item" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS" linkEnabled="true">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="36" />
-                    <Dimensions x="132" y="31" />
+                    <Dimensions x="125" y="31" />
                 </Label>
                 <Control name="$(parent)ItemHitbox" mouseEnabled="true">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" />
-                    <Dimensions x="160" y="31" />
+                    <Dimensions x="153" y="31" />
                     <OnMouseEnter>TheProfit.ShowGridItemTooltip(self)</OnMouseEnter>
                     <OnMouseExit>TheProfit.HideGridItemTooltip()</OnMouseExit>
                     <OnMouseUp>TheProfit.OpenGridItemLink(self, button, upInside)</OnMouseUp>
                     <OnMouseWheel>TheProfit.ScrollGuildHistory(delta)</OnMouseWheel>
                 </Control>
-                <Label name="$(parent)Guild" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="176" /><Dimensions x="90" y="31" /></Label>
-                <Label name="$(parent)Seller" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="274" /><Dimensions x="90" y="31" /></Label>
-                <Label name="$(parent)Buyer" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="372" /><Dimensions x="90" y="31" /></Label>
-                <Label name="$(parent)Sold" font="ZoFontGame" color="7DD98A" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="470" /><Dimensions x="90" y="31" /></Label>
+                <Label name="$(parent)Guild" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="169" /><Dimensions x="84" y="31" /></Label>
+                <Label name="$(parent)Seller" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="261" /><Dimensions x="84" y="31" /></Label>
+                <Label name="$(parent)Buyer" font="ZoFontGameSmall" color="B8BBC2" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="353" /><Dimensions x="84" y="31" /></Label>
+                <Label name="$(parent)Sold" font="ZoFontGame" color="7DD98A" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="445" /><Dimensions x="115" y="31" /></Label>
                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="B8BBC2" horizontalAlignment="LEFT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="568" /><Dimensions x="80" y="31" /></Label>
             </Controls>
         </Control>
@@ -234,13 +234,13 @@
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="1" offsetY="-2" />
                     <OnInitialized>self:SetCenterColor(0.91, 0.77, 0.42, 1) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized>
                 </Backdrop>
-                <Label name="$(parent)Guild" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="450" y="31" /></Label>
-                <Label name="$(parent)Sold" font="ZoFontGame" color="7DD98A" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="468" /><Dimensions x="82" y="31" /></Label>
+                <Label name="$(parent)Guild" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="360" y="31" /></Label>
+                <Label name="$(parent)Sold" font="ZoFontGame" color="7DD98A" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="378" /><Dimensions x="172" y="31" /></Label>
                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="B8BBC2" horizontalAlignment="LEFT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="558" /><Dimensions x="90" y="31" /></Label>
             </Controls>
         </Control>
 
-        <TopLevelControl name="TP_MainWindow" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true" tier="MEDIUM">
+        <TopLevelControl name="TheProfitMainWindow" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true" tier="MEDIUM">
             <Dimensions x="690" y="646" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="180" offsetY="120" />
             <OnInitialized>TheProfit.OnWindowInitialized(self)</OnInitialized>
@@ -411,10 +411,10 @@
                             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
                             <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-12" />
                             <Controls>
-                                <Label name="$(parent)Item" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="255" y="26" /></Label>
-                                <Label name="$(parent)Bought" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="273" /><Dimensions x="105" y="26" /><OnMouseEnter>TheProfit.ShowHeaderTooltip(self, "ledgerBoughtTooltip")</OnMouseEnter><OnMouseExit>TheProfit.HideHeaderTooltip()</OnMouseExit></Label>
-                                <Label name="$(parent)PurchaseWhen" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="386" /><Dimensions x="82" y="26" /></Label>
-                                <Label name="$(parent)Sold" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="478" /><Dimensions x="82" y="26" /><OnMouseEnter>TheProfit.ShowHeaderTooltip(self, "ledgerSoldTooltip")</OnMouseEnter><OnMouseExit>TheProfit.HideHeaderTooltip()</OnMouseExit></Label>
+                                <Label name="$(parent)Item" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="212" y="26" /></Label>
+                                <Label name="$(parent)Bought" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="228" /><Dimensions x="115" y="26" /><OnMouseEnter>TheProfit.ShowHeaderTooltip(self, "ledgerBoughtTooltip")</OnMouseEnter><OnMouseExit>TheProfit.HideHeaderTooltip()</OnMouseExit></Label>
+                                <Label name="$(parent)PurchaseWhen" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="351" /><Dimensions x="82" y="26" /></Label>
+                                <Label name="$(parent)Sold" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" mouseEnabled="true"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="443" /><Dimensions x="115" y="26" /><OnMouseEnter>TheProfit.ShowHeaderTooltip(self, "ledgerSoldTooltip")</OnMouseEnter><OnMouseExit>TheProfit.HideHeaderTooltip()</OnMouseExit></Label>
                                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="568" /><Dimensions x="80" y="26" /></Label>
                             </Controls>
                         </Control>
@@ -603,11 +603,11 @@
                             <Anchor point="TOPLEFT" relativeTo="$(parent)PlayerFilters" relativePoint="BOTTOMLEFT" offsetY="6" />
                             <Anchor point="TOPRIGHT" relativeTo="$(parent)PlayerFilters" relativePoint="BOTTOMRIGHT" offsetY="6" />
                             <Controls>
-                                <Label name="$(parent)Item" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="160" y="26" /></Label>
-                                <Label name="$(parent)Guild" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="176" /><Dimensions x="90" y="26" /></Label>
-                                <Label name="$(parent)Seller" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="274" /><Dimensions x="90" y="26" /></Label>
-                                <Label name="$(parent)Buyer" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="372" /><Dimensions x="90" y="26" /></Label>
-                                <Label name="$(parent)Sold" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="470" /><Dimensions x="90" y="26" /></Label>
+                                <Label name="$(parent)Item" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="153" y="26" /></Label>
+                                <Label name="$(parent)Guild" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="169" /><Dimensions x="84" y="26" /></Label>
+                                <Label name="$(parent)Seller" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="261" /><Dimensions x="84" y="26" /></Label>
+                                <Label name="$(parent)Buyer" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="353" /><Dimensions x="84" y="26" /></Label>
+                                <Label name="$(parent)Sold" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="445" /><Dimensions x="115" y="26" /></Label>
                                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="568" /><Dimensions x="80" y="26" /></Label>
                             </Controls>
                         </Control>
@@ -892,13 +892,24 @@
                                 <Button name="$(parent)Tab6" inherits="TP_ItemGuildTab"><Anchor point="TOPLEFT" relativeTo="$(parent)Tab5" relativePoint="TOPRIGHT" offsetX="6" /></Button>
                             </Controls>
                         </Control>
-                        <Control name="$(parent)Header">
-                            <Dimensions y="26" />
+                        <Control name="$(parent)Forecast">
+                            <Dimensions y="30" />
                             <Anchor point="TOPLEFT" relativeTo="$(parent)GuildTabs" relativePoint="BOTTOMLEFT" offsetY="8" />
                             <Anchor point="TOPRIGHT" relativeTo="$(parent)GuildTabs" relativePoint="BOTTOMRIGHT" offsetY="8" />
                             <Controls>
-                                <Label name="$(parent)Guild" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="450" y="26" /></Label>
-                                <Label name="$(parent)Sold" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="468" /><Dimensions x="82" y="26" /></Label>
+                                <Backdrop name="$(parent)Background"><AnchorFill /><OnInitialized>self:SetCenterColor(0.045, 0.049, 0.059, 0.72) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+                                <Backdrop name="$(parent)Marker"><Dimensions x="3" /><Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" offsetX="1" offsetY="2" /><Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="1" offsetY="-2" /><OnInitialized>self:SetCenterColor(0.91, 0.77, 0.42, 1) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+                                <Label name="$(parent)Label" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="12" /><Dimensions x="300" y="30" /></Label>
+                                <Label name="$(parent)Value" font="ZoFontGameBold" color="E7C56A" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-12" /><Dimensions x="300" y="30" /></Label>
+                            </Controls>
+                        </Control>
+                        <Control name="$(parent)Header">
+                            <Dimensions y="26" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Forecast" relativePoint="BOTTOMLEFT" offsetY="4" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)Forecast" relativePoint="BOTTOMRIGHT" offsetY="4" />
+                            <Controls>
+                                <Label name="$(parent)Guild" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="360" y="26" /></Label>
+                                <Label name="$(parent)Sold" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="378" /><Dimensions x="172" y="26" /></Label>
                                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="LEFT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="558" /><Dimensions x="88" y="26" /></Label>
                             </Controls>
                         </Control>
@@ -917,7 +928,7 @@
                                 <Control name="$(parent)Row8" inherits="TP_ItemSaleRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row7" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row7" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                                 <Control name="$(parent)Row9" inherits="TP_ItemSaleRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row8" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row8" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                                 <Control name="$(parent)Row10" inherits="TP_ItemSaleRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row9" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row9" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
-                                <Control name="$(parent)Row11" inherits="TP_ItemSaleRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row10" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row10" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row11" inherits="TP_ItemSaleRow" hidden="true"><Anchor point="TOPLEFT" relativeTo="$(parent)Row10" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row10" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                                 <Control name="$(parent)Row12" inherits="TP_ItemSaleRow" hidden="true"><Anchor point="TOPLEFT" relativeTo="$(parent)Row11" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row11" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                             </Controls>
                         </Control>

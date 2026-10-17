@@ -585,20 +585,35 @@ local function NormalizePresetStyle(value)
     return presetStyleOffId
 end
 
+local function GetPresetStateMap(key, normalize)
+    local vars = GetSavedVarsOrDefaults()
+    local saved = type(vars[key]) == "table" and vars[key] or {}
+    local result = {}
+    for _, def in ipairs(PRESET_STATE_DEFINITIONS) do
+        result[def.id] = normalize(saved[def.id])
+    end
+    return result
+end
+
+local function SetPresetStateValue(key, stateId, value, normalize)
+    local vars = Settings.GetSavedVars()
+    if not vars then
+        return
+    end
+    if type(vars[key]) ~= "table" then
+        vars[key] = {}
+    end
+    if vars[key][stateId] == nil and not PRESET_STATE_IDS[stateId] then
+        return
+    end
+    vars[key][stateId] = normalize(value)
+    Settings.ApplyOptionalFeatureConfig()
+end
+
 -- Returns the per-state style map with every state present (defaults to the off
 -- style), so callers and ContextPresets.Configure get a complete table.
 function Settings.GetPresetStates()
-    local vars = GetSavedVarsOrDefaults()
-    local saved = type(vars.presetStates) == "table" and vars.presetStates or {}
-    return {
-        combat      = NormalizePresetStyle(saved.combat),
-        werewolf    = NormalizePresetStyle(saved.werewolf),
-        stealth     = NormalizePresetStyle(saved.stealth),
-        interaction = NormalizePresetStyle(saved.interaction),
-        mounted     = NormalizePresetStyle(saved.mounted),
-        swimming    = NormalizePresetStyle(saved.swimming),
-        sprint      = NormalizePresetStyle(saved.sprint),
-    }
+    return GetPresetStateMap("presetStates", NormalizePresetStyle)
 end
 
 -- Returns a single preset state's style id (defaults to the off style). Used by
@@ -613,18 +628,7 @@ end
 -- Unknown state ids are ignored so a stale UI reference can't corrupt savedvars;
 -- the value is normalized so only valid style ids are ever stored.
 function Settings.SetPresetState(stateId, style)
-    local vars = Settings.GetSavedVars()
-    if not vars then
-        return
-    end
-    if type(vars.presetStates) ~= "table" then
-        vars.presetStates = {}
-    end
-    if vars.presetStates[stateId] == nil and not PRESET_STATE_IDS[stateId] then
-        return
-    end
-    vars.presetStates[stateId] = NormalizePresetStyle(style)
-    Settings.ApplyOptionalFeatureConfig()
+    SetPresetStateValue("presetStates", stateId, style, NormalizePresetStyle)
 end
 
 -- Coerce a stored per-state intensity into a 0..1 number. A missing or
@@ -637,17 +641,7 @@ end
 -- Returns the per-state intensity map with every state present (defaults to
 -- 1.0), so ContextPresets.Configure receives a complete table.
 function Settings.GetPresetStateIntensities()
-    local vars = GetSavedVarsOrDefaults()
-    local saved = type(vars.presetStateIntensities) == "table" and vars.presetStateIntensities or {}
-    return {
-        combat      = NormalizePresetIntensity(saved.combat),
-        werewolf    = NormalizePresetIntensity(saved.werewolf),
-        stealth     = NormalizePresetIntensity(saved.stealth),
-        interaction = NormalizePresetIntensity(saved.interaction),
-        mounted     = NormalizePresetIntensity(saved.mounted),
-        swimming    = NormalizePresetIntensity(saved.swimming),
-        sprint      = NormalizePresetIntensity(saved.sprint),
-    }
+    return GetPresetStateMap("presetStateIntensities", NormalizePresetIntensity)
 end
 
 -- Returns a single preset state's intensity (defaults to 1.0). Used by the
@@ -662,18 +656,7 @@ end
 -- module. Unknown state ids are ignored so a stale UI reference can't corrupt
 -- savedvars; the value is clamped so only valid intensities are ever stored.
 function Settings.SetPresetStateIntensity(stateId, value)
-    local vars = Settings.GetSavedVars()
-    if not vars then
-        return
-    end
-    if type(vars.presetStateIntensities) ~= "table" then
-        vars.presetStateIntensities = {}
-    end
-    if vars.presetStateIntensities[stateId] == nil and not PRESET_STATE_IDS[stateId] then
-        return
-    end
-    vars.presetStateIntensities[stateId] = NormalizePresetIntensity(value)
-    Settings.ApplyOptionalFeatureConfig()
+    SetPresetStateValue("presetStateIntensities", stateId, value, NormalizePresetIntensity)
 end
 
 -- Coerce a stored per-state coalesce delay into a non-negative number of ms. A
@@ -690,17 +673,7 @@ end
 -- Returns the per-state release-delay map (ms) with every state present (defaults
 -- to 0), so ContextPresets.Configure receives a complete table.
 function Settings.GetPresetStateCoalesces()
-    local vars = GetSavedVarsOrDefaults()
-    local saved = type(vars.presetStateCoalesce) == "table" and vars.presetStateCoalesce or {}
-    return {
-        combat      = NormalizePresetCoalesce(saved.combat),
-        werewolf    = NormalizePresetCoalesce(saved.werewolf),
-        stealth     = NormalizePresetCoalesce(saved.stealth),
-        interaction = NormalizePresetCoalesce(saved.interaction),
-        mounted     = NormalizePresetCoalesce(saved.mounted),
-        swimming    = NormalizePresetCoalesce(saved.swimming),
-        sprint      = NormalizePresetCoalesce(saved.sprint),
-    }
+    return GetPresetStateMap("presetStateCoalesce", NormalizePresetCoalesce)
 end
 
 -- Returns a single preset state's release delay in ms (defaults to 0). Used by the
@@ -715,18 +688,7 @@ end
 -- module. Unknown state ids are ignored so a stale UI reference can't corrupt
 -- savedvars; the value is normalized so only non-negative ms are ever stored.
 function Settings.SetPresetStateCoalesce(stateId, value)
-    local vars = Settings.GetSavedVars()
-    if not vars then
-        return
-    end
-    if type(vars.presetStateCoalesce) ~= "table" then
-        vars.presetStateCoalesce = {}
-    end
-    if vars.presetStateCoalesce[stateId] == nil and not PRESET_STATE_IDS[stateId] then
-        return
-    end
-    vars.presetStateCoalesce[stateId] = NormalizePresetCoalesce(value)
-    Settings.ApplyOptionalFeatureConfig()
+    SetPresetStateValue("presetStateCoalesce", stateId, value, NormalizePresetCoalesce)
 end
 
 -- ---------------------------------------------------------------------------

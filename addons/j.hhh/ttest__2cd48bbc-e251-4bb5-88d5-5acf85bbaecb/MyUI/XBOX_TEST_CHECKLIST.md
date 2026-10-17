@@ -53,8 +53,8 @@ Use a character with existing Bandit SavedVariables. Record the initial frame la
 
 ## Add-on compatibility
 
-- [ ] Disable the original Bandits User Interface before enabling SatuveXboxUI; verify only one of the two is active.
+- [ ] Disable the original Bandits User Interface before enabling MyUI; verify only one of the two is active.
 - [ ] Verify `LibGamepad` 1.0.7 or newer is enabled. Do not confuse it with `LibGamepadContextMenuBridge`.
 - [ ] Open and close the native gamepad main menu, Move Frames, world map, inventory, and settings repeatedly; verify LB/RB, D-Pad, A, and B never affect a hidden screen.
-- [ ] If AUI or LUI Extended is installed, disable its overlapping unit-frame, action-bar, reticle, and minimap modules before testing SatuveXboxUI.
+- [ ] If AUI or LUI Extended is installed, disable its overlapping unit-frame, action-bar, reticle, and minimap modules before testing MyUI.
 - [ ] If another map/minimap add-on is installed, test zone travel, full-map open/close, pin sizes, pin colors, and map restoration. Keep only one minimap implementation enabled if behavior conflicts.

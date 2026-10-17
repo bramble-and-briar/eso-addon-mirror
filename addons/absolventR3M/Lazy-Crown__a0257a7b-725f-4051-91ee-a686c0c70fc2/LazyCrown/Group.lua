@@ -1,141 +1,114 @@
--- Lazy Crown group check: how many of us are here, what roles they picked in
--- the group finder, and how many have Barrier, the necro rez or Negate slotted.
--- Your own ultimates come straight from your bars. The game doesn't show anyone
--- else's bar, so theirs come from LibGroupCombatStats (on LibGroupBroadcast, the
--- same data Hodor Reflexes and Artaeum Group Tool use), when it's installed and
--- they share them.
-
+LazyCrown=LazyCrown or {}
+LazyCrown.later=LazyCrown.later or {}
+table.insert(LazyCrown.later,{name="Group.lua",code=[=[
 LazyCrown = LazyCrown or {}
 local G = {}
 LazyCrown.Group = G
-
 local function Results(ok, ...)
-    if ok then return ... end
+if ok then return ... end
 end
-
 local function Safe(fn, ...)
-    if not fn then return nil end
-    return Results(pcall(fn, ...))
+if not fn then return nil end
+return Results(pcall(fn, ...))
 end
-
--- The ultimates worth counting: base skill first, then both morphs.
 local ULTS = {
-    barrier = { 38573, 40237, 40239 },  -- Barrier, Reviving Barrier, Replenishing Barrier
-    rez = { 115410, 118367, 118379 },   -- Reanimate, Renewing Animation, Animate Blastbones
-    negate = { 27706, 28341, 28348 },   -- Negate Magic, Suppression Field, Absorption Field
+barrier = { 38573, 40237, 40239 },
+rez = { 115410, 118367, 118379 },
+negate = { 27706, 28341, 28348 },
 }
 local KIND_OF = {}
 for kind, ids in pairs(ULTS) do for _, id in ipairs(ids) do KIND_OF[id] = kind end end
-
--- Which of the three an ability is: by its ID, or else by the base skill it morphs from.
 local function KindOf(id)
-    if KIND_OF[id] then return KIND_OF[id] end
-    local base = Safe(function()
-        local progression = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(id)
-        return progression:GetSkillData():GetMorphData(MORPH_SLOT_BASE):GetAbilityId()
-    end)
-    return base and KIND_OF[base]
+if KIND_OF[id] then return KIND_OF[id] end
+local base = Safe(function()
+local progression = SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId(id)
+return progression:GetSkillData():GetMorphData(MORPH_SLOT_BASE):GetAbilityId()
+end)
+return base and KIND_OF[base]
 end
-
--- Your two ultimates (front and back bar).
 local function OwnUltimates()
-    local slot = (ACTION_BAR_ULTIMATE_SLOT_INDEX or 7) + 1
-    local ids = {}
-    for _, bar in ipairs({ HOTBAR_CATEGORY_PRIMARY or 0, HOTBAR_CATEGORY_BACKUP or 1 }) do
-        local id = Safe(GetSlotBoundId, slot, bar)
-        if id and id ~= 0 then table.insert(ids, id) end
-    end
-    return ids
+local slot = (ACTION_BAR_ULTIMATE_SLOT_INDEX or 7) + 1
+local ids = {}
+for _, bar in ipairs({ HOTBAR_CATEGORY_PRIMARY or 0, HOTBAR_CATEGORY_BACKUP or 1 }) do
+local id = Safe(GetSlotBoundId, slot, bar)
+if id and id ~= 0 then table.insert(ids, id) end
 end
-
--- Another member's ultimates, if they share them; nil if not.
+return ids
+end
 local lgcs
 function G.Init()
-    local lib = LibGroupCombatStats
-    if lgcs then return end -- registering twice under one name fails
-    if lib and lib.RegisterAddon then lgcs = Safe(lib.RegisterAddon, "LazyCrown", { "ULT" }) end
+local lib = LibGroupCombatStats
+if lgcs then return end
+if lib and lib.RegisterAddon then lgcs = Safe(lib.RegisterAddon, "LazyCrown", { "ULT" }) end
 end
-
 function G.Sharing()
-    return lgcs ~= nil
+return lgcs ~= nil
 end
-
 local function SharedUltimates(tag)
-    if not lgcs then return nil end
-    local data = Safe(lgcs.GetUnitULT, lgcs, tag)
-    if type(data) ~= "table" then return nil end
-    local ids = {}
-    for _, id in ipairs({ data.ult1ID or 0, data.ult2ID or 0 }) do if id ~= 0 then table.insert(ids, id) end end
-    -- The library keeps an all-zero entry for members who don't share.
-    if #ids == 0 then return nil end
-    return ids
+if not lgcs then return nil end
+local data = Safe(lgcs.GetUnitULT, lgcs, tag)
+if type(data) ~= "table" then return nil end
+local ids = {}
+for _, id in ipairs({ data.ult1ID or 0, data.ult2ID or 0 }) do if id ~= 0 then table.insert(ids, id) end end
+if #ids == 0 then return nil end
+return ids
 end
-
 local function IsMe(tag)
-    return tag == "player" or Safe(AreUnitsEqual, tag, "player") == true
+return tag == "player" or Safe(AreUnitsEqual, tag, "player") == true
 end
-
--- Group members who are online and in the same zone and campaign as you (you included),
--- and how many more are in the group but not here.
 function G.Members()
-    local n = Safe(GetGroupSize) or 0
-    if n == 0 then return { "player" }, 0 end
-    local here, away = {}, 0
-    local myZone = Safe(GetUnitZoneIndex, "player")
-    for i = 1, n do
-        local tag = Safe(GetGroupUnitTagByIndex, i)
-        if tag then
-            local online = IsMe(tag) or Safe(IsUnitOnline, tag) ~= false
-            local zone = Safe(GetUnitZoneIndex, tag)
-            local sameZone = zone == nil or myZone == nil or zone == myZone
-            -- Same campaign too: every Cyrodiil campaign is the same zone.
-            local sameInstance = Safe(IsGroupMemberInSameInstanceAsPlayer, tag) ~= false
-            if IsMe(tag) or (online and sameZone and sameInstance) then
-                table.insert(here, tag)
-            else
-                away = away + 1
-            end
-        end
-    end
-    if #here == 0 then here = { "player" } end
-    return here, away
+local n = Safe(GetGroupSize) or 0
+if n == 0 then return { "player" }, 0 end
+local here, away = {}, 0
+local myZone = Safe(GetUnitZoneIndex, "player")
+for i = 1, n do
+local tag = Safe(GetGroupUnitTagByIndex, i)
+if tag then
+local online = IsMe(tag) or Safe(IsUnitOnline, tag) ~= false
+local zone = Safe(GetUnitZoneIndex, tag)
+local sameZone = zone == nil or myZone == nil or zone == myZone
+local sameInstance = Safe(IsGroupMemberInSameInstanceAsPlayer, tag) ~= false
+if IsMe(tag) or (online and sameZone and sameInstance) then
+table.insert(here, tag)
+else
+away = away + 1
 end
-
+end
+end
+if #here == 0 then here = { "player" } end
+return here, away
+end
 function G.Size()
-    return #(G.Members())
+return #(G.Members())
 end
-
 function G.Tally()
-    local here, away = G.Members()
-    local t = { size = #here, away = away, tank = 0, healer = 0, dps = 0, barrier = 0, rez = 0, negate = 0, sharing = 0 }
-    for _, tag in ipairs(here) do
-        local role = tag == "player" and Safe(GetSelectedLFGRole) or Safe(GetGroupMemberSelectedRole, tag)
-        if role == (LFG_ROLE_TANK or 2) then t.tank = t.tank + 1
-        elseif role == (LFG_ROLE_HEAL or 4) then t.healer = t.healer + 1
-        else t.dps = t.dps + 1 end
-        local ults
-        if IsMe(tag) then ults = OwnUltimates() else ults = SharedUltimates(tag) end
-        if ults then
-            t.sharing = t.sharing + 1
-            local seen = {}
-            for _, id in ipairs(ults) do
-                local kind = KindOf(id)
-                if kind and not seen[kind] then seen[kind] = true; t[kind] = t[kind] + 1 end
-            end
-        end
-    end
-    return t
+local here, away = G.Members()
+local t = { size = #here, away = away, tank = 0, healer = 0, dps = 0, barrier = 0, rez = 0, negate = 0, sharing = 0 }
+for _, tag in ipairs(here) do
+local role = tag == "player" and Safe(GetSelectedLFGRole) or Safe(GetGroupMemberSelectedRole, tag)
+if role == (LFG_ROLE_TANK or 2) then t.tank = t.tank + 1
+elseif role == (LFG_ROLE_HEAL or 4) then t.healer = t.healer + 1
+else t.dps = t.dps + 1 end
+local ults
+if IsMe(tag) then ults = OwnUltimates() else ults = SharedUltimates(tag) end
+if ults then
+t.sharing = t.sharing + 1
+local seen = {}
+for _, id in ipairs(ults) do
+local kind = KindOf(id)
+if kind and not seen[kind] then seen[kind] = true; t[kind] = t[kind] + 1 end
 end
-
+end
+end
+return t
+end
 local function Count(n, one, many)
-    return string.format("%d %s", n, n == 1 and one or many)
+return string.format("%d %s", n, n == 1 and one or many)
 end
-
--- "Group size 8: 2 tanks, 2 healers, 4 DPS. Barrier 2, Necro rez 1, Negate 1."
 function G.Line(t)
-    t = t or G.Tally()
-    return string.format("Group size %d: %s, %s, %d DPS. Barrier %d, Necro rez %d, Negate %d.", t.size,
-        Count(t.tank, "tank", "tanks"), Count(t.healer, "healer", "healers"), t.dps, t.barrier, t.rez, t.negate)
+t = t or G.Tally()
+return string.format("Group size %d: %s, %s, %d DPS. Barrier %d, Necro rez %d, Negate %d.", t.size,
+Count(t.tank, "tank", "tanks"), Count(t.healer, "healer", "healers"), t.dps, t.barrier, t.rez, t.negate)
 end
-
 G._internal = { ULTS = ULTS, KindOf = KindOf, OwnUltimates = OwnUltimates }
+]=]})

@@ -1,0 +1,56 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="DeskUI">
+            <Action name="DESKUI_TOGGLE">
+                <Down>if DeskUI and not DeskUI.failed then DeskUI.Toggle() end</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="DeskUIMenu" allowFallthrough="true">
+        <Category name="DeskUI">
+            <Action name="DESKUI_MENU_ALT" hideAction="true" rebindable="false">
+                <Up>if DeskUI then DeskUI.MenuKey() end</Up>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="DeskUIReplacements" allowFallthrough="true">
+        <Category name="DeskUI">
+            <Action name="DESKUI_REPLACE_INVENTORY" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_INVENTORY">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Inventory") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_CHARACTER" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_CHARACTER">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Character") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_SKILLS" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_SKILLS">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Skills") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_CHAMPION" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_CHAMPION">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Champion") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_JOURNAL" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_JOURNAL">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Journal") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_COLLECTIONS_BOOK" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_COLLECTIONS_BOOK">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Collections") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_MAP" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_MAP">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Map") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_GROUP" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_GROUP">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Group &amp; Activity Finder") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_CONTACTS" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_CONTACTS">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Friends") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_GUILDS" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_GUILDS">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Guilds") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_MAIL" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_MAIL">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Mail") or false</Down>
+            </Action>
+            <Action name="DESKUI_REPLACE_HELP" hideAction="true" rebindable="false" inheritsBindFrom="TOGGLE_HELP">
+                <Down>return DeskUI and DeskUI.DefaultMenuKey("Help") or false</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

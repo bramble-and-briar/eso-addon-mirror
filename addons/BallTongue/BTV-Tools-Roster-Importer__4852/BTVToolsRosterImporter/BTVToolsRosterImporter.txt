@@ -1,7 +1,7 @@
 ## Title: BTV Tools Roster Importer
 ## Author: BallTongue
-## Version: 0.2.0
-## AddOnVersion: 200
+## Version: 0.3.0
+## AddOnVersion: 300
 ## APIVersion: 101048
 ## Description: Paste a roster export from BTVTools.com to get a full Wizard's Wardrobe setup ready to go. Automatically match items from your bags to the setup and get a list of items needed to be crafted, fetched, reconstructed or farmed, do them by hand or enable auto-craft to let the addon create the items needed for you.
 ## DependsOn: WizardsWardrobe>=1232 IIfA LibAddonMenu-2.0 LibSets

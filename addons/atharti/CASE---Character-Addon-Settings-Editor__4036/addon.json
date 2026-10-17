@@ -18,7 +18,7 @@
     "CASE"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4036/",
-  "fingerprint": "99a531129883ab6892f1675cc875f5105aac1bc4a0388f0efed8a4df6e942171",
+  "fingerprint": "b9088d58ce6333b96e8916825bd72c34f4438d2c5b92dc94e315ff7f1d725f5c",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17384.png",
     "https://cdn-eso.mmoui.com/preview/pvw17382.png",
@@ -35,11 +35,11 @@
   "source_id": "4036",
   "source_url": "https://www.esoui.com/downloads/info4036-CASE-CharacterAddonSettingsEditor.html",
   "stats": {
-    "downloads": 8559,
-    "favorites": 21,
-    "monthly_downloads": 1184
+    "downloads": 9011,
+    "favorites": 22,
+    "monthly_downloads": 794
   },
   "title": "CASE - Character Addon Settings Editor",
-  "updated_at": 1790073607000,
-  "version": "6.8"
+  "updated_at": 1792156958000,
+  "version": "6.9"
 }

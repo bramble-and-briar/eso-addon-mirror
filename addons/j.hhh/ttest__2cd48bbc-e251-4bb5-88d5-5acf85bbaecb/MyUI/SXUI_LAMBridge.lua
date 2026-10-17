@@ -298,9 +298,9 @@ local function MakeGamepadTooltip(textValue)
     end
 end
 
-local SAFE_CHECKBOX_TEMPLATE = "SatuveXboxUI_OptionsCheckboxRow"
-local SAFE_FINITE_LIST_TEMPLATE = "SatuveXboxUI_OptionsFiniteListRow"
-local SAFE_SLIDER_TEMPLATE = "SatuveXboxUI_OptionsSliderRow"
+local SAFE_CHECKBOX_TEMPLATE = "MyUI_OptionsCheckboxRow"
+local SAFE_FINITE_LIST_TEMPLATE = "MyUI_OptionsFiniteListRow"
+local SAFE_SLIDER_TEMPLATE = "MyUI_OptionsSliderRow"
 
 local function RefreshAddonDependencies(data)
     if data and data.gamepadHasEnabledDependencies and rawget(_G, "GAMEPAD_OPTIONS") then
@@ -831,7 +831,7 @@ function Bridge.FinalizeGrouped(panelName)
     if false then -- LibGamepad/direct-gamepad menu path intentionally disabled; LAM only.
         if not Bridge.directScheduled[panelName] then
             Bridge.directScheduled[panelName] = true
-            local eventName = "SatuveXboxUI_LibGamepad_" .. tostring(panelName)
+            local eventName = "MyUI_LibGamepad_" .. tostring(panelName)
             local function TryRegister(attempt)
                 attempt = attempt or 1
                 local lib = GetLibGamepad()

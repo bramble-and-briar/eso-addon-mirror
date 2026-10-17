@@ -18,7 +18,7 @@
     "GroupFinderPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4338/",
-  "fingerprint": "710fd2cc48dce6af8c46129e403f36eb9c0cf96fa4c58d83c89707e2402eb5b0",
+  "fingerprint": "3cf93aa1dfbed280bbacb17ba64fbbbb453a7a8d61cdc26d180b34c94b25a6e3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw15303.png",
     "https://cdn-eso.mmoui.com/preview/pvw15000.png",
@@ -31,11 +31,11 @@
   "source_id": "4338",
   "source_url": "https://www.esoui.com/downloads/info4338-GroupFinder.html",
   "stats": {
-    "downloads": 12575,
-    "favorites": 12,
-    "monthly_downloads": 787
+    "downloads": 13703,
+    "favorites": 13,
+    "monthly_downloads": 529
   },
   "title": "GroupFinder+",
-  "updated_at": 1787402025000,
-  "version": "6.5"
+  "updated_at": 1792136722000,
+  "version": "6.7"
 }

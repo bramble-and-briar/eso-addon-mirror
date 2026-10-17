@@ -1,16 +1,16 @@
 {
-  "archive_path": "addons/j.hhh/Hide-Targetframe-by-JH__b1bf0d35-ce24-4850-a553-507da6b0e5e5",
+  "archive_path": "addons/j.hhh/Hide-Targetframe__b1bf0d35-ce24-4850-a553-507da6b0e5e5",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
   "archived": true,
   "author": "j.hhh",
   "canonical_id": "bethesda:b1bf0d35-ce24-4850-a553-507da6b0e5e5",
   "content_id": "b1bf0d35-ce24-4850-a553-507da6b0e5e5",
   "deleted": false,
-  "fingerprint": "217fb614b0efcf6b292419a190bb07875652e9025b881469ea897bb9cd3c4432",
+  "fingerprint": "e08fd29d102fad973d4c4858db40abec423fe853132af4feb90d62cd949aa46c",
   "platform": "console",
   "published": true,
   "source": "bethesda",
   "source_id": "b1bf0d35-ce24-4850-a553-507da6b0e5e5",
   "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/b1bf0d35-ce24-4850-a553-507da6b0e5e5",
-  "title": "Hide Targetframe by JH"
+  "title": "Hide Targetframe"
 }

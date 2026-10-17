@@ -195,6 +195,8 @@ health, sprint, update, or profile observers at all.
   on, and `SprintWatch` owns the event-driven sprint detector every feature that
   cares about sprinting subscribes to. Each caller supplies only its payload, so
   a fix or a client change lands once, not in four near-identical copies.
+  Zoom-in/out share one input handler, preset-state maps share normalization
+  helpers, and horizontal/vertical holds share the same direction bookkeeping.
 - **Convergent toggle handling.** In the states BAV manages, a first-person
   toggle does not write the camera on the spot. A dedicated `ZoomReconciler`
   records *where the camera should settle* and performs a single write on the
@@ -357,4 +359,19 @@ hands your genuine framing back next session - never the preset's offsets.
 
 This breaks the drift cycle where a dirty (offset) camera would otherwise be
 saved as the new baseline.
+
+---
+
+## Development checks
+
+Run the focused regression checks from the addon directory with Lua 5.1:
+
+```powershell
+lua .\tests\regression.lua
+```
+
+The checks use ESO API stubs to cover zoom boundaries, failed reads/writes,
+PvP zoom steps, deferred saving, preset-state normalization, and offset-key
+hold/release behavior. They do not load into ESO or replace in-game checks of
+camera rendering, reload recovery, and interactions with other addons.
 

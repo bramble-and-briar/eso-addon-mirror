@@ -10,183 +10,132 @@ local DEAL_LEVELS = {
 }
 
 function GR.GetDealMarginFromAvg(avgPricePerUnit, purchasePricePerUnit)
-	if not avgPricePerUnit or avgPricePerUnit <= 0 or not purchasePricePerUnit then
-		return nil, "888888"
-	end
 	local margin = math.floor(((avgPricePerUnit - purchasePricePerUnit) / avgPricePerUnit) * 100)
 	for _, tier in ipairs(DEAL_LEVELS) do
 		if margin >= tier.min then
 			return margin, tier.color
 		end
 	end
-	return margin, "FFFFFF"
 end
 
--- -------------------------------------------------------------------
--- Pre‑compute averages
--- -------------------------------------------------------------------
-local commitHookAttached = false
+GR.commitHookAttached = false
 
-local function PreCommitHook(list)
+function GR.PreCommitHook(list)
 	if list ~= ZO_TradingHouseBrowseItemsRightPaneSearchResults then
-		return false
+		return
 	end
 
-	local dataList = ZO_ScrollList_GetDataList(list)
-	if not dataList then return false end
-
-	for _, entry in ipairs(dataList) do
+	for _, entry in ipairs(ZO_ScrollList_GetDataList(list)) do
 		local data = entry.data
-		if data and data.slotIndex then
-			local itemLink = GetTradingHouseSearchResultItemLink(data.slotIndex)
-			local normLink = itemLink and GR.NormalizeItemLink(itemLink)
-			data.GR_avgPricePerUnit = (normLink and GR.avgPriceCache[normLink])
-		end
+		local itemLink = GetTradingHouseSearchResultItemLink(data.slotIndex)
+		local normLink = itemLink and GR.NormalizeItemLink(itemLink)
+		data.GR_avgPricePerUnit = normLink and GR.avgPriceCache[normLink]
 	end
-
-	return false
 end
 
-local function AttachCommitHook()
-	if commitHookAttached then return end
-	ZO_PreHook("ZO_ScrollList_Commit", PreCommitHook)
-	commitHookAttached = true
+function GR.AttachCommitHook()
+	if GR.commitHookAttached then return end
+	ZO_PreHook("ZO_ScrollList_Commit", GR.PreCommitHook)
+	GR.commitHookAttached = true
 end
 
-local function UpdateDealControl(dealControl, data)
+function GR.UpdateDealControl(dealControl, data)
 	local purchasePricePerUnit = data.purchasePrice / data.stackCount
 	local avgPrice = data.GR_avgPricePerUnit
 
-	if not avgPrice or avgPrice <= 0 then
+	if not avgPrice then
 		dealControl:SetText("∞")
 		dealControl:SetColor(0.5, 0.5, 0.5, 1)
 		return
 	end
 
 	local margin, colorHex = GR.GetDealMarginFromAvg(avgPrice, purchasePricePerUnit)
-	if margin == nil then
-		dealControl:SetText("∞")
-		dealControl:SetColor(0.5, 0.5, 0.5, 1)
-	else
-		dealControl:SetText(margin .. "%")
-		local r, g, b = tonumber(colorHex:sub(1,2), 16)/255,
-						tonumber(colorHex:sub(3,4), 16)/255,
-						tonumber(colorHex:sub(5,6), 16)/255
-		dealControl:SetColor(r, g, b, 1)
-	end
+	dealControl:SetText(margin .. "%")
+	local r, g, b = tonumber(colorHex:sub(1,2), 16)/255,
+					tonumber(colorHex:sub(3,4), 16)/255,
+					tonumber(colorHex:sub(5,6), 16)/255
+	dealControl:SetColor(r, g, b, 1)
+end
+
+function GR.EnsureDealControl(rowControl, heightSource)
+	local dealControl = rowControl:GetNamedChild("GR_DealLevel")
+	if dealControl then return dealControl end
+
+	dealControl = CreateControlFromVirtual(rowControl:GetName() .. "GR_DealLevel", rowControl, "ZO_KeyboardGuildRosterRowLabel")
+	dealControl:SetDimensions(55, heightSource:GetHeight())
+	dealControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	dealControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	dealControl:SetFont("ZoFontGameShadow")
+	return dealControl
 end
 
 -- Vanilla layout
-local function SetVanillaSearchResults(rowControl, data)
-	local dealControl = rowControl:GetNamedChild("GR_DealLevel")
+function GR.SetVanillaSearchResults(rowControl, data)
 	local nameControl = rowControl:GetNamedChild("Name")
 	local timeRemainingControl = rowControl:GetNamedChild("TimeRemaining")
 	local sellPricePerUnitControl = rowControl:GetNamedChild("SellPricePerUnit")
 	local sellPriceControl = rowControl:GetNamedChild("SellPrice")
 
-	if not dealControl and nameControl then
-		local h = nameControl:GetHeight()
-		dealControl = CreateControlFromVirtual(rowControl:GetName() .. "GR_DealLevel", rowControl, "ZO_KeyboardGuildRosterRowLabel")
-		-- Kept at 55 to prevent triple-digit truncation
-		dealControl:SetDimensions(55, h)
-		dealControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-		dealControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-		dealControl:SetFont("ZoFontGameShadow")
-	end
+	local dealControl = GR.EnsureDealControl(rowControl, nameControl)
 
-	if dealControl and nameControl then
-		nameControl:SetWidth(185)
-		timeRemainingControl:SetWidth(50)
-		if sellPricePerUnitControl then sellPricePerUnitControl:SetWidth(100) end
-		if sellPriceControl then sellPriceControl:SetWidth(100) end
+	nameControl:SetWidth(185)
+	timeRemainingControl:SetWidth(50)
+	sellPricePerUnitControl:SetWidth(100)
+	sellPriceControl:SetWidth(100)
 
-		timeRemainingControl:ClearAnchors()
-		timeRemainingControl:SetAnchor(LEFT, nameControl, RIGHT, 20)
+	timeRemainingControl:ClearAnchors()
+	timeRemainingControl:SetAnchor(LEFT, nameControl, RIGHT, 20)
 
-		dealControl:ClearAnchors()
-		dealControl:SetAnchor(LEFT, timeRemainingControl, RIGHT, 10)
+	dealControl:ClearAnchors()
+	dealControl:SetAnchor(LEFT, timeRemainingControl, RIGHT, 10)
 
-		if sellPricePerUnitControl then
-			sellPricePerUnitControl:ClearAnchors()
-			sellPricePerUnitControl:SetAnchor(LEFT, dealControl, RIGHT, 10)
-		end
+	sellPricePerUnitControl:ClearAnchors()
+	sellPricePerUnitControl:SetAnchor(LEFT, dealControl, RIGHT, 10)
 
-		UpdateDealControl(dealControl, data)
-	end
+	GR.UpdateDealControl(dealControl, data)
 end
 
 -- AGS layout
-local function SetSearchResultsAGS(rowControl, data)
-	local dealControl = rowControl:GetNamedChild("GR_DealLevel")
+function GR.SetSearchResultsAGS(rowControl, data)
 	local timeRemainingControl = rowControl:GetNamedChild("TimeRemaining")
+	if not timeRemainingControl then return end
 
-	if not dealControl and timeRemainingControl then
-		local h = timeRemainingControl:GetHeight()
-		dealControl = CreateControlFromVirtual(rowControl:GetName() .. "GR_DealLevel", rowControl, "ZO_KeyboardGuildRosterRowLabel")
-		dealControl:SetDimensions(55, h)
-		dealControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-		dealControl:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-		dealControl:SetFont("ZoFontGameShadow")
-	end
+	local dealControl = GR.EnsureDealControl(rowControl, timeRemainingControl)
 
-	if dealControl and timeRemainingControl then
-		dealControl:ClearAnchors()
-		dealControl:SetAnchor(TOPLEFT, timeRemainingControl, TOPRIGHT, -10, 0)
-		UpdateDealControl(dealControl, data)
-	end
+	dealControl:ClearAnchors()
+	dealControl:SetAnchor(TOPLEFT, timeRemainingControl, TOPRIGHT, -10, 0)
+	GR.UpdateDealControl(dealControl, data)
 end
 
-local function TradingHouseSearchResultsSetupRow(rowControl, data)
-	if not rowControl.dataEntry then return false end
-	if not AwesomeGuildStore then
-		SetVanillaSearchResults(rowControl, data)
-	else
-		SetSearchResultsAGS(rowControl, data)
-	end
-	return false
-end
+-- ============================================
+-- Init
+-- ============================================
+GR.hooksAttached = false
 
--- -------------------------------------------------------------------
--- Injection initialization
--- -------------------------------------------------------------------
-local hooksAttached = false
+function GR.AttachKioskHooks()
+	if GR.hooksAttached then return end
 
-local function AttachKioskHooks()
-	if hooksAttached then return end
-
-	AttachCommitHook()
-
-	if not TRADING_HOUSE or not TRADING_HOUSE.searchResultsList then return end
+	GR.AttachCommitHook()
 
 	if AwesomeGuildStore then
 		for _, dataType in pairs(TRADING_HOUSE.searchResultsList.dataTypes) do
-			if dataType and dataType.setupCallback then
-				ZO_PreHook(dataType, "setupCallback", TradingHouseSearchResultsSetupRow)
-				hooksAttached = true
-			end
+			ZO_PreHook(dataType, "setupCallback", GR.SetSearchResultsAGS)
 		end
 	else
-		local dataType = TRADING_HOUSE.searchResultsList.dataTypes[1]
-		if dataType then
-			ZO_PreHook(dataType, "setupCallback", TradingHouseSearchResultsSetupRow)
-			hooksAttached = true
-		end
+		ZO_PreHook(TRADING_HOUSE.searchResultsList.dataTypes[1], "setupCallback", GR.SetVanillaSearchResults)
 	end
+
+	GR.hooksAttached = true
 end
 
-
-local function OnTradingHouseResponse(eventCode, responseType, result)
-	if eventCode == EVENT_TRADING_HOUSE_RESPONSE_RECEIVED
-	   and responseType == TRADING_HOUSE_RESULT_SEARCH_PENDING
-	   and result == TRADING_HOUSE_RESULT_SUCCESS
-	   and TRADING_HOUSE.searchResultsList then
-		AttachKioskHooks()
+function GR.OnTradingHouseResponse(_, responseType, result)
+	if responseType == TRADING_HOUSE_RESULT_SEARCH_PENDING and result == TRADING_HOUSE_RESULT_SUCCESS then
+		GR.AttachKioskHooks()
 		ZO_ScrollList_Commit(ZO_TradingHouseBrowseItemsRightPaneSearchResults)
 		EM:UnregisterForEvent(GR.name, EVENT_TRADING_HOUSE_RESPONSE_RECEIVED)
 	end
 end
 
 function GR.SetupKioskRowInjections()
-	AttachKioskHooks()
-	EM:RegisterForEvent(GR.name, EVENT_TRADING_HOUSE_RESPONSE_RECEIVED, OnTradingHouseResponse)
+	EM:RegisterForEvent(GR.name, EVENT_TRADING_HOUSE_RESPONSE_RECEIVED, GR.OnTradingHouseResponse)
 end

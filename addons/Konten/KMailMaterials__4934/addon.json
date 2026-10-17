@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/Konten/KMailMaterials__4934",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "Konten",
   "canonical_id": "esoui:4934",
   "category_id": "159",
@@ -19,9 +18,9 @@
     "KMailMaterials"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4934/",
-  "fingerprint": "5d87542bbba2b9a14346a5edf325cd7d439e9e9debb72b481f53c9c62ba95dbe",
+  "fingerprint": "4b4195d5e1920774c1a75c5634ab75192ea5a8bd2cfc00ffa2f92d3200dfbc4c",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw17842.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18016.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17846.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17860.jpg",
     "https://cdn-eso.mmoui.com/preview/pvw17847.jpg"
@@ -32,11 +31,11 @@
   "source_id": "4934",
   "source_url": "https://www.esoui.com/downloads/info4934-KMailMaterials.html",
   "stats": {
-    "downloads": 6,
+    "downloads": 37,
     "favorites": 0,
-    "monthly_downloads": 5
+    "monthly_downloads": 34
   },
   "title": "KMailMaterials",
-  "updated_at": 1791626017000,
-  "version": "1.0.2"
+  "updated_at": 1792169158000,
+  "version": "1.0.4"
 }

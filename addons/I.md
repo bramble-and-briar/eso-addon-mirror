@@ -126,7 +126,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Item Finder](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder__1541) | Rhyono | PC / Mac | 1.31 |
 | [Item Finder (PTS)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Rhyono/Item-Finder-PTS__1980) | Rhyono | PC / Mac | 1.31 |
 | [Item Quality as Text](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Cavalier07/Item-Quality-as-Text__745) | Cavalier07 | PC / Mac | 1.3.0 |
-| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.1 |
+| [Item Saver Lite](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Item-Saver-Lite__4335) | atharti | PC / Mac | 2.2 |
 | [Item Scripting](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Amerlite/Item-Scripting__2089) | Amerlite | PC / Mac | 2.3 |
 | [Item Set Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Item-Set-Browser__1480) | code65536 | PC / Mac | 4.7.1.2 |
 | [Item Set Collection Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/zelenin/Item-Set-Collection-Tracker__2816) | zelenin | PC / Mac | 0.4.1 |

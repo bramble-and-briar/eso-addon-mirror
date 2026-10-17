@@ -24,7 +24,7 @@ Thank you to the Bandits UI authors and contributors for the original foundation
 
 - New add-on identity, folder and `.addon` manifest
 - Separate SavedVariables to avoid collisions with the original add-on
-- All runtime texture paths changed to `SatuveXboxUI`
+- All runtime texture paths changed to `MyUI`
 - Xbox-server PC compatibility fixes from the prior test build
 - Added `/sxui` and `/satuveui` diagnostic commands
 - Keyboard/mouse mode detection retained for this client configuration
@@ -32,11 +32,11 @@ Thank you to the Bandits UI authors and contributors for the original foundation
 
 ## Installation
 
-Install and enable Votan's Minimap, LibAsync and LibHarvensAddonSettings first. Then extract the folder `SatuveXboxUI` into the add-on directory used by your ESO Xbox-server PC client. Do not install it alongside an enabled copy of the original Bandits User Interface because both still use parts of the internal `BUI` Lua namespace.
+Install and enable Votan's Minimap, LibAsync and LibHarvensAddonSettings first. Then extract the folder `MyUI` into the add-on directory used by your ESO Xbox-server PC client. Do not install it alongside an enabled copy of the original Bandits User Interface because both still use parts of the internal `BUI` Lua namespace.
 
 ## Xbox memory and add-on compatibility
 
-- **SatuveXboxUI replaces Bandits User Interface. Never enable both together.** Both add-ons still use the global `BUI` namespace, `BUI_*` controls, event/update names, slash commands, and keybinding actions. Load order cannot make that combination safe.
+- **MyUI replaces Bandits User Interface. Never enable both together.** Both add-ons still use the global `BUI` namespace, `BUI_*` controls, event/update names, slash commands, and keybinding actions. Load order cannot make that combination safe.
 - `LibGamepad` 1.0.7 or newer must be installed and enabled. `LibGamepadContextMenuBridge` is a different library and does not satisfy this dependency.
 - Avoid enabling overlapping unit-frame, action-bar, reticle, or minimap modules from AUI, LUI Extended, or another full UI add-on at the same time. Disable the overlapping module in one add-on before testing the other.
 - The runtime now keeps at most 12 completed unsaved combat reports. Reports explicitly saved by the player remain available.
@@ -224,7 +224,7 @@ Install and enable Votan's Minimap, LibAsync and LibHarvensAddonSettings first. 
 ## Version 1.1.63
 
 - The gathering-navigation feature was extracted into the independent `SatuveResourceNavigator` add-on.
-- SatuveXboxUI no longer owns its settings, HUD controls, events, routes, node data or optional HarvestMap integration.
+- MyUI no longer owns its settings, HUD controls, events, routes, node data or optional HarvestMap integration.
 - The minimap, normal map handling, combat UI and other Bandits UI systems are unchanged.
 
 ## License

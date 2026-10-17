@@ -99,25 +99,31 @@ local function Setup_AdvancedTheme()
 		-- Keep compass and top boss-bar controls native and visible on Xbox.
 		for _,text in pairs({"Center","Left","Right"}) do local frame=_G["ZO_CompassFrame"..text] if frame then frame:SetHidden(false) end end
 		for _,text in pairs({"Left","Right"}) do local frame=_G["ZO_BossBarBracket"..text] if frame then frame:SetHidden(false) end end
-		ZO_ChatWindowDivider:SetHidden(hide) ZO_ChatWindowBg:SetHidden(hide)
-		if BUI.Vars.StatsMiniMeter then BUI_MiniMeter_BG:SetHidden(hide) end
-		ZO_PerformanceMetersBg:SetHidden(hide)
-		ZO_FocusedQuestTrackerPanelContainerQuestContainerAssistedKeyLabel:SetHidden(hide)
+		-- These keyboard UI controls are absent on some ESO console/gamepad builds.
+		local optionalControls = {
+			"ZO_ChatWindowDivider", "ZO_ChatWindowBg", "ZO_PerformanceMetersBg",
+			"ZO_FocusedQuestTrackerPanelContainerQuestContainerAssistedKeyLabel",
+		}
+		if BUI.Vars.StatsMiniMeter then optionalControls[#optionalControls+1] = "BUI_MiniMeter_BG" end
+		for _,name in ipairs(optionalControls) do
+			local frame = _G[name]
+			if frame and frame.SetHidden then frame:SetHidden(hide) end
+		end
 	end
 	if BUI.Vars.Theme~=7 then
 		if BUI_AdvancedTheme then
-			BUI_AdvancedTheme:SetHidden(true) BUI_Chat_Edge:SetHidden(true) HideElements(false)
+			BUI_AdvancedTheme:SetHidden(true) if BUI_Chat_Edge then BUI_Chat_Edge:SetHidden(true) end HideElements(false)
 		end
 		return
 	elseif BUI_AdvancedTheme then
-		BUI_AdvancedTheme:SetHidden(false) BUI_Chat_Edge:SetHidden(false) HideElements(true)
+		BUI_AdvancedTheme:SetHidden(false) if BUI_Chat_Edge then BUI_Chat_Edge:SetHidden(false) end HideElements(true)
 		local frames={"BUI_AdvancedTheme","BUI_Chat_Edge","BUI_Compass_Edge"}
 		for _,name in pairs(frames) do
-			control=_G[name]
-			for i=1,control:GetNumChildren() do
-				local obj=control:GetChild(i)
-				if obj:GetType()==CT_LINE then
-					obj:SetColor(unpack(a_color))
+			local control=_G[name]
+			if control then
+				for i=1,control:GetNumChildren() do
+					local obj=control:GetChild(i)
+					if obj and obj:GetType()==CT_LINE then obj:SetColor(unpack(a_color)) end
 				end
 			end
 		end
@@ -220,6 +226,7 @@ local function Setup_AdvancedTheme()
 	BUI.UI.Path(nil, BUI_HornInfo, points, a_color, 2)
 	end
 	--Performance Meters
+	if ZO_PerformanceMeters then
 	local points={
 		{ZO_PerformanceMeters,BOTTOMLEFT,0,-10-20},
 		{ZO_PerformanceMeters,BOTTOMLEFT,10,-20},
@@ -227,7 +234,9 @@ local function Setup_AdvancedTheme()
 		{ZO_PerformanceMeters,BOTTOMRIGHT,0,-10-20},
 	}
 	BUI.UI.Path(nil, ui, points, a_color, 2)
+	end
 	--QuestTracker
+	if ZO_FocusedQuestTrackerPanelContainerQuestContainer then
 	local frame=ZO_FocusedQuestTrackerPanelContainerQuestContainer
 	local points={
 		{frame,BOTTOMLEFT,-5,-5},
@@ -241,7 +250,9 @@ local function Setup_AdvancedTheme()
 		{frame,BOTTOMLEFT,-5,-5},
 	}
 	BUI.UI.Path(nil, ui, points, a_color, 2)
+	end
 	--ZO_ActionBar
+	if ActionButton3 and ActionButton7 and ActionButton8 and QuickslotButton then
 	local h=ActionButton3:GetHeight()
 	local anchor_right=BUI.Vars.CustomBar.Enable and BUI_CustomBar or ActionButton8
 	local points={
@@ -255,6 +266,7 @@ local function Setup_AdvancedTheme()
 		{anchor_right,TOPRIGHT,5,5},
 	}
 	BUI.UI.Path(nil, ui, points, a_color, 2)
+	end
 	--BUI_BuffsP_Panel
 	if BUI_BuffsP_Panel then
 	local points={

@@ -241,7 +241,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PvDoor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/skineh/PvDoor__3098) | skineh | PC / Mac | 1.0.2 |
 | [PVP Buddy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alpha-AC/PVP-Buddy__643e39fa-2b3f-46f8-aef4-eee9ff92360d) | Alpha-AC | Console | — |
 | [PvP FPS 2018](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phuein/PvP-FPS-2018__2011) | Phuein | PC / Mac | 1.22 |
-| [PvP QoL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/PvP-QoL__4358) | atharti | PC / Mac | 4.6 |
+| [PvP QoL](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/PvP-QoL__4358) | atharti | PC / Mac | 4.7 |
 | [PvP Ranks (patch for Update 28 - Markarth)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ForgottenLight/PvP-Ranks-patch-for-Update-28---Markarth__2824) | ForgottenLight | PC / Mac | 2.5d |
 | [PvP Ranks and Veterancy: Update 50](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Sufia_Heolcyn/PvP-Ranks-and-Veterancy-Update-50__4640) | Sufia_Heolcyn | PC / Mac | 3.01 |
 | [Pvp Ready Emotes](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Architectofmusic/Pvp-Ready-Emotes__2d86078c-b982-4ffc-a7f0-7905e41c2354) | Architectofmusic | Console | — |

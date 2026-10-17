@@ -18,7 +18,7 @@
     "LibDailyReset"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4424/",
-  "fingerprint": "ce0e9724a61642d2619080caf2836ea9eb095f1004b09130b71b7b108dfe4d2e",
+  "fingerprint": "028b85c8d21b0e5ebed0c79b14fcc9e380bffc2421ffd4e68646d5c7d489b446",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4424",
   "source_url": "https://www.esoui.com/downloads/info4424-LibDailyReset.html",
   "stats": {
-    "downloads": 6623,
+    "downloads": 8066,
     "favorites": 4,
-    "monthly_downloads": 446
+    "monthly_downloads": 717
   },
   "title": "LibDailyReset",
-  "updated_at": 1788323421000,
-  "version": "1.9"
+  "updated_at": 1792156529000,
+  "version": "2.0"
 }

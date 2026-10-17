@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/atharti/Enchant__4800",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "atharti",
   "canonical_id": "esoui:4800",
   "category_id": "18",
@@ -19,8 +18,9 @@
     "EnchantPlus"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4800/",
-  "fingerprint": "7ad752efc413be1e6bc7c91d1d28d574e1e1afe6439877e954a9c5efc261c4d9",
+  "fingerprint": "044a10770451b8108f23393739fa7d1b9544937a847ffabc9de7977425a649ad",
   "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw17168.png",
     "https://cdn-eso.mmoui.com/preview/pvw17167.png"
   ],
   "platform": "pc",
@@ -29,11 +29,11 @@
   "source_id": "4800",
   "source_url": "https://www.esoui.com/downloads/info4800-Enchant.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 154,
+    "favorites": 3,
+    "monthly_downloads": 57
   },
   "title": "Enchant+",
-  "updated_at": 1787936682000,
-  "version": "1.0"
+  "updated_at": 1792136841000,
+  "version": "1.1"
 }

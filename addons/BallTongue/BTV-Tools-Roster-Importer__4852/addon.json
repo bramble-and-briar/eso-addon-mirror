@@ -18,7 +18,7 @@
     "BTVToolsRosterImporter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4852/",
-  "fingerprint": "36b67f19216510ed1f72a5212f0ba5d390111c2ecba31d713b03bc9228eb7131",
+  "fingerprint": "20219e91344d0fa644ca55fc757711b6734d5233301a881d5f486ebad925da44",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17434.png",
     "https://cdn-eso.mmoui.com/preview/pvw17435.png",
@@ -36,11 +36,11 @@
   "source_id": "4852",
   "source_url": "https://www.esoui.com/downloads/info4852-BTVToolsRosterImporter.html",
   "stats": {
-    "downloads": 11,
+    "downloads": 95,
     "favorites": 1,
-    "monthly_downloads": 10
+    "monthly_downloads": 93
   },
   "title": "BTV Tools Roster Importer",
-  "updated_at": 1789815750000,
-  "version": "0.2.0"
+  "updated_at": 1792158982000,
+  "version": "0.3.0"
 }

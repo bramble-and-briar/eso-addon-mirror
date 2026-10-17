@@ -1,0 +1,17 @@
+## Title: DeskUI - Xbox PC Interface
+## Description: Expanded PC-style menus and optional replacement of supported menu shortcuts for Xbox Play Anywhere on PC. Experimental browse/detail interface.
+## Author: DeskUI
+## Version: 0.6.0
+## AddOnVersion: 6
+## SavedVariables: DeskUI_Saved
+## APIVersion: 101050 101051
+
+Core.lua
+Menu.lua
+Style.lua
+Journal.lua
+Shell.lua
+Menus.lua
+Map.lua
+DeskUI.lua
+Bindings.xml

@@ -1,0 +1,22 @@
+;1.0.4
+- Saved variables are now server dependent (NA/EU/PTS); old settings and log are migrated automatically.
+- HUD icon visibility now uses scene callbacks instead of a 250 ms update loop.
+- AI-assistance disclosure added to the description.
+- New option "One mail per click": sends a single mail per click instead of the automatic chain.
+- Code cleanup (local reference to the single global table, removed unused code).
+
+;1.0.3
+- Settings are now saved per account.
+- Added "Materials mail subject" and "Consumables mail subject" options.
+- Sending to your own account is now blocked with a clear message.
+
+;1.0.2
+Replaced the "Send Materials" button with two icons:
+- Materials: Sends all eligible materials from the Materials tab.
+- Consumables: Sends all designs, diagrams, formulas, blueprints, patterns, praxes, motifs, styles, recipes, and unidentified box.
+
+;1.0.1
+Added a HUD icon to open the Show Logs window.
+
+;1.0.0
+Initial release.

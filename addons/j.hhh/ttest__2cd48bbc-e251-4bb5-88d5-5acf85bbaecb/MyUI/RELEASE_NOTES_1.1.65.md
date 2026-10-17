@@ -10,7 +10,7 @@
 - The main-menu LB/RB fallback poll now runs only while the native gamepad menu is visible, preventing background focus changes and reducing idle work.
 - Limited unsaved in-session combat history to 12 completed reports while preserving explicitly saved reports.
 - Namespaced delayed callbacks to avoid collisions with other add-ons that use the common `CallLater_*` update name.
-- Documented that SatuveXboxUI replaces the original Bandits User Interface and must not be enabled alongside it.
+- Documented that MyUI replaces the original Bandits User Interface and must not be enabled alongside it.
 - Scoped the ESO template guard to the native compass and player-progress controls only when Satuve owns their saved position; other add-ons can apply the same templates to their own controls.
 - Added a nil guard for the gamepad action-bar keybind background on clients where that native control is unavailable.
 

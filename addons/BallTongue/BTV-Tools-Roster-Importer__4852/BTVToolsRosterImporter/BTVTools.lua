@@ -19,13 +19,15 @@ local BTV = BTVTools
 -- Must equal the addon folder name: that is what EVENT_ADD_ON_LOADED hands back.
 BTV.name = "BTVToolsRosterImporter"
 
--- The payload shape this addon can read. A payload stamped with anything else is
--- refused outright: a half-import is worse than no import (#345).
-BTV.PAYLOAD_VERSION = 1
+-- The newest payload shape this addon can read; v1 still reads (BTV.Decode). A payload
+-- stamped with anything else is refused outright: a half-import is worse than no import (#345).
+BTV.PAYLOAD_VERSION = 2
 
--- How much the paste box will hold. The edit box drops everything past this SILENTLY, so a
+-- How much the paste box is told to hold. The edit box drops everything past this SILENTLY, so a
 -- payload one character over arrives as broken JSON and reads as "not a BTV payload" (#413).
 -- A 23 setup Ossein Cage run is 20,275 characters, which is what blew the old 20,000 ceiling.
+-- The game caps the box near 29,900 anyway (2026-10-15), so the site splits anything
+-- longer into parts (BTV:k/N:) and the /btv window joins them.
 BTV.PASTE_LIMIT = 200000
 
 local WW = WizardsWardrobe
@@ -207,9 +209,10 @@ local DEFAULTS = {
 	autoOverwrite = false,
 	exactTraits = false,    -- never wear an off-trait piece; the plan creates one instead (owner, 2026-09-08)
 	autoDeposit = false,    -- auto deposit/withdraw, read by the fetch window, increment 7 of #474
-	autoCraft = true,       -- run queued craft and reconstruct lines at an open station (#482)
+	autoCraft = false,      -- run queued craft and reconstruct lines at an open station (#482); off since step tips (2026-10-14)
 	historySize = 10,
 	debugTrace = false,     -- arms the match trace for one import (#483)
+	usePlacements = true,   -- put each skill in the player's saved slot at write (ADR 0020)
 }
 
 function BTV.Setting( key )
@@ -399,10 +402,24 @@ end
 -- The window's Missing gear rows say sets and traits in the report's words (#479).
 BTV.SetLabel, BTV.TraitName = SetLabel, TraitName
 
+-- Remembered per pair: which set is the perfected form of which is game data, fixed for the
+-- session, and the missing-gear plan asks the same pairs millions of times (a 23 setup
+-- roster spent most of a freeze long enough to disconnect here, 2026-10-15).
+local setMatches = {}
 local function SetMatches( itemSetId, wantedSetId )
-	return itemSetId == wantedSetId
-		or IsPerfectedFormOf( itemSetId, wantedSetId )
-		or IsPlainFormOf( itemSetId, wantedSetId )
+	if itemSetId == wantedSetId then return true end
+	if itemSetId == nil or wantedSetId == nil then return false end
+	local row = setMatches[ itemSetId ]
+	if not row then
+		row = {}
+		setMatches[ itemSetId ] = row
+	end
+	local hit = row[ wantedSetId ]
+	if hit == nil then
+		hit = IsPerfectedFormOf( itemSetId, wantedSetId ) or IsPlainFormOf( itemSetId, wantedSetId )
+		row[ wantedSetId ] = hit
+	end
+	return hit
 end
 
 -- Location keys out of IIfA are character ids, sometimes as strings and sometimes as
@@ -1647,6 +1664,27 @@ local function DropWhere( lib, setId )
 	return where
 end
 
+-- Where a crafted set's station is: the zone of each station wayshrine LibSets lists
+-- (base-game sets have one per alliance). Not GetZoneIds: on the base-game sets it holds
+-- a 4th zone with no station (UESP, 2026-10-14). A station with no wayshrine (Earth Forge,
+-- Eyevea, Imperial City, Cyrodiil armories) or one LibSets maps to zone 0 (Blackreach)
+-- falls back to the set's first zone.
+local function StationWhere( lib, setId )
+	local zones, seen = {}, {}
+	for _, node in ipairs( lib.GetWayshrineIds( setId ) or {} ) do
+		local zoneId = node > 0 and lib.GetWayshrinesZoneId( node ) or 0
+		if zoneId == 0 then zoneId = ( lib.GetZoneIds( setId ) or {} )[ 1 ] or 0 end
+		local name = zoneId ~= 0 and lib.GetZoneName( zoneId ) or ""
+		if name ~= "" and not seen[ name ] then
+			seen[ name ] = true
+			table.insert( zones, name )
+		end
+	end
+	if #zones == 0 then return nil end
+	if #zones == 1 then return zones[ 1 ] end
+	return table.concat( zones, ", ", 1, #zones - 1 ) .. " or " .. zones[ #zones ]
+end
+
 -- Everything a row on the Missing gear step says about one created piece (#468, #470),
 -- all readable anywhere in the world: crafted or dropped and where it drops (LibSets),
 -- whether the sticker book holds it, the live reconstruction cost against the crystal
@@ -1659,7 +1697,10 @@ local function Facts( cand )
 	facts.name = piece and CleanName( GetItemLinkName( piece.link ) ) or nil
 	if not facts.name or facts.name == "" then facts.name = SetLabel( setId ) .. " " .. ShapeWords( cand ) end
 	local crafted = lib and lib.IsCraftedSet( setId ) or false
-	if crafted then facts.traitsNeeded = lib.GetTraitsNeeded( setId ) or 0 end
+	if crafted then
+		facts.traitsNeeded = lib.GetTraitsNeeded( setId ) or 0
+		facts.station = StationWhere( lib, setId )
+	end
 	facts.known, facts.traitKnown, facts.crafter, facts.canOn, facts.tierShort, facts.tierOk = Research( cand, facts.traitsNeeded )
 	if crafted then
 		facts.canCraft = facts.known >= facts.traitsNeeded and facts.traitKnown ~= false and facts.tierOk ~= false
@@ -1839,6 +1880,48 @@ local function Better( cand, gain, fit, best, bestGain, bestFit )
 	return false
 end
 
+-- Lua runs on the game's frame, and a 23 setup roster planned long enough that the server
+-- dropped the player (error 303, 2026-10-15). Run from a coroutine (BTV.RunSliced), the
+-- plan hands the frame back every SLICE_MS with how far it got; called directly, as the
+-- self check does, it never yields.
+local SLICE_MS = 12
+local sliceStart = 0
+local function Pause( progress )
+	local co, main = coroutine.running()
+	if not co or main then return end
+	if GetGameTimeMilliseconds() - sliceStart < SLICE_MS then return end
+	coroutine.yield( progress )
+end
+
+-- Steps `work` one slice per frame: `onProgress( 0..1 )` after each slice, then
+-- `onDone( ... )` with what `work` returned, or `( nil, why )` when it threw. One run at a
+-- time: a new run, or BTV.CancelSliced, drops the last.
+local SLICED = "BTVToolsSliced"
+function BTV.CancelSliced()
+	EVENT_MANAGER:UnregisterForUpdate( SLICED )
+	BTV.sliced = nil
+end
+
+function BTV.RunSliced( work, onProgress, onDone )
+	BTV.CancelSliced()
+	local co = coroutine.create( work )
+	BTV.sliced = co
+	EVENT_MANAGER:RegisterForUpdate( SLICED, 0, function()
+		if BTV.sliced ~= co then return end
+		sliceStart = GetGameTimeMilliseconds()
+		local ok, a, b = coroutine.resume( co )
+		if not ok then
+			BTV.CancelSliced()
+			onDone( nil, "|cFF7070the import stopped on an error: " .. tostring( a ) .. "|r" )
+		elseif coroutine.status( co ) == "dead" then
+			BTV.CancelSliced()
+			onDone( a, b )
+		else
+			onProgress( a or 0 )
+		end
+	end )
+end
+
 -- The solver. `forced` is the player's own picks, `{ key, path, quality }` in gap order:
 -- they go into the pool first so an edit keeps every other pick where it was, and the
 -- greedy only fills what the edit left open. A forced piece worn nowhere is dropped.
@@ -1866,7 +1949,13 @@ function BTV.PlanMissing( analysis, forced )
 	-- Facts read LibSets, the sticker book and the research snapshot; the same piece keeps
 	-- them across re-plans (#490).
 	analysis.factsOf = analysis.factsOf or {}
-	for _, cand in ipairs( candidates ) do
+	-- Progress: this round is the first tenth, then the share of the missing demands filled.
+	-- ponytail: a round fills at least one demand, so it reads as one step; it can jump
+	-- when a round fills several, or reach the end early when nothing more can be filled.
+	local missing = 0
+	for _, ei in ipairs( open ) do missing = missing + entries[ ei ].demandCount - base[ ei ] end
+	for ci, cand in ipairs( candidates ) do
+		Pause( 0.1 * ci / #candidates )
 		analysis.factsOf[ cand.key ] = analysis.factsOf[ cand.key ] or Facts( cand )
 		cand.facts = analysis.factsOf[ cand.key ]
 		cand.gains = {}
@@ -1894,14 +1983,16 @@ function BTV.PlanMissing( analysis, forced )
 	end
 
 	while true do
-		local counts, short = {}, {}
+		local counts, short, filled = {}, {}, 0
 		for _, ei in ipairs( open ) do
 			counts[ ei ] = Placed( entries[ ei ], pool )
+			filled = filled + counts[ ei ] - base[ ei ]
 			if counts[ ei ] < entries[ ei ].demandCount then table.insert( short, ei ) end
 		end
 		if #short == 0 then break end
 		local best, bestGain, bestFit
-		for _, cand in ipairs( candidates ) do
+		for ci, cand in ipairs( candidates ) do
+			Pause( 0.1 + 0.9 * math.min( 1, ( filled + ci / #candidates ) / math.max( missing, 1 ) ) )
 			local gain, fit = 0, 0
 			for _, ei in ipairs( short ) do
 				local delta = cand.gains[ ei ]
@@ -2130,11 +2221,54 @@ local function TargetZone( payload, chosenTag )
 	return nil, string.format( "no setup names a trial, and Wizard's Wardrobe has no '%s' zone to write it to.", tostring( chosenTag or "GEN" ) )
 end
 
+-- Payload v2 is v1 packed to fit the game's paste box, which holds about 29,900
+-- characters whatever SetMaxInputChars says (Alan's 23 setup Ossein Cage run was 35,262
+-- and arrived cut, 2026-10-15): `sub` once for the roster instead of once per setup, and
+-- each gear hint a list in GEAR_FIELDS order, 0 standing for "absent" past the first two.
+-- Unpacked into exactly the v1 tables, so nothing after the read can tell them apart.
+local GEAR_FIELDS = { "slot", "set", "trait", "weight", "eq", "weapon", "glyph", "shieldOk" }
+local WEIGHT_NAMES = { "light", "medium", "heavy" }
+
+local function Unpack( payload )
+	local sub = type( payload.sub ) == "table" and payload.sub or {}
+	payload.sub = nil
+	for _, entry in ipairs( type( payload.setups ) == "table" and payload.setups or {} ) do
+		-- Each setup gets back the entries for its own sets and their stand-ins, as v1 had.
+		local mine = {}
+		local function Take( id )
+			local space = sub[ tostring( id ) ]
+			if space then mine[ tostring( id ) ] = space end
+		end
+		for _, set in ipairs( entry.sets or {} ) do
+			Take( set.id )
+			for _, altId in ipairs( set.alt or {} ) do Take( altId ) end
+		end
+		if next( mine ) then entry.sub = mine end
+		for i, hint in ipairs( entry.gear or {} ) do
+			local gear = { slot = hint[ 1 ], set = hint[ 2 ] }
+			for f = 3, #GEAR_FIELDS do
+				if hint[ f ] ~= nil and hint[ f ] ~= 0 then gear[ GEAR_FIELDS[ f ] ] = hint[ f ] end
+			end
+			if gear.weight then gear.weight = WEIGHT_NAMES[ gear.weight ] end
+			if gear.shieldOk then gear.shieldOk = true end
+			entry.gear[ i ] = gear
+		end
+	end
+end
+
+-- The paste as a v1 shaped table, or nil when it is not one. Every read goes through here.
+function BTV.Decode( text )
+	local ok, payload = pcall( json.decode, text )
+	if not ok or type( payload ) ~= "table" then return nil end
+	if payload.v == 2 and not pcall( Unpack, payload ) then return nil end
+	return payload
+end
+
 -- Whether the Paste step has to ask where to write (#477 amendment): the payload reads
 -- and names no trial.
 function BTV.PeekNeedsZone( text )
-	local ok, payload = pcall( json.decode, text )
-	if not ok or type( payload ) ~= "table" or type( payload.setups ) ~= "table" then return false end
+	local payload = BTV.Decode( text )
+	if not payload or type( payload.setups ) ~= "table" then return false end
 	for _, entry in ipairs( payload.setups ) do
 		for _, row in ipairs( type( entry ) == "table" and entry.rows or {} ) do
 			local tag = row.condition and row.condition.tag
@@ -2193,8 +2327,8 @@ end
 -- What the Paste step shows before Next is ever pressed (#477): the page this payload
 -- would write, or nil while the box holds something unreadable.
 function BTV.PeekPageName( text )
-	local ok, payload = pcall( json.decode, text )
-	if not ok or type( payload ) ~= "table" then return nil end
+	local payload = BTV.Decode( text )
+	if not payload then return nil end
 	return PageNameFor( payload )
 end
 
@@ -2208,18 +2342,24 @@ function BTV.Analyze( text, chosenTag )
 		return nil, string.format( "|cFF7070%s is gone from Wizard's Wardrobe. Nothing written, BTV Tools needs an update.|r", moved )
 	end
 
-	local ok, payload = pcall( json.decode, text )
-	if not ok or type( payload ) ~= "table" then
+	-- One part of a long roster: only the /btv window collects and joins parts (Wizard.PasteText).
+	local _, parts = text:match( "^BTV:(%d+)/(%d+):" )
+	if parts then
+		return nil, string.format( "|cFF7070this roster comes in %s parts. Open |c7B68EE/btv|cFF7070 and paste them one after the other.|r", parts )
+	end
+
+	local payload = BTV.Decode( text )
+	if not payload then
 		-- A paste the box cut short looks exactly like a garbage paste, so name the real
 		-- cause rather than sending the player back to copy the same too-long string (#413).
-		if #text >= BTV.PASTE_LIMIT then
-			return nil, string.format( "|cFF7070the paste box holds %d characters and your roster is longer, so it arrived cut in half. Split the roster or update BTV Tools.|r",
-				BTV.PASTE_LIMIT )
+		-- The box stops near 29,900 characters however high SetMaxInputChars goes.
+		if text:find( '^{"v":' ) then
+			return nil, "|cFF7070your roster arrived cut short: it is longer than the game's paste box. Update BTV Tools Roster Importer, then copy it again from the share page.|r"
 		end
 		return nil, "|cFF7070not a BTV payload. Copy it again from the share page.|r"
 	end
-	if payload.v ~= BTV.PAYLOAD_VERSION then
-		return nil, string.format( "|cFF7070payload is v%s, this addon reads v%d. Update the addon or re-export.|r",
+	if payload.v ~= 1 and payload.v ~= BTV.PAYLOAD_VERSION then
+		return nil, string.format( "|cFF7070payload is v%s, this addon reads up to v%d. Update the addon or re-export.|r",
 			tostring( payload.v ), BTV.PAYLOAD_VERSION )
 	end
 	if type( payload.setups ) ~= "table" or #payload.setups == 0 then
@@ -2702,6 +2842,117 @@ local function ApplyFlex( analysis )
 	end
 end
 
+-- ---- Skill placement (docs/plans/2026-10-14-skill-placement.md, ADR 0020) ----
+-- svAccount.placements[ key ] = { id = an ability id to draw it by, [ hotbar ] = { slot, seq } },
+-- slot being WW's 3..7 (the player's 1..5). The ultimate is never placed.
+
+-- One key per skill whatever its morph, and per grimoire whatever its scripts.
+function BTV.SkillKey( abilityId )
+	local grimoire = GetAbilityCraftedAbilityId( abilityId )
+	if grimoire ~= 0 then return "g" .. grimoire end
+	local data = SKILLS_DATA_MANAGER and SKILLS_DATA_MANAGER:GetProgressionDataByAbilityId( abilityId )
+	local skill = data and data:GetSkillData()
+	local base = skill and skill.GetMorphData and skill:GetMorphData( MORPH_SLOT_BASE )
+	return "s" .. ( base and base:GetAbilityId() or abilityId )
+end
+
+-- A counter, not a timestamp: two drops in the same second still have an order.
+function BTV.NextPlacementSeq()
+	BTV.svAccount.placementSeq = ( BTV.svAccount.placementSeq or 0 ) + 1
+	return BTV.svAccount.placementSeq
+end
+
+function BTV.SavePlacement( abilityId, hotbar, slot, seq )
+	local key = BTV.SkillKey( abilityId )
+	local saved = BTV.svAccount.placements[ key ] or {}
+	saved.id = abilityId
+	saved[ hotbar ] = { slot = slot, seq = seq or BTV.NextPlacementSeq() }
+	BTV.svAccount.placements[ key ] = saved
+end
+
+-- One bar of one setup in the player's order, slots 3..7 only. A slot saved for this bar
+-- beats a backup from the other bar, then the newer save wins; the loser, skills with no
+-- slot and empty slots fill what is left in the leader's order.
+function BTV.SortBar( bar, hotbar )
+	local placements, wants = BTV.svAccount.placements, {}
+	for slot = 3, 7 do
+		local saved = bar[ slot ] and bar[ slot ] ~= 0 and placements[ BTV.SkillKey( bar[ slot ] ) ]
+		local own = saved and saved[ hotbar ]
+		local pick = own or ( saved and saved[ 1 - hotbar ] )
+		if pick then table.insert( wants, { from = slot, to = pick.slot, own = own ~= nil, seq = pick.seq } ) end
+	end
+	table.sort( wants, function( a, b )
+		if a.own ~= b.own then return a.own end
+		return a.seq > b.seq
+	end )
+	local sorted, filled, moved = {}, {}, {}
+	for _, want in ipairs( wants ) do
+		if not filled[ want.to ] then
+			sorted[ want.to ], filled[ want.to ], moved[ want.from ] = bar[ want.from ], true, true
+		end
+	end
+	local free = 3
+	for slot = 3, 7 do
+		if not moved[ slot ] then
+			while filled[ free ] do free = free + 1 end
+			sorted[ free ], filled[ free ] = bar[ slot ], true
+		end
+	end
+	for slot = 3, 7 do bar[ slot ] = sorted[ slot ] end
+end
+
+-- After ApplyFlex, which writes by the leader's positions, so this runs once per analysis:
+-- the fast path's overwrite prompt re-analyzes, and the window commits once.
+local function ApplyPlacements( analysis )
+	if not BTV.Setting( "usePlacements" ) then return end
+	for _, write in ipairs( analysis.writes ) do
+		for hotbar = 0, 1 do BTV.SortBar( write.raw.skills[ hotbar ], hotbar ) end
+		write.setup:SetSkills( write.raw.skills )
+	end
+end
+
+-- The skills an import puts on each bar, flex picks in, for the window's Skill placements
+-- step: `bars[ hotbar ]` lists each once as { key, id }, and `writes[ i ][ hotbar ][ key ]`
+-- says which setups carry it, for the shared-slot warning.
+function BTV.PlacementSkills( analysis )
+	ApplyFlex( analysis )
+	local bars, writes, seen = { [ 0 ] = {}, [ 1 ] = {} }, {}, { [ 0 ] = {}, [ 1 ] = {} }
+	for i, write in ipairs( analysis.writes ) do
+		writes[ i ] = { [ 0 ] = {}, [ 1 ] = {} }
+		for hotbar = 0, 1 do
+			for slot = 3, 7 do
+				local id = write.raw.skills[ hotbar ][ slot ]
+				if id and id ~= 0 then
+					local key = BTV.SkillKey( id )
+					writes[ i ][ hotbar ][ key ] = true
+					if not seen[ hotbar ][ key ] then
+						seen[ hotbar ][ key ] = true
+						table.insert( bars[ hotbar ], { key = key, id = id } )
+					end
+				end
+			end
+		end
+	end
+	return bars, writes
+end
+
+-- Fill from my bars, and /btv remember: the live front and back bars saved as they sit.
+-- The game binds a scribed skill as its grimoire, so it is turned back into an ability.
+function BTV.RememberBars()
+	local count = 0
+	for hotbar = 0, 1 do
+		for slot = 3, 7 do
+			local id = GetSlotBoundId( slot, hotbar )
+			if id ~= 0 and GetSlotType( slot, hotbar ) == ACTION_TYPE_CRAFTED_ABILITY then id = GetAbilityIdForCraftedAbilityId( id ) end
+			if id ~= 0 then
+				BTV.SavePlacement( id, hotbar, slot )
+				count = count + 1
+			end
+		end
+	end
+	return count
+end
+
 -- The write half (#477): everything an import changes, fed by an analysis. `confirmed`
 -- true skips the fast path's own overwrite prompt; the window asks its richer
 -- overwrite-or-create question itself and always calls this confirmed.
@@ -2709,6 +2960,7 @@ local PlanLines
 function BTV.WriteAnalysis( analysis, confirmed )
 	local zone, pageName, payload = analysis.zone, analysis.pageName, analysis.payload
 	ApplyFlex( analysis )
+	ApplyPlacements( analysis )
 
 	-- WW's own entry point: it selects the zone, seeds its page list if this is the first
 	-- time the player has opened it, and leaves the window pointing where we are writing.
@@ -2835,6 +3087,28 @@ function BTV.WriteAnalysis( analysis, confirmed )
 		-- default verbosity (#478); full verbosity already replayed it with the report.
 		for _, line in ipairs( analysis.flexWarnings or {} ) do Say( line ) end
 	end
+	-- Skills with no saved slot on either bar, once the player has saved one (skill placement).
+	local placements = BTV.svAccount.placements
+	if verbosity ~= "silent" and BTV.Setting( "usePlacements" ) and next( placements ) then
+		local names, seen = {}, {}
+		for _, write in ipairs( analysis.writes ) do
+			for hotbar = 0, 1 do
+				for slot = 3, 7 do
+					local id = write.raw.skills[ hotbar ][ slot ]
+					local key = id and id ~= 0 and BTV.SkillKey( id )
+					if key and not seen[ key ] and not placements[ key ] then
+						seen[ key ] = true
+						table.insert( names, GetAbilityName( id ) )
+					end
+				end
+			end
+		end
+		if #names > 0 then
+			local one = #names == 1
+			Say( string.format( "%d skill%s no saved slot: %s. Place %s on your next |c7B68EE/btv|r import, or put %s on your bars and type |c7B68EE/btv remember|r.",
+				#names, one and " has" or "s have", table.concat( names, ", " ), one and "it" or "them", one and "it" or "them" ) )
+		end
+	end
 	-- The trace lands next to the record. SavedVariables only reach disk on a reload or
 	-- logout, so the instruction says so, at every verbosity: the player asked for this one.
 	if analysis.trace then
@@ -2853,12 +3127,14 @@ end
 function BTV.Import( text, confirmed )
 	BTV.lastReport = {}
 	BTV.lastTraits = {}
-	local analysis, why = BTV.Analyze( text )
-	if not analysis then
-		Say( why )
-		return
-	end
-	BTV.WriteAnalysis( analysis, confirmed )
+	-- A slice per frame, so a big roster never holds the game (BTV.RunSliced).
+	BTV.RunSliced( function() return BTV.Analyze( text ) end, function() end, function( analysis, why )
+		if not analysis then
+			Say( why )
+			return
+		end
+		BTV.WriteAnalysis( analysis, confirmed )
+	end )
 end
 
 -- ------------------------------------------------------------------- the plan
@@ -4391,8 +4667,13 @@ local function RegisterSettingsPanel()
 			default = DEFAULTS.historySize,
 			getFunc = function() return BTV.Setting( "historySize" ) end,
 			setFunc = function( value ) BTV.SetSetting( "historySize", value ) end },
+		Toggle( "Use my skill placements", "usePlacements",
+			"Put each skill in the slot you saved for it, in every setup the addon writes. Off writes the leader's order and never asks." ),
 		Toggle( "Debug trace", "debugTrace",
 			"Capture a match trace on the next import for a bug report. Turns itself off after one import." ),
+		{ type = "button", name = "Show tips again",
+			tooltip = "Shows each step's tip again the next time you reach that step in the import window.",
+			func = function() BTV.svAccount.tipsSeen = {} end },
 	}
 	if BTV.canSupport then
 		table.insert( options, { type = "button", name = "Support", width = "half",
@@ -4409,9 +4690,15 @@ local function OnAddOnLoaded( _, addonName )
 	EVENT_MANAGER:UnregisterForEvent( BTV.name, EVENT_ADD_ON_LOADED )
 
 	BTV.svAccount = ZO_SavedVars:NewAccountWide( "BTVToolsVars", 1, nil,
-		{ settings = DEFAULTS, history = {} } )
+		{ settings = DEFAULTS, history = {}, tipsSeen = {}, placements = {} } )
 	BTV.svChar = ZO_SavedVars:NewCharacterIdSettings( "BTVToolsVars", 1, nil,
 		{ settings = DEFAULTS } )
+	-- Auto craft went from on to off by default (2026-10-14). ZO_SavedVars wrote the old
+	-- default into every existing file, so it is turned off once per table (the setting can
+	-- be per character); a player who turns it back on keeps it.
+	for _, sv in ipairs( { BTV.svAccount, BTV.svChar } ) do
+		if not sv.autoCraftOff then sv.settings.autoCraft, sv.autoCraftOff = false, true end
+	end
 	RegisterSettingsPanel()
 	-- This character's trait research, kept for every character so the plan knows the
 	-- account's best crafter from anywhere. Read again once the player is in the world:
@@ -4457,6 +4744,11 @@ local function OnAddOnLoaded( _, addonName )
 			else
 				Say( "settings need LibAddonMenu-2.0." )
 			end
+		elseif args == "placements" then
+			if BTV.OpenWindow then BTV.OpenWindow( "placements" ) end
+		elseif args == "remember" then
+			local count = BTV.RememberBars()
+			Say( string.format( "saved the slots of %d skill%s on your bars.", count, count == 1 and "" or "s" ) )
 		elseif args == "debug" then
 			BTV.debugArmed = true
 			Say( "debug trace armed for the next import." )
@@ -4485,7 +4777,7 @@ local function OnAddOnLoaded( _, addonName )
 				OpenDialog()
 			end
 		else
-			Say( "usage: |c7B68EE/btv|r to import, |c7B68EE/btvpaste|r for the fast paste, |c7B68EE/btv missing|r for the plan, |c7B68EE/btv settings|r, |c7B68EE/btv debug|r, |c7B68EE/btv test|r." )
+			Say( "usage: |c7B68EE/btv|r to import, |c7B68EE/btvpaste|r for the fast paste, |c7B68EE/btv missing|r for the plan, |c7B68EE/btv placements|r, |c7B68EE/btv remember|r, |c7B68EE/btv settings|r,|c7B68EE/btv debug|r, |c7B68EE/btv test|r." )
 		end
 	end
 	-- The fast path (#473): paste, one line, done. Today the two entries share one dialog;

@@ -5,7 +5,7 @@ local SAVED_VARIABLES_NAME = "BureauOfAcceptableViews_SavedVariables"
 BureauOfAcceptableViews = {
     name = ADDON_NAME,
     savedVariablesName = SAVED_VARIABLES_NAME,
-    version = "3.11.012748",
+    version = "3.12.232154",
     -- 0=off, 1=errors, 2=warnings, 3=info, 4=verbose. Seeded silent here and
     -- overwritten from SavedVariables at load (see DEBUG_MODE_DEFAULT below, which
     -- must stay in sync -- this literal exists only because the addon table is
@@ -630,102 +630,61 @@ local function PreHookToggleGameCameraFirstPerson()
     return false     -- passthrough (engine balances any probe pair itself)
 end
 
--- Shared handler for zooming in (reducing camera distance)
-local function HandleZoomIn(sourceName)
+-- direction: -1 zooms in, +1 zooms out.
+local function HandleZoom(sourceName, direction)
     local localizedSourceName = GetLocalizedSourceName(sourceName)
     LogDebug(SI_BAV_LOG_SOURCE_CALLED, localizedSourceName)
-    
-    -- Don't interfere with siege weapons
+
     if IsGameCameraSiegeControlled() then
         LogInfo(SI_BAV_LOG_SOURCE_SIEGE_PASS, localizedSourceName)
-        return false  -- Allow original function to execute
+        return false
     end
-    
+
     local zoom, success = GetCameraZoom()
     if not success then
         LogWarn("%s: live zoom unavailable, passing input to ESO", localizedSourceName)
         return false
     end
-    
-    -- Already at FPV minimum - block original function to prevent game's default behavior
-    if zoom <= ZOOM_FPV then
-        LogDebug(SI_BAV_LOG_SOURCE_ALREADY_AT_FPV, localizedSourceName, zoom)
-        return true  -- Block original function - stay at FPV
+
+    local zoomingIn = direction < 0
+    if (zoomingIn and zoom <= ZOOM_FPV) or (not zoomingIn and zoom >= ZOOM_MAX) then
+        LogDebug(zoomingIn and SI_BAV_LOG_SOURCE_ALREADY_AT_FPV or SI_BAV_LOG_SOURCE_ALREADY_AT_MAX,
+            localizedSourceName, zoom)
+        return true
     end
-    
+
     local zoomStep = GetConfiguredZoomStep()
     local lastZoomThreshold = GetConfiguredLastZoomThreshold()
-    local newZoom = NormalizeZoomNumber(mathmax(ZOOM_FPV, zoom - zoomStep), ZOOM_FPV)
-    
+    local newZoom = zoom + direction * zoomStep
+    if zoomingIn then
+        newZoom = NormalizeZoomNumber(mathmax(ZOOM_FPV, newZoom), ZOOM_FPV)
+    else
+        newZoom = NormalizeZoomNumber(mathmin(ZOOM_MAX, newZoom), ZOOM_MAX)
+    end
+
     LogInfo(SI_BAV_LOG_SOURCE_TRANSITION, localizedSourceName, zoom, newZoom)
     if not SetCameraZoom(newZoom) then
         LogWarn(SI_BAV_LOG_SOURCE_SET_FAILED, localizedSourceName)
-        return false  -- Let the original function handle the input if our set failed
+        return false
     end
-    
-    -- Remember zoom for FPV toggle only if it's a "normal" zoom (> configured threshold)
+
     if newZoom > lastZoomThreshold then
         lastZoom = newZoom
         LogDebug(SI_BAV_LOG_SOURCE_UPDATED_LASTZOOM, localizedSourceName, lastZoom)
-    elseif newZoom <= lastZoomThreshold and lastZoom > lastZoomThreshold then
+    elseif zoomingIn and newZoom <= lastZoomThreshold and lastZoom > lastZoomThreshold then
         LogDebug(SI_BAV_LOG_SOURCE_PRESERVING_LASTZOOM, localizedSourceName, lastZoom)
     end
     QueueSave()
-    return true  -- Block original function only after verified addon handling
+    return true
 end
 
--- Shared handler for zooming out (increasing camera distance)
-local function HandleZoomOut(sourceName)
-    local localizedSourceName = GetLocalizedSourceName(sourceName)
-    LogDebug(SI_BAV_LOG_SOURCE_CALLED, localizedSourceName)
-    
-    -- Don't interfere with siege weapons
-    if IsGameCameraSiegeControlled() then
-        LogInfo(SI_BAV_LOG_SOURCE_SIEGE_PASS, localizedSourceName)
-        return false  -- Allow original function to execute
-    end
-    
-    local zoom, success = GetCameraZoom()
-    if not success then
-        LogWarn("%s: live zoom unavailable, passing input to ESO", localizedSourceName)
-        return false
-    end
-    
-    -- Already at maximum - block original function to prevent game's default behavior
-    if zoom >= ZOOM_MAX then
-        LogDebug(SI_BAV_LOG_SOURCE_ALREADY_AT_MAX, localizedSourceName, zoom)
-        return true  -- Block original function - stay at max
-    end
-    
-    local zoomStep = GetConfiguredZoomStep()
-    local lastZoomThreshold = GetConfiguredLastZoomThreshold()
-    local newZoom = NormalizeZoomNumber(mathmin(ZOOM_MAX, zoom + zoomStep), ZOOM_MAX)
-    
-    LogInfo(SI_BAV_LOG_SOURCE_TRANSITION, localizedSourceName, zoom, newZoom)
-    if not SetCameraZoom(newZoom) then
-        LogWarn(SI_BAV_LOG_SOURCE_SET_FAILED, localizedSourceName)
-        return false  -- Let the original function handle the input if our set failed
-    end
-    
-    -- Remember zoom for FPV toggle only if it's a "normal" zoom (> configured threshold)
-    if newZoom > lastZoomThreshold then
-        lastZoom = newZoom
-        LogDebug(SI_BAV_LOG_SOURCE_UPDATED_LASTZOOM, localizedSourceName, lastZoom)
-    end
-    QueueSave()
-    return true  -- Block original function only after verified addon handling
-end
-
--- Pre-hook for CameraZoomIn
--- Returns true to block original function, false/nil to allow it
+-- Returns true to block original input only after verified addon handling.
 local function PreHookCameraZoomIn()
-    return HandleZoomIn("ZoomIn")
+    return HandleZoom("ZoomIn", -1)
 end
 
--- Pre-hook for CameraZoomOut
--- Returns true to block original function, false/nil to allow it
 local function PreHookCameraZoomOut()
-    return HandleZoomOut("ZoomOut")
+    return HandleZoom("ZoomOut", 1)
 end
 
 -- Helper to resolve the best persisted current zoom for reapplication in the world

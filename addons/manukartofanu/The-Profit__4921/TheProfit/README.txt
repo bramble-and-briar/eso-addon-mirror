@@ -5,17 +5,16 @@ A lightweight personal trade ledger for The Elder Scrolls Online.
 
 This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 
-Version 1.1.1
+Version 1.1.2
 -------------
 
-* Track, Select, and Open actions from an item's context menu now open the Price
-  view for that item.
-* Untracked items offer "Show Sales in My Guilds", which opens All Deals with an
-  item-name search without adding the item to the portfolio.
-* An empty All Deals search now clearly says that no sales of the item were found
-  in the configured guilds and highlights the message separately from loading.
-* Truncated item links in Stock now retain the same mouse actions and context menu
-  as fully visible item links.
+* Items are now identified by item id alone, so links from chat, the craft bag,
+  the backpack, and guild store lots all match the same tracked item. Tracked
+  variants of one id are merged when the addon loads. See Known limitations.
+* An item removed from the portfolio and added again starts from a clean slate:
+  earlier purchases stay in My Deals but no longer count toward its stock or profit.
+* Group deal sharing does not match items with group members running earlier
+  versions of the addon.
 
 License
 -------
@@ -131,6 +130,11 @@ velocity. If only part of a sold stack can be matched, its revenue and fees are
 included proportionally. This keeps pre-existing inventory and older unmatched
 sales from hiding the obligation created by a new purchase.
 
+Portfolio, Ledger, and Stock count only purchases made since an item was added to
+the portfolio. Removing an item and adding it again starts it from a clean slate:
+earlier purchases stay in My Deals but no longer affect its stock or profit, so
+portfolio profit covers only the items currently tracked.
+
 The projected result uses recent guild-sale history for each tracked item. The
 sample size follows one quarter of the observed 24-hour volume, with a minimum
 of 30 trades when enough history is available. The lowest and highest 15% of
@@ -222,8 +226,30 @@ change the logical tracked stock because it was never derived from inventory.
 
 The Price view stays synchronized with the item selected in Portfolio and also provides an
 alphabetical dropdown for switching between tracked items. Two rows of tabs select
-All Guilds or one configured trading guild. The sales grid then shows twelve recent
-sales from all participants, with guild, quantity x unit price, and sale time; the
-All Guilds tab combines the history from every configured guild. The configuration
+All Guilds or one configured trading guild. Below them, the forecast price is the
+same forecast unit price used by Portfolio and covers all configured guilds
+whichever tab is selected. The scrollable sales grid shows ten
+recent sales from all participants at a time, with guild, quantity x unit price,
+and sale time; the All Guilds tab combines the history from every configured guild. The configuration
 dialog controls which account guilds are loaded from LibHistoire and used for both
 this history and market calculations.
+
+Known limitations
+-----------------
+
+The Profit identifies an item by its item id alone. ESO gives the same item links
+with different extra fields depending on where they come from: chat and the craft
+bag usually give zeros, the backpack gives filled-in values, and a guild store lot
+keeps whatever the seller's item had. Only the id is reliable, so everything else
+in the link is ignored. This is exact for materials, style and trait materials,
+furnishings, motifs, recipes, and other items whose id already defines them.
+
+Items that share one id across variants are treated as one item:
+
+* Gear and jewelry of different levels or qualities.
+* Glyphs of different potency or quality.
+* Potions and poisons with different effects.
+* Master writs with different requirements.
+
+Group deal sharing only matches group members who run a version with the same
+item identification.

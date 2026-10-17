@@ -52,7 +52,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Kindler Beggar Liar Thief](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sshogrin/Kindler-Beggar-Liar-Thief__4321) | sshogrin | PC / Mac | 1.2 |
 | [KInfo - Inventory INFO \[GERMAN / ENGLISH\]](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KostiK/KInfo---Inventory-INFO-GERMAN-ENGLISH__1489) | KostiK | PC / Mac | 1.4.5 |
 | [Kinras Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/helixanon/Kinras-Tracker__3229) | helixanon | PC / Mac | v0 |
-| [KMailMaterials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KMailMaterials__4934) | Konten | PC / Mac | 1.0.2 |
+| [KMailMaterials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Konten/KMailMaterials__4934) | Konten | PC / Mac | 1.0.4 |
 | [KoMGuild](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/awfuldead/KoMGuild__2656) | awfuldead | PC / Mac | 1.2.3b |
 | [KOTATSU' STATION JP](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/fujisanndei/KOTATSU-STATION-JP__3504) | fujisanndei | PC / Mac | 1.0 |
 | [kozy-eso BuildPort](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KozyESO/kozy-eso-BuildPort__4938) | KozyESO | PC / Mac | 0.10.2 |

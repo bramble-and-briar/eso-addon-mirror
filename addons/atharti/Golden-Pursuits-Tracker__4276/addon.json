@@ -18,7 +18,7 @@
     "GoldenPursuitsTracker"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4276/",
-  "fingerprint": "9c170a0014510ad7e3723332feb5ae35400928768f3df71cbf57eaac7ac4ecbb",
+  "fingerprint": "9a137ff4c0fcd9d565249ce1f9da6f79303a13cf923f2bdc3d878443f8bbfb01",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16423.png"
   ],
@@ -28,11 +28,11 @@
   "source_id": "4276",
   "source_url": "https://www.esoui.com/downloads/info4276-GoldenPursuitsTracker.html",
   "stats": {
-    "downloads": 988,
+    "downloads": 1168,
     "favorites": 2,
-    "monthly_downloads": 57
+    "monthly_downloads": 99
   },
   "title": "Golden Pursuits Tracker",
-  "updated_at": 1788611035000,
-  "version": "1.7"
+  "updated_at": 1792156733000,
+  "version": "1.8"
 }

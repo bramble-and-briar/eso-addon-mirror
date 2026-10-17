@@ -18,7 +18,7 @@
     "CompanionsContainers"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4143/",
-  "fingerprint": "5550b366e35617d45f4a047dc2a3ee178d637bf7737d5f340a5fcb93a0c974ef",
+  "fingerprint": "351a3753e086e507a5c47696671c9fd2bf2a6a17e68c0988b56e7f45935238da",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4143",
   "source_url": "https://www.esoui.com/downloads/info4143-CompanionsContainers.html",
   "stats": {
-    "downloads": 1627,
-    "favorites": 8,
-    "monthly_downloads": 60
+    "downloads": 1806,
+    "favorites": 9,
+    "monthly_downloads": 89
   },
   "title": "Companion's Containers",
-  "updated_at": 1788608916000,
-  "version": "1.8"
+  "updated_at": 1792156686000,
+  "version": "1.9"
 }

@@ -73,16 +73,13 @@ if type(originalMove)=="function" then
     end
 end
 local function forceStop()
-    log("TIMEOUT: automatischer Schliessversuch")
-    local ok,err=pcall(function() BUI.Menu.MoveFrames(false) end)
-    if not ok then log("TIMEOUT Schliessen fehlgeschlagen: "..tostring(err)) end
-    -- Restore the options keybinds even if the normal close throws.
-    local guard=E.inputGuard
-    if guard and guard.Restore then
-        local restoreOK,restoreErr=pcall(guard.Restore,guard)
-        if not restoreOK then log("Guard.Restore FEHLER "..tostring(restoreErr)) end
+    log("TIMEOUT/ABORT: PlayStation Eingaben freigeben")
+    -- Do not directly re-enter MoveFrames(false): that path could throw and
+    -- strand UI/camera ownership. The editor has an idempotent emergency exit.
+    if type(E.EmergencyClose) == "function" then
+        local ok, err = pcall(E.EmergencyClose)
+        if not ok then log("EmergencyClose FEHLER: " .. tostring(err)) end
     end
-    if E.active and E.Deactivate then pcall(E.Deactivate,E,false) end
     D.timedOut=true
 end
 if EVENT_MANAGER then

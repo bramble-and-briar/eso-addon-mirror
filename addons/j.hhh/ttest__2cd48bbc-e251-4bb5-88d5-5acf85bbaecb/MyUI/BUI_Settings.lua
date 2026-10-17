@@ -109,8 +109,10 @@ local function MenuOptions_Init()	--Menu options
 	--Reposition Elements
 	{	type		="button",
 		name		="Move Frames",
-		tooltip		="Use the original controller frame editor. Test cautiously.",
-		func		=function() BUI.Menu.MoveFrames(true) end,
+		tooltip		="PlayStation: L1/R1 wechseln, Steuerkreuz bewegt, Kreis speichert und schliesst.",
+		func		=function()
+            if BUI.StartMoveFramesFromChat then BUI.StartMoveFramesFromChat() end
+        end,
 		reference	="BUI_MenuButton_Move",
 	},
 	--Reset Default Frames
@@ -2546,8 +2548,8 @@ function BUI.Menu.ManageWidgets(move)
 		BUI.Menu.FramesRestore()
 		ZO_WorldMap:SetHidden(true)
 		_G["ZO_WorldMapMapFrame"]:SetHidden(true)
-		SatuveUI.line_vert	=BUI.UI.Line("SatuveUI_Line_vert",	SatuveUI,	{0,SatuveUI:GetHeight()},	{TOPLEFT,TOP,0,0},	{.2,.8,.2,.5},1.8, false)
-		SatuveUI.line_hor	=BUI.UI.Line("SatuveUI_Line_hor",	SatuveUI,	{SatuveUI:GetWidth(),0},	{TOPLEFT,LEFT,0,0},	{.2,.8,.2,.5},1.8, false)
+		SatuveUI.line_vert	=BUI.UI.Line("MyUI_Line_vert",	SatuveUI,	{0,SatuveUI:GetHeight()},	{TOPLEFT,TOP,0,0},	{.2,.8,.2,.5},1.8, false)
+		SatuveUI.line_hor	=BUI.UI.Line("MyUI_Line_hor",	SatuveUI,	{SatuveUI:GetWidth(),0},	{TOPLEFT,LEFT,0,0},	{.2,.8,.2,.5},1.8, false)
 		if BUI.Vars.CurvedFrame~=0 then
 --			BUI.Curved.Initialize()
 			BUI_Curved:SetAlpha(BUI.Vars.FrameOpacityIn/100)
@@ -2557,8 +2559,8 @@ function BUI.Menu.ManageWidgets(move)
 		end
 		ManageWidgets_UI()
 	else
-		SatuveUI_Line_vert:SetHidden(true)
-		SatuveUI_Line_hor:SetHidden(true)
+		MyUI_Line_vert:SetHidden(true)
+		MyUI_Line_hor:SetHidden(true)
 		if BUI_Menu_Context then BUI_Menu_Context:SetHidden(true) end
 		if BUI.Vars.CurvedFrame~=0 then
 --			BUI.Curved.Initialize()
@@ -2830,11 +2832,11 @@ function BUI.Menu.MoveFrames(move)
 		BUI.Menu.FramesRestore()
 		ZO_WorldMap:SetHidden(true)
 		_G["ZO_WorldMapMapFrame"]:SetHidden(true)
-		SatuveUI.line_vert	=BUI.UI.Line("SatuveUI_Line_vert",	SatuveUI,	{0,SatuveUI:GetHeight()},	{TOPLEFT,TOP,0,0},	{.2,.8,.2,.5},1.8, false)
-		SatuveUI.line_hor	=BUI.UI.Line("SatuveUI_Line_hor",	SatuveUI,	{SatuveUI:GetWidth(),0},	{TOPLEFT,LEFT,0,0},	{.2,.8,.2,.5},1.8, false)
+		SatuveUI.line_vert	=BUI.UI.Line("MyUI_Line_vert",	SatuveUI,	{0,SatuveUI:GetHeight()},	{TOPLEFT,TOP,0,0},	{.2,.8,.2,.5},1.8, false)
+		SatuveUI.line_hor	=BUI.UI.Line("MyUI_Line_hor",	SatuveUI,	{SatuveUI:GetWidth(),0},	{TOPLEFT,LEFT,0,0},	{.2,.8,.2,.5},1.8, false)
 	else
-		SatuveUI_Line_vert:SetHidden(true)
-		SatuveUI_Line_hor:SetHidden(true)
+		MyUI_Line_vert:SetHidden(true)
+		MyUI_Line_hor:SetHidden(true)
 	end
 
 	local function ShowButtons(self)

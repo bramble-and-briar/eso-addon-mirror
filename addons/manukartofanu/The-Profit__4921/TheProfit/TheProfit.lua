@@ -57,7 +57,7 @@ local GUILD_HISTORY_VISIBLE_ROWS = 14
 local WEEKLY_ANALYTICS_VISIBLE_ROWS = 7
 local STOCK_ITEM_VISIBLE_ROWS = 10
 local STOCK_LISTING_VISIBLE_ROWS = 7
-local ITEM_SALES_VISIBLE_ROWS = 11
+local ITEM_SALES_VISIBLE_ROWS = 10
 local SUMMARY_CACHE_TTL = 60
 local ANALYTICS_REFRESH_COOLDOWN_MS = 60 * 1000
 local GUILD_HISTORY_REFRESH_COOLDOWN_MS = 60 * 1000
@@ -352,25 +352,16 @@ local function SafeId64ToString(value)
     return tostring(value)
 end
 
-function TP.NormalizeItemLink(itemLink)
-    if not IsItemLink(itemLink) then return nil end
-
-    local normalized = itemLink:gsub("|H%d:item:", "|H0:item:", 1)
-    normalized = normalized:gsub("|h.-|h$", "|h|h")
-
-    -- One field in modern links is volatile between otherwise identical links.
-    -- Normalizes the volatile field so identical items share one key.
-    local prefix = normalized:match("|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:")
-    local suffix = normalized:match(":%d+:%d+:%d+:%d+|h|h")
-    if prefix and suffix then
-        normalized = prefix .. "0" .. suffix
-    end
-
-    return normalized
-end
-
+-- Only the item id is reliable: the same item comes with different other fields from
+-- different places (zeros from chat and the craft bag, filled in from the backpack,
+-- either way from a guild store depending on the lot). The key is a link that keeps
+-- the id and zeros the rest, so variants of one id (gear level and quality, glyphs,
+-- potion effects) share a key.
 function TP.GetItemKey(itemLink)
-    return TP.NormalizeItemLink(itemLink)
+    if not IsItemLink(itemLink) then return nil end
+    local itemId = itemLink:match("|H%d:item:(%d+)")
+    if not itemId then return nil end
+    return "|H0:item:" .. itemId .. string.rep(":0", 20) .. "|h|h"
 end
 
 local function FormatPlainGold(value)
@@ -457,6 +448,16 @@ local function MatchesTrackedItem(itemLink)
     return IsTrackedKey(TP.GetItemKey(itemLink))
 end
 
+-- A tracked item counts only purchases made since it was last added to the portfolio,
+-- so an item removed and added again starts from a clean slate. Items tracked before
+-- trackedSince existed count every purchase. Sales need no filter: FIFO matches a sale
+-- only with earlier purchases, so sales before that moment stay unmatched.
+local function IsTrackedPurchase(itemKey, purchase)
+    local item = TP.SV and TP.SV.trackedItems and TP.SV.trackedItems[itemKey]
+    if not item then return false end
+    return (tonumber(purchase.timestamp) or 0) >= (tonumber(item.trackedSince) or 0)
+end
+
 local function GetTrackedItemIndex(itemKey)
     for index, key in ipairs(TP.SV.trackedItemOrder or {}) do
         if key == itemKey then return index end
@@ -527,6 +528,7 @@ local function SanitizeSavedTransactions(records)
     for key, record in pairs(records) do
         if (type(key) == "string" or type(key) == "number") and type(record) == "table" then
             local flat = CopyFlatTransaction(record)
+            flat.itemKey = TP.GetItemKey(flat.itemKey)
             if flat.itemKey and flat.timestamp and flat.kind then
                 clean[tostring(key)] = flat
             end
@@ -582,6 +584,7 @@ local function SanitizeSavedListings(records)
     for key, record in pairs(records) do
         if (type(key) == "string" or type(key) == "number") and type(record) == "table" then
             local flat = CopyFlatListing(record)
+            flat.itemKey = TP.GetItemKey(flat.itemKey)
             if flat.itemKey and (flat.createdAt or flat.timestamp) and flat.kind == "listing" then
                 flat.id = tostring(flat.id or key)
                 flat.createdAt = tonumber(flat.createdAt or flat.timestamp) or GetTimeStamp()
@@ -701,7 +704,7 @@ function TP.SetTrackedItem(itemLink)
         return false
     end
 
-    item = item or {}
+    item = item or { trackedSince = GetTimeStamp() }
     item.key = key
     item.link = itemLink
     item.name = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink))
@@ -728,7 +731,7 @@ function TP.SetTrackedItem(itemLink)
 
     TP.RefreshUI()
     RequestPrioritySave()
-    d(string.format("|cE7C56AThe Profit:|r " .. TP.T("selected"), itemLink))
+    if isNew then d(string.format("|cE7C56AThe Profit:|r " .. TP.T("selected"), itemLink)) end
     return true
 end
 
@@ -1017,7 +1020,7 @@ function TP.CalculateSummary(itemKey)
     local fifoPurchaseLots = {}
     local indexedPurchases = TP.runtime and TP.runtime.purchasesByItem[itemKey] or {}
     for purchaseKey, purchase in pairs(indexedPurchases) do
-        if purchase.status ~= "failed" then
+        if purchase.status ~= "failed" and IsTrackedPurchase(itemKey, purchase) then
             local quantity = math.max(0, tonumber(purchase.quantity) or 0)
             result.boughtQuantity = result.boughtQuantity + quantity
             result.purchaseTotal = result.purchaseTotal + (tonumber(purchase.price) or 0)
@@ -1555,7 +1558,8 @@ local function GetLedgerEntries()
             for purchaseKey, purchase in pairs(purchaseBucket) do
                 local quantity = math.max(0, tonumber(purchase.quantity) or 0)
                 local totalPrice = math.max(0, tonumber(purchase.price) or 0)
-                if purchase.status ~= "failed" and quantity > 0 and totalPrice > 0 then
+                if purchase.status ~= "failed" and quantity > 0 and totalPrice > 0
+                    and IsTrackedPurchase(itemKey, purchase) then
                     local trackedItem = TP.SV.trackedItems and TP.SV.trackedItems[itemKey]
                     local itemLink = purchase.itemLink and IsItemLink(purchase.itemLink) and purchase.itemLink
                         or trackedItem and trackedItem.link
@@ -2065,7 +2069,8 @@ local function GetStockItemOptions()
             local sample
             if math.max(0, tonumber(summary.stock) or 0) > 0 then
                 for _, purchase in pairs(purchases) do
-                    if purchase.status ~= "failed" and math.max(0, tonumber(purchase.quantity) or 0) > 0 then
+                    if purchase.status ~= "failed" and math.max(0, tonumber(purchase.quantity) or 0) > 0
+                        and IsTrackedPurchase(itemKey, purchase) then
                         sample = purchase
                         break
                     end
@@ -3019,6 +3024,11 @@ local function RefreshItemUI(selected)
         end
     end
 
+    local forecast = view:GetNamedChild("Forecast")
+    local market = CalculateMarketAnalytics(GetSelectedKey())
+    forecast:GetNamedChild("Label"):SetText(TP.T("forecastPrice"))
+    forecast:GetNamedChild("Value"):SetText(market.available and FormatPlainGold(market.forecastUnitPrice) or "—")
+
     local header = view:GetNamedChild("Header")
     header:GetNamedChild("Guild"):SetText(TP.T("recentGuild"))
     header:GetNamedChild("Sold"):SetText(TP.T("ledgerSold"))
@@ -3195,7 +3205,6 @@ end
 
 function TP.SetupSettings()
     local LAM = LibAddonMenu2
-    if not LAM then return end
 
     local panelName = "TheProfitOptions"
     LAM:RegisterAddonPanel(panelName, {
@@ -3994,14 +4003,14 @@ local libHistoireRequestsStarted = false
 local MaybeStartSalesProcessors
 
 local function GetLibHistoireTraderCache(guildId)
-    local internal = LibHistoire and LibHistoire.internal
+    local internal = LibHistoire.internal
     local historyCache = internal and internal.historyCache
     if not historyCache then return nil end
     return historyCache:GetCategoryCache(guildId, GUILD_HISTORY_EVENT_CATEGORY_TRADER)
 end
 
 local function IsLibHistoireGuildReady(guildId)
-    local internal = LibHistoire and LibHistoire.internal
+    local internal = LibHistoire.internal
     local historyCache = internal and internal.historyCache
     local guildCache = historyCache and historyCache:GetGuildCache(guildId)
     if not guildCache then return true end
@@ -4069,6 +4078,8 @@ local function TryBuildInitialHistorySnapshots(generation)
     if TP.runtime.marketSalesPrunedGeneration ~= generation then
         PruneMarketSales()
         TP.runtime.marketSalesPrunedGeneration = generation
+        -- Market data is complete here; the snapshots below only feed All Deals and Stats.
+        TP.RefreshUI()
     end
     if initialSnapshotBuildGeneration == generation then return end
     initialSnapshotBuildGeneration = generation
@@ -4434,7 +4445,10 @@ local function OnAddOnLoaded(_, addonName)
     local migratedItems = {}
     local migratedOrder = {}
     local function AddMigratedItem(item)
-        if type(item) ~= "table" or not item.key or migratedItems[item.key] or #migratedOrder >= MAX_TRACKED_ITEMS then return end
+        if type(item) ~= "table" then return end
+        -- Older keys kept more link fields; variants of one id now merge into one item.
+        item.key = TP.GetItemKey(item.key)
+        if not item.key or migratedItems[item.key] or #migratedOrder >= MAX_TRACKED_ITEMS then return end
         migratedItems[item.key] = item
         migratedOrder[#migratedOrder + 1] = item.key
     end

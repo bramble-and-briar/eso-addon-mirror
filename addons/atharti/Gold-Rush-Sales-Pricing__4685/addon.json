@@ -18,7 +18,7 @@
     "GoldRush"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4685/",
-  "fingerprint": "901acf2a6c4d7900a8d81e2beb032d3c77c7b627eb6c7c49ea60b96a5d423ffa",
+  "fingerprint": "db0db87304f6fc65017113dde522cd16f4b9bc5646d2514b8165d2c9f682dbc3",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw16590.png",
     "https://cdn-eso.mmoui.com/preview/pvw16591.png"
@@ -29,11 +29,11 @@
   "source_id": "4685",
   "source_url": "https://www.esoui.com/downloads/info4685-GoldRushSalesPricing.html",
   "stats": {
-    "downloads": 708,
+    "downloads": 876,
     "favorites": 7,
-    "monthly_downloads": 197
+    "monthly_downloads": 243
   },
   "title": "Gold Rush \u2014 Sales & Pricing",
-  "updated_at": 1790086314000,
-  "version": "2.4"
+  "updated_at": 1792129171000,
+  "version": "2.5"
 }

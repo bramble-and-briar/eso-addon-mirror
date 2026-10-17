@@ -1,8 +1,8 @@
 ## Title: |cFFD700Nirncrux Miner|r
 ## Description: To ease batch re-traiting of massivle amount of items to Nirnhoned with following deconstruction.
 ## Author: |cFFD700@Atharti|r
-## Version: 1.3
-## APIVersion: 101050
+## Version: 1.4
+## APIVersion: 101051
 ## DependsOn: LibCustomMenu>=730
 
 NirncruxMiner.lua

@@ -25,6 +25,14 @@ local CATEGORY_LABELS = {
     [PURPLE] = "40% - 90%",
     [GOLD] = "90% and more",
 }
+-- The discount is always below 100%, so the last limit always matches.
+local CATEGORY_THRESHOLDS = {
+    { limit = 1, category = GRAY },
+    { limit = 15, category = GREEN },
+    { limit = 40, category = BLUE },
+    { limit = 90, category = PURPLE },
+    { limit = 101, category = GOLD },
+}
 local CATEGORY_QUALITY = {
     [GREEN] = ITEM_QUALITY_MAGIC,
     [BLUE] = ITEM_QUALITY_ARCANE,
@@ -103,11 +111,9 @@ local function Evaluate(itemData)
     if not suggested or not price or stackCount < 1 then return nil end
 
     local percent = (suggested - price / stackCount) / suggested * 100
-    if percent < 1 then return GRAY, percent end
-    if percent < 15 then return GREEN, percent end
-    if percent < 40 then return BLUE, percent end
-    if percent < 90 then return PURPLE, percent end
-    return GOLD, percent
+    for _, tier in ipairs(CATEGORY_THRESHOLDS) do
+        if percent < tier.limit then return tier.category, percent end
+    end
 end
 
 local function GetCategoryColor(category)

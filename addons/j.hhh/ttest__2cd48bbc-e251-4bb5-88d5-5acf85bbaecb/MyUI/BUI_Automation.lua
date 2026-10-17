@@ -524,11 +524,11 @@ local function UndauntedPledges()
 
 	if not InstallUndauntedHooks() then
 		local attempts=0
-		EVENT_MANAGER:UnregisterForUpdate("SatuveUI_UndauntedHooks")
-		EVENT_MANAGER:RegisterForUpdate("SatuveUI_UndauntedHooks",1000,function()
+		EVENT_MANAGER:UnregisterForUpdate("MyUI_UndauntedHooks")
+		EVENT_MANAGER:RegisterForUpdate("MyUI_UndauntedHooks",1000,function()
 			attempts=attempts+1
 			if InstallUndauntedHooks() or attempts>=60 then
-				EVENT_MANAGER:UnregisterForUpdate("SatuveUI_UndauntedHooks")
+				EVENT_MANAGER:UnregisterForUpdate("MyUI_UndauntedHooks")
 			end
 		end)
 	end
@@ -807,24 +807,24 @@ function BUI.Automation_Init()
 		return true
 	end
 
-	EVENT_MANAGER:UnregisterForUpdate("SatuveUI_DeleteMailInstall")
-	if EVENT_OPEN_MAILBOX then EVENT_MANAGER:UnregisterForEvent("SatuveUI_DeleteMailInstall",EVENT_OPEN_MAILBOX) end
+	EVENT_MANAGER:UnregisterForUpdate("MyUI_DeleteMailInstall")
+	if EVENT_OPEN_MAILBOX then EVENT_MANAGER:UnregisterForEvent("MyUI_DeleteMailInstall",EVENT_OPEN_MAILBOX) end
 
 	if BUI.Vars.DeleteMail and not InstallDeleteMailOverride() then
 		-- Retry briefly because the mail controls can be initialized after the add-on.
 		local attempts=0
-		EVENT_MANAGER:RegisterForUpdate("SatuveUI_DeleteMailInstall",1000,function()
+		EVENT_MANAGER:RegisterForUpdate("MyUI_DeleteMailInstall",1000,function()
 			attempts=attempts+1
 			if InstallDeleteMailOverride() or attempts>=30 then
-				EVENT_MANAGER:UnregisterForUpdate("SatuveUI_DeleteMailInstall")
+				EVENT_MANAGER:UnregisterForUpdate("MyUI_DeleteMailInstall")
 			end
 		end)
 
 		if EVENT_OPEN_MAILBOX then
-			EVENT_MANAGER:RegisterForEvent("SatuveUI_DeleteMailInstall",EVENT_OPEN_MAILBOX,function()
+			EVENT_MANAGER:RegisterForEvent("MyUI_DeleteMailInstall",EVENT_OPEN_MAILBOX,function()
 				if InstallDeleteMailOverride() then
-					EVENT_MANAGER:UnregisterForEvent("SatuveUI_DeleteMailInstall",EVENT_OPEN_MAILBOX)
-					EVENT_MANAGER:UnregisterForUpdate("SatuveUI_DeleteMailInstall")
+					EVENT_MANAGER:UnregisterForEvent("MyUI_DeleteMailInstall",EVENT_OPEN_MAILBOX)
+					EVENT_MANAGER:UnregisterForUpdate("MyUI_DeleteMailInstall")
 				end
 			end)
 		end

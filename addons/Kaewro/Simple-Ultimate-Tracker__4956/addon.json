@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/Kaewro/Simple-Ultimate-Tracker__4956",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "Kaewro",
+  "canonical_id": "esoui:4956",
+  "category_id": "19",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4956",
+  "deleted": false,
+  "directories": [
+    "SimpleUltimateTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4956/",
+  "fingerprint": "916d0c91736f846be3e0616008e01b6823657cb36bc5650ebb08cadacd74394f",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18005.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18006.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18007.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4956",
+  "source_url": "https://www.esoui.com/downloads/info4956-SimpleUltimateTracker.html",
+  "stats": {
+    "downloads": 24,
+    "favorites": 0,
+    "monthly_downloads": 19
+  },
+  "title": "Simple Ultimate Tracker",
+  "updated_at": 1792195031000,
+  "version": "1.0.2"
+}

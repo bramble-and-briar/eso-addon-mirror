@@ -33,6 +33,7 @@ PERSONALITIES
   Who's wearing the crown changes how it picks. Choose one in Main Menu >
   Add-Ons > Lazy Crown > Personalities, or with Change Personality.
     Lazy        A lazy crown isn't always a lousy one.
+    Baked Potato  Ultra Lazy, but baked. Needs a break every few calls.
     Bored       Chases fights and action.
     Chris       Lazy but with a brain.
     Confessor   Lazy as in not taking us all to our certain deaths.
@@ -41,6 +42,8 @@ PERSONALITIES
     Greedy      Give me all that AP. All we do is win, win, win.
     Mulliss     Sometimes you just want to be a bad crown.
     November    Unconventional and favors flanks.
+    Random      Truly random. Attack or defense, then the kind of
+                target, then which one.
     Selfish     Looking out for number one.
     Ultra Lazy  Laziest crown ever.
 
@@ -67,9 +70,29 @@ WAYPOINTS
   Off unless you turn on "Set a waypoint" in Main Menu > Add-Ons >
   Lazy Crown > Options.
 
-GROUP SIZE AND THE HAMMER
-  Selfish, Chris, Greedy, Confessor and Mulliss size up the group: no
-  outposts with fewer than 4 of you, no keeps with fewer than 6.
+THE PLAN
+  Every crown but Lazy thinks a few calls ahead. After each call your
+  chat window shows "Plan after this: ..." (only you see it): what it
+  will call next if this one goes our way. When it does, the next call
+  is the plan's next step, unless the map changed and something better
+  came up. Turn it off with "Show the plan" in Options.
+
+MORE OPTIONS
+  Show travel times: adds about how long it takes to get there to the
+  call ("Ride north, about 45 seconds.").
+  Size up the group: every crown counts who's here with you. No
+  outposts with fewer than 4 of you, no keeps with fewer than 8,
+  unless our siege is already on it or we're winning a fight there.
+  Continuous Attack: turn it off and Chris, Confessor and Deano stop
+  grabbing resources for the buff.
+  Mean: same calls, worse attitude.
+  Drunk: same calls, a few drinks in. *hic*
+  Skooma: really out of it. Calls anything at random, even what we
+  already have (that's a W, then a break for more skooma). Sometimes
+  sends you across the map, tells everyone to go away, or won't call
+  at all (that's an L). Says weird things.
+
+THE HAMMER
   When Volendrung is out, most crowns follow it if your alliance has
   it, and Greedy chases it no matter who has it.
 

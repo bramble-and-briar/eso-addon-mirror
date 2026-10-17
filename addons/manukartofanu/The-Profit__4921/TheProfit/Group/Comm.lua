@@ -23,7 +23,8 @@ local PROTOCOL_ID_TABLE = 301
 local PROTOCOL_ID_DELTA = 302
 local PROTOCOL_ID_DEAL = 303
 
-local PROTOCOL_VERSION = 1
+-- Version 2 keys items by id alone; hashes from version 1 peers never match.
+local PROTOCOL_VERSION = 2
 local KIND_HELLO, KIND_REPLY, KIND_BYE = 0, 1, 2
 local ITEMS_PER_TABLE_PART = 3
 local MAX_TABLE_PARTS = 4
@@ -142,8 +143,8 @@ local function GetSelfTag()
     return HashString(NormalizeName(GetDisplayName()), TAG_MODULUS)
 end
 
--- An item is identified by its id plus a hash of the whole normalized link key, so
--- variants of one item id (enchants, potion effects) stay apart.
+-- An item is identified by its id plus a hash of its key. The key now depends on the
+-- id alone, so the hash only guards against a peer that builds keys differently.
 local function GetIdentity(itemKey)
     local itemId = tonumber(string.match(itemKey or "", "|H%d:item:(%d+):"))
     if not itemId or itemId > MAX_ITEM_ID then return nil end

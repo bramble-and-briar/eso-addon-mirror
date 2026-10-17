@@ -25,7 +25,7 @@ local OBM = ArdysOBTracker
 
 OBM.name    = "ArdysOBTracker"
 OBM.title   = "|c9B30FFArdy's OB Tracker|r"
-OBM.version = "1.5.0"
+OBM.version = "1.6.1"
 
 local EM = EVENT_MANAGER
 local WM = WINDOW_MANAGER
@@ -44,6 +44,10 @@ local SYNC_TIMEOUT_MS       = 1500  -- max wait for the game to confirm a marker
 local RETRY_WAIT_MS         = 1000  -- wait between removal retries if the game never confirms
 local MAX_REMOVE_ATTEMPTS   = 5
 local ACCIDENT_WINDOW_MS    = 3000  -- our marker seen on a groupmate this soon after placing = accident
+local VERIFY_WAIT_MS        = 1000  -- if the game never confirms changes, wait this long before judging a placement
+local VERIFY_WINDOW_MS      = 4000  -- how long after placing we keep watching for the target
+local MAX_CORRECTIONS       = 2     -- times we move a misplaced marker back to the intended enemy
+local SKIP_AFTER_FAIL_MS    = 5000  -- stop trying to mark an enemy for a while if corrections fail
 local EXPIRING_WARN_SECONDS = 1.5   -- "Off Balance about to end" warning
 local SOUND_THROTTLE_MS     = 700
 
@@ -78,10 +82,12 @@ local defaults = {
     pvpOnly          = false,
     markIfRangeUnknown = true,
     removeFromFriendlies = true,
+    autoCorrect      = true,
     holdMs           = 300,
     trackImmunity    = true,
     fontSize         = 16,
     highlightTarget  = true,
+    nameMode         = "character", -- "character" or "account" (@ID)
     crosshairEnabled = true,
     crosshairShowReady = true,
     crosshairSize    = 22,
@@ -265,6 +271,34 @@ local function FindTrackedByName(name)
     return found
 end
 
+-- Character name -> @ID. The Off Balance events only carry character names,
+-- so @IDs are learned whenever a player is under your crosshair.
+local accountNames, accountNameCount = {}, 0
+local MAX_ACCOUNT_NAMES = 500
+
+local function LearnReticleAccountName()
+    if not DoesUnitExist(RETICLE) or not IsUnitPlayer(RETICLE) then return end
+    local account = GetUnitDisplayName(RETICLE)
+    if not account or account == "" then return end
+    local name = FormatName(GetUnitName(RETICLE))
+    if name == "" or accountNames[name] == account then return end
+    if not accountNames[name] then
+        accountNameCount = accountNameCount + 1
+        if accountNameCount > MAX_ACCOUNT_NAMES then
+            ZO_ClearTable(accountNames); accountNameCount = 1
+        end
+    end
+    accountNames[name] = account
+end
+
+-- Text shown in the tracker for an enemy, per the "Name display" setting.
+local function GetDisplayLabel(name)
+    if OBM.sv.nameMode == "account" then
+        return accountNames[name] or name
+    end
+    return name
+end
+
 local lastSoundMs = {}
 local function PlayAlert(soundKey)
     local nowMs = GetGameTimeMilliseconds()
@@ -379,6 +413,70 @@ end
 
 local candidate  -- { key, sinceMs }  enemy the crosshair is holding on
 local pending    -- { marker, key, attempts, lastMs }  removal being confirmed
+local placing    -- { marker, key, sinceMs, corrections }  placement being verified
+local skipKeyUntil = {} -- [key] = ms; enemies we gave up on for a moment
+
+-- Has the game had time to apply our last marker change?
+local function MarkerChangeSettled(nowMs)
+    if markerEventSeen then return true end -- MarkerStateReady already waited for the confirmation
+    return nowMs - lastActionMs >= VERIFY_WAIT_MS
+end
+
+-- One of our markers that was meant for this enemy (players only: NPCs can
+-- share a name, so a match there could be a different unit).
+local function FindOurSlotForKey(key, now)
+    if not key:find("|@", 1, true) then return nil end
+    for m, slot in pairs(OBM.slots) do
+        if slot.key == key and slot.expires > now then return m end
+    end
+end
+
+-- Place marker m on the crosshair target and start verifying it.
+local function PlaceMarker(m, key, obEnd, nowMs, corrections)
+    AssignTargetMarkerToReticleTarget(m)
+    OBM.slots[m] = { expires = obEnd, name = GetUnitName(RETICLE), key = key, placedMs = nowMs }
+    placing = { marker = m, key = key, sinceMs = nowMs, corrections = corrections or 0 }
+    NoteMarkerAction(nowMs)
+end
+
+-- After placing, check that the enemy we aimed at actually got the marker.
+-- If the game has settled and that enemy has none, lag sent it to whoever
+-- drifted under the crosshair. Placing the same marker on the right enemy
+-- moves it off that unit (each marker can only be on one unit).
+-- Returns true if it took an action (or is waiting) this tick.
+local function HandlePlacementCheck(nowMs, now, key, current)
+    if not placing then return false end
+    local m = placing.marker
+    local slot = OBM.slots[m]
+    if not slot or slot.key ~= placing.key then placing = nil; return false end
+
+    if key ~= placing.key then
+        -- Looking elsewhere: can't verify yet. Keep watching for a while.
+        if nowMs - placing.sinceMs > VERIFY_WINDOW_MS then placing = nil end
+        return false
+    end
+    if current == m then
+        Debug("Marker %d confirmed on %s", m, GetUnitName(RETICLE))
+        placing = nil
+        return false
+    end
+    if current ~= MARKER_NONE then placing = nil; return false end -- someone else marked them
+    if not MarkerChangeSettled(nowMs) then return true end
+
+    -- Settled, and the intended enemy has no marker: it landed elsewhere.
+    local obEnd = GetMyOffBalanceEndOnReticle(now)
+    if OBM.sv.autoCorrect and placing.corrections < MAX_CORRECTIONS and obEnd and IsReticleEnemy() then
+        PlaceMarker(m, key, obEnd, nowMs, placing.corrections + 1)
+        Print("Marker %d didn't land on %s (lag?) - placing it again.", m, GetUnitName(RETICLE))
+        return true
+    end
+    -- Give up for now: whoever has it will lose it when the marker is reused.
+    slot.onFriendly = true
+    skipKeyUntil[key] = nowMs + SKIP_AFTER_FAIL_MS
+    placing = nil
+    Debug("Marker %d could not be confirmed on %s", m, GetUnitName(RETICLE))
+    return false
+end
 
 local function StartRemoval(m, key, onFriendly, nowMs)
     AssignTargetMarkerToReticleTarget(m) -- same marker on same target = off
@@ -426,6 +524,7 @@ local function MarkerTick(nowMs, now)
     local current = GetUnitTargetMarkerType(RETICLE)
 
     if HandlePendingRemoval(nowMs, key, current) then return end
+    if HandlePlacementCheck(nowMs, now, key, current) then return end
 
     -- Safety net: one of OUR markers on a friendly comes off, with retries.
     if IsOurMarker(current) and OBM.sv.removeFromFriendlies and IsReticleFriendly() then
@@ -452,20 +551,26 @@ local function MarkerTick(nowMs, now)
 
             -- The crosshair must stay on this enemy for the hold time, so a
             -- quick sweep across a crowd can't send a marker to the wrong unit.
+            if skipKeyUntil[key] and nowMs < skipKeyUntil[key] then candidate = nil; return end
             if not candidate or candidate.key ~= key then
                 candidate = { key = key, sinceMs = nowMs }
             end
             if nowMs - candidate.sinceMs < OBM.sv.holdMs then return end
 
-            local m = FindFreeMarker(now)
+            -- If one of our markers was meant for this enemy but they don't
+            -- have it, it's on someone else: reuse it to pull it back here.
+            local reclaimed = OBM.sv.autoCorrect and FindOurSlotForKey(key, now)
+            local m = reclaimed or FindFreeMarker(now)
             -- Re-check right before placing, in the same frame.
             if m and IsReticleEnemy() and ReticleKey() == key and GetUnitTargetMarkerType(RETICLE) == MARKER_NONE then
-                AssignTargetMarkerToReticleTarget(m)
-                OBM.slots[m] = { expires = obEnd, name = GetUnitName(RETICLE), key = key, placedMs = nowMs }
-                NoteMarkerAction(nowMs)
+                PlaceMarker(m, key, obEnd, nowMs)
                 candidate = nil
-                Debug("Marked %s with marker %d (%s)", GetUnitName(RETICLE), m,
-                    dist and string.format("%.1f m", dist) or "range unknown")
+                if reclaimed then
+                    Print("Marker %d was on the wrong target - moved it back to %s.", m, GetUnitName(RETICLE))
+                else
+                    Debug("Marked %s with marker %d (%s)", GetUnitName(RETICLE), m,
+                        dist and string.format("%.1f m", dist) or "range unknown")
+                end
             end
         else
             candidate = nil
@@ -659,17 +764,17 @@ local function TrackerTick(now)
         local isTarget = entry and targetName and entry.name == targetName
         if entry and entry.immune then
             if isTarget then
-                row.name:SetText("|cB8A050» " .. entry.name .. "|r")
+                row.name:SetText("|cB8A050» " .. GetDisplayLabel(entry.name) .. "|r")
             else
-                row.name:SetText("|c888888" .. entry.name .. "|r")
+                row.name:SetText("|c888888" .. GetDisplayLabel(entry.name) .. "|r")
             end
             row.time:SetText(string.format("imm %ds", math.ceil(entry.remaining)))
             row.time:SetColor(0.6, 0.6, 0.6, 1)
         elseif entry then
             if isTarget then
-                row.name:SetText("|cFFD700» " .. entry.name .. "|r")
+                row.name:SetText("|cFFD700» " .. GetDisplayLabel(entry.name) .. "|r")
             else
-                row.name:SetText(entry.name)
+                row.name:SetText(GetDisplayLabel(entry.name))
             end
             row.time:SetText(string.format("%.1fs", entry.remaining))
             if entry.remaining < 2 then
@@ -768,6 +873,7 @@ local function OnUpdate()
         return
     end
     local nowMs, now = GetGameTimeMilliseconds(), GetFrameTimeSeconds()
+    LearnReticleAccountName()
     MarkerTick(nowMs, now)
     TrackerTick(now)
     ReticleTick(now)
@@ -940,7 +1046,8 @@ local function OnSlash(text)
     elseif cmd == "clear" then
         OBM.ClearReticleMarker()
     elseif cmd == "reset" then
-        ZO_ClearTable(OBM.slots); ZO_ClearTable(OBM.tracked); pending = nil; candidate = nil
+        ZO_ClearTable(OBM.slots); ZO_ClearTable(OBM.tracked); pending = nil; candidate = nil; placing = nil
+        ZO_ClearTable(skipKeyUntil)
         Print("Records cleared.")
     elseif cmd == "status" then
         PrintStatus()
@@ -956,8 +1063,7 @@ end
 ---------------------------------------------------------------------------
 
 local function BuildSettingsMenu()
-    local LAM = LibAddonMenu2
-    if not LAM then return end
+    local LAM = LibAddonMenu2 -- guaranteed by "## DependsOn: LibAddonMenu-2.0>=43"
     local sv = OBM.sv
     local soundLabels, soundKeys = {}, {}
     for i, entry in ipairs(ALERT_SOUNDS) do soundLabels[i], soundKeys[i] = entry.label, entry.key end
@@ -989,6 +1095,9 @@ local function BuildSettingsMenu()
         { type = "slider", name = "Crosshair hold time (ms)", min = 0, max = 1000, step = 50,
           tooltip = "How long your crosshair must stay on an Off Balance enemy before it is marked. Higher = fewer mistakes in crowded fights, slower marking.",
           getFunc = function() return sv.holdMs end, setFunc = function(v) sv.holdMs = v end, default = defaults.holdMs },
+        { type = "checkbox", name = "Auto-correct misplaced markers",
+          tooltip = "After placing a marker, check that the enemy you aimed at actually got it. If lag sent it to someone else, it is moved back to the right enemy, which pulls it off whoever had it.",
+          getFunc = function() return sv.autoCorrect end, setFunc = function(v) sv.autoCorrect = v end, default = defaults.autoCorrect },
         { type = "checkbox", name = "Remove markers from friendlies",
           tooltip = "If one of this add-on's markers is ever on a friendly, it is removed as soon as your crosshair is on them.",
           getFunc = function() return sv.removeFromFriendlies end, setFunc = function(v) sv.removeFromFriendlies = v end, default = defaults.removeFromFriendlies },
@@ -1003,6 +1112,10 @@ local function BuildSettingsMenu()
         { type = "slider", name = "Text size", min = MIN_FONT, max = MAX_FONT, step = 1,
           tooltip = "Size of the text in the tracker window. The window grows or shrinks to fit.",
           getFunc = function() return sv.fontSize end, setFunc = function(v) SetFontSize(v) end, default = defaults.fontSize },
+        { type = "dropdown", name = "Name display",
+          tooltip = "Show enemy players by character name or by their ESO @ID. A player's @ID is learned the first time they are under your crosshair; until then their character name is shown. NPCs always show their name.",
+          choices = { "Character name", "ESO @ID" }, choicesValues = { "character", "account" },
+          getFunc = function() return sv.nameMode end, setFunc = function(v) sv.nameMode = v end, default = defaults.nameMode },
         { type = "checkbox", name = "Highlight crosshair target",
           tooltip = "The row for the enemy under your crosshair is shown in gold.",
           getFunc = function() return sv.highlightTarget end, setFunc = function(v) sv.highlightTarget = v end, default = defaults.highlightTarget },
@@ -1052,7 +1165,28 @@ local function OnAddOnLoaded(_, addonName)
     if addonName ~= OBM.name then return end
     EM:UnregisterForEvent(OBM.name, EVENT_ADD_ON_LOADED)
 
-    OBM.sv = ZO_SavedVars:NewAccountWide("ArdysOBTrackerSV", 1, nil, defaults)
+    -- Settings are saved per server (NA / EU / PTS). Versions before 1.6.1
+    -- saved one shared copy under the "Default" profile; the first time you
+    -- log in to a server, that copy is carried over so nothing is lost.
+    local world, account = GetWorldName(), GetDisplayName()
+    local raw = ArdysOBTrackerSV
+    local function rawSettings(profile)
+        local p = raw and raw[profile]
+        local a = p and p[account]
+        return a and a["$AccountWide"]
+    end
+    local hadServerSettings = rawSettings(world) ~= nil
+    local oldSettings = rawSettings("Default")
+
+    OBM.sv = ZO_SavedVars:NewAccountWide("ArdysOBTrackerSV", 1, nil, defaults, world)
+
+    if not hadServerSettings and oldSettings and oldSettings.version == 1 then
+        for k, v in pairs(oldSettings) do
+            if k ~= "version" and type(v) ~= "table" and type(k) == "string" and k:sub(1, 1) ~= "$" then
+                OBM.sv[k] = v
+            end
+        end
+    end
 
     CreateTracker()
     CreateReticleReadout()

@@ -339,7 +339,7 @@ local PanelContent={
 local function UI_Init()
 	local eventFrames={ZO_SharedRightPanelBackground,ZO_TopBar,ZO_GameMenu_InGame}
 	local function RefreshGamepadSidebarInput()
-		local sidebarNav=SatuveXboxUI and SatuveXboxUI.SidebarGamepad
+		local sidebarNav=MyUI and MyUI.SidebarGamepad
 		if sidebarNav and sidebarNav.RefreshKeybinds then sidebarNav:RefreshKeybinds() end
 	end
 	if not BUI.Vars.SidePanel.Enable then
@@ -417,7 +417,7 @@ local function UI_Init()
 			button:SetColor(unpack(color_on))
 			button:SetMouseEnabled(true)
 			button:SetHandler("OnMouseEnter", function(self)
-				local sidebarNav=SatuveXboxUI and SatuveXboxUI.SidebarGamepad
+				local sidebarNav=MyUI and MyUI.SidebarGamepad
 				if sidebarNav and sidebarNav.active then sidebarNav:Deactivate(true) end
 				self:SetColor(.9,.9,.8,1)
 				if data.tooltip then

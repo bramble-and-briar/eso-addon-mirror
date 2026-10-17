@@ -1,6 +1,6 @@
 ## Title: |c6FCB9FBureau|r of Acceptable Views
-## Version: 3.11.012748
-## AddOnVersion: 311
+## Version: 3.12.232154
+## AddOnVersion: 312
 ## Author: |c6FCB9Fmeshlg|r @ArtieFox
 ## APIVersion: 101051
 ## Description: Free camera zoom in restricted states, with Dynamic FOV, dedicated PvP controls, context presets, and over-the-shoulder control.
@@ -32,7 +32,7 @@ Settings.lua
 Bindings.xml
 ; ---------------------------------------------------------------------------
 
-
+; License: Source Available - Personal use only. See LICENSE.
 
 ; This Add-on is not created by, affiliated with or sponsored by ZeniMax
 ; Media Inc. or its affiliates. The Elder Scrolls® and related logos are

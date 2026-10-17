@@ -1,6 +1,6 @@
 ## Title: |cFFD700Golden Pursuits Tracker|r
-## APIVersion: 101050
-## Version: 1.7
+## APIVersion: 101051
+## Version: 1.8
 ## Author: |cFFD700@Atharti|r
 
 GoldenPursuitsTracker.lua

@@ -1,0 +1,9 @@
+## Title: No Target Frame
+## Description: Hides the vanilla reticle target frame only.
+## Version: 1.1.0
+## AddOnVersion: 110
+## APIVersion: 101050
+## Author: j.hhh
+## OptionalDependsOn: LibAddonMenu-2.0
+
+NoTargetFrame.lua

@@ -1,8 +1,8 @@
 ## Title: |cFFD700Daily Deeds|r
 ## Author: |cFFD700@Atharti|r
 ## Description: Tracks your gain of various currencies per day.
-## Version: 1.5
-## APIVersion: 101050
+## Version: 1.6
+## APIVersion: 101051
 ## SavedVariables: DailyDeeds_SV
 ## DependsOn: LibAddonMenu-2.0>=43 LibDailyReset>=19
 

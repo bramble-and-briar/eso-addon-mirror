@@ -18,6 +18,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Ability Icons Framework (AIF)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/wicked_prophet/Ability-Icons-Framework-AIF__4061) | wicked_prophet | PC / Mac | 1.6.0 |
 | [ABnC Gold Manager - revisited](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/dbojan/ABnC-Gold-Manager---revisited__2890) | dbojan | PC / Mac | 1.3.100009a rv3 |
 | [Above Me Icon Browser](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/BMGxSancho/Above-Me-Icon-Browser__c1746be9-5c6a-4516-aa21-e54bd8e5a25e) | BMGxSancho | Console | — |
+| [AbyssUI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/luiisoliiver/AbyssUI__4958) | luiisoliiver | PC / Mac | 17/10/2026 |
 | [Accept or Decline Group Invites](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/TwinLamps/Accept-or-Decline-Group-Invites__4371) | TwinLamps | PC / Mac | 1.1 |
 | [Accessorize](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/deadohiosky48/Accessorize__2541) | deadohiosky48 | PC / Mac | 24 |
 | [Account Achievements](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/QuantumPie/Account-Achievements__2905) | QuantumPie | PC / Mac | 2.0.2 |
@@ -184,7 +185,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AlphaScry (Leads, Antiquities, Filter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaScry-Leads-Antiquities-Filter__2689) | mesota | PC / Mac | 1.0.0 |
 | [AlphaStyle (Outfit, Mount, Pet, Collectibles)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/mesota/AlphaStyle-Outfit-Mount-Pet-Collectibles__2411) | mesota | PC / Mac | 1.0.0 |
 | [AlreadyListed](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/svammy/AlreadyListed__66e34000-1a7c-4b71-9c6b-18742fa714c5) | svammy | Console | — |
-| [ALT — Addon Loading Times](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/ALT-Addon-Loading-Times__4613) | atharti | PC / Mac | 1.9 |
+| [ALT — Addon Loading Times](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/ALT-Addon-Loading-Times__4613) | atharti | PC / Mac | 2.0 |
 | [Alternate Death Recap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Alternate-Death-Recap__4454) | Shienar | PC / Mac | 3.3 |
 | [AlternateDeathRecap](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/AlternateDeathRecap__9e55edc2-32f8-4c75-b87c-e921fd53e9cf) | Shienar | Console | — |
 | [Alternative Attribute Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/buldezir/Alternative-Attribute-Bars__3056) | buldezir | PC / Mac | 1.0.16 |
@@ -321,7 +322,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Complete](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Auto-Complete__2026) | Dolgubon | PC / Mac | 1.0.2 |
 | [Auto Daily Rewards](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Auto-Daily-Rewards__2041) | SDPhantom | PC / Mac | 1.2 |
 | [Auto Daily Rewards - Notifications](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SDPhantom/Auto-Daily-Rewards---Notifications__2051) | SDPhantom | PC / Mac | 1.0 |
-| [Auto Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Auto-Destroy__4139) | atharti | PC / Mac | 2.2 |
+| [Auto Destroy](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Auto-Destroy__4139) | atharti | PC / Mac | 2.3 |
 | [Auto Eat, Recharge, Repair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Auto-Eat-Recharge-Repair__2198) | Jodynn | PC / Mac | 1.1 |
 | [Auto Extract](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/msetten/Auto-Extract__0763042f-816e-4f4f-baae-c50159fc5bd5) | msetten | Console | — |
 | [Auto Guild Welcome](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Phobus11/Auto-Guild-Welcome__2387) | Phobus11 | PC / Mac | 0.2.0 |

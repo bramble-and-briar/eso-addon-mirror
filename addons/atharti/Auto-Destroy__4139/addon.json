@@ -18,7 +18,7 @@
     "AutoDestroy"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4139/",
-  "fingerprint": "585bfdfc59a6ad2ee73cb94330a4a8217dda2ad08deebc40d01adfa2f5d4e8fd",
+  "fingerprint": "b865e272c2a7b306a069841403a2ee72b1624cc5927653aab4b816b23b55075e",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw14131.png",
     "https://cdn-eso.mmoui.com/preview/pvw14129.png",
@@ -30,11 +30,11 @@
   "source_id": "4139",
   "source_url": "https://www.esoui.com/downloads/info4139-AutoDestroy.html",
   "stats": {
-    "downloads": 1949,
-    "favorites": 6,
-    "monthly_downloads": 55
+    "downloads": 2141,
+    "favorites": 8,
+    "monthly_downloads": 101
   },
   "title": "Auto Destroy",
-  "updated_at": 1788432965000,
-  "version": "2.2"
+  "updated_at": 1792156577000,
+  "version": "2.3"
 }

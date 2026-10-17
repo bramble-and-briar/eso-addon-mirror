@@ -141,6 +141,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Slash Command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Slash-Command__2554) | ShadowMau | PC / Mac | 0.1.2 |
 | [Simple Text Box](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Text-Box__2564) | ShadowMau | PC / Mac | 1.0 |
 | [Simple Tooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Tooltip__3043) | ShadowMau | PC / Mac | 1.0.3 |
+| [Simple Ultimate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Ultimate-Tracker__4956) | Kaewro | PC / Mac | 1.0.2 |
 | [Simple Vote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Simple-Vote__3077) | M0R | PC / Mac | 1.0 |
 | [SimpleAddonMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/SimpleAddonMenu__441715a3-5c4e-4ba6-8004-86dbf4485eb0) | Vixen_Hunny | Console | — |
 | [SimpleChatLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/SimpleChatLogger__2799) | Coorbin | PC / Mac | 1.0 |

@@ -1,8 +1,8 @@
 ## Title: LibAPH
 ## Description: Helper library for my addons.
 ## IsLibrary: true
-## AddOnVersion: 26100717
-## Version: 2026.10.07.17.24
+## AddOnVersion: 26101801
+## Version: 2026.10.18.01.41
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
 ## APIVersion: 101051 101052
 
@@ -16,10 +16,15 @@ UI/Theme.lua
 UI/KeyHints.lua
 UI/Window.lua
 UI/FitText.lua
+UI/StatusLine.lua
+UI/MemoryDisplay.lua
+UI/Graph.lua
 UI/ContextMenu.lua
+UI/SettingsMenu.lua
 UI/Templates.xml
 UI/Bindings.xml
 UI/Gamepad.lua
+UI/PadFocus.lua
 UI/Position.lua
 UI/UndoRedo.lua
 UI/GamepadDialogs.lua
@@ -29,6 +34,7 @@ UTILS/Scheduler.lua
 HELPERS/Messaging.lua
 MODULES/ModuleManager.lua
 UTILS/Format.lua
+UTILS/SavedRecords.lua
 UTILS/LibraryVersion.lua
 HELPERS/Settings.lua
 HELPERS/ErrorCapture.lua
@@ -39,6 +45,10 @@ MENU/MenuRefresh.lua
 MENU/MenuState.lua
 HELPERS/PlayerState.lua
 UTILS/MemoryCleanup.lua
+UTILS/LowMemoryRescue.lua
+UTILS/GameSettings.lua
+UTILS/HouseTravel.lua
+UTILS/CrashCopy.lua
 HELPERS/ActivityTriggers.lua
 HELPERS/AddonManager.lua
 UTILS/ProfileStore.lua

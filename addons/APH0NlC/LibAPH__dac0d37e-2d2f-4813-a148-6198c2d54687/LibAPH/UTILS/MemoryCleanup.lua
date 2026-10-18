@@ -48,6 +48,70 @@ function LibAPH.GetMemoryUsageMB()
 	return LuaMB(), PoolMB()
 end
 
+local low_memory_text, low_memory_pattern
+
+local function Number(text)
+	return tonumber((text:gsub(",", ".")))
+end
+
+function LibAPH.ReadLowAddOnMemoryWarning(message)
+	if type(message) ~= "string" or not SI_LOW_ADDON_MEMORY_WARNING then return nil end
+	local text = GetString(SI_LOW_ADDON_MEMORY_WARNING)
+	if type(text) ~= "string" or not text:find("<<2>>", 1, true) then return nil end
+	if text ~= low_memory_text then
+		local first = text:match("^[^\n]*")
+		low_memory_text = text
+		low_memory_pattern = first:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0"):gsub("<<1>>", "([%%d%%.,]+)", 1):gsub("<<2>>", "([%%d%%.,]+)", 1)
+	end
+	local used, cap = message:match(low_memory_pattern)
+	if not (used and cap) then return nil end
+	used, cap = Number(used), Number(cap)
+	if not (used and cap) then return nil end
+	return used, cap
+end
+
+local LOW_MEMORY_SHARE = 0.7
+local low_memory_callbacks, low_memory_order = {}, {}
+
+local function OnLowMemoryError(_, message)
+	local used, cap = LibAPH.ReadLowAddOnMemoryWarning(message)
+	if not used then return end
+	for _, name in ipairs(low_memory_order) do
+		local fn = low_memory_callbacks[name]
+		if fn then SafeCall(fn, used, cap) end
+	end
+end
+
+function LibAPH.RegisterLowMemoryCallback(name, fn)
+	assert(type(name) == "string" and type(fn) == "function", "RegisterLowMemoryCallback(name, fn)")
+	if not IsConsoleUI() then return false end
+	if not low_memory_callbacks[name] then low_memory_order[#low_memory_order + 1] = name end
+	low_memory_callbacks[name] = fn
+	EVENT_MANAGER:RegisterForEvent("LibAPH_LowAddOnMemory", EVENT_LUA_ERROR, OnLowMemoryError)
+	return true
+end
+
+function LibAPH.UnregisterLowMemoryCallback(name)
+	if not low_memory_callbacks[name] then return end
+	low_memory_callbacks[name] = nil
+	for index = #low_memory_order, 1, -1 do
+		if low_memory_order[index] == name then table.remove(low_memory_order, index) end
+	end
+	if #low_memory_order == 0 then EVENT_MANAGER:UnregisterForEvent("LibAPH_LowAddOnMemory", EVENT_LUA_ERROR) end
+end
+
+function LibAPH.GetAddOnMemoryLimitMB()
+	local cap = GetTotalUserAddOnMemoryPoolCapacityMB and GetTotalUserAddOnMemoryPoolCapacityMB()
+	if type(cap) ~= "number" or cap <= 0 then return nil end
+	return PoolMB(), cap
+end
+
+function LibAPH.IsAddOnMemoryLow(share)
+	local used, cap = LibAPH.GetAddOnMemoryLimitMB()
+	if not used then return false end
+	return used >= cap * (share or LOW_MEMORY_SHARE)
+end
+
 local function Pick(force, reason, next_menu_run)
 	if reason == "lowmem" then return "deep" end
 	local lua_mb = LuaMB()
@@ -96,6 +160,7 @@ local function Finish(job, before_lua, before_pool)
 			sources = job.sources,
 			method = job.method,
 			picked = job.picked,
+			reason = job.reason,
 			beforeLua = before_lua,
 			afterLua = after_lua,
 			freedLua = math.max(before_lua - after_lua, 0),
@@ -164,6 +229,7 @@ function LibAPH.RunCleanup(opts)
 		sources = { [source] = true },
 		method = method,
 		picked = picked,
+		reason = opts.reason,
 		measure = picked == "deep",
 		waiting = { opts.onDone },
 	}

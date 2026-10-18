@@ -7,9 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-PMCore = PMCore or {}
-local PM = PMCore
-
+PermMementoCore = PermMementoCore or {}
+local PM = PermMementoCore
 PM.memento_data = {
 	[341]   = { id = 341,   ref_id = 26829,  dur = 27000,   name = "Almalexia's Enchanted Lantern" },
 	[9862]  = { id = 9862,  ref_id = 162813, dur = 180000,  name = "Astral Aurora Projector" },

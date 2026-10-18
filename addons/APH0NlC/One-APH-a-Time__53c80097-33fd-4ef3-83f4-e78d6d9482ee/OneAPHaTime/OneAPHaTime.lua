@@ -7,7 +7,10 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-local ADDON_NAME = "OneAPHaTime"
+OneAPHaTime = OneAPHaTime or {}
+local OAPHT = OneAPHaTime
+
+OAPHT.name = "OneAPHaTime"
 
 local function L(key, ...)
 	local id = _G["SI_OAPH_" .. key]
@@ -16,9 +19,9 @@ local function L(key, ...)
 	return text
 end
 
-local STEP_NAMESPACE = ADDON_NAME .. "Step"
-local TIMEOUT_NAMESPACE = ADDON_NAME .. "Timeout"
-local GAP_NAMESPACE = ADDON_NAME .. "Gap"
+local STEP_NAMESPACE = OAPHT.name .. "Step"
+local TIMEOUT_NAMESPACE = OAPHT.name .. "Timeout"
+local GAP_NAMESPACE = OAPHT.name .. "Gap"
 local KEYBIND_LAYER = "One APH a Time"
 local GET_ALL_ACTION = "OAPH_GET_ALL"
 local TOGGLE_ACTION = "OAPH_TOGGLE"
@@ -148,8 +151,22 @@ local function KeyFor(action)
 		KEYBIND_TEXT_OPTIONS_ABBREVIATED_NAME, KEYBIND_TEXTURE_OPTIONS_EMBED_MARKUP, IsInGamepadPreferredMode())
 end
 
-local function GetAllPhrase()
-	local key = KeyFor(GetAllKeybind())
+local function ChatKeyFor(action)
+	local found, key, mod1, mod2, mod3, mod4 = ZO_Keybindings_GetHighestPriorityBindingStringFromAction(action,
+		KEYBIND_TEXT_OPTIONS_ABBREVIATED_NAME, KEYBIND_TEXTURE_OPTIONS_NONE, IsInGamepadPreferredMode())
+	if not found then return nil end
+	local parts = {}
+	for _, code in ipairs({ mod1, mod2, mod3, mod4, key }) do
+		if code ~= KEY_INVALID then
+			local path = ZO_Keybindings_ShouldUseIconKeyMarkup(code) and ZO_Keybindings_GetTexturePathForKey(code)
+			parts[#parts + 1] = path and zo_iconFormat(path, "100%", "100%") or GetKeyName(code)
+		end
+	end
+	return table.concat(parts, "+")
+end
+
+local function GetAllPhrase(for_chat)
+	local key = (for_chat and ChatKeyFor or KeyFor)(GetAllKeybind())
 	if key then return string.format(L("GET_ALL"), key) end
 	return L("GET_ALL_NO_KEY_YET_SET")
 end
@@ -797,7 +814,7 @@ local function BuildKeyboardPanel(lam)
 		name = "|c9CD04COne APH a Time|r",
 		displayName = "|c00FFFFOne APH a Time|r",
 		author = "|ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r",
-		version = "2026.10.06.13.49",
+		version = "2026.10.18.01.41",
 		registerForRefresh = true,
 		translation = "https://www.esoui.com/portal.php?id=360&a=featurereq",
 		donation = "https://buymeacoffee.com/aph0nlc",
@@ -839,7 +856,8 @@ end
 
 local function BuildSettingsPanel()
 	local console = not IsKeyboardUISupported()
-	local library = console and LibHarvensAddonSettings or LibAddonMenu2
+	local library = LibAddonMenu2
+	if console then library = LibHarvensAddonSettings end
 	if not library then
 		if not saved.warned_no_settings then
 			saved.warned_no_settings = true
@@ -877,7 +895,7 @@ function Toggle()
 	if not saved then return false end
 	saved.enabled = not saved.enabled
 	if saved.enabled then
-		Print(string.format(L("TOGGLE_ON"), GetAllPhrase()), true)
+		Print(string.format(L("TOGGLE_ON"), GetAllPhrase(true)), true)
 	else
 		Print(L("OFF_WITHDRAW_TAKES_THE_WHOLE_STACK"), true)
 	end
@@ -901,7 +919,7 @@ local function Command(args)
 end
 
 local function Init()
-	saved = ZO_SavedVars:NewAccountWide("OAPHSV", 1, GetWorldName() or "Default", DEFAULTS)
+	saved = ZO_SavedVars:NewAccountWide("OneAPHaTimeSV", 1, GetWorldName() or "Default", DEFAULTS)
 
 	TakeOverPrimary()
 	ZO_PreHook(ZO_GuildBank_Gamepad, "ConfirmWithdrawal", OnGamepadGuildWithdraw)
@@ -913,30 +931,28 @@ local function Init()
 	end)
 	zo_callLater(BuildSettingsPanel, 0)
 
-	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_OPEN_BANK, OnOpenBank)
-	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GUILD_BANK_ITEMS_READY, OnGuildBankReady)
-	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CLOSE_BANK, OnCloseBank)
-	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CLOSE_GUILD_BANK, OnCloseBank)
-	EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, OnInputModeChanged)
+	EVENT_MANAGER:RegisterForEvent(OAPHT.name, EVENT_OPEN_BANK, OnOpenBank)
+	EVENT_MANAGER:RegisterForEvent(OAPHT.name, EVENT_GUILD_BANK_ITEMS_READY, OnGuildBankReady)
+	EVENT_MANAGER:RegisterForEvent(OAPHT.name, EVENT_CLOSE_BANK, OnCloseBank)
+	EVENT_MANAGER:RegisterForEvent(OAPHT.name, EVENT_CLOSE_GUILD_BANK, OnCloseBank)
+	EVENT_MANAGER:RegisterForEvent(OAPHT.name, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, OnInputModeChanged)
 
 	SLASH_COMMANDS["/oneaphatime"] = Command
 end
 
-EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, name)
-	if name ~= ADDON_NAME then return end
-	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
+EVENT_MANAGER:RegisterForEvent(OAPHT.name, EVENT_ADD_ON_LOADED, function(_, name)
+	if name ~= OAPHT.name then return end
+	EVENT_MANAGER:UnregisterForEvent(OAPHT.name, EVENT_ADD_ON_LOADED)
 	Init()
 end)
 
-OAPH = {
-	CanGetOne = CanGetOne,
-	GetOne = GetOne,
-	GetAll = GetAll,
-	CategoryOf = CategoryOf,
-	Toggle = Toggle,
-	ToggleChat = ToggleChat,
-	IsEnabled = function() return saved and saved.enabled end,
-	IsBusy = function() return job ~= nil or using or queue[1] ~= nil end,
-	GetHeldCount = function() return #held end,
-	GetReturnCount = function() return saved and #saved.returns or 0 end,
-}
+OAPHT.CanGetOne = CanGetOne
+OAPHT.GetOne = GetOne
+OAPHT.GetAll = GetAll
+OAPHT.CategoryOf = CategoryOf
+OAPHT.Toggle = Toggle
+OAPHT.ToggleChat = ToggleChat
+OAPHT.IsEnabled = function() return saved and saved.enabled end
+OAPHT.IsBusy = function() return job ~= nil or using or queue[1] ~= nil end
+OAPHT.GetHeldCount = function() return #held end
+OAPHT.GetReturnCount = function() return saved and #saved.returns or 0 end

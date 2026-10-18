@@ -1,0 +1,33 @@
+## Title: |c9CD04CAPH-FPSGraph|r
+## AddOnVersion: 26101514
+## Version: 2026.10.15.14.36
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+## SavedVariables: APHFPSGraph
+## DependsOn: LibAPH>=26100607
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
+## Description: |cfa9c1bA frame-rate graph that times every frame: average, 1% and 0.1% lows, frame time, stutters and ping, with the window, graph and text each at their own transparency.|r |cCCFF00Usage: /fpsgraph|r
+
+lang/default.lua
+lang/$(language).lua
+CORE/APH-FPSGraph.lua
+UTILS/Sampler.lua
+UTILS/Loads.lua
+UI/Graph.lua
+UI/Summary.lua
+UI/Timeline.lua
+UI/Pad.lua
+UI/Menu.lua
+UTILS/Settings.lua
+
+Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

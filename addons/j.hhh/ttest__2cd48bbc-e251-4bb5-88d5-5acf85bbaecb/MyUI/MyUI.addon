@@ -4,7 +4,7 @@
 ## Version: 1.9.28
 ## APIVersion: 101050 101051
 ## SavedVariables: SATUVE_XBOX_UI_VARS SATUVE_XBOX_UI_REPORTS SATUVE_XBOX_UI_CP_CHAR
-## OptionalDependsOn: LibAddonMenu-2.0 LibStub LibDebugLogger
+## OptionalDependsOn: LibAddonMenu-2.0 LibStub
 
 ; My UI is a modified adaptation of Bandits User Interface.
 ;
@@ -20,7 +20,6 @@
 ;
 ; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
 
-MyUI_Debug.lua
 SXUI_Compatibility.lua
 BUI_Vars.lua
 BUI_Controls.lua
@@ -53,8 +52,8 @@ BUI_CustomBar.lua
 BUI_Meters.lua
 BUI_Markers.lua
 SXUI_ChampionPriority.lua
+MyUI_ChatLayout.lua
 SXUI_FrameEditor.lua
-SXUI_MoveDiagnostics.lua
 BUI_Initialize.lua
 
 lang\en.lua

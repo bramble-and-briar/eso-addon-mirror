@@ -9,8 +9,6 @@ talks, and every call goes on the scoreboard.
 
   "The crown doth declare an attack on Fort Ash. Ash till you crash."
       (Greedy)
-  "I guess we should defend Nikel Outpost. We're gonna protect Nikel's
-  pickle from tickling." (Ultra Lazy)
   "Alright, we are going to troll Kingscrest by sieging from the
   lumbermill." (November)
   "Let's be annoying and take Dragonclaw from the lumbermill tower."
@@ -33,19 +31,17 @@ PERSONALITIES
   Who's wearing the crown changes how it picks. Choose one in Main Menu >
   Add-Ons > Lazy Crown > Personalities, or with Change Personality.
     Lazy        A lazy crown isn't always a lousy one.
-    Baked Potato  Ultra Lazy, but baked. Needs a break every few calls.
+    Baked Potato  Laziest crown ever, but baked. Needs a break every
+                  few calls.
     Bored       Chases fights and action.
     Chris       Lazy but with a brain.
     Confessor   Lazy as in not taking us all to our certain deaths.
     Deano       Scrappy small scale with a hint of troll.
     Diil        The real Diil, but I'm too lazy to siege for you.
     Greedy      Give me all that AP. All we do is win, win, win.
-    Mulliss     Sometimes you just want to be a bad crown.
     November    Unconventional and favors flanks.
     Random      Truly random. Attack or defense, then the kind of
                 target, then which one.
-    Selfish     Looking out for number one.
-    Ultra Lazy  Laziest crown ever.
 
 TO SHARE IT: press X to send (Square on PlayStation). Press A to edit
 (Cross on PlayStation). Nothing is ever sent unless you press Send.
@@ -72,21 +68,23 @@ WAYPOINTS
 
 THE PLAN
   Every crown but Lazy thinks a few calls ahead. After each call your
-  chat window shows "Plan after this: ..." (only you see it): what it
-  will call next if this one goes our way. When it does, the next call
+  chat window shows "[Lazy Crown - Plan] ..." in white (only you see
+  it): what it will call next if this one goes our way. When it does, the next call
   is the plan's next step, unless the map changed and something better
   came up. Turn it off with "Show the plan" in Options.
 
 MORE OPTIONS
+  Continuous Attack: any crown grabs a resource on the way when your
+  Continuous Attack is running low.
   Show travel times: adds about how long it takes to get there to the
   call ("Ride north, about 45 seconds.").
-  Size up the group: every crown counts who's here with you. No
-  outposts with fewer than 4 of you, no keeps with fewer than 8,
-  unless our siege is already on it or we're winning a fight there.
-  Continuous Attack: turn it off and Chris, Confessor and Deano stop
-  grabbing resources for the buff.
-  Mean: same calls, worse attitude.
+  Size up the group: no outposts under 4 people and no keeps under 8.
+  Still calls them if our siege is already up or we're winning a
+  fight there.
+
+TONE
   Drunk: same calls, a few drinks in. *hic*
+  Mean: same calls, worse attitude.
   Skooma: really out of it. Calls anything at random, even what we
   already have (that's a W, then a break for more skooma). Sometimes
   sends you across the map, tells everyone to go away, or won't call
@@ -96,9 +94,9 @@ THE HAMMER
   When Volendrung is out, most crowns follow it if your alliance has
   it, and Greedy chases it no matter who has it.
 
-TARGET TYPES
-  The Keeps, Resources, Towns and Outposts switches in Options (all on
-  by default) take those targets out of whichever crown you're using.
+OBJECTIVES
+  The Keeps, Outposts, Resources and Towns switches in Objectives (all
+  on by default) take those targets out of whichever crown you're using.
 
 HOW THE NUMBERS WORK
 Every target has a number from 1 to 81, and each number moves to the
@@ -113,7 +111,8 @@ REQUIRES
     https://www.esoui.com/downloads/info4297-LibRadialMenu.html
   LibHarvensAddonSettings (console only; LibRadialMenu needs it)
   Optional: LibGroupCombatStats (with LibGroupBroadcast), so Group
-  Check can count everyone's ultimates, not just yours.
+  Check can count the ultimates teammates share through Artaeum
+  Group Tool or Hodor Reflexes, not just yours.
 
   On console, install them from the in-game add-on browser.
 
@@ -122,10 +121,10 @@ SETUP
      LibHarvensAddonSettings are all enabled, then Reload UI.
   1. Open the LibRadialMenu settings and set "Wheel Location" above 0
      (0 means the wheel is off).
-  2. Under "Assign Slots", pick a slot and choose "Private Command" from
-     the Lazy Crown section. Pick more slots for "Crown Command",
-     "Scoreboard", "Reset Scoreboard", "Change Personality" and
-     "Group Check" if you want them.
+  2. In Lazy Crown > Wheel slots, press "Put on" (or "Move" on each
+     one). Skip LibRadialMenu's "Assign Slots" because it breaks
+     whispers, group invites, Enter Now and respawning until you
+     Reload UI.
   3. Open your quickslot wheel, switch to the "Addon Entries" wheel,
      and pick.
 

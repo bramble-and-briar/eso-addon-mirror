@@ -32,8 +32,8 @@
 
 ## Title: Account Hold
 ## Author: AccountHold contributors
-## Version: 0.1.260728.10
-## AddOnVersion: 26072810
+## Version: 0.1.261017.0
+## AddOnVersion: 26101700
 ## APIVersion: 101049 101050
 ## SavedVariables: AccountHoldSV
 ## Description: Account-wide inventory index with per-item and per-set holds. Auto-routes reserved items between characters via any shared container.
@@ -113,6 +113,8 @@ src/TravelTrace.lua
 data/setSources.lua
 src/SetSources.lua
 src/BuildCreator.lua
+# Equip / auto-equip / Armory-export engine for those builds (reads BuildCreator).
+src/BuildEquip.lua
 src/Priorities.lua
 src/Travel.lua
 src/DungeonQueue.lua

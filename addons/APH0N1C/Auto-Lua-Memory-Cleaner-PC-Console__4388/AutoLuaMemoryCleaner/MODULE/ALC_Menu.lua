@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 local ALC_modules = ALC._modules
 local lam_panel
 
@@ -121,15 +121,51 @@ function ALC.build_lam2_menu()
 	})
 	table.insert(cleanup_controls, {
 		type = "description",
-		text = function() return ALC.L("DESC_MODE_" .. ALC.get_cleanup_mode():upper()) end
+		text = function()
+			local mode = ALC.get_cleanup_mode()
+			local text = ALC.L("DESC_MODE_" .. mode:upper())
+			local cap = IsConsoleUI() and LibAPH.GetAddOnMemoryLimitMB and select(2, LibAPH.GetAddOnMemoryLimitMB())
+			if cap then
+				local _, start, stop, _, _, deep = ALC.get_lowmem_lines(cap)
+				text = text .. " " .. ALC.L("DESC_LOWMEM_CONSOLE", start, stop, deep)
+			end
+			return text
+		end
 	})
 
 	ALC.platform_build_threshold_slider(cleanup_controls)
 
 	table.insert(cleanup_controls, {
 		type = "slider",
+		name = function() return ALC.L("SLIDER_MIN_GROWTH_MB") end,
+		min = 0, max = 800, step = 0.5, decimals = 1,
+		getFunc = function() return ALC.settings.cleanup_min_growth_mb end,
+		setFunc = function(v) ALC.settings.cleanup_min_growth_mb = v end,
+		disabled = function() return not ALC.settings.is_enabled end
+	})
+
+	table.insert(cleanup_controls, {
+		type = "slider",
+		name = function() return ALC.L("SLIDER_MIN_GROWTH_PCT") end,
+		min = 0, max = 50, step = 1,
+		getFunc = function() return ALC.settings.cleanup_min_growth_pct end,
+		setFunc = function(v) ALC.settings.cleanup_min_growth_pct = v end,
+		disabled = function() return not ALC.settings.is_enabled end
+	})
+
+	table.insert(cleanup_controls, {
+		type = "description",
+		text = function()
+			local grown = ALC.get_growth_since_cleanup()
+			if not grown then return ALC.L("DESC_MIN_GROWTH_NONE") end
+			return ALC.L("DESC_MIN_GROWTH", LibAPH.FormatMemoryMB(ALC.get_min_growth_mb()), LibAPH.FormatMemoryMB(grown))
+		end
+	})
+
+	table.insert(cleanup_controls, {
+		type = "slider",
 		name = function() return ALC.L("SLIDER_LUA_DELAY") end,
-		min = 30, max = 1200, step = 10,
+		min = 5, max = 1200, step = 5,
 		getFunc = function() return ALC.settings.fallback_delay_sec end,
 		setFunc = function(v) ALC.settings.fallback_delay_sec = v end,
 		disabled = function() return not ALC.settings.is_enabled end
@@ -144,33 +180,119 @@ function ALC.build_lam2_menu()
 		setFunc = function(v)
 			ALC.settings.auto_clear_pool_on_teleport = v
 			ALC.refresh_slash_commands()
-		end
+		end,
+		disabled = function() return not ALC.settings.is_enabled end
+	})
+	table.insert(cleanup_controls, {
+		type = "description",
+		text = function() return ALC.L("DESC_POOL_RELOAD") end
 	})
 
-	if ALC.settings.auto_clear_pool_on_teleport then table.insert(cleanup_controls, {
-		type = "checkbox",
-		name = function() return ALC.L("CHK_AUTO_POOL_CLEANUP_CONFIRM") end,
-		getFunc = function() return ALC.settings.pool_reload_confirm_auto end,
-		setFunc = function(v) ALC.settings.pool_reload_confirm_auto = v end,
-		disabled = function() return not ALC.settings.auto_clear_pool_on_teleport end
-	}) end
+	if ALC.settings.auto_clear_pool_on_teleport then
+		table.insert(cleanup_controls, {
+			type = "checkbox",
+			name = function() return ALC.L("CHK_AUTO_POOL_CLEANUP_CONFIRM") end,
+			getFunc = function() return not ALC.settings.pool_reload_confirm_auto end,
+			setFunc = function(v) ALC.settings.pool_reload_confirm_auto = not v end,
+			disabled = function() return not ALC.settings.is_enabled end
+		})
 
-	ALC.platform_build_pool_threshold_slider(cleanup_controls)
+		ALC.platform_build_pool_threshold_slider(cleanup_controls)
+
+		table.insert(cleanup_controls, {
+			type = "slider",
+			name = function() return ALC.L("SLIDER_POOL_DELAY") end,
+			min = 1.5, max = 5, step = 0.1, decimals = 1,
+			getFunc = function() return ALC.settings.pool_reload_delay_sec end,
+			setFunc = function(v) ALC.settings.pool_reload_delay_sec = v end,
+			disabled = function() return not ALC.settings.is_enabled or not ALC.settings.pool_reload_confirm_auto end
+		})
+
+		table.insert(cleanup_controls, {
+			type = "slider",
+			name = function() return ALC.L("SLIDER_POOL_RELOAD_COOLDOWN") end,
+			min = 10, max = 180, step = 5,
+			getFunc = function() return ALC.settings.reload_cooldown_min end,
+			setFunc = function(v) ALC.settings.reload_cooldown_min = v end,
+			disabled = function() return not ALC.settings.is_enabled end
+		})
+	end
 
 	table.insert(cleanup_controls, {
-		type = "slider",
-		name = function() return ALC.L("SLIDER_POOL_DELAY") end,
-		min = 1.5, max = 5, step = 0.1, decimals = 1,
-		getFunc = function() return ALC.settings.pool_reload_delay_sec end,
-		setFunc = function(v) ALC.settings.pool_reload_delay_sec = v end,
-		disabled = function() return not ALC.settings.auto_clear_pool_on_teleport end
+		type = "checkbox",
+		name = function() return ALC.L("CHK_AFK_RELOAD") end,
+		getFunc = function() return ALC.settings.afk_reload end,
+		setFunc = function(v)
+			ALC.settings.afk_reload = v
+			ALC.toggle_afk_watch()
+			ALC.refresh_slash_commands()
+		end,
+		disabled = function() return not ALC.settings.is_enabled end
 	})
+	table.insert(cleanup_controls, {
+		type = "description",
+		text = function() return ALC.L("DESC_AFK_RELOAD") end
+	})
+
+	if ALC.settings.afk_reload then
+		table.insert(cleanup_controls, {
+			type = "slider",
+			name = function() return ALC.L("SLIDER_AFK_RELOAD_MIN") end,
+			min = 3, max = 15, step = 1,
+			getFunc = function() return ALC.settings.afk_reload_min end,
+			setFunc = function(v) ALC.settings.afk_reload_min = v end,
+			disabled = function() return not ALC.settings.is_enabled end
+		})
+	end
+
+	if ALC.is_console() then
+		local limit_mb = LibAPH.GetAddOnMemoryLimitMB and select(2, LibAPH.GetAddOnMemoryLimitMB())
+		if limit_mb then
+			table.insert(cleanup_controls, {
+				type = "checkbox",
+				name = function() return ALC.L("CHK_LOWMEM_RELOAD") end,
+				getFunc = function() return ALC.settings.lowmem_reload end,
+				setFunc = function(v) ALC.settings.lowmem_reload = v end,
+				disabled = function() return not ALC.settings.is_enabled end
+			})
+			table.insert(cleanup_controls, {
+				type = "description",
+				text = function()
+					local kill, _, _, ask, reload = ALC.get_lowmem_lines(limit_mb)
+					return ALC.L("DESC_LOWMEM_RELOAD", kill, ask, reload)
+				end
+			})
+			table.insert(cleanup_controls, {
+				type = "checkbox",
+				name = function() return ALC.L("CHK_LOWMEM_NOTICES") end,
+				getFunc = function() return ALC.settings.lowmem_notices end,
+				setFunc = function(v) ALC.settings.lowmem_notices = v end,
+				disabled = function() return not ALC.settings.is_enabled end
+			})
+		end
+	end
 
 	table.insert(cleanup_controls, {
 		type = "checkbox",
 		name = function() return ALC.L("CHK_CSA") end,
 		getFunc = function() return ALC.settings.is_csa_enabled end,
 		setFunc = function(v) ALC.settings.is_csa_enabled = v end
+	})
+
+	table.insert(cleanup_controls, {
+		type = "checkbox",
+		name = function() return ALC.L("CHK_GARBAGE_CHECK_NOTICES") end,
+		getFunc = function() return ALC.settings.garbage_check_notices end,
+		setFunc = function(v) ALC.settings.garbage_check_notices = v end,
+		disabled = function() return not ALC.settings.is_enabled end
+	})
+
+	table.insert(cleanup_controls, {
+		type = "checkbox",
+		name = function() return ALC.L("CHK_GARBAGE_CHECK_IGNORE_GROWTH") end,
+		getFunc = function() return ALC.settings.garbage_check_ignore_growth end,
+		setFunc = function(v) ALC.settings.garbage_check_ignore_growth = v end,
+		disabled = function() return not ALC.settings.is_enabled end
 	})
 
 	if is_pad then

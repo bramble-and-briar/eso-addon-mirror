@@ -1,10 +1,10 @@
 ## Keep Title, Version and Main.lua VERSION in sync.
 ## |cRRGGBB...|r in Title and Author colours them in the in-game add-on list; the version
 ## is read back through that markup, so it can sit inside or outside the colour.
-## Title: |cFF69B4PB’s ChatAssistant|r 1.30.0
+## Title: |cFF69B4PB’s ChatAssistant|r 1.30.1
 ## Author: |cFF69B4PinkBanther|r
 ## Description: Opens console chat for keyboard input, organizes guild chat into tabs, and can hide guild recruitment adverts and NPC speech.
-## Version: 1.30.0
+## Version: 1.30.1
 ## APIVersion: 101050 101051
 ## DependsOn: LibHarvensAddonSettings>=20106
 ## SavedVariables: PBsChatAssistant_Data

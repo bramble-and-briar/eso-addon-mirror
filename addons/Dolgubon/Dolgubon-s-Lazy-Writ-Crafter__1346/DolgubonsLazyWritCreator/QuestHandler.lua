@@ -166,6 +166,7 @@ local function isQuestTypeActive(optionString)
 end
 
 local lastSlotCraftable = true
+local craftableAlchemy = true
 
 -- Automatically accepts master writs. Off by default but it's written so not deleting it just in case
 local function handleMasterWritQuestOffered()
@@ -182,11 +183,16 @@ end
 
 local function checkMasterWritCraftable(bag, slot)
 	lastSlotCraftable = true
+	craftableAlchemy = true
 	if GetItemType(bag, slot)~=ITEMTYPE_MASTER_WRIT then return end
 	local link = GetItemLink(bag, slot)
 	local station = WritCreater.sealedWritNames[GetItemLinkName(link)]
 	if station == CRAFTING_TYPE_ALCHEMY and WritCreater.isAlchemyWritCraftable(bag, slot) then
 		lastSlotCraftable = true
+		return
+	elseif station == CRAFTING_TYPE_ALCHEMY and not WritCreater.isAlchemyWritCraftable(bag, slot) then
+		lastSlotCraftable = false
+		craftableAlchemy = false
 		return
 	elseif station == CRAFTING_TYPE_PROVISIONING then
 		lastSlotCraftable = true
@@ -527,7 +533,11 @@ function WritCreater.InitializeQuestHandling()
 		if string.find(GetOfferedQuestInfo(), completionStrings["Rolis Hlaalu"]) and WritCreater:GetSettings().preventMasterWritAccept then 
 			d(WritCreater.strings.masterWritSave)  
 		elseif string.find(GetOfferedQuestInfo(), completionStrings["Rolis Hlaalu"]) and not lastSlotCraftable then
-			ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.GENERAL_ALERT_ERROR ,WritCreater.strings['masterStopAcceptNoCraftSkill'])
+			if not craftableAlchemy then
+				ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.GENERAL_ALERT_ERROR ,"Lazy Writ Crafter™: This alchemy writ is uncraftable. This is a known ZOS issue that will be fixed, so hang onto it until then!")
+			else
+				ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.GENERAL_ALERT_ERROR ,WritCreater.strings['masterStopAcceptNoCraftSkill'])
+			end
 		else
 			-- d("Accept")
 			if GetDisplayName()=="@Dolgubon" and true then

@@ -1,7 +1,7 @@
 ## Title: Gamepad Mini Chat Tabs
-## APIVersion: 101048 101049
-## Version: 1.0.5
-## AddOnVersion: 105
+## APIVersion: 101051 101052
+## Version: 1.0.6
+## AddOnVersion: 106
 ## Author: @dack_janiels[PC-NA]
 ## Description: Tabs for your -> Mini Chat
 ## DependsOn: LibHarvensAddonSettings LibRadialMenu

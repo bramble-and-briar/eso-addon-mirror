@@ -1,3 +1,7 @@
+Version 4.8.2 (2026/10/17)
+* Fixed a problem with repositioning achievement screenshot overview windows,
+  caused by changes in how anchors behave in Update 51
+
 Version 4.8.1 (2026/10/06)
 * Added a 4s countdown delay before displaying the screenshot mode score banner,
   to give the user some time to adjust their camera

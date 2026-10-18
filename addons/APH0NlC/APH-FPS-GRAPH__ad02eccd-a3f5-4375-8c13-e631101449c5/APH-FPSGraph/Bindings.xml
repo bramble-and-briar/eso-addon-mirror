@@ -1,0 +1,75 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="APH-FPSGraph">
+            <Action name="APHFPSGRAPH_TOGGLE">
+                <Down>APHFPSGraphCore.Toggle()</Down>
+            </Action>
+            <Action name="APHFPSGRAPH_RESET">
+                <Down>APHFPSGraphCore.ResetStats()</Down>
+            </Action>
+            <Action name="APHFPSGRAPH_FOCUS">
+                <Down>APHFPSGraphCore.Pad.ToggleFocus()</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="APHFPSGraph_Focus">
+        <Category>
+            <Action name="APHFPSGRAPH_PAD_UP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_UP">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("up")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("up")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_DOWN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("down")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("down")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_SELECT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("a")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("a")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_RECORD" hideAction="true" inheritsBindFrom="UI_SHORTCUT_SECONDARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("x")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("x")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_MENU" hideAction="true" inheritsBindFrom="UI_SHORTCUT_TERTIARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("y")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("y")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_SUMMARY" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("lb")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("lb")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_TIMELINE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("rb")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("rb")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_ZOOM_OUT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("lt")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("lt")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_ZOOM_IN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("rt")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("rt")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_PAN_LEFT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("left")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("left")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_PAN_RIGHT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("right")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("right")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_MOVE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("rs")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("rs")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_RESIZE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("ls")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("ls")</Up>
+            </Action>
+            <Action name="APHFPSGRAPH_PAD_BACK" hideAction="true" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHFPSGraphCore.Pad.Press("b")</Down>
+                <Up>return APHFPSGraphCore.Pad.Release("b")</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

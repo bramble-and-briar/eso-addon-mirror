@@ -104,7 +104,7 @@ function LibAPH.CreateStatusWindow(opts)
 	label:SetDrawLevel(2)
 
 	if opts.resizable ~= false then
-		local font_face = opts.isGamepad and "EsoUI/Common/Fonts/FTN57.slug" or "EsoUI/Common/Fonts/Univers67.slug"
+		local font_face = opts.isGamepad and "$(GAMEPAD_MEDIUM_FONT)" or "$(BOLD_FONT)"
 		local font_style = opts.isGamepad and "soft-shadow-thick" or "soft-shadow-thin"
 		local base_size = opts.baseFontSize or (opts.isGamepad and 22 or 13)
 		local min_size = opts.minFontSize or (opts.isGamepad and 16 or 10)
@@ -614,7 +614,7 @@ local keybind_btn_counter = 0
 
 function LibAPH.AddGhostText(editBox, ghostText)
 	local ghost = WINDOW_MANAGER:CreateControl(nil, editBox, CT_LABEL)
-	ghost:SetFont("ZoFontGameSmall")
+	ghost:SetFont(IsConsoleUI() and "ZoFontGamepad18" or "ZoFontGameSmall")
 	ghost:SetColor(0.5, 0.5, 0.5, 1)
 	ghost:SetText(ghostText)
 	ghost:SetAnchor(LEFT, editBox, LEFT, 2, 0)
@@ -1008,6 +1008,7 @@ function LibAPH.CreateScrollListWindow(opts)
 		if data.renameButton then right_margin = right_margin + 22 end
 		if status_icon_count > 0 then right_margin = right_margin + status_icon_count * 20 end
 		control.text_lbl:SetAnchor(BOTTOMRIGHT, control, BOTTOMRIGHT, -right_margin, 0)
+		LibAPH.FitLabelText(control.text_lbl, data.text, { font = (opts.nativeStyle and data.is_header) and header_font or row_font })
 
 		if data == current_search_match_data then
 			search_highlight_control = control

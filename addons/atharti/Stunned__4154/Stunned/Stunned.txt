@@ -2,7 +2,7 @@
 ## Description: Blures your screen the moment you stunned.
 ## Author: |cFFD700@Atharti|r
 ## APIVersion: 101051
-## Version: 2.2
+## Version: 2.3
 ## DependsOn: LibAddonMenu-2.0>=43
 ## SavedVariables: Stunned_SV
 

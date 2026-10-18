@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-PMCore = PMCore or {}
-local PM = PMCore
+PermMementoCore = PermMementoCore or {}
+local PM = PermMementoCore
 local dismiss_captured_error, get_bug_report_settings_fields, show_copy_text_box
 local PM_defaults = PM.defaults
 local PM_modules = PM._modules

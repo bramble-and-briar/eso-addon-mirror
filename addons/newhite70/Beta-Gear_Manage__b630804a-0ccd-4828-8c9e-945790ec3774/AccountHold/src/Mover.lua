@@ -425,8 +425,10 @@ function Mover:_enqueue(job)
     -- counts CONFIRMED moves only, so failed/skipped queued jobs are never
     -- reported as moved.
     if not self._batchActive then
-        self._batchActive    = true
-        self._batchCompleted = 0
+        self._batchActive      = true
+        self._batchCompleted   = 0
+        self._batchFailed      = 0
+        self._batchFailReasons = {}
     end
     self._queue[#self._queue + 1] = job
 end
@@ -440,7 +442,10 @@ function Mover:_pump()
     local queue = self._queue or {}
     while #queue > 0 and not self._active do
         local job = table.remove(queue, 1)
-        local status = self:_issue(job)
+        local status, reason = self:_issue(job)
+        if status == "skip" then
+            self:_noteFailure(job, reason)
+        end
         if status == "stop" then
             self._queue = {}
             self:_finalizeBatch(true)
@@ -461,9 +466,14 @@ function Mover:_issue(job)
     local srcBag, srcSlot = self:_verifySource(job)
     if not srcBag then
         addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_NO_SOURCE))
-        return "skip"
+        return "skip", "source item no longer present"
     end
     job.srcBag, job.srcSlot = srcBag, srcSlot
+    -- Set holds carry no single link; record the actual piece for the log.
+    if (job.itemLink == nil or job.itemLink == "") and GetItemLink then
+        local okLink, link = pcall(GetItemLink, srcBag, srcSlot, LINK_STYLE_DEFAULT)
+        if okLink and link and link ~= "" then job.itemLink = link end
+    end
 
     if job.guild then
         return self:_issueGuild(job)
@@ -475,12 +485,12 @@ function Mover:_issueBag(job)
     local destBag, destSlot = findDestEmptySlot(job.destBags)
     if not destBag then
         addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_DEST_FULL))
-        return "skip"
+        return "skip", "destination full"
     end
-    local ok = secureMove(job.srcBag, job.srcSlot, destBag, destSlot, job.count)
+    local ok, why = secureMove(job.srcBag, job.srcSlot, destBag, destSlot, job.count)
     if not ok then
         addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_MOVE_FAILED):format(job.kind))
-        return "skip"
+        return "skip", tostring(why or "move rejected")
     end
     job.destBag, job.destSlot = destBag, destSlot
     job.expiresAt = nowMs() + MOVE_CONFIRM_TIMEOUT_MS
@@ -494,32 +504,32 @@ function Mover:_issueGuild(job)
         -- specific source stack (mirrors the native withdraw guard).
         if not destHasRoomForSource(BAG_BACKPACK, BAG_GUILDBANK, job.srcSlot) then
             addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_DEST_FULL))
-            return "skip"
+            return "skip", "destination full"
         end
         if not canWithdrawFromGuild(job.guildId) then
             addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_MOVE_FAILED):format(job.kind))
-            return "skip"
+            return "skip", "guild transfer refused"
         end
         -- Expected slot the ITEM_REMOVED confirmation must report.
         job.guildSlot = job.srcSlot
         local ok = guildWithdraw(job.srcSlot)
         if not ok then
             addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_MOVE_FAILED):format(job.kind))
-            return "skip"
+            return "skip", "guild transfer refused"
         end
     else -- deposit
         if not canDepositToGuild(job.guildId) then
             addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_MOVE_FAILED):format(job.kind))
-            return "skip"
+            return "skip", "guild transfer refused"
         end
         if not bagHasFreeSlot(BAG_GUILDBANK) then
             addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_DEST_FULL))
-            return "skip"
+            return "skip", "destination full"
         end
         local ok = guildDeposit(job.srcBag, job.srcSlot)
         if not ok then
             addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_MOVE_FAILED):format(job.kind))
-            return "skip"
+            return "skip", "guild transfer refused"
         end
     end
     job.expiresAt = nowMs() + MOVE_CONFIRM_TIMEOUT_MS
@@ -656,16 +666,26 @@ function Mover:_markConfirmed(job)
     self._batchCompleted = (self._batchCompleted or 0) + 1
     local ok, err = pcall(function()
         if job.kind == "withdraw" then
-            addon.Holds:MarkDelivered(job.holdId)
+            -- Only the move that completes the hold marks it delivered. A set
+            -- hold completes when every planned piece has arrived AND nothing
+            -- selected is waiting elsewhere; an item hold when the delivered
+            -- count reaches the requested count.
+            local plan = job.plan
+            local setComplete = false
+            if plan then
+                plan.confirmed = (plan.confirmed or 0) + 1
+                setComplete = plan.setComplete and plan.confirmed >= plan.jobs
+            end
+            local fulfilled = addon.Holds:RecordWithdrawal(job.holdId, job.count, setComplete)
             addon.Holds:LogToHold(job.hold,
                 GetString(SI_ACCOUNTHOLD_LOG_HOLD_DELIVERED):format(
                     job.itemLink or "?", job.count,
                     addon:GetCharacterRecord().name or "?"))
-            if addon.Notify and addon.Notify.OnHoldDelivered then
+            if fulfilled and addon.Notify and addon.Notify.OnHoldDelivered then
                 addon.Notify:OnHoldDelivered(job.hold)
             end
         else
-            addon.Holds:MarkInTransit(job.holdId, job.containerKey)
+            addon.Holds:RecordDeposit(job.holdId, job.count, job.containerKey)
             addon.Holds:LogToHold(job.hold,
                 GetString(SI_ACCOUNTHOLD_LOG_HOLD_DEPOSITED):format(
                     job.itemLink or "?", job.count, tostring(job.containerKey)))
@@ -675,6 +695,24 @@ function Mover:_markConfirmed(job)
         addon:Debug("Hold state update failed: %s", tostring(err))
     end
     refreshBankTabLater()
+end
+
+-- Count a move that could not be completed so the batch can report it. With
+-- debug logging off (the default) these used to vanish: the player pressed
+-- Withdraw, nothing happened, and nothing said why.
+function Mover:_noteFailure(job, reason)
+    self._batchFailed = (self._batchFailed or 0) + 1
+    self._batchFailReasons = self._batchFailReasons or {}
+    local r = tostring(reason or "unknown")
+    if #self._batchFailReasons < 5 then
+        self._batchFailReasons[#self._batchFailReasons + 1] = r
+    end
+    if job and job.containerKey then
+        self._retry = {
+            role         = (job.kind == "deposit") and "deposit" or "withdraw",
+            containerKey = job.containerKey,
+        }
+    end
 end
 
 -- Stop the pass on timeout/error. Hold state is never advanced without
@@ -687,6 +725,7 @@ function Mover:_failActive(reason)
     if job then
         addon:Debug(GetString(SI_ACCOUNTHOLD_ERR_MOVE_FAILED):format(
             tostring(job.kind) .. " (" .. tostring(reason) .. ")"))
+        self:_noteFailure(job, reason)
     end
     -- Report whatever confirmed before the stop; failed/in-flight jobs were
     -- never counted, so they are not reported as moved.
@@ -708,13 +747,31 @@ end
 function Mover:_finalizeBatch(announce)
     if not self._batchActive then return end
     local completed = self._batchCompleted or 0
-    self._batchActive     = false
-    self._batchCompleted  = 0
-    self._lastBatchMoved  = completed
+    local failed    = self._batchFailed or 0
+    local reasons   = self._batchFailReasons or {}
+    self._batchActive      = false
+    self._batchCompleted   = 0
+    self._batchFailed      = 0
+    self._batchFailReasons = {}
+    self._lastBatchMoved   = completed
+    self._lastBatchFailed  = failed
     if announce and completed > 0 and addon and addon.Notify and addon.Notify.Alert then
         pcall(function()
             addon.Notify:Alert(GetString(SI_ACCOUNTHOLD_BANK_MOVE_OK):format(completed))
         end)
+    end
+    if announce and failed > 0 and addon then
+        if addon.Diagnostic then
+            pcall(function()
+                addon:Diagnostic("warn", "[mover] %d move(s) failed: %s",
+                    failed, table.concat(reasons, "; "))
+            end)
+        end
+        if addon.Notify and addon.Notify.Alert then
+            pcall(function()
+                addon.Notify:Alert(GetString(SI_ACCOUNTHOLD_BANK_MOVE_FAILED):format(failed))
+            end)
+        end
     end
 end
 
@@ -769,10 +826,20 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Public: deposit
--- Plan (synchronous): resolve each hold to one concrete source stack, reserve
--- source + destination slots per-pass, and enqueue one job per hold. Then pump
--- to issue the first move. Returns (enqueued, blockedBySpace).
+-- Plan (synchronous): resolve every source stack this character can put toward
+-- each hold -- enough stacks to cover an item hold's outstanding count, or
+-- every selected piece of a set hold -- reserving source + destination slots
+-- per pass. Then pump to issue the first move. Returns (enqueued, blockedBySpace).
 -- ---------------------------------------------------------------------------
+
+-- Items an item hold still needs moved out of characters' bags. Anything
+-- already deposited or delivered counts toward the request.
+local function depositNeed(hold)
+    local want = tonumber(hold.desiredCount) or 1
+    local done = math.max(tonumber(hold.depositedCount) or 0, tonumber(hold.deliveredCount) or 0)
+    return math.max(0, want - done)
+end
+
 function Mover:DepositForHolds(containerKey, holds)
     local me = addon:GetCharacterId()
     local reserved = {}
@@ -780,7 +847,10 @@ function Mover:DepositForHolds(containerKey, holds)
     local guild = isGuildContainer(containerKey)
 
     for _, hold in ipairs(holds or {}) do
+        local isSet = hold.holdType == "set"
+        local need = isSet and math.huge or depositNeed(hold)
         for _, c in ipairs(hold.candidates or {}) do
+            if need <= 0 then break end
             if c.characterId == me and not c.isCharacterBound then
                 local srcBag, srcSlot = resolveLiveSource(c, hold, reserved)
                 if srcBag and srcSlot then
@@ -790,8 +860,12 @@ function Mover:DepositForHolds(containerKey, holds)
                     -- honours the reserved partial count.
                     local srcStack = (GetSlotStackSize and GetSlotStackSize(srcBag, srcSlot))
                         or c.count or 1
-                    local count = guild and srcStack
-                        or math.min(hold.desiredCount or 1, c.count or 1)
+                    local count
+                    if guild or isSet then
+                        count = srcStack
+                    else
+                        count = math.min(need, srcStack)
+                    end
                     if count > 0 then
                         local destBags, ok = nil, false
                         if guild then
@@ -816,10 +890,11 @@ function Mover:DepositForHolds(containerKey, holds)
                             self:_enqueue(self:_makeDepositJob(
                                 hold, srcBag, srcSlot, count, containerKey, guild, destBags))
                             enqueued = enqueued + 1
+                            need = need - count
                         else
                             blocked = blocked + 1
+                            break -- no room for this hold's remaining stacks
                         end
-                        break -- one fulfilment per hold per pass
                     end
                 end
             end
@@ -833,6 +908,9 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Public: withdraw
+-- Plans every stack an item hold still needs and every selected piece of a set
+-- hold that is in this container. Each job carries the hold's plan so the move
+-- that completes the hold -- and only that one -- marks it delivered.
 -- ---------------------------------------------------------------------------
 function Mover:WithdrawForHolds(containerKey, holds)
     local reserved = {}
@@ -841,23 +919,47 @@ function Mover:WithdrawForHolds(containerKey, holds)
     local srcBags = containerSourceBags(containerKey)
 
     for _, hold in ipairs(holds or {}) do
-        local srcBag, srcSlot, sourceCount = self:_findWithdrawSource(hold, containerKey, srcBags, reserved)
-        if srcBag then
+        local isSet = hold.holdType == "set"
+        local need = isSet and math.huge or (addon.Holds:RemainingCount(hold) or 0)
+        local jobs, holdBlocked = {}, false
+        while need > 0 do
+            local srcBag, srcSlot, sourceCount = self:_findWithdrawSource(hold, containerKey, srcBags, reserved)
+            if not srcBag then break end
             local destSlot = firstUnreservedEmpty(BAG_BACKPACK, reserved)
             if not destSlot then
                 blocked = blocked + 1
+                holdBlocked = true
+                break
+            end
+            local count
+            if guild or isSet then
+                -- Guild withdraws move the whole stack (TransferFromGuildBank
+                -- takes no count), so record the true full-stack count.
+                count = sourceCount or 1
             else
-                local count = math.min(hold.desiredCount or 1, sourceCount or 1)
-                if count > 0 then
-                    -- Guild withdraws move the whole stack (TransferFromGuildBank
-                    -- takes no count), so record the true full-stack count.
-                    if guild then count = sourceCount or count end
-                    reserved[rk(srcBag, srcSlot)]         = true
-                    reserved[rk(BAG_BACKPACK, destSlot)]  = true
-                    self:_enqueue(self:_makeWithdrawJob(
-                        hold, srcBag, srcSlot, count, containerKey, guild, srcBags))
-                    enqueued = enqueued + 1
-                end
+                count = math.min(need, sourceCount or 1)
+            end
+            if count <= 0 then break end
+            reserved[rk(srcBag, srcSlot)]        = true
+            reserved[rk(BAG_BACKPACK, destSlot)] = true
+            jobs[#jobs + 1] = self:_makeWithdrawJob(
+                hold, srcBag, srcSlot, count, containerKey, guild, srcBags)
+            need = need - count
+        end
+
+        if #jobs > 0 then
+            local plan = { jobs = #jobs, confirmed = 0 }
+            if isSet then
+                -- Withdrawing everything here finishes the hold only when no
+                -- selected piece is still out on a character or in another
+                -- container, and nothing was left behind for lack of space.
+                plan.setComplete = not holdBlocked
+                    and addon.Holds:OutstandingSetPiecesOutside(hold, containerKey) == 0
+            end
+            for _, job in ipairs(jobs) do
+                job.plan = plan
+                self:_enqueue(job)
+                enqueued = enqueued + 1
             end
         end
     end
@@ -866,7 +968,6 @@ function Mover:WithdrawForHolds(containerKey, holds)
     self:_ReportSpaceBlocked("withdraw", containerKey, blocked)
     return enqueued, blocked
 end
-
 -- Resolve one live source (bag, slot, stackCount) for a withdraw hold in the
 -- open container. Trusts a cached index row first, then re-scans by signature.
 function Mover:_findWithdrawSource(hold, containerKey, srcBags, reserved)

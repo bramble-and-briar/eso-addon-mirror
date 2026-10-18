@@ -39,7 +39,7 @@ local lgcs
 function G.Init()
 local lib = LibGroupCombatStats
 if lgcs then return end
-if lib and lib.RegisterAddon then lgcs = Safe(lib.RegisterAddon, "LazyCrown", { "ULT" }) end
+if lib and lib.RegisterAddon then lgcs = Safe(lib.RegisterAddon, "LazyCrown", {}) end
 end
 function G.Sharing()
 return lgcs ~= nil

@@ -434,6 +434,15 @@ local function RefreshState()
     if CC.QuestTracker then
         CC.QuestTracker.Refresh()
     end
+    -- PvP UA! builds its window in its own load handler, so the first refresh
+    -- that can succeed is the one after EVENT_PLAYER_ACTIVATED; the module
+    -- retries briefly on its own if the window is not there yet.
+    if CC.PvPUA then
+        CC.PvPUA.Refresh()
+    end
+    if CC.VotansMiniMap then
+        CC.VotansMiniMap.Refresh()
+    end
 
     -- Master switch first: off means no poll, no hidden frame, whatever the
     -- content. Then the restricted-content rule, then the companion itself.
@@ -523,6 +532,12 @@ local function OnAddOnLoaded(eventCode, addonName)
         arcsEnabled = CC.MagStamArcs.DEFAULT_ENABLED,
         companionMarker = DEFAULT_COMPANION_MARKER,
         hideCompanionFrame = DEFAULT_HIDE_COMPANION_FRAME,
+        -- Third-party tweak (1.6.6): PvP UA!'s credit line. On by default;
+        -- inert unless that add-on is installed.
+        hidePvpuaCredit = CC.PvPUA.DEFAULT_ENABLED,
+        -- Third-party tweak (1.7.5): Votan's Minimap position sliders. On by
+        -- default; inert unless that add-on is installed.
+        fixVotansSliders = CC.VotansMiniMap.DEFAULT_ENABLED,
     })
     headOffsetY = savedVars.headOffsetY
     smoothingAlpha = savedVars.smoothingAlpha
@@ -534,6 +549,8 @@ local function OnAddOnLoaded(eventCode, addonName)
     -- the settings panel binds getters/setters to them.
     CC.MagStamArcs.Init()
     CC.QuestTracker.Init()
+    CC.PvPUA.Init()
+    CC.VotansMiniMap.Init()
     CC.Settings.Init()
 
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ACTIVE_COMPANION_STATE_CHANGED, RefreshState)
@@ -826,6 +843,20 @@ SLASH_COMMANDS["/casualclean"] = function(args)
         -- set, and which scenes the tracker fragments currently belong to.
         -- This is the only window into the feature on console.
         for _, line in ipairs(CC.QuestTracker.GetReport()) do
+            d("  " .. line)
+        end
+        return
+    elseif cmd == "pvpua" then
+        -- Whether PvP UA!'s window and credit label were found, and the raw
+        -- alpha / height / scale / offset numbers behind the hide.
+        for _, line in ipairs(CC.PvPUA.GetReport()) do
+            d("  " .. line)
+        end
+        return
+    elseif cmd == "votan" then
+        -- Whether Votan's Minimap's slider rows were found and what their
+        -- bounds, defaults and getters currently say.
+        for _, line in ipairs(CC.VotansMiniMap.GetReport()) do
             d("  " .. line)
         end
         return

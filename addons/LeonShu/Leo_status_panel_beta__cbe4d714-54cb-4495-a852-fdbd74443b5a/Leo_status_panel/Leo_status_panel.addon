@@ -1,0 +1,10 @@
+## Title: Leo Status Panel
+## Author: Leo_Kujo
+## Description: PlayStation-friendly FPS, latency, inventory and combat status panel.
+## APIVersion: 101051
+## Version: 0.1.2
+## SavedVariables: Leo_status_panel_SavedVariables
+## DependsOn: LibAddonMenu-2.0
+## ConsoleDependsOn: LibHarvensAddonSettings
+Leo_status_panel.xml
+Leo_status_panel.lua

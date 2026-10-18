@@ -1,0 +1,47 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/APH-On-Manager__4964",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4964",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4964",
+  "deleted": false,
+  "directories": [
+    "APH-OnManager"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4964/",
+  "fingerprint": "b8d992bb09db6f59b1940570ce568dea49d54a7986dc143bc24668fbc0e746c2",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18049.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18050.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18051.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18052.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18053.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18054.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18055.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18056.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18057.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18058.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4964",
+  "source_url": "https://www.esoui.com/downloads/info4964-APH-OnManager.html",
+  "stats": {
+    "downloads": 15,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "APH-On Manager",
+  "updated_at": 1792264228000,
+  "version": "2026.10.18.01.41"
+}

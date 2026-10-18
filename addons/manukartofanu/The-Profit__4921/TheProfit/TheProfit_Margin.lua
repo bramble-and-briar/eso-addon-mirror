@@ -324,14 +324,18 @@ function TP.IsTrackedItem(itemLink)
 end
 
 -- Returns 100 (buy), 50 (current market average alone covers fees and ROI) or 0,
--- followed by a short reason for tooltips and debugging.
+-- followed by a short reason for tooltips and debugging. Buy List items get 100 or 0.
 function TP.EvaluatePurchase(itemLink, unitPrice, quantity)
     unitPrice = tonumber(unitPrice) or 0
     quantity = tonumber(quantity) or 0
     if unitPrice <= 0 or quantity <= 0 then return SCORE_SKIP, "invalid listing" end
 
-    if not TP.IsTrackedItem(itemLink) then return SCORE_SKIP, "not tracked" end
+    -- An item the Buy List still needs is judged by the player's own price only.
     local itemKey = TP.GetItemKey(itemLink)
+    local isBuyListGood, buyListReason = TP.EvaluateBuyListPurchase(itemKey, unitPrice, quantity)
+    if isBuyListGood ~= nil then return isBuyListGood and SCORE_BUY or SCORE_SKIP, buyListReason end
+
+    if not TP.IsTrackedItem(itemLink) then return SCORE_SKIP, "not tracked" end
 
     local summary = TP.CalculateSummary(itemKey)
     local market = summary.market

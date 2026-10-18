@@ -8,12 +8,8 @@
   "category_id": "40",
   "compatibility": [
     {
-      "name": "Season Zero Pt.2",
-      "version": "12.0.0"
-    },
-    {
-      "name": "Season Zero",
-      "version": "11.3.0"
+      "name": "Season One",
+      "version": "12.1.0"
     }
   ],
   "content_id": "esoui:1346",
@@ -22,7 +18,7 @@
     "DolgubonsLazyWritCreator"
   ],
   "download_url": "https://www.esoui.com/downloads/dl1346/",
-  "fingerprint": "27d92726a5995794b4b463d3bee024491e32614f5c7fc3d49563ac6d6764b697",
+  "fingerprint": "8bd05da1fcbcae8e435c91493cda33ad37d39bbe2e2417f415968bfbd9cc5170",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw6173.png",
     "https://cdn-eso.mmoui.com/preview/pvw6174.png",
@@ -34,11 +30,11 @@
   "source_id": "1346",
   "source_url": "https://www.esoui.com/downloads/info1346-DolgubonsLazyWritCrafter.html",
   "stats": {
-    "downloads": 9579698,
-    "favorites": 2205,
-    "monthly_downloads": 24307
+    "downloads": 9608660,
+    "favorites": 2208,
+    "monthly_downloads": 45361
   },
   "title": "Dolgubon's Lazy Writ Crafter",
-  "updated_at": 1790578211000,
-  "version": "4.0.5.7.8"
+  "updated_at": 1792287772000,
+  "version": "4.0.5.7.9"
 }

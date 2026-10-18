@@ -14,7 +14,7 @@
              same offset, just measured from ColumnSlot instead of the row
              itself (see the -10/+10 note by Row1/Slot below). -->
         <Control name="CompanionGearHunter_SlotRow" virtual="true">
-            <Dimensions x="797" y="30" />
+            <Dimensions x="857" y="30" />
 
             <Controls>
                 <Backdrop name="$(parent)Stripe" centerColor="00000000" edgeColor="00000000">
@@ -27,51 +27,51 @@
                 </Label>
 
                 <Label name="$(parent)EqType" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
-                    <Dimensions x="70" />
+                    <Dimensions x="130" />
                     <Anchor point="LEFT" offsetX="98" />
                 </Label>
 
                 <Label name="$(parent)EqTrait" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="100" />
-                    <Anchor point="LEFT" offsetX="176" />
+                    <Anchor point="LEFT" offsetX="236" />
                 </Label>
 
                 <Label name="$(parent)EqQuality" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="65" />
-                    <Anchor point="LEFT" offsetX="284" />
+                    <Anchor point="LEFT" offsetX="344" />
                 </Label>
 
                 <!-- Master "hunt this slot" toggle, centered under the
-                     50px-wide "Find" header column (373 to 423) - a 16px
-                     checkbox centered in that span sits at offsetX 390.
+                     50px-wide "Find" header column (433 to 483) - a 16px
+                     checkbox centered in that span sits at offsetX 450.
                      Unchecked (the default for every slot) is the row's
                      blank/inactive state - the 3 dropdowns to its right are
                      disabled and blanked, not just sitting on "Any", so an
                      untouched row doesn't read as if it's already actively
                      wanting something. -->
                 <Button name="$(parent)WantEnabled" inherits="ZO_CheckButton">
-                    <Anchor point="LEFT" offsetX="390" />
+                    <Anchor point="LEFT" offsetX="450" />
                 </Button>
 
                 <Control name="$(parent)WantType" inherits="ZO_ComboBox" mouseEnabled="true">
                     <Dimensions x="100" y="24" />
-                    <Anchor point="LEFT" offsetX="431" />
+                    <Anchor point="LEFT" offsetX="491" />
                 </Control>
 
                 <Control name="$(parent)WantTrait" inherits="ZO_ComboBox" mouseEnabled="true">
                     <Dimensions x="130" y="24" />
-                    <Anchor point="LEFT" offsetX="539" />
+                    <Anchor point="LEFT" offsetX="599" />
                 </Control>
 
                 <Control name="$(parent)WantQuality" inherits="ZO_ComboBox" mouseEnabled="true">
                     <Dimensions x="110" y="24" />
-                    <Anchor point="LEFT" offsetX="677" />
+                    <Anchor point="LEFT" offsetX="737" />
                 </Control>
             </Controls>
         </Control>
 
         <TopLevelControl name="CompanionGearHunterWindow" movable="true" mouseEnabled="true" clampedToScreen="true" hidden="true">
-            <Dimensions x="837" y="556" />
+            <Dimensions x="897" y="556" />
             <Anchor point="CENTER" />
 
             <OnMoveStop>
@@ -118,7 +118,7 @@
                          bleed) subtracts another 10 from that - so the grid's
                          actual visible left edge lands at 40-10-10=20px from
                          the window's edge, matching the ~20px left over on
-                         the right (837 window width - 20 - 797 row width).
+                         the right (897 window width - 20 - 857 row width).
                          Previously this was 20, which put the grid's left
                          edge flush at 0 - the highlighted-row stripe was
                          sitting right on the window border. -->
@@ -163,7 +163,7 @@
                 <!-- Opens this addon's settings panel (Settings > Add-Ons).
                      Replaces the two checkboxes that used to sit here; those
                      options now live in the panel. -->
-                <Button name="$(parent)SettingsButton" inherits="ZO_DefaultButton" text="Settings">
+                <Button name="$(parent)SettingsButton" inherits="ZO_DefaultButton">
                     <Dimensions x="110" y="28" />
                     <Anchor point="TOPRIGHT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetX="-20" offsetY="12" />
                     <OnClicked>
@@ -179,39 +179,39 @@
                      Row1 anchor below) - that -10 is what "un-shifts" back
                      to the same absolute screen position as the row
                      content, so header and dropdown/label line up exactly. -->
-                <Label name="$(parent)ColumnSlot" font="ZoFontWinH5" text="Slot" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnSlot" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="80" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)CompanionDropdown" relativePoint="BOTTOMLEFT" offsetX="-10" offsetY="14" />
                 </Label>
-                <Label name="$(parent)ColumnEqType" font="ZoFontWinH5" text="Type" horizontalAlignment="LEFT" verticalAlignment="CENTER">
-                    <Dimensions x="70" />
+                <Label name="$(parent)ColumnEqType" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                    <Dimensions x="130" />
                     <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="88" />
                 </Label>
-                <Label name="$(parent)ColumnEqTrait" font="ZoFontWinH5" text="Trait" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnEqTrait" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="100" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="166" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="226" />
                 </Label>
-                <Label name="$(parent)ColumnEqQuality" font="ZoFontWinH5" text="Quality" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnEqQuality" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="65" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="274" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="334" />
                 </Label>
-                <Label name="$(parent)ColumnFind" font="ZoFontWinH5" text="Find" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnFind" font="ZoFontWinH5" horizontalAlignment="CENTER" verticalAlignment="CENTER">
                     <Dimensions x="50" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="363" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="423" />
                 </Label>
-                <Label name="$(parent)ColumnWantType" font="ZoFontWinH5" text="Type" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnWantType" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="100" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="421" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="481" />
                 </Label>
-                <Label name="$(parent)ColumnWantTrait" font="ZoFontWinH5" text="Trait" horizontalAlignment="LEFT" verticalAlignment="CENTER">
+                <Label name="$(parent)ColumnWantTrait" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER">
                     <Dimensions x="130" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="529" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="589" />
                 </Label>
-                <Label name="$(parent)ColumnWantQuality" font="ZoFontWinH5" text="Quality Floor" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
+                <Label name="$(parent)ColumnWantQuality" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
                     <Dimensions x="110" />
-                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="667" />
+                    <Anchor point="LEFT" relativeTo="$(parent)ColumnSlot" relativePoint="LEFT" offsetX="727" />
                     <OnMouseEnter>
-                        ZO_Tooltips_ShowTextTooltip(self, TOP, "Matches the selected quality or better - e.g. \"Superior\" also matches Epic and Legendary drops.")
+                        ZO_Tooltips_ShowTextTooltip(self, TOP, GetString(COMPANIONGEARHUNTER_QUALITY_FLOOR_TIP))
                     </OnMouseEnter>
                     <OnMouseExit>
                         ZO_Tooltips_HideTextTooltip()
@@ -235,31 +235,31 @@
                      directly above the wanted columns. They act as actions
                      (pick a value -> applied to every slot, then blank
                      again), not as stored state. Clear sits in the Find
-                     column: 54 wide, left edge 371 centres it on the 50px
-                     Find header (373 to 423). -->
+                     column: 54 wide, left edge 431 centres it on the 50px
+                     Find header (433 to 483). -->
                 <Control name="$(parent)AllRow">
-                    <Dimensions x="797" y="30" />
+                    <Dimensions x="857" y="30" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)ColumnSlot" relativePoint="BOTTOMLEFT" offsetX="-10" offsetY="10" />
                     <Controls>
-                        <Label name="$(parent)Label" font="ZoFontWinH5" text="All slots" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
+                        <Label name="$(parent)Label" font="ZoFontWinH5" horizontalAlignment="LEFT" verticalAlignment="CENTER" mouseEnabled="true">
                             <Dimensions x="80" />
                             <Anchor point="LEFT" offsetX="10" />
                             <OnMouseEnter>
-                                ZO_Tooltips_ShowTextTooltip(self, TOP, "Set a value on every slot of this companion at once. Type only affects armor; picking Any resets that column. Off-Hand is skipped while it is greyed out (no one-handed Main Hand).")
+                                ZO_Tooltips_ShowTextTooltip(self, TOP, GetString(COMPANIONGEARHUNTER_ALL_SLOTS_TIP))
                             </OnMouseEnter>
                             <OnMouseExit>
                                 ZO_Tooltips_HideTextTooltip()
                             </OnMouseExit>
                         </Label>
 
-                        <Button name="$(parent)Clear" inherits="ZO_DefaultButton" text="Clear">
+                        <Button name="$(parent)Clear" inherits="ZO_DefaultButton">
                             <Dimensions x="54" y="26" />
-                            <Anchor point="LEFT" offsetX="371" />
+                            <Anchor point="LEFT" offsetX="431" />
                             <OnClicked>
                                 CompanionGearHunter.OnClearClicked()
                             </OnClicked>
                             <OnMouseEnter>
-                                ZO_Tooltips_ShowTextTooltip(self, TOP, "Clear every slot for this companion.")
+                                ZO_Tooltips_ShowTextTooltip(self, TOP, GetString(COMPANIONGEARHUNTER_CLEAR_TIP))
                             </OnMouseEnter>
                             <OnMouseExit>
                                 ZO_Tooltips_HideTextTooltip()
@@ -268,17 +268,17 @@
 
                         <Control name="$(parent)Type" inherits="ZO_ComboBox" mouseEnabled="true">
                             <Dimensions x="100" y="24" />
-                            <Anchor point="LEFT" offsetX="431" />
+                            <Anchor point="LEFT" offsetX="491" />
                         </Control>
 
                         <Control name="$(parent)Trait" inherits="ZO_ComboBox" mouseEnabled="true">
                             <Dimensions x="130" y="24" />
-                            <Anchor point="LEFT" offsetX="539" />
+                            <Anchor point="LEFT" offsetX="599" />
                         </Control>
 
                         <Control name="$(parent)Quality" inherits="ZO_ComboBox" mouseEnabled="true">
                             <Dimensions x="110" y="24" />
-                            <Anchor point="LEFT" offsetX="677" />
+                            <Anchor point="LEFT" offsetX="737" />
                         </Control>
                     </Controls>
                 </Control>

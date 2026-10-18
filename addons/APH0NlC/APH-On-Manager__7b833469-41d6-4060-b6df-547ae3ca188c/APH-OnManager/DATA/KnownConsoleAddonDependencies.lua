@@ -1,0 +1,232 @@
+--[[
+    Copyright © 2026 @APHONlC. All rights reserved.
+
+    No copying, modification, distribution, or sale without prior written permission.
+    AI/ML ingestion and training are strictly prohibited (TDM opt-out).
+
+    See LICENSE.md for full terms and maintenance exceptions.
+]]
+
+assert(APHOnManagerCore, "APH-OnManager.lua must be loaded before this file")
+local AoM = APHOnManagerCore
+AoM.KnownConsoleAddonDependencies = AoM.CreateConsoleListTable([==[
+702sCraftCompletionistList	LibQRCode
+AdditionalReminders	LibAddonMenu-2.0
+advancingYokedaTracker	LibNotify
+AdventurersToolkit	LibAddonMenu-2.0	LibQRCode
+aeriesCryTracker	LibNotify
+AltAttributes	Azurah	LibAddonMenu-2.0	LibGamepad	LibHarvensAddonSettings	LibVotans
+AlternateDeathRecap	LibHarvensAddonSettings
+Archaeology	LibHarvensAddonSettings
+archdruidTracker	LibNotify
+AsylumTimers	LibHarvensAddonSettings
+atronachTracker	LibNotify
+AutoComplete	pChat
+AutoLuaMemoryCleaner	LibAddonMenu-2.0	LibHarvensAddonSettings
+AutoRechargeAndRepair	LibHarvensAddonSettings
+AutoResearch	DolgubonsLazyWritCreator	FCOItemSaver	LibLazyCrafting	LibSets
+AwesomeGuildStore	CraftedPotions	LibFilters-3.0
+BaasWritCrafter	ArkadiusTradeToolsSales	LibCustomMenu	LibFeedback	LibHistoire	LibRadialMenu	LibStub	pChat
+BackBarTimer	LibHarvensAddonSettings
+BattleScrollsNameColours	LibHarvensAddonSettings
+BattleStats	LibHarvensAddonSettings
+BeamMeUp	BanditsUserInterface	LibChatMenuButton	LibCustomMenu	LibMapPing	LibSets	LibSlashCommander	MorrowindStyleUI	PortToFriendsHouse
+BoostTimer	LibAddonMenu-2.0
+BuildForge	LibAddonMenu-2.0
+CadenceCoach	LibHarvensAddonSettings
+CallToArm	LibConsoleDialogs	LibHarvensAddonSettings
+CanCraftMasterWrit	LibHarvensAddonSettings
+CBookFontStylist	LibDebugLogger
+CBStampOfManufacture	LibAddonMenu-2.0
+cChat	LibAsync
+ChatBeGone	LibAddonMenu-2.0	LibChatMessage	LibHarvensAddonSettings	pChat	rChat
+ClearSight	LibHarvensAddonSettings
+CombatAlerts	LibAddonMenu-2.0
+CompanionPerkTracker	LibAddonMenu-2.0
+ConsoleMetrics	LibAddonMenu-2.0	LibConsoleDialogs	LibHarvensAddonSettings	PvPCooldownTracker
+ContainerHighlighter	LibAddonMenu-2.0	LibQRCode
+ContainerVisitHide	LibAddonMenu-2.0
+CraftMaterialAssistant	LibResearch
+CritTracker	LibRadialMenu
+CrutchAlerts	LibCustomIcons	LibFilteredChatPanel	LibGroupBroadcast	OdySupportIcons
+CurvedHUD	LibAddonMenu-2.0	LibHarvensAddonSettings
+darkConvergenceTracker	LibNotify
+DeadMarker2	LibAddonMenu-2.0	LibAddonMenu2	LibStub
+DeadMarker_Holodeck	LibAddonMenu-2.0	LibAddonMenu2	LibStub
+Destinations	DebugLogViewer	LibDebugLogger
+DevSandbox3	LibConsoleLogger	LibHarvensAddonSettings
+DM2_ParseFightStats	LibAddonMenu-2.0	LibAddonMenu2	LibStub
+DM2SimpleDPS	LibAddonMenu-2.0	LibAddonMenu2	LibStub
+DoesThisThingGoAnyFaster	LibHarvensAddonSettings
+DolgubonsLazySetCrafter	LibCustomMenu	LibFeedback	LibPrice	LibStub	pChat
+DolgubonsLazyWritCreator	ArkadiusTradeToolsSales	LibCustomMenu	LibFeedback	LibHistoire	LibRadialMenu	LibStub	pChat
+DolmenRunner	LibHarvensAddonSettings
+DryzlerElderGeekNetLore	LibMOTD
+DWAllianceRankProgress	LibHarvensAddonSettings
+ESO_BuildForge	LibAddonMenu-2.0
+EsoAR	LibAddonMenu-2.0	LibHarvensAddonSettings
+ESOAssistant	LibDebugLogger
+EsoBR	LibHarvensAddonSettings
+EsoKR	AdvancedNameplates
+EsoPL	LibHarvensAddonSettings
+EsoTR	LibHarvensAddonSettings
+EsoTR_Lite	LibHarvensAddonSettings
+essenceThiefTracker	LibNotify
+EyeOnKeep	LibHarvensAddonSettings
+FancyActionBarPlus	ActionBarSkillStyles	Untaunted
+FashionMount	LibHarvensAddonSettings
+feedingFrenzyTracker	LibNotify
+FlexibleBars	LibCombatAlerts
+Forpl-KDA-Bar	LibAddonMenu-2.0
+FrenziedMomentumTracker	LibNotify
+FurnitureFinder	LibCharacterKnowledge
+GamePadHelper	LibPriceCache	TSCPriceDataAPIPSEU	TSCPriceDataAPIPSNA	TSCPriceDataAPIXBEU	TSCPriceDataAPIXBNA	TamrielTradeCentre
+GamepadHUDCustomizer	LibAddonMenu-2.0	LibHarvensAddonSettings
+GamepadInventoryTweaks	LibDebugLogger	LibGamepad
+GamepadUITweaks	LibGamepad
+gorethiefTracker	LibNotify
+H8Ball	LibHarvensAddonSettings
+HarvestMapConsole	AUI	LibMapPins-1.0	MiniMap	VotansMiniMap
+HodorReflexes	LibCombat2	LibCustomIcons	LibCustomNames	LibRadialMenu
+HouseHotkey	LibRadialMenu
+HousingForge	LibAddonMenu-2.0
+IAHelper	LibDataShare
+InsatiableHungerBlocker	LibAddonMenu-2.0
+IsItTaunted	LibAddonMenu-2.0
+JumpToSearch	LibConsoleLogger
+KDRTracker	LibHarvensAddonSettings
+KhajiitFengShui	LuiExtended
+LibAddonMenu-2.0	LibDebugLogger	LibHarvensAddonSettings	LibStub
+LibAlchemy	DebugLogViewer	LibDebugLogger
+LibAsync	LibDebugLogger
+LibCharacterKnowledge	LibAddonMenu-2.0	LibHarvensAddonSettings
+LibCInteraction	LibDebugLogger
+LibCombat2	LibCombat	LibDebugLogger
+LibConsoleLogger	LibHarvensAddonSettings
+LibDateTime	Taneth
+LibGamepad	LibAddonMenu-2.0
+LibGroupBroadcast	Taneth
+LibGroupCombatStats	LibCombat2	LibDebugLogger
+LibGroupPotionCooldowns	LibDebugLogger
+LibGroupResources	Taneth
+LibGroupUIReload	Taneth
+LibId64	Taneth
+LibLazyCrafting	HomeStationMarker	LibRecipe	LibStub	pChat
+LibPromises	LibDebugLogger	Taneth
+LibQuestStatus	LibAddonMenu-2.0
+LibRecipe	DebugLogViewer	LibDebugLogger
+LibTextFilter	Taneth
+LibVotansAddonList	AddonCategory	AddonSelector
+LibZone	LibSlashCommander
+LiveAchiever	LibVotans
+LiveBuffUptime	LibCombat	LibCombat2
+LootLog	LibHarvensAddonSettings	LibRadialMenu-ConsoleLibrary
+LoreBooks	DebugLogViewer	LibDebugLogger
+LoreLibrary	AUI	LibHarvensAddonSettings	MiniMap	VotansMiniMap
+LoreTooltips	LibLoreLibraryCesarska	LibLoreLibraryUESP
+LuiExecuteIcon	KhajiitFengShui
+LuiExtended	HarvestMap	LibCombat	LibCombat2	LibMapPins-1.0	LibSlashCommander	LootLog	Taneth
+LuXhrysLibExtendedInventory	LibAsync
+LuXhrysLibItemLinkPreview	LuXhrysLibExtendedInventory
+LuXhrysVaultAndCoffer	LuXhrysLibItemLinkPreview
+LykeionsAwareWolf	LibCombatAlerts
+LykeionsHomeSweetHome	LibRadialMenu
+M0RMarkers	LibGroupBroadcast	LibMapPins-1.0	LibRadialMenu
+MapPins	CustomCompassPins	LibHarvensAddonSettings
+MARA	WizardsWardrobe
+mechAcuityTracker	LibNotify
+MiatsTickTracker	LibGamepad
+MicToggle	LibAddonMenu-2.0
+MSPAINTUI	AbilityIconsFramework
+MuchSmarterAutoLoot	ArkadiusTradeTools	LibCharacterKnowledge	LibCustomMenu	LibRadialMenu	LibSavedVars	MasterMerchant	PerfectPixel	TSCPriceFetcher2	TamrielTradeCentre
+MultiMark	LibAddonMenu-2.0
+MyUI	LibAddonMenu-2.0	LibDebugLogger	LibHarvensAddonSettings	LibStub
+Nemesis	LibHarvensAddonSettings	LibVotans
+NewQuestAssist	LibAddonMenu-2.0
+NoTargetFrame	LibAddonMenu-2.0
+NQOL	DolgubonsLazyWritCreator	LibCustomNames	LibFoodDrinkBuff	LibGPS	LibLazyCrafting	LibQRC
+NQOL-dev	DolgubonsLazyWritCreator	LibCustomNames	LibFoodDrinkBuff	LibGPS	LibLazyCrafting	LibQRC
+OffBalanceTracker	LibAddonMenu-2.0
+OneAPHaTime	LibAPH	LibAddonMenu-2.0	LibHarvensAddonSettings
+OneMorRockgrove	Breadcrumbs
+PacketByteExporter	LibAddonMenu-2.0
+PBsChatWindowCustomizer	LibHarvensAddonSettings
+PBsClock	LibHarvensAddonSettings
+PBsConsoleHudCustomizer	LibHarvensAddonSettings
+PBsCraftMaterialAssistant	LibHarvensAddonSettings
+PBsCyrodiilAlert	LibHarvensAddonSettings
+PBsDiceExtension	LibHarvensAddonSettings
+PBsHudManager	LibHarvensAddonSettings	PBsChatWindowCustomizer	PBsClock	PBsConsoleHudCustomizer	PBsCyrodiilAlert	PBsMiniMap	PBsNamePlateChanger	PBsQuestTrackerFontChanger
+PBsJanken	LibGroupBroadcast
+PBsKillLog	LibHarvensAddonSettings
+PBsLuaMemoryMonitor	LibHarvensAddonSettings
+PBsMailerExtension	LibHarvensAddonSettings
+PBsOmikuji	LibHarvensAddonSettings
+PBsTetris	LibGroupBroadcast
+PBsTranslate	LibGroupBroadcast	LibHarvensAddonSettings
+PBsWarTable	LibGroupBroadcast
+PerCharacterMounts	LibAddonMenu-2.0	LibHarvensAddonSettings
+PermMemento	LibAddonMenu-2.0	LibGroupBroadcast	LibHarvensAddonSettings
+PersonalDpsTracker	LibHarvensAddonSettings
+PetHealth	LibAddonMenu-2.0	LibAddonMenuOrderListBox	LibHarvensAddonSettings	LibSlashCommander
+PinAutoResizer	LibGPS
+PreviewAnywhere	LibConsoleLogger
+PVPBuddy	LibAddonMenu-2.0
+PvPUA	LibGroupBroadcast
+PvPUAPatch	LibGroupBroadcast
+QcellDreadsailReefHelper	CombatAlerts	LibAddonMenu-2.0	M0RMarkers	OdySupportIcons
+RagsToRiches	LibHarvensAddonSettings
+RainbowAOE	LibAddonMenu-2.0
+rallyingCryTracker	LibNotify
+RideAlong	LibConsoleLogger
+riposteTracker	LibNotify
+Rolodex	LibAddonMenu-2.0
+RotationHelper	LibAddonMenu-2.0
+rushOfAgonyTracker	LibNotify
+SatchelExchange	LibConsoleLogger
+SatuveRotationTrainer	LibGamepad
+SatuveXboxUI	LibDebugLogger	LibStub
+SavedChatMessages	LibHarvensAddonSettings	LibRadialMenu-ConsoleLibrary
+Seamstress	LibHarvensAddonSettings
+ShogrinUI	LibAddonMenu-2.0	LibSlashCommander
+ShowEquipped	LibHarvensAddonSettings
+SiegeReminder	LibHarvensAddonSettings
+SimpleOffBalanceTracker	LibHarvensAddonSettings
+SkyShards	DebugLogViewer	LibDebugLogger
+SmartTrader	LibConsoleLogger
+SnipersFriend	LibHarvensAddonSettings
+SpaulderNotifier	LibHarvensAddonSettings
+STARS	LibHarvensAddonSettings
+StonehulkDominationTracker	LibAddonMenu-2.0
+Sugas-Test-Zone	LibCombatSkills	LibHarvensAddonSettings
+SurveyResetMarker	CustomCompassPins	LibAddonMenu-2.0	LibMapPins-1.0
+SurvivalMode	LibHarvensAddonSettings
+SXUIBeaconPet	LibAddonMenu-2.0
+TamrielMasterLedger	LibHistoire	LibMainMenu-2.0
+TargetInfo	LibHarvensAddonSettings
+TauntAssist	LibAddonMenu	LibHarvensAddonSettings
+TeaAndToast	LibHarvensAddonSettings
+TorigaHUD	LibAddonMenu-2.0
+TraderFilter	LibHarvensAddonSettings	LibQRCode
+TradeSkills	LibMapPins-1.0	LibPrice	TamrielTradeCentre
+TraitCraft	LibDynamicMail	LibLazyCrafting	LibTextFormat
+TraitScout	LibAddonMenu-2.0
+TrialTagger	LibAddonMenu-2.0
+TrueCombatText	LibAddonMenu-2.0
+TrueExploration	AUI	LibDebugLogger
+turningTideTracker	LibNotify
+UnchainedHelper	LibAddonMenu-2.0
+UniversalEffectTracker	LibHarvensAddonSettings	LibRadialMenu
+ValknarrTheme	LibAddonMenu-2.0	ValknarrUIE
+ValknarrUIE	LibHarvensAddonSettings	LibRadialMenu
+VCAP2	LibHarvensAddonSettings
+VotansFisherman	MiniMap	RareFishTracker	WaypointIt
+VotansMiniMap	LibDebugLogger	LibGPS	TrueExploration	TweakIt
+warHornTracker	LibNotify
+warmaskTracker	LibNotify
+WarmasktrackerByJH	LibAddonMenu-2.0
+WeavingMetronome	LibAddonMenu-2.0
+WhatsMissing	LibRadialMenu
+wretchedVitalityTracker	LibNotify
+WritReady	LibAddonMenu-2.0
+]==])

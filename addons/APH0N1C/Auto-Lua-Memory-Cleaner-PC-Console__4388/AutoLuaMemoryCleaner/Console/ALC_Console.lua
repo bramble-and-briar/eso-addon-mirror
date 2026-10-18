@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 ALC.Console = ALC.Console or {}
 local ALC_Console = ALC.Console
 
@@ -18,10 +18,6 @@ end
 
 function ALC_Console.get_threshold()
 	return ALC.settings.threshold_console
-end
-
-function ALC_Console.get_pool_threshold()
-	return ALC.settings.pool_threshold_console
 end
 
 function ALC_Console.build_threshold_slider(build_data)
@@ -42,7 +38,7 @@ function ALC_Console.build_pool_threshold_slider(build_data)
 		min = 0.01, max = 85, step = 0.5, decimals = 2,
 		getFunc = function() return ALC.settings.pool_threshold_console end,
 		setFunc = function(v) ALC.settings.pool_threshold_console = v end,
-		disabled = function() return not ALC.settings.auto_clear_pool_on_teleport end
+		disabled = function() return not ALC.settings.is_enabled end
 	})
 end
 

@@ -1,0 +1,26 @@
+## Title: |c9CD04CAPH-CodeRunner|r
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+## AddOnVersion: 26101514
+## Version: 2026.10.15.14.36
+## Description: |cfa9c1bAn in-game Lua code editor and runner.|r |cCCFF00Usage: /coderunner|r
+## DependsOn: LibAPH>=26100607
+## SavedVariables: APHCodeRunner_SV
+
+CORE/APH-CodeRunner.lua
+UTILS/Sandbox.lua
+UI/Widgets.lua
+UI/Viewer.lua
+UI/Errors.lua
+UTILS/Autocomplete.lua
+UI/Window.lua
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

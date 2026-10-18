@@ -239,7 +239,7 @@ local function AddToTally( tallies, flags )
 end
 
 local function GetAchName( achievementId )
-	return zo_strformat(GetAchievementName(achievementId))
+	return LocalizeString(GetAchievementName(achievementId))
 end
 
 local function SearchAchievementNames( haystack, needle )
@@ -712,7 +712,8 @@ function RaidificatorAchievementScreenshot:Show( categoryId, server, account, su
 	if (isWide) then
 		window:SetAnchor(CENTER, GuiRoot, CENTER)
 	else
-		window:SetAnchor(TOPRIGHT, LEJ.GetFrame(), TOPLEFT, -100, 0)
+		local frame = LEJ.GetFrame()
+		window:SetAnchor(TOPRIGHT, GuiRoot, TOPLEFT, frame:GetLeft() - 100, frame:GetTop())
 	end
 	window:SetHidden(false)
 end
@@ -854,15 +855,15 @@ function RaidificatorAchievementRow_OnMouseEnter( control )
 
 		local rewards = { }
 		if (GetAchievementRewardTitle(ach.id)) then
-			table.insert(rewards, zo_strformat("<<1>>|cFFFFFF<<2>>|r", GetString(SI_ACHIEVEMENTS_TITLE), select(2, GetAchievementRewardTitle(ach.id))))
+			table.insert(rewards, LocalizeString("<<1>>|cFFFFFF<<2>>|r", GetString(SI_ACHIEVEMENTS_TITLE), select(2, GetAchievementRewardTitle(ach.id))))
 		end
 		if (GetAchievementRewardCollectible(ach.id)) then
 			local name, _, _, _, _, _, _, categoryType = GetCollectibleInfo(select(2, GetAchievementRewardCollectible(ach.id)))
-			table.insert(rewards, zo_strformat("<<1>>|cFFFFFF<<t:2>>|r", zo_strformat(SI_ACHIEVEMENTS_COLLECTIBLE_CATEGORY, GetString("SI_COLLECTIBLECATEGORYTYPE", categoryType)), name))
+			table.insert(rewards, LocalizeString("<<1>>|cFFFFFF<<t:2>>|r", LocalizeString(GetString(SI_ACHIEVEMENTS_COLLECTIBLE_CATEGORY), GetString("SI_COLLECTIBLECATEGORYTYPE", categoryType)), name))
 		end
 		if (GetAchievementRewardDye(ach.id)) then
 			local name, _, _, _, _, r, g, b = GetDyeInfoById(select(2, GetAchievementRewardDye(ach.id)))
-			table.insert(rewards, zo_strformat("<<1>>|c<<3>><<2>>|r", GetString(SI_ACHIEVEMENTS_DYE), name, string.format("%06X", LCCC.RGBToInt24(r, g, b))))
+			table.insert(rewards, LocalizeString("<<1>>|c<<3>><<2>>|r", GetString(SI_ACHIEVEMENTS_DYE), name, string.format("%06X", LCCC.RGBToInt24(r, g, b))))
 		end
 
 		local time, completed, totalRequired = GetAchTimestamp(ach.id)

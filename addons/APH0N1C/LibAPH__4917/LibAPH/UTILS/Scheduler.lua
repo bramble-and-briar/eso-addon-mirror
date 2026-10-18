@@ -14,6 +14,8 @@ local DRIVER = "LibAPH_Scheduler"
 local PC_BUDGET_MS = 3
 local CONSOLE_BUDGET_MS = 2
 local CONSOLE_MARGIN_MS = 5
+local POOL_HIGH_SHARE = 0.95
+local POOL_HIGH_BUDGET_MS = 1
 
 LibAPH.STOP = {}
 
@@ -22,19 +24,32 @@ local by_name = {}
 local driving = false
 local budget_override
 local tick_id = 0
+local tick_deadline
 
 local function NowMs()
 	return GetGameTimeSeconds() * 1000
 end
 
+local function CpuLeftMs()
+	local available = GetTotalUserAddOnCPUTimeAvailableEachFrameMS and GetTotalUserAddOnCPUTimeAvailableEachFrameMS()
+	if type(available) ~= "number" or available <= 0 or not GetTotalUserAddOnCPUTimeUsedNowMS then return nil end
+	return available - GetTotalUserAddOnCPUTimeUsedNowMS() - CONSOLE_MARGIN_MS
+end
+
 function LibAPH.GetSchedulerBudgetMs()
-	local console = IsConsoleUI()
-	local budget = budget_override or (console and CONSOLE_BUDGET_MS or PC_BUDGET_MS)
-	if console then
-		local left = GetTotalUserAddOnCPUTimeAvailableEachFrameMS() - GetTotalUserAddOnCPUTimeUsedNowMS() - CONSOLE_MARGIN_MS
-		budget = zo_clamp(left, math.min(0, budget), budget)
-	end
+	local budget = budget_override or (IsConsoleUI() and CONSOLE_BUDGET_MS or PC_BUDGET_MS)
+	if LibAPH.IsAddOnMemoryLow and LibAPH.IsAddOnMemoryLow(POOL_HIGH_SHARE) then budget = math.min(budget, POOL_HIGH_BUDGET_MS) end
+	local left = CpuLeftMs()
+	if left then budget = zo_clamp(left, math.min(0, budget), budget) end
 	return budget
+end
+
+function LibAPH.StepTimeLeftMs()
+	local now = NowMs()
+	local left = (tick_deadline or (now + LibAPH.GetSchedulerBudgetMs())) - now
+	local cpu = CpuLeftMs()
+	if cpu and cpu < left then left = cpu end
+	return left
 end
 
 function LibAPH.SetSchedulerBudgetMs(ms)
@@ -85,11 +100,12 @@ Tick = function()
 	local budget = LibAPH.GetSchedulerBudgetMs()
 	if budget <= 0 then return end
 	local start = NowMs()
+	tick_deadline = start + budget
 	local index = 1
 	local ran_any = false
 	while #jobs > 0 do
 		if index > #jobs then
-			if not ran_any then return end
+			if not ran_any then break end
 			index, ran_any = 1, false
 		end
 		local job = jobs[index]
@@ -100,9 +116,12 @@ Tick = function()
 			RunStep(job)
 			ran_any = true
 			if job.running then index = index + 1 end
-			if NowMs() - start >= budget then return end
+			if NowMs() - start >= budget then break end
+			local cpu = CpuLeftMs()
+			if cpu and cpu <= 0 then break end
 		end
 	end
+	tick_deadline = nil
 end
 
 LibAPH.__SchedulerTick = Tick
@@ -152,7 +171,10 @@ function LibAPH.RunOrSchedule(name, step, opts)
 	local job = LibAPH.Schedule(name, step, opts)
 	local budget = LibAPH.GetSchedulerBudgetMs()
 	local start = NowMs()
+	local outer = tick_deadline
+	tick_deadline = math.min(outer or math.huge, start + budget)
 	while job.running and NowMs() - start < budget do RunStep(job) end
+	tick_deadline = outer
 	return job
 end
 

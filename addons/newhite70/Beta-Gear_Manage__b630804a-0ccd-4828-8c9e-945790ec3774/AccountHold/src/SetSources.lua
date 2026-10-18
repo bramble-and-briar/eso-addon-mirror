@@ -186,8 +186,8 @@ function SetSources.ClassifyActivityType(parentName)
     if string.find(p, "dungeon", 1, true) then return "dungeon" end
     if string.find(p, "trial",   1, true) then return "trial"   end
     if string.find(p, "arena",   1, true) then return "arena"   end
-    if string.find(p, "overland", 1, true) then return "zone"   end
-    if string.find(p, "zone",    1, true) then return "zone"    end
+    if string.find(p, "overland", 1, true) then return "overland" end
+    if string.find(p, "zone",    1, true) then return "overland" end
     return "other"
 end
 

@@ -5,16 +5,16 @@ A lightweight personal trade ledger for The Elder Scrolls Online.
 
 This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls(R) and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
 
-Version 1.1.2
+Version 1.2.0
 -------------
 
-* Items are now identified by item id alone, so links from chat, the craft bag,
-  the backpack, and guild store lots all match the same tracked item. Tracked
-  variants of one id are merged when the addon loads. See Known limitations.
-* An item removed from the portfolio and added again starts from a clean slate:
-  earlier purchases stay in My Deals but no longer count toward its stock or profit.
-* Group deal sharing does not match items with group members running earlier
-  versions of the addon.
+* Buy List: buy items at your own price and in your own quantity, without the
+  portfolio's market model. Open it with the window's Settings (gear) button.
+* Group deal sharing also shares Buy List items. It does not exchange lists with
+  group members running 1.1.2 or earlier.
+* When the TTC price table is more than three days old, TTC prices are no longer
+  used until it is updated.
+* Ledger shows the realized profit of the sold part of tracked purchases.
 
 License
 -------
@@ -46,6 +46,8 @@ Usage
 * Right-click an item or item link and choose "Track in The Profit".
 * For an untracked item, choose "Show Sales in My Guilds" to open All Deals
   filtered by that item's name without adding it to the portfolio.
+* Choose "Add to Buy List" to buy an item at your own price, without the
+  portfolio's market model. See Buy List below.
 * Use /theprofit to open or close the ledger.
 * Track up to ten items and switch the active item by clicking its table row.
 * The add-on settings can open the ledger automatically with mail or guild stores.
@@ -57,6 +59,7 @@ Usage
   through LibHistoire. Portfolio, Price, Stock, Ledger, My Deals, All Deals,
   and Stats views separate comparison, market history, stock control, accounting,
   personal history, guild history, and weekly reporting workflows.
+* The window's Settings (gear) button opens the Buy List and Group Sharing tabs.
 
 The Profit does not provide a supported public API. Functions and data available
 through the global TheProfit table are implementation details and may change or
@@ -64,6 +67,27 @@ be removed without notice.
 
 Purchases are recorded when they are submitted through ESO's guild store,
 including purchases made through AwesomeGuildStore when it is installed.
+
+Buy List
+--------
+
+The Buy List is a tab under the window's Settings (gear) button. It holds up to
+twenty items you want to buy at a price and in a quantity you set yourself. It
+is meant for buying, not for portfolio profit: Portfolio, Ledger, and Stock
+ignore it, and its purchases appear in My Deals like any other. An item can be
+in the portfolio and on the Buy List at the same time.
+
+Each row shows the item, the maximum price per piece, the quantity to buy, how
+many were bought, and how many are left. Price and quantity are edited in the
+row and saved when the field loses focus. A price of 0 uses the TTC suggested
+price, and without it the portfolio's buy price; with neither, the item has no
+price and is not searched for. While the TTC price table is outdated (see
+below), there is no TTC suggested price.
+
+Bought counts recorded purchases made after the item was added; a rejected
+purchase does not count. When nothing is left to buy, the item is no longer
+searched for but stays on the list until you remove it. While some is left, the
+Buy List price replaces the portfolio's model for that item.
 
 AwesomeGuildStore filters
 -------------------------
@@ -77,24 +101,38 @@ the discount percentage and groups results into five ranges: below 1%, 1%-15%,
 
 Proficient uses five selectable deal categories. It marks especially deep TTC
 discounts with minimum absolute-profit thresholds, accepts a 25% return only
-when the TTC price has enough supporting sales, and marks a tracked item as BUY
+when the TTC price has enough supporting sales, and marks a tracked item as DEAL
 when The Profit's market model considers it ready to purchase. That model uses
 recent LibHistoire sales, liquidity, current tracked stock, price trend, and
-volatility. Listings without enough data remain in Other.
+volatility. A Buy List item with quantity left is marked BUY in the same yellow
+category when the unit price is within its Buy List price and the stack is no
+larger than what is left to buy. Listings without enough data remain in Other.
+
+When the TTC price table is more than three days old, TTC prices are not used.
+A row that would need them shows a gray "TTC old" hint instead of a percentage
+and filters as Other; in Proficient, DEAL and BUY rows do not depend on TTC and
+stay yellow. The first guild store visit of the session also prints a chat
+reminder, and the Portfolio view shows a red one next to the Stop Tracking
+button, to update prices with the TTC client.
 
 Group deal sharing
 ------------------
 
 Group sharing is disabled by default. Install LibGroupBroadcast, then enable
 "Share tracked items with group" under Settings > Addons > The Profit > Group.
-Group members running The Profit exchange the identities of their tracked items
-and the highest unit prices their market models currently consider safe buys.
+Group members running The Profit exchange the identities of the items they want
+and the highest unit prices they would pay: Buy List items that still have
+quantity left at their Buy List price, and portfolio items at the price their
+market models currently consider a safe buy. An item in both is shared once with
+the Buy List price. Up to 30 items are shared; members running 1.1.2 or earlier
+do not exchange lists with newer versions.
 
 When AwesomeGuildStore receives search results, The Profit checks only those
 results for lots wanted by another active group member. It never starts guild-
 store searches itself. Matching deals are sent when the store is closed, except
 for lots bought by the reporting player. The recipient evaluates the complete
-stack with their own current model before accepting and displaying the report.
+stack with their own Buy List price or current model before accepting and
+displaying the report.
 
 Accepted reports appear as a temporary HUD alert. An optional Group deals window
 can also be shown beside ESO's group window. Reports expire after thirty minutes,
@@ -102,6 +140,11 @@ or one minute after the recipient visits the reported guild store. Alert color,
 size, locking, preview, and both window positions are available in the Group
 settings. `/theprofit group` prints the current sharing and peer state for
 diagnostics.
+
+The Group Sharing tab under the window's Settings (gear) button lists, read-only,
+each item and unit price that the next shared table carries, in send order, and
+says whether it is being sent. Refresh and Send rebuilds the list from current
+prices and sends it to the group at once.
 
 Active listings are captured when an item is posted, but are saved only after
 ESO confirms the request. Whenever the current guild's listing page is loaded,
@@ -179,9 +222,15 @@ button below the cards.
 
 Ledger presents recorded purchases for the currently tracked items newest-first
 and allocates personal sales to purchase lots using FIFO. Partial matches are
-shown separately, while an unsold remainder has no corresponding sale. Item
-links retain their hover and link actions. The view keeps seventeen rows visible
-and scrolls through older records.
+shown separately, while an unsold remainder has no corresponding sale and is
+listed above the sold part of its lot. Purchases of the same item at the same
+unit price made one right after another, with no other purchase in between, are
+shown as one lot with the quantities added up; it is split only where its pieces
+went to different sales. Item links retain their hover and link actions. The
+view keeps sixteen rows visible and scrolls through older records. The line
+below them shows the calculation for the sold part only: sales revenue minus
+listing fees and trading-house cut minus the purchase cost of the pieces sold,
+giving the realized profit. Unsold stock is left out.
 
 My Deals is a chronological, non-FIFO journal of personal trading. Purchases and
 sales have separate in-view tabs and can be filtered by ESO trading week. Each

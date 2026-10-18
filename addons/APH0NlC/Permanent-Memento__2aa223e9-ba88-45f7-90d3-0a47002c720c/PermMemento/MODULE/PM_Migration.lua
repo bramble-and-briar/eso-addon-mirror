@@ -7,9 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-PMCore = PMCore or {}
-local PM = PMCore
-
+PermMementoCore = PermMementoCore or {}
+local PM = PermMementoCore
 function PM.migrate_data()
 	if PM.settings then
 		local c_map = {

@@ -26,7 +26,6 @@ north = { keep = 8, town = 151, outpost = 163 },
 west = { keep = 18, town = 149, outpost = 164 },
 east = { keep = 14, town = 152, outpost = 165 },
 }
-local DRAKELOWE = 14
 local FLANKS = {}
 for _, wing in pairs(WINGS) do FLANKS[wing.town], FLANKS[wing.outpost] = true, true end
 local GRUDGE_KEEPS = { [DC] = 3, [EP] = 11, [AD] = 19 }
@@ -65,7 +64,6 @@ local LOST_CAUSE = 20
 local BIG_FIGHT = 10
 local IN_THE_WAY = 0.03
 local CA_LOW = 180
-local RECENT_FLIP = 15 * 60
 local function Dist(a, b)
 if not (a and b and a.x and b.x) then return nil end
 local dx, dy = a.x - b.x, a.y - b.y
@@ -122,6 +120,15 @@ end
 local function Fights(w)
 if w._fights then return w._fights end
 local fights = {}
+if w.Markers then
+for _, m in ipairs(w.Markers()) do
+if (m.x ~= 0 or m.y ~= 0) and m.pinType ~= MAP_PIN_TYPE_INVALID then
+table.insert(fights, { x = m.x, y = m.y, kills = { [AD] = m.kills[AD] or 0, [EP] = m.kills[EP] or 0, [DC] = m.kills[DC] or 0 } })
+end
+end
+w._fights = fights
+return fights
+end
 local n = Safe(GetNumKillLocations) or 0
 for i = 1, n do
 local pinType, x, y = Safe(GetKillLocationPinInfo, i)
@@ -134,30 +141,61 @@ end
 w._fights = fights
 return fights
 end
-local function FightAt(w, t)
-local by = {}
-for _, f in ipairs(Fights(w)) do
+local function FightSum(w, t)
+local fights = Fights(w)
+local sums = w._fightSum
+if not (sums and sums.fights == fights) then
+sums = { fights = fights, total = {}, [AD] = {}, [EP] = {}, [DC] = {} }
+w._fightSum = sums
+end
+local spot = t.keepId and w.byId and w.byId[t.keepId]
+local key = spot and spot.x == t.x and spot.y == t.y and t.keepId or nil
+if key and sums.total[key] then return sums.total[key], sums[AD][key], sums[EP][key], sums[DC][key] end
+local total, ad, ep, dc = 0, 0, 0, 0
+for _, f in ipairs(fights) do
 local d = Dist(t, f)
 if d and d <= FIGHT_RADIUS then
-for a, k in pairs(f.kills) do by[a] = (by[a] or 0) + k end
+local k = f.kills
+total, ad, ep, dc = total + k[AD] + k[EP] + k[DC], ad + k[AD], ep + k[EP], dc + k[DC]
 end
 end
-local theirs = 0
-for a, k in pairs(by) do if a ~= w.mine then theirs = math.max(theirs, k) end end
-return by[w.mine] or 0, theirs
+if key then sums.total[key], sums[AD][key], sums[EP][key], sums[DC][key] = total, ad, ep, dc end
+return total, ad, ep, dc
+end
+local function FightAt(w, t)
+local _, ad, ep, dc = FightSum(w, t)
+local mine = w.mine
+local ours = (mine == AD and ad) or (mine == EP and ep) or (mine == DC and dc) or 0
+return ours, math.max(mine ~= AD and ad or 0, mine ~= EP and ep or 0, mine ~= DC and dc or 0)
 end
 local function LostCause(w, t)
 local ours, theirs = FightAt(w, t)
 return theirs >= LOST_CAUSE and theirs > ours * 2, ours, theirs
 end
+local function NoObjectives() return { n = 0, keepId = {}, objectiveId = {}, ctx = {}, kind = {} } end
+local function ReadObjective(list, i)
+local keepId, objectiveId, ctx = Safe(GetObjectiveIdsForIndex, i)
+local isLocal = keepId and (not IsLocalBattlegroundContext or IsLocalBattlegroundContext(ctx))
+if not isLocal then return nil end
+local n = list.n + 1
+list.n, list.keepId[n], list.objectiveId[n], list.ctx[n] = n, keepId, objectiveId, ctx
+list.kind[n] = Safe(GetObjectiveType, keepId, objectiveId, ctx)
+return n
+end
+local function Objectives(w)
+if w._objectives then return w._objectives end
+local list = NoObjectives()
+for i = 1, Safe(GetNumObjectives) or 0 do ReadObjective(list, i) end
+w._objectives = list
+return list
+end
 local function Flags(w)
 if w._flags then return w._flags end
 local flags = {}
-local n = Safe(GetNumObjectives) or 0
-for i = 1, n do
-local keepId, objectiveId, ctx = Safe(GetObjectiveIdsForIndex, i)
-local isLocal = keepId and (not IsLocalBattlegroundContext or IsLocalBattlegroundContext(ctx))
-if isLocal and OBJECTIVE_CAPTURE_AREA and Safe(GetObjectiveType, keepId, objectiveId, ctx) == OBJECTIVE_CAPTURE_AREA then
+local list = OBJECTIVE_CAPTURE_AREA and Objectives(w) or NoObjectives()
+for i = 1, list.n do
+local keepId, objectiveId, ctx = list.keepId[i], list.objectiveId[i], list.ctx[i]
+if list.kind[i] == OBJECTIVE_CAPTURE_AREA then
 local f = flags[keepId] or { total = 0, moving = 0, lost = 0, by = {} }
 flags[keepId] = f
 f.total = f.total + 1
@@ -180,7 +218,17 @@ w._flags = flags
 return flags
 end
 local function Sieges(w, t, alliance)
-return Safe(GetNumSieges, t.keepId, w.ctx, alliance) or 0
+if alliance == nil then return Safe(GetNumSieges, t.keepId, w.ctx, alliance) or 0 end
+local known = w._sieges
+if not known then known = {}; w._sieges = known end
+local byKeep = known[alliance]
+if not byKeep then byKeep = {}; known[alliance] = byKeep end
+local n = byKeep[t.keepId]
+if n == nil then
+n = Safe(GetNumSieges, t.keepId, w.ctx, alliance) or 0
+byKeep[t.keepId] = n
+end
+return n
 end
 local function Flipping(w, keepId)
 local flags = Flags(w)
@@ -228,9 +276,11 @@ w._scrollSpots[alliance] = out
 return out
 end
 local function EmperorAlliance(w)
-if not Safe(DoesCampaignHaveEmperor, w.campaignId) then return nil end
-local alliance = Safe(GetCampaignEmperorInfo, w.campaignId)
-if alliance and alliance ~= 0 then return alliance end
+if w._emperor == nil then
+local alliance = Safe(DoesCampaignHaveEmperor, w.campaignId) and Safe(GetCampaignEmperorInfo, w.campaignId)
+w._emperor = alliance and alliance ~= 0 and alliance or false
+end
+return w._emperor or nil
 end
 local function ScrollsHome(w)
 if w._scrolls then return w._scrolls end
@@ -290,27 +340,36 @@ w._raids = value
 return value
 end
 local function EmperorKeeps(w, alliance)
+local known = w._empKeeps
+if not known then known = {}; w._empKeeps = known end
+if alliance ~= nil and known[alliance] then return known[alliance] end
+local keeps = EMPEROR_KEEPS
 local rulesetId = Safe(GetCampaignRulesetId, w.campaignId)
 local n = rulesetId and Safe(GetCampaignRulesetNumImperialKeeps, rulesetId, alliance)
 if n and n > 0 then
-local keeps = {}
+local listed = {}
 for i = 1, n do
 local keepId = Safe(GetCampaignRulesetImperialKeepId, rulesetId, alliance, i)
-if keepId then table.insert(keeps, keepId) end
+if keepId then table.insert(listed, keepId) end
 end
-if #keeps > 0 then return keeps end
+if #listed > 0 then keeps = listed end
 end
-return EMPEROR_KEEPS
+if alliance ~= nil then known[alliance] = keeps end
+return keeps
 end
 local function LastEmperorKeep(w, alliance)
+local known = w._lastEmp
+if not known then known = {}; w._lastEmp = known end
+if alliance ~= nil and known[alliance] ~= nil then return known[alliance] or nil end
 local missing
 for _, keepId in ipairs(EmperorKeeps(w, alliance)) do
 if OwnerOf(w, keepId) ~= alliance then
-if missing then return nil end
+if missing then missing = false break end
 missing = keepId
 end
 end
-return missing
+if alliance ~= nil then known[alliance] = missing or false end
+return missing or nil
 end
 local function HoldsAllHome(w, alliance)
 for keepId in pairs(HOME[alliance] or {}) do
@@ -330,19 +389,37 @@ end
 end
 return last
 end
-local function OurThrone(w)
-if EmperorAlliance(w) ~= w.mine then return nil end
-local isEmp, held = {}, 0
+local function Throne(w)
+if w._throne == nil then
+local throne = false
+if EmperorAlliance(w) == w.mine then
+throne = { isEmp = {}, held = {} }
 for _, keepId in ipairs(EmperorKeeps(w, w.mine)) do
-isEmp[keepId] = true
-if OwnerOf(w, keepId) == w.mine then held = held + 1 end
+throne.isEmp[keepId] = true
+if OwnerOf(w, keepId) == w.mine then table.insert(throne.held, w.byId[keepId] or { keepId = keepId }) end
 end
-return isEmp, held
+end
+w._throne = throne
+end
+return w._throne or nil
+end
+local function OurThrone(w)
+local throne = Throne(w)
+if not throne then return nil end
+return throne.isEmp, #throne.held
+end
+local function FromClosest(keeps, t)
+local best
+for _, k in ipairs(keeps) do
+local d = Dist(k, t)
+if d and (not best or d < best) then best = d end
+end
+return best
 end
 local function MoreBars(w)
 local a, b
 for _, x in ipairs({ AD, EP, DC }) do if x ~= w.mine then if a then b = x else a = x end end end
-local pa, pb = Safe(GetCampaignAlliancePopulation, w.campaignId, a), Safe(GetCampaignAlliancePopulation, w.campaignId, b)
+local pa, pb = w.Bars and w.Bars(a), w.Bars and w.Bars(b)
 if type(pa) ~= "number" or type(pb) ~= "number" or pa == pb then return nil end
 return pa > pb and a or b
 end
@@ -351,7 +428,7 @@ if w._pushOn ~= nil then return w._pushOn or nil end
 local enemies = {}
 for _, a in ipairs({ AD, EP, DC }) do if a ~= w.mine then table.insert(enemies, a) end end
 local function weight(a)
-local pop = Safe(GetCampaignAlliancePopulation, w.campaignId, a)
+local pop = w.Bars and w.Bars(a)
 local keeps = 0
 for _, t in ipairs(w.targets) do if t.kind == "Keep" and t.owner == a then keeps = keeps + 1 end end
 return (type(pop) == "number" and pop or 0) * 100 + keeps
@@ -399,14 +476,7 @@ if not alliance then return false end
 return t.home == alliance or (HOME[alliance] and (HOME[alliance][t.keepId] or (t.parent and HOME[alliance][t.parent]))) or false
 end
 local function FightNear(w, t)
-local total, by = 0, {}
-for _, f in ipairs(Fights(w)) do
-local d = Dist(t, f)
-if d and d <= FIGHT_RADIUS then
-for a, k in pairs(f.kills) do total = total + k; by[a] = (by[a] or 0) + k end
-end
-end
-return total, by
+return (FightSum(w, t))
 end
 local function WingYoureIn(w)
 local wing, closest
@@ -427,9 +497,11 @@ local ours, theirs = FightAt(w, t)
 return theirs >= 5 and theirs > ours
 end
 local function ThreeWay(w, t)
-local _, by = FightNear(w, t)
+local _, ad, ep, dc = FightSum(w, t)
 local n = 0
-for _, a in ipairs({ AD, EP, DC }) do if a ~= w.mine and (by[a] or 0) >= 5 then n = n + 1 end end
+if w.mine ~= AD and ad >= 5 then n = n + 1 end
+if w.mine ~= EP and ep >= 5 then n = n + 1 end
+if w.mine ~= DC and dc >= 5 then n = n + 1 end
 return n == 2
 end
 local function Gated(w)
@@ -441,13 +513,16 @@ for _, spot in ipairs(Scrolls(w, w.mine)) do if not spot.home and spot.heldAt ==
 return false
 end
 local function GuardingThrone(w)
-local isEmp, held = OurThrone(w)
-if not isEmp or held == 0 or held > 2 then return nil end
+local throne = Throne(w)
+if not throne or #throne.held == 0 or #throne.held > 2 then return nil end
+if throne.guarding == nil then
 local keeps = {}
-for keepId in pairs(isEmp) do
+for keepId in pairs(throne.isEmp) do
 if OwnerOf(w, keepId) == w.mine and w.byId[keepId] then table.insert(keeps, w.byId[keepId]) end
 end
-return #keeps > 0 and keeps or nil
+throne.guarding = #keeps > 0 and keeps or false
+end
+return throne.guarding or nil
 end
 local function BackKeep(alliance, keepId)
 for _, gate in ipairs(SCROLLS[alliance] or {}) do
@@ -490,8 +565,19 @@ local function ParentOf(w, t)
 return t.parent and w.byId[t.parent]
 end
 local function ResourcesOf(w, keepId)
+local ids = w._resourceIds
+if not ids then
+ids = {}
+for _, t in ipairs(w.targets) do
+if t.parent then
+ids[t.parent] = ids[t.parent] or {}
+table.insert(ids[t.parent], t.keepId)
+end
+end
+w._resourceIds = ids
+end
 local out = {}
-for _, t in ipairs(w.targets) do if t.parent == keepId then table.insert(out, t) end end
+for _, id in ipairs(ids[keepId] or {}) do table.insert(out, w.byId[id]) end
 return out
 end
 local function Important(w, t)
@@ -501,7 +587,7 @@ if not t.defend and HOME[w.mine][t.keepId] then return true end
 return false
 end
 local KIND_VALUE = { Keep = 10, Outpost = 7, Town = 6, Lumbermill = 4, Farm = 4, Mine = 4 }
-local function StrategyScore(w, t)
+local function StrategyScoreOf(w, t)
 local lost = LostCause(w, t)
 if lost then return nil end
 local score = KIND_VALUE[t.kind] or 4
@@ -538,6 +624,24 @@ if ours > theirs then score = score + 3 end
 score = score + 4 * (WinRate(w, t) - 0.5)
 return score
 end
+local function StrategyScore(w, t)
+local scores = w._score
+if not scores then scores = {}; w._score = scores end
+local score = scores[t]
+if score == nil then
+score = StrategyScoreOf(w, t) or false
+scores[t] = score
+end
+return score or nil
+end
+local function StrategyOk(w, t)
+if LostCause(w, t) then return false end
+if t.defend then
+local guards = HOME[w.mine][t.keepId] and ScrollGuard(w, t.keepId) or 0
+if guards == 0 and not Flipping(w, t.keepId) then return false end
+end
+return true
+end
 local function IsResource(t) return t.parent ~= nil end
 local function AnyOf(w, list)
 if #list == 0 then return nil end
@@ -567,17 +671,10 @@ if tag and Safe(GetUnitDisplayName, tag) == displayName then return true end
 end
 return false
 end
-local function Hammer(w)
-if w._hammer ~= nil then return w._hammer or nil end
-w._hammer = false
-if not OBJECTIVE_DAEDRIC_WEAPON then return nil end
-for i = 1, Safe(GetNumObjectives) or 0 do
-local keepId, objectiveId, ctx = Safe(GetObjectiveIdsForIndex, i)
-local isLocal = keepId and (not IsLocalBattlegroundContext or IsLocalBattlegroundContext(ctx))
-if isLocal and Safe(GetObjectiveType, keepId, objectiveId, ctx) == OBJECTIVE_DAEDRIC_WEAPON then
+local function HammerAt(keepId, objectiveId, ctx)
 local state = Safe(GetObjectiveControlState, keepId, objectiveId, ctx)
 local enabled = not IsObjectiveEnabled or Safe(IsObjectiveEnabled, keepId, objectiveId, ctx) ~= false
-if state and state ~= OBJECTIVE_CONTROL_STATE_UNKNOWN and enabled then
+if not (state and state ~= OBJECTIVE_CONTROL_STATE_UNKNOWN and enabled) then return nil end
 local holder = Safe(GetCarryableObjectiveHoldingAllianceInfo, keepId, objectiveId, ctx)
 local pinType, x, y = Safe(GetObjectivePinInfo, keepId, objectiveId, ctx)
 local hammer = { holder = (holder and holder ~= 0) and holder or nil, state = state }
@@ -586,11 +683,27 @@ hammer.withUs = Safe(IsCarryableObjectiveCarriedByLocalPlayer, keepId, objective
 if pinType ~= MAP_PIN_TYPE_INVALID and type(x) == "number" and type(y) == "number" and (x ~= 0 or y ~= 0) then
 hammer.x, hammer.y = x, y
 end
-w._hammer = hammer
 return hammer
 end
+local function Hammer(w)
+if w._hammer ~= nil then return w._hammer or nil end
+w._hammer = false
+if not OBJECTIVE_DAEDRIC_WEAPON then return nil end
+local list = w._objectives
+if list then
+for i = 1, list.n do
+local hammer = list.kind[i] == OBJECTIVE_DAEDRIC_WEAPON and HammerAt(list.keepId[i], list.objectiveId[i], list.ctx[i])
+if hammer then w._hammer = hammer return hammer end
 end
+return nil
 end
+list = NoObjectives()
+for i = 1, Safe(GetNumObjectives) or 0 do
+local n = ReadObjective(list, i)
+local hammer = n and list.kind[n] == OBJECTIVE_DAEDRIC_WEAPON and HammerAt(list.keepId[n], list.objectiveId[n], list.ctx[n])
+if hammer then w._hammer = hammer return hammer end
+end
+w._objectives = list
 return nil
 end
 local function ScrollKeepUnderAttack(w)
@@ -623,12 +736,9 @@ pick.unscored = true
 return { pick = pick }
 end
 local function GuardThrone(w, stayClose)
-if EmperorAlliance(w) ~= w.mine then return nil end
-local isEmp, held, lost = {}, {}, {}
-for _, keepId in ipairs(EmperorKeeps(w, w.mine)) do
-isEmp[keepId] = true
-if OwnerOf(w, keepId) == w.mine then table.insert(held, w.byId[keepId] or { keepId = keepId }) else lost[keepId] = true end
-end
+local throne = Throne(w)
+if not throne then return nil end
+local isEmp, held = throne.isEmp, throne.held
 local few = #held <= 2
 local flags = Flags(w)
 local defenses = Filter(w.options, function(t) return t.defend and isEmp[t.keepId] end)
@@ -642,11 +752,7 @@ end
 if not (stayClose and few) or #held == 0 then return nil end
 return TopPick(w, w.options, function(t)
 if t.defend then return nil end
-local closest
-for _, k in ipairs(held) do
-local d = Dist(k, t)
-if d and (not closest or d < closest) then closest = d end
-end
+local closest = FromClosest(held, t)
 return closest and -closest
 end, 3, 0.05)
 end
@@ -659,18 +765,22 @@ end
 local NOTHING_CLOSE = "Nothing close. Wake me up later."
 local KEEPS_ARE_EFFORT = "Keeps are effort. If %s won't move why should I?"
 local SHORT_NAME = { [AD] = "AD", [EP] = "EP", [DC] = "DC" }
-P.ultralazy = function(w)
+local function Laziest(w)
 if not w.player then return nil end
 local push = PushOn(w)
 local flags = Flags(w)
+local scored = {}
 local function score(t)
+if scored[t] ~= nil then return scored[t] or nil end
+scored[t] = false
 local d = Away(w, t)
 if not d or d > NEAR or LostCause(w, t) or (LosingFight(w, t) and not ThreeWay(w, t)) then return nil end
 local f = flags[t.keepId]
 local action = math.min(FightNear(w, t), 20) * 0.003
 if f and (f.moving > 0 or f.lost > 0) then action = action + 0.03 end
 if Sieges(w, t, w.mine) > 0 then action = action + 0.02 end
-return -d + action + (t.owner == push and 0.02 or 0)
+scored[t] = -d + action + (t.owner == push and 0.02 or 0)
+return scored[t]
 end
 local function worthIt(t)
 if t.kind ~= "Keep" then return true end
@@ -687,7 +797,6 @@ local plan = { pick = pick }
 if not worthIt(best) then plan.extras = { effort } end
 return plan
 end
-local UltraLazy = P.ultralazy
 local function Legs(plan)
 local legs = { plan.pick }
 for _, leg in ipairs(plan.chain or {}) do table.insert(legs, leg) end
@@ -757,7 +866,7 @@ end
 P.LazyPick = function(w) return LazyPick(w) end
 local POTATO_WAIT = { "Imma smoke real quick while we wait.", "I'm hungry, let me find a snack. Brb." }
 P.bakedpotato = function(w)
-if not w.player then return UltraLazy(w) end
+if not w.player then return Laziest(w) end
 local fair = Filter(w.options, function(t) return not LostCause(w, t) end)
 local options = ThroneSide(w, fair)
 for _, t in ipairs(fair) do
@@ -797,7 +906,7 @@ local d = Away(w, t)
 if ready(t) and (not d or d <= NEAR) then return closeness(t) end
 end, 3, 0.02)
 pick = pick or TopPick(w, options, function(t) return ready(t) and closeness(t) or nil end, 1)
-return pick and { pick = pick } or UltraLazy(w)
+return pick and { pick = pick } or Laziest(w)
 end
 local function OnTheWay(w, target)
 local resources = Filter(w.options, function(t)
@@ -850,7 +959,7 @@ end
 end
 end
 local candidates = Filter(options, function(t)
-if not StrategyScore(w, t) then return false end
+if not StrategyOk(w, t) then return false end
 local d = Away(w, t)
 return not (style.careful and IsResource(t) and d and d > NEAR)
 end)
@@ -955,12 +1064,12 @@ end
 end
 return { pick = pick }
 end
+local WEAK_WALLS = { [3] = true, [6] = true, [7] = true, [9] = true, [10] = true, [11] = true, [13] = true, [15] = true, [17] = true }
 local function SiegeLine(w, plan, trebs)
 for _, leg in ipairs(Legs(plan)) do
 if leg.kind == "Keep" and not leg.defend then
 if leg.directive then return "20/20 siege." end
-local ago = w.FlippedAgo and w.FlippedAgo(leg.keepId)
-if ago and ago <= RECENT_FLIP then
+if WEAK_WALLS[leg.keepId] and w.Random(1, 2) == 1 then
 local line = "20/20 siege, look for a weak wall"
 if trebs and w.Random(1, 2) == 1 then line = line .. " and I wanna see a few Trebs" end
 return line .. "."
@@ -969,11 +1078,19 @@ return "20/20 siege, front door."
 end
 end
 end
+local TROLLED = {}
+for _, call in ipairs(TROLL_CALLS) do TROLLED[call.keepId] = true end
 local function Trolls(w, options, spotsOnly)
-local list = {}
-for _, call in ipairs(TROLL_CALLS) do
+local list, byKeep = {}, {}
 for _, t in ipairs(options or w.options) do
-if t.keepId == call.keepId and not t.defend and not t.directive and (call.spot or not spotsOnly) then
+if TROLLED[t.keepId] then
+byKeep[t.keepId] = byKeep[t.keepId] or {}
+table.insert(byKeep[t.keepId], t)
+end
+end
+for _, call in ipairs(TROLL_CALLS) do
+for _, t in ipairs(byKeep[call.keepId] or {}) do
+if not t.defend and not t.directive and (call.spot or not spotsOnly) then
 local directed = {}
 for k, v in pairs(t) do directed[k] = v end
 directed.directive = call.directive
@@ -1000,8 +1117,7 @@ P.chris = function(w)
 local plan = Strategist(w, { n = 3, dist = 25 })
 if not plan then return nil end
 local pick = plan.pick
-local ago = w.FlippedAgo and w.FlippedAgo(pick.keepId)
-if (w.streakL or 0) >= SIEGE_SPOT_STREAK and pick.kind == "Keep" and not pick.defend and not (ago and ago <= RECENT_FLIP) then
+if (w.streakL or 0) >= SIEGE_SPOT_STREAK and pick.kind == "Keep" and not pick.defend then
 local ways = Trolls(w, { pick }, true)
 if #ways > 0 and w.Random(1, 2) == 1 then
 plan.pick = ways[w.Random(1, #ways)]
@@ -1129,6 +1245,10 @@ local QUEST_PARTS = { [1] = RESOURCETYPE_WOOD or 1, [2] = RESOURCETYPE_FOOD or 2
 function QuestTargets(w)
 local quests = LazyCrown.QUESTS
 if not (quests and IsValidQuestIndex and GetJournalQuestId) then return {}, {}, nil end
+local journal = w._journal
+if journal then
+return Filter(w.options, function(t) return journal.byKeep[t.keepId] and not t.defend end), journal.capture, journal.daily
+end
 local byKeep, capture, daily = {}, {}, nil
 for i = 1, MAX_JOURNAL_QUESTS or 25 do
 if Safe(IsValidQuestIndex, i) and not Safe(GetJournalQuestIsComplete, i) then
@@ -1147,31 +1267,8 @@ daily = quests.daily[questId]
 end
 end
 end
+w._journal = { byKeep = byKeep, capture = capture, daily = daily }
 return Filter(w.options, function(t) return byKeep[t.keepId] and not t.defend end), capture, daily
-end
-P.selfish = function(w)
-local function finish(plan)
-if not plan then return nil end
-plan.extras = plan.extras or {}
-for _, spot in ipairs(Scrolls(w, w.mine)) do
-if not spot.home and spot.heldAt == plan.pick.keepId then table.insert(plan.extras, "Make sure you get the scroll quest.") end
-end
-for _, leg in ipairs(Legs(plan)) do
-if leg.keepId == DRAKELOWE or (leg.parent == DRAKELOWE and leg.kind == "Mine") then
-table.insert(plan.extras, "And give me those Drakelowe shares.")
-break
-end
-end
-return plan
-end
-local questTargets, capture = QuestTargets(w)
-local quest = TopPick(w, questTargets, function(t)
-local d = Away(w, t)
-if LostCause(w, t) or (d and d > NEAR) then return nil end
-return (capture[t.keepId] and 10 or 0) - (d and 10 * d or 0)
-end, 1)
-if quest then return finish({ pick = quest }) end
-return finish(GreedyPick(w))
 end
 local STAY_CLOSE = 0.25
 local NEXT_TO = 0.15
@@ -1192,14 +1289,7 @@ return list
 end
 local held = GuardingThrone(w)
 if held then
-local function fromThrone(t)
-local best
-for _, k in ipairs(held) do
-local d = Dist(k, t)
-if d and (not best or d < best) then best = d end
-end
-return best
-end
+local function fromThrone(t) return FromClosest(held, t) end
 local pool = Filter(fair, function(t)
 local d = fromThrone(t)
 return (t.kind == "Town" or t.kind == "Outpost") and Territory(t, w.mine) and d and d <= STAY_CLOSE
@@ -1286,28 +1376,12 @@ return 5 + math.min(grudge, 3) * 2 + (onQuest[t.keepId] and 15 or 0) + (t.owner 
 end, 4, 4)
 return pick and { pick = pick }
 end
-P.mulliss = function(w)
-local from = w.player or (w.lastCall and w.byId[w.lastCall.keepId])
-local pick = TopPick(w, w.options, function(t)
-if t.defend then
-local ours, theirs = FightAt(w, t)
-if theirs > ours then return 10 + theirs - ours end
-return nil
-end
-local d = Dist(from, t)
-if d and d >= OTHER_SIDE then return 20 * d end
-return nil
-end, 3, 6)
-pick = pick or TopPick(w, w.options, function(t) return Dist(from, t) or 0 end, 1)
-return pick and { pick = pick }
-end
 local BEHIND = 0.15
 local BEHIND_DETOUR = 0.05
 local function DiilSiege(w, pick)
 if pick.defend or (pick.kind ~= "Keep" and pick.kind ~= "Outpost") then return nil end
 if pick.directive then return "20/20 siege." end
-local ago = w.FlippedAgo and w.FlippedAgo(pick.keepId)
-if (ago and ago <= RECENT_FLIP) or w.Random(1, 2) == 1 then return "20/20 siege, look for a weak wall." end
+if w.Random(1, 2) == 1 then return "20/20 siege, look for a weak wall." end
 return "20/20 siege, front door."
 end
 P.diil = function(w)
@@ -1339,16 +1413,8 @@ local isEmp = OurThrone(w)
 local empKeeps = Filter(bold, function(t) return isEmp[t.keepId] end)
 local theirs = Filter(empKeeps, function(t) return t.owner == push end)
 if #theirs == 0 then theirs = empKeeps end
-local function fromThrone(t)
-local best
-for _, k in ipairs(held) do
-local d = Dist(k, t)
-if d and (not best or d < best) then best = d end
-end
-return best
-end
 local target = TopPick(w, theirs, function(t)
-local d = fromThrone(t)
+local d = FromClosest(held, t)
 return d and -d or 0
 end, 1)
 local base
@@ -1553,7 +1619,8 @@ local function ActionLine(w, t)
 local parts = {}
 local siege = Sieges(w, t, w.mine)
 if siege > 0 then table.insert(parts, string.format("%d %s siege", siege, ABBR[w.mine])) end
-local total, by = FightNear(w, t)
+local total, ad, ep, dc = FightSum(w, t)
+local by = { [AD] = ad, [EP] = ep, [DC] = dc }
 if total > 0 then
 local them = {}
 for _, a in ipairs({ AD, EP, DC }) do
@@ -1634,33 +1701,80 @@ return { pick = group[w.Random(1, #group)] }
 end
 P.ORDER = LazyCrown.CROWN_ORDER
 P.NAMES = {
-lazy = "Lazy", bakedpotato = "Baked Potato", bored = "Bored", selfish = "Selfish", ultralazy = "Ultra Lazy", chris = "Chris", greedy = "Greedy",
-november = "November", confessor = "Confessor", deano = "Deano", mulliss = "Mulliss", diil = "Diil", random = "Random",
+lazy = "Lazy", bakedpotato = "Baked Potato", bored = "Bored", chris = "Chris", greedy = "Greedy",
+november = "November", confessor = "Confessor", deano = "Deano", diil = "Diil", random = "Random",
 }
 P.TOOLTIPS = {
 lazy = "A lazy crown isn't always a lousy one.",
 bored = "Bored. Chases fights and action.",
-bakedpotato = "Ultra Lazy, but baked. Needs a break every few calls, and sometimes forgets what it was doing.",
-selfish = "Looking out for number one. When you're crown you can make a whole group do your quests for you. Haha suckers.",
-ultralazy = "Laziest crown ever.",
+bakedpotato = "Laziest crown ever, but baked. Needs a break every few calls, and sometimes forgets what it was doing.",
 chris = "Lazy but with a brain. Top 10 AD player according to one of the worst players of all time. Hey now.",
 greedy = "Give me all that AP. All we do is win, win, win. (If we get there on time, ha... HURRY UP)",
 november = "Unconventional and favors flanks. Will do progressively trollier and unhinged things with accumulating losses.",
 confessor = "Lazy as in not taking us all to our certain deaths.",
 deano = "Scrappy small scale with a hint of troll and a penchant for grudges.",
-mulliss = "Sometimes you just want to be a bad crown so you don't have to do this anymore. Use this if you want to randomly pass the crown to someone else in the middle of a run and go back to harvesting your runestones in peace.",
 diil = "The real Diil, but I'm too lazy to siege for you. Do it yourself.",
 random = "Truly random. Attack or defense first, then the kind of target, then which one.",
 }
-P.RENAMED = { elves = "selfish", clever = "chris" }
-P.NEEDS_MAP = { random = true, lazy = true, bakedpotato = true, bored = true, selfish = true, ultralazy = true, chris = true, greedy = true, november = true, confessor = true, deano = true, mulliss = true, diil = true }
+P.RENAMED = { elves = "lazy", selfish = "lazy", mulliss = "lazy", ultralazy = "lazy", clever = "chris" }
+P.NEEDS_MAP = { random = true, lazy = true, bakedpotato = true, bored = true, chris = true, greedy = true, november = true, confessor = true, deano = true, diil = true }
+for _, key in ipairs({ "lazy", "bakedpotato", "bored", "diil", "greedy", "november", "random" }) do
+local choose = P[key]
+P[key] = function(w)
+local plan = choose(w)
+local memory = w.memory or {}
+local planned = memory.caNext
+if planned and w.lastCall then
+memory.caNext = nil
+local urgent = type(plan) == "table" and plan.pick and (plan.pick.defend or plan.pick.unscored)
+if w.lastCall.keepId == planned.after and w.lastCall.result == "W" and not urgent then
+if type(plan) == "table" and plan.pick and plan.pick.keepId == planned.keepId then return plan end
+for _, t in ipairs(w.options) do
+if t.keepId == planned.keepId and not t.defend then
+return { pick = t, extras = key == "diil" and { DiilSiege(w, t) } or nil }
+end
+end
+end
+end
+local pick = type(plan) == "table" and plan.pick
+if not pick or not w.player or pick.defend or pick.directive or pick.unscored or IsResource(pick) or plan.chain or plan.how then return plan end
+local left, owned = ContinuousAttack(w)
+if not owned or left >= CA_LOW then return plan end
+local leg = OnTheWay(w, pick)
+if not leg then return plan end
+memory.caNext = { keepId = pick.keepId, after = leg.keepId }
+return { pick = leg }
+end
+end
+local function WeakWallLine(w, plan)
+for _, leg in ipairs(Legs(plan)) do
+if leg.kind == "Keep" and not leg.defend then
+if not leg.directive and WEAK_WALLS[leg.keepId] and w.Random(1, 2) == 1 then return "Look for a weak wall." end
+return nil
+end
+end
+end
+for _, key in ipairs({ "confessor", "deano", "greedy", "november" }) do
+local choose = P[key]
+P[key] = function(w)
+local plan = choose(w)
+if type(plan) == "table" and plan.pick and not w.planning then
+local line = WeakWallLine(w, plan)
+if line then
+plan.extras = plan.extras or {}
+table.insert(plan.extras, line)
+end
+end
+return plan
+end
+end
 P.HAMMER = {
-lazy = "ours", ultralazy = "ours", bakedpotato = "ours", november = "ours", deano = "ours", greedy = "always", selfish = "always", bored = "always",
-chris = "safe", confessor = "safe", mulliss = "safe", diil = "safe",
+lazy = "ours", bakedpotato = "ours", november = "ours", deano = "ours", greedy = "always", bored = "always",
+chris = "safe", confessor = "safe", diil = "safe",
 }
 for key, rule in pairs(P.HAMMER) do
 local choose = P[key]
-if key ~= "diil" and key ~= "greedy" and key ~= "selfish" then
+if key ~= "diil" and key ~= "greedy" then
 P[key] = function(w) return FollowHammer(w, rule) or choose(w) end
 end
 end
@@ -1672,23 +1786,27 @@ return "My train is pulling into the station think I need to go to bed with this
 end
 end
 P.SKIP_NIKEL = { deano = true, november = true, diil = true }
-P.SAY_SGX = { chris = true, mulliss = true, confessor = true }
-P.SHARE_DRAKELOWE = { chris = true, confessor = true, mulliss = true }
+P.SAY_SGX = { chris = true, confessor = true }
+P.SHARE_DRAKELOWE = { chris = true, confessor = true }
 P.VOICES = {
-lazy = "guess", ultralazy = "guess", bored = "guess", bakedpotato = "baked",
-chris = "alright", selfish = "alright", november = "alright", diil = "alright",
-deano = "letsgo", mulliss = "letsgo", confessor = "letsgo", random = "dice",
+lazy = "guess", bored = "guess", bakedpotato = "baked",
+chris = "alright", november = "alright", diil = "alright",
+deano = "letsgo", confessor = "letsgo", random = "dice",
 }
 P.PLAN_STEPS = 4
+local MAP_FACTS = { "_pushOn", "_raids", "_lastEmp", "_throne", "_score" }
 local function Hypothetical(w, done, won)
 local nw = {}
 for k, v in pairs(w) do nw[k] = v end
 nw.targets, nw.byId, nw.options, nw.everything = {}, {}, {}, {}
 local copy = {}
 for _, t in ipairs(w.targets) do
-local c = {}
+local c = t
+if won[t.keepId] then
+c = {}
 for k, v in pairs(t) do c[k] = v end
-if won[c.keepId] then c.owner, c.defend = w.mine, false end
+c.owner, c.defend = w.mine, false
+end
 copy[t] = c
 table.insert(nw.targets, c)
 nw.byId[c.keepId] = c
@@ -1706,7 +1824,7 @@ carry(w.everything or w.options, nw.options)
 carry(w.everything or w.options, nw.everything)
 nw.player = { x = done.x, y = done.y }
 nw.Away, nw.Route, nw.planned, nw.planning = nil, nil, nil, true
-nw._pushOn, nw._raids = nil, nil
+for _, fact in ipairs(MAP_FACTS) do nw[fact] = nil end
 nw.ignoreCA, nw.justSettled = true, "W"
 nw.Random = function(a) return a end
 nw.UnderAttack = function(keepId) return not won[keepId] and w.UnderAttack(keepId) end
@@ -1717,11 +1835,11 @@ for k, v in pairs(w.memory or {}) do memory[k] = v end
 nw.memory = memory
 return nw
 end
-P.PlanAhead = function(key, w, first)
+P.PlanAhead = function(key, w, first, steps)
 local choose = P[key]
-if key == "lazy" or not (choose and first and first.x) then return nil end
+if key == "lazy" or key == "random" or not (choose and first and first.x) then return nil end
 local plan, won, cur = { first }, {}, w
-while #plan < P.PLAN_STEPS do
+while #plan < (steps or P.PLAN_STEPS) do
 local last = plan[#plan]
 if last.unscored or not last.x then break end
 won[last.keepId] = true
@@ -1735,7 +1853,8 @@ end
 return plan
 end
 P._internal = { OnTheWay = OnTheWay, Dist = Dist, FightAt = FightAt, ScrollGuard = ScrollGuard, LastEmperorKeep = LastEmperorKeep,
-ContinuousAttack = ContinuousAttack, QuestTargets = QuestTargets, StrategyScore = StrategyScore, SCROLLS = SCROLLS, WINGS = WINGS,
+ContinuousAttack = ContinuousAttack, QuestTargets = QuestTargets, StrategyScore = StrategyScore, StrategyOk = StrategyOk, SCROLLS = SCROLLS, WINGS = WINGS,
 TROLL_CALLS = TROLL_CALLS, Flags = Flags, GuardThrone = GuardThrone, FollowHammer = FollowHammer, Scrolls = Scrolls, EmperorAlliance = EmperorAlliance, RaidValues = RaidValues, HaveColor = HaveColor,
-PushOn = PushOn, Oppressor = Oppressor, BallGroup = BallGroup, InTheWay = InTheWay, GuardingThrone = GuardingThrone, ThroneSide = ThroneSide, ActionLine = ActionLine }
+PushOn = PushOn, Oppressor = Oppressor, BallGroup = BallGroup, InTheWay = InTheWay, GuardingThrone = GuardingThrone, ThroneSide = ThroneSide, ActionLine = ActionLine,
+Laziest = Laziest, SiegeLine = SiegeLine, WeakWallLine = WeakWallLine }
 ]=]})

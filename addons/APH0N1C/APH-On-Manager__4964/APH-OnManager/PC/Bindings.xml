@@ -1,0 +1,28 @@
+<Bindings>
+    <Layer name="APH-On Manager">
+        <Category name="Category Manager">
+            <Action name="AOM_NEW_CATEGORY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.HandleKeybindButtonKey("AOM_NEW_CATEGORY")</Down>
+            </Action>
+            <Action name="AOM_RESET_LIST">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.HandleKeybindButtonKey("AOM_RESET_LIST")</Down>
+            </Action>
+            <Action name="AOM_RESET_CATEGORIES">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.HandleKeybindButtonKey("AOM_RESET_CATEGORIES")</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="APH-On Manager Libraries">
+        <Category name="Optional Libraries">
+            <Action name="AOM_SELECT_ALL_LIBRARIES">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.HandleKeybindButtonKey("AOM_SELECT_ALL_LIBRARIES")</Down>
+            </Action>
+            <Action name="AOM_DESELECT_ALL_LIBRARIES">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.HandleKeybindButtonKey("AOM_DESELECT_ALL_LIBRARIES")</Down>
+            </Action>
+            <Action name="AOM_APPLY_LIBRARY_CHANGES">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.HandleKeybindButtonKey("AOM_APPLY_LIBRARY_CHANGES")</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

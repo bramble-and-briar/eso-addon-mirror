@@ -700,8 +700,8 @@ function Tab.DiscoverBaseModes(entries)
     return modes[1], modes[2]
 end
 
--- Keep the prioritised rows out of a harvest of BASE-BUILT entries, in the
--- player's priority order. This is the filter half of the "filtered proxy": the
+-- Keep the prioritised rows out of a harvest of BASE-BUILT entries, sorted
+-- alphabetically by dungeon name. This is the filter half of the "filtered proxy": the
 -- entryData objects here were constructed by ZOS's own AddLocationEntry
 -- (zo_activityfindertemplate_gamepad.lua:418-523), so they already carry the
 -- right narration, lock reason, enabled and selected state.
@@ -733,7 +733,13 @@ function Tab.FilterHarvest(entries, planIndex, difficulty)
         end
     end
 
+    -- ALPHABETICAL, exactly as FilterLocations sorts the hand-rolled path.
+    -- This proxy path is the one that normally runs, so sorting it by
+    -- wishlist order left the alphabetical fix invisible to the player.
     table.sort(out, function(a, b)
+        local an = (type(a.name) == "string") and a.name:lower() or ""
+        local bn = (type(b.name) == "string") and b.name:lower() or ""
+        if an ~= bn then return an < bn end
         if a.order ~= b.order then return a.order < b.order end
         return a.index < b.index
     end)

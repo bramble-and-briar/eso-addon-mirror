@@ -787,10 +787,8 @@ end
 -- the fallback for keyboard/mouse-only installations.
 function Bridge.RegisterGrouped(panelName, panelData, sections)
     if not GetLAM() then
-        if MyUIDebug then MyUIDebug.Note("LAM", "RegisterGrouped: LibAddonMenu fehlt") end
         return nil, "lam-unavailable"
     end
-    if MyUIDebug then MyUIDebug.Note("LAM", "RegisterGrouped: " .. tostring(#(sections or {})) .. " Menuegruppen") end
 
     Bridge.mode = "grouped-pending"
     local panelCopy = {}
@@ -872,7 +870,6 @@ function Bridge.FinalizeGrouped(panelName)
     -- numbered section is available, so the option snapshot is complete.
     local lam = GetLAM()
     if not lam then
-        if MyUIDebug then MyUIDebug.Note("LAM", "FinalizeGrouped: LibAddonMenu fehlt") end
         return false
     end
 
@@ -910,13 +907,11 @@ function Bridge.FinalizeGrouped(panelName)
     panelData.name = "My UI"
     panelData.displayName = "My UI"
     panelData.author = "Satuve, j.hhh"
-    if MyUIDebug then MyUIDebug.Note("LAM", "Registriere Panel " .. tostring(panelName) .. " mit " .. tostring(#controls) .. " Gruppen") end
     -- On console, LAM returns nil even when the registration is successful.
     -- Never skip option controls merely because the keyboard panel is nil.
     local isConsole = type(IsKeyboardUISupported) == "function" and not IsKeyboardUISupported()
     local panel = lam:RegisterAddonPanel(panelName, panelData)
     if not panel and not isConsole then
-        if MyUIDebug then MyUIDebug.Note("LAM", "PC-Panel nicht erstellt") end
         return false
     end
     lam:RegisterOptionControls(panelName, controls)
@@ -932,11 +927,9 @@ function Bridge.FinalizeGrouped(panelName)
     Bridge.mode = isConsole and "lam-console" or "lam"
     if isConsole and (not registered or rowCount == 0) then
         -- This error affects the settings only: HUD init is separately guarded.
-        if MyUIDebug then MyUIDebug.Note("LAM", "Konsolen-Backend: Panel=" .. tostring(registered ~= nil) .. ", Zeilen=" .. tostring(rowCount) .. ". LibVotans/LibHarvensAddonSettings pruefen") end
         return false
     end
     Bridge.groupedFinalized[panelName] = true
-    if MyUIDebug then MyUIDebug.Note("LAM", "My UI: " .. tostring(rowCount) .. " Einstellungszeilen registriert") end
     return true
 end
 

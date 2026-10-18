@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/APH-FPS-Graph__4962",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4962",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4962",
+  "deleted": false,
+  "directories": [
+    "APH-FPSGraph"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4962/",
+  "fingerprint": "70a30d5e32eaa0e2ea32e4c788fcfe721da86ac37468c04f0af1eae69220539b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18042.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4962",
+  "source_url": "https://www.esoui.com/downloads/info4962-APHFPSGraph.html",
+  "stats": {
+    "downloads": 5,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "APH FPS Graph",
+  "updated_at": 1792262050000,
+  "version": "2026.10.18.01.41"
+}

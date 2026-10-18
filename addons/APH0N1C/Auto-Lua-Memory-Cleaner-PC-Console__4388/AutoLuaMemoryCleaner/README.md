@@ -4,10 +4,12 @@
 
 *A lightweight, event-driven background memory cleaner for The Elder Scrolls Online.*
 
-![Version](https://img.shields.io/badge/version-2026.10.07.17.24-9CD04C?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.10.18.01.41-9CD04C?style=flat-square)
 ![ESO API](https://img.shields.io/badge/ESO%20API-101051%20%7C%20101052-00FFFF?style=flat-square)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-fa9c1b?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-PC%20%7C%20Xbox%20%7C%20PlayStation-FF69B4?style=flat-square)
+
+![Memory Cleaned announcement after an automatic cleanup](.github/assets/ALC-CLEANING-VID.gif)
 
 </div>
 
@@ -31,7 +33,11 @@ Auto Lua Memory Cleaner is event-driven first: real triggers (exiting combat, en
 
 - **Near-Zero Idle Footprint:** most checks run only on real triggers - loading screens, exiting combat state, entering a menu - backed by a lightweight ~5-second fallback poll so idle time standing around is still covered without a heavy constant loop.
 - **Smart Combat Lockout:** blocks the automatic threshold-based cleanup from running while you're in combat, preventing mid-fight frame drops *(imagine crashing in the middle of your Trifecta, or God Slayer run!)* - the only exception is for a console low-memory event, where the risk is an outright forced reload. *(If you are using "Vanilla" as the cleanup mode, memory management is left entirely to the game engine and may not prevent the forced reload - this addon does not touch how the base-game cleanup works.)*
-- **(PC & Console) Support:** automatically adapts to your hardware specific memory rules. On PC, it helps you stay safely below the 512MB performance "soft limit" to prevent UI lag and stuttering. On Console, it safely monitors the strict 100MB hardware memory pool to prevent the game from forcefully reloading your UI. *(If you are using "Vanilla" as the cleanup mode, memory management is left entirely to the game engine and may not prevent the forced reload - this addon does not touch how the base-game cleanup works.)*
+- **(PC & Console) Support:** automatically adapts to your hardware specific memory rules. On PC, it helps you stay safely below the 512MB performance "soft limit" to prevent UI lag and stuttering. On Console, it safely monitors the strict 100MB hardware memory pool to prevent the game from forcefully reloading your UI.
+- **Console Low-Memory Guard:** when add-on memory reaches 70 MB, where the game warns that it is low, ALC cleans in small steps every frame until it is back under 65 MB, whatever the threshold, minimum growth and delay say, using only a few milliseconds of each frame. It keeps going in combat, and above 80 MB, when the small steps cannot bring memory down, it also runs a Deep Clean, at most every 5 seconds. The game turns add-ons off at about 90 MB. With Reload When Add-On Memory Is Almost Full on (off by default), ALC asks whether to reload the UI if memory stays above 85 MB for 10 seconds (no answer within 5 seconds means no), and reloads right away at 88.5 MB, or sooner when memory is climbing fast enough to reach 89.5 MB within a second, after saving every add-on's data. If a reload does not bring it back down, ALC asks you to restart the game to clear that memory back. (make sure to disable the addon holding that much memory and not releasing it to be cleaned as it will happen again, GC even vanilla GC cannot clean memory that is still being held by an add-on without it being released and marked as garbage first.)
+- **Reload After Loading Screen When Memory Is Bloated (PC & Console):** off by default. After a loading screen, if memory is still above the threshold after a full cleanup, ALC saves every add-on's data and reloads the UI, at most once per Minimum Time Between Reloads (60 minutes by default). It never reloads in trials, arenas, group dungeons, the Infinite Archive, battlegrounds, Cyrodiil, Imperial City or duels, or while queued for an activity.
+- **Reload When AFK (PC & Console):** off by default. After the AFK time (10 minutes by default, 3 to 15) standing still on the HUD, ALC saves every add-on's data and reloads the UI, then waits until you move before it can do it again. Moving, opening a menu or combat starts the time over. It never reloads in the activities above.
+- **Garbage Check:** When memory is under the threshold, ALC still runs a Background cleanup once per Lua Cleanup Delay to catch garbage (never in combat or with Vanilla), once Lua memory has grown by the Min. Growth Since Last Cleanup sliders (2 MB or 5% by default). With Garbage Check Ignores Min. Growth on (off by default) it runs every Lua Cleanup Delay without waiting for growth. It shows in chat and as an announcement only with Garbage Check CSA & Chat Logs on (off by default).
 - **Cleanup Method:** pick how ALC clears Lua memory. Automatic (Recommended, the default) picks the best method each time. Background cleans up in small steps over several frames with no stutter. Vanilla leaves it to the game engine. Aggressive runs one full pass (a minor stutter) and Deep Clean runs two (a short freeze).
 - **Other Add-ons:** Their LibAPH cleanups show in the window and chat too.
 - **Single-Pass Engine Sweep:** a single blocking garbage collection cycle that forces execution of pending `__gc` hooks and clears out orphaned weak tables in one pass, with a smaller chance of catching every ready collectible garbage.
@@ -56,8 +62,8 @@ Auto Lua Memory Cleaner is event-driven first: real triggers (exiting combat, en
 |---|---|
 | <kbd>/alcon</kbd> | Toggle Auto Lua Cleanup |
 | <kbd>/alcclean</kbd> | Force a manual Lua cleanup |
-| <kbd>/alcpoolreload</kbd> | Toggle Auto Pool Cleanup After Travel <sub>*(Console)*</sub> |
-| <kbd>/alcpoolconfirm</kbd> | Toggle Auto Pool Cleanup After Travel Confirmation <sub>*(Console)*</sub> |
+| <kbd>/alcpoolreload</kbd> | Toggle Reload After Loading Screen When Memory Is Bloated |
+| <kbd>/alcpoolconfirm</kbd> | Toggle Ask Before Reloading After a Loading Screen |
 | <kbd>/alccleanupmode</kbd> | Switch the Cleanup Method |
 | <kbd>/alcui</kbd> | Toggle the status UI |
 | <kbd>/alclock</kbd> | Lock/unlock the UI |
@@ -81,7 +87,7 @@ Auto Lua Memory Cleaner is event-driven first: real triggers (exiting combat, en
 
 **Important Note On Memory Usage** <sub>*(PC & Console)*</sub>: unlike PC, where memory scales dynamically with a ~512 MB "soft limit" for UI lag, consoles have a strict 100 MB hardware memory pool for addons. Reaching the console cap will often cause the game to forcefully reload your UI or result in "Out of Memory" crashes.
 
-If an automatic pool reload frees less than 0.5 MB (this can happen after switching between the keyboard and console UI), ALC says so instead of reporting a cleanup: ESO keeps that memory until the game is restarted, so ALC stops reloading for the pool until the next game launch.
+If a reload on console frees less than 0.5 MB of the pool (this can happen after switching between the keyboard and console UI), ALC says so instead of reporting a cleanup: ESO keeps that memory until the game is restarted, so ALC stops reloading for it until the next game launch.
 
 > [!WARNING]
 > While this addon is highly effective at clearing out background "garbage" to keep you under those limits, it cannot magically lower your memory usage if you are running too many heavy addons at once. If your memory remains dangerously high even after a manual cleanup, you should consider disabling a few large addons to ensure stability.

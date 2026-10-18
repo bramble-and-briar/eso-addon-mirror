@@ -7,9 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-PMCore = PMCore or {}
-local PM = PMCore
-
+PermMementoCore = PermMementoCore or {}
+local PM = PermMementoCore
 function PM.create_gamepad_mover(target)
 	return LibAPH.CreateGamepadMover(target)
 end

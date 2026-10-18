@@ -141,7 +141,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Simple Slash Command](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Slash-Command__2554) | ShadowMau | PC / Mac | 0.1.2 |
 | [Simple Text Box](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Text-Box__2564) | ShadowMau | PC / Mac | 1.0 |
 | [Simple Tooltip](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ShadowMau/Simple-Tooltip__3043) | ShadowMau | PC / Mac | 1.0.3 |
-| [Simple Ultimate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Ultimate-Tracker__4956) | Kaewro | PC / Mac | 1.0.2 |
+| [Simple Ultimate Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kaewro/Simple-Ultimate-Tracker__4956) | Kaewro | PC / Mac | 1.0.3 |
 | [Simple Vote](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/M0R/Simple-Vote__3077) | M0R | PC / Mac | 1.0 |
 | [SimpleAddonMenu](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/SimpleAddonMenu__441715a3-5c4e-4ba6-8004-86dbf4485eb0) | Vixen_Hunny | Console | — |
 | [SimpleChatLogger](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/SimpleChatLogger__2799) | Coorbin | PC / Mac | 1.0 |
@@ -193,6 +193,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Slash Shop, Fence, and Bank (and More)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Circuitous/Slash-Shop-Fence-and-Bank-and-More__2469) | Circuitous | PC / Mac | 1.27.101049 |
 | [Slasher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shadowfen/Slasher__1887) | Shadowfen | PC / Mac | 2.51 |
 | [SlashVivec](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/damage_1/SlashVivec__3260) | damage_1 | PC / Mac | 0.6.9 |
+| [Slayan's Boss Timer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xSuperSlayan/Slayan-s-Boss-Timer__e77534ef-ba1c-4ce2-becb-c7c534a86ebe) | xSuperSlayan | Console | — |
 | [Slayer Tracker (PC & Console) + Buff Uptime and Statistics](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Slayer-Tracker-PC-Console-Buff-Uptime-and-Statistics__4680) | Duesentrieb | PC / Mac | 20260709-0001 |
 | [Slightly Improved™ Attribute Bars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/L8Knight/Slightly-ImprovedTM-Attribute-Bars__72) | L8Knight | PC / Mac | 2.2.2 |
 | [Slightly Improved™ Buff Tracking](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/haggen/Slightly-ImprovedTM-Buff-Tracking__1356) | haggen | PC / Mac | 2.0.1 |
@@ -236,6 +237,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Solaris](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fosterwerks/Solaris__2521) | Fosterwerks | PC / Mac | 0.3.2 |
 | [Soldatii La Dreptate Guildhalls](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/animalu/Soldatii-La-Dreptate-Guildhalls__3037) | animalu | PC / Mac | 0.0.6 |
 | [Soloists of Tamriel](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/CaptivAzn/Soloists-of-Tamriel__3873) | CaptivAzn | PC / Mac | 1.70 |
+| [Sora Sorc Reticle Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Sorc-Reticle-Tracker__4959) | sora0v0 | PC / Mac | 1.0.0 |
 | [Sora Ultimate Pair](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sora0v0/Sora-Ultimate-Pair__4583) | sora0v0 | PC / Mac | 1.0.61 |
 | [Sorc Overload Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Smasharooisold/Sorc-Overload-Tracker__4785) | Smasharooisold | PC / Mac | 1.0 |
 | [Sorcerer Helper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vahrokh/Sorcerer-Helper__2576) | Vahrokh | PC / Mac | 3.2.1 |
@@ -320,13 +322,13 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Stripped out version of AutoDecline by Dio](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/FatalForce/Stripped-out-version-of-AutoDecline-by-Dio__2350) | FatalForce | PC / Mac | 1.0.0 |
 | [Stud's Group Finder Tweaks](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/STUDLETON/Stud-s-Group-Finder-Tweaks__4118) | STUDLETON | PC / Mac | 1.0.0 |
 | [StunBreak](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Solaris-Lorica/StunBreak__2594) | Solaris Lorica | PC / Mac | 1.1 |
-| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.2 |
+| [Stunned](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/atharti/Stunned__4154) | atharti | PC / Mac | 2.3 |
 | [Style and Elegance ( Outfit, Idle Animation, Title, Mount, Etc. Loadouts )](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jodynn/Style-and-Elegance-Outfit-Idle-Animation-Title-Mount-Etc.-Loadouts__2201) | Jodynn | PC / Mac | 2.13 |
 | [Style New Cleaner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eldibabalo/Style-New-Cleaner__a77b6722-e51b-4b17-9543-632248774cf3) | Eldibabalo | Console | — |
 | [Style Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kryne/Style-Tracker__4088) | Kryne | PC / Mac | 1.0.0 |
 | [Stylich](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/s1by0z/Stylich__4671) | s1by0z | PC / Mac | 1.2.2 |
 | [Sugas-Test-Zone](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Sugas-Test-Zone__75cafaa0-706c-4f77-a94a-9a8b0e2868f2) | SugaComa | Console | — |
-| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 2.5.18 |
+| [Sul-Xan's marker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PUYO/Sul-Xan-s-marker__4943) | PUYO | PC / Mac | 2.6 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__3656) | Lykeion | PC / Mac | 1.5 |
 | [Sul-Xan's Soul Catcher](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lykeion/Sul-Xan-s-Soul-Catcher__aa271fb4-3ce5-4584-ac5c-338617e92f62) | Lykeion+ | Console | — |
 | [SuMech](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/burito/SuMech__3467) | burito | PC / Mac | cdaefe9dfe5ba5531fb6b0a6eb0c1757b7b246a1 |

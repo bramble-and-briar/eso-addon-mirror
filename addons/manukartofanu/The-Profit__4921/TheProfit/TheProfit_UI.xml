@@ -50,6 +50,15 @@
             </Controls>
         </Button>
 
+        <Button name="TP_SettingsTab" virtual="true" inherits="ZO_ButtonBehaviorClickSound" font="ZoFontGame" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+            <Dimensions x="160" y="32" />
+            <FontColors normalColor="B8BBC2" pressedColor="E7C56A" mouseOverColor="E7C56A" />
+            <Controls>
+                <Backdrop name="$(parent)SelectedBackground" hidden="true"><AnchorFill /><OnInitialized>self:SetCenterColor(0.18, 0.14, 0.055, 0.48) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+                <Backdrop name="$(parent)Active" hidden="true"><Dimensions y="2" /><Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" /><OnInitialized>self:SetCenterColor(0.91, 0.77, 0.42, 1) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+            </Controls>
+        </Button>
+
         <Control name="TP_OverallRow" virtual="true" mouseEnabled="true">
             <Dimensions y="27" />
             <OnMouseWheel>TheProfit.ScrollOverall(delta)</OnMouseWheel>
@@ -220,6 +229,73 @@
             </Controls>
         </Control>
 
+        <Control name="TP_BuyListRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="31" />
+            <OnMouseWheel>TheProfit.ScrollBuyList(delta)</OnMouseWheel>
+            <Controls>
+                <Backdrop name="$(parent)Background"><AnchorFill /><OnInitialized>self:SetCenterColor(0.045, 0.049, 0.059, 0.72) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+                <Texture name="$(parent)Icon"><Dimensions x="22" y="22" /><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /></Texture>
+                <Label name="$(parent)Item" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS" linkEnabled="true" mouseEnabled="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="36" />
+                    <Dimensions x="214" y="31" />
+                    <OnMouseEnter>TheProfit.ShowGridItemTooltip(self)</OnMouseEnter>
+                    <OnMouseExit>TheProfit.HideGridItemTooltip()</OnMouseExit>
+                    <OnMouseUp>TheProfit.OpenGridItemLink(self, button, upInside)</OnMouseUp>
+                    <OnMouseWheel>TheProfit.ScrollBuyList(delta)</OnMouseWheel>
+                </Label>
+                <Backdrop name="$(parent)Price" inherits="ZO_SingleLineEditBackdrop_Keyboard">
+                    <Dimensions x="112" y="26" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="258" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop">
+                            <OnFocusGained>TheProfit.BeginBuyListEdit(self)</OnFocusGained>
+                            <OnEnter>self:LoseFocus()</OnEnter>
+                            <OnFocusLost>TheProfit.CommitBuyListValue(self, "maxPrice")</OnFocusLost>
+                        </EditBox>
+                    </Controls>
+                </Backdrop>
+                <Backdrop name="$(parent)Quantity" inherits="ZO_SingleLineEditBackdrop_Keyboard">
+                    <Dimensions x="80" y="26" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="378" />
+                    <Controls>
+                        <EditBox name="$(parent)Box" inherits="ZO_DefaultEditForBackdrop">
+                            <OnFocusGained>TheProfit.BeginBuyListEdit(self)</OnFocusGained>
+                            <OnEnter>self:LoseFocus()</OnEnter>
+                            <OnFocusLost>TheProfit.CommitBuyListValue(self, "quantity")</OnFocusLost>
+                        </EditBox>
+                    </Controls>
+                </Backdrop>
+                <Label name="$(parent)Bought" font="ZoFontGame" color="E7C56A" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="464" /><Dimensions x="70" y="31" /></Label>
+                <Label name="$(parent)Remaining" font="ZoFontGame" color="7DD98A" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="540" /><Dimensions x="70" y="31" /></Label>
+                <Button name="$(parent)Remove">
+                    <Dimensions x="22" y="22" />
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="620" />
+                    <Textures normal="EsoUI/Art/Buttons/decline_up.dds" pressed="EsoUI/Art/Buttons/decline_down.dds" mouseOver="EsoUI/Art/Buttons/decline_over.dds" />
+                    <OnClicked>TheProfit.RemoveBuyListRow(self)</OnClicked>
+                    <OnMouseEnter>TheProfit.ShowHeaderTooltip(self, "buyListRemove")</OnMouseEnter>
+                    <OnMouseExit>TheProfit.HideHeaderTooltip()</OnMouseExit>
+                </Button>
+            </Controls>
+        </Control>
+
+        <Control name="TP_GroupShareRow" virtual="true" mouseEnabled="true">
+            <Dimensions y="31" />
+            <OnMouseWheel>TheProfit.ScrollGroupShare(delta)</OnMouseWheel>
+            <Controls>
+                <Backdrop name="$(parent)Background"><AnchorFill /><OnInitialized>self:SetCenterColor(0.045, 0.049, 0.059, 0.72) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+                <Texture name="$(parent)Icon"><Dimensions x="22" y="22" /><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /></Texture>
+                <Label name="$(parent)Item" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS" linkEnabled="true" mouseEnabled="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="36" />
+                    <Dimensions x="420" y="31" />
+                    <OnMouseEnter>TheProfit.ShowGridItemTooltip(self)</OnMouseEnter>
+                    <OnMouseExit>TheProfit.HideGridItemTooltip()</OnMouseExit>
+                    <OnMouseUp>TheProfit.OpenGridItemLink(self, button, upInside)</OnMouseUp>
+                    <OnMouseWheel>TheProfit.ScrollGroupShare(delta)</OnMouseWheel>
+                </Label>
+                <Label name="$(parent)Price" font="ZoFontGame" color="E7C56A" horizontalAlignment="RIGHT" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="466" /><Dimensions x="170" y="31" /></Label>
+            </Controls>
+        </Control>
+
         <Control name="TP_ItemSaleRow" virtual="true" mouseEnabled="true">
             <Dimensions y="31" />
             <OnMouseWheel>TheProfit.ScrollItemSales(delta)</OnMouseWheel>
@@ -340,6 +416,15 @@
                             <OnClicked>TheProfit.SetView("portfolio")</OnClicked>
                             <Controls><Backdrop name="$(parent)Active"><Dimensions y="2" /><Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" /><OnInitialized>self:SetCenterColor(0.91, 0.77, 0.42, 1) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop></Controls>
                         </Button>
+                        <Button name="$(parent)SettingsTab" inherits="ZO_ButtonBehaviorClickSound">
+                            <Dimensions x="32" y="32" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)PortfolioTab" relativePoint="LEFT" offsetX="-8" />
+                            <Textures normal="EsoUI/Art/ChatWindow/chat_options_up.dds" pressed="EsoUI/Art/ChatWindow/chat_options_down.dds" mouseOver="EsoUI/Art/ChatWindow/chat_options_over.dds" />
+                            <OnClicked>TheProfit.OpenSettings()</OnClicked>
+                            <OnMouseEnter>TheProfit.ShowHeaderTooltip(self, "tabSettings")</OnMouseEnter>
+                            <OnMouseExit>TheProfit.HideHeaderTooltip()</OnMouseExit>
+                            <Controls><Backdrop name="$(parent)Active" hidden="true"><Dimensions y="2" /><Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetY="-3" /><Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetY="-3" /><OnInitialized>self:SetCenterColor(0.91, 0.77, 0.42, 1) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop></Controls>
+                        </Button>
                     </Controls>
                 </Control>
 
@@ -398,6 +483,7 @@
                             </Controls>
                         </Control>
                         <Button name="$(parent)Remove" inherits="ZO_DefaultButton"><Dimensions x="220" y="30" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-8" offsetY="-24" /><OnClicked>TheProfit.RemoveSelectedItem()</OnClicked></Button>
+                        <Label name="$(parent)TTCWarning" font="ZoFontGameSmall" color="F25952" verticalAlignment="CENTER" hidden="true"><Dimensions x="410" y="40" /><Anchor point="RIGHT" relativeTo="$(parent)Remove" relativePoint="LEFT" offsetX="-12" /></Label>
                     </Controls>
                 </Control>
 
@@ -418,9 +504,18 @@
                                 <Label name="$(parent)SaleWhen" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="568" /><Dimensions x="80" y="26" /></Label>
                             </Controls>
                         </Control>
+                        <Control name="$(parent)Summary">
+                            <Dimensions y="31" />
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-12" />
+                            <Controls>
+                                <Backdrop name="$(parent)Background"><AnchorFill /><OnInitialized>self:SetCenterColor(0.18, 0.14, 0.055, 0.48) self:SetEdgeColor(0, 0, 0, 0)</OnInitialized></Backdrop>
+                                <Label name="$(parent)Text" font="ZoFontGame" color="E8E9EC" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="RIGHT" offsetX="-8" /><Dimensions y="31" /></Label>
+                            </Controls>
+                        </Control>
                         <Control name="$(parent)Rows" mouseEnabled="true">
                             <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetY="2" />
-                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-12" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Summary" relativePoint="TOPRIGHT" offsetY="-2" />
                             <OnMouseWheel>TheProfit.ScrollLedger(delta)</OnMouseWheel>
                             <Controls>
                                 <Control name="$(parent)Row1" inherits="TP_LedgerRow"><Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" /><Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" /></Control>
@@ -439,13 +534,12 @@
                                 <Control name="$(parent)Row14" inherits="TP_LedgerRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row13" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row13" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                                 <Control name="$(parent)Row15" inherits="TP_LedgerRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row14" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row14" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                                 <Control name="$(parent)Row16" inherits="TP_LedgerRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row15" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row15" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
-                                <Control name="$(parent)Row17" inherits="TP_LedgerRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row16" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row16" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
                             </Controls>
                         </Control>
                         <Slider name="$(parent)Scrollbar" mouseEnabled="true" step="1" hidden="true">
                             <Dimensions x="8" />
                             <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-2" offsetY="32" />
-                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-2" offsetY="-9" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Rows" relativePoint="BOTTOMRIGHT" offsetX="10" />
                             <Limits min="0" max="1" />
                             <ThumbTexture textureFile="EsoUI/Art/ChatWindow/chat_thumb.dds" disabledTextureFile="EsoUI/Art/ChatWindow/chat_thumb_disabled.dds" thumbWidth="8" thumbHeight="54" bottom="0.6875" />
                             <BackgroundMiddle textureFile="EsoUI/Art/ChatWindow/chat_scrollbar_track.dds" />
@@ -862,6 +956,126 @@
                             <OnMouseWheel>TheProfit.ScrollStockListings(delta)</OnMouseWheel>
                         </Slider>
                         <Label name="$(parent)Empty" font="ZoFontGame" color="777C86" horizontalAlignment="CENTER" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="TOPLEFT" relativeTo="$(parent)ListingRows" relativePoint="TOPLEFT" offsetX="12" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ListingRows" relativePoint="BOTTOMRIGHT" offsetX="-12" /></Label>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)SettingsNav" hidden="true">
+                    <Dimensions y="32" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)TitleBar" relativePoint="BOTTOMLEFT" offsetX="12" offsetY="10" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)TitleBar" relativePoint="BOTTOMRIGHT" offsetX="-24" offsetY="10" />
+                    <Controls>
+                        <Button name="$(parent)BuyListTab" inherits="TP_SettingsTab"><Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" /><OnClicked>TheProfit.SetView("buyList")</OnClicked></Button>
+                        <Button name="$(parent)GroupShareTab" inherits="TP_SettingsTab"><Anchor point="TOPLEFT" relativeTo="$(parent)BuyListTab" relativePoint="TOPRIGHT" offsetX="6" /><OnClicked>TheProfit.SetView("groupShare")</OnClicked></Button>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)GroupShareView" mouseEnabled="true" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)SettingsNav" relativePoint="BOTTOMLEFT" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-12" offsetY="-8" />
+                    <OnMouseWheel>TheProfit.ScrollGroupShare(delta)</OnMouseWheel>
+                    <Controls>
+                        <Control name="$(parent)Header">
+                            <Dimensions y="26" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-12" />
+                            <Controls>
+                                <Label name="$(parent)Item" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="440" y="26" /></Label>
+                                <Label name="$(parent)Price" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="466" /><Dimensions x="170" y="26" /></Label>
+                            </Controls>
+                        </Control>
+                        <Control name="$(parent)Rows" mouseEnabled="true">
+                            <Dimensions y="460" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetY="2" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetY="2" />
+                            <OnMouseWheel>TheProfit.ScrollGroupShare(delta)</OnMouseWheel>
+                            <Controls>
+                                <Control name="$(parent)Row1" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" /><Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" /></Control>
+                                <Control name="$(parent)Row2" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row1" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row3" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row2" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row4" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row3" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row5" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row4" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row6" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row5" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row5" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row7" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row6" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row6" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row8" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row7" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row7" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row9" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row8" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row8" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row10" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row9" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row9" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row11" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row10" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row10" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row12" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row11" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row11" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row13" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row12" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row12" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row14" inherits="TP_GroupShareRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row13" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row13" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                            </Controls>
+                        </Control>
+                        <Slider name="$(parent)Scrollbar" mouseEnabled="true" step="1" hidden="true">
+                            <Dimensions x="8" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)Rows" relativePoint="TOPRIGHT" offsetX="10" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Rows" relativePoint="BOTTOMRIGHT" offsetX="10" />
+                            <Limits min="0" max="1" />
+                            <ThumbTexture textureFile="EsoUI/Art/ChatWindow/chat_thumb.dds" disabledTextureFile="EsoUI/Art/ChatWindow/chat_thumb_disabled.dds" thumbWidth="8" thumbHeight="54" bottom="0.6875" />
+                            <BackgroundMiddle textureFile="EsoUI/Art/ChatWindow/chat_scrollbar_track.dds" />
+                            <OnValueChanged>TheProfit.OnGroupShareScrollChanged(value)</OnValueChanged>
+                            <OnMouseWheel>TheProfit.ScrollGroupShare(delta)</OnMouseWheel>
+                        </Slider>
+                        <Label name="$(parent)Empty" font="ZoFontGame" color="777C86" horizontalAlignment="CENTER" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="TOPLEFT" relativeTo="$(parent)Rows" relativePoint="TOPLEFT" offsetX="12" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Rows" relativePoint="BOTTOMRIGHT" offsetX="-12" /></Label>
+                        <Button name="$(parent)Refresh" inherits="ZO_DefaultButton">
+                            <Dimensions x="220" y="30" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-12" offsetY="-2" />
+                            <OnClicked>TheProfit.RefreshAndSendGroupShare()</OnClicked>
+                        </Button>
+                        <Label name="$(parent)Status" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="8" offsetY="-2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Refresh" relativePoint="TOPLEFT" offsetX="-12" /></Label>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)BuyListView" mouseEnabled="true" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)SettingsNav" relativePoint="BOTTOMLEFT" offsetY="8" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-12" offsetY="-8" />
+                    <OnMouseWheel>TheProfit.ScrollBuyList(delta)</OnMouseWheel>
+                    <Controls>
+                        <Control name="$(parent)Header">
+                            <Dimensions y="26" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" offsetX="-12" />
+                            <Controls>
+                                <Label name="$(parent)Item" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="8" /><Dimensions x="242" y="26" /></Label>
+                                <Label name="$(parent)Price" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="262" /><Dimensions x="108" y="26" /></Label>
+                                <Label name="$(parent)Quantity" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="382" /><Dimensions x="76" y="26" /></Label>
+                                <Label name="$(parent)Bought" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="464" /><Dimensions x="70" y="26" /></Label>
+                                <Label name="$(parent)Remaining" font="ZoFontGameSmall" color="8D94A0" horizontalAlignment="RIGHT" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" offsetX="540" /><Dimensions x="70" y="26" /></Label>
+                            </Controls>
+                        </Control>
+                        <Control name="$(parent)Rows" mouseEnabled="true">
+                            <Dimensions y="460" />
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)Header" relativePoint="BOTTOMLEFT" offsetY="2" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)Header" relativePoint="BOTTOMRIGHT" offsetY="2" />
+                            <OnMouseWheel>TheProfit.ScrollBuyList(delta)</OnMouseWheel>
+                            <Controls>
+                                <Control name="$(parent)Row1" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT" /><Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT" /></Control>
+                                <Control name="$(parent)Row2" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row1" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row1" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row3" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row2" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row2" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row4" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row3" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row3" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row5" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row4" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row4" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row6" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row5" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row5" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row7" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row6" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row6" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row8" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row7" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row7" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row9" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row8" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row8" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row10" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row9" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row9" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row11" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row10" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row10" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row12" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row11" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row11" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row13" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row12" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row12" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                                <Control name="$(parent)Row14" inherits="TP_BuyListRow"><Anchor point="TOPLEFT" relativeTo="$(parent)Row13" relativePoint="BOTTOMLEFT" offsetY="2" /><Anchor point="TOPRIGHT" relativeTo="$(parent)Row13" relativePoint="BOTTOMRIGHT" offsetY="2" /></Control>
+                            </Controls>
+                        </Control>
+                        <Slider name="$(parent)Scrollbar" mouseEnabled="true" step="1" hidden="true">
+                            <Dimensions x="8" />
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)Rows" relativePoint="TOPRIGHT" offsetX="10" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Rows" relativePoint="BOTTOMRIGHT" offsetX="10" />
+                            <Limits min="0" max="1" />
+                            <ThumbTexture textureFile="EsoUI/Art/ChatWindow/chat_thumb.dds" disabledTextureFile="EsoUI/Art/ChatWindow/chat_thumb_disabled.dds" thumbWidth="8" thumbHeight="54" bottom="0.6875" />
+                            <BackgroundMiddle textureFile="EsoUI/Art/ChatWindow/chat_scrollbar_track.dds" />
+                            <OnValueChanged>TheProfit.OnBuyListScrollChanged(value)</OnValueChanged>
+                            <OnMouseWheel>TheProfit.ScrollBuyList(delta)</OnMouseWheel>
+                        </Slider>
+                        <Label name="$(parent)Empty" font="ZoFontGame" color="777C86" horizontalAlignment="CENTER" verticalAlignment="CENTER" wrapMode="ELLIPSIS"><Anchor point="TOPLEFT" relativeTo="$(parent)Rows" relativePoint="TOPLEFT" offsetX="12" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Rows" relativePoint="BOTTOMRIGHT" offsetX="-12" /></Label>
+                        <Label name="$(parent)Hint" font="ZoFontGameSmall" color="8D94A0" verticalAlignment="TOP"><Anchor point="TOPLEFT" relativeTo="$(parent)Rows" relativePoint="BOTTOMLEFT" offsetX="8" offsetY="8" /><Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="-20" /></Label>
                     </Controls>
                 </Control>
 

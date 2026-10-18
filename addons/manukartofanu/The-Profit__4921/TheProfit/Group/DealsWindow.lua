@@ -10,9 +10,10 @@ local TITLE_HEIGHT = 30
 local HEADER_HEIGHT = 22
 local PADDING = 10
 local ICON_SIZE = 22
-local COLUMN_ITEM = 240
+-- Kiosk names with their zone are long, so the place column gets most of the width.
+local COLUMN_ITEM = 260
 local COLUMN_PRICE = 120
-local COLUMN_PLACE = 240
+local COLUMN_PLACE = 460
 local COLUMN_WHEN = 90
 local WIDTH = PADDING * 2 + COLUMN_ITEM + COLUMN_PRICE + COLUMN_PLACE + COLUMN_WHEN
 local HEIGHT = TITLE_HEIGHT + HEADER_HEIGHT + ROW_HEIGHT * VISIBLE_ROWS + PADDING
@@ -86,7 +87,7 @@ local function Refresh()
         local deal = deals[window.offset + index]
         row:SetHidden(deal == nil)
         if deal then
-            local item = TP.SV.trackedItems[deal.itemKey]
+            local item = TP.GetWantedItem(deal.itemKey)
             local alpha = deal.visitedAt and DIMMED_ALPHA or 1
             local name = item and item.name or "?"
             if deal.visitedAt then name = name .. " |c9B9FA9(" .. L("visited") .. ")|r" end
@@ -116,6 +117,8 @@ local function CreateLabel(name, parent, font, color, horizontalAlignment)
     label:SetHorizontalAlignment(horizontalAlignment or TEXT_ALIGN_LEFT)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     label:SetMaxLineCount(1)
+    -- A cut text ends in "...", so it is clear that something is missing.
+    label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     return label
 end
 

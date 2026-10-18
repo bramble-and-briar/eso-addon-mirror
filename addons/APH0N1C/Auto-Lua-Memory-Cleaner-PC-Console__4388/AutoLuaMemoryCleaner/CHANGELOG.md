@@ -1,6 +1,30 @@
 AutoLuaMemoryCleaner - Changelog
 =================================
 
+Version: 2026.10.18.01.41 (26101801)
+---------------------------
+
+Memory Cleanup
+  - Automatic cleanups are skipped when Lua memory grew less than the new Min. Growth Since Last Cleanup sliders allow (2 MB or 5% by default), in every cleanup method. A line under the sliders shows how much growth the next cleanup needs.
+  - Entering combat stops a Background cleanup, and it finishes after combat.
+  - When memory is under the threshold, ALC still runs a Background cleanup once per Lua Cleanup Delay to catch garbage (not in combat), once Lua memory has grown by the Min. Growth Since Last Cleanup sliders (2 MB or 5% by default). It shows in chat and as an announcement, marked Garbage Check, only with the new Garbage Check CSA & Chat Logs on (off by default).
+  - Added Garbage Check Ignores Min. Growth (off by default): with it on, the garbage check runs every Lua Cleanup Delay without waiting for the Min. Growth sliders.
+
+Low Memory Protection
+  - On console, when add-on memory reaches 70 MB, where the game warns that it is low, ALC now cleans in small steps every frame until it is back under 65 MB (Before, it ran a single cleanup when the game warned: a Deep Clean with Automatic, otherwise the method you picked), in every cleanup method. It ignores the threshold, the minimum growth and the cleanup delay while it does, uses about 2 ms of each frame (up to 6 ms as memory nears 90 MB, never more than the game leaves free for add-ons), and keeps going in combat. Above 80 MB, when the small steps cannot bring memory down, it also runs a Deep Clean, at most every 5 seconds. ALC uses LibAPH's low-memory rescue, so every add-on that starts one shares a single rescue.
+  - Added Reload When Add-On Memory Is Almost Full (console, off by default). The game turns add-ons off at about 90 MB of add-on memory, so if it stays above 85 MB for 10 seconds ALC asks whether to reload the UI (5 seconds to answer), and at 88.5 MB, or sooner when memory is climbing fast enough to reach 89.5 MB within a second, it saves every add-on's data and reloads right away. If the reload does not bring it below 85 MB, ALC asks you to restart the game.
+  - Added Low Memory CSA & Chat Logs (console, off by default). With it on, each low-memory step (cleaning started, memory back down, almost full, reloading, reloaded) shows a short announcement and the full message in chat, whatever Center Screen Announcements and Chat Logs are set to.
+
+Memory Pool Cleanup
+  - Auto Pool Cleanup After Travel is now Reload After Loading Screen When Memory Is Bloated, on PC and console, off by default. After a loading screen, if memory is still above the threshold after a full cleanup, ALC saves every add-on's data and reloads the UI (Console Pool Threshold on console, the new PC Reload Threshold (MB) on PC, 500 MB by default). It never reloads in trials, arenas, group dungeons, the Infinite Archive, battlegrounds, Cyrodiil, Imperial City or duels, or while queued for an activity.
+  - Added Minimum Time Between Reloads (Minutes), 10 to 180 (60 by default), for Reload After Loading Screen When Memory Is Bloated.
+  - Added Reload When AFK (PC and console, off by default) with AFK Time Before Reload (Minutes), 3 to 15 (10 by default). After that long standing still on the HUD, ALC saves every add-on's data and reloads the UI, then waits until you move before it can do it again. Moving, opening a menu or combat starts the time over, and it never reloads in the activities above.
+
+Settings Menu
+  - Reload When Add-On Memory Is Almost Full is console only, and the PC Pool Threshold slider is gone.
+  - The Lua Cleanup Delay slider now starts at 5 seconds instead of 30.
+  - The Pool Cleanup Delay slider is now Reload Delay (Seconds), and the setup wizard's default is now 3 seconds, the same as the settings default.
+
 Version: 2026.10.07.17.24 (26100717)
 ---------------------------
 

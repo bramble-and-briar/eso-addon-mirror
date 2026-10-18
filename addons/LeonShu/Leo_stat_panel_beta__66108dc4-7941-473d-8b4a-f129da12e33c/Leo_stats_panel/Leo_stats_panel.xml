@@ -1,0 +1,81 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="Leo_stats_panel_WPD" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="180" y="48" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="300" offsetY="120" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- WPD">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="Leo_stats_panel_ARM" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="180" y="48" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="300" offsetY="180" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--/-- ARM">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="Leo_stats_panel_MREG" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="180" y="48" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="300" offsetY="240" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- MREG">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="Leo_stats_panel_SREG" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="180" y="48" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="300" offsetY="300" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- SREG">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="Leo_stats_panel_CRIT" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="180" y="48" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="500" offsetY="120" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="-- CRIT">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+
+        <TopLevelControl name="Leo_stats_panel_PEN" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="180" y="48" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="500" offsetY="180" />
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+                <Label name="$(parent)Text" layer="OVERLAY" level="5" text="--/-- PEN">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

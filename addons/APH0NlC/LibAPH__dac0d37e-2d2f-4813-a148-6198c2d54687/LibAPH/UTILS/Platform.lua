@@ -35,6 +35,23 @@ function LibAPH.IsAddOnRunningState(isEnabled, state)
 	return isEnabled == true and (state == ADDON_STATE_ENABLED or state == ADDON_STATE_VERSION_MISMATCH)
 end
 
+function LibAPH.CountRunningAddOns()
+	local am = GetAddOnManager()
+	local counts = { on = 0, total = 0, libs_on = 0, libs_total = 0 }
+	for i = 1, am:GetNumAddOns() do
+		local _, _, _, _, isEnabled, state, _, isLibrary = am:GetAddOnInfo(i)
+		local running = LibAPH.IsAddOnRunningState(isEnabled, state)
+		if isLibrary then
+			counts.libs_total = counts.libs_total + 1
+			if running then counts.libs_on = counts.libs_on + 1 end
+		else
+			counts.total = counts.total + 1
+			if running then counts.on = counts.on + 1 end
+		end
+	end
+	return counts
+end
+
 function LibAPH.IsAddonActiveAndRunning(addonName)
 	local am = GetAddOnManager()
 	for i = 1, am:GetNumAddOns() do
@@ -55,6 +72,16 @@ end
 function LibAPH.GetKeybindMarkup(action)
 	return ZO_Keybindings_GetHighestPriorityBindingStringFromAction(action,
 		KEYBIND_TEXT_OPTIONS_ABBREVIATED_NAME, KEYBIND_TEXTURE_OPTIONS_EMBED_MARKUP, true) or ""
+end
+
+function LibAPH.IsDialogOnScreen()
+	if not ZO_Dialogs_IsShowingDialog() then return false end
+	local sync = ZO_DIALOG_SYNC_OBJECT
+	local name = sync and type(sync.GetState) == "function" and sync:GetState()
+	if type(name) ~= "string" or name == "" then return true end
+	local dialog = ZO_Dialogs_FindDialog(name)
+	if not dialog or type(dialog.IsHidden) ~= "function" then return true end
+	return not dialog:IsHidden()
 end
 
 function LibAPH.IsGameScreenShown()

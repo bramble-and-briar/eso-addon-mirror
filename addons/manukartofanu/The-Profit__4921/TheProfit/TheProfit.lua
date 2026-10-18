@@ -4,7 +4,21 @@ local TP = TheProfit
 local EM = EVENT_MANAGER
 
 TP.name = "TheProfit"
-TP.version = "1.1.1"
+
+-- The version comes from the manifest's AddOnVersion (10102 -> "1.1.2"), so a release
+-- only changes the manifest.
+local function GetManifestVersion()
+    local manager = GetAddOnManager()
+    for index = 1, manager:GetNumAddOns() do
+        if manager:GetAddOnInfo(index) == TP.name then
+            local version = manager:GetAddOnVersion(index)
+            return string.format("%d.%d.%d", math.floor(version / 10000), math.floor(version / 100) % 100, version % 100)
+        end
+    end
+    return "?"
+end
+
+TP.version = GetManifestVersion()
 -- Events for optional modules: TrackedItemAdded(itemKey), TrackedItemRemoved(itemKey),
 -- MarketDataLoaded().
 TP.callbacks = ZO_CallbackObject:New()
@@ -51,13 +65,15 @@ local MARKET_MIN_TRADES = 30
 local MARKET_TRIM_FRACTION = 0.15
 local MAX_TRACKED_ITEMS = 10
 local VISIBLE_PORTFOLIO_ROWS = 10
-local LEDGER_VISIBLE_ROWS = 17
+local LEDGER_VISIBLE_ROWS = 16
 local PERSONAL_ACTIVITY_VISIBLE_ROWS = 16
 local GUILD_HISTORY_VISIBLE_ROWS = 14
 local WEEKLY_ANALYTICS_VISIBLE_ROWS = 7
 local STOCK_ITEM_VISIBLE_ROWS = 10
 local STOCK_LISTING_VISIBLE_ROWS = 7
 local ITEM_SALES_VISIBLE_ROWS = 10
+local BUY_LIST_VISIBLE_ROWS = 14
+local GROUP_SHARE_VISIBLE_ROWS = 14
 local SUMMARY_CACHE_TTL = 60
 local ANALYTICS_REFRESH_COOLDOWN_MS = 60 * 1000
 local GUILD_HISTORY_REFRESH_COOLDOWN_MS = 60 * 1000
@@ -86,6 +102,8 @@ local defaults = {
     selectedItem = nil,
     trackedItems = {},
     trackedItemOrder = {},
+    buyList = {},
+    buyListOrder = {},
     purchases = {},
     sales = {},
     listings = {},
@@ -105,12 +123,31 @@ local strings = {
         tabWeeklyAnalytics = "Stats",
         tabStock = "Stock",
         tabItem = "Price",
+        tabBuyList = "Buy List",
+        tabSettings = "Settings",
+        tabGroupShare = "Group Sharing",
+        groupSharePrice = "PRICE PER PIECE",
+        groupShareRefresh = "Refresh and Send",
+        groupShareNoLibrary = "LibGroupBroadcast is not available, so nothing is sent. This is what would be sent.",
+        groupShareOff = "Group sharing is off in the add-on settings, so nothing is sent. This is what would be sent.",
+        groupShareNotGrouped = "Not in a group. This list is sent when you join one.",
+        groupShareReady = "Sent to group members who also run The Profit.",
+        groupShareEmpty = "Nothing to share: no tracked or Buy List item has a price.",
         noItem = "No item selected",
         menuTrack = "Track in The Profit",
         menuSelect = "Select in The Profit",
         menuOpen = "Open The Profit",
         menuShowPrice = "Show Price",
         menuShowGuildSales = "Show Sales in My Guilds",
+        menuAddBuyList = "Add to Buy List",
+        buyListFull = "The Buy List already contains 20 items. Remove one before adding another.",
+        buyListMaxPrice = "MAX PRICE",
+        buyListQuantity = "QUANTITY",
+        buyListBought = "BOUGHT",
+        buyListRemaining = "LEFT",
+        buyListEmpty = "Right-click an item and choose Add to Buy List.",
+        buyListHint = "Max price is per piece; 0 uses the TTC suggested price, or the Portfolio buy price without one. Purchases count from the moment an item is added.",
+        buyListRemove = "Remove from Buy List",
         projectedProfit = "PROJECTED ITEM PROFIT",
         returnRate = "ROI",
         forecastPrice = "FORECAST PRICE",
@@ -129,6 +166,7 @@ local strings = {
         ledgerSaleWhen = "SOLD AT",
         ledgerSold = "SOLD",
         ledgerEmpty = "No portfolio purchases have been recorded yet.",
+        ledgerSummary = "Sold %s − fees %s − cost of sold %s = profit %s",
         ledgerBoughtTooltip = "Purchased quantity × unit price. A purchase split across several sales is shown on several rows.",
         ledgerSoldTooltip = "Matched sale quantity × unit price. Unsold quantities have no corresponding sale.",
         activityPurchases = "Purchases",
@@ -190,7 +228,7 @@ local strings = {
         agsFilterType = "AGS filter type",
         agsFilterTypeTooltip = "Which filter to show in AwesomeGuildStore. Changing this reloads the UI.",
         agsHintFontSize = "AGS hint font size",
-        agsHintFontSizeTooltip = "Size of The Profit's colored percentage or BUY hint in AwesomeGuildStore result rows.",
+        agsHintFontSizeTooltip = "Size of The Profit's colored percentage or DEAL hint in AwesomeGuildStore result rows.",
         showSimpleFilterInAGSTooltip = "Adds the simple filter to AwesomeGuildStore: the discount from the TTC suggested price, shown as a percentage and split into gray, green, blue, purple and gold. Requires TTC. Changing this reloads the UI.",
         guild = "GUILD",
         selected = "Now tracking %s",
@@ -198,6 +236,8 @@ local strings = {
         help2 = "/theprofit — open or close the ledger",
         help3 = "/theprofit track [item link] — select an item",
         ttcPriceTableStale = "The TTC price table is more than 3 days old, so TTC-based estimates are hidden. Update it with the TTC client and reload the UI.",
+        ttcOldHint = "TTC old",
+        ttcPortfolioWarning = "TTC prices are outdated. Update them with the TTC client, otherwise the guild store filter does not work.",
         missingLink = "Add an item link after /theprofit track",
         removeItem = "Stop Tracking in The Profit",
         portfolioFull = "The portfolio already contains 10 items. Remove one before adding another.",
@@ -219,12 +259,31 @@ local strings = {
         tabWeeklyAnalytics = "Статистика",
         tabStock = "Остатки",
         tabItem = "Цена",
+        tabBuyList = "Закупка",
+        tabSettings = "Настройки",
+        tabGroupShare = "Обмен с группой",
+        groupSharePrice = "ЦЕНА ЗА ШТУКУ",
+        groupShareRefresh = "Обновить и отправить",
+        groupShareNoLibrary = "LibGroupBroadcast недоступна, поэтому ничего не отправляется. Так выглядел бы отправляемый список.",
+        groupShareOff = "Обмен с группой выключен в настройках аддона, поэтому ничего не отправляется. Так выглядел бы отправляемый список.",
+        groupShareNotGrouped = "Вы не в группе. Этот список отправится, когда вы вступите в группу.",
+        groupShareReady = "Отправляется участникам группы, у которых тоже есть The Profit.",
+        groupShareEmpty = "Отправлять нечего: ни у одного отслеживаемого или закупаемого предмета нет цены.",
         noItem = "Предмет не выбран",
         menuTrack = "Отслеживать в The Profit",
         menuSelect = "Выбрать в The Profit",
         menuOpen = "Открыть The Profit",
         menuShowPrice = "Показать цену",
         menuShowGuildSales = "Показать продажи в моих гильдиях",
+        menuAddBuyList = "Добавить в закупку",
+        buyListFull = "В закупке уже 20 позиций. Уберите одну перед добавлением новой.",
+        buyListMaxPrice = "МАКС. ЦЕНА",
+        buyListQuantity = "КОЛИЧЕСТВО",
+        buyListBought = "КУПЛЕНО",
+        buyListRemaining = "ОСТАЛОСЬ",
+        buyListEmpty = "Щёлкните предмет правой кнопкой и выберите «Добавить в закупку».",
+        buyListHint = "Макс. цена указывается за штуку; 0 — рекомендованная цена TTC, а без неё цена покупки из портфеля. Покупки считаются с момента добавления предмета.",
+        buyListRemove = "Убрать из закупки",
         projectedProfit = "ПРОГНОЗНАЯ ПРИБЫЛЬ ПРЕДМЕТА",
         returnRate = "ROI",
         forecastPrice = "РАСЧЁТНАЯ ЦЕНА",
@@ -243,6 +302,7 @@ local strings = {
         ledgerSaleWhen = "ПРОДАЖА",
         ledgerSold = "ПРОДАНО",
         ledgerEmpty = "Покупок для портфельного учёта пока нет.",
+        ledgerSummary = "Продано %s − комиссии %s − закупка проданного %s = прибыль %s",
         ledgerBoughtTooltip = "Количество покупки × цена за единицу. Если покупка закрывалась несколькими продажами, она показана несколькими строками.",
         ledgerSoldTooltip = "Сопоставленное количество продажи × цена за единицу. У непроданного остатка соответствующей продажи нет.",
         activityPurchases = "Покупки",
@@ -304,7 +364,7 @@ local strings = {
         agsFilterType = "Тип фильтра AGS",
         agsFilterTypeTooltip = "Какой фильтр показывать в AwesomeGuildStore. Изменение перезагружает интерфейс.",
         agsHintFontSize = "Размер шрифта подсказки в AGS",
-        agsHintFontSizeTooltip = "Размер цветного процента или надписи BUY от The Profit в строках результатов AwesomeGuildStore.",
+        agsHintFontSizeTooltip = "Размер цветного процента или надписи DEAL от The Profit в строках результатов AwesomeGuildStore.",
         showSimpleFilterInAGSTooltip = "Добавляет в AwesomeGuildStore простой фильтр: скидка от рекомендованной цены TTC в процентах, разбитая на серый, зелёный, синий, фиолетовый и золотой. Нужен TTC. Изменение перезагружает интерфейс.",
         guild = "ГИЛЬДИЯ",
         selected = "Теперь отслеживается %s",
@@ -312,6 +372,8 @@ local strings = {
         help2 = "/theprofit — открыть или закрыть окно",
         help3 = "/theprofit track [ссылка на предмет] — выбрать предмет",
         ttcPriceTableStale = "Таблица цен TTC старше 3 дней, поэтому оценки по TTC скрыты. Обновите её через клиент TTC и перезагрузите интерфейс.",
+        ttcOldHint = "TTC устар.",
+        ttcPortfolioWarning = "Цены TTC устарели. Обновите их клиентом TTC, иначе фильтр в магазине не работает.",
         missingLink = "Добавьте ссылку на предмет после /theprofit track",
         removeItem = "Прекратить отслеживание в The Profit",
         portfolioFull = "В портфеле уже 10 позиций. Уберите одну перед добавлением новой.",
@@ -1181,6 +1243,12 @@ local function ColorizeCardCaption(text)
     return "|c9B9FA9" .. tostring(text or "") .. "|r"
 end
 
+-- Views opened from the gear tab in the title bar, mapped to their tab in SettingsNav.
+local SETTINGS_TABS = {
+    buyList = "BuyListTab",
+    groupShare = "GroupShareTab",
+}
+
 local function SetViewVisibility()
     if not TP.window then return end
     local view = TP.activeView or "portfolio"
@@ -1198,6 +1266,12 @@ local function SetViewVisibility()
     if weeklyAnalytics then weeklyAnalytics:SetHidden(view ~= "weeklyAnalytics") end
     local stock = TP.window:GetNamedChild("StockView")
     if stock then stock:SetHidden(view ~= "stock") end
+    local buyList = TP.window:GetNamedChild("BuyListView")
+    if buyList then buyList:SetHidden(view ~= "buyList") end
+    local groupShare = TP.window:GetNamedChild("GroupShareView")
+    if groupShare then groupShare:SetHidden(view ~= "groupShare") end
+    local settingsNav = TP.window:GetNamedChild("SettingsNav")
+    if settingsNav then settingsNav:SetHidden(not SETTINGS_TABS[view]) end
     local itemView = TP.window:GetNamedChild("ItemView")
     local tradingGuildDialog = TP.window:GetNamedChild("TradingGuildDialog")
     local tradingGuildDialogOpen = tradingGuildDialog and not tradingGuildDialog:IsHidden()
@@ -1217,10 +1291,20 @@ local function SetViewVisibility()
         local active = button and button:GetNamedChild("Active")
         if active then active:SetHidden(view ~= tabView) end
     end
+    local settingsActive = TP.window:GetNamedChild("TitleBarSettingsTabActive")
+    if settingsActive then settingsActive:SetHidden(not SETTINGS_TABS[view]) end
+    for tabView, name in pairs(SETTINGS_TABS) do
+        local button = TP.window:GetNamedChild("SettingsNav" .. name)
+        if button then
+            button:GetNamedChild("SelectedBackground"):SetHidden(view ~= tabView)
+            button:GetNamedChild("Active"):SetHidden(view ~= tabView)
+        end
+    end
 end
 
 function TP.SetView(view)
-    if view ~= "portfolio" and view ~= "ledger" and view ~= "personalActivity" and view ~= "guildHistory" and view ~= "weeklyAnalytics" and view ~= "stock" and view ~= "item" then return end
+    if view ~= "portfolio" and view ~= "ledger" and view ~= "personalActivity" and view ~= "guildHistory" and view ~= "weeklyAnalytics" and view ~= "stock" and view ~= "buyList" and view ~= "groupShare" and view ~= "item" then return end
+    if SETTINGS_TABS[view] then TP.lastSettingsView = view end
     if TP.activeView == view then return end
     TP.activeView = view
     TP.HideHeaderTooltip()
@@ -1228,6 +1312,10 @@ function TP.SetView(view)
         TP.EnsureFullGuildHistoryLoaded()
     end
     TP.RefreshUI()
+end
+
+function TP.OpenSettings()
+    TP.SetView(TP.lastSettingsView or "buyList")
 end
 
 function TP.OpenTradingGuilds()
@@ -1547,10 +1635,62 @@ local function GetRecentMarketSales(itemKey, guildIdFilter)
     return result
 end
 
+-- Purchases made one right after another, of the same item at the same unit price with
+-- no other purchase in between, form a run that the Ledger shows as one lot. Returns
+-- the run of each purchase key and the time of each run's newest purchase.
+local function GetPurchaseRuns(purchasesByItem)
+    local purchases = {}
+    for itemKey, bucket in pairs(purchasesByItem) do
+        for purchaseKey, purchase in pairs(bucket) do
+            local quantity = tonumber(purchase.quantity) or 0
+            if purchase.status ~= "failed" and quantity > 0 then
+                purchases[#purchases + 1] = {
+                    key = purchaseKey,
+                    itemKey = itemKey,
+                    timestamp = tonumber(purchase.timestamp) or 0,
+                    unitPrice = (tonumber(purchase.price) or 0) / quantity,
+                    sortKey = purchase.id or purchaseKey,
+                }
+            end
+        end
+    end
+    table.sort(purchases, SortOldestTransactionFirst)
+
+    local runs, runTimes, previous = {}, {}, nil
+    for _, purchase in ipairs(purchases) do
+        local run = tostring(purchase.sortKey)
+        if previous and previous.itemKey == purchase.itemKey and previous.unitPrice == purchase.unitPrice then
+            run = runs[previous.key]
+        end
+        runs[purchase.key] = run
+        runTimes[run] = purchase.timestamp
+        previous = purchase
+    end
+    return runs, runTimes
+end
+
+-- Also returns the totals of the matched part only: sales revenue, their listing fees
+-- and trading-house cut, and the purchase cost of the pieces sold. Unsold remainders
+-- add nothing to them.
 local function GetLedgerEntries()
     local result = {}
+    local totals = { sold = 0, fees = 0, cost = 0 }
     local purchasesByItem = TP.runtime and TP.runtime.purchasesByItem or {}
     local salesByItem = TP.runtime and TP.runtime.salesByItem or {}
+    local runs, runTimes = GetPurchaseRuns(purchasesByItem)
+
+    -- Rows of one run that went to the same sale, or are both unsold, become one row.
+    local rowsByGroup = {}
+    local function AddRow(group, row)
+        local existing = rowsByGroup[group]
+        if not existing then
+            rowsByGroup[group] = row
+            result[#result + 1] = row
+            return
+        end
+        existing.purchaseQuantity = existing.purchaseQuantity + row.purchaseQuantity
+        if row.saleQuantity then existing.saleQuantity = existing.saleQuantity + row.saleQuantity end
+    end
 
     for itemKey, purchaseBucket in pairs(purchasesByItem) do
         if IsTrackedKey(itemKey) then
@@ -1567,8 +1707,11 @@ local function GetLedgerEntries()
                     if (not itemName or itemName == "") and itemLink then
                         itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink))
                     end
+                    local run = runs[purchaseKey] or tostring(purchase.id or purchaseKey)
                     purchaseLots[#purchaseLots + 1] = {
                         id = tostring(purchase.id or purchaseKey),
+                        run = run,
+                        runTimestamp = runTimes[run] or tonumber(purchase.timestamp) or 0,
                         timestamp = tonumber(purchase.timestamp) or 0,
                         quantity = quantity,
                         remaining = quantity,
@@ -1585,12 +1728,16 @@ local function GetLedgerEntries()
                 local quantity = math.max(0, tonumber(sale.quantity) or 0)
                 local totalPrice = math.max(0, tonumber(sale.price) or 0)
                 if quantity > 0 and totalPrice > 0 then
+                    local listingFee = sale.listingFee
+                    if listingFee == nil then listingFee = GetSaleFees(totalPrice) end
+                    local fees = (tonumber(listingFee) or 0) + (tonumber(sale.tax) or 0)
                     saleRecords[#saleRecords + 1] = {
                         id = tostring(sale.id or saleKey),
                         timestamp = tonumber(sale.timestamp) or 0,
                         quantity = quantity,
                         remaining = quantity,
                         unitPrice = totalPrice / quantity,
+                        unitFees = fees / quantity,
                         sortKey = sale.id or saleKey,
                     }
                 end
@@ -1608,17 +1755,21 @@ local function GetLedgerEntries()
                         break
                     else
                         local quantity = math.min(sale.remaining, purchase.remaining)
-                        result[#result + 1] = {
-                            id = purchase.id .. ":" .. sale.id,
+                        totals.sold = totals.sold + quantity * sale.unitPrice
+                        totals.fees = totals.fees + quantity * sale.unitFees
+                        totals.cost = totals.cost + quantity * purchase.unitPrice
+                        AddRow(purchase.run .. ":" .. sale.id, {
+                            id = purchase.run .. ":" .. sale.id,
+                            lotId = purchase.run,
                             itemLink = purchase.itemLink,
                             itemName = purchase.itemName,
-                            purchaseTimestamp = purchase.timestamp,
+                            purchaseTimestamp = purchase.runTimestamp,
                             purchaseQuantity = quantity,
                             purchaseUnitPrice = purchase.unitPrice,
                             saleTimestamp = sale.timestamp,
                             saleQuantity = quantity,
                             saleUnitPrice = sale.unitPrice,
-                        }
+                        })
                         sale.remaining = sale.remaining - quantity
                         purchase.remaining = purchase.remaining - quantity
                         if purchase.remaining <= 0 then purchaseIndex = purchaseIndex + 1 end
@@ -1628,27 +1779,31 @@ local function GetLedgerEntries()
 
             for _, purchase in ipairs(purchaseLots) do
                 if purchase.remaining > 0 then
-                    result[#result + 1] = {
-                        id = purchase.id .. ":open",
+                    AddRow(purchase.run .. ":open", {
+                        id = purchase.run .. ":open",
+                        lotId = purchase.run,
                         itemLink = purchase.itemLink,
                         itemName = purchase.itemName,
-                        purchaseTimestamp = purchase.timestamp,
+                        purchaseTimestamp = purchase.runTimestamp,
                         purchaseQuantity = purchase.remaining,
                         purchaseUnitPrice = purchase.unitPrice,
-                    }
+                    })
                 end
             end
         end
     end
 
+    -- Newest purchases first, and the rows of one lot (run) together. Within a lot the
+    -- unsold remainder comes first, then its sales newest first.
     table.sort(result, function(a, b)
         if a.purchaseTimestamp ~= b.purchaseTimestamp then return a.purchaseTimestamp > b.purchaseTimestamp end
-        local aSale = tonumber(a.saleTimestamp) or 0
-        local bSale = tonumber(b.saleTimestamp) or 0
+        if a.lotId ~= b.lotId then return tostring(a.lotId) > tostring(b.lotId) end
+        local aSale = tonumber(a.saleTimestamp) or math.huge
+        local bSale = tonumber(b.saleTimestamp) or math.huge
         if aSale ~= bSale then return aSale > bSale end
         return tostring(a.id) > tostring(b.id)
     end)
-    return result
+    return result, totals
 end
 
 local function FormatQuantityAtPrice(quantity, unitPrice)
@@ -1695,23 +1850,27 @@ local function GetPersonalActivityEntries()
         local records = kind == "sale" and TP.SV.sales or TP.SV.purchases
 
         for key, record in pairs(records or {}) do
-            local quantity = math.max(0, tonumber(record.quantity) or 0)
-            local totalPrice = math.max(0, tonumber(record.price) or 0)
-            local itemLink, itemName = GetTransactionItemDisplay(record)
-            local guildName = record.guildName
-            if (not guildName or guildName == "") and record.guildId then
-                local guildId = tonumber(record.guildId)
-                if guildId then guildName = GetGuildName(guildId) end
+            -- A purchase the server rejected never happened; it is kept only so a
+            -- retry of the same lot can be recognized.
+            if record.status ~= "failed" then
+                local quantity = math.max(0, tonumber(record.quantity) or 0)
+                local totalPrice = math.max(0, tonumber(record.price) or 0)
+                local itemLink, itemName = GetTransactionItemDisplay(record)
+                local guildName = record.guildName
+                if (not guildName or guildName == "") and record.guildId then
+                    local guildId = tonumber(record.guildId)
+                    if guildId then guildName = GetGuildName(guildId) end
+                end
+                entries[#entries + 1] = {
+                    id = tostring(record.id or key),
+                    itemLink = itemLink,
+                    itemName = itemName,
+                    guildName = guildName and guildName ~= "" and guildName or "—",
+                    quantity = quantity,
+                    unitPrice = quantity > 0 and totalPrice / quantity or 0,
+                    timestamp = tonumber(record.timestamp) or 0,
+                }
             end
-            entries[#entries + 1] = {
-                id = tostring(record.id or key),
-                itemLink = itemLink,
-                itemName = itemName,
-                guildName = guildName and guildName ~= "" and guildName or "—",
-                quantity = quantity,
-                unitPrice = quantity > 0 and totalPrice / quantity or 0,
-                timestamp = tonumber(record.timestamp) or 0,
-            }
         end
 
         table.sort(entries, function(a, b)
@@ -2352,6 +2511,50 @@ function TP.OnLedgerScrollChanged(value)
         "ledgerScrollOffset")
 end
 
+function TP.ScrollBuyList(delta)
+    ScrollGridByWheel(delta, "buyListEntryCount", BUY_LIST_VISIBLE_ROWS, "buyListScrollOffset")
+end
+
+function TP.OnBuyListScrollChanged(value)
+    SetGridScrollValue(value, "settingBuyListScroll", "buyListEntryCount", BUY_LIST_VISIBLE_ROWS,
+        "buyListScrollOffset")
+end
+
+-- Edit boxes sit in a backdrop inside the row, and the row carries the item key. The
+-- key is taken when editing starts, so scrolling meanwhile cannot save to another item.
+function TP.BeginBuyListEdit(editBox)
+    local row = editBox and editBox:GetParent() and editBox:GetParent():GetParent()
+    editBox.itemKey = row and row.itemKey or nil
+end
+
+function TP.CommitBuyListValue(editBox, field)
+    local itemKey = editBox and editBox.itemKey
+    if not itemKey then return end
+    editBox.itemKey = nil
+    TP.SetBuyListValue(itemKey, field, editBox:GetText())
+    -- Also restores the saved number when the text did not change it, e.g. an empty box.
+    TP.RefreshUI()
+end
+
+function TP.RemoveBuyListRow(button)
+    local row = button and button:GetParent()
+    if row and row.itemKey then TP.RemoveFromBuyList(row.itemKey) end
+end
+
+function TP.ScrollGroupShare(delta)
+    ScrollGridByWheel(delta, "groupShareEntryCount", GROUP_SHARE_VISIBLE_ROWS, "groupShareScrollOffset")
+end
+
+function TP.OnGroupShareScrollChanged(value)
+    SetGridScrollValue(value, "settingGroupShareScroll", "groupShareEntryCount", GROUP_SHARE_VISIBLE_ROWS,
+        "groupShareScrollOffset")
+end
+
+function TP.RefreshAndSendGroupShare()
+    if TP.SendGroupShareNow then TP.SendGroupShareNow() end
+    TP.RefreshUI()
+end
+
 function TP.ScrollItemSales(delta)
     ScrollGridByWheel(delta, "itemSalesEntryCount", ITEM_SALES_VISIBLE_ROWS, "itemSalesScrollOffset")
 end
@@ -2393,7 +2596,7 @@ local function RefreshLedgerUI()
     header:GetNamedChild("SaleWhen"):SetText(TP.T("ledgerSaleWhen"))
     header:GetNamedChild("Sold"):SetText(TP.T("ledgerSold"))
 
-    local entries = GetLedgerEntries()
+    local entries, totals = GetLedgerEntries()
     TP.ledgerEntryCount = #entries
     local maxOffset = math.max(0, #entries - LEDGER_VISIBLE_ROWS)
     local scrollOffset = zo_clamp(TP.ledgerScrollOffset or 0, 0, maxOffset)
@@ -2433,6 +2636,13 @@ local function RefreshLedgerUI()
     local empty = view:GetNamedChild("Empty")
     empty:SetText(TP.T("ledgerEmpty"))
     empty:SetHidden(#entries > 0)
+
+    -- Rounded before subtracting, so the shown numbers add up exactly.
+    local sold, fees, cost = zo_round(totals.sold), zo_round(totals.fees), zo_round(totals.cost)
+    local profit = sold - fees - cost
+    view:GetNamedChild("SummaryText"):SetText(string.format(TP.T("ledgerSummary"),
+        FormatPlainGold(sold), FormatPlainGold(fees), FormatPlainGold(cost),
+        ColorizeProfitText(FormatPlainGold(profit), profit)))
 end
 
 local function RefreshPersonalActivityPeriod()
@@ -2992,6 +3202,121 @@ local function RefreshMarketSaleRow(row, entry)
     row:GetNamedChild("SaleWhen"):SetText((TP.FormatAge(entry.timestamp):gsub("%.$", "")))
 end
 
+-- A box the player is typing in keeps its text until it loses focus.
+local function SetEditText(backdrop, value)
+    local editBox = backdrop and backdrop:GetNamedChild("Box")
+    if not editBox then return end
+    if not editBox.numericInput then
+        editBox:SetTextType(TEXT_TYPE_NUMERIC_UNSIGNED_INT)
+        editBox:SetMaxInputChars(9)
+        editBox.numericInput = true
+    end
+    if not editBox:HasFocus() then editBox:SetText(tostring(value)) end
+end
+
+local function RefreshBuyListUI()
+    local view = TP.window:GetNamedChild("BuyListView")
+    if not view then return end
+    local keys = TP.GetBuyListKeys()
+
+    TP.buyListEntryCount = #keys
+    local maxOffset = math.max(0, #keys - BUY_LIST_VISIBLE_ROWS)
+    TP.buyListScrollOffset = zo_clamp(TP.buyListScrollOffset or 0, 0, maxOffset)
+    RefreshGridScrollbar(view:GetNamedChild("Scrollbar"), #keys, BUY_LIST_VISIBLE_ROWS, TP.buyListScrollOffset,
+        "settingBuyListScroll")
+
+    local header = view:GetNamedChild("Header")
+    header:GetNamedChild("Item"):SetText(TP.T("ledgerItem"))
+    header:GetNamedChild("Price"):SetText(TP.T("buyListMaxPrice"))
+    header:GetNamedChild("Quantity"):SetText(TP.T("buyListQuantity"))
+    header:GetNamedChild("Bought"):SetText(TP.T("buyListBought"))
+    header:GetNamedChild("Remaining"):SetText(TP.T("buyListRemaining"))
+
+    local rows = view:GetNamedChild("Rows")
+    for index = 1, BUY_LIST_VISIBLE_ROWS do
+        local row = rows:GetNamedChild("Row" .. index)
+        local itemKey = keys[TP.buyListScrollOffset + index]
+        local entry = TP.GetBuyListEntry(itemKey)
+        row:SetHidden(entry == nil)
+        row.itemKey = entry and itemKey or nil
+        row.itemLink = entry and entry.link or nil
+        if entry then
+            local itemIcon = row:GetNamedChild("Icon")
+            itemIcon:SetHidden(not entry.icon or entry.icon == "")
+            if entry.icon and entry.icon ~= "" then itemIcon:SetTexture(entry.icon) end
+            local itemLabel = row:GetNamedChild("Item")
+            itemLabel:SetText(entry.link)
+            local r, g, b = TP.GetGroupItemColor(entry.link)
+            itemLabel:SetColor(r, g, b, 1)
+            SetEditText(row:GetNamedChild("Price"), entry.maxPrice)
+            SetEditText(row:GetNamedChild("Quantity"), entry.quantity)
+            row:GetNamedChild("Bought"):SetText(ZO_CommaDelimitNumber(TP.GetBuyListBought(itemKey)))
+            local remaining = TP.GetBuyListRemaining(itemKey)
+            local remainingLabel = row:GetNamedChild("Remaining")
+            remainingLabel:SetText(ZO_CommaDelimitNumber(remaining))
+            if remaining > 0 then
+                remainingLabel:SetColor(0.49, 0.85, 0.54, 1)
+            else
+                remainingLabel:SetColor(0.47, 0.49, 0.53, 1)
+            end
+        end
+    end
+
+    view:GetNamedChild("Empty"):SetText(TP.T("buyListEmpty"))
+    view:GetNamedChild("Empty"):SetHidden(#keys > 0)
+    view:GetNamedChild("Hint"):SetText(TP.T("buyListHint"))
+end
+
+local GROUP_SHARE_STATUS_TEXT = {
+    noLibrary = "groupShareNoLibrary",
+    off = "groupShareOff",
+    notGrouped = "groupShareNotGrouped",
+    ready = "groupShareReady",
+}
+
+-- Read-only: the items and unit prices the group table carries, in send order.
+local function RefreshGroupShareUI()
+    local view = TP.window:GetNamedChild("GroupShareView")
+    if not view then return end
+    local entries = TP.GetGroupShareEntries and TP.GetGroupShareEntries() or {}
+
+    TP.groupShareEntryCount = #entries
+    local maxOffset = math.max(0, #entries - GROUP_SHARE_VISIBLE_ROWS)
+    TP.groupShareScrollOffset = zo_clamp(TP.groupShareScrollOffset or 0, 0, maxOffset)
+    RefreshGridScrollbar(view:GetNamedChild("Scrollbar"), #entries, GROUP_SHARE_VISIBLE_ROWS,
+        TP.groupShareScrollOffset, "settingGroupShareScroll")
+
+    local header = view:GetNamedChild("Header")
+    header:GetNamedChild("Item"):SetText(TP.T("ledgerItem"))
+    header:GetNamedChild("Price"):SetText(TP.T("groupSharePrice"))
+
+    local rows = view:GetNamedChild("Rows")
+    for index = 1, GROUP_SHARE_VISIBLE_ROWS do
+        local row = rows:GetNamedChild("Row" .. index)
+        local entry = entries[TP.groupShareScrollOffset + index]
+        local item = entry and TP.GetWantedItem(entry.itemKey)
+        row:SetHidden(entry == nil)
+        row.itemLink = item and item.link or nil
+        if entry then
+            local icon = item and item.icon
+            local itemIcon = row:GetNamedChild("Icon")
+            itemIcon:SetHidden(not icon or icon == "")
+            if icon and icon ~= "" then itemIcon:SetTexture(icon) end
+            local itemLabel = row:GetNamedChild("Item")
+            itemLabel:SetText(item and (item.link or item.name) or "?")
+            local r, g, b = TP.GetGroupItemColor(item and item.link)
+            itemLabel:SetColor(r, g, b, 1)
+            row:GetNamedChild("Price"):SetText(ZO_CommaDelimitNumber(entry.price))
+        end
+    end
+
+    view:GetNamedChild("Empty"):SetText(TP.T("groupShareEmpty"))
+    view:GetNamedChild("Empty"):SetHidden(#entries > 0)
+    local status = TP.GetGroupShareStatus and TP.GetGroupShareStatus() or "noLibrary"
+    view:GetNamedChild("Status"):SetText(TP.T(GROUP_SHARE_STATUS_TEXT[status]))
+    view:GetNamedChild("Refresh"):SetText(TP.T("groupShareRefresh"))
+end
+
 local function RefreshItemUI(selected)
     local view = TP.window:GetNamedChild("ItemView")
     if not view then return end
@@ -3085,6 +3410,8 @@ function TP.RefreshUI()
     SetLabelText("TitleBarWeeklyAnalyticsTab", TP.T("tabWeeklyAnalytics"))
     SetLabelText("TitleBarStockTab", TP.T("tabStock"))
     SetLabelText("TitleBarItemTab", TP.T("tabItem"))
+    SetLabelText("SettingsNavBuyListTab", TP.T("tabBuyList"))
+    SetLabelText("SettingsNavGroupShareTab", TP.T("tabGroupShare"))
     SetViewVisibility()
 
     if TP.activeView == "ledger" then
@@ -3102,6 +3429,12 @@ function TP.RefreshUI()
     elseif TP.activeView == "stock" then
         RefreshStockUI()
         return
+    elseif TP.activeView == "buyList" then
+        RefreshBuyListUI()
+        return
+    elseif TP.activeView == "groupShare" then
+        RefreshGroupShareUI()
+        return
     elseif TP.activeView == "item" then
         RefreshItemUI(selected)
         return
@@ -3111,6 +3444,12 @@ function TP.RefreshUI()
     SetLabelText("OverallRemove", TP.T("removeItem"))
     local removeButton = TP.window:GetNamedChild("OverallRemove")
     if removeButton then removeButton:SetEnabled(selected ~= nil) end
+    local ttcWarning = TP.window:GetNamedChild("OverallTTCWarning")
+    if ttcWarning then
+        local isStale = TP.SimpleMargin and TP.SimpleMargin.IsPriceTableStale and TP.SimpleMargin.IsPriceTableStale()
+        ttcWarning:SetText(TP.T("ttcPortfolioWarning"))
+        ttcWarning:SetHidden(not isStale)
+    end
     RefreshOverallUI(selected, summary)
 end
 
@@ -3386,6 +3725,7 @@ function TP.RecordSubmittedPurchase()
         InvalidatePersonalActivity("purchase")
     end
     InvalidateItemSummary((existing or purchase).itemKey)
+    TP.OnBuyListPurchaseChanged((existing or purchase).itemKey)
     TP.currentPurchaseKey = key
     TP.RefreshUI()
     RequestPrioritySave()
@@ -3397,7 +3737,9 @@ function TP.UpdateCurrentPurchase(status)
     if not purchase then return end
     purchase.status = status
     purchase.resolvedAt = GetTimeStamp()
+    InvalidatePersonalActivity("purchase")
     InvalidateItemSummary(purchase.itemKey)
+    TP.OnBuyListPurchaseChanged(purchase.itemKey)
     if status == "confirmed" or status == "failed" then
         TP.currentPurchaseKey = nil
     end
@@ -3434,9 +3776,10 @@ function TP.OnAGSPurchase(itemData, succeeded)
         purchase.status = succeeded and "confirmed" or "failed"
         TP.SV.purchases[key] = purchase
         if TP.runtime then AddIndexedRecord(TP.runtime.purchasesByItem, key, purchase) end
-        InvalidatePersonalActivity("purchase")
     end
+    InvalidatePersonalActivity("purchase")
     InvalidateItemSummary((existing or purchase).itemKey)
+    TP.OnBuyListPurchaseChanged((existing or purchase).itemKey)
     if TP.currentPurchaseKey == key then TP.currentPurchaseKey = nil end
     TP.RefreshUI()
     RequestPrioritySave()
@@ -4363,6 +4706,14 @@ local function AddTrackMenuItem(itemLink)
         if TP.window then TP.window:SetHidden(false) end
     end)
 
+    if not TP.GetBuyListEntry(itemKey) then
+        AddCustomMenuItem(TP.T("menuAddBuyList"), function()
+            if not TP.AddToBuyList(itemLink) then return end
+            TP.SetView("buyList")
+            if TP.window then TP.window:SetHidden(false) end
+        end)
+    end
+
     if not isTracked then
         AddCustomMenuItem(TP.T("menuShowGuildSales"), function()
             local itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemLinkName(itemLink))
@@ -4470,6 +4821,7 @@ local function OnAddOnLoaded(_, addonName)
     TP.SV.purchases = SanitizeSavedTransactions(TP.SV.purchases)
     TP.SV.sales = SanitizeSavedTransactions(TP.SV.sales)
     TP.SV.listings = SanitizeSavedListings(TP.SV.listings)
+    TP.SanitizeBuyList()
     TP.SV.listingSequence = math.max(0, math.floor(tonumber(TP.SV.listingSequence) or 0))
     local salesSyncTimeByGuild = {}
     for guildId, timestamp in pairs(TP.SV.salesSyncTimeByGuild or {}) do

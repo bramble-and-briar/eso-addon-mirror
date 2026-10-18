@@ -41,6 +41,8 @@ local ARROW_ROOM = 26
 local CLEAR_TEXTURE = "EsoUI/Art/Inventory/inventory_tabIcon_trash_up.dds"
 local CLEAR_TEXTURE_OVER = "EsoUI/Art/Inventory/inventory_tabIcon_trash_over.dds"
 local CLEAR_SIZE = 22
+local TIP_PAD = 8
+local TIP_LIFT = 10
 
 local function DefaultRowText(entry)
 	local where = entry.where or entry.scope or ""
@@ -88,6 +90,32 @@ function LibAPH.CreateSearchBar(opts)
 	local rows = {}
 	local flyout_row, flyout_key
 	local bar, backdrop, edit, scope_label, chevron, chevron_icon, list, footer, footer_hints, measure_main, measure_small
+	local tip, tip_label
+
+	local function HideTip()
+		if tip then tip:SetHidden(true) end
+	end
+
+	local function ShowTip(control, text)
+		if not tip then
+			tip = WINDOW_MANAGER:CreateControl(name .. "Tip", GuiRoot, CT_TOPLEVELCONTROL)
+			tip:SetDrawTier(DT_HIGH)
+			tip:SetDrawLayer(DL_OVERLAY)
+			tip:SetClampedToScreen(true)
+			tip:SetMouseEnabled(false)
+			LibAPH.ApplyPanelBackdrop(tip, name .. "TipBG", THEME.BG)
+			tip_label = WINDOW_MANAGER:CreateControl(name .. "TipText", tip, CT_LABEL)
+			tip_label:SetFont("ZoFontGameSmall")
+			Paint(tip_label, THEME.TEXT)
+			tip_label:SetAnchor(TOPLEFT, tip, TOPLEFT, TIP_PAD, TIP_PAD)
+		end
+		tip_label:SetText(text)
+		tip:SetDimensions(tip_label:GetTextWidth() + TIP_PAD * 2, tip_label:GetTextHeight() + TIP_PAD * 2)
+		tip:SetDrawLevel(bar:GetDrawLevel() + TIP_LIFT)
+		tip:ClearAnchors()
+		tip:SetAnchor(BOTTOM, control, TOP, 0, -4)
+		tip:SetHidden(false)
+	end
 
 	local function Store()
 		local store = opts.store
@@ -236,6 +264,11 @@ function LibAPH.CreateSearchBar(opts)
 
 	function sb:GetWidth() return width end
 
+	local function HideClear(row)
+		row.clear:SetHidden(true)
+		row.clear.icon:SetTexture(CLEAR_TEXTURE)
+	end
+
 	local function PaintRow(row, line, item_highlighted)
 		row.line = line
 		row.entry = line.entry
@@ -254,10 +287,10 @@ function LibAPH.CreateSearchBar(opts)
 			row.label:SetFont("ZoFontGameSmall")
 			row.label:SetText(zo_strupper(LibAPH.StripColors(tostring(line.header))))
 			Paint(row.label, THEME.ACCENT)
-			row.clear:SetHidden(not line.clear)
+			if line.clear then row.clear:SetHidden(false) else HideClear(row) end
 			return
 		end
-		row.clear:SetHidden(true)
+		HideClear(row)
 
 		local entry = line.entry
 		row:SetHeight(ROW_HEIGHT)
@@ -300,6 +333,7 @@ function LibAPH.CreateSearchBar(opts)
 		row.label:SetAnchor(LEFT, row, LEFT, left, 0)
 		row.label:SetText(text)
 		local room = width - EDGE_INSET * 2 - left + right
+		if TextWidth(row.label, text) + 2 > room then LibAPH.FitLabelText(row.label, text, { font = "ZoFontGame", width = room }) end
 		local label_width = math.min(TextWidth(row.label, text) + 2, room)
 		if sub and room - label_width >= MIN_SUB_WIDTH then
 			row.label:SetWidth(label_width)
@@ -407,7 +441,7 @@ function LibAPH.CreateSearchBar(opts)
 	function sb:ClearRecent()
 		if not opts.clearRecent then return false end
 		opts.clearRecent()
-		ZO_Tooltips_HideTextTooltip()
+		HideTip()
 		highlight = 1
 		offset = 0
 		self:RefreshInPlace()
@@ -771,24 +805,25 @@ function LibAPH.CreateSearchBar(opts)
 		row.arrow:SetAnchor(RIGHT, row, RIGHT, -8, 0)
 		row.arrow:SetHidden(true)
 
-		row.clear = WINDOW_MANAGER:CreateControl(name .. "RowClear" .. index, row, CT_TEXTURE)
-		row.clear:SetTexture(CLEAR_TEXTURE)
+		row.clear = WINDOW_MANAGER:CreateControl(name .. "RowClear" .. index, row, CT_BUTTON)
 		row.clear:SetDimensions(CLEAR_SIZE, CLEAR_SIZE)
 		row.clear:SetAnchor(RIGHT, row, RIGHT, -6, 0)
+		row.clear:SetDrawLevel(BAR_DRAW_LEVEL + 2)
 		row.clear:SetMouseEnabled(true)
 		row.clear:SetHidden(true)
+		row.clear.icon = WINDOW_MANAGER:CreateControl(name .. "RowClearIcon" .. index, row.clear, CT_TEXTURE)
+		row.clear.icon:SetTexture(CLEAR_TEXTURE)
+		row.clear.icon:SetAnchorFill(row.clear)
+		row.clear.icon:SetMouseEnabled(false)
 		row.clear:SetHandler("OnMouseEnter", function(self)
-			self:SetTexture(CLEAR_TEXTURE_OVER)
-			ZO_Tooltips_ShowTextTooltip(self, TOP, LibAPH.L("CLEAR_RECENT_SEARCHES"))
+			self.icon:SetTexture(CLEAR_TEXTURE_OVER)
+			ShowTip(self, LibAPH.L("CLEAR_RECENT_SEARCHES"))
 		end)
 		row.clear:SetHandler("OnMouseExit", function(self)
-			self:SetTexture(CLEAR_TEXTURE)
-			ZO_Tooltips_HideTextTooltip()
+			self.icon:SetTexture(CLEAR_TEXTURE)
+			HideTip()
 		end)
-		row.clear:SetHandler("OnMouseUp", function(_, button, upInside)
-			if not upInside or button ~= MOUSE_BUTTON_INDEX_LEFT then return end
-			sb:ClearRecent()
-		end)
+		row.clear:SetHandler("OnClicked", function() sb:ClearRecent() end)
 
 		row:SetHandler("OnMouseEnter", function(self)
 			if not self.line or not self.line.item then return end
@@ -1160,6 +1195,7 @@ function LibAPH.CreateSearchBar(opts)
 			LibAPH.CloseContextMenu()
 		end
 		self:CloseFlyout()
+		HideTip()
 		if not keep_ui_mode then self:LeaveUiMode() else entered_ui_mode = false end
 		expanded = false
 		chevron_icon:SetTextureRotation(0)

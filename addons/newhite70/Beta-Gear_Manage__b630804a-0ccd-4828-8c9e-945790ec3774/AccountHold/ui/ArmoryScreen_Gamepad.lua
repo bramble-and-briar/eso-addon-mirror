@@ -37,19 +37,33 @@
 -- is no second window, no queue, no animation race, and B pops one level rather
 -- than tearing everything down.
 --
--- EXPORT IS IMPOSSIBLE -- do not add it, do not stub it
--- ----------------------------------------------------
--- SaveArmoryBuild takes ONLY an index (ESOUIDocumentation.txt:18122) and
--- snapshots the character as they are RIGHT NOW; there is no API that accepts
--- build data. Every function that could equip gear or slot an ability
--- (PlaceInEquipSlot, PickupEquippedItem, RequestMoveItem, SelectSlotAbility,
--- PickupAbilityBySkillLine, PickupChampionSkillById) is *protected*, i.e. only
--- callable from real hardware input. Writing a planned build into the in-game
--- Armory therefore cannot be done by ANY add-on. The "Exporting" page states
--- that plainly rather than pretending it is a future feature.
+-- EXPORT TO THE IN-GAME ARMORY -- what is and is not possible
+-- -----------------------------------------------------------
+-- (An earlier revision of this header claimed export was impossible because
+-- "every function that could equip gear is protected". That was wrong:
+-- RequestEquipItem / RequestUnequipItem carry no *protected* marker
+-- (ESOUIDocumentation.txt@6639eb2:14951-14953) and the base game calls them
+-- straight from inventory UI code (inventoryslot.lua:1110, :1137).)
 --
--- IMPORT is fully possible, and it is the headline feature here: every read-side
--- Armory function is unprotected.
+-- SaveArmoryBuild(buildIndex) (doc:20370) is also unprotected, but it takes
+-- ONLY a slot index, snapshots what the character is wearing RIGHT NOW, and
+-- the server refuses it unless the player is at an Armory Station
+-- (ARMORY_BUILD_SAVE_RESULT_NO_INTERACTION, doc:8198). So "export" is real but
+-- has two halves: src/BuildEquip.lua equips the Quartermaster build, then
+-- offers to save it into the chosen slot the next time the player opens an
+-- Armory Station (EVENT_OPEN_ARMORY_MENU). No add-on can write arbitrary data
+-- into an Armory slot without the character wearing it.
+--
+-- QUICKSLOTS. A build cannot be put on the quickslot wheel: the wheel accepts
+-- only ITEM / COLLECTIBLE / QUEST_ITEM / EMOTE / QUICK_CHAT actions
+-- (assignableutilitywheel_shared.lua:4-12) and SelectSlotItem /
+-- SelectSlotSimpleAction are *protected* (doc:14321-14323). The equivalent
+-- offered here is the one-press "Quick equip" list at the top of this screen
+-- and the X (Equip Build) button.
+--
+-- IMPORT is fully possible: every read-side Armory function is unprotected,
+-- and an import now also copies the build's gear, bars and stars so it can be
+-- equipped straight away.
 --
 -- BASE-GAME CONTRACT -- every line read from esoui/esoui @ master
 -- --------------------------------------------------------------
@@ -110,11 +124,10 @@
 -- and GetItemLink still reads those bags, which is why the importer below has a
 -- second pass rather than dropping every non-VALID slot.
 --
--- The following are read but deliberately NOT modelled: build icon, champion
--- points, attributes, mundus, curse, outfit, action bars. The Quartermaster
--- model (Contract E) stores SET assignments per gear slot and nothing else, and
--- inventing storage for the rest here would fork the schema behind the model's
--- back. They are listed in the report as a possible model extension.
+-- The planner model (Contract E) stores SET assignments per gear slot. The
+-- EQUIPPABLE part of a build -- exact gear, both bars, champion stars, food --
+-- is the `loadout` owned by src/BuildEquip.lua. Build icon, attributes, mundus,
+-- curse and outfit are still not modelled.
 --
 -- ESO runs Lua 5.1: no goto, no //, no bitwise operators. This file must LOAD
 -- under tests/zos_mock.lua with none of the ZO_* globals present, so every
@@ -180,6 +193,9 @@ local PAGE_NAME       = "name"
 local PAGE_CONFIRM    = "confirm"
 local PAGE_IMPORT     = "import"
 local PAGE_EXPORT     = "export"
+local PAGE_EXPORT_SLOT = "exportSlot"
+local PAGE_AUTO       = "auto"
+local PAGE_FOOD       = "food"
 
 Armory.PAGE_CHARACTERS = PAGE_CHARACTERS
 Armory.PAGE_BUILDS     = PAGE_BUILDS
@@ -189,6 +205,9 @@ Armory.PAGE_NAME       = PAGE_NAME
 Armory.PAGE_CONFIRM    = PAGE_CONFIRM
 Armory.PAGE_IMPORT     = PAGE_IMPORT
 Armory.PAGE_EXPORT     = PAGE_EXPORT
+Armory.PAGE_EXPORT_SLOT = PAGE_EXPORT_SLOT
+Armory.PAGE_AUTO       = PAGE_AUTO
+Armory.PAGE_FOOD       = PAGE_FOOD
 
 -- ---------------------------------------------------------------------------
 -- Guarded primitives
@@ -335,6 +354,22 @@ local function modelCall(name, ...)
     end
     return v
 end
+
+-- The equip engine (src/BuildEquip.lua). Same contract as modelCall: a missing
+-- engine or a throw yields nil, reported, never an error inside a rebuild.
+local function equipCall(name, ...)
+    local be = AccountHold and AccountHold.BuildEquip
+    if type(be) ~= "table" or type(be[name]) ~= "function" then return nil end
+    local ok, a, b, c = pcall(be[name], be, ...)
+    if not ok then
+        diag("error", "BuildEquip:%s failed: %s", name, tostring(a))
+        alert(L("SI_ACCOUNTHOLD_ARMORY_EQUIP_ERROR",
+            "The Quartermaster Armory hit an error. Details are in the diagnostics."))
+        return nil
+    end
+    return a, b, c
+end
+Armory._EquipCall = equipCall
 
 local function positiveInt(v)
     local n = tonumber(v)
@@ -660,6 +695,28 @@ function Armory.CountUntaggedBuilds()
         if b.owner == nil then n = n + 1 end
     end
     return n
+end
+
+-- This character's builds that can actually be equipped (they have a saved
+-- loadout), for the one-press Quick equip list.
+function Armory.QuickEquipRows(characterKey)
+    local want = charKey(characterKey)
+    local out = {}
+    if want == nil then return out end
+    local pending = equipCall("GetPending")
+    for _, b in ipairs(allBuilds()) do
+        if b.owner == want and equipCall("HasLoadout", b.id) then
+            local auto = equipCall("GetAuto", b.id)
+            out[#out + 1] = {
+                id       = b.id,
+                name     = b.name,
+                equipped = equipCall("IsEquipped", b.id) and true or false,
+                auto     = (type(auto) == "table" and auto.enabled) and true or false,
+                pending  = (type(pending) == "table" and pending.buildId == b.id) and true or false,
+            }
+        end
+    end
+    return out
 end
 
 -- The 14 gear slots in canonical order, each carrying whatever the build has
@@ -1264,6 +1321,15 @@ function Armory.ImportArmoryBuild(buildIndex)
     end
 
     out.message = Armory.FormatImportReport(out)
+    -- Also copy the Armory build's exact gear, bars and stars so the imported
+    -- build is equippable at once (src/BuildEquip.lua, GetArmoryBuildSlotBoundId
+    -- doc:20358). A failure here never undoes the set plan that already landed.
+    local okLo, counts = equipCall("ImportLoadoutFromArmory", buildId, index)
+    if okLo then
+        out.loadout = counts
+        out.message = out.message .. " " .. L("SI_ACCOUNTHOLD_ARMORY_IMPORT_LOADOUT",
+            "Its gear, skills and champion stars were saved too, so it can be equipped from here.")
+    end
     diag("info", "Imported Armory build %d as %q (%d slots).", index, tostring(out.name), stored)
     return out
 end
@@ -1581,12 +1647,43 @@ end
 
 local function pageCharacters()
     local out = {}
+
+    -- QUICK EQUIP -- the closest console-legal thing to "a build on a
+    -- quickslot" (see the header): this character's equippable builds, one A
+    -- press each, at the very top of the screen.
+    local current = Armory.CurrentCharacterKey()
+    if current then
+        local quick = Armory.QuickEquipRows(current)
+        local qHeader = fmt(L("SI_ACCOUNTHOLD_ARMORY_HDR_QUICK", "Quick equip - %s"), Armory.CurrentCharacterName())
+        for i = 1, #quick do
+            local q = quick[i]
+            local subs = {}
+            if q.equipped then
+                subs[#subs + 1] = L("SI_ACCOUNTHOLD_ARMORY_SUB_EQUIPPED", "Equipped")
+            else
+                subs[#subs + 1] = L("SI_ACCOUNTHOLD_ARMORY_SUB_PRESS_EQUIP", "Press A to equip")
+            end
+            if q.auto then subs[#subs + 1] = L("SI_ACCOUNTHOLD_ARMORY_SUB_AUTO_ON", "Auto-equip on") end
+            if q.pending then subs[#subs + 1] = L("SI_ACCOUNTHOLD_ARMORY_SUB_QUEUED", "Queued until out of combat") end
+            out[#out + 1] = {
+                id        = "quick:" .. tostring(q.id),
+                text      = fmt(L("SI_ACCOUNTHOLD_ARMORY_QUICK_ROW", "Equip %s"), q.name),
+                name      = q.name,
+                subLabels = subs,
+                icon      = ICON_BUILD,
+                header    = (i == 1) and qHeader or nil,
+                action    = "equipBuild",
+                buildId   = q.id,
+            }
+        end
+    end
+
     local rows = Armory.CharacterRows()
     local header = L("SI_ACCOUNTHOLD_ARMORY_HDR_CHARACTERS", "Characters")
     if #rows == 0 then
         infoRow(out, "nochars", L("SI_ACCOUNTHOLD_ARMORY_NO_CHARS",
             "No characters known yet. Log in on a character to register it."))
-        out[1].header = header
+        out[#out].header = header
     end
     for i = 1, #rows do
         local r = rows[i]
@@ -1629,17 +1726,19 @@ local function pageCharacters()
         header = L("SI_ACCOUNTHOLD_ARMORY_HDR_ARMORY", "In-game Armory"),
         action = "openImport",
     }
-    -- Deliberately phrased as reading, not doing. Exporting is impossible (see
-    -- the header of this file); a row that reads like a command and then
-    -- changes nothing is the bug the player actually reported.
+    -- Export is real now, in two halves (see the header): equip the build here,
+    -- save it at an Armory Station. This row explains the flow and shows any
+    -- export still waiting for a station.
+    local pendingExport = equipCall("GetPendingExport")
     out[#out + 1] = {
         id     = "armory:export",
-        text   = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_ROW",
-                   "Why builds cannot be exported to the Armory"),
-        name   = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_ROW",
-                   "Why builds cannot be exported to the Armory"),
-        subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_EXPLANATION", "Explanation") },
-        icon   = ICON_WARNING,
+        text   = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_ROW", "Save a build into the in-game Armory"),
+        name   = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_ROW", "Save a build into the in-game Armory"),
+        subLabels = { pendingExport
+            and fmt(L("SI_ACCOUNTHOLD_ARMORY_SUB_EXPORT_PENDING", "Waiting for an Armory Station (slot %d)"),
+                    tonumber(pendingExport.armoryIndex) or 0)
+            or L("SI_ACCOUNTHOLD_ARMORY_SUB_HOW", "How it works") },
+        icon   = ICON_NEW_BUILD,
         action = "openExport",
     }
     return out
@@ -1690,6 +1789,55 @@ end
 
 local function pageBuild(page)
     local out = {}
+
+    -- LOADOUT -- what Equip puts on, laid out like the native Armory station's
+    -- middle panel: Skills (both bars), Champion, then Weapons / Apparel.
+    local loHeader = L("SI_ACCOUNTHOLD_ARMORY_HDR_LOADOUT", "Equipment saved in this build")
+    local d = equipCall("DescribeLoadout", page.buildId)
+    if type(d) ~= "table" then
+        infoRow(out, "loadout:none", L("SI_ACCOUNTHOLD_ARMORY_NO_LOADOUT",
+            "Nothing saved to equip yet. Press Y (Save Build) to save what you are wearing now."))
+        out[#out].header = loHeader
+    else
+        local function listRow(id, label, names, emptyText, header)
+            local subs = {}
+            if #names == 0 then subs[1] = emptyText
+            else for i = 1, #names do subs[#subs + 1] = names[i] end end
+            infoRow(out, id, fmt("%s: %s", label, (#names == 0) and emptyText or table.concat(names, ", ")), subs)
+            out[#out].name = label
+            out[#out].icon = ICON_BUILD
+            out[#out].header = header
+        end
+        listRow("loadout:front", L("SI_ACCOUNTHOLD_ARMORY_FRONT_BAR", "Skills - front bar"),
+            d.bars.primary or {}, L("SI_ACCOUNTHOLD_ARMORY_SUB_EMPTY", "Empty"), loHeader)
+        listRow("loadout:back", L("SI_ACCOUNTHOLD_ARMORY_BACK_BAR", "Skills - back bar"),
+            d.bars.backup or {}, L("SI_ACCOUNTHOLD_ARMORY_SUB_EMPTY", "Empty"))
+        listRow("loadout:cp", L("SI_ACCOUNTHOLD_ARMORY_CHAMPION", "Champion"),
+            d.cp or {}, L("SI_ACCOUNTHOLD_ARMORY_SUB_EMPTY", "Empty"))
+        local gearSubs = { fmt(L("SI_ACCOUNTHOLD_ARMORY_SUB_GEAR_HERE", "%d of %d on this character"),
+                               d.gearHere or 0, d.gearSaved or 0) }
+        if type(d.missing) == "table" and #d.missing > 0 then
+            gearSubs[#gearSubs + 1] = fmt(L("SI_ACCOUNTHOLD_ARMORY_SUB_GEAR_MISSING", "Not found: %s"),
+                table.concat(d.missing, ", "))
+        end
+        infoRow(out, "loadout:gear", fmt(L("SI_ACCOUNTHOLD_ARMORY_GEAR_SAVED", "Weapons & apparel: %d saved"),
+            d.gearSaved or 0), gearSubs)
+        out[#out].icon = ICON_SET
+    end
+    -- Food is pickable even before a loadout exists.
+    local foodName = (type(d) == "table") and d.food or nil
+    out[#out + 1] = {
+        id        = "loadout:food",
+        text      = fmt(L("SI_ACCOUNTHOLD_ARMORY_FOOD_ROW", "Food: %s"),
+                        foodName or L("SI_ACCOUNTHOLD_ARMORY_NONE", "none")),
+        name      = fmt(L("SI_ACCOUNTHOLD_ARMORY_FOOD_ROW", "Food: %s"),
+                        foodName or L("SI_ACCOUNTHOLD_ARMORY_NONE", "none")),
+        subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_FOOD", "Eaten when this build is equipped") },
+        icon      = ICON_BUILD,
+        action    = "openFood",
+        buildId   = page.buildId,
+    }
+
     local rows = Armory.SlotRows(page.buildId)
     local header = L("SI_ACCOUNTHOLD_ARMORY_HDR_GEAR", "Gear")
     for i = 1, #rows do
@@ -1726,16 +1874,66 @@ local function pageBuild(page)
     if #rows == 0 then
         infoRow(out, "noslots", L("SI_ACCOUNTHOLD_ARMORY_NO_SLOTS",
             "This build could not be read."))
-        out[1].header = header
+        out[#out].header = header
     end
 
+    -- AUTO-EQUIP -- off unless the player turns it on and adds a condition.
+    local auto = equipCall("GetAuto", page.buildId)
+    local nRules = (type(auto) == "table" and type(auto.rules) == "table") and #auto.rules or 0
+    local autoOn = type(auto) == "table" and auto.enabled
+    out[#out + 1] = {
+        id        = "build:auto",
+        text      = autoOn and fmt(L("SI_ACCOUNTHOLD_ARMORY_AUTO_ON_ROW", "Auto-equip: On (%d condition(s))"), nRules)
+                           or L("SI_ACCOUNTHOLD_ARMORY_AUTO_OFF_ROW", "Auto-equip: Off"),
+        name      = autoOn and fmt(L("SI_ACCOUNTHOLD_ARMORY_AUTO_ON_ROW", "Auto-equip: On (%d condition(s))"), nRules)
+                           or L("SI_ACCOUNTHOLD_ARMORY_AUTO_OFF_ROW", "Auto-equip: Off"),
+        subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_AUTO", "Zones, dungeons, trials and boss fights") },
+        icon      = ICON_BUILD,
+        header    = L("SI_ACCOUNTHOLD_ARMORY_HDR_AUTO", "Auto-equip"),
+        action    = "openAuto",
+        buildId   = page.buildId,
+    }
+
     local actionsHeader = L("SI_ACCOUNTHOLD_ARMORY_HDR_ACTIONS", "Actions")
+    local hasLoadout = equipCall("HasLoadout", page.buildId) and true or false
+    if hasLoadout then
+        out[#out + 1] = {
+            id      = "build:equip",
+            text    = L("SI_ACCOUNTHOLD_ARMORY_EQUIP", "Equip this build"),
+            name    = L("SI_ACCOUNTHOLD_ARMORY_EQUIP", "Equip this build"),
+            subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_EQUIP", "Gear, skills, champion stars and food") },
+            icon    = ICON_BUILD,
+            header  = actionsHeader,
+            action  = "equipBuild",
+            buildId = page.buildId,
+        }
+    end
+    out[#out + 1] = {
+        id      = "build:capture",
+        text    = L("SI_ACCOUNTHOLD_ARMORY_CAPTURE", "Save what I am wearing to this build"),
+        name    = L("SI_ACCOUNTHOLD_ARMORY_CAPTURE", "Save what I am wearing to this build"),
+        subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_CAPTURE", "Gear, both skill bars and champion stars") },
+        icon    = ICON_NEW_BUILD,
+        header  = (not hasLoadout) and actionsHeader or nil,
+        action  = "captureLoadout",
+        buildId = page.buildId,
+    }
+    if hasLoadout then
+        out[#out + 1] = {
+            id      = "build:export",
+            text    = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_TO", "Save to an in-game Armory slot"),
+            name    = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_TO", "Save to an in-game Armory slot"),
+            subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_EXPORT_TO", "Equips it, then saves at the next Armory Station") },
+            icon    = ICON_NEW_BUILD,
+            action  = "openExportSlot",
+            buildId = page.buildId,
+        }
+    end
     out[#out + 1] = {
         id      = "build:prioritize",
         text    = L("SI_ACCOUNTHOLD_ARMORY_PRIORITIZE", "Add missing sets to Priorities"),
         name    = L("SI_ACCOUNTHOLD_ARMORY_PRIORITIZE", "Add missing sets to Priorities"),
         icon    = ICON_SET,
-        header  = actionsHeader,
         action  = "prioritize",
         buildId = page.buildId,
     }
@@ -1848,6 +2046,26 @@ local function pageConfirm(page)
     local out = {}
     local rec = modelCall("GetBuild", page.buildId)
     local name = (type(rec) == "table" and rec.name) or "?"
+    if page.kind == "capture" then
+        out[#out + 1] = {
+            id      = "confirm:capture",
+            text    = fmt(L("SI_ACCOUNTHOLD_ARMORY_CONFIRM_CAPTURE", "Replace \"%s\" with what I am wearing"), name),
+            name    = fmt(L("SI_ACCOUNTHOLD_ARMORY_CONFIRM_CAPTURE", "Replace \"%s\" with what I am wearing"), name),
+            subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_CONFIRM_CAPTURE",
+                            "The gear, skills and stars saved in it now are overwritten") },
+            icon    = ICON_WARNING,
+            header  = L("SI_ACCOUNTHOLD_ARMORY_HDR_CONFIRM", "Are you sure?"),
+            action  = "confirmCapture",
+            buildId = page.buildId,
+        }
+        out[#out + 1] = {
+            id     = "confirm:no",
+            text   = L("SI_ACCOUNTHOLD_ARMORY_CANCEL", "Cancel"),
+            name   = L("SI_ACCOUNTHOLD_ARMORY_CANCEL", "Cancel"),
+            action = "back",
+        }
+        return out
+    end
     out[#out + 1] = {
         id      = "confirm:yes",
         text    = fmt(L("SI_ACCOUNTHOLD_ARMORY_CONFIRM_DELETE", "Delete \"%s\""), name),
@@ -1903,22 +2121,214 @@ local function pageImport()
     return out
 end
 
--- Four statements of fact and a way out. These are NOT actions: they are drawn
--- disabled (see infoRow) so the page reads as an explanation rather than as a
--- list of commands that quietly do nothing.
+-- How saving into the in-game Armory works, plus any export still waiting for
+-- an Armory Station. The four statements are informational (drawn disabled);
+-- the only actions are Cancel (when something is pending) and Back.
 local function pageExport()
     local out = {}
-    local header = L("SI_ACCOUNTHOLD_ARMORY_HDR_EXPORT", "Exporting")
+    local header = L("SI_ACCOUNTHOLD_ARMORY_HDR_EXPORT", "Saving to the in-game Armory")
     infoRow(out, "export:1", L("SI_ACCOUNTHOLD_ARMORY_EXPORT_1",
-        "ESO provides no API to write a build into the Armory."))
+        "1. Open one of your builds and choose \"Save to an in-game Armory slot\"."))
     out[1].header = header
-    out[1].icon   = ICON_WARNING
+    out[1].icon   = ICON_NEW_BUILD
     infoRow(out, "export:2", L("SI_ACCOUNTHOLD_ARMORY_EXPORT_2",
-        "SaveArmoryBuild takes only a slot number and snapshots your character as they are now."))
+        "2. Quartermaster equips that build on this character - only ever out of combat."))
     infoRow(out, "export:3", L("SI_ACCOUNTHOLD_ARMORY_EXPORT_3",
-        "Equipping gear and slotting skills are protected actions no add-on may perform."))
+        "3. Open any Armory Station. Quartermaster asks to save the build into the slot you picked; press A to save."))
     infoRow(out, "export:4", L("SI_ACCOUNTHOLD_ARMORY_EXPORT_4",
-        "Plan here, equip it yourself, then save it at an Armory Station."))
+        "Why the extra step: ESO's SaveArmoryBuild only works at an Armory Station and saves what you are wearing, so the build has to be on you first."))
+    local p = equipCall("GetPendingExport")
+    if type(p) == "table" then
+        local rec = modelCall("GetBuild", p.buildId)
+        infoRow(out, "export:pending", fmt(L("SI_ACCOUNTHOLD_ARMORY_EXPORT_PENDING",
+            "Waiting: \"%s\" into Armory slot %d."), (type(rec) == "table" and rec.name) or "?",
+            tonumber(p.armoryIndex) or 0))
+        out[#out].header = L("SI_ACCOUNTHOLD_ARMORY_HDR_PENDING", "Pending")
+        out[#out + 1] = {
+            id     = "export:cancel",
+            text   = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_CANCEL", "Cancel the pending save"),
+            name   = L("SI_ACCOUNTHOLD_ARMORY_EXPORT_CANCEL", "Cancel the pending save"),
+            icon   = ICON_WARNING,
+            action = "cancelExport",
+        }
+    end
+    backRow(out)
+    return out
+end
+
+-- Pick the in-game Armory slot a build should be saved into.
+local function pageExportSlot(page)
+    local out = {}
+    local rows = Armory.ArmoryBuildRows()
+    local header = L("SI_ACCOUNTHOLD_ARMORY_HDR_EXPORT_SLOT", "Choose an Armory slot")
+    if #rows == 0 then
+        infoRow(out, "noarmory", Armory.HasArmoryApi()
+            and L("SI_ACCOUNTHOLD_ARMORY_NO_ARMORY",
+                "No unlocked Armory builds found on this character. Unlock one at an Armory Station first.")
+            or L("SI_ACCOUNTHOLD_ARMORY_NO_ARMORY_API_SAVE",
+                "This client does not expose the Armory API, so nothing can be saved into it."))
+        out[#out].header = header
+    end
+    for i = 1, #rows do
+        local r = rows[i]
+        out[#out + 1] = {
+            id         = "exportslot:" .. tostring(r.index),
+            text       = fmt("%d. %s", r.index, r.name),
+            name       = r.name,
+            subLabels  = { fmt(L("SI_ACCOUNTHOLD_ARMORY_SUB_ARMORY_SLOT", "Armory slot %d"), r.index),
+                           L("SI_ACCOUNTHOLD_ARMORY_SUB_OVERWRITE", "Will be overwritten after you confirm at a station") },
+            icon       = ICON_NEW_BUILD,
+            header     = (i == 1) and header or nil,
+            action     = "exportToArmory",
+            buildId    = page.buildId,
+            buildIndex = r.index,
+        }
+    end
+    backRow(out)
+    return out
+end
+
+local function ruleText(rule)
+    if type(rule) ~= "table" then return "?" end
+    local zone = rule.zoneName or (rule.zoneId and fmt("#%d", rule.zoneId)) or "?"
+    if rule.kind == "zone" then
+        return fmt(L("SI_ACCOUNTHOLD_ARMORY_RULE_ZONE", "When I enter %s"), zone)
+    elseif rule.kind == "anyBoss" then
+        return fmt(L("SI_ACCOUNTHOLD_ARMORY_RULE_ANY_BOSS", "When any boss appears in %s"), zone)
+    end
+    local bossName = rule.name
+    local BE = AccountHold and AccountHold.BuildEquip
+    if BE and type(BE._PlainName) == "function" then bossName = BE._PlainName(bossName) end
+    if rule.zoneName then
+        return fmt(L("SI_ACCOUNTHOLD_ARMORY_RULE_BOSS_IN", "When %s appears (%s)"), tostring(bossName), zone)
+    end
+    return fmt(L("SI_ACCOUNTHOLD_ARMORY_RULE_BOSS", "When %s appears"), tostring(bossName))
+end
+Armory.RuleText = ruleText
+
+-- Auto-equip conditions. Console has no free text, so a condition is added FROM
+-- WHERE THE PLAYER IS: the zone they are standing in, or a boss on screen.
+local function pageAuto(page)
+    local out = {}
+    local auto = equipCall("GetAuto", page.buildId)
+    if type(auto) ~= "table" then auto = { enabled = false, rules = {} } end
+    local rules = type(auto.rules) == "table" and auto.rules or {}
+
+    infoRow(out, "auto:info", L("SI_ACCOUNTHOLD_ARMORY_AUTO_INFO",
+        "Auto-equip never acts in combat. A swap that triggers mid-fight waits until combat ends."))
+    out[#out].header = L("SI_ACCOUNTHOLD_ARMORY_HDR_AUTO", "Auto-equip")
+    if equipCall("HasLoadout", page.buildId) then
+        out[#out + 1] = {
+            id      = "auto:toggle",
+            text    = auto.enabled and L("SI_ACCOUNTHOLD_ARMORY_AUTO_TURN_OFF", "Turn auto-equip off")
+                                    or L("SI_ACCOUNTHOLD_ARMORY_AUTO_TURN_ON", "Turn auto-equip on"),
+            name    = auto.enabled and L("SI_ACCOUNTHOLD_ARMORY_AUTO_TURN_OFF", "Turn auto-equip off")
+                                    or L("SI_ACCOUNTHOLD_ARMORY_AUTO_TURN_ON", "Turn auto-equip on"),
+            subLabels = { auto.enabled and L("SI_ACCOUNTHOLD_ARMORY_SUB_AUTO_IS_ON", "Currently on")
+                                        or L("SI_ACCOUNTHOLD_ARMORY_SUB_AUTO_IS_OFF", "Currently off") },
+            icon    = ICON_BUILD,
+            action  = "toggleAuto",
+            buildId = page.buildId,
+        }
+    else
+        infoRow(out, "auto:noloadout", L("SI_ACCOUNTHOLD_ARMORY_AUTO_NEEDS_LOADOUT",
+            "Save what you are wearing to this build first - there is nothing to equip yet."))
+    end
+
+    local condHeader = L("SI_ACCOUNTHOLD_ARMORY_HDR_CONDITIONS", "Conditions")
+    if #rules == 0 then
+        infoRow(out, "auto:norules", L("SI_ACCOUNTHOLD_ARMORY_AUTO_NO_RULES",
+            "No conditions yet. Add one below while you are in the place you want."))
+        out[#out].header = condHeader
+    end
+    for i = 1, #rules do
+        out[#out + 1] = {
+            id        = "auto:rule:" .. tostring(i),
+            text      = ruleText(rules[i]),
+            name      = ruleText(rules[i]),
+            subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_REMOVE", "Press A to remove") },
+            icon      = ICON_WARNING,
+            header    = (i == 1) and condHeader or nil,
+            action    = "removeRule",
+            buildId   = page.buildId,
+            ruleIndex = i,
+        }
+    end
+
+    local addHeader = L("SI_ACCOUNTHOLD_ARMORY_HDR_ADD", "Add a condition")
+    local zoneId, zoneName = equipCall("CurrentZone")
+    local first = true
+    local function addRow(id, rule)
+        out[#out + 1] = {
+            id      = id,
+            text    = ruleText(rule),
+            name    = ruleText(rule),
+            subLabels = { L("SI_ACCOUNTHOLD_ARMORY_SUB_ADD", "Press A to add") },
+            icon    = ICON_NEW_BUILD,
+            header  = first and addHeader or nil,
+            action  = "addRule",
+            buildId = page.buildId,
+            rule    = rule,
+        }
+        first = false
+    end
+    if type(zoneId) == "number" then
+        addRow("auto:add:zone", { kind = "zone", zoneId = zoneId, zoneName = zoneName })
+        addRow("auto:add:anyboss", { kind = "anyBoss", zoneId = zoneId, zoneName = zoneName })
+    end
+    local bosses = equipCall("CurrentBosses")
+    if type(bosses) == "table" and #bosses > 0 then
+        for i = 1, #bosses do
+            addRow("auto:add:boss:" .. i, { kind = "boss", name = bosses[i], zoneId = zoneId, zoneName = zoneName })
+        end
+    else
+        infoRow(out, "auto:nobosses", L("SI_ACCOUNTHOLD_ARMORY_AUTO_NO_BOSS",
+            "To add a specific boss, open this page while that boss's health bar is on screen."))
+        if first then out[#out].header = addHeader; first = false end
+    end
+    backRow(out)
+    return out
+end
+
+-- Food picker: food and drink in this character's backpack.
+local function pageFood(page)
+    local out = {}
+    local header = L("SI_ACCOUNTHOLD_ARMORY_HDR_FOOD", "Food and drink in your backpack")
+    local lo = equipCall("GetLoadout", page.buildId)
+    if type(lo) == "table" and type(lo.food) == "table" then
+        out[#out + 1] = {
+            id      = "food:clear",
+            text    = L("SI_ACCOUNTHOLD_ARMORY_FOOD_CLEAR", "No food for this build"),
+            name    = L("SI_ACCOUNTHOLD_ARMORY_FOOD_CLEAR", "No food for this build"),
+            icon    = ICON_WARNING,
+            header  = L("SI_ACCOUNTHOLD_ARMORY_HDR_ASSIGNED", "Assigned"),
+            action  = "clearFood",
+            buildId = page.buildId,
+        }
+    end
+    local list = equipCall("ListFood")
+    if type(list) ~= "table" or #list == 0 then
+        infoRow(out, "food:none", L("SI_ACCOUNTHOLD_ARMORY_FOOD_NONE",
+            "No food or drink in your backpack. Carry the one you want, then come back."))
+        out[#out].header = header
+        list = {}
+    end
+    for i = 1, #list do
+        local f = list[i]
+        out[#out + 1] = {
+            id      = "food:" .. tostring(f.itemId),
+            text    = f.name,
+            name    = f.name,
+            itemLink = f.link,
+            icon    = ICON_BUILD,
+            header  = (i == 1) and header or nil,
+            action  = "setFood",
+            buildId = page.buildId,
+            itemId  = f.itemId,
+            foodLink = f.link,
+            foodName = f.name,
+        }
+    end
     backRow(out)
     return out
 end
@@ -1944,6 +2354,12 @@ function Armory.PageEntries(page)
         ok, rows = pcall(pageImport, page)
     elseif page.page == PAGE_EXPORT then
         ok, rows = pcall(pageExport, page)
+    elseif page.page == PAGE_EXPORT_SLOT then
+        ok, rows = pcall(pageExportSlot, page)
+    elseif page.page == PAGE_AUTO then
+        ok, rows = pcall(pageAuto, page)
+    elseif page.page == PAGE_FOOD then
+        ok, rows = pcall(pageFood, page)
     else
         return {}
     end
@@ -1973,7 +2389,13 @@ function Armory.PageTitle(page)
     elseif p == PAGE_IMPORT then
         return L("SI_ACCOUNTHOLD_ARMORY_HDR_IMPORT", "Your Armory builds")
     elseif p == PAGE_EXPORT then
-        return L("SI_ACCOUNTHOLD_ARMORY_HDR_EXPORT", "Exporting")
+        return L("SI_ACCOUNTHOLD_ARMORY_HDR_EXPORT", "Saving to the in-game Armory")
+    elseif p == PAGE_EXPORT_SLOT then
+        return L("SI_ACCOUNTHOLD_ARMORY_HDR_EXPORT_SLOT", "Choose an Armory slot")
+    elseif p == PAGE_AUTO then
+        return L("SI_ACCOUNTHOLD_ARMORY_HDR_AUTO", "Auto-equip")
+    elseif p == PAGE_FOOD then
+        return L("SI_ACCOUNTHOLD_ARMORY_HDR_FOOD_TITLE", "Food")
     end
     return L("SI_ACCOUNTHOLD_ARMORY_TITLE", "Quartermaster Armory")
 end
@@ -1983,7 +2405,10 @@ function Armory.PageBody(page)
     local p = page.page
     if p == PAGE_CHARACTERS then
         return L("SI_ACCOUNTHOLD_ARMORY_BODY_CHARACTERS",
-            "Plan a set of gear for each character, then see what you still have to go and get.")
+            "Create builds, save what you are wearing into them, and equip them with one press. Plan the sets each character still needs.")
+    elseif p == PAGE_BUILD then
+        return L("SI_ACCOUNTHOLD_ARMORY_BODY_BUILD",
+            "X equips this build. Y saves what you are wearing into it.")
     elseif p == PAGE_SLOT then
         return L("SI_ACCOUNTHOLD_ARMORY_BODY_SLOT",
             "Pick the set you want in this slot.")
@@ -1995,7 +2420,16 @@ function Armory.PageBody(page)
             "This reads the Armory of the character you are playing and creates a matching Quartermaster build.")
     elseif p == PAGE_EXPORT then
         return L("SI_ACCOUNTHOLD_ARMORY_BODY_EXPORT",
-            "Quartermaster cannot write a build back into the in-game Armory. No add-on can.")
+            "Quartermaster equips the build first, then saves it at the next Armory Station you open - after you confirm.")
+    elseif p == PAGE_EXPORT_SLOT then
+        return L("SI_ACCOUNTHOLD_ARMORY_BODY_EXPORT_SLOT",
+            "Pick the in-game Armory slot. Nothing is overwritten until you confirm at an Armory Station.")
+    elseif p == PAGE_AUTO then
+        return L("SI_ACCOUNTHOLD_ARMORY_BODY_AUTO",
+            "Equip this build automatically when you enter a zone, dungeon or trial, or when a boss appears. Off unless you turn it on.")
+    elseif p == PAGE_FOOD then
+        return L("SI_ACCOUNTHOLD_ARMORY_BODY_FOOD",
+            "This food is eaten each time you equip the build yourself. Auto-equip does not re-eat it when the same build is put back on.")
     end
     return ""
 end
@@ -2055,19 +2489,137 @@ ACTIONS.openImport = function()
     return "rebuild"
 end
 
--- "About exporting" is NOT an action, and it must never look like one.
---
--- ESO exposes no API that writes build data into the Armory: SaveArmoryBuild
--- (ESOUIDocumentation.txt:18122) takes only an index and snapshots the
--- character as they are right now, and every function that could equip gear or
--- slot an ability is *protected*. The player reported this row as "does
--- nothing", which is the correct BEHAVIOUR presented as a silent failure. Say
--- it out loud the instant the row is chosen, then show the detail page.
+-- Saving into the in-game Armory is real now (see the header): this page
+-- explains the two halves and shows anything still waiting for a station.
 ACTIONS.openExport = function()
-    alert(L("SI_ACCOUNTHOLD_ARMORY_EXPORT_ALERT",
-        "Exporting is not possible: ESO provides no API to write a build into the Armory. Nothing was changed."))
-    diag("info", "Export explained; no API exists (SaveArmoryBuild takes only an index).")
+    diag("info", "Export help opened.")
     push({ page = PAGE_EXPORT })
+    return "rebuild"
+end
+
+ACTIONS.openExportSlot = function(desc)
+    if not equipCall("HasLoadout", desc.buildId) then
+        alert(L("SI_ACCOUNTHOLD_BUILDEQ_EXPORT_NO_LOADOUT",
+            "Save a loadout to this build first - the Armory stores what you are wearing."))
+        return nil
+    end
+    push({ page = PAGE_EXPORT_SLOT, buildId = desc.buildId })
+    return "rebuild"
+end
+
+ACTIONS.exportToArmory = function(desc)
+    local ok = equipCall("RequestExport", desc.buildId, desc.buildIndex)
+    if not ok then return "rebuild" end
+    Armory.NavPop(Armory._nav)            -- back to the build
+    return "rebuild"
+end
+
+ACTIONS.cancelExport = function()
+    equipCall("CancelExport")
+    alert(L("SI_ACCOUNTHOLD_BUILDEQ_EXPORT_FORGOTTEN", "Export cancelled. Nothing was saved."))
+    return "rebuild"
+end
+
+-- One press. The engine refuses (and says why) when the gate is off, the build
+-- belongs to another character or has nothing saved; in combat it queues.
+ACTIONS.equipBuild = function(desc)
+    if desc.buildId == nil then return nil end
+    equipCall("Equip", desc.buildId, { reason = "manual" })
+    return "rebuild"
+end
+
+local function doCapture(buildId)
+    local ok, counts = equipCall("CaptureLoadout", buildId)
+    if ok and type(counts) == "table" then
+        local rec = modelCall("GetBuild", buildId)
+        alert(fmt(L("SI_ACCOUNTHOLD_ARMORY_CAPTURED",
+            "Saved what you are wearing to \"%s\": %d gear, %d skills, %d champion stars."),
+            (type(rec) == "table" and rec.name) or "?", counts.gear or 0, counts.skills or 0, counts.cp or 0))
+        return true
+    end
+    return false
+end
+
+-- Y (Save Build). Overwriting an existing loadout asks first, like the native
+-- Armory's save confirmation (armorydialogs.lua ARMORY_BUILD_SAVE_CONFIRM_DIALOG).
+ACTIONS.captureLoadout = function(desc)
+    local buildId = desc.buildId or Armory.CurrentBuildId()
+    if buildId == nil then return nil end
+    if equipCall("HasLoadout", buildId) then
+        push({ page = PAGE_CONFIRM, kind = "capture", buildId = buildId })
+        return "rebuild"
+    end
+    doCapture(buildId)
+    return "rebuild"
+end
+
+ACTIONS.confirmCapture = function(desc)
+    doCapture(desc.buildId)
+    Armory.NavPop(Armory._nav)            -- leave the confirm page
+    return "rebuild"
+end
+
+ACTIONS.openAuto = function(desc)
+    push({ page = PAGE_AUTO, buildId = desc.buildId })
+    return "rebuild"
+end
+
+ACTIONS.toggleAuto = function(desc)
+    local auto = equipCall("GetAuto", desc.buildId)
+    local on = not (type(auto) == "table" and auto.enabled)
+    if not equipCall("SetAutoEnabled", desc.buildId, on) then
+        alert(L("SI_ACCOUNTHOLD_ARMORY_AUTO_FAILED", "Could not change auto-equip for that build."))
+        return nil
+    end
+    local n = (type(auto) == "table" and type(auto.rules) == "table") and #auto.rules or 0
+    if on and n == 0 then
+        alert(L("SI_ACCOUNTHOLD_ARMORY_AUTO_ON_EMPTY",
+            "Auto-equip is on, but it has no conditions yet, so it will not do anything until you add one."))
+    elseif on then
+        alert(L("SI_ACCOUNTHOLD_ARMORY_AUTO_ON", "Auto-equip is on for this build."))
+    else
+        alert(L("SI_ACCOUNTHOLD_ARMORY_AUTO_OFF", "Auto-equip is off for this build."))
+    end
+    return "rebuild"
+end
+
+ACTIONS.addRule = function(desc)
+    if not equipCall("AddRule", desc.buildId, desc.rule) then
+        alert(L("SI_ACCOUNTHOLD_ARMORY_RULE_FAILED", "Could not add that condition (the list may be full)."))
+        return nil
+    end
+    alert(fmt(L("SI_ACCOUNTHOLD_ARMORY_RULE_ADDED", "Added: %s."), ruleText(desc.rule)))
+    return "rebuild"
+end
+
+ACTIONS.removeRule = function(desc)
+    local auto = equipCall("GetAuto", desc.buildId)
+    local rule = type(auto) == "table" and type(auto.rules) == "table" and auto.rules[desc.ruleIndex] or nil
+    if not equipCall("RemoveRule", desc.buildId, desc.ruleIndex) then
+        alert(L("SI_ACCOUNTHOLD_ARMORY_RULE_REMOVE_FAILED", "Could not remove that condition."))
+        return nil
+    end
+    alert(fmt(L("SI_ACCOUNTHOLD_ARMORY_RULE_REMOVED", "Removed: %s."), ruleText(rule)))
+    return "rebuild"
+end
+
+ACTIONS.openFood = function(desc)
+    push({ page = PAGE_FOOD, buildId = desc.buildId })
+    return "rebuild"
+end
+
+ACTIONS.setFood = function(desc)
+    if not equipCall("SetFood", desc.buildId, desc.itemId, desc.foodLink, desc.foodName) then
+        alert(L("SI_ACCOUNTHOLD_ARMORY_FOOD_FAILED", "Could not set the food for that build."))
+        return nil
+    end
+    Armory.NavPop(Armory._nav)
+    return "rebuild"
+end
+
+ACTIONS.clearFood = function(desc)
+    equipCall("SetFood", desc.buildId, nil)
+    Armory.NavPop(Armory._nav)
     return "rebuild"
 end
 
@@ -2644,17 +3196,45 @@ function Armory.Register()
                 -- AccountHold/README.md "Xbox / PS5 quick reference"), so we
                 -- never touch KEYBIND_STRIP here.
                 keybind = "DIALOG_SECONDARY",
-                text    = L("SI_ACCOUNTHOLD_ARMORY_PRIORITIZE_SHORT", "Prioritize"),
+                -- X = Equip Build, exactly as on the native Armory station
+                -- (armory_gamepad.lua:157-158 puts SI_ARMORY_RESTORE_BUILD_ACTION on
+                -- UI_SHORTCUT_SECONDARY). Shown only when the build in scope
+                -- has something saved to equip. Prioritize moved to a row.
+                text    = L("SI_ACCOUNTHOLD_ARMORY_EQUIP_SHORT", "Equip Build"),
+                visible = function()
+                    local ok, v = pcall(function()
+                        local id = Armory.CurrentBuildId()
+                        return id ~= nil and equipCall("HasLoadout", id) and true or false
+                    end)
+                    return (ok and v) and true or false
+                end,
+                callback = function(dialog)
+                    local ok, err = pcall(function()
+                        local buildId = Armory.CurrentBuildId()
+                        if buildId == nil then return end
+                        Armory.Dispatch({ action = "equipBuild", buildId = buildId })
+                    end)
+                    if not ok then diag("error", "X (Equip Build) failed: %s", tostring(err)) end
+                    Armory.Refresh(dialog)
+                end,
+            },
+            {
+                -- Y = Save Build (armory_gamepad.lua:178-179, SI_ARMORY_SAVE_BUILD_ACTION
+                -- on UI_SHORTCUT_TERTIARY). DIALOG_TERTIARY is Y on Xbox
+                -- (docs/research/API_REFERENCE.md, hardware-confirmed).
+                keybind = "DIALOG_TERTIARY",
+                text    = L("SI_ACCOUNTHOLD_ARMORY_SAVE_SHORT", "Save Build"),
                 visible = function()
                     local ok, v = pcall(function() return Armory.CurrentBuildId() ~= nil end)
                     return (ok and v) and true or false
                 end,
                 callback = function(dialog)
-                    pcall(function()
+                    local ok, err = pcall(function()
                         local buildId = Armory.CurrentBuildId()
                         if buildId == nil then return end
-                        alert(Armory.FormatPrioritizeResult(Armory.PrioritizeBuild(buildId)))
+                        Armory.Dispatch({ action = "captureLoadout", buildId = buildId })
                     end)
+                    if not ok then diag("error", "Y (Save Build) failed: %s", tostring(err)) end
                     Armory.Refresh(dialog)
                 end,
             },
@@ -2886,7 +3466,11 @@ end
 -- the player is in the world; it is idempotent, so a successful first attempt
 -- makes this a no-op. Mirrors PrioritiesSetsBook_Gamepad:ScheduleRetry.
 function Armory:ScheduleRetry(addonRefIn)
-    if type(EVENT_MANAGER) ~= "table" or type(EVENT_MANAGER.RegisterForEvent) ~= "function" then
+    -- EVENT_MANAGER is engine userdata on hardware; test for the METHOD, never
+    -- for type == "table", or the retry silently never registers.
+    if EVENT_MANAGER == nil then return end
+    local okReg, reg = pcall(function() return EVENT_MANAGER.RegisterForEvent end)
+    if not okReg or type(reg) ~= "function" then
         return
     end
     if not EVENT_PLAYER_ACTIVATED then return end

@@ -33,24 +33,33 @@ local ICON_GAP     = 4   -- pixels between the ultimate button and the opposite 
 local BORDER_SIZE  = 2   -- thickness of the opposite icon's black border
 
 -- Look of the opposite icon's picture (fixed)
-local OPP_ALPHA          = 0.57  -- picture alpha
-local OPP_DESATURATION   = 0     -- picture desaturation
-local OPP_BACKDROP_ALPHA = 1     -- backdrop behind the picture
+local OPP_LOOK = {
+    alpha         = 0.57,  -- picture alpha
+    desaturation  = 0,     -- picture desaturation
+    backdropAlpha = 1,     -- backdrop behind the picture
+}
 
 -- Choices for the settings menu
-local BOTTOM_PERCENT = "Percentage"
-local BOTTOM_MISSING = "Missing amount"
-local BOTTOM_BOTH    = "Percentage and missing"
-local BOTTOM_HIDDEN  = "Hidden"
-local bottomChoices   = { BOTTOM_PERCENT, BOTTOM_MISSING, BOTTOM_BOTH, BOTTOM_HIDDEN }
-local positionChoices = { "Above", "Below", "Left", "Right" }
-local BORDER_MATCH = "Match other skills"
-local BORDER_BLACK = "Black"
-local BORDER_ESO   = "Default ESO"
-local BORDER_NONE  = "None"
-local borderChoices = { BORDER_MATCH, BORDER_ESO, BORDER_BLACK, BORDER_NONE }
-local timerPositionChoices = { "Right", "Left", "Center", "Above", "Below" }
-local ESO_FRAME_TEXTURE = "/esoui/art/actionbar/abilityframe64_up.dds"
+local BOTTOM_TEXT = {
+    PERCENT = "Percentage",
+    MISSING = "Missing amount",
+    BOTH    = "Percentage and missing",
+    HIDDEN  = "Hidden",
+}
+-- the choices of the settings menu's dropdowns
+local CHOICES = {
+    bottom   = { BOTTOM_TEXT.PERCENT, BOTTOM_TEXT.MISSING, BOTTOM_TEXT.BOTH, BOTTOM_TEXT.HIDDEN },
+    placement = { "Automatic", "Above", "Below", "Left", "Right", "Custom" },
+}
+local BORDER_STYLE = {
+    MATCH = "Match other skills",
+    BLACK = "Black",
+    ESO   = "Default ESO",
+    NONE  = "None",
+    esoFrameTexture = "/esoui/art/actionbar/abilityframe64_up.dds",
+}
+CHOICES.border        = { BORDER_STYLE.MATCH, BORDER_STYLE.ESO, BORDER_STYLE.BLACK, BORDER_STYLE.NONE }
+CHOICES.timerPosition = { "Right", "Left", "Center", "Above", "Below" }
 local matchWarned = false
 
 -- Alert sounds (only the ones that exist in this game version are offered)
@@ -74,24 +83,24 @@ end
 -- Settings defaults (for the account-wide and the per-character settings)
 local DEFAULTS = {
     enabled            = true,
-    valueSize          = 16,   -- font size of current/required
-    percentSize        = 16,   -- font size of the bottom text
+    valueSize          = 19,   -- font size of current/required
+    percentSize        = 27,   -- font size of the bottom text
     showValues         = true, -- show current/required at the top
-    bottomMode         = BOTTOM_PERCENT,
+    bottomMode         = BOTTOM_TEXT.PERCENT,
     readyColor         = { r = 0.3, g = 1.0, b = 0.3, a = 1 },
     notReadyColor      = { r = 1.0, g = 1.0, b = 1.0, a = 1 },
     nearMaxWarning     = true,  -- texts change colour when the ultimate is almost ready
     nearMaxPercent     = 90,    -- % of the ultimate's cost where that starts
     nearMaxColor       = { r = 1.0, g = 0.55, b = 0.0, a = 1 },
     showOpposite       = true,
-    oppPosition        = "Above",
+    oppPlacement       = "Automatic", -- Automatic, Above, Below, Left, Right or Custom (dragged)
     oppSize            = 100,  -- percent of the ultimate button size
     oppOffsetX         = 0,
     oppOffsetY         = 0,
-    dimOpposite        = false, -- dim the opposite icon while it is not castable
-    borderStyle        = BORDER_MATCH, -- border of the opposite icon
+    dimOpposite        = true,  -- dim the opposite icon while it is not castable
+    borderStyle        = BORDER_STYLE.MATCH, -- border of the opposite icon
     highlightOpposite  = true,  -- glow on the opposite icon while it is castable
-    alignToSkills      = true,  -- size and line up the opposite icon like the skill row above
+    highlightActive    = true,  -- glow and green border on your ultimate while it is ready
     oppTooltip         = true,  -- show the ability tooltip when hovering the opposite icon
     showTimer          = true,  -- our own ultimate duration timer
     timerSize          = 20,    -- its font size
@@ -101,10 +110,15 @@ local DEFAULTS = {
     glowColor          = { r = 1, g = 0.8, b = 0.2, a = 0.45 },
     alertSound         = soundChoices[2] or "None",
     alertFlash         = true,  -- flash the icon when the ultimate becomes ready
-    textPosT           = {},    -- saved screen positions (centres) of the moved texts
+    -- saved positions of the texts (centre, relative to their icon's centre);
+    -- by default current/required and the bottom text sit right of the icon
+    textPosT           = {
+        mainValue   = { dx = 88, dy = -12 }, mainPercent = { dx = 88, dy = 13 },
+        oppValue    = { dx = 88, dy = -12 }, oppPercent  = { dx = 88, dy = 13 },
+    },
     combatOnly         = false, -- texts hidden when out of combat
     hideOtherNumber    = false, -- hide another addon's ultimate number
-    gainDisplay        = "Off", -- "Off", gain per second or time until ready (estimates)
+    gainDisplay        = "Time until ready", -- "Off", "Gain per second" or "Time until ready" (estimates)
     rateSize           = 16,
     etaSize            = 18,
     gainColor          = { r = 1.0, g = 1.0, b = 1.0, a = 1 },   -- normal
@@ -201,9 +215,10 @@ local function LearnIcon(liveId)
         return
     end
 
-    sv.icons = sv.icons or {}
-    sv.icons[liveId] = shown
-
+    -- Only learn when the shown file is the same icon from another folder.
+    -- Right after a bar swap the button can still show the OTHER bar's icon
+    -- for a moment; that must never be learned (it made the opposite icon
+    -- show the same icon as your ultimate).
     local base = Basename(original)
     if base and zo_strlower(shown):sub(-#base) == zo_strlower(base) then
         iconPrefix = shown:sub(1, #shown - #base)
@@ -211,12 +226,9 @@ local function LearnIcon(liveId)
 end
 
 -- The icon to show for the ultimate on the given bar
-local function GetDisplayIcon(hotbar, abilityId)
+local function GetDisplayIcon(hotbar)
     local original = GetSlotTexture(ULT_SLOT, hotbar)
     if iconPrefix then
-        if abilityId and sv.icons and sv.icons[abilityId] then
-            return sv.icons[abilityId]
-        end
         local base = Basename(original)
         if base then
             return iconPrefix .. base
@@ -249,7 +261,7 @@ end
 -------------------------------------------------------------------------------
 -- cost may be nil = unknown. Returns nil when the bottom text is hidden.
 local function BottomText(current, cost)
-    if settings.bottomMode == BOTTOM_HIDDEN then
+    if settings.bottomMode == BOTTOM_TEXT.HIDDEN then
         return nil
     end
     if not cost or cost <= 0 then
@@ -259,9 +271,9 @@ local function BottomText(current, cost)
     local percent = math.min(100, math.floor(current / cost * 100))
     local missing = math.max(0, cost - current)
 
-    if settings.bottomMode == BOTTOM_MISSING then
+    if settings.bottomMode == BOTTOM_TEXT.MISSING then
         return missing > 0 and ("-" .. missing) or "READY"
-    elseif settings.bottomMode == BOTTOM_BOTH then
+    elseif settings.bottomMode == BOTTOM_TEXT.BOTH then
         return missing > 0 and (percent .. "% -" .. missing) or (percent .. "%")
     end
     return percent .. "%"
@@ -371,7 +383,7 @@ local function ApplyOppStyle(part, castable)
 
         -- "Match other skills": copy the border of the skill slot next to the
         -- ultimate (from the game or from any addon that themes it), every refresh
-        if style == BORDER_MATCH then
+        if style == BORDER_STYLE.MATCH then
             -- The border can be Fancy Action Bar+'s frame ("ActionButtonOverlay<n>Frame")
             -- or the game's "Edge" texture (also used by Bandits UI themes)
             local n       = ULT_SLOT - 1
@@ -418,18 +430,18 @@ local function ApplyOppStyle(part, castable)
                 matchWarned = true
                 Print("Border: couldn't find your skills' border, using black instead.")
             end
-        elseif style == BORDER_ESO then
+        elseif style == BORDER_STYLE.ESO then
             part.copyFrame:ClearAnchors()
             part.copyFrame:SetAnchorFill(part.icon)
             part.copyFrame:SetDrawLevel(7)
-            part.copyFrame:SetTexture(ESO_FRAME_TEXTURE)
+            part.copyFrame:SetTexture(BORDER_STYLE.esoFrameTexture)
             part.copyFrame:SetTextureCoords(0, 1, 0, 1)
             part.copyFrame:SetColor(1, 1, 1, 1)
             copied = true
         end
 
         part.copyFrame:SetHidden(not copied)
-        part.frame:SetHidden(copied or style == BORDER_NONE)
+        part.frame:SetHidden(copied or style == BORDER_STYLE.NONE)
 
         if highlight then
             local c = settings.readyColor
@@ -447,15 +459,15 @@ local function ApplyOppStyle(part, castable)
     -- Dim only the picture, not the border (they are separate controls)
     local dim = settings.dimOpposite and not castable
     if part.pic then
-        local alpha = OPP_ALPHA
+        local alpha = OPP_LOOK.alpha
         part.pic:SetColor(1, 1, 1, 1)
-        part.pic:SetDesaturation(OPP_DESATURATION)
+        part.pic:SetDesaturation(OPP_LOOK.desaturation)
         part.pic:SetAlpha(dim and alpha * 0.5 or alpha)
     end
 
     if part.back then
         -- use the same backdrop texture as the skill slots if there is one
-        local backAlpha = OPP_BACKDROP_ALPHA
+        local backAlpha = OPP_LOOK.backdropAlpha
         local source = _G["ActionButton" .. (ULT_SLOT - 1) .. "BG"]
         local file
         if source and source:GetType() == CT_TEXTURE then
@@ -495,18 +507,122 @@ local function AnchorDefault(h)
     end
 end
 
--- Moved texts (and every text while unlocked) are anchored to the screen
--- itself, by their centre, so dragging always starts from a plain position.
+-- Moved texts are saved relative to their icon (offset of the text's centre
+-- from the icon's centre), so they move along with the icon, e.g. when the
+-- ultimate goes to the other row on a bar swap.
+-- Older versions saved screen positions ({x, y}); those are converted once
+-- the action bar has its final layout (textLayout.layoutReady).
+--  layoutReady: the action bar has its final layout after login
+--  legacy: true for a moment after login while old screen positions are
+--  converted; the layout is then built the way older versions did (without
+--  following rows)
+local textLayout = { layoutReady = false, legacy = false }
+
+-- "Automatic" placement: with two skill rows each ultimate goes in its own
+-- bar's row (also with static bars); with one row the icon goes above
+local function FollowRows()
+    return settings.oppPlacement == "Automatic" and not textLayout.legacy
+end
+
+-- Back from a dragged ("Custom") opposite icon to the placement used before
+local function LeaveCustomPlacement()
+    settings.oppPos = nil
+    if settings.oppPlacement == "Custom" then
+        settings.oppPlacement = settings.lastPlacement or "Automatic"
+    end
+end
+
+-- The side of the ultimate the opposite icon goes on (Automatic: above)
+local function OppSide()
+    local p = settings.oppPlacement
+    if p == "Above" or p == "Below" or p == "Left" or p == "Right" then return p end
+    return "Above"
+end
+
+-- With "Automatic" placement the texts are saved per ROW, not per icon:
+-- the "main" positions are for the icon in the top row, the "opp" positions
+-- for the icon in the bottom row. So when the ultimates trade rows (static
+-- bars), each row keeps the text layout you gave it.
+textLayout.swapKey = {
+    mainValue = "oppValue",   oppValue = "mainValue",
+    mainPercent = "oppPercent", oppPercent = "mainPercent",
+    mainTimer = "oppTimer",   oppTimer = "mainTimer",
+}
+
+-- true when your ultimate is in the bottom row and the opposite icon in the top row
+local function RowsSwapped()
+    if not (settings.showOpposite and FollowRows()) then return false end
+    local n = ULT_SLOT - 1
+    local a = _G["ActionButton" .. n .. "Icon"]
+    local b = _G["ActionButton" .. (n + 20) .. "Icon"]
+    if not a or not b or a:IsHidden() or b:IsHidden() then return false end
+    local _, ay = a:GetCenter()
+    local _, by = b:GetCenter()
+    return ay ~= nil and by ~= nil and ay - by > 10
+end
+
+-- true when the action bar shows two skill rows (e.g. Fancy Action Bar+)
+local function TwoSkillRows()
+    local n = ULT_SLOT - 1
+    local a = _G["ActionButton" .. n .. "Icon"]
+    local b = _G["ActionButton" .. (n + 20) .. "Icon"]
+    if not a or not b or a:IsHidden() or b:IsHidden() then return false end
+    local _, ay = a:GetCenter()
+    local _, by = b:GetCenter()
+    return ay ~= nil and by ~= nil and math.abs(ay - by) > 10
+end
+
+-- The key a text's position is saved under right now
+local function KeyOf(h)
+    local other = textLayout.swapKey[h.key]
+    if other and RowsSwapped() then
+        return other
+    end
+    return h.key
+end
+
+-- The saved position of a text as a screen position (centre), or nil
+local function SavedTextPos(h)
+    local key = KeyOf(h)
+    local p = settings.textPosT[key]
+    if not p then return nil end
+    local ix, iy = h.icon:GetCenter()
+    if p.dx == nil then
+        if not textLayout.layoutReady or not ix then
+            return { x = p.x, y = p.y }  -- old screen position, not converted yet
+        end
+        p = { dx = p.x - ix, dy = p.y - iy }
+        settings.textPosT[key] = p
+    end
+    return { x = (ix or 0) + p.dx, y = (iy or 0) + p.dy }
+end
+
+-- Saves a text's position (a screen position, its centre)
+local function SaveTextPos(h, x, y)
+    local ix, iy = h.icon:GetCenter()
+    settings.textPosT[KeyOf(h)] = { dx = x - (ix or 0), dy = y - (iy or 0) }
+end
+
+-- While unlocked, every text is anchored to the screen itself, by its centre,
+-- so dragging always starts from a plain position. Locked, a moved text is
+-- anchored to its icon.
 local function ApplyHolderPosition(h)
-    local pos = settings.textPosT[h.key]
-    if not pos and textsUnlocked then
-        pos = h.dragPos
+    local saved = settings.textPosT[KeyOf(h)]
+    local w, hgt = h.win:GetDimensions()
+
+    if textsUnlocked or (saved and saved.dx == nil) then
+        local pos = SavedTextPos(h) or (textsUnlocked and h.dragPos)
+        saved = settings.textPosT[KeyOf(h)]  -- may have been converted
+        if pos and (textsUnlocked or saved.dx == nil) then
+            h.win:ClearAnchors()
+            h.win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, pos.x - w / 2, pos.y - hgt / 2)
+            return
+        end
     end
 
-    if pos then
-        local w, hgt = h.win:GetDimensions()
+    if saved and saved.dx then
         h.win:ClearAnchors()
-        h.win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, pos.x - w / 2, pos.y - hgt / 2)
+        h.win:SetAnchor(CENTER, h.icon, CENTER, saved.dx, saved.dy)
     else
         AnchorDefault(h)
     end
@@ -684,7 +800,7 @@ local function CreateMovableLabel(name, icon, point, key)
     win:SetHandler("OnMoveStop", function(self)
         local w, hgt = self:GetDimensions()
         local pos = { x = self:GetLeft() + w / 2, y = self:GetTop() + hgt / 2 }
-        settings.textPosT[key] = pos
+        SaveTextPos(h, pos.x, pos.y)
         h.dragPos = pos
         ApplyHolderPosition(h)
         RefreshPanel()  -- update the X/Y sliders
@@ -826,18 +942,21 @@ end
 -- Ultimate gain per second and time until ready (both estimates)
 -- Only gains are counted (casting is ignored), over the last few seconds.
 -------------------------------------------------------------------------------
-local GAIN_RATE   = "Gain per second"
-local GAIN_ETA    = "Time until ready"
-local gainChoices = { "Off", GAIN_RATE, GAIN_ETA }
-local GAIN_WINDOW = 10000   -- ms of gains used for the average
-local MIN_SPAN    = 2000    -- never divide by less than this (first gains)
+local GAIN = {
+    RATE    = "Gain per second",
+    ETA     = "Time until ready",
+    window  = 10000,  -- ms of gains used for the average
+    minSpan = 2000,   -- never divide by less than this (first gains)
+}
 local gains = {}            -- { time, amount } of each gain in the window
 local gainStart             -- when the current run of gains started
 local etaTarget             -- when the ultimate should be ready (ms)
 local rateHolder, etaHolder
 
+CHOICES.gain = { "Off", GAIN.RATE, GAIN.ETA }
+
 local function PruneGains(now)
-    while gains[1] and now - gains[1].time > GAIN_WINDOW do
+    while gains[1] and now - gains[1].time > GAIN.window do
         table.remove(gains, 1)
     end
     if not gains[1] then
@@ -851,7 +970,7 @@ local function UltRate(now)
     if not gains[1] then return nil end
     local total = 0
     for _, g in ipairs(gains) do total = total + g.amount end
-    local span = math.min(GAIN_WINDOW, math.max(MIN_SPAN, now - gainStart))
+    local span = math.min(GAIN.window, math.max(GAIN.minSpan, now - gainStart))
     return total / (span / 1000)
 end
 
@@ -920,11 +1039,11 @@ local function UpdateGainTexts()
 
     local rateText = rate and string.format("+%.1f/s", rate) or "+2.4/s"
     ShowGainText(rateHolder, rateText, settings.rateSize, settings.gainColor,
-        on and settings.gainDisplay == GAIN_RATE and (rate ~= nil or sample))
+        on and settings.gainDisplay == GAIN.RATE and (rate ~= nil or sample))
 
     local etaText = secLeft and string.format("%ds", secLeft) or "8s"
     ShowGainText(etaHolder, etaText, settings.etaSize, color,
-        on and settings.gainDisplay == GAIN_ETA and ((rate ~= nil and secLeft ~= nil) or sample))
+        on and settings.gainDisplay == GAIN.ETA and ((rate ~= nil and secLeft ~= nil) or sample))
 end
 
 -- "Show only in combat": the texts (not the timers) are hidden out of combat.
@@ -1228,6 +1347,8 @@ end
 -- When the action bar shows two rows (e.g. Fancy Action Bar+) the ultimate is
 -- placed automatically:
 --  - opposite icon off: centred between the two rows;
+--  - "Automatic" placement: in the row of the bar you are on (the
+--    opposite icon goes in the other bar's row), also with static bars;
 --  - opposite icon above/below (lined up with the skill row): the ultimate
 --    goes to one row and the opposite icon to the other, so they never overlap
 --    (an action bar addon may have centred the ultimate between the rows).
@@ -1259,10 +1380,15 @@ local function ApplyUltCentering()
                 local defaultY = cy - centerOffset
                 local topY, bottomY = math.min(ay, by), math.max(ay, by)
                 local gap = bottomY - topY
-                local pos = settings.oppPosition
+                local pos = OppSide()
                 if not settings.showOpposite then
                     desired = (topY + bottomY) / 2 - defaultY
-                elseif settings.alignToSkills and (pos == "Above" or pos == "Below")
+                elseif FollowRows() then
+                    -- the ultimate goes in the row of the bar you are on
+                    -- (ActionButton slots always hold the active bar, also
+                    -- with static bars), the opposite icon in the other row
+                    desired = ay - defaultY
+                elseif (pos == "Above" or pos == "Below")
                         and defaultY > topY + gap * 0.25 and defaultY < bottomY - gap * 0.25 then
                     -- the ultimate sits between the rows: move it into one row,
                     -- the opposite icon goes into the other
@@ -1297,6 +1423,28 @@ local function SaveUltPos(pos)
     end
 end
 
+-- "Automatic" placement also works for an ultimate you moved yourself:
+-- if you placed it at the skill rows (not somewhere else on the screen), its
+-- height snaps to the row of the bar you are on; your sideways position is
+-- kept. Returns the new top, or nil to leave the position as it is.
+local function RowSnapY(pos)
+    if not (settings.showOpposite and FollowRows()) then return nil end
+    local n = ULT_SLOT - 1
+    local a = _G["ActionButton" .. n .. "Icon"]
+    local b = _G["ActionButton" .. (n + 20) .. "Icon"]
+    if not a or not b or a:IsHidden() or b:IsHidden() then return nil end
+    local _, ay = a:GetCenter()
+    local _, by = b:GetCenter()
+    if not ay or not by or math.abs(ay - by) <= 10 then return nil end
+
+    local half = ultButton:GetHeight() / 2
+    local centerY = pos.y + half
+    local topY, bottomY = math.min(ay, by), math.max(ay, by)
+    local gap = bottomY - topY
+    if centerY < topY - gap * 0.75 or centerY > bottomY + gap * 0.75 then return nil end
+    return ay - half
+end
+
 local function ApplyUltPosition()
     if not created or not ultHandle then return end
 
@@ -1306,6 +1454,10 @@ local function ApplyUltPosition()
         if not pos and textsUnlocked and ultDragMode == settings.showOpposite then
             pos = ultDragPos
         end
+    end
+    if pos then
+        local snapY = RowSnapY(pos)
+        if snapY then pos = { x = pos.x, y = snapY } end
     end
 
     if pos then
@@ -1353,6 +1505,68 @@ local function CreateUltHandle()
         ultMoved = false  -- force the anchors to be set again
         ApplyUltPosition()
         RefreshPanel()  -- update the X/Y sliders
+    end)
+
+    AddToHud(win)
+end
+
+-- The opposite icon can be dragged too (while unlocked), the same way as the
+-- ultimate: an invisible window is dragged and its screen position is saved
+-- (settings.oppPos). The icon is then attached to that window, so it stays
+-- exactly where you dropped it. Reset positions brings back the automatic
+-- placement (next to the ultimate / in the other skill row).
+
+-- Places the opposite icon at your saved position. Returns false when there is none.
+local function ApplyOppFree()
+    local pos = settings.oppPos
+    if not pos or settings.oppPlacement ~= "Custom" then return false end
+    local h = ultHandle.opp
+    local w, hgt = oppPart.icon:GetDimensions()
+    h.win:ClearAnchors()
+    h.win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, pos.x, pos.y)
+    h.win:SetDimensions(w, hgt)
+    oppPart.icon:ClearAnchors()
+    oppPart.icon:SetAnchor(TOPLEFT, h.win, TOPLEFT, 0, 0)
+    return true
+end
+
+-- Puts the (unlocked) drag box on the opposite icon
+local function PlaceOppHandle()
+    if ApplyOppFree() then return end
+    local h = ultHandle.opp
+    local w, hgt = oppPart.icon:GetDimensions()
+    h.win:ClearAnchors()
+    h.win:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, oppPart.icon:GetLeft(), oppPart.icon:GetTop())
+    h.win:SetDimensions(w, hgt)
+end
+
+local function CreateOppHandle()
+    local wm = WINDOW_MANAGER
+    local win = wm:CreateTopLevelWindow(ADDON_NAME .. "_OppHandle")
+    win:SetDrawTier(DT_HIGH)
+    win:SetDrawLevel(1)  -- below the text windows, above the ultimate's handle
+    win:SetClampedToScreen(true)
+    win:SetMouseEnabled(false)
+    win:SetMovable(false)
+
+    local bg = wm:CreateControl(ADDON_NAME .. "_OppHandle_BG", win, CT_TEXTURE)
+    bg:SetAnchorFill(win)
+    bg:SetColor(1, 0.85, 0, 0.35)
+    bg:SetDrawLayer(DL_BACKGROUND)
+    bg:SetHidden(true)
+
+    ultHandle.opp = { win = win, bg = bg }
+
+    -- Remember where the icon was dropped (the icon follows the box)
+    win:SetHandler("OnMoveStop", function(self)
+        settings.oppPos = { x = self:GetLeft(), y = self:GetTop() }
+        if settings.oppPlacement ~= "Custom" then
+            settings.lastPlacement = settings.oppPlacement  -- for going back
+            settings.oppPlacement = "Custom"
+        end
+        ApplyOppFree()
+        Refresh()
+        RefreshPanel()
     end)
 
     AddToHud(win)
@@ -1423,7 +1637,7 @@ end
 
 -- Places the opposite icon next to the main icon according to the settings
 local function LayoutOpposite(oppIcon, mainIcon, size)
-    local pos = settings.oppPosition
+    local pos = OppSide()
     local ox, oy = settings.oppOffsetX, settings.oppOffsetY
 
     oppIcon:SetDimensions(size, size)
@@ -1449,9 +1663,6 @@ end
 -- other-bar slots are ActionButton23-28), the icon sits exactly in that row.
 -- Returns false when the skill slots can't be read, so the normal layout is used.
 local function AlignToSkillRow()
-    if not settings.alignToSkills then
-        return false
-    end
 
     local n = ULT_SLOT - 1
     local srcIcon = _G["ActionButton" .. n .. "Icon"]
@@ -1511,8 +1722,24 @@ local function AlignToSkillRow()
         return best
     end
 
+    local icon = oppPart.icon
+    icon:SetDimensions(size, size)
+
+    -- "Automatic" placement: the opposite icon sits in the other bar's row,
+    -- right in line with the ultimate (anchored to that row, so it follows
+    -- when an action bar addon swaps the rows)
+    local otherRow = _G["ActionButton" .. (n + 20) .. "Icon"]
+    if FollowRows() and #rows == 2 and otherRow then
+        local otherX = otherRow:GetCenter()
+        if otherX then
+            icon:ClearAnchors()
+            icon:SetAnchor(CENTER, otherRow, CENTER, ultX - otherX + settings.oppOffsetX, settings.oppOffsetY)
+            return true
+        end
+    end
+
     local dx, dy = 0, 0
-    local pos = settings.oppPosition
+    local pos = OppSide()
     if pos == "Below" then
         dy = RowOnSide(false) or math.max(vpitch, minY)
     elseif pos == "Left" then
@@ -1523,8 +1750,6 @@ local function AlignToSkillRow()
         dy = RowOnSide(true) or -math.max(vpitch, minY)
     end
 
-    local icon = oppPart.icon
-    icon:SetDimensions(size, size)
     icon:ClearAnchors()
     icon:SetAnchor(CENTER, ultButton, CENTER, dx + settings.oppOffsetX, dy + settings.oppOffsetY)
     return true
@@ -1536,6 +1761,7 @@ local function ApplyLayout()
     if not AlignToSkillRow() then
         LayoutOpposite(oppPart.icon, ultButton, size)
     end
+    ApplyOppFree()  -- a position you dragged it to wins (keeps the size from above)
     SetPartFonts(mainPart, 1)
     SetPartFonts(oppPart, OppScale())
 end
@@ -1556,6 +1782,17 @@ local function CreateUI()
 
     -- Opposite bar icon
     oppPart = CreateIconPart(button, ADDON_NAME .. "_Opp", OppScale(), "opp")
+    CreateOppHandle()
+
+    -- Green border on your ultimate while it is ready (with the glow pulse)
+    local readyFrame = WINDOW_MANAGER:CreateControl(ADDON_NAME .. "_Main_ReadyFrame", button, CT_BACKDROP)
+    readyFrame:SetCenterColor(0, 0, 0, 0)
+    readyFrame:SetEdgeTexture("", 1, 1, BORDER_SIZE)
+    readyFrame:SetAnchorFill(_G["ActionButton" .. ULT_SLOT .. "Icon"] or button)
+    readyFrame:SetDrawLayer(DL_OVERLAY)
+    readyFrame:SetDrawLevel(6)
+    readyFrame:SetHidden(true)
+    mainPart.readyFrame = readyFrame
 
     -- Ultimate timer texts (on the ultimate and on the opposite icon); they can
     -- be moved like the other texts (Unlock positions)
@@ -1618,6 +1855,8 @@ local function HideAll()
     oppPart.value:SetHidden(true)
     oppPart.percent:SetHidden(true)
     SetHighlight(oppPart, false)
+    SetHighlight(mainPart, false)
+    mainPart.readyFrame:SetHidden(true)
     oppPart.icon:SetHidden(true)
     rateHolder.label:SetHidden(true)
     etaHolder.label:SetHidden(true)
@@ -1854,6 +2093,15 @@ Refresh = function()
 
     -- Ready alert: the same ultimate just became castable
     local ready = liveId ~= nil and liveCost ~= nil and liveCost > 0 and current >= liveCost
+
+    -- glow and green border on your ultimate while it is ready
+    local highlight = ready and settings.highlightActive
+    SetHighlight(mainPart, highlight)
+    if highlight then
+        local c = settings.readyColor
+        mainPart.readyFrame:SetEdgeColor(c.r, c.g, c.b, 1)
+    end
+    mainPart.readyFrame:SetHidden(not highlight)
     if liveId and liveId == prevLiveId and ready and not prevReady then
         TriggerAlert()
     end
@@ -1866,7 +2114,16 @@ Refresh = function()
     local otherId = GetSlotBoundId(ULT_SLOT, otherBar)
     local hasOther = settings.showOpposite and otherId and otherId ~= 0
     if hasOther then
-        oppPart.pic:SetTexture(GetDisplayIcon(otherBar, otherId))
+        -- Safety net: a different ultimate must never show the icon your
+        -- ultimate button shows; if it would, use the game's own icon for it
+        -- (compared with the icon your ultimate SHOULD show, not with what the
+        -- button shows, which can lag behind for a moment after a bar swap)
+        local tex = GetDisplayIcon(otherBar)
+        local activeTex = GetDisplayIcon(activeBar)
+        if otherId ~= liveId and tex and activeTex and zo_strlower(tex) == zo_strlower(activeTex) then
+            tex = GetSlotTexture(ULT_SLOT, otherBar)
+        end
+        oppPart.pic:SetTexture(tex)
         oppPart.abilityId = otherId
         local otherCost = OtherCost(otherId)
         ApplyTexts(oppPart, current, otherCost)
@@ -1877,8 +2134,19 @@ Refresh = function()
         oppPart.percent:SetHidden(true)
     end
     oppPart.icon:SetHidden(not hasOther)
-    if hasOther and settings.alignToSkills then
+    if hasOther then
         AlignToSkillRow()
+    end
+    if hasOther then ApplyOppFree() end
+
+    -- the ultimates traded rows: each row's texts use that row's positions
+    local swapped = RowsSwapped()
+    if swapped ~= textLayout.swapped then
+        textLayout.swapped = swapped
+        for _, h in ipairs(holders) do
+            ApplyHolderPosition(h)
+        end
+        RefreshPanel()
     end
 
     if textsUnlocked then
@@ -1890,6 +2158,7 @@ end
 local function RefreshSoon()
     Refresh()
     zo_callLater(Refresh, 100)
+    zo_callLater(Refresh, 300)  -- action bar addons can move their rows a bit later
     StartUpdates()
 end
 
@@ -1910,6 +2179,9 @@ local function LockTexts()
     ultHandle.win:SetMouseEnabled(false)
     ultHandle.win:SetMovable(false)
     ultHandle.bg:SetHidden(true)
+    ultHandle.opp.win:SetMouseEnabled(false)
+    ultHandle.opp.win:SetMovable(false)
+    ultHandle.opp.bg:SetHidden(true)
     ApplyUltPosition()
 
     Refresh()
@@ -1934,7 +2206,7 @@ local function UnlockTexts(fromMenu)
 
     -- Every text gets a plain screen position first, then becomes draggable
     for _, h in ipairs(holders) do
-        if not settings.textPosT[h.key] then
+        if not settings.textPosT[KeyOf(h)] then
             AnchorDefault(h)
             CaptureCurrentPosition(h)
         end
@@ -1955,6 +2227,15 @@ local function UnlockTexts(fromMenu)
     ultHandle.bg:SetHidden(false)
 
     Refresh()
+
+    -- and the opposite icon (when it is shown)
+    if not oppPart.icon:IsHidden() then
+        PlaceOppHandle()
+        ultHandle.opp.win:SetMouseEnabled(true)
+        ultHandle.opp.win:SetMovable(true)
+        ultHandle.opp.bg:SetHidden(false)
+    end
+
     RefreshPanel()
     StartUpdates()
 
@@ -1966,7 +2247,7 @@ local function UnlockTexts(fromMenu)
 
     -- From chat: go to the HUD with a mouse cursor so things can be dragged
     SCENE_MANAGER:Show("hudui")
-    Print("Unlocked: drag the yellow boxes (the texts and the ultimate skill). They stay unlocked until you click Lock positions or type /sut lock.")
+    Print("Unlocked: drag the yellow boxes (the texts, the ultimate skill and the opposite icon). They stay unlocked until you click Lock positions or type /sut lock.")
 end
 
 local function ToggleLock(fromMenu)
@@ -1978,31 +2259,43 @@ local function ToggleLock(fromMenu)
 end
 
 local function ResetPositions()
-    -- texts
-    settings.textPosT = {}
-    for _, h in ipairs(holders) do
-        h.dragPos = nil
-        AnchorDefault(h)
-        if textsUnlocked then
-            CaptureCurrentPosition(h)
-        end
-        ApplyHolderPosition(h)
-    end
-
-    -- ultimate skill
+    -- everything back to the defaults in one go
     settings.ultPos = nil
     settings.ultPosNoOpp = nil
-    ultDragPos = nil
-    if ultMoved then
-        RestoreUltDefault()
-        ultMoved = false
+    settings.oppOffsetX, settings.oppOffsetY = 0, 0
+    LeaveCustomPlacement()
+    settings.textPosT = ZO_DeepTableCopy(DEFAULTS.textPosT)
+
+    -- The ultimate goes first (the opposite icon and the texts are placed
+    -- relative to it), then the rest. Done twice: the action bar can settle
+    -- a moment later.
+    local function Apply()
+        ultDragPos = nil
+        if ultMoved then
+            RestoreUltDefault()
+            ultMoved = false
+        end
+        ApplyUltCentering()
+        ApplyLayout()
+        Refresh()
+
+        for _, h in ipairs(holders) do
+            h.dragPos = nil
+            AnchorDefault(h)
+            if textsUnlocked then CaptureCurrentPosition(h) end
+            ApplyHolderPosition(h)
+        end
+
+        if textsUnlocked then
+            ultDragPos = { x = ultButton:GetLeft(), y = ultButton:GetTop() }
+            ultDragMode = settings.showOpposite
+            ApplyUltPosition()
+            PlaceOppHandle()
+        end
+        RefreshPanel()
     end
-    ApplyUltCentering()
-    if textsUnlocked then
-        ultDragPos = { x = ultButton:GetLeft(), y = ultButton:GetTop() }
-        ultDragMode = settings.showOpposite
-        ApplyUltPosition()
-    end
+    Apply()
+    zo_callLater(Apply, 150)
 end
 
 -- Plays the alert sound and flashes the ultimate (settings button)
@@ -2069,7 +2362,7 @@ local function BuildSettingsMenu()
         name = "SimpleUltimateTracker",
         displayName = "Simple Ultimate Tracker",
         author = "Kaewro",
-        version = "1.0.2",
+        version = "1.0.3",
         registerForRefresh = true,
         registerForDefaults = true,
     }
@@ -2165,9 +2458,10 @@ local function BuildSettingsMenu()
     local screenW = math.floor(GuiRoot:GetWidth())
     local screenH = math.floor(GuiRoot:GetHeight())
 
+    -- the text that uses this saved position right now (see KeyOf)
     local function HolderByKey(key)
         for _, h in ipairs(holders) do
-            if h.key == key then return h end
+            if KeyOf(h) == key then return h end
         end
     end
 
@@ -2178,10 +2472,10 @@ local function BuildSettingsMenu()
             name = label,
             min = 0, max = (axis == "x") and screenW or screenH, step = 1,
             getFunc = function()
-                local pos = settings.textPosT[key]
-                if pos then return zo_round(pos[axis]) end
                 local h = HolderByKey(key)
                 if not h then return 0 end
+                local pos = SavedTextPos(h)
+                if pos then return zo_round(pos[axis]) end
                 local cx, cy = h.win:GetCenter()
                 return zo_round(((axis == "x") and cx or cy) or 0)
             end,
@@ -2189,10 +2483,10 @@ local function BuildSettingsMenu()
                 local h = HolderByKey(key)
                 if not h then return end
                 local cx, cy = h.win:GetCenter()
-                local old = settings.textPosT[key] or { x = cx, y = cy }
+                local old = SavedTextPos(h) or { x = cx, y = cy }
                 local pos = { x = old.x, y = old.y }
                 pos[axis] = value
-                settings.textPosT[key] = pos
+                SaveTextPos(h, pos.x, pos.y)
                 h.dragPos = pos
                 ApplyHolderPosition(h)
             end,
@@ -2228,10 +2522,22 @@ local function BuildSettingsMenu()
     local noOpposite = function() return not settings.showOpposite end
     local noTimer    = function() return not settings.showTimer end
     local noOppTimer = function() return not settings.showTimer or not settings.showOpposite end
-    local noRate     = function() return settings.gainDisplay ~= GAIN_RATE end
-    local noEta      = function() return settings.gainDisplay ~= GAIN_ETA end
+    local noRate     = function() return settings.gainDisplay ~= GAIN.RATE end
+    local noEta      = function() return settings.gainDisplay ~= GAIN.ETA end
 
     -- Greys an option out while a switch is off
+    -- Changing how the opposite icon is placed brings back the automatic
+    -- placement if you had dragged it somewhere yourself (nothing else moves)
+    local function PlacesOpposite(ctrl)
+        local setFunc = ctrl.setFunc
+        ctrl.setFunc = function(...)
+            LeaveCustomPlacement()
+            setFunc(...)
+            if textsUnlocked then PlaceOppHandle() end
+        end
+        return ctrl
+    end
+
     local function NeedsOpposite(ctrl)
         ctrl.disabled = function() return not settings.showOpposite end
         return ctrl
@@ -2267,6 +2573,8 @@ local function BuildSettingsMenu()
         {
             type = "button",
             name = "Reset positions",
+            isDangerous = true,
+            warning = "Puts the ultimate, the opposite icon and all texts back to their default positions.",
             func = function() ResetPositions() RefreshPanel() end,
             width = "half",
         },
@@ -2278,9 +2586,11 @@ local function BuildSettingsMenu()
                 Slider("Bottom text size", "percentSize", 8, 30, 1),
                 Checkbox("Show only in combat", "combatOnly"),
                 Checkbox("Show current/required", "showValues"),
-                Dropdown("Bottom text", "bottomMode", bottomChoices),
+                Dropdown("Bottom text", "bottomMode", CHOICES.bottom),
                 ColorPicker("Ready color", "readyColor"),
                 ColorPicker("Not ready color", "notReadyColor"),
+                Checkbox("Highlight ultimate when ready", "highlightActive",
+                    "Your ultimate (on the bar you are on) glows and gets a border in the ready color while it is ready, like the opposite icon does."),
                 Checkbox("Almost ready color", "nearMaxWarning",
                     "The current/required and bottom texts change colour when your ultimate is almost ready (a % of that ultimate's cost). Each icon uses its own ultimate's cost."),
                 (function()
@@ -2300,13 +2610,50 @@ local function BuildSettingsMenu()
             name = "Opposite bar icon",
             controls = {
                 Checkbox("Show opposite bar icon", "showOpposite"),
-                NeedsOpposite(Dropdown("Position", "oppPosition", positionChoices)),
-                NeedsOpposite(Checkbox("Line up with skill row", "alignToSkills")),
+                (function()
+                    local c = Dropdown("Placement", "oppPlacement", CHOICES.placement)
+                    c.tooltip = "Automatic: with two skill rows (e.g. Fancy Action Bar+, also static bars) each ultimate goes in its own bar's row; with one row the icon goes above your ultimate.\n\nAbove / Below / Left / Right: next to your ultimate on that side.\n\nCustom: where you dragged it yourself (Unlock positions). Pick another option to go back.\n\nThe icon always lines up with the size and spacing of your skills; Offset X/Y fine-tune it."
+                    local setFunc = c.setFunc
+                    c.setFunc = function(value)
+                        if value == "Custom" then
+                            -- only by dragging the icon (there is no position to use yet)
+                            if not settings.oppPos then RefreshPanel() return end
+                        else
+                            settings.oppPos = nil
+                        end
+                        setFunc(value)
+                        if textsUnlocked then PlaceOppHandle() end
+                    end
+                    c.disabled = function() return not settings.showOpposite end
+                    return c
+                end)(),
                 NeedsOpposite(Checkbox("Show tooltip on hover", "oppTooltip")),
                 NeedsOpposite(Slider("Size (%)", "oppSize", 50, 100, 5)),
-                NeedsOpposite(Slider("Offset X", "oppOffsetX", -100, 100, 1)),
-                NeedsOpposite(Slider("Offset Y", "oppOffsetY", -100, 100, 1)),
-                NeedsOpposite(Dropdown("Border", "borderStyle", borderChoices)),
+                (function()
+                    local c = PlacesOpposite(Slider("Offset X", "oppOffsetX", -screenW, screenW, 1))
+                    c.tooltip = "Moves the opposite icon from its automatic place. If you dragged the icon yourself, changing this puts it back in its automatic place first."
+                    c.disabled = function() return not settings.showOpposite end
+                    return c
+                end)(),
+                (function()
+                    local c = PlacesOpposite(Slider("Offset Y", "oppOffsetY", -screenH, screenH, 1))
+                    c.tooltip = "Moves the opposite icon from its automatic place. If you dragged the icon yourself, changing this puts it back in its automatic place first."
+                    c.disabled = function() return not settings.showOpposite end
+                    return c
+                end)(),
+                {
+                    type = "button",
+                    name = "Reset icon position",
+                    tooltip = "Puts the opposite icon back in its automatic place after you dragged it yourself. Nothing else is moved.",
+                    func = function()
+                        LeaveCustomPlacement()
+                        SettingsChanged()
+                        if textsUnlocked then PlaceOppHandle() end
+                    end,
+                    disabled = function() return not settings.showOpposite or settings.oppPlacement ~= "Custom" end,
+                    width = "half",
+                },
+                NeedsOpposite(Dropdown("Border", "borderStyle", CHOICES.border)),
                 NeedsOpposite(Checkbox("Dim while not castable", "dimOpposite")),
                 NeedsOpposite(Checkbox("Highlight while castable", "highlightOpposite")),
             },
@@ -2317,7 +2664,7 @@ local function BuildSettingsMenu()
             controls = {
                 Checkbox("Show ultimate timer", "showTimer"),
                 NeedsTimer(Slider("Timer text size", "timerSize", 8, 40, 1)),
-                NeedsTimer(Dropdown("Timer position", "timerPosition", timerPositionChoices)),
+                NeedsTimer(Dropdown("Timer position", "timerPosition", CHOICES.timerPosition)),
                 NeedsTimer(ColorPicker("Timer color", "timerColor")),
                 Checkbox("Show countdown glow", "showCountdownGlow"),
                 (function()
@@ -2332,7 +2679,7 @@ local function BuildSettingsMenu()
             name = "Ultimate gain",
             controls = {
                 (function()
-                    local c = Dropdown("Show", "gainDisplay", gainChoices)
+                    local c = Dropdown("Show", "gainDisplay", CHOICES.gain)
                     c.tooltip = "Off: nothing is shown.\n\nGain per second: how much ultimate you gain per second, e.g. +2.4/s.\n\nTime until ready: seconds until your ultimate is ready, e.g. 8s, counting down.\n\nBoth are estimates based on the ultimate you gained in the last 10 seconds, so they change with your rotation and the fight. Hidden while you are not gaining ultimate."
                     return c
                 end)(),
@@ -2406,6 +2753,8 @@ local function BuildSettingsMenu()
                 {
                     type = "button",
                     name = "Reset positions",
+                    isDangerous = true,
+                    warning = "Puts the ultimate, the opposite icon and all texts back to their default positions.",
                     func = function() ResetPositions() RefreshPanel() end,
                     width = "half",
                 },
@@ -2484,6 +2833,33 @@ local function OnPlayerActivated()
         CreateUI()
     end
     RefreshSoon()
+    -- once the action bar has its final layout, texts can be placed relative
+    -- to their icons (and old screen positions converted)
+    zo_callLater(function()
+        if not created then return end
+
+        -- texts moved with an older version were saved as screen positions,
+        -- matching the layout of that version: convert them in that layout,
+        -- so they keep their place next to their icon
+        local hasOld = false
+        for _, p in pairs(settings.textPosT) do
+            if p.dx == nil then hasOld = true end
+        end
+        if hasOld then
+            textLayout.legacy = true
+            Refresh()
+        end
+
+        textLayout.layoutReady = true
+        for _, h in ipairs(holders) do
+            ApplyHolderPosition(h)
+        end
+
+        if hasOld then
+            textLayout.legacy = false
+            Refresh()
+        end
+    end, 600)
 end
 
 local function OnAddOnLoaded(_, addonName)
@@ -2510,6 +2886,7 @@ local function OnAddOnLoaded(_, addonName)
         accountSettings.migratedFromOld = true
         oldAccount["$AccountWide"]["Settings"] = nil
     end
+    sv.icons = nil  -- icons learned by older versions (could be wrong, no longer used)
     accountSettings.learnedUltEffects = accountSettings.learnedUltEffects or {}
     learnedEffects = accountSettings.learnedUltEffects
     charSettings    = ZO_SavedVars:NewCharacterIdSettings("SimpleUltimateTrackerSV", 1, "CharSettings", DEFAULTS)
@@ -2521,16 +2898,39 @@ local function OnAddOnLoaded(_, addonName)
     end
 
     local validTimerPos = false
-    for _, v in ipairs(timerPositionChoices) do
+    for _, v in ipairs(CHOICES.timerPosition) do
         if settings.timerPosition == v then validTimerPos = true end
     end
     if not validTimerPos then settings.timerPosition = DEFAULTS.timerPosition end
-    if settings.gainDisplay ~= GAIN_RATE and settings.gainDisplay ~= GAIN_ETA then
+    -- Older versions had Position + "Line up with skill row" + "Follow action
+    -- bar rows"; they are now one setting, Placement (converted once)
+    for _, t in ipairs({ accountSettings, charSettings }) do
+        if not t.placementMigrated then
+            t.placementMigrated = true
+            if t.oppPos then
+                t.oppPlacement = "Custom"
+            elseif t.alignToSkills == false or t.followRows == false then
+                t.oppPlacement = t.oppPosition or "Above"
+            else
+                t.oppPlacement = "Automatic"
+            end
+            t.alignToSkills, t.followRows, t.oppPosition = nil, nil, nil
+        end
+    end
+    local validPlacement = false
+    for _, v in ipairs(CHOICES.placement) do
+        if settings.oppPlacement == v then validPlacement = true end
+    end
+    if not validPlacement or (settings.oppPlacement == "Custom" and not settings.oppPos) then
+        settings.oppPlacement = DEFAULTS.oppPlacement
+    end
+
+    if settings.gainDisplay ~= GAIN.RATE and settings.gainDisplay ~= GAIN.ETA then
         settings.gainDisplay = "Off"
     end
 
     local validBorder = false
-    for _, v in ipairs(borderChoices) do
+    for _, v in ipairs(CHOICES.border) do
         if settings.borderStyle == v then validBorder = true end
     end
     if not validBorder then settings.borderStyle = DEFAULTS.borderStyle end

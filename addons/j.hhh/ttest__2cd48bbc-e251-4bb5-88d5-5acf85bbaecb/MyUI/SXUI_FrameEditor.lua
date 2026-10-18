@@ -9,6 +9,38 @@ local FRAME_NAMES = {
     'BUI_OnScreen', 'BUI_OnScreenS', 'BUI_Glyphs', 'BUI_MiniMeter',
     'BUI_GroupDPS', 'BUI_Attackers', 'BUI_BuffsUp',
 }
+local ANNOUNCEMENT_FRAMES = {
+    {name='ZO_CenterScreenAnnounce', label='Basegame Announcements'},
+}
+local REQUESTED_DEFAULT_FRAMES = {
+    'ZO_SynergyTopLevelContainer',
+    'ZO_PlayerToPlayerAreaPromptContainer',
+    'ZO_ActiveCombatTips',
+}
+-- Editor-only stand-ins for native frames which ESO creates only in specific content.
+-- The saved anchors use the original ESO name, never the stand-in name.
+local PINNED_DEFAULT_FRAMES = {
+    {name='ZO_CenterScreenAnnounce', label='Basegame Announcements', x=0, y=-175},
+    {name='ZO_PlayerToPlayerAreaPromptContainer', label='Interaction Button', x=0, y=130},
+    {name='ZO_SynergyTopLevelContainer', label='Synergy', x=0, y=215},
+    {name='ZO_ActiveCombatTips', label='Combat Tips', x=0, y=40},
+}
+-- ESO positions the three trackers through shared HUD layout when available.
+local TRACKER_NAMES={
+    ZO_FocusedQuestTrackerPanel=true,
+    ZO_BattlegroundHUDFragmentTopLevelBattlegroundScoreHud=true,
+    ZO_EndDunHUDTrackerContainer=true,
+}
+local function sharedTracker()
+    return rawget(_G,'ZO_HUDTrackers') or rawget(_G,'ZO_FocusedQuestTrackerPanel')
+end
+local SPECIAL_ANCHOR_POINTS = {
+    ZO_LootHistoryControl_Keyboard = BOTTOMRIGHT,
+    ZO_LootHistoryControl_Gamepad = BOTTOMLEFT,
+    ZO_PlayerAttributeMagicka = RIGHT,
+    ZO_PlayerAttributeStamina = LEFT,
+    ZO_EndDunHUDTrackerContainer = BOTTOMRIGHT,
+}
 local function log(message)
     if type(d)=='function' then d('[My UI Move] '..tostring(message)) end
 end
@@ -23,40 +55,156 @@ local function hasGeometry(control)
     local ok2,w,h=pcall(control.GetDimensions,control)
     return ok2 and (tonumber(w) or 0)>0 and (tonumber(h) or 0)>0
 end
+local function getPreviewControl(name, fallbackX, fallbackY)
+    Editor.previewControls=Editor.previewControls or {}
+    if Editor.previewControls[name] then return Editor.previewControls[name] end
+    local control=WINDOW_MANAGER:CreateTopLevelWindow('MyUI_MovePreview_'..name)
+    control:SetDimensions(230,54)
+    control:SetMouseEnabled(false)
+    control:SetHidden(true)
+    local anchor=BUI.Vars and BUI.Vars[name]
+    local x,y=fallbackX or 0,fallbackY or 0
+    if type(anchor)=='table' then
+        x=tonumber(anchor[3]) or x
+        y=tonumber(anchor[4]) or y
+    end
+    control:SetAnchor(CENTER,GuiRoot,CENTER,x,y)
+    Editor.previewControls[name]=control
+    return control
+end
 local function getName(control)
     if control.GetName then return control:GetName() or 'Frame' end
     return 'Frame'
 end
+local function prettifyName(name)
+    name=tostring(name or 'Frame')
+    name=name:gsub('^BUI_','')
+    name=name:gsub('^ZO_','')
+    name=name:gsub('Frame$',' Frame')
+    name=name:gsub('BuffsP','Player Buffs')
+    name=name:gsub('BuffsT','Target Buffs')
+    name=name:gsub('BuffsC','Cooldown Buffs')
+    name=name:gsub('BuffsS','Short Buffs')
+    name=name:gsub('BuffsPas','Passive Buffs')
+    name=name:gsub('BuffsUp','Upper Buffs')
+    name=name:gsub('OnScreenS','On Screen Small')
+    name=name:gsub('OnScreen','On Screen')
+    name=name:gsub('BossFrame','Boss Frame')
+    name=name:gsub('PlayerFrame','Player Frame')
+    name=name:gsub('TargetFrame','Target Frame')
+    name=name:gsub('MiniMeter','Mini Meter')
+    name=name:gsub('GroupDPS','Group DPS')
+    name=name:gsub('ActionBar1','Action Bar')
+    name=name:gsub('FocusedQuestTrackerPanel','Quest Tracker')
+    name=name:gsub('PlayerToPlayerAreaPromptContainer','Interaction Button')
+    name=name:gsub('SynergyTopLevelContainer','Synergy')
+    name=name:gsub('ActiveCombatTips','Combat Tips')
+    name=name:gsub('EndDunHUDTrackerContainer','Archive Tracker')
+    name=name:gsub('BattlegroundHUDFragmentTopLevelBattlegroundScoreHud','Battlegrounds Tracker')
+    name=name:gsub('CenterScreenAnnounce','Center Screen Announce')
+    name=name:gsub('ObjectiveCaptureMeter','Objective Capture Meter')
+    name=name:gsub('TargetUnitFramereticleover','Target Unit')
+    name=name:gsub('CompassFrame','Compass')
+    name=name:gsub('AlertTextNotification','Alert Text')
+    name=name:gsub('HUDInfamyMeter','Infamy Meter')
+    name=name:gsub('HUDTelvarMeter','Tel Var Meter')
+    name=name:gsub('LootHistoryControl_Keyboard','Loot History')
+    name=name:gsub('LootHistoryControl_Gamepad','Loot History')
+    name=name:gsub('RamTopLevel','AvA Ram')
+    name=name:gsub('Subtitles','Subtitles')
+    name=name:gsub('BuffDebuffTopLevelSelfContainerContainer1','Buff / Debuff')
+    name=name:gsub('Attackers','Attackers')
+    name=name:gsub('Glyphs','Glyphs')
+    return name
+end
+local function getDisplayName(control, explicitName)
+    if explicitName and explicitName~='' then return explicitName end
+    return prettifyName(getName(control))
+end
 local function refresh()
     local entry=Editor.frames and Editor.frames[Editor.index]
-    if not Editor.highlight then return end
-    if not Editor.active or not entry then Editor.highlight:SetHidden(true); return end
-    Editor.highlight:ClearAnchors()
-    Editor.highlight:SetAnchor(TOPLEFT,entry.control,TOPLEFT,-5,-5)
-    Editor.highlight:SetAnchor(BOTTOMRIGHT,entry.control,BOTTOMRIGHT,5,5)
-    Editor.highlight:SetHidden(false)
-    if Editor.label then Editor.label:SetText(getName(entry.control)..'\nL1/R1: Wechseln | Steuerkreuz: Bewegen | Kreis: Speichern & Schliessen') end
+    if not Editor.overlays then return end
+    if not Editor.active or not Editor.frames or #Editor.frames==0 then
+        for _,overlay in pairs(Editor.overlays) do
+            if overlay.win then overlay.win:SetHidden(true) end
+        end
+        if Editor.hint then Editor.hint:SetHidden(true) end
+        return
+    end
+
+    for i,frameEntry in ipairs(Editor.frames) do
+        local overlay=Editor.overlays[i]
+        if overlay and frameEntry and frameEntry.control then
+            overlay.win:ClearAnchors()
+            overlay.win:SetAnchor(TOPLEFT,frameEntry.control,TOPLEFT,-4,-4)
+            overlay.win:SetAnchor(BOTTOMRIGHT,frameEntry.control,BOTTOMRIGHT,4,4)
+            overlay.label:SetText(getDisplayName(frameEntry.control, frameEntry.displayName))
+            if i==Editor.index then
+                overlay.backdrop:SetCenterColor(0.95,0.82,0.12,0.10)
+                overlay.backdrop:SetEdgeColor(1,0.85,0.10,1)
+            else
+                overlay.backdrop:SetCenterColor(1,1,1,0.03)
+                overlay.backdrop:SetEdgeColor(1,1,1,0.95)
+            end
+            overlay.win:SetHidden(false)
+        end
+    end
+    for i=#Editor.frames+1, #(Editor.overlays) do
+        local overlay=Editor.overlays[i]
+        if overlay and overlay.win then overlay.win:SetHidden(true) end
+    end
+
+    if Editor.label and entry then
+        Editor.label:SetText(getDisplayName(entry.control, entry.displayName)..'  ('..tostring(Editor.index)..'/'..tostring(#Editor.frames)..')'..'\n'..'L1/R1: Wechseln | Steuerkreuz: Bewegen | Kreis: Speichern & Schliessen')
+    end
+    if Editor.hint then Editor.hint:SetHidden(false) end
+    if Editor.guides then Editor.guides:SetHidden(false) end
 end
 local function createOverlay()
-    if Editor.highlight then return end
+    if Editor.overlays then return end
     local wm=WINDOW_MANAGER
-    local win=wm:CreateTopLevelWindow('MyUI_MoveSelection')
-    win:SetDrawTier(DT_HIGH);win:SetDrawLayer(DL_OVERLAY);win:SetDrawLevel(50)
-    win:SetMouseEnabled(false);win:SetHidden(true)
-    local border=wm:CreateControl('MyUI_MoveSelectionBorder',win,CT_BACKDROP)
-    border:SetAnchorFill(win);border:SetCenterColor(0.9,0.8,0.1,0.08)
-    border:SetEdgeColor(1,0.8,0.1,1)
-    Editor.highlight=win
+    Editor.overlays={}
+
     local hint=wm:CreateTopLevelWindow('MyUI_MoveHint')
-    hint:SetDimensions(800,70);hint:SetAnchor(TOP,GuiRoot,TOP,0,75)
+    hint:SetDimensions(900,70);hint:SetAnchor(TOP,GuiRoot,TOP,0,75)
     hint:SetDrawTier(DT_HIGH);hint:SetDrawLayer(DL_OVERLAY)
     hint:SetMouseEnabled(false);hint:SetHidden(true)
     local label=wm:CreateControl('MyUI_MoveHintLabel',hint,CT_LABEL)
     label:SetAnchorFill(hint)
-    label:SetFont('ZoFontGamepad20')
+    label:SetFont('ZoFontGamepad24')
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     Editor.hint=hint;Editor.label=label
+    -- Cyan dashed screen-center guides. Texture segments are more reliable
+    -- on console than 1-pixel CT_BACKDROP controls with no edge texture.
+    local guides=wm:CreateTopLevelWindow('MyUI_MoveCenterGuides')
+    local screenW,screenH=GuiRoot:GetDimensions()
+    guides:SetDimensions(screenW,screenH)
+    guides:SetAnchor(CENTER,GuiRoot,CENTER,0,0)
+    guides:SetDrawTier(DT_HIGH)
+    guides:SetDrawLayer(DL_OVERLAY)
+    guides:SetDrawLevel(90)
+    guides:SetMouseEnabled(false)
+    guides:SetHidden(true)
+    local dashLength,gap=12,9
+    local interval=dashLength+gap
+    local serial=0
+    local function dash(x,y,width,height)
+        serial=serial+1
+        local segment=wm:CreateControl('MyUI_CyanGuide_'..serial,guides,CT_TEXTURE)
+        segment:SetTexture('/MyUI/textures/myui_editor_white.dds')
+        segment:SetColor(0,0.85,1,0.95)
+        segment:SetDimensions(width,height)
+        segment:SetAnchor(CENTER,guides,CENTER,x,y)
+        segment:SetHidden(false)
+    end
+    for x=-math.floor(screenW/2),math.floor(screenW/2),interval do
+        dash(x,0,dashLength,2)
+    end
+    for y=-math.floor(screenH/2),math.floor(screenH/2),interval do
+        dash(0,y,2,dashLength)
+    end
+    Editor.guides=guides
 end
 function Editor:Select(offset)
     if not self.active or not self.frames or #self.frames==0 then return end
@@ -113,20 +261,39 @@ end
 local function cleanup()
     dropKeys()
     Editor.active=false
-    if Editor.highlight then Editor.highlight:SetHidden(true) end
+    if Editor.overlays then
+        for _,overlay in pairs(Editor.overlays) do
+            if overlay.win then overlay.win:SetHidden(true) end
+        end
+    end
     if Editor.hint then Editor.hint:SetHidden(true) end
+    if Editor.guides then Editor.guides:SetHidden(true) end
     local dirty=Editor.dirty or {}
     Editor.dirty={}
     Editor.frames={}
     Editor.index=nil
     local saved=0
     for control,entry in pairs(dirty) do
-        if BUI.Menu and type(BUI.Menu.SaveAnchor)=='function' then
+        if entry.saveName=='MyUI_ChatWindow' then
+            local x,y=control:GetCenter()
+            local gx,gy=GuiRoot:GetCenter()
+            if x and y and gx and gy and BUI.Vars then
+                BUI.Vars.MyUI_ChatPosition={x-gx,y-gy}
+                saved=saved+1
+            end
+        elseif entry.saveName=='MyUI_TrackerCombined' then
+            local x,y=control:GetCenter()
+            local gx,gy=GuiRoot:GetCenter()
+            if x and y and gx and gy and BUI.Vars then
+                BUI.Vars.MyUI_TrackerCombined={CENTER,CENTER,x-gx,y-gy}
+                saved=saved+1
+            end
+        elseif BUI.Menu and type(BUI.Menu.SaveAnchor)=='function' then
             local ok,err=pcall(BUI.Menu.SaveAnchor,BUI.Menu,control,nil,entry.saveName,entry.anchorPoint)
             if ok then saved=saved+1 else log('SaveAnchor: '..tostring(err)) end
         end
     end
-    log('Editor geschlossen. Positionen gespeichert: '..saved)
+
 end
 function Editor:Close()
     if self.closing then return end
@@ -179,7 +346,7 @@ local function ensureScene()
                 local ok,err=pcall(strip.AddKeybindButtonGroup,strip,keys,Editor.keybindState)
                 Editor.keysAdded=ok
                 if not ok then log('Tasten-Registrierung fehlgeschlagen: '..tostring(err)); Editor:Close()
-                else log('Editor-Tasten aktiv: L1/R1, D-Pad, Kreis') end
+                end
             else log('KEYBIND_STRIP fehlt');Editor:Close() end
             refresh()
         elseif newState==SCENE_HIDDEN then
@@ -194,13 +361,50 @@ end
 function Editor:Open()
     if self.active or self.closing then return end
     local list,seen={},{}
-    local function include(control,saveName,anchorPoint)
+    local function include(control,saveName,anchorPoint,displayName)
         if hasGeometry(control) and not seen[control] then
             seen[control]=true
-            list[#list+1]={control=control,saveName=saveName,anchorPoint=anchorPoint}
+            list[#list+1]={control=control,saveName=saveName,anchorPoint=anchorPoint,displayName=displayName}
         end
     end
-    for _,name in ipairs(FRAME_NAMES) do include(rawget(_G,name)) end
+    for _,name in ipairs(FRAME_NAMES) do
+        include(rawget(_G,name), nil, nil, nil)
+    end
+    if BUI.MyUIChatLayout and BUI.MyUIChatLayout.GetControl then
+        local chat=BUI.MyUIChatLayout.GetControl()
+        if chat then
+            BUI.MyUIChatLayout.Apply()
+            include(chat,'MyUI_ChatWindow',nil,'Chatbox')
+        else
+            -- No chat control available at this moment; leave the editor usable.
+        end
+    end
+    -- Only one selection for the native quest / BG / archive tracker region.
+    local tracker=sharedTracker()
+    if hasGeometry(tracker) then
+        include(tracker,'MyUI_TrackerCombined',nil,'Quest / BG / Archive Tracker')
+    else
+        include(getPreviewControl('MyUI_TrackerCombined',420,-40),'MyUI_TrackerCombined',nil,'Quest / BG / Archive Tracker')
+    end
+    -- Pinned default HUD positions always have an editor-visible preview.
+    -- If ESO has no active geometry, move a temporary preview instead.
+    for _,item in ipairs(PINNED_DEFAULT_FRAMES) do
+        local native=rawget(_G,item.name)
+        local control=hasGeometry(native) and native or getPreviewControl(item.name,item.x,item.y)
+        include(control,item.name,SPECIAL_ANCHOR_POINTS[item.name],item.label)
+    end
+    if BUI.DefaultFrames then
+        for name,desc in pairs(BUI.DefaultFrames) do
+            local control=rawget(_G,name)
+            if name~='ZO_AlertTextNotification' and not TRACKER_NAMES[name] and control and not ((name=='ZO_LootHistoryControl_Keyboard' and BUI.GamepadMode) or (name=='ZO_LootHistoryControl_Gamepad' and not BUI.GamepadMode)) then
+                include(control, name, SPECIAL_ANCHOR_POINTS[name], desc)
+            end
+        end
+    else
+        for _,name in ipairs(REQUESTED_DEFAULT_FRAMES) do
+            include(rawget(_G,name), name, SPECIAL_ANCHOR_POINTS[name], prettifyName(name))
+        end
+    end
     if BUI.Meters and BUI.Meters.List and BUI.Vars then
         for _,name in pairs(BUI.Meters.List) do
             if BUI.Vars['Meter_'..tostring(name)] then include(rawget(_G,'BUI_Meter_'..tostring(name))) end
@@ -210,12 +414,35 @@ function Editor:Open()
     local ok,valid=pcall(ensureScene)
     if not ok or not valid then log('Szene konnte nicht erzeugt werden');return end
     self.frames=list;self.index=1;self.dirty={};self.active=true
+    createOverlay()
+    for i,frameEntry in ipairs(list) do
+        if not Editor.overlays[i] then
+            local win=WINDOW_MANAGER:CreateTopLevelWindow('MyUI_MoveOverlay_'..tostring(i))
+            win:SetDrawTier(DT_HIGH)
+            win:SetDrawLayer(DL_OVERLAY)
+            win:SetDrawLevel(40)
+            win:SetMouseEnabled(false)
+            win:SetHidden(true)
+            local backdrop=WINDOW_MANAGER:CreateControl('MyUI_MoveOverlayBackdrop_'..tostring(i),win,CT_BACKDROP)
+            backdrop:SetAnchorFill(win)
+            backdrop:SetEdgeTexture(nil, 2, 2, 2)
+            backdrop:SetCenterColor(1,1,1,0.03)
+            backdrop:SetEdgeColor(1,1,1,0.95)
+            local label=WINDOW_MANAGER:CreateControl('MyUI_MoveOverlayLabel_'..tostring(i),win,CT_LABEL)
+            label:SetAnchor(CENTER,win,CENTER,0,0)
+            label:SetFont('ZoFontGamepad34')
+            label:SetColor(1,1,1,1)
+            label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+            Editor.overlays[i]={win=win,backdrop=backdrop,label=label}
+        end
+    end
     -- Showing this scene transitions the options scene away normally.
     -- Do NOT force SetInUIMode(true), HideCurrentScene or TakeFocus.
     local shown,err=pcall(SCENE_MANAGER.Show,SCENE_MANAGER,SCENE_NAME)
     if not shown then log('Szene-Start fehlgeschlagen: '..tostring(err)); self:Close();return end
     refresh()
-    log('Editor-Szene gestartet ('..#list..' Frames). L1/R1, Steuerkreuz, Kreis.')
+
 end
 local function launch()
     if Editor.active then return end

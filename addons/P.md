@@ -59,7 +59,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PermAlmalexia: Permanent Mementos](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mouton/PermAlmalexia-Permanent-Mementos__3578) | Mouton | PC / Mac | 1.2.1 |
 | [Permanent Experience Bar](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/positron/Permanent-Experience-Bar__2080) | positron | PC / Mac | 1.1.0 |
 | [Permanent Memento](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/Permanent-Memento__2aa223e9-ba88-45f7-90d3-0a47002c720c) | APH0NlC | Console | — |
-| [Permanent Memento (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Permanent-Memento-PC-Console__4116) | APH0N1C | PC / Mac | 2026.10.07.17.24 |
+| [Permanent Memento (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Permanent-Memento-PC-Console__4116) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [Persona](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/SugaComa/Persona__a3bda6e6-a854-4387-825a-dccb05d706d8) | SugaComa | Console | — |
 | [Personal Assistant + Companions](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/Personal-Assistant-Companions__1296) | Ayantir | PC / Mac | 19 |
 | [Personal Dps Tracker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Shienar/Personal-Dps-Tracker__c9b85989-bab6-4000-a3fc-80ed49e25e87) | Shienar | Console | — |
@@ -104,6 +104,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [PinkB's CyrodiilAlert(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-CyrodiilAlert-Beta__233a612c-6650-451b-80d8-b1862f95c90a) | PinkBanther | Console | — |
 | [PinkB's DiceExtension](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension__c8c74e10-f091-4e38-b894-20bb194c9b87) | PinkBanther | Console | — |
 | [PinkB's DiceExtension(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-DiceExtension-Beta__4e8c5fa9-767a-4036-87fe-ba872cd76529) | PinkBanther | Console | — |
+| [PinkB's FurnitureEditor](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor__656edbf4-6ad8-4faf-8bd8-25f06199c990) | PinkBanther | Console | — |
+| [PinkB's FurnitureEditor(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-FurnitureEditor-Beta__c2c3621e-0b20-4fae-9195-05862d266eef) | PinkBanther | Console | — |
 | [PinkB's GammaAdjuster](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster__612f9579-3c45-4ab4-84e0-6989fb59bd19) | PinkBanther | Console | — |
 | [PinkB's GammaAdjuster(Beta)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-GammaAdjuster-Beta__07ad2fa8-6b34-4021-bcb1-886119449ac1) | PinkBanther | Console | — |
 | [PinkB's HudManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/PinkBanther/PinkB-s-HudManager__9f445510-52db-43d8-bb0a-c6e497fce454) | PinkBanther | Console | — |

@@ -155,6 +155,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [AKick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Jar-Ek/AKick__1084) | Jar-Ek | PC / Mac | 1.7 |
 | [AKsAttributeBars](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/akbosser/AKsAttributeBars__e0f48487-697e-4d3f-8768-ce763362046a) | akbosser | Console | — |
 | [Alabuzya UI](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alabuzya/Alabuzya-UI__4881) | alabuzya | PC / Mac | 1.0.8 |
+| [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/ALC-Benchmark__4960) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [ALC Benchmark](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/ALC-Benchmark__e96f0d83-b3f0-47a8-a59a-2d6020816550) | APH0NlC | Console | — |
 | [Alchemiewerk](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Torfason/Alchemiewerk__4912) | Torfason | PC / Mac | 1.0.2 |
 | [Alchemist (Continued by Koenari)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Koenari/Alchemist-Continued-by-Koenari__2419) | Koenari | PC / Mac | 7.1.5-1.0 |
 | [Alchemy Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Vixen_Hunny/Alchemy-Opener__8f125308-c2a5-40e6-b249-d29e85f81020) | Vixen_Hunny | Console | — |
@@ -225,6 +227,15 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Antiquity Tooltip Fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/DakJaniels/Antiquity-Tooltip-Fix__4792) | DakJaniels | PC / Mac | 1 |
 | [AOEHelper](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/m00nyONE/AOEHelper__3342) | m00nyONE | PC / Mac | 1.2.2 |
 | [AP Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ghostbane/AP-Meter__1792) | ghostbane | PC / Mac | 2.0.4 |
+| [APH CodeRunner](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/APH-CodeRunner__4961) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [APH FPS Graph](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/APH-FPS-Graph__4962) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [APH FPS GRAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/APH-FPS-GRAPH__ad02eccd-a3f5-4375-8c13-e631101449c5) | APH0NlC | Console | — |
+| [APH Profiler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/APH-Profiler__4963) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [APH Profiler](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/APH-Profiler__0bfedee5-e73d-43f5-8e5a-cee64c2f5e6f) | APH0NlC | Console | — |
+| [APH Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/APH-Search__4965) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [APH Search](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/APH-Search__3b4ab551-7e9e-4a11-9db5-e23b03dcc608) | APH0NlC | Console | — |
+| [APH-On Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/APH-On-Manager__4964) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
+| [APH-On Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/APH-On-Manager__7b833469-41d6-4060-b6df-547ae3ca188c) | APH0NlC | Console | — |
 | [Apostrophe Name Fix](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Coorbin/Apostrophe-Name-Fix__4936) | Coorbin | PC / Mac | 0.2.0 |
 | [Ar2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Lofand/Ar2__52bf209f-b1c3-4253-adfc-ba6e95b85072) | Lofand | Console | — |
 | [ArabChat - Arabic Chat](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/alaooy/ArabChat---Arabic-Chat__4931) | alaooy | PC / Mac | 1.2.2 |
@@ -264,7 +275,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Armitage's Skyshards Off](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Fessolin/Armitage-s-Skyshards-Off__3368) | Fessolin | PC / Mac | 1.0 |
 | [ArmorHUD](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dankin0815/ArmorHUD__1006) | Dankin0815 | PC / Mac | 1.3.3 |
 | [Armorskull: Resistance Meter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/taugrim/Armorskull-Resistance-Meter__3129) | taugrim | PC / Mac | 1.11 |
-| [Armory Build Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tes4p00ner/Armory-Build-Display__3221) | tes4p00ner | PC / Mac | 1.0.8 |
+| [Armory Build Display](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/tes4p00ner/Armory-Build-Display__3221) | tes4p00ner | PC / Mac | 1.0.9 |
 | [Armory Save Guard](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/Armory-Save-Guard__4878) | kreksar@gmail.com | PC / Mac | 1.1.2 |
 | [Armory Style Manager (for Update 44)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/loosej/Armory-Style-Manager-for-Update-44__3949) | loosej | PC / Mac | 0.15.1 |
 | [ArmoryLocker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/KrykiZZ/ArmoryLocker__3748) | KrykiZZ | PC / Mac | 1.0.0 |
@@ -331,7 +342,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Auto Kick](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Kick__3613) | peniku8 | PC / Mac | 2.2.5 |
 | [Auto Loot Crafting Materials](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/estera/Auto-Loot-Crafting-Materials__1430) | estera | PC / Mac | 1.0 |
 | [AUTO LUA MEMORY CLEANER](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/AUTO-LUA-MEMORY-CLEANER__9926b8d4-d4ca-4215-8790-013c0b1630c0) | APH0NlC | Console | — |
-| [Auto Lua Memory Cleaner (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Auto-Lua-Memory-Cleaner-PC-Console__4388) | APH0N1C | PC / Mac | 2026.10.07.17.24 |
+| [Auto Lua Memory Cleaner (PC & Console)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/Auto-Lua-Memory-Cleaner-PC-Console__4388) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [Auto Message](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/peniku8/Auto-Message__2859) | peniku8 | PC / Mac | 1.4.12 |
 | [Auto Offline - Sets Your Status To Offline On Logout](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Duesentrieb/Auto-Offline---Sets-Your-Status-To-Offline-On-Logout__4634) | Duesentrieb | PC / Mac | 20260624-0001 |
 | [Auto Opener](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Copper0/Auto-Opener__79b6b597-9e33-4cd7-b076-44e9a153a44c) | Copper0 | Console | — |
@@ -393,7 +404,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Awesome Info](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Stormknight/Awesome-Info__192) | Stormknight | PC / Mac | 2.13 |
 | [AwesomeGuildStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/AwesomeGuildStore__28cfc719-5113-4b1f-aab6-570be159ab81) | sirinsidiator | Console | — |
 | [AwesomeGuildStore](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/sirinsidiator/AwesomeGuildStore__695) | sirinsidiator | PC / Mac | 1.7.8 |
-| [AwesomeLeadFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Arglgargl/AwesomeLeadFilter__4950) | Arglgargl | PC / Mac | 0.0.2 |
+| [AwesomeLeadFilter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Arglgargl/AwesomeLeadFilter__4950) | Arglgargl | PC / Mac | 0.0.3 |
 | [Ayleid Wells](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Verling/Ayleid-Wells__3287) | Verling | PC / Mac | 1.0.6 |
 | [Azura Guild Messages](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Aerilita/Azura-Guild-Messages__3244) | Aerilita | PC / Mac | 0.513 |
 | [Azurah - Interface Enhanced](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kith/Azurah---Interface-Enhanced__602) | Kith | PC / Mac | 2.4.47 |

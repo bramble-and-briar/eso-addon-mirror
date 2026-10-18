@@ -292,8 +292,17 @@ function DQ:QueueFor(entries)
         return 0, "empty"
     end
 
-    if not pcall(StartActivityFinderSearch) then
+    -- StartActivityFinderSearch REPORTS failure through its return value
+    -- (ActivityQueueResult, ESOUIDocumentation.txt); it does not throw. Only
+    -- "did not throw" was checked before, so a refused queue was announced
+    -- to the player as "Queued for N dungeon(s)".
+    local okStart, result = pcall(StartActivityFinderSearch)
+    if not okStart then
         return 0, "start_failed"
+    end
+    if type(result) == "number" and ACTIVITY_QUEUE_RESULT_SUCCESS ~= nil
+       and result ~= ACTIVITY_QUEUE_RESULT_SUCCESS then
+        return 0, "start_failed", result
     end
     return added
 end

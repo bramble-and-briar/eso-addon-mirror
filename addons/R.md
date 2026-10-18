@@ -24,7 +24,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Raid Auto Skeleton](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/ownedbynico/Raid-Auto-Skeleton__2537) | ownedbynico | PC / Mac | 1.3.1 |
 | [Raid Reset](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Eymix/Raid-Reset__2850) | Eymix | PC / Mac | 1.8 |
 | [RaidBuffs](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Wheels/RaidBuffs__1939) | Wheels | PC / Mac | 0.17.0 |
-| [Raidificator (Dungeon, Trial, and Arena Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Raidificator-Dungeon-Trial-and-Arena-Tracker__1101) | code65536 | PC / Mac | 4.8.1.1 |
+| [Raidificator (Dungeon, Trial, and Arena Tracker)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/code65536/Raidificator-Dungeon-Trial-and-Arena-Tracker__1101) | code65536 | PC / Mac | 4.8.2 |
 | [RaidManager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/blackmetallive/RaidManager__3436) | blackmetallive | PC / Mac | 1.0 |
 | [RaidNotifier - Traduzione Italiana](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dusty82/RaidNotifier---Traduzione-Italiana__2991) | Dusty82 | PC / Mac | 2.18 |
 | [RaidNotifier Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kyoma/RaidNotifier-Updated__1355) | Kyoma | PC / Mac | 2.30 |

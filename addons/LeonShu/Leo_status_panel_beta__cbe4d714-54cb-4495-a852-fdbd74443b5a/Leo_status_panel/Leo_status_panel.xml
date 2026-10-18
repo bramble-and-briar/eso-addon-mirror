@@ -1,0 +1,34 @@
+<GuiXml>
+    <Controls>
+        <TopLevelControl name="Leo_status_panel" clampedToScreen="true" mouseEnabled="false" hidden="true">
+            <Dimensions x="380" y="52" />
+            <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="TOPLEFT" offsetX="300" offsetY="120" />
+
+            <Controls>
+                <Backdrop name="$(parent)Background" inherits="ZO_DefaultBackdrop" alpha="0.88">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Fps" layer="OVERLAY" level="5" text="-- fps">
+                    <Dimensions x="76" y="40" />
+                </Label>
+
+                <Label name="$(parent)Ping" layer="OVERLAY" level="5" text="-- ms">
+                    <Dimensions x="76" y="40" />
+                </Label>
+
+                <Label name="$(parent)Inventory" layer="OVERLAY" level="5" text="--/--">
+                    <Dimensions x="96" y="40" />
+                </Label>
+
+                <Label name="$(parent)Memory" layer="OVERLAY" level="5" text="--/100">
+                    <Dimensions x="88" y="40" />
+                </Label>
+
+                <Texture name="$(parent)Combat" layer="OVERLAY" level="6" texture="EsoUI/Art/Icons/ability_weapon_001.dds">
+                    <Dimensions x="36" y="36" />
+                </Texture>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

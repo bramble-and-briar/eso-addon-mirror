@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/ALC-Benchmark__4960",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4960",
+  "category_id": "33",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4960",
+  "deleted": false,
+  "directories": [
+    "ALCBenchmark"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4960/",
+  "fingerprint": "f60f249c13920bad2dfc1ab8c5c57c0f99ec4dc26f41cf101a7e1da4b8a7bf9e",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18037.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18038.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18039.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4960",
+  "source_url": "https://www.esoui.com/downloads/info4960-ALCBenchmark.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 1,
+    "monthly_downloads": 5
+  },
+  "title": "ALC Benchmark",
+  "updated_at": 1792260230000,
+  "version": "2026.10.18.01.41"
+}

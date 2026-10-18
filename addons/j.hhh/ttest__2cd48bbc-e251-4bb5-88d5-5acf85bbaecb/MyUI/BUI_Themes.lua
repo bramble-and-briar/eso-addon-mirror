@@ -95,6 +95,8 @@ end
 
 local function Setup_AdvancedTheme()
 	local a_color={BUI.Vars.AdvancedThemeColor[1],BUI.Vars.AdvancedThemeColor[2],BUI.Vars.AdvancedThemeColor[3],BUI.Vars.AdvancedThemeColor[4]/2}
+    local questKeyLabel=rawget(_G,'ZO_FocusedQuestTrackerPanelContainerQuestContainerAssistedKeyLabel')
+    if questKeyLabel and questKeyLabel.SetHidden then questKeyLabel:SetHidden(false) end
 	local function HideElements(hide)
 		-- Keep compass and top boss-bar controls native and visible on Xbox.
 		for _,text in pairs({"Center","Left","Right"}) do local frame=_G["ZO_CompassFrame"..text] if frame then frame:SetHidden(false) end end
@@ -235,38 +237,8 @@ local function Setup_AdvancedTheme()
 	}
 	BUI.UI.Path(nil, ui, points, a_color, 2)
 	end
-	--QuestTracker
-	if ZO_FocusedQuestTrackerPanelContainerQuestContainer then
-	local frame=ZO_FocusedQuestTrackerPanelContainerQuestContainer
-	local points={
-		{frame,BOTTOMLEFT,-5,-5},
-		{frame,BOTTOMLEFT,5,5},
-		{frame,BOTTOMRIGHT,-5,5},
-		{frame,BOTTOMRIGHT,5,-5},
-		{frame,TOPRIGHT,5,5},
-		{frame,TOPRIGHT,-5,-5},
-		{frame,TOPLEFT,5,-5},
-		{frame,TOPLEFT,-5,5},
-		{frame,BOTTOMLEFT,-5,-5},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
-	--ZO_ActionBar
-	if ActionButton3 and ActionButton7 and ActionButton8 and QuickslotButton then
-	local h=ActionButton3:GetHeight()
-	local anchor_right=BUI.Vars.CustomBar.Enable and BUI_CustomBar or ActionButton8
-	local points={
-		{QuickslotButton,TOPLEFT,-5,5},
-		{QuickslotButton,TOPLEFT,5,-5},
-		{ActionButton3,TOPLEFT,h/6-h/2,-5},
-		{ActionButton3,TOPLEFT,h/6,-h/2-5},
-		{ActionButton7,TOPRIGHT,h/6,-h/2-5},
-		{ActionButton7,TOPRIGHT,h/6+h/2,-5},
-		{anchor_right,TOPRIGHT,-5,-5},
-		{anchor_right,TOPRIGHT,5,5},
-	}
-	BUI.UI.Path(nil, ui, points, a_color, 2)
-	end
+	--QuestTracker frame line removed for My UI on console
+	--ActionBar line removed for My UI on console
 	--BUI_BuffsP_Panel
 	if BUI_BuffsP_Panel then
 	local points={
@@ -468,6 +440,26 @@ function BUI.Frames.ZO_PlayerAttribute_reposition()
 end
 
 function BUI.Frames.ZO_Frame_reposition()
+    if BUI.Vars then
+        -- Restore ESO's native alert position; remove old saved overrides.
+        BUI.Vars.ZO_AlertTextNotification=nil
+        BUI.Vars.ZO_FocusedQuestTrackerPanel=nil
+        BUI.Vars.ZO_BattlegroundHUDFragmentTopLevelBattlegroundScoreHud=nil
+        BUI.Vars.ZO_EndDunHUDTrackerContainer=nil
+    end
+    -- Scale only the three native trackers and Player Interaction.
+    for _,name in ipairs({'ZO_FocusedQuestTrackerPanel',
+        'ZO_BattlegroundHUDFragmentTopLevelBattlegroundScoreHud',
+        'ZO_EndDunHUDTrackerContainer','ZO_PlayerToPlayerAreaPromptContainer'}) do
+        local c=rawget(_G,name)
+        if c and c.SetScale then c:SetScale(0.90) end
+    end
+    local tracker=rawget(_G,'ZO_HUDTrackers') or rawget(_G,'ZO_FocusedQuestTrackerPanel')
+    local position=BUI.Vars and BUI.Vars.MyUI_TrackerCombined
+    if tracker and type(position)=='table' and position[3] and position[4] then
+        tracker:ClearAnchors()
+        tracker:SetAnchor(CENTER,GuiRoot,CENTER,position[3],position[4])
+    end
 	BUI.ThemeHooks=BUI.ThemeHooks or {methods={}}
 	local hookState=BUI.ThemeHooks
 	local function SetupFunction(control, data)
@@ -475,7 +467,7 @@ function BUI.Frames.ZO_Frame_reposition()
 		control:SetText(data.text)
 		control:SetColor(data.color:UnpackRGBA())
 		local align=TEXT_ALIGN_RIGHT	--TEXT_ALIGN_LEFT,TEXT_ALIGN_CENTER
-		local var=BUI.Vars["ZO_AlertTextNotification"] if var and var[5] then align=var[5] end
+		
 		control:SetHorizontalAlignment(align)
 		ZO_SoundAlert(data.category, data.soundId)
 	end
@@ -484,8 +476,7 @@ function BUI.Frames.ZO_Frame_reposition()
 	if not BUI.GamepadMode then
 		line=ZO_AlertTextNotification:GetChild(1)
 --		line.fadingControlBuffer.templates.ZO_AlertLine.setup=SetupFunction
-		local var=BUI.Vars["ZO_AlertTextNotification"]
-		if var then line.fadingControlBuffer.anchor=ZO_Anchor:New(var[1],GuiRoot,var[2],var[3],var[4]) end
+		
 	else
 		line=ZO_AlertTextNotificationGamepad:GetChild(1)
 --		line.fadingControlBuffer.templates.ZO_AlertLineGamepad.setup=SetupFunction
@@ -534,7 +525,7 @@ function BUI.Frames.ZO_Frame_reposition()
 				elseif name=='ZO_EndDunHUDTrackerContainer' then ApplyTemplateHook(ZO_HUDTracker_Base, 'ZO_EndDunHUDTrackerContainer','RefreshAnchors') end
 				frame:ClearAnchors() frame:SetAnchor(var[1],GuiRoot,var[2],var[3],var[4])
 			else
-				bui_pl(name.." was not placed")
+				-- Optional native control not present in the current console scene.
 			end
 		end
 	end

@@ -2,10 +2,70 @@
     <Layer name="LibAPH_Search">
         <Category>
             <Action name="LIBAPH_SEARCH_PREVIOUS" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
-                <Down>return LibAPH.StepActiveSearch(-1)</Down>
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.StepActiveSearch(-1)</Down>
             </Action>
             <Action name="LIBAPH_SEARCH_NEXT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
-                <Down>return LibAPH.StepActiveSearch(1)</Down>
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.StepActiveSearch(1)</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="LibAPH_PadFocus">
+        <Category>
+            <Action name="LIBAPH_PAD_UP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_UP">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("up")</Down>
+                <Up>return LibAPH.PadFocusRelease("up")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_DOWN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("down")</Down>
+                <Up>return LibAPH.PadFocusRelease("down")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_LEFT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("left")</Down>
+                <Up>return LibAPH.PadFocusRelease("left")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_RIGHT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("right")</Down>
+                <Up>return LibAPH.PadFocusRelease("right")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_LB" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("lb")</Down>
+                <Up>return LibAPH.PadFocusRelease("lb")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_RB" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("rb")</Down>
+                <Up>return LibAPH.PadFocusRelease("rb")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_LT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("lt")</Down>
+                <Up>return LibAPH.PadFocusRelease("lt")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_RT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("rt")</Down>
+                <Up>return LibAPH.PadFocusRelease("rt")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_A" hideAction="true" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("a")</Down>
+                <Up>return LibAPH.PadFocusRelease("a")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_X" hideAction="true" inheritsBindFrom="UI_SHORTCUT_SECONDARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("x")</Down>
+                <Up>return LibAPH.PadFocusRelease("x")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_Y" hideAction="true" inheritsBindFrom="UI_SHORTCUT_TERTIARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("y")</Down>
+                <Up>return LibAPH.PadFocusRelease("y")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_LS" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("ls")</Down>
+                <Up>return LibAPH.PadFocusRelease("ls")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_RS" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("rs")</Down>
+                <Up>return LibAPH.PadFocusRelease("rs")</Up>
+            </Action>
+            <Action name="LIBAPH_PAD_B" hideAction="true" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return LibAPH.PadFocusPress("b")</Down>
+                <Up>return LibAPH.PadFocusRelease("b")</Up>
             </Action>
         </Category>
     </Layer>

@@ -1,0 +1,20 @@
+## Title: Guild Name Ticker
+## Author: clubwratt
+## Version: 0.5.0
+## APIVersion: 101050
+## Description: Quickly set your represented guild name with /gt Some Name (creates a throwaway guild and selects it in the Character menu's Guild dropdown), or tick through a list of names on a timer.
+## SavedVariables: GuildNameTickerSavedVars
+## DevId: cfca5ccd-3799-4e8b-9607-99f4f175a2df
+## ConsoleDependsOn: LibHarvensAddonSettings
+
+## This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.
+
+GuildNameTicker.lua
+GuildNameTickerTypes.lua
+GuildNameTickerState.lua
+GuildNameTickerTextUtils.lua
+GuildNameTickerGuildUtils.lua
+GuildNameTickerCycleActions.lua
+GuildNameTickerRepresentationSync.lua
+GuildNameTickerSettingsActions.lua
+GuildNameTickerMain.lua

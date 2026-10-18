@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 local ALC_Console = ALC.Console
 local ui_label
 local ui_ticking = false

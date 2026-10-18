@@ -1,0 +1,68 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="ALC Benchmark">
+            <Action name="ALCBENCH_TOGGLE">
+                <Down>ALCBenchmark.Pad.KeyToggle()</Down>
+            </Action>
+            <Action name="ALCBENCH_FOCUS">
+                <Down>ALCBenchmark.Pad.ToggleFocus()</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="ALCBenchmark_Focus">
+        <Category>
+            <Action name="ALCBENCH_PAD_UP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_UP">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("up")</Down>
+                <Up>return ALCBenchmark.Pad.Release("up")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_DOWN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("down")</Down>
+                <Up>return ALCBenchmark.Pad.Release("down")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_LEFT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("left")</Down>
+                <Up>return ALCBenchmark.Pad.Release("left")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_RIGHT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("right")</Down>
+                <Up>return ALCBenchmark.Pad.Release("right")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_PAGE_PREV" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("lb")</Down>
+                <Up>return ALCBenchmark.Pad.Release("lb")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_PAGE_NEXT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("rb")</Down>
+                <Up>return ALCBenchmark.Pad.Release("rb")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_ZOOM_OUT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("lt")</Down>
+                <Up>return ALCBenchmark.Pad.Release("lt")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_ZOOM_IN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("rt")</Down>
+                <Up>return ALCBenchmark.Pad.Release("rt")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_SELECT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("a")</Down>
+                <Up>return ALCBenchmark.Pad.Release("a")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_MENU" hideAction="true" inheritsBindFrom="UI_SHORTCUT_TERTIARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("y")</Down>
+                <Up>return ALCBenchmark.Pad.Release("y")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_MOVE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("rs")</Down>
+                <Up>return ALCBenchmark.Pad.Release("rs")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_RESIZE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("ls")</Down>
+                <Up>return ALCBenchmark.Pad.Release("ls")</Up>
+            </Action>
+            <Action name="ALCBENCH_PAD_BACK" hideAction="true" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return ALCBenchmark.Pad.Press("b")</Down>
+                <Up>return ALCBenchmark.Pad.Release("b")</Up>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

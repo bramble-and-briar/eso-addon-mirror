@@ -55,7 +55,7 @@ local prices = {
 	[224359] = 5000,
 	[224360] = 5000,
 }
-
+WritCreater.alchemyDefaultPrices = prices
 
 
 
@@ -180,6 +180,7 @@ local reagentInfo = {
 	[139019] = {[37]=1,[23]=1,[29]=1,[25]=1,},
 	[150669] = {[31]=-1,[3]=-1,[37]=-1,[21]=1,},
 }
+WritCreater.reagentInfo = reagentInfo
 
 
 local function determinePotionResult(reagent1, reagent2, reagent3)
@@ -507,7 +508,7 @@ function WritCreater.isAlchemyWritCraftable(bag, slot)
 	local effect2 = tonumber(x[12])
 	local effect3 = tonumber(x[13])
 	if uncraftable[effect1] and uncraftable[effect2] and uncraftable[effect3] then
-		d("WARNING: The alchemy writ "..GetItemLink(bag, slot).." is uncraftable. This is a known ZOS issue that will be fixed, so hang onto it until then!")
+		-- d("WARNING: The alchemy writ "..GetItemLink(bag, slot).." is uncraftable. This is a known ZOS issue that will be fixed, so hang onto it until then!")
 		return false
 	end
 	return true

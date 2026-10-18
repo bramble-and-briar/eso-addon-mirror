@@ -1,7 +1,7 @@
 ## Title: SimpleUltimateTracker
 ## Author: Kaewro
-## Version: 1.0.2
-## AddOnVersion: 102
+## Version: 1.0.3
+## AddOnVersion: 103
 ## APIVersion: 101051 101052
 ## SavedVariables: SimpleUltimateTrackerSV
 ## DependsOn: LibAddonMenu-2.0>=43

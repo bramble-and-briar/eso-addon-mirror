@@ -1,0 +1,16 @@
+{
+  "archive_path": "addons/APH0NlC/APH-Search__3b4ab551-7e9e-4a11-9db5-e23b03dcc608",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0NlC",
+  "canonical_id": "bethesda:3b4ab551-7e9e-4a11-9db5-e23b03dcc608",
+  "content_id": "3b4ab551-7e9e-4a11-9db5-e23b03dcc608",
+  "deleted": false,
+  "fingerprint": "59d198036dcdcf202d814115f15c3d1e9fde56a0f8f522ff8366d6b90c5384ca",
+  "platform": "console",
+  "published": true,
+  "source": "bethesda",
+  "source_id": "3b4ab551-7e9e-4a11-9db5-e23b03dcc608",
+  "source_url": "https://mods.bethesda.net/en/elderscrollsonline/details/3b4ab551-7e9e-4a11-9db5-e23b03dcc608",
+  "title": "APH Search"
+}

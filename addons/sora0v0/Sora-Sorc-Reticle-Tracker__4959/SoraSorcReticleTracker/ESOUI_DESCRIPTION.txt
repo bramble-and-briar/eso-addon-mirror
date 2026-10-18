@@ -1,0 +1,23 @@
+Sora Sorc Reticle Tracker
+
+A compact reticle-side Sorcerer tracker designed to keep important combat information near the reticle.
+
+Features
+- Crystal Fragments proc timer on the left side of the reticle.
+- Bound Armaments stack count on the right side of the reticle.
+- Optional text-only Maelstrom Arena back-bar ground-skill timer below the reticle.
+- Crystal Fragments works even while the skill is on the inactive weapon bar.
+- Bound Armaments stack colors: 1-2 white, 3 gold, 4+ red.
+- Maelstrom timer colors: white normally, gold at 5 seconds, red at 2 seconds.
+- Independent position and size settings.
+- Server-specific SavedVariables.
+
+Optional Maelstrom timer supports:
+- Merciless Charge / Perfected Merciless Charge + Stampede
+- Crushing Wall / Perfected Crushing Wall + Elemental Blockade or Unstable Wall of Elements
+- Thunderous Volley / Perfected Thunderous Volley + Endless Hail
+
+Dependency
+- LibAddonMenu-2.0
+
+Development note: This addon was created with AI assistance. Code was reviewed and tested in game by sora0v0.

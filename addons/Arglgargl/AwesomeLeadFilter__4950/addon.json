@@ -18,19 +18,21 @@
     "AwesomeLeadFilter"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4950/",
-  "fingerprint": "0a9211b9d0219bb597b7259d013e16315ecd57d364014b125b75482b40ff4394",
-  "images": [],
+  "fingerprint": "7aa63ab87ec1c4aa2f1c93311e663009f7fc66c67fdc8b54ad79fdeb9e6e1866",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18031.png"
+  ],
   "platform": "pc",
   "published": true,
   "source": "esoui",
   "source_id": "4950",
   "source_url": "https://www.esoui.com/downloads/info4950-AwesomeLeadFilter.html",
   "stats": {
-    "downloads": 7,
-    "favorites": 0,
-    "monthly_downloads": 1
+    "downloads": 30,
+    "favorites": 1,
+    "monthly_downloads": 28
   },
   "title": "AwesomeLeadFilter",
   "updated_at": 1791926403000,
-  "version": "0.0.2"
+  "version": "0.0.3"
 }

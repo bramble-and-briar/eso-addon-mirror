@@ -10,6 +10,14 @@ local playerName = nil
 local StunAlert = nil
 local StunNotification = nil
 
+local activeStunID = nil
+local charmSuppressed = false
+
+local CHARM_SUPPRESSED_ZONES = {
+	[1301] = true, -- Coral Aerie
+	[1344] = true, -- DSR
+}
+
 local combatResults = {
 	ACTION_RESULT_FEARED,
 	ACTION_RESULT_CHARMED,
@@ -17,7 +25,8 @@ local combatResults = {
 	ACTION_RESULT_SILENCED,
 	ACTION_RESULT_PACIFIED,
 	ACTION_RESULT_OFFBALANCE,
-	ACTION_RESULT_STAGGERED
+	ACTION_RESULT_STAGGERED,
+	ACTION_RESULT_EFFECT_FADED,
 }
 
 local defaultSV = {
@@ -36,14 +45,12 @@ local defaultSV = {
 	textFear = true,
 	fearSoundEnabled = true,
 	fearSound = "BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",
-	fearBlurDuration = 1000,
 	fearColor = "FF0000",
 
 	trackCharm = true,
 	textCharm = true,
 	charmSoundEnabled = true,
 	charmSound = "BATTLEGROUND_ROUND_RECAP_SCREEN_FINAL_WIN",
-	charmBlurDuration = 1000,
 	charmColor = "FF0000",
 
 	trackRooted = true,
@@ -72,7 +79,27 @@ local defaultSV = {
 	staggeredColor = "FFD700",
 }
 
-function S.ShowStunAlert(msgText, soundName, color, duration, showText)
+function S.CreateUI()
+	StunAlert = WINDOW_MANAGER:CreateTopLevelWindow("StunAlert")
+	StunAlert:SetDimensions(800, 150)
+	local alertLabel = StunAlert:CreateControl(nil, CT_LABEL)
+	alertLabel:SetFont(string.format("$(BOLD_FONT)|$(KB_%d)|soft-shadow-thick", S.SV.alertFontSize))
+	alertLabel:SetAnchor(CENTER, StunAlert, CENTER, 0, 0)
+	alertLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	alertLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	StunAlert.label = alertLabel
+
+	StunNotification = WINDOW_MANAGER:CreateTopLevelWindow("StunNotification")
+	StunNotification:SetDimensions(800, 150)
+	local notifLabel = StunNotification:CreateControl(nil, CT_LABEL)
+	notifLabel:SetFont(string.format("$(BOLD_FONT)|$(KB_%d)|soft-shadow-thick", S.SV.notificationFontSize))
+	notifLabel:SetAnchor(CENTER, StunNotification, CENTER, 0, 0)
+	notifLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+	notifLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+	StunNotification.label = notifLabel
+end
+
+function S.ShowStunAlert(msgText, soundName, color, showText)
 	if S.SV.hideGameUI then
 		ToggleShowIngameGui()
 	end
@@ -86,21 +113,6 @@ function S.ShowStunAlert(msgText, soundName, color, duration, showText)
 	end
 
 	if showText then
-		S.HideAlert()
-
-		if not StunAlert then
-			StunAlert = WINDOW_MANAGER:CreateTopLevelWindow("StunAlert")
-			StunAlert:SetDimensions(800, 150)
-
-			local label = StunAlert:CreateControl(nil, CT_LABEL)
-			local fontString = string.format("$(BOLD_FONT)|$(KB_%d)|soft-shadow-thick", S.SV.alertFontSize)
-			label:SetFont(fontString)
-			label:SetAnchor(CENTER, StunAlert, CENTER, 0, 0)
-			label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-			label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-			StunAlert.label = label
-		end
-
 		local screenWidth, screenHeight = GuiRoot:GetDimensions()
 		local xPos = screenWidth / 2
 		local yPos = screenHeight / 3
@@ -111,44 +123,11 @@ function S.ShowStunAlert(msgText, soundName, color, duration, showText)
 		StunAlert.label:SetText("|c" .. color .. msgText .. "|r")
 		StunAlert:SetHidden(false)
 	end
-
-	if duration then
-		zo_callLater(function()
-			S.HideAlert()
-			if S.SV.blurOnStun then
-				SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
-			end
-			if S.SV.hideGameUI then
-				ToggleShowIngameGui()
-			end
-		end, duration)
-	end
-end
-
-function S.HideAlert()
-	if StunAlert then
-		StunAlert:SetHidden(true)
-	end
 end
 
 function S.ShowNotification(msgText, soundName, color, duration)
 	if soundName then
 		PlaySound(SOUNDS[soundName])
-	end
-
-	S.HideNotification()
-
-	if not StunNotification then
-		StunNotification = WINDOW_MANAGER:CreateTopLevelWindow("StunNotification")
-		StunNotification:SetDimensions(800, 150)
-
-		local label = StunNotification:CreateControl(nil, CT_LABEL)
-		local fontString = string.format("$(BOLD_FONT)|$(KB_%d)|soft-shadow-thick", S.SV.notificationFontSize)
-		label:SetFont(fontString)
-		label:SetAnchor(CENTER, StunNotification, CENTER, 0, 0)
-		label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-		label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
-		StunNotification.label = label
 	end
 
 	StunNotification:ClearAnchors()
@@ -158,68 +137,62 @@ function S.ShowNotification(msgText, soundName, color, duration)
 	StunNotification:SetHidden(false)
 
 	zo_callLater(function()
-		S.HideNotification()
+		StunNotification:SetHidden(true)
 	end, duration)
 end
 
-function S.HideNotification()
-	if StunNotification then
-		StunNotification:SetHidden(true)
+function S.RemoveStunnedMode()
+	activeStunID = nil
+	if stunnedMode then
+		if S.SV.blurOnStun then
+			SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
+		end
+		if S.SV.hideGameUI then
+			ToggleShowIngameGui()
+		end
+		stunnedMode = false
 	end
+	StunAlert:SetHidden(true)
 end
 
 function S.SetStunState(_, stunned)
 	if stunned then
-		if not stunnedMode and IsUnitInCombat("player") then
+		if S.SV.trackStun and not stunnedMode and IsUnitInCombat("player") then
 			stunnedMode = true
-
-			if S.SV.hideGameUI then
-				ToggleShowIngameGui()
-			end
-
-			if S.SV.blurOnStun then
-				SetFullscreenEffect(FULLSCREEN_EFFECT_UNIFORM_BLUR)
-			end
-
-			if S.SV.stunSoundEnabled then
-				PlaySound(SOUNDS[S.SV.stunSound])
-			end
-
-			S.ShowStunAlert("STUNNED!", nil, S.SV.stunColor, nil, S.SV.textStun)
+			local sound = S.SV.stunSoundEnabled and S.SV.stunSound
+			S.ShowStunAlert("STUNNED!", sound, S.SV.stunColor, S.SV.textStun)
 		end
 	else
-		if stunnedMode then
-			if S.SV.blurOnStun then
-				SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
-			end
-
-			if S.SV.hideGameUI then
-				ToggleShowIngameGui()
-			end
-
-			stunnedMode = false
-			S.HideAlert()
-		end
+		S.RemoveStunnedMode()
 	end
 end
 
-function S.CombatEventHandler(_, result, _, _, _, _, _, _, targetName, ...)
+function S.CombatEventHandler(_, result, _, _, _, _, _, _, targetName, _, _, _, _, _, _, _, abilityId)
 	if not IsUnitInCombat("player") then return end
 
 	local normalizedTarget = zo_strformat("<<1>>", targetName)
 
 	if normalizedTarget == playerName then
 		if result == ACTION_RESULT_FEARED and S.SV.trackFear then
-			local sound = S.SV.fearSoundEnabled and S.SV.fearSound
-			S.ShowStunAlert("FEARED!", sound, S.SV.fearColor, S.SV.fearBlurDuration, S.SV.textFear)
-			stunnedMode = true
-			zo_callLater(function() stunnedMode = false end, S.SV.fearBlurDuration)
+			if activeStunID == nil then
+				local sound = S.SV.fearSoundEnabled and S.SV.fearSound
+				S.ShowStunAlert("FEARED!", sound, S.SV.fearColor, S.SV.textFear)
+				activeStunID = abilityId
+				stunnedMode = true
+			end
 
 		elseif result == ACTION_RESULT_CHARMED and S.SV.trackCharm then
-			local sound = S.SV.charmSoundEnabled and S.SV.charmSound
-			S.ShowStunAlert("CHARMED!", sound, S.SV.charmColor, S.SV.charmBlurDuration, S.SV.textCharm)
-			stunnedMode = true
-			zo_callLater(function() stunnedMode = false end, S.SV.charmBlurDuration)
+			if not charmSuppressed and activeStunID == nil then
+				local sound = S.SV.charmSoundEnabled and S.SV.charmSound
+				S.ShowStunAlert("CHARMED!", sound, S.SV.charmColor, S.SV.textCharm)
+				activeStunID = abilityId
+				stunnedMode = true
+			end
+
+		elseif result == ACTION_RESULT_EFFECT_FADED then
+			if abilityId == activeStunID then
+				S.RemoveStunnedMode()
+			end
 
 		elseif result == ACTION_RESULT_ROOTED and S.SV.trackRooted then
 			local sound = S.SV.rootedSoundEnabled and S.SV.rootedSound
@@ -244,22 +217,18 @@ function S.CombatEventHandler(_, result, _, _, _, _, _, _, targetName, ...)
 	end
 end
 
-function S.OnPlayerActivated()
-	S.HideAlert()
-	if stunnedMode then
-		SetFullscreenEffect(FULLSCREEN_EFFECT_NONE)
-		if S.SV.hideGameUI then
-			ToggleShowIngameGui()
-		end
-		stunnedMode = false
-	end
+function S.NoStunAfterTP()
+	S.RemoveStunnedMode()
+	charmSuppressed = CHARM_SUPPRESSED_ZONES[GetZoneId(GetUnitZoneIndex("player"))]
 end
 
 function S.OnInitPlayerActivated()
 	playerName = GetUnitName("player")
+	charmSuppressed = CHARM_SUPPRESSED_ZONES[GetZoneId(GetUnitZoneIndex("player"))]
+	S.CreateUI()
 
-	EVENT_MANAGER:UnregisterForEvent(S.name, EVENT_PLAYER_ACTIVATED)
-	EVENT_MANAGER:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.OnPlayerActivated)
+	EM:UnregisterForEvent(S.name, EVENT_PLAYER_ACTIVATED)
+	EM:RegisterForEvent(S.name, EVENT_PLAYER_ACTIVATED, S.NoStunAfterTP)
 end
 
 function S.OnAddonLoaded(_, addonName)

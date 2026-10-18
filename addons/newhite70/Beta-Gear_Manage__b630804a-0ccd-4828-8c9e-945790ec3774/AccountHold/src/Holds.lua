@@ -105,7 +105,7 @@ function Holds:BuildLiveCarryIndex()
     if type(GetBagSize) ~= "function" or type(GetItemLink) ~= "function" then
         return nil
     end
-    local carry = { signatures = {}, setIds = {} }
+    local carry = { signatures = {}, setIds = {}, setSignatures = {} }
     local bags = {}
     if BAG_BACKPACK then bags[#bags + 1] = BAG_BACKPACK end
     if BAG_WORN     then bags[#bags + 1] = BAG_WORN     end
@@ -125,7 +125,11 @@ function Holds:BuildLiveCarryIndex()
                     carry.signatures[link] = true
                     if type(GetItemLinkSetInfo) == "function" then
                         local okSet, hasSet, _, _, _, _, setId = pcall(GetItemLinkSetInfo, link)
-                        if okSet and hasSet and setId then carry.setIds[setId] = true end
+                        if okSet and hasSet and setId then
+                            carry.setIds[setId] = true
+                            carry.setSignatures[setId] = carry.setSignatures[setId] or {}
+                            carry.setSignatures[setId][link] = true
+                        end
                     end
                 end
             end
@@ -144,7 +148,15 @@ function Holds:CanCurrentCharacterSupply(hold, carry)
     if hold.holdType == "item" then
         return hold.itemSignature ~= nil and carry.signatures[hold.itemSignature] == true
     elseif hold.holdType == "set" then
-        return hold.setId ~= nil and carry.setIds[hold.setId] == true
+        if hold.setId == nil or carry.setIds[hold.setId] ~= true then return false end
+        -- Only pieces the player kept selected count; carrying nothing but
+        -- deselected pieces means there is nothing to deposit.
+        local sigs = carry.setSignatures and carry.setSignatures[hold.setId]
+        if type(sigs) ~= "table" then return true end
+        for link in pairs(sigs) do
+            if self:IsMemberIncluded(hold, link) then return true end
+        end
+        return false
     end
     return false
 end
@@ -414,6 +426,87 @@ function Holds:MarkDelivered(holdId)
 end
 
 -- ---------------------------------------------------------------------------
+-- Fulfilment accounting
+-- ---------------------------------------------------------------------------
+-- A hold is only finished when everything it asked for has arrived. One
+-- confirmed move used to mark the whole hold delivered, so a request for five
+-- items completed after the first stack of three, and a set hold completed
+-- after its first piece.
+
+-- Item holds: how many more items the target still needs. nil for set holds,
+-- whose need is a set of pieces rather than a count.
+function Holds:RemainingCount(hold)
+    if type(hold) ~= "table" or hold.holdType ~= "item" then return nil end
+    local want = tonumber(hold.desiredCount) or 1
+    return math.max(0, want - (tonumber(hold.deliveredCount) or 0))
+end
+
+-- Set holds: selected pieces that are neither with the target already nor in
+-- `containerKey`. Zero means withdrawing everything in that container finishes
+-- the hold.
+function Holds:OutstandingSetPiecesOutside(hold, containerKey)
+    if type(hold) ~= "table" or hold.holdType ~= "set" then return 0 end
+    local target = holdTarget(hold)
+    local n = 0
+    for _, m in ipairs(self:GetSetMembers(hold)) do
+        if m.included and m.locationKey ~= containerKey
+           and not (target ~= nil and m.characterId == target) then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- A confirmed deposit of `count` items into `containerKey`.
+function Holds:RecordDeposit(holdId, count, containerKey)
+    local hold = addon.sv.holds[holdId]; if not hold then return end
+    hold.depositedCount = (tonumber(hold.depositedCount) or 0) + (tonumber(count) or 1)
+    self:MarkInTransit(holdId, containerKey)
+end
+
+-- A confirmed withdrawal of `count` items. `setComplete` says whether, for a set
+-- hold, this was the last piece the hold needed. Returns true when the hold is
+-- now fully delivered.
+function Holds:RecordWithdrawal(holdId, count, setComplete)
+    local hold = addon.sv.holds[holdId]; if not hold then return false end
+    hold.deliveredCount = (tonumber(hold.deliveredCount) or 0) + (tonumber(count) or 1)
+    local fulfilled
+    if hold.holdType == "item" then
+        fulfilled = self:RemainingCount(hold) == 0
+    else
+        fulfilled = setComplete and true or false
+    end
+    if fulfilled then
+        self:MarkDelivered(holdId)
+    else
+        hold.updatedAt = GetTimeStamp()
+    end
+    return fulfilled
+end
+
+-- May the current character still deposit toward this hold? Open/awaiting holds
+-- always may; an in-transit hold may too while part of it is still out on a
+-- character (a set split across alts, or a quantity spread over stacks).
+local function holderMaySupply(self, hold, me, carry)
+    if holdTarget(hold) == me then return false end
+    local status = hold.status or ""
+    local inTransit = string.sub(status, 1, #STATE_IN_TRANSIT_PREFIX) == STATE_IN_TRANSIT_PREFIX
+    if not (status == STATE_AWAITING_DEPOSIT or status == STATE_OPEN or inTransit) then
+        return false
+    end
+    if inTransit and hold.holdType == "item"
+       and (tonumber(hold.depositedCount) or 0) >= (tonumber(hold.desiredCount) or 1) then
+        return false
+    end
+    for _, c in ipairs(hold.candidates or {}) do
+        if c.characterId == me and not c.isCharacterBound then
+            return self:CanCurrentCharacterSupply(hold, carry)
+        end
+    end
+    return false
+end
+
+-- ---------------------------------------------------------------------------
 -- Queries used by Notify / UI
 -- ---------------------------------------------------------------------------
 
@@ -427,16 +520,8 @@ function Holds:GetActiveHoldsForCurrentCharacterAsHolder()
     local out = {}
     local carry = self:BuildLiveCarryIndex()
     for _, hold in pairs(addon.sv.holds) do
-        if (hold.status == STATE_AWAITING_DEPOSIT or hold.status == STATE_OPEN)
-           and holdTarget(hold) ~= me then
-            for _, c in ipairs(hold.candidates) do
-                if c.characterId == me and not c.isCharacterBound then
-                    if self:CanCurrentCharacterSupply(hold, carry) then
-                        out[#out + 1] = hold
-                    end
-                    break
-                end
-            end
+        if holderMaySupply(self, hold, me, carry) then
+            out[#out + 1] = hold
         end
     end
     return out
@@ -466,28 +551,24 @@ function Holds:GetHoldsAtContainer(containerKey, asRole)
     for _, hold in pairs(addon.sv.holds) do
         local include = false
         if asRole == "holder" then
-            -- Deposit if a candidate on this character exists and the hold
-            -- is awaiting deposit. We don't pin the route — any container
-            -- the holder opens is acceptable (brief §4.2). Every character
-            -- can deposit; we only skip holds targeted at this character.
-            -- The candidate snapshot is confirmed against the live bags, so a
-            -- stale entry can't offer a Deposit the Mover will fail to fill.
-            if (hold.status == STATE_AWAITING_DEPOSIT or hold.status == STATE_OPEN)
-               and holdTarget(hold) ~= me then
-                for _, c in ipairs(hold.candidates) do
-                    if c.characterId == me and not c.isCharacterBound then
-                        include = self:CanCurrentCharacterSupply(hold, carry)
-                        break
-                    end
-                end
-            end
+            -- Deposit if a candidate on this character exists and part of the
+            -- hold still needs depositing. We don't pin the route — any
+            -- container the holder opens is acceptable (brief §4.2). Every
+            -- character can deposit; we only skip holds targeted at this
+            -- character. The candidate snapshot is confirmed against the live
+            -- bags, so a stale entry can't offer a Deposit the Mover will fail
+            -- to fill.
+            include = holderMaySupply(self, hold, me, carry)
         elseif asRole == "requester" then
             if holdTarget(hold) == me then
-                if hold.status == STATE_IN_TRANSIT_PREFIX .. containerKey then
+                local status = hold.status or ""
+                if status == STATE_IN_TRANSIT_PREFIX .. containerKey then
                     include = true
-                elseif hold.status == STATE_OPEN or hold.status == STATE_AWAITING_DEPOSIT then
+                elseif status ~= STATE_DELIVERED and status ~= STATE_CANCELLED then
                     -- A reservation created while the item is already in this
-                    -- shared container needs no holder-side deposit first.
+                    -- shared container needs no holder-side deposit first. The
+                    -- same applies to part of a hold that is in transit
+                    -- elsewhere, e.g. set pieces deposited into two containers.
                     for _, c in ipairs(hold.candidates or {}) do
                         if c.locationKey == containerKey then
                             include = true

@@ -18,7 +18,7 @@
     "PermMemento"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4116/",
-  "fingerprint": "80add9d8694c30f1ca8e472b45b6a7fff604013f43586ce727a98d3e9bb8151c",
+  "fingerprint": "2bd0989769667d97ad6b388735b1705a72ea0dfc277975d8d9c812162ed1e09a",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17750.png",
     "https://cdn-eso.mmoui.com/preview/pvw17751.png",
@@ -36,11 +36,11 @@
   "source_id": "4116",
   "source_url": "https://www.esoui.com/downloads/info4116-PermanentMementoPCConsole.html",
   "stats": {
-    "downloads": 4477,
+    "downloads": 4573,
     "favorites": 9,
-    "monthly_downloads": 121
+    "monthly_downloads": 202
   },
   "title": "Permanent Memento (PC & Console)",
-  "updated_at": 1791367410000,
-  "version": "2026.10.07.17.24"
+  "updated_at": 1792261030000,
+  "version": "2026.10.18.01.41"
 }

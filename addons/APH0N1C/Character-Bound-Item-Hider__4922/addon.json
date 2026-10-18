@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/APH0N1C/Character-Bound-Item-Hider__4922",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "APH0N1C",
   "canonical_id": "esoui:4922",
   "category_id": "20",
@@ -19,7 +18,7 @@
     "CharacterBoundItemHider"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4922/",
-  "fingerprint": "0f12b1d60279faedde0511d5656e2e7f883988b7aca373be7ffe2ba946215009",
+  "fingerprint": "8a60d4f6309c1daf04bd90aeaefd9fa1b2ba56208efdfd2d14e3cd6eacbd9f27",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17789.png",
     "https://cdn-eso.mmoui.com/preview/pvw17788.png",
@@ -37,11 +36,11 @@
   "source_id": "4922",
   "source_url": "https://www.esoui.com/downloads/info4922-CharacterBoundItemHider.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 43,
+    "favorites": 1,
+    "monthly_downloads": 41
   },
   "title": "Character Bound Item Hider",
-  "updated_at": 1791369557000,
-  "version": "2026.10.06.13.49"
+  "updated_at": 1792260822000,
+  "version": "2026.10.18.01.41"
 }

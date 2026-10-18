@@ -237,7 +237,6 @@ BUI	={
 --		"ZO_LargeGroupAnchorFrame6",
 		ZO_FocusedQuestTrackerPanel	="Quest Tracker",
 		ZO_PlayerToPlayerAreaPromptContainer	="Player to Player prompt",
-		ZO_AlertTextNotification	="Alert text notification",
 		ZO_CenterScreenAnnounce		="Center Screen Announce",
 		ZO_HUDInfamyMeter			="Infamy Meter",
 		ZO_HUDTelvarMeter			="Telvar Meter",

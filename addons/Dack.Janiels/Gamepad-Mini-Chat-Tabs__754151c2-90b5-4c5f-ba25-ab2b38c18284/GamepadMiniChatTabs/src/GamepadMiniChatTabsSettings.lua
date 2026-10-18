@@ -38,6 +38,7 @@ function GamepadMiniChatTabsSettingsManager:CreateSettingsPanel()
                                                       allowRefresh = true
                                                   });
 
+    self:InstallNestedSectionSetup();
     self:AddFontSettings();
     self:AddTabManagement();
     self:AddFadeSettings();
@@ -84,12 +85,53 @@ function GamepadMiniChatTabsSettingsManager:AddFontSettings()
         });
 end;
 
+local TAB_MANAGEMENT_SECTION_LABEL = "Tab Management";
+
+--- Keeps tab sections inside Tab Management. LibHarvens SetupSections places every section on the root list.
+function GamepadMiniChatTabsSettingsManager:InstallNestedSectionSetup()
+    local panel = self.panel;
+    local originalSetupSections = LibHarvensAddonSettings.AddonSettings.SetupSections;
+
+    function panel:SetupSections()
+        originalSetupSections(self);
+
+        for settingIndex = 1, #self.settings do
+            local setting = self.settings[settingIndex];
+            local nestUnderLabel = setting.nestUnder;
+            if nestUnderLabel then
+                for parentIndex = 1, #self.settings do
+                    local parentSetting = self.settings[parentIndex];
+                    if parentSetting.type == LibHarvensAddonSettings.ST_SECTION and parentSetting.labelText == nestUnderLabel then
+                        setting.currentSection = parentSetting;
+                        break;
+                    end;
+                end;
+            end;
+        end;
+    end;
+end;
+
+--- Adds a setting and marks it as a child of a parent section
+--- @param params table LibHarvens setting params
+--- @param nestUnderLabel string? Parent section label
+--- @return table setting
+function GamepadMiniChatTabsSettingsManager:AddNestedSetting(params, nestUnderLabel)
+    local setting = self.panel:AddSetting(params);
+    if nestUnderLabel then
+        setting.nestUnder = nestUnderLabel;
+        if params.type == LibHarvensAddonSettings.ST_SECTION then
+            setting.gamepadMiniChatTabsSection = true;
+        end;
+    end;
+    return setting;
+end;
+
 --- Adds tab management settings
 function GamepadMiniChatTabsSettingsManager:AddTabManagement()
     self.panel:AddSetting(
         {
             type = LibHarvensAddonSettings.ST_SECTION;
-            label = "Tab Management"
+            label = TAB_MANAGEMENT_SECTION_LABEL
         });
 
     local container = self:GetContainer();
@@ -110,6 +152,13 @@ function GamepadMiniChatTabsSettingsManager:AddTabNameEditor(tabIndex)
     if not container then return; end;
     local tabName = container:GetTabName(tabIndex);
     local isPrimaryTab = container:IsPrimary() and tabIndex == 1;
+
+    self:AddNestedSetting(
+        {
+            type = LibHarvensAddonSettings.ST_SECTION;
+            label = "Tab " .. tabIndex .. ": " .. tabName
+        },
+        TAB_MANAGEMENT_SECTION_LABEL);
 
     -- Rename edit box
     self.panel:AddSetting(
@@ -139,6 +188,8 @@ function GamepadMiniChatTabsSettingsManager:AddTabNameEditor(tabIndex)
             default = tabName
         });
 
+    self:AddTabChannelFilters(tabIndex);
+
     -- Remove button (except for primary tab 1)
     if not isPrimaryTab then
         self.panel:AddSetting(
@@ -157,11 +208,51 @@ function GamepadMiniChatTabsSettingsManager:AddTabNameEditor(tabIndex)
                                                      tabIndex = tabIndex;
                                                      tabName = innerContainer:GetTabName(tabIndex);
                                                      refreshCallback = function ()
-                                                         -- Properly refresh settings after removal
-                                                         LibHarvensAddonSettings:RefreshAddonSettings();
+                                                         manager:RebuildSettingsPanel();
                                                      end
                                                  });
                 end
+            });
+    end;
+end;
+
+--- Adds channel filter checkboxes for one tab
+--- @param tabIndex integer The tab index
+function GamepadMiniChatTabsSettingsManager:AddTabChannelFilters(tabIndex)
+    local manager = self;
+    local optionsManager = manager.manager:GetModule("options");
+    if not optionsManager or not optionsManager.GetTabChannelFilters then
+        return;
+    end;
+
+    local channelFilters = optionsManager:GetTabChannelFilters();
+    for _, channelFilter in ipairs(channelFilters) do
+        local channels = channelFilter.channels;
+        local primaryCategory = channels[1];
+        local filterLabel = channelFilter.label;
+
+        self.panel:AddSetting(
+            {
+                type = LibHarvensAddonSettings.ST_CHECKBOX;
+                label = filterLabel;
+                tooltip = "Show this channel on this tab";
+                getFunction = function ()
+                    local innerContainer = manager:GetContainer();
+                    if not innerContainer then
+                        return false;
+                    end;
+                    return IsChatContainerTabCategoryEnabled(innerContainer.id, tabIndex, primaryCategory);
+                end;
+                setFunction = function (enabled)
+                    local innerContainer = manager:GetContainer();
+                    if not innerContainer or not innerContainer.SetWindowFilterEnabled then
+                        return;
+                    end;
+                    for _, channelCategory in ipairs(channels) do
+                        innerContainer:SetWindowFilterEnabled(tabIndex, channelCategory, enabled);
+                    end;
+                end;
+                ignoreDefault = true
             });
     end;
 end;
@@ -170,26 +261,66 @@ end;
 function GamepadMiniChatTabsSettingsManager:AddCreateTabButton()
     local manager = self;
 
-    self.panel:AddSetting(
+    self:AddNestedSetting(
         {
             type = LibHarvensAddonSettings.ST_BUTTON;
             label = "Create New Tab";
             buttonText = "Create";
             tooltip = "Add a new chat tab";
             clickHandler = function ()
-                local chatSystem = manager:GetChatSystem();
                 local container = manager:GetContainer();
-                if not chatSystem or not container then return; end;
-                chatSystem:CreateNewChatTab(container);
-
-                local tabManager = manager.manager:GetModule("tabs");
-                if tabManager then
-                    tabManager:RebuildTabs();
+                if not container or not container.AddWindow then
+                    return;
                 end;
 
-                LibHarvensAddonSettings:RefreshAddonSettings();
+                container:AddWindow(GetString(SI_CHAT_DIALOG_NEW_TAB));
+                manager:RebuildSettingsPanel();
             end
-        });
+        },
+        TAB_MANAGEMENT_SECTION_LABEL);
+end;
+
+--- Rebuilds the settings panel and keeps the open section selected
+function GamepadMiniChatTabsSettingsManager:RebuildSettingsPanel()
+    if not self.panel then
+        return;
+    end;
+
+    local openSectionLabel = nil;
+    local settingsList = LibHarvensAddonSettings.list;
+    if settingsList and settingsList.currentSection then
+        local openSection = settingsList.currentSection;
+        if openSection.nestUnder then
+            openSectionLabel = openSection.nestUnder;
+        elseif type(openSection.labelText) == "string" then
+            openSectionLabel = openSection.labelText;
+        end;
+    end;
+
+    self.panel:RemoveAllSettings();
+    self:AddFontSettings();
+    self:AddTabManagement();
+    self:AddFadeSettings();
+    self.panel:SetupSections();
+
+    if openSectionLabel and settingsList then
+        local restoredSection = nil;
+        for settingIndex = 1, #self.panel.settings do
+            local setting = self.panel.settings[settingIndex];
+            if setting.type == LibHarvensAddonSettings.ST_SECTION and setting.labelText == openSectionLabel then
+                restoredSection = setting;
+                break;
+            end;
+        end;
+
+        if restoredSection then
+            settingsList.currentSection = restoredSection;
+        else
+            settingsList.currentSection = nil;
+        end;
+
+        self.panel:CreateControls();
+    end;
 end;
 
 --- Adds fade settings
@@ -236,3 +367,24 @@ end;
 
 local settingsManager = GamepadMiniChatTabsSettingsManager:New(GAMEPAD_MINI_CHAT_TABS);
 GAMEPAD_MINI_CHAT_TABS:RegisterModule("settings", settingsManager);
+
+if not LibHarvensAddonSettings.gamepadMiniChatTabsGoBackInstalled then
+    LibHarvensAddonSettings.gamepadMiniChatTabsGoBackInstalled = true;
+    local originalGoBack = LibHarvensAddonSettings.GoBack;
+
+    function LibHarvensAddonSettings:GoBack()
+        local settingsList = self.list;
+        local openSection = settingsList and settingsList.currentSection;
+        if openSection and openSection.gamepadMiniChatTabsSection and openSection.currentSection then
+            settingsList.currentSection = openSection.currentSection;
+            local settingsModule = GAMEPAD_MINI_CHAT_TABS and GAMEPAD_MINI_CHAT_TABS:GetModule("settings");
+            if settingsModule and settingsModule.panel then
+                settingsModule.panel:CreateControls();
+            end;
+            PlaySound(SOUNDS.GAMEPAD_MENU_BACK);
+            return;
+        end;
+
+        originalGoBack(self);
+    end;
+end;

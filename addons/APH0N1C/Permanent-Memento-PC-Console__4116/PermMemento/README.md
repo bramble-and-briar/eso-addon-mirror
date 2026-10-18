@@ -4,7 +4,7 @@
 
 *Auto-loops your active memento of choice.*
 
-![Version](https://img.shields.io/badge/version-2026.10.07.17.24-9CD04C?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.10.18.01.41-9CD04C?style=flat-square)
 ![ESO API](https://img.shields.io/badge/ESO%20API-101051%20%7C%20101052-00FFFF?style=flat-square)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-fa9c1b?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-PC%20%7C%20Xbox%20%7C%20PlayStation-FF69B4?style=flat-square)

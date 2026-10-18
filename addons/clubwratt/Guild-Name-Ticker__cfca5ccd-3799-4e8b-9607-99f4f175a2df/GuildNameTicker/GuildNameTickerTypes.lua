@@ -1,0 +1,35 @@
+---@meta GuildNameTickerTypes
+-- GuildNameTickerTypes.lua: Centralized type definitions for GuildNameTicker
+
+---@class GuildNameTickerSavedVars
+---@field quickName string Last name entered in the settings "Set guild name" field
+---@field prefix string Prepended verbatim to every created name; no space is added, include one yourself (e.g. "GNT ")
+---@field suffix string Appended verbatim to every created name; no space is added, include one yourself (e.g. " II")
+---@field lines string[] Ticker names, one guild name per line (empty lines skipped)
+---@field intervalMs integer How long each ticker name stays represented before cycling
+---@field lastCreatedGuildName string Name of the ticker guild we may still lead ("" = none). Written when GuildCreate is dispatched, cleared only when the server confirms the disband, so leftovers survive /reloadui and are disbanded on the next run
+---@field representedGuildName string|nil Account-wide record of the represented guild's name, re-applied to every character at login ("" = explicitly none, nil = never recorded yet). Updated by a poll whenever representation changes outside an active run, including changes made manually in the Guilds menu
+---@field alliance integer Alliance for created guilds: 0 = the player's own alliance, otherwise an ALLIANCE_* constant. Only settable at creation (GuildCreate)
+---@field description string Guild description applied to every created guild ("" = leave default)
+---@field motd string Message of the day applied to every created guild ("" = leave default)
+---@field playtimeStartHour integer Guild finder playtime window start, local hour 0-23; ignored when start == end
+---@field playtimeEndHour integer Guild finder playtime window end, local hour 0-23; ignored when start == end
+
+---@class GuildNameTickerRunState
+---@field active boolean
+---@field mode string "single" (set one name and keep it) | "ticker" (cycle names on a timer)
+---@field phase string "idle" | "creating" | "displaying" | "leaving"
+---@field token integer Monotonic counter that invalidates stale zo_callLater callbacks
+---@field attemptId integer Monotonic counter that invalidates stale create/leave watchdogs
+---@field chunks string[] Guild names to create, in order
+---@field chunkIndex integer Index of the chunk currently/last attempted (0 = none yet)
+---@field consecutiveFailures integer Failed creates in a row; a full lap of failures stops the run
+---@field pendingName string|nil Name sent to GuildCreate, awaiting the joined event
+---@field stalePendingName string|nil Name of a create that was in flight when the run restarted; when it lands it is disbanded, not represented
+---@field currentGuildId integer|nil Guild the ticker created; survives run end so the next run can disband it
+---@field disbandingGuildId integer|nil Guild we sent GuildLeave for, awaiting the left event that confirms the disband
+---@field previousRepresentedGuildId integer Represented guild before the run started, restored on stop
+
+---@class GuildNameTickerState
+---@field savedVars GuildNameTickerSavedVars
+---@field run GuildNameTickerRunState

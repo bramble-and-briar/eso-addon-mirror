@@ -1,0 +1,12 @@
+<Bindings>
+    <Layer name="One APH a Time">
+        <Category name="One APH a Time">
+            <Action name="OAPH_GET_ALL">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return OneAPHaTime.GetAll()</Down>
+            </Action>
+            <Action name="OAPH_TOGGLE">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end OneAPHaTime.Toggle()</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

@@ -18,12 +18,10 @@
     "KMailMaterials"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4934/",
-  "fingerprint": "4b4195d5e1920774c1a75c5634ab75192ea5a8bd2cfc00ffa2f92d3200dfbc4c",
+  "fingerprint": "a253baab8c6d9aea105071895734bc1bd92c87d256822c53b643b003daae9854",
   "images": [
-    "https://cdn-eso.mmoui.com/preview/pvw18016.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17846.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17860.jpg",
-    "https://cdn-eso.mmoui.com/preview/pvw17847.jpg"
+    "https://cdn-eso.mmoui.com/preview/pvw18028.jpg",
+    "https://cdn-eso.mmoui.com/preview/pvw18027.jpg"
   ],
   "platform": "pc",
   "published": true,
@@ -31,11 +29,11 @@
   "source_id": "4934",
   "source_url": "https://www.esoui.com/downloads/info4934-KMailMaterials.html",
   "stats": {
-    "downloads": 37,
+    "downloads": 41,
     "favorites": 0,
-    "monthly_downloads": 34
+    "monthly_downloads": 40
   },
   "title": "KMailMaterials",
-  "updated_at": 1792169158000,
-  "version": "1.0.4"
+  "updated_at": 1792231546000,
+  "version": "2.0.0"
 }

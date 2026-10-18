@@ -7,15 +7,15 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-PMCore = PMCore or {}
-local PM = PMCore
+PermMementoCore = PermMementoCore or {}
+local PM = PermMementoCore
 PM.state = PM.state or {}
 PM.ui_refs = PM.ui_refs or {}
 local PM_state = PM.state
 local PM_ui_refs = PM.ui_refs
 
 PM.name = "PermMemento"
-PM.version = "2026.10.07.17.24"
+PM.version = "2026.10.18.01.41"
 PM.REQUIRED_LAM_VERSION = 43
 PM.REQUIRED_LHAS_VERSION = 20200
 

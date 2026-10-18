@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 ALC.PC = ALC.PC or {}
 local ALC_PC = ALC.PC
 
@@ -18,10 +18,6 @@ end
 
 function ALC_PC.get_threshold()
 	return ALC.settings.threshold_pc
-end
-
-function ALC_PC.get_pool_threshold()
-	return ALC.settings.pool_threshold_pc
 end
 
 function ALC_PC.build_threshold_slider(build_data)
@@ -38,11 +34,11 @@ end
 function ALC_PC.build_pool_threshold_slider(build_data)
 	table.insert(build_data, {
 		type = "slider",
-		name = function() return ALC.L("SLIDER_PC_POOL_THRESHOLD") end,
-		min = 0.01, max = 800, step = 0.5, decimals = 2,
-		getFunc = function() return ALC.settings.pool_threshold_pc end,
-		setFunc = function(v) ALC.settings.pool_threshold_pc = v end,
-		disabled = function() return not ALC.settings.auto_clear_pool_on_teleport end
+		name = function() return ALC.L("SLIDER_PC_RELOAD_THRESHOLD") end,
+		min = 100, max = 1500, step = 10,
+		getFunc = function() return ALC.settings.reload_threshold_pc end,
+		setFunc = function(v) ALC.settings.reload_threshold_pc = v end,
+		disabled = function() return not ALC.settings.is_enabled end
 	})
 end
 

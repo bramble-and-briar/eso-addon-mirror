@@ -1,14 +1,15 @@
 ## Title: |c9CD04CAuto Lua Memory Cleaner|r
-## AddOnVersion: 26100717
-## Version: 2026.10.07.17.24
+## AddOnVersion: 26101801
+## Version: 2026.10.18.01.41
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
 ## APIVersion: 101051 101052
 ## SavedVariables: AutoLuaCleaner
-## DependsOn: LibAPH>=26100717
+## DependsOn: LibAPH>=26101801
 ## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
 ## Description: |cfa9c1bLightweight|r |cCCFF00Auto Lua Memory Cleaner|r. Type /alc for a full list of commands.
 
 Core/ALC_Core.lua
+Core/ALC_Rescue.lua
 lang/default.lua
 lang/$(language).lua
 Data/ALC_Data.lua

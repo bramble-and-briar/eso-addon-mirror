@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-PMCore = PMCore or {}
-local PM = PMCore
+PermMementoCore = PermMementoCore or {}
+local PM = PermMementoCore
 local PM_memento_data = PM.memento_data
 local PM_modules = PM._modules
 local PM_state = PM.state

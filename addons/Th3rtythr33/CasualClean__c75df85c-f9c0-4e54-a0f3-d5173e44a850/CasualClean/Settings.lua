@@ -65,6 +65,8 @@ function CC.Settings.Init()
     local Arcs = CC.MagStamArcs
     local Tracker = CC.QuestTracker
     local Companion = CC.Companion
+    local PvpUA = CC.PvPUA
+    local Votan = CC.VotansMiniMap
 
     local panel = LHAS:AddAddon("CasualClean", {
         allowDefaults = true,
@@ -253,6 +255,35 @@ function CC.Settings.Init()
             getFunction = function() return Companion.GetHideFrame() end,
             setFunction = function(value) Companion.SetHideFrame(value) end,
             default = Companion.DEFAULT_HIDE_FRAME,
+        },
+
+        {
+            -- Tweaks to OTHER add-ons' UI. Each is inert unless that add-on
+            -- is installed, and says so in its tooltip.
+            type = LHAS.ST_SECTION,
+            label = "Other Add-ons",
+            tooltip = "Small clean-ups applied to other add-ons' interface elements when they are installed.",
+        },
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = "Hide the credit line in PvP UA!",
+            tooltip = "Hides the animated \"DC, the BEST Alliance!\" line at the top of PvP UA!'s " ..
+                      "under-attack list and moves the list up to close the gap. Does nothing unless " ..
+                      "PvP UA! is installed.",
+            getFunction = function() return PvpUA.GetEnabled() end,
+            setFunction = function(value) PvpUA.SetEnabled(value) end,
+            default = PvpUA.DEFAULT_ENABLED,
+        },
+        {
+            type = LHAS.ST_CHECKBOX,
+            label = "Fix the position sliders in Votan's Minimap",
+            tooltip = "Makes the Grid X and Grid Y sliders in Votan's Minimap's settings move one " ..
+                      "step per press and stay where you leave them, and makes Reset to Defaults put " ..
+                      "the map at the bottom-right corner as intended. Does nothing unless Votan's " ..
+                      "Minimap is installed.",
+            getFunction = function() return Votan.GetEnabled() end,
+            setFunction = function(value) Votan.SetEnabled(value) end,
+            default = Votan.DEFAULT_ENABLED,
         },
     })
 end

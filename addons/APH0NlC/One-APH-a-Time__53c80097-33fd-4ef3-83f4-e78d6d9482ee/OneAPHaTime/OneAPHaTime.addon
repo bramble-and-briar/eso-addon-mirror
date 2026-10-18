@@ -1,9 +1,9 @@
 ## Title: |c9CD04COne APH a Time|r
-## AddOnVersion: 26100613
-## Version: 2026.10.06.13.49
+## AddOnVersion: 26101801
+## Version: 2026.10.18.01.41
 ## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
 ## APIVersion: 101051 101052
-## SavedVariables: OAPHSV
+## SavedVariables: OneAPHaTimeSV
 ## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibAPH
 ## Description: |cfa9c1bWithdraw takes one of a stack of recipes, motifs, fragments, containers or furnishings; Get All takes one of everything the settings allow. Learned items are used when you close the storage.|r |cCCFF00Toggle: /oneaphatime|r
 

@@ -18,7 +18,7 @@
     "LibAPH"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4917/",
-  "fingerprint": "6d77a58dacfb9625590f60510c107faf13f24e5926d84006764518b7f4736f97",
+  "fingerprint": "22431e78a573e16340ac2bef48f433df9565f402a21ce592647b63e400df4f25",
   "images": [],
   "platform": "pc",
   "published": true,
@@ -26,11 +26,11 @@
   "source_id": "4917",
   "source_url": "https://www.esoui.com/downloads/info4917-LibAPH.html",
   "stats": {
-    "downloads": 138,
+    "downloads": 424,
     "favorites": 3,
-    "monthly_downloads": 114
+    "monthly_downloads": 390
   },
   "title": "LibAPH",
-  "updated_at": 1791365995000,
-  "version": "2026.10.07.17.24"
+  "updated_at": 1792259369000,
+  "version": "2026.10.18.01.41"
 }

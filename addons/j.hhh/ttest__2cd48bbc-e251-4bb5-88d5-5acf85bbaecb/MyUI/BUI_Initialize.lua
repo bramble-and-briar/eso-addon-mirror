@@ -20,18 +20,10 @@ end
 BUI.Initialization=BUI.Initialization or {stages={}}
 local Initialization=BUI.Initialization
 Initialization.stages=Initialization.stages or {}
--- Verbose startup tracing for the diagnostic ZIP.
-BUI.InitDebug=true
 Initialization.steps=Initialization.steps or {}
 
 local function InitLog(message)
-	if BUI.InitDebug and type(d)=="function" then d("[My UI] "..tostring(message)) end
-	if MyUIDebug and MyUIDebug.Note then MyUIDebug.Note("Initialisierung",message) end
-end
-
-function BUI.SetInitializationDebug(enabled)
-	BUI.InitDebug=enabled==true
-	if type(d)=="function" then d("[My UI] Debug "..(BUI.InitDebug and "aktiv" or "inaktiv")) end
+    -- No on-screen diagnostics in production.
 end
 
 local function ProtectedStage(stateTable,name,callback)

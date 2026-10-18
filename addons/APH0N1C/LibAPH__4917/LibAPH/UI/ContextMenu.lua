@@ -99,12 +99,43 @@ local function MeasureWidth(entries)
 	return math.min(MAX_WIDTH, math.ceil(widest))
 end
 
+local MENU_FLOOR_LEVEL = 10000
+local OWNER_HANDLER = "LibAPH_ContextMenu"
+local OWNER_CHECK = "LibAPH_ContextMenuOwnerCheck"
+local menu_owners, hidden_owners = {}, {}
+local TIP_NAME = "LibAPH_ContextMenuTip"
+local TIP_WIDTH = ON_CONSOLE and 420 or 340
+local TIP_PAD = 8
+local TIP_LIFT = 10
+local tip, tip_label
+
+local function BuildTip()
+	if tip then return end
+	tip = WINDOW_MANAGER:CreateTopLevelWindow(TIP_NAME)
+	tip:SetDrawTier(DT_HIGH)
+	tip:SetDrawLayer(DL_OVERLAY)
+	tip:SetClampedToScreen(true)
+	tip:SetMouseEnabled(false)
+	tip:SetHidden(true)
+	LibAPH.ApplyPanelBackdrop(tip, TIP_NAME .. "BG", THEME.BG)
+	tip_label = WINDOW_MANAGER:CreateControl(TIP_NAME .. "Text", tip, CT_LABEL)
+	tip_label:SetFont(SMALL_FONT)
+	Paint(tip_label, THEME.TEXT)
+	tip_label:SetAnchor(TOPLEFT, tip, TOPLEFT, TIP_PAD, TIP_PAD)
+	tip_label:SetDimensions(TIP_WIDTH - TIP_PAD * 2, 0)
+end
+
+function LibAPH.GetContextMenuTooltipText()
+	if not tip or tip:IsHidden() then return nil end
+	return tip_label:GetText()
+end
+
 local tooltip_shown = false
 
 local function HideRowTooltip()
 	if not tooltip_shown then return end
 	tooltip_shown = false
-	ClearTooltip(InformationTooltip)
+	if tip then tip:SetHidden(true) end
 end
 
 local function ShowRowTooltip(row)
@@ -116,9 +147,19 @@ local function ShowRowTooltip(row)
 		return
 	end
 	local win = menu.win
-	local offset = (row:GetTop() + row:GetHeight() / 2) - (win:GetTop() + win:GetHeight() / 2)
-	InitializeTooltip(InformationTooltip, win, RIGHT, -SUBMENU_GAP, offset, LEFT)
-	SetTooltipText(InformationTooltip, text)
+	BuildTip()
+	tip_label:SetText(text)
+	tip_label:SetDimensions(TIP_WIDTH - TIP_PAD * 2, 0)
+	tip:SetDimensions(TIP_WIDTH, (tip_label:GetTextHeight() or 0) + TIP_PAD * 2)
+	tip:SetDrawLevel((win:GetDrawLevel() or 0) + TIP_LIFT)
+	local y = (row:GetTop() or 0) - (win:GetTop() or 0)
+	tip:ClearAnchors()
+	if (win:GetLeft() or 0) >= TIP_WIDTH + SUBMENU_GAP then
+		tip:SetAnchor(TOPRIGHT, win, TOPLEFT, -SUBMENU_GAP, y)
+	else
+		tip:SetAnchor(TOPLEFT, win, TOPRIGHT, SUBMENU_GAP, y)
+	end
+	tip:SetHidden(false)
 	tooltip_shown = true
 end
 
@@ -137,8 +178,20 @@ function LibAPH.IsContextMenuOpen()
 	return open_depth > 0
 end
 
+local function ReleaseOwners()
+	for index = #menu_owners, 1, -1 do
+		local owner = menu_owners[index]
+		owner:SetHandler("OnEffectivelyHidden", nil, OWNER_HANDLER)
+		owner:SetHandler("OnEffectivelyShown", nil, OWNER_HANDLER)
+		menu_owners[index] = nil
+	end
+	for owner in pairs(hidden_owners) do hidden_owners[owner] = nil end
+	EVENT_MANAGER:UnregisterForUpdate(OWNER_CHECK)
+end
+
 function LibAPH.CloseContextMenu()
 	HideRowTooltip()
+	ReleaseOwners()
 	if open_depth == 0 then return end
 	local on_hide = menus[1] and menus[1].on_hide
 	CloseFrom(1)
@@ -280,7 +333,7 @@ local function SetupRow(row, data)
 	local selected = row:GetNamedChild("Selected")
 
 	Paint(highlight, THEME.HOVER)
-	highlight:SetHidden(true)
+	highlight:SetHidden(menu.focus ~= data.index)
 	divider:SetHidden(not entry.divider)
 	label:SetHidden(entry.divider == true)
 	arrow:SetHidden(entry.submenu == nil)
@@ -369,6 +422,14 @@ end
 
 local ShowMenuAt
 
+local function ScrollToFocus(menu, index)
+	local list = menu.list
+	local data = list and ZO_ScrollList_GetDataList(list)
+	if not (data and data[index]) or type(ZO_ScrollList_ScrollDataIntoView) ~= "function" then return end
+	ZO_ScrollList_ScrollDataIntoView(list, index, function() HighlightRow(menu, index) end, true)
+	HighlightRow(menu, index)
+end
+
 local function OpenSubmenu(menu, row)
 	local entry = row.libaph_entry
 	if not entry or not entry.submenu then return end
@@ -378,6 +439,7 @@ local function OpenSubmenu(menu, row)
 	if type(child_entries) ~= "table" or #child_entries == 0 then return end
 	ShowMenuAt(level, row, child_entries, { anchorToRow = true, builder = entry.submenu, enableFilter = entry.submenuFilter == true })
 	menus[level].opener_index = row.libaph_index
+	menus[level].parent = menu
 end
 
 local function ActivateRow(row)
@@ -505,7 +567,18 @@ local function PlaceMenu(menu, anchorTo, beside)
 	if beside then
 		menu.room = screen and math.min(share, screen - SCREEN_MARGIN * 2) or nil
 		FillMenu(menu)
-		win:SetAnchor(TOPLEFT, anchorTo, TOPRIGHT, SUBMENU_GAP, -EDGE_INSET)
+		local width, height = Number(win:GetWidth()) or 0, Number(win:GetHeight()) or 0
+		local y = -EDGE_INSET
+		if screen and top then y = math.max(math.min(y, screen - SCREEN_MARGIN - (top + height)), SCREEN_MARGIN - top) end
+		local right, screen_w = Number(anchorTo:GetRight()), Number(GuiRoot:GetWidth())
+		local left = Number(anchorTo:GetLeft())
+		if right and screen_w and left and right + SUBMENU_GAP + width > screen_w - SCREEN_MARGIN and left - EDGE_INSET - SUBMENU_GAP - width >= SCREEN_MARGIN then
+			win:SetAnchor(TOPRIGHT, anchorTo, TOPLEFT, -(EDGE_INSET + SUBMENU_GAP), y)
+			menu.side, menu.side_y = "left", y
+			return "left"
+		end
+		win:SetAnchor(TOPLEFT, anchorTo, TOPRIGHT, SUBMENU_GAP, y)
+		menu.side, menu.side_y = "right", y
 		return "right"
 	end
 
@@ -523,6 +596,76 @@ local function PlaceMenu(menu, anchorTo, beside)
 	end
 	win:SetAnchor(TOPLEFT, anchorTo, BOTTOMLEFT, 0, ANCHOR_GAP)
 	return "below"
+end
+
+local function PlaceBeside(menu, window, opts)
+	local win = menu.win
+	local screen_w, screen_h = Number(GuiRoot:GetWidth()), Number(GuiRoot:GetHeight())
+	local left, top, right, bottom = Number(window:GetLeft()), Number(window:GetTop()), Number(window:GetRight()), Number(window:GetBottom())
+	if not (screen_w and screen_h and left and top and right and bottom) then return nil end
+	local gap = opts.gap or ANCHOR_GAP
+	local below_gap, above_gap = gap + (opts.belowGap or 0), gap + (opts.aboveGap or 0)
+	local share = screen_h * MAX_SCREEN_SHARE
+	local below_room = screen_h - bottom - below_gap - SCREEN_MARGIN
+	local above_room = top - above_gap - SCREEN_MARGIN
+	local side_room = screen_h - SCREEN_MARGIN * 2
+	local least = ROW_HEIGHT * 3
+	local function Fill(room)
+		menu.room = math.max(math.min(share, room), least)
+		FillMenu(menu)
+		return (menu.content_height or 0) <= (menu.list_height or 0), Number(win:GetWidth()) or 0, Number(win:GetHeight()) or 0
+	end
+	local function Put(point, rel_point, x, y)
+		win:ClearAnchors()
+		win:SetAnchor(point, window, rel_point, x, y)
+	end
+	local function Side(point, rel_point, x, height)
+		local y = math.max(math.min(0, screen_h - SCREEN_MARGIN - (top + height)), SCREEN_MARGIN - top)
+		Put(point, rel_point, x, y)
+	end
+	local best, best_open
+	local function Consider(side, open)
+		if not best_open or open > best_open then best, best_open = side, open end
+	end
+	if below_room >= least and Fill(below_room) then Consider("below", (screen_h - bottom) / screen_h) end
+	if above_room >= least and Fill(above_room) then Consider("above", top / screen_h) end
+	local _, width = Fill(side_room)
+	if left - gap - SCREEN_MARGIN >= width then Consider("left", left / screen_w) end
+	if screen_w - right - gap - SCREEN_MARGIN >= width then Consider("right", (screen_w - right) / screen_w) end
+	if best == "below" then
+		Fill(below_room)
+		Put(TOPLEFT, BOTTOMLEFT, 0, below_gap)
+		return "below"
+	elseif best == "above" then
+		Fill(above_room)
+		Put(BOTTOMLEFT, TOPLEFT, 0, -above_gap)
+		return "above"
+	elseif best then
+		local _, _, height = Fill(side_room)
+		if best == "left" then Side(TOPRIGHT, TOPLEFT, -gap, height) else Side(TOPLEFT, TOPRIGHT, gap, height) end
+		return best
+	end
+	if below_room >= least or above_room >= least then
+		if below_room >= above_room then
+			Fill(below_room)
+			Put(TOPLEFT, BOTTOMLEFT, 0, below_gap)
+			return "below"
+		end
+		Fill(above_room)
+		Put(BOTTOMLEFT, TOPLEFT, 0, -above_gap)
+		return "above"
+	end
+	Fill(side_room)
+	Put(TOPLEFT, TOPLEFT, gap, gap)
+	return "inside"
+end
+
+function LibAPH.PlaceContextMenuBeside(window, opts)
+	local menu = menus[1]
+	if not (menu and window) or open_depth == 0 or type(window.GetLeft) ~= "function" then return nil end
+	local placed = PlaceBeside(menu, window, opts or {})
+	if placed then menu.placed = placed end
+	return placed
 end
 
 ShowMenuAt = function(level, anchorTo, entries, opts)
@@ -562,7 +705,11 @@ function LibAPH.RefreshContextMenu()
 				local opener = RowFor(menu, child.opener_index)
 				if opener then
 					child.win:ClearAnchors()
-					child.win:SetAnchor(TOPLEFT, opener, TOPRIGHT, SUBMENU_GAP, -EDGE_INSET)
+					if child.side == "left" then
+						child.win:SetAnchor(TOPRIGHT, opener, TOPLEFT, -(EDGE_INSET + SUBMENU_GAP), child.side_y or -EDGE_INSET)
+					else
+						child.win:SetAnchor(TOPLEFT, opener, TOPRIGHT, SUBMENU_GAP, child.side_y or -EDGE_INSET)
+					end
 				end
 			end
 		end
@@ -578,11 +725,42 @@ local function OwnerLevel(control)
 	return owner:GetDrawLevel() or 0
 end
 
+local function CheckOwners()
+	EVENT_MANAGER:UnregisterForUpdate(OWNER_CHECK)
+	if next(hidden_owners) then LibAPH.CloseContextMenu() end
+end
+
+local function OwnerHidden(owner)
+	hidden_owners[owner] = true
+	EVENT_MANAGER:RegisterForUpdate(OWNER_CHECK, 0, CheckOwners)
+end
+
+local function OwnerShown(owner)
+	hidden_owners[owner] = nil
+end
+
+local function WatchOwners(...)
+	ReleaseOwners()
+	for i = 1, select("#", ...) do
+		local owner = select(i, ...)
+		local kind = type(owner)
+		if (kind == "userdata" or kind == "table") and type(owner.SetHandler) == "function" then
+			local seen = false
+			for _, watched in ipairs(menu_owners) do if watched == owner then seen = true end end
+			if not seen then
+				menu_owners[#menu_owners + 1] = owner
+				owner:SetHandler("OnEffectivelyHidden", OwnerHidden, OWNER_HANDLER)
+				owner:SetHandler("OnEffectivelyShown", OwnerShown, OWNER_HANDLER)
+			end
+		end
+	end
+end
+
 function LibAPH.ShowContextMenu(control, entries, opts)
 	if type(entries) ~= "table" then return false end
 	opts = opts or {}
 	LibAPH.CloseContextMenu()
-	base_level = OwnerLevel(control)
+	base_level = math.max(OwnerLevel(control), MENU_FLOOR_LEVEL)
 	EnsureClickEater():SetDrawLevel(base_level + 1)
 	local menu = ShowMenuAt(1, control, entries, {
 		enableFilter = opts.enableFilter,
@@ -591,6 +769,11 @@ function LibAPH.ShowContextMenu(control, entries, opts)
 	})
 	menu.on_hide = opts.onHide
 	open_depth = 1
+	WatchOwners(control, opts.window)
+	if opts.anchorSide ~= "right" then
+		local placed = PlaceBeside(menu, opts.window or control, { gap = opts.gap, belowGap = opts.belowGap, aboveGap = opts.aboveGap })
+		if placed then menu.placed = placed end
+	end
 	if opts.clickThrough then
 		EVENT_MANAGER:RegisterForEvent(CLICK_THROUGH_NAMESPACE, EVENT_GLOBAL_MOUSE_UP, function()
 			if MouseInsideAnyMenu() or MouseIsOver(control, 0, 0, 0, 0) then return end
@@ -627,7 +810,7 @@ function LibAPH.MoveContextMenuFocus(direction)
 		index = index + direction
 		if index < 1 then index = count elseif index > count then index = 1 end
 		if EntryIsPickable(shown[index]) then
-			HighlightRow(menu, index)
+			ScrollToFocus(menu, index)
 			return true
 		end
 	end
@@ -638,6 +821,10 @@ function LibAPH.ActivateContextMenuFocus()
 	local menu = menus[open_depth]
 	if not menu or not menu.focus or menu.focus == 0 then return false end
 	local row = RowFor(menu, menu.focus)
+	if not row then
+		ScrollToFocus(menu, menu.focus)
+		row = RowFor(menu, menu.focus)
+	end
 	if not row then return false end
 	ActivateRow(row)
 	return true

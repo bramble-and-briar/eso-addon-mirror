@@ -131,7 +131,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Dolgubon's Lazy Set Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Set-Crafter__1697) | Dolgubon | PC / Mac | 3.0.8.0 |
 | [Dolgubon's Lazy Set Crafter (XBPA ONLY)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Set-Crafter-XBPA-ONLY__e1b979e5-1c57-4da0-8980-5477f9d3b689) | Dolgubon | Console | — |
 | [Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__eeff2a8e-c911-4984-a07f-784c7155ddad) | Dolgubon | Console | — |
-| [Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__1346) | Dolgubon | PC / Mac | 4.0.5.7.8 |
+| [Dolgubon's Lazy Writ Crafter](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Dolgubon/Dolgubon-s-Lazy-Writ-Crafter__1346) | Dolgubon | PC / Mac | 4.0.5.7.9 |
 | [DollyCam Zoom](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Mezzamort/DollyCam-Zoom__796) | Mezzamort | PC / Mac | 1.2 |
 | [Dolmen runner 1.2](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/xDonny2/Dolmen-runner-1.2__b680d5f3-b8ab-4158-a513-d3f2a14921db) | xDonny2 | Console | — |
 | [Don't Care About Friends](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/VisioTempus/Don-t-Care-About-Friends__4186) | VisioTempus | PC / Mac | 1.0.0 |

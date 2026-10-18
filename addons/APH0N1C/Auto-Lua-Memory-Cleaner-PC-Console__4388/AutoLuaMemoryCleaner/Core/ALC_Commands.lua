@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 
 function ALC.register_slash_commands()
 	SLASH_COMMANDS["/alc"] = function(raw_arg)
@@ -78,7 +78,7 @@ function ALC.register_slash_commands()
 
 	SLASH_COMMANDS["/alcpoolconfirm"] = function()
 		ALC.settings.pool_reload_confirm_auto = not ALC.settings.pool_reload_confirm_auto
-		d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_POOL_CONFIRM_TOGGLE", ALC.settings.pool_reload_confirm_auto and ALC.L("WORD_ON") or ALC.L("WORD_OFF")))
+		d("|c00FFFF[ALC]|r " .. ALC.L("CHAT_POOL_CONFIRM_TOGGLE", ALC.settings.pool_reload_confirm_auto and ALC.L("WORD_OFF") or ALC.L("WORD_ON")))
 	end
 
 	SLASH_COMMANDS["/alccleanupmode"] = function()

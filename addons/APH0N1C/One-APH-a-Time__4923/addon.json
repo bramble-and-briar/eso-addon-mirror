@@ -1,9 +1,8 @@
 {
-  "archive_error": "ESOUI returned an empty response",
+  "archive_format": "zip",
   "archive_path": "addons/APH0N1C/One-APH-a-Time__4923",
   "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
-  "archive_status": "unavailable",
-  "archived": false,
+  "archived": true,
   "author": "APH0N1C",
   "canonical_id": "esoui:4923",
   "category_id": "20",
@@ -19,7 +18,7 @@
     "OneAPHaTime"
   ],
   "download_url": "https://www.esoui.com/downloads/dl4923/",
-  "fingerprint": "fa643e84e364f778c7ab6d375134907cab3abc1bed18d5bdc69affaa7d759ee5",
+  "fingerprint": "2716501ca78c4dfb681af039fa3905eb68c9c2eb91437d9cd970ebfb8110812b",
   "images": [
     "https://cdn-eso.mmoui.com/preview/pvw17793.png",
     "https://cdn-eso.mmoui.com/preview/pvw17790.png",
@@ -31,11 +30,11 @@
   "source_id": "4923",
   "source_url": "https://www.esoui.com/downloads/info4923-OneAPHaTime.html",
   "stats": {
-    "downloads": 0,
-    "favorites": 0,
-    "monthly_downloads": 0
+    "downloads": 50,
+    "favorites": 1,
+    "monthly_downloads": 50
   },
   "title": "One APH a Time",
-  "updated_at": 1791371965000,
-  "version": "2026.10.06.13.49"
+  "updated_at": 1792260803000,
+  "version": "2026.10.18.01.41"
 }

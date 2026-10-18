@@ -16,6 +16,7 @@ local TIMER_INTERVAL_MS = 100
 local TARGET_REFRESH_DELAY_MS = 50
 local TARGET_REFRESH_ATTEMPTS = 4
 local TARGET_SCAN_INTERVAL_MS = 250
+local SELF_SCAN_INTERVAL_MS = 250
 local MISSING_ICON = "EsoUI/Art/Icons/icon_missing.dds"
 local BUFF_BORDER_COLOR = { 0.20, 1.00, 0.20 }
 local DEBUFF_BORDER_COLOR = { 1.00, 0.20, 0.20 }
@@ -1069,7 +1070,7 @@ local function StartSelfScanUpdates()
         return
     end
 
-    EVENT_MANAGER:RegisterForUpdate(SELF_SCAN_NAME, PANEL_SCAN_INTERVAL_MS, ScanSelfPanel)
+    EVENT_MANAGER:RegisterForUpdate(SELF_SCAN_NAME, SELF_SCAN_INTERVAL_MS, ScanSelfPanel)
     selfScanRegistered = true
 end
 
@@ -1773,7 +1774,7 @@ local function InitializeSettings()
             name = "Leo Tracker Beta",
             displayName = "Leo Tracker Beta",
             author = "Leo_Kujo",
-            version = "0.3.3",
+            version = "0.3.4",
             registerForRefresh = true,
             registerForDefaults = true,
         })

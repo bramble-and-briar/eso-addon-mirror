@@ -108,6 +108,32 @@ function channel:Update()
     end
 end
 
+-- Whether this Right came from an analogue stick rather than the D-pad.
+--
+-- UI_SHORTCUT_INPUT_RIGHT, the action the bind is inherited from, is the keybind strip's generic
+-- "right" and is bound to the D-pad and to the sticks alike, and a binding handler is not told
+-- which key fired it. So the press is judged by the sticks themselves: a stick only produces a
+-- Right by being pushed well over, so one that is deflected sideways at the moment of the press
+-- is the source. GetGamepadLeftStickX and GetGamepadRightStickX are what the client's own
+-- directional input reads the sticks with.
+--
+-- The cost is that a D-pad press made while a stick is pushed sideways is ignored too; strafing
+-- while blocking is the case where that happens.
+local STICK_DEFLECTED = 0.3
+
+local function StickX(reader)
+    if type(reader) ~= "function" then return 0 end
+    local ok, value = pcall(reader, true)
+    if ok and type(value) == "number" and value == value then return value end
+    return 0
+end
+
+function channel:IsStickRight()
+    self.stickLeftX = StickX(GetGamepadLeftStickX)
+    self.stickRightX = StickX(GetGamepadRightStickX)
+    return math.abs(self.stickLeftX) >= STICK_DEFLECTED or math.abs(self.stickRightX) >= STICK_DEFLECTED
+end
+
 function channel:OnRightDown()
     self.downs = self.downs + 1
     if not self:IsAvailable() then
@@ -116,6 +142,12 @@ function channel:OnRightDown()
         return false
     end
     if self.consumedRight then return true end
+    -- From a stick: not ours. Declined rather than consumed, so the stick keeps doing what it
+    -- does, and nothing is latched for its Up to release.
+    if self:IsStickRight() then
+        self.stickRejects = (self.stickRejects or 0) + 1
+        return false
+    end
     -- A queued event after release or after opening a menu must not switch channels.
     if not self.running or not self.layerAdded or not self:IsAvailable() then return false end
     local value = self:ReadTrigger()
@@ -150,10 +182,11 @@ end
 
 function channel:PrintStatus()
     local actual = type(IsActionLayerActiveByName) == "function" and IsActionLayerActiveByName(LAYER)
-    d(string.format("[PB HUD] running=%s scene=%s available=%s L2=%s source=%s attached=%s active=%s Right D/U=%d/%d changes=%d error=%s",
+    d(string.format("[PB HUD] running=%s scene=%s available=%s L2=%s source=%s attached=%s active=%s Right D/U=%d/%d changes=%d stick-rejects=%d (L %s R %s) error=%s",
         tostring(self.running), tostring(SCENE_MANAGER:GetCurrentSceneName()), tostring(self:IsAvailable()),
         tostring(self.magnitude), tostring(self.inputSource), tostring(self.layerAdded), tostring(actual), self.downs, self.ups,
-        self.changes, tostring(self.error or "none")))
+        self.changes, self.stickRejects or 0, tostring(self.stickLeftX), tostring(self.stickRightX),
+        tostring(self.error or "none")))
 end
 
 function channel:Start()

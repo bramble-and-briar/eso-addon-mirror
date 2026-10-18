@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 
 ALC.COMMAND_CATEGORIES = {
 	{ title_key = "CAT_CLEANUP", cmds = {

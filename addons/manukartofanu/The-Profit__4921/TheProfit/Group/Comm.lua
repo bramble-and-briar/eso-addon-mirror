@@ -1,10 +1,12 @@
 local TP = TheProfit
 
 -- Group sharing over LibGroupBroadcast: finds group members who also run The Profit
--- and keeps a copy of their tracked items with the highest unit price they would pay.
--- Four protocols: Hello (presence), Table (the whole list), Delta (list changes) and
--- Deal (lots found during a store visit plus the public kiosk where they were found).
--- The module only depends on TP.SV, TP.GetMaxPurchasePrice and the TP.callbacks events.
+-- and keeps a copy of the items they want with the highest unit price they would pay.
+-- Wanted items are the portfolio and the Buy List merged; a receiver does not know
+-- which list an item came from. Four protocols: Hello (presence), Table (the whole
+-- list), Delta (list changes) and Deal (lots found during a store visit plus the
+-- public kiosk where they were found). The module only depends on TP.GetGroupWantKeys,
+-- TP.GetGroupWantPrice, TP.IsGroupWanted and the TP.callbacks events.
 local LGB = LibGroupBroadcast
 if LGB then
     local manager = GetAddOnManager()
@@ -23,11 +25,13 @@ local PROTOCOL_ID_TABLE = 301
 local PROTOCOL_ID_DELTA = 302
 local PROTOCOL_ID_DEAL = 303
 
--- Version 2 keys items by id alone; hashes from version 1 peers never match.
-local PROTOCOL_VERSION = 2
+-- Announced in Hello. Version 3 shares up to 30 items (portfolio plus Buy List) in a
+-- table with wider part fields, so tables, deltas and deals are taken only from peers
+-- that announced the same version; older versions must update to take part.
+local PROTOCOL_VERSION = 3
 local KIND_HELLO, KIND_REPLY, KIND_BYE = 0, 1, 2
 local ITEMS_PER_TABLE_PART = 3
-local MAX_TABLE_PARTS = 4
+local MAX_TABLE_PARTS = 10
 local ENTRIES_PER_DELTA = 2
 local MAX_PLACE_BYTES = 96
 local MAX_QUANTITY = 1023
@@ -50,13 +54,13 @@ local UPDATE_NAME = TP.name .. "GroupSharing"
 local strings = {
     en = {
         share = "Share tracked items with group",
-        shareTooltip = "Tells group members who also run The Profit which items you track and the highest price you would pay for one piece, and receives the same from them. Off by default.",
+        shareTooltip = "Tells group members who also run The Profit which items you track or have on your Buy List and the highest price you would pay for one piece, and receives the same from them. Off by default.",
         needsLibrary = "Requires LibGroupBroadcast build 95 or newer. Install or update it, then reload the UI.",
         handlerDescription = "Shares tracked items and their buy prices with group members to find deals for each other.",
         helloName = "The Profit: presence",
         helloDescription = "Tells group members that you run The Profit and are ready to exchange tracked items.",
         tableName = "The Profit: tracked list",
-        tableDescription = "Sends the full list of your tracked items with their buy prices.",
+        tableDescription = "Sends the full list of your tracked and Buy List items with their buy prices.",
         deltaName = "The Profit: list changes",
         deltaDescription = "Sends items you start or stop tracking, so the list of group members stays current.",
         dealName = "The Profit: deals",
@@ -73,13 +77,13 @@ local strings = {
     },
     ru = {
         share = "Делиться отслеживаемыми предметами с группой",
-        shareTooltip = "Сообщает участникам группы, у которых тоже есть The Profit, какие предметы вы отслеживаете и максимальную цену за штуку, и получает то же от них. По умолчанию выключено.",
+        shareTooltip = "Сообщает участникам группы, у которых тоже есть The Profit, какие предметы вы отслеживаете или закупаете и максимальную цену за штуку, и получает то же от них. По умолчанию выключено.",
         needsLibrary = "Нужна LibGroupBroadcast сборки 95 или новее. Установите или обновите её, затем перезагрузите интерфейс.",
         handlerDescription = "Обменивается с участниками группы отслеживаемыми предметами и ценами покупки, чтобы находить друг другу сделки.",
         helloName = "The Profit: присутствие",
         helloDescription = "Сообщает участникам группы, что у вас The Profit и вы готовы обмениваться отслеживаемыми предметами.",
         tableName = "The Profit: список предметов",
-        tableDescription = "Отправляет полный список ваших отслеживаемых предметов с ценами покупки.",
+        tableDescription = "Отправляет полный список ваших отслеживаемых и закупаемых предметов с ценами покупки.",
         deltaName = "The Profit: изменения списка",
         deltaDescription = "Отправляет предметы, которые вы начали или перестали отслеживать, чтобы список у участников группы оставался актуальным.",
         dealName = "The Profit: сделки",
@@ -187,13 +191,14 @@ local function SendHello(kind)
     return Send(helloProtocol, { version = PROTOCOL_VERSION, kind = kind })
 end
 
--- The unit price at which the model would buy one piece. Items without a forecast
--- are left out because there is nothing to compare a listing with, and so are items
--- whose price does not fit the message: a clamped price would not be the model's price.
+-- The unit price the player would pay for one piece: the Buy List price for an item
+-- the list still needs, otherwise the model's. Items without a price are left out
+-- because there is nothing to compare a listing with, and so are items whose price
+-- does not fit the message: a clamped price would not be the player's price.
 local function GetEntry(itemKey)
     local itemId, hash = GetIdentity(itemKey)
-    if not itemId or not TP.GetMaxPurchasePrice then return nil end
-    local price = TP.GetMaxPurchasePrice(itemKey)
+    if not itemId then return nil end
+    local price = TP.GetGroupWantPrice(itemKey)
     if not price then return nil end
 
     price = zo_round(price)
@@ -201,15 +206,19 @@ local function GetEntry(itemKey)
     return { itemId = itemId, hash = hash, price = price }
 end
 
+-- Also returns the item key of each entry, for display only.
 local function BuildOwnItems()
-    local items = {}
-    for _, itemKey in ipairs(TP.SV.trackedItemOrder or {}) do
-        if TP.SV.trackedItems[itemKey] and #items < ITEMS_PER_TABLE_PART * MAX_TABLE_PARTS then
+    local items, keys = {}, {}
+    for _, itemKey in ipairs(TP.GetGroupWantKeys()) do
+        if #items < ITEMS_PER_TABLE_PART * MAX_TABLE_PARTS then
             local entry = GetEntry(itemKey)
-            if entry then items[#items + 1] = entry end
+            if entry then
+                items[#items + 1] = entry
+                keys[#items] = itemKey
+            end
         end
     end
-    return items
+    return items, keys
 end
 
 -- The first part replaces any older table still waiting in the queue; later parts
@@ -240,13 +249,13 @@ end
 
 local function SendDeltas()
     local entries = {}
+    -- Decided at send time: an item still wanted is sent with its current price,
+    -- anything else (no longer wanted, or no price) is removed.
     for _, delta in pairs(state.pendingDeltas) do
-        if delta.add then
-            local entry = TP.SV.trackedItems[delta.key] and GetEntry(delta.key)
-            if entry then
-                entries[#entries + 1] = { add = true, itemId = entry.itemId, hash = entry.hash, price = entry.price }
-            end
-        elseif not TP.SV.trackedItems[delta.key] then
+        local entry = TP.IsGroupWanted(delta.key) and GetEntry(delta.key)
+        if entry then
+            entries[#entries + 1] = { add = true, itemId = entry.itemId, hash = entry.hash, price = entry.price }
+        else
             entries[#entries + 1] = { add = false, itemId = delta.itemId, hash = delta.hash }
         end
     end
@@ -418,7 +427,7 @@ end
 
 local function OnTableReceived(unitTag, data)
     local peer = ResolvePeer(unitTag, data.senderTag)
-    if not peer then return end
+    if not peer or peer.version ~= PROTOCOL_VERSION then return end
 
     local revision, total, part = data.revision, data.total, data.part
     if part >= total then return end
@@ -455,7 +464,7 @@ end
 
 local function OnDeltaReceived(unitTag, data)
     local peer = ResolvePeer(unitTag, data.senderTag)
-    if not peer then return end
+    if not peer or peer.version ~= PROTOCOL_VERSION then return end
     if ShouldRejectStale(peer, peer.revision and not IsNewer(data.revision, peer.revision)) then return end
 
     for _, entry in ipairs(data.entry or {}) do
@@ -517,7 +526,7 @@ end
 
 local function OnDealReceived(unitTag, data)
     local peer = ResolvePeer(unitTag, data.senderTag)
-    if not peer then return end
+    if not peer or peer.version ~= PROTOCOL_VERSION then return end
     if data.place == "" then data.place = nil end
     TP.callbacks:FireCallbacks("GroupDealReceived", peer.name, data)
 end
@@ -543,12 +552,12 @@ local function GetActivePeers()
     return result
 end
 
-local function QueueDelta(itemKey, add)
+local function QueueDelta(itemKey)
     if not CanSend() then return end
     local itemId, hash = GetIdentity(itemKey)
     if not itemId then return end
 
-    state.pendingDeltas[IdentityKey(itemId, hash)] = { add = add, key = itemKey, itemId = itemId, hash = hash }
+    state.pendingDeltas[IdentityKey(itemId, hash)] = { key = itemKey, itemId = itemId, hash = hash }
     ScheduleFlush(EDIT_FLUSH_DELAY_MS)
 end
 
@@ -650,8 +659,9 @@ function TP.SetupGroupSharing()
     end
     state.ready = true
 
-    TP.callbacks:RegisterCallback("TrackedItemAdded", function(itemKey) QueueDelta(itemKey, true) end)
-    TP.callbacks:RegisterCallback("TrackedItemRemoved", function(itemKey) QueueDelta(itemKey, false) end)
+    TP.callbacks:RegisterCallback("TrackedItemAdded", QueueDelta)
+    TP.callbacks:RegisterCallback("TrackedItemRemoved", QueueDelta)
+    TP.callbacks:RegisterCallback("BuyListChanged", QueueDelta)
     TP.callbacks:RegisterCallback("MarketDataLoaded", function()
         if CanSend() then ScheduleFullTable(MARKET_FLUSH_DELAY_MS) end
     end)
@@ -696,6 +706,32 @@ end
 
 function TP.GetGroupPeers()
     return state.peers
+end
+
+-- Exactly what the next table would carry, as { itemKey, price } in send order.
+function TP.GetGroupShareEntries()
+    local items, keys = BuildOwnItems()
+    local entries = {}
+    for index, entry in ipairs(items) do
+        entries[index] = { itemKey = keys[index], price = entry.price }
+    end
+    return entries
+end
+
+-- "noLibrary", "off", "notGrouped" or "ready" (the list is being sent).
+function TP.GetGroupShareStatus()
+    if not LGB or not state.ready then return "noLibrary" end
+    if not IsEnabled() then return "off" end
+    if not IsGrouped() then return "notGrouped" end
+    return "ready"
+end
+
+-- Sends the full table now instead of waiting for the next scheduled one.
+function TP.SendGroupShareNow()
+    if not CanSend() then return false end
+    state.pendingFull = true
+    Flush()
+    return true
 end
 
 local function YesNo(value)

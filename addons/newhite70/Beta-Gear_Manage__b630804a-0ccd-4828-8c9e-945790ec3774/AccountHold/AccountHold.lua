@@ -7,7 +7,7 @@ AccountHold.name   = "AccountHold"
 -- Version follows the Microsoft date-based scheme Major.Minor.YYMMDD.Revision.
 -- Major stays 0 while the addon is pre-release / in testing (bump to 1 at GA).
 -- Keep this in sync with `## Version` in AccountHold.addon on every release.
-AccountHold.version= "0.1.260728.10"
+AccountHold.version= "0.1.261017.0"
 AccountHold.svName = "AccountHoldSV"
 AccountHold.svVer  = 1
 
@@ -43,9 +43,13 @@ local DEFAULTS = {
     priorities = {},
     nextPriorityId = 1,
     -- Epic 0002 — saved gear builds. [buildId] = { id, name, slots = { [slot] = setId },
-    -- createdAt, updatedAt }.
+    -- createdAt, updatedAt, ahCharacterId?, loadout?, auto = { enabled, rules } }.
+    -- loadout/auto are written by src/BuildEquip.lua (dataVersion 7).
     builds = {},
     nextBuildId = 1,
+    -- Epic 0002 — per-character equip state: [characterId] = { lastEquipped,
+    -- pendingExport = { buildId, armoryIndex, armoryName, at } }.
+    buildEquip = {},
     -- Diagnostic ring buffer (Xbox / console can't see Lua errors otherwise).
     -- Each entry: { ts = unix_seconds, level = "info"|"warn"|"error", msg = "..." }.
     -- Capped to DIAGNOSTICS_MAX entries; oldest are evicted FIFO. Surfaced
@@ -280,7 +284,7 @@ end
 -- counter into sv.version previously collided with ZO's reserved key (which can
 -- trigger a data reset on a perceived schema mismatch). Bump this and add a
 -- matching `if dv < N then ... end` block below for each new migration.
-local DATA_VERSION = 6
+local DATA_VERSION = 7
 
 function AccountHold:UpgradeSavedVars()
     local sv = self.sv
@@ -345,6 +349,26 @@ function AccountHold:UpgradeSavedVars()
         if type(sv.nextBuildId) ~= "number" then sv.nextBuildId = 1 end
     end
 
+    -- dv 6 → 7: the Quartermaster Armory can now equip builds and auto-equip
+    -- them (src/BuildEquip.lua). Every EXISTING build is preserved untouched —
+    -- id, name, set plan, owner tag — and gains an auto-equip block that is
+    -- explicitly OFF with no conditions, so an upgrade can never start swapping
+    -- gear on its own. `loadout` is deliberately NOT invented: a build only
+    -- becomes equippable when the player saves what they are wearing into it
+    -- (or imports it from the in-game Armory). The per-character equip state
+    -- table is seeded so nothing indexes nil.
+    if dv < 7 then
+        if type(sv.builds) ~= "table" then sv.builds = {} end
+        for _, rec in pairs(sv.builds) do
+            if type(rec) == "table" then
+                if type(rec.auto) ~= "table" then rec.auto = {} end
+                rec.auto.enabled = false
+                if type(rec.auto.rules) ~= "table" then rec.auto.rules = {} end
+            end
+        end
+        if type(sv.buildEquip) ~= "table" then sv.buildEquip = {} end
+    end
+
     -- Persist the current counter. AccountHold.svVer (the ZO schema version) is
     -- intentionally NOT changed, so no player data is wiped. Loads already at
     -- DATA_VERSION skip every block above and simply re-stamp the same value.
@@ -373,13 +397,18 @@ function AccountHold:GetCharacterId()
 end
 
 function AccountHold:GetCharacterRecord(characterId)
-    characterId = characterId or self:GetCharacterId()
+    local currentId = self:GetCharacterId()
+    characterId = characterId or currentId
+    -- The "player" unit only describes the character currently logged in. Any
+    -- other id belongs to an offline alt, whose stored identity must never be
+    -- overwritten with this character's name/class/race.
+    local isCurrent = (characterId == currentId)
     local rec = self.sv.characters[characterId]
     if not rec then
         rec = {
-            name         = GetUnitName("player") or "?",
-            class        = GetUnitClass("player") or "?",
-            race         = GetUnitRace("player") or "?",
+            name         = isCurrent and (GetUnitName("player") or "?") or "?",
+            class        = isCurrent and (GetUnitClass("player") or "?") or "?",
+            race         = isCurrent and (GetUnitRace("player") or "?") or "?",
             lastFullScan = 0,
             -- Per-character permission (brief: "the player should be able to
             -- determine which of their characters can request items"). Every
@@ -392,7 +421,7 @@ function AccountHold:GetCharacterRecord(characterId)
             worn         = {},
         }
         self.sv.characters[characterId] = rec
-    else
+    elseif isCurrent then
         -- keep current display name fresh
         rec.name  = GetUnitName("player") or rec.name
         rec.class = GetUnitClass("player") or rec.class
@@ -575,6 +604,10 @@ function AccountHold:Initialize()
     -- before UI (which renders them). Each is inert until its feature gate is
     -- flipped on, so wiring them here is safe while `available = false`.
     init("BuildCreator", self.BuildCreator)
+    -- Equip / auto-equip / Armory export engine. After BuildCreator (it reads
+    -- the build records). Registers its events once; every handler re-checks
+    -- the `buildCreator` gate, so it is inert while the feature is off.
+    init("BuildEquip",   self.BuildEquip)
     init("Priorities",   self.Priorities)
     init("Travel",       self.Travel)
     -- Diagnostic only, and inert unless switched on in settings. Installed
@@ -947,7 +980,8 @@ end
 -- scope = "snapshot" : characters / accountBank / guildBanks / houseStorage
 -- scope = "holds"    : holds + nextHoldId only
 -- scope = "all"      : everything except settings (which the user explicitly
---                      configured) and firstLoadBannerShown
+--                      configured) and firstLoadBannerShown — including
+--                      priorities and saved builds
 -- ---------------------------------------------------------------------------
 function AccountHold:WipeData(scope)
     if not self.sv then return end
@@ -964,6 +998,14 @@ function AccountHold:WipeData(scope)
     if scope == "holds" or scope == "all" then
         sv.holds      = {}
         sv.nextHoldId = 1
+    end
+
+    if scope == "all" then
+        sv.priorities     = {}
+        sv.nextPriorityId = 1
+        sv.builds         = {}
+        sv.nextBuildId    = 1
+        sv.buildEquip     = {}
     end
 
     -- After a wipe, repopulate the current character record so the live

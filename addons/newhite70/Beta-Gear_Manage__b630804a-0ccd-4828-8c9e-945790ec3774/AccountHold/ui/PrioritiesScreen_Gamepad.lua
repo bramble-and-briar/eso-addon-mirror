@@ -5,8 +5,10 @@
 -- and lets the player travel to an activity or drop something off the wishlist
 -- without leaving the pause menu.
 --
--- The pause-menu entry and the scene that hosts this list live in the sibling
--- file ui/PrioritiesMenu_Gamepad.lua. That split is deliberate: everything in
+-- The pause-menu entry lives in the sibling file ui/PrioritiesMenu_Gamepad.lua.
+-- The LIVE surface is the parametric dialog ACCOUNT_HOLD_PRIORITIES_DIALOG,
+-- shown on a fragment-only native host scene with a detail panel beside it --
+-- see "PRI-11" below for why it is built that way. That split is deliberate: everything in
 -- THAT file runs inside ZO_MENU_ENTRIES, the same array that owns OPTIONS, QUIT
 -- and LOG_OUT (esoui/ingame/mainmenu/gamepad/zo_mainmenu_gamepad.lua:21-23), so
 -- it is kept as small and as boring as possible. Nothing in THIS file is ever
@@ -274,6 +276,12 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
             local outstanding = tonumber(activity.outstanding) or 0
             local subLabels = {}
 
+            -- PRI-11: the row carries only what a native list row carries -- a
+            -- kind and the count that orders the list. Zone and the "Covers:"
+            -- list moved to the detail panel (Screen._DetailFor), which is
+            -- where the native Activity Finder / Item Sets screens put them;
+            -- four sub-labels per row is what made this blade look unlike them.
+            local zoneName
             if isUnknown then
                 -- Honest incompleteness beats a tidy lie: the player has to be
                 -- able to tell that the plan does not cover these sets at all.
@@ -284,8 +292,7 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
                 subLabels[#subLabels + 1] = activityTypeLabel(activity.activityType)
                 if type(activity.zoneName) == "string" and activity.zoneName ~= ""
                    and activity.zoneName ~= activity.activityName then
-                    subLabels[#subLabels + 1] = string.format(
-                        L("SI_ACCOUNTHOLD_PRIO_ZONE", "Zone: %s"), activity.zoneName)
+                    zoneName = activity.zoneName
                 end
             end
 
@@ -293,8 +300,19 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
                 L("SI_ACCOUNTHOLD_PRIO_OUTSTANDING", "%d wanted piece(s) outstanding"),
                 outstanding)
 
-            local covers = joinSetNames(activity.setIds, setNameFn)
-            if covers then subLabels[#subLabels + 1] = covers end
+            -- Every covered set, uncapped, for the detail panel.
+            local setIds, setNames = {}, {}
+            if type(activity.setIds) == "table" then
+                for s = 1, #activity.setIds do
+                    local sid = activity.setIds[s]
+                    setIds[#setIds + 1] = sid
+                    local sname = setNameFn and setNameFn(sid) or nil
+                    if type(sname) ~= "string" or sname == "" then
+                        sname = L("SI_ACCOUNTHOLD_PRIO_SET_UNKNOWN", "Unknown set")
+                    end
+                    setNames[#setNames + 1] = sname
+                end
+            end
 
             local name
             if isUnknown then
@@ -317,6 +335,10 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
                 subLabels   = subLabels,
                 icon        = activityTypeIcon(activity.activityType, isUnknown),
                 header      = (#rows == 0) and planHeader or nil,
+                typeLabel   = (not isUnknown) and activityTypeLabel(activity.activityType) or nil,
+                zoneName    = zoneName,
+                setIds      = setIds,
+                setNames    = setNames,
             }
         end
     end
@@ -342,12 +364,34 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
         }
     end
 
+    -- Which activities drop each wanted set, for the detail panel of a set row.
+    local sourcesBySet, unknownBySet = {}, {}
+    for i = 1, #plan do
+        local activity = plan[i]
+        if type(activity) == "table" and type(activity.setIds) == "table" then
+            local isUnknownAct = (activity.activityKey == UNKNOWN_ACTIVITY_KEY)
+            local actName = activity.activityName
+            for s = 1, #activity.setIds do
+                local sid = tonumber(activity.setIds[s])
+                if sid then
+                    if isUnknownAct then
+                        unknownBySet[sid] = true
+                    elseif type(actName) == "string" and actName ~= "" then
+                        sourcesBySet[sid] = sourcesBySet[sid] or {}
+                        local list = sourcesBySet[sid]
+                        list[#list + 1] = actName
+                    end
+                end
+            end
+        end
+    end
+
     local wantedHeader = L("SI_ACCOUNTHOLD_PRIO_HEADER_WANTED", "Wanted sets & items")
     local firstPriorityRow = true
     for i = 1, #priorities do
         local rec = priorities[i]
         if type(rec) == "table" then
-            local name, sub, icon, itemLink
+            local name, sub, icon, itemLink, rowSetId
             if rec.kind == "item" then
                 local itemName = itemNameFn and itemNameFn(rec.itemSignature) or nil
                 if type(itemName) ~= "string" or itemName == "" then
@@ -372,6 +416,7 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
                 name = setName
                 sub  = L("SI_ACCOUNTHOLD_PRIO_KIND_SET", "Set")
                 icon = setId and setIcon(setId) or ICON_SET_FALLBACK
+                rowSetId = setId
             end
             rows[#rows + 1] = {
                 rowType   = ROW_PRIORITY,
@@ -381,6 +426,9 @@ function Screen._BuildRows(plan, priorities, setNameFn, itemNameFn, setIconFn)
                 icon      = icon,
                 itemLink  = itemLink,
                 header    = firstPriorityRow and wantedHeader or nil,
+                setId     = rowSetId,
+                sources   = rowSetId and sourcesBySet[rowSetId] or nil,
+                sourceUnknown = (rowSetId and unknownBySet[rowSetId]) and true or nil,
             }
             firstPriorityRow = false
         end
@@ -438,31 +486,26 @@ function Screen:_SetName(setId)
     return string.format(L("SI_ACCOUNTHOLD_PRIO_SET_NUMBERED", "Set #%d"), setId)
 end
 
--- The gamepad icon the base game itself uses for this set's collection
--- category, or the icon of its first piece. Both routes are exactly what
--- ZO_ItemSetCollectionCategoryData:GetGamepadIcon and
--- ZO_ItemSetCollectionPieceData:GetIcon do
--- (ingame/collections/itemsetcollectionsdata.lua), and BOTH are optional: an
--- older client, or a set with no collection entry, returns nil and the row
--- falls back to the generic Item Set Collections icon.
+-- The icon for a set row: the set's first piece, exactly as
+-- ZO_ItemSetCollectionPieceData:GetIcon does (itemsetcollectionsdata.lua:97-98),
+-- or failing that the gamepad icon of the set's TOP-LEVEL collection category.
+--
+-- PRI-4 (the red "?"): the set's own category is a SUBCATEGORY, and the base
+-- game never draws a gamepad icon for one -- itemsetsbook_gamepad.lua:158
+-- builds subcategory rows with no icon at all; only top-level categories
+-- (:480, :492) call GetGamepadIcon. Asking for a subcategory's gamepad icon
+-- returned a texture name that does not exist, which renders as the red
+-- missing-texture "?". The piece icon is now tried first and the category
+-- route walks up to the root.
 function Screen:_SetIcon(setId)
     setId = tonumber(setId)
     if not setId then return nil end
-
-    if type(GetItemSetCollectionCategoryId) == "function"
-       and type(GetItemSetCollectionCategoryGamepadIcon) == "function" then
-        local okCat, categoryId = pcall(GetItemSetCollectionCategoryId, setId)
-        if okCat and categoryId then
-            local okIcon, icon = pcall(GetItemSetCollectionCategoryGamepadIcon, categoryId)
-            if okIcon and type(icon) == "string" and icon ~= "" then return icon end
-        end
-    end
 
     if type(GetItemSetCollectionPieceInfo) == "function"
        and type(GetItemSetCollectionPieceItemLink) == "function"
        and type(GetItemLinkIcon) == "function" then
         local okPiece, pieceId = pcall(GetItemSetCollectionPieceInfo, setId, 1)
-        if okPiece and pieceId then
+        if okPiece and type(pieceId) == "number" and pieceId ~= 0 then
             local okLink, link = pcall(GetItemSetCollectionPieceItemLink, pieceId,
                                        LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE)
             if okLink and type(link) == "string" and link ~= "" then
@@ -472,7 +515,71 @@ function Screen:_SetIcon(setId)
         end
     end
 
+    if type(GetItemSetCollectionCategoryId) == "function"
+       and type(GetItemSetCollectionCategoryGamepadIcon) == "function" then
+        local okCat, categoryId = pcall(GetItemSetCollectionCategoryId, setId)
+        if okCat and type(categoryId) == "number" and categoryId ~= 0 then
+            -- Walk to the root category; bounded in case the tree ever cycles.
+            if type(GetItemSetCollectionCategoryParentId) == "function" then
+                for _ = 1, 8 do
+                    local okParent, parentId = pcall(GetItemSetCollectionCategoryParentId, categoryId)
+                    if not okParent or type(parentId) ~= "number" or parentId == 0
+                       or parentId == categoryId then
+                        break
+                    end
+                    categoryId = parentId
+                end
+            end
+            local okIcon, icon = pcall(GetItemSetCollectionCategoryGamepadIcon, categoryId)
+            if okIcon and type(icon) == "string" and icon ~= "" then return icon end
+        end
+    end
+
     return nil
+end
+
+-- A real item link for the set's first collection piece -- the link the native
+-- Item Sets book hands to LayoutItemSetCollectionPieceLink
+-- (itemsetsbook_gamepad.lua:134-135, data from itemsetcollectionsdata.lua). The
+-- piece tooltip carries the set's name and every set bonus, which is exactly
+-- the detail a player wants when looking at a wanted set.
+--   GetItemSetCollectionPieceInfo(itemSetId, index) -> pieceId, slot
+--                                               ESOUIDocumentation.txt:20107
+--   GetItemSetCollectionPieceItemLink(pieceId, linkStyle, traitType)
+--                                               ESOUIDocumentation.txt:20148
+function Screen:_SetPieceLink(setId)
+    setId = tonumber(setId)
+    if not setId then return nil end
+    if type(GetItemSetCollectionPieceInfo) ~= "function"
+       or type(GetItemSetCollectionPieceItemLink) ~= "function" then
+        return nil
+    end
+    local okPiece, pieceId = pcall(GetItemSetCollectionPieceInfo, setId, 1)
+    if not okPiece or type(pieceId) ~= "number" or pieceId == 0 then return nil end
+    local okLink, link = pcall(GetItemSetCollectionPieceItemLink, pieceId,
+                               LINK_STYLE_DEFAULT, ITEM_TRAIT_TYPE_NONE)
+    if okLink and type(link) == "string" and link ~= "" then return link end
+    return nil
+end
+
+-- (unlocked, total) collection pieces for a set, or nil. The same two numbers
+-- the Item Sets book shows as its progress bar.
+--   GetNumItemSetCollectionPieces(itemSetId)        ESOUIDocumentation.txt:20104
+--   GetNumItemSetCollectionSlotsUnlocked(itemSetId) ESOUIDocumentation.txt:20110
+function Screen:_SetProgress(setId)
+    setId = tonumber(setId)
+    if not setId then return nil end
+    if type(GetNumItemSetCollectionPieces) ~= "function"
+       or type(GetNumItemSetCollectionSlotsUnlocked) ~= "function" then
+        return nil
+    end
+    local okT, total = pcall(GetNumItemSetCollectionPieces, setId)
+    local okU, unlocked = pcall(GetNumItemSetCollectionSlotsUnlocked, setId)
+    if not okT or not okU or type(total) ~= "number" or type(unlocked) ~= "number"
+       or total <= 0 then
+        return nil
+    end
+    return unlocked, total
 end
 
 -- An item priority stores the item LINK as its signature (contract C), so the
@@ -1383,6 +1490,12 @@ function Screen._MakeRowEntryData(row, setupFn)
         -- data itself, or :745 calls a nil setup and the whole rebuild throws.
         data.setup = setupFn
         data.accountHoldPriorityRow = row
+        -- PRI-11: screen narration reads the detail panel with the row, the
+        -- same field the base game sets on rows whose detail lives in the
+        -- dialog tooltip (consolidatedsmithingsets_gamepad.lua:490).
+        if GAMEPAD_LEFT_DIALOG_TOOLTIP ~= nil then
+            data.narrationTooltip = GAMEPAD_LEFT_DIALOG_TOOLTIP
+        end
         built = data
     end)
 
@@ -1472,11 +1585,24 @@ function Screen._SummaryText(rows, errText)
         return L("SI_ACCOUNTHOLD_PRIO_EMPTY_HINT",
                  "Nothing wanted yet. Collections > Item Sets, highlight a set piece, press Y.")
     end
+    -- PRI-1: one short line that fits the blade header without wrapping, with
+    -- real singular/plural wording instead of "activity(s)" / "set(s)/item(s)".
+    local function count(n, oneId, oneText, manyId, manyText)
+        local fmt = (n == 1) and L(oneId, oneText) or L(manyId, manyText)
+        local okF, s = pcall(string.format, fmt, n)
+        if okF and type(s) == "string" then return s end
+        return tostring(n)
+    end
+    local runPart = count(activities,
+        "SI_ACCOUNTHOLD_PRIO_SUMMARY_ACTIVITY_ONE",  "%d activity",
+        "SI_ACCOUNTHOLD_PRIO_SUMMARY_ACTIVITY_MANY", "%d activities")
+    local wantPart = string.format("%d", wanted)
+    local okW, w = pcall(string.format, L("SI_ACCOUNTHOLD_PRIO_SUMMARY_WANTED", "%d wanted"), wanted)
+    if okW and type(w) == "string" then wantPart = w end
     local okS, summary = pcall(string.format,
-        L("SI_ACCOUNTHOLD_PRIO_SUMMARY", "%d activity(s) to run - %d wanted set(s)/item(s)"),
-        activities, wanted)
+        L("SI_ACCOUNTHOLD_PRIO_SUMMARY", "%s, %s"), runPart, wantPart)
     if okS and type(summary) == "string" then return summary end
-    return activities .. " activity(s) to run - " .. wanted .. " wanted set(s)/item(s)"
+    return runPart .. ", " .. wantPart
 end
 
 
@@ -1735,6 +1861,506 @@ function Screen._TravelForRow(row)
     return ok and true or false
 end
 
+-- ===========================================================================
+-- PRI-11: MAKE IT LOOK AND BEHAVE LIKE THE OTHER COLLECTIONS SCREENS
+-- ===========================================================================
+-- (esoui file:line citations in this block are at esoui/esoui@6639eb2,
+-- branch live, API 101051.)
+--
+-- Player report (Xbox): "Collections > Quartermaster Priorities ... does not
+-- look like the other menus. It needs to look like them and it needs to
+-- function the same." The player chose to keep it in the Collections menu.
+--
+-- WHAT WAS DIFFERENT. The list was a parametric dialog shown over the BASE
+-- scene: the pause menu was closed first (ui/PrioritiesMenu_Gamepad.lua,
+-- showDialogFromMenu) and the blade floated over the live game world, with no
+-- camera framing, no blur, no detail panel, and B dropped the player in the
+-- world instead of back on Collections.
+--
+-- WHY NOT A FULL CUSTOM SCREEN. Three custom-scene attempts "failed" on Xbox.
+-- The recorded root cause (ui/PrioritiesMenu_Gamepad.lua:_EnsureScene comment,
+-- ui/DungeonFinderScene_Gamepad.lua section 7, git 502be0d / 3b715ea) is that a
+-- `type(WINDOW_MANAGER) ~= "table"` guard was TRUE on hardware (userdata), so
+-- the scene code never ran at all -- AND that the old design hand-built a
+-- top-level window plus a ZO_GamepadVerticalItemParametricScrollList from
+-- CreateControlFromVirtual at runtime, which is the part that "never built".
+-- That runtime control tree has never been proven on console; the parametric
+-- dialog has (PRI-7, confirmed on hardware 2026-08-03). So the proven dialog
+-- stays as THE list, and only two things are added around it:
+--
+--   1. A HOST SCENE made of nothing but base-game fragments -- no control of
+--      ours, no CreateControlFromVirtual, no top-level window. It carries
+--      exactly the fragment set of the sibling Collections screens:
+--        gamepadingamescenes.lua:457-463 (Item Sets) and :468-473 (Tribute
+--        Patrons): GAMEPAD_DRIVEN_UI_WINDOW, FRAME_TARGET_GAMEPAD_RIGHT_
+--        FURTHER_AWAY (camera frames the character, background blurred),
+--        GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT, MINIMIZE_CHAT_FRAGMENT,
+--        GAMEPAD_MENU_SOUND_FRAGMENT.
+--      The Collections row PUSHES it, exactly like the native rows push
+--      theirs (zo_mainmenu_gamepad.lua:999-1001), so the scene stack is
+--      mainMenuGamepad > playerSubmenu > host and B pops ONE level, back to
+--      the Collections submenu (zo_scenemanager_leader.lua:292-296, :167-179).
+--      The dialog is shown ON the host when it is SHOWN. If the host cannot be
+--      built or pushed, the menu falls back to the old over-the-world path.
+--
+--   2. A DETAIL PANEL beside the list. A parametric dialog has its own
+--      tooltip, GAMEPAD_LEFT_DIALOG_TOOLTIP, anchored in nav quadrant 2 right
+--      of the dialog (zo_tooltip_gamepad.xml:58-61, zo_tooltip_gamepad.lua:91)
+--      and shown with ZO_GenericGamepadDialog_ShowTooltip
+--      (zo_genericdialog_gamepad.lua:624-629). The base game drives it from
+--      info.parametricListOnSelectionChangedCallback (:718-729) -- the closest
+--      precedent is the smithing set picker, an item-set list in a parametric
+--      dialog (consolidatedsmithingsets_gamepad.lua:488-520). The dialog hides
+--      it itself on close (OnDialogHiding, :363-364).
+-- ===========================================================================
+
+-- Fixed by tooltips (zo_tooltip_gamepad.lua:64). Never hard-coded here: a
+-- client without the global simply gets no panel.
+local function detailTooltipType()
+    return GAMEPAD_LEFT_DIALOG_TOOLTIP
+end
+
+-- itemsetsbook_gamepad.lua:134 -- `local HIDE_TRAIT = true` (a file local there).
+local HIDE_TRAIT = true
+
+local unpackFn = table.unpack or unpack
+
+-- What the detail panel says about a row. PURE: no ZO_* global; the only live
+-- data (collection progress) comes in through `progressFn`, exactly like the
+-- resolvers _BuildRows takes. Returns nil when there is nothing to show (the
+-- empty-state row), which hides the panel.
+--   { kind = "activity"|"set"|"item", title = string, lines = { string... },
+--     setId = n?, itemLink = s? }
+function Screen._DetailFor(row, progressFn)
+    if type(row) ~= "table" then return nil end
+
+    local function fmt(id, fallback, ...)
+        local ok, s = pcall(string.format, L(id, fallback), ...)
+        if ok and type(s) == "string" then return s end
+        local ok2, s2 = pcall(string.format, fallback, ...)
+        if ok2 then return s2 end
+        return fallback
+    end
+    local function progress(setId)
+        if type(progressFn) ~= "function" or setId == nil then return nil end
+        local ok, unlocked, total = pcall(progressFn, setId)
+        if ok and type(unlocked) == "number" and type(total) == "number" and total > 0 then
+            return unlocked, total
+        end
+        return nil
+    end
+
+    if row.rowType == ROW_ACTIVITY then
+        local lines = {}
+        if row.isUnknown then
+            lines[#lines + 1] = L("SI_ACCOUNTHOLD_PRIO_UNKNOWN_SOURCE_DESC",
+                "No activity data for these sets - this plan is incomplete.")
+        else
+            if type(row.typeLabel) == "string" and row.typeLabel ~= "" then
+                lines[#lines + 1] = row.typeLabel
+            end
+            if type(row.zoneName) == "string" and row.zoneName ~= "" then
+                lines[#lines + 1] = fmt("SI_ACCOUNTHOLD_PRIO_ZONE", "Zone: %s", row.zoneName)
+            end
+        end
+        lines[#lines + 1] = fmt("SI_ACCOUNTHOLD_PRIO_OUTSTANDING",
+            "%d wanted piece(s) outstanding", tonumber(row.outstanding) or 0)
+
+        local setIds   = type(row.setIds) == "table" and row.setIds or {}
+        local setNames = type(row.setNames) == "table" and row.setNames or {}
+        if #setNames > 0 then
+            lines[#lines + 1] = L("SI_ACCOUNTHOLD_PRIO_DETAIL_SETS_HEADER", "Wanted sets from here:")
+            for i = 1, #setNames do
+                local unlocked, total = progress(setIds[i])
+                if unlocked then
+                    lines[#lines + 1] = fmt("SI_ACCOUNTHOLD_PRIO_DETAIL_SET_PROGRESS",
+                        "%s - %d/%d collected", setNames[i], unlocked, total)
+                else
+                    lines[#lines + 1] = setNames[i]
+                end
+            end
+        end
+        return { kind = "activity", title = row.name, lines = lines }
+    end
+
+    if row.rowType == ROW_PRIORITY then
+        local rec = type(row.priority) == "table" and row.priority or {}
+        if rec.kind == "item" then
+            return {
+                kind = "item", title = row.name, itemLink = row.itemLink,
+                lines = { L("SI_ACCOUNTHOLD_PRIO_DETAIL_WANTED_ITEM", "Marked as wanted.") },
+            }
+        end
+        local lines = {}
+        local unlocked, total = progress(row.setId)
+        if unlocked then
+            lines[#lines + 1] = fmt("SI_ACCOUNTHOLD_PRIO_DETAIL_COLLECTED",
+                "Collected: %d/%d pieces", unlocked, total)
+        end
+        if type(row.sources) == "table" and #row.sources > 0 then
+            lines[#lines + 1] = fmt("SI_ACCOUNTHOLD_PRIO_DETAIL_DROPS_FROM",
+                "Drops from: %s", table.concat(row.sources, ", "))
+        elseif row.sourceUnknown then
+            lines[#lines + 1] = L("SI_ACCOUNTHOLD_PRIO_DETAIL_SOURCE_UNKNOWN",
+                "Source unknown - Quartermaster has no activity data for this set yet.")
+        else
+            lines[#lines + 1] = L("SI_ACCOUNTHOLD_PRIO_DETAIL_NOTHING_OUTSTANDING",
+                "Nothing outstanding - every wanted piece is collected.")
+        end
+        return { kind = "set", title = row.name, setId = row.setId, lines = lines }
+    end
+
+    return nil
+end
+
+local detailFailures = 0
+local function reportDetailFailure(why)
+    detailFailures = detailFailures + 1
+    Screen._lastDetailError = why
+    -- First few only: this runs on every cursor move.
+    if detailFailures <= 3 and Screen.addon and Screen.addon.Diagnostic then
+        pcall(function()
+            Screen.addon:Diagnostic("warn", "[priorities] detail panel: %s", tostring(why))
+        end)
+    end
+end
+
+-- Hide the panel. ZO_GenericGamepadDialog_HideTooltip clears and resets it
+-- only if ShowTooltip ran (zo_genericdialog_gamepad.lua:631-640); a client
+-- without it gets a plain ClearTooltip.
+function Screen._HideDetail(dialog)
+    Screen._lastDetail = nil
+    local which = detailTooltipType()
+    if type(ZO_GenericGamepadDialog_HideTooltip) == "function" and dialog ~= nil then
+        if pcall(ZO_GenericGamepadDialog_HideTooltip, dialog) then return true end
+    end
+    if which ~= nil and GAMEPAD_TOOLTIPS ~= nil then
+        local clear = Safe.Method(GAMEPAD_TOOLTIPS, "ClearTooltip")
+        if clear then pcall(clear, GAMEPAD_TOOLTIPS, which) end
+    end
+    return true
+end
+
+-- Append our own lines under a native layout, the way the Quartermaster
+-- inventory tab does on hardware (ui/InventoryTab_Gamepad.lua UpdateTooltip:
+-- AcquireSection(bodySection) / AddLine(bodyDescription) / AddSection). The
+-- tooltip object is a CONTROL with ZO_Tooltip mixed in (zo_tooltip.lua:1205-
+-- 1207), i.e. userdata on hardware -- so guard on methods, never type().
+local function appendLines(which, lines)
+    if type(lines) ~= "table" or #lines == 0 then return true end
+    local getTip = Safe.Method(GAMEPAD_TOOLTIPS, "GetTooltip")
+    if not getTip then return false end
+    local ok = pcall(function()
+        local tt = getTip(GAMEPAD_TOOLTIPS, which)
+        if tt == nil or not Safe.Method(tt, "AcquireSection")
+           or not Safe.Method(tt, "AddSection") or not Safe.Method(tt, "GetStyle") then
+            error("tooltip has no section API")
+        end
+        local section = tt:AcquireSection(tt:GetStyle("bodySection"))
+        for i = 1, #lines do
+            section:AddLine(lines[i], tt:GetStyle("bodyDescription"))
+        end
+        tt:AddSection(section)
+    end)
+    return ok
+end
+
+-- Paint the detail panel for `row`. Every step guarded; returns (ok, why).
+--
+-- Layout calls go through GAMEPAD_TOOLTIPS' metatable, which turns ANY
+-- unknown method name into a layout dispatcher (zo_tooltip_gamepad.lua:3-58),
+-- so a Safe.Method probe proves nothing there. The names used are therefore
+-- verified against source instead:
+--   LayoutItemSetCollectionPieceLink(itemLink, hideTrait)  itemtooltips.lua:2111
+--   LayoutItemWithStackCountSimple(itemLink, stackCount)    itemtooltips.lua:1876
+--   LayoutTitleAndMultiSectionDescriptionTooltip(title, ...) zo_tooltip.lua:1259
+function Screen._ShowDetail(dialog, row)
+    local which = detailTooltipType()
+    if which == nil or GAMEPAD_TOOLTIPS == nil then
+        return false, "no dialog tooltip on this client"
+    end
+
+    local detail = Screen._DetailFor(row, function(setId) return Screen:_SetProgress(setId) end)
+    if not detail then
+        Screen._HideDetail(dialog)
+        return true
+    end
+
+    local tips = GAMEPAD_TOOLTIPS
+    local laidOut = false
+    if detail.kind == "set" then
+        local link = Screen:_SetPieceLink(detail.setId)
+        if link then
+            laidOut = pcall(function()
+                tips:LayoutItemSetCollectionPieceLink(which, link, HIDE_TRAIT)
+            end)
+            if laidOut then
+                detail.layout = "piece"
+                detail.pieceLink = link
+                appendLines(which, detail.lines)
+            end
+        end
+    elseif detail.kind == "item" and type(detail.itemLink) == "string" and detail.itemLink ~= "" then
+        laidOut = pcall(function()
+            tips:LayoutItemWithStackCountSimple(which, detail.itemLink, 1)
+        end)
+        if laidOut then
+            detail.layout = "item"
+            appendLines(which, detail.lines)
+        end
+    end
+
+    if not laidOut then
+        local lines = detail.lines or {}
+        local ok, err = pcall(function()
+            tips:LayoutTitleAndMultiSectionDescriptionTooltip(which, detail.title, unpackFn(lines))
+        end)
+        if not ok then return false, shortErr(err) end
+        detail.layout = "text"
+    end
+
+    -- Layout first, THEN show: the base game's own order
+    -- (consolidatedsmithingsets_gamepad.lua:514-516).
+    if type(ZO_GenericGamepadDialog_ShowTooltip) == "function" and dialog ~= nil then
+        local okShow, errShow = pcall(ZO_GenericGamepadDialog_ShowTooltip, dialog)
+        if not okShow then return false, shortErr(errShow) end
+    end
+    Screen._lastDetail = detail
+    return true
+end
+
+-- The dialog's selection-changed hook. Runs inside the base list's own
+-- callback chain, BEFORE the default keybind refresh
+-- (zo_genericdialog_gamepad.lua:721-724) -- so a throw here would also leave
+-- the keybind strip stale. Nothing escapes.
+function Screen._OnDialogSelectionChanged(dialog, selectedData)
+    local ok, shown, why = pcall(function()
+        local row = type(selectedData) == "table" and selectedData.accountHoldPriorityRow or nil
+        if row == nil then
+            Screen._HideDetail(dialog)
+            return true
+        end
+        return Screen._ShowDetail(dialog, row)
+    end)
+    if not ok then
+        reportDetailFailure(shortErr(shown))
+        return false
+    end
+    if not shown then
+        reportDetailFailure(why or "unknown")
+        return false
+    end
+    return true
+end
+
+-- ---------------------------------------------------------------------------
+-- The host scene
+-- ---------------------------------------------------------------------------
+
+local HOST_SCENE_NAME = "accountHoldPrioritiesHostGamepad"
+Screen._HOST_SCENE_NAME = HOST_SCENE_NAME
+
+local function hostDiag(level, fmtText, ...)
+    local addon = Screen.addon
+    if addon and addon.Diagnostic then
+        local args = { ... }
+        pcall(function() addon:Diagnostic(level, "[priorities] " .. fmtText, unpackFn(args)) end)
+    end
+end
+
+-- Is the host the scene on screen right now? ZO_SceneManager_Base:IsShowing
+-- (zo_scenemanager_base.lua:241-248) is true for SHOWING or SHOWN only.
+function Screen._IsHosted()
+    local isShowing = Safe.Method(SCENE_MANAGER, "IsShowing")
+    if not isShowing then return false end
+    local ok, showing = pcall(isShowing, SCENE_MANAGER, HOST_SCENE_NAME)
+    return (ok and showing) and true or false
+end
+
+-- Pop the host: back to the Collections submenu. ZO_SceneManager_Leader:Hide
+-- pops exactly one scene and only when the host IS the current scene
+-- (zo_scenemanager_leader.lua:292-296), so it can never close something else.
+function Screen._LeaveHost()
+    if not Screen._IsHosted() then return false end
+    local hide = Safe.Method(SCENE_MANAGER, "Hide")
+    if not hide then return false end
+    local ok, err = pcall(hide, SCENE_MANAGER, HOST_SCENE_NAME)
+    if not ok then
+        hostDiag("warn", "could not leave the Priorities screen: %s", shortErr(err))
+        return false
+    end
+    return true
+end
+
+-- After an action has run with the list closed: if the player is still on the
+-- host with nothing on it (the action alerted instead of navigating -- e.g. no
+-- known wayshrine), put the list back rather than leave an empty screen.
+function Screen._RestoreIfStranded()
+    if not Screen._IsHosted() then return false end
+    if type(ZO_Dialogs_IsShowingDialog) == "function" then
+        local ok, any = pcall(ZO_Dialogs_IsShowingDialog)
+        if ok and any then return false end
+    end
+    pcall(function() Screen:Show() end)
+    return true
+end
+
+-- The host's own keybind strip. It is only ever visible while NO dialog is up:
+-- every gamepad dialog pushes the keybind group state on show and pops it on
+-- hide (zo_genericdialog_gamepad.lua:337, :389). So this is the recovery strip
+-- -- B leaves, A puts the list back -- and it can collide with nothing because
+-- the host scene is ours alone.
+function Screen._HostKeybinds()
+    if Screen._hostKeybinds then return Screen._hostKeybinds end
+    local desc = {
+        alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        {
+            name     = L("SI_ACCOUNTHOLD_PRIO_BTN_REOPEN", "Show list"),
+            keybind  = "UI_SHORTCUT_PRIMARY",
+            callback = function() pcall(function() Screen:Show() end) end,
+        },
+    }
+    local function back() pcall(Screen._LeaveHost) end
+    local added = false
+    if type(ZO_Gamepad_AddBackNavigationKeybindDescriptors) == "function"
+       and GAME_NAVIGATION_TYPE_BUTTON ~= nil then
+        added = pcall(ZO_Gamepad_AddBackNavigationKeybindDescriptors,
+                      desc, GAME_NAVIGATION_TYPE_BUTTON, back)
+    end
+    if not added then
+        desc[#desc + 1] = {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name      = L("SI_ACCOUNTHOLD_PRIO_BTN_BACK", "Back"),
+            keybind   = "UI_SHORTCUT_NEGATIVE",
+            order     = -1500,
+            callback  = back,
+        }
+    end
+    Screen._hostKeybinds = desc
+    return desc
+end
+
+-- SHOWING: keybinds (API_REFERENCE "Scenes": add on SHOWING, remove on
+-- HIDDEN, siegebar.lua:46-55). SHOWN: put the list up -- a gamepad dialog only
+-- shows on a scene that IsShowing (zo_dialog.lua:366 at API 101051). HIDING: take the list
+-- down so it can never outlive its screen.
+function Screen._OnHostStateChange(newState)
+    if newState == SCENE_SHOWING then
+        local add = Safe.Method(KEYBIND_STRIP, "AddKeybindButtonGroup")
+        if add then pcall(add, KEYBIND_STRIP, Screen._HostKeybinds()) end
+    elseif newState == SCENE_SHOWN then
+        local ok, err = pcall(function() Screen:Show() end)
+        if not ok then hostDiag("warn", "list did not open on its screen: %s", shortErr(err)) end
+    elseif newState == SCENE_HIDING then
+        if type(ZO_Dialogs_IsShowing) == "function"
+           and type(ZO_Dialogs_ReleaseDialog) == "function" then
+            local okIs, showing = pcall(ZO_Dialogs_IsShowing, PRIORITIES_DIALOG)
+            if okIs and showing then pcall(ZO_Dialogs_ReleaseDialog, PRIORITIES_DIALOG) end
+        end
+    elseif newState == SCENE_HIDDEN then
+        local remove = Safe.Method(KEYBIND_STRIP, "RemoveKeybindButtonGroup")
+        if remove and Screen._hostKeybinds then
+            pcall(remove, KEYBIND_STRIP, Screen._hostKeybinds)
+        end
+    end
+end
+
+-- Build (once) the fragment-only host scene. Returns scene or (nil, reason).
+-- Everything that can fail is checked BEFORE ZO_Scene:New, because a scene
+-- registers itself with the manager on construction (zo_scene.lua:28-37) and
+-- there is no unregister: a half-built host must never exist.
+function Screen._EnsureHostScene()
+    if Screen._hostScene then return Screen._hostScene end
+
+    local getScene = Safe.Method(SCENE_MANAGER, "GetScene")
+    if not getScene or not Safe.Method(SCENE_MANAGER, "Push")
+       or not Safe.Method(SCENE_MANAGER, "Hide") then
+        return nil, "SCENE_MANAGER unavailable"
+    end
+    if type(ZO_Scene) ~= "table" or type(ZO_Scene.New) ~= "function" then
+        return nil, "ZO_Scene unavailable"
+    end
+    -- REQUIRED: this group carries the gamepad keybind strip, its backdrop and
+    -- gamepad UI mode (ingamefragmentgroups.lua:42-53). Without it the player
+    -- would have no visible B. Fail closed.
+    local groups = FRAGMENT_GROUP
+    local driven = type(groups) == "table" and groups.GAMEPAD_DRIVEN_UI_WINDOW or nil
+    if type(driven) ~= "table" or #driven == 0 then
+        return nil, "FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW unavailable"
+    end
+
+    local ok, sceneOrErr = pcall(function()
+        local s = getScene(SCENE_MANAGER, HOST_SCENE_NAME)
+        if s == nil then s = ZO_Scene:New(HOST_SCENE_NAME, SCENE_MANAGER) end
+        return s
+    end)
+    if not ok or sceneOrErr == nil then
+        return nil, "scene not created: " .. shortErr(sceneOrErr)
+    end
+    local scene = sceneOrErr
+
+    -- Each extra is optional and added on its own: a missing global costs that
+    -- one piece of polish, never the screen.
+    local okDriven = pcall(scene.AddFragmentGroup, scene, driven)
+    if not okDriven then return nil, "could not add GAMEPAD_DRIVEN_UI_WINDOW" end
+    local framing = groups.FRAME_TARGET_GAMEPAD_RIGHT_FURTHER_AWAY
+    if type(framing) == "table" then pcall(scene.AddFragmentGroup, scene, framing) end
+    local function addFragment(fragment)
+        if fragment ~= nil then pcall(scene.AddFragment, scene, fragment) end
+    end
+    addFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+    addFragment(MINIMIZE_CHAT_FRAGMENT)
+    addFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+
+    local register = Safe.Method(scene, "RegisterCallback")
+    if not register then return nil, "scene has no RegisterCallback" end
+    -- ZO_Scene fires StateChange(oldState, newState) (zo_scene.lua:163).
+    local okCb = pcall(register, scene, "StateChange", function(_oldState, newState)
+        pcall(Screen._OnHostStateChange, newState)
+    end)
+    if not okCb then return nil, "could not hook the scene" end
+
+    Screen._hostScene = scene
+    return scene
+end
+
+-- The Collections row's entry point. Pushes the host (the dialog follows on
+-- SHOWN). Returns false -- and the caller falls back to the old dialog-over-
+-- the-world path -- whenever the host cannot be built or the push did not take.
+function Screen:OpenFromMenu()
+    local scene, why = Screen._EnsureHostScene()
+    if not scene then
+        hostDiag("warn", "native screen unavailable (%s); opening the list on its own.",
+                 tostring(why))
+        return false
+    end
+    local push = Safe.Method(SCENE_MANAGER, "Push")
+    local ok, err = pcall(push, SCENE_MANAGER, HOST_SCENE_NAME)
+    if not ok then
+        hostDiag("warn", "could not open the Priorities screen: %s", shortErr(err))
+        return false
+    end
+    -- Push hides the current scene first and only then shows ours
+    -- (zo_scenemanager_leader.lua:270-273), so "next" counts as taken.
+    if Screen._IsHosted() then return true end
+    local isNext = Safe.Method(SCENE_MANAGER, "IsShowingNext")
+    if isNext then
+        local okN, next_ = pcall(isNext, SCENE_MANAGER, HOST_SCENE_NAME)
+        if okN and next_ then return true end
+    end
+    hostDiag("warn", "the Priorities screen did not open; opening the list on its own.")
+    return false
+end
+
+-- Test seam.
+function Screen._ResetHost()
+    Screen._hostScene    = nil
+    Screen._hostKeybinds = nil
+    detailFailures       = 0
+    Screen._lastDetail   = nil
+    Screen._lastDetailError = nil
+end
+
 -- ---------------------------------------------------------------------------
 -- The dialog itself
 -- ---------------------------------------------------------------------------
@@ -1782,6 +2408,20 @@ local function ensurePrioritiesDialog()
         parametricList = {},
         blockDialogReleaseOnPress = true,
 
+        -- PRI-11: the detail panel follows the cursor. Signature
+        -- (dialog, list, newSelectedData, oldSelectedData) -- base callers at
+        -- consolidatedsmithingsets_gamepad.lua:513, armory_gamepad.lua:708.
+        parametricListOnSelectionChangedCallback = function(dialog, _list, newSelectedData)
+            Screen._OnDialogSelectionChanged(dialog, newSelectedData)
+        end,
+
+        -- OnDialogHiding already hides a shown dialog tooltip (zo_genericdialog_
+        -- gamepad.lua:363-364) and then calls this (:370-372). Belt and braces:
+        -- a stale panel must never sit over the next screen.
+        onHidingCallback = function(dialog)
+            pcall(Screen._HideDetail, dialog)
+        end,
+
         -- noChoiceCallback has TWO call sites and they mean opposite things:
         --   zo_dialog.lua:372-376  the show request was DROPPED. The argument is
         --                          the dialogInfo table itself.
@@ -1800,16 +2440,40 @@ local function ensurePrioritiesDialog()
             {
                 keybind = "DIALOG_PRIMARY",
                 text    = L("SI_ACCOUNTHOLD_PRIO_TRAVEL", "Show on map"),
+                -- PRI-11: like a native screen, an action that cannot apply to
+                -- the highlighted row is not offered. A wanted set or the
+                -- "source unknown" row is not a place. Same `visible`
+                -- mechanism as Remove below, confirmed on hardware (PRI-7).
+                visible = function(dialog)
+                    local ok, res = pcall(function()
+                        local row = Screen._TargetRow(dialog)
+                        return type(row) == "table" and row.rowType == ROW_ACTIVITY
+                           and not row.isUnknown
+                    end)
+                    return (ok and res) and true or false
+                end,
                 callback = function(dialog)
                     local row = Screen._TargetRow(dialog)
-                    Screen._CloseThenRun(function() Screen._TravelForRow(row) end)
+                    Screen._CloseThenRun(function()
+                        Screen._TravelForRow(row)
+                        -- No map opened (e.g. no known wayshrine): the
+                        -- alert has spoken; put the list back.
+                        Screen._RestoreIfStranded()
+                    end)
                 end,
             },
             {
                 keybind = "DIALOG_NEGATIVE",
                 text    = L("SI_ACCOUNTHOLD_PRIO_BTN_BACK", "Back"),
                 callback = function()
-                    Screen._CloseThenRun(nil)
+                    -- PRI-11: on the native host, B goes back ONE level, to the
+                    -- Collections submenu, like every sibling screen. Opened
+                    -- any other way (fallback, /command) it just closes.
+                    if Screen._IsHosted() then
+                        Screen._CloseThenRun(function() Screen._LeaveHost() end)
+                    else
+                        Screen._CloseThenRun(nil)
+                    end
                 end,
             },
             -- X. DIALOG_TERTIARY is the third dialog action the base game binds
@@ -1824,7 +2488,10 @@ local function ensurePrioritiesDialog()
                 keybind = "DIALOG_TERTIARY",
                 text    = L("SI_ACCOUNTHOLD_PRIO_QUEUE", "Quartermaster Dungeons"),
                 callback = function()
-                    Screen._CloseThenRun(function() Screen._OpenDungeonFinder() end)
+                    Screen._CloseThenRun(function()
+                        Screen._OpenDungeonFinder()
+                        Screen._RestoreIfStranded()
+                    end)
                 end,
             },
             -- Remove the wanted set under the cursor.

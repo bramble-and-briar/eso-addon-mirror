@@ -1,0 +1,50 @@
+## Title: |c9CD04CALC Benchmark|r
+## AddOnVersion: 26101514
+## Version: 2026.10.15.14.36
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+## Description: Tests every Auto Lua Memory Cleaner method, Memory Garbage Collector and Shissu's LUA Memory against the game on its own, with a loading screen step, and shows Lua memory, the add-on pool and what each freed. Type /alcbench.
+## SavedVariables: ALCBenchmarkResults
+## DependsOn: LibAPH>=26100717
+## OptionalDependsOn: AutoLuaMemoryCleaner
+
+CORE/ALCBenchmark.lua
+CORE/Stats.lua
+DATA/Rows.lua
+UI/Layout.lua
+UTILS/Pack.lua
+UTILS/Records.lua
+UI/Results.lua
+UI/Conclusion.lua
+UI/Summary.lua
+UI/Timeline.lua
+UI/Window.lua
+UTILS/Settings.lua
+UTILS/History.lua
+UTILS/Cleaners.lua
+UTILS/Guard.lua
+UTILS/Player.lua
+CORE/Test.lua
+UTILS/Recovery.lua
+CORE/Phases.lua
+UTILS/Travel.lua
+CORE/Run.lua
+UTILS/LoadTest.lua
+UI/Menu.lua
+UI/LoadPage.lua
+UI/Pad.lua
+UTILS/MemoryDisplay.lua
+UI/StatusLine.lua
+CORE/Init.lua
+
+Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

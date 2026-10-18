@@ -1,32 +1,17 @@
+LazyCrown=LazyCrown or {}
+LazyCrown.later=LazyCrown.later or {}
+table.insert(LazyCrown.later,{name="LazyCrown.lua",code=[=[
 local ADDON_NAME = "LazyCrown"
-local VERSION = "0.2.2"
-local AUTHOR = "absolventR3M"
+local VERSION = (LazyCrown and LazyCrown.VERSION) or "?"
 local TEXT_COLOR = "F2C65A"
 local DIAG_COLOR = "9A9A9A"
-local ICON_PICK_FALLBACK = "EsoUI/Art/currency/gamepad/gp_crown_gems.dds"
-local ICON_SHARE_FALLBACK = "EsoUI/Art/currency/gamepad/gp_crowns.dds"
-local ICON_SCOREBOARD = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_leaderBoards.dds"
-local ICON_RESET = "EsoUI/Art/Guild/Gamepad/gp_guild_options_delete.dds"
-local ICON_PERSONALITY = "EsoUI/Art/Campaign/Gamepad/gp_bonusIcon_emperor.dds"
-local ICON_GROUP = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_groups.dds"
+local PLAN_COLOR = "FFFFFF"
 local AD, EP, DC = ALLIANCE_ALDMERI_DOMINION or 1, ALLIANCE_EBONHEART_PACT or 2, ALLIANCE_DAGGERFALL_COVENANT or 3
 local ROTATION = { AD, EP, DC }
 local ALLIANCE_NAMES = { [AD] = "Aldmeri Dominion", [EP] = "Ebonheart Pact", [DC] = "Daggerfall Covenant" }
-local CROWN_ORDER = { "lazy", "bakedpotato", "bored", "chris", "confessor", "deano", "diil", "greedy", "mulliss", "november", "random", "selfish", "ultralazy" }
+local CROWN_ORDER = { "lazy", "bakedpotato", "bored", "chris", "confessor", "deano", "diil", "greedy", "november", "random" }
 local function LoadTheRest()
-local later = LazyCrown and LazyCrown.later
-if not later then return end
-LazyCrown.later = nil
-local compile = zo_loadstring or loadstring
-for _, file in ipairs(later) do
-local fn, err = nil, "can't compile here"
-if compile then fn, err = compile(file.code, file.name) end
-local ok = false
-if fn then ok, err = pcall(fn) end
-if not ok then
-pcall(function() CHAT_ROUTER:AddSystemMessage("[Lazy Crown] " .. file.name .. " didn't load: " .. tostring(err)) end)
-end
-end
+if LazyCrown and LazyCrown.LoadAll then LazyCrown.LoadAll() end
 end
 local function Personalities()
 LoadTheRest()
@@ -70,18 +55,7 @@ local OUTPOSTS = {
 { id = 163, name = "Winter's Peak Outpost", home = DC },
 }
 local Random = zo_random or math.random
-local PS_BUTTONS = { ["Press X"] = "Press Square", ["press X"] = "press Square", ["Press A"] = "Press Cross",
-["LT or RT"] = "L2 or R2", ["Hit start"] = "Hit Options" }
-local function Buttons(text)
-local ps = false
-if ZO_IsPlaystationPlatform then
-local ok, result = pcall(ZO_IsPlaystationPlatform)
-ps = ok and result == true
-end
-if not ps then return text end
-for xbox, playstation in pairs(PS_BUTTONS) do text = text:gsub(xbox, playstation) end
-return text
-end
+local Buttons = LazyCrown.Buttons
 local CrownName = function() return "Lazy" end
 local function Tag()
 return string.format("[Lazy Crown - %s] ", CrownName())
@@ -92,14 +66,19 @@ end
 local function Diag(text)
 CHAT_ROUTER:AddSystemMessage(string.format("|c%s%s%s|r", DIAG_COLOR, Tag(), text))
 end
+local function SayPlan(text)
+CHAT_ROUTER:AddSystemMessage(string.format("|c%s[Lazy Crown - Plan] %s|r", PLAN_COLOR, text))
+end
 local function Context()
 return BGQUERY_LOCAL or 1
 end
+local namesFellBack = false
 local function KeepName(keepId, fallback)
 local ok, name = pcall(GetKeepName, keepId)
 if ok and type(name) == "string" and name ~= "" then
 return (zo_strformat and zo_strformat(SI_TOOLTIP_KEEP_NAME or "<<1>>", name)) or name
 end
+namesFellBack = true
 return fallback
 end
 local function PinPosition(keepId)
@@ -114,6 +93,7 @@ local ok, keepType = pcall(GetKeepType, keepId)
 return ok and keepType == expected
 end
 local function BuildTargets()
+namesFellBack = false
 local targets = {}
 local number = 0
 local function add(keepId, name, kind, home, expectedType, parent)
@@ -140,6 +120,19 @@ for _, town in ipairs(TOWNS) do add(town.id, town.name, "Town", town.home, KEEPT
 for _, outpost in ipairs(OUTPOSTS) do add(outpost.id, outpost.name, "Outpost", outpost.home, KEEPTYPE_OUTPOST) end
 return targets, number
 end
+local sessionTargets
+local function PickTargets()
+if not sessionTargets then
+local targets, total = BuildTargets()
+if #targets < total or namesFellBack then return targets end
+sessionTargets = targets
+end
+local fresh = {}
+for i, t in ipairs(sessionTargets) do
+fresh[i] = { number = t.number, keepId = t.keepId, name = t.name, kind = t.kind, home = t.home, parent = t.parent }
+end
+return fresh
+end
 local function InCyrodiil()
 if IsInCyrodiil then
 if not IsInCyrodiil() then return false end
@@ -164,30 +157,41 @@ local function MapChanged()
 if CALLBACK_MANAGER then CALLBACK_MANAGER:FireCallbacks("OnWorldMapChanged") end
 end
 local function UseCyrodiilMap()
-if not (GetCyrodiilMapIndex and SetMapToMapListIndex) then return false end
-local ok, changed = pcall(function()
+if not (GetCyrodiilMapIndex and SetMapToMapListIndex) then return nil end
+local ok, from = pcall(function()
 if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.IsMapChangingAllowed and not WORLD_MAP_MANAGER:IsMapChangingAllowed() then
-return false
+return nil
 end
 local index = GetCyrodiilMapIndex()
-if not index or (GetCurrentMapIndex and GetCurrentMapIndex() == index) then return false end
-if SetMapToMapListIndex(index) == SET_MAP_RESULT_MAP_CHANGED then
-pcall(MapChanged)
-return true
-end
-return false
+if not index or (GetCurrentMapIndex and GetCurrentMapIndex() == index) then return nil end
+local before = {
+mapId = GetCurrentMapId and GetCurrentMapId() or nil,
+playerMap = not DoesCurrentMapMatchMapForPlayerLocation or DoesCurrentMapMatchMapForPlayerLocation() == true,
+}
+if SetMapToMapListIndex(index) == SET_MAP_RESULT_MAP_CHANGED then return before end
 end)
-return ok and changed
+return ok and from or nil
 end
-local function RestorePlayerMap()
+local function RestoreMap(before)
 pcall(function()
-if SetMapToPlayerLocation and SetMapToPlayerLocation() == SET_MAP_RESULT_MAP_CHANGED then MapChanged() end
+local back = false
+if not before.playerMap and before.mapId and SetMapToMapId then
+pcall(SetMapToMapId, before.mapId)
+back = GetCurrentMapId() == before.mapId
+end
+if not back and SetMapToPlayerLocation then SetMapToPlayerLocation() end
+if not (back or before.mapId and GetCurrentMapId and GetCurrentMapId() == before.mapId) then MapChanged() end
 end)
 end
+local pinged = false
 local function OnCyrodiilMap(fn, needMap)
 local switched = needMap ~= false and UseCyrodiilMap()
+pinged = false
 local ok, result = pcall(fn)
-if switched then RestorePlayerMap() end
+if switched then
+RestoreMap(switched)
+if pinged and WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.RefreshMapPings then pcall(WORLD_MAP_MANAGER.RefreshMapPings, WORLD_MAP_MANAGER) end
+end
 if not ok then
 Diag("Something went wrong: " .. tostring(result))
 return nil
@@ -197,27 +201,43 @@ end
 local function SetWaypoint(keepId)
 local x, y = PinPosition(keepId)
 if not (x and PingMap and MAP_PIN_TYPE_PLAYER_WAYPOINT) then return false end
-return (pcall(PingMap, MAP_PIN_TYPE_PLAYER_WAYPOINT, MAP_TYPE_LOCATION_CENTERED, x, y))
+local ok = pcall(PingMap, MAP_PIN_TYPE_PLAYER_WAYPOINT, MAP_TYPE_LOCATION_CENTERED, x, y)
+if ok then pinged = true end
+return ok
 end
 local DEFENDABLE = { Keep = true, Outpost = true }
 local FLAGGED_RESOURCE_SECONDS = 32
 local MIN_GROUP = { Outpost = 4, Keep = 8 }
 local FIGHT_RADIUS = 0.025
+local markers
+local function KillMarkers()
+if markers then return markers end
+markers = {}
+local okN, n = pcall(GetNumKillLocations)
+for i = 1, (okN and n) or 0 do
+local okP, pinType, x, y = pcall(GetKillLocationPinInfo, i)
+if okP and type(x) == "number" and type(y) == "number" then
+local m = { pinType = pinType, x = x, y = y, kills = {} }
+for alliance in pairs(ALLIANCE_NAMES) do
+local okK, k = pcall(GetNumKillLocationAllianceKills, i, alliance)
+if okK then m.kills[alliance] = k end
+end
+table.insert(markers, m)
+end
+end
+return markers
+end
 local function Supported(t, mine)
 local okS, siege = pcall(GetNumSieges, t.keepId, Context(), mine)
 if okS and type(siege) == "number" and siege > 0 then return true end
 if not (t.x and GetNumKillLocations) then return false end
 local by = {}
-local okN, n = pcall(GetNumKillLocations)
-for i = 1, (okN and n) or 0 do
-local okP, _, x, y = pcall(GetKillLocationPinInfo, i)
-if okP and type(x) == "number" and type(y) == "number" then
-local dx, dy = x - t.x, y - t.y
+for _, m in ipairs(KillMarkers()) do
+local dx, dy = m.x - t.x, m.y - t.y
 if dx * dx + dy * dy <= FIGHT_RADIUS * FIGHT_RADIUS then
 for alliance in pairs(ALLIANCE_NAMES) do
-local okK, k = pcall(GetNumKillLocationAllianceKills, i, alliance)
-by[alliance] = (by[alliance] or 0) + (okK and type(k) == "number" and k or 0)
-end
+local k = m.kills[alliance]
+by[alliance] = (by[alliance] or 0) + (type(k) == "number" and k or 0)
 end
 end
 end
@@ -227,9 +247,15 @@ return ours > 0 and ours > theirs
 end
 local KIND_SETTING = { Keep = "pickKeeps", Lumbermill = "pickResources", Farm = "pickResources", Mine = "pickResources",
 Town = "pickTowns", Outpost = "pickOutposts" }
+local attacked = {}
 local function UnderAttack(keepId)
+local known = attacked[keepId]
+if known == nil then
 local ok, underAttack = pcall(GetKeepUnderAttack, keepId, Context())
-return ok and underAttack == true
+known = ok and underAttack == true
+if keepId ~= nil then attacked[keepId] = known end
+end
+return known
 end
 local lastKeepId = nil
 local lastType = nil
@@ -359,20 +385,19 @@ end
 local justSettled
 local quickReroll
 local QUIPS = {
-{ won = true, text = "Easy.", any = true, notWho = { lazy = true, ultralazy = true, bakedpotato = true }, notSkooma = true },
-{ won = true, text = "Crown's still on.", who = { mulliss = true, selfish = true } },
-{ won = true, text = "Write that down.", who = { chris = true, selfish = true } },
-{ won = true, text = "More AP for the crown.", who = { greedy = true, selfish = true } },
+{ won = true, text = "Easy.", any = true, notWho = { lazy = true, bakedpotato = true }, notSkooma = true },
+{ won = true, text = "Write that down.", who = { chris = true } },
+{ won = true, text = "More AP for the crown.", who = { greedy = true } },
 { won = true, text = "Top 10 %s player confirmed.", who = { chris = true } },
-{ won = true, text = "Worth the short walk.", who = { ultralazy = true, bored = true } },
-{ won = true, text = "Don't get used to it.", who = { mulliss = true, lazy = true, ultralazy = true }, mean = true, wins = 3 },
-{ won = false, text = "We'll call that a scouting run.", who = { mulliss = true, confessor = true, selfish = true } },
+{ won = true, text = "Worth the short walk.", who = { bored = true } },
+{ won = true, text = "Don't get used to it.", who = { lazy = true }, mean = true, wins = 3 },
+{ won = false, text = "We'll call that a scouting run.", who = { confessor = true } },
 { won = false, text = "Tactical donation.", who = { chris = true, november = true, deano = true } },
-{ won = false, text = "Nobody saw that.", who = { november = true, lazy = true, ultralazy = true }, drunk = true },
-{ won = false, text = "That AP was ours.", who = { greedy = true, confessor = true, selfish = true } },
+{ won = false, text = "Nobody saw that.", who = { november = true, lazy = true }, drunk = true },
+{ won = false, text = "That AP was ours.", who = { greedy = true, confessor = true } },
 { won = false, text = "That's on Mulliss.", who = { chris = true } },
 { won = false, text = "This is why we don't do things.", who = { confessor = true } },
-{ won = false, text = "Didn't want it anyway.", who = { selfish = true, ultralazy = true, deano = true } },
+{ won = false, text = "Didn't want it anyway.", who = { deano = true } },
 { won = false, text = "Noted. Getting weirder.", skooma = true },
 }
 local SHORT = { [AD] = "AD", [EP] = "EP", [DC] = "DC" }
@@ -496,15 +521,6 @@ alliance = mine, at = Now(), campaignId = GetCurrentCampaignId and GetCurrentCam
 plan = plan, planKey = planKey,
 }
 end
-local function IsLocalEvent(ctx)
-return not IsLocalBattlegroundContext or IsLocalBattlegroundContext(ctx)
-end
-local flippedAt = {}
-local function OnKeepOwnerChanged(_, keepId, ctx, owningAlliance, oldOwningAlliance)
-if IsLocalEvent(ctx) and owningAlliance ~= oldOwningAlliance and ALLIANCE_NAMES[owningAlliance] then
-flippedAt[keepId] = Now()
-end
-end
 local function BestCall(night)
 local best
 for _, t in pairs(night.targets) do
@@ -581,16 +597,15 @@ local CALL_VARIANTS = {
 { text = "By decree of the crown: %s.", who = { greedy = 2 } },
 { text = "The crown demands %s. And its AP.", who = { greedy = 2 } },
 { text = "Alright, %s next. Stay on crown.", who = { chris = 2 } },
-{ text = "%s. Let's go.", who = { deano = 2, november = 2, confessor = 2, mulliss = 2 } },
-{ text = "Let's go see what %s has for us.", who = { mulliss = 2, confessor = 2, lazy = 1 } },
-{ text = "%s, I guess.", who = { lazy = 2, ultralazy = 2 }, losing = { november = 2, deano = 2 } },
-{ text = "Eh... %s?", who = { lazy = 2, ultralazy = 2, november = 1, deano = 1 }, rerolls = { november = 2, deano = 2 } },
+{ text = "%s. Let's go.", who = { deano = 2, november = 2, confessor = 2 } },
+{ text = "Let's go see what %s has for us.", who = { confessor = 2, lazy = 1 } },
+{ text = "%s, I guess.", who = { lazy = 2 }, losing = { november = 2, deano = 2 } },
+{ text = "Eh... %s?", who = { lazy = 2, november = 1, deano = 1 }, rerolls = { november = 2, deano = 2 } },
 { text = "Something's happening at %s. Finally.", who = { bored = 2, confessor = 1 } },
 { text = "Alright, %s. Bring your own siege.", who = { diil = 2, november = 1 } },
-{ text = "%s. It's right there.", who = { selfish = 2 }, close = true },
 { text = "%s or %s, whatever. %s.", who = { lazy = 1, november = 1 }, alt = true },
 }
-local PAYING_US = { confessor = true, deano = true, selfish = true, greedy = true, lazy = true, ultralazy = true }
+local PAYING_US = { confessor = true, deano = true, greedy = true, lazy = true }
 local GRENADE = "Bring out the Holy Hand Grenade of %s. We are going to leech that tick if we can. %s"
 local function Wording(pick, where, opts)
 local voice = Voice()
@@ -600,7 +615,7 @@ if key == "random" and opts and opts.variants then
 local pool = {}
 for _, v in pairs(VOICES) do table.insert(pool, pick.defend and v.defend or v.attack) end
 if not pick.defend then
-for _, v in ipairs(CALL_VARIANTS) do if not v.alt and not v.close then table.insert(pool, v.text) end end
+for _, v in ipairs(CALL_VARIANTS) do if not v.alt then table.insert(pool, v.text) end end
 end
 return string.format(pool[Random(1, #pool)], where)
 end
@@ -619,7 +634,6 @@ for _, v in ipairs(CALL_VARIANTS) do
 local weight = v.who[key] or 0
 if losing and v.losing and v.losing[key] then weight = math.max(weight, v.losing[key]) end
 if rerolls and v.rerolls and v.rerolls[key] then weight = math.max(weight, v.rerolls[key]) end
-if v.close and not (opts.seconds and opts.seconds <= 32) then weight = 0 end
 if v.alt and not (opts.alt and where == pick.name) then weight = 0 end
 if weight > 0 then
 table.insert(choices, { variant = v, weight = weight })
@@ -656,7 +670,7 @@ local mix = opts and opts.variants
 if mix and not pick.directive then
 local roll = Random(1, 4)
 if roll == 1 then body = string.format("try not to die on the way to %s this time.", where)
-elseif roll == 2 then body = string.format("%s. Even you can't mess this up. Probably.", where) end
+elseif roll == 2 then body = string.format("%s. Even you can't mess this up, right?", where) end
 end
 local key = PersonalityKey()
 if sv.lastResult == "W" then
@@ -677,12 +691,37 @@ if extra then line = line .. " " .. extra end
 for _, more in ipairs(tail or {}) do line = line .. " " .. more end
 return line
 end
-local function BuildWorld(mine, options, targets, withPositions)
+local POP_ASK_SECONDS = 30
+local bars, popAskedAt
+local function PopulationBars(alliance)
+if not bars then
+bars = {}
+local now = Now()
+if QueryCampaignSelectionData and (not popAskedAt or now - popAskedAt >= POP_ASK_SECONDS) then
+popAskedAt = now
+pcall(QueryCampaignSelectionData)
+end
+local rank = { [CAMPAIGN_POP_LOW or -1] = 1, [CAMPAIGN_POP_MEDIUM or -2] = 2, [CAMPAIGN_POP_HIGH or -3] = 3, [CAMPAIGN_POP_FULL or -4] = 4 }
+local campaignId = GetCurrentCampaignId and GetCurrentCampaignId()
+local okN, n = pcall(GetNumSelectionCampaigns)
+for i = 1, (okN and n) or 0 do
+local okI, id = pcall(GetSelectionCampaignId, i)
+if okI and id == campaignId then
+for alliance in pairs(ALLIANCE_NAMES) do
+local okP, pop = pcall(GetSelectionCampaignPopulationData, i, alliance)
+if okP then bars[alliance] = rank[pop] end
+end
+break
+end
+end
+end
+return bars[alliance]
+end
+local function BuildWorld(mine, options, targets, withPositions, positioned, spot)
 local world = {
 mine = mine, options = options, targets = targets, byId = {}, ctx = Context(),
 campaignId = (GetCurrentCampaignId and GetCurrentCampaignId()) or 0,
-Random = Random, UnderAttack = UnderAttack,
-FlippedAgo = function(keepId) return flippedAt[keepId] and Since(flippedAt[keepId]) end,
+Random = Random, UnderAttack = UnderAttack, Markers = KillMarkers, Bars = PopulationBars,
 Allied = function(alliance) return ALLIANCE_NAMES[alliance] ~= nil end,
 KindOn = function(kind) return sv[KIND_SETTING[kind] or ""] ~= false end,
 lifetime = sv.lifetime or {}, lastResult = sv.lastDecided, lastCall = sv.lastDecidedCall,
@@ -696,11 +735,8 @@ world.memory = sv.memory
 end
 for _, t in ipairs(targets) do world.byId[t.keepId] = t end
 if withPositions then
-for _, t in ipairs(targets) do t.x, t.y = PinPosition(t.keepId) end
-local ok, x, y, _, shown = pcall(GetMapPlayerPosition, "player")
-if ok and type(x) == "number" and type(y) == "number" and shown ~= false and (x ~= 0 or y ~= 0) then
-world.player = { x = x, y = y }
-end
+if not positioned then for _, t in ipairs(targets) do t.x, t.y = PinPosition(t.keepId) end end
+if spot then world.player = { x = spot.x, y = spot.y } end
 end
 return world
 end
@@ -823,15 +859,17 @@ local personality = PersonalityKey()
 local P = Personalities()
 local needMap = wantWaypoint or (P and P.NEEDS_MAP[personality]) or false
 return OnCyrodiilMap(function()
-SettleLastCall(PlayerSpot())
+attacked, markers, bars = {}, nil, nil
+local spot = PlayerSpot()
+SettleLastCall(spot)
 local mine = GetUnitAlliance("player")
-local targets = BuildTargets()
+local targets = PickTargets()
 if sv.skooma and #targets > 0 then
 for _, t in ipairs(targets) do
 local ok, owner = pcall(GetKeepAlliance, t.keepId, Context())
 if ok then t.owner = owner end
 end
-local line = Drunk(SkoomaCall(targets, mine, PlayerSpot()))
+local line = Drunk(SkoomaCall(targets, mine, spot))
 Say(line)
 return line
 end
@@ -840,13 +878,13 @@ if type(sv.memory) ~= "table" then sv.memory = {} end
 local callsLeft = sv.memory.potatoIn or Random(2, 5)
 if callsLeft <= 0 then
 sv.memory.potatoIn = Random(2, 5)
-local line = Drunk(PotatoBreak(targets, mine, PlayerSpot()))
+local line = Drunk(PotatoBreak(targets, mine, spot))
 Say(line)
 return line
 end
 sv.memory.potatoIn = callsLeft - 1
 end
-if sv.mean == true and (personality == "selfish" or personality == "deano") and (sv.streakL or 0) > 10 and Random(1, 3) == 1 then
+if sv.mean == true and personality == "deano" and (sv.streakL or 0) > 10 and Random(1, 3) == 1 then
 local line = Drunk(SKOOMA_AWAY[Random(1, #SKOOMA_AWAY)])
 Say(line)
 return line
@@ -882,12 +920,12 @@ Say("Nothing to pick with those target types switched off. Turn some back on in 
 return nil
 end
 options = switchedOn
-local travel
+local travel, positioned
 if needMap and LazyCrown.Travel then
 for _, t in ipairs(targets) do t.x, t.y = PinPosition(t.keepId) end
-local okP, px, py, _, shown = pcall(GetMapPlayerPosition, "player")
-if okP and type(px) == "number" and type(py) == "number" and shown ~= false and (px ~= 0 or py ~= 0) then
-local okT, route = pcall(LazyCrown.Travel.New, mine, Context(), { x = px, y = py }, targets, KeepName)
+positioned = true
+if spot then
+local okT, route = pcall(LazyCrown.Travel.New, mine, Context(), { x = spot.x, y = spot.y }, targets, KeepName, UnderAttack)
 if okT then travel = route end
 end
 end
@@ -923,7 +961,7 @@ end
 local plan, world
 local choose = P and P[personality]
 if choose then
-world = BuildWorld(mine, options, targets, needMap)
+world = BuildWorld(mine, options, targets, needMap, positioned, spot)
 world.everything = everything
 world.lastType = lastType
 local last = sv.lastDecidedCall
@@ -947,7 +985,7 @@ end
 local pick = plan and plan.pick
 if not pick then
 if #options == 0 then
-Say("Not enough of you here for what's left. Outposts need 4, keeps need 8.")
+Say("Not enough of you here for what's left. Outposts need 4 and keeps need 8.")
 return nil
 end
 if world and P and P.LazyPick then
@@ -1010,7 +1048,7 @@ local line = Drunk(CallLine(pick, mine, chain, extras, tail, plan and plan.quiet
 Say(line)
 local steps
 if world and P and P.PlanAhead then
-local okPlan, ahead = pcall(P.PlanAhead, personality, world, pick)
+local okPlan, ahead = pcall(P.PlanAhead, personality, world, pick, sv.showPlan == false and 2 or nil)
 if okPlan and type(ahead) == "table" and #ahead > 1 then steps = ahead end
 end
 local planIds
@@ -1018,7 +1056,7 @@ if steps then
 local names = {}
 planIds = {}
 for i = 2, #steps do table.insert(planIds, steps[i].keepId); table.insert(names, steps[i].name) end
-if sv.showPlan ~= false then Diag("Plan after this: " .. table.concat(names, ", then ") .. ".") end
+if sv.showPlan ~= false then SayPlan(table.concat(names, ", then ") .. ".") end
 end
 if not pick.unscored then OpenCall(pick, mine, planIds, personality) end
 if wantWaypoint and SetWaypoint(pick.keepId) then
@@ -1032,6 +1070,11 @@ local pendingText = nil
 local function FillChatPageBox(line)
 local edit = CHAT_MENU_GAMEPAD and CHAT_MENU_GAMEPAD.textEdit
 if not edit then return false, "Chat page text box not found" end
+local okMax, max = pcall(function() return edit:GetMaxInputChars() end)
+local room = okMax and type(max) == "number" and max > 0 and max - #Tag() or nil
+if room and room > 0 and #line > room then
+line = line:sub(1, room + 1):match("^(.*[%.!%?])%s") or line:sub(1, room):gsub("[\192-\255][\128-\191]*$", "")
+end
 local ok, err = pcall(function()
 edit:SetText("")
 edit:InsertText(Tag())
@@ -1059,10 +1102,24 @@ elseif IsSendBlocked() then
 Diag(Buttons("Send is blocked this session. Reload UI, open Text Chat once, then pick again."))
 end
 end
-local function OnChatPageStateChange(oldState, newState)
+local chatHooked = false
+local OnChatPageStateChange
+local function HookChatPage(on)
+if chatHooked == on then return end
+local ok, err = pcall(function()
+local chatPage = SCENE_MANAGER and SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(CHAT_MENU_SCENE)
+if not chatPage then return end
+if on then chatPage:RegisterCallback("StateChange", OnChatPageStateChange)
+else chatPage:UnregisterCallback("StateChange", OnChatPageStateChange) end
+chatHooked = on
+end)
+if not ok then pcall(Diag, "Chat page hookup failed: " .. tostring(err)) end
+end
+OnChatPageStateChange = function(oldState, newState)
 if newState == SCENE_SHOWN and pendingText then
 local text = pendingText
 pendingText = nil
+HookChatPage(false)
 ReportFill(FillChatPageBox(text))
 end
 end
@@ -1081,9 +1138,11 @@ return
 end
 pendingText = line
 FillChatPageBox(line)
+HookChatPage(true)
 local ok, err = pcall(SCENE_MANAGER.Show, SCENE_MANAGER, CHAT_MENU_SCENE)
 if not ok then
 pendingText = nil
+HookChatPage(false)
 Diag("Could not open the Chat page: " .. tostring(err))
 return
 end
@@ -1092,6 +1151,7 @@ if pendingText ~= nil then
 pendingText = nil
 Diag("Chat page did not open within 3 seconds.")
 end
+HookChatPage(false)
 end, 3000)
 end
 local function PickPrivately()
@@ -1238,7 +1298,7 @@ if not ok then Diag("Scan step failed: " .. tostring(err)) end
 end
 end
 local HOW_TO_USE = "In Cyrodiil, pick from the addon quickslot wheel, or type /lazycrown in Text Chat. Lazy Crown randomly picks a keep, lumbermill, farm, mine, town or outpost your alliance doesn't hold, or one of your keeps or outposts that is under attack. Pick who's wearing the crown under Personalities. Functions: Private Command (crown gems): just for you, where to go shows in your chat window only. Crown Command (gold crown): your call-out, it also goes in the Text Chat box on the channel you last used. Note: If you have not opened chat yet, Lazy Crown will remind you to do this instead to prevent a UI error. Make sure you choose the right chat channel! Press X to send. Press A to edit or delete."
-local WHEEL_SETUP = 'Hit start and go to the addons menu. Open LibRadialMenu settings. Ensure the wheel location is set to a value between 1 and 6. Pick a slot, choose Private Command. Pick more slots for Crown Command, Scoreboard, Reset Scoreboard, Change Personality and Group Check if you want them. Hit start to close the menu. Open your quickslot wheel by pressing up on the d-pad. Browse to Addon Entries using LT or RT, then pick! See "How to use" if this is your first time.'
+local WHEEL_SETUP = 'Hit start and go to the addons menu. Open LibRadialMenu settings. Ensure the wheel location is set to a value between 1 and 6. Then open Lazy Crown > Wheel slots and press Put on (or Move on each one). Skip LibRadialMenu\'s Assign Slots because it breaks whispers, group invites, Enter Now and respawning until you Reload UI. Hit start to close the menu. Open your quickslot wheel by pressing up on the d-pad. Browse to Addon Entries using LT or RT, then pick! See "How to use" if this is your first time.'
 local SCOREBOARD_HELP = "Every call is a W or an L, checked when you make your next call. Taking: W if it's yours by then, otherwise L. Defending: W if it's still yours and the attack is over, L if it fell. Picking again within 90 seconds, or while a defense is still going, doesn't count against the last call, unless it was a defense that already fell. A call you're nowhere near by your next call doesn't count either, W or L. Following the hammer doesn't count. The scoreboard keeps this run's record until you reset it, even if you change personalities. Scoreboard on the wheel places it in the Text Chat box."
 local CHAT_COMMANDS = "Where typing in chat is available: /lazycrown picks a target for your chat window only. /lazycrown share is Crown Command: it also places the call in the Text Chat box. /lazycrown scoreboard shows the scoreboard, /lazycrown scoreboard share places it in the Text Chat box, and /lazycrown scoreboard reset resets it. /lazycrown personality puts the next personality on the crown, or /lazycrown personality chris (or any name) picks one. /lazycrown group shows your group size, roles and big ultimates. /lazycrown list shows every numbered target. /lazycrown scan prints what the game reports, for testing."
 local function WearCrown(key)
@@ -1247,26 +1307,6 @@ if not (P and P.NAMES[key]) then return end
 sv.personality = key
 Say(string.format("%s is wearing the crown now.", P.NAMES[key]))
 RefreshSettings()
-end
-local SLOT_WARNING = "Reload UI before you queue for Cyrodiil, or Enter Now can throw a UI error."
-local function WatchSlotAssignments()
-local dialog = ESO_Dialogs and ESO_Dialogs["LibProfileAssignDialogue"]
-local assign = dialog and dialog.buttons and dialog.buttons[1]
-if not (assign and type(assign.callback) == "function") then return end
-local original, warned = assign.callback, false
-assign.callback = function(...)
-local result = original(...)
-if not warned and not InCyrodiil() then
-warned = true
-Start()
-Diag(SLOT_WARNING)
-pcall(function()
-local alert = ZO_AlertNoSuppression or ZO_Alert
-if alert then alert(UI_ALERT_CATEGORY_ALERT, nil, Tag() .. SLOT_WARNING) end
-end)
-end
-return result
-end
 end
 local function GroupCheck()
 LoadTheRest()
@@ -1280,7 +1320,7 @@ end
 if t.size > 1 and not G.Sharing() then
 Diag("Only your own ultimates are counted. Install LibGroupCombatStats to see everyone's.")
 elseif t.sharing < t.size then
-Diag(string.format("Ultimates counted for %d of %d. The rest need LibGroupCombatStats with Lazy Crown, Hodor Reflexes or Artaeum Group Tool.",
+Diag(string.format("Ultimates counted for %d of %d. The rest need LibGroupCombatStats with Hodor Reflexes or Artaeum Group Tool.",
 t.sharing, t.size))
 end
 end
@@ -1293,12 +1333,59 @@ if key == current then return WearCrown(order[i % #order + 1]) end
 end
 WearCrown(order[1])
 end
-local function AddSettingsPanel()
+local WHEEL_ORDER = { "1share", "2persona", "3record", "4reset", "5group", "6pick" }
+local WHEEL_ROWS = { { "2persona", "Change Personality" }, { "1share", "Crown Command" }, { "5group", "Group Check" },
+{ "6pick", "Private Command" }, { "4reset", "Reset Scoreboard" }, { "3record", "Scoreboard" } }
+local function Alert(text)
+pcall(function()
+local alert = ZO_AlertNoSuppression or ZO_Alert
+if alert then alert(UI_ALERT_CATEGORY_ALERT, nil, "[Lazy Crown] " .. text) end
+end)
+end
+local function WheelSlots()
+local lib = LibRadialMenu
+local slots = lib and lib.libRadialWheelEntries
+if type(slots) ~= "table" then return nil end
+return slots, (type(lib.vars) == "table" and tonumber(lib.vars.numSlots)) or #slots
+end
+local function SlotOf(slots, n, id)
+for i = 1, n do
+local s = slots[i]
+if type(s) == "table" and s.addon == ADDON_NAME and s.entry == id then return i end
+end
+end
+local function FreeSlot(slots, n, after)
+for i = (after or 0) + 1, n do
+local s = slots[i]
+if s == nil or (type(s) == "table" and s.addon == nil and s.entry == nil) then return i end
+end
+end
+local function MoveOnWheel(id)
+local slots, n = WheelSlots()
+if not slots then Alert("LibRadialMenu's wheel isn't loaded."); return end
+local at = SlotOf(slots, n, id)
+local to = FreeSlot(slots, n, at)
+if not (at or to) then Alert("No free wheel slots. Take something off first."); return end
+if at then slots[at] = {} end
+if to then slots[to] = { entry = id, addon = ADDON_NAME } end
+RefreshSettings()
+end
+local function AllOnWheel()
+local slots, n = WheelSlots()
+if not slots then Alert("LibRadialMenu's wheel isn't loaded."); return end
+local noRoom = 0
+for _, id in ipairs(WHEEL_ORDER) do
+if not SlotOf(slots, n, id) then
+local to = FreeSlot(slots, n)
+if to then slots[to] = { entry = id, addon = ADDON_NAME } else noRoom = noRoom + 1 end
+end
+end
+if noRoom > 0 then Alert(string.format("No room for %d of them. Take something off the wheel first.", noRoom)) end
+RefreshSettings()
+end
+local function SettingsRows()
 local lib = LibHarvensAddonSettings
-if not (lib and lib.AddAddon and lib.ST_LABEL and lib.ST_SECTION) then return end
-local panel = lib:AddAddon("Lazy Crown")
-panel.version = VERSION
-panel.author = AUTHOR
+if not (lib and lib.ST_LABEL and lib.ST_SECTION) then return {} end
 local LABEL, SECTION, BUTTON, CHECKBOX = lib.ST_LABEL, lib.ST_SECTION, lib.ST_BUTTON or 6, lib.ST_CHECKBOX or 1
 local rows = {
 { type = SECTION, label = "General" },
@@ -1306,6 +1393,23 @@ local rows = {
 { type = LABEL, label = "Wheel setup", tooltip = function() return Buttons(WHEEL_SETUP) end },
 { type = LABEL, label = "Chat commands", tooltip = CHAT_COMMANDS },
 }
+table.insert(rows, { type = SECTION, label = "Wheel slots" })
+table.insert(rows, { type = BUTTON, label = "All of them", buttonText = "Put on",
+tooltip = "Puts every Lazy Crown entry on a free slot of the Addon Entries wheel. Use this instead of LibRadialMenu's Assign Slots. That one breaks whispers, group invites, Enter Now and respawning until you Reload UI. Wheel Location in LibRadialMenu has to be above 0.",
+clickHandler = AllOnWheel })
+for _, entry in ipairs(WHEEL_ROWS) do
+local id, name = entry[1], entry[2]
+table.insert(rows, {
+type = BUTTON, buttonText = "Move",
+label = function()
+local slots, n = WheelSlots()
+local at = slots and SlotOf(slots, n, id)
+return name .. (at and string.format(" (slot %d)", at) or " (off the wheel)")
+end,
+tooltip = string.format("Moves %s to the next free slot on the Addon Entries wheel. After the last one it comes off.", name),
+clickHandler = function() MoveOnWheel(id) end,
+})
+end
 table.insert(rows, { type = SECTION, label = "Personalities" })
 for _, key in ipairs(CROWN_ORDER) do
 table.insert(rows, {
@@ -1320,6 +1424,10 @@ clickHandler = function() WearCrown(key) end,
 end
 for _, row in ipairs({
 { type = SECTION, label = "Options" },
+{ type = CHECKBOX, label = "Continuous Attack",
+tooltip = "Any crown grabs a resource on the way when your Continuous Attack is running low.",
+getFunction = function() return sv.continuousAttack ~= false end,
+setFunction = function(on) sv.continuousAttack = on == true end, default = true },
 { type = CHECKBOX, label = "Set a waypoint",
 tooltip = "Puts a waypoint on your map for every call.",
 getFunction = function() return sv.waypoint == true end,
@@ -1329,33 +1437,18 @@ tooltip = "After each call, your chat window shows the next few calls the crown 
 getFunction = function() return sv.showPlan ~= false end,
 setFunction = function(on) sv.showPlan = on == true end, default = true },
 { type = CHECKBOX, label = "Show travel times",
-tooltip = "Adds about how long it takes to get there to the call: 'Ride north, about 45 seconds.'",
+tooltip = "Adds about how long it takes to get there, like 'Ride north, about 45 seconds.'",
 getFunction = function() return sv.showEta == true end,
 setFunction = function(on) sv.showEta = on == true end, default = false },
 { type = CHECKBOX, label = "Size up the group",
-tooltip = "Every crown counts who's here with you: no outposts with fewer than 4 of you, no keeps with fewer than 8. A keep or outpost with our siege already on it, or a fight we're winning there, is still fair game: our people are there.",
+tooltip = "No outposts under 4 people and no keeps under 8. Still calls them if our siege is already up or we're winning a fight there.",
 getFunction = function() return sv.groupSize == true end,
 setFunction = function(on) sv.groupSize = on == true end, default = false },
-{ type = CHECKBOX, label = "Continuous Attack",
-tooltip = "Chris, Confessor and Deano grab a resource on the way when your Continuous Attack buff is running low.",
-getFunction = function() return sv.continuousAttack ~= false end,
-setFunction = function(on) sv.continuousAttack = on == true end, default = true },
-{ type = CHECKBOX, label = "Mean",
-tooltip = "Same calls, worse attitude.",
-getFunction = function() return sv.mean == true end,
-setFunction = function(on) sv.mean = on == true end, default = false },
-{ type = CHECKBOX, label = "Drunk",
-tooltip = "Same calls, a few drinks in. *hic*",
-getFunction = function() return sv.drunk == true end,
-setFunction = function(on) sv.drunk = on == true end, default = false },
-{ type = CHECKBOX, label = "Skooma",
-tooltip = "Really out of it. Calls anything at random, even what we already have (that's a W, then a break for more skooma). Sometimes sends you across the map, tells everyone to go away, or won't call at all (that's an L). Says weird things.",
-getFunction = function() return sv.skooma == true end,
-setFunction = function(on) sv.skooma = on == true end, default = false },
+{ type = SECTION, label = "Objectives" },
 }) do table.insert(rows, row) end
 for _, kind in ipairs({
-{ "Keeps", "pickKeeps", "keeps" }, { "Resources", "pickResources", "lumbermills, farms and mines" },
-{ "Towns", "pickTowns", "towns" }, { "Outposts", "pickOutposts", "outposts" },
+{ "Keeps", "pickKeeps", "keeps" }, { "Outposts", "pickOutposts", "outposts" },
+{ "Resources", "pickResources", "lumbermills, farms and mines" }, { "Towns", "pickTowns", "towns" },
 }) do
 local key = kind[2]
 table.insert(rows, { type = CHECKBOX, label = kind[1],
@@ -1363,6 +1456,21 @@ tooltip = string.format("Lets the crown pick %s.", kind[3]),
 getFunction = function() return sv[key] ~= false end,
 setFunction = function(on) sv[key] = on == true end, default = true })
 end
+for _, row in ipairs({
+{ type = SECTION, label = "Tone" },
+{ type = CHECKBOX, label = "Drunk",
+tooltip = "Same calls, a few drinks in. *hic*",
+getFunction = function() return sv.drunk == true end,
+setFunction = function(on) sv.drunk = on == true end, default = false },
+{ type = CHECKBOX, label = "Mean",
+tooltip = "Same calls, worse attitude.",
+getFunction = function() return sv.mean == true end,
+setFunction = function(on) sv.mean = on == true end, default = false },
+{ type = CHECKBOX, label = "Skooma",
+tooltip = "Really out of it. Calls anything at random, even what we already have (that's a W, then a break for more skooma). Sometimes sends you across the map, tells everyone to go away, or won't call at all (that's an L). Says weird things.",
+getFunction = function() return sv.skooma == true end,
+setFunction = function(on) sv.skooma = on == true end, default = false },
+}) do table.insert(rows, row) end
 for _, row in ipairs({
 { type = SECTION, label = "Scoreboard" },
 { type = LABEL, label = function() return string.format("Scoreboard (%s): %s", PersonalityName(), Tally(Night())) end,
@@ -1376,7 +1484,7 @@ for _, field in ipairs({ "label", "tooltip", "getFunction", "setFunction", "clic
 if type(row[field]) == "function" then row[field] = Used(row[field]) end
 end
 end
-panel:AddSettings(rows)
+return rows
 end
 local InCyrodiilCommand = CyrodiilOnly(function(word, args)
 if word == "scoreboard" then
@@ -1403,78 +1511,30 @@ if found then WearCrown(found) else CyclePersonality() end
 elseif word == "group" then GroupCheck()
 else InCyrodiilCommand(word, args) end
 end
-local started, panelError = false, nil
+local started = false
 Start = function()
 if started then return end
-started = true
-if panelError then pcall(Diag, "Settings panel failed at load: " .. panelError) end
 pcall(function()
 sv = ZO_SavedVars:NewAccountWide("LazyCrownSV", 1, nil, { lifetime = {}, personality = "lazy", waypoint = false, mean = false,
 pickKeeps = true, pickResources = true, pickTowns = true, pickOutposts = true, streakL = 0 })
 sv.lifetime = sv.lifetime or {}
 end)
-pcall(function()
-EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_KEEP_ALLIANCE_OWNER_CHANGED, OnKeepOwnerChanged)
-end)
 LoadTheRest()
 pcall(function() if LazyCrown.Group then LazyCrown.Group.Init() end end)
-local ok, err = pcall(function()
-local chatPage = SCENE_MANAGER and SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(CHAT_MENU_SCENE)
-if chatPage then
-chatPage:RegisterCallback("StateChange", OnChatPageStateChange)
+started = true
 end
-end)
-if not ok then
-pcall(Diag, "Chat page hookup failed: " .. tostring(err))
-end
-end
-SLASH_COMMANDS["/lazycrown"] = Used(SlashCommand)
-local SHARE_HELP = "Too lazy to lead? Let the crown decide. Places the call in the Text Chat box. Press X to send."
-local SCOREBOARD_SHARE_HELP = "Places the scoreboard in the Text Chat box. Press X to send."
-pcall(function()
-LibRadialMenu:RegisterAddon(ADDON_NAME, "Lazy Crown")
-LibRadialMenu:RegisterEntry(ADDON_NAME, "Crown Command", "1share", ICON_SHARE_FALLBACK, Used(PickAndShare), SHARE_HELP)
-LibRadialMenu:RegisterEntry(ADDON_NAME, "Change Personality", "2persona", ICON_PERSONALITY, Used(CyclePersonality),
-"Puts the next personality on the crown.")
-LibRadialMenu:RegisterEntry(ADDON_NAME, "Scoreboard", "3record", ICON_SCOREBOARD, Used(CyrodiilOnly(ShareScoreboard)), SCOREBOARD_SHARE_HELP)
-LibRadialMenu:RegisterEntry(ADDON_NAME, "Reset Scoreboard", "4reset", ICON_RESET, Used(CyrodiilOnly(ResetScoreboard)),
-"Clears the scoreboard.")
-LibRadialMenu:RegisterEntry(ADDON_NAME, "Group Check", "5group", ICON_GROUP, Used(GroupCheck),
-"Your group size, roles, and how many have Barrier, a necro rez or Negate. Shows in your chat window.")
-LibRadialMenu:RegisterEntry(ADDON_NAME, "Private Command", "6pick", ICON_PICK_FALLBACK, Used(PickPrivately),
-"Just for you, no call-outs. Tells you where to go in your chat window.")
-end)
-local function AskWhenShown(entryId, fields)
-local mine = LibRadialMenu.registeredEntries and LibRadialMenu.registeredEntries[ADDON_NAME]
-local entry = mine and mine[entryId]
-if type(entry) ~= "table" or getmetatable(entry) then return end
-for field in pairs(fields) do entry[field] = nil end
-setmetatable(entry, { __index = function(t, field)
-local ask = fields[field]
-if not ask then return nil end
-local value = ask()
-rawset(t, field, value)
-return value
-end })
-end
-local function CurrencyIcon(currency, fallback)
-if not (currency and GetCurrencyGamepadIcon) then return fallback end
-local ok, path = pcall(GetCurrencyGamepadIcon, currency)
-return (ok and type(path) == "string" and path ~= "") and path or fallback
-end
-pcall(AskWhenShown, "1share", {
-icon = function() return CurrencyIcon(CURT_CROWNS, ICON_SHARE_FALLBACK) end,
-description = function() return Buttons(SHARE_HELP) end,
-})
-pcall(AskWhenShown, "3record", { description = function() return Buttons(SCOREBOARD_SHARE_HELP) end })
-pcall(AskWhenShown, "6pick", { icon = function() return CurrencyIcon(CURT_CROWN_GEMS, ICON_PICK_FALLBACK) end })
-pcall(WatchSlotAssignments)
-local okPanel, errPanel = pcall(AddSettingsPanel)
-if not okPanel then panelError = tostring(errPanel) end
+LazyCrown = LazyCrown or {}
+LazyCrown.core = {
+PickAndShare = Used(PickAndShare), PickPrivately = Used(PickPrivately), CyclePersonality = Used(CyclePersonality),
+ShareScoreboard = Used(CyrodiilOnly(ShareScoreboard)), ResetScoreboard = Used(CyrodiilOnly(ResetScoreboard)),
+GroupCheck = Used(GroupCheck), SlashCommand = Used(SlashCommand), SettingsRows = SettingsRows,
+}
 LazyCrown = LazyCrown or {}
 LazyCrown.BuildTargets, LazyCrown.PickTarget, LazyCrown.PickAndShare, LazyCrown.Scan = BuildTargets, PickTarget, PickAndShare, Scan
 LazyCrown.Start, LazyCrown.CROWN_ORDER = Start, CROWN_ORDER
 LazyCrown.SummaryLine, LazyCrown.Record, LazyCrown.CallLine, LazyCrown.Buttons = SummaryLine, function() return sv end, CallLine, Buttons
 LazyCrown.OneOf, LazyCrown.TypeOf = OneOf, TypeOf
 LazyCrown.ForgetLastCall = function() lastKeepId, lastType = nil, nil end
+LazyCrown.ForgetTargets = function() sessionTargets = nil end
 LazyCrown.Quip = Quip
+]=]})

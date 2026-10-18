@@ -7,7 +7,7 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-local ADDON_NAME = "CharacterBoundItemHider"
+local CBIH = { name = "CharacterBoundItemHider" }
 
 local function IsCharacterBound(bagId, slotIndex)
 	if not bagId or not slotIndex then return false end
@@ -25,9 +25,9 @@ end
 local function WrapLayout(fragment)
 	if type(fragment) ~= "table" or type(fragment.layoutData) ~= "table" then return false end
 	local layout = fragment.layoutData
-	if layout[ADDON_NAME] then return true end
+	if layout[CBIH.name] then return true end
 	local previous = layout.additionalFilter
-	layout[ADDON_NAME] = true
+	layout[CBIH.name] = true
 	layout.additionalFilter = function(slot)
 		if previous and not previous(slot) then return false end
 		return not SlotIsCharacterBound(slot)
@@ -48,9 +48,9 @@ end
 
 local function WrapGamepadList(list)
 	if type(list) ~= "table" or type(list.SetItemFilterFunction) ~= "function" then return false end
-	if list[ADDON_NAME] then return true end
+	if list[CBIH.name] then return true end
 	local previous = list.itemFilterFunction
-	list[ADDON_NAME] = true
+	list[CBIH.name] = true
 	list:SetItemFilterFunction(function(slot)
 		if previous and not previous(slot) then return false end
 		return not SlotIsCharacterBound(slot)
@@ -61,24 +61,17 @@ end
 local function ApplyToGamepadBanking()
 	local banking = GAMEPAD_BANKING
 	if type(banking) ~= "table" then return false end
-	if not banking[ADDON_NAME] then
-		banking[ADDON_NAME] = true
+	if not banking[CBIH.name] then
+		banking[CBIH.name] = true
 		ZO_PostHook(banking, "SetDepositList", function(_, list) WrapGamepadList(list) end)
 	end
 	if banking.depositList then WrapGamepadList(banking.depositList) end
 	return true
 end
 
-EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED, function(_, name)
-	if name ~= ADDON_NAME then return end
-	EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
+EVENT_MANAGER:RegisterForEvent(CBIH.name, EVENT_ADD_ON_LOADED, function(_, name)
+	if name ~= CBIH.name then return end
+	EVENT_MANAGER:UnregisterForEvent(CBIH.name, EVENT_ADD_ON_LOADED)
 	ApplyToStorageLayouts()
 	ApplyToGamepadBanking()
 end)
-
-CharacterBoundItemHider = {
-	IsCharacterBound = IsCharacterBound,
-	SlotIsCharacterBound = SlotIsCharacterBound,
-	ApplyToStorageLayouts = ApplyToStorageLayouts,
-	ApplyToGamepadBanking = ApplyToGamepadBanking,
-}

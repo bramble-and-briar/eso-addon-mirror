@@ -29,7 +29,7 @@ local CATEGORY_LABELS = {
     [GREEN] = "ROI 25%+, reliable TTC price",
     [BLUE] = "3x+ below TTC, 5k+ profit",
     [PURPLE] = "5x+ below TTC, 10k+ profit",
-    [GOLD] = "Tracked, ready to buy",
+    [GOLD] = "Tracked or Buy List, ready to buy",
 }
 
 local function IsReliable(info)
@@ -40,14 +40,19 @@ local function IsReliable(info)
     return sales >= MIN_RELIABLE_SALES and sales / listings >= minShare
 end
 
-local function IsTrackedBuy(itemLink, unitPrice, stackCount)
-    if not TP.EvaluatePurchase or not TP.IsTrackedItem(itemLink) then return false end
-    return TP.EvaluatePurchase(itemLink, unitPrice, stackCount) >= TP.PURCHASE_SCORE_BUY
+-- The row text of the yellow state, or nil. An item the Buy List still needs is judged
+-- by the player's own price and shows BUY; a portfolio item judged by the model, DEAL.
+local function GetYellowLabel(itemLink, unitPrice, stackCount)
+    if not TP.EvaluatePurchase then return nil end
+    local isBuyList = TP.IsBuyListActive(TP.GetItemKey(itemLink))
+    if not isBuyList and not TP.IsTrackedItem(itemLink) then return nil end
+    if TP.EvaluatePurchase(itemLink, unitPrice, stackCount) < TP.PURCHASE_SCORE_BUY then return nil end
+    return isBuyList and "BUY" or "DEAL"
 end
 
 -- Same contract as the simple evaluation: category and the discount from the TTC
--- suggested price in percent (nil for the yellow state), or nil category when
--- there is nothing to compare with.
+-- suggested price in percent, or nil category when there is nothing to compare with.
+-- The yellow state has no percent but a row text instead.
 local function Evaluate(itemData)
     local itemLink = itemData and itemData.itemLink
     if not itemLink or itemLink == "" then return nil end
@@ -62,8 +67,8 @@ local function Evaluate(itemData)
     if suggested and suggested <= 0 then suggested = nil end
     local percent = suggested and (suggested - unitPrice) / suggested * 100
 
-    -- No percent: the row shows BUY for the yellow state.
-    if IsTrackedBuy(itemLink, unitPrice, stackCount) then return GOLD, nil end
+    local yellowLabel = GetYellowLabel(itemLink, unitPrice, stackCount)
+    if yellowLabel then return GOLD, nil, yellowLabel end
     if not suggested then return nil end
 
     local netUnit = suggested * TP.NET_SALE_RATE

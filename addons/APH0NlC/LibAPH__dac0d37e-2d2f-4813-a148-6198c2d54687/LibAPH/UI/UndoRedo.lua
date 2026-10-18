@@ -15,7 +15,7 @@ local DEFAULT_COALESCE_MS = 700
 local BIG_CHANGE_CHARS = 8
 
 local function NewState(text, cursor)
-	return { undo = {}, redo = {}, text = text, cursor = cursor, time = 0, direction = 0 }
+	return { undo = {}, text = text, cursor = cursor, time = 0, direction = 0 }
 end
 
 function LibAPH.EnableUndoRedo(edit, opts)
@@ -45,7 +45,6 @@ function LibAPH.EnableUndoRedo(edit, opts)
 			or math.abs(delta) > BIG_CHANGE_CHARS
 			or direction ~= state.direction
 		if starts_new_step then Push(state.undo, { text = state.text, cursor = state.cursor }) end
-		state.redo = {}
 		state.text, state.cursor = text, edit:GetCursorPosition()
 		state.time, state.direction = now, direction
 	end
@@ -63,21 +62,11 @@ function LibAPH.EnableUndoRedo(edit, opts)
 	function history:Undo()
 		local entry = table.remove(state.undo)
 		if not entry then return false end
-		Push(state.redo, { text = state.text, cursor = state.cursor })
-		Apply(entry)
-		return true
-	end
-
-	function history:Redo()
-		local entry = table.remove(state.redo)
-		if not entry then return false end
-		Push(state.undo, { text = state.text, cursor = state.cursor })
 		Apply(entry)
 		return true
 	end
 
 	function history:CanUndo() return #state.undo > 0 end
-	function history:CanRedo() return #state.redo > 0 end
 
 	function history:RunSilently(change)
 		applying = true
@@ -91,7 +80,7 @@ function LibAPH.EnableUndoRedo(edit, opts)
 		state = NewState(edit:GetText(), edit:GetCursorPosition())
 	end
 
-	function history:GetCounts() return #state.undo, #state.redo end
+	function history:GetCounts() return #state.undo end
 
 	function history:TakeState()
 		local taken = state

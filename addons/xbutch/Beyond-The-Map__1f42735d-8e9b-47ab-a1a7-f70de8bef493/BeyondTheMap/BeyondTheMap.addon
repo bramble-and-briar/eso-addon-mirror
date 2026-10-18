@@ -1,0 +1,9 @@
+## Title: Beyond the Map
+## Description: Shows undiscovered points of interest.
+## Author: xbutch
+## Version: 1.51.0
+## AddOnVersion: 15100
+## APIVersion: 101051
+## IsLibrary: false
+
+BeyondTheMap.lua

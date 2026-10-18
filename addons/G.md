@@ -56,7 +56,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Go Fast Don't Die](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Drezzek/Go-Fast-Don-t-Die__3332) | Drezzek | PC / Mac | 1.4 |
 | [Go Home](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/static_recharge/Go-Home__1604) | static_recharge | PC / Mac | 8.0.0 |
 | [GoA_DolgubonsLazyWritCreatorUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_DolgubonsLazyWritCreatorUAPatch__4703) | Iriya_Altmer | PC / Mac | 1.7 |
-| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 46.99.69 |
+| [GoA_ESO_UA](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_ESO_UA__4702) | Iriya_Altmer | PC / Mac | 46.99.77 |
 | [GoA_FCOLockpickerUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_FCOLockpickerUAPatch__4733) | Iriya_Altmer | PC / Mac | 1.0 |
 | [GoA_HarvestMapUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_HarvestMapUAPatch__4707) | Iriya_Altmer | PC / Mac | 1.1 |
 | [GoA_TamrielTradeCentreUAPatch](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Iriya_Altmer/GoA_TamrielTradeCentreUAPatch__4705) | Iriya_Altmer | PC / Mac | 1.2 |
@@ -168,6 +168,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Guild Listing](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/lahouari/Guild-Listing__3485) | lahouari | PC / Mac | 1.0.1 |
 | [Guild Market Scanner DEV](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/MajesticMinxi/Guild-Market-Scanner-DEV__f419b0e2-e53c-4875-bcf2-5bf0e372218b) | MajesticMinxi | Console | — |
 | [Guild Member Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/uberswe/Guild-Member-Manager__3386) | uberswe | PC / Mac | 1.1 |
+| [Guild Name Ticker](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/clubwratt/Guild-Name-Ticker__cfca5ccd-3799-4e8b-9607-99f4f175a2df) | clubwratt | Console | — |
 | [Guild Notificator](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/Guild-Notificator__780) | Ayantir | PC / Mac | 13 |
 | [Guild Notificator - Updated](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Llether/Guild-Notificator---Updated__3614) | Llether | PC / Mac | 1.0.1 |
 | [Guild Order](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/andy.s/Guild-Order__3965) | andy.s | PC / Mac | 0.1 |

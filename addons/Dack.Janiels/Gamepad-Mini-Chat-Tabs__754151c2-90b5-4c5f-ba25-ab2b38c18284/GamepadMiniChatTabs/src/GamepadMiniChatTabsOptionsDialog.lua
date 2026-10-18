@@ -13,7 +13,6 @@ local GamepadMiniChatTabsOptionsManager = GamepadMiniChatTabsBaseModule:Subclass
 --- Channels to skip when building filters (handled separately)
 local SKIP_CHANNELS =
 {
-    [CHAT_CATEGORY_SYSTEM] = true;
     [CHAT_CATEGORY_GUILD_1] = true;
     [CHAT_CATEGORY_GUILD_2] = true;
     [CHAT_CATEGORY_GUILD_3] = true;
@@ -38,7 +37,7 @@ local COMBINED_CHANNELS =
 --- Channel ordering weights for display order
 local CHANNEL_ORDERING_WEIGHT =
 {
-    -- [CHAT_CATEGORY_SYSTEM] = 5,
+    [CHAT_CATEGORY_SYSTEM] = 5;
     [CHAT_CATEGORY_SAY] = 10;
     [CHAT_CATEGORY_YELL] = 20;
     [CHAT_CATEGORY_WHISPER_INCOMING] = 30;
@@ -93,18 +92,6 @@ local function BuildChannelCategories()
         end;
     end;
 
-    -- if not entryData[CHAT_CATEGORY_SYSTEM] then
-    --     local systemName = GetString("SI_CHATCHANNELCATEGORIES", CHAT_CATEGORY_SYSTEM)
-    --     if systemName and systemName ~= "" then
-    --         entryData[CHAT_CATEGORY_SYSTEM] =
-    --         {
-    --             category = CHAT_CATEGORY_SYSTEM,
-    --             nameString = function () return GetString("SI_CHATCHANNELCATEGORIES", CHAT_CATEGORY_SYSTEM) end,
-    --             channels = { CHAT_CATEGORY_SYSTEM },
-    --         }
-    --     end
-    -- end
-
     local sortedEntries = {};
     for _, entry in pairs(entryData) do
         sortedEntries[#sortedEntries + 1] = entry;
@@ -122,6 +109,17 @@ local function BuildChannelCategories()
     end);
 
     return sortedEntries;
+end;
+
+--- Resolves a channel entry name to display text
+--- @param channelInfo table Channel category entry from BuildChannelCategories
+--- @return string
+local function GetChannelCategoryLabel(channelInfo)
+    if type(channelInfo.nameString) == "function" then
+        return channelInfo.nameString();
+    end;
+
+    return GetString(channelInfo.nameString);
 end;
 
 --- Creates a new options manager instance
@@ -170,6 +168,54 @@ function GamepadMiniChatTabsOptionsManager:Hide()
         self.chatContainer = nil;
         self.chatTabIndex = nil;
     end;
+end;
+
+--- Returns the channel filters that can be toggled for a chat tab
+--- @return table[] Array of { label: string, channels: integer[] }
+function GamepadMiniChatTabsOptionsManager:GetTabChannelFilters()
+    local channelFilters = {};
+    local channelCategories = BuildChannelCategories();
+
+    for _, channelInfo in ipairs(channelCategories) do
+        local channels = channelInfo.channels or { channelInfo.category };
+        local channelLabel = GetChannelCategoryLabel(channelInfo);
+        if channelLabel and channelLabel ~= "" then
+            channelFilters[#channelFilters + 1] =
+            {
+                label = channelLabel;
+                channels = channels;
+            };
+        end;
+    end;
+
+    local maxGuild = CHAT_CATEGORY_HEADER_GUILDS + MAX_GUILDS - 1;
+    for guildCategoryIndex = CHAT_CATEGORY_HEADER_GUILDS, maxGuild do
+        local guildIndex = guildCategoryIndex - CHAT_CATEGORY_HEADER_GUILDS + 1;
+        local guildId = GetGuildId(guildIndex);
+        local guildName = GetGuildName(guildId);
+
+        if guildName ~= "" then
+            channelFilters[#channelFilters + 1] =
+            {
+                label = guildName;
+                channels = { guildCategoryIndex };
+            };
+
+            if DoesPlayerHaveGuildPermission(guildId, GUILD_PERMISSION_OFFICER_CHAT_WRITE) then
+                local officerCategory = guildCategoryIndex + MAX_GUILDS;
+                local officerLabel = GetString("SI_CHATCHANNELCATEGORIES", officerCategory);
+                if officerLabel and officerLabel ~= "" then
+                    channelFilters[#channelFilters + 1] =
+                    {
+                        label = zo_strformat("<<1>> - <<2>>", guildName, officerLabel);
+                        channels = { officerCategory };
+                    };
+                end;
+            end;
+        end;
+    end;
+
+    return channelFilters;
 end;
 
 --- Builds the filter list for the dialog

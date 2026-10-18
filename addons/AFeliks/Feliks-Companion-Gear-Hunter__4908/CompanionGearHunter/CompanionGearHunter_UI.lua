@@ -1,11 +1,9 @@
 CompanionGearHunter = CompanionGearHunter or {}
 local CompanionGearHunter = CompanionGearHunter -- local reference, faster than repeated _G lookups
 
--- Display name for the keybind action declared in Bindings.xml (action
--- name COMPANIONGEARHUNTER_TOGGLE). Must run before the Keybindings menu
--- is ever opened, so top-level code here is fine - same pattern
--- CompanionRoster uses for its own /fcr toggle keybind.
-ZO_CreateStringId("SI_BINDING_NAME_COMPANIONGEARHUNTER_TOGGLE", "Toggle Feliks' Companion Gear Hunter")
+-- (The display name for the keybind action declared in Bindings.xml, action
+-- name COMPANIONGEARHUNTER_TOGGLE, is the string
+-- SI_BINDING_NAME_COMPANIONGEARHUNTER_TOGGLE in lang/default.lua.)
 
 local IGNORE_CALLBACKS = true
 
@@ -24,21 +22,15 @@ local companionEntries = {}
 -- Same engine constants CompanionRoster stores its Role tag as
 -- (LFG_ROLE_TANK/_HEAL/_DPS), so a role read from there is directly usable
 -- here with no translation.
-local ROLE_NAMES = {
-    [LFG_ROLE_TANK] = "Tank",
-    [LFG_ROLE_HEAL] = "Healer",
-    [LFG_ROLE_DPS] = "DPS",
-}
+-- Role names come from the game's own SI_LFGROLE strings (looked up by the
+-- role value, as the game's tooltips do), so they are already translated.
+local function GetRoleName(role)
+    return GetString("SI_LFGROLE", role)
+end
 
 -- rows[i] = { control = <row control>, slotDef = <SLOTS entry>,
 -- wantType/wantTrait/wantQuality = <ZO_ComboBox object> }
 local rows = {}
-
-local WEIGHT_NAMES = {
-    [ARMORTYPE_LIGHT] = "Light",
-    [ARMORTYPE_MEDIUM] = "Medium",
-    [ARMORTYPE_HEAVY] = "Heavy",
-}
 
 -- Highlight color for a slot that's actively wanted (not all "Any") and not
 -- yet satisfied by what's equipped - the same signal as a yellow-highlighted
@@ -51,9 +43,6 @@ local ROW_CLEAR_COLOR = { 0, 0, 0, 0 }
 -- and offHandClosed (set there) tells the row label's tooltip whether to speak.
 local CLOSED_ROW_ALPHA = 0.45
 local offHandClosed = false
-
--- Shown on the Off-Hand row's name and on its disabled Find checkbox.
-local OFF_HAND_CLOSED_TIP = "Needs a one-handed Main Hand. Equip one, or pick a one-handed weapon type on the Main Hand row."
 
 -- Invisible control laid over the Off-Hand Find checkbox. A disabled button may
 -- not deliver mouse events, so this catches the hover instead; it is mouse-
@@ -108,14 +97,14 @@ end
 
 local function PopulateTypeCombo(combo, slotDef)
     combo:ClearItems()
-    local anyEntry = combo:CreateItemEntry("Any", OnWantTypeSelected)
+    local anyEntry = combo:CreateItemEntry(GetString(COMPANIONGEARHUNTER_ANY), OnWantTypeSelected)
     anyEntry.slotKey, anyEntry.matchValue = slotDef.key, nil
     combo:AddItem(anyEntry)
 
     local options
-    if slotDef.category == "armor" then
+    if slotDef.category == CompanionGearHunter.Data.CATEGORY_ARMOR then
         options = CompanionGearHunter.Data.WEIGHT_OPTIONS
-    elseif slotDef.category == "weapon" then
+    elseif slotDef.category == CompanionGearHunter.Data.CATEGORY_WEAPON then
         options = CompanionGearHunter.Data.GetWeaponTypeOptions(slotDef.key)
     end
 
@@ -130,7 +119,7 @@ end
 
 local function PopulateTraitCombo(combo, slotDef)
     combo:ClearItems()
-    local anyEntry = combo:CreateItemEntry("Any", OnWantTraitSelected)
+    local anyEntry = combo:CreateItemEntry(GetString(COMPANIONGEARHUNTER_ANY), OnWantTraitSelected)
     anyEntry.slotKey, anyEntry.matchValue = slotDef.key, nil
     combo:AddItem(anyEntry)
 
@@ -143,7 +132,7 @@ end
 
 local function PopulateQualityCombo(combo, slotDef)
     combo:ClearItems()
-    local anyEntry = combo:CreateItemEntry("Any", OnWantQualitySelected)
+    local anyEntry = combo:CreateItemEntry(GetString(COMPANIONGEARHUNTER_ANY), OnWantQualitySelected)
     anyEntry.slotKey, anyEntry.matchValue = slotDef.key, nil
     combo:AddItem(anyEntry)
 
@@ -183,7 +172,7 @@ local function PopulateAllSlotsCombo(combo, field, options)
     combo:SetSortsItems(false)
     combo:ClearItems()
 
-    local anyEntry = combo:CreateItemEntry("Any", OnAllSlotsSelected)
+    local anyEntry = combo:CreateItemEntry(GetString(COMPANIONGEARHUNTER_ANY), OnAllSlotsSelected)
     anyEntry.field, anyEntry.matchValue = field, nil
     combo:AddItem(anyEntry)
 
@@ -216,11 +205,11 @@ local CLEAR_DIALOG = "COMPANIONGEARHUNTER_CLEAR_PAGE"
 
 local function RegisterClearDialog()
     ZO_Dialogs_RegisterCustomDialog(CLEAR_DIALOG, {
-        title = { text = "Clear Gear Page" },
-        mainText = { text = "Clear all wanted gear for <<1>>?" },
+        title = { text = COMPANIONGEARHUNTER_CLEAR_DIALOG_TITLE },
+        mainText = { text = COMPANIONGEARHUNTER_CLEAR_DIALOG_TEXT },
         buttons = {
             {
-                text = "Clear",
+                text = COMPANIONGEARHUNTER_CLEAR,
                 callback = function(dialog)
                     CompanionGearHunter.Data.ClearCompanionWishlist(dialog.data.companionId)
                     CompanionGearHunter.RefreshGrid()
@@ -246,9 +235,9 @@ end
 -- by name.
 function CompanionGearHunter.OnCompanionRoleMouseEnter(control)
     if currentCompanionRole then
-        local text = ROLE_NAMES[currentCompanionRole] or "Unknown role"
+        local text = GetRoleName(currentCompanionRole)
         if currentCompanionRoleSecondary then
-            text = text .. " + " .. (ROLE_NAMES[currentCompanionRoleSecondary] or "Unknown role")
+            text = text .. " + " .. GetRoleName(currentCompanionRoleSecondary)
         end
         ZO_Tooltips_ShowTextTooltip(control, TOP, text)
     end
@@ -335,7 +324,7 @@ function CompanionGearHunter.RefreshGrid()
 
             local slotLabel = slotDef.label
             if slotDef.key == "MainHand" and twoHanded then
-                slotLabel = "2-Handed"
+                slotLabel = GetString("SI_EQUIPTYPE", EQUIP_TYPE_TWO_HAND)
             end
             row:GetNamedChild("Slot"):SetText(slotLabel)
 
@@ -346,10 +335,10 @@ function CompanionGearHunter.RefreshGrid()
             local eqTrait = row:GetNamedChild("EqTrait")
             local eqQuality = row:GetNamedChild("EqQuality")
 
-            if slotDef.category == "jewelry" then
+            if slotDef.category == CompanionGearHunter.Data.CATEGORY_JEWELRY then
                 eqType:SetText("")
-            elseif slotDef.category == "armor" then
-                eqType:SetText((info and info.armorType and WEIGHT_NAMES[info.armorType]) or "-")
+            elseif slotDef.category == CompanionGearHunter.Data.CATEGORY_ARMOR then
+                eqType:SetText((info and info.armorType and GetString("SI_ARMORTYPE", info.armorType)) or "-")
             else
                 eqType:SetText((info and info.weaponType and CompanionGearHunter.Data.WEAPON_TYPE_NAMES[info.weaponType]) or "-")
             end
@@ -507,21 +496,20 @@ function CompanionGearHunter.ToggleWindow()
 end
 
 -- Every addon's EVENT_ADD_ON_LOADED fires before EVENT_PLAYER_ACTIVATED, so by
--- the time this runs (once, right after the first login/reloadui) every other
+-- the time this runs (once, from the first EVENT_PLAYER_ACTIVATED handled in
+-- CompanionGearHunter.lua, right after the first login/reloadui) every other
 -- addon that's going to register a slash command already has. SLASH_COMMANDS
 -- is the same real table LibSlashCommander reads from - if our own alias no
 -- longer points at our own Command object there, something else claimed it
 -- after us. Same approach as CompanionRoster's.
-local function CheckSlashCommandHijack()
-    EVENT_MANAGER:UnregisterForEvent("CompanionGearHunter_UI", EVENT_PLAYER_ACTIVATED)
-
+function CompanionGearHunter.CheckSlashCommandHijack()
     local currentCommand = CompanionGearHunter.Data.GetSlashCommand()
     local owner = SLASH_COMMANDS[zo_strlower(currentCommand)]
     if owner == CompanionGearHunter.slashCommand then
         return
     end
 
-    local who = "another addon"
+    local who = GetString(COMPANIONGEARHUNTER_ANOTHER_ADDON)
     if LibSlashCommander.IsCommand(owner) then
         local description = owner:GetDescription()
         if description then
@@ -529,14 +517,34 @@ local function CheckSlashCommandHijack()
         end
     end
 
-    d(string.format("|cFF0000!!!! WARNING !!!!|r Feliks' Companion Gear Hunter: %s has been taken over by %s and won't open this window anymore. Check Settings > Add-Ons > Feliks' Companion Gear Hunter to pick a different command.", currentCommand, who))
+    d(zo_strformat(COMPANIONGEARHUNTER_COMMAND_HIJACKED, currentCommand, who))
 end
 
-local function OnAddOnLoaded(eventCode, addOnName)
-    if addOnName ~= CompanionGearHunter.name then
-        return
-    end
-    EVENT_MANAGER:UnregisterForEvent("CompanionGearHunter_UI", EVENT_ADD_ON_LOADED)
+-- The window's headers and buttons take their text from the string table (set
+-- here, once, rather than hardcoded in the XML, so they can be translated).
+-- The window title is the addon's name and stays in the XML.
+local function SetWindowTexts()
+    local window = CompanionGearHunterWindow
+    window:GetNamedChild("ColumnSlot"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_SLOT))
+    window:GetNamedChild("ColumnEqType"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_TYPE))
+    window:GetNamedChild("ColumnEqTrait"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_TRAIT))
+    window:GetNamedChild("ColumnEqQuality"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_QUALITY))
+    window:GetNamedChild("ColumnFind"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_FIND))
+    window:GetNamedChild("ColumnWantType"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_TYPE))
+    window:GetNamedChild("ColumnWantTrait"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_TRAIT))
+    window:GetNamedChild("ColumnWantQuality"):SetText(GetString(COMPANIONGEARHUNTER_COLUMN_QUALITY_FLOOR))
+    window:GetNamedChild("SettingsButton"):SetText(GetString(SI_GAME_MENU_SETTINGS))
+
+    local allRow = window:GetNamedChild("AllRow")
+    allRow:GetNamedChild("Label"):SetText(GetString(COMPANIONGEARHUNTER_ALL_SLOTS))
+    allRow:GetNamedChild("Clear"):SetText(GetString(COMPANIONGEARHUNTER_CLEAR))
+end
+
+-- Builds the window: dropdowns, rows, All-slots row, dialog, position, footer.
+-- Called once from the single EVENT_ADD_ON_LOADED handler in
+-- CompanionGearHunter.lua, after the saved data is ready.
+function CompanionGearHunter.BuildUI()
+    SetWindowTexts()
 
     companionDropdown = ZO_ComboBox_ObjectFromContainer(CompanionGearHunterWindowCompanionDropdown)
     companionDropdown:SetSortsItems(false)
@@ -565,7 +573,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
         if slotDef.key == "OffHand" then
             local function ShowClosedTip(control)
                 if offHandClosed then
-                    ZO_Tooltips_ShowTextTooltip(control, TOP, OFF_HAND_CLOSED_TIP)
+                    ZO_Tooltips_ShowTextTooltip(control, TOP, GetString(COMPANIONGEARHUNTER_OFF_HAND_CLOSED_TIP))
                 end
             end
             local function HideClosedTip()
@@ -594,14 +602,13 @@ local function OnAddOnLoaded(eventCode, addOnName)
         CompanionGearHunterWindow:SetAnchor(savedPosition.point, nil, savedPosition.relativePoint, savedPosition.offsetX, savedPosition.offsetY)
     end
 
-    CompanionGearHunterWindowFooter:SetText("Feliks' Companion Gear Hunter - Version: " .. CompanionGearHunter.version)
+    CompanionGearHunterWindowFooter:SetText(zo_strformat(COMPANIONGEARHUNTER_FOOTER, CompanionGearHunter.version))
     CompanionGearHunterWindowFooter:SetColor(unpack(BLANK_TEXT_COLOR))
-
-    -- Same library CompanionRoster uses for its own /fcr command, so
-    -- the slash command gets a real chat-autocomplete description instead of
-    -- just being a bare, undocumented SLASH_COMMANDS entry.
-    CompanionGearHunter.slashCommand = LibSlashCommander:Register(CompanionGearHunter.Data.GetSlashCommand(), CompanionGearHunter.ToggleWindow, "Feliks' Companion Gear Hunter")
-    EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_UI", EVENT_PLAYER_ACTIVATED, CheckSlashCommandHijack)
 end
 
-EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_UI", EVENT_ADD_ON_LOADED, OnAddOnLoaded)
+-- Same library CompanionRoster uses for its own /fcr command, so the slash
+-- command gets a real chat-autocomplete description instead of just being a
+-- bare, undocumented SLASH_COMMANDS entry.
+function CompanionGearHunter.SetSlashCommands()
+    CompanionGearHunter.slashCommand = LibSlashCommander:Register(CompanionGearHunter.Data.GetSlashCommand(), CompanionGearHunter.ToggleWindow, "Feliks' Companion Gear Hunter")
+end

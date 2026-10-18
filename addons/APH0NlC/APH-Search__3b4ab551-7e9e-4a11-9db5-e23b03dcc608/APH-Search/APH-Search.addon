@@ -1,0 +1,31 @@
+## Title: |c9CD04CAPH-Search|r
+## AddOnVersion: 26101514
+## Version: 2026.10.15.14.36
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+## SavedVariables: APHSearch
+## DependsOn: LibAPH>=26100607
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings
+## Description: |cfa9c1bSearch settings, keybinds, add-ons, items, skills, champion stars, the map, quests, achievements and menus, then jump straight to it. Offers the closest way to travel to any place you find.|r |cCCFF00Usage: /fs <text> or Alt+S|r
+
+lang/default.lua
+lang/$(language).lua
+CORE/APH-Search.lua
+UTILS/Providers.lua
+UTILS/Sources.lua
+UTILS/Gamepad.lua
+UI/SearchBar.lua
+UTILS/Travel.lua
+UTILS/Settings.lua
+
+Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

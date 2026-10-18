@@ -36,20 +36,37 @@ if not (a and b and a.x and b.x) then return nil end
 local dx, dy = a.x - b.x, a.y - b.y
 return math.sqrt(dx * dx + dy * dy)
 end
-local function Open(keepId, mine, ctx, ownerOf, resourcesOf)
+local function Open(keepId, mine, ctx, ownerOf, resourcesOf, underAttack)
 if ownerOf(keepId) ~= mine then return false end
-if Safe(GetKeepUnderAttack, keepId, ctx) == true then return false end
+if underAttack then
+if underAttack(keepId) then return false end
+elseif Safe(GetKeepUnderAttack, keepId, ctx) == true then
+return false
+end
 if Safe(GetKeepHasResourcesForTravel, keepId, ctx) == false then return false end
 local resources, ours = resourcesOf(keepId), 0
 for _, r in ipairs(resources) do if r.owner == mine then ours = ours + 1 end end
 if #resources > 0 and ours == 0 then return false end
 return Safe(GetKeepAccessible, keepId, ctx) ~= false
 end
-local function Network(mine, ctx, ownerOf, spotOf, resourcesOf)
+local linkEnds = {}
+local function LinkEnds(ctx, nodeCount, linkCount)
+if linkEnds.ctx ~= ctx or linkEnds.nodes ~= nodeCount or linkEnds.links ~= linkCount then
+linkEnds = { ctx = ctx, nodes = nodeCount, links = linkCount }
+for i = 1, linkCount do
+local a, b = Safe(GetKeepTravelNetworkLinkEndpoints, i, ctx)
+linkEnds[i] = { a, b }
+if a == nil or b == nil then linkEnds.links = nil end
+end
+end
+return linkEnds
+end
+local function Network(mine, ctx, ownerOf, spotOf, resourcesOf, underAttack)
 local nodes, byIndex = {}, {}
-for i = 1, Safe(GetNumKeepTravelNetworkNodes, ctx) or 0 do
+local nodeCount = Safe(GetNumKeepTravelNetworkNodes, ctx) or 0
+for i = 1, nodeCount do
 local keepId, accessible, nodeX, nodeY = Safe(GetKeepTravelNetworkNodeInfo, i, ctx)
-if keepId and accessible ~= false and Open(keepId, mine, ctx, ownerOf, resourcesOf) then
+if keepId and accessible ~= false and Open(keepId, mine, ctx, ownerOf, resourcesOf, underAttack) then
 local spot = spotOf(keepId)
 local x, y = (spot and spot.x) or nodeX, (spot and spot.y) or nodeY
 if type(x) == "number" and type(y) == "number" and (x ~= 0 or y ~= 0) then
@@ -59,9 +76,11 @@ table.insert(nodes, node)
 end
 end
 end
-for i = 1, Safe(GetNumKeepTravelNetworkLinks, ctx) or 0 do
+local linkCount = Safe(GetNumKeepTravelNetworkLinks, ctx) or 0
+local ends = LinkEnds(ctx, nodeCount, linkCount)
+for i = 1, linkCount do
 local _, owner, restricted = Safe(GetKeepTravelNetworkLinkInfo, i, ctx)
-local a, b = Safe(GetKeepTravelNetworkLinkEndpoints, i, ctx)
+local a, b = ends[i][1], ends[i][2]
 local open = owner == mine and (not restricted or restricted == 0 or restricted == mine)
 local enemyGate = byIndex[a] and byIndex[b] and ((GATE_KEEPS[byIndex[a].keepId] or mine) ~= mine or (GATE_KEEPS[byIndex[b].keepId] or mine) ~= mine)
 if open and not enemyGate and byIndex[a] and byIndex[b] then
@@ -71,19 +90,7 @@ end
 end
 return nodes
 end
-local function HaveRecallStone()
-local bag = BAG_BACKPACK
-if not (bag and SPECIALIZED_ITEMTYPE_RECALL_STONE_KEEP) then return false end
-for slot = 0, (Safe(GetBagSize, bag) or 0) - 1 do
-local _, specialized = Safe(GetItemType, bag, slot)
-if specialized == SPECIALIZED_ITEMTYPE_RECALL_STONE_KEEP then
-local remain = Safe(GetItemCooldownInfo, bag, slot)
-if not remain or remain <= 0 then return true end
-end
-end
-return false
-end
-function T.New(mine, ctx, player, targets, keepName)
+function T.New(mine, ctx, player, targets, keepName, underAttack)
 if not (player and player.x) then return nil end
 local byId = {}
 for _, t in ipairs(targets) do byId[t.keepId] = t end
@@ -99,7 +106,7 @@ for _, t in ipairs(targets) do if t.parent == keepId then table.insert(out, t) e
 return out
 end
 local reach = {}
-local nodes = Network(mine, ctx, ownerOf, spotOf, resourcesOf)
+local nodes = Network(mine, ctx, ownerOf, spotOf, resourcesOf, underAttack)
 for _, start in ipairs(nodes) do
 local d = Dist(player, start)
 if d and d <= SHRINE_RANGE then
@@ -121,9 +128,9 @@ local nearKeep = false
 for _, t in ipairs(targets) do
 if t.kind == "Keep" and Dist(player, t) and Dist(player, t) <= NEAR_KEEP then nearKeep = true end
 end
-if not nearKeep and Safe(IsUnitInCombat, "player") ~= true and HaveRecallStone() then
+if not nearKeep and Safe(IsUnitInCombat, "player") ~= true then
 for _, t in ipairs(targets) do
-if t.kind == "Keep" and t.x and Open(t.keepId, mine, ctx, ownerOf, resourcesOf) then
+if t.kind == "Keep" and t.x and Open(t.keepId, mine, ctx, ownerOf, resourcesOf, underAttack) then
 table.insert(recallTo, t)
 end
 end
@@ -137,25 +144,28 @@ if cache[t] then return cache[t] end
 local ride = Dist(player, t)
 if not ride then return nil end
 local best = { seconds = ride * T.SECONDS_PER_UNIT, rideAfter = ride, from = player }
-local shortcut
+local via, viaSeconds, viaRide
 for node, r in pairs(reach) do
 local d = Dist(node, t)
 local s = d and r.seconds + d * T.SECONDS_PER_UNIT
-if s and (not shortcut or s < shortcut.seconds) then
-shortcut = { seconds = s, rideAfter = d, from = { x = node.x, y = node.y }, line = string.format("Transit from %s to %s.", name(r.from.keepId), name(node.keepId)) }
+if s and (not viaSeconds or s < viaSeconds) then via, viaSeconds, viaRide = node, s, d end
 end
-end
+local shortcut = via and { seconds = viaSeconds, rideAfter = viaRide, from = { x = via.x, y = via.y },
+line = string.format("Transit from %s to %s.", name(reach[via].from.keepId), name(via.keepId)) }
+local stone, stoneSeconds
 for _, keep in ipairs(recallTo) do
 local d = Dist(keep, t)
 local s = d and RECALL_SECONDS + d * T.SECONDS_PER_UNIT
-if s and (not shortcut or s < shortcut.seconds) then
-shortcut = { seconds = s, rideAfter = d, from = { x = keep.x, y = keep.y }, recall = true, line = string.format("Use a recall stone to %s.", name(keep.keepId)) }
+if s and (not stoneSeconds or s < stoneSeconds) then stone, stoneSeconds = keep, s end
 end
-end
+local recall = stone and { seconds = stoneSeconds, line = string.format("Use a recall stone to %s.", name(stone.keepId)) }
 if shortcut and shortcut.seconds + WORTH_IT <= best.seconds then
 best = shortcut
 elseif best.seconds >= RIGHT_THERE then
 best.ride = RideLine(player, t)
+end
+if recall and recall.seconds + WORTH_IT <= best.seconds then
+best.line, best.recall = recall.line, true
 end
 cache[t] = best
 return best

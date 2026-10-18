@@ -49,6 +49,8 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [Leo's Dolmen Runner - REDUX (with inviter)](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Kiasmalyn/Leo-s-Dolmen-Runner---REDUX-with-inviter__3629) | Kiasmalyn | PC / Mac | 2.1.5 |
 | [Leo's Guild Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Guild-Manager__2151) | LeandroSilva | PC / Mac | 1.3.0 |
 | [Leo's Trainer](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeandroSilva/Leo-s-Trainer__2162) | LeandroSilva | PC / Mac | 2.2.3 |
+| [Leo_stat_panel_beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeonShu/Leo_stat_panel_beta__66108dc4-7941-473d-8b4a-f129da12e33c) | LeonShu | Console | — |
+| [Leo_status_panel_beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeonShu/Leo_status_panel_beta__cbe4d714-54cb-4495-a852-fdbd74443b5a) | LeonShu | Console | — |
 | [leo_sust_beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeonShu/leo_sust_beta__e5d7ad9e-23ff-4fdd-8531-4e3b7596ad76) | LeonShu | Console | — |
 | [Leo_tracker_beta](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/LeonShu/Leo_tracker_beta__35b41333-fe07-42d9-b8f7-aa2f6b7c83cc) | LeonShu | Console | — |
 | [Leonardo's Wardrobe Manager](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Leonardo1123/Leonardo-s-Wardrobe-Manager__3180) | Leonardo1123 | PC / Mac | 0.4.2 |
@@ -76,7 +78,7 @@ This page is generated from the unified catalog. Add-on source remains in the pu
 | [LibAlianym](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Alianym/LibAlianym__3046) | Alianym | PC / Mac | 0.40 |
 | [LibAnimation-1.0](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Pawkette/LibAnimation-1.0__54) | Pawkette | PC / Mac | 2.3 |
 | [LibAnnyoingUpdateNotificationInGame - Launig](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/Ayantir/LibAnnyoingUpdateNotificationInGame---Launig__1488) | Ayantir | PC / Mac | 7 |
-| [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/LibAPH__4917) | APH0N1C | PC / Mac | 2026.10.07.17.24 |
+| [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0N1C/LibAPH__4917) | APH0N1C | PC / Mac | 2026.10.18.01.41 |
 | [LibAPH](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/APH0NlC/LibAPH__dac0d37e-2d2f-4813-a148-6198c2d54687) | APH0NlC | Console | — |
 | [LibArmorInsulation](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/kreksar-gmail.com/LibArmorInsulation__4709) | kreksar@gmail.com | PC / Mac | 2.7.11 |
 | [LibAsync](https://github.com/the-jolly-green-bryant/eso-addon-mirror/tree/main/addons/votan/LibAsync__2125) | votan | PC / Mac | 3.1.5 |

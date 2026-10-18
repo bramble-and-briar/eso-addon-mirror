@@ -1,0 +1,39 @@
+{
+  "archive_error": "ESOUI returned an empty response",
+  "archive_path": "addons/TypeRED/NoHostileDots__4966",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archive_status": "unavailable",
+  "archived": false,
+  "author": "TypeRED",
+  "canonical_id": "esoui:4966",
+  "category_id": "17",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4966",
+  "deleted": false,
+  "directories": [
+    "NoHostileDots"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4966/",
+  "fingerprint": "bba0252f7cd0a617d06c10f544494addbd6aa6853d83d606144ec5e1fd33e62b",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18062.jpg"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4966",
+  "source_url": "https://www.esoui.com/downloads/info4966-NoHostileDots.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 0
+  },
+  "title": "NoHostileDots",
+  "updated_at": 1792296613000,
+  "version": "1.1"
+}

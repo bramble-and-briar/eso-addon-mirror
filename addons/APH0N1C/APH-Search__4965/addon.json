@@ -1,0 +1,40 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/APH-Search__4965",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4965",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4965",
+  "deleted": false,
+  "directories": [
+    "APH-Search"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4965/",
+  "fingerprint": "dcdea476dc1b1b4fe340ef82aeea4e3f685eceaead0957d3ae092188a9a38f75",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18059.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18060.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18061.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4965",
+  "source_url": "https://www.esoui.com/downloads/info4965-APHSearch.html",
+  "stats": {
+    "downloads": 9,
+    "favorites": 0,
+    "monthly_downloads": 6
+  },
+  "title": "APH Search",
+  "updated_at": 1792264612000,
+  "version": "2026.10.18.01.41"
+}

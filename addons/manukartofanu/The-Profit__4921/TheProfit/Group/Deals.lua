@@ -1,6 +1,7 @@
 local TP = TheProfit
 
--- Deals that group members reported for items the player tracks. Each report is
+-- Deals that group members reported for items the player wants (portfolio or Buy
+-- List). Each report is
 -- checked with the player's own model, shown once on the HUD and kept in a short list
 -- until the player has been to that guild's store or the report is too old.
 local MAX_DEALS = 50
@@ -49,13 +50,10 @@ function TP.GetGroupItemColor(itemLink)
     return 1, 1, 1
 end
 
-local function FindTrackedItem(itemId, hash)
-    for _, itemKey in ipairs(TP.SV.trackedItemOrder or {}) do
-        local item = TP.SV.trackedItems[itemKey]
-        if item then
-            local trackedId, trackedHash = TP.GetGroupItemIdentity(itemKey)
-            if trackedId == itemId and trackedHash == hash then return itemKey, item end
-        end
+local function FindWantedItem(itemId, hash)
+    for _, itemKey in ipairs(TP.GetGroupWantKeys()) do
+        local wantedId, wantedHash = TP.GetGroupItemIdentity(itemKey)
+        if wantedId == itemId and wantedHash == hash then return itemKey, TP.GetWantedItem(itemKey) end
     end
     return nil
 end
@@ -81,8 +79,8 @@ local function AddDeal(itemKey, hit, from)
 end
 
 local function OnDealReceived(peerName, hit)
-    local itemKey, item = FindTrackedItem(hit.itemId, hit.hash)
-    if not itemKey then return end
+    local itemKey, item = FindWantedItem(hit.itemId, hit.hash)
+    if not itemKey or not item then return end
 
     -- The reporter only compared the price for one piece; the stack is judged here.
     local score = TP.EvaluatePurchase(item.link, hit.price, hit.quantity)
@@ -114,7 +112,9 @@ local function RemoveDealsWhere(predicate)
     if removed then Changed() end
 end
 
-local function OnTrackedItemRemoved(itemKey)
+-- Reports are dropped once the item is wanted by neither the portfolio nor the Buy List.
+local function OnWantedItemChanged(itemKey)
+    if TP.IsGroupWanted(itemKey) then return end
     RemoveDealsWhere(function(deal) return deal.itemKey == itemKey end)
     if TP.HideGroupHudMessageForItem then TP.HideGroupHudMessageForItem(itemKey) end
 end
@@ -142,7 +142,8 @@ end
 
 function TP.SetupGroupDeals()
     TP.callbacks:RegisterCallback("GroupDealReceived", OnDealReceived)
-    TP.callbacks:RegisterCallback("TrackedItemRemoved", OnTrackedItemRemoved)
+    TP.callbacks:RegisterCallback("TrackedItemRemoved", OnWantedItemChanged)
+    TP.callbacks:RegisterCallback("BuyListChanged", OnWantedItemChanged)
     TP.callbacks:RegisterCallback("GroupSharingChanged", function(enabled)
         if not enabled then RemoveDealsWhere(function() return true end) end
     end)

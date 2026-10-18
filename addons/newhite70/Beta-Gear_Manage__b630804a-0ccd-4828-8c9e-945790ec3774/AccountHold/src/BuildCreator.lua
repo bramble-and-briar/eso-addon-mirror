@@ -6,10 +6,11 @@
 -- this build do I not yet own, and what do I have to go do to get them?*
 --
 -- Deliberately NOT here, per the epic's non-goals (docs/backlog/0002):
---   * No in-game Armory integration. SaveArmoryBuild / RestoreArmoryBuild /
---     GetArmoryBuildEquipSlotInfo are never called — the creator PLANS, the
---     player executes. (The one Armory symbol touched is the read-only global
---     MAX_NUM_ARMORY_BUILDS, used only to size our own cap; see maxBuilds.)
+--   * No in-game Armory integration IN THIS MODULE. Equipping, auto-equip and
+--     saving into an Armory slot live in src/BuildEquip.lua, which stores its
+--     data on the same records (`loadout`, `auto`) without changing this
+--     module's fields. (The one Armory symbol touched here is the read-only
+--     global MAX_NUM_ARMORY_BUILDS, used only to size our own cap.)
 --   * No drop rates, no gold / trader valuation.
 --   * No UI, no events, no timers, no protected calls. This module is inert
 --     until something calls it, so a disabled `buildCreator` feature gate
@@ -423,6 +424,8 @@ function BuildCreator:CreateBuild(name)
         id        = id,
         name      = uniqueName(clean),
         slots     = {},
+        -- Auto-equip is OFF for every new build; src/BuildEquip.lua owns it.
+        auto      = { enabled = false, rules = {} },
         createdAt = now,
         updatedAt = now,
     }

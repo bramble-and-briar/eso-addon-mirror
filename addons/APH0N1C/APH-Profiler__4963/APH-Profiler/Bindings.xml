@@ -1,0 +1,66 @@
+<Bindings>
+    <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+        <Category name="APH-Profiler">
+            <Action name="APHPROFILER_TOGGLE_HUD">
+                <Down>APHProfilerCore.ToggleHud()</Down>
+            </Action>
+            <Action name="APHPROFILER_MOVE_HUD">
+                <Down>APHProfilerCore.ToggleHudMoveMode()</Down>
+            </Action>
+            <Action name="APHPROFILER_FOCUS_HUD">
+                <Down>APHProfilerCore.ToggleHudFocus()</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_MENU">
+                <Down>APHProfilerCore.OpenHudMenu()</Down>
+            </Action>
+        </Category>
+    </Layer>
+    <Layer name="APHProfiler_HudFocus">
+        <Category>
+            <Action name="APHPROFILER_HUD_UP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_UP">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.MoveHudFocus(-1)</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_DOWN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_DOWN">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.MoveHudFocus(1)</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_SELECT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_PRIMARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.ActivateHudFocus()</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_SCAN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_SECONDARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("scan")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_MENU_PAD" hideAction="true" inheritsBindFrom="UI_SHORTCUT_TERTIARY">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("menu")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_SUMMARY" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("summary")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_TIMELINE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_SHOULDER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("timeline")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_PAGE_UP" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("page_up")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_PAGE_DOWN" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_TRIGGER">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("page_down")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_PAN_LEFT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_LEFT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("pan_left")</Down>
+                <Up>return APHProfilerCore.StopPadHold()</Up>
+            </Action>
+            <Action name="APHPROFILER_HUD_PAN_RIGHT" hideAction="true" inheritsBindFrom="UI_SHORTCUT_INPUT_RIGHT">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("pan_right")</Down>
+                <Up>return APHProfilerCore.StopPadHold()</Up>
+            </Action>
+            <Action name="APHPROFILER_HUD_MOVE_PAD" hideAction="true" inheritsBindFrom="UI_SHORTCUT_RIGHT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("move")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_RESIZE" hideAction="true" inheritsBindFrom="UI_SHORTCUT_LEFT_STICK">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("resize")</Down>
+            </Action>
+            <Action name="APHPROFILER_HUD_BACK" hideAction="true" inheritsBindFrom="UI_SHORTCUT_NEGATIVE">
+                <Down>if (LibAPH.IsDialogOnScreen or ZO_Dialogs_IsShowingDialog)() then return false end return APHProfilerCore.PadAction("back")</Down>
+            </Action>
+        </Category>
+    </Layer>
+</Bindings>

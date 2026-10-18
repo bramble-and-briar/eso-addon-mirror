@@ -67,9 +67,9 @@ local function OnUpdateStatusControlIcons(inventorySlot, slotData)
     FlagRowIcon(inventorySlot, GetItemLink(slotData.bagId, slotData.slotIndex))
 end
 
--- Returning nothing (falsy) tells ZO_PreHook to still run the original
--- afterward - see esoui/esoui's zo_hook.lua.
-ZO_PreHook("ZO_UpdateStatusControlIcons", OnUpdateStatusControlIcons)
+-- (Installed by HookInventories at the bottom of this file. Returning nothing
+-- (falsy) from OnUpdateStatusControlIcons tells ZO_PreHook to still run the
+-- original afterward - see esoui/esoui's zo_hook.lua.)
 
 -- Tooltip line naming which companion(s)/slot(s) the badge is for - added
 -- to the item's own tooltip (not a separate hover on the badge itself).
@@ -114,11 +114,6 @@ ZO_PreHook("ZO_UpdateStatusControlIcons", OnUpdateStatusControlIcons)
 -- method directly on the tooltip control - no section object involved,
 -- and (going by TTC/WritWorthy/CraftStore surviving the same call) the
 -- one third-party addons actually rely on for exactly this.
-local SLOT_LABELS = {}
-for _, slotDef in ipairs(CompanionGearHunter.Data.SLOTS) do
-    SLOT_LABELS[slotDef.key] = slotDef.label
-end
-
 local function WithPrefix(text)
     local prefix = CompanionGearHunter.Data.GetTooltipPrefix()
     if prefix == "" then
@@ -138,11 +133,11 @@ local function AppendMatchInfo(tooltipSelf, itemLink)
         local seen = {}
         for _, match in ipairs(matches) do
             local companionName = zo_strformat("<<1>>", GetCompanionName(match.companionId))
-            local slotLabel = SLOT_LABELS[match.slotKey] or match.slotKey
-            local dedupeKey = match.companionId .. ":" .. slotLabel
-            if not seen[dedupeKey] then
-                seen[dedupeKey] = true
-                table.insert(lines, WithPrefix(string.format("Wanted for %s (%s)", companionName, slotLabel)))
+            -- One line per companion: the tooltip already names the item's
+            -- slot, and a two-ring / one-handed item can match two slot keys.
+            if not seen[match.companionId] then
+                seen[match.companionId] = true
+                table.insert(lines, WithPrefix(zo_strformat(COMPANIONGEARHUNTER_TOOLTIP_WANTED, companionName)))
             end
         end
         tooltipSelf:AddLine(table.concat(lines, "\n"), "ZoFontGameShadow", CompanionGearHunter.Data.GetMarkerColor("wanted"))
@@ -160,20 +155,18 @@ local function AppendMatchInfo(tooltipSelf, itemLink)
         local seen = {}
         for _, upgrade in ipairs(upgrades) do
             local companionName = zo_strformat("<<1>>", GetCompanionName(upgrade.companionId))
-            local slotLabel = SLOT_LABELS[upgrade.slotKey] or upgrade.slotKey
-            local dedupeKey = upgrade.companionId .. ":" .. slotLabel
-            if not seen[dedupeKey] then
-                seen[dedupeKey] = true
-                table.insert(lines, WithPrefix(string.format("Upgrade for %s (%s)", companionName, slotLabel)))
+            if not seen[upgrade.companionId] then
+                seen[upgrade.companionId] = true
+                table.insert(lines, WithPrefix(zo_strformat(COMPANIONGEARHUNTER_TOOLTIP_UPGRADE, companionName)))
             end
         end
         tooltipSelf:AddLine(table.concat(lines, "\n"), "ZoFontGameShadow", CompanionGearHunter.Data.GetMarkerColor("upgrade"))
     end
 end
 
-ZO_PostHook(ZO_Tooltip, "LayoutItem", function(tooltipSelf, itemLink)
+local function OnLayoutItem(tooltipSelf, itemLink)
     AppendMatchInfo(tooltipSelf, itemLink)
-end)
+end
 
 local function OnSetLink(tooltipSelf, link)
     AppendMatchInfo(tooltipSelf, link)
@@ -200,16 +193,6 @@ local function OnSetAttachedMailItem(tooltipSelf, mailId, attachSlot)
     AppendMatchInfo(tooltipSelf, GetAttachedItemLink(mailId, attachSlot, LINK_STYLE_DEFAULT))
 end
 
-for _, tooltipControl in ipairs({ ItemTooltip, PopupTooltip, InformationTooltip }) do
-    if tooltipControl then
-        ZO_PostHook(tooltipControl, "SetLink", OnSetLink)
-        ZO_PostHook(tooltipControl, "SetBagItem", OnSetBagItem)
-        ZO_PostHook(tooltipControl, "SetTradingHouseItem", OnSetTradingHouseItem)
-        ZO_PostHook(tooltipControl, "SetTradeItem", OnSetTradeItem)
-        ZO_PostHook(tooltipControl, "SetAttachedMailItem", OnSetAttachedMailItem)
-    end
-end
-
 -- Redraws the item rows currently on screen, so a changed marker color or
 -- the upgrades toggle shows immediately instead of the next time each row
 -- happens to be refreshed. Each row's setup runs through the hooks above.
@@ -233,7 +216,10 @@ end
 -- TRADING_HOUSE and TRADE are created by the base UI; the guild store's
 -- results list only exists once the store has been opened, so its list hook
 -- is installed on first open (same constraint LootLog works around).
-local function InstallRowBadgeHooks()
+-- Called once, from the first EVENT_PLAYER_ACTIVATED handled in
+-- CompanionGearHunter.lua (not at load: the guild store list doesn't exist
+-- until the store is opened, and this has always been installed at that point).
+function CompanionGearHunter.InstallRowBadgeHooks()
     if TRADE then
         ZO_PostHook(TRADE, "InitializeSlot", function(tradeSelf, who, index)
             local slot = tradeSelf.Columns[who][index]
@@ -282,9 +268,19 @@ local function InstallRowBadgeHooks()
     end
 end
 
-local function OnPlayerActivated()
-    EVENT_MANAGER:UnregisterForEvent("CompanionGearHunter_Inventory", EVENT_PLAYER_ACTIVATED)
-    InstallRowBadgeHooks()
-end
+-- Installs the item-row badge hook and every tooltip hook. Called once from the
+-- single EVENT_ADD_ON_LOADED handler in CompanionGearHunter.lua.
+function CompanionGearHunter.HookInventories()
+    ZO_PreHook("ZO_UpdateStatusControlIcons", OnUpdateStatusControlIcons)
+    ZO_PostHook(ZO_Tooltip, "LayoutItem", OnLayoutItem)
 
-EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Inventory", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
+    for _, tooltipControl in ipairs({ ItemTooltip, PopupTooltip, InformationTooltip }) do
+        if tooltipControl then
+            ZO_PostHook(tooltipControl, "SetLink", OnSetLink)
+            ZO_PostHook(tooltipControl, "SetBagItem", OnSetBagItem)
+            ZO_PostHook(tooltipControl, "SetTradingHouseItem", OnSetTradingHouseItem)
+            ZO_PostHook(tooltipControl, "SetTradeItem", OnSetTradeItem)
+            ZO_PostHook(tooltipControl, "SetAttachedMailItem", OnSetAttachedMailItem)
+        end
+    end
+end

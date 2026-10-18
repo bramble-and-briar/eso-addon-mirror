@@ -7,29 +7,39 @@ CompanionGearHunter.savedVariablesVersion = 1
 -- Keep in sync with ## Version in CompanionGearHunter.txt on every real
 -- release bump (see CompanionRoster's own versioning policy: bump only when
 -- actually cutting a release, not on every commit).
-CompanionGearHunter.version = "1.1.1"
+CompanionGearHunter.version = "1.2.0"
 
 CompanionGearHunter.Data = {}
 
 local savedVars = nil
+
+-- Slot categories. Plain numbers, not strings, so nothing depends on a word
+-- (and a translation can never collide with a lookup key). Never saved; safe
+-- to renumber.
+CompanionGearHunter.Data.CATEGORY_ARMOR = 1
+CompanionGearHunter.Data.CATEGORY_WEAPON = 2
+CompanionGearHunter.Data.CATEGORY_JEWELRY = 3
+local CATEGORY_ARMOR = CompanionGearHunter.Data.CATEGORY_ARMOR
+local CATEGORY_WEAPON = CompanionGearHunter.Data.CATEGORY_WEAPON
+local CATEGORY_JEWELRY = CompanionGearHunter.Data.CATEGORY_JEWELRY
 
 -- Slot layout, in the same order the companion's own equipment paperdoll
 -- uses (confirmed against companioncharacterwindow_keyboard.lua). "category"
 -- picks which trait-type family (ITEM_TRAIT_TYPE_ARMOR_/WEAPON_/JEWELRY_*)
 -- and which "wanted sub-type" dropdown (weight / weapon type / none) apply.
 CompanionGearHunter.Data.SLOTS = {
-    { key = "Head",      equipSlot = EQUIP_SLOT_HEAD,      label = "Head",      category = "armor" },
-    { key = "Shoulders",  equipSlot = EQUIP_SLOT_SHOULDERS, label = "Shoulders", category = "armor" },
-    { key = "Chest",      equipSlot = EQUIP_SLOT_CHEST,     label = "Chest",     category = "armor" },
-    { key = "Hands",      equipSlot = EQUIP_SLOT_HAND,      label = "Hands",     category = "armor" },
-    { key = "Waist",      equipSlot = EQUIP_SLOT_WAIST,     label = "Waist",     category = "armor" },
-    { key = "Legs",       equipSlot = EQUIP_SLOT_LEGS,      label = "Legs",      category = "armor" },
-    { key = "Feet",       equipSlot = EQUIP_SLOT_FEET,      label = "Feet",      category = "armor" },
-    { key = "Necklace",   equipSlot = EQUIP_SLOT_NECK,      label = "Necklace",  category = "jewelry" },
-    { key = "Ring1",      equipSlot = EQUIP_SLOT_RING1,     label = "Ring",      category = "jewelry" },
-    { key = "Ring2",      equipSlot = EQUIP_SLOT_RING2,     label = "Ring",      category = "jewelry" },
-    { key = "MainHand",   equipSlot = EQUIP_SLOT_MAIN_HAND, label = "Weapon",    category = "weapon" },
-    { key = "OffHand",    equipSlot = EQUIP_SLOT_OFF_HAND,  label = "Off-Hand",  category = "weapon" },
+    { key = "Head",      equipSlot = EQUIP_SLOT_HEAD,      label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_HEAD),      category = CATEGORY_ARMOR },
+    { key = "Shoulders",  equipSlot = EQUIP_SLOT_SHOULDERS, label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_SHOULDERS), category = CATEGORY_ARMOR },
+    { key = "Chest",      equipSlot = EQUIP_SLOT_CHEST,     label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_CHEST),     category = CATEGORY_ARMOR },
+    { key = "Hands",      equipSlot = EQUIP_SLOT_HAND,      label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_HAND),     category = CATEGORY_ARMOR },
+    { key = "Waist",      equipSlot = EQUIP_SLOT_WAIST,     label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_WAIST),     category = CATEGORY_ARMOR },
+    { key = "Legs",       equipSlot = EQUIP_SLOT_LEGS,      label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_LEGS),      category = CATEGORY_ARMOR },
+    { key = "Feet",       equipSlot = EQUIP_SLOT_FEET,      label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_FEET),      category = CATEGORY_ARMOR },
+    { key = "Necklace",   equipSlot = EQUIP_SLOT_NECK,      label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_NECK),  category = CATEGORY_JEWELRY },
+    { key = "Ring1",      equipSlot = EQUIP_SLOT_RING1,     label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_RING1),      category = CATEGORY_JEWELRY },
+    { key = "Ring2",      equipSlot = EQUIP_SLOT_RING2,     label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_RING2),      category = CATEGORY_JEWELRY },
+    { key = "MainHand",   equipSlot = EQUIP_SLOT_MAIN_HAND, label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_MAIN_HAND),    category = CATEGORY_WEAPON },
+    { key = "OffHand",    equipSlot = EQUIP_SLOT_OFF_HAND,  label = GetString("SI_EQUIPSLOT", EQUIP_SLOT_OFF_HAND),  category = CATEGORY_WEAPON },
 }
 
 -- Companion-only trait names. Confirmed against the real ITEM_TRAIT_TYPE_*
@@ -44,9 +54,9 @@ local COMPANION_TRAIT_SUFFIXES = {
 }
 
 local CATEGORY_TRAIT_PREFIX = {
-    armor = "ITEM_TRAIT_TYPE_ARMOR_",
-    weapon = "ITEM_TRAIT_TYPE_WEAPON_",
-    jewelry = "ITEM_TRAIT_TYPE_JEWELRY_",
+    [CATEGORY_ARMOR] = "ITEM_TRAIT_TYPE_ARMOR_",
+    [CATEGORY_WEAPON] = "ITEM_TRAIT_TYPE_WEAPON_",
+    [CATEGORY_JEWELRY] = "ITEM_TRAIT_TYPE_JEWELRY_",
 }
 
 -- Returns an ordered list of { traitType = <enum>, name = <localized string> }
@@ -79,7 +89,7 @@ end
 function CompanionGearHunter.Data.GetTraitSuffixOptions()
     local options = {}
     for _, suffix in ipairs(COMPANION_TRAIT_SUFFIXES) do
-        local traitType = _G[CATEGORY_TRAIT_PREFIX.armor .. suffix]
+        local traitType = _G[CATEGORY_TRAIT_PREFIX[CATEGORY_ARMOR] .. suffix]
         if traitType ~= nil then
             local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
             if traitName ~= "" then
@@ -96,30 +106,40 @@ function CompanionGearHunter.Data.GetTraitTypeForSuffix(category, suffix)
     return prefix and _G[prefix .. suffix] or nil
 end
 
+-- Names come from the game's own SI_ARMORTYPE strings (the same lookup the
+-- game's tooltips use), so they are already translated.
 CompanionGearHunter.Data.WEIGHT_OPTIONS = {
-    { value = ARMORTYPE_LIGHT,  name = "Light" },
-    { value = ARMORTYPE_MEDIUM, name = "Medium" },
-    { value = ARMORTYPE_HEAVY,  name = "Heavy" },
+    { value = ARMORTYPE_LIGHT,  name = GetString("SI_ARMORTYPE", ARMORTYPE_LIGHT) },
+    { value = ARMORTYPE_MEDIUM, name = GetString("SI_ARMORTYPE", ARMORTYPE_MEDIUM) },
+    { value = ARMORTYPE_HEAVY,  name = GetString("SI_ARMORTYPE", ARMORTYPE_HEAVY) },
 }
 
 -- Weapon type names shown/selected for the weapon slots' "wanted sub-type"
 -- and the equipped-item display. Confirmed real WEAPONTYPE_* values against
 -- esoui/esoui; WEAPONTYPE_RUNE/NONE deliberately left out, not relevant to
 -- companion melee/staff/shield gear.
+-- The names come from the game's SI_WEAPONTYPE strings (already translated,
+-- and the current in-game wording: Inferno/Ice/Healing Staff) - except the
+-- three two-handed weapons, which the game names plain "Axe"/"Hammer"/"Sword",
+-- the same as the one-handed ones; those use this addon's own strings.
+local function GameWeaponTypeName(weaponType)
+    return GetString("SI_WEAPONTYPE", weaponType)
+end
+
 local WEAPON_TYPE_NAMES = {
-    [WEAPONTYPE_AXE] = "Axe",
-    [WEAPONTYPE_BOW] = "Bow",
-    [WEAPONTYPE_DAGGER] = "Dagger",
-    [WEAPONTYPE_FIRE_STAFF] = "Fire Staff",
-    [WEAPONTYPE_FROST_STAFF] = "Frost Staff",
-    [WEAPONTYPE_HAMMER] = "Hammer",
-    [WEAPONTYPE_HEALING_STAFF] = "Restoration Staff",
-    [WEAPONTYPE_LIGHTNING_STAFF] = "Lightning Staff",
-    [WEAPONTYPE_SHIELD] = "Shield",
-    [WEAPONTYPE_SWORD] = "Sword",
-    [WEAPONTYPE_TWO_HANDED_AXE] = "Two-Handed Axe",
-    [WEAPONTYPE_TWO_HANDED_HAMMER] = "Two-Handed Hammer",
-    [WEAPONTYPE_TWO_HANDED_SWORD] = "Two-Handed Sword",
+    [WEAPONTYPE_AXE] = GameWeaponTypeName(WEAPONTYPE_AXE),
+    [WEAPONTYPE_BOW] = GameWeaponTypeName(WEAPONTYPE_BOW),
+    [WEAPONTYPE_DAGGER] = GameWeaponTypeName(WEAPONTYPE_DAGGER),
+    [WEAPONTYPE_FIRE_STAFF] = GameWeaponTypeName(WEAPONTYPE_FIRE_STAFF),
+    [WEAPONTYPE_FROST_STAFF] = GameWeaponTypeName(WEAPONTYPE_FROST_STAFF),
+    [WEAPONTYPE_HAMMER] = GameWeaponTypeName(WEAPONTYPE_HAMMER),
+    [WEAPONTYPE_HEALING_STAFF] = GameWeaponTypeName(WEAPONTYPE_HEALING_STAFF),
+    [WEAPONTYPE_LIGHTNING_STAFF] = GameWeaponTypeName(WEAPONTYPE_LIGHTNING_STAFF),
+    [WEAPONTYPE_SHIELD] = GameWeaponTypeName(WEAPONTYPE_SHIELD),
+    [WEAPONTYPE_SWORD] = GameWeaponTypeName(WEAPONTYPE_SWORD),
+    [WEAPONTYPE_TWO_HANDED_AXE] = GetString(COMPANIONGEARHUNTER_WEAPON_TWO_HANDED_AXE),
+    [WEAPONTYPE_TWO_HANDED_HAMMER] = GetString(COMPANIONGEARHUNTER_WEAPON_TWO_HANDED_HAMMER),
+    [WEAPONTYPE_TWO_HANDED_SWORD] = GetString(COMPANIONGEARHUNTER_WEAPON_TWO_HANDED_SWORD),
 }
 CompanionGearHunter.Data.WEAPON_TYPE_NAMES = WEAPON_TYPE_NAMES
 
@@ -252,7 +272,7 @@ function CompanionGearHunter.Data.ApplyToAllSlots(companionId, field, value)
 
     for _, slotDef in ipairs(CompanionGearHunter.Data.SLOTS) do
         local applies = not (slotDef.key == "OffHand" and skipOffHand)
-        if field == "subType" and slotDef.category ~= "armor" then
+        if field == "subType" and slotDef.category ~= CATEGORY_ARMOR then
             applies = false
         end
 
@@ -778,38 +798,75 @@ local function RefreshGridIfOpen()
     end
 end
 
+-- Only ever called for BAG_COMPANION_WORN: the AddFilterForEvent in
+-- SetEquipmentEventsRegistered below filters the event by bag before any Lua
+-- runs.
+local function OnCompanionEquipmentSlotUpdate()
+    RecordActiveCompanionEquipment()
+    RefreshGridIfOpen()
+end
+
+-- The equipment-change event is only registered while a companion is out: with
+-- none summoned there is no worn gear that can change, so nothing needs to
+-- listen. Idempotent; `equipmentEventsRegistered` is the one source of truth.
+local EVENT_NAMESPACE = "CompanionGearHunter_Data"
+local equipmentEventsRegistered = false
+
+local function SetEquipmentEventsRegistered(enabled)
+    if enabled == equipmentEventsRegistered then
+        return
+    end
+    equipmentEventsRegistered = enabled
+    if enabled then
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCompanionEquipmentSlotUpdate)
+        EVENT_MANAGER:AddFilterForEvent(EVENT_NAMESPACE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_COMPANION_WORN)
+    else
+        EVENT_MANAGER:UnregisterForEvent(EVENT_NAMESPACE, EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    end
+end
+
+-- Registers or unregisters the equipment event to match whether a companion is
+-- out right now. Run at load and on every player activation (a /reloadui or
+-- zone change with a companion already summoned fires no companion event).
+function CompanionGearHunter.Data.CheckEnableEvents()
+    SetEquipmentEventsRegistered(HasActiveCompanion())
+end
+
+-- The companion events themselves say which way to go, so they set the state
+-- directly rather than asking HasActiveCompanion() (whose value this early in
+-- the event is not something we have verified).
 local function OnCompanionActivated()
+    SetEquipmentEventsRegistered(true)
     RecordActiveCompanionEquipment()
     RefreshGridIfOpen()
 end
 
-local function OnCompanionEquipmentSlotUpdate(eventCode, bagId)
-    if bagId ~= BAG_COMPANION_WORN then
-        return
-    end
-    RecordActiveCompanionEquipment()
-    RefreshGridIfOpen()
+local function OnCompanionDeactivated()
+    SetEquipmentEventsRegistered(false)
 end
 
-local function OnAddOnLoaded(eventCode, addOnName)
-    if addOnName ~= CompanionGearHunter.name then
-        return
-    end
-    EVENT_MANAGER:UnregisterForEvent("CompanionGearHunter_Data", EVENT_ADD_ON_LOADED)
-
+-- Called once from the addon's single EVENT_ADD_ON_LOADED handler
+-- (CompanionGearHunter.lua), before anything else uses the saved data.
+function CompanionGearHunter.Data.Initialize()
     -- GetWorldName() namespaces by server, same reasoning as CompanionRoster:
     -- avoids mixing data from two different servers under one @account.
     local defaults = { wishlist = {}, equipped = {}, upgradeSuggestionsEnabled = true, upgradeDisabledCompanions = {}, chatTaggingEnabled = true, markerColors = {}, tooltipPrefix = "FCGH:", slashCommand = "/fcgh" }
     savedVars = ZO_SavedVars:NewAccountWide("CompanionGearHunter_SavedVariables", CompanionGearHunter.savedVariablesVersion, GetWorldName(), defaults)
 
-    EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Data", EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
-    EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Data", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCompanionEquipmentSlotUpdate)
-    EVENT_MANAGER:AddFilterForEvent("CompanionGearHunter_Data", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_BAG_ID, BAG_COMPANION_WORN)
-    EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Data", EVENT_PLAYER_ACTIVATED, OnCompanionActivated)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_COMPANION_ACTIVATED, OnCompanionActivated)
+    EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_COMPANION_DEACTIVATED, OnCompanionDeactivated)
 
+    CompanionGearHunter.Data.CheckEnableEvents()
     if HasActiveCompanion() then
         RecordActiveCompanionEquipment()
     end
 end
 
-EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Data", EVENT_ADD_ON_LOADED, OnAddOnLoaded)
+-- Called from the single EVENT_PLAYER_ACTIVATED handler on every activation
+-- (login, /reloadui, zone change): re-syncs the event registration and the
+-- equipment cache with a companion that may already be out.
+function CompanionGearHunter.Data.OnPlayerActivated()
+    CompanionGearHunter.Data.CheckEnableEvents()
+    RecordActiveCompanionEquipment()
+    RefreshGridIfOpen()
+end

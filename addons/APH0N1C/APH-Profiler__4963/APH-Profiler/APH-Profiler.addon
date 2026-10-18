@@ -1,0 +1,38 @@
+## Title: |c9CD04CAPH-Profiler|r
+## AddOnVersion: 26101514
+## Version: 2026.10.15.14.36
+## Author: |ca500f3A|r|cb400e6P|r|cc300daH|r|cd200cdO|r|ce100c1NlC|r
+## APIVersion: 101051 101052
+## SavedVariables: APHProfiler
+## DependsOn: LibAPH>=26100607
+## OptionalDependsOn: LibAddonMenu-2.0 LibHarvensAddonSettings LibDebugLogger
+## Description: |cfa9c1bMeasures which add-on is spending your frame time, parsed a slice at a time so the reading itself never stutters.|r |cCCFF00Usage: /aphp /aphpstop /aphpreport|r
+
+lang/default.lua
+lang/$(language).lua
+CORE/APH-Profiler.lua
+UTILS/LoadTimes.lua
+UTILS/Sampler.lua
+UTILS/ScanLength.lua
+UTILS/UiLoadScan.lua
+UTILS/History.lua
+UTILS/Report.lua
+UTILS/DebugLog.lua
+UI/ResultsHud.lua
+UI/Menu.lua
+UI/Timeline.lua
+UI/LoadTimes.lua
+UI/Tooltip.lua
+UTILS/Settings.lua
+
+Bindings.xml
+
+; This Add-on is not created by, affiliated with or sponsored by ZeniMax
+; Media Inc. or its affiliates. The Elder Scrolls® and related logos are
+; registered trademarks or trademarks of ZeniMax Media Inc. in the United
+; States and/or other countries. All rights reserved.
+;
+; You can read the full terms at:
+; https://account.elderscrollsonline.com/add-on-terms
+
+; License: All Rights Reserved. See LICENSE.md for maintenance exceptions & AI opt-out.

@@ -1,9 +1,9 @@
 ## Title: CasualClean
 ## Author: Th3rtythr33
-## Version: 1.6.6
-## AddOnVersion: 10
+## Version: 1.7.5
+## AddOnVersion: 11
 ## APIVersion: 101051
-## Description: Requires LibHarvensAddonSettings (auto-installed). A more minimal, immersive HUD. Mag/Stam Arcs flank your reticle, fading in only when a resource is spent and replacing the default magicka and stamina bars. The quest tracker and the Golden Pursuit tracker can be kept off the screen during play and shown on the main menu instead. The companion unit frame is hidden and your companion is marked with a follower icon over their head that shifts from green to yellow to red as their health drops, showing an X if they die; when they're off-screen the icon clamps to the screen edge and an arrow points toward them. The companion features disable themselves in Cyrodiil and Battlegrounds always, and in Dungeons/Trials while grouped. Every feature can be switched off in the add-on settings. Every feature can be switched off in the add-on settings. Every feature can be switched off in the add-on settings. Credits: the companion marker's screen-projection technique is based on Breadcrumbs by tmp, and recolouring the game's companion map pin as an over-the-head marker follows OdySupportIcons by Odylon and ExoY. Created with AI assistance.
+## Description: Requires LibHarvensAddonSettings (auto-installed). A more minimal, immersive HUD. Mag/Stam Arcs flank your reticle, fading in only when a resource is spent and replacing the default magicka and stamina bars. The quest tracker and the Golden Pursuit tracker can be kept off the screen during play and shown on the main menu instead. The companion unit frame is hidden and your companion is marked with a follower icon over their head that shifts from green to yellow to red as their health drops, showing an X if they die; when they're off-screen the icon clamps to the screen edge and an arrow points toward them. The companion features disable themselves in Cyrodiil and Battlegrounds always, and in Dungeons/Trials while grouped. If PvP UA! is installed, its credit line can be hidden too; if Votan's Minimap is installed, its position sliders are fixed. Every feature can be switched off in the add-on settings. Credits: the companion marker's screen-projection technique is based on Breadcrumbs by tmp, and recolouring the game's companion map pin as an over-the-head marker follows OdySupportIcons by Odylon and ExoY. Created with AI assistance.
 ## DependsOn: LibHarvensAddonSettings>=20200
 ## SavedVariables: CasualCleanVars
 
@@ -13,7 +13,8 @@
 ; AddOnVersion is an integer that must only ever INCREASE, and it steps by one
 ; per PUBLISHED build regardless of how far the semantic Version jumps. It is
 ; what the console catalogue uses; Version is only ever shown to humans.
-; 1.5.0 shipped as AddOnVersion 9, so 1.6.6 is 10 (Version jumped; AddOnVersion steps by one).
+; 1.5.0 shipped as AddOnVersion 9, 1.6.6 as 10, so 1.7.5 is 11 (Version jumps
+; freely; AddOnVersion steps by one per release).
 ;
 ; .addon only, no .txt: console-only addon, and the console client has
 ; ignored .txt manifests since June 2025.
@@ -55,4 +56,6 @@ CasualClean.lua
 UI/MagStamArcs.xml
 UI/MagStamArcs.lua
 UI/QuestTracker.lua
+UI/PvPUA.lua
+UI/VotansMiniMap.lua
 Settings.lua

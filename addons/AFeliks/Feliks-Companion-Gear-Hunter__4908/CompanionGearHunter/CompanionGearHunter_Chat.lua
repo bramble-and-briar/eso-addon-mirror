@@ -82,11 +82,10 @@ local function EnsureChatTaggingInstalled()
     CHAT_ROUTER:RegisterMessageFormatter(EVENT_CHAT_MESSAGE_CHANNEL, ourFormatter)
 end
 
-local function OnPlayerActivated()
-    EVENT_MANAGER:UnregisterForEvent("CompanionGearHunter_Chat", EVENT_PLAYER_ACTIVATED)
+-- Called once, from the first EVENT_PLAYER_ACTIVATED handled in
+-- CompanionGearHunter.lua.
+function CompanionGearHunter.InstallChatTagging()
     for _, delay in ipairs(INSTALL_DELAYS_MS) do
         zo_callLater(EnsureChatTaggingInstalled, delay)
     end
 end
-
-EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Chat", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)

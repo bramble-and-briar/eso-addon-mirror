@@ -4,7 +4,7 @@
 
 *Helper library for my addons.*
 
-![Version](https://img.shields.io/badge/version-2026.10.07.17.24-9CD04C?style=flat-square)
+![Version](https://img.shields.io/badge/version-2026.10.18.01.41-9CD04C?style=flat-square)
 ![ESO API](https://img.shields.io/badge/ESO%20API-101051%20%7C%20101052-00FFFF?style=flat-square)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-fa9c1b?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-PC%20%7C%20Xbox%20%7C%20PlayStation-FF69B4?style=flat-square)
@@ -16,18 +16,114 @@ Everyday helper code my add-ons share, kept in one place so none of them has to 
 ## Features
 
 - **Window & Theme** - resizable status/scroll-list windows with a shared flat theme
+  <details>
+  <summary>Demo</summary>
+
+  **Window**
+
+  ![Window](.github/assets/APH-CODERUNNER-DEMOWINDOW.gif)
+
+  **Results Window**
+
+  ![Results Window](.github/assets/ALC-BENCHMARK-PC-results-summary.gif)
+
+  </details>
 - **Console Support** - right-stick window drag/resize, console text-entry and picker dialogs
+  <details>
+  <summary>Demo</summary>
+
+  **Window moved and resized with the right stick**
+
+  ![Window moved and resized with the right stick](.github/assets/ALC-BENCHMARK-CONSOLE-RESIZING-MOVING.gif)
+
+  </details>
 - **Context Menu & Search Bar** - multi-level context menu, movable expanding search bar, key-hint icons
+  <details>
+  <summary>Demo</summary>
+
+  **Context menu**
+
+  ![Context menu](.github/assets/ALC-BENCHMARK-CONSOLE-COMPARE.gif)
+
+  **Search bar position**
+
+  ![Search bar position](.github/assets/APH-SEARCHBAR-POSITION.gif)
+
+  **Clearing recent searches**
+
+  ![Clearing recent searches](.github/assets/APH-SEARCH-DELETE-HISTORY.gif)
+
+  </details>
 - **Module Manager** - soft-disables individual add-on files and rebuilds the Client Info file list
 - **Wizard Helper** - schedules a first-run setup wizard, auto-unloads once completed
 - **Messaging & Dialogs** - chained/window-hiding dialogs, safe CSAs, a chat logger
+  <details>
+  <summary>Demo</summary>
+
+  **Dialogs**
+
+  ![Dialogs](.github/assets/AoM-CREATE-DELETE-MOVETO-CATEGORY.gif)
+
+  </details>
 - **Player State** - crafting/interacting/menu busy checks, movement and teleport trackers
 - **SavedVariables** - disk-usage reporting, throttled priority saves, unused-SV cleanup
+  <details>
+  <summary>Demo</summary>
+
+  **Save size**
+
+  ![Save size](.github/assets/AoM-SAVE-SIZE.gif)
+
+  </details>
 - **Library & Version Checks** - checks an optional library's version and builds a shared warning message
+  <details>
+  <summary>Demo</summary>
+
+  **Version filters**
+
+  ![Version filters](.github/assets/AoM-VERSION-FILTERS.gif)
+
+  </details>
 - **Bug Reporting** - a shared `/xxxbugreport` popup format used by every add-on
+  <details>
+  <summary>Demo</summary>
+
+  **Bug report**
+
+  ![Bug report](.github/assets/AoM-ERROR-CAPTURE-AND-BUG-REPORT.gif)
+
+  </details>
 - **Activity Triggers** - a shared table of "is the player doing X" checks
 - **Scheduler** - spreads work across frames within a time budget, staged add-on init
-- **Memory Cleanup** - the Auto Lua Memory Cleaner cleanup methods for any add-on, shown in Auto Lua Memory Cleaner when it is installed
+- **Memory Cleanup** - the Auto Lua Memory Cleaner cleanup methods for any add-on, shown in Auto Lua Memory Cleaner when it is installed, plus a console hook for the game's Low Add-On memory warning so any add-on can free memory before the game disables add-ons
+  <details>
+  <summary>Demo</summary>
+
+  **Cleaning**
+
+  ![Cleaning](.github/assets/ALC-CLEANING-VID.gif)
+
+  </details>
+- **Saved Records** - packs long number lists for SavedVariables, rounds results and seals them so edits show
+- **Status Line** - a one-line text overlay at the top right of the screen, and label text that is only set when it changes
+- **Text Fitting** - wraps text into lines that fit, shrinks one-line text until it fits, and keeps text above graph lines
+- **Crash Copy** - keeps unfinished work through a crash, disconnect or the game disabling add-ons, and says on the next load what cut it off
+- **Memory Display** - Lua and add-on pool memory at the top right, on PC and console
+- **Game Settings** - FPS cap, and Limit Background FPS / Idle Power Reduction held off while measuring
+- **House Travel** - house destinations, random picks, and jumps that report when they fail
+- **Graphs** - pooled drawing for graphs that redraw often, with axis-step and time-tick helpers
+  <details>
+  <summary>Demo</summary>
+
+  **Timeline on PC**
+
+  ![Timeline on PC](.github/assets/ALC-BENCHMARK-PC-timeline.gif)
+
+  **Timeline on console**
+
+  ![Timeline on console](.github/assets/ALC-BENCHMARK-CONSOLE-TIMELINE.gif)
+
+  </details>
 
 ## Installation
 
@@ -87,7 +183,7 @@ LibAPH.Schedule("MyAddon_Cleanup", function() --[[ heavy work, one chunk per fra
   - optional `opts.onMoving(win)` runs every `opts.watchMs` (default 50 ms) while the window is dragged with the mouse or moved with the right stick; `opts.onMoveStop(win)` runs after the new spot is saved; `opts.onMoveEnd(win)` runs whenever a right-stick move ends, moved or not
   - `pos:WatchMove()` starts the `onMoving` loop by hand (returns false without `onMoving`); `pos:StopWatch()` stops it
 - `GetScreenThirdAlign(control)` / `GetScreenThirdAlignAt(centerX, screenWidth)`: returns `TEXT_ALIGN_LEFT`, `TEXT_ALIGN_CENTER` or `TEXT_ALIGN_RIGHT` for whichever third of the screen a control's center sits in, so text can hug the nearest edge
-- `EnableUndoRedo(edit, opts)`: keeps an undo and redo history for an edit box, with typing grouped into steps; call `:Undo()` and `:Redo()` from your own buttons
+- `EnableUndoRedo(edit, opts)`: keeps an undo history for an edit box, with typing grouped into steps; call `:Undo()` from your own button
 
 <details>
 <summary>Show a full Window & Theme example</summary>
@@ -353,9 +449,62 @@ end
 </details>
 
 <details>
+<summary><b>Controller Focus</b> (<code>UI/PadFocus.lua</code>, <code>UI/Bindings.xml</code>)</summary>
+
+- `RegisterPadFocus(name, spec)`: one shared controller layer for every add-on window. Returns a handle with `:Request(auto)`, `:Release(passOn)`, `:IsFocused()` and `:Unregister()`. `spec.canFocus(auto)` says whether the window can act, `spec.onFocus()` and `spec.onBlur(reason)` run when it gets or loses the buttons (`reason` is `"taken"` or `"released"`), `spec.buttons[button]()` handles a press and returns `true` when it used it, and `spec.release[button]()` runs when that button comes up
+- `GetPadFocusOwner()`: the name of the window that has the controller, or `nil`
+
+<details>
+<summary>For add-on authors: the shared controller layer</summary>
+
+LibAPH has one controller layer that every add-on window can share. Only the window with focus gets the buttons: opening another add-on's window takes focus from yours, closing it hands focus back to the window used before, and a button the focused window doesn't use goes to the game. Dialogs always get their buttons, and a window that is hidden behind a menu lets the menu have them.
+
+Register once with a name and a handler for each button your window uses: `up`, `down`, `left`, `right`, `lb`, `rb`, `lt`, `rt`, `a`, `x`, `y`, `ls`, `rs` or `b`. A handler returns true when it used the press. `release` handlers run when the button comes up, or at once if your window loses focus while it is held, so a hold never keeps running.
+
+`Request(false)` takes focus, for when the player opens your window. `Request(true)` takes it only when no other window has it, for a window that takes control on its own (on console, for example). `Release(true)` hands focus back to the window used before; call it when your window closes. `canFocus` must say false while your window can't act. Keep the `LibAPH.RegisterPadFocus` check (or your own layer as a fallback), so your add-on still works with an older LibAPH.
+
+```lua
+local DemoPad = { name = "DemoPad" }
+
+local function IsPad() return IsConsoleUI() or IsInGamepadPreferredMode() end
+
+local function Close()
+	DemoPadWindow:SetHidden(true)
+	if DemoPad.focus then DemoPad.focus:Release(true) end
+end
+
+local function Open()
+	DemoPadWindow:SetHidden(false)
+	if DemoPad.focus then DemoPad.focus:Request(false) end
+end
+
+EVENT_MANAGER:RegisterForEvent(DemoPad.name, EVENT_ADD_ON_LOADED, function(_, addon_name)
+	if addon_name ~= DemoPad.name then return end
+	EVENT_MANAGER:UnregisterForEvent(DemoPad.name, EVENT_ADD_ON_LOADED)
+	if not (LibAPH and LibAPH.RegisterPadFocus) then return end
+	DemoPad.focus = LibAPH.RegisterPadFocus(DemoPad.name, {
+		canFocus = function() return IsPad() and not DemoPadWindow:IsHidden() end,
+		onFocus = function() DemoPadWindowHints:SetHidden(false) end,
+		onBlur = function() DemoPadWindowHints:SetHidden(true) end,
+		buttons = {
+			up = function() return DemoPad.Scroll(-1) end,
+			down = function() return DemoPad.Scroll(1) end,
+			b = function() Close() return true end,
+		},
+	})
+	SLASH_COMMANDS["/demopad"] = Open
+end)
+```
+
+</details>
+
+</details>
+
+<details>
 <summary><b>Context Menu</b> (<code>UI/ContextMenu.lua</code>)</summary>
 
-- `ShowContextMenu(control, entries, opts)` / `CloseContextMenu()` / `CloseContextMenuLevel()`: opens/closes the multi-level menu
+- `ShowContextMenu(control, entries, opts)` / `CloseContextMenu()` / `CloseContextMenuLevel()`: opens/closes the multi-level menu; it opens beside `opts.window` (or `control`): on the side (below, above, left or right) where the whole menu fits and the screen is most open, else the roomier of below and above, then inside, with `opts.gap`, `opts.belowGap` and `opts.aboveGap` keeping room for hint bars
+- `PlaceContextMenuBeside(window, opts)`: moves the open menu beside another window in the same order, with the same `opts`
 - `IsContextMenuOpen()` / `GetContextMenuDepth()` / `GetContextMenuRowCount(level)` / `GetContextMenuPlacement(level)`: menu-state queries
 - `RefreshContextMenu()`: rebuilds the currently open menu in place
 - `ContextMenuRowClicked(row)` / `ContextMenuRowEntered(row)` / `MoveContextMenuFocus(direction)` / `ActivateContextMenuFocus()`: row interaction and console focus movement
@@ -369,11 +518,16 @@ end
 
 - `CreateSearchBar(opts)`: a movable search bar that expands into a match palette, with a console route
 - `CreateKeyHints(parent, name, hints)`: shows the game's key icons, drawn key caps, or controller button hints
+- `CreatePadHintBar(name, opts)`: a controller hint bar under a window (above it when there's no room), one line per hint so the button icons never overlap, drawn just above the add-on's own windows (`opts.parent`, the owner and any `opts.above` controls or functions) on their tier and layer, and hidden while `opts.parent` is hidden; `:Show(owner, parts)` returns the room it takes below and above, `:Hide()`, `:GetText()`, `:IsShown()`
 
 </details>
 
 <details>
 <summary><b>Status Icons</b> (<code>UI/StatusIcons.lua</code>)</summary>
+
+**Status icons**
+
+![Status icons](.github/assets/AOM-CONSOLE-ICONS.gif)
 
 - `CreateStatusIconStrip(parentControl, selfHandled, slots, size)`: builds a colored status-icon strip for a row
 - `UpdateStatusIconStrip(icons, anchorControl, statusIcons, growLeftward, offsetX, relativePoint)`: repositions/refreshes an icon strip
@@ -471,7 +625,11 @@ end
 <details>
 <summary><b>Dependency Registration</b> (<code>UTILS/DependencyRegistry.lua</code>)</summary>
 
-- `RegisterAddonDependencies(addonName, requiredLibs, optionalLibs)`: declares an add-on's real dependencies for the Client Info panel
+**Used as a dependency**
+
+![Used as a dependency](.github/assets/LIBAPH-DEPENDENCY-REGISTRATION.png)
+
+- `RegisterAddonDependencies(addonName, requiredLibs, optionalLibs)`: declares an add-on's dependencies for the Client Info panel
 
 </details>
 
@@ -489,10 +647,15 @@ end
 <details>
 <summary><b>Add-on Manager Helpers</b> (<code>HELPERS/AddonManager.lua</code>, <code>UTILS/Platform.lua</code>)</summary>
 
+**Switching dependencies on from an icon**
+
+![Switching dependencies on from an icon](.github/assets/AOM-CONSOLE-ICONS.gif)
+
 - `EnableRequiredDependencies(index, setEnabled, onEnabled)` / `EnableAddonWithDependencies(index, setEnabled, onEnabled)`: enables an add-on along with its dependencies
 - `GetPlatformString()` / `GetPlatformServiceName()`: platform and storefront detection
 - `GetKeybindMarkup(action)`: the bound key for an action as inline icon markup, or an empty string when nothing is bound
 - `IsGameScreenShown()`: true only while the base game scene is fully shown (no menu, no transition)
+- `IsDialogOnScreen()`: true only while a dialog is on screen, so keys don't give way to one that already closed
 - `ShowMenuScene(scene)`: opens a main-menu scene through the keyboard main menu when it knows the scene, otherwise through `SCENE_MANAGER`
 - `AfterSceneShown(scene, fn)`: runs `fn` once `scene` is shown, checking every 100 ms for up to a second
 - `IsAddonActiveAndRunning(addonName)` / `IsLibraryAddonByName(am, addonName)`: add-on state queries
@@ -501,6 +664,10 @@ end
 
 <details>
 <summary><b>Error Capture</b> (<code>HELPERS/ErrorCapture.lua</code>)</summary>
+
+**Error capture on console**
+
+![Error capture on console](.github/assets/AOM-CONSOLE-ERRORS-SLOW.gif)
 
 - `HookErrorCapture(addonName, onCaptured)`: hooks Lua errors for one add-on
 - `RecordCapturedBug(bugList, text, maxTracked)`: records a captured error, capped
@@ -512,7 +679,7 @@ end
 <summary><b>Format Helpers</b> (<code>UTILS/Format.lua</code>)</summary>
 
 - `FormatVersionParen(version)` / `FormatVersionBare(version)` / `FormatVersionHistory(history, currentVersion, sep)`: version-string formatting
-- `StripColors(text, fallback)`: strips ESO color markup from a string
+- `StripColors(text, fallback)`: strips color markup from a string
 - `PickDiskUnit(usageMB)` / `FormatSizeMB(sizeMB, decimals, subMegabyteUnit)` / `FormatDiskUsageMB(usageMB, short)` / `FormatDiskUsageRangeMB(usedMB, capacityMB)` / `FormatMemoryMB(sizeMB)`: disk/memory-size formatting
 - `FormatInstallDateLine(installedDate, todayStr)` / `GetTodayDateString()`: install-date formatting
 
@@ -520,6 +687,10 @@ end
 
 <details>
 <summary><b>Profile Store</b> (<code>UTILS/ProfileStore.lua</code>)</summary>
+
+**Profiles**
+
+![Profiles](.github/assets/AOM-DISABLE-UNUSED-CONSOLE.gif)
 
 - `CreateProfileStore(opts)`: a saved-profile manager (create/switch/delete named settings profiles); opts.perCharacter keeps a separate active profile for each character while the profiles stay account-wide
 - `CopyMap(source)` / `CopyList(source)`: shallow-copy helpers for saved tables
@@ -536,6 +707,82 @@ end
 </details>
 
 <details>
+<summary><b>Saved Records</b> (<code>UTILS/SavedRecords.lua</code>)</summary>
+
+- `PackNumbers(list, scale)` / `UnpackNumbers(packed, scale)`: packs a list of numbers (or `false` gaps) into short text, several times smaller than the list, split into chunks under the 2,000 character SavedVariables limit; `scale` sets the decimals kept (10 keeps one)
+- `RoundNumbers(t, decimals)`: rounds every number in a table and its subtables (default 2 decimals)
+- `CreateSeal(opts)`: returns a sealer for finished results, or nil when `opts.salt` is missing or already taken; each salt can be claimed once per session, so create it while your add-on loads and keep it in a local
+  - `opts.skip`: top-level keys left out of the seal, such as a name the player may change; `opts.decimals` (default 2): `Seal` rounds every number to this many decimals first, and any number that is not exactly one of those values counts as edited, so even a change far smaller than the last decimal shows; `opts.verify(record)`: your own check that the numbers agree with each other, `false` means edited
+  - `sealer.Seal(record)`: writes `record.seal`, a 64-bit checksum of the record, the account and the server, plus `record.seal_account` and `record.seal_world`; it never replaces a seal that is already there
+  - `sealer.Check(record)`: returns `"sealed"`, `"changed"`, `"not_sealed"`, or `"other_player"` / `"other_server"` when the record is intact but was sealed by another account or on another server (named in `record.seal_account` and `record.seal_world`)
+  - the seal shows edits made to the saved file; anyone who reads your code can still make a matching seal, so it is not proof
+
+</details>
+
+<details>
+<summary><b>Text Fitting</b> (<code>UI/FitText.lua</code>)</summary>
+
+- `FitButtonText(button, opts)`: steps a button's font down until its text fits the button
+- `FitButtonRow(container, buttons, opts)`: shrinks a row of buttons to fit its container, keybind labels together, and refits when the container resizes
+- `WrapText(label, text, width, opts)`: returns the text broken into lines that fit `width` at the label's font, the line count, and whether a single word is still too wide; lists break between items (at `", "`) before words; colour codes don't count toward the width
+- `FitLabelText(label, text, opts)`: sets a one-line label's text and steps its font down (`opts.font`, a `face|size|effect` string or a named font, down to `opts.minSize`, default 8) until it fits `opts.width` or the label's width; returns false when even the smallest size can't fit it
+- `RaiseLabel(label, opts)`: draws a label above graph lines and markers (`opts.level`, default 20) and, unless `opts.backdrop` is false, puts a backing (`opts.color`) just under it; the label keeps its own draw layer unless `opts.layer` is given
+
+</details>
+
+<details>
+<summary><b>Status Line</b> (<code>UI/StatusLine.lua</code>)</summary>
+
+- `SettingsMenuEntries(controls, opts)`: turns a LibAddonMenu-2.0 options table into context menu entries, so the same settings can sit in an add-on's own menu: checkboxes stay checkboxes, dropdowns open their choices with the current one green, sliders ask for a number (`opts.askText(spec)`, `opts.rangeText`) snapped to their step and range, buttons run, dangerous ones through `opts.confirm(id, title, body, onConfirm)`, submenus nest, greyed-out controls stay greyed out, and descriptions are left out
+- `CreateStatusLine(name, opts)`: a one-line text overlay at the top right of the screen (lower on console, clear of the game's memory display); `line:Set(text)`, `line:Hide()`, `line:GetText()` (nil while hidden); `opts.font`, `opts.width`, `opts.align`, `opts.offsetX` / `opts.offsetY`, `opts.consoleOffsetX` / `opts.consoleOffsetY`, `opts.point`, and `opts.relativeTo` (a control or its global name) with `opts.relativePoint` to place it under another control, such as `ZO_CompassFrame`; `opts.stack` (a group name, such as `"compass"`) with `opts.order` stacks lines from several add-ons one under another in that order instead of overlapping, and a hidden one gives its place to the next
+- `SetTextIfChanged(label, text)`: sets a label's text only when it differs from what this function last set, so text redrawn every frame or second makes no work when nothing changed
+
+</details>
+
+<details>
+<summary><b>Memory Display</b> (<code>UI/MemoryDisplay.lua</code>)</summary>
+
+- `SetMemoryDisplay(owner, on)`: shows Lua and add-on pool memory at the top right while any add-on asks for it ("Lua N MB Pool N MB"). On PC it is LibAPH's own label, updated every second; on console it turns on the game's add-on memory display, moves it to the top right and adds Lua, and puts it back as the player had it once no add-on wants it. Returns whether it is shown
+- `IsMemoryDisplayShown()` / `GetMemoryDisplayText()`: whether it is shown, and its text right now
+
+</details>
+
+<details>
+<summary><b>Game Settings</b> (<code>UTILS/GameSettings.lua</code>, <code>UTILS/Platform.lua</code>)</summary>
+
+- `GetFpsCap()` / `SetFpsCap(fps)`: the frame-rate cap (nil when uncapped). SetFpsCap takes FPS_CAP_MIN to FPS_CAP_MAX (10 to 1000), or nil / "uncapped" to remove the cap, and returns false, "range" or false, "console" when it can't (PC only)
+- `HoldGameSettings()` / `ReholdGameSettings(held)` / `ReleaseGameSettings(held)` / `GetHeldGameSettingNames(held)`: switches Limit Background FPS and Idle Power Reduction off for a measurement without saving the change, again after a reload, back afterwards, and names what was held (PC only)
+- `CountRunningAddOns()`: { on, total, libs_on, libs_total }, counting enabled add-ons that are out of date as running
+
+</details>
+
+<details>
+<summary><b>House Travel</b> (<code>UTILS/HouseTravel.lua</code>)</summary>
+
+- `GetHouseDestinations()`: every house collectible as { house, outside, owned, zone, text }: inside and outside for houses you own, a preview for the others
+- `PickHouseDestination(opts)`: a random destination, skipping opts.skipZones (a set of zone ids), opts.avoidZone and opts.avoidHouse; nil when none is left
+- `RequestHouseJump(house, outside, opts)`: jumps after opts.delayMs (1000) and calls opts.onFailed() once when the jump fails, can't start from here, or no loading screen begins within opts.timeoutMs (20000); opts.isLive() lets the caller drop it quietly. Returns a handle with Cancel() and IsLive()
+- `GetCurrentPlace()` / `IsInOwnedHouse()`: { zone, house } where you are, and whether it is a house you own
+
+</details>
+
+<details>
+<summary><b>Crash Copy</b> (<code>UTILS/CrashCopy.lua</code>)</summary>
+
+- `CreateCrashCopy(opts)`: keeps a copy of unfinished work in your SavedVariables so it survives a crash, a disconnect or the game disabling add-ons. opts.addonName, opts.store() returning the saved table, and opts.key naming the field ("crash_copy" by default); opts.active() says whether work is running, opts.expectedReload() marks your own planned reloads, opts.onCause(cause) runs when a logout, quit or reload is noted. copy:Keep(data), copy:Update() (stamps the time and add-on memory, and near the memory limit asks the game to save, once per 10 s), copy:SaveNow(), copy:Get(), copy:Reset(), copy:Clear(), and on the next load copy:Take() returns the data and why it was cut off
+- `GetCrashReason(data, opts)`: { cause, short }: cause is logout, quit, reload, out_of_memory (opts.lowMemory: after the game's Low Add-On memory warning), likely_out_of_memory (the add-on pool was near its limit) or unknown; short is the few words to show ("logged out", "game closed", "reloaded", "out of memory", "cut off")
+
+</details>
+
+<details>
+<summary><b>Graphs</b> (<code>UI/Graph.lua</code>)</summary>
+
+- `CreateGraphCanvas(area, opts)`: pooled rectangles and text on a control, for graphs that redraw often: canvas:Begin(), canvas:Rect(kind, x, y, w, h, color), canvas:Text(kind, text, color), canvas:Line(plot, values, low, high, colorOf, thickness) (a stepped line with risers and a gap where a value is false), and canvas:Finish() hides whatever the redraw did not use. opts.levels sets the draw level per kind (text above everything), with opts.font() and opts.textColor
+- `NiceGraphStep(range)` / `GraphTickStep(span, target, steps)` / `FormatClock(seconds)`: round axis steps, time-tick spacing for about target labels, and m:ss times
+
+</details>
+
+<details>
 <summary><b>Scheduler</b> (<code>UTILS/Scheduler.lua</code>)</summary>
 
 - `Schedule(name, step, opts)` / `RunOrSchedule(name, step, opts)`: spreads a function's work across frames within a time budget
@@ -544,7 +791,8 @@ end
 - `RunInitStages(name, stages)`: runs a list of init functions one per frame (staged add-on load)
 - `InitOnFirstShow(sceneObject, fn)`: defers init until a scene is first shown
 - `GetScheduledJob(name)` / `IsScheduled(name)` / `GetScheduledCount()`: scheduler-state queries
-- `GetSchedulerBudgetMs()` / `SetSchedulerBudgetMs(ms)`: reads/sets the per-frame time budget
+- `GetSchedulerBudgetMs()` / `SetSchedulerBudgetMs(ms)`: reads/sets the per-frame time budget; it shrinks to what is left of the game's per-frame add-on CPU limit (1000 ms on console) and drops to 1 ms while the add-on memory pool is above 95% of its cap
+- `StepTimeLeftMs()`: inside a scheduled step, how many ms the step may still use this frame; check it in data-sized loops and return `false` to carry on next frame
 - `StepCleanup(passes, onDone)` / `IsStepCleanupRunning()`: the shared stepped garbage-collection job every add-on's cleanup routes through
 
 </details>
@@ -554,8 +802,13 @@ end
 
 - `RunCleanup(opts)`: runs one garbage collection with the Auto Lua Memory Cleaner methods: `opts.method` is `"automatic"` (default), `"background"`, `"aggressive"`, `"deep"` or `"vanilla"` (runs only with `opts.force`), `opts.source` names your add-on and `opts.onDone(result)` gets the result. A call while another add-on's cleanup is running joins it instead of cleaning twice. Returns `true, method` or `false, reason`
 - `GetCleanupMethods()` / `PickCleanupMethod(force, reason)`: the method names, and what Automatic would pick right now
-- `RegisterCleanupListener(name, fn)` / `UnregisterCleanupListener(name)`: calls `fn(result)` after every cleanup from any add-on; `result` has `source`, `method`, `picked` and `beforeLua`/`afterLua`/`freedLua`, `beforePool`/`afterPool`/`freedPool` in MB
+- `RegisterCleanupListener(name, fn)` / `UnregisterCleanupListener(name)`: calls `fn(result)` after every cleanup from any add-on; `result` has `source`, `method`, `picked`, `reason` (what the caller passed, such as `"lowmem"`) and `beforeLua`/`afterLua`/`freedLua`, `beforePool`/`afterPool`/`freedPool` in MB
 - `IsCleanupRunning()` / `GetLastCleanup()` / `GetMemoryUsageMB()`: state queries; the last returns Lua and add-on pool MB
+- `RegisterLowMemoryCallback(name, fn)` / `UnregisterLowMemoryCallback(name)`: console only (returns `false` on PC). Calls `fn(used, limit)` when the game shows its "Low Add-On memory: 70 MB/100 MB" warning, so your add-on can drop caches or call `StartLowMemoryRescue({ source = name })` before the game disables every add-on. LibAPH listens once for all add-ons
+- `GetAddOnMemoryLimitMB()` / `IsAddOnMemoryLow(share)`: the add-on memory in use and its limit in MB (`nil` on PC, which has no limit), and whether it is at or above `share` of the limit (0.7 by default, where the game warns)
+- `StartLowMemoryRescue(opts)` / `StopLowMemoryRescue(source)` / `IsLowMemoryRescueRunning(source)`: console only (returns `false, "no limit"` on PC). Your add-on starts it, usually from `RegisterLowMemoryCallback`; LibAPH never starts it by itself. It cleans in small steps every frame within the add-on CPU time the game leaves free (about 2 ms, up to 6 ms near the limit) until add-on memory is back under 65% of the limit, adds a Deep Clean at most every 5 seconds above 80% when the steps fall behind, and keeps going in combat. `opts.source` names your add-on, `opts.canRun()` returning `false` takes your add-on out of it, `opts.onPass(result)` gets each pass (the cleanup result fields, with `method` `"rescue"` or `"deep"` and `reason` `"lowmem"`) and `opts.onDone(reached, totals)` gets whether memory got back under 65% and `freedLua`, `freedPool`, `passes`, `deepCleans`, `tookMs`. A second add-on joins the running rescue instead of starting another. Returns `true, "started"`, `"joined"` or `"running"`, or `false, reason`
+- `GetLowMemoryRescueLines(limit)`: where the game turns add-ons off (90%), where the rescue starts (70%), stops (65%) and adds Deep Cleans (80%), in MB
+- `ReadLowAddOnMemoryWarning(message)`: `used, limit` when a UI error message is that warning, in any game language; `nil` for anything else
 
 When Auto Lua Memory Cleaner is installed, every cleanup run through `RunCleanup` shows in its window, chat logs and announcements.
 
@@ -637,7 +890,7 @@ function DemoCleanup.Status()
 end
 
 local function Init()
-	DemoCleanup.saved = ZO_SavedVars:NewAccountWide("DemoCleanupSaved", 1, nil, { freedMB = 0, clientStart = 0 })
+	DemoCleanup.saved = ZO_SavedVars:NewAccountWide("DemoCleanupSaved", 1, GetWorldName() or "Default", { freedMB = 0, clientStart = 0 })
 	if not LibAPH.IsSameClientSession(DemoCleanup.saved.clientStart) then
 		DemoCleanup.saved.freedMB = 0
 		DemoCleanup.saved.clientStart = LibAPH.GetClientStartTime()
@@ -668,6 +921,42 @@ EVENT_MANAGER:RegisterForEvent(DemoCleanup.name, EVENT_ADD_ON_LOADED, function(_
 	Init()
 end)
 ```
+
+</details>
+
+<details>
+<summary>For add-on authors: the low-memory rescue on console</summary>
+
+On console the game disables every add-on when add-on memory reaches about 90% of its limit. Register one callback at load. When the game warns, drop what your add-on can rebuild and start the shared rescue. Don't call `collectgarbage("collect")` yourself: when several add-ons each run a full collect on the same warning, their freezes stack. If another add-on (such as Auto Lua Memory Cleaner) already started the rescue, your call joins it, so there is still one rescue with one CPU budget.
+
+Declare `## OptionalDependsOn: LibAPH` and keep the `LibAPH.RegisterLowMemoryCallback` check, so your add-on still loads without LibAPH or with an older version. On PC nothing happens, since PC has no add-on memory limit.
+
+```lua
+local DemoRescue = { name = "DemoRescue", cache = {} }
+
+local function OnLowMemory(used, limit)
+	ZO_ClearTable(DemoRescue.cache)
+	LibAPH.StartLowMemoryRescue({
+		source = DemoRescue.name,
+		used = used,
+		cap = limit,
+		onDone = function(reached, totals)
+			DemoRescue.chat:Print(string.format("Freed %.1f MB of add-on memory in %d passes", totals.freedPool, totals.passes))
+		end,
+	})
+end
+
+EVENT_MANAGER:RegisterForEvent(DemoRescue.name, EVENT_ADD_ON_LOADED, function(_, addon_name)
+	if addon_name ~= DemoRescue.name then return end
+	EVENT_MANAGER:UnregisterForEvent(DemoRescue.name, EVENT_ADD_ON_LOADED)
+	if LibAPH and LibAPH.RegisterLowMemoryCallback then
+		DemoRescue.chat = LibAPH.CreateChatLogger(DemoRescue.name, "00FFFF")
+		LibAPH.RegisterLowMemoryCallback(DemoRescue.name, OnLowMemory)
+	end
+end)
+```
+
+Only clear data you can rebuild later, such as lookup tables, search indexes or tooltip caches, never saved variables. Clearing a table turns its contents into garbage, and the rescue frees it. Pass `canRun` to step out of the rescue while your add-on is busy; the rescue keeps going for the other add-ons.
 
 </details>
 

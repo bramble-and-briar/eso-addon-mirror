@@ -9,6 +9,7 @@ local TICK_TOLERANCE_MS = 450
 local INTERVAL_ADAPT_TOLERANCE_MS = 200
 local PASSIVE_REGEN_TOLERANCE = 10
 local TIMER_INTERVAL_MS = 50
+local EXPECTED_RECOVERY_CACHE_MS = 100
 local MIN_WIDTH = 160
 local MAX_WIDTH = 900
 local MIN_HEIGHT = 4
@@ -43,6 +44,21 @@ local settingsMenuOpen = false
 local gameMenuOpen = false
 local timerUpdateRegistered = false
 local ApplyPanelSettings
+local StopTimerUpdates
+
+local renderCache = {
+    width = nil,
+    height = nil,
+    panelAlpha = nil,
+    fillAlpha = nil,
+    hidden = nil,
+}
+
+local expectedRecoveryCache = {
+    value = nil,
+    at = nil,
+    inCombat = nil,
+}
 
 local state = {
     lastPower = nil,
@@ -86,12 +102,30 @@ local function GetCurrentLatency()
     return tonumber(GetLatency()) or 0
 end
 
-local function GetExpectedMagickaRecovery()
+local function InCombat()
+    return IsUnitInCombat and IsUnitInCombat("player") or false
+end
+
+local function InvalidateExpectedRecoveryCache()
+    expectedRecoveryCache.value = nil
+    expectedRecoveryCache.at = nil
+    expectedRecoveryCache.inCombat = nil
+end
+
+local function GetExpectedMagickaRecovery(forceRefresh)
     if not GetPlayerStat then
         return nil
     end
 
-    local inCombat = IsUnitInCombat and IsUnitInCombat("player") or false
+    local inCombat = InCombat()
+    local timestamp = Now()
+    if not forceRefresh
+        and expectedRecoveryCache.at
+        and expectedRecoveryCache.inCombat == inCombat
+        and timestamp - expectedRecoveryCache.at < EXPECTED_RECOVERY_CACHE_MS then
+        return expectedRecoveryCache.value
+    end
+
     local statType
     if inCombat then
         statType = STAT_MAGICKA_REGEN_COMBAT or STAT_MAGICKA_REGEN_IDLE
@@ -100,11 +134,15 @@ local function GetExpectedMagickaRecovery()
     end
 
     if not statType then
+        InvalidateExpectedRecoveryCache()
         return nil
     end
 
     local recovery = GetPlayerStat(statType)
-    return tonumber(recovery)
+    expectedRecoveryCache.value = tonumber(recovery)
+    expectedRecoveryCache.at = timestamp
+    expectedRecoveryCache.inCombat = inCombat
+    return expectedRecoveryCache.value
 end
 
 local function ReadMagickaState()
@@ -118,7 +156,7 @@ local function ReadMagickaState()
     return tonumber(currentPower), tonumber(powerMax)
 end
 
-local function ResetSynchronization(keepPower)
+local function ResetSynchronization(keepPower, applyPanel)
     state.lastNaturalTickAt = nil
     state.tickIntervalMs = DEFAULT_TICK_INTERVAL_MS
     state.displayIntervalMs = DEFAULT_TICK_INTERVAL_MS
@@ -128,13 +166,15 @@ local function ResetSynchronization(keepPower)
     state.lastLatency = nil
     state.lastExpectedRecovery = nil
     state.lastClassification = "reset"
+    InvalidateExpectedRecoveryCache()
+    StopTimerUpdates()
 
     if not keepPower then
         state.lastPower, state.lastPowerMax = ReadMagickaState()
         state.lastPowerAt = Now()
     end
 
-    if savedVars then
+    if applyPanel ~= false and savedVars then
         ApplyPanelSettings()
     end
 end
@@ -288,21 +328,39 @@ local function Render()
     local width = Clamp(tonumber(savedVars.width) or DEFAULTS.width, MIN_WIDTH, MAX_WIDTH)
     local height = Clamp(tonumber(savedVars.height) or DEFAULTS.height, MIN_HEIGHT, MAX_HEIGHT)
     local progress = GetProgress(Now())
+    local panelAlpha = savedVars.panelAlpha
+    local fillAlpha = savedVars.fillAlpha
 
-    panel:SetDimensions(width, height)
-    if background then
+    if renderCache.width ~= width or renderCache.height ~= height then
+        panel:SetDimensions(width, height)
         background:SetDimensions(width, height)
-        background:SetAlpha(savedVars.panelAlpha)
     end
+
+    if renderCache.panelAlpha ~= panelAlpha then
+        background:SetAlpha(panelAlpha)
+    end
+
     if fill then
         fill:SetDimensions(math.max(1, width * progress), height)
-        fill:SetAlpha(savedVars.fillAlpha)
     end
 
-    panel:SetHidden(not IsPanelAllowedByVisibility())
+    if renderCache.fillAlpha ~= fillAlpha then
+        fill:SetAlpha(fillAlpha)
+    end
+
+    local hidden = not IsPanelAllowedByVisibility()
+    if renderCache.hidden ~= hidden then
+        panel:SetHidden(hidden)
+    end
+
+    renderCache.width = width
+    renderCache.height = height
+    renderCache.panelAlpha = panelAlpha
+    renderCache.fillAlpha = fillAlpha
+    renderCache.hidden = hidden
 end
 
-local function StopTimerUpdates()
+StopTimerUpdates = function()
     if timerUpdateRegistered then
         EVENT_MANAGER:UnregisterForUpdate(TIMER_UPDATE_NAME)
         timerUpdateRegistered = false
@@ -381,23 +439,35 @@ local function IsHudSceneName(sceneName)
     return sceneName == "hud" or sceneName == "hudui"
 end
 
-local function SyncGameMenuState()
+local function SetGameMenuState(isOpen, deferPanelApply)
+    if isOpen then
+        if not gameMenuOpen then
+            gameMenuOpen = true
+            ResetSynchronization(false, not deferPanelApply)
+        end
+    else
+        gameMenuOpen = false
+    end
+end
+
+local function SyncGameMenuState(deferPanelApply)
     local currentSceneName = GetCurrentSceneName()
     if currentSceneName then
-        gameMenuOpen = not IsHudSceneName(currentSceneName)
+        SetGameMenuState(not IsHudSceneName(currentSceneName), deferPanelApply)
     end
 end
 
 local function OnSceneStateChanged(scene, _, newState)
     local sceneName = scene and scene.GetName and scene:GetName() or nil
     if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
-        -- Any non-HUD scene is a menu or modal interface. The own settings
-        -- callback can override this through settingsMenuOpen.
-        if sceneName and not IsHudSceneName(sceneName) then
-            gameMenuOpen = true
+        -- Any non-HUD scene is a menu or modal interface. Reset once when
+        -- entering it; the own settings callback can keep the panel visible
+        -- for positioning after the reset.
+        if sceneName then
+            SetGameMenuState(not IsHudSceneName(sceneName), true)
         end
     elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
-        SyncGameMenuState()
+        SyncGameMenuState(true)
     end
 
     Render()
@@ -609,7 +679,7 @@ local function InitializeSettings()
             name = "Leo Sust Beta",
             displayName = "Leo Sust Beta",
             author = "Leo_Kujo",
-            version = "0.1.7",
+            version = "0.1.9",
             registerForRefresh = true,
             registerForDefaults = true,
         })
@@ -751,12 +821,23 @@ local function OnPlayerActivated()
     state.recentGains = {}
     state.latencyAtLastNatural = nil
     state.lastLatency = GetCurrentLatency()
-    state.lastExpectedRecovery = GetExpectedMagickaRecovery()
+    state.lastExpectedRecovery = GetExpectedMagickaRecovery(true)
     state.lastClassification = "waiting_for_natural_ticks"
     ApplyPanelSettings()
 end
 
-local function OnCombatStateChanged()
+local function OnCombatStateChanged(_, inCombat)
+    if type(inCombat) ~= "boolean" and IsUnitInCombat then
+        inCombat = IsUnitInCombat("player")
+    end
+
+    if inCombat == false then
+        -- Combat ending can hide the panel when the combat-only option is
+        -- enabled. Always discard the old phase at this boundary, even when
+        -- the panel remains visible by configuration.
+        ResetSynchronization(false, false)
+    end
+
     Render()
 end
 

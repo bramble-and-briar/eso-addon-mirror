@@ -7,8 +7,8 @@
     See LICENSE.md for full terms and maintenance exceptions.
 ]]
 
-if not ALC then return end
-local ALC = ALC
+if not AutoLuaMemoryCleaner then return end
+local ALC = AutoLuaMemoryCleaner
 
 local function IsConsoleUI()
 	return IsInGamepadPreferredMode()
@@ -40,28 +40,28 @@ end
 local function wizard_step_pool_delay()
 	if not ALC.settings.auto_clear_pool_on_teleport then wizard_finish(); return end
 	wizard_show_dialog("ALC_WIZARD_POOL_DELAY", "|c9CD04CAuto Lua Memory Cleaner|r",
-		ALC.L("POOL_DELAY_BODY"),
+		ALC.L("POOL_DELAY_BODY", ALC.defaults.pool_reload_delay_sec),
 		{
 			{ text = ALC.L("USE_DEFAULT"), keybind = "DIALOG_PRIMARY",
-				callback = function() ALC.settings.pool_reload_delay_sec = 2; wizard_finish() end },
+				callback = function() ALC.settings.pool_reload_delay_sec = ALC.defaults.pool_reload_delay_sec; wizard_finish() end },
 			{ text = ALC.L("CUSTOMIZE"), keybind = "DIALOG_NEGATIVE",
 				callback = function() wizard_step_pool_delay_custom() end }
 		}
 	)
 end
 
-local function wizard_step_pool_threshold_custom(is_console, low, high)
+local function wizard_step_pool_threshold_custom(low, high)
 	wizard_show_dialog("ALC_WIZARD_POOL_THRESHOLD_CUSTOM", "|c9CD04CAuto Lua Memory Cleaner|r",
 		ALC.L("POOL_THRESHOLD_CUSTOM_BODY"),
 		{
 			{ text = ALC.L("LOW", string.format("%g MB", low)), keybind = "DIALOG_PRIMARY",
 				callback = function()
-					if is_console then ALC.settings.pool_threshold_console = low else ALC.settings.pool_threshold_pc = low end
+					ALC.settings.pool_threshold_console = low
 					wizard_step_pool_delay()
 				end },
 			{ text = ALC.L("HIGH", string.format("%g MB", high)), keybind = "DIALOG_NEGATIVE",
 				callback = function()
-					if is_console then ALC.settings.pool_threshold_console = high else ALC.settings.pool_threshold_pc = high end
+					ALC.settings.pool_threshold_console = high
 					wizard_step_pool_delay()
 				end }
 		}
@@ -69,19 +69,18 @@ local function wizard_step_pool_threshold_custom(is_console, low, high)
 end
 
 local function wizard_step_pool_threshold()
-	local is_console = IsConsoleUI()
-	local low, def, high = 5, 10, 50
-	if is_console then low, def, high = 5, 10, 20 end
+	if not ALC.is_console() then return wizard_step_pool_delay() end
+	local low, def, high = 5, 10, 20
 	wizard_show_dialog("ALC_WIZARD_POOL_THRESHOLD", "|c9CD04CAuto Lua Memory Cleaner|r",
 		ALC.L("POOL_THRESHOLD_BODY", def),
 		{
 			{ text = ALC.L("USE_DEFAULT"), keybind = "DIALOG_PRIMARY",
 				callback = function()
-					if is_console then ALC.settings.pool_threshold_console = def else ALC.settings.pool_threshold_pc = def end
+					ALC.settings.pool_threshold_console = def
 					wizard_step_pool_delay()
 				end },
 			{ text = ALC.L("CUSTOMIZE"), keybind = "DIALOG_NEGATIVE",
-				callback = function() wizard_step_pool_threshold_custom(is_console, low, high) end }
+				callback = function() wizard_step_pool_threshold_custom(low, high) end }
 		}
 	)
 end

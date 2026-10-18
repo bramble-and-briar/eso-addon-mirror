@@ -1,9 +1,8 @@
 CompanionGearHunter = CompanionGearHunter or {}
 local CompanionGearHunter = CompanionGearHunter -- local reference, faster than repeated _G lookups
 
--- LibAddonMenu-2.0 exposes a bare global (LibAddonMenu2) in addition to the
--- usual LibStub lookup - used directly, same as CompanionRoster does, since
--- LibStub isn't guaranteed to be installed.
+-- LibAddonMenu-2.0 provides the global LibAddonMenu2; the manifest's
+-- DependsOn guarantees it is loaded.
 local LAM = LibAddonMenu2
 
 local panel = nil
@@ -42,18 +41,18 @@ end
 -- the companion icon drawn in the color as it's picked. LAM can't put a label,
 -- a swatch and a preview on one row by itself, so each picker is a full-width
 -- row and the swatch is moved next to its label and the icon added beside it
--- from the LAM-PanelControlsCreated hook in OnAddOnLoaded. Same layout as
+-- from the LAM-PanelControlsCreated hook in BuildAddonMenu. Same layout as
 -- CompanionRoster's Colors section.
 local COLOR_SWATCH_X = 200 -- where the swatch starts, so the rows line up
 local SAMPLE_ICON_SIZE = 32
 local COLOR_ROWS = {
     {
-        kind = "wanted", name = "Wanted Color",
-        tooltip = "Items matching something on your wishlist.",
+        kind = "wanted", name = GetString(COMPANIONGEARHUNTER_SETTINGS_COLOR_WANTED),
+        tooltip = GetString(COMPANIONGEARHUNTER_SETTINGS_COLOR_WANTED_TIP),
     },
     {
-        kind = "upgrade", name = "Upgrade Color",
-        tooltip = "Items that are a quality upgrade over what a companion has equipped.",
+        kind = "upgrade", name = GetString(COMPANIONGEARHUNTER_SETTINGS_COLOR_UPGRADE),
+        tooltip = GetString(COMPANIONGEARHUNTER_SETTINGS_COLOR_UPGRADE_TIP),
     },
 }
 
@@ -101,7 +100,7 @@ local function IsSlashCommandTaken(command)
 end
 
 -- The command is typed WITHOUT its slash: the panel draws a "/" in front of the
--- box (see the LAM-PanelControlsCreated hook in OnAddOnLoaded), so it can never
+-- box (see the LAM-PanelControlsCreated hook in BuildAddonMenu), so it can never
 -- end up as only a slash. A slash typed anyway is accepted and dropped.
 local COMMAND_EDITBOX_REFERENCE = "CompanionGearHunterCommandEditbox"
 
@@ -123,7 +122,7 @@ local function SetSlashCommand(input)
     if name == "" then
         -- The working command stays in effect; the box is left blank so the
         -- message below it explains what's missing.
-        commandMessage = "A chat command is required."
+        commandMessage = GetString(COMPANIONGEARHUNTER_SETTINGS_COMMAND_REQUIRED)
         return
     end
 
@@ -144,13 +143,13 @@ local function SetSlashCommand(input)
     end
 
     if IsSlashCommandTaken(newCommand) then
-        Reject(newCommand .. " is already used by another command - pick something else.")
+        Reject(zo_strformat(COMPANIONGEARHUNTER_SETTINGS_COMMAND_TAKEN, newCommand))
         return
     end
 
     -- Nothing to rename if the command never got registered at load.
     if CompanionGearHunter.slashCommand == nil then
-        Reject("The chat command isn't registered, so it can't be changed right now.")
+        Reject(GetString(COMPANIONGEARHUNTER_SETTINGS_COMMAND_NOT_REGISTERED))
         return
     end
 
@@ -160,12 +159,10 @@ local function SetSlashCommand(input)
     commandMessage = ""
 end
 
-local function OnAddOnLoaded(eventCode, addOnName)
-    if addOnName ~= CompanionGearHunter.name then
-        return
-    end
-    EVENT_MANAGER:UnregisterForEvent("CompanionGearHunter_Settings", EVENT_ADD_ON_LOADED)
-
+-- Builds the LibAddonMenu settings panel. Called once from the single
+-- EVENT_ADD_ON_LOADED handler in CompanionGearHunter.lua, after the saved data
+-- is ready (the options read it).
+function CompanionGearHunter.BuildAddonMenu()
     local panelData = {
         type = "panel",
         name = "Feliks' Companion Gear Hunter",
@@ -218,13 +215,13 @@ local function OnAddOnLoaded(eventCode, addOnName)
     local optionsTable = {
         {
             type = "header",
-            name = "General",
+            name = GetString(COMPANIONGEARHUNTER_SETTINGS_GENERAL),
             width = "full",
         },
         {
             type = "checkbox",
-            name = "Tag Gear in Chat",
-            tooltip = "When checked, companion gear item links in chat (any channel, including your own messages) get a companion icon in front of them, in the wanted or upgrade color below. Hover the link for details. Edits the line in place - no extra chat lines.",
+            name = GetString(COMPANIONGEARHUNTER_SETTINGS_TAG_CHAT),
+            tooltip = GetString(COMPANIONGEARHUNTER_SETTINGS_TAG_CHAT_TIP),
             getFunc = function() return CompanionGearHunter.Data.GetChatTaggingEnabled() end,
             setFunc = function(value) CompanionGearHunter.Data.SetChatTaggingEnabled(value) end,
             default = true,
@@ -232,8 +229,8 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "editbox",
-            name = "Chat Command",
-            tooltip = "The chat command that toggles the window, typed without the slash. Takes effect immediately, no reload needed.",
+            name = GetString(COMPANIONGEARHUNTER_SETTINGS_COMMAND),
+            tooltip = GetString(COMPANIONGEARHUNTER_SETTINGS_COMMAND_TIP),
             getFunc = GetCommandName,
             setFunc = SetSlashCommand,
             default = "fcgh",
@@ -255,8 +252,8 @@ local function OnAddOnLoaded(eventCode, addOnName)
         },
         {
             type = "editbox",
-            name = "Tooltip Prefix",
-            tooltip = "Text shown at the start of the lines this addon adds to item tooltips. Leave it empty for no prefix.",
+            name = GetString(COMPANIONGEARHUNTER_SETTINGS_PREFIX),
+            tooltip = GetString(COMPANIONGEARHUNTER_SETTINGS_PREFIX_TIP),
             getFunc = function() return CompanionGearHunter.Data.GetTooltipPrefix() end,
             setFunc = function(value) CompanionGearHunter.Data.SetTooltipPrefix(value) end,
             default = CompanionGearHunter.Data.DEFAULT_TOOLTIP_PREFIX,
@@ -273,13 +270,13 @@ local function OnAddOnLoaded(eventCode, addOnName)
     -- companion Role dropdowns.
     table.insert(optionsTable, {
         type = "header",
-        name = "Gear Quality Upgrades",
+        name = GetString(COMPANIONGEARHUNTER_SETTINGS_UPGRADES_HEADER),
         width = "full",
     })
     table.insert(optionsTable, {
         type = "checkbox",
-        name = "Find Gear Quality Upgrades",
-        tooltip = "When checked, browsing a companion item that's a higher quality than what a companion currently has equipped in a slot you aren't actively hunting for (\"Find\" unchecked) marks that item and adds a note to its tooltip. Weight/type and trait must match what's equipped - only the quality is an upgrade. When unchecked, no companion gets upgrade suggestions, whatever is set below.",
+        name = GetString(COMPANIONGEARHUNTER_SETTINGS_UPGRADES),
+        tooltip = GetString(COMPANIONGEARHUNTER_SETTINGS_UPGRADES_TIP),
         getFunc = function() return CompanionGearHunter.Data.GetUpgradeSuggestionsEnabled() end,
         setFunc = function(value)
             CompanionGearHunter.Data.SetUpgradeSuggestionsEnabled(value)
@@ -290,7 +287,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
     })
     table.insert(optionsTable, {
         type = "description",
-        text = "Upgrade suggestions are only shown for the companions checked below. Items matching your wishlist are not affected.",
+        text = GetString(COMPANIONGEARHUNTER_SETTINGS_UPGRADES_DESC),
         width = "full",
     })
     for _, companion in ipairs(CompanionGearHunter.Data.GetAllCompanions()) do
@@ -298,7 +295,7 @@ local function OnAddOnLoaded(eventCode, addOnName)
         table.insert(optionsTable, {
             type = "checkbox",
             name = companion.name,
-            tooltip = "Suggest quality upgrades for " .. companion.name .. ".",
+            tooltip = zo_strformat(COMPANIONGEARHUNTER_SETTINGS_UPGRADES_COMPANION_TIP, companion.name),
             getFunc = function() return CompanionGearHunter.Data.GetUpgradeEnabledForCompanion(companionId) end,
             setFunc = function(value)
                 CompanionGearHunter.Data.SetUpgradeEnabledForCompanion(companionId, value)
@@ -312,12 +309,12 @@ local function OnAddOnLoaded(eventCode, addOnName)
 
     table.insert(optionsTable, {
         type = "header",
-        name = "Colors",
+        name = GetString(COMPANIONGEARHUNTER_SETTINGS_COLORS_HEADER),
         width = "full",
     })
     table.insert(optionsTable, {
         type = "description",
-        text = "The color of the icons shown on items in your bags, banks, guild stores, trades and mail, in chat, and next to companions in the window. Dark colors are not suggested.",
+        text = GetString(COMPANIONGEARHUNTER_SETTINGS_COLORS_DESC),
         width = "full",
     })
     table.insert(optionsTable, ColorRowOption(COLOR_ROWS[1]))
@@ -325,5 +322,3 @@ local function OnAddOnLoaded(eventCode, addOnName)
 
     LAM:RegisterOptionControls("CompanionGearHunter_Options", optionsTable)
 end
-
-EVENT_MANAGER:RegisterForEvent("CompanionGearHunter_Settings", EVENT_ADD_ON_LOADED, OnAddOnLoaded)

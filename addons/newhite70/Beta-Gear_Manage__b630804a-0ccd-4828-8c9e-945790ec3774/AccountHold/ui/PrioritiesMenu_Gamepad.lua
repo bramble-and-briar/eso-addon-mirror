@@ -333,13 +333,26 @@ function Menu:Initialize(addonRef)
         end)(),
         icon  = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_journal.dds",
 
-        -- SwitchToSelectedScene:819-820. Must never throw: it runs inside the
-        -- pause menu's own input handler.
+        -- SwitchToSelectedScene (zo_mainmenu_gamepad.lua:1010-1011). Must never
+        -- throw: it runs inside the pause menu's own input handler.
+        --
+        -- PRI-11: first choice is the native host screen (ui/
+        -- PrioritiesScreen_Gamepad.lua, Screen:OpenFromMenu). It is PUSHED on
+        -- top of the Collections submenu exactly as the native rows' `scene`
+        -- is (:999-1001), so the screen gets the sibling Collections screens'
+        -- backdrop and B returns to this submenu. If it cannot be built or the
+        -- push does not take, fall back to the proven dialog-over-the-world
+        -- path below, unchanged.
         activatedCallback = function()
             pcall(function()
                 local screen = AccountHold and AccountHold.UI
                               and AccountHold.UI.PrioritiesScreenGamepad
-                if type(screen) == "table" and type(screen.Show) == "function" then
+                if type(screen) ~= "table" then return end
+                if type(screen.OpenFromMenu) == "function" then
+                    local okOpen, opened = pcall(screen.OpenFromMenu, screen)
+                    if okOpen and opened then return end
+                end
+                if type(screen.Show) == "function" then
                     showDialogFromMenu(function() screen:Show() end, AccountHold)
                 end
             end)

@@ -1,0 +1,43 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/APH-Profiler__4963",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4963",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4963",
+  "deleted": false,
+  "directories": [
+    "APH-Profiler"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4963/",
+  "fingerprint": "4397d50bb81543f185fd1accd07eed402809c7b49e8db5170d2b13cb4591b2bf",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18043.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18044.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18045.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18046.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18047.png",
+    "https://cdn-eso.mmoui.com/preview/pvw18048.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4963",
+  "source_url": "https://www.esoui.com/downloads/info4963-APHProfiler.html",
+  "stats": {
+    "downloads": 7,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "APH Profiler",
+  "updated_at": 1792262686000,
+  "version": "2026.10.18.01.41"
+}

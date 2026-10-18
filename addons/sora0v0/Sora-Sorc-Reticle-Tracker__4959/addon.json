@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/sora0v0/Sora-Sorc-Reticle-Tracker__4959",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "sora0v0",
+  "canonical_id": "esoui:4959",
+  "category_id": "58",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4959",
+  "deleted": false,
+  "directories": [
+    "SoraSorcReticleTracker"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4959/",
+  "fingerprint": "e5e51985cadb1f97665fe2b1b092abcca80fc3670556e636bb294b674e9182f9",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18029.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4959",
+  "source_url": "https://www.esoui.com/downloads/info4959-SoraSorcReticleTracker.html",
+  "stats": {
+    "downloads": 6,
+    "favorites": 0,
+    "monthly_downloads": 5
+  },
+  "title": "Sora Sorc Reticle Tracker",
+  "updated_at": 1792241187000,
+  "version": "1.0.0"
+}

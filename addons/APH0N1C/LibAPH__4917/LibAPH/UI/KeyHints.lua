@@ -137,3 +137,133 @@ function LibAPH.CreateKeyHints(parent, name, hints)
 	row:Refresh()
 	return row
 end
+
+local PAD_HINT_PAD = 6
+local PAD_HINT_GAP = 4
+local PAD_HINT_SPACING = 18
+local PAD_HINT_ROW_GAP = 2
+local PAD_HINT_ROW_MIN = 30
+local PAD_HINT_MIN_WIDTH = 300
+local PAD_HINT_LEVEL_STEP = 10
+
+local function WindowOf(control)
+	if not control then return nil end
+	local window = control.GetOwningWindow and control:GetOwningWindow()
+	if type(window) ~= "table" and type(window) ~= "userdata" then window = control end
+	return window
+end
+
+local function DrawOrder(control)
+	local window = WindowOf(control)
+	if not (window and window.GetDrawTier) then return nil end
+	local tier, layer, level = window:GetDrawTier(), window:GetDrawLayer(), window:GetDrawLevel()
+	if type(tier) ~= "number" or type(layer) ~= "number" or type(level) ~= "number" then return nil end
+	return tier, layer, level
+end
+
+local function DrawAbove(box, controls)
+	local tier, layer, level
+	for _, control in ipairs(controls) do
+		if type(control) == "function" then control = control() end
+		local t, l, v = DrawOrder(control)
+		if t and (not tier or t > tier or (t == tier and (l > layer or (l == layer and v > level)))) then
+			tier, layer, level = t, l, v
+		end
+	end
+	if not tier then return end
+	box:SetDrawTier(tier)
+	box:SetDrawLayer(layer)
+	box:SetDrawLevel(level + PAD_HINT_LEVEL_STEP)
+end
+
+function LibAPH.CreatePadHintBar(name, opts)
+	opts = opts or {}
+	local bar = { labels = {}, text = nil, wanted = false }
+	local box = WINDOW_MANAGER:CreateTopLevelWindow(name)
+	box:SetDrawTier(DT_HIGH)
+	box:SetHidden(true)
+	LibAPH.ApplyPanelBackdrop(box, name .. "BG", THEME.BG_HUD)
+	bar.box = box
+	if opts.parent and ZO_PostHookHandler then
+		ZO_PostHookHandler(opts.parent, "OnEffectivelyHidden", function() box:SetHidden(true) end)
+		ZO_PostHookHandler(opts.parent, "OnEffectivelyShown", function()
+			if bar.wanted and bar.owner and not bar.owner:IsHidden() then box:SetHidden(false) end
+		end)
+	end
+
+	local function Label(index)
+		local label = bar.labels[index]
+		if not label then
+			label = WINDOW_MANAGER:CreateControl(name .. "Hint" .. index, box, CT_LABEL)
+			label:SetFont(opts.font or "ZoFontGamepad18")
+			label:SetColor(0.9, 0.9, 0.9, 1)
+			label:SetMaxLineCount(1)
+			bar.labels[index] = label
+		end
+		return label
+	end
+
+	function bar:Hide()
+		box:SetHidden(true)
+		self.text, self.owner, self.wanted = nil, nil, false
+		return 0, 0
+	end
+
+	function bar:Show(owner, parts)
+		if not owner or #parts == 0 then return self:Hide() end
+		if opts.parent and opts.parent:IsHidden() then return self:Hide() end
+		local above = { owner, opts.parent }
+		for _, extra in ipairs(opts.above or {}) do above[#above + 1] = extra end
+		DrawAbove(box, above)
+		local width = math.max(owner:GetWidth(), opts.minWidth or PAD_HINT_MIN_WIDTH)
+		local inner = width - PAD_HINT_PAD * 2
+		local rows, row = {}, { items = {}, width = 0, height = PAD_HINT_ROW_MIN }
+		for index, text in ipairs(parts) do
+			local label = Label(index)
+			label:SetText(text)
+			label:SetHidden(false)
+			local item_w, item_h = label:GetTextWidth(), label:GetTextHeight()
+			if #row.items > 0 and row.width + PAD_HINT_SPACING + item_w > inner then
+				rows[#rows + 1] = row
+				row = { items = {}, width = 0, height = PAD_HINT_ROW_MIN }
+			end
+			row.width = row.width + (#row.items > 0 and PAD_HINT_SPACING or 0) + item_w
+			row.items[#row.items + 1] = { label = label, width = item_w }
+			row.height = math.max(row.height, item_h)
+		end
+		rows[#rows + 1] = row
+		for index = #parts + 1, #self.labels do self.labels[index]:SetHidden(true) end
+		local y = PAD_HINT_PAD
+		for _, line in ipairs(rows) do
+			local x = PAD_HINT_PAD
+			for _, item in ipairs(line.items) do
+				item.label:ClearAnchors()
+				item.label:SetAnchor(LEFT, box, TOPLEFT, x, y + line.height / 2)
+				x = x + item.width + PAD_HINT_SPACING
+			end
+			y = y + line.height + PAD_HINT_ROW_GAP
+		end
+		local height = y - PAD_HINT_ROW_GAP + PAD_HINT_PAD
+		box:SetDimensions(width, height)
+		box:ClearAnchors()
+		self.text, self.owner, self.rows, self.wanted = table.concat(parts, "   "), owner, #rows, true
+		box:SetHidden(false)
+		if owner:GetBottom() + PAD_HINT_GAP + height > GuiRoot:GetHeight() then
+			box:SetAnchor(BOTTOMLEFT, owner, TOPLEFT, 0, -PAD_HINT_GAP)
+			return 0, height + PAD_HINT_GAP
+		end
+		box:SetAnchor(TOPLEFT, owner, BOTTOMLEFT, 0, PAD_HINT_GAP)
+		return height + PAD_HINT_GAP, 0
+	end
+
+	function bar:GetText()
+		if box:IsHidden() then return nil end
+		return self.text
+	end
+
+	function bar:IsShown()
+		return not box:IsHidden()
+	end
+
+	return bar
+end

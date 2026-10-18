@@ -9,7 +9,7 @@
 
 LibAPH = LibAPH or {}
 local LibAPH = LibAPH
-LibAPH.VERSION = "2026.10.07.17.24"
+LibAPH.VERSION = "2026.10.18.01.41"
 
 function LibAPH.L(key, ...)
 	local id = _G["SI_LIBAPH_" .. key]

@@ -1,0 +1,38 @@
+{
+  "archive_format": "zip",
+  "archive_path": "addons/APH0N1C/APH-CodeRunner__4961",
+  "archive_repository": "the-jolly-green-bryant/eso-addon-mirror",
+  "archived": true,
+  "author": "APH0N1C",
+  "canonical_id": "esoui:4961",
+  "category_id": "159",
+  "compatibility": [
+    {
+      "name": "Season One",
+      "version": "12.1.0"
+    }
+  ],
+  "content_id": "esoui:4961",
+  "deleted": false,
+  "directories": [
+    "APH-CodeRunner"
+  ],
+  "download_url": "https://www.esoui.com/downloads/dl4961/",
+  "fingerprint": "c64968d6ce9355792449bb5330907d804ba601e1b5ea3829947b2feb881b1077",
+  "images": [
+    "https://cdn-eso.mmoui.com/preview/pvw18041.png"
+  ],
+  "platform": "pc",
+  "published": true,
+  "source": "esoui",
+  "source_id": "4961",
+  "source_url": "https://www.esoui.com/downloads/info4961-APHCodeRunner.html",
+  "stats": {
+    "downloads": 8,
+    "favorites": 0,
+    "monthly_downloads": 4
+  },
+  "title": "APH CodeRunner",
+  "updated_at": 1792261387000,
+  "version": "2026.10.18.01.41"
+}

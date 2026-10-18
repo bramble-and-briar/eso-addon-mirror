@@ -2,6 +2,13 @@
 -- Hold L2, then press D-pad Left on the gamepad HUD.
 -- L2 remains owned by the game. Read its analog value or the standard block
 -- state; activation does not wait for a Left Up event.
+--
+-- Left is the D-pad only. The bind inherited from UI_SHORTCUT_INPUT_LEFT also arrives when
+-- the left analog stick is pushed left, because the stick emulates the same directional
+-- input, and there is no key code in the handler to tell the two apart. What can be read is
+-- the stick itself: GetGamepadLeftStickX is public, a resting stick reads zero once its
+-- deadzone is applied, and a D-pad press does not move it. So a Left that arrives while the
+-- stick is deflected left is somebody walking, and is handed straight back to the game.
 
 if PBS_SCREENSHOT_MODE_SHORTCUT then
 	return
@@ -25,6 +32,9 @@ local SCREENSHOT_SCENE = "gamepadScreenshotMode"
 local HUD_SCENE = "hud"
 
 local LEFT_TRIGGER_THRESHOLD = 0.5
+-- Below the point where the stick emulates a direction, and far above a worn stick's rest
+-- position: the reading already has the deadzone taken out of it.
+local LEFT_STICK_THRESHOLD = 0.35
 local MAX_HOLD_S = 5
 local WATCHDOG_MS = 100
 local DEFERRED_FIRE = addon.name .. "DeferredFire"
@@ -242,11 +252,38 @@ function addon:IsL2Held()
 	return analogHeld or blocking
 end
 
+-- True when the left analog stick is pushed left far enough to be what produced this Left.
+-- Read-only, and never fatal: an unreadable stick is treated as centred, which leaves the
+-- chord working exactly as it did before this check existed.
+function addon:IsLeftStickLeft()
+	if not GetGamepadLeftStickX then
+		self.lastStickX = "unavailable"
+		return false
+	end
+	local includeDeadzone = GAMEPAD_INCLUDE_DEADZONE
+	if includeDeadzone == nil then
+		includeDeadzone = true
+	end
+	local ok, x = pcall(GetGamepadLeftStickX, includeDeadzone)
+	if not ok or type(x) ~= "number" or x ~= x then
+		self.lastStickX = "error: " .. tostring(x)
+		return false
+	end
+	self.lastStickX = string.format("%.2f", x)
+	return x <= -LEFT_STICK_THRESHOLD
+end
+
 function addon:OnTriggerDown()
 	if self:InCombat() then self:Stop(); return false end
 	self.triggerDowns = (self.triggerDowns or 0) + 1
 	if self.leftDown then return self.consumedTrigger end
 	if not self:Ready() then self.lastInput = "left: not ready"; return false end
+	-- The stick's own left, not the D-pad's. Not consumed: it is the game's input.
+	if self:IsLeftStickLeft() then
+		self.stickRejections = (self.stickRejections or 0) + 1
+		self.lastInput = "left: analog stick, ignored"
+		return false
+	end
 	self.leftDown = true
 	self.consumedTrigger = self:IsL2Held()
 	self.lastInput = self.consumedTrigger and "chord queued" or "left: L2 not detected"
@@ -297,6 +334,12 @@ function addon:OnScreenshotSheathe()
 	if not self:Enabled() or self:InCombat() or not self:InScreenshotMode()
 		or not SCENE_MANAGER:IsShowing(SCREENSHOT_SCENE)
 		or (IsInGamepadPreferredMode and not IsInGamepadPreferredMode()) then
+		return false
+	end
+	-- The sheathe bind is D-pad Left held, and the stick emulates it the same way the
+	-- shortcut's Left is emulated. Walking left in screenshot mode must not stow a weapon.
+	if self:IsLeftStickLeft() then
+		self.lastInput = "sheathe: analog stick, ignored"
 		return false
 	end
 	self.sheatheAttempts = (self.sheatheAttempts or 0) + 1
@@ -531,8 +574,11 @@ function addon:PrintStatus()
 	self:Raw(string.format("left layer: attached=%s active=%s | presses D/U=%d/%d entries=%d",
 		tostring(self.triggerLayerAdded == true), tostring(activeTrigger),
 		self.triggerDowns or 0, self.triggerUps or 0, self.entries or 0))
-	self:Raw(string.format("analog=%s block=%s modifier=%s attempts=%d input=%s",
+	self:IsLeftStickLeft()
+	self:Raw(string.format("analog=%s block=%s modifier=%s stickX=%s stick ignored=%d",
 		tostring(self.lastAnalog), tostring(self.lastBlocking), tostring(self.lastModifierSource),
+		tostring(self.lastStickX), self.stickRejections or 0))
+	self:Raw(string.format("attempts=%d input=%s",
 		self.fireAttempts or 0, tostring(self.lastInput or "none")))
 	self:Raw(string.format("state: hudScene=%s guiHidden=%s error=%s last=%s",
 		tostring(SCENE_MANAGER and SCENE_MANAGER:GetHUDSceneName()), tostring(self.guiHidden == true),

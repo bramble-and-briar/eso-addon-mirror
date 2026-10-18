@@ -643,6 +643,33 @@ function Index:Query(filter)
         if keep and filter.categoryKey == "equipped" then keep = false end
         if keep and filter.companionType
            and not entryMatchesCompanionType(entry, filter.companionType) then keep = false end
+        -- The same item-level filters the persisted rows honour. Without these
+        -- a narrowed view (one set, one trait, bound-only, a level band) still
+        -- listed every unrelated craft material.
+        if keep and filter.setId and entry.setId ~= filter.setId then keep = false end
+        if keep and filter.setName and filter.setName ~= "" then
+            if string.lower(entry.setName or "") ~= string.lower(filter.setName) then keep = false end
+        end
+        if keep and filter.traitType and entry.traitType ~= filter.traitType then keep = false end
+        if keep and filter.traitName and filter.traitName ~= "" then
+            if string.lower(entry.traitName or "") ~= string.lower(filter.traitName) then keep = false end
+        end
+        if keep and filter.bound == "boundOnly"   and not entry.isCharacterBound then keep = false end
+        if keep and filter.bound == "unboundOnly" and entry.isCharacterBound     then keep = false end
+        if keep and filter.requiredLevelType == "level" then
+            local level = entryRequiredLevel(entry)
+            if level then
+                if filter.minLevel and level < filter.minLevel then keep = false end
+                if filter.maxLevel and level > filter.maxLevel then keep = false end
+            end
+        end
+        if keep and filter.requiredLevelType == "cp" then
+            local cp = entryRequiredChampionPoints(entry)
+            if cp then
+                if filter.minLevel and cp < filter.minLevel then keep = false end
+                if filter.maxLevel and cp > filter.maxLevel then keep = false end
+            end
+        end
         if keep and filter.traitTypes and not setContainsValue(filter.traitTypes, entry.traitType) then keep = false end
         if keep and filter.armorType  and entry.armorType  ~= filter.armorType  then keep = false end
         if keep and filter.weaponType and entry.weaponType ~= filter.weaponType then keep = false end
